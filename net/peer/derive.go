@@ -26,6 +26,7 @@ import (
 // two different applications into using the same context string.
 // Returns ErrEmptyContext if the context is empty.
 func DeriveKey(context string, salt []byte, privKey crypto.PrivKey, out []byte) error {
+	// Require the domain separator that isolates the derived key material.
 	if context == "" {
 		return ErrEmptyContext
 	}
@@ -96,6 +97,7 @@ func DeriveKey(context string, salt []byte, privKey crypto.PrivKey, out []byte) 
 		}
 	}
 
+	// Derive the output key bytes from the shared secret and accumulated salt.
 	_, err = dkh.Write(material) // never returns an error
 	if err != nil {
 		return err

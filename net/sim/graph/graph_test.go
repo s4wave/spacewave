@@ -7,10 +7,12 @@ import (
 
 // TestSimpleGraph tests constructing a simple network graph
 func TestSimpleGraph(t *testing.T) {
+	// Create two disconnected LANs in the simulated network graph.
 	g := NewGraph()
 	lan1 := AddLAN(g)
 	lan2 := AddLAN(g)
 
+	// Prepare a helper that generates peers on the test graph.
 	ctx := context.Background()
 	addPeer := func() *Peer {
 		p, err := GenerateAddPeer(ctx, g)
@@ -33,15 +35,18 @@ func TestSimpleGraph(t *testing.T) {
 		}
 	}
 
+	// Verify newly created peers start with no network links.
 	p0 := addPeer()
 	p1 := addPeer()
 	assertLinkedPeerCount(p0, 0)
 	assertLinkedPeerCount(p1, 0)
 
+	// Join both initial peers to the first LAN.
 	lan1.AddPeer(g, p0)
 	assertLinkedPeerCount(p0, 0)
 	lan1.AddPeer(g, p1)
 
+	// Verify peers on the second LAN become linked within that LAN.
 	p2 := addPeer()
 	p3 := addPeer()
 	lan2.AddPeer(g, p2)
@@ -80,6 +85,7 @@ func TestSimpleGraph(t *testing.T) {
 		}
 	}
 
+	// Verify reachability within each LAN and prepare checks across the LANs.
 	assertReachability(p0, p1, true)
 	assertReachability(p2, p3, true)
 	assertNetworkCrossCommunication := func(expected bool) {

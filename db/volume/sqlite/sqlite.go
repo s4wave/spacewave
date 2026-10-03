@@ -25,6 +25,7 @@ func NewSqlite(
 	le *logrus.Entry,
 	conf *Config,
 ) (*Sqlite, error) {
+	// Open the SQLite store with the configured cache and database layout.
 	pragmas := sqlite.Pragmas{
 		CacheSize: conf.GetCacheSize(),
 		MmapSize:  conf.GetMmapSize(),
@@ -35,11 +36,15 @@ func NewSqlite(
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the opened store as a volume with database deletion support.
 	path := conf.GetPath()
 	vol, err := NewWithStore(ctx, le, conf, store, func() error { return os.Remove(path) })
 	if err != nil {
 		return nil, err
 	}
+
+	// Coordinate volume writes by database path and table namespace.
 	vol.Coordinator = coord_filelock.NewCoordinator(
 		filepath.Dir(path),
 		path+"\x00"+conf.GetTable(),
@@ -58,6 +63,7 @@ type Store interface {
 // NewWithStore takes ownership of an opened SQLite store, including on failure.
 // The opener configures durability and coordinates access to the backing path.
 func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Store, deleteFn func() error) (*Sqlite, error) {
+	// Configure the volume key namespace while taking ownership of the SQLite pool.
 	db := store.GetDB()
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
@@ -65,11 +71,13 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 		return nil, err
 	}
 
+	// Enable transaction logging when requested by the volume configuration.
 	var vstore skvtx.Store = store
 	if conf.GetVerbose() {
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
+	// Build the volume with SQLite storage statistics and pool cleanup.
 	vol, err := kvtx.NewVolume(
 		ctx,
 		ControllerID,
@@ -79,6 +87,7 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		func(ctx context.Context) (*volume.StorageStats, error) {
+			// Measure the SQLite database footprint from its page count and page size.
 			var pageCount, pageSize uint64
 			if err := db.QueryRowContext(ctx, "PRAGMA page_count").Scan(&pageCount); err != nil {
 				return nil, err
@@ -86,6 +95,8 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 			if err := db.QueryRowContext(ctx, "PRAGMA page_size").Scan(&pageSize); err != nil {
 				return nil, err
 			}
+
+			// Count stored blocks in a read transaction for the volume statistics.
 			tx, err := store.NewTransaction(ctx, false)
 			if err != nil {
 				return nil, err
@@ -95,6 +106,7 @@ func NewWithStore(ctx context.Context, le *logrus.Entry, conf *Config, store Sto
 			if err != nil {
 				return nil, err
 			}
+
 			return &volume.StorageStats{
 				TotalBytes: pageCount * pageSize,
 				BlockCount: count,

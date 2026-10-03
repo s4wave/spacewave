@@ -147,6 +147,7 @@ func NewWorldEngine(
 		return nil, errors.Wrap(err, "new world engine")
 	}
 
+	// Retain the engine and cursor for release after the caller finishes reading.
 	w := &WorldEngine{Engine: bengine, Cursor: cursor}
 
 	// Follow published heads for the lifetime of the returned engine.
@@ -158,6 +159,7 @@ func NewWorldEngine(
 			nil,
 			watchable,
 			func(_ sobject.SharedObjectStateSnapshot) error {
+				// Decode the newly published CDN head before updating the readable world.
 				nextInner, innerErr := so.GetHeadInnerState()
 				if innerErr != nil {
 					le.WithError(innerErr).
@@ -167,6 +169,8 @@ func NewWorldEngine(
 				if nextInner == nil || nextInner.GetHeadRef() == nil {
 					return nil
 				}
+
+				// Resolve the new world head through the CDN bucket and apply it to the engine.
 				nextRef := nextInner.GetHeadRef().CloneVT()
 				nextRef.BucketId = bucketID
 				if setErr := bengine.SetRootRef(rctx, nextRef); setErr != nil {

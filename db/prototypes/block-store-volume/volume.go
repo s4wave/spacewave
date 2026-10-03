@@ -61,6 +61,7 @@ func NewEncryptedVolume(
 	storeConf *store_kvtx.Config,
 	noGenerateKey, noWriteKey bool,
 ) (volume.Volume, error) {
+	// Configure the key namespace for the encrypted volume.
 	kvkey, err := kvkey.NewKVKey(conf)
 	if err != nil {
 		return nil, err
@@ -90,7 +91,6 @@ func NewEncryptedVolume(
 
 	// encryption transform types
 	sfs := transform_all.BuildFactorySet()
-
 	var headCursor *bucket_lookup.Cursor
 
 	// The READ only happens once, or this would be in a separate util function.

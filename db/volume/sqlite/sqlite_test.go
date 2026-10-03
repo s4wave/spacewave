@@ -18,11 +18,13 @@ import (
 
 // TestSqliteVolume tests the block graph backed volume.
 func TestSqliteVolume(t *testing.T) {
+	// Configure debug logging for the SQLite volume test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Register the SQLite volume factory on the test storage bus.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -36,6 +38,7 @@ func TestSqliteVolume(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
+	// Select a database path and table within the temporary test directory.
 	path := filepath.Join(tempDir, "test.db")
 	table := "hydra"
 
@@ -51,6 +54,7 @@ func TestSqliteVolume(t *testing.T) {
 	}
 	defer diRef.Release()
 
+	// Obtain the running SQLite volume for the shared volume contract checks.
 	bvol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -71,28 +75,33 @@ func TestSqliteVolume(t *testing.T) {
 }
 
 func TestSqliteKeyedLeaseNamespacesTables(t *testing.T) {
+	// Prepare a shared database path for two independent volume tables.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	path := filepath.Join(t.TempDir(), "shared.db")
 
+	// Open the first table as a SQLite volume.
 	volumeA, err := volume_sqlite.NewSqlite(ctx, le, volume_sqlite.NewConfig(path, "hydra_a"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = volumeA.Close() })
 
+	// Open the second table in the same SQLite database.
 	volumeB, err := volume_sqlite.NewSqlite(ctx, le, volume_sqlite.NewConfig(path, "hydra_b"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = volumeB.Close() })
 
+	// Require the first table to acquire its shared-object write lease.
 	leaseA, acquired, err := volumeA.TryAcquireWriteLease(ctx, coord.Scope{VolumeID: volumeA.GetID(), Key: "shared-object"})
 	if err != nil || !acquired {
 		t.Fatalf("acquire first SQLite table lease: acquired=%v err=%v", acquired, err)
 	}
 	t.Cleanup(func() { _ = leaseA.Release(ctx) })
 
+	// Verify the second table can lease the same object key independently.
 	leaseB, acquired, err := volumeB.TryAcquireWriteLease(ctx, coord.Scope{VolumeID: volumeB.GetID(), Key: "shared-object"})
 	if err != nil || !acquired {
 		t.Fatalf("acquire second SQLite table lease: acquired=%v err=%v", acquired, err)

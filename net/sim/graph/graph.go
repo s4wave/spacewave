@@ -87,16 +87,21 @@ func (g *Graph) BuildEdge(from, to Node) Edge {
 // AddEdge adds an edge to the network graph, adding its endpoints as
 // needed. Panics on self-edges.
 func (g *Graph) AddEdge(edge Edge) {
+	// Require distinct endpoints before adding the graph edge.
 	from, to := edge.From(), edge.To()
 	if from.ID() == to.ID() {
 		panic("sim: adding self edge")
 	}
+
+	// Register both endpoint nodes before recording their adjacency.
 	if _, exists := g.nodes[from.ID()]; !exists {
 		g.AddNode(from)
 	}
 	if _, exists := g.nodes[to.ID()]; !exists {
 		g.AddNode(to)
 	}
+
+	// Record the edge in both endpoint adjacency maps for undirected traversal.
 	if g.adj[from.ID()] == nil {
 		g.adj[from.ID()] = make(map[int64]Edge)
 	}
@@ -109,10 +114,13 @@ func (g *Graph) AddEdge(edge Edge) {
 
 // From returns all nodes directly connected to the node, ordered by ID.
 func (g *Graph) From(n Node) []Node {
+	// Locate the graph node adjacency and return early for an isolated node.
 	neighbors := g.adj[n.ID()]
 	if len(neighbors) == 0 {
 		return nil
 	}
+
+	// Collect adjacent graph nodes in stable identifier order.
 	nodes := make([]Node, 0, len(neighbors))
 	for id := range neighbors {
 		nodes = append(nodes, g.nodes[id])
@@ -129,9 +137,12 @@ func (g *Graph) FromNodes(n Node) []Node {
 // ShortestPath finds the shortest path between the two nodes by hop
 // count. Returns a 0 len slice if not found.
 func (g *Graph) ShortestPath(n1, n2 Node) []Node {
+	// Return the starting node when the requested path has no hops.
 	if n1.ID() == n2.ID() {
 		return []Node{n1}
 	}
+
+	// Search the graph breadth first and reconstruct the first path to the target.
 	prev := map[int64]Node{n1.ID(): nil}
 	queue := []Node{n1}
 	for len(queue) != 0 {

@@ -16,11 +16,13 @@ import (
 )
 
 func Run(ctx context.Context, le *logrus.Entry) error {
+	// Start the storage bus used by the prototype volume.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
 	}
 
+	// Mount the base storage volume for the encrypted wrapper.
 	verbose := false
 	av, _, svolRef, err := common.AddStorageVolume(ctx, le, b, sr, verbose)
 	if err != nil {
@@ -37,6 +39,7 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	defer ncRef.Release()
 	le.Info("node controller resolved")
 
+	// Use the mounted volume controller as the encrypted volume backing store.
 	le.Info("storage volume resolved")
 	baseVolCtr := av.(volume.Controller)
 
@@ -70,6 +73,8 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	if err != nil {
 		panic(err)
 	}
+
+	// Execute the encrypted volume controller on the storage bus.
 	go func() {
 		err := b.ExecuteController(ctx, volCtr)
 		if err != nil {
@@ -78,6 +83,7 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 		}
 	}()
 
+	// Exercise the encrypted volume with the Cayley storage demo.
 	le.Info("storage volume(s) resolved")
 	if err := common.RunDemoCayley(ctx, le, b, volCtr); err != nil {
 		return err
@@ -87,10 +93,13 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 }
 
 func main() {
+	// Configure debug logging for the encrypted volume prototype.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
+
+	// Run the storage demo and report its failure to the invoking process.
 	if err := Run(ctx, le); err != nil {
 		os.Stderr.WriteString(err.Error())
 		os.Stderr.WriteString("\n")

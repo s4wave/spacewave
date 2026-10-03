@@ -40,6 +40,7 @@ func EncryptToEd25519(
 	context string,
 	msgSrc []byte,
 ) ([]byte, error) {
+	// Require a complete Ed25519 destination key before deriving the message key.
 	if len(tPubKey) != 32 {
 		return nil, errors.Errorf("unexpected ed25519 public key len: %d", len(tPubKey))
 	}
@@ -170,9 +171,11 @@ func DecryptWithEd25519(
 	context string,
 	ciphertext []byte,
 ) ([]byte, error) {
+	// Require a complete Ed25519 destination key before opening the message.
 	if len(tPrivKey) != 64 {
 		return nil, errors.Errorf("unexpected ed25519 private key len: %d", len(tPrivKey))
 	}
+
 	// msgNonce[:4] + aes256(msgPubKey) + chacha20poly1305 tag
 	if len(ciphertext) < 4+32+chacha20poly1305.Overhead {
 		return nil, ErrShortMessage

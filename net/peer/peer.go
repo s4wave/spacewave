@@ -91,10 +91,13 @@ func NewPeerWithID(id ID) (Peer, error) {
 
 // ParsePeerIDWithPubKey parses the peer id and extracts the public key.
 func ParsePeerIDWithPubKey(peerIDStr string) (ID, crypto.PubKey, error) {
+	// Decode the peer identity from its base58 representation.
 	peerID, err := IDB58Decode(peerIDStr)
 	if err != nil {
 		return "", nil, err
 	}
+
+	// Recover the public key embedded in the decoded peer identity.
 	peerPub, err := peerID.ExtractPublicKey()
 	if err != nil {
 		return peerID, nil, err

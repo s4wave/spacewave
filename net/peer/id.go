@@ -134,6 +134,7 @@ func IDsToString(ids []ID) []string {
 
 // encodeMultihash encodes a multihash: varint(code) + varint(len(digest)) + digest.
 func encodeMultihash(code uint64, digest []byte) []byte {
+	// Encode the multihash header and digest into a contiguous byte buffer.
 	buf := make([]byte, binary.MaxVarintLen64*2+len(digest))
 	n := binary.PutUvarint(buf, code)
 	n += binary.PutUvarint(buf[n:], uint64(len(digest)))

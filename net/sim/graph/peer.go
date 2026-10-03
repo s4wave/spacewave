@@ -37,10 +37,13 @@ type Peer struct {
 
 // GenerateAddPeer generates a peer private key and adds it.
 func GenerateAddPeer(ctx context.Context, g *Graph) (*Peer, error) {
+	// Generate the identity keypair for a new simulated peer.
 	npeer, err := peer.NewPeer(nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Obtain the private key used to register the simulated peer.
 	peerPriv, err := npeer.GetPrivKey(ctx)
 	if err != nil {
 		return nil, err
@@ -50,10 +53,13 @@ func GenerateAddPeer(ctx context.Context, g *Graph) (*Peer, error) {
 
 // AddPeer adds a peer to the network graph.
 func AddPeer(g *Graph, peerPriv crypto.PrivKey) (*Peer, error) {
+	// Derive the simulated peer identity from its supplied private key.
 	peerID, err := peer.IDFromPrivateKey(peerPriv)
 	if err != nil {
 		return nil, err
 	}
+
+	// Register the peer with a new graph node and controller configuration set.
 	l := &Peer{
 		Node:             g.BuildNode(),
 		peerID:           peerID,
@@ -122,9 +128,12 @@ func (p *Peer) GetPeerPriv() crypto.PrivKey {
 // GetLinkedPeers returns all peers that should have a link with the peer.
 // This includes other peers directly linked as well as those linked by a lan or multiple lans.
 func (p *Peer) GetLinkedPeers(g *Graph) []*Peer {
+	// Seed network traversal from the peer while excluding the peer itself.
 	stack := g.FromNodes(p)
 	var peers []*Peer
 	seenNodes := map[Node]struct{}{p: {}}
+
+	// Traverse connected LANs and collect each reachable peer once.
 	for len(stack) != 0 {
 		nn := stack[len(stack)-1]
 		stack[len(stack)-1] = nil
