@@ -11,6 +11,7 @@ import (
 )
 
 func TestGetCursorOpsRebindsReleasedCursor(t *testing.T) {
+	// Prepare a remote client that returns a stable inode and operations handle.
 	const (
 		cursorHandleID = 7
 		opsHandleID    = 9
@@ -30,16 +31,22 @@ func TestGetCursorOpsRebindsReleasedCursor(t *testing.T) {
 	}
 	client.remoteFSCursor = newRemoteFSCursor(client, 1)
 
+	// Retain cached operations bound to a cursor that has been released.
 	releasedCursor := newRemoteFSCursor(client, cursorHandleID)
 	releasedCursor.released.Store(true)
 	client.ops[opsHandleID] = newRemoteFSCursorOps(releasedCursor, opsHandleID, nodeType, "asset.mjs")
 
+	// Register a live replacement cursor under the same remote handle.
 	currentCursor := newRemoteFSCursor(client, cursorHandleID)
 	client.cursors[cursorHandleID] = currentCursor
+
+	// Request operations for the replacement cursor.
 	ops, err := currentCursor.GetCursorOps(t.Context())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the returned operations are live and bound to the replacement cursor.
 	if ops.CheckReleased() {
 		t.Fatal("current cursor reused operations bound to the released cursor")
 	}
@@ -49,6 +56,7 @@ func TestGetCursorOpsRebindsReleasedCursor(t *testing.T) {
 }
 
 func TestGetCursorOpsRejectsConcurrentRelease(t *testing.T) {
+	// Prepare a client whose cursor is released during the operations request.
 	nodeType := unixfs_block.NodeType_NodeType_FILE
 	serviceClient := &testFSCursorServiceClient{
 		opsResponse: &unixfs_rpc.GetCursorOpsResponse{
@@ -70,7 +78,10 @@ func TestGetCursorOpsRejectsConcurrentRelease(t *testing.T) {
 		currentCursor.released.Store(true)
 	}
 
+	// Request operations while the service releases the cursor.
 	ops, err := currentCursor.GetCursorOps(t.Context())
+
+	// Verify concurrent release returns an error without exposing operations.
 	if !errors.Is(err, unixfs_errors.ErrReleased) {
 		t.Fatalf("expected released cursor error, got %v", err)
 	}

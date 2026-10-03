@@ -39,6 +39,7 @@ func (c *remoteFSCursor) CheckReleased() bool {
 // Releasing a child cursor does not release the parent, and vise-versa.
 // Return nil, ErrReleased if this FSCursor was released.
 func (c *remoteFSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) {
+	// Resolve the remote proxy cursor and handle a released source cursor.
 	resp, err := c.c.client.GetProxyCursor(ctx, &unixfs_rpc.GetProxyCursorRequest{
 		CursorHandleId: c.cursorHandleID,
 		ClientHandleId: c.c.clientHandleID,
@@ -53,18 +54,22 @@ func (c *remoteFSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, e
 		return nil, err
 	}
 
+	// Return without redirection when the server supplies no proxy cursor.
 	cursorHandleID := resp.GetCursorHandleId()
 	if cursorHandleID == 0 {
 		return nil, nil
 	}
 
+	// Lock the client registry while adopting the returned remote handle.
 	c.c.mtx.Lock()
 	defer c.c.mtx.Unlock()
 
+	// Require a live client before registering its proxy cursor.
 	if c.c.released.Load() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Register the remote proxy cursor for subsequent operations.
 	cursor := c.c.ingestCursorLocked(cursorHandleID)
 	if cursor == nil {
 		return nil, unixfs_errors.ErrReleased
@@ -93,10 +98,12 @@ func (c *remoteFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 // Returning nil, nil will be corrected to nil, ErrNotExist.
 // Return nil, ErrReleased to indicate this FSCursor was released.
 func (c *remoteFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) {
+	// Require a live cursor and client before adopting remote operations.
 	if c.CheckReleased() || c.c.released.Load() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Request remote inode operations and handle a released cursor.
 	resp, err := c.c.client.GetCursorOps(ctx, &unixfs_rpc.GetCursorOpsRequest{
 		CursorHandleId: c.cursorHandleID,
 	})
@@ -110,21 +117,26 @@ func (c *remoteFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, 
 		return nil, err
 	}
 
+	// Require an operations handle in the remote response.
 	opsHandleID := resp.GetOpsHandleId()
 	if opsHandleID == 0 {
 		return nil, unixfs_rpc.ErrHandleIDEmpty
 	}
 
+	// Lock the client registry while adopting the returned remote handle.
 	c.c.mtx.Lock()
 	defer c.c.mtx.Unlock()
 
+	// Require a live cursor and client before adopting remote operations.
 	if c.CheckReleased() || c.c.released.Load() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
+	// Read the inode identity used to match cached remote operations.
 	nodeType := resp.GetNodeType()
 	name := resp.GetName()
 
+	// Reuse matching remote operations or register a replacement for the cursor.
 	retOps, retOpsOk := c.c.ops[opsHandleID]
 	if !retOpsOk || retOps == nil || retOps.CheckReleased() || retOps.name != name || retOps.nodeType != nodeType {
 		retOps = newRemoteFSCursorOps(c, opsHandleID, nodeType, resp.GetName())

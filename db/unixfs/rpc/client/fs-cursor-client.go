@@ -41,6 +41,7 @@ type FSCursorClient struct {
 // does not return until the init message is received from the remote.
 // the context is used for the persistent goroutine.
 func BuildFSCursorClient(rctx context.Context, client unixfs_rpc.SRPCFSCursorServiceClient) (*FSCursorClient, error) {
+	// Open the cursor event stream with a cancelable client lifetime.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	strm, err := client.FSCursorClient(ctx, &unixfs_rpc.FSCursorClientRequest{})
 	if err != nil {
@@ -48,6 +49,7 @@ func BuildFSCursorClient(rctx context.Context, client unixfs_rpc.SRPCFSCursorSer
 		return nil, err
 	}
 
+	// Receive the initial cursor response before exposing the client.
 	resp, err := strm.Recv()
 	if err != nil {
 		ctxCancel()
@@ -70,6 +72,7 @@ func BuildFSCursorClient(rctx context.Context, client unixfs_rpc.SRPCFSCursorSer
 		return nil, errors.New("unexpected non-init msg as first response to FSCursorClient")
 	}
 
+	// Require server handles for both the client and its root cursor.
 	clientHandleID, rootCursorHandleID := initMsg.GetClientHandleId(), initMsg.GetCursorHandleId()
 	if clientHandleID == 0 {
 		ctxCancel()
@@ -82,6 +85,7 @@ func BuildFSCursorClient(rctx context.Context, client unixfs_rpc.SRPCFSCursorSer
 		return nil, errors.New("unexpected empty root cursor handle id in fs cursor client init")
 	}
 
+	// Register the root cursor and start receiving events for the client.
 	fsc := &FSCursorClient{
 		ctx:            ctx,
 		cancel:         ctxCancel,
@@ -100,8 +104,12 @@ func BuildFSCursorClient(rctx context.Context, client unixfs_rpc.SRPCFSCursorSer
 
 // execute is the goroutine managing the FSCursorClient.
 func (c *FSCursorClient) execute(ctx context.Context, strm unixfs_rpc.SRPCFSCursorService_FSCursorClientClient) {
+	// Release client handles and close the event stream when reception ends.
 	defer func() {
+		// Cancel the client lifetime before retiring its registered handles.
 		c.Release()
+
+		// Mark the registered operations and cursors released under the client lock.
 		c.mtx.Lock()
 		for _, ops := range c.ops {
 			ops.released.Store(true)
@@ -113,16 +121,21 @@ func (c *FSCursorClient) execute(ctx context.Context, strm unixfs_rpc.SRPCFSCurs
 		c.cursors = make(map[uint64]*remoteFSCursor, 0)
 		c.cursorOps = make(map[uint64]uint64, 0)
 		c.mtx.Unlock()
+
+		// Close the remote event stream after retiring the local handles.
 		_ = strm.Close()
 	}()
 
+	// Receive cursor changes for the lifetime of the remote event stream.
 	msg := &unixfs_rpc.FSCursorClientResponse{}
 	for {
+		// Receive the next cursor event into the reusable response.
 		msg.Reset()
 		if err := strm.RecvTo(msg); err != nil {
 			return
 		}
 
+		// Apply cursor changes received from the remote filesystem.
 		switch resp := msg.GetBody().(type) {
 		case *unixfs_rpc.FSCursorClientResponse_CursorChange:
 			if ch := resp.CursorChange; ch != nil {
@@ -134,14 +147,17 @@ func (c *FSCursorClient) execute(ctx context.Context, strm unixfs_rpc.SRPCFSCurs
 
 // handleCursorChange handles an incoming cursor change message.
 func (c *FSCursorClient) handleCursorChange(ctx context.Context, ch *unixfs_rpc.FSCursorChange) {
+	// Ignore cursor events without a remote handle.
 	cursorHandleID := ch.GetCursorHandleId()
 	if cursorHandleID == 0 {
 		return
 	}
 
+	// Lock the cursor registry while applying the remote change.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Ignore events for cursors absent from the client registry.
 	cursor, ok := c.cursors[cursorHandleID]
 	if !ok {
 		return
