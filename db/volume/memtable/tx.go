@@ -48,12 +48,16 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Set sets key to a copy of value.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
+	// Require an active write transaction and a nonempty table key.
 	if err := t.writable(key); err != nil {
 		return err
 	}
+
+	// Store private key and value copies and record the transaction change.
 	op := Op{Key: bytes.Clone(key), Value: bytes.Clone(value)}
 	t.tree.Set(entry{key: op.Key, value: op.Value})
 	t.ops = append(t.ops, op)
+
 	return nil
 }
 

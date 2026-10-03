@@ -27,6 +27,7 @@ func CanvasFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require World state before resolving the Canvas object.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
@@ -42,6 +43,7 @@ func CanvasFactory(
 		return nil, nil, world.ErrObjectNotFound
 	}
 
+	// Decode the Canvas record within the object read scope.
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var err error
 		state, err = s4wave_canvas.UnmarshalCanvasState(ctx, bcs)
@@ -51,10 +53,13 @@ func CanvasFactory(
 		return nil, nil, err
 	}
 
+	// Supply an empty Canvas record when the object has no saved state.
 	if state == nil {
 		state = &s4wave_canvas.CanvasState{}
 	}
 
+	// Expose the Canvas Resource and its close callback through RPC.
 	resource := s4wave_canvas.NewCanvasResource(ws, engine, objectKey, state)
+
 	return resource.GetMux(), resource.Close, nil
 }

@@ -48,6 +48,7 @@ func NewGzip(c *Config) (*Gzip, error) {
 // EncodeBlock encodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (g *Gzip) EncodeBlock(data []byte) ([]byte, error) {
+	// Acquire a pooled gzip writer for this block output.
 	var buf bytes.Buffer
 	buf.Grow(len(data))
 	wr, ok := g.writers.Get().(*gzip.Writer)
@@ -61,6 +62,8 @@ func (g *Gzip) EncodeBlock(data []byte) ([]byte, error) {
 		wr.Reset(io.Discard)
 		g.writers.Put(wr)
 	}()
+
+	// Compress the block and finish the gzip stream before exposing its bytes.
 	if _, err := wr.Write(data); err != nil {
 		_ = wr.Close()
 		return nil, err
@@ -68,12 +71,14 @@ func (g *Gzip) EncodeBlock(data []byte) ([]byte, error) {
 	if err := wr.Close(); err != nil {
 		return nil, err
 	}
+
 	return buf.Bytes(), nil
 }
 
 // DecodeBlock decodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
+	// Acquire a pooled gzip reader and release block input after decoding.
 	rd := gzipReaders.Get().(*gzipReader)
 	rd.input.Reset(data)
 	defer func() {
@@ -83,6 +88,8 @@ func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
 		}
 		gzipReaders.Put(rd)
 	}()
+
+	// Initialize or reset the gzip decoder for the current block.
 	var err error
 	if rd.reader == nil {
 		rd.reader, err = gzip.NewReader(&rd.input)
@@ -93,15 +100,19 @@ func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	// Decode the block within the maximum permitted output size.
 	var buf bytes.Buffer
 	buf.Grow(len(data))
 	lrd := &io.LimitedReader{R: rd.reader, N: block.MaxBlockSize + 1}
 	if _, err := io.Copy(&buf, lrd); err != nil {
 		return nil, err
 	}
+
+	// Reject gzip output that exceeds the block size limit.
 	if lrd.N == 0 {
 		return nil, errors.Errorf("gzip decoded block exceeds max block size: %d", block.MaxBlockSize)
 	}
+
 	return buf.Bytes(), nil
 }
 

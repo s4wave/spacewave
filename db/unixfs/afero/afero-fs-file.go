@@ -71,6 +71,7 @@ func (f *AferoFSFile) Name() string {
 // directory, Readdir returns the FileInfo read until that point
 // and a non-nil error.
 func (f *AferoFSFile) Readdir(count int) ([]os.FileInfo, error) {
+	// Require a directory node before reading its entries.
 	// note: f.idx is used as the current offset
 	nodeType, err := f.h.GetNodeType(f.ctx)
 	if err != nil {
@@ -80,6 +81,7 @@ func (f *AferoFSFile) Readdir(count int) ([]os.FileInfo, error) {
 		return nil, &os.PathError{Op: "readdir", Path: f.name, Err: errors.New("not a dir")}
 	}
 
+	// Normalize the directory offset and requested entry count.
 	var idx uint64
 	idxBefore := f.idx.Load()
 	if idxBefore > 0 {
@@ -89,6 +91,7 @@ func (f *AferoFSFile) Readdir(count int) ([]os.FileInfo, error) {
 		count = 0
 	}
 
+	// Read directory entries and advance the offset after a successful read.
 	fi, err := unixfs.ReaddirAllToFileInfo(f.ctx, idx, uint64(count), f.h) //nolint:gosec
 	if err == nil {
 		f.idx.Add(int64(len(fi)))
@@ -109,15 +112,19 @@ func (f *AferoFSFile) Readdirnames(limit int) ([]string, error) {
 
 // Write writes data to the file node.
 func (f *AferoFSFile) Write(p []byte) (n int, err error) {
+	// Require a writable file handle before changing the UnixFS node.
 	if f.GetReadOnly() {
 		return 0, syscall.EPERM
 	}
 
+	// Write the file contents at the current handle offset.
 	startIdx := f.idx.Load()
 	err = f.h.WriteAt(f.ctx, startIdx, p, f.timestamp())
 	if err != nil {
 		return 0, err
 	}
+
+	// Advance the file handle offset by the completed write length.
 	n = len(p)
 	if n != 0 {
 		f.idx.Add(int64(n))

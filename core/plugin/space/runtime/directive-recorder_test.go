@@ -44,6 +44,7 @@ func (r *directiveRecorder) HandleDirective(
 	_ context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Record the parent directive and signal its arrival to the test.
 	r.mu.Lock()
 	r.dirs = append(r.dirs, inst.GetDirective())
 	r.mu.Unlock()
@@ -63,6 +64,7 @@ func (r *directiveRecorder) Close() error {
 // waitFor waits for the next directive and checks that it is equivalent to
 // want.
 func (r *directiveRecorder) waitFor(t *testing.T, want directive.Directive) {
+	// Wait for the recorder to observe the next parent directive.
 	t.Helper()
 	select {
 	case <-r.seen:
@@ -70,9 +72,12 @@ func (r *directiveRecorder) waitFor(t *testing.T, want directive.Directive) {
 		t.Fatalf("parent did not receive %T", want)
 	}
 
+	// Capture the most recently recorded parent directive.
 	r.mu.Lock()
 	got := r.dirs[len(r.dirs)-1]
 	r.mu.Unlock()
+
+	// Verify the recorded directive matches the expected parent request.
 	equivalent, ok := want.(directive.DirectiveWithEquiv)
 	if !ok || !equivalent.IsEquivalent(got) {
 		t.Fatalf("parent directive = %T, want %T", got, want)

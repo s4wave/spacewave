@@ -28,21 +28,28 @@ func NewCursor(
 	ctx context.Context,
 	ref resource_client.ResourceRef,
 ) (*bucket_lookup.Cursor, error) {
+	// Acquire the RPC client for the cursor Resource reference.
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
 	}
+
+	// Read the server cursor object reference and bucket override.
 	service := NewSRPCBucketLookupCursorResourceServiceClient(srpcClient)
 	resp, err := service.GetRef(ctx, &GetRefRequest{})
 	if err != nil {
 		return nil, err
 	}
+
+	// Resolve the cursor transform against its RPC block store.
 	objRef := resp.GetRef()
 	store := &cursorStore{StoreOps: block_rpc_client.NewBlockStore(block_rpc.NewSRPCBlockStoreClient(srpcClient), 0, false)}
 	conf, xfrm, err := buildCursorTransform(ctx, store, objRef)
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the server cursor with a release callback for its Resource reference.
 	var once sync.Once
 	cursor := bucket_lookup.NewCursorWithRelease(
 		ctx,
@@ -58,7 +65,10 @@ func NewCursor(
 			once.Do(ref.Release)
 		},
 	)
+
+	// Preserve the server bucket override when following object references.
 	cursor.SetBucketIDOverride(resp.GetBucketIdOverride())
+
 	return cursor, nil
 }
 
@@ -70,6 +80,7 @@ func AccessCursor(
 	resourceID uint32,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
+	// Acquire a cursor Resource reference for the callback lifetime.
 	ref := client.CreateResourceReference(resourceID)
 	cursor, err := NewCursor(ctx, ref)
 	if err != nil {
@@ -77,6 +88,7 @@ func AccessCursor(
 		return err
 	}
 	defer cursor.Release()
+
 	return cb(cursor)
 }
 
@@ -87,6 +99,7 @@ func buildCursorTransform(
 	store block.StoreOps,
 	objRef *bucket.ObjectRef,
 ) (*block_transform.Config, block.Transformer, error) {
+	// Resolve an external transform configuration when the object embeds none.
 	conf := objRef.GetTransformConf()
 	if conf.GetEmpty() && !objRef.GetTransformConfRef().GetEmpty() {
 		var err error
@@ -95,9 +108,13 @@ func buildCursorTransform(
 			return nil, nil, err
 		}
 	}
+
+	// Leave untransformed objects without a cursor transformer.
 	if conf.GetEmpty() {
 		return nil, nil, nil
 	}
+
+	// Construct the cursor transformer from the resolved configuration.
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{},
 		transform_all.BuildFactorySet(),
@@ -106,6 +123,7 @@ func buildCursorTransform(
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return conf, xfrm, nil
 }
 

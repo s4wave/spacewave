@@ -48,6 +48,7 @@ func HasValidWasmExtension(filePath string) bool {
 // outPath should have a .mjs suffix
 // entrypointPath should be foo.wasm (relative to script location)
 func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoot, outPath, entrypointPath string, useTinygo, minify, sourcemaps bool) ([]string, error) {
+	// Require a supported Wasm entrypoint before preparing the plugin bundle.
 	if !HasValidWasmExtension(entrypointPath) {
 		if entrypointPath == "" {
 			entrypointPath = "<empty>"
@@ -55,11 +56,13 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 		return nil, errors.Errorf("plugin-wasm: entrypoint path must end in %s: %s", strings.Join(validWasmSuffixes, " or "), entrypointPath)
 	}
 
+	// Locate the Wasm execution support for the selected Go compiler.
 	wasmExecFile, err := gocompiler.GetWasmExecPath(ctx, le, useTinygo)
 	if err != nil {
 		return nil, err
 	}
 
+	// Configure the plugin entrypoint output and source map mode.
 	le.Infof("building plugin-wasm.ts to %v", filepath.Base(outPath))
 	outputRoot := filepath.Dir(outPath)
 	outputName := filepath.Base(outPath)
@@ -68,6 +71,8 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 	if sourcemaps {
 		sourceMap = "both"
 	}
+
+	// Prepare runtime injection and TinyGo browser source overrides.
 	inject := []string{wasmExecFile}
 	var external []string
 	var sourceOverrides map[string]string
@@ -81,6 +86,8 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 		}
 		sourceOverrides = map[string]string{wasmExecFile: patched}
 	}
+
+	// Bundle the Wasm plugin wrapper with the selected runtime support.
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -119,8 +126,11 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 	if err != nil {
 		return nil, err
 	}
+
+	// Verify the bundler emitted the requested plugin entrypoint filename.
 	if result.GetEntrypointOutputs()[entrypointName] != outputName {
 		return nil, errors.Errorf("Wasm runtime output is %q, expected %q", result.GetEntrypointOutputs()[entrypointName], outputName)
 	}
+
 	return slices.Clone(result.GetInputs()), nil
 }

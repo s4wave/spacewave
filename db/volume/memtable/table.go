@@ -107,28 +107,38 @@ func (t *Table) Apply(ops []Op) {
 // NewTransaction opens a transaction on the published table. A write
 // transaction holds the table's writer lock until Commit or Discard.
 func (t *Table) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Give read transactions the current immutable table snapshot.
 	if !write {
+		// Capture the published tree while excluding publication.
 		t.mtx.Lock()
 		tree := t.tree
 		t.mtx.Unlock()
+
 		return &Tx{tree: tree}, nil
 	}
+
+	// Serialize writers and copy the published tree for mutation.
 	t.wmtx.Lock()
 	t.mtx.Lock()
 	tree := t.tree.Copy()
 	t.mtx.Unlock()
+
 	return &Tx{table: t, tree: tree}, nil
 }
 
 // publish persists a write transaction's ops and publishes its tree. The
 // caller holds wmtx.
 func (t *Table) publish(ctx context.Context, next *tree, ops []Op, ordered bool) error {
+	// Persist the transaction changes before exposing the new table snapshot.
 	if err := t.commit(ctx, Snapshot{tree: next}, ops, ordered); err != nil {
 		return err
 	}
+
+	// Publish the persisted tree for subsequent read transactions.
 	t.mtx.Lock()
 	t.tree = next
 	t.mtx.Unlock()
+
 	return nil
 }
 

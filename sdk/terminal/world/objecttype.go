@@ -26,10 +26,12 @@ func terminalFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require World state before resolving the Terminal object.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Acquire the Terminal object state for Resource construction.
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -39,6 +41,7 @@ func terminalFactory(
 		return nil, nil, world.ErrObjectNotFound
 	}
 
+	// Decode the Terminal record within the object read scope.
 	var state *s4wave_terminal.Terminal
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uerr error
@@ -49,6 +52,8 @@ func terminalFactory(
 		return nil, nil, err
 	}
 
+	// Expose the Terminal Resource through its RPC mux.
 	resource := s4wave_terminal.NewTerminalResource(b, ws, engine, objectKey, state)
+
 	return resource.GetMux(), func() {}, nil
 }

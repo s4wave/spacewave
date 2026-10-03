@@ -43,6 +43,7 @@ func NewController(
 // NewWebPkgGetter constructs a new web pkg getter function.
 func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool) web_pkg_controller.WebPkgGetter {
 	return func(ctx context.Context, webPkgID string, released func()) (web_pkg.LookupWebPkgValue, func(), error) {
+		// Resolve the UnixFS directive that supplies the package filesystem.
 		val, valRef, err := unixfs_access.ExAccessUnixFS(ctx, b, unixFsID, returnIfIdle, released)
 		if err != nil {
 			return nil, nil, err
@@ -51,12 +52,14 @@ func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool
 			return nil, nil, errors.Wrap(unixfs_errors.ErrFsNotFound, unixFsID)
 		}
 
+		// Acquire a filesystem handle while retaining the UnixFS directive.
 		fsHandle, fsHandleRel, err := val(ctx, released)
 		if err != nil {
 			valRef.Release()
 			return nil, nil, err
 		}
 
+		// Resolve the configured package prefix within the filesystem.
 		var childHandle *unixfs.FSHandle
 		if unixFsPrefix != "" {
 			childHandle, _, err = fsHandle.LookupPath(ctx, unixFsPrefix)
@@ -67,6 +70,7 @@ func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool
 			}
 		}
 
+		// Adapt the selected filesystem root for Web package lookup.
 		var ifs fs.FS
 		if childHandle != nil {
 			ifs = unixfs_iofs.NewFS(ctx, childHandle)
@@ -74,6 +78,7 @@ func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool
 			ifs = unixfs_iofs.NewFS(ctx, fsHandle)
 		}
 
+		// Load the Web package and release filesystem references if it is absent.
 		pkg, pkgRel, err := web_pkg_fs.GetWebPkg(ctx, ifs, webPkgID)
 		if err != nil || pkg == nil {
 			if childHandle != nil {

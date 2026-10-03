@@ -73,9 +73,12 @@ func (i *iterator) ValueCopy(bt []byte) ([]byte, error) {
 
 // Next advances to the next entry and reports Valid.
 func (i *iterator) Next() bool {
+	// Keep a closed iterator from advancing its snapshot cursor.
 	if i.err != nil {
 		return false
 	}
+
+	// Position the snapshot cursor according to its traversal state.
 	var ok bool
 	switch {
 	case !i.started:
@@ -88,20 +91,26 @@ func (i *iterator) Next() bool {
 	default:
 		ok = i.it.Next()
 	}
+
 	return i.bound(ok)
 }
 
 // Seek moves to the first key at or after k, or at or before k when
 // reversed. A nil k seeks to the start of the range.
 func (i *iterator) Seek(k []byte) error {
+	// Stop seeking when the iterator has an error.
 	if i.err != nil {
 		return i.err
 	}
+
+	// Start the walk at the range boundary when no key is given.
 	i.started = true
 	if len(k) == 0 {
 		i.bound(i.seekBoundary())
 		return nil
 	}
+
+	// Seek forward from the key, clamped to the start of the prefix range.
 	if !i.reverse {
 		if bytes.Compare(k, i.prefix) < 0 {
 			k = i.prefix
@@ -109,6 +118,8 @@ func (i *iterator) Seek(k []byte) error {
 		i.bound(i.it.Seek(entry{key: k}))
 		return nil
 	}
+
+	// Seek backward to the last entry at or before the key.
 	i.bound(i.seekReverse(k))
 	return nil
 }
@@ -129,18 +140,26 @@ func (i *iterator) seekBoundary() bool {
 
 // seekReverse moves to the last entry at or before k.
 func (i *iterator) seekReverse(k []byte) bool {
+	// Reject a reverse seek below the iterator's prefix range.
 	if bytes.Compare(k, i.prefix) < 0 {
 		return false
 	}
+
+	// Clamp a reverse seek above the prefix range to its last entry.
 	if len(i.prefixEnd) != 0 && bytes.Compare(k, i.prefixEnd) >= 0 {
 		return i.seekBoundary()
 	}
+
+	// Find the nearest snapshot entry at or above the requested key.
 	if !i.it.Seek(entry{key: k}) {
 		return i.it.Last()
 	}
+
+	// Step back when the located entry exceeds the reverse seek key.
 	if bytes.Compare(i.it.Item().key, k) > 0 {
 		return i.it.Prev()
 	}
+
 	return true
 }
 

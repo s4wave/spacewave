@@ -105,6 +105,7 @@ func (c *Controller) SetBindingRegistry(registry *process_binding.BindingRegistr
 // failure while the controller waits to retry; the channel still reports the
 // retry.
 func (c *Controller) GetGeneration() (*Generation, <-chan struct{}, error) {
+	// Capture the Space generation and its next change notification together.
 	var gen *Generation
 	var waitCh <-chan struct{}
 	var err error
@@ -112,6 +113,7 @@ func (c *Controller) GetGeneration() (*Generation, <-chan struct{}, error) {
 		gen, err = c.gen, c.err
 		waitCh = getWaitCh()
 	})
+
 	return gen, waitCh, err
 }
 
@@ -141,6 +143,7 @@ func (c *Controller) ReserveServicePrefix(prefix string) (release func(), err er
 // NotifyProcessBindingsChanged wakes every mount and the running plugin/space
 // controller after a process binding of the Space changed.
 func (c *Controller) NotifyProcessBindingsChanged() {
+	// Snapshot the Space generation and registry while waking runtime mounts.
 	var gen *Generation
 	var registry *process_binding.BindingRegistry
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -148,9 +151,13 @@ func (c *Controller) NotifyProcessBindingsChanged() {
 		registry = c.bindingRegistry
 		broadcast()
 	})
+
+	// Notify Resource watches about the changed process bindings.
 	if registry != nil {
 		registry.NotifyChanged()
 	}
+
+	// Reconcile process bindings within the running Space generation.
 	if gen != nil {
 		gen.GetSpaceController().NotifyChanged()
 	}

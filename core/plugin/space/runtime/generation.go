@@ -178,6 +178,7 @@ func (g *Generation) start(
 
 // addController adds ctrl to b for the generation lifetime.
 func (g *Generation) addController(ctx context.Context, b bus.Bus, ctrl controller.Controller) error {
+	// Attach the controller and report failures that end the Space generation.
 	release, err := b.AddController(ctx, ctrl, func(err error) {
 		if err != nil && ctx.Err() == nil {
 			g.reportTerminal(errors.Wrap(err, "Space runtime controller failed"))
@@ -186,7 +187,10 @@ func (g *Generation) addController(ctx context.Context, b bus.Bus, ctrl controll
 	if err != nil {
 		return err
 	}
+
+	// Retain controller removal for generation shutdown.
 	g.releases = append(g.releases, release)
+
 	return nil
 }
 
@@ -198,6 +202,7 @@ func (g *Generation) addStorage(
 	resolver *static.Resolver,
 	storageID string,
 ) error {
+	// Resolve host storage and retain its reference for the generation.
 	selected, _, selectedRef, err := bus.ExecWaitValue[storage.LookupStorageValue](
 		ctx,
 		parent,
@@ -214,7 +219,9 @@ func (g *Generation) addStorage(
 	}
 	g.releases = append(g.releases, selectedRef.Release)
 
+	// Expose the selected storage factories on the child bus.
 	selected.AddFactories(child, resolver)
+
 	return g.addController(ctx, child, storage_controller.BuildStorageController(
 		storageID,
 		[]storage.Storage{selected},
