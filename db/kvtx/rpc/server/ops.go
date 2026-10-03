@@ -216,7 +216,7 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			}
 			if err := it.Seek(m.Seek); err != nil {
 				if sendErr := sendReqErr(err); sendErr != nil {
-					return err
+					return sendErr
 				}
 			} else if err := sendStatus(it.Valid()); err != nil {
 				return err
@@ -227,7 +227,7 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 			}
 			if err := it.Seek(nil); err != nil {
 				if sendErr := sendReqErr(err); sendErr != nil {
-					return err
+					return sendErr
 				}
 			} else if err := sendStatus(it.Valid()); err != nil {
 				return err
