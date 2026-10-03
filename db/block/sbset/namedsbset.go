@@ -88,6 +88,7 @@ func (r *NamedSubBlockSet) ValidateUnique(nonEmpty bool) error {
 		if _, ok := seen[id]; ok {
 			return errors.Wrapf(ErrNonUniqueName, "[%d]: %s", i, id)
 		}
+		seen[id] = struct{}{}
 		if id == "" && nonEmpty {
 			return errors.Wrapf(ErrEmptyName, "[%d]", i)
 		}

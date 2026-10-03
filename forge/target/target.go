@@ -34,20 +34,17 @@ func CreateTarget(
 // Validate performs cursory validation of the target.
 func (t *Target) Validate() error {
 	// Require a Target before validating its fields.
-	// prevent nil reference exception below.
 	if t == nil {
 		return errors.New("target cannot be empty")
 	}
 
 	// Require unique names for the Target inputs.
-	// ensure all input names are unique
 	inputSet := newSubBlockSetContainer(&t.Inputs, nil)
 	if err := inputSet.ValidateUnique(true); err != nil {
 		return errors.Wrap(err, "inputs")
 	}
 
 	// Require unique names for the Target outputs.
-	// ensure all output names are unique
 	outputSet := newSubBlockSetContainer(&t.Outputs, nil)
 	if err := outputSet.ValidateUnique(true); err != nil {
 		return errors.Wrap(err, "outputs")

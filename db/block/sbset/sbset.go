@@ -122,41 +122,6 @@ func (r *SubBlockSet) Swap(i, j int) {
 	r.sl.Set(j, iv)
 }
 
-// Delete deletes the given range of elements, shifting the elements following them.
-// To remove a single element at index i, call with i, i+1.
-func (r *SubBlockSet) Delete(i, j int) {
-	// Normalize the sub-block deletion range against the container bounds.
-	ls := r.sl.Len()
-	if j > ls {
-		j = ls
-	}
-	if i < 0 {
-		i = 0
-	}
-	nremove := j - i
-	if nremove <= 0 || i >= ls {
-		return
-	}
-
-	// Shift graph references into the deleted sub-block positions.
-	for o := range nremove {
-		destIdx := uint32(i + o) //nolint:gosec
-		srcIdx := uint32(j + o)  //nolint:gosec
-		r.bcs.ClearRef(destIdx)
-		if int(srcIdx) < ls {
-			fromBcs := r.bcs.GetExistingRef(srcIdx)
-			if fromBcs != nil {
-				r.bcs.ClearRef(srcIdx)
-				_ = fromBcs.SetAsSubBlock(destIdx, r.bcs)
-			}
-		}
-	}
-
-	// Truncate the sub-block container and mark its graph cursor dirty.
-	r.sl.Truncate(ls - nremove)
-	r.bcs.MarkDirty()
-}
-
 // ApplySubBlock applies a sub-block change with a field id.
 func (r *SubBlockSet) ApplySubBlock(id uint32, next block.SubBlock) error {
 	// Validate the sub-block reference and update its container entry.
