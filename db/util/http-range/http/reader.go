@@ -20,8 +20,8 @@ type HttpClient interface {
 var ErrNoContentLength = errors.New("no content length returned")
 
 // HTTPRangeReader reads ranges of data over HTTP using requests with
-// Range headers to implement io.ReadSeeker and io.ReaderAt.
-// io.ReadSeeker and io.ReaderAt. It is concurrency safe.
+// Range headers to implement io.ReadSeeker and io.ReaderAt. It is concurrency
+// safe.
 //
 // While Read() and Seek() are concurrency safe, the behavior while using them
 // concurrently is undefined. Only use ReadAt concurrently.
@@ -53,24 +53,36 @@ func (r *HTTPRangeReader) SetSize(size uint64) {
 }
 
 // ReadAt reads len(buf) bytes into buf starting at offset off.
+//
+// A server may answer a range request with fewer bytes than requested, so
+// ReadAt requests the remainder until buf is full. A short read returns a
+// non-nil error, as io.ReaderAt requires.
 func (r *HTTPRangeReader) ReadAt(buf []byte, off int64) (int, error) {
-	// Fetch the remote data that overlaps the caller buffer.
-	dataOffset, data, err := r.SliceReadAt(off, int64(len(buf)))
-	if err != nil && len(data) == 0 {
-		return 0, err
+	var n int
+	for n < len(buf) {
+		// Fetch the remote data that overlaps the unfilled part of buf.
+		pos := off + int64(n)
+		dataOffset, data, err := r.SliceReadAt(pos, int64(len(buf)-n))
+
+		// Copy the returned bytes at pos when the response covers it.
+		var copied int
+		if start := pos - dataOffset; start >= 0 && start < int64(len(data)) {
+			copied = copy(buf[n:], data[start:])
+			n += copied
+		}
+
+		// Stop at an error, or when the response held no bytes at pos.
+		if err != nil {
+			if n == len(buf) {
+				return n, nil
+			}
+			return n, err
+		}
+		if copied == 0 {
+			return n, io.ErrUnexpectedEOF
+		}
 	}
-
-	// Ensure the start index is within the bounds of the data slice.
-	start := max(0, off-dataOffset)
-
-	// Ensure the end index does not exceed the length of the data slice.
-	end := min(start+int64(len(buf)), int64(len(data)))
-
-	// Copy the data from the calculated start to end index into the buffer.
-	n := copy(buf, data[start:end])
-
-	// NOTE: we still return success if n < len(buf) which is not quite what io.ReadAt expects.
-	return n, err
+	return n, nil
 }
 
 // SliceReadAt reads a slice of data from the requested location.
