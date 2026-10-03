@@ -356,7 +356,7 @@ func (s *SOHost) ApplyConfigChange(ctx context.Context, entry *SOConfigChange, f
 // AddLocalOperation signs opData as the owner of privKey and adds it to the
 // operation set, encoded with the key of the epoch the operation names. It
 // returns the operation's local ID and nonce once the state holding it is
-// written.
+// written. Empty opData writes an acknowledgment.
 func (s *SOHost) AddLocalOperation(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -375,20 +375,24 @@ func (s *SOHost) AddLocalOperation(
 	}
 	defer lk.Release()
 
-	// Encode the data for the head of this peer's chain.
+	// Encode the data for the head of this peer's chain. An acknowledgment
+	// has no data to encode.
 	next := lk.GetSOState().CloneVT()
 	link, err := next.NextOperationLink(s.sharedObjectID, peerID.String())
 	if err != nil {
 		return "", 0, err
 	}
-	handle := NewSOStateParticipantHandle(le, sfs, s.sharedObjectID, next, privKey, peerID)
-	xfrm, err := handle.epochTransformer(link.KeyEpoch)
-	if err != nil {
-		return "", 0, err
-	}
-	opDataEnc, err := xfrm.EncodeBlock(opData)
-	if err != nil {
-		return "", 0, err
+	var opDataEnc []byte
+	if len(opData) != 0 {
+		handle := NewSOStateParticipantHandle(le, sfs, s.sharedObjectID, next, privKey, peerID)
+		xfrm, err := handle.epochTransformer(link.KeyEpoch)
+		if err != nil {
+			return "", 0, err
+		}
+		opDataEnc, err = xfrm.EncodeBlock(opData)
+		if err != nil {
+			return "", 0, err
+		}
 	}
 
 	// Sign it, add it to the set and commit.

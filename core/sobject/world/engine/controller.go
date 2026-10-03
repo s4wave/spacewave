@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -41,6 +42,9 @@ type Controller struct {
 	// writeMtx serializes write transactions and replay of the watched
 	// SharedObject state.
 	writeMtx csync.Mutex
+	// writeBcast is broadcast after each change of the installed World. The
+	// storage reclaim routine schedules a pass after each broadcast.
+	writeBcast broadcast.Broadcast
 }
 
 // NewController constructs a new World Engine controller.
@@ -205,6 +209,21 @@ func (c *Controller) executeWorld(
 	le.WithField("world-seqno", seqno).Info("world engine ready")
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
+
+	// Acknowledge the edits this device builds on and reclaim storage while
+	// it serves the World.
+	bgCtx, bgCancel := context.WithCancel(ctx)
+	defer bgCancel()
+	go func() {
+		if err := sobject.Acknowledge(bgCtx, so, engine.acknowledge); err != nil && bgCtx.Err() == nil {
+			le.WithError(err).Warn("stopped acknowledging edits")
+		}
+	}()
+	go func() {
+		if err := c.executeStorageReclaim(bgCtx, engine); err != nil && bgCtx.Err() == nil {
+			le.WithError(err).Warn("stopped reclaiming storage")
+		}
+	}()
 
 	// Follow the operation set into the World.
 	return c.executeWatchSOState(ctx, soStateCtr, engine)

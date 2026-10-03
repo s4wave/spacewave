@@ -209,6 +209,11 @@ message SharedObjectConfig {
   // by peer ID. Replay applies a removed author's operations up to that
   // operation and skips the rest, which may postdate the removal.
   repeated SOCheckpointAuthor removed_authors = 12;
+
+  // RosterDroppedPeerIds are the writers left off the trimming roster, sorted.
+  // Every other writer is on the roster: the stable point waits until each
+  // has built on an operation before history below it is trimmed.
+  repeated string roster_dropped_peer_ids = 13;
 }
 
 // SOLeaveRequest relinquishes only the identities that sign this exact object and configuration head.
@@ -351,8 +356,9 @@ message SOCheckpointInner {
   // ConfigHash is the config chain hash the checkpoint was signed under.
   bytes config_hash = 4;
 
-  // Frontier is the heads of the operation prefix the checkpoint covers,
-  // strictly sorted. Empty at genesis.
+  // Frontier is the covered operations a later operation may name: the heads
+  // of the covered prefix and every covered operation that a held operation
+  // above the prefix names, strictly sorted. Empty at genesis.
   repeated bytes frontier = 5;
 
   // StateData is the World state after the prefix, encrypted with the key of
@@ -409,6 +415,8 @@ message SOOperationInner {
   uint64 nonce = 3;
 
   // OpData is the operation data, encrypted with the key of key_epoch.
+  // Empty for an acknowledgment, which applies nothing and records that its
+  // author has built on every operation it names.
   bytes op_data = 4;
 
   // SharedObjectId binds the operation to one shared object.

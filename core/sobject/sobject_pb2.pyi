@@ -181,16 +181,18 @@ class SORejectedEdit(_message.Message):
     def __init__(self, op_hash: _Optional[bytes] = ..., reason: _Optional[str] = ..., lost_to_peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SharedObjectConfig(_message.Message):
-    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors")
+    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors", "roster_dropped_peer_ids")
     PARTICIPANTS_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_HASH_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_SEQNO_FIELD_NUMBER: _ClassVar[int]
     REMOVED_AUTHORS_FIELD_NUMBER: _ClassVar[int]
+    ROSTER_DROPPED_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
     participants: _containers.RepeatedCompositeFieldContainer[SOParticipantConfig]
     config_chain_hash: bytes
     config_chain_seqno: int
     removed_authors: _containers.RepeatedCompositeFieldContainer[SOCheckpointAuthor]
-    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ..., removed_authors: _Optional[_Iterable[_Union[SOCheckpointAuthor, _Mapping]]] = ...) -> None: ...
+    roster_dropped_peer_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ..., removed_authors: _Optional[_Iterable[_Union[SOCheckpointAuthor, _Mapping]]] = ..., roster_dropped_peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SOLeaveRequest(_message.Message):
     __slots__ = ("shared_object_id", "config_hash", "signatures")

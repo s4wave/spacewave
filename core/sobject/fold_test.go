@@ -42,11 +42,13 @@ func TestFoldOutcomes(t *testing.T) {
 		SOParticipantRole_SOParticipantRole_READER,
 	)
 
-	// The owner and writer write, the writer's processor refuses one, and the
-	// reader writes, once encrypted and once in plain text.
+	// The owner and writer write, the writer acknowledges, the writer's
+	// processor refuses one, and the reader writes, once encrypted and once
+	// in plain text.
 	applied := []*SOOperation{
 		writeTestOp(t, state, keys[0], "a"),
 		writeTestOp(t, state, keys[1], "b"),
+		writeTestOp(t, state, keys[1], ""),
 	}
 	refused := writeTestOp(t, state, keys[1], "refuse")
 	reader := writeTestOp(t, state, keys[2], "c")
@@ -60,8 +62,8 @@ func TestFoldOutcomes(t *testing.T) {
 
 	// Each operation has its outcome and only the applied ones change the state.
 	res := foldTest(t, testHandle(t, state, keys[2]))
-	if len(res.Outcomes) != 5 {
-		t.Fatalf("placed %d operations; want 5", len(res.Outcomes))
+	if len(res.Outcomes) != 6 {
+		t.Fatalf("placed %d operations; want 6", len(res.Outcomes))
 	}
 	want := map[string]string{
 		string(refused.Hash()): "refused",

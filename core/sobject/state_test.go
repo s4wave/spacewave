@@ -93,7 +93,7 @@ func TestBuildSOOperation(t *testing.T) {
 		ok    bool
 	}{
 		{"valid", []byte("test operation"), 1, true},
-		{"empty data", []byte{}, 1, false},
+		{"acknowledgment", nil, 1, true},
 		{"zero nonce", []byte("test operation"), 0, false},
 		{"oversized data", make([]byte, MaxInnerDataSize+1), 1, false},
 	} {

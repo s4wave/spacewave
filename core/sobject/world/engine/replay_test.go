@@ -311,3 +311,36 @@ func newReplayTestKey(t *testing.T) (crypto.PrivKey, peer.ID) {
 	}
 	return priv, pid
 }
+
+// TestReplayKeepsPositionsAboveCheckpoint checks that a checkpoint at a
+// replayed position keeps the outcomes and Worlds above it, so nothing
+// replays again.
+func TestReplayKeepsPositionsAboveCheckpoint(t *testing.T) {
+	// A writes a chain of three operations and a member replays them.
+	privA, pidA := newReplayTestKey(t)
+	space := newReplayTestSpace(t, pidA)
+	a1 := space.sign("a1", privA, "object-1", &sobject.SOOperationLink{Nonce: 1})
+	a2 := space.sign("a2", privA, "object-2", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: a1.Hash()})
+	a3 := space.sign("a3", privA, "object-3", &sobject.SOOperationLink{Nonce: 3, PrevOpHash: a2.Hash()})
+	member := space.member(pidA, false)
+	want := member.deliver(a1, a2, a3)
+
+	// Checkpoint the World after a2.
+	base := member.replayer.stateAfter([][]byte{a1.Hash(), a2.Hash()})
+	if base == nil {
+		t.Fatal("replay does not hold the World after a2")
+	}
+	member.replayer.base = base
+	member.replayer.positions = member.replayer.positionsAbove(base)
+	member.set = sobject.NewSOOperationSet(replayTestObjectID, &sobject.SOCheckpointInner{
+		Frontier: [][]byte{a2.Hash()},
+		Authors:  []*sobject.SOCheckpointAuthor{{PeerId: pidA.String(), Nonce: 2, OpHash: a2.Hash()}},
+	})
+
+	// Resolving no config, replaying a3 again would reject it.
+	member.snap = &replayTestSnapshot{config: &sobject.SharedObjectConfig{}}
+	got := member.deliver(a1, a2, a3)
+	if !got.state.EqualVT(want.state) || !slices.Equal(got.outcomes, want.outcomes[2:]) {
+		t.Fatalf("after checkpoint %q; want %q", got.outcomes, want.outcomes[2:])
+	}
+}

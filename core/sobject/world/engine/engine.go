@@ -363,6 +363,11 @@ func (e *soEngine) advance(ctx context.Context, snap sobject.SharedObjectStateSn
 		return nil, err
 	}
 	e.reportRejectedEdits(set, outcomes)
+
+	// Trim the history every member has built on.
+	if err := e.checkpointStable(ctx, snap, set); err != nil {
+		e.c.le.WithError(err).Warn("failed to checkpoint the stable point")
+	}
 	return outcomes, nil
 }
 
@@ -459,6 +464,19 @@ func (e *soEngine) queueOperation(ctx context.Context, opData []byte, fork *repl
 	return nil
 }
 
+// acknowledge queues an acknowledgment after every write transaction this
+// device has started.
+func (e *soEngine) acknowledge(ctx context.Context) error {
+	// Queue it under the writer lock.
+	unlockWriteMtx, err := e.c.writeMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer unlockWriteMtx()
+	_, err = e.so.QueueOperation(ctx, nil)
+	return err
+}
+
 // updateEngineState installs a replayed World, keeps its graph and its
 // retained roots in this participant's block store, and saves the replay that
 // reached it. The caller holds the writer lock.
@@ -482,6 +500,7 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 			return err
 		}
 		e.retained = ref
+		e.c.notifyWrite()
 	}
 
 	// Copy changed retained roots.

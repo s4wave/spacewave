@@ -178,15 +178,19 @@ func testHandle(t *testing.T, state *SOState, priv crypto.PrivKey, history ...*S
 // writeTestOp encrypts data with the current key, signs it as priv at the
 // author's next link and adds it to state.
 func writeTestOp(t *testing.T, state *SOState, priv crypto.PrivKey, data string) *SOOperation {
-	// Encrypt with the key of the current epoch.
+	// Encrypt with the key of the current epoch. Empty data writes an
+	// acknowledgment, which carries none.
 	t.Helper()
-	xfrm, err := testHandle(t, state, priv).GetTransformer(t.Context())
-	if err != nil {
-		t.Fatal(err)
-	}
-	enc, err := xfrm.EncodeBlock([]byte(data))
-	if err != nil {
-		t.Fatal(err)
+	var enc []byte
+	if data != "" {
+		xfrm, err := testHandle(t, state, priv).GetTransformer(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		enc, err = xfrm.EncodeBlock([]byte(data))
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Sign at the author's next link and add it.

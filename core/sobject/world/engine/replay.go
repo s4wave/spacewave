@@ -3,6 +3,7 @@ package sobject_world_engine
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -105,7 +106,7 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		if err := r.c.retainWorldRoot(ctx, r.so, replayBaseRootName, base.GetHeadRef()); err != nil {
 			return nil, nil, err
 		}
-		r.base, r.positions, r.changed = base, nil, true
+		r.base, r.positions, r.changed = base, r.positionsAbove(base), true
 	}
 
 	// Replay the operation set from the shared prefix.
@@ -114,6 +115,32 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		return nil, nil, err
 	}
 	return r.replay(ctx, snap, set, fork)
+}
+
+// positionsAbove returns the positions after the last one whose World is
+// base. A checkpoint at a replayed position covers the positions up to it, and
+// the order of the rest is unchanged, so their outcomes stand.
+func (r *replayer) positionsAbove(base *InnerState) []replayPosition {
+	for i, v := range slices.Backward(r.positions) {
+		if state := v.state; state != nil && state.EqualVT(base) {
+			return slices.Clone(r.positions[i+1:])
+		}
+	}
+	return nil
+}
+
+// stateAfter returns the World after prefix when the replay placed prefix
+// first and still holds that World, or nil.
+func (r *replayer) stateAfter(prefix [][]byte) *InnerState {
+	if len(prefix) == 0 || len(prefix) > len(r.positions) {
+		return nil
+	}
+	for i, h := range prefix {
+		if !bytes.Equal(r.positions[i].outcome.hash, h) {
+			return nil
+		}
+	}
+	return r.positions[len(prefix)-1].state
 }
 
 // load restores the replay saved in the local state of the World, if any.
@@ -314,6 +341,11 @@ func (r *replayer) replayOp(
 	idx int,
 	state *InnerState,
 ) (*InnerState, string, bool, error) {
+	// An acknowledgment applies nothing.
+	if inner.IsAcknowledgment() {
+		return nil, "", false, nil
+	}
+
 	// Authorize and decode the operation as every member does.
 	writer, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
 	if err != nil || reason != "" {

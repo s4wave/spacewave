@@ -92,32 +92,11 @@ func BuildGenesisSOCheckpoint(
 // stateDataEnc is the state after those operations, encrypted with the key of
 // the current key epoch.
 func (s *SOState) BuildNextCheckpoint(sharedObjectID string, privKey crypto.PrivKey, stateDataEnc []byte) (*SOCheckpoint, error) {
-	// Continue the chain from the held checkpoint.
-	prev := s.GetCheckpoint()
-	prevInner, err := s.GetCheckpointInner()
-	if err != nil {
-		return nil, err
-	}
-	if prevInner == nil {
-		return nil, errors.New("state has no checkpoint to follow")
-	}
 	set, err := s.OperationSet(sharedObjectID)
 	if err != nil {
 		return nil, err
 	}
-
-	// Cover every held operation.
-	return BuildSOCheckpoint(privKey, &SOCheckpointInner{
-		SharedObjectId:     sharedObjectID,
-		Height:             prevInner.GetHeight() + 1,
-		PrevCheckpointHash: prev.Hash(),
-		ConfigHash:         s.GetConfig().GetConfigChainHash(),
-		Frontier:           set.Heads(),
-		StateData:          stateDataEnc,
-		ReplayVersion:      SOReplayVersion,
-		KeyEpoch:           s.CurrentKeyEpoch().GetEpoch(),
-		Authors:            set.coveredAuthors(),
-	})
+	return s.buildCheckpoint(sharedObjectID, privKey, set.Heads(), set.coveredAuthors(), stateDataEnc)
 }
 
 // UnmarshalInner decodes and checks the checkpoint body.

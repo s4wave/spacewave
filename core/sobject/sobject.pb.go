@@ -668,6 +668,10 @@ type SharedObjectConfig struct {
 	// by peer ID. Replay applies a removed author's operations up to that
 	// operation and skips the rest, which may postdate the removal.
 	RemovedAuthors []*SOCheckpointAuthor `protobuf:"bytes,12,rep,name=removed_authors,json=removedAuthors,proto3" json:"removedAuthors,omitempty"`
+	// RosterDroppedPeerIds are the writers left off the trimming roster, sorted.
+	// Every other writer is on the roster: the stable point waits until each
+	// has built on an operation before history below it is trimmed.
+	RosterDroppedPeerIds []string `protobuf:"bytes,13,rep,name=roster_dropped_peer_ids,json=rosterDroppedPeerIds,proto3" json:"rosterDroppedPeerIds,omitempty"`
 }
 
 func (x *SharedObjectConfig) Reset() {
@@ -700,6 +704,13 @@ func (x *SharedObjectConfig) GetConfigChainSeqno() uint64 {
 func (x *SharedObjectConfig) GetRemovedAuthors() []*SOCheckpointAuthor {
 	if x != nil {
 		return x.RemovedAuthors
+	}
+	return nil
+}
+
+func (x *SharedObjectConfig) GetRosterDroppedPeerIds() []string {
+	if x != nil {
+		return x.RosterDroppedPeerIds
 	}
 	return nil
 }
@@ -996,8 +1007,9 @@ type SOCheckpointInner struct {
 	PrevCheckpointHash []byte `protobuf:"bytes,3,opt,name=prev_checkpoint_hash,json=prevCheckpointHash,proto3" json:"prevCheckpointHash,omitempty"`
 	// ConfigHash is the config chain hash the checkpoint was signed under.
 	ConfigHash []byte `protobuf:"bytes,4,opt,name=config_hash,json=configHash,proto3" json:"configHash,omitempty"`
-	// Frontier is the heads of the operation prefix the checkpoint covers,
-	// strictly sorted. Empty at genesis.
+	// Frontier is the covered operations a later operation may name: the heads
+	// of the covered prefix and every covered operation that a held operation
+	// above the prefix names, strictly sorted. Empty at genesis.
 	Frontier [][]byte `protobuf:"bytes,5,rep,name=frontier,proto3" json:"frontier,omitempty"`
 	// StateData is the World state after the prefix, encrypted with the key of
 	// key_epoch.
@@ -1163,6 +1175,8 @@ type SOOperationInner struct {
 	// then one more than the operation named by prev_op_hash.
 	Nonce uint64 `protobuf:"varint,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// OpData is the operation data, encrypted with the key of key_epoch.
+	// Empty for an acknowledgment, which applies nothing and records that its
+	// author has built on every operation it names.
 	OpData []byte `protobuf:"bytes,4,opt,name=op_data,json=opData,proto3" json:"opData,omitempty"`
 	// SharedObjectId binds the operation to one shared object.
 	SharedObjectId string `protobuf:"bytes,5,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
@@ -2126,6 +2140,7 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 	r.Participants = protobuf_go_lite.CloneVTSlice(m.Participants)
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
 	r.RemovedAuthors = protobuf_go_lite.CloneVTSlice(m.RemovedAuthors)
+	r.RosterDroppedPeerIds = protobuf_go_lite.CloneSlice(m.RosterDroppedPeerIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2843,6 +2858,9 @@ func (this *SharedObjectConfig) EqualVT(that *SharedObjectConfig) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.RemovedAuthors, that.RemovedAuthors, func() *SOCheckpointAuthor { return &SOCheckpointAuthor{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.RosterDroppedPeerIds, that.RosterDroppedPeerIds) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4416,6 +4434,11 @@ func (x *SharedObjectConfig) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.RosterDroppedPeerIds) > 0 || s.HasField("rosterDroppedPeerIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rosterDroppedPeerIds")
+		s.WriteStringArray(x.RosterDroppedPeerIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4475,6 +4498,13 @@ func (x *SharedObjectConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.RemovedAuthors = append(x.RemovedAuthors, v)
 			})
+		case "roster_dropped_peer_ids", "rosterDroppedPeerIds":
+			s.AddField("roster_dropped_peer_ids")
+			if s.ReadNil() {
+				x.RosterDroppedPeerIds = nil
+				return
+			}
+			x.RosterDroppedPeerIds = s.ReadStringArray()
 		}
 	})
 }
@@ -6912,6 +6942,13 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RosterDroppedPeerIds) > 0 {
+		for iNdEx := len(m.RosterDroppedPeerIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.RosterDroppedPeerIds[iNdEx])
+			i--
+			dAtA[i] = 0x6a
+		}
+	}
 	if len(m.RemovedAuthors) > 0 {
 		for iNdEx := len(m.RemovedAuthors) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.RemovedAuthors[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -8630,6 +8667,7 @@ func (m *SharedObjectConfig) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringSlice(1, m.RosterDroppedPeerIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9350,6 +9388,14 @@ func (x *SharedObjectConfig) MarshalProtoText() string {
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.RosterDroppedPeerIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "roster_dropped_peer_ids")
+		for i, v := range x.RosterDroppedPeerIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
@@ -10708,6 +10754,16 @@ func (m *SharedObjectConfig) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RosterDroppedPeerIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RosterDroppedPeerIds = append(m.RosterDroppedPeerIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

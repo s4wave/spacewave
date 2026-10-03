@@ -120,14 +120,22 @@ func validateRetainedRootName(name string) error {
 // the set. Returns block.ErrNotFound when a root's block is missing locally
 // and from storage. Callers serialize calls through the writer lock.
 func (c *Controller) retainRoots(ctx context.Context, so sobject.SharedObject, roots []*RetainedRoot) error {
+	return retainRootSet(ctx, so, retainedRootsName, retainedRootsProofStoreID, roots)
+}
+
+// retainRootSet copies the World graph of each root into the local store and
+// holds the set under the local root name, or releases the name when roots is
+// empty. proofStoreID names the local state store of the completion proofs,
+// which callers of the same store serialize.
+func retainRootSet(ctx context.Context, so sobject.SharedObject, name, proofStoreID string, roots []*RetainedRoot) error {
 	// Release the set when it is empty.
 	store := so.GetBlockStore()
 	if len(roots) == 0 {
-		return block.SetRetainedRoot(ctx, store, retainedRootsName, nil)
+		return block.SetRetainedRoot(ctx, store, name, nil)
 	}
 
 	// Copy each root's graph.
-	proofs, release, err := so.AccessLocalStateStore(ctx, retainedRootsProofStoreID, nil)
+	proofs, release, err := so.AccessLocalStateStore(ctx, proofStoreID, nil)
 	if err != nil {
 		return err
 	}
@@ -154,7 +162,7 @@ func (c *Controller) retainRoots(ctx context.Context, so sobject.SharedObject, r
 	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 		return err
 	}
-	return block.SetRetainedRoot(ctx, store, retainedRootsName, setRef)
+	return block.SetRetainedRoot(ctx, store, name, setRef)
 }
 
 // _ is a type assertion

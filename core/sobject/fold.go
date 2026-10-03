@@ -76,9 +76,13 @@ func (r *FoldResult) apply(
 	inner *SOOperationInner,
 	process ProcessOpsFunc,
 ) (string, error) {
-	// Authorize and decode the operation as every member does.
+	// Authorize and decode the operation as every member does. An
+	// acknowledgment applies nothing.
 	if set.Equivocated(h) {
 		return ReasonEquivocated, nil
+	}
+	if inner.IsAcknowledgment() {
+		return "", nil
 	}
 	_, opData, reason, err := PrepareReplayOp(ctx, snap, inner)
 	if err != nil || reason != "" {

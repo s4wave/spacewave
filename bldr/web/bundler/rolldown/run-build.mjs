@@ -262,10 +262,10 @@ async function runBuild(request, dependencyRoot) {
     if (!goscript?.sharedExternalImports)
       return null;
     if (source.startsWith("@goscript/")) {
-      const rel2 = source.slice("@goscript/".length);
-      if (!rel2.endsWith(".js") || !sharedGoScriptRel(rel2))
+      const rel = source.slice("@goscript/".length);
+      if (!rel.endsWith(".js") || !sharedGoScriptRel(rel))
         return null;
-      return sharedImportURL(rel2);
+      return sharedImportURL(rel);
     }
     if (!importer || importer.startsWith("\x00") || !source.endsWith(".js") || !source.startsWith("./") && !source.startsWith("../")) {
       return null;
@@ -549,10 +549,10 @@ function readLocalModule(sourceRoot) {
     try {
       contents = readFileSync(join(root, "go.mod"), "utf8");
     } catch {
-      const parent2 = dirname(root);
-      if (parent2 === root)
+      const parent = dirname(root);
+      if (parent === root)
         return null;
-      root = parent2;
+      root = parent;
       continue;
     }
     const name = contents.match(/^\s*module\s+(\S+)/m)?.[1] || "";
@@ -794,7 +794,7 @@ if (import.meta.main) {
   });
 }
 export {
-  validateBuildRequest,
+  BuildRequestError,
   runBuild,
-  BuildRequestError
+  validateBuildRequest
 };

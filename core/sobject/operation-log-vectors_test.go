@@ -330,7 +330,12 @@ func buildOperationVectors(t *testing.T, vectors *operationLogVectors) map[strin
 		Nonce: 2, PrevOpHash: a1.Hash(), ParentHashes: [][]byte{b1.Hash()}, ConfigHash: configHash,
 	}, "01k6h000000000000000000003")
 	a1Fork := build(privA, vectorObjectID, "a1-fork", &SOOperationLink{Nonce: 1, ConfigHash: configHash}, "01k6h000000000000000000004")
-	valid := map[string]*SOOperation{"a1": a1, "b1": b1, "a2": a2, "a1-fork": a1Fork}
+
+	// B acknowledges A's head with an operation carrying no data.
+	b2Ack := build(privB, vectorObjectID, "", &SOOperationLink{
+		Nonce: 2, PrevOpHash: b1.Hash(), ParentHashes: [][]byte{a2.Hash()}, ConfigHash: configHash,
+	}, "01k6h000000000000000000008")
+	valid := map[string]*SOOperation{"a1": a1, "b1": b1, "a2": a2, "a1-fork": a1Fork, "b2-ack": b2Ack}
 
 	// Malformed operations are signed as written.
 	otherObject := build(privA, "other-object", "a1", &SOOperationLink{Nonce: 1, ConfigHash: configHash}, "01k6h000000000000000000001")
@@ -357,7 +362,7 @@ func buildOperationVectors(t *testing.T, vectors *operationLogVectors) map[strin
 		name string
 		op   *SOOperation
 	}{
-		{"a1", a1}, {"b1", b1}, {"a2", a2}, {"a1-fork", a1Fork},
+		{"a1", a1}, {"b1", b1}, {"a2", a2}, {"a1-fork", a1Fork}, {"b2-ack", b2Ack},
 		{"replayed-from-other-object", otherObject},
 		{"signed-by-another-author", impostor},
 		{"missing-prev-op-hash", noPrev},
@@ -385,6 +390,7 @@ func buildOperationSetVectors(t *testing.T, ops map[string]*SOOperation) []opera
 		{"a1", "b1"},
 		{"a1", "b1", "a2"},
 		{"a2", "b1", "a1", "a1-fork", "a1"},
+		{"a1", "b1", "a2", "b2-ack"},
 	}
 	out := make([]operationSetVector, 0, len(sets))
 	for _, names := range sets {

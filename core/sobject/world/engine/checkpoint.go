@@ -1,9 +1,12 @@
 package sobject_world_engine
 
 import (
+	"bytes"
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/world"
@@ -94,4 +97,92 @@ func ReplayWorld(
 	c.SetStaticLookupOp(lookupOp)
 	replayed, _, err := newReplayer(c, so).sync(ctx, snap, nil)
 	return replayed, err
+}
+
+// errStableCheckpointStale reports that the held state moved past the stable
+// point a checkpoint was prepared for.
+var errStableCheckpointStale = errors.New("held state moved past the stable point")
+
+// checkpointStable signs and adopts a checkpoint at the stable point when the
+// local peer is the checkpointer and at least MinCheckpointOperations
+// operations are stable. The World after the stable prefix comes from the
+// replay, so nothing replays again.
+func (e *soEngine) checkpointStable(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet) error {
+	// Only the checkpointer signs, and only from a host it can sign through.
+	host, ok := e.so.(sobject.InviteHost)
+	if !ok {
+		return nil
+	}
+	cfg, err := snap.GetConfig(ctx)
+	if err != nil {
+		return err
+	}
+	self := e.so.GetPeerID().String()
+	if cfg.Checkpointer() != self {
+		return nil
+	}
+
+	// Wait for enough stable operations whose World the replay holds.
+	roster := cfg.TrimRoster()
+	prefix := set.StablePoint(roster)
+	if len(prefix) < sobject.MinCheckpointOperations {
+		return nil
+	}
+	world := e.replay.stateAfter(prefix)
+	if world == nil {
+		return nil
+	}
+	data, err := world.MarshalVT()
+	if err != nil {
+		return err
+	}
+
+	// Sign and adopt it under the host lock, unless the held state moved.
+	err = host.GetSOHost().UpdateSOState(ctx, func(state *sobject.SOState) error {
+		return e.adoptStableCheckpoint(ctx, host, state, prefix, data)
+	})
+	if errors.Is(err, errStableCheckpointStale) {
+		return nil
+	}
+	return err
+}
+
+// adoptStableCheckpoint signs, as host, the checkpoint covering prefix with the
+// World data after it, and adopts it into state. Returns
+// errStableCheckpointStale when prefix is no longer stable in state.
+func (e *soEngine) adoptStableCheckpoint(
+	ctx context.Context,
+	host sobject.InviteHost,
+	state *sobject.SOState,
+	prefix [][]byte,
+	data []byte,
+) error {
+	// Check prefix is still stable.
+	soID := e.so.GetSharedObjectID()
+	held, err := state.OperationSet(soID)
+	if err != nil {
+		return err
+	}
+	stable := held.StablePoint(state.GetConfig().TrimRoster())
+	if len(stable) < len(prefix) || !slices.EqualFunc(stable[:len(prefix)], prefix, bytes.Equal) {
+		return errStableCheckpointStale
+	}
+
+	// Encrypt the World with the current key epoch.
+	handle := sobject.NewSOStateParticipantHandle(e.c.le, e.c.sfs, soID, state, host.GetPrivKey(), e.so.GetPeerID())
+	xfrm, err := handle.GetTransformer(ctx)
+	if err != nil {
+		return err
+	}
+	dataEnc, err := xfrm.EncodeBlock(data)
+	if err != nil {
+		return err
+	}
+
+	// Sign and adopt the checkpoint.
+	checkpoint, err := state.BuildStableCheckpoint(soID, host.GetPrivKey(), prefix, dataEnc)
+	if err != nil {
+		return err
+	}
+	return state.AdoptCheckpoint(soID, checkpoint)
 }

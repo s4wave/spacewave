@@ -809,6 +809,14 @@ export interface SharedObjectConfig {
    * @generated from field: repeated sobject.SOCheckpointAuthor removed_authors = 12;
    */
   removedAuthors?: SOCheckpointAuthor[]
+  /**
+   * RosterDroppedPeerIds are the writers left off the trimming roster, sorted.
+   * Every other writer is on the roster: the stable point waits until each
+   * has built on an operation before history below it is trimmed.
+   *
+   * @generated from field: repeated string roster_dropped_peer_ids = 13;
+   */
+  rosterDroppedPeerIds?: string[]
 }
 
 export const SharedObjectConfig: MessageType<SharedObjectConfig> =
@@ -839,6 +847,13 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         name: 'removed_authors',
         kind: 'message',
         T: SOCheckpointAuthor,
+        repeated: true,
+      },
+      {
+        no: 13,
+        name: 'roster_dropped_peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -1119,8 +1134,9 @@ export interface SOCheckpointInner {
    */
   configHash?: Uint8Array
   /**
-   * Frontier is the heads of the operation prefix the checkpoint covers,
-   * strictly sorted. Empty at genesis.
+   * Frontier is the covered operations a later operation may name: the heads
+   * of the covered prefix and every covered operation that a held operation
+   * above the prefix names, strictly sorted. Empty at genesis.
    *
    * @generated from field: repeated bytes frontier = 5;
    */
@@ -1247,6 +1263,8 @@ export interface SOOperationInner {
   nonce?: bigint
   /**
    * OpData is the operation data, encrypted with the key of key_epoch.
+   * Empty for an acknowledgment, which applies nothing and records that its
+   * author has built on every operation it names.
    *
    * @generated from field: bytes op_data = 4;
    */

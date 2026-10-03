@@ -2,9 +2,8 @@ package sobject_world_engine_test
 
 import (
 	"context"
-	"crypto/sha256"
-	"errors"
 	"runtime"
+	"strconv"
 	"testing"
 	"time"
 
@@ -21,109 +20,69 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// TestWorldEngineController tests constructing the engine controller, looking up
-// the engine on the bus, & running some basic queries.
+// TestWorldEngineController starts the engine on a local SharedObject, runs the
+// World engine suite through the bus, checkpoints the owner's stable history,
+// and checks a remounted engine still holds every object.
 func TestWorldEngineController(t *testing.T) {
+	// Bound the test, allowing more time under js.
 	timeout := 10 * time.Second
 	if runtime.GOOS == "js" {
 		timeout = 30 * time.Second
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(t.Context(), timeout)
 	defer cancel()
 
+	// Build the testbed with the engine and local provider factories.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
-
-	le := tb.Logger
-	vol := tb.Volume
-	peerID := vol.GetPeerID()
-	// volumeID := vol.GetID()
-	// bucketID := tb.EngineBucketID
-	// engineID := tb.EngineID
-
-	// Create the provider controller
-	providerID := "local"
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
+	le := tb.Logger
+
+	// Start the local provider.
+	providerID := "local"
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: providerID,
-		PeerId:     peerID.String(),
+		PeerId:     tb.Volume.GetPeerID().String(),
 	}), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer provCtrlRef.Release()
 
-	// Check LookupProvider works.
-	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	provInfo := prov.GetProviderInfo()
-	provRef.Release()
-	_ = provInfo
-
-	// Acquire a provider account handle.
-	accountID := "test-account"
-	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, providerID, accountID, false, nil)
+	// Access a provider account and its SharedObject feature.
+	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, providerID, "test-account", false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer provAccRef.Release()
-
-	// Get the provider account feature.
 	wsProv, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Create the shared object.
-	sobjectID := "test-shared-object"
-	createdSoRef, err := wsProv.CreateSharedObject(ctx, sobjectID, &sobject.SharedObjectMeta{
+	// Create the SharedObject.
+	createdSoRef, err := wsProv.CreateSharedObject(ctx, "test-shared-object", &sobject.SharedObjectMeta{
 		BodyType: "test",
 	}, "", "")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_ = createdSoRef
 
-	tb.Logger.Infof(
-		"created shared object with provider %s id %s",
-		createdSoRef.GetProviderResourceRef().GetProviderId(),
-		createdSoRef.GetProviderResourceRef().GetId(),
-	)
-
+	// Start the engine, and serve the mock operations to it.
 	engineID := "test-world-engine"
-
-	encKey := make([]byte, 32)
-	hash := sha256.Sum256([]byte("hydra/test/sobject: engine_test.go\x00" + sobjectID))
-	copy(encKey, hash[:])
-
-	// initialize world engine
 	startEngine := func() (*sobject_world_engine.Controller, directive.Reference) {
-		engineConf := sobject_world_engine.NewConfig(
-			engineID,
-			createdSoRef,
-		)
-		// engineConf.Verbose = true
-		worldCtrl, _, worldCtrlRef, err := sobject_world_engine.StartEngineWithConfig(
-			ctx,
-			tb.Bus,
-			engineConf,
-			nil,
-		)
+		engineConf := sobject_world_engine.NewConfig(engineID, createdSoRef)
+		worldCtrl, _, worldCtrlRef, err := sobject_world_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		return worldCtrl, worldCtrlRef
 	}
-
 	worldCtrl, worldCtrlRef := startEngine()
 	defer worldCtrlRef.Release()
-
-	// provide object op handlers to bus
 	opc := world.NewLookupOpController("test-world-engine-ops", engineID, world_mock.LookupMockOp)
 	relOpc, err := tb.Bus.AddController(ctx, opc, nil)
 	if err != nil {
@@ -131,6 +90,7 @@ func TestWorldEngineController(t *testing.T) {
 	}
 	defer relOpc()
 
+	// Open and discard a write transaction.
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -141,56 +101,99 @@ func TestWorldEngineController(t *testing.T) {
 	}
 	engTx.Discard()
 
-	// uses directive to look up the engine
+	// Run the World engine suite through the bus.
 	busEngine := world.NewBusEngine(ctx, tb.Bus, engineID)
-	err = world_mock.TestWorldEngine(ctx, le, busEngine)
-	if err != nil {
+	if err := world_mock.TestWorldEngine(ctx, le, busEngine); err != nil {
 		t.Fatal(err.Error())
 	}
 	le.Info("world engine test suite passed")
 
+	// Read the World block.
 	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
 		_, bcs := bls.BuildTransaction(nil)
-		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		worldState := wi.(*world_block.World)
-		_ = worldState
-		// le.Infof("world state after test suite: %s", worldState.String())
-		return nil
+		_, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
+		return err
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// re-mount the world and make sure it still works.
-	worldCtrlRef.Release()
-	<-time.After(time.Millisecond * 100)
+	// Write past the checkpoint threshold. As the only roster member, the
+	// owner checkpoints its stable history and trims the operation set.
+	for i := range sobject.MinCheckpointOperations {
+		tx, err := eng.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		objectState, err := tx.CreateObject(ctx, "checkpoint-object-"+strconv.Itoa(i), nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		world.ReleaseObjectState(objectState)
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
 
+	// Wait for the checkpoint to trim the operation set.
+	so, soRef, err := sobject.ExMountSharedObject(ctx, tb.Bus, createdSoRef, false, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer soRef.Release()
+	soState, relSoState, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer relSoState()
+	_, err = soState.WaitValueWithValidator(ctx, func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+		return checkpointTrimmed(ctx, snap)
+	}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Remount the engine.
+	worldCtrlRef.Release()
 	worldCtrl, worldCtrlRef = startEngine()
 	defer worldCtrlRef.Release()
-	<-time.After(time.Millisecond * 100)
-
 	eng, err = worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// second test pass
-	engTx, err = eng.NewTransaction(ctx, true)
+	// The suite's object and the objects below the checkpoint remain.
+	engTx, err = eng.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	objectState, found, err := engTx.GetObject(ctx, "test-object")
-	world.ReleaseObjectState(objectState)
-	if !found && err == nil {
-		err = errors.New("object not found after remounting")
+	defer engTx.Discard()
+	last := "checkpoint-object-" + strconv.Itoa(sobject.MinCheckpointOperations-1)
+	for _, key := range []string{"test-object", last} {
+		objectState, found, err := engTx.GetObject(ctx, key)
+		world.ReleaseObjectState(objectState)
+		if err != nil || !found {
+			t.Fatalf("object %s after remounting: found %v, %v", key, found, err)
+		}
 	}
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	engTx.Discard()
+}
 
-	// success
+// checkpointTrimmed reports whether snap holds a checkpoint above genesis and
+// fewer operations than one checkpoint covers.
+func checkpointTrimmed(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (bool, error) {
+	// Wait for a state.
+	if snap == nil {
+		return false, nil
+	}
+
+	// Compare the checkpoint height and the held operations.
+	checkpoint, err := snap.GetCheckpoint(ctx)
+	if err != nil {
+		return false, err
+	}
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		return false, err
+	}
+	return checkpoint.GetHeight() != 0 && set.Len() < sobject.MinCheckpointOperations, nil
 }

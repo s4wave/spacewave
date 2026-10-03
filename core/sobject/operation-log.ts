@@ -58,10 +58,9 @@ export function validateSOOperationInner(inner: SOOperationInner): void {
     throw new Error('operation nonce must be positive')
   }
 
-  // The payload is present and bounded.
-  const opData = inner.opData ?? new Uint8Array()
-  if (opData.length === 0 || opData.length > MAX_SO_INNER_DATA_SIZE) {
-    throw new Error('operation op_data is empty or too large')
+  // The payload is bounded. An acknowledgment carries none.
+  if ((inner.opData?.length ?? 0) > MAX_SO_INNER_DATA_SIZE) {
+    throw new Error('operation op_data is too large')
   }
 
   // The body names this protocol and an object.

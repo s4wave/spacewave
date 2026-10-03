@@ -175,6 +175,16 @@ func (c *SharedObjectConfig) Validate() error {
 		return err
 	}
 
+	// The roster drops each peer once, in order.
+	for i, peerID := range c.GetRosterDroppedPeerIds() {
+		if _, err := parsePeerIDField(peerID); err != nil {
+			return errors.Wrapf(err, "roster_dropped_peer_ids[%d]", i)
+		}
+		if i > 0 && strings.Compare(c.GetRosterDroppedPeerIds()[i-1], peerID) >= 0 {
+			return errors.New("roster_dropped_peer_ids must be strictly sorted")
+		}
+	}
+
 	// A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
 	participants := c.GetParticipants()
 	if len(participants) == 0 {
@@ -220,6 +230,31 @@ func (c *SharedObjectConfig) AdmitsOperation(peerID string, nonce uint64) bool {
 		return strings.Compare(a.GetPeerId(), id)
 	})
 	return ok && nonce <= c.GetRemovedAuthors()[i].GetNonce()
+}
+
+// TrimRoster returns the trimming roster: every participant that can write
+// operations and is not dropped from the roster, in participant order.
+func (c *SharedObjectConfig) TrimRoster() []string {
+	var roster []string
+	for _, p := range c.GetParticipants() {
+		if CanWriteOps(p.GetRole()) && !slices.Contains(c.GetRosterDroppedPeerIds(), p.GetPeerId()) {
+			roster = append(roster, p.GetPeerId())
+		}
+	}
+	return roster
+}
+
+// Checkpointer returns the owner that checkpoints the stable point: the first
+// owner on the trimming roster, in participant order, or empty when none is.
+// One checkpointer keeps owners from signing different checkpoints at one
+// height.
+func (c *SharedObjectConfig) Checkpointer() string {
+	for _, p := range c.GetParticipants() {
+		if IsOwner(p.GetRole()) && !slices.Contains(c.GetRosterDroppedPeerIds(), p.GetPeerId()) {
+			return p.GetPeerId()
+		}
+	}
+	return ""
 }
 
 // NewSOOperationLocalID constructs a new randomized local ID for a op.
@@ -279,16 +314,20 @@ func (i *SOOperationInner) Validate() error {
 		return ErrInvalidNonce
 	}
 
-	// The payload is present and bounded.
-	if len(i.GetOpData()) == 0 {
-		return ErrEmptyInnerData
-	}
+	// The payload is bounded. An acknowledgment carries none.
 	if len(i.GetOpData()) > MaxInnerDataSize {
 		return ErrMaxSizeExceeded
 	}
 
 	// The links place the operation in its chain.
 	return i.validateLinks()
+}
+
+// IsAcknowledgment reports whether the operation is an acknowledgment: it
+// applies nothing and records that its author has built on every operation it
+// names.
+func (i *SOOperationInner) IsAcknowledgment() bool {
+	return len(i.GetOpData()) == 0
 }
 
 // parsePeerIDField parses a peer id string from a proto field. Returns

@@ -231,8 +231,12 @@ func (s *SOStateParticipantHandle) GetOperationSet(context.Context) (*SOOperatio
 	return set, nil
 }
 
-// DecodeOperation decodes the operation data with the key of its epoch.
+// DecodeOperation decodes the operation data with the key of its epoch. An
+// acknowledgment decodes to no data.
 func (s *SOStateParticipantHandle) DecodeOperation(_ context.Context, inner *SOOperationInner) ([]byte, error) {
+	if inner.IsAcknowledgment() {
+		return nil, nil
+	}
 	xfrm, err := s.epochTransformer(inner.GetKeyEpoch())
 	if err != nil {
 		return nil, err
