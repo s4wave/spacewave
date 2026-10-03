@@ -159,9 +159,12 @@ const args = process.argv.slice(2)
 const listOnly = args[0] === '--list'
 const patterns = listOnly ? args.slice(1) : args
 const pkgs = selectJSPackages(patterns.length > 0 ? patterns : ['./...'])
+
+// The whole module always has js-only tests, so finding none there means the
+// selection broke. Explicit patterns may name packages without any.
 if (pkgs.length === 0) {
   console.error('test-go-js: no js-only test packages found')
-  process.exit(1)
+  process.exit(patterns.length > 0 ? 0 : 1)
 }
 if (listOnly) {
   console.log(pkgs.join('\n'))
