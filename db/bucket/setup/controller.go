@@ -60,12 +60,12 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Snapshot configured bucket applications and track their completion.
+	// Snapshot configured bucket applications and track the submitted ones.
+	// running starts at one so completion waits for the submit loop to end.
 	bucketConfs := c.conf.GetApplyBucketConfigs()
 	refs := make([]func(), 0, len(bucketConfs)*2)
 	var running atomic.Int32
-
-	running.Store(int32(len(bucketConfs))) //nolint:gosec
+	running.Store(1)
 
 	// Report the first application failure without blocking other buckets.
 	errCh := make(chan error, 1)
@@ -100,6 +100,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// Release each directive when idle and publish completion or failure.
+		running.Add(1)
 		var markedNotRunning atomic.Bool
 		refs = append(refs,
 			di.AddIdleCallback(func(isIdle bool, errs []error) {
@@ -121,6 +122,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 		)
 	}
 
+	// Complete once every submitted directive is idle, or now when none was.
+	if running.Add(-1) == 0 {
+		handleErr(nil)
+	}
+
 	// Retain directive references until the controller closes or is already closed.
 	if len(refs) != 0 {
 		c.le.Infof("applied %d bucket configs", len(refs)/2)
@@ -137,11 +143,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 
-	// Wait for cancellation or the first application error.
-	// wait
+	// Wait for cancellation, the first application error, or completion.
 	select {
 	case <-ctx.Done():
-		// return (become idle)
 		return context.Canceled
 	case err := <-errCh:
 		return err
@@ -163,7 +167,6 @@ func (c *Controller) Close() error {
 	defer c.mtx.Unlock()
 
 	// Release every retained directive reference during controller close.
-	// release all refs
 	for _, r := range c.refs {
 		r()
 	}
