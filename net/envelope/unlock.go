@@ -42,6 +42,7 @@ func UnlockEnvelope(
 		return nil, nil, err
 	}
 
+	// Read the envelope threshold and identity for share recovery.
 	threshold := env.GetThreshold()
 	sharesNeeded := threshold + 1
 	envelopeID := env.GetEnvelopeId()
@@ -51,6 +52,7 @@ func UnlockEnvelope(
 	seen := make(map[string]struct{})
 	var unlockedIndexes []uint32
 
+	// Recover shares from every decryptable envelope grant.
 	for gi, grant := range env.GetGrants() {
 		kpIndexes := grant.GetKeypairIndexes()
 		ciphertexts := grant.GetCiphertexts()
@@ -115,6 +117,7 @@ func UnlockEnvelope(
 		UnlockedGrantIndexes: unlockedIndexes,
 	}
 
+	// Return the envelope progress while recovered shares remain below the threshold.
 	if uint32(len(collected)) < sharesNeeded { //nolint:gosec // bounded by grant share count
 		return nil, result, nil
 	}
@@ -138,6 +141,7 @@ func UnlockEnvelope(
 		return nil, nil, err
 	}
 
+	// Authenticate and decrypt the envelope payload with its stored nonce.
 	ct := env.GetCiphertext()
 	if len(ct) < aead.NonceSize() {
 		return nil, nil, ErrDecryptionFailed
@@ -148,6 +152,7 @@ func UnlockEnvelope(
 		return nil, nil, ErrDecryptionFailed
 	}
 
+	// Report successful envelope recovery with the decrypted payload.
 	result.Success = true
 	return payload, result, nil
 }

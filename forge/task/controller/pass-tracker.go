@@ -60,8 +60,8 @@ func (t *passTracker) processState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Wait for the tracked Pass object to appear before reading its state.
 	objKey := t.objKey
-
 	if obj == nil {
 		le.Debugf("pass object not found: %s", objKey)
 		return true, nil
@@ -72,6 +72,7 @@ func (t *passTracker) processState(
 		return true, err
 	}
 
+	// Read the tracked Pass state and treat canceled reads as watch continuation.
 	passObj, _, err := forge_pass.LookupPass(ctx, ws, t.objKey)
 	if err != nil {
 		if err == context.Canceled {
@@ -80,11 +81,13 @@ func (t *passTracker) processState(
 		return true, errors.Wrap(err, "lookup pass")
 	}
 
+	// Keep watching when the tracked Pass state is unchanged.
 	if passObj.EqualVT(t.prevState) {
 		// no changes
 		return true, nil
 	}
 
+	// Retain the changed Pass state and wait while the Pass remains active.
 	t.prevState = passObj
 	switch passObj.GetPassState() {
 	case forge_pass.State_PassState_COMPLETE:

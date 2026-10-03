@@ -50,20 +50,26 @@ func (o *SqlWorkbenchSetRootOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Validate the root operation and require a SQL workbench target.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 	if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), s4wave_sql_workbench.SqlWorkbenchTypeID); err != nil {
 		return false, err
 	}
+
+	// Acquire the workbench object for the root update.
 	obj, err := world.MustGetObject(ctx, ws, o.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}
+
+	// Apply the root update before synchronizing the workbench graph.
 	if sysErr, err := o.ApplyWorldObjectOp(ctx, le, obj, sender); err != nil || sysErr {
 		return sysErr, err
 	}
+
 	return false, s4wave_sql_workbench.SyncWorkbenchGraphQuads(ctx, ws, o.GetObjectKey())
 }
 
@@ -74,6 +80,7 @@ func (o *SqlWorkbenchSetRootOp) ApplyWorldObjectOp(
 	os world.ObjectState,
 	_ peer.ID,
 ) (bool, error) {
+	// Validate the root operation against the supplied workbench object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -83,6 +90,8 @@ func (o *SqlWorkbenchSetRootOp) ApplyWorldObjectOp(
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/workbench: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
 	}
+
+	// Protect an existing workbench root from repeated initialization.
 	if o.GetInitializeOnly() {
 		rootRef, _, err := os.GetRootRef(ctx)
 		if err != nil {
@@ -92,6 +101,8 @@ func (o *SqlWorkbenchSetRootOp) ApplyWorldObjectOp(
 			return false, ErrWorkbenchAlreadyInitialized
 		}
 	}
+
+	// Replace the workbench object root with the requested reference.
 	_, err := os.SetRootRef(ctx, o.GetRootRef())
 	return false, err
 }

@@ -24,18 +24,22 @@ func NewConfig(engineID, objectKey string, peerID peer.ID, assignSelf bool) *Con
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Validate the controller peer identity before watching its World object.
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
+
+	// Require the World engine and Pass object keys for the controller.
 	if len(c.GetEngineId()) == 0 {
 		return world.ErrEmptyEngineID
 	}
 	if len(c.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
+
 	return nil
 }
 

@@ -20,34 +20,44 @@ func deriveEncKeyFromScalar(scalarBytes []byte, envelopeID, context string) [32]
 // buildKeyDerivationContext builds the BLAKE3 KDF context for key derivation.
 // Uses length-prefixed fields to prevent context ambiguity.
 func buildKeyDerivationContext(envelopeID, context string) string {
+	// Begin the key derivation context with the envelope identity.
 	var b strings.Builder
 	b.WriteString(baseCryptoContext)
 	b.WriteString("key_derivation ")
 	b.WriteString(strconv.Itoa(len(envelopeID)))
 	b.WriteByte(':')
 	b.WriteString(envelopeID)
+
+	// Append the caller context with its length to preserve field boundaries.
 	b.WriteByte(' ')
 	b.WriteString(strconv.Itoa(len(context)))
 	b.WriteByte(':')
 	b.WriteString(context)
+
 	return b.String()
 }
 
 // buildGrantEncContext builds the encryption context for a grant ciphertext.
 // Uses length-prefixed fields to prevent context ambiguity.
 func buildGrantEncContext(envelopeID, context string, grantIndex int) string {
+	// Begin the grant encryption context with the envelope identity.
 	var b strings.Builder
 	b.WriteString(baseCryptoContext)
 	b.WriteString("grant_enc ")
 	b.WriteString(strconv.Itoa(len(envelopeID)))
 	b.WriteByte(':')
 	b.WriteString(envelopeID)
+
+	// Append the caller context with its length to preserve field boundaries.
 	b.WriteByte(' ')
 	b.WriteString(strconv.Itoa(len(context)))
 	b.WriteByte(':')
 	b.WriteString(context)
+
+	// Bind the grant encryption context to its grant index.
 	b.WriteByte(' ')
 	b.WriteString(strconv.Itoa(grantIndex))
+
 	return b.String()
 }
 

@@ -23,6 +23,7 @@ func (c *Controller) ProcessState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Wait for the Pass object to appear before reconciling its state.
 	objKey := c.objKey
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
@@ -59,6 +60,7 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
+	// Replay cancellation to unfinished Pass executions and refresh their watched states.
 	execStates := passState.GetExecStates()
 	if currState == forge_pass.State_PassState_CANCELING {
 		executions, executionKeys, err := forge_pass.CollectPassExecutions(ctx, ws, objKey)
@@ -90,6 +92,7 @@ func (c *Controller) ProcessState(
 		return true, err
 	}
 
+	// Complete a checking Pass with its validated execution result.
 	if currState == forge_pass.State_PassState_CHECKING {
 		// asserts that len(execStates) != 0
 		if err := passState.Validate(false); err != nil {
@@ -129,6 +132,7 @@ func (c *Controller) ProcessState(
 		return true, err
 	}
 
+	// Keep watching running Pass executions until they complete.
 	if currState == forge_pass.State_PassState_RUNNING {
 		le.Debug("waiting for pass executions to complete")
 

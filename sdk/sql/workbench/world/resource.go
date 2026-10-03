@@ -52,12 +52,15 @@ func (r *SqlWorkbenchResource) Initialize(
 	ctx context.Context,
 	req *s4wave_sql_workbench.InitializeWorkbenchRequest,
 ) (*s4wave_sql_workbench.InitializeWorkbenchResponse, error) {
+	// Require a World containing the SQL workbench object.
 	if r.ws == nil {
 		return nil, errors.New("sql/workbench: world state is required")
 	}
 	if err := world_types.CheckObjectType(ctx, r.ws, r.objectKey, s4wave_sql_workbench.SqlWorkbenchTypeID); err != nil {
 		return nil, err
 	}
+
+	// Construct the first workbench state and validate its database target.
 	workbench := &s4wave_sql_workbench.Workbench{
 		TargetDbObjectKey: req.GetTargetDbObjectKey(),
 		DisplayName:       req.GetDisplayName(),
@@ -67,10 +70,14 @@ func (r *SqlWorkbenchResource) Initialize(
 			return nil, err
 		}
 	}
+
+	// Store the initial workbench root in the World block store.
 	rootRef, err := s4wave_sql_workbench.WriteWorkbenchRootRef(ctx, r.ws, workbench)
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize the workbench object with the stored root.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlWorkbenchInitializeRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return nil, err
@@ -78,6 +85,7 @@ func (r *SqlWorkbenchResource) Initialize(
 	if sysErr {
 		return nil, errors.New("sql/workbench: root initialization returned a system error")
 	}
+
 	return &s4wave_sql_workbench.InitializeWorkbenchResponse{}, nil
 }
 
@@ -98,10 +106,13 @@ func (r *SqlWorkbenchResource) AddPin(
 	ctx context.Context,
 	req *s4wave_sql_workbench.AddPinRequest,
 ) (*s4wave_sql_workbench.AddPinResponse, error) {
+	// Require a query object key for the new workbench pin.
 	queryKey := req.GetQueryObjectKey()
 	if queryKey == "" {
 		return nil, errors.New("sql/workbench: query object key is required")
 	}
+
+	// Read the workbench and validate the query against its database target.
 	workbench, err := r.readWorkbench(ctx)
 	if err != nil {
 		return nil, err
@@ -109,13 +120,18 @@ func (r *SqlWorkbenchResource) AddPin(
 	if err := r.validatePinnedQuery(ctx, workbench, queryKey); err != nil {
 		return nil, err
 	}
+
+	// Add the query to the next workbench state without duplicating a pin.
 	next := workbench.CloneVT()
 	if !containsString(next.GetPinnedQueryObjectKeys(), queryKey) {
 		next.PinnedQueryObjectKeys = append(next.PinnedQueryObjectKeys, queryKey)
 	}
+
+	// Persist the workbench with the updated pins.
 	if err := r.commitWorkbenchRoot(ctx, next); err != nil {
 		return nil, err
 	}
+
 	return &s4wave_sql_workbench.AddPinResponse{}, nil
 }
 
@@ -124,19 +140,27 @@ func (r *SqlWorkbenchResource) RemovePin(
 	ctx context.Context,
 	req *s4wave_sql_workbench.RemovePinRequest,
 ) (*s4wave_sql_workbench.RemovePinResponse, error) {
+	// Require a query object key for the workbench pin removal.
 	queryKey := req.GetQueryObjectKey()
 	if queryKey == "" {
 		return nil, errors.New("sql/workbench: query object key is required")
 	}
+
+	// Read the persisted workbench before removing its pin.
 	workbench, err := r.readWorkbench(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Remove the query from the next workbench state.
 	next := workbench.CloneVT()
 	next.PinnedQueryObjectKeys = removeString(next.GetPinnedQueryObjectKeys(), queryKey)
+
+	// Persist the workbench with the remaining pins.
 	if err := r.commitWorkbenchRoot(ctx, next); err != nil {
 		return nil, err
 	}
+
 	return &s4wave_sql_workbench.RemovePinResponse{}, nil
 }
 
@@ -145,23 +169,31 @@ func (r *SqlWorkbenchResource) SetLayout(
 	ctx context.Context,
 	req *s4wave_sql_workbench.SetLayoutRequest,
 ) (*s4wave_sql_workbench.SetLayoutResponse, error) {
+	// Read the persisted workbench before replacing its layout.
 	workbench, err := r.readWorkbench(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Copy the requested tabs and validate their SQL object types.
 	tabs := cloneWorkbenchTabs(req.GetOpenTabs())
 	if err := r.validateOpenTabs(ctx, tabs); err != nil {
 		return nil, err
 	}
+
+	// Replace the workbench tabs and copy the requested layout preferences.
 	next := workbench.CloneVT()
 	next.OpenTabs = tabs
 	next.Layout = nil
 	if req.GetLayout() != nil {
 		next.Layout = req.GetLayout().CloneVT()
 	}
+
+	// Persist the workbench with the replacement layout.
 	if err := r.commitWorkbenchRoot(ctx, next); err != nil {
 		return nil, err
 	}
+
 	return &s4wave_sql_workbench.SetLayoutResponse{}, nil
 }
 
@@ -180,6 +212,7 @@ func (r *SqlWorkbenchResource) validatePinnedQuery(
 	workbench *s4wave_sql_workbench.Workbench,
 	queryKey string,
 ) error {
+	// Require a SQL query object and read its persisted query state.
 	if err := world_types.CheckObjectType(ctx, r.ws, queryKey, s4wave_sql_query.SqlQueryTypeID); err != nil {
 		return err
 	}
@@ -187,10 +220,13 @@ func (r *SqlWorkbenchResource) validatePinnedQuery(
 	if err != nil {
 		return err
 	}
+
+	// Accept queries whose database target is compatible with the workbench.
 	targetKey := workbench.GetTargetDbObjectKey()
 	if targetKey == "" || query.GetTargetDbObjectKey() == "" || query.GetTargetDbObjectKey() == targetKey {
 		return nil
 	}
+
 	return errors.Errorf("sql/workbench: query target %s does not match workbench target %s", query.GetTargetDbObjectKey(), targetKey)
 }
 
@@ -222,15 +258,20 @@ func (r *SqlWorkbenchResource) commitWorkbenchRoot(
 	ctx context.Context,
 	workbench *s4wave_sql_workbench.Workbench,
 ) error {
+	// Validate the workbench database target before storing its root.
 	if targetKey := workbench.GetTargetDbObjectKey(); targetKey != "" {
 		if err := world_types.CheckObjectType(ctx, r.ws, targetKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 			return err
 		}
 	}
+
+	// Store the replacement workbench root in the World block store.
 	rootRef, err := s4wave_sql_workbench.WriteWorkbenchRootRef(ctx, r.ws, workbench)
 	if err != nil {
 		return err
 	}
+
+	// Advance the workbench object to the stored root.
 	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlWorkbenchSetRootOp(r.objectKey, rootRef), "")
 	if err != nil {
 		return err
@@ -238,6 +279,7 @@ func (r *SqlWorkbenchResource) commitWorkbenchRoot(
 	if sysErr {
 		return errors.New("sql/workbench: root update returned a system error")
 	}
+
 	return nil
 }
 

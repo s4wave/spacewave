@@ -14,12 +14,16 @@ import (
 )
 
 func TestBuildUpdateInputValueSetForTargetOnlyUpdate(t *testing.T) {
+	// Build a target-only update value set from the stored Task inputs.
 	storedInputs := forge_value.ValueSlice{forge_value.NewValue("scheduler-input")}
 	valueSet := buildUpdateInputValueSet(storedInputs, nil, nil, nil)
 
+	// Construct a Task input transaction that updates only the target.
 	tx := task_tx.NewTxUpdateInputs("task")
 	tx.TxUpdateInputs.UpdateTarget = true
 	tx.TxUpdateInputs.ValueSet = valueSet
+
+	// Verify the target-only transaction is valid and preserves stored inputs.
 	if err := tx.Validate(); err != nil {
 		t.Fatalf("target-only update with stored inputs is invalid: %v", err)
 	}
@@ -29,9 +33,11 @@ func TestBuildUpdateInputValueSetForTargetOnlyUpdate(t *testing.T) {
 }
 
 func TestProcessCheckTaskResultAppliesCompletionWithoutLinkedPassRead(t *testing.T) {
+	// Keep Task completion work within a cancellable test context.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Prepare a Task controller and World that report completion and linked Pass reads.
 	ws := &checkTaskWorldState{
 		lookupStarted: make(chan struct{}),
 		applyCalled:   make(chan world.Operation, 1),
@@ -41,12 +47,15 @@ func TestProcessCheckTaskResultAppliesCompletionWithoutLinkedPassRead(t *testing
 		objKey: "task",
 		peerID: peer.ID("12D3KooWGVhTGboSk5zPHWcnuw66ysJ29F8r9RYu75qUTxZ83JL8"),
 	}
+
+	// Run Task result checking against the observed World.
 	taskState := &forge_task.Task{PassNonce: 1}
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- controller.processCheckTaskResult(ctx, ws, taskState)
 	}()
 
+	// Verify Task result checking applies a completion transaction without blocking.
 	select {
 	case op := <-ws.applyCalled:
 		tx, ok := op.(*task_tx.Tx)
@@ -62,6 +71,7 @@ func TestProcessCheckTaskResultAppliesCompletionWithoutLinkedPassRead(t *testing
 		t.Fatal("CHECKING processing blocked before ApplyWorldOp")
 	}
 
+	// Verify Task result checking finishes without reading a linked Pass.
 	if err := <-errCh; err != nil {
 		t.Fatalf("processCheckTaskResult: %v", err)
 	}

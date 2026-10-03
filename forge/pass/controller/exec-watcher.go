@@ -102,6 +102,7 @@ func (e *execWatcher) processState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Wait for the Execution object to appear before comparing its state.
 	if obj == nil {
 		le.Debug("object does not exist")
 		return true, nil

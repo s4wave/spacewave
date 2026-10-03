@@ -40,6 +40,7 @@ func BuildEnvelope(
 		return nil, ErrNoGrants
 	}
 
+	// Read the envelope threshold and grants for share allocation.
 	threshold := config.GetThreshold()
 	grants := config.GetGrantConfigs()
 
@@ -187,6 +188,7 @@ func matchPrivKeys(env *Envelope, privKeys []crypto.PrivKey) (map[int]crypto.Pri
 		privEntries = append(privEntries, privEntry{pem: pem, key: priv})
 	}
 
+	// Match envelope recipients to private keys by their public key encoding.
 	result := make(map[int]crypto.PrivKey)
 	for ki, ekp := range env.GetKeypairs() {
 		pubBytes := ekp.GetPubKey()
@@ -197,8 +199,11 @@ func matchPrivKeys(env *Envelope, privKeys []crypto.PrivKey) (map[int]crypto.Pri
 			}
 		}
 	}
+
+	// Scrub temporary public key encodings after matching recipients.
 	for i := range privEntries {
 		scrub.Scrub(privEntries[i].pem)
 	}
+
 	return result, nil
 }
