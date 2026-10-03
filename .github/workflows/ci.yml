@@ -1,5 +1,10 @@
 name: CI
 
+# A pull request into master and each master push run a delta: the Go tests of
+# the changed packages and every package whose tests depend on one, the lint of
+# the changed packages, and the JavaScript, Lean, Python Resource, and Licenses
+# checks when their inputs changed. The hourly schedule, a manual dispatch, and
+# a pull request into release run the full suite with every E2E job.
 on:
   push:
     branches: ['master']
@@ -8,82 +13,107 @@ on:
       - '*.md'
       - 'CHANGELOG.org'
   pull_request:
-    branches: ['master']
+    branches: ['master', 'release']
     paths-ignore:
       - 'doc/**'
       - '*.md'
       - 'CHANGELOG.org'
+  schedule:
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 # Pull request runs group by pull request number, and a new push cancels the
-# previous run. Branch pushes group by ref without cancelling: a started run
-# always finishes, so a burst of pushes cannot leave the branch unmeasured, and
-# GitHub keeps only the newest pending run, so a burst cannot queue a run per
-# commit and starve release workflows of runners.
+# previous run. Every other run groups by commit, so each master push gets its
+# own delta run and a burst of pushes cannot cancel a pending one.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
+  # affected selects the jobs this run needs; see scripts/ci-affected.ts. An
+  # empty matrix output skips its job. The hourly run skips a commit that
+  # already has a scheduled or dispatched run, so an idle master costs one
+  # short job an hour.
+  affected:
+    name: Select
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      mode: ${{ steps.select.outputs.mode }}
+      members: ${{ steps.select.outputs.members }}
+      alpha: ${{ steps.select.outputs.alpha }}
+      db: ${{ steps.select.outputs.db }}
+      lean: ${{ steps.select.outputs.lean }}
+      python: ${{ steps.select.outputs.python }}
+      licenses: ${{ steps.select.outputs.licenses }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      # A pull request checks out the merge commit, whose first parent is the
+      # base branch. A push compares with the previous master head; a new
+      # branch or a force push that dropped it runs the full suite.
+      - name: Select jobs
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+          schedule)
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&per_page=100" \
+              --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID and (.event == \"schedule\" or .event == \"workflow_dispatch\"))] | length")
+            if [ "$runs" -gt 0 ]; then
+              echo "A full run already measured $GITHUB_SHA."
+              echo 'mode=skip' >> "$GITHUB_OUTPUT"
+            else
+              bun scripts/ci-affected.ts full
+            fi
+            ;;
+          pull_request)
+            if [ "$BASE_REF" = release ]; then
+              bun scripts/ci-affected.ts full
+            else
+              bun scripts/ci-affected.ts delta HEAD^1
+            fi
+            ;;
+          push)
+            if git fetch --depth=1 origin "$BEFORE"; then
+              bun scripts/ci-affected.ts delta "$BEFORE"
+            else
+              bun scripts/ci-affected.ts full
+            fi
+            ;;
+          *)
+            bun scripts/ci-affected.ts full
+            ;;
+          esac
+
   member-ci:
-    name: CI (${{ matrix.member.name }})
+    name: CI (${{ matrix.name }})
+    needs: affected
+    if: ${{ needs.affected.outputs.members != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        member:
-          - name: auth
-            build_script: ''
-            check_script: ''
-            lint_go_script: lint:go:auth
-            lint_js_script: lint:js:auth
-            test_go_script: test:go:auth
-            test_js_script: test:js:auth
-          - name: forge
-            build_script: ''
-            check_script: ''
-            lint_go_script: lint:go:forge
-            lint_js_script: lint:js:forge
-            test_go_script: test:go:forge
-            test_js_script: test:js:forge
-          - name: net
-            build_script: build:net
-            check_script: ''
-            lint_go_script: lint:go:net
-            lint_js_script: lint:js:net
-            test_go_script: test:go:net
-            test_js_script: test:js:net
-          - name: bldr
-            build_script: ''
-            check_script: bldr:typecheck
-            lint_go_script: ''
-            lint_js_script: ''
-            test_go_script: ''
-            test_js_script: ''
-          - name: goscript
-            build_script: ''
-            check_script: ''
-            lint_go_script: ''
-            lint_js_script: ''
-            test_go_script: test:go:goscript
-            test_js_script: ''
-          - name: e2e
-            build_script: ''
-            check_script: ''
-            lint_go_script: lint:go:e2e
-            lint_js_script: ''
-            test_go_script: test:go:e2e:wasm:slice-coverage
-            test_js_script: ''
-          - name: identity
-            build_script: ''
-            check_script: ''
-            lint_go_script: lint:go:identity
-            lint_js_script: lint:js:identity
-            test_go_script: test:go:identity
-            test_js_script: test:js:identity
+      matrix: ${{ fromJSON(needs.affected.outputs.members) }}
 
     # A typical member run finishes in ten minutes, so a fifteen minute budget
     # leaves a slow runner no room: the job is killed, and GitHub reports that
@@ -114,32 +144,29 @@ jobs:
       - name: Setup aptre tools and vendor
         run: bun run prepare
 
-      - name: Setup alpha production-source fixture
-        if: ${{ matrix.member.name == 'alpha' }}
-        run: bun run bldr -- --state-path=.bldr-dist setup
-
       - name: Build Javascript
-        if: ${{ matrix.member.build_script != '' }}
-        run: bun run ${{ matrix.member.build_script }}
-
-      - name: Run member checks
-        if: ${{ matrix.member.check_script != '' }}
-        run: bun run ${{ matrix.member.check_script }}
+        if: ${{ matrix.build_script != '' }}
+        run: bun run ${{ matrix.build_script }}
 
       - name: Test Go
-        if: ${{ matrix.member.test_go_script != '' }}
-        run: bun run ${{ matrix.member.test_go_script }}
+        if: ${{ matrix.test_go_script != '' }}
+        env:
+          GO_PACKAGES: ${{ matrix.go_packages }}
+        run: bun run ${{ matrix.test_go_script }}
+
       - name: Test Js
-        if: ${{ matrix.member.test_js_script != '' }}
-        run: bun run ${{ matrix.member.test_js_script }}
+        if: ${{ matrix.test_js_script != '' }}
+        run: bun run ${{ matrix.test_js_script }}
 
       - name: Lint Js
-        if: ${{ matrix.member.lint_js_script != '' }}
-        run: bun run ${{ matrix.member.lint_js_script }}
+        if: ${{ matrix.lint_js_script != '' }}
+        run: bun run ${{ matrix.lint_js_script }}
 
       - name: Lint Go
-        if: ${{ matrix.member.lint_go_script != '' }}
-        run: bun run ${{ matrix.member.lint_go_script }}
+        if: ${{ matrix.lint_go_script != '' }}
+        env:
+          GO_LINT_PACKAGES: ${{ matrix.lint_packages }}
+        run: bun run ${{ matrix.lint_go_script }}
 
   # Alpha's Go tests, JavaScript tests, and Go lint each saturate a runner for
   # three to six minutes. Running them serially made CI (alpha) the last job
@@ -147,20 +174,13 @@ jobs:
   # jobs on the shared matrix machinery instead of serial steps. The JavaScript
   # lint takes seconds, so it runs as the test-js stage's check.
   member-ci-alpha:
-    name: CI (alpha / ${{ matrix.stage.name }})
+    name: CI (alpha / ${{ matrix.name }})
+    needs: affected
+    if: ${{ needs.affected.outputs.alpha != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        stage:
-          - name: test-go
-            script: test:go:alpha
-            check_script: typecheck
-          - name: test-js
-            script: test:js:alpha
-            check_script: lint:js:alpha
-          - name: lint-go
-            script: lint:go:alpha
+      matrix: ${{ fromJSON(needs.affected.outputs.alpha) }}
     timeout-minutes: 25
 
     steps:
@@ -190,25 +210,28 @@ jobs:
         run: bun run bldr -- --state-path=.bldr-dist setup
 
       - name: Run alpha checks
-        if: ${{ matrix.stage.check_script != '' }}
-        run: bun run ${{ matrix.stage.check_script }}
+        if: ${{ matrix.check_script != '' }}
+        run: bun run ${{ matrix.check_script }}
 
       - name: Run alpha stage
-        run: bun run ${{ matrix.stage.script }}
+        if: ${{ matrix.script != '' }}
+        env:
+          GO_PACKAGES: ${{ matrix.go_packages }}
+          GO_LINT_PACKAGES: ${{ matrix.go_packages }}
+        run: bun run ${{ matrix.script }}
 
   # The db member's compile check (startup-trace builds ./bldr/... ./db/... with
   # sqlite3, about 153s) and its Go test suite (about 266s, run with -p=1) each
   # saturate a runner; serially they made CI (db) the second-to-last job to finish
   # while other runners sat idle. The stages run as parallel jobs instead.
   member-ci-db:
-    name: CI (db / ${{ matrix.stage.name }})
+    name: CI (db / ${{ matrix.name }})
+    needs: affected
+    if: ${{ needs.affected.outputs.db != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        stage:
-          - name: checks
-          - name: tests
+      matrix: ${{ fromJSON(needs.affected.outputs.db) }}
     timeout-minutes: 25
 
     steps:
@@ -235,35 +258,51 @@ jobs:
         run: bun run prepare
 
       # Compile-check the db and bldr packages with the startup-trace tags
-      # (compiles sqlite3; about 153s), then lint.
-      - name: Compile-check and lint db
-        if: ${{ matrix.stage.name == 'checks' }}
-        run: |
-          bun run check:go:startup-trace
-          bun run lint:go:db
+      # (compiles sqlite3; about 153s).
+      - name: Compile-check startup trace
+        if: ${{ matrix.startup_trace }}
+        run: bun run check:go:startup-trace
+
+      - name: Lint db
+        if: ${{ matrix.lint_go }}
+        env:
+          GO_LINT_PACKAGES: ${{ matrix.lint_packages }}
+        run: bun run lint:go:db
+
+      # About 266s with -p=1 for the whole tree.
+      - name: Test db
+        if: ${{ matrix.test_go }}
+        env:
+          GO_PACKAGES: ${{ matrix.go_packages }}
+        run: bun run test:go:db
 
       # wasmbrowsertest runs js/wasm Go test binaries in the runner's Chrome.
       # Ubuntu 24.04 denies unprivileged user namespaces through AppArmor, which
       # leaves Chrome no usable sandbox, so allow them for this job.
       - name: Install wasmbrowsertest
-        if: ${{ matrix.stage.name == 'tests' }}
+        if: ${{ matrix.test_go_js }}
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           go install github.com/agnivade/wasmbrowsertest@v0.11.1-0.20260609113502-ff350cc7eb28
           mv "$(go env GOPATH)/bin/wasmbrowsertest" "$(go env GOPATH)/bin/go_js_wasm_exec"
 
-      # Go tests (about 266s with -p=1), the js-only Go tests of every product
-      # tree in Chrome, and the JavaScript tests and lint.
-      - name: Test db
-        if: ${{ matrix.stage.name == 'tests' }}
+      # The js-only Go tests of every selected product package, in Chrome.
+      - name: Test js-only Go packages
+        if: ${{ matrix.test_go_js }}
+        env:
+          GO_JS_PACKAGES: ${{ matrix.go_js_packages }}
+        run: bun run test:go:js $GO_JS_PACKAGES
+
+      - name: Test and lint db JavaScript
+        if: ${{ matrix.js }}
         run: |
-          bun run test:go:db
-          bun run test:go:js
           bun run test:js:db
           bun run lint:js:db
 
   lean:
     name: Lean
+    needs: affected
+    if: ${{ needs.affected.outputs.lean == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -291,6 +330,8 @@ jobs:
 
   python-resource:
     name: Python Resource
+    needs: affected
+    if: ${{ needs.affected.outputs.python == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -455,6 +496,8 @@ jobs:
 
   licenses:
     name: Licenses
+    needs: affected
+    if: ${{ needs.affected.outputs.licenses == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -528,6 +571,8 @@ jobs:
 
   e2e-go:
     name: E2E (${{ matrix.suite.name }})
+    needs: affected
+    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ${{ matrix.suite.os || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
@@ -611,6 +656,8 @@ jobs:
 
   e2e-wasm:
     name: E2E (wasm / ${{ matrix.slice.name }})
+    needs: affected
+    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -732,8 +779,8 @@ jobs:
   e2e-wasm-complete:
     name: E2E (wasm)
     runs-on: ubuntu-latest
-    needs: e2e-wasm
-    if: ${{ !cancelled() }}
+    needs: [affected, e2e-wasm]
+    if: ${{ !cancelled() && needs.affected.outputs.mode == 'full' }}
     timeout-minutes: 5
     permissions:
       actions: read
@@ -767,6 +814,8 @@ jobs:
 
   e2e-playwright:
     name: E2E (${{ matrix.suite.name }})
+    needs: affected
+    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -807,6 +856,8 @@ jobs:
         run: bun run ${{ matrix.suite.script }}
   nightly-workflow-contract:
     name: Nightly workflow contract
+    needs: affected
+    if: ${{ needs.affected.outputs.mode == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

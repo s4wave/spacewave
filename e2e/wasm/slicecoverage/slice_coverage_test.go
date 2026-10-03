@@ -16,14 +16,19 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+// workflow is a GitHub Actions workflow. Jobs stay raw because other jobs may
+// set their matrix from an expression string.
 type workflow struct {
-	Jobs map[string]struct {
-		Strategy struct {
-			Matrix struct {
-				Slice []wasmSlice `json:"slice"`
-			} `json:"matrix"`
-		} `json:"strategy"`
-	} `json:"jobs"`
+	Jobs map[string]any `json:"jobs"`
+}
+
+// wasmJob is the part of a wasm E2E job that lists its slices.
+type wasmJob struct {
+	Strategy struct {
+		Matrix struct {
+			Slice []wasmSlice `json:"slice"`
+		} `json:"matrix"`
+	} `json:"strategy"`
 }
 
 type wasmSlice struct {
@@ -95,10 +100,13 @@ var notEnrolledInAnySlice = []string{
 	"TestWebKitPersistentContextRuntimeStartup",
 }
 
+// TestAllWasmTestsAreEnrolled checks that a CI slice runs every wasm E2E test
+// not deliberately left out.
 func TestAllWasmTestsAreEnrolled(t *testing.T) {
+	// Workflows and tests are read relative to the repository root.
 	repoRoot := testRepoRoot(t)
 
-	// A test is enrolled when any slice in the PR tier (ci.yml e2e-wasm) or
+	// A test is enrolled when any slice in the full CI tier (ci.yml e2e-wasm) or
 	// the nightly tier (e2e-nightly.yml e2e-wasm-nightly) selects it.
 	var sliceRegexps []*regexp.Regexp
 	for _, enrolled := range []struct{ file, jobName string }{
@@ -113,9 +121,17 @@ func TestAllWasmTestsAreEnrolled(t *testing.T) {
 		if err := yaml.Unmarshal(workflowData, &config); err != nil {
 			t.Fatalf("parse workflow %s: %v", enrolled.file, err)
 		}
-		e2eWasm, ok := config.Jobs[enrolled.jobName]
+		job, ok := config.Jobs[enrolled.jobName]
 		if !ok {
 			t.Fatalf("workflow %s has no %s job", enrolled.file, enrolled.jobName)
+		}
+		jobData, err := yaml.Marshal(job)
+		if err != nil {
+			t.Fatalf("encode workflow %s job %s: %v", enrolled.file, enrolled.jobName, err)
+		}
+		var e2eWasm wasmJob
+		if err := yaml.Unmarshal(jobData, &e2eWasm); err != nil {
+			t.Fatalf("parse workflow %s job %s: %v", enrolled.file, enrolled.jobName, err)
 		}
 		for _, slice := range e2eWasm.Strategy.Matrix.Slice {
 			// A slice naming its own package runs TestScenarios under build
@@ -128,6 +144,7 @@ func TestAllWasmTestsAreEnrolled(t *testing.T) {
 		}
 	}
 
+	// Every name on the not-enrolled list must still be a test.
 	wasmTests := findWasmTests(t, filepath.Join(repoRoot, "e2e", "wasm"))
 	knownTests := make(map[string]bool, len(wasmTests))
 	for _, testName := range wasmTests {
@@ -139,6 +156,7 @@ func TestAllWasmTestsAreEnrolled(t *testing.T) {
 		}
 	}
 
+	// Every other test must match a slice.
 	var unenrolled []string
 	for _, testName := range wasmTests {
 		covered := false
