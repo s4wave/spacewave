@@ -1,9 +1,13 @@
 import { useEffect, useId } from 'react'
 
-import type { SharedObjectHealth } from '@s4wave/core/sobject/sobject.pb.js'
+import type {
+  SharedObjectHealth,
+  SORejectedEdit,
+} from '@s4wave/core/sobject/sobject.pb.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
-// SharedObjectSyncNotice presents peer recovery without interrupting local content.
+// SharedObjectSyncNotice presents peer recovery and rejected edits without
+// interrupting local content.
 export function SharedObjectSyncNotice({
   health,
 }: {
@@ -28,5 +32,51 @@ export function SharedObjectSyncNotice({
     }
   }, [denied, id, recovery])
 
+  return (health?.rejectedEdits ?? []).map((edit) => {
+    const hash = opHashKey(edit.opHash)
+    return (
+      <RejectedEditNotice
+        key={hash}
+        id={id + ':' + hash}
+        description={describeRejectedEdit(edit)}
+      />
+    )
+  })
+}
+
+// RejectedEditNotice shows a dismissible toast for one rejected edit while it
+// stays in the health.
+function RejectedEditNotice({
+  id,
+  description,
+}: {
+  id: string
+  description: string
+}) {
+  useEffect(() => {
+    toast.warning("An edit didn't apply", {
+      id,
+      description,
+      duration: Infinity,
+      closeButton: true,
+    })
+    return () => {
+      toast.dismiss(id)
+    }
+  }, [description, id])
+
   return null
+}
+
+// describeRejectedEdit says in plain words why an edit did not apply.
+function describeRejectedEdit(edit: SORejectedEdit): string {
+  if ((edit.lostToPeerIds?.length ?? 0) > 0) {
+    return "Another member's change reached the Space first, so this edit no longer applies. Your other edits are kept."
+  }
+  return `This edit no longer applies because ${edit.reason || 'the Space rejected it'}. Your other edits are kept.`
+}
+
+// opHashKey encodes an operation hash as lowercase hex.
+function opHashKey(hash?: Uint8Array): string {
+  return Array.from(hash ?? [], (b) => b.toString(16).padStart(2, '0')).join('')
 }

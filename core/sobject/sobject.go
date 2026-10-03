@@ -107,6 +107,14 @@ type SharedObjectHealthAccessor interface {
 	AccessSharedObjectHealth(ctx context.Context, released func()) (ccontainer.Watchable[*SharedObjectHealth], func(), error)
 }
 
+// RejectedEditReporter is implemented by a SharedObject that shows its device's
+// rejected edits in its health. The World engine reports them after each
+// replay it installs.
+type RejectedEditReporter interface {
+	// SetRejectedEdits replaces the rejected edits in the health.
+	SetRejectedEdits(edits []*SORejectedEdit)
+}
+
 // InviteHost is an optional interface on SharedObject implementations that
 // support invite creation and management. Both local and spacewave providers
 // implement this.

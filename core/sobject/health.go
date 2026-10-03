@@ -68,6 +68,23 @@ func (h *SharedObjectHealth) WithSyncPeerRecovery(peerID string, required bool) 
 	return next
 }
 
+// WithRejectedEdits returns a snapshot listing edits as this device's edits that
+// replay no longer applies.
+func (h *SharedObjectHealth) WithRejectedEdits(edits []*SORejectedEdit) *SharedObjectHealth {
+	// Keep the snapshot when the edits are unchanged.
+	if slices.EqualFunc(h.GetRejectedEdits(), edits, (*SORejectedEdit).EqualVT) {
+		return h
+	}
+
+	// Copy the snapshot with the new edits.
+	next := h.CloneVT()
+	if next == nil {
+		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
+	}
+	next.RejectedEdits = edits
+	return next
+}
+
 // NewSharedObjectLoadingHealth constructs a loading SharedObjectHealth snapshot.
 func NewSharedObjectLoadingHealth(
 	layer SharedObjectHealthLayer,

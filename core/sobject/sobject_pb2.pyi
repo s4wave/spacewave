@@ -149,7 +149,7 @@ class SharedObjectMeta(_message.Message):
     def __init__(self, body_type: _Optional[str] = ..., body_meta: _Optional[bytes] = ..., account_private: _Optional[bool] = ...) -> None: ...
 
 class SharedObjectHealth(_message.Message):
-    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids")
+    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     LAYER_FIELD_NUMBER: _ClassVar[int]
     COMMON_REASON_FIELD_NUMBER: _ClassVar[int]
@@ -158,6 +158,7 @@ class SharedObjectHealth(_message.Message):
     METADATA_FIELD_NUMBER: _ClassVar[int]
     SYNC_DENIED_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
     SYNC_RECOVERY_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
+    REJECTED_EDITS_FIELD_NUMBER: _ClassVar[int]
     status: SharedObjectHealthStatus
     layer: SharedObjectHealthLayer
     common_reason: SharedObjectHealthCommonReason
@@ -166,7 +167,18 @@ class SharedObjectHealth(_message.Message):
     metadata: bytes
     sync_denied_peer_ids: _containers.RepeatedScalarFieldContainer[str]
     sync_recovery_peer_ids: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+    rejected_edits: _containers.RepeatedCompositeFieldContainer[SORejectedEdit]
+    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ...) -> None: ...
+
+class SORejectedEdit(_message.Message):
+    __slots__ = ("op_hash", "reason", "lost_to_peer_ids")
+    OP_HASH_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    LOST_TO_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
+    op_hash: bytes
+    reason: str
+    lost_to_peer_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, op_hash: _Optional[bytes] = ..., reason: _Optional[str] = ..., lost_to_peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SharedObjectConfig(_message.Message):
     __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors")

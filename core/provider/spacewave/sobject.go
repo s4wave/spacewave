@@ -125,6 +125,17 @@ func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released fu
 	return s.tkr.a.AccessSharedObjectHealth(ctx, ref, released)
 }
 
+// SetRejectedEdits shows edits in the health as this device's edits that replay
+// no longer applies.
+func (s *SharedObject) SetRejectedEdits(edits []*sobject.SORejectedEdit) {
+	if s.tkr.healthCtr == nil {
+		return
+	}
+	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return health.WithRejectedEdits(edits)
+	})
+}
+
 // QueueOperation signs op as the session peer and adds it to the operation
 // set. It returns the operation's local ID once the state holding it is
 // durably accepted for publication.
@@ -1444,6 +1455,7 @@ func (s *SharedObject) GetProviderID() string {
 // _ is a type assertion
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
+	_ sobject.RejectedEditReporter       = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)

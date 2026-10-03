@@ -189,6 +189,9 @@ type soEngine struct {
 	// retainedRoots are the retained roots updateEngineState last copied,
 	// guarded by the controller's writer lock.
 	retainedRoots []*RetainedRoot
+	// rejected are the rejected edits last reported, guarded by the
+	// controller's writer lock.
+	rejected []*sobject.SORejectedEdit
 }
 
 // newSoEngine constructs the shared object engine.
@@ -256,7 +259,7 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 		unlockWriteMtx()
 		return nil, err
 	}
-	if _, err := e.advance(ctx, snapshot); err != nil {
+	if _, err := e.advance(ctx, snapshot, nil); err != nil {
 		unlockWriteMtx()
 		return nil, err
 	}
@@ -341,14 +344,76 @@ func (e *soEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ig
 	return e.bengine.WaitObjectRev(ctx, key, rev, ignoreNotFound)
 }
 
-// advance replays snap and installs the World after its last placed
-// operation. The caller holds the writer lock.
-func (e *soEngine) advance(ctx context.Context, snap sobject.SharedObjectStateSnapshot) ([]replayOutcome, error) {
-	state, outcomes, err := e.replay.sync(ctx, snap, nil)
+// advance replays snap, installs the World after its last placed operation
+// and reports this device's rejected edits. fork, when set, supplies the World
+// after a local write. The caller holds the writer lock.
+func (e *soEngine) advance(ctx context.Context, snap sobject.SharedObjectStateSnapshot, fork *replayFork) ([]replayOutcome, error) {
+	// Replay and install the World.
+	state, outcomes, err := e.replay.sync(ctx, snap, fork)
 	if err != nil {
 		return nil, err
 	}
-	return outcomes, e.updateEngineState(ctx, state)
+	if err := e.updateEngineState(ctx, state); err != nil {
+		return nil, err
+	}
+
+	// Report the edits it rejected.
+	set, err := snap.GetOperationSet(ctx)
+	if err != nil {
+		return nil, err
+	}
+	e.reportRejectedEdits(set, outcomes)
+	return outcomes, nil
+}
+
+// reportRejectedEdits shows this device's revoked operations in the health of
+// the SharedObject. An operation that replay never applied was rejected when it
+// was written, and its writer was told then.
+func (e *soEngine) reportRejectedEdits(set *sobject.SOOperationSet, outcomes []replayOutcome) {
+	// Find the local operations that lost their place.
+	self := e.so.GetPeerID().String()
+	var edits []*sobject.SORejectedEdit
+	for i, outcome := range outcomes {
+		if !outcome.revoked || set.Get(outcome.hash).GetPeerId() != self {
+			continue
+		}
+		edit := &sobject.SORejectedEdit{OpHash: outcome.hash, Reason: outcome.reason}
+		if outcome.conflict {
+			edit.LostToPeerIds = concurrentAuthors(set, outcomes[:i], outcome.hash, self)
+		}
+		edits = append(edits, edit)
+	}
+
+	// Show them when they changed.
+	reporter, ok := e.so.(sobject.RejectedEditReporter)
+	if !ok || slices.EqualFunc(edits, e.rejected, (*sobject.SORejectedEdit).EqualVT) {
+		return
+	}
+	e.rejected = edits
+	reporter.SetRejectedEdits(edits)
+}
+
+// concurrentAuthors returns the sorted authors, other than self, of the applied
+// operations in earlier that the operation with hash h does not descend from.
+func concurrentAuthors(set *sobject.SOOperationSet, earlier []replayOutcome, h []byte, self string) []string {
+	// Collect the authors of applied operations h does not descend from.
+	ancestors := set.Ancestors(h)
+	var authors []string
+	for _, outcome := range earlier {
+		if outcome.reason != "" {
+			continue
+		}
+		if _, ok := ancestors[string(outcome.hash)]; ok {
+			continue
+		}
+		if author := set.Get(outcome.hash).GetPeerId(); author != self && !slices.Contains(authors, author) {
+			authors = append(authors, author)
+		}
+	}
+
+	// Sort them so every member names them alike.
+	slices.Sort(authors)
+	return authors
 }
 
 // queueOperation adds opData to the operation set as the local peer, replays
@@ -378,11 +443,8 @@ func (e *soEngine) queueOperation(ctx context.Context, opData []byte, fork *repl
 	if fork != nil {
 		fork.hash = h
 	}
-	state, outcomes, err := e.replay.sync(ctx, snap, fork)
+	outcomes, err := e.advance(ctx, snap, fork)
 	if err != nil {
-		return err
-	}
-	if err := e.updateEngineState(ctx, state); err != nil {
 		return err
 	}
 

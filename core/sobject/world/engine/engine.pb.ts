@@ -218,6 +218,20 @@ export interface ReplayCursorOutcome {
    * @generated from field: string reason = 2;
    */
   reason?: string
+  /**
+   * Conflict is set when the World rejected the operation after the
+   * operations replayed before it.
+   *
+   * @generated from field: bool conflict = 3;
+   */
+  conflict?: boolean
+  /**
+   * Revoked is set when the operation is not applied but an earlier replay on
+   * this device applied it.
+   *
+   * @generated from field: bool revoked = 4;
+   */
+  revoked?: boolean
 }
 
 export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
@@ -226,6 +240,8 @@ export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
     fields: [
       { no: 1, name: 'hash', kind: 'scalar', T: ScalarType.BYTES },
       { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'conflict', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'revoked', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })
 

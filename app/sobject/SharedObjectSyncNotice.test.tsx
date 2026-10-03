@@ -67,4 +67,41 @@ describe('SharedObjectSyncNotice', () => {
       }),
     )
   })
+
+  it('shows each rejected edit until it leaves the health', () => {
+    const lost = {
+      opHash: new Uint8Array([1, 2]),
+      reason: 'the operation failed',
+      lostToPeerIds: ['other-member'],
+    }
+    const refused = {
+      opHash: new Uint8Array([3]),
+      reason: 'its author could not write to the shared object',
+    }
+    const { rerender } = render(
+      <SharedObjectSyncNotice health={{ rejectedEdits: [lost, refused] }} />,
+    )
+    expect(toast.warning).toHaveBeenCalledWith(
+      "An edit didn't apply",
+      expect.objectContaining({
+        description: expect.stringContaining(
+          "Another member's change reached the Space first",
+        ),
+        duration: Infinity,
+      }),
+    )
+    expect(toast.warning).toHaveBeenCalledWith(
+      "An edit didn't apply",
+      expect.objectContaining({
+        description:
+          'This edit no longer applies because its author could not write to the shared object. Your other edits are kept.',
+      }),
+    )
+
+    vi.mocked(toast.warning).mockClear()
+    rerender(<SharedObjectSyncNotice health={{ rejectedEdits: [refused] }} />)
+    expect(toast.warning).not.toHaveBeenCalled()
+    expect(toast.dismiss).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(toast.dismiss).mock.calls[0]?.[0]).toMatch(/:0102$/)
+  })
 })

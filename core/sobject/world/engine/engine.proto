@@ -71,6 +71,12 @@ message ReplayCursorOutcome {
   // Reason is empty when the operation applied. Otherwise it says why the
   // operation was not applied.
   string reason = 2;
+  // Conflict is set when the World rejected the operation after the
+  // operations replayed before it.
+  bool conflict = 3;
+  // Revoked is set when the operation is not applied but an earlier replay on
+  // this device applied it.
+  bool revoked = 4;
 }
 
 // RetainedRoot is a past World root kept restorable under a name.

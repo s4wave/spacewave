@@ -537,6 +537,10 @@ type SharedObjectHealth struct {
 	// an upgrade or trusted history recovery. Local content remains available.
 	// Verified convergence clears the participant; admission alone does not.
 	SyncRecoveryPeerIds []string `protobuf:"bytes,8,rep,name=sync_recovery_peer_ids,json=syncRecoveryPeerIds,proto3" json:"syncRecoveryPeerIds,omitempty"`
+	// RejectedEdits lists this device's operations that applied and that a later
+	// replay rejected, in replay order. An operation rejected when it is written
+	// is reported to its writer instead.
+	RejectedEdits []*SORejectedEdit `protobuf:"bytes,9,rep,name=rejected_edits,json=rejectedEdits,proto3" json:"rejectedEdits,omitempty"`
 }
 
 func (x *SharedObjectHealth) Reset() {
@@ -597,6 +601,52 @@ func (x *SharedObjectHealth) GetSyncDeniedPeerIds() []string {
 func (x *SharedObjectHealth) GetSyncRecoveryPeerIds() []string {
 	if x != nil {
 		return x.SyncRecoveryPeerIds
+	}
+	return nil
+}
+
+func (x *SharedObjectHealth) GetRejectedEdits() []*SORejectedEdit {
+	if x != nil {
+		return x.RejectedEdits
+	}
+	return nil
+}
+
+// SORejectedEdit is an operation of this device that replay no longer applies.
+type SORejectedEdit struct {
+	unknownFields []byte
+	// OpHash identifies the operation.
+	OpHash []byte `protobuf:"bytes,1,opt,name=op_hash,json=opHash,proto3" json:"opHash,omitempty"`
+	// Reason says in plain words why the operation did not apply.
+	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	// LostToPeerIds lists the authors of the applied operations that were
+	// written concurrently and replay before it, sorted.
+	LostToPeerIds []string `protobuf:"bytes,3,rep,name=lost_to_peer_ids,json=lostToPeerIds,proto3" json:"lostToPeerIds,omitempty"`
+}
+
+func (x *SORejectedEdit) Reset() {
+	*x = SORejectedEdit{}
+}
+
+func (*SORejectedEdit) ProtoMessage() {}
+
+func (x *SORejectedEdit) GetOpHash() []byte {
+	if x != nil {
+		return x.OpHash
+	}
+	return nil
+}
+
+func (x *SORejectedEdit) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *SORejectedEdit) GetLostToPeerIds() []string {
+	if x != nil {
+		return x.LostToPeerIds
 	}
 	return nil
 }
@@ -2038,6 +2088,7 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 	r.Metadata = protobuf_go_lite.CloneBytes(m.Metadata)
 	r.SyncDeniedPeerIds = protobuf_go_lite.CloneSlice(m.SyncDeniedPeerIds)
 	r.SyncRecoveryPeerIds = protobuf_go_lite.CloneSlice(m.SyncRecoveryPeerIds)
+	r.RejectedEdits = protobuf_go_lite.CloneVTSlice(m.RejectedEdits)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2045,6 +2096,24 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 }
 
 func (m *SharedObjectHealth) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SORejectedEdit) CloneVT() *SORejectedEdit {
+	if m == nil {
+		return (*SORejectedEdit)(nil)
+	}
+	r := new(SORejectedEdit)
+	r.Reason = m.Reason
+	r.OpHash = protobuf_go_lite.CloneBytes(m.OpHash)
+	r.LostToPeerIds = protobuf_go_lite.CloneSlice(m.LostToPeerIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SORejectedEdit) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2718,11 +2787,40 @@ func (this *SharedObjectHealth) EqualVT(that *SharedObjectHealth) bool {
 	if !protobuf_go_lite.EqualSlice(this.SyncRecoveryPeerIds, that.SyncRecoveryPeerIds) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RejectedEdits, that.RejectedEdits, func() *SORejectedEdit { return &SORejectedEdit{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *SharedObjectHealth) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SharedObjectHealth)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SORejectedEdit) EqualVT(that *SORejectedEdit) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.OpHash, that.OpHash) {
+		return false
+	}
+	if this.Reason != that.Reason {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.LostToPeerIds, that.LostToPeerIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SORejectedEdit) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SORejectedEdit)
 	if !ok {
 		return false
 	}
@@ -4129,6 +4227,17 @@ func (x *SharedObjectHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("syncRecoveryPeerIds")
 		s.WriteStringArray(x.SyncRecoveryPeerIds)
 	}
+	if len(x.RejectedEdits) > 0 || s.HasField("rejectedEdits") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rejectedEdits")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RejectedEdits {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("rejectedEdits"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4178,12 +4287,92 @@ func (x *SharedObjectHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.SyncRecoveryPeerIds = s.ReadStringArray()
+		case "rejected_edits", "rejectedEdits":
+			s.AddField("rejected_edits")
+			if s.ReadNil() {
+				x.RejectedEdits = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RejectedEdits = append(x.RejectedEdits, nil)
+					return
+				}
+				v := &SORejectedEdit{}
+				v.UnmarshalProtoJSON(s.WithField("rejected_edits", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RejectedEdits = append(x.RejectedEdits, v)
+			})
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the SharedObjectHealth from JSON.
 func (x *SharedObjectHealth) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SORejectedEdit message to JSON.
+func (x *SORejectedEdit) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.OpHash) > 0 || s.HasField("opHash") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("opHash")
+		s.WriteBytes(x.OpHash)
+	}
+	if x.Reason != "" || s.HasField("reason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reason")
+		s.WriteString(x.Reason)
+	}
+	if len(x.LostToPeerIds) > 0 || s.HasField("lostToPeerIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lostToPeerIds")
+		s.WriteStringArray(x.LostToPeerIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SORejectedEdit to JSON.
+func (x *SORejectedEdit) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SORejectedEdit message from JSON.
+func (x *SORejectedEdit) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "op_hash", "opHash":
+			s.AddField("op_hash")
+			x.OpHash = s.ReadBytes()
+		case "reason":
+			s.AddField("reason")
+			x.Reason = s.ReadString()
+		case "lost_to_peer_ids", "lostToPeerIds":
+			s.AddField("lost_to_peer_ids")
+			if s.ReadNil() {
+				x.LostToPeerIds = nil
+				return
+			}
+			x.LostToPeerIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SORejectedEdit from JSON.
+func (x *SORejectedEdit) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6586,6 +6775,18 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RejectedEdits) > 0 {
+		for iNdEx := len(m.RejectedEdits) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RejectedEdits[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
 	if len(m.SyncRecoveryPeerIds) > 0 {
 		for iNdEx := len(m.SyncRecoveryPeerIds) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.SyncRecoveryPeerIds[iNdEx])
@@ -6629,6 +6830,55 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SORejectedEdit) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SORejectedEdit) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SORejectedEdit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.LostToPeerIds) > 0 {
+		for iNdEx := len(m.LostToPeerIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.LostToPeerIds[iNdEx])
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Reason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Reason)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.OpHash) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OpHash)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -8343,6 +8593,23 @@ func (m *SharedObjectHealth) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Metadata)
 	n += protobuf_go_lite.SizeStringSlice(1, m.SyncDeniedPeerIds)
 	n += protobuf_go_lite.SizeStringSlice(1, m.SyncRecoveryPeerIds)
+	for _, e := range m.RejectedEdits {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SORejectedEdit) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpHash)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
+	n += protobuf_go_lite.SizeStringSlice(1, m.LostToPeerIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9006,10 +9273,48 @@ func (x *SharedObjectHealth) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.RejectedEdits) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "rejected_edits")
+		for i, v := range x.RejectedEdits {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SORejectedEdit{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *SharedObjectHealth) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SORejectedEdit) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SORejectedEdit")
+	if len(x.OpHash) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "op_hash")
+		protobuf_go_lite.TextWriteBytes(&sb, x.OpHash)
+	}
+	if x.Reason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reason")
+		protobuf_go_lite.TextWriteString(&sb, x.Reason)
+	}
+	if len(x.LostToPeerIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "lost_to_peer_ids")
+		for i, v := range x.LostToPeerIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SORejectedEdit) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -10233,6 +10538,90 @@ func (m *SharedObjectHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SyncRecoveryPeerIds = append(m.SyncRecoveryPeerIds, v)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RejectedEdits", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RejectedEdits = append(m.RejectedEdits, &SORejectedEdit{})
+			if err := m.RejectedEdits[len(m.RejectedEdits)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SORejectedEdit) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SORejectedEdit: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SORejectedEdit: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OpHash", wireType)
+			}
+			m.OpHash, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.OpHash, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Reason = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LostToPeerIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LostToPeerIds = append(m.LostToPeerIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

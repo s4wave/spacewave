@@ -51,7 +51,7 @@ func (e *soEngine) SetRetainedRoot(ctx context.Context, name string, ref *block.
 	if err != nil {
 		return err
 	}
-	if _, err := e.advance(ctx, snap); err != nil {
+	if _, err := e.advance(ctx, snap, nil); err != nil {
 		return err
 	}
 	_, head, _ := e.replay.head()

@@ -133,6 +133,17 @@ func (s *SharedObject) AccessSharedObjectHealth(ctx context.Context, released fu
 	return s.tkr.a.AccessSharedObjectHealth(ctx, ref, released)
 }
 
+// SetRejectedEdits shows edits in the health as this device's edits that replay
+// no longer applies.
+func (s *SharedObject) SetRejectedEdits(edits []*sobject.SORejectedEdit) {
+	if s.tkr.healthCtr == nil {
+		return
+	}
+	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return health.WithRejectedEdits(edits)
+	})
+}
+
 // QueueOperation signs op as the local participant and adds it to the
 // operation set. Returns the local operation ID.
 func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
@@ -697,6 +708,7 @@ func (s *SharedObject) IncrementInviteUses(ctx context.Context, signerPrivKey cr
 // _ verifies the local provider's SharedObject contracts.
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
+	_ sobject.RejectedEditReporter       = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)

@@ -380,6 +380,37 @@ func (s *SOOperationSet) Find(peerID, localID string) []byte {
 	return nil
 }
 
+// Ancestors returns the operations in the set that the operation with hash h
+// descends from, through its author chain and its causal parents.
+func (s *SOOperationSet) Ancestors(h []byte) map[string]struct{} {
+	ancestors := make(map[string]struct{})
+	stack := []string{string(h)}
+	for len(stack) != 0 {
+		// Visit the links of the next operation the set holds.
+		inner := s.ops[stack[len(stack)-1]]
+		stack = stack[:len(stack)-1]
+		if inner == nil {
+			continue
+		}
+		links := inner.GetParentHashes()
+		if prev := inner.GetPrevOpHash(); len(prev) != 0 {
+			links = append(slices.Clip(links), prev)
+		}
+
+		// Record each link the first time it is reached.
+		for _, link := range links {
+			if _, ok := ancestors[string(link)]; ok {
+				continue
+			}
+			if _, ok := s.ops[string(link)]; ok {
+				ancestors[string(link)] = struct{}{}
+				stack = append(stack, string(link))
+			}
+		}
+	}
+	return ancestors
+}
+
 // Order returns the replay order of the operations whose ancestry the set or
 // its checkpoint holds: a topological order of the operation DAG with
 // concurrent operations in byte order of their hashes. Every member holding the

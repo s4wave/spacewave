@@ -530,6 +530,49 @@ export const SharedObjectList: MessageType<SharedObjectList> =
   })
 
 /**
+ * SORejectedEdit is an operation of this device that replay no longer applies.
+ *
+ * @generated from message sobject.SORejectedEdit
+ */
+export interface SORejectedEdit {
+  /**
+   * OpHash identifies the operation.
+   *
+   * @generated from field: bytes op_hash = 1;
+   */
+  opHash?: Uint8Array
+  /**
+   * Reason says in plain words why the operation did not apply.
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason?: string
+  /**
+   * LostToPeerIds lists the authors of the applied operations that were
+   * written concurrently and replay before it, sorted.
+   *
+   * @generated from field: repeated string lost_to_peer_ids = 3;
+   */
+  lostToPeerIds?: string[]
+}
+
+export const SORejectedEdit: MessageType<SORejectedEdit> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SORejectedEdit',
+    fields: [
+      { no: 1, name: 'op_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'lost_to_peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SharedObjectHealth describes the current lifecycle and failure state of a SharedObject.
  * This payload is shared across local, spacewave, and CDN providers.
  *
@@ -589,6 +632,14 @@ export interface SharedObjectHealth {
    * @generated from field: repeated string sync_recovery_peer_ids = 8;
    */
   syncRecoveryPeerIds?: string[]
+  /**
+   * RejectedEdits lists this device's operations that applied and that a later
+   * replay rejected, in replay order. An operation rejected when it is written
+   * is reported to its writer instead.
+   *
+   * @generated from field: repeated sobject.SORejectedEdit rejected_edits = 9;
+   */
+  rejectedEdits?: SORejectedEdit[]
 }
 
 export const SharedObjectHealth: MessageType<SharedObjectHealth> =
@@ -623,6 +674,13 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
         name: 'sync_recovery_peer_ids',
         kind: 'scalar',
         T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 9,
+        name: 'rejected_edits',
+        kind: 'message',
+        T: SORejectedEdit,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],

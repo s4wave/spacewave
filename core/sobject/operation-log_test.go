@@ -3,6 +3,7 @@ package sobject
 import (
 	"bytes"
 	"iter"
+	"maps"
 	"slices"
 	"testing"
 
@@ -11,7 +12,8 @@ import (
 
 // TestSOOperationSetOrder checks that the replay order is a function of the
 // set: parents come first, concurrent operations sort by hash, and an
-// operation naming one the set lacks waits with its descendants.
+// operation naming one the set lacks waits with its descendants. Ancestors
+// follows both links within the set.
 func TestSOOperationSetOrder(t *testing.T) {
 	// Derive one key per author.
 	privA, _ := vectorKey(t, "order a")
@@ -75,5 +77,22 @@ func TestSOOperationSetOrder(t *testing.T) {
 	slices.SortFunc(roots, bytes.Compare)
 	if !bytes.Equal(want[0], roots[0]) {
 		t.Fatal("concurrent roots are not in hash order")
+	}
+
+	// Ancestors follows the previous operation and the parents, inside the set.
+	set := NewSOOperationSet(vectorObjectID, nil)
+	for _, op := range delivered {
+		if _, err := set.Add(op); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := slices.Sorted(maps.Keys(set.Ancestors(b2.Hash())))
+	wantAncestors := []string{string(a1.Hash()), string(b1.Hash())}
+	slices.Sort(wantAncestors)
+	if !slices.Equal(got, wantAncestors) {
+		t.Fatalf("ancestors of b2: %x; want %x", got, wantAncestors)
+	}
+	if len(set.Ancestors(c2.Hash())) != 0 {
+		t.Fatal("c2 has an ancestor outside the set")
 	}
 }

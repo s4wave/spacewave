@@ -182,6 +182,12 @@ type ReplayCursorOutcome struct {
 	// Reason is empty when the operation applied. Otherwise it says why the
 	// operation was not applied.
 	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	// Conflict is set when the World rejected the operation after the
+	// operations replayed before it.
+	Conflict bool `protobuf:"varint,3,opt,name=conflict,proto3" json:"conflict,omitempty"`
+	// Revoked is set when the operation is not applied but an earlier replay on
+	// this device applied it.
+	Revoked bool `protobuf:"varint,4,opt,name=revoked,proto3" json:"revoked,omitempty"`
 }
 
 func (x *ReplayCursorOutcome) Reset() {
@@ -202,6 +208,20 @@ func (x *ReplayCursorOutcome) GetReason() string {
 		return x.Reason
 	}
 	return ""
+}
+
+func (x *ReplayCursorOutcome) GetConflict() bool {
+	if x != nil {
+		return x.Conflict
+	}
+	return false
+}
+
+func (x *ReplayCursorOutcome) GetRevoked() bool {
+	if x != nil {
+		return x.Revoked
+	}
+	return false
 }
 
 // RetainedRoot is a past World root kept restorable under a name.
@@ -471,6 +491,8 @@ func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
 	}
 	r := new(ReplayCursorOutcome)
 	r.Reason = m.Reason
+	r.Conflict = m.Conflict
+	r.Revoked = m.Revoked
 	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -719,6 +741,12 @@ func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
 		return false
 	}
 	if this.Reason != that.Reason {
+		return false
+	}
+	if this.Conflict != that.Conflict {
+		return false
+	}
+	if this.Revoked != that.Revoked {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1197,6 +1225,16 @@ func (x *ReplayCursorOutcome) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("reason")
 		s.WriteString(x.Reason)
 	}
+	if x.Conflict || s.HasField("conflict") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("conflict")
+		s.WriteBool(x.Conflict)
+	}
+	if x.Revoked || s.HasField("revoked") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revoked")
+		s.WriteBool(x.Revoked)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1220,6 +1258,12 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "reason":
 			s.AddField("reason")
 			x.Reason = s.ReadString()
+		case "conflict":
+			s.AddField("conflict")
+			x.Conflict = s.ReadBool()
+		case "revoked":
+			s.AddField("revoked")
+			x.Revoked = s.ReadBool()
 		}
 	})
 }
@@ -1801,6 +1845,16 @@ func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Revoked {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Revoked)
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Conflict {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Conflict)
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.Reason) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Reason)
 		i--
@@ -2225,6 +2279,8 @@ func (m *ReplayCursorOutcome) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Hash)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Conflict)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Revoked)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2464,6 +2520,14 @@ func (x *ReplayCursorOutcome) MarshalProtoText() string {
 	if x.Reason != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reason")
 		protobuf_go_lite.TextWriteString(&sb, x.Reason)
+	}
+	if x.Conflict != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "conflict")
+		protobuf_go_lite.TextWriteBool(&sb, x.Conflict)
+	}
+	if x.Revoked != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revoked")
+		protobuf_go_lite.TextWriteBool(&sb, x.Revoked)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2913,6 +2977,26 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Reason = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Conflict", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Conflict = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Revoked", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Revoked = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -60,7 +60,7 @@ func (c *Controller) executeWatchSOStateOnce(
 ) error {
 	ctx, task := trace.NewTask(ctx, "alpha/watch-state/process-snapshot")
 	defer task.End()
-	_, err := soEngine.advance(ctx, snap)
+	_, err := soEngine.advance(ctx, snap, nil)
 	return err
 }
 

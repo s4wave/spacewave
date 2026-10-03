@@ -28,6 +28,12 @@ type replayOutcome struct {
 	// reason is empty when the operation applied. Otherwise it says in plain
 	// words why the operation was not applied.
 	reason string
+	// conflict is set when the World rejected the operation after the
+	// operations replayed before it.
+	conflict bool
+	// revoked is set when the operation is not applied but an earlier replay
+	// on this device applied it.
+	revoked bool
 }
 
 // replayPosition is one replayed operation and the World after it.
@@ -72,6 +78,9 @@ type replayer struct {
 	positions []replayPosition
 	// changed is set when base or positions differ from the saved replay.
 	changed bool
+	// applied holds the operations a replay on this device has applied,
+	// including those of the saved replay.
+	applied map[string]struct{}
 }
 
 // newReplayer constructs a replayer for the World of so.
@@ -137,7 +146,15 @@ func (r *replayer) load(ctx context.Context) error {
 	r.base = cursor.GetBase()
 	r.positions = make([]replayPosition, len(cursor.GetOutcomes()))
 	for i, outcome := range cursor.GetOutcomes() {
-		r.positions[i].outcome = replayOutcome{hash: outcome.GetHash(), reason: outcome.GetReason()}
+		r.positions[i].outcome = replayOutcome{
+			hash:     outcome.GetHash(),
+			reason:   outcome.GetReason(),
+			conflict: outcome.GetConflict(),
+			revoked:  outcome.GetRevoked(),
+		}
+		if outcome.GetReason() == "" || outcome.GetRevoked() {
+			r.markApplied(outcome.GetHash())
+		}
 	}
 	if n := len(r.positions); n != 0 {
 		r.positions[n-1].state = cursor.GetHead()
@@ -163,7 +180,12 @@ func (r *replayer) save(ctx context.Context) error {
 		Outcomes: make([]*ReplayCursorOutcome, len(r.positions)),
 	}
 	for i, pos := range r.positions {
-		cursor.Outcomes[i] = &ReplayCursorOutcome{Hash: pos.outcome.hash, Reason: pos.outcome.reason}
+		cursor.Outcomes[i] = &ReplayCursorOutcome{
+			Hash:     pos.outcome.hash,
+			Reason:   pos.outcome.reason,
+			Conflict: pos.outcome.conflict,
+			Revoked:  pos.outcome.revoked,
+		}
 	}
 	data, err := cursor.MarshalVT()
 	if err != nil {
@@ -230,16 +252,16 @@ func (r *replayer) replay(
 		// from.
 		if i == 0 && fork != nil && fork.base == r.base && fork.index == n && bytes.Equal(fork.hash, h) {
 			state = fork.state
-			r.positions = append(r.positions, replayPosition{outcome: replayOutcome{hash: h}, state: state})
+			r.place(replayOutcome{hash: h}, state)
 			continue
 		}
 
 		// Apply every other operation as every member does.
-		var reason string
+		outcome := replayOutcome{hash: h}
 		if set.Equivocated(h) {
-			reason = sobject.ReasonEquivocated
+			outcome.reason = sobject.ReasonEquivocated
 		} else {
-			next, why, err := r.replayOp(ctx, snap, set.Get(h), n+i, state)
+			next, why, conflict, err := r.replayOp(ctx, snap, set.Get(h), n+i, state)
 			if errors.Is(err, block.ErrNotFound) && n != 0 {
 				r.positions = nil
 				return r.replay(ctx, snap, set, nil)
@@ -250,12 +272,9 @@ func (r *replayer) replay(
 			if next != nil {
 				state = next
 			}
-			reason = why
+			outcome.reason, outcome.conflict = why, conflict
 		}
-		r.positions = append(r.positions, replayPosition{
-			outcome: replayOutcome{hash: h, reason: reason},
-			state:   state,
-		})
+		r.place(outcome, state)
 	}
 
 	// Report every outcome in order.
@@ -266,24 +285,43 @@ func (r *replayer) replay(
 	return state, outcomes, nil
 }
 
+// place appends the outcome of the next operation and the World after it, and
+// records whether this device has applied the operation.
+func (r *replayer) place(outcome replayOutcome, state *InnerState) {
+	if outcome.reason == "" {
+		r.markApplied(outcome.hash)
+	} else {
+		_, outcome.revoked = r.applied[string(outcome.hash)]
+	}
+	r.positions = append(r.positions, replayPosition{outcome: outcome, state: state})
+}
+
+// markApplied records that this device applied the operation with hash h.
+func (r *replayer) markApplied(h []byte) {
+	if r.applied == nil {
+		r.applied = make(map[string]struct{})
+	}
+	r.applied[string(h)] = struct{}{}
+}
+
 // replayOp applies one operation to state as its author, under the config the
 // operation names. It returns the next World, or nil and the reason the
-// operation was not applied.
+// operation was not applied, with whether the World rejected it.
 func (r *replayer) replayOp(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
 	inner *sobject.SOOperationInner,
 	idx int,
 	state *InnerState,
-) (*InnerState, string, error) {
+) (*InnerState, string, bool, error) {
 	// Authorize and decode the operation as every member does.
 	writer, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
 	if err != nil || reason != "" {
-		return nil, reason, err
+		return nil, reason, false, err
 	}
 	author, err := inner.ParsePeerID()
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	// Apply it as the author's person.
@@ -303,12 +341,12 @@ func (r *replayer) replayOp(
 		state,
 	)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 	if !res.GetSuccess() {
-		return nil, res.GetErrorDetails().GetErrorMsg(), nil
+		return nil, res.GetErrorDetails().GetErrorMsg(), true, nil
 	}
-	return next, "", nil
+	return next, "", false, nil
 }
 
 // outcomeReason returns the reason the operation with hash h was not applied,
