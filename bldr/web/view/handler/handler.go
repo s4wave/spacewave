@@ -185,13 +185,16 @@ func (m *WebViewHandlerConfig) Validate() error {
 
 // NewWebViewHandlersFromConfig constructs WebViewHandlersWithFilters from WebViewHandlersConfig.
 func NewWebViewHandlersFromConfig(le *logrus.Entry, config *WebViewHandlersConfig) (*WebViewHandlersWithFilters, error) {
+	// Validate the web view filters and handler configurations before construction.
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Reserve space for the configured web view handlers.
 	configHandlers := config.GetHandlers()
 	handlers := make([]WebViewHandlerWithFilters, 0, len(configHandlers))
 
+	// Construct each web view handler with its configured filters.
 	for _, handlerConfig := range configHandlers {
 		handler, err := NewWebViewHandlerFromConfig(le, handlerConfig)
 		if err != nil {

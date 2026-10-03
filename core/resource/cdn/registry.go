@@ -70,6 +70,7 @@ func (r *Registry) Lookup(cdnID string) (*CdnInstance, error) {
 		return inst, nil
 	}
 
+	// Construct and retain the shared instance for the canonical CDN Space.
 	inst, err := newCdnInstance(r.ctx, r.le, r.b, spaceID)
 	if err != nil {
 		return nil, err

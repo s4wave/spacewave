@@ -38,6 +38,7 @@ func (s *ObjectStore) kvtxStoreTrackerExited(key string, routine keyed.Routine, 
 
 // execute executes the proxy object store tracker.
 func (t *kvtxStoreTracker) execute(ctx context.Context) error {
+	// Access the object store and retain its release for the tracker lifetime.
 	objectStoreID := t.objectStoreID
 	sctx, sctxCancel := context.WithCancel(ctx)
 	objStore, relObjStore, err := t.s.store.AccessObjectStore(ctx, objectStoreID, sctxCancel)
@@ -48,10 +49,12 @@ func (t *kvtxStoreTracker) execute(ctx context.Context) error {
 		defer relObjStore()
 	}
 
+	// Publish the RPC store until the tracker stops.
 	objStoreRpc := rpc_kvtx_server.NewStore(objStore)
 	t.storeCtr.SetResult(objStoreRpc, nil)
 	defer t.storeCtr.SetPromise(nil)
 
+	// Wait for the object store access or tracker context to end.
 	<-sctx.Done()
 	return context.Canceled
 }

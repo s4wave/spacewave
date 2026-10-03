@@ -42,9 +42,12 @@ func newCdnInstance(
 	b bus.Bus,
 	spaceID string,
 ) (*CdnInstance, error) {
+	// Require a Space identity for the CDN instance.
 	if spaceID == "" {
 		return nil, errors.New("cdn space id is required")
 	}
+
+	// Construct the block store backing the CDN Space.
 	bs, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 		CdnBaseURL: cdn.BaseURL(),
 		SpaceID:    spaceID,
@@ -52,6 +55,8 @@ func newCdnInstance(
 	if err != nil {
 		return nil, errors.Wrap(err, "build cdn block store")
 	}
+
+	// Construct the CDN SharedObject over its block store.
 	so, err := cdn_sharedobject.NewCdnSharedObject(cdn_sharedobject.CdnSharedObjectOptions{
 		SpaceID:    spaceID,
 		Bus:        b,
@@ -61,6 +66,8 @@ func newCdnInstance(
 		bs.Close()
 		return nil, errors.Wrap(err, "build cdn shared object")
 	}
+
+	// Bind CDN cache invalidation and snapshot refresh to the instance lifetime.
 	refresh := routine.NewRoutineContainerWithLogger(le)
 	refresh.SetRoutine(func(rctx context.Context) error {
 		bs.Invalidate()

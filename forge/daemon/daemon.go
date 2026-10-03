@@ -49,6 +49,7 @@ func NewDaemon(
 	nodePriv crypto.PrivKey,
 	opts ConstructOpts,
 ) (*Daemon, error) {
+	// Resolve the Forge daemon logger before constructing controllers.
 	le := opts.LogEntry
 	if le == nil {
 		log := logrus.New()
@@ -56,6 +57,7 @@ func NewDaemon(
 		le = logrus.NewEntry(log)
 	}
 
+	// Establish the daemon lifetime and identify its node peer.
 	ctx, subCtxCancel := context.WithCancel(ctx)
 	nodePeer, err := peer.NewPeer(nodePriv)
 	if err != nil {
@@ -70,6 +72,7 @@ func NewDaemon(
 		return nil, err
 	}
 
+	// Make the Forge API controller available to the bus resolver.
 	sr.AddFactory(api_controller.NewFactory(b))
 
 	// Construct the node controller.

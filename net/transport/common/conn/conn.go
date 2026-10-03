@@ -71,6 +71,7 @@ func NewTransport(
 		mtu = defaultMtu
 	}
 
+	// Resolve the ordered connection packet buffer capacity.
 	bufSize := opts.GetBufSize()
 	if bufSize <= 0 {
 		bufSize = 10
@@ -94,10 +95,12 @@ func NewTransport(
 		bufSize: bufSize,
 	}
 
+	// Adapt the optional address dialer for the QUIC transport.
 	var dialFn transport_quic.DialFunc
 	if addrDialer != nil {
 		// Dial the underlying address and wrap it as a packet connection.
 		dialFn = func(dctx context.Context, addr string) (*quic.Conn, net.Addr, error) {
+			// Open the ordered connection to the requested remote address.
 			c, na, err := addrDialer(dctx, addr)
 			if err != nil {
 				return nil, nil, err

@@ -47,16 +47,23 @@ func (r *SqlQueryResultResource) GetResultGrid(
 	ctx context.Context,
 	_ *GetResultGridRequest,
 ) (*GetResultGridResponse, error) {
+	// Require a World state before accessing the SQL query result.
 	if r.ws == nil {
 		return nil, errors.New("sql/query-result: world state is required")
 	}
+
+	// Verify that the resource object has the SQL query result type.
 	if err := world_types.CheckObjectType(ctx, r.ws, r.objectKey, SqlQueryResultTypeID); err != nil {
 		return nil, errors.Wrap(err, "sql/query-result: check object type")
 	}
+
+	// Read the persisted SQL query result root.
 	result, err := ReadQueryResultRoot(ctx, r.ws, r.objectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "sql/query-result: read result root")
 	}
+
+	// Clone the SQL query result fields for the grid response.
 	cloned := result.CloneVT()
 	return &GetResultGridResponse{
 		Columns:              cloned.GetColumns(),
