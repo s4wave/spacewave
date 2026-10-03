@@ -25,11 +25,13 @@ func (s *storeRWFreshener) EnsureDecodedBlockCacheFresh(context.Context) error {
 }
 
 func TestStoreRWForwardsDecodedBlockCacheFreshness(t *testing.T) {
+	// Create a read/write store with a distinct scoped read implementation.
 	ctx := context.Background()
 	scopedInner := &storeRWFreshener{}
 	readInner := &storeRWFreshener{scoped: scopedInner}
 	store := NewStoreRW(readInner, nil)
 
+	// Verify freshness checks reach the unscoped read store.
 	if err := store.(DecodedBlockCacheFreshener).EnsureDecodedBlockCacheFresh(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -37,6 +39,7 @@ func TestStoreRWForwardsDecodedBlockCacheFreshness(t *testing.T) {
 		t.Fatalf("expected one read-handle freshness call, got %d", readInner.freshenCalls)
 	}
 
+	// Open a read scope and verify freshness reaches its scoped store.
 	scoped, release, err := store.BeginReadOperation(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -74,6 +77,7 @@ func (s *storeRWPublisher) PublishAtomic(ctx context.Context, p *AtomicPublicati
 }
 
 func TestStoreRWPublicationUsesOnlyWriteDomain(t *testing.T) {
+	// Create distinct read and write publication domains.
 	read := &storeRWPublisher{volumeID: "read"}
 	write := &storeRWPublisher{volumeID: "write"}
 	store := NewStoreRW(read, write)
@@ -81,12 +85,16 @@ func TestStoreRWPublicationUsesOnlyWriteDomain(t *testing.T) {
 	if !p.SupportsAtomicPublication() || p.AtomicPublicationVolumeID() != "write" {
 		t.Fatal("wrong publication domain")
 	}
+
+	// Publish through the write domain and verify the read store is untouched.
 	if err := p.PublishAtomic(t.Context(), &AtomicPublication{}); err != nil {
 		t.Fatal(err)
 	}
 	if read.submissions != 0 || write.submissions != 1 {
 		t.Fatal("publication went through lookup")
 	}
+
+	// Open a read scope and verify it cannot submit publications.
 	scoped, release, err := store.BeginReadOperation(t.Context())
 	if err != nil {
 		t.Fatal(err)

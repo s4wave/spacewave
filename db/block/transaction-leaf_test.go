@@ -37,6 +37,8 @@ func TestTransactionLeaf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Attach the transaction block and hook before writing the leaf.
 	tx, cursor := block.NewTransaction(store, xfrm, nil, nil)
 	tx.SetWriteBuffer(buffer)
 	cursor.SetBlock(block_mock.NewExample("before hook"), true)
@@ -110,6 +112,8 @@ func TestTransactionLeafFailure(t *testing.T) {
 				cancel()
 				want = context.Canceled
 			}
+
+			// Create the transaction with the selected failure boundary.
 			tx, cursor := block.NewTransaction(store, nil, nil, nil)
 			cursor.SetBlock(block_mock.NewExample("leaf"), true)
 			if failure == "hook" {

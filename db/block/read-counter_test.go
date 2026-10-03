@@ -10,15 +10,18 @@ import (
 )
 
 func TestReadCounterRecordsUnmarshalMissBaseline(t *testing.T) {
+	// Create the backing store for an uncached block read.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 
+	// Store a block and open its read cursor.
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "counter"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	_, cursor := block.NewTransaction(store, nil, ref, nil)
 
+	// Decode the block through an operation read counter.
 	opCtx, counter := block.WithReadCounter(ctx)
 	blk, err := cursor.Unmarshal(opCtx, func() block.Block { return &block_mock.Example{} })
 	if err != nil {
@@ -28,6 +31,7 @@ func TestReadCounterRecordsUnmarshalMissBaseline(t *testing.T) {
 		t.Fatalf("decoded message = %q", blk.(*block_mock.Example).GetMsg())
 	}
 
+	// Verify the uncached read and unmarshal counter totals.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 1 || snapshot.BlockReadBytes == 0 || snapshot.BlockReadMissCount != 0 {
 		t.Fatalf("unexpected block read counters: %+v", snapshot)
@@ -45,17 +49,21 @@ func TestReadCounterRecordsUnmarshalMissBaseline(t *testing.T) {
 }
 
 func TestReadOperationDecodedBlockCacheClonesHits(t *testing.T) {
+	// Create the backing store for operation-scoped cache reads.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 
+	// Store the block that repeated cursors will decode.
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "cached"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Attach the operation cache and read counter to the context.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithReadOperationStore(opCtx, store)
 
+	// Decode the first block and mutate its returned instance.
 	_, firstCursor := block.NewTransaction(store, nil, ref, nil)
 	first, err := firstCursor.Unmarshal(opCtx, block_mock.NewExampleBlock)
 	if err != nil {
@@ -64,6 +72,7 @@ func TestReadOperationDecodedBlockCacheClonesHits(t *testing.T) {
 	firstExample := first.(*block_mock.Example)
 	firstExample.Msg = "mutated"
 
+	// Verify the second cursor receives original content and mutate its clone.
 	_, secondCursor := block.NewTransaction(store, nil, ref, nil)
 	second, err := secondCursor.Unmarshal(opCtx, block_mock.NewExampleBlock)
 	if err != nil {
@@ -75,6 +84,7 @@ func TestReadOperationDecodedBlockCacheClonesHits(t *testing.T) {
 	}
 	secondExample.Msg = "mutated again"
 
+	// Verify a third cursor still receives the original cached content.
 	_, thirdCursor := block.NewTransaction(store, nil, ref, nil)
 	third, err := thirdCursor.Unmarshal(opCtx, block_mock.NewExampleBlock)
 	if err != nil {
@@ -84,6 +94,7 @@ func TestReadOperationDecodedBlockCacheClonesHits(t *testing.T) {
 		t.Fatalf("second cached clone msg = %q, want cached", got)
 	}
 
+	// Verify the operation cache avoided repeated reads and unmarshals.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 1 || snapshot.DecodedBlockUnmarshalCount != 1 {
 		t.Fatalf("unexpected storage/unmarshal counters: %+v", snapshot)
@@ -99,9 +110,11 @@ func TestReadOperationDecodedBlockCacheClonesHits(t *testing.T) {
 }
 
 func TestReadOperationDecodedBlockCacheReturnsCloneHits(t *testing.T) {
+	// Create a backing store for clone-on-hit checks.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 
+	// Store a block and open two independent read cursors.
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "cached"})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -110,6 +123,7 @@ func TestReadOperationDecodedBlockCacheReturnsCloneHits(t *testing.T) {
 	_, second := block.NewTransaction(store, nil, ref, nil)
 	ctor := func() block.Block { return &block_mock.Example{} }
 
+	// Populate the operation cache and mutate the first returned block.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithReadOperationStore(opCtx, store)
 	firstBlock, err := first.Unmarshal(opCtx, ctor)
@@ -119,6 +133,7 @@ func TestReadOperationDecodedBlockCacheReturnsCloneHits(t *testing.T) {
 	firstExample := firstBlock.(*block_mock.Example)
 	firstExample.Msg = "mutated"
 
+	// Verify the cache hit returns original content in a distinct instance.
 	secondBlock, err := second.Unmarshal(opCtx, ctor)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -131,6 +146,7 @@ func TestReadOperationDecodedBlockCacheReturnsCloneHits(t *testing.T) {
 		t.Fatal("cache hit returned the first decoded block instance")
 	}
 
+	// Verify the second decode counted one cache hit and clone.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 1 ||
 		snapshot.DecodedBlockUnmarshalCount != 1 ||
@@ -144,23 +160,29 @@ func TestReadOperationDecodedBlockCacheReturnsCloneHits(t *testing.T) {
 }
 
 func TestDecodedBlockCacheRejectsRefVerificationMismatch(t *testing.T) {
+	// Store the original block for a reference-verification mismatch.
 	ctx := context.Background()
 	baseStore := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, baseStore, &block_mock.Example{Msg: "original"})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Encode corrupt bytes that do not match the stored reference.
 	poison, err := (&block_mock.Example{Msg: "poison"}).MarshalBlock()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	store := &corruptingStore{StoreOps: baseStore, data: poison}
+
+	// Create a shared decoded-block cache for the corrupting store.
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer decodedBlocks.Close()
 
+	// Decode corrupt store contents twice through the shared cache.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
 	for range 2 {
@@ -175,6 +197,7 @@ func TestDecodedBlockCacheRejectsRefVerificationMismatch(t *testing.T) {
 		decodedBlocks.Wait()
 	}
 
+	// Verify reference mismatches bypass shared cache retention.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 2 ||
 		snapshot.DecodedBlockUnmarshalCount != 2 ||
@@ -187,6 +210,7 @@ func TestDecodedBlockCacheRejectsRefVerificationMismatch(t *testing.T) {
 }
 
 func TestDecodedBlockCacheBypassesUnknownTransform(t *testing.T) {
+	// Store a block and open a shared cache for an unknown transform.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "transform"})
@@ -199,6 +223,7 @@ func TestDecodedBlockCacheBypassesUnknownTransform(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Decode the block twice through the unrecognized transform.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
 	for range 2 {
@@ -212,6 +237,7 @@ func TestDecodedBlockCacheBypassesUnknownTransform(t *testing.T) {
 		}
 	}
 
+	// Verify unknown transforms bypass shared cache lookups.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 2 ||
 		snapshot.DecodedBlockUnmarshalCount != 2 ||
@@ -223,6 +249,7 @@ func TestDecodedBlockCacheBypassesUnknownTransform(t *testing.T) {
 }
 
 func TestDecodedBlockCacheSeparatesTypeKeys(t *testing.T) {
+	// Store a block and create the shared cache for type-key isolation.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "type-boundary"})
@@ -235,6 +262,7 @@ func TestDecodedBlockCacheSeparatesTypeKeys(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Populate the cache with the first decoded block type.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
 	_, first := block.NewTransaction(store, nil, ref, nil)
@@ -243,6 +271,7 @@ func TestDecodedBlockCacheSeparatesTypeKeys(t *testing.T) {
 	}
 	decodedBlocks.Wait()
 
+	// Decode the same reference as the alternate block type.
 	_, second := block.NewTransaction(store, nil, ref, nil)
 	secondBlock, err := second.Unmarshal(opCtx, func() block.Block { return &alternateExample{} })
 	if err != nil {
@@ -252,6 +281,7 @@ func TestDecodedBlockCacheSeparatesTypeKeys(t *testing.T) {
 		t.Fatalf("decoded alternate message = %q, want type-boundary", got)
 	}
 
+	// Verify distinct type keys produce independent cache misses.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 2 ||
 		snapshot.DecodedBlockUnmarshalCount != 2 ||
@@ -263,6 +293,7 @@ func TestDecodedBlockCacheSeparatesTypeKeys(t *testing.T) {
 }
 
 func TestDecodedBlockCacheRejectsEntriesOverBudget(t *testing.T) {
+	// Create a decoded-block cache whose budget cannot retain the block.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "over-budget"})
@@ -280,6 +311,7 @@ func TestDecodedBlockCacheRejectsEntriesOverBudget(t *testing.T) {
 		t.Fatalf("MaxCost = %d, want 1", decodedBlocks.MaxCost())
 	}
 
+	// Decode the over-budget block twice through the shared cache.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
 	for range 2 {
@@ -294,6 +326,7 @@ func TestDecodedBlockCacheRejectsEntriesOverBudget(t *testing.T) {
 		decodedBlocks.Wait()
 	}
 
+	// Verify over-budget entries preserve reads and remain within the cache budget.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 2 ||
 		snapshot.DecodedBlockUnmarshalCount != 2 ||
@@ -311,6 +344,7 @@ func TestDecodedBlockCacheRejectsEntriesOverBudget(t *testing.T) {
 }
 
 func TestDecodedBlockCacheUsesDecodedEntryCostAboveRawBytes(t *testing.T) {
+	// Create the block whose decoded cost exceeds its raw-byte size.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 	want := &block_mock.Example{Msg: "decoded-cost"}
@@ -318,6 +352,8 @@ func TestDecodedBlockCacheUsesDecodedEntryCostAboveRawBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Store the measured block and create a cache with its raw-byte budget.
 	ref, _, err := block.PutBlock(ctx, store, want)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -330,6 +366,7 @@ func TestDecodedBlockCacheUsesDecodedEntryCostAboveRawBytes(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Decode the block twice through the undersized cache.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
 	for range 2 {
@@ -344,6 +381,7 @@ func TestDecodedBlockCacheUsesDecodedEntryCostAboveRawBytes(t *testing.T) {
 		decodedBlocks.Wait()
 	}
 
+	// Verify decoded entry cost prevents retaining the block.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 2 ||
 		snapshot.DecodedBlockUnmarshalCount != 2 ||
@@ -358,6 +396,7 @@ func TestDecodedBlockCacheUsesDecodedEntryCostAboveRawBytes(t *testing.T) {
 }
 
 func TestDecodedBlockCacheDisabledDoesNotRetain(t *testing.T) {
+	// Store a block and create a disabled decoded-block cache.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "disabled"})
@@ -372,6 +411,7 @@ func TestDecodedBlockCacheDisabledDoesNotRetain(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Decode the block twice with shared caching disabled.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
 	for range 2 {
@@ -385,6 +425,7 @@ func TestDecodedBlockCacheDisabledDoesNotRetain(t *testing.T) {
 		}
 	}
 
+	// Verify the disabled cache records no shared cache attempts.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 2 ||
 		snapshot.DecodedBlockUnmarshalCount != 2 ||
@@ -396,6 +437,7 @@ func TestDecodedBlockCacheDisabledDoesNotRetain(t *testing.T) {
 }
 
 func TestDecodedBlockCacheInvalidateRefRemovesSharedEntries(t *testing.T) {
+	// Store a block and create the shared cache for invalidation.
 	ctx := context.Background()
 	store := block_mock.NewMockStore(0)
 	ref, _, err := block.PutBlock(ctx, store, &block_mock.Example{Msg: "removed"})
@@ -408,6 +450,7 @@ func TestDecodedBlockCacheInvalidateRefRemovesSharedEntries(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Populate the shared cache before removing the stored block.
 	opCtx, counter := block.WithReadCounter(ctx)
 	opCtx = block.WithDecodedBlockCache(opCtx, decodedBlocks)
 	_, first := block.NewTransaction(store, nil, ref, nil)
@@ -416,6 +459,7 @@ func TestDecodedBlockCacheInvalidateRefRemovesSharedEntries(t *testing.T) {
 	}
 	decodedBlocks.Wait()
 
+	// Remove the stored block and invalidate its shared cache entry.
 	if err := store.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -425,6 +469,7 @@ func TestDecodedBlockCacheInvalidateRefRemovesSharedEntries(t *testing.T) {
 		t.Fatalf("Unmarshal after invalidation error = %v, want %v", err, block.ErrNotFound)
 	}
 
+	// Verify the invalidated reference causes a fresh storage miss.
 	snapshot := counter.Snapshot()
 	if snapshot.BlockReadCount != 2 ||
 		snapshot.DecodedBlockUnmarshalCount != 1 ||

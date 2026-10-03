@@ -30,11 +30,13 @@ type ComparableNamedSubBlock interface {
 // CompareNamedSubBlocks compares two sets of ComparableNamedSubBlock.
 // Returns the added, removed, and changed values.
 func CompareNamedSubBlocks[T ComparableNamedSubBlock](a, b []T) (added, removed, changed []T) {
+	// Index the original named sub-blocks for comparison.
 	aVals := make(map[string]T)
 	for _, val := range a {
 		aVals[val.GetName()] = val
 	}
 
+	// Classify incoming named sub-blocks as additions or changes.
 	for _, val := range b {
 		valName := val.GetName()
 		aVal, aValOk := aVals[valName]
@@ -48,6 +50,7 @@ func CompareNamedSubBlocks[T ComparableNamedSubBlock](a, b []T) (added, removed,
 		}
 	}
 
+	// Collect original named sub-blocks absent from the incoming set.
 	for _, val := range aVals {
 		removed = append(removed, val)
 	}

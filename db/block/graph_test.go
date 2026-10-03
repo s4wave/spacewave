@@ -21,6 +21,7 @@ func (e graphTestEdge) To() block.GraphNode   { return e[1] }
 // TestBlockGraphMutation preserves replacement, bidirectional removal, stable
 // topological order, and cycle detection across adjacency changes.
 func TestBlockGraphMutation(t *testing.T) {
+	// Construct the block graph and verify duplicate edges replace existing ones.
 	g := block.NewBlockGraph()
 	for _, edge := range []graphTestEdge{{8, 2}, {8, 3}, {2, 1}, {3, 1}, {8, 2}, {-1, 8}} {
 		g.SetEdge(edge)
@@ -28,7 +29,10 @@ func TestBlockGraphMutation(t *testing.T) {
 	if got := len(g.Edges()); got != 5 {
 		t.Fatalf("replacement left %d edges", got)
 	}
+
+	// Define the assertion for stable topological node order.
 	check := func(want []int64) {
+		// Sort the graph and verify its complete expected node order.
 		t.Helper()
 		nodes, err := block.SortBlockGraph(g)
 		if err != nil {
@@ -42,15 +46,21 @@ func TestBlockGraphMutation(t *testing.T) {
 			t.Fatalf("order = %v, want %v", got, want)
 		}
 	}
+
+	// Verify topological order after repeated edge removal.
 	check([]int64{-1, 8, 2, 3, 1})
 	g.RemoveEdge(8, 2)
 	g.RemoveEdge(8, 2)
 	check([]int64{-1, 2, 8, 3, 1})
+
+	// Remove a node and verify both directions of its adjacency disappear.
 	g.RemoveNode(3)
 	check([]int64{-1, 2, 1, 8})
 	if len(g.Edges()) != 2 || len(g.From(8)) != 0 {
 		t.Fatal("removed node retained an incoming or outgoing edge")
 	}
+
+	// Create a cycle and verify topological sorting rejects it.
 	g.SetEdge(graphTestEdge{1, 2})
 	if _, err := block.SortBlockGraph(g); err == nil {
 		t.Fatal("accepted cyclic graph")

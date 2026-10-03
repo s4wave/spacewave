@@ -7,6 +7,7 @@ import (
 )
 
 func TestBufferedStoreRetainsNewDependenciesForExistingBytes(t *testing.T) {
+	// Create a buffer and queue its first referenced child.
 	ctx := t.Context()
 	inner := newCountStore(hash.HashType_HashType_BLAKE3)
 	store := NewBufferedStore(ctx, inner)
@@ -14,6 +15,8 @@ func TestBufferedStoreRetainsNewDependenciesForExistingBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Queue a second child and a parent referencing the first.
 	second, _, err := store.PutBlock(ctx, []byte("second"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -22,12 +25,16 @@ func TestBufferedStoreRetainsNewDependenciesForExistingBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Merge the second dependency into the parent and flush its reachable graph.
 	if _, _, err := store.PutBlock(ctx, []byte("parent"), &PutOpts{Refs: []*BlockRef{second}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.SyncReachable(ctx, parent); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the parent retains both dependencies and both children persist.
 	key, err := marshalRefKey(parent)
 	if err != nil {
 		t.Fatal(err)
@@ -40,6 +47,7 @@ func TestBufferedStoreRetainsNewDependenciesForExistingBytes(t *testing.T) {
 			t.Fatalf("reachable dependency discarded: %v %v", found, err)
 		}
 	}
+
 	// A new destination may share physical bytes without owning them. Forward
 	// its put even when the underlying existence probe finds the payload.
 	before := inner.batchCalls

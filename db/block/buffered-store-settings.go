@@ -36,9 +36,12 @@ func DefaultBufferedStoreSettings() *BufferedStoreSettings {
 // normalizeBufferedStoreSettings applies defaults and clamps negative
 // values, returning a copy when s is non-nil.
 func normalizeBufferedStoreSettings(s *BufferedStoreSettings) *BufferedStoreSettings {
+	// Use default buffered-store limits when settings are absent.
 	if s == nil {
 		return DefaultBufferedStoreSettings()
 	}
+
+	// Copy the buffered-store settings and clamp payload limits.
 	out := *s
 	if out.MaxPendingEntries < 0 {
 		out.MaxPendingEntries = 0
@@ -46,6 +49,8 @@ func normalizeBufferedStoreSettings(s *BufferedStoreSettings) *BufferedStoreSett
 	if out.MaxPendingBytes < 0 {
 		out.MaxPendingBytes = 0
 	}
+
+	// Apply defaults to unset buffered-store limits and clamp batch size.
 	if out.MaxPendingEntries == 0 {
 		out.MaxPendingEntries = defaultBufferedStoreMaxPendingEntries
 	}

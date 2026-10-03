@@ -146,12 +146,15 @@ func (t *Transaction) SetStoreOps(store StoreOps) {
 // StageWrites returns the transaction staging store, creating it on first use.
 // SetStoreOps must not be called after staging begins.
 func (t *Transaction) StageWrites(ctx context.Context, inner StoreOps) *BufferedStore {
+	// Return an existing staging store when the transaction can stage writes.
 	if t == nil || inner == nil {
 		return nil
 	}
 	if staged := t.stagedStore.Load(); staged != nil {
 		return staged
 	}
+
+	// Publish a staging buffer when the transaction has none.
 	staged := NewBufferedStoreWithSettings(ctx, inner, t.bufferedStoreSettings)
 	if t.stagedStore.CompareAndSwap(nil, staged) {
 		return staged
@@ -266,6 +269,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	ctx, task := trace.NewTask(ctx, "hydra/block/transaction/write-at-root")
 	defer task.End()
 
+	// Require a transaction before selecting the write root.
 	if t == nil {
 		return nil, nil, tx.ErrNotWrite
 	}
@@ -723,6 +727,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 // clearData resets the cursor graph under mtx, retaining the root handle.
 func (t *Transaction) clearData() {
+	// Reset the transaction cursor graph while retaining its root handle.
 	t.dirty = false
 	t.root.dirty = false
 	t.root.refHandles = nil
@@ -807,6 +812,7 @@ func blockAliasIdentity(v any) *AliasIdentityToken {
 // walkMarshalAliasSubBlocks visits every sub-block carrying an alias
 // identity exactly once.
 func walkMarshalAliasSubBlocks(v any, seen map[*AliasIdentityToken]struct{}, visit func(any)) {
+	// Track visited block identities before traversing their sub-blocks.
 	identity := blockAliasIdentity(v)
 	if identity != nil {
 		if _, ok := seen[identity]; ok {

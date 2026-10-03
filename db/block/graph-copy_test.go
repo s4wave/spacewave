@@ -56,6 +56,7 @@ func (s *graphTestStore) PutBlock(ctx context.Context, data []byte, opts *block.
 }
 
 func (s *graphTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Read the stored block with its recorded outgoing references.
 	s.mu.Lock()
 	s.reads++
 	refs, known := s.refs[ref.MarshalString()]
@@ -69,6 +70,7 @@ func (s *graphTestStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef
 
 // put writes a block with refs, marking a leaf with an empty list.
 func (s *graphTestStore) put(t *testing.T, data string, refs ...*block.BlockRef) *block.BlockRef {
+	// Store a test graph block with explicit leaf or child references.
 	t.Helper()
 	if refs == nil {
 		refs = []*block.BlockRef{}
@@ -147,6 +149,7 @@ func TestCopyGraphRebuildsGraphInPostOrder(t *testing.T) {
 }
 
 func TestCopyGraphReportsMissingAndUnknownBlocks(t *testing.T) {
+	// Create a source graph containing opaque and missing blocks.
 	ctx := t.Context()
 	src := newGraphTestStore()
 	opaque, _, err := src.StoreOps.PutBlock(ctx, []byte("opaque"), nil)
@@ -158,6 +161,7 @@ func TestCopyGraphReportsMissingAndUnknownBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify failed subtrees emit no completed block copies.
 	var completed int
 	opts := &block.GraphCopyOptions{
 		Complete: func(context.Context, *block.BlockRef) error {

@@ -89,10 +89,13 @@ func (c *ReadCounter) Snapshot() ReadCounterSnapshot {
 // recordReadCounter records a block read and whether it was found in the
 // store.
 func recordReadCounter(ctx context.Context, found bool, bytes int) {
+	// Find the operation read counter before recording the store result.
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
 		return
 	}
+
+	// Count the store read and its result.
 	counter.count.Add(1)
 	if found {
 		counter.bytes.Add(nonNegativeReadBytes(bytes))
@@ -103,10 +106,13 @@ func recordReadCounter(ctx context.Context, found bool, bytes int) {
 
 // RecordResourceGetBlock records a Resource SDK GetBlock call.
 func RecordResourceGetBlock(ctx context.Context, ref *BlockRef, found bool, bytes int) {
+	// Find the operation read counter before recording the Resource SDK result.
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
 		return
 	}
+
+	// Count the Resource SDK read and its result.
 	counter.resourceGetBlockCount.Add(1)
 	if ref != nil && !ref.GetEmpty() {
 		counter.resourceGetBlockRefs.Add(1)
@@ -149,10 +155,13 @@ func recordDecodedBlockCacheMiss(ctx context.Context) {
 
 // RecordDecodedBlockCacheHit records a clone-safe decoded-block cache hit.
 func RecordDecodedBlockCacheHit(ctx context.Context, cloned bool) {
+	// Find the operation read counter before recording the cache hit.
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
 		return
 	}
+
+	// Count the cache hit and its returned clone.
 	counter.decodedBlockCacheAttempts.Add(1)
 	counter.decodedBlockCacheHits.Add(1)
 	if cloned {
@@ -181,10 +190,13 @@ func RecordDecodedBlockUncacheable(ctx context.Context) {
 // recordDecodedBlockCacheStore records a cache store attempt, whether it
 // was accepted, and its cost.
 func recordDecodedBlockCacheStore(ctx context.Context, accepted bool, cost int64) {
+	// Find the operation read counter before recording the cache submission.
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
 		return
 	}
+
+	// Count the cache store submission and its retained cost.
 	counter.decodedBlockStoreAttempts.Add(1)
 	if accepted {
 		counter.decodedBlockStoreAccepted.Add(1)

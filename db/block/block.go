@@ -105,6 +105,7 @@ func NewSubBlockCtor[T ComparableSubBlock](r *T, ctor func() T) SubBlockCtor {
 
 // ApplySubBlock applies a sub-block to a field.
 func ApplySubBlock[T SubBlock](r *T, next SubBlock) error {
+	// Require a target field and a matching sub-block before replacement.
 	if r == nil {
 		return errors.New("apply sub block: pointer to target cannot be nil")
 	}
@@ -206,10 +207,13 @@ func CloneBlock(blk any) (any, error) {
 // If bcs == nil, returns empty, nil.
 // If unmarshal() returns nil, returns empty, nil.
 func UnmarshalBlock[T Block](ctx context.Context, bcs *Cursor, ctor func() Block) (T, error) {
+	// Return an empty block value for an absent cursor.
 	var out T
 	if bcs == nil {
 		return out, nil
 	}
+
+	// Unmarshal the cursor block before checking its concrete type.
 	blk, err := bcs.Unmarshal(ctx, ctor)
 	if err != nil {
 		return out, err
@@ -217,6 +221,8 @@ func UnmarshalBlock[T Block](ctx context.Context, bcs *Cursor, ctor func() Block
 	if blk == nil {
 		return out, nil
 	}
+
+	// Require the decoded block to match the requested type.
 	var ok bool
 	out, ok = blk.(T)
 	if !ok {

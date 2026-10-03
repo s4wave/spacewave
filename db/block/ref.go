@@ -53,10 +53,12 @@ func BuildBlockRef(data []byte, putOpts *PutOpts) (*BlockRef, error) {
 
 // UnmarshalBlockRefB58 unmarshals a b58 string block ref.
 func UnmarshalBlockRefB58(ref string) (*BlockRef, error) {
+	// Treat an empty encoded reference as an absent block.
 	if ref == "" {
 		return nil, nil
 	}
 
+	// Decode the base58 bytes into a block reference.
 	dat, err := b58.Decode(ref)
 	if err != nil {
 		return nil, err
@@ -65,6 +67,7 @@ func UnmarshalBlockRefB58(ref string) (*BlockRef, error) {
 	if err := r.UnmarshalVT(dat); err != nil {
 		return nil, err
 	}
+
 	// if a block ref string has non-zero length, it must not be empty.
 	if err := r.Validate(false); err != nil {
 		return nil, err
@@ -231,12 +234,15 @@ func (b *BlockRef) GetBlockRefCtor(id uint32) Ctor {
 // 2. Hash type is sorted.
 // 3. Hash itself is sorted in bytes ordering
 func (b *BlockRef) LessThan(other *BlockRef) bool {
+	// Order empty block references after populated references.
 	if b.GetEmpty() {
 		return false
 	}
 	if other.GetEmpty() {
 		return true
 	}
+
+	// Compare block hash types before comparing their hash bytes.
 	bh := b.GetHash()
 	oh := other.GetHash()
 	bht := bh.GetHashType()

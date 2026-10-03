@@ -21,6 +21,7 @@ func (o *PutOpts) Validate() error {
 // SelectHashType selects the hash type to use for the operation.
 // The given hash type should be the default value to use.
 func (o *PutOpts) SelectHashType(defHashType hash.HashType) hash.HashType {
+	// Choose the hash type from the forced reference, options, or defaults.
 	forceHashType := o.GetForceBlockRef().GetHash().GetHashType()
 	if forceHashType != 0 {
 		return forceHashType
@@ -65,11 +66,13 @@ func (o *PutOpts) MarshalB58() string {
 
 // UnmarshalB58 unmarshals the put opts from base58 string form.
 func (o *PutOpts) UnmarshalB58(ref string) error {
+	// Reset the put options before reading their encoded replacement.
 	o.Reset()
 	if ref == "" {
 		return nil
 	}
 
+	// Decode the base58 bytes into the replacement put options.
 	dat, err := b58.Decode(ref)
 	if err != nil {
 		return err

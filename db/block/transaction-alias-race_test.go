@@ -12,18 +12,22 @@ import (
 )
 
 func TestWriteAtRootWaitsForInlineMarshalAliasSubtree(t *testing.T) {
+	// Create the context for the alias-subtree transaction write.
 	ctx := context.Background()
 
+	// Restore the encoder concurrency after forcing the alias race configuration.
 	oldEncodeConcurrency := maxEncodeConcurrency
 	maxEncodeConcurrency = 0
 	defer func() {
 		maxEncodeConcurrency = oldEncodeConcurrency
 	}()
 
+	// Create shared state for overlapping alias reads and reference application.
 	shared := &aliasRaceShared{
 		start: make(chan struct{}),
 	}
 
+	// Attach the shared directory entry to the transaction root.
 	dirent := &aliasRaceDirent{
 		shared: shared,
 	}
@@ -34,6 +38,7 @@ func TestWriteAtRootWaitsForInlineMarshalAliasSubtree(t *testing.T) {
 		},
 	}, true)
 
+	// Attach an inline alias and its dirty directory-entry descendant.
 	inlineCursor := rootCursor.FollowRef(1, nil)
 	inlineCursor.SetBlock(&aliasRaceInline{
 		shared: shared,
@@ -43,6 +48,7 @@ func TestWriteAtRootWaitsForInlineMarshalAliasSubtree(t *testing.T) {
 	leafCursor := direntCursor.FollowRef(2, nil)
 	leafCursor.SetBlock(&aliasRaceLeaf{}, true)
 
+	// Write the transaction and verify alias-subtree encoding completes.
 	if _, _, err := tx.Write(ctx, true); err != nil {
 		t.Fatal(err.Error())
 	}

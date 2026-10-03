@@ -54,6 +54,7 @@ func newOverlayMemoryStore() block.StoreOps {
 }
 
 func (s *overlayBatchTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Count the overlay write and notify waiting tests.
 	s.mu.Lock()
 	s.putCalls++
 	s.mu.Unlock()
@@ -95,6 +96,7 @@ func (s *overlayNilOptsTestStore) PutBlock(ctx context.Context, data []byte, opt
 }
 
 func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
+	// Create two backing stores and an overlay for batch forwarding.
 	ctx := context.Background()
 	lower := newOverlayBatchTestStore()
 	upper := newOverlayBatchTestStore()
@@ -103,10 +105,12 @@ func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
 	ref := mustBuildBlockRef(t, data)
 	entries := []*block.PutBatchEntry{{Ref: ref, Data: data}}
 
+	// Write the block batch through the overlay.
 	if err := overlay.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify both backing stores used their batch APIs.
 	if lower.batchCalls != 1 || upper.batchCalls != 1 {
 		t.Fatalf("expected both stores to receive one batch call, got lower=%d upper=%d", lower.batchCalls, upper.batchCalls)
 	}
@@ -116,11 +120,13 @@ func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
 }
 
 func TestStoreOverlayCachePutHandlesNilOpts(t *testing.T) {
+	// Create a caching overlay that records incoming put options.
 	ctx := context.Background()
 	lower := newOverlayNilOptsTestStore()
 	upper := newOverlayNilOptsTestStore()
 	overlay := block.NewOverlay(ctx, nil, lower, upper, block.OverlayMode_UPPER_CACHE, 0, nil)
 
+	// Verify nil primary options become forced-reference cache options.
 	ref, _, err := overlay.PutBlock(ctx, []byte("hello"), nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -137,6 +143,7 @@ func TestStoreOverlayCachePutHandlesNilOpts(t *testing.T) {
 }
 
 func TestStoreOverlayPutBlockForwards(t *testing.T) {
+	// Create an upper-only overlay and its block payload.
 	ctx := context.Background()
 	lower := newOverlayBatchTestStore()
 	upper := newOverlayBatchTestStore()
@@ -144,16 +151,19 @@ func TestStoreOverlayPutBlockForwards(t *testing.T) {
 	data := []byte("hello")
 	ref := mustBuildBlockRef(t, data)
 
+	// Write the block through the upper-only overlay.
 	if _, _, err := overlay.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify only one upper-store write occurred.
 	if upper.putCalls != 1 {
 		t.Fatalf("expected one upper put call, got %d", upper.putCalls)
 	}
 }
 
 func TestStoreOverlayUpperReadbackCache(t *testing.T) {
+	// Store a lower-layer block for upper readback caching.
 	ctx := context.Background()
 	lower := newOverlayBatchTestStore()
 	lower.leaves = true
@@ -165,6 +175,7 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read the lower-layer block through the overlay.
 	data, found, err := overlay.GetBlock(ctx, ref)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -173,6 +184,7 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 		t.Fatalf("expected lower data, got found=%v data=%q", found, string(data))
 	}
 
+	// Wait for the upper cache write and snapshot both store counters.
 	select {
 	case <-upper.putNotify:
 	case <-time.After(time.Second):
@@ -184,6 +196,8 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 	lower.mu.Lock()
 	lowerPuts := lower.putCalls
 	lower.mu.Unlock()
+
+	// Verify readback cached the block only in the upper store.
 	if upperPuts != 1 {
 		t.Fatalf("expected one writeback to upper, got %d", upperPuts)
 	}
@@ -191,6 +205,7 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 		t.Fatalf("expected no writes to lower, got %d", lowerPuts)
 	}
 
+	// Write the block through the readback-cache overlay.
 	if _, _, err := overlay.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -200,6 +215,8 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 	lower.mu.Lock()
 	lowerPuts = lower.putCalls
 	lower.mu.Unlock()
+
+	// Verify the explicit write affects only the upper store.
 	if upperPuts != 2 {
 		t.Fatalf("expected upper put to bring total to 2, got %d", upperPuts)
 	}
@@ -207,6 +224,7 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 		t.Fatalf("expected no writes to lower, got %d", lowerPuts)
 	}
 
+	// Remove the block through the readback-cache overlay.
 	if err := overlay.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -216,6 +234,8 @@ func TestStoreOverlayUpperReadbackCache(t *testing.T) {
 	lower.mu.Lock()
 	lowerRms := lower.rmCalls
 	lower.mu.Unlock()
+
+	// Verify removal affects only the upper store.
 	if upperRms != 1 {
 		t.Fatalf("expected one rm on upper, got %d", upperRms)
 	}
@@ -238,10 +258,12 @@ func TestStoreOverlayWriteCacheRemoveUsesWriteStore(t *testing.T) {
 		{name: "lower", mode: block.OverlayMode_LOWER_WRITE_CACHE, wantLower: 1},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			// Create the backing stores for this write-cache mode.
 			lower := newOverlayBatchTestStore()
 			upper := newOverlayBatchTestStore()
 			overlay := block.NewOverlay(ctx, nil, lower, upper, tt.mode, 0, nil)
 
+			// Remove the block and verify the configured write store receives it.
 			if err := overlay.RmBlock(ctx, ref); err != nil {
 				t.Fatal(err.Error())
 			}
@@ -253,12 +275,14 @@ func TestStoreOverlayWriteCacheRemoveUsesWriteStore(t *testing.T) {
 }
 
 func TestStoreOverlayGetBlockExistsBatchForwards(t *testing.T) {
+	// Create a read-cache overlay for batched existence probes.
 	ctx := context.Background()
 	lower := newOverlayBatchTestStore()
 	upper := newOverlayBatchTestStore()
 	overlay := block.NewOverlay(ctx, nil, lower, upper, block.OverlayMode_UPPER_READ_CACHE, 0, nil)
 	ref := mustBuildBlockRef(t, []byte("missing"))
 
+	// Verify both cache and fallback stores receive the batch probe.
 	if _, err := overlay.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -296,6 +320,7 @@ func (s *overlayGatedPutStore) PutBlock(ctx context.Context, data []byte, opts *
 // TestStoreOverlayReadbackCopiesData checks the background writeback does not
 // share the data slice returned to the caller.
 func TestStoreOverlayReadbackCopiesData(t *testing.T) {
+	// Store a lower-layer block behind a gated upper writeback.
 	ctx := context.Background()
 	lower := newOverlayBatchTestStore()
 	lower.leaves = true
@@ -310,14 +335,17 @@ func TestStoreOverlayReadbackCopiesData(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Read the lower block before releasing upper writeback.
 	data, found, err := overlay.GetBlock(ctx, ref)
 	if err != nil || !found {
 		t.Fatalf("GetBlock: found=%v err=%v", found, err)
 	}
+
 	// The caller owns the returned slice and may reuse it.
 	copy(data, "XXXXXXXXXX")
 	close(upper.gate)
 
+	// Verify the upper writeback retained the original block bytes.
 	select {
 	case written := <-upper.got:
 		if string(written) != "from-lower" {

@@ -9,11 +9,14 @@ import (
 // TestWriteAtRootWaitsForWorkersAfterEncodeError verifies that a failed write
 // joins an encoder already running on an independent sibling subtree.
 func TestWriteAtRootWaitsForWorkersAfterEncodeError(t *testing.T) {
+	// Create the gates and failure used to control sibling encoders.
 	started := make(chan struct{})
 	release := make(chan struct{})
 	failed := make(chan struct{})
 	done := make(chan error, 1)
 	want := errors.New("transaction worker marshal failed")
+
+	// Attach sibling blocks whose encoders overlap before failure.
 	tx, root := NewTransaction(NopStoreOps{}, nil, nil, nil)
 	root.SetBlock(&transactionWorkerBlock{}, true)
 	root.FollowRef(1, nil).SetBlock(&transactionWorkerBlock{marshal: func() ([]byte, error) {
@@ -26,6 +29,8 @@ func TestWriteAtRootWaitsForWorkersAfterEncodeError(t *testing.T) {
 		close(failed)
 		return nil, want
 	}}, true)
+
+	// Start the write and verify failure waits for the gated sibling.
 	go func() {
 		_, _, err := tx.Write(t.Context(), true)
 		done <- err
@@ -37,6 +42,8 @@ func TestWriteAtRootWaitsForWorkersAfterEncodeError(t *testing.T) {
 		t.Fatalf("write returned while sibling encoder was running: %v", err)
 	default:
 	}
+
+	// Release the sibling and verify the original encode failure returns.
 	close(release)
 	if err := <-done; !errors.Is(err, want) {
 		t.Fatalf("write error=%v want=%v", err, want)

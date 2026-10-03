@@ -9,6 +9,7 @@ import (
 // TestBufferedStoreSyncReachable retains shared children and fences the final
 // DAG while discarding superseded content without deleting durable blocks.
 func TestBufferedStoreSyncReachable(t *testing.T) {
+	// Create a buffered store and a helper for referenced block writes.
 	ctx := t.Context()
 	inner := newSyncOrderStore(0)
 	store := NewBufferedStore(ctx, inner)
@@ -20,6 +21,8 @@ func TestBufferedStoreSyncReachable(t *testing.T) {
 		}
 		return ref
 	}
+
+	// Queue a shared-child graph with a superseded parent.
 	child := put("shared child")
 	old := put("superseded", child)
 	left := put("left", child)
@@ -28,11 +31,15 @@ func TestBufferedStoreSyncReachable(t *testing.T) {
 	if len(inner.blocks) != 0 {
 		t.Fatal("construction wrote to storage")
 	}
+
+	// Verify cancellation aborts the reachable-graph fence.
 	canceled, cancel := context.WithCancel(ctx)
 	cancel()
 	if _, err := store.SyncReachable(canceled, root); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled commit: %v", err)
 	}
+
+	// Flush the final reachable graph and verify all retained blocks persist.
 	if _, err := store.SyncReachable(ctx, root); err != nil {
 		t.Fatal(err)
 	}
@@ -42,6 +49,8 @@ func TestBufferedStoreSyncReachable(t *testing.T) {
 			t.Fatalf("missing reachable block: %v", err)
 		}
 	}
+
+	// Verify the superseded block is skipped and the durability fence runs.
 	if found, err := inner.GetBlockExists(ctx, old); err != nil || found {
 		t.Fatalf("superseded block was copied: found=%v err=%v", found, err)
 	}
