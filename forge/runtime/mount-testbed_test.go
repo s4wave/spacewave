@@ -28,6 +28,7 @@ func (w *workdirTestbed) Release() {
 // buildTestWorkdirHandle constructs a live empty Workdir FSHandle over a real
 // world engine, mirroring the production init path.
 func buildTestWorkdirHandle(ctx context.Context, t *testing.T) (*unixfs_sdk.FSHandle, *workdirTestbed, error) {
+	// Start the block-store testbed for the Workdir filesystem.
 	t.Helper()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
@@ -35,6 +36,8 @@ func buildTestWorkdirHandle(ctx context.Context, t *testing.T) (*unixfs_sdk.FSHa
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Start the World engine and retain both testbeds for cleanup.
 	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
 	if err != nil {
 		btb.Release()
@@ -42,6 +45,7 @@ func buildTestWorkdirHandle(ctx context.Context, t *testing.T) (*unixfs_sdk.FSHa
 	}
 	out := &workdirTestbed{btb: btb, wtb: wtb}
 
+	// Register the filesystem operations used to initialize the Workdir.
 	opc := world.NewLookupOpController(
 		"test-workdir-fs-ops",
 		wtb.EngineID,
@@ -53,6 +57,7 @@ func buildTestWorkdirHandle(ctx context.Context, t *testing.T) (*unixfs_sdk.FSHa
 	}
 	<-time.After(time.Millisecond * 100)
 
+	// Initialize the empty Workdir filesystem in the test World.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
 	if _, _, err := unixfs_world.FsInit(
@@ -68,6 +73,8 @@ func buildTestWorkdirHandle(ctx context.Context, t *testing.T) (*unixfs_sdk.FSHa
 		out.Release()
 		return nil, nil, err
 	}
+
+	// Open the Workdir root and wrap it in a live filesystem handle.
 	rootCursor, err := unixfs_world.FollowUnixfsRef(
 		ctx,
 		wtb.Logger,

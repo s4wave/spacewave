@@ -23,6 +23,7 @@ func persistReservation(ctx context.Context, ws world.WorldState, objKey string,
 
 // persistNewReservation writes a Reservation that must not exist yet.
 func persistNewReservation(ctx context.Context, ws world.WorldState, res *Reservation) error {
+	// Require a new reservation key before writing its body.
 	objKey := res.ObjectKey()
 	exists, err := ws.HasObject(ctx, objKey)
 	if err != nil {
@@ -36,9 +37,12 @@ func persistNewReservation(ctx context.Context, ws world.WorldState, res *Reserv
 
 // listReservationKeys lists all persisted reservation object keys.
 func listReservationKeys(ctx context.Context, ws world.WorldState) ([]string, error) {
+	// Open an iterator over persisted reservation keys.
 	var keys []string
 	it := ws.IterateObjects(ctx, reservationObjectKeyPrefix, false)
 	defer it.Close()
+
+	// Collect valid reservation keys from the World index.
 	for it.Next() {
 		if !it.Valid() {
 			break
@@ -50,9 +54,12 @@ func listReservationKeys(ctx context.Context, ws world.WorldState) ([]string, er
 
 // listWorkerCapacityKeys lists all persisted worker capacity object keys.
 func listWorkerCapacityKeys(ctx context.Context, ws world.WorldState) ([]string, error) {
+	// Open an iterator over persisted Worker capacity keys.
 	var keys []string
 	it := ws.IterateObjects(ctx, workerCapacityObjectKeyPrefix, false)
 	defer it.Close()
+
+	// Collect valid Worker capacity keys from the World index.
 	for it.Next() {
 		if !it.Valid() {
 			break
@@ -104,10 +111,13 @@ func remainingMemoryBytes(capacity *WorkerCapacity) uint64 {
 // debitCapacity adds one reservation's request to the Worker's reserved totals
 // in the same transaction that creates the reservation.
 func debitCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string, request ResourceRequest) error {
+	// Load the Worker capacity before applying its reservation debit.
 	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 	if err != nil {
 		return err
 	}
+
+	// Increase and validate the Worker reserved capacity totals.
 	capacity.MilliCPUReserved += request.MilliCPU
 	capacity.MemoryBytesReserved += request.MemoryBytes
 	capacity.Generation++
@@ -122,6 +132,7 @@ func debitCapacity(ctx context.Context, ws world.WorldState, workerObjectKey str
 // reactivates a draining record whose declared backends remain: once the
 // remaining debits fit the declared totals, the claim returns to ACTIVE.
 func creditCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string, request ResourceRequest) error {
+	// Load the Worker capacity and prevent a reservation credit underflow.
 	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 	if err != nil {
 		return err
@@ -132,6 +143,8 @@ func creditCapacity(ctx context.Context, ws world.WorldState, workerObjectKey st
 	case capacity.MilliCPUReserved == 0 && capacity.MemoryBytesReserved == 0:
 		return nil
 	}
+
+	// Credit the reservation and reactivate capacity when its totals fit.
 	capacity.MilliCPUReserved -= request.MilliCPU
 	capacity.MemoryBytesReserved -= request.MemoryBytes
 	if capacity.OwnerState == CapacityOwnerStateDraining && len(capacity.Backends) > 0 &&
@@ -139,6 +152,8 @@ func creditCapacity(ctx context.Context, ws world.WorldState, workerObjectKey st
 		capacity.MemoryBytesReserved <= capacity.MemoryBytesTotal {
 		capacity.OwnerState = CapacityOwnerStateActive
 	}
+
+	// Validate the credited Worker capacity generation.
 	capacity.Generation++
 	if err := capacity.Validate(); err != nil {
 		return errors.Wrapf(err, "credit worker %s", workerObjectKey)

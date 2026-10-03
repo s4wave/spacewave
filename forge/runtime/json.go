@@ -23,6 +23,7 @@ func setStringJSONField(arena *fastjson.Arena, obj *fastjson.Value, key, value s
 }
 
 func marshalTimestampField(arena *fastjson.Arena, ts *timestamp.Timestamp) (*fastjson.Value, error) {
+	// Encode the timestamp before copying its parsed JSON into the caller arena.
 	if ts == nil {
 		return arena.NewNull(), nil
 	}
@@ -31,6 +32,8 @@ func marshalTimestampField(arena *fastjson.Arena, ts *timestamp.Timestamp) (*fas
 		return nil, errors.Wrap(err, "marshal timestamp")
 	}
 	var parser fastjson.Parser
+
+	// Parse the timestamp JSON and report malformed timestamp output.
 	value, err := parser.ParseBytes(tsJSON)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse timestamp")
@@ -39,6 +42,7 @@ func marshalTimestampField(arena *fastjson.Arena, ts *timestamp.Timestamp) (*fas
 }
 
 func unmarshalTimestampField(value *fastjson.Value, key string) (*timestamp.Timestamp, error) {
+	// Decode the optional timestamp field into a typed timestamp.
 	tsValue := value.Get(key)
 	if tsValue == nil || tsValue.Type() == fastjson.TypeNull {
 		return nil, nil
@@ -52,11 +56,14 @@ func unmarshalTimestampField(value *fastjson.Value, key string) (*timestamp.Time
 
 // marshalJSONValue marshals the receipt into the arena.
 func (r *CleanupReceipt) marshalJSONValue(arena *fastjson.Arena) (*fastjson.Value, error) {
+	// Encode cleanup identities and generation into a JSON receipt.
 	obj := arena.NewObject()
 	setStringJSONField(arena, obj, "reservationObjectKey", r.ReservationObjectKey)
 	setStringJSONField(arena, obj, "executionObjectKey", r.ExecutionObjectKey)
 	setStringJSONField(arena, obj, "runtimeIdentity", r.RuntimeIdentity)
 	obj.Set("generation", arena.NewNumberString(strconv.FormatUint(r.Generation, 10)))
+
+	// Encode cleanup completion facts and reason.
 	setBoolJSONField(arena, obj, "runtimeStopped", r.RuntimeStopped)
 	setBoolJSONField(arena, obj, "capacityReleased", r.CapacityReleased)
 	setStringJSONField(arena, obj, "reason", r.Reason)
@@ -65,10 +72,13 @@ func (r *CleanupReceipt) marshalJSONValue(arena *fastjson.Arena) (*fastjson.Valu
 
 // unmarshalJSONValue unmarshals the receipt from a parsed object value.
 func (r *CleanupReceipt) unmarshalJSONValue(value *fastjson.Value) error {
+	// Restore cleanup identities and generation from the JSON receipt.
 	r.ReservationObjectKey = string(value.GetStringBytes("reservationObjectKey"))
 	r.ExecutionObjectKey = string(value.GetStringBytes("executionObjectKey"))
 	r.RuntimeIdentity = string(value.GetStringBytes("runtimeIdentity"))
 	r.Generation = value.GetUint64("generation")
+
+	// Restore cleanup completion facts and reason.
 	r.RuntimeStopped = value.GetBool("runtimeStopped")
 	r.CapacityReleased = value.GetBool("capacityReleased")
 	r.Reason = string(value.GetStringBytes("reason"))
@@ -77,9 +87,12 @@ func (r *CleanupReceipt) unmarshalJSONValue(value *fastjson.Value) error {
 
 // MarshalJSON marshals the CleanupReceipt to JSON without reflection.
 func (r *CleanupReceipt) MarshalJSON() ([]byte, error) {
+	// Preserve a nil cleanup receipt as JSON null.
 	if r == nil {
 		return []byte("null"), nil
 	}
+
+	// Encode the cleanup receipt in a fresh JSON arena.
 	var arena fastjson.Arena
 	value, err := r.marshalJSONValue(&arena)
 	if err != nil {
@@ -90,12 +103,14 @@ func (r *CleanupReceipt) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals the CleanupReceipt from JSON without reflection.
 func (r *CleanupReceipt) UnmarshalJSON(data []byte) error {
+	// Parse the cleanup receipt JSON before restoring its fields.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
 		return err
 	}
 	if value.Type() == fastjson.TypeNull {
+		// Accept a null receipt or require an object for decoding.
 		*r = CleanupReceipt{}
 		return nil
 	}

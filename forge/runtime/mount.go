@@ -62,6 +62,7 @@ func NewV86WorkdirMount(
 
 // Attach registers the writable Workdir mount with the v86fs server exactly once.
 func (m *V86WorkdirMount) Attach() error {
+	// Lock the Workdir mount and reject attachment after release or prior attachment.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	if m.released {
@@ -70,6 +71,8 @@ func (m *V86WorkdirMount) Attach() error {
 	if m.attached {
 		return errors.New("workdir mount already attached")
 	}
+
+	// Register the writable Workdir mount with the relay server.
 	m.server.AddMount(m.name, m.guestPath, m.handle)
 	m.attached = true
 	return nil
@@ -78,11 +81,14 @@ func (m *V86WorkdirMount) Attach() error {
 // Flush implements WorkdirMount by running the engine durability barrier over
 // every FSHandle write the guest made.
 func (m *V86WorkdirMount) Flush(ctx context.Context) error {
+	// Lock the Workdir mount and reject flushing after release.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	if m.released {
 		return errors.New("workdir mount released")
 	}
+
+	// Fence guest Workdir writes through the World engine.
 	if _, err := m.eng.Sync(ctx); err != nil {
 		return errors.Wrap(err, "sync workdir writes")
 	}
@@ -91,11 +97,14 @@ func (m *V86WorkdirMount) Flush(ctx context.Context) error {
 
 // Release implements WorkdirMount by removing the mount, revoking guest access.
 func (m *V86WorkdirMount) Release(_ context.Context) error {
+	// Lock the Workdir mount and accept an already completed release.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	if m.released {
 		return nil
 	}
+
+	// Revoke guest access and record the Workdir mount release.
 	if m.attached {
 		m.server.RemoveMount(m.name)
 	}

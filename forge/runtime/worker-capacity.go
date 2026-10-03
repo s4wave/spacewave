@@ -174,27 +174,36 @@ func (w *WorkerCapacity) UnmarshalBlock(data []byte) error {
 
 // MarshalJSON marshals the WorkerCapacity to JSON without reflection.
 func (w *WorkerCapacity) MarshalJSON() ([]byte, error) {
+	// Encode the Worker claim identity and epoch in a JSON capacity record.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
 	setStringJSONField(&arena, obj, "workerObjectKey", w.WorkerObjectKey)
 	setStringJSONField(&arena, obj, "ownerDeviceObjectKey", w.OwnerDeviceObjectKey)
 	setStringJSONField(&arena, obj, "claimId", w.ClaimID)
 	obj.Set("ownerEpoch", arena.NewNumberString(strconv.FormatUint(w.OwnerEpoch, 10)))
+
+	// Encode the Worker claim lease and lifecycle state.
 	ownerLease, err := marshalTimestampField(&arena, w.OwnerLeaseExpiresAt)
 	if err != nil {
 		return nil, err
 	}
 	obj.Set("ownerLeaseExpiresAt", ownerLease)
 	obj.Set("ownerState", arena.NewNumberInt(int(w.OwnerState)))
+
+	// Encode observed and reserved Worker resource totals.
 	obj.Set("milliCpuTotal", arena.NewNumberString(strconv.FormatUint(w.MilliCPUTotal, 10)))
 	obj.Set("milliCpuReserved", arena.NewNumberString(strconv.FormatUint(w.MilliCPUReserved, 10)))
 	obj.Set("memoryBytesTotal", arena.NewNumberString(strconv.FormatUint(w.MemoryBytesTotal, 10)))
 	obj.Set("memoryBytesReserved", arena.NewNumberString(strconv.FormatUint(w.MemoryBytesReserved, 10)))
+
+	// Encode the supported Worker runtime backends.
 	backends := arena.NewArray()
 	for i, b := range w.Backends {
 		backends.SetArrayItem(i, arena.NewString(b))
 	}
 	obj.Set("backends", backends)
+
+	// Encode the Worker observation timestamp and record generation.
 	tsValue, err := marshalTimestampField(&arena, w.ObservedAt)
 	if err != nil {
 		return nil, err
@@ -206,11 +215,14 @@ func (w *WorkerCapacity) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals the WorkerCapacity from JSON without reflection.
 func (w *WorkerCapacity) UnmarshalJSON(data []byte) error {
+	// Parse the Worker capacity JSON before restoring its fields.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
 		return err
 	}
+
+	// Accept null capacity or require an object for decoding.
 	if value.Type() == fastjson.TypeNull {
 		*w = WorkerCapacity{}
 		return nil
@@ -218,10 +230,14 @@ func (w *WorkerCapacity) UnmarshalJSON(data []byte) error {
 	if value.Type() != fastjson.TypeObject {
 		return errors.New("worker capacity must be object")
 	}
+
+	// Restore observed and reserved Worker resource totals.
 	w.MilliCPUTotal = value.GetUint64("milliCpuTotal")
 	w.MilliCPUReserved = value.GetUint64("milliCpuReserved")
 	w.MemoryBytesTotal = value.GetUint64("memoryBytesTotal")
 	w.MemoryBytesReserved = value.GetUint64("memoryBytesReserved")
+
+	// Restore the Worker claim identity, epoch and lease.
 	w.WorkerObjectKey = string(value.GetStringBytes("workerObjectKey"))
 	w.OwnerDeviceObjectKey = string(value.GetStringBytes("ownerDeviceObjectKey"))
 	w.ClaimID = string(value.GetStringBytes("claimId"))
@@ -230,15 +246,21 @@ func (w *WorkerCapacity) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+
+	// Validate and restore the Worker claim lifecycle state.
 	ownerState := value.GetInt("ownerState")
 	if ownerState < 0 || ownerState > math.MaxUint8 {
 		return errors.Errorf("capacity owner state out of range: %d", ownerState)
 	}
 	w.OwnerState = CapacityOwnerState(ownerState) //nolint:gosec // the explicit uint8 range check bounds the persisted enum.
+
+	// Restore the supported Worker runtime backends.
 	w.Backends = nil
 	for _, b := range value.GetArray("backends") {
 		w.Backends = append(w.Backends, string(b.GetStringBytes()))
 	}
+
+	// Restore the Worker observation timestamp and record generation.
 	w.ObservedAt, err = unmarshalTimestampField(value, "observedAt")
 	if err != nil {
 		return err

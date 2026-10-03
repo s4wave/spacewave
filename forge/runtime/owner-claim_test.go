@@ -32,6 +32,7 @@ func persistLegacyCapacity(ctx context.Context, eng world.Engine, workerObjectKe
 }
 
 func TestClaimCreateAdoptAndReclaimPreserveDraining(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
 
@@ -58,6 +59,8 @@ func TestClaimCreateAdoptAndReclaimPreserveDraining(t *testing.T) {
 	if _, err := admission.BeginDrainCapacity(ctx, "worker/a", selfRef, capacity.OwnerEpoch); err != nil {
 		t.Fatal(err)
 	}
+
+	// Choose the time used to evaluate the Worker or reservation lease.
 	now := time.Now().UTC()
 	admission.SetTimeNow(func() time.Time { return now.Add(2 * time.Minute) })
 	capacity, err = admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
@@ -70,6 +73,7 @@ func TestClaimCreateAdoptAndReclaimPreserveDraining(t *testing.T) {
 }
 
 func TestClaimAdoptsLegacyOwnerlessRecord(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
 	if err := persistLegacyCapacity(ctx, eng, "worker/legacy"); err != nil {
@@ -94,20 +98,28 @@ func TestClaimAdoptsLegacyOwnerlessRecord(t *testing.T) {
 // TestClaimFencesReserveAndActivate proves a replaced Worker cannot debit or
 // activate capacity after a new owner epoch takes custody.
 func TestClaimFencesReserveAndActivate(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve Worker capacity for the Execution attempt.
 	res, err := admission.ReserveForClaim(ctx, "worker/a", "exec/one", testRequest, selfRef, capacity.OwnerEpoch)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Replace the Worker claim with a new instance of the same Device.
 	newRef := WorkerClaimRef{DeviceObjectKey: selfRef.DeviceObjectKey, ClaimID: "replacement"}
 	newCapacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", newRef)
 	if err != nil {
@@ -116,20 +128,29 @@ func TestClaimFencesReserveAndActivate(t *testing.T) {
 	if newCapacity.OwnerEpoch == capacity.OwnerEpoch {
 		t.Fatal("replacement kept the old owner epoch")
 	}
+
+	// Reject a reservation from the replaced Worker claim.
 	if _, err := admission.ReserveForClaim(ctx, "worker/a", "exec/two", testRequest, selfRef, capacity.OwnerEpoch); !errors.Is(err, ErrCapacityOwned) {
 		t.Fatalf("old owner reserved capacity: %v", err)
 	}
+
+	// Activate runtime custody for the reserved Execution.
 	if _, err := admission.ActivateForClaim(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "stale"}, selfRef, capacity.OwnerEpoch); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("old owner activated runtime: %v", err)
 	}
 }
 
 func TestForeignLiveClaimRejected(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for its test Device.
 	if _, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject a foreign Device claim while the Worker lease is live.
 	if _, err := admission.ClaimWorkerCapacity(ctx, "worker/a", otherRef); !errors.Is(err, ErrCapacityOwned) {
 		t.Fatalf("expected foreign Device conflict, got %v", err)
 	}
@@ -138,24 +159,34 @@ func TestForeignLiveClaimRejected(t *testing.T) {
 // TestExpiredOwnerClaimRejectsNewReservation checks that an unswept capacity
 // record stops admitting work at its persisted owner lease deadline.
 func TestExpiredOwnerClaimRejectsNewReservation(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, DefaultOwnerLeaseDuration)
+
+	// Claim the Worker capacity for the test Device.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 	admission.SetTimeNow(func() time.Time { return capacity.OwnerLeaseExpiresAt.AsTime() })
+
+	// Reject reservations after the Worker claim lease expires.
 	if _, err := admission.Reserve(ctx, "worker/a", "exec/after-expiry", testRequest); !errors.Is(err, ErrCapacityOwnerExpired) {
 		t.Fatalf("expired owner admitted work: %v", err)
 	}
 }
 
 func TestEpochFencesObserveDrainAndComplete(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
@@ -173,27 +204,40 @@ func TestEpochFencesObserveDrainAndComplete(t *testing.T) {
 	if capacity.OwnerEpoch != stale+1 {
 		t.Fatalf("reclaim must bump the epoch: %+v", capacity)
 	}
+
+	// Reject a Worker observation carrying the previous claim epoch.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, stale, 2_000, 4<<30, []string{"docker"}); err == nil {
 		t.Fatal("stale-epoch observe must fail")
 	}
+
+	// Move the Worker capacity into draining.
 	if _, err := admission.BeginDrainCapacity(ctx, "worker/a", selfRef, stale); err == nil {
 		t.Fatal("stale-epoch drain must fail")
 	}
+
+	// Check whether the draining Worker can remove its capacity record.
 	if err := admission.CompleteDrainCapacity(ctx, "worker/a", selfRef, stale); err == nil {
 		t.Fatal("stale-epoch complete-drain must fail")
 	}
+
+	// Check the runtime stop against the reservation and Worker fences.
 	if _, err := admission.StopAndRelease(ctx, selfRef, stale, "forge/runtime/reservation/x", 1); err == nil {
 		t.Fatal("stale-epoch stop must fail")
 	}
 }
 
 func TestRenewAfterExpiryFallsBackToReclaimWithBump(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Choose the time used to evaluate the Worker or reservation lease.
 	now := time.Now().UTC()
 	admission.SetTimeNow(func() time.Time { return now.Add(2 * time.Minute) })
 	renewed, err := admission.RenewWorkerClaim(ctx, "worker/a", selfRef)
@@ -206,6 +250,7 @@ func TestRenewAfterExpiryFallsBackToReclaimWithBump(t *testing.T) {
 }
 
 func TestReserveRejectionPrecedenceUnderClaims(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
 
@@ -214,6 +259,8 @@ func TestReserveRejectionPrecedenceUnderClaims(t *testing.T) {
 	if err := persistLegacyCapacity(ctx, eng, "worker/legacy"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject reservations against an ownerless Worker capacity record.
 	if _, err := admission.Reserve(ctx, "worker/legacy", "exec/1", testRequest); !errors.Is(err, ErrCapacityUnowned) {
 		t.Fatalf("expected unowned rejection, got %v", err)
 	}
@@ -223,44 +270,65 @@ func TestReserveRejectionPrecedenceUnderClaims(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Move the Worker capacity into draining.
 	if _, err := admission.BeginDrainCapacity(ctx, "worker/a", selfRef, capacity.OwnerEpoch); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject reservations while the Worker capacity is draining.
 	if _, err := admission.Reserve(ctx, "worker/a", "exec/2", testRequest); !errors.Is(err, ErrCapacityDraining) {
 		t.Fatalf("expected draining rejection, got %v", err)
 	}
 }
 
 func TestCompleteDrainWaitsForTerminalThenDeletesOnce(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve Worker capacity for the Execution attempt.
 	res, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Move the Worker capacity into draining.
 	if _, err := admission.BeginDrainCapacity(ctx, "worker/a", selfRef, capacity.OwnerEpoch); err != nil {
 		t.Fatal(err)
 	}
+
 	// A live reservation blocks completion.
 	if err := admission.CompleteDrainCapacity(ctx, "worker/a", selfRef, capacity.OwnerEpoch); err == nil {
 		t.Fatal("complete-drain must wait for terminal reservations")
 	}
+
+	// Check the runtime stop against the reservation and Worker fences.
 	if _, err := admission.StopAndRelease(ctx, selfRef, capacity.OwnerEpoch, res.ObjectKey(), res.Generation); err != nil {
 		t.Fatal(err)
 	}
+
+	// Check whether the draining Worker can remove its capacity record.
 	if err := admission.CompleteDrainCapacity(ctx, "worker/a", selfRef, capacity.OwnerEpoch); err != nil {
 		t.Fatal(err)
 	}
+
 	// Post-delete stragglers are impossible: the record is gone.
 	if _, err := admission.Reserve(ctx, "worker/a", "exec/3", testRequest); !errors.Is(err, ErrWorkerNotObserved) {
 		t.Fatalf("expected not-observed after deletion, got %v", err)
@@ -268,23 +336,34 @@ func TestCompleteDrainWaitsForTerminalThenDeletesOnce(t *testing.T) {
 }
 
 func TestStaleRefSweepsSkipWithoutInvokingStopper(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	stopper := newTestStopper()
 	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve Worker capacity for the Execution attempt.
 	res, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Activate runtime custody for the reserved Execution.
 	if _, err := admission.Activate(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "container-1"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Choose the time used to evaluate the Worker or reservation lease.
 	now := time.Now().UTC()
 
 	// A foreign ref must not expire or stop work it does not own; the
@@ -307,16 +386,23 @@ func TestStaleRefSweepsSkipWithoutInvokingStopper(t *testing.T) {
 }
 
 func TestScanOwnedCapacityReturnsKeysAndRecords(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim two Worker capacity records for the test Device.
 	for _, key := range []string{"worker/a", "worker/b"} {
 		if _, err := admission.ClaimWorkerCapacity(ctx, key, selfRef); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Claim the Worker capacity for its test Device.
 	if _, err := admission.ClaimWorkerCapacity(ctx, "worker/other", otherRef); err != nil {
 		t.Fatal(err)
 	}
+
+	// Scan Worker capacities belonging to the test Device.
 	owned, err := admission.ScanOwnedCapacity(ctx, selfRef.DeviceObjectKey)
 	if err != nil {
 		t.Fatal(err)
@@ -324,6 +410,8 @@ func TestScanOwnedCapacityReturnsKeysAndRecords(t *testing.T) {
 	if len(owned) != 2 {
 		t.Fatalf("expected two owned records, got %+v", owned)
 	}
+
+	// Check that the capacity scan pairs both Worker keys with their records.
 	keys := map[string]bool{}
 	for _, oc := range owned {
 		if oc.WorkerObjectKey == "" || oc.Capacity == nil {
@@ -337,22 +425,33 @@ func TestScanOwnedCapacityReturnsKeysAndRecords(t *testing.T) {
 }
 
 func TestGatedRenewLeaseRejectsStaleRef(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve Worker capacity for the Execution attempt.
 	res, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject reservation renewal from a foreign Worker claim.
 	if _, err := admission.RenewLease(ctx, otherRef, res.ObjectKey()); err == nil {
 		t.Fatal("deposed-instance lease renewal must be rejected")
 	}
+
+	// Renew the reservation under the current Worker claim.
 	if _, err := admission.RenewLease(ctx, selfRef, res.ObjectKey()); err != nil {
 		t.Fatal(err)
 	}
@@ -364,6 +463,7 @@ func TestGatedRenewLeaseRejectsStaleRef(t *testing.T) {
 // claim with its observed totals intact. It also pins forward compatibility:
 // the new JSON form round-trips every pre-existing field unchanged.
 func TestLegacyRawJSONDecodesUnavailableAndAdopts(t *testing.T) {
+	// Decode a saved ownerless Worker capacity record and check its fields.
 	legacyJSON := `{"milliCpuTotal":2000,"memoryBytesTotal":4294967296,` +
 		`"milliCpuReserved":1000,"memoryBytesReserved":1073741824,` +
 		`"backends":["docker"],"observedAt":"1970-01-01T00:00:10Z",` +
@@ -381,6 +481,7 @@ func TestLegacyRawJSONDecodesUnavailableAndAdopts(t *testing.T) {
 		t.Fatalf("legacy ownerless shape must validate: %v", err)
 	}
 
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
 	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
@@ -408,6 +509,8 @@ func TestLegacyRawJSONDecodesUnavailableAndAdopts(t *testing.T) {
 		capacity.WorkerObjectKey != "worker/legacy" {
 		t.Fatalf("adoption lost durable facts: %+v", capacity)
 	}
+
+	// Reserve capacity for a new Execution attempt.
 	if _, err := admission.Reserve(ctx, "worker/legacy", "exec/legacy2", testRequest); err != nil {
 		t.Fatal(err)
 	}
@@ -416,15 +519,22 @@ func TestLegacyRawJSONDecodesUnavailableAndAdopts(t *testing.T) {
 // TestObserveFitDrainsAndCreditReactivates pins the desired-state write and
 // the credit-only reactivation rule end to end.
 func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve Worker capacity for the Execution attempt.
 	res, err := admission.Reserve(ctx, "worker/a", "exec/fit", testRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -438,6 +548,8 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	if shrunk.OwnerState != CapacityOwnerStateDraining {
 		t.Fatalf("shrink below debits must drain: %+v", shrunk)
 	}
+
+	// Reject reservations while the Worker capacity is draining.
 	if _, err := admission.Reserve(ctx, "worker/a", "exec/fit-2", testRequest); !errors.Is(err, ErrCapacityDraining) {
 		t.Fatalf("drained record must refuse work: %v", err)
 	}
@@ -456,6 +568,8 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 500, 1<<29, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Stop the backend runtime and check the cleanup receipt.
 	receipt, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), res.Generation)
 	if err != nil {
 		t.Fatal(err)
@@ -463,6 +577,8 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	if !receipt.Complete() {
 		t.Fatalf("unexpected receipt: %+v", receipt)
 	}
+
+	// Read the Worker capacity and check its reserved totals or lifecycle state.
 	final, err := lookupCapacityViaAdmission(ctx, admission, "worker/a")
 	if err != nil {
 		t.Fatal(err)
@@ -477,20 +593,30 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve Worker capacity for the Execution attempt.
 	res2, err := admission.Reserve(ctx, "worker/a", "exec/fit-3", testRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Move the Worker capacity into draining.
 	if _, err := admission.BeginDrainCapacity(ctx, "worker/a", selfRef, claimed.OwnerEpoch); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the Worker capacity and check its reserved totals or lifecycle state.
 	drained, err := lookupCapacityViaAdmission(ctx, admission, "worker/a")
 	if err != nil || len(drained.Backends) != 0 {
 		t.Fatalf("begin-drain must empty backends: %+v err=%v", drained, err)
 	}
+
+	// Check the runtime stop against the reservation and Worker fences.
 	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res2.ObjectKey(), res2.Generation); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the Worker capacity and check its reserved totals or lifecycle state.
 	final, err = lookupCapacityViaAdmission(ctx, admission, "worker/a")
 	if err != nil {
 		t.Fatal(err)
@@ -503,15 +629,22 @@ func TestObserveFitDrainsAndCreditReactivates(t *testing.T) {
 // TestEmptyBackendsObserveRejected pins that observations cannot clear the
 // backend list; only BeginDrainCapacity drains with empty backends.
 func TestEmptyBackendsObserveRejected(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reject a Worker observation without supported runtime backends.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, nil); err == nil {
 		t.Fatal("nil backends observation must be rejected")
 	}
+
+	// Reject a Worker observation without supported runtime backends.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{}); err == nil {
 		t.Fatal("empty backends observation must be rejected")
 	}
@@ -521,20 +654,29 @@ func TestEmptyBackendsObserveRejected(t *testing.T) {
 // on the same Device and an old epoch surface as ErrStaleGeneration for gated
 // mutations, and that stale-ref reconcile never invokes the stopper.
 func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
+	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	stopper := newTestStopper()
 	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute, time.Minute)
+
+	// Claim the Worker capacity for the test Device.
 	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the Worker resource totals for the test scenario.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve Worker capacity for the Execution attempt.
 	res, err := admission.Reserve(ctx, "worker/a", "exec/stale", testRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Activate the reservation with a backend runtime identity.
 	rt := BackendRuntimeIdentity{Backend: "docker", ID: "container-stale"}
 	if _, err := admission.Activate(ctx, res.ObjectKey(), rt); err != nil {
 		t.Fatal(err)
@@ -552,6 +694,8 @@ func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
 	if _, err := admission.ObserveWorker(ctx, "worker/a", staleRef, fresh.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("old claim id must be stale generation, got %v", err)
 	}
+
+	// Reject a Worker observation carrying the previous claim epoch.
 	if _, err := admission.ObserveWorker(ctx, "worker/a", newRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("old epoch must be stale generation, got %v", err)
 	}
@@ -567,6 +711,8 @@ func TestStaleClaimIdentitiesAreStaleGeneration(t *testing.T) {
 	if _, err := admission.RenewWorkerClaim(ctx, "worker/a", newRef); err != nil {
 		t.Fatal(err)
 	}
+
+	// Sweep expired reservation leases and check the cleanup receipts.
 	receipts, err := admission.ExpireLeases(ctx, newRef, later)
 	if err != nil || len(receipts) != 1 || receipts[0].Complete() {
 		t.Fatalf("expected partial expiry receipt: %+v err=%v", receipts, err)

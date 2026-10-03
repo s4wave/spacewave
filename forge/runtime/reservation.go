@@ -60,6 +60,7 @@ func (r *Reservation) ObjectKey() string {
 
 // Validate validates the reservation.
 func (r *Reservation) Validate() error {
+	// Validate the reservation identity, generation and lifecycle fields.
 	switch {
 	case r.WorkerObjectKey == "":
 		return errors.New("worker_object_key cannot be empty")
@@ -73,12 +74,14 @@ func (r *Reservation) Validate() error {
 		return errors.New("lease_expires_at must be set")
 	}
 	if err := r.Request.Validate(); err != nil {
+		// Validate the reserved resources and custody lease.
 		return errors.Wrap(err, "request")
 	}
 	if err := r.LeaseExpiresAt.Validate(false); err != nil {
 		return errors.Wrap(err, "lease_expires_at")
 	}
 	if r.Cleanup != nil {
+		// Require the cleanup receipt to agree with the reservation state.
 		if err := r.Cleanup.Validate(); err != nil {
 			return errors.Wrap(err, "cleanup")
 		}
@@ -134,27 +137,37 @@ func (r *Reservation) UnmarshalBlock(data []byte) error {
 
 // MarshalJSON marshals the Reservation to JSON without reflection.
 func (r *Reservation) MarshalJSON() ([]byte, error) {
+	// Encode the Worker and Execution identities in a JSON reservation.
 	var arena fastjson.Arena
 	obj := arena.NewObject()
 	setStringJSONField(&arena, obj, "workerObjectKey", r.WorkerObjectKey)
 	setStringJSONField(&arena, obj, "executionObjectKey", r.ExecutionObjectKey)
+
+	// Encode the reserved resource request and generation.
 	req := arena.NewObject()
 	req.Set("milliCpu", arena.NewNumberString(strconv.FormatUint(r.Request.MilliCPU, 10)))
 	req.Set("memoryBytes", arena.NewNumberString(strconv.FormatUint(r.Request.MemoryBytes, 10)))
 	req.Set("backend", arena.NewString(r.Request.Backend))
 	obj.Set("request", req)
 	obj.Set("generation", arena.NewNumberString(strconv.FormatUint(r.Generation, 10)))
+
+	// Encode the reservation lease and lifecycle state.
 	tsValue, err := marshalTimestampField(&arena, r.LeaseExpiresAt)
 	if err != nil {
 		return nil, err
 	}
 	obj.Set("leaseExpiresAt", tsValue)
 	obj.Set("state", arena.NewNumberInt(int(r.State)))
+
+	// Include backend runtime custody when it has been claimed.
 	if !r.Runtime.IsZero() {
+		// Encode the backend runtime identity and stop command.
 		rt := arena.NewObject()
 		rt.Set("backend", arena.NewString(r.Runtime.Backend))
 		rt.Set("id", arena.NewString(r.Runtime.ID))
 		rt.Set("stopCommand", arena.NewString(r.Runtime.StopCommand))
+
+		// Encode the backend stop environment and timeout.
 		env := arena.NewArray()
 		for i, entry := range r.Runtime.StopEnv {
 			env.SetArrayItem(i, arena.NewString(entry))
@@ -163,6 +176,8 @@ func (r *Reservation) MarshalJSON() ([]byte, error) {
 		rt.Set("stopTimeoutSeconds", arena.NewNumberString(strconv.FormatUint(uint64(r.Runtime.StopTimeoutSeconds), 10)))
 		obj.Set("runtime", rt)
 	}
+
+	// Include the reservation cleanup receipt when available.
 	if r.Cleanup != nil {
 		cleanupValue, err := r.Cleanup.marshalJSONValue(&arena)
 		if err != nil {
@@ -175,11 +190,14 @@ func (r *Reservation) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals the Reservation from JSON without reflection.
 func (r *Reservation) UnmarshalJSON(data []byte) error {
+	// Parse the reservation JSON before restoring its fields.
 	var parser fastjson.Parser
 	value, err := parser.ParseBytes(data)
 	if err != nil {
 		return err
 	}
+
+	// Accept a null reservation or require an object for decoding.
 	if value.Type() == fastjson.TypeNull {
 		*r = Reservation{}
 		return nil
@@ -187,6 +205,8 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 	if value.Type() != fastjson.TypeObject {
 		return errors.New("reservation must be object")
 	}
+
+	// Restore the reservation identity, request and generation.
 	r.WorkerObjectKey = string(value.GetStringBytes("workerObjectKey"))
 	r.ExecutionObjectKey = string(value.GetStringBytes("executionObjectKey"))
 	r.Request = ResourceRequest{
@@ -195,11 +215,15 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 		Backend:     string(value.GetStringBytes("request", "backend")),
 	}
 	r.Generation = value.GetUint64("generation")
+
+	// Validate and restore the persisted reservation state.
 	state := value.GetInt("state")
 	if state < 0 || state > math.MaxUint8 {
 		return errors.Errorf("reservation state out of range: %d", state)
 	}
 	r.State = ReservationState(state) //nolint:gosec // the explicit uint8 range check bounds the persisted enum.
+
+	// Restore the optional reservation custody lease.
 	if tsValue := value.Get("leaseExpiresAt"); tsValue != nil && tsValue.Type() != fastjson.TypeNull {
 		ts := &timestamp.Timestamp{}
 		if err := ts.UnmarshalJSON(tsValue.MarshalTo(nil)); err != nil {
@@ -207,6 +231,8 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 		}
 		r.LeaseExpiresAt = ts
 	}
+
+	// Restore backend runtime custody and its stop environment.
 	if rt := value.Get("runtime"); rt != nil && rt.Type() == fastjson.TypeObject {
 		stopTimeoutSeconds := rt.GetUint64("stopTimeoutSeconds")
 		if stopTimeoutSeconds > math.MaxUint32 {
@@ -222,6 +248,8 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 			r.Runtime.StopEnv = append(r.Runtime.StopEnv, string(entry.GetStringBytes()))
 		}
 	}
+
+	// Restore the optional reservation cleanup receipt.
 	if cleanupValue := value.Get("cleanup"); cleanupValue != nil && cleanupValue.Type() == fastjson.TypeObject {
 		cleanup := &CleanupReceipt{}
 		if err := cleanup.unmarshalJSONValue(cleanupValue); err != nil {
@@ -235,6 +263,7 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 // LookupReservation loads one persisted Reservation or ErrReservationNotFound.
 // The loaded record is validated before use.
 func LookupReservation(ctx context.Context, ws world.WorldState, objKey string) (*Reservation, error) {
+	// Load the reservation and translate a missing World object.
 	res, err := world.LookupObjectBody[*Reservation](ctx, ws, objKey, NewReservationBlock)
 	if errors.Is(err, world.ErrObjectNotFound) {
 		return nil, ErrReservationNotFound
@@ -242,6 +271,8 @@ func LookupReservation(ctx context.Context, ws world.WorldState, objKey string) 
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate the persisted reservation before returning it.
 	if err := res.Validate(); err != nil {
 		return nil, errors.Wrapf(err, "invalid reservation %s", objKey)
 	}

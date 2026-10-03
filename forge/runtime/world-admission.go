@@ -74,6 +74,7 @@ func (a *WorldRuntimeAdmission) SetTimeNow(now func() time.Time) {
 
 // lockWorker locks the per-Worker mutation lock and returns the unlock func.
 func (a *WorldRuntimeAdmission) lockWorker(workerObjectKey string) func() {
+	// Find or create the Worker mutation lock under the admission mutex.
 	a.mtx.Lock()
 	lk, ok := a.workerLocks[workerObjectKey]
 	if !ok {
@@ -81,6 +82,8 @@ func (a *WorldRuntimeAdmission) lockWorker(workerObjectKey string) func() {
 		a.workerLocks[workerObjectKey] = lk
 	}
 	a.mtx.Unlock()
+
+	// Serialize mutations to this Worker capacity record.
 	lk.Lock()
 	return lk.Unlock
 }
@@ -117,13 +120,18 @@ func loadOwnedCapacity(
 	epoch uint64,
 	now time.Time,
 ) (*WorkerCapacity, error) {
+	// Load the Worker capacity record inside the current transaction.
 	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Require a durable Worker claim before checking its identity.
 	if !capacity.owned() {
 		return nil, ErrCapacityUnowned
 	}
+
+	// Fence the Worker claim by Device, lease and epoch.
 	expired := capacity.OwnerLeaseExpiresAt == nil || !now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
 	switch {
 	case capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey:
@@ -169,21 +177,28 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 	workerObjectKey string,
 	ref WorkerClaimRef,
 ) (*WorkerCapacity, error) {
+	// Require a Worker key and a complete Device claim.
 	if workerObjectKey == "" {
 		return nil, errors.Wrap(world.ErrEmptyObjectKey, "worker_object_key")
 	}
 	if ref.DeviceObjectKey == "" || ref.ClaimID == "" {
 		return nil, errors.New("claim reference must be complete")
 	}
+
+	// Serialize the Worker claim transition.
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
 
+	// Persist the Worker claim and return its committed capacity.
 	var out *WorkerCapacity
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Read the existing Worker claim, allowing an unobserved Worker.
 		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 		if err != nil && !errors.Is(err, ErrWorkerNotObserved) {
 			return err
 		}
+
+		// Create, renew or reclaim the Worker capacity claim.
 		now := a.now().UTC()
 		if capacity == nil {
 			capacity = &WorkerCapacity{
@@ -199,12 +214,15 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 			}
 			capacity.Generation = 1
 		} else {
+			// Reject a foreign Device holding a live Worker claim.
 			live := capacity.owned() &&
 				capacity.OwnerLeaseExpiresAt != nil &&
 				now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
 			if live && capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey {
 				return ErrCapacityOwned
 			}
+
+			// Renew the same Worker claim or replace its epoch.
 			sameClaim := live &&
 				capacity.OwnerDeviceObjectKey == ref.DeviceObjectKey &&
 				capacity.ClaimID == ref.ClaimID
@@ -225,6 +243,8 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 				}
 			}
 		}
+
+		// Validate the Worker identity and claim generation.
 		if capacity.WorkerObjectKey == "" {
 			capacity.WorkerObjectKey = workerObjectKey
 		}
@@ -232,6 +252,8 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 		if err := capacity.Validate(); err != nil {
 			return err
 		}
+
+		// Save the Worker claim for the caller.
 		if err := persistWorkerCapacity(ctx, ws, workerObjectKey, capacity); err != nil {
 			return err
 		}
@@ -252,15 +274,20 @@ func (a *WorldRuntimeAdmission) RenewWorkerClaim(
 	workerObjectKey string,
 	ref WorkerClaimRef,
 ) (*WorkerCapacity, error) {
+	// Serialize renewal of the Worker claim.
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
 
+	// Renew the Worker claim in one durable transaction.
 	var out *WorkerCapacity
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Load the Worker capacity record for renewal.
 		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 		if err != nil {
 			return err
 		}
+
+		// Require the renewing Device and claim to match the durable record.
 		now := a.now().UTC()
 		if !capacity.owned() {
 			return ErrCapacityUnowned
@@ -271,6 +298,8 @@ func (a *WorldRuntimeAdmission) RenewWorkerClaim(
 		if capacity.ClaimID != ref.ClaimID {
 			return ErrStaleGeneration
 		}
+
+		// Reclaim an expired Worker epoch and extend its lease.
 		expired := capacity.OwnerLeaseExpiresAt == nil ||
 			!now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
 		if expired {
@@ -281,6 +310,8 @@ func (a *WorldRuntimeAdmission) RenewWorkerClaim(
 		if err := capacity.Validate(); err != nil {
 			return err
 		}
+
+		// Persist the renewed Worker claim for the caller.
 		if err := persistWorkerCapacity(ctx, ws, workerObjectKey, capacity); err != nil {
 			return err
 		}
@@ -307,21 +338,28 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 	milliCPUTotal, memoryBytesTotal uint64,
 	backends []string,
 ) (*WorkerCapacity, error) {
+	// Require a Worker key and at least one supported backend.
 	if workerObjectKey == "" {
 		return nil, errors.Wrap(world.ErrEmptyObjectKey, "worker_object_key")
 	}
 	if len(backends) == 0 {
 		return nil, errors.New("backends must not be empty")
 	}
+
+	// Serialize changes to the Worker capacity totals.
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
 
+	// Persist the Worker observation under its live claim.
 	var out *WorkerCapacity
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Fence the observation against the durable Worker claim.
 		capacity, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, epoch, a.now())
 		if err != nil {
 			return err
 		}
+
+		// Update Worker totals and determine whether reserved capacity still fits.
 		capacity.MilliCPUTotal = milliCPUTotal
 		capacity.MemoryBytesTotal = memoryBytesTotal
 		capacity.Backends = append([]string(nil), backends...)
@@ -332,11 +370,15 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 		} else {
 			capacity.OwnerState = CapacityOwnerStateDraining
 		}
+
+		// Stamp and validate the Worker observation.
 		capacity.ObservedAt = timestamp.Now()
 		capacity.Generation++
 		if err := capacity.Validate(); err != nil {
 			return err
 		}
+
+		// Persist the observed Worker capacity for the caller.
 		if err := persistWorkerCapacity(ctx, ws, workerObjectKey, capacity); err != nil {
 			return err
 		}
@@ -358,21 +400,28 @@ func (a *WorldRuntimeAdmission) BeginDrainCapacity(
 	ref WorkerClaimRef,
 	epoch uint64,
 ) (*WorkerCapacity, error) {
+	// Serialize the Worker transition into draining.
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
 
+	// Persist the draining Worker capacity under its live claim.
 	var out *WorkerCapacity
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Fence the drain against the durable Worker claim.
 		capacity, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, epoch, a.now())
 		if err != nil {
 			return err
 		}
+
+		// Block new reservations and validate the draining capacity.
 		capacity.OwnerState = CapacityOwnerStateDraining
 		capacity.Backends = nil
 		capacity.Generation++
 		if err := capacity.Validate(); err != nil {
 			return err
 		}
+
+		// Save the draining Worker capacity for the caller.
 		if err := persistWorkerCapacity(ctx, ws, workerObjectKey, capacity); err != nil {
 			return err
 		}
@@ -433,6 +482,7 @@ func (a *WorldRuntimeAdmission) StopWorkerReservations(
 	if _, err := a.ReconcilePendingStops(ctx, ref); err != nil {
 		return err
 	}
+
 	// A stopper may report no error without confirming the stop. Keep the
 	// Worker draining until every reservation reaches a terminal receipt.
 	for _, key := range keys {
@@ -460,6 +510,7 @@ func (a *WorldRuntimeAdmission) CompleteDrainCapacity(
 	defer unlock()
 
 	return a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Require a live Worker claim in the draining state.
 		capacity, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, epoch, a.now())
 		if err != nil {
 			return err
@@ -467,6 +518,8 @@ func (a *WorldRuntimeAdmission) CompleteDrainCapacity(
 		if capacity.OwnerState != CapacityOwnerStateDraining {
 			return errors.New("capacity record is not draining")
 		}
+
+		// Check every reservation before deleting the Worker capacity.
 		resKeys, err := listReservationKeys(ctx, ws)
 		if err != nil {
 			return err
@@ -552,6 +605,7 @@ func (a *WorldRuntimeAdmission) reserve(
 	ref *WorkerClaimRef,
 	epoch uint64,
 ) (*Reservation, error) {
+	// Validate the Worker, Execution and resource request.
 	if workerObjectKey == "" || executionObjectKey == "" {
 		return nil, errors.Wrap(world.ErrEmptyObjectKey, "worker and execution keys")
 	}
@@ -559,17 +613,21 @@ func (a *WorldRuntimeAdmission) reserve(
 		return nil, errors.Wrap(err, "resource request")
 	}
 
+	// Serialize the Worker reservation and capacity debit.
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
 
+	// Create or reuse the reservation in one capacity transaction.
 	var out *Reservation
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Find the reservation for this Execution attempt.
 		resKey := BuildReservationObjectKey(executionObjectKey)
 		existing, err := LookupReservation(ctx, ws, resKey)
 		if err != nil && !errors.Is(err, ErrReservationNotFound) {
 			return err
 		}
 		if existing != nil {
+			// Reuse a live matching reservation only after proving its debit.
 			switch {
 			case existing.State.Terminal():
 				// A retry after release is a new attempt with a new Execution key.
@@ -579,6 +637,7 @@ func (a *WorldRuntimeAdmission) reserve(
 			case existing.WorkerObjectKey != workerObjectKey || existing.Request != request:
 				return ErrRequestMismatch
 			}
+
 			// Prove the debit is still present before returning idempotently.
 			capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 			if err != nil {
@@ -604,6 +663,7 @@ func (a *WorldRuntimeAdmission) reserve(
 			return nil
 		}
 
+		// Require an active Worker claim with enough backend capacity.
 		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 		if err != nil {
 			return err
@@ -626,6 +686,7 @@ func (a *WorldRuntimeAdmission) reserve(
 			return errors.Wrapf(ErrCapacityExhausted, "worker %s", workerObjectKey)
 		}
 
+		// Create the leased reservation and debit the Worker atomically.
 		now := a.now().UTC()
 		res := &Reservation{
 			WorkerObjectKey:    workerObjectKey,
@@ -685,9 +746,12 @@ func (a *WorldRuntimeAdmission) activate(
 		return nil, errors.New("runtime identity must be set")
 	}
 	return a.transitionReservationForClaim(ctx, reservationObjectKey, ref, epoch, func(res *Reservation) error {
+		// Require reserved capacity before recording runtime custody.
 		if res.State != ReservationStateReserved {
 			return errors.Errorf("cannot activate from state %d", res.State)
 		}
+
+		// Activate the reservation and extend its custody lease.
 		res.State = ReservationStateActive
 		res.Runtime = rt
 		renewLease(res, a.now(), a.lease)
@@ -724,9 +788,12 @@ func (a *WorldRuntimeAdmission) ResumeFromUncertain(
 		return nil, errors.New("runtime identity must be set")
 	}
 	return a.transitionReservation(ctx, reservationObjectKey, func(res *Reservation) error {
+		// Require uncertain custody before resuming the reservation.
 		if res.State != ReservationStateUncertain {
 			return errors.Errorf("cannot resume from state %d", res.State)
 		}
+
+		// Fence the resumed runtime and renew its active lease.
 		res.Generation++
 		res.Runtime = rt
 		res.State = ReservationStateActive
@@ -740,6 +807,7 @@ func (a *WorldRuntimeAdmission) ResumeFromUncertain(
 // durable live claim inside the transition transaction: a deposed instance
 // renewing leases in a loop must not starve the new owner's expiry sweep.
 func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, ref WorkerClaimRef, reservationObjectKey string) (*Reservation, error) {
+	// Resolve and lock the Worker holding this reservation.
 	res, err := a.LookupReservation(ctx, reservationObjectKey)
 	if err != nil {
 		return nil, err
@@ -747,8 +815,10 @@ func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, ref WorkerClaimR
 	unlock := a.lockWorker(res.WorkerObjectKey)
 	defer unlock()
 
+	// Renew the reservation under the current Worker claim.
 	var out *Reservation
 	err = a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Verify the Worker claim before changing its reservation lease.
 		capacity, err := LookupWorkerCapacity(ctx, ws, res.WorkerObjectKey)
 		if err != nil {
 			return err
@@ -756,6 +826,8 @@ func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, ref WorkerClaimR
 		if err := verifyLiveClaim(capacity, ref, a.now()); err != nil {
 			return err
 		}
+
+		// Load the current live reservation before renewal.
 		current, err := LookupReservation(ctx, ws, reservationObjectKey)
 		if err != nil {
 			return err
@@ -763,6 +835,8 @@ func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, ref WorkerClaimR
 		if !current.State.Live() {
 			return ErrReservationTerminal
 		}
+
+		// Validate and persist the renewed reservation lease.
 		renewLease(current, a.now(), a.lease)
 		if err := current.Validate(); err != nil {
 			return err
@@ -830,6 +904,7 @@ func (a *WorldRuntimeAdmission) StopAndRelease(
 	reservationObjectKey string,
 	generation uint64,
 ) (*CleanupReceipt, error) {
+	// Enter the durable pending-stop state or return the completed receipt.
 	res, receipt, err := a.beginStopLocked(ctx, ref, ownerEpoch, reservationObjectKey, generation)
 	if err != nil {
 		return nil, err
@@ -861,12 +936,16 @@ func (a *WorldRuntimeAdmission) StopAndRelease(
 // ReconcilePendingStops. Post-expiry calls fenced against the old generation
 // are stale and cannot receive the terminal receipt.
 func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, ref WorkerClaimRef, now time.Time) ([]*CleanupReceipt, error) {
+	// List persisted reservations for the lease-expiry sweep.
 	keys, err := a.listReservationKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var receipts []*CleanupReceipt
+
+	// Expire each eligible reservation and collect its cleanup receipt.
 	for _, key := range keys {
+		// Resolve the Worker holding this reservation.
 		workerKey, err := a.resolveWorkerForReservation(ctx, key)
 		if errors.Is(err, ErrReservationNotFound) {
 			continue
@@ -886,6 +965,7 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, ref WorkerClai
 			continue
 		}
 
+		// Fence the expired reservation under its Worker mutation lock.
 		unlock := a.lockWorker(workerKey)
 		receipt, err := a.expireOne(ctx, ref, key, now)
 		unlock()
@@ -915,6 +995,7 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, ref WorkerClai
 func (a *WorldRuntimeAdmission) claimLiveForWorker(ctx context.Context, workerObjectKey string, ref WorkerClaimRef) (bool, error) {
 	var live bool
 	err := a.withTx(ctx, false, func(ctx context.Context, ws world.WorldState) error {
+		// Read the Worker claim and check whether the sweeping instance still holds it.
 		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 		if errors.Is(err, ErrWorkerNotObserved) {
 			return nil
@@ -932,12 +1013,16 @@ func (a *WorldRuntimeAdmission) claimLiveForWorker(ctx context.Context, workerOb
 // running the idempotent stopper and finalizing the receipt. It completes the
 // work of a crashed StopAndRelease or an unreachable expired runtime.
 func (a *WorldRuntimeAdmission) ReconcilePendingStops(ctx context.Context, ref WorkerClaimRef) ([]*CleanupReceipt, error) {
+	// List persisted reservations for pending-stop reconciliation.
 	keys, err := a.listReservationKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var receipts []*CleanupReceipt
+
+	// Collect cleanup receipts from the current claim's pending stops.
 	for _, key := range keys {
+		// Resolve the Worker holding this reservation.
 		workerKey, err := a.resolveWorkerForReservation(ctx, key)
 		if errors.Is(err, ErrReservationNotFound) {
 			continue
@@ -945,6 +1030,8 @@ func (a *WorldRuntimeAdmission) ReconcilePendingStops(ctx context.Context, ref W
 		if err != nil {
 			return receipts, err
 		}
+
+		// Skip Workers whose durable claim is no longer held by this instance.
 		live, err := a.claimLiveForWorker(ctx, workerKey, ref)
 		if err != nil {
 			return receipts, err
@@ -952,6 +1039,8 @@ func (a *WorldRuntimeAdmission) ReconcilePendingStops(ctx context.Context, ref W
 		if !live {
 			continue
 		}
+
+		// Reconcile the pending runtime stop and retain any completed receipt.
 		receipt, err := a.reconcilePendingStop(ctx, ref, key)
 		if err != nil {
 			return receipts, err
@@ -969,6 +1058,7 @@ func (a *WorldRuntimeAdmission) ReconcilePendingStops(ctx context.Context, ref W
 func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, ref WorkerClaimRef, objKey string, now time.Time) (*CleanupReceipt, error) {
 	var out *CleanupReceipt
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Load an expired live reservation and verify its Worker claim.
 		res, err := LookupReservation(ctx, ws, objKey)
 		if err != nil {
 			return err
@@ -983,6 +1073,7 @@ func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, ref WorkerClaimRe
 		if err := verifyLiveClaim(capacity, ref, a.now()); err != nil {
 			return nil
 		}
+
 		// Fence custody: every old-generation call becomes stale. The debit
 		// stays held until the stop confirms.
 		fenced := *res
@@ -1000,6 +1091,8 @@ func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, ref WorkerClaimRe
 		if err := receipt.Validate(); err != nil {
 			return err
 		}
+
+		// Persist the validated partial receipt with capacity still debited.
 		fenced.Cleanup = receipt
 		fenced.LeaseExpiresAt = timestamp.New(now)
 		if err := fenced.Validate(); err != nil {
@@ -1029,6 +1122,7 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 	reservationObjectKey string,
 	generation uint64,
 ) (*Reservation, *CleanupReceipt, error) {
+	// Resolve and lock the Worker holding the stopped reservation.
 	res, err := a.LookupReservation(ctx, reservationObjectKey)
 	if err != nil {
 		return nil, nil, err
@@ -1036,8 +1130,10 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 	unlock := a.lockWorker(res.WorkerObjectKey)
 	defer unlock()
 
+	// Fence the reservation and persist its pending-stop transition.
 	var out *Reservation
 	err = a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Load the current reservation and accept an already completed generation.
 		current, err := LookupReservation(ctx, ws, reservationObjectKey)
 		if err != nil {
 			return err
@@ -1049,9 +1145,13 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 			out = current
 			return nil
 		}
+
+		// Require the current Worker claim before changing runtime custody.
 		if _, err := loadOwnedCapacity(ctx, ws, res.WorkerObjectKey, ref, ownerEpoch, a.now()); err != nil {
 			return err
 		}
+
+		// Fence the generation and enter or resume the pending-stop state.
 		switch {
 		case current.Generation != generation:
 			return ErrStaleGeneration
@@ -1101,11 +1201,14 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 	reason string,
 	benignOnFence bool,
 ) (*CleanupReceipt, error) {
+	// Serialize finalization of the Worker reservation.
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
 
+	// Record the stop receipt and capacity credit atomically.
 	var out *CleanupReceipt
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Recheck the Worker claim after stopping the backend runtime.
 		if _, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, ownerEpoch, a.now()); err != nil {
 			// Claim turnover between stop and finalize: for sweep/reconcile
 			// this is a benign skip. The partial receipt and debit stay
@@ -1115,6 +1218,8 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 			}
 			return err
 		}
+
+		// Require the same pending reservation and Execution generation.
 		res, err := LookupReservation(ctx, ws, objKey)
 		if err != nil {
 			return err
@@ -1133,10 +1238,13 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 			return errors.Errorf("cannot finalize from state %d", res.State)
 		}
 
+		// Preserve the cleanup reason from the pending-stop receipt.
 		prior := res.Cleanup
 		if prior != nil && prior.Reason != "" {
 			reason = prior.Reason
 		}
+
+		// Retain the partial cleanup receipt while the runtime stop is unconfirmed.
 		if !runtimeStopped {
 			// The stop did not confirm; keep the truthful partial receipt and
 			// hold the debit for reconciliation.
@@ -1160,6 +1268,8 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 			out = receipt
 			return nil
 		}
+
+		// Complete the receipt and release the reservation after a confirmed stop.
 		receipt := &CleanupReceipt{
 			ReservationObjectKey: objKey,
 			ExecutionObjectKey:   res.ExecutionObjectKey,
@@ -1175,6 +1285,8 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 		if err := finalized.Validate(); err != nil {
 			return err
 		}
+
+		// Persist the release and credit the Worker capacity exactly once.
 		if err := persistReservation(ctx, ws, objKey, &finalized); err != nil {
 			return err
 		}
@@ -1193,6 +1305,7 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 // reconcilePendingStop confirms the stop of one pending-stop reservation.
 // Returns the completed receipt, or nil when the key is not pending-stop.
 func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref WorkerClaimRef, objKey string) (*CleanupReceipt, error) {
+	// Load the reservation and skip records outside pending-stop.
 	res, err := a.LookupReservation(ctx, objKey)
 	if err != nil {
 		return nil, err
@@ -1200,6 +1313,7 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 	if res.State != ReservationStatePendingStop {
 		return nil, nil
 	}
+
 	// Entry check before any stopper invocation: a deposed or stale instance
 	// must not stop runtimes it no longer owns.
 	capacity, err := a.LookupWorkerCapacityAdmission(ctx, res.WorkerObjectKey)
@@ -1209,6 +1323,8 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 	if err := verifyLiveClaim(capacity, ref, a.now()); err != nil {
 		return nil, nil
 	}
+
+	// Confirm the backend runtime stop before crediting capacity.
 	runtimeStopped := true
 	if !res.Runtime.IsZero() {
 		stopped, err := a.stopRuntimeChecked(ctx, res.Runtime)
@@ -1217,6 +1333,8 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 		}
 		runtimeStopped = stopped
 	}
+
+	// Preserve the original cleanup reason when completing the receipt.
 	priorReason := ""
 	if res.Cleanup != nil {
 		priorReason = res.Cleanup.Reason
@@ -1224,6 +1342,8 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 	if priorReason == "" {
 		priorReason = CleanupReasonStop
 	}
+
+	// Finalize the receipt against the Worker claim used for the stop.
 	receipt, err := a.finalizeStop(
 		ctx,
 		ref,
@@ -1318,6 +1438,7 @@ func (a *WorldRuntimeAdmission) transitionReservationForClaim(
 	epoch uint64,
 	cb func(*Reservation) error,
 ) (*Reservation, error) {
+	// Resolve and lock the Worker holding the reservation.
 	res, err := a.LookupReservation(ctx, reservationObjectKey)
 	if err != nil {
 		return nil, err
@@ -1325,8 +1446,10 @@ func (a *WorldRuntimeAdmission) transitionReservationForClaim(
 	unlock := a.lockWorker(res.WorkerObjectKey)
 	defer unlock()
 
+	// Apply and persist the reservation transition in one transaction.
 	var out *Reservation
 	err = a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		// Load the current reservation and fence any supplied Worker claim.
 		current, err := LookupReservation(ctx, ws, reservationObjectKey)
 		if err != nil {
 			return err
@@ -1336,12 +1459,16 @@ func (a *WorldRuntimeAdmission) transitionReservationForClaim(
 				return err
 			}
 		}
+
+		// Apply the requested reservation transition and validate its result.
 		if err := cb(current); err != nil {
 			return err
 		}
 		if err := current.Validate(); err != nil {
 			return err
 		}
+
+		// Persist the changed reservation for the caller.
 		if err := persistReservation(ctx, ws, reservationObjectKey, current); err != nil {
 			return err
 		}
