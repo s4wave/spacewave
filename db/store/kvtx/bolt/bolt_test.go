@@ -22,30 +22,34 @@ import (
 
 // TestBolt tests all tests on top of bolt.
 func TestBolt(t *testing.T) {
+	// Prepare the context and logger for the Bolt store contract tests.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Create the key encoding used by the transaction store.
 	kvkey, err := store_kvkey.NewKVKey(store_kvkey.DefaultConfig())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Allocate a temporary directory for the Bolt database.
 	dir, err := os.MkdirTemp("", "hydra-test-bolt-")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer os.RemoveAll(dir)
 
+	// Open the Bolt store in the temporary directory and close it after the contract tests.
 	tp := path.Join(dir, "database.boltdb")
-
 	db, err := Open(tp, 0o644, nil, []byte("test-bucket"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer db.db.Close()
 
+	// Run the shared storage contracts through the logged transaction adapter.
 	ktx := store_kvtx.NewKVTx(
 		kvkey,
 		kvtx_vlogger.NewVLogger(le, db),
@@ -70,9 +74,11 @@ func TestBoltPanicIsInvalidSnapshot(t *testing.T) {
 // through commits and returns ErrLockFileChanged once the database file is
 // removed.
 func TestExecuteClosesWhenDatabaseRemoved(t *testing.T) {
+	// Bound the Store execution test with a cancelable context.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Open the temporary Bolt store for database removal checks.
 	dbPath := path.Join(t.TempDir(), "database.boltdb")
 	store, err := Open(dbPath, 0o644, nil, []byte("test-bucket"))
 	if err != nil {
@@ -80,9 +86,11 @@ func TestExecuteClosesWhenDatabaseRemoved(t *testing.T) {
 	}
 	defer store.db.Close()
 
+	// Run the Store directory watcher alongside the test.
 	errCh := make(chan error, 1)
 	go func() { errCh <- store.Execute(ctx) }()
 
+	// Verify repeated commits leave the Store watcher running.
 	for i := range 10 {
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
@@ -101,6 +109,7 @@ func TestExecuteClosesWhenDatabaseRemoved(t *testing.T) {
 	default:
 	}
 
+	// Remove the database and verify the Store reports its changed lock file.
 	if err := os.Remove(dbPath); err != nil {
 		t.Fatal(err)
 	}

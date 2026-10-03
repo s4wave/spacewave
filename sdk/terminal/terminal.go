@@ -77,9 +77,12 @@ type terminalTargetSource interface {
 // resolveTerminalTargetKind resolves targets with no explicit kind by their
 // set fields: an SSH host key wins, then device key or peer ID.
 func resolveTerminalTargetKind(t terminalTargetSource) TerminalTargetKind {
+	// Treat a missing terminal target source as an unknown target.
 	if t == nil {
 		return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
 	}
+
+	// Resolve the terminal target from its explicit kind or populated target fields.
 	switch t.GetTargetKind() {
 	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE,
 		TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST:

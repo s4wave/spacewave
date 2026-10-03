@@ -23,11 +23,13 @@ const (
 )
 
 func TestBoltStoreMultiprocessWriterChurn(t *testing.T) {
+	// Dispatch child test processes to their assigned Bolt churn role.
 	if role := os.Getenv(boltStoreChurnRoleEnv); role != "" {
 		runBoltStoreChurnRole(t, role)
 		return
 	}
 
+	// Seed the shared Bolt database before concurrent writer processes start.
 	dbPath := filepath.Join(t.TempDir(), "store-churn.bolt")
 	store := openBoltChurnStore(t, dbPath)
 	tx, err := store.NewTransaction(context.Background(), true)
@@ -46,6 +48,7 @@ func TestBoltStoreMultiprocessWriterChurn(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Run both Bolt writer processes and verify they complete successfully.
 	cmds := []*exec.Cmd{
 		boltStoreChurnCommand(t, dbPath, 1),
 		boltStoreChurnCommand(t, dbPath, 2),
@@ -63,6 +66,7 @@ func TestBoltStoreMultiprocessWriterChurn(t *testing.T) {
 }
 
 func boltStoreChurnCommand(t *testing.T, dbPath string, id int) *exec.Cmd {
+	// Build the writer test subprocess with its database path and writer ID.
 	t.Helper()
 	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltStoreMultiprocessWriterChurn$", "-test.v") //nolint:gosec
 	cmd.Env = append(os.Environ(),
@@ -84,6 +88,7 @@ func boltStoreChurnOutput(cmd *exec.Cmd) string {
 }
 
 func runBoltStoreChurnRole(t *testing.T, role string) {
+	// Validate the writer role and open its shared Bolt database.
 	t.Helper()
 	if role != "writer" {
 		t.Fatalf("unknown bolt store churn role %q", role)
@@ -95,6 +100,7 @@ func runBoltStoreChurnRole(t *testing.T, role string) {
 	store := openBoltChurnStore(t, os.Getenv(boltStoreChurnPathEnv))
 	defer store.db.Close()
 
+	// Exercise repeated insertions and deletions through committed write transactions.
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	for iter := range 80 {

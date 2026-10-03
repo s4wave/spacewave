@@ -12,12 +12,14 @@ import (
 )
 
 func TestDialSshClientHonorsContextDuringHandshake(t *testing.T) {
+	// Open a TCP listener that accepts connections without completing SSH handshakes.
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
+	// Accept the stalled SSH connection and retain it for cleanup.
 	accepted := make(chan net.Conn, 1)
 	go func() {
 		conn, err := listener.Accept()
@@ -27,6 +29,7 @@ func TestDialSshClientHonorsContextDuringHandshake(t *testing.T) {
 		close(accepted)
 	}()
 
+	// Dial the stalled SSH server with a short handshake context.
 	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 	defer cancel()
 	start := time.Now()
@@ -37,6 +40,8 @@ func TestDialSshClientHonorsContextDuringHandshake(t *testing.T) {
 	if client != nil {
 		_ = client.Close()
 	}
+
+	// Verify the stalled SSH handshake fails promptly and release the accepted connection.
 	if err == nil {
 		t.Fatal("expected stalled SSH handshake to fail")
 	}

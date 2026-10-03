@@ -80,6 +80,7 @@ func (i *sliceIterator) Next() bool {
 // Seek moves the iterator to the first key >= k, or <= k in reverse mode.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *sliceIterator) Seek(k []byte) error {
+	// Resolve empty entry sets and boundary seeks before searching for a key.
 	if len(i.entries) == 0 {
 		i.idx = -1
 		return nil
@@ -92,6 +93,8 @@ func (i *sliceIterator) Seek(k []byte) error {
 		}
 		return nil
 	}
+
+	// Search the sorted entries for the requested directional key boundary.
 	lo, hi := 0, len(i.entries)
 	for lo < hi {
 		mid := int(uint(lo+hi) >> 1)

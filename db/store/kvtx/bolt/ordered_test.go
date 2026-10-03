@@ -13,6 +13,7 @@ import (
 
 // openOrderedTestStore opens a store in a temporary directory.
 func openOrderedTestStore(t *testing.T) *Store {
+	// Open a temporary Bolt store and register its close cleanup.
 	t.Helper()
 	s, err := Open(filepath.Join(t.TempDir(), "db"), 0o600, nil, []byte("ordered"))
 	if err != nil {
@@ -24,6 +25,7 @@ func openOrderedTestStore(t *testing.T) *Store {
 
 // commitTestKey writes key, committing ordered or in full.
 func commitTestKey(t *testing.T, s *Store, key string, ordered bool) {
+	// Write the test key using the requested commit durability mode.
 	t.Helper()
 	tx, err := s.NewTransaction(t.Context(), true)
 	if err != nil {
@@ -54,8 +56,10 @@ func checkPending(t *testing.T, s *Store, want bool) {
 // TestStoreSyncCoversOrderedCommits proves Sync flushes only while an ordered
 // commit is pending, and a full commit covers the ordered commits before it.
 func TestStoreSyncCoversOrderedCommits(t *testing.T) {
+	// Open the Bolt store for explicit sync coverage checks.
 	s := openOrderedTestStore(t)
 
+	// Verify explicit Sync makes one ordered commit durable.
 	commitTestKey(t, s, "a", true)
 	checkPending(t, s, true)
 	if err := s.Sync(t.Context()); err != nil {
@@ -63,6 +67,7 @@ func TestStoreSyncCoversOrderedCommits(t *testing.T) {
 	}
 	checkPending(t, s, false)
 
+	// Verify a full commit also makes earlier ordered commits durable.
 	commitTestKey(t, s, "b", true)
 	commitTestKey(t, s, "c", true)
 	checkPending(t, s, true)
@@ -73,14 +78,18 @@ func TestStoreSyncCoversOrderedCommits(t *testing.T) {
 // TestStoreDeadlineFlushesOrderedCommits proves WaitDurable returns once the
 // deadline flushes a pending ordered commit, with no caller forcing a flush.
 func TestStoreDeadlineFlushesOrderedCommits(t *testing.T) {
+	// Verify a store with no pending ordered commits is already durable.
 	s := openOrderedTestStore(t)
 	if err := s.WaitDurable(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Create pending ordered commits for the deadline flush.
 	commitTestKey(t, s, "a", true)
 	commitTestKey(t, s, "b", true)
 	checkPending(t, s, true)
+
+	// Wait for the deadline flush within a bounded context.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*SyncDeadline)
 	defer cancel()
 	start := time.Now()
@@ -96,6 +105,7 @@ func TestStoreDeadlineFlushesOrderedCommits(t *testing.T) {
 // TestStoreCloseFlushesOrderedCommits proves Close makes pending ordered
 // commits durable before closing the database.
 func TestStoreCloseFlushesOrderedCommits(t *testing.T) {
+	// Verify closing the Store makes pending ordered commits durable.
 	s := openOrderedTestStore(t)
 	commitTestKey(t, s, "a", true)
 	checkPending(t, s, true)

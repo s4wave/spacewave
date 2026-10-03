@@ -57,10 +57,12 @@ func NewStore(db *bdb.DB, bucket []byte) *Store {
 // an earlier process left in the page cache are durable before this store's
 // counters start.
 func Open(path string, mode os.FileMode, options *bdb.Options, bucket []byte) (*Store, error) {
+	// Require a bucket name before opening the Bolt database.
 	if len(bucket) == 0 {
 		return nil, errors.New("bucket len cannot be zero")
 	}
 
+	// Open the Bolt database and make earlier ordered commits durable.
 	b, err := bdb.Open(path, mode, options)
 	if err != nil {
 		return nil, err
@@ -89,6 +91,7 @@ func (s *Store) RefreshForCoordinationLock() error {
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Open the Bolt transaction and attach its durability tracking Store.
 	txn, err := s.db.Begin(write)
 	if err != nil {
 		return nil, err
@@ -154,10 +157,13 @@ func checkBoltPaths(dbPath, lockPath string) error {
 // Sync makes every completed ordered commit durable. It flushes only when an
 // ordered commit is not yet covered by an earlier flush or full commit.
 func (s *Store) Sync(ctx context.Context) error {
+	// Skip the flush when completed ordered commits are already durable.
 	ordered := s.ordered.Load()
 	if s.durable.Load() >= ordered {
 		return nil
 	}
+
+	// Serialize the Bolt flush and record the ordered commits it makes durable.
 	s.syncMtx.Lock()
 	defer s.syncMtx.Unlock()
 	if s.durable.Load() >= ordered {

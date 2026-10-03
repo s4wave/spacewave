@@ -69,6 +69,7 @@ func (b *BatchStore) GetStats() (writes, commits int64) {
 // NewTransaction returns a new transaction.
 // Write transactions are batched; read transactions pass through.
 func (b *BatchStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Flush pending batch writes before opening a read transaction.
 	if !write {
 		// Flush pending writes so read transactions see the latest state.
 		b.mu.Lock()
@@ -80,6 +81,7 @@ func (b *BatchStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 		return b.store.NewTransaction(ctx, false)
 	}
 
+	// Open the shared Bolt write transaction under the batch mutex.
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.writeTx == nil {
@@ -102,6 +104,7 @@ func (b *BatchStore) Flush() error {
 
 // flush commits the current write tx. Must hold mu.
 func (b *BatchStore) flush() error {
+	// Commit the pending Bolt batch and clear its flush state.
 	if b.writeTx == nil {
 		return nil
 	}
@@ -195,6 +198,7 @@ func (t *batchTx) Delete(ctx context.Context, key []byte) error {
 // Get returns values for the key, including this transaction's buffered
 // writes.
 func (t *batchTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	// Resolve the key from this transaction's buffered writes first.
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
@@ -205,6 +209,7 @@ func (t *batchTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 		return slices.Clone(w.value), true, nil
 	}
 
+	// Read the remaining key from the shared Bolt transaction under the batch mutex.
 	t.batch.mu.Lock()
 	defer t.batch.mu.Unlock()
 	if t.batch.writeTx == nil {
@@ -218,6 +223,7 @@ func (t *batchTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	if value == nil {
 		return nil, false, nil
 	}
+
 	// Value is only valid during tx, clone it.
 	return slices.Clone(value), true, nil
 }
@@ -236,8 +242,10 @@ func (t *batchTx) Exists(ctx context.Context, key []byte) (bool, error) {
 // Size returns the number of keys in the store, including this
 // transaction's buffered writes.
 func (t *batchTx) Size(ctx context.Context) (uint64, error) {
+	// Collect this transaction's last write for each key.
 	final := t.finalState()
 
+	// Acquire the shared Bolt bucket for the merged key count.
 	t.batch.mu.Lock()
 	defer t.batch.mu.Unlock()
 	if t.batch.writeTx == nil {
@@ -247,6 +255,8 @@ func (t *batchTx) Size(ctx context.Context) (uint64, error) {
 	if bkt == nil {
 		return uint64(len(final)), nil //nolint:gosec
 	}
+
+	// Count stored keys after applying buffered deletions.
 	size := uint64(bkt.Stats().KeyN) //nolint:gosec
 	c := bkt.Cursor()
 	for k, _ := c.First(); k != nil; k, _ = c.Next() {
@@ -257,6 +267,8 @@ func (t *batchTx) Size(ctx context.Context) (uint64, error) {
 			delete(final, string(k))
 		}
 	}
+
+	// Count buffered insertions absent from the stored bucket.
 	for _, w := range final {
 		if w.value != nil {
 			size++
@@ -268,8 +280,10 @@ func (t *batchTx) Size(ctx context.Context) (uint64, error) {
 // mergedEntries returns the merged view of the bolt bucket and this
 // transaction's buffered writes for the prefix, sorted by key.
 func (t *batchTx) mergedEntries(prefix []byte) ([]kvEntry, error) {
+	// Collect buffered writes for the merged prefix view.
 	final := t.finalState()
 
+	// Merge the Bolt bucket with buffered overrides while holding the batch mutex.
 	t.batch.mu.Lock()
 	var entries []kvEntry
 	if t.batch.writeTx != nil {
@@ -298,6 +312,7 @@ func (t *batchTx) mergedEntries(prefix []byte) ([]kvEntry, error) {
 	}
 	t.batch.mu.Unlock()
 
+	// Include buffered insertions and sort the merged prefix entries.
 	for _, w := range final {
 		if len(prefix) != 0 && !bytes.HasPrefix(w.key, prefix) {
 			continue
@@ -352,11 +367,13 @@ func (t *batchTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool
 // the batch is committed within flushInterval even if no more writes
 // arrive.
 func (t *batchTx) Commit(ctx context.Context) error {
+	// Finish this batch transaction at most once.
 	if t.done {
 		return nil
 	}
 	t.done = true
 
+	// Acquire the shared Bolt write transaction for this commit.
 	b := t.batch
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -368,6 +385,8 @@ func (t *batchTx) Commit(ctx context.Context) error {
 		}
 		b.pending = 0
 	}
+
+	// Apply this transaction's buffered writes to the shared Bolt bucket.
 	bkt, err := b.writeTx.CreateBucketIfNotExists(t.bucket)
 	if err != nil {
 		return err
@@ -383,6 +402,8 @@ func (t *batchTx) Commit(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Flush a full batch or arm its pending-write deadline.
 	b.pending++
 	if b.pending >= b.batchSize {
 		return b.flush()

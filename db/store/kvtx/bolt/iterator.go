@@ -107,11 +107,13 @@ func (i *Iterator) Next() bool {
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
 func (i *Iterator) Seek(k []byte) error {
+	// Require a live iterator and reset its current entry before seeking.
 	if err := i.Err(); err != nil {
 		return err
 	}
 	i.key, i.val, i.end = nil, nil, false
 
+	// Position the Bolt cursor within the requested prefix and direction.
 	if len(k) == 0 {
 		i.seekPrefixBoundary()
 	} else if i.reverse {
@@ -123,11 +125,13 @@ func (i *Iterator) Seek(k []byte) error {
 		i.key, i.val = i.bkt.Seek(k)
 	}
 
+	// Mark the iterator invalid when the sought key falls outside its prefix.
 	i.updateBounds()
 	return nil
 }
 
 func (i *Iterator) seekPrefixBoundary() {
+	// Resolve the first prefix entry for unprefixed or forward iteration.
 	if len(i.prefix) == 0 {
 		if i.reverse {
 			i.key, i.val = i.bkt.Last()
@@ -141,6 +145,7 @@ func (i *Iterator) seekPrefixBoundary() {
 		return
 	}
 
+	// Position the reverse cursor immediately below the prefix upper bound.
 	if len(i.prefixEnd) == 0 {
 		i.key, i.val = i.bkt.Last()
 		return

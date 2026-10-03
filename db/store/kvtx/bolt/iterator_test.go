@@ -17,6 +17,7 @@ import (
 var iteratorTestBucket = []byte("iterator-test")
 
 func TestIteratorPrefixBounds(t *testing.T) {
+	// Populate a Bolt bucket with keys surrounding several prefix ranges.
 	keys := [][]byte{
 		[]byte("aaa/1"),
 		[]byte("aaa/2"),
@@ -29,6 +30,7 @@ func TestIteratorPrefixBounds(t *testing.T) {
 	}
 	db := openIteratorTestDB(t, keys)
 
+	// Cover prefixes at each bucket boundary and the unprefixed range.
 	cases := []struct {
 		name   string
 		prefix []byte
@@ -40,9 +42,11 @@ func TestIteratorPrefixBounds(t *testing.T) {
 		{name: "empty prefix", want: []string{"aaa/1", "aaa/2", "bbb/other", "mmm/1", "mmm/2", "yyy/other", "zzz/1", "zzz/2"}},
 	}
 
+	// Check prefix iteration in both directions and from each initial cursor action.
 	for _, tc := range cases {
 		for _, reverse := range []bool{false, true} {
 			for _, startWithNext := range []bool{false, true} {
+				// Prepare the expected key order and initial action for this iterator case.
 				direction := "forward"
 				want := tc.want
 				if reverse {
@@ -53,8 +57,13 @@ func TestIteratorPrefixBounds(t *testing.T) {
 				if startWithNext {
 					start = "Next"
 				}
+
+				// Exercise this prefix, direction, and initial cursor action.
 				t.Run(tc.name+"/"+direction+"/"+start, func(t *testing.T) {
+					// Collect the keys from this prefix iterator configuration.
 					got := collectIteratorKeys(t, db, tc.prefix, reverse, startWithNext)
+
+					// Verify the iterator returns exactly the expected prefix keys.
 					if strings.Join(got, ",") != strings.Join(want, ",") {
 						t.Fatalf("prefix iteration returned %q, want %q", got, want)
 					}
@@ -63,6 +72,7 @@ func TestIteratorPrefixBounds(t *testing.T) {
 		}
 	}
 
+	// Verify both iterator directions remain empty for an empty bucket.
 	t.Run("empty bucket", func(t *testing.T) {
 		emptyDB := openIteratorTestDB(t, nil)
 		for _, reverse := range []bool{false, true} {
@@ -75,8 +85,10 @@ func TestIteratorPrefixBounds(t *testing.T) {
 		}
 	})
 
+	// Verify seeking outside the prefix respects its forward and reverse boundaries.
 	t.Run("seek before prefix", func(t *testing.T) {
 		err := db.View(func(tx *bdb.Tx) error {
+			// Seek the forward iterator below the prefix and verify its first matching key.
 			bucket := tx.Bucket(iteratorTestBucket)
 			forward := NewIterator(bucket.Cursor(), []byte("mmm/"), true, false)
 			if err := forward.Seek([]byte("aaa/9")); err != nil {
@@ -86,6 +98,7 @@ func TestIteratorPrefixBounds(t *testing.T) {
 				t.Fatalf("forward seek before prefix landed on %q, want %q", forward.Key(), "mmm/1")
 			}
 
+			// Verify reverse seeking below the prefix leaves the iterator invalid.
 			reverse := NewIterator(bucket.Cursor(), []byte("mmm/"), true, true)
 			if err := reverse.Seek([]byte("aaa/9")); err != nil {
 				return err
@@ -94,6 +107,7 @@ func TestIteratorPrefixBounds(t *testing.T) {
 				t.Fatalf("reverse seek before prefix landed on %q, want invalid", reverse.Key())
 			}
 
+			// Verify reverse seeking above the prefix lands on its final matching key.
 			reverse = NewIterator(bucket.Cursor(), []byte("mmm/"), true, true)
 			if err := reverse.Seek([]byte("yyy/other")); err != nil {
 				return err
@@ -108,17 +122,23 @@ func TestIteratorPrefixBounds(t *testing.T) {
 		}
 	})
 
+	// Verify reverse iteration for a prefix with no finite successor.
 	t.Run("reverse prefix without successor", func(t *testing.T) {
 		binaryDB := openIteratorTestDB(t, [][]byte{{0xfe}, {0xff, 0x00}, {0xff, 0x01}})
 		err := binaryDB.View(func(tx *bdb.Tx) error {
+			// Position the reverse iterator at the unbounded prefix range.
 			iterator := NewIterator(tx.Bucket(iteratorTestBucket).Cursor(), []byte{0xff}, true, true)
 			if err := iterator.Seek(nil); err != nil {
 				return err
 			}
+
+			// Collect the reverse iterator keys through the prefix range.
 			var got [][]byte
 			for ; iterator.Valid(); iterator.Next() {
 				got = append(got, bytes.Clone(iterator.Key()))
 			}
+
+			// Verify reverse iteration returns the expected binary keys.
 			want := [][]byte{{0xff, 0x01}, {0xff, 0x00}}
 			if len(got) != len(want) || !bytes.Equal(got[0], want[0]) || !bytes.Equal(got[1], want[1]) {
 				t.Fatalf("reverse 0xff prefix returned %x, want %x", got, want)
@@ -140,11 +160,13 @@ func TestIteratorPrefixSeekCost(t *testing.T) {
 			direction = "reverse"
 		}
 		t.Run(direction, func(t *testing.T) {
+			// Measure prefix seeks with small and large unrelated key sets.
 			small := measurePrefixSeek(t, 100, iterations, reverse)
 			large := measurePrefixSeek(t, 100_000, iterations, reverse)
 			t.Logf("100 filler: %s total for %d seeks", small, iterations)
 			t.Logf("100000 filler: %s total for %d seeks", large, iterations)
 
+			// Verify unrelated keys do not multiply prefix seek cost beyond the allowed ratio.
 			if large > small*20 {
 				t.Fatalf("prefix seek cost grew more than 20x with unrelated filler: 100 keys=%s, 100000 keys=%s", small, large)
 			}
@@ -153,8 +175,10 @@ func TestIteratorPrefixSeekCost(t *testing.T) {
 }
 
 func TestBoltScanPrefixSeekCost(t *testing.T) {
+	// Prepare repeated prefix scans for comparison across bucket sizes.
 	const iterations = 64
 	measure := func(filler int) time.Duration {
+		// Open the prefix scan database and its read transaction.
 		db := openPrefixSeekDB(t, filler, false)
 		rawTx, err := db.Begin(false)
 		if err != nil {
@@ -162,6 +186,8 @@ func TestBoltScanPrefixSeekCost(t *testing.T) {
 		}
 		defer rawTx.Rollback()
 		tx := NewTx(rawTx, iteratorTestBucket)
+
+		// Define a prefix scan that verifies exactly one matching key.
 		scan := func() {
 			count := 0
 			err := tx.ScanPrefix(context.Background(), []byte("zzz/"), func(_, _ []byte) error {
@@ -175,9 +201,13 @@ func TestBoltScanPrefixSeekCost(t *testing.T) {
 				t.Fatalf("ScanPrefix matched %d keys, want 1", count)
 			}
 		}
+
+		// Warm the prefix scan before measuring repeated executions.
 		for range 4 {
 			scan()
 		}
+
+		// Measure the elapsed time for the repeated prefix scans.
 		started := time.Now()
 		for range iterations {
 			scan()
@@ -185,6 +215,7 @@ func TestBoltScanPrefixSeekCost(t *testing.T) {
 		return time.Since(started)
 	}
 
+	// Compare prefix scan costs across small and large unrelated key sets.
 	small := measure(100)
 	large := measure(100_000)
 	t.Logf("100 filler: %s total for %d scans", small, iterations)
@@ -197,6 +228,7 @@ func TestBoltScanPrefixSeekCost(t *testing.T) {
 func BenchmarkIteratorPrefixSeek(b *testing.B) {
 	for _, filler := range []int{1_000, 10_000, 50_000, 100_000} {
 		b.Run("filler="+strconv.Itoa(filler), func(b *testing.B) {
+			// Open the benchmark database and a read cursor for the target prefix.
 			db := openPrefixSeekDB(b, filler, false)
 			tx, err := db.Begin(false)
 			if err != nil {
@@ -205,6 +237,7 @@ func BenchmarkIteratorPrefixSeek(b *testing.B) {
 			b.Cleanup(func() { _ = tx.Rollback() })
 			bucket := tx.Bucket(iteratorTestBucket)
 
+			// Measure repeated prefix seeks and verify they reach the target key.
 			b.ResetTimer()
 			for range b.N {
 				iterator := NewIterator(bucket.Cursor(), []byte("zzz/"), true, false)
@@ -220,6 +253,7 @@ func BenchmarkIteratorPrefixSeek(b *testing.B) {
 }
 
 func collectIteratorKeys(t *testing.T, db *bdb.DB, prefix []byte, reverse, startWithNext bool) []string {
+	// Collect matching iterator keys through a Bolt read transaction.
 	t.Helper()
 	var got []string
 	err := db.View(func(tx *bdb.Tx) error {
@@ -249,6 +283,7 @@ func reverseStrings(values []string) []string {
 }
 
 func measurePrefixSeek(t *testing.T, filler, iterations int, reverse bool) time.Duration {
+	// Open the prefix seek database and its read cursor.
 	t.Helper()
 	db := openPrefixSeekDB(t, filler, reverse)
 	tx, err := db.Begin(false)
@@ -258,6 +293,7 @@ func measurePrefixSeek(t *testing.T, filler, iterations int, reverse bool) time.
 	defer tx.Rollback()
 	bucket := tx.Bucket(iteratorTestBucket)
 
+	// Warm the iterator at the directional target prefix.
 	targetPrefix, targetKey := prefixSeekTarget(reverse)
 	for range 4 {
 		iterator := NewIterator(bucket.Cursor(), targetPrefix, true, reverse)
@@ -266,6 +302,7 @@ func measurePrefixSeek(t *testing.T, filler, iterations int, reverse bool) time.
 		}
 	}
 
+	// Measure repeated prefix seeks and verify the target key remains correct.
 	started := time.Now()
 	for range iterations {
 		iterator := NewIterator(bucket.Cursor(), targetPrefix, true, reverse)
@@ -280,6 +317,7 @@ func measurePrefixSeek(t *testing.T, filler, iterations int, reverse bool) time.
 }
 
 func openPrefixSeekDB(tb testing.TB, filler int, reverse bool) *bdb.DB {
+	// Build the directional filler keys and append the target prefix key.
 	tb.Helper()
 	fillerPrefix := []byte("aaa/")
 	if reverse {
@@ -303,6 +341,7 @@ func prefixSeekTarget(reverse bool) ([]byte, []byte) {
 }
 
 func openIteratorTestDB(tb testing.TB, keys [][]byte) *bdb.DB {
+	// Open a temporary Bolt database and register its cleanup.
 	tb.Helper()
 	db, err := bdb.Open(filepath.Join(tb.TempDir(), "iterator.db"), 0o600, nil)
 	if err != nil {

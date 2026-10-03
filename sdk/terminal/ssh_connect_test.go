@@ -29,6 +29,7 @@ import (
 )
 
 func TestConnectTerminalOpensSshHostSession(t *testing.T) {
+	// Cover password and unauthenticated SSH terminal connections.
 	tests := []struct {
 		name     string
 		password string
@@ -38,12 +39,16 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 		{name: "empty password"},
 		{name: "no authentication", noAuth: true},
 	}
+
+	// Exercise each SSH authentication configuration through the terminal stream.
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Start the Secret testbed for this SSH authentication configuration.
 			ctx := t.Context()
 			tb, soProvider, release := setupTerminalSecretTest(ctx, t)
 			defer release()
 
+			// Start the SSH server and decode its listening endpoint.
 			addr, hostKey, closeServer := startTerminalTestSSHServer(t, test.password, test.noAuth)
 			defer closeServer()
 			host, port, err := net.SplitHostPort(addr)
@@ -55,6 +60,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Create the optional password Secret referenced by the SSH Host.
 			var credentials *s4wave_sshhost.SshHostCredentialRefs
 			if !test.noAuth {
 				if _, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
@@ -72,6 +78,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 				}
 			}
 
+			// Create the SSH Host with the server endpoint and pinned public key.
 			hostOp := s4wave_sshhost.NewCreateSshHostOp(
 				"hosts/prod",
 				"Prod SSH",
@@ -91,6 +98,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 				t.Fatalf("create SSH Host: %v", err)
 			}
 
+			// Create the Terminal record for the SSH Host.
 			termOp := s4wave_terminal.NewCreateSshHostTerminalOp(
 				"terminal/prod-ssh",
 				"Prod SSH Terminal",
@@ -100,6 +108,8 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 			if _, _, err := tb.WorldState.ApplyWorldOp(ctx, termOp, tb.Volume.GetPeerID()); err != nil {
 				t.Fatalf("create Terminal: %v", err)
 			}
+
+			// Read the created Terminal record for the connection.
 			objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
 			defer world.ReleaseObjectState(objState)
 			if err != nil {
@@ -113,6 +123,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Connect the Terminal stream to the SSH server and wait for session exit.
 			streamCtx, cancelStream := context.WithTimeout(ctx, 5*time.Second)
 			defer cancelStream()
 			strm := newBlockingTerminalConnectStream(streamCtx)
@@ -124,6 +135,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 				t.Fatalf("ConnectTerminal: %v", err)
 			}
 
+			// Verify the client receives readiness, SSH output, and session exit frames.
 			frames := strm.sentFrames()
 			if !terminalFramesContainKind(frames, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY) {
 				t.Fatalf("sent frames missing READY: %#v", frames)
@@ -135,6 +147,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 				t.Fatalf("sent frames missing EXIT: %#v", frames)
 			}
 
+			// Verify the saved Terminal state records the completed SSH session.
 			updated, err := readTerminalObject(ctx, objState)
 			if err != nil {
 				t.Fatal(err)
@@ -150,10 +163,12 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 }
 
 func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testing.T) {
+	// Start the Secret testbed for an unpinned SSH Host.
 	ctx := t.Context()
 	tb, soProvider, release := setupTerminalSecretTest(ctx, t)
 	defer release()
 
+	// Start the SSH server and decode its listening endpoint.
 	addr, _, closeServer := startTerminalTestSSHServer(t, "ssh-password", false)
 	defer closeServer()
 	host, port, err := net.SplitHostPort(addr)
@@ -165,6 +180,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 		t.Fatal(err)
 	}
 
+	// Store the SSH password in a Secret for the Host.
 	if _, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/ssh/password",
 		DisplayName: "SSH password",
@@ -176,6 +192,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 		t.Fatalf("CreateSecret: %v", err)
 	}
 
+	// Create an SSH Host with credentials and no trusted key pins.
 	hostOp := s4wave_sshhost.NewCreateSshHostOp(
 		"hosts/prod",
 		"Prod SSH",
@@ -194,6 +211,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 		t.Fatalf("create SSH Host: %v", err)
 	}
 
+	// Create the Terminal record for the unpinned SSH Host.
 	termOp := s4wave_terminal.NewCreateSshHostTerminalOp(
 		"terminal/prod-ssh",
 		"Prod SSH Terminal",
@@ -203,6 +221,8 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, termOp, tb.Volume.GetPeerID()); err != nil {
 		t.Fatalf("create Terminal: %v", err)
 	}
+
+	// Read the created Terminal record for the trust challenge.
 	objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -216,6 +236,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 		t.Fatal(err)
 	}
 
+	// Connect the Terminal stream and accept the SSH Host key challenge.
 	streamCtx, cancelStream := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelStream()
 	strm := newBlockingTerminalConnectStream(streamCtx)
@@ -228,6 +249,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 		t.Fatalf("ConnectTerminal: %v", err)
 	}
 
+	// Verify the SSH trust challenge identifies the server and permits its output.
 	frames := strm.sentFrames()
 	challenge := terminalFrameOfKind(frames, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE)
 	if challenge == nil {
@@ -249,6 +271,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 		t.Fatalf("sent frames missing SSH output: %#v", frames)
 	}
 
+	// Verify the SSH Host record retains the accepted public key pin.
 	sshHostObj, found, err := tb.WorldState.GetObject(ctx, "hosts/prod")
 	defer world.ReleaseObjectState(sshHostObj)
 	if err != nil {
@@ -270,10 +293,12 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 }
 
 func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T) {
+	// Start the Secret testbed for a rejected SSH Host key.
 	ctx := t.Context()
 	tb, soProvider, release := setupTerminalSecretTest(ctx, t)
 	defer release()
 
+	// Start the SSH server and decode its listening endpoint.
 	addr, _, closeServer := startTerminalTestSSHServer(t, "ssh-password", false)
 	defer closeServer()
 	host, port, err := net.SplitHostPort(addr)
@@ -285,6 +310,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 		t.Fatal(err)
 	}
 
+	// Store the SSH password in a Secret for the Host.
 	if _, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/ssh/password",
 		DisplayName: "SSH password",
@@ -296,6 +322,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 		t.Fatalf("CreateSecret: %v", err)
 	}
 
+	// Create an SSH Host with credentials and no trusted key pins.
 	hostOp := s4wave_sshhost.NewCreateSshHostOp(
 		"hosts/prod",
 		"Prod SSH",
@@ -314,6 +341,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 		t.Fatalf("create SSH Host: %v", err)
 	}
 
+	// Create the Terminal record for the unpinned SSH Host.
 	termOp := s4wave_terminal.NewCreateSshHostTerminalOp(
 		"terminal/prod-ssh",
 		"Prod SSH Terminal",
@@ -323,6 +351,8 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, termOp, tb.Volume.GetPeerID()); err != nil {
 		t.Fatalf("create Terminal: %v", err)
 	}
+
+	// Read the created Terminal record for the rejected connection.
 	objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -336,6 +366,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 		t.Fatal(err)
 	}
 
+	// Connect the Terminal stream and reject the SSH Host key challenge.
 	streamCtx, cancelStream := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelStream()
 	strm := newBlockingTerminalConnectStream(streamCtx)
@@ -348,6 +379,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 		t.Fatal("ConnectTerminal succeeded after SSH host key rejection")
 	}
 
+	// Verify rejection prevents SSH terminal output after the trust challenge.
 	frames := strm.sentFrames()
 	if !terminalFramesContainKind(frames, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE) {
 		t.Fatalf("sent frames missing SSH trust challenge: %#v", frames)
@@ -356,6 +388,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 		t.Fatalf("sent frames include SSH output after rejection: %#v", frames)
 	}
 
+	// Verify the SSH Host retains no key pin after rejection.
 	sshHostObj, found, err := tb.WorldState.GetObject(ctx, "hosts/prod")
 	defer world.ReleaseObjectState(sshHostObj)
 	if err != nil {
@@ -377,12 +410,14 @@ func setupTerminalSecretTest(
 	ctx context.Context,
 	t *testing.T,
 ) (*testbed.Testbed, sobject.SharedObjectProvider, func()) {
+	// Start the terminal testbed used to store credential Secrets.
 	t.Helper()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Load the local provider controller for the terminal testbed.
 	providerID := "local"
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
@@ -394,6 +429,7 @@ func setupTerminalSecretTest(
 		t.Fatal(err)
 	}
 
+	// Access the local provider account and its SharedObject feature.
 	accountID := "terminal-test-" + sobject.NewSOOperationLocalID()
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, providerID, accountID, false, nil)
 	if err != nil {
@@ -416,6 +452,7 @@ func setupTerminalSecretTest(
 }
 
 func startTerminalTestSSHServer(t *testing.T, password string, noAuth bool) (string, ssh.PublicKey, func()) {
+	// Create the SSH server host key and signer for the terminal tests.
 	t.Helper()
 	hostKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -425,6 +462,8 @@ func startTerminalTestSSHServer(t *testing.T, password string, noAuth bool) (str
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Configure SSH authentication and the server host key.
 	config := &ssh.ServerConfig{NoClientAuth: noAuth}
 	if !noAuth {
 		config.PasswordCallback = func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
@@ -436,6 +475,7 @@ func startTerminalTestSSHServer(t *testing.T, password string, noAuth bool) (str
 	}
 	config.AddHostKey(signer)
 
+	// Listen for SSH connections and track their handlers through shutdown.
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -462,6 +502,7 @@ func startTerminalTestSSHServer(t *testing.T, password string, noAuth bool) (str
 }
 
 func handleTerminalTestSSHConn(conn net.Conn, config *ssh.ServerConfig) {
+	// Complete the SSH server handshake and retain the connection until handlers start.
 	serverConn, chans, reqs, err := ssh.NewServerConn(conn, config)
 	if err != nil {
 		_ = conn.Close()
@@ -469,6 +510,8 @@ func handleTerminalTestSSHConn(conn net.Conn, config *ssh.ServerConfig) {
 	}
 	defer serverConn.Close()
 	go ssh.DiscardRequests(reqs)
+
+	// Accept SSH session channels and dispatch their terminal requests.
 	for next := range chans {
 		if next.ChannelType() != "session" {
 			_ = next.Reject(ssh.UnknownChannelType, "unsupported channel")
@@ -554,6 +597,7 @@ func (s *blockingTerminalConnectStream) Close() error {
 }
 
 func (s *blockingTerminalConnectStream) Send(frame *s4wave_terminal.TerminalFrame) error {
+	// Reject concurrent terminal sends and simulate the configured stream delay.
 	if !s.sendActive.CompareAndSwap(false, true) {
 		return errors.New("concurrent terminal Send")
 	}
@@ -561,9 +605,13 @@ func (s *blockingTerminalConnectStream) Send(frame *s4wave_terminal.TerminalFram
 	if s.sendDelay != 0 {
 		time.Sleep(s.sendDelay)
 	}
+
+	// Record the sent terminal frame while holding the stream mutex.
 	s.sentMu.Lock()
 	defer s.sentMu.Unlock()
 	s.sent = append(s.sent, frame.CloneVT())
+
+	// Respond to an SSH Host trust challenge with the configured test decision.
 	if s.hostKeyTrustResponse != nil &&
 		frame.GetKind() == s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_SSH_HOST_KEY_TRUST_CHALLENGE {
 		accepted := *s.hostKeyTrustResponse

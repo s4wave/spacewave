@@ -35,27 +35,34 @@ func (r *TerminalResource) connectSshHostTerminal(
 	strm SRPCTerminalResourceService_ConnectTerminalStream,
 	current *Terminal,
 ) error {
+	// Require the bus and World state needed to connect the SSH terminal.
 	if r.b == nil {
 		return errors.New("terminal resource requires a bus to read SSH credentials")
 	}
 	if r.ws == nil {
 		return errors.New("terminal resource requires world state to open SSH Host terminals")
 	}
+
+	// Publish the terminal connection attempt before loading the SSH Host.
 	if err := r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_CONNECTING, "connecting", ""); err != nil {
 		return err
 	}
 
+	// Load the SSH Host record for this terminal.
 	host, err := r.lookupSshHost(ctx, current.GetSshHostObjectKey())
 	if err != nil {
 		_ = r.updateState(context.Background(), TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "failed to connect", err.Error())
 		return err
 	}
+
+	// Build the SSH client configuration for the selected Host.
 	clientConfig, address, err := r.buildSshClientConfig(ctx, strm, current.GetSshHostObjectKey(), host)
 	if err != nil {
 		_ = r.updateState(context.Background(), TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "failed to connect", err.Error())
 		return err
 	}
 
+	// Connect the SSH client and close it when the terminal ends.
 	client, err := dialSshClient(ctx, address, clientConfig)
 	if err != nil {
 		state, status, errMessage := terminalConnectOpenFailureState(ctx, err, "failed to connect")
@@ -64,6 +71,7 @@ func (r *TerminalResource) connectSshHostTerminal(
 	}
 	defer client.Close()
 
+	// Open the SSH session and retain it for the terminal connection.
 	session, err := client.NewSession()
 	if err != nil {
 		state, status, errMessage := terminalConnectOpenFailureState(ctx, err, "failed to open")
@@ -72,6 +80,7 @@ func (r *TerminalResource) connectSshHostTerminal(
 	}
 	defer session.Close()
 
+	// Open the SSH session pipes for terminal input and output.
 	stdin, err := session.StdinPipe()
 	if err != nil {
 		_ = r.updateState(context.Background(), TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "failed to open", err.Error())
@@ -88,6 +97,7 @@ func (r *TerminalResource) connectSshHostTerminal(
 		return err
 	}
 
+	// Request a PTY with the saved terminal dimensions.
 	cols, rows := NormalizeTerminalFrameSize(current.GetCols(), current.GetRows())
 	if err := session.RequestPty("xterm-256color", int(rows), int(cols), ssh.TerminalModes{
 		ssh.ECHO:          1,
@@ -99,6 +109,7 @@ func (r *TerminalResource) connectSshHostTerminal(
 		return err
 	}
 
+	// Start the terminal command or interactive SSH shell.
 	if command := current.GetCommand(); command != "" {
 		err = session.Start(command)
 	} else {
@@ -109,6 +120,8 @@ func (r *TerminalResource) connectSshHostTerminal(
 		_ = r.updateState(context.Background(), state, status, errMessage)
 		return err
 	}
+
+	// Publish the active terminal state and announce readiness to the client.
 	if err := r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_ACTIVE, "active", ""); err != nil {
 		return err
 	}
@@ -116,6 +129,7 @@ func (r *TerminalResource) connectSshHostTerminal(
 		return err
 	}
 
+	// Prepare the SSH frame queues and track completion of both output streams.
 	errCh := make(chan terminalConnectResult, 4)
 	terminalFrames := make(chan terminalFrameSend, 32)
 	var clientClosed atomic.Bool
@@ -126,6 +140,8 @@ func (r *TerminalResource) connectSshHostTerminal(
 		outputWG.Wait()
 		close(outputDone)
 	}()
+
+	// Forward terminal frames and SSH output until the session ends.
 	go forwardTerminalFramesToClient(ctx, strm, terminalFrames, errCh)
 	go r.forwardClientFramesToSSH(ctx, strm, session, stdin, &clientClosed, errCh)
 	go func() {
@@ -138,6 +154,7 @@ func (r *TerminalResource) connectSshHostTerminal(
 	}()
 	go r.waitSSHSession(ctx, session, terminalFrames, outputDone, &clientClosed, errCh)
 
+	// Stop the terminal forwarders and publish the connection result.
 	result := <-errCh
 	cancel()
 	if result.err != nil && !stderrors.Is(result.err, context.Canceled) && !stderrors.Is(result.err, io.EOF) {
@@ -151,9 +168,12 @@ func (r *TerminalResource) connectSshHostTerminal(
 }
 
 func (r *TerminalResource) lookupSshHost(ctx context.Context, objectKey string) (*s4wave_sshhost.SshHost, error) {
+	// Require an SSH Host object before reading its record.
 	if err := world_types.CheckObjectType(ctx, r.ws, objectKey, s4wave_sshhost.SshHostTypeID); err != nil {
 		return nil, err
 	}
+
+	// Read and validate the SSH Host and its credential references.
 	host, err := world.LookupObjectBody[*s4wave_sshhost.SshHost](
 		ctx,
 		r.ws,
@@ -187,12 +207,15 @@ func (r *TerminalResource) buildSshClientConfig(
 		User: endpoint.GetUsername(),
 		Auth: auth,
 		HostKeyCallback: func(_ string, _ net.Addr, key ssh.PublicKey) error {
+			// Accept a pinned SSH key and reject a mismatch against existing pins.
 			if s4wave_sshhost.SshHostKeyPinsMatchPublicKey(host.GetHostKeyPins(), key) {
 				return nil
 			}
 			if len(host.GetHostKeyPins()) != 0 {
 				return errors.Errorf("ssh host key for %s is not pinned", endpoint.GetHost())
 			}
+
+			// Ask the terminal client to trust the previously unpinned SSH key.
 			pin := s4wave_sshhost.NewSshHostKeyPinFromPublicKey(
 				key,
 				time.Now(),
@@ -205,6 +228,8 @@ func (r *TerminalResource) buildSshClientConfig(
 			if !accepted {
 				return errors.Errorf("ssh host key for %s was not trusted", endpoint.GetHost())
 			}
+
+			// Save the accepted SSH key pin on the Host record.
 			if err := s4wave_sshhost.RememberSshHostKeyPin(ctx, r.engine, hostObjectKey, pin); err != nil {
 				return errors.Wrap(err, "remember SSH host key")
 			}
@@ -214,9 +239,12 @@ func (r *TerminalResource) buildSshClientConfig(
 }
 
 func (r *TerminalResource) buildSshAuthMethods(ctx context.Context, refs *s4wave_sshhost.SshHostCredentialRefs) ([]ssh.AuthMethod, error) {
+	// Allow SSH Hosts without credential references to connect without authentication.
 	if refs == nil {
 		return nil, nil
 	}
+
+	// Read the optional passphrase for the SSH private key.
 	var auth []ssh.AuthMethod
 	var passphrase []byte
 	var err error
@@ -226,6 +254,8 @@ func (r *TerminalResource) buildSshAuthMethods(ctx context.Context, refs *s4wave
 			return nil, err
 		}
 	}
+
+	// Parse the SSH private key and add public-key authentication.
 	if key := refs.GetPrivateKeySecretObjectKey(); key != "" {
 		privateKey, err := r.readSshCredentialPayload(ctx, key, s4wave_secret.SecretKindSSHPrivateKey)
 		if err != nil {
@@ -242,6 +272,8 @@ func (r *TerminalResource) buildSshAuthMethods(ctx context.Context, refs *s4wave
 		}
 		auth = append(auth, ssh.PublicKeys(signer))
 	}
+
+	// Add password authentication from the referenced Secret.
 	if key := refs.GetPasswordSecretObjectKey(); key != "" {
 		password, err := r.readSshCredentialPayload(ctx, key, s4wave_secret.SecretKindSSHPassword)
 		if err != nil {
@@ -318,6 +350,7 @@ func sshHostTrustAcceptedByPeerID(ctx context.Context) string {
 }
 
 func dialSshClient(ctx context.Context, address string, config *ssh.ClientConfig) (*ssh.Client, error) {
+	// Open the SSH transport and apply the handshake deadline.
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
 	if err != nil {
 		return nil, err
@@ -326,6 +359,8 @@ func dialSshClient(ctx context.Context, address string, config *ssh.ClientConfig
 		_ = conn.Close()
 		return nil, err
 	}
+
+	// Close the transport if the connection context ends during the handshake.
 	done := make(chan struct{})
 	go func() {
 		select {
@@ -334,6 +369,8 @@ func dialSshClient(ctx context.Context, address string, config *ssh.ClientConfig
 		case <-done:
 		}
 	}()
+
+	// Complete the SSH handshake and report transport or context failure.
 	clientConn, chans, reqs, err := ssh.NewClientConn(conn, address, config)
 	close(done)
 	if err != nil {
@@ -343,6 +380,8 @@ func dialSshClient(ctx context.Context, address string, config *ssh.ClientConfig
 		}
 		return nil, err
 	}
+
+	// Remove the handshake deadline before handing the client to the terminal.
 	if err := conn.SetDeadline(time.Time{}); err != nil {
 		_ = clientConn.Close()
 		return nil, err
@@ -481,6 +520,7 @@ func (r *TerminalResource) waitSSHSession(
 	clientClosed *atomic.Bool,
 	errCh chan<- terminalConnectResult,
 ) {
+	// Wait for the SSH session and derive its terminal exit code.
 	waitErr := session.Wait()
 	exitCode := 0
 	if waitErr != nil {
@@ -491,6 +531,8 @@ func (r *TerminalResource) waitSSHSession(
 			return
 		}
 	}
+
+	// Drain the SSH output before sending the terminal exit frame.
 	select {
 	case <-outputDone:
 	case <-ctx.Done():
@@ -504,6 +546,8 @@ func (r *TerminalResource) waitSSHSession(
 		errCh <- terminalConnectResult{err: err}
 		return
 	}
+
+	// Report the terminal session state after the exit frame reaches the client.
 	finalState, status, errMessage := terminalConnectExitState(clientClosed.Load())
 	errCh <- terminalConnectResult{
 		updateState:  true,

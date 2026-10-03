@@ -56,12 +56,15 @@ func (o *CreateTerminalOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the op.
 func (o *CreateTerminalOp) Validate() error {
+	// Require a terminal object key and name before validating its target.
 	if len(o.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
 	if strings.TrimSpace(o.GetName()) == "" {
 		return world.ErrEmptyOp
 	}
+
+	// Validate the terminal target, environment, and creation timestamp.
 	switch effectiveCreateTerminalOpTargetKind(o) {
 	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE:
 		if strings.TrimSpace(o.GetDeviceObjectKey()) == "" {
@@ -93,10 +96,12 @@ func (o *CreateTerminalOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the terminal creation request before changing World state.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Build the Terminal record with normalized dimensions and initial session state.
 	cols, rows := NormalizeTerminalFrameSize(o.GetCols(), o.GetRows())
 	terminal := &Terminal{
 		Name:             o.GetName(),
@@ -114,6 +119,7 @@ func (o *CreateTerminalOp) ApplyWorldOp(
 		UpdatedAt:        o.GetTimestamp(),
 	}
 
+	// Create the terminal World object with its initial block.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, ws, o.GetObjectKey(), func(bcs *block.Cursor) error {
 		bcs.SetBlock(terminal, true)
@@ -124,6 +130,7 @@ func (o *CreateTerminalOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Assign the Terminal object type to the newly created record.
 	if err := world_types.SetObjectType(ctx, ws, o.GetObjectKey(), TerminalTypeID); err != nil {
 		return false, err
 	}

@@ -11,6 +11,7 @@ import (
 
 // newBatchTestStore opens a bolt store with a batch wrapper for tests.
 func newBatchTestStore(t *testing.T, batchSize int) *BatchStore {
+	// Allocate a temporary directory for the batched Bolt test store.
 	t.Helper()
 	dir, err := os.MkdirTemp("", "hydra-test-batch-")
 	if err != nil {
@@ -18,6 +19,7 @@ func newBatchTestStore(t *testing.T, batchSize int) *BatchStore {
 	}
 	t.Cleanup(func() { os.RemoveAll(dir) })
 
+	// Open the Bolt test store and register its database cleanup.
 	db, err := Open(path.Join(dir, "database.boltdb"), 0o644, nil, []byte("test-bucket"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -30,6 +32,7 @@ func newBatchTestStore(t *testing.T, batchSize int) *BatchStore {
 // batched write transaction without Commit or Discard does not block the
 // store: a later transaction must open and flush normally.
 func TestBatchStoreAbandonedTxDoesNotWedgeStore(t *testing.T) {
+	// Start a BatchStore for the abandoned transaction test.
 	ctx := context.Background()
 	b := newBatchTestStore(t, 4)
 
@@ -58,6 +61,7 @@ func TestBatchStoreAbandonedTxDoesNotWedgeStore(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify a later committed key remains readable after an abandoned transaction.
 	rtx, err := b.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -73,9 +77,11 @@ func TestBatchStoreAbandonedTxDoesNotWedgeStore(t *testing.T) {
 // virtual transaction before a flush leaves other committed transactions'
 // writes intact.
 func TestBatchStoreDiscardDoesNotEraseCommittedWrites(t *testing.T) {
+	// Start a BatchStore for the discarded transaction test.
 	ctx := context.Background()
 	b := newBatchTestStore(t, 8)
 
+	// Commit a buffered key before discarding another transaction.
 	tx1, err := b.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -87,6 +93,7 @@ func TestBatchStoreDiscardDoesNotEraseCommittedWrites(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Discard a buffered insertion without changing the committed batch.
 	tx3, err := b.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -124,9 +131,11 @@ func TestBatchStoreDiscardDoesNotEraseCommittedWrites(t *testing.T) {
 // TestBatchStoreReadYourWrites tests that a transaction observes its own
 // buffered writes before commit.
 func TestBatchStoreReadYourWrites(t *testing.T) {
+	// Start a BatchStore for buffered read and iteration checks.
 	ctx := context.Background()
 	b := newBatchTestStore(t, 8)
 
+	// Buffer a key insertion and deletion within one write transaction.
 	tx, err := b.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -138,6 +147,7 @@ func TestBatchStoreReadYourWrites(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the transaction reads its buffered insertion and deletion.
 	val, found, err := tx.Get(ctx, []byte("a"))
 	if err != nil || !found || string(val) != "1" {
 		t.Fatalf("read-your-writes failed for a: found=%v val=%q err=%v", found, val, err)
@@ -157,6 +167,7 @@ func TestBatchStoreReadYourWrites(t *testing.T) {
 		t.Fatalf("unexpected iteration view: %v", seen)
 	}
 
+	// Commit the transaction after checking its buffered view.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}

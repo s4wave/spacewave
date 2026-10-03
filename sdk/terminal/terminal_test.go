@@ -18,6 +18,7 @@ import (
 )
 
 func TestTerminalValidatePinsDeviceTarget(t *testing.T) {
+	// Verify a Device terminal with a peer ID and environment is valid.
 	term := &Terminal{
 		Name:            "Build Host Shell",
 		DeviceObjectKey: "devices/build-host",
@@ -29,17 +30,20 @@ func TestTerminalValidatePinsDeviceTarget(t *testing.T) {
 		t.Fatalf("valid terminal failed validation: %v", err)
 	}
 
+	// Verify the Device terminal requires its peer ID.
 	term.DevicePeerId = ""
 	if err := term.Validate(); err == nil {
 		t.Fatal("expected missing device peer id to fail validation")
 	}
 
+	// Verify terminal environment entries require a key and value separator.
 	term.DevicePeerId = "12D3KooWDevice"
 	term.Environment = []string{"BROKEN"}
 	if err := term.Validate(); err == nil {
 		t.Fatal("expected malformed environment entry to fail validation")
 	}
 
+	// Verify terminal environment keys cannot be empty.
 	term.Environment = []string{"=value"}
 	if err := term.Validate(); err == nil {
 		t.Fatal("expected empty environment key to fail validation")
@@ -47,6 +51,7 @@ func TestTerminalValidatePinsDeviceTarget(t *testing.T) {
 }
 
 func TestTerminalValidatePinsSshHostTarget(t *testing.T) {
+	// Verify the SSH Host terminal resolves and validates its target.
 	term := &Terminal{
 		Name:             "Prod SSH Shell",
 		SshHostObjectKey: "hosts/prod",
@@ -60,6 +65,7 @@ func TestTerminalValidatePinsSshHostTarget(t *testing.T) {
 		t.Fatalf("target kind = %s", got.String())
 	}
 
+	// Verify the SSH Host terminal requires its Host object key.
 	term.SshHostObjectKey = ""
 	if err := term.Validate(); err == nil {
 		t.Fatal("expected missing SSH Host object key to fail validation")
@@ -67,6 +73,7 @@ func TestTerminalValidatePinsSshHostTarget(t *testing.T) {
 }
 
 func TestCreateTerminalOpValidate(t *testing.T) {
+	// Verify the Device creation operation resolves and validates its target.
 	op := NewCreateTerminalOp(
 		"terminal/build-host-1",
 		"Build Host Shell",
@@ -81,6 +88,7 @@ func TestCreateTerminalOpValidate(t *testing.T) {
 		t.Fatalf("target kind = %s", got.String())
 	}
 
+	// Verify the terminal creation operation requires an object key.
 	op.ObjectKey = ""
 	if err := op.Validate(); err != world.ErrEmptyObjectKey {
 		t.Fatalf("missing object key error = %v, want %v", err, world.ErrEmptyObjectKey)
@@ -88,6 +96,7 @@ func TestCreateTerminalOpValidate(t *testing.T) {
 }
 
 func TestCreateSshHostTerminalOpValidate(t *testing.T) {
+	// Verify the SSH Host creation operation resolves and validates its target.
 	op := NewCreateSshHostTerminalOp(
 		"terminal/prod-ssh-1",
 		"Prod SSH Shell",
@@ -101,6 +110,7 @@ func TestCreateSshHostTerminalOpValidate(t *testing.T) {
 		t.Fatalf("target kind = %s", got.String())
 	}
 
+	// Verify the SSH Host creation operation requires a Host object key.
 	op.SshHostObjectKey = ""
 	if err := op.Validate(); err == nil {
 		t.Fatal("expected missing SSH Host object key to fail validation")
@@ -120,6 +130,7 @@ func TestNormalizeTerminalFrameSize(t *testing.T) {
 }
 
 func TestTerminalMarshalBlockRoundTrip(t *testing.T) {
+	// Encode a Terminal record with Device dimensions and creation time.
 	term := &Terminal{
 		Name:            "Build Host Shell",
 		DeviceObjectKey: "devices/build-host",
@@ -133,6 +144,7 @@ func TestTerminalMarshalBlockRoundTrip(t *testing.T) {
 		t.Fatalf("MarshalBlock() error = %v", err)
 	}
 
+	// Decode the Terminal block and verify all fields survive the round trip.
 	got := &Terminal{}
 	if err := got.UnmarshalBlock(data); err != nil {
 		t.Fatalf("UnmarshalBlock() error = %v", err)
@@ -143,6 +155,7 @@ func TestTerminalMarshalBlockRoundTrip(t *testing.T) {
 }
 
 func TestTerminalSshHostTargetDoesNotStoreCredentialMaterial(t *testing.T) {
+	// Verify the encoded SSH Host terminal contains no raw credential material.
 	rawCredential := []byte("-----BEGIN OPENSSH PRIVATE KEY-----\nspacewave-secret\n-----END OPENSSH PRIVATE KEY-----")
 	term := &Terminal{
 		Name:             "Prod SSH Terminal",
@@ -169,10 +182,12 @@ func TestLookupCreateTerminalOp(t *testing.T) {
 }
 
 func TestForwardClientFramesSendsCloseWithoutCompleting(t *testing.T) {
+	// Open a paired terminal transport and close both ends after the test.
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
 	defer clientConn.Close()
 
+	// Forward a client close frame to the remote terminal session.
 	frameSession := stream_packet.NewSession(serverConn, terminalFrameMaxBytes)
 	clientSession := stream_packet.NewSession(clientConn, terminalFrameMaxBytes)
 	strm := &testTerminalConnectStream{
@@ -185,6 +200,7 @@ func TestForwardClientFramesSendsCloseWithoutCompleting(t *testing.T) {
 	var clientClosed atomic.Bool
 	go (&TerminalResource{}).forwardClientFrames(context.Background(), strm, frameSession, &clientClosed, errCh)
 
+	// Verify the remote terminal receives the close frame and the client close flag.
 	gotRemote := &TerminalFrame{}
 	if err := clientSession.RecvMsg(gotRemote); err != nil {
 		t.Fatal(err)
@@ -196,6 +212,7 @@ func TestForwardClientFramesSendsCloseWithoutCompleting(t *testing.T) {
 		t.Fatal("client close flag was not set")
 	}
 
+	// Verify client close waits for the remote terminal result.
 	select {
 	case result := <-errCh:
 		t.Fatalf("client close completed terminal before remote result: %#v", result)
@@ -204,6 +221,7 @@ func TestForwardClientFramesSendsCloseWithoutCompleting(t *testing.T) {
 }
 
 func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
+	// Start a World testbed for terminal exit state updates.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -211,6 +229,7 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Create the Device terminal record in the World.
 	objectKey := "terminal/close-exit"
 	op := NewCreateTerminalOp(
 		objectKey,
@@ -222,6 +241,8 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the created Terminal object and retain it through the state checks.
 	objState, found, err := tb.WorldState.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -235,10 +256,12 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open a paired transport for the remote terminal exit frame.
 	serverConn, clientConn := net.Pipe()
 	defer serverConn.Close()
 	defer clientConn.Close()
 
+	// Start the remote forwarder with the client close flag already set.
 	frameSession := stream_packet.NewSession(serverConn, terminalFrameMaxBytes)
 	remoteSession := stream_packet.NewSession(clientConn, terminalFrameMaxBytes)
 	strm := &testTerminalConnectStream{ctx: ctx}
@@ -253,6 +276,7 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 		errCh,
 	)
 
+	// Send the remote terminal exit frame and verify forwarding completes.
 	if err := remoteSession.SendMsg(&TerminalFrame{
 		Kind:     TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT,
 		ExitCode: 0,
@@ -271,6 +295,7 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 		t.Fatalf("sent frames = %#v", strm.sent)
 	}
 
+	// Verify the persisted Terminal record reports a closed session.
 	updated, err := readTerminalObject(ctx, objState)
 	if err != nil {
 		t.Fatal(err)
@@ -284,9 +309,11 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 }
 
 func TestTerminalConnectOpenFailureStateUsesDisconnectedForCanceledContext(t *testing.T) {
+	// Cancel the terminal connection context before classifying its failure.
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
+	// Verify cancellation reports disconnection without a terminal error.
 	state, status, errMessage := terminalConnectOpenFailureState(ctx, stderrors.New("context canceled"), "failed to connect")
 	if state != TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED {
 		t.Fatalf("state = %s", state.String())
@@ -298,6 +325,7 @@ func TestTerminalConnectOpenFailureStateUsesDisconnectedForCanceledContext(t *te
 		t.Fatalf("error = %q", errMessage)
 	}
 
+	// Verify a live context reports the connection failure and its error message.
 	state, status, errMessage = terminalConnectOpenFailureState(context.Background(), stderrors.New("dial failed"), "failed to connect")
 	if state != TerminalSessionState_TERMINAL_SESSION_STATE_FAILED {
 		t.Fatalf("state = %s", state.String())

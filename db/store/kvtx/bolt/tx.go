@@ -43,11 +43,13 @@ func (t *Tx) getBucket() (*bdb.Bucket, error) {
 
 // Get returns values for a key.
 func (t *Tx) Get(ctx context.Context, key []byte) (out []byte, found bool, err error) {
+	// Recover Bolt snapshot failures and require a nonempty lookup key.
 	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return nil, false, kvtx.ErrEmptyKey
 	}
 
+	// Open the Bolt bucket or report that the key is absent.
 	bkt, err := t.getBucket()
 	if err == bdberrors.ErrBucketNotFound {
 		return nil, false, nil
@@ -68,6 +70,7 @@ func (t *Tx) Get(ctx context.Context, key []byte) (out []byte, found bool, err e
 
 // Size returns the number of keys in the store.
 func (t *Tx) Size(ctx context.Context) (size uint64, err error) {
+	// Read the Bolt bucket statistics while translating snapshot failures.
 	defer recoverBoltTxPanic(&err)
 	bkt, err := t.getBucket()
 	if err != nil {
@@ -81,6 +84,7 @@ func (t *Tx) Size(ctx context.Context) (size uint64, err error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
+	// Require a writable Bolt transaction and nonempty key before mutation.
 	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
@@ -89,6 +93,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
 		return kvtx.ErrNotWrite
 	}
 
+	// Acquire the Bolt bucket for the key update.
 	bkt, err := t.getBucket()
 	if err != nil {
 		return err
@@ -99,6 +104,7 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) (err error) {
 
 // ScanPrefix iterates over keys with a prefix.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) (err error) {
+	// Open the Bolt bucket for prefix scanning and translate snapshot failures.
 	defer recoverBoltTxPanic(&err)
 	bkt, err := t.getBucket()
 	if err != nil {
@@ -148,11 +154,13 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
+	// Require a nonempty deletion key and translate Bolt snapshot failures.
 	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
 
+	// Acquire the Bolt bucket containing the key to delete.
 	bkt, err := t.getBucket()
 	if err != nil {
 		return err
@@ -203,6 +211,7 @@ func (t *Tx) commit(commitFn func() error) (err error) {
 
 // Exists checks if a key exists.
 func (t *Tx) Exists(ctx context.Context, key []byte) (exists bool, err error) {
+	// Require a nonempty lookup key and acquire its Bolt bucket.
 	defer recoverBoltTxPanic(&err)
 	if len(key) == 0 {
 		return false, kvtx.ErrEmptyKey

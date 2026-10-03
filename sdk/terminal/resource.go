@@ -90,14 +90,17 @@ func (r *TerminalResource) WatchTerminalState(_ *WatchTerminalStateRequest, strm
 
 // ConnectTerminal opens the live stream for this Terminal target.
 func (r *TerminalResource) ConnectTerminal(strm SRPCTerminalResourceService_ConnectTerminalStream) error {
+	// Keep the terminal connection context alive until this stream ends.
 	ctx, cancel := context.WithCancel(strm.Context())
 	defer cancel()
 
+	// Validate the current Terminal before choosing its connection target.
 	current := r.currentState()
 	if err := current.Validate(); err != nil {
 		return err
 	}
 
+	// Connect the Terminal through the protocol for its target kind.
 	switch EffectiveTerminalTargetKind(current) {
 	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE:
 		return r.connectDeviceTerminal(ctx, cancel, strm, current)
@@ -114,6 +117,7 @@ func (r *TerminalResource) connectDeviceTerminal(
 	strm SRPCTerminalResourceService_ConnectTerminalStream,
 	current *Terminal,
 ) error {
+	// Require the bus and decode the terminal Device peer ID.
 	if r.b == nil {
 		return errors.New("terminal resource requires a bus to connect")
 	}
@@ -122,10 +126,12 @@ func (r *TerminalResource) connectDeviceTerminal(
 		return errors.Wrap(err, "terminal device peer id")
 	}
 
+	// Publish the terminal connection attempt before opening its stream.
 	if err := r.updateState(ctx, TerminalSessionState_TERMINAL_SESSION_STATE_CONNECTING, "connecting", ""); err != nil {
 		return err
 	}
 
+	// Open the remote shell stream and release it when the terminal ends.
 	ms, release, err := link.OpenStreamWithPeerEx(
 		ctx,
 		r.b,
@@ -143,6 +149,7 @@ func (r *TerminalResource) connectDeviceTerminal(
 	defer release()
 	defer ms.GetStream().Close()
 
+	// Send the terminal dimensions, command, and environment to the Device.
 	frameSession := stream_packet.NewSession(ms.GetStream(), terminalFrameMaxBytes)
 	cols, rows := NormalizeTerminalFrameSize(current.GetCols(), current.GetRows())
 	if err := frameSession.SendMsg(&TerminalFrame{
@@ -157,11 +164,13 @@ func (r *TerminalResource) connectDeviceTerminal(
 		return err
 	}
 
+	// Forward terminal frames between the client and Device.
 	errCh := make(chan terminalConnectResult, 2)
 	var clientClosed atomic.Bool
 	go r.forwardClientFrames(ctx, strm, frameSession, &clientClosed, errCh)
 	go r.forwardRemoteFrames(ctx, strm, frameSession, &clientClosed, errCh)
 
+	// Stop both forwarders and publish the terminal connection result.
 	result := <-errCh
 	cancel()
 	if result.err != nil && !stderrors.Is(result.err, context.Canceled) && !stderrors.Is(result.err, io.EOF) {
@@ -325,6 +334,7 @@ func (r *TerminalResource) currentState() *Terminal {
 }
 
 func (r *TerminalResource) updateState(ctx context.Context, state TerminalSessionState, status, errMessage string) error {
+	// Prepare and validate the updated Terminal session record.
 	current := r.currentState()
 	updated := current.CloneVT()
 	updated.State = state
@@ -334,9 +344,13 @@ func (r *TerminalResource) updateState(ctx context.Context, state TerminalSessio
 	if err := updated.Validate(); err != nil {
 		return err
 	}
+
+	// Persist the Terminal record before publishing its new state.
 	if err := r.persistState(ctx, updated); err != nil {
 		return errors.Wrap(err, "persist terminal state")
 	}
+
+	// Notify terminal state watchers of the persisted record.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.state = updated.CloneVT()
 		broadcast()
@@ -345,6 +359,7 @@ func (r *TerminalResource) updateState(ctx context.Context, state TerminalSessio
 }
 
 func (r *TerminalResource) persistState(ctx context.Context, state *Terminal) error {
+	// Require a World engine and open a terminal write transaction.
 	if r.engine == nil {
 		return errors.New("terminal resource requires a world engine for status updates")
 	}
@@ -352,6 +367,8 @@ func (r *TerminalResource) persistState(ctx context.Context, state *Terminal) er
 	if err != nil {
 		return err
 	}
+
+	// Acquire the terminal object and discard the transaction if it is missing.
 	writeState, found, err := wtx.GetObject(ctx, r.objKey)
 	defer world.ReleaseObjectState(writeState)
 	if err != nil {
@@ -362,6 +379,8 @@ func (r *TerminalResource) persistState(ctx context.Context, state *Terminal) er
 		wtx.Discard()
 		return world.ErrObjectNotFound
 	}
+
+	// Replace the terminal block within the write transaction.
 	_, _, err = world.AccessObjectState(ctx, writeState, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
 		return nil
@@ -370,6 +389,7 @@ func (r *TerminalResource) persistState(ctx context.Context, state *Terminal) er
 		wtx.Discard()
 		return err
 	}
+
 	return wtx.Commit(ctx)
 }
 
