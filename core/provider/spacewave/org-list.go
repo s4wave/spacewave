@@ -85,12 +85,16 @@ func (a *ProviderAccount) PublishCreatedOrganization(org *api.OrgResponse) {
 	})
 }
 
-// QueueOrganizationSync schedules the keyed organization sync routine.
+// QueueOrganizationSync runs the organization's sync routine again. A run
+// already in progress may have read the organization before this change, so it
+// is canceled and replaced rather than left to finish.
 func (a *ProviderAccount) QueueOrganizationSync(orgID string) {
 	if orgID == "" || a.orgSyncs == nil {
 		return
 	}
-	a.orgSyncs.SetKey(orgID, true)
+	if existed, _ := a.orgSyncs.RestartRoutine(orgID); !existed {
+		a.orgSyncs.SetKey(orgID, true)
+	}
 }
 
 // GetCachedSharedObjectOrganizationID returns the cached owner org id for an SO.

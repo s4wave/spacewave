@@ -116,6 +116,46 @@ func TestQueueOrganizationSyncGuardsAndRegistersKey(t *testing.T) {
 	}
 }
 
+func TestQueueOrganizationSyncRerunsAfterEachChange(t *testing.T) {
+	// Start each run in order; the first blocks until it is canceled.
+	acc := NewTestProviderAccount(t, "http://example.invalid")
+	started := make(chan int, 3)
+	finished := make(chan int, 3)
+	var runs int
+	acc.orgSyncs = keyed.NewKeyed(func(string) (keyed.Routine, struct{}) {
+		return func(ctx context.Context) error {
+			runs++
+			run := runs
+			started <- run
+			defer func() { finished <- run }()
+			if run == 1 {
+				<-ctx.Done()
+			}
+			return nil
+		}, struct{}{}
+	})
+	acc.orgSyncs.SetContext(t.Context(), true)
+
+	// A change during the first run replaces it, and a change after the
+	// replacement finished runs the routine once more.
+	acc.QueueOrganizationSync("org-1")
+	if run := <-started; run != 1 {
+		t.Fatalf("first run = %d", run)
+	}
+	acc.QueueOrganizationSync("org-1")
+	if run := <-started; run != 2 {
+		t.Fatalf("run after a change during the first run = %d, want 2", run)
+	}
+	<-finished
+	if run := <-finished; run != 2 {
+		t.Fatalf("finished run = %d, want 2", run)
+	}
+	acc.QueueOrganizationSync("org-1")
+	if run := <-started; run != 3 {
+		t.Fatalf("run after a change once idle = %d, want 3", run)
+	}
+}
+
 func assertOrgSummary(
 	t *testing.T,
 	org *api.OrgResponse,

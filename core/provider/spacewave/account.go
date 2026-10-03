@@ -615,18 +615,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		le,
 		keyed.WithRetry[string, *bstoreTracker](providerBackoff),
 	)
-	var orgSyncs *keyed.Keyed[string, struct{}]
-	orgSyncs = keyed.NewKeyedWithLogger(
+	acc.orgSyncs = keyed.NewKeyedWithLogger(
 		acc.buildOrgSyncRoutine,
 		le.WithField("subsystem", "org-sync"),
 		keyed.WithRetry[string, struct{}](providerBackoff),
-		keyed.WithExitCb(func(key string, _ keyed.Routine, _ struct{}, err error) {
-			if err == nil {
-				orgSyncs.RemoveKey(key)
-			}
-		}),
 	)
-	acc.orgSyncs = orgSyncs
 
 	// Build the pending participant and member Session sync managers.
 	var pendingParticipantSyncs *keyed.Keyed[pendingParticipantSyncKey, struct{}]
