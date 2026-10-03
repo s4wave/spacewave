@@ -308,73 +308,91 @@ func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_wor
 }
 
 // WatchWorldState implements the streaming watch RPC.
-// Change detection starts immediately as client accesses resources.
+//
+// Each response names a tracked WorldState snapshot resource. Change detection
+// starts as the client reads through it. After a change, the watch sends the
+// replacement snapshot before it releases the superseded one, so a client
+// whose call fails because its snapshot was released has the replacement on
+// this stream. When the watch ends, it releases its current snapshot. Child
+// resources the client adopted keep their snapshot readable until released.
 func (r *EngineResource) WatchWorldState(
 	req *s4wave_world.WatchWorldStateRequest,
 	stream s4wave_world.SRPCWatchWorldStateResourceService_WatchWorldStateStream,
 ) error {
+	// Resolve the resource client and release the current snapshot at exit.
 	ctx := stream.Context()
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return err
 	}
+	var currentID uint32
+	defer func() {
+		if currentID != 0 {
+			_ = resourceCtx.ReleaseResource(currentID)
+		}
+	}()
 
+	// Publish a fresh snapshot after each observed change.
 	for {
-		// Begin a tracked snapshot transaction.
-		wtx, err := r.engine.NewTransaction(ctx, false)
+		// Register a tracked snapshot resource.
+		trackedWs, resourceID, err := r.addTrackedWorldState(ctx, resourceCtx)
 		if err != nil {
 			return err
 		}
 
-		// Capture the current sequence.
-		seqno, err := wtx.GetSeqno(ctx)
-		if err != nil {
-			wtx.Discard()
-			return err
-		}
-
-		// Build a tracked WorldState for client reads.
-		trackedWs := NewTrackedWorldState(wtx, world.NewEngineWorldState(r.engine, false), seqno, ctx)
-
-		// Register the tracked resource. Adopted child resources read through
-		// the snapshot transaction, so it is discarded after the tracked
-		// resource and all of its descendants are released.
-		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine, r.worldStateOptions...)
-		txLease := newResourceLease(wtx.Discard)
-		resourceId, err := resourceCtx.AddResource(txLease.wrapInvoker(trackedResource.GetMux()), func() {
-			trackedResource.Close()
-			trackedWs.Close()
-			txLease.releaseRef()
-		})
-		if err != nil {
-			trackedResource.Close()
-			trackedWs.Close()
-			txLease.releaseRef()
-			return err
-		}
-
-		// Publish its resource ID.
+		// Publish it, then release the snapshot it supersedes.
 		err = stream.Send(&s4wave_world.WatchWorldStateResponse{
-			ResourceId: resourceId,
+			ResourceId: resourceID,
 		})
 		if err != nil {
-			resourceCtx.ReleaseResource(resourceId)
+			_ = resourceCtx.ReleaseResource(resourceID)
 			return err
 		}
+		if currentID != 0 {
+			_ = resourceCtx.ReleaseResource(currentID)
+		}
+		currentID = resourceID
 
 		// Wait for an observed world change.
-		err = trackedWs.WaitForChanges(ctx)
-
-		// Release the previous tracked resource.
-		_ = resourceCtx.ReleaseResource(resourceId)
-
-		// Return terminal watch errors.
-		if err != nil {
+		if err := trackedWs.WaitForChanges(ctx); err != nil {
 			return err
 		}
-
-		// Continue with a fresh tracked WorldState after a change.
 	}
+}
+
+// addTrackedWorldState registers a tracked WorldState resource over a new read
+// transaction. The transaction is discarded once the resource and all of its
+// adopted descendants are released.
+func (r *EngineResource) addTrackedWorldState(
+	ctx context.Context,
+	resourceCtx resource_server.ResourceClientContext,
+) (*TrackedWorldState, uint32, error) {
+	// Begin the snapshot transaction and capture its sequence.
+	wtx, err := r.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, 0, err
+	}
+	seqno, err := wtx.GetSeqno(ctx)
+	if err != nil {
+		wtx.Discard()
+		return nil, 0, err
+	}
+
+	// Register the tracked resource over the transaction lease.
+	trackedWs := NewTrackedWorldState(wtx, world.NewEngineWorldState(r.engine, false), seqno, ctx)
+	trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine, r.worldStateOptions...)
+	txLease := newResourceLease(wtx.Discard)
+	release := func() {
+		trackedResource.Close()
+		trackedWs.Close()
+		txLease.releaseRef()
+	}
+	resourceID, err := resourceCtx.AddResource(txLease.wrapInvoker(trackedResource.GetMux()), release)
+	if err != nil {
+		release()
+		return nil, 0, err
+	}
+	return trackedWs, resourceID, nil
 }
 
 // AccessTypedObject looks up an object, determines its type, and returns a typed resource.

@@ -128,8 +128,9 @@ func (e *Engine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef) (u
 }
 
 // WatchWorldState creates a streaming watch of the WorldState.
-// Returns a stream that sends resource IDs whenever tracked resources change.
-// The watch tracks changes across the entire engine, not just a single transaction.
+// Returns a stream that sends a tracked snapshot resource ID whenever a tracked
+// access changes. Each replacement is sent before its predecessor is released;
+// see WatchWorldStateResponse for the supersession contract.
 func (e *Engine) WatchWorldState(ctx context.Context) (SRPCWatchWorldStateResourceService_WatchWorldStateClient, error) {
 	return e.watchService.WatchWorldState(ctx, &WatchWorldStateRequest{})
 }

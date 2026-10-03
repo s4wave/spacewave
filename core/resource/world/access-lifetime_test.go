@@ -196,3 +196,72 @@ func TestAccessWorldStateCursorLivesUntilRelease(t *testing.T) {
 	}
 	waitForCount(t, "open AccessWorldState callbacks after release", &engine.openCallbacks, 0)
 }
+
+// replacementOrderStream records, for each WatchWorldState response, whether
+// the previously sent snapshot resource was still registered at send time.
+type replacementOrderStream struct {
+	watchWorldStateTestStream
+	resourceCtx *worldStateOperationResourceContext
+	prevID      uint32
+	prevLive    chan bool
+}
+
+func (s *replacementOrderStream) Send(resp *s4wave_world.WatchWorldStateResponse) error {
+	// Report whether the superseded snapshot is still registered.
+	if s.prevID != 0 {
+		_, live := s.resourceCtx.releases[s.prevID]
+		s.prevLive <- live
+	}
+	s.prevID = resp.GetResourceId()
+	return s.watchWorldStateTestStream.Send(resp)
+}
+
+// TestWatchWorldStateSendsReplacementBeforeRelease proves a change publishes
+// the replacement snapshot before the watch releases the superseded one.
+func TestWatchWorldStateSendsReplacementBeforeRelease(t *testing.T) {
+	// Start a World testbed.
+	ctx := t.Context()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	defer cleanup()
+
+	// Start the watch against a recording resource context.
+	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
+	rpcCtx := resource_server.WithResourceClientContext(ctx, resourceCtx)
+	engineResource := resource_world.NewEngineResource(logrus.NewEntry(logrus.New()), tb.Bus, tb.Engine, nil, nil)
+	defer engineResource.Close()
+	stream := &replacementOrderStream{
+		watchWorldStateTestStream: watchWorldStateTestStream{ctx: rpcCtx, sent: make(chan *s4wave_world.WatchWorldStateResponse, 1)},
+		resourceCtx:               resourceCtx,
+		prevLive:                  make(chan bool, 1),
+	}
+	go func() {
+		_ = engineResource.WatchWorldState(&s4wave_world.WatchWorldStateRequest{}, stream)
+	}()
+
+	// Track a missing object through the first snapshot.
+	first := <-stream.sent
+	trackedClient, err := resourceCtx.GetAttachedResource(first.GetResourceId())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	objKey := "watch-replacement-object"
+	trackedService := s4wave_world.NewSRPCWorldStateResourceServiceClient(trackedClient)
+	if _, err := trackedService.GetObject(rpcCtx, &s4wave_world.GetObjectRequest{ObjectKey: objKey}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create the object to supersede the first snapshot.
+	obj, err := world.NewEngineWorldState(tb.Engine, true).CreateObject(ctx, objKey, &bucket.ObjectRef{})
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// The first snapshot is still registered when its replacement is sent.
+	if !<-stream.prevLive {
+		t.Fatal("watch released the superseded snapshot before sending its replacement")
+	}
+	if second := <-stream.sent; second.GetResourceId() == first.GetResourceId() {
+		t.Fatal("replacement reused the superseded resource ID")
+	}
+}
