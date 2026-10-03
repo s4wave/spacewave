@@ -66,12 +66,13 @@ func (i *Iterator) Value() ([]byte, error) {
 		if err != nil {
 			i.err = err
 			i.value = nil
+			return nil, err
 		}
 	}
 	return i.value, nil
 }
 
-// ValueCopy copies the key to the given byte slice and returns it.
+// ValueCopy copies the value to the given byte slice and returns it.
 // If the slice is not big enough (cap), it must create a new one and return it.
 // May use the value cached from Value() call as the source of the data.
 // May return nil if !Valid().
