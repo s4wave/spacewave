@@ -10,6 +10,7 @@ import (
 )
 
 func TestWriteBatchWrapperCapabilityAndLifecycle(t *testing.T) {
+	// Open the inline-value tree used by the transaction wrappers.
 	ctx := t.Context()
 	_, cursor := block.NewTransaction(newOkraTestStore(), nil, nil, nil)
 	tree, err := NewTxWithInlineValues(ctx, cursor, nil, true, nil)
@@ -17,6 +18,8 @@ func TestWriteBatchWrapperCapabilityAndLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tree.Discard()
+
+	// Require read-only wrappers to omit the batch write capability.
 	store := kvtx.NewTxStore(tree)
 	prefixed := kvtx_prefixer.NewPrefixer(store, []byte("scope/"))
 	for _, s := range []kvtx.Store{store, prefixed} {
@@ -29,6 +32,7 @@ func TestWriteBatchWrapperCapabilityAndLifecycle(t *testing.T) {
 		}
 		read.Discard()
 	}
+
 	// Hide the optional API without replacing the real transaction operations.
 	scalar := kvtx.NewTxStore(struct{ kvtx.TxOps }{tree})
 	for _, s := range []kvtx.Store{scalar, kvtx_prefixer.NewPrefixer(scalar, []byte("scope/"))} {
@@ -41,6 +45,8 @@ func TestWriteBatchWrapperCapabilityAndLifecycle(t *testing.T) {
 		}
 		tx.Discard()
 	}
+
+	// Open a writable prefix wrapper and require its batch capability.
 	tx, err := prefixed.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -50,32 +56,43 @@ func TestWriteBatchWrapperCapabilityAndLifecycle(t *testing.T) {
 	if !ok {
 		t.Fatal("prefixer lost write capability")
 	}
+
+	// Require an invalid prefixed batch to leave the tree unchanged.
 	if err := batch.ApplyWriteBatch(ctx, []kvtx.WriteBatchEntry{{Key: []byte("key"), Value: []byte("value")}, {Key: nil}}); !errors.Is(err, kvtx.ErrEmptyKey) {
 		t.Fatalf("empty key: %v", err)
 	}
 	if n, _ := tree.Size(ctx); n != 0 {
 		t.Fatal("invalid batch mutated tree")
 	}
+
+	// Apply a valid prefixed batch without changing its input key.
 	input := []kvtx.WriteBatchEntry{{Key: []byte("key"), Value: []byte("value")}}
 	if err := batch.ApplyWriteBatch(ctx, input); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the prefix wrapper to preserve its input and write under the prefix.
 	if string(input[0].Key) != "key" {
 		t.Fatal("prefixer mutated input")
 	}
 	if v, found, err := tree.Get(ctx, []byte("scope/key")); err != nil || !found || string(v) != "value" {
 		t.Fatalf("prefix: %q %v %v", v, found, err)
 	}
+
+	// Require a committed wrapper to reject further batch writes.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if err := batch.ApplyWriteBatch(ctx, input); !errors.Is(err, kvtx.ErrDiscarded) {
 		t.Fatalf("write after Commit: %v", err)
 	}
+
 	// Committing the virtual wrapper must not finalize the enclosing Okra tx.
 	if err := tree.Set(ctx, []byte("still-open"), nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require a discarded direct wrapper to reject further batch writes.
 	direct, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)

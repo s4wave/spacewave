@@ -46,6 +46,7 @@ func BuildTreeWithEntries(
 	putOpts *block.PutOpts,
 	entries iter.Seq[BuildEntry],
 ) (*block.Transaction, *block.Cursor, error) {
+	// Build the Okra pages in the returned block transaction staging store.
 	tx, rootCursor := block.NewTransaction(store, xfrm, nil, putOpts)
 	root, err := buildTree(entries, func(page *Page) (*block.BlockRef, error) {
 		return writeStagedBlock(ctx, rootCursor, page)
@@ -53,6 +54,8 @@ func BuildTreeWithEntries(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Attach the built root to the returned transaction cursor.
 	rootCursor.SetBlock(root, true)
 	return tx, rootCursor, nil
 }
@@ -60,15 +63,19 @@ func BuildTreeWithEntries(
 // buildTree packs the sorted entries into pages, writing each finished page
 // with writePage, and returns the root referencing the top page.
 func buildTree(entries iter.Seq[BuildEntry], writePage func(*Page) (*block.BlockRef, error)) (*Root, error) {
+	// Pack sorted input entries into the Okra page builder.
 	builder := newTreeBuilder(writePage)
 	var prevKey []byte
 	for ent := range entries {
+		// Require nonempty input keys in strictly increasing order.
 		if len(ent.Key) == 0 {
 			return nil, ErrUnexpectedEntryMetadata
 		}
 		if prevKey != nil && bytes.Compare(prevKey, ent.Key) >= 0 {
 			return nil, ErrUnsortedEntries
 		}
+
+		// Snapshot the input value into its hashed leaf entry.
 		leafHash, err := hashBuildEntry(ent)
 		if err != nil {
 			return nil, err
@@ -81,16 +88,20 @@ func buildTree(entries iter.Seq[BuildEntry], writePage func(*Page) (*block.Block
 			ValueIsBlob: ent.ValueIsBlob,
 			ValueBlob:   ent.ValueBlob.CloneVT(),
 		}
+
+		// Add the leaf entry and remember its key for ordering checks.
 		if err := builder.add(0, leaf); err != nil {
 			return nil, err
 		}
 		prevKey = leaf.Key
 	}
+
 	// Without entries the root stays empty.
 	if prevKey == nil {
 		return &Root{}, nil
 	}
 
+	// Finish the packed pages and obtain the top page metadata.
 	rootPageRef, top, height, err := builder.finish()
 	if err != nil {
 		return nil, err

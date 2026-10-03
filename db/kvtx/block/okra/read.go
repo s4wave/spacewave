@@ -10,13 +10,18 @@ import (
 )
 
 func loadPage(ctx context.Context, cursor *block.Cursor) (*Page, error) {
+	// Decode the Okra page stored at the supplied cursor.
 	page, err := block.UnmarshalBlock[*Page](ctx, cursor, NewPageBlock)
 	if err != nil {
 		return nil, err
 	}
+
+	// Require a decoded page before validating its metadata.
 	if page == nil {
 		return nil, block.ErrNotFound
 	}
+
+	// Validate the decoded Okra page before returning it.
 	if err := page.Validate(); err != nil {
 		return nil, err
 	}
@@ -30,10 +35,13 @@ func (t *Tx) getRootPage(ctx context.Context) (*Page, *block.Cursor, error) {
 }
 
 func (t *Tx) findEntry(ctx context.Context, key []byte) (*Page, *block.Cursor, int, error) {
+	// Load the root page to begin the key lookup.
 	page, pageCursor, err := t.getRootPage(ctx)
 	if err != nil {
 		return nil, nil, 0, err
 	}
+
+	// Follow the child pages that cover the requested key.
 	for page.GetLevel() != 0 {
 		idx := page.searchEntry(key)
 		if idx < 0 {
@@ -49,6 +57,8 @@ func (t *Tx) findEntry(ctx context.Context, key []byte) (*Page, *block.Cursor, i
 		}
 		pageCursor = childCursor
 	}
+
+	// Require an exact non-anchor match in the leaf page.
 	idx := page.searchEntry(key)
 	if idx < 0 {
 		return nil, nil, 0, nil
@@ -79,8 +89,10 @@ func (t *Tx) findEntriesBatch(
 	values [][]byte,
 	found []bool,
 ) error {
+	// Resolve requested values directly when the page is a leaf.
 	if page.GetLevel() == 0 {
 		for _, lookup := range lookups {
+			// Find an exact non-anchor match for the requested key.
 			idx := page.searchEntry(lookup.key)
 			if idx < 0 {
 				continue
@@ -89,6 +101,8 @@ func (t *Tx) findEntriesBatch(
 			if ent.GetAnchor() || !bytes.Equal(ent.GetKey(), lookup.key) {
 				continue
 			}
+
+			// Decode the matched value into its original batch position.
 			value, err := t.entryToValue(ctx, page, pageCursor, idx)
 			if err != nil {
 				return err
@@ -99,6 +113,7 @@ func (t *Tx) findEntriesBatch(
 		return nil
 	}
 
+	// Group requested keys by the child page that covers them.
 	groups := make([][]batchLookup, len(page.GetEntries()))
 	for _, lookup := range lookups {
 		idx := page.searchEntry(lookup.key)
@@ -106,15 +121,22 @@ func (t *Tx) findEntriesBatch(
 			groups[idx] = append(groups[idx], lookup)
 		}
 	}
+
+	// Resolve each populated child group in page order.
 	for idx, group := range groups {
+		// Skip child pages with no requested keys.
 		if len(group) == 0 {
 			continue
 		}
+
+		// Load the child page containing this group of requested keys.
 		childCursor := page.FollowChild(pageCursor, idx)
 		childPage, err := loadPage(ctx, childCursor)
 		if err != nil {
 			return err
 		}
+
+		// Retain only keys within the loaded child page bounds.
 		nextGroup := group[:0]
 		for _, lookup := range group {
 			if childPage.containsKey(lookup.key) {
@@ -124,6 +146,8 @@ func (t *Tx) findEntriesBatch(
 		if len(nextGroup) == 0 {
 			continue
 		}
+
+		// Resolve the retained keys beneath the child page.
 		if err := t.findEntriesBatch(ctx, childPage, childCursor, nextGroup, values, found); err != nil {
 			return err
 		}

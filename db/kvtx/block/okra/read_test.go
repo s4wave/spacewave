@@ -33,6 +33,7 @@ func (s *readOrderStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 
 // takeReads returns and clears the recorded reads.
 func (s *readOrderStore) takeReads() []string {
+	// Take and clear the recorded block reads under the store lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	reads := s.reads
@@ -41,10 +42,12 @@ func (s *readOrderStore) takeReads() []string {
 }
 
 func TestGetBatchReturnsValuesAndReadsPagesInKeyOrder(t *testing.T) {
+	// Create a sorted fixture on a store that records block read order.
 	ctx := context.Background()
 	store := &readOrderStore{StoreOps: newOkraTestStore()}
 	fixture := newOkraFixture(t, ctx, store, 4096)
 
+	// Build and publish the fixture tree.
 	tx, _, err := BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
@@ -64,8 +67,10 @@ func TestGetBatchReturnsValuesAndReadsPagesInKeyOrder(t *testing.T) {
 	rng := rand.New(rand.NewPCG(1, 2))
 	rng.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
 
+	// Compare batch values and block read order across fresh transactions.
 	var firstReads []string
 	for attempt := range 8 {
+		// Open a fresh read transaction and resolve the shuffled batch.
 		_, readCursor := block.NewTransaction(store, nil, rootRef, nil)
 		okraTx, err := NewTx(ctx, readCursor, nil, false, nil)
 		if err != nil {
@@ -78,6 +83,7 @@ func TestGetBatchReturnsValuesAndReadsPagesInKeyOrder(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		// Require the batch results to match all requested fixture values.
 		var got [][]byte
 		for i, key := range keys {
 			if bytes.Equal(key, []byte("absent")) {
@@ -97,6 +103,7 @@ func TestGetBatchReturnsValuesAndReadsPagesInKeyOrder(t *testing.T) {
 			t.Fatal("batch values differ from the fixture")
 		}
 
+		// Require each fresh transaction to read blocks in the same order.
 		reads := store.takeReads()
 		if attempt == 0 {
 			firstReads = reads

@@ -47,6 +47,7 @@ func entryIndexFromValueRefID(id uint32) (int, bool) {
 
 // Validate performs cursory checks of the packed page object.
 func (p *Page) Validate() error {
+	// Require page entries and a hash of the configured Okra size.
 	entries := p.GetEntries()
 	if len(entries) == 0 || len(p.GetPageHash()) != HashSize {
 		return errors.Wrapf(
@@ -58,6 +59,7 @@ func (p *Page) Validate() error {
 		)
 	}
 
+	// Validate entry ordering and references while deriving the page bounds and size.
 	var size uint64
 	var prevKey []byte
 	var firstKey []byte
@@ -83,6 +85,7 @@ func (p *Page) Validate() error {
 			prevKey = key
 		}
 
+		// Check the references permitted at the page level and accumulate entry size.
 		if p.GetLevel() == 0 {
 			if !ent.GetChildRef().GetEmpty() {
 				return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d leaf child ref", idx)
@@ -106,6 +109,7 @@ func (p *Page) Validate() error {
 		size += ent.GetSize()
 	}
 
+	// Check the stored page bounds, anchor marker and size against its entries.
 	if p.GetStartsAtAnchor() != entries[0].GetAnchor() {
 		return errors.Wrap(ErrUnexpectedPageMetadata, "starts_at_anchor mismatch")
 	}

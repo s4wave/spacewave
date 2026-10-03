@@ -13,6 +13,7 @@ import (
 // TestRepeatedMutationReleasesReplacedPages verifies bounded transaction memory
 // while unchanged pages remain shared, then reads every value after commit.
 func TestRepeatedMutationReleasesReplacedPages(t *testing.T) {
+	// Open a writable tree for measuring retained transaction nodes.
 	ctx := t.Context()
 	store := newOkraTestStore()
 	btx, cursor := block.NewTransaction(store, nil, nil, nil)
@@ -20,6 +21,8 @@ func TestRepeatedMutationReleasesReplacedPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Populate the tree and track the expected values.
 	values := make(map[string][]byte)
 	for i := range 512 {
 		key := "key-" + strconv.Itoa(i)
@@ -28,6 +31,8 @@ func TestRepeatedMutationReleasesReplacedPages(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Replace a small key set repeatedly after recording the initial node count.
 	initial := len(btx.GetBlockGraph().Nodes())
 	for i := range 2000 {
 		key := "key-" + strconv.Itoa(i%7)
@@ -36,11 +41,15 @@ func TestRepeatedMutationReleasesReplacedPages(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Require transaction nodes to remain bounded after repeated replacements.
 	retained := len(btx.GetBlockGraph().Nodes())
 	t.Logf("transaction nodes: %d after initial insertion, %d after replacement", initial, retained)
 	if retained > 4*initial+128 {
 		t.Fatalf("retained abandoned pages: %d nodes after starting with %d", retained, initial)
 	}
+
+	// Commit the tree and publish its current root.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -48,6 +57,8 @@ func TestRepeatedMutationReleasesReplacedPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require every final value to read back from the published root.
 	read := openOkraRoot(t, ctx, store, ref, false)
 	defer read.Discard()
 	for key, want := range values {
@@ -61,6 +72,7 @@ func TestRepeatedMutationReleasesReplacedPages(t *testing.T) {
 // TestMutationPreservesIteratorAndValueCursor keeps readers alive while every
 // page is removed, then reuses a value after closing the iterator.
 func TestMutationPreservesIteratorAndValueCursor(t *testing.T) {
+	// Open a writable tree for retaining readers across page removal.
 	ctx := t.Context()
 	store := newOkraTestStore()
 	btx, root := block.NewTransaction(store, nil, nil, nil)
@@ -68,23 +80,31 @@ func TestMutationPreservesIteratorAndValueCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Populate the tree with values covering multiple pages.
 	for i := range 512 {
 		key := []byte(fmt.Sprintf("key-%03d", i))
 		if err := tx.Set(ctx, key, key); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Retain a snapshot iterator and its first value cursor.
 	iter := tx.BlockIterate(ctx, nil, true, false)
 	defer iter.Close()
 	if !iter.Next() {
 		t.Fatal("missing first entry", iter.Err())
 	}
 	saved := iter.ValueCursor()
+
+	// Remove every key from the current tree.
 	for i := range 512 {
 		if err := tx.Delete(ctx, []byte(fmt.Sprintf("key-%03d", i))); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Require the retained iterator to expose every original value.
 	for i := range 512 {
 		want := fmt.Sprintf("key-%03d", i)
 		got, err := iter.Value()
@@ -93,19 +113,29 @@ func TestMutationPreservesIteratorAndValueCursor(t *testing.T) {
 		}
 		iter.Next()
 	}
+
+	// Require snapshot traversal to finish without an iterator error.
 	if iter.Valid() || iter.Err() != nil {
 		t.Fatalf("iterator completion: valid=%v err=%v", iter.Valid(), iter.Err())
 	}
+
+	// Require closing the iterator to release its obsolete page references.
 	iter.Close()
 	if nodes := len(btx.GetBlockGraph().Nodes()); nodes > 2*512+8 {
 		t.Fatalf("closed iterator retained obsolete pages: %d nodes", nodes)
 	}
+
+	// Require the retained value cursor to survive iterator closure.
 	if got, err := blob.FetchToBytes(ctx, saved); err != nil || string(got) != "key-000" {
 		t.Fatalf("saved value = %q: %v", got, err)
 	}
+
+	// Restore the retained value cursor into the tree.
 	if err := tx.SetCursorAtKey(ctx, []byte("restored"), saved, true); err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit and publish the restored value.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -113,6 +143,8 @@ func TestMutationPreservesIteratorAndValueCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the restored value to survive publication.
 	read := openOkraRoot(t, ctx, store, ref, false)
 	defer read.Discard()
 	if got, found, err := read.Get(ctx, []byte("restored")); err != nil || !found || string(got) != "key-000" {

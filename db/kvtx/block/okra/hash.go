@@ -36,8 +36,11 @@ func finishOkraHash(h hash.Hash) []byte {
 }
 
 func okraDigest(parts ...[]byte) ([]byte, error) {
+	// Borrow a hasher for the Okra digest and release it after use.
 	h := borrowOkraHasher()
 	defer releaseOkraHasher(h)
+
+	// Hash each digest part in the supplied order.
 	for _, part := range parts {
 		if _, err := h.Write(part); err != nil {
 			return nil, err
@@ -47,9 +50,12 @@ func okraDigest(parts ...[]byte) ([]byte, error) {
 }
 
 func hashKeyValue(key, value []byte) ([]byte, error) {
+	// Require key and value lengths that fit the Okra hash framing.
 	if uint64(len(key)) > math.MaxUint32 || uint64(len(value)) > math.MaxUint32 {
 		return nil, errors.New("okra hash input exceeds uint32 length")
 	}
+
+	// Borrow a hasher and encode the length-prefixed key.
 	var size [4]byte
 	h := borrowOkraHasher()
 	defer releaseOkraHasher(h)
@@ -60,6 +66,8 @@ func hashKeyValue(key, value []byte) ([]byte, error) {
 	if _, err := h.Write(key); err != nil {
 		return nil, err
 	}
+
+	// Encode the length-prefixed value after the key.
 	binary.BigEndian.PutUint32(size[:], uint32(len(value))) //nolint:gosec // hashKeyValue checks the value length against the uint32 framing field.
 	if _, err := h.Write(size[:]); err != nil {
 		return nil, err
@@ -71,6 +79,7 @@ func hashKeyValue(key, value []byte) ([]byte, error) {
 }
 
 func hashLeaf(key []byte, valueRef *block.BlockRef, valueIsBlob bool) ([]byte, error) {
+	// Encode the leaf value reference for hashing.
 	var refData []byte
 	var err error
 	if valueRef != nil {
@@ -79,6 +88,8 @@ func hashLeaf(key []byte, valueRef *block.BlockRef, valueIsBlob bool) ([]byte, e
 			return nil, err
 		}
 	}
+
+	// Hash the key with its value reference and blob marker.
 	valueData := make([]byte, 1+len(refData))
 	if valueIsBlob {
 		valueData[0] = 1
@@ -88,8 +99,11 @@ func hashLeaf(key []byte, valueRef *block.BlockRef, valueIsBlob bool) ([]byte, e
 }
 
 func hashEntryRange(entries []*Entry) ([]byte, error) {
+	// Borrow a hasher for the entry range and release it after use.
 	h := borrowOkraHasher()
 	defer releaseOkraHasher(h)
+
+	// Hash the entry hashes in their page order.
 	for _, ent := range entries {
 		if _, err := h.Write(ent.GetHash()); err != nil {
 			return nil, err
@@ -99,6 +113,7 @@ func hashEntryRange(entries []*Entry) ([]byte, error) {
 }
 
 func hashPage(page *Page) ([]byte, error) {
+	// Borrow a hasher and encode the page level.
 	h := borrowOkraHasher()
 	defer releaseOkraHasher(h)
 	var buf [8]byte
@@ -106,6 +121,8 @@ func hashPage(page *Page) ([]byte, error) {
 	if _, err := h.Write(buf[:4]); err != nil {
 		return nil, err
 	}
+
+	// Encode whether the page begins with the anchor entry.
 	if page.GetStartsAtAnchor() {
 		buf[0] = 1
 	} else {
@@ -114,6 +131,8 @@ func hashPage(page *Page) ([]byte, error) {
 	if _, err := h.Write(buf[:1]); err != nil {
 		return nil, err
 	}
+
+	// Encode the length-prefixed lower and upper page bounds.
 	for _, part := range [][]byte{page.GetLowerBound(), page.GetUpperBound()} {
 		if uint64(len(part)) > math.MaxUint32 {
 			return nil, errors.New("okra page bound exceeds uint32 length")
@@ -126,11 +145,16 @@ func hashPage(page *Page) ([]byte, error) {
 			return nil, err
 		}
 	}
+
+	// Encode the total number of keys covered by the page.
 	binary.BigEndian.PutUint64(buf[:], page.GetSize())
 	if _, err := h.Write(buf[:]); err != nil {
 		return nil, err
 	}
+
+	// Encode each page entry in its stored order.
 	for _, ent := range page.GetEntries() {
+		// Encode the page entry anchor marker.
 		if ent.GetAnchor() {
 			buf[0] = 1
 		} else {
@@ -139,6 +163,8 @@ func hashPage(page *Page) ([]byte, error) {
 		if _, err := h.Write(buf[:1]); err != nil {
 			return nil, err
 		}
+
+		// Encode the entry key and hash with a bounded key length.
 		if uint64(len(ent.GetKey())) > math.MaxUint32 {
 			return nil, errors.New("okra entry key exceeds uint32 length")
 		}
@@ -152,6 +178,8 @@ func hashPage(page *Page) ([]byte, error) {
 		if _, err := h.Write(ent.GetHash()); err != nil {
 			return nil, err
 		}
+
+		// Encode the number of keys covered by the entry.
 		binary.BigEndian.PutUint64(buf[:], ent.GetSize())
 		if _, err := h.Write(buf[:]); err != nil {
 			return nil, err

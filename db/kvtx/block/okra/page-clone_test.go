@@ -26,11 +26,17 @@ func cloneTestEntries(n int) []*Entry {
 }
 
 func TestPageLocalClonesMatchDeepClones(t *testing.T) {
+	// Build page entries that exercise mutable references and empty fields.
 	original := cloneTestEntries(32)
 	original = append(original, nil, &Entry{Anchor: true, Hash: mustAnchorHash()}, &Entry{Key: []byte{}, Hash: nil})
+
+	// Clone the entry collection into page-local storage.
 	cloned := slices.Clone(original)
 	clonePageEntries(cloned)
+
+	// Require page-local clones to match deep clones and preserve wire bytes.
 	for i, src := range original {
+		// Require the page-local entry to equal the deep-cloned entry.
 		want := src.CloneVT()
 		got := cloned[i]
 		if !want.EqualVT(got) {
@@ -39,6 +45,8 @@ func TestPageLocalClonesMatchDeepClones(t *testing.T) {
 		if src == nil {
 			continue
 		}
+
+		// Require the page-local entry to encode identically to the deep clone.
 		wantBytes, err := want.MarshalVT()
 		if err != nil {
 			t.Fatal(err)
@@ -50,6 +58,8 @@ func TestPageLocalClonesMatchDeepClones(t *testing.T) {
 		if !bytes.Equal(wantBytes, gotBytes) {
 			t.Fatalf("entry %d changed wire bytes", i)
 		}
+
+		// Require each clone to own its byte ranges and mutable objects.
 		if cap(got.Key) != len(got.Key) || cap(got.Hash) != len(got.Hash) || cap(got.unknownFields) != len(got.unknownFields) {
 			t.Fatal("an arena field can reslice into its neighbor")
 		}
@@ -57,6 +67,7 @@ func TestPageLocalClonesMatchDeepClones(t *testing.T) {
 			t.Fatal("clone shares mutable objects")
 		}
 	}
+
 	// Updating references and inline subblocks is legal after page construction;
 	// byte pooling must not change that ownership contract.
 	for i, src := range original[:32] {
@@ -71,6 +82,8 @@ func TestPageLocalClonesMatchDeepClones(t *testing.T) {
 			t.Fatalf("entry %d aliases source", i)
 		}
 	}
+
+	// Require appending to one entry to preserve its neighboring entry.
 	for i := range 31 {
 		before := cloned[i+1].CloneVT()
 		cloned[i].Key = append(cloned[i].Key, 'x')

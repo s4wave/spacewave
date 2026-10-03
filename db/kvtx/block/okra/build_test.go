@@ -17,10 +17,12 @@ import (
 )
 
 func TestBuildTreeReadOnlyLookup(t *testing.T) {
+	// Create the context, store and sorted fixture for the Okra builder test.
 	ctx := context.Background()
 	store := newOkraTestStore()
 	fixture := newOkraFixture(t, ctx, store, 64)
 
+	// Build and publish the sorted fixture tree.
 	tx, _, err := BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
@@ -30,6 +32,7 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open the published root as a read-only Okra transaction.
 	_, readCursor := block.NewTransaction(store, nil, rootRef, nil)
 	okraTx, err := NewTx(ctx, readCursor, nil, false, nil)
 	if err != nil {
@@ -37,6 +40,7 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 	}
 	defer okraTx.Discard()
 
+	// Require the published size to match the fixture key count.
 	size, err := okraTx.Size(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -45,11 +49,14 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 		t.Fatalf("size = %d, want %d", size, len(fixture.keys))
 	}
 
+	// Read a fixture value through the key lookup API.
 	key := fixture.keys[17]
 	value, found, err := okraTx.Get(ctx, key)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the fixture key and its expected value bytes.
 	if !found {
 		t.Fatalf("key %q not found", key)
 	}
@@ -57,6 +64,7 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 		t.Fatalf("value = %q, want %q", value, fixture.values[17])
 	}
 
+	// Require the existing fixture key to report present.
 	exists, err := okraTx.Exists(ctx, key)
 	if err != nil {
 		t.Fatal(err)
@@ -64,6 +72,8 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 	if !exists {
 		t.Fatalf("exists(%q) = false", key)
 	}
+
+	// Require a missing key to report absent.
 	exists, err = okraTx.Exists(ctx, []byte("key-999999"))
 	if err != nil {
 		t.Fatal(err)
@@ -72,6 +82,7 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 		t.Fatal("missing key reported present")
 	}
 
+	// Fetch the fixture value through its block cursor.
 	valueCursor, err := okraTx.GetCursorAtKey(ctx, key)
 	if err != nil {
 		t.Fatal(err)
@@ -80,18 +91,24 @@ func TestBuildTreeReadOnlyLookup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the fetched cursor bytes to match the fixture value.
 	if !ok || !bytes.Equal(data, fixture.values[17]) {
 		t.Fatalf("cursor value = %q, %v, want %q, true", data, ok, fixture.values[17])
 	}
 }
 
 func TestBuildTreeStableRoot(t *testing.T) {
+	// Create the context, store and sorted fixture for the Okra builder test.
 	ctx := context.Background()
 	store := newOkraTestStore()
 	fixture := newOkraFixture(t, ctx, store, 128)
 
+	// Publish the fixture twice to compare their roots.
 	firstRef, firstRoot := writeOkraFixture(t, ctx, store, fixture)
 	secondRef, secondRoot := writeOkraFixture(t, ctx, store, fixture)
+
+	// Require stable root references and hashes with the configured tree constants.
 	if !firstRef.EqualsRef(secondRef) {
 		t.Fatalf("root ref changed: %s != %s", firstRef.MarshalLog(), secondRef.MarshalLog())
 	}
@@ -110,10 +127,12 @@ func TestBuildTreeStableRoot(t *testing.T) {
 }
 
 func TestIncrementalRootMatchesBuilder(t *testing.T) {
+	// Create the context, store and sorted fixture for the Okra builder test.
 	ctx := context.Background()
 	store := newOkraTestStore()
 	fixture := newOkraFixture(t, ctx, store, 512)
 
+	// Prepare the base tree and exercise each mutation against the builder.
 	baseRef, _ := writeOkraFixture(t, ctx, store, fixture)
 	pageStartKey := firstNonAnchorLeafStartKey(t, ctx, store, baseRef)
 	for _, tc := range []struct {
@@ -193,7 +212,10 @@ func TestIncrementalRootMatchesBuilder(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Apply the expected entry changes to a copy of the fixture.
 			entries := tc.apply(cloneFixtureEntries(fixture))
+
+			// Require the incremental mutation to match an independent rebuild.
 			assertIncrementalRootMatchesBuilder(t, ctx, store, baseRef, entries, tc.mutate)
 		})
 	}
@@ -253,6 +275,7 @@ func setOkraRefAtKey(
 	key []byte,
 	ref *block.BlockRef,
 ) {
+	// Attach the supplied value reference through a detached cursor.
 	t.Helper()
 	valueCursor := rootCursor.Detach(false)
 	valueCursor.ClearAllRefs()
@@ -270,14 +293,18 @@ func assertIncrementalRootMatchesBuilder(
 	entries []BuildEntry,
 	mutate func(*Tx, *block.Cursor),
 ) {
+	// Build the expected root from the changed entry sequence.
 	t.Helper()
 	builderRef, builderRoot := writeOkraBuildEntries(t, ctx, store, entries)
 
+	// Open the base tree for the incremental mutation.
 	btx, rootCursor := block.NewTransaction(store, nil, baseRef, nil)
 	tx, err := NewTx(ctx, rootCursor, nil, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Apply and publish the incremental tree mutation.
 	mutate(tx, rootCursor)
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
@@ -286,9 +313,12 @@ func assertIncrementalRootMatchesBuilder(
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the incrementally published tree for comparison.
 	readTx := openOkraRoot(t, ctx, store, incrementalRef, false)
 	defer readTx.Discard()
 
+	// Require the incremental root reference and hash to match the builder.
 	if !builderRef.EqualsRef(incrementalRef) {
 		t.Fatalf(
 			"incremental root ref = %s, builder root ref = %s, incremental height/size/hash = %d/%d/%x, builder height/size/hash = %d/%d/%x",
@@ -313,6 +343,7 @@ func firstNonAnchorLeafStartKey(
 	store block.StoreOps,
 	rootRef *block.BlockRef,
 ) []byte {
+	// Open the fixture root and load its top page.
 	t.Helper()
 	tx := openOkraRoot(t, ctx, store, rootRef, false)
 	defer tx.Discard()
@@ -320,6 +351,8 @@ func firstNonAnchorLeafStartKey(
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Locate the first leaf boundary that follows the anchor page.
 	key, ok := firstNonAnchorLeafStartKeyInPage(t, ctx, page, cursor)
 	if !ok {
 		t.Fatal("missing non-anchor leaf page start key")
@@ -333,6 +366,7 @@ func firstNonAnchorLeafStartKeyInPage(
 	page *Page,
 	cursor *block.Cursor,
 ) ([]byte, bool) {
+	// Return the first key of a non-anchor leaf page.
 	t.Helper()
 	if page.GetLevel() == 0 {
 		if page.GetStartsAtAnchor() {
@@ -344,6 +378,8 @@ func firstNonAnchorLeafStartKeyInPage(
 		}
 		return bytes.Clone(entries[0].GetKey()), true
 	}
+
+	// Search child pages for the first non-anchor leaf boundary.
 	for idx := range page.GetEntries() {
 		childCursor := page.FollowChild(cursor, idx)
 		child, err := loadPage(ctx, childCursor)
@@ -363,6 +399,7 @@ func writeOkraBuildEntries(
 	store block.StoreOps,
 	entries []BuildEntry,
 ) (*block.BlockRef, *Root) {
+	// Build the requested entry sequence with staged page writes.
 	t.Helper()
 	builderTx, _, err := BuildTreeWithEntries(ctx, store, nil, nil, func(yield func(BuildEntry) bool) {
 		for _, ent := range entries {
@@ -374,26 +411,34 @@ func writeOkraBuildEntries(
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the built root to the block store.
 	rootRef, _, err := builderTx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the published root and return a copy of its metadata.
 	readTx := openOkraRoot(t, ctx, store, rootRef, false)
 	defer readTx.Discard()
 	return rootRef, readTx.root.CloneVT()
 }
 
 func TestBuildTreeRootPageMetadata(t *testing.T) {
+	// Create the context, store and sorted fixture for the Okra builder test.
 	ctx := context.Background()
 	store := newOkraTestStore()
 	fixture := newOkraFixture(t, ctx, store, 96)
 	_, root := writeOkraFixture(t, ctx, store, fixture)
 
+	// Load the built root page for metadata comparison.
 	_, readCursor := block.NewTransaction(store, nil, root.GetRootPageRef(), nil)
 	page, err := loadPage(ctx, readCursor)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the root page level, hash, entries and size to agree with the root.
 	if page.GetLevel() != root.GetHeight() {
 		t.Fatalf("root page level = %d, want %d", page.GetLevel(), root.GetHeight())
 	}
@@ -409,11 +454,13 @@ func TestBuildTreeRootPageMetadata(t *testing.T) {
 }
 
 func TestBuildTreeDepthIsLowerThanIAVL(t *testing.T) {
+	// Create the context, store and sorted fixture for the Okra builder test.
 	ctx := context.Background()
 	store := newOkraTestStore()
 	fixture := newOkraFixture(t, ctx, store, 1024)
 	_, okraRoot := writeOkraFixture(t, ctx, store, fixture)
 
+	// Build and publish the same fixture as an IAVL tree.
 	iavlTx, _, err := iavl.BuildTree(store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
@@ -422,6 +469,8 @@ func TestBuildTreeDepthIsLowerThanIAVL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the published IAVL tree for a height comparison.
 	_, iavlReadCursor := block.NewTransaction(store, nil, iavlRef, nil)
 	iavlReadTx, err := iavl.NewTx(ctx, iavlReadCursor, nil, false, nil)
 	if err != nil {
@@ -429,18 +478,22 @@ func TestBuildTreeDepthIsLowerThanIAVL(t *testing.T) {
 	}
 	defer iavlReadTx.Discard()
 
+	// Require the packed Okra tree to have lower height than IAVL.
 	if okraRoot.GetHeight() >= iavlReadTx.Height() {
 		t.Fatalf("Okra height = %d, IAVL height = %d", okraRoot.GetHeight(), iavlReadTx.Height())
 	}
 }
 
 func TestBuildTreeRejectsUnsortedEntries(t *testing.T) {
+	// Feed the Okra builder an entry sequence with descending keys.
 	ctx := context.Background()
 	store := newOkraTestStore()
 	_, _, err := BuildTreeWithEntries(ctx, store, nil, nil, func(yield func(BuildEntry) bool) {
 		yield(BuildEntry{Key: []byte("b")})
 		yield(BuildEntry{Key: []byte("a")})
 	})
+
+	// Require the builder to reject the unsorted entry sequence.
 	if err != ErrUnsortedEntries {
 		t.Fatalf("err = %v, want %v", err, ErrUnsortedEntries)
 	}
@@ -496,21 +549,28 @@ func writeOkraFixture(
 	store block.StoreOps,
 	fixture *okraFixture,
 ) (*block.BlockRef, *Root) {
+	// Build the sorted fixture as a staged Okra tree.
 	t.Helper()
 	tx, rootCursor, err := BuildTree(ctx, store, nil, nil, fixture.seq())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the fixture root to the block store.
 	rootRef, _, err := tx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the published fixture root for metadata readback.
 	_, readCursor := block.NewTransaction(store, nil, rootRef, nil)
 	okraTx, err := NewTx(ctx, readCursor, nil, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer okraTx.Discard()
+
+	// Require the builder to return the root cursor with its metadata.
 	if rootCursor == nil {
 		t.Fatal("missing root cursor")
 	}
