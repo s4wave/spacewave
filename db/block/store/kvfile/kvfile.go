@@ -147,7 +147,10 @@ func (k *KvfileBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 
 	// Look up the stored block size for its metadata.
 	size, err := k.store.GetValueSize(key)
-	if err != nil || size < 0 {
+	if err != nil {
+		return nil, err
+	}
+	if size < 0 {
 		return nil, nil
 	}
 
