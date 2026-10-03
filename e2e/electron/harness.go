@@ -61,10 +61,13 @@ type Harness struct {
 // Boot starts Bldr's current desktop runtime and waits until Electron exposes
 // its debug-only CDP endpoint.
 func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
+	// Locate the repository that supplies the Electron runtime.
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		return nil, errors.Wrap(err, "find repo root")
 	}
+
+	// Recreate the isolated Electron state directory.
 	stateRoot := filepath.Join(repoRoot, ".bldr", "e2e-electron")
 	if err := os.RemoveAll(stateRoot); err != nil {
 		return nil, errors.Wrap(err, "clear electron e2e state root")
@@ -72,6 +75,8 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create electron e2e state root")
 	}
+
+	// Create the Electron runtime artifact and data directories.
 	artifactDir := filepath.Join(stateRoot, "artifacts", "runtime")
 	if err := os.MkdirAll(artifactDir, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create electron e2e artifact dir")
@@ -81,6 +86,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 		return nil, errors.Wrap(err, "create electron e2e spacewave data root")
 	}
 
+	// Reserve ports for the Electron CDP and test control endpoints.
 	port, err := findFreePort()
 	if err != nil {
 		return nil, errors.Wrap(err, "find CDP port")
@@ -90,11 +96,13 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 		return nil, errors.Wrap(err, "find Electron e2e control port")
 	}
 
+	// Resolve the runtime source path relative to its isolated state.
 	bldrSrcPath, err := filepath.Rel(filepath.Join(stateRoot, "src"), repoRoot)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve bldr source path")
 	}
 
+	// Construct the Electron harness and release it if startup fails.
 	hctx, cancel := context.WithCancel(ctx)
 	h := &Harness{
 		ctx:               ctx,
@@ -115,6 +123,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 		}
 	}()
 
+	// Configure Electron debugging and isolate its saved test state.
 	h.restoreEnv = append(h.restoreEnv,
 		setEnv("BLDR_PLUGIN_WEB_SKIP_ELECTRON", "false"),
 		setEnv("BLDR_ELECTRON_REMOTE_DEBUGGING_PORT", strconv.Itoa(port)),
@@ -123,6 +132,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 		setEnv("SPACEWAVE_DATA_DIR", spacewaveDataRoot),
 	)
 
+	// Start the Electron desktop runtime and wait for its CDP endpoint.
 	if err := h.startDesktopRuntime(ctx, hctx, cancel); err != nil {
 		return nil, err
 	}
@@ -167,12 +177,14 @@ func (h *Harness) connectDriver(ctx context.Context) error {
 }
 
 func (h *Harness) connectDriverOnce() error {
+	// Start the Playwright driver for the Electron attachment.
 	pw, err := playwright.Run()
 	if err != nil {
 		return errors.Wrap(err, "start playwright")
 	}
 	h.pw = pw
 
+	// Attach Playwright Chromium to the Electron CDP endpoint.
 	browser, err := pw.Chromium.ConnectOverCDP(h.CDPEndpoint())
 	if err != nil {
 		_ = pw.Stop()
@@ -186,11 +198,13 @@ func (h *Harness) connectDriverOnce() error {
 // Relaunch terminates the current Electron runtime, starts it again with the
 // same state root, and reconnects the Playwright CDP driver.
 func (h *Harness) Relaunch(ctx context.Context) error {
+	// Disconnect Playwright and stop the current Electron runtime.
 	h.disconnectDriver()
 	if err := h.stopDesktopRuntime(); err != nil {
 		return err
 	}
 
+	// Restart Electron with the retained state and reconnect Playwright.
 	hctx, cancel := context.WithCancel(h.ctx)
 	if err := h.startDesktopRuntime(ctx, hctx, cancel); err != nil {
 		return err
@@ -365,6 +379,7 @@ func (h *Harness) WaitForAppPageCount(
 // ActivateApp triggers the Electron app activation path through the opt-in e2e
 // control endpoint.
 func (h *Harness) ActivateApp(ctx context.Context) error {
+	// Prepare an activation request for the Electron control endpoint.
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
@@ -374,6 +389,8 @@ func (h *Harness) ActivateApp(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Send the Electron activation request and require a successful response.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
@@ -401,10 +418,12 @@ func (h *Harness) startDesktopRuntime(
 	hctx context.Context,
 	cancel context.CancelFunc,
 ) error {
+	// Prepare the completion state for this Electron runtime launch.
 	h.cancel = cancel
 	h.done = make(chan struct{})
 	h.doneErr = nil
 
+	// Configure Bldr to launch the Electron renderer from the harness state.
 	args := devtool.NewDevtoolArgs()
 	args.Logger = h.le
 	args.LogLevel = "debug"
@@ -413,6 +432,8 @@ func (h *Harness) startDesktopRuntime(
 	args.WebRenderer = "electron"
 	args.BldrSrcPath = h.bldrSrc
 	args.MinifyEntrypoint = false
+
+	// Create a distinct log file for this Electron runtime launch.
 	h.startSeq++
 	logPath := filepath.Join(h.artifactDir, fmt.Sprintf("devtool-start-%02d.log", h.startSeq))
 	if err := args.LogFiles.Set("level=DEBUG;path=" + logPath); err != nil {
@@ -420,12 +441,14 @@ func (h *Harness) startDesktopRuntime(
 	}
 	h.logFiles = append(h.logFiles, logPath)
 
+	// Run Bldr until the desktop runtime exits and publish its completion.
 	go func() {
 		h.doneErr = args.ExecuteNativeProject(hctx)
 		args.CloseLogFiles()
 		close(h.done)
 	}()
 
+	// Wait for the Electron CDP endpoint within the configured startup bound.
 	cdpReadyTimeout, err := resolveCDPReadyTimeout()
 	if err != nil {
 		return err
@@ -440,10 +463,12 @@ func (h *Harness) startDesktopRuntime(
 }
 
 func (h *Harness) stopDesktopRuntime() error {
+	// Skip shutdown when the Electron harness has no runtime to stop.
 	if h.done == nil {
 		return nil
 	}
 
+	// Report a prior Electron runtime exit before requesting shutdown.
 	select {
 	case <-h.done:
 		err := h.doneErr
@@ -456,6 +481,7 @@ func (h *Harness) stopDesktopRuntime() error {
 	default:
 	}
 
+	// Cancel the Electron runtime and wait for its process and CDP endpoint to stop.
 	if h.cancel != nil {
 		h.cancel()
 		h.cancel = nil
@@ -482,6 +508,7 @@ func (h *Harness) disconnectDriver() {
 }
 
 func (h *Harness) waitForCDP(ctx context.Context) error {
+	// Query the Electron CDP endpoint until startup succeeds or ends.
 	url := h.CDPEndpoint() + "/json/version"
 	client := &http.Client{Timeout: 500 * time.Millisecond}
 	ticker := time.NewTicker(250 * time.Millisecond)
@@ -537,10 +564,13 @@ func (h *Harness) desktopRuntimeErr(msg string) error {
 }
 
 func resolveCDPReadyTimeout() (time.Duration, error) {
+	// Read the configured Electron CDP startup timeout or use its default.
 	raw := strings.TrimSpace(os.Getenv(cdpReadyTimeoutEnv))
 	if raw == "" {
 		return defaultCDPReadyTimeout, nil
 	}
+
+	// Parse and require a positive Electron CDP startup timeout.
 	timeout, err := time.ParseDuration(raw)
 	if err != nil {
 		return 0, errors.Wrapf(err, "unsupported %s value %q", cdpReadyTimeoutEnv, raw)

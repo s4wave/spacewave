@@ -29,6 +29,7 @@ func KvStoreFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require World state and the KV store type before opening the service.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
@@ -36,12 +37,14 @@ func KvStoreFactory(
 		return nil, nil, err
 	}
 
+	// Retain the World object while opening its KV store.
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Open the World-backed store against the object root.
 	var store *WorldBackedStore
 	if err := obj.AccessWorldState(ctx, nil, func(root worldCursor) error {
 		var err error
@@ -54,6 +57,7 @@ func KvStoreFactory(
 		return nil, nil, errors.New("kv/store: failed to open world-backed store")
 	}
 
+	// Register the KV store RPC service and transfer its cleanup to the caller.
 	mux := srpc.NewMux()
 	if err := kvtx_rpc.SRPCRegisterKvtx(mux, kvtx_rpc_server.NewStore(store)); err != nil {
 		store.Close()

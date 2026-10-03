@@ -69,13 +69,16 @@ func newTxHandle(tx kvtx.Tx) (*txHandle, error) {
 }
 
 func (h *txHandle) acquire(released func()) (srpc.Invoker, func(), error) {
+	// Hold the transaction handle lock while acquiring an operations stream.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 
+	// Reject operations streams after the transaction handle starts closing.
 	if h.closing {
 		return nil, nil, kvtx.ErrDiscarded
 	}
 
+	// Register the operations stream and return its transaction route.
 	id := h.next
 	h.next++
 	h.active[id] = released
@@ -97,6 +100,7 @@ func (h *txHandle) release(id uint64) {
 }
 
 func (h *txHandle) closeOps() {
+	// Join an existing transaction operations shutdown under the handle lock.
 	h.mtx.Lock()
 	if h.closing {
 		idle := h.idle
@@ -107,6 +111,7 @@ func (h *txHandle) closeOps() {
 		return
 	}
 
+	// Mark the transaction handle closing and collect its active stream releases.
 	h.closing = true
 	releases := make([]func(), 0, len(h.active))
 	for _, release := range h.active {
@@ -122,6 +127,7 @@ func (h *txHandle) closeOps() {
 	}
 	h.mtx.Unlock()
 
+	// Cancel the transaction operations streams and wait for their releases.
 	for _, release := range releases {
 		release()
 	}
@@ -132,11 +138,13 @@ func (h *txHandle) closeOps() {
 
 // KvtxTransaction starts & manages a key-value transaction.
 func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) error {
+	// Receive the KV transaction initialization request from the RPC stream.
 	req, err := strm.Recv()
 	if err != nil {
 		return err
 	}
 
+	// Open the KV transaction and register its operations route when successful.
 	write := req.GetInit().GetWrite()
 	tx, err := s.store.NewTransaction(strm.Context(), write)
 	var errStr, txID string
@@ -145,16 +153,19 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 		errStr = err.Error()
 		retryClass = retryClassForError(err)
 	} else {
+		// Assign an RPC transaction identifier for the opened KV transaction.
 		txIDNumeric := s.idCounter.Add(1) - 1
 		txID = "tx/" + strconv.Itoa(int(txIDNumeric))
 		retryClass = kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 
+		// Create the KV operations handle for the RPC transaction.
 		handle, hErr := newTxHandle(tx)
 		if hErr != nil {
 			tx.Discard()
 			return hErr
 		}
 
+		// Publish the KV transaction route under the store registry lock.
 		s.rmtx.Lock()
 		s.txs[txID] = handle
 		s.rmtx.Unlock()
@@ -177,6 +188,7 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 		}
 	}()
 
+	// Acknowledge the KV transaction identifier or its storage failure.
 	txErr := strm.Send(&kvtx_rpc.KvtxTransactionResponse{
 		Body: &kvtx_rpc.KvtxTransactionResponse_Ack{
 			Ack: &kvtx_rpc.KvtxTransactionAck{
@@ -199,6 +211,8 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 	if !doCommit && !doDiscard {
 		return errors.New("expected commit or discard but got neither")
 	}
+
+	// Close the KV operations route before committing or discarding the transaction.
 	var commitErrStr string
 	var commitErr error
 	var commitRetryClass kvtx_rpc.KvtxRetryClass
@@ -211,6 +225,8 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 			handle.closeOps()
 		}
 	}
+
+	// Commit or discard the KV transaction and retain its completion error.
 	if doCommit {
 		commitErr = tx.Commit(strm.Context())
 		if commitErr != nil {
@@ -240,6 +256,7 @@ func (s *Store) KvtxTransactionRpc(strm kvtx_rpc.SRPCKvtx_KvtxTransactionRpcStre
 
 // Watch streams key/value snapshots after committed store changes.
 func (s *Store) Watch(req *kvtx_rpc.KvtxWatchRequest, strm kvtx_rpc.SRPCKvtx_WatchStream) error {
+	// Stream a bounded KV watch when the request specifies snapshot limits.
 	limits := kvtx.WatchLimits{MaxRecords: req.GetMaxRecords(), MaxBytes: req.GetMaxBytes()}
 	if limits.MaxRecords != 0 || limits.MaxBytes != 0 {
 		bounded, ok := s.store.(kvtx.BoundedWatchStore)
@@ -282,6 +299,7 @@ func sendWatchResponse(strm kvtx_rpc.SRPCKvtx_WatchStream, req *kvtx_rpc.KvtxWat
 
 // GetKvtxOpsMux returns the KvtxOpsServer mux for the given transaction id.
 func (s *Store) GetKvtxOpsMux(ctx context.Context, txID string, released func()) (srpc.Invoker, func(), error) {
+	// Resolve the KV transaction handle from the store route registry.
 	s.rmtx.RLock()
 	handle, ok := s.txs[txID]
 	s.rmtx.RUnlock()

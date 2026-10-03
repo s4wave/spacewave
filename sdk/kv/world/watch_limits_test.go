@@ -26,12 +26,15 @@ func openBoundedWorldBackedStore(
 	ws world.WorldState,
 	objectKey string,
 ) (*s4wave_kv_world.WorldBackedStore, func()) {
+	// Retain the World object while opening its bounded-watch KV store.
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}
+
+	// Open a KV store against the retained World object root.
 	var store *s4wave_kv_world.WorldBackedStore
 	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
 		var err error
@@ -58,15 +61,20 @@ func expectWatchEntries(t *testing.T, entries []kvtx.WatchEntry, want []kvtx.Wat
 
 // commitKvSet commits one set into the store and discards the transaction.
 func commitKvSet(t *testing.T, ctx context.Context, store kvtx.Store, key, value string) {
+	// Open a KV write transaction for the requested watch record.
 	t.Helper()
 	writeTx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the requested KV record into the watch store.
 	if err := writeTx.Set(ctx, []byte(key), []byte(value)); err != nil {
 		writeTx.Discard()
 		t.Fatal(err)
 	}
+
+	// Commit the watch record and release the KV transaction.
 	if err := writeTx.Commit(ctx); err != nil {
 		writeTx.Discard()
 		t.Fatal(err)
@@ -77,6 +85,7 @@ func commitKvSet(t *testing.T, ctx context.Context, store kvtx.Store, key, value
 // TestWatchPrefixBoundedRejectsOverLimitSnapshotWithoutCallback proves an
 // initial snapshot past either limit returns ErrWatchLimit with no callback.
 func TestWatchPrefixBoundedRejectsOverLimitSnapshotWithoutCallback(t *testing.T) {
+	// Start a testbed with a bounded context for KV snapshot limits.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -85,6 +94,7 @@ func TestWatchPrefixBoundedRejectsOverLimitSnapshotWithoutCallback(t *testing.T)
 	}
 	defer tb.Release()
 
+	// Open a typed World-backed KV store for rejected snapshots.
 	objectKey := "kv/limit-store"
 	createKvStoreObject(t, ctx, tb.WorldState, objectKey, true)
 	store, cleanup := openBoundedWorldBackedStore(t, ctx, tb.WorldState, objectKey)
@@ -101,6 +111,8 @@ func TestWatchPrefixBoundedRejectsOverLimitSnapshotWithoutCallback(t *testing.T)
 		calls++
 		return nil
 	})
+
+	// Require the record-limited KV watch to reject its snapshot without delivery.
 	if !errors.Is(err, kvtx.ErrWatchLimit) {
 		t.Fatalf("MaxRecords limit error = %v, want ErrWatchLimit", err)
 	}
@@ -113,6 +125,8 @@ func TestWatchPrefixBoundedRejectsOverLimitSnapshotWithoutCallback(t *testing.T)
 		calls++
 		return nil
 	})
+
+	// Require the byte-limited KV watch to reject its snapshot without delivery.
 	if !errors.Is(err, kvtx.ErrWatchLimit) {
 		t.Fatalf("MaxBytes limit error = %v, want ErrWatchLimit", err)
 	}
@@ -125,6 +139,7 @@ func TestWatchPrefixBoundedRejectsOverLimitSnapshotWithoutCallback(t *testing.T)
 // at both limits is delivered once in stable sorted key order and one byte
 // under the bound is rejected without a callback.
 func TestWatchPrefixBoundedExactBoundarySnapshotOrdered(t *testing.T) {
+	// Start a testbed with a bounded context for exact KV snapshot limits.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -133,11 +148,13 @@ func TestWatchPrefixBoundedExactBoundarySnapshotOrdered(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Open a typed World-backed KV store for boundary snapshots.
 	objectKey := "kv/boundary-store"
 	createKvStoreObject(t, ctx, tb.WorldState, objectKey, true)
 	store, cleanup := openBoundedWorldBackedStore(t, ctx, tb.WorldState, objectKey)
 	defer cleanup()
 
+	// Commit the KV records whose total size defines the snapshot boundary.
 	commitKvSet(t, ctx, store, "a", "one")
 	commitKvSet(t, ctx, store, "b", "two")
 	commitKvSet(t, ctx, store, "c", "three")
@@ -149,6 +166,8 @@ func TestWatchPrefixBoundedExactBoundarySnapshotOrdered(t *testing.T) {
 		calls++
 		return nil
 	})
+
+	// Require the KV watch to reject a snapshot above its byte limit.
 	if !errors.Is(err, kvtx.ErrWatchLimit) {
 		t.Fatalf("13-byte limit error = %v, want ErrWatchLimit", err)
 	}
@@ -164,6 +183,8 @@ func TestWatchPrefixBoundedExactBoundarySnapshotOrdered(t *testing.T) {
 		got = entries
 		return kvtx.ErrWatchLimit
 	})
+
+	// Require the boundary KV snapshot to reach the callback in key order.
 	if !errors.Is(err, kvtx.ErrWatchLimit) {
 		t.Fatalf("exact boundary watch error = %v, want ErrWatchLimit from the callback", err)
 	}
@@ -178,6 +199,7 @@ func TestWatchPrefixBoundedExactBoundarySnapshotOrdered(t *testing.T) {
 // bound ends only the bounded watch while a separate prefix watch keeps
 // receiving valid snapshots.
 func TestBoundedWatchLimitEndsOnlyThatWatch(t *testing.T) {
+	// Start a testbed with a bounded context for independent KV watches.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -186,6 +208,7 @@ func TestBoundedWatchLimitEndsOnlyThatWatch(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Open a typed World-backed KV store shared by both watches.
 	objectKey := "kv/growth-store"
 	createKvStoreObject(t, ctx, tb.WorldState, objectKey, true)
 	store, cleanup := openBoundedWorldBackedStore(t, ctx, tb.WorldState, objectKey)
@@ -278,6 +301,8 @@ func TestBoundedWatchLimitEndsOnlyThatWatch(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("unbounded watch stopped after the bounded watch failed")
 	}
+
+	// Cancel the surviving KV watch and require clean shutdown.
 	cancelUnbounded()
 	<-unboundedDone
 	if err := <-unboundedErr; err != nil && !errors.Is(err, context.Canceled) {
@@ -289,6 +314,7 @@ func TestBoundedWatchLimitEndsOnlyThatWatch(t *testing.T) {
 // ErrWatchLimit into a final response with LimitExceeded set and the client
 // Store maps that response back to ErrWatchLimit.
 func TestBoundedWatchOverRPCMapsLimitError(t *testing.T) {
+	// Start a testbed with a bounded context for KV watch limits over RPC.
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -297,6 +323,7 @@ func TestBoundedWatchOverRPCMapsLimitError(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Open a typed World-backed KV store for the bounded RPC watch.
 	objectKey := "kv/rpc-limit-store"
 	createKvStoreObject(t, ctx, tb.WorldState, objectKey, true)
 	store, cleanup := openBoundedWorldBackedStore(t, ctx, tb.WorldState, objectKey)
@@ -319,6 +346,8 @@ func TestBoundedWatchOverRPCMapsLimitError(t *testing.T) {
 		calls++
 		return nil
 	})
+
+	// Require the bounded RPC watch to reject its snapshot without delivery.
 	if !errors.Is(err, kvtx.ErrWatchLimit) {
 		t.Fatalf("bounded RPC watch error = %v, want ErrWatchLimit", err)
 	}

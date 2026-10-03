@@ -13,14 +13,17 @@ import (
 
 // TIER: nightly
 func TestTrayLifecycleKeepsRuntimeAliveAndActivationRestoresWindow(t *testing.T) {
+	// Require the shared Electron harness for tray lifecycle checks.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Bound the Electron tray activation and window-close observations.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Activate the open Electron window and require its page count to remain stable.
 	page, err := h.WaitForPage(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -36,6 +39,7 @@ func TestTrayLifecycleKeepsRuntimeAliveAndActivationRestoresWindow(t *testing.T)
 		t.Fatal("activation with an open main window should focus it, not close it")
 	}
 
+	// Close every Electron app window and require the runtime to remain alive.
 	pages := h.AppPages()
 	if len(pages) == 0 {
 		t.Fatal("expected at least one app page before close")
@@ -48,6 +52,7 @@ func TestTrayLifecycleKeepsRuntimeAliveAndActivationRestoresWindow(t *testing.T)
 		t.Fatalf("electron runtime should stay alive after closing windows: %v", err)
 	}
 
+	// Activate Electron from the tray state and require one restored app window.
 	if err := h.ActivateApp(ctx); err != nil {
 		t.Fatal(err)
 	}

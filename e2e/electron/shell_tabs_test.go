@@ -17,11 +17,13 @@ const shellUIWaitTimeout = 120_000
 
 // TIER: nightly
 func TestShellTabSelectionPersistsInWindowSession(t *testing.T) {
+	// Require the shared Electron harness for shell selection persistence.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Open one Electron shell page and seed its saved tab selection.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	mainPage, err := waitForShellPage(ctx, h)
@@ -39,6 +41,7 @@ func TestShellTabSelectionPersistsInWindowSession(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Select Changelog and require the shell to save its active tab.
 	if err := clickShellTab(mainPage, "Changelog"); err != nil {
 		t.Fatal(err)
 	}
@@ -49,6 +52,7 @@ func TestShellTabSelectionPersistsInWindowSession(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Select Home and require the shell to save the restored active tab.
 	if err := clickShellTab(mainPage, "Home"); err != nil {
 		t.Fatal(err)
 	}
@@ -62,11 +66,13 @@ func TestShellTabSelectionPersistsInWindowSession(t *testing.T) {
 
 // TIER: nightly
 func TestShellTabsSurviveRendererReload(t *testing.T) {
+	// Require the shared Electron harness for shell reload persistence.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Open one Electron shell page and seed its saved tabs.
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	page, err := waitForShellPage(ctx, h)
@@ -81,6 +87,7 @@ func TestShellTabsSurviveRendererReload(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Reload the Electron renderer and require its saved shell tabs to return.
 	if _, err := page.Reload(); err != nil {
 		t.Fatal(err)
 	}
@@ -98,11 +105,13 @@ func TestShellTabsSurviveRendererReload(t *testing.T) {
 
 // TIER: nightly
 func TestHelpDocumentationSelectsDocsShellTab(t *testing.T) {
+	// Require the shared Electron harness for the Documentation menu journey.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Open one Electron shell page and seed its grid tab layout.
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	page, err := waitForShellPage(ctx, h)
@@ -120,10 +129,12 @@ func TestHelpDocumentationSelectsDocsShellTab(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open Documentation through the Electron shell Help menu.
 	if err := invokeHelpDocumentationMenu(page); err != nil {
 		t.Fatal(err)
 	}
 
+	// Require the Docs tab, saved selection, and Documentation heading to agree.
 	if err := waitForSelectedShellTab(page, "Docs"); err != nil {
 		t.Fatal(err)
 	}
@@ -237,8 +248,8 @@ func seedShellTabs(page playwright.Page) error {
 }
 
 func seedGridShellTabs(t testing.TB, page playwright.Page) error {
+	// Encode and install the Electron shell grid and saved tab records.
 	t.Helper()
-
 	layoutData := encodeShellGridLayout(t)
 	if _, err := page.Evaluate(`(layoutData) => {
 		const records = [
@@ -258,6 +269,8 @@ func seedGridShellTabs(t testing.TB, page playwright.Page) error {
 	}`, layoutData); err != nil {
 		return err
 	}
+
+	// Reload the Electron shell and wait for the seeded grid tab names.
 	if _, err := page.Reload(); err != nil {
 		return err
 	}
@@ -278,8 +291,8 @@ func seedGridShellTabs(t testing.TB, page playwright.Page) error {
 }
 
 func encodeShellGridLayout(t testing.TB) string {
+	// Construct the shell grid snapshot with Home selected in the left pane.
 	t.Helper()
-
 	snapshot := &s4wave_layout.LayoutSnapshot{
 		Model: &s4wave_layout.LayoutModel{
 			Layout: &s4wave_layout.RowDef{
@@ -298,6 +311,8 @@ func encodeShellGridLayout(t testing.TB) string {
 			},
 		},
 	}
+
+	// Encode the shell grid snapshot for its route.
 	data, err := snapshot.MarshalVT()
 	if err != nil {
 		t.Fatalf("marshal shell grid layout: %v", err)
@@ -323,6 +338,7 @@ func shellGridTabset(tabsetID, tabID, name string) *s4wave_layout.RowOrTabSetDef
 }
 
 func invokeHelpDocumentationMenu(page playwright.Page) error {
+	// Prepare bounded shell Help menu interactions.
 	clickOptions := playwright.LocatorClickOptions{
 		Timeout: playwright.Float(shellUIWaitTimeout),
 	}
@@ -330,6 +346,7 @@ func invokeHelpDocumentationMenu(page playwright.Page) error {
 		Timeout: playwright.Float(shellUIWaitTimeout),
 	}
 
+	// Open the shell Help menu and invoke its Documentation item.
 	if err := page.Locator("button:visible:has-text('Help')").First().Click(clickOptions); err != nil {
 		return fmt.Errorf("click Help menu: %w; state=%s", err, shellMenuDebug(page))
 	}

@@ -14,11 +14,13 @@ import (
 )
 
 func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
+	// Prepare a transaction handle with observable operations shutdown.
 	h := &txHandle{
 		active: make(map[uint64]func()),
 		idle:   make(chan struct{}),
 	}
 
+	// Acquire a transaction operations stream with a cancellation signal.
 	released := make(chan struct{})
 	_, release, err := h.acquire(func() {
 		close(released)
@@ -27,32 +29,38 @@ func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
 		t.Fatalf("acquire: %v", err)
 	}
 
+	// Start transaction operations shutdown while the stream remains active.
 	closed := make(chan struct{})
 	go func() {
 		h.closeOps()
 		close(closed)
 	}()
 
+	// Require transaction shutdown to cancel the active operations stream.
 	select {
 	case <-released:
 	case <-time.After(time.Second):
 		t.Fatal("closeOps did not release active stream")
 	}
 
+	// Require transaction shutdown to wait for the active stream release.
 	select {
 	case <-closed:
 		t.Fatal("closeOps returned before active stream released")
 	default:
 	}
 
+	// Allow transaction shutdown to finish by releasing its retained stream.
 	release()
 
+	// Require transaction shutdown to finish after the stream release.
 	select {
 	case <-closed:
 	case <-time.After(time.Second):
 		t.Fatal("closeOps did not return after active stream released")
 	}
 
+	// Require the closed transaction handle to reject further operations streams.
 	_, _, err = h.acquire(nil)
 	if !errors.Is(err, kvtx.ErrDiscarded) {
 		t.Fatalf("acquire after close error = %v, want %v", err, kvtx.ErrDiscarded)
@@ -127,9 +135,12 @@ func (s *blockingScanStream) MsgSend(srpc.Message) error {
 }
 
 func (s *blockingScanStream) MsgRecv(msg srpc.Message) error {
+	// Reject repeated scan request reads after the test stream consumes its request.
 	if s.requestTaken {
 		return io.EOF
 	}
+
+	// Copy the initial KV scan request into the RPC message.
 	req, ok := msg.(*kvtx_rpc.KvtxScanPrefixRequest)
 	if !ok {
 		return errors.New("unexpected scan request type")
@@ -149,6 +160,7 @@ func TestKvtxTransactionDiscardWaitsForActiveScanPrefix(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = boltStore.GetDB().Close() })
 
+	// Commit the KV record that the retained scan will read.
 	seed, err := boltStore.NewTransaction(context.Background(), true)
 	if err != nil {
 		t.Fatal(err)

@@ -38,14 +38,19 @@ func TestCanvasReferenceCapture(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
+		// Keep Canvas failure artifacts limited to a failed reference capture.
 		if !t.Failed() {
 			return
 		}
+
+		// Capture the Canvas renderer image for failure inspection.
 		if _, err := page.Screenshot(playwright.PageScreenshotOptions{
 			Path: new(filepath.Join(output, "failure.png")),
 		}); err != nil {
 			t.Error(err)
 		}
+
+		// Save the Canvas renderer text alongside its failure image.
 		state, err := page.Locator("body").InnerText()
 		if err != nil {
 			t.Error(err)
@@ -84,6 +89,8 @@ func TestCanvasReferenceCapture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Construct the split Canvas and UnixFS shell layout.
 	left := shellGridTabset("grid-left", "grid-home", "Canvas 1")
 	right := shellGridTabset("grid-right", "grid-blog", "UnixFS Viewer")
 	left.GetTabSet().Weight = 55
@@ -103,10 +110,14 @@ func TestCanvasReferenceCapture(t *testing.T) {
 			},
 		},
 	}
+
+	// Encode the split shell layout for the Canvas reference route.
 	data, err := snapshot.MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the Canvas and UnixFS routes through the encoded shell layout.
 	if _, err := page.Evaluate(`([route, layout]) => {
 		const records = [
 			{ id: 'grid-home', name: 'Canvas 1', path: route, creationSequence: 1 },
@@ -119,6 +130,8 @@ func TestCanvasReferenceCapture(t *testing.T) {
 	}`, []any{route, base64.RawURLEncoding.EncodeToString(data)}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reload the split shell and wait for both object views to finish loading.
 	if _, err := page.Reload(); err != nil {
 		t.Fatal(err)
 	}
@@ -134,6 +147,8 @@ func TestCanvasReferenceCapture(t *testing.T) {
 	}`, nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(120000)}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Capture the loaded split Canvas and UnixFS reference image.
 	if _, err := page.Screenshot(playwright.PageScreenshotOptions{
 		Path: new(filepath.Join(output, "canvas-split.png")),
 	}); err != nil {

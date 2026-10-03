@@ -21,14 +21,17 @@ const desktopModuleLoadIssueAssetPath = "/b/pa/spacewave-app/v/b/fe/app/App-Cod_
 
 // TIER: nightly
 func TestRetainedStatePluginAssetFetchDiscriminator(t *testing.T) {
+	// Require the shared Electron harness for retained plugin asset checks.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Bound the retained Electron plugin asset observations.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// Record the initial Electron shell URL and runtime log.
 	initialPage, err := waitForShellPage(ctx, h)
 	if err != nil {
 		t.Fatal(err)
@@ -39,6 +42,7 @@ func TestRetainedStatePluginAssetFetchDiscriminator(t *testing.T) {
 		t.Fatal("expected initial devtool log path")
 	}
 
+	// Relaunch Electron with retained state and seed protected test records.
 	if err := h.Relaunch(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +59,7 @@ func TestRetainedStatePluginAssetFetchDiscriminator(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Fetch the plugin asset and require a recorded response or fetch failure.
 	result, err := fetchPluginAssetDiscriminator(retainedPage, desktopModuleLoadIssueAssetPath)
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +71,7 @@ func TestRetainedStatePluginAssetFetchDiscriminator(t *testing.T) {
 		t.Fatalf("expected HTTP status or fetch error in discriminator: %#v", result)
 	}
 
+	// Write the retained Electron plugin asset diagnostic record.
 	artifactPath, err := writePluginAssetDiscriminatorArtifact(
 		h,
 		initialURL,
@@ -79,6 +85,7 @@ func TestRetainedStatePluginAssetFetchDiscriminator(t *testing.T) {
 	}
 	t.Logf("retained plugin asset fetch discriminator: %s", artifactPath)
 
+	// Require retained Electron startup to reach the shared boot path.
 	bootResult, err := captureDesktopBootCompatibilityDiscriminator(retainedPage)
 	if err != nil {
 		t.Fatal(err)
@@ -99,6 +106,7 @@ func TestRetainedStatePluginAssetFetchDiscriminator(t *testing.T) {
 	}
 	t.Logf("retained desktop boot compatibility discriminator: %s", bootArtifactPath)
 
+	// Verify the protected Electron test records and save their survival evidence.
 	sentinelResult, err := verifyProtectedStateSentinels(retainedPage, sentinels)
 	if err != nil {
 		t.Fatal(err)
@@ -132,6 +140,7 @@ func fetchPluginAssetDiscriminator(
 	page playwright.Page,
 	assetPath string,
 ) (*pluginAssetFetchDiscriminator, error) {
+	// Fetch the plugin asset in the Electron renderer and decode its diagnostic result.
 	raw, err := page.Evaluate(`async (url) => {
 		try {
 			const response = await fetch(url, { cache: 'no-store' })
@@ -181,6 +190,7 @@ func writePluginAssetDiscriminatorArtifact(
 	retainedLogPath string,
 	result *pluginAssetFetchDiscriminator,
 ) (string, error) {
+	// Write the plugin asset response, classification, and retained runtime evidence.
 	var arena fastjson.Arena
 	encodedResult := result.appendJSON(&arena).MarshalTo(nil)
 	path := filepath.Join(h.ArtifactDir(), "retained-plugin-asset-fetch-discriminator.txt")
@@ -266,6 +276,7 @@ type desktopBootCompatibilityDiscriminator struct {
 func captureDesktopBootCompatibilityDiscriminator(
 	page playwright.Page,
 ) (*desktopBootCompatibilityDiscriminator, error) {
+	// Read the Electron shared-boot state and decode its compatibility result.
 	raw, err := page.Evaluate(`() => {
 		const bootStatus = globalThis.__swBootStatus
 		const scriptSources = Array.from(document.scripts)
@@ -312,6 +323,7 @@ func writeDesktopBootCompatibilityArtifact(
 	retainedLogPath string,
 	result *desktopBootCompatibilityDiscriminator,
 ) (string, error) {
+	// Write the Electron boot compatibility result and retained runtime evidence.
 	var arena fastjson.Arena
 	encodedResult := result.appendJSON(&arena).MarshalTo(nil)
 	path := filepath.Join(h.ArtifactDir(), "retained-desktop-boot-compatibility-discriminator.txt")
@@ -403,6 +415,7 @@ func verifyProtectedStateSentinels(
 	page playwright.Page,
 	sentinels *protectedStateSentinels,
 ) (*protectedStateSentinelResult, error) {
+	// Verify that the protected Electron file records retain their seeded contents.
 	result := &protectedStateSentinelResult{
 		FileSurvivors:       make(map[string]bool, len(sentinels.FileValues)),
 		WebStorageSurvivors: make(map[string]bool, len(sentinels.WebStorageValues)),
@@ -423,6 +436,7 @@ func verifyProtectedStateSentinels(
 		}
 	}
 
+	// Read protected Web Storage record survival from the Electron renderer.
 	var arena fastjson.Arena
 	encoded := appendStringMapJSON(&arena, sentinels.WebStorageValues).MarshalTo(nil)
 	raw, err := page.Evaluate(`(encoded) => {
@@ -448,6 +462,8 @@ func verifyProtectedStateSentinels(
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the renderer Web Storage survival response.
 	survivorsJSON, ok := raw.(string)
 	if !ok {
 		return nil, fmt.Errorf("unexpected Web Storage sentinel result %T: %#v", raw, raw)
@@ -456,6 +472,8 @@ func verifyProtectedStateSentinels(
 	if err != nil {
 		return nil, err
 	}
+
+	// Require every protected Web Storage record to retain its seeded value.
 	result.WebStorageSurvivors = webStorageSurvivors
 	for key, survived := range result.WebStorageSurvivors {
 		if !survived {
@@ -473,6 +491,7 @@ func writeProtectedStateSentinelArtifact(
 	retainedLogPath string,
 	result *protectedStateSentinelResult,
 ) (string, error) {
+	// Write the protected Electron record survival evidence.
 	var arena fastjson.Arena
 	encodedResult := result.appendJSON(&arena).MarshalTo(nil)
 	path := filepath.Join(h.ArtifactDir(), "retained-protected-state-sentinels.txt")
@@ -517,12 +536,15 @@ func parsePluginAssetFetchDiscriminator(data string) (*pluginAssetFetchDiscrimin
 }
 
 func (d *pluginAssetFetchDiscriminator) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Encode the plugin asset URL and fetch classification metadata.
 	obj := arena.NewObject()
 	obj.Set("url", arena.NewString(d.URL))
 	obj.Set("status", arena.NewNumberInt(d.Status))
 	obj.Set("fetchSource", arena.NewString(d.FetchSource))
 	obj.Set("runtimeError", arena.NewString(d.RuntimeError))
 	obj.Set("pluginAssetResult", arena.NewString(d.PluginAssetResult))
+
+	// Encode the plugin asset response content and fetch error.
 	obj.Set("contentType", arena.NewString(d.ContentType))
 	obj.Set("bodyPrefix", arena.NewString(d.BodyPrefix))
 	obj.Set("fetchError", arena.NewString(d.FetchError))
@@ -530,11 +552,14 @@ func (d *pluginAssetFetchDiscriminator) appendJSON(arena *fastjson.Arena) *fastj
 }
 
 func parseDesktopBootCompatibilityDiscriminator(data string) (*desktopBootCompatibilityDiscriminator, error) {
+	// Decode the Electron boot compatibility diagnostic response.
 	var parser fastjson.Parser
 	value, err := parser.Parse(data)
 	if err != nil {
 		return nil, err
 	}
+
+	// Collect the script sources recorded by the Electron boot diagnostic.
 	scriptSourceValues := value.GetArray("scriptSources")
 	scriptSources := make([]string, 0, len(scriptSourceValues))
 	for _, scriptSource := range scriptSourceValues {
@@ -552,6 +577,7 @@ func parseDesktopBootCompatibilityDiscriminator(data string) (*desktopBootCompat
 }
 
 func (d *desktopBootCompatibilityDiscriminator) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Encode the Electron shared-boot state and version markers.
 	obj := arena.NewObject()
 	obj.Set("url", arena.NewString(d.URL))
 	if d.HasBootStatus {
@@ -562,6 +588,8 @@ func (d *desktopBootCompatibilityDiscriminator) appendJSON(arena *fastjson.Arena
 	obj.Set("bootStatusPhase", arena.NewString(d.BootStatusPhase))
 	obj.Set("storedBootVersion", arena.NewString(d.StoredBootVersion))
 	obj.Set("resetAttemptVersion", arena.NewString(d.ResetAttemptVersion))
+
+	// Encode the Electron boot script sources and classification.
 	scriptSources := arena.NewArray()
 	for _, scriptSource := range d.ScriptSources {
 		scriptSources.SetArrayItem(len(scriptSources.GetArray()), arena.NewString(scriptSource))
@@ -572,6 +600,7 @@ func (d *desktopBootCompatibilityDiscriminator) appendJSON(arena *fastjson.Arena
 }
 
 func (r *protectedStateSentinelResult) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Encode the protected Electron record survival results.
 	obj := arena.NewObject()
 	obj.Set("fileSurvivors", appendBoolMapJSON(arena, r.FileSurvivors))
 	obj.Set("webStorageSurvivors", appendBoolMapJSON(arena, r.WebStorageSurvivors))
@@ -580,12 +609,15 @@ func (r *protectedStateSentinelResult) appendJSON(arena *fastjson.Arena) *fastjs
 }
 
 func appendStringMapJSON(arena *fastjson.Arena, values map[string]string) *fastjson.Value {
+	// Collect and sort the string record keys for deterministic JSON output.
 	obj := arena.NewObject()
 	keys := make([]string, 0, len(values))
 	for key := range values {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
+
+	// Encode the string records in sorted key order.
 	for _, key := range keys {
 		obj.Set(key, arena.NewString(values[key]))
 	}
@@ -593,12 +625,15 @@ func appendStringMapJSON(arena *fastjson.Arena, values map[string]string) *fastj
 }
 
 func appendBoolMapJSON(arena *fastjson.Arena, values map[string]bool) *fastjson.Value {
+	// Collect and sort the boolean record keys for deterministic JSON output.
 	obj := arena.NewObject()
 	keys := make([]string, 0, len(values))
 	for key := range values {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
+
+	// Encode the boolean records in sorted key order.
 	for _, key := range keys {
 		if values[key] {
 			obj.Set(key, arena.NewTrue())
@@ -610,11 +645,14 @@ func appendBoolMapJSON(arena *fastjson.Arena, values map[string]bool) *fastjson.
 }
 
 func parseBoolMapJSON(data string) (map[string]bool, error) {
+	// Decode the JSON object containing boolean record values.
 	var parser fastjson.Parser
 	value, err := parser.Parse(data)
 	if err != nil {
 		return nil, err
 	}
+
+	// Collect the decoded JSON fields as boolean records.
 	obj := value.GetObject()
 	values := make(map[string]bool, obj.Len())
 	obj.Visit(func(key []byte, value *fastjson.Value) {

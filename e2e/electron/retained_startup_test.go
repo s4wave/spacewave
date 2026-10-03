@@ -13,14 +13,17 @@ import (
 
 // TIER: nightly
 func TestRetainedStateLauncherStartupSmoke(t *testing.T) {
+	// Require the shared Electron harness for retained startup checks.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Bound the Electron retained-state relaunch test.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// Capture retained-startup diagnostics when an Electron assertion fails.
 	diag := &retainedStartupDiagnostics{h: h}
 	t.Cleanup(func() {
 		if t.Failed() {
@@ -32,6 +35,7 @@ func TestRetainedStateLauncherStartupSmoke(t *testing.T) {
 		}
 	})
 
+	// Record the initial Electron shell URL and runtime log path.
 	initialPage, err := waitForShellPage(ctx, h)
 	if err != nil {
 		t.Fatal(err)
@@ -44,6 +48,7 @@ func TestRetainedStateLauncherStartupSmoke(t *testing.T) {
 		t.Fatal("expected initial devtool log path")
 	}
 
+	// Relaunch Electron and require a new runtime log with the retained shell.
 	if err := h.Relaunch(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -59,6 +64,7 @@ func TestRetainedStateLauncherStartupSmoke(t *testing.T) {
 		t.Fatalf("expected distinct retained-start log path, got initial=%q retained=%q", initialLogPath, retainedLogPath)
 	}
 
+	// Require the retained Electron log to show cached manifest reuse.
 	retainedProofs := []string{
 		"keeping cached devtool manifests for startup validation",
 		"preflighting startup manifests",
@@ -68,6 +74,7 @@ func TestRetainedStateLauncherStartupSmoke(t *testing.T) {
 		waitForLogSubstring(t, ctx, retainedLogPath, proof)
 	}
 
+	// Save the initial and retained Electron runtime log tails.
 	initialTailPath := filepath.Join(h.ArtifactDir(), "retained-startup-initial-log-tail.txt")
 	if err := writeLogTail(initialLogPath, initialTailPath); err != nil {
 		t.Fatalf("write initial log tail: %v", err)
@@ -77,6 +84,7 @@ func TestRetainedStateLauncherStartupSmoke(t *testing.T) {
 		t.Fatalf("write retained log tail: %v", err)
 	}
 
+	// Record the retained Electron startup URLs, logs, and reuse evidence.
 	breadcrumbPath, err := writeRetainedStartupBreadcrumbs(
 		h,
 		initialURL,
@@ -102,6 +110,7 @@ type retainedStartupDiagnostics struct {
 }
 
 func (d *retainedStartupDiagnostics) writeFailure() (string, error) {
+	// Recover missing Electron log paths before writing failure diagnostics.
 	if d.initialLogPath == "" {
 		d.initialLogPath = d.h.LastLogFilePath()
 	}
@@ -109,6 +118,7 @@ func (d *retainedStartupDiagnostics) writeFailure() (string, error) {
 		d.retainedLogPath = d.h.LastLogFilePath()
 	}
 
+	// Save available Electron startup log tails for failure inspection.
 	initialTailPath := ""
 	if d.initialLogPath != "" {
 		initialTailPath = filepath.Join(d.h.ArtifactDir(), "retained-startup-failure-initial-log-tail.txt")
@@ -124,6 +134,7 @@ func (d *retainedStartupDiagnostics) writeFailure() (string, error) {
 		}
 	}
 
+	// Write the retained Electron startup failure diagnostic record.
 	path := filepath.Join(d.h.ArtifactDir(), "retained-startup-failure-diagnostics.txt")
 	lines := []string{
 		"smoke=retained-state-installed-app-launcher-startup",
@@ -155,6 +166,7 @@ func writeRetainedStartupBreadcrumbs(
 	retainedTailPath string,
 	retainedProofs []string,
 ) (string, error) {
+	// Write the retained Electron startup evidence and log references.
 	breadcrumbPath := filepath.Join(h.ArtifactDir(), "retained-startup-breadcrumbs.txt")
 	lines := []string{
 		"smoke=retained-state-installed-app-launcher-startup",
@@ -186,10 +198,13 @@ func writeRetainedStartupBreadcrumbs(
 }
 
 func writeLogTail(srcPath string, dstPath string) error {
+	// Read the Electron runtime log before retaining its bounded tail.
 	data, err := os.ReadFile(srcPath)
 	if err != nil {
 		return err
 	}
+
+	// Limit the Electron runtime log tail to the diagnostic byte bound.
 	const maxTailBytes = 32 * 1024
 	if len(data) > maxTailBytes {
 		data = data[len(data)-maxTailBytes:]
@@ -198,13 +213,15 @@ func writeLogTail(srcPath string, dstPath string) error {
 }
 
 func waitForLogSubstring(t *testing.T, ctx context.Context, path string, want string) {
+	// Prepare a bounded wait for the Electron startup log evidence.
 	t.Helper()
-
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 
+	// Observe the Electron runtime log until the requested evidence appears.
 	var last string
 	for {
+		// Read the Electron runtime log and check for the requested evidence.
 		data, err := os.ReadFile(path)
 		if err == nil {
 			last = string(data)
@@ -213,6 +230,7 @@ func waitForLogSubstring(t *testing.T, ctx context.Context, path string, want st
 			}
 		}
 
+		// Wait for the next log observation or report the last Electron log tail.
 		select {
 		case <-ctx.Done():
 			if len(last) > 4000 {

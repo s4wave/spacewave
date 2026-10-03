@@ -38,6 +38,7 @@ func NewWorldBackedStore(
 	ws world.WorldState,
 	objectKey string,
 ) (*WorldBackedStore, error) {
+	// Require the World state, root cursor, and object key for the store.
 	if ws == nil {
 		return nil, objecttype.ErrWorldStateRequired
 	}
@@ -48,6 +49,7 @@ func NewWorldBackedStore(
 		return nil, world.ErrEmptyObjectKey
 	}
 
+	// Open the block store and capture its committed roots in the World store.
 	st := &WorldBackedStore{
 		ws:   ws,
 		key:  objectKey,
@@ -80,9 +82,12 @@ func (s *WorldBackedStore) WatchPrefix(ctx context.Context, prefix []byte, cb fu
 // world commits while each snapshot stays within limits.
 // Returns ErrWatchLimit without any callback when a snapshot exceeds limits.
 func (s *WorldBackedStore) WatchPrefixBounded(ctx context.Context, prefix []byte, limits kvtx.WatchLimits, cb func(entries []kvtx.WatchEntry) error) error {
+	// Skip the World watch when there is no snapshot consumer.
 	if cb == nil {
 		return nil
 	}
+
+	// Retain the World object and the last delivered snapshot for the watch.
 	var prev []kvtx.WatchEntry
 	var havePrev bool
 	obj, err := world.MustGetObject(ctx, s.ws, s.key)
@@ -90,18 +95,27 @@ func (s *WorldBackedStore) WatchPrefixBounded(ctx context.Context, prefix []byte
 	if err != nil {
 		return err
 	}
+
+	// Deliver changed snapshots as the World object advances its revision.
 	for {
+		// Stop the World watch when its context is canceled.
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+
+		// Read the World revision before scanning its current KV snapshot.
 		_, rev, err := obj.GetRootRef(ctx)
 		if err != nil {
 			return err
 		}
+
+		// Scan the prefix within the requested snapshot limits.
 		entries, err := s.scanWatchPrefix(ctx, prefix, limits)
 		if err != nil {
 			return err
 		}
+
+		// Deliver the prefix snapshot only when its entries have changed.
 		if !havePrev || !kvWatchEntriesEqual(prev, entries) {
 			if err := cb(entries); err != nil {
 				return err
@@ -109,6 +123,8 @@ func (s *WorldBackedStore) WatchPrefixBounded(ctx context.Context, prefix []byte
 			prev = entries
 			havePrev = true
 		}
+
+		// Wait for the World object to publish its next revision.
 		if _, err := obj.WaitRev(ctx, rev+1, false); err != nil {
 			return err
 		}
@@ -120,6 +136,7 @@ func (s *WorldBackedStore) WatchPrefixBounded(ctx context.Context, prefix []byte
 // bytes before cloning the next entry, returning ErrWatchLimit with no partial
 // snapshot.
 func (s *WorldBackedStore) scanWatchPrefix(ctx context.Context, prefix []byte, limits kvtx.WatchLimits) ([]kvtx.WatchEntry, error) {
+	// Refresh the block root and open a read transaction between writes.
 	s.writeMtx.Lock()
 	tx, err := func() (kvtx.Tx, error) {
 		defer s.writeMtx.Unlock()
@@ -133,6 +150,7 @@ func (s *WorldBackedStore) scanWatchPrefix(ctx context.Context, prefix []byte, l
 	}
 	defer tx.Discard()
 
+	// Scan sorted prefix entries while accounting for snapshot limits.
 	var (
 		entries    []kvtx.WatchEntry
 		numBytes   uint64
@@ -141,9 +159,12 @@ func (s *WorldBackedStore) scanWatchPrefix(ctx context.Context, prefix []byte, l
 	it := tx.Iterate(ctx, prefix, true, false)
 	defer it.Close()
 	for it.Next() {
+		// Enforce the snapshot record limit before loading another value.
 		if limits.MaxRecords != 0 && numRecords >= limits.MaxRecords {
 			return nil, kvtx.ErrWatchLimit
 		}
+
+		// Load the next prefix entry and enforce the snapshot byte limit.
 		key := it.Key()
 		value, err := it.Value()
 		if err != nil {
@@ -152,6 +173,8 @@ func (s *WorldBackedStore) scanWatchPrefix(ctx context.Context, prefix []byte, l
 		if limits.MaxBytes != 0 && numBytes+uint64(len(key))+uint64(len(value)) > limits.MaxBytes {
 			return nil, kvtx.ErrWatchLimit
 		}
+
+		// Retain an independent entry and account for its snapshot size.
 		entries = append(entries, kvtx.WatchEntry{
 			Key:   bytes.Clone(key),
 			Value: bytes.Clone(value),
@@ -159,6 +182,8 @@ func (s *WorldBackedStore) scanWatchPrefix(ctx context.Context, prefix []byte, l
 		numRecords++
 		numBytes += uint64(len(key)) + uint64(len(value))
 	}
+
+	// Report an iterator failure before returning the completed snapshot.
 	if err := it.Err(); err != nil {
 		return nil, err
 	}
@@ -179,6 +204,7 @@ func kvWatchEntriesEqual(a, b []kvtx.WatchEntry) bool {
 
 // NewTransaction returns a KVTX transaction.
 func (s *WorldBackedStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Serialize writers and retain the block root their mutations start from.
 	if write {
 		s.writeMtx.Lock()
 	}
@@ -186,6 +212,8 @@ func (s *WorldBackedStore) NewTransaction(ctx context.Context, write bool) (kvtx
 	if write {
 		baseRoot = s.inner.GetRootRef()
 	}
+
+	// Open the block transaction and release the writer lock on failure.
 	tx, err := s.inner.NewTransaction(ctx, write)
 	if err != nil || !write {
 		if write {
@@ -193,6 +221,8 @@ func (s *WorldBackedStore) NewTransaction(ctx context.Context, write bool) (kvtx
 		}
 		return tx, err
 	}
+
+	// Register the World transaction to capture the next committed block root.
 	wtx := &worldBackedTx{
 		store:    s,
 		inner:    tx,
@@ -205,9 +235,12 @@ func (s *WorldBackedStore) NewTransaction(ctx context.Context, write bool) (kvtx
 }
 
 func (s *WorldBackedStore) captureCommittedRoot(root *bucket.ObjectRef) error {
+	// Require a populated block root before attaching it to a transaction.
 	if root == nil || root.GetEmpty() {
 		return errors.New("kv/store: committed root is empty")
 	}
+
+	// Capture the committed block root under the active transaction lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if s.tx == nil {
@@ -226,11 +259,14 @@ func (s *WorldBackedStore) clearActiveTx(tx *worldBackedTx) {
 }
 
 func (s *WorldBackedStore) refreshInnerRoot(ctx context.Context) error {
+	// Retain the World object while reading its current root.
 	obj, err := world.MustGetObject(ctx, s.ws, s.key)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
+
+	// Read the World root for the inner block store.
 	root, _, err := obj.GetRootRef(ctx)
 	if err != nil {
 		return err
@@ -249,20 +285,26 @@ type worldBackedTx struct {
 
 // Commit commits KVTX data, then advances the world object root outside KVTX locks.
 func (t *worldBackedTx) Commit(ctx context.Context) error {
+	// Commit the block transaction while retaining its writer lock.
 	defer t.releaseWrite()
 	t.committedRoot = nil
 	if err := t.inner.Commit(ctx); err != nil {
 		return err
 	}
 
+	// Require the block commit to have captured its persisted root.
 	root := t.committedRoot
 	if root == nil {
 		return &CommitPersistedError{Err: errors.New("kv/store: committed root was not captured")}
 	}
+
+	// Advance the World root with the transaction mutations.
 	_, _, err := t.store.ws.ApplyWorldOp(ctx, NewKvSetRootOp(t.store.key, t.baseRoot, root, t.mutations), peer.ID(""))
 	if err != nil {
 		return &CommitPersistedError{Err: err}
 	}
+
+	// Refresh the block store from the root accepted by the World operation.
 	if err := t.store.refreshInnerRoot(ctx); err != nil {
 		return &CommitPersistedError{Err: err}
 	}

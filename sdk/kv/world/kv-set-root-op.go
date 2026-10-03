@@ -46,9 +46,12 @@ func (o *KvSetRootOp) GetOperationTypeId() string {
 
 // Validate performs cursory checks on the operation.
 func (o *KvSetRootOp) Validate() error {
+	// Require a target object key for the KV root operation.
 	if o.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
 	}
+
+	// Validate the populated root the KV operation will commit.
 	rootRef := o.GetRootRef()
 	if rootRef == nil || rootRef.GetEmpty() {
 		return errors.New("kv/store: root ref is required")
@@ -56,6 +59,7 @@ func (o *KvSetRootOp) Validate() error {
 	if err := rootRef.Validate(); err != nil {
 		return err
 	}
+
 	// An empty base ref is the object's initial root: a first commit from the
 	// empty root carries no base. Validate the base only when it is populated.
 	if baseRef := o.GetBaseRef(); baseRef != nil && !baseRef.GetEmpty() {
@@ -63,6 +67,8 @@ func (o *KvSetRootOp) Validate() error {
 			return err
 		}
 	}
+
+	// Validate every KV mutation before replaying the operation.
 	for _, mutation := range o.GetMutations() {
 		if mutation == nil {
 			return errors.New("kv/store: mutation is required")
@@ -87,12 +93,17 @@ func (o *KvSetRootOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the KV root operation before accessing the World object.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
+
+	// Require the target World object to have the KV store type.
 	if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), KvStoreTypeID); err != nil {
 		return false, err
 	}
+
+	// Retain the target World object while applying the KV root operation.
 	obj, err := world.MustGetObject(ctx, ws, o.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -108,25 +119,32 @@ func (o *KvSetRootOp) ApplyWorldObjectOp(
 	os world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the KV root operation and its target object handle.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("kv/store: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
 	}
+
 	// Divergent commits replay this transaction's writes on the current root;
 	// conflicts resolve in world-op order per key, never by whole-root replace.
 	expected := o.GetBaseRef().Clone()
 	nextRoot := o.GetRootRef().Clone()
 	for range kvSetRootMaxCASAttempts {
+		// Read the current World root before applying the transaction root.
 		current, _, err := os.GetRootRef(ctx)
 		if err != nil {
 			return false, err
 		}
+
+		// Commit the transaction root when its base matches the World root.
 		if current.EqualsRef(expected) {
 			_, err = os.SetRootRef(ctx, nextRoot.Clone())
 			return false, err
 		}
+
+		// Replay divergent KV mutations against the current World root.
 		nextRoot, err = o.rebaseRoot(ctx, le, os, current)
 		if err != nil {
 			return false, err
@@ -142,8 +160,10 @@ func (o *KvSetRootOp) rebaseRoot(
 	os world.ObjectState,
 	currentRoot *bucket.ObjectRef,
 ) (*bucket.ObjectRef, error) {
+	// Rebase the KV mutations through a store on the current World root.
 	var nextRoot *bucket.ObjectRef
 	err := os.AccessWorldState(ctx, currentRoot, func(root *bucket_lookup.Cursor) error {
+		// Open a block store that captures the rebased World root.
 		rootCursor := root.Clone()
 		defer rootCursor.Release()
 		store, err := kvtx_block.NewStore(ctx, le, rootCursor, func(root *bucket.ObjectRef) error {
@@ -154,11 +174,14 @@ func (o *KvSetRootOp) rebaseRoot(
 			return err
 		}
 
+		// Open a writable block transaction for replaying the KV mutations.
 		tx, err := store.NewTransaction(ctx, true)
 		if err != nil {
 			return err
 		}
 		defer tx.Discard()
+
+		// Replay each KV mutation into the rebased transaction.
 		for _, mutation := range o.GetMutations() {
 			switch mutation.GetKind() {
 			case KvMutationKind_KV_MUTATION_KIND_SET:
@@ -173,6 +196,8 @@ func (o *KvSetRootOp) rebaseRoot(
 				return errors.New("kv/store: invalid mutation kind")
 			}
 		}
+
+		// Commit the rebased KV transaction and retain its resulting root.
 		if err := tx.Commit(ctx); err != nil {
 			return err
 		}
@@ -184,6 +209,8 @@ func (o *KvSetRootOp) rebaseRoot(
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the rebased KV transaction to produce a populated root.
 	if nextRoot == nil || nextRoot.GetEmpty() {
 		return nil, errors.New("kv/store: rebased root was not captured")
 	}

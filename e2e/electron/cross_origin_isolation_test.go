@@ -35,19 +35,23 @@ type electronWorkerCommsResult struct {
 
 // TIER: nightly
 func TestElectronRendererReportsCrossOriginIsolatedWorkerComms(t *testing.T) {
+	// Require the shared Electron harness for cross-origin isolation checks.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Bound the Electron cross-origin isolation observations.
 	ctx, cancel := context.WithTimeout(context.Background(), electronCOIWaitTimeout)
 	defer cancel()
 
+	// Open the Electron renderer page for isolation checks.
 	page, err := h.WaitForPage(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Capture worker communication detection messages while reloading Electron.
 	consoleMessages := make(chan string, 32)
 	page.On("console", func(msg playwright.ConsoleMessage) {
 		text := msg.Text()
@@ -66,11 +70,13 @@ func TestElectronRendererReportsCrossOriginIsolatedWorkerComms(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Read the renderer isolation snapshot and its worker detection message.
 	snapshot := readElectronCOISnapshot(t, page, electronCOIWaitTimeout)
 	consoleLine := waitForElectronCOIConsoleLine(t, consoleMessages)
 	t.Logf("electron COI console: %s", consoleLine)
 	t.Logf("electron COI detection: %s", snapshot.DetectionLine)
 
+	// Require isolation and shared buffers in Electron and its worker configuration.
 	if !snapshot.CrossOriginIsolated {
 		t.Fatalf("expected renderer window.crossOriginIsolated=true; snapshot=%+v", snapshot)
 	}
@@ -98,8 +104,8 @@ func readElectronCOISnapshot(t testing.TB, page interface {
 	Evaluate(expression string, arg ...any) (any, error)
 }, timeout time.Duration,
 ) electronCOISnapshot {
+	// Read the Electron renderer isolation and worker startup snapshot.
 	t.Helper()
-
 	raw, err := page.Evaluate(`async (arg) => {
 		const timeoutMS = Array.isArray(arg) ? arg[0] : arg
 		const deadline = Date.now() + timeoutMS
@@ -156,6 +162,7 @@ func readElectronCOISnapshot(t testing.TB, page interface {
 		t.Fatalf("read Electron COI snapshot: %v", err)
 	}
 
+	// Require the Electron isolation snapshot to use its JSON representation.
 	rawJSON, ok := raw.(string)
 	if !ok {
 		t.Fatalf("Electron COI snapshot returned %T, want JSON string", raw)
@@ -164,18 +171,22 @@ func readElectronCOISnapshot(t testing.TB, page interface {
 }
 
 func parseElectronCOISnapshot(t testing.TB, data string) electronCOISnapshot {
+	// Decode the Electron isolation snapshot from its JSON representation.
 	t.Helper()
-
 	var parser fastjson.Parser
 	value, err := parser.Parse(data)
 	if err != nil {
 		t.Fatalf("parse Electron COI snapshot: %v; raw=%s", err, data)
 	}
+
+	// Collect the renderer startup labels for the isolation snapshot.
 	startupLabelValues := value.GetArray("startupLabels")
 	startupLabels := make([]string, 0, len(startupLabelValues))
 	for _, startupLabel := range startupLabelValues {
 		startupLabels = append(startupLabels, string(startupLabel.GetStringBytes()))
 	}
+
+	// Construct the Electron isolation snapshot with its worker capabilities.
 	snapshot := electronCOISnapshot{
 		Href:                string(value.GetStringBytes("href")),
 		CrossOriginIsolated: value.GetBool("crossOriginIsolated"),

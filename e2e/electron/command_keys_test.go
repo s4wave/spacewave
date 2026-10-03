@@ -25,14 +25,17 @@ const commandKeyAttemptTimeout = 5_000
 // globalShortcut intercept keys, so a press arrives at the renderer whether or
 // not a native owner would have stolen it.
 func TestElectronDoesNotClaimRendererCommandKeys(t *testing.T) {
+	// Require the shared Electron harness for renderer command keys.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Bound the Electron command-key observations with a cancelable context.
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
+	// Require Electron main to leave renderer command accelerators unclaimed.
 	state, err := getGlobalShortcutState(ctx, h)
 	if err != nil {
 		t.Fatal(err)
@@ -44,6 +47,7 @@ func TestElectronDoesNotClaimRendererCommandKeys(t *testing.T) {
 		t.Fatal("main process registered the palette accelerator CommandOrControl+K")
 	}
 
+	// Open the shell renderer and close other Electron app pages.
 	page, err := waitForShellPage(ctx, h)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +60,7 @@ func TestElectronDoesNotClaimRendererCommandKeys(t *testing.T) {
 		_ = page.Keyboard().Press("Escape")
 	})
 
+	// Open and dismiss the renderer key-sequence panel with its leader key.
 	if err := pressUntilVisible(
 		ctx,
 		page,
@@ -68,6 +73,7 @@ func TestElectronDoesNotClaimRendererCommandKeys(t *testing.T) {
 		t.Fatalf("dismiss which-key panel: %v", err)
 	}
 
+	// Require the renderer palette to open through its command key.
 	if err := page.Keyboard().Press("ControlOrMeta+KeyK"); err != nil {
 		t.Fatalf("press palette key: %v", err)
 	}
@@ -89,10 +95,13 @@ func getGlobalShortcutState(
 	ctx context.Context,
 	h *Harness,
 ) (*globalShortcutStateSnapshot, error) {
+	// Read the Electron main process command accelerator registrations.
 	body, err := doE2EControl(ctx, h, http.MethodGet, "/globalshortcut-state", nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the Electron command accelerator registration response.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(body)
 	if err != nil {

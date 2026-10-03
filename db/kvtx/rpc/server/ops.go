@@ -33,6 +33,7 @@ func (o *Ops) KeyCount(ctx context.Context, req *kvtx_rpc.KeyCountRequest) (*kvt
 
 // KeyData looks up data for a key.
 func (o *Ops) KeyData(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvtx_rpc.KvtxKeyDataResponse, error) {
+	// Read the requested KV record and encode its value or retry class.
 	key := req.GetKey()
 	data, found, err := o.ops.Get(ctx, key)
 	resp := &kvtx_rpc.KvtxKeyDataResponse{}
@@ -48,6 +49,7 @@ func (o *Ops) KeyData(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvtx_
 
 // KeyExists checks if the key exists in the store.
 func (o *Ops) KeyExists(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvtx_rpc.KvtxKeyExistsResponse, error) {
+	// Check the requested KV key and encode its presence or retry class.
 	key := req.GetKey()
 	found, err := o.ops.Exists(ctx, key)
 	resp := &kvtx_rpc.KvtxKeyExistsResponse{}
@@ -110,11 +112,13 @@ func (o *Ops) ScanPrefix(req *kvtx_rpc.KvtxScanPrefixRequest, strm kvtx_rpc.SRPC
 
 // Iterate iterates over the kvtx store.
 func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
+	// Receive the KV iterator initialization request from the RPC stream.
 	initReq, err := strm.Recv()
 	if err != nil {
 		return err
 	}
 
+	// Open the KV iterator and arrange its release with the RPC stream.
 	init := initReq.GetInit()
 	it := o.ops.Iterate(strm.Context(), init.GetPrefix(), init.GetSort(), init.GetReverse())
 	if it == nil {
@@ -124,6 +128,7 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 		defer it.Close()
 	}
 
+	// Prepare KV iterator request error responses with their retry classes.
 	sendReqErr := func(err error) error {
 		return strm.Send(&kvtx_rpc.KvtxIterateResponse{
 			RetryClass: retryClassForError(err),
@@ -133,6 +138,7 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 		})
 	}
 
+	// Acknowledge KV iterator initialization or report its failure.
 	if err != nil {
 		return sendReqErr(err)
 	} else {
@@ -145,7 +151,9 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 		}
 	}
 
+	// Prepare KV iterator status responses with the current key and retry class.
 	sendStatus := func(valid bool) error {
+		// Read the KV iterator key and error for its status response.
 		key := it.Key()
 		var itErrStr string
 		itErr := it.Err()
@@ -164,12 +172,15 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 		})
 	}
 
+	// Handle KV iterator requests until the RPC stream closes.
 	for {
+		// Receive the next KV iterator operation from the RPC stream.
 		msg, err := strm.Recv()
 		if err != nil {
 			return err
 		}
 
+		// Execute the requested KV iterator operation and send its response.
 		switch m := msg.GetBody().(type) {
 		case *kvtx_rpc.KvtxIterateRequest_Init:
 			return errors.New("init sent multiple times")

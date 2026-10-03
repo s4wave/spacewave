@@ -29,17 +29,20 @@ type desktopTrayStateSnapshot struct {
 
 // TIER: nightly
 func TestDesktopRuntimeStateTracksLiveTrayProjectionAndActivation(t *testing.T) {
+	// Require the shared Electron harness for desktop projection checks.
 	h := testHarness
 	if h == nil {
 		t.Fatal("expected electron harness")
 	}
 
+	// Open an Electron app page within the test context.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	if _, err := ensureAppPage(ctx, h); err != nil {
 		t.Fatal(err)
 	}
 
+	// Require the live desktop and tray projections to describe the running window.
 	state, err := waitForDesktopRuntimeState(ctx, h, func(state *desktopRuntimeStateSnapshot) bool {
 		return state.MainWindowOpen
 	})
@@ -55,6 +58,7 @@ func TestDesktopRuntimeStateTracksLiveTrayProjectionAndActivation(t *testing.T) 
 		t.Fatal(err)
 	}
 
+	// Close the Electron app windows and require the runtime projection to follow.
 	closeAppPages(t, h.AppPages())
 	if err := h.WaitForNoAppPages(ctx); err != nil {
 		t.Fatal(err)
@@ -64,6 +68,8 @@ func TestDesktopRuntimeStateTracksLiveTrayProjectionAndActivation(t *testing.T) 
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the Electron window through the desktop control endpoint.
 	if err := postE2EControl(ctx, h, "/open-or-focus", url.Values{}); err != nil {
 		t.Fatal(err)
 	}
@@ -91,9 +97,11 @@ func waitForDesktopRuntimeState(
 	h *Harness,
 	predicate func(*desktopRuntimeStateSnapshot) bool,
 ) (*desktopRuntimeStateSnapshot, error) {
+	// Bound the wait for the requested Electron desktop projection.
 	waitCtx, waitCancel := context.WithTimeout(ctx, desktopRuntimeStateWaitTimeout)
 	defer waitCancel()
 
+	// Observe Electron desktop state until the requested projection appears.
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -119,9 +127,11 @@ func waitForDesktopTrayState(
 	h *Harness,
 	predicate func(*desktopTrayStateSnapshot) bool,
 ) (*desktopTrayStateSnapshot, error) {
+	// Bound the wait for the requested Electron tray projection.
 	waitCtx, waitCancel := context.WithTimeout(ctx, desktopRuntimeStateWaitTimeout)
 	defer waitCancel()
 
+	// Observe Electron tray state until the requested projection appears.
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -146,10 +156,13 @@ func getDesktopRuntimeState(
 	ctx context.Context,
 	h *Harness,
 ) (*desktopRuntimeStateSnapshot, error) {
+	// Read the Electron desktop projection from its control endpoint.
 	body, err := doE2EControl(ctx, h, http.MethodGet, "/desktop-state", nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the Electron desktop projection response.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(body)
 	if err != nil {
@@ -162,10 +175,13 @@ func getDesktopTrayState(
 	ctx context.Context,
 	h *Harness,
 ) (*desktopTrayStateSnapshot, error) {
+	// Read the Electron tray projection from its control endpoint.
 	body, err := doE2EControl(ctx, h, http.MethodGet, "/tray-state", nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the Electron tray projection response.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(body)
 	if err != nil {
@@ -191,6 +207,7 @@ func doE2EControl(
 	path string,
 	query url.Values,
 ) ([]byte, error) {
+	// Prepare the Electron control request with its query parameters.
 	endpoint := h.E2EControlEndpoint() + path
 	if len(query) != 0 {
 		endpoint += "?" + query.Encode()
@@ -199,11 +216,15 @@ func doE2EControl(
 	if err != nil {
 		return nil, err
 	}
+
+	// Send the Electron control request and retain its response body.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	// Read the Electron control response and require a successful status.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

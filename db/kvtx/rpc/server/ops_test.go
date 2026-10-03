@@ -46,6 +46,7 @@ func (o failedOps) Iterate(context.Context, []byte, bool, bool) kvtx.Iterator {
 }
 
 func TestOperationSnapshotErrorsSurviveRPC(t *testing.T) {
+	// Open a bounded RPC client whose KV operations fail with snapshot conflicts.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	mux := srpc.NewMux()
@@ -55,6 +56,8 @@ func TestOperationSnapshotErrorsSurviveRPC(t *testing.T) {
 	}
 	transport := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
 	client := kvtx_rpc_client.NewOps(kvtx_rpc.NewSRPCKvtxOpsClient(transport), nil)
+
+	// Define the KV operation requests that must preserve snapshot conflicts.
 	checks := map[string]func() error{
 		"size": func() error {
 			_, err := client.Size(ctx)
@@ -78,8 +81,11 @@ func TestOperationSnapshotErrorsSurviveRPC(t *testing.T) {
 			return it.Err()
 		},
 	}
+
+	// Require every KV operation to preserve the snapshot conflict through RPC.
 	for name, check := range checks {
 		t.Run(name, func(t *testing.T) {
+			// Execute the KV operation and require its snapshot conflict sentinel.
 			if err := check(); !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 				t.Fatalf("operation error = %v, want invalid snapshot", err)
 			}
@@ -125,6 +131,7 @@ func (i *lateFailureIterator) Value() ([]byte, error) { return nil, i.failure }
 func (i *lateFailureIterator) Seek([]byte) error { return i.failure }
 
 func TestIteratorSnapshotErrorsSurviveRPC(t *testing.T) {
+	// Open a bounded RPC client whose iterator fails after initialization.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	mux := srpc.NewMux()
@@ -134,6 +141,8 @@ func TestIteratorSnapshotErrorsSurviveRPC(t *testing.T) {
 	}
 	transport := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
 	client := kvtx_rpc_client.NewOps(kvtx_rpc.NewSRPCKvtxOpsClient(transport), nil)
+
+	// Define iterator requests that expose late snapshot conflicts.
 	checks := map[string]func(kvtx.Iterator) error{
 		"next": func(it kvtx.Iterator) error {
 			it.Next()
@@ -145,13 +154,18 @@ func TestIteratorSnapshotErrorsSurviveRPC(t *testing.T) {
 			return err
 		},
 	}
+
+	// Require each iterator request to preserve the late snapshot conflict through RPC.
 	for name, check := range checks {
 		t.Run(name, func(t *testing.T) {
+			// Open a healthy RPC iterator before issuing the failing request.
 			it := client.Iterate(ctx, nil, true, false)
 			defer it.Close()
 			if err := it.Err(); err != nil {
 				t.Fatal(err)
 			}
+
+			// Execute the iterator request and require its snapshot conflict sentinel.
 			if err := check(it); !errors.Is(err, kvtx.ErrInvalidSnapshot) {
 				t.Fatalf("iterator error = %v, want invalid snapshot", err)
 			}

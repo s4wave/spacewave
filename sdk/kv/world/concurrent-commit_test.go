@@ -17,18 +17,22 @@ import (
 )
 
 func TestWorldBackedStoreFirstCommitFromEmptyRootLands(t *testing.T) {
+	// Bound the first KV commit test and release its context afterward.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Start a testbed with a World for the empty-root KV store.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Create a typed KV object with an empty initial World root.
 	objectKey := "kv/empty-root-store"
 	createEmptyKvStoreObject(t, ctx, tb.WorldState, objectKey)
 
+	// Open the KV RPC client against the empty World root.
 	inv, cleanup, err := s4wave_kv_world.KvStoreFactory(
 		ctx,
 		logrus.NewEntry(logrus.New()),
@@ -43,20 +47,26 @@ func TestWorldBackedStoreFirstCommitFromEmptyRootLands(t *testing.T) {
 	t.Cleanup(cleanup)
 	store := kvtx_rpc_client.NewStore(kvtx_rpc.NewSRPCKvtxClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))))
 
+	// Open a KV write transaction on the empty-root store.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("NewTransaction(write): %v", err)
 	}
+
+	// Write the first KV record into the empty-root transaction.
 	if err := tx.Set(ctx, []byte("hello"), []byte("world")); err != nil {
 		tx.Discard()
 		t.Fatalf("Set: %v", err)
 	}
+
+	// Commit the first KV record and release the RPC transaction.
 	if err := tx.Commit(ctx); err != nil {
 		tx.Discard()
 		t.Fatalf("first commit from empty root: %v", err)
 	}
 	tx.Discard()
 
+	// Reopen the World-backed KV store to inspect the committed root.
 	finalStore, closeFn := openWorldBackedStore(t, ctx, tb.WorldState, objectKey)
 	defer closeFn()
 	readTx, err := finalStore.NewTransaction(ctx, false)
@@ -64,6 +74,8 @@ func TestWorldBackedStoreFirstCommitFromEmptyRootLands(t *testing.T) {
 		t.Fatalf("NewTransaction(read): %v", err)
 	}
 	defer readTx.Discard()
+
+	// Require the reopened World root to contain the first KV record.
 	got, found, err := readTx.Get(ctx, []byte("hello"))
 	if err != nil {
 		t.Fatalf("Get(hello): %v", err)
@@ -74,18 +86,22 @@ func TestWorldBackedStoreFirstCommitFromEmptyRootLands(t *testing.T) {
 }
 
 func TestWorldBackedStoreConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
+	// Bound the concurrent KV commit test and release its context afterward.
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
+	// Start a testbed with a World shared by the KV clients.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Create the typed World object shared by the concurrent KV clients.
 	objectKey := "kv/concurrent-store"
 	createKvStoreObject(t, ctx, tb.WorldState, objectKey, true)
 
+	// Open independent RPC KV clients against the same World object.
 	stores := make([]kvtx.Store, 0, 2)
 	for idx := range 2 {
 		inv, cleanup, err := s4wave_kv_world.KvStoreFactory(
@@ -104,6 +120,7 @@ func TestWorldBackedStoreConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 		stores = append(stores, store)
 	}
 
+	// Prepare KV result records and a common start signal for the writers.
 	type result struct {
 		client int
 		key    string
@@ -114,35 +131,48 @@ func TestWorldBackedStoreConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 	start := make(chan struct{})
 	results := make(chan result, len(stores)*writesPerClient)
 	var wg sync.WaitGroup
+
+	// Launch the concurrent KV writes for each independent client.
 	for clientIdx, store := range stores {
 		for writeIdx := range writesPerClient {
 			clientIdx := clientIdx
 			writeIdx := writeIdx
 			store := store
 			wg.Go(func() {
+				// Wait for the common start signal and identify this client KV record.
 				<-start
 				key := "client-" + strconv.Itoa(clientIdx) + "/key-" + strconv.Itoa(writeIdx)
 				val := "value-" + strconv.Itoa(clientIdx) + "-" + strconv.Itoa(writeIdx)
+
+				// Open the client write transaction and report acquisition failures.
 				tx, err := store.NewTransaction(ctx, true)
 				if err != nil {
 					results <- result{client: clientIdx, key: key, err: err}
 					return
 				}
+
+				// Write the client KV record and report mutation failures.
 				if err := tx.Set(ctx, []byte(key), []byte(val)); err != nil {
 					tx.Discard()
 					results <- result{client: clientIdx, key: key, err: err}
 					return
 				}
+
+				// Commit the client KV record and report persistence failures.
 				if err := tx.Commit(ctx); err != nil {
 					tx.Discard()
 					results <- result{client: clientIdx, key: key, err: err}
 					return
 				}
+
+				// Release the committed KV transaction and report its saved value.
 				tx.Discard()
 				results <- result{client: clientIdx, key: key, val: val}
 			})
 		}
 	}
+
+	// Start the KV writers and wait for every transaction to finish.
 	close(start)
 	done := make(chan struct{})
 	go func() {
@@ -156,6 +186,7 @@ func TestWorldBackedStoreConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 	}
 	close(results)
 
+	// Require a successful result from every concurrent KV write.
 	successes := make([]result, 0, len(stores)*writesPerClient)
 	for res := range results {
 		if res.err != nil {
@@ -167,6 +198,7 @@ func TestWorldBackedStoreConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 		t.Fatalf("successful commits = %d, want %d", len(successes), len(stores)*writesPerClient)
 	}
 
+	// Reopen the World-backed KV store after all concurrent commits.
 	finalStore, cleanup := openWorldBackedStore(t, ctx, tb.WorldState, objectKey)
 	defer cleanup()
 	readTx, err := finalStore.NewTransaction(ctx, false)
@@ -174,11 +206,16 @@ func TestWorldBackedStoreConcurrentCommitsLandInWorldObjectRoot(t *testing.T) {
 		t.Fatalf("NewTransaction(read): %v", err)
 	}
 	defer readTx.Discard()
+
+	// Verify every successful KV commit in the reopened World root.
 	for _, res := range successes {
+		// Read the committed client KV record from the final World root.
 		got, found, err := readTx.Get(ctx, []byte(res.key))
 		if err != nil {
 			t.Fatalf("Get(%s): %v", res.key, err)
 		}
+
+		// Require the final World root to retain the committed client value.
 		if !found || string(got) != res.val {
 			t.Fatalf("Get(%s) = %q, %v; want %q, true", res.key, got, found, res.val)
 		}
