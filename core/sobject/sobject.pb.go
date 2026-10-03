@@ -555,6 +555,9 @@ type SharedObjectHealth struct {
 	// judge holds a World different from the one this device replayed through
 	// the operations it covers.
 	CheckpointMismatch *SOCheckpointMismatch `protobuf:"bytes,10,opt,name=checkpoint_mismatch,json=checkpointMismatch,proto3" json:"checkpointMismatch,omitempty"`
+	// UnorderedCount is the number of operations this device holds that the
+	// appointed sequencer has not placed yet. It is zero under Merge.
+	UnorderedCount uint32 `protobuf:"varint,11,opt,name=unordered_count,json=unorderedCount,proto3" json:"unorderedCount,omitempty"`
 }
 
 func (x *SharedObjectHealth) Reset() {
@@ -631,6 +634,13 @@ func (x *SharedObjectHealth) GetCheckpointMismatch() *SOCheckpointMismatch {
 		return x.CheckpointMismatch
 	}
 	return nil
+}
+
+func (x *SharedObjectHealth) GetUnorderedCount() uint32 {
+	if x != nil {
+		return x.UnorderedCount
+	}
+	return 0
 }
 
 // SORejectedEdit is an operation of this device that replay no longer applies.
@@ -2313,6 +2323,7 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 	r.CommonReason = m.CommonReason
 	r.RemediationHint = m.RemediationHint
 	r.Error = m.Error
+	r.UnorderedCount = m.UnorderedCount
 	r.Metadata = protobuf_go_lite.CloneBytes(m.Metadata)
 	r.SyncDeniedPeerIds = protobuf_go_lite.CloneSlice(m.SyncDeniedPeerIds)
 	r.SyncRecoveryPeerIds = protobuf_go_lite.CloneSlice(m.SyncRecoveryPeerIds)
@@ -3110,6 +3121,9 @@ func (this *SharedObjectHealth) EqualVT(that *SharedObjectHealth) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.CheckpointMismatch, that.CheckpointMismatch) {
+		return false
+	}
+	if this.UnorderedCount != that.UnorderedCount {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4695,6 +4709,11 @@ func (x *SharedObjectHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("checkpointMismatch")
 		x.CheckpointMismatch.MarshalProtoJSON(s.WithField("checkpointMismatch"))
 	}
+	if x.UnorderedCount != 0 || s.HasField("unorderedCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unorderedCount")
+		s.WriteUint32(x.UnorderedCount)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4769,6 +4788,9 @@ func (x *SharedObjectHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CheckpointMismatch = &SOCheckpointMismatch{}
 			x.CheckpointMismatch.UnmarshalProtoJSON(s.WithField("checkpoint_mismatch", true))
+		case "unordered_count", "unorderedCount":
+			s.AddField("unordered_count")
+			x.UnorderedCount = s.ReadUint32()
 		}
 	})
 }
@@ -7587,6 +7609,11 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.UnorderedCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UnorderedCount))
+		i--
+		dAtA[i] = 0x58
+	}
 	if m.CheckpointMismatch != nil {
 		size, err := m.CheckpointMismatch.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -9695,6 +9722,7 @@ func (m *SharedObjectHealth) SizeVT() (n int) {
 		l = m.CheckpointMismatch.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.UnorderedCount)
 	n += len(m.unknownFields)
 	return n
 }
@@ -10472,6 +10500,10 @@ func (x *SharedObjectHealth) MarshalProtoText() string {
 	if x.CheckpointMismatch != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_mismatch")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CheckpointMismatch)
+	}
+	if x.UnorderedCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "unordered_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.UnorderedCount)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -11876,6 +11908,15 @@ func (m *SharedObjectHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnorderedCount", wireType)
+			}
+			m.UnorderedCount = 0
+			m.UnorderedCount, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

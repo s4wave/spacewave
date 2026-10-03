@@ -14,6 +14,7 @@ import {
   BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  SpaceSequencer,
   SpaceSharingState,
   SpaceState,
   WatchSpaceSharingStateRequest,
@@ -114,6 +115,19 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<CreateSecretResponse> {
     return await this.service.CreateSecret(request, abortSignal)
+  }
+
+  // setSpaceSequencer chooses, as an owner, who orders the Space's edits. It
+  // reports false when that sequencer already orders them.
+  public async setSpaceSequencer(
+    sequencer: SpaceSequencer,
+    abortSignal?: AbortSignal,
+  ): Promise<boolean> {
+    const response = await this.service.SetSpaceSequencer(
+      { sequencer },
+      abortSignal,
+    )
+    return response.changed ?? false
   }
 
   // accessWorldState accesses the Engine as a WorldState-like interface.

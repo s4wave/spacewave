@@ -155,6 +155,17 @@ func (s *SharedObject) SetCheckpointMismatch(mismatch *sobject.SOCheckpointMisma
 	})
 }
 
+// SetUnorderedCount shows in the health that n operations wait for the
+// sequencer to place them.
+func (s *SharedObject) SetUnorderedCount(n uint32) {
+	if s.tkr.healthCtr == nil {
+		return
+	}
+	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return health.WithUnorderedCount(n)
+	})
+}
+
 // QueueOperation signs op as the local participant and adds it to the
 // operation set. Returns the local operation ID.
 func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {

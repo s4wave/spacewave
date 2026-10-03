@@ -7,6 +7,7 @@ export interface RadioOptionProps {
   label: React.ReactNode
   tag?: React.ReactNode
   description?: React.ReactNode
+  disabled?: boolean
   className?: string
 }
 
@@ -18,16 +19,22 @@ function RadioOption({
   label,
   tag,
   description,
+  disabled,
   className,
 }: RadioOptionProps) {
   return (
     <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
       onClick={onSelect}
+      disabled={disabled}
       className={cn(
         'w-full rounded-md border p-2.5 text-left transition-all duration-200',
+        'disabled:cursor-not-allowed disabled:opacity-60',
         selected
           ? 'border-brand/30 bg-brand/5'
-          : 'border-foreground/10 bg-background/20 hover:border-foreground/20',
+          : 'border-foreground/10 bg-background/20 enabled:hover:border-foreground/20',
         className,
       )}
     >

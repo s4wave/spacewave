@@ -24,6 +24,56 @@ import { Secret, SecretPayload } from '../secret/secret.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
+ * SpaceSequencer is who orders a Space's edits.
+ *
+ * @generated from enum s4wave.space.SpaceSequencer
+ */
+export enum SpaceSequencer {
+  /**
+   * SpaceSequencer_UNKNOWN leaves the sequencer unset.
+   *
+   * @generated from enum value: SpaceSequencer_UNKNOWN = 0;
+   */
+  SpaceSequencer_UNKNOWN = 0,
+
+  /**
+   * SpaceSequencer_MERGE means no one orders the edits: every device keeps
+   * working and the edits combine.
+   *
+   * @generated from enum value: SpaceSequencer_MERGE = 1;
+   */
+  SpaceSequencer_MERGE = 1,
+
+  /**
+   * SpaceSequencer_PROVIDER means the provider's cloud orders the edits.
+   *
+   * @generated from enum value: SpaceSequencer_PROVIDER = 2;
+   */
+  SpaceSequencer_PROVIDER = 2,
+
+  /**
+   * SpaceSequencer_THIS_DEVICE means this device orders the edits as the
+   * main device.
+   *
+   * @generated from enum value: SpaceSequencer_THIS_DEVICE = 3;
+   */
+  SpaceSequencer_THIS_DEVICE = 3,
+
+  /**
+   * SpaceSequencer_OTHER_DEVICE means another member device orders the edits
+   * as the main device.
+   *
+   * @generated from enum value: SpaceSequencer_OTHER_DEVICE = 4;
+   */
+  SpaceSequencer_OTHER_DEVICE = 4,
+}
+
+export const SpaceSequencer_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.space.SpaceSequencer',
+  SpaceSequencer,
+)
+
+/**
  * SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
  *
  * @generated from enum s4wave.space.SpacePluginLifecycleState
@@ -469,6 +519,25 @@ export interface SpaceSharingState {
    * @generated from field: repeated sobject.SOJoinRequest join_requests = 11;
    */
   joinRequests?: SOJoinRequest[]
+  /**
+   * Sequencer is who orders the Space's edits.
+   *
+   * @generated from field: s4wave.space.SpaceSequencer sequencer = 12;
+   */
+  sequencer?: SpaceSequencer
+  /**
+   * SequencerPeerId is the peer ID of the appointed sequencer, empty under
+   * Merge.
+   *
+   * @generated from field: string sequencer_peer_id = 13;
+   */
+  sequencerPeerId?: string
+  /**
+   * SequencerChoices are the sequencers an owner can appoint on this device.
+   *
+   * @generated from field: repeated s4wave.space.SpaceSequencer sequencer_choices = 14;
+   */
+  sequencerChoices?: SpaceSequencer[]
 }
 
 export const SpaceSharingState: MessageType<SpaceSharingState> =
@@ -519,6 +588,20 @@ export const SpaceSharingState: MessageType<SpaceSharingState> =
         name: 'join_requests',
         kind: 'message',
         T: () => SOJoinRequest,
+        repeated: true,
+      },
+      { no: 12, name: 'sequencer', kind: 'enum', T: SpaceSequencer_Enum },
+      {
+        no: 13,
+        name: 'sequencer_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 14,
+        name: 'sequencer_choices',
+        kind: 'enum',
+        T: SpaceSequencer_Enum,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
@@ -1177,6 +1260,51 @@ export const RemoveSpacePluginResponse: MessageType<RemoveSpacePluginResponse> =
     's4wave.space.RemoveSpacePluginResponse',
     true,
   )
+
+/**
+ * SetSpaceSequencerRequest chooses who orders the Space's edits.
+ *
+ * @generated from message s4wave.space.SetSpaceSequencerRequest
+ */
+export interface SetSpaceSequencerRequest {
+  /**
+   * Sequencer is MERGE, PROVIDER or THIS_DEVICE. THIS_DEVICE also replaces a
+   * lost main device, continuing the order this device holds.
+   *
+   * @generated from field: s4wave.space.SpaceSequencer sequencer = 1;
+   */
+  sequencer?: SpaceSequencer
+}
+
+export const SetSpaceSequencerRequest: MessageType<SetSpaceSequencerRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SetSpaceSequencerRequest',
+    fields: [
+      { no: 1, name: 'sequencer', kind: 'enum', T: SpaceSequencer_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetSpaceSequencerResponse reports whether the sequencer changed.
+ *
+ * @generated from message s4wave.space.SetSpaceSequencerResponse
+ */
+export interface SetSpaceSequencerResponse {
+  /**
+   * Changed is false when the chosen sequencer already ordered the edits.
+   *
+   * @generated from field: bool changed = 1;
+   */
+  changed?: boolean
+}
+
+export const SetSpaceSequencerResponse: MessageType<SetSpaceSequencerResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SetSpaceSequencerResponse',
+    fields: [
+      { no: 1, name: 'changed', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * SetProcessBindingRequest is a request to set a process binding state.

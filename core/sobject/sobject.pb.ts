@@ -688,6 +688,13 @@ export interface SharedObjectHealth {
    * @generated from field: sobject.SOCheckpointMismatch checkpoint_mismatch = 10;
    */
   checkpointMismatch?: SOCheckpointMismatch
+  /**
+   * UnorderedCount is the number of operations this device holds that the
+   * appointed sequencer has not placed yet. It is zero under Merge.
+   *
+   * @generated from field: uint32 unordered_count = 11;
+   */
+  unorderedCount?: number
 }
 
 export const SharedObjectHealth: MessageType<SharedObjectHealth> =
@@ -737,6 +744,7 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
         kind: 'message',
         T: SOCheckpointMismatch,
       },
+      { no: 11, name: 'unordered_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
   })
 

@@ -22,6 +22,8 @@ import {
   RemoveSpacePluginResponse,
   SetProcessBindingRequest,
   SetProcessBindingResponse,
+  SetSpaceSequencerRequest,
+  SetSpaceSequencerResponse,
   SpaceContentsState,
   SpaceSharingState,
   SpaceState,
@@ -177,6 +179,18 @@ export const SpaceResourceServiceDefinition = {
       O: OpenPluginFrontendResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
+     * sharing state reports the result.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
+     */
+    SetSpaceSequencer: {
+      name: 'SetSpaceSequencer',
+      I: SetSpaceSequencerRequest,
+      O: SetSpaceSequencerResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -298,6 +312,17 @@ export interface SpaceResourceService {
     request: BuildSpacePluginRequest,
     abortSignal?: AbortSignal,
   ): Promise<OpenPluginFrontendResponse>
+
+  /**
+   * SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
+   * sharing state reports the result.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
+   */
+  SetSpaceSequencer(
+    request: SetSpaceSequencerRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceSequencerResponse>
 }
 
 /**
@@ -431,6 +456,18 @@ export interface SpaceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<OpenPluginFrontendResponse>
+
+  /**
+   * SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
+   * sharing state reports the result.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
+   */
+  SetSpaceSequencer(
+    request: SetSpaceSequencerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetSpaceSequencerResponse>
 }
 
 export const SpaceResourceServiceServiceName =
@@ -455,6 +492,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
     this.BuildSpacePlugin = this.BuildSpacePlugin.bind(this)
     this.OpenPluginFrontend = this.OpenPluginFrontend.bind(this)
+    this.SetSpaceSequencer = this.SetSpaceSequencer.bind(this)
   }
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
@@ -685,6 +723,26 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return OpenPluginFrontendResponse.fromBinary(result)
+  }
+
+  /**
+   * SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
+   * sharing state reports the result.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
+   */
+  async SetSpaceSequencer(
+    request: SetSpaceSequencerRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceSequencerResponse> {
+    const requestMsg = SetSpaceSequencerRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.SetSpaceSequencer.name,
+      SetSpaceSequencerRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetSpaceSequencerResponse.fromBinary(result)
   }
 }
 /**

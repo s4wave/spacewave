@@ -2018,6 +2018,26 @@ func (c *SessionClient) GetSORecoveryEnvelope(
 	return resp.GetEnvelope(), nil
 }
 
+// GetSOSequencer returns the peer ID of the key the cloud signs a shared
+// object's order with.
+func (c *SessionClient) GetSOSequencer(ctx context.Context, soID string) (string, error) {
+	// Fetch and decode the sequencer response.
+	data, err := c.doGet(ctx, path.Join("/api/sobject", soID, "sequencer"), SeedReasonColdSeed)
+	if err != nil {
+		return "", errors.Wrap(err, "get sequencer")
+	}
+	resp := &api.GetSOSequencerResponse{}
+	if err := resp.UnmarshalVT(data); err != nil {
+		return "", errors.Wrap(err, "unmarshal sequencer response")
+	}
+
+	// A Cloud without a sequencer secret names no peer.
+	if resp.GetPeerId() == "" {
+		return "", errors.New("sequencer peer ID missing from response")
+	}
+	return resp.GetPeerId(), nil
+}
+
 // RegisterInviteCode registers a short invite code on the cloud SO DO.
 // The code maps to the full serialized SOInviteMessage for lookup.
 func (c *SessionClient) RegisterInviteCode(ctx context.Context, soID string, req *api.RegisterInviteCodeRequest) error {

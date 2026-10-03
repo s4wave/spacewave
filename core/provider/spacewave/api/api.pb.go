@@ -8602,6 +8602,27 @@ func (x *GetSORecoveryEnvelopeResponse) GetEnvelope() *sobject.SOEntityRecoveryE
 	return nil
 }
 
+// GetSOSequencerResponse is the response body for GET /sobject/:id/sequencer.
+type GetSOSequencerResponse struct {
+	unknownFields []byte
+	// PeerId is the peer ID of the key the cloud signs the shared object's
+	// order with. An owner appoints it with a SET_SEQUENCER config change.
+	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+}
+
+func (x *GetSOSequencerResponse) Reset() {
+	*x = GetSOSequencerResponse{}
+}
+
+func (*GetSOSequencerResponse) ProtoMessage() {}
+
+func (x *GetSOSequencerResponse) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
 // PostConfigStateRequest is the request body for POST /sobject/:id/config-state.
 // Used for signed config changes that may also mutate SOState fields such as
 // invites or update the current key epoch.
@@ -14417,6 +14438,22 @@ func (m *GetSORecoveryEnvelopeResponse) CloneVT() *GetSORecoveryEnvelopeResponse
 }
 
 func (m *GetSORecoveryEnvelopeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetSOSequencerResponse) CloneVT() *GetSOSequencerResponse {
+	if m == nil {
+		return (*GetSOSequencerResponse)(nil)
+	}
+	r := new(GetSOSequencerResponse)
+	r.PeerId = m.PeerId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetSOSequencerResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -21310,6 +21347,26 @@ func (this *GetSORecoveryEnvelopeResponse) EqualVT(that *GetSORecoveryEnvelopeRe
 
 func (this *GetSORecoveryEnvelopeResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetSORecoveryEnvelopeResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetSOSequencerResponse) EqualVT(that *GetSOSequencerResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetSOSequencerResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetSOSequencerResponse)
 	if !ok {
 		return false
 	}
@@ -36167,6 +36224,48 @@ func (x *GetSORecoveryEnvelopeResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the GetSOSequencerResponse message to JSON.
+func (x *GetSOSequencerResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetSOSequencerResponse to JSON.
+func (x *GetSOSequencerResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetSOSequencerResponse message from JSON.
+func (x *GetSOSequencerResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetSOSequencerResponse from JSON.
+func (x *GetSOSequencerResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the PostConfigStateRequest message to JSON.
 func (x *PostConfigStateRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -49798,6 +49897,43 @@ func (m *GetSORecoveryEnvelopeResponse) MarshalToSizedBufferVT(dAtA []byte) (int
 	return len(dAtA) - i, nil
 }
 
+func (m *GetSOSequencerResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetSOSequencerResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetSOSequencerResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PostConfigStateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -55635,6 +55771,17 @@ func (m *GetSORecoveryEnvelopeResponse) SizeVT() (n int) {
 		l = m.Envelope.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetSOSequencerResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -61525,6 +61672,20 @@ func (x *GetSORecoveryEnvelopeResponse) MarshalProtoText() string {
 }
 
 func (x *GetSORecoveryEnvelopeResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetSOSequencerResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetSOSequencerResponse")
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetSOSequencerResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -78417,6 +78578,59 @@ func (m *GetSORecoveryEnvelopeResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetSOSequencerResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetSOSequencerResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetSOSequencerResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

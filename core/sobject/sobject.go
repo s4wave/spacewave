@@ -108,13 +108,17 @@ type SharedObjectHealthAccessor interface {
 }
 
 // ReplayReporter is implemented by a SharedObject that shows the results of
-// its device's replay in its health: rejected edits and a wrong checkpoint.
-// The World engine reports them after each replay it installs.
+// its device's replay in its health: rejected edits, a wrong checkpoint and
+// the operations not yet in order. The World engine reports them after each
+// replay it installs.
 type ReplayReporter interface {
 	// SetRejectedEdits replaces the rejected edits in the health.
 	SetRejectedEdits(edits []*SORejectedEdit)
 	// SetCheckpointMismatch replaces the checkpoint mismatch in the health.
 	SetCheckpointMismatch(mismatch *SOCheckpointMismatch)
+	// SetUnorderedCount replaces the count of operations the sequencer has not
+	// placed in the health.
+	SetUnorderedCount(n uint32)
 }
 
 // InviteHost is an optional interface on SharedObject implementations that

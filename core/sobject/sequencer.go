@@ -16,6 +16,14 @@ type SequencerHost interface {
 	SetSequencer(ctx context.Context, peerID string) (bool, error)
 }
 
+// ProviderSequencer is an optional interface on SharedObject implementations
+// whose provider can sequence the shared object itself.
+type ProviderSequencer interface {
+	// GetProviderSequencer returns the peer ID the provider signs the order
+	// with, which SetSequencer appoints.
+	GetProviderSequencer(ctx context.Context) (string, error)
+}
+
 // MainDevice is an optional interface on SharedObject implementations whose
 // local peer signs positions when the config appoints it, as the main device
 // of a Space that syncs between devices.

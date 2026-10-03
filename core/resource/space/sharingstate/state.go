@@ -62,6 +62,8 @@ type SharingState struct {
 	ViewerPeerID string
 	// DeparturePending reports a departure the successor has not committed.
 	DeparturePending bool
+	// SequencerPeerID is the appointed sequencer, empty under Merge.
+	SequencerPeerID string
 }
 
 // State carries every input snapshot the sharing watch reads per emission.
@@ -230,6 +232,7 @@ func (s *State) RunWatchLoop(
 				ConfigChainHash:  soState.GetConfig().GetConfigChainHash(),
 				ConfigChainSeqno: soState.GetConfig().GetConfigChainSeqno(),
 				DeparturePending: len(s.departing) != 0,
+				SequencerPeerID:  soState.GetConfig().GetSequencer().GetPeerId(),
 			}
 			waitCh = getWaitCh()
 		})
@@ -380,6 +383,7 @@ func (s *SharingState) Equal(that *SharingState) bool {
 		s.CanManage == that.CanManage &&
 		s.ViewerPeerID == that.ViewerPeerID &&
 		s.DeparturePending == that.DeparturePending &&
+		s.SequencerPeerID == that.SequencerPeerID &&
 		bytes.Equal(s.ConfigChainHash, that.ConfigChainHash) &&
 		s.ConfigChainSeqno == that.ConfigChainSeqno &&
 		slices.EqualFunc(s.Participants, that.Participants, func(a, b *sobject.SOParticipantConfig) bool {

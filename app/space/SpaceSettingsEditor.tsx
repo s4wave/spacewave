@@ -8,6 +8,7 @@ import { ObjectKeySelector } from '@s4wave/web/ui/ObjectKeySelector.js'
 import { useInvokeCommand } from '@s4wave/web/command/index.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { applySpaceIndexPath } from './space-settings.js'
+import { SpaceSyncSection } from './SpaceSyncSection.js'
 
 interface SpaceSettingsEditorProps {
   canEdit: boolean
@@ -57,10 +58,9 @@ export function SpaceSettingsEditor({
             </span>
             {canRename && onRenameStart ? (
               <div className="flex items-center justify-between gap-2">
-                <div
-                  className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-xs transition-colors"
-                  role="button"
-                  tabIndex={0}
+                <button
+                  type="button"
+                  className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors"
                   onDoubleClick={() => onRenameStart()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -70,7 +70,7 @@ export function SpaceSettingsEditor({
                   }}
                 >
                   {displayName || 'Untitled'}
-                </div>
+                </button>
                 <DashboardButton
                   icon={<LuPencil className="size-3" />}
                   onClick={() => onRenameStart()}
@@ -103,6 +103,7 @@ export function SpaceSettingsEditor({
           </div>
         </div>
       </InfoCard>
+      <SpaceSyncSection />
       <button
         type="button"
         className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group mt-2 flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"

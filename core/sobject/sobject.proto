@@ -164,6 +164,10 @@ message SharedObjectHealth {
   // judge holds a World different from the one this device replayed through
   // the operations it covers.
   SOCheckpointMismatch checkpoint_mismatch = 10;
+
+  // UnorderedCount is the number of operations this device holds that the
+  // appointed sequencer has not placed yet. It is zero under Merge.
+  uint32 unordered_count = 11;
 }
 
 // SORejectedEdit is an operation of this device that replay no longer applies.

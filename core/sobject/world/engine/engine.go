@@ -195,6 +195,9 @@ type soEngine struct {
 	// mismatch is the checkpoint mismatch last reported, guarded by the
 	// controller's writer lock.
 	mismatch *sobject.SOCheckpointMismatch
+	// unordered is the count of unplaced operations last reported, guarded by
+	// the controller's writer lock.
+	unordered uint32
 }
 
 // newSoEngine constructs the shared object engine.
@@ -367,6 +370,7 @@ func (e *soEngine) advance(ctx context.Context, snap sobject.SharedObjectStateSn
 	}
 	e.reportRejectedEdits(set, outcomes)
 	e.reportCheckpointMismatch()
+	e.reportUnordered(set)
 
 	// Trim the history every member has built on.
 	if err := e.checkpointStable(ctx, snap, set); err != nil {
@@ -418,6 +422,19 @@ func (e *soEngine) reportCheckpointMismatch() {
 	}
 	e.mismatch = mismatch
 	reporter.SetCheckpointMismatch(mismatch)
+}
+
+// reportUnordered shows in the health of the SharedObject how many operations
+// wait for the appointed sequencer to place them.
+func (e *soEngine) reportUnordered(set *sobject.SOOperationSet) {
+	// Report only a changed count.
+	n := uint32(set.Unordered()) //nolint:gosec // the operations held in memory.
+	reporter, ok := e.so.(sobject.ReplayReporter)
+	if !ok || n == e.unordered {
+		return
+	}
+	e.unordered = n
+	reporter.SetUnorderedCount(n)
 }
 
 // concurrentAuthors returns the sorted authors, other than self, of the applied

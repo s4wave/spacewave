@@ -42,6 +42,10 @@ service SpaceResourceService {
   // OpenPluginFrontend retains a source-backed compiler on the selected device.
   // The returned Resource serves bldr.frontend.Frontend; release cancels the job.
   rpc OpenPluginFrontend(BuildSpacePluginRequest) returns (OpenPluginFrontendResponse) {}
+
+  // SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
+  // sharing state reports the result.
+  rpc SetSpaceSequencer(SetSpaceSequencerRequest) returns (SetSpaceSequencerResponse) {}
 }
 
 // BuildSpacePluginRequest selects a Space source tree and authorized build device.
@@ -156,6 +160,30 @@ message SpaceSharingState {
   // JoinRequests are the join requests this host holds for an owner to grant
   // or refuse.
   repeated .sobject.SOJoinRequest join_requests = 11;
+  // Sequencer is who orders the Space's edits.
+  SpaceSequencer sequencer = 12;
+  // SequencerPeerId is the peer ID of the appointed sequencer, empty under
+  // Merge.
+  string sequencer_peer_id = 13;
+  // SequencerChoices are the sequencers an owner can appoint on this device.
+  repeated SpaceSequencer sequencer_choices = 14;
+}
+
+// SpaceSequencer is who orders a Space's edits.
+enum SpaceSequencer {
+  // SpaceSequencer_UNKNOWN leaves the sequencer unset.
+  SpaceSequencer_UNKNOWN = 0;
+  // SpaceSequencer_MERGE means no one orders the edits: every device keeps
+  // working and the edits combine.
+  SpaceSequencer_MERGE = 1;
+  // SpaceSequencer_PROVIDER means the provider's cloud orders the edits.
+  SpaceSequencer_PROVIDER = 2;
+  // SpaceSequencer_THIS_DEVICE means this device orders the edits as the
+  // main device.
+  SpaceSequencer_THIS_DEVICE = 3;
+  // SpaceSequencer_OTHER_DEVICE means another member device orders the edits
+  // as the main device.
+  SpaceSequencer_OTHER_DEVICE = 4;
 }
 
 // TransformInfo contains redacted transform configuration for display.
@@ -350,6 +378,19 @@ message RemoveSpacePluginRequest {
 
 // RemoveSpacePluginResponse is the response for RemoveSpacePlugin.
 message RemoveSpacePluginResponse {}
+
+// SetSpaceSequencerRequest chooses who orders the Space's edits.
+message SetSpaceSequencerRequest {
+  // Sequencer is MERGE, PROVIDER or THIS_DEVICE. THIS_DEVICE also replaces a
+  // lost main device, continuing the order this device holds.
+  SpaceSequencer sequencer = 1;
+}
+
+// SetSpaceSequencerResponse reports whether the sequencer changed.
+message SetSpaceSequencerResponse {
+  // Changed is false when the chosen sequencer already ordered the edits.
+  bool changed = 1;
+}
 
 // SetProcessBindingRequest is a request to set a process binding state.
 message SetProcessBindingRequest {

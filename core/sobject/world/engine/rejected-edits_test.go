@@ -24,6 +24,9 @@ func (s *rejectedEditsTestSharedObject) SetRejectedEdits(edits []*sobject.SOReje
 // SetCheckpointMismatch ignores the reported mismatch.
 func (s *rejectedEditsTestSharedObject) SetCheckpointMismatch(*sobject.SOCheckpointMismatch) {}
 
+// SetUnorderedCount ignores the reported count.
+func (s *rejectedEditsTestSharedObject) SetUnorderedCount(uint32) {}
+
 // TestReportRejectedEditsNamesConflict applies a member's creation, then
 // delivers a concurrent creation of the same object that sorts first. The
 // member's own edit must be reported once as rejected, losing to the other

@@ -147,6 +147,17 @@ func (s *SharedObject) SetCheckpointMismatch(mismatch *sobject.SOCheckpointMisma
 	})
 }
 
+// SetUnorderedCount shows in the health that n operations wait for the
+// sequencer to place them.
+func (s *SharedObject) SetUnorderedCount(n uint32) {
+	if s.tkr.healthCtr == nil {
+		return
+	}
+	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return health.WithUnorderedCount(n)
+	})
+}
+
 // QueueOperation signs op as the session peer and adds it to the operation
 // set. It returns the operation's local ID once the state holding it is
 // durably accepted for publication.
@@ -1462,6 +1473,12 @@ func (s *SharedObject) SetSequencer(ctx context.Context, peerID string) (bool, e
 	return changed, err
 }
 
+// GetProviderSequencer returns the peer ID Spacewave Cloud signs the shared
+// object's order with.
+func (s *SharedObject) GetProviderSequencer(ctx context.Context) (string, error) {
+	return s.host.client.GetSOSequencer(ctx, s.tkr.id)
+}
+
 // isConfigConflict reports whether a config write lost a race with another
 // writer and may be rebuilt against the current head.
 func isConfigConflict(err error) bool {
@@ -1491,6 +1508,7 @@ func (s *SharedObject) GetProviderID() string {
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
 	_ sobject.ReplayReporter             = (*SharedObject)(nil)
+	_ sobject.ProviderSequencer          = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)

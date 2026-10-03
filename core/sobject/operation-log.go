@@ -546,6 +546,16 @@ func (s *SOOperationSet) SequenceTail() *SOSequenceHead {
 	return tail.CloneVT()
 }
 
+// Unordered returns how many operations of the order the appointed sequencer
+// has not placed. It is zero under Merge.
+func (s *SOOperationSet) Unordered() int {
+	if s.sequence.sequencer == "" {
+		return 0
+	}
+	placed := s.order()
+	return len(placed.order) - placed.sequenced
+}
+
 // SequenceHead returns the last position a checkpoint covering prefix, a
 // prefix of Order, covers: the last position before the first one whose
 // operation is neither covered nor in prefix. It is the checkpoint's position

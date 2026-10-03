@@ -21,6 +21,57 @@ import (
 	secret "github.com/s4wave/spacewave/sdk/secret"
 )
 
+// SpaceSequencer is who orders a Space's edits.
+type SpaceSequencer int32
+
+const (
+	// SpaceSequencer_UNKNOWN leaves the sequencer unset.
+	SpaceSequencer_SpaceSequencer_UNKNOWN SpaceSequencer = 0
+	// SpaceSequencer_MERGE means no one orders the edits: every device keeps
+	// working and the edits combine.
+	SpaceSequencer_SpaceSequencer_MERGE SpaceSequencer = 1
+	// SpaceSequencer_PROVIDER means the provider's cloud orders the edits.
+	SpaceSequencer_SpaceSequencer_PROVIDER SpaceSequencer = 2
+	// SpaceSequencer_THIS_DEVICE means this device orders the edits as the
+	// main device.
+	SpaceSequencer_SpaceSequencer_THIS_DEVICE SpaceSequencer = 3
+	// SpaceSequencer_OTHER_DEVICE means another member device orders the edits
+	// as the main device.
+	SpaceSequencer_SpaceSequencer_OTHER_DEVICE SpaceSequencer = 4
+)
+
+// Enum value maps for SpaceSequencer.
+var (
+	SpaceSequencer_name = map[int32]string{
+		0: "SpaceSequencer_UNKNOWN",
+		1: "SpaceSequencer_MERGE",
+		2: "SpaceSequencer_PROVIDER",
+		3: "SpaceSequencer_THIS_DEVICE",
+		4: "SpaceSequencer_OTHER_DEVICE",
+	}
+	SpaceSequencer_value = map[string]int32{
+		"SpaceSequencer_UNKNOWN":      0,
+		"SpaceSequencer_MERGE":        1,
+		"SpaceSequencer_PROVIDER":     2,
+		"SpaceSequencer_THIS_DEVICE":  3,
+		"SpaceSequencer_OTHER_DEVICE": 4,
+	}
+)
+
+func (x SpaceSequencer) Enum() *SpaceSequencer {
+	p := new(SpaceSequencer)
+	*p = x
+	return p
+}
+
+func (x SpaceSequencer) String() string {
+	name, valid := SpaceSequencer_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // SpacePluginLifecycleState is the app-facing lifecycle projection for a plugin.
 type SpacePluginLifecycleState int32
 
@@ -381,6 +432,13 @@ type SpaceSharingState struct {
 	// JoinRequests are the join requests this host holds for an owner to grant
 	// or refuse.
 	JoinRequests []*sobject.SOJoinRequest `protobuf:"bytes,11,rep,name=join_requests,json=joinRequests,proto3" json:"joinRequests,omitempty"`
+	// Sequencer is who orders the Space's edits.
+	Sequencer SpaceSequencer `protobuf:"varint,12,opt,name=sequencer,proto3" json:"sequencer,omitempty"`
+	// SequencerPeerId is the peer ID of the appointed sequencer, empty under
+	// Merge.
+	SequencerPeerId string `protobuf:"bytes,13,opt,name=sequencer_peer_id,json=sequencerPeerId,proto3" json:"sequencerPeerId,omitempty"`
+	// SequencerChoices are the sequencers an owner can appoint on this device.
+	SequencerChoices []SpaceSequencer `protobuf:"varint,14,rep,packed,name=sequencer_choices,json=sequencerChoices,proto3" json:"sequencerChoices,omitempty"`
 }
 
 func (x *SpaceSharingState) Reset() {
@@ -462,6 +520,27 @@ func (x *SpaceSharingState) GetDeparturePending() bool {
 func (x *SpaceSharingState) GetJoinRequests() []*sobject.SOJoinRequest {
 	if x != nil {
 		return x.JoinRequests
+	}
+	return nil
+}
+
+func (x *SpaceSharingState) GetSequencer() SpaceSequencer {
+	if x != nil {
+		return x.Sequencer
+	}
+	return SpaceSequencer_SpaceSequencer_UNKNOWN
+}
+
+func (x *SpaceSharingState) GetSequencerPeerId() string {
+	if x != nil {
+		return x.SequencerPeerId
+	}
+	return ""
+}
+
+func (x *SpaceSharingState) GetSequencerChoices() []SpaceSequencer {
+	if x != nil {
+		return x.SequencerChoices
 	}
 	return nil
 }
@@ -1084,6 +1163,47 @@ func (x *RemoveSpacePluginResponse) Reset() {
 
 func (*RemoveSpacePluginResponse) ProtoMessage() {}
 
+// SetSpaceSequencerRequest chooses who orders the Space's edits.
+type SetSpaceSequencerRequest struct {
+	unknownFields []byte
+	// Sequencer is MERGE, PROVIDER or THIS_DEVICE. THIS_DEVICE also replaces a
+	// lost main device, continuing the order this device holds.
+	Sequencer SpaceSequencer `protobuf:"varint,1,opt,name=sequencer,proto3" json:"sequencer,omitempty"`
+}
+
+func (x *SetSpaceSequencerRequest) Reset() {
+	*x = SetSpaceSequencerRequest{}
+}
+
+func (*SetSpaceSequencerRequest) ProtoMessage() {}
+
+func (x *SetSpaceSequencerRequest) GetSequencer() SpaceSequencer {
+	if x != nil {
+		return x.Sequencer
+	}
+	return SpaceSequencer_SpaceSequencer_UNKNOWN
+}
+
+// SetSpaceSequencerResponse reports whether the sequencer changed.
+type SetSpaceSequencerResponse struct {
+	unknownFields []byte
+	// Changed is false when the chosen sequencer already ordered the edits.
+	Changed bool `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+}
+
+func (x *SetSpaceSequencerResponse) Reset() {
+	*x = SetSpaceSequencerResponse{}
+}
+
+func (*SetSpaceSequencerResponse) ProtoMessage() {}
+
+func (x *SetSpaceSequencerResponse) GetChanged() bool {
+	if x != nil {
+		return x.Changed
+	}
+	return false
+}
+
 // SetProcessBindingRequest is a request to set a process binding state.
 type SetProcessBindingRequest struct {
 	unknownFields []byte
@@ -1347,12 +1467,15 @@ func (m *SpaceSharingState) CloneVT() *SpaceSharingState {
 	r.ConfigChainSeqno = m.ConfigChainSeqno
 	r.ViewerPeerId = m.ViewerPeerId
 	r.DeparturePending = m.DeparturePending
+	r.Sequencer = m.Sequencer
+	r.SequencerPeerId = m.SequencerPeerId
 	r.Participants = protobuf_go_lite.CloneVTSlice(m.Participants)
 	r.Invites = protobuf_go_lite.CloneVTSlice(m.Invites)
 	r.MailboxEntries = protobuf_go_lite.CloneVTSlice(m.MailboxEntries)
 	r.ParticipantInfo = protobuf_go_lite.CloneVTSlice(m.ParticipantInfo)
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
 	r.JoinRequests = protobuf_go_lite.CloneVTSlice(m.JoinRequests)
+	r.SequencerChoices = protobuf_go_lite.CloneSlice(m.SequencerChoices)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1720,6 +1843,38 @@ func (m *RemoveSpacePluginResponse) CloneMessageVT() protobuf_go_lite.CloneMessa
 	return m.CloneVT()
 }
 
+func (m *SetSpaceSequencerRequest) CloneVT() *SetSpaceSequencerRequest {
+	if m == nil {
+		return (*SetSpaceSequencerRequest)(nil)
+	}
+	r := new(SetSpaceSequencerRequest)
+	r.Sequencer = m.Sequencer
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceSequencerRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpaceSequencerResponse) CloneVT() *SetSpaceSequencerResponse {
+	if m == nil {
+		return (*SetSpaceSequencerResponse)(nil)
+	}
+	r := new(SetSpaceSequencerResponse)
+	r.Changed = m.Changed
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceSequencerResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *SetProcessBindingRequest) CloneVT() *SetProcessBindingRequest {
 	if m == nil {
 		return (*SetProcessBindingRequest)(nil)
@@ -2022,6 +2177,15 @@ func (this *SpaceSharingState) EqualVT(that *SpaceSharingState) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.JoinRequests, that.JoinRequests, func() *sobject.SOJoinRequest { return &sobject.SOJoinRequest{} }) {
+		return false
+	}
+	if this.Sequencer != that.Sequencer {
+		return false
+	}
+	if this.SequencerPeerId != that.SequencerPeerId {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.SequencerChoices, that.SequencerChoices) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2518,6 +2682,46 @@ func (this *RemoveSpacePluginResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *SetSpaceSequencerRequest) EqualVT(that *SetSpaceSequencerRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Sequencer != that.Sequencer {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceSequencerRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceSequencerRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpaceSequencerResponse) EqualVT(that *SetSpaceSequencerResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Changed != that.Changed {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceSequencerResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceSequencerResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *SetProcessBindingRequest) EqualVT(that *SetProcessBindingRequest) bool {
 	if this == that {
 		return true
@@ -2625,6 +2829,46 @@ func (this *ProcessBindingInfo) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the SpaceSequencer to JSON.
+func (x SpaceSequencer) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SpaceSequencer_name)
+}
+
+// MarshalText marshals the SpaceSequencer to text.
+func (x SpaceSequencer) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SpaceSequencer_name)), nil
+}
+
+// MarshalJSON marshals the SpaceSequencer to JSON.
+func (x SpaceSequencer) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SpaceSequencer from JSON.
+func (x *SpaceSequencer) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SpaceSequencer_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SpaceSequencer enum: %v", err)
+		return
+	}
+	*x = SpaceSequencer(v)
+}
+
+// UnmarshalText unmarshals the SpaceSequencer from text.
+func (x *SpaceSequencer) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SpaceSequencer_value)
+	if err != nil {
+		return err
+	}
+	*x = SpaceSequencer(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SpaceSequencer from JSON.
+func (x *SpaceSequencer) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the SpacePluginLifecycleState to JSON.
@@ -3170,6 +3414,27 @@ func (x *SpaceSharingState) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Sequencer != 0 || s.HasField("sequencer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequencer")
+		x.Sequencer.MarshalProtoJSON(s)
+	}
+	if x.SequencerPeerId != "" || s.HasField("sequencerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequencerPeerId")
+		s.WriteString(x.SequencerPeerId)
+	}
+	if len(x.SequencerChoices) > 0 || s.HasField("sequencerChoices") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequencerChoices")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.SequencerChoices {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s)
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3294,6 +3559,23 @@ func (x *SpaceSharingState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 					return
 				}
 				x.JoinRequests = append(x.JoinRequests, v)
+			})
+		case "sequencer":
+			s.AddField("sequencer")
+			x.Sequencer.UnmarshalProtoJSON(s)
+		case "sequencer_peer_id", "sequencerPeerId":
+			s.AddField("sequencer_peer_id")
+			x.SequencerPeerId = s.ReadString()
+		case "sequencer_choices", "sequencerChoices":
+			s.AddField("sequencer_choices")
+			if s.ReadNil() {
+				x.SequencerChoices = nil
+				return
+			}
+			s.ReadArray(func() {
+				var v SpaceSequencer
+				v.UnmarshalProtoJSON(s)
+				x.SequencerChoices = append(x.SequencerChoices, v)
 			})
 		}
 	})
@@ -4426,6 +4708,90 @@ func (x *RemoveSpacePluginResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SetSpaceSequencerRequest message to JSON.
+func (x *SetSpaceSequencerRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Sequencer != 0 || s.HasField("sequencer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequencer")
+		x.Sequencer.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceSequencerRequest to JSON.
+func (x *SetSpaceSequencerRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceSequencerRequest message from JSON.
+func (x *SetSpaceSequencerRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "sequencer":
+			s.AddField("sequencer")
+			x.Sequencer.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceSequencerRequest from JSON.
+func (x *SetSpaceSequencerRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetSpaceSequencerResponse message to JSON.
+func (x *SetSpaceSequencerResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Changed || s.HasField("changed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("changed")
+		s.WriteBool(x.Changed)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceSequencerResponse to JSON.
+func (x *SetSpaceSequencerResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceSequencerResponse message from JSON.
+func (x *SetSpaceSequencerResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "changed":
+			s.AddField("changed")
+			x.Changed = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceSequencerResponse from JSON.
+func (x *SetSpaceSequencerResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SetProcessBindingRequest message to JSON.
 func (x *SetProcessBindingRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -5046,6 +5412,21 @@ func (m *SpaceSharingState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SequencerChoices) > 0 {
+		i = protobuf_go_lite.EncodeVarintPacked(dAtA, i, m.SequencerChoices)
+		i--
+		dAtA[i] = 0x72
+	}
+	if len(m.SequencerPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SequencerPeerId)
+		i--
+		dAtA[i] = 0x6a
+	}
+	if m.Sequencer != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Sequencer))
+		i--
+		dAtA[i] = 0x60
 	}
 	if len(m.JoinRequests) > 0 {
 		for iNdEx := len(m.JoinRequests) - 1; iNdEx >= 0; iNdEx-- {
@@ -6067,6 +6448,80 @@ func (m *RemoveSpacePluginResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *SetSpaceSequencerRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceSequencerRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceSequencerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Sequencer != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Sequencer))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetSpaceSequencerResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceSequencerResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceSequencerResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Changed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Changed)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SetProcessBindingRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -6408,6 +6863,9 @@ func (m *SpaceSharingState) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Sequencer)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SequencerPeerId)
+	n += protobuf_go_lite.SizeVarintPacked(1, m.SequencerChoices)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6685,6 +7143,28 @@ func (m *RemoveSpacePluginResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *SetSpaceSequencerRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Sequencer)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpaceSequencerResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Changed)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *SetProcessBindingRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -6747,6 +7227,10 @@ func (m *ProcessBindingInfo) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x SpaceSequencer) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x SpacePluginLifecycleState) MarshalProtoText() string {
@@ -6995,6 +7479,22 @@ func (x *SpaceSharingState) MarshalProtoText() string {
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Sequencer != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequencer")
+		protobuf_go_lite.TextWriteStringer(&sb, SpaceSequencer(x.Sequencer))
+	}
+	if x.SequencerPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequencer_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SequencerPeerId)
+	}
+	if len(x.SequencerChoices) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "sequencer_choices")
+		for i, v := range x.SequencerChoices {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteStringer(&sb, SpaceSequencer(v))
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
@@ -7416,6 +7916,34 @@ func (x *RemoveSpacePluginResponse) MarshalProtoText() string {
 }
 
 func (x *RemoveSpacePluginResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceSequencerRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpaceSequencerRequest")
+	if x.Sequencer != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequencer")
+		protobuf_go_lite.TextWriteStringer(&sb, SpaceSequencer(x.Sequencer))
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceSequencerRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceSequencerResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpaceSequencerResponse")
+	if x.Changed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "changed")
+		protobuf_go_lite.TextWriteBool(&sb, x.Changed)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceSequencerResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -8171,6 +8699,61 @@ func (m *SpaceSharingState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequencer", wireType)
+			}
+			m.Sequencer = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Sequencer = SpaceSequencer(_v)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SequencerPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SequencerPeerId = v
+		case 14:
+			if wireType == 0 {
+				var v SpaceSequencer
+				var _v uint64
+				_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				v = SpaceSequencer(_v)
+				if err != nil {
+					return err
+				}
+				m.SequencerChoices = append(m.SequencerChoices, v)
+			} else if wireType == 2 {
+				packedStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				iNdEx = packedStart
+				var elementCount int
+				elementCount = protobuf_go_lite.PackedVarintElementCount(dAtA[iNdEx:postIndex])
+				if elementCount != 0 && len(m.SequencerChoices) == 0 {
+					m.SequencerChoices = make([]SpaceSequencer, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v SpaceSequencer
+					var _v uint64
+					_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+					v = SpaceSequencer(_v)
+					if err != nil {
+						return err
+					}
+					m.SequencerChoices = append(m.SequencerChoices, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field SequencerChoices", wireType)
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -9511,6 +10094,113 @@ func (m *RemoveSpacePluginResponse) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: RemoveSpacePluginResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceSequencerRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceSequencerRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceSequencerRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequencer", wireType)
+			}
+			m.Sequencer = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Sequencer = SpaceSequencer(_v)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceSequencerResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceSequencerResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceSequencerResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Changed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Changed = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

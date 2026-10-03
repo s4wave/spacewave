@@ -102,6 +102,23 @@ func (h *SharedObjectHealth) WithCheckpointMismatch(mismatch *SOCheckpointMismat
 	return next
 }
 
+// WithUnorderedCount returns a snapshot reporting n operations the sequencer
+// has not placed yet.
+func (h *SharedObjectHealth) WithUnorderedCount(n uint32) *SharedObjectHealth {
+	// Keep the snapshot when the count is unchanged.
+	if h.GetUnorderedCount() == n {
+		return h
+	}
+
+	// Copy the snapshot with the new count.
+	next := h.CloneVT()
+	if next == nil {
+		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
+	}
+	next.UnorderedCount = n
+	return next
+}
+
 // NewSharedObjectLoadingHealth constructs a loading SharedObjectHealth snapshot.
 func NewSharedObjectLoadingHealth(
 	layer SharedObjectHealthLayer,

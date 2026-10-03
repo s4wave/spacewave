@@ -253,9 +253,71 @@ func (r *SpaceResource) WatchSpaceSharingState(
 
 	// Send each changed snapshot to the stream.
 	peerID := r.space.GetSharedObject().GetPeerID().String()
+	choices := sequencerChoices(r.space.GetSharedObject())
 	return state.RunWatchLoop(ctx, peerID, func(state *sharingstate.SharingState) error {
-		return strm.Send(sharingStateToProto(state))
+		return strm.Send(sharingStateToProto(state, choices))
 	})
+}
+
+// sequencerChoices returns the sequencers an owner can appoint through so.
+func sequencerChoices(so sobject.SharedObject) []s4wave_space.SpaceSequencer {
+	// Only an owner-capable shared object offers a choice.
+	if _, ok := so.(sobject.SequencerHost); !ok {
+		return nil
+	}
+
+	// Merge is always offered, with each sequencer the shared object supports.
+	choices := []s4wave_space.SpaceSequencer{s4wave_space.SpaceSequencer_SpaceSequencer_MERGE}
+	if _, ok := so.(sobject.ProviderSequencer); ok {
+		choices = append(choices, s4wave_space.SpaceSequencer_SpaceSequencer_PROVIDER)
+	}
+	if _, ok := so.(sobject.MainDevice); ok {
+		choices = append(choices, s4wave_space.SpaceSequencer_SpaceSequencer_THIS_DEVICE)
+	}
+	return choices
+}
+
+// SetSpaceSequencer chooses, as the local owner, who orders the Space's edits.
+func (r *SpaceResource) SetSpaceSequencer(
+	ctx context.Context,
+	req *s4wave_space.SetSpaceSequencerRequest,
+) (*s4wave_space.SetSpaceSequencerResponse, error) {
+	// Only a shared object whose owner can choose has a sequencer setting.
+	so := r.space.GetSharedObject()
+	host, ok := so.(sobject.SequencerHost)
+	if !ok {
+		return nil, errors.New("this Space has no sequencer setting")
+	}
+
+	// Resolve the chosen sequencer's peer ID.
+	var peerID string
+	switch choice := req.GetSequencer(); choice {
+	case s4wave_space.SpaceSequencer_SpaceSequencer_MERGE:
+	case s4wave_space.SpaceSequencer_SpaceSequencer_PROVIDER:
+		ps, ok := so.(sobject.ProviderSequencer)
+		if !ok {
+			return nil, errors.New("this Space's provider cannot order edits")
+		}
+		var err error
+		peerID, err = ps.GetProviderSequencer(ctx)
+		if err != nil {
+			return nil, err
+		}
+	case s4wave_space.SpaceSequencer_SpaceSequencer_THIS_DEVICE:
+		if _, ok := so.(sobject.MainDevice); !ok {
+			return nil, errors.New("this device cannot order this Space's edits")
+		}
+		peerID = so.GetPeerID().String()
+	default:
+		return nil, errors.Errorf("unsupported sequencer %v", choice)
+	}
+
+	// Appoint it.
+	changed, err := host.SetSequencer(ctx, peerID)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_space.SetSpaceSequencerResponse{Changed: changed}, nil
 }
 
 // buildTransformInfo extracts redacted transform info from the shared object state.
@@ -479,8 +541,12 @@ func bridgeSharingMailbox(
 	}
 }
 
-// sharingStateToProto converts the sharing state to its wire form.
-func sharingStateToProto(state *sharingstate.SharingState) *s4wave_space.SpaceSharingState {
+// sharingStateToProto converts the sharing state to its wire form, with the
+// sequencers an owner can appoint.
+func sharingStateToProto(
+	state *sharingstate.SharingState,
+	choices []s4wave_space.SpaceSequencer,
+) *s4wave_space.SpaceSharingState {
 	if state == nil {
 		return nil
 	}
@@ -496,6 +562,33 @@ func sharingStateToProto(state *sharingstate.SharingState) *s4wave_space.SpaceSh
 		ConfigChainSeqno: state.ConfigChainSeqno,
 		ViewerPeerId:     state.ViewerPeerID,
 		DeparturePending: state.DeparturePending,
+		Sequencer:        sharingSequencer(state, choices),
+		SequencerPeerId:  state.SequencerPeerID,
+		SequencerChoices: choices,
+	}
+}
+
+// sharingSequencer classifies the appointed sequencer for the viewer. A
+// sequencer that is not a participant is the provider's when the provider can
+// sequence, and otherwise a device that has left.
+func sharingSequencer(
+	state *sharingstate.SharingState,
+	choices []s4wave_space.SpaceSequencer,
+) s4wave_space.SpaceSequencer {
+	peerID := state.SequencerPeerID
+	switch {
+	case peerID == "":
+		return s4wave_space.SpaceSequencer_SpaceSequencer_MERGE
+	case peerID == state.ViewerPeerID:
+		return s4wave_space.SpaceSequencer_SpaceSequencer_THIS_DEVICE
+	case slices.ContainsFunc(state.Participants, func(p *sobject.SOParticipantConfig) bool {
+		return p.GetPeerId() == peerID
+	}):
+		return s4wave_space.SpaceSequencer_SpaceSequencer_OTHER_DEVICE
+	case slices.Contains(choices, s4wave_space.SpaceSequencer_SpaceSequencer_PROVIDER):
+		return s4wave_space.SpaceSequencer_SpaceSequencer_PROVIDER
+	default:
+		return s4wave_space.SpaceSequencer_SpaceSequencer_OTHER_DEVICE
 	}
 }
 

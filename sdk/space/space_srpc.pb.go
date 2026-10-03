@@ -43,6 +43,9 @@ type SRPCSpaceResourceServiceClient interface {
 	// OpenPluginFrontend retains a source-backed compiler on the selected device.
 	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
 	OpenPluginFrontend(ctx context.Context, in *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
+	// SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
+	// sharing state reports the result.
+	SetSpaceSequencer(ctx context.Context, in *SetSpaceSequencerRequest) (*SetSpaceSequencerResponse, error)
 }
 
 type srpcSpaceResourceServiceClient struct {
@@ -282,6 +285,15 @@ func (c *srpcSpaceResourceServiceClient) OpenPluginFrontend(ctx context.Context,
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) SetSpaceSequencer(ctx context.Context, in *SetSpaceSequencerRequest) (*SetSpaceSequencerResponse, error) {
+	out := new(SetSpaceSequencerResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetSpaceSequencer", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCSpaceResourceServiceServer interface {
 	WatchSpaceState(*WatchSpaceStateRequest, SRPCSpaceResourceService_WatchSpaceStateStream) error
 	// WatchProcessBindings streams local process binding decisions without
@@ -311,6 +323,9 @@ type SRPCSpaceResourceServiceServer interface {
 	// OpenPluginFrontend retains a source-backed compiler on the selected device.
 	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
 	OpenPluginFrontend(context.Context, *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
+	// SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
+	// sharing state reports the result.
+	SetSpaceSequencer(context.Context, *SetSpaceSequencerRequest) (*SetSpaceSequencerResponse, error)
 }
 
 const SRPCSpaceResourceServiceServiceID = "s4wave.space.SpaceResourceService"
@@ -352,6 +367,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"RemoveSpacePlugin",
 		"BuildSpacePlugin",
 		"OpenPluginFrontend",
+		"SetSpaceSequencer",
 	}
 }
 
@@ -390,6 +406,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_BuildSpacePlugin(d.impl, strm)
 	case "OpenPluginFrontend":
 		return true, d.InvokeMethod_OpenPluginFrontend(d.impl, strm)
+	case "SetSpaceSequencer":
+		return true, d.InvokeMethod_SetSpaceSequencer(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -529,6 +547,18 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_OpenPluginFrontend(impl SRPC
 		return err
 	}
 	out, err := impl.OpenPluginFrontend(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_SetSpaceSequencer(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetSpaceSequencerRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetSpaceSequencer(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -710,6 +740,14 @@ type SRPCSpaceResourceService_OpenPluginFrontendStream interface {
 }
 
 type srpcSpaceResourceService_OpenPluginFrontendStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_SetSpaceSequencerStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_SetSpaceSequencerStream struct {
 	srpc.Stream
 }
 

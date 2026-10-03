@@ -8906,6 +8906,29 @@ export const GetSORecoveryEnvelopeResponse: MessageType<GetSORecoveryEnvelopeRes
   })
 
 /**
+ * GetSOSequencerResponse is the response body for GET /sobject/:id/sequencer.
+ *
+ * @generated from message provider.spacewave.api.GetSOSequencerResponse
+ */
+export interface GetSOSequencerResponse {
+  /**
+   * PeerId is the peer ID of the key the cloud signs the shared object's
+   * order with. An owner appoints it with a SET_SEQUENCER config change.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+}
+
+export const GetSOSequencerResponse: MessageType<GetSOSequencerResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.GetSOSequencerResponse',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * PostConfigStateRequest is the request body for POST /sobject/:id/config-state.
  * Used for signed config changes that may also mutate SOState fields such as
  * invites or update the current key epoch.

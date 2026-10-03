@@ -40,11 +40,15 @@ func TestMainDeviceHandoff(t *testing.T) {
 	if n := len((*current).GetSequence()); n != 0 {
 		t.Fatalf("a device that is not the main device placed %d operations", n)
 	}
+	if n := mustOperationSet(t, *current).Unordered(); n != 2 {
+		t.Fatalf("%d operations wait for the main device; want 2", n)
+	}
 	if err := host.SequenceOperations(t.Context(), keys[0]); err != nil {
 		t.Fatal(err)
 	}
-	if got := mustOperationSet(t, *current).StablePoint(nil); len(got) != 2 {
-		t.Fatalf("main device left %d operations stable; want b1 and c1", len(got))
+	set := mustOperationSet(t, *current)
+	if got := set.StablePoint(nil); len(got) != 2 || set.Unordered() != 0 {
+		t.Fatalf("main device left %d operations stable and %d waiting; want b1 and c1 stable", len(got), set.Unordered())
 	}
 
 	// A places C's next edit, then goes offline before B receives that

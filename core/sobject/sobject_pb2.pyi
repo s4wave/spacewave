@@ -153,7 +153,7 @@ class SharedObjectMeta(_message.Message):
     def __init__(self, body_type: _Optional[str] = ..., body_meta: _Optional[bytes] = ..., account_private: _Optional[bool] = ...) -> None: ...
 
 class SharedObjectHealth(_message.Message):
-    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch")
+    __slots__ = ("status", "layer", "common_reason", "remediation_hint", "error", "metadata", "sync_denied_peer_ids", "sync_recovery_peer_ids", "rejected_edits", "checkpoint_mismatch", "unordered_count")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     LAYER_FIELD_NUMBER: _ClassVar[int]
     COMMON_REASON_FIELD_NUMBER: _ClassVar[int]
@@ -164,6 +164,7 @@ class SharedObjectHealth(_message.Message):
     SYNC_RECOVERY_PEER_IDS_FIELD_NUMBER: _ClassVar[int]
     REJECTED_EDITS_FIELD_NUMBER: _ClassVar[int]
     CHECKPOINT_MISMATCH_FIELD_NUMBER: _ClassVar[int]
+    UNORDERED_COUNT_FIELD_NUMBER: _ClassVar[int]
     status: SharedObjectHealthStatus
     layer: SharedObjectHealthLayer
     common_reason: SharedObjectHealthCommonReason
@@ -174,7 +175,8 @@ class SharedObjectHealth(_message.Message):
     sync_recovery_peer_ids: _containers.RepeatedScalarFieldContainer[str]
     rejected_edits: _containers.RepeatedCompositeFieldContainer[SORejectedEdit]
     checkpoint_mismatch: SOCheckpointMismatch
-    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ...) -> None: ...
+    unordered_count: int
+    def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ..., rejected_edits: _Optional[_Iterable[_Union[SORejectedEdit, _Mapping]]] = ..., checkpoint_mismatch: _Optional[_Union[SOCheckpointMismatch, _Mapping]] = ..., unordered_count: _Optional[int] = ...) -> None: ...
 
 class SORejectedEdit(_message.Message):
     __slots__ = ("op_hash", "reason", "lost_to_peer_ids")
