@@ -532,6 +532,20 @@ func (s *SOOperationSet) linksPlaced(inner *SOOperationInner, placed map[string]
 	return true
 }
 
+// SequenceTail returns a copy of the last position of the resolved sequence,
+// or of the checkpoint's position when the sequence holds none above it. It
+// returns nil before the first position.
+func (s *SOOperationSet) SequenceTail() *SOSequenceHead {
+	tail := s.sequence.base
+	if n := len(s.sequence.positions); n != 0 {
+		tail = s.sequence.positions[n-1].head
+	}
+	if tail.GetHeight() == 0 {
+		return nil
+	}
+	return tail.CloneVT()
+}
+
 // SequenceHead returns the last position a checkpoint covering prefix, a
 // prefix of Order, covers: the last position before the first one whose
 // operation is neither covered nor in prefix. It is the checkpoint's position

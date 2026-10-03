@@ -211,7 +211,8 @@ func (c *Controller) executeWorld(
 	defer c.engineCtr.SetValue(nil)
 
 	// Acknowledge the edits this device builds on, restore returning devices
-	// to the trimming roster and reclaim storage while it serves the World.
+	// to the trimming roster, order the Space as its main device and reclaim
+	// storage while it serves the World.
 	bgCtx, bgCancel := context.WithCancel(ctx)
 	defer bgCancel()
 	go func() {
@@ -223,6 +224,13 @@ func (c *Controller) executeWorld(
 		go func() {
 			if err := sobject.RestoreRoster(bgCtx, so, roster); err != nil && bgCtx.Err() == nil {
 				le.WithError(err).Warn("stopped restoring returning devices")
+			}
+		}()
+	}
+	if mainDevice, ok := so.(sobject.MainDevice); ok {
+		go func() {
+			if err := sobject.Sequence(bgCtx, so, mainDevice.SequenceOperations); err != nil && bgCtx.Err() == nil {
+				le.WithError(err).Warn("stopped ordering edits as the main device")
 			}
 		}()
 	}

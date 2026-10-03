@@ -722,6 +722,18 @@ func (s *SharedObject) SetRosterDropped(ctx context.Context, dropped []string) (
 	return sobject.SetSORoster(ctx, s.soHost, dropped, s.localPriv)
 }
 
+// SetSequencer appoints peerID as the sequencer, or selects Merge when peerID
+// is empty, signed by the local peer.
+func (s *SharedObject) SetSequencer(ctx context.Context, peerID string) (bool, error) {
+	return sobject.SetSOSequencer(ctx, s.soHost, peerID, s.localPriv)
+}
+
+// SequenceOperations places the unplaced operations while the local peer is
+// the sequencer, so this device orders the Space as its main device.
+func (s *SharedObject) SequenceOperations(ctx context.Context) error {
+	return s.soHost.SequenceOperations(ctx, s.localPriv)
+}
+
 // _ verifies the local provider's SharedObject contracts.
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
@@ -730,4 +742,6 @@ var (
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
+	_ sobject.SequencerHost              = (*SharedObject)(nil)
+	_ sobject.MainDevice                 = (*SharedObject)(nil)
 )

@@ -1450,6 +1450,18 @@ func (s *SharedObject) SetRosterDropped(ctx context.Context, dropped []string) (
 	return changed, err
 }
 
+// SetSequencer appoints peerID as the sequencer, or selects Merge when peerID
+// is empty, signed by the local peer against the latest cloud configuration.
+func (s *SharedObject) SetSequencer(ctx context.Context, peerID string) (bool, error) {
+	var changed bool
+	err := s.retryConfigConflicts(ctx, func() error {
+		var err error
+		changed, err = sobject.SetSOSequencer(ctx, s.GetSOHost(), peerID, s.privKey)
+		return err
+	})
+	return changed, err
+}
+
 // isConfigConflict reports whether a config write lost a race with another
 // writer and may be rebuilt against the current head.
 func isConfigConflict(err error) bool {
@@ -1483,4 +1495,5 @@ var (
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)
 	_ sobject.RosterHost                 = (*SharedObject)(nil)
+	_ sobject.SequencerHost              = (*SharedObject)(nil)
 )
