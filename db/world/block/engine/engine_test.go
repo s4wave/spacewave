@@ -233,14 +233,18 @@ func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testin
 	}
 }
 
+// generationlessCoordinator reports a coordinator that supports leases but not
+// generations.
 type generationlessCoordinator struct {
 	coord.Coordinator
 }
 
+// Capability returns the wrapped capability with generations disabled.
 func (c generationlessCoordinator) Capability(
 	ctx context.Context,
 	scope coord.Scope,
 ) (*coord.Capability, error) {
+	// Read the wrapped capability and clear its generation support.
 	capability, err := c.Coordinator.Capability(ctx, scope)
 	if err != nil {
 		return nil, err
@@ -250,12 +254,17 @@ func (c generationlessCoordinator) Capability(
 	return capability, nil
 }
 
+// TestWorldEngineControllerCoordinatorHeadWatch checks that engines sharing an
+// object store serialize writers through the coordinator lease, reject stale
+// heads, publish accepted roots and adopt each other's durable heads.
 func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
+	// Configure debug logging.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a Bolt-backed testbed with the World engine factory.
 	boltPath := filepath.Join(t.TempDir(), "world-head-watch.bolt")
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_bolt.Config{Path: boltPath}))
 	if err != nil {
@@ -264,52 +273,16 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	defer tb.Release()
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
+	// Start a writer and a reader engine on the same object store.
 	volumeID := tb.Volume.GetID()
 	objectStoreID := "test-world-engine-head-watch-store"
-	bucketID := tb.BucketId
-	transformConf, err := block_transform.NewConfig(nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	initWorldRef := &bucket.ObjectRef{
-		BucketId:      bucketID,
-		TransformConf: transformConf,
-	}
+	writerEngine, releaseWriter := startHeadWatchEngine(ctx, t, tb, "test-world-engine-head-watch-writer", objectStoreID)
+	defer releaseWriter()
+	readerEngine, releaseReader := startHeadWatchEngine(ctx, t, tb, "test-world-engine-head-watch-reader", objectStoreID)
+	defer releaseReader()
 
-	startEngine := func(engineID string) (*world_block_engine.Controller, directive.Reference) {
-		engineConf := world_block_engine.NewConfig(
-			engineID,
-			volumeID, bucketID,
-			objectStoreID,
-			initWorldRef,
-			nil,
-			false,
-		)
-		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		if _, err := worldCtrl.GetWorldEngine(ctx); err != nil {
-			worldCtrlRef.Release()
-			t.Fatal(err.Error())
-		}
-		return worldCtrl, worldCtrlRef
-	}
-
-	writerCtrl, writerRef := startEngine("test-world-engine-head-watch-writer")
-	defer writerRef.Release()
-	readerCtrl, readerRef := startEngine("test-world-engine-head-watch-reader")
-	defer readerRef.Release()
-
-	writerEngine, err := writerCtrl.GetWorldEngine(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	readerEngine, err := readerCtrl.GetWorldEngine(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
+	// A writer transaction waits while an external participant holds the
+	// coordinator write lease, and acquires once the lease is released.
 	externalLease, err := tb.Volume.WaitAcquireWriteLease(ctx, coord.Scope{
 		VolumeID:      volumeID,
 		ObjectStoreID: objectStoreID,
@@ -318,77 +291,24 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	blockedTx := make(chan world.Tx, 1)
-	blockedErr := make(chan error, 1)
-	go func() {
-		tx, err := writerEngine.NewTransaction(ctx, true)
-		if err != nil {
-			blockedErr <- err
-			return
-		}
-		blockedTx <- tx
-	}()
-	select {
-	case err := <-blockedErr:
-		t.Fatalf("writer transaction failed while waiting for lease: %v", err)
-	case tx := <-blockedTx:
-		tx.Discard()
-		t.Fatal("writer transaction acquired while external coordinator lease was held")
-	case <-time.After(50 * time.Millisecond):
-	}
+	blockedTx, blockedErr := startWriteTx(ctx, writerEngine)
+	requireWriteBlocked(t, blockedTx, blockedErr, "external coordinator lease was held")
 	if err := externalLease.Release(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
-	select {
-	case err := <-blockedErr:
-		t.Fatalf("writer transaction failed after lease release: %v", err)
-	case tx := <-blockedTx:
-		tx.Discard()
-	case <-time.After(5 * time.Second):
-		t.Fatal("writer transaction did not acquire after external lease release")
-	}
+	waitWriteAcquired(t, blockedTx, blockedErr, "external lease release").Discard()
 
-	writeRawHead := func(ref *bucket.ObjectRef) {
-		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, objectStoreID, volumeID, nil)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer storeRef.Release()
-		ktx, err := storeVal.GetObjectStore().NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		defer ktx.Discard()
-		data, err := (&world_block_engine.HeadState{HeadRef: ref}).MarshalVT()
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		if err := ktx.Set(ctx, []byte("world-head"), data); err != nil {
-			t.Fatal(err.Error())
-		}
-		if err := ktx.Commit(ctx); err != nil {
-			t.Fatal(err.Error())
-		}
-	}
+	// A commit against a head replaced underneath the transaction fails as
+	// stale; then restore the original head.
 	baseHead := writerEngine.(*world_block.Engine).GetRootRef()
-	staleTx, err := writerEngine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	{
-		createdObject, err := staleTx.CreateObject(ctx, "coordinator-stale-head-object", nil)
-		world.ReleaseObjectState(createdObject)
-		if err != nil {
-			staleTx.Discard()
-			t.Fatal(err.Error())
-		}
-	}
-	writeRawHead(&bucket.ObjectRef{BucketId: bucketID})
+	staleTx := createObjectTx(ctx, t, writerEngine, "coordinator-stale-head-object")
+	writeRawHead(ctx, t, tb, objectStoreID, &bucket.ObjectRef{BucketId: tb.BucketId})
 	if err := staleTx.Commit(ctx); !errors.Is(err, coord.ErrStaleGeneration) {
 		t.Fatalf("stale head commit error = %v, want ErrStaleGeneration", err)
 	}
-	writeRawHead(baseHead)
+	writeRawHead(ctx, t, tb, objectStoreID, baseHead)
 
+	// Watch the coordinator from the current generation.
 	watchScope := coord.Scope{
 		VolumeID:      volumeID,
 		ObjectStoreID: objectStoreID,
@@ -404,18 +324,8 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	}
 	defer watch.Close()
 
-	tx, err := writerEngine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	{
-		createdObject2, err := tx.CreateObject(ctx, "coordinator-head-watch-object", nil)
-		world.ReleaseObjectState(createdObject2)
-		if err != nil {
-			tx.Discard()
-			t.Fatal(err.Error())
-		}
-	}
+	// A writer commit publishes its root to the coordinator snapshot.
+	tx := createObjectTx(ctx, t, writerEngine, "coordinator-head-watch-object")
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -431,111 +341,238 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 		t.Fatalf("published coordinator root = %#v, want %#v", publishedSnapshot.Root, acceptedRoot)
 	}
 
-	foundPublish := false
+	// The watch observes the publication of that root.
+	waitRootPublished(ctx, t, watch, acceptedRoot)
+
+	// The reader engine's write transaction waits while the writer engine holds
+	// the lease, and acquires once the writer commits.
+	firstWriterTx := createObjectTx(ctx, t, writerEngine, "coordinator-serialized-writer-a")
+	secondWriterTx, secondWriterErr := startWriteTx(ctx, readerEngine)
+	requireWriteBlocked(t, secondWriterTx, secondWriterErr, "first standalone writer held lease")
+	if err := firstWriterTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	secondTx := waitWriteAcquired(t, secondWriterTx, secondWriterErr, "first writer commit")
+	createObject(ctx, t, secondTx, "coordinator-serialized-writer-b")
+	if err := secondTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Wait for the reader to adopt the durable head holding all three objects,
+	// waking on each seqno change.
+	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	for {
+		seqno, found := readObjectsFound(waitCtx, t, readerEngine,
+			"coordinator-head-watch-object",
+			"coordinator-serialized-writer-a",
+			"coordinator-serialized-writer-b",
+		)
+		if found {
+			return
+		}
+		if _, err := readerEngine.WaitSeqno(waitCtx, seqno+1); err != nil {
+			t.Fatalf("reader did not adopt durable world head from coordinator generation event: %v", err)
+		}
+	}
+}
+
+// startHeadWatchEngine starts a World engine on objectStoreID with an
+// untransformed state and returns it with its release function.
+func startHeadWatchEngine(
+	ctx context.Context,
+	t *testing.T,
+	tb *testbed.Testbed,
+	engineID, objectStoreID string,
+) (world.Engine, func()) {
+	// Report failures at the caller and build the initial World reference.
+	t.Helper()
+	transformConf, err := block_transform.NewConfig(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	initWorldRef := &bucket.ObjectRef{
+		BucketId:      tb.BucketId,
+		TransformConf: transformConf,
+	}
+
+	// Start the controller and wait for its engine.
+	engineConf := world_block_engine.NewConfig(
+		engineID,
+		tb.Volume.GetID(), tb.BucketId,
+		objectStoreID,
+		initWorldRef,
+		nil,
+		false,
+	)
+	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	eng, err := worldCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		worldCtrlRef.Release()
+		t.Fatal(err.Error())
+	}
+	return eng, worldCtrlRef.Release
+}
+
+// createObjectTx opens a write transaction on eng and creates the object key
+// in it, leaving the transaction open.
+func createObjectTx(ctx context.Context, t *testing.T, eng world.Engine, key string) world.Tx {
+	// Report failures at the caller and open the transaction.
+	t.Helper()
+	tx, err := eng.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Create the object.
+	createObject(ctx, t, tx, key)
+	return tx
+}
+
+// createObject creates the object key in tx, discarding tx on failure.
+func createObject(ctx context.Context, t *testing.T, tx world.Tx, key string) {
+	// Report failures at the caller and create the object.
+	t.Helper()
+	objectState, err := tx.CreateObject(ctx, key, nil)
+	world.ReleaseObjectState(objectState)
+	if err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+}
+
+// startWriteTx opens a write transaction on eng in the background and delivers
+// the transaction or its error.
+func startWriteTx(ctx context.Context, eng world.Engine) (<-chan world.Tx, <-chan error) {
+	// Open the transaction without blocking the caller.
+	txCh := make(chan world.Tx, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		tx, err := eng.NewTransaction(ctx, true)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		txCh <- tx
+	}()
+	return txCh, errCh
+}
+
+// requireWriteBlocked fails if the background write transaction resolves
+// within a short window while holder keeps the write lease.
+func requireWriteBlocked(t *testing.T, txCh <-chan world.Tx, errCh <-chan error, holder string) {
+	// Report failures at the caller and watch the transaction briefly.
+	t.Helper()
+	select {
+	case err := <-errCh:
+		t.Fatalf("write transaction failed while %s: %v", holder, err)
+	case tx := <-txCh:
+		tx.Discard()
+		t.Fatalf("write transaction acquired while %s", holder)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+// waitWriteAcquired returns the background write transaction once it acquires
+// after the event named by after.
+func waitWriteAcquired(t *testing.T, txCh <-chan world.Tx, errCh <-chan error, after string) world.Tx {
+	// Report failures at the caller and wait for the transaction.
+	t.Helper()
+	select {
+	case err := <-errCh:
+		t.Fatalf("write transaction failed after %s: %v", after, err)
+	case tx := <-txCh:
+		return tx
+	case <-time.After(5 * time.Second):
+		t.Fatalf("write transaction did not acquire after %s", after)
+	}
+	return nil
+}
+
+// writeRawHead overwrites the World head key in the object store with ref.
+func writeRawHead(ctx context.Context, t *testing.T, tb *testbed.Testbed, objectStoreID string, ref *bucket.ObjectRef) {
+	// Report failures at the caller and open the object store.
+	t.Helper()
+	storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, objectStoreID, tb.Volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer storeRef.Release()
+
+	// Write the encoded head state and commit.
+	ktx, err := storeVal.GetObjectStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ktx.Discard()
+	data, err := (&world_block_engine.HeadState{HeadRef: ref}).MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ktx.Set(ctx, []byte("world-head"), data); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ktx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+// waitRootPublished waits until watch reports root published at the World
+// head key.
+func waitRootPublished(ctx context.Context, t *testing.T, watch coord.Watch, root *bucket.ObjectRef) {
+	// Report failures at the caller and bound the wait.
+	t.Helper()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Read events until one publishes root.
 	var seenEvents []coord.Event
-	publishCtx, publishCancel := context.WithTimeout(ctx, 5*time.Second)
-	defer publishCancel()
-	for !foundPublish {
+	for {
 		select {
-		case <-publishCtx.Done():
+		case <-ctx.Done():
 			t.Fatalf("coordinator watch did not observe accepted world root publication; events=%+v", seenEvents)
 		case event, ok := <-watch.Events():
 			if !ok {
 				t.Fatal("coordinator watch closed before accepted world root publication")
 			}
 			seenEvents = append(seenEvents, event)
-			foundPublish = event.RootChanged != nil &&
-				event.RootChanged.EqualsRef(acceptedRoot) &&
-				string(event.KeyPrefixChanged) == "world-head"
+			if event.RootChanged != nil && event.RootChanged.EqualsRef(root) && string(event.KeyPrefixChanged) == "world-head" {
+				return
+			}
 		}
 	}
+}
 
-	firstWriterTx, err := writerEngine.NewTransaction(ctx, true)
+// readObjectsFound reads the engine's seqno and reports whether every key
+// names an existing object, in one read transaction.
+func readObjectsFound(ctx context.Context, t *testing.T, eng world.Engine, keys ...string) (uint64, bool) {
+	// Open the read transaction and read its seqno.
+	t.Helper()
+	rtx, err := eng.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	{
-		createdObject3, err := firstWriterTx.CreateObject(ctx, "coordinator-serialized-writer-a", nil)
-		world.ReleaseObjectState(createdObject3)
-		if err != nil {
-			firstWriterTx.Discard()
-			t.Fatal(err.Error())
-		}
-	}
-	secondWriterTx := make(chan world.Tx, 1)
-	secondWriterErr := make(chan error, 1)
-	go func() {
-		tx, err := readerEngine.NewTransaction(ctx, true)
-		if err != nil {
-			secondWriterErr <- err
-			return
-		}
-		secondWriterTx <- tx
-	}()
-	select {
-	case err := <-secondWriterErr:
-		t.Fatalf("second writer failed while waiting for peer lease: %v", err)
-	case tx := <-secondWriterTx:
-		tx.Discard()
-		t.Fatal("second writer acquired while first standalone writer held lease")
-	case <-time.After(50 * time.Millisecond):
-	}
-	if err := firstWriterTx.Commit(ctx); err != nil {
-		t.Fatal(err.Error())
-	}
-	var secondTx world.Tx
-	select {
-	case err := <-secondWriterErr:
-		t.Fatalf("second writer failed after first writer commit: %v", err)
-	case secondTx = <-secondWriterTx:
-	case <-time.After(5 * time.Second):
-		t.Fatal("second writer did not acquire after first writer commit")
-	}
-	{
-		createdObject4, err := secondTx.CreateObject(ctx, "coordinator-serialized-writer-b", nil)
-		world.ReleaseObjectState(createdObject4)
-		if err != nil {
-			secondTx.Discard()
-			t.Fatal(err.Error())
-		}
-	}
-	if err := secondTx.Commit(ctx); err != nil {
+	defer rtx.Discard()
+	seqno, err := rtx.GetSeqno(ctx)
+	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	for {
-		rtx, err := readerEngine.NewTransaction(waitCtx, false)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		objectState, foundWatchObject, err := rtx.GetObject(waitCtx, "coordinator-head-watch-object")
+	// Look up each object.
+	for _, key := range keys {
+		objectState, found, err := rtx.GetObject(ctx, key)
 		world.ReleaseObjectState(objectState)
-		if err == nil && foundWatchObject {
-			objectState2, foundWriterA, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-a")
-			world.ReleaseObjectState(objectState2)
-			if err == nil && foundWriterA {
-				objectState3, foundWriterB, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-b")
-				world.ReleaseObjectState(objectState3)
-				if err == nil {
-					foundWatchObject = foundWriterB
-				}
-			}
-		}
-		rtx.Discard()
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		if foundWatchObject {
-			return
-		}
-		select {
-		case <-waitCtx.Done():
-			t.Fatal("reader did not adopt durable world head from coordinator generation event")
-		case <-time.After(10 * time.Millisecond):
+		if !found {
+			return seqno, false
 		}
 	}
+	return seqno, true
 }
 
 // TestWorldEngineController_DisableChangelog tests constructing the engine
