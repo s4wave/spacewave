@@ -64,6 +64,7 @@ func (s *kvtxBlockTestStore) EndDeferFlush(ctx context.Context) error {
 }
 
 func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
+	// Prepare a KVTx wrapper and a block reference for forwarding checks.
 	ctx := context.Background()
 	inner := newKVTxBlockTestStore()
 	k := &KVTx{blk: inner}
@@ -72,44 +73,61 @@ func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Write a block batch through the KVTx wrapper.
 	if err := k.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require the batch write to reach the inner store without per-entry puts.
 	if inner.batchCalls != 1 || inner.putCalls != 0 {
 		t.Fatalf("expected one batch call and no per-entry fallback, got batch=%d put=%d", inner.batchCalls, inner.putCalls)
 	}
 
+	// Write one block through the KVTx wrapper.
 	if _, _, err := k.PutBlock(ctx, []byte("hello"), &block.PutOpts{ForceBlockRef: ref}); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require the single-block write to reach the inner store.
 	if inner.putCalls != 1 {
 		t.Fatalf("expected one put call, got %d", inner.putCalls)
 	}
 
+	// Query block existence as a batch through the KVTx wrapper.
 	if _, err := k.GetBlockExistsBatch(ctx, []*block.BlockRef{ref}); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require the existence batch to reach the inner store.
 	if inner.existsBatchCalls != 1 {
 		t.Fatalf("expected batch exists forwarding, got %d calls", inner.existsBatchCalls)
 	}
 
+	// Begin and end a deferred flush through the KVTx wrapper.
 	k.BeginDeferFlush()
 	if err := k.EndDeferFlush(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Require both deferred-flush operations to reach the inner store.
 	if inner.beginCalls != 1 || inner.endCalls != 1 {
 		t.Fatalf("expected defer-flush forwarding, got begin=%d end=%d", inner.beginCalls, inner.endCalls)
 	}
 }
 
 func TestConfigResolveHashType(t *testing.T) {
+	// Require an absent configuration to select the default block hash.
 	var nilConfig *Config
 	if got := nilConfig.ResolveHashType(); got != block.DefaultHashType {
 		t.Fatalf("expected nil config to resolve SHA256, got %s", got)
 	}
+
+	// Require a zero configuration to select the default block hash.
 	if got := (&Config{}).ResolveHashType(); got != block.DefaultHashType {
 		t.Fatalf("expected zero config to resolve SHA256, got %s", got)
 	}
+
+	// Require an explicit configuration to retain its chosen block hash.
 	if got := (&Config{HashType: hash.HashType_HashType_SHA256}).ResolveHashType(); got != hash.HashType_HashType_SHA256 {
 		t.Fatalf("expected explicit SHA256 config to win, got %s", got)
 	}

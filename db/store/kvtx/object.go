@@ -23,17 +23,21 @@ func (k *KVTx) DeleteObjectStore(ctx context.Context, id string) error {
 
 // purge purges the object store.
 func purge(ctx context.Context, store kvtx.Store) error {
+	// Open a write transaction covering the object store's contents.
 	t, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer t.Discard()
+
+	// Delete every key in the object store within the transaction.
 	err = t.ScanPrefix(ctx, nil, func(key, _ []byte) error {
 		return t.Delete(ctx, key)
 	})
 	if err != nil {
 		return err
 	}
+
 	return t.Commit(ctx)
 }
 
