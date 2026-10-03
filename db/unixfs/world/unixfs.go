@@ -49,6 +49,7 @@ var _ world.LookupOp = LookupFsOp
 // If unset, defaults to FS_NODE.
 // Checks that the type ID is recognized.
 func LookupFsType(ctx context.Context, ws world.WorldState, objKey string) (FSType, bool, error) {
+	// Resolve the World object type and use the default filesystem type when unset.
 	ot, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return 0, false, err
@@ -70,13 +71,14 @@ func ValidateOrCreateFs(
 	fsRef *bucket.ObjectRef,
 	ts *timestamp.Timestamp,
 ) (*bucket.ObjectRef, string, error) {
-	// check fsRef
-	if !fsRef.GetEmpty() {
+	// Create a new filesystem for an empty fsRef, otherwise validate it.
+	if fsRef.GetEmpty() {
 		fsRef = nil
 	} else if err := fsRef.Validate(); err != nil {
 		return nil, "", err
 	}
 
+	// Create or decode the filesystem root and validate its block.
 	var err error
 	var nroot block.Block
 	var nrootTypeID string
