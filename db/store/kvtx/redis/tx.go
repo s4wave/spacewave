@@ -62,9 +62,11 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 // Set sets the value of a key.
 // This will not be committed until Commit is called.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
+	// Require a nonempty key for the Redis write.
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
+
 	// assert write connection exists
 	_, err := t.getWriteConn(ctx)
 	if err != nil {
@@ -117,18 +119,22 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 // This will not be committed until Commit is called.
 // Not found should not return an error.
 func (t *Tx) Delete(ctx context.Context, key []byte) error {
+	// Require a nonempty key for the Redis deletion.
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
+
 	// assert write connection exists
 	_, err := t.getWriteConn(ctx)
 	if err != nil {
 		return err
 	}
+
 	// apply change to redis MULTI tx
 	if err := (&t.ops).Delete(ctx, key); err != nil {
 		return err
 	}
+
 	// apply change to in-memory cache
 	return t.cache.Delete(ctx, key)
 }
@@ -183,16 +189,22 @@ func (t *Tx) Discard() {
 
 // getWriteConn gets or establishes the write conn.
 func (t *Tx) getWriteConn(ctx context.Context) (redis.Conn, error) {
+	// Require a writable Redis transaction.
 	if !t.write {
 		return nil, ErrNotWrite
 	}
+
+	// Release a failed Redis write connection before replacing it.
 	var err error
 	wc := t.ops.writeConn
 	if wc != nil && wc.Err() != nil {
 		_ = wc.Close()
 		wc = nil
 	}
+
+	// Open a replacement Redis write connection and restore its pending mutations.
 	if wc == nil {
+		// Begin the replacement Redis transaction and retain its connection.
 		wc, err = t.s.buildConn(t.s.ctx, true)
 		t.ops.writeConn = wc
 		if err != nil {

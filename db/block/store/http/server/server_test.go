@@ -24,11 +24,13 @@ import (
 
 // TestBlockStoreHTTPServer tests the block store http server and client.
 func TestBlockStoreHTTPServer(t *testing.T) {
+	// Prepare the block-store test logger and request context.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the testbed containing the server block store.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -155,11 +157,13 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 
 // TestBlockStoreHTTPServer_ReadOnly tests the read only block store http server and client.
 func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
+	// Prepare the read-only block-store test logger and request context.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the testbed containing the read-only server block store.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -220,11 +224,13 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 
 // TestBlockStoreHTTPServer_Controller tests the http server controller.
 func TestBlockStoreHTTPServer_Controller(t *testing.T) {
+	// Prepare the HTTP controller test logger and request context.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the testbed and register the HTTP block-store controller factory.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -290,11 +296,13 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 
 // TestBlockStoreHTTPAsFallback tests the block store http controller.
 func TestBlockStoreHTTPAsFallback(t *testing.T) {
+	// Prepare the fallback block-store test logger and request context.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Open the testbed containing the fallback server bucket.
 	serverTb, err := testbed.NewTestbed(ctx, le.WithField("testbed", "server"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -306,6 +314,8 @@ func TestBlockStoreHTTPAsFallback(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer serverBktRef.Release()
+
+	// Store a sample block in the fallback server bucket.
 	serverStore := serverBkt.GetBucket()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
@@ -334,6 +344,8 @@ func TestBlockStoreHTTPAsFallback(t *testing.T) {
 
 	// Create the bucket in the client
 	bucketID := clientTb.BucketId
+
+	// Configure the client bucket to read and write back from HTTP fallback.
 	// override the bucket config with v2
 	blockStoreID := "test/http-block-store"
 	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
@@ -375,16 +387,19 @@ func TestBlockStoreHTTPAsFallback(t *testing.T) {
 	}
 	defer lkRef.Release()
 
+	// Resolve the client bucket lookup.
 	lk, err := lkr.GetLookup(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read the sample block through the client fallback lookup.
 	lkDat, lkFound, err := lk.LookupBlock(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Verify fallback returns the stored block bytes.
 	if !lkFound {
 		t.FailNow()
 	}
@@ -399,6 +414,7 @@ func TestBlockStoreHTTPAsFallback(t *testing.T) {
 	}
 	defer readBktRef.Release()
 
+	// Verify fallback wrote the block into the client bucket.
 	ex, err := readBkt.GetBucket().GetBlockExists(ctx, sampleBlockRef.Clone())
 	if err != nil {
 		t.Fatal(err.Error())

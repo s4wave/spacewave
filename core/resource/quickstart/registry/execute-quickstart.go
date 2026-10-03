@@ -15,6 +15,7 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	ctx context.Context,
 	req *s4wave_quickstart_registry.ExecuteQuickstartRequest,
 ) (*s4wave_quickstart_registry.ExecuteQuickstartResponse, error) {
+	// Require a Quickstart identity, Space resource and execution bus.
 	quickstartID := req.GetQuickstartId()
 	if quickstartID == "" {
 		return nil, ErrQuickstartIdRequired
@@ -26,6 +27,7 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 		return nil, ErrQuickstartExecutionUnavailable
 	}
 
+	// Resolve the mounted Space from the calling resource client.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -39,11 +41,13 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 		return nil, ErrSpaceResourceRequired
 	}
 
+	// Find the Quickstart registration visible to the Space engine.
 	reg := r.LookupRegistration(quickstartID, spaceResource.GetWorldEngineID())
 	if reg == nil {
 		return nil, ErrQuickstartNotRegistered
 	}
 
+	// Connect to the Quickstart plugin at its registered manifest.
 	resourceClientCtx := resourceCtx.Context()
 	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(resourceClientCtx, r.b, reg.GetPluginId(), reg.GetManifestRoot())
 	if err != nil {
@@ -51,6 +55,7 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	}
 	defer resources.Release()
 
+	// Attach the Space world engine to the Quickstart plugin for this request.
 	engineResource, err := spaceResource.NewWorldEngineResource()
 	if err != nil {
 		return nil, err
@@ -63,6 +68,7 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 		_ = resources.Client.DetachResource(ctx, engineResourceID)
 	}()
 
+	// Acquire the plugin root client for the seed handler.
 	rootRef := resources.Client.AccessRootResource()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
@@ -71,6 +77,7 @@ func (r *QuickstartRegistryResource) ExecuteQuickstart(
 	}
 	defer rootRef.Release()
 
+	// Seed the Quickstart through the plugin handler using the attached engine.
 	handler := s4wave_quickstart_registry.NewSRPCQuickstartHandlerServiceClient(rootClient)
 	resp, err := handler.SeedQuickstart(ctx, &s4wave_quickstart_registry.SeedQuickstartRequest{
 		QuickstartId:             quickstartID,

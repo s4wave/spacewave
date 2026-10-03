@@ -24,6 +24,7 @@ import (
 )
 
 func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
+	// Open a world testbed for the mounted Space engine.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := world_testbed.Default(ctx)
@@ -32,6 +33,7 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Expose the test Quickstart handler through a plugin resource server.
 	pluginRoot := srpc.NewMux()
 	if err := s4wave_quickstart_registry.SRPCRegisterQuickstartHandlerService(pluginRoot, &testQuickstartHandler{
 		engineID: tb.EngineID,
@@ -46,12 +48,14 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
 
+	// Register the plugin loader with the test bus.
 	rel, err := tb.Bus.AddController(ctx, &testQuickstartPluginLoadController{client: pluginClient}, nil)
 	if err != nil {
 		t.Fatalf("AddController: %v", err)
 	}
 	defer rel()
 
+	// Register the test Quickstart with its required plugins.
 	registry := NewQuickstartRegistryResource(le, tb.Bus, nil)
 	registry.registrations[1] = &s4wave_quickstart_registry.QuickstartRegistration{
 		QuickstartId:      "notes-blog",
@@ -63,6 +67,7 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		RequiredPluginIds: []string{"required-plugin", "plugin-result"},
 	}
 
+	// Expose the mounted Space to the calling resource client.
 	const spaceResourceID uint32 = 7
 	spaceResource := resource_space.NewSpaceResourceWithSessionPeerID(le, tb.Bus, &testQuickstartSpaceBody{
 		engine:   tb.Engine,
@@ -74,6 +79,7 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		values: map[uint32]any{spaceResourceID: spaceResource},
 	}
 
+	// Execute the registered Quickstart against the mounted Space.
 	resp, err := registry.ExecuteQuickstart(
 		resource_server.WithResourceClientContext(ctx, resourceCtx),
 		&s4wave_quickstart_registry.ExecuteQuickstartRequest{
@@ -84,6 +90,8 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ExecuteQuickstart: %v", err)
 	}
+
+	// Verify the seed result contains its index and merged plugin list.
 	if got := resp.GetIndexPath(); got != "/seeded/index" {
 		t.Fatalf("IndexPath = %q, want /seeded/index", got)
 	}
@@ -92,11 +100,14 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		t.Fatalf("PluginIds = %v, want %v", got, wantPlugins)
 	}
 
+	// Open a read transaction to inspect the seeded World objects.
 	readTx, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
+
+	// Verify the attached engine committed the seeded object.
 	{
 		objectState, err := world.MustGetObject(ctx, readTx, "quickstart/seeded-object")
 		world.ReleaseObjectState(objectState)
@@ -104,6 +115,8 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 			t.Fatalf("seeded object was not committed through attached engine: %v", err)
 		}
 	}
+
+	// Verify the recursive World operation committed the Space settings.
 	settings, objectState2, err := world.LookupObject[*space_world.SpaceSettings](
 		ctx,
 		readTx,
@@ -129,6 +142,7 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	ctx context.Context,
 	req *s4wave_quickstart_registry.SeedQuickstartRequest,
 ) (*s4wave_quickstart_registry.SeedQuickstartResponse, error) {
+	// Require the test Quickstart and its attached engine resource.
 	if req.GetQuickstartId() != "notes-blog" {
 		return nil, resource.ErrInvalidResourceID
 	}
@@ -136,6 +150,8 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	if attachedEngineID == 0 {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Resolve the attached engine client from the plugin resource context.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -144,11 +160,15 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	if err != nil {
 		return nil, err
 	}
+
+	// Read the attached engine information.
 	engine := s4wave_world.NewSRPCEngineResourceServiceClient(engineClient)
 	info, err := engine.GetEngineInfo(ctx, &s4wave_world.GetEngineInfoRequest{})
 	if err != nil {
 		return nil, err
 	}
+
+	// Verify the engine, bucket and session peer match the mounted Space.
 	if info.GetEngineInfo().GetEngineId() != h.engineID {
 		return nil, resource.ErrInvalidResourceID
 	}
@@ -158,6 +178,8 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	if info.GetSessionPeerId() != h.sender {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Open a writable engine transaction and retain its resource.
 	txResp, err := engine.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
 	if err != nil {
 		return nil, err
@@ -168,6 +190,7 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	}
 	defer resourceCtx.ReleaseResource(txID)
 
+	// Create the seeded World object through the attached transaction.
 	txClient, err := resourceCtx.GetAttachedResource(txID)
 	if err != nil {
 		return nil, err
@@ -182,6 +205,8 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	if objID := objResp.GetResourceId(); objID != 0 {
 		defer resourceCtx.ReleaseResource(objID)
 	}
+
+	// Encode the recursive Space settings operation.
 	settingsOp := space_world_ops.NewSetSpaceSettingsOp(
 		"quickstart/settings",
 		&space_world.SpaceSettings{IndexPath: "/quickstart-recursive"},
@@ -192,6 +217,8 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply the settings operation to the attached World transaction.
 	applyResp, err := worldState.ApplyWorldOp(ctx, &s4wave_world.ApplyWorldOpRequest{
 		OpTypeId: settingsOp.GetOperationTypeId(),
 		OpData:   settingsData,
@@ -203,6 +230,8 @@ func (h *testQuickstartHandler) SeedQuickstart(
 	if applyResp.GetSeqno() == 0 || applyResp.GetSysErr() {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Commit the seeded World objects before returning the plugin result.
 	tx := s4wave_world.NewSRPCTxResourceServiceClient(txClient)
 	if _, err := tx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
 		return nil, err
@@ -280,6 +309,7 @@ func (c *testQuickstartResourceClientContext) AddResource(mux srpc.Invoker, rele
 }
 
 func (c *testQuickstartResourceClientContext) AddResourceValue(_ srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	// Allocate a test resource identity and initialize its retained maps.
 	c.nextID++
 	if c.values == nil {
 		c.values = make(map[uint32]any)
@@ -287,16 +317,21 @@ func (c *testQuickstartResourceClientContext) AddResourceValue(_ srpc.Invoker, v
 	if c.releases == nil {
 		c.releases = make(map[uint32]func())
 	}
+
+	// Retain the test resource value and release callback.
 	c.values[c.nextID] = value
 	c.releases[c.nextID] = releaseFn
 	return c.nextID, nil
 }
 
 func (c *testQuickstartResourceClientContext) ReleaseResource(resourceID uint32) bool {
+	// Resolve the release callback for the retained test resource.
 	releaseFn, ok := c.releases[resourceID]
 	if !ok {
 		return false
 	}
+
+	// Remove the test resource and invoke its release callback.
 	delete(c.releases, resourceID)
 	delete(c.values, resourceID)
 	if releaseFn != nil {

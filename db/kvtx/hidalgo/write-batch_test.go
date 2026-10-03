@@ -38,14 +38,19 @@ type batchTestTx struct {
 }
 
 func (t *batchTestTx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteBatchEntry) error {
+	// Record an owned snapshot of the submitted backend batch.
 	snapshot := make([]kvtx.WriteBatchEntry, len(entries))
 	for i, e := range entries {
 		snapshot[i] = kvtx.WriteBatchEntry{Key: bytes.Clone(e.Key), Value: bytes.Clone(e.Value), Delete: e.Delete}
 	}
 	t.store.batches = append(t.store.batches, snapshot)
+
+	// Return the injected backend failure before applying mutations.
 	if t.store.failure != nil {
 		return t.store.failure
 	}
+
+	// Apply each recorded mutation through the real transaction.
 	for _, e := range entries {
 		var err error
 		if e.Delete {
@@ -63,6 +68,7 @@ func (t *batchTestTx) ApplyWriteBatch(ctx context.Context, entries []kvtx.WriteB
 func (t *batchTestTx) Commit(ctx context.Context) error { t.store.commits++; return t.Tx.Commit(ctx) }
 
 func newBatchTestTx(t *testing.T) (*bufferedTx, *batchTestStore) {
+	// Open a writable buffered transaction on the real in-memory store.
 	t.Helper()
 	store := &batchTestStore{Store: store_kvtx_inmem.NewStore()}
 	tx, err := NewKV(store).Tx(t.Context(), true)
@@ -81,12 +87,15 @@ func TestBufferedKVContract(t *testing.T) {
 }
 
 func TestBufferedWritesOwnInputAndReadTheirWrites(t *testing.T) {
+	// Open a buffered transaction and queue a value from mutable input.
 	ctx := t.Context()
 	tx, store := newBatchTestTx(t)
 	key, value := []byte("beta"), []byte("old")
 	if err := tx.Put(ctx, key, value); err != nil {
 		t.Fatal(err)
 	}
+
+	// Overwrite caller buffers and queue replacement, empty and deleted values.
 	clear(key)
 	clear(value)
 	if err := tx.Put(ctx, []byte("beta"), []byte("new")); err != nil {
@@ -101,13 +110,19 @@ func TestBufferedWritesOwnInputAndReadTheirWrites(t *testing.T) {
 	if err := tx.Del(ctx, []byte("gone")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify pending writes remain local until the visibility fence.
 	if len(store.batches) != 0 {
 		t.Fatal("writes escaped before a flush boundary")
 	}
+
+	// Verify scalar reads return the replacement value from the overlay.
 	got, err := tx.Get(ctx, []byte("beta"))
 	if err != nil || string(got) != "new" {
 		t.Fatalf("Get: %q %v", got, err)
 	}
+
+	// Verify batch reads preserve presence, ordering and owned duplicate values.
 	clear(got)
 	vals, err := tx.GetBatch(ctx, []flat.Key{[]byte("beta"), []byte("gone"), []byte("empty"), []byte("absent"), nil, []byte("beta")})
 	if err != nil || string(vals[0]) != "new" || vals[1] != nil || vals[2] == nil || len(vals[2]) != 0 || vals[3] != nil || vals[4] != nil || string(vals[5]) != "new" {
@@ -117,6 +132,8 @@ func TestBufferedWritesOwnInputAndReadTheirWrites(t *testing.T) {
 	if string(vals[5]) != "new" {
 		t.Fatal("GetBatch aliases duplicate results")
 	}
+
+	// Flush the overlay through a scan and verify its visible keys.
 	// A scan is a visibility fence even before Commit. Later reads must also
 	// find values delegated to the underlying transaction, not only the overlay.
 	it := tx.Scan(ctx)
@@ -128,6 +145,8 @@ func TestBufferedWritesOwnInputAndReadTheirWrites(t *testing.T) {
 	if it.Err() != nil || fmt.Sprint(keys) != "[beta empty]" {
 		t.Fatalf("scan: %v %v", keys, it.Err())
 	}
+
+	// Verify backend batch reads retain the flushed values and deletion.
 	vals, err = tx.GetBatch(ctx, []flat.Key{[]byte("beta"), []byte("empty"), []byte("gone")})
 	if err != nil || string(vals[0]) != "new" || vals[1] == nil || vals[2] != nil {
 		t.Fatalf("post-flush batch: %#v %v", vals, err)
@@ -135,6 +154,8 @@ func TestBufferedWritesOwnInputAndReadTheirWrites(t *testing.T) {
 	if len(store.batches) != 1 || len(store.batches[0]) != 3 {
 		t.Fatalf("flush batches: %#v", store.batches)
 	}
+
+	// Commit the buffered transaction and reject subsequent writes.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -144,6 +165,8 @@ func TestBufferedWritesOwnInputAndReadTheirWrites(t *testing.T) {
 	if err := tx.Put(ctx, []byte("later"), nil); !errors.Is(err, kvtx.ErrDiscarded) {
 		t.Fatalf("put after commit: %v", err)
 	}
+
+	// Reopen the backend transaction and verify the committed replacement.
 	read, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -156,6 +179,7 @@ func TestBufferedWritesOwnInputAndReadTheirWrites(t *testing.T) {
 }
 
 func TestBufferedWriteBoundsAndOversizedValue(t *testing.T) {
+	// Fill the buffered transaction beyond its entry capacity.
 	ctx := t.Context()
 	tx, store := newBatchTestTx(t)
 	for i := range writeBatchMaxEntries*2 + 1 {
@@ -166,9 +190,13 @@ func TestBufferedWriteBoundsAndOversizedValue(t *testing.T) {
 			t.Fatal("entry or byte bound exceeded")
 		}
 	}
+
+	// Verify entry capacity triggered two bounded backend batches.
 	if len(store.batches) != 2 || len(store.batches[0]) != writeBatchMaxEntries || len(store.batches[1]) != writeBatchMaxEntries {
 		t.Fatal("entry flush boundary differs")
 	}
+
+	// Exercise repeated replacements without accumulating old value charges.
 	// Replacement accounting does not accumulate overwritten value bytes.
 	for range 20 {
 		if err := tx.Put(ctx, []byte("replace"), bytes.Repeat([]byte{'x'}, 10<<10)); err != nil {
@@ -178,6 +206,8 @@ func TestBufferedWriteBoundsAndOversizedValue(t *testing.T) {
 	if tx.bytes > 12<<10 {
 		t.Fatalf("replacement charge=%d", tx.bytes)
 	}
+
+	// Queue large values and verify the retained byte bound.
 	for i := range 5 {
 		if err := tx.Put(ctx, []byte(fmt.Sprintf("large-%d", i)), bytes.Repeat([]byte{'y'}, 100<<10)); err != nil {
 			t.Fatal(err)
@@ -186,6 +216,8 @@ func TestBufferedWriteBoundsAndOversizedValue(t *testing.T) {
 			t.Fatal("byte bound exceeded")
 		}
 	}
+
+	// Apply an oversized value without retaining the caller buffer.
 	huge := bytes.Repeat([]byte{'h'}, writeBatchMaxBytes+1)
 	if err := tx.Put(ctx, []byte("oversize"), huge); err != nil {
 		t.Fatal(err)
@@ -194,10 +226,14 @@ func TestBufferedWriteBoundsAndOversizedValue(t *testing.T) {
 	if len(tx.pending) != 0 || tx.bytes != 0 {
 		t.Fatal("oversized input retained")
 	}
+
+	// Verify the oversized value survives caller buffer mutation.
 	got, err := tx.Get(ctx, []byte("oversize"))
 	if err != nil || len(got) != len(huge) || got[0] != 'h' {
 		t.Fatalf("oversize: %v", err)
 	}
+
+	// Verify every backend batch respects entry and byte limits.
 	for _, b := range store.batches {
 		charge := 0
 		for _, e := range b {
@@ -212,15 +248,20 @@ func TestBufferedWriteBoundsAndOversizedValue(t *testing.T) {
 func TestBufferedFailureAndDiscard(t *testing.T) {
 	ctx := t.Context()
 	t.Run("flush error is terminal", func(t *testing.T) {
+		// Queue a buffered value and prepare a backend failure.
 		tx, store := newBatchTestTx(t)
 		failure := errors.New("batch storage failure")
 		if err := tx.Put(ctx, []byte("key"), []byte("value")); err != nil {
 			t.Fatal(err)
 		}
+
+		// Verify commit records a terminal backend failure.
 		store.failure = failure
 		if err := tx.Commit(ctx); !errors.Is(err, failure) {
 			t.Fatalf("Commit: %v", err)
 		}
+
+		// Verify the failed transaction rejects another commit and trailing writes.
 		store.failure = nil
 		if err := tx.Commit(ctx); !errors.Is(err, failure) {
 			t.Fatalf("retry: %v", err)
@@ -228,35 +269,47 @@ func TestBufferedFailureAndDiscard(t *testing.T) {
 		if err := tx.Put(ctx, []byte("tail"), nil); !errors.Is(err, failure) {
 			t.Fatalf("tail: %v", err)
 		}
+
+		// Verify a failed transaction exposes its error through scans.
 		it := tx.Scan(ctx)
 		defer it.Close()
 		if it.Next(ctx) || !errors.Is(it.Err(), failure) {
 			t.Fatalf("scan: %v", it.Err())
 		}
+
+		// Verify the failed batch was applied once and never committed.
 		if store.commits != 0 || len(store.batches) != 1 {
 			t.Fatal("error retried or committed")
 		}
 	})
 	t.Run("close drops pending", func(t *testing.T) {
+		// Queue a pending value for discard.
 		tx, store := newBatchTestTx(t)
 		if err := tx.Put(ctx, []byte("key"), []byte("value")); err != nil {
 			t.Fatal(err)
 		}
+
+		// Discard the transaction and verify pending input was released.
 		if err := tx.Close(); err != nil {
 			t.Fatal(err)
 		}
 		if len(store.batches) != 0 || len(tx.pending) != 0 || tx.bytes != 0 {
 			t.Fatal("close flushed or retained data")
 		}
+
+		// Verify a discarded transaction cannot commit.
 		if err := tx.Commit(ctx); !errors.Is(err, kvtx.ErrDiscarded) {
 			t.Fatalf("closed Commit: %v", err)
 		}
 	})
 	t.Run("cancellation does not flush", func(t *testing.T) {
+		// Queue a pending value before cancellation.
 		tx, store := newBatchTestTx(t)
 		if err := tx.Put(ctx, []byte("key"), nil); err != nil {
 			t.Fatal(err)
 		}
+
+		// Cancel the commit context and verify the backend remains untouched.
 		canceled, cancel := context.WithCancel(ctx)
 		cancel()
 		if err := tx.Commit(canceled); !errors.Is(err, context.Canceled) {
@@ -265,6 +318,8 @@ func TestBufferedFailureAndDiscard(t *testing.T) {
 		if len(store.batches) != 0 || store.commits != 0 {
 			t.Fatal("canceled operation touched backend")
 		}
+
+		// Release the canceled transaction.
 		_ = tx.Close()
 	})
 }
@@ -289,24 +344,33 @@ func TestOnlyCapableWritableTransactionsBuffer(t *testing.T) {
 }
 
 func TestBufferedLazyScanAndResetSeePrecedingWrites(t *testing.T) {
+	// Open a buffered transaction and its lazy scan.
 	ctx := t.Context()
 	tx, _ := newBatchTestTx(t)
 	it := tx.Scan(ctx)
 	defer it.Close()
+
+	// Queue a value before the lazy iterator starts.
 	// The scalar adapter creates the underlying iterator lazily at first Next,
 	// not at Scan. Buffering must preserve that observable boundary.
 	if err := tx.Put(ctx, []byte("a"), []byte("first")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the first scan result includes the queued value.
 	if !it.Next(ctx) || string(it.Key()) != "a" || string(it.Val()) != "first" {
 		t.Fatalf("first Next missed queued write: key=%q value=%q err=%v", it.Key(), it.Val(), it.Err())
 	}
+
+	// Replace the visible key before resetting the scan.
 	if err := tx.Put(ctx, []byte("b"), []byte("second")); err != nil {
 		t.Fatal(err)
 	}
 	if err := tx.Del(ctx, []byte("a")); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reset the scan and verify the replacement snapshot.
 	it.Reset()
 	if !it.Next(ctx) || string(it.Key()) != "b" || string(it.Val()) != "second" {
 		t.Fatalf("Reset missed preceding writes: key=%q value=%q err=%v", it.Key(), it.Val(), it.Err())
@@ -317,6 +381,7 @@ func TestBufferedLazyScanAndResetSeePrecedingWrites(t *testing.T) {
 }
 
 func TestBufferedLazyScanKeepsFlushErrors(t *testing.T) {
+	// Open a buffered transaction and queue input after creating its scan.
 	ctx := t.Context()
 	tx, store := newBatchTestTx(t)
 	it := tx.Scan(ctx)
@@ -324,16 +389,22 @@ func TestBufferedLazyScanKeepsFlushErrors(t *testing.T) {
 	if err := tx.Put(ctx, []byte("key"), nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Inject a backend failure while starting the lazy scan.
 	failure := errors.New("failed while starting scan")
 	store.failure = failure
 	if it.Next(ctx) || !errors.Is(it.Err(), failure) {
 		t.Fatalf("first Next: %v", it.Err())
 	}
+
+	// Reset the scan and verify it retains the terminal flush failure.
 	store.failure = nil
 	it.Reset()
 	if it.Next(ctx) || !errors.Is(it.Err(), failure) {
 		t.Fatalf("reset hid failed flush: %v", it.Err())
 	}
+
+	// Verify the failed batch was never retried or committed.
 	if len(store.batches) != 1 || store.commits != 0 {
 		t.Fatal("failed batch retried or committed")
 	}

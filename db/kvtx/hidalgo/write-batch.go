@@ -64,9 +64,12 @@ func (t *bufferedTx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
 // GetBatch resolves overlay hits locally and delegates only the missing keys
 // to the underlying transaction's batch read.
 func (t *bufferedTx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
+	// Validate the buffered transaction before resolving batch keys.
 	if err := t.check(ctx); err != nil {
 		return nil, err
 	}
+
+	// Resolve pending keys and retain indexes for backend reads.
 	values := make([]kv.Value, len(keys))
 	missing := make([]kv.Key, 0, len(keys))
 	indexes := make([]int, 0, len(keys))
@@ -80,6 +83,8 @@ func (t *bufferedTx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, e
 			indexes = append(indexes, i)
 		}
 	}
+
+	// Read missing keys from the backend and restore their requested positions.
 	if len(missing) != 0 {
 		lower, err := t.Tx.GetBatch(ctx, missing)
 		if err != nil {
@@ -112,6 +117,7 @@ func batchEntryBytes(entry kvtx.WriteBatchEntry) int {
 // queue validates the key, flushes when the next entry would exceed the
 // retention bounds, and records the entry in the pending overlay.
 func (t *bufferedTx) queue(ctx context.Context, entry kvtx.WriteBatchEntry) error {
+	// Validate the pending key and the buffered transaction.
 	if len(entry.Key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
@@ -119,12 +125,14 @@ func (t *bufferedTx) queue(ctx context.Context, entry kvtx.WriteBatchEntry) erro
 		return err
 	}
 
+	// Calculate the pending entry charge after replacing any earlier value.
 	charge := batchEntryBytes(entry)
 	old, replacing := t.pending[string(entry.Key)]
 	nextBytes := t.bytes + charge
 	if replacing {
 		nextBytes -= batchEntryBytes(old)
 	}
+
 	// Flush before recording the entry when it would exceed either bound.
 	if nextBytes > writeBatchMaxBytes || (!replacing && len(t.pending) >= writeBatchMaxEntries) {
 		if err := t.flush(ctx); err != nil {
@@ -139,6 +147,7 @@ func (t *bufferedTx) queue(ctx context.Context, entry kvtx.WriteBatchEntry) erro
 		return t.err
 	}
 
+	// Prepare the pending index and remove the replaced entry charge.
 	if t.pending == nil {
 		t.pending = make(map[string]kvtx.WriteBatchEntry)
 	}
@@ -147,6 +156,7 @@ func (t *bufferedTx) queue(ctx context.Context, entry kvtx.WriteBatchEntry) erro
 		t.bytes -= batchEntryBytes(previous)
 	}
 	entry.Key = bytes.Clone(entry.Key)
+
 	// Keep a present empty value non-nil in GetBatch, whose nil sentinel is
 	// reserved for absent keys. Scalar Get still uses its explicit error.
 	entry.Value = append([]byte{}, entry.Value...)
@@ -158,6 +168,7 @@ func (t *bufferedTx) queue(ctx context.Context, entry kvtx.WriteBatchEntry) erro
 // flush applies the pending entries as one sorted write batch and clears the
 // overlay. A failed flush is sticky: never retry it or commit a tail after it.
 func (t *bufferedTx) flush(ctx context.Context) error {
+	// Validate the buffered transaction and skip an empty overlay.
 	if err := t.check(ctx); err != nil {
 		return err
 	}
@@ -165,16 +176,21 @@ func (t *bufferedTx) flush(ctx context.Context) error {
 		return nil
 	}
 
+	// Collect pending overlay entries for a single backend batch.
 	entries := make([]kvtx.WriteBatchEntry, 0, len(t.pending))
 	for _, entry := range t.pending {
 		entries = append(entries, entry)
 	}
+
 	// Stable ordering makes diagnostics and alternative implementations
 	// deterministic; the tree's API independently handles arbitrary order.
 	slices.SortFunc(entries, func(a, b kvtx.WriteBatchEntry) int { return bytes.Compare(a.Key, b.Key) })
+
+	// Apply the backend batch and release the pending overlay.
 	t.err = t.batch.ApplyWriteBatch(ctx, entries)
 	t.pending = nil
 	t.bytes = 0
+
 	// A failed flush may have partially changed its enclosing transaction.
 	// Keep the error sticky: never retry it or commit a successful-looking tail.
 	return t.err

@@ -23,9 +23,12 @@ func NewTx(tx kvtx.Tx) *Tx {
 // Get fetches a value for a single key from the database.
 // It returns ErrNotFound if the key does not exist.
 func (t *Tx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
+	// Treat an empty flat key as absent.
 	if len(key) == 0 {
 		return nil, kv.ErrNotFound
 	}
+
+	// Read the backend value and translate its presence result.
 	data, found, err := t.tx.Get(ctx, key)
 	if err != nil {
 		return nil, err
@@ -39,6 +42,7 @@ func (t *Tx) Get(ctx context.Context, key kv.Key) (kv.Value, error) {
 // GetBatch fetches values for multiple keys from the database.
 // A nil element in the slice indicates that the key does not exist.
 func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
+	// Collect nonempty flat keys with their requested result positions.
 	vals := make([]kv.Value, len(keys))
 	lowerKeys := make([][]byte, 0, len(keys))
 	lowerIndexes := make([]int, 0, len(keys))
@@ -52,13 +56,19 @@ func (t *Tx) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error) {
 	if len(lowerKeys) == 0 {
 		return vals, nil
 	}
+
+	// Read the backend batch with explicit presence results.
 	lowerVals, found, err := kvtx.GetBatch(ctx, t.tx, lowerKeys)
 	if err != nil {
 		return nil, err
 	}
+
+	// Align present backend values and preserve the flat missing-value sentinel.
 	for i, index := range lowerIndexes {
 		if found[i] {
 			vals[index] = lowerVals[i]
+
+			// Preserve a present empty value in the flat result.
 			// The lower API carries presence separately. The flat API reserves
 			// nil for missing keys, including after a buffered batch is flushed.
 			if vals[index] == nil {
@@ -95,6 +105,7 @@ func (t *Tx) Scan(ctx context.Context, opts ...kv.IteratorOption) kv.Iterator {
 }
 
 func (t *Tx) scan(ctx context.Context, beforeStart func(context.Context) error, opts ...kv.IteratorOption) *txScanIterator {
+	// Extract the flat key prefix from the iterator options.
 	var pref kv.Key
 	for _, opt := range opts {
 		pkv, ok := opt.(options.PrefixKV)
@@ -102,6 +113,8 @@ func (t *Tx) scan(ctx context.Context, beforeStart func(context.Context) error, 
 			pref = kv.KeyEscape(pkv.Pref)
 		}
 	}
+
+	// Create a lazy backend iterator with the requested start fence.
 	it := newTxScanIterator(ctx, t.tx, pref)
 	it.beforeStart = beforeStart
 	return it

@@ -39,6 +39,7 @@ func NewController(b bus.Bus, conf *Config) *Controller {
 				return nil, nil, err
 			}
 
+			// Build the HTTP handler and transfer the block-store reference lifetime.
 			srv := NewHTTPBlock(blockStore, conf.GetWrite(), conf.GetPathPrefix(), conf.GetForceHashType())
 			var handler http.Handler = srv
 			return handler, blockStoreRef.Release, nil

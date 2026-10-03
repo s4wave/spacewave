@@ -32,12 +32,15 @@ func BenchmarkTxScanPrefixEarlyStop(b *testing.B) {
 }
 
 func benchmarkTxScanPrefixEarlyStop(b *testing.B, db *KV) {
+	// Open a write transaction for the benchmark prefix.
 	ctx := context.Background()
 	prefix := kv.Key{[]byte("index"), []byte("subject")}
 	tx, err := db.Tx(ctx, true)
 	if err != nil {
 		b.Fatal(err)
 	}
+
+	// Populate and commit the benchmark prefix entries.
 	for i := range 16384 {
 		key := kv.Key{[]byte("index"), []byte("subject"), []byte(strconv.Itoa(i))}
 		if err := tx.Put(ctx, flat.KeyEscape(key), []byte("value")); err != nil {
@@ -51,13 +54,17 @@ func benchmarkTxScanPrefixEarlyStop(b *testing.B, db *KV) {
 		b.Fatal(err)
 	}
 
+	// Measure opening and closing a prefix scan after its first result.
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
+		// Open a read transaction for one measured prefix scan.
 		tx, err := db.Tx(ctx, false)
 		if err != nil {
 			b.Fatal(err)
 		}
+
+		// Start the prefix scan and require its first entry.
 		it := tx.Scan(ctx, options.WithPrefixKV(prefix))
 		if !it.Next(ctx) {
 			if err := it.Close(); err != nil {
@@ -68,6 +75,8 @@ func benchmarkTxScanPrefixEarlyStop(b *testing.B, db *KV) {
 			}
 			b.Fatalf("expected item, err=%v", it.Err())
 		}
+
+		// Close the measured iterator and read transaction.
 		if err := it.Close(); err != nil {
 			if closeErr := tx.Close(); closeErr != nil {
 				b.Fatal(closeErr)

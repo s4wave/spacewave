@@ -24,10 +24,13 @@ func NewKV(store kvtx.Store) *KV {
 
 // Tx starts a transaction.
 func (k *KV) Tx(ctx context.Context, rw bool) (kv.Tx, error) {
+	// Open the backend transaction with the requested write access.
 	tx, err := k.store.NewTransaction(ctx, rw)
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap writable batch-capable transactions with the pending overlay.
 	out := NewTx(tx)
 	if batch, ok := tx.(kvtx.WriteBatchTxOps); rw && ok {
 		return &bufferedTx{Tx: out, batch: batch}, nil

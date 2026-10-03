@@ -23,6 +23,7 @@ func TestKVTX(t *testing.T) {
 }
 
 func TestTxScanUsesLazyIterator(t *testing.T) {
+	// Prepare a backend spy with three entries under the requested prefix.
 	ctx := context.Background()
 	prefix := kv.Key{[]byte("quad"), []byte("subject")}
 	flatPrefix := flat.KeyEscape(prefix)
@@ -34,6 +35,7 @@ func TestTxScanUsesLazyIterator(t *testing.T) {
 		},
 	}
 
+	// Create a scan and verify it leaves backend iteration unopened.
 	it := NewTx(spy).Scan(ctx, options.WithPrefixKV(prefix))
 	if spy.scanPrefixCalls != 0 {
 		t.Fatalf("ScanPrefix called during Scan: %d", spy.scanPrefixCalls)
@@ -42,6 +44,7 @@ func TestTxScanUsesLazyIterator(t *testing.T) {
 		t.Fatalf("Iterate called before first Next: %d", spy.iterateCalls)
 	}
 
+	// Start the scan and verify the backend prefix and ordering options.
 	if !it.Next(ctx) {
 		t.Fatalf("expected first item, err=%v", it.Err())
 	}
@@ -57,6 +60,8 @@ func TestTxScanUsesLazyIterator(t *testing.T) {
 	if !spy.iterateSort || spy.iterateReverse {
 		t.Fatalf("Iterate sort/reverse = %v/%v, want true/false", spy.iterateSort, spy.iterateReverse)
 	}
+
+	// Verify the first scan result seeks once and copies one value.
 	if spy.lastIterator.seekCalls != 1 {
 		t.Fatalf("Seek calls = %d, want 1", spy.lastIterator.seekCalls)
 	}
@@ -69,6 +74,8 @@ func TestTxScanUsesLazyIterator(t *testing.T) {
 	if got := it.Val(); !bytes.Equal(got, []byte("one")) {
 		t.Fatalf("Val = %q, want one", got)
 	}
+
+	// Close the scan and verify it releases the backend iterator.
 	if err := it.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -131,6 +138,7 @@ func (t *lazyScanTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(
 }
 
 func (t *lazyScanTx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvtx.Iterator {
+	// Record the requested scan options and create the backend spy iterator.
 	t.iterateCalls++
 	t.iteratePrefix = bytes.Clone(prefix)
 	t.iterateSort = sort
@@ -202,10 +210,13 @@ func (i *lazyScanIterator) Next() bool {
 }
 
 func (i *lazyScanIterator) Seek(k []byte) error {
+	// Record the backend seek and preserve an earlier iterator failure.
 	i.seekCalls++
 	if i.err != nil {
 		return i.err
 	}
+
+	// Seek the first backend entry at or beyond the requested key.
 	if len(k) != 0 {
 		for idx, entry := range i.entries {
 			if bytes.Compare(entry.key, k) >= 0 {
@@ -216,6 +227,8 @@ func (i *lazyScanIterator) Seek(k []byte) error {
 		i.pos = -1
 		return nil
 	}
+
+	// Seek the first backend entry matching the scan prefix.
 	for idx, entry := range i.entries {
 		if len(i.prefix) == 0 || bytes.HasPrefix(entry.key, i.prefix) {
 			i.pos = idx

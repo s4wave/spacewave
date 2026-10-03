@@ -50,6 +50,7 @@ func connect(
 	clientName string,
 	options ...redis.DialOption,
 ) (*Store, error) {
+	// Create the Redis pool with its connection lifetime and borrow checks.
 	pool := &redis.Pool{
 		MaxIdle:         2,
 		IdleTimeout:     60 * time.Second,
@@ -76,6 +77,7 @@ func connect(
 			return err
 		},
 	}
+
 	// PING the redis store to confirm connection
 	conn, err := pool.GetContext(ctx)
 	if err != nil {
@@ -86,6 +88,7 @@ func connect(
 		_ = pool.Close()
 		return nil, err
 	}
+
 	// return the conn to the pool
 	_ = conn.Close()
 	return NewStore(ctx, pool), nil
@@ -107,20 +110,24 @@ func (c *ClientConfig) ConnectWithClientName(
 
 // Validate validates the client config
 func (c *ClientConfig) Validate() error {
+	// Require a Redis URL before parsing the client configuration.
 	rawurl := c.GetUrl()
 	if rawurl == "" {
 		return ErrRedisUrlEmpty
 	}
 
+	// Parse the configured Redis URL.
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		return err
 	}
 
+	// Require a Redis transport scheme.
 	if u.Scheme != "redis" && u.Scheme != "rediss" {
 		return errors.Errorf("invalid redis URL scheme: %s", u.Scheme)
 	}
 
+	// Require a hierarchical Redis URL.
 	if u.Opaque != "" {
 		return errors.Errorf("invalid redis URL, url is opaque: %s", rawurl)
 	}
@@ -159,6 +166,7 @@ func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error)
 
 // buildConn builds a new connetion.
 func (s *Store) buildConn(ctx context.Context, write bool) (redis.Conn, error) {
+	// Borrow a Redis connection and verify its current error state.
 	conn, err := s.pool.GetContext(s.ctx)
 	if err != nil {
 		return nil, err
@@ -166,6 +174,8 @@ func (s *Store) buildConn(ctx context.Context, write bool) (redis.Conn, error) {
 	if err := conn.Err(); err != nil {
 		return nil, err
 	}
+
+	// Begin a Redis transaction for a write connection.
 	// Note: redigo is smart, and automatically cancels the MULTI if the transaction fails.
 	// it may be possible to send multi and defer reading the reply.
 	if write {

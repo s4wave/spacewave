@@ -123,10 +123,13 @@ func (i *txScanIterator) Close() error {
 
 // Reset resets the iterator to the starting state. Closed iterators cannot reset.
 func (i *txScanIterator) Reset() {
+	// Clear the scan snapshot and its previous error before restarting.
 	i.key = nil
 	i.value = nil
 	i.err = nil
 	i.started = false
+
+	// Release the backend iterator so the next scan opens a fresh snapshot.
 	if i.iter != nil {
 		i.iter.Close()
 		i.iter = nil

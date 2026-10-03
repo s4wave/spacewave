@@ -11,6 +11,7 @@ import (
 )
 
 func TestTxGetBatchUsesUnderlyingBatchAndAlignsResults(t *testing.T) {
+	// Prepare a backend batch spy with two stored values.
 	ctx := context.Background()
 	lower := &batchGetSpyTx{
 		values: map[string][]byte{
@@ -19,6 +20,7 @@ func TestTxGetBatchUsesUnderlyingBatchAndAlignsResults(t *testing.T) {
 		},
 	}
 
+	// Read mixed present, empty, missing and duplicate flat keys.
 	values, err := NewTx(lower).GetBatch(ctx, []flat.Key{
 		flat.Key("bravo"),
 		nil,
@@ -30,12 +32,16 @@ func TestTxGetBatchUsesUnderlyingBatchAndAlignsResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the adapter delegates one batch without scalar reads.
 	if lower.batchCalls != 1 {
 		t.Fatalf("underlying GetBatch calls = %d, want 1", lower.batchCalls)
 	}
 	if lower.scalarGets != 0 {
 		t.Fatalf("scalar Get calls = %d, want 0", lower.scalarGets)
 	}
+
+	// Verify backend key order and aligned flat results.
 	assertByteKeys(t, "underlying batch keys", lower.batchKeys, [][]byte{
 		[]byte("bravo"),
 		[]byte("missing"),
@@ -74,8 +80,11 @@ func (t *batchGetSpyTx) Get(_ context.Context, key []byte) ([]byte, bool, error)
 }
 
 func (t *batchGetSpyTx) GetBatch(_ context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	// Record the requested backend batch keys.
 	t.batchCalls++
 	t.batchKeys = cloneByteSlices(keys)
+
+	// Resolve each requested key with its explicit presence result.
 	values := make([][]byte, len(keys))
 	found := make([]bool, len(keys))
 	for i, key := range keys {
@@ -163,12 +172,15 @@ func cloneByteSlices(in [][]byte) [][]byte {
 }
 
 func TestGetBatchPreservesPresentNilValues(t *testing.T) {
+	// Open a writable backend transaction for a present empty value.
 	ctx := context.Background()
 	tx, err := store_kvtx_inmem.NewStore().NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
+
+	// Store an empty value and read it alongside a missing key.
 	if err := tx.Set(ctx, []byte("empty"), nil); err != nil {
 		t.Fatal(err)
 	}
@@ -176,6 +188,8 @@ func TestGetBatchPreservesPresentNilValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the flat result distinguishes present empty values from missing keys.
 	if values[0] == nil || len(values[0]) != 0 || values[1] != nil {
 		t.Fatalf("present empty value became missing: %#v", values)
 	}

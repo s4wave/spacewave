@@ -44,6 +44,7 @@ func NewHTTPBlock(store block.StoreOps, write bool, pathPrefix string, forceHash
 
 // ServeHTTP serves the HTTP server at pathPrefix.
 func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Match the request URL against the block-store path prefix.
 	reqURL := req.URL
 	if reqURL == nil {
 		return
@@ -53,6 +54,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Extract the block-store operation path and require a nonempty operation.
 	opPath := strings.TrimPrefix(reqPath, h.pathPrefix)
 	if len(opPath) != 0 && opPath[0] == '/' {
 		opPath = opPath[1:]
@@ -62,14 +64,18 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Prepare block-reference parsing and HTTP method validation for dispatch.
 	pathPts := strings.Split(opPath, "/")
 	parseRef := func(refStr string) *block.BlockRef {
+		// Parse and validate the requested block reference.
 		ref := &block.BlockRef{}
 		err := ref.ParseFromB58(refStr)
 		if err == nil {
 			// expect a non-nil ref
 			err = ref.Validate(false)
 		}
+
+		// Return a bad-request response for an invalid block reference.
 		if err != nil {
 			rw.WriteHeader(400)
 			_, _ = rw.Write([]byte("invalid block ref: "))
@@ -88,6 +94,7 @@ func (h *HTTPBlockServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return true
 	}
 
+	// Dispatch the block-store operation to its HTTP handler.
 	switch pathPts[0] {
 	case block_store_http.GetPath:
 		if !checkMethod("GET") {
@@ -180,12 +187,14 @@ func (h *HTTPBlockServer) ServeGetBlockExists(ctx context.Context, rw http.Respo
 // ServeRmBlock serves a rm block request.
 // ref must have been validated already.
 func (h *HTTPBlockServer) ServeRmBlock(ctx context.Context, rw http.ResponseWriter, ref *block.BlockRef) {
+	// Reject block removal when the server is read-only.
 	if !h.write {
 		rw.WriteHeader(401)
 		_, _ = rw.Write([]byte(block_store.ErrReadOnly.Error() + "\n"))
 		return
 	}
 
+	// Remove the block and encode the store result.
 	err := h.store.RmBlock(ctx, ref)
 	resp := &block_store_http.RmResponse{}
 	if err != nil {
@@ -194,12 +203,14 @@ func (h *HTTPBlockServer) ServeRmBlock(ctx context.Context, rw http.ResponseWrit
 		resp.Removed = true
 	}
 
+	// Send the block-removal response.
 	h.writeResponse(rw, resp, false)
 }
 
 // ServePutBlock serves a put block request.
 // ref must have been validated already.
 func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWriter, reqBody io.ReadCloser) {
+	// Reject block writes when the server is read-only.
 	if !h.write {
 		_ = reqBody.Close()
 		rw.WriteHeader(401)
@@ -207,6 +218,7 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 		return
 	}
 
+	// Read the encoded block-write request body.
 	bodyData, err := io.ReadAll(reqBody)
 	if err != nil {
 		rw.WriteHeader(500)
@@ -214,6 +226,7 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 		return
 	}
 
+	// Decode and validate the block-write request.
 	req := &block_store_http.PutRequest{}
 	err = req.UnmarshalVT(bodyData)
 	if err == nil {
@@ -225,6 +238,7 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 		return
 	}
 
+	// Select the block hash and enforce the server hash requirement.
 	putOpts := req.GetPutOpts()
 	if putOpts == nil {
 		putOpts = &block.PutOpts{}
@@ -240,6 +254,7 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 		return
 	}
 
+	// Write the block with the selected hash and encode the store result.
 	putOpts.HashType = reqHashType
 	putRef, existed, err := h.store.PutBlock(ctx, req.GetData(), putOpts)
 	resp := &block_store_http.PutResponse{}
@@ -249,11 +264,14 @@ func (h *HTTPBlockServer) ServePutBlock(ctx context.Context, rw http.ResponseWri
 		resp.Exists = existed
 		resp.Ref = putRef
 	}
+
+	// Send the block-write response.
 	h.writeResponse(rw, resp, false)
 }
 
 // writeResponse writes a response message.
 func (h *HTTPBlockServer) writeResponse(rw http.ResponseWriter, msg block.Block, notFound bool) {
+	// Encode the block-store response or report an encoding failure.
 	respData, err := msg.MarshalBlock()
 	if err != nil {
 		rw.WriteHeader(500)
@@ -261,6 +279,7 @@ func (h *HTTPBlockServer) writeResponse(rw http.ResponseWriter, msg block.Block,
 		return
 	}
 
+	// Send the encoded block-store response with its presence status.
 	rw.Header().Set("content-type", "application/vnd.google.protobuf")
 	if !notFound {
 		rw.WriteHeader(200)
