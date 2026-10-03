@@ -104,6 +104,7 @@ type releaseWasmDistDirs struct {
 
 // boot builds the release and starts its local server and browser.
 func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
+	// Locate the checkout that supplies the browser release inputs.
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		return nil, errors.Wrap(err, "find repo root")
@@ -119,6 +120,8 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 			listener.Close()
 		}
 	}()
+
+	// Prepare the release assets for the listening origin.
 	port := strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)
 	baseURL := "http://127.0.0.1:" + port
 	var distDirs releaseWasmDistDirs
@@ -130,6 +133,8 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Configure browser diagnostics and Chromium launch policy.
 	artifactDir := filepath.Join(repoRoot, ".bldr", "e2e-releasewasm", "artifacts")
 	browserName, err := releaseWasmBrowserName()
 	if err != nil {
@@ -139,6 +144,8 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the release resources and release them if startup fails.
 	h := &harness{
 		artifactDir:    artifactDir,
 		distDirs:       distDirs,
@@ -153,6 +160,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		}
 	}()
 
+	// Serve the release assets on the reserved listening socket.
 	handler := releaseHandler(distDirs.releaseDist, distDirs.prerender, baseURL)
 	if os.Getenv(localCDNEnv) == "1" {
 		handler = &localCDNHandler{next: handler}
@@ -168,6 +176,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		}
 	}()
 
+	// Install the Playwright driver for the selected browser.
 	le.WithField("browser", browserName).Info("installing playwright driver")
 	if err := playwright.Install(&playwright.RunOptions{
 		Browsers: []string{browserName},
@@ -177,17 +186,20 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		return nil, errors.Wrap(err, "install playwright")
 	}
 
+	// Start and retain the Playwright driver.
 	pw, err := playwright.Run()
 	if err != nil {
 		return nil, errors.Wrap(err, "start playwright")
 	}
 	h.pw = pw
 
+	// Resolve the browser engine that will consume the release.
 	browserType, err := playwrightBrowserType(pw, browserName)
 	if err != nil {
 		return nil, err
 	}
 
+	// Define the browser launch with the local CDN network policy.
 	launch := func(gpu bool) (playwright.Browser, error) {
 		opts := playwright.BrowserTypeLaunchOptions{Headless: new(true)}
 		if browserName == "chromium" {
@@ -200,6 +212,8 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		}
 		return browserType.Launch(opts)
 	}
+
+	// Launch and retain the selected browser process.
 	var browser playwright.Browser
 	if browserName == "chromium" {
 		browser, err = e2eharness.LaunchChromium(ctx, h.chromiumPolicy, launch)
@@ -237,12 +251,14 @@ func persistentBrowserContextLaunchOptions(
 
 // prepareReleaseWasmDist resolves or builds assets matching the current inputs.
 func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot string) (releaseWasmDistDirs, error) {
+	// Identify the release inputs and their artifact store.
 	identity, err := computeReleaseWasmArtifactIdentity(ctx, repoRoot)
 	if err != nil {
 		return releaseWasmDistDirs{}, errors.Wrap(err, "compute release artifact identity")
 	}
 	storeDir := releaseWasmArtifactStoreDir(repoRoot)
 
+	// Validate configured prebuilt assets before choosing a fresh build.
 	prebuiltDirs, prebuilt, err := prebuiltReleaseWasmDistDirs(repoRoot)
 	if err != nil {
 		return releaseWasmDistDirs{}, err
@@ -262,6 +278,7 @@ func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot stri
 		le.WithError(validationErr).WithField("identity", identity.Digest).Info("prebuilt release artifact rejected; rebuilding")
 	}
 
+	// Resolve the matching release artifact under its build lock.
 	resolved, err := e2eharness.Resolve(ctx, le, e2eharness.ResolveOptions{
 		LockDir:      storeDir,
 		LockName:     "build",
@@ -278,6 +295,7 @@ func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot stri
 
 // prebuiltReleaseWasmDistDirs resolves the optional pair of prebuilt directories.
 func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, error) {
+	// Resolve the configured release and prerender directories as a pair.
 	distDir := strings.TrimSpace(os.Getenv(releaseWasmDistDirEnv))
 	prerenderDir := strings.TrimSpace(os.Getenv(releaseWasmPrerenderDistEnv))
 	if distDir == "" && prerenderDir == "" {
@@ -326,6 +344,7 @@ func releaseWasmBuildScript() string {
 
 // buildReleaseWeb builds the release with the selected compiler or lazy fixture.
 func buildReleaseWeb(ctx context.Context, repoRoot string) error {
+	// Build the lazy plugin fixture when the release proof requests it.
 	if os.Getenv("E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE") == "1" {
 		return runBun(
 			ctx,
@@ -341,6 +360,7 @@ func buildReleaseWeb(ctx context.Context, repoRoot string) error {
 		)
 	}
 
+	// Choose the release compiler and its build command.
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		return err
@@ -399,6 +419,7 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 // newBrowserContext gives each test isolated storage. WebKit's ephemeral
 // contexts reject OPFS access, so its tests use a temporary persistent profile.
 func (h *harness) newBrowserContext(t testing.TB) playwright.BrowserContext {
+	// Create isolated browser storage and release it with the test.
 	t.Helper()
 	var ctx playwright.BrowserContext
 	if h.browserName == "webkit" {
@@ -420,25 +441,32 @@ func (h *harness) newBrowserContext(t testing.TB) playwright.BrowserContext {
 
 // newPageWithDiagnosticsControl also returns a callback that mutes error capture.
 func (h *harness) newPageWithDiagnosticsControl(t testing.TB) (playwright.Page, func()) {
+	// Attribute page creation failures to the calling test.
 	t.Helper()
 
+	// Create the isolated browser context for this page.
 	ctx := h.newBrowserContext(t)
 
+	// Open a page in the isolated browser context.
 	page, err := ctx.NewPage()
 	if err != nil {
 		t.Fatalf("new page: %v", err)
 	}
 
+	// Attach browser diagnostics and expose their mute callback.
 	muteDiagnostics := h.attachPageDiagnostics(t, page)
 	return page, muteDiagnostics
 }
 
 // newDedicatedWorkerPage disables SharedWorker before any application script runs.
 func (h *harness) newDedicatedWorkerPage(t testing.TB) playwright.Page {
+	// Attribute dedicated worker setup failures to the calling test.
 	t.Helper()
 
+	// Create isolated browser storage for the dedicated worker.
 	ctx := h.newBrowserContext(t)
 
+	// Disable SharedWorker before the page loads application scripts.
 	script := `
 Object.defineProperty(globalThis, 'SharedWorker', {
 	configurable: true,
@@ -449,19 +477,23 @@ Object.defineProperty(globalThis, 'SharedWorker', {
 		t.Fatalf("install dedicated-worker init script: %v", err)
 	}
 
+	// Open the page that will use the dedicated worker.
 	page, err := ctx.NewPage()
 	if err != nil {
 		t.Fatalf("new page: %v", err)
 	}
 
+	// Attach browser diagnostics to the dedicated worker page.
 	h.attachPageDiagnostics(t, page)
 	return page
 }
 
 // newPageInContext adds a page with diagnostics to an existing browser context.
 func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) playwright.Page {
+	// Attribute page creation failures to the calling test.
 	t.Helper()
 
+	// Open a page in the supplied browser context and attach diagnostics.
 	page, err := ctx.NewPage()
 	if err != nil {
 		t.Fatalf("new page in context: %v", err)
@@ -472,13 +504,16 @@ func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) 
 
 // newPersistentBrowserContext opens the selected browser with a persistent profile.
 func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) playwright.BrowserContext {
+	// Attribute persistent browser setup failures to the calling test.
 	t.Helper()
 
+	// Resolve the browser engine and define its persistent profile launch.
 	browserType, err := playwrightBrowserType(h.pw, h.browserName)
 	if err != nil {
 		t.Fatalf("resolve persistent release browser type: %v", err)
 	}
 	launchPersistent := func(gpu bool) (playwright.BrowserContext, error) {
+		// Apply the browser launch policy and device profile to the persistent context.
 		options := persistentBrowserContextLaunchOptions(h.browserName, gpu)
 		device := h.newContextOptions(t)
 		options.Viewport = device.Viewport
@@ -487,11 +522,15 @@ func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) 
 		options.DeviceScaleFactor = device.DeviceScaleFactor
 		options.IsMobile = device.IsMobile
 		options.HasTouch = device.HasTouch
+
+		// Keep persistent browser requests on the local CDN origin.
 		if os.Getenv(localCDNEnv) == "1" {
 			options.Proxy = &playwright.Proxy{Server: h.baseURL, Bypass: new("127.0.0.1,localhost")}
 		}
 		return browserType.LaunchPersistentContext(userDataDir, options)
 	}
+
+	// Launch the persistent browser context with the selected engine policy.
 	var ctx playwright.BrowserContext
 	switch h.browserName {
 	case "chromium":
@@ -541,9 +580,12 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 	// and its workers last reported.
 	var consoleTail []string
 	recordConsole := func(line string) {
+		// Bound each console message retained for test failure diagnostics.
 		if len(line) > consoleTailLineBytes {
 			line = line[:consoleTailLineBytes] + "..."
 		}
+
+		// Append the console message under the browser diagnostics lock.
 		errsMu.Lock()
 		defer errsMu.Unlock()
 		if len(consoleTail) == consoleTailLines {
@@ -578,10 +620,13 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 
 	// Record failed requests, keeping aborted ones in the log only.
 	page.OnRequestFailed(func(req playwright.Request) {
+		// Exclude failed requests outside the release runtime and assets.
 		url := req.URL()
 		if !isRelevantReleaseWasmRequest(url) {
 			return
 		}
+
+		// Log browser cancellations and retain other request failures.
 		failure := req.Failure().Error()
 		msg := "browser request failed: " + req.Method() + " " + url + ": " + failure
 		if isBrowserAbortedRequest(failure) {
@@ -668,9 +713,12 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 	// Fail the test on the recorded errors once pending body reads finish,
 	// logging the console tail of a failed test.
 	t.Cleanup(func() {
+		// Wait for response bodies before inspecting browser diagnostics.
 		bodyReads.Wait()
 		errsMu.Lock()
 		defer errsMu.Unlock()
+
+		// Report the console tail and captured browser errors to the test.
 		if t.Failed() || len(errs) != 0 {
 			t.Logf("browser console tail (%d lines):\n%s", len(consoleTail), strings.Join(consoleTail, "\n"))
 		}
@@ -759,13 +807,16 @@ func isBrowserAbortedRequest(failure string) bool {
 
 // newContextOptions applies the optional Playwright device profile.
 func (h *harness) newContextOptions(t testing.TB) playwright.BrowserNewContextOptions {
+	// Attribute device profile failures to the calling test.
 	t.Helper()
 
+	// Resolve the optional browser device profile requested by the environment.
 	deviceName := strings.TrimSpace(os.Getenv("PLAYWRIGHT_BROWSER_DEVICE"))
 	if deviceName == "" {
 		return playwright.BrowserNewContextOptions{}
 	}
 
+	// Require the requested device to exist in the Playwright catalog.
 	device := h.pw.Devices[deviceName]
 	if device == nil {
 		names := make([]string, 0, len(h.pw.Devices))
@@ -798,10 +849,13 @@ func ignoreBrowserError(msg string) bool {
 
 // browserRelease fetches and decodes the release descriptor from the local server.
 func (h *harness) browserRelease(ctx context.Context) (*browserReleaseDescriptor, error) {
+	// Prepare the release descriptor request for the local origin.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.baseURL+"/browser-release.json", nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Fetch the release descriptor and own its response body.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -810,6 +864,8 @@ func (h *harness) browserRelease(ctx context.Context) (*browserReleaseDescriptor
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.Errorf("browser-release.json returned %d", resp.StatusCode)
 	}
+
+	// Read and decode the release descriptor JSON.
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -819,6 +875,8 @@ func (h *harness) browserRelease(ctx context.Context) (*browserReleaseDescriptor
 	if err != nil {
 		return nil, err
 	}
+
+	// Populate the release descriptor and its asset lists.
 	desc := &browserReleaseDescriptor{
 		SchemaVersion: v.GetInt("schemaVersion"),
 		GenerationID:  string(v.GetStringBytes("generationId")),
@@ -871,12 +929,17 @@ func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 
 	// Apply release headers before dispatching auth, static, and bundle requests.
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		// Apply browser isolation headers before serving the release request.
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+
+		// Serve authentication configuration from the local release origin.
 		if req.URL.Path == releaseAuthConfigPath {
 			authConfigHandler.ServeHTTP(rw, req)
 			return
 		}
+
+		// Describe compressed runtime assets with their encoding and media type.
 		if strings.HasSuffix(req.URL.Path, ".wasm.gz") || strings.HasSuffix(req.URL.Path, ".mjs.gz") {
 			rw.Header().Set("Content-Encoding", "gzip")
 		}
@@ -886,6 +949,8 @@ func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 		if strings.HasSuffix(req.URL.Path, ".mjs.gz") {
 			rw.Header().Set("Content-Type", "application/javascript")
 		}
+
+		// Serve prerendered pages before falling back to release bundle assets.
 		if strings.HasPrefix(req.URL.Path, "/static/") {
 			staticServer.ServeHTTP(rw, req)
 			return
@@ -901,11 +966,13 @@ func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 // releaseAuthConfigHandler describes the local authentication endpoints.
 func releaseAuthConfigHandler(endpoint string) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		// Require a GET request for the local authentication configuration.
 		if req.Method != http.MethodGet {
 			rw.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
+		// Encode the local authentication endpoints as the configuration response.
 		resp := &api.AuthConfigResponse{
 			SsoBaseUrl:       endpoint + "/api/auth/sso/start",
 			ExchangeUrl:      endpoint + "/api/auth/sso/code/exchange",
@@ -921,6 +988,8 @@ func releaseAuthConfigHandler(endpoint string) http.Handler {
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		// Send the encoded authentication configuration to the browser.
 		rw.Header().Set("Content-Type", "application/octet-stream")
 		rw.WriteHeader(http.StatusOK)
 		if _, err := rw.Write(data); err != nil {
@@ -931,6 +1000,7 @@ func releaseAuthConfigHandler(endpoint string) http.Handler {
 
 // resolveStaticHTML maps a route to an existing prerendered HTML page.
 func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
+	// Normalize the requested prerender route and reject parent traversal.
 	clean := strings.Trim(strings.Split(reqPath, "?")[0], "/")
 	if clean == "" {
 		clean = "index"
@@ -938,6 +1008,7 @@ func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
 	if strings.Contains(clean, "..") {
 		return "", false
 	}
+
 	// clean rejects ".." above; the join stays inside staticDir.
 	path := filepath.Join(staticDir, clean+".html")
 	// #nosec G703 -- traversal rejected above; path stays inside staticDir.
@@ -949,6 +1020,7 @@ func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
 
 // runBun runs a build command in dir with output attached to the test process.
 func runBun(ctx context.Context, dir string, args ...string) error {
+	// Run the release build command with output attached to the test process.
 	cmd := exec.CommandContext(ctx, "bun", args...)
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout

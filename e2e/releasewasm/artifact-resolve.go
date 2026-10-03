@@ -44,6 +44,7 @@ func (s *releaseShape) ContentKey(context.Context) (string, error) {
 }
 
 func (s *releaseShape) Lookup(ctx context.Context, key string) ([]e2eharness.Generation[releaseArtifact], error) {
+	// Find valid published release generations for the current artifact identity.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -65,6 +66,8 @@ func (s *releaseShape) Lookup(ctx context.Context, key string) ([]e2eharness.Gen
 			WithField("present", present).
 			Warn("no published release artifact matches the current identity")
 	}
+
+	// Expose valid release generations to the artifact resolver.
 	results := make([]e2eharness.Generation[releaseArtifact], 0, len(generations))
 	for _, generation := range generations {
 		results = append(results, e2eharness.Generation[releaseArtifact]{
@@ -79,6 +82,7 @@ func (s *releaseShape) Lookup(ctx context.Context, key string) ([]e2eharness.Gen
 }
 
 func (s *releaseShape) Build(ctx context.Context, key string) (e2eharness.Generation[releaseArtifact], error) {
+	// Remove previous prerender and release state before building.
 	if err := os.RemoveAll(filepath.Join(s.repoRoot, prerenderDistRelPath)); err != nil {
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "clean prerender dist")
 	}
@@ -86,25 +90,32 @@ func (s *releaseShape) Build(ctx context.Context, key string) (e2eharness.Genera
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "clean release dist state")
 	}
 
+	// Build the browser release bundle with the current artifact inputs.
 	s.le.WithFields(identityFields(s.identity)).Info("building release web bundle")
 	if err := buildReleaseWeb(ctx, s.repoRoot); err != nil {
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "build release web bundle")
 	}
 
+	// Build the prerender hydration bundle for the browser release.
 	distDir := filepath.Join(s.repoRoot, releaseDistRelPath)
 	s.le.Info("building prerender hydrate bundle")
 	if err := runBun(ctx, s.repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.hydrate.config.ts"); err != nil {
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "build prerender hydrate bundle")
 	}
+
+	// Build the server rendering bundle used to prerender release pages.
 	s.le.Info("building prerender ssr bundle")
 	if err := runBun(ctx, s.repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.ssr.config.ts"); err != nil {
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "build prerender ssr bundle")
 	}
+
+	// Generate static pages from the release and server rendering bundles.
 	s.le.Info("running prerender build")
 	if err := runBun(ctx, s.repoRoot, "./app/prerender/ssr-dist/build.js", "--dist-dir", distDir); err != nil {
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "run prerender build")
 	}
 
+	// Publish the rebuilt release generation and expose its asset directories.
 	generation, err := artifact.PublishGeneration(
 		s.storeDir,
 		distDir,

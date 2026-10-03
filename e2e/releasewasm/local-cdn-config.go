@@ -37,6 +37,8 @@ func localCDNProject(repoRoot, baseURL string) (*project.ProjectConfig, string, 
 	if err := bootstrap.UnmarshalJSON(build.ManifestOverrides["spacewave-launcher"].Config); err != nil {
 		return nil, "", err
 	}
+
+	// Route the bootstrap World configuration to the local CDN origin.
 	var worldConf cdn_world.Config
 	if err := worldConf.UnmarshalJSON(bootstrap.HostConfigSet["release-world"].Config); err != nil {
 		return nil, "", err
@@ -61,6 +63,8 @@ func localCDNProject(repoRoot, baseURL string) (*project.ProjectConfig, string, 
 	if packedConfig == "" {
 		return nil, "", errors.New("local CDN requires the signed distribution fixture")
 	}
+
+	// Route the launcher to the signed distribution served by the local origin.
 	dist.InitDistConfig = ""
 	dist.DisableEndpointFetch = false
 	dist.Endpoints = []*launcher.HttpEndpoint{{Url: baseURL + "/distribution.packedmsg"}}
@@ -96,6 +100,8 @@ func localCDNProject(repoRoot, baseURL string) (*project.ProjectConfig, string, 
 	if err != nil {
 		return nil, "", err
 	}
+
+	// Select the startup plugin and web manifests for local publication.
 	plugins := conf.Publish["spacewave-release"]
 	plugins.Manifests = []string{"spacewave-core", "spacewave-web", "spacewave-app"}
 	plugins.PlatformIds = []string{"js", "web/js/wasm"}

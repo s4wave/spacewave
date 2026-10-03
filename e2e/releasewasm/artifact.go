@@ -52,10 +52,13 @@ var releaseWasmArtifactEnvKeys = []string{
 // PublishReleaseWasmArtifact publishes the existing release and prerender build
 // outputs under their current source and build identity.
 func PublishReleaseWasmArtifact(ctx context.Context, le *logrus.Entry, repoRoot string) error {
+	// Identify the existing release outputs before publishing them.
 	identity, err := computeReleaseWasmArtifactIdentity(ctx, repoRoot)
 	if err != nil {
 		return err
 	}
+
+	// Publish the release and prerender outputs under their build identity.
 	_, _, err = artifact.Publish(
 		releaseWasmArtifactStoreDir(repoRoot),
 		filepath.Join(repoRoot, releaseDistRelPath),
@@ -65,6 +68,7 @@ func PublishReleaseWasmArtifact(ctx context.Context, le *logrus.Entry, repoRoot 
 	if err != nil {
 		return err
 	}
+
 	// The consumer computes the same identity in its own process and rebuilds
 	// whenever the two disagree. Print the producing side's digests so both
 	// sides of that comparison are recoverable from their separate logs.
@@ -73,6 +77,7 @@ func PublishReleaseWasmArtifact(ctx context.Context, le *logrus.Entry, repoRoot 
 }
 
 func computeReleaseWasmArtifactIdentity(ctx context.Context, repoRoot string) (*artifact.Identity, error) {
+	// Resolve the release compiler and its effective environment.
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		return nil, err
@@ -83,12 +88,14 @@ func computeReleaseWasmArtifactIdentity(ctx context.Context, repoRoot string) (*
 		}
 	}
 
+	// Collect the environment inputs that determine release artifact identity.
 	environment := make(map[string]string, len(releaseWasmArtifactEnvKeys)+1)
 	for _, key := range releaseWasmArtifactEnvKeys {
 		environment[key] = strings.TrimSpace(os.Getenv(key))
 	}
 	environment["E2E_RELEASE_WASM_BUILD_SCRIPT"] = releaseWasmBuildScript()
 
+	// Read the Go and Bun tool versions used by the release build.
 	tools := make(map[string]string, 3)
 	tools["go"], err = releaseWasmToolVersion(ctx, repoRoot, "go", "version")
 	if err != nil {
@@ -98,6 +105,8 @@ func computeReleaseWasmArtifactIdentity(ctx context.Context, repoRoot string) (*
 	if err != nil {
 		return nil, err
 	}
+
+	// Include the TinyGo version when the release uses TinyGo.
 	if compiler == releaseWasmCompilerTinyGo {
 		tools["tinygo"] = environment["TINYGO_VERSION"]
 		if tools["tinygo"] == "" {
@@ -107,6 +116,8 @@ func computeReleaseWasmArtifactIdentity(ctx context.Context, repoRoot string) (*
 			}
 		}
 	}
+
+	// Record the configured or installed wasm optimizer version.
 	_, wasmOptErr := exec.LookPath("wasm-opt")
 	switch {
 	case environment["BINARYEN_VERSION"] != "":
@@ -129,6 +140,7 @@ func computeReleaseWasmArtifactIdentity(ctx context.Context, repoRoot string) (*
 }
 
 func releaseWasmToolVersion(ctx context.Context, repoRoot, name string, args ...string) (string, error) {
+	// Run the tool version command in the release checkout.
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = repoRoot
 	output, err := cmd.CombinedOutput()

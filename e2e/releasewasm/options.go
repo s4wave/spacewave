@@ -44,6 +44,7 @@ const (
 )
 
 func resolveReleaseWasmCompiler() (releaseWasmCompiler, error) {
+	// Resolve mutually exclusive release compiler selections.
 	tinyGo := strings.EqualFold(strings.TrimSpace(os.Getenv(E2EReleaseWasmTinyGoEnv)), "true")
 	goScript := strings.EqualFold(strings.TrimSpace(os.Getenv(E2EReleaseWasmGoScriptEnv)), "true")
 	if tinyGo && goScript {
@@ -59,6 +60,7 @@ func resolveReleaseWasmCompiler() (releaseWasmCompiler, error) {
 }
 
 func applyReleaseWasmTinyGoCompilerEnv() error {
+	// Resolve and publish the effective TinyGo build profile.
 	profile := strings.TrimSpace(os.Getenv(E2EReleaseWasmTinyGoProfileEnv))
 	if profile == "" {
 		profile = strings.TrimSpace(os.Getenv(gocompiler.TinyGoProfileEnv))
@@ -70,6 +72,7 @@ func applyReleaseWasmTinyGoCompilerEnv() error {
 		return errors.Wrap(err, "set TinyGo profile")
 	}
 
+	// Apply TinyGo optimization, panic, and garbage collection overrides.
 	if err := copyOptionalReleaseWasmTinyGoEnv(E2EReleaseWasmTinyGoOptEnv, gocompiler.TinyGoOptEnv); err != nil {
 		return err
 	}
@@ -84,6 +87,8 @@ func applyReleaseWasmTinyGoCompilerEnv() error {
 			return errors.Wrap(err, "set TinyGo GC")
 		}
 	}
+
+	// Apply TinyGo scheduling, stack, LLVM, and diagnostic overrides.
 	if err := copyOptionalReleaseWasmTinyGoEnv(E2EReleaseWasmTinyGoSchedulerEnv, gocompiler.TinyGoSchedulerEnv); err != nil {
 		return err
 	}
@@ -100,6 +105,7 @@ func applyReleaseWasmTinyGoCompilerEnv() error {
 		return err
 	}
 
+	// Validate the resulting TinyGo compiler arguments and debug configuration.
 	if _, err := gocompiler.GetDefaultTinygoArgs(); err != nil {
 		return err
 	}

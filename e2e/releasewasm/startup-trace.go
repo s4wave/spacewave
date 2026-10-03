@@ -38,9 +38,12 @@ func releaseStartupTraceEnabled() bool {
 // opt-in sets it: an operator who asks for a trace gets a bundle that carries
 // the callback instead of one that reports it missing.
 func applyReleaseStartupTraceEnv() error {
+	// Leave ordinary release builds outside startup trace capture.
 	if !releaseStartupTraceEnabled() {
 		return nil
 	}
+
+	// Require Chromium for browser CDP startup trace capture.
 	name, err := releaseWasmBrowserName()
 	if err != nil {
 		return err
@@ -51,6 +54,8 @@ func applyReleaseStartupTraceEnv() error {
 			releaseWasmStartupTraceEnv, name,
 		)
 	}
+
+	// Enable the startup trace callback in the release compiler environment.
 	if err := os.Setenv(gocompiler.RuntimeStartupTraceEnv, "1"); err != nil {
 		return errors.Wrapf(err, "set %s from %s", gocompiler.RuntimeStartupTraceEnv, releaseWasmStartupTraceEnv)
 	}
@@ -60,6 +65,7 @@ func applyReleaseStartupTraceEnv() error {
 // captureReleaseStartupTrace stops and reads the root distribution runtime
 // trace from the SharedWorker target that owns the browser plugin host.
 func captureReleaseStartupTrace(ctx context.Context, browser playwright.Browser) (_ []byte, retErr error) {
+	// Open the browser CDP session and detach it after trace capture.
 	cdp, err := browser.NewBrowserCDPSession()
 	if err != nil {
 		return nil, errors.Wrap(err, "create browser CDP session")
@@ -74,6 +80,7 @@ func captureReleaseStartupTrace(ctx context.Context, browser playwright.Browser)
 		}
 	}()
 
+	// List browser worker targets that may hold the startup trace.
 	raw, err := cdp.Send("Target.getTargets", map[string]any{})
 	if err != nil {
 		return nil, errors.Wrap(err, "list browser targets")
@@ -83,6 +90,7 @@ func captureReleaseStartupTrace(ctx context.Context, browser playwright.Browser)
 		return nil, err
 	}
 
+	// Capture the first worker target exposing the startup trace callback.
 	var checked []string
 	for _, target := range targets {
 		data, found, err := captureStartupTraceTarget(ctx, cdp, target)
@@ -104,6 +112,7 @@ type startupTraceTarget struct {
 }
 
 func startupTraceTargets(raw any) ([]startupTraceTarget, error) {
+	// Decode the browser target list returned by CDP.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		return nil, errors.Errorf("browser targets result has type %T", raw)
@@ -113,6 +122,7 @@ func startupTraceTargets(raw any) ([]startupTraceTarget, error) {
 		return nil, errors.Errorf("browser target infos has type %T", result["targetInfos"])
 	}
 
+	// Select worker targets with usable CDP target identities.
 	targets := make([]startupTraceTarget, 0, len(infos))
 	for _, rawInfo := range infos {
 		info, ok := rawInfo.(map[string]any)
@@ -138,6 +148,7 @@ func captureStartupTraceTarget(
 	cdp playwright.CDPSession,
 	target startupTraceTarget,
 ) (_ []byte, _ bool, retErr error) {
+	// Attach a CDP session to the worker target and detach it on return.
 	raw, err := cdp.Send("Target.attachToTarget", map[string]any{
 		"targetId": target.id,
 		"flatten":  false,
@@ -165,6 +176,7 @@ func captureStartupTraceTarget(
 		}
 	}()
 
+	// Release an incomplete startup trace when target capture ends.
 	traceStopped := true
 	traceCompleted := false
 	defer func() {
@@ -173,6 +185,7 @@ func captureStartupTraceTarget(
 		}
 	}()
 
+	// Stop the worker startup trace and require its encoded length.
 	encodedLength, err := evaluateStartupTraceTarget(ctx, cdp, sessionID, 1, `(async () => {
 		const stop = globalThis.BLDR_STOP_STARTUP_TRACE
 		if (typeof stop !== 'function') return 'missing'
@@ -190,6 +203,7 @@ func captureStartupTraceTarget(
 		return nil, false, errors.Errorf("startup trace encoded length %q is invalid", encodedLength)
 	}
 
+	// Read the encoded startup trace in bounded chunks.
 	var encoded strings.Builder
 	encoded.Grow(length)
 	requestID := 2
@@ -206,6 +220,8 @@ func captureStartupTraceTarget(
 		encoded.WriteString(chunk)
 		requestID++
 	}
+
+	// Decode the complete startup trace and require nonempty data.
 	traceCompleted = true
 	data, err := base64.StdEncoding.DecodeString(encoded.String())
 	if err != nil {
@@ -235,6 +251,7 @@ func evaluateStartupTraceTarget(
 	requestID int,
 	expression string,
 ) (string, error) {
+	// Subscribe to evaluation responses for this worker session and request.
 	responses := make(chan string, 1)
 	handler := func(params map[string]any) {
 		if got, _ := params["sessionId"].(string); got != sessionID {
@@ -248,6 +265,7 @@ func evaluateStartupTraceTarget(
 	cdp.On("Target.receivedMessageFromTarget", handler)
 	defer cdp.RemoveListener("Target.receivedMessageFromTarget", handler)
 
+	// Send the trace evaluation expression to the worker session.
 	message := startupTraceEvaluateMessage(requestID, expression)
 	if _, err := cdp.Send("Target.sendMessageToTarget", map[string]any{
 		"sessionId": sessionID,
@@ -256,6 +274,7 @@ func evaluateStartupTraceTarget(
 		return "", errors.Wrap(err, "send Runtime.evaluate to browser target")
 	}
 
+	// Wait for the worker evaluation response or caller cancellation.
 	select {
 	case response := <-responses:
 		return parseStartupTraceEvaluation(response)
@@ -265,10 +284,13 @@ func evaluateStartupTraceTarget(
 }
 
 func startupTraceEvaluateMessage(requestID int, expression string) string {
+	// Create the CDP Runtime.evaluate request envelope.
 	var arena fastjson.Arena
 	root := arena.NewObject()
 	root.Set("id", arena.NewNumberInt(requestID))
 	root.Set("method", arena.NewString("Runtime.evaluate"))
+
+	// Encode the expression and await its result by value.
 	params := arena.NewObject()
 	params.Set("expression", arena.NewString(expression))
 	params.Set("returnByValue", arena.NewTrue())
@@ -287,6 +309,7 @@ func startupTraceResponseID(message string) int {
 }
 
 func parseStartupTraceEvaluation(message string) (string, error) {
+	// Decode the worker evaluation response and surface protocol errors.
 	var parser fastjson.Parser
 	value, err := parser.Parse(message)
 	if err != nil {
@@ -298,6 +321,8 @@ func parseStartupTraceEvaluation(message string) (string, error) {
 	if exception := value.Get("result", "exceptionDetails"); exception != nil {
 		return "", errors.Errorf("Runtime.evaluate exception: %s", exception.String())
 	}
+
+	// Require a string result from the worker trace expression.
 	result := value.Get("result", "result")
 	if result == nil {
 		return "", errors.Errorf("Runtime.evaluate response has no result: %s", message)
