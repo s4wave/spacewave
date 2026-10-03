@@ -88,17 +88,20 @@ func (o *GitCreateWorktreeOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Require the new worktree and repository object identifiers.
 	objKey := o.GetObjectKey()
 	repoObjKey := o.GetRepoObjectKey()
 	if objKey == "" || repoObjKey == "" {
 		return false, world.ErrEmptyObjectKey
 	}
 
+	// Read the workdir and checkout configuration for the new worktree.
 	ts := o.GetTimestamp().AsTime()
 	workdirRef := o.GetWorkdirRef()
 	createWorkdir := o.GetCreateWorkdir()
 	disableCheckout := o.GetDisableCheckout()
 
+	// Build checkout options when the new worktree requires checkout.
 	var checkoutOpts *git.CheckoutOptions
 	if !disableCheckout {
 		checkoutOpts, err = o.GetCheckoutOpts().BuildCheckoutOpts()

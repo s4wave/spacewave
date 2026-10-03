@@ -73,6 +73,7 @@ func (o *GitInitOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Read the repository object identifier and initial root reference.
 	objKey := o.GetObjectKey()
 	repoRef := o.GetRepoRef()
 

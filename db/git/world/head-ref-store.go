@@ -14,11 +14,14 @@ func (h *HeadRefStore) IsNil() bool {
 
 // Validate validates the head ref store.
 func (h *HeadRefStore) Validate() error {
+	// Validate the stored HEAD reference when present.
 	if len(h.GetHeadRef().GetName()) != 0 {
 		if err := h.GetHeadRef().Validate(); err != nil {
 			return errors.Wrap(err, "head_ref")
 		}
 	}
+
+	// Validate submodule records and require their names in sorted order.
 	submodules := h.GetSubmodules()
 	var prevName string
 	for idx, subm := range submodules {
@@ -47,10 +50,12 @@ func (h *HeadRefStore) GetName() string {
 // ignores any non-HEAD reference
 // returns set, error. if !set, will use default store logic.
 func (h *HeadRefStore) SetReference(bcs *block.Cursor, ref *plumbing.Reference) (set bool, err error) {
+	// Use the HEAD store only for the HEAD reference.
 	if ref.Name() != plumbing.HEAD {
 		return false, nil
 	}
 
+	// Encode and persist the updated HEAD reference block.
 	nref, err := git_block.NewReference(ref)
 	if err != nil {
 		return false, err
@@ -74,6 +79,7 @@ func (h *HeadRefStore) GetReference(ref plumbing.ReferenceName) (*plumbing.Refer
 
 // GetSubmoduleStore returns the refs store for a submodule.
 func (h *HeadRefStore) GetSubmoduleStore(bcs *block.Cursor, name string) (*HeadRefStore, *block.Cursor, error) {
+	// Find or create the submodule's HEAD reference store.
 	subStoreBcs := bcs.FollowSubBlock(3)
 	hrsSet := NewHeadRefStoreSet(&h.Submodules, subStoreBcs)
 	var nsbHrs *HeadRefStore

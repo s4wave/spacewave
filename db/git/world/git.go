@@ -196,6 +196,7 @@ func AccessWorktreeWithCursor(
 	bcs *block.Cursor,
 	cb func(bcs *block.Cursor, wt *Worktree) error,
 ) error {
+	// Decode and validate the worktree block.
 	wt, err := UnmarshalWorktree(ctx, bcs)
 	if err != nil {
 		return err
@@ -203,6 +204,8 @@ func AccessWorktreeWithCursor(
 	if err := wt.Validate(); err != nil {
 		return err
 	}
+
+	// Run the callback against the validated worktree.
 	if cb != nil {
 		if err := cb(bcs, wt); err != nil {
 			return err
@@ -254,6 +257,7 @@ func AccessWorldObjectRepoWithWorktree(
 	sender peer.ID,
 	cb func(repo *git.Repository, workDir billy.Filesystem) error,
 ) error {
+	// Resolve the UnixFS workdir associated with the worktree.
 	workdirRef, err := WorktreeLookupWorkdirRef(ctx, ws, worktreeObjKey)
 	if err != nil {
 		return err
@@ -272,6 +276,7 @@ func AccessWorldObjectRepoWithWorktree(
 
 	// Access the worktree object and persist its updated block when writable.
 	_, _, err = AccessWorldObjectWorktree(ctx, ws, worktreeObjKey, updateWorld, wdBfs, func(bcs *block.Cursor, wt *Worktree) error {
+		// Mark the worktree block writable when world updates are requested.
 		if updateWorld {
 			bcs.SetBlock(wt, true)
 		}
@@ -362,12 +367,15 @@ func CreateWorldObjectWorktree(
 				hrs,
 				nil,
 				func(repo *git.Repository, _ billy.Filesystem) error {
+					// Check out the requested repository branch or commit.
 					if le != nil {
 						le.Infof("checkout: branch=%s hash=%s", checkoutOpts.Branch, checkoutOpts.Hash)
 					}
 					if err := checkoutRepoWorktree(repo, checkoutOpts); err != nil {
 						return errors.Wrapf(err, "checkout branch %s", checkoutOpts.Branch)
 					}
+
+					// Persist the checked-out repository index in the worktree.
 					idx, err := repo.Storer.Index()
 					if err != nil {
 						return err
@@ -468,6 +476,7 @@ func WorktreeLookupWorkdirRef(
 	}
 	gq := gqs[0]
 
+	// Decode the workdir object key from its graph edge.
 	workdirObjKey, err := world.GraphValueToKey(gq.GetObj())
 	if err != nil {
 		return nil, errors.Wrap(err, "workdir: graph quad object")

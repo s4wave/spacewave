@@ -60,6 +60,7 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Require the worktree and repository object identifiers for checkout.
 	objKey := o.GetObjectKey()
 	repoObjKey := o.GetRepoObjectKey()
 	if objKey == "" || repoObjKey == "" {
@@ -73,6 +74,7 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Open the referenced UnixFS workdir for checkout materialization.
 	workdirRef, err := WorktreeLookupWorkdirRef(ctx, worldHandle, objKey)
 	if err != nil {
 		return false, err
@@ -92,6 +94,7 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 	}
 	defer wdFsHandle.Release()
 
+	// Arrange cleanup of the materialized checkout directory.
 	var checkoutDir string
 	defer func() {
 		if checkoutDir != "" {
@@ -99,6 +102,7 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 		}
 	}()
 
+	// Check out the repository and persist the worktree index.
 	_, _, err = AccessWorldObjectWorktree(
 		ctx,
 		worldHandle,
@@ -106,11 +110,14 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 		true,
 		nil,
 		func(bcs *block.Cursor, worktree *Worktree) error {
+			// Open the worktree's HEAD reference store before materializing checkout.
 			bcs.SetBlock(worktree, true)
 			hrs, err := worktree.FollowHeadRefStore(bcs)
 			if err != nil {
 				return err
 			}
+
+			// Materialize the repository checkout and capture its index.
 			checkoutDir, err = materializeRepoToTempWorkdir(
 				ctx,
 				worldHandle,
@@ -120,9 +127,12 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 				hrs,
 				wdFsHandle,
 				func(repo *git.Repository, _ billy.Filesystem) error {
+					// Check out the requested repository branch or commit.
 					if err := checkoutRepoWorktree(repo, checkoutOpts); err != nil {
 						return err
 					}
+
+					// Persist the checked-out repository index in the worktree.
 					idx, err := repo.Storer.Index()
 					if err != nil {
 						return err
@@ -136,6 +146,8 @@ func (o *GitWorktreeCheckoutOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
+
+	// Synchronize the checked-out files into the UnixFS workdir.
 	if err := syncFSToUnixfsRefBatch(
 		ctx,
 		worldHandle,

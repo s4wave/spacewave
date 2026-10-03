@@ -52,11 +52,13 @@ func (o *GitUnstageOp) ApplyWorldOp(
 		ts, true,
 		sender,
 		func(repo *git.Repository, workDir billy.Filesystem) error {
+			// Open the repository worktree for resetting staged paths.
 			wt, err := repo.Worktree()
 			if err != nil {
 				return errors.Wrap(err, "worktree")
 			}
 
+			// Resolve the HEAD commit that supplies the unstaged contents.
 			headRef, err := repo.Head()
 			if err != nil {
 				return errors.Wrap(err, "head")

@@ -194,9 +194,11 @@ func commandClientContext(client resource_server.ResourceClientContext) context.
 }
 
 func TestCommandsManagerInvokeCommandUsesActiveRegistration(t *testing.T) {
+	// Create a command registry and capture its handler arguments.
 	mgr := NewCommandsManager()
 	var calledArgs map[string]string
 
+	// Register inactive and active handlers for the same client command.
 	client := addRegistration(t, mgr,
 		1,
 		"spacewave.session.settings",
@@ -225,6 +227,7 @@ func TestCommandsManagerInvokeCommandUsesActiveRegistration(t *testing.T) {
 		},
 	)
 
+	// Invoke the active command registration with the selected sub-item.
 	_, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.session.settings",
 		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
@@ -235,17 +238,22 @@ func TestCommandsManagerInvokeCommandUsesActiveRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InvokeCommand returned error: %v", err)
 	}
+
+	// Require the active handler to receive the selected sub-item.
 	if got := calledArgs["subItemId"]; got != "security" {
 		t.Fatalf("expected active handler args, got %q", got)
 	}
 }
 
 func TestCommandsManagerInvokeCommandRejectsMultipleActiveRegistrationsOnSameSurface(t *testing.T) {
+	// Create a command registry for conflicting active registrations.
 	mgr := NewCommandsManager()
 
+	// Register two active handlers for the same client and surface.
 	client := addRegistration(t, mgr, 1, "spacewave.session.settings", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
 	addRegistrationForClient(mgr, 2, "spacewave.session.settings", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, client, &fakeCommandHandlerClient{})
 
+	// Invoke the command and require a multiple-registration error.
 	_, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.session.settings",
 		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
@@ -256,9 +264,11 @@ func TestCommandsManagerInvokeCommandRejectsMultipleActiveRegistrationsOnSameSur
 }
 
 func TestCommandsManagerInvokeCommandScopesRegistrationsByClient(t *testing.T) {
+	// Create a command registry and capture the invoked client handler.
 	mgr := NewCommandsManager()
 	var called string
 
+	// Register separate handlers for clients A and B.
 	clientA := addRegistration(t, mgr,
 		1,
 		"spacewave.file.close-space",
@@ -284,6 +294,7 @@ func TestCommandsManagerInvokeCommandScopesRegistrationsByClient(t *testing.T) {
 			},
 		})
 
+	// Invoke the shared command identifier through client A.
 	req := &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.file.close-space",
 		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
@@ -291,23 +302,30 @@ func TestCommandsManagerInvokeCommandScopesRegistrationsByClient(t *testing.T) {
 	if _, err := mgr.InvokeCommand(commandClientContext(clientA), req); err != nil {
 		t.Fatalf("client A InvokeCommand returned error: %v", err)
 	}
+
+	// Require client A's handler to receive the command.
 	if called != "a" {
 		t.Fatalf("expected client A handler, got %q", called)
 	}
 
+	// Invoke the shared command identifier through client B.
 	called = ""
 	if _, err := mgr.InvokeCommand(commandClientContext(clientB), req); err != nil {
 		t.Fatalf("client B InvokeCommand returned error: %v", err)
 	}
+
+	// Require client B's handler to receive the command.
 	if called != "b" {
 		t.Fatalf("expected client B handler, got %q", called)
 	}
 }
 
 func TestCommandsManagerInvokeCommandSelectsRegistrationBySurface(t *testing.T) {
+	// Create a command registry and capture the invoked surface.
 	mgr := NewCommandsManager()
 	var invokedSurface s4wave_command.CommandSurface
 
+	// Register web and terminal handlers for the same client command.
 	client := addRegistration(t, mgr,
 		1,
 		"spacewave.object.open",
@@ -336,6 +354,7 @@ func TestCommandsManagerInvokeCommandSelectsRegistrationBySurface(t *testing.T) 
 		},
 	)
 
+	// Invoke the command on the web surface.
 	_, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.object.open",
 		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
@@ -343,10 +362,13 @@ func TestCommandsManagerInvokeCommandSelectsRegistrationBySurface(t *testing.T) 
 	if err != nil {
 		t.Fatalf("web InvokeCommand returned error: %v", err)
 	}
+
+	// Require the web handler to receive the command.
 	if invokedSurface != s4wave_command.CommandSurface_COMMAND_SURFACE_WEB {
 		t.Fatalf("expected web handler, got %v", invokedSurface)
 	}
 
+	// Invoke the command on the terminal surface.
 	invokedSurface = s4wave_command.CommandSurface_COMMAND_SURFACE_UNKNOWN
 	_, err = mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.object.open",
@@ -355,15 +377,19 @@ func TestCommandsManagerInvokeCommandSelectsRegistrationBySurface(t *testing.T) 
 	if err != nil {
 		t.Fatalf("terminal InvokeCommand returned error: %v", err)
 	}
+
+	// Require the terminal handler to receive the command.
 	if invokedSurface != s4wave_command.CommandSurface_COMMAND_SURFACE_TUI {
 		t.Fatalf("expected terminal handler, got %v", invokedSurface)
 	}
 }
 
 func TestCommandsManagerInvokeCommandSelectsWebSurface(t *testing.T) {
+	// Create a command registry and track web handler invocation.
 	mgr := NewCommandsManager()
 	var webInvoked bool
 
+	// Register web and terminal handlers for the same client command.
 	client := addRegistration(t, mgr,
 		1,
 		"spacewave.object.open",
@@ -392,6 +418,7 @@ func TestCommandsManagerInvokeCommandSelectsWebSurface(t *testing.T) {
 		},
 	)
 
+	// Invoke the command using its web registration.
 	_, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.object.open",
 		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
@@ -399,6 +426,8 @@ func TestCommandsManagerInvokeCommandSelectsWebSurface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InvokeCommand returned error: %v", err)
 	}
+
+	// Require the web handler to receive the command.
 	if !webInvoked {
 		t.Fatal("expected unspecified surface to invoke web handler")
 	}
@@ -417,12 +446,14 @@ func TestCommandsManagerRejectsUnknownSurface(t *testing.T) {
 }
 
 func TestCommandsManagerWatchCommandsFiltersSurface(t *testing.T) {
+	// Create command registrations across surfaces and client sessions.
 	mgr := NewCommandsManager()
 	client := addRegistration(t, mgr, 1, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
 	addRegistrationForClient(mgr, 2, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, true, true, client, &fakeCommandHandlerClient{})
 	addRegistration(t, mgr, 3, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, true, true, &fakeCommandHandlerClient{})
 	strm := newFakeWatchCommandsStream(client)
 
+	// Watch the calling client's terminal command registrations.
 	err := mgr.WatchCommands(
 		&s4wave_command_registry.WatchCommandsRequest{
 			Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
@@ -432,6 +463,8 @@ func TestCommandsManagerWatchCommandsFiltersSurface(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("WatchCommands returned error: %v", err)
 	}
+
+	// Require a snapshot containing only the calling client's terminal registration.
 	if strm.response == nil {
 		t.Fatal("WatchCommands returned no response")
 	}
@@ -448,6 +481,7 @@ func TestCommandsManagerWatchCommandsFiltersSurface(t *testing.T) {
 }
 
 func TestCommandsManagerGetSubItemsFiltersSurface(t *testing.T) {
+	// Create sub-item providers across surfaces and client sessions.
 	mgr := NewCommandsManager()
 	client := addRegistration(t, mgr,
 		1,
@@ -494,6 +528,7 @@ func TestCommandsManagerGetSubItemsFiltersSurface(t *testing.T) {
 			},
 		})
 
+	// Query sub-items for the calling client's terminal registration.
 	resp, err := mgr.GetSubItems(commandClientContext(client), &s4wave_command_registry.GetSubItemsRequest{
 		CommandId: "spacewave.object.open",
 		Query:     "terminal",
@@ -502,6 +537,8 @@ func TestCommandsManagerGetSubItemsFiltersSurface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSubItems returned error: %v", err)
 	}
+
+	// Require the terminal provider's sole sub-item.
 	items := resp.GetItems()
 	if len(items) != 1 || items[0].GetId() != "terminal-object" {
 		t.Fatalf("unexpected sub-items: %#v", items)
@@ -509,8 +546,10 @@ func TestCommandsManagerGetSubItemsFiltersSurface(t *testing.T) {
 }
 
 func TestCommandsManagerGetSubItemsUsesActiveRegistration(t *testing.T) {
+	// Create a command registry for active sub-item selection.
 	mgr := NewCommandsManager()
 
+	// Register inactive and active sub-item providers for the same client.
 	client := addRegistration(t, mgr,
 		1,
 		"spacewave.nav.go-to-space",
@@ -541,6 +580,7 @@ func TestCommandsManagerGetSubItemsUsesActiveRegistration(t *testing.T) {
 		},
 	)
 
+	// Query the active provider for matching command sub-items.
 	resp, err := mgr.GetSubItems(commandClientContext(client), &s4wave_command_registry.GetSubItemsRequest{
 		CommandId: "spacewave.nav.go-to-space",
 		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
@@ -549,36 +589,46 @@ func TestCommandsManagerGetSubItemsUsesActiveRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSubItems returned error: %v", err)
 	}
+
+	// Require the active provider's matching sub-item.
 	if len(resp.GetItems()) != 1 || resp.GetItems()[0].GetId() != "docs" {
 		t.Fatalf("unexpected sub-items: %#v", resp.GetItems())
 	}
 }
 
 func TestCommandsManagerSetActiveAndEnabledByResourceID(t *testing.T) {
+	// Create registrations belonging to two separate client sessions.
 	mgr := NewCommandsManager()
 	client := addRegistration(t, mgr, 7, "spacewave.session.settings", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, false, true, &fakeCommandHandlerClient{})
 	otherClient := addRegistration(t, mgr, 8, "spacewave.session.settings", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
 
+	// Activate the calling client's registration.
 	if _, err := mgr.SetActive(commandClientContext(client), &s4wave_command_registry.SetActiveRequest{
 		ResourceId: 7,
 		Active:     true,
 	}); err != nil {
 		t.Fatalf("SetActive returned error: %v", err)
 	}
+
+	// Require the client registration to remain active.
 	if !mgr.registrations[7].active {
 		t.Fatalf("expected registration to be active")
 	}
 
+	// Disable the calling client's registration.
 	if _, err := mgr.SetEnabled(commandClientContext(client), &s4wave_command_registry.SetEnabledRequest{
 		ResourceId: 7,
 		Enabled:    false,
 	}); err != nil {
 		t.Fatalf("SetEnabled returned error: %v", err)
 	}
+
+	// Require the client registration to remain disabled.
 	if mgr.registrations[7].enabled {
 		t.Fatalf("expected registration to be disabled")
 	}
 
+	// Attempt to deactivate the registration through another client.
 	_, err := mgr.SetActive(commandClientContext(otherClient), &s4wave_command_registry.SetActiveRequest{
 		ResourceId: 7,
 		Active:     false,
@@ -586,10 +636,13 @@ func TestCommandsManagerSetActiveAndEnabledByResourceID(t *testing.T) {
 	if !errors.Is(err, ErrRegistrationNotFound) {
 		t.Fatalf("expected ErrRegistrationNotFound from another client, got %v", err)
 	}
+
+	// Require the client registration to remain active.
 	if !mgr.registrations[7].active {
 		t.Fatal("expected registration to remain active")
 	}
 
+	// Attempt to enable the registration through another client.
 	_, err = mgr.SetEnabled(commandClientContext(otherClient), &s4wave_command_registry.SetEnabledRequest{
 		ResourceId: 7,
 		Enabled:    true,
@@ -597,24 +650,30 @@ func TestCommandsManagerSetActiveAndEnabledByResourceID(t *testing.T) {
 	if !errors.Is(err, ErrRegistrationNotFound) {
 		t.Fatalf("expected ErrRegistrationNotFound from another client, got %v", err)
 	}
+
+	// Require the client registration to remain disabled.
 	if mgr.registrations[7].enabled {
 		t.Fatal("expected registration to remain disabled")
 	}
 }
 
 func TestCommandsManagerSetActiveDeactivatesMatchingRegistrationsForClient(t *testing.T) {
+	// Create matching registrations across clients and command surfaces.
 	mgr := NewCommandsManager()
 	client := addRegistration(t, mgr, 7, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
 	addRegistrationForClient(mgr, 8, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, false, true, client, &fakeCommandHandlerClient{})
 	addRegistrationForClient(mgr, 9, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, true, true, client, &fakeCommandHandlerClient{})
 	addRegistration(t, mgr, 10, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
 
+	// Activate the second web registration for the calling client.
 	if _, err := mgr.SetActive(commandClientContext(client), &s4wave_command_registry.SetActiveRequest{
 		ResourceId: 8,
 		Active:     true,
 	}); err != nil {
 		t.Fatalf("SetActive returned error: %v", err)
 	}
+
+	// Require only the selected matching web registration to replace the prior one.
 	if mgr.registrations[7].active {
 		t.Fatal("expected prior web registration to be inactive")
 	}
@@ -628,6 +687,7 @@ func TestCommandsManagerSetActiveDeactivatesMatchingRegistrationsForClient(t *te
 		t.Fatal("expected other client registration to remain active")
 	}
 
+	// Invoke the command through the selected web registration.
 	if _, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.file.close-space",
 		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
@@ -637,15 +697,18 @@ func TestCommandsManagerSetActiveDeactivatesMatchingRegistrationsForClient(t *te
 }
 
 func TestCommandsManagerGetCommandStatesLocked(t *testing.T) {
+	// Create registrations with distinct command identifiers and states.
 	mgr := NewCommandsManager()
 	client := addRegistration(t, mgr, 9, "spacewave.zeta", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, false, &fakeCommandHandlerClient{})
 	addRegistrationForClient(mgr, 3, "spacewave.alpha", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, false, true, client, &fakeCommandHandlerClient{})
 
+	// Read the command-state snapshot under the registry lock.
 	var states []*s4wave_command_registry.CommandState
 	mgr.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		states = mgr.getCommandStatesLocked(s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, client)
 	})
 
+	// Require the command states in identifier order with their registered flags.
 	if len(states) != 2 {
 		t.Fatalf("expected 2 states, got %d", len(states))
 	}

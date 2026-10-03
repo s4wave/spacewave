@@ -11,6 +11,7 @@ import (
 
 // RunSpaceList executes the shared space list command against the configured client factory.
 func RunSpaceList(config Config, c *cli.Context, outputFormat string, sessionIdx uint32, watch bool) error {
+	// Connect to the daemon using the configured client factory.
 	config = config.defaults()
 	ctx := c.Context
 	if ctx == nil {
@@ -22,18 +23,21 @@ func RunSpaceList(config Config, c *cli.Context, outputFormat string, sessionIdx
 	}
 	defer client.Close()
 
+	// Mount the session whose spaces will be listed.
 	sess, err := client.MountSession(ctx, sessionIdx)
 	if err != nil {
 		return err
 	}
 	defer sess.Release()
 
+	// Open the session resource stream for space updates.
 	strm, err := sess.WatchResourcesList(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch resources list")
 	}
 	defer strm.Close()
 
+	// Read and display the initial space snapshot.
 	resp, err := strm.Recv()
 	if err != nil {
 		return errors.Wrap(err, "recv resources list")
@@ -45,6 +49,7 @@ func RunSpaceList(config Config, c *cli.Context, outputFormat string, sessionIdx
 		return nil
 	}
 
+	// Display subsequent space snapshots while watching.
 	for {
 		resp, err = strm.Recv()
 		if err != nil {
@@ -74,11 +79,14 @@ func writeSpacesList(config Config, outputFormat string, resp *s4wave_session.Wa
 }
 
 func printSpacesList(w interface{ Write([]byte) (int, error) }, resp *s4wave_session.WatchResourcesListResponse) {
+	// Read the current spaces and report an empty list when needed.
 	spaces := resp.GetSpacesList()
 	if len(spaces) == 0 {
 		w.Write([]byte("no spaces\n"))
 		return
 	}
+
+	// Build and write the space identifier and name table.
 	rows := [][]string{{"ID", "NAME"}}
 	for _, sp := range spaces {
 		rows = append(rows, []string{

@@ -28,12 +28,14 @@ func GitFetch(
 	authMethod client.SSHAuth,
 	progress sideband.Progress,
 ) error {
+	// Build the remote fetch options with authentication and progress reporting.
 	fetchArgs := fetchOpts.BuildFetchOpts()
 	if authMethod != nil {
 		fetchArgs.ClientOptions = append(fetchArgs.ClientOptions, client.WithSSHAuth(authMethod))
 	}
 	fetchArgs.Progress = progress
 
+	// Fetch remote objects into the World repository.
 	_, _, err := AccessWorldObjectRepo(
 		ctx,
 		ws,
@@ -84,6 +86,7 @@ func (o *GitFetchOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Select the World repository whose remote objects will be fetched.
 	objKey := o.GetObjectKey()
 
 	// Confirm that the target repository object exists before fetching.

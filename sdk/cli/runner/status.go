@@ -18,6 +18,7 @@ var defaultStatusMountSessionTimeout = 10 * time.Second
 
 // RunStatus executes the shared status command against the configured client factory.
 func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx uint32) error {
+	// Connect to the daemon using the configured client factory.
 	config = config.defaults()
 	ctx := c.Context
 	if ctx == nil {
@@ -29,11 +30,13 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 	}
 	defer client.Close()
 
+	// Resolve the daemon endpoint for the status report.
 	endpoint, err := config.ClientFactory.StatusEndpoint(ctx, c)
 	if err != nil {
 		return err
 	}
 
+	// Bound session mounting with the configured deadline.
 	mountTimeout, err := config.MountSessionTimeout()
 	if err != nil {
 		return err
@@ -41,6 +44,7 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 	mountCtx, mountCancel := context.WithTimeout(ctx, mountTimeout)
 	defer mountCancel()
 
+	// Mount the requested session or report its absence or mount failure.
 	sess, err := client.MountSession(mountCtx, sessionIdx)
 	if err != nil {
 		if stderrors.Is(mountCtx.Err(), context.DeadlineExceeded) {
@@ -51,18 +55,23 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 			return errors.New(errMsg)
 		}
 		if outputFormat == "json" || outputFormat == "yaml" {
+			// Begin the structured status object.
 			buf, ms := newMarshalBuf()
 			ms.WriteObjectStart()
 			var f bool
 			ms.WriteMoreIf(&f)
 			ms.WriteObjectField("status")
 			ms.WriteString("running")
+
+			// Write the daemon endpoint and selected session index.
 			ms.WriteMoreIf(&f)
 			ms.WriteObjectField("socket")
 			ms.WriteString(endpoint)
 			ms.WriteMoreIf(&f)
 			ms.WriteObjectField("sessionIndex")
 			ms.WriteUint32(sessionIdx)
+
+			// Write the session mount failure and finish the status report.
 			ms.WriteMoreIf(&f)
 			ms.WriteObjectField("error")
 			ms.WriteString("no session: " + err.Error())
@@ -79,22 +88,26 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 	}
 	defer sess.Release()
 
+	// Read the mounted session's identifying information.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
 	}
 
+	// Open the session resource stream for the status snapshot.
 	strm, err := sess.WatchResourcesList(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch resources list")
 	}
 	defer strm.Close()
 
+	// Receive the current list of session resources.
 	resp, err := strm.Recv()
 	if err != nil {
 		return errors.Wrap(err, "recv resources list")
 	}
 
+	// Collect the session identifiers and space count for display.
 	spaces := resp.GetSpacesList()
 	ref := info.GetSessionRef().GetProviderResourceRef()
 	sessID := ref.GetId()
@@ -102,42 +115,58 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 	provID := ref.GetProviderId()
 	acctID := ref.GetProviderAccountId()
 	spaceCount := strconv.Itoa(len(spaces))
+
+	// Read the session lock and recovery status for display.
 	lockStr := readLockState(ctx, sess, "")
 	recovery, recoveryErr := sess.WatchRecoveryStatus(ctx)
 
+	// Write the structured daemon and session status report.
 	if outputFormat == "json" || outputFormat == "yaml" {
+		// Begin the structured status object.
 		buf, ms := newMarshalBuf()
 		ms.WriteObjectStart()
 		var f bool
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("status")
 		ms.WriteString("running")
+
+		// Write the daemon endpoint and selected session index.
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("socket")
 		ms.WriteString(endpoint)
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("sessionIndex")
 		ms.WriteUint32(sessionIdx)
+
+		// Write the mounted session and peer identifiers.
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("sessionId")
 		ms.WriteString(sessID)
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("peerId")
 		ms.WriteString(peerID)
+
+		// Write the session provider and account identifiers.
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("providerId")
 		ms.WriteString(provID)
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("providerAccountId")
 		ms.WriteString(acctID)
+
+		// Include the session lock state when available.
 		if lockStr != "" {
 			ms.WriteMoreIf(&f)
 			ms.WriteObjectField("lock")
 			ms.WriteString(lockStr)
 		}
+
+		// Write the session space count.
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("spaceCount")
 		ms.WriteInt32(int32(len(spaces))) //nolint:gosec // the JSON writer's repeated-space count is bounded by the in-memory result.
+
+		// Write recovery details and finish the status report.
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("recovery")
 		writeRecoveryStatusJSON(ms, recovery, recoveryErr)
@@ -145,6 +174,7 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 		return formatOutput(config.Stdout, buf.Bytes(), outputFormat)
 	}
 
+	// Write the text daemon and session status report.
 	fields := [][2]string{
 		{"Status", "running"},
 		{"Socket", endpoint},
@@ -164,6 +194,7 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 }
 
 func readLockState(ctx context.Context, sess Session, fallback string) string {
+	// Open the session lock stream while retaining the fallback state.
 	lockStr := fallback
 	lockStrm, err := sess.WatchLockState(ctx)
 	if err != nil {
@@ -171,6 +202,7 @@ func readLockState(ctx context.Context, sess Session, fallback string) string {
 	}
 	defer lockStrm.Close()
 
+	// Read the session lock mode and format its current state.
 	lockResp, err := lockStrm.Recv()
 	if err != nil {
 		return lockStr
@@ -230,6 +262,7 @@ func appendRecoveryStatusFields(
 	recovery *s4wave_status.RecoveryStatus,
 	recoveryErr error,
 ) {
+	// Append the available recovery summaries to the text status fields.
 	if recoveryErr != nil {
 		*fields = append(*fields, [2]string{"Recovery", "unavailable (" + recoveryErr.Error() + ")"})
 		return

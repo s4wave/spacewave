@@ -18,12 +18,17 @@ import (
 )
 
 func TestWhoamiCommandUsesInjectedFactory(t *testing.T) {
+	// Create an injected client factory and capture whoami output.
 	var out bytes.Buffer
 	factory := &fakeFactory{client: &fakeClient{session: fakeSessionWithSpace("space-123456789", "Alpha")}}
 	cmd := NewWhoamiCommand(Config{ClientFactory: factory, Stdout: &out})
+
+	// Run the whoami command through the injected factory.
 	if err := cmd.Action(testContext(t)); err != nil {
 		t.Fatalf("run whoami: %v", err)
 	}
+
+	// Require one factory call and the expected session identity output.
 	if factory.newCalls != 1 {
 		t.Fatalf("factory calls = %d", factory.newCalls)
 	}
@@ -33,11 +38,16 @@ func TestWhoamiCommandUsesInjectedFactory(t *testing.T) {
 }
 
 func TestWhoamiCommandWritesJSONOutput(t *testing.T) {
+	// Create an injected client factory and capture structured whoami output.
 	var out bytes.Buffer
 	factory := &fakeFactory{client: &fakeClient{session: fakeSessionWithSpace("space-123456789", "Alpha")}}
+
+	// Run whoami with JSON output.
 	if err := RunWhoami(Config{ClientFactory: factory, Stdout: &out}, testContext(t), "json", 1); err != nil {
 		t.Fatalf("run whoami json: %v", err)
 	}
+
+	// Require the session, peer, provider, account, and lock JSON fields.
 	assertContains(t, out.String(), `"sessionId":"session-1"`)
 	assertContains(t, out.String(), `"peerId":"peer-1"`)
 	assertContains(t, out.String(), `"providerId":"local"`)
@@ -46,12 +56,17 @@ func TestWhoamiCommandWritesJSONOutput(t *testing.T) {
 }
 
 func TestSpaceListCommandUsesInjectedFactory(t *testing.T) {
+	// Create an injected client factory and capture space-list output.
 	var out bytes.Buffer
 	factory := &fakeFactory{client: &fakeClient{session: fakeSessionWithSpace("space-123456789", "Alpha")}}
 	cmd := NewSpaceListCommand(Config{ClientFactory: factory, Stdout: &out}, new(uint))
+
+	// Run the space-list command through the injected factory.
 	if err := cmd.Action(testContext(t)); err != nil {
 		t.Fatalf("run space list: %v", err)
 	}
+
+	// Require one factory call and the expected space identifier and name.
 	if factory.newCalls != 1 {
 		t.Fatalf("factory calls = %d", factory.newCalls)
 	}
@@ -60,17 +75,23 @@ func TestSpaceListCommandUsesInjectedFactory(t *testing.T) {
 }
 
 func TestSpaceListCommandWritesYAMLOutput(t *testing.T) {
+	// Create an injected client factory and capture structured space-list output.
 	var out bytes.Buffer
 	factory := &fakeFactory{client: &fakeClient{session: fakeSessionWithSpace("space-123456789", "Alpha")}}
+
+	// Run the space-list command with YAML output.
 	if err := RunSpaceList(Config{ClientFactory: factory, Stdout: &out}, testContext(t), "yaml", 1, false); err != nil {
 		t.Fatalf("run space list yaml: %v", err)
 	}
+
+	// Require the space identifier and name in the YAML output.
 	assertContains(t, out.String(), "spacesList:")
 	assertContains(t, out.String(), "id: space-123456789")
 	assertContains(t, out.String(), "name: Alpha")
 }
 
 func TestRunStatusReportsMountTimeoutStage(t *testing.T) {
+	// Create a client whose session mount outlasts the configured deadline.
 	var out bytes.Buffer
 	factory := &fakeFactory{client: &fakeClient{blockMount: true}}
 	config := Config{
@@ -80,10 +101,14 @@ func TestRunStatusReportsMountTimeoutStage(t *testing.T) {
 			return time.Millisecond, nil
 		},
 	}
+
+	// Run status with the bounded session mount.
 	err := RunStatus(config, testContext(t), "text", 1)
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
+
+	// Require one connection and endpoint lookup with the reported mount timeout stage.
 	if factory.newCalls != 1 {
 		t.Fatalf("factory calls = %d", factory.newCalls)
 	}
@@ -96,6 +121,7 @@ func TestRunStatusReportsMountTimeoutStage(t *testing.T) {
 }
 
 func testContext(t *testing.T) *cli.Context {
+	// Create a CLI context whose flags discard diagnostic output.
 	t.Helper()
 	set := flag.NewFlagSet("test", flag.ContinueOnError)
 	set.SetOutput(io.Discard)

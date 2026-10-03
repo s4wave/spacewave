@@ -40,6 +40,7 @@ func (o *GitStageOp) ApplyWorldOp(
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Read the worktree identifiers and paths for the staging operation.
 	objKey := o.GetObjectKey()
 	repoObjKey := o.GetRepoObjectKey()
 	ts := o.GetTimestamp().AsTime()

@@ -23,6 +23,7 @@ type Config struct {
 }
 
 func (c Config) defaults() Config {
+	// Supply default CLI flags, output, clock, and mount deadline.
 	if c.ClientFlags == nil {
 		c.ClientFlags = DefaultClientFlags
 	}
