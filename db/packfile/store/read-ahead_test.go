@@ -81,12 +81,15 @@ func TestMaterializerReadAheadSharesForegroundCache(t *testing.T) {
 // TestReadAheadRespectsUncoveredGapsAndTransportCap verifies a bulk hint never
 // refetches resident bytes or exceeds a constrained transport's payload cap.
 func TestReadAheadRespectsUncoveredGapsAndTransportCap(t *testing.T) {
+	// Configure a bulk reader whose transport caps payload fetches.
 	transport := &bytesTransport{data: make([]byte, 16<<20)}
 	reader := NewPackReader("bounded-bulk", int64(len(transport.data)), transport)
 	t.Cleanup(reader.Close)
 	reader.setTransportFetchMaxBytes(2 << 20)
 	ctx := block.WithReadAhead(t.Context(), 10<<20)
 	buf := make([]byte, 1)
+
+	// Verify the bulk request respects the transport payload cap.
 	if _, err := reader.ReaderAt(ctx).ReadAt(buf, 0); err != nil {
 		t.Fatal(err)
 	}
@@ -110,6 +113,7 @@ func TestReadAheadRespectsUncoveredGapsAndTransportCap(t *testing.T) {
 // TestReadAheadDoesNotOverlapInflightNeighbor verifies different starting
 // offsets cannot cause overlapping bulk and foreground network requests.
 func TestReadAheadDoesNotOverlapInflightNeighbor(t *testing.T) {
+	// Gate transport requests to observe disjoint read-ahead ranges.
 	started := make(chan fetchCall, 2)
 	release := make(chan struct{})
 	reader := NewPackReader("shared-inflight", 16<<20, TransportFunc(func(ctx context.Context, off int64, length int) ([]byte, error) {
@@ -151,11 +155,14 @@ func TestReadAheadDoesNotOverlapInflightNeighbor(t *testing.T) {
 
 // TestReadAheadRespectsResidentBudget bounds speculative bulk windows.
 func TestReadAheadRespectsResidentBudget(t *testing.T) {
+	// Configure a bulk reader sharing a constrained resident budget.
 	transport := &bytesTransport{data: make([]byte, 16<<20)}
 	reader := NewPackReader("budgeted-bulk", int64(len(transport.data)), transport)
 	t.Cleanup(reader.Close)
 	reader.budget.limit.Store(2 << 20)
 	ctx := block.WithReadAhead(t.Context(), 10<<20)
+
+	// Verify the bulk hint is bounded by the resident budget.
 	if _, err := reader.ReaderAt(ctx).ReadAt(make([]byte, 1), 0); err != nil {
 		t.Fatal(err)
 	}
@@ -168,6 +175,7 @@ func TestReadAheadRespectsResidentBudget(t *testing.T) {
 // reader policy while changing only physical order. The workload reads one
 // eight-block file among 64 independent files, each containing 32 KiB chunks.
 func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
+	// Build independent file chunks and their block references.
 	graph := packfile_order.NewGraph()
 	items := make(map[string]packItem)
 	refs := make([]*block.BlockRef, 64*8)
@@ -181,6 +189,8 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 		refs[i] = block.NewBlockRef(h)
 		items[h.MarshalString()] = packItem{h: h, data: data}
 	}
+
+	// Record each file root and its related chunks in the ordering graph.
 	for i, ref := range refs {
 		var children []*block.BlockRef
 		if i%8 == 0 {
@@ -191,12 +201,15 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 
 	// Preserve exact content and count only payload fetches, after index load.
 	measure := func(ordered []*block.BlockRef) (int, int64) {
+		// Build the requested physical pack order from the same block content.
 		t.Helper()
 		orderedItems := make([]packItem, 0, len(ordered))
 		for _, ref := range ordered {
 			orderedItems = append(orderedItems, items[ref.GetHash().MarshalString()])
 		}
 		data, bloom := packItems(t, orderedItems)
+
+		// Open the measured pack with a fixed payload transport window.
 		transport := &bytesTransport{data: data}
 		store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
 			reader := NewPackReader(id, size, transport)
@@ -211,12 +224,16 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 			t.Fatalf("load index: exists=%v err=%v", exists, err)
 		}
 		before := transport.callCount()
+
+		// Read the related file chunks and verify their content.
 		for _, ref := range refs[:8] {
 			got, found, err := store.GetBlock(t.Context(), ref)
 			if err != nil || !found || !bytes.Equal(got, items[ref.GetHash().MarshalString()].data) {
 				t.Fatalf("content changed: found=%v err=%v", found, err)
 			}
 		}
+
+		// Count payload bytes fetched after index discovery.
 		var fetched int64
 		for i := before; i < transport.callCount(); i++ {
 			fetched += int64(transport.callAt(i).length)
@@ -224,6 +241,7 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 		return transport.callCount() - before, fetched
 	}
 
+	// Compute hash and structural orderings for the same blocks.
 	hashOrder, err := packfile_order.BlockRefs(t.Context(), nil, refs)
 	if err != nil {
 		t.Fatal(err)
@@ -232,6 +250,8 @@ func TestPackLocalityReducesRelatedRangeReads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify structural ordering reduces payload requests and fetched bytes.
 	hashCalls, hashBytes := measure(hashOrder)
 	structuralCalls, structuralBytes := measure(structuralOrder)
 	t.Logf("hash order: %d requests, %d bytes; structural order: %d requests, %d bytes; useful content: %d bytes", hashCalls, hashBytes, structuralCalls, structuralBytes, 8*(32<<10))

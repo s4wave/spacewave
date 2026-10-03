@@ -24,6 +24,7 @@ import (
 
 // TestHTTPRangeReaderDefaults verifies default and explicit transport sizing.
 func TestHTTPRangeReaderDefaults(t *testing.T) {
+	// Verify the HTTP reader defaults for its budget and transport windows.
 	rd := NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 0, nil, nil)
 	if limit := rd.budget.limit.Load(); limit != defaultResidentBudget {
 		t.Fatalf("budget limit = %d, want %d", limit, defaultResidentBudget)
@@ -41,6 +42,7 @@ func TestHTTPRangeReaderDefaults(t *testing.T) {
 		t.Fatalf("transportQuantum = %d, want %d", rd.transportQuantum, defaultTransportMinWindow)
 	}
 
+	// Verify an explicit HTTP window controls minimum, quantum, and current sizes.
 	rd = NewHTTPRangeReader(nil, "https://example.com/pack", 1024, 16, nil, nil)
 	if rd.minWindow != 16 {
 		t.Fatalf("minWindow = %d, want 16", rd.minWindow)
@@ -55,6 +57,7 @@ func TestHTTPRangeReaderDefaults(t *testing.T) {
 
 // TestPackReaderPlanFetchLeftShiftsWithinGap preserves coverage near a gap end.
 func TestPackReaderPlanFetchLeftShiftsWithinGap(t *testing.T) {
+	// Configure a reader with a resident span beyond the requested gap.
 	eng := NewPackReader("shift-pack", 8<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
 	}))
@@ -65,6 +68,7 @@ func TestPackReaderPlanFetchLeftShiftsWithinGap(t *testing.T) {
 	eng.sparseReads = false
 	eng.spans = []*span{{off: 3 << 20, size: 1 << 20}}
 
+	// Verify the fetch plan shifts left to cover the gap end.
 	key := eng.planFetchLocked(5<<19, (5<<19)+1, 0)
 	if key.off != 1<<20 || key.size != 2<<20 {
 		t.Fatalf("planFetchLocked() = [%d,%d), want [%d,%d)", key.off, key.end(), int64(1<<20), int64(3<<20))
@@ -73,6 +77,7 @@ func TestPackReaderPlanFetchLeftShiftsWithinGap(t *testing.T) {
 
 // TestPackReaderSparsePlanCapsColdBackshift bounds speculative sparse reads.
 func TestPackReaderSparsePlanCapsColdBackshift(t *testing.T) {
+	// Configure sparse fetch sizing and a distant resident span.
 	eng := NewPackReader("sparse-shift-pack", 10<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
 	}))
@@ -81,10 +86,13 @@ func TestPackReaderSparsePlanCapsColdBackshift(t *testing.T) {
 	eng.maxWindow = 8 << 20
 	eng.currentWindow = 8 << 20
 	eng.sparseReads = true
+
+	// Bound sparse cold windows and their locality distance.
 	eng.sparseColdWindow = 256 << 10
 	eng.sparseLocalityDistance = 512 << 10
 	eng.spans = []*span{{off: 8 << 20, size: 256 << 10}}
 
+	// Verify the cold sparse plan avoids speculative backshift.
 	key := eng.planFetchLocked(5<<20, (5<<20)+1, 0)
 	if key.off != 5<<20 || key.size != 256<<10 {
 		t.Fatalf("sparse planFetchLocked() = [%d,%d), want [%d,%d)", key.off, key.end(), int64(5<<20), int64((5<<20)+(256<<10)))
@@ -93,6 +101,7 @@ func TestPackReaderSparsePlanCapsColdBackshift(t *testing.T) {
 
 // TestPackReaderSparsePlanPromotesNearbyReads verifies locality grows read-ahead.
 func TestPackReaderSparsePlanPromotesNearbyReads(t *testing.T) {
+	// Configure a sparse reader with room to grow nearby fetches.
 	eng := NewPackReader("sparse-local-pack", 10<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
 	}))
@@ -101,13 +110,18 @@ func TestPackReaderSparsePlanPromotesNearbyReads(t *testing.T) {
 	eng.maxWindow = 2 << 20
 	eng.currentWindow = 2 << 20
 	eng.sparseReads = true
+
+	// Bound the cold sparse window and its promotion distance.
 	eng.sparseColdWindow = 256 << 10
 	eng.sparseLocalityDistance = 512 << 10
 
+	// Verify the first sparse read uses the cold window.
 	first := eng.planFetchLocked(1<<20, (1<<20)+1, 0)
 	if first.size != 256<<10 {
 		t.Fatalf("first sparse fetch size = %d, want %d", first.size, 256<<10)
 	}
+
+	// Verify a nearby sparse read promotes its fetch window.
 	second := eng.planFetchLocked((1<<20)+(128<<10), (1<<20)+(128<<10)+1, 0)
 	if second.size <= first.size {
 		t.Fatalf("nearby sparse fetch size = %d, want promotion above %d", second.size, first.size)
@@ -116,6 +130,7 @@ func TestPackReaderSparsePlanPromotesNearbyReads(t *testing.T) {
 
 // TestPackReaderPlanFetchShrinksWhenCoveredOnBothSides prevents resident overlap.
 func TestPackReaderPlanFetchShrinksWhenCoveredOnBothSides(t *testing.T) {
+	// Configure a reader with resident spans on both sides of a gap.
 	eng := NewPackReader("shrink-pack", 8<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
 	}))
@@ -128,6 +143,7 @@ func TestPackReaderPlanFetchShrinksWhenCoveredOnBothSides(t *testing.T) {
 		{off: 2 << 20, size: 1 << 20},
 	}
 
+	// Verify the fetch plan covers only the uncovered gap.
 	key := eng.planFetchLocked(3<<19, (3<<19)+1, 0)
 	if key.off != 1<<20 || key.size != 1<<20 {
 		t.Fatalf("planFetchLocked() = [%d,%d), want [%d,%d)", key.off, key.end(), int64(1<<20), int64(2<<20))
@@ -136,10 +152,12 @@ func TestPackReaderPlanFetchShrinksWhenCoveredOnBothSides(t *testing.T) {
 
 // TestPackReaderSnapshotStats verifies public cache and I/O accounting.
 func TestPackReaderSnapshotStats(t *testing.T) {
+	// Create a reader whose state supplies the statistics snapshot.
 	eng := NewPackReader("stats-pack", 1024, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
 	}))
 	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Seed resident spans and transport sizing under the reader lock.
 		eng.currentWindow = 256
 		eng.loading = map[fetchKey]*fetchLoad{
 			{off: 0, size: 8}: {done: make(chan struct{})},
@@ -150,6 +168,8 @@ func TestPackReaderSnapshotStats(t *testing.T) {
 		}
 		eng.residentBytes = 16
 		eng.published = map[string]struct{}{"a": {}, "b": {}}
+
+		// Seed publication, verification, and transport counters.
 		eng.writebackRunning = 1
 		eng.verifyFailures = 1
 		eng.writebackCount = 4
@@ -158,6 +178,7 @@ func TestPackReaderSnapshotStats(t *testing.T) {
 		eng.recordFetchLocked(fetchKey{off: 0, size: 64}, 48)
 	})
 
+	// Verify the snapshot reports resident, transport, and writeback accounting.
 	stats := eng.SnapshotStats()
 	if stats.ResidentBytes != 16 || stats.SpanCount != 2 {
 		t.Fatalf("unexpected resident stats: %+v", stats)
@@ -178,12 +199,14 @@ func TestPackReaderSnapshotStats(t *testing.T) {
 
 // TestPackReaderTransportFetchMaxBytesClampsTuning preserves platform fetch caps.
 func TestPackReaderTransportFetchMaxBytesClampsTuning(t *testing.T) {
+	// Configure transport windows larger than the reader fetch cap.
 	eng := NewPackReader("cap-pack", 16<<20, TransportFunc(func(context.Context, int64, int) ([]byte, error) {
 		return nil, nil
 	}))
 	eng.setTransportFetchMaxBytes(2 << 20)
 	eng.setTransportWindows(4<<20, 4<<20, 8<<20)
 
+	// Verify transport tuning and planned fetches honor the cap.
 	if eng.minWindow != 2<<20 {
 		t.Fatalf("min window = %d, want %d", eng.minWindow, 2<<20)
 	}
@@ -201,12 +224,15 @@ func TestPackReaderTransportFetchMaxBytesClampsTuning(t *testing.T) {
 
 // TestHTTPRangeReaderDedupesConcurrentFetch verifies readers share one HTTP request.
 func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
+	// Gate HTTP responses while counting concurrent range requests.
 	data := []byte("abcdefghijklmnopqrstuvwxyz")
 	var reqCount atomic.Int32
 	started := make(chan struct{}, 1)
 	release := make(chan struct{})
 
+	// Start an HTTP server serving the shared range response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Count the range request and wait for the response gate.
 		reqCount.Add(1)
 		select {
 		case started <- struct{}{}:
@@ -214,6 +240,7 @@ func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 		}
 		<-release
 
+		// Verify the requested range and return its partial response.
 		rng := r.Header.Get("Range")
 		if rng != "bytes=0-7" {
 			t.Errorf("unexpected range header %q", rng)
@@ -224,14 +251,19 @@ func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Create the HTTP reader shared by concurrent callers.
 	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 8, nil, nil)
 
+	// Start two readers requesting the same initial bytes.
 	var wg sync.WaitGroup
 	results := make([][]byte, 2)
 	errs := make([]error, 2)
 	for i := range 2 {
 		wg.Add(1)
+
+		// Read the shared range and record the result for this caller.
 		go func(i int) {
+			// Read the shared HTTP bytes and record this caller's result.
 			defer wg.Done()
 			buf := make([]byte, 4)
 			_, err := rd.ReaderAt(context.Background()).ReadAt(buf, 0)
@@ -240,15 +272,18 @@ func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 		}(i)
 	}
 
+	// Verify concurrent reads share one in-flight HTTP request.
 	<-started
 	time.Sleep(50 * time.Millisecond)
 	if got := reqCount.Load(); got != 1 {
 		t.Fatalf("expected one in-flight range request, got %d", got)
 	}
 
+	// Release the HTTP response and await both readers.
 	close(release)
 	wg.Wait()
 
+	// Verify both HTTP readers receive the expected bytes.
 	for i, err := range errs {
 		if err != nil && err != io.EOF {
 			t.Fatalf("read %d returned error: %v", i, err)
@@ -277,14 +312,18 @@ func (c *observedDoneContext) Done() <-chan struct{} {
 
 // TestPackReaderCanceledLeaderDoesNotPoisonWaiter verifies shared transport survives caller cancellation.
 func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
+	// Create a transport held until cancellation or the response gate.
 	data := []byte("abcdefgh")
 	started := make(chan struct{})
 	release := make(chan struct{})
 	var calls atomic.Int32
 	eng := NewPackReader("cancel-leader", int64(len(data)), TransportFunc(func(ctx context.Context, off int64, length int) ([]byte, error) {
+		// Notify the test when the shared transport first starts.
 		if calls.Add(1) == 1 {
 			close(started)
 		}
+
+		// Wait for reader shutdown or the shared transport response.
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -295,6 +334,7 @@ func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
 	t.Cleanup(eng.Close)
 	eng.setTransportWindows(len(data), len(data), len(data))
 
+	// Start the leading reader with an independently cancellable context.
 	leaderCtx, cancelLeader := context.WithCancel(t.Context())
 	leaderDone := make(chan error, 1)
 	go func() {
@@ -304,6 +344,7 @@ func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
 	}()
 	<-started
 
+	// Start another reader and await its cancellation observation.
 	waitCtx := &observedDoneContext{Context: t.Context(), done: make(chan struct{})}
 	waiterDone := make(chan error, 1)
 	var waiterData []byte
@@ -314,6 +355,7 @@ func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
 	}()
 	<-waitCtx.done
 
+	// Verify canceling the leader leaves the shared waiter and transport live.
 	cancelLeader()
 	if err := <-leaderDone; !errors.Is(err, context.Canceled) {
 		t.Fatalf("leader error = %v, want context canceled", err)
@@ -327,6 +369,7 @@ func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
 		t.Fatalf("transport calls after leader cancellation = %d, want one", got)
 	}
 
+	// Release the transport and verify the waiter receives the shared bytes.
 	close(release)
 	if err := <-waiterDone; err != nil {
 		t.Fatalf("waiter error = %v", err)
@@ -344,8 +387,11 @@ func TestPackReaderCloseCancelsTransport(t *testing.T) {
 	// Hold the transport until the reader closes.
 	started := make(chan struct{})
 	transportDone := make(chan struct{})
+
+	// Record transport startup and wait until reader shutdown.
 	var calls atomic.Int32
 	eng := NewPackReader("close", 8, TransportFunc(func(ctx context.Context, _ int64, _ int) ([]byte, error) {
+		// Notify transport startup and completion around reader cancellation.
 		calls.Add(1)
 		close(started)
 		<-ctx.Done()
@@ -363,6 +409,8 @@ func TestPackReaderCloseCancelsTransport(t *testing.T) {
 	<-started
 	eng.Close()
 	<-transportDone
+
+	// Verify reader shutdown cancels one transport request and releases the read.
 	if err := <-readDone; !errors.Is(err, ErrPackReaderClosed) {
 		t.Fatalf("read error = %v, want ErrPackReaderClosed", err)
 	}
@@ -373,14 +421,18 @@ func TestPackReaderCloseCancelsTransport(t *testing.T) {
 
 // TestHTTPRangeReaderRetainsMultipleRanges verifies nonadjacent cache reuse.
 func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
+	// Serve distinct HTTP ranges while counting requests.
 	data := bytes.Repeat([]byte("0123456789abcdef"), 8192)
 	var reqs int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Parse the requested range and reject invalid fixture requests.
 		reqs++
 		start, end, ok := parseHTTPTestRangeHeader(r.Header.Get("Range"), int64(len(data)))
 		if !ok {
 			t.Fatalf("missing or invalid Range header: %q", r.Header.Get("Range"))
 		}
+
+		// Return the requested partial HTTP response.
 		w.Header().Set("Content-Length", strconv.FormatInt(end-start, 10))
 		w.WriteHeader(http.StatusPartialContent)
 		if _, err := w.Write(data[start:end]); err != nil {
@@ -389,6 +441,7 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Open a range reader with a small transport window.
 	rd := NewHTTPRangeReader(
 		srv.Client(),
 		srv.URL,
@@ -399,6 +452,7 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 	)
 	reader := rd.ReaderAt(context.Background())
 
+	// Read two distinct ranges and then revisit the first cached range.
 	buf := make([]byte, 4)
 	for _, off := range []int64{0, 70000, 0} {
 		n, err := reader.ReadAt(buf, off)
@@ -409,6 +463,8 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 			t.Fatalf("expected 4 bytes from offset %d, got %d", off, n)
 		}
 	}
+
+	// Verify revisiting the cached range avoids another HTTP request.
 	if reqs != 2 {
 		t.Fatalf("expected 2 HTTP requests for two distinct cached ranges, got %d", reqs)
 	}
@@ -417,14 +473,18 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 // TestHTTPRangeReaderRetriesTransientFailure retries one 5xx response and
 // never retries a client error.
 func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
+	// Start a server that fails its first request with a configurable status.
 	data := []byte("abcdefghijklmnopqrstuvwxyz")
 	var reqs atomic.Int32
 	var status atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Inject the configured failure on the first HTTP request.
 		if reqs.Add(1) == 1 {
 			w.WriteHeader(int(status.Load()))
 			return
 		}
+
+		// Parse the retried range and return its partial response.
 		start, end, ok := parseHTTPTestRangeHeader(r.Header.Get("Range"), int64(len(data)))
 		if !ok {
 			t.Errorf("missing or invalid Range header: %q", r.Header.Get("Range"))
@@ -436,6 +496,7 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Verify an unavailable HTTP response retries once and returns the payload.
 	status.Store(http.StatusServiceUnavailable)
 	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
 	buf := make([]byte, 4)
@@ -450,6 +511,7 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 		t.Fatalf("requests = %d, want 2", got)
 	}
 
+	// Verify a missing HTTP response returns an error without retrying.
 	reqs.Store(0)
 	status.Store(http.StatusNotFound)
 	rd = NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
@@ -464,6 +526,7 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 // TestResidentBudgetEvictsAcrossReaders evicts the globally oldest span when
 // readers share one budget.
 func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
+	// Share one resident budget across two byte-backed readers.
 	ctx := context.Background()
 	transport := TransportFunc(func(_ context.Context, _ int64, size int) ([]byte, error) {
 		return make([]byte, size), nil
@@ -474,6 +537,7 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 	a.setBudget(budget)
 	b.setBudget(budget)
 
+	// Populate both readers with enough spans to trigger global eviction.
 	for _, r := range [][2]int64{{0, 100}, {500, 600}} {
 		if _, err := a.fetchSpans(ctx, r[0], r[1], true); err != nil {
 			t.Fatalf("a.fetchSpans(%d, %d): %v", r[0], r[1], err)
@@ -483,6 +547,7 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 		t.Fatalf("b.fetchSpans: %v", err)
 	}
 
+	// Verify global eviction removes the oldest span from the first reader.
 	if used := budget.used.Load(); used != 300 {
 		t.Fatalf("budget used = %d, want 300", used)
 	}
@@ -500,6 +565,7 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 
 // TestHTTPRangeReaderFullResponseFallbackStats accounts for servers that ignore Range.
 func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
+	// Serve whole-pack responses for requests containing a Range header.
 	data := []byte("abcdefghijklmnopqrstuvwxyz")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
@@ -508,6 +574,7 @@ func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Read the first range from a server ignoring Range.
 	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
 	buf := make([]byte, 4)
 	reader := rd.ReaderAt(context.Background())
@@ -518,6 +585,8 @@ func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 	if n != 4 || !bytes.Equal(buf, data[:4]) {
 		t.Fatalf("first ReadAt returned n=%d data=%q, want %q", n, string(buf), string(data[:4]))
 	}
+
+	// Read another range and verify its payload after the whole response.
 	n, err = reader.ReadAt(buf, 8)
 	if err != nil && err != io.EOF {
 		t.Fatalf("second ReadAt returned error: %v", err)
@@ -526,6 +595,7 @@ func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 		t.Fatalf("second ReadAt returned n=%d data=%q, want %q", n, string(buf), string(data[8:12]))
 	}
 
+	// Verify statistics distinguish full-response fallback from range traffic.
 	stats := rd.SnapshotStats()
 	if stats.RangeRequestCount != 2 || stats.RangeResponseBytes != int64(len(data)) {
 		t.Fatalf("unexpected range response stats: %+v", stats)
@@ -540,9 +610,11 @@ func TestHTTPRangeReaderFullResponseFallbackStats(t *testing.T) {
 
 // TestPackReaderRetriesIndexLoadAfterFailure verifies trailer errors do not poison the index.
 func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
+	// Build the pack used for recovery after a failed index load.
 	ctx := t.Context()
 	packBytes, _ := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 
+	// Create a transport that fails only its first trailer request.
 	type flakyTransport struct {
 		data  []byte
 		calls int
@@ -550,11 +622,14 @@ func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
 	var ft flakyTransport
 	ft.data = packBytes
 	fetch := func(ctx context.Context, off int64, length int) ([]byte, error) {
+		// Count transport calls and fail the first trailer fetch.
 		_ = ctx
 		ft.calls++
 		if ft.calls == 1 {
 			return nil, errors.New("temporary trailer failure")
 		}
+
+		// Bound later transport reads to the available pack bytes.
 		if off >= int64(len(ft.data)) {
 			return nil, io.EOF
 		}
@@ -562,12 +637,14 @@ func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
 		return bytes.Clone(ft.data[off:end]), nil
 	}
 
+	// Configure a reader with small index-fetch windows.
 	eng := NewPackReader("retry-pack", int64(len(packBytes)), TransportFunc(fetch))
 	eng.SetExpectedBlockCount(1)
 	eng.minWindow = 8
 	eng.currentWindow = 8
 	eng.maxWindow = 8
 
+	// Verify the first target read reports the trailer failure.
 	keyHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -577,6 +654,7 @@ func TestPackReaderRetriesIndexLoadAfterFailure(t *testing.T) {
 		t.Fatal("expected first read to fail during index load")
 	}
 
+	// Verify the next target read retries the index and returns alpha.
 	got, err := eng.getBlock(ctx, key, ref)
 	if err != nil {
 		t.Fatalf("second read returned error: %v", err)
@@ -602,6 +680,7 @@ func TestBinarySearchEntriesByKeyUsesByteOrder(t *testing.T) {
 
 // parseHTTPTestRangeHeader bounds a valid single HTTP range to the fixture.
 func parseHTTPTestRangeHeader(h string, size int64) (start, end int64, ok bool) {
+	// Parse the fixture range and reject invalid or out-of-bounds starts.
 	var reqStart, reqEnd int64
 	if _, err := fmt.Sscanf(h, "bytes=%d-%d", &reqStart, &reqEnd); err != nil {
 		return 0, 0, false
@@ -609,6 +688,8 @@ func parseHTTPTestRangeHeader(h string, size int64) (start, end int64, ok bool) 
 	if reqStart < 0 || reqEnd < reqStart || reqStart >= size {
 		return 0, 0, false
 	}
+
+	// Clamp the fixture range end to the available bytes.
 	if reqEnd >= size {
 		reqEnd = size - 1
 	}

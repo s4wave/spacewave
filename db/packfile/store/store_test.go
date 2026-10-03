@@ -45,10 +45,12 @@ type fetchCall struct {
 }
 
 func (t *bytesTransport) Fetch(_ context.Context, off int64, length int) ([]byte, error) {
+	// Record the transport request and capture its injected hooks.
 	var call int
 	var fn func()
 	var rewrite func(call int, off int64, data []byte) []byte
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Record the transport call and snapshot hooks before notifying observers.
 		t.mtx.Lock()
 		t.calls = append(t.calls, fetchCall{off: off, length: length})
 		call = len(t.calls)
@@ -57,12 +59,16 @@ func (t *bytesTransport) Fetch(_ context.Context, off int64, length int) ([]byte
 		t.mtx.Unlock()
 		broadcast()
 	})
+
+	// Apply the transport gate and reject reads beyond the pack.
 	if fn != nil {
 		fn()
 	}
 	if off >= int64(len(t.data)) {
 		return nil, io.EOF
 	}
+
+	// Copy the requested pack range and apply any injected corruption.
 	end := min(off+int64(length), int64(len(t.data)))
 	out := bytes.Clone(t.data[off:end])
 	if rewrite != nil {
@@ -108,13 +114,18 @@ func newWritebackStore(blockFn func()) *writebackStore {
 }
 
 func (w *writebackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Apply the writeback gate before storing the block.
 	if w.blockFn != nil {
 		w.blockFn()
 	}
+
+	// Persist the block through the in-memory store.
 	ref, existed, err := w.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Record the persisted block and notify writeback observers.
 	w.mtx.Lock()
 	w.puts = append(w.puts, &block.PutBatchEntry{Ref: ref, Data: bytes.Clone(data), Refs: opts.GetRefs()})
 	w.mtx.Unlock()
@@ -137,6 +148,7 @@ func (w *writebackStore) PutBlockBatch(ctx context.Context, entries []*block.Put
 
 // putRefs returns the refs recorded for each written block, by hash.
 func (w *writebackStore) putRefs() map[string][]*block.BlockRef {
+	// Collect the references recorded by the writeback store under its lock.
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	refs := make(map[string][]*block.BlockRef, len(w.puts))
@@ -219,6 +231,7 @@ func waitFor(t *testing.T, cond func() (bool, <-chan struct{})) bool {
 		if ready {
 			return true
 		}
+
 		select {
 		case <-waitCtx.Done():
 			return false
@@ -228,8 +241,10 @@ func waitFor(t *testing.T, cond func() (bool, <-chan struct{})) bool {
 }
 
 func TestWaitForUsesNotification(t *testing.T) {
+	// Track the condition published by the notification producer.
 	var ready atomic.Bool
 
+	// Publish readiness after releasing the notification producer.
 	release := make(chan struct{})
 	waitCh := make(chan struct{})
 	started := make(chan struct{})
@@ -242,6 +257,7 @@ func TestWaitForUsesNotification(t *testing.T) {
 	<-started
 	close(release)
 
+	// Verify the readiness notification wakes the condition wait.
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		if ready.Load() {
 			return true, nil
@@ -255,6 +271,7 @@ func TestWaitForUsesNotification(t *testing.T) {
 // TestPackfileStoreBasicReads verifies GetBlock found/not-found, GetBlockExists,
 // PutBlock/RmBlock errors, and GetHashType.
 func TestPackfileStoreBasicReads(t *testing.T) {
+	// Build a pack containing the blocks used by the read checks.
 	ctx := t.Context()
 	blocks := map[string][]byte{
 		"a": []byte("alpha-data"),
@@ -263,6 +280,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 	}
 	packBytes, bloomBytes := buildTestPack(t, blocks)
 
+	// Publish the pack manifest in a byte-backed store.
 	opener, _ := openerFromBytes(packBytes)
 	cache := newMemIndexCache()
 	store := NewPackfileStore(opener, cache)
@@ -273,15 +291,20 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Verify the pack store advertises SHA256 references.
 	if store.GetHashType() != hash.HashType_HashType_SHA256 {
 		t.Fatal("expected SHA256 hash type")
 	}
 
+	// Read every packed block and verify its bytes.
 	for _, data := range blocks {
+		// Derive the reference for the packed block.
 		h, err := hash.Sum(hash.HashType_HashType_SHA256, data)
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		// Read the block and verify its returned payload.
 		got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
 		if err != nil {
 			t.Fatalf("GetBlock: %v", err)
@@ -291,6 +314,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 		}
 	}
 
+	// Verify a reference absent from the pack returns a miss.
 	unknownHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("not-in-packfile"))
 	if err != nil {
 		t.Fatal(err)
@@ -303,6 +327,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 		t.Fatal("expected unknown block to be missing")
 	}
 
+	// Verify the absent reference fails the existence probe.
 	exists, err := store.GetBlockExists(ctx, &block.BlockRef{Hash: unknownHash})
 	if err != nil {
 		t.Fatal(err)
@@ -311,6 +336,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 		t.Fatal("expected unknown block to not exist")
 	}
 
+	// Verify the read-only pack store rejects block mutations.
 	if _, _, err := store.PutBlock(ctx, []byte("x"), nil); err == nil {
 		t.Fatal("expected PutBlock error")
 	}
@@ -320,6 +346,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 }
 
 func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
+	// Build a pack with enough filler to separate its index from its payload.
 	ctx := t.Context()
 	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
 	ordered := []struct{ Name, Data string }{
@@ -328,6 +355,8 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 	}
 	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
 	opener, transport := openerFromBytes(packBytes)
+
+	// Publish the existence-probe pack in the store.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "exists-pack",
@@ -336,6 +365,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Probe the packed block and verify the index was fetched.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
 	if err != nil {
 		t.Fatal(err)
@@ -352,6 +382,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 		t.Fatal("expected index load fetch")
 	}
 
+	// Verify writeback leaves existence probes free of payload fetches.
 	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 0)
 	exists, err = store.GetBlockExists(ctx, &block.BlockRef{Hash: h})
@@ -368,6 +399,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 		t.Fatalf("GetBlockExists published writeback blocks: %d", got)
 	}
 
+	// Read the block and verify the payload requires another fetch.
 	data, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
 	if err != nil {
 		t.Fatalf("GetBlock: %v", err)
@@ -381,6 +413,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 }
 
 func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
+	// Build a pack with its target payload outside the index window.
 	ctx := t.Context()
 	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
 	ordered := []struct{ Name, Data string }{
@@ -389,6 +422,8 @@ func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 	}
 	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
 	opener, transport := openerFromBytes(packBytes)
+
+	// Publish the stat-probe pack in the store.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "stat-pack",
@@ -397,6 +432,7 @@ func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Load the pack index through an existence probe.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
 	if err != nil {
 		t.Fatal(err)
@@ -413,6 +449,7 @@ func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 		t.Fatal("expected index load fetch")
 	}
 
+	// Verify block metadata uses the loaded index without fetching payload.
 	stat, err := store.StatBlock(ctx, &block.BlockRef{Hash: h})
 	if err != nil {
 		t.Fatalf("StatBlock: %v", err)
@@ -429,6 +466,7 @@ func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 }
 
 func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing.T) {
+	// Seed engines whose manifest membership will change.
 	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
 		t.Fatalf("unexpected opener call for %s size %d", packID, size)
 		return nil, nil
@@ -437,11 +475,13 @@ func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing
 	store.engines["pack-b"] = nil
 	store.engines["pack-gone"] = nil
 
+	// Replace the manifest with one superseded and one active pack.
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "pack-a", SupersededBy: "pack-b"},
 		{Id: "pack-b"},
 	})
 
+	// Verify only the active pack remains in the manifest.
 	{
 		if store.manifest.Len() != 1 {
 			t.Fatalf("manifest len=%d want 1", store.manifest.Len())
@@ -450,6 +490,8 @@ func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing
 			t.Fatalf("active manifest id=%q want pack-b", store.SnapshotManifest().GetEntries()[0].GetId())
 		}
 	}
+
+	// Verify manifest replacement retains only the active engine.
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 	if _, ok := store.engines["pack-b"]; !ok {
@@ -464,6 +506,7 @@ func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing
 }
 
 func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
+	// Build historical, compacted, and superseded versions of the target pack.
 	ctx := t.Context()
 	historicalBytes, historicalBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{
 		{"target", "alpha"},
@@ -482,6 +525,8 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 		"compact":    compactBytes,
 		"superseded": supersededBytes,
 	}
+
+	// Record which pack the store opens for the target lookup.
 	var opened []string
 	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
 		data, ok := packs[packID]
@@ -491,6 +536,8 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 		opened = append(opened, packID)
 		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}, newMemIndexCache())
+
+	// Publish the pack generations with their sequence and supersession records.
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{
 			Id:          "historical",
@@ -516,6 +563,7 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 		},
 	})
 
+	// Verify active packs are ordered by their newest sequence.
 	{
 		if store.manifest.Len() != 2 {
 			t.Fatalf("active manifest entries=%d, want 2", store.manifest.Len())
@@ -529,6 +577,7 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 		}
 	}
 
+	// Read the target and verify the compacted pack supplies it.
 	target, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -544,6 +593,7 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 		t.Fatalf("opened packs=%q, want [compact]", opened)
 	}
 
+	// Verify lookup counters record the newest candidate hit.
 	stats := store.SnapshotStats()
 	if stats.LastCandidatePacks != 2 || stats.LastOpenedPacks != 1 || stats.LastNegativePacks != 0 || !stats.LastTargetHit {
 		t.Fatalf(
@@ -557,6 +607,7 @@ func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
 }
 
 func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
+	// Publish cloud and local packs with mixed sequence numbers.
 	store := NewPackfileStore(nil, nil)
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "local-z"},
@@ -567,6 +618,7 @@ func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
 		{Id: "cloud-new", Sequence: 9},
 	})
 
+	// Verify cloud sequence and pack IDs determine manifest order.
 	want := []string{"cloud-new", "cloud-a", "cloud-z", "cloud-old", "local-a", "local-z"}
 	{
 		if store.manifest.Len() != len(want) {
@@ -581,6 +633,7 @@ func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
 }
 
 func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
+	// Build the blocks and filler used by batch existence probes.
 	ctx := t.Context()
 	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
 	ordered := []struct{ Name, Data string }{
@@ -590,6 +643,8 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 	}
 	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
 	opener, transport := openerFromBytes(packBytes)
+
+	// Publish the batch-probe pack in the store.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "batch-exists-pack",
@@ -598,6 +653,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Derive references for present and absent batch entries.
 	alpha, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha-data"))
 	if err != nil {
 		t.Fatal(err)
@@ -611,6 +667,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Probe missing, present, duplicate, and nil references with writeback enabled.
 	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 0)
 	found, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{
@@ -624,6 +681,8 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 		t.Fatalf("GetBlockExistsBatch: %v", err)
 	}
 	want := []bool{false, true, false, true, true}
+
+	// Verify batch results preserve the input reference order.
 	if len(found) != len(want) {
 		t.Fatalf("found len = %d, want %d", len(found), len(want))
 	}
@@ -632,6 +691,8 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 			t.Fatalf("found[%d] = %v, want %v (all=%v)", i, found[i], want[i], found)
 		}
 	}
+
+	// Verify batch probing loads the index without publishing payload.
 	firstCalls := transport.callCount()
 	if firstCalls == 0 {
 		t.Fatal("expected index load fetch")
@@ -640,6 +701,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 		t.Fatalf("GetBlockExistsBatch published writeback blocks: %d", got)
 	}
 
+	// Verify another batch reuses the cached index without transport.
 	found, err = store.GetBlockExistsBatch(ctx, []*block.BlockRef{{Hash: beta}, {Hash: missing}})
 	if err != nil {
 		t.Fatalf("GetBlockExistsBatch cached index: %v", err)
@@ -653,6 +715,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 }
 
 func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
+	// Build a target pack and a pack with a false-positive bloom filter.
 	ctx := t.Context()
 	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
 	targetBytes, targetBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{
@@ -663,6 +726,8 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 		{"negative", "negative-data"},
 		{"filler", string(filler)},
 	})
+
+	// Create transports recording which candidate indexes are loaded.
 	packs := map[string][]byte{
 		"negative-pack": negativeBytes,
 		"target-pack":   targetBytes,
@@ -674,6 +739,8 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 		return NewPackReader(packID, size, transport), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
+
+	// Publish the false-positive candidate ahead of the target pack.
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{
 			Id:          "negative-pack",
@@ -689,6 +756,7 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 		},
 	})
 
+	// Probe the target reference with writeback enabled.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("target-data"))
 	if err != nil {
 		t.Fatal(err)
@@ -702,6 +770,8 @@ func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	if !exists {
 		t.Fatal("expected target block to exist")
 	}
+
+	// Verify both candidate indexes load without block writeback.
 	for packID, transport := range transports {
 		if got := transport.callCount(); got == 0 {
 			t.Fatalf("expected index load for %s", packID)
@@ -771,6 +841,7 @@ func TestPackfileStoreProbeSurvivesManifestChange(t *testing.T) {
 }
 
 func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
+	// Build two packs with one missing bloom filter.
 	ctx := t.Context()
 	alphaBytes, alphaBloom := buildTestPack(t, map[string][]byte{"alpha": []byte("alpha-data")})
 	betaBytes, _ := buildTestPack(t, map[string][]byte{"beta": []byte("beta-data")})
@@ -778,12 +849,15 @@ func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 	opener := func(packID string, size int64) (*PackReader, error) {
 		return NewPackReader(packID, size, &bytesTransport{data: packs[packID]}), nil
 	}
+
+	// Publish both packs so the bloomless pack remains a candidate.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "alpha-pack", BloomFilter: alphaBloom, BlockCount: 1, SizeBytes: uint64(len(alphaBytes)), Sequence: 2},
 		{Id: "beta-pack", BlockCount: 1, SizeBytes: uint64(len(betaBytes)), Sequence: 1},
 	})
 
+	// Verify the target can be read from the bloomless pack.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("beta-data"))
 	if err != nil {
 		t.Fatal(err)
@@ -798,6 +872,7 @@ func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 }
 
 func TestPackfileStoreLookupStats(t *testing.T) {
+	// Build target and negative packs sharing the target bloom filter.
 	ctx := t.Context()
 	targetBytes, targetBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	negativeBytes, _ := buildTestPackOrdered(t, []struct{ Name, Data string }{{"b", "beta"}})
@@ -810,6 +885,8 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}
 	store := NewPackfileStore(opener, newMemIndexCache())
+
+	// Publish the negative candidate ahead of the target pack.
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{
 			Id:          "negative-pack",
@@ -825,6 +902,7 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 		},
 	})
 
+	// Read the target after probing the negative candidate.
 	alphaHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -837,6 +915,7 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 		t.Fatal("expected target block found")
 	}
 
+	// Verify lookup counters record candidates, opens, misses, and hits.
 	stats := store.SnapshotStats()
 	if stats.LookupCount != 1 {
 		t.Fatalf("LookupCount = %d, want 1", stats.LookupCount)
@@ -853,6 +932,8 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 	if stats.TargetHits != 1 || !stats.LastTargetHit {
 		t.Fatalf("target hits total=%d last=%v, want 1/true", stats.TargetHits, stats.LastTargetHit)
 	}
+
+	// Verify index counters record both remote index loads and their bytes.
 	if stats.IndexCacheMisses != 2 {
 		t.Fatalf("IndexCacheMisses = %d, want 2", stats.IndexCacheMisses)
 	}
@@ -871,11 +952,13 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 // TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently loads the
 // index of every candidate pack at once instead of one pack at a time.
 func TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently(t *testing.T) {
+	// Build candidate packs and references for a concurrent batch probe.
 	ctx := t.Context()
 	packs := make(map[string][]byte, 2)
 	var manifest []*packfile.PackfileEntry
 	var refs []*block.BlockRef
 	for _, name := range []string{"one", "two"} {
+		// Add the candidate pack and its bloom record to the manifest.
 		packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{name, name + "-data"}})
 		packs[name] = packBytes
 		manifest = append(manifest, &packfile.PackfileEntry{
@@ -884,6 +967,8 @@ func TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently(t *testing.T) 
 			BlockCount:  1,
 			SizeBytes:   uint64(len(packBytes)),
 		})
+
+		// Derive the candidate block reference for the batch probe.
 		h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte(name+"-data"))
 		if err != nil {
 			t.Fatal(err)
@@ -916,6 +1001,7 @@ func TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently(t *testing.T) 
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest(manifest)
 
+	// Verify the batch probe finds both blocks after concurrent index loads.
 	found, err := store.GetBlockExistsBatch(ctx, refs)
 	if err != nil {
 		t.Fatalf("GetBlockExistsBatch: %v", err)
@@ -926,6 +1012,7 @@ func TestPackfileStoreGetBlockExistsBatchLoadsIndexesConcurrently(t *testing.T) 
 }
 
 func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
+	// Configure a full-pack collection and its target location.
 	ctx := t.Context()
 	policy := writer.DefaultPolicy()
 	packCount := 16
@@ -934,8 +1021,10 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 	packs := make(map[string][]byte, packCount)
 	entries := make([]*packfile.PackfileEntry, 0, packCount)
 
+	// Build full packs and retain the chosen target reference.
 	var targetHash *hash.Hash
 	for i := range packCount {
+		// Build the blocks for this full pack and capture its target.
 		items := make([]packItem, 0, policy.MaxBlocksPerPack)
 		for j := range int(policy.MaxBlocksPerPack) {
 			data := []byte("fanout pack " + strconv.Itoa(i) + " block " + strconv.Itoa(j))
@@ -948,6 +1037,8 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 			}
 			items = append(items, packItem{h: h, data: data})
 		}
+
+		// Publish the full pack bytes and its manifest entry.
 		packBytes, bloomBytes := packItems(t, items)
 		id := "fanout-pack-" + strconv.Itoa(i)
 		packs[id] = packBytes
@@ -962,6 +1053,7 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 		t.Fatal("target hash was not generated")
 	}
 
+	// Count pack opens for the target lookup.
 	var openCount atomic.Int32
 	opener := func(packID string, size int64) (*PackReader, error) {
 		data := packs[packID]
@@ -972,9 +1064,11 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 		return NewPackReader(packID, size, &bytesTransport{data: data}), nil
 	}
 
+	// Publish the full-pack collection in the store.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest(entries)
 
+	// Read the target block and verify its selected payload.
 	got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: targetHash})
 	if err != nil {
 		t.Fatalf("GetBlock: %v", err)
@@ -986,6 +1080,7 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 		t.Fatalf("unexpected target data: %q", string(got))
 	}
 
+	// Verify bloom pruning bounds the opened and negative candidate counts.
 	stats := store.SnapshotStats()
 	if stats.LastOpenedPacks > 4 {
 		t.Fatalf("opened %d packs for one lookup, want at most 4", stats.LastOpenedPacks)
@@ -1009,6 +1104,7 @@ func TestPackfileStoreLookupPrunesUnrelatedFullPacks(t *testing.T) {
 }
 
 func TestPackfileStoreManifestDistributionStats(t *testing.T) {
+	// Publish packs with valid, missing, and malformed bloom filters.
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{
 		{"a", "alpha"},
 		{"b", "beta"},
@@ -1034,6 +1130,7 @@ func TestPackfileStoreManifestDistributionStats(t *testing.T) {
 		},
 	})
 
+	// Verify manifest statistics include every pack and its block counts.
 	stats := store.SnapshotStats()
 	if stats.ManifestEntries != 3 {
 		t.Fatalf("ManifestEntries = %d, want 3", stats.ManifestEntries)
@@ -1051,6 +1148,8 @@ func TestPackfileStoreManifestDistributionStats(t *testing.T) {
 			writer.DefaultMaxBlocksPerPack,
 		)
 	}
+
+	// Verify manifest statistics include pack sizes and bloom health.
 	wantSizeTotal := uint64(len(packBytes)) + 500
 	if stats.PackSizeBytesTotal != wantSizeTotal ||
 		stats.PackSizeBytesMin != uint64(len(packBytes)) ||
@@ -1085,11 +1184,14 @@ func TestPackfileStoreManifestDistributionStats(t *testing.T) {
 }
 
 func TestPackfileStoreStatsChangedCallback(t *testing.T) {
+	// Build the pack used to observe store statistics notifications.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, _ := openerFromBytes(packBytes)
 	store := NewPackfileStore(opener, newMemIndexCache())
 	var calls atomic.Int32
+
+	// Count statistics notifications while publishing the manifest.
 	store.SetStatsChangedCallback(func() {
 		calls.Add(1)
 	})
@@ -1099,11 +1201,14 @@ func TestPackfileStoreStatsChangedCallback(t *testing.T) {
 		BlockCount:  1,
 		SizeBytes:   uint64(len(packBytes)),
 	}})
+
+	// Verify manifest publication emits a statistics notification.
 	afterManifest := calls.Load()
 	if afterManifest == 0 {
 		t.Fatal("expected manifest update to notify stats callback")
 	}
 
+	// Verify the block lookup emits another statistics notification.
 	alphaHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -1121,6 +1226,7 @@ func TestPackfileStoreStatsChangedCallback(t *testing.T) {
 }
 
 func TestPackfileStoreIndexCacheErrorStats(t *testing.T) {
+	// Publish a pack with an index cache that fails reads and writes.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, _ := openerFromBytes(packBytes)
@@ -1135,6 +1241,7 @@ func TestPackfileStoreIndexCacheErrorStats(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Verify the target remains readable despite index cache failures.
 	alphaHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -1147,6 +1254,7 @@ func TestPackfileStoreIndexCacheErrorStats(t *testing.T) {
 		t.Fatal("expected target block found")
 	}
 
+	// Verify statistics record both cache failures and the remote fallback.
 	stats := store.SnapshotStats()
 	if stats.IndexCacheReadErrors != 1 {
 		t.Fatalf("IndexCacheReadErrors = %d, want 1", stats.IndexCacheReadErrors)
@@ -1160,10 +1268,12 @@ func TestPackfileStoreIndexCacheErrorStats(t *testing.T) {
 }
 
 func TestPackfileStoreIndexCacheHitStats(t *testing.T) {
+	// Build a pack and extract its cacheable index tail.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	tail := mustReadIndexTail(t, packBytes)
 
+	// Seed the index cache and publish the pack manifest.
 	opener, _ := openerFromBytes(packBytes)
 	cache := newMemIndexCache()
 	if err := cache.Set(ctx, "hit-pack", tail); err != nil {
@@ -1177,6 +1287,7 @@ func TestPackfileStoreIndexCacheHitStats(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Read the target using the cached pack index.
 	alphaHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -1189,6 +1300,7 @@ func TestPackfileStoreIndexCacheHitStats(t *testing.T) {
 		t.Fatal("expected target block found")
 	}
 
+	// Verify the cached index avoids remote index loads.
 	stats := store.SnapshotStats()
 	if stats.IndexCacheHits != 1 {
 		t.Fatalf("IndexCacheHits = %d, want 1", stats.IndexCacheHits)
@@ -1202,6 +1314,7 @@ func TestPackfileStoreIndexCacheHitStats(t *testing.T) {
 }
 
 func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
+	// Build current pack bytes and a stale index tail missing one block.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{
 		{"a", "alpha"},
@@ -1209,6 +1322,7 @@ func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
 	})
 	staleBytes, _ := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 
+	// Publish the current pack with the stale tail in its index cache.
 	opener, _ := openerFromBytes(packBytes)
 	cache := newMemIndexCache()
 	if err := cache.Set(ctx, "stale-pack", mustReadIndexTail(t, staleBytes)); err != nil {
@@ -1222,6 +1336,7 @@ func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Verify stale cache fallback finds the missing beta block.
 	betaHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("beta"))
 	if err != nil {
 		t.Fatal(err)
@@ -1234,6 +1349,7 @@ func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
 		t.Fatalf("expected beta after stale cache fallback, found=%v data=%q", found, string(got))
 	}
 
+	// Verify stale index rejection records a cache error and remote load.
 	stats := store.SnapshotStats()
 	if stats.IndexCacheReadErrors != 1 {
 		t.Fatalf("IndexCacheReadErrors = %d, want 1", stats.IndexCacheReadErrors)
@@ -1247,10 +1363,12 @@ func TestPackfileStoreRejectsStaleIndexTailCache(t *testing.T) {
 }
 
 func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
+	// Build a pack containing one large target block.
 	ctx := t.Context()
 	large := bytes.Repeat([]byte("a"), 2<<20)
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", string(large)}})
 
+	// Publish the large pack with target-only fetch alignment.
 	opener, transport := openerFromBytes(packBytes)
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
@@ -1261,6 +1379,7 @@ func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 	}})
 	store.SetWriteback(ctx, nil, 0)
 
+	// Read the large block and verify its payload.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, large)
 	if err != nil {
 		t.Fatal(err)
@@ -1272,6 +1391,8 @@ func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 	if !found || !bytes.Equal(got, large) {
 		t.Fatalf("expected large block, found=%v len=%d", found, len(got))
 	}
+
+	// Verify the first transport request is a bounded index suffix.
 	first := transport.callAt(0)
 	if first.length > defaultIndexTailInitialWindow {
 		t.Fatalf("first fetch length = %d, want <= %d", first.length, defaultIndexTailInitialWindow)
@@ -1279,6 +1400,8 @@ func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 	if first.off < int64(len(packBytes)-defaultIndexTailInitialWindow) {
 		t.Fatalf("first fetch offset = %d, want suffix near end of pack size %d", first.off, len(packBytes))
 	}
+
+	// Verify index-tail counters exclude payload fetch bytes.
 	stats := store.SnapshotStats()
 	if stats.IndexTailFetchCount == 0 {
 		t.Fatal("expected index-tail fetch counters")
@@ -1292,6 +1415,7 @@ func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 }
 
 func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
+	// Build the adjacent blocks used by cached-index writeback.
 	ctx := t.Context()
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha"},
@@ -1299,6 +1423,8 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 		{"c", "charlie"},
 	}
 	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
+
+	// Seed the raw index tail and publish the adjacent-block pack.
 	opener, _ := openerFromBytes(packBytes)
 	cache := newMemIndexCache()
 	if err := cache.Set(ctx, "cached-coblock-pack", mustReadIndexTail(t, packBytes)); err != nil {
@@ -1312,9 +1438,11 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Enable writeback across the adjacent-block window.
 	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 1<<20)
 
+	// Read alpha and wait for writeback of every covered block.
 	alphaHash, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -1327,6 +1455,8 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 	}) {
 		t.Fatalf("expected %d cached-tail co-block writebacks, got %d", len(ordered), wb.putCount())
 	}
+
+	// Verify writeback used the cached index without a remote index load.
 	stats := store.SnapshotStats()
 	if stats.IndexCacheHits != 1 {
 		t.Fatalf("IndexCacheHits = %d, want 1", stats.IndexCacheHits)
@@ -1337,6 +1467,7 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 }
 
 func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
+	// Build a pack manifest and target reference shared by two stores.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	cache := newMemIndexCache()
@@ -1351,6 +1482,7 @@ func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Read the target through the first store and verify its remote index load.
 	firstOpener, firstTransport := openerFromBytes(packBytes)
 	firstStore := NewPackfileStore(firstOpener, cache)
 	firstStore.UpdateManifest([]*packfile.PackfileEntry{entry})
@@ -1365,6 +1497,7 @@ func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
 		t.Fatal("expected first reader to fetch remote bytes")
 	}
 
+	// Read the target through a new store and verify index cache reuse.
 	secondOpener, _ := openerFromBytes(packBytes)
 	secondStore := NewPackfileStore(secondOpener, cache)
 	secondStore.UpdateManifest([]*packfile.PackfileEntry{entry})
@@ -1381,6 +1514,7 @@ func TestPackfileStoreReopenReusesRawTailCache(t *testing.T) {
 }
 
 func TestPackReaderRejectsIndexTailSizeMismatch(t *testing.T) {
+	// Verify the reader rejects an index tail with a different pack size.
 	packBytes, _ := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	tail := mustReadIndexTail(t, packBytes)
 	eng := NewPackReader("size-mismatch-pack", int64(len(packBytes)+1), nil)
@@ -1391,6 +1525,7 @@ func TestPackReaderRejectsIndexTailSizeMismatch(t *testing.T) {
 }
 
 func TestValidateIndexEntriesRejectsMalformedCatalog(t *testing.T) {
+	// Verify the index validator rejects duplicate block keys.
 	h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if err != nil {
 		t.Fatal(err)
@@ -1404,6 +1539,7 @@ func TestValidateIndexEntriesRejectsMalformedCatalog(t *testing.T) {
 		t.Fatal("expected duplicate keys to be rejected")
 	}
 
+	// Verify the index validator rejects values beyond the pack boundary.
 	outOfBounds := []*kvfile.IndexEntry{{Key: key, Offset: 19, Size: 2}}
 	if err := validateIndexEntries(outOfBounds, 20, 1); err == nil {
 		t.Fatal("expected out-of-bounds value to be rejected")
@@ -1412,6 +1548,7 @@ func TestValidateIndexEntriesRejectsMalformedCatalog(t *testing.T) {
 
 // TestPackfileStoreEmptyManifest verifies behavior with no manifest entries.
 func TestPackfileStoreEmptyManifest(t *testing.T) {
+	// Open an empty pack store and derive an absent block reference.
 	ctx := t.Context()
 	opener, _ := openerFromBytes(nil)
 	store := NewPackfileStore(opener, newMemIndexCache())
@@ -1419,6 +1556,8 @@ func TestPackfileStoreEmptyManifest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the empty manifest returns a block miss.
 	_, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h})
 	if err != nil {
 		t.Fatalf("GetBlock: %v", err)
@@ -1430,6 +1569,7 @@ func TestPackfileStoreEmptyManifest(t *testing.T) {
 
 // TestPackfileStoreOpenerError propagates opener errors.
 func TestPackfileStoreOpenerError(t *testing.T) {
+	// Publish a pack whose opener fails to reach the transport.
 	ctx := t.Context()
 	_, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener := func(_ string, _ int64) (*PackReader, error) {
@@ -1443,6 +1583,8 @@ func TestPackfileStoreOpenerError(t *testing.T) {
 		SizeBytes:   100,
 	}})
 	h, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
+
+	// Verify the block lookup propagates the opener failure.
 	if _, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: h}); err == nil {
 		t.Fatal("expected opener error")
 	}
@@ -1451,6 +1593,7 @@ func TestPackfileStoreOpenerError(t *testing.T) {
 // TestPackfileStoreCoBlockWriteback verifies that fetching one block triggers
 // persistence for every covered block within the configured physical window.
 func TestPackfileStoreCoBlockWriteback(t *testing.T) {
+	// Build and publish a pack of adjacent blocks.
 	ctx := t.Context()
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha"},
@@ -1467,27 +1610,33 @@ func TestPackfileStoreCoBlockWriteback(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Enable writeback for the entire adjacent-block window.
 	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 1<<20)
 
+	// Read alpha and verify the requested block payload.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
 	if err != nil || !found || !bytes.Equal(got, []byte("alpha")) {
 		t.Fatalf("GetBlock alpha: found=%v err=%v", found, err)
 	}
 
+	// Wait for every covered block to reach the writeback store.
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		return wb.putCountAtLeast(len(ordered))
 	}) {
 		t.Fatalf("expected %d co-block writebacks, got %d", len(ordered), wb.putCount())
 	}
 
+	// Collect written payloads by their block reference under the store lock.
 	wb.mtx.Lock()
 	defer wb.mtx.Unlock()
 	gotKeys := make(map[string][]byte, len(wb.puts))
 	for _, p := range wb.puts {
 		gotKeys[p.Ref.GetHash().MarshalString()] = p.Data
 	}
+
+	// Verify every adjacent block retains its payload in writeback.
 	for _, o := range ordered {
 		h, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte(o.Data))
 		if got, ok := gotKeys[h.MarshalString()]; !ok {
@@ -1502,12 +1651,15 @@ func TestPackfileStoreCoBlockWriteback(t *testing.T) {
 // block's refs as known, that co-block writeback records them, and that a
 // graph copy can read a World straight from packs.
 func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
+	// Build a root block referencing the leaf blocks.
 	ctx := t.Context()
 	leaves := []packItem{testPackItem(t, "beta"), testPackItem(t, "charlie")}
 	root := testPackItem(t, "alpha")
 	for _, leaf := range leaves {
 		root.refs = append(root.refs, block.NewBlockRef(leaf.h))
 	}
+
+	// Pack the graph and describe its manifest entry.
 	items := append([]packItem{root}, leaves...)
 	packBytes, bloomBytes := packItems(t, items)
 	entry := &packfile.PackfileEntry{
@@ -1516,12 +1668,16 @@ func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
 		BlockCount:  uint64(len(items)),
 		SizeBytes:   uint64(len(packBytes)),
 	}
+
+	// Create stores that expose the same packed graph.
 	openStore := func() *PackfileStore {
 		opener, _ := openerFromBytes(packBytes)
 		store := NewPackfileStore(opener, newMemIndexCache())
 		store.UpdateManifest([]*packfile.PackfileEntry{entry})
 		return store
 	}
+
+	// Verify recorded references match every block in the packed graph.
 	checkRefs := func(what string, got map[string][]*block.BlockRef) {
 		t.Helper()
 		for _, item := range items {
@@ -1540,10 +1696,13 @@ func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
 		}
 	}
 
+	// Read the graph root with co-block writeback enabled.
 	store := openStore()
 	wb := newWritebackStore(nil)
 	store.SetWriteback(ctx, wb, 1<<20)
 	rootRef := block.NewBlockRef(root.h)
+
+	// Verify the packed root exposes its known leaf references.
 	stored, err := store.GetStoredBlock(ctx, rootRef)
 	if err != nil {
 		t.Fatal(err)
@@ -1551,6 +1710,8 @@ func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
 	if !stored.GetRefsKnown() || len(stored.GetRefs()) != len(leaves) {
 		t.Fatalf("root refs known=%v count=%d, want %d", stored.GetRefsKnown(), len(stored.GetRefs()), len(leaves))
 	}
+
+	// Wait for the packed graph to reach writeback and verify its references.
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		return wb.putCountAtLeast(len(items))
 	}) {
@@ -1558,6 +1719,7 @@ func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
 	}
 	checkRefs("writeback", wb.putRefs())
 
+	// Copy the packed graph into another store and verify its references.
 	dst := newWritebackStore(nil)
 	if err := block.CopyGraph(ctx, openStore(), dst, rootRef, nil); err != nil {
 		t.Fatal(err)
@@ -1570,6 +1732,7 @@ func TestPackfileStoreServesAndWritesBackRefs(t *testing.T) {
 // contained in those spans are immediately published into the writeback
 // pipeline without a second transport round-trip.
 func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
+	// Build a small pack whose trailer window can cover every block.
 	ctx := t.Context()
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha"},
@@ -1587,6 +1750,7 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 		return e, nil
 	}
 
+	// Publish the trailer-promotion pack in the store.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "promote-pack",
@@ -1595,17 +1759,21 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Attach the writeback target for trailer-promoted blocks.
 	wb := newWritebackStore(nil)
+
 	// Window of 1 means target-only semantic alignment; but the trailer
 	// fetch already covered everything so promotion should still publish
 	// all blocks.
 	store.SetWriteback(ctx, wb, 1)
 
+	// Read alpha through the trailer-covering transport.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("GetBlock alpha: found=%v err=%v", found, err)
 	}
 
+	// Wait for every trailer-covered block to reach writeback.
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		return wb.putCountAtLeast(len(ordered))
 	}) {
@@ -1616,6 +1784,7 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 // TestPackfileStoreReusesEngine verifies that repeated reads reuse one engine
 // per pack for the store's lifetime.
 func TestPackfileStoreReusesEngine(t *testing.T) {
+	// Build a pack with multiple blocks for engine reuse checks.
 	ctx := t.Context()
 	blocks := map[string][]byte{
 		"a": []byte("alpha-data"),
@@ -1623,6 +1792,7 @@ func TestPackfileStoreReusesEngine(t *testing.T) {
 	}
 	packBytes, bloomBytes := buildTestPack(t, blocks)
 
+	// Count reader construction through the shared pack transport.
 	var openCount atomic.Int32
 	transport := &bytesTransport{data: packBytes}
 	opener := func(packID string, size int64) (*PackReader, error) {
@@ -1630,6 +1800,7 @@ func TestPackfileStoreReusesEngine(t *testing.T) {
 		return NewPackReader(packID, size, transport), nil
 	}
 
+	// Publish the engine-reuse pack in the store.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "reuse-pack",
@@ -1638,12 +1809,15 @@ func TestPackfileStoreReusesEngine(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Read every block from the same packed engine.
 	for _, data := range blocks {
 		h, _ := hash.Sum(hash.HashType_HashType_SHA256, data)
 		if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: h}); err != nil || !found {
 			t.Fatalf("GetBlock: found=%v err=%v", found, err)
 		}
 	}
+
+	// Verify the store opens its pack reader only once.
 	if got := openCount.Load(); got != 1 {
 		t.Fatalf("expected opener to run once, got %d", got)
 	}
@@ -1652,6 +1826,7 @@ func TestPackfileStoreReusesEngine(t *testing.T) {
 // TestPackfileStoreServesCachedBlock verifies a second GetBlock for the same
 // block does not trigger additional transport fetches.
 func TestPackfileStoreServesCachedBlock(t *testing.T) {
+	// Publish adjacent blocks with a shared resident window.
 	ctx := t.Context()
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha"},
@@ -1668,6 +1843,7 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 	}})
 	store.SetWriteback(ctx, nil, 1<<20)
 
+	// Read alpha and verify the first read fetches transport bytes.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("first GetBlock: found=%v err=%v", found, err)
@@ -1676,6 +1852,8 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 	if firstCalls == 0 {
 		t.Fatal("expected transport fetches on first GetBlock")
 	}
+
+	// Verify the repeated alpha read uses resident bytes without transport.
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("second GetBlock: found=%v err=%v", found, err)
 	}
@@ -1687,6 +1865,7 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 // TestPackfileStoreColdReadReturnsBeforePersistence verifies the first caller
 // receives bytes before the background verify + writeback completes.
 func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
+	// Publish a cold pack whose first read starts background writeback.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, _ := openerFromBytes(packBytes)
@@ -1698,10 +1877,12 @@ func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Hold background writeback until the cold read completes.
 	blocked := make(chan struct{})
 	wb := newWritebackStore(func() { <-blocked })
 	store.SetWriteback(ctx, wb, 1<<20)
 
+	// Start the cold block read while writeback remains gated.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	done := make(chan error, 1)
 	go func() {
@@ -1709,6 +1890,7 @@ func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
 		done <- err
 	}()
 
+	// Verify the cold read completes before releasing background writeback.
 	select {
 	case err := <-done:
 		if err != nil {
@@ -1723,6 +1905,7 @@ func TestPackfileStoreColdReadReturnsBeforePersistence(t *testing.T) {
 // TestPackfileStoreRejectsCorruptedBlock verifies a read whose bytes decode but
 // do not match the ref returns a mismatch error instead of the wrong data.
 func TestPackfileStoreRejectsCorruptedBlock(t *testing.T) {
+	// Publish a pack through a transport that corrupts alpha payloads.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	transport := &bytesTransport{data: packBytes}
@@ -1740,6 +1923,7 @@ func TestPackfileStoreRejectsCorruptedBlock(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Verify repeated reads reject the corrupted block reference.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	for range 2 {
 		got, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
@@ -1752,6 +1936,7 @@ func TestPackfileStoreRejectsCorruptedBlock(t *testing.T) {
 // TestPackfileStoreSecondReadReturnsBeforePersistence verifies repeated default
 // reads use resident bytes while the background cache write remains blocked.
 func TestPackfileStoreSecondReadReturnsBeforePersistence(t *testing.T) {
+	// Publish a pack used for repeated reads during background writeback.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, _ := openerFromBytes(packBytes)
@@ -1763,12 +1948,15 @@ func TestPackfileStoreSecondReadReturnsBeforePersistence(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Hold background writeback while the resident block is read.
 	blocked := make(chan struct{})
 	wb := newWritebackStore(func() { <-blocked })
 	store.SetWriteback(ctx, wb, 1<<20)
 
+	// Derive the resident alpha block reference.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 
+	// Start the first read and publish its completion notification.
 	first := make(chan error, 1)
 	firstDone := make(chan struct{})
 	go func() {
@@ -1776,6 +1964,7 @@ func TestPackfileStoreSecondReadReturnsBeforePersistence(t *testing.T) {
 		first <- err
 		close(firstDone)
 	}()
+
 	// Let the first caller start and admit the block record.
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		select {
@@ -1791,6 +1980,7 @@ func TestPackfileStoreSecondReadReturnsBeforePersistence(t *testing.T) {
 		t.Fatalf("first GetBlock error: %v", err)
 	}
 
+	// Start another read and verify its returned resident payload.
 	second := make(chan error, 1)
 	go func() {
 		data, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
@@ -1800,6 +1990,7 @@ func TestPackfileStoreSecondReadReturnsBeforePersistence(t *testing.T) {
 		second <- err
 	}()
 
+	// Verify the repeated read completes before releasing background writeback.
 	select {
 	case err := <-second:
 		if err != nil {
@@ -1816,6 +2007,7 @@ func TestPackfileStoreSecondReadReturnsBeforePersistence(t *testing.T) {
 // TestPackfileStoreDedupesConcurrentFetch verifies two concurrent GetBlock
 // calls for the same missing block trigger only one transport call sequence.
 func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
+	// Build a pack and its index tail for concurrent cold reads.
 	ctx := t.Context()
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha"},
@@ -1824,17 +2016,20 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 	packBytes, bloomBytes := buildTestPackOrdered(t, ordered)
 	tail := mustReadIndexTail(t, packBytes)
 
+	// Gate transport requests until both readers have started.
 	release := make(chan struct{})
 	transport := &bytesTransport{data: packBytes, blockFn: func() { <-release }}
 	opener := func(packID string, size int64) (*PackReader, error) {
 		return NewPackReader(packID, size, transport), nil
 	}
 
+	// Seed the pack index to isolate payload-fetch deduplication.
 	cache := newMemIndexCache()
 	if err := cache.Set(ctx, "dedupe-pack", tail); err != nil {
 		t.Fatal(err)
 	}
 
+	// Publish the pack with a shared resident fetch window.
 	store := NewPackfileStore(opener, cache)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "dedupe-pack",
@@ -1844,6 +2039,7 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 	}})
 	store.SetWriteback(ctx, nil, 1<<20)
 
+	// Start the first cold reader for the alpha reference.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	done1 := make(chan error, 1)
 	done2 := make(chan error, 1)
@@ -1851,12 +2047,15 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 		_, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
 		done1 <- err
 	}()
+
 	// Ensure first goroutine is in the transport before starting second.
 	if !waitFor(t, func() (bool, <-chan struct{}) {
 		return transport.callCountAtLeast(1)
 	}) {
 		t.Fatal("first caller did not start a transport fetch")
 	}
+
+	// Start another alpha reader while the first fetch remains gated.
 	secondStarted := make(chan struct{})
 	go func() {
 		close(secondStarted)
@@ -1865,6 +2064,7 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 	}()
 	<-secondStarted
 
+	// Release transport and verify both readers share one payload fetch.
 	close(release)
 	if err := <-done1; err != nil {
 		t.Fatalf("first GetBlock error: %v", err)
@@ -1881,10 +2081,12 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 // produces a recoverable miss: the failed record is discarded and a later
 // GetBlock retries transport.
 func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
+	// Build a pack and index tail for recovery after corrupt transport bytes.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	tail := mustReadIndexTail(t, packBytes)
 
+	// Create a transport that corrupts only its first response.
 	transport := &bytesTransport{data: packBytes}
 	transport.rewriteFn = func(call int, off int64, data []byte) []byte {
 		if call == 1 {
@@ -1898,10 +2100,13 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 		return NewPackReader(packID, size, transport), nil
 	}
 
+	// Seed the valid pack index before injecting payload corruption.
 	cache := newMemIndexCache()
 	if err := cache.Set(ctx, "retry-pack", tail); err != nil {
 		t.Fatal(err)
 	}
+
+	// Publish the recovery pack with target-only fetch alignment.
 	store := NewPackfileStore(opener, cache)
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "retry-pack",
@@ -1911,7 +2116,9 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 	}})
 	store.SetWriteback(ctx, nil, 0)
 
+	// Derive the alpha reference for the corruption and recovery checks.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
+
 	// The first read never serves the corrupted value. It fails, or it
 	// returns the refetched value when background verification rejected the
 	// corrupted span before the read covered it.
@@ -1940,6 +2147,7 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 		t.Fatal("expected corrupted response to fail verification")
 	}
 
+	// Verify another read returns valid alpha bytes after rejection.
 	got, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
 	if err != nil {
 		t.Fatalf("second GetBlock: %v", err)
@@ -1955,14 +2163,17 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 // TestPackfileStoreEvictsOldestBlock verifies the engine evicts the oldest
 // unpinned block when resident bytes exceed the budget.
 func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
+	// Build two packs whose resident spans will exceed the cache budget.
 	ctx := t.Context()
 	orderedA := []struct{ Name, Data string }{{"a", "alpha"}}
 	orderedB := []struct{ Name, Data string }{{"b", "beta!!"}}
 	packA, bloomA := buildTestPackOrdered(t, orderedA)
 	packB, bloomB := buildTestPackOrdered(t, orderedB)
 
+	// Create pack readers that fetch the smallest possible windows.
 	openCount := atomic.Int32{}
 	opener := func(packID string, size int64) (*PackReader, error) {
+		// Select the requested pack bytes and count reader construction.
 		openCount.Add(1)
 		var data []byte
 		switch packID {
@@ -1973,8 +2184,11 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 		default:
 			return nil, errors.New("unknown pack")
 		}
+
+		// Construct a byte-backed reader for the selected pack.
 		t := &bytesTransport{data: data}
 		e := NewPackReader(packID, size, t)
+
 		// Tiny window so the aligned fetch is minimal.
 		e.minWindow = 1
 		e.currentWindow = 1
@@ -1982,17 +2196,20 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 		return e, nil
 	}
 
+	// Publish both packs with background writeback disabled.
 	store := NewPackfileStore(opener, newMemIndexCache())
 	store.UpdateManifest([]*packfile.PackfileEntry{
 		{Id: "pack-a", BloomFilter: bloomA, BlockCount: 1, SizeBytes: uint64(len(packA))},
 		{Id: "pack-b", BloomFilter: bloomB, BlockCount: 1, SizeBytes: uint64(len(packB))},
 	})
 	store.SetWriteback(ctx, nil, 0)
+
 	// Force the resident budget to exactly one byte so the second engine's
 	// fetches force eviction of the first engine's spans over time. Here we
 	// check engine-local eviction on pack-a.
 	store.SetRangeCacheMaxBytes(1)
 
+	// Verify both blocks remain readable under the one-byte cache budget.
 	hA, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	hB, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("beta!!"))
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: hA}); err != nil || !found {
@@ -2006,6 +2223,7 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 // TestPackfileStoreKeepsPinnedBlocksResident verifies that block pins (from
 // in-flight verification) keep spans resident even under budget pressure.
 func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
+	// Publish a pack whose verifying spans must remain resident.
 	ctx := t.Context()
 	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
 	opener, transport := openerFromBytes(packBytes)
@@ -2017,11 +2235,13 @@ func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
 		SizeBytes:   uint64(len(packBytes)),
 	}})
 
+	// Gate writeback and constrain the resident cache to one byte.
 	blocked := make(chan struct{})
 	wb := newWritebackStore(func() { <-blocked })
 	store.SetWriteback(ctx, wb, 0)
 	store.SetRangeCacheMaxBytes(1)
 
+	// Read alpha to start verification of its resident span.
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("GetBlock: found=%v err=%v", found, err)
@@ -2041,6 +2261,7 @@ func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
 }
 
 func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T) {
+	// Gate the first block writeback in an initialized pack reader.
 	firstPut := make(chan struct{})
 	releasePut := make(chan struct{})
 	var putCalls atomic.Int32
@@ -2055,10 +2276,13 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 	eng.SetIndexCache(cache)
 	eng.SetWriteback(t.Context(), writeback, 64)
 
+	// Prepare and start writeback for two resident encoded blocks.
 	var job func()
 	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		// Populate the reader with resident blocks and their index entries.
 		var entries []*kvfile.IndexEntry
 		for i, data := range [][]byte{[]byte("first"), []byte("second")} {
+			// Build the reference and encoded value for the resident block.
 			ref, err := block.BuildBlockRef(data, nil)
 			if err != nil {
 				t.Fatal(err)
@@ -2067,6 +2291,8 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Insert the resident span and describe its index entry.
 			sp := newSpan(int64(i*16), value)
 			eng.insertSpanLocked(sp)
 			entries = append(entries, &kvfile.IndexEntry{
@@ -2075,6 +2301,8 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 				Size:   uint64(len(value)),
 			})
 		}
+
+		// Install the resident block catalog and prepare its writeback job.
 		eng.setIndexEntriesLocked(entries)
 		job = eng.prepareWritebackLocked(0, eng.size)
 	})
@@ -2084,18 +2312,22 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 	go job()
 	<-firstPut
 
+	// Attach the running pack reader to the store being closed.
 	store := NewPackfileStore(nil, cache)
 	store.SetWriteback(t.Context(), writeback, 64)
 	store.mtx.Lock()
 	store.engines[eng.packID] = eng
 	store.mtx.Unlock()
 
+	// Close the store while its writeback batch remains gated.
 	closeDone := make(chan struct{})
 	go func() {
 		store.Close()
 		close(closeDone)
 	}()
 	<-eng.ctx.Done()
+
+	// Verify closing retains engine references until writeback drains.
 	select {
 	case <-closeDone:
 		t.Fatal("Close returned while PutBlockBatch was running")
@@ -2107,6 +2339,7 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 		}
 	})
 
+	// Release writeback and verify closing drains the entire batch.
 	close(releasePut)
 	<-closeDone
 	if got := putCalls.Load(); got != 2 {
@@ -2118,6 +2351,8 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 			t.Fatalf("engine retained work or references after Close: running=%d", eng.writebackRunning)
 		}
 	})
+
+	// Verify closing releases the store cache, target, and engines.
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 	if store.cache != nil || store.writebackTarget != nil || store.engines != nil {
@@ -2126,10 +2361,12 @@ func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T
 }
 
 func TestPackfileStoreUpdateManifestAfterCloseIgnoresValidBloom(t *testing.T) {
+	// Close a store before publishing a valid pack bloom filter.
 	_, bloomBytes := buildTestPack(t, map[string][]byte{"block": []byte("data")})
 	store := NewPackfileStore(nil, newMemIndexCache())
 	store.Close()
 
+	// Verify manifest publication after closing leaves the store empty.
 	store.UpdateManifest([]*packfile.PackfileEntry{{
 		Id:          "closed-pack",
 		BloomFilter: bloomBytes,

@@ -90,6 +90,7 @@ func testPackItem(t *testing.T, data string) packItem {
 }
 
 func packItems(t testing.TB, items []packItem) ([]byte, []byte) {
+	// Pack fixture blocks and collect their generated bloom filter.
 	t.Helper()
 	var buf bytes.Buffer
 	idx := 0

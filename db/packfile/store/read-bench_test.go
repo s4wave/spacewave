@@ -18,6 +18,7 @@ import (
 // of 4 KiB blocks in random order with writeback enabled, and waits until the
 // writeback target holds every block.
 func BenchmarkPackfileStoreColdPackRead(b *testing.B) {
+	// Build deterministic blocks and references for the cold-pack benchmark.
 	const blockCount = 1024
 	rng := rand.New(rand.NewPCG(1, 2))
 	items := make([]packItem, blockCount)
@@ -34,13 +35,17 @@ func BenchmarkPackfileStoreColdPackRead(b *testing.B) {
 		items[i] = packItem{h: h, data: data}
 		refs[i] = block.NewBlockRef(h)
 	}
+
+	// Pack the benchmark blocks and randomize their read order.
 	data, bloom := packItems(b, items)
 	rng.Shuffle(len(refs), func(i, j int) { refs[i], refs[j] = refs[j], refs[i] })
 	transport := &bytesTransport{data: data}
 
+	// Measure cold-pack reads including completion of every block writeback.
 	b.SetBytes(int64(len(data)))
 	b.ReportAllocs()
 	for b.Loop() {
+		// Create a fresh store and writeback target for the benchmark iteration.
 		store := NewPackfileStore(func(id string, size int64) (*PackReader, error) {
 			return NewPackReader(id, size, transport), nil
 		}, newMemIndexCache())
@@ -54,10 +59,14 @@ func BenchmarkPackfileStoreColdPackRead(b *testing.B) {
 			want: blockCount,
 			done: make(chan struct{}),
 		}
+
+		// Publish the benchmark pack with target-only writeback alignment.
 		store.SetWriteback(b.Context(), target, 0)
 		store.UpdateManifest([]*packfile.PackfileEntry{{
 			Id: "bench", BloomFilter: bloom, BlockCount: blockCount, SizeBytes: uint64(len(data)),
 		}})
+
+		// Read every benchmark block and await writeback before closing.
 		for _, ref := range refs {
 			if _, found, err := store.GetBlock(b.Context(), ref); err != nil || !found {
 				b.Fatalf("GetBlock: found=%v err=%v", found, err)
@@ -97,6 +106,7 @@ func (s *countingStore) PutBlockBatch(ctx context.Context, entries []*block.PutB
 }
 
 func (s *countingStore) count(ref *block.BlockRef) {
+	// Count distinct written references under the store lock and signal completion.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if s.seen == nil {

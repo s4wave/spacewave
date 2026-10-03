@@ -25,6 +25,8 @@ func TestPackReaderBlockReadAcrossEviction(t *testing.T) {
 					if err := cache.Set(t.Context(), "pack", mustReadIndexTail(t, data)); err != nil {
 						t.Fatal(err)
 					}
+
+					// Create a pack reader with a one-byte shared budget and a cached index.
 					transport := &bytesTransport{data: data}
 					reader := NewPackReader("pack", int64(len(data)), transport)
 					t.Cleanup(reader.Close)
