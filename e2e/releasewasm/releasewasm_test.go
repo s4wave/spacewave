@@ -58,44 +58,55 @@ const (
 
 // TIER: nightly
 func TestMain(m *testing.M) {
+	// Configure the release harness logger.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Require the release harness opt-in before starting browsers.
 	if !E2EReleaseWasmEnabled() {
 		le.Info("skipping e2e/releasewasm package; set ENABLE_E2E_RELEASE_WASM=true to run")
 		os.Exit(0)
 	}
 
+	// Apply the release startup trace configuration.
 	if err := applyReleaseStartupTraceEnv(); err != nil {
 		le.WithError(err).Fatal("apply release wasm startup trace env")
 	}
 
+	// Bound the release harness lifetime and release its context.
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cancel()
 
+	// Boot the release harness and expose it to the tests.
 	h, err := boot(ctx, le)
 	if err != nil {
 		le.WithError(err).Fatal("boot release wasm harness")
 	}
 	testHarness = h
 
+	// Run the release tests and release their browser harness.
 	code := m.Run()
 	h.release(le)
 	os.Exit(code)
 }
 
 func TestBrowserReleaseDescriptorIncludesPrerenderedShell(t *testing.T) {
+	// Read the production browser release descriptor.
 	desc, err := testHarness.browserRelease(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the release schema and generation identity.
 	if desc.SchemaVersion != 1 {
 		t.Fatalf("expected schema version 1, got %d", desc.SchemaVersion)
 	}
 	if desc.GenerationID == "" {
 		t.Fatal("expected generation id")
 	}
+
+	// Verify the release shell includes its entrypoint and workers.
 	if desc.ShellAssets.Entrypoint == "" {
 		t.Fatal("expected shellAssets.entrypoint")
 	}
@@ -105,6 +116,8 @@ func TestBrowserReleaseDescriptorIncludesPrerenderedShell(t *testing.T) {
 	if desc.ShellAssets.SharedWorker == "" {
 		t.Fatal("expected shellAssets.sharedWorker")
 	}
+
+	// Verify the release includes the root and Drive prerendered routes.
 	if !slices.Contains(desc.PrerenderedRoutes, "/") {
 		t.Fatalf("expected / in prerendered routes: %v", desc.PrerenderedRoutes)
 	}
@@ -114,11 +127,13 @@ func TestBrowserReleaseDescriptorIncludesPrerenderedShell(t *testing.T) {
 }
 
 func TestLaunchPostPrerenderAssets(t *testing.T) {
+	// Open the prerendered launch post.
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/blog/2026/04/launch"); err != nil {
 		t.Fatalf("goto launch post: %v", err)
 	}
 
+	// Inspect the launch post styles and image delivery.
 	raw, err := page.Evaluate(`async () => {
 		const heading = document.querySelector('.blog-prose h2')
 		const list = document.querySelector('.blog-prose ul')
@@ -160,16 +175,21 @@ func TestLaunchPostPrerenderAssets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("inspect launch post: %v", err)
 	}
+
+	// Decode the launch post inspection result.
 	state, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected launch post state %T: %#v", raw, raw)
 	}
 
+	// Verify the launch post assets and signoff structure.
 	for _, key := range []string{"linkedHydrateCss", "avatarLoaded", "avatarSameOrigin", "signoffHasHardBreaks"} {
 		if !releaseBoolField(state, key) {
 			t.Errorf("expected %s: %#v", key, state)
 		}
 	}
+
+	// Verify the launch post typography and spacing.
 	for key, want := range map[string]string{
 		"headingFontSize":       "24px",
 		"headingFontWeight":     "600",
@@ -187,11 +207,13 @@ func TestLaunchPostPrerenderAssets(t *testing.T) {
 }
 
 func TestRootPrerenderLoadsProductionWasmBundle(t *testing.T) {
+	// Open the prerendered release root.
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		t.Fatalf("goto root: %v", err)
 	}
 
+	// Boot the production bundle from the prerendered root.
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	_, err := page.Evaluate(`() => {
@@ -204,6 +226,7 @@ func TestRootPrerenderLoadsProductionWasmBundle(t *testing.T) {
 }
 
 func TestGoScriptDedicatedWorkerLocalBundleSmoke(t *testing.T) {
+	// Require the GoScript compiler for the dedicated-worker smoke test.
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		t.Fatal(err)
@@ -212,11 +235,13 @@ func TestGoScriptDedicatedWorkerLocalBundleSmoke(t *testing.T) {
 		t.Skipf("set %s=true to run GoScript dedicated-worker release smoke", E2EReleaseWasmGoScriptEnv)
 	}
 
+	// Open the release root with a dedicated worker.
 	page := testHarness.newDedicatedWorkerPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		t.Fatalf("goto root: %v", err)
 	}
 
+	// Boot the production bundle and verify its dedicated-worker mode.
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	_, err = page.Evaluate(`() => {
@@ -388,15 +413,19 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 }
 
 func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
+	// Require the lazy-plugin release fixture opt-in.
 	if os.Getenv("E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE") != "1" {
 		t.Skip("set E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE=1 to run the release-world lazy-plugin fixture")
 	}
 
+	// Resolve the fixture's Release World CDN pack prefix.
 	releaseWorld, err := releaseWorldFixtureConfig(t)
 	if err != nil {
 		t.Fatal(err)
 	}
 	releasePackPrefix := strings.TrimRight(releaseWorld.cdnBase, "/") + "/" + releaseWorld.spaceID + "/packs/"
+
+	// Verify the descriptor leaves CLI plugin delivery to the Release World.
 	desc, err := testHarness.browserRelease(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -407,6 +436,7 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 		}
 	}
 
+	// Collect Release World pack requests and route-abort failures.
 	page, mutePageDiagnostics := testHarness.newPageWithDiagnosticsControl(t)
 	ctx := page.Context()
 	type releaseWorldRequest struct {
@@ -417,9 +447,13 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 	var releaseWorldRequests []releaseWorldRequest
 	var routeAbortErrors []error
 	ctx.OnRequest(func(req playwright.Request) {
+
+		// Ignore requests outside the fixture's Release World pack prefix.
 		if !strings.HasPrefix(req.URL(), releasePackPrefix) {
 			return
 		}
+
+		// Record the Release World request and its Range header under the lock.
 		rangeHeader, _ := req.HeaderValue("Range")
 		requestsMu.Lock()
 		releaseWorldRequests = append(releaseWorldRequests, releaseWorldRequest{url: req.URL(), rangeHeader: rangeHeader})
@@ -433,6 +467,7 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 		}
 	}
 
+	// Boot the lazy CLI plugin from the release root.
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		t.Fatalf("goto lazy-plugin fixture root: %v", err)
 	}
@@ -441,6 +476,8 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 	if _, err := page.Evaluate(`() => globalThis.__swBoot('#/')`); err != nil {
 		t.Fatalf("boot lazy-plugin fixture: %v", err)
 	}
+
+	// Wait for the CLI plugin and its durable manifest copy.
 	waitForLiveApp(t, page)
 	waitForPluginWorkersRunning(t, page, []string{
 		"plugin/spacewave-cli-plugin",
@@ -448,9 +485,12 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 	waitForCliTerminalPrompt(t, page)
 	waitForPluginManifestCopyDone(t, page, "spacewave-cli-plugin")
 
+	// Snapshot the first startup's Release World requests.
 	requestsMu.Lock()
 	firstRequests := slices.Clone(releaseWorldRequests)
 	requestsMu.Unlock()
+
+	// Verify first startup fetched a Release World pack by range.
 	firstRangeCount := 0
 	for _, request := range firstRequests {
 		if request.rangeHeader != "" {
@@ -461,11 +501,13 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 		t.Fatal("lazy plugin became ready without a Release World CDN Range request")
 	}
 
+	// Close the first page while retaining its browser context.
 	mutePageDiagnostics()
 	if err := page.Close(); err != nil {
 		t.Fatalf("close first lazy-plugin fixture page: %v", err)
 	}
 
+	// Open a restart page with diagnostics and cleanup.
 	restartPage, err := ctx.NewPage()
 	if err != nil {
 		t.Fatalf("create lazy-plugin restart page: %v", err)
@@ -475,6 +517,8 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 		muteRestartPageDiagnostics()
 		_ = restartPage.Close()
 	})
+
+	// Clear the HTTP cache and reject Release World pack delivery on restart.
 	cdp, err := ctx.NewCDPSession(restartPage)
 	if err != nil {
 		t.Fatalf("create restart CDP session: %v", err)
@@ -485,6 +529,8 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 	if err := ctx.Route(releasePackPrefix+"**/*.kvf", abortPackRoute); err != nil {
 		t.Fatalf("abort Release World pack requests on restart: %v", err)
 	}
+
+	// Boot the restart page with remote pack delivery disabled.
 	if _, err := restartPage.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		dumpPageState(t, restartPage)
 		t.Fatalf("durable local restart failed with Release World pack requests aborted: %v", err)
@@ -494,12 +540,15 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 	if _, err := restartPage.Evaluate(`() => globalThis.__swBoot('#/')`); err != nil {
 		t.Fatalf("boot lazy-plugin fixture after Release World pack route: %v", err)
 	}
+
+	// Verify the cached CLI plugin reaches its terminal prompt.
 	waitForLiveApp(t, restartPage)
 	waitForPluginWorkersRunning(t, restartPage, []string{
 		"plugin/spacewave-cli-plugin",
 	})
 	waitForCliTerminalPrompt(t, restartPage)
 
+	// Verify restart uses the durable cache without remote pack requests.
 	requestsMu.Lock()
 	restartRequests := slices.Clone(releaseWorldRequests)
 	routeErrors := slices.Clone(routeAbortErrors)
@@ -513,10 +562,14 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 			len(restartRequests)-len(firstRequests),
 		)
 	}
+
+	// Close the cached restart page.
 	muteRestartPageDiagnostics()
 	if err := restartPage.Close(); err != nil {
 		t.Fatalf("close restart lazy-plugin fixture page: %v", err)
 	}
+
+	// Open a fresh browser context for the Drive quickstart.
 	freshContext, err := testHarness.browser.NewContext(testHarness.newContextOptions(t))
 	if err != nil {
 		t.Fatalf("create fresh quickstart browser context: %v", err)
@@ -526,6 +579,8 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 			t.Logf("close fresh quickstart browser context: %v", err)
 		}
 	})
+
+	// Navigate a fresh page to the Drive quickstart.
 	freshPage, err := freshContext.NewPage()
 	if err != nil {
 		t.Fatalf("create fresh quickstart page: %v", err)
@@ -535,6 +590,8 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 		dumpPageState(t, freshPage)
 		t.Fatalf("goto fresh quickstart drive: %v", err)
 	}
+
+	// Wait for the fresh Drive quickstart frame.
 	waitForPrerenderRoot(t, freshPage)
 	waitForBootFunction(t, freshPage)
 	waitForLiveApp(t, freshPage)
@@ -546,10 +603,14 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 		dumpPageState(t, freshPage)
 		t.Fatalf("wait for fresh quickstart frame-ready: %v", err)
 	}
+
+	// Verify the fresh Drive quickstart reaches content readiness.
 	if _, err := waitForQuickstartDriveContentReady(t, freshPage); err != "" {
 		dumpPageState(t, freshPage)
 		t.Fatalf("fresh quickstart Drive content-ready failed: %s", err)
 	}
+
+	// Close the fresh quickstart page after its proof.
 	muteFreshPageDiagnostics()
 	if err := freshPage.Close(); err != nil {
 		t.Fatalf("close fresh quickstart page: %v", err)
@@ -557,11 +618,14 @@ func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
 }
 
 func releaseWorldFixtureConfig(t *testing.T) (releaseWorldConfigValues, error) {
+	// Evaluate the release fixture's Bldr configuration.
 	t.Helper()
 	result, err := bldr_project_starlark.Evaluate(filepath.Join(testHarness.repoRoot, "bldr.star"))
 	if err != nil {
 		return releaseWorldConfigValues{}, err
 	}
+
+	// Select the lazy-plugin fixture and its launcher override.
 	build := result.Config.GetBuild()["release-web-lazy-plugin-fixture"]
 	if build == nil {
 		return releaseWorldConfigValues{}, errors.New("missing release-web-lazy-plugin-fixture build")
@@ -570,6 +634,8 @@ func releaseWorldFixtureConfig(t *testing.T) (releaseWorldConfigValues, error) {
 	if launcherOverride == nil {
 		return releaseWorldConfigValues{}, errors.New("missing lazy fixture launcher override")
 	}
+
+	// Decode the launcher configuration and select its Release World host.
 	var launcherConf bldr_plugin_compiler_go.Config
 	if err := launcherConf.UnmarshalJSON(launcherOverride.GetConfig()); err != nil {
 		return releaseWorldConfigValues{}, errors.Wrap(err, "decode lazy fixture launcher config")
@@ -578,6 +644,8 @@ func releaseWorldFixtureConfig(t *testing.T) (releaseWorldConfigValues, error) {
 	if hostConfig == nil {
 		return releaseWorldConfigValues{}, errors.New("missing lazy fixture Release World host config")
 	}
+
+	// Decode the fixture's Release World configuration.
 	var worldConf cdn_world_controller.Config
 	if err := worldConf.UnmarshalJSON(hostConfig.GetConfig()); err != nil {
 		return releaseWorldConfigValues{}, errors.Wrap(err, "decode lazy fixture Release World config")
@@ -589,6 +657,7 @@ func releaseWorldFixtureConfig(t *testing.T) (releaseWorldConfigValues, error) {
 }
 
 func waitForCliTerminalPrompt(t *testing.T, page playwright.Page) {
+	// Create a local quickstart session for the CLI proof.
 	t.Helper()
 	if _, err := page.Goto(testHarness.getBaseURL() + "/#/quickstart/local"); err != nil {
 		t.Fatalf("open local quickstart for CLI terminal proof: %v", err)
@@ -598,6 +667,8 @@ func waitForCliTerminalPrompt(t *testing.T, page playwright.Page) {
 	}); err != nil {
 		t.Fatalf("local quickstart did not create a session for CLI RPC proof: %v", err)
 	}
+
+	// Read and validate the local session route.
 	hash, err := page.Evaluate(`() => window.location.hash`)
 	if err != nil {
 		t.Fatalf("read local session route for CLI RPC proof: %v", err)
@@ -606,10 +677,14 @@ func waitForCliTerminalPrompt(t *testing.T, page playwright.Page) {
 	if !ok {
 		t.Fatalf("local session route has unexpected type %T", hash)
 	}
+
+	// Extract the session index for the CLI settings route.
 	sessionIndex := strings.TrimSuffix(strings.TrimPrefix(hashString, "#/u/"), "/")
 	if sessionIndex == "" {
 		t.Fatalf("local session route %q has no session index for CLI RPC proof", hashString)
 	}
+
+	// Open the session's CLI settings and wait for its terminal action.
 	if _, err := page.Goto(testHarness.getBaseURL() + "/#/u/" + sessionIndex + "/settings/cli"); err != nil {
 		t.Fatalf("open CLI settings for session %s: %v", sessionIndex, err)
 	}
@@ -619,6 +694,8 @@ func waitForCliTerminalPrompt(t *testing.T, page playwright.Page) {
 	}); err != nil {
 		t.Fatalf("CLI settings did not expose Open CLI terminal: %v", err)
 	}
+
+	// Open the CLI terminal and wait for its route.
 	if err := openCLIButton.Click(playwright.LocatorClickOptions{
 		Timeout: playwright.Float(browserWaitMS),
 	}); err != nil {
@@ -629,6 +706,8 @@ func waitForCliTerminalPrompt(t *testing.T, page playwright.Page) {
 	}); err != nil {
 		t.Fatalf("CLI terminal route did not open: %v", err)
 	}
+
+	// Wait for the terminal screen and the CLI stream prompt.
 	terminalScreen := page.Locator(".xterm:visible .xterm-screen").First()
 	if err := terminalScreen.WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(browserWaitMS),
@@ -643,6 +722,7 @@ func waitForCliTerminalPrompt(t *testing.T, page playwright.Page) {
 }
 
 func waitForPluginManifestCopyDone(t *testing.T, page playwright.Page, pluginID string) {
+	// Wait for the plugin manifest copy's terminal state.
 	t.Helper()
 	raw, err := page.WaitForFunction(`(pluginId) => {
 		const marks = globalThis.__swStartupMarks ?? []
@@ -666,6 +746,8 @@ func waitForPluginManifestCopyDone(t *testing.T, page playwright.Page, pluginID 
 		dumpPageState(t, page)
 		t.Fatalf("manifest copy completion wait failed for %s: %v", pluginID, err)
 	}
+
+	// Decode and verify the plugin manifest copy completed.
 	stateValue, err := raw.JSONValue()
 	if err != nil {
 		dumpPageState(t, page)
@@ -679,6 +761,7 @@ func waitForPluginManifestCopyDone(t *testing.T, page playwright.Page, pluginID 
 }
 
 func TestGoScriptQuickstartDriveLoadsAppModule(t *testing.T) {
+	// Require the GoScript compiler for the Drive module probe.
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		t.Fatal(err)
@@ -687,12 +770,14 @@ func TestGoScriptQuickstartDriveLoadsAppModule(t *testing.T) {
 		t.Skipf("set %s=true to run GoScript quickstart Drive app module probe", E2EReleaseWasmGoScriptEnv)
 	}
 
+	// Open the release root with HTTP tracing.
 	t.Setenv("E2E_RELEASE_WASM_HTTP_TRACE", "1")
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		t.Fatalf("goto root: %v", err)
 	}
 
+	// Boot the Drive quickstart from the release root.
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	_, err = page.Evaluate(`() => {
@@ -701,6 +786,8 @@ func TestGoScriptQuickstartDriveLoadsAppModule(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start root production goscript bundle: %v", err)
 	}
+
+	// Wait for the core plugins and the Drive app module.
 	waitForLiveApp(t, page)
 	waitForPluginWorkersRunning(t, page, []string{
 		"plugin/spacewave-core",
@@ -719,8 +806,8 @@ const (
 // logical plugin worker. A physical worker id extends the logical id with its
 // instance and manifest generation, so the logical id matches as a path prefix.
 func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs []string) {
+	// Wait for each logical plugin worker to reach its running state.
 	t.Helper()
-
 	_, err := page.WaitForFunction(`(workerIds) => {
 		const marks = globalThis.__swStartupMarks ?? []
 		return workerIds.every((workerId) =>
@@ -740,8 +827,8 @@ func waitForPluginWorkersRunning(t *testing.T, page playwright.Page, workerIDs [
 }
 
 func waitForQuickstartDriveAppModule(t *testing.T, page playwright.Page) {
+	// Wait for the Drive app module to load or fail.
 	t.Helper()
-
 	raw, err := page.WaitForFunction(`() => {
 		const text = document.body?.innerText || ''
 		const failed = text.match(/Failed to load module\s+(\S+)/)
@@ -771,6 +858,8 @@ func waitForQuickstartDriveAppModule(t *testing.T, page playwright.Page) {
 		dumpPageState(t, page)
 		t.Fatalf("wait for quickstart Drive app module: %v", err)
 	}
+
+	// Decode the Drive app module probe result.
 	value, err := raw.JSONValue()
 	if err != nil {
 		dumpPageState(t, page)
@@ -781,6 +870,8 @@ func waitForQuickstartDriveAppModule(t *testing.T, page playwright.Page) {
 		dumpPageState(t, page)
 		t.Fatalf("unexpected quickstart Drive app module probe payload %T", value)
 	}
+
+	// Collect module delivery evidence when the Drive module fails.
 	if state["state"] == "failed" {
 		modulePath, _ := state["modulePath"].(string)
 		if modulePath != "" {
@@ -789,12 +880,14 @@ func waitForQuickstartDriveAppModule(t *testing.T, page playwright.Page) {
 		dumpPageState(t, page)
 		t.Fatalf("quickstart Drive app module failed to load: %v", state["modulePath"])
 	}
+
+	// Record the loaded Drive app module state.
 	t.Logf("quickstart Drive app module loaded: %#v", state)
 }
 
 func collectQuickstartModuleLoadDifferential(t *testing.T, page playwright.Page, modulePath string) {
+	// Compare browser module delivery with the server and release artifact.
 	t.Helper()
-
 	browserProbe := collectBrowserModuleLoadDifferential(t, page, modulePath)
 	rootDirect := directServerModuleProbe(t, modulePath)
 	sonnerDirect := directServerModuleProbe(t, sonnerModulePath)
@@ -810,18 +903,21 @@ func collectQuickstartModuleLoadDifferential(t *testing.T, page playwright.Page,
 			Sonner: sonnerArtifact,
 		},
 	}
+
+	// Serialize and preserve the module delivery comparison.
 	var arena fastjson.Arena
 	reportJSON := report.appendJSON(&arena).MarshalTo(nil)
 	t.Logf("quickstart module load differential: %s", string(reportJSON))
 	writeModuleLoadDifferentialArtifact(t, string(reportJSON))
 
+	// Verify browser module delivery is complete and matches the artifact.
 	assertBrowserModuleFetchComplete(t, "root App module", browserProbe.RootFetch)
 	assertBrowserModuleFetchMatchesArtifact(t, "Sonner module", browserProbe.SonnerFetch, sonnerArtifact)
 }
 
 func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, modulePath string) browserModuleLoadDifferential {
+	// Collect browser fetch and import evidence for the app and Sonner modules.
 	t.Helper()
-
 	raw, err := page.Evaluate(`async (args) => {
 		const textEncoder = new TextEncoder()
 		const textDecoder = new TextDecoder()
@@ -1008,10 +1104,14 @@ func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, mo
 	if err != nil {
 		t.Fatalf("collect browser module load differential: %v", err)
 	}
+
+	// Decode the browser module comparison payload.
 	encoded, ok := raw.(string)
 	if !ok {
 		t.Fatalf("unexpected browser module load differential payload %T", raw)
 	}
+
+	// Parse the browser module comparison record.
 	probe, err := parseBrowserModuleLoadDifferential(encoded)
 	if err != nil {
 		t.Fatalf("parse browser module load differential payload: %v", err)
@@ -1020,24 +1120,32 @@ func collectBrowserModuleLoadDifferential(t *testing.T, page playwright.Page, mo
 }
 
 func directServerModuleProbe(t *testing.T, modulePath string) moduleBodyProbe {
+	// Require an absolute module request path.
 	t.Helper()
-
 	if !strings.HasPrefix(modulePath, "/") {
 		t.Fatalf("module path must be absolute: %q", modulePath)
 	}
+
+	// Build the direct server request for the module.
 	req, err := http.NewRequest(http.MethodGet, testHarness.getBaseURL()+modulePath, nil)
 	if err != nil {
 		t.Fatalf("build direct module request %q: %v", modulePath, err)
 	}
+
+	// Fetch the module response and release its body.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("direct module request %q: %v", modulePath, err)
 	}
 	defer resp.Body.Close()
+
+	// Read the complete direct module response body.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("read direct module response %q: %v", modulePath, err)
 	}
+
+	// Attach HTTP response metadata to the module body summary.
 	probe := summarizeModuleBody(body)
 	probe.Path = modulePath
 	probe.Status = resp.StatusCode
@@ -1047,13 +1155,15 @@ func directServerModuleProbe(t *testing.T, modulePath string) moduleBodyProbe {
 }
 
 func releaseWebPkgArtifactProbe(t *testing.T, modulePath string) moduleBodyProbe {
+	// Read the module's release package artifact.
 	t.Helper()
-
 	artifactRelPath := releaseWebPkgArtifactRelPath(t, modulePath)
 	body, err := os.ReadFile(filepath.Join(testHarness.repoRoot, artifactRelPath))
 	if err != nil {
 		t.Fatalf("read release web package artifact %s for %s: %v", artifactRelPath, modulePath, err)
 	}
+
+	// Attach the artifact identity to its module body summary.
 	probe := summarizeModuleBody(body)
 	probe.Path = modulePath
 	probe.ArtifactRelPath = artifactRelPath
@@ -1062,12 +1172,14 @@ func releaseWebPkgArtifactProbe(t *testing.T, modulePath string) moduleBodyProbe
 }
 
 func releaseWebPkgArtifactRelPath(t *testing.T, modulePath string) string {
+	// Require the module path to name a release web package.
 	t.Helper()
-
 	const prefix = "/b/pkg/"
 	if !strings.HasPrefix(modulePath, prefix) {
 		t.Fatalf("release web package artifact path must begin with %s: %q", prefix, modulePath)
 	}
+
+	// Normalize the package path and reject escapes from its artifact root.
 	pkgPath := strings.TrimPrefix(modulePath, prefix)
 	cleanPkgPath := path.Clean(pkgPath)
 	if cleanPkgPath == "." || cleanPkgPath == ".." || strings.HasPrefix(cleanPkgPath, "../") || path.IsAbs(cleanPkgPath) {
@@ -1077,12 +1189,15 @@ func releaseWebPkgArtifactRelPath(t *testing.T, modulePath string) string {
 }
 
 func summarizeModuleBody(body []byte) moduleBodyProbe {
+	// Hash the module body and retain its leading diagnostic text.
 	sum := sha256.Sum256(body)
 	bodyText := string(body)
 	head := bodyText
 	if len(head) > 160 {
 		head = head[:160]
 	}
+
+	// Retain the module body's trailing diagnostic text.
 	tail := bodyText
 	if len(tail) > 240 {
 		tail = tail[len(tail)-240:]
@@ -1096,8 +1211,8 @@ func summarizeModuleBody(body []byte) moduleBodyProbe {
 }
 
 func assertBrowserModuleFetchComplete(t *testing.T, label string, browser moduleFetchProbe) {
+	// Verify browser module delivery succeeded through the complete body.
 	t.Helper()
-
 	if browser.Status != http.StatusOK {
 		t.Fatalf("%s browser probe did not return 200: %#v", label, browser)
 	}
@@ -1107,8 +1222,8 @@ func assertBrowserModuleFetchComplete(t *testing.T, label string, browser module
 }
 
 func assertBrowserModuleFetchMatchesArtifact(t *testing.T, label string, browser moduleFetchProbe, artifact moduleBodyProbe) {
+	// Verify the browser module body matches the release artifact.
 	t.Helper()
-
 	assertBrowserModuleFetchComplete(t, label, browser)
 	if !artifact.OK {
 		t.Fatalf("%s release artifact probe failed: %#v", label, artifact)
@@ -1122,11 +1237,13 @@ func assertBrowserModuleFetchMatchesArtifact(t *testing.T, label string, browser
 }
 
 func writeModuleLoadDifferentialArtifact(t *testing.T, state string) {
+	// Require a configured artifact directory for module evidence.
 	t.Helper()
-
 	if testHarness == nil || testHarness.artifactDir == "" {
 		return
 	}
+
+	// Create the module comparison artifact's parent directory.
 	replacer := strings.NewReplacer("/", "-", "\\", "-", " ", "-", ":", "-")
 	path := filepath.Join(
 		testHarness.artifactDir,
@@ -1136,6 +1253,8 @@ func writeModuleLoadDifferentialArtifact(t *testing.T, state string) {
 		t.Logf("write module load differential artifact mkdir %s: %v", path, err)
 		return
 	}
+
+	// Write and report the module comparison artifact.
 	if err := os.WriteFile(path, []byte(state), 0o644); err != nil {
 		t.Logf("write module load differential artifact %s: %v", path, err)
 		return
@@ -1144,15 +1263,19 @@ func writeModuleLoadDifferentialArtifact(t *testing.T, state string) {
 }
 
 func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
+	// Read the descriptor for the runtime identity comparison.
 	desc, err := testHarness.browserRelease(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the release root for the runtime comparison.
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
 		t.Fatalf("goto root: %v", err)
 	}
 
+	// Boot the production runtime from its prerendered root.
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	_, err = page.Evaluate(`() => {
@@ -1163,6 +1286,7 @@ func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
 	}
 	waitForLiveApp(t, page)
 
+	// Read the running generation and ServiceWorker identities.
 	raw, err := page.Evaluate(`async () => {
 		const registration = await navigator.serviceWorker.ready
 		return {
@@ -1174,14 +1298,20 @@ func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read production runtime state: %v", err)
 	}
+
+	// Decode the runtime identity probe.
 	state, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected production runtime state %T", raw)
 	}
+
+	// Verify the running generation matches the release descriptor.
 	generationID, _ := state["generationId"].(string)
 	if generationID != desc.GenerationID {
 		t.Fatalf("generation id=%q want %q", generationID, desc.GenerationID)
 	}
+
+	// Verify the controlling and active ServiceWorkers match the release descriptor.
 	controllerURL, _ := state["controllerURL"].(string)
 	if !strings.HasSuffix(controllerURL, "/"+desc.ShellAssets.ServiceWorker) {
 		t.Fatalf("controller service worker=%q want suffix %q", controllerURL, desc.ShellAssets.ServiceWorker)
@@ -1193,14 +1323,19 @@ func TestProductionRuntimeMatchesReleaseDescriptor(t *testing.T) {
 }
 
 func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
+	// Read the release descriptor for the quickstart smoke artifact.
 	desc, err := testHarness.browserRelease(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Remove the previous quickstart smoke artifact.
 	path := testHarness.quickstartSmokeArtifactPath(t)
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("remove previous quickstart smoke artifact: %v", err)
 	}
+
+	// Open a traced Drive quickstart page with its source revision.
 	source := sourceRevision(t)
 	page := testHarness.newPage(t)
 	traceCapture := beginQuickstartRuntimeTrace(t, page)
@@ -1210,6 +1345,7 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	}
 	enableQuickstartTimingLogs(t, page)
 
+	// Wait for the prerendered Drive quickstart to mount its frame.
 	waitForPrerenderRoot(t, page)
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
@@ -1222,6 +1358,8 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 		dumpPageState(t, page)
 		t.Fatalf("wait for quickstart frame-ready: %v", err)
 	}
+
+	// Record Drive content and invitation readiness.
 	driveFrameReadyMs := browserNowMs(t, page)
 	driveContentReadyMs, driveContentReadyError := waitForQuickstartDriveContentReady(t, page)
 	if driveContentReadyError != "" {
@@ -1231,15 +1369,20 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 	if driveGoldenPathError != "" {
 		t.Logf("quickstart golden path not reached: %s", driveGoldenPathError)
 	}
+
+	// Measure the post-load workload and foreground resume, then stop tracing.
 	postLoadSOWorkload := runQuickstartPostLoadSOWorkload(t, page, driveContentReadyMs != nil)
 	foregroundResume := collectForegroundResumeEvidence(t, page)
 	logQuickstartTiming(t, page)
 	runtimeTrace := traceCapture.stop(t)
 
+	// Collect the quickstart smoke artifact from the measured browser state.
 	data, err := collectQuickstartSmokeArtifact(page, desc, source, driveFrameReadyMs, driveContentReadyMs, driveContentReadyError, driveGoldenPathReadyMs, driveGoldenPathError, runtimeTrace, postLoadSOWorkload, foregroundResume)
 	if err != nil {
 		t.Fatalf("collect quickstart smoke artifact: %v", err)
 	}
+
+	// Preserve and report the quickstart smoke artifact.
 	if err := writeQuickstartSmokeArtifact(path, data); err != nil {
 		t.Fatalf("write quickstart smoke artifact: %v", err)
 	}
@@ -1247,11 +1390,14 @@ func TestQuickstartPrerenderAutoBootsProductionWasmBundle(t *testing.T) {
 }
 
 func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
+	// Open the first Drive quickstart page.
 	pageA := testHarness.newPage(t)
 	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
 	if _, err := pageA.Goto(quickstartURL); err != nil {
 		t.Fatalf("goto first quickstart drive: %v", err)
 	}
+
+	// Wait for the first Drive quickstart frame.
 	waitForPrerenderRoot(t, pageA)
 	waitForBootFunction(t, pageA)
 	waitForLiveApp(t, pageA)
@@ -1263,6 +1409,8 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 		dumpPageState(t, pageA)
 		t.Fatalf("wait for first quickstart frame-ready: %v", err)
 	}
+
+	// Mark the first page to detect reloads and cross-tab navigation.
 	firstURL := pageA.URL()
 	if _, err := pageA.Evaluate(`() => {
 		const navEvents = []
@@ -1290,10 +1438,13 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 		t.Fatalf("install first tab reload probe: %v", err)
 	}
 
+	// Open a second Drive page in the retained browser context.
 	pageB := testHarness.newPageInContext(t, pageA.Context())
 	if _, err := pageB.Goto(quickstartURL); err != nil {
 		t.Fatalf("goto second quickstart drive: %v", err)
 	}
+
+	// Wait for the second Drive quickstart frame.
 	waitForPrerenderRootOrLiveApp(t, pageB)
 	waitForBootFunction(t, pageB)
 	waitForLiveApp(t, pageB)
@@ -1306,12 +1457,15 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 		t.Fatalf("wait for second quickstart frame-ready: %v", err)
 	}
 
+	// Close the second Drive page and foreground the first.
 	if err := pageB.Close(); err != nil {
 		t.Fatalf("close second quickstart tab: %v", err)
 	}
 	if err := pageA.BringToFront(); err != nil {
 		t.Fatalf("bring first quickstart tab to front: %v", err)
 	}
+
+	// Inspect the first page after the second page closes.
 	raw, err := pageA.Evaluate(`async () => {
 		await new Promise((resolve) => requestAnimationFrame(() => {
 			requestAnimationFrame(resolve)
@@ -1333,10 +1487,14 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read first tab after closing second: %v", err)
 	}
+
+	// Decode the surviving page's state.
 	state, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected first tab close state %T", raw)
 	}
+
+	// Verify the first page retains its URL, document and Drive frame.
 	if state["href"] != firstURL {
 		t.Fatalf("first tab URL changed after closing second tab: got %v want %s state=%#v", state["href"], firstURL, state)
 	}
@@ -1646,21 +1804,29 @@ func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
 }
 
 func TestQuickstartShellTabsPersistentProfileRestart(t *testing.T) {
+	// Require Chromium for the persistent-profile restart proof.
 	if testHarness.browserName != "chromium" {
 		t.Skip("persistent-profile release proof requires Chromium")
 	}
 
+	// Open the first persistent browser context with cleanup.
 	userDataDir := t.TempDir()
 	firstContext := testHarness.newPersistentBrowserContext(t, userDataDir)
 	firstContextClosed := false
 	t.Cleanup(func() {
+
+		// Leave an explicitly closed persistent context alone during cleanup.
 		if firstContextClosed {
 			return
 		}
+
+		// Close the first persistent context if the test exits early.
 		if err := firstContext.Close(); err != nil {
 			t.Logf("close first persistent browser context during cleanup: %v", err)
 		}
 	})
+
+	// Create a second Shell record in the persistent profile.
 	firstPage := testHarness.newPageInContext(t, firstContext)
 	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
 	openQuickstartReleasePage(t, firstPage, quickstartURL)
@@ -1668,22 +1834,29 @@ func TestQuickstartShellTabsPersistentProfileRestart(t *testing.T) {
 	if err := firstPage.Locator("button[title='New tab']").First().Click(); err != nil {
 		t.Fatalf("create persistent-profile Shell record: %v", err)
 	}
+
+	// Verify both Shell records exist before restarting the browser.
 	waitForShellRecordCount(t, firstPage, 2)
 	beforeRestart := readBrowserShellTabsSnapshot(t, firstPage)
 	if len(beforeRestart.Records) != 2 {
 		t.Fatalf("persistent-profile setup did not create two records: %#v", beforeRestart)
 	}
+
+	// Terminate the first browser context while preserving its profile.
 	if err := firstContext.Close(); err != nil {
 		t.Fatalf("close persistent browser context for restart: %v", err)
 	}
 	firstContextClosed = true
 
+	// Reopen the retained browser profile with cleanup.
 	secondContext := testHarness.newPersistentBrowserContext(t, userDataDir)
 	t.Cleanup(func() {
 		if err := secondContext.Close(); err != nil {
 			t.Logf("close relaunched persistent browser context: %v", err)
 		}
 	})
+
+	// Verify browser restart preserves the Shell records and adds a fresh entry.
 	secondPage := testHarness.newPageInContext(t, secondContext)
 	openQuickstartReleasePage(t, secondPage, quickstartURL)
 	waitForShellRecordCount(t, secondPage, len(beforeRestart.Records)+1)
@@ -1694,6 +1867,7 @@ func TestQuickstartShellTabsPersistentProfileRestart(t *testing.T) {
 	}
 	waitForShellLabel(t, secondPage, beforeRestart.Records[0].Name)
 
+	// Reset the persistent Shell inventory and verify its epoch advances.
 	beforeReset := afterRestart
 	resetShellTabsVisibly(t, secondPage)
 	waitForShellRecordCount(t, secondPage, 1)
@@ -1741,8 +1915,8 @@ type shellDiagnosticRecord struct {
 }
 
 func logShellDiagnostic(t *testing.T, page playwright.Page, label string) shellDiagnosticRecord {
+	// Collect the document's Shell routes, storage and visible panel.
 	t.Helper()
-
 	raw, err := page.Evaluate(`() => {
 		const readStorage = (storage, key) => {
 			const raw = storage.getItem(key)
@@ -1767,10 +1941,14 @@ func logShellDiagnostic(t *testing.T, page playwright.Page, label string) shellD
 	if err != nil {
 		t.Fatalf("shell_diagnostic label=%s collection_error=%v", label, err)
 	}
+
+	// Decode the Shell diagnostic record.
 	record, err := decodeShellDiagnosticRecord(raw)
 	if err != nil {
 		t.Fatalf("shell_diagnostic label=%s decode_error=%v payload_type=%T", label, err, raw)
 	}
+
+	// Report the Shell diagnostic record with its collection label.
 	t.Logf(
 		"shell_diagnostic label=%s location_href=%q location_hash=%q "+
 			"session_storage_shell_document_state_present=%t "+
@@ -1791,10 +1969,13 @@ func logShellDiagnostic(t *testing.T, page playwright.Page, label string) shellD
 }
 
 func decodeShellDiagnosticRecord(raw any) (shellDiagnosticRecord, error) {
+	// Require an object payload for the Shell diagnostic record.
 	value, ok := raw.(map[string]any)
 	if !ok {
 		return shellDiagnosticRecord{}, errors.Errorf("expected object, got %T", raw)
 	}
+
+	// Decode the Shell document's location fields.
 	locationHref, err := requiredShellDiagnosticString(value, "locationHref", true)
 	if err != nil {
 		return shellDiagnosticRecord{}, err
@@ -1803,6 +1984,8 @@ func decodeShellDiagnosticRecord(raw any) (shellDiagnosticRecord, error) {
 	if err != nil {
 		return shellDiagnosticRecord{}, err
 	}
+
+	// Decode the document and shared Shell storage records.
 	sessionDocumentState, err := decodeShellDiagnosticStorage(value, "sessionDocumentState")
 	if err != nil {
 		return shellDiagnosticRecord{}, err
@@ -1811,6 +1994,8 @@ func decodeShellDiagnosticRecord(raw any) (shellDiagnosticRecord, error) {
 	if err != nil {
 		return shellDiagnosticRecord{}, err
 	}
+
+	// Decode the Shell document's visible active panel identity.
 	visibleActivePanelID, err := requiredShellDiagnosticString(value, "visibleActivePanelID", false)
 	if err != nil {
 		return shellDiagnosticRecord{}, err
@@ -1825,14 +2010,19 @@ func decodeShellDiagnosticRecord(raw any) (shellDiagnosticRecord, error) {
 }
 
 func requiredShellDiagnosticString(value map[string]any, field string, nonEmpty bool) (string, error) {
+	// Require the requested Shell diagnostic field to exist.
 	raw, ok := value[field]
 	if !ok {
 		return "", errors.Errorf("missing %s", field)
 	}
+
+	// Require a string value for the Shell diagnostic field.
 	text, ok := raw.(string)
 	if !ok {
 		return "", errors.Errorf("%s has type %T, want string", field, raw)
 	}
+
+	// Enforce the Shell diagnostic field's nonempty contract.
 	if nonEmpty && text == "" {
 		return "", errors.Errorf("%s is empty", field)
 	}
@@ -1840,6 +2030,7 @@ func requiredShellDiagnosticString(value map[string]any, field string, nonEmpty 
 }
 
 func decodeShellDiagnosticStorage(value map[string]any, field string) (shellDiagnosticStorage, error) {
+	// Require the Shell storage diagnostic field to be an object.
 	raw, ok := value[field]
 	if !ok {
 		return shellDiagnosticStorage{}, errors.Errorf("missing %s", field)
@@ -1848,6 +2039,8 @@ func decodeShellDiagnosticStorage(value map[string]any, field string) (shellDiag
 	if !ok {
 		return shellDiagnosticStorage{}, errors.Errorf("%s has type %T, want object", field, raw)
 	}
+
+	// Decode the storage presence flag and raw snapshot value.
 	present, ok := storage["present"].(bool)
 	if !ok {
 		return shellDiagnosticStorage{}, errors.Errorf("%s.present has type %T, want bool", field, storage["present"])
@@ -1856,12 +2049,16 @@ func decodeShellDiagnosticStorage(value map[string]any, field string) (shellDiag
 	if !ok {
 		return shellDiagnosticStorage{}, errors.Errorf("missing %s.raw", field)
 	}
+
+	// Verify a null storage value agrees with the presence flag.
 	if rawValue == nil {
 		if present {
 			return shellDiagnosticStorage{}, errors.Errorf("%s.raw is null while present", field)
 		}
 		return shellDiagnosticStorage{}, nil
 	}
+
+	// Verify a non-null storage value is a present string snapshot.
 	text, ok := rawValue.(string)
 	if !ok {
 		return shellDiagnosticStorage{}, errors.Errorf("%s.raw has type %T, want string or null", field, rawValue)
@@ -1879,14 +2076,16 @@ type composedStartupMark struct {
 }
 
 func openQuickstartReleasePage(t *testing.T, page playwright.Page, targetURL string) {
+	// Open the requested release page and wait for the live application.
 	t.Helper()
-
 	if _, err := page.Goto(targetURL); err != nil {
 		t.Fatalf("goto composed Shell page %s: %v", targetURL, err)
 	}
 	waitForPrerenderRootOrLiveApp(t, page)
 	waitForBootFunction(t, page)
 	waitForLiveApp(t, page)
+
+	// Wait for the Drive frame when the target is a Drive quickstart.
 	if strings.Contains(targetURL, "/quickstart/drive") ||
 		strings.Contains(targetURL, "#/quickstart/drive") {
 		waitForQuickstartAppRoute(t, page)
@@ -1899,12 +2098,14 @@ func openQuickstartReleasePage(t *testing.T, page playwright.Page, targetURL str
 		}
 		return
 	}
+
+	// Wait for Shell tabs on other release routes.
 	waitForShellTabButtons(t, page)
 }
 
 func readBrowserShellTabsSnapshot(t *testing.T, page playwright.Page) composedShellSnapshot {
+	// Read the persisted browser Shell Tabs snapshot.
 	t.Helper()
-
 	raw, err := page.Evaluate(`() => {
 		const value = localStorage.getItem('browser-shell-tabs')
 		return value ? JSON.parse(value) : null
@@ -1912,6 +2113,8 @@ func readBrowserShellTabsSnapshot(t *testing.T, page playwright.Page) composedSh
 	if err != nil {
 		t.Fatalf("read browser Shell Tabs snapshot: %v", err)
 	}
+
+	// Decode the Shell snapshot's metadata and record inventory.
 	value, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("browser Shell Tabs snapshot missing or invalid: %#v", raw)
@@ -1925,12 +2128,18 @@ func readBrowserShellTabsSnapshot(t *testing.T, page playwright.Page) composedSh
 	if !ok {
 		t.Fatalf("browser Shell Tabs records missing or invalid: %#v", value)
 	}
+
+	// Decode each stored Shell record into the snapshot.
 	snapshot.Records = make([]composedShellRecord, 0, len(rawRecords))
 	for _, rawRecord := range rawRecords {
+
+		// Require each Shell record to be an object.
 		record, ok := rawRecord.(map[string]any)
 		if !ok {
 			t.Fatalf("browser Shell Tabs record invalid: %#v", rawRecord)
 		}
+
+		// Append the Shell record's identity and presentation fields.
 		snapshot.Records = append(snapshot.Records, composedShellRecord{
 			ID:               composedString(record["id"]),
 			Path:             composedString(record["path"]),
@@ -1939,6 +2148,8 @@ func readBrowserShellTabsSnapshot(t *testing.T, page playwright.Page) composedSh
 			CreationSequence: composedNumber(record["creationSequence"]),
 		})
 	}
+
+	// Verify the browser Shell snapshot uses the expected schema.
 	if snapshot.SchemaVersion != 1 {
 		t.Fatalf("browser Shell Tabs schema version=%v want 1: %#v", snapshot.SchemaVersion, snapshot)
 	}
@@ -1962,10 +2173,13 @@ func composedString(value any) string {
 }
 
 func findNewBrowserShellRecord(before, after composedShellSnapshot) string {
+	// Index the Shell record IDs present before the operation.
 	beforeIDs := make(map[string]bool, len(before.Records))
 	for _, record := range before.Records {
 		beforeIDs[record.ID] = true
 	}
+
+	// Identify the sole added Shell record.
 	var added string
 	for _, record := range after.Records {
 		if !beforeIDs[record.ID] {
@@ -1975,6 +2189,8 @@ func findNewBrowserShellRecord(before, after composedShellSnapshot) string {
 			added = record.ID
 		}
 	}
+
+	// Verify the Shell inventory grew by exactly one record.
 	if len(after.Records) != len(before.Records)+1 {
 		return ""
 	}
@@ -1999,18 +2215,21 @@ func browserShellRecordIDs(snapshot composedShellSnapshot) []string {
 }
 
 func sameBrowserShellRecordIDs(t *testing.T, left, right composedShellSnapshot) bool {
+	// Compare the Shell snapshots by their record IDs.
 	t.Helper()
-
 	leftIDs := browserShellRecordIDs(left)
 	rightIDs := browserShellRecordIDs(right)
 	return sameStringSet(leftIDs, rightIDs)
 }
 
 func sameBrowserShellRecordValues(before, after composedShellSnapshot) bool {
+	// Index the updated Shell records by identity.
 	afterByID := make(map[string]composedShellRecord, len(after.Records))
 	for _, record := range after.Records {
 		afterByID[record.ID] = record
 	}
+
+	// Verify every retained Shell record preserves its fields.
 	for _, record := range before.Records {
 		if afterRecord, ok := afterByID[record.ID]; !ok || afterRecord != record {
 			return false
@@ -2020,13 +2239,18 @@ func sameBrowserShellRecordValues(before, after composedShellSnapshot) bool {
 }
 
 func sameStringSet(left, right []string) bool {
+	// Require equal cardinality before comparing string sets.
 	if len(left) != len(right) {
 		return false
 	}
+
+	// Index the first string set's members.
 	values := make(map[string]bool, len(left))
 	for _, value := range left {
 		values[value] = true
 	}
+
+	// Verify every member of the second string set is present.
 	for _, value := range right {
 		if !values[value] {
 			return false
@@ -2036,8 +2260,8 @@ func sameStringSet(left, right []string) bool {
 }
 
 func waitForShellRecordCount(t *testing.T, page playwright.Page, count int) {
+	// Wait for the persisted Shell inventory to reach the expected size.
 	t.Helper()
-
 	_, err := page.WaitForFunction(`(want) => {
 		try {
 			const value = localStorage.getItem('browser-shell-tabs')
@@ -2055,11 +2279,12 @@ func waitForShellRecordCount(t *testing.T, page playwright.Page, count int) {
 }
 
 func waitForBrowserShellRecordPath(t *testing.T, page playwright.Page, id, path string) {
+	// Record the Shell document before waiting for a shared path update.
 	t.Helper()
-
 	t.Logf("shell_record_path_wait phase=before target_id=%q target_path=%q", id, path)
 	logShellDiagnostic(t, page, "browser_shell_record_path_wait_before")
 
+	// Wait for the shared Shell record to reach its target path.
 	_, err := page.WaitForFunction(`(args) => {
 		try {
 			const value = localStorage.getItem('browser-shell-tabs')
@@ -2076,13 +2301,15 @@ func waitForBrowserShellRecordPath(t *testing.T, page playwright.Page, id, path 
 		logShellDiagnostic(t, page, "browser_shell_record_path_wait_failure")
 		t.Fatalf("wait for shared Shell record %s path %s: %v", id, path, err)
 	}
+
+	// Record the Shell document after its shared path update.
 	t.Logf("shell_record_path_wait phase=success target_id=%q target_path=%q", id, path)
 	logShellDiagnostic(t, page, "browser_shell_record_path_wait_success")
 }
 
 func waitForBrowserShellActiveRecordChange(t *testing.T, page playwright.Page, previousID string) {
+	// Wait for the newly created Shell record to become active.
 	t.Helper()
-
 	_, err := page.WaitForFunction(`(previousID) => {
 		try {
 			const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
@@ -2104,8 +2331,8 @@ func waitForBrowserShellActiveRecordChange(t *testing.T, page playwright.Page, p
 }
 
 func waitForBrowserShellActivePath(t *testing.T, page playwright.Page, path string) {
+	// Wait for the active Shell record and document hash to agree.
 	t.Helper()
-
 	_, err := page.WaitForFunction(`(want) => {
 		try {
 			const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
@@ -2125,8 +2352,8 @@ func waitForBrowserShellActivePath(t *testing.T, page playwright.Page, path stri
 }
 
 func waitForShellTabButtons(t *testing.T, page playwright.Page) {
+	// Wait for a visible Shell tab button.
 	t.Helper()
-
 	tabs := page.Locator(".flexlayout__tab_button:visible").First()
 	if err := tabs.WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(browserWaitMS),
@@ -2134,6 +2361,8 @@ func waitForShellTabButtons(t *testing.T, page playwright.Page) {
 		dumpPageState(t, page)
 		t.Fatalf("wait for visible Shell tab buttons: %v", err)
 	}
+
+	// Verify the visible Shell tab button accepts interaction.
 	enabled, err := tabs.IsEnabled()
 	if err != nil {
 		dumpPageState(t, page)
@@ -2157,8 +2386,8 @@ func setShellHash(t *testing.T, page playwright.Page, hash string) {
 }
 
 func readComposedShellProjection(t *testing.T, page playwright.Page) composedShellProjection {
+	// Read the document's visible Shell projection.
 	t.Helper()
-
 	raw, err := page.Evaluate(`() => {
 		const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
 		const visiblePanel = [...document.querySelectorAll('[data-tab-id]')].find((element) => {
@@ -2180,6 +2409,8 @@ func readComposedShellProjection(t *testing.T, page playwright.Page) composedShe
 	if err != nil {
 		t.Fatalf("read visible Shell projection: %v", err)
 	}
+
+	// Decode the Shell projection and its visible labels.
 	value, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("visible Shell projection invalid: %#v", raw)
@@ -2188,6 +2419,8 @@ func readComposedShellProjection(t *testing.T, page playwright.Page) composedShe
 	if !ok {
 		t.Fatalf("visible Shell labels invalid: %#v", value)
 	}
+
+	// Collect the visible Shell labels in their displayed order.
 	labels := make([]string, 0, len(rawLabels))
 	for _, rawLabel := range rawLabels {
 		labels = append(labels, composedString(rawLabel))
@@ -2206,8 +2439,9 @@ func assertSameComposedShellProjection(
 	got, want composedShellProjection,
 	message string,
 ) {
-	t.Helper()
 
+	// Verify the document's Shell projection matches the expected state.
+	t.Helper()
 	if got.URL != want.URL ||
 		got.Hash != want.Hash ||
 		got.ActiveTabID != want.ActiveTabID ||
@@ -2222,8 +2456,9 @@ func assertInactiveClosePreservedProjection(
 	before, after composedShellProjection,
 	removedLabel string,
 ) {
-	t.Helper()
 
+	// Remove the closed label from the expected Shell projection.
+	t.Helper()
 	expectedLabels := make([]string, 0, len(before.Labels))
 	removed := false
 	for _, label := range before.Labels {
@@ -2233,9 +2468,13 @@ func assertInactiveClosePreservedProjection(
 		}
 		expectedLabels = append(expectedLabels, label)
 	}
+
+	// Verify the closed label existed in the original projection.
 	if !removed {
 		t.Fatalf("inactive close precondition lacks label %q: %#v", removedLabel, before)
 	}
+
+	// Verify closing an inactive Shell record preserved the document selection.
 	assertSameComposedShellProjection(
 		t,
 		after,
@@ -2263,8 +2502,8 @@ func waitForShellLabel(t *testing.T, page playwright.Page, label string) {
 }
 
 func assertShellLabelAbsent(t *testing.T, page playwright.Page, label string) {
+	// Verify the removed Shell label is absent from the visible tabs.
 	t.Helper()
-
 	count, err := page.Locator(".flexlayout__tab_button").Filter(playwright.LocatorFilterOptions{
 		HasText: label,
 	}).Count()
@@ -2277,12 +2516,14 @@ func assertShellLabelAbsent(t *testing.T, page playwright.Page, label string) {
 }
 
 func renameActiveShellTab(t *testing.T, page playwright.Page, customName string) {
+	// Open the active Shell tab's rename editor.
 	t.Helper()
-
 	tabs := page.Locator(".flexlayout__tab_button")
 	if err := tabs.Last().Dblclick(); err != nil {
 		t.Fatalf("start visible Shell tab rename: %v", err)
 	}
+
+	// Enter and commit the Shell tab's custom name.
 	input := tabs.Last().Locator("input:visible").First()
 	if err := input.Fill(customName); err != nil {
 		t.Fatalf("fill visible Shell custom name: %v", err)
@@ -2304,14 +2545,16 @@ func selectShellTabByText(t *testing.T, page playwright.Page, label string) {
 }
 
 func closeShellTabByText(t *testing.T, page playwright.Page, label string) {
+	// Open the selected Shell tab's context menu.
 	t.Helper()
-
 	tab := page.Locator(".flexlayout__tab_button").Filter(playwright.LocatorFilterOptions{
 		HasText: label,
 	}).First()
 	if err := tab.Click(playwright.LocatorClickOptions{Button: playwright.MouseButtonRight}); err != nil {
 		t.Fatalf("open Shell tab context menu %q: %v", label, err)
 	}
+
+	// Invoke the context menu action that closes the shared tab.
 	closeItem := page.Locator("[role='menuitem']:visible").Filter(playwright.LocatorFilterOptions{
 		HasText: "Close Tab",
 	}).First()
@@ -2321,13 +2564,17 @@ func closeShellTabByText(t *testing.T, page playwright.Page, label string) {
 }
 
 func concurrentCreateShellTabs(t *testing.T, pageA, pageB playwright.Page) {
+	// Create Shell records concurrently in both documents.
 	t.Helper()
-
 	errs := make(chan error, 2)
 	var waitGroup sync.WaitGroup
 	for _, page := range []playwright.Page{pageA, pageB} {
+
+		// Track the lifetime of each document's tab creation.
 		waitGroup.Add(1)
 		go func(page playwright.Page) {
+
+			// Click the document's visible New tab button and report its result.
 			defer waitGroup.Done()
 			_, err := page.Evaluate(`() => {
 				const button = [...document.querySelectorAll("button[title='New tab']")]
@@ -2339,6 +2586,8 @@ func concurrentCreateShellTabs(t *testing.T, pageA, pageB playwright.Page) {
 			errs <- err
 		}(page)
 	}
+
+	// Wait for both Shell tab creations and report their failures.
 	waitGroup.Wait()
 	close(errs)
 	for err := range errs {
@@ -2351,6 +2600,7 @@ func concurrentCreateShellTabs(t *testing.T, pageA, pageB playwright.Page) {
 // resetShellTabsVisibly resets the Shell tabs through the View menu of a
 // quickstart Drive page.
 func resetShellTabsVisibly(t *testing.T, page playwright.Page) {
+	// Report visible Shell reset failures at the caller.
 	t.Helper()
 
 	// Wait for the quickstart to settle on the Drive file browser. Its route
@@ -2372,8 +2622,8 @@ func resetShellTabsVisibly(t *testing.T, page playwright.Page) {
 }
 
 func readComposedStartupMarks(t *testing.T, page playwright.Page) []composedStartupMark {
+	// Read the production document's startup marks.
 	t.Helper()
-
 	raw, err := page.Evaluate(`() => (globalThis.__swStartupMarks ?? []).map((mark) => ({
 		label: mark.label,
 		sequence: mark.sequence,
@@ -2382,16 +2632,24 @@ func readComposedStartupMarks(t *testing.T, page playwright.Page) []composedStar
 	if err != nil {
 		t.Fatalf("read production startup marks: %v", err)
 	}
+
+	// Decode the startup mark inventory.
 	items, ok := raw.([]any)
 	if !ok {
 		t.Fatalf("production startup marks invalid: %#v", raw)
 	}
+
+	// Collect valid startup marks and their details.
 	marks := make([]composedStartupMark, 0, len(items))
 	for _, item := range items {
+
+		// Ignore startup mark entries with an invalid object shape.
 		value, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
+
+		// Append the startup mark's label, sequence and detail.
 		detail, _ := value["detail"].(map[string]any)
 		marks = append(marks, composedStartupMark{
 			Label:    composedString(value["label"]),
@@ -2403,21 +2661,23 @@ func readComposedStartupMarks(t *testing.T, page playwright.Page) []composedStar
 }
 
 func lastComposedStartupMark(t *testing.T, page playwright.Page, label string) composedStartupMark {
+	// Find the newest startup mark with the requested label.
 	t.Helper()
-
 	marks := readComposedStartupMarks(t, page)
 	for _, mark := range slices.Backward(marks) {
 		if mark.Label == label {
 			return mark
 		}
 	}
+
+	// Fail the proof when its required startup mark is absent.
 	t.Fatalf("production startup mark %q is missing", label)
 	return composedStartupMark{}
 }
 
 func waitForStartupMark(t *testing.T, page playwright.Page, label string) {
+	// Wait for the requested production startup mark.
 	t.Helper()
-
 	_, err := page.WaitForFunction(`(want) =>
 		(globalThis.__swStartupMarks ?? []).some((mark) => mark.label === want)`,
 		label, playwright.PageWaitForFunctionOptions{
@@ -2430,14 +2690,16 @@ func waitForStartupMark(t *testing.T, page playwright.Page, label string) {
 }
 
 func assertDedicatedWorkerHost(t *testing.T, page playwright.Page) (string, string) {
+	// Verify the host lease includes its generation and document identity.
 	t.Helper()
-
 	lease := lastComposedStartupMark(t, page, "dedicated-host.lease-acquired")
 	generation := composedString(lease.Detail["generation"])
 	documentID := composedString(lease.Detail["documentId"])
 	if generation == "" || documentID == "" {
 		t.Fatalf("host lease mark lacks generation/document identity: %#v", lease)
 	}
+
+	// Verify the host constructed exactly one dedicated runtime worker.
 	marks := readComposedStartupMarks(t, page)
 	workerCount := 0
 	for _, mark := range marks {
@@ -2464,8 +2726,8 @@ func assertNoRuntimeWorkerCreated(t *testing.T, page playwright.Page) {
 }
 
 func assertWarmPresentation(t *testing.T, page playwright.Page, generation, hostDocumentID string, requireAttachment bool) {
+	// Verify an attached document acknowledges the expected host generation.
 	t.Helper()
-
 	marks := readComposedStartupMarks(t, page)
 	if requireAttachment {
 		ready := lastComposedStartupMark(t, page, "dedicated-host.attach-open-ready")
@@ -2474,6 +2736,8 @@ func assertWarmPresentation(t *testing.T, page playwright.Page, generation, host
 			t.Fatalf("attach acknowledged an unexpected runtime generation/host: %#v want generation=%q host=%q", ready, generation, hostDocumentID)
 		}
 	}
+
+	// Find the latest connection to the current runtime generation.
 	var connected composedStartupMark
 	for _, mark := range slices.Backward(marks) {
 		if mark.Label == "runtime.connected" &&
@@ -2485,6 +2749,8 @@ func assertWarmPresentation(t *testing.T, page playwright.Page, generation, host
 	if connected.Label == "" {
 		t.Fatalf("runtime.connected did not carry current generation %q: %#v", generation, marks)
 	}
+
+	// Find the current generation's neutral frame and subsequent reveal.
 	var neutral, reveal composedStartupMark
 	for _, mark := range marks {
 		if mark.Label == "webview.neutral-frame" &&
@@ -2502,14 +2768,20 @@ func assertWarmPresentation(t *testing.T, page playwright.Page, generation, host
 			break
 		}
 	}
+
+	// Verify the neutral frame precedes the current generation's reveal.
 	if neutral.Label == "" || reveal.Label == "" || neutral.Sequence >= reveal.Sequence {
 		t.Fatalf("generation-matched neutral/reveal order missing for %q: connected=%#v neutral=%#v reveal=%#v marks=%#v", generation, connected, neutral, reveal, marks)
 	}
+
+	// Verify no connection invalidation followed the current connection.
 	for _, mark := range marks {
 		if mark.Label == "runtime.connection-invalidated" && mark.Sequence >= connected.Sequence {
 			t.Fatalf("runtime presentation advanced before obsolete generation invalidation: invalidated=%#v connected=%#v", mark, connected)
 		}
 	}
+
+	// Read and verify the document's resume readiness.
 	raw, err := page.Evaluate(`() => globalThis.__swWebDocumentResumeReady ?? null`)
 	if err != nil {
 		t.Fatalf("read production resume-ready state: %v", err)
@@ -2518,6 +2790,8 @@ func assertWarmPresentation(t *testing.T, page playwright.Page, generation, host
 	if !ok || resume["ready"] != true {
 		t.Fatalf("production resume-ready surface is not ready: %#v", raw)
 	}
+
+	// Verify resume readiness names the selected runtime.
 	runtimeMark := lastComposedStartupMark(t, page, "runtime.mode-selected")
 	if composedString(resume["runtimeId"]) != composedString(runtimeMark.Detail["runtimeId"]) {
 		t.Fatalf("resume-ready runtime identity drifted: resume=%#v mode=%#v", resume, runtimeMark)
@@ -2525,14 +2799,16 @@ func assertWarmPresentation(t *testing.T, page playwright.Page, generation, host
 }
 
 func assertWarmPromotion(t *testing.T, page playwright.Page, oldGeneration string) string {
+	// Wait for promotion to a replacement host generation.
 	t.Helper()
-
 	waitForStartupMark(t, page, "dedicated-host.promoted")
 	promoted := lastComposedStartupMark(t, page, "dedicated-host.promoted")
 	generation := composedString(promoted.Detail["generation"])
 	if generation == "" || generation == oldGeneration {
 		t.Fatalf("promotion did not replace runtime generation: old=%q mark=%#v", oldGeneration, promoted)
 	}
+
+	// Wait for old-generation invalidation and replacement connection.
 	_, err := page.WaitForFunction(`(args) => {
 		const marks = globalThis.__swStartupMarks ?? []
 		return marks.some((mark) =>
@@ -2555,15 +2831,21 @@ func assertWarmPromotion(t *testing.T, page playwright.Page, oldGeneration strin
 		dumpPageState(t, page)
 		t.Fatalf("wait for old-generation invalidation and new-generation connection after promotion: %v", err)
 	}
+
+	// Locate the first invalidation and connection after promotion.
 	marks := readComposedStartupMarks(t, page)
 	var invalidated, connected composedStartupMark
 	for _, mark := range marks {
+
+		// Find the old generation's first post-promotion invalidation.
 		if mark.Label == "runtime.connection-invalidated" &&
 			composedString(mark.Detail["runtimeGeneration"]) == oldGeneration &&
 			mark.Sequence > promoted.Sequence &&
 			(invalidated.Label == "" || mark.Sequence < invalidated.Sequence) {
 			invalidated = mark
 		}
+
+		// Find the new generation's first post-promotion connection.
 		if mark.Label == "runtime.connected" &&
 			composedString(mark.Detail["runtimeGeneration"]) == generation &&
 			mark.Sequence > promoted.Sequence &&
@@ -2571,9 +2853,13 @@ func assertWarmPromotion(t *testing.T, page playwright.Page, oldGeneration strin
 			connected = mark
 		}
 	}
+
+	// Verify promotion invalidates the old runtime before connecting the replacement.
 	if invalidated.Label == "" || connected.Label == "" || invalidated.Sequence >= connected.Sequence {
 		t.Fatalf("promotion did not invalidate old runtime before new connection: old=%q new=%q promoted=%#v invalidated=%#v connected=%#v marks=%#v", oldGeneration, generation, promoted, invalidated, connected, marks)
 	}
+
+	// Verify the obsolete generation cannot advance presentation after promotion.
 	for _, mark := range marks {
 		if mark.Sequence <= promoted.Sequence {
 			continue
@@ -2612,8 +2898,8 @@ func assertReattachedWithoutColdBoot(t *testing.T, page playwright.Page, generat
 }
 
 func logWarmAttachCorrectnessMetrics(t *testing.T, page playwright.Page, generation string) {
+	// Read and report the warm attachment's readiness intervals.
 	t.Helper()
-
 	raw, err := page.Evaluate(`(generation) => {
 		const entries = performance.getEntriesByType('mark')
 			.filter((entry) => entry.name.startsWith('spacewave.startup.'))
@@ -2655,17 +2941,21 @@ func logWarmAttachCorrectnessMetrics(t *testing.T, page playwright.Page, generat
 }
 
 func TestGoScriptQuickstartReturnVisitorMountsBodyRoute(t *testing.T) {
+	// Require GoScript for the return visitor route proof.
 	if compiler, err := resolveReleaseWasmCompiler(); err != nil {
 		t.Fatalf("resolve release wasm compiler: %v", err)
 	} else if compiler != releaseWasmCompilerGoScript {
 		t.Skipf("release-WASM return visitor body route gate requires %s=true", E2EReleaseWasmGoScriptEnv)
 	}
 
+	// Open the first Drive quickstart page.
 	pageA := testHarness.newPage(t)
 	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
 	if _, err := pageA.Goto(quickstartURL); err != nil {
 		t.Fatalf("goto quickstart drive: %v", err)
 	}
+
+	// Wait for the initial Drive frame and its created route.
 	waitForPrerenderRoot(t, pageA)
 	waitForBootFunction(t, pageA)
 	waitForLiveApp(t, pageA)
@@ -2677,6 +2967,8 @@ func TestGoScriptQuickstartReturnVisitorMountsBodyRoute(t *testing.T) {
 		dumpPageState(t, pageA)
 		t.Fatalf("wait for quickstart frame-ready: %v", err)
 	}
+
+	// Read and validate the direct SharedObject route.
 	hash, err := pageA.Evaluate(`() => window.location.hash`)
 	if err != nil {
 		t.Fatalf("read created direct route hash: %v", err)
@@ -2687,10 +2979,13 @@ func TestGoScriptQuickstartReturnVisitorMountsBodyRoute(t *testing.T) {
 	}
 	directURL := testHarness.getBaseURL() + "/" + hashText
 
+	// Open the saved SharedObject route in a second document.
 	pageB := testHarness.newPageInContext(t, pageA.Context())
 	if _, err := pageB.Goto(directURL); err != nil {
 		t.Fatalf("goto direct SharedObject route: %v", err)
 	}
+
+	// Wait for the return visitor's Drive frame.
 	waitForPrerenderRootOrLiveApp(t, pageB)
 	waitForBootFunction(t, pageB)
 	waitForLiveApp(t, pageB)
@@ -2701,6 +2996,8 @@ func TestGoScriptQuickstartReturnVisitorMountsBodyRoute(t *testing.T) {
 		dumpPageState(t, pageB)
 		t.Fatalf("wait for return visitor direct route frame-ready: %v", err)
 	}
+
+	// Verify the return visitor mounts persisted content through the body route.
 	if _, err := waitForQuickstartDriveContentReady(t, pageB); err != "" {
 		t.Fatalf("wait for return visitor direct route content-ready: %s", err)
 	}
@@ -2715,8 +3012,8 @@ type quickstartRuntimeTraceCapture struct {
 }
 
 func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstartRuntimeTraceCapture {
+	// Prepare the quickstart runtime trace record.
 	t.Helper()
-
 	path := testHarness.quickstartRuntimeTraceArtifactPath(t)
 	info := map[string]any{
 		"kind":                   "chromium-devtools-runtime-trace",
@@ -2729,6 +3026,8 @@ func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstart
 		"path":                   path,
 	}
 	c := &quickstartRuntimeTraceCapture{info: info}
+
+	// Require Chromium and the trace opt-in before capturing runtime activity.
 	if testHarness.browserName != "chromium" {
 		info["skippedReason"] = "Chromium tracing is only available for the chromium release WASM browser"
 		return c
@@ -2737,6 +3036,8 @@ func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstart
 		info["skippedReason"] = "set E2E_RELEASE_WASM_RUNTIME_TRACE=1 to capture a Chromium runtime trace"
 		return c
 	}
+
+	// Remove the previous trace artifact and start a fresh browser trace.
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("remove previous runtime trace artifact: %v", err)
 	}
@@ -2748,6 +3049,8 @@ func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstart
 	}); err != nil {
 		t.Fatalf("start quickstart runtime trace: %v", err)
 	}
+
+	// Record that tracing began before quickstart navigation.
 	c.started = true
 	info["captured"] = true
 	info["startedBefore"] = "page.goto('/quickstart/drive')"
@@ -2755,11 +3058,13 @@ func beginQuickstartRuntimeTrace(t *testing.T, page playwright.Page) *quickstart
 }
 
 func (c *quickstartRuntimeTraceCapture) stop(t *testing.T) map[string]any {
+	// Leave unstarted or already stopped runtime traces unchanged.
 	t.Helper()
-
 	if !c.started || c.stopped {
 		return c.info
 	}
+
+	// Stop the browser runtime trace and verify it contains data.
 	data, err := testHarness.browser.StopTracing()
 	c.stopped = true
 	if err != nil {
@@ -2768,6 +3073,8 @@ func (c *quickstartRuntimeTraceCapture) stop(t *testing.T) map[string]any {
 	if len(data) == 0 {
 		t.Fatal("expected non-empty quickstart runtime trace")
 	}
+
+	// Record the runtime trace's size and capture endpoint.
 	c.info["bytes"] = len(data)
 	c.info["stoppedAfter"] = "foreground resume probe"
 	t.Logf("quickstart runtime trace written to %s (%d bytes)", c.info["path"], len(data))
@@ -2775,11 +3082,13 @@ func (c *quickstartRuntimeTraceCapture) stop(t *testing.T) map[string]any {
 }
 
 func (c *quickstartRuntimeTraceCapture) cleanup(t *testing.T) {
+	// Leave unstarted or already stopped traces alone during cleanup.
 	t.Helper()
-
 	if !c.started || c.stopped {
 		return
 	}
+
+	// Stop an abandoned runtime trace and mark it stopped.
 	if _, err := testHarness.browser.StopTracing(); err != nil {
 		t.Logf("stop abandoned quickstart runtime trace: %v", err)
 	}
@@ -2805,15 +3114,19 @@ func waitForQuickstartAppRoute(t *testing.T, page playwright.Page) {
 }
 
 func waitForLiveApp(t *testing.T, page playwright.Page) {
+	// Wait for the live application within the release browser deadline.
 	t.Helper()
-
 	deadline := time.Now().Add(time.Duration(browserWaitMS) * time.Millisecond)
 	for {
+
+		// Check the remaining live application readiness deadline.
 		timeoutMS := int(time.Until(deadline) / time.Millisecond)
 		if timeoutMS <= 0 {
 			dumpPageState(t, page)
 			t.Fatal("wait for live app: timed out after navigation retries")
 		}
+
+		// Evaluate live application readiness in the current document.
 		_, err := page.Evaluate(`async (timeoutMs) => {
 		const deadline = performance.now() + timeoutMs
 		const remaining = () => Math.max(0, deadline - performance.now())
@@ -2833,6 +3146,8 @@ func waitForLiveApp(t *testing.T, page playwright.Page) {
 		}
 		return true
 	}`, timeoutMS)
+
+		// Accept readiness or report a failure unrelated to navigation.
 		if err == nil {
 			return
 		}
@@ -2850,8 +3165,8 @@ func isNavigationEvaluationError(err error) bool {
 }
 
 func waitForPrerenderRoot(t *testing.T, page playwright.Page) {
+	// Wait for the prerendered release root to appear.
 	t.Helper()
-
 	_, err := page.Evaluate(`async () => {
 		const deadline = performance.now() + 30000
 		while (!document.querySelector('#bldr-root[data-prerendered]')) {
@@ -2868,8 +3183,8 @@ func waitForPrerenderRoot(t *testing.T, page playwright.Page) {
 }
 
 func waitForPrerenderRootOrLiveApp(t *testing.T, page playwright.Page) {
+	// Wait for the release root or live application to appear.
 	t.Helper()
-
 	_, err := page.Evaluate(`async () => {
 		const deadline = performance.now() + 30000
 		while (true) {
@@ -2889,8 +3204,8 @@ func waitForPrerenderRootOrLiveApp(t *testing.T, page playwright.Page) {
 }
 
 func waitForBootFunction(t *testing.T, page playwright.Page) {
+	// Wait for the production boot function and readiness promise.
 	t.Helper()
-
 	_, err := page.Evaluate(`async () => {
 		const deadline = performance.now() + 30000
 		while (typeof globalThis.__swBoot !== 'function' || !globalThis.__swReady) {
@@ -2907,8 +3222,8 @@ func waitForBootFunction(t *testing.T, page playwright.Page) {
 }
 
 func assertRuntimeWorkerMode(t *testing.T, page playwright.Page, want string) {
+	// Read the selected runtime worker mode from startup marks.
 	t.Helper()
-
 	raw, err := page.Evaluate(`() => {
 		const marks = globalThis.__swStartupMarks ?? []
 		for (let i = marks.length - 1; i >= 0; i--) {
@@ -2925,6 +3240,8 @@ func assertRuntimeWorkerMode(t *testing.T, page playwright.Page, want string) {
 	if err != nil {
 		t.Fatalf("read runtime worker mode: %v", err)
 	}
+
+	// Verify the runtime mode mark matches the expected worker mode.
 	item, ok := raw.(map[string]any)
 	if !ok {
 		dumpPageState(t, page)
@@ -2937,8 +3254,8 @@ func assertRuntimeWorkerMode(t *testing.T, page playwright.Page, want string) {
 }
 
 func dumpPageState(t *testing.T, page playwright.Page) {
+	// Collect the page's routing, storage and startup diagnostics.
 	t.Helper()
-
 	state, err := page.Evaluate(`() => {
 		const startupPrefix = 'spacewave.startup.'
 		const startupMarks = (globalThis.__swStartupMarks ?? []).map((mark) => ({
@@ -2988,21 +3305,27 @@ func dumpPageState(t *testing.T, page playwright.Page) {
 		t.Logf("dump page state: %v", err)
 		return
 	}
+
+	// Decode the page state diagnostic payload.
 	stateStr, ok := state.(string)
 	if !ok {
 		t.Logf("page state: unexpected payload type %T", state)
 		return
 	}
+
+	// Preserve and report the page state diagnostics.
 	writePageStateArtifact(t, stateStr)
 	t.Logf("page state: %s", stateStr)
 }
 
 func writePageStateArtifact(t *testing.T, state string) {
+	// Require a configured artifact directory for page diagnostics.
 	t.Helper()
-
 	if testHarness == nil || testHarness.artifactDir == "" {
 		return
 	}
+
+	// Create the page state artifact's parent directory.
 	replacer := strings.NewReplacer("/", "-", "\\", "-", " ", "-", ":", "-")
 	path := filepath.Join(
 		testHarness.artifactDir,
@@ -3012,6 +3335,8 @@ func writePageStateArtifact(t *testing.T, state string) {
 		t.Logf("write page state artifact mkdir %s: %v", path, err)
 		return
 	}
+
+	// Write and report the page state artifact.
 	if err := os.WriteFile(path, []byte(state), 0o644); err != nil {
 		t.Logf("write page state artifact %s: %v", path, err)
 		return
@@ -3020,8 +3345,8 @@ func writePageStateArtifact(t *testing.T, state string) {
 }
 
 func enableQuickstartTimingLogs(t *testing.T, page playwright.Page) {
+	// Enable browser-side quickstart timing logs.
 	t.Helper()
-
 	_, err := page.Evaluate(`() => {
 		globalThis.__s4waveLogQuickstartTiming = true
 	}`)
@@ -3031,8 +3356,8 @@ func enableQuickstartTimingLogs(t *testing.T, page playwright.Page) {
 }
 
 func logQuickstartTiming(t *testing.T, page playwright.Page) {
+	// Read and report the browser's quickstart timing record.
 	t.Helper()
-
 	timing, err := page.Evaluate(`() => JSON.stringify(globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null)`)
 	if err != nil {
 		t.Logf("quickstart timing: %v", err)
@@ -3042,8 +3367,8 @@ func logQuickstartTiming(t *testing.T, page playwright.Page) {
 }
 
 func assertReturnVisitorBodyRouteStartupMarks(t testing.TB, page playwright.Page) {
+	// Read the return visitor's body route startup marks.
 	t.Helper()
-
 	raw, err := page.Evaluate(`() => (globalThis.__swStartupMarks ?? []).map((mark) => ({
 		label: mark.label,
 		sequence: mark.sequence,
@@ -3052,20 +3377,30 @@ func assertReturnVisitorBodyRouteStartupMarks(t testing.TB, page playwright.Page
 	if err != nil {
 		t.Fatalf("read return visitor body route startup marks: %v", err)
 	}
+
+	// Decode the return visitor's startup mark inventory.
 	items, ok := raw.([]any)
 	if !ok {
 		t.Fatalf("unexpected return visitor body route startup marks %T: %#v", raw, raw)
 	}
+
+	// Collect labels from valid return visitor startup marks.
 	labels := make([]string, 0, len(items))
 	for _, item := range items {
+
+		// Ignore startup marks with an invalid object shape.
 		mark, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
+
+		// Retain the startup mark's string label.
 		if label, ok := mark["label"].(string); ok {
 			labels = append(labels, label)
 		}
 	}
+
+	// Verify the return visitor mounted each required body route component.
 	for _, label := range []string{
 		"quickstart.session-mount-start",
 		"quickstart.session-mount-ready",
@@ -3083,6 +3418,8 @@ func assertReturnVisitorBodyRouteStartupMarks(t testing.TB, page playwright.Page
 			t.Fatalf("return visitor body route missing startup mark %q; labels=%v", label, labels)
 		}
 	}
+
+	// Verify the return visitor did not consume quickstart handoffs.
 	for _, label := range []string{
 		"quickstart.session-handoff-used",
 		"quickstart.shared-object-handoff-used",
@@ -3166,6 +3503,8 @@ func assertReturnVisitorBodyRouteSpaceState(t testing.TB, page playwright.Page) 
 	if err != nil {
 		t.Fatalf("read return visitor body route Space state: %v", err)
 	}
+
+	// Verify the return visitor's Space is ready and has World contents.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected return visitor body route Space state %T: %#v", raw, raw)
@@ -3193,8 +3532,8 @@ func releaseBoolField(m map[string]any, key string) bool {
 }
 
 func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*int, string) {
+	// Wait for the seeded Drive file to appear.
 	t.Helper()
-
 	err := page.Locator("[data-testid='unixfs-browser']:visible").Locator(`text="getting-started.md"`).First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(quickstartContentReadyRecordMS)},
 	)
@@ -3202,19 +3541,23 @@ func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*in
 		dumpPageState(t, page)
 		return nil, err.Error()
 	}
+
+	// Record the browser timestamp when Drive content becomes ready.
 	driveContentReadyMs := browserNowMs(t, page)
 	return &driveContentReadyMs, ""
 }
 
 func exerciseQuickstartDriveGoldenPath(t *testing.T, page playwright.Page) (*int, string) {
+	// Wait for the Drive welcome guidance.
 	t.Helper()
-
 	if err := page.Locator("[data-testid='drive-welcome']").WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(quickstartContentReadyRecordMS)},
 	); err != nil {
 		dumpPageState(t, page)
 		return nil, "drive welcome guidance did not appear: " + err.Error()
 	}
+
+	// Open the Drive invitation dialog.
 	if err := page.Locator("[data-testid='drive-invite-cta']:not([disabled])").First().Click(); err != nil {
 		dumpPageState(t, page)
 		return nil, "click drive invite CTA: " + err.Error()
@@ -3226,6 +3569,8 @@ func exerciseQuickstartDriveGoldenPath(t *testing.T, page playwright.Page) (*int
 		dumpPageState(t, page)
 		return nil, "Add User dialog did not open: " + err.Error()
 	}
+
+	// Record invitation readiness and close the Add User dialog.
 	driveGoldenPathReadyMs := browserNowMs(t, page)
 	if err := page.Keyboard().Press("Escape"); err != nil {
 		return nil, "close Add User dialog: " + err.Error()
@@ -3239,8 +3584,8 @@ func exerciseQuickstartDriveGoldenPath(t *testing.T, page playwright.Page) (*int
 }
 
 func completeQuickstartDriveIntroIfPresent(t *testing.T, page playwright.Page) {
+	// Complete the Drive intro until its seeded file browser appears.
 	t.Helper()
-
 	_, err := page.Evaluate(`async () => {
 		const deadline = Date.now() + 120000
 		const actionLabels = ['Next', 'Got it, start exploring', 'Open files']
@@ -3280,8 +3625,8 @@ func completeQuickstartDriveIntroIfPresent(t *testing.T, page playwright.Page) {
 }
 
 func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, contentReady bool) map[string]any {
+	// Skip the SharedObject workload when Drive content never became ready.
 	t.Helper()
-
 	if !contentReady {
 		return map[string]any{
 			"scenario":      "quickstart-post-load-shared-object-throughput",
@@ -3290,6 +3635,7 @@ func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, content
 		}
 	}
 
+	// Run the browser's sequential post-load SharedObject workload.
 	raw, err := page.Evaluate(`async (args) => {
 		const debug = globalThis.__s4wave_debug
 		if (!debug?.root) {
@@ -3321,6 +3667,8 @@ func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, content
 	if err != nil {
 		t.Fatalf("run post-load SharedObject workload: %v", err)
 	}
+
+	// Verify the SharedObject workload completed the expected operation count.
 	workload, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected post-load SharedObject workload result %T", raw)
@@ -3335,8 +3683,8 @@ func runQuickstartPostLoadSOWorkload(t *testing.T, page playwright.Page, content
 }
 
 func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[string]any {
+	// Read foreground resume readiness before backgrounding the document.
 	t.Helper()
-
 	before, err := webDocumentResumeReadySnapshot(page)
 	if err != nil {
 		return map[string]any{
@@ -3345,6 +3693,8 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 			"skippedReason": "read initial WebDocument resume readiness: " + err.Error(),
 		}
 	}
+
+	// Open a temporary page to background the quickstart document.
 	beforeSequence := resumeReadySequence(before)
 	backgroundPage, err := page.Context().NewPage()
 	if err != nil {
@@ -3361,6 +3711,7 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 		}
 	}()
 
+	// Foreground the temporary blank page.
 	if _, err := backgroundPage.Goto("about:blank"); err != nil {
 		return map[string]any{
 			"scenario":      "quickstart-drive-foreground-resume",
@@ -3378,6 +3729,7 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 		}
 	}
 
+	// Verify the quickstart document became hidden.
 	hiddenObserved, hiddenAtMs, hiddenState := waitForDocumentHiddenState(t, page, true, 5*time.Second)
 	if !hiddenObserved {
 		return map[string]any{
@@ -3388,6 +3740,8 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 			"hidden":        hiddenState,
 		}
 	}
+
+	// Foreground the quickstart document and record its resume start.
 	if err := page.BringToFront(); err != nil {
 		return map[string]any{
 			"scenario":      "quickstart-drive-foreground-resume",
@@ -3400,6 +3754,7 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 	}
 	foregroundStartMs := browserNowMs(t, page)
 
+	// Measure the next foreground resume readiness transition.
 	raw, err := page.Evaluate(`async (args) => {
 		const roundMs = (value) =>
 			typeof value === 'number' && Number.isFinite(value) ?
@@ -3484,6 +3839,8 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 			"hiddenAtMs":    hiddenAtMs,
 		}
 	}
+
+	// Decode the foreground resume evidence payload.
 	evidence, ok := raw.(map[string]any)
 	if !ok {
 		return map[string]any{
@@ -3495,6 +3852,8 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 			"hiddenAtMs":    hiddenAtMs,
 		}
 	}
+
+	// Attach the initial and hidden states to the resume evidence.
 	evidence["before"] = before
 	evidence["hidden"] = hiddenState
 	evidence["hiddenAtMs"] = hiddenAtMs
@@ -3503,6 +3862,7 @@ func collectForegroundResumeEvidence(t *testing.T, page playwright.Page) map[str
 }
 
 func webDocumentResumeReadySnapshot(page playwright.Page) (map[string]any, error) {
+	// Read the WebDocument's resume readiness and visibility snapshot.
 	raw, err := page.Evaluate(`() => {
 		const state = globalThis.__swWebDocumentResumeReady ?? null
 		return {
@@ -3533,6 +3893,8 @@ func webDocumentResumeReadySnapshot(page playwright.Page) (map[string]any, error
 	if err != nil {
 		return nil, err
 	}
+
+	// Require an object payload for the resume readiness snapshot.
 	snapshot, ok := raw.(map[string]any)
 	if !ok {
 		return nil, errors.Errorf("unexpected WebDocument resume readiness snapshot %T", raw)
@@ -3547,11 +3909,13 @@ func resumeReadySequence(snapshot map[string]any) int {
 }
 
 func waitForDocumentHiddenState(t *testing.T, page playwright.Page, hidden bool, timeout time.Duration) (bool, int, map[string]any) {
+	// Observe document visibility until it matches or the deadline expires.
 	t.Helper()
-
 	deadline := time.Now().Add(timeout)
 	var snapshot map[string]any
 	for {
+
+		// Read the document's current visibility snapshot.
 		raw, err := page.Evaluate(`() => ({
 			visibilityState: document.visibilityState,
 			hidden: document.hidden,
@@ -3559,6 +3923,8 @@ func waitForDocumentHiddenState(t *testing.T, page playwright.Page, hidden bool,
 			browserNowMs: Math.round(performance.now()),
 		})`)
 		if err == nil {
+
+			// Accept the requested visibility when the browser reports it.
 			if next, ok := raw.(map[string]any); ok {
 				snapshot = next
 				if got, _ := next["hidden"].(bool); got == hidden {
@@ -3566,9 +3932,13 @@ func waitForDocumentHiddenState(t *testing.T, page playwright.Page, hidden bool,
 				}
 			}
 		}
+
+		// Return the last snapshot when the visibility deadline expires.
 		if time.Now().After(deadline) {
 			return false, 0, snapshot
 		}
+
+		// Space the browser visibility observations within the deadline.
 		time.Sleep(50 * time.Millisecond)
 	}
 }
@@ -3584,16 +3954,20 @@ func browserNowFromSnapshot(snapshot map[string]any) int {
 }
 
 func browserNowMs(t *testing.T, page playwright.Page) int {
+	// Read the browser's current performance timestamp.
 	t.Helper()
-
 	raw, err := page.Evaluate(`() => Math.round(performance.now())`)
 	if err != nil {
 		t.Fatalf("read browser performance.now: %v", err)
 	}
+
+	// Decode an integer browser timestamp when available.
 	val, ok := raw.(int)
 	if ok {
 		return val
 	}
+
+	// Decode the browser timestamp returned as a floating-point number.
 	fval, ok := raw.(float64)
 	if !ok {
 		t.Fatalf("unexpected performance.now value %T", raw)
@@ -3614,14 +3988,20 @@ func collectQuickstartSmokeArtifact(
 	postLoadSOWorkload map[string]any,
 	foregroundResume map[string]any,
 ) ([]byte, error) {
+
+	// Prepare the optional Drive content readiness timestamp.
 	var driveContentReadyArg any
 	if driveContentReadyMs != nil {
 		driveContentReadyArg = *driveContentReadyMs
 	}
+
+	// Prepare the optional Drive invitation readiness timestamp.
 	var driveGoldenPathReadyArg any
 	if driveGoldenPathReadyMs != nil {
 		driveGoldenPathReadyArg = *driveGoldenPathReadyMs
 	}
+
+	// Collect the quickstart smoke artifact from browser state and timing.
 	raw, err := page.Evaluate(`async (args) => {
 		const startupPrefix = 'spacewave.startup.'
 		const roundMs = (value) =>
@@ -4074,6 +4454,8 @@ func collectQuickstartSmokeArtifact(
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the serialized quickstart smoke artifact.
 	data, ok := raw.(string)
 	if !ok {
 		return nil, errors.Errorf("unexpected artifact payload %T", raw)
@@ -4172,6 +4554,7 @@ type moduleBodyProbe struct {
 }
 
 func parseBrowserModuleLoadDifferential(data string) (browserModuleLoadDifferential, error) {
+	// Parse the browser module comparison JSON record.
 	var parser fastjson.Parser
 	value, err := parser.Parse(data)
 	if err != nil {
@@ -4235,6 +4618,7 @@ func parseModuleImportProbe(value *fastjson.Value) moduleImportProbe {
 }
 
 func parseModulePerformanceEntries(values []*fastjson.Value) []modulePerformanceEntry {
+	// Decode the module resource timing entries.
 	entries := make([]modulePerformanceEntry, 0, len(values))
 	for _, value := range values {
 		entries = append(entries, modulePerformanceEntry{
@@ -4249,6 +4633,7 @@ func parseModulePerformanceEntries(values []*fastjson.Value) []modulePerformance
 }
 
 func parseStringArray(values []*fastjson.Value) []string {
+	// Decode the JSON string array.
 	out := make([]string, 0, len(values))
 	for _, value := range values {
 		out = append(out, string(value.GetStringBytes()))
@@ -4257,10 +4642,13 @@ func parseStringArray(values []*fastjson.Value) []string {
 }
 
 func parseStringMapValue(value *fastjson.Value) map[string]string {
+	// Require a JSON object for the string map.
 	obj := value.GetObject()
 	if obj == nil {
 		return nil
 	}
+
+	// Decode the JSON object's string values.
 	values := make(map[string]string, obj.Len())
 	obj.Visit(func(key []byte, value *fastjson.Value) {
 		values[string(key)] = string(value.GetStringBytes())
@@ -4269,13 +4657,18 @@ func parseStringMapValue(value *fastjson.Value) map[string]string {
 }
 
 func (r moduleLoadDifferentialReport) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Serialize the module identity and browser comparison.
 	obj := arena.NewObject()
 	obj.Set("modulePath", arena.NewString(r.ModulePath))
 	obj.Set("browserProbe", r.BrowserProbe.appendJSON(arena))
+
+	// Serialize the direct server module probes.
 	directServer := arena.NewObject()
 	directServer.Set("root", r.DirectServer.Root.appendJSON(arena))
 	directServer.Set("sonner", r.DirectServer.Sonner.appendJSON(arena))
 	obj.Set("directServer", directServer)
+
+	// Serialize the release package artifact probes.
 	releaseArtifact := arena.NewObject()
 	releaseArtifact.Set("sonner", r.ReleaseArtifact.Sonner.appendJSON(arena))
 	obj.Set("releaseArtifact", releaseArtifact)
@@ -4283,15 +4676,20 @@ func (r moduleLoadDifferentialReport) appendJSON(arena *fastjson.Arena) *fastjso
 }
 
 func (p browserModuleLoadDifferential) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Serialize the browser location and module loading diagnostics.
 	obj := arena.NewObject()
 	obj.Set("location", arena.NewString(p.Location))
 	obj.Set("controllerURL", arena.NewString(p.ControllerURL))
 	setRawJSONValue(arena, obj, "rootAssetStatus", p.RootAssetStatus)
 	setRawJSONValue(arena, obj, "moduleImportError", p.ModuleImportError)
+
+	// Serialize browser module fetch and import results.
 	obj.Set("rootFetch", p.RootFetch.appendJSON(arena))
 	obj.Set("sonnerFetch", p.SonnerFetch.appendJSON(arena))
 	obj.Set("rootImport", p.RootImport.appendJSON(arena))
 	obj.Set("sonnerImport", p.SonnerImport.appendJSON(arena))
+
+	// Serialize the browser module resource timing entries.
 	entries := arena.NewArray()
 	for _, entry := range p.PerformanceEntries {
 		entries.SetArrayItem(len(entries.GetArray()), entry.appendJSON(arena))
@@ -4301,12 +4699,15 @@ func (p browserModuleLoadDifferential) appendJSON(arena *fastjson.Arena) *fastjs
 }
 
 func (p moduleFetchProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Serialize the module fetch path, HTTP status and headers.
 	obj := arena.NewObject()
 	obj.Set("path", arena.NewString(p.Path))
 	obj.Set("requestURL", arena.NewString(p.RequestURL))
 	obj.Set("status", arena.NewNumberInt(p.Status))
 	setBoolJSONField(arena, obj, "ok", p.OK)
 	obj.Set("headers", appendStringMapJSON(arena, p.Headers))
+
+	// Serialize the complete module body's reader, size and fingerprint.
 	setBoolJSONField(arena, obj, "bodyComplete", p.BodyComplete)
 	obj.Set("bodyReader", arena.NewString(p.BodyReader))
 	obj.Set("bodyChunks", arena.NewNumberInt(p.BodyChunks))
@@ -4315,6 +4716,8 @@ func (p moduleFetchProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
 	obj.Set("sha256", arena.NewString(p.SHA256))
 	obj.Set("head", arena.NewString(p.Head))
 	obj.Set("tail", arena.NewString(p.Tail))
+
+	// Serialize partial module body evidence and fetch failures.
 	obj.Set("partialSha256", arena.NewString(p.PartialSHA256))
 	obj.Set("partialHead", arena.NewString(p.PartialHead))
 	obj.Set("partialTail", arena.NewString(p.PartialTail))
@@ -4326,15 +4729,20 @@ func (p moduleFetchProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
 }
 
 func (p moduleImportProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Serialize the module import request and success status.
 	obj := arena.NewObject()
 	obj.Set("path", arena.NewString(p.Path))
 	obj.Set("requestURL", arena.NewString(p.RequestURL))
 	setBoolJSONField(arena, obj, "ok", p.OK)
+
+	// Serialize the imported module's export inventory.
 	exportKeys := arena.NewArray()
 	for _, key := range p.ExportKeys {
 		exportKeys.SetArrayItem(len(exportKeys.GetArray()), arena.NewString(key))
 	}
 	obj.Set("exportKeys", exportKeys)
+
+	// Serialize the module's default export and import failure details.
 	setBoolJSONField(arena, obj, "hasDefault", p.HasDefault)
 	obj.Set("name", arena.NewString(p.Name))
 	obj.Set("message", arena.NewString(p.Message))
@@ -4343,6 +4751,7 @@ func (p moduleImportProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
 }
 
 func (p modulePerformanceEntry) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Serialize the module resource timing record.
 	obj := arena.NewObject()
 	obj.Set("name", arena.NewString(p.Name))
 	obj.Set("initiatorType", arena.NewString(p.InitiatorType))
@@ -4353,6 +4762,7 @@ func (p modulePerformanceEntry) appendJSON(arena *fastjson.Arena) *fastjson.Valu
 }
 
 func (p moduleBodyProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
+	// Serialize the module body probe's request and artifact identity.
 	obj := arena.NewObject()
 	obj.Set("path", arena.NewString(p.Path))
 	obj.Set("artifactRelPath", arena.NewString(p.ArtifactRelPath))
@@ -4360,6 +4770,8 @@ func (p moduleBodyProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
 	setBoolJSONField(arena, obj, "ok", p.OK)
 	obj.Set("contentType", arena.NewString(p.ContentType))
 	obj.Set("contentLength", arena.NewString(p.ContentLength))
+
+	// Serialize the module body size, fingerprint and diagnostic excerpts.
 	obj.Set("bodyByteLength", arena.NewNumberInt(p.BodyByteLength))
 	obj.Set("sha256", arena.NewString(p.SHA256))
 	obj.Set("head", arena.NewString(p.Head))
@@ -4368,11 +4780,14 @@ func (p moduleBodyProbe) appendJSON(arena *fastjson.Arena) *fastjson.Value {
 }
 
 func appendStringMapJSON(arena *fastjson.Arena, values map[string]string) *fastjson.Value {
+	// Collect the string map's keys for stable JSON output.
 	obj := arena.NewObject()
 	keys := make([]string, 0, len(values))
 	for key := range values {
 		keys = append(keys, key)
 	}
+
+	// Serialize string map values in sorted key order.
 	slices.Sort(keys)
 	for _, key := range keys {
 		obj.Set(key, arena.NewString(values[key]))
@@ -4389,26 +4804,33 @@ func setBoolJSONField(arena *fastjson.Arena, obj *fastjson.Value, key string, va
 }
 
 func setRawJSONValue(arena *fastjson.Arena, obj *fastjson.Value, key string, value *fastjson.Value) {
+	// Serialize an absent raw JSON value as null.
 	if value == nil {
 		obj.Set(key, arena.NewNull())
 		return
 	}
+
+	// Attach the existing raw JSON value to the output object.
 	obj.Set(key, value)
 }
 
 func sourceRevision(t testing.TB) map[string]any {
+	// Read the checkout's current source revision.
 	t.Helper()
-
 	headCmd := exec.Command("git", "rev-parse", "HEAD")
 	headRaw, err := headCmd.Output()
 	if err != nil {
 		t.Fatalf("read git HEAD: %v", err)
 	}
+
+	// Read the checkout's working-tree status.
 	statusCmd := exec.Command("git", "status", "--short")
 	statusRaw, err := statusCmd.Output()
 	if err != nil {
 		t.Fatalf("read git status: %v", err)
 	}
+
+	// Split the checkout status into the source artifact's change inventory.
 	status := strings.TrimSpace(string(statusRaw))
 	statusLines := []string{}
 	if status != "" {

@@ -42,6 +42,8 @@ func TestLocalCDNCanvasReopen(t *testing.T) {
 	if err := canvas.GetByText("This folder is empty", playwright.LocatorGetByTextOptions{Exact: new(true)}).WaitFor(); err != nil {
 		t.Fatalf("seeded Canvas folder did not finish loading: %v", err)
 	}
+
+	// Read and validate the saved Canvas route for later reopens.
 	raw, err := page.Evaluate(`() => location.hash`)
 	if err != nil {
 		t.Fatal(err)

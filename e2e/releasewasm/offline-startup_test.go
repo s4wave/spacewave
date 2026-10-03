@@ -11,6 +11,7 @@ import (
 )
 
 func TestGoScriptOfflineStartup(t *testing.T) {
+	// Require the GoScript release compiler for the offline startup proof.
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		t.Fatal(err)
@@ -18,6 +19,7 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 	if compiler != releaseWasmCompilerGoScript {
 		t.Skip("requires the GoScript release build")
 	}
+
 	// Own the origin so stopping it leaves the suite's server available. Browser
 	// offline emulation also disables WebKit service-worker cache responses.
 	h := *testHarness
@@ -26,6 +28,7 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 	h.baseURL = "http://" + origin.Listener.Addr().String()
 	origin.Config.Handler = releaseHandler(h.distDirs.releaseDist, h.distDirs.prerender, h.baseURL)
 	origin.Start()
+
 	// A persistent profile allows the whole browser runtime to stop without
 	// deleting the release cache or the user's Drive content.
 	profile := t.TempDir()
@@ -35,6 +38,8 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 			t.Logf("close offline browser context: %v", err)
 		}
 	})
+
+	// Open the Drive quickstart in the persistent profile.
 	page := h.newPageInContext(t, ctx)
 	if _, err := page.Goto(h.getBaseURL() + "/quickstart/drive"); err != nil {
 		t.Fatal(err)
@@ -46,6 +51,8 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 		dumpPageState(t, page)
 		t.Fatal(err)
 	}
+
+	// Wait for the materializer and completed offline release inventory.
 	waitForMaterializerPluginRunningMark(t, page)
 	if _, err := page.WaitForFunction(`async () => {
 		const cache = await caches.open('bldr-control')
@@ -54,6 +61,8 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 	}`, nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(browserWaitMS)}); err != nil {
 		t.Fatalf("complete background offline cache: %v", err)
 	}
+
+	// Find a required pack in the completed release inventory.
 	desc, err := h.browserRelease(t.Context())
 	if err != nil {
 		t.Fatal(err)
@@ -68,6 +77,8 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 	if packPath == "" {
 		t.Fatal("offline inventory has no kvfile")
 	}
+
+	// Stop the origin and verify a cached pack serves a byte range.
 	origin.Close()
 	if _, err := page.Evaluate(`async path => {
 		const response = await fetch(path, {headers: {Range: 'bytes=0-15'}})
@@ -78,10 +89,13 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 	}`, packPath); err != nil {
 		t.Fatal(err)
 	}
+
 	// Closing the context terminates its shared workers before reopening.
 	if err := ctx.Close(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the retained profile and verify Drive content loads offline.
 	ctx = h.newPersistentBrowserContext(t, profile)
 	page = h.newPageInContext(t, ctx)
 	if _, err := page.Goto(h.getBaseURL() + "/quickstart/drive"); err != nil {

@@ -11,6 +11,7 @@ import (
 )
 
 func TestPrebuiltReleaseWasmDistDirsRejectsIdentitylessArtifact(t *testing.T) {
+	// Create release and prerender directories for an identityless artifact.
 	repoRoot := t.TempDir()
 	distDir := filepath.Join(repoRoot, ".tmp", "release-dist")
 	prerenderDir := filepath.Join(repoRoot, ".tmp", "prerender")
@@ -20,15 +21,20 @@ func TestPrebuiltReleaseWasmDistDirsRejectsIdentitylessArtifact(t *testing.T) {
 	if err := os.MkdirAll(prerenderDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the identityless descriptor and prerendered shell.
 	if err := os.WriteFile(filepath.Join(distDir, "browser-release.json"), []byte(`{}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(prerenderDir, "index.html"), []byte("<!doctype html>"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Select the fixture directories through the prebuilt artifact environment.
 	t.Setenv(releaseWasmDistDirEnv, ".tmp/release-dist")
 	t.Setenv(releaseWasmPrerenderDistEnv, ".tmp/prerender")
 
+	// Resolve and verify the configured prebuilt artifact directories.
 	dirs, ok, err := prebuiltReleaseWasmDistDirs(repoRoot)
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +48,8 @@ func TestPrebuiltReleaseWasmDistDirsRejectsIdentitylessArtifact(t *testing.T) {
 	if dirs.prerender != prerenderDir {
 		t.Fatalf("prerender dist = %q, want %q", dirs.prerender, prerenderDir)
 	}
+
+	// Verify the prebuilt artifact fails validation without an identity.
 	if err := artifact.Validate(dirs.releaseDist, dirs.prerender, &artifact.Identity{}); err == nil {
 		t.Fatal("identityless prebuilt release-wasm artifact validated")
 	}

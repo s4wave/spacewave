@@ -53,20 +53,27 @@ func TestReleaseHandler(t *testing.T) {
 		{path: "/static/nested/../../outside.txt"},
 	} {
 		t.Run(test.path, func(t *testing.T) {
+			// Dispatch the asset request through the release handler.
 			rw := httptest.NewRecorder()
 			handler.ServeHTTP(rw, httptest.NewRequest(http.MethodGet, test.path, nil))
+
+			// Verify traversal requests cannot read outside the static root.
 			if test.body == "" {
 				if rw.Code != http.StatusNotFound {
 					t.Fatalf("traversal returned %d: %s", rw.Code, rw.Body.String())
 				}
 				return
 			}
+
+			// Verify successful asset responses have the expected status and body.
 			if rw.Code != http.StatusOK {
 				t.Fatalf("response status = %d, want 200", rw.Code)
 			}
 			if rw.Body.String() != test.body {
 				t.Fatalf("response body = %q, want %q", rw.Body.String(), test.body)
 			}
+
+			// Verify compressed modules include their encoding and MIME headers.
 			if strings.HasSuffix(test.path, ".mjs.gz") {
 				if got := rw.Header().Get("Content-Encoding"); got != "gzip" {
 					t.Fatalf("Content-Encoding = %q", got)

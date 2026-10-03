@@ -72,6 +72,7 @@ func TestBrowserPageErrorMessagePreservesPlaywrightStack(t *testing.T) {
 }
 
 func TestQuickstartRuntimeTraceDefaultsOffForChromium(t *testing.T) {
+	// Configure a Chromium harness with runtime trace capture disabled.
 	prevHarness := testHarness
 	testHarness = &harness{
 		artifactDir: t.TempDir(),
@@ -82,6 +83,7 @@ func TestQuickstartRuntimeTraceDefaultsOffForChromium(t *testing.T) {
 	})
 	t.Setenv("E2E_RELEASE_WASM_RUNTIME_TRACE", "")
 
+	// Verify the default trace configuration creates no capture or artifact.
 	capture := beginQuickstartRuntimeTrace(t, nil)
 	if capture.started {
 		t.Fatal("runtime trace started without E2E_RELEASE_WASM_RUNTIME_TRACE=1")

@@ -24,14 +24,18 @@ func TestResolveReleaseWasmCompiler(t *testing.T) {
 		{name: "case insensitive", goScript: "TRUE", want: releaseWasmCompilerGoScript},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Configure the release compiler selectors for this test case.
 			clearReleaseWasmCompilerEnv(t)
 			t.Setenv(E2EReleaseWasmTinyGoEnv, tc.tinyGo)
 			t.Setenv(E2EReleaseWasmGoScriptEnv, tc.goScript)
 
+			// Resolve the compiler selected by the test environment.
 			got, err := resolveReleaseWasmCompiler()
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Verify the resolved compiler matches the test case.
 			if got != tc.want {
 				t.Fatalf("compiler = %q, want %q", got, tc.want)
 			}
@@ -50,15 +54,19 @@ func TestResolveReleaseWasmCompilerRejectsConflictingSelectors(t *testing.T) {
 }
 
 func TestApplyReleaseWasmTinyGoCompilerEnvDefaultsToFastProfile(t *testing.T) {
+	// Clear the global and release-specific TinyGo configuration.
 	clearBldrTinyGoEnv(t)
 	clearReleaseWasmTinyGoEnv(t)
 
+	// Apply the release TinyGo defaults and verify the fast profile.
 	if err := applyReleaseWasmTinyGoCompilerEnv(); err != nil {
 		t.Fatal(err)
 	}
 	if got := os.Getenv(gocompiler.TinyGoProfileEnv); got != gocompiler.TinyGoProfileFast {
 		t.Fatalf("%s=%q, want %q", gocompiler.TinyGoProfileEnv, got, gocompiler.TinyGoProfileFast)
 	}
+
+	// Verify the default TinyGo arguments and runtime settings.
 	args, err := gocompiler.GetDefaultTinygoArgs()
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +86,8 @@ func TestApplyReleaseWasmTinyGoCompilerEnvDefaultsToFastProfile(t *testing.T) {
 	if got := os.Getenv(gocompiler.TinyGoGCEnv); got != "leaking" {
 		t.Fatalf("%s=%q, want leaking", gocompiler.TinyGoGCEnv, got)
 	}
+
+	// Verify the default TinyGo arguments leave scheduler selection open.
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-scheduler=") {
 			t.Fatalf("release-wasm TinyGo profile should not set scheduler by default: %v", args)
@@ -86,16 +96,20 @@ func TestApplyReleaseWasmTinyGoCompilerEnvDefaultsToFastProfile(t *testing.T) {
 }
 
 func TestApplyReleaseWasmTinyGoCompilerEnvPreservesGlobalProfile(t *testing.T) {
+	// Configure a global optimized TinyGo profile.
 	clearBldrTinyGoEnv(t)
 	clearReleaseWasmTinyGoEnv(t)
 	t.Setenv(gocompiler.TinyGoProfileEnv, gocompiler.TinyGoProfileOptimized)
 
+	// Apply the release defaults and verify the global profile is preserved.
 	if err := applyReleaseWasmTinyGoCompilerEnv(); err != nil {
 		t.Fatal(err)
 	}
 	if got := os.Getenv(gocompiler.TinyGoProfileEnv); got != gocompiler.TinyGoProfileOptimized {
 		t.Fatalf("%s=%q, want %q", gocompiler.TinyGoProfileEnv, got, gocompiler.TinyGoProfileOptimized)
 	}
+
+	// Verify the compiler arguments use the retained optimization profile.
 	args, err := gocompiler.GetDefaultTinygoArgs()
 	if err != nil {
 		t.Fatal(err)
@@ -106,6 +120,7 @@ func TestApplyReleaseWasmTinyGoCompilerEnvPreservesGlobalProfile(t *testing.T) {
 }
 
 func TestApplyReleaseWasmTinyGoCompilerEnvCopiesExplicitKnobs(t *testing.T) {
+	// Configure the release-specific TinyGo profile and explicit compiler knobs.
 	clearBldrTinyGoEnv(t)
 	clearReleaseWasmTinyGoEnv(t)
 	t.Setenv(E2EReleaseWasmTinyGoProfileEnv, gocompiler.TinyGoProfileFast)
@@ -114,6 +129,7 @@ func TestApplyReleaseWasmTinyGoCompilerEnvCopiesExplicitKnobs(t *testing.T) {
 	t.Setenv(E2EReleaseWasmTinyGoInterpTimeoutEnv, "12m")
 	t.Setenv(E2EReleaseWasmTinyGoDebugInfoEnv, "true")
 
+	// Apply the release compiler knobs and verify their global environment values.
 	if err := applyReleaseWasmTinyGoCompilerEnv(); err != nil {
 		t.Fatal(err)
 	}

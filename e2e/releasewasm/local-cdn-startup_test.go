@@ -16,6 +16,7 @@ import (
 // TestLocalCDNDriveStartup measures the production landing-to-Drive operation
 // over localhost distribution metadata and KVF packs in a fresh browser context.
 func TestLocalCDNDriveStartup(t *testing.T) {
+	// Require the isolated local CDN fixture for the Drive startup measurement.
 	if os.Getenv(localCDNEnv) != "1" {
 		t.Skip("set " + localCDNEnv + "=1 to build and serve the local startup CDN")
 	}
@@ -40,6 +41,8 @@ func TestLocalCDNDriveStartup(t *testing.T) {
 		attributes, _ := gpu["auxAttributes"].(map[string]any)
 		t.Logf("Chromium renderer: %v", attributes["glRenderer"])
 	}
+
+	// Collect requests that escape the local CDN fixture.
 	var mtx sync.Mutex
 	var external []string
 	page.Context().OnRequest(func(req playwright.Request) {
@@ -72,6 +75,8 @@ func TestLocalCDNDriveStartup(t *testing.T) {
 	}
 	waitForLiveApp(t, page)
 	waitForQuickstartAppRoute(t, page)
+
+	// Verify the Drive quickstart content and golden path become ready.
 	readyMS, failure := waitForQuickstartDriveContentReady(t, page)
 	if failure != "" {
 		t.Fatal(failure)
