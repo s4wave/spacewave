@@ -104,4 +104,21 @@ describe('SharedObjectSyncNotice', () => {
     expect(toast.dismiss).toHaveBeenCalledTimes(1)
     expect(vi.mocked(toast.dismiss).mock.calls[0]?.[0]).toMatch(/:0102$/)
   })
+
+  it('shows a wrong checkpoint until it leaves the health', () => {
+    const { rerender } = render(
+      <SharedObjectSyncNotice
+        health={{ checkpointMismatch: { height: 3n } }}
+      />,
+    )
+    expect(toast.warning).toHaveBeenCalledWith(
+      "This Space's history doesn't match this device",
+      expect.objectContaining({
+        description: expect.stringContaining('Ask the owner to check'),
+        duration: Infinity,
+      }),
+    )
+    rerender(<SharedObjectSyncNotice health={{}} />)
+    expect(toast.dismiss).toHaveBeenCalledTimes(1)
+  })
 })

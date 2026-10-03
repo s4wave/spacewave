@@ -6,8 +6,8 @@ import type {
 } from '@s4wave/core/sobject/sobject.pb.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
-// SharedObjectSyncNotice presents peer recovery and rejected edits without
-// interrupting local content.
+// SharedObjectSyncNotice presents peer recovery, rejected edits and a wrong
+// checkpoint without interrupting local content.
 export function SharedObjectSyncNotice({
   health,
 }: {
@@ -16,6 +16,7 @@ export function SharedObjectSyncNotice({
   const id = useId()
   const recovery = (health?.syncRecoveryPeerIds?.length ?? 0) > 0
   const denied = (health?.syncDeniedPeerIds?.length ?? 0) > 0
+  const mismatch = !!health?.checkpointMismatch
 
   useEffect(() => {
     if (!recovery && !denied) return
@@ -31,6 +32,21 @@ export function SharedObjectSyncNotice({
       toast.dismiss(id)
     }
   }, [denied, id, recovery])
+
+  useEffect(() => {
+    if (!mismatch) return
+    const mismatchID = id + ':checkpoint'
+    toast.warning("This Space's history doesn't match this device", {
+      id: mismatchID,
+      description:
+        "The owner's device saved a summary of this Space that differs from what this device worked out. Your content is still here. Ask the owner to check their device.",
+      duration: Infinity,
+      closeButton: true,
+    })
+    return () => {
+      toast.dismiss(mismatchID)
+    }
+  }, [id, mismatch])
 
   return (health?.rejectedEdits ?? []).map((edit) => {
     const hash = opHashKey(edit.opHash)

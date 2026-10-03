@@ -87,6 +87,26 @@ func (s *replayTestSpace) member(device peer.ID, cold bool) *replayTestMember {
 type replayTestSnapshot struct {
 	testSharedObjectSnapshot
 	config *sobject.SharedObjectConfig
+	// checkpoint and set, when set, are the checkpoint and operation set the
+	// snapshot holds.
+	checkpoint *sobject.SOCheckpointInner
+	set        *sobject.SOOperationSet
+}
+
+// GetCheckpoint returns the held checkpoint.
+func (s *replayTestSnapshot) GetCheckpoint(ctx context.Context) (*sobject.SOCheckpointInner, error) {
+	if s.checkpoint != nil {
+		return s.checkpoint, nil
+	}
+	return s.testSharedObjectSnapshot.GetCheckpoint(ctx)
+}
+
+// GetOperationSet returns the held operation set.
+func (s *replayTestSnapshot) GetOperationSet(ctx context.Context) (*sobject.SOOperationSet, error) {
+	if s.set != nil {
+		return s.set, nil
+	}
+	return s.testSharedObjectSnapshot.GetOperationSet(ctx)
 }
 
 // GetParticipantConfigForPeer returns the member peerID of the config.
@@ -119,6 +139,8 @@ type replayTestMember struct {
 	snap     *replayTestSnapshot
 	cold     bool
 	replayer *replayer
+	// ops are the delivered operations.
+	ops []*sobject.SOOperation
 }
 
 // replayTestResult is the World and named outcomes after one replay.
@@ -137,6 +159,7 @@ func (m *replayTestMember) deliver(ops ...*sobject.SOOperation) replayTestResult
 			t.Fatal(err.Error())
 		}
 	}
+	m.ops = append(m.ops, ops...)
 
 	// Replay it, from genesis when cold.
 	if m.cold {
@@ -157,6 +180,40 @@ func (m *replayTestMember) deliver(ops ...*sobject.SOOperation) replayTestResult
 		res.outcomes = append(res.outcomes, m.space.names[string(o.hash)]+": "+outcome)
 	}
 	return res
+}
+
+// adopt replaces the member's checkpoint with one at height whose author heads
+// are heads and whose World is world, and syncs the replay to it.
+func (m *replayTestMember) adopt(height uint64, world *InnerState, heads ...*sobject.SOOperation) {
+	// Build the checkpoint.
+	t := m.space.t
+	t.Helper()
+	data, err := world.MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	checkpoint := &sobject.SOCheckpointInner{Height: height, StateData: data}
+	for _, op := range heads {
+		inner, err := op.UnmarshalInner()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		checkpoint.Frontier = append(checkpoint.Frontier, op.Hash())
+		checkpoint.Authors = append(checkpoint.Authors, &sobject.SOCheckpointAuthor{PeerId: inner.GetPeerId(), Nonce: inner.GetNonce(), OpHash: op.Hash()})
+	}
+
+	// Hold the operations above it, and sync.
+	set := sobject.NewSOOperationSet(replayTestObjectID, checkpoint)
+	for _, op := range m.ops {
+		if _, err := set.Add(op); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	m.set = set
+	m.snap.checkpoint, m.snap.set = checkpoint, set
+	if _, _, err := m.replayer.sync(context.Background(), m.snap, nil); err != nil {
+		t.Fatal(err.Error())
+	}
 }
 
 // TestReplayConvergesAcrossDeliveryOrders replays concurrent transactions from
@@ -342,5 +399,49 @@ func TestReplayKeepsPositionsAboveCheckpoint(t *testing.T) {
 	got := member.deliver(a1, a2, a3)
 	if !got.state.EqualVT(want.state) || !slices.Equal(got.outcomes, want.outcomes[2:]) {
 		t.Fatalf("after checkpoint %q; want %q", got.outcomes, want.outcomes[2:])
+	}
+}
+
+// TestReplayDetectsWrongCheckpoint checks that a member that replayed the
+// operations a checkpoint covers reports a checkpoint whose World differs from
+// its own, and that a member missing a covered operation does not judge it.
+func TestReplayDetectsWrongCheckpoint(t *testing.T) {
+	// A writes a chain of three operations.
+	privA, pidA := newReplayTestKey(t)
+	space := newReplayTestSpace(t, pidA)
+	a1 := space.sign("a1", privA, "object-1", &sobject.SOOperationLink{Nonce: 1})
+	a2 := space.sign("a2", privA, "object-2", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: a1.Hash()})
+	a3 := space.sign("a3", privA, "object-3", &sobject.SOOperationLink{Nonce: 3, PrevOpHash: a2.Hash()})
+
+	// A checkpoint after a2 with the World after a2 agrees.
+	right := space.member(pidA, false)
+	right.deliver(a1, a2, a3)
+	afterA1 := right.replayer.stateAfter([][]byte{a1.Hash()})
+	afterA2 := right.replayer.stateAfter([][]byte{a1.Hash(), a2.Hash()})
+	right.adopt(1, afterA2, a2)
+	if right.replayer.mismatch != nil {
+		t.Fatalf("an agreeing checkpoint reported %v", right.replayer.mismatch)
+	}
+
+	// The same checkpoint with the World after a1 is wrong.
+	wrong := space.member(pidA, false)
+	wrong.deliver(a1, a2, a3)
+	wrong.adopt(1, afterA1, a2)
+	if got := wrong.replayer.mismatch.GetHeight(); got != 1 {
+		t.Fatalf("wrong checkpoint reported height %d; want 1", got)
+	}
+
+	// A later agreeing checkpoint clears the report.
+	wrong.adopt(2, wrong.replayer.positions[len(wrong.replayer.positions)-1].state, a3)
+	if wrong.replayer.mismatch != nil {
+		t.Fatalf("an agreeing checkpoint kept %v", wrong.replayer.mismatch)
+	}
+
+	// A member holding only a1 cannot judge a checkpoint after a2.
+	lagging := space.member(pidA, false)
+	lagging.deliver(a1)
+	lagging.adopt(1, afterA1, a2)
+	if lagging.replayer.mismatch != nil {
+		t.Fatalf("a member missing a covered operation reported %v", lagging.replayer.mismatch)
 	}
 }

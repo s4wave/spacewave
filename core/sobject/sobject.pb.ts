@@ -573,6 +573,30 @@ export const SORejectedEdit: MessageType<SORejectedEdit> =
   })
 
 /**
+ * SOCheckpointMismatch is a checkpoint whose World differs from the World this
+ * device reached by replaying the operations the checkpoint covers. The device
+ * continues from the checkpoint, since its signers are authoritative.
+ *
+ * @generated from message sobject.SOCheckpointMismatch
+ */
+export interface SOCheckpointMismatch {
+  /**
+   * Height is the height of the checkpoint.
+   *
+   * @generated from field: uint64 height = 1;
+   */
+  height?: bigint
+}
+
+export const SOCheckpointMismatch: MessageType<SOCheckpointMismatch> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOCheckpointMismatch',
+    fields: [
+      { no: 1, name: 'height', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SharedObjectHealth describes the current lifecycle and failure state of a SharedObject.
  * This payload is shared across local, spacewave, and CDN providers.
  *
@@ -640,6 +664,14 @@ export interface SharedObjectHealth {
    * @generated from field: repeated sobject.SORejectedEdit rejected_edits = 9;
    */
   rejectedEdits?: SORejectedEdit[]
+  /**
+   * CheckpointMismatch is set while the latest checkpoint this device could
+   * judge holds a World different from the one this device replayed through
+   * the operations it covers.
+   *
+   * @generated from field: sobject.SOCheckpointMismatch checkpoint_mismatch = 10;
+   */
+  checkpointMismatch?: SOCheckpointMismatch
 }
 
 export const SharedObjectHealth: MessageType<SharedObjectHealth> =
@@ -682,6 +714,12 @@ export const SharedObjectHealth: MessageType<SharedObjectHealth> =
         kind: 'message',
         T: SORejectedEdit,
         repeated: true,
+      },
+      {
+        no: 10,
+        name: 'checkpoint_mismatch',
+        kind: 'message',
+        T: SOCheckpointMismatch,
       },
     ] satisfies readonly PartialFieldInfo[],
   })

@@ -136,6 +136,17 @@ func (s *SharedObject) SetRejectedEdits(edits []*sobject.SORejectedEdit) {
 	})
 }
 
+// SetCheckpointMismatch shows mismatch in the health as a checkpoint whose
+// World differs from the World this device replayed.
+func (s *SharedObject) SetCheckpointMismatch(mismatch *sobject.SOCheckpointMismatch) {
+	if s.tkr.healthCtr == nil {
+		return
+	}
+	s.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
+		return health.WithCheckpointMismatch(mismatch)
+	})
+}
+
 // QueueOperation signs op as the session peer and adds it to the operation
 // set. It returns the operation's local ID once the state holding it is
 // durably accepted for publication.
@@ -1455,7 +1466,7 @@ func (s *SharedObject) GetProviderID() string {
 // _ is a type assertion
 var (
 	_ sobject.SharedObjectHealthAccessor = (*SharedObject)(nil)
-	_ sobject.RejectedEditReporter       = (*SharedObject)(nil)
+	_ sobject.ReplayReporter             = (*SharedObject)(nil)
 	_ sobject.SharedObjectProvider       = (*ProviderAccount)(nil)
 	_ sobject.SharedObject               = (*SharedObject)(nil)
 	_ sobject.InviteHost                 = (*SharedObject)(nil)

@@ -91,32 +91,8 @@ func testOfflineMembersConverge(
 	t.Cleanup(releaseObject)
 	ownerObject := mounted.(*provider_local.SharedObject)
 
-	// Invite a writer over the owner's session transport.
-	invite, err := ownerObject.CreateSOInviteOp(ctx, ownerObject.GetPrivKey(), "local", &sobject.SOInvite{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER, MaxUses: 1})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := ownerAccount.PrepareDirectInvite(ctx, ownerSession.GetPrivKey(), ownerObject.GetPrivKey(), invite); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(ownerAccount.StopSessionTransport)
-	t.Cleanup(ownerAccount.StopP2PSync)
-
-	// The member joins over its session transport.
-	if err := memberAccount.EnsureConfiguredSessionTransport(ctx, memberSession.GetPrivKey()); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(memberAccount.StopSessionTransport)
-	t.Cleanup(memberAccount.StopP2PSync)
-	prepareSessionTransportBackends(ctx, t, ownerAccount.GetSessionTransport(), memberAccount.GetSessionTransport())
-	if _, err := memberAccount.JoinViaInvite(ctx, memberSession.GetPrivKey(), invite, ""); err != nil {
-		t.Fatal(err)
-	}
-	memberObject := mountJoined(ctx, t, memberAccount, ownerObject.GetSharedObjectID())
-	entries := memberAccount.GetSOListCtr().GetValue().GetSharedObjects()
-	memberRef := entries[slices.IndexFunc(entries, func(entry *sobject.SharedObjectListEntry) bool {
-		return entry.GetRef().GetProviderResourceRef().GetId() == ownerObject.GetSharedObjectID()
-	})].GetRef()
+	// A writer joins it.
+	memberObject, memberRef := joinWriter(ctx, t, ownerAccount, ownerSession, ownerObject, memberAccount, memberSession)
 
 	// Both members replay the Space into a World.
 	owner := &offlineMember{t: t, name: "owner", tb: ownerTb, account: ownerAccount, object: ownerObject, ref: ref}
@@ -177,6 +153,50 @@ func testOfflineMembersConverge(
 	if want := []string{winner.object.GetPeerID().String()}; edit.GetReason() == "" || !slices.Equal(edit.GetLostToPeerIds(), want) {
 		t.Fatalf("%s rejected edit %v; want a reason and a loss to %q", loser.name, edit, want)
 	}
+}
+
+// joinWriter invites a writer to the owner's Space over the owner's session
+// transport and joins it as member. Returns the member's mounted Space and its
+// reference.
+func joinWriter(
+	ctx context.Context,
+	t *testing.T,
+	ownerAccount *provider_local.ProviderAccount,
+	ownerSession *provider_local.Session,
+	ownerObject *provider_local.SharedObject,
+	memberAccount *provider_local.ProviderAccount,
+	memberSession *provider_local.Session,
+) (*provider_local.SharedObject, *sobject.SharedObjectRef) {
+	// Invite a writer over the owner's session transport.
+	t.Helper()
+	invite, err := ownerObject.CreateSOInviteOp(ctx, ownerObject.GetPrivKey(), "local", &sobject.SOInvite{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER, MaxUses: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ownerAccount.PrepareDirectInvite(ctx, ownerSession.GetPrivKey(), ownerObject.GetPrivKey(), invite); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(ownerAccount.StopSessionTransport)
+	t.Cleanup(ownerAccount.StopP2PSync)
+
+	// Start the member's session transport and connect it to the owner's.
+	if err := memberAccount.EnsureConfiguredSessionTransport(ctx, memberSession.GetPrivKey()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(memberAccount.StopSessionTransport)
+	t.Cleanup(memberAccount.StopP2PSync)
+	prepareSessionTransportBackends(ctx, t, ownerAccount.GetSessionTransport(), memberAccount.GetSessionTransport())
+
+	// The member joins and mounts the Space.
+	if _, err := memberAccount.JoinViaInvite(ctx, memberSession.GetPrivKey(), invite, ""); err != nil {
+		t.Fatal(err)
+	}
+	memberObject := mountJoined(ctx, t, memberAccount, ownerObject.GetSharedObjectID())
+	entries := memberAccount.GetSOListCtr().GetValue().GetSharedObjects()
+	memberRef := entries[slices.IndexFunc(entries, func(entry *sobject.SharedObjectListEntry) bool {
+		return entry.GetRef().GetProviderResourceRef().GetId() == ownerObject.GetSharedObjectID()
+	})].GetRef()
+	return memberObject, memberRef
 }
 
 // addLocalSession creates another local account and session on the provider of

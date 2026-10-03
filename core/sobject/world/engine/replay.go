@@ -82,6 +82,11 @@ type replayer struct {
 	// applied holds the operations a replay on this device has applied,
 	// including those of the saved replay.
 	applied map[string]struct{}
+	// set is the operation set of the last replay.
+	set *sobject.SOOperationSet
+	// mismatch is the latest judged checkpoint whose World differs from this
+	// replay's, or nil when the latest judged checkpoint agreed.
+	mismatch *sobject.SOCheckpointMismatch
 }
 
 // newReplayer constructs a replayer for the World of so.
@@ -106,6 +111,12 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		if err := r.c.retainWorldRoot(ctx, r.so, replayBaseRootName, base.GetHeadRef()); err != nil {
 			return nil, nil, err
 		}
+		if world, ok := r.coveredWorld(checkpoint); ok {
+			r.mismatch = nil
+			if !world.EqualVT(base) {
+				r.mismatch = &sobject.SOCheckpointMismatch{Height: checkpoint.GetHeight()}
+			}
+		}
 		r.base, r.positions, r.changed = base, r.positionsAbove(base), true
 	}
 
@@ -127,6 +138,51 @@ func (r *replayer) positionsAbove(base *InnerState) []replayPosition {
 		}
 	}
 	return nil
+}
+
+// coveredWorld returns the World this replay reached after the operations
+// checkpoint covers. It answers only when the last replay held every covered
+// operation, placed them before every other operation, and still holds the
+// World after them; a device missing a covered operation, or holding another
+// that sorts among them, cannot judge the checkpoint.
+func (r *replayer) coveredWorld(checkpoint *sobject.SOCheckpointInner) (*InnerState, bool) {
+	// Judge only after a replay of a held set.
+	if r.set == nil || r.base == nil {
+		return nil, false
+	}
+	covers := sobject.NewSOOperationSet(r.so.GetSharedObjectID(), checkpoint)
+	covered := func(h []byte) bool {
+		inner := r.set.Get(h)
+		return inner != nil && covers.Covers(inner.GetPeerId(), inner.GetNonce())
+	}
+
+	// The covered operations must be the first positions.
+	n := 0
+	for n < len(r.positions) && covered(r.positions[n].outcome.hash) {
+		n++
+	}
+	if slices.ContainsFunc(r.positions[n:], func(pos replayPosition) bool { return covered(pos.outcome.hash) }) {
+		return nil, false
+	}
+
+	// Each covered author head must be among them, or below the last
+	// checkpoint.
+	placed := make(map[string]struct{}, n)
+	for _, pos := range r.positions[:n] {
+		placed[string(pos.outcome.hash)] = struct{}{}
+	}
+	for _, author := range checkpoint.GetAuthors() {
+		if _, ok := placed[string(author.GetOpHash())]; !ok && !r.set.Covers(author.GetPeerId(), author.GetNonce()) {
+			return nil, false
+		}
+	}
+
+	// Return the World after them.
+	if n == 0 {
+		return r.base, true
+	}
+	world := r.positions[n-1].state
+	return world, world != nil
 }
 
 // stateAfter returns the World after prefix when the replay placed prefix
@@ -256,6 +312,7 @@ func (r *replayer) replay(
 ) (*InnerState, []replayOutcome, error) {
 	// Keep the positions of the prefix the new order shares with the last one.
 	// A restored prefix resumes only from its last position.
+	r.set = set
 	order := set.Order()
 	n := 0
 	for n < len(order) && n < len(r.positions) && bytes.Equal(order[n], r.positions[n].outcome.hash) {

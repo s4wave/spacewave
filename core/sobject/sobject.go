@@ -107,12 +107,14 @@ type SharedObjectHealthAccessor interface {
 	AccessSharedObjectHealth(ctx context.Context, released func()) (ccontainer.Watchable[*SharedObjectHealth], func(), error)
 }
 
-// RejectedEditReporter is implemented by a SharedObject that shows its device's
-// rejected edits in its health. The World engine reports them after each
-// replay it installs.
-type RejectedEditReporter interface {
+// ReplayReporter is implemented by a SharedObject that shows the results of
+// its device's replay in its health: rejected edits and a wrong checkpoint.
+// The World engine reports them after each replay it installs.
+type ReplayReporter interface {
 	// SetRejectedEdits replaces the rejected edits in the health.
 	SetRejectedEdits(edits []*SORejectedEdit)
+	// SetCheckpointMismatch replaces the checkpoint mismatch in the health.
+	SetCheckpointMismatch(mismatch *SOCheckpointMismatch)
 }
 
 // InviteHost is an optional interface on SharedObject implementations that

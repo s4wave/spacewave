@@ -159,6 +159,11 @@ message SharedObjectHealth {
   // replay rejected, in replay order. An operation rejected when it is written
   // is reported to its writer instead.
   repeated SORejectedEdit rejected_edits = 9;
+
+  // CheckpointMismatch is set while the latest checkpoint this device could
+  // judge holds a World different from the one this device replayed through
+  // the operations it covers.
+  SOCheckpointMismatch checkpoint_mismatch = 10;
 }
 
 // SORejectedEdit is an operation of this device that replay no longer applies.
@@ -172,6 +177,14 @@ message SORejectedEdit {
   // LostToPeerIds lists the authors of the applied operations that were
   // written concurrently and replay before it, sorted.
   repeated string lost_to_peer_ids = 3;
+}
+
+// SOCheckpointMismatch is a checkpoint whose World differs from the World this
+// device reached by replaying the operations the checkpoint covers. The device
+// continues from the checkpoint, since its signers are authoritative.
+message SOCheckpointMismatch {
+  // Height is the height of the checkpoint.
+  uint64 height = 1;
 }
 
 // SOParticipantRole defines the general role of a shared object participant.

@@ -192,6 +192,9 @@ type soEngine struct {
 	// rejected are the rejected edits last reported, guarded by the
 	// controller's writer lock.
 	rejected []*sobject.SORejectedEdit
+	// mismatch is the checkpoint mismatch last reported, guarded by the
+	// controller's writer lock.
+	mismatch *sobject.SOCheckpointMismatch
 }
 
 // newSoEngine constructs the shared object engine.
@@ -363,6 +366,7 @@ func (e *soEngine) advance(ctx context.Context, snap sobject.SharedObjectStateSn
 		return nil, err
 	}
 	e.reportRejectedEdits(set, outcomes)
+	e.reportCheckpointMismatch()
 
 	// Trim the history every member has built on.
 	if err := e.checkpointStable(ctx, snap, set); err != nil {
@@ -390,12 +394,30 @@ func (e *soEngine) reportRejectedEdits(set *sobject.SOOperationSet, outcomes []r
 	}
 
 	// Show them when they changed.
-	reporter, ok := e.so.(sobject.RejectedEditReporter)
+	reporter, ok := e.so.(sobject.ReplayReporter)
 	if !ok || slices.EqualFunc(edits, e.rejected, (*sobject.SORejectedEdit).EqualVT) {
 		return
 	}
 	e.rejected = edits
 	reporter.SetRejectedEdits(edits)
+}
+
+// reportCheckpointMismatch shows in the health of the SharedObject whether the
+// latest checkpoint the replay judged holds a World other than its own.
+func (e *soEngine) reportCheckpointMismatch() {
+	// Skip an unchanged mismatch.
+	mismatch := e.replay.mismatch
+	reporter, ok := e.so.(sobject.ReplayReporter)
+	if !ok || mismatch.EqualVT(e.mismatch) {
+		return
+	}
+
+	// Log and show the change.
+	if mismatch != nil {
+		e.c.le.WithField("checkpoint-height", mismatch.GetHeight()).Warn("checkpoint World differs from the replayed World")
+	}
+	e.mismatch = mismatch
+	reporter.SetCheckpointMismatch(mismatch)
 }
 
 // concurrentAuthors returns the sorted authors, other than self, of the applied

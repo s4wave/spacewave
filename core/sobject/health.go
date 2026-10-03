@@ -85,6 +85,23 @@ func (h *SharedObjectHealth) WithRejectedEdits(edits []*SORejectedEdit) *SharedO
 	return next
 }
 
+// WithCheckpointMismatch returns a snapshot reporting mismatch, or no mismatch
+// when it is nil.
+func (h *SharedObjectHealth) WithCheckpointMismatch(mismatch *SOCheckpointMismatch) *SharedObjectHealth {
+	// Keep the snapshot when the mismatch is unchanged.
+	if h.GetCheckpointMismatch().EqualVT(mismatch) {
+		return h
+	}
+
+	// Copy the snapshot with the new mismatch.
+	next := h.CloneVT()
+	if next == nil {
+		next = NewSharedObjectLoadingHealth(SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT)
+	}
+	next.CheckpointMismatch = mismatch
+	return next
+}
+
 // NewSharedObjectLoadingHealth constructs a loading SharedObjectHealth snapshot.
 func NewSharedObjectLoadingHealth(
 	layer SharedObjectHealthLayer,

@@ -541,6 +541,10 @@ type SharedObjectHealth struct {
 	// replay rejected, in replay order. An operation rejected when it is written
 	// is reported to its writer instead.
 	RejectedEdits []*SORejectedEdit `protobuf:"bytes,9,rep,name=rejected_edits,json=rejectedEdits,proto3" json:"rejectedEdits,omitempty"`
+	// CheckpointMismatch is set while the latest checkpoint this device could
+	// judge holds a World different from the one this device replayed through
+	// the operations it covers.
+	CheckpointMismatch *SOCheckpointMismatch `protobuf:"bytes,10,opt,name=checkpoint_mismatch,json=checkpointMismatch,proto3" json:"checkpointMismatch,omitempty"`
 }
 
 func (x *SharedObjectHealth) Reset() {
@@ -612,6 +616,13 @@ func (x *SharedObjectHealth) GetRejectedEdits() []*SORejectedEdit {
 	return nil
 }
 
+func (x *SharedObjectHealth) GetCheckpointMismatch() *SOCheckpointMismatch {
+	if x != nil {
+		return x.CheckpointMismatch
+	}
+	return nil
+}
+
 // SORejectedEdit is an operation of this device that replay no longer applies.
 type SORejectedEdit struct {
 	unknownFields []byte
@@ -649,6 +660,28 @@ func (x *SORejectedEdit) GetLostToPeerIds() []string {
 		return x.LostToPeerIds
 	}
 	return nil
+}
+
+// SOCheckpointMismatch is a checkpoint whose World differs from the World this
+// device reached by replaying the operations the checkpoint covers. The device
+// continues from the checkpoint, since its signers are authoritative.
+type SOCheckpointMismatch struct {
+	unknownFields []byte
+	// Height is the height of the checkpoint.
+	Height uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
+}
+
+func (x *SOCheckpointMismatch) Reset() {
+	*x = SOCheckpointMismatch{}
+}
+
+func (*SOCheckpointMismatch) ProtoMessage() {}
+
+func (x *SOCheckpointMismatch) GetHeight() uint64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
 }
 
 // SharedObjectConfig configures the SharedObject.
@@ -2103,6 +2136,7 @@ func (m *SharedObjectHealth) CloneVT() *SharedObjectHealth {
 	r.SyncDeniedPeerIds = protobuf_go_lite.CloneSlice(m.SyncDeniedPeerIds)
 	r.SyncRecoveryPeerIds = protobuf_go_lite.CloneSlice(m.SyncRecoveryPeerIds)
 	r.RejectedEdits = protobuf_go_lite.CloneVTSlice(m.RejectedEdits)
+	r.CheckpointMismatch = protobuf_go_lite.CloneVTValue(m.CheckpointMismatch)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2128,6 +2162,22 @@ func (m *SORejectedEdit) CloneVT() *SORejectedEdit {
 }
 
 func (m *SORejectedEdit) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOCheckpointMismatch) CloneVT() *SOCheckpointMismatch {
+	if m == nil {
+		return (*SOCheckpointMismatch)(nil)
+	}
+	r := new(SOCheckpointMismatch)
+	r.Height = m.Height
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOCheckpointMismatch) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2805,6 +2855,9 @@ func (this *SharedObjectHealth) EqualVT(that *SharedObjectHealth) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.RejectedEdits, that.RejectedEdits, func() *SORejectedEdit { return &SORejectedEdit{} }) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.CheckpointMismatch, that.CheckpointMismatch) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2836,6 +2889,26 @@ func (this *SORejectedEdit) EqualVT(that *SORejectedEdit) bool {
 
 func (this *SORejectedEdit) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SORejectedEdit)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOCheckpointMismatch) EqualVT(that *SOCheckpointMismatch) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Height != that.Height {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOCheckpointMismatch) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOCheckpointMismatch)
 	if !ok {
 		return false
 	}
@@ -4256,6 +4329,11 @@ func (x *SharedObjectHealth) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.CheckpointMismatch != nil || s.HasField("checkpointMismatch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointMismatch")
+		x.CheckpointMismatch.MarshalProtoJSON(s.WithField("checkpointMismatch"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4323,6 +4401,13 @@ func (x *SharedObjectHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.RejectedEdits = append(x.RejectedEdits, v)
 			})
+		case "checkpoint_mismatch", "checkpointMismatch":
+			if s.ReadNil() {
+				x.CheckpointMismatch = nil
+				return
+			}
+			x.CheckpointMismatch = &SOCheckpointMismatch{}
+			x.CheckpointMismatch.UnmarshalProtoJSON(s.WithField("checkpoint_mismatch", true))
 		}
 	})
 }
@@ -4391,6 +4476,48 @@ func (x *SORejectedEdit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SORejectedEdit from JSON.
 func (x *SORejectedEdit) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOCheckpointMismatch message to JSON.
+func (x *SOCheckpointMismatch) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Height != 0 || s.HasField("height") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("height")
+		s.WriteUint64(x.Height)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOCheckpointMismatch to JSON.
+func (x *SOCheckpointMismatch) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOCheckpointMismatch message from JSON.
+func (x *SOCheckpointMismatch) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "height":
+			s.AddField("height")
+			x.Height = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOCheckpointMismatch from JSON.
+func (x *SOCheckpointMismatch) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6805,6 +6932,16 @@ func (m *SharedObjectHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.CheckpointMismatch != nil {
+		size, err := m.CheckpointMismatch.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	}
 	if len(m.RejectedEdits) > 0 {
 		for iNdEx := len(m.RejectedEdits) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.RejectedEdits[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -6909,6 +7046,43 @@ func (m *SORejectedEdit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OpHash)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOCheckpointMismatch) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOCheckpointMismatch) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOCheckpointMismatch) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Height != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Height))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -8634,6 +8808,10 @@ func (m *SharedObjectHealth) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.CheckpointMismatch != nil {
+		l = m.CheckpointMismatch.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8647,6 +8825,17 @@ func (m *SORejectedEdit) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OpHash)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
 	n += protobuf_go_lite.SizeStringSlice(1, m.LostToPeerIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOCheckpointMismatch) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Height)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9323,6 +9512,10 @@ func (x *SharedObjectHealth) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.CheckpointMismatch != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_mismatch")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CheckpointMismatch)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -9353,6 +9546,20 @@ func (x *SORejectedEdit) MarshalProtoText() string {
 }
 
 func (x *SORejectedEdit) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOCheckpointMismatch) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOCheckpointMismatch")
+	if x.Height != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "height")
+		protobuf_go_lite.TextWriteUint(&sb, x.Height)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOCheckpointMismatch) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -10597,6 +10804,21 @@ func (m *SharedObjectHealth) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointMismatch", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.CheckpointMismatch == nil {
+				m.CheckpointMismatch = &SOCheckpointMismatch{}
+			}
+			if err := m.CheckpointMismatch.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -10668,6 +10890,58 @@ func (m *SORejectedEdit) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.LostToPeerIds = append(m.LostToPeerIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOCheckpointMismatch) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOCheckpointMismatch: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOCheckpointMismatch: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
+			}
+			m.Height = 0
+			m.Height, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
