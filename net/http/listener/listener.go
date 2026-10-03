@@ -4,6 +4,7 @@ package bifrost_http_listener
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -69,11 +70,15 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 }
 
 // Execute executes the controller.
+// Serves until the context is canceled or the controller is closed.
 // Returning nil ends execution.
-func (c *Controller) Execute(rctx context.Context) (rerr error) {
+func (c *Controller) Execute(rctx context.Context) error {
+	// Skip execution when no server is configured.
 	if c.srv == nil {
 		return nil
 	}
+
+	// Log the protocol and address the server listens on.
 	hasHTTPS := c.certFile != "" && c.keyFile != ""
 	protocol := "http"
 	if hasHTTPS {
@@ -84,10 +89,27 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	} else {
 		c.le.Debugf("starting %s server with addr %q", protocol, c.srv.Addr)
 	}
+
+	// Close the server when the controller context ends.
+	stop := context.AfterFunc(rctx, func() {
+		_ = c.srv.Close()
+	})
+	defer stop()
+
+	// Serve until the listener fails or the server is closed.
+	var err error
 	if hasHTTPS {
-		return c.srv.ListenAndServeTLS(c.certFile, c.keyFile)
+		err = c.srv.ListenAndServeTLS(c.certFile, c.keyFile)
+	} else {
+		err = c.srv.ListenAndServe()
 	}
-	return c.srv.ListenAndServe()
+	if rctx.Err() != nil {
+		return context.Canceled
+	}
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -108,8 +130,12 @@ func (c *Controller) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // Close releases any resources used by the controller.
+// Closes the server, which ends Execute.
 func (c *Controller) Close() error {
-	return nil
+	if c.srv == nil {
+		return nil
+	}
+	return c.srv.Close()
 }
 
 // _ is a type assertion
