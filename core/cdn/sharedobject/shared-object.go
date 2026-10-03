@@ -252,6 +252,11 @@ func (s *cdnStateSnapshot) GetParticipantConfigForPeer(_ context.Context, _ stri
 	return nil, sobject.ErrNotParticipant
 }
 
+// GetConfig returns an empty config because the CDN mount holds no config.
+func (s *cdnStateSnapshot) GetConfig(_ context.Context) (*sobject.SharedObjectConfig, error) {
+	return &sobject.SharedObjectConfig{}, nil
+}
+
 // GetConfigByHash returns ErrConfigHistoryUnavailable because the CDN mount
 // holds no config history.
 func (s *cdnStateSnapshot) GetConfigByHash(_ context.Context, _ []byte) (*sobject.SharedObjectConfig, error) {

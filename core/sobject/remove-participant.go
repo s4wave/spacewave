@@ -2,7 +2,9 @@ package sobject
 
 import (
 	"context"
+	"maps"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -56,6 +58,9 @@ func RemoveSOParticipants(
 		_, ok := targets[participant.GetPeerId()]
 		return ok
 	})
+	if err := pinRemovedAuthors(host.GetSharedObjectID(), state, nextCfg, removed); err != nil {
+		return nil, err
+	}
 	entry, err := BuildSOConfigChange(host.GetSharedObjectID(), currentCfg, nextCfg, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, signerPriv, revInfo)
 	if err != nil {
 		return nil, errors.Wrap(err, "build config change")
@@ -80,10 +85,45 @@ func RemoveSOParticipant(
 	return len(removed) != 0, err
 }
 
+// pinRemovedAuthors records in next, the config that removes peers, the last
+// operation state holds from each removed peer that its checkpoint does not
+// cover. It drops pins the checkpoint now covers and pins of peers next
+// admits again, and keeps the list sorted by peer ID.
+func pinRemovedAuthors(sharedObjectID string, state *SOState, next *SharedObjectConfig, peers []string) error {
+	// Read the operations held above the checkpoint.
+	set, err := state.OperationSet(sharedObjectID)
+	if err != nil {
+		return err
+	}
+
+	// Keep each earlier pin a later checkpoint or rejoin has not made redundant.
+	pins := make(map[string]*SOCheckpointAuthor, len(next.GetRemovedAuthors())+len(peers))
+	for _, pin := range next.GetRemovedAuthors() {
+		participates := slices.ContainsFunc(next.GetParticipants(), func(p *SOParticipantConfig) bool { return p.GetPeerId() == pin.GetPeerId() })
+		if !participates && !set.Covers(pin.GetPeerId(), pin.GetNonce()) {
+			pins[pin.GetPeerId()] = pin
+		}
+	}
+
+	// Pin each removed peer's latest held operation above the checkpoint.
+	for _, peerID := range peers {
+		nonce, head := set.AuthorHead(peerID)
+		if nonce != 0 && !set.Covers(peerID, nonce) {
+			pins[peerID] = &SOCheckpointAuthor{PeerId: peerID, Nonce: nonce, OpHash: head}
+		}
+	}
+
+	// Store them in peer ID order.
+	next.RemovedAuthors = slices.SortedFunc(maps.Values(pins), func(a, b *SOCheckpointAuthor) int {
+		return strings.Compare(a.GetPeerId(), b.GetPeerId())
+	})
+	return nil
+}
+
 // pruneRemovedParticipants removes the targets' grants from every key epoch
 // and replaces their proofs that remaining participants depend on, signed by
 // the remaining owner of signer. Their operations stay in the set, and replay
-// skips them.
+// applies only those the removal pinned.
 func pruneRemovedParticipants(sharedObjectID string, state *SOState, targets map[string]struct{}, signer crypto.PrivKey) error {
 	// Drop the targets' grants and re-wrap the grants they signed.
 	signerID, err := peer.IDFromPrivateKey(signer)

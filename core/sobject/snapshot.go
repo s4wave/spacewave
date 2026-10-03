@@ -22,6 +22,8 @@ type SharedObjectStateSnapshot interface {
 	// uses the peer identity from the SharedObject.
 	// returns ErrNotParticipant if the local peer is not a participant.
 	GetParticipantConfig(ctx context.Context) (*SOParticipantConfig, error)
+	// GetConfig returns the accepted config.
+	GetConfig(ctx context.Context) (*SharedObjectConfig, error)
 	// GetConfigByHash returns the config with the given config chain hash.
 	// Returns ErrConfigHistoryUnavailable when the config is not retained.
 	GetConfigByHash(ctx context.Context, hash []byte) (*SharedObjectConfig, error)

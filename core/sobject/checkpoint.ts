@@ -1,9 +1,8 @@
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex, concatBytes } from '@noble/hashes/utils.js'
 
-import { extractPublicKeyFromPeerID } from '../../net/peer/id.js'
 import { verifySignature } from '../../net/peer/signature.js'
-import { MAX_SO_PARTICIPANTS } from './config-chain.js'
+import { MAX_SO_PARTICIPANTS, validateSOAuthorHeads } from './config-chain.js'
 import { SOBJECT_BASE_CRYPTO_CONTEXT } from './operation-log.js'
 import {
   SOCheckpoint,
@@ -89,22 +88,7 @@ export function validateSOCheckpointInner(inner: SOCheckpointInner): void {
     last = hex
   }
 
-  // Each author appears once, in peer ID order, at a real operation. Base58
-  // peer IDs are ASCII, so string order is byte order.
-  let lastPeer = ''
-  for (const [i, author] of authors.entries()) {
-    const peerId = author.peerId ?? ''
-    if (!extractPublicKeyFromPeerID(peerId)) {
-      throw new Error(`authors[${i}]: peer_id is invalid`)
-    }
-    if ((author.nonce ?? 0n) === 0n || (author.opHash?.length ?? 0) !== 32) {
-      throw new Error(`authors[${i}] must name an operation`)
-    }
-    if (i > 0 && peerId <= lastPeer) {
-      throw new Error('checkpoint authors must be strictly sorted by peer_id')
-    }
-    lastPeer = peerId
-  }
+  validateSOAuthorHeads('authors', authors)
 }
 
 // verifySOCheckpoint authenticates every signature on the checkpoint as

@@ -248,6 +248,17 @@ func (s *testSharedObjectSnapshot) GetTransformInfo(ctx context.Context) (*sobje
 	return nil, nil
 }
 
+func (s *testSharedObjectSnapshot) GetConfig(ctx context.Context) (*sobject.SharedObjectConfig, error) {
+	cfg := &sobject.SharedObjectConfig{}
+	for _, participant := range s.participants {
+		cfg.Participants = append(cfg.Participants, participant)
+	}
+	if s.participants == nil && s.participant != nil {
+		cfg.Participants = append(cfg.Participants, s.participant)
+	}
+	return cfg, nil
+}
+
 func (s *testSharedObjectSnapshot) GetConfigByHash(ctx context.Context, hash []byte) (*sobject.SharedObjectConfig, error) {
 	return nil, nil
 }

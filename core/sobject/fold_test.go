@@ -130,41 +130,54 @@ func TestFoldOfflineMembersConverge(t *testing.T) {
 	}
 }
 
-// TestFoldRejectsRemovedMember checks that replay skips every operation of a
-// removed member, even one signed under a config that named it.
-func TestFoldRejectsRemovedMember(t *testing.T) {
-	// The writer writes under the genesis config.
+// TestFoldPinsRemovedMember checks that replay applies a removed member's
+// operations up to the one the removal pinned and skips the later ones, even
+// though each is signed under a config that named the member.
+func TestFoldPinsRemovedMember(t *testing.T) {
+	// The writer writes under the genesis config before the owner removes it.
 	peers := createMockPeers(t, 2)
 	keys := mustPrivKeys(t, peers)
 	state, genesis := newTestSOState(t, peers)
-	removed := writeTestOp(t, state, keys[1], "removed")
+	removedID := peers[1].GetPeerID().String()
+	early := writeTestOp(t, state, keys[1], "early")
 	kept := writeTestOp(t, state, keys[0], "kept")
 
-	// The owner removes the writer.
+	// The owner signs the removal from the operations it holds.
 	next := state.GetConfig().CloneVT()
 	next.Participants = next.Participants[:1]
+	if err := pinRemovedAuthors(mockSharedObjectID, state, next, []string{removedID}); err != nil {
+		t.Fatal(err)
+	}
 	removal, err := BuildSOConfigChange(mockSharedObjectID, state.GetConfig(), next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, keys[0], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The writer, still offline, writes again under the genesis config.
+	late := writeTestOp(t, state, keys[1], "late")
 	state.Config, err = VerifyConfigChange(mockSharedObjectID, state.GetConfig(), removal)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := pruneRemovedParticipants(mockSharedObjectID, state, map[string]struct{}{peers[1].GetPeerID().String(): {}}, keys[0]); err != nil {
+	if err := pruneRemovedParticipants(mockSharedObjectID, state, map[string]struct{}{removedID: {}}, keys[0]); err != nil {
 		t.Fatal(err)
 	}
 
-	// Replay applies the owner's operation and skips the removed writer's.
+	// Replay applies the pinned and the owner's operations and skips the late one.
 	res := foldTest(t, testHandle(t, state, keys[0], genesis))
-	if got := res.Outcome(peers[1].GetPeerID().String(), mustInner(t, removed).GetLocalId()); got == nil || got.Reason != ReasonRemoved {
-		t.Fatalf("removed member's operation outcome %+v; want %q", got, ReasonRemoved)
-	}
-	if got := res.Outcome(peers[0].GetPeerID().String(), mustInner(t, kept).GetLocalId()); got == nil || got.Reason != "" {
-		t.Fatalf("owner's operation outcome %+v; want applied", got)
-	}
-	if string(res.StateData) != "kept" {
-		t.Fatalf("folded state %q; want kept", res.StateData)
+	for _, tc := range []struct {
+		peerID string
+		op     *SOOperation
+		reason string
+	}{
+		{removedID, early, ""},
+		{peers[0].GetPeerID().String(), kept, ""},
+		{removedID, late, ReasonRemoved},
+	} {
+		got := res.Outcome(tc.peerID, mustInner(t, tc.op).GetLocalId())
+		if got == nil || got.Reason != tc.reason {
+			t.Fatalf("operation outcome %+v; want reason %q", got, tc.reason)
+		}
 	}
 }
 

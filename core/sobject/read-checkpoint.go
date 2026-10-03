@@ -9,10 +9,13 @@ type SharedObjectReadCheckpointAccessor interface {
 	GetSharedObjectReadCheckpoint(ctx context.Context) (*SharedObjectReadCheckpoint, error)
 }
 
-// SharedObjectReadCheckpoint records the audience of the World a participant
-// last installed before read access ended. Config is descriptive history,
-// never current participant authority.
+// SharedObjectReadCheckpoint records the state a participant last held before
+// read access ended. It is descriptive history, never current participant
+// authority.
 type SharedObjectReadCheckpoint struct {
 	// Config records the audience at departure.
 	Config *SharedObjectConfig
+	// Snapshot is the state held at departure. Replaying it yields the World
+	// the participant last could read.
+	Snapshot SharedObjectStateSnapshot
 }

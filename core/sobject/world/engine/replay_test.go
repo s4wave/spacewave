@@ -98,6 +98,11 @@ func (s *replayTestSnapshot) GetParticipantConfigForPeer(_ context.Context, peer
 	return nil, sobject.ErrNotParticipant
 }
 
+// GetConfig returns the config.
+func (s *replayTestSnapshot) GetConfig(context.Context) (*sobject.SharedObjectConfig, error) {
+	return s.config, nil
+}
+
 // GetConfigByHash returns the config when hash names it.
 func (s *replayTestSnapshot) GetConfigByHash(_ context.Context, hash []byte) (*sobject.SharedObjectConfig, error) {
 	if !bytes.Equal(hash, s.config.GetConfigChainHash()) {

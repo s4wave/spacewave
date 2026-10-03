@@ -143,6 +143,9 @@ func leaveSOParticipants(ctx context.Context, host *SOHost, owner crypto.PrivKey
 				p.Role = SOParticipantRole_SOParticipantRole_OWNER
 			}
 		}
+		if err := pinRemovedAuthors(host.GetSharedObjectID(), state, next, peers); err != nil {
+			return nil, err
+		}
 		change, err := BuildSOConfigChange(host.GetSharedObjectID(), current, next, SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_REMOVE_PARTICIPANT, owner, &SORevocationInfo{LeaveRequestHash: requestHash[:]})
 		if err != nil {
 			return nil, err

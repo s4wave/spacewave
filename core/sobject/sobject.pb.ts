@@ -680,6 +680,42 @@ export const SOParticipantConfig: MessageType<SOParticipantConfig> =
   })
 
 /**
+ * SOCheckpointAuthor is the last operation of one author a checkpoint covers.
+ *
+ * @generated from message sobject.SOCheckpointAuthor
+ */
+export interface SOCheckpointAuthor {
+  /**
+   * PeerId is the author.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+  /**
+   * Nonce is the author sequence of the operation.
+   *
+   * @generated from field: uint64 nonce = 2;
+   */
+  nonce?: bigint
+  /**
+   * OpHash is the hash of the operation.
+   *
+   * @generated from field: bytes op_hash = 3;
+   */
+  opHash?: Uint8Array
+}
+
+export const SOCheckpointAuthor: MessageType<SOCheckpointAuthor> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOCheckpointAuthor',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'op_hash', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SharedObjectConfig configures the SharedObject.
  *
  * @generated from message sobject.SharedObjectConfig
@@ -706,6 +742,15 @@ export interface SharedObjectConfig {
    * @generated from field: uint64 config_chain_seqno = 11;
    */
   configChainSeqno?: bigint
+  /**
+   * RemovedAuthors pins the last operation the removing owner held from each
+   * removed author whose operations the checkpoint does not yet cover, sorted
+   * by peer ID. Replay applies a removed author's operations up to that
+   * operation and skips the rest, which may postdate the removal.
+   *
+   * @generated from field: repeated sobject.SOCheckpointAuthor removed_authors = 12;
+   */
+  removedAuthors?: SOCheckpointAuthor[]
 }
 
 export const SharedObjectConfig: MessageType<SharedObjectConfig> =
@@ -730,6 +775,13 @@ export const SharedObjectConfig: MessageType<SharedObjectConfig> =
         name: 'config_chain_seqno',
         kind: 'scalar',
         T: ScalarType.UINT64,
+      },
+      {
+        no: 12,
+        name: 'removed_authors',
+        kind: 'message',
+        T: SOCheckpointAuthor,
+        repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],
   })
@@ -974,42 +1026,6 @@ export const SOCheckpoint: MessageType<SOCheckpoint> =
         T: () => Signature,
         repeated: true,
       },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * SOCheckpointAuthor is the last operation of one author a checkpoint covers.
- *
- * @generated from message sobject.SOCheckpointAuthor
- */
-export interface SOCheckpointAuthor {
-  /**
-   * PeerId is the author.
-   *
-   * @generated from field: string peer_id = 1;
-   */
-  peerId?: string
-  /**
-   * Nonce is the author sequence of the operation.
-   *
-   * @generated from field: uint64 nonce = 2;
-   */
-  nonce?: bigint
-  /**
-   * OpHash is the hash of the operation.
-   *
-   * @generated from field: bytes op_hash = 3;
-   */
-  opHash?: Uint8Array
-}
-
-export const SOCheckpointAuthor: MessageType<SOCheckpointAuthor> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'sobject.SOCheckpointAuthor',
-    fields: [
-      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 3, name: 'op_hash', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 

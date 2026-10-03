@@ -185,6 +185,12 @@ message SharedObjectConfig {
   // The next entry must have config_seqno == config_chain_seqno + 1.
   // Zero means no config changes have been applied yet (genesis state).
   uint64 config_chain_seqno = 11;
+
+  // RemovedAuthors pins the last operation the removing owner held from each
+  // removed author whose operations the checkpoint does not yet cover, sorted
+  // by peer ID. Replay applies a removed author's operations up to that
+  // operation and skips the rest, which may postdate the removal.
+  repeated SOCheckpointAuthor removed_authors = 12;
 }
 
 // SOLeaveRequest relinquishes only the identities that sign this exact object and configuration head.

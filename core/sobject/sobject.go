@@ -2,6 +2,8 @@ package sobject
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -160,6 +162,11 @@ func NewLocalStateStoreRefcount(
 // Validate checks bootstrap structure or a retained configuration, including a terminal empty audience.
 // A nonempty configuration must keep an OWNER so later changes remain authorizable.
 func (c *SharedObjectConfig) Validate() error {
+	// Pinned operations of removed authors outlive the final departure too.
+	if err := validateAuthorHeads("removed_authors", c.GetRemovedAuthors()); err != nil {
+		return err
+	}
+
 	// A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
 	participants := c.GetParticipants()
 	if len(participants) == 0 {
@@ -192,6 +199,19 @@ func (c *SharedObjectConfig) Validate() error {
 		return ErrNoOwner
 	}
 	return nil
+}
+
+// AdmitsOperation reports whether replay under this config applies the
+// operation at nonce in peerID's chain: the author participates, or a removal
+// pinned an operation at or after nonce.
+func (c *SharedObjectConfig) AdmitsOperation(peerID string, nonce uint64) bool {
+	if slices.ContainsFunc(c.GetParticipants(), func(p *SOParticipantConfig) bool { return p.GetPeerId() == peerID }) {
+		return true
+	}
+	i, ok := slices.BinarySearchFunc(c.GetRemovedAuthors(), peerID, func(a *SOCheckpointAuthor, id string) int {
+		return strings.Compare(a.GetPeerId(), id)
+	})
+	return ok && nonce <= c.GetRemovedAuthors()[i].GetNonce()
 }
 
 // NewSOOperationLocalID constructs a new randomized local ID for a op.

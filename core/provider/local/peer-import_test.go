@@ -131,7 +131,7 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 		t.Fatalf("revocation did not preserve the checkpoint and commit authority: %v", err)
 	}
 
-	// A fresh storage read recovers the last readable audience.
+	// A fresh storage read recovers the last readable state.
 	archived, err := backend.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -141,12 +141,12 @@ func TestPeerImportRetainsAuthority(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("read checkpoint missing after removal: %v", err)
 	}
-	audience := &sobject.SharedObjectConfig{}
-	if err := audience.UnmarshalVT(archiveData); err != nil {
+	archive := &sobject.SOState{}
+	if err := archive.UnmarshalVT(archiveData); err != nil {
 		t.Fatal(err)
 	}
-	if !audience.EqualVT(candidate.Config) {
-		t.Fatal("read checkpoint did not retain the last readable audience")
+	if !archive.GetConfig().EqualVT(candidate.Config) {
+		t.Fatal("read checkpoint did not retain the last readable state")
 	}
 
 	// Explicit invitation authority replaces the upgrade checkpoint with its accepted head.

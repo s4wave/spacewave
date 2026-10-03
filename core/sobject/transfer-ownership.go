@@ -12,7 +12,7 @@ import (
 
 // TransferSOOwnership promotes a successor to OWNER in one change that carries
 // the departing owner's leave consent. Only a remaining owner can re-sign the
-// departed owner's grants and root, so the successor commits the departure with
+// departed owner's grants and checkpoint, so the successor commits the departure with
 // CompleteSOOwnershipTransfer. An empty successor selects the remaining
 // participant with the highest role, then the earliest in configuration order.
 func TransferSOOwnership(ctx context.Context, host *SOHost, owner crypto.PrivKey, successor string, request *SOLeaveRequest) (*SOConfigChange, error) {

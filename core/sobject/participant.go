@@ -154,6 +154,11 @@ func (s *SOStateParticipantHandle) GetParticipantConfigForPeer(_ context.Context
 	return nil, ErrNotParticipant
 }
 
+// GetConfig returns the accepted config.
+func (s *SOStateParticipantHandle) GetConfig(context.Context) (*SharedObjectConfig, error) {
+	return s.state.GetConfig(), nil
+}
+
 // GetConfigByHash returns the current config or a retained earlier one.
 func (s *SOStateParticipantHandle) GetConfigByHash(ctx context.Context, hash []byte) (*SharedObjectConfig, error) {
 	// The current config needs no history.

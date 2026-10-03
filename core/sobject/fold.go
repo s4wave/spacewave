@@ -103,8 +103,8 @@ func (r *FoldResult) apply(
 	return "", nil
 }
 
-// ReasonRemoved is the outcome of an operation whose author is no longer a
-// participant.
+// ReasonRemoved is the outcome of an operation whose author was removed from
+// the shared object before the operation reached the removing owner.
 const ReasonRemoved = "its author was removed from the shared object"
 
 // ReasonEquivocated is the outcome of an operation whose author signed another
@@ -112,10 +112,10 @@ const ReasonRemoved = "its author was removed from the shared object"
 const ReasonEquivocated = "its author signed another operation at the same sequence"
 
 // PrepareReplayOp authorizes the author of inner under the config the
-// operation names, requires the author to remain a participant, and decodes its data with the key of its epoch. It returns
-// the author's participant entry and the decoded data, or the reason replay
-// rejects the operation. A config or key the member lacks is an error, not a
-// rejection.
+// operation names, requires the current config to admit it, and decodes its
+// data with the key of its epoch. It returns the author's participant entry
+// and the decoded data, or the reason replay rejects the operation. A config
+// or key the member lacks is an error, not a rejection.
 func PrepareReplayOp(ctx context.Context, snap SharedObjectStateSnapshot, inner *SOOperationInner) (*SOParticipantConfig, []byte, string, error) {
 	// Authorize the author under the config the operation was written under.
 	cfg, err := snap.GetConfigByHash(ctx, inner.GetConfigHash())
@@ -133,13 +133,15 @@ func PrepareReplayOp(ctx context.Context, snap SharedObjectStateSnapshot, inner 
 		return nil, nil, "its author could not write to the shared object", nil
 	}
 
-	// A removed author's operations never apply: an old signature cannot show
-	// whether it was written before or after the removal.
-	if _, err := snap.GetParticipantConfigForPeer(ctx, inner.GetPeerId()); err != nil {
-		if errors.Is(err, ErrNotParticipant) {
-			return nil, nil, ReasonRemoved, nil
-		}
+	// An old signature cannot show whether a removed author wrote the operation
+	// before or after the removal, so only the operations the removal pinned
+	// apply.
+	current, err := snap.GetConfig(ctx)
+	if err != nil {
 		return nil, nil, "", err
+	}
+	if !current.AdmitsOperation(inner.GetPeerId(), inner.GetNonce()) {
+		return nil, nil, ReasonRemoved, nil
 	}
 
 	// Decode the operation data. A held key that fails is a rejection every

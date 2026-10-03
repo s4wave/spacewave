@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
@@ -175,25 +174,6 @@ func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 	if res == nil || !res.GetSuccess() {
 		t.Fatalf("expected ordinary transaction success, got %#v", res)
 	}
-}
-
-// applyTransactionTestObject applies a transaction creating key to head and
-// returns the World after it.
-func applyTransactionTestObject(t *testing.T, c *Controller, so sobject.SharedObject, head *InnerState, key string) *InnerState {
-	// Process a transaction creating key.
-	t.Helper()
-	op, err := world_block_tx.NewTxCreateObject(key, head.GetHeadRef())
-	if err != nil {
-		t.Fatal(err)
-	}
-	next, result, err := c.processOp(t.Context(), c.le, so, marshalApplyTxOpForProcessTest(t, op), key, newProcessTestPeerID(t), 1, 0, head)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !result.GetSuccess() {
-		t.Fatalf("create object rejected: %v", result)
-	}
-	return next
 }
 
 // newProcessTestPeerID returns a fresh peer ID.

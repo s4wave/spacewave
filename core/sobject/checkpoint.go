@@ -169,16 +169,21 @@ func (i *SOCheckpointInner) Validate() error {
 		}
 	}
 
-	// Each author appears once, in peer ID order, at a real operation.
-	for j, author := range i.GetAuthors() {
+	return validateAuthorHeads("authors", i.GetAuthors())
+}
+
+// validateAuthorHeads checks that each author appears once, in peer ID order,
+// at a real operation. field names the list in errors.
+func validateAuthorHeads(field string, authors []*SOCheckpointAuthor) error {
+	for j, author := range authors {
 		if _, err := parsePeerIDField(author.GetPeerId()); err != nil {
-			return errors.Wrapf(err, "authors[%d]", j)
+			return errors.Wrapf(err, "%s[%d]", field, j)
 		}
 		if author.GetNonce() == 0 || len(author.GetOpHash()) != sha256.Size {
-			return errors.Errorf("authors[%d] must name an operation", j)
+			return errors.Errorf("%s[%d] must name an operation", field, j)
 		}
-		if j > 0 && strings.Compare(i.GetAuthors()[j-1].GetPeerId(), author.GetPeerId()) >= 0 {
-			return errors.New("checkpoint authors must be strictly sorted by peer_id")
+		if j > 0 && strings.Compare(authors[j-1].GetPeerId(), author.GetPeerId()) >= 0 {
+			return errors.Errorf("%s must be strictly sorted by peer_id", field)
 		}
 	}
 	return nil

@@ -15,8 +15,8 @@ func readCheckpointKey(sharedObjectID string) []byte {
 	return []byte("so/" + sharedObjectID + "/read-checkpoint")
 }
 
-// writeReadCheckpoint retains the audience of the last readable state at the
-// authority commit boundary. A peer whose leave the head ownership transfer
+// writeReadCheckpoint retains the last readable state at the authority commit
+// boundary. A peer whose leave the head ownership transfer
 // carries is no longer readable. Readmission removes the checkpoint because the
 // current World owns history again. It runs after the commit's configuration
 // history is written to tx.
@@ -67,24 +67,22 @@ func writeReadCheckpoint(
 		return err
 	}
 
-	// Delete the checkpoint on readmission; retain the readable audience on departure.
+	// Delete the checkpoint on readmission; retain the readable state on departure.
 	key := readCheckpointKey(sharedObjectID)
 	if isReadable {
 		return tx.Delete(ctx, key)
 	}
-
-	// Retain the audience of the World this peer last installed.
-	data, err := previous.GetConfig().MarshalVT()
+	data, err := previous.MarshalVT()
 	if err != nil {
 		return err
 	}
 	return tx.Set(ctx, key, data)
 }
 
-// GetSharedObjectReadCheckpoint returns the audience retained at departure.
+// GetSharedObjectReadCheckpoint returns the state retained at departure.
 // A nil checkpoint means this participant can still read the shared object.
 func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobject.SharedObjectReadCheckpoint, error) {
-	// Read the audience retained at departure.
+	// Read the state retained at departure.
 	read, err := s.objStore.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
@@ -95,15 +93,15 @@ func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobj
 		return nil, err
 	}
 	if found {
-		config := &sobject.SharedObjectConfig{}
-		if err := config.UnmarshalVT(data); err != nil {
+		state := &sobject.SOState{}
+		if err := state.UnmarshalVT(data); err != nil {
 			return nil, err
 		}
-		return &sobject.SharedObjectReadCheckpoint{Config: config}, nil
+		return s.buildReadCheckpoint(state), nil
 	}
 
 	// Without a recorded departure, an authoritative denial ends access at the
-	// current audience.
+	// current state.
 	current, err := s.soHost.GetHostState(ctx)
 	if err != nil {
 		return nil, err
@@ -111,5 +109,13 @@ func (s *SharedObject) GetSharedObjectReadCheckpoint(ctx context.Context) (*sobj
 	if !sobject.AuthoritativeSyncDenied(current.GetConfig(), s.tkr.healthCtr.GetValue()) {
 		return nil, nil
 	}
-	return &sobject.SharedObjectReadCheckpoint{Config: current.GetConfig().CloneVT()}, nil
+	return s.buildReadCheckpoint(current.CloneVT()), nil
+}
+
+// buildReadCheckpoint returns the read checkpoint of a retained state.
+func (s *SharedObject) buildReadCheckpoint(state *sobject.SOState) *sobject.SharedObjectReadCheckpoint {
+	return &sobject.SharedObjectReadCheckpoint{
+		Config:   state.GetConfig(),
+		Snapshot: s.lsoHost.buildSnapshot(state),
+	}
 }

@@ -7,6 +7,7 @@ import {
   SOConfigChange,
   SOConfigChangeType,
   SOParticipantConfig,
+  type SOCheckpointAuthor,
   SOParticipantRole,
   type SharedObjectConfig,
 } from './sobject.pb.js'
@@ -51,6 +52,13 @@ function configChangeSignedBody(entry: SOConfigChange): Uint8Array {
 // matching Go SharedObjectConfig.Validate. A signed head may retain the final
 // departure with no participants. It throws on the first violation.
 export function validateSOConfig(cfg: SharedObjectConfig): void {
+  // Pinned operations of removed authors outlive the final departure too.
+  try {
+    validateSOAuthorHeads('removed_authors', cfg.removedAuthors ?? [])
+  } catch (err) {
+    throw new SOConfigChangeError('invalid', (err as Error).message)
+  }
+
   // A signed history head can retain the final departure; an empty bootstrap cannot grant authority.
   const participants = cfg.participants ?? []
   if (participants.length === 0) {
@@ -99,6 +107,29 @@ export function validateSOConfig(cfg: SharedObjectConfig): void {
     )
   ) {
     throw new SOConfigChangeError('invalid', 'config has no owner')
+  }
+}
+
+// validateSOAuthorHeads checks that each author appears once, in peer ID
+// order, at a real operation, matching Go validateAuthorHeads. field names the
+// list in errors. Base58 peer IDs are ASCII, so string order is byte order.
+export function validateSOAuthorHeads(
+  field: string,
+  authors: readonly SOCheckpointAuthor[],
+): void {
+  let lastPeer = ''
+  for (const [i, author] of authors.entries()) {
+    const peerId = author.peerId ?? ''
+    if (!extractPublicKeyFromPeerID(peerId)) {
+      throw new Error(`${field}[${i}]: peer_id is invalid`)
+    }
+    if ((author.nonce ?? 0n) === 0n || (author.opHash?.length ?? 0) !== 32) {
+      throw new Error(`${field}[${i}] must name an operation`)
+    }
+    if (i > 0 && peerId <= lastPeer) {
+      throw new Error(`${field} must be strictly sorted by peer_id`)
+    }
+    lastPeer = peerId
   }
 }
 

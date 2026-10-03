@@ -613,6 +613,11 @@ type SharedObjectConfig struct {
 	// The next entry must have config_seqno == config_chain_seqno + 1.
 	// Zero means no config changes have been applied yet (genesis state).
 	ConfigChainSeqno uint64 `protobuf:"varint,11,opt,name=config_chain_seqno,json=configChainSeqno,proto3" json:"configChainSeqno,omitempty"`
+	// RemovedAuthors pins the last operation the removing owner held from each
+	// removed author whose operations the checkpoint does not yet cover, sorted
+	// by peer ID. Replay applies a removed author's operations up to that
+	// operation and skips the rest, which may postdate the removal.
+	RemovedAuthors []*SOCheckpointAuthor `protobuf:"bytes,12,rep,name=removed_authors,json=removedAuthors,proto3" json:"removedAuthors,omitempty"`
 }
 
 func (x *SharedObjectConfig) Reset() {
@@ -640,6 +645,13 @@ func (x *SharedObjectConfig) GetConfigChainSeqno() uint64 {
 		return x.ConfigChainSeqno
 	}
 	return 0
+}
+
+func (x *SharedObjectConfig) GetRemovedAuthors() []*SOCheckpointAuthor {
+	if x != nil {
+		return x.RemovedAuthors
+	}
+	return nil
 }
 
 // SOLeaveRequest relinquishes only the identities that sign this exact object and configuration head.
@@ -2044,6 +2056,7 @@ func (m *SharedObjectConfig) CloneVT() *SharedObjectConfig {
 	r.ConfigChainSeqno = m.ConfigChainSeqno
 	r.Participants = protobuf_go_lite.CloneVTSlice(m.Participants)
 	r.ConfigChainHash = protobuf_go_lite.CloneBytes(m.ConfigChainHash)
+	r.RemovedAuthors = protobuf_go_lite.CloneVTSlice(m.RemovedAuthors)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2729,6 +2742,9 @@ func (this *SharedObjectConfig) EqualVT(that *SharedObjectConfig) bool {
 		return false
 	}
 	if this.ConfigChainSeqno != that.ConfigChainSeqno {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RemovedAuthors, that.RemovedAuthors, func() *SOCheckpointAuthor { return &SOCheckpointAuthor{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4200,6 +4216,17 @@ func (x *SharedObjectConfig) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("configChainSeqno")
 		s.WriteUint64(x.ConfigChainSeqno)
 	}
+	if len(x.RemovedAuthors) > 0 || s.HasField("removedAuthors") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("removedAuthors")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RemovedAuthors {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("removedAuthors"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4241,6 +4268,24 @@ func (x *SharedObjectConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "config_chain_seqno", "configChainSeqno":
 			s.AddField("config_chain_seqno")
 			x.ConfigChainSeqno = s.ReadUint64()
+		case "removed_authors", "removedAuthors":
+			s.AddField("removed_authors")
+			if s.ReadNil() {
+				x.RemovedAuthors = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RemovedAuthors = append(x.RemovedAuthors, nil)
+					return
+				}
+				v := &SOCheckpointAuthor{}
+				v.UnmarshalProtoJSON(s.WithField("removed_authors", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RemovedAuthors = append(x.RemovedAuthors, v)
+			})
 		}
 	})
 }
@@ -6617,6 +6662,18 @@ func (m *SharedObjectConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.RemovedAuthors) > 0 {
+		for iNdEx := len(m.RemovedAuthors) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RemovedAuthors[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x62
+		}
+	}
 	if m.ConfigChainSeqno != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ConfigChainSeqno))
 		i--
@@ -8302,6 +8359,10 @@ func (m *SharedObjectConfig) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigChainHash)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ConfigChainSeqno)
+	for _, e := range m.RemovedAuthors {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8974,6 +9035,18 @@ func (x *SharedObjectConfig) MarshalProtoText() string {
 	if x.ConfigChainSeqno != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_chain_seqno")
 		protobuf_go_lite.TextWriteUint(&sb, x.ConfigChainSeqno)
+	}
+	if len(x.RemovedAuthors) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "removed_authors")
+		for i, v := range x.RemovedAuthors {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOCheckpointAuthor{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -10233,6 +10306,19 @@ func (m *SharedObjectConfig) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemovedAuthors", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RemovedAuthors = append(m.RemovedAuthors, &SOCheckpointAuthor{})
+			if err := m.RemovedAuthors[len(m.RemovedAuthors)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

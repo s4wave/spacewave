@@ -169,14 +169,16 @@ class SharedObjectHealth(_message.Message):
     def __init__(self, status: _Optional[_Union[SharedObjectHealthStatus, str]] = ..., layer: _Optional[_Union[SharedObjectHealthLayer, str]] = ..., common_reason: _Optional[_Union[SharedObjectHealthCommonReason, str]] = ..., remediation_hint: _Optional[_Union[SharedObjectHealthRemediationHint, str]] = ..., error: _Optional[str] = ..., metadata: _Optional[bytes] = ..., sync_denied_peer_ids: _Optional[_Iterable[str]] = ..., sync_recovery_peer_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SharedObjectConfig(_message.Message):
-    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno")
+    __slots__ = ("participants", "config_chain_hash", "config_chain_seqno", "removed_authors")
     PARTICIPANTS_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_HASH_FIELD_NUMBER: _ClassVar[int]
     CONFIG_CHAIN_SEQNO_FIELD_NUMBER: _ClassVar[int]
+    REMOVED_AUTHORS_FIELD_NUMBER: _ClassVar[int]
     participants: _containers.RepeatedCompositeFieldContainer[SOParticipantConfig]
     config_chain_hash: bytes
     config_chain_seqno: int
-    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ...) -> None: ...
+    removed_authors: _containers.RepeatedCompositeFieldContainer[SOCheckpointAuthor]
+    def __init__(self, participants: _Optional[_Iterable[_Union[SOParticipantConfig, _Mapping]]] = ..., config_chain_hash: _Optional[bytes] = ..., config_chain_seqno: _Optional[int] = ..., removed_authors: _Optional[_Iterable[_Union[SOCheckpointAuthor, _Mapping]]] = ...) -> None: ...
 
 class SOLeaveRequest(_message.Message):
     __slots__ = ("shared_object_id", "config_hash", "signatures")

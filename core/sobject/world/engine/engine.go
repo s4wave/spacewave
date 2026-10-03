@@ -414,9 +414,6 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 		if err := e.c.retainWorldRoot(ctx, e.so, acceptedWorldRootName, ref); err != nil {
 			return err
 		}
-		if err := writeWorldHead(ctx, e.so, ref); err != nil {
-			return err
-		}
 		e.retained = ref
 	}
 
