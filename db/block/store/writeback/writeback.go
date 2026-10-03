@@ -76,13 +76,16 @@ type Store struct {
 //
 // When enabled is false, writes are not queued until SetEnabled enables them.
 func NewStore(ctx context.Context, local block.StoreOps, markers kvtx.Store, enabled bool) (*Store, error) {
+	// Connect local block writes to the durable upload markers.
 	s := &Store{local: local, markers: markers}
 	s.MarkingStore = NewMarkingStore(local, s.mark)
 
+	// Restore the pending upload counts and completed backfill target.
 	var pending int
 	var pendingBytes int64
 	var target []byte
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Read the completed backfill target before counting its pending markers.
 		pending, pendingBytes = 0, 0
 		var err error
 		target, _, err = tx.Get(ctx, []byte(targetKey))
@@ -98,6 +101,8 @@ func NewStore(ctx context.Context, local block.StoreOps, markers kvtx.Store, ena
 	if err != nil {
 		return nil, errors.Wrap(err, "count pending uploads")
 	}
+
+	// Initialize upload status from the committed marker records.
 	s.status = Status{
 		Enabled:      enabled,
 		Pending:      pending,
@@ -122,14 +127,17 @@ func (s *Store) GetStatus() (Status, <-chan struct{}) {
 // Disabling drops the queued markers and the backfill target: the local store
 // keeps every block, and the remote store no longer needs them.
 func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
+	// Serialize upload enablement with marker mutations.
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
+	// Drop pending markers and the backfill target when uploads are disabled.
 	if !enabled {
 		err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
+			// Collect the pending marker keys from the transaction.
 			var keys [][]byte
 			err := tx.ScanPrefixKeys(ctx, []byte(markerPrefix), func(key []byte) error {
 				keys = append(keys, bytes.Clone(key))
@@ -138,6 +146,8 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 			if err != nil {
 				return err
 			}
+
+			// Remove the collected upload markers from the transaction.
 			for _, key := range keys {
 				if err := tx.Delete(ctx, key); err != nil {
 					return err
@@ -150,6 +160,7 @@ func (s *Store) SetEnabled(ctx context.Context, enabled bool) error {
 		}
 	}
 
+	// Publish upload enablement and the resulting queue status.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.status.Enabled = enabled
 		if !enabled {
@@ -172,11 +183,13 @@ func (s *Store) Backfill(
 	target string,
 	list func(ctx context.Context) ([]*block.BlockRef, error),
 ) error {
+	// Skip backfill when the selected remote target is already complete.
 	status, _ := s.GetStatus()
 	if status.Target == target {
 		return nil
 	}
 
+	// Queue existing local blocks for the selected upload target.
 	refs, err := list(ctx)
 	if err != nil {
 		return errors.Wrap(err, "list blocks to upload")
@@ -197,6 +210,7 @@ func (s *Store) Backfill(
 		}
 	}
 
+	// Record and publish the completed upload backfill target.
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
 		return err
@@ -254,17 +268,23 @@ type pendingBlock struct {
 func (s *Store) scanBatch(ctx context.Context) ([]pendingBlock, error) {
 	var batch []pendingBlock
 	err := kvtx.RunTransaction(ctx, false, s.readTx, func(ctx context.Context, tx kvtx.Tx) error {
+		// Scan pending markers within the upload batch limits.
 		batch = batch[:0]
 		var batchBytes int64
 		err := tx.ScanPrefix(ctx, []byte(markerPrefix), func(key, value []byte) error {
+			// Decode the pending upload marker block hash.
 			h := &hash.Hash{}
 			if err := h.ParseFromB58(string(key[len(markerPrefix):])); err != nil {
 				return errors.Wrap(err, "parse pending upload key")
 			}
+
+			// Require the pending block to fit within the upload byte limit.
 			size := parseMarkerSize(value)
 			if len(batch) != 0 && batchBytes+size > uploadBatchBytes {
 				return errBatchFull
 			}
+
+			// Append the pending block and enforce the batch block limit.
 			batch = append(batch, pendingBlock{
 				key:  bytes.Clone(key),
 				ref:  block.NewBlockRef(h),
@@ -314,10 +334,12 @@ func (s *Store) uploadBatch(ctx context.Context, remote block.StoreOps, batch []
 // A disabled store skips the lock. The check repeats under the lock so a mark
 // racing SetEnabled(false) cannot queue after the queue is dropped.
 func (s *Store) mark(ctx context.Context, marks []Mark) error {
+	// Skip upload markers while queueing is disabled.
 	if !s.isEnabled() {
 		return nil
 	}
 
+	// Serialize marker writes and recheck upload enablement.
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
 		return err
@@ -364,12 +386,14 @@ func (s *Store) mark(ctx context.Context, marks []Mark) error {
 
 // clear removes the markers of uploaded blocks and clears the last failure.
 func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
+	// Serialize uploaded marker removal with queue status updates.
 	release, err := s.mtx.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
+	// Remove uploaded block markers and count their cleared bytes.
 	var cleared int
 	var clearedBytes int64
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
@@ -394,6 +418,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		return errors.Wrap(err, "clear uploaded blocks")
 	}
 
+	// Publish the remaining upload queue and clear its last failure.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.status.Pending -= cleared
 		s.status.PendingBytes -= clearedBytes

@@ -10,6 +10,7 @@ import (
 )
 
 func TestTxStartAdoptsRunningExecution(t *testing.T) {
+	// Prepare a running execution with an existing claim.
 	peerID := peer.ID("12D3KooWGVhTGboSk5zPHWcnuw66ysJ29F8r9RYu75qUTxZ83JL8")
 	claimID := "claim-1"
 	root := &forge_execution.Execution{
@@ -20,6 +21,7 @@ func TestTxStartAdoptsRunningExecution(t *testing.T) {
 		},
 	}
 
+	// Require the same claim to adopt the running execution.
 	err := NewTxStart(peerID, claimID).GetTxStart().ExecuteTx(
 		context.Background(), peerID, nil, root,
 	)

@@ -35,6 +35,7 @@ func (t *TxReclaim) GetTxType() TxType {
 
 // Validate performs a cursory check of the transaction.
 func (t *TxReclaim) Validate() error {
+	// Require a peer, claim identity, and expected epoch for reclaim.
 	if len(t.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
@@ -57,6 +58,7 @@ func (t *TxReclaim) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
+	// Require the reclaim sender, execution state, and current claim epoch.
 	txPeerID, err := t.ParsePeerID()
 	if err != nil {
 		return err
@@ -86,6 +88,7 @@ func (t *TxReclaim) ExecuteTx(
 		return errors.New("reclaim requires a new claim_id")
 	}
 
+	// Replace the execution claim and clear its waiting plugin.
 	claimEpoch := root.GetClaim().GetEpoch() + 1
 	if claimEpoch == 0 {
 		return errors.New("execution claim epoch overflow")

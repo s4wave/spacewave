@@ -13,6 +13,7 @@ import (
 // TestTestbedSimpleWrapper demonstrates the new simple wrapper API for TypeScript E2E tests.
 // This uses RunTypeScriptTest() which handles all the boilerplate setup.
 func TestTestbedSimpleWrapper(t *testing.T) {
+	// Configure logging for the TypeScript wrapper integration test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -29,9 +30,11 @@ func TestTestbedSimpleWrapper(t *testing.T) {
 		t.Fatalf("error running test: %v", err)
 	}
 
+	// Require the wrapped TypeScript integration test to succeed.
 	if !success {
 		t.Fatalf("test failed: %s", errorMsg)
 	}
 
+	// Report successful TypeScript wrapper integration.
 	t.Log("test completed successfully")
 }

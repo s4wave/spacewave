@@ -55,6 +55,7 @@ func (t *TxComplete) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
+	// Require the sender and claim to match the execution.
 	if len(sender) != 0 {
 		if err := root.CheckPeerID(sender); err != nil {
 			return err
@@ -63,6 +64,7 @@ func (t *TxComplete) ExecuteTx(
 	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
 		return err
 	}
+
 	// The same claim may finish after its result has already been persisted.
 	// Preserve that authoritative result.
 	execState := root.GetExecutionState()
@@ -86,6 +88,7 @@ func (t *TxComplete) ExecuteTx(
 		)
 	}
 
+	// Fill the completion result with its failure details.
 	if result == nil {
 		result = &forge_value.Result{}
 	}
@@ -97,6 +100,7 @@ func (t *TxComplete) ExecuteTx(
 	root.WaitingPluginId = ""
 	exCursor.SetBlock(root, true)
 
+	// Validate the completed execution record.
 	if err := root.Validate(); err != nil {
 		return err
 	}

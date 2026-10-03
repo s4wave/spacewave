@@ -28,6 +28,7 @@ func newInmemBlockStore() block.StoreOps {
 // TestUploadAfterRestart checks that queued writes survive a failed upload and
 // a reopen, then drain to the remote store.
 func TestUploadAfterRestart(t *testing.T) {
+	// Prepare local block storage and durable upload markers.
 	ctx := t.Context()
 	local := newInmemBlockStore()
 	markers := store_kvtx_inmem.NewStore()
@@ -70,6 +71,8 @@ func TestUploadAfterRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Drain restored upload markers into the remote block store.
 	remote := newInmemBlockStore()
 	uploadCtx, uploadCancel := context.WithCancel(ctx)
 	defer uploadCancel()
@@ -85,9 +88,12 @@ func TestUploadAfterRestart(t *testing.T) {
 		}
 		<-changed
 	}
+
+	// Stop the upload routine after the restored queue drains.
 	uploadCancel()
 	<-done
 
+	// Require the remote store to contain both queued blocks.
 	for _, ref := range refs[:2] {
 		found, err := remote.GetBlockExists(ctx, ref)
 		if err != nil || !found {
@@ -98,18 +104,23 @@ func TestUploadAfterRestart(t *testing.T) {
 
 // TestDisableDropsMarkers checks that disabling upload clears the queue.
 func TestDisableDropsMarkers(t *testing.T) {
+	// Create an enabled upload store over durable markers.
 	ctx := t.Context()
 	markers := store_kvtx_inmem.NewStore()
 	s, err := NewStore(ctx, newInmemBlockStore(), markers, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Queue a block and disable uploads to drop its marker.
 	if _, _, err := s.PutBlock(ctx, []byte("queued"), nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.SetEnabled(ctx, false); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require a reopened upload store to retain the empty queue.
 	reopened, err := NewStore(ctx, newInmemBlockStore(), markers, true)
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +133,7 @@ func TestDisableDropsMarkers(t *testing.T) {
 // TestBackfillQueuesStoredBlocks checks that choosing a remote queues the
 // blocks stored before it, once per remote, across a reopen.
 func TestBackfillQueuesStoredBlocks(t *testing.T) {
+	// Create local block storage with uploads initially disabled.
 	ctx := t.Context()
 	local := newInmemBlockStore()
 	markers := store_kvtx_inmem.NewStore()
@@ -150,6 +162,7 @@ func TestBackfillQueuesStoredBlocks(t *testing.T) {
 		return append(refs, missing), nil
 	}
 
+	// Backfill the selected remote target with the existing local blocks.
 	if err := s.SetEnabled(ctx, true); err != nil {
 		t.Fatal(err)
 	}

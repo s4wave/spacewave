@@ -33,27 +33,34 @@ import (
 )
 
 func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
+	// Serve the remote claim testbed when running as the helper process.
 	if os.Getenv(remoteClaimHelperEnv) == "1" {
 		serveRemoteClaimTestbed(t)
 		return
 	}
 
+	// Connect the claim test to a separate resource server process.
 	ctx := context.Background()
 	resClient, cleanup := newCrossProcessResourceClient(t, ctx)
 	t.Cleanup(cleanup)
 
+	// Access the remote testbed root RPC service.
 	rootRef := resClient.AccessRootResource()
 	t.Cleanup(rootRef.Release)
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the remote World engine used for the claim test.
 	const engineID = "remote-object-op-claim"
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(rootClient)
 	createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{EngineId: engineID})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Wrap the remote engine resource with the World SDK.
 	engineRef := resClient.CreateResourceReference(createResp.GetResourceId())
 	engine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
 	if err != nil {
@@ -62,6 +69,7 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 	}
 	t.Cleanup(engine.Release)
 
+	// Create the peer identity for the execution claim.
 	priv, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -70,6 +78,8 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Persist a pending execution object for the remote peer.
 	const objectKey = "test/execution/remote-claim"
 	if _, _, err := world.AccessWorldObject(ctx, world.NewEngineWorldState(engine, true), objectKey, true, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
@@ -87,11 +97,14 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Open a remote write transaction for claiming the execution.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
+
+	// Access the execution object through the remote transaction.
 	obj, found, err := tx.GetObject(ctx, objectKey)
 	if err != nil {
 		t.Fatal(err)
@@ -100,6 +113,8 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 		t.Fatal("execution object not found through remote transaction")
 	}
 	defer world.ReleaseObjectState(obj)
+
+	// Start the remote execution claim and commit it.
 	const claimID = "remote-claim-owner"
 	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, claimID), peerID); err != nil {
 		t.Fatal(err)
@@ -108,15 +123,21 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify the committed execution claim through a new read transaction.
 	if err := world.ExecTransaction(ctx, engine, false, func(ctx context.Context, ws world.WorldState) error {
+		// Load the committed execution and release its object handle.
 		execution, objectState, err := forge_execution.LookupExecution(ctx, ws, objectKey)
 		world.ReleaseObjectState(objectState)
 		if err != nil {
 			return err
 		}
+
+		// Require the remote execution to enter the running state.
 		if got := execution.GetExecutionState(); got != forge_execution.State_ExecutionState_RUNNING {
 			t.Fatalf("execution state = %s, want RUNNING", got)
 		}
+
+		// Require the remote execution to retain its claim identity and epoch.
 		claim := execution.GetClaim()
 		if claim == nil {
 			t.Fatal("execution claim was dropped across remote ObjectState.ApplyObjectOp")
@@ -163,23 +184,30 @@ func newCrossProcessResourceClient(
 	t *testing.T,
 	ctx context.Context,
 ) (*resource_client.Client, func()) {
+	// Allocate the remote claim helper socket directory.
 	t.Helper()
 	dir, err := os.MkdirTemp("/var/tmp", "swc-")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the Unix listener inherited by the helper process.
 	socketPath := filepath.Join(dir, "resource.sock")
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		removeRemoteClaimTestDir(t, dir)
 		t.Fatal(err)
 	}
+
+	// Require a Unix listener that supports file descriptor inheritance.
 	unixListener, ok := listener.(*net.UnixListener)
 	if !ok {
 		closeRemoteClaimTestResource(t, "unix listener", listener)
 		removeRemoteClaimTestDir(t, dir)
 		t.Fatal("unix listener has unexpected type")
 	}
+
+	// Export the Unix listener file for the helper process.
 	unixListener.SetUnlinkOnClose(false)
 	listenerFile, err := unixListener.File()
 	if err != nil {
@@ -188,7 +216,9 @@ func newCrossProcessResourceClient(
 		t.Fatal(err)
 	}
 
+	// Capture claim helper output for startup and cleanup diagnostics.
 	var output bytes.Buffer
+
 	// #nosec G204 -- test re-execs its own binary with constant arguments
 	cmd := exec.Command(os.Args[0], "-test.run=^TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim$", "-test.v")
 	cmd.Env = append(os.Environ(), remoteClaimHelperEnv+"=1")
@@ -201,9 +231,12 @@ func newCrossProcessResourceClient(
 		removeRemoteClaimTestDir(t, dir)
 		t.Fatal(err)
 	}
+
+	// Close the parent listener handles after the helper starts.
 	closeRemoteClaimTestResource(t, "listener file", listenerFile)
 	closeRemoteClaimTestResource(t, "unix listener", listener)
 
+	// Connect the resource client to the claim helper process.
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		killRemoteClaimTestHelper(t, cmd)

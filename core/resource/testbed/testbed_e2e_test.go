@@ -11,6 +11,7 @@ import (
 )
 
 func TestTestbedE2EWazeroQuickjs(t *testing.T) {
+	// Configure logging for the QuickJS testbed integration test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -27,19 +28,23 @@ func TestTestbedE2EWazeroQuickjs(t *testing.T) {
 		t.Fatalf("error running test: %v", err)
 	}
 
+	// Require the TypeScript testbed integration test to succeed.
 	if !success {
 		t.Fatalf("test failed: %s", errorMsg)
 	}
 
+	// Report successful QuickJS testbed integration.
 	t.Log("test completed successfully")
 }
 
 func TestTestbedE2EWazeroQuickjsUnixFSTypedObject(t *testing.T) {
+	// Configure logging for the QuickJS UnixFS integration test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Run the UnixFS typed object test through the QuickJS wrapper.
 	success, errorMsg, err := resource_testbed.RunTypeScriptTest(
 		ctx,
 		le,
@@ -50,9 +55,11 @@ func TestTestbedE2EWazeroQuickjsUnixFSTypedObject(t *testing.T) {
 		t.Fatalf("error running test: %v", err)
 	}
 
+	// Require the UnixFS typed object integration test to succeed.
 	if !success {
 		t.Fatalf("test failed: %s", errorMsg)
 	}
 
+	// Report successful QuickJS UnixFS integration.
 	t.Log("test completed successfully")
 }

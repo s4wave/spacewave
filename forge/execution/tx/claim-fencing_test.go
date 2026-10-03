@@ -24,8 +24,8 @@ type claimFixture struct {
 }
 
 func newClaimFixture(t *testing.T) *claimFixture {
+	// Create the World testbed and register execution controller factories.
 	t.Helper()
-
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -35,6 +35,7 @@ func newClaimFixture(t *testing.T) *claimFixture {
 	tb.StaticResolver.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
 
+	// Resolve the target and create the fixture execution.
 	target, err := target_mock.ResolveMockTarget(ctx, tb.Bus)
 	if err != nil {
 		t.Fatal(err)
@@ -55,6 +56,8 @@ func newClaimFixture(t *testing.T) *claimFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Access the execution object for subsequent claim operations.
 	obj, err := world.MustGetObject(ctx, tb.WorldState, objKey)
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +72,7 @@ func (f *claimFixture) apply(t *testing.T, tx *Tx) error {
 }
 
 func (f *claimFixture) execution(t *testing.T) *forge_execution.Execution {
+	// Read the current execution record through the fixture World.
 	t.Helper()
 	execution, objectState, err := forge_execution.LookupExecution(t.Context(), f.tb.WorldState, f.objKey)
 	world.ReleaseObjectState(objectState)
@@ -79,22 +83,26 @@ func (f *claimFixture) execution(t *testing.T) *forge_execution.Execution {
 }
 
 func TestSecondClaimantObservesLiveClaim(t *testing.T) {
+	// Start the first execution claim in a fresh fixture.
 	f := newClaimFixture(t)
 	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
 		t.Fatal(err)
 	}
 
+	// Require the first execution claim to begin at epoch one.
 	execution := f.execution(t)
 	if got := execution.GetClaim(); got.GetClaimId() != "owner-1" || got.GetEpoch() != 1 {
 		t.Fatalf("claim = %q/%d, want owner-1/1", got.GetClaimId(), got.GetEpoch())
 	}
 
+	// Require a second claimant to observe the live claim.
 	err := f.apply(t, NewTxStart(f.peerID, "owner-2"))
 	var heldErr *ClaimHeldError
 	if !errors.As(err, &heldErr) {
 		t.Fatalf("second claim error = %v, want ClaimHeldError", err)
 	}
 
+	// Require a non-owner completion to preserve the running execution.
 	err = f.apply(t, NewTxComplete(
 		forge_value.NewResultWithSuccess(),
 		&forge_execution.Claim{ClaimId: "owner-2", Epoch: 1},
@@ -108,6 +116,7 @@ func TestSecondClaimantObservesLiveClaim(t *testing.T) {
 }
 
 func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
+	// Replace the first execution claim after setting a waiting plugin.
 	f := newClaimFixture(t)
 	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
 		t.Fatal(err)
@@ -120,6 +129,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require reclaim to advance the claim epoch and clear the waiting plugin.
 	execution := f.execution(t)
 	if got := execution.GetClaim(); got.GetClaimId() != "owner-2" || got.GetEpoch() != 2 {
 		t.Fatalf("claim = %q/%d, want owner-2/2", got.GetClaimId(), got.GetEpoch())
@@ -128,6 +138,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatalf("waiting plugin after reclaim = %q, want empty", got)
 	}
 
+	// Require stale plugin and completion writes to fail after reclaim.
 	var staleErr *StaleClaimEpochError
 	err := f.apply(t, NewTxSetWaitingPlugin("plugin-a", owner1))
 	if !errors.As(err, &staleErr) {
@@ -141,6 +152,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatalf("stale completion error = %v, want StaleClaimEpochError", err)
 	}
 
+	// Require stale output writes to fail after reclaim.
 	setOutputs, err := NewTxSetOutputs(
 		nil,
 		true,
@@ -153,6 +165,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatalf("stale output error = %v, want StaleClaimEpochError", err)
 	}
 
+	// Require stale log writes to fail after reclaim.
 	appendLog, err := NewTxAppendLog(
 		[]*forge_execution.LogEntry{{Timestamp: timestamp.Now(), Message: "late"}},
 		&forge_execution.Claim{ClaimId: "owner-1", Epoch: 1},
@@ -164,6 +177,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatalf("stale log error = %v, want StaleClaimEpochError", err)
 	}
 
+	// Require stale writes to preserve the running execution contents.
 	execution = f.execution(t)
 	if state := execution.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
 		t.Fatalf("state = %s, want RUNNING", state)
@@ -172,6 +186,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatal("stale owner changed execution output or log state")
 	}
 
+	// Complete the execution with its current claim.
 	err = f.apply(t, NewTxComplete(
 		forge_value.NewResultWithSuccess(),
 		&forge_execution.Claim{ClaimId: "owner-2", Epoch: 2},
@@ -185,6 +200,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 }
 
 func TestClaimOwnerSurvivesControllerRetry(t *testing.T) {
+	// Retry the execution start with the same claim identity.
 	f := newClaimFixture(t)
 	if err := f.apply(t, NewTxStart(f.peerID, "owner-1")); err != nil {
 		t.Fatal(err)
@@ -193,6 +209,7 @@ func TestClaimOwnerSurvivesControllerRetry(t *testing.T) {
 		t.Fatalf("same owner retry: %v", err)
 	}
 
+	// Require the retried start to preserve the original claim epoch.
 	execution := f.execution(t)
 	if got := execution.GetClaim(); got.GetClaimId() != "owner-1" || got.GetEpoch() != 1 {
 		t.Fatalf("claim after retry = %q/%d, want owner-1/1", got.GetClaimId(), got.GetEpoch())

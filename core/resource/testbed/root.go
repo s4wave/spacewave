@@ -134,6 +134,7 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 		return nil, err
 	}
 
+	// Publish the engine resource with controller cleanup on release.
 	id, err := resourceCtx.AddResource(engineResource.GetMux(), releaseFunc)
 	if err != nil {
 		worldCtrlRef.Release()
@@ -145,11 +146,14 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 
 // MarkTestResult marks the test result (success or failure).
 func (s *TestbedResourceServer) MarkTestResult(ctx context.Context, req *s4wave_testbed.MarkTestResultRequest) (*s4wave_testbed.MarkTestResultResponse, error) {
+	// Record and announce the test result under the broadcast lock.
 	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Retain the completed test result for waiting callers.
 		s.testCompleted = true
 		s.testSuccess = req.Success
 		s.testError = req.ErrorMessage
 
+		// Report the completed test outcome to the server logger.
 		if req.Success {
 			s.le.Info("test marked as successful")
 		} else {
@@ -166,6 +170,7 @@ func (s *TestbedResourceServer) MarkTestResult(ctx context.Context, req *s4wave_
 // WaitForTestResult waits for the test to complete and returns the result.
 // This is useful for the Go test harness to wait for the TypeScript test to finish.
 func (s *TestbedResourceServer) WaitForTestResult(ctx context.Context) (success bool, errorMsg string, err error) {
+	// Wait until the server has received a completed test result.
 	err = s.testResult.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
 		if s.testCompleted {
 			return true, nil
@@ -192,6 +197,7 @@ func (s *TestbedResourceServer) Register(mux srpc.Mux) error {
 
 // GetMux returns the mux for this root resource.
 func (s *TestbedResourceServer) GetMux() srpc.Invoker {
+	// Register the testbed service on a fresh resource mux.
 	mux := srpc.NewMux()
 	_ = s.Register(mux)
 	return mux
@@ -205,21 +211,25 @@ func (s *TestbedResourceServer) AccessStateAtom(
 	ctx context.Context,
 	req *s4wave_testbed.AccessStateAtomRequest,
 ) (*s4wave_testbed.AccessStateAtomResponse, error) {
+	// Access the requesting client context for resource registration.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Choose the requested state atom store or the default store.
 	storeID := req.GetStoreId()
 	if storeID == "" {
 		storeID = resource_state.DefaultStateAtomStoreID
 	}
 
+	// Open the shared state atom store on the server.
 	store, err := s.stateAtomMgr.GetOrCreateStore(ctx, storeID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Publish a resource for the selected state atom store.
 	stateResource := resource_state.NewStateAtomResource(store)
 	id, err := resourceCtx.AddResource(stateResource.GetMux(), func() {})
 	if err != nil {

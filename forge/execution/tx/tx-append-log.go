@@ -15,10 +15,13 @@ func NewTxAppendLog(
 	entries []*forge_execution.LogEntry,
 	claims ...*forge_execution.Claim,
 ) (*Tx, error) {
+	// Require log entries and select the execution claim for the transaction.
 	claim := claimOrImplicit(claims)
 	if len(entries) == 0 {
 		return nil, errors.New("entries cannot be empty")
 	}
+
+	// Clone the execution log entries into the transaction.
 	cloned := make([]*forge_execution.LogEntry, len(entries))
 	for i, e := range entries {
 		if e == nil {
@@ -80,6 +83,7 @@ func (t *TxAppendLog) ExecuteTx(
 		return err
 	}
 
+	// Persist the appended execution log entries.
 	root.LogEntries = append(root.LogEntries, t.GetEntries()...)
 	exCursor.SetBlock(root, true)
 	return nil

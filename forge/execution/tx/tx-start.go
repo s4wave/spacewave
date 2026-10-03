@@ -58,6 +58,7 @@ func (t *TxStart) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
+	// Require the execution peer and claim identity to match the start request.
 	txPeerID, err := t.ParsePeerID()
 	if err != nil {
 		return err
@@ -81,6 +82,7 @@ func (t *TxStart) ExecuteTx(
 		return errors.New("claim_id cannot be empty")
 	}
 
+	// Determine whether the execution can adopt or create this claim.
 	execState := root.GetExecutionState()
 	switch execState {
 	case forge_execution.State_ExecutionState_PENDING:
@@ -103,6 +105,7 @@ func (t *TxStart) ExecuteTx(
 		)
 	}
 
+	// Create the next execution claim and persist its running state.
 	claimEpoch := root.GetClaim().GetEpoch() + 1
 	if claimEpoch == 0 {
 		return errors.New("execution claim epoch overflow")

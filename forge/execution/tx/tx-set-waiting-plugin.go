@@ -37,6 +37,7 @@ func (t *TxSetWaitingPlugin) Validate() error {
 
 // ExecuteTx writes the waiting plugin ID while the claimed execution is active.
 func (t *TxSetWaitingPlugin) ExecuteTx(ctx context.Context, sender peer.ID, exCursor *block.Cursor, root *forge_execution.Execution) error {
+	// Require the sender and claim to match an active execution.
 	if len(sender) != 0 {
 		if err := root.CheckPeerID(sender); err != nil {
 			return err
@@ -48,6 +49,8 @@ func (t *TxSetWaitingPlugin) ExecuteTx(ctx context.Context, sender peer.ID, exCu
 	if err := root.GetExecutionState().EnsureMatches(forge_execution.State_ExecutionState_RUNNING, forge_execution.State_ExecutionState_CANCELING); err != nil {
 		return err
 	}
+
+	// Persist the plugin awaited by the claimed execution.
 	root.WaitingPluginId = t.GetPluginId()
 	exCursor.SetBlock(root, true)
 	return nil

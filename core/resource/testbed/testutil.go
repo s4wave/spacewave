@@ -44,6 +44,7 @@ import (
 // SetupResourceClient creates pipes, muxed connections, and resource client for testing.
 // Returns the resource client and a cleanup function.
 func SetupResourceClient(ctx context.Context, t testing.TB, tb *world_testbed.Testbed) (*resource_client.Client, func()) {
+	// Configure the resource client logger for RPC diagnostics.
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
@@ -90,6 +91,7 @@ func SetupResourceClient(ctx context.Context, t testing.TB, tb *world_testbed.Te
 		t.Fatal(err.Error())
 	}
 
+	// Provide cleanup for the resource client and both pipe endpoints.
 	cleanup := func() {
 		resClient.Release()
 		clientPipe.Close()
@@ -111,6 +113,7 @@ func SetupTestbedWithClient(ctx context.Context, t testing.TB) (*world_testbed.T
 	// Setup resource client
 	resClient, clientCleanup := SetupResourceClient(ctx, t, tb)
 
+	// Provide cleanup for the client and its World testbed.
 	cleanup := func() {
 		clientCleanup()
 		tb.Release()
@@ -143,12 +146,17 @@ type TestbedWithQuickJS struct {
 
 // Release releases the testbed and all associated resources.
 func (t *TestbedWithQuickJS) Release() {
+	// Detach the object type controller from the testbed bus.
 	if t.ObjectTypeCtrlRelease != nil {
 		t.ObjectTypeCtrlRelease()
 	}
+
+	// Release the QuickJS host controller reference.
 	if t.QuickJSHostRef != nil {
 		t.QuickJSHostRef.Release()
 	}
+
+	// Release the underlying builder testbed.
 	t.Testbed.Release()
 }
 
@@ -163,6 +171,7 @@ func SetupTestbedWithQuickJS(ctx context.Context, le *logrus.Entry) (*TestbedWit
 		return nil, err
 	}
 
+	// Access the testbed bus and its factory resolver.
 	b := tb.GetBus()
 	sr := tb.GetStaticResolver()
 
@@ -249,6 +258,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 	pluginID string,
 	scriptContents string,
 ) (directive.Reference, error) {
+	// Choose the QuickJS platform and script path for the plugin.
 	platformID := t.QuickJSHost.GetPluginHost().GetPlatformId()
 	scriptPath := pluginID + ".js"
 
@@ -260,6 +270,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 		return nil, err
 	}
 
+	// Publish the script as a manifest for the QuickJS host.
 	manifestID := pluginID
 	manifestMeta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_DEV, platformID, 1)
 	manifest, manifestRef, err := t.Testbed.CreateManifestWithBilly(ctx, manifestMeta, scriptPath, distFS, assetsFS, nowTs)
@@ -294,6 +305,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 		return nil, err
 	}
 
+	// Prepare the plugin assets filesystem handle.
 	assetsCursor := unixfs_billy.NewBillyFSCursor(assetsFS, "/")
 	assetsRef, err := unixfs.NewFSHandle(assetsCursor)
 	if err != nil {
@@ -425,6 +437,8 @@ func RunTypeScriptTest(
 	}
 	wrapperPath := wrapper.Name()
 	defer os.Remove(wrapperPath)
+
+	// Write and close the temporary TypeScript wrapper.
 	_, writeErr := wrapper.WriteString(wrapperContents)
 	closeErr := wrapper.Close()
 	if writeErr != nil {
@@ -443,15 +457,20 @@ func RunTypeScriptTest(
 	}
 	vendorDir := filepath.Join(repoRoot, "vendor")
 
+	// Allocate disposable output storage for the TypeScript bundle.
 	outputRoot, err := os.MkdirTemp("", "bldr-resource-test-")
 	if err != nil {
 		return false, "", errors.Wrap(err, "create TypeScript build directory")
 	}
 	defer os.RemoveAll(outputRoot)
+
+	// Resolve the wrapper path for the bundler entrypoint.
 	absoluteWrapperPath, err := filepath.Abs(wrapperPath)
 	if err != nil {
 		return false, "", errors.Wrap(err, "resolve wrapper path")
 	}
+
+	// Bundle the TypeScript wrapper with the Spacewave SDK aliases.
 	spacewaveVendor := filepath.Join(vendorDir, "github.com", "s4wave", "spacewave")
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
@@ -484,10 +503,14 @@ func RunTypeScriptTest(
 	if err != nil {
 		return false, "", errors.Wrap(err, "bundle TypeScript test")
 	}
+
+	// Require the expected TypeScript bundle entrypoint.
 	outputPath := result.GetEntrypointOutputs()["test"]
 	if outputPath != "test.mjs" {
 		return false, "", errors.Errorf("TypeScript test output is %q", outputPath)
 	}
+
+	// Read the bundled script for the QuickJS host.
 	scriptBytes, err := os.ReadFile(filepath.Join(outputRoot, outputPath))
 	if err != nil {
 		return false, "", errors.Wrap(err, "read bundled TypeScript test")
@@ -501,6 +524,7 @@ func RunTypeScriptTest(
 	}
 	defer pluginRef.Release()
 
+	// Report that the QuickJS plugin is ready to run the test.
 	le.Info("plugin started, waiting for test to complete...")
 
 	// Wait for the test to complete and get the result
@@ -515,14 +539,19 @@ func RunTypeScriptTest(
 // findRepoRoot walks up from the current directory to find the repo root
 // (identified by the presence of go.mod).
 func findRepoRoot() (string, error) {
+	// Start the module search from the test working directory.
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
+
+	// Locate the module root among the working directory ancestors.
 	for {
 		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
 			return dir, nil
 		}
+
+		// Continue the module search in the parent directory.
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			return "", fmt.Errorf("could not find go.mod in any parent directory")

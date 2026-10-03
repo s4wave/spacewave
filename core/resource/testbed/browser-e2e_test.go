@@ -23,9 +23,11 @@ func TestBrowserE2E(t *testing.T) {
 		t.Skip("SKIP_BROWSER_E2E is set, skipping browser E2E tests")
 	}
 
+	// Bound the lifetime of the browser test server and runner.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Configure browser test diagnostics through the logger.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -38,6 +40,7 @@ func TestBrowserE2E(t *testing.T) {
 	}
 	defer server.Stop(ctx)
 
+	// Report the browser test server address.
 	t.Logf("browser test server started on port %d", port)
 
 	// Set up initial layout model for tests
@@ -72,29 +75,34 @@ func TestBrowserE2E(t *testing.T) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	// Run the browser layout tests against the live server.
 	t.Log("running vitest browser tests...")
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("vitest browser tests failed: %v", err)
 	}
 
+	// Report successful browser layout integration.
 	t.Log("browser E2E tests passed")
 }
 
 // findProjectRoot finds the project root directory by looking for go.mod.
 func findProjectRoot(t *testing.T) string {
+	// Start the project module search in the test working directory.
 	t.Helper()
-
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get working directory: %v", err)
 	}
 
+	// Search the working directory ancestors for the project module.
 	for {
+		// Check the current directory for the project module file.
 		goModPath := filepath.Join(dir, "go.mod")
 		if _, err := os.Stat(goModPath); err == nil {
 			return dir
 		}
 
+		// Continue the project module search in the parent directory.
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			t.Fatal("could not find project root (no go.mod found)")

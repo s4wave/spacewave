@@ -27,6 +27,7 @@ func TestNestedWorldResource(t *testing.T) {
 	client, cleanup := SetupResourceClient(ctx, t, tb)
 	defer cleanup()
 
+	// Create the outer World through the testbed RPC service.
 	root := client.AccessRootResource()
 	defer root.Release()
 	rootClient, err := root.GetClient()
@@ -37,6 +38,8 @@ func TestNestedWorldResource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Wrap the outer World engine with the resource SDK.
 	engineRef := client.CreateResourceReference(created.GetResourceId())
 	engine, err := s4wave_world.NewEngine(client, engineRef)
 	if err != nil {
@@ -44,6 +47,8 @@ func TestNestedWorldResource(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer engine.Release()
+
+	// Wrap the outer World storage with the engine SDK.
 	storageRef := client.CreateResourceReference(created.GetResourceId())
 	storage, err := sdk_world_engine.NewSDKEngine(client, storageRef)
 	if err != nil {
@@ -91,6 +96,7 @@ func TestNestedWorldResource(t *testing.T) {
 	if !nested.GetReadOnly() {
 		t.Fatal("nested state is writable")
 	}
+
 	// Read the retained snapshot through the nested resource.
 	obj, found, err := nested.GetObject(ctx, "inner")
 	if err != nil || !found {
@@ -107,6 +113,7 @@ func TestNestedWorldResource(t *testing.T) {
 	if err != nil || body.GetMsg() != "nested content" {
 		t.Fatalf("nested read: body %v, error %v", body, err)
 	}
+
 	// Every World mutation must be rejected by the nested state.
 	if obj, err := nested.CreateObject(ctx, "forbidden", nil); err == nil {
 		world.ReleaseObjectState(obj)
@@ -131,11 +138,15 @@ func TestNestedWorldResource(t *testing.T) {
 		adapterTx.Discard()
 		t.Fatal("unexpected World transaction implementation")
 	}
+
+	// Retain the nested snapshot after discarding the adapter transaction.
 	adapterNested, err := adapter.OpenNestedWorld(ctx, outerKey)
 	adapterTx.Discard()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the adapter snapshot to preserve the nested object contents.
 	adapterBody, err := world.LookupObjectBody[*block_mock.Example](ctx, adapterNested, "inner", block_mock.NewExampleBlock)
 	adapterNested.Release()
 	if err != nil || adapterBody.GetMsg() != "nested content" {

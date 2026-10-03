@@ -109,6 +109,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 // If blk is nil, returns nil, nil
 // If the blk is already parsed to a Tx, returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {
+	// Decode a serialized execution transaction or accept a parsed transaction.
 	if blk == nil {
 		return nil, nil
 	}
@@ -151,10 +152,12 @@ func (t *Tx) ApplyWorldObjectOp(
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the execution transaction operation type.
 	if err := t.GetTxType().Validate(); err != nil {
 		return false, err
 	}
 
+	// Locate the concrete execution transaction implementation.
 	tx, err := t.LocateTx()
 	if err != nil {
 		return false, err
@@ -162,10 +165,13 @@ func (t *Tx) ApplyWorldObjectOp(
 
 	// access & update the execution object
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
+		// Decode the execution object for its transaction.
 		ex, err := forge_execution.UnmarshalExecution(ctx, bcs)
 		if err != nil {
 			return err
 		}
+
+		// Apply the transaction and validate the resulting execution.
 		err = tx.ExecuteTx(ctx, sender, bcs, ex)
 		if err == nil {
 			err = ex.Validate()
