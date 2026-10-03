@@ -44,7 +44,20 @@ service WorldStageResourceService {
   rpc BuildStorageCursor(BuildStorageCursorRequest) returns (BuildStorageCursorResponse);
 
   rpc AccessWorldState(AccessWorldStateRequest) returns (AccessWorldStateResponse);
+
+  // ReleaseRoots drops the stage's ownership of roots once the transaction
+  // referencing them has returned. The stage stays open.
+  rpc ReleaseRoots(ReleaseRootsRequest) returns (ReleaseRootsResponse);
 }
+
+// ReleaseRootsRequest is the request type for ReleaseRoots.
+message ReleaseRootsRequest {
+  // RootRefs are the roots the stage no longer owns.
+  repeated .block.BlockRef root_refs = 1;
+}
+
+// ReleaseRootsResponse is the response type for ReleaseRoots.
+message ReleaseRootsResponse {}
 
 // StageWorldStateRequest is the request type for StageWorldState.
 message StageWorldStateRequest {}

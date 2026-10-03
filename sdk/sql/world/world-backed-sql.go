@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
@@ -22,9 +23,8 @@ type WorldBackedSql struct {
 	ws world.WorldState
 	// key is the world object key.
 	key string
-	// release releases the database's cursor and the stage that owns its
-	// writes.
-	release func()
+	// stage owns the database's writes until the World references them.
+	stage world.WorldStage
 	// mtx guards tx.
 	mtx sync.Mutex
 	// writeMtx serializes write transactions.
@@ -59,16 +59,16 @@ func NewWorldBackedSql(
 	if err != nil {
 		return nil, err
 	}
-	root, release, err := world.OpenStagedCursor(ctx, ws, rootRef)
+	root, stage, err := world.OpenStagedCursor(ctx, ws, rootRef)
 	if err != nil {
 		return nil, err
 	}
 
 	// Open the database on the staged root.
 	st := &WorldBackedSql{
-		ws:      ws,
-		key:     objectKey,
-		release: release,
+		ws:    ws,
+		key:   objectKey,
+		stage: stage,
 	}
 	st.inner = sql_mysql.NewMysql(root, st.captureCommittedRoot)
 	return st, nil
@@ -76,11 +76,11 @@ func NewWorldBackedSql(
 
 // Close releases the database's cursor and stage.
 func (s *WorldBackedSql) Close() {
-	if s == nil || s.release == nil {
+	if s == nil || s.stage == nil {
 		return
 	}
-	s.release()
-	s.release = nil
+	s.stage.Release()
+	s.stage = nil
 }
 
 // NewSqlTransaction opens a SQL transaction.
@@ -183,8 +183,12 @@ func (t *worldBackedSqlTx) Commit(ctx context.Context) error {
 		return &CommitPersistedError{Err: errors.New("sql/db: committed root was not captured")}
 	}
 
-	// Advance the World object root with the committed SQL statements.
+	// Advance the World object root with the committed SQL statements, then
+	// drop the stage's ownership of the root: the World now references it, or
+	// the operation failed and nothing will. A lost release only keeps the
+	// root until Close.
 	_, _, err := t.store.ws.ApplyWorldOp(ctx, NewSqlSetRootOp(t.store.key, t.baseRoot, root, t.statements), peer.ID(""))
+	_ = t.store.stage.ReleaseRoots(ctx, []*block.BlockRef{root.GetRootRef()})
 	if err != nil {
 		return &CommitPersistedError{Err: err}
 	}

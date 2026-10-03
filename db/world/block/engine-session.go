@@ -75,7 +75,7 @@ func (e *Engine) resumeWriteSession(ctx context.Context, releaseWriter func()) (
 			locked.Unlock()
 			return nil, true, err
 		}
-		state, err := e.buildWorldStateForRoot(ctx, false, root, e.stagedStore)
+		state, err := e.buildWriteState(ctx, root)
 		root.Release()
 		if err != nil {
 			locked.Unlock()
@@ -175,10 +175,14 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		err = pkgerrors.Wrap(coord.ErrStaleGeneration, "prepare world blocks")
 	}
 	if err == nil {
-
-		// Validate the prepared root and refresh the coordinator lease.
+		// Validate the prepared root and stage the blocks it reaches.
 		err = root.Validate(false)
 	}
+	if err == nil {
+		err = e.writeTx.state.ownedStore.DrainReachable(ctx, root)
+	}
+
+	// Refresh the coordinator lease.
 	if err == nil && s.lease != nil {
 		s.leaseMu.Lock()
 		_, err = s.lease.Refresh(ctx)

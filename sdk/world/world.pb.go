@@ -139,6 +139,37 @@ func (x WorldErrorCode) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// ReleaseRootsRequest is the request type for ReleaseRoots.
+type ReleaseRootsRequest struct {
+	unknownFields []byte
+	// RootRefs are the roots the stage no longer owns.
+	RootRefs []*block.BlockRef `protobuf:"bytes,1,rep,name=root_refs,json=rootRefs,proto3" json:"rootRefs,omitempty"`
+}
+
+func (x *ReleaseRootsRequest) Reset() {
+	*x = ReleaseRootsRequest{}
+}
+
+func (*ReleaseRootsRequest) ProtoMessage() {}
+
+func (x *ReleaseRootsRequest) GetRootRefs() []*block.BlockRef {
+	if x != nil {
+		return x.RootRefs
+	}
+	return nil
+}
+
+// ReleaseRootsResponse is the response type for ReleaseRoots.
+type ReleaseRootsResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReleaseRootsResponse) Reset() {
+	*x = ReleaseRootsResponse{}
+}
+
+func (*ReleaseRootsResponse) ProtoMessage() {}
+
 // StageWorldStateRequest is the request type for StageWorldState.
 type StageWorldStateRequest struct {
 	unknownFields []byte
@@ -3052,6 +3083,37 @@ func (x *TrackedWorldStateSnapshot_ObjectAccess) GetRev() uint64 {
 	return 0
 }
 
+func (m *ReleaseRootsRequest) CloneVT() *ReleaseRootsRequest {
+	if m == nil {
+		return (*ReleaseRootsRequest)(nil)
+	}
+	r := new(ReleaseRootsRequest)
+	r.RootRefs = protobuf_go_lite.CloneVTSlice(m.RootRefs)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseRootsRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseRootsResponse) CloneVT() *ReleaseRootsResponse {
+	if m == nil {
+		return (*ReleaseRootsResponse)(nil)
+	}
+	r := new(ReleaseRootsResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseRootsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *StageWorldStateRequest) CloneVT() *StageWorldStateRequest {
 	if m == nil {
 		return (*StageWorldStateRequest)(nil)
@@ -5111,6 +5173,43 @@ func (m *CompareObjectRecordsResponse) CloneVT() *CompareObjectRecordsResponse {
 
 func (m *CompareObjectRecordsResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *ReleaseRootsRequest) EqualVT(that *ReleaseRootsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.RootRefs, that.RootRefs, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseRootsRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseRootsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseRootsResponse) EqualVT(that *ReleaseRootsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseRootsResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseRootsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *StageWorldStateRequest) EqualVT(that *StageWorldStateRequest) bool {
@@ -7887,6 +7986,99 @@ func (x *WorldErrorCode) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the WorldErrorCode from JSON.
 func (x *WorldErrorCode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseRootsRequest message to JSON.
+func (x *ReleaseRootsRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.RootRefs) > 0 || s.HasField("rootRefs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootRefs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.RootRefs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("rootRefs"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseRootsRequest to JSON.
+func (x *ReleaseRootsRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseRootsRequest message from JSON.
+func (x *ReleaseRootsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "root_refs", "rootRefs":
+			s.AddField("root_refs")
+			if s.ReadNil() {
+				x.RootRefs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.RootRefs = append(x.RootRefs, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("root_refs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.RootRefs = append(x.RootRefs, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseRootsRequest from JSON.
+func (x *ReleaseRootsRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseRootsResponse message to JSON.
+func (x *ReleaseRootsResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseRootsResponse to JSON.
+func (x *ReleaseRootsResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseRootsResponse message from JSON.
+func (x *ReleaseRootsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseRootsResponse from JSON.
+func (x *ReleaseRootsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -13700,6 +13892,82 @@ func (x *CompareObjectRecordsResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *ReleaseRootsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseRootsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseRootsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RootRefs) > 0 {
+		for iNdEx := len(m.RootRefs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.RootRefs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseRootsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseRootsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseRootsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *StageWorldStateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -18738,6 +19006,30 @@ func (m *CompareObjectRecordsResponse) MarshalToSizedBufferVT(dAtA []byte) (int,
 	return len(dAtA) - i, nil
 }
 
+func (m *ReleaseRootsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.RootRefs {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseRootsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *StageWorldStateRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -20308,6 +20600,38 @@ func (x GraphPathDirection) MarshalProtoText() string {
 
 func (x WorldErrorCode) MarshalProtoText() string {
 	return x.String()
+}
+
+func (x *ReleaseRootsRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReleaseRootsRequest")
+	if len(x.RootRefs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "root_refs")
+		for i, v := range x.RootRefs {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseRootsRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseRootsResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ReleaseRootsResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseRootsResponse) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *StageWorldStateRequest) MarshalProtoText() string {
@@ -22376,6 +22700,105 @@ func (x *CompareObjectRecordsResponse) MarshalProtoText() string {
 
 func (x *CompareObjectRecordsResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *ReleaseRootsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseRootsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseRootsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRefs", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RootRefs = append(m.RootRefs, &block.BlockRef{})
+			if err := m.RootRefs[len(m.RootRefs)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseRootsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseRootsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseRootsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *StageWorldStateRequest) UnmarshalVT(dAtA []byte) error {

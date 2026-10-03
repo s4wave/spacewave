@@ -563,6 +563,9 @@ type SRPCWorldStageResourceServiceClient interface {
 	BuildStorageCursor(ctx context.Context, in *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(ctx context.Context, in *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// ReleaseRoots drops the stage's ownership of roots once the transaction
+	// referencing them has returned. The stage stays open.
+	ReleaseRoots(ctx context.Context, in *ReleaseRootsRequest) (*ReleaseRootsResponse, error)
 }
 
 type srpcWorldStageResourceServiceClient struct {
@@ -601,10 +604,22 @@ func (c *srpcWorldStageResourceServiceClient) AccessWorldState(ctx context.Conte
 	return out, nil
 }
 
+func (c *srpcWorldStageResourceServiceClient) ReleaseRoots(ctx context.Context, in *ReleaseRootsRequest) (*ReleaseRootsResponse, error) {
+	out := new(ReleaseRootsResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ReleaseRoots", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCWorldStageResourceServiceServer interface {
 	BuildStorageCursor(context.Context, *BuildStorageCursorRequest) (*BuildStorageCursorResponse, error)
 
 	AccessWorldState(context.Context, *AccessWorldStateRequest) (*AccessWorldStateResponse, error)
+	// ReleaseRoots drops the stage's ownership of roots once the transaction
+	// referencing them has returned. The stage stays open.
+	ReleaseRoots(context.Context, *ReleaseRootsRequest) (*ReleaseRootsResponse, error)
 }
 
 const SRPCWorldStageResourceServiceServiceID = "s4wave.world.WorldStageResourceService"
@@ -635,6 +650,7 @@ func (SRPCWorldStageResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"BuildStorageCursor",
 		"AccessWorldState",
+		"ReleaseRoots",
 	}
 }
 
@@ -651,6 +667,8 @@ func (d *SRPCWorldStageResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_BuildStorageCursor(d.impl, strm)
 	case "AccessWorldState":
 		return true, d.InvokeMethod_AccessWorldState(d.impl, strm)
+	case "ReleaseRoots":
+		return true, d.InvokeMethod_ReleaseRoots(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -680,6 +698,18 @@ func (SRPCWorldStageResourceServiceHandler) InvokeMethod_AccessWorldState(impl S
 	return strm.MsgSend(out)
 }
 
+func (SRPCWorldStageResourceServiceHandler) InvokeMethod_ReleaseRoots(impl SRPCWorldStageResourceServiceServer, strm srpc.Stream) error {
+	req := new(ReleaseRootsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ReleaseRoots(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCWorldStageResourceService_BuildStorageCursorStream interface {
 	srpc.Stream
 }
@@ -693,6 +723,14 @@ type SRPCWorldStageResourceService_AccessWorldStateStream interface {
 }
 
 type srpcWorldStageResourceService_AccessWorldStateStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStageResourceService_ReleaseRootsStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStageResourceService_ReleaseRootsStream struct {
 	srpc.Stream
 }
 

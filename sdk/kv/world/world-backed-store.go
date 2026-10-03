@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
@@ -23,8 +24,8 @@ type WorldBackedStore struct {
 	ws world.WorldState
 	// key is the world object key.
 	key string
-	// release releases the store's cursor and the stage that owns its writes.
-	release func()
+	// stage owns the store's writes until the World references them.
+	stage world.WorldStage
 
 	// mtx guards tx.
 	mtx sync.Mutex
@@ -61,20 +62,20 @@ func NewWorldBackedStore(
 	if err != nil {
 		return nil, err
 	}
-	root, release, err := world.OpenStagedCursor(ctx, ws, rootRef)
+	root, stage, err := world.OpenStagedCursor(ctx, ws, rootRef)
 	if err != nil {
 		return nil, err
 	}
 
 	// Open the KVTX store on the staged root.
 	st := &WorldBackedStore{
-		ws:      ws,
-		key:     objectKey,
-		release: release,
+		ws:    ws,
+		key:   objectKey,
+		stage: stage,
 	}
 	inner, err := kvtx_block.NewStore(ctx, le, root, st.captureCommittedRoot)
 	if err != nil {
-		release()
+		stage.Release()
 		return nil, err
 	}
 	st.inner = inner
@@ -83,11 +84,11 @@ func NewWorldBackedStore(
 
 // Close releases the root cursor and stage owned by the store.
 func (s *WorldBackedStore) Close() {
-	if s == nil || s.release == nil {
+	if s == nil || s.stage == nil {
 		return
 	}
-	s.release()
-	s.release = nil
+	s.stage.Release()
+	s.stage = nil
 }
 
 // WatchPrefix streams current key/value snapshots for a prefix after world commits.
@@ -315,8 +316,12 @@ func (t *worldBackedTx) Commit(ctx context.Context) error {
 		return &CommitPersistedError{Err: errors.New("kv/store: committed root was not captured")}
 	}
 
-	// Advance the World root with the transaction mutations.
+	// Advance the World root with the transaction mutations, then drop the
+	// stage's ownership of the root: the World now references it, or the
+	// operation failed and nothing will. A lost release only keeps the root
+	// until Close.
 	_, _, err := t.store.ws.ApplyWorldOp(ctx, NewKvSetRootOp(t.store.key, t.baseRoot, root, t.mutations), peer.ID(""))
+	_ = t.store.stage.ReleaseRoots(ctx, []*block.BlockRef{root.GetRootRef()})
 	if err != nil {
 		return &CommitPersistedError{Err: err}
 	}

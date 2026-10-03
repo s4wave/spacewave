@@ -16,9 +16,18 @@ import (
 // Hold the stage until the transaction that references the built roots has
 // returned, then call Release. Blocks no committed parent references are
 // reclaimed after Release, including when the adopting transaction failed.
+//
+// A stage that outlives many builds, such as one held by a long-lived store,
+// calls ReleaseRoots after each adopting transaction returns, so it holds only
+// the builds still in flight.
 type WorldStage interface {
 	// WorldStorage builds cursors whose writes the stage owns.
 	WorldStorage
+
+	// ReleaseRoots drops the stage's ownership of roots built through it. Call
+	// it once the transaction that references them has returned. Each root
+	// then survives only through a committed parent. The stage stays open.
+	ReleaseRoots(ctx context.Context, roots []*block.BlockRef) error
 
 	// Release ends the stage. Writes through its cursors fail afterward.
 	Release()
@@ -53,10 +62,10 @@ func OpenWorldStorage(ctx context.Context, ws WorldState) (WorldStage, error) {
 }
 
 // OpenStagedCursor opens storage for building through ws with
-// OpenWorldStorage and returns a cursor at ref. The release func releases the
-// cursor and then the storage; call it after the build is adopted or
-// abandoned.
-func OpenStagedCursor(ctx context.Context, ws WorldState, ref *bucket.ObjectRef) (*bucket_lookup.Cursor, func(), error) {
+// OpenWorldStorage and returns a cursor at ref with the stage that owns its
+// writes. Releasing the stage releases the cursor first; release it after the
+// build is adopted or abandoned.
+func OpenStagedCursor(ctx context.Context, ws WorldState, ref *bucket.ObjectRef) (*bucket_lookup.Cursor, WorldStage, error) {
 	// Open the storage that owns the cursor's writes.
 	stage, err := OpenWorldStorage(ctx, ws)
 	if err != nil {
@@ -75,16 +84,31 @@ func OpenStagedCursor(ctx context.Context, ws WorldState, ref *bucket.ObjectRef)
 		stage.Release()
 		return nil, nil, err
 	}
-	return cursor, func() {
+	return cursor, &cursorStage{WorldStage: stage, cursors: []*bucket_lookup.Cursor{cursor, storageRoot}}, nil
+}
+
+// cursorStage releases cursors before the stage they write through.
+type cursorStage struct {
+	WorldStage
+	cursors []*bucket_lookup.Cursor
+}
+
+// Release releases the cursors, then the stage.
+func (s *cursorStage) Release() {
+	for _, cursor := range s.cursors {
 		cursor.Release()
-		storageRoot.Release()
-		stage.Release()
-	}, nil
+	}
+	s.WorldStage.Release()
 }
 
 // passthroughStage uses storage that already owns or rejects its writes.
 type passthroughStage struct {
 	WorldStorage
+}
+
+// ReleaseRoots does nothing: the wrapped storage owns its writes.
+func (passthroughStage) ReleaseRoots(context.Context, []*block.BlockRef) error {
+	return nil
 }
 
 // Release does nothing: the wrapped storage owns its writes.
@@ -95,8 +119,10 @@ type storageStage struct {
 	// storage builds the cursors this stage wraps.
 	storage WorldStorage
 
-	// mtx guards releases and released.
+	// mtx guards stores, releases and released.
 	mtx sync.Mutex
+	// stores holds the store of every volume stage this scope opened.
+	stores []block.StoreOps
 	// releases holds the release of every volume stage this scope opened.
 	releases []func()
 	// released is set once Release has run.
@@ -135,12 +161,29 @@ func (s *storageStage) AccessWorldState(
 	})
 }
 
+// ReleaseRoots drops the ownership of roots in every volume stage the scope
+// opened. A stage that does not own a root ignores it.
+func (s *storageStage) ReleaseRoots(ctx context.Context, roots []*block.BlockRef) error {
+	// Take the open stages; a released scope owns nothing.
+	s.mtx.Lock()
+	stores := s.stores
+	s.mtx.Unlock()
+
+	// Release the roots in each stage.
+	for _, store := range stores {
+		if err := block.ReleaseRoots(ctx, store, roots); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Release releases every volume stage the scope opened.
 func (s *storageStage) Release() {
 	// Mark the scope released and take its stages.
 	s.mtx.Lock()
 	releases := s.releases
-	s.releases, s.released = nil, true
+	s.stores, s.releases, s.released = nil, nil, true
 	s.mtx.Unlock()
 
 	// Release the stages outside the lock.
@@ -149,13 +192,18 @@ func (s *storageStage) Release() {
 	}
 }
 
-// stageCursor opens a volume stage on the cursor's store and routes the
-// cursor's block transactions through it.
+// stageCursor routes the cursor's block transactions through volume stages
+// the scope owns, one in each bucket the cursor reaches.
 func (s *storageStage) stageCursor(ctx context.Context, cursor *bucket_lookup.Cursor) error {
+	return cursor.WrapTransactionStore(ctx, s.openStage)
+}
+
+// openStage opens a stage on store and records its release with the scope.
+func (s *storageStage) openStage(ctx context.Context, store block.StoreOps) (block.StoreOps, error) {
 	// Open the stage on the store the cursor writes to.
-	staged, release, err := block.OpenStage(ctx, cursor.GetBlockStore())
+	staged, release, err := block.OpenStage(ctx, store)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Record the release unless the scope already ended.
@@ -163,14 +211,12 @@ func (s *storageStage) stageCursor(ctx context.Context, cursor *bucket_lookup.Cu
 	if s.released {
 		s.mtx.Unlock()
 		release()
-		return block.ErrStageReleased
+		return nil, block.ErrStageReleased
 	}
+	s.stores = append(s.stores, staged)
 	s.releases = append(s.releases, release)
 	s.mtx.Unlock()
-
-	// Route the cursor's writes through the stage.
-	cursor.SetTransactionStore(staged)
-	return nil
+	return staged, nil
 }
 
 // _ is a type assertion

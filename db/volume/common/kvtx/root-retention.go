@@ -124,12 +124,22 @@ func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefG
 // transaction. A root another block, named root or pin holds survives; the
 // next sweep collects the rest. A lost release only leaves the roots staged.
 func (v *Volume) ReleaseBucketRoots(ctx context.Context, bucketID string, refs []*block.BlockRef) error {
+	return v.releaseOwnerRoots(ctx, block_gc.BucketIRI(bucketID), refs)
+}
+
+// ReleaseStageRoots drops an open stage's edges to roots in one transaction,
+// as ReleaseBucketRoots does for a bucket. The stage stays open.
+func (v *Volume) ReleaseStageRoots(ctx context.Context, stage string, refs []*block.BlockRef) error {
+	return v.releaseOwnerRoots(ctx, stage, refs)
+}
+
+// releaseOwnerRoots drops the owner node's edges to roots in one transaction.
+func (v *Volume) releaseOwnerRoots(ctx context.Context, owner string, refs []*block.BlockRef) error {
 	// Collect the staging edges to remove.
-	bucket := block_gc.BucketIRI(bucketID)
 	removes := make([]block_gc.RefEdge, 0, len(refs))
 	for _, ref := range refs {
 		if !ref.GetEmpty() {
-			removes = append(removes, block_gc.RefEdge{Subject: bucket, Object: block_gc.BlockIRI(ref)})
+			removes = append(removes, block_gc.RefEdge{Subject: owner, Object: block_gc.BlockIRI(ref)})
 		}
 	}
 	if len(removes) == 0 {

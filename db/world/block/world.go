@@ -273,7 +273,7 @@ func (t *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cur
 	if err != nil {
 		return nil, err
 	}
-	t.setCursorStore(cursor)
+	t.setCursorStore(ctx, cursor)
 	return cursor, nil
 }
 
@@ -287,12 +287,12 @@ func (t *WorldState) StageWorldState(ctx context.Context) (world.WorldStage, err
 
 // setCursorStore routes the cursor's blocks through the transaction store.
 // A read-only state's cursor rejects writes.
-func (t *WorldState) setCursorStore(cursor *bucket_lookup.Cursor) {
+func (t *WorldState) setCursorStore(ctx context.Context, cursor *bucket_lookup.Cursor) {
 	if t.store != nil {
 		cursor.SetTransactionStore(t.store)
 	}
 	if !t.write {
-		setReadOnlyCursor(cursor)
+		setReadOnlyCursor(ctx, cursor)
 	}
 }
 
@@ -309,7 +309,7 @@ func (t *WorldState) AccessWorldState(
 		return world.ErrWorldStorageUnavailable
 	}
 	return storage.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
-		t.setCursorStore(cursor)
+		t.setCursorStore(ctx, cursor)
 		return cb(cursor)
 	})
 }

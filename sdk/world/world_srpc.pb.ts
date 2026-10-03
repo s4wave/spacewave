@@ -82,6 +82,8 @@ import {
   OpenOuterWorldResponse,
   QueryGraphPathRequest,
   QueryGraphPathResponse,
+  ReleaseRootsRequest,
+  ReleaseRootsResponse,
   RenameObjectRequest,
   RenameObjectResponse,
   SeekRequest,
@@ -741,6 +743,18 @@ export const WorldStageResourceServiceDefinition = {
       O: AccessWorldStateResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * ReleaseRoots drops the stage's ownership of roots once the transaction
+     * referencing them has returned. The stage stays open.
+     *
+     * @generated from rpc s4wave.world.WorldStageResourceService.ReleaseRoots
+     */
+    ReleaseRoots: {
+      name: 'ReleaseRoots',
+      I: ReleaseRootsRequest,
+      O: ReleaseRootsResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -765,6 +779,17 @@ export interface WorldStageResourceService {
     request: AccessWorldStateRequest,
     abortSignal?: AbortSignal,
   ): Promise<AccessWorldStateResponse>
+
+  /**
+   * ReleaseRoots drops the stage's ownership of roots once the transaction
+   * referencing them has returned. The stage stays open.
+   *
+   * @generated from rpc s4wave.world.WorldStageResourceService.ReleaseRoots
+   */
+  ReleaseRoots(
+    request: ReleaseRootsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseRootsResponse>
 }
 
 /**
@@ -790,6 +815,18 @@ export interface WorldStageResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<AccessWorldStateResponse>
+
+  /**
+   * ReleaseRoots drops the stage's ownership of roots once the transaction
+   * referencing them has returned. The stage stays open.
+   *
+   * @generated from rpc s4wave.world.WorldStageResourceService.ReleaseRoots
+   */
+  ReleaseRoots(
+    request: ReleaseRootsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReleaseRootsResponse>
 }
 
 export const WorldStageResourceServiceServiceName =
@@ -803,6 +840,7 @@ export class WorldStageResourceServiceClient implements WorldStageResourceServic
     this.rpc = rpc
     this.BuildStorageCursor = this.BuildStorageCursor.bind(this)
     this.AccessWorldState = this.AccessWorldState.bind(this)
+    this.ReleaseRoots = this.ReleaseRoots.bind(this)
   }
   /**
    * @generated from rpc s4wave.world.WorldStageResourceService.BuildStorageCursor
@@ -836,6 +874,26 @@ export class WorldStageResourceServiceClient implements WorldStageResourceServic
       abortSignal || undefined,
     )
     return AccessWorldStateResponse.fromBinary(result)
+  }
+
+  /**
+   * ReleaseRoots drops the stage's ownership of roots once the transaction
+   * referencing them has returned. The stage stays open.
+   *
+   * @generated from rpc s4wave.world.WorldStageResourceService.ReleaseRoots
+   */
+  async ReleaseRoots(
+    request: ReleaseRootsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseRootsResponse> {
+    const requestMsg = ReleaseRootsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStageResourceServiceDefinition.methods.ReleaseRoots.name,
+      ReleaseRootsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReleaseRootsResponse.fromBinary(result)
   }
 }
 /**

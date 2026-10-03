@@ -80,6 +80,14 @@ func (r *WorldStageResource) AccessWorldState(ctx context.Context, req *s4wave_w
 	return &s4wave_world.AccessWorldStateResponse{ResourceId: id}, nil
 }
 
+// ReleaseRoots drops the stage's ownership of roots.
+func (r *WorldStageResource) ReleaseRoots(ctx context.Context, req *s4wave_world.ReleaseRootsRequest) (*s4wave_world.ReleaseRootsResponse, error) {
+	if err := r.stage.ReleaseRoots(ctx, req.GetRootRefs()); err != nil {
+		return nil, err
+	}
+	return &s4wave_world.ReleaseRootsResponse{}, nil
+}
+
 // addWorldStageResource opens a stage with open and registers it with the
 // resource client of ctx. Releasing the resource, or ending the client,
 // releases the stage.

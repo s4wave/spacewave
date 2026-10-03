@@ -13,10 +13,29 @@ import (
 // this for a newly constructed snapshot, not a buffer shared with other work.
 // It never removes blocks from the inner store.
 func (s *BufferedStore) SyncReachable(ctx context.Context, roots ...*BlockRef) (bool, error) {
+	if err := s.keepReachable(ctx, roots); err != nil {
+		return false, err
+	}
+	return s.Sync(ctx)
+}
+
+// DrainReachable discards pending writes outside roots, then writes the rest
+// to the inner store. It neither drains inner buffered layers nor applies a
+// durability fence. Ownership is as for SyncReachable.
+func (s *BufferedStore) DrainReachable(ctx context.Context, roots ...*BlockRef) error {
+	if err := s.keepReachable(ctx, roots); err != nil {
+		return err
+	}
+	return s.drainAll(ctx)
+}
+
+// keepReachable drops every pending block roots do not reach and queues the
+// rest with children before parents.
+func (s *BufferedStore) keepReachable(ctx context.Context, roots []*BlockRef) error {
 	// Hold the drain lock for the exclusive reachable-set rewrite.
 	release, err := s.drainMu.Lock(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Walk the pending graph from the roots, ordering children first.
@@ -84,8 +103,5 @@ func (s *BufferedStore) SyncReachable(ctx context.Context, roots ...*BlockRef) (
 		broadcast()
 	})
 	release()
-	if err != nil {
-		return false, err
-	}
-	return s.Sync(ctx)
+	return err
 }

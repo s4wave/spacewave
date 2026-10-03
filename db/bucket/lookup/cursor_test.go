@@ -3,9 +3,11 @@ package bucket_lookup
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
@@ -17,6 +19,7 @@ import (
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -129,53 +132,7 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	defer cancel()
 
 	// Register source and external bucket lookups on the controller bus.
-	b, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sourceOps := block_mock.NewMockStore(0)
-	externalOps := block_mock.NewMockStore(0)
-
-	// Construct distinct source and external bucket configurations.
-	sourceConf, err := bucket.NewConfig(sourceBucketID, 1, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	externalConf, err := bucket.NewConfig(externalBucketID, 1, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	handles := map[string]Handle{
-		sourceBucketID: &staticBucketLookupHandle{
-			conf:   sourceConf,
-			lookup: &staticBucketLookup{store: sourceOps, bucketID: sourceBucketID},
-		},
-		externalBucketID: &staticBucketLookupHandle{
-			conf:   externalConf,
-			lookup: &staticBucketLookup{store: externalOps, bucketID: externalBucketID},
-		},
-	}
-	handlerRelease, err := b.AddHandler(directive.NewFuncHandler(
-		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
-			// Resolve bucket lookup directives through the registered fixture handles.
-			d, ok := di.GetDirective().(BuildBucketLookup)
-			if !ok {
-				return nil, nil
-			}
-			handle := handles[d.BuildBucketLookupBucketID()]
-			if handle == nil {
-				return nil, nil
-			}
-			return directive.R(
-				directive.NewValueResolver([]BuildBucketLookupValue{handle}),
-				nil,
-			)
-		},
-	))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer handlerRelease()
+	b, handles, sourceOps, externalOps := newTwoBucketBus(t, ctx, sourceBucketID, externalBucketID)
 
 	// Build the source bucket transformer.
 	transformConf := testTransformConf(t)
@@ -247,6 +204,126 @@ func TestCursorCrossBucketExternalRootClearsSourceTransform(t *testing.T) {
 	if err != nil || !found || !bytes.Equal(got, externalData) {
 		t.Fatalf("untransformed external root read found=%v err=%v data=%q", found, err, got)
 	}
+}
+
+func TestCursorStoreWrappersFollowIntoAnotherBucket(t *testing.T) {
+	// Register two buckets and store a root in the second.
+	const (
+		sourceBucketID   = "source-world"
+		externalBucketID = "external-world"
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	b, handles, _, externalOps := newTwoBucketBus(t, ctx, sourceBucketID, externalBucketID)
+	externalRef, _, err := externalOps.PutBlock(ctx, []byte("external root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make the source cursor read-only through a wrapper that records the
+	// stores it wraps.
+	cursor := NewCursor(
+		ctx,
+		b,
+		logrus.NewEntry(logrus.New()),
+		transform_all.BuildFactorySet(),
+		NewBucketFromHandle(handles[sourceBucketID]),
+		nil,
+		&bucket.ObjectRef{BucketId: sourceBucketID},
+		&bucket.BucketOpArgs{BucketId: sourceBucketID},
+		nil,
+	)
+	defer cursor.Release()
+	var wrapped []block.StoreOps
+	err = cursor.WrapTransactionStore(ctx, func(_ context.Context, store block.StoreOps) (block.StoreOps, error) {
+		wrapped = append(wrapped, store)
+		return block.NewReadOnlyStore(store), nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Follow the root into the second bucket.
+	external, err := cursor.FollowRefWithOpArgsReadOnly(
+		ctx,
+		&bucket.ObjectRef{BucketId: externalBucketID, RootRef: externalRef},
+		&bucket.BucketOpArgs{BucketId: externalBucketID},
+		true,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer external.Release()
+
+	// The wrapper applies again to the second bucket's store, so the followed
+	// cursor still rejects writes.
+	if len(wrapped) != 2 || wrapped[1] != external.GetBucket() {
+		t.Fatalf("wrapped stores %v, want the source and then the external bucket", wrapped)
+	}
+	if _, _, err := external.GetBlockStore().PutBlock(ctx, []byte("write"), nil); !errors.Is(err, tx.ErrNotWrite) {
+		t.Fatalf("followed cursor write err = %v, want %v", err, tx.ErrNotWrite)
+	}
+}
+
+// newTwoBucketBus returns a bus that resolves lookups of two buckets, each
+// backed by its own mock store.
+func newTwoBucketBus(
+	t *testing.T,
+	ctx context.Context,
+	sourceBucketID, externalBucketID string,
+) (bus.Bus, map[string]Handle, block.StoreOps, block.StoreOps) {
+	// Start the bus and the stores behind each bucket.
+	t.Helper()
+	b, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceOps := block_mock.NewMockStore(0)
+	externalOps := block_mock.NewMockStore(0)
+
+	// Construct distinct source and external bucket configurations.
+	sourceConf, err := bucket.NewConfig(sourceBucketID, 1, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	externalConf, err := bucket.NewConfig(externalBucketID, 1, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handles := map[string]Handle{
+		sourceBucketID: &staticBucketLookupHandle{
+			conf:   sourceConf,
+			lookup: &staticBucketLookup{store: sourceOps, bucketID: sourceBucketID},
+		},
+		externalBucketID: &staticBucketLookupHandle{
+			conf:   externalConf,
+			lookup: &staticBucketLookup{store: externalOps, bucketID: externalBucketID},
+		},
+	}
+
+	// Resolve bucket lookup directives through the fixture handles.
+	handlerRelease, err := b.AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			// Resolve the requested bucket to its fixture handle.
+			d, ok := di.GetDirective().(BuildBucketLookup)
+			if !ok {
+				return nil, nil
+			}
+			handle := handles[d.BuildBucketLookupBucketID()]
+			if handle == nil {
+				return nil, nil
+			}
+			return directive.R(
+				directive.NewValueResolver([]BuildBucketLookupValue{handle}),
+				nil,
+			)
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(handlerRelease)
+	return b, handles, sourceOps, externalOps
 }
 
 type staticBucketLookupHandle struct {

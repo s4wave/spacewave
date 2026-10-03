@@ -14,6 +14,7 @@ type bucketRootVolume interface {
 	PrepareStagedBlock(context.Context, string, []byte, *block.PutOpts) (*block.BlockRef, bool, error)
 	PrepareStagedBlockBatch(context.Context, string, []*block.PutBatchEntry) error
 	ReleaseBucketRoots(context.Context, string, []*block.BlockRef) error
+	ReleaseStageRoots(context.Context, string, []*block.BlockRef) error
 	MarkRootsComplete(context.Context, []*block.BlockRef) error
 	RootComplete(context.Context, *block.BlockRef) (bool, error)
 }
@@ -67,10 +68,14 @@ func (b *bucketHandle) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 	return staged, release, nil
 }
 
-// ReleaseRoots drops this bucket's staging ownership of roots.
+// ReleaseRoots drops the staging ownership of roots held by the owner of this
+// handle's writes: its stage on a staged handle, otherwise its bucket.
 func (b *bucketHandle) ReleaseRoots(ctx context.Context, refs []*block.BlockRef) error {
 	if !b.SupportsRootRetention() {
 		return nil
+	}
+	if b.stage != "" {
+		return b.v.(bucketRootVolume).ReleaseStageRoots(ctx, b.stage, refs)
 	}
 	return b.v.(bucketRootVolume).ReleaseBucketRoots(ctx, b.t.bucketID, refs)
 }

@@ -30,10 +30,15 @@ func (s engineStorage) AccessWorldState(
 	return s.e.accessStorage(ctx, ref, cb)
 }
 
-// setReadOnlyCursor makes cursor reject block writes. A stage can still open
-// on its store and write through the stage.
-func setReadOnlyCursor(cursor *bucket_lookup.Cursor) {
-	cursor.SetTransactionStore(block.NewReadOnlyStore(cursor.GetBlockStore()))
+// setReadOnlyCursor makes cursor reject block writes in every bucket it
+// reaches. A stage can still open on its store and write through the stage.
+func setReadOnlyCursor(ctx context.Context, cursor *bucket_lookup.Cursor) {
+	_ = cursor.WrapTransactionStore(ctx, wrapReadOnly)
+}
+
+// wrapReadOnly wraps store to reject block writes. It never fails.
+func wrapReadOnly(_ context.Context, store block.StoreOps) (block.StoreOps, error) {
+	return block.NewReadOnlyStore(store), nil
 }
 
 // _ is a type assertion

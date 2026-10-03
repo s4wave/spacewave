@@ -47,9 +47,16 @@ type Cursor struct {
 	decodedBlocks *block.DecodedBlockCache
 	// transactionStore overrides the bucket store for block transactions.
 	transactionStore block.StoreOps
+	// storeWrappers rebuild transactionStore, in order, over the store of each
+	// bucket the cursor enters.
+	storeWrappers []StoreWrapper
 	// rel is a release function
 	rel func()
 }
+
+// StoreWrapper wraps the block store of a bucket for a cursor's block
+// transactions.
+type StoreWrapper func(ctx context.Context, store block.StoreOps) (block.StoreOps, error)
 
 // NewCursor constructs a new Cursor with the provided parameters.
 //
@@ -331,9 +338,26 @@ func (c *Cursor) BuildTransactionWithStore(putOpts *block.PutOpts, store block.S
 	return c.BuildTransactionAtRefWithStore(putOpts, c.ref.GetRootRef(), store)
 }
 
-// SetTransactionStore makes block transactions built from this cursor use store.
+// SetTransactionStore makes block transactions built from this cursor use
+// store. The store belongs to the current bucket: following a ref into another
+// bucket writes to that bucket's store.
 func (c *Cursor) SetTransactionStore(store block.StoreOps) {
 	c.transactionStore = store
+	c.storeWrappers = nil
+}
+
+// WrapTransactionStore wraps the store block transactions use. Following a
+// ref into another bucket applies wrap again, after earlier wrappers, to that
+// bucket's store, so the wrapping holds in every bucket the cursor reaches.
+func (c *Cursor) WrapTransactionStore(ctx context.Context, wrap StoreWrapper) error {
+	// Wrap the current store, then remember wrap for the next bucket.
+	store, err := wrap(ctx, c.GetBlockStore())
+	if err != nil {
+		return err
+	}
+	c.transactionStore = store
+	c.storeWrappers = append(c.storeWrappers[:len(c.storeWrappers):len(c.storeWrappers)], wrap)
+	return nil
 }
 
 // BuildTransactionAtRef builds a transaction rooted at the reference.
@@ -529,13 +553,25 @@ func (c *Cursor) followRefWithOpArgs(
 		return nil, err
 	}
 
-	// return new cursor
+	// Rebuild the transaction store over the destination bucket, since the
+	// source store belongs to the source bucket.
 	ncc := c.clone()
 	ncc.bkt = bkt
 	if switchingBucket {
-		// The transaction store belongs to the source bucket.
 		ncc.transactionStore = nil
+		for _, wrap := range c.storeWrappers {
+			store, err := wrap(ctx, ncc.GetBlockStore())
+			if err != nil {
+				if rel != nil {
+					rel()
+				}
+				return nil, err
+			}
+			ncc.transactionStore = store
+		}
 	}
+
+	// Return the cursor at the destination.
 	ncc.xfrm = xfrm
 	ncc.ref = objRef.Clone()
 	ncc.transformConf = transformConf
@@ -765,5 +801,6 @@ func (c *Cursor) clone() *Cursor {
 		decodedBlocks:    c.decodedBlocks,
 		bucketIDOverride: c.bucketIDOverride,
 		transactionStore: c.transactionStore,
+		storeWrappers:    c.storeWrappers,
 	}
 }

@@ -100,6 +100,39 @@ func TestStageReleaseKeepsAdoptedBuild(t *testing.T) {
 	collectBlocks(t, v, true, parent, root, child)
 }
 
+func TestStageReleaseRootsKeepsStageOpen(t *testing.T) {
+	// Build two roots through one stage.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	stage, release, superseded, supersededChild := stageBuild(t, v, "superseded")
+	defer release()
+	adopted, _, err := v.PrepareStagedBlock(ctx, stage, []byte("adopted root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Adopt the second root from a named bucket root.
+	parent, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{adopted}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := v.SetBucketRoot(ctx, "bucket", "head", parent); err != nil {
+		t.Fatal(err)
+	}
+
+	// Releasing both roots keeps the adopted one and collects the other.
+	if err := v.ReleaseStageRoots(ctx, stage, []*block.BlockRef{superseded, adopted}); err != nil {
+		t.Fatal(err)
+	}
+	collectBlocks(t, v, true, parent, adopted)
+	collectBlocks(t, v, false, superseded, supersededChild)
+
+	// The stage still owns new writes.
+	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("next build"), nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestStageReleasedByCloseAndCrash(t *testing.T) {
 	// Close the process owner and verify its stage's build is collected.
 	v, _ := newPublicationTestVolume(t)

@@ -102,10 +102,14 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	defer e.engine.finishCommit()
 	locked.Unlock()
 
-	// Commit block state and refresh its coordinator generation.
+	// Commit block state, move the writer's buffered blocks into the engine
+	// store, and refresh the coordinator generation.
 	var nroot *block.BlockRef
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/write-tx-commit")
 	nroot, commitErr := e.writeTx.CommitBlockTransaction(taskCtx)
+	if commitErr == nil {
+		commitErr = e.writeTx.state.ownedStore.DrainReachable(taskCtx, nroot)
+	}
 	subtask.End()
 	if commitLease != nil && isCoordinatedWriteSnapshotError(commitErr) {
 		commitErr = errors.Wrap(coord.ErrStaleGeneration, "commit world blocks")
@@ -154,12 +158,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 				deferred := e.engine.deferDurability && e.engine.writeCoordinator == nil
 				if !deferred {
 					if commitErr == nil {
-						if e.staged != nil {
-							_, commitErr = e.staged.Sync(ctx)
-						}
-						if commitErr == nil {
-							_, commitErr = e.engine.writeBlockStore.Sync(ctx)
-						}
+						_, commitErr = e.engine.writeBlockStore.Sync(ctx)
 						if commitErr == nil {
 							commitErr = block.MarkRootComplete(ctx, e.engine.writeBlockStore, nroot)
 						}

@@ -3,15 +3,15 @@
 /* eslint-disable */
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import { BlockRef } from '../../db/block/block.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
   createMessageType,
 } from '@aptre/protobuf-es-lite/message'
-import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { ObjectRef } from '../../db/bucket/bucket.pb.js'
-import { BlockRef } from '../../db/block/block.pb.js'
 import { Quad } from '../../db/block/quad/quad.pb.js'
 
 /**
@@ -118,6 +118,47 @@ export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
   WorldErrorCode,
   'WORLD_ERROR_CODE_',
 )
+
+/**
+ * ReleaseRootsRequest is the request type for ReleaseRoots.
+ *
+ * @generated from message s4wave.world.ReleaseRootsRequest
+ */
+export interface ReleaseRootsRequest {
+  /**
+   * RootRefs are the roots the stage no longer owns.
+   *
+   * @generated from field: repeated block.BlockRef root_refs = 1;
+   */
+  rootRefs?: BlockRef[]
+}
+
+export const ReleaseRootsRequest: MessageType<ReleaseRootsRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ReleaseRootsRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'root_refs',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReleaseRootsResponse is the response type for ReleaseRoots.
+ *
+ * @generated from message s4wave.world.ReleaseRootsResponse
+ */
+export interface ReleaseRootsResponse {}
+
+export const ReleaseRootsResponse: MessageType<ReleaseRootsResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ReleaseRootsResponse>(
+    's4wave.world.ReleaseRootsResponse',
+    true,
+  )
 
 /**
  * StageWorldStateRequest is the request type for StageWorldState.

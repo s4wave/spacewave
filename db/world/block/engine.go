@@ -645,7 +645,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		}
 
 		// Each reader owns a dedicated snapshot tracked for Engine.Close.
-		world, err := e.buildWorldState(ctx, true)
+		world, err := e.buildReadWorldState(ctx)
 		if err != nil {
 			locked.Unlock()
 			return nil, err
@@ -737,12 +737,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 
 	// Pin the base head used by commit validation while building write state.
 	baseHeadRef := e.head.root.GetRef().Clone()
-	var world *WorldState
-	if e.stagedStore != nil {
-		world, err = e.buildWorldStateForRoot(taskCtx, false, e.head.root, e.stagedStore)
-	} else {
-		world, err = e.buildWorldState(taskCtx, false)
-	}
+	world, err := e.buildWriteState(taskCtx, e.head.root)
 	subtask.End()
 	if err != nil {
 		locked.Unlock()
@@ -927,7 +922,7 @@ func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 	if err != nil {
 		return nil, err
 	}
-	setReadOnlyCursor(cursor)
+	setReadOnlyCursor(ctx, cursor)
 	return cursor, nil
 }
 
@@ -997,7 +992,7 @@ func (e *Engine) AccessWorldState(
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
 	return e.accessStorage(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
-		setReadOnlyCursor(cursor)
+		setReadOnlyCursor(ctx, cursor)
 		return cb(cursor)
 	})
 }
@@ -1245,7 +1240,7 @@ func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
 
 	// Publish the restored read transaction together with its root.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/update-read-write-txns/build-world-state")
-	world, err := e.buildWorldState(taskCtx, true)
+	world, err := e.buildReadWorldState(taskCtx)
 	subtask.End()
 	if err != nil {
 		return err
@@ -1257,10 +1252,35 @@ func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
 	return nil
 }
 
-// buildWorldState builds the world state transaction and cursor fields.
+// buildWriteState builds a write state at root whose blocks go to a buffer
+// the transaction owns. Committing drains only the blocks the committed root
+// reaches. Outside a staged session the buffer drains into the engine store
+// and records what it writes there, so ending the transaction releases the
+// blocks its final root does not reach, as a fork does. In a staged session
+// it drains into the staged store when the transaction submits, so the next
+// publication carries none of a discarded transaction's blocks.
+// The caller must hold bcast after construction.
+func (e *Engine) buildWriteState(ctx context.Context, root *bucket_lookup.Cursor) (*WorldState, error) {
+	// Buffer the writes over the store the engine publishes from.
+	inner, record := e.writeBlockStore, true
+	if e.stagedStore != nil {
+		inner, record = e.stagedStore, false
+	}
+	writes := block.NewBufferedStoreWithSettings(ctx, inner, &block.BufferedStoreSettings{RecordWrites: record})
+
+	// Build the state and give it the buffer.
+	ws, err := e.buildWorldStateForRoot(ctx, false, root, writes)
+	if err != nil {
+		return nil, err
+	}
+	ws.ownedStore = writes
+	return ws, nil
+}
+
+// buildReadWorldState builds a read-only state at the head root.
 // The caller must hold bcast.
-func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldState, error) {
-	return e.buildWorldStateForRoot(ctx, readOnly, e.head.root, nil)
+func (e *Engine) buildReadWorldState(ctx context.Context) (*WorldState, error) {
+	return e.buildWorldStateForRoot(ctx, true, e.head.root, nil)
 }
 
 // buildWorldStateForRoot builds state using the engine's stores and lookup policy.

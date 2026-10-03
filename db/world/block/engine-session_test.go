@@ -636,3 +636,39 @@ func TestEngineSessionStagedConstructionWithoutPublishingHead(t *testing.T) {
 		t.Fatalf("block fence published metadata: %v %v", head, err)
 	}
 }
+
+func TestEngineSessionPublishesOnlyCommittedReachableBlocks(t *testing.T) {
+	// Write an object and a stray block on a writer, then discard it.
+	f := newSessionFixture(t)
+	discarded := sessionWriter(t, f)
+	discardedCursor, discardedObj := sessionObject(t, discarded, "discarded")
+	discardedStray, _, err := discardedCursor.GetBlockStore().PutBlock(t.Context(), []byte("stray discarded"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	discarded.Discard()
+
+	// Write an object and a stray block on the next writer and commit it.
+	committed := sessionWriter(t, f)
+	committedCursor, committedObj := sessionObject(t, committed, "committed")
+	committedStray, _, err := committedCursor.GetBlockStore().PutBlock(t.Context(), []byte("stray committed"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := committed.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	// The publication carries only the blocks the committed root reaches.
+	want := map[*block.BlockRef]bool{
+		committedObj.GetRootRef(): true,
+		committedStray:            false,
+		discardedObj.GetRootRef(): false,
+		discardedStray:            false,
+	}
+	for ref, exists := range want {
+		if found, err := f.volume.GetBlockExists(t.Context(), ref); err != nil || found != exists {
+			t.Fatalf("block %s want=%v found=%v err=%v", ref.MarshalString(), exists, found, err)
+		}
+	}
+}

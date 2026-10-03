@@ -4,6 +4,7 @@ import (
 	"context"
 
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
@@ -78,6 +79,12 @@ func (s *sdkStage) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, 
 		return err
 	}
 	return s4wave_bucket_lookup.AccessCursor(ctx, s.client, resp.GetResourceId(), cb)
+}
+
+// ReleaseRoots drops the remote stage's ownership of roots.
+func (s *sdkStage) ReleaseRoots(ctx context.Context, roots []*block.BlockRef) error {
+	_, err := s.service.ReleaseRoots(ctx, &s4wave_world.ReleaseRootsRequest{RootRefs: roots})
+	return err
 }
 
 // Release releases the stage resource.

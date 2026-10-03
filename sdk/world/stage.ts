@@ -1,3 +1,4 @@
+import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 import { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
@@ -45,5 +46,14 @@ export class WorldStage extends Resource {
       response.resourceId ?? 0,
       BucketLookupCursor,
     )
+  }
+
+  // releaseRoots drops the stage's ownership of roots once the transaction
+  // referencing them has returned. The stage stays open.
+  public async releaseRoots(
+    rootRefs: BlockRef[],
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.ReleaseRoots({ rootRefs }, abortSignal)
   }
 }
