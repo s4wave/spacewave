@@ -69,11 +69,13 @@ func RunDemoCayley(
 	}
 	defer lkRef.Release()
 
+	// Resolve the bucket lookup before writing sample data.
 	lk, err := lkr.GetLookup(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Store a sample block and retain its bucket reference.
 	le.Info("lookup returned, storing block")
 	blockData := fmt.Sprintf("hello world: %s", time.Now().String())
 	ev, _, err := lk.PutBlock(ctx, []byte(blockData), nil)
@@ -173,6 +175,7 @@ func RunDemoCayley(
 		return err
 	}
 
+	// Read and print every quad stored in the example graph.
 	le.Info("printing all quads")
 	it := store.QuadsAllIterator(ctx).Iterate(ctx)
 	for it.Next(ctx) {
@@ -201,6 +204,7 @@ func RunDemoCayley(
 		LabelContext("really").
 		Out(quad.String("want to"))
 
+	// Print the graph values reached through the labeled cats path.
 	err = p.Iterate(ctx).EachValue(ctx, nil, func(value quad.Value) error {
 		nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
 		le.Info(nativeValue)
@@ -225,9 +229,11 @@ func RunDemoCayley(
 		return err
 	}
 
+	// Report the elapsed time for the preceding graph examples.
 	tEnd := time.Now()
 	le.Infof("demo completed in %v", tEnd.Sub(tStart).String())
 
+	// Introduce the recursive graph traversal and its expected values.
 	le.Info("demo: starting follow recursive: expect to see <f> <b> <d> <c>")
 
 	// Test follow recursive

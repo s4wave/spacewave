@@ -39,15 +39,18 @@ func TestSkipUnhandledOperation(t *testing.T) {
 }
 
 func TestJobTrackerRetriesTransientWorldError(t *testing.T) {
+	// Bound the Job tracker retry test.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
+	// Open a World testbed for the Job tracker.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
 
+	// Construct the Cluster controller and its Job tracker.
 	controller := NewController(
 		tb.Logger,
 		tb.Bus,
@@ -55,6 +58,7 @@ func TestJobTrackerRetriesTransientWorldError(t *testing.T) {
 	)
 	tracker, _ := controller.jobTrackers.SetKey("test-job", false)
 
+	// Record watch attempts and fail the first World read.
 	attempts := make(chan int, 2)
 	attempt := 0
 	tracker.objLoop = world_control.NewWatchLoop(
@@ -77,6 +81,7 @@ func TestJobTrackerRetriesTransientWorldError(t *testing.T) {
 		},
 	)
 
+	// Start Job tracking and verify the failed read is retried.
 	controller.jobTrackers.SetContext(ctx, true)
 	for want := 1; want <= 2; want++ {
 		select {
@@ -93,24 +98,34 @@ func TestJobTrackerRetriesTransientWorldError(t *testing.T) {
 // TestCompletedJobReconciliationDoesNotWaitForWriter keeps read-only completion
 // replays out of the queue used by foreground World operations.
 func TestCompletedJobReconciliationDoesNotWaitForWriter(t *testing.T) {
+	// Bound the completed Job replay test.
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
+
+	// Open a World testbed for completed Job reconciliation.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
+
+	// Create the Job whose completed state will be replayed.
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	obj, _, err := forge_job.CreateJobWithTasks(ctx, ws, tb.Volume.GetPeerID(), "job/completed", nil, tb.Volume.GetPeerID(), nil, timestamp.Now())
 	world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Store a successful terminal result on the Job.
 	_, _, err = world.AccessWorldObject(ctx, ws, "job/completed", true, func(cursor *block.Cursor) error {
+		// Decode the Job before completing it.
 		job, err := forge_job.UnmarshalJob(ctx, cursor)
 		if err != nil {
 			return err
 		}
+
+		// Persist the completed Job with its successful result.
 		job.JobState = forge_job.State_JobState_COMPLETE
 		job.Result = forge_value.NewResultWithSuccess()
 		cursor.SetBlock(job, true)
@@ -123,6 +138,8 @@ func TestCompletedJobReconciliationDoesNotWaitForWriter(t *testing.T) {
 	// Reconcile the same completed state while a foreground writer is held.
 	controller := NewController(tb.Logger, tb.Bus, NewConfig(tb.EngineID, "cluster/test", tb.Volume.GetPeerID()))
 	_, tracker := controller.newJobTracker("job/completed")
+
+	// Retain the completed Job snapshot and its revision for replay.
 	obj, err = world.MustGetObject(ctx, ws, "job/completed")
 	if err != nil {
 		t.Fatal(err)
@@ -132,11 +149,15 @@ func TestCompletedJobReconciliationDoesNotWaitForWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Hold a foreground writer while completed snapshots are reconciled.
 	writer, err := tb.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer writer.Discard()
+
+	// Verify repeated Job reconciliation remains read-only and keeps watching.
 	for range 3 {
 		wait, err := tracker.processState(ctx, tb.Logger, ws, obj, root, rev)
 		if err != nil {

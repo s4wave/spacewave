@@ -16,11 +16,13 @@ import (
 )
 
 func main() {
+	// Prepare the worker demo context and debug logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Configure the worker command to accept a target file.
 	app := cli.NewApp()
 	app.Name = "run-worker"
 	app.Usage = "run a forge worker with a target"
@@ -33,6 +35,7 @@ func main() {
 		return runWorkerDemo(ctx, le, args[0])
 	}
 
+	// Run the worker command and report failures to the invoking shell.
 	if err := app.Run(os.Args); err != nil {
 		os.Stderr.WriteString(err.Error())
 		os.Stderr.WriteString("\n")
@@ -42,10 +45,12 @@ func main() {
 
 // runWorkerDemo runs the worker demo via RunWorkerWithTasks.
 func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) error {
+	// Require an existing target file before starting the worker demo.
 	if _, err := os.Stat(targetPath); err != nil {
 		return err
 	}
 
+	// Read the YAML target supplied to the worker demo.
 	targetData, err := os.ReadFile(targetPath)
 	if err != nil {
 		return err
@@ -59,11 +64,13 @@ func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) err
 	}
 	forge_lib_all.AddFactories(tb.Bus, tb.StaticResolver)
 
+	// Resolve the YAML target through the registered Forge factories.
 	tgt, err := target_json.ResolveYAML(ctx, tb.Bus, targetData)
 	if err != nil {
 		return err
 	}
 
+	// Execute the resolved target as one Task in the demo Cluster.
 	ts := timestamp.Now()
 	taskMap := map[string]*forge_target.Target{
 		"cli-task": tgt,

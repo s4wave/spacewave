@@ -93,6 +93,7 @@ func (jt *jobTracker) processState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Identify the Job and Cluster for reconciliation.
 	jobKey, clusterKey := jt.objKey, jt.c.objKey
 
 	// Confirm the job object type.

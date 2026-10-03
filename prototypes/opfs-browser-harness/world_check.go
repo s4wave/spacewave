@@ -10,6 +10,7 @@ import (
 
 // CheckWorld writes objects and a graph edge and reads them back.
 func CheckWorld(ctx context.Context, ws world.WorldState) error {
+	// Create two Task objects with a shared bucket reference.
 	objRef := &bucket.ObjectRef{BucketId: "test-bucket"}
 	for _, key := range []string{"task/a", "task/b"} {
 		if _, err := ws.CreateObject(ctx, key, objRef); err != nil {
@@ -17,6 +18,7 @@ func CheckWorld(ctx context.Context, ws world.WorldState) error {
 		}
 	}
 
+	// Link the Task objects with an assignment edge.
 	quad := world.NewGraphQuadWithKeys("task/a", "<assigned-to>", "task/b", "")
 	if err := ws.SetGraphQuad(ctx, quad); err != nil {
 		return fmt.Errorf("set graph quad: %w", err)
@@ -39,6 +41,7 @@ func CheckWorld(ctx context.Context, ws world.WorldState) error {
 		return fmt.Errorf("object task/a returned nil root ref")
 	}
 
+	// Verify the stored assignment edge through the World graph API.
 	quads, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys("task/a", "<assigned-to>", "", ""),
@@ -51,11 +54,13 @@ func CheckWorld(ctx context.Context, ws world.WorldState) error {
 		return fmt.Errorf("graph quads = %#v, want one edge to task/b", quads)
 	}
 
+	// Collect the Task keys through the World object iterator.
 	var iterKeys []string
 	it := ws.IterateObjects(ctx, "task/", false)
 	for it.Next() {
 		iterKeys = append(iterKeys, it.Key())
 	}
+
 	// Read Err before Close: Close marks the iterator consumed.
 	iterErr := it.Err()
 	it.Close()
@@ -66,11 +71,13 @@ func CheckWorld(ctx context.Context, ws world.WorldState) error {
 		return fmt.Errorf("iterated keys = %#v, want task/a and task/b", iterKeys)
 	}
 
+	// Read the World sequence number after the object and graph writes.
 	seqno, err := ws.GetSeqno(ctx)
 	if err != nil {
 		return fmt.Errorf("get seqno: %w", err)
 	}
 
+	// Report the verified Task objects, assignment edge, and World sequence.
 	fmt.Printf(
 		"opfs-browser-harness OK objects=%v edge=task/a<assigned-to>task/b seqno=%d\n",
 		iterKeys, seqno,

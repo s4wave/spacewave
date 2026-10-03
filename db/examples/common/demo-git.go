@@ -74,6 +74,7 @@ func RunDemoGit(
 	inMem := memory.NewStorage()
 	worktree := memfs.New()
 
+	// Open an empty bucket cursor and use it to construct the Git store.
 	sfs := transform_all.BuildFactorySet()
 	oc, rootRef, err := bucket_lookup.BuildEmptyCursor(ctx, b, le, sfs, bucketID, vol.GetID(), nil, nil)
 	if err != nil {

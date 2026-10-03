@@ -59,6 +59,7 @@ func (t *taskTracker) processState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Identify the Task, Job, and Cluster for reconciliation.
 	taskKey, jobKey, clusterKey := t.objKey, t.jt.objKey, t.jt.c.objKey
 
 	// Confirm the task object type.
@@ -81,6 +82,7 @@ func (t *taskTracker) processState(
 		return true, err
 	}
 
+	// Report the Task state observed by this tracker.
 	taskState := task.GetTaskState()
 	le.Debugf("task %q: %s", taskKey, taskState.String())
 

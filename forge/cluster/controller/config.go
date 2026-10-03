@@ -23,18 +23,26 @@ func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Require a peer identity for the Cluster controller.
 	if len(c.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
+
+	// Validate the configured peer identity encoding.
 	if _, err := c.ParsePeerID(); err != nil {
 		return err
 	}
+
+	// Require the World engine that stores the Cluster.
 	if len(c.GetEngineId()) == 0 {
 		return world.ErrEmptyEngineID
 	}
+
+	// Require the Cluster object to reconcile.
 	if len(c.GetObjectKey()) == 0 {
 		return world.ErrEmptyObjectKey
 	}
+
 	return nil
 }
 
