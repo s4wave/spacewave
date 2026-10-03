@@ -15,6 +15,7 @@ func NewDefaultRegistry() *Registry {
 // NewDefaultRegistryWithBus creates a registry with all built-in space exec
 // handlers, including handlers that need the controller bus.
 func NewDefaultRegistryWithBus(b bus.Bus) *Registry {
+	// Register the built-in handlers that execute directly against Space data.
 	r := NewRegistry()
 	RegisterNoop(r)
 	RegisterKvtx(r)
@@ -22,6 +23,8 @@ func NewDefaultRegistryWithBus(b bus.Bus) *Registry {
 	RegisterUnixfsRead(r)
 	RegisterFileHash(r)
 	RegisterExportZip(r)
+
+	// Register the VM and plugin handlers with their controller bus.
 	RegisterV86(r, b)
 	RegisterPluginExec(r, b)
 	RegisterBuildPlugin(r, b)

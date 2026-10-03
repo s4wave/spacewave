@@ -59,6 +59,7 @@ func (f *BridgeFactory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Resolve the logger for the handler bridge controller.
 	le := opts.GetLogger()
 
 	// Extract raw config bytes from the config object.
@@ -126,6 +127,7 @@ func (c *bridgeController) InitForgeExecController(
 		return errors.Wrap(err, "resolve world input")
 	}
 
+	// Create the registered handler with the resolved World and execution inputs.
 	handler, err := c.registry.CreateHandler(
 		ctx, c.le, ws, handle, inputVals, c.configID, c.configData,
 	)

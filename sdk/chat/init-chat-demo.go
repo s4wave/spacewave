@@ -48,11 +48,13 @@ func (o *InitChatDemoOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (bool, error) {
+	// Resolve the demo channel key, using the default when omitted.
 	objKey := o.GetChannelObjectKey()
 	if objKey == "" {
 		objKey = GeneralChannelKey
 	}
 
+	// Create the demo channel with an initialized thread index.
 	channel := &ChatChannel{
 		Name:                      "General",
 		CreatedAt:                 o.GetTimestamp(),

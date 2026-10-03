@@ -33,14 +33,19 @@ type exportZipConfig struct {
 // parseExportZipConfig parses the config from JSON bytes.
 // Expected format: {"object_key": "..."}
 func parseExportZipConfig(data []byte) (*exportZipConfig, error) {
+	// Require a nonempty export configuration.
 	if len(data) == 0 {
 		return nil, errors.New("empty config")
 	}
+
+	// Parse the export configuration as JSON.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse config json")
 	}
+
+	// Require the World object key to export.
 	objKey := string(v.GetStringBytes("object_key"))
 	if objKey == "" {
 		return nil, errors.New("object_key is required")
@@ -60,6 +65,7 @@ type exportZipHandler struct {
 // Execute reads the source object, zips its contents, writes the zip as a blob
 // block, and outputs the blob reference.
 func (h *exportZipHandler) Execute(ctx context.Context) error {
+	// Select the configured World object for ZIP export.
 	objKey := h.conf.objectKey
 
 	// Verify the object exists.
@@ -78,6 +84,7 @@ func (h *exportZipHandler) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "build zip")
 	}
 
+	// Record the archive size in the execution log.
 	_ = h.handle.WriteLog(ctx, "info", "zip: "+strconv.Itoa(buf.Len())+" bytes from "+objKey)
 
 	// Write zip bytes as a blob block in world storage.
@@ -91,6 +98,7 @@ func (h *exportZipHandler) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "write zip blob")
 	}
 
+	// Publish the ZIP blob reference as the execution output.
 	outps := forge_value.ValueSlice{
 		forge_value.NewValueWithBucketRef("zip", blobRef),
 	}
@@ -120,6 +128,7 @@ func (h *exportZipHandler) buildZip(ctx context.Context, w io.Writer, objKey str
 
 // buildFSZip creates a zip of a unixfs object's file tree.
 func (h *exportZipHandler) buildFSZip(ctx context.Context, w io.Writer, objKey string, fsType unixfs_world.FSType) error {
+	// Open a filesystem handle for the World object's archive contents.
 	fsCursor := unixfs_world.NewFSCursor(h.le, h.ws, objKey, fsType, nil, false)
 	fsh, err := unixfs.NewFSHandle(fsCursor)
 	if err != nil {
@@ -133,6 +142,7 @@ func (h *exportZipHandler) buildFSZip(ctx context.Context, w io.Writer, objKey s
 
 // buildRawZip creates a zip with the object's raw block data as a single entry.
 func (h *exportZipHandler) buildRawZip(ctx context.Context, w io.Writer, objKey string, typeID string) error {
+	// Open the World object whose raw block will be archived.
 	objState, found, err := h.ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -142,6 +152,7 @@ func (h *exportZipHandler) buildRawZip(ctx context.Context, w io.Writer, objKey 
 		return world.ErrObjectNotFound
 	}
 
+	// Fetch the object's raw body bytes for the archive entry.
 	var bodyData []byte
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		data, _, ferr := bcs.Fetch(ctx)
@@ -155,11 +166,13 @@ func (h *exportZipHandler) buildRawZip(ctx context.Context, w io.Writer, objKey 
 		return errors.Wrap(err, "read object block")
 	}
 
+	// Derive the archive entry extension from the object's block type.
 	ext := ".pb"
 	if typeID != "" {
 		ext = "." + strings.ReplaceAll(typeID, "/", "-") + ".pb"
 	}
 
+	// Create the ZIP entry and write the object's raw body.
 	zw := zip.NewWriter(w)
 	header := &zip.FileHeader{
 		Name:   sanitizeExportKey(objKey) + ext,

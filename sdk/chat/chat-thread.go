@@ -26,6 +26,7 @@ func (r *ChatResource) ListThreads(
 	ctx context.Context,
 	req *spacewave_chat_rpc.ListThreadsRequest,
 ) (*spacewave_chat_rpc.ListThreadsResponse, error) {
+	// Bind the channel read to the accepted author and initialize its thread index.
 	bound, err := r.operationResource(ctx)
 	if err != nil {
 		return nil, err
@@ -39,12 +40,14 @@ func (r *ChatResource) ListThreads(
 		return nil, err
 	}
 
+	// Bound the thread page and resolve its starting cursor.
 	limit := req.GetLimit()
 	if limit == 0 || limit > maxMessageListLimit {
 		limit = defaultMessageListLimit
 	}
 	threadKey := channel.GetThreadHeadKey()
 	if req != nil && req.BeforeIndex != nil {
+		// Validate the cursor against retained channel history.
 		beforeIndex := req.GetBeforeIndex()
 		if beforeIndex >= channel.GetMessageCount() {
 			return nil, errors.New("thread cursor exceeds channel history")
@@ -57,6 +60,8 @@ func (r *ChatResource) ListThreads(
 		if err != nil {
 			return nil, err
 		}
+
+		// Resolve the cursor reply to the preceding thread.
 		relation := chatMessageRelation(message)
 		if relation.GetType() != "m.thread" || relation.GetTargetKey() == "" {
 			return nil, errors.New("thread cursor does not identify a thread reply")
@@ -72,9 +77,11 @@ func (r *ChatResource) ListThreads(
 		threadKey = cursor.GetOlderThreadKey()
 	}
 
+	// Collect thread summaries in descending activity order.
 	response := &spacewave_chat_rpc.ListThreadsResponse{}
 	var lastScanned *ChatThread
 	for scanned := 0; threadKey != "" && scanned < maxThreadScanLimit && len(response.Threads) < int(limit); scanned++ {
+		// Read the next thread and advance the activity cursor.
 		thread, err := r.readThread(ctx, r.ws, threadKey)
 		if err != nil {
 			return nil, err
@@ -82,6 +89,7 @@ func (r *ChatResource) ListThreads(
 		lastScanned = thread
 		threadKey = thread.GetOlderThreadKey()
 
+		// Filter threads by the accepted person's participation.
 		participated, err := r.threadParticipated(ctx, thread)
 		if err != nil {
 			return nil, err
@@ -89,6 +97,8 @@ func (r *ChatResource) ListThreads(
 		if req.GetParticipatedOnly() && !participated {
 			continue
 		}
+
+		// Load the root and latest reply for the thread summary.
 		root, err := r.readMessage(ctx, thread.GetRootMessageKey())
 		if err != nil {
 			return nil, err
@@ -107,6 +117,8 @@ func (r *ChatResource) ListThreads(
 			CurrentUserParticipated: participated,
 		})
 	}
+
+	// Retain a continuation cursor when older threads remain.
 	if threadKey != "" && lastScanned != nil {
 		next := lastScanned.GetLatestMessageIndex()
 		response.NextBeforeIndex = &next
@@ -116,6 +128,7 @@ func (r *ChatResource) ListThreads(
 
 // ensureThreadIndex migrates a legacy channel once before serving indexed reads.
 func (r *ChatResource) ensureThreadIndex(ctx context.Context) error {
+	// Determine whether the channel needs a writable thread backfill.
 	channel, err := r.readChannel(ctx)
 	if err != nil {
 		return err
@@ -128,6 +141,7 @@ func (r *ChatResource) ensureThreadIndex(ctx context.Context) error {
 		return errors.New("legacy chat thread index requires a writable resource")
 	}
 
+	// Open a transaction on the channel metadata for bounded backfill.
 	tx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -137,6 +151,8 @@ func (r *ChatResource) ensureThreadIndex(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Extend the channel's indexed history prefix.
 	changed, complete, err := r.updateThreadIndex(ctx, tx, channel, maxThreadMigrationMessages)
 	if err != nil {
 		return err
@@ -144,6 +160,8 @@ func (r *ChatResource) ensureThreadIndex(ctx context.Context) error {
 	if !changed {
 		return nil
 	}
+
+	// Persist the backfill and synchronize the World storage.
 	if err := r.writeChannel(ctx, tx, channel); err != nil {
 		return err
 	}
@@ -153,6 +171,8 @@ func (r *ChatResource) ensureThreadIndex(ctx context.Context) error {
 	if _, err := r.engine.Sync(ctx); err != nil {
 		return err
 	}
+
+	// Report an incomplete thread index to the caller.
 	if !complete {
 		return ErrChatThreadIndexBuilding
 	}
@@ -166,6 +186,7 @@ func (r *ChatResource) updateThreadIndex(
 	channel *ChatChannel,
 	messageLimit uint64,
 ) (bool, bool, error) {
+	// Validate the backfill limit and initialize legacy index metadata.
 	if messageLimit == 0 {
 		return false, false, errors.New("chat thread migration limit must be positive")
 	}
@@ -180,6 +201,7 @@ func (r *ChatResource) updateThreadIndex(
 		return false, false, errors.New("chat thread index exceeds channel history")
 	}
 
+	// Index the next bounded segment of channel history.
 	changed := !initialized
 	startIndex := channel.GetThreadIndexedMessageCount()
 	endIndex := startIndex + min(messageLimit, channel.GetMessageCount()-startIndex)
@@ -204,6 +226,7 @@ func (r *ChatResource) updateThreadIndex(
 
 // indexAppendedMessage advances the current index with one newly retained message.
 func (r *ChatResource) indexAppendedMessage(ctx context.Context, ws world.WorldState, messageKey string, message *ChatMessage) error {
+	// Require the channel index to end immediately before the appended message.
 	channel, err := world.LookupObjectBody[*ChatChannel](ctx, ws, r.objectKey, NewChatChannelBlock)
 	if err != nil {
 		return err
@@ -213,6 +236,8 @@ func (r *ChatResource) indexAppendedMessage(ctx context.Context, ws world.WorldS
 		channel.GetMessageCount() != message.GetIndex()+1 {
 		return errors.New("chat thread index does not match appended history")
 	}
+
+	// Index the reply and persist the channel's new history boundary.
 	if err := r.indexThreadReply(ctx, ws, channel, messageKey, message); err != nil {
 		return err
 	}
@@ -229,10 +254,13 @@ func (r *ChatResource) indexThreadReply(
 	messageKey string,
 	message *ChatMessage,
 ) error {
+	// Select messages that carry a thread reply relation.
 	relation := chatMessageRelation(message)
 	if relation.GetType() != "m.thread" || relation.GetTargetKey() == "" {
 		return nil
 	}
+
+	// Resolve the thread summary for the reply's root.
 	threadKey, err := r.chatThreadKey(relation.GetTargetKey())
 	if err != nil {
 		return err
@@ -241,6 +269,8 @@ func (r *ChatResource) indexThreadReply(
 	if err != nil && !errors.Is(err, world.ErrObjectNotFound) {
 		return err
 	}
+
+	// Create or refresh the thread at the head of the activity list.
 	if thread == nil {
 		thread = &ChatThread{
 			RootMessageKey:     relation.GetTargetKey(),
@@ -271,6 +301,7 @@ func (r *ChatResource) indexThreadReply(
 		thread.LatestMessageIndex = message.GetIndex()
 		thread.ReplyCount++
 		if channel.GetThreadHeadKey() != threadKey {
+			// Detach the active thread from its newer neighbor.
 			newerKey := thread.GetNewerThreadKey()
 			if newerKey == "" {
 				return errors.New("non-head chat thread has no newer link")
@@ -286,6 +317,8 @@ func (r *ChatResource) indexThreadReply(
 			if err := r.writeThread(ctx, ws, newerKey, newer); err != nil {
 				return err
 			}
+
+			// Repair the older neighbor's link around the active thread.
 			if olderKey := thread.GetOlderThreadKey(); olderKey != "" {
 				older, err := r.readThread(ctx, ws, olderKey)
 				if err != nil {
@@ -299,6 +332,8 @@ func (r *ChatResource) indexThreadReply(
 					return err
 				}
 			}
+
+			// Attach the active thread ahead of the previous head.
 			headKey := channel.GetThreadHeadKey()
 			head, err := r.readThread(ctx, ws, headKey)
 			if err != nil {
@@ -311,6 +346,8 @@ func (r *ChatResource) indexThreadReply(
 			if err := r.writeThread(ctx, ws, headKey, head); err != nil {
 				return err
 			}
+
+			// Publish the active thread as the channel's newest thread.
 			thread.NewerThreadKey = ""
 			thread.OlderThreadKey = headKey
 			channel.ThreadHeadKey = threadKey
@@ -320,6 +357,7 @@ func (r *ChatResource) indexThreadReply(
 		return err
 	}
 
+	// Record the reply author as a thread participant.
 	personID := message.GetPersonId()
 	if personID == "" {
 		return errors.New("thread reply has no attributed person")
@@ -329,9 +367,12 @@ func (r *ChatResource) indexThreadReply(
 
 // threadParticipated checks the authenticated person without enumerating participants.
 func (r *ChatResource) threadParticipated(ctx context.Context, thread *ChatThread) (bool, error) {
+	// Require an attributed person before checking thread participation.
 	if r.personID == "" {
 		return false, nil
 	}
+
+	// Look up the person's participation edge for this thread.
 	threadKey, err := r.chatThreadKey(thread.GetRootMessageKey())
 	if err != nil {
 		return false, err
@@ -367,10 +408,13 @@ func chatMessageRelation(message *ChatMessage) *ChatRelation {
 
 // readMessageKeyAt resolves one stable history position through its bounded page.
 func (r *ChatResource) readMessageKeyAt(ctx context.Context, ws world.WorldState, index uint64) (string, error) {
+	// Load the bounded history page containing the requested message.
 	page, err := world.LookupObjectBody[*ChatMessagePage](ctx, ws, r.messagePageKey(index/chatMessagePageSize), NewChatMessagePageBlock)
 	if err != nil {
 		return "", err
 	}
+
+	// Require a retained message key at the requested page offset.
 	offset := index % chatMessagePageSize
 	if offset >= uint64(len(page.GetMessageKeys())) || page.GetMessageKeys()[offset] == "" {
 		return "", errors.New("chat history page is missing an indexed message")
@@ -385,6 +429,7 @@ func (r *ChatResource) readThread(ctx context.Context, ws world.WorldState, key 
 
 // writeThread creates or replaces one thread summary inside the caller's transaction.
 func (r *ChatResource) writeThread(ctx context.Context, ws world.WorldState, key string, thread *ChatThread) error {
+	// Open or create a typed thread object in the caller's transaction.
 	object, found, err := ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(object)
 	if err != nil {
@@ -400,6 +445,8 @@ func (r *ChatResource) writeThread(ctx context.Context, ws world.WorldState, key
 			return err
 		}
 	}
+
+	// Replace the thread object's summary block.
 	_, _, err = world.AccessObjectState(ctx, object, true, func(cursor *block.Cursor) error {
 		cursor.SetBlock(thread, true)
 		return nil

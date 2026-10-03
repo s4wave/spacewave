@@ -26,12 +26,15 @@ import (
 
 // setupIntegrationTest constructs the controller-backed execution testbed.
 func setupIntegrationTest(t *testing.T, registry *Registry) (*testbed.Testbed, peer.ID) {
+	// Start the controller-backed execution testbed and attribute failures to its caller.
 	t.Helper()
 	tb, err := testbed.Default(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Register execution, transaction, and handler bridge factories on the bus.
 	tb.StaticResolver.AddFactory(execution_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
 	for _, factory := range BridgeFactories(registry) {
@@ -47,6 +50,7 @@ func runTestExecution(
 	execKey string,
 	peerID peer.ID,
 ) *forge_execution.Execution {
+	// Start the execution controller and retain its reference until completion.
 	t.Helper()
 	conf := execution_controller.NewConfig(
 		tb.EngineID,
@@ -64,6 +68,7 @@ func runTestExecution(
 	}
 	defer ctrlRef.Release()
 
+	// Wait for the execution to complete with a durable claim.
 	ex, err := forge_execution.WaitExecutionComplete(
 		t.Context(),
 		tb.Logger.WithField("control-loop", "space-exec-integration"),
@@ -89,6 +94,7 @@ func createTestFS(
 	objKey, fileName string,
 	data []byte,
 ) {
+	// Initialize the filesystem fixture and attribute failures to its caller.
 	t.Helper()
 	_, _, err := unixfs_world.FsInit(
 		ctx, ws, sender, objKey,
@@ -98,6 +104,8 @@ func createTestFS(
 	if err != nil {
 		t.Fatalf("FsInit: %v", err)
 	}
+
+	// Open the filesystem object and write the fixture's file contents.
 	obj, err := world.MustGetObject(ctx, ws, objKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -228,13 +236,16 @@ func findLogContaining(ex *forge_execution.Execution, substr string) *forge_exec
 // TestIntegration_Noop runs a noop execution through the full
 // PENDING -> RUNNING -> COMPLETE lifecycle.
 func TestIntegration_Noop(t *testing.T) {
+	// Start the default handler registry on the integration testbed.
 	registry := NewDefaultRegistry()
 	tb, peerID := setupIntegrationTest(t, registry)
 	ctx, ws := tb.Context, tb.WorldState
 
+	// Queue a pending noop execution in the World.
 	execKey := "exec/noop-int"
 	createTestExecution(t, ctx, ws, peerID, execKey, NoopConfigID, nil)
 
+	// Run the noop execution and verify completion and its log.
 	ex := runTestExecution(t, tb, execKey, peerID)
 	assertComplete(t, ex)
 	if entry := findLogContaining(ex, "noop execution complete"); entry == nil {
@@ -249,6 +260,7 @@ func (f handlerFunc) Execute(ctx context.Context) error {
 }
 
 func TestIntegration_ForwardsExecutionInputs(t *testing.T) {
+	// Register a handler that captures the inputs the execution forwards.
 	capturedCh := make(chan forge_target.InputMap, 1)
 	registry := NewRegistry()
 	registry.Register("test/capture-inputs", func(
@@ -265,6 +277,7 @@ func TestIntegration_ForwardsExecutionInputs(t *testing.T) {
 	tb, peerID := setupIntegrationTest(t, registry)
 	ctx, ws := tb.Context, tb.WorldState
 
+	// Queue an execution with an explicit artifact input.
 	execKey := "exec/capture-inputs"
 	createTestExecutionWithValueSet(
 		t, ctx, ws, peerID, execKey, "test/capture-inputs", nil,
@@ -275,6 +288,7 @@ func TestIntegration_ForwardsExecutionInputs(t *testing.T) {
 		},
 	)
 
+	// Run the execution and verify artifact and World inputs reached its handler.
 	ex := runTestExecution(t, tb, execKey, peerID)
 	assertComplete(t, ex)
 	captured := <-capturedCh
@@ -287,13 +301,16 @@ func TestIntegration_ForwardsExecutionInputs(t *testing.T) {
 }
 
 func TestIntegration_DisabledExecutionCompletes(t *testing.T) {
+	// Start the default handler registry on the integration testbed.
 	registry := NewDefaultRegistry()
 	tb, peerID := setupIntegrationTest(t, registry)
 	ctx, ws := tb.Context, tb.WorldState
 
+	// Queue an execution with its target disabled.
 	execKey := "exec/disabled"
 	createDisabledTestExecution(t, ctx, ws, peerID, execKey)
 
+	// Run the disabled execution and require successful completion.
 	ex := runTestExecution(t, tb, execKey, peerID)
 	assertComplete(t, ex)
 }
@@ -301,18 +318,22 @@ func TestIntegration_DisabledExecutionCompletes(t *testing.T) {
 // TestIntegration_UnixfsRead creates a unixfs object with a test file,
 // runs the unixfs-read handler, and verifies the output snapshot.
 func TestIntegration_UnixfsRead(t *testing.T) {
+	// Start the default handler registry on the integration testbed.
 	registry := NewDefaultRegistry()
 	tb, peerID := setupIntegrationTest(t, registry)
 	ctx, ws := tb.Context, tb.WorldState
 
+	// Create a filesystem source containing the file to read.
 	fsKey := "fs/int-read"
 	content := []byte("hello world from unixfs")
 	createTestFS(t, ctx, ws, peerID, fsKey, "hello.txt", content)
 
+	// Queue an execution targeting the filesystem read handler.
 	execKey := "exec/unixfs-read-int"
 	config := []byte(`{"object_key":"fs/int-read","file_path":"hello.txt"}`)
 	createTestExecution(t, ctx, ws, peerID, execKey, UnixfsReadConfigID, config)
 
+	// Run the filesystem read execution and require successful completion.
 	ex := runTestExecution(t, tb, execKey, peerID)
 	assertComplete(t, ex)
 
@@ -334,18 +355,22 @@ func TestIntegration_UnixfsRead(t *testing.T) {
 // TestIntegration_FileHash creates a unixfs object, runs the file-hash
 // handler, and verifies the blake3 digest in the log.
 func TestIntegration_FileHash(t *testing.T) {
+	// Start the default handler registry on the integration testbed.
 	registry := NewDefaultRegistry()
 	tb, peerID := setupIntegrationTest(t, registry)
 	ctx, ws := tb.Context, tb.WorldState
 
+	// Create a filesystem source containing the file to hash.
 	fsKey := "fs/int-hash"
 	content := []byte("hash me please")
 	createTestFS(t, ctx, ws, peerID, fsKey, "data.bin", content)
 
+	// Queue an execution targeting the file hash handler.
 	execKey := "exec/file-hash-int"
 	config := []byte(`{"object_key":"fs/int-hash","file_path":"data.bin"}`)
 	createTestExecution(t, ctx, ws, peerID, execKey, FileHashConfigID, config)
 
+	// Run the file hash execution and require successful completion.
 	ex := runTestExecution(t, tb, execKey, peerID)
 	assertComplete(t, ex)
 
@@ -367,18 +392,22 @@ func TestIntegration_FileHash(t *testing.T) {
 // TestIntegration_ExportZip creates a unixfs object, runs the export-zip
 // handler, and verifies the zip blob output reference.
 func TestIntegration_ExportZip(t *testing.T) {
+	// Start the default handler registry on the integration testbed.
 	registry := NewDefaultRegistry()
 	tb, peerID := setupIntegrationTest(t, registry)
 	ctx, ws := tb.Context, tb.WorldState
 
+	// Create a filesystem source containing the file to archive.
 	fsKey := "fs/int-zip"
 	content := []byte("zip this content")
 	createTestFS(t, ctx, ws, peerID, fsKey, "readme.txt", content)
 
+	// Queue an execution targeting the ZIP export handler.
 	execKey := "exec/export-zip-int"
 	config := []byte(`{"object_key":"fs/int-zip"}`)
 	createTestExecution(t, ctx, ws, peerID, execKey, ExportZipConfigID, config)
 
+	// Run the ZIP export execution and require successful completion.
 	ex := runTestExecution(t, tb, execKey, peerID)
 	assertComplete(t, ex)
 

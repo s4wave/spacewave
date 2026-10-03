@@ -20,6 +20,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Create the channel and precompute the sender's stable send identity.
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 	first := newChatResource(t, ws, tb.Engine, GeneralChannelKey, "alice")
@@ -28,6 +30,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Send the initial message and verify its transaction identity.
 	accepted, err := first.SendMessage(ctx, request)
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +39,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if accepted.GetMessageKey() != messageKey {
 		t.Fatal("send changed its precomputed transaction message identity")
 	}
+
+	// Record the accepted World revision before replacing the Resource.
 	seqno, err := ws.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +56,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if replayed.GetMessageKey() != accepted.GetMessageKey() {
 		t.Fatal("retry changed message identity")
 	}
+
+	// Verify the retry left the accepted World revision unchanged.
 	after, err := ws.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -57,6 +65,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if after != seqno {
 		t.Fatal("retry published a World revision")
 	}
+
+	// Require changed content to conflict with the accepted send identity.
 	conflict := request.CloneVT()
 	conflict.Text = "changed"
 	if _, err := resumed.SendMessage(ctx, conflict); err == nil {
@@ -77,6 +87,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if replayed.GetMessageKey() != accepted.GetMessageKey() {
 		t.Fatal("opt-in replay changed the accepted message")
 	}
+
+	// Verify opt-in replay preserves the World revision and author identity.
 	after, err = ws.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -98,6 +110,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if second.GetMessageKey() == accepted.GetMessageKey() {
 		t.Fatal("different senders shared a transaction identity")
 	}
+
+	// Read and verify the two senders' retained history.
 	history, err := resumed.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -105,6 +119,8 @@ func TestChatResourceSendRetryRetainsHistory(t *testing.T) {
 	if len(history.GetMessages()) != 2 {
 		t.Fatalf("history contains %d messages, want 2", len(history.GetMessages()))
 	}
+
+	// Verify pagination locates the first sender's retained message.
 	page, err := resumed.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{BeforeKey: second.GetMessageKey(), Limit: 1})
 	if err != nil {
 		t.Fatal(err)

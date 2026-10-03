@@ -67,6 +67,7 @@ func NewChatResource(
 	engine world.Engine,
 	objectKey string,
 ) (*ChatResource, error) {
+	// Resolve the accepted author and bind the channel Resource to its World.
 	var device peer.ID
 	var person string
 	if engine != nil {
@@ -102,13 +103,18 @@ func (r *ChatResource) Close() {}
 
 // operationResource binds this call to the engine's current accepted author.
 func (r *ChatResource) operationResource(ctx context.Context) (*ChatResource, error) {
+	// Preserve the existing binding for a read-only channel Resource.
 	if r.engine == nil {
 		return r, nil
 	}
+
+	// Resolve the World engine's current accepted author.
 	device, person, err := r.engine.OperationAuthor(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Bind a copy of the Resource to the author for this operation.
 	bound := *r
 	bound.device = device
 	bound.localPeerID = device.String()
@@ -340,17 +346,21 @@ func (r *ChatResource) SendMessage(
 	ctx context.Context,
 	req *spacewave_chat_rpc.SendMessageRequest,
 ) (*spacewave_chat_rpc.SendMessageResponse, error) {
+	// Bind the send to the World engine's accepted author.
 	bound, err := r.operationResource(ctx)
 	if err != nil {
 		return nil, err
 	}
 	r = bound
+
 	// Advance legacy indexing in bounded work before entering the append transaction.
 	if r.engine != nil && r.localPeerID != "" && r.personID != "" {
 		if err := r.ensureThreadIndex(ctx); err != nil {
 			return nil, err
 		}
 	}
+
+	// Commit the message and resolve a current-state write conflict.
 	response, err := r.commitMessage(ctx, req)
 	if errors.Is(err, errChatStateConflict) {
 		return &spacewave_chat_rpc.SendMessageResponse{}, nil
@@ -358,6 +368,8 @@ func (r *ChatResource) SendMessage(
 	if err != nil {
 		return nil, err
 	}
+
+	// Synchronize the accepted message before returning its identity.
 	if _, err := r.engine.Sync(ctx); err != nil {
 		return nil, err
 	}
@@ -640,14 +652,19 @@ func redactChatRelation(relation *ChatRelation) *ChatRelation {
 // resolveMessageState checks current-state conditions and unchanged unkeyed writes.
 // Returned edges are replaced only when a new message is appended.
 func (r *ChatResource) resolveMessageState(ctx context.Context, ws world.WorldState, req *spacewave_chat_rpc.SendMessageRequest, content *ChatMessageContent) ([]world.GraphQuad, string, error) {
+	// Select state changes that require current-event resolution.
 	state := content.GetStateChange()
 	if state == nil {
 		return nil, "", nil
 	}
+
+	// Read the retained state edges for this type and state key.
 	priorState, err := ws.LookupGraphQuads(ctx, NewChatStateQuad(r.objectKey, "", state.GetType(), state.GetStateKey()), 0)
 	if err != nil {
 		return nil, "", err
 	}
+
+	// Compare the retained event with the caller's expected state identity.
 	if expected := req.ExpectedStateMessageKey; expected != nil {
 		currentKey := ""
 		if len(priorState) > 1 {
@@ -663,6 +680,8 @@ func (r *ChatResource) resolveMessageState(ctx context.Context, ws world.WorldSt
 			return nil, "", errChatStateConflict
 		}
 	}
+
+	// Resolve unchanged state writes and protect creation state from replacement.
 	for _, edge := range priorState {
 		key, err := world.GraphValueToKey(edge.GetObj())
 		if err != nil {
@@ -684,10 +703,13 @@ func (r *ChatResource) resolveMessageState(ctx context.Context, ws world.WorldSt
 
 // GetReadPositions reads shared receipt state without transferring mutable channel state.
 func (r *ChatResource) GetReadPositions(ctx context.Context, _ *spacewave_chat_rpc.GetReadPositionsRequest) (*spacewave_chat_rpc.GetReadPositionsResponse, error) {
+	// Read the channel's retained receipt metadata.
 	channel, err := r.readChannel(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Clone each person's receipt for the client response.
 	positions := make(map[string]*chat_state.ChatReadPosition, len(channel.GetReadPositions()))
 	for person, position := range channel.GetReadPositions() {
 		positions[person] = position.CloneVT()
@@ -698,15 +720,20 @@ func (r *ChatResource) GetReadPositions(ctx context.Context, _ *spacewave_chat_r
 // UpdateReadPosition advances the authenticated person's position durably across devices.
 // Repeated or older positions return the current value without a World mutation.
 func (r *ChatResource) UpdateReadPosition(ctx context.Context, req *spacewave_chat_rpc.UpdateReadPositionRequest) (*spacewave_chat_rpc.UpdateReadPositionResponse, error) {
+	// Bind the receipt advance to the accepted author.
 	bound, err := r.operationResource(ctx)
 	if err != nil {
 		return nil, err
 	}
 	r = bound
+
+	// Commit the person's read position.
 	response, err := r.commitReadPosition(ctx, req)
 	if err != nil {
 		return nil, err
 	}
+
+	// Synchronize the accepted receipt before returning it.
 	if _, err := r.engine.Sync(ctx); err != nil {
 		return nil, err
 	}
@@ -865,6 +892,7 @@ func (r *ChatResource) appendChannelMessageKey(ctx context.Context, ws world.Wor
 	// Allocate the next position, retaining a caller's stable send identity.
 	var index uint64
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+		// Load the mutable channel and apply the message's state change.
 		channel, err := block.UnmarshalBlock[*ChatChannel](ctx, bcs, NewChatChannelBlock)
 		if err != nil {
 			return err
@@ -875,6 +903,8 @@ func (r *ChatResource) appendChannelMessageKey(ctx context.Context, ws world.Wor
 		if err := applyChannelState(channel, state); err != nil {
 			return err
 		}
+
+		// Reserve the message identity and advance the channel's history extent.
 		index = channel.GetMessageCount()
 		if msgKey == "" {
 			msgKey = r.messageKey(index)
@@ -916,6 +946,7 @@ func (r *ChatResource) appendMessagePageKey(ctx context.Context, ws world.WorldS
 
 	// Append within the fixed-size page selected by the channel position.
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+		// Load the history page or initialize its first block.
 		page, err := block.UnmarshalBlock[*ChatMessagePage](ctx, bcs, NewChatMessagePageBlock)
 		if err != nil {
 			return err
@@ -923,6 +954,8 @@ func (r *ChatResource) appendMessagePageKey(ctx context.Context, ws world.WorldS
 		if page == nil {
 			page = &ChatMessagePage{}
 		}
+
+		// Retain the accepted message key in the page block.
 		page.MessageKeys = append(page.MessageKeys, msgKey)
 		bcs.SetBlock(page, true)
 		return nil

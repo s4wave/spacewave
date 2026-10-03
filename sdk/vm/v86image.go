@@ -108,14 +108,17 @@ func (o *CreateV86ImageOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the VM image creation intent.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Prepare a retained image with the operation's creation timestamp.
 	objKey := o.GetObjectKey()
 	img := o.GetImage().CloneVT()
 	img.CreatedAt = o.GetTimestamp()
 
+	// Create the VM image object with its initial metadata block.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(img, true)
@@ -126,6 +129,7 @@ func (o *CreateV86ImageOp) ApplyWorldOp(
 		return false, err
 	}
 
+	// Mark the VM image object with its block type.
 	if err := world_types.SetObjectType(ctx, ws, objKey, V86ImageTypeID); err != nil {
 		return false, err
 	}
@@ -200,10 +204,12 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the VM image metadata update.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Open the VM image object for its metadata change.
 	objKey := o.GetObjectKey()
 	objState, found, err := ws.GetObject(ctx, objKey)
 	defer world.ReleaseObjectState(objState)
@@ -214,6 +220,7 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 		return false, errors.New("v86 image object not found")
 	}
 
+	// Require the opened object to carry the VM image block type.
 	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		return true, err
@@ -222,8 +229,10 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 		return false, errors.Errorf("object %q is not a V86Image (type=%q)", objKey, typeID)
 	}
 
+	// Replace the VM image metadata while retaining its creation timestamp.
 	incoming := o.GetImage().CloneVT()
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		// Decode the current VM image and require its retained metadata.
 		current, unmarshalErr := block.UnmarshalBlock[*V86Image](ctx, bcs, func() block.Block {
 			return &V86Image{}
 		})
@@ -233,6 +242,8 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 		if current == nil {
 			return errors.New("v86 image block missing on object")
 		}
+
+		// Preserve the image's creation timestamp in the replacement block.
 		incoming.CreatedAt = current.GetCreatedAt()
 		bcs.SetBlock(incoming, true)
 		return nil

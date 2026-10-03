@@ -98,6 +98,8 @@ func TestEncryptedContentRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Prepare the encrypted envelope and signed channel Resource.
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 	content := &ChatMessageContent{Content: &ChatMessageContent_Ciphertext{Ciphertext: &ChatCiphertext{
@@ -105,6 +107,8 @@ func TestEncryptedContentRoundTrip(t *testing.T) {
 	}}}
 	request := &spacewave_chat_rpc.SendMessageRequest{TransactionId: "encrypted-send", Content: content}
 	resource := newChatResource(t, ws, tb.Engine, GeneralChannelKey, "alice")
+
+	// Persist the encrypted send before replacing the Resource.
 	accepted, err := resource.SendMessage(ctx, request)
 	if err != nil {
 		t.Fatal(err)
@@ -117,6 +121,8 @@ func TestEncryptedContentRoundTrip(t *testing.T) {
 	if err != nil || retry.GetMessageKey() != accepted.GetMessageKey() {
 		t.Fatalf("encrypted retry changed identity: %v", err)
 	}
+
+	// Reject changed ciphertext and plaintext substitution on retry.
 	conflict := request.CloneVT()
 	conflict.Content.GetCiphertext().Ciphertext = "different-envelope"
 	if _, err := resource.SendMessage(ctx, conflict); err == nil {
@@ -127,6 +133,8 @@ func TestEncryptedContentRoundTrip(t *testing.T) {
 	if _, err := resource.SendMessage(ctx, conflict); err == nil {
 		t.Fatal("accepted plaintext alongside encrypted content")
 	}
+
+	// Read and verify the exact retained encrypted envelope.
 	history, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -141,10 +149,14 @@ func TestEncryptedContentRoundTrip(t *testing.T) {
 	stream := newChatMessageStream(watchCtx)
 	done := make(chan error, 1)
 	go func() { done <- resource.WatchMessages(&spacewave_chat_rpc.WatchMessagesRequest{}, stream) }()
+
+	// Verify the watch sends the exact encrypted envelope.
 	batch := recvChatWatchValue(t, stream.sent)
 	if len(batch.GetMessages()) != 1 || !batch.GetMessages()[0].GetContent().EqualVT(content) || batch.GetMessages()[0].GetText() != "" {
 		t.Fatal("watch changed or substituted the encrypted envelope")
 	}
+
+	// Cancel the encrypted history watch and require termination.
 	cancel()
 	if err := <-done; err != context.Canceled {
 		t.Fatalf("watch cancellation: %v", err)

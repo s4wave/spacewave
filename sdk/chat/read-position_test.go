@@ -12,22 +12,29 @@ import (
 
 // TestReadPositionFollowsPersonAcrossDevices verifies shared attribution and monotonic receipts.
 func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
+	// Start an isolated World for shared-person read receipts.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Create a shared channel with two devices for Alice and one for Bob.
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 	alice := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-a", "alice")
 	otherAlice := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-b", "alice")
 	bob := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "bob-device", "bob")
+
+	// Send one message from each signing device.
 	for _, device := range []*ChatResource{alice, otherAlice, bob} {
 		if _, err := device.SendMessage(ctx, &chat_rpc.SendMessageRequest{Text: "A shared message"}); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Read and verify shared-person attribution with distinct device identities.
 	page, err := alice.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -52,14 +59,20 @@ func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
 	if err := updates.Wait(); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read Alice's retained receipt from a replacement device.
 	resumed := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device-c", "alice")
 	positions, err := resumed.GetReadPositions(ctx, &chat_rpc.GetReadPositionsRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the replacement device to recover the furthest shared receipt.
 	if len(positions.GetPositions()) != 1 || positions.GetPositions()["alice"].GetNextIndex() != 3 {
 		t.Fatal("replacement device did not recover the furthest shared read position")
 	}
+
+	// Verify an older receipt preserves both position and World revision.
 	seqno, err := tb.Engine.GetSeqno(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -72,6 +85,8 @@ func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
 	if err != nil || after != seqno {
 		t.Fatalf("unchanged receipt rewrote the World: %v", err)
 	}
+
+	// Advance Bob's receipt and verify each person's position stays independent.
 	if _, err := bob.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 1}); err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +97,8 @@ func TestReadPositionFollowsPersonAcrossDevices(t *testing.T) {
 	if positions.GetPositions()["alice"].GetNextIndex() != 3 || positions.GetPositions()["bob"].GetNextIndex() != 1 {
 		t.Fatal("one person's receipt changed another person's position")
 	}
+
+	// Require receipt advancement to stay within retained channel history.
 	if _, err := resumed.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 4}); err == nil {
 		t.Fatal("receipt advanced beyond the retained history")
 	}

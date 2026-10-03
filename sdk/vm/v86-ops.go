@@ -58,10 +58,12 @@ func (o *CreateVmV86Op) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the VM creation intent before changing World state.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Prepare the VM metadata with its creation timestamp.
 	objKey := o.GetObjectKey()
 	vm := &VmV86{
 		Name:      o.GetName(),
@@ -69,6 +71,7 @@ func (o *CreateVmV86Op) ApplyWorldOp(
 		CreatedAt: o.GetTimestamp(),
 	}
 
+	// Create the VM object with its initial metadata block.
 	var createdObject world.ObjectState
 	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(vm, true)
@@ -79,10 +82,12 @@ func (o *CreateVmV86Op) ApplyWorldOp(
 		return false, err
 	}
 
+	// Mark the new VM object with its block type.
 	if err := world_types.SetObjectType(ctx, ws, objKey, VmV86TypeID); err != nil {
 		return false, err
 	}
 
+	// Link the VM to its image and configured asset overrides.
 	edges := []struct {
 		pred   string
 		target string
@@ -170,6 +175,7 @@ func (o *SetV86ConfigOp) Validate() error {
 // resolveVmV86Object returns the object state for a VmV86 key, rejecting
 // missing objects and wrong types. sysErr reports transport-level failures.
 func resolveVmV86Object(ctx context.Context, ws world.WorldState, objKey string) (objState world.ObjectState, sysErr bool, err error) {
+	// Open the requested VM object and release failed lookups.
 	objState, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		world.ReleaseObjectState(objState)
@@ -180,6 +186,7 @@ func resolveVmV86Object(ctx context.Context, ws world.WorldState, objKey string)
 		return nil, false, errors.New("vm-v86 object not found")
 	}
 
+	// Require the opened object to carry the VM block type.
 	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
 		world.ReleaseObjectState(objState)
@@ -199,17 +206,21 @@ func (o *SetV86ConfigOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the VM configuration update.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Resolve the typed VM object for the configuration change.
 	objState, sysErr, err := resolveVmV86Object(ctx, ws, o.GetObjectKey())
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return sysErr, err
 	}
 
+	// Replace the VM's configuration in its retained block.
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		// Decode the VM block and require its retained metadata.
 		vm, unmarshalErr := block.UnmarshalBlock[*VmV86](ctx, bcs, func() block.Block {
 			return &VmV86{}
 		})
@@ -219,6 +230,8 @@ func (o *SetV86ConfigOp) ApplyWorldOp(
 		if vm == nil {
 			return errors.New("vm-v86 block missing on object")
 		}
+
+		// Retain the requested configuration in the VM block.
 		vm.Config = o.GetConfig()
 		bcs.SetBlock(vm, true)
 		return nil
@@ -270,17 +283,22 @@ var SetV86StateOpId = "vm/v86/set-state"
 // observations in VmV86.ObservedState. This helper remains for callers that
 // validate the pre-fenced graph.
 func IsValidV86StateTransition(src, dst VmState) bool {
+	// Reject transitions that leave the VM's state unchanged.
 	if src == dst {
 		return false
 	}
+
 	// any -> ERROR is always allowed.
 	if dst == VmState_VmState_ERROR {
 		return true
 	}
+
 	// ERROR -> STOPPED clears the error.
 	if src == VmState_VmState_ERROR {
 		return dst == VmState_VmState_STOPPED
 	}
+
+	// Select the allowed destination states for the VM's current state.
 	switch src {
 	case VmState_VmState_STOPPED:
 		return dst == VmState_VmState_STARTING
@@ -341,21 +359,25 @@ func (o *SetV86StateOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the desired VM state update.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
 
+	// Resolve the typed VM object for the desired state change.
 	objState, sysErr, err := resolveVmV86Object(ctx, ws, o.GetObjectKey())
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return sysErr, err
 	}
 
+	// Normalize the requested VM state before retaining it.
 	target, err := normalizeV86DesiredState(o.GetState())
 	if err != nil {
 		return false, err
 	}
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		// Decode the VM block and require its retained execution state.
 		vm, unmarshalErr := block.UnmarshalBlock[*VmV86](ctx, bcs, func() block.Block {
 			return &VmV86{}
 		})
@@ -366,6 +388,7 @@ func (o *SetV86StateOp) ApplyWorldOp(
 			return errors.New("vm-v86 block missing on object")
 		}
 
+		// Normalize the retained desired state and reject a redundant request.
 		current := vm.GetState()
 		if current == VmState_VmState_ERROR {
 			current = VmState_VmState_STOPPED
@@ -379,6 +402,7 @@ func (o *SetV86StateOp) ApplyWorldOp(
 			return errors.Errorf("v86 desired state already %s", target.String())
 		}
 
+		// Advance the VM's run generation and publish its new desired and observed states.
 		vm.State = target
 		vm.RunGeneration++
 		vm.ErrorMessage = ""

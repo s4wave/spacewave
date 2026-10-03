@@ -29,24 +29,33 @@ func (e *interruptedFenceEngine) Sync(ctx context.Context) (bool, error) {
 
 // TestChannelRetriesAfterInterruptedFence verifies uncertain writes remain retryable without duplication.
 func TestChannelRetriesAfterInterruptedFence(t *testing.T) {
+	// Start an isolated World for interrupted durability acknowledgments.
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Attach a channel Resource with an interrupted storage fence.
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 	engine := &interruptedFenceEngine{Engine: tb.Engine, failNext: true}
 	resource := newChatResource(t, ws, engine, GeneralChannelKey, "alice")
+
+	// Require the first send acknowledgment to fail at the storage fence.
 	request := &chat_rpc.SendMessageRequest{Text: "Retain this send", TransactionId: "one-send"}
 	if _, err := resource.SendMessage(ctx, request); err == nil {
 		t.Fatal("acknowledged a send before its durability fence succeeded")
 	}
+
+	// Retry the uncertain send after the fence interruption.
 	retry, err := resource.SendMessage(ctx, request)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read and verify that retry retained a single accepted message.
 	page, err := resource.ListMessages(ctx, &chat_rpc.ListMessagesRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -54,6 +63,8 @@ func TestChannelRetriesAfterInterruptedFence(t *testing.T) {
 	if len(page.GetMessages()) != 1 || page.GetMessages()[0].GetObjectKey() != retry.GetMessageKey() {
 		t.Fatal("retry duplicated or replaced the uncertain send")
 	}
+
+	// Interrupt a read-receipt acknowledgment and verify its retry retains the position.
 	engine.failNext = true
 	if _, err := resource.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 1}); err == nil {
 		t.Fatal("acknowledged a receipt before its durability fence succeeded")

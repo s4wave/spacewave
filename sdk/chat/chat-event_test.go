@@ -12,12 +12,15 @@ import (
 
 // TestProtocolEventHistory retains extension bodies without changing state or encryption policy.
 func TestProtocolEventHistory(t *testing.T) {
+	// Start an isolated World for extension event history.
 	ctx := t.Context()
 	tb, err := db_world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Create the channel and attach the accepted event author.
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	const key = "chat/channel/events"
 	if _, _, err := ws.ApplyWorldOp(ctx, &CreateChatChannelOp{ObjectKey: key, Name: "Events", Timestamp: timestamppb.Now()}, tb.Volume.GetPeerID()); err != nil {
@@ -25,6 +28,8 @@ func TestProtocolEventHistory(t *testing.T) {
 	}
 	channel := newChatResourceForPerson(t, ws, tb.Engine, key, "device", "person")
 	t.Cleanup(channel.Close)
+
+	// Send the extension event and verify its retry identity.
 	request := &chat_rpc.SendMessageRequest{TransactionId: "event", Content: &ChatMessageContent{Content: &ChatMessageContent_Event{Event: &ChatEvent{Type: "m.room.test", ContentJson: `{"nested":{"values":[1,true,null,"text"]}}`}}}}
 	sent, err := channel.SendMessage(ctx, request)
 	if err != nil {
@@ -61,10 +66,14 @@ func TestProtocolEventHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read and verify the stored extension event relationship.
 	relationRead, err := reader.GetMessage(ctx, &chat_rpc.GetMessageRequest{MessageKey: relationResult.GetMessageKey()})
 	if err != nil || !relationRead.GetMessage().GetContent().EqualVT(related.GetContent()) {
 		t.Fatalf("stored event relationship changed: %v %v", relationRead, err)
 	}
+
+	// Require an unavailable event relation target to fail.
 	invalidRelation := related.CloneVT()
 	invalidRelation.TransactionId = "invalid-relation"
 	invalidRelation.Content.GetEvent().Relation.TargetKey = key + "/message/missing"

@@ -177,9 +177,12 @@ func TestBuildSpacePlugin(t *testing.T) {
 	// Open the built manifest and check its identity and entrypoint.
 	err = manifest_world.AccessManifest(ctx, tb.Logger, tb.WorldState.AccessWorldState, output,
 		func(ctx context.Context, _ *bucket_lookup.Cursor, _ *block.Cursor, built *manifest.Manifest, dist, assets *unixfs.FSHandle) error {
+			// Require the built manifest to retain the requested plugin identity.
 			if built.GetMeta().GetManifestId() != "space-colors" {
 				t.Fatal("build returned a different manifest")
 			}
+
+			// Open and release the built manifest's entrypoint.
 			entry, err := dist.Lookup(ctx, built.GetEntrypoint())
 			if err != nil {
 				return err

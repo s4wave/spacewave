@@ -37,13 +37,18 @@ func (o *SendChatMessageOp) UnmarshalBlock(data []byte) error { return o.Unmarsh
 
 // ApplyWorldOp appends against the World history accepted before this operation.
 func (o *SendChatMessageOp) ApplyWorldOp(ctx context.Context, _ *logrus.Entry, ws world.WorldState, sender peer.ID) (bool, error) {
+	// Validate the replayed append intent.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
+
+	// Resolve the verified author for the replayed channel append.
 	resource, err := newReplayResource(ctx, o.GetObjectKey(), sender)
 	if err != nil {
 		return false, err
 	}
+
+	// Append the requested message inside the replay transaction.
 	_, err = resource.appendMessage(ctx, ws, o.GetRequest(), o.GetTimestamp())
 	return false, err
 }

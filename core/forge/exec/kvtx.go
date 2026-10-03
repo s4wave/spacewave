@@ -37,6 +37,7 @@ func NewKvtxHandler(
 	inputs forge_target.InputMap,
 	configData []byte,
 ) (Handler, error) {
+	// Decode and validate the key-value transaction configuration.
 	conf := &forge_lib_kvtx.Config{}
 	if len(configData) > 0 {
 		if err := conf.UnmarshalVT(configData); err != nil {
@@ -47,6 +48,7 @@ func NewKvtxHandler(
 		return nil, errors.Wrap(err, "validate kvtx config")
 	}
 
+	// Initialize the transaction controller with the execution inputs and handle.
 	ctrl := forge_lib_kvtx.NewController(le, nil, conf)
 	if err := ctrl.InitForgeExecController(ctx, inputs, handle); err != nil {
 		return nil, errors.Wrap(err, "init kvtx controller")

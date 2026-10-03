@@ -29,14 +29,19 @@ type unixfsReadConfig struct {
 // parseUnixfsReadConfig parses the config from JSON bytes.
 // Expected format: {"object_key": "...", "file_path": "..."}
 func parseUnixfsReadConfig(data []byte) (*unixfsReadConfig, error) {
+	// Require a nonempty filesystem read configuration.
 	if len(data) == 0 {
 		return nil, errors.New("empty config")
 	}
+
+	// Parse the filesystem read configuration as JSON.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse config json")
 	}
+
+	// Require the source World object key and retain its file path.
 	objKey := string(v.GetStringBytes("object_key"))
 	if objKey == "" {
 		return nil, errors.New("object_key is required")
@@ -56,6 +61,7 @@ type unixfsReadHandler struct {
 
 // Execute reads the file and sets the output.
 func (h *unixfsReadHandler) Execute(ctx context.Context) error {
+	// Select the configured filesystem object and file path.
 	objKey := h.conf.objectKey
 	filePath := h.conf.filePath
 
@@ -79,6 +85,7 @@ func (h *unixfsReadHandler) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "get source object root ref")
 	}
 
+	// Publish the source object's root and revision as an execution snapshot.
 	snapshot := &forge_value.WorldObjectSnapshot{
 		Key:     objKey,
 		RootRef: rootRef,
@@ -98,11 +105,13 @@ func readUnixfsFile(
 	objKey string,
 	filePath string,
 ) ([]byte, error) {
+	// Resolve the filesystem type of the configured World object.
 	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, objKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup fs type")
 	}
 
+	// Open a filesystem handle for the source object.
 	fsCursor := unixfs_world.NewFSCursor(le, ws, objKey, fsType, nil, false)
 	fsh, err := unixfs.NewFSHandle(fsCursor)
 	if err != nil {
@@ -125,11 +134,13 @@ func readUnixfsFile(
 		defer child.Release()
 	}
 
+	// Read the selected file's size before allocating its buffer.
 	size, err := target.GetSize(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get file size")
 	}
 
+	// Read the selected file's complete contents.
 	buf := make([]byte, size)
 	n, err := target.ReadAt(ctx, 0, buf)
 	if err != nil && err != io.EOF {

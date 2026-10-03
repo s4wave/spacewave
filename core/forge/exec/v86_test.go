@@ -22,8 +22,10 @@ import (
 )
 
 func TestV86RegistrationAndDefaultRegistryWithBus(t *testing.T) {
+	// Create the controller bus for VM handler registration.
 	b := bus_inmem.NewBus(nil)
 
+	// Register and verify the VM handler's config identity.
 	r := NewRegistry()
 	RegisterV86(r, b)
 	if V86ConfigID != "space-exec/v86" {
@@ -33,6 +35,7 @@ func TestV86RegistrationAndDefaultRegistryWithBus(t *testing.T) {
 		t.Fatal("v86 factory not found in registry")
 	}
 
+	// Require the default registry to include the VM handler.
 	defaults := NewDefaultRegistryWithBus(b)
 	if defaults.Lookup(V86ConfigID) == nil {
 		t.Fatal("v86 not in default registry with bus")
@@ -40,10 +43,12 @@ func TestV86RegistrationAndDefaultRegistryWithBus(t *testing.T) {
 }
 
 func TestV86ConfigValidation(t *testing.T) {
+	// Register the VM handler for configuration validation.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterV86(r, bus_inmem.NewBus(nil))
 
+	// Require malformed VM configurations to fail handler construction.
 	for _, tc := range []struct {
 		name      string
 		config    []byte
@@ -54,7 +59,10 @@ func TestV86ConfigValidation(t *testing.T) {
 		{name: "missing object key", config: []byte(`{"name":"vm"}`), wantError: "object_key is required"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Attempt VM handler construction with the selected invalid config.
 			_, err := r.CreateHandler(ctx, nil, nil, nil, nil, V86ConfigID, tc.config)
+
+			// Verify the VM configuration error identifies the expected failure.
 			if err == nil {
 				t.Fatal("expected config validation error")
 			}
@@ -64,6 +72,7 @@ func TestV86ConfigValidation(t *testing.T) {
 		})
 	}
 
+	// Construct and verify a VM handler with a complete object-key config.
 	handler, err := r.CreateHandler(ctx, nil, nil, nil, nil, V86ConfigID, []byte(`{"object_key":"vm/test"}`))
 	if err != nil {
 		t.Fatalf("valid config: %v", err)
@@ -74,15 +83,18 @@ func TestV86ConfigValidation(t *testing.T) {
 }
 
 func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
+	// Start the World testbed for streamed VM startup.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Create the VM object whose startup state will be retained.
 	vmKey := "vm/v86-exec-test"
 	createTestV86VM(t, ctx, tb.WorldState, vmKey)
 
+	// Prepare a persistent execution service with starting and running statuses.
 	b := bus_inmem.NewBus(nil)
 	execFake := &v86PersistentExecutionServiceFake{
 		ws:        tb.WorldState,
@@ -101,6 +113,7 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 		gotWS world.WorldState,
 		objectKey string,
 	) (srpc.Invoker, func(), error) {
+		// Verify the Resource factory receives the configured bus, World, and VM.
 		loadCalled = true
 		if gotBus != b {
 			t.Fatalf("invoker factory got unexpected bus")
@@ -111,6 +124,8 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 		if objectKey != vmKey {
 			t.Fatalf("invoker factory object key = %q", objectKey)
 		}
+
+		// Register the fake persistent execution service on the Resource mux.
 		mux := srpc.NewMux()
 		if err := s4wave_process.SRPCRegisterPersistentExecutionService(mux, execFake); err != nil {
 			return nil, nil, err
@@ -118,6 +133,7 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 		return mux, nil, nil
 	})
 
+	// Construct and execute the VM handler with a log-capturing handle.
 	handle := &pluginExecHandleStub{}
 	handler, err := factory(
 		ctx,
@@ -135,6 +151,7 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 	}
 	<-execFake.done
 
+	// Verify the handler loaded its Resource and persisted the starting observation.
 	if !loadCalled {
 		t.Fatal("invoker factory was not called")
 	}
@@ -147,6 +164,8 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 	if got := readTestV86ObservedState(t, ctx, tb.WorldState, vmKey); got != s4wave_vm.VmState_VmState_STARTING {
 		t.Fatalf("stored observed state after Execute = %s, want STARTING", got.String())
 	}
+
+	// Read and verify the VM's desired running state.
 	desired, _, err := readV86States(ctx, tb.WorldState, vmKey)
 	if err != nil {
 		t.Fatal(err)
@@ -154,6 +173,8 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 	if desired != s4wave_vm.VmState_VmState_RUNNING {
 		t.Fatalf("stored desired state after Execute = %s, want RUNNING", desired.String())
 	}
+
+	// Verify the execution stream emitted the expected startup states.
 	wantStates := []s4wave_process.ExecutionState{
 		s4wave_process.ExecutionState_ExecutionState_STARTING,
 		s4wave_process.ExecutionState_ExecutionState_RUNNING,
@@ -162,6 +183,7 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 		t.Fatalf("sent states = %v, want %v", execFake.sentStates, wantStates)
 	}
 
+	// Verify the execution handle retained the VM's startup log entries.
 	wantLogs := []PluginExecLog{
 		{Level: "info", Message: "v86 starting: " + vmKey},
 		{Level: "info", Message: "v86 running: " + vmKey},
@@ -188,10 +210,14 @@ func TestOpenV86ExecutionStreamCloseSend(t *testing.T) {
 		{name: "other error", closeSendErr: errors.New("close send failed"), wantError: true, wantCloseCall: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Prepare a client stream with the selected send-side close result.
 			stream := &v86ExecutionStreamFake{closeSendErr: tc.closeSendErr}
 			client := &v86ExecutionClientFake{stream: stream}
 
+			// Open the VM execution stream through the client.
 			got, err := openV86ExecutionStream(context.Background(), client)
+
+			// Verify the stream result and cleanup match the send-side close contract.
 			if tc.wantError {
 				if err == nil || err.Error() != "close send failed" {
 					t.Fatalf("openV86ExecutionStream error = %v, want close send failed", err)
@@ -287,6 +313,7 @@ func (f *v86PersistentExecutionServiceFake) Execute(
 	req *s4wave_process.ExecuteRequest,
 	stream s4wave_process.SRPCPersistentExecutionService_ExecuteStream,
 ) error {
+	// Record the VM's observed state and release the execution waiter on exit.
 	if f.done != nil {
 		defer close(f.done)
 	}
@@ -297,6 +324,7 @@ func (f *v86PersistentExecutionServiceFake) Execute(
 	}
 	f.stateAtExecute = observed
 
+	// Stream the configured persistent execution states.
 	for _, state := range f.states {
 		f.sentStates = append(f.sentStates, state)
 		if err := stream.Send(&s4wave_process.ExecuteStatus{State: state}); err != nil {
@@ -307,6 +335,7 @@ func (f *v86PersistentExecutionServiceFake) Execute(
 }
 
 func createTestV86VM(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
+	// Create the VM image and attribute fixture errors to the calling test.
 	t.Helper()
 	imageKey := objectKey + "/image"
 	_, _, err := ws.ApplyWorldOp(
@@ -317,6 +346,8 @@ func createTestV86VM(t *testing.T, ctx context.Context, ws world.WorldState, obj
 	if err != nil {
 		t.Fatalf("CreateV86Image: %v", err)
 	}
+
+	// Create the VM fixture against its retained image object.
 	_, _, err = ws.ApplyWorldOp(
 		ctx,
 		s4wave_vm.NewCreateVmV86Op(objectKey, "test VM", imageKey, time.Unix(1, 0)),
@@ -337,6 +368,7 @@ func readTestV86ObservedState(t *testing.T, ctx context.Context, ws world.WorldS
 }
 
 func readV86States(ctx context.Context, ws world.WorldState, objectKey string) (s4wave_vm.VmState, s4wave_vm.VmState, error) {
+	// Open the VM object containing desired and observed execution states.
 	obj, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -346,8 +378,10 @@ func readV86States(ctx context.Context, ws world.WorldState, objectKey string) (
 		return 0, 0, errors.Errorf("VM %q not found", objectKey)
 	}
 
+	// Read the VM's desired and observed states from its block.
 	var desired, observed s4wave_vm.VmState
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Decode the VM block and require its retained state.
 		vm, err := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
 			return &s4wave_vm.VmV86{}
 		})
@@ -357,6 +391,8 @@ func readV86States(ctx context.Context, ws world.WorldState, objectKey string) (
 		if vm == nil {
 			return errors.Errorf("VM %q block missing", objectKey)
 		}
+
+		// Capture the VM's desired and observed states for the caller.
 		desired = vm.GetState()
 		observed = vm.GetObservedState()
 		return nil

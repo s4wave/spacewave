@@ -60,6 +60,7 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 	ws world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Validate the channel creation intent before changing World state.
 	if err := o.Validate(); err != nil {
 		return false, err
 	}
@@ -74,6 +75,7 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 		}
 	}
 
+	// Prepare the channel metadata with an initialized thread index.
 	channel := &ChatChannel{
 		Name:                      o.GetName(),
 		Topic:                     o.GetTopic(),
@@ -83,6 +85,7 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 		ThreadIndexedMessageCount: new(uint64),
 	}
 
+	// Create the channel object with its initial metadata block.
 	{
 		createdObject, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 			bcs.SetBlock(channel, true)
@@ -94,10 +97,12 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 		}
 	}
 
+	// Mark the channel object with its block type.
 	if err := world_types.SetObjectType(ctx, ws, objKey, ChatChannelTypeID); err != nil {
 		return false, err
 	}
 
+	// Append the initial state events with the channel creation author.
 	for _, state := range o.GetInitialState() {
 		request := &spacewave_chat_rpc.SendMessageRequest{
 			Content: &ChatMessageContent{Content: &ChatMessageContent_StateChange{StateChange: state}},

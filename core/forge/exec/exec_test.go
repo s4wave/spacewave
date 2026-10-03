@@ -8,6 +8,7 @@ import (
 )
 
 func TestNoopHandler(t *testing.T) {
+	// Register the noop handler in an isolated execution registry.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterNoop(r)
@@ -41,9 +42,11 @@ func TestRegistryUnknownID(t *testing.T) {
 }
 
 func TestKvtxHandlerRegistration(t *testing.T) {
+	// Register the key-value transaction handler in an isolated registry.
 	r := NewRegistry()
 	RegisterKvtx(r)
 
+	// Verify the registered transaction factory and its config identity.
 	factory := r.Lookup(KvtxConfigID)
 	if factory == nil {
 		t.Fatal("kvtx factory not found in registry")
@@ -54,9 +57,11 @@ func TestKvtxHandlerRegistration(t *testing.T) {
 }
 
 func TestGitCloneHandlerRegistration(t *testing.T) {
+	// Register the Git clone handler in an isolated registry.
 	r := NewRegistry()
 	RegisterGitClone(r)
 
+	// Verify the registered Git clone factory and its config identity.
 	factory := r.Lookup(GitCloneConfigID)
 	if factory == nil {
 		t.Fatal("git clone factory not found in registry")
@@ -70,6 +75,7 @@ func TestGitCloneHandlerRegistration(t *testing.T) {
 }
 
 func TestGitCloneInvalidConfig(t *testing.T) {
+	// Prepare the Git clone registry for invalid configuration checks.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterGitClone(r)
@@ -110,6 +116,7 @@ func TestResolveAuthWithoutBus(t *testing.T) {
 }
 
 func TestDefaultRegistryAndBridgeFactories(t *testing.T) {
+	// Construct the built-in execution registry.
 	r := NewDefaultRegistry()
 
 	// All built-in handlers should be registered.
@@ -133,6 +140,7 @@ func TestDefaultRegistryAndBridgeFactories(t *testing.T) {
 		t.Fatalf("expected %d bridge factories (one per handler), got %d", len(registeredIDs), len(factories))
 	}
 
+	// Verify every registered handler has a bridge factory.
 	ids := map[string]bool{}
 	for _, f := range factories {
 		ids[f.GetConfigID()] = true
@@ -145,6 +153,7 @@ func TestDefaultRegistryAndBridgeFactories(t *testing.T) {
 }
 
 func TestBridgeFactoryConstruct(t *testing.T) {
+	// Construct bridge factories for the default execution registry.
 	r := NewDefaultRegistry()
 	factories := BridgeFactories(r)
 
@@ -160,6 +169,7 @@ func TestBridgeFactoryConstruct(t *testing.T) {
 		t.Fatal("noop bridge factory not found")
 	}
 
+	// Construct and verify the noop bridge's configuration.
 	conf := noopBridge.ConstructConfig()
 	if conf == nil {
 		t.Fatal("ConstructConfig returned nil")
@@ -189,6 +199,7 @@ func TestBridgeFactoryConstruct(t *testing.T) {
 }
 
 func TestSpaceExecConfigRoundTrip(t *testing.T) {
+	// Construct and verify the execution config's handler identity.
 	sec := NewSpaceExecConfig("test/handler")
 	if sec.GetConfigID() != "test/handler" {
 		t.Fatalf("config ID: %s", sec.GetConfigID())
@@ -240,9 +251,11 @@ func TestSpaceExecConfigRoundTrip(t *testing.T) {
 }
 
 func TestUnixfsReadRegistration(t *testing.T) {
+	// Register the filesystem read handler in an isolated registry.
 	r := NewRegistry()
 	RegisterUnixfsRead(r)
 
+	// Verify the registered filesystem read factory and its config identity.
 	factory := r.Lookup(UnixfsReadConfigID)
 	if factory == nil {
 		t.Fatal("unixfs-read factory not found in registry")
@@ -253,6 +266,7 @@ func TestUnixfsReadRegistration(t *testing.T) {
 }
 
 func TestUnixfsReadEmptyConfig(t *testing.T) {
+	// Prepare the filesystem read registry for empty config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterUnixfsRead(r)
@@ -265,10 +279,12 @@ func TestUnixfsReadEmptyConfig(t *testing.T) {
 }
 
 func TestUnixfsReadInvalidJSON(t *testing.T) {
+	// Prepare the filesystem read registry for malformed config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterUnixfsRead(r)
 
+	// Require malformed filesystem read JSON to fail handler creation.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, UnixfsReadConfigID, []byte("not json"))
 	if err == nil {
 		t.Fatal("expected error for invalid json")
@@ -276,10 +292,12 @@ func TestUnixfsReadInvalidJSON(t *testing.T) {
 }
 
 func TestUnixfsReadMissingObjectKey(t *testing.T) {
+	// Prepare the filesystem read registry for missing object-key rejection.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterUnixfsRead(r)
 
+	// Require a filesystem read config to identify a source World object.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, UnixfsReadConfigID, []byte(`{"file_path":"test.txt"}`))
 	if err == nil {
 		t.Fatal("expected error for missing object_key")
@@ -287,6 +305,7 @@ func TestUnixfsReadMissingObjectKey(t *testing.T) {
 }
 
 func TestUnixfsReadValidConfig(t *testing.T) {
+	// Prepare the filesystem read registry for valid handler construction.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterUnixfsRead(r)
@@ -302,9 +321,11 @@ func TestUnixfsReadValidConfig(t *testing.T) {
 }
 
 func TestFileHashRegistration(t *testing.T) {
+	// Register the file hash handler in an isolated registry.
 	r := NewRegistry()
 	RegisterFileHash(r)
 
+	// Verify the registered file hash factory and its config identity.
 	factory := r.Lookup(FileHashConfigID)
 	if factory == nil {
 		t.Fatal("file-hash factory not found in registry")
@@ -315,10 +336,12 @@ func TestFileHashRegistration(t *testing.T) {
 }
 
 func TestFileHashEmptyConfig(t *testing.T) {
+	// Prepare the file hash registry for empty config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterFileHash(r)
 
+	// Require file hash handler construction to reject empty config.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, FileHashConfigID, nil)
 	if err == nil {
 		t.Fatal("expected error for empty config")
@@ -326,10 +349,12 @@ func TestFileHashEmptyConfig(t *testing.T) {
 }
 
 func TestFileHashValidConfig(t *testing.T) {
+	// Prepare the file hash registry for valid handler construction.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterFileHash(r)
 
+	// Construct and verify a file hash handler from a complete source config.
 	handler, err := r.CreateHandler(ctx, nil, nil, nil, nil, FileHashConfigID, []byte(`{"object_key":"fs/data","file_path":"doc.md"}`))
 	if err != nil {
 		t.Fatalf("CreateHandler: %v", err)
@@ -340,9 +365,11 @@ func TestFileHashValidConfig(t *testing.T) {
 }
 
 func TestExportZipRegistration(t *testing.T) {
+	// Register the ZIP export handler in an isolated registry.
 	r := NewRegistry()
 	RegisterExportZip(r)
 
+	// Verify the registered ZIP export factory and its config identity.
 	factory := r.Lookup(ExportZipConfigID)
 	if factory == nil {
 		t.Fatal("export-zip factory not found in registry")
@@ -353,10 +380,12 @@ func TestExportZipRegistration(t *testing.T) {
 }
 
 func TestExportZipEmptyConfig(t *testing.T) {
+	// Prepare the ZIP export registry for empty config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterExportZip(r)
 
+	// Require ZIP export handler construction to reject empty config.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, nil)
 	if err == nil {
 		t.Fatal("expected error for empty config")
@@ -364,10 +393,12 @@ func TestExportZipEmptyConfig(t *testing.T) {
 }
 
 func TestExportZipInvalidJSON(t *testing.T) {
+	// Prepare the ZIP export registry for malformed config rejection.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterExportZip(r)
 
+	// Require malformed ZIP export JSON to fail handler creation.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, []byte("not json"))
 	if err == nil {
 		t.Fatal("expected error for invalid json")
@@ -375,10 +406,12 @@ func TestExportZipInvalidJSON(t *testing.T) {
 }
 
 func TestExportZipMissingObjectKey(t *testing.T) {
+	// Prepare the ZIP export registry for missing object-key rejection.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterExportZip(r)
 
+	// Require ZIP export config to identify a source World object.
 	_, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, []byte(`{}`))
 	if err == nil {
 		t.Fatal("expected error for missing object_key")
@@ -386,10 +419,12 @@ func TestExportZipMissingObjectKey(t *testing.T) {
 }
 
 func TestExportZipValidConfig(t *testing.T) {
+	// Prepare the ZIP export registry for valid handler construction.
 	ctx := context.Background()
 	r := NewRegistry()
 	RegisterExportZip(r)
 
+	// Construct and verify a ZIP export handler from a complete source config.
 	handler, err := r.CreateHandler(ctx, nil, nil, nil, nil, ExportZipConfigID, []byte(`{"object_key":"fs/test"}`))
 	if err != nil {
 		t.Fatalf("CreateHandler: %v", err)
@@ -420,6 +455,7 @@ func TestNoopBridgeFullLifecycle(t *testing.T) {
 	ctx := context.Background()
 	r := NewDefaultRegistry()
 
+	// Construct and execute the noop handler through its bridge.
 	handler, err := r.CreateHandler(ctx, nil, nil, nil, nil, NoopConfigID, nil)
 	if err != nil {
 		t.Fatalf("CreateHandler: %v", err)

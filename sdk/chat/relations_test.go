@@ -18,6 +18,8 @@ func TestChannelRelationsRetainReplayAndAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
+
+	// Create the encrypted channel and attach its accepted author.
 	ws := world.NewEngineWorldState(tb.Engine, true)
 	const channelKey = "chat/channel/relations"
 	const algorithm = "m.megolm.v1.aes-sha2"
@@ -26,6 +28,8 @@ func TestChannelRelationsRetainReplayAndAuthority(t *testing.T) {
 	}
 	channel := newChatResourceForPerson(t, ws, tb.Engine, channelKey, "alice-device", "alice")
 	t.Cleanup(channel.Close)
+
+	// Send the encrypted root message for relationship targets.
 	rootContent := &ChatMessageContent{Content: &ChatMessageContent_Ciphertext{Ciphertext: &ChatCiphertext{Algorithm: algorithm, Ciphertext: "opaque", SenderKey: "sender", SessionId: "session"}}}
 	root, err := channel.SendMessage(ctx, &chat_rpc.SendMessageRequest{TransactionId: "root", Content: rootContent})
 	if err != nil {
@@ -41,19 +45,26 @@ func TestChannelRelationsRetainReplayAndAuthority(t *testing.T) {
 		content *ChatMessageContent
 	}{{"thread", thread}, {"annotation", annotation}} {
 		t.Run(item.name, func(t *testing.T) {
+			// Prepare and send the selected relationship content.
 			request := &chat_rpc.SendMessageRequest{TransactionId: item.name, Content: item.content}
 			sent, err := channel.SendMessage(ctx, request)
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Verify a repeated relationship send preserves its identity.
 			retry, err := channel.SendMessage(ctx, request)
 			if err != nil || retry.GetMessageKey() != sent.GetMessageKey() {
 				t.Fatalf("retry changed event: %v %v", retry, err)
 			}
+
+			// Verify stored relationship content and author attribution.
 			read, err := channel.GetMessage(ctx, &chat_rpc.GetMessageRequest{MessageKey: sent.GetMessageKey()})
 			if err != nil || !read.GetMessage().GetContent().EqualVT(item.content) || read.GetMessage().GetPersonId() != "alice" || read.GetMessage().GetText() != "" {
 				t.Fatalf("retained content or attribution changed: %v %v", read, err)
 			}
+
+			// Require changed relationship metadata to conflict with its accepted transaction.
 			conflict := request.CloneVT()
 			if value := conflict.GetContent().GetAnnotation(); value != nil {
 				value.Key = "👎"

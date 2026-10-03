@@ -37,14 +37,19 @@ type v86InvokerFactory func(
 // parseV86Config parses the config from JSON bytes.
 // Expected format: {"object_key": "..."}.
 func parseV86Config(data []byte) (*v86Config, error) {
+	// Require a nonempty VM execution configuration.
 	if len(data) == 0 {
 		return nil, errors.New("empty config")
 	}
+
+	// Parse the VM execution configuration as JSON.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse config json")
 	}
+
+	// Require the VM World object key.
 	objKey := string(v.GetStringBytes("object_key"))
 	if objKey == "" {
 		return nil, errors.New("object_key is required")
@@ -65,6 +70,7 @@ type v86Handler struct {
 // Execute requests desired RUNNING and waits for the v86 execution stream to
 // report observed RUNNING or a terminal failure.
 func (h *v86Handler) Execute(ctx context.Context) error {
+	// Require the bus, World state, and execution handle for VM startup.
 	if h.b == nil {
 		return errors.New("v86 exec requires bus")
 	}
@@ -75,6 +81,7 @@ func (h *v86Handler) Execute(ctx context.Context) error {
 		return errors.New("v86 exec requires execution handle")
 	}
 
+	// Validate the VM object type and persist its starting state.
 	if err := world_types.CheckObjectType(ctx, h.ws, h.conf.objectKey, s4wave_vm.VmV86TypeID); err != nil {
 		return err
 	}
@@ -82,6 +89,7 @@ func (h *v86Handler) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "set v86 state")
 	}
 
+	// Load the VM Resource and retain its cleanup for the execution.
 	inv, cleanup, err := h.loadInvoker(ctx, h.le, h.b, h.ws, h.conf.objectKey)
 	if err != nil {
 		return errors.Wrap(err, "load v86 resource")
@@ -90,6 +98,7 @@ func (h *v86Handler) Execute(ctx context.Context) error {
 		defer cleanup()
 	}
 
+	// Open the VM's persistent execution status stream.
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))
 	strm, err := openV86ExecutionStream(ctx, client)
 	if err != nil {
@@ -97,6 +106,7 @@ func (h *v86Handler) Execute(ctx context.Context) error {
 	}
 	defer strm.Close()
 
+	// Wait for the VM stream to report running or a terminal failure.
 	for {
 		status := new(s4wave_process.ExecuteStatus)
 		err := strm.MsgRecv(status)

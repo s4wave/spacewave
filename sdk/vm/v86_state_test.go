@@ -62,6 +62,7 @@ func TestIsValidV86StateTransition(t *testing.T) {
 }
 
 func TestV86CleanIDs(t *testing.T) {
+	// Prepare the expected VM type and operation identifiers.
 	cases := []struct {
 		name string
 		got  string
@@ -75,12 +76,15 @@ func TestV86CleanIDs(t *testing.T) {
 		{name: "create image op", got: CreateV86ImageOpId, want: "vm/image/v86/create"},
 		{name: "set image metadata op", got: SetV86ImageMetadataOpId, want: "vm/image/v86/set-metadata"},
 	}
+
+	// Verify each VM identifier matches its public value.
 	for _, tc := range cases {
 		if tc.got != tc.want {
 			t.Fatalf("%s ID = %q, want %q", tc.name, tc.got, tc.want)
 		}
 	}
 
+	// Verify VM blocks and operations expose the expected type identifiers.
 	if got := (&VmV86{}).GetBlockTypeId(); got != VmV86TypeID {
 		t.Fatalf("VmV86 block type = %q, want %q", got, VmV86TypeID)
 	}

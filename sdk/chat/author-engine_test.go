@@ -28,10 +28,15 @@ func newChatResource(t *testing.T, ws world.WorldState, engine world.Engine, obj
 
 // newChatResourceForPerson constructs a test participant with an accepted entity.
 func newChatResourceForPerson(t *testing.T, ws world.WorldState, engine world.Engine, objectKey, device, person string) *ChatResource {
+	// Attribute author fixture errors to the calling test.
 	t.Helper()
+
+	// Bind the test participant to a World engine with an accepted author.
 	if engine != nil {
 		engine = &chatAuthorEngine{Engine: engine, device: peer.ID(device), person: person}
 	}
+
+	// Construct the channel Resource through its production author binding.
 	resource, err := NewChatResource(t.Context(), ws, engine, objectKey)
 	if err != nil {
 		t.Fatal(err)

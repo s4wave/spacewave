@@ -127,10 +127,14 @@ func TestChatStateHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(wtb.Release)
+
+	// Bind channel initialization to the testbed's accepted author.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	timestamp := timestamppb.Now()
 	sender := wtb.Volume.GetPeerID()
 	ctx = world.WithOperationPerson(ctx, sender.String())
+
+	// Create the channel with its initial creation and topic state.
 	_, _, err = ws.ApplyWorldOp(ctx, &CreateChatChannelOp{
 		ObjectKey: GeneralChannelKey,
 		Name:      "General",
@@ -143,11 +147,15 @@ func TestChatStateHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the history produced by channel initialization.
 	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, sender.String())
 	history, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify initial state messages retain creation time, author, and summaries.
 	if len(history.GetMessages()) != 2 {
 		t.Fatalf("initial history = %d messages, want 2", len(history.GetMessages()))
 	}
@@ -174,6 +182,8 @@ func TestChatStateHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Replace the topic with a fresh unkeyed state write.
 	thirdRequest := request.CloneVT()
 	thirdRequest.TransactionId = ""
 	thirdRequest.Content.GetStateChange().ContentJson = `{"topic":"Third"}`
@@ -181,6 +191,8 @@ func TestChatStateHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require unchanged state and old transaction retries to retain their identities.
 	repeated, err := resource.SendMessage(ctx, thirdRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -202,22 +214,30 @@ func TestChatStateHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the new attachment reads the latest retained state.
 	if len(current.GetMessages()) != 2 {
 		t.Fatalf("current state = %d messages, want 2", len(current.GetMessages()))
 	}
 	if current.GetMessages()[1].GetObjectKey() != third.GetMessageKey() {
 		t.Fatal("old retry overwrote current state")
 	}
+
+	// Read the native metadata after the topic replacements.
 	info, err := reader.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify current topic metadata and retained history extent.
 	if info.GetTopic() != "Third" {
 		t.Fatalf("native topic = %q, want Third", info.GetTopic())
 	}
 	if info.GetMessageCount() != 4 {
 		t.Fatalf("history count = %d, want 4", info.GetMessageCount())
 	}
+
+	// Read and verify the original topic event's immutable content.
 	old, err := reader.GetMessage(ctx, &spacewave_chat_rpc.GetMessageRequest{MessageKey: history.GetMessages()[1].GetObjectKey()})
 	if err != nil {
 		t.Fatal(err)
@@ -251,6 +271,8 @@ func TestChatStateEncryptionAndCreationRollback(t *testing.T) {
 	t.Cleanup(wtb.Release)
 	ctx = world.WithOperationPerson(ctx, wtb.Volume.GetPeerID().String())
 	ws := world.NewEngineWorldState(wtb.Engine, true)
+
+	// Attempt channel creation with invalid initial topic metadata.
 	operation := &CreateChatChannelOp{
 		ObjectKey: GeneralChannelKey,
 		Timestamp: timestamppb.Now(),
@@ -262,6 +284,8 @@ func TestChatStateEncryptionAndCreationRollback(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, operation, wtb.Volume.GetPeerID()); err == nil {
 		t.Fatal("accepted invalid initial metadata")
 	}
+
+	// Verify rejected initialization leaves no partial channel object.
 	object, found, err := ws.GetObject(ctx, GeneralChannelKey)
 	world.ReleaseObjectState(object)
 	if err != nil {
@@ -276,18 +300,24 @@ func TestChatStateEncryptionAndCreationRollback(t *testing.T) {
 	if _, _, err := ws.ApplyWorldOp(ctx, operation, wtb.Volume.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Send a plaintext message before enabling channel encryption.
 	resource := newChatResource(t, ws, wtb.Engine, GeneralChannelKey, wtb.Volume.GetPeerID().String())
 	plaintext := &spacewave_chat_rpc.SendMessageRequest{Text: "accepted before encryption", TransactionId: "plaintext"}
 	accepted, err := resource.SendMessage(ctx, plaintext)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Enable the channel's native encryption policy.
 	encryption := &spacewave_chat_rpc.SendMessageRequest{Content: &ChatMessageContent{Content: &ChatMessageContent_StateChange{
 		StateChange: &ChatStateChange{Type: "m.room.encryption", ContentJson: `{"algorithm":"m.megolm.v1.aes-sha2"}`},
 	}}}
 	if _, err := resource.SendMessage(ctx, encryption); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify prior plaintext retries survive while fresh plaintext is rejected.
 	retried, err := resource.SendMessage(ctx, plaintext)
 	if err != nil {
 		t.Fatal(err)
@@ -298,12 +328,16 @@ func TestChatStateEncryptionAndCreationRollback(t *testing.T) {
 	if _, err := resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "unprotected"}); err == nil {
 		t.Fatal("encryption state did not enforce native body policy")
 	}
+
+	// Write public topic state after encryption is enabled.
 	request := &spacewave_chat_rpc.SendMessageRequest{Content: &ChatMessageContent{Content: &ChatMessageContent_StateChange{
 		StateChange: &ChatStateChange{Type: "m.room.topic", ContentJson: `{"topic":"Public metadata"}`},
 	}}}
 	if _, err := resource.SendMessage(ctx, request); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require encryption algorithm and creation-state replacements to fail.
 	request.Content.GetStateChange().Type = "m.room.encryption"
 	request.Content.GetStateChange().ContentJson = `{"algorithm":"other"}`
 	if _, err := resource.SendMessage(ctx, request); err == nil {

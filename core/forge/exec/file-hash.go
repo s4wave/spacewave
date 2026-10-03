@@ -26,14 +26,19 @@ type fileHashConfig struct {
 // parseFileHashConfig parses the config from JSON bytes.
 // Expected format: {"object_key": "...", "file_path": "..."}
 func parseFileHashConfig(data []byte) (*fileHashConfig, error) {
+	// Require a nonempty file hash configuration.
 	if len(data) == 0 {
 		return nil, errors.New("empty config")
 	}
+
+	// Parse the file hash configuration as JSON.
 	var p fastjson.Parser
 	v, err := p.ParseBytes(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse config json")
 	}
+
+	// Require the source World object key and retain its file path.
 	objKey := string(v.GetStringBytes("object_key"))
 	if objKey == "" {
 		return nil, errors.New("object_key is required")
@@ -53,11 +58,13 @@ type fileHashHandler struct {
 
 // Execute reads the file, computes the hash, and logs the result.
 func (h *fileHashHandler) Execute(ctx context.Context) error {
+	// Read the configured filesystem file for hashing.
 	data, err := readUnixfsFile(ctx, h.le, h.ws, h.conf.objectKey, h.conf.filePath)
 	if err != nil {
 		return err
 	}
 
+	// Compute the file's BLAKE3 digest for the execution log.
 	hasher := blake3.New()
 	_, _ = hasher.Write(data)
 	digest := hex.EncodeToString(hasher.Sum(nil))
