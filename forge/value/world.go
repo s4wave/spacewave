@@ -14,24 +14,29 @@ import (
 //
 // ws: can be nil, if unset, type and parents will be empty.
 func NewWorldObjectSnapshot(ctx context.Context, obj world.ObjectState, ws world.WorldState) (*WorldObjectSnapshot, error) {
+	// Read the object root reference and revision for the snapshot.
 	objRef, rev, err := obj.GetRootRef(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Capture the object identity and persisted root in the snapshot.
 	snap := &WorldObjectSnapshot{
 		Key:     obj.GetKey(),
 		RootRef: objRef,
 		Rev:     rev,
 	}
 
+	// Include the object type and parent when the World state is available.
 	if ws != nil {
+		// Resolve the snapshot object type from the World state.
 		objType, err := world_types.GetObjectType(ctx, ws, snap.Key)
 		if err != nil {
 			return nil, err
 		}
 		snap.ObjectType = objType
 
+		// Resolve the snapshot object parent from the World state.
 		objParent, err := world_parent.GetObjectParent(ctx, ws, snap.Key)
 		if err != nil {
 			return nil, err

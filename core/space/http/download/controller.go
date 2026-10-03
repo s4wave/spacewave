@@ -72,6 +72,7 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // ServeHTTP handles file download requests.
 // /fs/u/{idx}/so/{soId}/...
 func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Bind the download request to the controller and its trace context.
 	le := c.GetLogger()
 	b := c.GetBus()
 	ctx := r.Context()
@@ -81,12 +82,14 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer task.End()
 	}
 
+	// Parse the session, shared object, and projected file path from the URL.
 	req, err := space_http_downloadurl.Parse(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid download URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Resolve the requested space for the lifetime of the download.
 	resolved, cleanup, err := space_resolve.ResolveSpace(ctx, b, req.SessionIdx, req.SharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to resolve space for download")
@@ -95,8 +98,8 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cleanup()
 
+	// Open the projected filesystem through the resolved space engine.
 	ws := world.NewEngineWorldState(resolved.Engine, false)
-
 	fsh, err := space_unixfs.BuildFSHandle(le, ws, req.SessionIdx, req.SharedObjectID)
 	if err != nil {
 		le.WithError(err).Warn("failed to create fs handle")
@@ -112,6 +115,7 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fileCtx, fileTask = trace.NewTask(ctx, "core/space-http-download/serve/file-server")
 		defer fileTask.End()
 	}
+
 	// Build an http.FileSystem from the FSHandle.
 	hfs := unixfs_access_http.NewFileSystem(fileCtx, fsh, "", "")
 

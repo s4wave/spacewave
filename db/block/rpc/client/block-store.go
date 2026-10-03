@@ -51,17 +51,21 @@ func (v *BlockStore) GetHashType() hash.HashType {
 func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	// Fetch and cache the remote feature set once for this store lifetime.
 	v.featuresOnce.Do(func() {
+		// Retrieve the remote store capabilities before caching them.
 		resp, err := v.client.GetSupportedFeatures(context.Background(), &block_rpc.GetSupportedFeaturesRequest{})
 		if err != nil {
 			v.supportedFeatures = block.StoreFeature_STORE_FEATURE_UNKNOWN
 			return
 		}
+
+		// Remove write capabilities from the read-only store view.
 		features := resp.GetFeatures()
 		if v.readOnly {
 			features &^= block.StoreFeatureNativeBatchPut
 		}
 		v.supportedFeatures = features
 	})
+
 	return v.supportedFeatures
 }
 
@@ -102,17 +106,22 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	if v.readOnly {
 		return block_store.ErrReadOnly
 	}
+
+	// Prepare the bounded request buffer and its submission closure.
 	// Leave room for the Resource envelope around encoded block messages.
 	const batchBytes = 4 << 20
 	req := &block_rpc.PutBlockBatchRequest{}
 	size := 0
 	flush := func() error {
+		// Skip empty requests and stop canceled batch writes.
 		if len(req.Entries) == 0 {
 			return nil
 		}
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+
+		// Submit the accumulated entries and propagate remote failures.
 		resp, err := v.client.PutBlockBatch(ctx, req)
 		if err != nil {
 			return err
@@ -120,20 +129,30 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		if errStr := resp.GetError(); errStr != "" {
 			return errors.New(errStr)
 		}
+
+		// Clear the committed request before accumulating the next batch.
 		req = &block_rpc.PutBlockBatchRequest{}
 		size = 0
+
 		return nil
 	}
+
+	// Encode entries in order and submit batches within the packet limit.
 	for _, entry := range entries {
+		// Stop building the next remote entry when the batch is canceled.
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+
+		// Preserve the block data, outgoing references, and tombstone on the wire.
 		wireEntry := &block_rpc.PutBlockBatchEntry{
 			Ref:       entry.Ref,
 			Data:      entry.Data,
 			Refs:      entry.Refs,
 			Tombstone: entry.Tombstone,
 		}
+
+		// Flush the preceding batch when the next entry exceeds the packet limit.
 		// Ten bytes cover the repeated field's tag and length prefix.
 		entrySize := wireEntry.SizeVT() + 10
 		if size+entrySize > batchBytes {
@@ -141,9 +160,12 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 				return err
 			}
 		}
+
+		// Accumulate the encoded entry in the current request.
 		req.Entries = append(req.Entries, wireEntry)
 		size += entrySize
 	}
+
 	return flush()
 }
 
@@ -165,6 +187,7 @@ func (v *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte,
 
 // GetStoredBlock gets a block and its outgoing refs.
 func (v *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Read the remote block with its outgoing references.
 	resp, err := v.client.GetBlock(ctx, &block_rpc.GetBlockRequest{
 		Ref:      ref.Clone(),
 		WithRefs: true,
@@ -172,12 +195,15 @@ func (v *BlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*
 	if err != nil {
 		return nil, err
 	}
+
+	// Propagate the remote store failure or absence before constructing the block.
 	if errStr := resp.GetError(); errStr != "" {
 		return nil, errors.New(errStr)
 	}
 	if !resp.GetExists() {
 		return nil, nil
 	}
+
 	return &block.StoredBlock{
 		Data:      resp.GetData(),
 		Refs:      resp.GetRefs(),
@@ -203,17 +229,23 @@ func (v *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (b
 
 // GetBlockExistsBatch requests a remote batch existence check.
 func (v *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Query the remote store for every requested block reference.
 	resp, err := v.client.GetBlockExistsBatch(ctx, &block_rpc.GetBlockExistsBatchRequest{Refs: refs})
 	if err != nil {
 		return nil, err
 	}
+
+	// Propagate remote failures before validating the existence results.
 	if errStr := resp.GetError(); errStr != "" {
 		return nil, errors.New(errStr)
 	}
+
+	// Require one existence result for each requested reference.
 	found := resp.GetExists()
 	if len(found) != len(refs) {
 		return nil, errors.New("block store returned an invalid existence result count")
 	}
+
 	return found, nil
 }
 
@@ -232,18 +264,24 @@ func (v *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block
 // Does not return an error if the block was not present.
 // In some cases, will return before confirming delete.
 func (v *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	// Reject removal from the read-only store view.
 	if v.readOnly {
 		return block_store.ErrReadOnly
 	}
+
+	// Request removal of the remote block and propagate transport failures.
 	resp, err := v.client.RmBlock(ctx, &block_rpc.RmBlockRequest{
 		Ref: ref.Clone(),
 	})
 	if err != nil {
 		return err
 	}
+
+	// Propagate any removal failure reported by the remote store.
 	if errStr := resp.GetError(); errStr != "" {
 		return errors.New(errStr)
 	}
+
 	return nil
 }
 

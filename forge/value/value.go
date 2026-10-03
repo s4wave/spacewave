@@ -54,6 +54,7 @@ func (v ValueType) Validate() error {
 
 // Validate performs cursory validation of the value.
 func (v *Value) Validate(allowEmptyName bool) error {
+	// Require a value name and a recognized type for nonempty values.
 	if len(v.GetName()) == 0 && !allowEmptyName {
 		return ErrEmptyValueName
 	}
@@ -70,6 +71,7 @@ func (v *Value) Validate(allowEmptyName bool) error {
 		return errors.Wrap(ErrUnknownValueType, vt.String())
 	}
 
+	// Validate the block reference only for values that carry a block reference.
 	if vt == ValueType_ValueType_BLOCK_REF {
 		// allow empty ref
 		if err := v.GetBlockRef().Validate(true); err != nil {
@@ -84,6 +86,7 @@ func (v *Value) Validate(allowEmptyName bool) error {
 		}
 	}
 
+	// Validate the bucket reference only for values that carry a bucket reference.
 	if vt == ValueType_ValueType_BUCKET_REF {
 		if err := v.GetBucketRef().Validate(); err != nil {
 			return err
@@ -96,6 +99,7 @@ func (v *Value) Validate(allowEmptyName bool) error {
 			)
 		}
 	}
+
 	return nil
 }
 

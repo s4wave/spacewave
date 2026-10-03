@@ -25,6 +25,7 @@ func NewLZ4(c *Config) (*LZ4, error) {
 // EncodeBlock encodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (s *LZ4) EncodeBlock(data []byte) ([]byte, error) {
+	// Prepare the LZ4 frame writer with the configured compression options.
 	var buf bytes.Buffer
 	buf.Grow(len(data))
 	wr := lz4.NewWriter(&buf)
@@ -34,28 +35,36 @@ func (s *LZ4) EncodeBlock(data []byte) ([]byte, error) {
 	if err := wr.Apply(lz4.SizeOption(uint64(len(data)))); err != nil {
 		return nil, err
 	}
+
+	// Compress the complete block into the LZ4 frame.
 	_, err := wr.Write(data) // note: writes all of data in 1 call
 	if err != nil {
 		return nil, err
 	}
+
 	// Close writes the frame end mark, which readers require.
 	if err := wr.Close(); err != nil {
 		return nil, err
 	}
+
 	return buf.Bytes(), nil
 }
 
 // DecodeBlock decodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (s *LZ4) DecodeBlock(data []byte) ([]byte, error) {
+	// Prepare the decoded block buffer from the compressed frame size.
 	var buf bytes.Buffer
 	buf.Grow(len(data))
+
+	// Decode the LZ4 frame and propagate failures other than end of input.
 	// note: reader does not accept any options.
 	rd := lz4.NewReader(bytes.NewReader(data))
 	_, err := rd.WriteTo(&buf)
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
+
 	return buf.Bytes(), nil
 }
 

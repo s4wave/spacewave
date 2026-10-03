@@ -64,6 +64,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 
 // ToOptions converts the config into lz4 options.
 func (c *Config) ToOptions() []lz4.Option {
+	// Translate the configured frame size, checksums, and compression into LZ4 options.
 	var opts []lz4.Option
 	if bs, err := c.GetBlockSize().ToBlockSize(); err == nil && bs != DefaultBlockSize {
 		opts = append(opts, lz4.BlockSizeOption(bs))
@@ -77,6 +78,7 @@ func (c *Config) ToOptions() []lz4.Option {
 	if cl, err := ToCompressionLevel(c.GetCompressionLevel()); cl != 0 && err == nil {
 		opts = append(opts, lz4.CompressionLevelOption(cl))
 	}
+
 	return opts
 }
 
