@@ -26,7 +26,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
 	github.com/aperturerobotics/cli v1.1.1-0.20260925195436-da3cdca4d143 // master
-	github.com/aperturerobotics/common v0.35.5-0.20260929213603-e672dd21ed6d // master
+	github.com/aperturerobotics/common v0.35.5-0.20261003015225-453f9b46dfcf // master
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261001195447-86f830af47c0 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -42,7 +42,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20260926160815-9337dc7c6cda // master
-	github.com/aperturerobotics/starpc v0.52.2-0.20261002012525-997e5e5b919b // master
+	github.com/aperturerobotics/starpc v0.52.3-0.20261003013036-4cdf88642ec9 // master
 	github.com/aperturerobotics/util v1.34.10-0.20261002030236-9b993d4c208f // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
@@ -53,8 +53,8 @@ require (
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260818093742-7bd059496705 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20261001215721-aa419489449c // main
+	github.com/go-git/go-billy/v6 v6.0.0-beta.1 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20261002123423-fedc50f4303a // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.11.1
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -97,7 +97,7 @@ require (
 	golang.org/x/sync v0.23.0
 	golang.org/x/sys v0.48.0
 	golang.org/x/term v0.46.0
-	golang.org/x/tools v0.50.0 // latest
+	golang.org/x/tools v0.51.0 // latest
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
@@ -108,7 +108,7 @@ require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
-	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260705010911-9f53feac967b // indirect
+	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20261003014807-d46d22154f35 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f // indirect
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
@@ -170,7 +170,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/net v0.59.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260908163034-4bcc4b2ee518 // indirect
+	golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
