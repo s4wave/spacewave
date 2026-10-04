@@ -1232,14 +1232,18 @@ func configureLowCostPINLock(ctx context.Context, t *testing.T, sess *Session, p
 	sess.updateSessionMetadata(ctx, core_session.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED)
 }
 
+// createLowCostPINLock seals a session key like session_lock.CreatePINLock
+// with the minimum scrypt cost so tests unlock it quickly.
 func createLowCostPINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, config *session_lock.LockConfig, err error) {
+	// Generate the symmetric key that seals the session key.
 	var symKey [32]byte
 	if _, err := rand.Read(symKey[:]); err != nil {
 		return nil, nil, nil, err
 	}
 	defer scrub.Scrub(symKey[:])
 
-	symMethod, err := blockenc.NewXChaCha20Poly1305(symKey[:])
+	// Seal the session key with the symmetric key.
+	symMethod, err := blockenc.NewAES256GCM(symKey[:])
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1248,6 +1252,7 @@ func createLowCostPINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, confi
 		return nil, nil, nil, err
 	}
 
+	// Derive the PIN key at the minimum scrypt cost.
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
 		return nil, nil, nil, err
@@ -1259,7 +1264,8 @@ func createLowCostPINLock(privPEM, pin []byte) (encPriv, encSymKey []byte, confi
 	}
 	defer scrub.Scrub(pinKey)
 
-	pinMethod, err := blockenc.NewXChaCha20Poly1305(pinKey)
+	// Seal the symmetric key with the PIN key.
+	pinMethod, err := blockenc.NewAES256GCM(pinKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
