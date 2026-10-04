@@ -52,25 +52,34 @@ func (s *State) HasPendingAndWaitCh() (bool, <-chan struct{}) {
 // complete.
 func (s *State) Reconcile(ids []string) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Record the new desired plugin set and detect membership changes.
 		changed := !s.reconciled || !slices.Equal(s.desired, ids)
 		s.reconciled = true
 		s.desired = slices.Clone(ids)
+
+		// Index desired IDs so stale running and terminal state can be removed.
 		desired := make(map[string]struct{}, len(ids))
 		for _, id := range ids {
 			desired[id] = struct{}{}
 		}
+
+		// Remove running plugin states no longer present in the desired set.
 		for id := range s.running {
 			if _, ok := desired[id]; !ok {
 				delete(s.running, id)
 				changed = true
 			}
 		}
+
+		// Remove registration results no longer present in the desired set.
 		for id := range s.terminal {
 			if _, ok := desired[id]; !ok {
 				delete(s.terminal, id)
 				changed = true
 			}
 		}
+
+		// Wake readiness waiters after any observable reconciliation change.
 		if changed {
 			broadcast()
 		}
@@ -84,6 +93,7 @@ func (s *State) SetPluginState(id string, running, terminal bool) {
 		return
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Ignore plugin reports for IDs outside the desired set.
 		if !slices.Contains(s.desired, id) {
 			return
 		}
@@ -105,6 +115,7 @@ func (s *State) SetPluginState(id string, running, terminal bool) {
 // Reset clears desired and observed plugin state.
 func (s *State) Reset() {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Skip reset when the desired and observed plugin state is already empty.
 		if !s.reconciled && len(s.desired) == 0 && len(s.running) == 0 && len(s.terminal) == 0 {
 			return
 		}

@@ -40,26 +40,33 @@ func (a *UtilArgs) RunTimestamp(_ *cli.Context) error {
 	return writeIfNotExists(a.OutPath, bytes.NewReader([]byte(formatted)))
 }
 
-// RunGeneratePrivate runs the generate-private util command.
+// RunGeneratePrivate writes a newly generated peer private key.
 func (a *UtilArgs) RunGeneratePrivate(_ *cli.Context) error {
+	// Generate a peer identity for the output key.
 	npeer, err := peer.NewPeer(nil)
 	if err != nil {
 		return err
 	}
 
+	// Read the peer's private key bytes.
 	priv, err := npeer.GetPrivKey(a.GetContext())
 	if err != nil {
 		return err
 	}
 
+	// Encode the private key as PEM.
 	pemd, err := keypem.MarshalPrivKeyPem(priv)
 	if err != nil {
 		return err
 	}
+
+	// Write the PEM file without replacing an existing destination.
 	err = writeIfNotExists(a.OutPath, bytes.NewReader(pemd))
 	if err != nil {
 		return err
 	}
+
+	// Report the generated peer identity.
 	le := a.GetLogger()
 	le.Infof("generated private key: %s", npeer.GetPeerID().String())
 	return nil
@@ -85,16 +92,21 @@ func (a *UtilArgs) RunReadPrivatePeerId(_ *cli.Context) error {
 	return err
 }
 
-// RunDerivePublic derives the public key from a private pem.
+// RunDerivePublic writes a public-key PEM derived from a private PEM.
 func (a *UtilArgs) RunDerivePublic(_ *cli.Context) error {
+	// Load the input private key.
 	rp, err := a.readInputFilePrivKey()
 	if err != nil {
 		return err
 	}
+
+	// Encode its public key as PEM.
 	pemd, err := keypem.MarshalPubKeyPem(rp.GetPubKey())
 	if err != nil {
 		return err
 	}
+
+	// Write the derived public key without replacing existing output.
 	err = writeIfNotExists(a.OutPath, bytes.NewReader(pemd))
 	if err != nil {
 		return err
@@ -102,17 +114,24 @@ func (a *UtilArgs) RunDerivePublic(_ *cli.Context) error {
 	return nil
 }
 
-// RunDerivePublic derives the ssh public key from a private or public pem.
+// RunDeriveSshPublic writes an authorized SSH public key from a peer key.
 func (a *UtilArgs) RunDeriveSshPublic(_ *cli.Context) error {
+	// Load the input public key.
 	rp, err := a.readInputFilePubKey()
 	if err != nil {
 		return err
 	}
+
+	// Convert the peer public key to SSH format.
 	pkey, err := peer_ssh.NewPublicKey(rp.GetPubKey())
 	if err != nil {
 		return err
 	}
+
+	// Encode the SSH key in authorized_keys format.
 	dat := ssh.MarshalAuthorizedKey(pkey)
+
+	// Write the encoded key without replacing existing output.
 	err = writeIfNotExists(a.OutPath, bytes.NewReader(dat))
 	if err != nil {
 		return err
@@ -120,23 +139,28 @@ func (a *UtilArgs) RunDeriveSshPublic(_ *cli.Context) error {
 	return nil
 }
 
-// RunGenerateCryptoKey runs the generate-crypto-key util command.
+// RunGenerateCryptoKey writes a random cryptographic key as base64.
 func (a *UtilArgs) RunGenerateCryptoKey(_ *cli.Context) error {
+	// Resolve the requested key size or use the default.
 	keySize := a.KeySize
 	if keySize == 0 {
 		keySize = 32
 	}
 
+	// Generate cryptographically random key bytes.
 	buf := make([]byte, keySize)
 	if _, err := rand.Read(buf); err != nil {
 		return err
 	}
 
+	// Encode and write the key without replacing existing output.
 	bufB64 := base64.StdEncoding.EncodeToString(buf) + "\n"
 	err := writeIfNotExists(a.OutPath, bytes.NewReader([]byte(bufB64)))
 	if err != nil {
 		return err
 	}
+
+	// Report the generated key size.
 	le := a.GetLogger()
 	le.Infof("generated crypto key of length %v", keySize)
 	return nil
@@ -151,18 +175,21 @@ func (a *UtilArgs) readInputFile() ([]byte, error) {
 	return io.ReadAll(os.Stdin)
 }
 
-// readInputFilePrivKey reads the input file path or stdin.
+// readInputFilePrivKey reads and parses a private key from the configured input.
 func (a *UtilArgs) readInputFilePrivKey() (peer.Peer, error) {
+	// Read private-key bytes from the configured file or standard input.
 	dat, err := a.readInputFile()
 	if err != nil {
 		return nil, err
 	}
 
+	// Parse the private-key PEM.
 	key, err := keypem.ParsePrivKeyPem(dat)
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct and report the peer identity.
 	le := a.GetLogger()
 	npeer, err := peer.NewPeer(key)
 	if err != nil {
@@ -172,18 +199,21 @@ func (a *UtilArgs) readInputFilePrivKey() (peer.Peer, error) {
 	return npeer, nil
 }
 
-// readInputFilePubKey reads the input file path or stdin.
+// readInputFilePubKey reads and parses a public key from the configured input.
 func (a *UtilArgs) readInputFilePubKey() (peer.Peer, error) {
+	// Read public-key bytes from the configured file or standard input.
 	dat, err := a.readInputFile()
 	if err != nil {
 		return nil, err
 	}
 
+	// Parse the public-key PEM.
 	key, err := keypem.ParsePubKeyPem(dat)
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct and report the peer identity.
 	le := a.GetLogger()
 	npeer, err := peer.NewPeerWithPubKey(key)
 	if err != nil {
@@ -193,23 +223,30 @@ func (a *UtilArgs) readInputFilePubKey() (peer.Peer, error) {
 	return npeer, nil
 }
 
+// writeIfNotExists writes input to a new file or to standard output.
 func writeIfNotExists(outPath string, input io.Reader) error {
+	// Initialize the selected output destination.
 	var of *os.File
 	var out io.Writer
 	if outPath != "" {
+		// Reject a destination that already exists.
 		_, err := os.Stat(outPath)
 		if !os.IsNotExist(err) {
 			return errors.Wrap(os.ErrExist, outPath)
 		}
+
+		// Open the new destination and retain its cleanup.
 		of, err = os.OpenFile(outPath, os.O_CREATE|os.O_RDWR, 0o600)
 		if err != nil {
 			return err
 		}
 		out = of
 		defer of.Close()
+
+		// Require the newly opened destination to be empty.
 		if pos, err := of.Seek(0, io.SeekEnd); err != nil || pos != 0 {
 			if err == nil {
-				// file must have existed
+				// The destination contained data before this write.
 				return errors.Wrap(os.ErrExist, outPath)
 			}
 			return err
@@ -217,9 +254,13 @@ func writeIfNotExists(outPath string, input io.Reader) error {
 	} else {
 		out = os.Stdout
 	}
+
+	// Copy the generated value to the selected output.
 	if _, err := io.Copy(out, input); err != nil {
 		return err
 	}
+
+	// Close a file destination after the write.
 	if of != nil {
 		return of.Close()
 	}

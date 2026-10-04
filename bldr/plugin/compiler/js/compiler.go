@@ -66,14 +66,20 @@ type Controller struct {
 }
 
 func (c *Controller) admitBuild() (func(), error) {
+	// Reserve the build admission lock.
 	locked := c.bcast.Lock()
+
+	// Reject new builds after shutdown starts.
 	if c.closing {
 		locked.Unlock()
 		return nil, errors.New("js compiler is closed")
 	}
+
+	// Record the admitted build before releasing the lock.
 	c.activeBuilds++
 	locked.Unlock()
 
+	// Return the release callback that wakes Close after completion.
 	return func() {
 		locked := c.bcast.Lock()
 		c.activeBuilds--
@@ -199,6 +205,7 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the controller and builder configuration for this manifest.
 	conf := c.GetConfig()
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
@@ -206,15 +213,16 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Capture the manifest identity and effective JavaScript build policy.
 	pluginID := meta.GetManifestId()
 	platformID := meta.GetPlatformId()
 	manifestID := strings.TrimSpace(meta.GetManifestId())
-	// sourcePath := builderConf.GetSourcePath()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	isRelease := buildType.IsRelease()
 	jsMinification := builderConf.GetBuildPolicy().ResolveJsMinification(buildType)
 	jsSourcemaps := builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType)
 
+	// Scope compiler diagnostics to this manifest and platform.
 	le := c.GetLogger().
 		WithField("manifest-id", manifestID).
 		WithField("build-type", buildType).
@@ -233,13 +241,12 @@ func (c *Controller) BuildManifest(
 	defer releaseBuild()
 	le.Debug("building js plugin")
 
-	// output paths, dist is unused for JS compiler
+	// Prepare output paths for the JavaScript build.
 	workingPath := builderConf.GetWorkingPath()
-	// Note: outDistPath is not typically used by the JS compiler itself,
-	// but we create it for consistency and potential future use.
 	outDistPath := filepath.Join(workingPath, "dist")
 	outAssetsPath := filepath.Join(workingPath, "assets")
-	// distSourcePath is used to locate the entrypoint.ts template.
+
+	// Locate the Bldr distribution sources used by the entrypoint.
 	distSourcePath := builderConf.GetDistSourcePath()
 
 	// build output world engine
@@ -562,6 +569,7 @@ func (c *Controller) BuildManifest(
 		handleWebPkgsJsonStr = string(handleWebPkgsJson)
 	}
 
+	// Pass serialized plugin configuration to the JavaScript compiler.
 	defines := map[string]string{
 		// Pass JSON array strings as compile-time definitions.
 		"__BLDR_BACKEND_ENTRYPOINTS__":  backendEpJsonStr,
@@ -571,10 +579,13 @@ func (c *Controller) BuildManifest(
 		"__BLDR_WEB_PLUGIN_ID__":        strconv.Quote(conf.GetWebPluginId()),
 	}
 
+	// Select the source-map mode before compiling the plugin entrypoint.
 	sourceMap := "none"
 	if jsSourcemaps {
 		sourceMap = "inline"
 	}
+
+	// Compile the plugin entrypoint and capture its emitted assets.
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -610,29 +621,42 @@ func (c *Controller) BuildManifest(
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile js plugin entrypoint")
 	}
+
+	// Resolve the emitted plugin entrypoint path.
 	compiledEntrypointRelPath := path.Clean(filepath.ToSlash(result.GetEntrypointOutputs()["plugin"]))
 	if compiledEntrypointRelPath == "." || compiledEntrypointRelPath == "" {
 		return nil, errors.New("direct owner returned no js plugin entrypoint output")
 	}
+
+	// Record the emitted entrypoint and its discovered inputs.
 	le.Debugf("compiled js plugin entrypoint to %s", compiledEntrypointRelPath)
 	startupInputPaths = append(startupInputPaths, result.GetInputs()...)
 	startupInputPaths = append(startupInputPaths, distDepsPackagePath)
+
+	// Include the lockfile when the distribution package has one.
 	distDepsLockPath := filepath.Join(filepath.Dir(distDepsPackagePath), "bun.lock")
 	if _, err := os.Stat(distDepsLockPath); err == nil {
 		startupInputPaths = append(startupInputPaths, distDepsLockPath)
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
-	// Declared pre-build hook file provenance validates like any source input.
+
+	// Include declared hook files among the startup inputs.
 	startupInputPaths = append(startupInputPaths, hookStartupInputPaths...)
+
+	// Anchor relative inputs to the plugin source root.
 	for i, inputPath := range startupInputPaths {
 		if !filepath.IsAbs(inputPath) {
 			startupInputPaths[i] = filepath.Join(builderConf.GetSourcePath(), filepath.FromSlash(inputPath))
 		}
 	}
+
+	// Store all build inputs relative to the plugin source root.
 	if err := fsutil.ConvertPathsToRelative(builderConf.GetSourcePath(), startupInputPaths); err != nil {
 		return nil, err
 	}
+
+	// Normalize and sort startup inputs for stable manifest metadata.
 	for i := range startupInputPaths {
 		startupInputPaths[i] = filepath.ToSlash(filepath.Clean(startupInputPaths[i]))
 	}
@@ -718,12 +742,14 @@ func CreateEntrypointsFromViteOutputs(
 	existingBackendEntrypoints []*BackendEntrypoint,
 	existingFrontendEntrypoints []*FrontendEntrypoint,
 ) ([]*BackendEntrypoint, []*FrontendEntrypoint, error) {
+	// Clone configured entrypoints before adding outputs from Vite.
 	backendEntrypoints := slices.Clone(existingBackendEntrypoints)
 	frontendEntrypoints := make([]*FrontendEntrypoint, len(existingFrontendEntrypoints))
 	for idx, entrypoint := range existingFrontendEntrypoints {
 		frontendEntrypoints[idx] = entrypoint.CloneVT()
 	}
 
+	// Add configured module entrypoints to the existing build results.
 	for _, mod := range modules {
 		inputPath := path.Clean(mod.GetPath())
 		modKind := mod.GetKind()
@@ -862,6 +888,7 @@ func ValidateFrontendEntrypointAssetClosure(
 }
 
 func validateFrontendAssetPath(assetsDir, assetPath, label string, entrypointIdx int) error {
+	// Resolve the advertised frontend asset against the asset directory.
 	cleanPath, ok, err := normalizeFrontendAssetPath(assetPath)
 	if err != nil {
 		return errors.Wrapf(err, "%s[%d]", label, entrypointIdx)
@@ -884,6 +911,7 @@ func validateFrontendAssetPath(assetsDir, assetPath, label string, entrypointIdx
 }
 
 func normalizeFrontendAssetPath(assetPath string) (string, bool, error) {
+	// Ignore empty, external, and local frontend asset URLs.
 	if assetPath == "" {
 		return "", false, nil
 	}

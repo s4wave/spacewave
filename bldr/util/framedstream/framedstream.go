@@ -94,19 +94,23 @@ func (s *Stream) RecvRaw() ([]byte, error) {
 
 // writeFramedData writes data with a LittleEndian uint32 length prefix.
 func (s *Stream) writeFramedData(data []byte) error {
+	// Serialize each frame so concurrent sends cannot interleave prefix and payload.
 	s.writeMtx.Lock()
 	defer s.writeMtx.Unlock()
 
+	// Reject lengths the four-byte frame prefix cannot encode.
 	if uint64(len(data)) > uint64(^uint32(0)) {
 		return errors.New("data size exceeds maximum uint32 value")
 	}
 
+	// Write the payload length as a little-endian frame prefix.
 	lenBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(lenBuf, uint32(len(data))) //nolint:gosec
 	if _, err := s.rwc.Write(lenBuf); err != nil {
 		return err
 	}
 
+	// Write the payload after its length prefix.
 	if _, err := s.rwc.Write(data); err != nil {
 		return err
 	}
@@ -116,19 +120,23 @@ func (s *Stream) writeFramedData(data []byte) error {
 
 // readFramedData reads a length-prefixed frame.
 func (s *Stream) readFramedData() ([]byte, error) {
+	// Serialize readers because Stream retains a shared frame buffer.
 	s.readMtx.Lock()
 	defer s.readMtx.Unlock()
 
+	// Read the complete four-byte header before decoding its length.
 	if err := s.readUntil(4); err != nil {
 		return nil, err
 	}
 
+	// Decode the header and reject payloads above the configured limit.
 	lenBuf := s.readBuf.Next(4)
 	msgLen := binary.LittleEndian.Uint32(lenBuf)
 	if msgLen > MaxMessageSize {
 		return nil, io.ErrShortBuffer
 	}
 
+	// Buffer the complete payload before returning the frame bytes.
 	if err := s.readUntil(int(msgLen)); err != nil {
 		return nil, err
 	}

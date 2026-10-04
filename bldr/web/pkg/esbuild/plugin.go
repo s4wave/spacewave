@@ -33,6 +33,7 @@ func BuildEsbuildPlugin(
 				// Filter: "^example/$",
 				Namespace: "file",
 			}, func(ora esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
+				// Initialize a result for imports that this plugin leaves unresolved.
 				var result esbuild_api.OnResolveResult
 				if ora.Importer == "bldr-pkg-resolve" {
 					return result, nil
@@ -100,6 +101,7 @@ func BuildEsbuildPlugin(
 					return result, err
 				}
 
+				// Reject package imports that resolve outside the selected package root.
 				if strings.HasPrefix(relPkgSubPath, "..") {
 					return result, errors.Errorf(
 						"web pkg %s import %s resolved to path outside pkg dir %s: %s",

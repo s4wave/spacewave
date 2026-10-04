@@ -199,11 +199,13 @@ func (h *testResolverHandler) AddResolver(directive.Resolver, func()) func() {
 }
 
 func buildTestbed(t *testing.T, ctx context.Context) *testbed.Testbed {
+	// Register this helper for accurate test failure locations.
 	t.Helper()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed with the configured logger.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.TestbedOpts{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -223,6 +225,7 @@ func startTransport(
 	tb *testbed.Testbed,
 	conf *inproc.Config,
 ) (*transport_controller.Controller, *inproc.Inproc, directive.Reference) {
+	// Set the local peer identity and prepare transport configuration.
 	t.Helper()
 	pid, err := peer.IDFromPrivateKey(tb.PrivKey)
 	if err != nil {
@@ -233,6 +236,7 @@ func startTransport(
 	}
 	conf.TransportPeerId = pid.String()
 
+	// Start the configured transport controller and obtain its inproc transport.
 	tpc, _, tpRef, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
 		ctx,
 		tb.Bus,
@@ -269,8 +273,10 @@ func startSolicitController(
 }
 
 func newTestSolicitController(t *testing.T) *Controller {
+	// Register this constructor as a test helper.
 	t.Helper()
 
+	// Start the controller with an active keyed-open context.
 	c, err := NewController(logrus.NewEntry(logrus.New()), &Config{})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -318,11 +324,14 @@ func matchedCount(c *Controller, ls *linkState) int {
 
 // recvTestValue receives one value from ch or fails the test after a timeout.
 func recvTestValue[T any](t *testing.T, ch <-chan T, name string) T {
+	// Register the channel receive helper with testing.T.
 	t.Helper()
 
+	// Bound the wait for the requested channel value.
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
+	// Receive the value or fail when the wait expires.
 	select {
 	case val, ok := <-ch:
 		if !ok {
@@ -353,9 +362,11 @@ func assertNoTestValue[T any](t *testing.T, ch <-chan T, name string) {
 }
 
 func TestControlStreamLocalSnapshotWatchDynamicAddRemove(t *testing.T) {
+	// Bound the watcher to the lifetime of this test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Register one link before observing its snapshots.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -363,6 +374,7 @@ func TestControlStreamLocalSnapshotWatchDynamicAddRemove(t *testing.T) {
 		broadcast()
 	})
 
+	// Collect the watch output while its goroutine runs.
 	snapCh := make(chan *controlStreamLocalSnapshot, 8)
 	done := make(chan error, 1)
 	go func() {
@@ -372,11 +384,13 @@ func TestControlStreamLocalSnapshotWatchDynamicAddRemove(t *testing.T) {
 		})
 	}()
 
+	// Verify the initial snapshot before adding a solicitation.
 	initial := recvLocalSnapshot(t, snapCh)
 	if initial.linkRemoved || len(initial.offers) != 0 {
 		t.Fatalf("initial snapshot removed=%v offers=%d", initial.linkRemoved, len(initial.offers))
 	}
 
+	// Add one solicitation and verify it appears in the next snapshot.
 	ss := &solicitState{
 		dir: link_solicit.NewSolicitProtocol(protocol.ID("test/dynamic"), []byte("ctx"), "", 0),
 	}
@@ -392,6 +406,7 @@ func TestControlStreamLocalSnapshotWatchDynamicAddRemove(t *testing.T) {
 		t.Fatalf("added context = %q", added.offers[0].context)
 	}
 
+	// Withdraw the solicitation and verify its offer disappears.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		delete(c.solicitations, ss)
 		broadcast()
@@ -401,6 +416,7 @@ func TestControlStreamLocalSnapshotWatchDynamicAddRemove(t *testing.T) {
 		t.Fatalf("removed snapshot removed=%v offers=%d", removed.linkRemoved, len(removed.offers))
 	}
 
+	// Cancel the watcher and check its returned error.
 	cancel()
 	if err := recvTestValue(t, done, "watch completion"); err == nil {
 		t.Fatal("expected canceled watch")
@@ -408,9 +424,11 @@ func TestControlStreamLocalSnapshotWatchDynamicAddRemove(t *testing.T) {
 }
 
 func TestControlStreamLocalSnapshotWatchLinkRemoval(t *testing.T) {
+	// Bound the link watcher to this test.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Register one link before starting its snapshot watcher.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -418,6 +436,7 @@ func TestControlStreamLocalSnapshotWatchLinkRemoval(t *testing.T) {
 		broadcast()
 	})
 
+	// Collect the watcher snapshots in a test channel.
 	snapCh := make(chan *controlStreamLocalSnapshot, 4)
 	done := make(chan error, 1)
 	go func() {
@@ -427,11 +446,13 @@ func TestControlStreamLocalSnapshotWatchLinkRemoval(t *testing.T) {
 		})
 	}()
 
+	// Confirm that the first snapshot keeps the link active.
 	initial := recvLocalSnapshot(t, snapCh)
 	if initial.linkRemoved {
 		t.Fatal("initial snapshot should not be removed")
 	}
 
+	// Remove the link and verify the watcher reports that change.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		delete(c.links, ls.ml.GetLinkUUID())
 		broadcast()
@@ -441,6 +462,7 @@ func TestControlStreamLocalSnapshotWatchLinkRemoval(t *testing.T) {
 		t.Fatal("expected link removal snapshot")
 	}
 
+	// Cancel the watcher and check its returned error.
 	cancel()
 	if err := recvTestValue(t, done, "watch completion"); err == nil {
 		t.Fatal("expected canceled watch")
@@ -448,13 +470,16 @@ func TestControlStreamLocalSnapshotWatchLinkRemoval(t *testing.T) {
 }
 
 func TestLinkRemovalWaitsForDuplicateEstablishLinkValues(t *testing.T) {
+	// Prepare one physical link for duplicate registrations.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	uuid := ls.ml.GetLinkUUID()
 
+	// Add two values that refer to the same link.
 	c.addLink(ls.ml)
 	c.addLink(ls.ml)
 
+	// Release one value and verify the other still owns the link.
 	c.removeLink(uuid)
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		current := c.links[uuid]
@@ -466,6 +491,7 @@ func TestLinkRemovalWaitsForDuplicateEstablishLinkValues(t *testing.T) {
 		}
 	})
 
+	// Release the final value and verify the link state is removed.
 	c.removeLink(uuid)
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if c.links[uuid] != nil {
@@ -475,6 +501,7 @@ func TestLinkRemovalWaitsForDuplicateEstablishLinkValues(t *testing.T) {
 }
 
 func TestControlStreamLocalSnapshotRemoteHashesRefresh(t *testing.T) {
+	// Prepare the remote hash set and a tracked physical link.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	entry := link_solicit.SolicitEntry{
@@ -487,6 +514,7 @@ func TestControlStreamLocalSnapshotRemoteHashesRefresh(t *testing.T) {
 		broadcast()
 	})
 
+	// Verify a new local snapshot contains no remote offers.
 	var snap *controlStreamLocalSnapshot
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		snap = c.snapshotControlStreamLocalLocked(ls)
@@ -495,6 +523,7 @@ func TestControlStreamLocalSnapshotRemoteHashesRefresh(t *testing.T) {
 		t.Fatalf("local snapshot removed=%v offers=%d", snap.linkRemoved, len(snap.offers))
 	}
 
+	// Publish the remote hashes and read their refreshed state.
 	remote := legacySolicitationExchange(hashes)
 	if !c.setControlStreamRemoteExchange(ls, remote) {
 		t.Fatal("link should accept remote hashes")
@@ -507,6 +536,7 @@ func TestControlStreamLocalSnapshotRemoteHashesRefresh(t *testing.T) {
 		t.Fatalf("current remote hashes did not refresh")
 	}
 
+	// Remove the link and reject later remote hash updates.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		delete(c.links, ls.ml.GetLinkUUID())
 		broadcast()
@@ -517,6 +547,7 @@ func TestControlStreamLocalSnapshotRemoteHashesRefresh(t *testing.T) {
 }
 
 func TestControlStreamLocalSnapshotRefreshesQueuedSolicitationState(t *testing.T) {
+	// Register a queued solicitation on a tracked link.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	ss := &solicitState{
@@ -528,6 +559,7 @@ func TestControlStreamLocalSnapshotRefreshesQueuedSolicitationState(t *testing.T
 		broadcast()
 	})
 
+	// Capture the queued offer before removing its directive.
 	var queued *controlStreamLocalSnapshot
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		queued = c.snapshotControlStreamLocalLocked(ls)
@@ -536,6 +568,7 @@ func TestControlStreamLocalSnapshotRefreshesQueuedSolicitationState(t *testing.T
 		t.Fatalf("queued offers = %d, want 1", len(queued.offers))
 	}
 
+	// Withdraw the solicitation and verify the current snapshot clears it.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		delete(c.solicitations, ss)
 		broadcast()
@@ -547,6 +580,7 @@ func TestControlStreamLocalSnapshotRefreshesQueuedSolicitationState(t *testing.T
 }
 
 func TestControlStreamLocalSnapshotRejectsReplacedLink(t *testing.T) {
+	// Prepare two states that share one link UUID.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	replacement := newTestLinkState(peer.ID("a"), peer.ID("b"))
@@ -560,6 +594,7 @@ func TestControlStreamLocalSnapshotRejectsReplacedLink(t *testing.T) {
 		broadcast()
 	})
 
+	// Replace the tracked link state without changing its UUID.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.links[ls.ml.GetLinkUUID()] = replacement
 		broadcast()
@@ -571,6 +606,7 @@ func TestControlStreamLocalSnapshotRejectsReplacedLink(t *testing.T) {
 		}
 	})
 
+	// Reject snapshot and exchange updates through the stale link state.
 	if _, linkRemoved := c.currentControlStreamRemoteExchange(ls); !linkRemoved {
 		t.Fatal("replaced link should hide old remote hashes")
 	}
@@ -578,6 +614,8 @@ func TestControlStreamLocalSnapshotRejectsReplacedLink(t *testing.T) {
 	if c.setControlStreamRemoteExchange(ls, remote) {
 		t.Fatal("replaced link accepted old remote hashes")
 	}
+
+	// Accept the remote exchange through the replacement state.
 	if !c.setControlStreamRemoteExchange(replacement, remote) {
 		t.Fatal("replacement link should accept remote hashes")
 	}
@@ -978,9 +1016,11 @@ func TestEvaluateMatchesHigherPeerDoesNotOpenStream(t *testing.T) {
 }
 
 func TestControlStreamSendsFullHashSetAfterLocalChange(t *testing.T) {
+	// Bound the control-stream test and its cleanup.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Register a lower-side link for solicitation changes.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -988,10 +1028,12 @@ func TestControlStreamSendsFullHashSetAfterLocalChange(t *testing.T) {
 		broadcast()
 	})
 
+	// Connect packet sessions with an in-memory pipe.
 	localConn, remoteConn := net.Pipe()
 	defer localConn.Close()
 	defer remoteConn.Close()
 
+	// Start the control stream with the configured packet-size bound.
 	maxMessageSize := maxExchangeMessageSize(c.maxHashes)
 	localSess := stream_packet.NewSession(localConn, maxMessageSize)
 	remoteSess := stream_packet.NewSession(remoteConn, maxMessageSize)
@@ -1001,6 +1043,7 @@ func TestControlStreamSendsFullHashSetAfterLocalChange(t *testing.T) {
 		c.runControlStream(ctx, ls, localSess)
 	}()
 
+	// Publish one offer and verify the first complete hash set.
 	first := &solicitState{
 		dir: link_solicit.NewSolicitProtocol(protocol.ID("test/full-a"), []byte("a"), "", 0),
 	}
@@ -1020,6 +1063,7 @@ func TestControlStreamSendsFullHashSetAfterLocalChange(t *testing.T) {
 		t.Fatalf("first exchange hashes = %x, want %x", firstMsg.GetProtocolHashes(), firstExpected)
 	}
 
+	// Add a second offer and verify the refreshed full hash set.
 	second := &solicitState{
 		dir: link_solicit.NewSolicitProtocol(protocol.ID("test/full-b"), []byte("b"), "", 0),
 	}
@@ -1039,6 +1083,7 @@ func TestControlStreamSendsFullHashSetAfterLocalChange(t *testing.T) {
 		t.Fatalf("second exchange hashes = %x, want %x", secondMsg.GetProtocolHashes(), secondExpected)
 	}
 
+	// Stop the control stream after both exchanges are observed.
 	cancel()
 	<-done
 }
@@ -1046,6 +1091,7 @@ func TestControlStreamSendsFullHashSetAfterLocalChange(t *testing.T) {
 // TestControlStreamMaxExchangeFitsPacketBound verifies the configured offer
 // limit fits through the upgraded packet codec.
 func TestControlStreamMaxExchangeFitsPacketBound(t *testing.T) {
+	// Build a full-size upgraded exchange for the packet codec.
 	c := newTestSolicitController(t)
 	ls := newTestLinkState(peer.ID("a"), peer.ID("b"))
 	offers := make([]solicitationOffer, c.maxHashes)
@@ -1059,6 +1105,7 @@ func TestControlStreamMaxExchangeFitsPacketBound(t *testing.T) {
 	exchange.generation = 1
 	exchange.acknowledgedGeneration = 1
 
+	// Send the exchange between bounded packet sessions.
 	localConn, remoteConn := net.Pipe()
 	defer localConn.Close()
 	defer remoteConn.Close()
@@ -1070,6 +1117,7 @@ func TestControlStreamMaxExchangeFitsPacketBound(t *testing.T) {
 		sendErr <- c.sendExchange(localSess, exchange, true)
 	}()
 
+	// Receive the packet and verify its upgraded offer representation.
 	var received link_solicit.SolicitationExchange
 	if err := remoteSess.RecvMsg(&received); err != nil {
 		t.Fatal(err)
@@ -1086,8 +1134,10 @@ func TestControlStreamMaxExchangeFitsPacketBound(t *testing.T) {
 }
 
 func recvSolicitationExchange(t *testing.T, sess *stream_packet.Session) *link_solicit.SolicitationExchange {
+	// Register the receive helper for useful test failures.
 	t.Helper()
 
+	// Receive one exchange asynchronously so the wait can be bounded.
 	done := make(chan error, 1)
 	msg := &link_solicit.SolicitationExchange{}
 	go func() {
@@ -1108,6 +1158,7 @@ func recvSolicitationExchange(t *testing.T, sess *stream_packet.Session) *link_s
 // TestSolicitProtocolRestartsOnRetainedLink verifies that restarting both
 // consumers establishes a fresh stream over the existing link.
 func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
+	// Bound the two-peer restart and stream exchange.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
@@ -1115,6 +1166,7 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 	tb1 := buildTestbed(t, ctx)
 	tb2 := buildTestbed(t, ctx)
 
+	// Start both inproc transports and connect their peers.
 	_, tp1, tp1Ref := startTransport(t, ctx, tb1, nil)
 	defer tp1Ref.Release()
 	_, tp2, tp2Ref := startTransport(t, ctx, tb2, &inproc.Config{
@@ -1149,15 +1201,19 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 	// requires both peers to have the solicitation active.
 	testProto := protocol.ID("test/echo")
 
+	// Capture each peer's solicitation result and retained reference.
 	type result struct {
 		sms link_solicit.SolicitMountedStream
 		ref directive.Reference
 		err error
 	}
 
+	// Run one paired solicitation round and exchange stream data.
 	runRound := func(marker string) (directive.Reference, directive.Reference, [2]uint64) {
+		// Mark the round helper for accurate failure locations.
 		t.Helper()
 
+		// Start both solicitations before waiting for either result.
 		ch1 := make(chan result, 1)
 		ch2 := make(chan result, 1)
 		go func() {
@@ -1169,6 +1225,7 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 			ch2 <- result{sms, ref, err}
 		}()
 
+		// Wait for each peer's result or the shared deadline.
 		await := func(ch <-chan result, peerNum int) result {
 			select {
 			case res := <-ch:
@@ -1184,7 +1241,9 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 		r1 := await(ch1, 1)
 		r2 := await(ch2, 2)
 
+		// Accept each peer's stream and reject an already-consumed value.
 		accept := func(sms link_solicit.SolicitMountedStream, peerNum int) link.MountedStream {
+			// Require a fresh mounted stream from the solicitation.
 			ms, alreadyAccepted, err := sms.AcceptMountedStream()
 			if err != nil {
 				t.Fatalf("peer %d accept error: %v", peerNum, err)
@@ -1202,6 +1261,7 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 		ms2 := accept(r2.sms, 2)
 		defer ms2.GetStream().Close()
 
+		// Set bounded deadlines on both accepted streams.
 		deadline := time.Now().Add(time.Second)
 		if err := ms1.GetStream().SetDeadline(deadline); err != nil {
 			t.Fatalf("peer 1 stream deadline: %v", err)
@@ -1210,6 +1270,7 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 			t.Fatalf("peer 2 stream deadline: %v", err)
 		}
 
+		// Send the marker and verify that the other peer receives it unchanged.
 		data := []byte(marker)
 		if _, err := ms1.GetStream().Write(data); err != nil {
 			t.Fatalf("write %q: %v", marker, err)
@@ -1228,14 +1289,17 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 		}
 	}
 
+	// Complete and release the first solicitation round.
 	round1Ref1, round1Ref2, round1Links := runRound("round one")
 	round1Ref1.Release()
 	round1Ref2.Release()
 
+	// Reuse the retained link for a second round and defer cleanup.
 	round2Ref1, round2Ref2, round2Links := runRound("round two")
 	defer round2Ref1.Release()
 	defer round2Ref2.Release()
 
+	// Verify both rounds used the same physical link.
 	if round2Links != round1Links {
 		t.Fatalf("link UUIDs changed: round 1 %v, round 2 %v", round1Links, round2Links)
 	}
@@ -1246,12 +1310,15 @@ func TestSolicitProtocolRestartsOnRetainedLink(t *testing.T) {
 
 // TestSolicitProtocolNoMatch tests that disjoint protocol sets don't match.
 func TestSolicitProtocolNoMatch(t *testing.T) {
+	// Bound both peers while checking that disjoint offers do not match.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start two testbeds for the disjoint protocol offers.
 	tb1 := buildTestbed(t, ctx)
 	tb2 := buildTestbed(t, ctx)
 
+	// Start and connect an inproc transport for each peer.
 	_, tp1, tp1Ref := startTransport(t, ctx, tb1, nil)
 	defer tp1Ref.Release()
 	_, tp2, tp2Ref := startTransport(t, ctx, tb2, &inproc.Config{
@@ -1263,14 +1330,17 @@ func TestSolicitProtocolNoMatch(t *testing.T) {
 	})
 	defer tp2Ref.Release()
 
+	// Wire the two transports before starting solicitation.
 	tp1.ConnectToInproc(ctx, tp2)
 	tp2.ConnectToInproc(ctx, tp1)
 
+	// Start solicitation controllers on both peers.
 	scRef1 := startSolicitController(t, ctx, tb1)
 	defer scRef1.Release()
 	scRef2 := startSolicitController(t, ctx, tb2)
 	defer scRef2.Release()
 
+	// Establish the link used to exchange offers.
 	pid1 := tp1.GetPeerID()
 	_, lnkRel, err := link.EstablishLinkWithPeerEx(ctx, tb2.Bus, "", pid1, false)
 	if err != nil {
@@ -1288,6 +1358,7 @@ func TestSolicitProtocolNoMatch(t *testing.T) {
 	}
 	defer diRef1.Release()
 
+	// Register the second peer's disjoint protocol offer.
 	_, diRef2, err := tb2.Bus.AddDirective(
 		link_solicit.NewSolicitProtocol(protocol.ID("proto/b"), nil, "", 0),
 		nil,
@@ -1306,12 +1377,15 @@ func TestSolicitProtocolNoMatch(t *testing.T) {
 // TestSolicitProtocolContextMismatch tests that same protocol ID but
 // different contexts don't match.
 func TestSolicitProtocolContextMismatch(t *testing.T) {
+	// Bound both peers while checking that distinct contexts do not match.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Start two testbeds for the context-mismatch case.
 	tb1 := buildTestbed(t, ctx)
 	tb2 := buildTestbed(t, ctx)
 
+	// Start and connect an inproc transport for each peer.
 	_, tp1, tp1Ref := startTransport(t, ctx, tb1, nil)
 	defer tp1Ref.Release()
 	_, tp2, tp2Ref := startTransport(t, ctx, tb2, &inproc.Config{
@@ -1323,14 +1397,17 @@ func TestSolicitProtocolContextMismatch(t *testing.T) {
 	})
 	defer tp2Ref.Release()
 
+	// Wire the two transports before starting solicitation.
 	tp1.ConnectToInproc(ctx, tp2)
 	tp2.ConnectToInproc(ctx, tp1)
 
+	// Start solicitation controllers on both peers.
 	scRef1 := startSolicitController(t, ctx, tb1)
 	defer scRef1.Release()
 	scRef2 := startSolicitController(t, ctx, tb2)
 	defer scRef2.Release()
 
+	// Establish the link used to exchange context-bound offers.
 	pid1 := tp1.GetPeerID()
 	_, lnkRel, err := link.EstablishLinkWithPeerEx(ctx, tb2.Bus, "", pid1, false)
 	if err != nil {
@@ -1348,6 +1425,7 @@ func TestSolicitProtocolContextMismatch(t *testing.T) {
 	}
 	defer diRef1.Release()
 
+	// Register the second peer's distinct context for the same protocol.
 	_, diRef2, err := tb2.Bus.AddDirective(
 		link_solicit.NewSolicitProtocol(protocol.ID("dex"), []byte("bucket-b"), "", 0),
 		nil,
@@ -1357,5 +1435,6 @@ func TestSolicitProtocolContextMismatch(t *testing.T) {
 	}
 	defer diRef2.Release()
 
+	// Report the context-mismatch result without waiting on timing.
 	t.Log("context mismatch test completed without panic or deadlock")
 }

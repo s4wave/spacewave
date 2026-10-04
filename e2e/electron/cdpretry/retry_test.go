@@ -19,11 +19,14 @@ func (p failingPage) Evaluate(string, ...any) (any, error) {
 	return nil, p.err
 }
 
+// TestEvaluateUserAgentReportsLastEvaluateError preserves the final page error.
 func TestEvaluateUserAgentReportsLastEvaluateError(t *testing.T) {
+	// Prepare the evaluation failure and a bounded retry context.
 	evaluateErr := errors.New("CDP execution context was destroyed")
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
 
+	// Exhaust retries against the page that keeps failing evaluation.
 	_, err := evaluateUserAgent(
 		ctx,
 		failingPage{err: evaluateErr},
@@ -49,11 +52,14 @@ func TestEvaluateUserAgentReportsLastEvaluateError(t *testing.T) {
 	}
 }
 
+// TestEvaluateUserAgentReportsContextAfterEvaluateError preserves cancellation.
 func TestEvaluateUserAgentReportsContextAfterEvaluateError(t *testing.T) {
+	// Prepare a failed page evaluation and an already-canceled context.
 	evaluateErr := errors.New("CDP execution context was destroyed")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
+	// Verify cancellation remains visible after page evaluation fails.
 	_, err := evaluateUserAgent(
 		ctx,
 		failingPage{err: evaluateErr},
@@ -87,9 +93,11 @@ func (p stringPage) Evaluate(string, ...any) (any, error) {
 // exists for. The renderer destroys its execution context during startup, so
 // the page handle the caller holds is dead and only a fresh one answers.
 func TestEvaluateUserAgentSucceedsOnTheReplacementPage(t *testing.T) {
+	// Track replacement fetches after the held page becomes unusable.
 	evaluateErr := errors.New("CDP execution context was destroyed")
 	waits := 0
 
+	// Confirm that a fresh page can satisfy the retry.
 	ua, err := evaluateUserAgent(
 		context.Background(),
 		failingPage{err: evaluateErr},
@@ -114,9 +122,11 @@ func TestEvaluateUserAgentSucceedsOnTheReplacementPage(t *testing.T) {
 // TestEvaluateUserAgentReportsReplacementFailure pins what happens when the
 // renderer never offers a usable page.
 func TestEvaluateUserAgentReportsReplacementFailure(t *testing.T) {
+	// Prepare distinct errors for evaluation and replacement-page lookup.
 	evaluateErr := errors.New("CDP execution context was destroyed")
 	waitErr := errors.New("no renderer page appeared")
 
+	// Verify replacement failure reports both the page and lookup errors.
 	_, err := evaluateUserAgent(
 		context.Background(),
 		failingPage{err: evaluateErr},

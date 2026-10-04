@@ -7,6 +7,7 @@ import (
 )
 
 func TestFindFromDirFindsBldrStar(t *testing.T) {
+	// Create a Bldr project marker and a nested debug directory.
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "bldr.star"), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
@@ -16,6 +17,7 @@ func TestFindFromDirFindsBldrStar(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Find the nearest project root from the nested debug path.
 	got, err := FindFromDir(child, 10)
 	if err != nil {
 		t.Fatal(err)
@@ -26,6 +28,7 @@ func TestFindFromDirFindsBldrStar(t *testing.T) {
 }
 
 func TestFindFromDirFindsBldrYaml(t *testing.T) {
+	// Create a Bldr YAML project marker and a nested command directory.
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "bldr.yaml"), []byte(""), 0o644); err != nil {
 		t.Fatal(err)
@@ -35,6 +38,7 @@ func TestFindFromDirFindsBldrYaml(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Find the project root from the nested debug command path.
 	got, err := FindFromDir(child, 10)
 	if err != nil {
 		t.Fatal(err)

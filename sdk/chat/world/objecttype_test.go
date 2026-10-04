@@ -8,6 +8,7 @@ import (
 )
 
 func TestChatChannelFactoryAllowsAnonymousReadResource(t *testing.T) {
+	// Prepare a context and test world for the chat factory.
 	ctx := t.Context()
 	wtb, err := db_world_testbed.Default(ctx)
 	if err != nil {
@@ -15,6 +16,7 @@ func TestChatChannelFactoryAllowsAnonymousReadResource(t *testing.T) {
 	}
 	t.Cleanup(wtb.Release)
 
+	// Create the world state and invoke the channel factory without credentials.
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	invoker, cleanup, err := ChatChannelFactory(
 		ctx,

@@ -41,6 +41,7 @@ func ReadWorkbenchRoot(ctx context.Context, ws world.WorldState, objectKey strin
 func ReadWorkbenchObjectRoot(ctx context.Context, obj world.ObjectState) (*Workbench, error) {
 	var workbench *Workbench
 	_, _, err := world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Decode the workbench root from the cursor.
 		var err error
 		workbench, err = block.UnmarshalBlock[*Workbench](ctx, bcs, NewWorkbenchBlock)
 		if err != nil {
@@ -68,6 +69,7 @@ func WriteWorkbenchRootRef(ctx context.Context, storage world.WorldStorage, work
 
 // SyncWorkbenchGraphQuads replaces the workbench's SQL graph links.
 func SyncWorkbenchGraphQuads(ctx context.Context, ws world.WorldState, objectKey string) error {
+	// Read the workbench root before synchronizing its graph links.
 	workbench, err := ReadWorkbenchRoot(ctx, ws, objectKey)
 	if err != nil {
 		return err

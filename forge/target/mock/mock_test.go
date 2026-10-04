@@ -9,6 +9,7 @@ import (
 )
 
 func TestTarget_YAML(t *testing.T) {
+	// Set up the controller bus that resolves the mock target.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -17,6 +18,7 @@ func TestTarget_YAML(t *testing.T) {
 	b := tb.Bus
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(b))
 
+	// Load the mock target and verify its controller identity.
 	tgt, err := ResolveMockTarget(ctx, b)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -28,6 +30,7 @@ func TestTarget_YAML(t *testing.T) {
 		t.Fatalf("unexpected controller id: %q", id)
 	}
 
+	// Resolve the mock controller config and verify its operations.
 	cc, err := tgt.GetExec().GetController().Resolve(ctx, b)
 	if err != nil {
 		t.Fatal(err.Error())

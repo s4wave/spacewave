@@ -28,6 +28,7 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(volume_bolt.NewFactory(b))
 	sr.AddFactory(volume_sqlite.NewFactory(b))
 
+	// Register factories shared across architecture-specific devtool sets.
 	addCommonFactories(b, sr)
 
 	// project
@@ -39,12 +40,15 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(cli_compiler.NewFactory(b))
 	sr.AddFactory(dist_compiler.NewFactory(b))
 
+	// Register the Go and JavaScript plugin compilers.
 	sr.AddFactory(plugin_compiler_go.NewFactory(b))
 	sr.AddFactory(plugin_compiler_js.NewFactory(b))
 
+	// Register the web package and plugin compilers.
 	sr.AddFactory(web_pkg_compiler.NewFactory(b))
 	sr.AddFactory(web_plugin_compiler.NewFactory(b))
 
+	// Register the esbuild and Vite bundler compilers.
 	sr.AddFactory(bldr_web_bundler_esbuild_compiler.NewFactory(b))
 	sr.AddFactory(bldr_web_bundler_vite_compiler.NewFactory(b))
 

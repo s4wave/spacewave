@@ -140,12 +140,14 @@ func (r *SpaceResource) WatchSpaceState(
 		// Build one SpaceState snapshot from a read transaction.
 		var state *s4wave_space.SpaceState
 		if err := func() error {
+			// Open the world read transaction that supplies this Space snapshot.
 			wtx, err := worldEng.NewTransaction(ctx, false)
 			if err != nil {
 				return errors.Wrap(err, "open world transaction")
 			}
 			defer wtx.Discard()
 
+			// Read and retain the transaction sequence for the next Space update.
 			prevWorldSeqno, err = wtx.GetSeqno(ctx)
 			if err != nil {
 				return errors.Wrap(err, "read world sequence")
@@ -377,6 +379,7 @@ func (r *SpaceResource) ApproveSpaceChange(
 
 // buildTransformInfo extracts redacted transform info from the shared object state.
 func (r *SpaceResource) buildTransformInfo(ctx context.Context) *s4wave_space.TransformInfo {
+	// Read the shared-object transform metadata used by SpaceState.
 	so := r.space.GetSharedObject()
 	snap, err := so.GetSharedObjectState(ctx)
 	if err != nil {
@@ -401,11 +404,13 @@ func (r *SpaceResource) transformInfoToProto(info *sobject.TransformInfo) *s4wav
 func (r *SpaceResource) accessMailboxProviderAccount(
 	ctx context.Context,
 ) (*provider_spacewave.ProviderAccount, func(), error) {
+	// Inspect the SharedObject provider before accessing its account.
 	ref := r.space.GetSharedObjectRef().GetProviderResourceRef()
 	if ref.GetProviderId() != "spacewave" {
 		return nil, nil, nil
 	}
 
+	// Access the provider account for a Spacewave-backed SharedObject.
 	provAcc, relProvAcc, err := provider.ExAccessProviderAccount(
 		ctx,
 		r.b,
@@ -418,6 +423,7 @@ func (r *SpaceResource) accessMailboxProviderAccount(
 		return nil, nil, err
 	}
 
+	// Keep the Spacewave provider account and release unsupported providers.
 	swAcc, ok := provAcc.(*provider_spacewave.ProviderAccount)
 	if !ok {
 		relProvAcc.Release()
@@ -431,14 +437,19 @@ func (r *SpaceResource) AccessWorld(
 	ctx context.Context,
 	req *s4wave_space.AccessWorldRequest,
 ) (*s4wave_space.AccessWorldResponse, error) {
+	// Resolve the caller resource context before publishing an Engine capability.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Create an Engine resource with this Space session authority.
 	worldResource, err := r.NewWorldEngineResource()
 	if err != nil {
 		return nil, err
 	}
+
+	// Attach the Engine resource to the caller and close it if attachment fails.
 	id, err := resourceCtx.AddResourceValue(worldResource.GetMux(), worldResource, worldResource.Close)
 	if err != nil {
 		worldResource.Close()
@@ -451,6 +462,7 @@ func (r *SpaceResource) AccessWorld(
 // NewWorldEngineResource carries this mounted Space's session authority into an
 // Engine capability. The receiving Resource connection owns the capability.
 func (r *SpaceResource) NewWorldEngineResource() (*resource_world.EngineResource, error) {
+	// Decode the mounted session peer ID for the new World engine capability.
 	sessionPeerID := peer.ID("")
 	if r.sessionPeerID != "" {
 		var err error
@@ -460,6 +472,7 @@ func (r *SpaceResource) NewWorldEngineResource() (*resource_world.EngineResource
 		}
 	}
 
+	// Build the Space lookup operation and engine metadata for the capability.
 	lookupOp := space_world_optypes.BuildSpaceLookupOp(r.b, r.le, r.space.GetWorldEngineID())
 	engineInfo := &s4wave_world.EngineInfo{
 		EngineId: r.space.GetWorldEngineID(),
@@ -800,20 +813,24 @@ func loadSharingParticipantPresentationState(
 	swAcc *provider_spacewave.ProviderAccount,
 	soID string,
 ) *sharingstate.ParticipantPresentation {
+	// Start with an empty participant-presentation state for unsupported providers.
 	state := &sharingstate.ParticipantPresentation{}
 	if swAcc == nil {
 		return state
 	}
 
+	// Copy the current account and entity identities into the presentation state.
 	if accountState := swAcc.AccountStateSnapshot(); accountState != nil {
 		state.SelfAccountID = accountState.GetAccountId()
 		state.SelfEntityID = accountState.GetEntityId()
 	}
 
+	// Return the account identity when no SharedObject can supply organization data.
 	if soID == "" {
 		return state
 	}
 
+	// Resolve the SharedObject organization from the account cache or metadata.
 	orgID, ok := swAcc.GetCachedSharedObjectOrganizationID(soID)
 	if !ok {
 		meta, err := swAcc.GetSharedObjectMetadata(ctx, soID)
@@ -827,6 +844,7 @@ func loadSharingParticipantPresentationState(
 		orgID = meta.GetOwnerId()
 	}
 
+	// Load organization members to map account identities to display labels.
 	orgInfo, _, _, err := swAcc.GetOrganizationSnapshot(ctx, orgID)
 	if err != nil {
 		le.WithError(err).WithField("org-id", orgID).Warn("failed to load organization snapshot for participant presentation")
@@ -836,6 +854,7 @@ func loadSharingParticipantPresentationState(
 		return state
 	}
 
+	// Build labels from the organization members with complete identities.
 	state.AccountLabels = make(map[string]string, len(orgInfo.GetMembers()))
 	for _, member := range orgInfo.GetMembers() {
 		accountID := member.GetSubjectId()

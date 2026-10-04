@@ -16,10 +16,13 @@ import (
 // memory alone excludes the page cache and collapses the budget to its minimum
 // on any host that has been reading files.
 func availableHostMemoryBytes() (uint64, error) {
+	// Read Linux's reclaimable-memory estimate from /proc/meminfo.
 	data, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
 		return 0, err
 	}
+
+	// Find MemAvailable and convert its KiB value to bytes.
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		fields := bytes.Fields(scanner.Bytes())

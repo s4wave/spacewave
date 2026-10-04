@@ -49,6 +49,7 @@ func startUnixProxyWithDial(
 	targetPath string,
 	dial proxyDialFunc,
 ) (*unixProxy, error) {
+	// Create and secure a private directory for the Resource socket.
 	dir, err := os.MkdirTemp("", "spacewave-tui-")
 	if err != nil {
 		return nil, errors.Wrap(err, "create TUI runtime directory")
@@ -57,6 +58,8 @@ func startUnixProxyWithDial(
 		_ = os.RemoveAll(dir)
 		return nil, errors.Wrap(err, "secure TUI runtime directory")
 	}
+
+	// Create and secure the private Unix listener.
 	path := filepath.Join(dir, "resource.sock")
 	listener, err := net.Listen("unix", path)
 	if err != nil {
@@ -68,6 +71,8 @@ func startUnixProxyWithDial(
 		_ = os.RemoveAll(dir)
 		return nil, errors.Wrap(err, "secure private Resource socket")
 	}
+
+	// Start the proxy with tracked connections and its own cancellation context.
 	proxyCtx, cancel := context.WithCancel(ctx)
 	proxy := &unixProxy{
 		listener:    listener,
@@ -95,8 +100,10 @@ func (p *unixProxy) close() error {
 }
 
 func (p *unixProxy) closeLaunch() error {
+	// Stop accepting work through the proxy context.
 	p.cancel()
 
+	// Mark the proxy closed and snapshot active connections under its mutex.
 	p.mu.Lock()
 	p.closed = true
 	connections := make([]*proxyConnection, 0, len(p.connections))
@@ -105,6 +112,7 @@ func (p *unixProxy) closeLaunch() error {
 	}
 	p.mu.Unlock()
 
+	// Close all sockets, wait for serving goroutines, and remove the socket directory.
 	var closeErr error
 	if err := p.listener.Close(); err != nil && !stderrors.Is(err, net.ErrClosed) {
 		closeErr = stderrors.Join(closeErr, err)
@@ -165,6 +173,7 @@ func (p *unixProxy) serve(ctx context.Context, targetPath string) {
 }
 
 func (p *unixProxy) serveConnection(connection *proxyConnection) {
+	// Release the serving-worker count and remove this connection on return.
 	defer p.wg.Done()
 	defer func() {
 		p.mu.Lock()
@@ -172,6 +181,7 @@ func (p *unixProxy) serveConnection(connection *proxyConnection) {
 		p.mu.Unlock()
 	}()
 
+	// Copy both directions and close the connection pair after either side ends.
 	copyDone := make(chan struct{}, 2)
 	go proxyCopy(connection.target, connection.client, copyDone)
 	go proxyCopy(connection.client, connection.target, copyDone)

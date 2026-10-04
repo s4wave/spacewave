@@ -10,6 +10,7 @@ import (
 )
 
 func TestBuildBoundsAndRoutesToApp(t *testing.T) {
+	// Build more session rows than the desktop navigation limit.
 	rows := make([]*Row, 0, maxProjectedSpaces+1)
 	for i := 1; i <= maxProjectedSpaces+1; i++ {
 		rows = append(rows, &Row{
@@ -19,7 +20,10 @@ func TestBuildBoundsAndRoutesToApp(t *testing.T) {
 		})
 	}
 
+	// Project the rows into desktop navigation items.
 	projection := Build(rows)
+
+	// Assert the projection is capped and preserves its app route and status.
 	if len(projection) != maxProjectedSpaces {
 		t.Fatalf("space rows = %d, want %d", len(projection), maxProjectedSpaces)
 	}
@@ -36,12 +40,15 @@ func TestBuildBoundsAndRoutesToApp(t *testing.T) {
 }
 
 func TestBuildSessionSpacesFiltersCdnSpace(t *testing.T) {
+	// Filter a CDN space while retaining an ordinary session space.
 	spaces, err := BuildSessionSpaces(&sobject.SharedObjectList{
 		SharedObjects: []*sobject.SharedObjectListEntry{
 			testSpaceEntry("regular", "Regular", "created").GetEntry(),
 			testSpaceEntry("excluded-cdn", "CDN", "created").GetEntry(),
 		},
 	}, "excluded-cdn")
+
+	// Assert only the ordinary space remains in the projection.
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,13 +61,17 @@ func TestBuildSessionSpacesFiltersCdnSpace(t *testing.T) {
 }
 
 func TestReadSnapshotAllowsMissingInitialList(t *testing.T) {
+	// Provide a watchable whose initial SharedObject list is nil.
 	watchable := &initialNilSharedObjectListWatchable{next: &sobject.SharedObjectList{
 		SharedObjects: []*sobject.SharedObjectListEntry{
 			testSpaceEntry("regular", "Regular", "created").GetEntry(),
 		},
 	}}
 
+	// Read the current snapshot without waiting for a future list value.
 	soList, spaces, err := ReadSnapshot(watchable)
+
+	// Assert a missing initial list returns immediately with no spaces.
 	if err != nil {
 		t.Fatal(err)
 	}

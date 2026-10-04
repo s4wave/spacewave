@@ -30,6 +30,7 @@ func (r *recordingInvoker) InvokeMethod(serviceID, methodID string, strm srpc.St
 }
 
 func (r *recordingInvoker) getCalls() []invokerCall {
+	// Copy the recording invoker call log while holding its mutex.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	out := make([]invokerCall, len(r.calls))
@@ -67,6 +68,7 @@ func (c *recordingClient) NewStream(ctx context.Context, service, method string,
 }
 
 func (c *recordingClient) getCalls() []clientCall {
+	// Copy the recording client call log while holding its mutex.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	out := make([]clientCall, len(c.calls))
@@ -77,10 +79,12 @@ func (c *recordingClient) getCalls() []clientCall {
 // --- RoutedInvoker tests ---
 
 func TestRoutedInvoker_HappyPath(t *testing.T) {
+	// Set up a mux with a recording invoker.
 	ri := NewRoutedInvoker()
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(42, inv)
 
+	// Invoke the mux through a resource-prefixed service ID.
 	found, err := ri.InvokeMethod("42/foo.Service", "Bar", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -89,6 +93,7 @@ func TestRoutedInvoker_HappyPath(t *testing.T) {
 		t.Fatal("expected found=true")
 	}
 
+	// Inspect the call recorded by the mux invoker.
 	calls := inv.getCalls()
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 call, got %d", len(calls))
@@ -102,10 +107,12 @@ func TestRoutedInvoker_HappyPath(t *testing.T) {
 }
 
 func TestRoutedInvoker_NoSlashReturnsFalse(t *testing.T) {
+	// Set up a mux for a service ID without a slash.
 	ri := NewRoutedInvoker()
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(1, inv)
 
+	// Invoke the router with a service ID that has no mux prefix.
 	found, err := ri.InvokeMethod("no-slash-here", "Method", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -119,10 +126,12 @@ func TestRoutedInvoker_NoSlashReturnsFalse(t *testing.T) {
 }
 
 func TestRoutedInvoker_NonNumericPrefixReturnsFalse(t *testing.T) {
+	// Set up a mux for a nonnumeric resource prefix.
 	ri := NewRoutedInvoker()
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(1, inv)
 
+	// Invoke the router with a nonnumeric resource prefix.
 	found, err := ri.InvokeMethod("abc/foo.Service", "Method", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -148,6 +157,7 @@ func TestRoutedInvoker_MuxNotFoundReturnsError(t *testing.T) {
 }
 
 func TestRoutedInvoker_SetMuxRegisters(t *testing.T) {
+	// Create a router before registering its mux.
 	ri := NewRoutedInvoker()
 
 	// Before SetMux, the mux should not be found.
@@ -159,9 +169,11 @@ func TestRoutedInvoker_SetMuxRegisters(t *testing.T) {
 		t.Fatalf("got error %v, want %v", err, ErrResourceNotFound)
 	}
 
+	// Register the recording invoker for resource 7.
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(7, inv)
 
+	// Invoke the route after registering its mux.
 	found, err = ri.InvokeMethod("7/svc", "m", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -175,6 +187,7 @@ func TestRoutedInvoker_SetMuxRegisters(t *testing.T) {
 }
 
 func TestRoutedInvoker_RemoveMux(t *testing.T) {
+	// Set up a registered mux before removing it.
 	ri := NewRoutedInvoker()
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(5, inv)
@@ -188,8 +201,10 @@ func TestRoutedInvoker_RemoveMux(t *testing.T) {
 		t.Fatal("expected found=true before RemoveMux")
 	}
 
+	// Remove resource 5 from the routed invoker.
 	ri.RemoveMux(5)
 
+	// Invoke the route after removing its mux.
 	found, err = ri.InvokeMethod("5/svc", "m", nil)
 	if found {
 		t.Fatal("expected found=false after RemoveMux")
@@ -200,13 +215,16 @@ func TestRoutedInvoker_RemoveMux(t *testing.T) {
 }
 
 func TestRoutedInvoker_SetMuxReplaces(t *testing.T) {
+	// Prepare old and replacement invokers for one resource ID.
 	ri := NewRoutedInvoker()
 	inv1 := &recordingInvoker{retFound: true}
 	inv2 := &recordingInvoker{retFound: true}
 
+	// Replace the invoker registered for resource 3.
 	ri.SetMux(3, inv1)
 	ri.SetMux(3, inv2)
 
+	// Invoke resource 3 after replacing its mux.
 	found, err := ri.InvokeMethod("3/svc", "m", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -215,6 +233,7 @@ func TestRoutedInvoker_SetMuxReplaces(t *testing.T) {
 		t.Fatal("expected found=true")
 	}
 
+	// Verify that the replaced invoker received no call.
 	if len(inv1.getCalls()) != 0 {
 		t.Fatal("old invoker should not have been called")
 	}
@@ -224,13 +243,16 @@ func TestRoutedInvoker_SetMuxReplaces(t *testing.T) {
 }
 
 func TestRoutedInvoker_MultipleMuxes(t *testing.T) {
+	// Prepare recording invokers for two resource IDs.
 	ri := NewRoutedInvoker()
 	inv1 := &recordingInvoker{retFound: true}
 	inv2 := &recordingInvoker{retFound: true}
 
+	// Register both resource IDs with the routed invoker.
 	ri.SetMux(10, inv1)
 	ri.SetMux(20, inv2)
 
+	// Invoke the first resource and check its route.
 	found, err := ri.InvokeMethod("10/svcA", "methodA", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -239,6 +261,7 @@ func TestRoutedInvoker_MultipleMuxes(t *testing.T) {
 		t.Fatal("expected found=true for mux 10")
 	}
 
+	// Invoke the second resource and check its route.
 	found, err = ri.InvokeMethod("20/svcB", "methodB", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -247,6 +270,7 @@ func TestRoutedInvoker_MultipleMuxes(t *testing.T) {
 		t.Fatal("expected found=true for mux 20")
 	}
 
+	// Collect each invoker call log for the routing assertions.
 	calls1 := inv1.getCalls()
 	calls2 := inv2.getCalls()
 	if len(calls1) != 1 || calls1[0].serviceID != "svcA" {
@@ -258,11 +282,13 @@ func TestRoutedInvoker_MultipleMuxes(t *testing.T) {
 }
 
 func TestRoutedInvoker_PropagatesMuxError(t *testing.T) {
+	// Configure a mux to return a resource error.
 	ri := NewRoutedInvoker()
 	muxErr := ErrInvalidResourceID
 	inv := &recordingInvoker{retFound: true, retErr: muxErr}
 	ri.SetMux(1, inv)
 
+	// Invoke the mux and capture its returned result.
 	found, err := ri.InvokeMethod("1/svc", "m", nil)
 	if !found {
 		t.Fatal("expected found=true (propagated from mux)")
@@ -273,10 +299,12 @@ func TestRoutedInvoker_PropagatesMuxError(t *testing.T) {
 }
 
 func TestRoutedInvoker_EmptyServiceAfterSlash(t *testing.T) {
+	// Set up a mux to handle a service with an empty suffix.
 	ri := NewRoutedInvoker()
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(1, inv)
 
+	// Invoke the route with an empty service suffix.
 	found, err := ri.InvokeMethod("1/", "m", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -291,10 +319,12 @@ func TestRoutedInvoker_EmptyServiceAfterSlash(t *testing.T) {
 }
 
 func TestRoutedInvoker_NestedSlash(t *testing.T) {
+	// Set up a mux for a service containing nested slashes.
 	ri := NewRoutedInvoker()
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(1, inv)
 
+	// Invoke the route with a nested service path.
 	found, err := ri.InvokeMethod("1/foo/bar", "m", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -327,11 +357,13 @@ func TestRoutedInvoker_ConcurrentSetRemove(t *testing.T) {
 }
 
 func TestRoutedInvoker_ConcurrentInvoke(t *testing.T) {
+	// Register resource IDs before issuing concurrent routed calls.
 	ri := NewRoutedInvoker()
 	for i := range 10 {
 		ri.SetMux(uint32(i), &recordingInvoker{retFound: true})
 	}
 
+	// Run routed calls concurrently and wait for every caller.
 	var wg sync.WaitGroup
 	for i := range 10 {
 		id := uint32(i)
@@ -346,14 +378,17 @@ func TestRoutedInvoker_ConcurrentInvoke(t *testing.T) {
 // --- NewRoutedClient tests ---
 
 func TestRoutedClient_ExecCallPrependsPrefix(t *testing.T) {
+	// Create a recording client for the prefixed ExecCall.
 	rec := &recordingClient{}
 	rc := NewRoutedClient(rec, 42)
 
+	// Execute the call through the routed client.
 	err := rc.ExecCall(context.Background(), "foo.Service", "Bar", nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Inspect the service and method recorded by the client.
 	calls := rec.getCalls()
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 call, got %d", len(calls))
@@ -370,14 +405,17 @@ func TestRoutedClient_ExecCallPrependsPrefix(t *testing.T) {
 }
 
 func TestRoutedClient_NewStreamPrependsPrefix(t *testing.T) {
+	// Create a recording client for the prefixed stream.
 	rec := &recordingClient{}
 	rc := NewRoutedClient(rec, 7)
 
+	// Open a stream through the routed client.
 	_, err := rc.NewStream(context.Background(), "my.Svc", "DoThing", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Inspect the service and method recorded by the client.
 	calls := rec.getCalls()
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 call, got %d", len(calls))
@@ -394,12 +432,15 @@ func TestRoutedClient_NewStreamPrependsPrefix(t *testing.T) {
 }
 
 func TestRoutedClient_MethodPassesThrough(t *testing.T) {
+	// Create a recording client for both pass-through methods.
 	rec := &recordingClient{}
 	rc := NewRoutedClient(rec, 1)
 
+	// Invoke ExecCall and NewStream with their original methods.
 	rc.ExecCall(context.Background(), "svc", "MyMethod", nil, nil)
 	rc.NewStream(context.Background(), "svc", "OtherMethod", nil)
 
+	// Inspect both method names recorded by the client.
 	calls := rec.getCalls()
 	if len(calls) != 2 {
 		t.Fatalf("expected 2 calls, got %d", len(calls))
@@ -413,11 +454,14 @@ func TestRoutedClient_MethodPassesThrough(t *testing.T) {
 }
 
 func TestRoutedClient_ZeroResourceID(t *testing.T) {
+	// Create a routed client with resource ID zero.
 	rec := &recordingClient{}
 	rc := NewRoutedClient(rec, 0)
 
+	// Execute a call through the zero-ID routed client.
 	rc.ExecCall(context.Background(), "svc", "m", nil, nil)
 
+	// Inspect the service ID produced for resource zero.
 	calls := rec.getCalls()
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 call, got %d", len(calls))
@@ -428,11 +472,14 @@ func TestRoutedClient_ZeroResourceID(t *testing.T) {
 }
 
 func TestRoutedClient_LargeResourceID(t *testing.T) {
+	// Create a routed client with the largest uint32 resource ID.
 	rec := &recordingClient{}
 	rc := NewRoutedClient(rec, 4294967295) // max uint32
 
+	// Execute a call through the maximum-ID routed client.
 	rc.ExecCall(context.Background(), "svc", "m", nil, nil)
 
+	// Inspect the service ID produced for the maximum resource ID.
 	calls := rec.getCalls()
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 call, got %d", len(calls))
@@ -465,6 +512,7 @@ func TestRoutedClient_PropagatesStreamError(t *testing.T) {
 // --- Roundtrip: NewRoutedClient -> RoutedInvoker ---
 
 func TestRoutedRoundtrip(t *testing.T) {
+	// Register the invoker used to test a complete routed roundtrip.
 	ri := NewRoutedInvoker()
 	inv := &recordingInvoker{retFound: true}
 	ri.SetMux(99, inv)

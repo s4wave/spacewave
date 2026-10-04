@@ -10,6 +10,7 @@ import (
 )
 
 func TestProcessBindingWriteRetriesRealTransaction(t *testing.T) {
+	// Prepare a store that fails its first commit and a binding to persist.
 	ctx := context.Background()
 	store := kvtest.NewFaultStore(
 		hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]()),
@@ -21,6 +22,7 @@ func TestProcessBindingWriteRetriesRealTransaction(t *testing.T) {
 		TypeId:    "type-id",
 	}
 
+	// Persist the binding and verify that the transaction retry reached storage.
 	if err := SetProcessBinding(ctx, store, "space-id", binding.GetObjectKey(), binding); err != nil {
 		t.Fatal(err)
 	}
@@ -34,6 +36,7 @@ func TestProcessBindingWriteRetriesRealTransaction(t *testing.T) {
 		t.Fatalf("delegated commits = %d, want 1", got)
 	}
 
+	// Read the binding back directly and through the space listing.
 	got, err := GetProcessBinding(ctx, store, "space-id", binding.GetObjectKey())
 	if err != nil {
 		t.Fatal(err)
@@ -51,6 +54,7 @@ func TestProcessBindingWriteRetriesRealTransaction(t *testing.T) {
 }
 
 func TestDeleteProcessBindingKeepsNewerDecision(t *testing.T) {
+	// Prepare stale and current decisions for the same process binding.
 	ctx := context.Background()
 	store := hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 	stale := &s4wave_process.ProcessBinding{
@@ -60,6 +64,8 @@ func TestDeleteProcessBindingKeepsNewerDecision(t *testing.T) {
 	}
 	newer := stale.CloneVT()
 	newer.State = s4wave_process.ProcessBindingState_ProcessBindingState_UNAPPROVED
+
+	// Store the newer decision before attempting to delete the stale record.
 	if err := SetProcessBinding(ctx, store, "space-id", newer.GetObjectKey(), newer); err != nil {
 		t.Fatal(err)
 	}
@@ -76,6 +82,7 @@ func TestDeleteProcessBindingKeepsNewerDecision(t *testing.T) {
 		t.Fatalf("binding = %v, want %v", got, newer)
 	}
 
+	// Delete the current decision and verify that the record is absent.
 	if err := DeleteProcessBinding(ctx, store, "space-id", newer); err != nil {
 		t.Fatal(err)
 	}

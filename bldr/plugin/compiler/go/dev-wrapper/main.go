@@ -32,16 +32,21 @@ func main() {
 }
 
 func run() error {
+	// Resolve the source directory used by child processes.
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
+	// Configure the command runner for the current plugin source.
 	srcDir := wd
 	runCmd := func(entry string, withStdio bool, args ...string) error {
+		// Prepare each child command with its arguments and execution directory.
 		ecmd := exec.Command(entry, args...)
 		ecmd.Env = append(os.Environ(), BuildEnv...)
 		ecmd.Dir = srcDir
+
+		// Connect the child to the selected standard streams.
 		if withStdio {
 			ecmd.Stdin = os.Stdin
 			ecmd.Stdout = os.Stdout
@@ -49,10 +54,14 @@ func run() error {
 			ecmd.Stdout = os.Stderr
 		}
 		ecmd.Stderr = os.Stderr
+
+		// Log and start the configured child process.
 		os.Stderr.WriteString(ecmd.String() + "\n")
 		if err := ecmd.Start(); err != nil {
 			return err
 		}
+
+		// Forward interrupts until the child process finishes.
 		subCtx, subCtxCancel := context.WithCancel(context.Background())
 		defer subCtxCancel()
 		go func() {
@@ -68,13 +77,17 @@ func run() error {
 				}
 			}
 		}()
+
+		// Stop the child process after its command finishes, then wait for exit.
 		defer func() {
 			_ = ecmd.Process.Kill()
 		}()
 		return ecmd.Wait()
 	}
 
+	// Honor the wait mode by blocking for a manual plugin launch.
 	if DelveAddr == "wait" {
+		// Wait for an interrupt when the plugin entrypoint is launched manually.
 		if os.Args[len(os.Args)-1] == "exec-plugin" {
 			os.Stderr.WriteString("Waiting for you to manually run the plugin entrypoint.\n")
 			ch := make(chan os.Signal, 1)
@@ -83,6 +96,7 @@ func run() error {
 			return nil
 		}
 
+		// Run Delve interactively for the plugin entrypoint.
 		// run interactively
 		return runCmd(
 			"dlv", true,
@@ -93,6 +107,7 @@ func run() error {
 		)
 	}
 
+	// Start Delve in headless mode when a debug address is configured.
 	if DelveAddr != "" {
 		return runCmd(
 			"dlv", true,
@@ -107,19 +122,23 @@ func run() error {
 		)
 	}
 
+	// Add the platform executable suffix for Windows builds.
 	var executableSuffix string
 	if runtime.GOOS == "windows" {
 		executableSuffix = ".exe"
 	}
 
+	// Build the plugin executable with the compiler-provided flags.
 	binPath := strings.Join([]string{".", string(os.PathSeparator), "plugin", executableSuffix}, "")
 	goArgs := []string{"build", "-o", binPath}
 	goArgs = append(goArgs, BuildFlags...)
 
+	// Compile the plugin before running it.
 	if err := runCmd("go", false, goArgs...); err != nil {
 		return err
 	}
 
+	// Launch the newly built plugin entrypoint.
 	return runCmd(binPath, true, "exec-plugin")
 }
 
@@ -154,14 +173,17 @@ func quote(word string, buf *bytes.Buffer) {
 	// with a space because it's typically easier for people to read multi-word
 	// arguments when quoted with a space rather than with ugly backslashes
 	// everywhere.
+	// Preserve the buffer boundary for resetting to whole-word quotes.
 	origLen := buf.Len()
 
+	// Emit an empty shell argument as two single quotes.
 	if len(word) == 0 {
 		// oops, no content
 		buf.WriteString("''")
 		return
 	}
 
+	// Escape shell-special runes while preserving readable arguments.
 	cur, prev := word, word
 	atStart := true
 	for len(cur) > 0 {
@@ -187,6 +209,7 @@ func quote(word string, buf *bytes.Buffer) {
 	}
 	return
 
+	// Rebuild the argument in single-quoted mode after whitespace requires it.
 quote:
 	// quote mode
 	// Use single-quotes, but if we find a single-quote in the word, we need

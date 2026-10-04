@@ -21,14 +21,17 @@ import (
 // TestResolveSpaceRetainsEngineMount tests that ResolveSpace keeps the mounted
 // world engine alive until its cleanup function releases the mount reference.
 func TestResolveSpaceRetainsEngineMount(t *testing.T) {
+	// Create a context for the local session and engine-mount test.
 	ctx := context.Background()
 
+	// Start the in-memory testbed and release it when the test ends.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Register the local provider and Space engine factories for this test.
 	peerID := tb.Volume.GetPeerID()
 
 	// Register factories.
@@ -72,6 +75,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	}
 	defer provRef.Release()
 
+	// Create a local account session through the configured provider.
 	localProv := prov.(*provider_local.Provider)
 	sessRef, err := localProv.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
@@ -85,6 +89,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	}
 	defer sessCtrlLookupRef.Release()
 
+	// Register the session with the session controller.
 	entry, err := sessCtrl.RegisterSession(ctx, sessRef, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -99,11 +104,13 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	}
 	defer provAccRef.Release()
 
+	// Get the SharedObject provider feature for the local account.
 	wsProv, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Create the Space SharedObject whose engine mount the test retains.
 	sharedObjectID := "test-space"
 	soRef, err := wsProv.CreateSharedObject(ctx, sharedObjectID, &sobject.SharedObjectMeta{
 		BodyType: "space",
@@ -112,6 +119,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Record the expected engine ID and create an independent Space mount.
 	engineID := space.SpaceEngineId(soRef)
 	attachedMount, mountInstance, mountRef, err := bus.ExecOneOffTyped[space.MountSharedObjectBodyValue](
 		ctx,
@@ -128,6 +136,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 		t.Fatalf("expected mounted engine ID %q, got %q", engineID, mounted.GetSharedObjectBody().GetWorldEngineID())
 	}
 
+	// Resolve the same session and SharedObject through ResolveSpace.
 	resolved, cleanup, err := space_resolve.ResolveSpace(
 		ctx,
 		tb.Bus,
@@ -142,6 +151,7 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	// ResolveSpace's mount keeps the engine alive after the pre-existing mount releases.
 	mountRef.Release()
 
+	// Verify the resolved engine and reference remain available after the first mount releases.
 	if resolved.Engine == nil {
 		t.Fatal("resolved engine is nil")
 	}
@@ -152,12 +162,14 @@ func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 		t.Fatal("resolved ref is nil")
 	}
 
+	// Open a transaction through the retained resolved engine.
 	tx, err := resolved.Engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("use engine after unrelated mount release: %v", err)
 	}
 	tx.Discard()
 
+	// Release ResolveSpace and verify the Space body mount closes.
 	cleanup()
 	if !mountInstance.CloseIfUnreferenced(true) {
 		t.Fatal("ResolveSpace cleanup did not release the space body mount")

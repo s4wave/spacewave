@@ -30,11 +30,14 @@ func ReadTableViewRoot(ctx context.Context, ws world.WorldState, objectKey strin
 func ReadTableViewObjectRoot(ctx context.Context, obj world.ObjectState) (*TableView, error) {
 	var tableView *TableView
 	_, _, err := world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Decode the table view root from the object block cursor.
 		var err error
 		tableView, err = block.UnmarshalBlock[*TableView](ctx, bcs, NewTableViewBlock)
 		if err != nil {
 			return err
 		}
+
+		// Require the object to contain a table view root.
 		if tableView == nil {
 			return world.ErrObjectNotFound
 		}
@@ -48,10 +51,13 @@ func ReadTableViewObjectRoot(ctx context.Context, obj world.ObjectState) (*Table
 
 // SyncTableViewGraphQuads replaces the table view's target schema graph link.
 func SyncTableViewGraphQuads(ctx context.Context, ws world.WorldState, objectKey string) error {
+	// Read the table view root that defines the target schema.
 	tableView, err := ReadTableViewRoot(ctx, ws, objectKey)
 	if err != nil {
 		return err
 	}
+
+	// Load the current graph links from this view to schemas.
 	quads, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys(objectKey, s4wave_sql.PredSqlTableViewAgainstSchema.String(), "", ""),
@@ -60,14 +66,20 @@ func SyncTableViewGraphQuads(ctx context.Context, ws world.WorldState, objectKey
 	if err != nil {
 		return err
 	}
+
+	// Remove every previous target-schema link.
 	for _, q := range quads {
 		if err := ws.DeleteGraphQuad(ctx, q); err != nil {
 			return err
 		}
 	}
+
+	// Leave the graph unlinked when the view has no target schema.
 	if tableView.GetTargetSchemaObjectKey() == "" {
 		return nil
 	}
+
+	// Link the view to its configured target schema.
 	return ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(
 		objectKey,
 		s4wave_sql.PredSqlTableViewAgainstSchema.String(),

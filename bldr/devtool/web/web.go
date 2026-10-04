@@ -34,10 +34,12 @@ const HostVolumeServiceIDPrefix = "devtool-volume/"
 
 // Validate validates the DevtoolInitBrowser.
 func (i *DevtoolInitBrowser) Validate() error {
+	// Require the browser initialization request to identify its app.
 	if i.GetAppId() == "" {
 		return errors.New("app id cannot be empty")
 	}
 
+	// Decode the devtool peer ID and reject an empty peer.
 	pid, err := i.ParsePeerID()
 	if err == nil && pid == "" {
 		err = peer.ErrEmptyPeerID
@@ -46,6 +48,7 @@ func (i *DevtoolInitBrowser) Validate() error {
 		return errors.Wrap(err, "devtool_peer_id")
 	}
 
+	// Validate the devtool volume information supplied by the browser.
 	if err := i.GetDevtoolVolumeInfo().Validate(); err != nil {
 		return errors.Wrap(err, "devtool_volume_info")
 	}

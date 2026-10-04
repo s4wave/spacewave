@@ -22,6 +22,7 @@ var NewCmd = uexec.NewCmd
 // message at the top and a bare frame such as "at processTicksAndRejections" at
 // the bottom, so the upstream last-line-only interpretation swallows the cause.
 func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
+	// Capture the child's complete stderr while configuring its output streams.
 	var stderrBuf bytes.Buffer
 	if ecmd.Process == nil {
 		stderrLogger := le.WriterLevel(logrus.DebugLevel)
@@ -37,11 +38,13 @@ func StartAndWait(ctx context.Context, le *logrus.Entry, ecmd *exec.Cmd) error {
 		}
 	}
 
+	// Wait for the started process without blocking cancellation handling.
 	outErr := make(chan error, 1)
 	go func() {
 		outErr <- ecmd.Wait()
 	}()
 
+	// Return the process result or stop it when the context is canceled.
 	select {
 	case <-ctx.Done():
 		_ = ecmd.Process.Kill()

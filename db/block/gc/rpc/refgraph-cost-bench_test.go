@@ -46,12 +46,15 @@ func newBenchmarkRPCRefGraph(
 	ctx context.Context,
 	edgeCount, iteration int,
 ) (block_gc.RefGraphOps, func()) {
+	// Start a fresh in-memory graph for the benchmark sample.
 	b.Helper()
 	store := store_kvtx_inmem.NewStore()
 	serverGraph, err := block_gc.NewRefGraph(ctx, store, []byte("gc/"))
 	if err != nil {
 		b.Fatal(err)
 	}
+
+	// Register the graph behind the real SRPC client and server.
 	mux := srpc.NewMux()
 	if err := block_gc_rpc.SRPCRegisterRefGraph(mux, block_gc_rpc_server.NewRefGraph(serverGraph)); err != nil {
 		serverGraph.Close()
@@ -61,6 +64,8 @@ func newBenchmarkRPCRefGraph(
 	openStream := srpc.NewServerPipe(server)
 	client := srpc.NewClient(openStream)
 	rg := block_gc_rpc_client.NewRefGraph(block_gc_rpc.NewSRPCRefGraphClient(client))
+
+	// Seed the edges that the benchmark will remove.
 	removes := benchmarkRemoves(edgeCount, iteration)
 	for i, edge := range removes {
 		if i%2 == 0 {

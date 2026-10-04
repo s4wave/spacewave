@@ -92,14 +92,19 @@ func Promote(ctx context.Context, opts Options) error {
 
 // FetchSourceHeadRef reads the source SO snapshot and decodes its World head ref.
 func FetchSourceHeadRef(ctx context.Context, client SessionClient, spaceID string) (*bucket.ObjectRef, error) {
+	// Read the source Space state through its session client.
 	stateData, err := client.GetSOState(ctx, spaceID, 0, spacewave_provider.SeedReasonColdSeed)
 	if err != nil {
 		return nil, errors.Wrap(err, "get source state")
 	}
+
+	// Decode the source state message before inspecting its content.
 	state := &api.SOStateMessage{}
 	if err := state.UnmarshalVT(stateData); err != nil {
 		return nil, errors.Wrap(err, "unmarshal source state")
 	}
+
+	// Require the source snapshot before extracting its World head.
 	snapshot := state.GetSnapshot()
 	if snapshot == nil {
 		return nil, errors.Errorf("expected source state snapshot, got %s", getSOStateMessageContentCase(state))

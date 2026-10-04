@@ -14,16 +14,19 @@ import (
 
 // TestVisit tests visiting a simple block graph.
 func TestVisit(t *testing.T) {
+	// Create logging context for the block traversal testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the block storage testbed used by the traversal.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Read the testbed Volume and its identifier for the bucket config.
 	vol := tb.Volume
 	volID := vol.GetID()
 
@@ -39,6 +42,7 @@ func TestVisit(t *testing.T) {
 	t.Log(volID)
 	_ = bc
 
+	// Open a read-write operation on the test bucket.
 	bk, bhRel, err := bucket_lookup.StartBucketRWOperation(
 		ctx,
 		tb.Bus,
@@ -55,6 +59,7 @@ func TestVisit(t *testing.T) {
 	// store the root block.
 	var rootBlock *block.BlockRef
 	if err := func() (err error) {
+		// Write the leaf and root records that Visit will traverse.
 		rb := &block_mock.Root{}
 		rb.ExampleSubBlock = &block_mock.SubBlock{}
 		sb := rb.ExampleSubBlock

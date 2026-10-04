@@ -8,6 +8,7 @@ import (
 )
 
 func TestBuildMapsActiveSync(t *testing.T) {
+	// Verify active uploads expose direction, progress, and running state.
 	projection := Build([]*Row{
 		{
 			SessionIndex:       4,
@@ -33,6 +34,7 @@ func TestBuildMapsActiveSync(t *testing.T) {
 }
 
 func TestBuildSortsErrorsBeforeDone(t *testing.T) {
+	// Verify errors sort ahead of completed sync activity.
 	doneAt := time.Unix(100, 0)
 	projection := Build([]*Row{
 		{
@@ -64,6 +66,7 @@ func TestBuildSortsErrorsBeforeDone(t *testing.T) {
 }
 
 func TestBuildBoundsRows(t *testing.T) {
+	// Verify projected activity stays within the display limit.
 	rows := make([]*Row, 0, maxProjectedActivity+1)
 	for i := uint32(1); i <= maxProjectedActivity+1; i++ {
 		rows = append(rows, &Row{

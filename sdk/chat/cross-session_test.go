@@ -344,6 +344,7 @@ func testChatResourceCrossSessionAppend(t *testing.T, transactionID string) {
 
 // newChatSession mounts an isolated account and retains its authenticated Session.
 func newChatSession(t *testing.T, ctx context.Context, local *provider_local.Provider) (*provider_local.ProviderAccount, session.Session) {
+	// Mark this setup function as a testing helper.
 	t.Helper()
 
 	// Create independent account storage within the provider's local network.
@@ -357,6 +358,8 @@ func newChatSession(t *testing.T, ctx context.Context, local *provider_local.Pro
 	}
 	t.Cleanup(releaseAccount)
 	account := raw.(*provider_local.ProviderAccount)
+
+	// Mount the authenticated Session and register its cleanup.
 	sess, releaseSession, err := account.MountSession(ctx, ref, nil)
 	if err != nil {
 		t.Fatal(err)

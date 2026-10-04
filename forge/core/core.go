@@ -33,6 +33,7 @@ func NewCoreBus(
 
 // AddFactories adds factories to an existing static resolver.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
+	// Register the database and Forge controller factories.
 	hydracore.AddFactories(b, sr)
 	hydra_all.AddFactories(b, sr)
 	sr.AddFactory(execution_controller.NewFactory(b))

@@ -25,22 +25,31 @@ import (
 // AddFactories adds all factories (including World Graph) to the static resolver.
 // This is intended to keep the default Core as minimal as possible.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
+	// Register the minimal database core controllers.
 	core.AddFactories(b, sr)
+
+	// Add the daemon API controller.
 	sr.AddFactory(api_controller.NewFactory(b))
 
+	// Register the World engine controller.
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
+	// Register both volume backends.
 	sr.AddFactory(volume_block.NewFactory(b))
 	sr.AddFactory(volume_world.NewFactory(b))
 
+	// Register UnixFS access controllers.
 	sr.AddFactory(unixfs_access_http.NewFactory(b))
 	sr.AddFactory(unixfs_world_access.NewFactory(b))
 
+	// Add the MySQL controller.
 	sr.AddFactory(mysql_controller.NewFactory(b))
 
+	// Register HTTP block-store lookup and server controllers.
 	sr.AddFactory(http_lookup.NewFactory(b))
 	sr.AddFactory(http_server.NewFactory(b))
 
+	// Register the supported block-store factories.
 	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(block_store_kvfile_http.NewFactory(b))
 	sr.AddFactory(block_store_http.NewFactory(b))

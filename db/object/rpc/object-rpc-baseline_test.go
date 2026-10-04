@@ -17,9 +17,11 @@ import (
 )
 
 func TestObjectStoreRPCMutationPreservesProxyTransactionPath(t *testing.T) {
+	// Start a testbed that hosts the object store RPC service.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Build the testbed logger and attach a volume-backed environment.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(log))
@@ -28,10 +30,12 @@ func TestObjectStoreRPCMutationPreservesProxyTransactionPath(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Connect the RPC client and server with an in-process pipe.
 	clientPipe, serverPipe := net.Pipe()
 	defer clientPipe.Close()
 	defer serverPipe.Close()
 
+	// Create the client and server multiplexed connections.
 	clientMp, err := srpc.NewMuxedConn(clientPipe, true, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -40,16 +44,21 @@ func TestObjectStoreRPCMutationPreservesProxyTransactionPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Register the object store service and serve muxed RPC connections.
 	mux := srpc.NewMux()
 	if err := object_rpc.SRPCRegisterObjectStore(mux, object_rpc_server.NewObjectStore(ctx, tb.Volume)); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Accept the server connection while the test uses the RPC client.
 	server := srpc.NewServer(mux)
 	done := make(chan error, 1)
 	go func() {
 		done <- server.AcceptMuxedConn(ctx, serverMp)
 	}()
 
+	// Access the object store through its generated RPC client.
 	client := object_rpc_client.NewObjectStore(object_rpc.NewSRPCObjectStoreClient(srpc.NewClientWithMuxedConn(clientMp)))
 	const objectStoreID = "rpc-baseline"
 	remoteStore, releaseRemoteStore, err := client.AccessObjectStore(ctx, objectStoreID, func() {})
@@ -58,6 +67,7 @@ func TestObjectStoreRPCMutationPreservesProxyTransactionPath(t *testing.T) {
 	}
 	defer releaseRemoteStore()
 
+	// Commit a mutation through the remote proxy transaction.
 	remoteTx, err := remoteStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -70,11 +80,14 @@ func TestObjectStoreRPCMutationPreservesProxyTransactionPath(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Reopen the same object store locally to verify the RPC mutation.
 	localStore, releaseLocalStore, err := tb.Volume.AccessObjectStore(ctx, objectStoreID, func() {})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer releaseLocalStore()
+
+	// Read the committed mutation from the volume's local store.
 	localTx, err := localStore.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -88,6 +101,7 @@ func TestObjectStoreRPCMutationPreservesProxyTransactionPath(t *testing.T) {
 		t.Fatalf("remote RPC mutation was not committed through the proxy transaction path: found=%v value=%q", found, value)
 	}
 
+	// Stop both RPC endpoints and verify the server exits cleanly.
 	cancel()
 	_ = clientPipe.Close()
 	_ = serverPipe.Close()

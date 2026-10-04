@@ -10,6 +10,7 @@ import (
 
 // Validate checks the changelog for the constrained release-note invariants.
 func (c *Changelog) Validate() error {
+	// Require the changelog to contain valid releases in descending version order.
 	if c == nil {
 		return errors.New("nil changelog")
 	}
@@ -17,6 +18,7 @@ func (c *Changelog) Validate() error {
 		return errors.New("no releases")
 	}
 
+	// Track release versions while validating their order.
 	seenVersions := make(map[string]struct{}, len(c.GetReleases()))
 	var prevVersion []int
 	for i, rel := range c.GetReleases() {
@@ -51,6 +53,7 @@ func (c *Changelog) Validate() error {
 
 // Validate checks the release for required user-facing fields.
 func (r *Release) Validate() error {
+	// Require valid release metadata before inspecting change entries.
 	if r == nil {
 		return errors.New("nil release")
 	}
@@ -64,6 +67,7 @@ func (r *Release) Validate() error {
 		return errors.New("missing release summary")
 	}
 
+	// Validate every change category and require at least one entry.
 	hasEntry := false
 	for _, entries := range [][]*ChangeEntry{
 		r.GetFeatures(),
@@ -97,6 +101,7 @@ func (e *ChangeEntry) Validate() error {
 }
 
 func parseReleaseVersion(version string) ([]int, error) {
+	// Parse the three numeric components of a release version.
 	parts := strings.Split(version, ".")
 	if len(parts) != 3 {
 		return nil, errors.Errorf("invalid semver %q", version)

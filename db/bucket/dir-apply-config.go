@@ -67,6 +67,7 @@ func NewApplyBucketConfigToVolumes(bucketConf *Config, volumeIDs []string) Apply
 
 // ExApplyBucketConfig executes applying a bucket config directive.
 func ExApplyBucketConfig(ctx context.Context, b bus.Bus, apply ApplyBucketConfig) (ApplyBucketConfigValue, error) {
+	// Execute the directive and collect its one-off result.
 	av, _, avRel, err := bus.ExecOneOff(ctx, b, apply, nil, nil)
 	if err != nil {
 		return nil, err
@@ -145,11 +146,13 @@ func (d *applyBucketConfig) ApplyBucketConfigVolumeIDList() []string {
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
 func (d *applyBucketConfig) IsEquivalent(other directive.Directive) bool {
+	// Require the other directive to use the same interface.
 	od, ok := other.(ApplyBucketConfig)
 	if !ok {
 		return false
 	}
 
+	// Compare normalized volume regex constraints.
 	var vid1s, vid2s string
 	if vid1 := d.ApplyBucketConfigVolumeIDRe(); vid1 != nil {
 		vid1s = vid1.String()
@@ -161,12 +164,14 @@ func (d *applyBucketConfig) IsEquivalent(other directive.Directive) bool {
 		return false
 	}
 
+	// Compare the explicit volume selections.
 	volIds1 := d.ApplyBucketConfigVolumeIDList()
 	volIds2 := od.ApplyBucketConfigVolumeIDList()
 	if !slices.Equal(volIds1, volIds2) {
 		return false
 	}
 
+	// Compare the desired bucket configurations.
 	if !d.ApplyBucketConfigBucketConf().EqualVT(od.ApplyBucketConfigBucketConf()) {
 		return false
 	}
@@ -188,6 +193,7 @@ func (d *applyBucketConfig) GetName() string {
 
 // GetDebugString returns the directive arguments stringified.
 func (d *applyBucketConfig) GetDebugVals() directive.DebugValues {
+	// Build the directive's display fields.
 	vals := directive.DebugValues{}
 	vals["bucket-id"] = []string{d.ApplyBucketConfigBucketConf().GetId()}
 	vals["bucket-conf-rev"] = []string{

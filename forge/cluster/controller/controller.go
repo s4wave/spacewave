@@ -52,6 +52,7 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	// Parse the configured peer identity before assembling controller state.
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
 		le:        le,
@@ -130,6 +131,7 @@ func (c *Controller) ProcessState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	// Wait for the configured cluster object before reconciling its state.
 	objKey := c.objKey
 	if obj == nil {
 		le.Debug("object does not exist, waiting")

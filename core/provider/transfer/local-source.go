@@ -33,12 +33,14 @@ func (s *LocalTransferSource) GetAccount() *provider_local.ProviderAccount {
 
 // GetSharedObjectList returns the list of shared objects on the source account.
 func (s *LocalTransferSource) GetSharedObjectList(ctx context.Context) (*sobject.SharedObjectList, error) {
+	// Open the local provider account's shared-object list.
 	ctr, rel, err := s.account.AccessSharedObjectList(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 
+	// Read a stable snapshot of the local shared-object list.
 	val, err := ctr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -53,6 +55,7 @@ func (s *LocalTransferSource) ReplaySharedObject(ctx context.Context, le *logrus
 
 // GetBlockStore returns the block store ops for reading blocks from a shared object.
 func (s *LocalTransferSource) GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
+	// Build a block-store reference for the source shared object.
 	bsRef := &bstore.BlockStoreRef{
 		ProviderResourceRef: ref.GetProviderResourceRef().CloneVT(),
 	}

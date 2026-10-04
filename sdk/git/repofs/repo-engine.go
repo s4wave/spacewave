@@ -156,6 +156,7 @@ func (e *Engine) AddDotGitChangeCb(cb func()) func() {
 
 	// The final unsubscribe stops revision tracking.
 	return func() {
+		// Remove this subscriber and detect when it was the final one.
 		var stopWatch bool
 		e.mtx.Lock()
 		delete(e.changeCbs, id)

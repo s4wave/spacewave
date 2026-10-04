@@ -56,12 +56,15 @@ type CdnSharedObjectOptions struct {
 // to refresh the block store pointer before the first read so GetCheckpoint
 // returns the current published checkpoint.
 func NewCdnSharedObject(opts CdnSharedObjectOptions) (*CdnSharedObject, error) {
+	// Validate the CDN Space identity and block-store dependency.
 	if opts.SpaceID == "" {
 		return nil, errors.New("cdn shared object: SpaceID required")
 	}
 	if opts.BlockStore == nil {
 		return nil, errors.New("cdn shared object: BlockStore required")
 	}
+
+	// Initialize the CDN mount and its state and health watches.
 	so := &CdnSharedObject{
 		spaceID: opts.SpaceID,
 		bus:     opts.Bus,
@@ -215,6 +218,7 @@ func newCdnStateSnapshot(so *CdnSharedObject) *cdnStateSnapshot {
 
 // setHealth updates the derived health snapshot from the current CDN root pointer.
 func (s *CdnSharedObject) setHealth(err error) {
+	// Publish a CDN refresh failure as the SharedObject health state.
 	if err != nil {
 		s.health.SetValue(sobject.BuildSharedObjectHealthFromError(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
@@ -222,6 +226,8 @@ func (s *CdnSharedObject) setHealth(err error) {
 		))
 		return
 	}
+
+	// Derive health from the current CDN checkpoint and World head.
 	inner, err := s.GetHeadInnerState()
 	if err != nil {
 		s.health.SetValue(sobject.BuildSharedObjectHealthFromError(
@@ -230,12 +236,16 @@ func (s *CdnSharedObject) setHealth(err error) {
 		))
 		return
 	}
+
+	// Keep the CDN mount loading until its World head is published.
 	if inner == nil || inner.GetHeadRef() == nil {
 		s.health.SetValue(sobject.NewSharedObjectLoadingHealth(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
 		))
 		return
 	}
+
+	// Mark the CDN SharedObject ready after its World head is available.
 	s.health.SetValue(sobject.NewSharedObjectReadyHealth(
 		sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
 	))

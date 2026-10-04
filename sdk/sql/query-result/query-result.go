@@ -30,6 +30,7 @@ func ReadQueryResultRoot(ctx context.Context, ws world.WorldState, objectKey str
 func ReadQueryResultObjectRoot(ctx context.Context, obj world.ObjectState) (*QueryResult, error) {
 	var result *QueryResult
 	_, _, err := world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Decode the query result block from the object root.
 		var err error
 		result, err = block.UnmarshalBlock[*QueryResult](ctx, bcs, NewQueryResultBlock)
 		if err != nil {
@@ -48,6 +49,7 @@ func ReadQueryResultObjectRoot(ctx context.Context, obj world.ObjectState) (*Que
 
 // SyncResultGraphQuads replaces the result's source query and target database graph links.
 func SyncResultGraphQuads(ctx context.Context, ws world.WorldState, objectKey string) error {
+	// Read the result metadata before replacing its graph links.
 	result, err := ReadQueryResultRoot(ctx, ws, objectKey)
 	if err != nil {
 		return err

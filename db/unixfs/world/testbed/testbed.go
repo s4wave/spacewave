@@ -18,11 +18,13 @@ func BuildTestbed(
 	watchWorldChanges bool,
 	opts ...world_testbed.Option,
 ) (*unixfs.FSHandle, *world_testbed.Testbed, error) {
+	// Build the World testbed that owns the filesystem object.
 	wtb, err := world_testbed.NewTestbed(tb, opts...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Initialize the filesystem in the World testbed.
 	ufs, err := InitTestbed(wtb, objKey, watchWorldChanges)
 	if err != nil {
 		return nil, wtb, err
@@ -39,6 +41,7 @@ func InitTestbed(
 	objKey string,
 	watchWorldChanges bool,
 ) (*unixfs.FSHandle, error) {
+	// Use the testbed lifecycle context for filesystem initialization.
 	ctx := tb.Context
 
 	// provide op handlers to bus
@@ -51,9 +54,11 @@ func InitTestbed(
 
 	// uses directive to look up the engine
 	eng := tb.Engine
+
 	// uses short-lived engine txs to implement world state
 	ws := world.NewEngineWorldState(eng, true)
 
+	// Identify the testbed Volume as the filesystem initializer.
 	sender := tb.Volume.GetPeerID()
 	fsType := unixfs_world.FSType_FSType_FS_NODE
 	typeID, _ := unixfs_world.FSTypeToTypeID(fsType)

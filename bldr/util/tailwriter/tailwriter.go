@@ -28,8 +28,10 @@ func New(inner io.Writer, maxLines int) *TailWriter {
 
 // Write forwards to the inner writer and captures lines.
 func (t *TailWriter) Write(p []byte) (int, error) {
+	// Forward the chunk before retaining the bytes the inner writer accepted.
 	n, err := t.inner.Write(p)
 
+	// Update TailWriter's bounded line buffer with the accepted bytes.
 	t.mu.Lock()
 	t.buf = append(t.buf, p[:n]...)
 	for {
@@ -55,9 +57,11 @@ func (t *TailWriter) Write(p []byte) (int, error) {
 
 // Lines returns the captured tail lines.
 func (t *TailWriter) Lines() []string {
+	// Lock TailWriter while it flushes pending data and snapshots the tail.
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	// Move TailWriter's remaining bytes into the bounded line tail.
 	// Flush any remaining partial line.
 	if len(t.buf) > 0 {
 		line := strings.TrimRight(string(t.buf), "\r\n")
@@ -70,6 +74,7 @@ func (t *TailWriter) Lines() []string {
 		t.buf = nil
 	}
 
+	// Return an independent copy of TailWriter's captured lines.
 	out := make([]string, len(t.lines))
 	copy(out, t.lines)
 	return out

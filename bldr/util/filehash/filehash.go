@@ -16,6 +16,7 @@ import (
 // HashFileWithBlake3 hashes a file using blake3 and returns the first 8 characters of the base32-encoded hash.
 // This is similar to the approach used in dist/compiler/bundle.go.
 func HashFileWithBlake3(filePath string) (string, error) {
+	// Read the source file before computing its content hash.
 	fileData, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to read file for hashing")

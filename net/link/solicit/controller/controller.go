@@ -341,6 +341,7 @@ func (c *Controller) handleSolicitProtocol(
 		return nil, errors.Wrap(err, "generate solicitation incarnation")
 	}
 
+	// Create the lifetime state and withdraw it when its directive is disposed.
 	ss := &solicitState{dir: d, incarnation: incarnation}
 	di.AddDisposeCallback(func() {
 		c.removeSolicitation(ss)
@@ -517,10 +518,13 @@ func (c *Controller) addLink(ml link.MountedLink) {
 	// Publish the link once while retaining references for duplicates.
 	var added bool
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Preserve an existing state when the same link is registered again.
 		if existing := c.links[uuid]; existing != nil {
 			existing.refCount++
 			return
 		}
+
+		// Publish the first reference and its new link state.
 		ls.refCount = 1
 		c.links[uuid] = ls
 		added = true
@@ -749,9 +753,12 @@ func controlStreamLocalSnapshotsEqual(a, b *controlStreamLocalSnapshot) bool {
 
 // cloneSolicitationOffers deep-clones and canonically sorts offers.
 func cloneSolicitationOffers(offers []solicitationOffer) []solicitationOffer {
+	// Represent an empty offer set without allocating a slice.
 	if len(offers) == 0 {
 		return nil
 	}
+
+	// Clone every offer and its byte slices for independent ownership.
 	out := make([]solicitationOffer, len(offers))
 	for i, offer := range offers {
 		out[i] = solicitationOffer{
@@ -761,6 +768,8 @@ func cloneSolicitationOffers(offers []solicitationOffer) []solicitationOffer {
 			incarnation: slices.Clone(offer.incarnation),
 		}
 	}
+
+	// Put offers in canonical hash, protocol, context, and incarnation order.
 	slices.SortFunc(out, func(a, b solicitationOffer) int {
 		if cmp := bytes.Compare(a.hash, b.hash); cmp != 0 {
 			return cmp
@@ -973,14 +982,21 @@ func (c *Controller) openSolicitedStream(
 
 // encodeSolicitationMatch returns the stream protocol suffix for a match.
 func encodeSolicitationMatch(ls *linkState, match solicitationMatch) string {
+	// Encode the stable hash that identifies the matched protocol.
 	hashHex := hex.EncodeToString(match.hash)
+
+	// Keep legacy matches on the hash-only protocol suffix.
 	if !match.incarnated {
 		return hashHex
 	}
+
+	// Order both offer incarnations by peer identity.
 	lower, higher := match.localIncarnation, match.remoteIncarnation
 	if !ls.localIsLower {
 		lower, higher = higher, lower
 	}
+
+	// Encode the ordered incarnations after the stable hash.
 	return hashHex + ":" + hex.EncodeToString(lower) + ":" + hex.EncodeToString(higher)
 }
 

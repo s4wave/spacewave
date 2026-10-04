@@ -22,6 +22,7 @@ import (
 
 // TestWebPkgRpc tests the web pkg rpc server and client.
 func TestWebPkgRpc(t *testing.T) {
+	// Prepare one RPC client and server lifecycle for the package lookup test.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -114,14 +115,18 @@ func TestWebPkgRpc(t *testing.T) {
 	}
 	defer valRef.Release()
 
+	// Verify the remote package lookup returns the requested package identity.
 	if val.GetId() != testPkgID {
 		t.Fatalf("value id wrong: %s != %s", val.GetId(), testPkgID)
 	}
 
+	// Read package metadata through the client-side RPC resource.
 	info, err := val.GetInfo(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Verify the returned package metadata retains the requested identity.
 	if info.GetId() != testPkgID {
 		t.Fatalf("get info returned wrong id: %s != %s", info.GetId(), testPkgID)
 	}

@@ -56,6 +56,7 @@ var (
 
 // NewUnixFSError converts a Go error into a UnixFS error.
 func NewUnixFSError(err error) *UnixFSError {
+	// Return nil unchanged before converting a concrete error.
 	if err == nil {
 		return nil
 	}
@@ -138,10 +139,12 @@ func NewUnixFSError(err error) *UnixFSError {
 
 // ToGoError converts a UnixFSError into the corresponding Go error from unixfs_errors.
 func (e *UnixFSError) ToGoError() error {
+	// Return nil for a nil UnixFS error.
 	if e == nil {
 		return nil
 	}
 
+	// Map the UnixFS error type to its Go sentinel.
 	var err error
 	switch e.ErrorType {
 	case UnixFSErrorType_NONE:
@@ -196,6 +199,7 @@ func (e *UnixFSError) ToGoError() error {
 		return ErrUnknown
 	}
 
+	// Restore the remote message around the mapped error.
 	if e.ErrorBody != "" {
 		return errors.Wrap(err, e.ErrorBody)
 	}

@@ -20,13 +20,16 @@ import (
 // setupProviderAccount creates a testbed with a local provider and account.
 // Returns the testbed, session ref, account ID, provider account, and release function.
 func setupProviderAccount(ctx context.Context, t *testing.T) (*testbed.Testbed, *session.SessionRef, string, *provider_local.ProviderAccount, func()) {
+	// Attribute account test failures to their caller.
 	t.Helper()
 
+	// Create the local account testbed.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Prepare the local provider identity and register its factory.
 	providerID := "local"
 	peerID := tb.Volume.GetPeerID()
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
@@ -40,6 +43,7 @@ func setupProviderAccount(ctx context.Context, t *testing.T) (*testbed.Testbed, 
 		t.Fatal(err)
 	}
 
+	// Resolve the local provider and retain its directive reference.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
 	if err != nil {
 		provCtrlRef.Release()
@@ -47,6 +51,7 @@ func setupProviderAccount(ctx context.Context, t *testing.T) (*testbed.Testbed, 
 		t.Fatal(err)
 	}
 
+	// Create the account session through the local provider.
 	localProv := prov.(*provider_local.Provider)
 	sessRef, err := localProv.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
@@ -56,6 +61,7 @@ func setupProviderAccount(ctx context.Context, t *testing.T) (*testbed.Testbed, 
 		t.Fatal(err)
 	}
 
+	// Resolve the account ID and acquire its provider resource.
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	accIface, accRel, err := localProv.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
@@ -65,6 +71,7 @@ func setupProviderAccount(ctx context.Context, t *testing.T) (*testbed.Testbed, 
 		t.Fatal(err)
 	}
 
+	// Retain the local account until the test releases its provider resources.
 	acc := accIface.(*provider_local.ProviderAccount)
 	release := func() {
 		accRel()
@@ -77,25 +84,30 @@ func setupProviderAccount(ctx context.Context, t *testing.T) (*testbed.Testbed, 
 
 // mountAccountSettingsSO mounts the account settings SO via the bus.
 func mountAccountSettingsSO(ctx context.Context, t *testing.T, b bus.Bus, accountID string) (sobject.SharedObject, func()) {
+	// Attribute SharedObject mounting failures to the calling test.
 	t.Helper()
 
+	// Resolve the local provider before accessing its account.
 	prov, provRef, err := provider.ExLookupProvider(ctx, b, "local", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer provRef.Release()
 
+	// Acquire the provider account and release it after mounting settings.
 	accIface, accRel, err := prov.(*provider_local.Provider).AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer accRel()
 
+	// Resolve the account settings reference from the provider account.
 	ref, err := accIface.(*provider_local.ProviderAccount).GetAccountSettingsRef(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Mount the account settings SharedObject through the test bus.
 	so, mountRef, err := sobject.ExMountSharedObject(ctx, b, ref, false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -112,19 +124,23 @@ func queueOpAndWaitState(
 	opData []byte,
 	valid func(settings *account_settings.AccountSettings) bool,
 ) {
+	// Attribute SharedObject state failures to the operation helper caller.
 	t.Helper()
 
+	// Open the state controller that publishes replayed account settings.
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer relStateCtr()
 
+	// Queue the encoded account settings operation.
 	_, err = so.QueueOperation(ctx, opData)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Watch the SharedObject until its replayed settings meet the requested state.
 	err = ccontainer.WatchChanges(
 		ctx,
 		nil,
@@ -297,14 +313,18 @@ func TestPairedDeviceCRUD(t *testing.T) {
 // TestSessionPresentationCRUD verifies adding and removing mirrored session
 // presentation metadata via account-settings SO operations.
 func TestSessionPresentationCRUD(t *testing.T) {
+	// Use the test lifecycle context for session presentation operations.
 	ctx := t.Context()
 
+	// Create the provider account whose session presentation will be updated.
 	tb, _, accountID, _, release := setupProviderAccount(ctx, t)
 	defer release()
 
+	// Mount the account settings SharedObject before applying presentation changes.
 	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
 	defer soRelease()
 
+	// Build the presentation operation that mirrors session metadata.
 	upsert := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_UpsertSessionPresentation{
 			UpsertSessionPresentation: &account_settings.SessionPresentation{
@@ -328,6 +348,7 @@ func TestSessionPresentationCRUD(t *testing.T) {
 			presentations[0].GetClientName() == "Chrome"
 	})
 
+	// Build the operation that removes the mirrored session presentation.
 	remove := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_RemoveSessionPresentation{
 			RemoveSessionPresentation: &account_settings.RemoveSessionPresentationOp{
@@ -453,6 +474,7 @@ func TestEntityKeypairCRUD(t *testing.T) {
 // TestReplaceKeybindingOverrideSetRejectsConflictingPartition checks that of
 // two replacements expecting the same override set, only the first applies.
 func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
+	// Prepare the initial account settings state for the conflict test.
 	ctx := t.Context()
 	initialSet := &s4wave_command.KeybindingOverrideSet{
 		WebOverrides: []*s4wave_command.KeybindingCommandOverride{{
@@ -465,10 +487,14 @@ func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create competing replacements from the same expected keybinding snapshot.
 	first := initialSet.CloneVT()
 	first.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+A"}
 	second := initialSet.CloneVT()
 	second.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+B"}
+
+	// Encode replacement operations against the original override set.
 	marshalOp := func(replacement *s4wave_command.KeybindingOverrideSet) []byte {
 		t.Helper()
 		data, err := (&account_settings.AccountSettingsOp{
@@ -484,6 +510,8 @@ func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
 		}
 		return data
 	}
+
+	// Replay both replacements against the same account settings state.
 	nextData, results, err := account_settings.ProcessAccountSettingsOps(
 		ctx,
 		nil,
@@ -499,6 +527,8 @@ func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
 	if len(results) != 2 || !results[0].GetSuccess() || results[1].GetSuccess() {
 		t.Fatalf("expected one accepted replacement and one conflict, got %#v", results)
 	}
+
+	// Decode the resulting account settings after checking operation outcomes.
 	got := &account_settings.AccountSettings{}
 	if nextData == nil {
 		t.Fatal("expected changed account settings")
@@ -506,6 +536,8 @@ func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
 	if err := got.UnmarshalVT(*nextData); err != nil {
 		t.Fatal(err)
 	}
+
+	// Confirm the first replacement remains the winning keybinding set.
 	if !got.GetKeybindingOverrides().EqualVT(first) {
 		t.Fatalf("conflicting replacement changed winner: %#v", got.GetKeybindingOverrides())
 	}

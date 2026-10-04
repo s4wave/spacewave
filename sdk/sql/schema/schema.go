@@ -30,6 +30,7 @@ func ReadSchemaRoot(ctx context.Context, ws world.WorldState, objectKey string) 
 func ReadSchemaObjectRoot(ctx context.Context, obj world.ObjectState) (*Schema, error) {
 	var schema *Schema
 	_, _, err := world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Decode the schema root from the cursor.
 		var err error
 		schema, err = block.UnmarshalBlock[*Schema](ctx, bcs, NewSchemaBlock)
 		if err != nil {
@@ -48,6 +49,7 @@ func ReadSchemaObjectRoot(ctx context.Context, obj world.ObjectState) (*Schema, 
 
 // SyncSchemaGraphQuads replaces the schema's target database graph link.
 func SyncSchemaGraphQuads(ctx context.Context, ws world.WorldState, objectKey string) error {
+	// Read the schema root before updating its graph link.
 	schema, err := ReadSchemaRoot(ctx, ws, objectKey)
 	if err != nil {
 		return err

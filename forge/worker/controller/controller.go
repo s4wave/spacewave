@@ -51,6 +51,7 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	// Parse the configured peer identity before assembling controller state.
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
 		le:     le,
@@ -115,9 +116,11 @@ func (c *Controller) Wake() {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
+	// Bind the worker trackers to the controller's execution lifetime.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Start each tracker set before running the World watch loop.
 	c.objectTrackers.SetContext(ctx, true)
 	c.keypairTrackers.SetContext(ctx, true)
 	return world_control.ExecuteBusWatchLoop(

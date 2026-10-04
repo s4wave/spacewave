@@ -14,23 +14,29 @@ import (
 
 // TestSetupController tests the setup controller.
 func TestSetupController(t *testing.T) {
+	// Prepare logging and context for the bucket setup scenario.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a verbose testbed and register the bucket setup factory.
 	testbed.Verbose = true
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Register the setup controller factory with the testbed resolver.
 	tb.StaticResolver.AddFactory(bucket_setup.NewFactory(tb.Bus))
 
+	// Read the testbed bus and Volume needed by the setup config.
 	b := tb.Bus
 	vol := tb.Volume
 	volID := vol.GetID()
 	t.Log(volID)
 
+	// Configure the bucket the setup controller must create.
 	bucketID := "setup-this-bucket"
 	conf := &bucket_setup.Config{
 		ApplyBucketConfigs: []*bucket_setup.ApplyBucketConfig{{
@@ -39,6 +45,7 @@ func TestSetupController(t *testing.T) {
 		}},
 	}
 
+	// Construct and execute the setup controller against the test bus.
 	f := bucket_setup.NewFactory(b)
 	ctrl, err := f.Construct(ctx, conf, controller.ConstructOpts{
 		Logger: le,
@@ -46,11 +53,13 @@ func TestSetupController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
 	// expect exit after applying
 	err = b.ExecuteController(ctx, ctrl)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
 	// close
 	err = ctrl.Close()
 	if err != nil {
@@ -66,5 +75,6 @@ func TestSetupController(t *testing.T) {
 		t.FailNow()
 	}
 
+	// Record successful bucket configuration after verifying its stored info.
 	t.Log("successfully configured bucket")
 }

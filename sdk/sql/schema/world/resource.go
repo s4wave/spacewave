@@ -65,6 +65,7 @@ func (r *SqlSchemaResource) ListTables(
 	ctx context.Context,
 	_ *s4wave_sql_schema.ListTablesRequest,
 ) (*s4wave_sql_schema.ListTablesResponse, error) {
+	// Read the schema and require its target database.
 	schema, err := r.readSchema(ctx)
 	if err != nil {
 		return nil, err
@@ -73,13 +74,19 @@ func (r *SqlSchemaResource) ListTables(
 	if targetKey == "" {
 		return nil, errors.New("sql/schema: target database object key is required")
 	}
+
+	// Confirm the target key identifies a SQL database.
 	if err := world_types.CheckObjectType(ctx, r.ws, targetKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		return nil, err
 	}
+
+	// Build the table listing query for the target schema.
 	query, err := listTablesSQL(schema.GetSchemaName())
 	if err != nil {
 		return nil, err
 	}
+
+	// Open the target database and release its rows after reading them.
 	rows, cleanup, err := r.openTargetRows(ctx, targetKey, query)
 	if err != nil {
 		return nil, err

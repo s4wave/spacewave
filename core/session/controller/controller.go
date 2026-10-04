@@ -65,11 +65,13 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
+			// Resolve the Volume that stores this controller's sessions.
 			volumeID := base.GetConfig().GetVolumeId()
 			if volumeID == "" {
 				volumeID = bldr_plugin.PluginVolumeID
 			}
 
+			// Resolve the object-store key for the session list.
 			objectStoreID := base.GetConfig().GetObjectStoreId()
 			if objectStoreID == "" {
 				objectStoreID = "sessions/list"
@@ -102,12 +104,14 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 
 // Close releases controller-owned resources.
 func (c *Controller) Close() error {
+	// Detach the cached object store before releasing its directive reference.
 	c.mtx.Lock()
 	objStoreRel := c.objStoreRel
 	c.objStore = nil
 	c.objStoreRel = nil
 	c.mtx.Unlock()
 
+	// Release the object-store directive after dropping the controller lock.
 	if objStoreRel != nil {
 		objStoreRel()
 	}
@@ -139,6 +143,7 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 			return objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the stored session entry at the requested index.
 			data, found, err := tx.Get(ctx, sessionListEntryKey(idx))
 			if err != nil {
 				return err
@@ -148,6 +153,7 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 				return nil
 			}
 
+			// Decode the stored session entry into its typed record.
 			next := &session.SessionListEntry{}
 			if err := next.UnmarshalVT(data); err != nil {
 				return err
@@ -161,11 +167,13 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 
 // ListSessions lists the sessions in storage.
 func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEntry, error) {
+	// Trace the storage lookup and serialize access to the session list.
 	ctx, task := trace.NewTask(ctx, "hydra/session/list-sessions")
 	defer task.End()
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Open the sessions object store before starting its scan trace.
 	_, waitStoreTask := trace.NewTask(ctx, "hydra/session/list-sessions/wait-object-store")
 	objStore, err := c.buildObjectStoreLocked(ctx)
 	waitStoreTask.End()
@@ -173,6 +181,7 @@ func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEn
 		return nil, err
 	}
 
+	// Collect valid session entries and errors from malformed records.
 	var elems []*session.SessionListEntry
 	var invalidEntryErrs []error
 	_, scanTask := trace.NewTask(ctx, "hydra/session/list-sessions/scan")
@@ -181,6 +190,7 @@ func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEn
 			return objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, otx kvtx.Tx) error {
+			// Reset scan results before reading the current transaction snapshot.
 			elems = nil
 			invalidEntryErrs = nil
 			size, err := otx.Size(ctx)
@@ -258,6 +268,7 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 			return objStore.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, otx kvtx.Tx) error {
+			// Reset retry outputs before replaying the session census.
 			scrub.Scrub(resultData)
 			resultData = nil
 			result = nil
@@ -265,12 +276,14 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 			invalidEntryErrs = nil
 			var maxSessionIndex uint32
 
+			// Read transaction size to skip scanning an empty session list.
 			size, err := otx.Size(ctx)
 			if err != nil {
 				return err
 			}
 			if size != 0 {
 				err = otx.ScanPrefix(ctx, sessionListPrefix, func(_ []byte, value []byte) error {
+					// Decode each stored session before comparing its reference.
 					entry := &session.SessionListEntry{}
 					if err := entry.UnmarshalVT(value); err != nil {
 						invalidEntryErrs = append(invalidEntryErrs, err)
@@ -287,6 +300,7 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 				}
 			}
 
+			// Allocate and persist an entry when the census found no match.
 			if result == nil {
 				created = true
 				result = &session.SessionListEntry{
@@ -301,6 +315,8 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 					return err
 				}
 			}
+
+			// Persist metadata alongside the resolved entry when supplied.
 			if metadataData != nil {
 				if err := otx.Set(ctx, sessionMetaKey(result.GetSessionIndex()), metadataData); err != nil {
 					return err
@@ -345,6 +361,7 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 			return objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read metadata for the requested session index.
 			data, found, err := tx.Get(ctx, sessionMetaKey(idx))
 			if err != nil {
 				return err
@@ -354,6 +371,7 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 				return nil
 			}
 
+			// Decode the stored metadata into its typed record.
 			next := &session.SessionMetadata{}
 			if err := next.UnmarshalVT(data); err != nil {
 				return err
@@ -392,6 +410,7 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 			return objStore.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, otx kvtx.Tx) error {
+			// Reset the update result before searching this transaction attempt.
 			updated = false
 
 			// Find the session index by scanning for the matching ref.
@@ -453,12 +472,15 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 			return objStore.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, otx kvtx.Tx) error {
+			// Reset deletion results before scanning this transaction attempt.
 			deleted = false
 			invalidEntryErrs = nil
 
+			// Locate the matching session key and index in the list.
 			var matchedKey []byte
 			var matchedIdx uint32
 			scanErr := otx.ScanPrefix(ctx, sessionListPrefix, func(key []byte, value []byte) error {
+				// Decode each entry and stop when its reference matches.
 				entry := &session.SessionListEntry{}
 				if err := entry.UnmarshalVT(value); err != nil {
 					invalidEntryErrs = append(invalidEntryErrs, err)
@@ -480,6 +502,7 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 			if err := otx.Delete(ctx, matchedKey); err != nil {
 				return err
 			}
+
 			// Also delete stale session metadata for this index.
 			if err := otx.Delete(ctx, sessionMetaKey(matchedIdx)); err != nil {
 				return err
@@ -507,6 +530,7 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 // buildObjectStoreLocked builds or returns the cached sessions object store.
 // c.mtx must be held by the caller.
 func (c *Controller) buildObjectStoreLocked(ctx context.Context) (object.ObjectStore, error) {
+	// Reuse the cached sessions store when it is already attached.
 	if c.objStore != nil {
 		return c.objStore, nil
 	}
@@ -524,6 +548,7 @@ func (c *Controller) buildObjectStoreLocked(ctx context.Context) (object.ObjectS
 		return nil, err
 	}
 
+	// Cache the store and retain its directive reference for controller lifetime.
 	c.objStore = objStoreHandle.GetObjectStore()
 	c.objStoreRel = diRef.Release
 	return c.objStore, nil

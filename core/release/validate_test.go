@@ -11,7 +11,10 @@ import (
 )
 
 func TestReleaseMetadataRoundTrip(t *testing.T) {
+	// Seed the release metadata table with one valid content reference.
 	ref := testBlockRef()
+
+	// Exercise every release record type with marshal/unmarshal functions.
 	tests := []struct {
 		name      string
 		marshal   func() ([]byte, error)
@@ -23,15 +26,20 @@ func TestReleaseMetadataRoundTrip(t *testing.T) {
 			marshal:   func() ([]byte, error) { return testChannelDirectory(ref).MarshalVT() },
 			unmarshal: func(data []byte) error { return (&ChannelDirectory{}).UnmarshalVT(data) },
 			equal: func() bool {
+				// Create the channel directory record that the round trip compares.
 				msg := testChannelDirectory(ref)
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
+
+				// Decode the serialized channel directory record.
 				got := &ChannelDirectory{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
+
+				// Compare the decoded channel directory with its source record.
 				return msg.EqualVT(got)
 			},
 		},
@@ -40,15 +48,20 @@ func TestReleaseMetadataRoundTrip(t *testing.T) {
 			marshal:   func() ([]byte, error) { return testReleaseMetadata(ref).MarshalVT() },
 			unmarshal: func(data []byte) error { return (&ReleaseMetadata{}).UnmarshalVT(data) },
 			equal: func() bool {
+				// Create the release metadata record that the round trip compares.
 				msg := testReleaseMetadata(ref)
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
+
+				// Decode the serialized release metadata record.
 				got := &ReleaseMetadata{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
+
+				// Compare the decoded release metadata with its source record.
 				return msg.EqualVT(got)
 			},
 		},
@@ -57,15 +70,20 @@ func TestReleaseMetadataRoundTrip(t *testing.T) {
 			marshal:   func() ([]byte, error) { return testBrowserShellMetadata(ref).MarshalVT() },
 			unmarshal: func(data []byte) error { return (&BrowserShellMetadata{}).UnmarshalVT(data) },
 			equal: func() bool {
+				// Create the browser shell record that the round trip compares.
 				msg := testBrowserShellMetadata(ref)
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
+
+				// Decode the serialized browser shell record.
 				got := &BrowserShellMetadata{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
+
+				// Compare the decoded browser shell with its source record.
 				return msg.EqualVT(got)
 			},
 		},
@@ -74,15 +92,20 @@ func TestReleaseMetadataRoundTrip(t *testing.T) {
 			marshal:   func() ([]byte, error) { return testBrowserAsset(ref).MarshalVT() },
 			unmarshal: func(data []byte) error { return (&BrowserAsset{}).UnmarshalVT(data) },
 			equal: func() bool {
+				// Create the browser asset record that the round trip compares.
 				msg := testBrowserAsset(ref)
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
+
+				// Decode the serialized browser asset record.
 				got := &BrowserAsset{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
+
+				// Compare the decoded browser asset with its source record.
 				return msg.EqualVT(got)
 			},
 		},
@@ -91,28 +114,40 @@ func TestReleaseMetadataRoundTrip(t *testing.T) {
 			marshal:   func() ([]byte, error) { return testUpdateNotification().MarshalVT() },
 			unmarshal: func(data []byte) error { return (&UpdateNotification{}).UnmarshalVT(data) },
 			equal: func() bool {
+				// Create the update notification record that the round trip compares.
 				msg := testUpdateNotification()
 				data, err := msg.MarshalVT()
 				if err != nil {
 					t.Fatalf("MarshalVT() error = %v", err)
 				}
+
+				// Decode the serialized update notification record.
 				got := &UpdateNotification{}
 				if err := got.UnmarshalVT(data); err != nil {
 					t.Fatalf("UnmarshalVT() error = %v", err)
 				}
+
+				// Compare the decoded notification with its source record.
 				return msg.EqualVT(got)
 			},
 		},
 	}
+
+	// Run each release record through its protobuf round-trip contract.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Serialize the current release record.
 			data, err := tt.marshal()
 			if err != nil {
 				t.Fatalf("MarshalVT() error = %v", err)
 			}
+
+			// Decode the serialized release record into its typed message.
 			if err := tt.unmarshal(data); err != nil {
 				t.Fatalf("UnmarshalVT() error = %v", err)
 			}
+
+			// Require the decoded record to equal its source value.
 			if !tt.equal() {
 				t.Fatalf("protobuf round trip changed message")
 			}
@@ -121,7 +156,10 @@ func TestReleaseMetadataRoundTrip(t *testing.T) {
 }
 
 func TestReleaseMetadataValidation(t *testing.T) {
+	// Seed validation cases with a valid release content reference.
 	ref := testBlockRef()
+
+	// Cover invalid release metadata references and missing records.
 	tests := []struct {
 		name    string
 		err     error
@@ -155,17 +193,23 @@ func TestReleaseMetadataValidation(t *testing.T) {
 			wantErr: "no bldr manifest refs",
 		},
 	}
+
+	// Require every invalid metadata case to return its expected error.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Confirm the invalid release record is rejected.
 			if tt.err == nil {
 				t.Fatalf("expected error")
 			}
+
+			// Check that validation identifies the expected failure.
 			if !strings.Contains(tt.err.Error(), tt.wantErr) {
 				t.Fatalf("expected error containing %q, got %v", tt.wantErr, tt.err)
 			}
 		})
 	}
 
+	// Confirm valid release records and channel references are accepted.
 	valid := []struct {
 		name string
 		err  error
@@ -180,8 +224,11 @@ func TestReleaseMetadataValidation(t *testing.T) {
 		{name: "browser asset with empty content ref", err: testBrowserAsset(&block.BlockRef{}).Validate()},
 		{name: "update notification", err: testUpdateNotification().Validate()},
 	}
+
+	// Accept each valid release record and channel reference.
 	for _, tt := range valid {
 		t.Run(tt.name, func(t *testing.T) {
+			// Require the valid release record to pass validation.
 			if tt.err != nil {
 				t.Fatalf("Validate() error = %v", tt.err)
 			}

@@ -58,6 +58,7 @@ func (c *Target) MarshalYAML() ([]byte, error) {
 
 // SetTarget sets the target to marshal, resolving the controller config.
 func (c *Target) SetTarget(ctx context.Context, b bus.Bus, pb *target.Target) error {
+	// Copy the target fields and clear the previous controller config.
 	c.underlying = &target.Target{
 		Inputs:  pb.GetInputs(),
 		Outputs: pb.GetOutputs(),
@@ -68,6 +69,7 @@ func (c *Target) SetTarget(ctx context.Context, b bus.Bus, pb *target.Target) er
 	}
 	c.execControllerConfig = nil
 
+	// Resolve the exec controller and retain its JSON marshaling config.
 	execController := pb.GetExec().GetController()
 	if execController.GetId() != "" {
 		// resolve the config object so we can marshal it
@@ -132,6 +134,7 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 		changed = true
 	}
 
+	// Remove the extracted exec config before decoding the remaining fields.
 	if changed {
 		data = v.MarshalTo(nil)
 	}
@@ -151,6 +154,7 @@ func (c *Target) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON marshals a target JSON blob.
 func (c *Target) MarshalJSON() ([]byte, error) {
+	// Prepare the parser and arena for the target JSON object.
 	var p fastjson.Parser
 	var arena fastjson.Arena
 	v := arena.NewObject()

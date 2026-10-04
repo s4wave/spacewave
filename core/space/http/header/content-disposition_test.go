@@ -15,6 +15,7 @@ func TestSetAttachmentHeaderASCII(t *testing.T) {
 }
 
 func TestSetAttachmentHeaderUnicode(t *testing.T) {
+	// Ensure Unicode filenames use the encoded disposition parameter.
 	w := httptest.NewRecorder()
 	SetAttachmentHeader(w, "Screenshot 2026-04-07 at 11.29.44\u202fPM.png")
 	got := w.Header().Get("Content-Disposition")

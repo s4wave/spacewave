@@ -28,14 +28,18 @@ import (
 
 // TestWatchAccountInfoLocal verifies the account info watch for a local account.
 func TestWatchAccountInfoLocal(t *testing.T) {
+	// Use a test-scoped context for the local account watch.
 	ctx := t.Context()
 
+	// Start the local provider account and retain its cleanup.
 	tb, _, accountID, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	// Mount the account settings SharedObject used by this watch.
 	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
 	defer soRelease()
 
+	// Prepare the display-name operation for the account snapshot.
 	displayNameOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_UpdateDisplayName{
 			UpdateDisplayName: &account_settings.UpdateDisplayNameOp{
@@ -49,6 +53,7 @@ func TestWatchAccountInfoLocal(t *testing.T) {
 	}
 	queueAccountSettingsOp(ctx, t, so, displayNameData)
 
+	// Prepare the keypair operation included in the account snapshot.
 	keypairOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_AddEntityKeypair{
 			AddEntityKeypair: &session.EntityKeypair{
@@ -63,14 +68,17 @@ func TestWatchAccountInfoLocal(t *testing.T) {
 	}
 	queueAccountSettingsOp(ctx, t, so, keypairData)
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Cancel the RPC stream after the expected account snapshot arrives.
 	rpcCtx, rpcCancel := context.WithCancel(ctx)
 	defer rpcCancel()
 
+	// Capture the streamed account response and cancel after matching settings.
 	var received *s4wave_account.WatchAccountInfoResponse
 	strm := &testWatchAccountInfoStream{
 		ctx: rpcCtx,
@@ -83,11 +91,13 @@ func TestWatchAccountInfoLocal(t *testing.T) {
 		},
 	}
 
+	// Run the account-info watch until the test stream cancels it.
 	err = ar.WatchAccountInfo(&s4wave_account.WatchAccountInfoRequest{}, strm)
 	if err != nil && rpcCtx.Err() == nil {
 		t.Fatal(err)
 	}
 
+	// Assert the response contains the local account identity and keypair count.
 	if received == nil {
 		t.Fatal("expected local account info snapshot")
 	}
@@ -106,14 +116,18 @@ func TestWatchAccountInfoLocal(t *testing.T) {
 }
 
 func TestWatchEntityKeypairsLocalStreamsAccountSettingsKeypairs(t *testing.T) {
+	// Use a test-scoped context for the local keypair watch.
 	ctx := t.Context()
 
+	// Start the local provider account and retain its cleanup.
 	tb, _, _, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	// Mount the account settings SharedObject for the keypair stream.
 	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
 	defer soRelease()
 
+	// Create and persist the test entity keypair before opening the watch.
 	peerID := generateTestPeerID(t)
 	keypairOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_AddEntityKeypair{
@@ -132,11 +146,13 @@ func TestWatchEntityKeypairsLocalStreamsAccountSettingsKeypairs(t *testing.T) {
 		return hasEntityKeypair(settings, peerID, auth_password.MethodID)
 	})
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Capture keypair updates until the expected peer and method arrive.
 	var received *s4wave_account.WatchEntityKeypairsResponse
 	strm := &testWatchEntityKeypairsStream{
 		ctx: ctx,
@@ -152,16 +168,21 @@ func TestWatchEntityKeypairsLocalStreamsAccountSettingsKeypairs(t *testing.T) {
 		},
 	}
 
+	// Run the local keypair watch through the test stream.
 	err = ar.WatchEntityKeypairs(&s4wave_account.WatchEntityKeypairsRequest{}, strm)
 	if err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
+
+	// Assert the watch reports the persisted keypair as locked.
 	if received == nil {
 		t.Fatal("expected local entity keypair snapshot")
 	}
 	if received.GetUnlockedCount() != 0 {
 		t.Fatalf("expected no unlocked local keypairs, got %d", received.GetUnlockedCount())
 	}
+
+	// Check the keypair count, lock state, peer ID, and authentication method.
 	keypairs := received.GetKeypairs()
 	if len(keypairs) != 1 {
 		t.Fatalf("expected 1 entity keypair, got %d", len(keypairs))
@@ -180,19 +201,24 @@ func TestWatchEntityKeypairsLocalStreamsAccountSettingsKeypairs(t *testing.T) {
 }
 
 func TestGenerateBackupKeyLocalPersistsPEMKeypair(t *testing.T) {
+	// Use a test-scoped context for backup-key generation.
 	ctx := t.Context()
 
+	// Start the local provider account and retain its cleanup.
 	tb, _, _, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	// Mount account settings to verify backup-key persistence.
 	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
 	defer soRelease()
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Generate a local backup key and verify its returned PEM identity.
 	resp, err := ar.GenerateBackupKey(ctx, &s4wave_account.GenerateBackupKeyRequest{})
 	if err != nil {
 		t.Fatal(err)
@@ -203,6 +229,8 @@ func TestGenerateBackupKeyLocalPersistsPEMKeypair(t *testing.T) {
 	if resp.GetPeerId() == "" {
 		t.Fatal("expected backup key peer id")
 	}
+
+	// Verify the returned PEM decodes to the generated backup peer ID.
 	backupPriv, err := keypem.ParsePrivKeyPem(resp.GetPemData())
 	if err != nil {
 		t.Fatalf("parse generated backup PEM: %v", err)
@@ -215,6 +243,7 @@ func TestGenerateBackupKeyLocalPersistsPEMKeypair(t *testing.T) {
 		t.Fatalf("PEM peer id = %q, response peer id = %q", backupPeerID.String(), resp.GetPeerId())
 	}
 
+	// Wait for the backup keypair to appear in account settings.
 	settings := waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
 		return hasEntityKeypair(settings, resp.GetPeerId(), "pem")
 	})
@@ -234,19 +263,24 @@ func TestGenerateBackupKeyLocalPersistsPEMKeypair(t *testing.T) {
 }
 
 func TestGenerateBackupKeyLocalDoesNotAddCredentialKeypair(t *testing.T) {
+	// Use a test-scoped context for the credential-keypair isolation check.
 	ctx := t.Context()
 
+	// Start the local provider account and retain its cleanup.
 	tb, _, _, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	// Mount account settings to inspect the persisted keypairs.
 	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
 	defer soRelease()
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Generate a backup key using a separate password credential.
 	resp, err := ar.GenerateBackupKey(ctx, &s4wave_account.GenerateBackupKeyRequest{
 		Credential: &session.EntityCredential{
 			Credential: &session.EntityCredential_Password{
@@ -258,6 +292,7 @@ func TestGenerateBackupKeyLocalDoesNotAddCredentialKeypair(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Wait until settings contain only the generated PEM backup keypair.
 	settings := waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
 		return hasEntityKeypair(settings, resp.GetPeerId(), "pem")
 	})
@@ -274,15 +309,19 @@ func TestGenerateBackupKeyLocalDoesNotAddCredentialKeypair(t *testing.T) {
 }
 
 func TestResolveEntityKeyLocalPasswordUsesAccountID(t *testing.T) {
+	// Skip the expensive password derivation only under GoScript.
 	if runtime.GOOS == "js" {
 		t.Skip("production-cost password scrypt is too slow under GoScript")
 	}
 
+	// Use a test-scoped context for local entity-key resolution.
 	ctx := t.Context()
 
+	// Create the local account whose ID is the password derivation input.
 	_, _, accountID, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	// Derive the expected private key and peer ID from the account ID.
 	password := "local-resolve-password"
 	_, expectedPriv, err := auth_password.BuildParametersWithUsernamePassword(accountID, []byte(password))
 	if err != nil {
@@ -293,11 +332,13 @@ func TestResolveEntityKeyLocalPasswordUsesAccountID(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Resolve the password credential through the local AccountResource.
 	priv, gotPeerID, err := ar.ResolveEntityKey(ctx, &session.EntityCredential{
 		Credential: &session.EntityCredential_Password{Password: password},
 	})
@@ -308,6 +349,7 @@ func TestResolveEntityKeyLocalPasswordUsesAccountID(t *testing.T) {
 		t.Fatalf("expected password peer id %q derived from local account id %q, got %q", expectedPeerID, accountID, gotPeerID)
 	}
 
+	// Verify the resolved private key has the expected peer identity.
 	privPeerID, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)
@@ -318,23 +360,29 @@ func TestResolveEntityKeyLocalPasswordUsesAccountID(t *testing.T) {
 }
 
 func TestChangePasswordLocalReplacesPasswordKeypair(t *testing.T) {
+	// Skip password-derivation coverage only under GoScript.
 	if runtime.GOOS == "js" {
 		t.Skip("production-cost password scrypt is too slow under GoScript; PEM credential resource coverage runs separately")
 	}
 
+	// Use a test-scoped context for local password rotation.
 	ctx := t.Context()
 
+	// Start the local account and retain its identity and cleanup.
 	tb, _, accountID, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	// Mount account settings to verify the keypair replacement.
 	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
 	defer soRelease()
 
+	// Derive the old and new password identities for this account.
 	oldPassword := "old-local-password"
 	newPassword := "new-local-password"
 	oldPeerID := derivePasswordPeerID(t, accountID, oldPassword)
 	newPeerID := derivePasswordPeerID(t, accountID, newPassword)
 
+	// Prepare the old password keypair in local account settings.
 	oldKeypairOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_AddEntityKeypair{
 			AddEntityKeypair: &session.EntityKeypair{
@@ -352,11 +400,13 @@ func TestChangePasswordLocalReplacesPasswordKeypair(t *testing.T) {
 		return hasEntityKeypair(settings, oldPeerID, auth_password.MethodID)
 	})
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Change the account password from the old credential to the new one.
 	if _, err := ar.ChangePassword(ctx, &s4wave_account.ChangePasswordRequest{
 		OldPassword: oldPassword,
 		NewPassword: newPassword,
@@ -364,6 +414,7 @@ func TestChangePasswordLocalReplacesPasswordKeypair(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Wait for settings to contain only the replacement password keypair.
 	settings := waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
 		keypairs := settings.GetEntityKeypairs()
 		return len(keypairs) == 1 &&
@@ -388,8 +439,10 @@ func TestChangePasswordLocalReplacesPasswordKeypair(t *testing.T) {
 
 // TestWatchSessionsLocal verifies the account sessions watch for a local account.
 func TestWatchSessionsLocal(t *testing.T) {
+	// Use a test-scoped context for the local sessions watch.
 	ctx := t.Context()
 
+	// Start the account and mount its current session for the watch.
 	tb, sessRef, _, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 	sess, sessRelease, err := session.ExMountSession(
@@ -404,9 +457,11 @@ func TestWatchSessionsLocal(t *testing.T) {
 	}
 	defer sessRelease.Release()
 
+	// Mount the account settings SharedObject for session metadata.
 	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
 	defer soRelease()
 
+	// Add a paired device that the sessions watch must include.
 	addOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_AddPairedDevice{
 			AddPairedDevice: &account_settings.PairedDevice{
@@ -422,18 +477,23 @@ func TestWatchSessionsLocal(t *testing.T) {
 	}
 	queueAccountSettingsOp(ctx, t, so, addOpData)
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Cancel the RPC stream after the session rows are observed.
 	rpcCtx, rpcCancel := context.WithCancel(ctx)
 	defer rpcCancel()
 
+	// Read the mounted session identity before setting its presentation.
 	currentPeerID := sess.GetPeerId().String()
 	if currentPeerID == "" {
 		t.Fatal("expected mounted session peer ID")
 	}
+
+	// Set a presentation for the current local session.
 	currentPresOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_UpsertSessionPresentation{
 			UpsertSessionPresentation: &account_settings.SessionPresentation{
@@ -450,6 +510,8 @@ func TestWatchSessionsLocal(t *testing.T) {
 		t.Fatal(err)
 	}
 	queueAccountSettingsOp(ctx, t, so, currentPresData)
+
+	// Set a presentation for the paired remote device.
 	remotePresOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_UpsertSessionPresentation{
 			UpsertSessionPresentation: &account_settings.SessionPresentation{
@@ -465,12 +527,15 @@ func TestWatchSessionsLocal(t *testing.T) {
 	}
 	queueAccountSettingsOp(ctx, t, so, remotePresData)
 
+	// Prepare a paired account member without a paired-device row.
 	// Pairing enrolls an account member with a presentation and no paired device.
 	agent, err := peer.NewPeer(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	agentPeerID := agent.GetPeerID().String()
+
+	// Persist the member and presentation operations in account settings.
 	for _, op := range []*account_settings.AccountSettingsOp{
 		{Op: &account_settings.AccountSettingsOp_UpsertAccountSession{
 			UpsertAccountSession: &account_settings.AccountSession{PeerId: agentPeerID, StoragePeerId: agentPeerID},
@@ -486,6 +551,7 @@ func TestWatchSessionsLocal(t *testing.T) {
 		queueAccountSettingsOp(ctx, t, so, data)
 	}
 
+	// Capture the session snapshot after all three records are present.
 	var received *s4wave_account.WatchSessionsResponse
 	strm := &testWatchSessionsStream{
 		ctx: rpcCtx,
@@ -505,11 +571,13 @@ func TestWatchSessionsLocal(t *testing.T) {
 		},
 	}
 
+	// Run the local sessions watch through the test stream.
 	err = ar.WatchSessions(&s4wave_account.WatchSessionsRequest{}, strm)
 	if err != nil && rpcCtx.Err() == nil {
 		t.Fatal(err)
 	}
 
+	// Assert the watch emits all three expected session rows.
 	if received == nil {
 		t.Fatal("expected local sessions snapshot")
 	}
@@ -517,6 +585,7 @@ func TestWatchSessionsLocal(t *testing.T) {
 		t.Fatalf("expected 3 sessions, got %d", len(received.GetSessions()))
 	}
 
+	// Check the current-device row and its presentation fields.
 	current := received.GetSessions()[0]
 	if current.GetPeerId() != currentPeerID {
 		t.Fatalf("expected current peer_id %q, got %q", currentPeerID, current.GetPeerId())
@@ -537,6 +606,7 @@ func TestWatchSessionsLocal(t *testing.T) {
 		t.Fatalf("expected current location %q, got %q", "Portland, OR", current.GetLocation())
 	}
 
+	// Check the paired-device row and its presentation fields.
 	remote := received.GetSessions()[1]
 	if remote.GetPeerId() != "12D3KooWRemotePeer1" {
 		t.Fatalf("expected remote peer_id %q, got %q", "12D3KooWRemotePeer1", remote.GetPeerId())
@@ -554,6 +624,7 @@ func TestWatchSessionsLocal(t *testing.T) {
 		t.Fatalf("expected remote location %q, got %q", "Home Office", remote.GetLocation())
 	}
 
+	// Check the account member that has no paired-device record.
 	member := received.GetSessions()[2]
 	if member.GetPeerId() != agentPeerID || member.GetCurrentSession() {
 		t.Fatalf("expected paired member row for %q, got %v", agentPeerID, member)
@@ -561,16 +632,20 @@ func TestWatchSessionsLocal(t *testing.T) {
 }
 
 func TestRevokeSessionLocalReturnsUnsupported(t *testing.T) {
+	// Use a test-scoped context for local session revocation.
 	ctx := t.Context()
 
+	// Start the local provider account and retain its cleanup.
 	_, _, _, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	// Construct the AccountResource over the local provider account.
 	ar := resource_account.NewAccountResource(acc)
 	if ar == nil {
 		t.Fatal("expected local account resource")
 	}
 
+	// Request revocation of a remote session through the local account.
 	_, err := ar.RevokeSession(ctx, &s4wave_account.RevokeSessionRequest{
 		SessionPeerId: "12D3KooWRemotePeer1",
 	})
@@ -583,14 +658,21 @@ func TestRevokeSessionLocalReturnsUnsupported(t *testing.T) {
 }
 
 func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
+	// Use a test-scoped context for atomic override validation.
 	ctx := t.Context()
+
+	// Create the local account and AccountResource under test.
 	_, _, _, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 	ar := resource_account.NewAccountResource(acc)
+
+	// Define a valid override set for both Web and TUI surfaces.
 	valid := &s4wave_command.KeybindingOverrideSet{
 		WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "spacewave.palette", Bindings: []*s4wave_command.CommandBinding{{Id: "palette-web", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB}}}},
 		TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "spacewave.palette", Bindings: []*s4wave_command.CommandBinding{{Id: "palette-tui", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI}}}},
 	}
+
+	// Apply the valid replacement twice with each prior value as its expectation.
 	expected := &s4wave_command.KeybindingOverrideSet{}
 	for i := range 2 {
 		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{
@@ -602,24 +684,35 @@ func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 		expected = valid
 	}
 
+	// Prepare independent concurrent updates to the same override set.
 	concurrent := valid.CloneVT()
 	concurrent.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+Space"}
+
+	// Apply the Web settings update against the shared expected state.
 	if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{
 		ExpectedOverrideSet: valid,
 		OverrideSet:         concurrent,
 	}); err != nil {
 		t.Fatalf("concurrent winner: %v", err)
 	}
+
+	// Prepare a concurrent TUI settings update from the same expected state.
 	concurrentTUI := valid.CloneVT()
 	concurrentTUI.TuiSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+B"}
+
+	// Apply the TUI settings update against the shared expected state.
 	if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{
 		ExpectedOverrideSet: valid,
 		OverrideSet:         concurrentTUI,
 	}); err != nil {
 		t.Fatalf("concurrent TUI replacement: %v", err)
 	}
+
+	// Build the merged state that both successful updates should preserve.
 	merged := concurrent.CloneVT()
 	merged.TuiSettings = concurrentTUI.TuiSettings.CloneVT()
+
+	// Define invalid override sets that must be rejected atomically.
 	invalid := []*s4wave_command.KeybindingOverrideSet{
 		{WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "dup"}, {CommandId: "dup"}}},
 		{TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "dup"}, {CommandId: "dup"}}},
@@ -627,11 +720,15 @@ func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 		{TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "web-in-tui", Bindings: []*s4wave_command.CommandBinding{{Id: "web-in-tui", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB}}}}},
 		{WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "unknown", Bindings: []*s4wave_command.CommandBinding{{Id: "unknown", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}}}}}},
 	}
+
+	// Reject every invalid replacement without changing the stored snapshot.
 	for i, value := range invalid {
 		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{ExpectedOverrideSet: merged, OverrideSet: value}); err == nil {
 			t.Fatalf("invalid replacement %d accepted", i)
 		}
 	}
+
+	// Watch the final override state while the rejected operations are checked.
 	rpcCtx, cancel := context.WithCancel(ctx)
 	var got *s4wave_command.KeybindingOverrideSet
 	strm := &testWatchKeybindingOverridesStream{ctx: rpcCtx, onSend: func(resp *s4wave_account.WatchKeybindingOverridesResponse) error {
@@ -641,9 +738,13 @@ func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 		}
 		return nil
 	}}
+
+	// Read the final override snapshot through the production watch RPC.
 	if err := ar.WatchKeybindingOverrides(&s4wave_account.WatchKeybindingOverridesRequest{}, strm); err != nil && rpcCtx.Err() == nil {
 		t.Fatal(err)
 	}
+
+	// Assert rejected updates left the merged override set unchanged.
 	if !got.EqualVT(merged) {
 		t.Fatalf("rejected operation changed snapshot: %#v", got)
 	}
@@ -653,13 +754,16 @@ func setupLocalProviderAccount(
 	ctx context.Context,
 	t *testing.T,
 ) (*testbed.Testbed, *session.SessionRef, string, *provider_local.ProviderAccount, func()) {
+	// Run setup failures at the calling test site.
 	t.Helper()
 
+	// Start the in-memory testbed for the local account.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register and start the local provider controller.
 	peerID := tb.Volume.GetPeerID()
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
@@ -672,6 +776,7 @@ func setupLocalProviderAccount(
 		t.Fatal(err)
 	}
 
+	// Resolve the local provider before creating its account and session.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
 	if err != nil {
 		provCtrlRef.Release()
@@ -679,6 +784,7 @@ func setupLocalProviderAccount(
 		t.Fatal(err)
 	}
 
+	// Create a local account session through the provider.
 	localProv := prov.(*provider_local.Provider)
 	sessRef, err := localProv.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
@@ -688,6 +794,7 @@ func setupLocalProviderAccount(
 		t.Fatal(err)
 	}
 
+	// Access the created provider account and construct its release chain.
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	accIface, accRel, err := localProv.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
@@ -697,6 +804,7 @@ func setupLocalProviderAccount(
 		t.Fatal(err)
 	}
 
+	// Release the account, provider references, and testbed together.
 	acc := accIface.(*provider_local.ProviderAccount)
 	release := func() {
 		accRel()
@@ -713,8 +821,10 @@ func mountLocalAccountSettingsSO(
 	tb *testbed.Testbed,
 	acc *provider_local.ProviderAccount,
 ) (sobject.SharedObject, func()) {
+	// Run mount failures at the calling test site.
 	t.Helper()
 
+	// Get the account settings reference and mount its SharedObject.
 	ref, err := acc.GetAccountSettingsRef(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -732,14 +842,17 @@ func waitForAccountSettings(
 	so sobject.SharedObject,
 	valid func(*account_settings.AccountSettings) bool,
 ) *account_settings.AccountSettings {
+	// Run settings-watch failures at the calling test site.
 	t.Helper()
 
+	// Acquire account settings state for the watch assertion.
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer relStateCtr()
 
+	// Retain the latest decoded settings while watching state changes.
 	var settings *account_settings.AccountSettings
 	err = ccontainer.WatchChanges(
 		ctx,
@@ -754,9 +867,13 @@ func waitForAccountSettings(
 		},
 		nil,
 	)
+
+	// Accept cancellation from the matching account settings state only.
 	if err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
+
+	// Require the watch to observe an account settings snapshot.
 	if settings == nil {
 		t.Fatal("expected account settings state")
 	}
@@ -778,8 +895,10 @@ func queueAccountSettingsOp(
 	so sobject.SharedObject,
 	opData []byte,
 ) {
+	// Run operation failures at the calling test site.
 	t.Helper()
 
+	// Queue the settings operation and wait for its processing result.
 	localID, err := so.QueueOperation(ctx, opData)
 	if err != nil {
 		t.Fatal(err)
@@ -794,8 +913,10 @@ func decodeAccountSettings(
 	t *testing.T,
 	snap sobject.SharedObjectStateSnapshot,
 ) *account_settings.AccountSettings {
+	// Run snapshot-decoding failures at the calling test site.
 	t.Helper()
 
+	// Decode the account settings from the supplied snapshot.
 	settings, err := account_settings.ReadSnapshot(ctx, snap)
 	if err != nil {
 		t.Fatal(err)
@@ -804,12 +925,16 @@ func decodeAccountSettings(
 }
 
 func generateTestPeerID(t *testing.T) string {
+	// Run key-generation failures at the calling test site.
 	t.Helper()
 
+	// Generate a peer keypair for local account tests.
 	priv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Derive the test peer ID from its private key.
 	pid, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)
@@ -818,12 +943,16 @@ func generateTestPeerID(t *testing.T) string {
 }
 
 func derivePasswordPeerID(t *testing.T, accountID string, password string) string {
+	// Run password-key derivation failures at the calling test site.
 	t.Helper()
 
+	// Derive the password key using the requested account identity.
 	_, priv, err := auth_password.BuildParametersWithUsernamePassword(accountID, []byte(password))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Derive the peer ID returned by password-key generation.
 	pid, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
 		t.Fatal(err)

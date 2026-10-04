@@ -56,6 +56,7 @@ func TestApplyRefBatchOwnershipSemantics(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// Start a graph and apply the case's ownership transition.
 			graph := NewGraph(store_kvtx_inmem.NewStore())
 			if err := graph.ApplyRefBatch(ctx, test.seed, nil); err != nil {
 				t.Fatal(err)
@@ -64,9 +65,12 @@ func TestApplyRefBatchOwnershipSemantics(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			// Verify every expected edge is present.
 			for _, edge := range test.want {
 				assertEdge(t, graph, edge, true)
 			}
+
+			// Verify every forbidden edge is absent.
 			for _, edge := range test.reject {
 				assertEdge(t, graph, edge, false)
 			}
@@ -76,11 +80,13 @@ func TestApplyRefBatchOwnershipSemantics(t *testing.T) {
 
 // TestRejectedTransactionLeavesNeitherHalfEdge proves atomic edge insertion.
 func TestRejectedTransactionLeavesNeitherHalfEdge(t *testing.T) {
+	// Reject an edge write and confirm the transaction rolls back both indexes.
 	ctx := context.Background()
 	graph := NewGraph(store_kvtx_inmem.NewStore())
 	rejected := errors.New("reject transaction")
 	edge := block_gc.RefEdge{Subject: "owner", Object: "object"}
 
+	// Roll back after staging both graph directions.
 	err := kvtx.RunTransaction(
 		ctx,
 		true,
@@ -98,6 +104,7 @@ func TestRejectedTransactionLeavesNeitherHalfEdge(t *testing.T) {
 		t.Fatalf("error = %v, want %v", err, rejected)
 	}
 
+	// Confirm rollback removed the forward, reverse, and node records.
 	assertEdge(t, graph, edge, false)
 	assertRecord(t, graph, graphKey('n', edge.Subject), false)
 	assertRecord(t, graph, graphKey('n', edge.Object), false)
@@ -112,6 +119,7 @@ func assertEdge(t testing.TB, graph *Graph, edge block_gc.RefEdge, want bool) {
 
 // assertRecord checks one graph record through a fresh read transaction.
 func assertRecord(t testing.TB, graph *Graph, key []byte, want bool) {
+	// Read the record in a fresh transaction and compare its existence.
 	t.Helper()
 	tx, err := graph.store.NewTransaction(context.Background(), false)
 	if err != nil {
@@ -119,6 +127,7 @@ func assertRecord(t testing.TB, graph *Graph, key []byte, want bool) {
 	}
 	defer tx.Discard()
 
+	// Check whether the requested graph record exists.
 	exists, err := tx.Exists(context.Background(), key)
 	if err != nil {
 		t.Fatal(err)

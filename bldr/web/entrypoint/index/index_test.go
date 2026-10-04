@@ -21,6 +21,7 @@ func TestImportMapString(t *testing.T) {
 }
 
 func TestRenderIndexHTML(t *testing.T) {
+	// Prepare valid index data containing one import and an entrypoint.
 	data := IndexData{
 		ImportMap: ImportMap{
 			Imports: map[string]string{
@@ -30,6 +31,7 @@ func TestRenderIndexHTML(t *testing.T) {
 		EntrypointPath: "./test/entry.mjs",
 	}
 
+	// Render the embedded index from the test data.
 	result, err := RenderIndexHTML(data)
 	if err != nil {
 		t.Fatalf("RenderIndexHTML() error = %v", err)
@@ -62,6 +64,7 @@ func TestRenderIndexHTMLInvalidTemplate(t *testing.T) {
 	indexHTML = "<!doctype html>"
 	defer func() { indexHTML = originalHTML }()
 
+	// Require rendering to reject a template missing both markers.
 	_, err := RenderIndexHTML(IndexData{})
 	if err == nil {
 		t.Error("RenderIndexHTML() with invalid template should return error")
@@ -85,14 +88,17 @@ func TestRenderIndexHTMLEscapesEntrypointPath(t *testing.T) {
 }
 
 func TestImportMapJSONMarshal(t *testing.T) {
+	// Prepare one import map entry to verify its JSON representation.
 	im := ImportMap{
 		Imports: map[string]string{
 			"react": "./pkgs/react/index.mjs",
 		},
 	}
 
+	// Marshal the import map to its deterministic JSON form.
 	rendered := im.String()
 
+	// Parse the JSON and verify the stored import URL.
 	var p fastjson.Parser
 	v, err := p.Parse(rendered)
 	if err != nil {

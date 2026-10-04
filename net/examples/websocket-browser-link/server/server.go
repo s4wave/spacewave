@@ -33,6 +33,7 @@ func main() {
 }
 
 func run() error {
+	// Build the local peer bus used by the websocket example.
 	ctx := context.Background()
 	b, sr, privKey, err := common.BuildCommonBus(ctx)
 	if err != nil {
@@ -41,6 +42,7 @@ func run() error {
 	sr.AddFactory(wtpt.NewFactory(b))
 	sr.AddFactory(bifrost_http_listener.NewFactory(b))
 
+	// Derive the local peer ID from its private key.
 	localPeerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return err
@@ -55,6 +57,7 @@ func run() error {
 	defer channelSubRef.Release()
 	le.Infof("built channel subscription for channel %s", channelID)
 
+	// Report authenticated messages received from other peers.
 	relHandler := channelSub.AddHandler(func(m pubsub.Message) {
 		from := m.GetFrom()
 		// ignore unauthenticated and/or from ourselves
@@ -108,6 +111,7 @@ func run() error {
 	mux.Handle("GET /wasm_exec.js", fileServer)
 	mux.Handle("GET /test.wasm", fileServer)
 
+	// Serve the websocket routes and static browser files over HTTP.
 	le.Info("listening on :8080")
 	return http.ListenAndServe(":8080", mux) //nolint:gosec
 }

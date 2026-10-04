@@ -52,6 +52,7 @@ var edBlacklist = [7][32]byte{
 // IsLowOrder checks if the passed group element is of low order.
 // Algorithm translated from the same source as the blacklist (see above).
 func IsEdLowOrder(ge []byte) bool {
+	// Compare the encoded point against the low-order blacklist.
 	var (
 		c    [7]byte
 		k    int
@@ -70,6 +71,7 @@ func IsEdLowOrder(ge []byte) bool {
 		c[i] |= (ge[j] & 0x7f) ^ edBlacklist[i][j]
 	}
 
+	// Reduce the blacklist comparisons to a low-order match result.
 	k = 0
 	for i = range len(edBlacklist) {
 		k |= int(c[i]) - 1 //nolint:gosec // c and edBlacklist have matching fixed size [7]

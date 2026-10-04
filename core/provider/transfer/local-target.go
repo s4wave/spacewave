@@ -46,19 +46,21 @@ func (t *LocalTransferTarget) GetAccount() *provider_local.ProviderAccount {
 // GetBlockStore returns the block store ops for writing blocks to the target.
 // Creates the block store bucket if it does not exist.
 func (t *LocalTransferTarget) GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
+	// Ensure the target account has a block-store bucket for the shared object.
 	blockStoreID := ref.GetBlockStoreId()
 	if _, err := t.account.CreateBlockStore(ctx, blockStoreID); err != nil && !errors.Is(err, bstore.ErrBlockStoreExists) {
 		return nil, nil, err
 	}
 
+	// Retarget the block-store reference to the target account.
 	bsRef := &bstore.BlockStoreRef{
 		ProviderResourceRef: ref.GetProviderResourceRef().CloneVT(),
 	}
 	bsRef.ProviderResourceRef.Id = blockStoreID
-	// Override to target account refs.
 	bsRef.ProviderResourceRef.ProviderId = t.providerID
 	bsRef.ProviderResourceRef.ProviderAccountId = t.accountID
 
+	// Mount the target block store and return its release function.
 	bs, rel, err := t.account.MountBlockStore(ctx, bsRef, nil)
 	if err != nil {
 		return nil, nil, err
@@ -114,6 +116,7 @@ func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, le *lo
 
 // buildObjectStore builds an object store handle for the target account.
 func (t *LocalTransferTarget) buildObjectStore(ctx context.Context) (object.ObjectStore, func(), error) {
+	// Build an object-store handle for the target account.
 	objStoreID := provider_local.SobjectObjectStoreID(t.providerID, t.accountID)
 	volID := t.account.GetVolume().GetID()
 	handle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, t.b, false, objStoreID, volID, nil)

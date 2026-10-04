@@ -17,10 +17,12 @@ import (
 func NewFileServerExt(hfs http.FileSystem) http.Handler {
 	handler := http.FileServer(hfs)
 	handlerFunc := func(rw http.ResponseWriter, req *http.Request) {
+		// Match file suffixes against the current request path.
 		hasSuffix := func(suffix string) bool {
 			return strings.HasSuffix(req.URL.Path, suffix)
 		}
 
+		// Set the browser MIME type for WebAssembly files.
 		if hasSuffix(".wasm") || hasSuffix(".wasm.br") {
 			rw.Header().Set("Content-Type", "application/wasm")
 		}
@@ -57,6 +59,7 @@ func NewFileServerExt(hfs http.FileSystem) http.Handler {
 			}
 		}
 
+		// Expose encoded response metadata and restore the source file length.
 		if rw.Header().Get("Content-Encoding") != "" {
 			rw.Header().Add("Access-Control-Expose-Headers", "Content-Encoding")
 			rw.Header().Add("Vary", "Content-Encoding")
@@ -77,6 +80,7 @@ func NewFileServerExt(hfs http.FileSystem) http.Handler {
 			rw.Header().Add("Content-Length", strconv.Itoa(int(st.Size())))
 		}
 
+		// Serve requests that need no custom decompression through FileServer.
 		handler.ServeHTTP(rw, req)
 	}
 

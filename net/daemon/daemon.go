@@ -51,6 +51,7 @@ func NewDaemon(
 	nodePriv crypto.PrivKey,
 	opts ConstructOpts,
 ) (*Daemon, error) {
+	// Use the supplied logger or construct the daemon's default logger.
 	le := opts.LogEntry
 	if le == nil {
 		log := logrus.New()
@@ -64,6 +65,7 @@ func NewDaemon(
 		return nil, err
 	}
 
+	// Register the API and caller-provided controller factories.
 	sr.AddFactory(api_controller.NewFactory(b))
 	for _, ctor := range opts.ExtraControllerFactories {
 		if ctor != nil {
@@ -71,18 +73,20 @@ func NewDaemon(
 		}
 	}
 
-	// Construct the node controller.
+	// Derive the node identity from its private key.
 	peerID, err := peer.IDFromPrivateKey(nodePriv)
 	if err != nil {
 		return nil, err
 	}
 
+	// Encode the private key and peer identity for the node controller.
 	peerIDString := peerID.String()
 	nodePrivKeyPem, err := keypem.MarshalPrivKeyPem(nodePriv)
 	if err != nil {
 		return nil, err
 	}
 
+	// Start the node controller with its serialized private key.
 	dir := resolver.NewLoadControllerWithConfig(&nctr.Config{
 		PrivKey: string(nodePrivKeyPem),
 	})

@@ -42,9 +42,11 @@ var (
 )
 
 func main() {
+	// Configure the command-line application for the FUSE demo.
 	app := cli.NewApp()
 	app.Usage = "unixfs filesystem demo"
 
+	// Add storage and demo-specific command flags.
 	dflags := (&daemonFlags.hDaemonArgs).BuildFlags()
 	dflags = append(
 		dflags,
@@ -147,17 +149,24 @@ func execute(rctx context.Context) error {
 		}
 	}
 
-	// access and add some test data
+	// Name the sample file in the test filesystem.
 	testFilename := "test-file.txt"
+
+	// Create or update the file inside the World object.
 	_, _, err = world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+		// Open the filesystem tree and find the demo file.
 		ftree, err := unixfs_block.NewFSTree(ctx, bcs, unixfs_block.NodeType_NodeType_DIRECTORY)
 		if err != nil {
 			return err
 		}
+
+		// Reuse the existing file entry when present.
 		fnode, _, err := ftree.LookupFollowDirent(testFilename)
 		if err != nil {
 			return err
 		}
+
+		// Create the demo file entry when it does not exist.
 		if fnode == nil {
 			now := timestamp.Now()
 			fnode, err = ftree.Mknod(testFilename, unixfs_block.NodeType_NodeType_FILE, nil, 0, now)
@@ -165,10 +174,14 @@ func execute(rctx context.Context) error {
 				return err
 			}
 		}
+
+		// Open the file handle for writing.
 		fh, err := fnode.BuildFileHandle(ctx)
 		if err != nil {
 			return err
 		}
+
+		// Write the demo contents to the file.
 		fw := file.NewWriter(fh, nil, nil)
 		return fw.WriteBytes(0, []byte("Hello world from FUSE!\n"))
 	})

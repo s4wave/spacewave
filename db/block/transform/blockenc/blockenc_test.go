@@ -8,6 +8,7 @@ import (
 )
 
 func TestBlockEncRoundTripUsesLazyPool(t *testing.T) {
+	// Configure the encoder with a valid key and pooled block codec.
 	key := bytes.Repeat([]byte{1}, 32)
 	enc, err := NewBlockEnc(&Config{
 		BlockEnc: blockenc.DefaultBlockEnc,
@@ -17,6 +18,7 @@ func TestBlockEncRoundTripUsesLazyPool(t *testing.T) {
 		t.Fatalf("NewBlockEnc: %v", err)
 	}
 
+	// Encode the payload and confirm ciphertext differs from plaintext.
 	body := []byte("payload")
 	encoded, err := enc.EncodeBlock(body)
 	if err != nil {
@@ -26,6 +28,7 @@ func TestBlockEncRoundTripUsesLazyPool(t *testing.T) {
 		t.Fatal("encoded block should differ from plaintext")
 	}
 
+	// Decode the ciphertext and confirm the original payload is restored.
 	decoded, err := enc.DecodeBlock(encoded)
 	if err != nil {
 		t.Fatalf("DecodeBlock: %v", err)

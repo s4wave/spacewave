@@ -285,27 +285,32 @@ func (t *Transfer) copyBlocksForSpace(ctx context.Context, spaceIdx int, soRef *
 		return errors.Wrap(err, "get block refs")
 	}
 
+	// Skip block copying when the source has no block references.
 	if len(blockRefs) == 0 {
 		return nil
 	}
 
+	// Publish the total block count for this space.
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		t.state.Spaces[spaceIdx].BlocksTotal = uint64(len(blockRefs))
 		broadcast()
 	})
 
+	// Mount the source block store for reading blocks.
 	srcBlocks, srcRel, err := t.source.GetBlockStore(ctx, soRef)
 	if err != nil {
 		return errors.Wrap(err, "mount source block store")
 	}
 	defer srcRel()
 
+	// Mount the target block store for writing blocks.
 	dstBlocks, dstRel, err := t.target.GetBlockStore(ctx, soRef)
 	if err != nil {
 		return errors.Wrap(err, "mount target block store")
 	}
 	defer dstRel()
 
+	// Copy each block and publish its progress.
 	var copied uint64
 	for _, ref := range blockRefs {
 		if err := ctx.Err(); err != nil {
@@ -330,6 +335,7 @@ func (t *Transfer) copyBlocksForSpace(ctx context.Context, spaceIdx int, soRef *
 		t.setSpaceBlocksCopied(spaceIdx, copied)
 	}
 
+	// Flush the destination block store after copying.
 	_, err = dstBlocks.Sync(ctx)
 	return err
 }
@@ -338,25 +344,34 @@ func (t *Transfer) copyBlocksForSpace(ctx context.Context, spaceIdx int, soRef *
 // transfer completed. A checkpoint from a transfer with a different mode or
 // session pair is ignored: its spaces were not copied to this target.
 func (t *Transfer) loadCompletedSpaces(ctx context.Context) map[string]struct{} {
+	// Start with no completed spaces when checkpointing is disabled.
 	done := make(map[string]struct{})
 	if t.checkpoint == nil {
 		return done
 	}
+
+	// Load saved progress, falling back to a fresh transfer after read errors.
 	cp, err := t.checkpoint.LoadCheckpoint(ctx)
 	if err != nil {
 		t.le.WithError(err).Warn("failed to load checkpoint, starting fresh")
 		return done
 	}
+
+	// Ignore a checkpoint that has no transfer state.
 	cpState := cp.GetState()
 	if cpState == nil {
 		return done
 	}
+
+	// Ignore checkpoint state from a different transfer.
 	if cpState.GetMode() != t.state.GetMode() ||
 		cpState.GetSourceSessionIndex() != t.state.GetSourceSessionIndex() ||
 		cpState.GetTargetSessionIndex() != t.state.GetTargetSessionIndex() {
 		t.le.Warn("ignoring checkpoint from a different transfer")
 		return done
 	}
+
+	// Mark checkpointed spaces complete and return their IDs.
 	ids := cp.GetSpaceIds()
 	n := min(int(cp.GetCurrentSpaceIndex()), len(ids))
 	for _, id := range ids[:n] {

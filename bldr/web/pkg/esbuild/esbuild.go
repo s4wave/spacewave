@@ -29,7 +29,10 @@ func isJSExtension(ext string) bool {
 //
 // https://github.com/evanw/esbuild/issues/1921
 func NewImportBannerShim(pkgs []string, minify bool, xfrmImport func(pkg string) string) string {
+	// Prepare generated JavaScript for the static imports and require shim.
 	var sb strings.Builder
+
+	// Emit package imports and remember each package's generated binding.
 	// write import statements
 	// import * as __bldr_react from 'react';
 	pkgVarNames := make([]string, len(pkgs))

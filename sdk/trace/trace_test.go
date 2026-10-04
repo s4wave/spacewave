@@ -57,9 +57,13 @@ func (t *testTraceService) CaptureMemoryProfile(req *CaptureMemoryProfileRequest
 }
 
 func newTestTraceClient(t *testing.T, impl SRPCTraceServiceServer) SRPCTraceServiceClient {
+	// Mark failures as originating from the calling test.
 	t.Helper()
 
+	// Build an in-memory RPC mux and register the test service.
 	mux := srpc.NewMux()
+
+	// Verify that registration exposes each service method.
 	if err := SRPCRegisterTraceService(mux, impl); err != nil {
 		t.Fatal(err)
 	}
@@ -76,12 +80,14 @@ func newTestTraceClient(t *testing.T, impl SRPCTraceServiceServer) SRPCTraceServ
 		t.Fatal("expected CaptureMemoryProfile to be registered")
 	}
 
+	// Connect an in-memory client to the registered service.
 	server := srpc.NewServer(mux)
 	client := srpc.NewClient(srpc.NewServerPipe(server))
 	return NewSRPCTraceServiceClient(client)
 }
 
 func TestTraceServiceContract(t *testing.T) {
+	// Prepare the test context, service, and client.
 	ctx := context.Background()
 	impl := &testTraceService{
 		stopData: [][]byte{
@@ -99,6 +105,7 @@ func TestTraceServiceContract(t *testing.T) {
 	}
 	client := newTestTraceClient(t, impl)
 
+	// Start a trace and verify the service receives its label.
 	_, err := client.StartTrace(ctx, &StartTraceRequest{Label: "phase1-seed"})
 	if err != nil {
 		t.Fatal(err)
@@ -107,11 +114,13 @@ func TestTraceServiceContract(t *testing.T) {
 		t.Fatalf("expected start label %q, got %q", "phase1-seed", impl.startLabel)
 	}
 
+	// Stop the trace and collect its streamed data.
 	stopStrm, err := client.StopTrace(ctx, &StopTraceRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Read every trace chunk until the stream closes.
 	var traceData []byte
 	for {
 		msg, err := stopStrm.Recv()
@@ -124,6 +133,7 @@ func TestTraceServiceContract(t *testing.T) {
 		traceData = append(traceData, msg.GetData()...)
 	}
 
+	// Verify the stop call count and reconstructed trace.
 	if impl.stopCalls != 1 {
 		t.Fatalf("expected 1 StopTrace call, got %d", impl.stopCalls)
 	}
@@ -131,10 +141,13 @@ func TestTraceServiceContract(t *testing.T) {
 		t.Fatalf("expected streamed trace %q, got %q", []byte("trace-bytes"), traceData)
 	}
 
+	// Capture and assemble a CPU profile.
 	cpuStrm, err := client.CaptureCPUProfile(ctx, &CaptureCPUProfileRequest{DurationMillis: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Read every CPU profile chunk until the stream closes.
 	var cpuData []byte
 	for {
 		msg, err := cpuStrm.Recv()
@@ -153,6 +166,7 @@ func TestTraceServiceContract(t *testing.T) {
 		t.Fatalf("expected streamed CPU profile %q, got %q", []byte("cpu-profile"), cpuData)
 	}
 
+	// Capture and assemble a memory profile.
 	memStrm, err := client.CaptureMemoryProfile(ctx, &CaptureMemoryProfileRequest{Profile: "allocs"})
 	if err != nil {
 		t.Fatal(err)

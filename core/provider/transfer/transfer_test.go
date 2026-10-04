@@ -98,11 +98,14 @@ func TestTransferWatchStatePairsSnapshotAndWaitChannel(t *testing.T) {
 // setupLocalProvider starts a local provider on the testbed.
 // Returns the provider and release functions.
 func setupLocalProvider(ctx context.Context, t *testing.T, tb *testbed.Testbed, providerID string) (*provider_local.Provider, func()) {
+	// Mark test helper failures at the caller.
 	t.Helper()
 
+	// Register the local provider factory and peer.
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	peerID := tb.Volume.GetPeerID()
 
+	// Start the local provider controller with its configuration.
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: providerID,
 		PeerId:     peerID.String(),
@@ -112,12 +115,14 @@ func setupLocalProvider(ctx context.Context, t *testing.T, tb *testbed.Testbed, 
 		t.Fatal(err)
 	}
 
+	// Resolve the running local provider.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
 	if err != nil {
 		provCtrlRef.Release()
 		t.Fatal(err)
 	}
 
+	// Retain the provider and controller release functions.
 	localProv := prov.(*provider_local.Provider)
 	release := func() {
 		provRef.Release()
@@ -129,25 +134,30 @@ func setupLocalProvider(ctx context.Context, t *testing.T, tb *testbed.Testbed, 
 // createAccount creates a new account on the local provider.
 // Returns the account, account ID, and release function.
 func createAccount(ctx context.Context, t *testing.T, prov *provider_local.Provider) (*provider_local.ProviderAccount, string, func()) {
+	// Mark test helper failures at the caller.
 	t.Helper()
 
+	// Create a local account and session.
 	sessRef, err := prov.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Resolve the account and retain its release function.
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	accIface, accRel, err := prov.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Return the typed local account and its release function.
 	acc := accIface.(*provider_local.ProviderAccount)
 	return acc, accountID, accRel
 }
 
 // createTestSpace creates a shared object on the account for testing.
 func createTestSpace(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount, soID string) *sobject.SharedObjectRef {
+	// Mark test helper failures at the caller and create the shared object.
 	t.Helper()
 	meta := &sobject.SharedObjectMeta{BodyType: "space"}
 	ref, err := acc.CreateSharedObject(ctx, soID, meta, "", "")
@@ -571,6 +581,7 @@ func buildTestObjectStore(
 	acc *provider_local.ProviderAccount,
 	providerID, accountID string,
 ) (object.ObjectStore, func(), error) {
+	// Build an object-store handle for the test account.
 	objStoreID := provider_local.SobjectObjectStoreID(providerID, accountID)
 	volID := acc.GetVolume().GetID()
 	handle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, objStoreID, volID, nil)

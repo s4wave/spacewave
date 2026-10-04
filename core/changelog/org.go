@@ -8,6 +8,7 @@ import (
 
 // ParseOrgChangelog parses the constrained CHANGELOG.org subset.
 func ParseOrgChangelog(data []byte) (*Changelog, error) {
+	// Normalize Org line endings before scanning release headings.
 	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 	cl := &Changelog{}
 	for i := 0; i < len(lines); {
@@ -38,6 +39,7 @@ func ParseOrgChangelog(data []byte) (*Changelog, error) {
 }
 
 func parseOrgRelease(lines []string, i int) (*Release, int, error) {
+	// Parse the release heading and require its version prefix.
 	line := strings.TrimSpace(lines[i])
 	if !strings.HasPrefix(line, "* ") {
 		return nil, 0, errors.Errorf("expected release heading at line %d", i+1)
@@ -51,6 +53,7 @@ func parseOrgRelease(lines []string, i int) (*Release, int, error) {
 		return nil, 0, errors.Errorf("invalid release version at line %d", i+1)
 	}
 
+	// Locate the release date after the version heading.
 	i++
 	for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
 		i++
@@ -64,6 +67,7 @@ func parseOrgRelease(lines []string, i int) (*Release, int, error) {
 	}
 	i++
 
+	// Collect the release summary and reject a missing paragraph.
 	summary, next := collectOrgParagraph(lines, i)
 	if summary == "" {
 		return nil, 0, errors.Errorf("missing summary for %s", version)
@@ -75,6 +79,7 @@ func parseOrgRelease(lines []string, i int) (*Release, int, error) {
 		SummaryMarkdown: renderOrgInlineMarkdown(summary),
 	}
 
+	// Parse each supported release section following the summary.
 	for i = next; i < len(lines); {
 		line := strings.TrimSpace(lines[i])
 		if line == "" {
@@ -122,6 +127,7 @@ func parseOrgRelease(lines []string, i int) (*Release, int, error) {
 }
 
 func parseOrgDate(line string) (string, error) {
+	// Extract the date prefix from an Org timestamp.
 	line = strings.TrimSpace(line)
 	if len(line) < len("<2006-01-02") || line[0] != '<' {
 		return "", errors.New("date line must start with an org timestamp")

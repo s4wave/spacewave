@@ -51,6 +51,7 @@ func (c *CState[T]) View(
 	ctx context.Context,
 	cb func(ctx context.Context, value T) error,
 ) (rerr error) {
+	// Acquire the CState mutex before invoking the reader callback.
 	var unlock func()
 	unlock, err := c.mtx.Lock(ctx)
 	if err != nil {
@@ -119,18 +120,21 @@ func (c *CState[T]) AddWatcher(
 	initial bool,
 	cb func(ctx context.Context, state T),
 ) (func(), error) {
+	// Treat an absent callback as a successful no-op watcher.
 	if cb == nil {
 		return func() {
 			// cb is nil, no-op
 		}, nil
 	}
 
+	// Lock CState while it registers the watcher and delivers its initial value.
 	unlock, err := c.mtx.Lock(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
 
+	// Register the watcher and prepare its idempotent removal callback.
 	wt := &watcher[T]{
 		ctx:     ctx,
 		changed: cb,

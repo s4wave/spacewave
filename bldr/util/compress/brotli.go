@@ -19,20 +19,24 @@ func CompressBrotli(ctx context.Context, le *logrus.Entry, workingPath, binPath 
 	}
 	preOptSize := preOptStat.Size()
 
+	// Derive the compressed output path beside the input binary.
 	binDir, outBinName := filepath.Dir(binPath), filepath.Base(binPath)
 	brFilename := outBinName + ".br"
 	brPath = filepath.Join(binDir, brFilename)
 
+	// Convert the output path to the compressor working directory.
 	brPathRel, err := filepath.Rel(workingPath, brPath)
 	if err != nil {
 		return "", err
 	}
 
+	// Convert the input path to the compressor working directory.
 	binPathRel, err := filepath.Rel(workingPath, binPath)
 	if err != nil {
 		return "", err
 	}
 
+	// Configure Brotli to preserve the original file and write the compressed copy.
 	ecmd := uexec.NewCmd(
 		ctx,
 		"brotli",
@@ -49,18 +53,21 @@ func CompressBrotli(ctx context.Context, le *logrus.Entry, workingPath, binPath 
 	ecmd.Env = os.Environ()
 	ecmd.Dir = workingPath
 
+	// Run Brotli and measure the compression time.
 	timeStart := time.Now()
 	if err := uexec.ExecCmd(le, ecmd); err != nil {
 		return "", err
 	}
 	dur := time.Since(timeStart)
 
+	// Read the compressed output size for the savings report.
 	postOptStat, err := os.Stat(brPath)
 	if err != nil {
 		return "", err
 	}
 	postOptSize := postOptStat.Size()
 
+	// Report the compression duration and file-size change.
 	le.
 		WithField("dur", dur.String()).
 		Infof("brotli compressed %s from %d -> %d bytes delta %d", brFilename, preOptSize, postOptSize, postOptSize-preOptSize)

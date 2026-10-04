@@ -10,9 +10,11 @@ import (
 var clientArgs hcli.ClientArgs
 
 func init() {
+	// Build the subcommands configured for the shared client flags.
 	clientCommands := (&clientArgs).BuildCommands()
 
 	// controller-bus
+	// Build the controller-bus command and attach its client.
 	cbusCmd := (&clientArgs.CbusConf).BuildControllerBusCommand()
 	cbusCmd.Before = func(_ *cli.Context) error {
 		client, err := (&clientArgs).BuildClient()
@@ -25,6 +27,7 @@ func init() {
 	clientCommands = append(clientCommands, cbusCmd)
 
 	// bifrost
+	// Build the Bifrost command and attach its client.
 	bifrostCmd := (&clientArgs.BifrostConf).BuildBifrostCommand()
 	bifrostCmd.Before = func(_ *cli.Context) error {
 		client, err := (&clientArgs).BuildClient()
@@ -36,6 +39,7 @@ func init() {
 	}
 	clientCommands = append(clientCommands, bifrostCmd)
 
+	// Register the client command with the application.
 	commands = append(
 		commands,
 		&cli.Command{

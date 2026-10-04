@@ -79,7 +79,8 @@ func visitRecursive(
 	if err := cb(loc); err != nil {
 		return err
 	}
-	// follow each ref
+
+	// Follow every block reference available from the cursor.
 	refs, err := loc.Cursor.GetAllRefs(existingOnly)
 	if err != nil {
 		return errors.Wrap(err, "get block refs")

@@ -39,9 +39,11 @@ var (
 )
 
 func main() {
+	// Configure the command-line app for the UnixFS filesystem demo.
 	app := cli.NewApp()
 	app.Usage = "unixfs filesystem demo"
 
+	// Add daemon and demo-specific flags to the CLI.
 	dflags := daemonFlags.BuildFlags()
 	dflags = append(
 		dflags,

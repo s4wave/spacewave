@@ -28,10 +28,13 @@ func TestDriverValueToSqlValueCoversDriverNativeTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Convert the input to its wire representation before checking the round trip.
 			wireValue, err := DriverValueToSqlValue(tt.value)
 			if err != nil {
 				t.Fatalf("DriverValueToSqlValue: %v", err)
 			}
+
+			// Convert the wire representation back to a driver value.
 			got := SqlValueToDriverValue(wireValue)
 			if gotBytes, ok := got.([]byte); ok {
 				wantBytes := tt.want.([]byte)

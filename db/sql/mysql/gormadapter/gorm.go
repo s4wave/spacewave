@@ -18,6 +18,7 @@ import (
 // NewMysqlGorm constructs a gorm instance from a Mysql transaction. dsn allows
 // specifying the database name and/or other parameters.
 func NewMysqlGorm(ctx context.Context, le *logrus.Entry, tx *mysql.Tx, conf *gorm.Config, dsn string) (*gorm.DB, *sql.DB, error) {
+	// Build a SQL handle and wrap it in GORM.
 	sqlDb, err := mysql.NewSqlDb(ctx, tx, dsn)
 	if err != nil {
 		return nil, nil, err

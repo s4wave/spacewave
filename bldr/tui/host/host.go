@@ -36,6 +36,7 @@ type Host struct {
 
 // NewHost constructs a generic Bun TuiView host.
 func NewHost(config Config) (*Host, error) {
+	// Apply defaults for the Bun executable and exported view name.
 	if strings.TrimSpace(config.BunPath) == "" {
 		config.BunPath = "bun"
 	}
@@ -45,6 +46,8 @@ func NewHost(config Config) (*Host, error) {
 	if strings.TrimSpace(config.ModuleURL) == "" {
 		return nil, errors.New("TuiView module URL is required")
 	}
+
+	// Parse and validate the local TuiView module URL.
 	parsed, err := url.Parse(config.ModuleURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse TuiView module URL")
@@ -52,6 +55,8 @@ func NewHost(config Config) (*Host, error) {
 	if parsed.Scheme != "file" || !filepath.IsAbs(parsed.Path) {
 		return nil, errors.New("TuiView module URL must be an absolute file URL")
 	}
+
+	// Validate the plugin, daemon socket, and session state identifiers.
 	if strings.TrimSpace(config.PluginID) == "" {
 		return nil, errors.New("plugin ID is required")
 	}
@@ -61,6 +66,8 @@ func NewHost(config Config) (*Host, error) {
 	if strings.TrimSpace(config.StateStoreID) == "" {
 		return nil, errors.New("Session state store ID is required")
 	}
+
+	// Fill missing terminal streams before constructing the host.
 	if config.Stdin == nil {
 		config.Stdin = os.Stdin
 	}
@@ -75,6 +82,7 @@ func NewHost(config Config) (*Host, error) {
 
 // Run supervises the TuiView host until it exits or ctx is canceled.
 func (h *Host) Run(ctx context.Context, onReady func()) error {
+	// Report readiness only once across all restart attempts.
 	readyReported := false
 	reportReady := func() {
 		if readyReported {
@@ -85,6 +93,8 @@ func (h *Host) Run(ctx context.Context, onReady func()) error {
 			onReady()
 		}
 	}
+
+	// Restart failed host attempts and restore the terminal after each one.
 	var runErr error
 	for attempt := uint(0); attempt <= h.config.RestartLimit; attempt++ {
 		err := h.runAttempt(ctx, reportReady)
@@ -110,6 +120,7 @@ func (h *Host) Run(ctx context.Context, onReady func()) error {
 }
 
 func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
+	// Start the private Resource proxy and defer its cleanup.
 	proxy, err := startUnixProxy(ctx, h.config.DaemonSocketPath)
 	if err != nil {
 		return err
@@ -120,6 +131,7 @@ func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
 		}
 	}()
 
+	// Materialize the embedded loader and defer removal of its directory.
 	loader, err := materializeLoader()
 	if err != nil {
 		return err
@@ -130,12 +142,14 @@ func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
 		}
 	}()
 
+	// Create the pipe that carries Bun's readiness marker.
 	readyRead, readyWrite, err := os.Pipe()
 	if err != nil {
 		return errors.Wrap(err, "create TUI readiness pipe")
 	}
 	defer readyRead.Close()
 
+	// Configure Bun with the proxy endpoint and readiness pipe before starting it.
 	// #nosec G204: BunPath selects the configured runtime; its arguments are fixed.
 	cmd := exec.Command(h.config.BunPath, "run", loader)
 	cmd.Stdin = h.config.Stdin
@@ -149,11 +163,13 @@ func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
 	}
 	readyWrite.Close()
 
+	// Observe loader readiness and process exit concurrently.
 	readyResult := make(chan error, 1)
 	go scanReady(readyRead, readyResult)
 	waitResult := make(chan error, 1)
 	go func() { waitResult <- cmd.Wait() }()
 
+	// Track readiness for this attempt and report it once.
 	ready := false
 	reportAttemptReady := func() {
 		if ready {
@@ -164,6 +180,8 @@ func (h *Host) runAttempt(ctx context.Context, onReady func()) (runErr error) {
 			onReady()
 		}
 	}
+
+	// Handle readiness, process exit, cancellation, and proxy failure.
 	proxyDone := proxy.done
 	for {
 		select {
@@ -237,10 +255,13 @@ func (h *Host) stopChild(cmd *exec.Cmd, waitResult <-chan error, cause error) er
 }
 
 func materializeLoader() (string, error) {
+	// Read the embedded loader source.
 	data, err := loaderFS.ReadFile("host-loader.ts")
 	if err != nil {
 		return "", errors.Wrap(err, "read embedded TUI loader")
 	}
+
+	// Resolve and create the private TUI runtime directory.
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		return "", errors.Wrap(err, "resolve user cache directory")
@@ -249,6 +270,8 @@ func materializeLoader() (string, error) {
 	if err := os.MkdirAll(baseDir, 0o700); err != nil {
 		return "", errors.Wrap(err, "create TUI runtime root")
 	}
+
+	// Create a temporary loader directory and write its embedded source.
 	dir, err := os.MkdirTemp(baseDir, "loader-")
 	if err != nil {
 		return "", errors.Wrap(err, "create TUI loader directory")
@@ -277,10 +300,13 @@ func scanReady(reader io.Reader, result chan<- error) {
 }
 
 func restoreTerminal(writer io.Writer) error {
+	// Restore the terminal only when the writer is a terminal file.
 	file, ok := writer.(*os.File)
 	if !ok {
 		return nil
 	}
+
+	// Skip terminal control sequences for redirected output.
 	stat, err := file.Stat()
 	if err != nil {
 		return err
@@ -288,6 +314,8 @@ func restoreTerminal(writer io.Writer) error {
 	if stat.Mode()&os.ModeCharDevice == 0 {
 		return nil
 	}
+
+	// Restore the terminal's screen, colors, and cursor state.
 	_, err = io.WriteString(file, terminalRestore)
 	return err
 }

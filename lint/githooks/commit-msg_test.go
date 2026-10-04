@@ -197,15 +197,18 @@ Signed-off-by: Hook Author <hook-author@example.com>
 // throwaway repository, so the hook reads the fixture and not whatever the tree
 // running the tests happens to hold.
 func runCommitMsgHook(t *testing.T, message string, env ...string) (string, string, error) {
+	// Register this repository setup helper for useful failure locations.
 	t.Helper()
 	repo := t.TempDir()
 	git(t, repo, "init", "--quiet")
 
+	// Write the commit-message fixture that the hook must validate.
 	path := filepath.Join(repo, "COMMIT_EDITMSG")
 	if err := os.WriteFile(path, []byte(message), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
+	// Run the hook in its temporary repository and capture both streams.
 	cmd := exec.Command(commitMsgHookPath(t), path)
 	cmd.Dir = repo
 	cmd.Env = append(os.Environ(), env...)
@@ -226,11 +229,14 @@ func git(t *testing.T, dir string, args ...string) {
 }
 
 func commitMsgHookPath(t *testing.T) string {
+	// Register this path resolver as a test helper.
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("resolve current test file")
 	}
+
+	// Resolve and verify the repository commit-msg hook.
 	path := filepath.Join(filepath.Dir(currentFile), "..", "..", ".githooks", "commit-msg")
 	if _, err := os.Stat(path); err != nil {
 		t.Fatal(err)

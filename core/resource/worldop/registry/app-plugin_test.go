@@ -42,6 +42,7 @@ import (
 // TestNativeApplicationPlugin executes actual immutable TypeScript modules through
 // the native QuickJS host, World bridge, supplied transaction, and KV Resources.
 func TestNativeApplicationPlugin(t *testing.T) {
+	// Start an isolated native plugin testbed with a bounded lifecycle.
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
@@ -51,6 +52,8 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	}
 	defer tb.Release()
 	b := tb.GetBus()
+
+	// Start the native plugin host on the testbed bus.
 	tb.GetStaticResolver().AddFactory(plugin_host.NewFactory(b))
 	host, _, hostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host.Controller](
 		ctx, b, resolver.NewLoadControllerWithConfig(plugin_host.NewConfig()), nil,
@@ -72,25 +75,34 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer release()
+
 	// Serve the real registration Resource tree as the core plugin capability.
 	generations := registration.NewRegistry()
 	registeredTypes := objecttypes.NewObjectTypeRegistryResource(generations)
 	registeredViewers := viewers.NewViewerRegistryResource(generations)
 	registeredOps := NewWorldOpRegistryResource(generations)
 	coreRoot := srpc.NewMux(registeredTypes.GetMux(), registeredViewers.GetMux(), registeredOps.GetMux())
+
+	// Register the core Resource tree with the shared generation registry.
 	if err := generations.Register(coreRoot); err != nil {
 		t.Fatal(err)
 	}
+
+	// Expose the core Resource tree through the server multiplexer.
 	coreMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(coreRoot).Register(coreMux); err != nil {
 		t.Fatal(err)
 	}
+
+	// Run the core Resource server controller.
 	core := newApplicationCore(coreMux)
 	releaseCore, err := b.AddController(ctx, core, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer releaseCore()
+
+	// Connect World operation lookups to the core registry.
 	bridge := NewWorldOpRegistryBridgeController(le, b, registeredOps)
 	releaseBridge, err := b.AddController(ctx, bridge, nil)
 	if err != nil {
@@ -98,18 +110,22 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	}
 	defer releaseBridge()
 
-	// Compile two distinguishable executables and retain both installed manifests.
+	// Resolve the Bldr source and distribution roots.
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 	root := filepath.Clean(filepath.Join(cwd, "../../../.."))
 	distRoot := filepath.Join(root, "bldr")
+
+	// Track candidate manifests and installed plugin references.
 	var revisions []string
 	var installed []*manifest.ManifestRef
 	var installationReleases []func()
 	var current bldr_plugin.RunningPluginRef
 	var running bldr_plugin.RunningPlugin
+
+	// Compile each app revision and stage its manifest assets.
 	for version, step := range []int{1, 10, 99} {
 		out := t.TempDir()
 		result, err := bundler.Build(ctx, le, t.TempDir(), distRoot, &bundler.BuildRequest{
@@ -224,11 +240,15 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	}, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Reopen the persisted plugin choices and wait for recovery.
 	reopened, releaseReopened := tb.GetScheduler().AddSelectedPluginReference("test-colors", "space/first", installed...)
 	defer releaseReopened()
 	if _, err := reopened.GetRunningPluginCtr().WaitValue(ctx, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify the reopened viewer points to the last working revision.
 	list, err := registeredViewers.ListViewers(ctx, &viewer.ListViewersRequest{Surface: viewer.ViewerSurface_VIEWER_SURFACE_WEB, InstanceKey: "space/first"})
 	if err != nil {
 		t.Fatal(err)
@@ -264,6 +284,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 
 	// The original executable still increments by one after a newer one is installed.
 	execute := func(ctx context.Context, revision, action, key, request, mutation, input string, accept bool) error {
+		// Look up the operation pinned to the requested plugin revision.
 		id := registry.PinnedOperationID("test-colors", revision, "test/colors/"+action)
 		lookups, _, ref, err := world.ExLookupWorldOp(ctx, b, le, id, tb.GetWorldEngineID())
 		if err != nil {
@@ -271,6 +292,8 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		}
 		defer ref.Release()
 		var op world.Operation
+
+		// Select the first registered executor for the operation.
 		for _, lookup := range lookups {
 			op, err = lookup(ctx, id)
 			if err != nil {
@@ -283,6 +306,8 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		if op == nil {
 			return world.ErrUnhandledOp
 		}
+
+		// Parse the caller input before building the operation intent.
 		value, err := fastjson.Parse(input)
 		if err != nil {
 			return err
@@ -292,6 +317,8 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		intent.Set("kind", arena.NewString("mutate"))
 		intent.Set("name", arena.NewString(mutation))
 		intent.Set("input", value)
+
+		// Build the operation envelope with action-specific fields.
 		operation := arena.NewObject()
 		operation.Set("objectKey", arena.NewString(key))
 		operation.Set("requestId", arena.NewString(request))
@@ -300,10 +327,14 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		} else {
 			operation.Set("mutation", intent)
 		}
+
+		// Decode the operation envelope before applying it.
 		data := operation.MarshalTo(nil)
 		if err := op.UnmarshalBlock(data); err != nil {
 			return err
 		}
+
+		// Apply the operation in a transaction and commit accepted work.
 		tx, err := tb.GetWorldEngine().NewTransaction(ctx, true)
 		if err != nil {
 			return err
@@ -333,6 +364,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	if err := execute(ctx, revisions[0], "mutate", "colors/old", "fail", "fail", `"blue"`, true); err == nil {
 		t.Fatal("failed callback was accepted")
 	}
+
 	// A cooperative callback stops with its call and releases the supplied writer.
 	// A subsequent accepted operation proves that cancellation did not retain it.
 	canceled, cancelCall := context.WithTimeout(ctx, time.Second)
@@ -342,7 +374,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		t.Fatalf("cooperative cancellation: %v, call: %v", err, canceled.Err())
 	}
 
-	// Adopt the new executable atomically; old calls cannot enter the changed instance.
+	// Load the original World binding for the upgrade request.
 	oldObject, err := world.MustGetObject(ctx, tb.GetWorldState(), "colors/old")
 	if err != nil {
 		t.Fatal(err)
@@ -357,11 +389,15 @@ func TestNativeApplicationPlugin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Apply the upgrade repeatedly to verify idempotence.
 	for range 2 {
 		if err := execute(ctx, revisions[1], "upgrade", "colors/old", "upgrade-old", "", string(originalBinding), true); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Reject late calls from the old revision and accept the upgraded revision.
 	if err := execute(ctx, revisions[0], "mutate", "colors/old", "late-old", "like", `"blue"`, true); err == nil {
 		t.Fatal("old executable accepted work after the instance changed")
 	}
@@ -369,6 +405,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Verify each Space retains its own instance state and mutation count.
 	for key, expected := range map[string]string{"colors/old": "12", "colors/new": "10"} {
 		object, err := world.MustGetObject(ctx, tb.GetWorldState(), key)
 		if err != nil {
@@ -376,6 +413,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 		}
 		var instance string
 		err = object.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+			// Read the binding block and extract its plugin instance.
 			data, _, err := cursor.GetBlock(ctx, cursor.GetRef().GetRootRef())
 			if err != nil {
 				return err
@@ -396,6 +434,7 @@ func TestNativeApplicationPlugin(t *testing.T) {
 			t.Fatal(err)
 		}
 		err = object.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+			// Read the collection value from its World transaction.
 			_, blockCursor := cursor.BuildTransaction(nil)
 			reader, err := kvtx_block.BuildKvTransaction(ctx, blockCursor, false)
 			if err != nil {

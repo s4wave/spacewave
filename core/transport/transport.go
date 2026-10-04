@@ -358,6 +358,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 
 	// Create the child bus with transport logging and controller infrastructure.
 	le := t.le
+
 	// Create the child bus and its controller infrastructure.
 	t.setStartupStage("child-bus")
 	b, sr, err := cbc.NewCoreBus(ctx, le)
@@ -387,6 +388,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 
 	// Prepare the child bus to bridge allowed directives to its parent.
 	t.setStartupStage("bridge")
+
 	// Bridge directives from child to parent.
 	bridge := bus_bridge.NewBusBridge(t.parentBus, func(di directive.Instance) (bool, error) {
 		if t.bridgeFilter != nil {
@@ -420,6 +422,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 
 	// Install the session peer identity on the child bus.
 	t.setStartupStage("peer-controller")
+
 	// Register peer controller with the session's private key.
 	sessionPeer, err := peer.NewPeer(t.sessionKey)
 	if err != nil {
@@ -432,6 +435,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 
 	// Make transport and stream routing controllers available on the child bus.
 	t.setStartupStage("factories")
+
 	// Register bifrost transport factories on the child bus.
 	for _, factory := range sessionTransportFactories(b) {
 		sr.AddFactory(factory)
@@ -442,6 +446,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 
 	// Start bilateral stream matching on the session bus.
 	t.setStartupStage("solicit-controller")
+
 	// Start solicit controller for bilateral stream matching.
 	_, _, solicitRef, err := loader.WaitExecControllerRunning(
 		ctx, b,
@@ -455,6 +460,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 
 	// Start distribution configuration gossip for linked peers.
 	t.setStartupStage("dist-config-gossip")
+
 	// Gossip the launcher's signed DistConfig with linked peers.
 	gossipCtrl := spacewave_launcher_gossip.NewController(le, b)
 	releaseGossip, err := b.AddController(ctx, gossipCtrl, nil)

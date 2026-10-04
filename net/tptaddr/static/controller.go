@@ -105,6 +105,7 @@ func (c *Controller) resolveLookupTptAddr(
 	di directive.Instance,
 	dir tptaddr.LookupTptAddr,
 ) ([]directive.Resolver, error) {
+	// Resolve the configured addresses for the requested peer.
 	targetPeerID := dir.LookupTptAddrTargetPeerId()
 	targetPeerIDString := targetPeerID.String()
 	addrs := c.peers[targetPeerIDString]

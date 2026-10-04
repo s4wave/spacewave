@@ -23,6 +23,7 @@ func TestChecksum(t *testing.T) {
 }
 
 func TestPackedMessage(t *testing.T) {
+	// Round-trip a packed message after adding surrounding whitespace.
 	body := testMessage
 	encoded := EncodePackedMessage(body)
 	t.Log(encoded)
@@ -34,22 +35,27 @@ func TestPackedMessage(t *testing.T) {
 }
 
 func TestFindPackedMessages(t *testing.T) {
+	// Seed the source of reproducible messages for the finder test.
 	rng := prng.BuildSeededRand([]byte("los amantes"))
 	rdr := prng.SourceToReader(rng)
 	srcMessages := make([][]byte, 2048)
 
+	// Generate random payloads for the packed-message collection.
 	for i := range srcMessages {
 		srcMessages[i] = make([]byte, rng.Uint64()%4096)
 		_, _ = io.ReadFull(rdr, srcMessages[i])
 	}
 
+	// Encode every generated payload for the text body.
 	encMessages := make([]string, len(srcMessages))
 	for i, msg := range srcMessages {
 		encMessages[i] = EncodePackedMessage(msg)
 	}
 
+	// Build a text body containing encoded messages and random separators.
 	var out strings.Builder
 
+	// Write each encoded message with a separator into the body.
 	for i, msg := range encMessages {
 		if i != 0 {
 			out.WriteString(" ")
@@ -60,13 +66,16 @@ func TestFindPackedMessages(t *testing.T) {
 		out.WriteString("\n")
 	}
 
+	// Extract packed messages from the generated text body.
 	outBody := out.String()
 	outMessages, _ := FindPackedMessages(outBody)
 
+	// Verify that every source message was found.
 	if len(outMessages) != len(srcMessages) {
 		t.Fail()
 	}
 
+	// Compare each extracted payload with its original message.
 	for i := range outMessages {
 		if !bytes.Equal(srcMessages[i], outMessages[i]) {
 			t.Fail()

@@ -53,6 +53,7 @@ type Row struct {
 
 // Build maps session sync status rows into desktop runtime activity items.
 func Build(rows []*Row) []*desktop_runtime.DesktopRuntimeActivityItem {
+	// Project non-idle rows into desktop activity items.
 	items := make([]*desktop_runtime.DesktopRuntimeActivityItem, 0, min(len(rows), maxProjectedActivity))
 	for _, row := range rows {
 		item := buildItem(row)
@@ -60,7 +61,10 @@ func Build(rows []*Row) []*desktop_runtime.DesktopRuntimeActivityItem {
 			items = append(items, item)
 		}
 	}
+
+	// Sort urgent activity before less important activity.
 	slices.SortFunc(items, func(a, b *desktop_runtime.DesktopRuntimeActivityItem) int {
+		// Order activity by urgency, then most recent update.
 		ap := statePriority(a.GetState())
 		bp := statePriority(b.GetState())
 		if ap != bp {
@@ -74,6 +78,8 @@ func Build(rows []*Row) []*desktop_runtime.DesktopRuntimeActivityItem {
 		}
 		return 0
 	})
+
+	// Cap the desktop activity list to its display limit.
 	if len(items) > maxProjectedActivity {
 		return items[:maxProjectedActivity]
 	}
@@ -81,18 +87,25 @@ func Build(rows []*Row) []*desktop_runtime.DesktopRuntimeActivityItem {
 }
 
 func buildItem(row *Row) *desktop_runtime.DesktopRuntimeActivityItem {
+	// Skip rows that cannot produce desktop activity.
 	if row == nil {
 		return nil
 	}
+
+	// Map the sync state and omit idle activity.
 	state := syncState(row)
 	if state == desktop_runtime.DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_IDLE {
 		return nil
 	}
+
+	// Omit completed activity that has no timestamp.
 	updatedAt := updatedAtUnixMs(row)
 	if state == desktop_runtime.DesktopRuntimeActivityState_DESKTOP_RUNTIME_ACTIVITY_STATE_DONE &&
 		updatedAt == 0 {
 		return nil
 	}
+
+	// Project visible sync activity into the desktop runtime item.
 	return &desktop_runtime.DesktopRuntimeActivityItem{
 		Id:              "sync-" + strconv.FormatUint(uint64(row.SessionIndex), 10),
 		Label:           label(row),
@@ -139,13 +152,18 @@ func label(row *Row) string {
 }
 
 func detail(row *Row) string {
+	// Prefer the sync failure message for an errored activity.
 	if row.LastError != "" {
 		return row.LastError
 	}
+
+	// Report pending work before falling back to the session label.
 	pending := row.PendingUploadCount + row.PendingDownloadCount + row.InFlightUploadCount
 	if pending != 0 {
 		return strconv.FormatUint(pending, 10) + " sync items"
 	}
+
+	// Use the session label or index when no sync work remains.
 	if row.SessionLabel != "" {
 		return row.SessionLabel
 	}

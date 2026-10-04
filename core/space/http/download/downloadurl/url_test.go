@@ -3,10 +3,13 @@ package downloadurl
 import "testing"
 
 func TestParseGitRepoMetadataPath(t *testing.T) {
+	// Parse a repository metadata route into its session and projected path.
 	req, err := Parse("/fs/u/4/so/space-download/-/repo/demo/-/HEAD")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Assert the route identifies the expected session and SharedObject.
 	if req.SessionIdx != 4 {
 		t.Fatalf("sessionIdx: got %d, want 4", req.SessionIdx)
 	}

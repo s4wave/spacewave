@@ -37,6 +37,7 @@ func NewStateAtomManager(b bus.Bus, objectStoreID, volumeID string) *StateAtomMa
 
 // GetOrCreateStore gets or creates a state atom store by ID.
 func (m *StateAtomManager) GetOrCreateStore(ctx context.Context, storeID string) (StateAtomStore, error) {
+	// Serialize store lookup and lazy object-store initialization.
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 

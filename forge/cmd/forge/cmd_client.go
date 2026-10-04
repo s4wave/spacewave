@@ -10,6 +10,7 @@ import (
 var clientArgs fcli.ClientArgs
 
 func init() {
+	// Build the shared client command set.
 	clientCommands := (&clientArgs).BuildCommands()
 
 	// controller-bus
@@ -48,6 +49,7 @@ func init() {
 	}
 	clientCommands = append(clientCommands, hydraCmd)
 
+	// Register the client command and its subcommands.
 	commands = append(
 		commands,
 		&cli.Command{

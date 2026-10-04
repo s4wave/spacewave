@@ -60,14 +60,17 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(stream_listening.NewFactory(b))
 	sr.AddFactory(stream_api_accept.NewFactory(b))
 
-	// in-proc transport
+	// Register the in-process transport.
 	sr.AddFactory(iproctpt.NewFactory(b))
-	// udp transport
+
+	// Register the UDP transport.
 	sr.AddFactory(udptpt.NewFactory(b))
-	// websocket transport
+
+	// Register WebSocket transports.
 	sr.AddFactory(wtpt.NewFactory(b))
 	sr.AddFactory(wtpt_http.NewFactory(b))
-	// webrtc transport
+
+	// Register the WebRTC transport.
 	sr.AddFactory(webrtc.NewFactory(b))
 
 	// pubsub

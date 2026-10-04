@@ -21,10 +21,13 @@ func RenderReleaseMarkdown(cl *Changelog, version string) (string, error) {
 }
 
 func renderReleaseMarkdown(rel *Release) string {
+	// Prepare the release summary and markdown output builder.
 	var b strings.Builder
 	if rel.GetSummaryMarkdown() != "" {
 		b.WriteString(rel.GetSummaryMarkdown())
 	}
+
+	// Render each change category and the release download links.
 	writeChangeSection(&b, "Features", rel.GetFeatures())
 	writeChangeSection(&b, "Fixes", rel.GetFixes())
 	writeChangeSection(&b, "Improvements", rel.GetImprovements())
@@ -35,12 +38,15 @@ func renderReleaseMarkdown(rel *Release) string {
 }
 
 func writeChangeSection(b *strings.Builder, name string, entries []*ChangeEntry) {
+	// Skip release categories that contain no change entries.
 	if len(entries) == 0 {
 		return
 	}
 	if b.Len() != 0 {
 		b.WriteString("\n\n")
 	}
+
+	// Write the section heading and each rendered change entry.
 	b.WriteString("## ")
 	b.WriteString(name)
 	for _, entry := range entries {
@@ -54,6 +60,7 @@ func writeChangeSection(b *strings.Builder, name string, entries []*ChangeEntry)
 }
 
 func writeDownloadSection(b *strings.Builder, version string) {
+	// Normalize the release tag and omit downloads without a version.
 	version = strings.TrimPrefix(strings.TrimSpace(version), "v")
 	if version == "" {
 		return
@@ -61,8 +68,12 @@ func writeDownloadSection(b *strings.Builder, version string) {
 	if b.Len() != 0 {
 		b.WriteString("\n\n")
 	}
+
+	// Build stable download URLs from the release tag.
 	tag := "v" + version
 	base := "https://github.com/s4wave/spacewave/releases/download/" + tag + "/"
+
+	// Render the platform download links in the release notes.
 	b.WriteString("## Downloads\n")
 	b.WriteString("[MacOS (arm64)](")
 	b.WriteString(base)

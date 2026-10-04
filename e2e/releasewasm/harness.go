@@ -1011,6 +1011,7 @@ func resolveStaticHTML(staticDir, reqPath string) (string, bool) {
 
 	// clean rejects ".." above; the join stays inside staticDir.
 	path := filepath.Join(staticDir, clean+".html")
+
 	// #nosec G703 -- traversal rejected above; path stays inside staticDir.
 	if _, err := os.Stat(path); err == nil {
 		return path, true

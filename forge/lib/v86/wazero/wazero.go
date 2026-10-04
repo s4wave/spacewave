@@ -282,6 +282,7 @@ func (r *wasmReader) bytes(n int) ([]byte, error) {
 
 // name consumes a length-prefixed string.
 func (r *wasmReader) name() (string, error) {
+	// Decode the wasm name length before reading its bytes.
 	n, err := r.u32()
 	if err != nil {
 		return "", err

@@ -65,6 +65,7 @@ func buildDebugEvalCommand() *cli.Command {
 
 // findDebugSocket walks up from cwd looking for .bldr/saucer-debug.sock.
 func findDebugSocket() (string, error) {
+	// Honor the explicitly configured Saucer debug socket.
 	if p := os.Getenv("BLDR_DEBUG_SOCK"); p != "" {
 		// #nosec G703 -- BLDR_DEBUG_SOCK intentionally accepts a user-provided local socket path.
 		if _, err := os.Stat(p); err == nil {
@@ -73,6 +74,7 @@ func findDebugSocket() (string, error) {
 		return "", errors.New("socket not found at BLDR_DEBUG_SOCK=" + p)
 	}
 
+	// Search parent directories for the Saucer debug socket.
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -92,6 +94,7 @@ func findDebugSocket() (string, error) {
 }
 
 func dialDebug() (srpc.Client, error) {
+	// Connect to the Saucer debug service through its local socket.
 	sockPath, err := findDebugSocket()
 	if err != nil {
 		return nil, err
@@ -109,15 +112,20 @@ func dialDebug() (srpc.Client, error) {
 }
 
 func runDebugEval(ctx context.Context, code string) error {
+	// Open the local Saucer debug client.
 	client, err := dialDebug()
 	if err != nil {
 		return err
 	}
+
+	// Evaluate the requested JavaScript and report RPC failures.
 	svc := saucer.NewSRPCSaucerDebugServiceClient(client)
 	resp, err := svc.EvalJS(ctx, &saucer.EvalJSRequest{Code: code})
 	if err != nil {
 		return err
 	}
+
+	// Handle the webview's evaluation error or print its result.
 	if resp.GetError() != "" {
 		return errors.New("eval: " + resp.GetError())
 	}

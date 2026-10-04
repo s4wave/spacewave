@@ -45,10 +45,12 @@ func BuildParentQuad(objKey, parentKey string) quad.Quad {
 // If reset is set, deletes any non-matching <parent> quad in the same transaction.
 // If parentKey is empty, clears the parent.
 func SetObjectParent(ctx context.Context, ws world.WorldState, key, parentKey string, reset bool) error {
+	// Reject an empty key before reading or mutating the graph.
 	if key == "" {
 		return world.ErrEmptyObjectKey
 	}
 
+	// Build the requested parent edge and track whether it already exists.
 	nextQuad := world.NewGraphQuadWithKeys(key, ParentPred.String(), parentKey, "")
 	exists := false
 	if reset {
@@ -74,9 +76,12 @@ func SetObjectParent(ctx context.Context, ws world.WorldState, key, parentKey st
 
 // ClearObjectParent removes all <parent> quads from an object.
 func ClearObjectParent(ctx context.Context, ws world.WorldState, key string) error {
+	// Reject an empty key before querying the graph.
 	if key == "" {
 		return world.ErrEmptyObjectKey
 	}
+
+	// Read every parent edge that must be removed.
 	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(key, ParentPred.String(), "", ""), parentGraphLookupLimit)
 	if err != nil {
 		return err

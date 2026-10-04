@@ -80,11 +80,13 @@ func (d *Demo) Execute(ctx context.Context) error {
 
 // RunDemo runs the full demo routine.
 func (d *Demo) RunDemo(ctx context.Context) error {
+	// Read the bus and logger needed by the demo workflow.
 	b := d.GetBus()
 	le := d.GetLogger()
 
 	// Example: call the Echo service to prove the RPC communication is working.
 	go func() {
+		// Connect to the plugin-host Echo service and retain its client-set reference.
 		le.Debug("attempting to lookup Echo() service")
 		// TODO: add a srpc.Client which calls LookupRpcClientSet on-demand with refcount per-service
 		hostEchoServiceID := plugin.HostServiceIDPrefix + echo.SRPCEchoerServiceID
@@ -95,6 +97,7 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 		}
 		defer echoClientSetRef.Release()
 
+		// Build the exponential backoff policy for repeated Echo calls.
 		bo := (&backoff.Backoff{
 			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
 			Exponential: &backoff.Exponential{
@@ -123,6 +126,7 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 		}
 	}()
 
+	// Look up the plugin-host volume and propagate lookup failures.
 	le.Info("hello from the bldr example demo controller")
 	le.Info("creating LookupVolume directive for the plugin host volume")
 	vol, _, volRef, err := volume.ExLookupVolume(ctx, b, plugin.PluginVolumeID, "", false)
@@ -134,9 +138,11 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 		return err
 	}
 
+	// Keep the plugin-host volume available through the object-store checks.
 	le.Info("successfully looked up volume")
 	defer volRef.Release()
 
+	// Exercise the plugin-host volume's object store through its test harness.
 	le.Info("testing object store api")
 	if err := store_test.TestObjectStore(ctx, vol, func(obj object.ObjectStore) (object.ObjectStore, error) {
 		return kvtx_vlogger.NewVLogger(le, obj), nil
@@ -144,6 +150,7 @@ func (d *Demo) RunDemo(ctx context.Context) error {
 		return err
 	}
 
+	// Report the successful object-store checks and finish the demo.
 	le.Info("volume tests passed")
 	return nil
 }
@@ -168,12 +175,15 @@ func (d *Demo) resolveHandleWebView(
 	di directive.Instance,
 	dir web_view.HandleWebView,
 ) ([]directive.Resolver, error) {
+	// Read the requested web view before filtering child views.
 	webView := dir.HandleWebView()
+
 	// handle root web views only
 	if webView.GetParentId() != "" {
 		return nil, nil
 	}
 
+	// Build the props used by the example root component.
 	le := d.GetLogger()
 	componentProps, err := (&ExampleProps{
 		Msg: "Hello world from the props -> echo rpc call -> frontend!",
@@ -182,6 +192,7 @@ func (d *Demo) resolveHandleWebView(
 		return nil, err
 	}
 
+	// Configure the example root component and its stylesheet links.
 	handlers := web_view_handler.MergeWebViewHandlers(
 		web_view_handler.NewSetReactComponent(le, ExampleEntrypoint.EntrypointHref, componentProps),
 		web_view_handler.NewSetHtmlLinks(le, &web_view.SetHtmlLinksRequest{
@@ -195,9 +206,12 @@ func (d *Demo) resolveHandleWebView(
 		}),
 	)
 
+	// Record the root view receiving the example component.
 	le.
 		WithField("web-view-id", dir.HandleWebView().GetId()).
 		Infof("setting example component in web view: %s", ExampleEntrypoint.EntrypointHref)
+
+	// Return a retrying handler for the configured example view.
 	return directive.R(web_view_handler.NewHandleWebViewResolverWithRetry(
 		le,
 		dir,

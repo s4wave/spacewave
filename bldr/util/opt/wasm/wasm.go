@@ -28,19 +28,23 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 	}
 	preOptSize := preOptStat.Size()
 
+	// Name the optimizer output beside the Wasm binary.
 	outBinDir, outBinFilename := filepath.Dir(outBinPath), filepath.Base(outBinPath)
 	optFilename := outBinFilename + ".wasm-opt"
 
+	// Resolve the output directory relative to the compiler working directory.
 	outBinDirRel, err := filepath.Rel(workingPath, outBinDir)
 	if err != nil {
 		return err
 	}
 
+	// Resolve the input binary relative to the compiler working directory.
 	outBinPathRel, err := filepath.Rel(workingPath, outBinPath)
 	if err != nil {
 		return err
 	}
 
+	// Build the optimizer output paths under the compiler working directory.
 	optPathRel := filepath.Join(outBinDirRel, optFilename)
 	optPath := filepath.Join(workingPath, optPathRel)
 
@@ -81,12 +85,14 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 	}
 	dur := time.Since(timeStart)
 
+	// Measure the optimized Wasm file and report its byte-size change.
 	postOptStat, err := os.Stat(outBinPath)
 	if err != nil {
 		return err
 	}
 	postOptSize := postOptStat.Size()
 
+	// Report optimized Wasm size and optimizer duration.
 	le.
 		WithField("dur", dur.String()).
 		Infof("optimized %s from %d -> %d bytes delta %d", outBinFilename, preOptSize, postOptSize, postOptSize-preOptSize)
@@ -95,28 +101,34 @@ func OptimizeWasmBinary(ctx context.Context, le *logrus.Entry, workingPath, outB
 
 // StripWasmDebugSections removes debug custom sections without optimization.
 func StripWasmDebugSections(ctx context.Context, le *logrus.Entry, workingPath, outBinPath string) error {
+	// Measure the Wasm binary before stripping its debug sections.
 	preOptStat, err := os.Stat(outBinPath)
 	if err != nil {
 		return err
 	}
 	preOptSize := preOptStat.Size()
 
+	// Name the stripped output beside the Wasm binary.
 	outBinDir, outBinFilename := filepath.Dir(outBinPath), filepath.Base(outBinPath)
 	optFilename := outBinFilename + ".wasm-strip"
 
+	// Resolve the output directory relative to the compiler working directory.
 	outBinDirRel, err := filepath.Rel(workingPath, outBinDir)
 	if err != nil {
 		return err
 	}
 
+	// Resolve the input binary relative to the compiler working directory.
 	outBinPathRel, err := filepath.Rel(workingPath, outBinPath)
 	if err != nil {
 		return err
 	}
 
+	// Build the stripped output paths under the compiler working directory.
 	optPathRel := filepath.Join(outBinDirRel, optFilename)
 	optPath := filepath.Join(workingPath, optPathRel)
 
+	// Select wasm-opt flags that strip debug sections without optimization.
 	args := []string{
 		"--enable-simd",
 		"--enable-sign-ext",
@@ -142,12 +154,14 @@ func StripWasmDebugSections(ctx context.Context, le *logrus.Entry, workingPath, 
 	}
 	dur := time.Since(timeStart)
 
+	// Measure the stripped Wasm file and report its byte-size change.
 	postOptStat, err := os.Stat(outBinPath)
 	if err != nil {
 		return err
 	}
 	postOptSize := postOptStat.Size()
 
+	// Report the stripped Wasm size and optimizer duration.
 	le.
 		WithField("dur", dur.String()).
 		Infof("stripped debug sections from %s from %d -> %d bytes delta %d", outBinFilename, preOptSize, postOptSize, postOptSize-preOptSize)
@@ -164,15 +178,19 @@ func runWasmOpt(
 	optPathRel string,
 	args []string,
 ) error {
+	// Capture input size and digest before running wasm-opt.
 	inputSize, inputHash, err := wasmInputEvidence(outBinPath)
 	if err != nil {
 		return err
 	}
+
+	// Record the wasm-opt version, arguments and diagnostics destination.
 	version := wasmOptVersion(ctx)
 	argv := append([]string{"wasm-opt"}, args...)
 	diagnosticsDir := wasmOptDiagnosticsDir()
 	diagnosticsPreserved := false
 
+	// Log the wasm-opt invocation and its input evidence.
 	le.WithFields(logrus.Fields{
 		"mode":             mode,
 		"input":            outBinPathRel,
@@ -183,6 +201,7 @@ func runWasmOpt(
 		"argv":             strings.Join(argv, " "),
 	}).Info("running wasm-opt")
 
+	// Preserve diagnostics before running wasm-opt when requested.
 	if diagnosticsDir != "" {
 		if diagErr := preserveWasmOptDiagnostics(diagnosticsDir, mode, outBinPath, outBinPathRel, optPathRel, inputSize, inputHash, version, argv); diagErr != nil {
 			le.WithError(diagErr).Warn("failed to preserve wasm-opt diagnostics before execution")
@@ -191,6 +210,7 @@ func runWasmOpt(
 		}
 	}
 
+	// Execute wasm-opt from the compiler working directory.
 	ecmd := uexec.NewCmd(ctx, "wasm-opt", args...)
 	ecmd.Env = os.Environ()
 	ecmd.Dir = workingPath
@@ -210,12 +230,14 @@ func wasmOptDiagnosticsDir() string {
 }
 
 func wasmInputEvidence(path string) (int64, string, error) {
+	// Open the Wasm binary whose size and digest will be recorded.
 	f, err := os.Open(path)
 	if err != nil {
 		return 0, "", err
 	}
 	defer f.Close()
 
+	// Hash the complete Wasm binary after reading its filesystem size.
 	info, err := f.Stat()
 	if err != nil {
 		return 0, "", err
@@ -228,6 +250,7 @@ func wasmInputEvidence(path string) (int64, string, error) {
 }
 
 func wasmOptVersion(ctx context.Context) string {
+	// Bound the wasm-opt version query and release its process context.
 	versionCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(versionCtx, "wasm-opt", "--version")
@@ -249,9 +272,12 @@ func preserveWasmOptDiagnostics(
 	version string,
 	argv []string,
 ) error {
+	// Create the diagnostics directory before writing artifacts.
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
+
+	// Derive stable diagnostic artifact names from the input hash.
 	hashPrefix := inputHash
 	if len(hashPrefix) > 16 {
 		hashPrefix = hashPrefix[:16]
@@ -259,9 +285,13 @@ func preserveWasmOptDiagnostics(
 	base := fmt.Sprintf("%s.%s.%s", filepath.Base(outBinPath), mode, hashPrefix)
 	wasmPath := filepath.Join(dir, base+".input.wasm")
 	metaPath := filepath.Join(dir, base+".wasm-opt.txt")
+
+	// Preserve the original Wasm bytes for the optimizer invocation.
 	if err := copyFile(wasmPath, outBinPath); err != nil {
 		return err
 	}
+
+	// Record optimizer inputs and tool metadata beside the captured Wasm file.
 	meta := fmt.Sprintf(
 		"mode: %s\ninput: %s\noutput: %s\ninput_bytes: %d\ninput_sha256: %s\nwasm_opt_version: %s\nargv: %s\n",
 		mode,
@@ -276,12 +306,14 @@ func preserveWasmOptDiagnostics(
 }
 
 func copyFile(dst, src string) error {
+	// Open the source artifact and keep it alive for the copy.
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
 
+	// Create the destination and stream source bytes into it.
 	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err

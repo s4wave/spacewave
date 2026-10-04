@@ -126,6 +126,7 @@ func (f *File) IsAppend() bool {
 //     have to re-open the underlying file to apply this. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/open.html
 func (f *File) SetAppend(enable bool) wazero_sys.Errno {
+	// Enable append mode only for a regular UnixFS file.
 	if f.handle == nil {
 		return wazero_sys.EBADF
 	}
@@ -136,6 +137,7 @@ func (f *File) SetAppend(enable bool) wazero_sys.Errno {
 		return UnixfsErrorToWazeroErrno(err)
 	}
 
+	// Reject append mode for directories.
 	if nodeType.GetIsDirectory() {
 		return wazero_sys.EBADF
 	}
@@ -206,6 +208,7 @@ func (f *File) Stat() (sys.Stat_t, wazero_sys.Errno) {
 //   - Unlike io.Reader, there is no io.EOF returned on end-of-file. To
 //     read the file completely, the caller must repeat until `n` is zero.
 func (f *File) Read(buf []byte) (n int, errno wazero_sys.Errno) {
+	// Require an open UnixFS handle before reading.
 	if f.handle == nil {
 		return 0, wazero_sys.EBADF
 	}
@@ -221,6 +224,7 @@ func (f *File) Read(buf []byte) (n int, errno wazero_sys.Errno) {
 		return 0, UnixfsErrorToWazeroErrno(err)
 	}
 
+	// Reject reading a directory as a regular file.
 	if nodeType.GetIsDirectory() {
 		return 0, wazero_sys.EISDIR
 	}
@@ -258,6 +262,7 @@ func (f *File) Read(buf []byte) (n int, errno wazero_sys.Errno) {
 //   - Unlike io.ReaderAt, there is no io.EOF returned on end-of-file. To
 //     read the file completely, the caller must repeat until `n` is zero.
 func (f *File) Pread(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
+	// Require an open UnixFS handle for positional reads.
 	if f.handle == nil {
 		return 0, wazero_sys.EBADF
 	}
@@ -278,6 +283,7 @@ func (f *File) Pread(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 		return 0, UnixfsErrorToWazeroErrno(err)
 	}
 
+	// Reject positional reads from directories.
 	if nodeType.GetIsDirectory() {
 		return 0, wazero_sys.EISDIR
 	}
@@ -322,6 +328,7 @@ func (f *File) Pread(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 //   - This is like io.Seeker and `fseek` in POSIX, preferring semantics
 //     of io.Seeker. See https://pubs.opengroup.org/onlinepubs/9699919799/functions/fseek.html
 func (f *File) Seek(offset int64, whence int) (newOffset int64, errno wazero_sys.Errno) {
+	// Require an open UnixFS handle before changing its offset.
 	if f.handle == nil {
 		return 0, wazero_sys.EBADF
 	}
@@ -332,6 +339,7 @@ func (f *File) Seek(offset int64, whence int) (newOffset int64, errno wazero_sys
 		return 0, UnixfsErrorToWazeroErrno(err)
 	}
 
+	// Allow directories to seek only back to their beginning.
 	if nodeType.GetIsDirectory() {
 		// Only allow seeking to start for directories
 		if whence == io.SeekStart && offset == 0 {
@@ -342,6 +350,7 @@ func (f *File) Seek(offset int64, whence int) (newOffset int64, errno wazero_sys
 		return 0, wazero_sys.EINVAL
 	}
 
+	// Calculate the file offset requested by whence.
 	var newOff int64
 	switch whence {
 	case io.SeekStart:
@@ -361,10 +370,12 @@ func (f *File) Seek(offset int64, whence int) (newOffset int64, errno wazero_sys
 		return 0, wazero_sys.EINVAL
 	}
 
+	// Reject offsets that would seek before the start of the file.
 	if newOff < 0 {
 		return 0, wazero_sys.EINVAL
 	}
 
+	// Store the validated offset for subsequent reads and writes.
 	f.offset = newOff
 	return newOff, 0
 }
@@ -392,6 +403,7 @@ func (f *File) Seek(offset int64, whence int) (newOffset int64, errno wazero_sys
 //     count read (`len(dirents)`) is less than `n`.
 //   - See /RATIONALE.md for design notes.
 func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Errno) {
+	// Require an open UnixFS handle before listing its entries.
 	if f.handle == nil {
 		return nil, wazero_sys.EBADF
 	}
@@ -402,6 +414,7 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 		return nil, UnixfsErrorToWazeroErrno(err)
 	}
 
+	// Require Readdir to operate on a directory handle.
 	if !nodeType.GetIsDirectory() {
 		return nil, wazero_sys.EBADF
 	}
@@ -418,6 +431,7 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 		limit = uint64(n)
 	}
 
+	// Read child records from the current directory position.
 	err = f.handle.ReaddirAll(f.ctx, f.dirOffset, func(ent unixfs.FSCursorDirent) error {
 		// If we have a limit and reached it, stop
 		if limit > 0 && uint64(len(entries)) >= limit {
@@ -431,22 +445,26 @@ func (f *File) Readdir(n int) (dirents []wazero_sys.Dirent, errno wazero_sys.Err
 		}
 		defer entHandle.Release()
 
+		// Read each child file metadata to determine its directory type.
 		fileInfo, err := entHandle.GetFileInfo(f.ctx)
 		if err != nil {
 			return err // Skip this entry on error
 		}
 
+		// Describe the child using its name and UnixFS file type.
 		dirent := wazero_sys.Dirent{
 			Ino:  0,
 			Name: ent.GetName(),
 			Type: fileInfo.Mode().Type(),
 		}
 
+		// Add the child entry and advance the returned directory position.
 		entries = append(entries, dirent)
 		currentIndex++
 		return nil
 	})
 
+	// Ignore only the cancellation used to stop at the requested entry limit.
 	if err != nil && err != context.Canceled {
 		return nil, UnixfsErrorToWazeroErrno(err)
 	}
@@ -582,6 +600,7 @@ func (f *File) Pwrite(buf []byte, off int64) (n int, errno wazero_sys.Errno) {
 //   - This is like syscall.Ftruncate and `ftruncate` in POSIX. See
 //     https://pubs.opengroup.org/onlinepubs/9699919799/functions/ftruncate.html
 func (f *File) Truncate(size int64) wazero_sys.Errno {
+	// Require an open UnixFS handle before truncating its file.
 	if f.handle == nil {
 		return wazero_sys.EBADF
 	}
@@ -597,6 +616,7 @@ func (f *File) Truncate(size int64) wazero_sys.Errno {
 		return UnixfsErrorToWazeroErrno(err)
 	}
 
+	// Reject truncation of directories.
 	if nodeType.GetIsDirectory() {
 		return wazero_sys.EISDIR
 	}
@@ -673,6 +693,7 @@ func (f *File) Datasync() wazero_sys.Errno {
 //   - Access times are ignored as the underlying UnixFS filesystem does not
 //     support separate access and modification times.
 func (f *File) Utimens(atim, mtim int64) wazero_sys.Errno {
+	// Require an open UnixFS handle before changing its timestamps.
 	if f.handle == nil {
 		return wazero_sys.EBADF
 	}

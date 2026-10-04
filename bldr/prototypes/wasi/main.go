@@ -7,10 +7,13 @@ import (
 )
 
 func main() {
+	// Announce the WebAssembly System Interface example.
 	os.Stdout.WriteString("Hello wasi!\n")
 
+	// Begin listing the files visible to the sandbox.
 	os.Stdout.WriteString("Listing all files...\n")
 
+	// Walk one mounted path and report access errors without stopping.
 	walkPath := func(root string) {
 		err := filepath.WalkDir(root, func(path string, ent os.DirEntry, err error) error {
 			if err != nil {

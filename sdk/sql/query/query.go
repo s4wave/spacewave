@@ -41,11 +41,14 @@ func ReadQueryRoot(ctx context.Context, ws world.WorldState, objectKey string) (
 func ReadQueryObjectRoot(ctx context.Context, obj world.ObjectState) (*Query, error) {
 	var query *Query
 	_, _, err := world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Decode the query root from the object block cursor.
 		var err error
 		query, err = block.UnmarshalBlock[*Query](ctx, bcs, NewQueryBlock)
 		if err != nil {
 			return err
 		}
+
+		// Require the object to contain a query root.
 		if query == nil {
 			return world.ErrObjectNotFound
 		}
@@ -68,10 +71,13 @@ func WriteQueryRootRef(ctx context.Context, storage world.WorldStorage, query *Q
 
 // SyncTargetDbQuad replaces the query's target database graph link.
 func SyncTargetDbQuad(ctx context.Context, ws world.WorldState, objectKey string) error {
+	// Read the query root that defines the target database.
 	query, err := ReadQueryRoot(ctx, ws, objectKey)
 	if err != nil {
 		return err
 	}
+
+	// Load the current target-database graph links.
 	quads, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys(objectKey, s4wave_sql.PredSqlQueryAgainst.String(), "", ""),
@@ -80,14 +86,20 @@ func SyncTargetDbQuad(ctx context.Context, ws world.WorldState, objectKey string
 	if err != nil {
 		return err
 	}
+
+	// Remove every previous target-database link.
 	for _, q := range quads {
 		if err := ws.DeleteGraphQuad(ctx, q); err != nil {
 			return err
 		}
 	}
+
+	// Leave the query unlinked when it has no target database.
 	if query.GetTargetDbObjectKey() == "" {
 		return nil
 	}
+
+	// Link the query to its configured target database.
 	return ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(
 		objectKey,
 		s4wave_sql.PredSqlQueryAgainst.String(),

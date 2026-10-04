@@ -91,6 +91,7 @@ func setTestPointer(t *testing.T, so *CdnSharedObject, ptr *alpha_cdn.CdnRootPoi
 
 // TestMetadataSurface exposes CDN identity and public-read metadata.
 func TestMetadataSurface(t *testing.T) {
+	// Construct the CDN mount whose identity and read metadata are under test.
 	so := newTestSharedObject(t, nil)
 	if got := so.GetSharedObjectID(); got != testSpaceID {
 		t.Fatalf("unexpected shared object id: %q", got)
@@ -291,6 +292,7 @@ func TestPackedPointerRejectsUndecodableCheckpoint(t *testing.T) {
 // TestRefreshSnapshotEmitsOnWatch verifies that RefreshSnapshot publishes a new
 // snapshot through AccessSharedObjectState after a CDN root change.
 func TestRefreshSnapshotEmitsOnWatch(t *testing.T) {
+	// Run the watch contract independently and create its context.
 	t.Parallel()
 	ctx := context.Background()
 
@@ -304,6 +306,7 @@ func TestRefreshSnapshotEmitsOnWatch(t *testing.T) {
 	}
 	encoded := []byte(packedmsg.EncodePackedMessage(ptrBytes))
 
+	// Serve a minimal root pointer from the in-process CDN endpoint.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/"+testSpaceID+"/root.packedmsg", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(encoded)
@@ -311,6 +314,7 @@ func TestRefreshSnapshotEmitsOnWatch(t *testing.T) {
 	hs := httptest.NewServer(mux)
 	t.Cleanup(hs.Close)
 
+	// Connect the CDN block store to the local pointer server.
 	bs, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
@@ -328,21 +332,25 @@ func TestRefreshSnapshotEmitsOnWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Subscribe to the SharedObject snapshot updates before refreshing.
 	watch, rel, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(rel)
 
+	// Capture the initial snapshot so the refresh transition is observable.
 	initial := watch.GetValue()
 	if initial == nil {
 		t.Fatal("expected non-nil initial snapshot")
 	}
 
+	// Refresh the CDN root pointer and publish a replacement snapshot.
 	if err := so.RefreshSnapshot(ctx); err != nil {
 		t.Fatalf("RefreshSnapshot: %v", err)
 	}
 
+	// Wait for the refreshed CDN snapshot through the watch container.
 	waitCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	t.Cleanup(cancel)
 	next, err := watch.WaitValueChange(waitCtx, initial, nil)

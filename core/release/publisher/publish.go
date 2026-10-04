@@ -135,13 +135,19 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 		return nil, nil, err
 	}
 	defer tx.Discard()
+
+	// Initialize lookup tables for object roots and block decoders.
 	roots := map[string]*bucket.ObjectRef{}
 	ctors := map[string]block.Ctor{}
+
+	// Seek the committed object cursor to its first object.
 	objects := tx.IterateObjects(ctx, "", false)
 	defer objects.Close()
 	if err := objects.Seek(""); err != nil {
 		return nil, nil, err
 	}
+
+	// Collect typed roots while releasing each loaded object state.
 	for objects.Valid() {
 		object, exists, err := tx.GetObject(ctx, objects.Key())
 		if err != nil {
@@ -176,6 +182,8 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 			break
 		}
 	}
+
+	// Return errors reported by the object cursor.
 	if err := objects.Err(); err != nil {
 		return nil, nil, err
 	}
@@ -199,6 +207,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 	walked := map[walkedBlock]struct{}{}
 	var result []packedBlock
 	err = eng.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Register the World root and append remaining object roots in stable order.
 		head = cursor.GetRefWithOpArgs()
 		roots[head.MarshalString()] = head
 		ctors[head.MarshalString()] = func() block.Block { return &world_block.World{} }
@@ -229,6 +238,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 			err = bucket_lookup.WalkObjectBlocks(ctx,
 				bucket_lookup.NewWalkObjectBlocksWithRef(ref.GetRootRef(), ctors[key]),
 				func(entry *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
+					// Propagate walker errors and skip sub-blocks and empty refs.
 					if entry.Err != nil {
 						return false, entry.Err
 					}
@@ -238,12 +248,16 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 					if entry.Ref.GetEmpty() {
 						return true, nil
 					}
+
+					// Require each nonempty release block to be present and verified.
 					if !entry.Found {
 						return false, errors.Errorf("release block %s is missing", entry.Ref.MarshalString())
 					}
 					if err := entry.Ref.VerifyData(entry.Data, true); err != nil {
 						return false, err
 					}
+
+					// Add unseen verified blocks and require their stored refs to be known.
 					key := entry.Ref.MarshalString()
 					if _, exists := blocks[key]; !exists {
 						stored, err := walk.GetBucket().GetStoredBlock(ctx, entry.Ref)
@@ -256,6 +270,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 						blocks[key] = struct{}{}
 						result = append(result, packedBlock{ref: entry.Ref.CloneVT(), stored: stored})
 					}
+
 					// Reused filesystem trees need one complete traversal. Keep the
 					// decoder and storage context in the key so a differently typed
 					// or transformed root still exposes all of its references.

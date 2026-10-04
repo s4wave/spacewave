@@ -11,33 +11,45 @@ import (
 )
 
 func TestDistSDKEmbedPatternsCoverProductionSources(t *testing.T) {
+	// Read dist.go, whose embed directives define production SDK coverage.
 	distGo, err := os.ReadFile("dist.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Extract SDK embed patterns and their source directories.
 	patterns, dirs := distSDKEmbedPatterns(t, string(distGo))
 	if len(patterns) == 0 {
 		t.Fatal("dist.go has no SDK go:embed patterns")
 	}
 
+	// Track SDK paths once while collecting missing sources and embedded tests.
 	seen := make(map[string]bool)
 	var missing, embeddedTests []string
+
+	// Walk each covered SDK directory and classify its source files.
 	for _, dir := range dirs {
 		err := filepath.WalkDir(filepath.FromSlash(dir), func(filePath string, entry fs.DirEntry, walkErr error) error {
+			// Propagate errors from the source-directory walk.
 			if walkErr != nil {
 				return walkErr
 			}
+
+			// Skip directories because embed coverage applies to files.
 			if entry.IsDir() {
 				return nil
 			}
 
+			// Normalize each filesystem path to the embed pattern form.
 			slashPath := filepath.ToSlash(filePath)
+
+			// Avoid classifying a source path covered by overlapping directories twice.
 			if seen[slashPath] {
 				return nil
 			}
 			seen[slashPath] = true
 
+			// Record missing production sources and patterns that include tests.
 			switch {
 			case isProductionSDKSource(slashPath):
 				if !distSDKEmbedPatternMatches(t, patterns, slashPath) {
@@ -50,16 +62,20 @@ func TestDistSDKEmbedPatternsCoverProductionSources(t *testing.T) {
 			}
 			return nil
 		})
+
+		// Fail if walking an SDK source directory failed.
 		if err != nil {
 			t.Fatalf("walk %s: %v", dir, err)
 		}
 	}
 
+	// Sort production omissions for stable test diagnostics.
 	sort.Strings(missing)
 	if len(missing) != 0 {
 		t.Fatalf("dist.go SDK go:embed patterns do not cover production SDK sources:\n%s", strings.Join(missing, "\n"))
 	}
 
+	// Sort embedded test paths for stable test diagnostics.
 	sort.Strings(embeddedTests)
 	if len(embeddedTests) != 0 {
 		t.Fatalf("dist.go SDK go:embed patterns include SDK test sources:\n%s", strings.Join(embeddedTests, "\n"))
@@ -67,11 +83,15 @@ func TestDistSDKEmbedPatternsCoverProductionSources(t *testing.T) {
 }
 
 func distSDKEmbedPatterns(t *testing.T, distGo string) ([]string, []string) {
+	// Attribute helper failures to the calling test.
 	t.Helper()
 
+	// Track source directories represented by SDK embed patterns.
 	coveredDirs := make(map[string]bool)
 	var patterns []string
 	var dirs []string
+
+	// Parse every go:embed directive and retain SDK paths.
 	for line := range strings.SplitSeq(distGo, "\n") {
 		line = strings.TrimSpace(line)
 		if !strings.HasPrefix(line, "//go:embed") {
@@ -95,6 +115,7 @@ func distSDKEmbedPatterns(t *testing.T, distGo string) ([]string, []string) {
 		}
 	}
 
+	// Return source directories in a stable order.
 	sort.Strings(dirs)
 	return patterns, dirs
 }

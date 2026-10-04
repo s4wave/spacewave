@@ -22,6 +22,7 @@ func randData(l int) []byte {
 // TestEncodeDecode tests encoding and decoding a block, particularly w/ padding
 // case coverage.
 func TestEncodeDecode(t *testing.T) {
+	// Prepare a bucket and transform for the encoded block round trip.
 	bc := &bucket.Config{Id: "test-bucket", Rev: 1}
 	applyBc := func(tb *testbed.Testbed) {
 		_, err := bucket.ExApplyBucketConfig(
@@ -37,6 +38,7 @@ func TestEncodeDecode(t *testing.T) {
 		}
 	}
 
+	// Construct the configured block transform for the bucket.
 	tconf, err := block_transform.NewConfig(
 		transform_blockenc.NewStepFactory().ConstructMockConfig(),
 	)
@@ -44,6 +46,7 @@ func TestEncodeDecode(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	assertDataWriteRead := func(tb *testbed.Testbed, dataXfer []byte) {
+		// Apply the bucket config before building its empty root cursor.
 		applyBc(tb)
 		rootCursor, _, err := bucket_lookup.BuildEmptyCursor(
 			tb.Context,
@@ -60,16 +63,19 @@ func TestEncodeDecode(t *testing.T) {
 		}
 		defer rootCursor.Release()
 
+		// Store the test payload in the configured bucket.
 		dataXferRef, _, err := rootCursor.PutBlock(tb.Context, dataXfer, nil)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 
+		// Record the stored reference before reading the payload back.
 		tb.Logger.Infof(
 			"placed block in first bucket with ref %s",
 			dataXferRef.MarshalString(),
 		)
 
+		// Read the block and verify the bucket returns the original bytes.
 		lkDat, lkOk, err := rootCursor.GetBlock(tb.Context, dataXferRef)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -83,6 +89,7 @@ func TestEncodeDecode(t *testing.T) {
 		rootCursor.Release()
 	}
 
+	// Exercise append and extend cases against the real bucket testbed.
 	testbed.RunSubtest(
 		t,
 		"encode-with-append",
@@ -94,7 +101,7 @@ func TestEncodeDecode(t *testing.T) {
 		t,
 		"encode-with-extend",
 		func(t *testing.T, tb *testbed.Testbed) {
-			// this should extend the slice without re-alloc
+			// Reuse the backing array while encoding the shortened payload.
 			x := make([]byte, 38)
 			copy(x, randData(27))
 			x = x[:27]

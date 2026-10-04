@@ -70,21 +70,28 @@ func decodeCheckpointHeadRef(checkpoint *sobject.SOCheckpoint) (*bucket.ObjectRe
 
 // FetchRemoteRootPointer fetches and decodes the public CDN root pointer.
 func FetchRemoteRootPointer(ctx context.Context, cdnBaseURL, spaceID string) (*alpha_cdn.CdnRootPointer, error) {
+	// Fetch the CDN root pointer bytes for the requested Space.
 	pointerURL := cdnBaseURL + "/" + spaceID + "/root.packedmsg"
 	body, status, err := FetchBytesStatus(ctx, pointerURL, MaxRootPackedmsgBytes)
 	if err != nil {
 		return nil, err
 	}
+
+	// Handle missing or unsuccessful CDN root responses before decoding bytes.
 	if status == http.StatusNotFound {
 		return nil, nil
 	}
 	if status < 200 || status >= 300 {
 		return nil, errors.Errorf("status %d from %s", status, pointerURL)
 	}
+
+	// Verify the packed CDN root pointer before unmarshaling its record.
 	raw, ok := packedmsg.DecodePackedMessage(string(body))
 	if !ok {
 		return nil, errors.New("decode remote root.packedmsg: checksum mismatch")
 	}
+
+	// Unmarshal the verified bytes into the CDN root-pointer record.
 	pointer := &alpha_cdn.CdnRootPointer{}
 	if err := pointer.UnmarshalVT(raw); err != nil {
 		return nil, errors.Wrap(err, "unmarshal CdnRootPointer")

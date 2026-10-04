@@ -9,6 +9,7 @@ import (
 )
 
 func TestParseOrgChangelog(t *testing.T) {
+	// Parse a release fixture containing each supported Org section.
 	cl, err := ParseOrgChangelog([]byte(`#+TITLE: Spacewave Changelog
 
 * v0.1.0 Alpha Launch
@@ -37,6 +38,7 @@ Spaces.
 		t.Fatalf("ParseOrgChangelog() error = %v", err)
 	}
 
+	// Verify the decoded release fields and section entries.
 	if len(cl.GetReleases()) != 1 {
 		t.Fatalf("expected 1 release, got %d", len(cl.GetReleases()))
 	}
@@ -53,6 +55,8 @@ Spaces.
 	if rel.GetSummaryMarkdown() != "Launch release of Spacewave with encrypted local-first storage and collaborative Spaces." {
 		t.Fatalf("unexpected summary markdown %q", rel.GetSummaryMarkdown())
 	}
+
+	// Verify the feature and security sections preserve their rendered descriptions.
 	if len(rel.GetFeatures()) != 2 {
 		t.Fatalf("expected 2 features, got %d", len(rel.GetFeatures()))
 	}
@@ -80,12 +84,14 @@ Spaces.
 }
 
 func TestParseOrgChangelogCurrentFileMatchesArtifacts(t *testing.T) {
+	// Find the repository root containing the source changelog and artifacts.
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("os.Getwd() error = %v", err)
 	}
 	rootDir := filepath.Clean(filepath.Join(cwd, "..", ".."))
 
+	// Parse the source changelog and compare it with the compiled artifact.
 	orgData, err := os.ReadFile(filepath.Join(rootDir, "CHANGELOG.org"))
 	if err != nil {
 		t.Fatalf("os.ReadFile(CHANGELOG.org) error = %v", err)
@@ -95,6 +101,7 @@ func TestParseOrgChangelogCurrentFileMatchesArtifacts(t *testing.T) {
 		t.Fatalf("ParseOrgChangelog() error = %v", err)
 	}
 
+	// Decode the checked-in changelog binary and compare its release data.
 	binData, err := os.ReadFile(filepath.Join(rootDir, "core", "changelog", "changelog.bin"))
 	if err != nil {
 		t.Fatalf("os.ReadFile(changelog.bin) error = %v", err)
@@ -107,6 +114,7 @@ func TestParseOrgChangelogCurrentFileMatchesArtifacts(t *testing.T) {
 		t.Fatalf("parsed org changelog did not match changelog.bin")
 	}
 
+	// Compare the source parse with the embedded changelog used at runtime.
 	gotEmbedded, err := GetChangelog()
 	if err != nil {
 		t.Fatalf("GetChangelog() error = %v", err)
@@ -115,6 +123,7 @@ func TestParseOrgChangelogCurrentFileMatchesArtifacts(t *testing.T) {
 		t.Fatalf("parsed org changelog did not match embedded changelog")
 	}
 
+	// Round-trip the parsed changelog through its protobuf representation.
 	marshaledData, err := got.MarshalVT()
 	if err != nil {
 		t.Fatalf("MarshalVT() error = %v", err)
@@ -129,6 +138,7 @@ func TestParseOrgChangelogCurrentFileMatchesArtifacts(t *testing.T) {
 }
 
 func TestParseOrgChangelogValidation(t *testing.T) {
+	// Exercise release validation failures with malformed Org changelogs.
 	for _, tt := range []struct {
 		name    string
 		input   string
@@ -197,10 +207,15 @@ Summary.
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			// Parse the case input and require its expected validation error.
 			_, err := ParseOrgChangelog([]byte(tt.input))
+
+			// Require the malformed release fixture to fail parsing.
 			if err == nil {
 				t.Fatalf("expected error containing %q", tt.wantErr)
 			}
+
+			// Check the parser reports the expected validation failure.
 			if !strings.Contains(err.Error(), tt.wantErr) {
 				t.Fatalf("expected error containing %q, got %v", tt.wantErr, err)
 			}

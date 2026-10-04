@@ -14,22 +14,24 @@ import (
 )
 
 func main() {
+	// Create a filesystem view rooted at the current directory.
 	fs := osfs.New("./", osfs.WithBoundOS())
 
-	// Create root directory
+	// Prepare the root directory and remove any previous example output.
 	rootDir := "mydir"
 	if err := fsutil.CleanDir("./" + rootDir); err != nil {
 		fmt.Printf("Error removing target directory: %v\n", err)
 		return
 	}
 
+	// Create the example root directory.
 	err := fs.MkdirAll(rootDir, os.ModePerm)
 	if err != nil {
 		fmt.Printf("Error creating root directory: %v\n", err)
 		return
 	}
 
-	// Create 'target' directory
+	// Create a child directory to serve as the symlink target.
 	targetDir := path.Join(rootDir, "target")
 	err = fs.MkdirAll(targetDir, os.ModePerm)
 	if err != nil {
@@ -37,7 +39,7 @@ func main() {
 		return
 	}
 
-	// Create symbolic link 'src' pointing to 'target'
+	// Create a symbolic link from src to the target directory.
 	srcLink := path.Join(rootDir, "src")
 	err = fs.Symlink("./target", srcLink)
 	if err != nil {
@@ -45,14 +47,17 @@ func main() {
 		return
 	}
 
+	// Report that the directory and symbolic link are ready.
 	fmt.Println("Directory and symlink creation successful.")
 
+	// Read the root directory entries for inspection.
 	fi, err := fs.ReadDir(rootDir)
 	if err != nil {
 		fmt.Printf("Error calling readdir: %v\n", err)
 		return
 	}
 
+	// Print each entry's mode and symlink status.
 	for _, entry := range fi {
 		info, err := entry.Info()
 		if err != nil {

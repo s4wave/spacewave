@@ -35,8 +35,10 @@ import (
 var chatProtocol = protocol.ID("demo/mesh-chat/v1")
 
 func main() {
+	// Define the command-line options for the local chat peer.
 	var listenAddr, dialAddr, keyPath string
 
+	// Configure the mesh-chat command and its action.
 	app := cli.NewApp()
 	app.Name = "mesh-chat"
 	app.Usage = "P2P chat demo"
@@ -67,6 +69,7 @@ func main() {
 		return run(listenAddr, dialAddr, keyPath)
 	}
 
+	// Run the configured command and report startup errors.
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
@@ -147,9 +150,11 @@ func (r *chatResolver) HandleMountedStream(ctx context.Context, ms link.MountedS
 
 // run starts the chat node.
 func run(listenAddr, dialAddr, keyPath string) error {
+	// Establish cancellation for the local chat session.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Configure the logger used by the chat node.
 	log := logrus.New()
 	log.SetLevel(logrus.WarnLevel)
 	le := logrus.NewEntry(log)
@@ -168,6 +173,7 @@ func run(listenAddr, dialAddr, keyPath string) error {
 	}
 	peerID, _ := peer.IDFromPrivateKey(privKey)
 
+	// Report the local peer identity and connection instructions.
 	log.Println("Peer ID: " + peerID.String())
 	log.Println("Key: " + keyPath)
 	log.Println("Listening on " + listenAddr)
@@ -196,6 +202,7 @@ func run(listenAddr, dialAddr, keyPath string) error {
 	}
 	defer udpRef.Release()
 
+	// Read the UDP transport after its controller starts.
 	tpt, _ := tc.GetTransport(ctx)
 	udp := tpt.(*udptpt.UDP)
 
@@ -217,6 +224,7 @@ func run(listenAddr, dialAddr, keyPath string) error {
 		log.Println("Connected!")
 	}
 
+	// Prompt for messages before entering the input loop.
 	log.Println("Type messages and press Enter. /quit to exit.")
 
 	// Read input and send messages.

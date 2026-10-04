@@ -38,44 +38,62 @@ func TestReleaseBucketsResolvePublishedAndCachedRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Substitute only the backing bytes, retaining the production lookup path.
+	// Bound controller startup and bucket lookups to a short deadline.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	// Build the controller bus used by the production bucket lookup path.
 	le := logrus.NewEntry(logrus.New())
 	b, err := newComposedBus(ctx, le)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Register an in-memory store under the production release-store ID.
 	storeCtrl := block_store_inmem.NewController(le, &block_store_inmem.Config{
 		BlockStoreId: cdn_world_controller.ReleaseBlockStoreID,
 	})
+
+	// Start the store controller and retain it for the duration of the test.
 	releaseStore, err := b.AddController(ctx, storeCtrl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer releaseStore()
+
+	// Wait for the store and keep its reference while publishing a block.
 	store, storeRef, err := storeCtrl.WaitBlockStore(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer storeRef.Release()
+
+	// Store the published manifest and retain its root reference.
 	root, _, err := store.PutBlock(ctx, []byte("published manifest"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start the node controller used by ordinary bucket lookup.
 	_, _, nodeRef, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&node_controller.Config{}), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer nodeRef.Release()
+
+	// Register the bucket controllers declared in the release configuration.
 	for _, entry := range configs {
 		if entry.GetId() != block_store_bucket.ConfigID {
 			continue
 		}
+
+		// Decode each bucket controller configuration.
 		var conf block_store_bucket.Config
 		if err := conf.UnmarshalJSON(entry.GetConfig()); err != nil {
 			t.Fatal(err)
 		}
+
+		// Start the configured bucket controller and retain its reference.
 		_, _, ref, err := loader.WaitExecControllerRunning(ctx, b, resolver.NewLoadControllerWithConfig(&conf), nil)
 		if err != nil {
 			t.Fatal(err)

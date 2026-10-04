@@ -13,10 +13,12 @@ import (
 //
 // returns a 64-byte curve25519 scalar
 func PrivateKeyToCurve25519(privateKey ed25519.PrivateKey) []byte {
+	// Hash the Ed25519 seed to obtain the Curve25519 scalar material.
 	h := sha512.New()
 	h.Write(privateKey[:32])
 	digest := h.Sum(nil)
 
+	// Clamp the scalar to the Curve25519 key format.
 	digest[0] &= 248
 	digest[31] &= 127
 	digest[31] |= 64

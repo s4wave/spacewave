@@ -81,6 +81,7 @@ func (c *TargetMap) ResolveProto(ctx context.Context, b bus.Bus) (map[string]*ta
 // UnmarshalJSON unmarshals a target JSON blob pushing the data into the pending
 // parse buffers.
 func (c *TargetMap) UnmarshalJSON(data []byte) error {
+	// Reset the target map before decoding its replacement contents.
 	c.underlying = make(map[string]*Target)
 
 	// parse the json to a container

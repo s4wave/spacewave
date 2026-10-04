@@ -25,34 +25,40 @@ func TestAnalyzeCjsExports_JSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Analyze the JSON file and require its object keys to be exported.
 	result, err := AnalyzeCjsExports(dir, "./test.json", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify that all three JSON object keys become exports.
 	if len(result.Exports) != 3 {
 		t.Fatalf("expected 3 exports, got %d: %v", len(result.Exports), result.Exports)
 	}
 }
 
 func TestAnalyzeCjsExports_UnsupportedExt(t *testing.T) {
+	// Create a WebAssembly file that has no supported CommonJS exports.
 	dir := t.TempDir()
 	nodePath := filepath.Join(dir, "test.wasm")
 	if err := os.WriteFile(nodePath, []byte{0x00}, 0o644); err != nil {
 		t.Fatal(err)
 	}
 
+	// Analyze the unsupported file and retain the empty export result.
 	result, err := AnalyzeCjsExports(dir, "./test.wasm", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Verify that unsupported file types produce no named exports.
 	if len(result.Exports) != 0 {
 		t.Fatalf("expected 0 exports for .wasm file, got %d", len(result.Exports))
 	}
 }
 
 func TestAnalyzeCjsExports_NodeEnvConditionalRequire(t *testing.T) {
+	// Create production and development branches with separate exports.
 	dir := t.TempDir()
 	if err := os.WriteFile(
 		filepath.Join(dir, "index.js"),
@@ -75,6 +81,7 @@ if (process.env.NODE_ENV !== "production") {
 		t.Fatal(err)
 	}
 
+	// Analyze the production branch and inspect its resolved source provenance.
 	prodResult, prodSources, err := AnalyzeCjsExportsWithProvenance(dir, "./index.js", nil, "production")
 	if err != nil {
 		t.Fatal(err)
@@ -91,6 +98,7 @@ if (process.env.NODE_ENV !== "production") {
 		t.Fatalf("unexpected production sources: got %v want %v", prodSources, wantProdSources)
 	}
 
+	// Analyze development conditions and require only development exports.
 	devResult, err := AnalyzeCjsExports(dir, "./index.js", nil, "development")
 	if err != nil {
 		t.Fatal(err)
@@ -101,9 +109,11 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 func TestVerifyExports(t *testing.T) {
+	// Provide valid, reserved, invalid, and duplicate export names.
 	names := []string{"default", "foo", "bar", "class", "123invalid", "valid$name", "foo"}
 	result := verifyExports(names)
 
+	// Require the default export flag when the default name is present.
 	if !result.ExportDefault {
 		t.Fatal("expected exportDefault to be true")
 	}
@@ -126,6 +136,7 @@ func TestVerifyExports(t *testing.T) {
 }
 
 func TestResolveModule_Relative(t *testing.T) {
+	// Create a library directory with an index.js module entrypoint.
 	dir := t.TempDir()
 	libDir := filepath.Join(dir, "lib")
 	if err := os.MkdirAll(libDir, 0o755); err != nil {
@@ -147,6 +158,7 @@ func TestResolveModule_Relative(t *testing.T) {
 }
 
 func TestResolveModule_WithExtension(t *testing.T) {
+	// Create a JavaScript file that module resolution can find by extension.
 	dir := t.TempDir()
 	jsFile := filepath.Join(dir, "main.js")
 	if err := os.WriteFile(jsFile, []byte("module.exports = {}"), 0o644); err != nil {
@@ -164,6 +176,7 @@ func TestResolveModule_WithExtension(t *testing.T) {
 }
 
 func TestAnalyzeCjsExports_React(t *testing.T) {
+	// Resolve the package root from the analyzer test directory.
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -171,11 +184,14 @@ func TestAnalyzeCjsExports_React(t *testing.T) {
 
 	// React is installed in the bldr project root node_modules.
 	bldrRoot := filepath.Join(wd, "../../../..")
+
+	// Analyze React CommonJS exports through the package analyzer.
 	result, err := AnalyzeCjsExports(bldrRoot, "react", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Log the discovered React exports before checking known names.
 	t.Logf("pure-Go react exports (%d): %v", len(result.Exports), result.Exports)
 
 	// React should have many exports (useState, useEffect, createElement, etc.)
@@ -194,6 +210,7 @@ func TestAnalyzeCjsExports_React(t *testing.T) {
 }
 
 func TestResolveModule_BarePackage(t *testing.T) {
+	// Create a bare package whose manifest names a library entrypoint.
 	dir := t.TempDir()
 	pkgDir := filepath.Join(dir, "node_modules", "testpkg")
 	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
@@ -210,6 +227,7 @@ func TestResolveModule_BarePackage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Resolve the bare package and compare its path with the package main.
 	resolved, err := ResolveModule(dir, "testpkg")
 	if err != nil {
 		t.Fatal(err)
@@ -221,38 +239,55 @@ func TestResolveModule_BarePackage(t *testing.T) {
 }
 
 func TestAnalyzeCjsExportsPackageMainProvenance(t *testing.T) {
+	// Prepare a package whose main target changes between analyses.
 	dir := t.TempDir()
 	pkgDir := filepath.Join(dir, "node_modules", "redirect-pkg")
 	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
+	// Record the package manifest and the two candidate entrypoint paths.
 	packageJSON := filepath.Join(pkgDir, "package.json")
 	first := filepath.Join(pkgDir, "first.js")
 	second := filepath.Join(pkgDir, "second.js")
+
+	// Write both candidate modules before selecting the package main.
 	if err := os.WriteFile(first, []byte("exports.first = true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(second, []byte("exports.second = true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Point the package manifest to the first candidate module.
 	if err := os.WriteFile(packageJSON, []byte(`{"main":"first.js"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Analyze exports and source provenance for the first package main.
 	firstResult, firstSources, err := AnalyzeCjsExportsWithProvenance(dir, "redirect-pkg", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Redirect the package manifest to the second candidate module.
 	if err := os.WriteFile(packageJSON, []byte(`{"main":"second.js"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Analyze exports and source provenance for the redirected package main.
 	secondResult, secondSources, err := AnalyzeCjsExportsWithProvenance(dir, "redirect-pkg", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Resolve the canonical package manifest path for provenance checks.
 	canonicalPackageJSON, err := filepath.EvalSymlinks(packageJSON)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify both analyses retain the manifest and expose their selected exports.
 	if !slices.Contains(firstSources, canonicalPackageJSON) || !slices.Contains(secondSources, canonicalPackageJSON) {
 		t.Fatalf("package manifest missing from provenance: first=%v second=%v", firstSources, secondSources)
 	}
@@ -262,16 +297,23 @@ func TestAnalyzeCjsExportsPackageMainProvenance(t *testing.T) {
 }
 
 func TestResolveModuleProvenancePreservesPrimaryBareError(t *testing.T) {
+	// Prepare an installed package whose manifest points to a missing file.
 	dir := t.TempDir()
 	failedNodePath := filepath.Join(dir, "extra", "node_modules")
 	failedPkg := filepath.Join(failedNodePath, "missing-package")
+
+	// Create the failed package candidate and write its manifest.
 	if err := os.MkdirAll(failedPkg, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(failedPkg, "package.json"), []byte(`{"main":"also-missing.js"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Resolve the bare package while preserving its primary lookup error.
 	_, _, err := ResolveModuleWithProvenance(dir, "missing-package", []string{failedNodePath})
+
+	// Require the resolution error to identify the original missing package.
 	var notFound *ModuleNotFoundError
 	if !errors.As(err, &notFound) {
 		t.Fatalf("resolution error = %v, want ModuleNotFoundError", err)
@@ -282,6 +324,7 @@ func TestResolveModuleProvenancePreservesPrimaryBareError(t *testing.T) {
 }
 
 func TestResolveModulePreservesAbsentAbsoluteExtension(t *testing.T) {
+	// Resolve an absent absolute JavaScript path without adding an extension.
 	path := filepath.Join(t.TempDir(), "absent.js")
 	resolved, err := ResolveModule(t.TempDir(), path)
 	if err != nil {
@@ -290,6 +333,8 @@ func TestResolveModulePreservesAbsentAbsoluteExtension(t *testing.T) {
 	if resolved != path {
 		t.Fatalf("resolved path = %q, want %q", resolved, path)
 	}
+
+	// Resolve the same absent path with provenance and require no manifests.
 	provenanceResolved, provenance, err := ResolveModuleWithProvenance(t.TempDir(), path, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -300,16 +345,21 @@ func TestResolveModulePreservesAbsentAbsoluteExtension(t *testing.T) {
 }
 
 func TestResolveModuleProvenanceIncludesFailedPackageCandidates(t *testing.T) {
+	// Prepare failed and successful package candidates in separate node_modules roots.
 	dir := t.TempDir()
 	failedNodePath := filepath.Join(dir, "failed", "node_modules")
 	goodNodePath := filepath.Join(dir, "good", "node_modules")
 	failedPkg := filepath.Join(failedNodePath, "candidate")
 	goodPkg := filepath.Join(goodNodePath, "candidate")
+
+	// Create both candidate package directories.
 	for _, pkg := range []string{failedPkg, goodPkg} {
 		if err := os.MkdirAll(pkg, 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Set each candidate manifest to a distinct entrypoint.
 	failedManifest := filepath.Join(failedPkg, "package.json")
 	goodManifest := filepath.Join(goodPkg, "package.json")
 	if err := os.WriteFile(failedManifest, []byte(`{"main":"missing.js"}`), 0o644); err != nil {
@@ -318,21 +368,31 @@ func TestResolveModuleProvenanceIncludesFailedPackageCandidates(t *testing.T) {
 	if err := os.WriteFile(goodManifest, []byte(`{"main":"index.js"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Write the successful candidate module.
 	if err := os.WriteFile(filepath.Join(goodPkg, "index.js"), []byte("exports.ok = true\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Resolve the package through both candidate roots.
 	_, provenance, err := ResolveModuleWithProvenance(filepath.Join(dir, "source"), "candidate", []string{failedNodePath, goodNodePath})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Resolve the canonical failed manifest path.
 	canonicalFailed, err := filepath.EvalSymlinks(failedManifest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Resolve the canonical successful manifest path.
 	canonicalGood, err := filepath.EvalSymlinks(goodManifest)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Require provenance to include both failed and successful candidate manifests.
 	want := []string{canonicalFailed, canonicalGood}
 	if !slices.Equal(provenance, want) {
 		t.Fatalf("resolution provenance = %v, want %v", provenance, want)
@@ -340,6 +400,7 @@ func TestResolveModuleProvenanceIncludesFailedPackageCandidates(t *testing.T) {
 }
 
 func TestAnalyzeCjsExportsRelativeReexportCycles(t *testing.T) {
+	// Run the relative-reexport cycle cases as isolated subtests.
 	for _, test := range []struct {
 		name  string
 		files map[string]string
@@ -351,17 +412,26 @@ func TestAnalyzeCjsExportsRelativeReexportCycles(t *testing.T) {
 		}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			// Create the fixture directory for the current cycle shape.
 			dir := t.TempDir()
+
+			// Write every module in the cycle fixture.
 			for name, content := range test.files {
 				if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
 					t.Fatal(err)
 				}
 			}
+
+			// Capture the analyzer result from the cycle-detection goroutine.
 			done := make(chan error, 1)
+
+			// Analyze the cyclic graph asynchronously so the test can enforce a deadline.
 			go func() {
 				_, err := AnalyzeCjsExports(dir, "./a.js", nil, "production")
 				done <- err
 			}()
+
+			// Require cycle analysis to finish before the test deadline.
 			select {
 			case err := <-done:
 				if err != nil {

@@ -59,16 +59,23 @@ func desktopRuntimeAttentionChanged(
 	prev *desktop_runtime.DesktopRuntimeState,
 	current *desktop_runtime.DesktopRuntimeState,
 ) bool {
+	// Read both attention item lists.
 	prevItems := prev.GetAttentionItems()
 	currentItems := current.GetAttentionItems()
+
+	// Treat different attention item counts as a visible change.
 	if len(prevItems) != len(currentItems) {
 		return true
 	}
+
+	// Compare attention items in list order.
 	for idx, prevItem := range prevItems {
 		if !prevItem.EqualVT(currentItems[idx]) {
 			return true
 		}
 	}
+
+	// Report no attention change after every item matches.
 	return false
 }
 
@@ -76,13 +83,20 @@ func desktopRuntimeUpdateChanged(
 	prev *desktop_runtime.DesktopRuntimeState,
 	current *desktop_runtime.DesktopRuntimeState,
 ) bool {
+	// Read the previous and current update records.
 	prevUpdate := prev.GetUpdate()
 	currentUpdate := current.GetUpdate()
+
+	// Compare readiness when an update record is missing.
 	if prevUpdate == nil || currentUpdate == nil {
 		return prevUpdate.GetReady() != currentUpdate.GetReady()
 	}
+
+	// Detect changes to update readiness.
 	if prevUpdate.GetReady() != currentUpdate.GetReady() {
 		return true
 	}
+
+	// Compare update details only after readiness stays stable.
 	return currentUpdate.GetReady() && !prevUpdate.EqualVT(currentUpdate)
 }

@@ -37,6 +37,7 @@ func RunWithKeys[T any](
 	render func(T) string,
 	keyHandler KeyHandler[T],
 ) error {
+	// Reject canceled runs and hide the cursor until deferred restoration.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -46,9 +47,13 @@ func RunWithKeys[T any](
 	defer func() {
 		_, _ = io.WriteString(output, "\x1b[?25h")
 	}()
+
+	// Render the initial snapshot before listening for keys or updates.
 	if err := Write(output, render(initial)); err != nil {
 		return err
 	}
+
+	// Track the displayed snapshot and start the optional raw-key reader.
 	current := initial
 	keyCh, restore, err := startKeyReader(input, keyHandler != nil)
 	if err != nil {
@@ -92,11 +97,14 @@ func Write(output io.Writer, text string) error {
 }
 
 func startKeyReader(input *os.File, enabled bool) (<-chan byte, func(), error) {
+	// Create the key channel and return it closed when input is disabled.
 	keyCh := make(chan byte, 16)
 	if !enabled || input == nil {
 		close(keyCh)
 		return keyCh, func() {}, nil
 	}
+
+	// Configure raw terminal mode and retain its restoration callback.
 	restore := func() {}
 	if term.IsTerminal(int(input.Fd())) {
 		oldState, err := term.MakeRaw(int(input.Fd()))
@@ -107,6 +115,8 @@ func startKeyReader(input *os.File, enabled bool) (<-chan byte, func(), error) {
 			_ = term.Restore(int(input.Fd()), oldState)
 		}
 	}
+
+	// Read terminal bytes asynchronously and publish them to the key channel.
 	go func() {
 		defer close(keyCh)
 		var buf [1]byte

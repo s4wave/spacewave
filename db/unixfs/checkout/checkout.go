@@ -20,11 +20,12 @@ func Checkout(
 	fsHandle *unixfs.FSHandle,
 	filterCb unixfs_sync.FilterCb,
 ) error {
+	// Reject use of a released filesystem handle.
 	if fsHandle.CheckReleased() {
 		return unixfs_errors.ErrReleased
 	}
 
-	// create / reset outPath
+	// Reset and recreate the checkout destination.
 	if _, err := os.Stat(outPath); err == nil {
 		if err := os.RemoveAll(outPath); err != nil {
 			return err
@@ -34,7 +35,7 @@ func Checkout(
 		return err
 	}
 
-	// construct a BillyFS at the outPath & checkout
+	// Delegate the UnixFS copy to the BillyFS checkout path.
 	outFS := osfs.New(outPath)
 	return CheckoutToBilly(ctx, outFS, fsHandle, filterCb)
 }

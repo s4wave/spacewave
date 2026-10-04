@@ -9,14 +9,17 @@ import (
 // Validate validates the configuration.
 // This is a cursory validation to see if the values "look correct."
 func (c *Config) Validate() error {
+	// Require and parse the target peer ID.
 	if c.GetPeerId() == "" {
 		return peer.ErrEmptyPeerID
 	}
 
+	// Validate the optional local peer ID constraint.
 	if _, err := c.ParseLocalPeerID(); err != nil {
 		return err
 	}
 
+	// Validate the stream protocol identifier.
 	pid := protocol.ID(c.GetProtocolId())
 	if err := pid.Validate(); err != nil {
 		return err

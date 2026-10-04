@@ -116,9 +116,11 @@ func (c *ProviderController) GetProviderInfo() *provider.ProviderInfo {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *ProviderController) Execute(rctx context.Context) error {
+	// Derive the provider lifecycle context and release it when execution ends.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Resolve the bus peer required by providers that publish through it.
 	var localPeer peer.Peer
 	var err error
 	if c.requirePeer {
@@ -151,6 +153,7 @@ func (c *ProviderController) Execute(rctx context.Context) error {
 		return err
 	}
 
+	// Keep the provider controller active until its lifecycle context is canceled.
 	<-ctx.Done()
 	return context.Canceled
 }
@@ -185,22 +188,26 @@ func (c *ProviderController) HandleDirective(ctx context.Context, di directive.I
 	case bstore.MountBlockStore:
 		if ref := dir.MountBlockStoreRef(); ref.GetProviderResourceRef().GetProviderId() == c.providerInfo.GetProviderId() {
 			return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (bstore.MountBlockStoreValue, func(), error) {
+				// Resolve the provider before opening its requested block-store resource.
 				prov, err := c.GetProvider(ctx)
 				if err != nil {
 					return nil, nil, err
 				}
 
+				// Open the provider account and retain its release function.
 				provAcc, relProvAcc, err := prov.AccessProviderAccount(ctx, ref.GetProviderResourceRef().GetProviderAccountId(), released)
 				if err != nil {
 					return nil, nil, err
 				}
 
+				// Resolve the provider feature for the requested block-store resource.
 				bstoreAccFeature, err := bstore.GetBlockStoreProviderAccountFeature(ctx, provAcc)
 				if err != nil {
 					relProvAcc()
 					return nil, nil, err
 				}
 
+				// Mount the block-store and retain its release function.
 				so, soRel, err := bstoreAccFeature.MountBlockStore(ctx, ref, released)
 				if err != nil {
 					relProvAcc()
@@ -217,22 +224,26 @@ func (c *ProviderController) HandleDirective(ctx context.Context, di directive.I
 	case sobject.MountSharedObject:
 		if ref := dir.MountSharedObjectRef(); ref.GetProviderResourceRef().GetProviderId() == c.providerInfo.GetProviderId() {
 			return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (sobject.MountSharedObjectValue, func(), error) {
+				// Resolve the provider before opening its requested shared-object resource.
 				prov, err := c.GetProvider(ctx)
 				if err != nil {
 					return nil, nil, err
 				}
 
+				// Open the provider account and retain its release function.
 				provAcc, relProvAcc, err := prov.AccessProviderAccount(ctx, ref.GetProviderResourceRef().GetProviderAccountId(), released)
 				if err != nil {
 					return nil, nil, err
 				}
 
+				// Resolve the provider feature for the requested shared-object resource.
 				provAccFeature, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
 				if err != nil {
 					relProvAcc()
 					return nil, nil, err
 				}
 
+				// Mount the shared-object and retain its release function.
 				so, soRel, err := provAccFeature.MountSharedObject(ctx, ref, released)
 				if err != nil {
 					relProvAcc()
@@ -248,22 +259,26 @@ func (c *ProviderController) HandleDirective(ctx context.Context, di directive.I
 	case session.MountSession:
 		if ref := dir.MountSessionRef(); ref.GetProviderResourceRef().GetProviderId() == c.providerInfo.GetProviderId() {
 			return directive.R(directive.NewAccessResolver(func(ctx context.Context, released func()) (session.MountSessionValue, func(), error) {
+				// Resolve the provider before opening its requested session resource.
 				prov, err := c.GetProvider(ctx)
 				if err != nil {
 					return nil, nil, err
 				}
 
+				// Open the provider account and retain its release function.
 				provAcc, relProvAcc, err := prov.AccessProviderAccount(ctx, ref.GetProviderResourceRef().GetProviderAccountId(), released)
 				if err != nil {
 					return nil, nil, err
 				}
 
+				// Resolve the provider feature for the requested session resource.
 				provAccFeature, err := session.GetSessionProviderAccountFeature(ctx, provAcc)
 				if err != nil {
 					relProvAcc()
 					return nil, nil, err
 				}
 
+				// Mount the session and retain its release function.
 				so, soRel, err := provAccFeature.MountSession(ctx, ref, released)
 				if err != nil {
 					relProvAcc()

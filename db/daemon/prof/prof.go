@@ -11,6 +11,7 @@ import (
 
 // NewProfMux builds a new ServeMux with profiling endpoints.
 func NewProfMux() *http.ServeMux {
+	// Register the standard runtime profiling routes.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -22,6 +23,7 @@ func NewProfMux() *http.ServeMux {
 
 // ListenProf is a goroutine to listen on a profiling address.
 func ListenProf(le *logrus.Entry, profListen string) error {
+	// Enable profiling and serve its endpoints on the requested address.
 	le.Debugf("profiling listener running: %s", profListen)
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)

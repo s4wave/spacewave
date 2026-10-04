@@ -87,6 +87,7 @@ func init() {
 
 // runDaemon runs the daemon.
 func runDaemon(c *cli.Context) error {
+	// Prepare the daemon lifecycle context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -98,6 +99,7 @@ func runDaemon(c *cli.Context) error {
 		return err
 	}
 
+	// Construct the Hydra daemon with its node identity.
 	d, err := daemon.NewDaemon(ctx, peerPriv, daemon.ConstructOpts{
 		LogEntry: le,
 	})
@@ -105,6 +107,7 @@ func runDaemon(c *cli.Context) error {
 		return errors.Wrap(err, "construct daemon")
 	}
 
+	// Use the daemon controller bus for service setup.
 	b := d.GetControllerBus()
 
 	// ConfigSet controller
@@ -163,6 +166,7 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
+	// Apply command-line configuration to the daemon config set.
 	for _, e := range []error{
 		daemonFlags.bDaemonArgs.ApplyToConfigSet(confSet, true),
 		daemonFlags.hDaemonArgs.ApplyToConfigSet(confSet, true, nil),
@@ -172,6 +176,7 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
+	// Write the resolved config set when requested.
 	if daemonFlags.ConfigPath != "" && daemonFlags.WriteConfig {
 		confDat, err := configset_json.MarshalYAML(confSet)
 		if err != nil {
@@ -183,6 +188,7 @@ func runDaemon(c *cli.Context) error {
 		}
 	}
 
+	// Apply the completed config set to the daemon bus.
 	_, bdbRef, err := b.AddDirective(
 		configset.NewApplyConfigSet(confSet),
 		nil,
@@ -192,12 +198,14 @@ func runDaemon(c *cli.Context) error {
 	}
 	defer bdbRef.Release()
 
+	// Start the profiler only when a listen address is configured.
 	if daemonFlags.ProfListen != "" {
 		go func() {
 			_ = prof.ListenProf(le, daemonFlags.ProfListen)
 		}()
 	}
 
+	// Keep the daemon command alive until its lifecycle ends.
 	<-ctx.Done()
 	return nil
 }

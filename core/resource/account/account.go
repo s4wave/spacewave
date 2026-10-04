@@ -172,6 +172,7 @@ func (r *AccountResource) ReplaceKeybindingOverrideSet(
 	ctx context.Context,
 	req *s4wave_account.ReplaceKeybindingOverrideSetRequest,
 ) (*s4wave_account.ReplaceKeybindingOverrideSetResponse, error) {
+	// Require local settings before validating and queuing the account-layer replacement.
 	if r.localAccount == nil {
 		return nil, errors.New("account keybinding overrides require a local account")
 	}
@@ -205,6 +206,7 @@ func (r *AccountResource) mountLocalAccountSettingsState(
 	func(),
 	error,
 ) {
+	// Acquire the account settings reference, SharedObject, and state watch.
 	soRef, err := r.localAccount.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -256,9 +258,11 @@ func watchLocalSettingsStream[T interface{ EqualVT(T) bool }](
 	send func(resp T) error,
 	build func(ctx context.Context, settings *account_settings.AccountSettings) (T, error),
 ) error {
+	// Tie the account settings watch lifetime to the RPC stream.
 	ctx, ctxCancel := context.WithCancel(strmCtx)
 	defer ctxCancel()
 
+	// Mount the settings state and release both acquired references on exit.
 	_, relSO, stateCtr, relStateCtr, err := r.mountLocalAccountSettingsState(ctx, ctxCancel)
 	if err != nil {
 		return err
@@ -266,6 +270,7 @@ func watchLocalSettingsStream[T interface{ EqualVT(T) bool }](
 	defer relSO()
 	defer relStateCtr()
 
+	// Retain the previous response while the settings watch emits changes.
 	var (
 		prev     T
 		havePrev bool
@@ -407,10 +412,12 @@ func (r *AccountResource) buildLocalSessionsResponse(
 	ctx context.Context,
 	settings *account_settings.AccountSettings,
 ) (*s4wave_account.WatchSessionsResponse, error) {
+	// Read the active device identity and presentation metadata from account settings.
 	currentPeerID := r.localAccount.GetMountedSessionPeerID(ctx).String()
 	devices := settings.GetPairedDevices()
 	presentations := buildSessionPresentationMap(settings)
 
+	// Build local session rows for the current device and paired devices.
 	sessions := make([]*s4wave_account.AccountSession, 0, len(devices)+1)
 	if currentPeerID != "" {
 		row := &s4wave_account.AccountSession{
@@ -473,9 +480,11 @@ func (r *AccountResource) buildLocalSessionsResponse(
 func (r *AccountResource) watchCloudSessions(
 	strm s4wave_account.SRPCAccountResourceService_WatchSessionsStream,
 ) error {
+	// Bind cloud session watching to the RPC stream lifetime.
 	ctx, ctxCancel := context.WithCancel(strm.Context())
 	defer ctxCancel()
 
+	// Retain optional account-settings state and its release functions.
 	var (
 		stateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot]
 		relSO    func()
@@ -499,6 +508,7 @@ func (r *AccountResource) watchCloudSessions(
 		defer relSO()
 	}
 
+	// Build cloud session responses and suppress unchanged snapshots.
 	var prev *s4wave_account.WatchSessionsResponse
 	return watchCloudBcast(
 		ctx,
@@ -598,6 +608,7 @@ func applySessionPresentation(
 	row *s4wave_account.AccountSession,
 	pres *account_settings.SessionPresentation,
 ) {
+	// Apply each available presentation field to the account session row.
 	if row == nil || pres == nil {
 		return
 	}
@@ -620,6 +631,7 @@ func applySessionPresentation(
 
 // ResolveEntityKey resolves the entity private key from an EntityCredential.
 func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.EntityCredential) (bifrost_crypto.PrivKey, peer.ID, error) {
+	// Resolve local credentials directly or load the cloud account for verification.
 	if r.localAccount != nil {
 		return r.resolveLocalEntityKey(cred)
 	}
@@ -630,6 +642,8 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 	if err != nil {
 		return nil, "", errors.Wrap(err, "entity key resolution")
 	}
+
+	// Derive the cloud entity key from the supplied password or PEM credential.
 	password := cred.GetPassword()
 	pemPrivateKey := cred.GetPemPrivateKey()
 	if password != "" {
@@ -646,6 +660,7 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 }
 
 func (r *AccountResource) resolveLocalEntityKey(cred *session.EntityCredential) (bifrost_crypto.PrivKey, peer.ID, error) {
+	// Resolve a local account credential without contacting the cloud.
 	if cred == nil {
 		return nil, "", errors.New("credential is required")
 	}
@@ -661,6 +676,7 @@ func (r *AccountResource) resolveLocalEntityKey(cred *session.EntityCredential) 
 }
 
 func derivePasswordEntityKey(username string, password []byte) (bifrost_crypto.PrivKey, peer.ID, error) {
+	// Derive the entity private key and peer ID from the password parameters.
 	_, entityPriv, err := auth_password.BuildParametersWithUsernamePassword(username, password)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "derive entity key")
@@ -673,6 +689,7 @@ func derivePasswordEntityKey(username string, password []byte) (bifrost_crypto.P
 }
 
 func parsePemEntityKey(pemPrivateKey []byte) (bifrost_crypto.PrivKey, peer.ID, error) {
+	// Parse the PEM private key and derive its peer ID.
 	privKey, err := keypem.ParsePrivKeyPem(pemPrivateKey)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "parse PEM private key")
@@ -688,6 +705,7 @@ func parsePemEntityKey(pemPrivateKey []byte) (bifrost_crypto.PrivKey, peer.ID, e
 // entity keys sign. Binding account_id, kind, method, and path to the signed
 // bytes prevents replay across accounts or endpoints.
 func (r *AccountResource) buildMultiSigEnvelope(kind api.MultiSigActionKind, method, reqPath string, actionBody []byte) ([]byte, error) {
+	// Bind the account, request route, and action payload into the signed envelope.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -716,6 +734,7 @@ func (r *AccountResource) signAndSubmit(
 	entityPriv bifrost_crypto.PrivKey,
 	entityPeerID peer.ID,
 ) (*api.MultiSigActionResponse, error) {
+	// Sign the account action envelope and submit its signatures.
 	envelope, err := r.buildMultiSigEnvelope(kind, method, reqPath, actionBody)
 	if err != nil {
 		return nil, err
@@ -742,6 +761,7 @@ func (r *AccountResource) sendMultiSig(
 	envelope []byte,
 	sigs []*api.EntitySignature,
 ) (*api.MultiSigActionResponse, error) {
+	// Resolve the account client and submit the signed action request.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -778,6 +798,7 @@ func (r *AccountResource) submitTrackedAction(
 	actionBody []byte,
 	wrapMsg string,
 ) error {
+	// Sign and send the account mutation before advancing the local epoch.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return err
@@ -798,6 +819,7 @@ func (r *AccountResource) AddAuthMethod(
 	ctx context.Context,
 	req *s4wave_account.AddAuthMethodRequest,
 ) (*s4wave_account.AddAuthMethodResponse, error) {
+	// Encode the new keypair action before submitting it to the account.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -810,6 +832,8 @@ func (r *AccountResource) AddAuthMethod(
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal add keypair action")
 	}
+
+	// Submit the add-keypair action and return its response.
 	reqPath := accountAPIPath(acc.GetAccountID(), "keypair", "add")
 	if err := r.submitTrackedAction(
 		ctx,
@@ -830,6 +854,7 @@ func (r *AccountResource) RemoveAuthMethod(
 	ctx context.Context,
 	req *s4wave_account.RemoveAuthMethodRequest,
 ) (*s4wave_account.RemoveAuthMethodResponse, error) {
+	// Encode and submit the account keypair removal.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -858,6 +883,7 @@ func (r *AccountResource) SetSecurityLevel(
 	ctx context.Context,
 	req *s4wave_account.SetSecurityLevelRequest,
 ) (*s4wave_account.SetSecurityLevelResponse, error) {
+	// Encode and submit the new account authentication threshold.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -891,6 +917,7 @@ func (r *AccountResource) RevokeSession(
 	ctx context.Context,
 	req *s4wave_account.RevokeSessionRequest,
 ) (*s4wave_account.RevokeSessionResponse, error) {
+	// Resolve the account and try the credential-free current-session revoke.
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, errors.Wrap(err, "session revoke")
@@ -909,6 +936,7 @@ func (r *AccountResource) RevokeSession(
 		}
 	}
 
+	// Sign and submit the revoke action when self-revoke does not apply.
 	actionBody, err := (&api.RevokeSessionAction{
 		SessionPeerId: req.GetSessionPeerId(),
 	}).MarshalVT()
@@ -937,6 +965,7 @@ func (r *AccountResource) GenerateBackupKey(
 	ctx context.Context,
 	req *s4wave_account.GenerateBackupKeyRequest,
 ) (*s4wave_account.GenerateBackupKeyResponse, error) {
+	// Use local settings for local accounts and register a generated cloud backup key.
 	if r.localAccount != nil {
 		return r.generateLocalBackupKey(ctx)
 	}
@@ -957,6 +986,7 @@ func (r *AccountResource) GenerateBackupKey(
 		return nil, errors.Wrap(err, "marshal action")
 	}
 
+	// Register the backup key through the account multi-signature endpoint.
 	reqPath := accountAPIPath(acc.GetAccountID(), "keypair", "add")
 	if err := r.submitTrackedAction(
 		ctx,
@@ -982,6 +1012,7 @@ func (r *AccountResource) ChangePassword(
 	ctx context.Context,
 	req *s4wave_account.ChangePasswordRequest,
 ) (*s4wave_account.ChangePasswordResponse, error) {
+	// Use the local settings path or load the cloud account for password rotation.
 	if r.localAccount != nil {
 		return r.changeLocalPassword(ctx, req)
 	}
@@ -995,6 +1026,7 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.New("old_password and new_password are required")
 	}
 
+	// Resolve the old password key before deriving its replacement.
 	oldPriv, oldPeerID, err := r.ResolveEntityKey(ctx, &session.EntityCredential{
 		Credential: &session.EntityCredential_Password{Password: oldPassword},
 	})
@@ -1002,6 +1034,7 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.Wrap(err, "resolve old entity key")
 	}
 
+	// Derive a replacement key using the account entity ID.
 	info, err := acc.GetAccountState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch account info")
@@ -1010,6 +1043,8 @@ func (r *AccountResource) ChangePassword(
 	if err != nil {
 		return nil, errors.Wrap(err, "derive new entity key")
 	}
+
+	// Prepare and submit the new keypair signed by the old credential.
 	accountID := acc.GetAccountID()
 	kp := &session.EntityKeypair{
 		PeerId:     newPeerID.String(),
@@ -1032,6 +1067,7 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.Wrap(err, "add new keypair")
 	}
 
+	// Remove the old key only after the replacement key has been registered.
 	removeAction, err := (&api.RemoveKeypairAction{PeerId: oldPeerID.String()}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal remove action")
@@ -1049,6 +1085,7 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.Wrap(err, "remove old keypair")
 	}
 
+	// Advance the local account epoch after both key changes succeed.
 	acc.BumpLocalEpoch()
 
 	return &s4wave_account.ChangePasswordResponse{}, nil
@@ -1078,12 +1115,14 @@ func (r *AccountResource) changeLocalPassword(
 	ctx context.Context,
 	req *s4wave_account.ChangePasswordRequest,
 ) (*s4wave_account.ChangePasswordResponse, error) {
+	// Require both passwords before changing the local credential keypair.
 	oldPassword := req.GetOldPassword()
 	newPassword := req.GetNewPassword()
 	if oldPassword == "" || newPassword == "" {
 		return nil, errors.New("old_password and new_password are required")
 	}
 
+	// Resolve the old and new local keys before replacing the stored keypair.
 	_, oldPeerID, err := r.ResolveEntityKey(ctx, &session.EntityCredential{
 		Credential: &session.EntityCredential_Password{Password: oldPassword},
 	})
@@ -1127,6 +1166,7 @@ func (r *AccountResource) removeLocalEntityKeypair(ctx context.Context, peerID s
 }
 
 func generateBackupEntityKey() (peer.ID, []byte, error) {
+	// Generate the backup key, derive its peer identity, and encode its PEM.
 	backupPriv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "generate backup key")

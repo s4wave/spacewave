@@ -8,6 +8,7 @@ import (
 
 // NewMockIoFS constructs a mock fs.FS.
 func NewMockIoFS() (fs.FS, []string) {
+	// Build the in-memory files and expected path list.
 	mfs := make(fstest.MapFS)
 	baseTime := time.Now()
 	var expected []string

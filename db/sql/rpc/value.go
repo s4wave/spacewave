@@ -11,6 +11,7 @@ import (
 
 // DriverValueToSqlValue converts a database/sql driver value to the canonical wire value.
 func DriverValueToSqlValue(value driver.Value) (*hydra_sql.SqlValue, error) {
+	// Map each native driver type to its canonical wire value.
 	switch val := value.(type) {
 	case nil:
 		return &hydra_sql.SqlValue{}, nil
@@ -45,6 +46,7 @@ func DriverValueToSqlValue(value driver.Value) (*hydra_sql.SqlValue, error) {
 		}, nil
 	}
 
+	// Convert other values through the standard database/sql converter.
 	converted, err := driver.DefaultParameterConverter.ConvertValue(value)
 	if err != nil {
 		return nil, err

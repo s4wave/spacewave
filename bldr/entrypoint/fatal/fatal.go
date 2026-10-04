@@ -24,14 +24,19 @@ var broker = struct {
 // The first reported error is kept; a nil err or a later report is a
 // no-op.
 func Report(err error) {
+	// Ignore nil reports because they do not establish a fatal condition.
 	if err == nil {
 		return
 	}
+
+	// Protect the first-error check and release the broker lock on return.
 	broker.mtx.Lock()
 	defer broker.mtx.Unlock()
 	if broker.err != nil {
 		return
 	}
+
+	// Record the fatal condition and wake every waiting entrypoint.
 	broker.err = err
 	close(broker.ch)
 }

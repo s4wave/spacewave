@@ -34,8 +34,10 @@ func ResolveSpace(
 	sessionIdx uint32,
 	sharedObjectID string,
 ) (*ResolvedSpace, func(), error) {
+	// Track mounted directive references for reverse-order cleanup.
 	var refs []directive.Reference
 
+	// Release every mounted directive reference in reverse dependency order.
 	cleanup := func() {
 		for _, v := range slices.Backward(refs) {
 			if v == nil {
@@ -80,6 +82,7 @@ func ResolveSpace(
 		return nil, nil, errors.Wrap(err, "get shared object provider")
 	}
 
+	// Access the provider account shared-object list for this session.
 	soListCtr, relSoListCtr, err := soProvider.AccessSharedObjectList(ctx, nil)
 	if err != nil {
 		cleanup()
@@ -87,12 +90,14 @@ func ResolveSpace(
 	}
 	defer relSoListCtr()
 
+	// Wait for the session shared-object list before resolving the requested ID.
 	soList, err := soListCtr.WaitValue(ctx, nil)
 	if err != nil {
 		cleanup()
 		return nil, nil, errors.Wrap(err, "wait shared object list")
 	}
 
+	// Find the requested SharedObject and its block-store reference.
 	soIdx := slices.IndexFunc(soList.GetSharedObjects(), func(so *sobject.SharedObjectListEntry) bool {
 		return so.GetRef().GetProviderResourceRef().GetId() == sharedObjectID
 	})
@@ -118,6 +123,7 @@ func ResolveSpace(
 	}
 	refs = append(refs, mountRef)
 
+	// Read the mounted Space body that exposes the resolved world engine.
 	body := mounted.GetSharedObjectBody()
 
 	return &ResolvedSpace{

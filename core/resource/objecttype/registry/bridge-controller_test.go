@@ -21,6 +21,7 @@ import (
 )
 
 func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *testing.T) {
+	// Create the request and controller context used by the bridge test.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := world_testbed.Default(ctx)
@@ -29,6 +30,7 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	}
 	t.Cleanup(tb.Release)
 
+	// Register the plugin RPC service and its resource server.
 	childReleased := make(chan struct{}, 1)
 	pluginRoot := srpc.NewMux()
 	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(pluginRoot, &testObjectTypeHandler{childReleased: childReleased}); err != nil {
@@ -40,17 +42,22 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
 
+	// Attach the test plugin controller to the world testbed.
 	rel, err := tb.Bus.AddController(ctx, &testPluginLoadController{client: pluginClient}, nil)
 	if err != nil {
 		t.Fatalf("AddController: %v", err)
 	}
 	defer rel()
+
+	// Register the plugin object type before starting its bridge controller.
 	registry := NewObjectTypeRegistryResource(nil)
 	registry.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test/type",
 		RegistrationId: 1,
 		PluginId:       "test-plugin",
 	}}
+
+	// Start the bridge controller that exposes the plugin object type.
 	ctrl := NewBridgeController(le, tb.Bus, registry)
 	rel, err = tb.Bus.AddController(ctx, ctrl, nil)
 	if err != nil {
@@ -58,10 +65,12 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	}
 	defer rel()
 
+	// Keep the resource owner alive after canceling the factory request context.
 	ownerCtx, ownerCancel := context.WithCancel(ctx)
 	defer ownerCancel()
 	requestCtx, requestCancel := context.WithCancel(resource_server.WithResourceClientContext(ctx, &testResourceClientContext{ctx: ownerCtx}))
 
+	// Look up the bridged object type and retain its resource reference.
 	ot, ref, err := objecttype.ExLookupObjectType(ctx, tb.Bus, "test/type")
 	if err != nil {
 		t.Fatalf("ExLookupObjectType: %v", err)
@@ -72,17 +81,23 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	if ot == nil {
 		t.Fatalf("expected object type")
 	}
+
+	// Create the object invoker through the registered object type factory.
 	invoker, cleanup, err := ot.GetFactory()(requestCtx, le, tb.Bus, tb.Engine, nil, "test/object")
 	if err != nil {
 		t.Fatalf("object type factory: %v", err)
 	}
 
+	// Cancel the request context before calling the retained child resource.
 	requestCancel()
 
+	// Call the child resource after cancellation and verify the attached engine commit.
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
 	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
 		t.Fatalf("child resource call after request context cancel: %v", err)
 	}
+
+	// Read the attached engine transaction to verify the seeded object was committed.
 	readTx, err := tb.Engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -96,6 +111,7 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 		}
 	}
 
+	// Release the object resources and await the plugin child release callback.
 	cleanup()
 	select {
 	case <-childReleased:
@@ -105,6 +121,7 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 }
 
 func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.T) {
+	// Create the test context and world testbed for plugin reconnection.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := world_testbed.Default(ctx)
@@ -113,11 +130,13 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 	t.Cleanup(tb.Release)
 
+	// Prepare two plugin handlers and their RPC clients for replacement.
 	firstHandler := &testReconnectObjectTypeHandler{}
 	firstPluginClient := newTestObjectTypePluginClient(t, firstHandler)
 	secondHandler := &testReconnectObjectTypeHandler{}
 	secondPluginClient := newTestObjectTypePluginClient(t, secondHandler)
 
+	// Attach the first plugin loader before registering the bridge.
 	pluginLoader := &testPluginLoadController{client: firstPluginClient}
 	rel, err := tb.Bus.AddController(ctx, pluginLoader, nil)
 	if err != nil {
@@ -125,6 +144,7 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 	defer rel()
 
+	// Register the object type and start its bridge controller.
 	registry := NewObjectTypeRegistryResource(nil)
 	registry.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test/type",
@@ -138,6 +158,7 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 	defer rel()
 
+	// Look up the bridged object type after both controllers are running.
 	ot, ref, err := objecttype.ExLookupObjectType(ctx, tb.Bus, "test/type")
 	if err != nil {
 		t.Fatalf("ExLookupObjectType: %v", err)
@@ -149,6 +170,7 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 		t.Fatalf("expected object type")
 	}
 
+	// Create an object invoker backed by the first plugin client.
 	invoker, cleanup, err := ot.GetFactory()(ctx, le, tb.Bus, tb.Engine, nil, "test/object")
 	if err != nil {
 		t.Fatalf("object type factory: %v", err)
@@ -160,6 +182,7 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
 
+	// Send the first child ping and verify it reached only the initial plugin.
 	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
 		t.Fatalf("first child ping: %v", err)
 	}
@@ -170,12 +193,14 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 		t.Fatalf("second plugin InvokeObjectType calls before replacement = %d, want 0", got)
 	}
 
+	// Replace the plugin client and release the first resource client.
 	pluginLoader.SetClient(secondPluginClient)
 	bridgeInvoker.session.mtx.Lock()
 	firstResourceClient := bridgeInvoker.session.resources
 	bridgeInvoker.session.mtx.Unlock()
 	firstResourceClient.Release()
 
+	// Send a second child ping and verify the replacement plugin handles it.
 	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
 		t.Fatalf("second child ping after resource client reconnect: %v", err)
 	}
@@ -191,6 +216,7 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 }
 
 func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
+	// Create the request context and world testbed for an attached handler.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := world_testbed.Default(ctx)
@@ -199,8 +225,11 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 
+	// Create the registry and retained resource client for attached handlers.
 	registry, resources, registryClient := newRegistryResourceClient(t, ctx)
 	defer resources.Release()
+
+	// Register the caller-attached handler as a resource service.
 	childReleased := make(chan struct{}, 1)
 	handlerRoot := srpc.NewMux()
 	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(handlerRoot, &testObjectTypeHandler{childReleased: childReleased}); err != nil {
@@ -210,6 +239,8 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 	if err := resource_server.NewResourceServer(handlerRoot).Register(handlerService); err != nil {
 		t.Fatal(err)
 	}
+
+	// Attach the handler service and register its object type.
 	attachedID, err := resources.AttachResource(ctx, "handler", handlerService)
 	if err != nil {
 		t.Fatalf("attach handler: %v", err)
@@ -223,6 +254,7 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 		t.Fatalf("register attached handler: %v", err)
 	}
 
+	// Start the bridge controller for the caller-attached registration.
 	ctrl := NewBridgeController(le, tb.Bus, registry)
 	rel, err := tb.Bus.AddController(ctx, ctrl, nil)
 	if err != nil {
@@ -230,6 +262,7 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 	}
 	defer rel()
 
+	// Look up the attached object type and create its child invoker.
 	ot, ref, err := objecttype.ExLookupObjectType(ctx, tb.Bus, "test/type")
 	if err != nil {
 		t.Fatalf("lookup attached ObjectType: %v", err)
@@ -240,6 +273,8 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 		t.Fatalf("create attached ObjectType: %v", err)
 	}
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
+
+	// Call the attached child and wait for the bridge to release it.
 	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
 		t.Fatalf("attached child ping: %v", err)
 	}
@@ -250,6 +285,7 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 		t.Fatal("attached child was not released")
 	}
 
+	// Detach the handler and verify the bridge no longer creates its object type.
 	if err := resources.DetachResource(ctx, attachedID); err != nil {
 		t.Fatalf("detach attached handler: %v", err)
 	}
@@ -259,6 +295,8 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 		}
 		t.Fatal("detached attached handler created an ObjectType")
 	}
+
+	// Wait for registration release to propagate through the registry watch.
 	waitCh := registryChangeWait(registry)
 	resources.CreateResourceReference(registration.GetResourceId()).Release()
 	select {
@@ -266,6 +304,8 @@ func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("registration release did not reach registry")
 	}
+
+	// Assert the released attached-handler registration is absent.
 	if registry.LookupRegistration("test/type", "") != nil {
 		t.Fatal("attached registration remained after release")
 	}
@@ -296,12 +336,15 @@ type testObjectTypeHandler struct {
 }
 
 func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wave_objecttype_registry.InvokeObjectTypeRequest) (*s4wave_objecttype_registry.InvokeObjectTypeResponse, error) {
+	// Validate the requested object type and acquire its attached engine client.
 	if req.GetTypeId() != "test/type" || req.GetObjectKey() != "test/object" {
 		return nil, resource.ErrInvalidResourceID
 	}
 	if req.GetAttachedEngineResourceId() == 0 {
 		return nil, resource.ErrInvalidResourceID
 	}
+
+	// Resolve the caller resource context and attached world engine.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -310,6 +353,8 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wav
 	if err != nil {
 		return nil, err
 	}
+
+	// Create a write transaction for seeding the object type state.
 	engine := s4wave_world.NewSRPCEngineResourceServiceClient(engineClient)
 	txResp, err := engine.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
 	if err != nil {
@@ -324,6 +369,8 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wav
 	if err != nil {
 		return nil, err
 	}
+
+	// Create the seed object and commit it through the attached engine.
 	worldState := s4wave_world.NewSRPCWorldStateResourceServiceClient(txClient)
 	objResp, err := worldState.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
 		ObjectKey: "test/objecttype-seed",
@@ -338,6 +385,8 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wav
 	if _, err := tx.Commit(ctx, &s4wave_world.CommitRequest{}); err != nil {
 		return nil, err
 	}
+
+	// Attach the test child invoker and return its resource ID to the bridge.
 	id, err := resourceCtx.AddResource(srpc.InvokerFunc(func(serviceID string, methodID string, strm srpc.Stream) (bool, error) {
 		if serviceID != "test.Child" || methodID != "Ping" {
 			return false, nil
@@ -361,8 +410,10 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wav
 }
 
 func newTestObjectTypePluginClient(t *testing.T, handler s4wave_objecttype_registry.SRPCObjectTypeHandlerServiceServer) srpc.Client {
+	// Run helper failures at the calling test site.
 	t.Helper()
 
+	// Register the object-type handler and expose its resource service.
 	pluginRoot := srpc.NewMux()
 	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(pluginRoot, handler); err != nil {
 		t.Fatal(err)
@@ -382,6 +433,7 @@ type testReconnectObjectTypeHandler struct {
 }
 
 func (h *testReconnectObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wave_objecttype_registry.InvokeObjectTypeRequest) (*s4wave_objecttype_registry.InvokeObjectTypeResponse, error) {
+	// Validate the replacement plugin request and record its invocation.
 	if req.GetTypeId() != "test/type" || req.GetObjectKey() != "test/object" {
 		return nil, resource.ErrInvalidResourceID
 	}
@@ -392,6 +444,7 @@ func (h *testReconnectObjectTypeHandler) InvokeObjectType(ctx context.Context, r
 	h.invokeObjectTypeCount++
 	h.mtx.Unlock()
 
+	// Resolve the caller resource context and attach the child invoker.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -404,17 +457,21 @@ func (h *testReconnectObjectTypeHandler) InvokeObjectType(ctx context.Context, r
 }
 
 func (h *testReconnectObjectTypeHandler) invokeChild(serviceID string, methodID string, strm srpc.Stream) (bool, error) {
+	// Match the child ping route before updating invocation counts.
 	if serviceID != "test.Child" || methodID != "Ping" {
 		return false, nil
 	}
 
+	// Record the received child invocation under the handler mutex.
 	h.mtx.Lock()
 	h.childPingCalls++
 	h.mtx.Unlock()
 
+	// Receive the child ping before recording a successful response.
 	if err := strm.MsgRecv(&testPingMessage{}); err != nil {
 		return true, err
 	}
+
 	// Count the ping before responding: the unary caller's ExecCall returns as
 	// soon as it receives this response, so an increment after MsgSend races the
 	// caller's assertion. Send failure is surfaced through the ExecCall error.

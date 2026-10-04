@@ -63,6 +63,7 @@ func TestHashFileWithBlake3(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
+	// Hash the sample file to validate the helper's returned digest.
 	hash, err := HashFileWithBlake3(tempFile)
 	if err != nil {
 		t.Fatalf("HashFileWithBlake3() error = %v", err)
@@ -100,18 +101,23 @@ func TestHashFileWithBlake3(t *testing.T) {
 		t.Fatalf("Failed to create different test file: %v", err)
 	}
 
+	// Hash the second file before comparing distinct contents.
 	differentHash, err := HashFileWithBlake3(differentFile)
 	if err != nil {
 		t.Fatalf("HashFileWithBlake3() error for different file = %v", err)
 	}
+
+	// Confirm that different file contents produce different hashes.
 	if hash == differentHash {
 		t.Errorf("HashFileWithBlake3() should produce different hashes for different content")
 	}
 }
 
 func TestUpdateSourceMapReference(t *testing.T) {
+	// Create an isolated directory for source-map fixtures.
 	tempDir := t.TempDir()
 
+	// Cover adding, replacing, and relocating source-map directives.
 	tests := []struct {
 		name            string
 		initialContent  string
@@ -144,6 +150,7 @@ func TestUpdateSourceMapReference(t *testing.T) {
 		},
 	}
 
+	// Run every source-map update scenario in a temporary file.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a temporary file with the initial content

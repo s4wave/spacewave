@@ -12,12 +12,14 @@ import (
 var commands []*cli.Command
 
 func main() {
+	// Configure the Hydra command-line application.
 	app := cli.NewApp()
 	app.Name = "hydra"
 	app.HideVersion = true
 	app.Usage = "command-line node and tools for hydra"
 	app.Commands = commands
 
+	// Run the command and report failures to stderr.
 	if err := app.Run(os.Args); err != nil {
 		os.Stderr.WriteString(err.Error())
 		os.Stderr.WriteString("\n")

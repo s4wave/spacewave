@@ -58,7 +58,10 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	// Parse the configured peer identity.
 	peerID, _ := conf.ParsePeerID()
+
+	// Store the task configuration and its resolved identity.
 	c := &Controller{
 		le:        le,
 		bus:       bus,
@@ -67,13 +70,19 @@ func NewController(
 		peerID:    peerID,
 		peerIDStr: peerID.String(),
 	}
+
+	// Initialize keyed watchers for pass and input-object changes.
 	c.passWatcher = keyed.NewKeyedWithLogger(c.newPassTracker, le)
 	c.inputObjectWatcher = keyed.NewKeyedWithLogger(c.newInputObjectTracker, le)
+
+	// Watch updates to the task object through the controller lifecycle.
 	c.objLoop = world_control.NewWatchLoop(
 		le.WithField("control-loop", "task-controller"),
 		c.objKey,
 		c.ProcessState,
 	)
+
+	// Return the fully initialized controller.
 	return c
 }
 
@@ -118,11 +127,15 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
+	// Bind watcher lifetime to this execution attempt.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Give dependent state watchers the controller context.
 	c.passWatcher.SetContext(ctx, true)
 	c.inputObjectWatcher.SetContext(ctx, true)
+
+	// Run the task's World watch loop until execution ends.
 	return world_control.ExecuteBusWatchLoop(ctx, c.bus, c.conf.GetEngineId(), true, c.objLoop)
 }
 
@@ -148,6 +161,7 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 		return nil
 	}
 
+	// Apply and commit the Task update for its latest Pass state.
 	txd := task_transaction.NewTxUpdateWithPassState(c.objKey)
 	_, _, err = wtx.ApplyWorldOp(ctx, txd, c.peerID)
 	if err != nil {

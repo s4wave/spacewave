@@ -31,6 +31,7 @@ func main() {
 	r := wazero.NewRuntime(ctx)
 	defer r.Close(ctx) // This closes everything this Runtime created.
 
+	// Mount the example filesystems at the guest paths used by the module.
 	fsConf := wazero.NewFSConfig()
 	fsConf = fsConf.WithReadOnlyDirMount(".", "/")
 	fsConf = fsConf.WithDirMount("/tmp", "/tmp")
@@ -39,22 +40,26 @@ func main() {
 	// NOTE: We can pass a wazero_sys.FS to enable a custom read/write fs.
 	var writableFS wazero_sys.FS
 	_ = writableFS
+
 	// type assertion
 	// fsConf.(FSConfigWithSysFSMount).WithSysFSMount(writableFS, "/")
 	_ = fsConf.(FSConfigWithSysFSMount)
 
+	// Configure the WASI module streams and filesystem.
 	config := wazero.NewModuleConfig().
 		WithStdout(os.Stdout).
 		WithStderr(os.Stderr).
 		WithFS(demoFS).
 		WithFSConfig(fsConf)
 
+	// Instantiate WASI preview 1 and close it with the runtime.
 	closeWasi, err := wasi_snapshot_preview1.Instantiate(ctx, r)
 	check(err)
 	defer func() {
 		_ = closeWasi.Close(ctx)
 	}()
 
+	// Load the demo WebAssembly module from its example path.
 	demoWasm, err := os.ReadFile("../demo.wasm")
 	check(err)
 

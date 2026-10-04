@@ -116,8 +116,10 @@ func runInstalledAppStartup(
 	name string,
 	proofs []string,
 ) (*startupRun, error) {
+	// Prepare per-launch paths and state directories.
 	t.Helper()
 
+	// Isolate logs and persistent application data for this launch.
 	logPath := filepath.Join(artifactDir, "installed-app-"+name+".log")
 	spacewaveDataDir := filepath.Join(stateRoot, "spacewave-data")
 	electronUserDataDir := filepath.Join(stateRoot, "electron-user-data")
@@ -128,9 +130,11 @@ func runInstalledAppStartup(
 		return nil, err
 	}
 
+	// Bound the launch process to this helper's lifetime.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Configure the installed executable and its isolated runtime environment.
 	cmd := exec.CommandContext(ctx, executablePath)
 	cmd.Dir = filepath.Dir(executablePath)
 	cmd.Env = append(os.Environ(),
@@ -141,6 +145,7 @@ func runInstalledAppStartup(
 	)
 	cmd.SysProcAttr = processGroupAttr()
 
+	// Start the app and own the complete process-tree cleanup.
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start installed app %q: %w", executablePath, err)
 	}
@@ -149,16 +154,19 @@ func runInstalledAppStartup(
 		stopStateRootProcesses(stateRoot)
 	}()
 
+	// Wait for every startup proof in the app log.
 	for _, proof := range proofs {
 		if err := waitForLogSubstring(ctx, logPath, proof, startupTimeout); err != nil {
 			return nil, fmt.Errorf("%s launch: %w", name, err)
 		}
 	}
 
+	// Stop the app after all startup proofs have appeared.
 	if err := stopProcessTree(cmd); err != nil {
 		return nil, fmt.Errorf("stop installed app after %s launch: %w", name, err)
 	}
 
+	// Preserve a bounded log tail as the startup evidence.
 	tailPath := filepath.Join(artifactDir, "installed-app-"+name+"-log-tail.txt")
 	if err := writeLogTail(logPath, tailPath); err != nil {
 		return nil, fmt.Errorf("write %s log tail: %w", name, err)
@@ -173,6 +181,7 @@ func runInstalledAppStartup(
 }
 
 func resolveInstalledAppExecutable(appPath string) (string, error) {
+	// Resolve supported app bundles to their executable path.
 	info, err := os.Stat(appPath)
 	if err != nil {
 		return "", err
@@ -191,6 +200,7 @@ func resolveInstalledAppExecutable(appPath string) (string, error) {
 }
 
 func resolveInstalledAppStateRoot() (string, error) {
+	// Select and validate the root that contains isolated installed-app state.
 	stateRoot := strings.TrimSpace(os.Getenv(installedAppStateRootEnv))
 	if stateRoot == "" {
 		home, err := os.UserHomeDir()
@@ -236,6 +246,7 @@ func resetInstalledAppStateRoot(stateRoot string) error {
 }
 
 func verifyDarwinCodeSignature(appPath string) error {
+	// Verify the complete app bundle with the platform signature tool.
 	target := darwinAppBundleRoot(appPath)
 	cmd := exec.Command("codesign", "--verify", "--deep", "--strict", target)
 	out, err := cmd.CombinedOutput()
@@ -261,14 +272,18 @@ func darwinAppBundleRoot(path string) string {
 }
 
 func waitForLogSubstring(ctx context.Context, path string, want string, timeout time.Duration) error {
+	// Bound the wait for a startup proof to the caller's context and deadline.
 	waitCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	// Recheck the log until its proof appears or the deadline expires.
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 
+	// Retain the latest log content to include in a timeout error.
 	var last string
 	for {
+		// Read the current log before waiting for the next check.
 		data, err := os.ReadFile(path)
 		if err == nil {
 			last = string(data)
@@ -296,6 +311,7 @@ func writeInstalledAppBreadcrumbs(
 	initial *startupRun,
 	retained *startupRun,
 ) (string, error) {
+	// Assemble a durable summary of both installed-app launches.
 	breadcrumbPath := filepath.Join(artifactDir, "installed-app-retained-startup-breadcrumbs.txt")
 	lines := []string{
 		"smoke=packaged-installed-app-retained-state-launcher-startup",
@@ -312,20 +328,28 @@ func writeInstalledAppBreadcrumbs(
 		"proof=retained_installed_app_electron_started",
 		"proof=retained_state_root_reused",
 	}
+
+	// Record the platform signature proof when running on macOS.
 	if runtime.GOOS == "darwin" {
 		lines = append(lines, "proof=installed_app_signature_verified")
 	}
+
+	// Include each startup proof gathered from both application logs.
 	for _, run := range []*startupRun{initial, retained} {
 		for _, proof := range run.proofs {
 			lines = append(lines, "proof="+run.name+"_log:"+proof)
 		}
 	}
+
+	// Explain how the initial launch populated state and the retained launch reused it.
 	lines = append(lines,
 		"update_breadcrumb=initial packaged installed app launch populated launcher state",
 		"update_breadcrumb=retained packaged installed app launch reused the same app data and Electron user data roots",
 		"update_breadcrumb=retained packaged installed app launch reached Electron startup instead of hanging in retained state",
 		"",
 	)
+
+	// Write all startup evidence to the artifact directory.
 	if err := os.WriteFile(breadcrumbPath, []byte(strings.Join(lines, "\n")), 0o644); err != nil {
 		return "", err
 	}
@@ -333,6 +357,7 @@ func writeInstalledAppBreadcrumbs(
 }
 
 func writeLogTail(srcPath string, dstPath string) error {
+	// Copy only the latest bounded portion of a startup log.
 	data, err := os.ReadFile(srcPath)
 	if err != nil {
 		return err

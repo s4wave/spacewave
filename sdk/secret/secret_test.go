@@ -25,10 +25,12 @@ import (
 // TestCreateSecretStoresPayloadOnlyInNestedSharedObject checks that a payload
 // lives in its nested shared object, never in the parent World.
 func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
+	// Start a local testbed for nested Secret storage.
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
 	defer release()
 
+	// Store a provider credential and verify its parent metadata.
 	token := "provider-credential-secret-value"
 	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/provider/opencode-go",
@@ -48,10 +50,12 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 		t.Fatal("expected nested SharedObject id")
 	}
 
+	// Confirm the parent record uses the Secret object type.
 	if err := world_types.CheckObjectType(ctx, tb.WorldState, "secrets/provider/opencode-go", s4wave_secret.SecretTypeID); err != nil {
 		t.Fatalf("CheckObjectType: %v", err)
 	}
 
+	// Ensure the parent block does not expose the credential bytes.
 	parent := readParentSecret(ctx, t, tb.WorldState, "secrets/provider/opencode-go")
 	parentData, err := parent.MarshalVT()
 	if err != nil {
@@ -61,6 +65,7 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 		t.Fatal("parent Secret block contains raw token bytes")
 	}
 
+	// Read the nested payload through both Secret read APIs.
 	payload, err := s4wave_secret.ReadSecretPayload(ctx, tb.Bus, secret)
 	if err != nil {
 		t.Fatalf("ReadSecretPayload: %v", err)
@@ -80,10 +85,12 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 // TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject checks
 // the same for an SSH credential.
 func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *testing.T) {
+	// Start a local testbed for SSH Secret storage.
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
 	defer release()
 
+	// Confirm the SSH credential constructor preserves key bytes and kind.
 	privateKey := []byte("-----BEGIN OPENSSH PRIVATE KEY-----\nspacewave-secret\n-----END OPENSSH PRIVATE KEY-----")
 	payload := s4wave_secret.NewSSHPrivateKeyPayload(privateKey, time.Unix(150, 0))
 	if payload.GetContentType() != s4wave_secret.SSHPrivateKeyContentType {
@@ -93,6 +100,7 @@ func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *tes
 		t.Fatal("private key payload value mismatch")
 	}
 
+	// Store the SSH private key in its nested SharedObject.
 	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/ssh/private-key",
 		DisplayName: "SSH private key",
@@ -105,6 +113,7 @@ func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *tes
 		t.Fatalf("CreateSecret: %v", err)
 	}
 
+	// Ensure the parent Secret block omits the private key bytes.
 	parent := readParentSecret(ctx, t, tb.WorldState, "secrets/ssh/private-key")
 	parentData, err := parent.MarshalVT()
 	if err != nil {
@@ -114,6 +123,7 @@ func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *tes
 		t.Fatal("parent Secret block contains raw SSH private key bytes")
 	}
 
+	// Read the private key and reject a request for another credential kind.
 	readPrivateKey, err := s4wave_secret.ReadSSHCredentialPayload(ctx, tb.Bus, secret, s4wave_secret.SecretKindSSHPrivateKey)
 	if err != nil {
 		t.Fatalf("ReadSSHCredentialPayload: %v", err)
@@ -125,6 +135,7 @@ func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *tes
 		t.Fatalf("expected SSH kind mismatch, got %v", err)
 	}
 
+	// Confirm text-based SSH credentials share the text content type.
 	passwordPayload := s4wave_secret.NewSSHPasswordPayload("hunter2", time.Unix(151, 0))
 	if passwordPayload.GetContentType() != s4wave_secret.SSHTextCredentialContentType {
 		t.Fatalf("password content type = %q", passwordPayload.GetContentType())
@@ -265,10 +276,12 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 // TestSecretResourceReadPayloadRequiresSignedGrantedPeer checks that the Secret
 // resource reads a payload only for a granted peer that signs its challenge.
 func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
+	// Start the testbed for the Secret resource read path.
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
 	defer release()
 
+	// Create the payload whose bytes the resource will protect.
 	value := []byte("resource-read-secret")
 	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
 		ObjectKey:   "secrets/resource-read",
@@ -281,6 +294,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("CreateSecret: %v", err)
 	}
 
+	// Grant one peer read access and retain another as an unauthorized caller.
 	grantedPriv, grantedPub, grantedPeerID := makePeer(t)
 	ungrantedPriv, _, ungrantedPeerID := makePeer(t)
 	if _, err := s4wave_secret.AddSecretParticipant(
@@ -295,6 +309,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("AddSecretParticipant: %v", err)
 	}
 
+	// Reject unauthorized and mismatched-kind challenge requests.
 	res := s4wave_secret.NewSecretResource(tb.Logger, tb.Bus, tb.WorldState, "secrets/resource-read")
 	if _, err := res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: ungrantedPeerID.String(),
@@ -309,6 +324,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("expected kind mismatch, got %v", err)
 	}
 
+	// Sign a valid challenge and read the granted payload once.
 	begin, err := res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: grantedPeerID.String(),
 		ExpectedKind: "api_key",
@@ -343,6 +359,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("expected replay failure, got %v", err)
 	}
 
+	// Issue another challenge, then revoke its reader before payload access.
 	begin, err = res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: grantedPeerID.String(),
 		ExpectedKind: "api_key",
@@ -374,6 +391,7 @@ func TestSecretResourceReadPayloadRequiresSignedGrantedPeer(t *testing.T) {
 		t.Fatalf("expected revoked read access denied, got %v", err)
 	}
 
+	// Reject new challenges and signatures from ungranted peers.
 	begin, err = res.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: ungrantedPeerID.String(),
 	})
@@ -403,12 +421,14 @@ func setupSecretTest(
 	ctx context.Context,
 	t *testing.T,
 ) (*testbed.Testbed, sobject.SharedObjectProvider, func()) {
+	// Start the real in-memory testbed and release it on failure.
 	t.Helper()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Register a local provider for the test peer.
 	providerID := "local"
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
@@ -420,6 +440,7 @@ func setupSecretTest(
 		t.Fatal(err)
 	}
 
+	// Open the provider account and obtain its SharedObject feature.
 	accountID := "test-account-" + sobject.NewSOOperationLocalID()
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, providerID, accountID, false, nil)
 	if err != nil {
@@ -449,6 +470,7 @@ func readParentSecret(
 	ws world.WorldState,
 	objectKey string,
 ) *s4wave_secret.Secret {
+	// Load the parent World object while retaining its state for decoding.
 	t.Helper()
 	obj, found, err := ws.GetObject(ctx, objectKey)
 	defer world.ReleaseObjectState(obj)
@@ -458,6 +480,8 @@ func readParentSecret(
 	if !found {
 		t.Fatal("parent Secret object not found")
 	}
+
+	// Decode the Secret block from the parent object root.
 	var secret *s4wave_secret.Secret
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
@@ -472,6 +496,7 @@ func readParentSecret(
 
 // makePeer generates an Ed25519 peer.
 func makePeer(t *testing.T) (spacewave_crypto.PrivKey, spacewave_crypto.PubKey, peer.ID) {
+	// Generate the peer's key pair and derive its network identity.
 	t.Helper()
 	priv, pub, err := spacewave_crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {

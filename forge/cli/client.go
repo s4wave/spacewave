@@ -55,14 +55,17 @@ func (a *ClientArgs) SetClient(client api.ForgeDaemonClient) {
 
 // BuildClient builds the client or returns it if it has been set.
 func (a *ClientArgs) BuildClient() (api.ForgeDaemonClient, error) {
+	// Reuse the client when the caller already supplied one.
 	if a.client != nil {
 		return a.client, nil
 	}
 
+	// Require an address before opening a transport.
 	if a.DialAddr == "" {
 		return nil, errors.New("dial address is not set")
 	}
 
+	// Connect to Forge and build its multiplexed RPC client.
 	nconn, err := net.Dial("tcp", a.DialAddr)
 	if err != nil {
 		return nil, err

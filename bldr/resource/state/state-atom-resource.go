@@ -15,6 +15,7 @@ type StateAtomResource struct {
 
 // NewStateAtomResource creates a new StateAtomResource.
 func NewStateAtomResource(store StateAtomStore) *StateAtomResource {
+	// Bind the state store to an RPC mux for resource access.
 	r := &StateAtomResource{store: store}
 	mux := srpc.NewMux()
 	_ = SRPCRegisterStateAtomResourceService(mux, r)

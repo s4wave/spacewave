@@ -36,12 +36,16 @@ func TestReadinessAfterRefusedBind(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+
+			// Create a bound Unix socket before the connector attempts to listen.
 			fd, err := unix.Socket(unix.AF_UNIX, unix.SOCK_STREAM, 0)
 			if err != nil {
 				t.Fatal(err)
 			}
 			file := os.NewFile(uintptr(fd), path)
 			t.Cleanup(func() { _ = file.Close() })
+
+			// Bound the readiness fixture and retain the connector's refusal.
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			t.Cleanup(cancel)
 			refused := make(chan error, 1)
@@ -96,6 +100,8 @@ func TestReadinessAfterRefusedBind(t *testing.T) {
 			if err := unix.Listen(fd, 8); err != nil {
 				t.Fatal(err)
 			}
+
+			// Register Resource Init and serve requests on the ready socket.
 			listener, err := net.FileListener(file)
 			if err != nil {
 				t.Fatal(err)
@@ -107,6 +113,7 @@ func TestReadinessAfterRefusedBind(t *testing.T) {
 			}
 			served := make(chan struct{})
 			go func() {
+				// Accept the readiness client and serve its Resource Init request.
 				defer close(served)
 				conn, err := listener.Accept()
 				if err != nil {

@@ -11,6 +11,7 @@ import (
 
 // TestDistSourcesFSCursor tests the web sources FSCursor build for errors.
 func TestDistSourcesFSCursor(t *testing.T) {
+	// Validate the embedded source tree and its top-level cursor.
 	ifs, err := unixfs_iofs.NewFSCursor(DistSources)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -18,6 +19,8 @@ func TestDistSourcesFSCursor(t *testing.T) {
 	if len(ifs.GetPath()) != 0 {
 		t.Fail()
 	}
+
+	// Build the normalized source cursor used by the runtime.
 	ifs = BuildDistSourcesFSCursor()
 	if ifs == nil {
 		t.Fatal("error in BuildDistSourcesFSCursor")
@@ -26,6 +29,7 @@ func TestDistSourcesFSCursor(t *testing.T) {
 		t.Fail()
 	}
 
+	// Prepare a context and logger for the embedded filesystem handle.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -34,9 +38,12 @@ func TestDistSourcesFSCursor(t *testing.T) {
 	// fsRoot := unixfs.NewFS(ctx, le, fs, nil)
 	// handle, err := fsRoot.AddRootReference(ctx)
 
+	// Build the filesystem handle whose embedded paths the test validates.
 	handle := BuildDistSourcesFSHandle(ctx, le)
 	defer handle.Release()
 
+	// Check the embedded filesystem's required source paths.
+	// Check the embedded filesystem's required source paths.
 	// check the fs handle mechanics via fstest
 	ioFs := unixfs_iofs.NewFS(ctx, handle)
 	err = fstest.TestFS(

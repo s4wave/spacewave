@@ -55,6 +55,7 @@ func (b *simulatedBrowser) WatchWebRuntimeStatus(
 	_ *web_runtime.WatchWebRuntimeStatusRequest,
 	strm web_runtime.SRPCWebRuntime_WatchWebRuntimeStatusStream,
 ) error {
+	// Send the simulated browser document snapshot before waiting for cancellation.
 	b.le.Debug("WatchWebRuntimeStatus: sending snapshot")
 	status := &web_runtime.WebRuntimeStatus{
 		Snapshot: true,
@@ -147,9 +148,11 @@ func newMockWebPkg(id string) web_pkg.WebPkg {
 //
 //	go test -v -run TestSaucerInProcess -timeout 5m ./web/plugin/saucer/e2e/
 func TestSaucerInProcess(t *testing.T) {
+	// Bind the simulated runtime to the test's cancelable context.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Capture browser and runtime activity in the test log.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -205,6 +208,7 @@ func TestSaucerInProcess(t *testing.T) {
 	}
 	browserServer := srpc.NewServer(browserMux)
 
+	// Coordinate browser and runtime goroutines under one cancellation scope.
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	// Browser: accept streams from Go on the main connection.
@@ -273,6 +277,7 @@ func TestSaucerInProcess(t *testing.T) {
 		t.Fatalf("get web runtime: %v", err)
 	}
 
+	// Resolve the simulated browser document before completing the runtime check.
 	t.Log("waiting for web document...")
 	doc, err := rt.GetWebDocument(ctx, docID, true)
 	if err != nil {
@@ -280,6 +285,7 @@ func TestSaucerInProcess(t *testing.T) {
 	}
 	t.Logf("web document ready: id=%s", doc.GetWebDocumentUuid())
 
+	// Stop the simulated runtime after the readiness checks pass.
 	t.Log("all checks passed, shutting down")
 	cancel()
 
@@ -289,5 +295,6 @@ func TestSaucerInProcess(t *testing.T) {
 	fetchGoConn.Close()
 	fetchBrowserConn.Close()
 
+	// Wait for transport goroutines to release their pipe reads.
 	_ = eg.Wait()
 }

@@ -42,16 +42,20 @@ func TestMultiNodeDEX(
 	prepareBcCb PrepareBucketConfigFunc,
 	prepareTestbedCb PrepareTestbedFunc,
 ) {
+	// Bound the three-node exchange and its cleanup lifetime.
 	ctx, ctxCancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer ctxCancel()
 
+	// Scope storage operations to the exchange's cancellable sub-context.
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
+	// Configure debug logging shared by each testbed.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Build the available transforms and select gzip for stored blocks.
 	transformSet := transform_all.BuildFactorySet()
 	tconf, err := block_transform.NewConfig([]config.Config{
 		&transform_gzip.Config{},
@@ -60,6 +64,7 @@ func TestMultiNodeDEX(
 		t.Fatal(err.Error())
 	}
 
+	// Reserve state for the three participating nodes and their transports.
 	nnodes := 3
 	var testbeds []*testbed.Testbed
 	var bridges []*inproc.Inproc
@@ -127,6 +132,7 @@ func TestMultiNodeDEX(
 		}
 	}
 
+	// Dial each adjacent peer pair to establish the exchange links.
 	t.Log("executing inter-node dials")
 	for i := 0; i < nnodes-1; i++ {
 		t.Logf(
@@ -145,6 +151,7 @@ func TestMultiNodeDEX(
 		}
 	}
 
+	// Configure lookup and writeback behavior for the shared test bucket.
 	lookupConf := &lc.Config{
 		NotFoundBehavior:  lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
 		PutBlockBehavior:  lc.PutBlockBehavior_PutBlockBehavior_ALL,
@@ -197,6 +204,7 @@ func TestMultiNodeDEX(
 		}
 	}
 
+	// Apply the shared bucket configuration to each node.
 	for _, tbb := range testbeds {
 		// apply bucket config
 		_, _, bcRef, err := bus.ExecOneOff(
@@ -245,6 +253,7 @@ func TestMultiNodeDEX(
 		}
 	}
 
+	// Record the source reference before requesting it from another node.
 	t.Logf(
 		"placed block in first bucket with ref %s",
 		dataXferRef.MarshalString(),
@@ -278,6 +287,7 @@ func TestMultiNodeDEX(
 		rootCursor.Release()
 	}
 
+	// Confirm replication through the destination Volume's bucket API.
 	t.Log("data replicated successfully, checking")
 	{
 		targetVolID := testbeds[2].Volume.GetID()

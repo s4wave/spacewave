@@ -26,6 +26,7 @@ const (
 )
 
 func TestReconcileProcessConfigsClearsWhenStoreUnavailable(t *testing.T) {
+	// Seed the controller with a stale process configuration.
 	c := &Controller{
 		processConfigs: map[string]processConfig{
 			"stale-process": {typeID: "test/process"},
@@ -36,8 +37,10 @@ func TestReconcileProcessConfigsClearsWhenStoreUnavailable(t *testing.T) {
 	})
 	c.processes.SyncKeys([]string{"stale-process"}, false)
 
+	// Clear process configurations when their backing store is unavailable.
 	c.reconcileProcessConfigs(logrus.NewEntry(logrus.New()), nil)
 
+	// Verify reconciliation removes the stale key and stored process config.
 	if got := c.processes.GetKeys(); len(got) != 0 {
 		t.Fatalf("process keys after unavailable store = %v, want none", got)
 	}
@@ -47,6 +50,7 @@ func TestReconcileProcessConfigsClearsWhenStoreUnavailable(t *testing.T) {
 }
 
 func TestLookupObjectTypeWaitsForDesiredPluginRegistration(t *testing.T) {
+	// Start a testbed with enough time for the plugin registration lifecycle.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -84,10 +88,13 @@ func TestLookupObjectTypeWaitsForDesiredPluginRegistration(t *testing.T) {
 
 	// The manifest source serves nothing, so the plugin must resolve its
 	// Manifest from the Space World.
+	// Register a source that leaves the Space World as the manifest provider.
 	source, _, err := controllerbus_core.NewCoreBus(ctx, tb.Logger)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Wire the manifest source into the resolver and install the readiness loader.
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus, WithManifestSource(source)))
 	loader := newPluginReadinessLoadController(tb.Bus)
 	releaseLoader, err := tb.Bus.AddController(ctx, loader, nil)
@@ -107,6 +114,7 @@ func TestLookupObjectTypeWaitsForDesiredPluginRegistration(t *testing.T) {
 	}
 	defer spaceRef.Release()
 
+	// Wait for the approved plugin to begin loading and resolve its Manifest.
 	select {
 	case <-loader.loadStarted:
 	case <-ctx.Done():
@@ -124,6 +132,8 @@ func TestLookupObjectTypeWaitsForDesiredPluginRegistration(t *testing.T) {
 		ref        directive.Reference
 		err        error
 	}
+
+	// Start a typed lookup while the desired plugin is still registering.
 	lookupCtx := objecttype.WithEngineID(ctx, tb.EngineID)
 	lookupResultCh := make(chan lookupResult, 1)
 	go func() {
@@ -139,6 +149,7 @@ func TestLookupObjectTypeWaitsForDesiredPluginRegistration(t *testing.T) {
 	case <-loader.lookupObserved:
 	}
 
+	// Allow registration and wait for the typed lookup result.
 	close(loader.allowRegistration)
 	var result lookupResult
 	select {

@@ -26,6 +26,8 @@ func TestUnreadyChildTerminationError(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = stdout.Close() })
 			t.Cleanup(func() { _ = output.Close() })
+
+			// Launch a fixture process that waits for cleanup on its stdin pipe.
 			cmd := exec.Command(os.Args[0], "-test.run=^TestUnreadyChildProcess$", "-test.timeout=30s")
 			cmd.Env = append(os.Environ(), "SPACEWAVE_TEST_UNREADY_CHILD=child")
 			cmd.Stdout, cmd.Stderr = output, os.Stderr
@@ -34,6 +36,8 @@ func TestUnreadyChildTerminationError(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = stdin.Close() })
+
+			// Prepare and start the child with daemon process tracking enabled.
 			if err := prepareDaemonStart(cmd); err != nil {
 				t.Fatal(err)
 			}
@@ -41,6 +45,8 @@ func TestUnreadyChildTerminationError(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Retain the child operations and observe their cleanup ordering.
 			kill, killChild, detach := child.kill, child.killChild, child.detach
 			detached := false
 			joinedAtDetach := false
@@ -64,6 +70,8 @@ func TestUnreadyChildTerminationError(t *testing.T) {
 					}
 				}
 			})
+
+			// Wait for the child fixture to confirm that it started.
 			if err := output.Close(); err != nil {
 				t.Fatal(err)
 			}

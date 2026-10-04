@@ -16,6 +16,7 @@ import (
 
 // daemonTestRoot creates isolated state with a short Unix socket path.
 func daemonTestRoot(t *testing.T) string {
+	// Select the daemon test root and create its fallback directory.
 	t.Helper()
 	root := os.Getenv("SPACEWAVE_TEST_STATE_ROOT")
 	if root == "" {
@@ -24,6 +25,8 @@ func daemonTestRoot(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
+
+	// Allocate an isolated state directory and remove it after the test.
 	path, err := os.MkdirTemp(root, "sw")
 	if err != nil {
 		t.Fatal(err)
@@ -35,15 +38,20 @@ func daemonTestRoot(t *testing.T) string {
 // TestExplicitMissingSocketNeverStarts proves connect-only targets cannot launch
 // a process or create a writable state root.
 func TestExplicitMissingSocketNeverStarts(t *testing.T) {
+	// Configure a connect-only target and a starter that must remain unused.
 	root := daemonTestRoot(t)
 	state := filepath.Join(root, "uncreated")
 	connector := NewConnector(nil, func(context.Context, string) error {
 		t.Fatal("explicit socket started a daemon")
 		return nil
 	})
+
+	// Require the missing socket to fail without starting a daemon.
 	if _, err := connector.Connect(t.Context(), state, filepath.Join(root, "missing.sock")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("missing socket result: %v", err)
 	}
+
+	// Ensure the connect-only attempt did not create its state root.
 	if _, err := os.Stat(state); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("connect-only target created state: %v", err)
 	}
@@ -85,6 +93,7 @@ func TestProtocolFailureNeverStarts(t *testing.T) {
 	defer listener.Close()
 	served := make(chan error, 1)
 	go func() {
+		// Accept the incompatible client and return its protocol result.
 		conn, err := listener.Accept()
 		if err != nil {
 			served <- err

@@ -12,6 +12,7 @@ import (
 
 // TestAll tests all tests for a block store.
 func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration) error {
+	// Bound propagation waits after mutations to the block store.
 	waitAfterPut := func() {
 		if putDelay != 0 {
 			select {
@@ -21,6 +22,7 @@ func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration)
 		}
 	}
 
+	// Build a known BLAKE3 reference for new-block writes and lookups.
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
 	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
 	sampleBlockRef, err := block.BuildBlockRef(sampleBlockBody, samplePutOpts)
@@ -46,6 +48,7 @@ func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration)
 		return errors.Errorf("wrote %s but expected %s", wroteRef.MarshalString(), sampleBlockRef.MarshalString())
 	}
 
+	// Allow the first block write to propagate before testing a missing block.
 	waitAfterPut()
 
 	// Get a not-found block
@@ -89,6 +92,7 @@ func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration)
 		return errors.New("expected block to not have already existed")
 	}
 
+	// Wait for the forced block write to become visible before reading it.
 	waitAfterPut()
 
 	// Get the block back again
@@ -119,6 +123,7 @@ func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration)
 		return err
 	}
 
+	// Allow both deletions to propagate before checking block absence.
 	waitAfterPut()
 
 	// Check if the block exists

@@ -115,11 +115,13 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
+	// Bind execution watchers to the controller's lifecycle context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 	c.execWatchers.SetContext(ctx, true)
 	defer c.execWatchers.ClearContext()
 
+	// Start World reconciliation and collect its result alongside watch events.
 	errCh := make(chan error, 2)
 	loop, busEngine, ws := world_control.NewBusWatchLoop(
 		ctx,
@@ -134,6 +136,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 		errCh <- loop.Execute(ctx, ws)
 	}()
 
+	// Process reconciliation results, execution watches, and synchronization requests.
 	for {
 		select {
 		case <-ctx.Done():
@@ -148,7 +151,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 				return err
 			}
 		case <-c.syncExecutionsCh:
-			// submit transaction to synchronize executions
+			// Persist the execution-state snapshot in one World transaction.
 			c.le.Debug("updating pass execution state snapshots")
 			wtx, err := busEngine.NewTransaction(ctx, true)
 			if err != nil {
@@ -171,8 +174,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 // syncWatchExecStates starts/stop routines to watch execution states.
 // called by Execute
 func (c *Controller) syncWatchExecStates(ctx context.Context, execStates []*forge_pass.ExecState) error {
-	// build map of watchers that should be running
-	// skip any executions that are in a terminal state
+	// Build the watcher set from non-terminal execution states.
 	watchers := make(map[string]execWatcherKey, len(execStates))
 	for _, state := range execStates {
 		if state.GetExecutionState() == forge_execution.State_ExecutionState_COMPLETE {
@@ -182,6 +184,7 @@ func (c *Controller) syncWatchExecStates(ctx context.Context, execStates []*forg
 		watchers[state.GetObjectKey()] = newExecWatcherKey(state)
 	}
 
+	// Collect desired keys and reconcile the watcher set with current execution states.
 	keys := make([]execWatcherKey, 0, len(watchers))
 	for _, key := range watchers {
 		keys = append(keys, key)

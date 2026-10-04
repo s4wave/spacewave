@@ -192,6 +192,7 @@ func (i *Inode) Mkdir(
 	ctx context.Context,
 	req *fuse.MkdirRequest,
 ) (fs.Node, error) {
+	// Create the directory entry and capture its initial timestamp.
 	name := req.Name
 	ts := time.Now()
 	err := i.h.Mknod(
@@ -216,6 +217,7 @@ func (i *Inode) Mknod(
 	ctx context.Context,
 	req *fuse.MknodRequest,
 ) (fs.Node, error) {
+	// Resolve the requested node type before creating the entry.
 	name, mode := req.Name, req.Mode
 	nodType, err := unixfs.FileModeToNodeType(mode)
 	if err != nil {
@@ -223,6 +225,7 @@ func (i *Inode) Mknod(
 		return nil, UnixfsErrorToSyscall(err)
 	}
 
+	// Create the entry with its initial timestamp.
 	ts := time.Now()
 	err = i.h.Mknod(ctx, true, []string{name}, nodType, 0, ts)
 	if err != nil {
@@ -235,6 +238,7 @@ func (i *Inode) Mknod(
 
 // Symlink creates a new symbolic link in the receiver, which must be a directory.
 func (i *Inode) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node, error) {
+	// Convert the target path and create the symbolic link.
 	ts := time.Now()
 	linkName, targetPath := req.NewName, req.Target
 	tgtSplit, tgtAbsolute := unixfs.SplitPath(targetPath)
@@ -309,9 +313,11 @@ func (i *Inode) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 		i.rfs.logFilesystemError(err)
 		return UnixfsErrorToSyscall(err)
 	}
-	// release the handle to the node when done
+
+	// Release the lookup handle when the rename finishes.
 	defer mvNode.Release()
 
+	// Rename the source entry and preserve its requested timestamp.
 	ts := time.Now()
 	tgtNode := toDir.h
 	if err := mvNode.Rename(ctx, tgtNode, req.NewName, ts); err != nil {
@@ -319,13 +325,13 @@ func (i *Inode) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.N
 		return UnixfsErrorToSyscall(err)
 	}
 
-	// release old target location
+	// Release any cached inode at the destination.
 	oldDest, oldDestOk := toDir.children[req.NewName]
 	if oldDestOk {
 		oldDest.releaseRecursive()
 	}
 
-	// move the handle + children inodes to the destination.
+	// Move cached child inodes to the destination directory.
 	oldChild, oldChildOk := i.children[req.OldName]
 	if oldChildOk {
 		delete(i.children, req.OldName)
@@ -360,17 +366,20 @@ func (i *Inode) Setattr(
 	req *fuse.SetattrRequest,
 	resp *fuse.SetattrResponse,
 ) error {
+	// Read the current metadata before applying requested changes.
 	info, err := i.h.GetFileInfo(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Select the timestamp to use for every requested mutation.
 	setMtime := req.Valid.Mtime()
 	useMtime := time.Now()
 	if setMtime {
 		useMtime = req.Mtime
 	}
 
+	// Apply a size change only when the request includes one.
 	if req.Valid.Size() {
 		oldSize := info.Size()
 		setSize := req.Size
@@ -383,6 +392,7 @@ func (i *Inode) Setattr(
 		}
 	}
 
+	// Apply permissions only when the request includes a mode.
 	if req.Valid.Mode() {
 		oldType := info.Mode() & ofs.ModeType
 		setType := req.Mode & ofs.ModeType
@@ -404,6 +414,7 @@ func (i *Inode) Setattr(
 		}
 	}
 
+	// Persist the selected timestamp when requested or implied by the mode update.
 	if setMtime {
 		err := i.h.SetModTimestamp(ctx, useMtime)
 		if err != nil {

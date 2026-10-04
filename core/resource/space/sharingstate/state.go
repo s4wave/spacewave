@@ -317,15 +317,18 @@ func BuildParticipantInfo(
 	selfPeerID string,
 	presentation *ParticipantPresentation,
 ) []*ParticipantInfo {
+	// Return no rows until the SharedObject configuration is available.
 	if soState == nil || soState.GetConfig() == nil {
 		return nil
 	}
 
+	// Read the configured audience before allocating participant rows.
 	participants := soState.GetConfig().GetParticipants()
 	if len(participants) == 0 {
 		return nil
 	}
 
+	// Group each participant by account identity, falling back to its peer.
 	rows := make(map[string]*ParticipantInfo, len(participants))
 	keys := make([]string, 0, len(participants))
 	for _, participant := range participants {
@@ -367,14 +370,17 @@ func BuildParticipantInfo(
 		}
 	}
 
+	// Return no rows when the audience has no usable peer identities.
 	if len(keys) == 0 {
 		return nil
 	}
 
+	// Sort participant rows by their visible label.
 	slices.SortStableFunc(keys, func(a, b string) int {
 		return strings.Compare(participantSortLabel(rows[a]), participantSortLabel(rows[b]))
 	})
 
+	// Materialize the ordered participant rows for the caller.
 	out := make([]*ParticipantInfo, 0, len(keys))
 	for _, key := range keys {
 		out = append(out, rows[key])
@@ -383,6 +389,7 @@ func BuildParticipantInfo(
 }
 
 func participantSortLabel(info *ParticipantInfo) string {
+	// Select the participant's visible entity, account, or peer label.
 	if info == nil {
 		return ""
 	}

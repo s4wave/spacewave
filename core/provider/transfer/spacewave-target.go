@@ -39,6 +39,7 @@ func (t *SpacewaveTransferTarget) GetAccount() *provider_spacewave.ProviderAccou
 // GetBlockStore returns the block store ops for writing blocks to the target.
 // Creates the block store if it does not exist.
 func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
+	// Ensure the cloud account has a block-store bucket for the shared object.
 	blockStoreID := ref.GetBlockStoreId()
 	if _, err := t.account.CreateBlockStore(ctx, blockStoreID); err != nil &&
 		!errors.Is(err, bstore.ErrBlockStoreExists) &&
@@ -46,6 +47,7 @@ func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobjec
 		return nil, nil, err
 	}
 
+	// Retarget the block-store reference to the target account.
 	bsRef := &bstore.BlockStoreRef{
 		ProviderResourceRef: ref.GetProviderResourceRef().CloneVT(),
 	}
@@ -53,6 +55,7 @@ func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobjec
 	bsRef.ProviderResourceRef.ProviderId = t.providerID
 	bsRef.ProviderResourceRef.ProviderAccountId = t.accountID
 
+	// Mount the target block store and return its release function.
 	bs, rel, err := t.account.MountBlockStore(ctx, bsRef, nil)
 	if err != nil {
 		return nil, nil, err
@@ -63,6 +66,7 @@ func (t *SpacewaveTransferTarget) GetBlockStore(ctx context.Context, ref *sobjec
 // AddSharedObject creates a shared object on the cloud.
 // Only creates the container; state is written separately via WriteSharedObjectState.
 func (t *SpacewaveTransferTarget) AddSharedObject(ctx context.Context, ref *sobject.SharedObjectRef, meta *sobject.SharedObjectMeta) error {
+	// Create the cloud shared object, treating an existing object as complete.
 	soID := ref.GetProviderResourceRef().GetId()
 	cli := t.account.GetSessionClient()
 	err := cli.CreateSharedObject(ctx, soID, "", meta.GetBodyType(), "", "", meta.GetAccountPrivate())

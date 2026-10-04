@@ -46,8 +46,10 @@ func requireLookupWorldAndBuildSpaceOp[T any](t *testing.T, opTypeID string) {
 }
 
 func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
+	// Prepare the built-in Space lookup without a controller bus.
 	lookupOp := BuildSpaceLookupOp(nil, nil, "space/local/test")
 
+	// Resolve and type-check the built-in UnixFS initializer.
 	op, err := lookupOp(context.Background(), space_world_ops.InitUnixFSOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +58,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected InitUnixFSOp, got %T", op)
 	}
 
+	// Resolve and type-check the built-in Git initializer.
 	op, err = lookupOp(context.Background(), git_world.GitInitOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -64,6 +67,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected GitInitOp, got %T", op)
 	}
 
+	// Resolve and type-check the built-in Git worktree operation.
 	op, err = lookupOp(context.Background(), git_world.GitCreateWorktreeOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -72,6 +76,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected GitCreateWorktreeOp, got %T", op)
 	}
 
+	// Resolve and type-check the Git repository wizard.
 	op, err = lookupOp(context.Background(), s4wave_git.CreateGitRepoWizardOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -80,6 +85,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected CreateGitRepoWizardOp, got %T", op)
 	}
 
+	// Resolve and type-check the wizard object operation.
 	op, err = lookupOp(context.Background(), s4wave_wizard.CreateWizardObjectOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -88,6 +94,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected CreateWizardObjectOp, got %T", op)
 	}
 
+	// Resolve and type-check the computers dashboard operation.
 	op, err = lookupOp(context.Background(), s4wave_device.CreateComputersDashboardOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -96,6 +103,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected CreateComputersDashboardOp, got %T", op)
 	}
 
+	// Resolve and type-check the terminal operation.
 	op, err = lookupOp(context.Background(), s4wave_terminal.CreateTerminalOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +112,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected CreateTerminalOp, got %T", op)
 	}
 
+	// Resolve and type-check the chat demo initializer.
 	op, err = lookupOp(context.Background(), spacewave_chat.InitChatDemoOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -112,6 +121,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected InitChatDemoOp, got %T", op)
 	}
 
+	// Resolve and type-check the chat channel operation.
 	op, err = lookupOp(context.Background(), spacewave_chat.CreateChatChannelOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -120,6 +130,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected CreateChatChannelOp, got %T", op)
 	}
 
+	// Resolve and type-check the SSH host operation.
 	op, err = lookupOp(context.Background(), s4wave_sshhost.CreateSshHostOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -128,6 +139,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 		t.Fatalf("expected CreateSshHostOp, got %T", op)
 	}
 
+	// Resolve and type-check the key-value root operation.
 	op, err = lookupOp(context.Background(), s4wave_kv_world.KvSetRootOpId)
 	if err != nil {
 		t.Fatal(err)
@@ -138,13 +150,18 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 }
 
 func TestBuildSpaceLookupOpAndLookupWorldOpResolveForgeQuickstartOps(t *testing.T) {
+	// Resolve identity and dashboard operations through both lookup APIs.
 	requireLookupWorldAndBuildSpaceOp[*identity_world.KeypairUpdateOp](t, identity_world.KeypairUpdateOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_dashboard.CreateForgeDashboardOp](t, forge_dashboard.CreateForgeDashboardOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_dashboard.LinkForgeDashboardOp](t, forge_dashboard.LinkForgeDashboardOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_dashboard.InitForgeQuickstartOp](t, forge_dashboard.InitForgeQuickstartOpId)
+
+	// Resolve Forge job and task creation operations through both lookup APIs.
 	requireLookupWorldAndBuildSpaceOp[*forge_job_ops.ForgeJobCreateOp](t, forge_job_ops.ForgeJobCreateOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_task_ops.ForgeTaskCreateOp](t, forge_task_ops.ForgeTaskCreateOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_cluster.ClusterCreateOp](t, forge_cluster.ClusterCreateOpId)
+
+	// Resolve cluster assignment and transaction operations through both lookup APIs.
 	requireLookupWorldAndBuildSpaceOp[*forge_cluster.ClusterAssignJobOp](t, forge_cluster.ClusterAssignJobOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_cluster.ClusterAssignWorkerOp](t, forge_cluster.ClusterAssignWorkerOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_cluster.ClusterAssignTaskOp](t, forge_cluster.ClusterAssignTaskOpId)

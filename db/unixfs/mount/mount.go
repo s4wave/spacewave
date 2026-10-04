@@ -53,6 +53,7 @@ func ResolveMountControllerConfig(
 	b bus.Bus,
 	ctrlConf *configset_proto.ControllerConfig,
 ) (MountControllerConfig, error) {
+	// Select the default mount config when none was supplied.
 	if ctrlConf.GetId() == "" {
 		ctrlConf = DefaultMountControllerConfig.CloneVT()
 	}
@@ -130,11 +131,13 @@ func BuildMountControllerWithConfig(
 
 // ApplyBoolVolumeAttribute applies a boolean volume attribute to a target.
 func ApplyBoolVolumeAttribute(attrs map[string]string, tgt *bool, attrName string) error {
+	// Read the optional value and leave unset or empty attributes unchanged.
 	attrValue, ok := attrs[attrName]
 	if !ok || len(attrValue) == 0 || tgt == nil {
 		return nil
 	}
 
+	// Parse the configured string into the target boolean.
 	var err error
 	*tgt, err = cast.ToBoolE(attrValue)
 	if err != nil {

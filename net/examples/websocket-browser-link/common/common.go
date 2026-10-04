@@ -30,16 +30,19 @@ func init() {
 // BuildCommonBus builds a common bus.
 // Also returns a cancel function.
 func BuildCommonBus(ctx context.Context) (bus.Bus, *static.Resolver, crypto.PrivKey, error) {
+	// Create the local peer identity for the example.
 	p, err := peer.NewPeer(nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	// Load the peer private key from its controller.
 	peerPrivKey, err := p.GetPrivKey(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	// Prepare the peer identity and serialized private key.
 	peerID := p.GetPeerID()
 	peerPrivKeyPem, err := keypem.MarshalPrivKeyPem(peerPrivKey)
 	if err != nil {
@@ -55,6 +58,7 @@ func BuildCommonBus(ctx context.Context) (bus.Bus, *static.Resolver, crypto.Priv
 	sr.AddFactory(link_holdopen_controller.NewFactory(b))
 	sr.AddFactory(floodsub_controller.NewFactory(b))
 
+	// Log the peer identity and register its controller.
 	le = le.WithField("peer-id", peerID.String())
 	le.Debug("constructing peer controller")
 	_, _, err = b.AddDirective(

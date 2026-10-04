@@ -18,7 +18,9 @@ import (
 //
 // The FS should be clean and point to a temporary directory.
 func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
+	// Use a stable timestamp for filesystem operations.
 	ts := time.Date(2023, time.January, 1, 12, 0, 0, 0, time.UTC)
+
 	// create hello-dir-1
 	err := fsHandle.Mknod(ctx, true, []string{"hello-dir-1"}, unixfs.NewFSCursorNodeType_Dir(), 0, ts)
 	if err != nil {
@@ -61,6 +63,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 
 	// read data
 	checkReadFromFhandle := func() error {
+		// Read the file from its beginning.
 		buf := make([]byte, 1500)
 		nread, err := fhandle.ReadAt(ctx, 0, buf)
 		if err == io.EOF && nread != 0 {
@@ -100,6 +103,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 		return err
 	}
 
+	// Verify the stored modification time when supported.
 	getTs, err := fhandle.GetModTimestamp(ctx)
 	if err == nil && !getTs.Equal(setTs) && !skipModTimestamp {
 		err = errors.Errorf("failed to update ts: expected %s but got %s", setTs.String(), getTs.String())
@@ -210,6 +214,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 		return err
 	}
 
+	// Rename the directory a second time to check consecutive rename handling.
 	if !skipRename {
 		err = dirHandle.Rename(ctx, fsHandle, "renamed-3", ts)
 		if err != nil {
@@ -220,6 +225,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 	// traverse to subdir
 	fsHandle = dirHandle
 
+	// Prepare names for the file creation and swap checks.
 	nfilenames := 100
 	fileNames := make([]string, nfilenames)
 	for i := range fileNames {
@@ -242,12 +248,15 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 		fsHandles[i] = fileHandle
 	}
 
+	// swap exchanges two file names through a temporary name.
 	swap := func(i, j int) error {
+		// Save both paths before changing either one.
 		filei, filej := fileNames[i], fileNames[j]
 		filek := "file-tmp"
 
 		// XXX: is it possible to swap files without a tmp file?
 
+		// Rename each handle in turn to exchange the two paths.
 		fhi, fhj := fsHandles[i], fsHandles[j]
 		if err := fhi.Rename(ctx, fsHandle, filek, ts); err != nil {
 			return err
@@ -259,6 +268,7 @@ func TestUnixFS(ctx context.Context, fsHandle *unixfs.FSHandle) error {
 			return err
 		}
 
+		// Keep the in-memory names aligned with the filesystem.
 		fileNames[i], fileNames[j] = filej, filei
 		return nil
 	}

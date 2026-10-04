@@ -119,20 +119,27 @@ func (op ObjectStoreOp) Validate() error {
 
 // Validate validates the request.
 func (r *ObjectStoreOpRequest) Validate() error {
+	// Validate the operation before applying its request-specific requirements.
 	if err := r.GetOp().Validate(); err != nil {
 		return err
 	}
+
+	// Require the object-store name and a key for non-list operations.
 	if r.GetStoreName() == "" {
 		return errors.New("store name must be set")
 	}
 	if r.GetKey() == "" && r.GetOp() != ObjectStoreOp_ObjectStoreOp_LIST_KEYS {
 		return errors.New("key must be set")
 	}
+
+	// Require a volume scope for object-store writes and deletes.
 	if r.GetVolumeId() == "" &&
 		(r.GetOp() == ObjectStoreOp_ObjectStoreOp_DELETE_KEY ||
 			r.GetOp() == ObjectStoreOp_ObjectStoreOp_PUT_KEY) {
 		return errors.New("volume id must be set")
 	}
+
+	// Reject empty payloads for object-store writes.
 	switch r.GetOp() {
 	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
 		if len(r.GetData()) == 0 {

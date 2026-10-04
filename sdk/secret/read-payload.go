@@ -31,6 +31,7 @@ func ReadSecretPayloadForPeer(
 	expectedKind string,
 	readerPeerID string,
 ) (*SecretPayload, error) {
+	// Validate the caller identity and requested Secret before granting access.
 	if readerPeerID == "" {
 		return nil, peer.ErrEmptyPeerID
 	}
@@ -52,6 +53,7 @@ func ReadSecretPayloadForPeer(
 
 // BeginReadPayload starts a peer-authenticated Secret payload read.
 func (r *SecretResource) BeginReadPayload(ctx context.Context, req *BeginReadPayloadRequest) (*BeginReadPayloadResponse, error) {
+	// Validate the peer identity before reading Secret state.
 	readerPeerID := req.GetReaderPeerId()
 	if readerPeerID == "" {
 		return nil, peer.ErrEmptyPeerID
@@ -60,6 +62,7 @@ func (r *SecretResource) BeginReadPayload(ctx context.Context, req *BeginReadPay
 		return nil, err
 	}
 
+	// Read the current Secret and verify its requested kind and grant.
 	secret, err := r.readSecret(ctx)
 	if err != nil {
 		return nil, err
@@ -71,6 +74,7 @@ func (r *SecretResource) BeginReadPayload(ctx context.Context, req *BeginReadPay
 		return nil, err
 	}
 
+	// Issue a nonce-bound challenge for this Secret read.
 	nonce := make([]byte, 32)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
@@ -91,6 +95,7 @@ func (r *SecretResource) BeginReadPayload(ctx context.Context, req *BeginReadPay
 		return nil, err
 	}
 
+	// Retain the challenge until it expires or the peer consumes it.
 	r.challengeMu.Lock()
 	if r.challenges == nil {
 		r.challenges = make(map[string]*payloadReadChallenge)
@@ -117,10 +122,13 @@ func (r *SecretResource) BeginReadPayload(ctx context.Context, req *BeginReadPay
 
 // ReadPayload completes a peer-authenticated Secret payload read.
 func (r *SecretResource) ReadPayload(ctx context.Context, req *ReadPayloadRequest) (*ReadPayloadResponse, error) {
+	// Consume the challenge and verify the reader's signature.
 	entry, err := r.takePayloadReadChallenge(req.GetChallengeId())
 	if err != nil {
 		return nil, err
 	}
+
+	// Resolve the granted reader's public key from its peer ID.
 	readerID, err := peer.IDB58Decode(entry.challenge.GetReaderPeerId())
 	if err != nil {
 		return nil, err
@@ -129,6 +137,8 @@ func (r *SecretResource) ReadPayload(ctx context.Context, req *ReadPayloadReques
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the submitted signature to match the reader identity.
 	sig := req.GetSignature()
 	if sig == nil {
 		return nil, peer.ErrSignatureInvalid
@@ -138,6 +148,8 @@ func (r *SecretResource) ReadPayload(ctx context.Context, req *ReadPayloadReques
 	} else if sigPub != nil && !readerID.MatchesPublicKey(sigPub) {
 		return nil, peer.ErrSignatureInvalid
 	}
+
+	// Verify the challenge signature before reading Secret state.
 	ok, err := sig.VerifyWithPublic(ReadPayloadChallengeSignatureContext, readerPub, entry.data)
 	if err != nil {
 		return nil, err
@@ -146,6 +158,7 @@ func (r *SecretResource) ReadPayload(ctx context.Context, req *ReadPayloadReques
 		return nil, peer.ErrSignatureInvalid
 	}
 
+	// Recheck current Secret state and reader access before returning its payload.
 	secret, err := r.readSecret(ctx)
 	if err != nil {
 		return nil, err
@@ -168,6 +181,7 @@ func (r *SecretResource) ReadPayload(ctx context.Context, req *ReadPayloadReques
 }
 
 func (r *SecretResource) takePayloadReadChallenge(challengeID string) (*payloadReadChallenge, error) {
+	// Reject empty IDs before looking up a one-time read challenge.
 	if challengeID == "" {
 		return nil, ErrReadChallengeNotFound
 	}

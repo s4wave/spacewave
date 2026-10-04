@@ -25,6 +25,7 @@ func CheckStorageStats(ctx context.Context, vol volume.Volume) error {
 // CheckStorageStatsNonZero verifies GetStorageStats returns non-zero
 // TotalBytes and BlockCount. Call after writing data to the volume.
 func CheckStorageStatsNonZero(ctx context.Context, vol volume.Volume) error {
+	// Read volume statistics after the caller has written data.
 	stats, err := vol.GetStorageStats(ctx)
 	if err != nil {
 		return err

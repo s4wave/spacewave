@@ -31,6 +31,7 @@ func wrapChecksum(data []byte) []byte {
 }
 
 func unwrapChecksum(data []byte) ([]byte, bool) {
+	// Reject payloads too short to hold a value and its checksum.
 	if len(data) < 9 {
 		return nil, false
 	}
@@ -48,6 +49,7 @@ func EncodePackedMessage(message []byte) string {
 
 // DecodePackedMessage decodes the given ciphertext.
 func DecodePackedMessage(message string) ([]byte, bool) {
+	// Decode the URL-safe base64 message before verifying its checksum.
 	out, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(message))
 	if err != nil {
 		return nil, false

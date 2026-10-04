@@ -30,16 +30,19 @@ var (
 )
 
 func main() {
+	// Prepare the application context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Configure the command-line application.
 	app := cli.NewApp()
 	app.Name = "webrtc-backend"
 	app.Usage = "Backend server that forwards HTTP requests from WebRTC to local service"
 	app.HideHelpCommand = true
 
+	// Expose the signaling and forwarding settings as flags.
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "signaling-server",
@@ -71,10 +74,12 @@ func main() {
 		},
 	}
 
+	// Start the backend when the command runs.
 	app.Action = func(c *cli.Context) error {
 		return run(ctx, le)
 	}
 
+	// Run the command and report startup failures.
 	if err := app.Run(os.Args); err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
@@ -106,6 +111,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 		return err
 	}
 
+	// Record the identity used by the transport controllers.
 	localPeerID := localPeer.GetPeerID()
 	localPeerIDStr := localPeerID.String()
 	le.Infof("backend node starting with peer id: %v", localPeerIDStr)
@@ -210,6 +216,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	}
 	defer forwardRef.Release()
 
+	// Report readiness after every controller has started.
 	le.Infof("backend node is ready - peers can connect via WebRTC")
 	le.Infof("peer ID: %s", localPeerIDStr)
 

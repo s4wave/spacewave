@@ -14,6 +14,7 @@ import (
 // serialized from bldr.star, so the running CLI default matches the build
 // graph.
 func TestConfigSetProviderLocalSignaling(t *testing.T) {
+	// Load the compiled configset and locate its provider-local entry.
 	set := readCompiledConfigSet(t)
 	entry, ok := set.GetConfigs()["provider-local"]
 	if !ok {
@@ -23,6 +24,8 @@ func TestConfigSetProviderLocalSignaling(t *testing.T) {
 	if err := cfg.UnmarshalJSON(entry.GetConfig()); err != nil {
 		t.Fatalf("decode provider-local config: %v", err)
 	}
+
+	// Validate the provider-local signaling URL serialized from the cloud endpoint.
 	// PRODUCTION_CLOUD_API_ENDPOINT in bldr.star.
 	if got := cfg.GetSignalingUrl(); got != "https://spacewave.app" {
 		t.Fatalf("provider-local signalingUrl = %q, want https://spacewave.app", got)
@@ -34,6 +37,7 @@ func TestConfigSetProviderLocalSignaling(t *testing.T) {
 
 // TestConfigSetAppPlugins checks the declaration consumed by the actual CLI.
 func TestConfigSetAppPlugins(t *testing.T) {
+	// Load the compiled configset and decode the root resource configuration.
 	set := readCompiledConfigSet(t)
 	entry, ok := set.GetConfigs()["root-resource"]
 	if !ok {
@@ -50,11 +54,16 @@ func TestConfigSetAppPlugins(t *testing.T) {
 
 // readCompiledConfigSet decodes the configuration embedded in the CLI.
 func readCompiledConfigSet(t *testing.T) *configset_proto.ConfigSet {
+	// Attribute embedded config failures to the test that requests the set.
 	t.Helper()
+
+	// Read the compiled configset bytes from the embedded filesystem.
 	data, err := configSetFS.ReadFile("configset.bin")
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Decode the compiled bytes into a ConfigSet record.
 	set := &configset_proto.ConfigSet{}
 	if err := set.UnmarshalVT(data); err != nil {
 		t.Fatalf("decode configset.bin: %v", err)

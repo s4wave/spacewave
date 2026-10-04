@@ -31,15 +31,18 @@ func TestObjectStore(
 	ktx store.Store,
 	cbs ...TestObjectStoreFn,
 ) error {
+	// Create a cancellable context for store operations.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Mount the object store and retain its release function.
 	obj, relObj, err := ktx.AccessObjectStore(ctx, "test-store-2", ctxCancel)
 	if err != nil {
 		return err
 	}
 	defer relObj()
 
+	// Apply optional wrappers before running store tests.
 	for _, cb := range cbs {
 		nextStore, err := cb(obj)
 		if err != nil {
@@ -50,10 +53,12 @@ func TestObjectStore(
 		}
 	}
 
+	// Run the key-value transaction test suite against the store.
 	if err := kvtx_kvtest.TestAll(ctx, obj); err != nil {
 		return err
 	}
 
+	// Delete the test store after its operations complete.
 	if err := ktx.DeleteObjectStore(ctx, "test-store-2"); err != nil {
 		return err
 	}

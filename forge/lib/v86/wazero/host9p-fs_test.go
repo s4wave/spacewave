@@ -8,6 +8,7 @@ import (
 // TestHost9PFSHandleRejectsShortDeclaredSize checks that a frame declaring a
 // size below the 9P header gets an EIO reply instead of a panic.
 func TestHost9PFSHandleRejectsShortDeclaredSize(t *testing.T) {
+	// Require a malformed short 9P frame to receive a tagged EIO reply.
 	req := []byte{3, 0, 0, 0, 100, 9, 0}
 	reply := (&Host9PFS{}).Handle(req)
 	if len(reply) < 7 {

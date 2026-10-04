@@ -29,6 +29,7 @@ func (r *AccountResource) WatchEntityKeypairs(
 	req *s4wave_account.WatchEntityKeypairsRequest,
 	strm s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsStream,
 ) error {
+	// Select the local settings watch or prepare the cloud account and key store.
 	if r.localAccount != nil {
 		return r.watchLocalEntityKeypairs(strm)
 	}
@@ -44,6 +45,7 @@ func (r *AccountResource) WatchEntityKeypairs(
 		unlockedPeers: store.GetUnlockedPeerIDs(),
 	}
 
+	// Forward account and key-store changes into the combined watch state.
 	bridgeCtx, cancelBridges := context.WithCancel(ctx)
 	defer cancelBridges()
 	go state.bridgeAccount(bridgeCtx, acc)
@@ -177,6 +179,7 @@ func (r *AccountResource) UnlockEntityKeypair(
 	ctx context.Context,
 	req *s4wave_account.UnlockEntityKeypairRequest,
 ) (*s4wave_account.UnlockEntityKeypairResponse, error) {
+	// Resolve the credential and unlock the matching entity keypair.
 	privKey, resolvedPeerID, err := r.ResolveEntityKey(ctx, req.GetCredential())
 	if err != nil {
 		return nil, err
@@ -199,6 +202,7 @@ func (r *AccountResource) SignWithEntityKeypair(
 	ctx context.Context,
 	req *s4wave_account.SignWithEntityKeypairRequest,
 ) (*s4wave_account.SignWithEntityKeypairResponse, error) {
+	// Validate the requested peer and payload before signing.
 	pidStr := req.GetPeerId()
 	if pidStr == "" {
 		return nil, errors.New("peer_id is required")
@@ -206,6 +210,8 @@ func (r *AccountResource) SignWithEntityKeypair(
 	if len(req.GetPayload()) == 0 {
 		return nil, errors.New("payload is required")
 	}
+
+	// Decode the peer ID and access the account entity key store.
 	pid, err := peer.IDB58Decode(pidStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode peer ID")
@@ -229,6 +235,7 @@ func (r *AccountResource) LockEntityKeypair(
 	ctx context.Context,
 	req *s4wave_account.LockEntityKeypairRequest,
 ) (*s4wave_account.LockEntityKeypairResponse, error) {
+	// Decode the requested peer and lock its entity keypair.
 	pidStr := req.GetPeerId()
 	if pidStr == "" {
 		return nil, errors.New("peer_id is required")
@@ -274,10 +281,13 @@ func (r *AccountResource) resolveOrSignWithStore(
 	method, reqPath string,
 	actionBody []byte,
 ) ([]byte, []*api.EntitySignature, error) {
+	// Encode the action envelope before selecting its signing credentials.
 	envelope, err := r.buildMultiSigEnvelope(kind, method, reqPath, actionBody)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Sign with the explicit credential or with every unlocked keypair.
 	if cred != nil {
 		entityPriv, entityPeerID, err := r.ResolveEntityKey(ctx, cred)
 		if err != nil {

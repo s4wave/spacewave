@@ -30,6 +30,7 @@ func main() {
 	bldrSrcPath := "../../"
 	srcDir := ".bldr/src"
 
+	// Locate generated module files and dependencies beneath the Bldr source tree.
 	gomodPath := filepath.Join(srcDir, "go.mod")
 	gosumPath := filepath.Join(srcDir, "go.sum")
 	vendorPath := filepath.Join(srcDir, "vendor")
@@ -40,6 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Announce the module comparison before reporting its results.
 	fmt.Println("=== go.mod Compare Optimization Test ===")
 	fmt.Println()
 
@@ -57,6 +59,7 @@ func main() {
 	// For this test, we re-parse the existing go.mod and re-generate.
 	t0 := time.Now()
 
+	// Parse the existing go.mod before regenerating its deterministic form.
 	modFile, err := modfile.Parse(gomodPath, existingGoMod, nil)
 	if err != nil {
 		fmt.Printf("ERROR parsing go.mod: %v\n", err)
@@ -78,6 +81,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Measure how long module cleanup and formatting took.
 	t1 := time.Now()
 	fmt.Printf("go.mod generation time: %v\n", t1.Sub(t0))
 	fmt.Println()
@@ -87,6 +91,7 @@ func main() {
 	fmt.Printf("Generated go.mod: %d bytes\n", len(regenerated))
 	fmt.Printf("Match existing:   %v\n", identical)
 
+	// Show changed module lines when regeneration differs from the saved file.
 	if !identical {
 		fmt.Println()
 		fmt.Println("DIFF (existing vs regenerated):")

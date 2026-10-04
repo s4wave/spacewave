@@ -28,6 +28,7 @@ type IndexData struct {
 
 // String returns the JSON string representation of ImportMap
 func (m ImportMap) String() string {
+	// Build a deterministic import map by sorting its keys before encoding.
 	var a fastjson.Arena
 	obj := a.NewObject()
 	imports := a.NewObject()
@@ -36,6 +37,8 @@ func (m ImportMap) String() string {
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
+
+	// Populate the import object in sorted order and marshal it as JSON.
 	for _, key := range keys {
 		imports.Set(key, a.NewString(m.Imports[key]))
 	}
@@ -45,15 +48,20 @@ func (m ImportMap) String() string {
 
 // RenderIndexHTML renders the embedded browser index shell with the provided data.
 func RenderIndexHTML(data IndexData) (string, error) {
+	// Define the template markers that receive caller-provided index data.
 	const (
 		// #nosec G101 -- These are Go template markers, not credentials.
 		importMapToken = "{{ .ImportMap.String }}"
 		// #nosec G101 -- This is a Go template marker, not a credential.
 		entrypointToken = "{{ .EntrypointPath }}"
 	)
+
+	// Require both template markers before rendering the embedded index.
 	if !strings.Contains(indexHTML, importMapToken) || !strings.Contains(indexHTML, entrypointToken) {
 		return "", errors.New("index HTML template missing render tokens")
 	}
+
+	// Escape embedded JSON for script content and the entrypoint for HTML.
 	rendered := strings.ReplaceAll(indexHTML, importMapToken, escapeScriptJSON(data.ImportMap.String()))
 	rendered = strings.ReplaceAll(rendered, entrypointToken, html.EscapeString(data.EntrypointPath))
 	return rendered, nil

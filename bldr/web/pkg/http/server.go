@@ -33,6 +33,7 @@ func NewServer(le *logrus.Entry, b bus.Bus, returnIfIdle bool) *Server {
 
 // ServeWebModuleHTTP serves an http request with the package path (e.x. react/index.js).
 func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req *http.Request) {
+	// Record the requested package path before serving its contents.
 	s.le.
 		WithField("pkg-path", pkgPath).
 		Debug("forwarding pkg request")
@@ -43,6 +44,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 		return
 	}
 
+	// Look up the Web Package and retain its reference through the response.
 	webPkg, _, webPkgRef, err := web_pkg.ExLookupWebPkg(ctx, s.b, s.returnIfIdle, webPkgID)
 	if err != nil {
 		if err != context.Canceled {
@@ -55,11 +57,13 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 		defer webPkgRef.Release()
 	}
 
+	// Return a not-found response when the Web Package lookup is idle.
 	if webPkg == nil {
 		http.Error(rw, "web pkg not found: "+webPkgID, http.StatusNotFound)
 		return
 	}
 
+	// Acquire the Web Package filesystem and release it after serving.
 	fsHandle, err := webPkg.GetWebPkgFsHandle(ctx)
 	if err != nil {
 		if err != context.Canceled {
@@ -70,6 +74,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 	}
 	defer fsHandle.Release()
 
+	// Build the HTTP filesystem adapter over the acquired UnixFS handle.
 	fs, err := unixfs_http.NewFileSystem(ctx, fsHandle, "")
 	if err != nil {
 		if err != context.Canceled {
@@ -79,6 +84,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 		return
 	}
 
+	// Serve the requested package asset from its UnixFS filesystem.
 	req.URL.Path = "/" + webPkgPath
 	bifrost_http.NewEncodedAssetFileServer(fs).ServeHTTP(rw, req)
 }

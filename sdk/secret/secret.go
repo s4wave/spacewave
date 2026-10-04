@@ -139,6 +139,7 @@ func (r *SecretResource) WatchState(
 	_ *WatchStateRequest,
 	strm SRPCSecretResourceService_WatchStateStream,
 ) error {
+	// Read the Secret record served by this state watch.
 	ctx := strm.Context()
 	secret, err := r.readSecret(ctx)
 	if err != nil {
@@ -148,12 +149,14 @@ func (r *SecretResource) WatchState(
 		return ErrMissingSecretRef
 	}
 
+	// Mount the nested SharedObject for the lifetime of the watch.
 	so, soRef, err := sobject.ExMountSharedObject(ctx, r.b, secret.GetRef(), false, nil)
 	if err != nil {
 		return err
 	}
 	defer soRef.Release()
 
+	// Subscribe to the nested SharedObject's changing state.
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		return err
@@ -288,6 +291,7 @@ func StoreSecretPayload(ctx context.Context, b bus.Bus, ref *sobject.SharedObjec
 
 // ReadSecretPayload reads the nested SharedObject payload for a granted caller.
 func ReadSecretPayload(ctx context.Context, b bus.Bus, secret *Secret) (*SecretPayload, error) {
+	// Mount the granted Secret payload and release its SharedObject reference.
 	if secret == nil || secret.GetRef() == nil {
 		return nil, ErrMissingSecretRef
 	}
@@ -297,6 +301,7 @@ func ReadSecretPayload(ctx context.Context, b bus.Bus, secret *Secret) (*SecretP
 	}
 	defer soRef.Release()
 
+	// Read the nested object's current payload snapshot.
 	snap, err := so.GetSharedObjectState(ctx)
 	if err != nil {
 		return nil, err
@@ -388,12 +393,14 @@ func RemoveSecretParticipant(
 	targetPeerIDStr string,
 	revInfo *sobject.SORevocationInfo,
 ) (bool, error) {
+	// Mount the invite host before revoking the peer's nested access.
 	so, soRef, err := mountSecretInviteHost(ctx, b, secret)
 	if err != nil {
 		return false, err
 	}
 	defer soRef()
 
+	// Revoke the peer's grant through the nested invite host.
 	ih := so.(sobject.InviteHost)
 	return sobject.RemoveSOParticipant(
 		ctx,
@@ -430,6 +437,7 @@ func (p *SecretPayload) UnmarshalBlock(data []byte) error {
 }
 
 func (r *SecretResource) readSecret(ctx context.Context) (*Secret, error) {
+	// Read the parent World object and release its state after decoding.
 	objState, found, err := r.ws.GetObject(ctx, r.objKey)
 	defer world.ReleaseObjectState(objState)
 	if err != nil {
@@ -438,6 +446,8 @@ func (r *SecretResource) readSecret(ctx context.Context) (*Secret, error) {
 	if !found {
 		return nil, world.ErrObjectNotFound
 	}
+
+	// Decode the Secret root from the retained object state.
 	var secret *Secret
 	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 		var uerr error
@@ -459,6 +469,7 @@ func buildSecretStateFromSnapshot(
 	so sobject.SharedObject,
 	snap sobject.SharedObjectStateSnapshot,
 ) *SecretState {
+	// Build the browser-safe Secret status from the snapshot.
 	state := &SecretState{
 		Secret: secret.CloneVT(),
 		GrantStatus: &SecretGrantStatus{
@@ -514,6 +525,7 @@ func mountSecretInviteHost(
 	b bus.Bus,
 	secret *Secret,
 ) (sobject.SharedObject, func(), error) {
+	// Require the Secret to reference its nested SharedObject.
 	if secret == nil || secret.GetRef() == nil {
 		return nil, nil, ErrMissingSecretRef
 	}

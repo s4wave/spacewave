@@ -27,15 +27,19 @@ type LayoutServer struct {
 
 // NewLayoutServer creates a new LayoutServer.
 func NewLayoutServer(le *logrus.Entry) *LayoutServer {
+	// Create the server-side layout state.
 	layoutStateCtr := ccontainer.NewCContainer[*s4wave_layout.LayoutModel](nil)
 
+	// Bind frontend event handlers to the layout server.
 	s := &LayoutServer{
 		le:             le,
 		layoutStateCtr: layoutStateCtr,
 	}
 
+	// Register the layout resource on a new RPC mux.
 	mux := srpc.NewMux()
 
+	// Connect layout updates and tab navigation to the server callbacks.
 	layoutResource := resource_layout.NewLayoutResource(
 		layoutStateCtr,
 		s.handleSetLayout,
@@ -43,6 +47,7 @@ func NewLayoutServer(le *logrus.Entry) *LayoutServer {
 	)
 	_ = s4wave_layout.SRPCRegisterLayoutHost(mux, layoutResource)
 
+	// Expose the layout RPC surface over the browser test server.
 	s.server = NewServer(le, mux)
 
 	return s

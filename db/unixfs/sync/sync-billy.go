@@ -458,6 +458,7 @@ func writeKind(outStatErr error) ChangeKind {
 
 // listBillyFiles lists the non-directory paths at or under a destination entry.
 func listBillyFiles(bfs BillyFS, name string, entry fs.DirEntry) ([]string, error) {
+	// Return a file directly or enumerate descendants for removal reporting.
 	if !entry.IsDir() {
 		return []string{name}, nil
 	}

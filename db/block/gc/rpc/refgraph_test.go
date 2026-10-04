@@ -52,6 +52,7 @@ func (r *observedRefGraph) ApplyRefBatch(
 	ctx context.Context,
 	adds, removes []block_gc.RefEdge,
 ) error {
+	// Record the batch before forwarding it to the wrapped graph.
 	r.mu.Lock()
 	r.applyCalls++
 	r.adds = slices.Clone(adds)
@@ -61,6 +62,7 @@ func (r *observedRefGraph) ApplyRefBatch(
 }
 
 func (r *observedRefGraph) reset() {
+	// Clear the recorded calls and edges between assertions.
 	r.mu.Lock()
 	r.applyCalls = 0
 	r.individualCalls = 0
@@ -86,9 +88,11 @@ func newRPCRefGraphTestbed(
 	t *testing.T,
 	wrapOwner func(block_gc.RefGraphOps) block_gc.RefGraphOps,
 ) *rpcRefGraphTestbed {
+	// Prepare a fresh real graph and its SRPC testbed.
 	t.Helper()
 	ctx := context.Background()
 
+	// Open a graph over an in-memory store and release it with the test.
 	store := store_kvtx_inmem.NewStore()
 	rg, err := block_gc.NewRefGraph(ctx, store, []byte("gc/"))
 	if err != nil {
@@ -96,6 +100,7 @@ func newRPCRefGraphTestbed(
 	}
 	t.Cleanup(func() { rg.Close() })
 
+	// Optionally wrap the graph owner before recording server calls.
 	var owner block_gc.RefGraphOps = rg
 	if wrapOwner != nil {
 		owner = wrapOwner(owner)
@@ -105,6 +110,8 @@ func newRPCRefGraphTestbed(
 	if err := block_gc_rpc.SRPCRegisterRefGraph(mux, block_gc_rpc_server.NewRefGraph(observed)); err != nil {
 		t.Fatal(err)
 	}
+
+	// Connect the registered service to an in-process RPC client.
 	server := srpc.NewServer(mux)
 	openStream := srpc.NewServerPipe(server)
 	client := srpc.NewClient(openStream)
@@ -115,6 +122,7 @@ func newRPCRefGraphTestbed(
 }
 
 func testBlockRef(t *testing.T, data string) *block.BlockRef {
+	// Hash test data into a block reference.
 	t.Helper()
 	ht := hash.HashType_HashType_BLAKE3
 	h, err := hash.Sum(ht, []byte(data))
@@ -126,6 +134,7 @@ func testBlockRef(t *testing.T, data string) *block.BlockRef {
 
 // TestRPCRefGraph tests the RefGraph RPC client/server end to end.
 func TestRPCRefGraph(t *testing.T) {
+	// Exercise graph operations through the in-process SRPC client.
 	ctx := context.Background()
 	rg := newTestRPCRefGraph(t)
 
@@ -198,6 +207,8 @@ func TestRPCRefGraph(t *testing.T) {
 	if err := rg.AddRef(ctx, "n", "q"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Remove every edge owned by the node and capture its targets.
 	targets, err := rg.RemoveNodeRefs(ctx, "n", false)
 	if err != nil {
 		t.Fatal(err)
@@ -207,6 +218,8 @@ func TestRPCRefGraph(t *testing.T) {
 	if len(sorted) != 2 || sorted[0] != "p" || sorted[1] != "q" {
 		t.Fatalf("expected [p q], got %v", sorted)
 	}
+
+	// Verify node removal cleared its outgoing edges.
 	refs, err = rg.GetOutgoingRefs(ctx, "n")
 	if err != nil {
 		t.Fatal(err)
@@ -246,6 +259,7 @@ func TestRPCRefGraph(t *testing.T) {
 		t.Fatalf("expected [%s], got %v", block_gc.BlockIRI(tgt), refs)
 	}
 
+	// Add a block edge and verify its encoded graph relationship.
 	objRef := testBlockRef(t, "obj-block")
 	if err := rg.AddObjectRoot(ctx, "myobj", objRef); err != nil {
 		t.Fatal(err)
@@ -258,6 +272,7 @@ func TestRPCRefGraph(t *testing.T) {
 		t.Fatalf("expected [%s], got %v", block_gc.BlockIRI(objRef), refs)
 	}
 
+	// Remove the object's root edge and verify the relationship is gone.
 	if err := rg.RemoveObjectRoot(ctx, "myobj", objRef); err != nil {
 		t.Fatal(err)
 	}
@@ -275,6 +290,7 @@ func assertRPCOwnerTransition(
 	testbed *rpcRefGraphTestbed,
 	adds, removes []block_gc.RefEdge,
 ) {
+	// Assert that the server applies the complete batch through its owner.
 	t.Helper()
 	applyCalls, individualCalls, gotAdds, gotRemoves := testbed.observed.snapshot()
 	if applyCalls != 1 {
@@ -298,16 +314,20 @@ func sortedRefs(refs []string) []string {
 }
 
 func TestRPCApplyRefBatchMissingRemovalPreservesGraph(t *testing.T) {
+	// Verify missing batch removals preserve all graph indexes.
 	ctx := context.Background()
 	testbed := newRPCRefGraphTestbed(t, nil)
 	rg := testbed.client
 
+	// Seed existing owner and orphan edges before capturing the graph state.
 	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
 		t.Fatal(err)
 	}
 	if err := rg.AddRef(ctx, block_gc.NodeUnreferenced, "staged"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Capture the graph indexes before the missing removal request.
 	beforeOutgoing, err := rg.GetOutgoingRefs(ctx, "owner")
 	if err != nil {
 		t.Fatal(err)
@@ -325,12 +345,14 @@ func TestRPCApplyRefBatchMissingRemovalPreservesGraph(t *testing.T) {
 		{Subject: "missing-owner", Object: "never-seen"},
 	}
 
+	// Apply missing removals and confirm the server receives the batch.
 	testbed.observed.reset()
 	if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
 		t.Fatal(err)
 	}
 	assertRPCOwnerTransition(t, testbed, nil, removes)
 
+	// Verify the missing removal leaves forward edges unchanged.
 	afterOutgoing, err := rg.GetOutgoingRefs(ctx, "owner")
 	if err != nil {
 		t.Fatal(err)
@@ -338,6 +360,8 @@ func TestRPCApplyRefBatchMissingRemovalPreservesGraph(t *testing.T) {
 	if !slices.Equal(sortedRefs(afterOutgoing), sortedRefs(beforeOutgoing)) {
 		t.Fatalf("missing removal changed forward refs: got %v, want %v", afterOutgoing, beforeOutgoing)
 	}
+
+	// Verify the missing removal leaves reverse edges unchanged.
 	afterIncoming, err := rg.GetIncomingRefs(ctx, "target")
 	if err != nil {
 		t.Fatal(err)
@@ -345,6 +369,8 @@ func TestRPCApplyRefBatchMissingRemovalPreservesGraph(t *testing.T) {
 	if !slices.Equal(sortedRefs(afterIncoming), sortedRefs(beforeIncoming)) {
 		t.Fatalf("missing removal changed reverse refs: got %v, want %v", afterIncoming, beforeIncoming)
 	}
+
+	// Verify the missing removal leaves orphan marks unchanged.
 	afterUnreferenced, err := rg.GetUnreferencedNodes(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -359,10 +385,12 @@ func TestRPCApplyRefBatchMissingRemovalPreservesGraph(t *testing.T) {
 }
 
 func TestRPCApplyRefBatchExistingRemovalUpdatesForwardEdge(t *testing.T) {
+	// Verify removing an existing edge updates the owner's forward index.
 	ctx := context.Background()
 	testbed := newRPCRefGraphTestbed(t, nil)
 	rg := testbed.client
 
+	// Seed the edge to remove and an edge that must remain.
 	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
 		t.Fatal(err)
 	}
@@ -371,12 +399,14 @@ func TestRPCApplyRefBatchExistingRemovalUpdatesForwardEdge(t *testing.T) {
 	}
 	removes := []block_gc.RefEdge{{Subject: "owner", Object: "target"}}
 
+	// Apply the removal as one server-owned batch.
 	testbed.observed.reset()
 	if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
 		t.Fatal(err)
 	}
 	assertRPCOwnerTransition(t, testbed, nil, removes)
 
+	// Confirm only the retained edge remains.
 	outgoing, err := rg.GetOutgoingRefs(ctx, "owner")
 	if err != nil {
 		t.Fatal(err)
@@ -387,6 +417,7 @@ func TestRPCApplyRefBatchExistingRemovalUpdatesForwardEdge(t *testing.T) {
 }
 
 func TestRPCApplyRefBatchCollidingAddAndRemoveOrphans(t *testing.T) {
+	// Verify an edge present in both sets is removed and marked orphaned.
 	ctx := context.Background()
 	testbed := newRPCRefGraphTestbed(t, nil)
 	rg := testbed.client
@@ -394,12 +425,14 @@ func TestRPCApplyRefBatchCollidingAddAndRemoveOrphans(t *testing.T) {
 	adds := []block_gc.RefEdge{edge}
 	removes := []block_gc.RefEdge{edge}
 
+	// Submit the colliding add and remove together.
 	testbed.observed.reset()
 	if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
 		t.Fatal(err)
 	}
 	assertRPCOwnerTransition(t, testbed, adds, removes)
 
+	// Confirm the edge is absent and its target is orphaned.
 	outgoing, err := rg.GetOutgoingRefs(ctx, edge.Subject)
 	if err != nil {
 		t.Fatal(err)
@@ -416,11 +449,14 @@ func TestRPCApplyRefBatchCollidingAddAndRemoveOrphans(t *testing.T) {
 	}
 }
 
+// TestRPCApplyRefBatchSharedOwnerRemovalKeepsObjectReachable verifies a shared object remains reachable after one owner is removed.
 func TestRPCApplyRefBatchSharedOwnerRemovalKeepsObjectReachable(t *testing.T) {
+	// Verify removing one of two owners keeps the shared object reachable.
 	ctx := context.Background()
 	testbed := newRPCRefGraphTestbed(t, nil)
 	rg := testbed.client
 
+	// Seed two owners for the same object.
 	for _, owner := range []string{"owner-a", "owner-b"} {
 		if err := rg.AddRef(ctx, owner, "shared"); err != nil {
 			t.Fatal(err)
@@ -428,12 +464,14 @@ func TestRPCApplyRefBatchSharedOwnerRemovalKeepsObjectReachable(t *testing.T) {
 	}
 	removes := []block_gc.RefEdge{{Subject: "owner-a", Object: "shared"}}
 
+	// Remove one owner through a single batch.
 	testbed.observed.reset()
 	if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
 		t.Fatal(err)
 	}
 	assertRPCOwnerTransition(t, testbed, nil, removes)
 
+	// Confirm the remaining owner still reaches the shared object.
 	incoming, err := rg.GetIncomingRefs(ctx, "shared")
 	if err != nil {
 		t.Fatal(err)
@@ -441,6 +479,8 @@ func TestRPCApplyRefBatchSharedOwnerRemovalKeepsObjectReachable(t *testing.T) {
 	if !slices.Equal(incoming, []string{"owner-b"}) {
 		t.Fatalf("shared-owner reverse refs = %v, want [owner-b]", incoming)
 	}
+
+	// Confirm the shared object is not marked unreferenced.
 	unreferenced, err := rg.GetUnreferencedNodes(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -450,22 +490,27 @@ func TestRPCApplyRefBatchSharedOwnerRemovalKeepsObjectReachable(t *testing.T) {
 	}
 }
 
+// TestRPCApplyRefBatchLastOwnerRemovalOrphansObject verifies the final owner removal marks its target as orphaned.
 func TestRPCApplyRefBatchLastOwnerRemovalOrphansObject(t *testing.T) {
+	// Verify removing the last owner marks the target as orphaned.
 	ctx := context.Background()
 	testbed := newRPCRefGraphTestbed(t, nil)
 	rg := testbed.client
 
+	// Seed the target with its only owner.
 	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
 		t.Fatal(err)
 	}
 	removes := []block_gc.RefEdge{{Subject: "owner", Object: "target"}}
 
+	// Remove the last owner through a single batch.
 	testbed.observed.reset()
 	if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
 		t.Fatal(err)
 	}
 	assertRPCOwnerTransition(t, testbed, nil, removes)
 
+	// Confirm the target is now unreferenced.
 	incoming, err := rg.GetIncomingRefs(ctx, "target")
 	if err != nil {
 		t.Fatal(err)
@@ -473,6 +518,8 @@ func TestRPCApplyRefBatchLastOwnerRemovalOrphansObject(t *testing.T) {
 	if !slices.Equal(incoming, []string{block_gc.NodeUnreferenced}) {
 		t.Fatalf("last-owner reverse refs = %v, want [unreferenced]", incoming)
 	}
+
+	// Confirm the target appears in the orphan index.
 	unreferenced, err := rg.GetUnreferencedNodes(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -520,7 +567,9 @@ func (e *rpcBatchError) RefBatchRemainder() ([]block_gc.RefEdge, []block_gc.RefE
 	return e.adds, e.removes
 }
 
+// TestRPCApplyRefBatchPreservesRemainder verifies a failed remote batch reports its uncommitted remainder.
 func TestRPCApplyRefBatchPreservesRemainder(t *testing.T) {
+	// Verify a failed remote batch reports the uncommitted remainder.
 	ctx := context.Background()
 	testbed := newRPCRefGraphTestbed(t, func(rg block_gc.RefGraphOps) block_gc.RefGraphOps {
 		return &remainderRefGraph{RefGraphOps: rg}
@@ -532,11 +581,16 @@ func TestRPCApplyRefBatchPreservesRemainder(t *testing.T) {
 	}
 	removes := []block_gc.RefEdge{{Subject: "owner", Object: "pending-remove"}}
 
+	// Reset observations and send a batch whose owner commits only a prefix.
 	testbed.observed.reset()
+
+	// Check the injected error and the server-side batch call.
 	err := testbed.client.ApplyRefBatch(ctx, adds, removes)
 	if err == nil || err.Error() != errInjectedRPCBatch.Error() {
 		t.Fatalf("RPC batch error = %v, want %q", err, errInjectedRPCBatch)
 	}
+
+	// Read the uncommitted suffix and verify its exact contents.
 	assertRPCOwnerTransition(t, testbed, adds, removes)
 	remainderAdds, remainderRemoves, ok := block_gc.RefBatchRemainder(err)
 	if !ok {
@@ -548,6 +602,8 @@ func TestRPCApplyRefBatchPreservesRemainder(t *testing.T) {
 	if !slices.Equal(remainderRemoves, removes) {
 		t.Fatalf("RPC remainder removes = %v, want %v", remainderRemoves, removes)
 	}
+
+	// Confirm the committed prefix is visible through the client.
 	committed, getErr := testbed.client.GetOutgoingRefs(ctx, "owner")
 	if getErr != nil {
 		t.Fatal(getErr)

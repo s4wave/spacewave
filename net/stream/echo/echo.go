@@ -86,10 +86,13 @@ func (c *Controller) resolveHandleMountedStream(
 	di directive.Instance,
 	dir link.HandleMountedStream,
 ) ([]directive.Resolver, error) {
+	// Ignore mounted streams that do not match this controller's protocol.
 	if c.conf.GetProtocolId() != "" &&
 		c.conf.GetProtocolId() != string(dir.HandleMountedStreamProtocolID()) {
 		return nil, nil
 	}
+
+	// Ignore mounted streams addressed to a different local peer.
 	if localPeerID := c.localPeerID; localPeerID != peer.ID("") {
 		if lid := dir.HandleMountedStreamLocalPeerID(); lid != localPeerID {
 			c.le.Debugf(
@@ -100,11 +103,15 @@ func (c *Controller) resolveHandleMountedStream(
 			return nil, nil
 		}
 	}
+
+	// Log the peers and protocol for the accepted stream.
 	c.le.
 		WithField("local-peer", dir.HandleMountedStreamLocalPeerID().String()).
 		WithField("remote-peer", dir.HandleMountedStreamRemotePeerID().String()).
 		WithField("protocol-id", dir.HandleMountedStreamProtocolID()).
 		Debug("starting echo stream handler")
+
+	// Build an echo resolver for the accepted stream.
 	res, err := NewEchoResolver(c.le, c.bus)
 	if err != nil {
 		return nil, err

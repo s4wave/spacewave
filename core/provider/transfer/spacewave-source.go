@@ -58,6 +58,7 @@ func (s *SpacewaveTransferSource) ReplaySharedObject(ctx context.Context, le *lo
 
 // GetBlockStore returns the block store ops for reading blocks from a shared object.
 func (s *SpacewaveTransferSource) GetBlockStore(ctx context.Context, ref *sobject.SharedObjectRef) (block.StoreOps, func(), error) {
+	// Mount the source block store and return its release function.
 	bsRef := &bstore.BlockStoreRef{
 		ProviderResourceRef: ref.GetProviderResourceRef().CloneVT(),
 	}

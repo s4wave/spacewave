@@ -205,10 +205,13 @@ func (s *AccountSettings) removeSessionPresentation(peerID string) error {
 // replaceKeybindingOverrideSet merges a complete keybinding layer replacement,
 // rejecting surfaces that changed since the expected snapshot.
 func (s *AccountSettings) replaceKeybindingOverrideSet(replacement *ReplaceKeybindingOverrideSetOp) error {
+	// Validate the replacement keybinding surfaces before merging.
 	overrideSet := replacement.GetOverrideSet()
 	if err := ValidateKeybindingOverrideSet(overrideSet); err != nil {
 		return err
 	}
+
+	// Merge only the surfaces that still match the expected snapshot.
 	merged, err := s4wave_command.MergeKeybindingOverrideSet(
 		s.GetKeybindingOverrides(),
 		replacement.GetExpectedOverrideSet(),
@@ -217,6 +220,8 @@ func (s *AccountSettings) replaceKeybindingOverrideSet(replacement *ReplaceKeybi
 	if err != nil {
 		return err
 	}
+
+	// Store the merged account keybinding override set.
 	s.KeybindingOverrides = merged
 	return nil
 }

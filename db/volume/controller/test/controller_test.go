@@ -18,21 +18,25 @@ import (
 // pushing it with a ApplyBucketConfig: we then expect the controller to
 // re-check for the configuration, find it, and create new handles.
 func TestBucketHandleFlush(t *testing.T) {
+	// Prepare the context and logger used by the testbed.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start the testbed that owns the controller bus and volume.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Identify the bucket and volume used by the directives.
 	bucketID := "test-bucket-flush"
 	b := tb.Bus
 	vol := tb.Volume
 	volumeID := vol.GetID()
-	// try to BuildBucketAPI
+
+	// Request a bucket API before its configuration exists.
 	vals := make(chan bucket.BuildBucketAPIValue)
 	_, bapiRef, err := b.AddDirective(
 		bucket.NewBuildBucketAPI(bucketID, volumeID),
@@ -54,7 +58,7 @@ func TestBucketHandleFlush(t *testing.T) {
 	}
 	t.Log("received first value with exists=false as expected")
 
-	// Apply bucket config
+	// Apply the configuration that should make the bucket available.
 	ap, _, bcRef, err := bus.ExecOneOff(
 		ctx,
 		b,
@@ -76,7 +80,7 @@ func TestBucketHandleFlush(t *testing.T) {
 		t.Fail()
 	}
 
-	// Expect second value
+	// Verify that the bucket API reports the applied configuration.
 	secondVal := <-vals
 	if !secondVal.GetExists() || secondVal.GetBucketConfig() == nil {
 		t.Fail()

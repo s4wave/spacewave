@@ -10,13 +10,17 @@ import (
 
 // parseControllerConfigValue parses a fastjson value into a ControllerConfig.
 func parseControllerConfigValue(v *fastjson.Value) (*configset_json.ControllerConfig, error) {
+	// Treat a missing controller config as absent.
 	if v == nil || v.Type() == fastjson.TypeNull {
 		return nil, nil
 	}
+
+	// Require controller configs to be JSON objects.
 	if v.Type() != fastjson.TypeObject {
 		return nil, errors.New("controller config must be object")
 	}
 
+	// Read the controller identity and decode its optional config body.
 	c := &configset_json.ControllerConfig{
 		Rev: v.GetUint64("rev"),
 		Id:  string(v.GetStringBytes("id")),
@@ -36,10 +40,12 @@ func marshalControllerConfigValue(
 	a *fastjson.Arena,
 	c *configset_json.ControllerConfig,
 ) (*fastjson.Value, error) {
+	// Encode an absent controller config as JSON null.
 	if c == nil {
 		return a.NewNull(), nil
 	}
 
+	// Encode the controller identity, revision, and optional config.
 	obj := a.NewObject()
 	obj.Set("id", a.NewString(c.Id))
 	if c.Rev != 0 {

@@ -14,11 +14,13 @@ import (
 )
 
 func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
+	// Read the build manifest that declares the web entrypoints.
 	manifest, err := os.ReadFile("../bldr.star")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Extract the entrypoint list from the web package declaration.
 	const marker = `web_pkg("@s4wave/web", entrypoints=[`
 	start := strings.Index(string(manifest), marker)
 	if start == -1 {
@@ -30,6 +32,7 @@ func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
 		t.Fatal("@s4wave/web entrypoint list is not terminated")
 	}
 
+	// Parse entrypoint tokens while ignoring the manifest separators.
 	entrypoints := strings.FieldsFunc(before, func(r rune) bool {
 		switch r {
 		case '"', ',', ' ', '\n', '\r', '\t':
@@ -42,6 +45,7 @@ func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
 		t.Fatal("@s4wave/web has no entrypoints")
 	}
 
+	// Require each declared entrypoint to have embedded TypeScript or CSS.
 	for _, entrypoint := range entrypoints {
 		entrypoint = strings.TrimPrefix(entrypoint, "./")
 		exists, err := embeddedEntrypointSource(entrypoint)
@@ -68,7 +72,9 @@ func TestDistSourcesAreClosed(t *testing.T) {
 		{prefix: "web", fsys: DistSources},
 	}
 	for _, sourceFS := range sources {
+		// Inspect each embedded source and its local imports.
 		err = fs.WalkDir(sourceFS.fsys, ".", func(name string, entry fs.DirEntry, walkErr error) error {
+			// Propagate directory traversal errors.
 			if walkErr != nil {
 				return walkErr
 			}
@@ -82,6 +88,7 @@ func TestDistSourcesAreClosed(t *testing.T) {
 				return nil
 			}
 
+			// Resolve imports relative to the embedded source file.
 			source, err := fs.ReadFile(sourceFS.fsys, name)
 			if err != nil {
 				return err
@@ -123,6 +130,7 @@ func embeddedImportTarget(source, importPath string) (string, bool) {
 }
 
 func embeddedSourceExists(target string) (bool, error) {
+	// Select the embedded filesystem that owns this import.
 	var fsys fs.FS = spacewave.DistSources
 	if strings.HasPrefix(target, "bldr/") {
 		fsys = bldr.DistSources
@@ -135,6 +143,7 @@ func embeddedSourceExists(target string) (bool, error) {
 		target = strings.TrimPrefix(target, "web/")
 	}
 
+	// Expand the import into supported source-file candidates.
 	var candidates []string
 	switch path.Ext(target) {
 	case ".js":
@@ -153,6 +162,7 @@ func embeddedSourceExists(target string) (bool, error) {
 		candidates = []string{target}
 	}
 
+	// Return when any candidate resolves to a regular file.
 	for _, candidate := range candidates {
 		entry, err := fs.Stat(fsys, candidate)
 		if err == nil {
@@ -166,6 +176,7 @@ func embeddedSourceExists(target string) (bool, error) {
 }
 
 func embeddedEntrypointSource(entrypoint string) (bool, error) {
+	// Check the direct source-file forms first.
 	for _, ext := range []string{".ts", ".tsx", ".css"} {
 		_, err := fs.Stat(DistSources, entrypoint+ext)
 		if err == nil {
@@ -176,6 +187,7 @@ func embeddedEntrypointSource(entrypoint string) (bool, error) {
 		}
 	}
 
+	// Check directory entrypoints for at least one embedded source.
 	entries, err := fs.ReadDir(DistSources, entrypoint)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {

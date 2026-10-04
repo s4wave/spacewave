@@ -29,10 +29,12 @@ func GitRepoFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require the World state before reading the Git repository.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Capture the repository metadata for the resource.
 	var repoInfo resource_git.RepoSnapshot
 	_, _, err := git_world.AccessWorldObjectRepo(
 		ctx, ws, objectKey, false,
@@ -45,6 +47,7 @@ func GitRepoFactory(
 		return nil, nil, errors.Wrap(err, "access git repo")
 	}
 
+	// Serve the captured repository snapshot through its resource.
 	resource := resource_git.NewGitRepoResource(ws, objectKey, &repoInfo)
 	return resource.GetMux(), func() {}, nil
 }

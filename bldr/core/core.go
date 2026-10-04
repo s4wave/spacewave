@@ -43,24 +43,30 @@ func NewCoreBus(
 //
 // NOTE: We only add the essential factories here to keep binary sizes low.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
+	// Register the core node and bucket lookup factories.
 	sr.AddFactory(node_controller.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 	sr.AddFactory(bucket_setup.NewFactory(b))
 
+	// Register the plugin loading and webview handlers.
 	sr.AddFactory(bldr_plugin_load.NewFactory(b))
 	sr.AddFactory(handle_webview_viaplugin.NewFactory(b))
 	sr.AddFactory(handle_rpc_viaplugin.NewFactory(b))
 
+	// Register storage-backed volume construction.
 	sr.AddFactory(storage_volume.NewFactory(b))
 
+	// Register in-memory and RPC volume implementations.
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
 	sr.AddFactory(volume_rpc_client.NewFactory(b))
 
+	// Register bucket, client, lookup, and server block stores.
 	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(block_store_rpc.NewFactory(b))
 	sr.AddFactory(block_store_rpc_lookup.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server.NewFactory(b))
 	sr.AddFactory(block_store_rpc_server_bucket.NewFactory(b))
 
+	// Register the server-side streaming lookup.
 	sr.AddFactory(stream_srpc_server_lookup.NewFactory(b))
 }

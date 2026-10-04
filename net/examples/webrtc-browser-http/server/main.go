@@ -36,6 +36,7 @@ func main() {
 	app.Usage = "Hosts a WebSocket server and a signaling service for WebRTC browser example"
 	app.HideHelpCommand = true
 
+	// Define the listening address and HTTP path flags.
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "listen",
@@ -132,6 +133,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	}
 	defer wsRef.Release()
 
+	// Report the addresses where peers can reach the signaling service.
 	le.Infof("signaling server listening on %s%s", listenAddr, httpPath)
 	le.Infof("configure peers to connect to ws://<host>%s%s", listenAddr, httpPath)
 

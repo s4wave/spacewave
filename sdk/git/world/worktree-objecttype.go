@@ -31,12 +31,15 @@ func GitWorktreeFactory(
 	ws world.WorldState,
 	objectKey string,
 ) (srpc.Invoker, func(), error) {
+	// Require the World state before reading the worktree.
 	if ws == nil {
 		return nil, nil, objecttype.ErrWorldStateRequired
 	}
 
+	// Collect the repository and checkout state for the resource.
 	var snap resource_git.WorktreeSnapshot
 
+	// Resolve the repository linked from this worktree.
 	gqs, err := ws.LookupGraphQuads(
 		ctx,
 		world.NewGraphQuadWithKeys(objectKey, git_world.GitRepoPred, "", ""),
@@ -54,9 +57,11 @@ func GitWorktreeFactory(
 	}
 	snap.RepoObjectKey = repoObjKey
 
+	// Read the checked-out branch from the worktree's HEAD ref store.
 	_, _, err = git_world.AccessWorldObjectWorktree(
 		ctx, ws, objectKey, false, nil,
 		func(bcs *block.Cursor, wt *git_world.Worktree) error {
+			// Follow HEAD to capture the checked-out branch when one exists.
 			hrs, err := wt.FollowHeadRefStore(bcs)
 			if err != nil {
 				return err
@@ -79,6 +84,7 @@ func GitWorktreeFactory(
 		return nil, nil, errors.Wrap(err, "access worktree")
 	}
 
+	// Record whether the worktree has a linked working directory.
 	wdRef, err := git_world.WorktreeLookupWorkdirRef(ctx, ws, objectKey)
 	if err == nil && wdRef != nil {
 		snap.HasWorkdir = true
@@ -86,6 +92,7 @@ func GitWorktreeFactory(
 		snap.WorkdirRef = wdRef
 	}
 
+	// Serve the captured checkout state through its resource.
 	resource := resource_git.NewGitWorktreeResource(ws, engine, objectKey, &snap)
 	return resource.GetMux(), func() {}, nil
 }

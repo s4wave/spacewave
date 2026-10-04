@@ -12,15 +12,16 @@ import (
 	"github.com/s4wave/spacewave/forge/testbed"
 )
 
-// TestPassController_Simple tests basic mechanics of the pass controller.
+// TestPassController verifies a pass can run to completion in a testbed.
 func TestPassController(t *testing.T) {
+	// Prepare the context and testbed for the pass execution.
 	ctx := context.Background()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// referenced in the Target below
+	// Register the factories required by the target.
 	b, sr := tb.Bus, tb.StaticResolver
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
 	sr.AddFactory(forge_lib_kvtx.NewFactory(b))
@@ -31,6 +32,7 @@ func TestPassController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Run one pass and retain its final state.
 	ts := timestamp.Now()
 	outState, err := tb.RunPassWithTarget(tgt, nil, 1, ts)
 	if err != nil {

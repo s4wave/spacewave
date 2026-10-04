@@ -20,6 +20,7 @@ var flags []cli.Flag
 var afterFuncs []func()
 
 func main() {
+	// Configure the Bldr command tree and its post-run cleanup.
 	app := cli.NewApp()
 	app.Name = "bldr"
 	app.HideVersion = true
@@ -33,6 +34,7 @@ func main() {
 		return nil
 	}
 
+	// Run the Bldr command with the process arguments.
 	if err := app.Run(os.Args); err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)

@@ -62,29 +62,34 @@ func (s *layoutWatchSeedStream) Close() error {
 }
 
 func TestObjectLayoutFactoryPublishesSeedModelFromEngineWorldState(t *testing.T) {
+	// Set up the test context and debug logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a block storage testbed.
 	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer btb.Release()
 
+	// Start a World testbed backed by the block store.
 	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wtb.Release()
 
+	// Seed the layout object in the test World.
 	objectKey := "object-layout/test-factory-engine-state"
 	writeState := world.NewEngineWorldState(wtb.Engine, true)
 	if _, _, err := space_world_ops.InitObjectLayout(ctx, writeState, wtb.Volume.GetPeerID(), objectKey, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Build the layout invoker from an independent read state.
 	readState := world.NewEngineWorldState(wtb.Engine, true)
 	invoker, cleanup, err := s4wave_layout_world.ObjectLayoutFactory(ctx, le, btb.Bus, wtb.Engine, readState, objectKey)
 	if err != nil {
@@ -92,6 +97,7 @@ func TestObjectLayoutFactoryPublishesSeedModelFromEngineWorldState(t *testing.T)
 	}
 	defer cleanup()
 
+	// Begin watching the model emitted by the layout host.
 	stream := newLayoutWatchSeedStream(ctx)
 	done := make(chan error, 1)
 	go func() {
@@ -107,6 +113,7 @@ func TestObjectLayoutFactoryPublishesSeedModelFromEngineWorldState(t *testing.T)
 		done <- nil
 	}()
 
+	// Receive the seeded layout model from the watch stream.
 	var model s4wave_layout.LayoutModel
 	select {
 	case data := <-stream.sent:
@@ -123,6 +130,7 @@ func TestObjectLayoutFactoryPublishesSeedModelFromEngineWorldState(t *testing.T)
 		t.Fatal("timed out stopping layout watch")
 	}
 
+	// Verify the root and its single tab set.
 	root := model.GetLayout()
 	if root.GetId() != "root" {
 		t.Fatalf("layout root id = %q, want root", root.GetId())
@@ -137,6 +145,8 @@ func TestObjectLayoutFactoryPublishesSeedModelFromEngineWorldState(t *testing.T)
 	if got := len(tabSet.GetChildren()); got != 1 {
 		t.Fatalf("tabset children = %d, want 1", got)
 	}
+
+	// Verify the file tab and its object-key payload.
 	tab := tabSet.GetChildren()[0]
 	if tab.GetId() != "files" {
 		t.Fatalf("tab id = %q, want files", tab.GetId())
@@ -157,28 +167,33 @@ func TestObjectLayoutFactoryPublishesSeedModelFromEngineWorldState(t *testing.T)
 // container re-reads the World object after external revisions instead of
 // serving only the seed model.
 func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
+	// Prepare the context and logger for the external-update test.
 	ctx := context.Background()
 	log := logrus.New()
 	le := logrus.NewEntry(log)
 
+	// Start a block storage testbed for the layout World.
 	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer btb.Release()
 
+	// Start a World testbed for external object updates.
 	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wtb.Release()
 
+	// Seed the object whose later revision the watcher will observe.
 	objectKey := "object-layout/test-factory-external-update"
 	writeState := world.NewEngineWorldState(wtb.Engine, true)
 	if _, _, err := space_world_ops.InitObjectLayout(ctx, writeState, wtb.Volume.GetPeerID(), objectKey, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 
+	// Create the layout invoker from an independent read state.
 	readState := world.NewEngineWorldState(wtb.Engine, true)
 	invoker, cleanup, err := s4wave_layout_world.ObjectLayoutFactory(ctx, le, btb.Bus, wtb.Engine, readState, objectKey)
 	if err != nil {
@@ -186,6 +201,7 @@ func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
 	}
 	defer cleanup()
 
+	// Begin watching for the seed and the external revision.
 	stream := newLayoutWatchSeedStream(ctx)
 	done := make(chan error, 1)
 	go func() {
@@ -201,6 +217,7 @@ func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
 		done <- nil
 	}()
 
+	// Receive the seed model before the external write.
 	var model s4wave_layout.LayoutModel
 	select {
 	case data := <-stream.sent:
@@ -224,11 +241,16 @@ func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
 	if !found {
 		t.Fatal("layout object not found for external write")
 	}
+
+	// Apply the updated layout model to the object state.
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		// Decode the current layout root before updating it.
 		cur, uerr := block.UnmarshalBlock[*s4wave_layout_world.ObjectLayout](ctx, bcs, s4wave_layout_world.NewObjectLayoutBlock)
 		if uerr != nil {
 			return uerr
 		}
+
+		// Set the new layout ID and persist the changed root.
 		if cur == nil {
 			cur = &s4wave_layout_world.ObjectLayout{}
 		}
@@ -245,6 +267,7 @@ func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Receive the model emitted after the external transaction commits.
 	var updated s4wave_layout.LayoutModel
 	select {
 	case data := <-stream.sent:
@@ -258,6 +281,7 @@ func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
 		t.Fatalf("watched layout root id after external write = %q, want remote-edit", got)
 	}
 
+	// Cancel the watch and verify that it exits.
 	stream.cancel()
 	select {
 	case <-done:

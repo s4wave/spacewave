@@ -60,6 +60,7 @@ func BuildSessionSpaces(
 	soList *sobject.SharedObjectList,
 	excludedBlockStoreIDs ...string,
 ) ([]*space.SpaceSoListEntry, error) {
+	// Treat a missing shared-object snapshot as an empty session-space list.
 	if soList == nil {
 		return nil, nil
 	}

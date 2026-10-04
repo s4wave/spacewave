@@ -44,6 +44,7 @@ func (s *ObjectStoreStateAtom) Get(ctx context.Context) (string, uint64, error) 
 			return s.objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the current state value from the object store.
 			data, found, err := tx.Get(ctx, s.objKey)
 			if err != nil {
 				return err
@@ -61,6 +62,7 @@ func (s *ObjectStoreStateAtom) Get(ctx context.Context) (string, uint64, error) 
 
 // Set updates the state JSON and returns the new sequence number.
 func (s *ObjectStoreStateAtom) Set(ctx context.Context, stateJson string) (uint64, error) {
+	// Persist the new state JSON in a write transaction.
 	err := kvtx.RunTransaction(ctx, true,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return s.objStore.NewTransaction(ctx, true)

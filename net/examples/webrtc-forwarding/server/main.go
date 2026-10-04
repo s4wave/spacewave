@@ -36,6 +36,7 @@ func main() {
 	app.Usage = "Hosts a WebSocket server and a signaling service"
 	app.HideHelpCommand = true
 
+	// Define the listening address and forwarding route flags.
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "listen",
