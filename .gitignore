@@ -41,7 +41,6 @@ __debug_bin*
 /.tools/
 /vite-check
 
-hydra/
 *.test
 __screenshots__
 app/space/spaceplugins-*.png
