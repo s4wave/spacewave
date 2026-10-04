@@ -50,6 +50,11 @@ type SRPCSpaceResourceServiceClient interface {
 	// the group, and the group decides a return to owner control. The sharing
 	// state reports the result.
 	SetSpaceControl(ctx context.Context, in *SetSpaceControlRequest) (*SetSpaceControlResponse, error)
+	// SetSpaceBackfill chooses whether this device copies the whole World into
+	// its local store in the background. Without backfill the device reads
+	// blocks on demand and keeps the blocks it wrote or read. The choice is
+	// stored on this device.
+	SetSpaceBackfill(ctx context.Context, in *SetSpaceBackfillRequest) (*SetSpaceBackfillResponse, error)
 	// ApproveSpaceChange agrees, as a voter, to a change another voter asked the
 	// group for.
 	ApproveSpaceChange(ctx context.Context, in *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
@@ -310,6 +315,15 @@ func (c *srpcSpaceResourceServiceClient) SetSpaceControl(ctx context.Context, in
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) SetSpaceBackfill(ctx context.Context, in *SetSpaceBackfillRequest) (*SetSpaceBackfillResponse, error) {
+	out := new(SetSpaceBackfillResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetSpaceBackfill", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpaceResourceServiceClient) ApproveSpaceChange(ctx context.Context, in *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error) {
 	out := new(ApproveSpaceChangeResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ApproveSpaceChange", in, out)
@@ -355,6 +369,11 @@ type SRPCSpaceResourceServiceServer interface {
 	// the group, and the group decides a return to owner control. The sharing
 	// state reports the result.
 	SetSpaceControl(context.Context, *SetSpaceControlRequest) (*SetSpaceControlResponse, error)
+	// SetSpaceBackfill chooses whether this device copies the whole World into
+	// its local store in the background. Without backfill the device reads
+	// blocks on demand and keeps the blocks it wrote or read. The choice is
+	// stored on this device.
+	SetSpaceBackfill(context.Context, *SetSpaceBackfillRequest) (*SetSpaceBackfillResponse, error)
 	// ApproveSpaceChange agrees, as a voter, to a change another voter asked the
 	// group for.
 	ApproveSpaceChange(context.Context, *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
@@ -401,6 +420,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"OpenPluginFrontend",
 		"SetSpaceSequencer",
 		"SetSpaceControl",
+		"SetSpaceBackfill",
 		"ApproveSpaceChange",
 	}
 }
@@ -444,6 +464,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_SetSpaceSequencer(d.impl, strm)
 	case "SetSpaceControl":
 		return true, d.InvokeMethod_SetSpaceControl(d.impl, strm)
+	case "SetSpaceBackfill":
+		return true, d.InvokeMethod_SetSpaceBackfill(d.impl, strm)
 	case "ApproveSpaceChange":
 		return true, d.InvokeMethod_ApproveSpaceChange(d.impl, strm)
 	default:
@@ -609,6 +631,18 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_SetSpaceControl(impl SRPCSpa
 		return err
 	}
 	out, err := impl.SetSpaceControl(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_SetSpaceBackfill(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetSpaceBackfillRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetSpaceBackfill(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -818,6 +852,14 @@ type SRPCSpaceResourceService_SetSpaceControlStream interface {
 }
 
 type srpcSpaceResourceService_SetSpaceControlStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_SetSpaceBackfillStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_SetSpaceBackfillStream struct {
 	srpc.Stream
 }
 

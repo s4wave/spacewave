@@ -1487,6 +1487,41 @@ export const SetSpaceSequencerResponse: MessageType<SetSpaceSequencerResponse> =
   })
 
 /**
+ * SetSpaceBackfillRequest chooses this device's backfill of the World.
+ *
+ * @generated from message s4wave.space.SetSpaceBackfillRequest
+ */
+export interface SetSpaceBackfillRequest {
+  /**
+   * Backfill copies the whole World into the local store when set.
+   *
+   * @generated from field: bool backfill = 1;
+   */
+  backfill?: boolean
+}
+
+export const SetSpaceBackfillRequest: MessageType<SetSpaceBackfillRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SetSpaceBackfillRequest',
+    fields: [
+      { no: 1, name: 'backfill', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetSpaceBackfillResponse is the response to SetSpaceBackfill.
+ *
+ * @generated from message s4wave.space.SetSpaceBackfillResponse
+ */
+export interface SetSpaceBackfillResponse {}
+
+export const SetSpaceBackfillResponse: MessageType<SetSpaceBackfillResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetSpaceBackfillResponse>(
+    's4wave.space.SetSpaceBackfillResponse',
+    true,
+  )
+
+/**
  * SetSpaceControlRequest chooses who controls the Space.
  *
  * @generated from message s4wave.space.SetSpaceControlRequest

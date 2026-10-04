@@ -91,10 +91,11 @@ func TestProcessSetRetainedRootOp(t *testing.T) {
 	}
 }
 
-// TestRetainRootsCopiesFromStorage checks retainRoots copies a root's graph
-// from storage into the local store, then holds it from the local store alone,
-// and reports a root missing from both as block.ErrNotFound.
-func TestRetainRootsCopiesFromStorage(t *testing.T) {
+// TestCopyWorldsCopiesFromStorage checks holdRootSet names a root without
+// copying its graph, copyWorlds copies the graph from storage into the local
+// store and then succeeds from the local store alone, and a root missing from
+// both stores reports block.ErrNotFound.
+func TestCopyWorldsCopiesFromStorage(t *testing.T) {
 	// Build the storage side.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -131,15 +132,23 @@ func TestRetainRootsCopiesFromStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Retain it through a store that reads storage on a local miss.
+	// Holding the root through a store that reads storage on a local miss
+	// leaves the leaf in storage.
 	overlay := block.NewOverlay(ctx, le, source.GetBucket(), target.GetBucket(), block.OverlayMode_UPPER_WRITE_CACHE, 0, nil)
 	so := &testSharedObject{
 		blockStore: newTestBlockStore("retained-roots-test", overlay),
 		localStore: store_kvtx_inmem.NewStore(),
 	}
-	c := &Controller{le: le}
-	roots := []*RetainedRoot{{Name: "backup", RootRef: root}}
-	if err := c.retainRoots(ctx, so, roots); err != nil {
+	if err := holdRootSet(ctx, so, retainedRootsName, []*RetainedRoot{{Name: "backup", RootRef: root}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, found, err := target.GetBucket().GetBlock(ctx, leaf); err != nil || found {
+		t.Fatalf("hold copied the leaf: found=%v, err=%v", found, err)
+	}
+
+	// Copying the World brings the leaf into the local store.
+	roots := []*block.BlockRef{root}
+	if err := copyWorlds(ctx, so, backfillProofStoreID, roots); err != nil {
 		t.Fatal(err)
 	}
 	if _, found, err := target.GetBucket().GetBlock(ctx, leaf); err != nil || !found {
@@ -148,14 +157,14 @@ func TestRetainRootsCopiesFromStorage(t *testing.T) {
 
 	// Without storage, the local copy still satisfies the root.
 	so.blockStore = newTestBlockStore("retained-roots-test", target.GetBucket())
-	if err := c.retainRoots(ctx, so, roots); err != nil {
-		t.Fatalf("retain from the local store: %v", err)
+	if err := copyWorlds(ctx, so, backfillProofStoreID, roots); err != nil {
+		t.Fatalf("copy from the local store: %v", err)
 	}
 
 	// A root in neither store is lost.
-	lost := []*RetainedRoot{{Name: "lost", RootRef: &block.BlockRef{Hash: testRetainedRootHash(t, "lost")}}}
-	if err := c.retainRoots(ctx, so, lost); !errors.Is(err, block.ErrNotFound) {
-		t.Fatalf("retain lost root = %v; want block.ErrNotFound", err)
+	lost := []*block.BlockRef{{Hash: testRetainedRootHash(t, "lost")}}
+	if err := copyWorlds(ctx, so, backfillProofStoreID, lost); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("copy lost root = %v; want block.ErrNotFound", err)
 	}
 }
 

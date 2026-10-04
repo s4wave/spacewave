@@ -49,6 +49,7 @@ func newSpaceCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			newSpaceSettingsCommand(&statePath, &sessionIdx),
 			newSpaceInviteCommand(&statePath, &sessionIdx),
 			newSpaceJoinCommand(&statePath, &sessionIdx),
+			newSpaceBackfillCommand(&statePath, &sessionIdx),
 			newSpaceMoveStorageCommand(&statePath, &sessionIdx),
 			newSpaceImportGitCommand(&statePath, &sessionIdx),
 			newSpaceDeployCommand(&statePath, &sessionIdx),

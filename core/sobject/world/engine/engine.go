@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -183,12 +184,15 @@ type soEngine struct {
 	// replay computes the World from the operation set, guarded by the
 	// controller's writer lock.
 	replay *replayer
-	// retained is the last head updateEngineState installed and retained,
+	// retained is the last head updateEngineState installed and held,
 	// guarded by the controller's writer lock.
 	retained *bucket.ObjectRef
-	// retainedRoots are the retained roots updateEngineState last copied,
+	// retainedRoots are the retained roots updateEngineState last held,
 	// guarded by the controller's writer lock.
 	retainedRoots []*RetainedRoot
+	// backfill copies the installed World and the retained roots into the
+	// local store while this device's backfill choice is on.
+	backfill *routine.StateRoutineContainer[bool]
 	// rejected are the rejected edits last reported, guarded by the
 	// controller's writer lock.
 	rejected []*sobject.SORejectedEdit
@@ -205,17 +209,25 @@ type soEngine struct {
 
 // newSoEngine constructs the shared object engine.
 func newSoEngine(c *Controller, so sobject.SharedObject, engine *world_block.Engine, replay *replayer) *soEngine {
-	return &soEngine{
+	e := &soEngine{
 		c:       c,
 		so:      so,
 		bengine: engine,
 		replay:  replay,
 	}
+	e.backfill = routine.NewStateRoutineContainer[bool](
+		nil,
+		routine.WithExitLogger(c.le.WithField("routine", "world-backfill")),
+		routine.WithRetry(backfillBackoff),
+	)
+	e.backfill.SetStateRoutine(e.executeBackfill)
+	return e
 }
 
 // OperationAuthor returns the participant signing device and accepted entity.
 // A participant without an entity uses its device as the person.
 func (e *soEngine) OperationAuthor(ctx context.Context) (peer.ID, string, error) {
+	// Resolve the person behind this device from the shared object state.
 	snapshot, err := e.so.GetSharedObjectState(ctx)
 	if err != nil {
 		return "", "", err
@@ -519,15 +531,15 @@ func (e *soEngine) acknowledge(ctx context.Context) error {
 	return err
 }
 
-// updateEngineState installs a replayed World, keeps its graph and its
-// retained roots in this participant's block store, and saves the replay that
-// reached it. The caller holds the writer lock.
+// updateEngineState installs a replayed World, holds it and its retained roots
+// in this participant's block store, and saves the replay that reached it. The
+// caller holds the writer lock.
 func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) error {
 	// Trace the update.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/update-engine-state")
 	defer task.End()
 
-	// Install and retain a changed head once. The watcher, the next write and
+	// Install and hold a changed head once. The watcher, the next write and
 	// the committing write all install the same head.
 	ref := state.GetHeadRef().CloneVT()
 	if ref == nil {
@@ -538,57 +550,48 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 		if err := e.bengine.SetRootRef(ctx, ref); err != nil {
 			return err
 		}
-		if err := e.c.retainWorldRoot(ctx, e.so, acceptedWorldRootName, ref); err != nil {
+		if err := holdWorldRoot(ctx, e.so, acceptedWorldRootName, ref.GetRootRef()); err != nil {
 			return err
 		}
 		e.retained = ref
 		e.c.notifyWrite()
 	}
 
-	// Copy changed retained roots.
+	// Hold changed retained roots.
 	if !slices.EqualFunc(state.GetRetainedRoots(), e.retainedRoots, (*RetainedRoot).EqualVT) {
-		if err := e.c.retainRoots(ctx, e.so, state.GetRetainedRoots()); err != nil {
+		if err := holdRootSet(ctx, e.so, retainedRootsName, state.GetRetainedRoots()); err != nil {
 			return err
 		}
 		e.retainedRoots = state.GetRetainedRoots()
 	}
 
-	// Save the replay now that its World is kept.
+	// Save the replay now that its World is held.
 	return e.replay.save(ctx)
 }
 
 // acceptedWorldRootName names the local root that holds the installed World.
 const acceptedWorldRootName = "accepted-world"
 
-// worldRetentionStoreID is the local state store holding the completion proofs
-// of the installed World and the replay base.
-const worldRetentionStoreID = "accepted-world-retention"
-
-// retainWorldRoot copies the World graph of head into the local block store
-// and holds it under the local root name, or releases the name when head is
-// empty. Callers serialize calls through the writer lock.
-func (c *Controller) retainWorldRoot(ctx context.Context, so sobject.SharedObject, name string, head *bucket.ObjectRef) error {
+// holdWorldRoot holds the World graph under root in the local block store
+// under the local root name, or releases the name when root is empty. It
+// stores only the root block: the volume keeps every block this device wrote
+// or read that the root still reaches, and reads fetch the rest on demand.
+// Callers serialize calls through the writer lock.
+func holdWorldRoot(ctx context.Context, so sobject.SharedObject, name string, root *block.BlockRef) error {
 	// Release the name of an empty World.
 	store := so.GetBlockStore()
 	if !block.SupportsRootRetention(store) {
 		return nil
 	}
-	if head.GetRootRef().GetEmpty() {
+	if root.GetEmpty() {
 		return block.SetRetainedRoot(ctx, store, name, nil)
 	}
 
-	// Complete the graph locally before it replaces the named root.
-	proofs, release, err := so.AccessLocalStateStore(ctx, worldRetentionStoreID, nil)
-	if err != nil {
+	// Store the root block before it replaces the named root.
+	if err := storeRootBlock(ctx, so, root); err != nil {
 		return err
 	}
-	defer release()
-	ref := head.CloneVT()
-	ref.BucketId = store.GetID()
-	if err := RetainWorld(ctx, so, ref, proofs, nil); err != nil {
-		return err
-	}
-	return block.SetRetainedRoot(ctx, store, name, ref.GetRootRef())
+	return block.SetRetainedRoot(ctx, store, name, root)
 }
 
 // _ is a type assertion

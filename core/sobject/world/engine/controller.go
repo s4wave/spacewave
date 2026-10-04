@@ -80,6 +80,7 @@ func (c *Controller) buildLookupWorldOp(le *logrus.Entry) world.LookupOp {
 		busLookupOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
 	}
 	return func(ctx context.Context, operationTypeID string) (world.Operation, error) {
+		// Collect the static and bus lookups.
 		var lookupOps []world.LookupOp
 		c.staticLookupOpMu.RLock()
 		if c.staticLookupOp != nil {
@@ -216,9 +217,8 @@ func (c *Controller) executeWorld(
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
 
-	// Acknowledge the edits this device builds on, restore returning devices
-	// to the trimming roster, order the Space as its main device, vote in the
-	// group's decisions and reclaim storage while it serves the World.
+	// Acknowledge the edits this device builds on and restore returning
+	// devices to the trimming roster while it serves the World.
 	bgCtx, bgCancel := context.WithCancel(ctx)
 	defer bgCancel()
 	go func() {
@@ -233,6 +233,9 @@ func (c *Controller) executeWorld(
 			}
 		}()
 	}
+
+	// Order the Space as its main device, vote in the group's decisions and
+	// reclaim storage.
 	if mainDevice, ok := so.(sobject.MainDevice); ok {
 		go func() {
 			if err := sobject.Sequence(bgCtx, so, mainDevice.SequenceOperations); err != nil && bgCtx.Err() == nil {
@@ -252,6 +255,14 @@ func (c *Controller) executeWorld(
 			le.WithError(err).Warn("stopped reclaiming storage")
 		}
 	}()
+
+	// Backfill the World when this device chose to.
+	backfill, err := readBackfill(ctx, so)
+	if err != nil {
+		return err
+	}
+	engine.backfill.SetContext(bgCtx, false)
+	engine.backfill.SetState(backfill)
 
 	// Follow the operation set into the World.
 	return c.executeWatchSOState(ctx, soStateCtr, engine)

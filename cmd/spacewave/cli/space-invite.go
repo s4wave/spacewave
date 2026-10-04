@@ -109,6 +109,10 @@ func newSpaceJoinCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Name:      "join",
 		Usage:     "join a space with an invite code, link or token",
 		ArgsUsage: "<invite>",
+		Flags: []cli.Flag{&cli.BoolFlag{
+			Name:  "backfill",
+			Usage: "copy the whole space to this device in the background instead of fetching data on demand",
+		}},
 		Action: func(c *cli.Context) error {
 			// Require the invite argument.
 			input := strings.TrimSpace(c.Args().First())
@@ -161,10 +165,18 @@ func newSpaceJoinCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return errors.New("the space owner must be online to accept this invite")
 			case s4wave_session.JoinSpaceViaInviteResult_JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL:
 				os.Stdout.WriteString("join submitted; waiting for the space owner to approve\n")
-			default:
-				os.Stdout.WriteString(resp.GetSharedObjectId() + "\n")
+				if c.Bool("backfill") {
+					os.Stdout.WriteString("after approval, run: spacewave space backfill <space-id> on\n")
+				}
+				return nil
 			}
-			return nil
+			os.Stdout.WriteString(resp.GetSharedObjectId() + "\n")
+
+			// Store this device's backfill choice for the joined Space.
+			if !c.Bool("backfill") {
+				return nil
+			}
+			return setSpaceBackfill(ctx, client, sess, resp.GetSharedObjectId(), true)
 		},
 	}
 }

@@ -52,6 +52,12 @@ service SpaceResourceService {
   // state reports the result.
   rpc SetSpaceControl(SetSpaceControlRequest) returns (SetSpaceControlResponse) {}
 
+  // SetSpaceBackfill chooses whether this device copies the whole World into
+  // its local store in the background. Without backfill the device reads
+  // blocks on demand and keeps the blocks it wrote or read. The choice is
+  // stored on this device.
+  rpc SetSpaceBackfill(SetSpaceBackfillRequest) returns (SetSpaceBackfillResponse) {}
+
   // ApproveSpaceChange agrees, as a voter, to a change another voter asked the
   // group for.
   rpc ApproveSpaceChange(ApproveSpaceChangeRequest) returns (ApproveSpaceChangeResponse) {}
@@ -449,6 +455,15 @@ message SetSpaceSequencerResponse {
   // control, and it applies once the group decides it.
   bool awaiting_group = 2;
 }
+
+// SetSpaceBackfillRequest chooses this device's backfill of the World.
+message SetSpaceBackfillRequest {
+  // Backfill copies the whole World into the local store when set.
+  bool backfill = 1;
+}
+
+// SetSpaceBackfillResponse is the response to SetSpaceBackfill.
+message SetSpaceBackfillResponse {}
 
 // SetSpaceControlRequest chooses who controls the Space.
 message SetSpaceControlRequest {

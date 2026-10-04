@@ -108,7 +108,7 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		return nil, nil, errors.Wrap(err, "checkpoint World state")
 	}
 	if !base.EqualVT(r.base) {
-		if err := r.c.retainWorldRoot(ctx, r.so, replayBaseRootName, base.GetHeadRef()); err != nil {
+		if err := holdWorldRoot(ctx, r.so, replayBaseRootName, base.GetHeadRef().GetRootRef()); err != nil {
 			return nil, nil, err
 		}
 		if world, _, ok := r.coveredWorld(checkpoint); ok {

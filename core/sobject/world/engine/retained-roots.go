@@ -24,10 +24,6 @@ const maxRetainedRootNameLen = 64
 // retainedRootsName names the local root that holds the retained root set.
 const retainedRootsName = "retained-roots"
 
-// retainedRootsProofStoreID is the local state store holding the completion
-// proofs of the retained roots.
-const retainedRootsProofStoreID = "retained-root-retention"
-
 // errRetainedRootNotHead is returned when the root to retain is no longer the
 // installed World head.
 var errRetainedRootNotHead = errors.New("root is not the current World head, export it again")
@@ -115,41 +111,22 @@ func validateRetainedRootName(name string) error {
 	return nil
 }
 
-// retainRoots copies every retained root's World graph into the local store
-// and holds the set under one local named root, releasing roots no longer in
-// the set. Returns block.ErrNotFound when a root's block is missing locally
-// and from storage. Callers serialize calls through the writer lock.
-func (c *Controller) retainRoots(ctx context.Context, so sobject.SharedObject, roots []*RetainedRoot) error {
-	return retainRootSet(ctx, so, retainedRootsName, retainedRootsProofStoreID, roots)
-}
-
-// retainRootSet copies the World graph of each root into the local store and
-// holds the set under the local root name, or releases the name when roots is
-// empty. proofStoreID names the local state store of the completion proofs,
-// which callers of the same store serialize.
-func retainRootSet(ctx context.Context, so sobject.SharedObject, name, proofStoreID string, roots []*RetainedRoot) error {
+// holdRootSet holds the World graph of each root in the local store under one
+// local root name, or releases the name when roots is empty. Like
+// holdWorldRoot, it copies nothing: the set block references the roots, and
+// the volume keeps their blocks this device holds.
+func holdRootSet(ctx context.Context, so sobject.SharedObject, name string, roots []*RetainedRoot) error {
 	// Release the set when it is empty.
 	store := so.GetBlockStore()
 	if len(roots) == 0 {
 		return block.SetRetainedRoot(ctx, store, name, nil)
 	}
 
-	// Copy each root's graph.
-	proofs, release, err := so.AccessLocalStateStore(ctx, proofStoreID, nil)
-	if err != nil {
-		return err
-	}
-	defer release()
+	// Encode the set block referencing the roots.
 	refs := make([]*block.BlockRef, 0, len(roots))
 	for _, root := range roots {
-		head := &bucket.ObjectRef{BucketId: store.GetID(), RootRef: root.GetRootRef()}
-		if err := RetainWorld(ctx, so, head, proofs, nil); err != nil {
-			return errors.Wrapf(err, "retained root %q", root.GetName())
-		}
 		refs = append(refs, root.GetRootRef())
 	}
-
-	// Write the set block referencing the roots and retain it.
 	data, err := (&RetainedRootSet{Roots: roots}).MarshalVT()
 	if err != nil {
 		return err
@@ -158,11 +135,38 @@ func retainRootSet(ctx context.Context, so sobject.SharedObject, name, proofStor
 	if err != nil {
 		return err
 	}
+
+	// Store the set block and hold it.
 	entry := &block.PutBatchEntry{Ref: setRef, Data: data, Refs: refs}
 	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 		return err
 	}
 	return block.SetRetainedRoot(ctx, store, name, setRef)
+}
+
+// copyWorlds copies the complete World graph of each root into the local
+// store, recording completion proofs in the local state store proofStoreID.
+// Callers of the same proof store serialize calls.
+func copyWorlds(ctx context.Context, so sobject.SharedObject, proofStoreID string, roots []*block.BlockRef) error {
+	// Open the proof store.
+	proofs, release, err := so.AccessLocalStateStore(ctx, proofStoreID, nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	// Copy each root's graph.
+	store := so.GetBlockStore()
+	for _, root := range roots {
+		if root.GetEmpty() {
+			continue
+		}
+		head := &bucket.ObjectRef{BucketId: store.GetID(), RootRef: root}
+		if err := RetainWorld(ctx, so, head, proofs, nil); err != nil {
+			return errors.Wrapf(err, "copy World %s", root.MarshalString())
+		}
+	}
+	return nil
 }
 
 // _ is a type assertion

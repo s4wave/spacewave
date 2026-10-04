@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/core/resource/space/sharingstate"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
 	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
@@ -324,6 +325,23 @@ func (r *SpaceResource) SetSpaceSequencer(
 		return nil, err
 	}
 	return &s4wave_space.SetSpaceSequencerResponse{Changed: changed}, nil
+}
+
+// SetSpaceBackfill chooses whether this device copies the whole World into its
+// local store in the background.
+func (r *SpaceResource) SetSpaceBackfill(
+	ctx context.Context,
+	req *s4wave_space.SetSpaceBackfillRequest,
+) (*s4wave_space.SetSpaceBackfillResponse, error) {
+	// Only a shared object World keeps a backfill choice.
+	engine, ok := r.space.GetWorldEngine().(sobject_world_engine.BackfillEngine)
+	if !ok {
+		return nil, errors.New("this Space's World cannot be backfilled")
+	}
+	if err := engine.SetBackfill(ctx, req.GetBackfill()); err != nil {
+		return nil, err
+	}
+	return &s4wave_space.SetSpaceBackfillResponse{}, nil
 }
 
 // SetSpaceControl chooses who controls the Space. An owner hands control to
@@ -867,9 +885,6 @@ func loadSharingParticipantPresentationState(
 	return state
 }
 
-// _ is a type assertion
-var _ s4wave_space.SRPCSpaceResourceServiceServer = (*SpaceResource)(nil)
-
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (r *SpaceResource) SetAppPluginIDs(ids []string) {
 	r.appPluginIDs = slices.Clone(ids)
@@ -879,3 +894,6 @@ func (r *SpaceResource) SetAppPluginIDs(ids []string) {
 func (r *SpaceResource) SetBindingRegistry(registry *process_binding.BindingRegistry) {
 	r.bindingRegistry = registry
 }
+
+// _ is a type assertion
+var _ s4wave_space.SRPCSpaceResourceServiceServer = (*SpaceResource)(nil)

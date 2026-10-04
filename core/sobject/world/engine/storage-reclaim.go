@@ -150,15 +150,17 @@ func (e *soEngine) reclaimStorage(ctx context.Context) (time.Time, error) {
 
 // fenceStorageReclaim makes the local store hold every block a roster device
 // may still reference, so a pass drops only blocks unreachable from the World
-// at the stable point and from every operation above it.
+// at the stable point, from every operation above it and from the retained
+// roots.
 //
 // It writes an acknowledgment, which asks every roster device to answer after
 // the operations it has already started, and waits until the stable point
 // covers it. Every operation a roster device started before it saw the fence
 // is then placed here, and any later one uploads its blocks after the backend
-// listed the packfiles the pass judges. It then holds the World after each
-// operation above the checkpoint; the checkpoint's World and the installed
-// World are already held.
+// listed the packfiles the pass judges. It then copies those Worlds complete,
+// since this device holds only the blocks it wrote or read, and holds the
+// World after each operation above the checkpoint. The names of the
+// checkpoint's World and of the retained roots already hold the rest.
 func (e *soEngine) fenceStorageReclaim(ctx context.Context) error {
 	// Write the fence after this device's started operations.
 	h, nonce, err := e.writeFence(ctx)
@@ -171,12 +173,19 @@ func (e *soEngine) fenceStorageReclaim(ctx context.Context) error {
 		return err
 	}
 
-	// Hold the Worlds above the checkpoint.
-	roots, err := e.replayedRoots(ctx)
+	// Copy every live World, then hold the Worlds above the checkpoint.
+	base, roots, retained, err := e.liveWorlds(ctx)
 	if err != nil {
 		return err
 	}
-	return retainRootSet(ctx, e.so, reclaimFenceRootName, reclaimFenceProofStoreID, roots)
+	copies := []*block.BlockRef{base}
+	for _, root := range slices.Concat(roots, retained) {
+		copies = append(copies, root.GetRootRef())
+	}
+	if err := copyWorlds(ctx, e.so, reclaimFenceProofStoreID, copies); err != nil {
+		return err
+	}
+	return holdRootSet(ctx, e.so, reclaimFenceRootName, roots)
 }
 
 // writeFence queues an acknowledgment after every write transaction this
@@ -250,31 +259,33 @@ func (e *soEngine) waitStable(ctx context.Context, h []byte, nonce uint64) error
 	}
 }
 
-// replayedRoots replays the current operation set and returns the World root
-// after each operation above the checkpoint, named by the operation's hash.
-// Returns errReclaimWorldsNotHeld when the replay restored positions without
-// their Worlds.
-func (e *soEngine) replayedRoots(ctx context.Context) ([]*RetainedRoot, error) {
+// liveWorlds replays the current operation set and returns the checkpoint's
+// World root, the World root after each operation above the checkpoint, named
+// by the operation's hash, and the retained roots. Returns
+// errReclaimWorldsNotHeld when the replay restored positions without their
+// Worlds.
+func (e *soEngine) liveWorlds(ctx context.Context) (*block.BlockRef, []*RetainedRoot, []*RetainedRoot, error) {
 	// Replay the current state under the writer lock.
 	unlockWriteMtx, err := e.c.writeMtx.Lock(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	defer unlockWriteMtx()
 	snap, err := e.so.GetSharedObjectState(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	if _, err := e.advance(ctx, snap, nil); err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	// Collect each distinct root after the base.
 	var roots []*RetainedRoot
-	prev := e.replay.base.GetHeadRef().GetRootRef()
+	base := e.replay.base.GetHeadRef().GetRootRef()
+	prev := base
 	for _, pos := range e.replay.positions {
 		if pos.state == nil {
-			return nil, errReclaimWorldsNotHeld
+			return nil, nil, nil, errReclaimWorldsNotHeld
 		}
 		ref := pos.state.GetHeadRef().GetRootRef()
 		if ref.GetEmpty() || ref.EqualVT(prev) {
@@ -283,5 +294,5 @@ func (e *soEngine) replayedRoots(ctx context.Context) ([]*RetainedRoot, error) {
 		roots = append(roots, &RetainedRoot{Name: hex.EncodeToString(pos.outcome.hash), RootRef: ref})
 		prev = ref
 	}
-	return roots, nil
+	return base, roots, e.retainedRoots, nil
 }

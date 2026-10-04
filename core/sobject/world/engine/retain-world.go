@@ -37,30 +37,13 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 // it. visited observes newly traversed blocks; cached complete subtrees are
 // omitted.
 func RetainWorld(ctx context.Context, so sobject.SharedObject, head *bucket.ObjectRef, local kvtx.Store, visited func(*block.BlockRef, []byte)) error {
-	// Short-circuit a World whose graph is already complete in the store.
+	// Short-circuit a World whose graph is already complete in the store. A
+	// proof is volume-wide; a second bucket still needs root ownership.
 	store := so.GetBlockStore()
 	if complete, err := block.RootComplete(ctx, store, head.GetRootRef()); err != nil {
 		return err
 	} else if complete {
-		// A proof is volume-wide; a second bucket still needs root ownership.
-		stored, err := store.GetStoredBlock(ctx, head.GetRootRef())
-		if err != nil {
-			return err
-		}
-		if stored == nil {
-			return block.ErrNotFound
-		}
-		entry := &block.PutBatchEntry{Ref: head.GetRootRef(), Data: stored.GetData(), Refs: stored.GetRefs()}
-		if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
-			return err
-		}
-		// The caller retires the old root next. A store ordered with the
-		// SharedObject state never makes that write durable before this one.
-		if sobject.QueueOrdersBlockWrites(so) {
-			return nil
-		}
-		_, err = store.Sync(ctx)
-		return err
+		return storeRootBlock(ctx, so, head.GetRootRef())
 	}
 
 	// Copy the graph through the proof recorder and mark the root complete.
@@ -77,6 +60,32 @@ func RetainWorld(ctx context.Context, so sobject.SharedObject, head *bucket.Obje
 		return err
 	}
 	return block.MarkRootComplete(ctx, store, head.GetRootRef())
+}
+
+// storeRootBlock writes the root block, read locally or fetched on demand, to
+// the local store of so, so a named root can hold it.
+func storeRootBlock(ctx context.Context, so sobject.SharedObject, root *block.BlockRef) error {
+	// Read the root block and write it with its refs.
+	store := so.GetBlockStore()
+	stored, err := store.GetStoredBlock(ctx, root)
+	if err != nil {
+		return err
+	}
+	if stored == nil {
+		return block.ErrNotFound
+	}
+	entry := &block.PutBatchEntry{Ref: root, Data: stored.GetData(), Refs: stored.GetRefs()}
+	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
+		return err
+	}
+
+	// The caller moves a named root next. A store ordered with the
+	// SharedObject state never makes that write durable before this one.
+	if sobject.QueueOrdersBlockWrites(so) {
+		return nil
+	}
+	_, err = store.Sync(ctx)
+	return err
 }
 
 // LocalProofKeyPrefix prefixes the completion proofs RetainWorld keeps in the

@@ -24,6 +24,8 @@ import {
   RemoveSpacePluginResponse,
   SetProcessBindingRequest,
   SetProcessBindingResponse,
+  SetSpaceBackfillRequest,
+  SetSpaceBackfillResponse,
   SetSpaceControlRequest,
   SetSpaceControlResponse,
   SetSpaceSequencerRequest,
@@ -209,6 +211,20 @@ export const SpaceResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * SetSpaceBackfill chooses whether this device copies the whole World into
+     * its local store in the background. Without backfill the device reads
+     * blocks on demand and keeps the blocks it wrote or read. The choice is
+     * stored on this device.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
+     */
+    SetSpaceBackfill: {
+      name: 'SetSpaceBackfill',
+      I: SetSpaceBackfillRequest,
+      O: SetSpaceBackfillResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
      * group for.
      *
@@ -364,6 +380,19 @@ export interface SpaceResourceService {
     request: SetSpaceControlRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetSpaceControlResponse>
+
+  /**
+   * SetSpaceBackfill chooses whether this device copies the whole World into
+   * its local store in the background. Without backfill the device reads
+   * blocks on demand and keeps the blocks it wrote or read. The choice is
+   * stored on this device.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
+   */
+  SetSpaceBackfill(
+    request: SetSpaceBackfillRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceBackfillResponse>
 
   /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
@@ -535,6 +564,20 @@ export interface SpaceResourceServiceHandler {
   ): Promise<SetSpaceControlResponse>
 
   /**
+   * SetSpaceBackfill chooses whether this device copies the whole World into
+   * its local store in the background. Without backfill the device reads
+   * blocks on demand and keeps the blocks it wrote or read. The choice is
+   * stored on this device.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
+   */
+  SetSpaceBackfill(
+    request: SetSpaceBackfillRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetSpaceBackfillResponse>
+
+  /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
    * group for.
    *
@@ -571,6 +614,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.OpenPluginFrontend = this.OpenPluginFrontend.bind(this)
     this.SetSpaceSequencer = this.SetSpaceSequencer.bind(this)
     this.SetSpaceControl = this.SetSpaceControl.bind(this)
+    this.SetSpaceBackfill = this.SetSpaceBackfill.bind(this)
     this.ApproveSpaceChange = this.ApproveSpaceChange.bind(this)
   }
   /**
@@ -843,6 +887,28 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return SetSpaceControlResponse.fromBinary(result)
+  }
+
+  /**
+   * SetSpaceBackfill chooses whether this device copies the whole World into
+   * its local store in the background. Without backfill the device reads
+   * blocks on demand and keeps the blocks it wrote or read. The choice is
+   * stored on this device.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
+   */
+  async SetSpaceBackfill(
+    request: SetSpaceBackfillRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceBackfillResponse> {
+    const requestMsg = SetSpaceBackfillRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.SetSpaceBackfill.name,
+      SetSpaceBackfillRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetSpaceBackfillResponse.fromBinary(result)
   }
 
   /**

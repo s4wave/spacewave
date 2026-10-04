@@ -1395,6 +1395,37 @@ func (x *SetSpaceSequencerResponse) GetAwaitingGroup() bool {
 	return false
 }
 
+// SetSpaceBackfillRequest chooses this device's backfill of the World.
+type SetSpaceBackfillRequest struct {
+	unknownFields []byte
+	// Backfill copies the whole World into the local store when set.
+	Backfill bool `protobuf:"varint,1,opt,name=backfill,proto3" json:"backfill,omitempty"`
+}
+
+func (x *SetSpaceBackfillRequest) Reset() {
+	*x = SetSpaceBackfillRequest{}
+}
+
+func (*SetSpaceBackfillRequest) ProtoMessage() {}
+
+func (x *SetSpaceBackfillRequest) GetBackfill() bool {
+	if x != nil {
+		return x.Backfill
+	}
+	return false
+}
+
+// SetSpaceBackfillResponse is the response to SetSpaceBackfill.
+type SetSpaceBackfillResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetSpaceBackfillResponse) Reset() {
+	*x = SetSpaceBackfillResponse{}
+}
+
+func (*SetSpaceBackfillResponse) ProtoMessage() {}
+
 // SetSpaceControlRequest chooses who controls the Space.
 type SetSpaceControlRequest struct {
 	unknownFields []byte
@@ -2165,6 +2196,37 @@ func (m *SetSpaceSequencerResponse) CloneVT() *SetSpaceSequencerResponse {
 }
 
 func (m *SetSpaceSequencerResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpaceBackfillRequest) CloneVT() *SetSpaceBackfillRequest {
+	if m == nil {
+		return (*SetSpaceBackfillRequest)(nil)
+	}
+	r := new(SetSpaceBackfillRequest)
+	r.Backfill = m.Backfill
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceBackfillRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpaceBackfillResponse) CloneVT() *SetSpaceBackfillResponse {
+	if m == nil {
+		return (*SetSpaceBackfillResponse)(nil)
+	}
+	r := new(SetSpaceBackfillResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceBackfillResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3134,6 +3196,43 @@ func (this *SetSpaceSequencerResponse) EqualVT(that *SetSpaceSequencerResponse) 
 
 func (this *SetSpaceSequencerResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetSpaceSequencerResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpaceBackfillRequest) EqualVT(that *SetSpaceBackfillRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Backfill != that.Backfill {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceBackfillRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceBackfillRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpaceBackfillResponse) EqualVT(that *SetSpaceBackfillResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceBackfillResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceBackfillResponse)
 	if !ok {
 		return false
 	}
@@ -5510,6 +5609,78 @@ func (x *SetSpaceSequencerResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SetSpaceBackfillRequest message to JSON.
+func (x *SetSpaceBackfillRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Backfill || s.HasField("backfill") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("backfill")
+		s.WriteBool(x.Backfill)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceBackfillRequest to JSON.
+func (x *SetSpaceBackfillRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceBackfillRequest message from JSON.
+func (x *SetSpaceBackfillRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "backfill":
+			s.AddField("backfill")
+			x.Backfill = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceBackfillRequest from JSON.
+func (x *SetSpaceBackfillRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetSpaceBackfillResponse message to JSON.
+func (x *SetSpaceBackfillResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceBackfillResponse to JSON.
+func (x *SetSpaceBackfillResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceBackfillResponse message from JSON.
+func (x *SetSpaceBackfillResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceBackfillResponse from JSON.
+func (x *SetSpaceBackfillResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SetSpaceControlRequest message to JSON.
 func (x *SetSpaceControlRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -7524,6 +7695,75 @@ func (m *SetSpaceSequencerResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *SetSpaceBackfillRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceBackfillRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceBackfillRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Backfill {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Backfill)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetSpaceBackfillResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceBackfillResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceBackfillResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SetSpaceControlRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8334,6 +8574,27 @@ func (m *SetSpaceSequencerResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Changed)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpaceBackfillRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Backfill)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpaceBackfillResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -9250,6 +9511,30 @@ func (x *SetSpaceSequencerResponse) MarshalProtoText() string {
 }
 
 func (x *SetSpaceSequencerResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceBackfillRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpaceBackfillRequest")
+	if x.Backfill != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "backfill")
+		protobuf_go_lite.TextWriteBool(&sb, x.Backfill)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceBackfillRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceBackfillResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetSpaceBackfillResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceBackfillResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -11754,6 +12039,102 @@ func (m *SetSpaceSequencerResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.AwaitingGroup = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceBackfillRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceBackfillRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceBackfillRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Backfill", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Backfill = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceBackfillResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceBackfillResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceBackfillResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
