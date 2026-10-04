@@ -749,7 +749,7 @@ func (r *FSHandleResource) MkdirAll(ctx context.Context, req *s4wave_unixfs.Hand
 
 // Rename renames an entry within a directory or moves it to a new location.
 // When source_name is set, this handle is the parent directory containing the entry.
-// When source_name is empty, returns an error (legacy path was broken).
+// An empty source_name is an error.
 func (r *FSHandleResource) Rename(ctx context.Context, req *s4wave_unixfs.HandleRenameRequest) (*s4wave_unixfs.HandleRenameResponse, error) {
 	// Read the source and destination locations requested for the rename.
 	sourceName := req.GetSourceName()

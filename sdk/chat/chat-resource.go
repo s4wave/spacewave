@@ -353,13 +353,6 @@ func (r *ChatResource) SendMessage(
 	}
 	r = bound
 
-	// Advance legacy indexing in bounded work before entering the append transaction.
-	if r.engine != nil && r.localPeerID != "" && r.personID != "" {
-		if err := r.ensureThreadIndex(ctx); err != nil {
-			return nil, err
-		}
-	}
-
 	// Commit the message and resolve a current-state write conflict.
 	response, err := r.commitMessage(ctx, req)
 	if errors.Is(err, errChatStateConflict) {
@@ -532,7 +525,7 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	// Every new append advances an already initialized history prefix atomically.
 	if channel.ThreadIndexedMessageCount == nil ||
 		channel.GetThreadIndexedMessageCount() != channel.GetMessageCount() {
-		return nil, ErrChatThreadIndexBuilding
+		return nil, errors.New("chat thread index does not match channel history")
 	}
 
 	// Append the accepted message and its page entry in one World transaction.

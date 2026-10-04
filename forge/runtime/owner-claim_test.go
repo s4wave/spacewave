@@ -1,14 +1,10 @@
 package forge_runtime
 
 import (
-	"context"
 	"testing"
 	"time"
 
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/world"
 )
 
 // selfRef is the owning instance claim used across the owner-state tests.
@@ -17,21 +13,7 @@ var selfRef = WorkerClaimRef{DeviceObjectKey: "devices/self", ClaimID: "claim-1"
 // otherRef is a foreign Device claim used to prove cross-instance rejection.
 var otherRef = WorkerClaimRef{DeviceObjectKey: "devices/other", ClaimID: "claim-x"}
 
-// persistLegacyCapacity writes an old-format capacity record without owner
-// fields directly into world state, bypassing the gated API.
-func persistLegacyCapacity(ctx context.Context, eng world.Engine, workerObjectKey string) error {
-	return world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
-		legacy := &WorkerCapacity{
-			MilliCPUTotal:    2_000,
-			MemoryBytesTotal: 4 << 30,
-			Generation:       1,
-			ObservedAt:       timestamp.Now(),
-		}
-		return persistWorkerCapacity(ctx, ws, workerObjectKey, legacy)
-	})
-}
-
-func TestClaimCreateAdoptAndReclaimPreserveDraining(t *testing.T) {
+func TestClaimCreateRenewAndReclaimPreserveDraining(t *testing.T) {
 	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
@@ -69,29 +51,6 @@ func TestClaimCreateAdoptAndReclaimPreserveDraining(t *testing.T) {
 	}
 	if capacity.OwnerEpoch != 2 || capacity.OwnerState != CapacityOwnerStateDraining {
 		t.Fatalf("reclaim must bump epoch and preserve DRAINING: %+v", capacity)
-	}
-}
-
-func TestClaimAdoptsLegacyOwnerlessRecord(t *testing.T) {
-	// Start a World testbed and admission service for the Worker.
-	ctx, eng, _ := newTestbed(t)
-	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
-	if err := persistLegacyCapacity(ctx, eng, "worker/legacy"); err != nil {
-		t.Fatal(err)
-	}
-
-	// Before adoption every gated operation refuses the record.
-	if _, err := admission.Reserve(ctx, "worker/legacy", "exec/0", testRequest); !errors.Is(err, ErrCapacityUnowned) {
-		t.Fatalf("expected unowned rejection on legacy record, got %v", err)
-	}
-
-	// Adoption preserves debits (none here) and activates under epoch 1.
-	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/legacy", selfRef)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if capacity.OwnerEpoch != 1 || capacity.MilliCPUTotal != 2_000 {
-		t.Fatalf("adoption lost observed totals: %+v", capacity)
 	}
 }
 
@@ -253,17 +212,6 @@ func TestReserveRejectionPrecedenceUnderClaims(t *testing.T) {
 	// Start a World testbed and admission service for the Worker.
 	ctx, eng, _ := newTestbed(t)
 	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
-
-	// Unowned legacy record: Reserve rejects before backend checks even
-	// though the record declares the backend and ample totals.
-	if err := persistLegacyCapacity(ctx, eng, "worker/legacy"); err != nil {
-		t.Fatal(err)
-	}
-
-	// Reject reservations against an ownerless Worker capacity record.
-	if _, err := admission.Reserve(ctx, "worker/legacy", "exec/1", testRequest); !errors.Is(err, ErrCapacityUnowned) {
-		t.Fatalf("expected unowned rejection, got %v", err)
-	}
 
 	// Draining record with fitting totals still rejects new work.
 	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
@@ -453,65 +401,6 @@ func TestGatedRenewLeaseRejectsStaleRef(t *testing.T) {
 
 	// Renew the reservation under the current Worker claim.
 	if _, err := admission.RenewLease(ctx, selfRef, res.ObjectKey()); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// TestLegacyRawJSONDecodesUnavailableAndAdopts pins the raw legacy wire shape:
-// a record written before owner claims carries none of the owner keys, decodes
-// cleanly, stays unavailable to every gated operation, and is adopted by a
-// claim with its observed totals intact. It also pins forward compatibility:
-// the new JSON form round-trips every pre-existing field unchanged.
-func TestLegacyRawJSONDecodesUnavailableAndAdopts(t *testing.T) {
-	// Decode a saved ownerless Worker capacity record and check its fields.
-	legacyJSON := `{"milliCpuTotal":2000,"memoryBytesTotal":4294967296,` +
-		`"milliCpuReserved":1000,"memoryBytesReserved":1073741824,` +
-		`"backends":["docker"],"observedAt":"1970-01-01T00:00:10Z",` +
-		`"generation":3}`
-	var decoded WorkerCapacity
-	if err := decoded.UnmarshalJSON([]byte(legacyJSON)); err != nil {
-		t.Fatal(err)
-	}
-	if decoded.MilliCPUTotal != 2_000 || decoded.MilliCPUReserved != 1_000 ||
-		decoded.MemoryBytesTotal != 4<<30 || decoded.MemoryBytesReserved != 1<<30 ||
-		len(decoded.Backends) != 1 || decoded.Generation != 3 {
-		t.Fatalf("legacy decode lost pre-existing fields: %+v", decoded)
-	}
-	if err := decoded.Validate(); err != nil {
-		t.Fatalf("legacy ownerless shape must validate: %v", err)
-	}
-
-	// Start a World testbed and admission service for the Worker.
-	ctx, eng, _ := newTestbed(t)
-	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
-	if err := world.ExecTransaction(ctx, eng, true, func(ctx context.Context, ws world.WorldState) error {
-		_, _, err := world.AccessWorldObject(ctx, ws, BuildWorkerCapacityObjectKey("worker/legacy"), true,
-			func(bcs *block.Cursor) error {
-				bcs.SetBlock(&decoded, true)
-				return nil
-			})
-		return err
-	}); err != nil {
-		t.Fatal(err)
-	}
-
-	// Unavailable: Reserve refuses the ownerless record despite ample totals.
-	if _, err := admission.Reserve(ctx, "worker/legacy", "exec/legacy", testRequest); !errors.Is(err, ErrCapacityUnowned) {
-		t.Fatalf("expected unowned rejection, got %v", err)
-	}
-
-	// Adopt: the claim preserves observed totals and debits under epoch 1.
-	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/legacy", selfRef)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if capacity.OwnerEpoch != 1 || capacity.MilliCPUReserved != 1_000 ||
-		capacity.WorkerObjectKey != "worker/legacy" {
-		t.Fatalf("adoption lost durable facts: %+v", capacity)
-	}
-
-	// Reserve capacity for a new Execution attempt.
-	if _, err := admission.Reserve(ctx, "worker/legacy", "exec/legacy2", testRequest); err != nil {
 		t.Fatal(err)
 	}
 }

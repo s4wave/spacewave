@@ -126,11 +126,6 @@ func loadOwnedCapacity(
 		return nil, err
 	}
 
-	// Require a durable Worker claim before checking its identity.
-	if !capacity.owned() {
-		return nil, ErrCapacityUnowned
-	}
-
 	// Fence the Worker claim by Device, lease and epoch.
 	expired := capacity.OwnerLeaseExpiresAt == nil || !now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
 	switch {
@@ -151,9 +146,6 @@ func loadOwnedCapacity(
 // reference and is unexpired. Sweeps use this variant: they carry no epoch
 // argument because the stored epoch is current for the live owner.
 func verifyLiveClaim(capacity *WorkerCapacity, ref WorkerClaimRef, now time.Time) error {
-	if !capacity.owned() {
-		return ErrCapacityUnowned
-	}
 	if capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey || capacity.ClaimID != ref.ClaimID {
 		if capacity.OwnerLeaseExpiresAt == nil || !now.Before(capacity.OwnerLeaseExpiresAt.AsTime()) {
 			return ErrCapacityOwnerExpired
@@ -167,9 +159,9 @@ func verifyLiveClaim(capacity *WorkerCapacity, ref WorkerClaimRef, now time.Time
 }
 
 // ClaimWorkerCapacity claims or reclaims the Worker's capacity record for the
-// calling instance. An absent record is created at epoch 1 with zero totals; a
-// legacy ownerless record or an expired lease is reclaimed with an epoch bump
-// that preserves OwnerState so resumed drains stay draining. A live foreign
+// calling instance. An absent record is created at epoch 1 with zero totals;
+// an expired lease is reclaimed with an epoch bump that preserves OwnerState
+// so resumed drains stay draining. A live foreign
 // Device claim fails with ErrCapacityOwned. The same Device and claim id renew
 // idempotently without bumping the epoch.
 func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
@@ -215,8 +207,7 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 			capacity.Generation = 1
 		} else {
 			// Reject a foreign Device holding a live Worker claim.
-			live := capacity.owned() &&
-				capacity.OwnerLeaseExpiresAt != nil &&
+			live := capacity.OwnerLeaseExpiresAt != nil &&
 				now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
 			if live && capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey {
 				return ErrCapacityOwned
@@ -230,17 +221,14 @@ func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 				// Idempotent renew: extend the lease in place.
 				capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
 			} else {
-				// Reclaim: legacy ownerless, expired lease, or a new claim id
-				// on the same Device. Preserve OwnerState and observed totals;
+				// Reclaim: an expired lease or a new claim id on the same
+				// Device. Preserve OwnerState and observed totals;
 				// bump the epoch so stale instances fence out.
 				prevEpoch := capacity.OwnerEpoch
 				capacity.OwnerDeviceObjectKey = ref.DeviceObjectKey
 				capacity.ClaimID = ref.ClaimID
 				capacity.OwnerEpoch = prevEpoch + 1
 				capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
-				if capacity.OwnerState == CapacityOwnerStateUnspecified {
-					capacity.OwnerState = CapacityOwnerStateActive
-				}
 			}
 		}
 
@@ -289,9 +277,6 @@ func (a *WorldRuntimeAdmission) RenewWorkerClaim(
 
 		// Require the renewing Device and claim to match the durable record.
 		now := a.now().UTC()
-		if !capacity.owned() {
-			return ErrCapacityUnowned
-		}
 		if capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey {
 			return ErrCapacityOwned
 		}
@@ -955,7 +940,7 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, ref WorkerClai
 		}
 
 		// Entry check: only records carrying this live claim are swept.
-		// Missing, legacy ownerless, foreign-held, and expired-claim records
+		// Missing, foreign-held, and expired-claim records
 		// are skipped without invoking the stopper.
 		live, err := a.claimLiveForWorker(ctx, workerKey, ref)
 		if err != nil {
@@ -1368,8 +1353,7 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref Wo
 // isClaimFenceError reports whether an error came from the owner-claim fence
 // rather than from storage or validation.
 func isClaimFenceError(err error) bool {
-	return errors.Is(err, ErrCapacityUnowned) ||
-		errors.Is(err, ErrCapacityOwned) ||
+	return errors.Is(err, ErrCapacityOwned) ||
 		errors.Is(err, ErrCapacityOwnerExpired) ||
 		errors.Is(err, ErrStaleGeneration)
 }

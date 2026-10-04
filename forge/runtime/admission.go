@@ -198,9 +198,6 @@ var (
 	// reservation whose lease already expired but is not swept yet. Run the
 	// expiry sweep; the retry then requires a new attempt.
 	ErrReservationExpired = errors.New("reservation lease expired")
-	// ErrCapacityUnowned is returned when a capacity record carries no live
-	// owner claim, including legacy ownerless records.
-	ErrCapacityUnowned = errors.New("worker capacity has no live owner claim")
 	// ErrCapacityOwned is returned when a different Device holds the live
 	// owner claim on a capacity record.
 	ErrCapacityOwned = errors.New("worker capacity claimed by another device")

@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/sirupsen/logrus"
 )
@@ -228,30 +227,17 @@ func MarshalTransformConf(transformConf *block_transform.Config) ([]byte, error)
 	return envelope, nil
 }
 
-// UnmarshalTransformConf unmarshals the content-addressed envelope format and
-// the legacy CRC32-appended format.
+// UnmarshalTransformConf unmarshals the content-addressed envelope format.
 func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
-	// Extract the transform payload from its envelope or CRC32 encoding.
-	var payload []byte
-	if len(data) >= len(transformConfEnvelopeMagic) &&
-		data[0] == transformConfEnvelopeMagic[0] &&
-		data[1] == transformConfEnvelopeMagic[1] &&
-		data[2] == transformConfEnvelopeMagic[2] &&
-		data[3] == transformConfEnvelopeMagic[3] {
-		if len(data) < transformConfEnvelopeHeaderSize {
-			return nil, errors.New("transform config envelope too short")
-		}
-		if data[len(transformConfEnvelopeMagic)] != transformConfEnvelopeVersion {
-			return nil, errors.New("unsupported transform config envelope version")
-		}
-		payload = data[transformConfEnvelopeHeaderSize:]
-	} else {
-		var err error
-		payload, err = transform_chksum.DecodeCRC32(data)
-		if err != nil {
-			return nil, err
-		}
+	// Extract the transform payload from its versioned envelope.
+	if len(data) < transformConfEnvelopeHeaderSize ||
+		string(data[:len(transformConfEnvelopeMagic)]) != transformConfEnvelopeMagic {
+		return nil, errors.New("transform config has no envelope")
 	}
+	if data[len(transformConfEnvelopeMagic)] != transformConfEnvelopeVersion {
+		return nil, errors.New("unsupported transform config envelope version")
+	}
+	payload := data[transformConfEnvelopeHeaderSize:]
 
 	// Decode the transform configuration from the verified payload.
 	conf := &block_transform.Config{}

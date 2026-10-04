@@ -34,7 +34,6 @@ const (
 	RunEnv             = "RUN_DOWNSTREAM_APP_E2E"
 	CompilerEnv        = "BLDR_DOWNSTREAM_APP_COMPILER"
 	WorkerModeEnv      = "BLDR_DOWNSTREAM_APP_WORKER_MODE"
-	legacyCompilerEnv  = "BLDR_GO_PLUGIN_COMPILER_MODE"
 	fixtureProjectPath = "bldr/e2e/downstreamapp/testdata/app/bldr.star"
 
 	defaultManifestBuildTimeout = 5 * time.Minute
@@ -84,10 +83,6 @@ type bootConfig struct {
 }
 
 func ResolveBrowserCompiler() (BrowserCompiler, error) {
-	if raw := strings.TrimSpace(os.Getenv(legacyCompilerEnv)); raw != "" {
-		return "", errors.Errorf("%s is no longer supported; use %s=goscript", legacyCompilerEnv, CompilerEnv)
-	}
-
 	raw := strings.ToLower(strings.TrimSpace(os.Getenv(CompilerEnv)))
 	switch raw {
 	case "", string(BrowserCompilerGoScript):

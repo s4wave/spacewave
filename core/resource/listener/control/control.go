@@ -67,8 +67,7 @@ type Handler struct {
 // shutdown runs before the completion acknowledgement and must
 // synchronously release the listener and its socket path.
 //
-// If policy is nil, the handler auto-allows every request (matching
-// the legacy "always allow" behavior of the CLI daemon).
+// If policy is nil, the handler auto-allows every request.
 func NewHandler(policy YieldPolicy, shutdown func()) *Handler {
 	if policy == nil {
 		policy = AutoAllowPolicy

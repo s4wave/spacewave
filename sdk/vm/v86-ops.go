@@ -276,42 +276,6 @@ var _ world.Operation = (*SetV86ConfigOp)(nil)
 // SetV86StateOpId is the operation id for SetV86StateOp.
 var SetV86StateOpId = "vm/v86/set-state"
 
-// IsValidV86StateTransition reports whether transitioning a VmV86 from src to
-// dst is permitted by the legacy state graph.
-//
-// New state operations store desired state in VmV86.State and runtime
-// observations in VmV86.ObservedState. This helper remains for callers that
-// validate the pre-fenced graph.
-func IsValidV86StateTransition(src, dst VmState) bool {
-	// Reject transitions that leave the VM's state unchanged.
-	if src == dst {
-		return false
-	}
-
-	// any -> ERROR is always allowed.
-	if dst == VmState_VmState_ERROR {
-		return true
-	}
-
-	// ERROR -> STOPPED clears the error.
-	if src == VmState_VmState_ERROR {
-		return dst == VmState_VmState_STOPPED
-	}
-
-	// Select the allowed destination states for the VM's current state.
-	switch src {
-	case VmState_VmState_STOPPED:
-		return dst == VmState_VmState_STARTING
-	case VmState_VmState_STARTING:
-		return dst == VmState_VmState_RUNNING || dst == VmState_VmState_STOPPED
-	case VmState_VmState_RUNNING:
-		return dst == VmState_VmState_STOPPING || dst == VmState_VmState_STOPPED
-	case VmState_VmState_STOPPING:
-		return dst == VmState_VmState_STOPPED
-	}
-	return false
-}
-
 func normalizeV86DesiredState(state VmState) (VmState, error) {
 	switch state {
 	case VmState_VmState_STARTING:

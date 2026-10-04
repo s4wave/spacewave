@@ -11,30 +11,20 @@ import (
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
-const (
-	// maxThreadMigrationMessages bounds legacy backfill work per request.
-	maxThreadMigrationMessages = 250
-	// maxThreadScanLimit bounds filtering work independently of channel size.
-	maxThreadScanLimit = 250
-)
-
-// ErrChatThreadIndexBuilding asks a caller to retry after bounded legacy backfill.
-var ErrChatThreadIndexBuilding = errors.New("chat thread index is still building")
+// maxThreadScanLimit bounds filtering work independently of channel size.
+const maxThreadScanLimit = 250
 
 // ListThreads returns native thread summaries in descending activity order.
 func (r *ChatResource) ListThreads(
 	ctx context.Context,
 	req *spacewave_chat_rpc.ListThreadsRequest,
 ) (*spacewave_chat_rpc.ListThreadsResponse, error) {
-	// Bind the channel read to the accepted author and initialize its thread index.
+	// Bind the channel read to the accepted author.
 	bound, err := r.operationResource(ctx)
 	if err != nil {
 		return nil, err
 	}
 	r = bound
-	if err := r.ensureThreadIndex(ctx); err != nil {
-		return nil, err
-	}
 	channel, err := r.readChannel(ctx)
 	if err != nil {
 		return nil, err
@@ -124,104 +114,6 @@ func (r *ChatResource) ListThreads(
 		response.NextBeforeIndex = &next
 	}
 	return response, nil
-}
-
-// ensureThreadIndex migrates a legacy channel once before serving indexed reads.
-func (r *ChatResource) ensureThreadIndex(ctx context.Context) error {
-	// Determine whether the channel needs a writable thread backfill.
-	channel, err := r.readChannel(ctx)
-	if err != nil {
-		return err
-	}
-	if channel.ThreadIndexedMessageCount != nil &&
-		channel.GetThreadIndexedMessageCount() == channel.GetMessageCount() {
-		return nil
-	}
-	if r.engine == nil {
-		return errors.New("legacy chat thread index requires a writable resource")
-	}
-
-	// Open a transaction on the channel metadata for bounded backfill.
-	tx, err := r.engine.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-	channel, err = world.LookupObjectBody[*ChatChannel](ctx, tx, r.objectKey, NewChatChannelBlock)
-	if err != nil {
-		return err
-	}
-
-	// Extend the channel's indexed history prefix.
-	changed, complete, err := r.updateThreadIndex(ctx, tx, channel, maxThreadMigrationMessages)
-	if err != nil {
-		return err
-	}
-	if !changed {
-		return nil
-	}
-
-	// Persist the backfill and synchronize the World storage.
-	if err := r.writeChannel(ctx, tx, channel); err != nil {
-		return err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return err
-	}
-	if _, err := r.engine.Sync(ctx); err != nil {
-		return err
-	}
-
-	// Report an incomplete thread index to the caller.
-	if !complete {
-		return ErrChatThreadIndexBuilding
-	}
-	return nil
-}
-
-// updateThreadIndex extends or initializes the index through current history.
-func (r *ChatResource) updateThreadIndex(
-	ctx context.Context,
-	ws world.WorldState,
-	channel *ChatChannel,
-	messageLimit uint64,
-) (bool, bool, error) {
-	// Validate the backfill limit and initialize legacy index metadata.
-	if messageLimit == 0 {
-		return false, false, errors.New("chat thread migration limit must be positive")
-	}
-	initialized := channel.ThreadIndexedMessageCount != nil
-	if !initialized {
-		if channel.GetThreadHeadKey() != "" {
-			return false, false, errors.New("legacy chat thread index contains current-format state")
-		}
-		channel.ThreadIndexedMessageCount = new(uint64)
-	}
-	if channel.GetThreadIndexedMessageCount() > channel.GetMessageCount() {
-		return false, false, errors.New("chat thread index exceeds channel history")
-	}
-
-	// Index the next bounded segment of channel history.
-	changed := !initialized
-	startIndex := channel.GetThreadIndexedMessageCount()
-	endIndex := startIndex + min(messageLimit, channel.GetMessageCount()-startIndex)
-	for index := startIndex; index < endIndex; index++ {
-		messageKey, err := r.readMessageKeyAt(ctx, ws, index)
-		if err != nil {
-			return false, false, err
-		}
-		message, err := world.LookupObjectBody[*ChatMessage](ctx, ws, messageKey, NewChatMessageBlock)
-		if err != nil {
-			return false, false, err
-		}
-		if err := r.indexThreadReply(ctx, ws, channel, messageKey, message); err != nil {
-			return false, false, err
-		}
-		indexedMessageCount := index + 1
-		channel.ThreadIndexedMessageCount = &indexedMessageCount
-		changed = true
-	}
-	return changed, channel.GetThreadIndexedMessageCount() == channel.GetMessageCount(), nil
 }
 
 // indexAppendedMessage advances the current index with one newly retained message.

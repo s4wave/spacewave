@@ -22,7 +22,6 @@ import (
 
 func TestResolveBrowserCompiler(t *testing.T) {
 	// An unset compiler env selects GoScript.
-	t.Setenv(legacyCompilerEnv, "")
 	t.Setenv(CompilerEnv, "")
 	got, err := ResolveBrowserCompiler()
 	if err != nil {
@@ -46,19 +45,6 @@ func TestResolveBrowserCompiler(t *testing.T) {
 	t.Setenv(CompilerEnv, "wat")
 	if _, err := ResolveBrowserCompiler(); err == nil {
 		t.Fatal("ResolveBrowserCompiler(wat) error = nil, want unsupported compiler error")
-	}
-}
-
-func TestResolveBrowserCompilerRejectsLegacySelector(t *testing.T) {
-	// The legacy compiler env must be rejected.
-	t.Setenv(legacyCompilerEnv, "goscript")
-	t.Setenv(CompilerEnv, "")
-	_, err := ResolveBrowserCompiler()
-	if err == nil {
-		t.Fatal("ResolveBrowserCompiler() error = nil, want legacy selector error")
-	}
-	if !strings.Contains(err.Error(), legacyCompilerEnv) {
-		t.Fatalf("ResolveBrowserCompiler() error = %v, want mention of %s", err, legacyCompilerEnv)
 	}
 }
 

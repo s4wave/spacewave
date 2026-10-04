@@ -36,9 +36,8 @@ func NewWorkerCapacityBlock() block.Block {
 type CapacityOwnerState uint8
 
 const (
-	// CapacityOwnerStateUnspecified is the zero value: no live owner claim.
-	// Legacy records written before owner claims decode with this state and
-	// stay unavailable to every gated operation.
+	// CapacityOwnerStateUnspecified is the zero value and never valid on a
+	// stored record.
 	CapacityOwnerStateUnspecified CapacityOwnerState = iota
 	// CapacityOwnerStateActive means the claim is live and admits new work.
 	CapacityOwnerStateActive
@@ -74,8 +73,7 @@ type WorkerCapacity struct {
 	// fence stale capacity views.
 	Generation uint64
 	// OwnerDeviceObjectKey is the enrolled Device object key of the owning
-	// Worker execution. Empty together with every other owner field marks a
-	// legacy ownerless record.
+	// Worker execution.
 	OwnerDeviceObjectKey string
 	// ClaimID identifies one owning Worker execution claim.
 	ClaimID string
@@ -93,16 +91,8 @@ func (w *WorkerCapacity) SupportsBackend(backend string) bool {
 	return slices.Contains(w.Backends, backend)
 }
 
-// owned reports whether the record carries any owner-claim field.
-func (w *WorkerCapacity) owned() bool {
-	return w.OwnerDeviceObjectKey != "" || w.ClaimID != "" ||
-		w.WorkerObjectKey != "" || w.OwnerEpoch != 0 ||
-		w.OwnerLeaseExpiresAt != nil || w.OwnerState != CapacityOwnerStateUnspecified
-}
-
-// Validate validates the capacity record. A record carries either no owner
-// fields at all (legacy ownerless shape) or all six; partial owner shapes are
-// invalid so a half-written claim can never decode as available.
+// Validate validates the capacity record. Every owner field must be set, so
+// a half-written claim can never decode as available.
 func (w *WorkerCapacity) Validate() error {
 	// An ACTIVE record never over-commits; a DRAINING record may hold debits
 	// above shrunk declared totals until credits land or the claim deletes it.
@@ -120,18 +110,15 @@ func (w *WorkerCapacity) Validate() error {
 	if err := w.ObservedAt.Validate(false); err != nil {
 		return errors.Wrap(err, "observed_at")
 	}
-	if !w.owned() {
-		return nil
-	}
 	switch {
 	case w.WorkerObjectKey == "":
-		return errors.New("worker_object_key must be set when owned")
+		return errors.New("worker_object_key must be set")
 	case w.OwnerDeviceObjectKey == "":
-		return errors.New("owner_device_object_key must be set when owned")
+		return errors.New("owner_device_object_key must be set")
 	case w.ClaimID == "":
-		return errors.New("claim_id must be set when owned")
+		return errors.New("claim_id must be set")
 	case w.OwnerEpoch == 0:
-		return errors.New("owner_epoch must be set when owned")
+		return errors.New("owner_epoch must be set")
 	case w.OwnerState == CapacityOwnerStateUnspecified || !w.OwnerState.Valid():
 		return errors.New("invalid owner_state")
 	}
@@ -142,13 +129,11 @@ func (w *WorkerCapacity) Validate() error {
 }
 
 // OwnerClaimActive reports whether the record carries a live owner claim at
-// the given time: owned, lease unexpired, and state ACTIVE. It returns typed
-// sentinel errors so callers can distinguish unavailable, expired, and
-// draining records without string matching.
+// the given time: lease unexpired and state ACTIVE. It returns typed sentinel
+// errors so callers can distinguish expired and draining records without
+// string matching.
 func (w *WorkerCapacity) OwnerClaimActive(now time.Time) error {
 	switch {
-	case !w.owned():
-		return ErrCapacityUnowned
 	case w.OwnerLeaseExpiresAt == nil || !now.Before(w.OwnerLeaseExpiresAt.AsTime()):
 		return ErrCapacityOwnerExpired
 	case w.OwnerState != CapacityOwnerStateActive:

@@ -528,7 +528,11 @@ func createChatChannel(t *testing.T, ctx context.Context, ws world.WorldState, o
 
 	// Create and type the channel fixture in World state.
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(&ChatChannel{Name: name, CreatedAt: timestamppb.Now()}, true)
+		bcs.SetBlock(&ChatChannel{
+			Name:                      name,
+			CreatedAt:                 timestamppb.Now(),
+			ThreadIndexedMessageCount: new(uint64),
+		}, true)
 		return nil
 	})
 	world.ReleaseObjectState(createdObject)

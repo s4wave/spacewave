@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	db_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -152,106 +151,6 @@ func TestChatResourceListThreadsRetainsOrderCountsAndReplyParticipation(t *testi
 	}
 }
 
-// TestChatResourceListThreadsMigratesLegacyHistoryOnce proves compatibility without repeated scans.
-func TestChatResourceListThreadsMigratesLegacyHistoryOnce(t *testing.T) {
-	// Start an isolated World for legacy thread backfill.
-	ctx := t.Context()
-	tb, err := db_world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
-
-	// Create legacy history with one root and one reply.
-	ws := world.NewEngineWorldState(tb.Engine, true)
-	const channelKey = "chat/channel/legacy-threads"
-	createChatChannel(t, ctx, ws, channelKey, "Legacy")
-	rootKey := channelKey + "/message/0"
-	createChatMessage(t, ctx, ws, channelKey, rootKey, "root", "alice-device")
-	replyKey := channelKey + "/message/1"
-	createLegacyThreadReply(t, ctx, ws, channelKey, replyKey, rootKey)
-
-	// Attach the reply author and open a transaction on legacy metadata.
-	resource := newChatResourceForPerson(t, ws, tb.Engine, channelKey, "bob-device", "bob")
-	t.Cleanup(resource.Close)
-	tx, err := tb.Engine.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Discard()
-
-	// Read the legacy channel for bounded indexing.
-	legacyChannel, err := world.LookupObjectBody[*ChatChannel](ctx, tx, channelKey, NewChatChannelBlock)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Index one legacy message.
-	changed, complete, err := resource.updateThreadIndex(ctx, tx, legacyChannel, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Require an incomplete index limited to one message.
-	if !changed || complete || legacyChannel.GetThreadIndexedMessageCount() != 1 {
-		t.Fatalf("bounded migration = changed %t, complete %t, channel %v", changed, complete, legacyChannel)
-	}
-
-	// Persist and synchronize the partial thread index.
-	if err := resource.writeChannel(ctx, tx, legacyChannel); err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tb.Engine.Sync(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	// Read the thread list to finish legacy backfill.
-	page, err := resource.ListThreads(ctx, &chat_rpc.ListThreadsRequest{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify the migrated reply and its person participation.
-	if len(page.GetThreads()) != 1 || page.GetThreads()[0].GetRoot().GetObjectKey() != rootKey ||
-		page.GetThreads()[0].GetLatestReply().GetObjectKey() != replyKey ||
-		!page.GetThreads()[0].GetCurrentUserParticipated() {
-		t.Fatalf("migrated threads = %v", page)
-	}
-
-	// Read the channel's migrated index metadata.
-	channel, err := resource.readChannel(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Require a complete indexed history prefix and a thread head.
-	if channel.ThreadIndexedMessageCount == nil || channel.GetThreadIndexedMessageCount() != channel.GetMessageCount() ||
-		channel.GetThreadHeadKey() == "" {
-		t.Fatalf("migrated channel index = %v", channel)
-	}
-
-	// Read the indexed thread list again while tracking the World revision.
-	before, err := ws.GetSeqno(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := resource.ListThreads(ctx, &chat_rpc.ListThreadsRequest{}); err != nil {
-		t.Fatal(err)
-	}
-	after, err := ws.GetSeqno(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Require an indexed read to leave the World revision unchanged.
-	if after != before {
-		t.Fatalf("current index read changed world seqno from %d to %d", before, after)
-	}
-}
-
 func sendThreadTestEvent(
 	t *testing.T,
 	ctx context.Context,
@@ -272,41 +171,4 @@ func sendThreadTestEvent(
 		t.Fatal(err)
 	}
 	return response.GetMessageKey()
-}
-
-func createLegacyThreadReply(
-	t *testing.T,
-	ctx context.Context,
-	ws world.WorldState,
-	channelKey string,
-	messageKey string,
-	rootKey string,
-) {
-	// Create the legacy reply body and attribute fixture errors to the calling test.
-	t.Helper()
-	createdObject, _, err := world.CreateWorldObject(ctx, ws, messageKey, func(cursor *block.Cursor) error {
-		cursor.SetBlock(&ChatMessage{
-			SenderPeerId: "bob-device",
-			PersonId:     "bob",
-			Content: &ChatMessageContent{Content: &ChatMessageContent_Event{Event: &ChatEvent{
-				Type:        "m.room.message",
-				ContentJson: `{"body":"legacy","msgtype":"m.text"}`,
-				Relation:    &ChatRelation{Type: "m.thread", TargetKey: rootKey},
-			}}},
-			CreatedAt: timestamppb.Now(),
-			Index:     1,
-		}, true)
-		return nil
-	})
-	world.ReleaseObjectState(createdObject)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := world_types.SetObjectType(ctx, ws, messageKey, ChatMessageTypeID); err != nil {
-		t.Fatal(err)
-	}
-	appendChatMessageKey(t, ctx, ws, channelKey, messageKey)
-	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(channelKey, PredChannelMessage.String(), messageKey, "")); err != nil {
-		t.Fatal(err)
-	}
 }

@@ -20,8 +20,6 @@ import (
 const (
 	// E2EWasmCompilerEnv selects the browser Go compiler for app tests.
 	E2EWasmCompilerEnv = "E2E_WASM_COMPILER"
-	// E2EWasmLegacyTinyGoEnv was the old boolean TinyGo selector.
-	E2EWasmLegacyTinyGoEnv = "E2E_WASM_TINYGO"
 	// E2EWasmWorkerModeEnv selects the browser worker topology for local tests.
 	E2EWasmWorkerModeEnv = "E2E_WASM_WORKER_MODE"
 	// E2EWasmTinyGoProfileEnv selects the local TinyGo build profile.
@@ -170,11 +168,6 @@ func WithSessionHarness() Option {
 // ResolveE2EWasmCompiler resolves the browser Go compiler for local harness
 // runs. The unset default matches Bldr web builds: GoScript in browser plugins.
 func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
-	legacyTinyGo := strings.TrimSpace(os.Getenv(E2EWasmLegacyTinyGoEnv))
-	if legacyTinyGo != "" {
-		return "", errors.Errorf("%s is no longer supported; use %s=tinygo", E2EWasmLegacyTinyGoEnv, E2EWasmCompilerEnv)
-	}
-
 	raw := strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmCompilerEnv)))
 	switch raw {
 	case "":

@@ -98,7 +98,6 @@ func TestResolveE2EWasmCompiler(t *testing.T) {
 		{name: "case insensitive", env: "GoScript", want: E2EWasmCompilerGoScript},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv(E2EWasmLegacyTinyGoEnv, "")
 			t.Setenv(E2EWasmCompilerEnv, tc.env)
 			got, err := ResolveE2EWasmCompiler()
 			if err != nil {
@@ -112,20 +111,10 @@ func TestResolveE2EWasmCompiler(t *testing.T) {
 }
 
 func TestResolveE2EWasmCompilerRejectsInvalid(t *testing.T) {
-	t.Setenv(E2EWasmLegacyTinyGoEnv, "")
 	t.Setenv(E2EWasmCompilerEnv, "banana")
 
 	if _, err := ResolveE2EWasmCompiler(); err == nil {
 		t.Fatal("expected unsupported compiler to fail")
-	}
-}
-
-func TestResolveE2EWasmCompilerRejectsLegacyTinyGoEnv(t *testing.T) {
-	t.Setenv(E2EWasmLegacyTinyGoEnv, "true")
-	t.Setenv(E2EWasmCompilerEnv, "tinygo")
-
-	if _, err := ResolveE2EWasmCompiler(); err == nil {
-		t.Fatal("expected legacy TinyGo selector to fail")
 	}
 }
 
@@ -794,7 +783,6 @@ func clearE2EWasmTinyGoEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
 		E2EWasmCompilerEnv,
-		E2EWasmLegacyTinyGoEnv,
 		E2EWasmTinyGoProfileEnv,
 		E2EWasmTinyGoOptEnv,
 		E2EWasmTinyGoPanicEnv,

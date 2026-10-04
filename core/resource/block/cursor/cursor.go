@@ -54,7 +54,6 @@ func (r *BlockCursorResource) SetBlock(ctx context.Context, req *s4wave_block_cu
 	// Store raw block bytes when the request supplies no block type.
 	blockTypeID := req.GetBlockType()
 	if blockTypeID == "" {
-		// Legacy path: no block type, use raw bytes
 		r.cursor.SetBlock(req.GetData(), req.GetMarkDirty())
 		return &s4wave_block_cursor.SetBlockResponse{}, nil
 	}

@@ -16,7 +16,6 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/tx"
@@ -43,34 +42,6 @@ func TestTransformConfEnvelopeRoundTrip(t *testing.T) {
 	}
 	if !decoded.EqualVT(conf) {
 		t.Fatalf("decoded config mismatch: got %v, want %v", decoded, conf)
-	}
-}
-
-func TestTransformConfLegacyCRC32RoundTrip(t *testing.T) {
-	// Encode a transform configuration with its legacy CRC32 checksum.
-	conf := testTransformConf(t)
-	payload, err := conf.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	legacy, err := transform_chksum.EncodeCRC32(payload)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify decoding the legacy payload restores the transform configuration.
-	decoded, err := UnmarshalTransformConf(legacy)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !decoded.EqualVT(conf) {
-		t.Fatalf("decoded legacy config mismatch: got %v, want %v", decoded, conf)
-	}
-
-	// Verify a corrupt CRC32 transform payload is rejected.
-	legacy[len(legacy)-1] ^= 0xff
-	if _, err := UnmarshalTransformConf(legacy); err == nil {
-		t.Fatal("corrupt legacy transform config accepted")
 	}
 }
 
