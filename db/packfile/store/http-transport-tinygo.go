@@ -15,10 +15,11 @@ import (
 
 const tinyGoPackRangeMaxBytes = 2 * 1024 * 1024
 
+// httpTransport issues one browser fetch range request per Fetch call.
 type httpTransport struct {
-	url          string
-	headers      map[string][]string
-	constructErr error
+	url         string
+	signReq     func(*http.Request) error
+	observeResp func(*http.Response)
 }
 
 // Fetch reads length bytes starting at off via a browser fetch range request.
@@ -26,9 +27,6 @@ type httpTransport struct {
 func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byte, error) {
 	if length <= 0 {
 		return nil, nil
-	}
-	if t.constructErr != nil {
-		return nil, t.constructErr
 	}
 	if length > tinyGoPackRangeMaxBytes {
 		return nil, errors.Errorf("pack range request length %d exceeds TinyGo browser limit %d", length, tinyGoPackRangeMaxBytes)
@@ -40,22 +38,29 @@ func (t *httpTransport) Fetch(ctx context.Context, off int64, length int) ([]byt
 
 // fetchOnce issues one browser fetch range request.
 func (t *httpTransport) fetchOnce(ctx context.Context, off int64, length int) ([]byte, error) {
-
-	req := &fetch.Opts{
-		Signal: ctx,
-		Header: cloneFetchHeaders(t.headers),
-	}
-	if req.Header == nil {
-		req.Header = make(fetch.Header, 1)
+	// Build and sign the request.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "build range request")
 	}
 	req.Header.Set("Range", "bytes="+strconv.FormatInt(off, 10)+"-"+strconv.FormatInt(off+int64(length)-1, 10))
+	if t.signReq != nil {
+		if err := t.signReq(req); err != nil {
+			return nil, errors.Wrap(err, "sign range request")
+		}
+	}
 
-	resp, err := fetch.Fetch(t.url, req)
+	// Send it through the browser.
+	resp, err := fetch.Fetch(req.URL.String(), &fetch.Opts{Signal: ctx, Header: cloneFetchHeaders(req.Header)})
 	if err != nil {
 		return nil, &transientError{err: err}
 	}
 	defer resp.Body.Close()
+	if t.observeResp != nil {
+		t.observeResp(&http.Response{StatusCode: resp.StatusCode, Header: http.Header(resp.Header)})
+	}
 
+	// Read the range, skipping the prefix of a full response.
 	switch resp.StatusCode {
 	case http.StatusPartialContent:
 		return readTinyGoPackRangeBody(resp.Body, length)
@@ -111,7 +116,8 @@ func (t *httpTransport) SnapshotTransportStats() TransportStats {
 }
 
 // NewHTTPRangeReader builds a per-pack engine backed by browser fetch range
-// requests.
+// requests. signReq optionally prepares each request, such as signing it or
+// replacing its URL with a granted one.
 func NewHTTPRangeReader(
 	cli *http.Client,
 	url string,
@@ -120,13 +126,15 @@ func NewHTTPRangeReader(
 	signReq func(*http.Request) error,
 	observeResp func(*http.Response),
 ) *PackReader {
-	headers, err := buildSignedRangeHeaders(url, signReq)
+	// Build the engine over one transport.
 	t := &httpTransport{
-		url:          url,
-		headers:      headers,
-		constructErr: err,
+		url:         url,
+		signReq:     signReq,
+		observeResp: observeResp,
 	}
 	e := NewPackReader(url, size, t)
+
+	// Size its windows for the browser.
 	if readAheadSize > 0 {
 		e.minWindow = readAheadSize
 		e.transportQuantum = readAheadSize
@@ -136,24 +144,6 @@ func NewHTTPRangeReader(
 	e.budget.limit.Store(16 * 1024 * 1024)
 	e.normalizeTransportLocked()
 	return e
-}
-
-func buildSignedRangeHeaders(url string, signReq func(*http.Request) error) (map[string][]string, error) {
-	if signReq == nil {
-		return nil, nil
-	}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "build range request")
-	}
-	if err := signReq(req); err != nil {
-		return nil, errors.Wrap(err, "sign range request")
-	}
-	headers := make(map[string][]string, len(req.Header))
-	for key, vals := range req.Header {
-		headers[key] = slices.Clone(vals)
-	}
-	return headers, nil
 }
 
 // _ is a type assertion
