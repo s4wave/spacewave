@@ -321,6 +321,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	}
 	defer t.sobjectProm.SetPromise(nil)
 	err = host.execute(ctx, func(ctx context.Context) error {
+		// Restore this peer's membership, then publish the Space.
 		if err := t.tryRecoverMissingSharedObjectPeer(ctx, sobjectRef, so, sessionCli); err != nil {
 			return err
 		}
@@ -328,6 +329,11 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
 		))
 		t.sobjectProm.SetResult(so, nil)
+
+		// Record missing participant accounts once the Space is usable.
+		if err := t.fillParticipantAccounts(ctx, so, sessionCli); err != nil && ctx.Err() == nil {
+			le.WithError(err).Warn("could not record participant accounts")
+		}
 		return nil
 	})
 	if isTerminalSharedObjectMountError(err) {

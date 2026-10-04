@@ -2120,11 +2120,37 @@ func (c *SessionClient) LookupInviteCode(ctx context.Context, code string) (*api
 }
 
 // GetMailboxEntries returns pending mailbox entries for a shared object.
-func (c *SessionClient) GetMailboxEntries(ctx context.Context, soID string) (*api.GetMailboxResponse, error) {
-	respBody, err := c.doGet(ctx, "/api/sobject/"+soID+"/invite-mailbox?status=pending", SeedReasonColdSeed)
+func (c *SessionClient) GetMailboxEntries(
+	ctx context.Context,
+	soID string,
+) (*api.GetMailboxResponse, error) {
+	return c.getMailboxEntries(ctx, soID, "pending")
+}
+
+// GetAcceptedMailboxEntries returns the accepted mailbox entries for a shared
+// object. Each pairs an admitted peer with the account that submitted it.
+func (c *SessionClient) GetAcceptedMailboxEntries(
+	ctx context.Context,
+	soID string,
+) (*api.GetMailboxResponse, error) {
+	return c.getMailboxEntries(ctx, soID, "accepted")
+}
+
+// getMailboxEntries returns the mailbox entries for a shared object with the
+// given status. Only the owner may read them.
+func (c *SessionClient) getMailboxEntries(
+	ctx context.Context,
+	soID string,
+	status string,
+) (*api.GetMailboxResponse, error) {
+	// Fetch the entries with the requested status.
+	path := "/api/sobject/" + soID + "/invite-mailbox?status=" + status
+	respBody, err := c.doGet(ctx, path, SeedReasonColdSeed)
 	if err != nil {
 		return nil, errors.Wrap(err, "get mailbox entries")
 	}
+
+	// Decode the response.
 	resp := &api.GetMailboxResponse{}
 	if err := resp.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal mailbox response")
