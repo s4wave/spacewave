@@ -662,7 +662,7 @@ export function SessionSharedObjectContainer() {
     environment.instanceKey,
   )
 
-  // Redirect legacy /u/:idx/so/:spaceId to /u/:idx/org/:orgId/so/:spaceId
+  // Redirect /u/:idx/so/:spaceId to /u/:idx/org/:orgId/so/:spaceId
   // when the space is org-owned. Skip when already nested under /org/.
   const orgRedirectId = useMemo(() => {
     if (!sharedObjectId) return ''

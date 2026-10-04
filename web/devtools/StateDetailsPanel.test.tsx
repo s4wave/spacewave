@@ -10,7 +10,7 @@ import type { StateInspectorEntry } from './useStateInspectorEntries.js'
 describe('StateDetailsPanel', () => {
   it('renders the selected atom value', () => {
     const entry: StateInspectorEntry = {
-      kind: 'legacy',
+      kind: 'memory',
       id: 'local:test',
       label: 'test',
       scope: 'local',

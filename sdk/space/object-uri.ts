@@ -42,9 +42,7 @@ export function parseObjectUri(uri: string): {
     // We have an explicit delimiter; split into objectKey and subpath.
     const objectKey = uri.slice(0, delimiterIndex)
     let path = uri.slice(delimiterIndex + SUBPATH_DELIMITER.length)
-    // If the subpath ends with a trailing marker (i.e. "-" or "/-"),
-    // remove it so it does not affect the path.
-    // Remove any trailing marker from the subpath if present.
+    // Remove a trailing marker ("-" or "/-") so it does not affect the path.
     if (path === '-') {
       // exact "-" should be ignored
       path = ''
@@ -55,9 +53,7 @@ export function parseObjectUri(uri: string): {
     return { objectKey, path }
   }
 
-  // No explicit delimiter found.
-  // For backward compatibility, if the URI ends with a trailing marker "/-",
-  // remove it.
+  // No explicit delimiter found. A trailing "/-" marks an empty subpath.
   if (uri.endsWith('/-')) {
     return {
       objectKey: uri.slice(0, -2),

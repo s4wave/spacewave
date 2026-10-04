@@ -4,7 +4,6 @@ import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Engine } from './engine.js'
 import { type IObjectState } from './object-state.js'
 import {
-  normalizeRenameObjectOptions,
   Tx,
   type IWorldState,
   type ListGraphEdgeBucketsOptions,
@@ -205,11 +204,10 @@ export class EngineWorldState implements IWorldState {
   public async renameObject(
     oldKey: string,
     newKey: string,
-    options?: AbortSignal | RenameObjectOptions,
+    options?: RenameObjectOptions,
   ): Promise<IObjectState> {
-    const renameOptions = normalizeRenameObjectOptions(options)
-    await this.performOp(true, renameOptions.abortSignal, async (tx) => {
-      const obj = await tx.renameObject(oldKey, newKey, renameOptions)
+    await this.performOp(true, options?.abortSignal, async (tx) => {
+      const obj = await tx.renameObject(oldKey, newKey, options)
       obj.release()
     })
     return new EngineWorldStateObject(this, newKey)

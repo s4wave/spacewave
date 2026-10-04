@@ -38,7 +38,7 @@ describe('StateTreeTab', () => {
     expect(screen.getByText('Session State')).toBeDefined()
   })
 
-  it('groups legacy atoms under local and persistent sections with scalar previews', () => {
+  it('groups in-memory atoms under local and persistent sections with scalar previews', () => {
     render(
       <StateDevToolsProvider>
         <StateNamespaceProvider rootAtom={atom({})}>

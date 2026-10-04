@@ -141,7 +141,7 @@ export interface IWorldState {
   renameObject(
     oldKey: string,
     newKey: string,
-    options?: AbortSignal | RenameObjectOptions,
+    options?: RenameObjectOptions,
   ): Promise<IObjectState>
 
   // DeleteObject deletes an object and associated graph quads by ID
@@ -462,16 +462,15 @@ export class WorldStateResource extends Resource implements IWorldState {
   public async renameObject(
     oldKey: string,
     newKey: string,
-    options?: AbortSignal | RenameObjectOptions,
+    options?: RenameObjectOptions,
   ): Promise<ObjectState> {
-    const renameOptions = normalizeRenameObjectOptions(options)
     const response = await this.service.RenameObject(
       {
         oldObjectKey: oldKey,
         newObjectKey: newKey,
-        descendants: renameOptions.descendants,
+        descendants: options?.descendants,
       },
-      renameOptions.abortSignal,
+      options?.abortSignal,
     )
     return this.resourceRef.createResource(
       response.resourceId ?? 0,
@@ -741,15 +740,4 @@ export class Tx extends WorldStateResource {
   public async discard(abortSignal?: AbortSignal): Promise<void> {
     await this.txService.Discard({}, abortSignal)
   }
-}
-
-// normalizeRenameObjectOptions normalizes legacy AbortSignal arguments.
-export function normalizeRenameObjectOptions(
-  options?: AbortSignal | RenameObjectOptions,
-): RenameObjectOptions {
-  if (!options) return {}
-  if (options instanceof AbortSignal) {
-    return { abortSignal: options }
-  }
-  return options
 }

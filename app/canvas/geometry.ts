@@ -44,22 +44,13 @@ export function encodeCanvasGeometry(geometry: CanvasGeometry): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(geometry))
 }
 
-// decodeCanvasGeometry decodes current payloads and legacy point arrays.
+// decodeCanvasGeometry decodes a drawing or shape payload.
 export function decodeCanvasGeometry(
   data: Uint8Array | undefined,
 ): CanvasGeometry | null {
   if (!data?.length) return null
   try {
     const decoded: unknown = JSON.parse(new TextDecoder().decode(data))
-    if (Array.isArray(decoded)) {
-      const points = decoded.flatMap((value) => {
-        const point = parsePoint(value)
-        return point ? [point] : []
-      })
-      return points.length >= 2
-        ? { kind: 'pen', color: 'currentColor', points }
-        : null
-    }
     if (typeof decoded !== 'object' || decoded === null) return null
     const candidate = decoded as {
       kind?: unknown

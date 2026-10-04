@@ -355,7 +355,7 @@ export function useStateAtom<T>(
     defaultValue,
   )
 
-  // Legacy in-memory atom mode: nested object tree.
+  // In-memory atom mode: nested object tree.
   const stateAtom = namespace?.stateAtom ?? context.stateAtom
   const getValue = useCallback(() => {
     const state = stateAtom.get()
@@ -378,7 +378,7 @@ export function useStateAtom<T>(
     [stateAtom, path, key, getValue, defaultValueLatest],
   )
 
-  const legacyValue = useSyncExternalStore(
+  const memoryValue = useSyncExternalStore(
     (callback) => stateAtom.subscribe(callback),
     getValue,
     getValue,
@@ -386,12 +386,12 @@ export function useStateAtom<T>(
 
   useRegisterStateAtomForDevTools(
     storeId,
-    legacyValue,
+    memoryValue,
     hasAccessor ? null : getStateAtomScope(stateAtom),
   )
 
   if (hasAccessor) return backendResult
-  return [legacyValue, setValue]
+  return [memoryValue, setValue]
 }
 
 function getDeepValue<T>(
@@ -455,7 +455,7 @@ export function useStateReducerAtom<State, Action>(
     [setBackendState, reducer],
   )
 
-  // Legacy in-memory atom mode.
+  // In-memory atom mode.
   const parentStateAtom = context.stateAtom
   const getValue = useCallback(() => {
     if (!parentStateAtom) return initialState
@@ -475,7 +475,7 @@ export function useStateReducerAtom<State, Action>(
     [parentStateAtom, path, key, getValue, reducer, initialState],
   )
 
-  const legacyState = useSyncExternalStore(
+  const memoryState = useSyncExternalStore(
     (callback) => parentStateAtom.subscribe(callback) ?? (() => {}),
     getValue,
     getValue,
@@ -483,12 +483,12 @@ export function useStateReducerAtom<State, Action>(
 
   useRegisterStateAtomForDevTools(
     storeId,
-    legacyState,
+    memoryState,
     hasAccessor ? null : getStateAtomScope(parentStateAtom),
   )
 
   if (hasAccessor) return [backendState, backendDispatch]
-  return [legacyState, dispatch]
+  return [memoryState, dispatch]
 }
 
 type RegisteredStateAtom = InspectableStateAtom & {

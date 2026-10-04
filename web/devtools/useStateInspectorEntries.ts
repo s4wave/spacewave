@@ -26,7 +26,7 @@ export type StateInspectorScope = 'local' | 'persistent' | 'root' | 'session'
 
 export type StateInspectorEntry =
   | {
-      kind: 'legacy'
+      kind: 'memory'
       id: string
       label: string
       scope: 'local' | 'persistent'
@@ -48,15 +48,15 @@ const NULL_ACCESSOR: StateAtomAccessor = {
 }
 
 export function useStateInspectorEntries(): StateInspectorEntry[] {
-  const legacyAtoms = useStateAtoms()
+  const memoryAtoms = useStateAtoms()
   const rootStoreIds = useWatchRootStateAtomStoreIds()
   const sessionStoreIds = useWatchSessionStateAtomStoreIds()
 
   return useMemo(() => {
     const entries: StateInspectorEntry[] = []
-    for (const entry of legacyAtoms.values()) {
+    for (const entry of memoryAtoms.values()) {
       entries.push({
-        kind: 'legacy',
+        kind: 'memory',
         id: `${entry.scope}:${entry.id}`,
         label: entry.name,
         scope: entry.scope,
@@ -82,7 +82,7 @@ export function useStateInspectorEntries(): StateInspectorEntry[] {
       })
     }
     return entries
-  }, [legacyAtoms, rootStoreIds, sessionStoreIds])
+  }, [memoryAtoms, rootStoreIds, sessionStoreIds])
 }
 
 export function useStateInspectorEntryMap(): Map<string, StateInspectorEntry> {
@@ -124,7 +124,7 @@ export function useStateAtomAccessorForScope(
 }
 
 export function useStateInspectorValue(entry: StateInspectorEntry): unknown {
-  const legacyValue = useAtomValue(entry.kind === 'legacy' ? entry.atom : null)
+  const memoryValue = useAtomValue(entry.kind === 'memory' ? entry.atom : null)
   const rootAccessor = useStateAtomAccessorForScope('root')
   const sessionAccessor = useStateAtomAccessorForScope('session')
   const resourceAccessor =
@@ -138,7 +138,7 @@ export function useStateInspectorValue(entry: StateInspectorEntry): unknown {
     entry.kind === 'resource' ? entry.storeId : '__devtools-unused__',
     {},
   )
-  return entry.kind === 'legacy' ? legacyValue : resourceState.value
+  return entry.kind === 'memory' ? memoryValue : resourceState.value
 }
 
 function useWatchRootStateAtomStoreIds(): string[] {
