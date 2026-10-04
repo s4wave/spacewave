@@ -814,7 +814,7 @@
     },
     {
       "name": "github.com/aperturerobotics/cli",
-      "version": "v1.1.1-0.20261004085359-3b9a829e0d9b",
+      "version": "v1.1.1-0.20261004095549-d4875ce31004",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/cli",
