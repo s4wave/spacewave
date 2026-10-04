@@ -2,3 +2,9 @@
 *.pb.* -diff
 .protoc-manifest.json linguist-generated
 .protoc-manifest.json -diff
+
+# Lock files are generated; tools that count handwritten lines skip them.
+go.sum linguist-generated
+bun.lock linguist-generated
+uv.lock linguist-generated
+Cargo.lock linguist-generated
