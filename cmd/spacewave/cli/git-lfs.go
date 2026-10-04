@@ -305,19 +305,20 @@ func buildGitLfsFlushCommand() *cli.Command {
 			}
 			defer engineCleanup()
 
-			// Sync the World and wait until the session has synced.
+			// Sync the World and wait until the Space's uploads finish.
 			if _, err := engine.Sync(ctx); err != nil {
 				return errors.Wrap(err, "sync world")
 			}
-			return waitSessionSynced(ctx, sess)
+			return waitSpaceStorageSynced(ctx, sess, sid)
 		},
 	}
 }
 
-// waitSessionSynced watches the session sync status until no work is
-// pending, reporting progress on stderr, and fails on a sync error.
+// waitSessionSynced watches the session sync status until no upload work is
+// pending, reporting progress on stderr, and fails on an upload error.
+// Download activity does not hold the wait.
 func waitSessionSynced(ctx context.Context, sess *s4wave_session.Session) error {
-	// Watch the session sync status until no work is pending.
+	// Watch the session sync status until no upload work is pending.
 	strm, err := sess.WatchSyncStatus(ctx)
 	if err != nil {
 		return errors.Wrap(err, "watch sync status")
@@ -329,15 +330,17 @@ func waitSessionSynced(ctx context.Context, sess *s4wave_session.Session) error 
 		if err != nil {
 			return errors.Wrap(err, "recv sync status")
 		}
-		switch status.GetState() {
-		case s4wave_session.SyncStatusState_SyncStatusState_SYNCED:
+		if uploadErr := status.GetUploadError(); uploadErr != "" {
+			return errors.Errorf("upload failed: %s", uploadErr)
+		}
+		if status.GetPendingUploadCount() == 0 && status.GetPendingUploadBytes() == 0 && status.GetInFlightUploadCount() == 0 {
 			if reported {
 				os.Stderr.WriteString("spacewave: synced\n")
 			}
 			return nil
-		case s4wave_session.SyncStatusState_SyncStatusState_ERROR:
-			return errors.Errorf("sync failed: %s", status.GetLastError())
 		}
+
+		// Report the remaining upload backlog.
 		os.Stderr.WriteString(
 			"spacewave: syncing " +
 				strconv.FormatUint(uint64(status.GetPendingUploadCount()), 10) + " items, " +

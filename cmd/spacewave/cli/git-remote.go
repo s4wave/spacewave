@@ -109,19 +109,19 @@ func buildGitRemoteServeCommand() *cli.Command {
 			}
 
 			// Mount the Git engine and run the remote helper.
-			engine, sess, cleanup, err := mountGitEngine(c, statePath, space, sessIdx)
+			mount, cleanup, err := mountGitEngine(c, statePath, space, sessIdx)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
-			helper := git_remote.NewHelper(engine, objectKey, gitDir)
+			helper := git_remote.NewHelper(mount.engine, objectKey, gitDir)
 			if err := helper.Run(ctx, os.Stdin, os.Stdout); err != nil {
 				return err
 			}
 			if !helper.Pushed() {
 				return nil
 			}
-			return waitSessionSynced(ctx, sess)
+			return waitSpaceStorageSynced(ctx, mount.sess, mount.spaceID)
 		},
 	}
 }

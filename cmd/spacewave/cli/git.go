@@ -74,18 +74,26 @@ func mountGitContext(c *cli.Context, statePath string, uri fsURI) (*gitContext, 
 	}, mount.release, nil
 }
 
+// gitEngineMount holds the World engine of a Space mounted without a typed
+// object.
+type gitEngineMount struct {
+	engine  *sdk_engine.SDKEngine
+	sess    *s4wave_session.Session
+	spaceID string
+}
+
 // mountGitEngine connects to the daemon and mounts the engine without
 // accessing a typed object. spaceID may be a Space ID or name; empty selects
 // the first Space. Used by standalone commands like clone and the remote
 // helper.
-func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sdk_engine.SDKEngine, *s4wave_session.Session, func(), error) {
+func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*gitEngineMount, func(), error) {
 	// Take the command context for the daemon connection.
 	ctx := c.Context
 
 	// Connect to the daemon from the CLI context.
 	client, err := connectDaemonFromContext(ctx, c, statePath)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	// Resolve the session index, defaulting to the first session.
@@ -94,7 +102,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		idx, err = sessionIndexFromInt(sessIdx)
 		if err != nil {
 			client.close()
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -102,7 +110,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 	sess, err := client.mountSession(ctx, idx)
 	if err != nil {
 		client.close()
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	// Resolve the Space by name or by ID.
@@ -114,7 +122,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 	if err != nil {
 		sess.Release()
 		client.close()
-		return nil, nil, nil, errors.Wrap(err, "resolve space")
+		return nil, nil, errors.Wrap(err, "resolve space")
 	}
 
 	// Mount the Space service for the resolved Space.
@@ -122,7 +130,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 	if err != nil {
 		sess.Release()
 		client.close()
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	// Open the World engine through the Space service.
@@ -131,7 +139,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		spaceCleanup()
 		sess.Release()
 		client.close()
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	// Release the engine, Space, session, and daemon client together.
@@ -141,7 +149,7 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 		sess.Release()
 		client.close()
 	}
-	return engine, sess, cleanup, nil
+	return &gitEngineMount{engine: engine, sess: sess, spaceID: spaceID}, cleanup, nil
 }
 
 // commonGitFlags returns the flags shared by git subcommands that need a URI.
@@ -965,7 +973,7 @@ func buildGitCloneCommand() *cli.Command {
 			}
 
 			// Mount the World engine and release it when the command returns.
-			engine, _, cleanup, err := mountGitEngine(c, statePath, spaceID, sessIdx)
+			mount, cleanup, err := mountGitEngine(c, statePath, spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
@@ -990,7 +998,7 @@ func buildGitCloneCommand() *cli.Command {
 			// Clone the remote, staged until the publish commits, and disable
 			// checkout when that flag is set.
 			cloneOpts.DisableCheckout = c.Bool("no-checkout")
-			stage, err := engine.StageWorldState(c.Context)
+			stage, err := mount.engine.StageWorldState(c.Context)
 			if err != nil {
 				return err
 			}
@@ -1001,7 +1009,7 @@ func buildGitCloneCommand() *cli.Command {
 			}
 
 			// Publish the cloned repo under the object key.
-			tx, err := engine.NewTransaction(c.Context, true)
+			tx, err := mount.engine.NewTransaction(c.Context, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
