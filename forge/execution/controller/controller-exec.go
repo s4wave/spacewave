@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
@@ -43,12 +44,27 @@ func (c *Controller) executeClaimed(claimCtx context.Context, execConf *ExecConf
 		ctxCancel()
 	}
 
-	// Run and drain the target under the live claim.
-	execErr := c.processExec(ctx, execConf)
+	// Keep transport interruptions under the live lease. Reconstructing the
+	// target resolves the replacement plugin without completing the Execution.
+	var execErr error
+	retry := (&backoff.Backoff{}).Construct()
+	for {
+		// Run and drain each target before deciding whether its stream was interrupted.
+		execErr = c.processExec(ctx, execConf)
+		if claimCtx.Err() != nil {
+			return nil
+		}
+		if c.cancelCtx.Err() != nil ||
+			(!errors.Is(execErr, srpc.ErrReset) && !errors.Is(execErr, srpc.ErrClosedBeforeCompletion)) {
+			break
+		}
 
-	// Leave settlement to the next claimant once this lease is canceled.
-	if claimCtx.Err() != nil {
-		return nil
+		// Retain claim renewal while waiting to rejoin the plugin service.
+		c.le.WithError(execErr).Debug("retrying interrupted execution")
+		select {
+		case <-ctx.Done():
+		case <-time.After(retry.NextBackOff()):
+		}
 	}
 
 	// Retry the durable completion until it commits. A failed write, such as
@@ -125,7 +141,7 @@ func (c *Controller) completeExecution(ctx context.Context, execConf *ExecConfig
 	// Choose the result from the cancellation state and the target outcome.
 	var res *forge_value.Result
 	switch {
-	case canceling && execErr != nil && !errors.Is(execErr, context.Canceled):
+	case canceling && execErr != nil && !errors.Is(execErr, context.Canceled) && !errors.Is(execErr, srpc.ErrReset):
 		return &drainError{err: execErr}
 	case canceling:
 		c.le.Info("marking execution as canceled after drain")
@@ -151,7 +167,8 @@ func (c *Controller) completeExecution(ctx context.Context, execConf *ExecConfig
 
 // processExec processes the exec portion of the Target config.
 //
-// if any error is returned, that error is set as the execution result.
+// Transport interruptions are retried by executeClaimed; handler errors become
+// the execution result.
 func (c *Controller) processExec(
 	ctx context.Context,
 	execConf *ExecConfig,
@@ -162,7 +179,6 @@ func (c *Controller) processExec(
 	ctrlConf := tgtExecConf.GetController()
 	exState := execConf.GetExecution()
 	if tgtExecConf.GetDisable() || ctrlConf.GetId() == "" {
-		// skip - configuration is empty
 		return nil
 	}
 
@@ -188,7 +204,7 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "resolve exec controller config")
 	}
 
-	// rCtrlConf is the typed controllerbus config for the controller
+	// Validate the resolved controller configuration before loading its factory.
 	rCtrlConf := cconf.GetConfig()
 	if err := rCtrlConf.Validate(); err != nil {
 		return errors.Wrap(err, "validate exec controller config")
@@ -317,7 +333,6 @@ func (c *Controller) processExec(
 		le.Debug("controller does not implement exec-controller interface")
 	}
 	if ctx.Err() != nil {
-		// note: ignore err if context was canceled
 		return context.Canceled
 	}
 	if err != nil {
