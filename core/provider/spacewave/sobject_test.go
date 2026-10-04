@@ -507,6 +507,39 @@ func TestDeleteSharedObjectRemovesMetadataAndListCaches(t *testing.T) {
 	}
 }
 
+// TestCreateSharedObjectDeletesUninitializedObject deletes the catalog entry
+// when the genesis state cannot be written.
+func TestCreateSharedObjectDeletesUninitializedObject(t *testing.T) {
+	// Accept the catalog create and delete, and reject every genesis write.
+	const soID = "so-123"
+	var deleted bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/sobject/" + soID + "/create":
+			w.WriteHeader(http.StatusOK)
+		case "/api/sobject/" + soID + "/delete":
+			deleted = true
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	defer srv.Close()
+
+	// Create a Space and check that the failed create removed its entry.
+	acc := NewTestProviderAccount(t, srv.URL)
+	meta, err := space.NewSharedObjectMeta("Space")
+	if err != nil {
+		t.Fatalf("build shared object metadata: %v", err)
+	}
+	if _, err := acc.CreateSharedObject(context.Background(), soID, meta, "", ""); err == nil {
+		t.Fatal("expected create to fail")
+	}
+	if !deleted {
+		t.Fatal("expected the uninitialized shared object to be deleted")
+	}
+}
+
 // TestFetchSharedObjectListPreservesCreatedCacheEntry retains locally created entries during list refresh.
 func TestFetchSharedObjectListPreservesCreatedCacheEntry(t *testing.T) {
 	const soID = "so-created"

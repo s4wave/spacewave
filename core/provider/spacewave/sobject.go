@@ -437,12 +437,19 @@ func (a *ProviderAccount) CreateSharedObject(ctx context.Context, id string, met
 	}
 
 	// Initialize the object with the same authorized Session that created it.
+	// A catalog entry without a genesis config admits no participant, not even
+	// its owner, so delete the entry when initialization fails.
+	le := a.le.WithField("sobject-id", id)
 	username, err := a.getUsername(ctx)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		err = initializeCloudSharedObjectState(ctx, cli, le, a.accountID, username, id, sessionPriv, a.sfs, objectType == space.SpaceBodyType)
+		err = errors.Wrap(err, "init shared object state")
 	}
-	if err := initializeCloudSharedObjectState(ctx, cli, a.le.WithField("sobject-id", id), a.accountID, username, id, sessionPriv, a.sfs, objectType == space.SpaceBodyType); err != nil {
-		return nil, errors.Wrap(err, "init shared object state")
+	if err != nil {
+		if derr := a.DeleteSharedObject(ctx, id); derr != nil {
+			le.WithError(derr).Warn("unable to delete uninitialized shared object")
+		}
+		return nil, err
 	}
 	ref := a.buildSharedObjectRef(id)
 
