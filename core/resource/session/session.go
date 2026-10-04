@@ -139,6 +139,7 @@ func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
 	hostPluginID string,
 	recoveryStatusRegistry *RecoveryStatusRegistry,
 ) *SessionResource {
+	// Initialize the Session resource context and its provider-independent identity.
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	sessResource := &SessionResource{
 		le:           le,
@@ -149,6 +150,7 @@ func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
 		ctxCancel:    ctxCancel,
 	}
 
+	// Create the recovery-status resource and register the core Session services.
 	statusRes := NewStatusResourceWithSession(
 		b,
 		sess,
@@ -177,6 +179,7 @@ func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
 		})
 	}
 
+	// Assemble the resource mux with services selected for the Session provider.
 	sessResource.mux = resource_server.NewResourceMux(registrations...)
 	return sessResource
 }
@@ -191,6 +194,7 @@ func (r *SessionResource) GetMux() srpc.Invoker {
 // Close from the release callback so the lifecycle context is canceled
 // and any provider-level subscriptions are released.
 func (r *SessionResource) Close() {
+	// Release the CDN subscription and cancel the Session resource lifecycle.
 	r.cdnMtx.Lock()
 	release := r.cdnRootChangedRelease
 	r.cdnRootChangedRelease = nil
@@ -210,6 +214,7 @@ func (r *SessionResource) Close() {
 // receives cdn-root-changed). Safe to call once per SessionResource; a
 // second call releases the second subscription so one remains.
 func (r *SessionResource) SetCdnRootChangedHook(hook func(spaceID string)) {
+	// Bind one Cloud account root-change callback to this SessionResource.
 	if hook == nil {
 		return
 	}
@@ -247,21 +252,25 @@ func (r *SessionResource) AccessStateAtom(
 	ctx context.Context,
 	req *s4wave_session.AccessSessionStateAtomRequest,
 ) (*s4wave_session.AccessSessionStateAtomResponse, error) {
+	// Resolve the caller's resource context before allocating a state atom.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Select the requested state-atom store or the Session default.
 	storeID := req.GetStoreId()
 	if storeID == "" {
 		storeID = resource_state.DefaultStateAtomStoreID
 	}
 
+	// Open the state-atom store owned by this Session.
 	store, err := r.session.AccessStateAtomStore(ctx, storeID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Expose the state-atom store as a caller-owned resource.
 	stateResource := resource_state.NewStateAtomResource(store)
 	id, err := resourceCtx.AddResource(stateResource.GetMux(), func() {})
 	if err != nil {
@@ -294,16 +303,21 @@ func (r *SessionResource) GetSessionInfo(ctx context.Context, req *s4wave_sessio
 
 // buildCryptoInfo extracts cheap crypto identity from the session.
 func (r *SessionResource) buildCryptoInfo() *s4wave_session.SessionCryptoInfo {
+	// Build public-key identity details from the Session peer.
 	info := &s4wave_session.SessionCryptoInfo{}
 	pubKey, err := r.session.GetPeerId().ExtractPublicKey()
 	if err != nil {
 		return info
 	}
+
+	// Record the public-key type and base58 representation in the response.
 	info.KeyType = bifrost_crypto.KeyType_name[int32(pubKey.Type())]
 	raw, err := pubKey.Raw()
 	if err == nil {
 		info.PublicKeyBase58 = b58.Encode(raw)
 	}
+
+	// Add the PEM public-key representation when serialization succeeds.
 	pemData, err := confparse.MarshalPublicKeyPEM(pubKey)
 	if err == nil {
 		info.PublicKeyPem = string(pemData)
@@ -317,15 +331,18 @@ func (r *SessionResource) addSharedObjectResource(
 	soRef *sobject.SharedObjectRef,
 	meta *sobject.SharedObjectMeta,
 ) (*s4wave_session.MountSharedObjectResponse, error) {
+	// Validate the SharedObject reference before mounting it.
 	if err := soRef.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Mount the SharedObject and retain its release handle.
 	mountedSo, mountedSoRef, err := sobject.ExMountSharedObject(ctx, r.session.GetBus(), soRef, false, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create the SharedObject resource and register its cleanup with the caller.
 	soResource := resource_sobject.NewSharedObjectResourceWithHostPluginID(
 		r.le,
 		r.b,
@@ -401,6 +418,7 @@ func (r *SessionResource) mountSpaceResponse(
 	soRef *sobject.SharedObjectRef,
 	soMeta *sobject.SharedObjectMeta,
 ) (*s4wave_session.CreateSpaceResponse, error) {
+	// Resolve the provider feature and caller context needed to mount the Space.
 	soFeature, err := sobject.GetSharedObjectProviderAccountFeature(ctx, r.session.GetProviderAccount())
 	if err != nil {
 		return nil, err
@@ -410,6 +428,7 @@ func (r *SessionResource) mountSpaceResponse(
 		return nil, err
 	}
 
+	// Mount the Space source and body, retaining both cleanup handles.
 	mountedSource, releaseMountedSource, err := soFeature.MountSharedObject(ctx, soRef, nil)
 	if err != nil {
 		return nil, err
@@ -431,6 +450,8 @@ func (r *SessionResource) mountSpaceResponse(
 		spaceBodyRef.Release()
 		releaseMountedSource()
 	}
+
+	// Register the mounted Space body and transfer cleanup to its resource.
 	spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 		r.le,
 		r.b,
@@ -451,6 +472,7 @@ func (r *SessionResource) mountSpaceResponse(
 		return nil, err
 	}
 
+	// Expose the mounted Space World to the caller.
 	spaceWorld, err := spaceResource.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
 		resourceCtx.ReleaseResource(spaceBodyID)
@@ -458,6 +480,7 @@ func (r *SessionResource) mountSpaceResponse(
 	}
 	spaceWorldID := spaceWorld.GetResourceId()
 
+	// Register the mounted SharedObject alongside its Space resources.
 	mountedSharedObject, err := r.addSharedObjectResource(ctx, resourceCtx, soRef, soMeta)
 	if err != nil {
 		resourceCtx.ReleaseResource(spaceWorldID)
@@ -479,6 +502,7 @@ func (r *SessionResource) OpenFriendDM(
 	ctx context.Context,
 	targetAccountID string,
 ) (*s4wave_session.CreateSpaceResponse, error) {
+	// Open the provider's friend-DM Space and mount it for the caller.
 	providerAcc, ok := r.session.GetProviderAccount().(*provider_spacewave.ProviderAccount)
 	if !ok {
 		return nil, errors.New("friend dm requires a spacewave provider account")
@@ -499,27 +523,32 @@ func (r *SessionResource) WatchResourcesList(
 	req *s4wave_session.WatchResourcesListRequest,
 	strm s4wave_session.SRPCSessionResourceService_WatchResourcesListStream,
 ) error {
+	// Tie the resource-list watch to the caller's stream lifetime.
 	ctx, ctxCancel := context.WithCancel(strm.Context())
 	defer ctxCancel()
 
+	// Resolve the Session provider's SharedObject interface.
 	providerAcc := r.session.GetProviderAccount()
 	soProvider, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
 		return err
 	}
 
+	// Open the watchable SharedObject list and retain its release callback.
 	soListWatchable, relSoList, err := soProvider.AccessSharedObjectList(ctx, ctxCancel)
 	if err != nil {
 		return err
 	}
 	defer relSoList()
 
+	// Send an empty resource snapshot while the SharedObject list is uninitialized.
 	if soListWatchable.GetValue() == nil {
 		if err := strm.Send(&s4wave_session.WatchResourcesListResponse{}); err != nil {
 			return err
 		}
 	}
 
+	// Prepare channels and generation state for resource-list projections.
 	listCh := make(chan *sobject.SharedObjectList)
 	listErrCh := make(chan error, 1)
 	projectionCh := make(chan resourcesListProjectionEvent)
@@ -564,6 +593,7 @@ func (r *SessionResource) WatchResourcesList(
 		}
 	}
 
+	// Forward each SharedObject list revision to the projection loop.
 	startGoroutine(func() {
 		var current *sobject.SharedObjectList
 		for {
@@ -591,6 +621,7 @@ func (r *SessionResource) WatchResourcesList(
 		awaitGoroutinesIdle()
 	}()
 
+	// Project each list revision and stream its current index ObjectTypes.
 	var currentList []*space.SpaceSoListEntry
 	pendingInitial := make(map[string]uint64)
 	initialProjectionChanged := false
@@ -735,6 +766,7 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 	generation uint64,
 	events chan<- resourcesListProjectionEvent,
 ) {
+	// Send one generation-scoped projection result unless the watch is canceled.
 	sendProjection := func(initial bool, objectType string) bool {
 		select {
 		case events <- resourcesListProjectionEvent{
@@ -749,6 +781,7 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 		}
 	}
 
+	// Mount the Space body with a live watch for its index projection.
 	mountedSpace, mountedSpaceRef, err := space.ExMountSpaceSoBody(ctx, r.b, ref, true, nil)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
@@ -776,6 +809,7 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 	}
 	defer mountedSpaceRef.Release()
 
+	// Watch the mounted Space World for index ObjectType changes.
 	engine := mountedSpace.GetSharedObjectBody().GetWorldEngine()
 	var previous string
 	first := true
@@ -808,12 +842,14 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 }
 
 func readSpaceIndexObjectType(ctx context.Context, engine world.Engine) (string, uint64, error) {
+	// Open a read transaction for the Space index projection.
 	tx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		return "", 0, err
 	}
 	defer tx.Discard()
 
+	// Read the World revision and index ObjectType from the scoped transaction.
 	seqno, err := tx.GetSeqno(ctx)
 	if err != nil {
 		return "", 0, err
@@ -927,6 +963,7 @@ func (r *SessionResource) mountCdnSharedObject(
 	cdnSO sobject.SharedObject,
 	meta *sobject.SharedObjectMeta,
 ) (*s4wave_session.MountSharedObjectResponse, error) {
+	// Build and validate the CDN SharedObject reference for this Session.
 	bs := cdnSO.GetBlockStore()
 	soRef := &sobject.SharedObjectRef{
 		ProviderResourceRef: soProviderResourceRef,
@@ -936,6 +973,7 @@ func (r *SessionResource) mountCdnSharedObject(
 		return nil, err
 	}
 
+	// Publish the process-owned CDN SharedObject through the caller's resource mux.
 	soResource := resource_sobject.NewSharedObjectResourceWithHostPluginID(
 		r.le,
 		r.b,
@@ -964,17 +1002,20 @@ func (r *SessionResource) mountCdnSharedObject(
 
 // DeleteSpace deletes a space within the ProviderAccount.
 func (r *SessionResource) DeleteSpace(ctx context.Context, req *s4wave_session.DeleteSpaceRequest) (*s4wave_session.DeleteSpaceResponse, error) {
+	// Require a Space identifier before deleting provider state.
 	soID := req.GetSharedObjectId()
 	if soID == "" {
 		return nil, errors.New("shared_object_id is required")
 	}
 
+	// Resolve the Session provider before deleting its SharedObject.
 	providerAcc := r.session.GetProviderAccount()
 	soFeature, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
 		return nil, err
 	}
 
+	// Delete the requested SharedObject through its provider feature.
 	if err := soFeature.DeleteSharedObject(ctx, soID); err != nil {
 		return nil, err
 	}
@@ -1013,17 +1054,20 @@ func (r *SessionResource) LeaveSpace(ctx context.Context, req *s4wave_session.Le
 
 // RenameSpace updates the display name metadata for a space.
 func (r *SessionResource) RenameSpace(ctx context.Context, req *s4wave_session.RenameSpaceRequest) (*s4wave_session.RenameSpaceResponse, error) {
+	// Require a Space identifier before preparing its new metadata.
 	soID := req.GetSharedObjectId()
 	if soID == "" {
 		return nil, errors.New("shared_object_id is required")
 	}
 
+	// Normalize and validate the requested display name.
 	displayName := space.FixupSpaceName(req.GetDisplayName())
 	soMeta, err := space.NewSharedObjectMeta(displayName)
 	if err != nil {
 		return nil, err
 	}
 
+	// Update the Space metadata through the provider that owns it.
 	switch providerAcc := r.session.GetProviderAccount().(type) {
 	case *provider_local.ProviderAccount:
 		if err := providerAcc.UpdateSharedObjectMeta(ctx, soID, soMeta); err != nil {
@@ -1098,6 +1142,7 @@ func (r *SessionResource) LockSession(ctx context.Context, req *s4wave_session.L
 // Cleans all session keys, removes GC edges, runs volume GC, deletes
 // the volume backing store, and removes all sessions from the list.
 func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session.DeleteAccountRequest) (*s4wave_session.DeleteAccountResponse, error) {
+	// Resolve the provider identity used to scope account cleanup.
 	sessRef := r.session.GetSessionRef()
 	provRef := sessRef.GetProviderResourceRef()
 	providerID := provRef.GetProviderId()
@@ -1130,6 +1175,7 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 	}
 	defer sessionCtrlRef.Release()
 
+	// Read the provider account's sessions before removing their data.
 	allSessions, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list sessions")
@@ -1156,6 +1202,7 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 		}
 	}()
 
+	// Use the opened ObjectStore to inspect linked-session records.
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Collect linked-cloud account IDs before deleting keys.
@@ -1345,6 +1392,7 @@ func lookupSharedObjectListEntry(
 	soListCtr ccontainer.Watchable[*sobject.SharedObjectList],
 	sharedObjectID string,
 ) (*sobject.SharedObjectListEntry, error) {
+	// Read the current SharedObject list and look for the requested ID.
 	soList, err := soListCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -1356,10 +1404,12 @@ func lookupSharedObjectListEntry(
 		return soList.GetSharedObjects()[soIdx], nil
 	}
 
+	// Refresh the provider list after the current snapshot misses the ID.
 	if err := soFeature.RefreshSharedObjectList(ctx); err != nil {
 		return nil, err
 	}
 
+	// Recheck the watchable list after the provider refresh completes.
 	soList = soListCtr.GetValue()
 	soIdx = slices.IndexFunc(soList.GetSharedObjects(), func(so *sobject.SharedObjectListEntry) bool {
 		return so.GetRef().GetProviderResourceRef().GetId() == sharedObjectID
@@ -1430,6 +1480,7 @@ func (r *SessionResource) CreateSpaceInvite(
 
 // generateShortCode returns a random 8-character alphanumeric code.
 func generateShortCode() string {
+	// Generate an invite code from random bytes and the safe alphabet.
 	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 	buf := make([]byte, 8)
 	_, _ = rand.Read(buf)
@@ -1444,17 +1495,20 @@ func (r *SessionResource) ListSpaceInvites(
 	ctx context.Context,
 	req *s4wave_session.ListSpaceInvitesRequest,
 ) (*s4wave_session.ListSpaceInvitesResponse, error) {
+	// Require a Space identifier before listing its invites.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
 	}
 
+	// Mount the Space invite host and retain its release handle.
 	ih, rel, err := r.mountInviteHost(ctx, spaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 
+	// Read the invite state from the mounted Space host.
 	state, err := ih.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get shared object state")
@@ -1468,17 +1522,20 @@ func (r *SessionResource) ListSpaceParticipants(
 	ctx context.Context,
 	req *s4wave_session.ListSpaceParticipantsRequest,
 ) (*s4wave_session.ListSpaceParticipantsResponse, error) {
+	// Require a Space identifier before listing participants.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
 	}
 
+	// Mount the Space invite host and retain its release handle.
 	ih, rel, err := r.mountInviteHost(ctx, spaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 
+	// Read participant state from the mounted Space host.
 	state, err := ih.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get shared object state")
@@ -1527,6 +1584,7 @@ func (r *SessionResource) RevokeSpaceInvite(
 	ctx context.Context,
 	req *s4wave_session.RevokeSpaceInviteRequest,
 ) (*s4wave_session.RevokeSpaceInviteResponse, error) {
+	// Require both Space and invite identifiers before revocation.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
@@ -1536,12 +1594,14 @@ func (r *SessionResource) RevokeSpaceInvite(
 		return nil, errors.New("invite_id is required")
 	}
 
+	// Mount the Space invite host and retain its release handle.
 	ih, rel, err := r.mountInviteHost(ctx, spaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 
+	// Revoke the requested invite through the Space host.
 	if err := ih.RevokeInvite(ctx, ih.GetPrivKey(), inviteID); err != nil {
 		return nil, errors.Wrap(err, "revoke invite")
 	}

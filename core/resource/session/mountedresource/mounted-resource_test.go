@@ -9,28 +9,38 @@ import (
 )
 
 func TestAddRegistersResourceValue(t *testing.T) {
+	// Set up a resource context, a mounted value, and observable release state.
 	resourceCtx := newResourceContext(context.Background())
 	value := &struct {
 		name string
 	}{name: "mounted"}
 	released := false
 
+	// Register the mounted value and release callback with the resource context.
 	id, err := Add(resourceCtx, srpc.NewMux(), value, func() {
 		released = true
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Read the value back through the resource context API.
 	got, err := resourceCtx.GetResourceValue(id)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Assert that the registered resource retains the exact mounted value.
 	if got != value {
 		t.Fatalf("resource value = %T, want mounted value", got)
 	}
+
+	// Release the registered resource through its context.
 	if !resourceCtx.ReleaseResource(id) {
 		t.Fatal("expected release to succeed")
 	}
+
+	// Assert that releasing the resource invokes its cleanup callback.
 	if !released {
 		t.Fatal("expected release callback")
 	}
@@ -60,6 +70,7 @@ func (c *resourceContext) AddResource(mux srpc.Invoker, releaseFn func()) (uint3
 }
 
 func (c *resourceContext) AddResourceValue(_ srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	// Store each mounted value and its optional release callback under a fresh ID.
 	c.nextID++
 	id := c.nextID
 	c.values[id] = value
@@ -70,6 +81,7 @@ func (c *resourceContext) AddResourceValue(_ srpc.Invoker, value any, releaseFn 
 }
 
 func (c *resourceContext) ReleaseResource(resourceID uint32) bool {
+	// Remove the resource entry and run its release callback when present.
 	_, ok := c.values[resourceID]
 	if !ok {
 		return false

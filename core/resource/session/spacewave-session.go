@@ -84,6 +84,7 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 	sessRef := r.getSessionRef()
 	accountBcast := r.swAcc.GetAccountBroadcast()
 
+	// Retain the prior route projection so unchanged account state is not resent.
 	var prev *s4wave_provider_spacewave.WatchOnboardingStatusResponse
 
 	// Read account status and wait channel for each update.
@@ -142,6 +143,7 @@ func (r *SpacewaveSessionResource) buildOnboardingStatusProjectionContext(
 	sessionID string,
 	sessRef *session.SessionRef,
 ) provider_spacewave.OnboardingStatusProjectionContext {
+	// Collect linked-session indicators for the onboarding route projection.
 	var projCtx provider_spacewave.OnboardingStatusProjectionContext
 
 	// Resolve linked local-session state.
@@ -167,12 +169,14 @@ func (r *SpacewaveSessionResource) buildOnboardingStatusProjectionContext(
 
 // checkLocalHasContent returns true if the local session at the given index has SharedObjects.
 func (r *SpacewaveSessionResource) checkLocalHasContent(ctx context.Context, localIdx uint32) bool {
+	// Open the Session controller needed to inspect the local account.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 	if err != nil {
 		return false
 	}
 	defer sessionCtrlRef.Release()
 
+	// Resolve the local Session entry selected by the linked-session index.
 	entry, err := sessionCtrl.GetSessionByIdx(ctx, localIdx)
 	if err != nil {
 		return false
@@ -181,6 +185,7 @@ func (r *SpacewaveSessionResource) checkLocalHasContent(ctx context.Context, loc
 	providerID := provRef.GetProviderId()
 	accountID := provRef.GetProviderAccountId()
 
+	// Open the provider account that owns the local Session's shared-object list.
 	provAcc, provAccRef, accErr := provider.ExAccessProviderAccount(ctx, r.b, providerID, accountID, false, nil)
 	if accErr != nil {
 		return false
@@ -190,6 +195,8 @@ func (r *SpacewaveSessionResource) checkLocalHasContent(ctx context.Context, loc
 	if !ok {
 		return false
 	}
+
+	// Resolve the local volume and ObjectStore used to inspect shared objects.
 	volID := localAcc.GetVolume().GetID()
 	soObjStoreID := provider_local.SobjectObjectStoreID(providerID, accountID)
 	soHandle, _, soDiRef, soErr := volume.ExBuildObjectStoreAPI(ctx, r.b, false, soObjStoreID, volID, nil)
@@ -198,6 +205,7 @@ func (r *SpacewaveSessionResource) checkLocalHasContent(ctx context.Context, loc
 	}
 	defer soDiRef.Release()
 
+	// Use the local provider ObjectStore to read the shared-object list.
 	soStore := soHandle.GetObjectStore()
 	soTx, txErr := soStore.NewTransaction(ctx, false)
 	if txErr != nil {
@@ -205,6 +213,7 @@ func (r *SpacewaveSessionResource) checkLocalHasContent(ctx context.Context, loc
 	}
 	defer soTx.Discard()
 
+	// Read the local Session's shared-object list record.
 	data, found, gErr := soTx.Get(ctx, provider_local.SobjectObjectStoreListKey())
 	if gErr != nil || !found {
 		return false
@@ -219,12 +228,14 @@ func (r *SpacewaveSessionResource) checkLocalHasContent(ctx context.Context, loc
 // findCloudSessionIndex finds the session index for a spacewave (cloud) session
 // with the given account ID. Returns 0 if not found.
 func (r *SpacewaveSessionResource) findCloudSessionIndex(ctx context.Context, accountID string) uint32 {
+	// Open the Session controller before searching for the Cloud account.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 	if err != nil {
 		return 0
 	}
 	defer sessionCtrlRef.Release()
 
+	// Read the Session entries and select the matching Cloud account.
 	sessions, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return 0
@@ -243,12 +254,14 @@ func (r *SpacewaveSessionResource) CreateLinkedLocalSession(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateLinkedLocalSessionRequest,
 ) (*s4wave_provider_spacewave.CreateLinkedLocalSessionResponse, error) {
+	// Open the Session controller used to create or find the linked local Session.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Scope the idempotency check to the Cloud Session receiving the link.
 	sessionID := r.getSessionID()
 
 	// Idempotency: check if a linked local session already exists.
@@ -264,23 +277,27 @@ func (r *SpacewaveSessionResource) CreateLinkedLocalSession(
 		return &s4wave_provider_spacewave.CreateLinkedLocalSessionResponse{SessionListEntry: entry}, nil
 	}
 
+	// Read the Cloud account identity used for the new local Session.
 	info, err := r.swAcc.GetAccountState(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the local provider that will create the linked Session.
 	localProv, localProvRef, err := provider.ExLookupProvider(ctx, r.b, provider_local.ProviderID, false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer localProvRef.Release()
 
+	// Create a local account and Session for the Cloud identity.
 	prov := localProv.(*provider_local.Provider)
 	localSessRef, err := prov.CreateLocalAccountAndSession(ctx, info.AccountId)
 	if err != nil {
 		return nil, err
 	}
 
+	// Build local Session metadata with the linked Cloud account identity.
 	meta := &session.SessionMetadata{
 		DisplayName:         info.EntityId,
 		ProviderDisplayName: "Local",
@@ -343,10 +360,12 @@ func (r *SpacewaveSessionResource) CreateCheckoutSession(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateCheckoutSessionRequest,
 ) (*s4wave_provider_spacewave.CreateCheckoutSessionResponse, error) {
+	// Require both redirect URLs before creating a Checkout Session.
 	if req.GetSuccessUrl() == "" || req.GetCancelUrl() == "" {
 		return nil, errors.New("success_url and cancel_url required")
 	}
 
+	// Create the Cloud Checkout Session and retain its status ticket.
 	cli := r.swAcc.GetSessionClient()
 	resp, err := cli.CreateCheckoutSession(ctx, req)
 	if err != nil {
@@ -446,12 +465,15 @@ func (r *SpacewaveSessionResource) WatchCheckoutStatus(
 	req *s4wave_provider_spacewave.WatchCheckoutStatusRequest,
 	strm s4wave_session.SRPCSpacewaveSessionResourceService_WatchCheckoutStatusStream,
 ) error {
+	// Scope the checkout watch to the caller's stream.
 	ctx := strm.Context()
 
+	// Retain the shared checkout watcher for this stream.
 	watcher := r.swAcc.GetCheckoutWatcher()
 	ref := watcher.AddRef()
 	defer ref.Release()
 
+	// Remember the last checkout status sent to this caller.
 	var prev s4wave_provider_spacewave.CheckoutStatus
 	for {
 		ch, status := watcher.WaitStatus()
@@ -501,6 +523,7 @@ func (r *SpacewaveSessionResource) CancelSubscription(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CancelSubscriptionRequest,
 ) (*s4wave_provider_spacewave.CancelSubscriptionResponse, error) {
+	// Resolve the billing account selected by this request.
 	baID, err := r.resolveBillingAccountID(ctx, req.GetBillingAccountId())
 	if err != nil {
 		return nil, err
@@ -509,6 +532,7 @@ func (r *SpacewaveSessionResource) CancelSubscription(
 		return nil, errors.New("no billing account found")
 	}
 
+	// Cancel the Cloud subscription and invalidate its cached snapshot.
 	cli := r.swAcc.GetSessionClient()
 	if _, err := cli.CancelSubscription(ctx, baID); err != nil {
 		return nil, err
@@ -522,6 +546,7 @@ func (r *SpacewaveSessionResource) ReactivateSubscription(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ReactivateSubscriptionRequest,
 ) (*s4wave_provider_spacewave.ReactivateSubscriptionResponse, error) {
+	// Resolve the billing account selected by this request.
 	baID, err := r.resolveBillingAccountID(ctx, req.GetBillingAccountId())
 	if err != nil {
 		return nil, err
@@ -530,12 +555,14 @@ func (r *SpacewaveSessionResource) ReactivateSubscription(
 		return nil, errors.New("no billing account found")
 	}
 
+	// Reactivate the Cloud subscription and interpret its next step.
 	cli := r.swAcc.GetSessionClient()
 	cloudResp, err := cli.ReactivateSubscription(ctx, baID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Build the response and invalidate the billing snapshot after reactivation.
 	resp := &s4wave_provider_spacewave.ReactivateSubscriptionResponse{}
 	if cloudResp.GetStatus() == "needs_checkout" {
 		resp.NeedsCheckout = true
@@ -546,6 +573,7 @@ func (r *SpacewaveSessionResource) ReactivateSubscription(
 
 // SetBillingSpendingLimit updates the selected payer's recurring operation budget.
 func (r *SpacewaveSessionResource) SetBillingSpendingLimit(ctx context.Context, req *s4wave_provider_spacewave.SetBillingSpendingLimitRequest) (*s4wave_provider_spacewave.SetBillingSpendingLimitResponse, error) {
+	// Resolve the payer's account before changing its recurring budget.
 	baID, err := r.resolveBillingAccountID(ctx, req.GetBillingAccountId())
 	if err != nil {
 		return nil, err
@@ -565,6 +593,7 @@ func (r *SpacewaveSessionResource) CreateBillingPortal(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateBillingPortalRequest,
 ) (*s4wave_provider_spacewave.CreateBillingPortalResponse, error) {
+	// Resolve the billing account before creating its portal session.
 	baID, err := r.resolveBillingAccountID(ctx, req.GetBillingAccountId())
 	if err != nil {
 		return nil, err
@@ -573,6 +602,7 @@ func (r *SpacewaveSessionResource) CreateBillingPortal(
 		return nil, errors.New("no billing account found")
 	}
 
+	// Create a portal URL for the selected billing account.
 	cli := r.swAcc.GetSessionClient()
 	url, err := cli.CreateBillingPortal(ctx, baID)
 	if err != nil {
@@ -603,6 +633,7 @@ func (r *SpacewaveSessionResource) ConfirmDeleteNowCode(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ConfirmDeleteNowCodeRequest,
 ) (*s4wave_provider_spacewave.ConfirmDeleteNowCodeResponse, error) {
+	// Confirm the emailed deletion code and invalidate cached account state.
 	cli := r.swAcc.GetSessionClient()
 	result, err := cli.ConfirmDeleteNowCode(ctx, req.GetCode())
 	if err != nil {
@@ -639,11 +670,13 @@ func (r *SpacewaveSessionResource) loadBillingWatchState(
 	ctx context.Context,
 	requestedBillingID string,
 ) (*s4wave_provider_spacewave.WatchBillingStateResponse, <-chan struct{}, error) {
+	// Resolve the requested or default billing account for this snapshot.
 	baID, err := r.resolveBillingAccountID(ctx, requestedBillingID)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Capture the account broadcast revision before loading billing state.
 	var ch <-chan struct{}
 	r.swAcc.GetAccountBroadcast().HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		ch = getWaitCh()
@@ -657,6 +690,7 @@ func (r *SpacewaveSessionResource) loadBillingWatchState(
 		}, ch, nil
 	}
 
+	// Load the cached billing account and usage snapshot.
 	state, usage, err := r.swAcc.GetBillingSnapshot(ctx, baID)
 	if err != nil {
 		return nil, nil, err
@@ -735,6 +769,7 @@ func (r *SpacewaveSessionResource) CreateOrganization(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateOrganizationRequest,
 ) (*s4wave_provider_spacewave.CreateOrganizationResponse, error) {
+	// Create the Cloud organization and decode its authoritative response.
 	cli := r.swAcc.GetSessionClient()
 	data, err := cli.CreateOrganization(ctx, req.GetDisplayName())
 	if err != nil {
@@ -764,6 +799,7 @@ func (r *SpacewaveSessionResource) CreateOrganization(
 // queueOrgUpdateOp mounts the org SO and queues an UpdateOrgOp.
 // Failures are logged as warnings since the cloud mutation already succeeded.
 func (r *SpacewaveSessionResource) queueOrgUpdateOp(ctx context.Context, orgID string, op *s4wave_org.UpdateOrgOp) {
+	// Prepare organization-specific logging before checking local authority.
 	le := r.le.WithField("org-id", orgID)
 	if !r.swAcc.HasCachedOwnerOrganization(orgID) {
 		le.Debug("skipping local org update op: org SO is not owner-authoritative")
@@ -786,6 +822,7 @@ func (r *SpacewaveSessionResource) queueOrgUpdateOp(ctx context.Context, orgID s
 	}
 	defer relSO()
 
+	// Encode the operation before queuing it on the organization SharedObject.
 	opData, err := s4wave_org.MarshalUpdateOrgSOOp(op)
 	if err != nil {
 		le.WithError(err).Warn("failed to marshal update org op")
@@ -817,11 +854,13 @@ func (r *SpacewaveSessionResource) WatchOrganizationState(
 	req *s4wave_provider_spacewave.WatchOrganizationStateRequest,
 	strm s4wave_session.SRPCSpacewaveSessionResourceService_WatchOrganizationStateStream,
 ) error {
+	// Require an organization ID before starting its state watch.
 	orgID := req.GetOrgId()
 	if orgID == "" {
 		return errors.New("org_id is required")
 	}
 
+	// Watch the organization broadcast for state changes.
 	ctx := strm.Context()
 	orgBcast := r.swAcc.GetOrgBroadcast()
 	var prev *s4wave_provider_spacewave.WatchOrganizationStateResponse
@@ -854,6 +893,7 @@ func (r *SpacewaveSessionResource) loadOrganizationState(
 	ctx context.Context,
 	orgID string,
 ) (*s4wave_provider_spacewave.WatchOrganizationStateResponse, error) {
+	// Read one consistent organization snapshot for the response.
 	info, inviteResp, roleID, err := r.swAcc.GetOrganizationSnapshot(ctx, orgID)
 	if err != nil {
 		return nil, err
@@ -877,6 +917,7 @@ func (r *SpacewaveSessionResource) loadOrganizationState(
 		}
 	}
 
+	// Project Cloud organization invites into the watch response.
 	invites := make([]*s4wave_provider_spacewave.OrgInviteInfo, len(inviteResp.GetInvites()))
 	for i, inv := range inviteResp.GetInvites() {
 		invites[i] = &s4wave_provider_spacewave.OrgInviteInfo{
@@ -889,6 +930,7 @@ func (r *SpacewaveSessionResource) loadOrganizationState(
 		}
 	}
 
+	// Load the organization's root-state health when it has a root SharedObject.
 	var rootState *s4wave_provider_spacewave.OrganizationRootStateInfo
 	rootStateSOID := info.GetRootStateSoId()
 	if rootStateSOID != "" {
@@ -918,11 +960,13 @@ func (r *SpacewaveSessionResource) DeleteOrganization(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.DeleteOrganizationRequest,
 ) (*s4wave_provider_spacewave.DeleteOrganizationResponse, error) {
+	// Require an organization ID before deleting Cloud state.
 	orgID := req.GetOrgId()
 	if orgID == "" {
 		return nil, errors.New("org_id is required")
 	}
 
+	// Delete the Cloud organization and refresh its cached state.
 	cli := r.swAcc.GetSessionClient()
 	if _, err := cli.DeleteOrganization(ctx, orgID); err != nil {
 		return nil, err
@@ -936,6 +980,7 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateOrgInviteRequest,
 ) (*s4wave_provider_spacewave.CreateOrgInviteResponse, error) {
+	// Create the Cloud invitation and decode its returned record.
 	cli := r.swAcc.GetSessionClient()
 	data, err := cli.CreateOrgInvite(ctx, req.GetOrgId(), req.GetType(), req.GetMaxUses(), req.GetExpiresAt(), req.GetEmail())
 	if err != nil {
@@ -976,6 +1021,7 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 		},
 	})
 
+	// Map the Cloud invite record into the Session resource response.
 	resp := &s4wave_provider_spacewave.CreateOrgInviteResponse{
 		Invite: &s4wave_provider_spacewave.OrgInviteInfo{
 			Id:        inv.GetId(),
@@ -994,6 +1040,7 @@ func (r *SpacewaveSessionResource) CreateTargetedInviteDraftByUsername(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameRequest,
 ) (*s4wave_provider_spacewave.CreateTargetedInviteDraftByUsernameResponse, error) {
+	// Translate the requested invite purpose to the Cloud API enum.
 	var purpose api.TargetedInvitePurpose
 	switch req.GetPurpose() {
 	case s4wave_provider_spacewave.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE:
@@ -1004,6 +1051,7 @@ func (r *SpacewaveSessionResource) CreateTargetedInviteDraftByUsername(
 		purpose = api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
 	}
 
+	// Create the targeted invite draft with the requested recipient and context.
 	cli := r.swAcc.GetSessionClient()
 	resp, err := cli.CreateTargetedInviteDraftByUsername(ctx, &api.CreateTargetedInviteDraftByUsernameRequest{
 		Username:  req.GetUsername(),
@@ -1026,6 +1074,7 @@ func (r *SpacewaveSessionResource) ResolveUsername(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ResolveUsernameRequest,
 ) (*s4wave_provider_spacewave.ResolveUsernameResponse, error) {
+	// Translate the requested username-resolution purpose to the Cloud API enum.
 	var purpose api.TargetedInvitePurpose
 	switch req.GetPurpose() {
 	case s4wave_provider_spacewave.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE:
@@ -1036,6 +1085,7 @@ func (r *SpacewaveSessionResource) ResolveUsername(
 		purpose = api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
 	}
 
+	// Resolve the exact username within its invite context.
 	cli := r.swAcc.GetSessionClient()
 	resp, err := cli.ResolveUsername(ctx, &api.ResolveUsernameRequest{
 		Username: req.GetUsername(),
@@ -1200,6 +1250,7 @@ func (r *SpacewaveSessionResource) AcceptSpaceTargetedInvitation(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.AcceptSpaceTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.AcceptSpaceTargetedInvitationResponse, error) {
+	// Require an invitation ID and load the pending Space invitation.
 	invID := req.GetId()
 	if invID == "" {
 		return nil, errors.New("id is required")
@@ -1213,10 +1264,14 @@ func (r *SpacewaveSessionResource) AcceptSpaceTargetedInvitation(
 	if inv == nil {
 		return nil, errors.New("targeted invitation is missing")
 	}
+
+	// Verify the Space invitation envelope before using its payload.
 	envelope, err := r.verifyAcceptableSpaceTargetedInvitation(ctx, inv)
 	if err != nil {
 		return nil, err
 	}
+
+	// Decode the signed invite message and verify its Space context.
 	inviteMsg := &sobject.SOInviteMessage{}
 	if err := inviteMsg.UnmarshalVT(envelope.GetPayload()); err != nil {
 		return nil, errors.Wrap(err, "unmarshal targeted space invite payload")
@@ -1229,6 +1284,7 @@ func (r *SpacewaveSessionResource) AcceptSpaceTargetedInvitation(
 		return nil, errors.Wrap(err, "marshal targeted invitation envelope")
 	}
 
+	// Submit the invite through the mailbox-backed Space join path.
 	joinResp, err := r.parent.JoinSpaceViaInvite(ctx, &s4wave_session.JoinSpaceViaInviteRequest{
 		InviteMessage:              inviteMsg,
 		TargetedInvitationEnvelope: envelopeBytes,
@@ -1262,6 +1318,7 @@ func (r *SpacewaveSessionResource) CreateOrganizationTargetedInvitationByUsernam
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameRequest,
 ) (*s4wave_provider_spacewave.CreateOrganizationTargetedInvitationByUsernameResponse, error) {
+	// Validate the recipient, organization, and supported member role.
 	username := req.GetUsername()
 	orgID := req.GetOrgId()
 	if username == "" {
@@ -1278,6 +1335,7 @@ func (r *SpacewaveSessionResource) CreateOrganizationTargetedInvitationByUsernam
 		return nil, errors.New("only org:member targeted invitations are supported")
 	}
 
+	// Resolve the username and account allowed to receive the organization invite.
 	cli := r.swAcc.GetSessionClient()
 	resolve, err := cli.ResolveUsername(ctx, &api.ResolveUsernameRequest{
 		Username: username,
@@ -1294,6 +1352,8 @@ func (r *SpacewaveSessionResource) CreateOrganizationTargetedInvitationByUsernam
 	if err != nil {
 		return nil, errors.Wrap(err, "get account info")
 	}
+
+	// Build and sign the organization invitation envelope for the resolved account.
 	nonce := make([]byte, 16)
 	if _, err := cryptorand.Read(nonce); err != nil {
 		return nil, errors.Wrap(err, "generate nonce")
@@ -1321,6 +1381,8 @@ func (r *SpacewaveSessionResource) CreateOrganizationTargetedInvitationByUsernam
 	if err := cli.SignTargetedInvitationEnvelope(envelope); err != nil {
 		return nil, err
 	}
+
+	// Store the signed organization invitation in the recipient inbox.
 	resp, err := cli.CreateTargetedInvitation(ctx, &api.CreateTargetedInvitationRequest{
 		TargetAccountId: envelope.GetTargetAccountId(),
 		Purpose:         api.TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION,
@@ -1343,6 +1405,7 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationRequest,
 ) (*s4wave_provider_spacewave.AcceptOrganizationTargetedInvitationResponse, error) {
+	// Require an invitation ID and load the pending organization invitation.
 	invID := req.GetId()
 	if invID == "" {
 		return nil, errors.New("id is required")
@@ -1356,10 +1419,14 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 	if inv == nil {
 		return nil, errors.New("targeted invitation is missing")
 	}
+
+	// Verify the invitation envelope before accepting the membership.
 	envelope, err := r.verifyAcceptableOrganizationTargetedInvitation(ctx, inv)
 	if err != nil {
 		return nil, err
 	}
+
+	// Accept the Cloud invitation and require its organization record.
 	acceptResp, err := cli.AcceptTargetedOrganizationInvitation(ctx, envelope.GetContextId(), &api.AcceptTargetedOrganizationInvitationRequest{Id: invID})
 	if err != nil {
 		return nil, err
@@ -1368,6 +1435,8 @@ func (r *SpacewaveSessionResource) AcceptOrganizationTargetedInvitation(
 	if org == nil {
 		return nil, errors.New("targeted organization invite response missing organization")
 	}
+
+	// Refresh organization state and queue the local membership update.
 	if err := r.swAcc.RefreshSharedObjectList(ctx); err != nil {
 		r.le.WithError(err).Warn("failed to refresh SO list after targeted org join")
 	}
@@ -1401,6 +1470,7 @@ func (r *SpacewaveSessionResource) ListTargetedInvitations(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ListTargetedInvitationsRequest,
 ) (*s4wave_provider_spacewave.ListTargetedInvitationsResponse, error) {
+	// Read the account's targeted invitations and map their response records.
 	cli := r.swAcc.GetSessionClient()
 	resp, err := cli.ListTargetedInvitations(ctx)
 	if err != nil {
@@ -1499,6 +1569,7 @@ func (r *SpacewaveSessionResource) verifyAcceptableSpaceTargetedInvitation(
 	ctx context.Context,
 	inv *api.TargetedInvitationInfo,
 ) (*api.TargetedInvitationEnvelope, error) {
+	// Validate the pending Space invitation and its envelope context.
 	if inv.GetStatus() != "pending" {
 		return nil, errors.New("targeted invitation is not pending")
 	}
@@ -1515,6 +1586,8 @@ func (r *SpacewaveSessionResource) verifyAcceptableSpaceTargetedInvitation(
 	if envelope.GetPurpose() != inv.GetPurpose() || envelope.GetContextId() != inv.GetContextId() {
 		return nil, errors.New("targeted invitation envelope context mismatch")
 	}
+
+	// Match the signed invite target, role, expiration, nonce, and payload to the row.
 	if envelope.GetTargetAccountId() != inv.GetTargetAccountId() ||
 		envelope.GetTargetEntityId() != inv.GetTargetEntityId() ||
 		envelope.GetTargetEntityUuid() != inv.GetTargetEntityUuid() ||
@@ -1527,6 +1600,8 @@ func (r *SpacewaveSessionResource) verifyAcceptableSpaceTargetedInvitation(
 	if len(envelope.GetNonce()) == 0 || len(envelope.GetPayload()) == 0 {
 		return nil, errors.New("targeted invitation envelope is incomplete")
 	}
+
+	// Reject expired invitations and verify the envelope signature.
 	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
 		return nil, errors.New("targeted invitation is expired")
 	}
@@ -1534,6 +1609,7 @@ func (r *SpacewaveSessionResource) verifyAcceptableSpaceTargetedInvitation(
 		return nil, err
 	}
 
+	// Load the recipient account and confirm the invitation targets its generation.
 	account, err := r.swAcc.GetSessionClient().GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get account info")
@@ -1554,6 +1630,7 @@ func (r *SpacewaveSessionResource) verifyAcceptableOrganizationTargetedInvitatio
 	ctx context.Context,
 	inv *api.TargetedInvitationInfo,
 ) (*api.TargetedInvitationEnvelope, error) {
+	// Validate the pending organization invitation and envelope context.
 	if inv.GetStatus() != "pending" {
 		return nil, errors.New("targeted invitation is not pending")
 	}
@@ -1570,6 +1647,8 @@ func (r *SpacewaveSessionResource) verifyAcceptableOrganizationTargetedInvitatio
 	if envelope.GetPurpose() != inv.GetPurpose() || envelope.GetContextId() != inv.GetContextId() {
 		return nil, errors.New("targeted invitation envelope context mismatch")
 	}
+
+	// Match the signed target and member role to the invitation row.
 	if envelope.GetTargetAccountId() != inv.GetTargetAccountId() ||
 		envelope.GetTargetEntityId() != inv.GetTargetEntityId() ||
 		envelope.GetTargetEntityUuid() != inv.GetTargetEntityUuid() ||
@@ -1585,12 +1664,16 @@ func (r *SpacewaveSessionResource) verifyAcceptableOrganizationTargetedInvitatio
 	if len(envelope.GetNonce()) == 0 {
 		return nil, errors.New("targeted invitation envelope is incomplete")
 	}
+
+	// Reject expired invitations and verify the envelope signature.
 	if envelope.GetExpiresAt() > 0 && envelope.GetExpiresAt() <= time.Now().UnixMilli() {
 		return nil, errors.New("targeted invitation is expired")
 	}
 	if err := provider_spacewave.VerifyTargetedInvitationEnvelope(envelope); err != nil {
 		return nil, err
 	}
+
+	// Load the recipient account and confirm the invitation targets its generation.
 	account, err := r.swAcc.GetSessionClient().GetAccountInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get account info")
@@ -1739,6 +1822,7 @@ func (r *SpacewaveSessionResource) JoinOrganization(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.JoinOrganizationRequest,
 ) (*s4wave_provider_spacewave.JoinOrganizationResponse, error) {
+	// Join the Cloud organization and decode its returned state.
 	cli := r.swAcc.GetSessionClient()
 	data, err := cli.JoinOrganization(ctx, req.GetToken())
 	if err != nil {
@@ -1781,6 +1865,7 @@ func (r *SpacewaveSessionResource) RevokeOrgInvite(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RevokeOrgInviteRequest,
 ) (*s4wave_provider_spacewave.RevokeOrgInviteResponse, error) {
+	// Require organization and invite IDs before revocation.
 	orgID := req.GetOrgId()
 	if orgID == "" {
 		return nil, errors.New("org_id is required")
@@ -1790,12 +1875,14 @@ func (r *SpacewaveSessionResource) RevokeOrgInvite(
 		return nil, errors.New("invite_id is required")
 	}
 
+	// Revoke the Cloud invite and refresh the cached organization state.
 	cli := r.swAcc.GetSessionClient()
 	if _, err := cli.RevokeOrgInvite(ctx, orgID, inviteID); err != nil {
 		return nil, err
 	}
 	r.refreshOrganizationCaches(ctx, orgID, false)
 
+	// Mirror the successful invite revocation into the local organization SharedObject.
 	r.queueOrgUpdateOp(ctx, orgID, &s4wave_org.UpdateOrgOp{
 		OrgObjectKey: s4wave_org.OrgObjectKey,
 		Body: &s4wave_org.UpdateOrgOp_RevokeInvite{
@@ -1813,17 +1900,20 @@ func (r *SpacewaveSessionResource) LeaveOrganization(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.LeaveOrganizationRequest,
 ) (*s4wave_provider_spacewave.LeaveOrganizationResponse, error) {
+	// Require an organization ID before leaving its membership.
 	orgID := req.GetOrgId()
 	if orgID == "" {
 		return nil, errors.New("org_id is required")
 	}
 
+	// Leave the Cloud organization and refresh its cached membership state.
 	cli := r.swAcc.GetSessionClient()
 	if _, err := cli.LeaveOrganization(ctx, orgID); err != nil {
 		return nil, err
 	}
 	r.refreshOrganizationCaches(ctx, orgID, true)
 
+	// Mirror the successful membership departure into the local organization SharedObject.
 	r.queueOrgUpdateOp(ctx, orgID, &s4wave_org.UpdateOrgOp{
 		OrgObjectKey: s4wave_org.OrgObjectKey,
 		Body: &s4wave_org.UpdateOrgOp_RemoveMember{
@@ -1841,6 +1931,7 @@ func (r *SpacewaveSessionResource) RemoveOrgMember(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RemoveOrgMemberRequest,
 ) (*s4wave_provider_spacewave.RemoveOrgMemberResponse, error) {
+	// Require organization and member IDs before removal.
 	orgID := req.GetOrgId()
 	if orgID == "" {
 		return nil, errors.New("org_id is required")
@@ -1850,12 +1941,14 @@ func (r *SpacewaveSessionResource) RemoveOrgMember(
 		return nil, errors.New("member_id is required")
 	}
 
+	// Remove the Cloud organization member and refresh cached membership state.
 	cli := r.swAcc.GetSessionClient()
 	if _, err := cli.RemoveOrgMember(ctx, orgID, memberID); err != nil {
 		return nil, err
 	}
 	r.refreshOrganizationCaches(ctx, orgID, true)
 
+	// Mirror the successful member removal into the local organization SharedObject.
 	r.queueOrgUpdateOp(ctx, orgID, &s4wave_org.UpdateOrgOp{
 		OrgObjectKey: s4wave_org.OrgObjectKey,
 		Body: &s4wave_org.UpdateOrgOp_RemoveMember{
@@ -1873,6 +1966,7 @@ func (r *SpacewaveSessionResource) UpdateOrganization(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.UpdateOrganizationRequest,
 ) (*s4wave_provider_spacewave.UpdateOrganizationResponse, error) {
+	// Require an organization ID and display name before updating it.
 	orgID := req.GetOrgId()
 	if orgID == "" {
 		return nil, errors.New("org_id is required")
@@ -1882,12 +1976,14 @@ func (r *SpacewaveSessionResource) UpdateOrganization(
 		return nil, errors.New("display_name is required")
 	}
 
+	// Update the Cloud organization name and refresh its cached state.
 	cli := r.swAcc.GetSessionClient()
 	if _, err := cli.UpdateOrganization(ctx, orgID, displayName); err != nil {
 		return nil, err
 	}
 	r.refreshOrganizationCaches(ctx, orgID, true)
 
+	// Mirror the successful display-name change into the local organization SharedObject.
 	r.queueOrgUpdateOp(ctx, orgID, &s4wave_org.UpdateOrgOp{
 		OrgObjectKey: s4wave_org.OrgObjectKey,
 		Body: &s4wave_org.UpdateOrgOp_UpdateDisplayName{
@@ -1938,6 +2034,7 @@ func (r *SpacewaveSessionResource) ReinitializeSharedObject(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ReinitializeSharedObjectRequest,
 ) (*s4wave_provider_spacewave.ReinitializeSharedObjectResponse, error) {
+	// Require a SharedObject ID before rewriting broken provider state.
 	sharedObjectID := req.GetSharedObjectId()
 	if sharedObjectID == "" {
 		return nil, errors.New("shared object id is required")
@@ -1954,6 +2051,7 @@ func (r *SpacewaveSessionResource) MountSharedObjectSelfEnrollment(
 	ctx context.Context,
 	req *s4wave_session.MountSharedObjectSelfEnrollmentRequest,
 ) (*s4wave_session.MountSharedObjectSelfEnrollmentResponse, error) {
+	// Resolve the caller resource context and register self-enrollment.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -1971,6 +2069,7 @@ func (r *SpacewaveSessionResource) CreateBillingAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.CreateBillingAccountRequest,
 ) (*s4wave_provider_spacewave.CreateBillingAccountResponse, error) {
+	// Create the caller-managed billing account and invalidate its list cache.
 	cli := r.swAcc.GetSessionClient()
 	baID, err := cli.CreateBillingAccount(ctx, req.GetDisplayName())
 	if err != nil {
@@ -1987,6 +2086,7 @@ func (r *SpacewaveSessionResource) RenameBillingAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.RenameBillingAccountRequest,
 ) (*s4wave_provider_spacewave.RenameBillingAccountResponse, error) {
+	// Rename the managed billing account and invalidate its cached records.
 	cli := r.swAcc.GetSessionClient()
 	if err := cli.RenameBillingAccount(ctx, req.GetBillingAccountId(), req.GetDisplayName()); err != nil {
 		return nil, err
@@ -2001,6 +2101,7 @@ func (r *SpacewaveSessionResource) DeleteBillingAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.DeleteBillingAccountRequest,
 ) (*s4wave_provider_spacewave.DeleteBillingAccountResponse, error) {
+	// Delete the managed billing account and invalidate its cached records.
 	cli := r.swAcc.GetSessionClient()
 	if err := cli.DeleteBillingAccount(ctx, req.GetBillingAccountId()); err != nil {
 		return nil, err
@@ -2029,6 +2130,7 @@ func (r *SpacewaveSessionResource) AssignBillingAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.AssignBillingAccountRequest,
 ) (*s4wave_provider_spacewave.AssignBillingAccountResponse, error) {
+	// Assign the billing account to its requested owner.
 	cli := r.swAcc.GetSessionClient()
 	_, err := cli.AssignBillingAccount(
 		ctx,
@@ -2054,6 +2156,7 @@ func (r *SpacewaveSessionResource) DetachBillingAccount(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.DetachBillingAccountRequest,
 ) (*s4wave_provider_spacewave.DetachBillingAccountResponse, error) {
+	// Detach the billing account from its current owner.
 	cli := r.swAcc.GetSessionClient()
 	_, err := cli.DetachBillingAccount(
 		ctx,
@@ -2105,17 +2208,20 @@ func (r *SpacewaveSessionResource) resolveMemberParticipantPeersAndMountSO(
 	ctx context.Context,
 	spaceID, accountID string,
 ) (*provider_spacewave.SharedObject, func(), []string, error) {
+	// Resolve the member's participant peers from the Cloud account.
 	cli := r.swAcc.GetSessionClient()
 	resolveResp, err := cli.ResolveMemberParticipants(ctx, spaceID, accountID)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "resolve member participant peers")
 	}
 
+	// Stop when the account has no existing participant peers.
 	peerIDs := resolveResp.GetPeerIds()
 	if len(peerIDs) == 0 {
 		return nil, func() {}, nil, nil
 	}
 
+	// Mount the Space SharedObject that owns those participants.
 	swSO, rel, err := r.mountSpaceSO(ctx, spaceID)
 	if err != nil {
 		return nil, nil, nil, err
@@ -2247,6 +2353,7 @@ func (r *SpacewaveSessionResource) mountSpaceSO(
 	ctx context.Context,
 	spaceID string,
 ) (*provider_spacewave.SharedObject, func(), error) {
+	// Build the provider-scoped Space reference before mounting it.
 	ref := sobject.NewSharedObjectRef(
 		r.swAcc.GetProviderID(),
 		r.swAcc.GetAccountID(),
@@ -2270,17 +2377,20 @@ func (r *SpacewaveSessionResource) ResetSession(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ResetSessionRequest,
 ) (*s4wave_provider_spacewave.ResetSessionResponse, error) {
+	// Require a credential before resetting a locked Session.
 	cred := req.GetCredential()
 	if cred == nil {
 		return nil, errors.New("credential is required")
 	}
 
+	// Open the Session controller to resolve the selected Session.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, r.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Load the Session selected for credential-authorized reset.
 	sessInfo, err := sessionCtrl.GetSessionByIdx(ctx, req.GetSessionIdx())
 	if err != nil {
 		return nil, err
@@ -2289,9 +2399,11 @@ func (r *SpacewaveSessionResource) ResetSession(
 		return nil, session.ErrSessionNotFound
 	}
 
+	// Resolve the provider account reference for the selected Session.
 	ref := sessInfo.GetSessionRef()
 	provRef := ref.GetProviderResourceRef()
 
+	// Open the provider account whose credential authorizes the reset.
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
 		ctx, r.b,
 		provRef.GetProviderId(),
@@ -2303,6 +2415,7 @@ func (r *SpacewaveSessionResource) ResetSession(
 	}
 	defer provAccRef.Release()
 
+	// Create the provider account resource used to verify the credential.
 	accResource := resource_account.NewAccountResource(provAcc)
 	if accResource == nil {
 		return nil, errors.New("account resource not available for this provider")
@@ -2312,11 +2425,13 @@ func (r *SpacewaveSessionResource) ResetSession(
 		return nil, errors.Wrap(err, "verify credential")
 	}
 
+	// Resolve the provider's Session operations before resetting its PIN.
 	sessFeature, err := session.GetSessionProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		return nil, err
 	}
 
+	// Reset the selected Session after credential verification.
 	if err := sessFeature.ResetPINSession(ctx, ref, nil); err != nil {
 		return nil, err
 	}
@@ -2506,6 +2621,7 @@ func (r *SpacewaveSessionResource) AddEmail(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.AddEmailRequest,
 ) (*s4wave_provider_spacewave.AddEmailResponse, error) {
+	// Add the email address and invalidate cached account state.
 	cli := r.swAcc.GetSessionClient()
 	result, err := cli.AddEmail(ctx, req.GetEmail())
 	if err != nil {
@@ -2536,6 +2652,7 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.SetPrimaryEmailRequest,
 ) (*s4wave_provider_spacewave.SetPrimaryEmailResponse, error) {
+	// Promote the verified address and refresh the account's email state.
 	cli := r.swAcc.GetSessionClient()
 	result, err := cli.SetPrimaryEmail(ctx, req.GetEmail())
 	if err != nil {
@@ -2589,11 +2706,13 @@ func (r *SpacewaveSessionResource) LookupInviteCode(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.LookupInviteCodeRequest,
 ) (*s4wave_provider_spacewave.LookupInviteCodeResponse, error) {
+	// Require an invite code before consulting the Cloud lookup table.
 	code := req.GetCode()
 	if code == "" {
 		return nil, errors.New("code is required")
 	}
 
+	// Resolve the code to its stored invite message.
 	cli := r.swAcc.GetSessionClient()
 	lookupResp, err := cli.LookupInviteCode(ctx, code)
 	if err != nil {
@@ -2621,6 +2740,7 @@ func (r *SpacewaveSessionResource) ProcessMailboxEntry(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ProcessMailboxEntryRequest,
 ) (*s4wave_provider_spacewave.ProcessMailboxEntryResponse, error) {
+	// Require the Space and mailbox entry before processing the decision.
 	spaceID := req.GetSpaceId()
 	if spaceID == "" {
 		return nil, errors.New("space_id is required")
@@ -2630,6 +2750,7 @@ func (r *SpacewaveSessionResource) ProcessMailboxEntry(
 		return nil, errors.New("entry_id is required")
 	}
 
+	// Apply the mailbox acceptance or rejection through the account tracker.
 	if err := r.swAcc.ProcessMailboxEntry(ctx, spaceID, entryID, req.GetAccept()); err != nil {
 		return nil, err
 	}
@@ -2642,6 +2763,7 @@ func (r *SpacewaveSessionResource) PreviewSpaceLink(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.PreviewSpaceLinkRequest,
 ) (*s4wave_provider_spacewave.PreviewSpaceLinkResponse, error) {
+	// Verify the SpaceLink ticket before exposing its trusted preview.
 	verified, err := verifySpaceLinkTicketData(req.GetTicket(), time.Now())
 	if err != nil {
 		return nil, err
@@ -2673,6 +2795,7 @@ func (r *SpacewaveSessionResource) ApproveSpaceLink(
 	ctx context.Context,
 	req *s4wave_provider_spacewave.ApproveSpaceLinkRequest,
 ) (*s4wave_provider_spacewave.ApproveSpaceLinkResponse, error) {
+	// Verify the SpaceLink ticket before resolving its target Space.
 	verified, err := verifySpaceLinkTicketData(req.GetTicket(), time.Now())
 	if err != nil {
 		return nil, err
@@ -2682,12 +2805,14 @@ func (r *SpacewaveSessionResource) ApproveSpaceLink(
 		return nil, errors.New("resource_id is required")
 	}
 
+	// Mount the target Space and retain its release handle.
 	swSO, relSO, err := r.mountSpaceSO(ctx, resourceID)
 	if err != nil {
 		return nil, err
 	}
 	defer relSO()
 
+	// Approve the verified SpaceLink through the account's entity client.
 	entityCli := r.swAcc.GetEntityClient()
 	return approveVerifiedSpaceLink(
 		ctx,
@@ -2701,6 +2826,7 @@ func (r *SpacewaveSessionResource) ApproveSpaceLink(
 }
 
 func unmarshalSpaceLinkAuthTicket(data []byte) (*s4wave_provider_spacewave.SpaceLinkAuthTicket, error) {
+	// Validate and decode the SpaceLink authorization ticket.
 	if len(data) == 0 {
 		return nil, errors.New("ticket is required")
 	}

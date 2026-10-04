@@ -22,6 +22,8 @@ func TestInvalidExecutionWaitsForChange(t *testing.T) {
 	}
 	t.Cleanup(tb.Release)
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
+
+	// Resolve the mock target and identity used by the pending Execution.
 	target, err := target_mock.ResolveMockTarget(ctx, tb.Bus)
 	if err != nil {
 		t.Fatal(err)
@@ -45,6 +47,7 @@ func TestInvalidExecutionWaitsForChange(t *testing.T) {
 
 	// Store a claim without a lease, which fails Execution validation.
 	_, _, err = world.AccessWorldObject(ctx, tb.WorldState, objKey, true, func(bcs *block.Cursor) error {
+		// Load the stored Execution before writing an invalid claim.
 		exState, err := forge_execution.UnmarshalExecution(ctx, bcs)
 		if err != nil {
 			return err
