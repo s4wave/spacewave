@@ -470,21 +470,23 @@ func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 	}
 }
 
-// TestHTTPRangeReaderRetriesTransientFailure retries one 5xx response and
-// never retries a client error.
+// TestHTTPRangeReaderRetriesTransientFailure retries one 5xx response, retries
+// a 429 response after its Retry-After delay, and never retries other client
+// errors.
 func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
-	// Start a server that fails its first request with a configurable status.
+	// Fail the first request of each case with status, then serve ranges.
 	data := []byte("abcdefghijklmnopqrstuvwxyz")
 	var reqs atomic.Int32
 	var status atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Inject the configured failure on the first HTTP request.
+		// Fail the first request.
 		if reqs.Add(1) == 1 {
+			w.Header().Set("Retry-After", "1")
 			w.WriteHeader(int(status.Load()))
 			return
 		}
 
-		// Parse the retried range and return its partial response.
+		// Serve the requested range.
 		start, end, ok := parseHTTPTestRangeHeader(r.Header.Get("Range"), int64(len(data)))
 		if !ok {
 			t.Errorf("missing or invalid Range header: %q", r.Header.Get("Range"))
@@ -496,7 +498,7 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// Verify an unavailable HTTP response retries once and returns the payload.
+	// A 503 is retried at once.
 	status.Store(http.StatusServiceUnavailable)
 	rd := NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
 	buf := make([]byte, 4)
@@ -511,7 +513,22 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 		t.Fatalf("requests = %d, want 2", got)
 	}
 
-	// Verify a missing HTTP response returns an error without retrying.
+	// A 429 is retried after its Retry-After delay.
+	reqs.Store(0)
+	status.Store(http.StatusTooManyRequests)
+	rd = NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
+	start := time.Now()
+	if _, err := rd.ReaderAt(context.Background()).ReadAt(buf, 0); err != nil && err != io.EOF {
+		t.Fatalf("ReadAt after 429 returned error: %v", err)
+	}
+	if waited := time.Since(start); waited < time.Second {
+		t.Fatalf("retried after %v, want the 1s Retry-After", waited)
+	}
+	if got := reqs.Load(); got != 2 {
+		t.Fatalf("requests after 429 = %d, want 2", got)
+	}
+
+	// A 404 is not retried.
 	reqs.Store(0)
 	status.Store(http.StatusNotFound)
 	rd = NewHTTPRangeReader(srv.Client(), srv.URL, int64(len(data)), 4, nil, nil)
