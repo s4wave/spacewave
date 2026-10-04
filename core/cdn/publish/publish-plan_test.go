@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/packfile"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -282,6 +283,10 @@ type promoteTestClient struct {
 }
 
 func (c *promoteTestClient) ReadGrants(context.Context, string, []string) ([]*packfile.ReadGrant, error) {
+	return nil, nil
+}
+
+func (c *promoteTestClient) OpenPackReader(string, string, int64) (*packfile_store.PackReader, error) {
 	return nil, nil
 }
 

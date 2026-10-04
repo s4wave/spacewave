@@ -629,7 +629,7 @@ func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.
 		if cli == nil {
 			return nil, errors.New("session client not available")
 		}
-		return cli.OpenPackReader(a.p.httpCli, bstoreID, packID, size)
+		return cli.OpenPackReader(bstoreID, packID, size)
 	}
 }
 

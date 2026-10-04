@@ -51,12 +51,12 @@ func (c *SessionClient) ReadGrants(ctx context.Context, resourceID string, packI
 // OpenPackReader opens a pack of a block store for HTTP Range reads on its
 // granted read URLs, renewing the grant before it expires. The size comes
 // from the manifest entry, so no HEAD request is issued.
-func (c *SessionClient) OpenPackReader(httpCli *http.Client, resourceID, packID string, size int64) (*packfile_store.PackReader, error) {
+func (c *SessionClient) OpenPackReader(resourceID, packID string, size int64) (*packfile_store.PackReader, error) {
 	if size <= 0 {
 		return nil, errors.New("pack size must be known from the manifest")
 	}
 	return packfile_store.NewHTTPRangeReader(
-		httpCli,
+		c.httpCli,
 		"",
 		size,
 		httpReaderAtReadAheadSize,
