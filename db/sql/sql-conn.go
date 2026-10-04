@@ -140,7 +140,7 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 
 	// Run the operation against the store transaction.
 	var res driver.Result
-	rerr := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
+	auto, err := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
 		var err error
 		res, err = ops.ExecContext(ctx, query, args)
 		if err == nil {
@@ -148,7 +148,17 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 		}
 		return err
 	})
-	return res, rerr
+	if err != nil {
+		return nil, err
+	}
+
+	// Commit the auto transaction now that the result is complete.
+	if auto != nil {
+		if err := c.endAutoTxLocked(auto, true); err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 // Query executes a query that may return rows, such as a
@@ -167,7 +177,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 
 	// Run the operation against the store transaction.
 	var res driver.Rows
-	rerr := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
+	auto, err := c.performOpLocked(ctx, func(tx SqlTransaction, ops SqlOps) error {
 		var err error
 		res, err = ops.QueryContext(ctx, query, args)
 		if err == nil {
@@ -175,7 +185,15 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		}
 		return err
 	})
-	return res, rerr
+	if err != nil {
+		return nil, err
+	}
+
+	// The rows read from the auto transaction, so it ends when they close.
+	if auto != nil {
+		return &autoTxRows{Rows: res, conn: c, tx: auto}, nil
+	}
+	return res, nil
 }
 
 // checkSwitchDatabaseLocked checks if we ran a USE statement and if so,
@@ -197,47 +215,69 @@ func (c *Conn) checkSwitchDatabaseLocked(query string) {
 	}
 }
 
-// performOpLocked performs an operation with a transaction.
-// caller must lock mutex
-func (c *Conn) performOpLocked(ctx context.Context, op func(tx SqlTransaction, ops SqlOps) error) (rerr error) {
-	// check if released
+// performOpLocked performs an operation with the conn's transaction, opening an
+// auto transaction when the conn has none. On success it returns the auto
+// transaction, which the caller must end with endAutoTxLocked once the result
+// is no longer read, or nil when the operation ran in an explicit transaction.
+// On failure it discards the auto transaction. The caller must lock mtx.
+func (c *Conn) performOpLocked(
+	ctx context.Context,
+	op func(tx SqlTransaction, ops SqlOps) error,
+) (auto SqlTransaction, rerr error) {
+	// Reject a released connection.
 	if c.released.Load() {
-		return driver.ErrBadConn
+		return nil, driver.ErrBadConn
 	}
 
-	// if we are initializing a transaction, commit or discard at the end of the operation.
+	// Open an auto transaction when there is none, discarding it on failure.
 	storeTx := c.storeTx
 	if storeTx == nil {
-		_, err := c.beginTxLocked(ctx, driver.TxOptions{})
-		if err != nil {
-			return err
+		if _, err := c.beginTxLocked(ctx, driver.TxOptions{}); err != nil {
+			return nil, err
 		}
-		storeTx = c.storeTx
+		storeTx, auto = c.storeTx, c.storeTx
 		defer func() {
-			if rerr == nil {
-				rerr = storeTx.Commit(ctx)
-			} else {
-				storeTx.Discard()
+			if rerr != nil {
+				_ = c.endAutoTxLocked(storeTx, false)
 			}
-			c.storeTx, c.storeTxCtx = nil, nil
 		}()
 	}
 
-	// get the ops and exec the query
+	// Get the ops and replay the database switch on the transaction.
 	ops, err := storeTx.GetSqlOps(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// apply the database switch if necessary
 	if c.useStmt != "" {
-		_, err = ops.ExecContext(ctx, c.useStmt, nil)
-		if err != nil {
-			return err
+		if _, err := ops.ExecContext(ctx, c.useStmt, nil); err != nil {
+			return nil, err
 		}
 	}
 
-	return op(storeTx, ops)
+	// Run the operation and hand back the auto transaction for the caller to end.
+	if err := op(storeTx, ops); err != nil {
+		return nil, err
+	}
+	return auto, nil
+}
+
+// endAutoTxLocked commits the auto transaction tx when ok is set and discards
+// it otherwise. It does nothing when tx is no longer the conn's transaction,
+// because whatever replaced it already discarded it. The caller must lock mtx.
+func (c *Conn) endAutoTxLocked(tx SqlTransaction, ok bool) error {
+	// Skip a transaction that was already replaced or discarded.
+	if c.storeTx != tx {
+		return nil
+	}
+
+	// Detach the transaction, then commit or discard it.
+	ctx := c.storeTxCtx
+	c.storeTx, c.storeTxCtx = nil, nil
+	if !ok {
+		tx.Discard()
+		return nil
+	}
+	return tx.Commit(ctx)
 }
 
 // Release releases the conn fully.
@@ -271,5 +311,42 @@ func (c *Conn) beginTxLocked(ctx context.Context, opts driver.TxOptions) (driver
 	return newConnTx(c, stx), nil
 }
 
+// autoTxRows are the rows of a query run in an auto transaction. The
+// transaction stays open while the rows are read and ends when they close.
+// database/sql holds the conn for the rows' lifetime, so no other operation
+// can use the transaction meanwhile.
+type autoTxRows struct {
+	driver.Rows
+	conn *Conn
+	tx   SqlTransaction
+}
+
+// ColumnTypeDatabaseTypeName returns the database type name of a column, or
+// an empty string when the inner rows do not report one.
+func (r *autoTxRows) ColumnTypeDatabaseTypeName(index int) string {
+	if rows, ok := r.Rows.(driver.RowsColumnTypeDatabaseTypeName); ok {
+		return rows.ColumnTypeDatabaseTypeName(index)
+	}
+	return ""
+}
+
+// Close closes the rows and then ends the auto transaction, committing it
+// when the rows closed cleanly.
+func (r *autoTxRows) Close() error {
+	// Close the inner rows before the transaction they read from.
+	err := r.Rows.Close()
+
+	// End the transaction, reporting the first error.
+	r.conn.mtx.Lock()
+	defer r.conn.mtx.Unlock()
+	if terr := r.conn.endAutoTxLocked(r.tx, err == nil); err == nil {
+		err = terr
+	}
+	return err
+}
+
 // _ is a type assertion
-var _ SqlConn = (*Conn)(nil)
+var (
+	_ SqlConn                               = (*Conn)(nil)
+	_ driver.RowsColumnTypeDatabaseTypeName = (*autoTxRows)(nil)
+)

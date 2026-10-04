@@ -17,8 +17,13 @@ import (
 
 // TestSqlStore_Basic performs basic tests on a SqlDB.
 func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlStore, dsn string) error {
+	// Open the store as a *sql.DB.
 	sqlDB := hydra_sql.NewSqlDb(db, dsn)
+
+	// printQuery runs a query in tx, or on the DB when tx is nil, and returns
+	// the number of rows it read.
 	printQuery := func(tx *sql.Tx, query string) (int, error) {
+		// Run the query in the transaction or on the DB.
 		le.Infof("QUERY: %s", query)
 		var r *sql.Rows
 		var err error
@@ -30,11 +35,11 @@ func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlS
 		if err != nil {
 			return 0, err
 		}
+		defer r.Close()
+
+		// Count the rows, logging each row's columns.
 		var nrows int
 		for r.Next() {
-			if r.Err() != nil {
-				return 0, err
-			}
 			nrows++
 			cols, err := r.Columns()
 			if err != nil {
@@ -43,21 +48,26 @@ func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlS
 			for ci, col := range cols {
 				le.Infof("COL %d: %v", ci, col)
 			}
-			/*
-				for ci, col := range row {
-					le.Infof("COL %d: %v", ci, col)
-				} */
 		}
+
+		// Next stops on an error as well as at the end of the rows.
+		if err := r.Err(); err != nil {
+			return 0, err
+		}
+
+		// Close the rows to end the query.
 		le.Infof("END QUERY: %d rows", nrows)
 		return nrows, r.Close()
 	}
 
+	// Read the table before any insert.
 	tableName := "test-table"
 	_, err := printQuery(nil, fmt.Sprintf("SELECT * FROM `%s`", tableName))
 	if err != nil {
 		return err
 	}
 
+	// Insert three rows in one transaction.
 	tx, err := sqlDB.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
@@ -76,11 +86,13 @@ func TestSqlStore_Basic(ctx context.Context, le *logrus.Entry, db hydra_sql.SqlS
 		}
 	}
 
+	// Commit the inserts.
 	err = tx.Commit()
 	if err != nil {
 		return err
 	}
 
+	// Read the table again after the commit.
 	_, err = printQuery(nil, fmt.Sprintf("SELECT * FROM `%s`", tableName))
 	return err
 }
