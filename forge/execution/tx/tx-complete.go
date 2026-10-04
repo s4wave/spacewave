@@ -55,14 +55,16 @@ func (t *TxComplete) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
-	// Require the sender and claim to match the execution.
+	// Reject a replaced claim before checking its former peer's placement.
+	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
+		return err
+	}
+
+	// Require the sender to match the current execution peer.
 	if len(sender) != 0 {
 		if err := root.CheckPeerID(sender); err != nil {
 			return err
 		}
-	}
-	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
-		return err
 	}
 
 	// The same claim may finish after its result has already been persisted.

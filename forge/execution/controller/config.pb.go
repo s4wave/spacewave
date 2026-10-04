@@ -24,7 +24,7 @@ type Config struct {
 	// If not exists, waits for it to exist.
 	ObjectKey string `protobuf:"bytes,2,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// PeerId is the peer ID to use for the execution controller.
-	// If the Execution already has a peer_id set, must match it.
+	// Must match the Execution peer except when reclaiming an expired claim.
 	// If not set, will look up the peer id from the state.
 	PeerId string `protobuf:"bytes,3,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
 	// ResolveControllerConfigTimeout is a timeout for resolving the exec.controller config.
@@ -37,8 +37,11 @@ type Config struct {
 	ClaimId string `protobuf:"bytes,7,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
 	// ClaimLease is how long a claim stays live without renewal, as a duration
 	// string. The controller renews at a third of the lease. Peers may reclaim
-	// an Execution once its holder has missed the lease. Defaults to one minute.
+	// an Execution once its holder has missed the lease. Defaults to five minutes.
 	ClaimLease string `protobuf:"bytes,8,opt,name=claim_lease,json=claimLease,proto3" json:"claimLease,omitempty"`
+	// WorkerObjectKey selects the Worker's placement on reclaim. Required when
+	// reclaiming a placed Execution; the peer must be linked to this Worker.
+	WorkerObjectKey string `protobuf:"bytes,9,opt,name=worker_object_key,json=workerObjectKey,proto3" json:"workerObjectKey,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -103,6 +106,13 @@ func (x *Config) GetClaimLease() string {
 	return ""
 }
 
+func (x *Config) GetWorkerObjectKey() string {
+	if x != nil {
+		return x.WorkerObjectKey
+	}
+	return ""
+}
+
 // ExecConfig is a configuration for the execution routine.
 type ExecConfig struct {
 	unknownFields []byte
@@ -146,6 +156,7 @@ func (m *Config) CloneVT() *Config {
 	r.AllowNonExecController = m.AllowNonExecController
 	r.ClaimId = m.ClaimId
 	r.ClaimLease = m.ClaimLease
+	r.WorkerObjectKey = m.WorkerObjectKey
 	r.InputWorld = protobuf_go_lite.CloneVTValue(m.InputWorld)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -202,6 +213,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ClaimLease != that.ClaimLease {
+		return false
+	}
+	if this.WorkerObjectKey != that.WorkerObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -286,6 +300,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("claimLease")
 		s.WriteString(x.ClaimLease)
 	}
+	if x.WorkerObjectKey != "" || s.HasField("workerObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("workerObjectKey")
+		s.WriteString(x.WorkerObjectKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -331,6 +350,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "claim_lease", "claimLease":
 			s.AddField("claim_lease")
 			x.ClaimLease = s.ReadString()
+		case "worker_object_key", "workerObjectKey":
+			s.AddField("worker_object_key")
+			x.WorkerObjectKey = s.ReadString()
 		}
 	})
 }
@@ -426,6 +448,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.WorkerObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.WorkerObjectKey)
+		i--
+		dAtA[i] = 0x4a
 	}
 	if len(m.ClaimLease) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimLease)
@@ -544,6 +571,7 @@ func (m *Config) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimLease)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WorkerObjectKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -600,6 +628,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.ClaimLease != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_lease")
 		protobuf_go_lite.TextWriteString(&sb, x.ClaimLease)
+	}
+	if x.WorkerObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "worker_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.WorkerObjectKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -731,6 +763,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ClaimLease = v
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WorkerObjectKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

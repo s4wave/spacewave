@@ -19,6 +19,7 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
+// TestProcessStateReplaysCancelAndWaitsForDrain settles only after Execution drain.
 func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 	// Start a World testbed for Pass cancellation and execution drain.
 	ctx := t.Context()

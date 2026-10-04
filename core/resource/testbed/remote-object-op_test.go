@@ -33,6 +33,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim retains remote custody.
 func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 	// Serve the remote claim testbed when running as the helper process.
 	if os.Getenv(remoteClaimHelperEnv) == "1" {
@@ -155,6 +156,7 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 	}
 }
 
+// remoteClaimHelperEnv selects the server role when re-executing the test binary.
 const remoteClaimHelperEnv = "SPACEWAVE_REMOTE_CLAIM_HELPER"
 
 func closeRemoteClaimTestResource(t *testing.T, name string, resource io.Closer) {

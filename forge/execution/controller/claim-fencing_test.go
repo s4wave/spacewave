@@ -10,7 +10,6 @@ import (
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	space_exec "github.com/s4wave/spacewave/core/forge/exec"
-	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
@@ -21,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestRestartMidClaimLeavesOneRunnableController preserves exclusive claim custody.
 func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	// Start a World testbed with the target controller factories.
 	ctx := t.Context()
@@ -170,27 +170,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	}
 }
 
-type claimCountingHandler struct {
-	invocations *atomic.Int32
-}
-
-func (h *claimCountingHandler) Execute(context.Context) error {
-	h.invocations.Add(1)
-	return nil
-}
-
-type laggingObjectState struct {
-	world.ObjectState
-	rootRef *bucket.ObjectRef
-	rev     uint64
-	reads   int
-}
-
-func (s *laggingObjectState) GetRootRef(context.Context) (*bucket.ObjectRef, uint64, error) {
-	s.reads++
-	return s.rootRef, s.rev, nil
-}
-
+// TestClaimCommitUsesObservedRootSnapshot reconciles the committed watch revision.
 func TestClaimCommitUsesObservedRootSnapshot(t *testing.T) {
 	// Start a World testbed with the target controller factories.
 	ctx := t.Context()

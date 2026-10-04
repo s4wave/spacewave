@@ -143,12 +143,15 @@ func (t *objectTracker) buildCtrlConf(ctx context.Context, objType string) (conf
 	case forge_pass.PassTypeID:
 		return pass_controller.NewConfig(engineID, objKey, peerID, t.c.conf.GetAssignSelf()), nil
 	case forge_execution.ExecutionTypeID:
-		return exec_controller.NewConfig(
+		conf := exec_controller.NewConfig(
 			engineID,
 			objKey,
 			peerID,
 			&forge_target.InputWorld{EngineId: engineID},
-		), nil
+		)
+		conf.WorkerObjectKey = t.c.objKey
+		conf.ClaimId = conf.BuildUniqueID()
+		return conf, nil
 	case forge_worker.WorkerTypeID:
 		// The owning WorkerController already manages its worker object.
 		return nil, nil
@@ -216,8 +219,16 @@ func (t *objectTracker) processState(
 			return false, err
 		}
 		if !assigned {
-			t.pushObjType("")
-			return true, nil
+			// Observe an active foreign claim so this Worker can recover it after
+			// expiry. Pending placement remains exclusive to its selected Worker.
+			execution, err := world.LookupObjectBody[*forge_execution.Execution](ctx, ws, objKey, forge_execution.NewExecutionBlock)
+			if err != nil {
+				return false, err
+			}
+			if execution.GetClaim() == nil || execution.IsComplete() {
+				t.pushObjType("")
+				return true, nil
+			}
 		}
 	}
 

@@ -13,6 +13,7 @@ var implicitClaim = &forge_execution.Claim{
 	Epoch:   1,
 }
 
+// claimOrImplicit selects the caller's claim or the process's implicit claim.
 func claimOrImplicit(claims []*forge_execution.Claim) *forge_execution.Claim {
 	if len(claims) != 0 && claims[0] != nil {
 		return claims[0]
@@ -20,6 +21,7 @@ func claimOrImplicit(claims []*forge_execution.Claim) *forge_execution.Claim {
 	return implicitClaim
 }
 
+// checkClaimEpoch rejects every write outside the authoritative epoch.
 func checkClaimEpoch(rootEpoch, claimEpoch uint64) error {
 	if claimEpoch != 0 && claimEpoch == rootEpoch {
 		return nil
@@ -30,6 +32,7 @@ func checkClaimEpoch(rootEpoch, claimEpoch uint64) error {
 	}
 }
 
+// checkClaim requires both the authoritative epoch and its claimant identity.
 func checkClaim(root *forge_execution.Claim, claimID string, claimEpoch uint64) error {
 	if err := checkClaimEpoch(root.GetEpoch(), claimEpoch); err != nil {
 		return err

@@ -13,6 +13,7 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result, Value } from '../../value/value.pb.js'
 import { LogEntry } from '../execution.pb.js'
+import { Placement } from '../../worker/worker.pb.js'
 
 /**
  * TxType indicates the kind of transaction.
@@ -317,6 +318,19 @@ export interface TxReclaim {
    * @generated from field: google.protobuf.Timestamp lease_expires_at = 5;
    */
   leaseExpiresAt?: Date
+  /**
+   * ExecutionObjectKey identifies the Execution to reclaim in a World operation.
+   *
+   * @generated from field: string execution_object_key = 6;
+   */
+  executionObjectKey?: string
+  /**
+   * Placement selects the reclaiming Worker's custody. Required when replacing
+   * an existing placement; its peer must match PeerId and be linked to the Worker.
+   *
+   * @generated from field: forge.worker.Placement placement = 7;
+   */
+  placement?: Placement
 }
 
 export const TxReclaim: MessageType<TxReclaim> =
@@ -333,6 +347,13 @@ export const TxReclaim: MessageType<TxReclaim> =
       },
       { no: 4, name: 'observed_at', kind: 'message', T: () => Timestamp },
       { no: 5, name: 'lease_expires_at', kind: 'message', T: () => Timestamp },
+      {
+        no: 6,
+        name: 'execution_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 7, name: 'placement', kind: 'message', T: () => Placement },
     ] satisfies readonly PartialFieldInfo[],
   })
 

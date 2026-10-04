@@ -24,7 +24,9 @@ func NewTxRenewClaim(claim *forge_execution.Claim, leaseExpiresAt time.Time) *Tx
 }
 
 // GetTxType returns the lease renewal transaction type.
-func (t *TxRenewClaim) GetTxType() TxType { return TxType_TxType_RENEW_CLAIM }
+func (t *TxRenewClaim) GetTxType() TxType {
+	return TxType_TxType_RENEW_CLAIM
+}
 
 // Validate requires a claim identity and a lease.
 func (t *TxRenewClaim) Validate() error {
@@ -42,14 +44,16 @@ func (t *TxRenewClaim) Validate() error {
 
 // ExecuteTx extends the lease while the claimed execution is active.
 func (t *TxRenewClaim) ExecuteTx(ctx context.Context, sender peer.ID, exCursor *block.Cursor, root *forge_execution.Execution) error {
-	// Require the sender and claim to match an active execution.
+	// Reject a replaced claim before checking its former peer's placement.
+	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
+		return err
+	}
+
+	// Require the sender to match an active execution.
 	if len(sender) != 0 {
 		if err := root.CheckPeerID(sender); err != nil {
 			return err
 		}
-	}
-	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
-		return err
 	}
 	if err := root.GetExecutionState().EnsureMatches(forge_execution.State_ExecutionState_RUNNING, forge_execution.State_ExecutionState_CANCELING); err != nil {
 		return err

@@ -3,6 +3,7 @@ package execution.tx;
 
 import "github.com/s4wave/spacewave/forge/execution/execution.proto";
 import "github.com/s4wave/spacewave/forge/value/value.proto";
+import "github.com/s4wave/spacewave/forge/worker/worker.proto";
 import "google/protobuf/timestamp.proto";
 
 // Tx is the on-the-wire representation of a transaction.
@@ -143,6 +144,11 @@ message TxReclaim {
   // LeaseExpiresAt is the initial lease expiry of the new claim.
   // Must be after observed_at.
   google.protobuf.Timestamp lease_expires_at = 5;
+  // ExecutionObjectKey identifies the Execution to reclaim in a World operation.
+  string execution_object_key = 6;
+  // Placement selects the reclaiming Worker's custody. Required when replacing
+  // an existing placement; its peer must match PeerId and be linked to the Worker.
+  .forge.worker.Placement placement = 7;
 }
 
 // TxAppendLog appends log entries to the execution.
