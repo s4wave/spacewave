@@ -1149,12 +1149,12 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			}
 		}
 
-		// Keep a targeted invitee connected once enrolled.
-		if result.Invite.GetTargetPeerId() == inviteePeerID.String() {
-			a.clearP2PPendingEnrollPeer(inviteePeerID)
-			if err := a.RetainP2PPeer(ctx, inviteePeerID); err != nil {
-				return nil, errors.Wrap(err, "retain enrolled peer")
-			}
+		// Keep the invitee connected once enrolled, whether or not the invite
+		// targeted it: the invitee's own dial does not hold the link open. The
+		// storage peer enrolls here too and waits in signaling until it dials.
+		a.clearP2PPendingEnrollPeer(inviteePeerID)
+		if err := a.RetainP2PPeer(ctx, inviteePeerID); err != nil {
+			return nil, errors.Wrap(err, "retain enrolled peer")
 		}
 		return grant, nil
 	}

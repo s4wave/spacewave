@@ -53,15 +53,16 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 		}
 	}
 
-	// Count shared Spaces and collect the peers their invitations target.
+	// Count shared Spaces and collect the peers they share with: the owner of a
+	// joined Space, and the participants and invitation targets of an owned one.
 	sharedSpaceCount := 0
-	invitedPeers := make(map[string]struct{})
+	spacePeers := make(map[string]struct{})
 	if soList := a.soListCtr.GetValue(); soList != nil {
 		for _, entry := range soList.GetSharedObjects() {
 			if entry.GetSource() == "shared" {
 				sharedSpaceCount++
 				if endpoint := entry.GetTransportPeerId(); endpoint != "" {
-					invitedPeers[endpoint] = struct{}{}
+					spacePeers[endpoint] = struct{}{}
 				}
 				continue
 			}
@@ -81,8 +82,16 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 			if err != nil {
 				return errors.Wrap(err, "inspect invitation state")
 			}
+			// Retain every other grant holder: a participant's own dial does not
+			// keep the link past its hold-open. A grant peer that never connects,
+			// such as a participant's storage peer, waits in signaling at no cost.
 			epoch := state.CurrentKeyEpoch()
 			shared := len(epoch.GetGrants()) > 1
+			for _, grant := range epoch.GetGrants() {
+				if grant.GetPeerId() != local.GetPeerID().String() {
+					spacePeers[grant.GetPeerId()] = struct{}{}
+				}
+			}
 			for _, invite := range state.GetInvites() {
 				target := invite.GetTargetPeerId()
 				active := sobject.ValidateInviteUsable(invite) == nil ||
@@ -90,7 +99,7 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 				if active {
 					shared = true
 					if target != "" {
-						invitedPeers[target] = struct{}{}
+						spacePeers[target] = struct{}{}
 					}
 				}
 			}
@@ -134,17 +143,18 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 		}
 	})
 
-	// Both targeted peers retain the link so deterministic WebRTC offers can start.
-	for target := range invitedPeers {
-		targetPeer, err := peer.IDB58Decode(target)
+	// Both ends of a shared Space retain the link so deterministic WebRTC offers
+	// can start and the link outlives each dial.
+	for remote := range spacePeers {
+		remotePeer, err := peer.IDB58Decode(remote)
 		if err != nil {
-			return errors.Wrap(err, "parse invitation recipient")
+			return errors.Wrap(err, "parse Space peer")
 		}
-		if _, pending := pendingEnroll[targetPeer.String()]; pending {
+		if _, pending := pendingEnroll[remotePeer.String()]; pending {
 			continue
 		}
-		if err := a.RetainP2PPeer(ctx, targetPeer); err != nil {
-			return errors.Wrap(err, "restore invitation recipient")
+		if err := a.RetainP2PPeer(ctx, remotePeer); err != nil {
+			return errors.Wrap(err, "retain Space peer")
 		}
 	}
 
