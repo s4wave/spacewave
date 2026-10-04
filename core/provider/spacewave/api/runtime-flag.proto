@@ -3,10 +3,9 @@ package provider.spacewave.api;
 
 // RuntimeCapabilityFlagRequest switches one runtime capability for the current
 // environment. Only platform administrators may call
-// POST /api/admin/runtime-flag, and only for a capability the Worker gates.
+// POST /api/admin/runtime-flag, and only for a capability the cloud gates.
 message RuntimeCapabilityFlagRequest {
-  // Capability names the gated feature, such as runtime.worker-facet or
-  // storage.public-origin.
+  // Capability names the gated feature, such as storage.public-origin.
   string capability = 1;
   bool enabled = 2;
 }

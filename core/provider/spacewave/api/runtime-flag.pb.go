@@ -15,11 +15,10 @@ import (
 
 // RuntimeCapabilityFlagRequest switches one runtime capability for the current
 // environment. Only platform administrators may call
-// POST /api/admin/runtime-flag, and only for a capability the Worker gates.
+// POST /api/admin/runtime-flag, and only for a capability the cloud gates.
 type RuntimeCapabilityFlagRequest struct {
 	unknownFields []byte
-	// Capability names the gated feature, such as runtime.worker-facet or
-	// storage.public-origin.
+	// Capability names the gated feature, such as storage.public-origin.
 	Capability string `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
 	Enabled    bool   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
 }
