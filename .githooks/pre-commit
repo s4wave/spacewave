@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Git exports GIT_DIR to a hook in a linked worktree. Every git command here
+# finds the same repository from the working directory, while Go runs git in
+# its module cache to fetch modules, where an inherited GIT_DIR turns its
+# git init --bare into a write to this repository's config.
+unset GIT_DIR GIT_WORK_TREE
+
 files=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
 if [ -z "$files" ]; then
 	exit 0
@@ -10,9 +16,12 @@ fi
 # runs the main checkout's tools.
 node_bin=$(pwd)/node_modules/.bin
 if [ ! -d node_modules ]; then
-	# Git points GIT_DIR at the worktree while a hook runs; clear it to ask about the main checkout.
+	# A submodule's common directory names its checkout in core.worktree; a
+	# clone's common directory is the .git directory inside its checkout.
 	common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
-	node_bin=$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git -C "$common_dir" rev-parse --show-toplevel)/node_modules/.bin
+	main_dir=$(env -u GIT_INDEX_FILE git -C "$common_dir" rev-parse --show-toplevel 2>/dev/null) ||
+		main_dir=$(dirname "$common_dir")
+	node_bin=$main_dir/node_modules/.bin
 fi
 PATH=$node_bin:$PATH
 

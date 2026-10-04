@@ -63,6 +63,7 @@ STUB
 	cat >"$test_dir/go" <<'STUB'
 #!/bin/sh
 printf 'go %s\n' "$*" >>"${HOOKTEST_LOG:?}"
+printf 'go GIT_DIR=%s\n' "${GIT_DIR:-}" >>"$HOOKTEST_LOG"
 if [ "${1:-}" = run ] && [ "${2:-}" = ./.githooks/go-paragraphs ] && [ -n "${HOOKTEST_PARAGRAPHS_FAIL:-}" ]; then
 	exit 1
 fi
@@ -101,11 +102,11 @@ seed_commit() {
 }
 
 try_commit() {
-	# try_commit <expect: ok|fail>
+	# try_commit <expect: ok|fail> [checkout, default repo]
 	log="$test_dir/hook.log"
 	commit_out="$test_dir/commit.out"
 	: >"$log"
-	(cd "$test_dir/repo" && PATH="$test_dir:$PATH" HOOKTEST_LOG="$log" \
+	(cd "$test_dir/${2:-repo}" && PATH="$test_dir:$PATH" HOOKTEST_LOG="$log" \
 		git commit -qm "test commit" >"$commit_out" 2>&1)
 	rc=$?
 	if [ "$1" = fail ] && [ "$rc" -eq 0 ]; then
@@ -303,6 +304,22 @@ test_docs_skip_go_paragraphs() {
 	cleanup
 }
 
+test_worktree_go_without_git_dir() {
+	label='worktree: go runs without GIT_DIR and the main checkout tools resolve'
+	new_repo
+	git -C "$test_dir/repo" config core.hooksPath "$test_dir/repo/.git/hooks"
+	printf 'package main\n' >"$test_dir/repo/root.go"
+	seed_commit
+	git -C "$test_dir/repo" worktree add -q "$test_dir/wt"
+	printf 'package main\nvar A = 1\n' >"$test_dir/wt/root.go"
+	git -C "$test_dir/wt" add root.go
+	try_commit ok wt &&
+		log_has 'go list ./.' &&
+		! grep -q '^go GIT_DIR=.' "$test_dir/hook.log"
+	note_result $? "$label"
+	cleanup
+}
+
 # --- runner ------------------------------------------------------------------
 
 for t in \
@@ -315,7 +332,8 @@ for t in \
 	test_deleted_file_not_candidate \
 	test_vendor_dirty_not_candidate \
 	test_go_paragraphs_gate \
-	test_docs_skip_go_paragraphs
+	test_docs_skip_go_paragraphs \
+	test_worktree_go_without_git_dir
 do
 	"$t"
 done
