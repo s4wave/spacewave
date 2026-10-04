@@ -186,6 +186,8 @@ github.com/kevinburke/ssh_config v1.6.0 h1:J1FBfmuVosPHf5GRdltRLhPJtJpTlMdKTBjRg
 github.com/kevinburke/ssh_config v1.6.0/go.mod h1:q2RIzfka+BXARoNexmF9gkxEX7DmvbW9P4hIVx2Kg4M=
 github.com/klauspost/compress v1.20.2-0.20261002184158-6b9199594fc5 h1:BcGIHD1IE4Obdn9KMhH5ADsdweaHcNOO1VohNAg37uQ=
 github.com/klauspost/compress v1.20.2-0.20261002184158-6b9199594fc5/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
+github.com/klauspost/compress v1.20.2-0.20261004115517-d189b4c2eb01 h1:bZ8JmPnyboS9Zek9INWCTgfcoC6SkSw1t8O38HxE8GY=
+github.com/klauspost/compress v1.20.2-0.20261004115517-d189b4c2eb01/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
