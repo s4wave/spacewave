@@ -14,7 +14,6 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/opfs"
-	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/engine"
 	"github.com/sirupsen/logrus"
 )
@@ -91,7 +90,7 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 	logger.SetOutput(io.Discard)
 	syncer := &syncController{
 		le: logrus.NewEntry(logger), store: metadata, client: client, resourceID: "browser-scaling",
-		mfst: catalog, lower: lower, upper: newSyncTestBlockStore(),
+		mfst: catalog, lower: push.lower(t), upper: newSyncTestBlockStore(),
 	}
 
 	// Mark count small blocks dirty.

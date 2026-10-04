@@ -76,16 +76,17 @@ func TestEnumerateBlockRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Serve the pull.
+	// Serve the pull. The routes are exact paths, which the goscript ServeMux
+	// also matches.
 	mux := http.NewServeMux()
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
-	mux.HandleFunc("GET /api/bstore/{id}/sync/pull", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/bstore/bstore-1/sync/pull", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(pullData)
 	})
 
 	// Grant a read URL for each requested pack.
-	mux.HandleFunc("POST /api/bstore/{id}/read", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/bstore/bstore-1/read", func(w http.ResponseWriter, r *http.Request) {
 		// Decode the requested packs.
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -118,21 +119,14 @@ func TestEnumerateBlockRefs(t *testing.T) {
 	// Serve granted range reads, recording each pack opened.
 	var mtx sync.Mutex
 	var opened []string
-	mux.HandleFunc("GET /pack/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// Find the pack.
-		id := r.PathValue("id")
-		data, ok := packs[id]
-		if !ok {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		// Record and serve the read.
-		mtx.Lock()
-		opened = append(opened, id)
-		mtx.Unlock()
-		http.ServeContent(w, r, id, time.Time{}, bytes.NewReader(data))
-	})
+	for id, data := range packs {
+		mux.HandleFunc("/pack/"+id, func(w http.ResponseWriter, r *http.Request) {
+			mtx.Lock()
+			opened = append(opened, id)
+			mtx.Unlock()
+			http.ServeContent(w, r, id, time.Time{}, bytes.NewReader(data))
+		})
+	}
 
 	// Enumerate the block store.
 	acc := NewTestProviderAccount(t, srv.URL)

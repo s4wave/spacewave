@@ -31,7 +31,9 @@ type testPushedPack struct {
 
 // testPushServer fakes the cloud side of the pack push protocol. It admits
 // each push with an upload URL under base, checks the uploaded bytes against
-// the admitted size and digest, and catalogs the pack on commit.
+// the admitted size and digest, and catalogs the pack on commit. As in the
+// cloud, an upload or commit of a pack already cataloged succeeds, so a
+// retried push racing its original commit completes.
 type testPushServer struct {
 	t    *testing.T
 	base string
@@ -66,6 +68,17 @@ func startTestPushServer(t *testing.T) *testPushServer {
 	return s
 }
 
+// findCommitted returns the committed pack with packID, or nil. The caller
+// holds mu.
+func (s *testPushServer) findCommitted(packID string) *testPushedPack {
+	for _, pack := range s.packs {
+		if pack.req.GetPackId() == packID {
+			return pack
+		}
+	}
+	return nil
+}
+
 // committed returns the committed packs in commit order.
 func (s *testPushServer) committed() []*testPushedPack {
 	s.mu.Lock()
@@ -82,10 +95,8 @@ func (s *testPushServer) lower(t *testing.T) *packfile_store.PackfileStore {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		var data []byte
-		for _, pack := range s.packs {
-			if pack.req.GetPackId() == packID {
-				data = pack.data
-			}
+		if pack := s.findCommitted(packID); pack != nil {
+			data = pack.data
 		}
 		return packfile_store.NewPackReader(packID, size, &syncPackTransport{data: data}), nil
 	}, nil)
@@ -152,11 +163,7 @@ func (s *testPushServer) servePush(w http.ResponseWriter, body []byte) {
 	// Answer a committed pack without an upload and admit any other.
 	resp := &packfile.PushResponse{PackId: req.GetPackId(), SizeBytes: req.GetSizeBytes()}
 	s.mu.Lock()
-	for _, pack := range s.packs {
-		if pack.req.GetPackId() == req.GetPackId() {
-			resp.AlreadyExists = true
-		}
-	}
+	resp.AlreadyExists = s.findCommitted(req.GetPackId()) != nil
 	if !resp.AlreadyExists {
 		s.pending[req.GetPackId()] = req
 		resp.Upload = &packfile.PushUpload{
@@ -168,11 +175,17 @@ func (s *testPushServer) servePush(w http.ResponseWriter, body []byte) {
 	writeTestPushResponse(s.t, w, resp)
 }
 
-// serveUpload stores an upload body that matches its admitted push.
+// serveUpload stores an upload body that matches its admitted push. An
+// upload of a committed pack overwrites the same bytes, as a signed upload
+// URL does until it expires.
 func (s *testPushServer) serveUpload(w http.ResponseWriter, r *http.Request, packID string, body []byte) {
-	// Find the admitted push and run the upload hook.
+	// Find the admitted or committed push and run the upload hook.
 	s.mu.Lock()
 	req := s.pending[packID]
+	committed := s.findCommitted(packID)
+	if req == nil && committed != nil {
+		req = committed.req
+	}
 	onUpload := s.onUpload
 	s.mu.Unlock()
 	if req == nil {
@@ -197,19 +210,24 @@ func (s *testPushServer) serveUpload(w http.ResponseWriter, r *http.Request, pac
 		return
 	}
 
-	// Store the body until the commit.
+	// Store the body until the commit, unless the pack is already cataloged.
 	s.mu.Lock()
-	s.uploaded[packID] = body
+	if s.findCommitted(packID) == nil {
+		s.uploaded[packID] = body
+	}
 	s.mu.Unlock()
 	w.WriteHeader(http.StatusOK)
 }
 
-// serveCommit catalogs an uploaded pack.
+// serveCommit catalogs an uploaded pack. A repeated commit of a cataloged
+// pack succeeds.
 func (s *testPushServer) serveCommit(w http.ResponseWriter, packID string) {
-	// Move an uploaded pack into the catalog.
+	// Answer a cataloged pack, or move an uploaded pack into the catalog.
 	s.mu.Lock()
 	req, data := s.pending[packID], s.uploaded[packID]
-	if req != nil && data != nil {
+	if pack := s.findCommitted(packID); pack != nil {
+		req, data = pack.req, pack.data
+	} else if req != nil && data != nil {
 		delete(s.pending, packID)
 		delete(s.uploaded, packID)
 		s.packs = append(s.packs, &testPushedPack{req: req, data: data})
