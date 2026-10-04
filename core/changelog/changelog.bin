@@ -1,4 +1,22 @@
 
+®
+0.57.23
+2026-10-04«Spacewave 0.57.23 adds Space controls for edit syncing, group decisions, and offline storage, while improving sign-in, invites, file storage, and reconnection reliability."«Spacewave 0.57.23 adds Space controls for edit syncing, group decisions, and offline storage, while improving sign-in, invites, file storage, and reconnection reliability.*ü
+|Space settings now let you choose whether edits merge or follow one order, including selecting or replacing the main device.|Space settings now let you choose whether edits merge or follow one order, including selecting or replacing the main device.*˜
+‰Space owners can hand control to the group, where membership and settings changes require agreement from more than two thirds of members.‰Space owners can hand control to the group, where membership and settings changes require agreement from more than two thirds of members.*’
+†Each device can download items on demand or keep the whole Space available offline. The same choice is available when joining a Space.†Each device can download items on demand or keep the whole Space available offline. The same choice is available when joining a Space.*è
+rNew command-line tools create and accept invites, list and remove Space members, and manage whole-Space downloads.rNew command-line tools create and accept invites, list and remove Space members, and manage whole-Space downloads.2¦
+QRepeat browser sign-ins now reconnect the accountâ€™s existing Session correctly.QRepeat browser sign-ins now reconnect the accountâ€™s existing Session correctly.2l
+4Invites can now be accepted after an account change.4Invites can now be accepted after an account change.2Ô
+hSpaces now catch up on changes made while they were closed, and Space lists refresh when access changes.hSpaces now catch up on changes made while they were closed, and Space lists refresh when access changes.2†
+€File uploads no longer hang, file renames resolve their destination correctly, and file watches recover after a released lookup.€File uploads no longer hang, file renames resolve their destination correctly, and file watches recover after a released lookup.2~
+=Peer connections now recover when the remote device restarts.=Peer connections now recover when the remote device restarts.2ð
+vGit Spaces now reuse retained local repository data, and Git LFS reports startup failures instead of silently failing.vGit Spaces now reuse retained local repository data, and Git LFS reports startup failures instead of silently failing.:Ò
+gSign-in handoffs now finish on one confirmation screen with a direct option to continue in the browser.gSign-in handoffs now finish on one confirmation screen with a direct option to continue in the browser.:æ
+qSpace settings show who controls the Space, changes waiting for group agreement, and edits waiting to be ordered.qSpace settings show who controls the Space, changes waiting for group agreement, and edits waiting to be ordered.:¾
+]Command-line Session lists now show usernames, and Space commands can resolve Spaces by name.]Command-line Session lists now show usernames, and Space commands can resolve Spaces by name.Bˆ
+BCommand-line account changes can now be authorized with a passkey.BCommand-line account changes can now be authorized with a passkey.B¬
+TRemoving Space members rotates access so removed members cannot read future changes.TRemoving Space members rotates access so removed members cannot read future changes.
 Ê
 0.57.22
 2026-10-01˜Spacewave 0.57.22 keeps signup handoffs available through interruptions, reduces Drive upload memory use, and lets Spaces continue when an owner leaves."˜Spacewave 0.57.22 keeps signup handoffs available through interruptions, reduces Drive upload memory use, and lets Spaces continue when an owner leaves.*œ
