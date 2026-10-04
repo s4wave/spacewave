@@ -195,12 +195,24 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 	fast.start(ctx)
 	slow.start(ctx)
 
-	// Observe the slow peer receiving its fanout request.
+	// Observe the slow peer receiving its fanout request and then the cancel
+	// that withdraws it.
 	slowReceived := make(chan struct{})
+	slowReq := make(chan *DexMessage, 1)
+	slowCancel := make(chan *DexMessage, 1)
 	go func() {
+		// Capture the request and release the fast responder.
 		var req DexMessage
-		if err := slowRemote.RecvMsg(&req); err == nil {
-			close(slowReceived)
+		if err := slowRemote.RecvMsg(&req); err != nil {
+			return
+		}
+		slowReq <- &req
+		close(slowReceived)
+
+		// Capture the next message, which withdraws the request.
+		var msg DexMessage
+		if err := slowRemote.RecvMsg(&msg); err == nil {
+			slowCancel <- &msg
 		}
 	}()
 
@@ -240,6 +252,13 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 	waitTestDexCondition(t, "slow pending request to clear after first success", func() bool {
 		return testDexPendingLen(slow) == 0
 	})
+
+	// Verify the slow peer was told to stop serving the withdrawn request.
+	req := recvTestDexValue(t, slowReq, "slow request")
+	msg := recvTestDexValue(t, slowCancel, "slow cancel")
+	if !msg.GetCancel() || msg.GetRequestId() != req.GetRequestId() {
+		t.Fatalf("slow peer got %v, want cancel of request %d", msg, req.GetRequestId())
+	}
 }
 
 func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {

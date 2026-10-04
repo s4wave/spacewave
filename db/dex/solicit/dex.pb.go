@@ -15,9 +15,9 @@ import (
 )
 
 // DexMessage is a message sent over a DEX stream.
-// Each message is either a request or a response, distinguished by the
-// request_id field. A request has a non-empty ref and a zero-value
-// response. A response has a non-zero request_id and the response fields set.
+// Each message is a request, a response, or a cancel. A request has a
+// non-empty ref and a zero-value response. A response has is_response and the
+// response fields set. A cancel has cancel set and the request_id it withdraws.
 type DexMessage struct {
 	unknownFields []byte
 	// RequestId is a unique ID for this request/response pair.
@@ -44,6 +44,10 @@ type DexMessage struct {
 	// RefsKnown is false when the responder held the block without its
 	// outgoing references (response only).
 	RefsKnown bool `protobuf:"varint,9,opt,name=refs_known,json=refsKnown,proto3" json:"refsKnown,omitempty"`
+	// Cancel withdraws the request with request_id. The responder stops
+	// handling it and sends no response. A cancel for a request that already
+	// completed is ignored.
+	Cancel bool `protobuf:"varint,10,opt,name=cancel,proto3" json:"cancel,omitempty"`
 }
 
 func (x *DexMessage) Reset() {
@@ -115,6 +119,13 @@ func (x *DexMessage) GetRefsKnown() bool {
 	return false
 }
 
+func (x *DexMessage) GetCancel() bool {
+	if x != nil {
+		return x.Cancel
+	}
+	return false
+}
+
 func (m *DexMessage) CloneVT() *DexMessage {
 	if m == nil {
 		return (*DexMessage)(nil)
@@ -126,6 +137,7 @@ func (m *DexMessage) CloneVT() *DexMessage {
 	r.Error = m.Error
 	r.RemainingHops = m.RemainingHops
 	r.RefsKnown = m.RefsKnown
+	r.Cancel = m.Cancel
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	r.Refs = protobuf_go_lite.CloneVTSlice(m.Refs)
@@ -170,6 +182,9 @@ func (this *DexMessage) EqualVT(that *DexMessage) bool {
 		return false
 	}
 	if this.RefsKnown != that.RefsKnown {
+		return false
+	}
+	if this.Cancel != that.Cancel {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -242,6 +257,11 @@ func (x *DexMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("refsKnown")
 		s.WriteBool(x.RefsKnown)
 	}
+	if x.Cancel || s.HasField("cancel") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cancel")
+		s.WriteBool(x.Cancel)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -305,6 +325,9 @@ func (x *DexMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "refs_known", "refsKnown":
 			s.AddField("refs_known")
 			x.RefsKnown = s.ReadBool()
+		case "cancel":
+			s.AddField("cancel")
+			x.Cancel = s.ReadBool()
 		}
 	})
 }
@@ -342,6 +365,11 @@ func (m *DexMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Cancel {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Cancel)
+		i--
+		dAtA[i] = 0x50
 	}
 	if m.RefsKnown {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.RefsKnown)
@@ -424,6 +452,7 @@ func (m *DexMessage) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.RefsKnown)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Cancel)
 	n += len(m.unknownFields)
 	return n
 }
@@ -474,6 +503,10 @@ func (x *DexMessage) MarshalProtoText() string {
 	if x.RefsKnown != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "refs_known")
 		protobuf_go_lite.TextWriteBool(&sb, x.RefsKnown)
+	}
+	if x.Cancel != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cancel")
+		protobuf_go_lite.TextWriteBool(&sb, x.Cancel)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -596,6 +629,16 @@ func (m *DexMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RefsKnown = bool(v)
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cancel", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Cancel = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

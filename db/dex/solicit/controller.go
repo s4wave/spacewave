@@ -33,9 +33,6 @@ const DexProtocolID = protocol.ID("hydra/dex")
 // KiB).
 const maxMessageSize = 10 * 1024 * 1024
 
-// requestTimeout is the per-peer request timeout.
-const requestTimeout = 5 * time.Second
-
 // Controller is the solicitation-based DEX controller.
 type Controller struct {
 	le *logrus.Entry
@@ -53,23 +50,6 @@ type Controller struct {
 	// transfer counts block payloads that actually crossed a peer stream.
 	transfer      TransferSnapshot
 	peerTransfers map[string]PeerTransferSnapshot
-}
-
-// TransferSnapshot reports payload traffic and current peers for this controller.
-// Counters exclude cached reads and protocol framing and last for its lifetime.
-type TransferSnapshot struct {
-	UploadedBytes   uint64
-	DownloadedBytes uint64
-	LastActivity    time.Time
-	Peers           []PeerTransferSnapshot
-}
-
-// PeerTransferSnapshot retains this peer's traffic across stream reconnects.
-type PeerTransferSnapshot struct {
-	PeerID          string
-	UploadedBytes   uint64
-	DownloadedBytes uint64
-	Connected       bool
 }
 
 // GetTransferSnapshot returns counters and a channel for the next change.
@@ -331,17 +311,18 @@ type fanoutResult struct {
 	err  error
 }
 
-// run requests the block from every session under a bounded timeout. It
-// returns the first verified response. It returns nil and no error only when
+// run requests the block from every session and waits until each answers,
+// its session closes, or ctx ends. It returns the first verified response and
+// cancels the other requests, which tells their peers to stop serving them. It returns nil and no error only when
 // every peer answered that it does not have the block, and an error when no
 // peer had the block and a request failed, so a dropped link or a timeout is
 // never mistaken for a missing block.
 func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
-	// Bound the peer fanout request lifetime.
+	// Scope the peer requests to this fanout.
 	if len(f.sessions) == 0 {
 		return nil, nil
 	}
-	reqCtx, reqCancel := context.WithTimeout(ctx, requestTimeout)
+	reqCtx, reqCancel := context.WithCancel(ctx)
 	defer reqCancel()
 
 	// Fan out the request to every session.
@@ -376,9 +357,6 @@ func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 	return nil, nil
 }
 
-// _ is a type assertion
-var _ directive.Resolver = (*lookupResolver)(nil)
-
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
@@ -394,4 +372,7 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = (*Controller)(nil)
+var (
+	_ controller.Controller = (*Controller)(nil)
+	_ directive.Resolver    = (*lookupResolver)(nil)
+)

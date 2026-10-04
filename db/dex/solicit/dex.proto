@@ -4,9 +4,9 @@ package dex.solicit;
 import "github.com/s4wave/spacewave/db/block/block.proto";
 
 // DexMessage is a message sent over a DEX stream.
-// Each message is either a request or a response, distinguished by the
-// request_id field. A request has a non-empty ref and a zero-value
-// response. A response has a non-zero request_id and the response fields set.
+// Each message is a request, a response, or a cancel. A request has a
+// non-empty ref and a zero-value response. A response has is_response and the
+// response fields set. A cancel has cancel set and the request_id it withdraws.
 message DexMessage {
   // RequestId is a unique ID for this request/response pair.
   // The requester picks a unique ID. The responder echoes it back.
@@ -32,4 +32,8 @@ message DexMessage {
   // RefsKnown is false when the responder held the block without its
   // outgoing references (response only).
   bool refs_known = 9;
+  // Cancel withdraws the request with request_id. The responder stops
+  // handling it and sends no response. A cancel for a request that already
+  // completed is ignored.
+  bool cancel = 10;
 }

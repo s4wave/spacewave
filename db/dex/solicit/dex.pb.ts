@@ -10,9 +10,9 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
  * DexMessage is a message sent over a DEX stream.
- * Each message is either a request or a response, distinguished by the
- * request_id field. A request has a non-empty ref and a zero-value
- * response. A response has a non-zero request_id and the response fields set.
+ * Each message is a request, a response, or a cancel. A request has a
+ * non-empty ref and a zero-value response. A response has is_response and the
+ * response fields set. A cancel has cancel set and the request_id it withdraws.
  *
  * @generated from message dex.solicit.DexMessage
  */
@@ -77,6 +77,14 @@ export interface DexMessage {
    * @generated from field: bool refs_known = 9;
    */
   refsKnown?: boolean
+  /**
+   * Cancel withdraws the request with request_id. The responder stops
+   * handling it and sends no response. A cancel for a request that already
+   * completed is ignored.
+   *
+   * @generated from field: bool cancel = 10;
+   */
+  cancel?: boolean
 }
 
 export const DexMessage: MessageType<DexMessage> =
@@ -98,5 +106,6 @@ export const DexMessage: MessageType<DexMessage> =
         repeated: true,
       },
       { no: 9, name: 'refs_known', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 10, name: 'cancel', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })

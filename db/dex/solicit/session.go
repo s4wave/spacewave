@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -28,9 +29,25 @@ type peerSession struct {
 	nextID     atomic.Uint32
 	closed     atomic.Bool
 
-	// mtx guards pending map and serializes SendMsg writes.
-	mtx     sync.Mutex
+	// sendMtx serializes SendMsg writes in arrival order. A sender waits for
+	// it with its own context, so a canceled request does not wait behind a
+	// long block write.
+	sendMtx csync.Mutex
+
+	// mtx guards pending and handling. It is never held during a write, so
+	// the read loop dispatches responses while a large block is sent.
+	mtx sync.Mutex
+	// pending maps local request ids to the channels awaiting responses.
 	pending map[uint32]chan *DexMessage
+	// handling maps the remote peer's request ids to the requests this side
+	// is serving.
+	handling map[uint32]*handledRequest
+}
+
+// handledRequest is an incoming request this side is serving.
+type handledRequest struct {
+	// cancel stops serving the request.
+	cancel context.CancelFunc
 }
 
 func newPeerSession(
@@ -40,12 +57,13 @@ func newPeerSession(
 	onExit func(),
 ) *peerSession {
 	s := &peerSession{
-		c:       c,
-		le:      le,
-		ms:      ms,
-		sess:    stream_packet.NewSession(ms.GetStream(), maxMessageSize),
-		onExit:  onExit,
-		pending: make(map[uint32]chan *DexMessage),
+		c:        c,
+		le:       le,
+		ms:       ms,
+		sess:     stream_packet.NewSession(ms.GetStream(), maxMessageSize),
+		onExit:   onExit,
+		pending:  make(map[uint32]chan *DexMessage),
+		handling: make(map[uint32]*handledRequest),
 	}
 	s.runRoutine = routine.NewRoutineContainer()
 	_, _ = s.runRoutine.SetRoutine(func(ctx context.Context) error {
@@ -67,13 +85,16 @@ func (s *peerSession) waitExited(ctx context.Context) error {
 }
 
 // run starts the session, reading messages in a loop and dispatching
-// responses to pending requests or handling incoming requests.
+// responses to pending requests, cancels to handled requests, and incoming
+// requests to new handlers.
 func (s *peerSession) run(ctx context.Context) {
-	// Mark the session closed and wake pending requests on exit.
+	// Mark the session closed, wake pending requests, and stop handlers on
+	// exit.
 	defer func() {
 		s.closed.Store(true)
 		s.sess.Close()
 		s.wakePending()
+		s.cancelHandling()
 	}()
 
 	// Read and dispatch session messages.
@@ -86,37 +107,92 @@ func (s *peerSession) run(ctx context.Context) {
 			return
 		}
 
-		if msg.GetIsResponse() {
-			s.c.recordTransfer(s.ms.GetPeerID().String(), 0, len(msg.GetData()))
-			s.mtx.Lock()
-			ch, ok := s.pending[msg.GetRequestId()]
-			if ok {
-				delete(s.pending, msg.GetRequestId())
-			}
-			s.mtx.Unlock()
-			if ok {
-				ch <- &msg
-			}
-			continue
+		switch {
+		case msg.GetCancel():
+			s.cancelRequest(msg.GetRequestId())
+		case msg.GetIsResponse():
+			s.dispatchResponse(&msg)
+		default:
+			s.startRequest(ctx, &msg)
 		}
-
-		// Incoming request: handle locally and send response.
-		go s.handleRequest(ctx, &msg)
 	}
 }
 
-// handleRequest handles an incoming block request and sends a response.
-func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
-	// Prepare a response that is sent when request handling finishes.
+// dispatchResponse delivers a response to the pending request with its id.
+// A response for a request that already finished is dropped.
+func (s *peerSession) dispatchResponse(msg *DexMessage) {
+	// Count the payload and claim the waiting request.
+	s.c.recordTransfer(s.ms.GetPeerID().String(), 0, len(msg.GetData()))
+	s.mtx.Lock()
+	ch, ok := s.pending[msg.GetRequestId()]
+	if ok {
+		delete(s.pending, msg.GetRequestId())
+	}
+	s.mtx.Unlock()
+	if ok {
+		ch <- msg
+	}
+}
+
+// startRequest registers an incoming request so a cancel can stop it, then
+// handles it in its own goroutine.
+func (s *peerSession) startRequest(ctx context.Context, req *DexMessage) {
+	// Replace any request the peer reissued under the same id.
+	reqCtx, cancel := context.WithCancel(ctx)
+	h := &handledRequest{cancel: cancel}
+	id := req.GetRequestId()
+	s.mtx.Lock()
+	if prev := s.handling[id]; prev != nil {
+		prev.cancel()
+	}
+	s.handling[id] = h
+	s.mtx.Unlock()
+	go s.handleRequest(reqCtx, h, req)
+}
+
+// cancelRequest stops the handled request with id. It does nothing when the
+// request already finished.
+func (s *peerSession) cancelRequest(id uint32) {
+	// Remove the request and stop its handler outside the lock.
+	s.mtx.Lock()
+	h := s.handling[id]
+	delete(s.handling, id)
+	s.mtx.Unlock()
+	if h != nil {
+		h.cancel()
+	}
+}
+
+// cancelHandling stops every handled request.
+func (s *peerSession) cancelHandling() {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	for id, h := range s.handling {
+		h.cancel()
+		delete(s.handling, id)
+	}
+}
+
+// handleRequest handles an incoming block request and sends a response. A
+// request canceled by the peer sends no response.
+func (s *peerSession) handleRequest(
+	ctx context.Context,
+	h *handledRequest,
+	req *DexMessage,
+) {
+	// Prepare a response that is sent when request handling finishes, and
+	// deregister the request afterward.
 	ref := req.GetRef()
 	resp := &DexMessage{
 		RequestId:  req.GetRequestId(),
 		IsResponse: true,
 	}
 	defer func() {
-		if err := s.sendMsg(resp); err != nil {
+		err := s.sendMsg(ctx, resp)
+		if err != nil && ctx.Err() == nil {
 			s.le.WithError(err).Debug("dex session send error")
 		}
+		s.finishRequest(req.GetRequestId(), h)
 	}()
 
 	// Reject a block request that cannot identify stored data.
@@ -150,6 +226,17 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 			resp.SetBlock(found)
 		}
 	}
+}
+
+// finishRequest removes a finished request from the handling map unless a
+// newer request reused its id, and releases its context.
+func (s *peerSession) finishRequest(id uint32, h *handledRequest) {
+	s.mtx.Lock()
+	if s.handling[id] == h {
+		delete(s.handling, id)
+	}
+	s.mtx.Unlock()
+	h.cancel()
 }
 
 // lookupLocalBlock looks up a block and its refs in the local bucket store
@@ -211,13 +298,23 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		Ref:           ref,
 		RemainingHops: hops,
 	}
-	if err := s.sendMsg(req); err != nil {
+	if err := s.sendMsg(ctx, req); err != nil {
 		return nil, err
 	}
 
-	// Await the response or request cancellation.
+	// Await the response or request cancellation. A canceled request tells
+	// the peer to stop serving it, so the peer does not spend its upload on
+	// a response nobody reads. The cancel outlives ctx and ends with the
+	// session, whose close fails the write.
 	select {
 	case <-ctx.Done():
+		sendCtx := context.WithoutCancel(ctx)
+		go func() {
+			_ = s.sendMsg(sendCtx, &DexMessage{
+				RequestId: id,
+				Cancel:    true,
+			})
+		}()
 		return nil, ctx.Err()
 	case resp := <-ch:
 		if resp == nil {
@@ -238,12 +335,22 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 	}
 }
 
-// sendMsg sends a message with write serialization.
-func (s *peerSession) sendMsg(msg *DexMessage) error {
-	// Serialize the peer message and account for response payloads.
-	s.mtx.Lock()
-	err := s.sess.SendMsg(msg)
-	s.mtx.Unlock()
+// sendMsg sends a message with write serialization. It returns the context
+// error without writing when ctx ends before the write starts.
+func (s *peerSession) sendMsg(ctx context.Context, msg *DexMessage) error {
+	// Wait for the write slot or the end of ctx.
+	release, err := s.sendMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		release()
+		return err
+	}
+
+	// Write the message and account for response payloads.
+	err = s.sess.SendMsg(msg)
+	release()
 	if err == nil && msg.GetIsResponse() {
 		s.c.recordTransfer(s.ms.GetPeerID().String(), len(msg.GetData()), 0)
 	}
