@@ -16,6 +16,7 @@ import (
 // NewTestProviderAccount creates a minimal ProviderAccount for transfer testing.
 // Only the session client and provider config are populated.
 func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
+	// Build the session client and the provider.
 	t.Helper()
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, endpoint, DefaultSigningEnvPrefix, priv, pid.String())
@@ -28,6 +29,8 @@ func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
 		nil,
 		nil,
 	)
+
+	// Build the account with its shared object trackers and cleanup runner.
 	acc := &ProviderAccount{
 		le:            le,
 		sessionClient: cli,
@@ -46,6 +49,5 @@ func NewTestProviderAccount(t *testing.T, endpoint string) *ProviderAccount {
 	)
 	acc.soListRc = refcount.NewRefCount(nil, true, nil, nil, acc.resolveSharedObjectList)
 	_ = acc.soListRc.SetContext(context.Background())
-	acc.setWriteTicketOwnersContext(context.Background())
 	return acc
 }

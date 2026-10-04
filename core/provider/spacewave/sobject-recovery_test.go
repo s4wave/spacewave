@@ -63,15 +63,7 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 			}
 			postedEpoch = req.GetKeyEpoch()
 			w.WriteHeader(http.StatusOK)
-		case "/api/session/write-tickets/" + soID:
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(mustMarshalVT(t, &api.WriteTicketBundleResponse{
-				SoCheckpointTicket: "ticket-checkpoint",
-			}))
 		case "/api/sobject/" + soID + "/checkpoint":
-			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-checkpoint" {
-				t.Fatalf("unexpected write ticket: %q", got)
-			}
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatalf("read checkpoint body: %v", err)
@@ -129,7 +121,6 @@ func TestProviderAccountCreateSpaceSeedsWorldHead(t *testing.T) {
 		"GET /api/account/state",
 		"GET /api/sobject/" + soID + "/recovery-entity-keypairs",
 		"POST /api/sobject/" + soID + "/config-state",
-		"POST /api/session/write-tickets/" + soID,
 		"POST /api/sobject/" + soID + "/checkpoint",
 	}
 	if !slices.Equal(calls, expectedCalls) {
@@ -191,15 +182,7 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 			}
 			postedEpoch = req.GetKeyEpoch()
 			w.WriteHeader(http.StatusOK)
-		case "/api/session/write-tickets/" + soID:
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(mustMarshalVT(t, &api.WriteTicketBundleResponse{
-				SoCheckpointTicket: "ticket-checkpoint",
-			}))
 		case "/api/sobject/" + soID + "/checkpoint":
-			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-checkpoint" {
-				t.Fatalf("unexpected write ticket: %q", got)
-			}
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatalf("read checkpoint body: %v", err)
@@ -258,7 +241,6 @@ func TestEnsureAccountSettingsSharedObject_CreatesWhenMissing(t *testing.T) {
 		"GET /api/account/state",
 		"GET /api/sobject/" + soID + "/recovery-entity-keypairs",
 		"POST /api/sobject/" + soID + "/config-state",
-		"POST /api/session/write-tickets/" + soID,
 		"POST /api/sobject/" + soID + "/checkpoint",
 		"POST /api/account/sobject-binding/finalize",
 	}

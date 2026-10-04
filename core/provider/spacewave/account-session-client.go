@@ -9,13 +9,12 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// configureSessionClient connects cli to the account's write ticket audience
-// and recovery keypair cache.
+// configureSessionClient connects cli to the account's recovery keypair
+// cache.
 func (a *ProviderAccount) configureSessionClient(cli *SessionClient) *SessionClient {
 	if cli == nil {
 		return nil
 	}
-	cli.executeWriteTicketAudience = a.ExecuteWriteTicketAudience
 	cli.recoveryKeypairs = &a.recoveryKeypairs
 	return cli
 }
@@ -86,6 +85,7 @@ func (a *ProviderAccount) getReadySessionClientForSession(
 			continue
 		}
 
+		// Build the session's client and install it.
 		cli := NewSessionClient(
 			a.p.httpCli,
 			a.p.endpoint,
@@ -104,17 +104,25 @@ func (a *ProviderAccount) getReadySessionClientForSession(
 	return nil, nil, "", false
 }
 
+// maybeSetSessionClient installs cli as the account's session client for
+// sessionID unless another session's client is already installed.
 func (a *ProviderAccount) maybeSetSessionClient(sessionID string, cli *SessionClient) {
+	// A client without a session cannot hold the slot.
 	if cli == nil || sessionID == "" {
 		return
 	}
+
+	// Install the client unless another session holds the slot.
 	cli = a.configureSessionClient(cli)
 	var rejoinState *selfRejoinSweepState
 	var updated bool
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Leave a slot another session holds.
 		if a.sessionClientSessionID != "" && a.sessionClientSessionID != sessionID {
 			return
 		}
+
+		// Install the client and announce it.
 		a.sessionClient = cli
 		a.sessionClientSessionID = sessionID
 		rejoinState = a.buildSelfRejoinSweepStateLocked()
@@ -124,6 +132,8 @@ func (a *ProviderAccount) maybeSetSessionClient(sessionID string, cli *SessionCl
 	if !updated {
 		return
 	}
+
+	// Refresh the state derived from the session client.
 	a.setSelfRejoinSweepState(rejoinState)
 	a.refreshSelfEnrollmentSummary(context.Background())
 }

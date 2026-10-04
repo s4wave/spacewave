@@ -977,7 +977,7 @@ func (x *SOStateDeltaEntry) GetChangeData() []byte {
 // PostOpsRequest is one bounded, atomic cloud operation checkpoint.
 type PostOpsRequest struct {
 	unknownFields []byte
-	// Operations contains at most 50 signed operations and 1 MiB of encoded data.
+	// Operations contains at most 50 signed operations and 256 KiB of encoded data.
 	Operations []*sobject.SOOperation `protobuf:"bytes,1,rep,name=operations,proto3" json:"operations,omitempty"`
 }
 
@@ -2328,113 +2328,6 @@ func (x *SigningPayload) GetSignedHeaders() string {
 		return x.SignedHeaders
 	}
 	return ""
-}
-
-// WriteTicketProofPayload is the message whose binary serialization is signed
-// to prove possession of the session private key for a write-ticket-authenticated
-// hot write request.
-type WriteTicketProofPayload struct {
-	unknownFields []byte
-	// Ticket is the presented write ticket JWT.
-	Ticket string `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
-	// Method is the HTTP method (e.g. "POST").
-	Method string `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
-	// Path is the URL path for the hot write request.
-	Path string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
-	// TimestampMs is the proof timestamp in milliseconds since epoch.
-	TimestampMs int64 `protobuf:"varint,4,opt,name=timestamp_ms,json=timestampMs,proto3" json:"timestampMs,omitempty"`
-	// ContentLength is the request content length associated with the proof.
-	ContentLength int64 `protobuf:"varint,5,opt,name=content_length,json=contentLength,proto3" json:"contentLength,omitempty"`
-	// BodyHashHex is the hex-encoded body hash associated with the proof.
-	BodyHashHex string `protobuf:"bytes,6,opt,name=body_hash_hex,json=bodyHashHex,proto3" json:"bodyHashHex,omitempty"`
-	// SignedHeaders contains sorted comma-separated "key=value" header pairs.
-	// Values use URL query escaping, including commas, plus signs, and percent signs.
-	SignedHeaders string `protobuf:"bytes,7,opt,name=signed_headers,json=signedHeaders,proto3" json:"signedHeaders,omitempty"`
-}
-
-func (x *WriteTicketProofPayload) Reset() {
-	*x = WriteTicketProofPayload{}
-}
-
-func (*WriteTicketProofPayload) ProtoMessage() {}
-
-func (x *WriteTicketProofPayload) GetTicket() string {
-	if x != nil {
-		return x.Ticket
-	}
-	return ""
-}
-
-func (x *WriteTicketProofPayload) GetMethod() string {
-	if x != nil {
-		return x.Method
-	}
-	return ""
-}
-
-func (x *WriteTicketProofPayload) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *WriteTicketProofPayload) GetTimestampMs() int64 {
-	if x != nil {
-		return x.TimestampMs
-	}
-	return 0
-}
-
-func (x *WriteTicketProofPayload) GetContentLength() int64 {
-	if x != nil {
-		return x.ContentLength
-	}
-	return 0
-}
-
-func (x *WriteTicketProofPayload) GetBodyHashHex() string {
-	if x != nil {
-		return x.BodyHashHex
-	}
-	return ""
-}
-
-func (x *WriteTicketProofPayload) GetSignedHeaders() string {
-	if x != nil {
-		return x.SignedHeaders
-	}
-	return ""
-}
-
-// WriteTicketProof carries the signed proof payload bytes and the detached
-// signature over those bytes.
-type WriteTicketProof struct {
-	unknownFields []byte
-	// Payload is the serialized WriteTicketProofPayload bytes.
-	Payload []byte `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
-	// Signature is the detached session-key signature over Payload.
-	Signature []byte `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
-}
-
-func (x *WriteTicketProof) Reset() {
-	*x = WriteTicketProof{}
-}
-
-func (*WriteTicketProof) ProtoMessage() {}
-
-func (x *WriteTicketProof) GetPayload() []byte {
-	if x != nil {
-		return x.Payload
-	}
-	return nil
-}
-
-func (x *WriteTicketProof) GetSignature() []byte {
-	if x != nil {
-		return x.Signature
-	}
-	return nil
 }
 
 // CheckoutRequest is the request body for POST /billing/checkout.
@@ -5500,48 +5393,6 @@ func (*TicketResponse) ProtoMessage() {}
 func (x *TicketResponse) GetTicket() string {
 	if x != nil {
 		return x.Ticket
-	}
-	return ""
-}
-
-// WriteTicketBundleResponse is the response body for bundled write-ticket
-// bootstrap. Each field carries one explicit steady-state write capability for
-// the addressed resource.
-type WriteTicketBundleResponse struct {
-	unknownFields []byte
-	// SoOpTicket authorizes POST /sobject/:id/op for the addressed resource.
-	SoOpTicket string `protobuf:"bytes,1,opt,name=so_op_ticket,json=soOpTicket,proto3" json:"soOpTicket,omitempty"`
-	// SoCheckpointTicket authorizes POST /sobject/:id/checkpoint for the
-	// addressed resource.
-	SoCheckpointTicket string `protobuf:"bytes,2,opt,name=so_checkpoint_ticket,json=soCheckpointTicket,proto3" json:"soCheckpointTicket,omitempty"`
-	// BstoreSyncPushTicket authorizes POST /bstore/:id/sync/push for the
-	// addressed resource.
-	BstoreSyncPushTicket string `protobuf:"bytes,3,opt,name=bstore_sync_push_ticket,json=bstoreSyncPushTicket,proto3" json:"bstoreSyncPushTicket,omitempty"`
-}
-
-func (x *WriteTicketBundleResponse) Reset() {
-	*x = WriteTicketBundleResponse{}
-}
-
-func (*WriteTicketBundleResponse) ProtoMessage() {}
-
-func (x *WriteTicketBundleResponse) GetSoOpTicket() string {
-	if x != nil {
-		return x.SoOpTicket
-	}
-	return ""
-}
-
-func (x *WriteTicketBundleResponse) GetSoCheckpointTicket() string {
-	if x != nil {
-		return x.SoCheckpointTicket
-	}
-	return ""
-}
-
-func (x *WriteTicketBundleResponse) GetBstoreSyncPushTicket() string {
-	if x != nil {
-		return x.BstoreSyncPushTicket
 	}
 	return ""
 }
@@ -11321,45 +11172,6 @@ func (m *SigningPayload) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *WriteTicketProofPayload) CloneVT() *WriteTicketProofPayload {
-	if m == nil {
-		return (*WriteTicketProofPayload)(nil)
-	}
-	r := new(WriteTicketProofPayload)
-	r.Ticket = m.Ticket
-	r.Method = m.Method
-	r.Path = m.Path
-	r.TimestampMs = m.TimestampMs
-	r.ContentLength = m.ContentLength
-	r.BodyHashHex = m.BodyHashHex
-	r.SignedHeaders = m.SignedHeaders
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *WriteTicketProofPayload) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *WriteTicketProof) CloneVT() *WriteTicketProof {
-	if m == nil {
-		return (*WriteTicketProof)(nil)
-	}
-	r := new(WriteTicketProof)
-	r.Payload = protobuf_go_lite.CloneBytes(m.Payload)
-	r.Signature = protobuf_go_lite.CloneBytes(m.Signature)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *WriteTicketProof) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (m *CheckoutRequest) CloneVT() *CheckoutRequest {
 	if m == nil {
 		return (*CheckoutRequest)(nil)
@@ -12753,24 +12565,6 @@ func (m *TicketResponse) CloneVT() *TicketResponse {
 }
 
 func (m *TicketResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *WriteTicketBundleResponse) CloneVT() *WriteTicketBundleResponse {
-	if m == nil {
-		return (*WriteTicketBundleResponse)(nil)
-	}
-	r := new(WriteTicketBundleResponse)
-	r.SoOpTicket = m.SoOpTicket
-	r.SoCheckpointTicket = m.SoCheckpointTicket
-	r.BstoreSyncPushTicket = m.BstoreSyncPushTicket
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *WriteTicketBundleResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -16906,67 +16700,6 @@ func (this *SigningPayload) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *WriteTicketProofPayload) EqualVT(that *WriteTicketProofPayload) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Ticket != that.Ticket {
-		return false
-	}
-	if this.Method != that.Method {
-		return false
-	}
-	if this.Path != that.Path {
-		return false
-	}
-	if this.TimestampMs != that.TimestampMs {
-		return false
-	}
-	if this.ContentLength != that.ContentLength {
-		return false
-	}
-	if this.BodyHashHex != that.BodyHashHex {
-		return false
-	}
-	if this.SignedHeaders != that.SignedHeaders {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *WriteTicketProofPayload) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*WriteTicketProofPayload)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *WriteTicketProof) EqualVT(that *WriteTicketProof) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualBytes(this.Payload, that.Payload) {
-		return false
-	}
-	if !protobuf_go_lite.EqualBytes(this.Signature, that.Signature) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *WriteTicketProof) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*WriteTicketProof)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 func (this *CheckoutRequest) EqualVT(that *CheckoutRequest) bool {
 	if this == that {
 		return true
@@ -18993,32 +18726,6 @@ func (this *TicketResponse) EqualVT(that *TicketResponse) bool {
 
 func (this *TicketResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*TicketResponse)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *WriteTicketBundleResponse) EqualVT(that *WriteTicketBundleResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.SoOpTicket != that.SoOpTicket {
-		return false
-	}
-	if this.SoCheckpointTicket != that.SoCheckpointTicket {
-		return false
-	}
-	if this.BstoreSyncPushTicket != that.BstoreSyncPushTicket {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *WriteTicketBundleResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*WriteTicketBundleResponse)
 	if !ok {
 		return false
 	}
@@ -25964,146 +25671,6 @@ func (x *SigningPayload) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the WriteTicketProofPayload message to JSON.
-func (x *WriteTicketProofPayload) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Ticket != "" || s.HasField("ticket") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("ticket")
-		s.WriteString(x.Ticket)
-	}
-	if x.Method != "" || s.HasField("method") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("method")
-		s.WriteString(x.Method)
-	}
-	if x.Path != "" || s.HasField("path") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("path")
-		s.WriteString(x.Path)
-	}
-	if x.TimestampMs != 0 || s.HasField("timestampMs") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("timestampMs")
-		s.WriteInt64(x.TimestampMs)
-	}
-	if x.ContentLength != 0 || s.HasField("contentLength") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("contentLength")
-		s.WriteInt64(x.ContentLength)
-	}
-	if x.BodyHashHex != "" || s.HasField("bodyHashHex") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("bodyHashHex")
-		s.WriteString(x.BodyHashHex)
-	}
-	if x.SignedHeaders != "" || s.HasField("signedHeaders") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("signedHeaders")
-		s.WriteString(x.SignedHeaders)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the WriteTicketProofPayload to JSON.
-func (x *WriteTicketProofPayload) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the WriteTicketProofPayload message from JSON.
-func (x *WriteTicketProofPayload) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "ticket":
-			s.AddField("ticket")
-			x.Ticket = s.ReadString()
-		case "method":
-			s.AddField("method")
-			x.Method = s.ReadString()
-		case "path":
-			s.AddField("path")
-			x.Path = s.ReadString()
-		case "timestamp_ms", "timestampMs":
-			s.AddField("timestamp_ms")
-			x.TimestampMs = s.ReadInt64()
-		case "content_length", "contentLength":
-			s.AddField("content_length")
-			x.ContentLength = s.ReadInt64()
-		case "body_hash_hex", "bodyHashHex":
-			s.AddField("body_hash_hex")
-			x.BodyHashHex = s.ReadString()
-		case "signed_headers", "signedHeaders":
-			s.AddField("signed_headers")
-			x.SignedHeaders = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the WriteTicketProofPayload from JSON.
-func (x *WriteTicketProofPayload) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the WriteTicketProof message to JSON.
-func (x *WriteTicketProof) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if len(x.Payload) > 0 || s.HasField("payload") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("payload")
-		s.WriteBytes(x.Payload)
-	}
-	if len(x.Signature) > 0 || s.HasField("signature") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("signature")
-		s.WriteBytes(x.Signature)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the WriteTicketProof to JSON.
-func (x *WriteTicketProof) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the WriteTicketProof message from JSON.
-func (x *WriteTicketProof) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "payload":
-			s.AddField("payload")
-			x.Payload = s.ReadBytes()
-		case "signature":
-			s.AddField("signature")
-			x.Signature = s.ReadBytes()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the WriteTicketProof from JSON.
-func (x *WriteTicketProof) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the CheckoutRequest message to JSON.
 func (x *CheckoutRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -31078,64 +30645,6 @@ func (x *TicketResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the TicketResponse from JSON.
 func (x *TicketResponse) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the WriteTicketBundleResponse message to JSON.
-func (x *WriteTicketBundleResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.SoOpTicket != "" || s.HasField("soOpTicket") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("soOpTicket")
-		s.WriteString(x.SoOpTicket)
-	}
-	if x.SoCheckpointTicket != "" || s.HasField("soCheckpointTicket") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("soCheckpointTicket")
-		s.WriteString(x.SoCheckpointTicket)
-	}
-	if x.BstoreSyncPushTicket != "" || s.HasField("bstoreSyncPushTicket") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("bstoreSyncPushTicket")
-		s.WriteString(x.BstoreSyncPushTicket)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the WriteTicketBundleResponse to JSON.
-func (x *WriteTicketBundleResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the WriteTicketBundleResponse message from JSON.
-func (x *WriteTicketBundleResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "so_op_ticket", "soOpTicket":
-			s.AddField("so_op_ticket")
-			x.SoOpTicket = s.ReadString()
-		case "so_checkpoint_ticket", "soCheckpointTicket":
-			s.AddField("so_checkpoint_ticket")
-			x.SoCheckpointTicket = s.ReadString()
-		case "bstore_sync_push_ticket", "bstoreSyncPushTicket":
-			s.AddField("bstore_sync_push_ticket")
-			x.BstoreSyncPushTicket = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the WriteTicketBundleResponse from JSON.
-func (x *WriteTicketBundleResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -41495,115 +41004,6 @@ func (m *SigningPayload) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *WriteTicketProofPayload) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WriteTicketProofPayload) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *WriteTicketProofPayload) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.SignedHeaders) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SignedHeaders)
-		i--
-		dAtA[i] = 0x3a
-	}
-	if len(m.BodyHashHex) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.BodyHashHex)
-		i--
-		dAtA[i] = 0x32
-	}
-	if m.ContentLength != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ContentLength))
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.TimestampMs != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TimestampMs))
-		i--
-		dAtA[i] = 0x20
-	}
-	if len(m.Path) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Path)
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Method) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Method)
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Ticket) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Ticket)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *WriteTicketProof) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WriteTicketProof) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *WriteTicketProof) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.Signature) > 0 {
-		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Signature)
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Payload) > 0 {
-		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Payload)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *CheckoutRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -45526,53 +44926,6 @@ func (m *TicketResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.Ticket) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Ticket)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *WriteTicketBundleResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WriteTicketBundleResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *WriteTicketBundleResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.BstoreSyncPushTicket) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.BstoreSyncPushTicket)
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.SoCheckpointTicket) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SoCheckpointTicket)
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.SoOpTicket) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SoOpTicket)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -53088,35 +52441,6 @@ func (m *SigningPayload) SizeVT() (n int) {
 	return n
 }
 
-func (m *WriteTicketProofPayload) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Ticket)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Method)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.TimestampMs)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ContentLength)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BodyHashHex)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SignedHeaders)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *WriteTicketProof) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Payload)
-	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Signature)
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *CheckoutRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -54241,19 +53565,6 @@ func (m *TicketResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Ticket)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *WriteTicketBundleResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SoOpTicket)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SoCheckpointTicket)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BstoreSyncPushTicket)
 	n += len(m.unknownFields)
 	return n
 }
@@ -57531,62 +56842,6 @@ func (x *SigningPayload) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *WriteTicketProofPayload) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WriteTicketProofPayload")
-	if x.Ticket != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ticket")
-		protobuf_go_lite.TextWriteString(&sb, x.Ticket)
-	}
-	if x.Method != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "method")
-		protobuf_go_lite.TextWriteString(&sb, x.Method)
-	}
-	if x.Path != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "path")
-		protobuf_go_lite.TextWriteString(&sb, x.Path)
-	}
-	if x.TimestampMs != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp_ms")
-		protobuf_go_lite.TextWriteInt(&sb, x.TimestampMs)
-	}
-	if x.ContentLength != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "content_length")
-		protobuf_go_lite.TextWriteInt(&sb, x.ContentLength)
-	}
-	if x.BodyHashHex != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "body_hash_hex")
-		protobuf_go_lite.TextWriteString(&sb, x.BodyHashHex)
-	}
-	if x.SignedHeaders != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signed_headers")
-		protobuf_go_lite.TextWriteString(&sb, x.SignedHeaders)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *WriteTicketProofPayload) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *WriteTicketProof) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WriteTicketProof")
-	if len(x.Payload) != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload")
-		protobuf_go_lite.TextWriteBytes(&sb, x.Payload)
-	}
-	if len(x.Signature) != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
-		protobuf_go_lite.TextWriteBytes(&sb, x.Signature)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *WriteTicketProof) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *CheckoutRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CheckoutRequest")
@@ -59474,28 +58729,6 @@ func (x *TicketResponse) MarshalProtoText() string {
 }
 
 func (x *TicketResponse) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *WriteTicketBundleResponse) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WriteTicketBundleResponse")
-	if x.SoOpTicket != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "so_op_ticket")
-		protobuf_go_lite.TextWriteString(&sb, x.SoOpTicket)
-	}
-	if x.SoCheckpointTicket != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "so_checkpoint_ticket")
-		protobuf_go_lite.TextWriteString(&sb, x.SoCheckpointTicket)
-	}
-	if x.BstoreSyncPushTicket != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bstore_sync_push_ticket")
-		protobuf_go_lite.TextWriteString(&sb, x.BstoreSyncPushTicket)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *WriteTicketBundleResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -66073,176 +65306,6 @@ func (m *SigningPayload) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *WriteTicketProofPayload) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WriteTicketProofPayload: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WriteTicketProofPayload: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Ticket", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Ticket = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Method", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Method = v
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Path = v
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TimestampMs", wireType)
-			}
-			m.TimestampMs = 0
-			m.TimestampMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ContentLength", wireType)
-			}
-			m.ContentLength = 0
-			m.ContentLength, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BodyHashHex", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.BodyHashHex = v
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SignedHeaders", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SignedHeaders = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *WriteTicketProof) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WriteTicketProof: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WriteTicketProof: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
-			}
-			m.Payload, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Payload, dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
-			}
-			m.Signature, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Signature, dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
 func (m *CheckoutRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -72054,79 +71117,6 @@ func (m *TicketResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Ticket = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *WriteTicketBundleResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WriteTicketBundleResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WriteTicketBundleResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SoOpTicket", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SoOpTicket = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SoCheckpointTicket", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SoCheckpointTicket = v
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BstoreSyncPushTicket", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.BstoreSyncPushTicket = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

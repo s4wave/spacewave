@@ -1021,7 +1021,7 @@ export const SOStateMessage: MessageType<SOStateMessage> =
  */
 export interface PostOpsRequest {
   /**
-   * Operations contains at most 50 signed operations and 1 MiB of encoded data.
+   * Operations contains at most 50 signed operations and 256 KiB of encoded data.
    *
    * @generated from field: repeated sobject.SOOperation operations = 1;
    */
@@ -2673,103 +2673,6 @@ export const SigningPayload: MessageType<SigningPayload> =
       { no: 5, name: 'content_length', kind: 'scalar', T: ScalarType.INT64 },
       { no: 6, name: 'body_hash_hex', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'signed_headers', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * WriteTicketProofPayload is the message whose binary serialization is signed
- * to prove possession of the session private key for a write-ticket-authenticated
- * hot write request.
- *
- * @generated from message provider.spacewave.api.WriteTicketProofPayload
- */
-export interface WriteTicketProofPayload {
-  /**
-   * Ticket is the presented write ticket JWT.
-   *
-   * @generated from field: string ticket = 1;
-   */
-  ticket?: string
-  /**
-   * Method is the HTTP method (e.g. "POST").
-   *
-   * @generated from field: string method = 2;
-   */
-  method?: string
-  /**
-   * Path is the URL path for the hot write request.
-   *
-   * @generated from field: string path = 3;
-   */
-  path?: string
-  /**
-   * TimestampMs is the proof timestamp in milliseconds since epoch.
-   *
-   * @generated from field: int64 timestamp_ms = 4;
-   */
-  timestampMs?: bigint
-  /**
-   * ContentLength is the request content length associated with the proof.
-   *
-   * @generated from field: int64 content_length = 5;
-   */
-  contentLength?: bigint
-  /**
-   * BodyHashHex is the hex-encoded body hash associated with the proof.
-   *
-   * @generated from field: string body_hash_hex = 6;
-   */
-  bodyHashHex?: string
-  /**
-   * SignedHeaders contains sorted comma-separated "key=value" header pairs.
-   * Values use URL query escaping, including commas, plus signs, and percent signs.
-   *
-   * @generated from field: string signed_headers = 7;
-   */
-  signedHeaders?: string
-}
-
-export const WriteTicketProofPayload: MessageType<WriteTicketProofPayload> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'provider.spacewave.api.WriteTicketProofPayload',
-    fields: [
-      { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'method', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'timestamp_ms', kind: 'scalar', T: ScalarType.INT64 },
-      { no: 5, name: 'content_length', kind: 'scalar', T: ScalarType.INT64 },
-      { no: 6, name: 'body_hash_hex', kind: 'scalar', T: ScalarType.STRING },
-      { no: 7, name: 'signed_headers', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * WriteTicketProof carries the signed proof payload bytes and the detached
- * signature over those bytes.
- *
- * @generated from message provider.spacewave.api.WriteTicketProof
- */
-export interface WriteTicketProof {
-  /**
-   * Payload is the serialized WriteTicketProofPayload bytes.
-   *
-   * @generated from field: bytes payload = 1;
-   */
-  payload?: Uint8Array
-  /**
-   * Signature is the detached session-key signature over Payload.
-   *
-   * @generated from field: bytes signature = 2;
-   */
-  signature?: Uint8Array
-}
-
-export const WriteTicketProof: MessageType<WriteTicketProof> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'provider.spacewave.api.WriteTicketProof',
-    fields: [
-      { no: 1, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 2, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -5839,56 +5742,6 @@ export const TicketResponse: MessageType<TicketResponse> =
     typeName: 'provider.spacewave.api.TicketResponse',
     fields: [
       { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * WriteTicketBundleResponse is the response body for bundled write-ticket
- * bootstrap. Each field carries one explicit steady-state write capability for
- * the addressed resource.
- *
- * @generated from message provider.spacewave.api.WriteTicketBundleResponse
- */
-export interface WriteTicketBundleResponse {
-  /**
-   * SoOpTicket authorizes POST /sobject/:id/op for the addressed resource.
-   *
-   * @generated from field: string so_op_ticket = 1;
-   */
-  soOpTicket?: string
-  /**
-   * SoCheckpointTicket authorizes POST /sobject/:id/checkpoint for the
-   * addressed resource.
-   *
-   * @generated from field: string so_checkpoint_ticket = 2;
-   */
-  soCheckpointTicket?: string
-  /**
-   * BstoreSyncPushTicket authorizes POST /bstore/:id/sync/push for the
-   * addressed resource.
-   *
-   * @generated from field: string bstore_sync_push_ticket = 3;
-   */
-  bstoreSyncPushTicket?: string
-}
-
-export const WriteTicketBundleResponse: MessageType<WriteTicketBundleResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'provider.spacewave.api.WriteTicketBundleResponse',
-    fields: [
-      { no: 1, name: 'so_op_ticket', kind: 'scalar', T: ScalarType.STRING },
-      {
-        no: 2,
-        name: 'so_checkpoint_ticket',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      {
-        no: 3,
-        name: 'bstore_sync_push_ticket',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

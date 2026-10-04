@@ -9,11 +9,3 @@ var snapshotRefCountOptions = &refcount.Options{
 	},
 	RetryDelay: providerRetryDelay,
 }
-
-var writeTicketBundleRefCountOptions = &refcount.Options{
-	RetryBackoff: providerBackoff,
-	ShouldRetry: func(err error) bool {
-		return !isNonRetryableCloudError(err)
-	},
-	RetryDelay: providerRetryDelay,
-}

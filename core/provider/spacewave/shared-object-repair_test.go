@@ -188,15 +188,6 @@ func TestReinitializeSharedObjectClearsVerifiedCacheBeforeReseed(t *testing.T) {
 			postedConfig = true
 			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
-		case "/api/session/write-tickets/" + soID:
-			body, err := (&api.WriteTicketBundleResponse{
-				SoCheckpointTicket: "checkpoint-ticket",
-			}).MarshalVT()
-			if err != nil {
-				t.Fatal(err)
-			}
-			w.Header().Set("Content-Type", "application/octet-stream")
-			_, _ = w.Write(body)
 		case "/api/sobject/" + soID + "/checkpoint":
 			if _, err := io.Copy(io.Discard, r.Body); err != nil {
 				t.Fatalf("read checkpoint body: %v", err)
@@ -272,8 +263,6 @@ func TestRepairStandaloneEmptyClearsVerifiedCacheBeforeReseed(t *testing.T) {
 			postedConfig = true
 			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
-		case "/api/session/write-tickets/" + soID:
-			writeCheckpointTicketBundle(t, w)
 		case "/api/sobject/" + soID + "/checkpoint":
 			drainTestRequestBody(t, r)
 			postedCheckpoint = true
@@ -329,8 +318,6 @@ func TestRepairOrganizationRootEmptyClearsVerifiedCacheBeforeReseed(t *testing.T
 			postedConfig = true
 			postedEpoch = configStateIncludesKeyEpoch(t, r)
 			w.WriteHeader(http.StatusOK)
-		case "/api/session/write-tickets/" + orgID:
-			writeCheckpointTicketBundle(t, w)
 		case "/api/sobject/" + orgID + "/checkpoint":
 			drainTestRequestBody(t, r)
 			postedCheckpoint = true
@@ -407,20 +394,6 @@ func writeEmptyOwnerState(
 		},
 	}
 	_, _ = w.Write(mustMarshalSOStateMessageSnapshotJSON(t, state))
-}
-
-// writeCheckpointTicketBundle writes a write-ticket bundle holding only a checkpoint ticket.
-func writeCheckpointTicketBundle(t *testing.T, w http.ResponseWriter) {
-	// Serve a bundle holding only the checkpoint ticket.
-	t.Helper()
-	body, err := (&api.WriteTicketBundleResponse{
-		SoCheckpointTicket: "checkpoint-ticket",
-	}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	w.Header().Set("Content-Type", "application/octet-stream")
-	_, _ = w.Write(body)
 }
 
 // drainTestRequestBody reads and discards the request body.

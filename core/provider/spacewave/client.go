@@ -23,7 +23,6 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/entitykeystore"
 	"github.com/s4wave/spacewave/core/provider/spacewave/syncprogress"
-	"github.com/s4wave/spacewave/core/provider/spacewave/writeticketowner"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/packfile"
@@ -77,13 +76,6 @@ func isAccountDeletedCloudError(err error) bool {
 	return clouderror.IsAccountDeleted(err)
 }
 
-// isRefreshableWriteTicketCloudError checks if an error indicates a
-// write-ticket-specific refresh path should run instead of full
-// reauthentication.
-func isRefreshableWriteTicketCloudError(err error) bool {
-	return clouderror.IsRefreshableWriteTicket(err)
-}
-
 // isBlockedCloudError checks if an error indicates a resource is blocked
 // (e.g. DMCA takedown). These errors are permanent until the user manually
 // retries after the block is lifted.
@@ -105,94 +97,6 @@ func isDirtySyncGatedCloudError(err error) bool {
 // IsCloudErrorStatus returns true when err is a cloud error with the given HTTP status.
 func IsCloudErrorStatus(err error, statusCode int) bool {
 	return clouderror.IsStatus(err, statusCode)
-}
-
-// WriteTicketProofPayloadFields contains the canonical fields signed for a
-// write-ticket-authenticated hot write request.
-type WriteTicketProofPayloadFields struct {
-	Ticket        string
-	Method        string
-	Path          string
-	TimestampMs   int64
-	ContentLength int64
-	BodyHashHex   string
-	SignedHeaders map[string]string
-}
-
-// marshalWriteTicketProofPayload serializes a write-ticket proof payload to
-// deterministic proto binary bytes for detached signing.
-func marshalWriteTicketProofPayload(
-	fields WriteTicketProofPayloadFields,
-) ([]byte, error) {
-	keys := make([]string, 0, len(fields.SignedHeaders))
-	for k := range fields.SignedHeaders {
-		keys = append(keys, k)
-	}
-	slices.Sort(keys)
-	var hdrs strings.Builder
-	for i, k := range keys {
-		if i > 0 {
-			hdrs.WriteByte(',')
-		}
-		hdrs.WriteString(k)
-		hdrs.WriteByte('=')
-		hdrs.WriteString(url.QueryEscape(fields.SignedHeaders[k]))
-	}
-
-	payload := &api.WriteTicketProofPayload{
-		Ticket:        fields.Ticket,
-		Method:        fields.Method,
-		Path:          fields.Path,
-		TimestampMs:   fields.TimestampMs,
-		ContentLength: fields.ContentLength,
-		BodyHashHex:   fields.BodyHashHex,
-		SignedHeaders: hdrs.String(),
-	}
-	return payload.MarshalVT()
-}
-
-// buildWriteTicketProof signs a serialized proof payload and returns the
-// detached envelope.
-func buildWriteTicketProof(
-	payload []byte,
-	priv crypto.PrivKey,
-) (*api.WriteTicketProof, error) {
-	if priv == nil {
-		return nil, errors.New("no private key configured for write ticket proof")
-	}
-	sig, err := priv.Sign(payload)
-	if err != nil {
-		return nil, errors.Wrap(err, "sign write ticket proof")
-	}
-	return &api.WriteTicketProof{
-		Payload:   payload,
-		Signature: sig,
-	}, nil
-}
-
-// marshalSObjectWriteTicketProofPayload builds the canonical proof payload for
-// shared-object hot writes. The signed metadata binds the request body hash
-// directly to the presented ticket.
-func marshalSObjectWriteTicketProofPayload(
-	ticket string,
-	method string,
-	reqPath string,
-	contentType string,
-	body []byte,
-	timestampMs int64,
-) ([]byte, error) {
-	h := sha256.Sum256(body)
-	return marshalWriteTicketProofPayload(WriteTicketProofPayloadFields{
-		Ticket:        ticket,
-		Method:        method,
-		Path:          reqPath,
-		TimestampMs:   timestampMs,
-		ContentLength: int64(len(body)),
-		BodyHashHex:   hex.EncodeToString(h[:]),
-		SignedHeaders: map[string]string{
-			"content-type": contentType,
-		},
-	})
 }
 
 // syncPushPack describes one pack upload to a block store.
@@ -1073,19 +977,6 @@ func (c *EntityClient) DeleteAccount(
 type SessionClient struct {
 	*SignedHTTPClient
 
-	// executeWriteTicketAudience resolves and retries refreshable write tickets
-	// for hot write routes when configured by ProviderAccount.
-	executeWriteTicketAudience func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error
-	// directWriteTicketOwners caches per-resource ticket bundles for standalone
-	// clients that are not owned by a ProviderAccount.
-	directWriteTicketOwnersMtx sync.Mutex
-	directWriteTicketOwners    map[string]*writeticketowner.Owner
-
 	// readGrantsMtx guards readGrants.
 	readGrantsMtx sync.Mutex
 	// readGrants caches pack read grants by resource and pack ID.
@@ -1203,174 +1094,6 @@ func (c *SessionClient) GetSessionTicket(ctx context.Context) (string, error) {
 		return "", errors.New("empty ticket in response")
 	}
 	return resp.GetTicket(), nil
-}
-
-// GetWriteTicketBundle requests the bundled write tickets for a resource.
-func (c *SessionClient) GetWriteTicketBundle(
-	ctx context.Context,
-	resourceID string,
-) (*api.WriteTicketBundleResponse, error) {
-	data, err := c.doPostBinary(
-		ctx,
-		path.Join("/api/session/write-tickets", resourceID),
-		nil,
-		nil,
-		SeedReasonMutation,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "get write ticket bundle")
-	}
-
-	var resp api.WriteTicketBundleResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal write ticket bundle")
-	}
-	return &resp, nil
-}
-
-// GetWriteTicket requests a fresh ticket for one write-ticket audience.
-func (c *SessionClient) GetWriteTicket(
-	ctx context.Context,
-	resourceID string,
-	audience string,
-) (string, error) {
-	data, err := c.doPostBinary(
-		ctx,
-		path.Join("/api/session/write-ticket", resourceID, audience),
-		nil,
-		nil,
-		SeedReasonMutation,
-	)
-	if err != nil {
-		return "", errors.Wrap(err, "get write ticket")
-	}
-
-	var resp api.TicketResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return "", errors.Wrap(err, "unmarshal write ticket response")
-	}
-	if resp.GetTicket() == "" {
-		return "", errors.New("empty ticket in response")
-	}
-	return resp.GetTicket(), nil
-}
-
-// EnableDirectWriteTickets configures the session client to cache bundled
-// write tickets directly from the cloud API.
-//
-// Standalone CLIs use this when they have a session keypair but do not have a
-// ProviderAccount available to own cached write-ticket bundles.
-func (c *SessionClient) EnableDirectWriteTickets() {
-	if c == nil {
-		return
-	}
-	c.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		if strings.TrimSpace(resourceID) == "" {
-			return errors.New("missing resource id")
-		}
-		if fn == nil {
-			return errors.New("missing write ticket callback")
-		}
-		if err := validateWriteTicketAudience(audience); err != nil {
-			return err
-		}
-
-		return c.getDirectWriteTicketOwner(resourceID).ExecuteAudience(
-			ctx,
-			audience,
-			fn,
-		)
-	}
-}
-
-func (c *SessionClient) postSObjectWriteWithTicket(
-	ctx context.Context,
-	soID string,
-	action string,
-	body []byte,
-	ticket string,
-) ([]byte, error) {
-	if ticket == "" {
-		return nil, errors.New("missing write ticket")
-	}
-
-	reqPath := path.Join("/api/sobject", soID, action)
-	reqURL, err := url.JoinPath(c.baseURL, reqPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	payload, err := marshalSObjectWriteTicketProofPayload(
-		ticket,
-		http.MethodPost,
-		reqPath,
-		"application/octet-stream",
-		body,
-		time.Now().UnixMilli(),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal write ticket proof payload")
-	}
-	proof, err := buildWriteTicketProof(payload, c.priv)
-	if err != nil {
-		return nil, errors.Wrap(err, "build write ticket proof")
-	}
-	proofData, err := proof.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal write ticket proof")
-	}
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		reqURL,
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("Accept", "application/octet-stream")
-	req.Header.Set("X-Write-Ticket", ticket)
-	req.Header.Set(
-		"X-Write-Proof",
-		base64.StdEncoding.EncodeToString(proofData),
-	)
-	req.Header.Set(SeedReasonHeader, string(SeedReasonMutation))
-
-	resp, err := c.httpCli.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "post sobject write")
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
-}
-
-// executeRequiredWriteTicketAudience executes a write-ticket-authenticated
-// mutation and fails locally when the ticket executor is unavailable.
-func (c *SessionClient) executeRequiredWriteTicketAudience(
-	ctx context.Context,
-	resourceID string,
-	audience writeTicketAudience,
-	fn func(ticket string) error,
-) error {
-	if c.executeWriteTicketAudience == nil {
-		return errors.Errorf("missing write-ticket executor for %s", audience)
-	}
-	return c.executeWriteTicketAudience(ctx, resourceID, audience, fn)
 }
 
 // SyncPush uploads a packfile to a resource-scoped block store.
@@ -1530,28 +1253,20 @@ func (c *SessionClient) SyncPull(ctx context.Context, resourceID string, since u
 	return resp, nil
 }
 
-// PostOp posts an operation to a shared object.
+// PostOp posts one signed operation to a shared object.
 func (c *SessionClient) PostOp(ctx context.Context, soID string, opData []byte) error {
-	err := c.executeRequiredWriteTicketAudience(
-		ctx,
-		soID,
-		writeTicketAudienceSOOp,
-		func(ticket string) error {
-			data, err := c.postSObjectWriteWithTicket(ctx, soID, "op", opData, ticket)
-			if err != nil {
-				return err
-			}
-			var resp api.SubmitOpResponse
-			if err := resp.UnmarshalVT(data); err != nil {
-				return errors.Wrap(err, "unmarshal submit op response")
-			}
-			return nil
-		},
-	)
-	return errors.Wrap(err, "post op")
+	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "op"), opData, nil, SeedReasonMutation)
+	if err != nil {
+		return errors.Wrap(err, "post op")
+	}
+	var resp api.SubmitOpResponse
+	return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit op response")
 }
 
-// PostOps posts one bounded batch of signed operations using its write ticket.
+// maxOpsBatchBytes is the largest operation batch body the cloud accepts.
+const maxOpsBatchBytes = 256 << 10
+
+// PostOps posts one bounded batch of signed operations to a shared object.
 func (c *SessionClient) PostOps(ctx context.Context, soID string, operations []*sobject.SOOperation) error {
 	// Encode a batch within the size limits.
 	if len(operations) == 0 || len(operations) > 50 {
@@ -1561,37 +1276,35 @@ func (c *SessionClient) PostOps(ctx context.Context, soID string, operations []*
 	if err != nil {
 		return err
 	}
-	if len(body) > 1<<20 {
-		return errors.New("operation batch exceeds 1 MiB")
+	if len(body) > maxOpsBatchBytes {
+		return errors.New("operation batch exceeds 256 KiB")
 	}
 
-	// Post it with an operation ticket.
-	return c.executeRequiredWriteTicketAudience(ctx, soID, writeTicketAudienceSOOp, func(ticket string) error {
-		data, err := c.postSObjectWriteWithTicket(ctx, soID, "ops", body, ticket)
-		if err != nil {
-			return err
-		}
-		var response api.SubmitOpResponse
-		return response.UnmarshalVT(data)
-	})
+	// Post it.
+	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "ops"), body, nil, SeedReasonMutation)
+	if err != nil {
+		return errors.Wrap(err, "post ops")
+	}
+	var resp api.SubmitOpResponse
+	return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit ops response")
 }
 
 // PostCheckpoint posts an owner-signed checkpoint to a shared object. The
 // first checkpoint of a new object is its genesis checkpoint.
 func (c *SessionClient) PostCheckpoint(ctx context.Context, soID string, checkpoint *sobject.SOCheckpoint) error {
+	// Encode the checkpoint request.
 	body, err := (&api.PostCheckpointRequest{Checkpoint: checkpoint}).MarshalVT()
 	if err != nil {
 		return err
 	}
-	err = c.executeRequiredWriteTicketAudience(ctx, soID, writeTicketAudienceSOCheckpoint, func(ticket string) error {
-		data, err := c.postSObjectWriteWithTicket(ctx, soID, "checkpoint", body, ticket)
-		if err != nil {
-			return err
-		}
-		var resp api.SubmitCheckpointResponse
-		return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit checkpoint response")
-	})
-	return errors.Wrap(err, "post checkpoint")
+
+	// Post it.
+	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "checkpoint"), body, nil, SeedReasonMutation)
+	if err != nil {
+		return errors.Wrap(err, "post checkpoint")
+	}
+	var resp api.SubmitCheckpointResponse
+	return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit checkpoint response")
 }
 
 // PostClientErrorReport submits a best-effort diagnostic report for a client-side failure.

@@ -188,7 +188,7 @@ message SOStateDeltaEntry {
 
 // PostOpsRequest is one bounded, atomic cloud operation checkpoint.
 message PostOpsRequest {
-  // Operations contains at most 50 signed operations and 1 MiB of encoded data.
+  // Operations contains at most 50 signed operations and 256 KiB of encoded data.
   repeated .sobject.SOOperation operations = 1;
 }
 
@@ -592,36 +592,6 @@ message SigningPayload {
   string body_hash_hex = 6;
   // SignedHeaders is the sorted comma-separated "key=value" signed header pairs.
   string signed_headers = 7;
-}
-
-// WriteTicketProofPayload is the message whose binary serialization is signed
-// to prove possession of the session private key for a write-ticket-authenticated
-// hot write request.
-message WriteTicketProofPayload {
-  // Ticket is the presented write ticket JWT.
-  string ticket = 1;
-  // Method is the HTTP method (e.g. "POST").
-  string method = 2;
-  // Path is the URL path for the hot write request.
-  string path = 3;
-  // TimestampMs is the proof timestamp in milliseconds since epoch.
-  int64 timestamp_ms = 4;
-  // ContentLength is the request content length associated with the proof.
-  int64 content_length = 5;
-  // BodyHashHex is the hex-encoded body hash associated with the proof.
-  string body_hash_hex = 6;
-  // SignedHeaders contains sorted comma-separated "key=value" header pairs.
-  // Values use URL query escaping, including commas, plus signs, and percent signs.
-  string signed_headers = 7;
-}
-
-// WriteTicketProof carries the signed proof payload bytes and the detached
-// signature over those bytes.
-message WriteTicketProof {
-  // Payload is the serialized WriteTicketProofPayload bytes.
-  bytes payload = 1;
-  // Signature is the detached session-key signature over Payload.
-  bytes signature = 2;
 }
 
 // -- Billing --
@@ -1531,20 +1501,6 @@ message PendingSOPublication {
 message TicketResponse {
   // Ticket is the short-lived JWT ticket for WebSocket authentication.
   string ticket = 1;
-}
-
-// WriteTicketBundleResponse is the response body for bundled write-ticket
-// bootstrap. Each field carries one explicit steady-state write capability for
-// the addressed resource.
-message WriteTicketBundleResponse {
-  // SoOpTicket authorizes POST /sobject/:id/op for the addressed resource.
-  string so_op_ticket = 1;
-  // SoCheckpointTicket authorizes POST /sobject/:id/checkpoint for the
-  // addressed resource.
-  string so_checkpoint_ticket = 2;
-  // BstoreSyncPushTicket authorizes POST /bstore/:id/sync/push for the
-  // addressed resource.
-  string bstore_sync_push_ticket = 3;
 }
 
 // SignalTicketResponse is the response body for POST /signal/ticket.

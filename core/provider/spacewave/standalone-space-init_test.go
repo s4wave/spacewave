@@ -308,19 +308,9 @@ func TestSessionClientInitEmptyStandaloneSpaceRejectsGrantlessCheckpoint(t *test
 	}
 }
 
-// newStandaloneInitTestClient returns a session client for endpoint that writes
-// with a fixed write ticket.
+// newStandaloneInitTestClient returns a session client for endpoint.
 func newStandaloneInitTestClient(endpoint string, priv crypto.PrivKey, pid peer.ID) *SessionClient {
-	cli := NewSessionClient(http.DefaultClient, endpoint, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-init-root")
-	}
-	return cli
+	return NewSessionClient(http.DefaultClient, endpoint, DefaultSigningEnvPrefix, priv, pid.String())
 }
 
 func buildRecoveryKeypairResponse(

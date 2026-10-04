@@ -30,7 +30,6 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/seedflight"
 	"github.com/s4wave/spacewave/core/provider/spacewave/selfenrollmentrun"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
-	"github.com/s4wave/spacewave/core/provider/spacewave/writeticketowner"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -96,12 +95,6 @@ type ProviderAccount struct {
 	soListAccess bool
 	// soListInvalidate restarts soListRc when the cache is stale.
 	soListInvalidate func()
-	// writeTicketOwnersMtx guards writeTicketOwners and writeTicketOwnersCtx.
-	writeTicketOwnersMtx sync.Mutex
-	// writeTicketOwners caches per-resource bundled write-ticket owners.
-	writeTicketOwners map[string]*writeticketowner.Owner
-	// writeTicketOwnersCtx is the lifecycle context shared by ticket owners.
-	writeTicketOwnersCtx context.Context
 	// selfRejoinSweep opportunistically heals missing same-entity SO peers after
 	// a new session registers or reconnect invalidates sweep-side caches.
 	selfRejoinSweep *routine.StateRoutineContainer[*selfRejoinSweepState]
@@ -376,7 +369,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		vol:            vol,
 		objStore:       objStore,
 		entityCli:      entityCli,
-		sessionClient:  sessionCli,
 		conf:           t.p.conf,
 		sfs:            t.p.sfs,
 		soListCtr:      t.p.getSOListCtr(t.accountID),
@@ -530,6 +522,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 
 	// Process invite mailbox entries and targeted invitations.
 	acc.wsTracker.onInviteMailbox = func(soID string, entry *api.MailboxEntry, updatedAt int64) {
+		// Apply a received entry, then process it.
 		if soID == "" || entry == nil {
 			return
 		}
@@ -540,6 +533,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.triggerMailboxEntryAutoProcess(ctx, soID, entry)
 	}
 	acc.wsTracker.onInviteMailboxUpdate = func(soID string, entry *api.MailboxEntry, updatedAt int64) {
+		// Apply an updated entry, refresh the list once it is accepted, then
+		// process it.
 		if soID == "" || entry == nil {
 			return
 		}
@@ -600,6 +595,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.refreshSelfRejoinSweepState()
 	}
 	acc.wsTracker.onAccountWasDeleted = func() {
+		// Drop the account's GC reference and clean up its storage.
 		acc.removeProviderAccountGCRef(ctx, le)
 		acc.triggerGCCleanup()
 
@@ -727,10 +723,6 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	_ = acc.soListRc.SetContext(ctx)
 	defer acc.soListRc.ClearContext()
 
-	// Start the write ticket owners.
-	acc.setWriteTicketOwnersContext(ctx)
-	defer acc.setWriteTicketOwnersContext(nil)
-
 	// Start the self-rejoin sweep.
 	acc.selfRejoinSweep.SetContext(ctx, true)
 	defer acc.selfRejoinSweep.ClearContext()
@@ -758,6 +750,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		state := cached.GetState()
 		var reconcileState *sessionPresentationReconcileState
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			// Install the cached state and announce it.
 			acc.state.info = state
 			acc.state.status = accountstatus.Loaded(state)
 			acc.state.lastFetchedEpoch = uint64(cached.GetFetchedEpoch())
