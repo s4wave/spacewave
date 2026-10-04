@@ -221,19 +221,13 @@ func (h *cloudSOHost) execute(ctx context.Context, ready func(context.Context) e
 	h.configChangedRoutine.SetContext(ctx)
 	defer h.configChangedRoutine.ClearContext()
 
-	// Seed the local SO state immediately so first mount does not depend on a
-	// later websocket notification to populate the state containers. A state
-	// restored from the verified cache serves the mount at once, and a
-	// background pull catches up on changes made while this host was away.
-	cached := h.stateCtr.GetValue() != nil
+	// Reuse the rejoin seed or fetch the first observable state. Cache hydration
+	// queues its own background catch-up before these routines start.
 	if err := h.ensureInitialState(ctx, SeedReasonColdSeed); err != nil {
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
 		return errors.Wrap(err, "initial state pull")
-	}
-	if cached {
-		h.triggerPull()
 	}
 	h.triggerConfigChanged()
 	if ready != nil {
@@ -602,10 +596,8 @@ func (h *cloudSOHost) verifyStateAgainst(state, held *sobject.SOState) error {
 	return nil
 }
 
-// triggerPull sends a non-blocking signal to the pull routine. Use this
-// only for gap-recovery cases where an inline state apply failed; cold-seed
-// and write-retry callers should invoke pullState directly so the result is
-// observable inline.
+// triggerPull queues background refresh after cache hydration or gap recovery.
+// Cold-seed and write-retry callers invoke pullState directly to observe its result.
 func (h *cloudSOHost) triggerPull() {
 	if h.pullRoutine != nil {
 		h.pullRoutine.Trigger()
@@ -1541,6 +1533,7 @@ func (h *cloudSOHost) hydrateVerifiedStateCache(cache *api.VerifiedSOStateCache)
 	h.lastSeqno = cache.GetCloudSequence()
 	if h.peerState != nil && sobject.EqualSOConfigs(h.peerState.GetConfig(), cache.GetCurrentConfig()) && h.peerState.Validate(h.soID) == nil {
 		h.stateCtr.SetValue(h.peerState.CloneVT())
+		h.triggerPull()
 	}
 
 	// Restore the exact signed lineage and encryption epochs independently of order.

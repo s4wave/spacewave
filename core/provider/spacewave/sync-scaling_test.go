@@ -6,7 +6,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -17,7 +16,6 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
-	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
 	"github.com/sirupsen/logrus"
 )
@@ -52,7 +50,8 @@ func TestSyncDrainScaling(t *testing.T) {
 
 			// Count actual upload requests and bytes with the production client.
 			var requests, uploaded atomic.Int64
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Count each body received at the upload boundary.
 				n, err := io.Copy(io.Discard, r.Body)
 				if err != nil {
 					t.Error(err)
@@ -62,6 +61,8 @@ func TestSyncDrainScaling(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			}))
 			t.Cleanup(server.Close)
+
+			// Configure an authorized client with readable remote packs.
 			key, peer := generateTestKeypair(t)
 			client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peer.String())
 			client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
@@ -71,7 +72,7 @@ func TestSyncDrainScaling(t *testing.T) {
 			logger.SetOutput(io.Discard)
 			syncer := &syncController{
 				le: logrus.NewEntry(logger), store: metadata, client: client, resourceID: "scaling",
-				mfst: catalog, lower: packfile_store.NewPackfileStore(nil, nil), upper: newSyncTestBlockStore(),
+				mfst: catalog, lower: lower, upper: newSyncTestBlockStore(),
 			}
 
 			// Use unique small blocks so the block-count pack ceiling controls batching.
@@ -96,6 +97,8 @@ func TestSyncDrainScaling(t *testing.T) {
 			if err := syncer.FlushNowUnordered(ctx); err != nil {
 				t.Fatal(err)
 			}
+
+			// Compare the drained queue and work counters with the input size.
 			elapsed := time.Since(started)
 			runtime.ReadMemStats(&after)
 			if first, size, _ := syncer.pendingSnapshot(); !first.IsZero() || size != 0 {

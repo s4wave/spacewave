@@ -3,7 +3,6 @@ package provider_spacewave
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -102,8 +101,9 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 
 // TestSyncDeadlineSurvivesContinuousWrites exercises the real pack and HTTP path.
 func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
+	// Retain uploaded packs so a later mark can probe the published catalog.
 	uploaded := make(chan time.Time, 1)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	server, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		select {
 		case uploaded <- time.Now():
 		default:
@@ -111,18 +111,25 @@ func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
+
+	// Configure a one-second deadline on a queue with one pending block.
 	key, pid := generateTestKeypair(t)
 	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, pid.String())
 	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
 		return submit("test-ticket")
 	}
+
+	// Retain the published pack while configuring the pending queue.
 	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	syncer.lower = lower
 	syncer.conf.SizeThresholdBytes = 0
 	candidates, err := syncer.scanDirtyCandidates(t.Context())
 	if err != nil || len(candidates) != 1 {
 		t.Fatalf("initial queue: %v (%d blocks)", err, len(candidates))
 	}
 	first, _, _ := syncer.pendingSnapshot()
+
+	// Join the controller after cancellation, including its final queue drain.
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() { done <- syncer.Execute(ctx) }()
@@ -152,6 +159,47 @@ func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
 		case <-deadline.C:
 			t.Fatal("continuous writes postponed the first-pending deadline")
 		}
+	}
+}
+
+// TestSyncUploadedBlockCanBeMarkedAgain drains a repeated mark through the remote pack.
+func TestSyncUploadedBlockCanBeMarkedAgain(t *testing.T) {
+	// Retain the first upload and count requests through the production client.
+	pushes := 0
+	server, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		pushes++
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	key, pid := generateTestKeypair(t)
+	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, pid.String())
+	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
+		return submit("test-ticket")
+	}
+
+	// Publish the pending block into the lower store's manifest.
+	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	syncer.lower = lower
+	candidates, err := syncer.scanDirtyCandidates(t.Context())
+	if err != nil || len(candidates) != 1 {
+		t.Fatalf("initial queue: %v (%d blocks)", err, len(candidates))
+	}
+	if err := syncer.FlushNow(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	// A later identical mark must read the uploaded pack and drain without a push.
+	if err := syncer.MarkDirty(t.Context(), []block_store_writeback.Mark{{Hash: candidates[0].hash, Size: candidates[0].size}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncer.FlushNow(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if pushes != 1 {
+		t.Fatalf("repeated mark uploaded %d packs, want 1", pushes)
+	}
+	if _, size, _ := syncer.pendingSnapshot(); size != 0 {
+		t.Fatalf("repeated mark left %d pending bytes", size)
 	}
 }
 

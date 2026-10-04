@@ -58,13 +58,13 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 	return a.enrollAccountMemberObject(ctx, entry.GetEntry(), member)
 }
 
-// startAccountReplicaSync attaches service and reconciliation to the existing P2P
-// generation. Its ordinary stop path joins reconciliation before releasing mounts.
+// startAccountReplicaSync attaches service and reconciliation to the captured P2P
+// generation bus. Its ordinary stop path joins reconciliation before releasing mounts.
 func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
 	// Attach the replica and migration services to the transport's bus.
 	transport := state.sessionTransport
 	server, err := stream_srpc_server.NewServer(
-		transport.GetChildBus(), a.le,
+		state.childBus, a.le,
 		controller.NewInfo("alpha/account-replica", controller.MustParseVersion("0.0.1"), "account replica service"),
 		[]stream_srpc_server.RegisterFn{
 			func(mux srpc.Mux) error { return SRPCRegisterAccountReplicaService(mux, a) },
@@ -75,7 +75,9 @@ func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
 	if err != nil {
 		return err
 	}
-	release, err := transport.GetChildBus().AddController(state.ctx, server, nil)
+
+	// Retain the service until generation cleanup after all workers have stopped.
+	release, err := state.childBus.AddController(state.ctx, server, nil)
 	if err != nil {
 		return err
 	}
@@ -89,4 +91,5 @@ func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
 	return nil
 }
 
+// _ is a type assertion.
 var _ SRPCAccountReplicaServiceServer = (*ProviderAccount)(nil)

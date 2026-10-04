@@ -737,10 +737,16 @@ func TestSyncControllerPullNowRecordsLatestSequenceFromEmptyPull(t *testing.T) {
 // TestSyncControllerPullDuringPush verifies a pull completes while a push is
 // still uploading.
 func TestSyncControllerPullDuringPush(t *testing.T) {
+	// Set the lifetime of the upload fixture.
 	ctx := t.Context()
+
+	// Keep pull and push progress behind independent event gates.
 	pushing := make(chan struct{})
 	pulled := make(chan struct{})
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	// Retain uploaded packs and preserve the test response handler.
+	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Respond with the status and upload observations this fixture requires.
 		if strings.HasSuffix(r.URL.Path, "/sync/pull") {
 			close(pulled)
 			return
@@ -755,6 +761,7 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Authorize uploads through the production session client.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	cli.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, fn func(string) error) error {
@@ -764,13 +771,15 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
+
+	// Use the readable lower store when new packs enter the manifest.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      newSyncTestKvStore(),
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      lower,
 		upper:      newSyncTestBlockStore(),
 	}
 	data := []byte("pull during push")
@@ -782,6 +791,7 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 		t.Fatalf("mark dirty: %v", err)
 	}
 
+	// Hold the push until the independent pull has completed.
 	flushed := make(chan error, 1)
 	go func() { flushed <- s.FlushNow(ctx) }()
 	select {
@@ -1330,8 +1340,10 @@ const syncTestChunkBlockBytes = int(syncFlushMaxPackBytes/2) - 64*1024
 // TestSyncControllerFlushChunksLargeDirtySet uploads bounded packs before
 // reading all dirty data, and packs the next chunk while the first uploads.
 func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
+	// Set the lifetime of the upload fixture.
 	ctx := context.Background()
 
+	// Create a durable queue and its published pack manifest.
 	dirtyStore := newSyncTestKvStore()
 	manifestStore := newSyncTestKvStore()
 	mfst, err := packfile_manifest.New(ctx, manifestStore)
@@ -1339,17 +1351,24 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 
+	// Observe pack sizes and upper reads at the upload boundary.
 	const blockCount = 6
 	pushSizes := make([]int, 0, 4)
 	var getCount atomic.Int64
 	var firstPushGetCount atomic.Int64
+
 	// secondChunkLoaded closes once the packer has loaded the second chunk.
 	secondChunkLoaded := make(chan struct{})
 	var secondChunkOnce sync.Once
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	// Retain uploaded packs and preserve the test response handler.
+	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Respond with the status and upload observations this fixture requires.
 		if r.URL.Path != "/api/bstore/test-res/sync/push" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
+
+		// Require bounded packs and overlap between packing and uploading.
 		if len(pushSizes) == 0 {
 			select {
 			case <-secondChunkLoaded:
@@ -1367,6 +1386,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Authorize uploads through the production session client.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	cli.executeWriteTicketAudience = func(
@@ -1375,6 +1395,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		audience writeTicketAudience,
 		fn func(ticket string) error,
 	) error {
+		// Validate the resource and ticket audience before submitting the pack.
 		if resourceID != "test-res" {
 			t.Fatalf("unexpected resource id: %s", resourceID)
 		}
@@ -1384,6 +1405,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		return fn("ticket-push")
 	}
 
+	// Queue enough blocks to require several packs and observe their reads.
 	baseUpper := newSyncTestBlockStore()
 	upper := &syncCountingBlockStore{
 		StoreOps: baseUpper,
@@ -1398,6 +1420,8 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("new dirty tx: %v", err)
 	}
 	defer wtx.Discard()
+
+	// Fill the queue with distinct payloads under the same transaction.
 	for i := range blockCount {
 		data := bytes.Repeat([]byte{byte(i + 1)}, syncTestChunkBlockBytes)
 		ref, _, err := upper.PutBlock(ctx, data, nil)
@@ -1412,20 +1436,23 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
+	// Use the readable lower store when new packs enter the manifest.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      lower,
 		upper:      upper,
 	}
 
+	// Drain the queue through the production packer and HTTP upload.
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
+	// Require bounded packs and overlap between packing and uploading.
 	if len(pushSizes) != 3 {
 		t.Fatalf("sync pushes = %d, want 3", len(pushSizes))
 	}
@@ -1445,6 +1472,7 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 	}
 	assertSyncPackEntryMetadata(t, mfst.GetEntries())
 
+	// Count the durable markers left after the upload outcome.
 	rtx, err := dirtyStore.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("new read tx: %v", err)
@@ -1466,18 +1494,24 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 // TestSyncControllerFlushCommitsPushedPacksBeforeFailure keeps the packs pushed
 // before a failed push in the manifest and clears their dirty markers.
 func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
+	// Set the lifetime of the upload fixture.
 	ctx := context.Background()
 
+	// Create a durable queue and its published pack manifest.
 	dirtyStore := newSyncTestKvStore()
 	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
 
+	// Observe pack sizes and upper reads at the upload boundary.
 	const blockCount = 6
 	var pushedBlocks int
 	var pushCount int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	// Retain uploaded packs and preserve the test response handler.
+	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Respond with the status and upload observations this fixture requires.
 		pushCount++
 		if pushCount > 2 {
 			w.WriteHeader(http.StatusBadRequest)
@@ -1495,6 +1529,7 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Authorize uploads through the production session client.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	cli.executeWriteTicketAudience = func(
@@ -1506,12 +1541,15 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 		return fn("ticket-push")
 	}
 
+	// Store blocks and their upload markers in one committed queue.
 	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
 	}
 	defer wtx.Discard()
+
+	// Fill the queue with distinct payloads under the same transaction.
 	for i := range blockCount {
 		data := bytes.Repeat([]byte{byte(i + 1)}, syncTestChunkBlockBytes)
 		ref, _, err := upper.PutBlock(ctx, data, nil)
@@ -1526,22 +1564,28 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
+	// Use the readable lower store when new packs enter the manifest.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      lower,
 		upper:      upper,
 	}
+
+	// Drain the queue through the production packer and HTTP upload.
 	if err := s.flush(ctx, false); err == nil {
 		t.Fatal("expected flush to fail on the third push")
 	}
 
+	// Keep every accepted pack in the manifest after the later push fails.
 	if got := len(mfst.GetEntries()); got != 2 {
 		t.Fatalf("manifest entries = %d, want the 2 pushed packs", got)
 	}
+
+	// Count the durable markers left after the upload outcome.
 	rtx, err := dirtyStore.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("new read tx: %v", err)
@@ -1832,8 +1876,10 @@ func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
 
 // TestSyncControllerFlushOrdersBlocksByGCGraph writes parent blocks before their children.
 func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
+	// Set the lifetime of the upload fixture.
 	ctx := context.Background()
 
+	// Create a durable queue and its published pack manifest.
 	dirtyStore := newSyncTestKvStore()
 	manifestStore := newSyncTestKvStore()
 	mfst, err := packfile_manifest.New(ctx, manifestStore)
@@ -1841,8 +1887,12 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 
+	// Capture the physical block order of the uploaded pack.
 	var pushedBody []byte
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	// Retain uploaded packs and preserve the test response handler.
+	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Respond with the status and upload observations this fixture requires.
 		if r.URL.Path != "/api/bstore/test-res/sync/push" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -1855,6 +1905,7 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Authorize uploads through the production session client.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	cli.executeWriteTicketAudience = func(
@@ -1866,12 +1917,15 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 		return fn("ticket-push")
 	}
 
+	// Store blocks and their upload markers in one committed queue.
 	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
 	}
 	defer wtx.Discard()
+
+	// Commit the graph fixtures together with their pending upload markers.
 	stray := addSyncDirtyBlock(t, ctx, wtx, upper, "stray")
 	childA := addSyncDirtyBlock(t, ctx, wtx, upper, "child-a")
 	rootB := addSyncDirtyBlock(t, ctx, wtx, upper, "root-b")
@@ -1880,26 +1934,30 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
+	// Connect parent and child blocks through the GC reference graph.
 	graph := newSyncTestRefGraph()
 	graph.add(block_gc.ObjectIRI("object-b"), block_gc.BlockIRI(rootB))
 	graph.add(block_gc.ObjectIRI("object-a"), block_gc.BlockIRI(rootA))
 	graph.add(block_gc.BlockIRI(rootA), block_gc.BlockIRI(childA))
 
+	// Use the readable lower store when new packs enter the manifest.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      lower,
 		upper:      upper,
 		refGraph:   graph,
 	}
 
+	// Drain the queue through the production packer and HTTP upload.
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
+	// Require parent blocks to precede their children in the pack.
 	want := []string{
 		rootA.GetHash().MarshalString(),
 		childA.GetHash().MarshalString(),
@@ -1913,8 +1971,10 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 
 // TestSyncControllerFlushChunksBlockCountCeiling splits packs at the wire block limit.
 func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
+	// Set the lifetime of the upload fixture.
 	ctx := context.Background()
 
+	// Create a durable queue and its published pack manifest.
 	dirtyStore := newSyncTestKvStore()
 	manifestStore := newSyncTestKvStore()
 	mfst, err := packfile_manifest.New(ctx, manifestStore)
@@ -1922,8 +1982,12 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		t.Fatalf("new manifest: %v", err)
 	}
 
+	// Observe each pack count at the upload boundary.
 	var pushBlockCounts []int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	// Retain uploaded packs and preserve the test response handler.
+	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Respond with the status and upload observations this fixture requires.
 		if r.URL.Path != "/api/bstore/test-res/sync/push" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -1939,6 +2003,7 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Authorize uploads through the production session client.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	cli.executeWriteTicketAudience = func(
@@ -1947,6 +2012,7 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		audience writeTicketAudience,
 		fn func(ticket string) error,
 	) error {
+		// Validate the resource and ticket audience before submitting the pack.
 		if resourceID != "test-res" {
 			t.Fatalf("unexpected resource id: %s", resourceID)
 		}
@@ -1956,13 +2022,18 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		return fn("ticket-push")
 	}
 
+	// Queue one block more than the per-pack count ceiling.
 	blockCount := int(writer.DefaultMaxBlocksPerPack) + 1
+
+	// Store blocks and their upload markers in one committed queue.
 	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
 	}
 	defer wtx.Discard()
+
+	// Fill the queue with distinct payloads under the same transaction.
 	for i := range blockCount {
 		data := []byte("small dirty block " + strconv.Itoa(i))
 		ref, _, err := upper.PutBlock(ctx, data, nil)
@@ -1977,20 +2048,23 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
+	// Use the readable lower store when new packs enter the manifest.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      packfile_store.NewPackfileStore(nil, nil),
+		lower:      lower,
 		upper:      upper,
 	}
 
+	// Drain the queue through the production packer and HTTP upload.
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
+	// Require exactly two packs whose total covers the entire queue.
 	if len(pushBlockCounts) != 2 {
 		t.Fatalf("expected 2 sync pushes, got %d", len(pushBlockCounts))
 	}

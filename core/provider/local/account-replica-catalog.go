@@ -230,6 +230,8 @@ func (a *ProviderAccount) fetchAccountReplicaObject(ctx context.Context, state *
 		}
 		return 1
 	})
+
+	// Request each approved replica through the generation bus.
 	var lastErr error
 	for _, member := range members {
 		remote, _, err := peer.ParsePeerIDWithPubKey(member.GetPeerId())
@@ -237,7 +239,7 @@ func (a *ProviderAccount) fetchAccountReplicaObject(ctx context.Context, state *
 			return err
 		}
 		requestCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		open := stream_srpc.NewOpenStreamFunc(state.sessionTransport.GetChildBus(), accountReplicaProtocol, state.sessionTransport.GetPeerID(), remote, 0)
+		open := stream_srpc.NewOpenStreamFunc(state.childBus, accountReplicaProtocol, state.sessionTransport.GetPeerID(), remote, 0)
 		object, err := NewSRPCAccountReplicaServiceClient(srpc.NewClient(open)).FetchObject(requestCtx, &AccountReplicaObjectRequest{
 			SettingsId: settingsID, ObjectId: entry.GetRef().GetProviderResourceRef().GetId(),
 		})
