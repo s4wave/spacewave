@@ -1,3 +1,4 @@
+import { FUNNEL_BEACON_SCRIPT } from './funnel-beacon.js'
 import { serializeJsonScriptData } from './json-script.js'
 
 interface PageHtmlOptions {
@@ -24,7 +25,8 @@ interface PageHtmlOptions {
   prerendered?: boolean
 }
 
-// buildPageHtml builds the complete HTML document for a pre-rendered page.
+// buildPageHtml builds the complete HTML document for a pre-rendered page,
+// including the funnel beacon.
 export function buildPageHtml(opts: PageHtmlOptions): string {
   const ogType = opts.ogType ?? 'website'
   const twitterCard = opts.twitterCard ?? 'summary_large_image'
@@ -83,6 +85,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   <div id="bldr-root"${opts.prerendered !== false ? ' data-prerendered="true"' : ''} role="main">${opts.body}</div>
   ${opts.bootstrapScript}
   ${opts.hydrateScript ?? ''}
+  ${FUNNEL_BEACON_SCRIPT}
 </body>
 </html>`
 }
