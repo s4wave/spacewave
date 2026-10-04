@@ -23,8 +23,8 @@ func TestHandlerMetadata(t *testing.T) {
 		t.Fatalf("service id = %q, want %q", got, ServiceID)
 	}
 	methods := h.GetMethodIDs()
-	if len(methods) != 1 || methods[0] != ShutdownMethodID {
-		t.Fatalf("method ids = %v, want [%s]", methods, ShutdownMethodID)
+	if len(methods) != 2 || methods[0] != ShutdownMethodID || methods[1] != YieldMethodID {
+		t.Fatalf("method ids = %v, want [%s %s]", methods, ShutdownMethodID, YieldMethodID)
 	}
 }
 
@@ -105,6 +105,73 @@ func TestShutdownRoundTrip(t *testing.T) {
 	}
 
 	// Require the daemon shutdown callback to complete.
+	select {
+	case <-shutdownCh:
+	case <-time.After(5 * time.Second):
+		t.Fatal("shutdown callback did not fire")
+	}
+}
+
+// TestYieldRequiresYieldPolicy asserts that a handler denies the Yield RPC
+// until its yield policy allows it, without affecting the Shutdown policy.
+func TestYieldRequiresYieldPolicy(t *testing.T) {
+	// Listen on the daemon socket.
+	ctx := t.Context()
+	sock := filepath.Join(t.TempDir(), "daemon.sock")
+	lis, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { _ = lis.Close() })
+
+	// Serve a handler that allows Shutdown and reports its callback.
+	shutdownCh := make(chan struct{}, 1)
+	h := NewHandler(AutoAllowPolicy, func() { shutdownCh <- struct{}{} })
+	mux := srpc.NewMux()
+	if err := mux.Register(h); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	server := srpc.NewServer(mux)
+	go func() {
+		// Serve each requester until the listener closes.
+		for {
+			conn, err := lis.Accept()
+			if err != nil {
+				return
+			}
+			mp, err := srpc.NewMuxedConn(conn, false, nil)
+			if err != nil {
+				conn.Close()
+				continue
+			}
+			go func() { _ = server.AcceptMuxedConn(ctx, mp) }()
+		}
+	}()
+
+	// requestYield sends one Yield RPC on a fresh connection.
+	requestYield := func() error {
+		// Dial the daemon and send the request with a bounded lifetime.
+		conn, err := net.Dial("unix", sock)
+		if err != nil {
+			t.Fatalf("dial: %v", err)
+		}
+		defer conn.Close()
+		callCtx, callCancel := context.WithTimeout(ctx, 5*time.Second)
+		defer callCancel()
+		return RequestYield(callCtx, conn)
+	}
+
+	// The default yield policy denies the request.
+	var denyErr *DenyError
+	if err := requestYield(); !errors.As(err, &denyErr) {
+		t.Fatalf("default yield = %v, want DenyError", err)
+	}
+
+	// An allowing yield policy grants the request and shuts down.
+	h.SetYieldPolicy(AutoAllowPolicy)
+	if err := requestYield(); err != nil {
+		t.Fatalf("allowed yield: %v", err)
+	}
 	select {
 	case <-shutdownCh:
 	case <-time.After(5 * time.Second):

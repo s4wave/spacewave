@@ -31,7 +31,7 @@ func TestTakeoverDaemonSocketShutsDownDesktopListener(t *testing.T) {
 
 	// Take over the daemon socket.
 	le := logrus.NewEntry(logrus.New())
-	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
+	if _, err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 
@@ -71,7 +71,7 @@ func TestTakeoverDaemonSocketRemovesStaleSocket(t *testing.T) {
 
 	// Takeover may remove the orphan socket and make the path available.
 	le := logrus.NewEntry(logrus.New())
-	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
+	if _, err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 
@@ -96,7 +96,7 @@ func TestTakeoverDaemonSocketPreservesNonSocket(t *testing.T) {
 
 	// Takeover must refuse the path without changing its contents.
 	le := logrus.NewEntry(logrus.New())
-	if err := takeoverDaemonSocket(ctx, le, sock); err == nil || !strings.Contains(err.Error(), "is not a socket") {
+	if _, err := takeoverDaemonSocket(ctx, le, sock); err == nil || !strings.Contains(err.Error(), "is not a socket") {
 		t.Fatalf("expected non-socket refusal, got %v", err)
 	}
 	dat, err := os.ReadFile(sock)
@@ -115,7 +115,7 @@ func TestTakeoverDaemonSocketNoop(t *testing.T) {
 	sock := filepath.Join(shortSocketDir(t), "missing.sock")
 
 	le := logrus.NewEntry(logrus.New())
-	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
+	if _, err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 }

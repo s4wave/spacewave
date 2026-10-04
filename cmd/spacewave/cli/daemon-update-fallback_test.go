@@ -51,7 +51,7 @@ func TestDaemonUpdateFailedReadinessRestoresOldCLI(t *testing.T) {
 	cleanupDaemonUpdateFixture(t, statePath)
 
 	// Start the old daemon and read its runtime identity.
-	if err := daemon.StartExecutable(ctx, statePath, oldPath); err != nil {
+	if err := daemon.StartExecutable(ctx, statePath, oldPath, daemon.LauncherCommand); err != nil {
 		t.Fatal(err)
 	}
 	socketPath := filepath.Join(statePath, socketName)

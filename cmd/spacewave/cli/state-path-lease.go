@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	stderrors "errors"
+	"net"
 	"os"
 	"path/filepath"
 	"sync"
@@ -40,37 +41,90 @@ type statePathLease struct {
 	relErr error
 }
 
+// runtimeClaim selects how a starting runtime treats a live runtime that holds
+// its state path.
+type runtimeClaim int
+
+const (
+	// claimFree requires the state path to be free.
+	claimFree runtimeClaim = iota
+	// claimYield asks a runtime started on demand for a command to yield.
+	claimYield
+	// claimTakeover asks any runtime to yield.
+	claimTakeover
+)
+
 // prepareDaemonRuntime acquires writable-state exclusion before inspecting or
 // removing the socket. Explicit takeover completes before acquiring the lease.
+// A runtime that yields releases its socket before its lease, so the claimant
+// waits for the lease after a handoff.
 func prepareDaemonRuntime(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
 	sockPath string,
-	takeover bool,
+	claim runtimeClaim,
 ) (*statePathLease, error) {
-	// Only an explicit serve takeover may ask the previous runtime to yield.
-	if takeover {
-		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
+	// An explicit takeover asks the previous runtime to yield first.
+	var handedOff bool
+	if claim == claimTakeover {
+		var err error
+		handedOff, err = takeoverDaemonSocket(ctx, le, sockPath)
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	// Socket cleanup runs under the lease so simultaneous starters cannot unlink
-	// the winning runtime's new listener after observing its stale predecessor.
-	lease, err := acquireStatePathLease(statePath)
+	// A manual start asks a runtime started for a command to yield the lease.
+	lease, err := acquireStatePathLease(ctx, statePath, handedOff)
+	var held *StatePathLeaseHeldError
+	if claim == claimYield && errors.As(err, &held) {
+		if yieldErr := requestDaemonYield(ctx, sockPath); yieldErr != nil {
+			var denyErr *listener_control.DenyError
+			if !errors.As(yieldErr, &denyErr) {
+				le.WithError(yieldErr).Debug("could not ask the running daemon to yield")
+				return nil, err
+			}
+			return nil, errors.Wrap(
+				err,
+				"the running daemon was not started by a command; "+
+					"use serve --takeover to replace it",
+			)
+		}
+		lease, err = acquireStatePathLease(ctx, statePath, true)
+	}
 	if err != nil {
 		return nil, err
 	}
+
+	// Socket cleanup runs under the lease so simultaneous starters cannot unlink
+	// the winning runtime's new listener after observing its stale predecessor.
 	if err := listener_control.EnsureSocketAvailable(ctx, le, sockPath); err != nil {
 		return nil, stderrors.Join(err, lease.release())
 	}
 	return lease, nil
 }
 
+// requestDaemonYield asks the runtime listening on sockPath to yield to a
+// manual start. It never removes the socket: a runtime still starting under
+// the lease may be about to bind it.
+func requestDaemonYield(ctx context.Context, sockPath string) error {
+	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", sockPath)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	return listener_control.RequestYield(ctx, conn)
+}
+
 // acquireStatePathLease reserves a canonical root locally and with bbolt's
 // kernel coordination lock, which the OS releases when the process exits.
-func acquireStatePathLease(statePath string) (*statePathLease, error) {
+// When wait is set it blocks until another process releases the lock.
+func acquireStatePathLease(
+	ctx context.Context,
+	statePath string,
+	wait bool,
+) (*statePathLease, error) {
 	// Create only the requested root before canonicalizing its filesystem identity.
 	statePath, err := filepath.Abs(statePath)
 	if err != nil {
@@ -104,15 +158,12 @@ func acquireStatePathLease(statePath string) (*statePathLease, error) {
 	localStatePathLeases.Unlock()
 	claimed := true
 	defer func() {
-		if !claimed {
-			return
+		if claimed {
+			releaseLocalStatePathLease(leasePath)
 		}
-		localStatePathLeases.Lock()
-		delete(localStatePathLeases.paths, leasePath)
-		localStatePathLeases.Unlock()
 	}()
 
-	// Open the coordination store and attempt its nonblocking runtime lock.
+	// Open the coordination store and take its runtime lock.
 	db, err := bdb.Open(leasePath, 0o600, &bdb.Options{
 		Timeout:        0,
 		NoFreelistSync: false,
@@ -123,7 +174,18 @@ func acquireStatePathLease(statePath string) (*statePathLease, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "open writable state path lease store")
 	}
-	acquired, err := db.TryAcquireCoordinationLock()
+	acquired := true
+	if wait {
+		var abandoned bool
+		abandoned, err = waitCoordinationLock(ctx, db, leasePath)
+		if abandoned {
+			// The waiting goroutine now owns the store and reservation.
+			claimed = false
+			return nil, err
+		}
+	} else {
+		acquired, err = db.TryAcquireCoordinationLock()
+	}
 	if err != nil {
 		if closeErr := db.Close(); closeErr != nil {
 			err = stderrors.Join(err, closeErr)
@@ -143,6 +205,42 @@ func acquireStatePathLease(statePath string) (*statePathLease, error) {
 	return &statePathLease{db: db, path: leasePath}, nil
 }
 
+// waitCoordinationLock blocks until db holds its coordination lock. If ctx
+// ends first it reports abandoned with ctx.Err() and hands db and the local
+// reservation of leasePath to a goroutine that releases both once the
+// blocked acquire returns; closing db earlier would block on that acquire.
+func waitCoordinationLock(
+	ctx context.Context,
+	db *bdb.DB,
+	leasePath string,
+) (abandoned bool, err error) {
+	// Acquire in the background so the wait can follow ctx.
+	acquired := make(chan error, 1)
+	go func() { acquired <- db.AcquireCoordinationLock() }()
+	select {
+	case err := <-acquired:
+		return false, err
+	case <-ctx.Done():
+	}
+
+	// Release the lock if it arrives after cancellation.
+	go func() {
+		if err := <-acquired; err == nil {
+			_ = db.ReleaseCoordinationLock()
+		}
+		_ = db.Close()
+		releaseLocalStatePathLease(leasePath)
+	}()
+	return true, ctx.Err()
+}
+
+// releaseLocalStatePathLease drops the process-local reservation of leasePath.
+func releaseLocalStatePathLease(leasePath string) {
+	localStatePathLeases.Lock()
+	delete(localStatePathLeases.paths, leasePath)
+	localStatePathLeases.Unlock()
+}
+
 // release relinquishes the coordination lock after all writable bus state closes.
 func (l *statePathLease) release() error {
 	// Allow setup cleanup before a lease has been acquired.
@@ -157,9 +255,7 @@ func (l *statePathLease) release() error {
 		l.released = true
 		releaseErr := l.db.ReleaseCoordinationLock()
 		closeErr := l.db.Close()
-		localStatePathLeases.Lock()
-		delete(localStatePathLeases.paths, l.path)
-		localStatePathLeases.Unlock()
+		releaseLocalStatePathLease(l.path)
 		l.relErr = stderrors.Join(releaseErr, closeErr)
 	}
 	return l.relErr

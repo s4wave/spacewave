@@ -29,8 +29,12 @@ func TestTakeoverSocketShutsDownLiveDaemon(t *testing.T) {
 
 	// Request takeover of the live daemon socket.
 	le := logrus.NewEntry(logrus.New())
-	if err := TakeoverSocket(ctx, le, sock); err != nil {
+	handedOff, err := TakeoverSocket(ctx, le, sock)
+	if err != nil {
 		t.Fatalf("takeover: %v", err)
+	}
+	if !handedOff {
+		t.Fatal("takeover did not report the live daemon's handoff")
 	}
 
 	// Bind a replacement listener immediately after the daemon yields.
@@ -100,7 +104,8 @@ func TestTakeoverSocketWaitsForHandoffCompletionEvent(t *testing.T) {
 	// Start the takeover request and require it to wait after acknowledgement.
 	result := make(chan error, 1)
 	go func() {
-		result <- TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock)
+		_, err := TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock)
+		result <- err
 	}()
 	select {
 	case <-acknowledged:
@@ -143,8 +148,12 @@ func TestTakeoverSocketRemovesStaleFile(t *testing.T) {
 
 	// Request takeover of the orphaned daemon socket.
 	le := logrus.NewEntry(logrus.New())
-	if err := TakeoverSocket(ctx, le, sock); err != nil {
+	handedOff, err := TakeoverSocket(ctx, le, sock)
+	if err != nil {
 		t.Fatalf("takeover: %v", err)
+	}
+	if handedOff {
+		t.Fatal("takeover reported a handoff from a stale socket")
 	}
 
 	// Require the orphaned daemon socket path to be removed.
@@ -160,7 +169,7 @@ func TestTakeoverSocketNoop(t *testing.T) {
 	sock := filepath.Join(makeShortTakeoverDir(t, "takeover-none"), "d.sock")
 
 	le := logrus.NewEntry(logrus.New())
-	if err := TakeoverSocket(ctx, le, sock); err != nil {
+	if _, err := TakeoverSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 }
@@ -207,8 +216,12 @@ func TestTakeoverSocketReclaimsWhenYieldingPeerExitsBeforeCompletion(t *testing.
 	done := startExitBeforeCompletionListener(t, ctx, sock)
 
 	// Reclaim the yielded socket and bind a replacement listener.
-	if err := TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock); err != nil {
+	handedOff, err := TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock)
+	if err != nil {
 		t.Fatalf("takeover after peer exit: %v", err)
+	}
+	if handedOff {
+		t.Fatal("takeover reported a handoff from a peer that never acknowledged")
 	}
 	replacement, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
@@ -242,7 +255,7 @@ func TestConcurrentTakeoverRequestsHaveOneWinner(t *testing.T) {
 	for range 2 {
 		go func() {
 			// Request takeover and report any denial before binding a replacement.
-			err := TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock)
+			_, err := TakeoverSocket(ctx, logrus.NewEntry(logrus.New()), sock)
 			if err != nil {
 				results <- result{err: err}
 				return
@@ -340,13 +353,19 @@ func startControlListener(t *testing.T, ctx context.Context, sock string) <-chan
 		t.Fatalf("listen: %v", err)
 	}
 
-	// Register a shutdown handler that cancels serving and releases the socket.
+	// Register a shutdown handler that releases the socket and stops serving
+	// once the requester has its acknowledgement, as a daemon drains.
 	serveCtx, serveCancel := context.WithCancel(ctx)
+	h := NewHandler(nil, func() { lis.Close() })
+	go func() {
+		select {
+		case <-h.ShutdownComplete():
+			serveCancel()
+		case <-serveCtx.Done():
+		}
+	}()
 	mux := srpc.NewMux()
-	if err := mux.Register(NewHandler(nil, func() {
-		serveCancel()
-		lis.Close()
-	})); err != nil {
+	if err := mux.Register(h); err != nil {
 		lis.Close()
 		t.Fatalf("register: %v", err)
 	}

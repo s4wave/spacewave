@@ -26,6 +26,7 @@ import (
 	"github.com/s4wave/spacewave/core/daemon"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
@@ -47,6 +48,7 @@ func serveSocketPath(c *cli.Context, statePath string) string {
 func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker) *cli.Command {
 	// Keep serve flags scoped to this command's startup and idle policy.
 	var startupPipeID string
+	var launcher string
 	var runtimeTracePath string
 	var takeover bool
 	idleTimeout := defaultDaemonIdleTimeout
@@ -72,6 +74,12 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 				Hidden:      true,
 			},
 			&cli.StringFlag{
+				Name:        "daemon-launcher",
+				Usage:       "internal record of what started the daemon",
+				Destination: &launcher,
+				Hidden:      true,
+			},
+			&cli.StringFlag{
 				Name:        "trace",
 				Usage:       "write a Go runtime trace for the daemon process",
 				EnvVars:     []string{daemon.TracePathEnvVar},
@@ -80,18 +88,28 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 		},
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
-				return runServeCommand(c, getBus, yieldBroker, startupPipeID, takeover, idleTimeout)
+				return runServeCommand(
+					c,
+					getBus,
+					yieldBroker,
+					startupPipeID,
+					daemon.Launcher(launcher),
+					takeover,
+					idleTimeout,
+				)
 			})
 		},
 	}
 }
 
-// runServeCommand owns the state lease, Resource readiness and common daemon lifetime.
+// runServeCommand owns the state lease, Resource readiness and common daemon
+// lifetime. A manual start asks a daemon started for a command to yield.
 func runServeCommand(
 	c *cli.Context,
 	getBus func() cli_entrypoint.CliBus,
 	yieldBroker *yield_policy.Broker,
 	startupPipeID string,
+	launcher daemon.Launcher,
 	takeover bool,
 	idleTimeout time.Duration,
 ) (retErr error) {
@@ -143,7 +161,14 @@ func runServeCommand(
 	defer handoffBroker.Reclaim()
 
 	// Hold exclusion through bus teardown, including initialization failures.
-	statePathLease, err := prepareDaemonRuntime(ctx, nil, resolved, sockPath, takeover)
+	claim := claimFree
+	switch {
+	case takeover:
+		claim = claimTakeover
+	case startupPipeID == "":
+		claim = claimYield
+	}
+	statePathLease, err := prepareDaemonRuntime(ctx, nil, resolved, sockPath, claim)
 	if err != nil {
 		return err
 	}
@@ -304,6 +329,13 @@ func runServeCommand(
 		shutdownCancel()
 		lis.Close()
 	})
+
+	// A daemon started for a command yields to a manual start.
+	if launcher == daemon.LauncherCommand {
+		controlHandler.SetYieldPolicy(listener_control.AutoAllowPolicy)
+	}
+
+	// Route desktop Quit through the same shutdown and register the controls.
 	desktopControl.shutdown = func(requester *trackedConn) {
 		controlHandler.desktopQuitConn.Store(requester)
 		shutdownCancel()
@@ -365,9 +397,9 @@ func runServeCommand(
 			// Start the selected daemon and reopen the desktop when requested.
 			le.Info("old daemon state lease released; starting selected daemon executable")
 			startCtx := context.WithoutCancel(ctx)
-			if err := daemon.StartExecutable(startCtx, resolved, handoff.selected); err != nil {
+			if err := daemon.StartExecutable(startCtx, resolved, handoff.selected, launcher); err != nil {
 				le.WithError(err).Error("updated daemon did not become ready; restoring previous executable")
-				if fallbackErr := daemon.StartExecutable(startCtx, resolved, handoff.fallback); fallbackErr != nil {
+				if fallbackErr := daemon.StartExecutable(startCtx, resolved, handoff.fallback, launcher); fallbackErr != nil {
 					le.WithError(errors.Wrapf(fallbackErr, "updated daemon failed: %v", err)).Error("failed to restore previous daemon")
 					return
 				}

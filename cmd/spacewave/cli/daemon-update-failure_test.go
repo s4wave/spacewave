@@ -49,7 +49,7 @@ func TestDaemonUpdateChangedAfterAcceptanceReportsError(t *testing.T) {
 	cleanupDaemonUpdateFixture(t, statePath)
 
 	// Start the old daemon and connect to it.
-	if err := daemon.StartExecutable(ctx, statePath, oldPath); err != nil {
+	if err := daemon.StartExecutable(ctx, statePath, oldPath, daemon.LauncherCommand); err != nil {
 		t.Fatal(err)
 	}
 	socketPath := filepath.Join(statePath, socketName)

@@ -42,7 +42,7 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	// Run the serve command.
 	commandErrCh := make(chan error, 1)
 	go func() {
-		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", false, defaultDaemonIdleTimeout)
+		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", daemon.LauncherCommand, false, defaultDaemonIdleTimeout)
 	}()
 
 	// Require the startup error to name the idle-timeout variable.
@@ -64,11 +64,12 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 func TestDaemonServeArgsPassStatePathToServe(t *testing.T) {
 	t.Setenv(daemon.TracePathEnvVar, "")
 
-	got := daemon.ServeArgs("/tmp/state", "pipe-id")
+	got := daemon.ServeArgs("/tmp/state", "pipe-id", daemon.LauncherCommand)
 	want := []string{
 		"--state-path", "/tmp/state",
 		"serve",
 		"--daemon-startup-pipe-id", "pipe-id",
+		"--daemon-launcher", "command",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("got %#v, want %#v", got, want)
@@ -78,7 +79,7 @@ func TestDaemonServeArgsPassStatePathToServe(t *testing.T) {
 func TestDaemonServeArgsPassTracePathToServe(t *testing.T) {
 	t.Setenv(daemon.TracePathEnvVar, "/tmp/spacewave.trace")
 
-	got := daemon.ServeArgs("/tmp/state", "pipe-id")
+	got := daemon.ServeArgs("/tmp/state", "pipe-id", daemon.LauncherManual)
 	want := []string{
 		"--state-path", "/tmp/state",
 		"serve",

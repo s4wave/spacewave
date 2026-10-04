@@ -17,8 +17,10 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/starpc/srpc"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/s4wave/spacewave/core/daemon"
+	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	"github.com/sirupsen/logrus"
 )
@@ -56,7 +58,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 		commandErr <- runServeCommand(child, func() cli_entrypoint.CliBus {
 			close(busInitialized)
 			return nil
-		}, yield_policy.NewBroker(), "", true, 0)
+		}, yield_policy.NewBroker(), "", daemon.LauncherManual, true, 0)
 	}()
 
 	// Confirm the serve command waits for the shutdown to finish.
@@ -110,7 +112,7 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 	}()
 
 	// Attempt to acquire the held lease and expect failure.
-	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, true)
+	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, claimTakeover)
 	if lease != nil {
 		_ = lease.release()
 		t.Fatal("replacement acquired lease held by another process")
@@ -137,7 +139,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	// Acquire the old runtime lease and serve the old listener.
 	statePath := shortSocketDir(t)
 	sockPath := filepath.Join(statePath, socketName)
-	oldLease, err := acquireStatePathLease(statePath)
+	oldLease, err := acquireStatePathLease(t.Context(), statePath, false)
 	if err != nil {
 		t.Fatalf("acquire old runtime lease: %v", err)
 	}
@@ -153,7 +155,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	})
 
 	// Hand off the lease to a new runtime and confirm acquisition.
-	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, true)
+	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, claimTakeover)
 	if err != nil {
 		t.Fatalf("prepare daemon runtime: %v", err)
 	}
@@ -177,6 +179,121 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	}
 }
 
+// TestPrepareDaemonRuntimeYieldWaitsForCommandDaemon admits a manual start
+// after a daemon started for a command yields and its process releases the
+// lease after acknowledging.
+func TestPrepareDaemonRuntimeYieldWaitsForCommandDaemon(t *testing.T) {
+	testPrepareDaemonRuntimeWaitsForYieldedLease(t, claimYield)
+}
+
+// TestPrepareDaemonRuntimeTakeoverWaitsForYieldedLease admits an explicit
+// takeover after the yielding process releases the lease after acknowledging.
+func TestPrepareDaemonRuntimeTakeoverWaitsForYieldedLease(t *testing.T) {
+	testPrepareDaemonRuntimeWaitsForYieldedLease(t, claimTakeover)
+}
+
+// testPrepareDaemonRuntimeWaitsForYieldedLease serves a yielding daemon whose
+// lease another process releases only after the handoff completes.
+func testPrepareDaemonRuntimeWaitsForYieldedLease(t *testing.T, claim runtimeClaim) {
+	// Hold the lease in another process and serve a daemon that yields.
+	statePath := shortSocketDir(t)
+	holder, _ := startStatePathLeaseHolder(t, statePath)
+	sockPath := filepath.Join(statePath, socketName)
+	control := startYieldingDaemon(t, sockPath)
+
+	// Release the lease only after the handoff acknowledgement completes.
+	holderExited := make(chan struct{})
+	go func() {
+		defer close(holderExited)
+		<-control.ShutdownComplete()
+		_ = holder.Process.Kill()
+		_ = holder.Wait()
+	}()
+
+	// The claimant waits for the lease instead of failing on the first try.
+	lease, err := prepareDaemonRuntime(t.Context(), nil, statePath, sockPath, claim)
+	<-holderExited
+	if err != nil {
+		t.Fatalf("prepare daemon runtime: %v", err)
+	}
+	if err := lease.release(); err != nil {
+		t.Fatalf("release state path lease: %v", err)
+	}
+}
+
+// startYieldingDaemon serves a daemon control handler on sockPath that yields
+// to a manual start. Like serve, it closes the listener on a granted request
+// and keeps open connections until the requester reads its acknowledgement.
+func startYieldingDaemon(t *testing.T, sockPath string) *daemonControlHandler {
+	// Listen and register a handler that yields to every request.
+	t.Helper()
+	lis, err := net.Listen("unix", sockPath)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { _ = lis.Close() })
+	control := newDaemonControlHandler(func() { _ = lis.Close() })
+	control.SetYieldPolicy(listener_control.AutoAllowPolicy)
+	mux := srpc.NewMux()
+	if err := mux.Register(control); err != nil {
+		t.Fatalf("register control: %v", err)
+	}
+
+	// Serve connections until the listener closes.
+	server := srpc.NewServer(mux)
+	go func() {
+		// Serve each requester until the listener closes.
+		for {
+			conn, err := lis.Accept()
+			if err != nil {
+				return
+			}
+			mp, err := srpc.NewMuxedConn(conn, false, nil)
+			if err != nil {
+				_ = conn.Close()
+				continue
+			}
+			go func() { _ = server.AcceptMuxedConn(t.Context(), mp) }()
+		}
+	}()
+	return control
+}
+
+// TestPrepareDaemonRuntimeYieldRefusedByManualDaemon keeps a daemon that was
+// not started for a command running and points the user at --takeover.
+func TestPrepareDaemonRuntimeYieldRefusedByManualDaemon(t *testing.T) {
+	// Hold the lease in another process and serve a daemon that keeps it.
+	statePath := shortSocketDir(t)
+	_, holderStore := startStatePathLeaseHolder(t, statePath)
+	sockPath := filepath.Join(statePath, socketName)
+	shutdown := make(chan struct{})
+	startDesktopLikeListenerWithShutdown(t, t.Context(), sockPath, func() {
+		close(shutdown)
+	})
+
+	// A plain start fails with the held lease and the takeover hint.
+	lease, err := prepareDaemonRuntime(t.Context(), nil, statePath, sockPath, claimYield)
+	if lease != nil {
+		_ = lease.release()
+		t.Fatal("manual start acquired a lease held by a manual daemon")
+	}
+	var heldErr *StatePathLeaseHeldError
+	if !errors.As(err, &heldErr) || heldErr.StorePath != holderStore {
+		t.Fatalf("expected StatePathLeaseHeldError for %s, got %v", holderStore, err)
+	}
+	if !strings.Contains(err.Error(), "serve --takeover") {
+		t.Fatalf("error %q lacks the takeover hint", err)
+	}
+	select {
+	case <-shutdown:
+		t.Fatal("manual daemon shut down for a plain start")
+	default:
+	}
+	if _, err := os.Stat(sockPath); err != nil {
+		t.Fatalf("manual daemon socket: %v", err)
+	}
+}
+
 // TestPrepareDaemonRuntimeRemovesStaleExplicitSocket cleans an explicit socket
 // only after acquiring the writable state path lease.
 func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
@@ -197,7 +314,7 @@ func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
 		logrus.NewEntry(logrus.New()),
 		statePath,
 		sockPath,
-		false,
+		claimFree,
 	)
 	if err != nil {
 		t.Fatalf("prepare daemon runtime: %v", err)
@@ -218,7 +335,7 @@ func TestStatePathLeaseHolderProcess(t *testing.T) {
 	}
 
 	// Hold the runtime's kernel lease throughout the subprocess lifetime.
-	lease, err := acquireStatePathLease(statePath)
+	lease, err := acquireStatePathLease(t.Context(), statePath, false)
 	if err != nil {
 		t.Fatalf("acquire runtime lease: %v", err)
 	}
@@ -302,7 +419,7 @@ func startStatePathLeaseHolder(t *testing.T, statePath string) (*exec.Cmd, strin
 func TestStateLeasePrecedesSocketCleanup(t *testing.T) {
 	// Hold a runtime lease while a second starter sees a stale-looking socket.
 	statePath := shortSocketDir(t)
-	lease, err := acquireStatePathLease(statePath)
+	lease, err := acquireStatePathLease(t.Context(), statePath, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,7 +430,7 @@ func TestStateLeasePrecedesSocketCleanup(t *testing.T) {
 	}
 
 	// Lease rejection must happen before any socket inspection or removal.
-	contender, err := prepareDaemonRuntime(t.Context(), nil, statePath, socket, false)
+	contender, err := prepareDaemonRuntime(t.Context(), nil, statePath, socket, claimFree)
 	if contender != nil {
 		_ = contender.release()
 		t.Fatal("second socket acquired the same writable root")

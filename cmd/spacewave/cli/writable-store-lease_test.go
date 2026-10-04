@@ -34,7 +34,7 @@ func TestAcquireStatePathLeaseIgnoresStaleWriterPID(t *testing.T) {
 	}
 
 	// Acquire the state path through its kernel lease despite the stale sidecar.
-	lease, err := acquireStatePathLease(statePath)
+	lease, err := acquireStatePathLease(t.Context(), statePath, false)
 	if err != nil {
 		t.Fatalf("acquire state path with recycled writer PID: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestAcquireStatePathLeaseAfterProcessExit(t *testing.T) {
 	}
 
 	// Reacquire immediately after the process exit event without repairing files.
-	lease, err := acquireStatePathLease(statePath)
+	lease, err := acquireStatePathLease(t.Context(), statePath, false)
 	if err != nil {
 		t.Fatalf("acquire state path after holder exit: %v", err)
 	}

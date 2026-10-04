@@ -27,6 +27,20 @@ const (
 	DefaultStartupTimeout = time.Minute
 )
 
+// Launcher records what started a detached daemon. The daemon reads it to
+// decide whether to yield its state path to a manually started serve.
+type Launcher string
+
+const (
+	// LauncherManual marks a daemon started by hand.
+	LauncherManual Launcher = ""
+	// LauncherCommand marks a daemon started on demand for a command. It
+	// yields to a manually started serve.
+	LauncherCommand Launcher = "command"
+	// LauncherDesktop marks a daemon started by the desktop app.
+	LauncherDesktop Launcher = "desktop"
+)
+
 // StartupTimeout returns the configured startup deadline duration.
 func StartupTimeout() (time.Duration, error) {
 	// Reject malformed or nonpositive startup deadlines before creating a child.
@@ -45,9 +59,12 @@ func StartupTimeout() (time.Duration, error) {
 }
 
 // ServeArgs returns the current executable's detached daemon invocation.
-func ServeArgs(statePath, pipeID string) []string {
+func ServeArgs(statePath, pipeID string, launcher Launcher) []string {
 	// Preserve inherited logging and storage settings; trace is an explicit flag.
 	args := []string{"--state-path", statePath, "serve", "--daemon-startup-pipe-id", pipeID}
+	if launcher != LauncherManual {
+		args = append(args, "--daemon-launcher", string(launcher))
+	}
 	if tracePath := os.Getenv(TracePathEnvVar); tracePath != "" {
 		args = append(args, "--trace", tracePath)
 	}
@@ -61,22 +78,28 @@ func NewStartupPipeLogger() *logrus.Entry {
 	return logrus.NewEntry(logger)
 }
 
-// StartProcess starts the current executable with StartExecutable's readiness
-// and child-custody guarantees.
+// StartProcess starts the current executable on demand for a command, with
+// StartExecutable's readiness and child-custody guarantees.
 func StartProcess(ctx context.Context, statePath string) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	return StartExecutable(ctx, statePath, executable)
+	return StartExecutable(ctx, statePath, executable, LauncherCommand)
 }
 
 // StartExecutable starts the selected executable and transfers custody before
 // returning success. Failure stops and joins only this attempt's unready child.
 // If the OS refuses termination without a verified exit, failure releases the
 // handles and reports that the unacknowledged child may remain alive. It never
-// requests shutdown through the shared socket.
-func StartExecutable(ctx context.Context, statePath, executable string) error {
+// requests shutdown through the shared socket. launcher tells the daemon what
+// started it.
+func StartExecutable(
+	ctx context.Context,
+	statePath string,
+	executable string,
+	launcher Launcher,
+) error {
 	// Establish the private startup channel before creating the child.
 	timeout, err := StartupTimeout()
 	if err != nil {
@@ -93,7 +116,7 @@ func StartExecutable(ctx context.Context, statePath, executable string) error {
 
 	// Launch the selected composition with the complete inherited environment.
 	// #nosec G204 -- callers select the executable; desktop verifies its copy before launch.
-	cmd := exec.Command(executable, ServeArgs(statePath, pipeID)...)
+	cmd := exec.Command(executable, ServeArgs(statePath, pipeID, launcher)...)
 	if err := prepareDaemonStart(cmd); err != nil {
 		return err
 	}

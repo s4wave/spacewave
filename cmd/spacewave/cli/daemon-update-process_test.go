@@ -62,7 +62,7 @@ func testAcceptedDaemonUpdateRelaunchesAfterFinalClient(t *testing.T, mode strin
 	t.Setenv(sharedDaemonUpdateTarget, stagedPath)
 	socketPath := filepath.Join(statePath, socketName)
 	cleanupDaemonUpdateFixture(t, statePath)
-	if err := daemon.StartExecutable(ctx, statePath, oldPath); err != nil {
+	if err := daemon.StartExecutable(ctx, statePath, oldPath, daemon.LauncherCommand); err != nil {
 		t.Fatal(err)
 	}
 
@@ -156,7 +156,7 @@ func TestDaemonUpdateRestartNowReplacesBusyDaemon(t *testing.T) {
 	t.Setenv(sharedDaemonUpdateTarget, filepath.Join(statePath, "staged-cli"))
 	socketPath := filepath.Join(statePath, socketName)
 	cleanupDaemonUpdateFixture(t, statePath)
-	if err := daemon.StartExecutable(ctx, statePath, oldPath); err != nil {
+	if err := daemon.StartExecutable(ctx, statePath, oldPath, daemon.LauncherCommand); err != nil {
 		t.Fatal(err)
 	}
 

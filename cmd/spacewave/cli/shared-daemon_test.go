@@ -263,7 +263,7 @@ func TestSharedDaemonStarters(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if lease, err := acquireStatePathLease(statePath); !errors.Is(err, daemon.ErrStarting) {
+			if lease, err := acquireStatePathLease(t.Context(), statePath, false); !errors.Is(err, daemon.ErrStarting) {
 				if lease != nil {
 					_ = lease.release()
 				}

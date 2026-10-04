@@ -274,11 +274,12 @@ func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
 	// Start the takeover and grant the yield prompt.
 	takeoverResult := make(chan error, 1)
 	go func() {
-		takeoverResult <- listener_control.TakeoverSocket(
+		_, err := listener_control.TakeoverSocket(
 			ctx,
 			logrus.NewEntry(logrus.New()),
 			sock,
 		)
+		takeoverResult <- err
 	}()
 	allowListenerTakeover(t, broker)
 

@@ -175,12 +175,14 @@ func (c *Controller) serveOnce(
 	managed bool,
 	allowTakeover bool,
 ) (bool, error) {
-	// Choose the socket preparation policy for this serve attempt.
-	prepare := listener_control.EnsureSocketAvailable
+	// Prepare the socket under this serve attempt's takeover policy.
+	var err error
 	if allowTakeover {
-		prepare = listener_control.TakeoverSocket
+		_, err = listener_control.TakeoverSocket(parentCtx, le, absPath)
+	} else {
+		err = listener_control.EnsureSocketAvailable(parentCtx, le, absPath)
 	}
-	if err := prepare(parentCtx, le, absPath); err != nil {
+	if err != nil {
 		return false, errors.Wrap(err, "prepare socket")
 	}
 

@@ -4,19 +4,18 @@
 // backs spacewave stop and socket takeover between the CLI daemon
 // and the desktop app's resource listener.
 //
-// The protocol is intentionally minimal: a single Shutdown RPC whose
-// handler consults a caller-supplied YieldPolicy. If the policy
-// allows the takeover, the handler invokes the caller-supplied
-// shutdown callback and returns success to the peer; if the policy
-// denies the request, the handler returns the policy's error to the
-// peer so the caller can surface a clear message.
+// The protocol is intentionally minimal: a Shutdown RPC for an explicit
+// takeover and a Yield RPC for a manual start, each answered by a
+// caller-supplied YieldPolicy. If the policy allows the request, the
+// handler invokes the caller-supplied shutdown callback and returns
+// success to the peer; if the policy denies it, the handler returns the
+// policy's error to the peer so the caller can surface a clear message.
 package control
 
 import (
 	"context"
 	"io"
 	"net"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -28,14 +27,20 @@ import (
 // ServiceID is the starpc service identifier for the daemon control RPC.
 const ServiceID = "spacewave.cli.daemon"
 
-// ShutdownMethodID is the method identifier for the Shutdown RPC.
+// ShutdownMethodID is the method identifier for the Shutdown RPC, which
+// asks the runtime to yield to an explicit takeover.
 const ShutdownMethodID = "Shutdown"
+
+// YieldMethodID is the method identifier for the Yield RPC, which asks the
+// runtime to yield to a manually started one. Runtimes deny it unless they
+// were started on demand for a command.
+const YieldMethodID = "Yield"
 
 // DenyErrorMarker is a substring embedded in denied takeover errors so
 // callers can distinguish policy denials from transport failures.
 const DenyErrorMarker = "spacewave.daemon.shutdown.denied:"
 
-// YieldPolicy decides whether an incoming Shutdown RPC should be
+// YieldPolicy decides whether an incoming Shutdown or Yield RPC should be
 // honored. Returning nil means the handler will fire its shutdown
 // callback and acknowledge the peer; returning a non-nil error causes
 // the handler to reply with that error so the peer sees a clear
@@ -48,12 +53,19 @@ type YieldPolicy func(ctx context.Context) error
 // serve.
 func AutoAllowPolicy(context.Context) error { return nil }
 
+// denyYieldPolicy is the default Yield policy: a runtime keeps its socket
+// for a manual start unless its owner allows otherwise.
+func denyYieldPolicy(context.Context) error {
+	return errors.New("the running daemon does not yield to a manual start")
+}
+
 // Handler handles local daemon control RPCs. It is registered on the
 // same mux that serves the Resource SDK so takeover flows can target
 // a single socket regardless of which runtime owns it.
 type Handler struct {
-	policy   YieldPolicy
-	shutdown func()
+	policy      YieldPolicy
+	yieldPolicy YieldPolicy
+	shutdown    func()
 
 	mtx              sync.Mutex
 	claimed          bool
@@ -63,7 +75,8 @@ type Handler struct {
 }
 
 // NewHandler constructs a daemon control handler. policy decides
-// whether to honor a Shutdown RPC. For the one permitted requester,
+// whether to honor a Shutdown RPC; every Yield RPC is denied until
+// SetYieldPolicy allows it. For the one permitted requester,
 // shutdown runs before the completion acknowledgement and must
 // synchronously release the listener and its socket path.
 //
@@ -77,6 +90,7 @@ func NewHandler(policy YieldPolicy, shutdown func()) *Handler {
 	}
 	return &Handler{
 		policy:           policy,
+		yieldPolicy:      denyYieldPolicy,
 		shutdown:         shutdown,
 		shutdownComplete: make(chan struct{}),
 	}
@@ -96,6 +110,14 @@ func (h *Handler) SetShutdownGrantedCallback(fn func(context.Context)) {
 	h.mtx.Unlock()
 }
 
+// SetYieldPolicy sets the policy that decides whether to honor a Yield RPC.
+// Call it before registering the handler.
+func (h *Handler) SetYieldPolicy(policy YieldPolicy) {
+	h.mtx.Lock()
+	h.yieldPolicy = policy
+	h.mtx.Unlock()
+}
+
 // GetServiceID returns the service identifier.
 func (h *Handler) GetServiceID() string {
 	return ServiceID
@@ -103,30 +125,41 @@ func (h *Handler) GetServiceID() string {
 
 // GetMethodIDs returns the supported method identifiers.
 func (h *Handler) GetMethodIDs() []string {
-	return []string{ShutdownMethodID}
+	return []string{ShutdownMethodID, YieldMethodID}
 }
 
-// InvokeMethod handles the Shutdown RPC. The handler consults its
-// YieldPolicy and grants at most one caller. On approval it notifies the
-// granted-requester callback, releases the listener before acknowledging the
-// peer, then signals ShutdownComplete after response-stream completion. On
-// policy error or an already-claimed handoff, it returns a wrapped denial to
-// the peer.
+// InvokeMethod handles the Shutdown and Yield RPCs. The handler consults
+// the method's YieldPolicy and grants at most one caller. On approval it
+// notifies the granted-requester callback, releases the listener before
+// acknowledging the peer, then signals ShutdownComplete after
+// response-stream completion. On policy error or an already-claimed
+// handoff, it returns a wrapped denial to the peer.
 func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	// Match the daemon shutdown route before reading the request.
-	if serviceID != ServiceID || methodID != ShutdownMethodID {
+	// Match a daemon control route and select its policy.
+	if serviceID != ServiceID {
+		return false, nil
+	}
+	var policy YieldPolicy
+	switch methodID {
+	case ShutdownMethodID:
+		policy = h.policy
+	case YieldMethodID:
+		h.mtx.Lock()
+		policy = h.yieldPolicy
+		h.mtx.Unlock()
+	default:
 		return false, nil
 	}
 
-	// Receive the shutdown request from the control stream.
+	// Receive the request from the control stream.
 	req := &emptypb.Empty{}
 	if err := strm.MsgRecv(req); err != nil && err != io.EOF {
 		return true, err
 	}
 
-	// Require the daemon yield policy to allow this requester.
+	// Require the method's yield policy to allow this requester.
 	ctx := strm.Context()
-	if err := h.policy(ctx); err != nil {
+	if err := policy(ctx); err != nil {
 		return true, errors.Errorf("%s %s", DenyErrorMarker, err.Error())
 	}
 
@@ -166,73 +199,61 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 // the takeover, the returned error is a DenyError describing the denial reason.
 // Callers are responsible for closing conn.
 func RequestShutdown(ctx context.Context, conn net.Conn) error {
+	return requestHandoff(ctx, conn, ShutdownMethodID)
+}
+
+// RequestYield issues the Yield RPC over conn with RequestShutdown's
+// completion and denial semantics. Callers are responsible for closing conn.
+func RequestYield(ctx context.Context, conn net.Conn) error {
+	return requestHandoff(ctx, conn, YieldMethodID)
+}
+
+// requestHandoff issues a Shutdown or Yield RPC over conn and waits for the
+// peer's acknowledgement and stream completion.
+func requestHandoff(ctx context.Context, conn net.Conn, methodID string) error {
 	// Connect an SRPC client to the daemon control connection.
 	client, err := srpc.NewClientWithConn(conn, true, nil)
 	if err != nil {
 		return errors.Wrap(err, "create daemon control client")
 	}
 
-	// Open the shutdown request stream and retain it through completion.
+	// Open the request stream and retain it through completion.
 	strm, err := client.NewStream(
 		ctx,
 		ServiceID,
-		ShutdownMethodID,
+		methodID,
 		&emptypb.Empty{},
 	)
 	if err != nil {
-		return wrapRequestShutdownError(err)
+		return wrapRequestError(methodID, err)
 	}
 	defer strm.Close()
 
-	// Require the daemon's acknowledgement of the shutdown request.
+	// Require the daemon's acknowledgement of the request.
 	if err := strm.MsgRecv(&emptypb.Empty{}); err != nil {
-		return wrapRequestShutdownError(err)
+		return wrapRequestError(methodID, err)
 	}
 
 	// Require stream completion after the daemon's single acknowledgement.
 	if err := strm.MsgRecv(&emptypb.Empty{}); err != io.EOF {
 		if err == nil {
-			return errors.New("request daemon shutdown: unexpected response after acknowledgement")
+			return errors.Errorf(
+				"request daemon %s: unexpected response after acknowledgement",
+				methodID,
+			)
 		}
-		return wrapRequestShutdownError(err)
+		return wrapRequestError(methodID, err)
 	}
 	return nil
 }
 
-func wrapRequestShutdownError(err error) error {
+// wrapRequestError returns a DenyError for a peer denial and wraps any other
+// failure of the methodID request.
+func wrapRequestError(methodID string, err error) error {
 	if denyReason, ok := extractDenyReason(err); ok {
 		return &DenyError{Reason: denyReason}
 	}
-	return errors.Wrap(err, "request daemon shutdown")
-}
-
-// DenyError indicates that the peer explicitly denied the takeover.
-// CLI callers use errors.As to distinguish this from generic RPC
-// transport errors and print a clearer message.
-type DenyError struct {
-	// Reason is the peer-supplied denial reason.
-	Reason string
-}
-
-// Error implements error.
-func (e *DenyError) Error() string {
-	if e.Reason == "" {
-		return "takeover denied by peer"
-	}
-	return e.Reason
-}
-
-// extractDenyReason extracts the deny reason from an error string if
-// it contains the DenyErrorMarker embedded by InvokeMethod.
-func extractDenyReason(err error) (string, bool) {
-	// Extract the peer denial marker and trim its reason for the caller.
-	msg := err.Error()
-	_, after, ok := strings.Cut(msg, DenyErrorMarker)
-	if !ok {
-		return "", false
-	}
-	reason := strings.TrimSpace(after)
-	return reason, true
+	return errors.Wrapf(err, "request daemon %s", methodID)
 }
 
 // _ is a type assertion

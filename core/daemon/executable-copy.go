@@ -24,7 +24,7 @@ func StartCopiedProcess(ctx context.Context, statePath, source string) error {
 	if err != nil {
 		return err
 	}
-	return StartExecutable(ctx, statePath, executable)
+	return StartExecutable(ctx, statePath, executable, LauncherDesktop)
 }
 
 // PrepareExecutable publishes a digest-named executable without replacing an

@@ -48,7 +48,7 @@ func TestTakeoverDaemonSocketAllowsWhenPolicyAllows(t *testing.T) {
 
 	// Take over the daemon socket when policy allows it.
 	le := logrus.NewEntry(logrus.New())
-	if err := takeoverDaemonSocket(ctx, le, sock); err != nil {
+	if _, err := takeoverDaemonSocket(ctx, le, sock); err != nil {
 		t.Fatalf("takeover: %v", err)
 	}
 
@@ -92,7 +92,7 @@ func TestTakeoverDaemonSocketSurfacesDenyAsClearError(t *testing.T) {
 
 	// Require a clear deny error from the desktop app.
 	le := logrus.NewEntry(logrus.New())
-	err := takeoverDaemonSocket(ctx, le, sock)
+	_, err := takeoverDaemonSocket(ctx, le, sock)
 	if err == nil {
 		t.Fatal("expected takeover to fail on deny")
 	}
