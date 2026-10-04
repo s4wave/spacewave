@@ -25,7 +25,7 @@ require (
 	github.com/aperturerobotics/bbolt v0.0.0-20261002044708-7722106b637a // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
-	github.com/aperturerobotics/cli v1.1.1-0.20261004085359-3b9a829e0d9b // master
+	github.com/aperturerobotics/cli v1.1.1-0.20261004095549-d4875ce31004 // master
 	github.com/aperturerobotics/common v0.35.5-0.20261003015225-453f9b46dfcf // master
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261001195447-86f830af47c0 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260929192932-26bdf6cab5b3
