@@ -390,8 +390,8 @@ func (d *daemonDesktopControl) waitDesktopExit(ctx context.Context, sequence uin
 
 // desktopEnded releases the identified shell once after an owner-confirmed exit.
 func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *bldr_web_plugin.WatchDesktopPresenceResponse) {
-	// Collect the shell's owned references under the shared lock.
-	var release func()
+	// Publish the terminal presence and release the shell's demand as one step,
+	// so a client that observes ENDED never sees the old demand as other work.
 	var cancel context.CancelFunc
 	var requester *trackedConn
 	d.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -402,8 +402,8 @@ func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *
 		}
 		d.status = &desktop_control.WatchDesktopStatusResponse{Generation: generation, Presence: state}
 
-		// Take the shell's owned references before releasing them outside the lock.
-		release = d.demandRelease
+		// Release the demand and take the remaining references to settle outside the lock.
+		d.demandRelease()
 		d.demandRelease = nil
 		cancel = d.watchCancel
 		d.watchCancel = nil
@@ -413,9 +413,6 @@ func (d *daemonDesktopControl) desktopEnded(sequence, generation uint64, state *
 	})
 	if cancel != nil {
 		cancel()
-	}
-	if release != nil {
-		release()
 	}
 	if requester != nil {
 		d.shutdown(requester)
