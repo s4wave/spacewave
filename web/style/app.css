@@ -2368,7 +2368,7 @@ body,
   border-radius: 0.25rem;
 }
 
-/* Shell Tab Strip - TopBar-style tabs (content hidden, only tab strip visible) */
+/* Shell Tab Strip: header tabs with content hidden, only the tab strip visible */
 .shell-tab-strip {
   display: flex;
   flex: 1;
@@ -2403,7 +2403,7 @@ body,
   flex: 1;
 }
 
-/* Tab strip styled like TopBar - aligned to bottom of 30px header */
+/* Tab strip aligned to the bottom of the 30px header */
 .shell-tab-strip .flexlayout__tabset_tabbar_outer_top {
   background: transparent;
   height: 100%;
@@ -2427,7 +2427,7 @@ body,
   border-top: none;
 }
 
-/* Individual tab buttons styled like TopBar tabs */
+/* Individual header tab buttons */
 .shell-tab-strip .flexlayout__tab_button {
   @apply text-shell-tab-text bg-shell-tab-inactive;
   height: 20px;
@@ -2490,7 +2490,7 @@ body,
   padding-bottom: 1px;
 }
 
-/* Add tab button styled like TopBar tabs */
+/* Add tab button in the header tab style */
 .shell-tab-strip .flexlayout__tab_toolbar_button {
   @apply text-shell-tab-text bg-shell-tab-inactive;
   height: 20px;
