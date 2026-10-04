@@ -75,12 +75,14 @@ func New(ctx context.Context, store kvtx.Store) (*Manifest, error) {
 
 // loadEntries reads all entries from the store with the packs/ prefix.
 func (m *Manifest) loadEntries(ctx context.Context) error {
+	// Read every stored entry in one transaction.
 	var entries []*packfile.PackfileEntry
 	err := kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return m.store.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Collect the entries of this attempt only.
 			attemptEntries := make([]*packfile.PackfileEntry, 0)
 			err := tx.ScanPrefix(ctx, []byte("packs/"), func(key, value []byte) error {
 				// Decode the entry, then attach its separately stored bloom filter.
@@ -108,6 +110,8 @@ func (m *Manifest) loadEntries(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "loading manifest entries")
 	}
+
+	// Index them by pack ID.
 	m.entries = make(map[string]*packfile.PackfileEntry, len(entries))
 	for _, entry := range entries {
 		m.entries[entry.GetId()] = entry
@@ -132,6 +136,7 @@ func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
 			return m.store.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// A missing cursor reads as zero.
 			data, found, err := tx.Get(ctx, metaLastPullSequenceKey)
 			if err != nil {
 				return errors.Wrap(err, "getting last pull sequence")
@@ -140,6 +145,8 @@ func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
 				sequence = 0
 				return nil
 			}
+
+			// Parse the stored decimal cursor.
 			parsed, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
 				return errors.Wrap(err, "parsing last pull sequence")
@@ -156,6 +163,7 @@ func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
 
 // advancePullSequence atomically preserves the greatest accepted server cursor.
 func advancePullSequence(ctx context.Context, tx kvtx.Tx, sequence uint64) error {
+	// Skip a zero cursor and one behind the stored cursor.
 	if sequence == 0 {
 		return nil
 	}
@@ -210,7 +218,7 @@ func (m *Manifest) ApplyDelta(
 				}
 			}
 			for _, entry := range entries {
-				if entry.GetSupersededBy() != "" {
+				if entry.IsSuperseded() {
 					changed[entry.GetId()] = nil
 					if err := deletePack(ctx, tx, entry.GetId()); err != nil {
 						return err
@@ -297,6 +305,7 @@ func NewIndexCache(store kvtx.Store) *IndexCache {
 
 // Get returns cached raw index-tail bytes for a packfile.
 func (c *IndexCache) Get(ctx context.Context, packID string) ([]byte, bool, error) {
+	// Read the cached tail in one transaction.
 	var data []byte
 	var found bool
 	err := kvtx.RunTransaction(ctx, false,
@@ -304,17 +313,15 @@ func (c *IndexCache) Get(ctx context.Context, packID string) ([]byte, bool, erro
 			return c.store.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the entry, copying it out of the transaction.
 			value, attemptFound, err := tx.Get(ctx, indexCacheKey(packID))
 			if err != nil {
 				return errors.Wrap(err, "get index cache entry")
 			}
-			if !attemptFound {
-				data = nil
-				found = false
-				return nil
+			data, found = nil, attemptFound
+			if attemptFound {
+				data = bytes.Clone(value)
 			}
-			data = bytes.Clone(value)
-			found = true
 			return nil
 		},
 	)

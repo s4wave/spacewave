@@ -148,44 +148,50 @@ func (e *soEngine) reclaimStorage(ctx context.Context) (time.Time, error) {
 	return next, nil
 }
 
-// fenceStorageReclaim makes the local store hold every block a roster device
-// may still reference, so a pass drops only blocks unreachable from the World
-// at the stable point, from every operation above it and from the retained
-// roots.
+// fenceStorageReclaim places every operation a roster device may still build
+// on and returns the live roots: the World at the stable point, the World
+// after each operation above it and the retained roots. A pass drops only
+// blocks unreachable from them.
 //
 // It writes an acknowledgment, which asks every roster device to answer after
 // the operations it has already started, and waits until the stable point
 // covers it. Every operation a roster device started before it saw the fence
 // is then placed here, and any later one uploads its blocks after the backend
-// listed the packfiles the pass judges. It then copies those Worlds complete,
-// since this device holds only the blocks it wrote or read, and holds the
-// World after each operation above the checkpoint. The names of the
-// checkpoint's World and of the retained roots already hold the rest.
-func (e *soEngine) fenceStorageReclaim(ctx context.Context) error {
+// listed the packfiles the pass judges. With copyRoots set, it then copies
+// those Worlds complete, since this device holds only the blocks it wrote or
+// read, and holds the World after each operation above the checkpoint. The
+// names of the checkpoint's World and of the retained roots already hold the
+// rest.
+func (e *soEngine) fenceStorageReclaim(ctx context.Context, copyRoots bool) ([]*block.BlockRef, error) {
 	// Write the fence after this device's started operations.
 	h, nonce, err := e.writeFence(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Wait for every roster device to build on it.
 	if err := e.waitStable(ctx, h, nonce); err != nil {
-		return err
+		return nil, err
 	}
 
-	// Copy every live World, then hold the Worlds above the checkpoint.
+	// Collect every live World.
 	base, roots, retained, err := e.liveWorlds(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	copies := []*block.BlockRef{base}
+	live := []*block.BlockRef{base}
 	for _, root := range slices.Concat(roots, retained) {
-		copies = append(copies, root.GetRootRef())
+		live = append(live, root.GetRootRef())
 	}
-	if err := copyWorlds(ctx, e.so, reclaimFenceProofStoreID, copies); err != nil {
-		return err
+	if !copyRoots {
+		return live, nil
 	}
-	return holdRootSet(ctx, e.so, reclaimFenceRootName, roots)
+
+	// Copy them, then hold the Worlds above the checkpoint.
+	if err := copyWorlds(ctx, e.so, reclaimFenceProofStoreID, live); err != nil {
+		return nil, err
+	}
+	return live, holdRootSet(ctx, e.so, reclaimFenceRootName, roots)
 }
 
 // writeFence queues an acknowledgment after every write transaction this

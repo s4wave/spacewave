@@ -57,8 +57,9 @@ var blockedCodes = map[string]bool{
 	"dmca_blocked": true,
 }
 
-// PackReplacementConflictCode rejects a pack replacement whose replaced packs
-// are missing, superseded, or claimed by another replacement. Retrying the
+// PackReplacementConflictCode rejects a pack replacement or trash request
+// whose packs are missing, superseded, claimed by another replacement, or not
+// in the state the request expects. Retrying the
 // same replacement cannot succeed; the client must pull and plan again.
 const PackReplacementConflictCode = "pack_replacement_conflict"
 

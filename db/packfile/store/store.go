@@ -604,7 +604,7 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 			// Collect the active pack IDs in the replacement snapshot.
 			present := make(map[string]bool, len(entries))
 			for _, entry := range entries {
-				present[entry.GetId()] = entry.GetSupersededBy() == ""
+				present[entry.GetId()] = !entry.IsSuperseded()
 			}
 
 			// Remove catalog entries absent from the replacement snapshot.
@@ -650,7 +650,7 @@ func (s *PackfileStore) updateManifest(entries []*packfile.PackfileEntry, remove
 			if id == "" {
 				continue
 			}
-			if entry.GetSupersededBy() != "" {
+			if entry.IsSuperseded() {
 				remove(id)
 				continue
 			}

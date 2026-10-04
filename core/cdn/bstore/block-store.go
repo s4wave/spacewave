@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/cdn"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -135,7 +136,7 @@ func (s *CdnBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 }
 
 // ReclaimStorage returns zero: the CDN block store is read-only.
-func (s *CdnBlockStore) ReclaimStorage(context.Context, func(context.Context) error) (time.Time, error) {
+func (s *CdnBlockStore) ReclaimStorage(context.Context, bstore.ReclaimFence) (time.Time, error) {
 	return time.Time{}, nil
 }
 

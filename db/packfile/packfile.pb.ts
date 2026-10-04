@@ -55,27 +55,36 @@ export interface PackfileEntry {
    */
   bloomFormatVersion?: number
   /**
-   * Sequence is the monotonic cursor anchor assigned by the cloud DO single
-   * writer at insert time. Pull cursors advance over sequence > since. Local
-   * entries not yet pushed carry 0.
+   * Sequence is the monotonic cursor anchor the cloud catalog assigns when
+   * it commits the pack or marks it as trash. Pull cursors advance over
+   * sequence > since. Local entries not yet pushed carry 0.
    *
    * @generated from field: uint64 sequence = 7;
    */
   sequence?: bigint
   /**
    * SupersededBy is the replacement packfile ID; empty when the row is
-   * current.
+   * current or was retired from the trash without a replacement.
    *
    * @generated from field: string superseded_by = 8;
    */
   supersededBy?: string
   /**
-   * SupersededAt is the time supersession was recorded; absent when the
-   * row is current.
+   * SupersededAt is the time supersession or retirement was recorded; absent
+   * when the row is current.
    *
    * @generated from field: google.protobuf.Timestamp superseded_at = 9;
    */
   supersededAt?: Date
+  /**
+   * TrashedAt is the time a reclaim pass marked the pack as trash; absent
+   * when the pack is not trash. A trash pack stays readable, but new uploads
+   * do not deduplicate against it, and a reclaim pass retires it once
+   * TrashAge has passed.
+   *
+   * @generated from field: google.protobuf.Timestamp trashed_at = 10;
+   */
+  trashedAt?: Date
 }
 
 export const PackfileEntry: MessageType<PackfileEntry> =
@@ -96,6 +105,7 @@ export const PackfileEntry: MessageType<PackfileEntry> =
       { no: 7, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 8, name: 'superseded_by', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'superseded_at', kind: 'message', T: () => Timestamp },
+      { no: 10, name: 'trashed_at', kind: 'message', T: () => Timestamp },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -444,6 +454,49 @@ export const ReadGrant: MessageType<ReadGrant> =
       { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * TrashRequest marks packs as trash and retires trash packs in one block
+ * store. Each list holds at most 32 packs.
+ *
+ * @generated from message packfile.TrashRequest
+ */
+export interface TrashRequest {
+  /**
+   * TrashPackIds are current packs to mark as trash.
+   *
+   * @generated from field: repeated string trash_pack_ids = 1;
+   */
+  trashPackIds?: string[]
+  /**
+   * RetirePackIds are trash packs, marked at least TrashAge ago, to remove
+   * from the catalog without a replacement.
+   *
+   * @generated from field: repeated string retire_pack_ids = 2;
+   */
+  retirePackIds?: string[]
+}
+
+export const TrashRequest: MessageType<TrashRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.TrashRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'trash_pack_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'retire_pack_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

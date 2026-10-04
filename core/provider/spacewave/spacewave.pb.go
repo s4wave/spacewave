@@ -137,6 +137,36 @@ func (x *PendingUploadBlock) GetHash() string {
 	return ""
 }
 
+// ReclaimState is stored under sync/reclaim. It records the last storage
+// reclaim pass, so a restart does not repeat a pass that would free little.
+type ReclaimState struct {
+	unknownFields []byte
+	// CatalogBytes is the size of the catalog packs the last pass judged.
+	CatalogBytes uint64 `protobuf:"varint,1,opt,name=catalog_bytes,json=catalogBytes,proto3" json:"catalogBytes,omitempty"`
+	// PassedAtNanos is the last pass's Unix time in nanoseconds.
+	PassedAtNanos int64 `protobuf:"varint,2,opt,name=passed_at_nanos,json=passedAtNanos,proto3" json:"passedAtNanos,omitempty"`
+}
+
+func (x *ReclaimState) Reset() {
+	*x = ReclaimState{}
+}
+
+func (*ReclaimState) ProtoMessage() {}
+
+func (x *ReclaimState) GetCatalogBytes() uint64 {
+	if x != nil {
+		return x.CatalogBytes
+	}
+	return 0
+}
+
+func (x *ReclaimState) GetPassedAtNanos() int64 {
+	if x != nil {
+		return x.PassedAtNanos
+	}
+	return 0
+}
+
 // Config configures the Spacewave cloud provider controller.
 type Config struct {
 	unknownFields []byte
@@ -310,6 +340,23 @@ func (m *PendingUploadBlock) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *ReclaimState) CloneVT() *ReclaimState {
+	if m == nil {
+		return (*ReclaimState)(nil)
+	}
+	r := new(ReclaimState)
+	r.CatalogBytes = m.CatalogBytes
+	r.PassedAtNanos = m.PassedAtNanos
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReclaimState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -401,6 +448,29 @@ func (this *PendingUploadBlock) EqualVT(that *PendingUploadBlock) bool {
 
 func (this *PendingUploadBlock) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PendingUploadBlock)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReclaimState) EqualVT(that *ReclaimState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.CatalogBytes != that.CatalogBytes {
+		return false
+	}
+	if this.PassedAtNanos != that.PassedAtNanos {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReclaimState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReclaimState)
 	if !ok {
 		return false
 	}
@@ -638,6 +708,56 @@ func (x *PendingUploadBlock) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the PendingUploadBlock from JSON.
 func (x *PendingUploadBlock) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReclaimState message to JSON.
+func (x *ReclaimState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.CatalogBytes != 0 || s.HasField("catalogBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("catalogBytes")
+		s.WriteUint64(x.CatalogBytes)
+	}
+	if x.PassedAtNanos != 0 || s.HasField("passedAtNanos") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("passedAtNanos")
+		s.WriteInt64(x.PassedAtNanos)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReclaimState to JSON.
+func (x *ReclaimState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReclaimState message from JSON.
+func (x *ReclaimState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "catalog_bytes", "catalogBytes":
+			s.AddField("catalog_bytes")
+			x.CatalogBytes = s.ReadUint64()
+		case "passed_at_nanos", "passedAtNanos":
+			s.AddField("passed_at_nanos")
+			x.PassedAtNanos = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReclaimState from JSON.
+func (x *ReclaimState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -908,6 +1028,48 @@ func (m *PendingUploadBlock) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ReclaimState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReclaimState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReclaimState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.PassedAtNanos != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.PassedAtNanos))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.CatalogBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CatalogBytes))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1064,6 +1226,18 @@ func (m *PendingUploadBlock) SizeVT() (n int) {
 	return n
 }
 
+func (m *ReclaimState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CatalogBytes)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.PassedAtNanos)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1148,6 +1322,24 @@ func (x *PendingUploadBlock) MarshalProtoText() string {
 }
 
 func (x *PendingUploadBlock) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReclaimState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReclaimState")
+	if x.CatalogBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "catalog_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.CatalogBytes)
+	}
+	if x.PassedAtNanos != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "passed_at_nanos")
+		protobuf_go_lite.TextWriteInt(&sb, x.PassedAtNanos)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReclaimState) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1346,6 +1538,67 @@ func (m *PendingUploadBlock) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Hash = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReclaimState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReclaimState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReclaimState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CatalogBytes", wireType)
+			}
+			m.CatalogBytes = 0
+			m.CatalogBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PassedAtNanos", wireType)
+			}
+			m.PassedAtNanos = 0
+			m.PassedAtNanos, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

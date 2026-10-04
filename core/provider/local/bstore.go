@@ -124,12 +124,19 @@ func (b *BlockStore) WaitUploaded(ctx context.Context) error {
 // ReclaimStorage drops the blocks the local store no longer holds from the
 // storage backend's bucket. Returns zero without calling fence when no storage
 // backend is open.
-func (b *BlockStore) ReclaimStorage(ctx context.Context, fence func(context.Context) error) (time.Time, error) {
+func (b *BlockStore) ReclaimStorage(ctx context.Context, fence bstore.ReclaimFence) (time.Time, error) {
+	// Skip the pass without a storage backend.
 	remote := b.placement.remote.Load()
 	if remote == nil {
 		return time.Time{}, nil
 	}
-	return remote.store.Reclaim(ctx, fence, b.placement.local.GetBlockExistsBatch)
+
+	// Judge liveness by local existence once the fence copied the live roots.
+	copyRoots := func(ctx context.Context) error {
+		_, err := fence(ctx, true)
+		return err
+	}
+	return remote.store.Reclaim(ctx, copyRoots, b.placement.local.GetBlockExistsBatch)
 }
 
 // GetCopySource returns the store a graph copy reads from. A copy writes each

@@ -91,9 +91,13 @@ func (b *BlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return b.decodedBlocks
 }
 
-// ReclaimStorage returns zero: the cloud collects its own storage.
-func (b *BlockStore) ReclaimStorage(context.Context, func(context.Context) error) (time.Time, error) {
-	return time.Time{}, nil
+// ReclaimStorage runs a storage reclaim pass through the sync controller.
+// Returns zero without calling fence for a store that does not sync.
+func (b *BlockStore) ReclaimStorage(ctx context.Context, fence bstore.ReclaimFence) (time.Time, error) {
+	if b.syncer == nil {
+		return time.Time{}, nil
+	}
+	return b.syncer.ReclaimStorage(ctx, fence)
 }
 
 // InvalidateDecodedBlockRef removes decoded-cache entries for ref.
@@ -103,6 +107,7 @@ func (b *BlockStore) InvalidateDecodedBlockRef(ctx context.Context, ref *block.B
 
 // BeginReadOperation opens a read scope on the inner store.
 func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open the inner scope and wrap its store when it is not a full Store.
 	store, release, err := b.store.BeginReadOperation(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -111,6 +116,8 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 	if !ok {
 		scopedStore = block_store.NewStore(b.store.GetID(), store)
 	}
+
+	// Share the cache, sync and retention state with the scope.
 	return &BlockStore{
 		store:          scopedStore,
 		decodedBlocks:  b.decodedBlocks,
@@ -129,6 +136,7 @@ func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch forwards batched writes to the inner store.
 func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Hold publication retention while a batch deletes any block.
 	for _, entry := range entries {
 		if entry != nil && entry.Tombstone {
 			release, err := b.retention.invalidate(ctx)
@@ -139,6 +147,7 @@ func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 			break
 		}
 	}
+
 	// Tombstone publication and the decoded cache are separate lower stores;
 	// invalidate on both sides so in-flight decoded stores cannot cross the
 	// mutation boundary.
@@ -172,11 +181,13 @@ func (b *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Bloc
 
 // RmBlock forwards to the inner store.
 func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+	// Hold publication retention through the delete.
 	release, err := b.retention.invalidate(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
+
 	// Delete publication and the decoded cache are separate lower stores;
 	// invalidate on both sides so in-flight decoded stores cannot cross the
 	// mutation boundary.
@@ -281,12 +292,11 @@ func (a *ProviderAccount) buildBlockStoreTracker(bstoreID string) (keyed.Routine
 
 // executeBlockStoreTracker executes the bstoreTracker for the bstore.
 func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
+	// Scope the mount to this run and name the volume it lives on.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
-
 	le := t.a.le.WithField("bstore-id", t.id)
 	le.Debug("mounting cloud bstore")
-
 	accountID := t.a.accountID
 	volID := t.a.vol.GetID()
 
@@ -331,7 +341,6 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "building bucket config")
 	}
-
 	applyResult, err := bucket.ExApplyBucketConfig(ctx, t.a.p.b,
 		bucket.NewApplyBucketConfigToVolume(bucketConf, volID))
 	if err != nil {
@@ -341,17 +350,16 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		return errors.New(errStr)
 	}
 
+	// Open the bucket as the upper cache.
 	bucketHandle, _, bucketHandleRef, err := bucket.ExBuildBucketAPI(ctx, t.a.p.b,
 		false, bucketConf.GetId(), volID, ctxCancel)
 	if err != nil {
 		return errors.Wrap(err, "mounting bucket")
 	}
 	defer bucketHandleRef.Release()
-
 	if !bucketHandle.GetExists() {
 		return errors.New("bucket does not exist after creating it")
 	}
-
 	upper := bucketHandle.GetBucket()
 
 	// Enable co-block writeback on the packfile store: when a block is
@@ -408,9 +416,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// write can reach it.
 	dirtyUpper := block_store_writeback.NewMarkingStore(sourceUpper, sc.MarkDirty)
 
+	// Build the handle over the overlay of the cache and the cloud.
 	localID := BlockStoreID(accountID, t.id)
 	overlay := newCloudOverlay(ctx, le, sourceLower, dirtyUpper)
-
 	bstoreHandle := &BlockStore{
 		store:         block_store.NewStore(localID, overlay),
 		decodedBlocks: decodedBlocks,
@@ -444,6 +452,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	bstoreHandle.refreshRemote = sc.PullNow
 	bstoreHandle.remoteSequence = sc.LastPullSequence
 
+	// Pull when the websocket reports a new block store nonce.
 	if !sc.skipPull && t.a.wsTracker != nil {
 		t.a.wsTracker.RegisterBlockStoreNonceCallback(t.id, func(uint64) {
 			sc.TriggerRemotePull()
@@ -465,12 +474,13 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		}
 		return err
 	}
+
+	// Report the initial remote sequence and start sync ownership.
 	remoteSequence, err := sc.LastPullSequence(ctx)
 	if err != nil {
 		return errors.Wrap(err, "reading initial cloud remote sequence")
 	}
 	t.a.setSyncTelemetryCloudRemoteSequence(t.id, remoteSequence)
-
 	syncOwner := newBstoreSyncOwner(le, sc)
 	syncOwner.Start(ctx)
 	defer syncOwner.Stop()
@@ -479,8 +489,8 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	le.Debug("mounted cloud bstore")
 	t.bstoreCtr.SetValue(bstoreHandle)
 
+	// Withdraw the handle when the run ends.
 	<-ctx.Done()
-
 	t.bstoreCtr.SetValue(nil)
 	return context.Canceled
 }
@@ -593,6 +603,7 @@ func (s *sourceTrackingStore) GetStoredBlock(ctx context.Context, ref *block.Blo
 
 // track runs one demand read and records its source when it finds the block.
 func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, read func() (bool, error)) (bool, error) {
+	// Note whether the upper cache already held the block.
 	cached := false
 	if s.upperCache {
 		var err error
@@ -601,6 +612,8 @@ func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, re
 			return false, err
 		}
 	}
+
+	// Read the block inside the demand window.
 	if s.demandStarted != nil {
 		s.demandStarted()
 		defer func() {
@@ -613,6 +626,8 @@ func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, re
 	if err != nil || !found {
 		return found, err
 	}
+
+	// Record where the block came from.
 	source := s.source
 	if cached {
 		source = SyncTelemetryBlockSourceCache
@@ -699,11 +714,13 @@ func newPublicReadRemote(
 
 // Refresh fetches the anonymous CDN root pointer and updates the lower store.
 func (r *publicReadRemote) Refresh(ctx context.Context) error {
+	// Fetch the published root pointer.
 	ptr, err := cdn_bstore.FetchRootPointer(ctx, r.cli, r.cdnBaseURL, r.spaceID)
 	if err != nil {
 		return err
 	}
 	entries := clonePackfileEntries(ptr.GetPacks())
+
 	// Invalidate before publishing the refreshed manifest. Reads can observe the
 	// lower store and Entries snapshot from separate sources, and stale decoded
 	// blocks must not survive into either new view.
@@ -712,6 +729,7 @@ func (r *publicReadRemote) Refresh(ctx context.Context) error {
 	r.mtx.Lock()
 	r.entries = entries
 	r.mtx.Unlock()
+
 	// Repeat after publication so a read that crossed the old lower manifest
 	// cannot store decoded entries with a token from the first invalidation.
 	r.decodedBlocks.InvalidateAll(ctx)
@@ -739,9 +757,7 @@ func clonePackfileEntries(entries []*packfile.PackfileEntry) []*packfile.Packfil
 
 // createBlockStore creates a new bstore ref.
 func (a *ProviderAccount) createBlockStore(_ context.Context, id string) (*bstore.BlockStoreRef, error) {
-	providerID := a.conf.GetProviderId()
-	accountID := a.accountID
-	bstoreRef := NewBlockStoreRef(providerID, accountID, id)
+	bstoreRef := NewBlockStoreRef(a.conf.GetProviderId(), a.accountID, id)
 	if err := bstoreRef.Validate(); err != nil {
 		return nil, err
 	}
@@ -755,19 +771,18 @@ func (a *ProviderAccount) CreateBlockStore(ctx context.Context, id string) (*bst
 
 // MountBlockStore attempts to mount a BlockStore returning the bstore and a release function.
 func (a *ProviderAccount) MountBlockStore(ctx context.Context, ref *bstore.BlockStoreRef, released func()) (bstore.BlockStore, func(), error) {
+	// Reject an invalid ref before referencing a tracker.
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
 	}
 
-	bstoreID := ref.GetProviderResourceRef().GetId()
-	tkrRef, tkr, _ := a.bstores.AddKeyRef(bstoreID)
-
+	// Reference the tracker and wait for its mounted handle.
+	tkrRef, tkr, _ := a.bstores.AddKeyRef(ref.GetProviderResourceRef().GetId())
 	bs, err := tkr.bstoreCtr.WaitValue(ctx, tkr.errCh)
 	if err != nil {
 		tkrRef.Release()
 		return nil, nil, err
 	}
-
 	return bs, tkrRef.Release, nil
 }
 
@@ -799,7 +814,7 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 	seen := make(map[string]bool)
 	var refs []*block.BlockRef
 	for _, entry := range resp.GetEntries() {
-		if entry.GetSupersededBy() != "" || replaced[entry.GetId()] {
+		if entry.IsSuperseded() || replaced[entry.GetId()] {
 			continue
 		}
 		if entry.GetSizeBytes() > math.MaxInt64 {
@@ -816,6 +831,7 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 		reader, err := kvfile.BuildReader(rd.ReaderAt(ctx), uint64(size))
 		if err == nil {
 			err = reader.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
+				// Keep each parseable block key once.
 				key := string(ie.GetKey())
 				if seen[key] {
 					return nil

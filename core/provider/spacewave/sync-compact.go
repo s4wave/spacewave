@@ -66,12 +66,13 @@ func (s *syncController) CompactNow(ctx context.Context) error {
 // planCompaction picks the oldest small committed packs for one merge, up to
 // compactMaxPacks and the sync pack target. It returns nil when fewer than
 // compactMinPacks qualify. Packs without a sequence have not been pulled back
-// from the server and cannot be replaced yet.
+// from the server and cannot be replaced yet. Trash packs wait for a reclaim
+// pass to retire them.
 func planCompaction(entries []*packfile.PackfileEntry) []*packfile.PackfileEntry {
 	// Collect committed small packs in sequence order.
 	var small []*packfile.PackfileEntry
 	for _, entry := range entries {
-		if entry.GetSequence() == 0 || entry.GetSupersededBy() != "" {
+		if entry.GetSequence() == 0 || entry.IsSuperseded() || entry.IsTrash() {
 			continue
 		}
 		if int64(entry.GetSizeBytes()) >= compactSmallPackBytes { //nolint:gosec // pack sizes are bounded by writer.DefaultMaxPackBytes.
@@ -159,7 +160,19 @@ func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfi
 		}
 	}
 
-	// Pack the merged blocks and verify the key set.
+	// Pack the merged blocks.
+	return s.preparePackBlocks(blocks, replaces)
+}
+
+// preparePackBlocks packs blocks in order into one pack that supersedes
+// replaces. The pack's key set is checked against the blocks before it is
+// returned, so a replacement can never drop a block.
+func (s *syncController) preparePackBlocks(blocks []packfile_store.PackBlock, replaces []string) (*preparedSyncChunk, error) {
+	// Pack the blocks and verify the key set.
+	keys := make(map[string]struct{}, len(blocks))
+	for _, b := range blocks {
+		keys[string(packfile.BlockKey(b.Hash))] = struct{}{}
+	}
 	var buf bytes.Buffer
 	idx := 0
 	result, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
@@ -171,18 +184,17 @@ func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfi
 		return b.Hash, b.Block, nil
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "packing merged blocks")
+		return nil, errors.Wrap(err, "packing blocks")
 	}
-	if err := checkPackKeys(buf.Bytes(), seen); err != nil {
+	if err := checkPackKeys(buf.Bytes(), keys); err != nil {
 		return nil, err
 	}
 
-	// Build the merged pack entry.
+	// Build the pack entry.
 	packID, err := identity.BuildPackID(s.resourceID, result)
 	if err != nil {
-		return nil, errors.Wrap(err, "build merged pack id")
+		return nil, errors.Wrap(err, "build pack id")
 	}
-
 	return &preparedSyncChunk{
 		replaces: replaces,
 		entry: &packfile.PackfileEntry{
@@ -200,15 +212,15 @@ func (s *syncController) prepareMergedPack(ctx context.Context, inputs []*packfi
 
 // checkPackKeys verifies the written pack indexes exactly the want key set.
 func checkPackKeys(packData []byte, want map[string]struct{}) error {
-	// Scan the merged pack index and compare it to the wanted keys.
+	// Scan the pack index and compare it to the wanted keys.
 	rd, err := kvfile.BuildReader(bytes.NewReader(packData), uint64(len(packData)))
 	if err != nil {
-		return errors.Wrap(err, "read merged pack index")
+		return errors.Wrap(err, "read pack index")
 	}
 	var count int
 	err = rd.ScanPrefixKeys(nil, func(key []byte) error {
 		if _, ok := want[string(key)]; !ok {
-			return errors.Errorf("merged pack holds unexpected key %x", key)
+			return errors.Errorf("pack holds unexpected key %x", key)
 		}
 		count++
 		return nil
@@ -217,7 +229,7 @@ func checkPackKeys(packData []byte, want map[string]struct{}) error {
 		return err
 	}
 	if count != len(want) {
-		return errors.Errorf("merged pack holds %d of %d input blocks", count, len(want))
+		return errors.Errorf("pack holds %d of %d input blocks", count, len(want))
 	}
 	return nil
 }

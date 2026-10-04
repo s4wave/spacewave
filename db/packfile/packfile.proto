@@ -21,16 +21,21 @@ message PackfileEntry {
   // entry; cloud rejects pushes whose advertised version is not in its
   // accepted-versions allowlist.
   uint32 bloom_format_version = 6;
-  // Sequence is the monotonic cursor anchor assigned by the cloud DO single
-  // writer at insert time. Pull cursors advance over sequence > since. Local
-  // entries not yet pushed carry 0.
+  // Sequence is the monotonic cursor anchor the cloud catalog assigns when
+  // it commits the pack or marks it as trash. Pull cursors advance over
+  // sequence > since. Local entries not yet pushed carry 0.
   uint64 sequence = 7;
   // SupersededBy is the replacement packfile ID; empty when the row is
-  // current.
+  // current or was retired from the trash without a replacement.
   string superseded_by = 8;
-  // SupersededAt is the time supersession was recorded; absent when the
-  // row is current.
+  // SupersededAt is the time supersession or retirement was recorded; absent
+  // when the row is current.
   .google.protobuf.Timestamp superseded_at = 9;
+  // TrashedAt is the time a reclaim pass marked the pack as trash; absent
+  // when the pack is not trash. A trash pack stays readable, but new uploads
+  // do not deduplicate against it, and a reclaim pass retires it once
+  // TrashAge has passed.
+  .google.protobuf.Timestamp trashed_at = 10;
 }
 
 // PackReplacementEvent describes one atomic replacement sequence.
@@ -125,6 +130,16 @@ message ReadGrant {
   string url = 2;
   // ExpiresAt is when the URL stops admitting reads.
   .google.protobuf.Timestamp expires_at = 3;
+}
+
+// TrashRequest marks packs as trash and retires trash packs in one block
+// store. Each list holds at most 32 packs.
+message TrashRequest {
+  // TrashPackIds are current packs to mark as trash.
+  repeated string trash_pack_ids = 1;
+  // RetirePackIds are trash packs, marked at least TrashAge ago, to remove
+  // from the catalog without a replacement.
+  repeated string retire_pack_ids = 2;
 }
 
 // ReadResponse is the response to a read request.

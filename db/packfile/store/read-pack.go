@@ -87,3 +87,18 @@ func (s *PackfileStore) ReadPackBlocks(ctx context.Context, packID string, size 
 	}
 	return blocks, nil
 }
+
+// ReadPackIndex reads the key index of a pack without its block values. The
+// entries are in key order.
+func (s *PackfileStore) ReadPackIndex(ctx context.Context, packID string, size int64) ([]*kvfile.IndexEntry, error) {
+	// Open a private pack reader for the index tail reads.
+	rd, err := s.opener(packID, size)
+	if err != nil {
+		return nil, errors.Wrapf(err, "open packfile %s", packID)
+	}
+	defer rd.Close()
+
+	// Read the index at the pack's tail.
+	index, err := packfile.ReadIndex(rd.ReaderAt(ctx), uint64(size)) //nolint:gosec // a pack size is never negative.
+	return index, errors.Wrap(err, packID)
+}

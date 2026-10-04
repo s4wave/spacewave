@@ -140,7 +140,7 @@ func validatePackEntry(entry *packfile.PackfileEntry) error {
 	}
 
 	// The entry must not be superseded.
-	if entry.GetSupersededBy() != "" || entry.GetSupersededAt() != nil {
+	if entry.IsSuperseded() {
 		return errors.New("pack entry is superseded")
 	}
 	return nil

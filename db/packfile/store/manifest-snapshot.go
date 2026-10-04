@@ -37,6 +37,29 @@ func (v *ManifestSnapshot) GetEntries() []*packfile.PackfileEntry {
 	return entries
 }
 
+// WithoutTrash returns the snapshot without its trash packs, so an upload
+// deduplicates only against packs a reclaim pass will not retire.
+func (v *ManifestSnapshot) WithoutTrash() *ManifestSnapshot {
+	// Collect the trash packs.
+	var trash []*manifestEntry
+	v.entries.Scan(func(item *manifestEntry) bool {
+		if item.entry.IsTrash() {
+			trash = append(trash, item)
+		}
+		return true
+	})
+	if len(trash) == 0 {
+		return v
+	}
+
+	// Drop them from a copy of the tree.
+	entries := v.entries.Copy()
+	for _, item := range trash {
+		entries.Delete(item)
+	}
+	return &ManifestSnapshot{store: v.store, entries: entries}
+}
+
 // GetBlockExistsBatch probes only packs present when the snapshot was captured.
 // Paging a flush therefore never fetches indexes of packs it just uploaded.
 func (v *ManifestSnapshot) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {

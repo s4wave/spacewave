@@ -121,6 +121,36 @@ export const PendingUploadBlock: MessageType<PendingUploadBlock> =
   })
 
 /**
+ * ReclaimState is stored under sync/reclaim. It records the last storage
+ * reclaim pass, so a restart does not repeat a pass that would free little.
+ *
+ * @generated from message provider.spacewave.ReclaimState
+ */
+export interface ReclaimState {
+  /**
+   * CatalogBytes is the size of the catalog packs the last pass judged.
+   *
+   * @generated from field: uint64 catalog_bytes = 1;
+   */
+  catalogBytes?: bigint
+  /**
+   * PassedAtNanos is the last pass's Unix time in nanoseconds.
+   *
+   * @generated from field: int64 passed_at_nanos = 2;
+   */
+  passedAtNanos?: bigint
+}
+
+export const ReclaimState: MessageType<ReclaimState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.ReclaimState',
+    fields: [
+      { no: 1, name: 'catalog_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'passed_at_nanos', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SyncConfig configures block store synchronization behavior.
  *
  * @generated from message provider.spacewave.SyncConfig

@@ -59,11 +59,15 @@ func TestWaitReadableSnapshotWaitsForReadmission(t *testing.T) {
 	}
 }
 
+// TestBuildLookupWorldOpObservesStaticLookupSetAfterBuild verifies a built
+// lookup resolves through a static lookup set after it was built.
 func TestBuildLookupWorldOpObservesStaticLookupSetAfterBuild(t *testing.T) {
-	ctx := context.Background()
+	// Build the lookup with no static lookup set.
+	ctx := t.Context()
 	c := &Controller{conf: &Config{DisableLookup: true}}
 	lookup := c.buildLookupWorldOp(nil)
 
+	// It resolves nothing yet.
 	op, err := lookup(ctx, world_mock.MockWorldOpId)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -72,6 +76,7 @@ func TestBuildLookupWorldOpObservesStaticLookupSetAfterBuild(t *testing.T) {
 		t.Fatal("lookup resolved operation before static lookup was set")
 	}
 
+	// Setting the static lookup reaches the built lookup.
 	c.SetStaticLookupOp(world_mock.LookupMockOp)
 	op, err = lookup(ctx, world_mock.MockWorldOpId)
 	if err != nil {
@@ -82,21 +87,26 @@ func TestBuildLookupWorldOpObservesStaticLookupSetAfterBuild(t *testing.T) {
 	}
 }
 
+// TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache verifies a
+// second engine over the same head reads its root from the block store's
+// decoded cache.
 func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T) {
-	ctx := context.Background()
-
+	// Start a testbed.
+	ctx := t.Context()
 	tb, err := alpha_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
+	// Build a gzip and blockenc transformer.
 	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, tb.StepFactorySet, transformConf)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Give a test block store its own decoded cache.
 	store := newTestBlockStore(tb.EngineBucketID, tb.Volume)
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
@@ -105,6 +115,7 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 	defer decodedBlocks.Close()
 	store.decodedBlocks = decodedBlocks
 
+	// Write an empty World root through the transformer.
 	tx, bcs := block.NewTransaction(store, xfrm, nil, nil)
 	bcs.SetBlock(world_block.NewWorld(true), true)
 	rootRef, _, err := tx.Write(ctx, true)
@@ -112,6 +123,7 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 		t.Fatal(err.Error())
 	}
 
+	// Build a controller over a shared object serving the store.
 	c := &Controller{
 		le:   tb.Logger,
 		bus:  tb.Bus,
@@ -121,6 +133,7 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 	so := &testSharedObject{blockStore: store}
 	headRef := &bucket.ObjectRef{RootRef: rootRef, TransformConf: transformConf}
 
+	// Build the first engine and let it store the decoded root.
 	firstCtx, firstCounter := block.WithReadCounter(ctx)
 	first, err := c.buildBlkEngine(firstCtx, tb.Logger, so, headRef.CloneVT(), transformConf)
 	if err != nil {
@@ -129,6 +142,7 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 	defer first.Release()
 	decodedBlocks.Wait()
 
+	// Build the second engine over the same head.
 	secondCtx, secondCounter := block.WithReadCounter(ctx)
 	second, err := c.buildBlkEngine(secondCtx, tb.Logger, so, headRef.CloneVT(), transformConf)
 	if err != nil {
@@ -136,6 +150,7 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 	}
 	defer second.Release()
 
+	// The first read decodes the root and the second borrows it.
 	firstSnapshot := firstCounter.Snapshot()
 	if firstSnapshot.BlockReadCount != 1 ||
 		firstSnapshot.DecodedBlockUnmarshalCount != 1 ||
@@ -165,20 +180,24 @@ type testSharedObject struct {
 	queued     [][]byte
 }
 
+// testBlockStore is a block store with an attached decoded cache.
 type testBlockStore struct {
 	block_store.Store
 	decodedBlocks *block.DecodedBlockCache
 }
 
+// newTestBlockStore wraps store as block store id.
 func newTestBlockStore(id string, store block.StoreOps) *testBlockStore {
 	return &testBlockStore{Store: block_store.NewStore(id, store)}
 }
 
+// GetDecodedBlockCache returns the attached decoded cache.
 func (s *testBlockStore) GetDecodedBlockCache() *block.DecodedBlockCache {
 	return s.decodedBlocks
 }
 
-func (s *testBlockStore) ReclaimStorage(context.Context, func(context.Context) error) (time.Time, error) {
+// ReclaimStorage reclaims nothing.
+func (s *testBlockStore) ReclaimStorage(context.Context, bstore.ReclaimFence) (time.Time, error) {
 	return time.Time{}, nil
 }
 
@@ -275,12 +294,17 @@ func (s *testSharedObjectSnapshot) DecodeOperation(ctx context.Context, inner *s
 	return inner.GetOpData(), nil
 }
 
+// newStateTestTransformConfig returns steps followed by a zero-key blockenc
+// step.
 func newStateTestTransformConfig(t *testing.T, steps ...config.Config) *block_transform.Config {
+	// Append the blockenc step.
 	t.Helper()
 	steps = append(steps, &transform_blockenc.Config{
 		BlockEnc: blockenc.DefaultBlockEnc,
 		Key:      make([]byte, 32),
 	})
+
+	// Build the transform config.
 	transformConf, err := block_transform.NewConfig(steps)
 	if err != nil {
 		t.Fatal(err.Error())

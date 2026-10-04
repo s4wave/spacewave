@@ -1,17 +1,14 @@
 package provider_spacewave
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
-	"io"
 	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -22,7 +19,6 @@ import (
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
-	"github.com/s4wave/spacewave/db/packfile/identity"
 	packfile_order "github.com/s4wave/spacewave/db/packfile/order"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/db/packfile/writer"
@@ -179,6 +175,7 @@ func (s *syncController) publishManifestLocked() {
 // mergedManifestEntries joins the remote entries with the local manifest,
 // remote first. The caller holds manifestMtx.
 func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
+	// Return the local manifest alone when there are no remote entries.
 	local := s.mfst.GetEntries()
 	s.remoteEntries = make(map[string]*packfile.PackfileEntry)
 	if s.remote == nil {
@@ -188,6 +185,8 @@ func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
 	if len(remote) == 0 {
 		return local
 	}
+
+	// Take each remote entry, then each local entry not already taken.
 	seen := make(map[string]bool, len(remote)+len(local))
 	out := make([]*packfile.PackfileEntry, 0, len(remote)+len(local))
 	for _, entry := range remote {
@@ -212,6 +211,7 @@ func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
 
 // pendingSnapshot reads the durable queue projection and its notification together.
 func (s *syncController) pendingSnapshot() (time.Time, int64, <-chan struct{}) {
+	// Read the queue projection and the earliest pending publication.
 	var first time.Time
 	var dirty int64
 	var changed <-chan struct{}
@@ -445,6 +445,7 @@ func (s *syncController) pushPackfile(
 	blockCount int,
 	pushFn func(context.Context, string, int) error,
 ) error {
+	// Push once and return unless a cancel arrived after the worker accepted.
 	err := pushFn(ctx, packID, blockCount)
 	if err == nil {
 		return nil
@@ -453,6 +454,7 @@ func (s *syncController) pushPackfile(
 		return err
 	}
 
+	// Retry the same pack ID once with a detached context.
 	retryCtx, cancel := context.WithTimeout(
 		context.WithoutCancel(ctx),
 		syncPushRetryTimeout,
@@ -586,25 +588,6 @@ type preparedSyncChunk struct {
 	bodyHash []byte
 }
 
-// packBlocks writes the dirty blocks to w and returns the pack result.
-func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.PackResult, error) {
-	idx := 0
-	iter := func() (*hash.Hash, *block.StoredBlock, error) {
-		if idx >= len(blocks) {
-			return nil, nil, nil
-		}
-		b := blocks[idx]
-		idx++
-		return b.hash, b.stored, nil
-	}
-
-	result, err := writer.PackBlocks(w, iter)
-	if err != nil {
-		return nil, errors.Wrap(err, "packing blocks")
-	}
-	return result, nil
-}
-
 // cleanupDirtyCandidates removes acknowledged markers and resets an empty queue's deadline atomically.
 func (s *syncController) cleanupDirtyCandidates(ctx context.Context, blocks []dirtyCandidate) error {
 	return s.updateDirtyState(ctx, blocks...)
@@ -613,6 +596,7 @@ func (s *syncController) cleanupDirtyCandidates(ctx context.Context, blocks []di
 // orderDirtyBlocks orders dirty block metadata for pack locality before
 // loading data.
 func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyCandidate) ([]dirtyCandidate, error) {
+	// Index the candidates by hash.
 	refs := make([]*block.BlockRef, 0, len(blocks))
 	byKey := make(map[string]dirtyCandidate, len(blocks))
 	for _, b := range blocks {
@@ -621,6 +605,7 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyCan
 		refs = append(refs, block.NewBlockRef(b.hash))
 	}
 
+	// Order their refs for locality and map them back to candidates.
 	orderedRefs, err := packfile_order.BlockRefs(ctx, s.refGraph, refs)
 	if err != nil {
 		return nil, err
@@ -637,6 +622,7 @@ func (s *syncController) orderDirtyBlocks(ctx context.Context, blocks []dirtyCan
 
 // filterDuplicateDirtyBlocks probes a stable catalog with the shared index cache.
 func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, view *packfile_store.ManifestSnapshot, blocks []dirtyCandidate) ([]dirtyCandidate, []dirtyCandidate, error) {
+	// Probe the catalog for every candidate.
 	refs := make([]*block.BlockRef, 0, len(blocks))
 	for _, b := range blocks {
 		refs = append(refs, block.NewBlockRef(b.hash))
@@ -646,6 +632,7 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, view *p
 		return nil, nil, err
 	}
 
+	// Split the candidates the catalog already holds from those to pack.
 	pack := make([]dirtyCandidate, 0, len(blocks))
 	deduped := make([]dirtyCandidate, 0)
 	for i, b := range blocks {
@@ -655,6 +642,8 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, view *p
 		}
 		pack = append(pack, b)
 	}
+
+	// Report the deduplicated bytes.
 	if len(deduped) != 0 {
 		var bytes int64
 		for _, b := range deduped {
@@ -674,6 +663,7 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, view *p
 // scanDirtyPage acquires bounded metadata through a captured insertion cutoff.
 // Its iterator and transaction are released before callers read payloads or upload.
 func (s *syncController) scanDirtyPage(ctx context.Context, after, through uint64) ([]dirtyCandidate, error) {
+	// Read one page of queue records after the cursor.
 	if after >= through {
 		return nil, nil
 	}
@@ -764,6 +754,7 @@ func (s *syncController) loadDirtyBlocks(ctx context.Context, candidates []dirty
 // this one pushes and commits the previous chunk, so packing overlaps the
 // upload with at most two chunks in memory. Chunks commit in order.
 func (s *syncController) flushChunks(ctx context.Context, through uint64, orderBlocks bool) error {
+	// Pack the chunks on a second goroutine.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	chunks := make(chan *preparedSyncChunk)
@@ -780,6 +771,7 @@ func (s *syncController) flushChunks(ctx context.Context, through uint64, orderB
 		})
 	}()
 
+	// Push and commit each chunk in order.
 	for chunk := range chunks {
 		err := s.pushPreparedChunk(ctx, chunk)
 		if err == nil {
@@ -809,6 +801,7 @@ func (s *syncController) prepareChunks(
 	pending := make([]dirtyCandidate, 0, maxBlocks)
 	var pendingBytes int64
 	flushPending := func() error {
+		// Load the pending payloads and emit their packs.
 		loaded, err := s.loadDirtyBlocks(ctx, pending)
 		if err != nil {
 			return err
@@ -820,8 +813,9 @@ func (s *syncController) prepareChunks(
 		return nil
 	}
 
-	// Hold catalog membership fixed while sharing resident indexes across pages.
-	view := s.lower.SnapshotManifest()
+	// Hold catalog membership fixed while sharing resident indexes across
+	// pages. Trash packs do not count, since a reclaim pass retires them.
+	view := s.lower.SnapshotManifest().WithoutTrash()
 
 	// Batch duplicate checks after releasing each metadata transaction.
 	for after := uint64(0); after < through; {
@@ -878,6 +872,7 @@ func (s *syncController) prepareChunks(
 // prepareLoadedBlocks packs loaded dirty blocks, halving a set whose pack
 // exceeds the sync pack target, and passes each pack to emit.
 func (s *syncController) prepareLoadedBlocks(blocks []dirtyBlock, emit func(*preparedSyncChunk) error) error {
+	// Pack the blocks and halve a set whose pack is over the target.
 	chunk, err := s.prepareFlushChunk(blocks)
 	if err != nil || chunk == nil {
 		return err
@@ -907,10 +902,10 @@ func (s *syncController) prepareLoadedBlocks(blocks []dirtyBlock, emit func(*pre
 // markers of its blocks, so a later failure in the same flush does not push the
 // same blocks again under a different pack.
 func (s *syncController) commitPushedChunk(ctx context.Context, chunk *preparedSyncChunk) error {
+	// Record the pack, then clear the markers of its blocks.
 	if err := s.applyManifestDelta(ctx, []*packfile.PackfileEntry{chunk.entry}, nil, 0); err != nil {
 		return errors.Wrap(err, "applying push delta")
 	}
-
 	flushed := make([]dirtyCandidate, len(chunk.blocks))
 	for i, block := range chunk.blocks {
 		flushed[i] = block.dirtyCandidate
@@ -918,43 +913,34 @@ func (s *syncController) commitPushedChunk(ctx context.Context, chunk *preparedS
 	return s.cleanupDirtyCandidates(ctx, flushed)
 }
 
-// prepareFlushChunk packs one bounded dirty-block chunk.
+// prepareFlushChunk packs one bounded dirty-block chunk. Returns nil when
+// blocks is empty.
 func (s *syncController) prepareFlushChunk(blocks []dirtyBlock) (*preparedSyncChunk, error) {
-	var buf bytes.Buffer
+	// Skip an empty chunk.
+	if len(blocks) == 0 {
+		return nil, nil
+	}
+
+	// Pack the dirty blocks in order.
 	started := time.Now()
-	result, err := s.packBlocks(&buf, blocks)
+	packed := make([]packfile_store.PackBlock, len(blocks))
+	for i, b := range blocks {
+		packed[i] = packfile_store.PackBlock{Hash: b.hash, Block: b.stored}
+	}
+	chunk, err := s.preparePackBlocks(packed, nil)
 	s.le.WithField("blocks", len(blocks)).
 		WithField("duration", time.Since(started)).
 		Debug("packed dirty blocks")
 	if err != nil {
 		return nil, err
 	}
-	if result.BlockCount == 0 {
-		return nil, nil
-	}
-	packID, err := identity.BuildPackID(s.resourceID, result)
-	if err != nil {
-		return nil, errors.Wrap(err, "build pack id")
-	}
-
-	entry := &packfile.PackfileEntry{
-		Id:                 packID,
-		BloomFilter:        result.BloomFilter,
-		BloomFormatVersion: packfile.BloomFormatVersionV1,
-		BlockCount:         result.BlockCount,
-		SizeBytes:          result.BytesWritten,
-		CreatedAt:          timestamppb.New(time.Now().UTC()),
-	}
-	return &preparedSyncChunk{
-		blocks:   blocks,
-		entry:    entry,
-		packData: buf.Bytes(),
-		bodyHash: result.PackBytesDigest,
-	}, nil
+	chunk.blocks = blocks
+	return chunk, nil
 }
 
 // pushPreparedChunk uploads one prepared packfile chunk.
 func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedSyncChunk) error {
+	// Push the pack, reporting its progress to telemetry.
 	entry := chunk.entry
 	pushBytes := int64(len(chunk.packData))
 	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
@@ -986,6 +972,8 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 			)
 		},
 	)
+
+	// Log and report the result.
 	s.le.WithField("pack-id", entry.GetId()).
 		WithField("blocks", entry.GetBlockCount()).
 		WithField("bytes", len(chunk.packData)).
@@ -994,14 +982,7 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
 		t.finishSyncTelemetryPush(id, pushBytes, err)
 	})
-	if err != nil {
-		return errors.Wrap(err, "pushing packfile")
-	}
-
-	s.le.WithField("pack-id", entry.GetId()).
-		WithField("blocks", entry.GetBlockCount()).
-		Debug("flushed packfile")
-	return nil
+	return errors.Wrap(err, "pushing packfile")
 }
 
 // flush collects dirty blocks, packs them, pushes to the server, and updates the manifest.

@@ -25,6 +25,15 @@ message PendingUploadBlock {
   string hash = 3;
 }
 
+// ReclaimState is stored under sync/reclaim. It records the last storage
+// reclaim pass, so a restart does not repeat a pass that would free little.
+message ReclaimState {
+  // CatalogBytes is the size of the catalog packs the last pass judged.
+  uint64 catalog_bytes = 1;
+  // PassedAtNanos is the last pass's Unix time in nanoseconds.
+  int64 passed_at_nanos = 2;
+}
+
 // Config configures the Spacewave cloud provider controller.
 message Config {
   // ProviderId is the provider identifier.

@@ -34,16 +34,21 @@ type PackfileEntry struct {
 	// entry; cloud rejects pushes whose advertised version is not in its
 	// accepted-versions allowlist.
 	BloomFormatVersion uint32 `protobuf:"varint,6,opt,name=bloom_format_version,json=bloomFormatVersion,proto3" json:"bloomFormatVersion,omitempty"`
-	// Sequence is the monotonic cursor anchor assigned by the cloud DO single
-	// writer at insert time. Pull cursors advance over sequence > since. Local
-	// entries not yet pushed carry 0.
+	// Sequence is the monotonic cursor anchor the cloud catalog assigns when
+	// it commits the pack or marks it as trash. Pull cursors advance over
+	// sequence > since. Local entries not yet pushed carry 0.
 	Sequence uint64 `protobuf:"varint,7,opt,name=sequence,proto3" json:"sequence,omitempty"`
 	// SupersededBy is the replacement packfile ID; empty when the row is
-	// current.
+	// current or was retired from the trash without a replacement.
 	SupersededBy string `protobuf:"bytes,8,opt,name=superseded_by,json=supersededBy,proto3" json:"supersededBy,omitempty"`
-	// SupersededAt is the time supersession was recorded; absent when the
-	// row is current.
+	// SupersededAt is the time supersession or retirement was recorded; absent
+	// when the row is current.
 	SupersededAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=superseded_at,json=supersededAt,proto3" json:"supersededAt,omitempty"`
+	// TrashedAt is the time a reclaim pass marked the pack as trash; absent
+	// when the pack is not trash. A trash pack stays readable, but new uploads
+	// do not deduplicate against it, and a reclaim pass retires it once
+	// TrashAge has passed.
+	TrashedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=trashed_at,json=trashedAt,proto3" json:"trashedAt,omitempty"`
 }
 
 func (x *PackfileEntry) Reset() {
@@ -111,6 +116,13 @@ func (x *PackfileEntry) GetSupersededBy() string {
 func (x *PackfileEntry) GetSupersededAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.SupersededAt
+	}
+	return nil
+}
+
+func (x *PackfileEntry) GetTrashedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TrashedAt
 	}
 	return nil
 }
@@ -440,6 +452,37 @@ func (x *ReadGrant) GetExpiresAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// TrashRequest marks packs as trash and retires trash packs in one block
+// store. Each list holds at most 32 packs.
+type TrashRequest struct {
+	unknownFields []byte
+	// TrashPackIds are current packs to mark as trash.
+	TrashPackIds []string `protobuf:"bytes,1,rep,name=trash_pack_ids,json=trashPackIds,proto3" json:"trashPackIds,omitempty"`
+	// RetirePackIds are trash packs, marked at least TrashAge ago, to remove
+	// from the catalog without a replacement.
+	RetirePackIds []string `protobuf:"bytes,2,rep,name=retire_pack_ids,json=retirePackIds,proto3" json:"retirePackIds,omitempty"`
+}
+
+func (x *TrashRequest) Reset() {
+	*x = TrashRequest{}
+}
+
+func (*TrashRequest) ProtoMessage() {}
+
+func (x *TrashRequest) GetTrashPackIds() []string {
+	if x != nil {
+		return x.TrashPackIds
+	}
+	return nil
+}
+
+func (x *TrashRequest) GetRetirePackIds() []string {
+	if x != nil {
+		return x.RetirePackIds
+	}
+	return nil
+}
+
 // ReadResponse is the response to a read request.
 type ReadResponse struct {
 	unknownFields []byte
@@ -500,6 +543,7 @@ func (m *PackfileEntry) CloneVT() *PackfileEntry {
 	r.BloomFilter = protobuf_go_lite.CloneBytes(m.BloomFilter)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.SupersededAt = protobuf_go_lite.CloneVTValue(m.SupersededAt)
+	r.TrashedAt = protobuf_go_lite.CloneVTValue(m.TrashedAt)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -641,6 +685,23 @@ func (m *ReadGrant) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *TrashRequest) CloneVT() *TrashRequest {
+	if m == nil {
+		return (*TrashRequest)(nil)
+	}
+	r := new(TrashRequest)
+	r.TrashPackIds = protobuf_go_lite.CloneSlice(m.TrashPackIds)
+	r.RetirePackIds = protobuf_go_lite.CloneSlice(m.RetirePackIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TrashRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ReadResponse) CloneVT() *ReadResponse {
 	if m == nil {
 		return (*ReadResponse)(nil)
@@ -688,6 +749,9 @@ func (this *PackfileEntry) EqualVT(that *PackfileEntry) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.SupersededAt, that.SupersededAt) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TrashedAt, that.TrashedAt) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -898,6 +962,29 @@ func (this *ReadGrant) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *TrashRequest) EqualVT(that *TrashRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.TrashPackIds, that.TrashPackIds) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.RetirePackIds, that.RetirePackIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TrashRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TrashRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *ReadResponse) EqualVT(that *ReadResponse) bool {
 	if this == that {
 		return true
@@ -971,6 +1058,11 @@ func (x *PackfileEntry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("supersededAt")
 		x.SupersededAt.MarshalProtoJSON(s.WithField("supersededAt"))
 	}
+	if x.TrashedAt != nil || s.HasField("trashedAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("trashedAt")
+		x.TrashedAt.MarshalProtoJSON(s.WithField("trashedAt"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1023,6 +1115,13 @@ func (x *PackfileEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.SupersededAt = &timestamppb.Timestamp{}
 			x.SupersededAt.UnmarshalProtoJSON(s.WithField("superseded_at", true))
+		case "trashed_at", "trashedAt":
+			if s.ReadNil() {
+				x.TrashedAt = nil
+				return
+			}
+			x.TrashedAt = &timestamppb.Timestamp{}
+			x.TrashedAt.UnmarshalProtoJSON(s.WithField("trashed_at", true))
 		}
 	})
 }
@@ -1613,6 +1712,64 @@ func (x *ReadGrant) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TrashRequest message to JSON.
+func (x *TrashRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.TrashPackIds) > 0 || s.HasField("trashPackIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("trashPackIds")
+		s.WriteStringArray(x.TrashPackIds)
+	}
+	if len(x.RetirePackIds) > 0 || s.HasField("retirePackIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retirePackIds")
+		s.WriteStringArray(x.RetirePackIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TrashRequest to JSON.
+func (x *TrashRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TrashRequest message from JSON.
+func (x *TrashRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "trash_pack_ids", "trashPackIds":
+			s.AddField("trash_pack_ids")
+			if s.ReadNil() {
+				x.TrashPackIds = nil
+				return
+			}
+			x.TrashPackIds = s.ReadStringArray()
+		case "retire_pack_ids", "retirePackIds":
+			s.AddField("retire_pack_ids")
+			if s.ReadNil() {
+				x.RetirePackIds = nil
+				return
+			}
+			x.RetirePackIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TrashRequest from JSON.
+func (x *TrashRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ReadResponse message to JSON.
 func (x *ReadResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1704,6 +1861,16 @@ func (m *PackfileEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.TrashedAt != nil {
+		size, err := m.TrashedAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
 	}
 	if m.SupersededAt != nil {
 		size, err := m.SupersededAt.MarshalToSizedBufferVT(dAtA[:i])
@@ -2164,6 +2331,52 @@ func (m *ReadGrant) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TrashRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TrashRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TrashRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.RetirePackIds) > 0 {
+		for iNdEx := len(m.RetirePackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.RetirePackIds[iNdEx])
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.TrashPackIds) > 0 {
+		for iNdEx := len(m.TrashPackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.TrashPackIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ReadResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2227,6 +2440,10 @@ func (m *PackfileEntry) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SupersededBy)
 	if m.SupersededAt != nil {
 		l = m.SupersededAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.TrashedAt != nil {
+		l = m.TrashedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -2349,6 +2566,18 @@ func (m *ReadGrant) SizeVT() (n int) {
 	return n
 }
 
+func (m *TrashRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.TrashPackIds)
+	n += protobuf_go_lite.SizeStringSlice(1, m.RetirePackIds)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ReadResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2401,6 +2630,10 @@ func (x *PackfileEntry) MarshalProtoText() string {
 	if x.SupersededAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "superseded_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SupersededAt)
+	}
+	if x.TrashedAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "trashed_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TrashedAt)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2640,6 +2873,32 @@ func (x *ReadGrant) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *TrashRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TrashRequest")
+	if len(x.TrashPackIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "trash_pack_ids")
+		for i, v := range x.TrashPackIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.RetirePackIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "retire_pack_ids")
+		for i, v := range x.RetirePackIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TrashRequest) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *ReadResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadResponse")
@@ -2773,6 +3032,21 @@ func (m *PackfileEntry) UnmarshalVT(dAtA []byte) error {
 				m.SupersededAt = &timestamppb.Timestamp{}
 			}
 			if err := m.SupersededAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TrashedAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TrashedAt == nil {
+				m.TrashedAt = &timestamppb.Timestamp{}
+			}
+			if err := m.TrashedAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3380,6 +3654,69 @@ func (m *ReadGrant) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TrashRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TrashRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TrashRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TrashPackIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TrashPackIds = append(m.TrashPackIds, v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetirePackIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RetirePackIds = append(m.RetirePackIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

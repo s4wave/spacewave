@@ -32,6 +32,8 @@ type compactTestCloud struct {
 	pushes []string
 	// pulls counts sync pull requests.
 	pulls int
+	// trash are the trash requests, in order.
+	trash []*packfile.TrashRequest
 	// reject, when set, answers pushes with this status and error body.
 	reject     int
 	rejectBody string
@@ -69,6 +71,16 @@ func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Upload: &packfile.PushUpload{Url: c.base + "/upload/" + req.GetPackId()},
 		}).MarshalVT()
 		_, _ = w.Write(data)
+
+	case strings.HasSuffix(r.URL.Path, "/sync/trash"):
+		// Record the trash request.
+		body, err := io.ReadAll(r.Body)
+		req := &packfile.TrashRequest{}
+		if err != nil || req.UnmarshalVT(body) != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		c.trash = append(c.trash, req)
 
 	case strings.HasPrefix(r.URL.Path, "/upload/"):
 		// Store the uploaded pack.
