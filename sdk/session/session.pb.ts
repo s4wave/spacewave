@@ -595,6 +595,14 @@ export interface GetSessionInfoResponse {
    * @generated from field: string username = 4;
    */
   username?: string
+  /**
+   * SigningPeerId is the peer that signs the session's Space operations and
+   * messages. It equals peer_id except for a local account, whose volume peer
+   * signs for every Session of the account.
+   *
+   * @generated from field: string signing_peer_id = 5;
+   */
+  signingPeerId?: string
 }
 
 export const GetSessionInfoResponse: MessageType<GetSessionInfoResponse> =
@@ -605,6 +613,7 @@ export const GetSessionInfoResponse: MessageType<GetSessionInfoResponse> =
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'crypto_info', kind: 'message', T: SessionCryptoInfo },
       { no: 4, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'signing_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

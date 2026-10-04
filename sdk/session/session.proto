@@ -102,6 +102,10 @@ message GetSessionInfoResponse {
   // Username is the verified Spacewave Cloud username of the session's account.
   // Empty for sessions of other providers.
   string username = 4;
+  // SigningPeerId is the peer that signs the session's Space operations and
+  // messages. It equals peer_id except for a local account, whose volume peer
+  // signs for every Session of the account.
+  string signing_peer_id = 5;
 }
 
 // SessionCryptoInfo contains session crypto identity and storage summary.
