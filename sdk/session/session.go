@@ -70,6 +70,15 @@ func (s *Session) LeaveSpace(ctx context.Context, sharedObjectID, successorPeerI
 	})
 }
 
+// RemoveSpaceParticipants removes the participant peers from the Space in one
+// configuration change.
+func (s *Session) RemoveSpaceParticipants(ctx context.Context, sharedObjectID string, peerIDs []string) (*RemoveSpaceParticipantsResponse, error) {
+	return s.service.RemoveSpaceParticipants(ctx, &RemoveSpaceParticipantsRequest{
+		SpaceId: sharedObjectID,
+		PeerIds: peerIDs,
+	})
+}
+
 // DeleteAccount deletes the provider account for a session index, removing its
 // sessions and deleting the volume backing store.
 func (s *Session) DeleteAccount(ctx context.Context, sessionIdx uint32) (*DeleteAccountResponse, error) {
