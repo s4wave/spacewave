@@ -633,8 +633,9 @@ func TestPackReadGrants(t *testing.T) {
 	defer srv.Close()
 
 	// Grant reads of /pack?grant=<n> for the nth grant. The routes are exact
-	// paths, which the goscript ServeMux also matches.
-	mux.HandleFunc("/api/bstore/"+resourceID+"/read", func(w http.ResponseWriter, r *http.Request) {
+	// paths of HandlerFunc values, which the goscript ServeMux matches and
+	// serves as async handlers.
+	mux.Handle("/api/bstore/"+resourceID+"/read", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Require the session signature.
 		if r.Header.Get("X-Signature") == "" {
 			t.Fatal("grant request is not signed")
@@ -652,10 +653,10 @@ func TestPackReadGrants(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, _ = w.Write(data)
-	})
+	}))
 
 	// Serve ranges of the latest grant, refusing one read when asked.
-	mux.HandleFunc("/pack", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/pack", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Refuse a read with session credentials, a stale grant or a
 		// requested refusal.
 		reads++
@@ -680,7 +681,7 @@ func TestPackReadGrants(t *testing.T) {
 		w.Header().Set("Content-Length", strconv.FormatInt(end-start, 10))
 		w.WriteHeader(http.StatusPartialContent)
 		_, _ = w.Write(data[start:end])
-	})
+	}))
 
 	// Open readers that share the session's grants.
 	sessionCli := NewSessionClient(srv.Client(), srv.URL, DefaultSigningEnvPrefix, priv, pid.String())

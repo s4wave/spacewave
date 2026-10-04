@@ -41,14 +41,9 @@ type compactTestCloud struct {
 
 // ServeHTTP accepts pushes into packs and answers pulls with an empty delta.
 func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Read the request under the lock.
+	// Route the request under the lock. Only pushes and uploads carry a body.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	switch {
 	case strings.HasSuffix(r.URL.Path, "/sync/pull"):
 		// Answer pulls with an empty delta.
@@ -57,8 +52,9 @@ func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case strings.HasSuffix(r.URL.Path, "/sync/push"):
 		// Record the push and reject it when configured.
+		body, err := io.ReadAll(r.Body)
 		req := &packfile.PushRequest{}
-		if err := req.UnmarshalVT(body); err != nil {
+		if err != nil || req.UnmarshalVT(body) != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -76,6 +72,11 @@ func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case strings.HasPrefix(r.URL.Path, "/upload/"):
 		// Store the uploaded pack.
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		c.packs[strings.TrimPrefix(r.URL.Path, "/upload/")] = body
 
 	default:
