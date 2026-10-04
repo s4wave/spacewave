@@ -27,6 +27,9 @@ const (
 	SessionType_SESSION_TYPE_APP SessionType = 2
 	// SESSION_TYPE_DEVICE is a linked device session.
 	SessionType_SESSION_TYPE_DEVICE SessionType = 3
+	// SESSION_TYPE_SERVICE is an automated service session, such as a release
+	// pipeline, on an account with no entity keypair.
+	SessionType_SESSION_TYPE_SERVICE SessionType = 4
 )
 
 // Enum value maps for SessionType.
@@ -36,12 +39,14 @@ var (
 		1: "SESSION_TYPE_USER",
 		2: "SESSION_TYPE_APP",
 		3: "SESSION_TYPE_DEVICE",
+		4: "SESSION_TYPE_SERVICE",
 	}
 	SessionType_value = map[string]int32{
 		"SESSION_TYPE_UNKNOWN": 0,
 		"SESSION_TYPE_USER":    1,
 		"SESSION_TYPE_APP":     2,
 		"SESSION_TYPE_DEVICE":  3,
+		"SESSION_TYPE_SERVICE": 4,
 	}
 )
 

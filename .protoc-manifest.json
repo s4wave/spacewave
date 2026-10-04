@@ -1365,7 +1365,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/session": {
-      "hash": "24567efe89b1d3b8d1a06758a341fe1ab823b6e6eda401f0f35b68474f2f49a6",
+      "hash": "caaba7f304fdbcca5f9771411d96c864be65b7c67e673708e2dc0f9418527c2f",
       "generatedFiles": [
         "core/session/session.pb.go",
         "core/session/session.pb.ts"

@@ -32,6 +32,9 @@ enum SessionType {
   SESSION_TYPE_APP = 2;
   // SESSION_TYPE_DEVICE is a linked device session.
   SESSION_TYPE_DEVICE = 3;
+  // SESSION_TYPE_SERVICE is an automated service session, such as a release
+  // pipeline, on an account with no entity keypair.
+  SESSION_TYPE_SERVICE = 4;
 }
 
 // SessionLockMode identifies how a session private key is protected at rest.

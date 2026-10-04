@@ -42,6 +42,14 @@ export enum SessionType {
    * @generated from enum value: SESSION_TYPE_DEVICE = 3;
    */
   DEVICE = 3,
+
+  /**
+   * SESSION_TYPE_SERVICE is an automated service session, such as a release
+   * pipeline, on an account with no entity keypair.
+   *
+   * @generated from enum value: SESSION_TYPE_SERVICE = 4;
+   */
+  SERVICE = 4,
 }
 
 export const SessionType_Enum = /* @__PURE__ */ createEnumType(

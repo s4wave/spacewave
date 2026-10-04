@@ -14,6 +14,7 @@ class SessionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SESSION_TYPE_USER: _ClassVar[SessionType]
     SESSION_TYPE_APP: _ClassVar[SessionType]
     SESSION_TYPE_DEVICE: _ClassVar[SessionType]
+    SESSION_TYPE_SERVICE: _ClassVar[SessionType]
 
 class SessionLockMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -29,6 +30,7 @@ SESSION_TYPE_UNKNOWN: SessionType
 SESSION_TYPE_USER: SessionType
 SESSION_TYPE_APP: SessionType
 SESSION_TYPE_DEVICE: SessionType
+SESSION_TYPE_SERVICE: SessionType
 SESSION_LOCK_MODE_AUTO_UNLOCK: SessionLockMode
 SESSION_LOCK_MODE_PIN_ENCRYPTED: SessionLockMode
 SESSION_RECOVERY_STATE_UNKNOWN: SessionRecoveryState
