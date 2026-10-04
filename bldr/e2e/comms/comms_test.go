@@ -160,11 +160,10 @@ func buildGoScriptFixtureWorker(ctx context.Context, repoRoot, commsDir, distDir
 
 	// Compile the worker's Go package to TypeScript with GoScript.
 	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
-		WorkDir:         repoRoot,
-		OutputPath:      outputRoot,
-		Packages:        []string{mainPackagePath},
-		BuildFlags:      []string{"-tags=goscript,skip_e2e,purego"},
-		AllDependencies: true,
+		WorkDir:    repoRoot,
+		OutputPath: outputRoot,
+		Packages:   []string{mainPackagePath},
+		BuildFlags: []string{"-tags=goscript,skip_e2e,purego"},
 	}); err != nil {
 		return err
 	}

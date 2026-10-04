@@ -349,7 +349,6 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 		OverrideDirs:              overrideDirs,
 		BindingRoots:              bindingRoots,
 		DeferredFunctions:         deferredFunctions,
-		AllDependencies:           true,
 		ProtobufTypeScriptBinding: true,
 	}); err != nil {
 		return "", err

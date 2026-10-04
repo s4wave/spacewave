@@ -53,7 +53,6 @@ func TestSpacewaveCoreCompile(t *testing.T) {
 			Dir:            spacewaveDir,
 			OutputPath:     out,
 			BuildFlags:     []string{"-tags=goscript,skip_e2e,purego"},
-			AllDependencies: true,
 		}, nil, nil)
 		if err != nil {
 			t.Fatal(err)

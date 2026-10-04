@@ -483,7 +483,6 @@ func BuildDistBundle(
 				OverrideDirs:              goScriptOverrideDirs,
 				BindingRoots:              goScriptBindingRoots,
 				DeferredFunctions:         goScriptDeferredFunctions,
-				AllDependencies:           true,
 				ProtobufTypeScriptBinding: true,
 			}); err != nil {
 				return err

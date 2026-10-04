@@ -55,11 +55,14 @@ func build(ctx context.Context, le *logrus.Entry, output string, skipCompile boo
 			overrides = []string{overrideDir}
 		}
 		if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
-			WorkDir: root, OutputPath: compiled,
-			Packages:   []string{"./core/sync/node"},
-			BuildFlags: []string{"-tags=goscript,skip_e2e,purego"},
-			Env:        env, BindingRoots: bindings, OverrideDirs: overrides,
-			AllDependencies: true, ProtobufTypeScriptBinding: true,
+			WorkDir:                   root,
+			OutputPath:                compiled,
+			Packages:                  []string{"./core/sync/node"},
+			BuildFlags:                []string{"-tags=goscript,skip_e2e,purego"},
+			Env:                       env,
+			BindingRoots:              bindings,
+			OverrideDirs:              overrides,
+			ProtobufTypeScriptBinding: true,
 		}); err != nil {
 			return err
 		}

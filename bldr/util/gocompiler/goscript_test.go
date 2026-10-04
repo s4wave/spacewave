@@ -219,7 +219,6 @@ replace example.com/dep => ./dep
 		OutputPath:                out,
 		Packages:                  []string{"."},
 		BindingRoots:              roots,
-		AllDependencies:           true,
 		ProtobufTypeScriptBinding: true,
 	})
 	if err != nil {

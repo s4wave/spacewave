@@ -41,8 +41,6 @@ type GoScriptCompileOptions struct {
 	BindingRoots []string
 	// DeferredFunctions names exported function boundaries loaded on first invocation.
 	DeferredFunctions []string
-	// AllDependencies includes the packages reachable from Packages.
-	AllDependencies bool
 	// ProtobufTypeScriptBinding uses generated TypeScript protobuf bindings.
 	ProtobufTypeScriptBinding bool
 }
@@ -242,7 +240,6 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		Dir:                       opts.WorkDir,
 		DeferredFunctions:         slices.Clone(opts.DeferredFunctions),
 		OutputPath:                opts.OutputPath,
-		AllDependencies:           opts.AllDependencies,
 		ProtobufTypeScriptBinding: opts.ProtobufTypeScriptBinding,
 	}
 	if opts.CacheRoot != "" {

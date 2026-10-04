@@ -289,7 +289,6 @@ async function compileGoScript(opts: Options): Promise<CommandResult | null> {
   for (const flag of opts.buildFlags) {
     args.push('--build-flags', flag)
   }
-  args.push('--all-dependencies')
   if (opts.protobufTypeScriptBinding) {
     args.push('--protobuf-ts-binding')
   }

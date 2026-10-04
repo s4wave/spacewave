@@ -16,8 +16,6 @@ github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 h1:3U7
 github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017/go.mod h1:lNSJTKECIUFAnfeSqy01kXYTYe1BHubW7198jNX3nEw=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20260923001918-fabba1bbc502 h1:t4U9MWgg5Qe/XCb3FlUCgJkStGWqqXyKdCYLrIgcccI=
 github.com/aperturerobotics/badger-go/v4 v4.0.0-20260923001918-fabba1bbc502/go.mod h1:XD9l89Ibi5N7mY8ydEgizDPwi0TDq4lyhmzd2AUKYX4=
-github.com/aperturerobotics/bbolt v0.0.0-20261002044708-7722106b637a h1:kWRmEffwOzL8Wev5xshdp+vru66+79NRl2ecfnONU8o=
-github.com/aperturerobotics/bbolt v0.0.0-20261002044708-7722106b637a/go.mod h1:uP4X3ycuVlQftt6tTDe6smymYXZ9hf/TtUScVRn4760=
 github.com/aperturerobotics/bbolt v0.0.0-20261004101904-ce8197909cd4 h1:OhaT7+15/NOtb1AWqmOWPIYUe2DP/iJwF4/+6h44gU8=
 github.com/aperturerobotics/bbolt v0.0.0-20261004101904-ce8197909cd4/go.mod h1:uP4X3ycuVlQftt6tTDe6smymYXZ9hf/TtUScVRn4760=
 github.com/aperturerobotics/bldr-saucer v0.4.4 h1:kQvjAAQcdydvX2EYWipQW1vOBUe88F/27WaVU7mKRoE=
@@ -184,8 +182,6 @@ github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNU
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
 github.com/kevinburke/ssh_config v1.6.0 h1:J1FBfmuVosPHf5GRdltRLhPJtJpTlMdKTBjRgTaQBFY=
 github.com/kevinburke/ssh_config v1.6.0/go.mod h1:q2RIzfka+BXARoNexmF9gkxEX7DmvbW9P4hIVx2Kg4M=
-github.com/klauspost/compress v1.20.2-0.20261002184158-6b9199594fc5 h1:BcGIHD1IE4Obdn9KMhH5ADsdweaHcNOO1VohNAg37uQ=
-github.com/klauspost/compress v1.20.2-0.20261002184158-6b9199594fc5/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/klauspost/compress v1.20.2-0.20261004115517-d189b4c2eb01 h1:bZ8JmPnyboS9Zek9INWCTgfcoC6SkSw1t8O38HxE8GY=
 github.com/klauspost/compress v1.20.2-0.20261004115517-d189b4c2eb01/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=
@@ -289,8 +285,8 @@ github.com/restic/chunker v0.5.0/go.mod h1:z0cH2BejpW636LXw0R/BGyv+Ey8+m9QGiOanD
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/s4wave/goscript v0.3.4-0.20261004085543-db8966ec7c19 h1:j+Y+mnTo/f+GFaUtuxFtuNafetjIRpuZk6fWYZB2rCo=
-github.com/s4wave/goscript v0.3.4-0.20261004085543-db8966ec7c19/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
+github.com/s4wave/goscript v0.4.0 h1:kyHl3Qm7Cu6sCMphptp+JtFimKllAiGUWtHFs+VuRjI=
+github.com/s4wave/goscript v0.4.0/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
