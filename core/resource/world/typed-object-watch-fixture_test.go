@@ -40,7 +40,7 @@ type typedWatchFixture struct {
 }
 
 // newTypedWatchFixture mounts the same World and registry services used by clients.
-func newTypedWatchFixture(t *testing.T, engineID string) *typedWatchFixture {
+func newTypedWatchFixture(t *testing.T, engineID string, wrapResourceClient ...func(srpc.Stream) srpc.Stream) *typedWatchFixture {
 	// Compose an in-memory engine and the registry's real admission boundary.
 	t.Helper()
 	ctx := t.Context()
@@ -81,7 +81,18 @@ func newTypedWatchFixture(t *testing.T, engineID string) *typedWatchFixture {
 	if err := server.Register(service); err != nil {
 		t.Fatal(err)
 	}
-	resources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(service)))))
+
+	// Gate ResourceClient delivery without changing typed acquisition streams.
+	var transport srpc.Invoker = service
+	if len(wrapResourceClient) != 0 {
+		transport = srpc.InvokerFunc(func(serviceID, methodID string, stream srpc.Stream) (bool, error) {
+			if serviceID == resource.SRPCResourceServiceServiceID && methodID == "ResourceClient" {
+				stream = wrapResourceClient[0](stream)
+			}
+			return service.InvokeMethod(serviceID, methodID, stream)
+		})
+	}
+	resources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(transport)))))
 	if err != nil {
 		t.Fatal(err)
 	}

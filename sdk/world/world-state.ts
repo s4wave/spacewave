@@ -12,6 +12,7 @@ import {
   TxResourceServiceClient,
 } from './world_srpc.pb.js'
 import { throwOperationError } from './errors.js'
+import { throwTypedObjectError } from './typed-object-grant-retired-error.js'
 import { ObjectState, type IObjectState } from './object-state.js'
 import { ObjectIterator } from './object_iterator.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
@@ -682,6 +683,7 @@ export class WorldStateResource extends Resource implements IWorldState {
     objectKey: string,
     abortSignal?: AbortSignal,
   ): Promise<TypedObjectAccess> {
+    // Acquire a typed child through this exact granting World mount.
     const typedService = new TypedObjectResourceServiceClient(
       this.resourceRef.client,
     )
@@ -689,6 +691,9 @@ export class WorldStateResource extends Resource implements IWorldState {
       { objectKey },
       abortSignal,
     )
+
+    // Restore typed acquisition failures before exposing a child reference.
+    throwTypedObjectError(response, abortSignal)
     return {
       resourceId: response.resourceId ?? 0,
       typeId: response.typeId ?? '',

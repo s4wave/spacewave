@@ -68,6 +68,7 @@ import "embed"
 //go:embed sdk/viewer/registry/registry_srpc.pb.ts sdk/vm/v86-wizard.pb.ts sdk/vm/v86.pb.ts
 //go:embed sdk/world/engine-state.ts sdk/world/engine.ts sdk/world/errors.ts sdk/world/graph-utils.ts
 //go:embed sdk/world/stage.ts
+//go:embed sdk/world/typed-object-grant-retired-error.ts
 //go:embed sdk/world/object-ref.ts sdk/world/object-state.ts sdk/world/object_iterator.ts
 //go:embed sdk/world/types/errors.ts
 //go:embed sdk/world/types/types.ts sdk/world/utils.ts sdk/world/wizard/create-wizard.ts

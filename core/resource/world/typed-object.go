@@ -7,7 +7,9 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_unixfs "github.com/s4wave/spacewave/core/resource/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
@@ -41,8 +43,10 @@ type TypedObjectResource struct {
 	engineIDBound bool
 	// lifecycleCtx retains the parent mount lifecycle for typed factories.
 	lifecycleCtx context.Context
-	// lifecycleCancel withdraws typed demand when the mount closes.
-	lifecycleCancel context.CancelFunc
+	// lifecycleCancel records mount retirement before withdrawing typed demand.
+	lifecycleCancel context.CancelCauseFunc
+	// retirementCause distinguishes this mount's cancellation from a child failure.
+	retirementCause error
 	// closed guards the effectless transition to the closed state.
 	closed atomic.Bool
 	// objects shares typed invokers until their last Resource reference is released.
@@ -59,11 +63,12 @@ func NewTypedObjectResourceWithContext(ctx context.Context, le *logrus.Entry, b 
 	// Capture trusted access options with the mount lifecycle.
 	access := new(WorldStateResource)
 	applyWorldStateResourceOptions(access, opts...)
-	lifecycleCtx, lifecycleCancel := context.WithCancel(ctx)
+	lifecycleCtx, lifecycleCancel := context.WithCancelCause(ctx)
 	r := &TypedObjectResource{
 		le: le, b: b, ws: ws, engine: engine,
 		lifecycleCtx: lifecycleCtx, lifecycleCancel: lifecycleCancel,
-		sessionPeerID: access.sessionPeerID, sessionPeerIDBound: access.sessionPeerIDBound,
+		retirementCause: errors.WithStack(s4wave_world.ErrTypedObjectGrantRetired),
+		sessionPeerID:   access.sessionPeerID, sessionPeerIDBound: access.sessionPeerIDBound,
 		engineID: access.engineID, engineIDBound: access.engineIDBound,
 	}
 
@@ -88,7 +93,7 @@ func (r *TypedObjectResource) Close() {
 	if !r.closed.CompareAndSwap(false, true) {
 		return
 	}
-	r.lifecycleCancel()
+	r.lifecycleCancel(r.retirementCause)
 
 	// Release constructed handles after blocked factories have returned.
 	for _, keyedObject := range r.objects.GetKeysWithData() {
@@ -138,6 +143,8 @@ func (r *TypedObjectResource) WatchTypedObject(req *s4wave_world.WatchTypedObjec
 //   - plugin-assets/{plugin-id}: accesses the plugin's assets filesystem.
 //
 // The returned child owns its typed handle until Resource release.
+// Acquisition canceled by this mount's retirement returns a typed response
+// error; caller and Resource client cancellation remain RPC errors.
 func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave_world.AccessTypedObjectRequest) (*s4wave_world.AccessTypedObjectResponse, error) {
 	// Acquire the caller resource context.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
@@ -216,14 +223,15 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 	}
 	if handle.err != nil {
 		release()
-		return nil, handle.err
+		grantRetired := errors.Is(handle.err, r.retirementCause)
+		return typedObjectAcquisitionFailure(ctx, resourceCtx, handle.err, grantRetired)
 	}
 
 	// Register the typed-object resource and its release callback.
 	id, err := resourceCtx.AddResource(handle.invoker, release)
 	if err != nil {
 		release()
-		return nil, err
+		return typedObjectAcquisitionFailure(ctx, resourceCtx, err, errors.Is(err, resource.ErrResourceNotFound))
 	}
 
 	return &s4wave_world.AccessTypedObjectResponse{
@@ -305,6 +313,9 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 	// Resolve the object type under the selected engine scope.
 	objType, ref, err := objecttype.ExLookupObjectType(ctx, r.b, key.typeID)
 	if err != nil {
+		if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
+			err = context.Cause(ctx)
+		}
 		return nil, &typedObjectHandle{err: err}
 	}
 	if objType == nil {
@@ -315,6 +326,9 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 	// Construct the typed invoker from the registered factory.
 	invoker, cleanup, err := objType.GetFactory()(ctx, r.le, r.b, r.engine, ws, key.objectKey)
 	if err != nil {
+		if ctx.Err() != nil && errors.Is(err, ctx.Err()) {
+			err = context.Cause(ctx)
+		}
 		return nil, &typedObjectHandle{err: err}
 	}
 
@@ -324,7 +338,7 @@ func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey)
 		cleanup: cleanup,
 	}
 	if err := ctx.Err(); err != nil {
-		handle.err = err
+		handle.err = context.Cause(ctx)
 		return nil, handle
 	}
 
@@ -364,7 +378,7 @@ func (r *TypedObjectResource) accessPluginUnixFS(
 	}
 
 	// Serve the acquired filesystem through its Resource interface.
-	resource := resource_unixfs.NewFSHandleResource(fsHandle)
+	fsResource := resource_unixfs.NewFSHandleResource(fsHandle)
 
 	// Bind filesystem cleanup to the registered typed Resource.
 	cleanup := func() {
@@ -373,15 +387,37 @@ func (r *TypedObjectResource) accessPluginUnixFS(
 	}
 
 	// Transfer filesystem ownership to the registered child Resource.
-	id, err := resourceCtx.AddResourceValue(resource.GetMux(), resource, cleanup)
+	id, err := resourceCtx.AddResourceValue(fsResource.GetMux(), fsResource, cleanup)
 	if err != nil {
 		cleanup()
-		return nil, err
+		return typedObjectAcquisitionFailure(ctx, resourceCtx, err, errors.Is(err, resource.ErrResourceNotFound))
 	}
 
 	return &s4wave_world.AccessTypedObjectResponse{
 		ResourceId: id,
 		TypeId:     s4wave_unixfs_world.UnixFSTypeID,
+	}, nil
+}
+
+// typedObjectAcquisitionFailure carries retirement proved by the granting factory
+// context or registration's missing invocation parent, preserving terminal causes.
+func typedObjectAcquisitionFailure(ctx context.Context, resourceCtx resource_server.ResourceClientContext, err error, grantRetired bool) (*s4wave_world.AccessTypedObjectResponse, error) {
+	// Keep child failures terminal while the exact granting mount remains healthy.
+	if !grantRetired {
+		return nil, err
+	}
+
+	// Preserve terminal caller and Resource client cancellation.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err := resourceCtx.Context().Err(); err != nil {
+		return nil, err
+	}
+
+	// Carry exact mount retirement before asynchronous release controls.
+	return &s4wave_world.AccessTypedObjectResponse{
+		ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED,
 	}, nil
 }
 

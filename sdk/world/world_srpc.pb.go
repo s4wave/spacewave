@@ -2921,6 +2921,8 @@ type SRPCTypedObjectResourceServiceClient interface {
 	SRPCClient() srpc.Client
 
 	// AccessTypedObject returns one typed child or fails if the object or handler is absent.
+	// Mount retirement that prevents acquisition is reported in the response's
+	// ErrorCode, independently of ResourceClient release notification delivery.
 	AccessTypedObject(ctx context.Context, in *AccessTypedObjectRequest) (*AccessTypedObjectResponse, error)
 	// WatchTypedObject reports initial and changing typed-handler availability.
 	// Live Worlds follow object creation, type changes and deletion; immutable
@@ -2993,6 +2995,8 @@ func (x *srpcTypedObjectResourceService_WatchTypedObjectClient) RecvTo(m *WatchT
 
 type SRPCTypedObjectResourceServiceServer interface {
 	// AccessTypedObject returns one typed child or fails if the object or handler is absent.
+	// Mount retirement that prevents acquisition is reported in the response's
+	// ErrorCode, independently of ResourceClient release notification delivery.
 	AccessTypedObject(context.Context, *AccessTypedObjectRequest) (*AccessTypedObjectResponse, error)
 	// WatchTypedObject reports initial and changing typed-handler availability.
 	// Live Worlds follow object creation, type changes and deletion; immutable

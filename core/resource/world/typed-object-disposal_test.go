@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
@@ -190,7 +191,7 @@ func TestTypedObjectResourceDisposesFactoryResult(t *testing.T) {
 			// Enter the factory through the real Resource client and server connection.
 			acquired := make(chan error, 1)
 			go func() {
-				response, err := sdk_world.NewSRPCTypedObjectResourceServiceClient(rpc).AccessTypedObject(ctx, &sdk_world.AccessTypedObjectRequest{ObjectKey: objectKey})
+				response, err := sdk_world.AccessTypedObject(ctx, sdk_world.NewSRPCTypedObjectResourceServiceClient(rpc), &sdk_world.AccessTypedObjectRequest{ObjectKey: objectKey})
 				if response != nil && response.GetResourceId() != 0 {
 					resources.CreateResourceReference(response.GetResourceId()).Release()
 				}
@@ -203,6 +204,7 @@ func TestTypedObjectResourceDisposesFactoryResult(t *testing.T) {
 			wantError := context.Canceled.Error()
 			switch retirement {
 			case "mount-close":
+				wantError = ""
 				mount.Close()
 			case "canceled-before-enumeration":
 				cancel()
@@ -217,10 +219,21 @@ func TestTypedObjectResourceDisposesFactoryResult(t *testing.T) {
 
 			// Join the server method even when parent retirement cancels the client call first.
 			if retirement == "rejected-registration" {
-				wantError = resource.ErrResourceNotFound.Error()
+				wantError = ""
 			}
-			if err := <-handled; err == nil || err.Error() != wantError {
-				t.Fatalf("served AccessTypedObject error = %v, want %s", err, wantError)
+			servedError := ""
+			if err := <-handled; err != nil {
+				servedError = err.Error()
+			}
+			if retirement == "rejected-registration" && servedError == context.Canceled.Error() {
+				// A processed release may cancel the stream before its typed response.
+				if _, err := parentRef.GetClient(); !errors.Is(err, resource.ErrResourceOrClientReleased) {
+					t.Fatalf("canceled acquisition retained a live parent: %v", err)
+				}
+				wantError = context.Canceled.Error()
+			}
+			if servedError != wantError {
+				t.Fatalf("served AccessTypedObject error = %s, want %s", servedError, wantError)
 			}
 			if err := <-acquired; err == nil {
 				t.Fatal("retired factory result was published to the client")

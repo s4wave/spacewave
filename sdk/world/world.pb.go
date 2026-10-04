@@ -109,8 +109,13 @@ func (x GraphPathDirection) String() string {
 type WorldErrorCode int32
 
 const (
-	WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED  WorldErrorCode = 0
+	// WORLD_ERROR_CODE_UNSPECIFIED carries no built-in World error.
+	WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED WorldErrorCode = 0
+	// WORLD_ERROR_CODE_UNHANDLED_OP indicates that no handler accepted the operation.
 	WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP WorldErrorCode = 1
+	// WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED indicates that retirement of
+	// this exact granting World mount prevented typed-object acquisition.
+	WorldErrorCode_WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED WorldErrorCode = 2
 )
 
 // Enum value maps for WorldErrorCode.
@@ -118,10 +123,12 @@ var (
 	WorldErrorCode_name = map[int32]string{
 		0: "WORLD_ERROR_CODE_UNSPECIFIED",
 		1: "WORLD_ERROR_CODE_UNHANDLED_OP",
+		2: "WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED",
 	}
 	WorldErrorCode_value = map[string]int32{
-		"WORLD_ERROR_CODE_UNSPECIFIED":  0,
-		"WORLD_ERROR_CODE_UNHANDLED_OP": 1,
+		"WORLD_ERROR_CODE_UNSPECIFIED":                0,
+		"WORLD_ERROR_CODE_UNHANDLED_OP":               1,
+		"WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED": 2,
 	}
 )
 
@@ -2871,6 +2878,9 @@ type AccessTypedObjectResponse struct {
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 	// TypeId is the type identifier of the object.
 	TypeId string `protobuf:"bytes,2,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// ErrorCode reports acquisition prevented by the exact granting mount's
+	// retirement. A failed acquisition returns no ResourceId or TypeId.
+	ErrorCode WorldErrorCode `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3" json:"errorCode,omitempty"`
 }
 
 func (x *AccessTypedObjectResponse) Reset() {
@@ -2891,6 +2901,13 @@ func (x *AccessTypedObjectResponse) GetTypeId() string {
 		return x.TypeId
 	}
 	return ""
+}
+
+func (x *AccessTypedObjectResponse) GetErrorCode() WorldErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return WorldErrorCode_WORLD_ERROR_CODE_UNSPECIFIED
 }
 
 // WatchTypedObjectRequest selects an object within the mounted World and registry scope.
@@ -5065,6 +5082,7 @@ func (m *AccessTypedObjectResponse) CloneVT() *AccessTypedObjectResponse {
 	r := new(AccessTypedObjectResponse)
 	r.ResourceId = m.ResourceId
 	r.TypeId = m.TypeId
+	r.ErrorCode = m.ErrorCode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -7724,6 +7742,9 @@ func (this *AccessTypedObjectResponse) EqualVT(that *AccessTypedObjectResponse) 
 		return false
 	}
 	if this.TypeId != that.TypeId {
+		return false
+	}
+	if this.ErrorCode != that.ErrorCode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -13526,6 +13547,11 @@ func (x *AccessTypedObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("typeId")
 		s.WriteString(x.TypeId)
 	}
+	if x.ErrorCode != 0 || s.HasField("errorCode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorCode")
+		x.ErrorCode.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -13549,6 +13575,9 @@ func (x *AccessTypedObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "type_id", "typeId":
 			s.AddField("type_id")
 			x.TypeId = s.ReadString()
+		case "error_code", "errorCode":
+			s.AddField("error_code")
+			x.ErrorCode.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -18730,6 +18759,11 @@ func (m *AccessTypedObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ErrorCode != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ErrorCode))
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.TypeId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.TypeId)
 		i--
@@ -20507,6 +20541,7 @@ func (m *AccessTypedObjectResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ErrorCode)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22574,6 +22609,10 @@ func (x *AccessTypedObjectResponse) MarshalProtoText() string {
 	if x.TypeId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type_id")
 		protobuf_go_lite.TextWriteString(&sb, x.TypeId)
+	}
+	if x.ErrorCode != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_code")
+		protobuf_go_lite.TextWriteStringer(&sb, WorldErrorCode(x.ErrorCode))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -29396,6 +29435,17 @@ func (m *AccessTypedObjectResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TypeId = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorCode", wireType)
+			}
+			m.ErrorCode = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ErrorCode = WorldErrorCode(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -10,6 +10,7 @@ import {
 } from './world_srpc.pb.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { WorldStage } from './stage.js'
+import { throwTypedObjectError } from './typed-object-grant-retired-error.js'
 import {
   Tx,
   WorldStateResource,
@@ -139,6 +140,7 @@ export class Engine extends Resource {
     objectKey: string,
     abortSignal?: AbortSignal,
   ): Promise<TypedObjectAccess> {
+    // Acquire a typed child through this granting engine mount.
     const typedService = new TypedObjectResourceServiceClient(
       this.resourceRef.client,
     )
@@ -146,6 +148,9 @@ export class Engine extends Resource {
       { objectKey },
       abortSignal,
     )
+
+    // Restore typed acquisition failures before exposing a child reference.
+    throwTypedObjectError(response, abortSignal)
     return {
       resourceId: response.resourceId ?? 0,
       typeId: response.typeId ?? '',

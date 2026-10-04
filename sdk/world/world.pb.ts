@@ -103,14 +103,26 @@ export const GraphPathDirection_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum WorldErrorCode {
   /**
+   * WORLD_ERROR_CODE_UNSPECIFIED carries no built-in World error.
+   *
    * @generated from enum value: WORLD_ERROR_CODE_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
+   * WORLD_ERROR_CODE_UNHANDLED_OP indicates that no handler accepted the operation.
+   *
    * @generated from enum value: WORLD_ERROR_CODE_UNHANDLED_OP = 1;
    */
   UNHANDLED_OP = 1,
+
+  /**
+   * WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED indicates that retirement of
+   * this exact granting World mount prevented typed-object acquisition.
+   *
+   * @generated from enum value: WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED = 2;
+   */
+  TYPED_OBJECT_GRANT_RETIRED = 2,
 }
 
 export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
@@ -3149,6 +3161,13 @@ export interface AccessTypedObjectResponse {
    * @generated from field: string type_id = 2;
    */
   typeId?: string
+  /**
+   * ErrorCode reports acquisition prevented by the exact granting mount's
+   * retirement. A failed acquisition returns no ResourceId or TypeId.
+   *
+   * @generated from field: s4wave.world.WorldErrorCode error_code = 3;
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const AccessTypedObjectResponse: MessageType<AccessTypedObjectResponse> =
@@ -3157,6 +3176,7 @@ export const AccessTypedObjectResponse: MessageType<AccessTypedObjectResponse> =
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'error_code', kind: 'enum', T: WorldErrorCode_Enum },
     ] satisfies readonly PartialFieldInfo[],
   })
 

@@ -273,7 +273,7 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 
 	// Access the layout object through the typed object service.
 	typedSvcClient := s4wave_world.NewSRPCTypedObjectResourceServiceClient(txSrpcClient)
-	resp, err := typedSvcClient.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+	resp, err := s4wave_world.AccessTypedObject(ctx, typedSvcClient, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: objectKey,
 	})
 	if err != nil {

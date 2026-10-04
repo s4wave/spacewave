@@ -672,7 +672,7 @@ func (c *sdkClient) accessTypedObject(ctx context.Context, engineRef resource_cl
 
 	// Access the typed object resource.
 	typedSvc := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineClient)
-	resp, err := typedSvc.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: objectKey})
+	resp, err := s4wave_world.AccessTypedObject(ctx, typedSvc, &s4wave_world.AccessTypedObjectRequest{ObjectKey: objectKey})
 	if err != nil {
 		return nil, 0, "", nil, errors.Wrap(err, "access typed object")
 	}

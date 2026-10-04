@@ -3214,6 +3214,8 @@ export const TypedObjectResourceServiceDefinition = {
   methods: {
     /**
      * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+     * Mount retirement that prevents acquisition is reported in the response's
+     * ErrorCode, independently of ResourceClient release notification delivery.
      *
      * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
      */
@@ -3250,6 +3252,8 @@ export const TypedObjectResourceServiceDefinition = {
 export interface TypedObjectResourceService {
   /**
    * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+   * Mount retirement that prevents acquisition is reported in the response's
+   * ErrorCode, independently of ResourceClient release notification delivery.
    *
    * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
    */
@@ -3282,6 +3286,8 @@ export interface TypedObjectResourceService {
 export interface TypedObjectResourceServiceHandler {
   /**
    * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+   * Mount retirement that prevents acquisition is reported in the response's
+   * ErrorCode, independently of ResourceClient release notification delivery.
    *
    * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
    */
@@ -3322,6 +3328,8 @@ export class TypedObjectResourceServiceClient implements TypedObjectResourceServ
   }
   /**
    * AccessTypedObject returns one typed child or fails if the object or handler is absent.
+   * Mount retirement that prevents acquisition is reported in the response's
+   * ErrorCode, independently of ResourceClient release notification delivery.
    *
    * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
    */

@@ -7,6 +7,12 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
+var (
+	// ErrTypedObjectGrantRetired identifies acquisition prevented by retirement of
+	// its exact granting World mount, independent of local Resource controls.
+	ErrTypedObjectGrantRetired = errors.New("typed object granting World mount retired")
+)
+
 // GetError restores the typed rejection or sentinel from a World operation response.
 func (r *ApplyWorldOpResponse) GetError() error {
 	return operationError(r.GetErrorCode(), r.GetRejectionCode(), r.GetRejectionMessage())
@@ -30,6 +36,8 @@ func ErrorFromCode(code WorldErrorCode) error {
 	switch code {
 	case WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP:
 		return errors.Wrap(world.ErrUnhandledOp, "remote world operation unhandled")
+	case WorldErrorCode_WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED:
+		return ErrTypedObjectGrantRetired
 	default:
 		return nil
 	}

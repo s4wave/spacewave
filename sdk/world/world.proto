@@ -738,8 +738,13 @@ message ApplyWorldOpRequest {
 
 // WorldErrorCode identifies a typed error returned in a World RPC response.
 enum WorldErrorCode {
+  // WORLD_ERROR_CODE_UNSPECIFIED carries no built-in World error.
   WORLD_ERROR_CODE_UNSPECIFIED = 0;
+  // WORLD_ERROR_CODE_UNHANDLED_OP indicates that no handler accepted the operation.
   WORLD_ERROR_CODE_UNHANDLED_OP = 1;
+  // WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED indicates that retirement of
+  // this exact granting World mount prevented typed-object acquisition.
+  WORLD_ERROR_CODE_TYPED_OBJECT_GRANT_RETIRED = 2;
 }
 
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.
@@ -979,6 +984,8 @@ message WaitRevResponse {
 // TypedObjectResourceService exposes typed children within the mounted World's authority.
 service TypedObjectResourceService {
   // AccessTypedObject returns one typed child or fails if the object or handler is absent.
+  // Mount retirement that prevents acquisition is reported in the response's
+  // ErrorCode, independently of ResourceClient release notification delivery.
   rpc AccessTypedObject(AccessTypedObjectRequest) returns (AccessTypedObjectResponse);
 
   // WatchTypedObject reports initial and changing typed-handler availability.
@@ -1003,6 +1010,9 @@ message AccessTypedObjectResponse {
   uint32 resource_id = 1;
   // TypeId is the type identifier of the object.
   string type_id = 2;
+  // ErrorCode reports acquisition prevented by the exact granting mount's
+  // retirement. A failed acquisition returns no ResourceId or TypeId.
+  WorldErrorCode error_code = 3;
 }
 
 // WatchTypedObjectRequest selects an object within the mounted World and registry scope.

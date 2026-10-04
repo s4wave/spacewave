@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	sdk_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
@@ -55,7 +56,7 @@ func TestTypedObjectResourceCloseCancelsBlockedFactory(t *testing.T) {
 	typed := sdk_world.NewSRPCTypedObjectResourceServiceClient(f.rpc)
 	acquired := make(chan error, 1)
 	go func() {
-		_, err := typed.AccessTypedObject(t.Context(), &sdk_world.AccessTypedObjectRequest{ObjectKey: objectKey})
+		_, err := sdk_world.AccessTypedObject(t.Context(), typed, &sdk_world.AccessTypedObjectRequest{ObjectKey: objectKey})
 		acquired <- err
 	}()
 	<-entered
@@ -68,9 +69,9 @@ func TestTypedObjectResourceCloseCancelsBlockedFactory(t *testing.T) {
 	}()
 	<-closed
 
-	// Require cancellation to cross RPC without allocating a typed child.
-	if err := <-acquired; err == nil || err.Error() != context.Canceled.Error() {
-		t.Fatalf("AccessTypedObject error = %v, want context canceled", err)
+	// Require exact mount retirement to cross RPC without allocating a typed child.
+	if err := <-acquired; !errors.Is(err, sdk_world.ErrTypedObjectGrantRetired) {
+		t.Fatalf("AccessTypedObject error = %v, want ErrTypedObjectGrantRetired", err)
 	}
 	f.count(t, baseline)
 }
