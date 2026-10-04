@@ -281,21 +281,32 @@ func (r *SessionResource) AccessStateAtom(
 
 // GetSessionInfo returns information about this session.
 // A Spacewave Cloud session reports its account username from the account
-// state, which the provider caches across restarts.
+// state, which the provider caches across restarts. A local account signs
+// Space operations with its volume peer, so its sessions report that peer
+// as the signing peer.
 func (r *SessionResource) GetSessionInfo(ctx context.Context, req *s4wave_session.GetSessionInfoRequest) (*s4wave_session.GetSessionInfoResponse, error) {
 	resp := &s4wave_session.GetSessionInfoResponse{
-		SessionRef: r.session.GetSessionRef(),
-		PeerId:     r.session.GetPeerId().String(),
-		CryptoInfo: r.buildCryptoInfo(),
+		SessionRef:    r.session.GetSessionRef(),
+		PeerId:        r.session.GetPeerId().String(),
+		SigningPeerId: r.session.GetPeerId().String(),
+		CryptoInfo:    r.buildCryptoInfo(),
 	}
 
-	// Report the verified username of a Cloud account.
-	if acc, ok := r.session.GetProviderAccount().(*provider_spacewave.ProviderAccount); ok {
+	// Report the verified username of a Cloud account, or the volume peer
+	// that signs for a local account.
+	switch acc := r.session.GetProviderAccount().(type) {
+	case *provider_spacewave.ProviderAccount:
 		state, err := acc.GetAccountState(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "get account state")
 		}
 		resp.Username = state.GetEntityId()
+	case *provider_local.ProviderAccount:
+		storagePeer, err := acc.GetVolume().GetPeer(ctx, true)
+		if err != nil {
+			return nil, errors.Wrap(err, "get storage peer")
+		}
+		resp.SigningPeerId = storagePeer.GetPeerID().String()
 	}
 	return resp, nil
 }

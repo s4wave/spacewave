@@ -470,6 +470,10 @@ type GetSessionInfoResponse struct {
 	// Username is the verified Spacewave Cloud username of the session's account.
 	// Empty for sessions of other providers.
 	Username string `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	// SigningPeerId is the peer that signs the session's Space operations and
+	// messages. It equals peer_id except for a local account, whose volume peer
+	// signs for every Session of the account.
+	SigningPeerId string `protobuf:"bytes,5,opt,name=signing_peer_id,json=signingPeerId,proto3" json:"signingPeerId,omitempty"`
 }
 
 func (x *GetSessionInfoResponse) Reset() {
@@ -502,6 +506,13 @@ func (x *GetSessionInfoResponse) GetCryptoInfo() *SessionCryptoInfo {
 func (x *GetSessionInfoResponse) GetUsername() string {
 	if x != nil {
 		return x.Username
+	}
+	return ""
+}
+
+func (x *GetSessionInfoResponse) GetSigningPeerId() string {
+	if x != nil {
+		return x.SigningPeerId
 	}
 	return ""
 }
@@ -3953,6 +3964,7 @@ func (m *GetSessionInfoResponse) CloneVT() *GetSessionInfoResponse {
 	r := new(GetSessionInfoResponse)
 	r.PeerId = m.PeerId
 	r.Username = m.Username
+	r.SigningPeerId = m.SigningPeerId
 	r.SessionRef = protobuf_go_lite.CloneVTValue(m.SessionRef)
 	r.CryptoInfo = protobuf_go_lite.CloneVTValue(m.CryptoInfo)
 	if len(m.unknownFields) > 0 {
@@ -5918,6 +5930,9 @@ func (this *GetSessionInfoResponse) EqualVT(that *GetSessionInfoResponse) bool {
 		return false
 	}
 	if this.Username != that.Username {
+		return false
+	}
+	if this.SigningPeerId != that.SigningPeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8933,6 +8948,11 @@ func (x *GetSessionInfoResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("username")
 		s.WriteString(x.Username)
 	}
+	if x.SigningPeerId != "" || s.HasField("signingPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signingPeerId")
+		s.WriteString(x.SigningPeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8970,6 +8990,9 @@ func (x *GetSessionInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "username":
 			s.AddField("username")
 			x.Username = s.ReadString()
+		case "signing_peer_id", "signingPeerId":
+			s.AddField("signing_peer_id")
+			x.SigningPeerId = s.ReadString()
 		}
 	})
 }
@@ -14974,6 +14997,11 @@ func (m *GetSessionInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SigningPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SigningPeerId)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if len(m.Username) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Username)
 		i--
@@ -20118,6 +20146,7 @@ func (m *GetSessionInfoResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Username)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SigningPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -21647,6 +21676,10 @@ func (x *GetSessionInfoResponse) MarshalProtoText() string {
 	if x.Username != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "username")
 		protobuf_go_lite.TextWriteString(&sb, x.Username)
+	}
+	if x.SigningPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signing_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SigningPeerId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -23956,6 +23989,16 @@ func (m *GetSessionInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Username = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SigningPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SigningPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
