@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"io"
 	"math"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -26,41 +25,24 @@ func FetchSourcePackToTempFile(
 	opts Options,
 	entry *packfile.PackfileEntry,
 ) (string, error) {
-	// Ask the authenticated source for a read grant rather than a public cache.
-	grants, err := opts.Client.ReadGrants(ctx, opts.SrcSpaceID, []string{entry.GetId()})
-	if err != nil {
-		return "", errors.Wrap(err, "grant source pack read")
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, grants[0].GetUrl(), nil)
-	if err != nil {
-		return "", errors.Wrap(err, "build source pack request")
-	}
-
-	// Fetch the granted pack and require a successful HTTP response.
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", errors.Wrap(err, "request source pack")
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		if readErr != nil {
-			return "", errors.Wrap(readErr, "read source pack error body")
-		}
-		return "", errors.Errorf("source pack status %d: %s", resp.StatusCode, string(body))
-	}
-
 	// Bound downloads by the advertised pack size before creating a local file.
 	// The read limit adds one byte past the budget to detect oversized bodies.
 	if entry.GetSizeBytes() >= math.MaxInt64-4096 {
 		return "", errors.Errorf("source pack size exceeds local reader limit: %d", entry.GetSizeBytes())
 	}
 	maxBytes := int64(entry.GetSizeBytes()) + 4096 //nolint:gosec // the MaxInt64-4096 check keeps this sum and the read limit representable.
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+
+	// Read through the authenticated source rather than a public cache.
+	body, err := opts.Client.ReadPack(ctx, opts.SrcSpaceID, entry.GetId())
+	if err != nil {
+		return "", errors.Wrap(err, "read source pack")
+	}
+	defer body.Close()
+	data, err := io.ReadAll(io.LimitReader(body, maxBytes+1))
 	if err != nil {
 		return "", errors.Wrap(err, "read source pack body")
 	}
-	if int64(len(body)) > maxBytes {
+	if int64(len(data)) > maxBytes {
 		return "", errors.New("source pack exceeds declared size budget")
 	}
 
@@ -69,7 +51,7 @@ func FetchSourcePackToTempFile(
 	if err != nil {
 		return "", errors.Wrap(err, "create temp pack file")
 	}
-	if _, err := tmp.Write(body); err != nil {
+	if _, err := tmp.Write(data); err != nil {
 		tmp.Close()
 		_ = os.Remove(tmp.Name())
 		return "", errors.Wrap(err, "write temp pack file")

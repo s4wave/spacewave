@@ -3,6 +3,7 @@ package publish
 import (
 	"context"
 	"crypto/rand"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -282,7 +283,7 @@ type promoteTestClient struct {
 	checkpoints int
 }
 
-func (c *promoteTestClient) ReadGrants(context.Context, string, []string) ([]*packfile.ReadGrant, error) {
+func (c *promoteTestClient) ReadPack(context.Context, string, string) (io.ReadCloser, error) {
 	return nil, nil
 }
 

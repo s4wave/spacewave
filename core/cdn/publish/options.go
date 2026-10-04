@@ -14,7 +14,7 @@ import (
 
 // SessionClient is the authenticated Spacewave client surface needed to publish.
 type SessionClient interface {
-	ReadGrants(ctx context.Context, resourceID string, packIDs []string) ([]*packfile.ReadGrant, error)
+	ReadPack(ctx context.Context, resourceID, packID string) (io.ReadCloser, error)
 	OpenPackReader(resourceID, packID string, size int64) (*packfile_store.PackReader, error)
 	GetSOState(ctx context.Context, soID string, since uint64, reason spacewave_provider.SeedReason) ([]byte, error)
 	SyncPull(ctx context.Context, resourceID string, since uint64) (*packfile.PullResponse, error)

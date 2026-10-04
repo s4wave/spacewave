@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -67,6 +68,33 @@ func (c *SessionClient) OpenPackReader(resourceID, packID string, size int64) (*
 			c.observePackRead(resp, resourceID, packID)
 		},
 	), nil
+}
+
+// ReadPack opens the whole body of a pack of a block store through its
+// granted read URL. The caller closes the body.
+func (c *SessionClient) ReadPack(ctx context.Context, resourceID, packID string) (io.ReadCloser, error) {
+	// Resolve the pack's read URL.
+	readURL, err := c.packReadURL(ctx, resourceID, packID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the pack and require a successful response.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, readURL, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "build pack request")
+	}
+	resp, err := c.httpCli.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "request pack")
+	}
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		c.observePackRead(resp, resourceID, packID)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return nil, errors.Errorf("pack status %d: %s", resp.StatusCode, string(body))
+	}
+	return resp.Body, nil
 }
 
 // packReadURL returns a read URL of a pack valid for at least
