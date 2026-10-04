@@ -607,7 +607,11 @@ func createSpaceResourceChatChannel(t *testing.T, ctx context.Context, ws world.
 	// Create a typed chat channel in the World for Resource tests.
 	t.Helper()
 	createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
-		bcs.SetBlock(&spacewave_chat.ChatChannel{Name: "General", CreatedAt: timestamppb.Now()}, true)
+		bcs.SetBlock(&spacewave_chat.ChatChannel{
+			Name:                      "General",
+			CreatedAt:                 timestamppb.Now(),
+			ThreadIndexedMessageCount: new(uint64),
+		}, true)
 		return nil
 	})
 	world.ReleaseObjectState(createdObject)
