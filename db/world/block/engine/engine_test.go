@@ -41,16 +41,18 @@ func newEngineTestbed(
 ) (context.Context, *logrus.Entry, *testbed.Testbed, func() (*world_block_engine.Controller, directive.Reference)) {
 	// Report failures at the caller and configure debug logging.
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start the storage testbed with the World engine factory.
+	// Start the storage testbed with the World engine factory, released
+	// when the test ends.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(tb.Release)
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
 	// Derive the state encryption key and build the state transform.
@@ -163,13 +165,16 @@ func TestWorldEngineController(t *testing.T) {
 }
 
 func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testing.T) {
+	// Bound the unsupported-coordinator test lifetime.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Initialize logging for the unsupported-coordinator test.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed and register the World engine factory.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -177,16 +182,20 @@ func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testin
 	defer tb.Release()
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
+	// Require a kvtx volume before substituting its generationless coordinator.
 	kvtxVolume, ok := tb.Volume.(*common_kvtx.Volume)
 	if !ok {
 		t.Fatalf("testbed volume type = %T, want *common_kvtx.Volume", tb.Volume)
 	}
 	kvtxVolume.Coordinator = generationlessCoordinator{Coordinator: kvtxVolume.Coordinator}
 
+	// Build the transform configuration for the unsupported engine.
 	transformConf, err := block_transform.NewConfig(nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Configure the World engine to use the unsupported coordinator.
 	engineConf := world_block_engine.NewConfig(
 		"test-world-engine-unsupported-coordinator",
 		tb.Volume.GetID(),
@@ -199,20 +208,27 @@ func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testin
 		nil,
 		false,
 	)
+
+	// Start the World engine with that configuration.
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf)
 	if err != nil {
 		t.Fatalf("start world engine with unsupported coordinator: %v", err)
 	}
 	defer worldCtrlRef.Release()
 
+	// Resolve the World engine from its controller.
 	engine, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
 		t.Fatalf("get world engine: %v", err)
 	}
+
+	// Open a write transaction to exercise deferred durability.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new write transaction with unsupported coordinator: %v", err)
 	}
+
+	// Create an object to confirm the transaction remains writable.
 	{
 		createdObject, err := tx.CreateObject(ctx, "unsupported-coordinator-fallback", nil)
 		world.ReleaseObjectState(createdObject)
@@ -221,9 +237,13 @@ func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testin
 			t.Fatalf("create object with unsupported coordinator: %v", err)
 		}
 	}
+
+	// Commit the object through deferred durability.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit with unsupported coordinator: %v", err)
 	}
+
+	// Sync the World and require the generationless fallback to fence its write.
 	fenced, err := engine.Sync(ctx)
 	if err != nil {
 		t.Fatalf("sync deferred write: %v", err)
@@ -259,7 +279,7 @@ func (c generationlessCoordinator) Capability(
 // heads, publish accepted roots and adopt each other's durable heads.
 func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	// Configure debug logging.
-	ctx := context.Background()
+	ctx := t.Context()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
@@ -627,18 +647,21 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 // TestWorldEngineWatchReload tests watching for changes on a WorldEngine that fully reloads with a new version.
 // This is a regression test.
 func TestWorldEngineWatchReload(t *testing.T) {
-	ctx := context.Background()
+	// Configure the World reload test context and logger.
+	ctx := t.Context()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Start a testbed and register the World engine factory.
 	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer tb.Release()
 	tb.StaticResolver.AddFactory(world_block_engine.NewFactory(tb.Bus))
 
-	// Setup a cursor pointing to the volume and bucket.
+	// Set up a cursor pointing to the volume and bucket.
 	b, le, vol, bucketID := tb.Bus, tb.Logger, tb.Volume, tb.BucketId
 	bls, objRef, err := bucket_lookup.BuildEmptyCursor(ctx, b, le, tb.StepFactorySet, bucketID, vol.GetID(), nil, nil)
 	if err != nil {
@@ -648,6 +671,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 
 	// Build the initial world state.
 	if err := func() error {
+		// Build the initial World block and persist its root reference.
 		btx, bcs := bls.BuildTransaction(nil)
 		bcs.SetBlock(world_block.NewWorld(false), true)
 		nroot, _, err := btx.Write(ctx, true)
@@ -660,6 +684,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Log the initial World root reference before starting its engine.
 	le.Infof("got world root ref after initial state: %v", objRef.MarshalB58())
 
 	// Start a world engine controller with that state.
@@ -740,6 +765,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 	// reads the world root directly from the raw bucket, which only sees blocks
 	// that have been made durable by Sync.
 	if err := func() error {
+		// Fence the World engine so the raw bucket sees durable blocks.
 		worldEng, _, worldEngRef, err := world.ExLookupWorldEngine(ctx, b, false, engineID, nil)
 		if err != nil {
 			return err
@@ -784,21 +810,25 @@ func TestWorldEngineWatchReload(t *testing.T) {
 	// Access
 	var rootRefSecondWrite *block.BlockRef
 	if err := func() error {
+		// Open the raw bucket transaction and decode its World block.
 		btx, bcs := bls.BuildTransactionAtRef(nil, worldObjRefFirstWrite.RootRef.Clone())
 		blk, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {
 			return err
 		}
 
+		// Set a distinct sequence number on the out-of-band World state.
 		wblk := blk.(*world_block.World)
 		wblk.LastChange.Seqno = 100
 		bcs.MarkDirty()
 
+		// Persist the modified World block and retain its root reference.
 		nref, _, err := btx.Write(ctx, true)
 		if err != nil {
 			return err
 		}
 
+		// Retain the modified World root for the replacement engine.
 		rootRefSecondWrite = nref
 		return nil
 	}(); err != nil {
@@ -813,6 +843,7 @@ func TestWorldEngineWatchReload(t *testing.T) {
 		t.Fatal("expected refs to change")
 	}
 
+	// Configure the replacement World engine with the updated root.
 	updWorldEngConf := &world_block_engine.Config{
 		EngineId:    engineID,
 		BucketId:    bucketID,
