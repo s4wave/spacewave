@@ -227,9 +227,9 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 	}()
 
 	// Verify the first successful fanout response cancels the slow request.
-	found := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx)
-	if found == nil {
-		t.Fatal("fanout did not return first successful response")
+	found, err := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx)
+	if err != nil || found == nil {
+		t.Fatalf("fanout did not return first successful response: %v", err)
 	}
 	if string(found.GetData()) != "fast-data" {
 		t.Fatalf("data = %q, want fast-data", found.GetData())
@@ -263,10 +263,14 @@ func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 		}
 	}()
 
-	// Verify the caller deadline ends fanout and clears its pending request.
-	found := peerBlockFanout{sessions: []*peerSession{slow}, ref: ref}.run(ctx)
+	// Verify the caller deadline ends fanout with an error rather than a miss,
+	// and clears its pending request.
+	found, err := peerBlockFanout{sessions: []*peerSession{slow}, ref: ref}.run(ctx)
 	if found != nil {
 		t.Fatalf("fanout returned data after caller deadline: %q", found.GetData())
+	}
+	if err == nil {
+		t.Fatal("fanout reported an unanswered request as a miss")
 	}
 	recvTestDexValue(t, received, "deadline request")
 	waitTestDexCondition(t, "slow pending request to clear after caller deadline", func() bool {
@@ -458,8 +462,8 @@ func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 	}()
 
 	// Verify forwarding excludes the originating peer session.
-	if found := c.forwardToPeers(ctx, ref, 0, origin); found != nil {
-		t.Fatalf("forwardToPeers used excluded origin session and returned %q", found.GetData())
+	if found, err := c.forwardToPeers(ctx, ref, 0, origin); found != nil || err != nil {
+		t.Fatalf("forwardToPeers used excluded origin session: %v", err)
 	}
 	assertNoTestDexValue(t, originErr, "origin request")
 }
@@ -518,9 +522,9 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	}()
 
 	// Verify forwarded success cancels the slow peer request.
-	found := c.forwardToPeers(ctx, ref, 0, nil)
-	if found == nil {
-		t.Fatal("forwardToPeers did not return first successful response")
+	found, err := c.forwardToPeers(ctx, ref, 0, nil)
+	if err != nil || found == nil {
+		t.Fatalf("forwardToPeers did not return first successful response: %v", err)
 	}
 	if string(found.GetData()) != "forward-data" {
 		t.Fatalf("data = %q, want forward-data", found.GetData())

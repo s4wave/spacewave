@@ -141,7 +141,12 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 	maxHops := s.c.cc.GetMaxForwardHops()
 	hops := min(req.GetRemainingHops(), maxHops)
 	if hops > 0 {
-		if found := s.c.forwardToPeers(ctx, ref, hops-1, s); found != nil {
+		found, err := s.c.forwardToPeers(ctx, ref, hops-1, s)
+		if err != nil {
+			resp.Error = err.Error()
+			return
+		}
+		if found != nil {
 			resp.SetBlock(found)
 		}
 	}

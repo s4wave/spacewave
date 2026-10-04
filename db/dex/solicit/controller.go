@@ -231,12 +231,12 @@ func (c *Controller) removeSessionIfCurrent(remotePeer string, sess *peerSession
 }
 
 // forwardToPeers forwards a block request to other connected peers,
-// excluding the session that originated the request. Returns the first
-// verified response, or nil when no peer has the block.
-func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, hops uint32, exclude *peerSession) *DexMessage {
+// excluding the session that originated the request. It returns what
+// peerBlockFanout.run returns.
+func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, hops uint32, exclude *peerSession) (*DexMessage, error) {
 	sessions, err := c.waitSessions(ctx, exclude)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	return peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
 }
@@ -298,14 +298,16 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 	if err != nil {
 		return err
 	}
-	found := peerBlockFanout{
+	found, err := peerBlockFanout{
 		sessions: sessions,
 		ref:      r.ref,
 		hops:     r.c.cc.GetMaxForwardHops(),
 	}.run(ctx)
 
-	// Emit the result, including a miss.
+	// Emit the result, including a miss or a failed exchange.
 	switch {
+	case err != nil:
+		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, err))
 	case found == nil:
 		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
 	case found.GetRefsKnown():
@@ -323,35 +325,55 @@ type peerBlockFanout struct {
 	hops     uint32
 }
 
-// run requests the block from every session under a bounded timeout. Returns
-// the first verified response, or nil when no peer has the block.
-func (f peerBlockFanout) run(ctx context.Context) *DexMessage {
+// fanoutResult is one peer's answer to a fanout request.
+type fanoutResult struct {
+	resp *DexMessage
+	err  error
+}
+
+// run requests the block from every session under a bounded timeout. It
+// returns the first verified response. It returns nil and no error only when
+// every peer answered that it does not have the block, and an error when no
+// peer had the block and a request failed, so a dropped link or a timeout is
+// never mistaken for a missing block.
+func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 	// Bound the peer fanout request lifetime.
 	if len(f.sessions) == 0 {
-		return nil
+		return nil, nil
 	}
 	reqCtx, reqCancel := context.WithTimeout(ctx, requestTimeout)
 	defer reqCancel()
 
 	// Fan out the request to every session.
-	results := make(chan *DexMessage, len(f.sessions))
+	results := make(chan fanoutResult, len(f.sessions))
 	for _, sess := range f.sessions {
 		go func() {
 			resp, err := sess.requestBlock(reqCtx, f.ref, f.hops)
 			if err != nil {
 				sess.le.WithError(err).Debug("dex block request failed")
 			}
-			results <- resp
+			results <- fanoutResult{resp: resp, err: err}
 		}()
 	}
 
-	// Return the first successful peer response.
+	// Return the first successful peer response, remembering the first
+	// failure.
+	var firstErr error
 	for range f.sessions {
-		if resp := <-results; resp != nil {
-			return resp
+		res := <-results
+		if res.resp != nil {
+			return res.resp, nil
+		}
+		if firstErr == nil {
+			firstErr = res.err
 		}
 	}
-	return nil
+
+	// Report a failed exchange, or a miss every peer confirmed.
+	if firstErr != nil {
+		return nil, errors.Wrapf(firstErr, "no peer served block %s", f.ref.MarshalString())
+	}
+	return nil, nil
 }
 
 // _ is a type assertion

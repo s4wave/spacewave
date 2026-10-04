@@ -73,19 +73,23 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	}, nil
 }
 
-// fetch requests a block from the settled peer sessions. Returns nil when no
-// peer has the block.
+// fetch requests a block from the settled peer sessions. Returns nil when
+// every peer answered that it does not have the block, and an error when the
+// exchange failed.
 func (s *Store) fetch(ctx context.Context, ref *block.BlockRef) (*DexMessage, error) {
 	// Ask the settled peer sessions for the block.
 	sessions, err := s.controller.waitSessions(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	found := peerBlockFanout{
+	found, err := peerBlockFanout{
 		sessions: sessions,
 		ref:      ref,
 		hops:     s.controller.cc.GetMaxForwardHops(),
 	}.run(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// Log a miss with the number of peers asked.
 	if found == nil {
