@@ -218,15 +218,18 @@ func (a *ProviderAccount) startSessionTransportLocked(
 	signalingURL string,
 	signingEnvPrefix string,
 ) (*sessionTransportState, error) {
+	// Derive the session peer id from the session private key.
 	sessionPeerID, err := peer.IDFromPrivateKey(sessionKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive session peer ID")
 	}
 
+	// Stop the current transport before starting its replacement.
 	if err := a.stopSessionTransportForReplacementLocked(cleanupCtx); err != nil {
 		return nil, err
 	}
 
+	// Build the session transport.
 	st, err := transport.NewSessionTransport(
 		a.le,
 		a.t.p.b,
@@ -234,14 +237,17 @@ func (a *ProviderAccount) startSessionTransportLocked(
 		signalingURL,
 		signingEnvPrefix,
 		transport.WithStartupRetry(),
+		transport.WithPeerAuthorizer(a.authorizeAccountSession),
 		a.t.p.localNetwork,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "create session transport")
 	}
 
+	// Hold the transport state built with the retrying routine.
 	var sts *sessionTransportState
 
+	// Build the retrying transport routine and its state.
 	rc := routine.NewRoutineContainerWithLogger(
 		a.le.WithField("routine", "session-transport"),
 		routine.WithRetry(providerBackoff),
@@ -277,9 +283,11 @@ func (a *ProviderAccount) startSessionTransportLocked(
 		},
 	}
 
+	// Start the transport routine on the owner context.
 	rc.SetRoutine(st.Execute)
 	rc.SetContext(ctx, false)
 
+	// Publish the transport state and return it.
 	a.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		a.sessionTransport = sts
 		bcast()

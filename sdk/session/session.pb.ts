@@ -2629,13 +2629,45 @@ export const AccessSessionStateAtomResponse: MessageType<AccessSessionStateAtomR
  *
  * @generated from message s4wave.session.AccessPeerTransportRequest
  */
-export interface AccessPeerTransportRequest {}
+export interface AccessPeerTransportRequest {
+  /**
+   * UdpListenAddr starts a UDP transport listening on this host:port. Only
+   * active sessions of the account may link through it. Empty listens on an
+   * ephemeral port when udp_peer_addrs is set, and starts no UDP otherwise.
+   *
+   * @generated from field: string udp_listen_addr = 1;
+   */
+  udpListenAddr?: string
+  /**
+   * UdpPeerAddrs maps remote session peer IDs to the host:port they listen on.
+   *
+   * @generated from field: map<string, string> udp_peer_addrs = 2;
+   */
+  udpPeerAddrs?: { [key: string]: string }
+  /**
+   * ServeResources serves this daemon's Resource service to account sessions
+   * that open the remote resource protocol.
+   *
+   * @generated from field: bool serve_resources = 3;
+   */
+  serveResources?: boolean
+}
 
 export const AccessPeerTransportRequest: MessageType<AccessPeerTransportRequest> =
-  /* @__PURE__ */ createEmptyMessageType<AccessPeerTransportRequest>(
-    's4wave.session.AccessPeerTransportRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.AccessPeerTransportRequest',
+    fields: [
+      { no: 1, name: 'udp_listen_addr', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'udp_peer_addrs',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
+      },
+      { no: 3, name: 'serve_resources', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * AccessPeerTransportResponse is the response for AccessPeerTransport.
@@ -2655,6 +2687,12 @@ export interface AccessPeerTransportResponse {
    * @generated from field: string peer_id = 2;
    */
   peerId?: string
+  /**
+   * UdpAddr is the bound UDP address when a UDP transport started.
+   *
+   * @generated from field: string udp_addr = 3;
+   */
+  udpAddr?: string
 }
 
 export const AccessPeerTransportResponse: MessageType<AccessPeerTransportResponse> =
@@ -2663,6 +2701,7 @@ export const AccessPeerTransportResponse: MessageType<AccessPeerTransportRespons
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'udp_addr', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

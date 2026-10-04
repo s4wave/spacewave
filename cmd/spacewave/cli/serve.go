@@ -50,6 +50,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 	var startupPipeID string
 	var launcher string
 	var runtimeTracePath string
+	var udpListen string
 	var takeover bool
 	idleTimeout := defaultDaemonIdleTimeout
 	return &cli.Command{
@@ -85,6 +86,11 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 				EnvVars:     []string{daemon.TracePathEnvVar},
 				Destination: &runtimeTracePath,
 			},
+			&cli.StringFlag{
+				Name:        "udp-listen",
+				Usage:       "serve other sessions of the account over UDP on this host:port; disables idle shutdown unless --idle-timeout is set",
+				Destination: &udpListen,
+			},
 		},
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
@@ -96,6 +102,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_pol
 					daemon.Launcher(launcher),
 					takeover,
 					idleTimeout,
+					udpListen,
 				)
 			})
 		},
@@ -112,6 +119,7 @@ func runServeCommand(
 	launcher daemon.Launcher,
 	takeover bool,
 	idleTimeout time.Duration,
+	udpListen string,
 ) (retErr error) {
 	// Resolve the command target before any writable bus is requested.
 	ctx := c.Context
@@ -134,6 +142,11 @@ func runServeCommand(
 		idleTimeout, err = getDaemonIdleTimeout()
 		if err != nil {
 			return err
+		}
+
+		// Remote sessions are not local clients, so a listener stays up.
+		if udpListen != "" {
+			idleTimeout = 0
 		}
 	}
 
@@ -371,6 +384,13 @@ func runServeCommand(
 	// Public service starts only after the launcher relinquishes custody.
 	srv := srpc.NewServer(mux)
 	releaseStartupDemand()
+	if udpListen != "" {
+		go func() {
+			if err := serveUDPListener(serveCtx, le, readyClient, udpListen); err != nil {
+				le.WithError(err).Error("UDP listener stopped")
+			}
+		}()
+	}
 	updatePath := make(chan *daemonUpdateHandoff, 1)
 	go func() {
 		handoff, err := watchDaemonUpdate(serveCtx, le, cliBus.GetBus(), resolved, idleTracker, desktopControl)

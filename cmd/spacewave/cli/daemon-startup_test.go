@@ -42,7 +42,7 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	// Run the serve command.
 	commandErrCh := make(chan error, 1)
 	go func() {
-		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", daemon.LauncherCommand, false, defaultDaemonIdleTimeout)
+		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", daemon.LauncherCommand, false, defaultDaemonIdleTimeout, "")
 	}()
 
 	// Require the startup error to name the idle-timeout variable.

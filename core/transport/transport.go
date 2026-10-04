@@ -46,6 +46,8 @@ type SessionTransport struct {
 	linkControllers []*transport_controller.Controller
 	// startLocalTransport optionally attaches a process-local transport.
 	startLocalTransport LocalTransportFunc
+	// authorizePeer admits remote peers to gated links and services; nil refuses all.
+	authorizePeer transport_controller.PeerAuthorizer
 	// sessionKey is the session's Ed25519 private key.
 	sessionKey bifrost_crypto.PrivKey
 	// peerID is the peer ID derived from the session key.
@@ -478,10 +480,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		}
 		defer releaseLocal()
 		if localCtrl != nil {
-			t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				t.linkControllers = append(t.linkControllers, localCtrl)
-				broadcast()
-			})
+			t.addLinkController(localCtrl)
 		}
 	}
 
@@ -495,14 +494,11 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		defer releaseRTC()
 	}
 	if rtcCtrl != nil {
-		t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			t.linkControllers = append(t.linkControllers, rtcCtrl)
-			broadcast()
-		})
+		t.addLinkController(rtcCtrl)
 	}
 
 	// Publish the running session bus for transport lookups.
-	releaseLookup, err := t.publishSessionBus(b)
+	releaseLookup, err := t.publishSessionTransport()
 	if err != nil {
 		return err
 	}
@@ -514,6 +510,24 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	le.Debug("session transport started")
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+// addLinkController exposes a transport's links in the Session's snapshots.
+func (t *SessionTransport) addLinkController(ctrl *transport_controller.Controller) {
+	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		t.linkControllers = append(t.linkControllers, ctrl)
+		broadcast()
+	})
+}
+
+// removeLinkController withdraws a stopped transport from the snapshots.
+func (t *SessionTransport) removeLinkController(ctrl *transport_controller.Controller) {
+	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		t.linkControllers = slices.DeleteFunc(t.linkControllers, func(c *transport_controller.Controller) bool {
+			return c == ctrl
+		})
+		broadcast()
+	})
 }
 
 // exitFailed returns the Execute result for a failed transport: nil for a

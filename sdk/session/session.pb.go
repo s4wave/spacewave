@@ -7,6 +7,7 @@ package s4wave_session
 import (
 	fmt "fmt"
 	io "io"
+	maps "maps"
 	math "math"
 	slices "slices"
 	strconv "strconv"
@@ -2347,6 +2348,15 @@ func (x *AccessSessionStateAtomResponse) GetResourceId() uint32 {
 // AccessPeerTransportRequest is the request for AccessPeerTransport.
 type AccessPeerTransportRequest struct {
 	unknownFields []byte
+	// UdpListenAddr starts a UDP transport listening on this host:port. Only
+	// active sessions of the account may link through it. Empty listens on an
+	// ephemeral port when udp_peer_addrs is set, and starts no UDP otherwise.
+	UdpListenAddr string `protobuf:"bytes,1,opt,name=udp_listen_addr,json=udpListenAddr,proto3" json:"udpListenAddr,omitempty"`
+	// UdpPeerAddrs maps remote session peer IDs to the host:port they listen on.
+	UdpPeerAddrs map[string]string `protobuf:"bytes,2,rep,name=udp_peer_addrs,json=udpPeerAddrs,proto3" json:"udpPeerAddrs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// ServeResources serves this daemon's Resource service to account sessions
+	// that open the remote resource protocol.
+	ServeResources bool `protobuf:"varint,3,opt,name=serve_resources,json=serveResources,proto3" json:"serveResources,omitempty"`
 }
 
 func (x *AccessPeerTransportRequest) Reset() {
@@ -2355,6 +2365,27 @@ func (x *AccessPeerTransportRequest) Reset() {
 
 func (*AccessPeerTransportRequest) ProtoMessage() {}
 
+func (x *AccessPeerTransportRequest) GetUdpListenAddr() string {
+	if x != nil {
+		return x.UdpListenAddr
+	}
+	return ""
+}
+
+func (x *AccessPeerTransportRequest) GetUdpPeerAddrs() map[string]string {
+	if x != nil {
+		return x.UdpPeerAddrs
+	}
+	return nil
+}
+
+func (x *AccessPeerTransportRequest) GetServeResources() bool {
+	if x != nil {
+		return x.ServeResources
+	}
+	return false
+}
+
 // AccessPeerTransportResponse is the response for AccessPeerTransport.
 type AccessPeerTransportResponse struct {
 	unknownFields []byte
@@ -2362,6 +2393,8 @@ type AccessPeerTransportResponse struct {
 	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 	// PeerId is the authenticated local account session peer.
 	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// UdpAddr is the bound UDP address when a UDP transport started.
+	UdpAddr string `protobuf:"bytes,3,opt,name=udp_addr,json=udpAddr,proto3" json:"udpAddr,omitempty"`
 }
 
 func (x *AccessPeerTransportResponse) Reset() {
@@ -2380,6 +2413,13 @@ func (x *AccessPeerTransportResponse) GetResourceId() uint32 {
 func (x *AccessPeerTransportResponse) GetPeerId() string {
 	if x != nil {
 		return x.PeerId
+	}
+	return ""
+}
+
+func (x *AccessPeerTransportResponse) GetUdpAddr() string {
+	if x != nil {
+		return x.UdpAddr
 	}
 	return ""
 }
@@ -3942,6 +3982,32 @@ func (x *MoveSpaceStorageResponse) GetUploadError() string {
 	return ""
 }
 
+type AccessPeerTransportRequest_UdpPeerAddrsEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) Reset() {
+	*x = AccessPeerTransportRequest_UdpPeerAddrsEntry{}
+}
+
+func (*AccessPeerTransportRequest_UdpPeerAddrsEntry) ProtoMessage() {}
+
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 func (m *GetSessionInfoRequest) CloneVT() *GetSessionInfoRequest {
 	if m == nil {
 		return (*GetSessionInfoRequest)(nil)
@@ -4873,6 +4939,9 @@ func (m *AccessPeerTransportRequest) CloneVT() *AccessPeerTransportRequest {
 		return (*AccessPeerTransportRequest)(nil)
 	}
 	r := new(AccessPeerTransportRequest)
+	r.UdpListenAddr = m.UdpListenAddr
+	r.ServeResources = m.ServeResources
+	r.UdpPeerAddrs = protobuf_go_lite.CloneMap(m.UdpPeerAddrs)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4890,6 +4959,7 @@ func (m *AccessPeerTransportResponse) CloneVT() *AccessPeerTransportResponse {
 	r := new(AccessPeerTransportResponse)
 	r.ResourceId = m.ResourceId
 	r.PeerId = m.PeerId
+	r.UdpAddr = m.UdpAddr
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -7225,6 +7295,15 @@ func (this *AccessPeerTransportRequest) EqualVT(that *AccessPeerTransportRequest
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.UdpListenAddr != that.UdpListenAddr {
+		return false
+	}
+	if !protobuf_go_lite.EqualMap(this.UdpPeerAddrs, that.UdpPeerAddrs) {
+		return false
+	}
+	if this.ServeResources != that.ServeResources {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -7246,6 +7325,9 @@ func (this *AccessPeerTransportResponse) EqualVT(that *AccessPeerTransportRespon
 		return false
 	}
 	if this.PeerId != that.PeerId {
+		return false
+	}
+	if this.UdpAddr != that.UdpAddr {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -11886,6 +11968,56 @@ func (x *AccessSessionStateAtomResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the AccessPeerTransportRequest_UdpPeerAddrsEntry message to JSON.
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessPeerTransportRequest_UdpPeerAddrsEntry to JSON.
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessPeerTransportRequest_UdpPeerAddrsEntry message from JSON.
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessPeerTransportRequest_UdpPeerAddrsEntry from JSON.
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the AccessPeerTransportRequest message to JSON.
 func (x *AccessPeerTransportRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -11893,6 +12025,30 @@ func (x *AccessPeerTransportRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.UdpListenAddr != "" || s.HasField("udpListenAddr") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("udpListenAddr")
+		s.WriteString(x.UdpListenAddr)
+	}
+	if x.UdpPeerAddrs != nil || s.HasField("udpPeerAddrs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("udpPeerAddrs")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.UdpPeerAddrs)) {
+			v := x.UdpPeerAddrs[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
+	}
+	if x.ServeResources || s.HasField("serveResources") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("serveResources")
+		s.WriteBool(x.ServeResources)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11907,7 +12063,26 @@ func (x *AccessPeerTransportRequest) UnmarshalProtoJSON(s *json.UnmarshalState) 
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "udp_listen_addr", "udpListenAddr":
+			s.AddField("udp_listen_addr")
+			x.UdpListenAddr = s.ReadString()
+		case "udp_peer_addrs", "udpPeerAddrs":
+			s.AddField("udp_peer_addrs")
+			if s.ReadNil() {
+				x.UdpPeerAddrs = nil
+				return
+			}
+			x.UdpPeerAddrs = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.UdpPeerAddrs[key] = s.ReadString()
+			})
+		case "serve_resources", "serveResources":
+			s.AddField("serve_resources")
+			x.ServeResources = s.ReadBool()
+		}
 	})
 }
 
@@ -11934,6 +12109,11 @@ func (x *AccessPeerTransportResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("peerId")
 		s.WriteString(x.PeerId)
 	}
+	if x.UdpAddr != "" || s.HasField("udpAddr") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("udpAddr")
+		s.WriteString(x.UdpAddr)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -11957,6 +12137,9 @@ func (x *AccessPeerTransportResponse) UnmarshalProtoJSON(s *json.UnmarshalState)
 		case "peer_id", "peerId":
 			s.AddField("peer_id")
 			x.PeerId = s.ReadString()
+		case "udp_addr", "udpAddr":
+			s.AddField("udp_addr")
+			x.UdpAddr = s.ReadString()
 		}
 	})
 }
@@ -17531,6 +17714,31 @@ func (m *AccessPeerTransportRequest) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ServeResources {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ServeResources)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.UdpPeerAddrs) > 0 {
+		for k := range m.UdpPeerAddrs {
+			v := m.UdpPeerAddrs[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeString(dAtA, i, v)
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.UdpListenAddr) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.UdpListenAddr)
+		i--
+		dAtA[i] = 0xa
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -17562,6 +17770,11 @@ func (m *AccessPeerTransportResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.UdpAddr) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.UdpAddr)
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.PeerId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
@@ -20834,6 +21047,14 @@ func (m *AccessPeerTransportRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UdpListenAddr)
+	for k, v := range m.UdpPeerAddrs {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ServeResources)
 	n += len(m.unknownFields)
 	return n
 }
@@ -20846,6 +21067,7 @@ func (m *AccessPeerTransportResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.UdpAddr)
 	n += len(m.unknownFields)
 	return n
 }
@@ -22788,9 +23010,46 @@ func (x *AccessSessionStateAtomResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "UdpPeerAddrsEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteString(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AccessPeerTransportRequest_UdpPeerAddrsEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *AccessPeerTransportRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "AccessPeerTransportRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AccessPeerTransportRequest")
+	if x.UdpListenAddr != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "udp_listen_addr")
+		protobuf_go_lite.TextWriteString(&sb, x.UdpListenAddr)
+	}
+	if len(x.UdpPeerAddrs) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "udp_peer_addrs")
+		for _, k := range slices.Sorted(maps.Keys(x.UdpPeerAddrs)) {
+			v := x.UdpPeerAddrs[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.ServeResources != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "serve_resources")
+		protobuf_go_lite.TextWriteBool(&sb, x.ServeResources)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -22808,6 +23067,10 @@ func (x *AccessPeerTransportResponse) MarshalProtoText() string {
 	if x.PeerId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
 		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.UdpAddr != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "udp_addr")
+		protobuf_go_lite.TextWriteString(&sb, x.UdpAddr)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -27596,6 +27859,68 @@ func (m *AccessPeerTransportRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: AccessPeerTransportRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UdpListenAddr", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.UdpListenAddr = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UdpPeerAddrs", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.UdpPeerAddrs == nil {
+				m.UdpPeerAddrs = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.UdpPeerAddrs[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServeResources", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ServeResources = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -27658,6 +27983,16 @@ func (m *AccessPeerTransportResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PeerId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UdpAddr", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.UdpAddr = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

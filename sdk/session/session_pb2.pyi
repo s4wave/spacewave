@@ -639,16 +639,31 @@ class AccessSessionStateAtomResponse(_message.Message):
     def __init__(self, resource_id: _Optional[int] = ...) -> None: ...
 
 class AccessPeerTransportRequest(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("udp_listen_addr", "udp_peer_addrs", "serve_resources")
+    class UdpPeerAddrsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    UDP_LISTEN_ADDR_FIELD_NUMBER: _ClassVar[int]
+    UDP_PEER_ADDRS_FIELD_NUMBER: _ClassVar[int]
+    SERVE_RESOURCES_FIELD_NUMBER: _ClassVar[int]
+    udp_listen_addr: str
+    udp_peer_addrs: _containers.ScalarMap[str, str]
+    serve_resources: bool
+    def __init__(self, udp_listen_addr: _Optional[str] = ..., udp_peer_addrs: _Optional[_Mapping[str, str]] = ..., serve_resources: _Optional[bool] = ...) -> None: ...
 
 class AccessPeerTransportResponse(_message.Message):
-    __slots__ = ("resource_id", "peer_id")
+    __slots__ = ("resource_id", "peer_id", "udp_addr")
     RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    UDP_ADDR_FIELD_NUMBER: _ClassVar[int]
     resource_id: int
     peer_id: str
-    def __init__(self, resource_id: _Optional[int] = ..., peer_id: _Optional[str] = ...) -> None: ...
+    udp_addr: str
+    def __init__(self, resource_id: _Optional[int] = ..., peer_id: _Optional[str] = ..., udp_addr: _Optional[str] = ...) -> None: ...
 
 class WatchSessionStateAtomsRequest(_message.Message):
     __slots__ = ()

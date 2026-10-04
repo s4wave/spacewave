@@ -134,6 +134,7 @@ func clientFlags(statePath *string, sessionIdx *uint) []cli.Flag {
 	return []cli.Flag{
 		statePathFlag(statePath),
 		socketPathFlag(),
+		remoteFlag(),
 		&cli.UintFlag{
 			Name:        "session-index",
 			Usage:       "session index to use",
@@ -169,6 +170,7 @@ func daemonClientFlags(statePath *string) []cli.Flag {
 	return []cli.Flag{
 		statePathFlag(statePath),
 		socketPathFlag(),
+		remoteFlag(),
 	}
 }
 

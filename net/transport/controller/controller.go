@@ -79,6 +79,8 @@ type Controller struct {
 	lookupPeerID peer.ID
 	// verbose enables verbose logs
 	verbose bool
+	// authorizePeer admits remote peers before their links mount; nil admits all.
+	authorizePeer PeerAuthorizer
 
 	// linkDialers tracks ongoing dial attempts
 	// when a link is closed (removed from links) the associated dialer is restarted (if any).
@@ -109,6 +111,7 @@ func NewController(
 	peerID peer.ID,
 	verbose bool,
 	ctor Constructor,
+	opts ...Option,
 ) *Controller {
 	c := &Controller{
 		le:           le,
@@ -120,6 +123,9 @@ func NewController(
 
 		links:         make(map[uint64]*establishedLink),
 		linksByPeerID: make(map[peer.ID][]*establishedLink),
+	}
+	for _, opt := range opts {
+		opt(c)
 	}
 	c.linkDialers = keyed.NewKeyedRefCount(c.buildLinkDialer)
 	return c

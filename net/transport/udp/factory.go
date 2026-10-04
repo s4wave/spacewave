@@ -6,10 +6,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/transport"
-	tc "github.com/s4wave/spacewave/net/transport/controller"
-	"github.com/sirupsen/logrus"
 )
 
 // Factory constructs a UDP transport.
@@ -44,41 +40,7 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
-	// Read the UDP controller configuration and construction logger.
-	le := opts.GetLogger()
-	cc := conf.(*Config)
-
-	// Resolve the peer identity constraint for the UDP transport.
-	peerIDConstraint, err := cc.ParseTransportPeerID()
-	if err != nil {
-		return nil, err
-	}
-
-	// Construct the transport controller.
-	return tc.NewController(
-		le,
-		t.bus,
-		controller.NewInfo(ControllerID, Version, "udp transport"),
-		peerIDConstraint,
-		cc.GetVerbose(),
-		func(
-			ctx context.Context,
-			le *logrus.Entry,
-			pkey crypto.PrivKey,
-			handler transport.TransportHandler,
-		) (transport.Transport, error) {
-			return NewUDP(
-				ctx,
-				le,
-				pkey,
-				handler,
-				cc.GetPacketOpts(),
-				0,
-				cc.GetListenAddr(),
-				cc.GetDialers(),
-			)
-		},
-	), nil
+	return NewController(opts.GetLogger(), t.bus, conf.(*Config))
 }
 
 // GetVersion returns the version of this controller.

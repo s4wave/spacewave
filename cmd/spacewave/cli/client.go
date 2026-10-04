@@ -60,6 +60,9 @@ type sdkClient struct {
 	root *s4wave_root.Root
 	// shared owns native transport cleanup; nil for in-process clients.
 	shared *daemon.Client
+	// release frees what carries a remote client: its peer transport, Session
+	// and local daemon client. Nil for local clients.
+	release func()
 }
 
 // nativeClientFactory connects command runners to the shared native daemon.
@@ -126,23 +129,35 @@ func connectDaemonAtSocket(ctx context.Context, sockPath string) (*sdkClient, er
 // dial that socket directly. Otherwise resolve the state path and attach to or
 // start its daemon socket.
 func connectDaemonFromContext(ctx context.Context, c *cli.Context, statePathFallback string) (*sdkClient, error) {
-	if sockPath := effectiveSocketPath(c, ""); sockPath != "" {
-		return connectDaemonAtSocket(ctx, sockPath)
+	var resolved string
+	if effectiveSocketPath(c, "") == "" {
+		var err error
+		resolved, err = resolveStatePathFromContext(c, statePathFallback)
+		if err != nil {
+			return nil, err
+		}
 	}
-	resolved, err := resolveStatePathFromContext(c, statePathFallback)
-	if err != nil {
-		return nil, err
-	}
-	return connectDaemonWithAutostart(ctx, resolved)
+	return connectDaemonWithResolvedFallback(ctx, c, resolved)
 }
 
 // connectDaemonWithResolvedFallback honors --socket-path when present,
-// otherwise attaches to or starts an already-resolved state path.
+// otherwise attaches to or starts an already-resolved state path. With
+// --remote-daemon, the local daemon carries the connection to the remote one.
 func connectDaemonWithResolvedFallback(ctx context.Context, c *cli.Context, resolved string) (*sdkClient, error) {
+	// Connect to the local daemon.
+	var local *sdkClient
+	var err error
 	if sockPath := effectiveSocketPath(c, ""); sockPath != "" {
-		return connectDaemonAtSocket(ctx, sockPath)
+		local, err = connectDaemonAtSocket(ctx, sockPath)
+	} else {
+		local, err = connectDaemonWithAutostart(ctx, resolved)
 	}
-	return connectDaemonWithAutostart(ctx, resolved)
+	if err != nil {
+		return nil, err
+	}
+
+	// Carry the connection to the remote daemon when one is selected.
+	return connectRemoteFromContext(ctx, c, local)
 }
 
 // buildSDKClient adopts the shared initialized Resource connection.
@@ -398,6 +413,11 @@ func (c *sdkClient) accessWorldEngineWithRef(ctx context.Context, spaceSvc s4wav
 // close releases all resources, closes the connection, and cancels the
 // Resource client context.
 func (c *sdkClient) close() {
+	// Free a remote client's carrier after the client itself.
+	if c.release != nil {
+		defer c.release()
+	}
+
 	// Delegate socket lifetimes to the shared daemon client.
 	if c.shared != nil {
 		c.shared.Close()

@@ -653,6 +653,15 @@ message AccessSessionStateAtomResponse {
 
 // AccessPeerTransportRequest is the request for AccessPeerTransport.
 message AccessPeerTransportRequest {
+  // UdpListenAddr starts a UDP transport listening on this host:port. Only
+  // active sessions of the account may link through it. Empty listens on an
+  // ephemeral port when udp_peer_addrs is set, and starts no UDP otherwise.
+  string udp_listen_addr = 1;
+  // UdpPeerAddrs maps remote session peer IDs to the host:port they listen on.
+  map<string, string> udp_peer_addrs = 2;
+  // ServeResources serves this daemon's Resource service to account sessions
+  // that open the remote resource protocol.
+  bool serve_resources = 3;
 }
 
 // AccessPeerTransportResponse is the response for AccessPeerTransport.
@@ -661,6 +670,8 @@ message AccessPeerTransportResponse {
   uint32 resource_id = 1;
   // PeerId is the authenticated local account session peer.
   string peer_id = 2;
+  // UdpAddr is the bound UDP address when a UDP transport started.
+  string udp_addr = 3;
 }
 
 // WatchSessionStateAtomsRequest is the request for WatchStateAtoms.

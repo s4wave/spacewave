@@ -7,11 +7,16 @@ import (
 	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/protocol"
 	stream_api "github.com/s4wave/spacewave/net/stream/api"
 	stream_api_accept "github.com/s4wave/spacewave/net/stream/api/accept"
 	stream_api_dial "github.com/s4wave/spacewave/net/stream/api/dial"
 	stream_api_rpc "github.com/s4wave/spacewave/net/stream/api/rpc"
 )
+
+// RemoteResourceProtocolID is the stream protocol that serves a daemon's
+// Resource service to sessions of the same account.
+const RemoteResourceProtocolID = protocol.ID("spacewave/remote-resource/1")
 
 // PeerTransport provides authenticated stream access for a local session.
 // The transport resource reference is owned by the PeerTransport and must be
@@ -26,12 +31,19 @@ type PeerTransport struct {
 
 	// PeerID is the authenticated local account session peer ID.
 	PeerID string
+	// UDPAddr is the bound UDP address when req started a UDP transport.
+	UDPAddr string
 }
 
 // OpenPeerTransport opens the authenticated stream service for this session.
-func (s *Session) OpenPeerTransport(ctx context.Context) (*PeerTransport, error) {
+// req may start a UDP transport and serve the Resource service to account
+// sessions; both stop on Release. A nil req opens the stream service only.
+func (s *Session) OpenPeerTransport(ctx context.Context, req *AccessPeerTransportRequest) (*PeerTransport, error) {
 	// Request the session's authenticated peer transport resource.
-	resp, err := s.service.AccessPeerTransport(ctx, &AccessPeerTransportRequest{})
+	if req == nil {
+		req = &AccessPeerTransportRequest{}
+	}
+	resp, err := s.service.AccessPeerTransport(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +66,7 @@ func (s *Session) OpenPeerTransport(ctx context.Context) (*PeerTransport, error)
 		service: stream_api.NewSRPCStreamServiceClient(srpcClient),
 		localID: localID,
 		PeerID:  localID.String(),
+		UDPAddr: resp.GetUdpAddr(),
 	}, nil
 }
 

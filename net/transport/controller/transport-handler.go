@@ -2,6 +2,7 @@ package transport_controller
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/net/link"
@@ -16,15 +17,65 @@ type transportHandler struct {
 	ctx context.Context
 	// tpt contains the transport
 	tpt *promise.Promise[transport.Transport]
+
+	// authMtx guards authorizing.
+	authMtx sync.Mutex
+	// authorizing holds links whose peer is being authorized; a lost link
+	// leaves it so its authorization does not mount it.
+	authorizing map[link.Link]struct{}
 }
 
 // newTransportHandler constructs the transport handler.
 func newTransportHandler(ctx context.Context, c *Controller) *transportHandler {
-	return &transportHandler{ctx: ctx, c: c, tpt: promise.NewPromise[transport.Transport]()}
+	return &transportHandler{
+		ctx:         ctx,
+		c:           c,
+		tpt:         promise.NewPromise[transport.Transport](),
+		authorizing: make(map[link.Link]struct{}),
+	}
 }
 
 // HandleLinkEstablished is called by the transport when a link is established.
+// A configured peer authorizer runs off the transport's callback path, since
+// it may read account state; a refused link closes without mounting.
 func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
+	// Mount directly when every peer is admitted.
+	if h.c.authorizePeer == nil {
+		h.mountLink(lnk)
+		return
+	}
+
+	// Authorize the peer, then mount the link unless it was lost meanwhile.
+	h.authMtx.Lock()
+	h.authorizing[lnk] = struct{}{}
+	h.authMtx.Unlock()
+	go func() {
+		err := h.c.authorizePeer(h.ctx, lnk.GetRemotePeer())
+		if !h.takeAuthorizing(lnk) {
+			return
+		}
+		if err != nil {
+			h.c.loggerForLink(lnk).WithError(err).Warn("remote peer refused, closing link")
+			_ = lnk.Close()
+			return
+		}
+		h.mountLink(lnk)
+	}()
+}
+
+// takeAuthorizing removes lnk from the links awaiting authorization and
+// reports whether it was there.
+func (h *transportHandler) takeAuthorizing(lnk link.Link) bool {
+	// Remove the entry under the lock that HandleLinkLost shares.
+	h.authMtx.Lock()
+	defer h.authMtx.Unlock()
+	_, ok := h.authorizing[lnk]
+	delete(h.authorizing, lnk)
+	return ok
+}
+
+// mountLink registers an admitted link with the controller.
+func (h *transportHandler) mountLink(lnk link.Link) {
 	// Capture link identity for registration and logging.
 	le := h.c.loggerForLink(lnk)
 
@@ -93,6 +144,12 @@ func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
 
 // HandleLinkLost is called when a link is lost.
 func (h *transportHandler) HandleLinkLost(lnk link.Link) {
+	// A link still awaiting authorization was never mounted.
+	if h.takeAuthorizing(lnk) {
+		return
+	}
+
+	// Unregister the mounted link.
 	h.c.bcast.HoldLockMaybeAsync(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		// Remove the link by UUID on the common loss path.
 		luuid := lnk.GetUUID()

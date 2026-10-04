@@ -30,6 +30,7 @@ type sessionTransportState struct {
 
 // sessionTransportStatusError exposes the HTTP status of a cloud response.
 type sessionTransportStatusError interface {
+	// StatusCode returns the HTTP status code.
 	StatusCode() int
 }
 
@@ -107,11 +108,13 @@ func (a *ProviderAccount) handleSessionTransportExit(
 	})
 }
 
+// Start binds both routines to ctx.
 func (s *sessionTransportState) Start(ctx context.Context) {
 	s.readyRc.SetContext(ctx, false)
 	s.rc.SetContext(ctx, false)
 }
 
+// Stop stops both routines and waits for them to exit or ctx to end.
 func (s *sessionTransportState) Stop(ctx context.Context) error {
 	// Stop both routines and mark the transport exited.
 	readyWaitCh, _ := s.readyRc.SetRoutine(nil)
@@ -138,6 +141,7 @@ func (s *sessionTransportState) Stop(ctx context.Context) error {
 	return nil
 }
 
+// WaitStarted waits until the transport is ready, exits, or ctx ends.
 func (s *sessionTransportState) WaitStarted(ctx context.Context) error {
 	for {
 		if err := ctx.Err(); err != nil {
@@ -240,6 +244,7 @@ func (a *ProviderAccount) createSessionTransportForSession(
 	options := append([]transport.SessionTransportOption{}, a.p.transportOptions...)
 	options = append(options,
 		transport.WithStartupRetry(),
+		transport.WithPeerAuthorizer(a.authorizeAccountSession),
 		transport.WithBridgeDirectiveFilter(func(di directive.Instance) (bool, error) {
 			_, isMount := di.GetDirective().(sobject.MountSharedObject)
 			return !isMount, nil
