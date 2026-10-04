@@ -2561,29 +2561,24 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 	}, nil
 }
 
-// Invite-beacon registration flow.
+// Invite flow.
 //
-// The full invite lifecycle straddles the local invite host and the cloud DO:
+// The invite lifecycle spans the local invite host and the cloud:
 //
 //  1. Owner: SessionResource.CreateSpaceInvite signs an SOInviteMessage with
-//     the owner's session key via InviteHost.CreateSOInviteOp. The signed
-//     message and its token are kept in memory by the caller; the on-chain
-//     SOInvite (token-hash only) is appended to the SO config chain.
+//     the owner's session key via InviteHost.CreateSOInviteOp. The caller
+//     keeps the signed message and its token in memory; the SOInvite, which
+//     holds only the token hash, is appended to the SO config chain.
 //
-//  2. Owner: for spacewave-backed sessions, CreateSpaceInvite registers two
-//     cloud-side handles for the message it just produced:
-//     - RegisterInviteBeacon binds (so_id, invite_id, token_hash, expires_at)
-//       on the SO DO so a joiner that already has the message bytes can
-//       deliver an enrollment request through the cloud mailbox.
-//     - RegisterInviteCode publishes a short, human-readable code (8 chars)
-//       that maps to the base64'd SOInviteMessage with the same expiry. The
-//       short code is cloud-only convenience storage; the SO config chain
-//       sees only the on-chain SOInvite recorded in step 1.
+//  2. Owner: for spacewave-backed sessions, RegisterInviteCode publishes a
+//     short code (8 chars) that maps to the base64 SOInviteMessage with the
+//     same expiry. The code is cloud-only convenience storage.
 //
 //  3. Joiner: LookupInviteCode below resolves a short code to the original
-//     SOInviteMessage by asking the SO DO. Joiners then verify the message
-//     against the SO config chain locally (the chain entry from step 1) and
-//     run the standard mailbox-driven enrollment via ProcessMailboxEntry.
+//     SOInviteMessage. The joiner submits a join request to the Space's cloud
+//     mailbox with the token and a signed join response; the cloud checks
+//     them against the SOInvite in the config chain. The owner applies the
+//     enrollment via ProcessMailboxEntry.
 //
 // Local-vs-cloud authority boundary:
 //
@@ -2591,11 +2586,10 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 //     verifies the message, drives mailbox processing, and applies invite
 //     mutations to the SO config chain. These actions are authoritative; the
 //     cloud cannot forge them.
-//   - Cloud (SO DO): owns only the beacon and short-code lookup tables. They
-//     are advisory routing aids that expire; losing or rejecting a beacon
-//     never compromises the on-chain invite state. RegisterInviteBeacon and
-//     RegisterInviteCode failures are logged and ignored at the call site
-//     because the local message is still usable as a long-form invite link.
+//   - Cloud: stores the short codes and the mailbox. Codes expire, and losing
+//     one never compromises the invite state in the config chain. A failed
+//     RegisterInviteCode is logged and ignored at the call site because the
+//     message still works as a long-form invite link.
 
 // LookupInviteCode resolves a short invite code to the full SOInviteMessage.
 func (r *SpacewaveSessionResource) LookupInviteCode(

@@ -23,7 +23,7 @@ message AcceptInviteRequest {
   // Token is the raw invite token.
   // The owner SHA256 hashes it to verify against the on-chain token_hash.
   // Only the owner sees the raw token on the authenticated stream.
-  // The cloud beacon/mailbox layer gates on token_hash (never sees raw token).
+  // The cloud mailbox checks the token against token_hash.
   bytes token = 2;
   // StorageJoinResponse proves the persistent local storage identity that will
   // read and write the joined copy.

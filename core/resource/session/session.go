@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/hex"
 	"slices"
 	"sync"
 	"time"
@@ -1439,7 +1438,7 @@ func (r *SessionResource) CreateSpaceInvite(
 	defer rel()
 
 	// Add the invite with the requested terms.
-	msg, err := r.createInvite(ctx, ih, spaceID, &sobject.SOInvite{
+	msg, err := r.createInvite(ctx, ih, &sobject.SOInvite{
 		Role:             req.GetRole(),
 		TargetPeerId:     req.GetTargetPeerId(),
 		MaxUses:          req.GetMaxUses(),
@@ -1650,7 +1649,7 @@ func (r *SessionResource) ResolveSpaceJoinRequest(
 		if redeemed == nil {
 			return nil, errors.New("redeemed invite no longer exists")
 		}
-		resp.InviteMessage, err = r.createInvite(ctx, ih, spaceID, &sobject.SOInvite{
+		resp.InviteMessage, err = r.createInvite(ctx, ih, &sobject.SOInvite{
 			Role:         redeemed.GetRole(),
 			TargetPeerId: peerID,
 			MaxUses:      1,
@@ -1762,12 +1761,11 @@ func (r *SessionResource) findJoinRequest(
 	return "", nil, errors.New("no pending join request from peer")
 }
 
-// createInvite adds an invite with terms to spaceID and returns its message,
-// ready to redeem through the session provider.
+// createInvite adds an invite with terms to the Space ih hosts and returns
+// its message, ready to redeem through the session provider.
 func (r *SessionResource) createInvite(
 	ctx context.Context,
 	ih sobject.InviteHost,
-	spaceID string,
 	terms *sobject.SOInvite,
 ) (*sobject.SOInviteMessage, error) {
 	// Sign the invite into the Space's host state.
@@ -1776,26 +1774,11 @@ func (r *SessionResource) createInvite(
 		return nil, errors.Wrap(err, "create invite")
 	}
 
-	// Make the invite redeemable through the provider's transport.
-	switch acc := r.session.GetProviderAccount().(type) {
-	case *provider_local.ProviderAccount:
-		// Local invitations use the session transport while retaining the
-		// Space signer.
+	// Local invitations use the session transport while retaining the Space
+	// signer. Cloud redemptions reach the owner through the Space's mailbox.
+	if acc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount); ok {
 		if err := acc.PrepareDirectInvite(ctx, r.session.GetPrivKey(), ih.GetPrivKey(), msg); err != nil {
 			return nil, err
-		}
-	case *provider_spacewave.ProviderAccount:
-		// Cloud redemptions reach the owner through the Space's mailbox, which
-		// accepts only invites with a registered beacon.
-		err := acc.GetSessionClient().RegisterInviteBeacon(
-			ctx,
-			spaceID,
-			msg.GetInviteId(),
-			hex.EncodeToString(sobject_invite.HashInviteToken(msg.GetToken())),
-			terms.GetExpiresAt().GetSeconds()*1000,
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "register invite beacon")
 		}
 	}
 	return msg, nil

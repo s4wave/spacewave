@@ -22,7 +22,7 @@ type AcceptInviteRequest struct {
 	// Token is the raw invite token.
 	// The owner SHA256 hashes it to verify against the on-chain token_hash.
 	// Only the owner sees the raw token on the authenticated stream.
-	// The cloud beacon/mailbox layer gates on token_hash (never sees raw token).
+	// The cloud mailbox checks the token against token_hash.
 	Token []byte `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 	// StorageJoinResponse proves the persistent local storage identity that will
 	// read and write the joined copy.
