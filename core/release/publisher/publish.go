@@ -129,6 +129,10 @@ type packedBlock struct {
 	ref *block.BlockRef
 	// stored holds the immutable block payload with its recorded refs.
 	stored *block.StoredBlock
+	// decoded reports that the walk decoded the block and visited its refs.
+	// The walk stops at a block it has no decoder for, such as an old Object
+	// root a changelog entry references, so the closure omits its children.
+	decoded bool
 }
 
 // walkedBlock identifies a decoded subtree within its storage context.
@@ -220,7 +224,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 	// Walk through the owning cursor so bucket and transform references retain
 	// their original meaning. Single-worker traversal owns the collected map.
 	var head *bucket.ObjectRef
-	blocks := map[string]struct{}{}
+	blocks := map[string]int{}
 	walked := map[walkedBlock]struct{}{}
 	var result []packedBlock
 	err = eng.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
@@ -276,7 +280,8 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 
 					// Add unseen verified blocks and require their stored refs to be known.
 					key := entry.Ref.MarshalString()
-					if _, exists := blocks[key]; !exists {
+					index, exists := blocks[key]
+					if !exists {
 						stored, err := walk.GetBucket().GetStoredBlock(ctx, entry.Ref)
 						if err != nil {
 							return false, err
@@ -284,8 +289,12 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 						if !stored.GetRefsKnown() {
 							return false, errors.Wrap(block.ErrRefsUnknown, key)
 						}
-						blocks[key] = struct{}{}
+						index = len(result)
+						blocks[key] = index
 						result = append(result, packedBlock{ref: entry.Ref.CloneVT(), stored: stored})
+					}
+					if entry.Blk != nil {
+						result[index].decoded = true
 					}
 
 					// Reused filesystem trees need one complete traversal. Keep the

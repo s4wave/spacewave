@@ -40,7 +40,7 @@ type reclaimPack struct {
 
 // reclaim rewrites the destination's packs that are at least half dead once
 // the checkpoint whose World is head has been posted. blocks is the complete
-// closure of head. Each group of mostly dead packs is superseded by one pack
+// closure of head: every ref of a decoded block is in blocks. Each group of mostly dead packs is superseded by one pack
 // of their live blocks, written from blocks, so the pass downloads only pack
 // indexes. Returns the dead value bytes dropped.
 //
@@ -48,13 +48,16 @@ type reclaimPack struct {
 // dropped even if another writer dedups against it before the replacement.
 // The pass stops when the destination head moves away from head.
 func reclaim(ctx context.Context, opts cdn_publish.Options, head *bucket.ObjectRef, blocks []packedBlock) (uint64, error) {
-	// Index the live blocks and require the closure to hold every stored ref,
-	// since a missed subtree would read as dead.
+	// Index the live blocks and require the closure to hold every stored ref
+	// of a decoded block, since a missed subtree would read as dead.
 	live := make(map[string]struct{}, len(blocks))
 	for _, entry := range blocks {
 		live[string(packfile.BlockKey(entry.ref.GetHash()))] = struct{}{}
 	}
 	for _, entry := range blocks {
+		if !entry.decoded {
+			continue
+		}
 		for _, ref := range entry.stored.GetRefs() {
 			if ref.GetEmpty() {
 				continue

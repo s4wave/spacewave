@@ -130,6 +130,15 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	if _, err := reclaim(t.Context(), opts, head, []packedBlock{root}); err == nil {
 		t.Fatal("reclaimed against an open closure")
 	}
+
+	// A block the walk did not decode, such as an old Object root, keeps its
+	// children out of the closure.
+	opaque := root
+	opaque.decoded = false
+	client.state = reclaimState(t, head)
+	if _, err := reclaim(t.Context(), opts, head, []packedBlock{opaque}); err != nil {
+		t.Fatalf("undecoded block: %v", err)
+	}
 }
 
 // newPackedBlock stores data with refs as a release block.
@@ -139,7 +148,7 @@ func newPackedBlock(t *testing.T, data []byte, refs ...*block.BlockRef) packedBl
 	if err != nil {
 		t.Fatal(err)
 	}
-	return packedBlock{ref: block.NewBlockRef(h), stored: &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true}}
+	return packedBlock{ref: block.NewBlockRef(h), stored: &block.StoredBlock{Data: data, Refs: refs, RefsKnown: true}, decoded: true}
 }
 
 // newPack writes blocks as one destination pack into packs.
