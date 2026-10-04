@@ -230,9 +230,11 @@ func (c *Controller) processExecutionState(
 		return nil, nil, false, err
 	}
 
-	// check execution state
+	// An invalid record stays invalid until it is rewritten, so wait for the
+	// next write instead of returning an error the loop would retry at once.
 	if err := exState.Validate(); err != nil {
-		return nil, nil, false, errors.Wrap(err, "initial state is invalid")
+		le.WithError(err).Warn("execution state is invalid, waiting for a change")
+		return nil, nil, true, nil
 	}
 
 	// locally specified peer id
