@@ -854,40 +854,15 @@ message CreateOrgRequest {
   string display_name = 1;
 }
 
-// TargetedInvitePurpose identifies what a targeted invite draft is for.
+// TargetedInvitePurpose identifies what a targeted invitation grants.
 enum TargetedInvitePurpose {
   // TARGETED_INVITE_PURPOSE_UNSPECIFIED means no purpose was supplied.
   TARGETED_INVITE_PURPOSE_UNSPECIFIED = 0;
-  // TARGETED_INVITE_PURPOSE_SPACE creates a draft for sharing a Space.
+  // TARGETED_INVITE_PURPOSE_SPACE grants membership in a Space.
   TARGETED_INVITE_PURPOSE_SPACE = 1;
-  // TARGETED_INVITE_PURPOSE_ORGANIZATION creates a draft for inviting an
-  // organization member.
+  // TARGETED_INVITE_PURPOSE_ORGANIZATION grants membership in an
+  // organization.
   TARGETED_INVITE_PURPOSE_ORGANIZATION = 2;
-}
-
-// CreateTargetedInviteDraftByUsernameRequest is the request body for POST
-// /account/targeted-invite/draft/by-username.
-message CreateTargetedInviteDraftByUsernameRequest {
-  // Username is the exact Spacewave username being addressed.
-  string username = 1;
-  // Purpose is the invite purpose.
-  TargetedInvitePurpose purpose = 2;
-  // SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
-  string space_id = 3;
-  // OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
-  string org_id = 4;
-  // Role is the requested role for the eventual invite.
-  string role = 5;
-  // ExpiresAt is the Unix timestamp (ms) when the draft should expire.
-  int64 expires_at = 6;
-}
-
-// CreateTargetedInviteDraftByUsernameResponse is the response body for POST
-// /account/targeted-invite/draft/by-username.
-message CreateTargetedInviteDraftByUsernameResponse {
-  // Accepted is always true for syntactically valid requests. The response does
-  // not reveal whether the username matched a deliverable account.
-  bool accepted = 1;
 }
 
 // ResolveUsernameRequest is the request body for POST /account/username/resolve.
@@ -992,8 +967,6 @@ message TargetedInvitationInfo {
   int64 updated_at = 14;
   // ExpiresAt is the Unix timestamp (ms) when the invite expires.
   int64 expires_at = 15;
-  // DraftId is the optional targeted invite draft this invitation fulfilled.
-  string draft_id = 16;
 }
 
 // CreateTargetedInvitationRequest creates a pending targeted invitation.
@@ -1012,8 +985,6 @@ message CreateTargetedInvitationRequest {
   int64 expires_at = 6;
   // Envelope is the signed targeted invitation envelope.
   TargetedInvitationEnvelope envelope = 7;
-  // DraftId is the optional targeted invite draft being fulfilled.
-  string draft_id = 8;
 }
 
 // CreateTargetedInvitationResponse is the create response.

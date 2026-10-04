@@ -152,16 +152,16 @@ func (x AccountLifecycleState) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// TargetedInvitePurpose identifies what a targeted invite draft is for.
+// TargetedInvitePurpose identifies what a targeted invitation grants.
 type TargetedInvitePurpose int32
 
 const (
 	// TARGETED_INVITE_PURPOSE_UNSPECIFIED means no purpose was supplied.
 	TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED TargetedInvitePurpose = 0
-	// TARGETED_INVITE_PURPOSE_SPACE creates a draft for sharing a Space.
+	// TARGETED_INVITE_PURPOSE_SPACE grants membership in a Space.
 	TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_SPACE TargetedInvitePurpose = 1
-	// TARGETED_INVITE_PURPOSE_ORGANIZATION creates a draft for inviting an
-	// organization member.
+	// TARGETED_INVITE_PURPOSE_ORGANIZATION grants membership in an
+	// organization.
 	TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_ORGANIZATION TargetedInvitePurpose = 2
 )
 
@@ -3147,94 +3147,6 @@ func (x *CreateOrgRequest) GetDisplayName() string {
 	return ""
 }
 
-// CreateTargetedInviteDraftByUsernameRequest is the request body for POST
-// /account/targeted-invite/draft/by-username.
-type CreateTargetedInviteDraftByUsernameRequest struct {
-	unknownFields []byte
-	// Username is the exact Spacewave username being addressed.
-	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	// Purpose is the invite purpose.
-	Purpose TargetedInvitePurpose `protobuf:"varint,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
-	// SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
-	SpaceId string `protobuf:"bytes,3,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
-	// OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
-	OrgId string `protobuf:"bytes,4,opt,name=org_id,json=orgId,proto3" json:"orgId,omitempty"`
-	// Role is the requested role for the eventual invite.
-	Role string `protobuf:"bytes,5,opt,name=role,proto3" json:"role,omitempty"`
-	// ExpiresAt is the Unix timestamp (ms) when the draft should expire.
-	ExpiresAt int64 `protobuf:"varint,6,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
-}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) Reset() {
-	*x = CreateTargetedInviteDraftByUsernameRequest{}
-}
-
-func (*CreateTargetedInviteDraftByUsernameRequest) ProtoMessage() {}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) GetPurpose() TargetedInvitePurpose {
-	if x != nil {
-		return x.Purpose
-	}
-	return TargetedInvitePurpose_TARGETED_INVITE_PURPOSE_UNSPECIFIED
-}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) GetSpaceId() string {
-	if x != nil {
-		return x.SpaceId
-	}
-	return ""
-}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) GetOrgId() string {
-	if x != nil {
-		return x.OrgId
-	}
-	return ""
-}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) GetRole() string {
-	if x != nil {
-		return x.Role
-	}
-	return ""
-}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) GetExpiresAt() int64 {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return 0
-}
-
-// CreateTargetedInviteDraftByUsernameResponse is the response body for POST
-// /account/targeted-invite/draft/by-username.
-type CreateTargetedInviteDraftByUsernameResponse struct {
-	unknownFields []byte
-	// Accepted is always true for syntactically valid requests. The response does
-	// not reveal whether the username matched a deliverable account.
-	Accepted bool `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-}
-
-func (x *CreateTargetedInviteDraftByUsernameResponse) Reset() {
-	*x = CreateTargetedInviteDraftByUsernameResponse{}
-}
-
-func (*CreateTargetedInviteDraftByUsernameResponse) ProtoMessage() {}
-
-func (x *CreateTargetedInviteDraftByUsernameResponse) GetAccepted() bool {
-	if x != nil {
-		return x.Accepted
-	}
-	return false
-}
-
 // ResolveUsernameRequest is the request body for POST /account/username/resolve.
 type ResolveUsernameRequest struct {
 	unknownFields []byte
@@ -3555,8 +3467,6 @@ type TargetedInvitationInfo struct {
 	UpdatedAt int64 `protobuf:"varint,14,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
 	// ExpiresAt is the Unix timestamp (ms) when the invite expires.
 	ExpiresAt int64 `protobuf:"varint,15,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
-	// DraftId is the optional targeted invite draft this invitation fulfilled.
-	DraftId string `protobuf:"bytes,16,opt,name=draft_id,json=draftId,proto3" json:"draftId,omitempty"`
 }
 
 func (x *TargetedInvitationInfo) Reset() {
@@ -3670,13 +3580,6 @@ func (x *TargetedInvitationInfo) GetExpiresAt() int64 {
 	return 0
 }
 
-func (x *TargetedInvitationInfo) GetDraftId() string {
-	if x != nil {
-		return x.DraftId
-	}
-	return ""
-}
-
 // CreateTargetedInvitationRequest creates a pending targeted invitation.
 type CreateTargetedInvitationRequest struct {
 	unknownFields []byte
@@ -3694,8 +3597,6 @@ type CreateTargetedInvitationRequest struct {
 	ExpiresAt int64 `protobuf:"varint,6,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
 	// Envelope is the signed targeted invitation envelope.
 	Envelope *TargetedInvitationEnvelope `protobuf:"bytes,7,opt,name=envelope,proto3" json:"envelope,omitempty"`
-	// DraftId is the optional targeted invite draft being fulfilled.
-	DraftId string `protobuf:"bytes,8,opt,name=draft_id,json=draftId,proto3" json:"draftId,omitempty"`
 }
 
 func (x *CreateTargetedInvitationRequest) Reset() {
@@ -3751,13 +3652,6 @@ func (x *CreateTargetedInvitationRequest) GetEnvelope() *TargetedInvitationEnvel
 		return x.Envelope
 	}
 	return nil
-}
-
-func (x *CreateTargetedInvitationRequest) GetDraftId() string {
-	if x != nil {
-		return x.DraftId
-	}
-	return ""
 }
 
 // CreateTargetedInvitationResponse is the create response.
@@ -11819,43 +11713,6 @@ func (m *CreateOrgRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *CreateTargetedInviteDraftByUsernameRequest) CloneVT() *CreateTargetedInviteDraftByUsernameRequest {
-	if m == nil {
-		return (*CreateTargetedInviteDraftByUsernameRequest)(nil)
-	}
-	r := new(CreateTargetedInviteDraftByUsernameRequest)
-	r.Username = m.Username
-	r.Purpose = m.Purpose
-	r.SpaceId = m.SpaceId
-	r.OrgId = m.OrgId
-	r.Role = m.Role
-	r.ExpiresAt = m.ExpiresAt
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *CreateTargetedInviteDraftByUsernameRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *CreateTargetedInviteDraftByUsernameResponse) CloneVT() *CreateTargetedInviteDraftByUsernameResponse {
-	if m == nil {
-		return (*CreateTargetedInviteDraftByUsernameResponse)(nil)
-	}
-	r := new(CreateTargetedInviteDraftByUsernameResponse)
-	r.Accepted = m.Accepted
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *CreateTargetedInviteDraftByUsernameResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (m *ResolveUsernameRequest) CloneVT() *ResolveUsernameRequest {
 	if m == nil {
 		return (*ResolveUsernameRequest)(nil)
@@ -11948,7 +11805,6 @@ func (m *TargetedInvitationInfo) CloneVT() *TargetedInvitationInfo {
 	r.CreatedAt = m.CreatedAt
 	r.UpdatedAt = m.UpdatedAt
 	r.ExpiresAt = m.ExpiresAt
-	r.DraftId = m.DraftId
 	r.Envelope = protobuf_go_lite.CloneVTValue(m.Envelope)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -11971,7 +11827,6 @@ func (m *CreateTargetedInvitationRequest) CloneVT() *CreateTargetedInvitationReq
 	r.OrgId = m.OrgId
 	r.Role = m.Role
 	r.ExpiresAt = m.ExpiresAt
-	r.DraftId = m.DraftId
 	r.Envelope = protobuf_go_lite.CloneVTValue(m.Envelope)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -17611,61 +17466,6 @@ func (this *CreateOrgRequest) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *CreateTargetedInviteDraftByUsernameRequest) EqualVT(that *CreateTargetedInviteDraftByUsernameRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Username != that.Username {
-		return false
-	}
-	if this.Purpose != that.Purpose {
-		return false
-	}
-	if this.SpaceId != that.SpaceId {
-		return false
-	}
-	if this.OrgId != that.OrgId {
-		return false
-	}
-	if this.Role != that.Role {
-		return false
-	}
-	if this.ExpiresAt != that.ExpiresAt {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *CreateTargetedInviteDraftByUsernameRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*CreateTargetedInviteDraftByUsernameRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *CreateTargetedInviteDraftByUsernameResponse) EqualVT(that *CreateTargetedInviteDraftByUsernameResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Accepted != that.Accepted {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *CreateTargetedInviteDraftByUsernameResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*CreateTargetedInviteDraftByUsernameResponse)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 func (this *ResolveUsernameRequest) EqualVT(that *ResolveUsernameRequest) bool {
 	if this == that {
 		return true
@@ -17852,9 +17652,6 @@ func (this *TargetedInvitationInfo) EqualVT(that *TargetedInvitationInfo) bool {
 	if this.ExpiresAt != that.ExpiresAt {
 		return false
 	}
-	if this.DraftId != that.DraftId {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -17891,9 +17688,6 @@ func (this *CreateTargetedInvitationRequest) EqualVT(that *CreateTargetedInvitat
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Envelope, that.Envelope) {
-		return false
-	}
-	if this.DraftId != that.DraftId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -27394,130 +27188,6 @@ func (x *CreateOrgRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the CreateTargetedInviteDraftByUsernameRequest message to JSON.
-func (x *CreateTargetedInviteDraftByUsernameRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Username != "" || s.HasField("username") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("username")
-		s.WriteString(x.Username)
-	}
-	if x.Purpose != 0 || s.HasField("purpose") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("purpose")
-		x.Purpose.MarshalProtoJSON(s)
-	}
-	if x.SpaceId != "" || s.HasField("spaceId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("spaceId")
-		s.WriteString(x.SpaceId)
-	}
-	if x.OrgId != "" || s.HasField("orgId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("orgId")
-		s.WriteString(x.OrgId)
-	}
-	if x.Role != "" || s.HasField("role") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("role")
-		s.WriteString(x.Role)
-	}
-	if x.ExpiresAt != 0 || s.HasField("expiresAt") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("expiresAt")
-		s.WriteInt64(x.ExpiresAt)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the CreateTargetedInviteDraftByUsernameRequest to JSON.
-func (x *CreateTargetedInviteDraftByUsernameRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the CreateTargetedInviteDraftByUsernameRequest message from JSON.
-func (x *CreateTargetedInviteDraftByUsernameRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "username":
-			s.AddField("username")
-			x.Username = s.ReadString()
-		case "purpose":
-			s.AddField("purpose")
-			x.Purpose.UnmarshalProtoJSON(s)
-		case "space_id", "spaceId":
-			s.AddField("space_id")
-			x.SpaceId = s.ReadString()
-		case "org_id", "orgId":
-			s.AddField("org_id")
-			x.OrgId = s.ReadString()
-		case "role":
-			s.AddField("role")
-			x.Role = s.ReadString()
-		case "expires_at", "expiresAt":
-			s.AddField("expires_at")
-			x.ExpiresAt = s.ReadInt64()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the CreateTargetedInviteDraftByUsernameRequest from JSON.
-func (x *CreateTargetedInviteDraftByUsernameRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the CreateTargetedInviteDraftByUsernameResponse message to JSON.
-func (x *CreateTargetedInviteDraftByUsernameResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Accepted || s.HasField("accepted") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("accepted")
-		s.WriteBool(x.Accepted)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the CreateTargetedInviteDraftByUsernameResponse to JSON.
-func (x *CreateTargetedInviteDraftByUsernameResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the CreateTargetedInviteDraftByUsernameResponse message from JSON.
-func (x *CreateTargetedInviteDraftByUsernameResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "accepted":
-			s.AddField("accepted")
-			x.Accepted = s.ReadBool()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the CreateTargetedInviteDraftByUsernameResponse from JSON.
-func (x *CreateTargetedInviteDraftByUsernameResponse) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 // MarshalProtoJSON marshals the ResolveUsernameRequest message to JSON.
 func (x *ResolveUsernameRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -27927,11 +27597,6 @@ func (x *TargetedInvitationInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("expiresAt")
 		s.WriteInt64(x.ExpiresAt)
 	}
-	if x.DraftId != "" || s.HasField("draftId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("draftId")
-		s.WriteString(x.DraftId)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -27998,9 +27663,6 @@ func (x *TargetedInvitationInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "expires_at", "expiresAt":
 			s.AddField("expires_at")
 			x.ExpiresAt = s.ReadInt64()
-		case "draft_id", "draftId":
-			s.AddField("draft_id")
-			x.DraftId = s.ReadString()
 		}
 	})
 }
@@ -28053,11 +27715,6 @@ func (x *CreateTargetedInvitationRequest) MarshalProtoJSON(s *json.MarshalState)
 		s.WriteObjectField("envelope")
 		x.Envelope.MarshalProtoJSON(s.WithField("envelope"))
 	}
-	if x.DraftId != "" || s.HasField("draftId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("draftId")
-		s.WriteString(x.DraftId)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -28100,9 +27757,6 @@ func (x *CreateTargetedInvitationRequest) UnmarshalProtoJSON(s *json.UnmarshalSt
 			}
 			x.Envelope = &TargetedInvitationEnvelope{}
 			x.Envelope.UnmarshalProtoJSON(s.WithField("envelope", true))
-		case "draft_id", "draftId":
-			s.AddField("draft_id")
-			x.DraftId = s.ReadString()
 		}
 	})
 }
@@ -42872,105 +42526,6 @@ func (m *CreateOrgRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *CreateTargetedInviteDraftByUsernameRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CreateTargetedInviteDraftByUsernameRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *CreateTargetedInviteDraftByUsernameRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.ExpiresAt != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
-		i--
-		dAtA[i] = 0x30
-	}
-	if len(m.Role) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Role)
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.OrgId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.OrgId)
-		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.SpaceId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.Purpose != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Purpose))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.Username) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Username)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *CreateTargetedInviteDraftByUsernameResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CreateTargetedInviteDraftByUsernameResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *CreateTargetedInviteDraftByUsernameResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.Accepted {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Accepted)
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *ResolveUsernameRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -43238,13 +42793,6 @@ func (m *TargetedInvitationInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.DraftId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.DraftId)
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x82
-	}
 	if m.ExpiresAt != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAt))
 		i--
@@ -43356,11 +42904,6 @@ func (m *CreateTargetedInvitationRequest) MarshalToSizedBufferVT(dAtA []byte) (i
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.DraftId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.DraftId)
-		i--
-		dAtA[i] = 0x42
 	}
 	if m.Envelope != nil {
 		size, err := m.Envelope.MarshalToSizedBufferVT(dAtA[:i])
@@ -53830,33 +53373,6 @@ func (m *CreateOrgRequest) SizeVT() (n int) {
 	return n
 }
 
-func (m *CreateTargetedInviteDraftByUsernameRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Username)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Purpose)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OrgId)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Role)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresAt)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *CreateTargetedInviteDraftByUsernameResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Accepted)
-	n += len(m.unknownFields)
-	return n
-}
-
 func (m *ResolveUsernameRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -53939,7 +53455,6 @@ func (m *TargetedInvitationInfo) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CreatedAt)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.UpdatedAt)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresAt)
-	n += protobuf_go_lite.SizeStringNonEmpty(2, m.DraftId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -53960,7 +53475,6 @@ func (m *CreateTargetedInvitationRequest) SizeVT() (n int) {
 		l = m.Envelope.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DraftId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -58485,54 +57999,6 @@ func (x *CreateOrgRequest) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *CreateTargetedInviteDraftByUsernameRequest) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CreateTargetedInviteDraftByUsernameRequest")
-	if x.Username != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "username")
-		protobuf_go_lite.TextWriteString(&sb, x.Username)
-	}
-	if x.Purpose != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "purpose")
-		protobuf_go_lite.TextWriteStringer(&sb, TargetedInvitePurpose(x.Purpose))
-	}
-	if x.SpaceId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
-		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
-	}
-	if x.OrgId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "org_id")
-		protobuf_go_lite.TextWriteString(&sb, x.OrgId)
-	}
-	if x.Role != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "role")
-		protobuf_go_lite.TextWriteString(&sb, x.Role)
-	}
-	if x.ExpiresAt != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at")
-		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresAt)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *CreateTargetedInviteDraftByUsernameRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *CreateTargetedInviteDraftByUsernameResponse) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CreateTargetedInviteDraftByUsernameResponse")
-	if x.Accepted != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "accepted")
-		protobuf_go_lite.TextWriteBool(&sb, x.Accepted)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *CreateTargetedInviteDraftByUsernameResponse) String() string {
-	return x.MarshalProtoText()
-}
-
 func (x *ResolveUsernameRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResolveUsernameRequest")
@@ -58738,10 +58204,6 @@ func (x *TargetedInvitationInfo) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at")
 		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresAt)
 	}
-	if x.DraftId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "draft_id")
-		protobuf_go_lite.TextWriteString(&sb, x.DraftId)
-	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -58779,10 +58241,6 @@ func (x *CreateTargetedInvitationRequest) MarshalProtoText() string {
 	if x.Envelope != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Envelope)
-	}
-	if x.DraftId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "draft_id")
-		protobuf_go_lite.TextWriteString(&sb, x.DraftId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -68170,162 +67628,6 @@ func (m *CreateOrgRequest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
-func (m *CreateTargetedInviteDraftByUsernameRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Username = v
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Purpose", wireType)
-			}
-			m.Purpose = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Purpose = TargetedInvitePurpose(_v)
-			if err != nil {
-				return err
-			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SpaceId = v
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.OrgId = v
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Role = v
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
-			}
-			m.ExpiresAt = 0
-			m.ExpiresAt, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *CreateTargetedInviteDraftByUsernameResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CreateTargetedInviteDraftByUsernameResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Accepted = bool(v)
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
 func (m *ResolveUsernameRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -68898,16 +68200,6 @@ func (m *TargetedInvitationInfo) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 16:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DraftId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.DraftId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -69026,16 +68318,6 @@ func (m *CreateTargetedInvitationRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DraftId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.DraftId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

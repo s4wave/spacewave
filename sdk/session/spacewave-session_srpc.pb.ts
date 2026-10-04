@@ -37,8 +37,6 @@ import {
   CreateSpaceTargetedInvitationByUsernameResponse,
   CreateTargetedInvitationRequest,
   CreateTargetedInvitationResponse,
-  CreateTargetedInviteDraftByUsernameRequest,
-  CreateTargetedInviteDraftByUsernameResponse,
   DeleteBillingAccountRequest,
   DeleteBillingAccountResponse,
   DeleteOrganizationRequest,
@@ -455,17 +453,6 @@ export const SpacewaveSessionResourceServiceDefinition = {
       name: 'DeleteOrganization',
       I: DeleteOrganizationRequest,
       O: DeleteOrganizationResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-     *
-     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
-     */
-    CreateTargetedInviteDraftByUsername: {
-      name: 'CreateTargetedInviteDraftByUsername',
-      I: CreateTargetedInviteDraftByUsernameRequest,
-      O: CreateTargetedInviteDraftByUsernameResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -1228,16 +1215,6 @@ export interface SpacewaveSessionResourceService {
   ): Promise<DeleteOrganizationResponse>
 
   /**
-   * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-   *
-   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
-   */
-  CreateTargetedInviteDraftByUsername(
-    request: CreateTargetedInviteDraftByUsernameRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<CreateTargetedInviteDraftByUsernameResponse>
-
-  /**
    * ResolveUsername resolves an exact username for an allowed invite context.
    *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
@@ -1980,17 +1957,6 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<DeleteOrganizationResponse>
 
   /**
-   * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-   *
-   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
-   */
-  CreateTargetedInviteDraftByUsername(
-    request: CreateTargetedInviteDraftByUsernameRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<CreateTargetedInviteDraftByUsernameResponse>
-
-  /**
    * ResolveUsername resolves an exact username for an allowed invite context.
    *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
@@ -2506,8 +2472,6 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
     this.CreateOrganization = this.CreateOrganization.bind(this)
     this.WatchOrganizationState = this.WatchOrganizationState.bind(this)
     this.DeleteOrganization = this.DeleteOrganization.bind(this)
-    this.CreateTargetedInviteDraftByUsername =
-      this.CreateTargetedInviteDraftByUsername.bind(this)
     this.ResolveUsername = this.ResolveUsername.bind(this)
     this.CreateTargetedInvitation = this.CreateTargetedInvitation.bind(this)
     this.CreateSpaceTargetedInvitationByUsername =
@@ -3088,27 +3052,6 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
       abortSignal || undefined,
     )
     return DeleteOrganizationResponse.fromBinary(result)
-  }
-
-  /**
-   * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-   *
-   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
-   */
-  async CreateTargetedInviteDraftByUsername(
-    request: CreateTargetedInviteDraftByUsernameRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<CreateTargetedInviteDraftByUsernameResponse> {
-    const requestMsg =
-      CreateTargetedInviteDraftByUsernameRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      SpacewaveSessionResourceServiceDefinition.methods
-        .CreateTargetedInviteDraftByUsername.name,
-      CreateTargetedInviteDraftByUsernameRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return CreateTargetedInviteDraftByUsernameResponse.fromBinary(result)
   }
 
   /**

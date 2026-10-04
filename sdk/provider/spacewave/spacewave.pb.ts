@@ -332,7 +332,7 @@ export const SelfEnrollmentGateState_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * TargetedInvitePurpose identifies what a targeted invite draft is for.
+ * TargetedInvitePurpose identifies what a targeted invitation grants.
  *
  * @generated from enum s4wave.provider.spacewave.TargetedInvitePurpose
  */
@@ -345,15 +345,15 @@ export enum TargetedInvitePurpose {
   UNSPECIFIED = 0,
 
   /**
-   * TARGETED_INVITE_PURPOSE_SPACE creates a draft for sharing a Space.
+   * TARGETED_INVITE_PURPOSE_SPACE grants membership in a Space.
    *
    * @generated from enum value: TARGETED_INVITE_PURPOSE_SPACE = 1;
    */
   SPACE = 1,
 
   /**
-   * TARGETED_INVITE_PURPOSE_ORGANIZATION creates a draft for inviting an
-   * organization member.
+   * TARGETED_INVITE_PURPOSE_ORGANIZATION grants membership in an
+   * organization.
    *
    * @generated from enum value: TARGETED_INVITE_PURPOSE_ORGANIZATION = 2;
    */
@@ -4719,90 +4719,6 @@ export const OrgInviteInfo: MessageType<OrgInviteInfo> =
   })
 
 /**
- * CreateTargetedInviteDraftByUsernameRequest is the request for
- * CreateTargetedInviteDraftByUsername.
- *
- * @generated from message s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest
- */
-export interface CreateTargetedInviteDraftByUsernameRequest {
-  /**
-   * Username is the exact Spacewave username being addressed.
-   *
-   * @generated from field: string username = 1;
-   */
-  username?: string
-  /**
-   * Purpose is the invite purpose.
-   *
-   * @generated from field: s4wave.provider.spacewave.TargetedInvitePurpose purpose = 2;
-   */
-  purpose?: TargetedInvitePurpose
-  /**
-   * SpaceId is set when purpose is TARGETED_INVITE_PURPOSE_SPACE.
-   *
-   * @generated from field: string space_id = 3;
-   */
-  spaceId?: string
-  /**
-   * OrgId is set when purpose is TARGETED_INVITE_PURPOSE_ORGANIZATION.
-   *
-   * @generated from field: string org_id = 4;
-   */
-  orgId?: string
-  /**
-   * Role is the requested role for the eventual invite.
-   *
-   * @generated from field: string role = 5;
-   */
-  role?: string
-  /**
-   * ExpiresAt is the Unix timestamp (ms) when the draft should expire.
-   *
-   * @generated from field: int64 expires_at = 6;
-   */
-  expiresAt?: bigint
-}
-
-export const CreateTargetedInviteDraftByUsernameRequest: MessageType<CreateTargetedInviteDraftByUsernameRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName:
-      's4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest',
-    fields: [
-      { no: 1, name: 'username', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'purpose', kind: 'enum', T: TargetedInvitePurpose_Enum },
-      { no: 3, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'org_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 5, name: 'role', kind: 'scalar', T: ScalarType.STRING },
-      { no: 6, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * CreateTargetedInviteDraftByUsernameResponse is the response for
- * CreateTargetedInviteDraftByUsername.
- *
- * @generated from message s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse
- */
-export interface CreateTargetedInviteDraftByUsernameResponse {
-  /**
-   * Accepted is always true for syntactically valid requests. The response does
-   * not reveal whether the username matched a deliverable account.
-   *
-   * @generated from field: bool accepted = 1;
-   */
-  accepted?: boolean
-}
-
-export const CreateTargetedInviteDraftByUsernameResponse: MessageType<CreateTargetedInviteDraftByUsernameResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName:
-      's4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse',
-    fields: [
-      { no: 1, name: 'accepted', kind: 'scalar', T: ScalarType.BOOL },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
  * ResolveUsernameRequest is the request for ResolveUsername.
  *
  * @generated from message s4wave.provider.spacewave.ResolveUsernameRequest
@@ -5165,12 +5081,6 @@ export interface TargetedInvitationInfo {
    * @generated from field: int64 expires_at = 15;
    */
   expiresAt?: bigint
-  /**
-   * DraftId is the optional targeted invite draft this invitation fulfilled.
-   *
-   * @generated from field: string draft_id = 16;
-   */
-  draftId?: string
 }
 
 export const TargetedInvitationInfo: MessageType<TargetedInvitationInfo> =
@@ -5212,7 +5122,6 @@ export const TargetedInvitationInfo: MessageType<TargetedInvitationInfo> =
       { no: 13, name: 'created_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 14, name: 'updated_at', kind: 'scalar', T: ScalarType.INT64 },
       { no: 15, name: 'expires_at', kind: 'scalar', T: ScalarType.INT64 },
-      { no: 16, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -5264,12 +5173,6 @@ export interface CreateTargetedInvitationRequest {
    * @generated from field: s4wave.provider.spacewave.TargetedInvitationEnvelope envelope = 7;
    */
   envelope?: TargetedInvitationEnvelope
-  /**
-   * DraftId is the optional targeted invite draft being fulfilled.
-   *
-   * @generated from field: string draft_id = 8;
-   */
-  draftId?: string
 }
 
 export const CreateTargetedInvitationRequest: MessageType<CreateTargetedInvitationRequest> =
@@ -5293,7 +5196,6 @@ export const CreateTargetedInvitationRequest: MessageType<CreateTargetedInvitati
         kind: 'message',
         T: TargetedInvitationEnvelope,
       },
-      { no: 8, name: 'draft_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

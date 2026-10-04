@@ -63,8 +63,6 @@ service SpacewaveSessionResourceService {
   rpc WatchOrganizationState(.s4wave.provider.spacewave.WatchOrganizationStateRequest) returns (stream .s4wave.provider.spacewave.WatchOrganizationStateResponse);
   // DeleteOrganization deletes an organization.
   rpc DeleteOrganization(.s4wave.provider.spacewave.DeleteOrganizationRequest) returns (.s4wave.provider.spacewave.DeleteOrganizationResponse);
-  // CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-  rpc CreateTargetedInviteDraftByUsername(.s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest) returns (.s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse);
   // ResolveUsername resolves an exact username for an allowed invite context.
   rpc ResolveUsername(.s4wave.provider.spacewave.ResolveUsernameRequest) returns (.s4wave.provider.spacewave.ResolveUsernameResponse);
   // CreateTargetedInvitation creates a signed pending targeted invitation.

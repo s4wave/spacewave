@@ -18,8 +18,6 @@ import type {
   CreateOrgInviteResponse,
   CreateOrganizationResponse,
   CreateOrganizationTargetedInvitationByUsernameResponse,
-  CreateTargetedInviteDraftByUsernameRequest,
-  CreateTargetedInviteDraftByUsernameResponse,
   CreateTargetedInvitationRequest,
   CreateTargetedInvitationResponse,
   CreateSpaceTargetedInvitationByUsernameResponse,
@@ -367,17 +365,6 @@ export class SpacewaveSession extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<CreateOrgInviteResponse> {
     return await this.service.CreateOrgInvite(request, abortSignal)
-  }
-
-  // createTargetedInviteDraftByUsername creates an opaque targeted invite draft.
-  public async createTargetedInviteDraftByUsername(
-    request: CreateTargetedInviteDraftByUsernameRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<CreateTargetedInviteDraftByUsernameResponse> {
-    return await this.service.CreateTargetedInviteDraftByUsername(
-      request,
-      abortSignal,
-    )
   }
 
   // resolveUsername resolves an exact username for an allowed invite context.
