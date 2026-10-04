@@ -118,6 +118,27 @@ func (s *WebRtcSdp) ParseSDP() (*sdp.SessionDescription, error) {
 	return desc.Unmarshal()
 }
 
+// replacesRemotePeerConnection reports whether offer comes from a different
+// remote PeerConnection than the applied remote description current. A
+// PeerConnection keeps its SDP origin session id across renegotiations, so a
+// changed id means the remote peer started over, for example after a restart.
+// An unparsable description reports false and is left to negotiation.
+func replacesRemotePeerConnection(current *webrtc.SessionDescription, offer *WebRtcSdp) bool {
+	// Parse the origin of the applied description and of the new offer.
+	if current == nil {
+		return false
+	}
+	prev, err := current.Unmarshal()
+	if err != nil {
+		return false
+	}
+	next, err := offer.ParseSDP()
+	if err != nil || next == nil {
+		return false
+	}
+	return prev.Origin.SessionID != next.Origin.SessionID
+}
+
 // Validate validates the WebRtcIce message.
 func (s *WebRtcIce) Validate() error {
 	if _, err := s.ParseICECandidateInit(); err != nil {

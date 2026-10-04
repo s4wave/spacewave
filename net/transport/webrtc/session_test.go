@@ -88,11 +88,16 @@ func TestCreateDataChannelRegistersNegotiationCallbackFirst(t *testing.T) {
 		le:      tpt.le,
 		offerer: false,
 	}
-	sess := &session{t: tkr}
+	pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer func() { _ = pc.Close() }()
+	sess := &session{t: tkr, pc: pc}
 
 	// Create the channel while checking negotiation callback registration order.
 	var onNegotiationNeeded func()
-	_, err := sess.createDataChannel(
+	_, err = sess.createDataChannel(
 		func(cb func()) {
 			onNegotiationNeeded = cb
 		},
