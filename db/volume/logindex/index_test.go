@@ -270,5 +270,43 @@ func TestAtomicFlush(t *testing.T) {
 	}
 }
 
+// TestWaitDurable checks that ordered commits defer the device flush to one
+// WaitDurable call.
+func TestWaitDurable(t *testing.T) {
+	// Open the index on a device that counts flushes.
+	ctx := t.Context()
+	d := &atomicDevice{Memory: device.NewMemory()}
+	i, err := Open(ctx, d, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer i.Close()
+
+	// Commit two ordered transactions without a flush.
+	for _, key := range []string{"a", "b"} {
+		tx, err := i.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, []byte(key), []byte(key)); err != nil {
+			t.Fatal(err)
+		}
+		if err := kvtx.CommitOrdered(ctx, tx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if d.flushes != 0 {
+		t.Fatalf("ordered commits flushed %d times, want 0", d.flushes)
+	}
+
+	// Wait for durability with one flush.
+	if err := i.WaitDurable(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if d.flushes != 1 {
+		t.Fatalf("flushed %d times, want 1", d.flushes)
+	}
+}
+
 // _ is a type assertion
 var _ device.AtomicFlusher = (*atomicDevice)(nil)

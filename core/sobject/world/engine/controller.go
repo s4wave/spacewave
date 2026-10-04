@@ -80,7 +80,7 @@ func (c *Controller) buildLookupWorldOp(le *logrus.Entry) world.LookupOp {
 		busLookupOp = world.BuildLookupWorldOpFunc(c.bus, le, c.engineID)
 	}
 	return func(ctx context.Context, operationTypeID string) (world.Operation, error) {
-		// Collect the static and bus lookups.
+		// Try the built-in operations first, then the bus.
 		var lookupOps []world.LookupOp
 		c.staticLookupOpMu.RLock()
 		if c.staticLookupOp != nil {
@@ -201,7 +201,7 @@ func (c *Controller) executeWorld(
 
 	// Wrap the world block engine with our txn logic for sobject.
 	engine := newSoEngine(c, so, blkEngine.bengine, replay)
-	if host, ok := so.(sobject.InviteHost); ok {
+	if host, ok := so.(sobject.StateHost); ok {
 		engine.control, err = sobject.NewControl(le, host.GetSOHost(), host.GetPrivKey(), engine)
 		if err != nil {
 			return err

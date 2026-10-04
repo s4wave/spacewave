@@ -375,7 +375,27 @@ func (i *Index) checkpoint(ctx context.Context, table memtable.Snapshot, seq, lo
 }
 
 // _ is a type assertion
-var _ kvtx.Store = (*Index)(nil)
+var _ kvtx.OrderedCommitStore = (*Index)(nil)
+
+// Sync makes every completed ordered commit durable with one device flush.
+func (i *Index) Sync(ctx context.Context) error {
+	// A failed log write may have torn the log, so nothing more is durable.
+	i.mtx.Lock()
+	err := i.err
+	i.mtx.Unlock()
+	if err != nil {
+		return err
+	}
+
+	// An empty flushing write returns once every earlier write is durable.
+	return i.dev.Write(ctx, nil, true)
+}
+
+// WaitDurable makes every completed ordered commit durable. The index has no
+// background flush to wait for, so it flushes the device as Sync does.
+func (i *Index) WaitDurable(ctx context.Context) error {
+	return i.Sync(ctx)
+}
 
 // Close waits for a running checkpoint and returns the error of the last
 // failed background checkpoint.

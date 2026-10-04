@@ -39,7 +39,7 @@ func CheckpointWorld(
 	}
 	sharedObjectID := so.GetSharedObjectID()
 	snap := sobject.NewSOStateParticipantHandle(le, sfs, sharedObjectID, state, privKey, peerID)
-	if host, ok := so.(sobject.InviteHost); ok {
+	if host, ok := so.(sobject.StateHost); ok {
 		snap = snap.WithConfigHistory(host.GetSOHost().ReadConfigEntry)
 	}
 	replayed, err := ReplayWorld(ctx, le, b, sfs, so, engineID, lookupOp, snap)
@@ -110,7 +110,7 @@ var errStableCheckpointStale = errors.New("held state moved past the stable poin
 // checkpoint instead, so the replay only wakes the local voter.
 func (e *soEngine) checkpointStable(ctx context.Context, snap sobject.SharedObjectStateSnapshot, set *sobject.SOOperationSet) error {
 	// Only the checkpointer signs, and only from a host it can sign through.
-	host, ok := e.so.(sobject.InviteHost)
+	host, ok := e.so.(sobject.StateHost)
 	if !ok {
 		return nil
 	}
@@ -159,7 +159,7 @@ func (e *soEngine) checkpointStable(ctx context.Context, snap sobject.SharedObje
 // errStableCheckpointStale when prefix is no longer stable in state.
 func (e *soEngine) adoptStableCheckpoint(
 	ctx context.Context,
-	host sobject.InviteHost,
+	host sobject.StateHost,
 	state *sobject.SOState,
 	prefix [][]byte,
 	data []byte,
@@ -191,7 +191,7 @@ func (e *soEngine) adoptStableCheckpoint(
 
 // encodeCheckpointData encrypts World data with the current key epoch of
 // state.
-func (e *soEngine) encodeCheckpointData(ctx context.Context, host sobject.InviteHost, state *sobject.SOState, data []byte) ([]byte, error) {
+func (e *soEngine) encodeCheckpointData(ctx context.Context, host sobject.StateHost, state *sobject.SOState, data []byte) ([]byte, error) {
 	xfrm, err := e.participant(host, state).GetTransformer(ctx)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func (e *soEngine) encodeCheckpointData(ctx context.Context, host sobject.Invite
 }
 
 // participant returns the local participant's view of state.
-func (e *soEngine) participant(host sobject.InviteHost, state *sobject.SOState) *sobject.SOStateParticipantHandle {
+func (e *soEngine) participant(host sobject.StateHost, state *sobject.SOState) *sobject.SOStateParticipantHandle {
 	return sobject.NewSOStateParticipantHandle(e.c.le, e.c.sfs, e.so.GetSharedObjectID(), state, host.GetPrivKey(), e.so.GetPeerID())
 }
 
@@ -210,7 +210,7 @@ func (e *soEngine) participant(host sobject.InviteHost, state *sobject.SOState) 
 // has not placed them.
 func (e *soEngine) ProposeCheckpoint(ctx context.Context, state *sobject.SOState) (*sobject.SOCheckpointInner, error) {
 	// Only a host that can decrypt proposes, under the write lock.
-	host, ok := e.so.(sobject.InviteHost)
+	host, ok := e.so.(sobject.StateHost)
 	if !ok {
 		return nil, nil
 	}
@@ -255,7 +255,7 @@ func (e *soEngine) ProposeCheckpoint(ctx context.Context, state *sobject.SOState
 // not yet stable.
 func (e *soEngine) JudgeCheckpoint(ctx context.Context, state *sobject.SOState, inner *sobject.SOCheckpointInner) (bool, bool, error) {
 	// Only a host that can decrypt judges, under the write lock.
-	host, ok := e.so.(sobject.InviteHost)
+	host, ok := e.so.(sobject.StateHost)
 	if !ok {
 		return false, false, nil
 	}

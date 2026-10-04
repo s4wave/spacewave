@@ -121,16 +121,23 @@ type ReplayReporter interface {
 	SetUnorderedCount(n uint32)
 }
 
+// StateHost is an optional interface on SharedObject implementations that hold
+// the state on this device. The World engine checkpoints and votes in the
+// group's decisions through it.
+type StateHost interface {
+	// GetSOHost returns the SOHost holding the state.
+	GetSOHost() *SOHost
+	// GetPrivKey returns the private key of the local participant.
+	GetPrivKey() crypto.PrivKey
+}
+
 // InviteHost is an optional interface on SharedObject implementations that
 // support invite creation and management. Both local and spacewave providers
 // implement this.
 type InviteHost interface {
+	StateHost
 	InviteMutator
 
-	// GetSOHost returns the SOHost for invite operations.
-	GetSOHost() *SOHost
-	// GetPrivKey returns the private key for signing invite messages.
-	GetPrivKey() crypto.PrivKey
 	// GetProviderID returns the provider identifier for the invite message.
 	GetProviderID() string
 }
@@ -305,6 +312,7 @@ func (op *SOOperation) UnmarshalInner() (*SOOperationInner, error) {
 
 // Validate performs cursory checks on the SOOperation.
 func (op *SOOperation) Validate() error {
+	// Bound the inner data size.
 	if len(op.GetInner()) == 0 {
 		return ErrEmptyInnerData
 	}
@@ -312,17 +320,12 @@ func (op *SOOperation) Validate() error {
 		return ErrMaxSizeExceeded
 	}
 
+	// Check the signature and the inner data it covers.
 	if err := op.GetSignature().Validate(); err != nil {
 		return err
 	}
-
-	// Unmarshal and validate the inner data
 	_, err := op.UnmarshalInner()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // Validate performs cursory checks on the SOOperationInner.
