@@ -30,28 +30,12 @@ type WorldEngine struct {
 	// via WorldEngine.Release when done; Engine itself does not own it.
 	Cursor *bucket_lookup.Cursor
 
+	// so is the shared object whose published head Engine follows.
+	so *CdnSharedObject
+	// bucketID is the CDN block store ID that authored refs resolve through.
+	bucketID string
 	// refresh runs the head-ref watcher goroutine; owned by Release.
 	refresh *routine.RoutineContainer
-}
-
-// Release releases the underlying cursor and stops the refresh routine.
-// Safe to call more than once; the cursor's own Release guards against
-// double-release.
-func (w *WorldEngine) Release() {
-	// Stop head updates before releasing their backing resources.
-	if w == nil {
-		return
-	}
-	if w.refresh != nil {
-		w.refresh.ClearContext()
-		w.refresh = nil
-	}
-
-	// Drop the cursor reference held for this engine.
-	if w.Cursor != nil {
-		w.Cursor.Release()
-		w.Cursor = nil
-	}
 }
 
 // NewWorldEngine builds a read-only *world_block.Engine against the CDN
@@ -148,7 +132,12 @@ func NewWorldEngine(
 	}
 
 	// Retain the engine and cursor for release after the caller finishes reading.
-	w := &WorldEngine{Engine: bengine, Cursor: cursor}
+	w := &WorldEngine{
+		Engine:   bengine,
+		Cursor:   cursor,
+		so:       so,
+		bucketID: bucketID,
+	}
 
 	// Follow published heads for the lifetime of the returned engine.
 	watchable, _, _ := so.AccessSharedObjectState(ctx, nil)
@@ -159,27 +148,11 @@ func NewWorldEngine(
 			nil,
 			watchable,
 			func(_ sobject.SharedObjectStateSnapshot) error {
-				// Decode the newly published CDN head before updating the readable world.
-				nextInner, innerErr := so.GetHeadInnerState()
-				if innerErr != nil {
-					le.WithError(innerErr).
-						Warn("cdn engine refresh: decode head inner state failed")
-					return nil
-				}
-				if nextInner == nil || nextInner.GetHeadRef() == nil {
-					return nil
-				}
-
-				// Resolve the new world head through the CDN bucket and apply it to the engine.
-				nextRef := nextInner.GetHeadRef().CloneVT()
-				nextRef.BucketId = bucketID
-				if setErr := bengine.SetRootRef(rctx, nextRef); setErr != nil {
+				if err := w.applyHead(rctx); err != nil {
 					if rctx.Err() != nil {
 						return rctx.Err()
 					}
-					le.WithError(setErr).
-						Warn("cdn engine refresh: SetRootRef failed")
-					return nil
+					le.WithError(err).Warn("cdn engine refresh failed")
 				}
 				return nil
 			},
@@ -188,4 +161,53 @@ func NewWorldEngine(
 	})
 	w.refresh.SetContext(ctx, true)
 	return w, nil
+}
+
+// Release releases the underlying cursor and stops the refresh routine.
+// Safe to call more than once; the cursor's own Release guards against
+// double-release.
+func (w *WorldEngine) Release() {
+	// Stop head updates before releasing their backing resources.
+	if w == nil {
+		return
+	}
+	if w.refresh != nil {
+		w.refresh.ClearContext()
+		w.refresh = nil
+	}
+
+	// Drop the cursor reference held for this engine.
+	if w.Cursor != nil {
+		w.Cursor.Release()
+		w.Cursor = nil
+	}
+}
+
+// Refresh fetches the published root pointer and advances Engine to its head
+// before returning. The refresh routine applies the same head when it observes
+// the new snapshot, so a caller that must read the new head right away, such
+// as the writer of the root pointer, calls Refresh instead of waiting for it.
+func (w *WorldEngine) Refresh(ctx context.Context) error {
+	if err := w.so.RefreshSnapshot(ctx); err != nil {
+		return err
+	}
+	return w.applyHead(ctx)
+}
+
+// applyHead advances Engine to the shared object's published head. It does
+// nothing before the first published head.
+func (w *WorldEngine) applyHead(ctx context.Context) error {
+	// Decode the published head.
+	inner, err := w.so.GetHeadInnerState()
+	if err != nil {
+		return errors.Wrap(err, "decode cdn head inner state")
+	}
+	if inner.GetHeadRef() == nil {
+		return nil
+	}
+
+	// Resolve the head through the CDN bucket and apply it to the engine.
+	ref := inner.GetHeadRef().CloneVT()
+	ref.BucketId = w.bucketID
+	return errors.Wrap(w.Engine.SetRootRef(ctx, ref), "set cdn head")
 }
