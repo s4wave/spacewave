@@ -164,7 +164,8 @@ func (t *TxReclaim) ExecuteTx(
 		)
 	}
 
-	// Require an active Execution and the exact claim being replaced.
+	// Require an active Execution and the exact claim being replaced. The new
+	// claim may reuse the replaced claim's id: the epoch fences its old holder.
 	if err := root.GetExecutionState().EnsureMatches(
 		forge_execution.State_ExecutionState_RUNNING,
 		forge_execution.State_ExecutionState_CANCELING,
@@ -173,9 +174,6 @@ func (t *TxReclaim) ExecuteTx(
 	}
 	if err := checkClaimEpoch(root.GetClaim().GetEpoch(), t.GetExpectedClaimEpoch()); err != nil {
 		return err
-	}
-	if root.GetClaim().GetClaimId() == t.GetClaimId() {
-		return errors.New("reclaim requires a new claim_id")
 	}
 
 	// Require the sender to have observed the current lease expire.

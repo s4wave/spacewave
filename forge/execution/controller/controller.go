@@ -59,9 +59,9 @@ type Controller struct {
 	objLoop *world_control.WatchLoop
 	// execRoutine executes the target under its granted claim.
 	execRoutine *routine.StateRoutineContainer[*ExecConfig]
-	// reclaimRoutine reclaims the Execution once the claim lease of another
-	// controller expires.
-	reclaimRoutine *routine.StateRoutineContainer[*foreignClaim]
+	// reclaimRoutine reclaims the Execution once the lease of a claim this
+	// controller cannot run under expires.
+	reclaimRoutine *routine.StateRoutineContainer[*reclaimableClaim]
 	// cancelCtx closes once durable cancellation is observed, including for late listeners.
 	cancelCtx context.Context
 	// cancel signals durable cancellation independently of controller restarts.
@@ -115,9 +115,9 @@ func NewController(
 	)
 	c.execRoutine.SetStateRoutine(c.executeWithConfig)
 
-	// Reclaim the Execution when the claim of another controller expires.
+	// Reclaim the Execution when a claim this controller cannot run under expires.
 	c.reclaimRoutine = routine.NewStateRoutineContainerWithLogger(
-		compareForeignClaim,
+		compareReclaimableClaim,
 		le.WithField("routine", "reclaim"),
 		routine.WithRetry(&backoff.Backoff{}),
 	)
@@ -196,23 +196,23 @@ func (c *Controller) ProcessState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
-	execConfig, foreign, waitForChanges, err := c.processExecutionState(ctx, le, ws, obj, rootRef, rev)
+	execConfig, reclaimable, waitForChanges, err := c.processExecutionState(ctx, le, ws, obj, rootRef, rev)
 	c.execRoutine.SetState(execConfig)
-	c.reclaimRoutine.SetState(foreign)
+	c.reclaimRoutine.SetState(reclaimable)
 	return waitForChanges, err
 }
 
 // processExecutionState reconciles the Execution state and returns the exec
 // routine config to apply, or nil to clear the routine. It also returns the
-// claim held by another controller, or nil when this controller may run the
-// Execution.
+// claim to reclaim once its lease expires, or nil when this controller may run
+// the Execution.
 func (c *Controller) processExecutionState(
 	ctx context.Context,
 	le *logrus.Entry,
 	ws world.WorldState,
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
-) (execConfig *ExecConfig, foreign *foreignClaim, waitForChanges bool, err error) {
+) (execConfig *ExecConfig, reclaimable *reclaimableClaim, waitForChanges bool, err error) {
 	// Wait for the Execution object before reconciling its durable state.
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
@@ -288,12 +288,16 @@ func (c *Controller) processExecutionState(
 		return nil, nil, true, nil
 	}
 
-	// Observe another controller's claim without starting its target, and
-	// reclaim the Execution once that claim lease expires.
-	if exState.GetClaim().GetClaimId() != c.claimID {
-		le.Debug("observing execution owned by another controller")
-		foreign = &foreignClaim{peerID: peerID, claim: exState.GetClaim()}
-		return nil, foreign, true, nil
+	// Run only a claim granted to this controller whose lease stays live past the
+	// fence of its Lease. A restarted controller derives the id of its previous
+	// run's claim, so a matching id alone does not show a live holder. Observe any
+	// other claim without starting its target, and reclaim the Execution once its
+	// lease expires.
+	claim := exState.GetClaim()
+	if claim.GetClaimId() != c.claimID || claim.LeaseExpired(time.Now().Add(forge_execution.ClaimClockSkew)) {
+		le.Debug("observing execution claim this controller cannot run under")
+		reclaimable = &reclaimableClaim{peerID: peerID, claim: claim}
+		return nil, reclaimable, true, nil
 	}
 
 	// Require the authoritative peer before executing this controller's claim.
@@ -378,7 +382,7 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = (*Controller)(nil)
+var _ world_control.WatchLoopHandler = (*Controller)(nil).ProcessState
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = (*Controller)(nil).ProcessState
+var _ controller.Controller = (*Controller)(nil)

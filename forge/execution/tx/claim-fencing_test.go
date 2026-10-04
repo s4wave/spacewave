@@ -338,3 +338,30 @@ func TestReclaimCancelingExecution(t *testing.T) {
 		t.Fatalf("claim = %q/%d, want owner-2/2", got.GetClaimId(), got.GetEpoch())
 	}
 }
+
+// TestReclaimOwnLapsedClaim replaces a lapsed claim with the same claim identity.
+func TestReclaimOwnLapsedClaim(t *testing.T) {
+	// Lapse a claim, as when its controller restarts and derives the same id.
+	f := newClaimFixture(t)
+	now := time.Now()
+	if err := f.apply(t, NewTxStart(f.peerID, now.Add(-time.Minute), "owner-1")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Require the same id to take the claim under a new epoch.
+	if err := f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-1", 1, now, now.Add(time.Hour), nil)); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.execution(t).GetClaim(); got.GetClaimId() != "owner-1" || got.GetEpoch() != 2 {
+		t.Fatalf("claim = %q/%d, want owner-1/2", got.GetClaimId(), got.GetEpoch())
+	}
+
+	// Require the epoch to fence the writes of the previous run.
+	err := f.apply(t, NewTxComplete(
+		forge_value.NewResultWithSuccess(),
+		&forge_execution.Claim{ClaimId: "owner-1", Epoch: 1},
+	))
+	if _, ok := errors.AsType[*StaleClaimEpochError](err); !ok {
+		t.Fatalf("stale completion error = %v, want StaleClaimEpochError", err)
+	}
+}
