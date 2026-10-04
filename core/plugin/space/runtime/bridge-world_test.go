@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	resource_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
 	"github.com/s4wave/spacewave/core/resource/registration"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
@@ -66,7 +67,7 @@ func TestBridgeAttachedWorldWatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addTestController(t, child, bus_bridge.NewBusBridge(tb.Bus, bridgeFilter(nil)))
+	addTestController(t, child, bus_bridge.NewBusBridge(tb.Bus, bridgeFilter(&plugin_space.Config{EngineId: tb.EngineID}, nil)))
 	mount := resource_world.NewEngineResource(tb.Logger, child, tb.Engine, nil, &sdk_world.EngineInfo{EngineId: tb.EngineID})
 	t.Cleanup(mount.Close)
 

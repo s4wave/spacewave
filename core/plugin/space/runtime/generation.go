@@ -121,7 +121,7 @@ func (g *Generation) start(
 		factoryOpts = append(factoryOpts, plugin_space.WithLoadTarget(parent))
 	}
 	resolver.AddFactory(plugin_space.NewFactory(child, factoryOpts...))
-	if err := g.addController(ctx, child, bus_bridge.NewBusBridge(parent, bridgeFilter(appPluginIDs))); err != nil {
+	if err := g.addController(ctx, child, bus_bridge.NewBusBridge(parent, bridgeFilter(conf, appPluginIDs))); err != nil {
 		return err
 	}
 

@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	resource_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
 	"github.com/s4wave/spacewave/core/resource/registration"
 	"github.com/s4wave/spacewave/db/volume"
@@ -56,15 +57,18 @@ func testAppBridge(t *testing.T, plugins []string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addTestController(t, child, bus_bridge.NewBusBridge(parent, bridgeFilter(plugins)))
+	conf := &plugin_space.Config{EngineId: "engine", VolumeId: "volume"}
+	addTestController(t, child, bus_bridge.NewBusBridge(parent, bridgeFilter(conf, plugins)))
 
-	// Infrastructure and declared app plugin lookups reach the parent.
+	// The Space's own World, its volumes, infrastructure, and declared app plugin
+	// lookups reach the parent.
 	forwarded := []directive.Directive{
 		world.NewLookupWorldEngine("engine"),
 		world.NewLookupWorldOp("operation", "engine"),
 		objecttype.NewLookupObjectTypeForEngine("test/type", "engine"),
 		volume.NewLookupVolume("volume", ""),
 		volume.NewBuildObjectStoreAPI("store", "volume"),
+		volume.NewLookupVolume(bldr_plugin.PluginVolumeID, ""),
 		plugin_host_root.NewLookupRoot([]string{"desktop/darwin/arm64"}),
 	}
 	for _, id := range plugins {
@@ -75,9 +79,16 @@ func testAppBridge(t *testing.T, plugins []string) {
 		recorder.waitFor(t, dir)
 	}
 
-	// Space plugin loads, manifests, and RPC services stay inside the
-	// generation.
+	// Other Spaces' Worlds, other volumes, Space plugin loads, manifests, and RPC
+	// services stay inside the generation.
 	kept := []directive.Directive{
+		world.NewLookupWorldEngine("other-engine"),
+		world.NewLookupWorldEngine(""),
+		world.NewLookupWorldOp("operation", "other-engine"),
+		world.NewLookupWorldOp("operation", ""),
+		volume.NewLookupVolume("other-volume", ""),
+		volume.NewLookupVolume("", ""),
+		volume.NewBuildObjectStoreAPI("store", "other-volume"),
 		plugin_host.NewLookupPluginHost(nil),
 		bldr_plugin.NewLoadPluginInstanced("plugin", "space-a"),
 		bldr_manifest.NewFetchManifest("plugin", nil, nil, 0),
@@ -204,7 +215,7 @@ func TestBridgeScopedObjectTypeLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	addTestController(t, child, bus_bridge.NewBusBridge(parent, bridgeFilter(nil)))
+	addTestController(t, child, bus_bridge.NewBusBridge(parent, bridgeFilter(&plugin_space.Config{EngineId: "engine-a"}, nil)))
 	addTestController(t, parent, bus_bridge.NewBusBridge(child, parentFilter("engine-a", nil)))
 	registerBridgedObjectType(t, resources, rootClient, "engine-b", "other")
 
