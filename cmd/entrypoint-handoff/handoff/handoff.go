@@ -60,8 +60,6 @@ type Args struct {
 	OutDir string
 	// BrowserStagingDir is the browser staging tree recorded in a handoff manifest.
 	BrowserStagingDir string
-	// StaticManifestPath is the static-manifest.ts path recorded in a handoff manifest.
-	StaticManifestPath string
 	// CLIArtifactsDir is the public CLI artifact directory for a CLI handoff manifest.
 	CLIArtifactsDir string
 	// ReactDev builds browser entrypoints in development mode.
@@ -128,7 +126,6 @@ func Run(ctx context.Context, args *Args) error {
 		return WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
 			RootDir:            args.OutDir,
 			BrowserStagingDir:  args.BrowserStagingDir,
-			StaticManifestPath: args.StaticManifestPath,
 			Version:            args.Version,
 			Rev:                args.Rev,
 			GitSHA:             args.GitSHA,
@@ -1167,10 +1164,7 @@ func validateBrowserBundleArtifacts(repoDir string) error {
 	); err != nil {
 		return err
 	}
-	if err := requireNonEmptyFile(filepath.Join(repoDir, "staging", "static", "index.html"), "browser index html"); err != nil {
-		return err
-	}
-	return requireNonEmptyFile(filepath.Join(repoDir, "app", "prerender", "dist", "static-manifest.ts"), "static manifest")
+	return requireNonEmptyFile(filepath.Join(repoDir, "staging", "static", "index.html"), "browser index html")
 }
 
 func requireNonEmptyFile(path, label string) error {
@@ -1272,12 +1266,6 @@ func stageOutputs(repoDir, outDir string, includeBrowser bool) error {
 func stageBrowserOutputs(repoDir, outDir string) error {
 	if err := copyTree(filepath.Join(repoDir, "staging"), filepath.Join(outDir, "browser-staging")); err != nil {
 		return errors.Wrap(err, "stage browser tree")
-	}
-	if err := copyFile(
-		filepath.Join(repoDir, "app", "prerender", "dist", "static-manifest.ts"),
-		filepath.Join(outDir, "static-manifest.ts"),
-	); err != nil {
-		return errors.Wrap(err, "stage static-manifest.ts")
 	}
 	return nil
 }

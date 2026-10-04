@@ -18,7 +18,6 @@ import (
 type EntrypointHandoffOptions struct {
 	RootDir            string
 	BrowserStagingDir  string
-	StaticManifestPath string
 	Version            string
 	Rev                string
 	GitSHA             string
@@ -32,7 +31,6 @@ type EntrypointHandoffOptions struct {
 
 type entrypointHandoffManifest struct {
 	browserStaging []*entrypointHandoffEntry
-	staticManifest *entrypointHandoffEntry
 	opts           EntrypointHandoffOptions
 }
 
@@ -50,9 +48,6 @@ func WriteEntrypointHandoffManifest(opts EntrypointHandoffOptions) error {
 	}
 	if opts.BrowserStagingDir == "" {
 		return errors.New("browser staging dir is required")
-	}
-	if opts.StaticManifestPath == "" {
-		return errors.New("static manifest path is required")
 	}
 	if opts.Version == "" {
 		return errors.New("version is required")
@@ -76,19 +71,9 @@ func WriteEntrypointHandoffManifest(opts EntrypointHandoffOptions) error {
 		return errors.New("browser staging files are required")
 	}
 
-	// Require the static manifest at the handoff root.
-	staticEntry, err := buildEntrypointHandoffEntry(opts.RootDir, opts.StaticManifestPath)
-	if err != nil {
-		return errors.Wrap(err, "collect static manifest")
-	}
-	if staticEntry.Path != "static-manifest.ts" {
-		return errors.New("static manifest path must be static-manifest.ts")
-	}
-
 	// Write the entrypoint handoff manifest with its files and provenance.
 	manifest := &entrypointHandoffManifest{
 		browserStaging: browserEntries,
-		staticManifest: staticEntry,
 		opts:           opts,
 	}
 	if err := os.WriteFile(filepath.Join(opts.RootDir, "manifest.json"), []byte(marshalEntrypointHandoffManifest(manifest)), 0o644); err != nil {
@@ -183,7 +168,8 @@ func marshalEntrypointHandoffManifest(manifest *entrypointHandoffManifest) strin
 	writeEntrypointJSONField(&b, 1, "source_repo", opts.SourceRepo, true)
 	writeEntrypointJSONField(&b, 1, "workflow", opts.Workflow, true)
 
-	// Write the browser staging entries in their collected order.
+	// Write the browser staging entries in their collected order and close
+	// the handoff.
 	b.WriteString("  \"browser_staging\": [\n")
 	for i, entry := range manifest.browserStaging {
 		b.WriteString("    ")
@@ -193,12 +179,7 @@ func marshalEntrypointHandoffManifest(manifest *entrypointHandoffManifest) strin
 		}
 		b.WriteByte('\n')
 	}
-
-	// Write the static manifest entry and close the entrypoint handoff.
-	b.WriteString("  ],\n")
-	b.WriteString("  \"static_manifest\": ")
-	writeEntrypointHandoffEntry(&b, manifest.staticManifest)
-	b.WriteString("\n}\n")
+	b.WriteString("  ]\n}\n")
 	return b.String()
 }
 

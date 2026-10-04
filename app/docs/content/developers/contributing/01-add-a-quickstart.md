@@ -101,9 +101,8 @@ bun run vite build --config app/prerender/vite.ssr.config.ts
 bun run app/prerender/ssr-dist/build.js --dist-dir .bldr-dist/build/js/spacewave-browser/dist
 ```
 
-The last command writes the public HTML, `static-manifest.ts`, and
-`sitemap.xml` under `app/prerender/dist/`. Check that the new route is in the
-manifest and the sitemap. Then open the generated page in the local release
+The last command writes the public HTML and `sitemap.xml` under
+`app/prerender/dist/`. Check that the new route is in the sitemap. Then open the generated page in the local release
 preview. Keep these files in the release output. Publishing them is a separate
 release step.
 

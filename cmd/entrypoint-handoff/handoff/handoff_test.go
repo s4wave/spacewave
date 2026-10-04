@@ -69,20 +69,17 @@ func TestNeedsBuilderImage(t *testing.T) {
 }
 
 func TestWriteEntrypointHandoffManifestRecordsStringRevisionAndFiles(t *testing.T) {
-	// Create browser release files and the static manifest in a handoff root.
+	// Create browser release files in a handoff root.
 	root := t.TempDir()
 	browserRelease := filepath.Join(root, "browser-staging", "app", "browser-release.json")
 	staticIndex := filepath.Join(root, "browser-staging", "static", "index.html")
-	staticManifest := filepath.Join(root, "static-manifest.ts")
 	writeTestFile(t, browserRelease)
 	writeTestFile(t, staticIndex)
-	writeTestFile(t, staticManifest)
 
 	// Write an entrypoint handoff with a string revision and source provenance.
 	if err := WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
 		RootDir:            root,
 		BrowserStagingDir:  filepath.Join(root, "browser-staging"),
-		StaticManifestPath: staticManifest,
 		Version:            "0.51.7",
 		Rev:                "31",
 		GitSHA:             "abc123",
@@ -115,7 +112,7 @@ func TestWriteEntrypointHandoffManifestRecordsStringRevisionAndFiles(t *testing.
 		t.Fatalf("run_id = %q, want 123", got)
 	}
 
-	// Verify the browser entries and static manifest use handoff-relative paths.
+	// Verify the browser entries use handoff-relative paths.
 	entries := v.GetArray("browser_staging")
 	if len(entries) != 2 {
 		t.Fatalf("browser_staging entries = %d, want 2", len(entries))
@@ -123,18 +120,18 @@ func TestWriteEntrypointHandoffManifestRecordsStringRevisionAndFiles(t *testing.
 	if got := string(entries[0].GetStringBytes("path")); got != "browser-staging/app/browser-release.json" {
 		t.Fatalf("first browser path = %q", got)
 	}
-	if got := string(v.GetStringBytes("static_manifest", "path")); got != "static-manifest.ts" {
-		t.Fatalf("static manifest path = %q", got)
-	}
 }
 
 func TestWriteEntrypointHandoffManifestRejectsSymlink(t *testing.T) {
-	// Create a handoff whose static manifest is a symlink.
+	// Create a handoff whose browser staging tree holds a symlink.
 	root := t.TempDir()
 	browserRelease := filepath.Join(root, "browser-staging", "app", "browser-release.json")
-	staticManifest := filepath.Join(root, "static-manifest.ts")
+	link := filepath.Join(root, "browser-staging", "static", "index.html")
 	writeTestFile(t, browserRelease)
-	if err := os.Symlink(browserRelease, staticManifest); err != nil {
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(browserRelease, link); err != nil {
 		t.Skipf("symlink unavailable: %v", err)
 	}
 
@@ -142,7 +139,6 @@ func TestWriteEntrypointHandoffManifestRejectsSymlink(t *testing.T) {
 	err := WriteEntrypointHandoffManifest(EntrypointHandoffOptions{
 		RootDir:            root,
 		BrowserStagingDir:  filepath.Join(root, "browser-staging"),
-		StaticManifestPath: staticManifest,
 		Version:            "0.51.7",
 		Rev:                "31",
 		GitSHA:             "abc123",
@@ -154,7 +150,7 @@ func TestWriteEntrypointHandoffManifestRejectsSymlink(t *testing.T) {
 		Workflow:           "entrypoint-release",
 	})
 
-	// Verify the handoff writer rejects the static manifest symlink.
+	// Verify the handoff writer rejects the symlink.
 	if err == nil || !strings.Contains(err.Error(), "must not be a symlink") {
 		t.Fatalf("expected symlink rejection, got %v", err)
 	}
@@ -351,11 +347,10 @@ func TestValidatePackagedArtifactsAcceptsCompleteMatrix(t *testing.T) {
 }
 
 func TestValidateBrowserBundleArtifactsChecksBrowserOutputs(t *testing.T) {
-	// Create the browser release metadata, index, and static manifest.
+	// Create the browser release metadata and index.
 	dir := t.TempDir()
 	writeTestFile(t, filepath.Join(dir, "staging", "app", "browser-release.json"))
 	writeTestFile(t, filepath.Join(dir, "staging", "static", "index.html"))
-	writeTestFile(t, filepath.Join(dir, "app", "prerender", "dist", "static-manifest.ts"))
 
 	// Verify the complete browser output passes validation.
 	if err := validateBrowserBundleArtifacts(dir); err != nil {

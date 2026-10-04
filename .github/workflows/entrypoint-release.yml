@@ -1036,7 +1036,6 @@ jobs:
             fi
           done
           cp -R .tmp/entrypoint-parts/browser/browser-staging .tmp/entrypoint-handoff/browser-staging
-          cp .tmp/entrypoint-parts/browser/static-manifest.ts .tmp/entrypoint-handoff/static-manifest.ts
 
       - name: Setup Go
         uses: actions/setup-go@v7
@@ -1077,7 +1076,6 @@ jobs:
             --write-handoff-manifest \
             --out-dir .tmp/entrypoint-handoff \
             --browser-staging-dir .tmp/entrypoint-handoff/browser-staging \
-            --static-manifest-path .tmp/entrypoint-handoff/static-manifest.ts \
             --version "${{ needs.prep.outputs.version }}" \
             --rev "${{ needs.prep.outputs.rev }}" \
             --tag "${{ needs.prep.outputs.tag }}" \
