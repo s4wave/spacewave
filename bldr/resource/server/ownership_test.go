@@ -3,12 +3,12 @@ package resource_server
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 )
 
+// ownershipTestClient seeds a live resource generation for tree-lifetime checks.
 func ownershipTestClient(t *testing.T) (*ResourceServer, *RemoteResourceClient) {
 	// Build a server and one registered client with a seeded root resource.
 	t.Helper()
@@ -27,26 +27,24 @@ func ownershipTestClient(t *testing.T) (*ResourceServer, *RemoteResourceClient) 
 	client.resources[1] = &trackedResource{
 		mux:           srpc.NewMux(),
 		ownerClientID: 1,
-		createdAt:     server.now(),
 	}
 	return server, client
 }
 
+// TestPendingChildrenReleasePostorderAndRootRetention checks pending tree cleanup.
 func TestPendingChildrenReleasePostorderAndRootRetention(t *testing.T) {
 	// Add a pending child and grandchild invocation resource with release recorders.
 	_, client := ownershipTestClient(t)
 	var order []uint32
 	releaseChild := func() { order = append(order, 2) }
-	child, err := client.addInvocationResource(
-		1, "svc", "method", srpc.NewMux(), nil, releaseChild,
-	)
+	child, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), releaseChild)
 	if err != nil || child != 2 {
 		t.Fatalf("child = %d/%v", child, err)
 	}
+
+	// Register a pending grandchild beneath the child.
 	releaseGrandchild := func() { order = append(order, 3) }
-	grandchild, err := client.addInvocationResource(
-		child, "svc", "method", srpc.NewMux(), nil, releaseGrandchild,
-	)
+	grandchild, err := newResourceRPCContext(client, child).AddResource(srpc.NewMux(), releaseGrandchild)
 	if err != nil || grandchild != 3 {
 		t.Fatalf("grandchild = %d/%v", grandchild, err)
 	}
@@ -69,14 +67,13 @@ func TestPendingChildrenReleasePostorderAndRootRetention(t *testing.T) {
 	}
 }
 
+// TestGenerationCleanupReleasesAdoptedTreeChildFirst checks disconnect cleanup.
 func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 	// Add and adopt a pending child invocation resource.
 	_, client := ownershipTestClient(t)
 	var order []uint32
 	releaseChild := func() { order = append(order, 2) }
-	child, err := client.addInvocationResource(
-		1, "svc", "method", srpc.NewMux(), nil, releaseChild,
-	)
+	child, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), releaseChild)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,9 +83,7 @@ func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 
 	// Add and adopt a grandchild under the adopted child.
 	releaseGrandchild := func() { order = append(order, 3) }
-	grandchild, err := client.addInvocationResource(
-		child, "svc", "method", srpc.NewMux(), nil, releaseGrandchild,
-	)
+	grandchild, err := newResourceRPCContext(client, child).AddResource(srpc.NewMux(), releaseGrandchild)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,10 +105,11 @@ func TestGenerationCleanupReleasesAdoptedTreeChildFirst(t *testing.T) {
 	}
 }
 
+// TestAdoptedChildSurvivesParentReleaseAndTombstoneNotifies checks independent adoption.
 func TestAdoptedChildSurvivesParentReleaseAndTombstoneNotifies(t *testing.T) {
 	// Add and adopt a pending child invocation resource.
 	_, client := ownershipTestClient(t)
-	child, err := client.addInvocationResource(1, "svc", "method", srpc.NewMux(), nil, nil)
+	child, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,10 +143,11 @@ func TestAdoptedChildSurvivesParentReleaseAndTombstoneNotifies(t *testing.T) {
 	}
 }
 
+// TestChildAfterParentReleaseRejected checks registration cannot revive a released tree.
 func TestChildAfterParentReleaseRejected(t *testing.T) {
 	// Add a pending child, then release it as a parent whose invocation runs on.
 	_, client := ownershipTestClient(t)
-	parent, err := client.addInvocationResource(1, "svc", "parent", srpc.NewMux(), nil, nil)
+	parent, err := newResourceRPCContext(client, 1).AddResource(srpc.NewMux(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +158,7 @@ func TestChildAfterParentReleaseRejected(t *testing.T) {
 	// Register the late child and verify it is rejected without allocation.
 	var released bool
 	releaseChild := func() { released = true }
-	child, err := client.addInvocationResource(parent, "svc", "child", srpc.NewMux(), nil, releaseChild)
+	child, err := newResourceRPCContext(client, parent).AddResource(srpc.NewMux(), releaseChild)
 	if err != resource.ErrResourceNotFound || child != 0 {
 		t.Fatalf("late child = %d/%v, want ErrResourceNotFound", child, err)
 	}
@@ -173,6 +170,7 @@ func TestChildAfterParentReleaseRejected(t *testing.T) {
 	}
 }
 
+// TestForeignAndNeverAllocatedControlsTerminate checks unknown controls are refused.
 func TestForeignAndNeverAllocatedControlsTerminate(t *testing.T) {
 	_, client := ownershipTestClient(t)
 	if _, err := client.releaseClientControl(999); err != resource.ErrResourceNotFound {
@@ -183,67 +181,32 @@ func TestForeignAndNeverAllocatedControlsTerminate(t *testing.T) {
 	}
 }
 
-func TestPendingWarningRunsOnceWithoutChangingLifetime(t *testing.T) {
-	// Configure the server to report pending resources immediately.
-	server, client := ownershipTestClient(t)
-	server.pendingWarningAge = 0
-	warnings := make(chan pendingResourceWarning, 1)
-	server.pendingWarningHandler = func(warning pendingResourceWarning) {
-		warnings <- warning
-	}
-
-	// Start the pending resource scanner in the background.
-	ctx, cancel := context.WithCancel(t.Context())
-	t.Cleanup(cancel)
-	scanDone := make(chan struct{})
-	go func() {
-		server.scanPendingResources(ctx, client)
-		close(scanDone)
-	}()
-
-	// Add the first pending resource and verify its warning fires once.
-	firstID, err := client.addInvocationResource(1, "svc", "first", srpc.NewMux(), nil, nil)
+// TestUnpublishedCleanupPreservesAdoptedResource checks adoption wins cleanup.
+func TestUnpublishedCleanupPreservesAdoptedResource(t *testing.T) {
+	// Adopt a child while its creating handler still retains publication state.
+	_, client := ownershipTestClient(t)
+	invocation := newResourceRPCContext(client, 1)
+	releases := 0
+	id, err := invocation.AddResource(srpc.NewMux(), func() { releases++ })
 	if err != nil {
 		t.Fatal(err)
 	}
-	select {
-	case warning := <-warnings:
-		if warning.resourceID != firstID {
-			t.Fatalf("first warning resource = %d, want %d", warning.resourceID, firstID)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("first pending resource warning was not reported")
+	if !client.adoptResource(id) {
+		t.Fatal("adoption failed")
 	}
 
-	// Add a second pending resource and verify its warning fires once.
-	secondID, err := client.addInvocationResource(1, "svc", "second", srpc.NewMux(), nil, nil)
-	if err != nil {
-		t.Fatal(err)
+	// Complete the invocation and preserve the independently adopted child.
+	invocation.releaseUnpublished()
+	if client.resources[id] == nil || releases != 0 {
+		t.Fatal("invocation cleanup released an adopted child")
 	}
-	select {
-	case warning := <-warnings:
-		if warning.resourceID != secondID {
-			t.Fatalf("second warning resource = %d, want %d", warning.resourceID, secondID)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("second pending resource warning was not reported")
+	if _, err := invocation.AddResource(srpc.NewMux(), nil); err != context.Canceled {
+		t.Fatalf("late registration error = %v, want context.Canceled", err)
 	}
 
-	// Stop the scanner and verify no duplicate warnings were reported.
-	cancel()
-	<-scanDone
-	select {
-	case warning := <-warnings:
-		t.Fatalf("duplicate warning = %#v", warning)
-	default:
-	}
-
-	// Verify the scanner did not change the client's resource set.
-	var resourceCount int
-	server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		resourceCount = len(client.resources)
-	})
-	if resourceCount != 3 {
-		t.Fatalf("scanner changed resources: %d", resourceCount)
+	// Release the child's own lifetime exactly once.
+	client.ReleaseResource(id)
+	if releases != 1 {
+		t.Fatalf("release callbacks = %d, want 1", releases)
 	}
 }

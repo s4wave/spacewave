@@ -4,42 +4,38 @@ import (
 	"context"
 	"slices"
 	"sync"
-	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/resource"
-	"github.com/sirupsen/logrus"
 )
 
 // ResourceServer serves one root resource and its client-owned descendants.
 type ResourceServer struct {
+	// rootResourceMux serves the retained root for every generation.
 	rootResourceMux srpc.Invoker
-	le              *logrus.Entry
 
-	pendingWarningAge     time.Duration
-	now                   func() time.Time
-	pendingWarningHandler func(pendingResourceWarning)
-
-	// bcast guards the client and resource lifecycle state below
-	bcast             broadcast.Broadcast
+	// bcast guards the client and resource lifecycle state below.
+	bcast broadcast.Broadcast
+	// clientHandleIDCtr allocates immutable generation IDs under bcast.
 	clientHandleIDCtr uint32
-	resourceIDCtr     uint32
-	clients           map[uint32]*RemoteResourceClient
+	// resourceIDCtr allocates resource IDs across generations under bcast.
+	resourceIDCtr uint32
+	// clients retains live generations under bcast.
+	clients map[uint32]*RemoteResourceClient
 }
 
 // NewResourceServer constructs a ResourceServer for rootResourceMux.
 func NewResourceServer(rootResourceMux srpc.Invoker) *ResourceServer {
+	// Supply an empty service mux when the caller has no root methods.
 	if rootResourceMux == nil {
 		rootResourceMux = srpc.NewMux()
 	}
+
 	return &ResourceServer{
-		rootResourceMux:   rootResourceMux,
-		le:                logrus.NewEntry(logrus.New()),
-		pendingWarningAge: 10 * time.Second,
-		now:               time.Now,
-		clients:           make(map[uint32]*RemoteResourceClient),
+		rootResourceMux: rootResourceMux,
+		clients:         make(map[uint32]*RemoteResourceClient),
 	}
 }
 
@@ -97,7 +93,6 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 		client.resources[rootID] = &trackedResource{
 			mux:           s.rootResourceMux,
 			ownerClientID: clientHandleID,
-			createdAt:     s.now(),
 		}
 		broadcast()
 	})
@@ -132,7 +127,6 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 			}
 		}
 	}()
-	go s.scanPendingResources(clientCtx, client)
 
 	// Process controls and server-originated release notifications in order.
 	for {
@@ -166,6 +160,7 @@ func (s *ResourceServer) ResourceClient(strm resource.SRPCResourceService_Resour
 	}
 }
 
+// releaseClientGeneration removes all generation resources and runs their cleanup.
 func (s *ResourceServer) releaseClientGeneration(client *RemoteResourceClient) {
 	// Stop attached resource transports before clearing generation state.
 	client.releaseAllAttachedResources()
@@ -239,24 +234,6 @@ func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceR
 		return &resourceServerClientInvoker{mux: mux, client: client, parentResourceID: resourceID}, nil
 	})
 }
-
-type resourceServerClientInvoker struct {
-	mux              srpc.Invoker
-	client           *RemoteResourceClient
-	parentResourceID uint32
-}
-
-func (c *resourceServerClientInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	if c.client == nil {
-		return c.mux.InvokeMethod(serviceID, methodID, strm)
-	}
-	resourceCtx := newResourceRPCContext(c.client, c.parentResourceID, serviceID, methodID)
-	childCtx := WithResourceClientContext(strm.Context(), resourceCtx)
-	return c.mux.InvokeMethod(serviceID, methodID, srpc.NewStreamWithContext(strm, childCtx))
-}
-
-// _ is a type assertion.
-var _ resource.SRPCResourceServiceServer = (*ResourceServer)(nil)
 
 // ResourceAttach allows a client to provide resources that server-side
 // RPC handlers can invoke via getAttachedRef(id). One stream = one yamux

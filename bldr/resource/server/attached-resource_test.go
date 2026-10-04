@@ -11,13 +11,16 @@ import (
 
 // mockSRPCClient implements srpc.Client for testing.
 type mockSRPCClient struct {
+	// id distinguishes clients in attachment lookup assertions.
 	id int
 }
 
+// ExecCall accepts unused test calls without executing a handler.
 func (m *mockSRPCClient) ExecCall(ctx context.Context, service, method string, in, out srpc.Message) error {
 	return nil
 }
 
+// NewStream accepts unused stream calls without opening a transport.
 func (m *mockSRPCClient) NewStream(ctx context.Context, service, method string, firstMsg srpc.Message) (srpc.Stream, error) {
 	return nil, nil
 }
@@ -40,7 +43,6 @@ func newTestClient(t *testing.T) (*RemoteResourceClient, context.CancelFunc) {
 	client.resources[1] = &trackedResource{
 		mux:           srpc.NewMux(),
 		ownerClientID: 1,
-		createdAt:     s.now(),
 	}
 	s.resourceIDCtr = 1
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -49,12 +51,14 @@ func newTestClient(t *testing.T) (*RemoteResourceClient, context.CancelFunc) {
 	return client, cancel
 }
 
+// resourceServerWaitCh observes the next server resource-state transition.
 func resourceServerWaitCh(s *ResourceServer) <-chan struct{} {
 	locked := s.bcast.Lock()
 	defer locked.Unlock()
 	return locked.WaitCh()
 }
 
+// assertWaitChClosed requires a previously captured state transition to fire.
 func assertWaitChClosed(t *testing.T, waitCh <-chan struct{}) {
 	t.Helper()
 	select {
@@ -64,6 +68,7 @@ func assertWaitChClosed(t *testing.T, waitCh <-chan struct{}) {
 	}
 }
 
+// TestAddAttachedResource_Success checks published resource lookup.
 func TestAddAttachedResource_Success(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -86,6 +91,7 @@ func TestAddAttachedResource_Success(t *testing.T) {
 	}
 }
 
+// TestAddAttachedResource_InitializesMap checks the first attachment allocates its map.
 func TestAddAttachedResource_InitializesMap(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -104,6 +110,7 @@ func TestAddAttachedResource_InitializesMap(t *testing.T) {
 	}
 }
 
+// TestAddAttachedResource_ReleasedClient checks retired generations reject publication.
 func TestAddAttachedResource_ReleasedClient(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -122,6 +129,7 @@ func TestAddAttachedResource_ReleasedClient(t *testing.T) {
 	}
 }
 
+// TestRemoveAttachedResource_Success checks attachment removal runs both callbacks.
 func TestRemoveAttachedResource_Success(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -160,6 +168,7 @@ func TestRemoveAttachedResource_Success(t *testing.T) {
 	}
 }
 
+// TestReleaseResourceRemovesAttachedResource checks the shared release interface.
 func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -198,12 +207,13 @@ func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
 	}
 }
 
-func TestAddResourceValueWakesPendingScanner(t *testing.T) {
+// TestAddResourceValueWakesCountWaiters checks registration publishes a count change.
+func TestAddResourceValueWakesCountWaiters(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
 	defer cancel()
 
-	// Add a resource value and require the pending scanner wake.
+	// Add a resource value and require the resource-count waiter's wake.
 	waitCh := resourceServerWaitCh(client.server)
 	if _, err := client.AddResourceValue(srpc.NewMux(), &mockSRPCClient{id: 2}, nil); err != nil {
 		t.Fatalf("AddResourceValue: %v", err)
@@ -211,6 +221,7 @@ func TestAddResourceValueWakesPendingScanner(t *testing.T) {
 	assertWaitChClosed(t, waitCh)
 }
 
+// TestReleaseResourceWakesClientQueue checks owned-resource release wakes waiters.
 func TestReleaseResourceWakesClientQueue(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -230,6 +241,7 @@ func TestReleaseResourceWakesClientQueue(t *testing.T) {
 	assertWaitChClosed(t, waitCh)
 }
 
+// TestReleaseAttachedResourceWakesClientQueue checks release notification delivery.
 func TestReleaseAttachedResourceWakesClientQueue(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -254,6 +266,7 @@ func TestReleaseAttachedResourceWakesClientQueue(t *testing.T) {
 	}
 }
 
+// TestRemoveAttachedResource_NotFound checks removal is idempotent for unknown IDs.
 func TestRemoveAttachedResource_NotFound(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()
@@ -262,6 +275,7 @@ func TestRemoveAttachedResource_NotFound(t *testing.T) {
 	client.RemoveAttachedResource(999)
 }
 
+// TestRemoveAttachedResourceDoesNotAffectOthers checks independent attachment lifetimes.
 func TestRemoveAttachedResourceDoesNotAffectOthers(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -310,6 +324,7 @@ func TestRemoveAttachedResourceDoesNotAffectOthers(t *testing.T) {
 	}
 }
 
+// TestGetAttachedResource_Success checks attachment identity survives lookup.
 func TestGetAttachedResource_Success(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -336,6 +351,7 @@ func TestGetAttachedResource_Success(t *testing.T) {
 	}
 }
 
+// TestGetAttachedResource_NotFound checks lookup reports an absent resource.
 func TestGetAttachedResource_NotFound(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()
@@ -346,6 +362,7 @@ func TestGetAttachedResource_NotFound(t *testing.T) {
 	}
 }
 
+// TestAddResourceValueAndGetResourceValue checks retained in-process resource values.
 func TestAddResourceValueAndGetResourceValue(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
@@ -368,6 +385,7 @@ func TestAddResourceValueAndGetResourceValue(t *testing.T) {
 	}
 }
 
+// TestGetResourceValueNotFound checks lookup reports an absent value.
 func TestGetResourceValueNotFound(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()
@@ -378,6 +396,7 @@ func TestGetResourceValueNotFound(t *testing.T) {
 	}
 }
 
+// TestReleaseAllAttachedResources_CancelsAll checks disconnect retires every attachment.
 func TestReleaseAllAttachedResources_CancelsAll(t *testing.T) {
 	// Start a test client with a seeded root resource.
 	client, cancel := newTestClient(t)
