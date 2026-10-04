@@ -3,11 +3,10 @@
 package provider_spacewave
 
 import (
-	"context"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
-	"strings"
 	"syscall/js"
 	"testing"
 	"time"
@@ -20,31 +19,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// syncBrowserTransport consumes production upload requests without a paid service.
+// syncBrowserTransport serves production push requests from a local push
+// server without a network or a paid service.
 type syncBrowserTransport struct {
-	// cloud retains immutable uploads for lower-store duplicate probes.
-	cloud *compactTestCloud
-	// requests counts uploads made by SessionClient.
-	requests int
-	// bytes counts encoded HTTP request bodies.
-	bytes int64
+	push *testPushServer
 }
 
-// RoundTrip consumes an upload and returns the successful local fixture response.
+// RoundTrip serves req from the push server.
 func (s *syncBrowserTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Retain the uploaded pack before acknowledging its publication.
-	data, err := io.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
-	}
-	s.cloud.mtx.Lock()
-	s.cloud.packs[req.Header.Get("X-Pack-ID")] = data
-	s.cloud.mtx.Unlock()
-
-	// Count the request and return the local success response.
-	s.requests++
-	s.bytes += int64(len(data))
-	return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("")), Header: make(http.Header)}, nil
+	rec := httptest.NewRecorder()
+	s.push.ServeHTTP(rec, req)
+	return rec.Result(), nil
 }
 
 // TestSyncBrowserDrainScaling1000 measures the small offline backlog.
@@ -64,15 +49,13 @@ func TestSyncBrowserDrainScaling100000(t *testing.T) {
 
 // testSyncBrowserDrainScaling exercises real OPFS metadata, queue, and packing.
 func testSyncBrowserDrainScaling(t *testing.T, count int) {
-	// Mark the browser-only helper and require its OPFS storage API.
+	// Skip without OPFS: the Bun runtime has none, so run with goscript test --browser.
 	t.Helper()
-
-	// The Bun runtime has no OPFS; run with goscript test --browser.
 	if nav := js.Global().Get("navigator"); nav.IsUndefined() || nav.Get("storage").IsUndefined() {
 		t.Skip("browser OPFS is unavailable in this runtime")
 	}
 
-	// Open a disposable OPFS directory for the real queue metadata.
+	// Create a fresh OPFS directory removed when the test ends.
 	ctx := t.Context()
 	driver := opfs.BrowserDriver{}
 	root, err := driver.GetRoot()
@@ -86,7 +69,7 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 	}
 	t.Cleanup(func() { driver.DeleteEntry(root, name, true) })
 
-	// Keep the native browser metadata backend alive for the entire drain.
+	// Open the volume and a measured pack catalog over its metadata store.
 	backend := engine.NewBrowserBackend(driver, dir, name)
 	volume, err := engine.Open(ctx, backend)
 	if err != nil {
@@ -99,18 +82,11 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 		t.Fatal(err)
 	}
 
-	// Acknowledge uploads only after their bytes can serve duplicate probes.
-	cloud := &compactTestCloud{packs: make(map[string][]byte)}
-	transport := &syncBrowserTransport{cloud: cloud}
-	lower := packfile_store.NewPackfileStore(cloud.open, nil)
-	t.Cleanup(lower.Close)
+	// Build a syncer whose client pushes to a local push server.
+	push := newTestPushServer(t, "https://local.invalid")
+	transport := &syncBrowserTransport{push: push}
 	key, peer := generateTestKeypair(t)
 	client := NewSessionClient(&http.Client{Transport: transport}, "https://local.invalid", DefaultSigningEnvPrefix, key, peer.String())
-	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-		return submit("local-test-ticket")
-	}
-
-	// Construct the sync controller over the OPFS metadata and remote pack reader.
 	logger := logrus.New()
 	logger.SetOutput(io.Discard)
 	syncer := &syncController{
@@ -118,7 +94,7 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 		mfst: catalog, lower: lower, upper: newSyncTestBlockStore(),
 	}
 
-	// Queue distinct blocks whose count controls the pack ceiling.
+	// Mark count small blocks dirty.
 	marks := make([]block_store_writeback.Mark, 0, count)
 	for n := range count {
 		data := []byte("offline-block-" + strconv.Itoa(n))
@@ -132,19 +108,20 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 		t.Fatal(err)
 	}
 
-	// Measure a complete drain through the production packer and client.
+	// Drain the queue, counting metadata visits.
 	metadata.visits.Store(0)
 	started := time.Now()
 	if err := syncer.FlushNowUnordered(ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	// Require bounded metadata reads and the expected upload count.
+	// The drain visited each mark twice and pushed one pack per page.
 	if metadata.visits.Load() != int64(count*2) || metadata.page.Load() > syncDirtyPageLimit {
 		t.Fatalf("unbounded queue work: visits=%d page=%d", metadata.visits.Load(), metadata.page.Load())
 	}
-	if transport.requests != (count+4095)/4096 {
-		t.Fatalf("paging changed pack count: %d", transport.requests)
+	uploads, uploaded := push.uploadTotals()
+	if uploads != (count+4095)/4096 {
+		t.Fatalf("paging changed pack count: %d", uploads)
 	}
-	t.Logf("blocks=%d visits=%d max-read=%d uploads=%d upload-bytes=%d elapsed=%s", count, metadata.visits.Load(), metadata.page.Load(), transport.requests, transport.bytes, time.Since(started))
+	t.Logf("blocks=%d visits=%d max-read=%d uploads=%d upload-bytes=%d elapsed=%s", count, metadata.visits.Load(), metadata.page.Load(), uploads, uploaded, time.Since(started))
 }

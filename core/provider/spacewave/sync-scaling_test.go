@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -48,31 +47,15 @@ func TestSyncDrainScaling(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Count actual upload requests and bytes with the production client.
-			var requests, uploaded atomic.Int64
-			server, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// Count each body received at the upload boundary.
-				n, err := io.Copy(io.Discard, r.Body)
-				if err != nil {
-					t.Error(err)
-				}
-				requests.Add(1)
-				uploaded.Add(n)
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(server.Close)
-
-			// Configure an authorized client with readable remote packs.
+			// Count actual uploads with the production client.
+			push := startTestPushServer(t)
 			key, peer := generateTestKeypair(t)
-			client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peer.String())
-			client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-				return submit("local-test-ticket")
-			}
+			client := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, key, peer.String())
 			logger := logrus.New()
 			logger.SetOutput(io.Discard)
 			syncer := &syncController{
 				le: logrus.NewEntry(logger), store: metadata, client: client, resourceID: "scaling",
-				mfst: catalog, lower: lower, upper: newSyncTestBlockStore(),
+				mfst: catalog, lower: push.lower(t), upper: newSyncTestBlockStore(),
 			}
 
 			// Use unique small blocks so the block-count pack ceiling controls batching.
@@ -101,16 +84,20 @@ func TestSyncDrainScaling(t *testing.T) {
 			// Compare the drained queue and work counters with the input size.
 			elapsed := time.Since(started)
 			runtime.ReadMemStats(&after)
+
+			// Require an empty queue, bounded queue work and one pack per 4096
+			// blocks.
 			if first, size, _ := syncer.pendingSnapshot(); !first.IsZero() || size != 0 {
 				t.Fatalf("drained queue remains pending: first=%v bytes=%d", first, size)
 			}
 			if metadata.visits.Load() != int64(count*2) || metadata.page.Load() > syncDirtyPageLimit {
 				t.Fatalf("unbounded queue work: visits=%d page=%d", metadata.visits.Load(), metadata.page.Load())
 			}
-			if requests.Load() != int64((count+4095)/4096) {
-				t.Fatalf("paging changed pack count: %d", requests.Load())
+			uploads, uploaded := push.uploadTotals()
+			if uploads != (count+4095)/4096 {
+				t.Fatalf("paging changed pack count: %d", uploads)
 			}
-			t.Logf("blocks=%d visits=%d max-read=%d allocated=%d uploads=%d upload-bytes=%d elapsed=%s", count, metadata.visits.Load(), metadata.page.Load(), after.TotalAlloc-before.TotalAlloc, requests.Load(), uploaded.Load(), elapsed)
+			t.Logf("blocks=%d visits=%d max-read=%d allocated=%d uploads=%d upload-bytes=%d elapsed=%s", count, metadata.visits.Load(), metadata.page.Load(), after.TotalAlloc-before.TotalAlloc, uploads, uploaded, elapsed)
 		})
 	}
 }

@@ -14,9 +14,8 @@ type writeTicketAudience = writeticketowner.Audience
 
 // write-ticket audience constants.
 const (
-	writeTicketAudienceSOOp           = writeticketowner.AudienceSOOp
-	writeTicketAudienceSOCheckpoint   = writeticketowner.AudienceSOCheckpoint
-	writeTicketAudienceBstoreSyncPush = writeticketowner.AudienceBstoreSyncPush
+	writeTicketAudienceSOOp         = writeticketowner.AudienceSOOp
+	writeTicketAudienceSOCheckpoint = writeticketowner.AudienceSOCheckpoint
 )
 
 // newWriteTicketOwner constructs a write-ticket owner for one resource.

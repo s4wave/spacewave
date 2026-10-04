@@ -450,48 +450,6 @@ func TestMarshalSObjectWriteTicketProofPayload(t *testing.T) {
 	}
 }
 
-// TestMarshalSyncPushWriteTicketProofPayload verifies sync/push proof payloads
-// bind the precomputed body hash and critical upload headers.
-func TestMarshalSyncPushWriteTicketProofPayload(t *testing.T) {
-	bodyHash := []byte{0xaa, 0xbb, 0xcc}
-	bloom := []byte{0x01, 0x02, 0x03}
-	payloadBytes, err := marshalSyncPushWriteTicketProofPayload(
-		"ticket-456",
-		http.MethodPost,
-		"/api/bstore/01/sync/push",
-		"application/octet-stream",
-		42,
-		&syncPushPack{
-			packID:          "pack-1",
-			blockCount:      12,
-			bodyHash:        bodyHash,
-			bloomFilter:     bloom,
-			replacedPackIDs: []string{"pack-a", "pack-b"},
-		},
-		123456790,
-	)
-	if err != nil {
-		t.Fatalf("marshalSyncPushWriteTicketProofPayload: %v", err)
-	}
-
-	var payload api.WriteTicketProofPayload
-	if err := payload.UnmarshalVT(payloadBytes); err != nil {
-		t.Fatalf("unmarshal payload: %v", err)
-	}
-	if payload.GetTicket() != "ticket-456" {
-		t.Fatalf("unexpected ticket: %q", payload.GetTicket())
-	}
-	if payload.GetSignedHeaders() != "content-type=application%2Foctet-stream,x-block-count=12,x-bloom-filter=AQID,x-pack-id=pack-1,x-replaces-pack-ids=pack-a%2Cpack-b" {
-		t.Fatalf("unexpected signed headers: %q", payload.GetSignedHeaders())
-	}
-	if payload.GetBodyHashHex() != hex.EncodeToString(bodyHash) {
-		t.Fatalf("unexpected body hash: %q", payload.GetBodyHashHex())
-	}
-	if payload.GetContentLength() != 42 {
-		t.Fatalf("unexpected content length: %d", payload.GetContentLength())
-	}
-}
-
 // TestDoPost_Success verifies doPost sends a signed POST and returns the body.
 func TestDoPost_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,20 +19,22 @@ const (
 	signAlgorithm   = "AWS4-HMAC-SHA256"
 	signService     = "s3"
 	signRequestName = "aws4_request"
+	amzDateFormat   = "20060102T150405Z"
+	dateStampFormat = "20060102"
 )
+
+// unsignedPayload is the payload hash of a presigned request, whose body the
+// signature does not cover.
+const unsignedPayload = "UNSIGNED-PAYLOAD"
 
 // signV4 signs an http request using AWS Signature Version 4.
 // payloadHash must be hex-encoded sha256 of the request body.
 // If the client has no access key, only the date and content-sha256 headers
 // are added (anonymous request).
 func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
-	// Format the signing time for the request date and credential scope.
+	// Set the headers every request carries, signed or anonymous.
 	t := now.UTC()
-	amzDate := t.Format("20060102T150405Z")
-	dateStamp := t.Format("20060102")
-
-	// Attach payload and date headers, including the session token when present.
-	req.Header.Set("X-Amz-Date", amzDate)
+	req.Header.Set("X-Amz-Date", t.Format(amzDateFormat))
 	req.Header.Set("X-Amz-Content-Sha256", payloadHash)
 	if c.token != "" {
 		req.Header.Set("X-Amz-Security-Token", c.token)
@@ -40,52 +43,91 @@ func (c *Client) signV4(req *http.Request, payloadHash string, now time.Time) {
 		return
 	}
 
-	// Canonicalize the request headers and object path for signing.
-	signedHeaders, canonicalHeaders := canonicalRequestHeaders(req)
-	canonicalURI := uriEncode(req.URL.Path, false)
-
-	// Build the canonical S3 request from its method, path, query, and payload.
-	canonicalRequest := strings.Join([]string{
+	// Sign the canonical request and attach the authorization header.
+	signedHeaders, canonicalHeaders := canonicalRequestHeaders(req.URL.Host, req.Header)
+	credScope, signature := c.sign(t, strings.Join([]string{
 		req.Method,
-		canonicalURI,
+		uriEncode(req.URL.Path, false),
 		canonicalQuery(req.URL.Query()),
 		canonicalHeaders,
 		signedHeaders,
 		payloadHash,
-	}, "\n")
-
-	// Build the string to sign for the S3 region and request date.
-	credScope := dateStamp + "/" + c.region + "/" + signService + "/" + signRequestName
-	stringToSign := strings.Join([]string{
-		signAlgorithm,
-		amzDate,
-		credScope,
-		hexSHA256([]byte(canonicalRequest)),
-	}, "\n")
-
-	// Derive the S3 signing key and calculate the request signature.
-	kDate := hmacSHA256([]byte("AWS4"+c.secretKey), dateStamp)
-	kRegion := hmacSHA256(kDate, c.region)
-	kService := hmacSHA256(kRegion, signService)
-	kSigning := hmacSHA256(kService, signRequestName)
-	signature := hex.EncodeToString(hmacSHA256(kSigning, stringToSign))
-
-	// Attach the credential scope, signed headers, and signature to the request.
+	}, "\n"))
 	req.Header.Set("Authorization",
 		signAlgorithm+" Credential="+c.accessKey+"/"+credScope+
 			", SignedHeaders="+signedHeaders+
 			", Signature="+signature)
 }
 
-// canonicalRequestHeaders returns the SignedHeaders list and CanonicalHeaders block.
-// CanonicalHeaders ends with a trailing newline as required by SigV4.
-func canonicalRequestHeaders(req *http.Request) (signed string, canonical string) {
-	// Collect normalized request headers while excluding authorization.
+// presignV4 adds an AWS Signature Version 4 query signature to u that
+// authorizes method on u with header for expires from now. The request must
+// send each header with the given value. The signature does not cover the
+// body.
+func (c *Client) presignV4(method string, u *url.URL, header http.Header, expires time.Duration, now time.Time) {
+	// Canonicalize the headers the upload must send.
+	t := now.UTC()
+	signedHeaders, canonicalHeaders := canonicalRequestHeaders(u.Host, header)
+
+	// Add the signing parameters the signature covers to the query.
+	query := u.Query()
+	query.Set("X-Amz-Algorithm", signAlgorithm)
+	query.Set("X-Amz-Credential", c.accessKey+"/"+c.credentialScope(t))
+	query.Set("X-Amz-Date", t.Format(amzDateFormat))
+	query.Set("X-Amz-Expires", strconv.Itoa(int(expires/time.Second)))
+	query.Set("X-Amz-SignedHeaders", signedHeaders)
+	if c.token != "" {
+		query.Set("X-Amz-Security-Token", c.token)
+	}
+
+	// Sign the canonical request and append the signature.
+	_, signature := c.sign(t, strings.Join([]string{
+		method,
+		uriEncode(u.Path, false),
+		canonicalQuery(query),
+		canonicalHeaders,
+		signedHeaders,
+		unsignedPayload,
+	}, "\n"))
+	query.Set("X-Amz-Signature", signature)
+	u.RawQuery = canonicalQuery(query)
+}
+
+// sign returns the credential scope at t and the hex signature of the
+// canonical request.
+func (c *Client) sign(t time.Time, canonicalRequest string) (credScope, signature string) {
+	// Build the string to sign over the canonical request.
+	credScope = c.credentialScope(t)
+	stringToSign := strings.Join([]string{
+		signAlgorithm,
+		t.Format(amzDateFormat),
+		credScope,
+		hexSHA256([]byte(canonicalRequest)),
+	}, "\n")
+
+	// Derive the signing key for the day and region, then sign.
+	dateStamp := t.Format(dateStampFormat)
+	kDate := hmacSHA256([]byte("AWS4"+c.secretKey), dateStamp)
+	kRegion := hmacSHA256(kDate, c.region)
+	kService := hmacSHA256(kRegion, signService)
+	kSigning := hmacSHA256(kService, signRequestName)
+	return credScope, hex.EncodeToString(hmacSHA256(kSigning, stringToSign))
+}
+
+// credentialScope returns the credential scope of a signature at t.
+func (c *Client) credentialScope(t time.Time) string {
+	return t.Format(dateStampFormat) + "/" + c.region + "/" + signService + "/" + signRequestName
+}
+
+// canonicalRequestHeaders returns the SignedHeaders list and CanonicalHeaders
+// block of host and header. CanonicalHeaders ends with a trailing newline as
+// required by SigV4.
+func canonicalRequestHeaders(host string, header http.Header) (signed string, canonical string) {
+	// Collect the lowercase names and trimmed values of host and header.
 	headers := map[string]string{
-		"host": req.URL.Host,
+		"host": host,
 	}
 	keys := []string{"host"}
-	for name, vals := range req.Header {
+	for name, vals := range header {
 		lname := strings.ToLower(name)
 		if lname == "authorization" {
 			continue
@@ -94,7 +136,7 @@ func canonicalRequestHeaders(req *http.Request) (signed string, canonical string
 		headers[lname] = strings.TrimSpace(strings.Join(vals, ","))
 	}
 
-	// Write sorted canonical headers and the signed header list.
+	// Write the sorted names and their values.
 	slices.Sort(keys)
 	var hb, sb strings.Builder
 	for i, k := range keys {
@@ -134,7 +176,7 @@ func canonicalQuery(query url.Values) string {
 // uriEncode percent-encodes per AWS S3 SigV4 rules.
 // If encodeSlash is false, '/' is left unescaped (used for the canonical URI).
 func uriEncode(s string, encodeSlash bool) string {
-	// Encode the object path or query value using S3 percent-encoding rules.
+	// Copy unreserved bytes and percent-encode the rest.
 	const hexChars = "0123456789ABCDEF"
 	var b strings.Builder
 	b.Grow(len(s))

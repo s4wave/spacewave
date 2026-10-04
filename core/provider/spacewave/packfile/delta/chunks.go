@@ -17,7 +17,7 @@ import (
 )
 
 // DefaultMaxChunkBytes is the encoded byte ceiling for a delta chunk.
-// The default leaves headroom under the Worker sync/push body cap.
+// The default leaves headroom under the cloud's pack size limit.
 const DefaultMaxChunkBytes int64 = writer.DefaultMaxPackBytes
 
 // ChunkEmitter receives complete KVFiles in emission order. Returning an error

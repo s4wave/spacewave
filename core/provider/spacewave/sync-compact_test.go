@@ -24,9 +24,11 @@ import (
 
 // compactTestCloud serves pack bytes to the lower store and records pushes.
 type compactTestCloud struct {
-	mtx   sync.Mutex
+	mtx sync.Mutex
+	// base is the URL prefix of upload URLs.
+	base  string
 	packs map[string][]byte
-	// pushes are the X-Replaces-Pack-IDs values of each push, in order.
+	// pushes are the comma-joined replaced pack IDs of each push, in order.
 	pushes []string
 	// pulls counts sync pull requests.
 	pulls int
@@ -39,33 +41,48 @@ type compactTestCloud struct {
 
 // ServeHTTP accepts pushes into packs and answers pulls with an empty delta.
 func (c *compactTestCloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Answer pulls with an empty delta under the lock.
+	// Read the request under the lock.
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	if strings.HasSuffix(r.URL.Path, "/sync/pull") {
-		c.pulls++
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	// Record the push and reject it when configured.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	c.pushes = append(c.pushes, r.Header.Get("X-Replaces-Pack-IDs"))
-	if c.reject != 0 {
-		w.WriteHeader(c.reject)
-		_, _ = w.Write([]byte(c.rejectBody))
-		return
-	}
+	switch {
+	case strings.HasSuffix(r.URL.Path, "/sync/pull"):
+		// Answer pulls with an empty delta.
+		c.pulls++
+		w.WriteHeader(http.StatusOK)
 
-	// Store the pushed pack and signal the push.
-	c.packs[r.Header.Get("X-Pack-ID")] = body
-	w.WriteHeader(http.StatusOK)
-	if c.pushed != nil {
-		c.pushed <- struct{}{}
+	case strings.HasSuffix(r.URL.Path, "/sync/push"):
+		// Record the push and reject it when configured.
+		req := &packfile.PushRequest{}
+		if err := req.UnmarshalVT(body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		c.pushes = append(c.pushes, strings.Join(req.GetReplacesPackIds(), ","))
+		if c.reject != 0 {
+			w.WriteHeader(c.reject)
+			_, _ = w.Write([]byte(c.rejectBody))
+			return
+		}
+		data, _ := (&packfile.PushResponse{
+			PackId: req.GetPackId(),
+			Upload: &packfile.PushUpload{Url: c.base + "/upload/" + req.GetPackId()},
+		}).MarshalVT()
+		_, _ = w.Write(data)
+
+	case strings.HasPrefix(r.URL.Path, "/upload/"):
+		// Store the uploaded pack.
+		c.packs[strings.TrimPrefix(r.URL.Path, "/upload/")] = body
+
+	default:
+		// Signal the commit.
+		if c.pushed != nil {
+			c.pushed <- struct{}{}
+		}
 	}
 }
 
@@ -132,11 +149,9 @@ func newCompactTestController(t *testing.T, cloud *compactTestCloud, packs [][]s
 	// Build a signed session client against the test cloud.
 	srv := httptest.NewServer(cloud)
 	t.Cleanup(srv.Close)
+	cloud.base = srv.URL
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, fn func(string) error) error {
-		return fn("ticket-push")
-	}
 
 	// Build the sync controller over the manifest and cloud-backed store.
 	lower := packfile_store.NewPackfileStore(cloud.open, nil)

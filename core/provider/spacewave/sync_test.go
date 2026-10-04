@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,7 +18,6 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/broadcast"
-	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	packfile_delta "github.com/s4wave/spacewave/core/provider/spacewave/packfile/delta"
 	packfile_manifest "github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
@@ -125,16 +122,14 @@ func TestSyncPull_ServerError(t *testing.T) {
 	}
 }
 
-// TestSyncPush_MissingWriteTicketExecutor verifies SyncPush fails locally when
-// the write-ticket executor is unavailable.
-func TestSyncPush_MissingWriteTicketExecutor(t *testing.T) {
+// TestSyncPush verifies SyncPush admits the pack, uploads the file to the
+// signed URL, and commits it.
+func TestSyncPush(t *testing.T) {
+	// Serve the push protocol for a pack of known bytes.
 	fileContent := []byte("packfile-binary-data-for-testing")
 	h := sha256.Sum256(fileContent)
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-	}))
-	defer srv.Close()
+	bloomFilter := []byte("bloom-filter-bytes")
+	push := startTestPushServer(t)
 
 	// Write the test file.
 	tmpFile, err := os.CreateTemp(t.TempDir(), "test-pack-*.bin")
@@ -148,264 +143,84 @@ func TestSyncPush_MissingWriteTicketExecutor(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Push the file.
 	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	err = cli.SyncPush(context.Background(), "test-res", "test-pack-id", 42, tmpFile.Name(), h[:], nil, packfile.BloomFormatVersionV1)
-	if err == nil || !strings.Contains(err.Error(), "missing write-ticket executor") {
-		t.Fatalf("expected missing write-ticket executor error, got %v", err)
-	}
-}
-
-// TestSyncPush_UsesWriteTicketWhenConfigured verifies SyncPush switches to the
-// write-ticket proof path when the shared ticket executor is configured.
-func TestSyncPush_UsesWriteTicketWhenConfigured(t *testing.T) {
-	fileContent := []byte("packfile-binary-data-for-testing")
-	h := sha256.Sum256(fileContent)
-	bloomFilter := []byte("bloom-filter-bytes")
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Errorf("expected POST, got %s", r.Method)
-		}
-		if r.URL.Path != "/api/bstore/test-res/sync/push" {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		if got := r.Header.Get("X-Write-Ticket"); got != "ticket-push" {
-			t.Errorf("unexpected write ticket: %q", got)
-		}
-		if r.Header.Get("X-Signature") != "" {
-			t.Error("signed auth should not be used on the write-ticket path")
-		}
-		if r.Header.Get("X-Peer-ID") != "" {
-			t.Error("write-ticket path should not set X-Peer-ID on the outer request")
-		}
-		if got := r.Header.Get("X-Sw-Hash"); got != hex.EncodeToString(h[:]) {
-			t.Errorf("unexpected X-Sw-Hash: %q", got)
-		}
-		if got := r.Header.Get(SeedReasonHeader); got != string(SeedReasonMutation) {
-			t.Errorf("unexpected seed reason: %q", got)
-		}
-
-		body, _ := io.ReadAll(r.Body)
-		if string(body) != string(fileContent) {
-			t.Errorf("body mismatch: got %d bytes, want %d", len(body), len(fileContent))
-		}
-
-		proofB64 := r.Header.Get("X-Write-Proof")
-		if proofB64 == "" {
-			t.Fatal("missing X-Write-Proof")
-		}
-		proofBytes, err := base64.StdEncoding.DecodeString(proofB64)
-		if err != nil {
-			t.Fatalf("decode proof: %v", err)
-		}
-		var proof api.WriteTicketProof
-		if err := proof.UnmarshalVT(proofBytes); err != nil {
-			t.Fatalf("unmarshal proof: %v", err)
-		}
-		var payload api.WriteTicketProofPayload
-		if err := payload.UnmarshalVT(proof.GetPayload()); err != nil {
-			t.Fatalf("unmarshal proof payload: %v", err)
-		}
-		if payload.GetTicket() != "ticket-push" {
-			t.Errorf("unexpected proof ticket: %q", payload.GetTicket())
-		}
-		if payload.GetMethod() != http.MethodPost {
-			t.Errorf("unexpected proof method: %q", payload.GetMethod())
-		}
-		if payload.GetPath() != "/api/bstore/test-res/sync/push" {
-			t.Errorf("unexpected proof path: %q", payload.GetPath())
-		}
-		if payload.GetContentLength() != int64(len(body)) {
-			t.Errorf("unexpected proof content length: %d", payload.GetContentLength())
-		}
-		if payload.GetBodyHashHex() != hex.EncodeToString(h[:]) {
-			t.Errorf("unexpected proof body hash: %q", payload.GetBodyHashHex())
-		}
-		if payload.GetSignedHeaders() != "content-type=application%2Foctet-stream,x-block-count=42,x-bloom-filter="+base64.StdEncoding.EncodeToString(bloomFilter)+",x-pack-id=test-pack-id" {
-			t.Errorf("unexpected proof signed headers: %q", payload.GetSignedHeaders())
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	tmpFile, err := os.CreateTemp(t.TempDir(), "test-pack-*.bin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tmpFile.Write(fileContent); err != nil {
-		t.Fatal(err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		if resourceID != "test-res" {
-			t.Errorf("unexpected resource id: %s", resourceID)
-		}
-		if audience != writeTicketAudienceBstoreSyncPush {
-			t.Errorf("unexpected audience: %s", audience)
-		}
-		return fn("ticket-push")
-	}
-
-	err = cli.SyncPush(
-		context.Background(),
-		"test-res",
-		"test-pack-id",
-		42,
-		tmpFile.Name(),
-		h[:],
-		bloomFilter,
-		packfile.BloomFormatVersionV1,
-	)
+	cli := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String())
+	err = cli.SyncPush(context.Background(), "test-res", "test-pack-id", 42, tmpFile.Name(), h[:], bloomFilter, packfile.BloomFormatVersionV1)
 	if err != nil {
 		t.Fatalf("SyncPush: %v", err)
 	}
-}
 
-// TestSyncPushData_UsesWriteTicketWhenConfigured verifies SyncPushData also
-// uses the write-ticket proof path when configured.
-func TestSyncPushData_UsesWriteTicketWhenConfigured(t *testing.T) {
-	packData := []byte("inline-pack-data")
-	h := sha256.Sum256(packData)
-	bloomFilter := []byte("bloom-filter-bytes")
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.Header.Get("X-Write-Ticket"); got != "ticket-push-data" {
-			t.Errorf("unexpected write ticket: %q", got)
-		}
-		if r.Header.Get("X-Signature") != "" {
-			t.Error("signed auth should not be used on the write-ticket path")
-		}
-		if got := r.Header.Get("X-Block-Count"); got != strconv.Itoa(3) {
-			t.Errorf("unexpected X-Block-Count: %q", got)
-		}
-		if got := r.Header.Get("X-Bloom-Filter"); got != base64.StdEncoding.EncodeToString(bloomFilter) {
-			t.Errorf("unexpected X-Bloom-Filter: %q", got)
-		}
-		body, _ := io.ReadAll(r.Body)
-		if string(body) != string(packData) {
-			t.Errorf("unexpected body: %q", body)
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		if resourceID != "test-res" {
-			t.Errorf("unexpected resource id: %s", resourceID)
-		}
-		if audience != writeTicketAudienceBstoreSyncPush {
-			t.Errorf("unexpected audience: %s", audience)
-		}
-		return fn("ticket-push-data")
+	// The cloud committed the admitted pack and its bytes.
+	packs := push.committed()
+	if len(packs) != 1 {
+		t.Fatalf("committed %d packs, want 1", len(packs))
 	}
-
-	err := cli.SyncPushData(
-		context.Background(),
-		"test-res",
-		"test-pack-id",
-		3,
-		packData,
-		h[:],
-		bloomFilter,
-		packfile.BloomFormatVersionV1,
-	)
-	if err != nil {
-		t.Fatalf("SyncPushData: %v", err)
+	want := &packfile.PushRequest{
+		PackId:             "test-pack-id",
+		BlockCount:         42,
+		BloomFilter:        bloomFilter,
+		BloomFormatVersion: packfile.BloomFormatVersionV1,
+		SizeBytes:          uint64(len(fileContent)),
+		Sha256:             h[:],
+	}
+	if !packs[0].req.EqualVT(want) {
+		t.Fatalf("push request = %v, want %v", packs[0].req, want)
+	}
+	if !bytes.Equal(packs[0].data, fileContent) {
+		t.Fatalf("uploaded %q, want %q", packs[0].data, fileContent)
 	}
 }
 
-// TestSyncPushData_EnableDirectWriteTickets verifies a standalone session
-// client reuses write tickets when no ProviderAccount owns it.
-func TestSyncPushData_EnableDirectWriteTickets(t *testing.T) {
+// TestSyncPushData_AlreadyExists verifies a pack the catalog holds skips the
+// upload and the commit.
+func TestSyncPushData_AlreadyExists(t *testing.T) {
+	// Serve the push protocol, counting uploads.
 	packData := []byte("inline-pack-data")
 	h := sha256.Sum256(packData)
 	bloomFilter := []byte("bloom-filter-bytes")
+	push := startTestPushServer(t)
+	var uploads atomic.Int32
+	push.onUpload = func(*packfile.PushRequest) { uploads.Add(1) }
 
-	var ticketRequests int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/session/write-tickets/test-res":
-			if r.Method != http.MethodPost {
-				t.Errorf("expected POST, got %s", r.Method)
-			}
-			ticketRequests++
-			resp := &api.WriteTicketBundleResponse{BstoreSyncPushTicket: "ticket-direct"}
-			data, err := resp.MarshalVT()
-			if err != nil {
-				t.Fatalf("marshal ticket response: %v", err)
-			}
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(data)
-		case "/api/bstore/test-res/sync/push":
-			if got := r.Header.Get("X-Write-Ticket"); got != "ticket-direct" {
-				t.Errorf("unexpected write ticket: %q", got)
-			}
-			if got := r.Header.Get("X-Bloom-Filter"); got != base64.StdEncoding.EncodeToString(bloomFilter) {
-				t.Errorf("unexpected X-Bloom-Filter: %q", got)
-			}
-			body, _ := io.ReadAll(r.Body)
-			if string(body) != string(packData) {
-				t.Errorf("unexpected body: %q", body)
-			}
-			w.WriteHeader(http.StatusOK)
-		default:
-			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-		}
-	}))
-	defer srv.Close()
-
+	// Push the same pack twice.
 	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.EnableDirectWriteTickets()
+	cli := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String())
+	for range 2 {
+		err := cli.SyncPushData(context.Background(), "test-res", "test-pack-id", 3, packData, h[:], bloomFilter, packfile.BloomFormatVersionV1)
+		if err != nil {
+			t.Fatalf("SyncPushData: %v", err)
+		}
+	}
 
-	err := cli.SyncPushData(
-		context.Background(),
-		"test-res",
-		"test-pack-id",
-		3,
-		packData,
-		h[:],
-		bloomFilter,
-		packfile.BloomFormatVersionV1,
-	)
-	if err != nil {
-		t.Fatalf("SyncPushData: %v", err)
+	// The second push stopped after admission.
+	if n := uploads.Load(); n != 1 {
+		t.Fatalf("uploads = %d, want 1", n)
 	}
-	err = cli.SyncPushData(
-		context.Background(),
-		"test-res",
-		"test-pack-id-2",
-		3,
-		packData,
-		h[:],
-		bloomFilter,
-		packfile.BloomFormatVersionV1,
-	)
-	if err != nil {
-		t.Fatalf("second SyncPushData: %v", err)
+	if packs := push.committed(); len(packs) != 1 {
+		t.Fatalf("committed %d packs, want 1", len(packs))
 	}
-	if ticketRequests != 1 {
-		t.Fatalf("write ticket requests: got %d, want 1", ticketRequests)
+}
+
+// TestSyncPushData_UploadRefused verifies a refused upload fails the push
+// without a commit.
+func TestSyncPushData_UploadRefused(t *testing.T) {
+	// Serve the push protocol.
+	packData := []byte("inline-pack-data")
+	h := sha256.Sum256([]byte("other-pack-data"))
+	push := startTestPushServer(t)
+
+	// Push bytes that do not match the admitted digest.
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String())
+	err := cli.SyncPushData(context.Background(), "test-res", "test-pack-id", 3, packData, h[:], []byte("bloom"), packfile.BloomFormatVersionV1)
+	if err == nil || !strings.Contains(err.Error(), "storage refused the upload") {
+		t.Fatalf("expected refused upload, got %v", err)
+	}
+
+	// Nothing was committed.
+	if packs := push.committed(); len(packs) != 0 {
+		t.Fatalf("committed %d packs, want 0", len(packs))
 	}
 }
 
@@ -482,9 +297,9 @@ func TestSyncPull_BlockedError_NotRetryable(t *testing.T) {
 
 // TestSyncPush_MissingFile verifies SyncPush returns an error for missing file.
 func TestSyncPush_MissingFile(t *testing.T) {
+	// Push a file that does not exist and require the failure.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, "http://localhost", DefaultSigningEnvPrefix, priv, pid.String())
-
 	err := cli.SyncPush(context.Background(), "test-res", "test-pack-id", 1, "/nonexistent/file.bin", []byte("hash"), nil, packfile.BloomFormatVersionV1)
 	if err == nil {
 		t.Fatal("expected error for missing file")
@@ -493,16 +308,17 @@ func TestSyncPush_MissingFile(t *testing.T) {
 
 // TestSyncPush_ServerError verifies SyncPush returns error on server failure.
 func TestSyncPush_ServerError(t *testing.T) {
+	// Serve every request with a 400.
 	fileContent := []byte("test-data")
 	h := sha256.Sum256(fileContent)
 	bloomFilter := []byte("bloom-filter-bytes")
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte("bad request"))
 	}))
 	defer srv.Close()
 
+	// Write the pack file.
 	tmpFile, err := os.CreateTemp(t.TempDir(), "test-pack-*.bin")
 	if err != nil {
 		t.Fatal(err)
@@ -514,17 +330,9 @@ func TestSyncPush_ServerError(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Push it and require the failure.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
-
 	err = cli.SyncPush(context.Background(), "test-res", "test-pack-id", 1, tmpFile.Name(), h[:], bloomFilter, packfile.BloomFormatVersionV1)
 	if err == nil {
 		t.Fatal("expected error for server failure")
@@ -533,25 +341,17 @@ func TestSyncPush_ServerError(t *testing.T) {
 
 // TestSyncPushData_MissingBloomFilter rejects uploads without a bloom filter.
 func TestSyncPushData_MissingBloomFilter(t *testing.T) {
+	// Fail on any request: the client refuses before sending.
 	packData := []byte("inline-pack-data")
 	h := sha256.Sum256(packData)
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 	}))
 	defer srv.Close()
 
+	// Push without a bloom filter and require the refusal.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
-
 	err := cli.SyncPushData(
 		context.Background(),
 		"test-res",
@@ -564,35 +364,6 @@ func TestSyncPushData_MissingBloomFilter(t *testing.T) {
 	)
 	if err == nil || !strings.Contains(err.Error(), "sync push bloom filter required") {
 		t.Fatalf("expected missing bloom filter error, got %v", err)
-	}
-}
-
-// TestSyncPushData_MissingWriteTicketExecutor verifies SyncPushData fails
-// locally when the write-ticket executor is unavailable.
-func TestSyncPushData_MissingWriteTicketExecutor(t *testing.T) {
-	packData := []byte("inline-pack-data")
-	h := sha256.Sum256(packData)
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-	}))
-	defer srv.Close()
-
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-
-	err := cli.SyncPushData(
-		context.Background(),
-		"test-res",
-		"test-pack-id",
-		3,
-		packData,
-		h[:],
-		nil,
-		packfile.BloomFormatVersionV1,
-	)
-	if err == nil || !strings.Contains(err.Error(), "missing write-ticket executor") {
-		t.Fatalf("expected missing write-ticket executor error, got %v", err)
 	}
 }
 
@@ -737,36 +508,38 @@ func TestSyncControllerPullNowRecordsLatestSequenceFromEmptyPull(t *testing.T) {
 // TestSyncControllerPullDuringPush verifies a pull completes while a push is
 // still uploading.
 func TestSyncControllerPullDuringPush(t *testing.T) {
-	// Set the lifetime of the upload fixture.
+	// Serve a push that holds until a pull arrives.
 	ctx := t.Context()
 
 	// Keep pull and push progress behind independent event gates.
 	pushing := make(chan struct{})
 	pulled := make(chan struct{})
 
-	// Retain uploaded packs and preserve the test response handler.
-	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Respond with the status and upload observations this fixture requires.
-		if strings.HasSuffix(r.URL.Path, "/sync/pull") {
-			close(pulled)
-			return
-		}
-		_, _ = io.Copy(io.Discard, r.Body)
+	// Hold the pack upload until the pull arrives.
+	push := newTestPushServer(t, "")
+	push.onUpload = func(*packfile.PushRequest) {
 		close(pushing)
 		select {
 		case <-pulled:
 		case <-time.After(10 * time.Second):
 			t.Error("the pull waited for the push")
 		}
+	}
+
+	// Answer the pull and route every push request to the push server.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sync/pull") {
+			close(pulled)
+			return
+		}
+		push.ServeHTTP(w, r)
 	}))
 	defer srv.Close()
+	push.base = srv.URL
 
-	// Authorize uploads through the production session client.
+	// Build a syncer against the server.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, fn func(string) error) error {
-		return fn("ticket-push")
-	}
 	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
@@ -779,9 +552,11 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      lower,
+		lower:      push.lower(t),
 		upper:      newSyncTestBlockStore(),
 	}
+
+	// Queue one dirty block.
 	data := []byte("pull during push")
 	ref, _, err := s.upper.PutBlock(ctx, data, nil)
 	if err != nil {
@@ -791,7 +566,7 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 		t.Fatalf("mark dirty: %v", err)
 	}
 
-	// Hold the push until the independent pull has completed.
+	// Start the push, then pull while it uploads.
 	flushed := make(chan error, 1)
 	go func() { flushed <- s.FlushNow(ctx) }()
 	select {
@@ -809,6 +584,7 @@ func TestSyncControllerPullDuringPush(t *testing.T) {
 
 // TestSyncControllerInitReturnsAccessGatedPullError propagates access failures during initialization.
 func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
+	// Encode the access denial.
 	ctx := context.Background()
 	errResp := &api.ErrorResponse{
 		Code:    "rbac_denied",
@@ -819,8 +595,10 @@ func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 		t.Fatalf("marshal error response: %v", err)
 	}
 
+	// Answer every pull with the denial.
 	pullRequests := make(chan struct{}, 2)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Count the pull and answer with the denial.
 		if !strings.HasSuffix(r.URL.Path, "/sync/pull") {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -831,6 +609,7 @@ func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Build a syncer against the server.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	store := newSyncTestKvStore()
@@ -847,6 +626,7 @@ func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 		lower:      packfile_store.NewPackfileStore(nil, nil),
 	}
 
+	// Require Init to return the denial after one pull.
 	err = s.Init(ctx)
 	if !isCloudAccessGatedError(err) {
 		t.Fatalf("Init() = %v, want access-gated cloud error", err)
@@ -865,6 +645,7 @@ func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 
 // TestSyncControllerExecuteHonorsRetryAfterBackoff delays retries for the server backoff interval.
 func TestSyncControllerExecuteHonorsRetryAfterBackoff(t *testing.T) {
+	// Encode the retryable rate limit.
 	errResp := &api.ErrorResponse{
 		Code:      "rate_limited",
 		Message:   "retry later",
@@ -875,12 +656,16 @@ func TestSyncControllerExecuteHonorsRetryAfterBackoff(t *testing.T) {
 		t.Fatalf("marshal error response: %v", err)
 	}
 
+	// Answer every request with the error, counting the requests.
 	requests := make(chan struct{}, 4)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Count the request.
 		select {
 		case requests <- struct{}{}:
 		default:
 		}
+
+		// Answer with the error.
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Retry-After", "2")
 		w.WriteHeader(http.StatusTooManyRequests)
@@ -888,38 +673,32 @@ func TestSyncControllerExecuteHonorsRetryAfterBackoff(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Run a syncer with a dirty block against the server.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
-
 	s := newDirtySyncExecuteTestController(t, cli, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	done := make(chan error, 1)
 	go func() {
 		done <- s.Execute(ctx)
 	}()
 
+	// Wait for the first push.
 	select {
 	case <-requests:
 	case <-time.After(syncExecuteRequestTimeout):
 		t.Fatal("expected initial sync push")
 	}
 
+	// Require no retry within the Retry-After interval.
 	select {
 	case <-requests:
 		t.Fatal("retry-after was not honored by dirty sync")
 	case <-time.After(syncExecuteNoRetryWindow):
 	}
 
+	// Stop the syncer and require a clean exit.
 	cancel()
 	select {
 	case err := <-done:
@@ -933,6 +712,7 @@ func TestSyncControllerExecuteHonorsRetryAfterBackoff(t *testing.T) {
 
 // TestSyncControllerExecuteGatesAccessDeniedFlushFailures waits for access changes after denied writes.
 func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
+	// Encode the read-only denial.
 	errResp := &api.ErrorResponse{
 		Code:      "account_read_only",
 		Message:   "Account is in a read-only lifecycle state",
@@ -943,51 +723,50 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 		t.Fatalf("marshal error response: %v", err)
 	}
 
+	// Answer every request with the error, counting the requests.
 	requests := make(chan struct{}, 4)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Count the request.
 		select {
 		case requests <- struct{}{}:
 		default:
 		}
+
+		// Answer with the error.
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = w.Write(respData)
 	}))
 	defer srv.Close()
 
+	// Run a syncer with a dirty block against the server, gated on the
+	// account state.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
-
 	gate := &broadcast.Broadcast{}
 	s := newDirtySyncExecuteTestController(t, cli, gate)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	done := make(chan error, 1)
 	go func() {
 		done <- s.Execute(ctx)
 	}()
 
+	// Wait for the first push.
 	select {
 	case <-requests:
 	case <-time.After(syncExecuteRequestTimeout):
 		t.Fatal("expected initial sync push")
 	}
 
+	// Require no retry until the account state changes.
 	select {
 	case <-requests:
 		t.Fatal("gated access denial retried without account state change")
 	case <-time.After(syncExecuteNoRetryWindow):
 	}
 
+	// Change the account state and require a retry.
 	gate.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
@@ -997,6 +776,7 @@ func TestSyncControllerExecuteGatesAccessDeniedFlushFailures(t *testing.T) {
 		t.Fatal("expected account state change to wake gated dirty sync")
 	}
 
+	// Stop the syncer and require a clean exit.
 	cancel()
 	select {
 	case err := <-done:
@@ -1022,14 +802,6 @@ func TestSyncControllerExecuteDrainsPendingWorkOnStop(t *testing.T) {
 	// Hold the dirty block behind a deadline the test never reaches.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
 	s := newDirtySyncExecuteTestController(t, cli, nil)
 	s.conf = &SyncConfig{SizeThresholdBytes: 1 << 30, CheckpointIntervalSecs: 3600}
 
@@ -1337,92 +1109,38 @@ func newDirtySyncExecuteTestController(
 // third starts the next.
 const syncTestChunkBlockBytes = int(syncFlushMaxPackBytes/2) - 64*1024
 
-// TestSyncControllerFlushChunksLargeDirtySet uploads bounded packs before
-// reading all dirty data, and packs the next chunk while the first uploads.
-func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
-	// Set the lifetime of the upload fixture.
-	ctx := context.Background()
-
-	// Create a durable queue and its published pack manifest.
-	dirtyStore := newSyncTestKvStore()
-	manifestStore := newSyncTestKvStore()
-	mfst, err := packfile_manifest.New(ctx, manifestStore)
+// countSyncDirtyKeys returns the number of dirty markers in store.
+func countSyncDirtyKeys(t *testing.T, ctx context.Context, store kvtx.Store) int {
+	// Scan the dirty prefix in a read transaction.
+	t.Helper()
+	rtx, err := store.NewTransaction(ctx, false)
 	if err != nil {
-		t.Fatalf("new manifest: %v", err)
+		t.Fatalf("new read tx: %v", err)
 	}
-
-	// Observe pack sizes and upper reads at the upload boundary.
-	const blockCount = 6
-	pushSizes := make([]int, 0, 4)
-	var getCount atomic.Int64
-	var firstPushGetCount atomic.Int64
-
-	// secondChunkLoaded closes once the packer has loaded the second chunk.
-	secondChunkLoaded := make(chan struct{})
-	var secondChunkOnce sync.Once
-
-	// Retain uploaded packs and preserve the test response handler.
-	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Respond with the status and upload observations this fixture requires.
-		if r.URL.Path != "/api/bstore/test-res/sync/push" {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-
-		// Require bounded packs and overlap between packing and uploading.
-		if len(pushSizes) == 0 {
-			select {
-			case <-secondChunkLoaded:
-			case <-time.After(10 * time.Second):
-				t.Error("the second chunk was not packed during the first upload")
-			}
-			firstPushGetCount.Store(getCount.Load())
-		}
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatalf("read body: %v", err)
-		}
-		pushSizes = append(pushSizes, len(body))
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	// Authorize uploads through the production session client.
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		// Validate the resource and ticket audience before submitting the pack.
-		if resourceID != "test-res" {
-			t.Fatalf("unexpected resource id: %s", resourceID)
-		}
-		if audience != writeTicketAudienceBstoreSyncPush {
-			t.Fatalf("unexpected audience: %s", audience)
-		}
-		return fn("ticket-push")
+	defer rtx.Discard()
+	var count int
+	if err := rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
+		count++
+		return nil
+	}); err != nil {
+		t.Fatalf("scan dirty keys: %v", err)
 	}
+	return count
+}
 
-	// Queue enough blocks to require several packs and observe their reads.
-	baseUpper := newSyncTestBlockStore()
-	upper := &syncCountingBlockStore{
-		StoreOps: baseUpper,
-		onGet: func(*block.BlockRef) {
-			if getCount.Add(1) == 4 {
-				secondChunkOnce.Do(func() { close(secondChunkLoaded) })
-			}
-		},
-	}
-	wtx, err := dirtyStore.NewTransaction(ctx, true)
+// addSyncChunkBlocks stores n distinct blocks of syncTestChunkBlockBytes in
+// upper and marks them dirty in store.
+func addSyncChunkBlocks(t *testing.T, ctx context.Context, store kvtx.Store, upper block.StoreOps, n int) {
+	// Open the dirty marker transaction.
+	t.Helper()
+	wtx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("new dirty tx: %v", err)
 	}
 	defer wtx.Discard()
 
-	// Fill the queue with distinct payloads under the same transaction.
-	for i := range blockCount {
+	// Store and mark each block.
+	for i := range n {
 		data := bytes.Repeat([]byte{byte(i + 1)}, syncTestChunkBlockBytes)
 		ref, _, err := upper.PutBlock(ctx, data, nil)
 		if err != nil {
@@ -1432,34 +1150,80 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 			t.Fatalf("set dirty key: %v", err)
 		}
 	}
+
+	// Commit the markers.
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
+}
 
-	// Use the readable lower store when new packs enter the manifest.
+// TestSyncControllerFlushChunksLargeDirtySet uploads bounded packs before
+// reading all dirty data, and packs the next chunk while the first uploads.
+func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
+	// Open the dirty store and pack manifest.
+	ctx := context.Background()
+	dirtyStore := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+
+	// Count block reads; secondChunkLoaded closes once the packer has loaded
+	// the second chunk.
+	const blockCount = 6
+	var getCount, firstPushGetCount atomic.Int64
+	secondChunkLoaded := make(chan struct{})
+	var secondChunkOnce, firstUpload sync.Once
+	upper := &syncCountingBlockStore{
+		StoreOps: newSyncTestBlockStore(),
+		onGet: func(*block.BlockRef) {
+			if getCount.Add(1) == 4 {
+				secondChunkOnce.Do(func() { close(secondChunkLoaded) })
+			}
+		},
+	}
+	addSyncChunkBlocks(t, ctx, dirtyStore, upper, blockCount)
+
+	// Hold the first upload until the second chunk is packed.
+	push := startTestPushServer(t)
+	push.onUpload = func(*packfile.PushRequest) {
+		firstUpload.Do(func() {
+			select {
+			case <-secondChunkLoaded:
+			case <-time.After(10 * time.Second):
+				t.Error("the second chunk was not packed during the first upload")
+			}
+			firstPushGetCount.Store(getCount.Load())
+		})
+	}
+
+	// Flush the dirty set through a controller.
+	priv, pid := generateTestKeypair(t)
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String()),
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      lower,
+		lower:      push.lower(t),
 		upper:      upper,
 	}
-
-	// Drain the queue through the production packer and HTTP upload.
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
-	// Require bounded packs and overlap between packing and uploading.
-	if len(pushSizes) != 3 {
-		t.Fatalf("sync pushes = %d, want 3", len(pushSizes))
+	// The flush pushed three packs, the first before reading every block.
+	pushed := push.committed()
+	if len(pushed) != 3 {
+		t.Fatalf("sync pushes = %d, want 3", len(pushed))
 	}
 	if firstPushGetCount.Load() >= blockCount {
 		t.Fatalf("expected first push before all dirty blocks loaded, loaded %d", firstPushGetCount.Load())
 	}
-	for i, size := range pushSizes {
+
+	// Every pack fits the pack and wire limits.
+	for i, pack := range pushed {
+		size := len(pack.data)
 		if int64(size) > syncFlushMaxPackBytes {
 			t.Fatalf("push %d exceeded the sync pack target: %d", i, size)
 		}
@@ -1467,111 +1231,56 @@ func TestSyncControllerFlushChunksLargeDirtySet(t *testing.T) {
 			t.Fatalf("push %d exceeded wire chunk limit: %d", i, size)
 		}
 	}
-	if len(mfst.GetEntries()) != len(pushSizes) {
-		t.Fatalf("manifest entries = %d, want %d", len(mfst.GetEntries()), len(pushSizes))
+
+	// The manifest holds every pack and the dirty set is empty.
+	if len(mfst.GetEntries()) != len(pushed) {
+		t.Fatalf("manifest entries = %d, want %d", len(mfst.GetEntries()), len(pushed))
 	}
 	assertSyncPackEntryMetadata(t, mfst.GetEntries())
-
-	// Count the durable markers left after the upload outcome.
-	rtx, err := dirtyStore.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatalf("new read tx: %v", err)
-	}
-	defer rtx.Discard()
-	dirtyCount := 0
-	err = rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
-		dirtyCount++
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("scan dirty keys: %v", err)
-	}
-	if dirtyCount != 0 {
-		t.Fatalf("expected dirty set to be empty, got %d entries", dirtyCount)
+	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != 0 {
+		t.Fatalf("expected dirty set to be empty, got %d entries", n)
 	}
 }
 
 // TestSyncControllerFlushCommitsPushedPacksBeforeFailure keeps the packs pushed
 // before a failed push in the manifest and clears their dirty markers.
 func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
-	// Set the lifetime of the upload fixture.
+	// Mark six chunk-sized blocks dirty.
 	ctx := context.Background()
-
-	// Create a durable queue and its published pack manifest.
 	dirtyStore := newSyncTestKvStore()
 	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
-
-	// Observe pack sizes and upper reads at the upload boundary.
 	const blockCount = 6
-	var pushedBlocks int
-	var pushCount int
+	upper := newSyncTestBlockStore()
+	addSyncChunkBlocks(t, ctx, dirtyStore, upper, blockCount)
 
-	// Retain uploaded packs and preserve the test response handler.
-	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Respond with the status and upload observations this fixture requires.
-		pushCount++
-		if pushCount > 2 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
+	// Refuse the third push.
+	push := newTestPushServer(t, "")
+	var pushCount int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sync/push") {
+			pushCount++
+			if pushCount > 2 {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 		}
-		count, err := strconv.Atoi(r.Header.Get("X-Block-Count"))
-		if err != nil {
-			t.Fatalf("parse X-Block-Count: %v", err)
-		}
-		if _, err := io.Copy(io.Discard, r.Body); err != nil {
-			t.Fatalf("read body: %v", err)
-		}
-		pushedBlocks += count
-		w.WriteHeader(http.StatusOK)
+		push.ServeHTTP(w, r)
 	}))
 	defer srv.Close()
+	push.base = srv.URL
 
-	// Authorize uploads through the production session client.
+	// Flush the dirty set until the refusal.
 	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		_ string,
-		_ writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
-
-	// Store blocks and their upload markers in one committed queue.
-	upper := newSyncTestBlockStore()
-	wtx, err := dirtyStore.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatalf("new dirty tx: %v", err)
-	}
-	defer wtx.Discard()
-
-	// Fill the queue with distinct payloads under the same transaction.
-	for i := range blockCount {
-		data := bytes.Repeat([]byte{byte(i + 1)}, syncTestChunkBlockBytes)
-		ref, _, err := upper.PutBlock(ctx, data, nil)
-		if err != nil {
-			t.Fatalf("put upper block: %v", err)
-		}
-		if _, err := markPendingUploads(ctx, wtx, []block_store_writeback.Mark{{Hash: ref.GetHash(), Size: int64(len(data))}}); err != nil {
-			t.Fatalf("set dirty key: %v", err)
-		}
-	}
-	if err := wtx.Commit(ctx); err != nil {
-		t.Fatalf("commit dirty tx: %v", err)
-	}
-
-	// Use the readable lower store when new packs enter the manifest.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
-		client:     cli,
+		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      lower,
+		lower:      push.lower(t),
 		upper:      upper,
 	}
 
@@ -1580,71 +1289,37 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 		t.Fatal("expected flush to fail on the third push")
 	}
 
-	// Keep every accepted pack in the manifest after the later push fails.
+	// The manifest kept both committed packs.
 	if got := len(mfst.GetEntries()); got != 2 {
 		t.Fatalf("manifest entries = %d, want the 2 pushed packs", got)
 	}
 
-	// Count the durable markers left after the upload outcome.
-	rtx, err := dirtyStore.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatalf("new read tx: %v", err)
+	// Only the blocks outside the committed packs stay dirty.
+	var pushedBlocks int
+	for _, pack := range push.committed() {
+		pushedBlocks += int(pack.req.GetBlockCount()) //nolint:gosec // test counts are small
 	}
-	defer rtx.Discard()
-	dirtyCount := 0
-	if err := rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
-		dirtyCount++
-		return nil
-	}); err != nil {
-		t.Fatalf("scan dirty keys: %v", err)
-	}
-	if want := blockCount - pushedBlocks; dirtyCount != want {
-		t.Fatalf("dirty entries = %d, want %d unpushed blocks", dirtyCount, want)
+	if n, want := countSyncDirtyKeys(t, ctx, dirtyStore), blockCount-pushedBlocks; n != want {
+		t.Fatalf("dirty entries = %d, want %d unpushed blocks", n, want)
 	}
 }
 
 // TestSyncControllerFlushDedupesLowerBlocks filters stored blocks before reading upper data.
 func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
+	// Open the dirty store and pack manifest.
 	ctx := context.Background()
-
 	dirtyStore := newSyncTestKvStore()
-	manifestStore := newSyncTestKvStore()
-	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	var pushedBody []byte
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/bstore/test-res/sync/push" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatalf("read body: %v", err)
-		}
-		pushedBody = bytes.Clone(body)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
+	// Start the push server and a client for it.
+	push := startTestPushServer(t)
 	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		if resourceID != "test-res" {
-			t.Fatalf("unexpected resource id: %s", resourceID)
-		}
-		if audience != writeTicketAudienceBstoreSyncPush {
-			t.Fatalf("unexpected audience: %s", audience)
-		}
-		return fn("ticket-push")
-	}
+	cli := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String())
 
+	// Mark a duplicate and a fresh block dirty.
 	baseUpper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -1656,6 +1331,8 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 	if err := wtx.Commit(ctx); err != nil {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
+
+	// Record whether the flush reads the duplicate from the upper store.
 	var duplicateFetched atomic.Bool
 	upper := &syncCountingBlockStore{
 		StoreOps: baseUpper,
@@ -1666,6 +1343,7 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 		},
 	}
 
+	// Flush against a lower store that already holds the duplicate.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
@@ -1679,7 +1357,6 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 	}
 	telemetry := &ProviderAccount{}
 	s.telemetry = telemetry
-
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
@@ -1687,30 +1364,19 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 		t.Fatal("expected lower-existing duplicate to be filtered before reading upper data")
 	}
 
+	// Only the fresh block was packed and the dirty set is empty.
 	if len(mfst.GetEntries()) != 1 {
 		t.Fatalf("expected 1 manifest entry, got %d", len(mfst.GetEntries()))
 	}
 	want := []string{fresh.GetHash().MarshalString()}
-	if got := readPackPhysicalKeys(t, pushedBody); !slices.Equal(got, want) {
+	if got := readPackPhysicalKeys(t, testPushedBody(t, push)); !slices.Equal(got, want) {
 		t.Fatalf("physical pack keys = %v, want %v; duplicate=%s", got, want, duplicate.GetHash().MarshalString())
 	}
+	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != 0 {
+		t.Fatalf("expected dirty set to be empty, got %d entries", n)
+	}
 
-	rtx, err := dirtyStore.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatalf("new read tx: %v", err)
-	}
-	defer rtx.Discard()
-	dirtyCount := 0
-	err = rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
-		dirtyCount++
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("scan dirty keys: %v", err)
-	}
-	if dirtyCount != 0 {
-		t.Fatalf("expected dirty set to be empty, got %d entries", dirtyCount)
-	}
+	// Telemetry counts one upload and one deduped block.
 	snap := telemetry.GetSyncTelemetrySnapshot()
 	if snap.PushCount != 1 || snap.PushedBytes == 0 {
 		t.Fatalf("expected one uploaded pack in telemetry, got %+v", snap)
@@ -1725,33 +1391,25 @@ func TestSyncControllerFlushDedupesLowerBlocks(t *testing.T) {
 
 // TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush clears duplicate work without uploading.
 func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
+	// Open the dirty store and pack manifest.
 	ctx := context.Background()
-
 	dirtyStore := newSyncTestKvStore()
-	manifestStore := newSyncTestKvStore()
-	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
 
+	// Count every request to the cloud.
 	var pushCount int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pushCount++
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
-
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
 
+	// Mark two blocks the lower store already holds dirty.
 	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -1764,6 +1422,7 @@ func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
+	// Flush the dirty set.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
@@ -1778,33 +1437,22 @@ func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
 	}
 	telemetry := &ProviderAccount{}
 	s.telemetry = telemetry
-
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
+
+	// Nothing was pushed and the dirty set is empty.
 	if pushCount != 0 {
 		t.Fatalf("expected no sync pushes, got %d", pushCount)
 	}
 	if len(mfst.GetEntries()) != 0 {
 		t.Fatalf("expected no manifest entries, got %d", len(mfst.GetEntries()))
 	}
+	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != 0 {
+		t.Fatalf("expected dirty set to be empty, got %d entries", n)
+	}
 
-	rtx, err := dirtyStore.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatalf("new read tx: %v", err)
-	}
-	defer rtx.Discard()
-	dirtyCount := 0
-	err = rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
-		dirtyCount++
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("scan dirty keys: %v", err)
-	}
-	if dirtyCount != 0 {
-		t.Fatalf("expected dirty set to be empty, got %d entries", dirtyCount)
-	}
+	// Telemetry counts both blocks as deduped.
 	snap := telemetry.GetSyncTelemetrySnapshot()
 	if snap.PushCount != 0 || snap.PushedBytes != 0 {
 		t.Fatalf("expected no uploaded pack telemetry, got %+v", snap)
@@ -1820,15 +1468,15 @@ func TestSyncControllerFlushAllDuplicateDirtyBlocksSkipsPush(t *testing.T) {
 
 // TestSyncControllerFlushDuplicateProbeErrorPreservesDirty retains dirty work when deduplication fails.
 func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
+	// Open the dirty store and pack manifest.
 	ctx := context.Background()
-
 	dirtyStore := newSyncTestKvStore()
-	manifestStore := newSyncTestKvStore()
-	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
 
+	// Mark one block dirty.
 	priv, pid := generateTestKeypair(t)
 	cli := NewSessionClient(http.DefaultClient, "https://example.invalid", DefaultSigningEnvPrefix, priv, pid.String())
 	upper := newSyncTestBlockStore()
@@ -1842,6 +1490,7 @@ func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
+	// Flush against a lower store whose probe fails.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
@@ -1851,73 +1500,32 @@ func TestSyncControllerFlushDuplicateProbeErrorPreservesDirty(t *testing.T) {
 		lower:      newSyncTestErrorLowerPackfileStore(),
 		upper:      upper,
 	}
-
 	if err := s.flush(ctx, true); err == nil {
 		t.Fatal("expected duplicate probe error")
 	}
 
-	rtx, err := dirtyStore.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatalf("new read tx: %v", err)
-	}
-	defer rtx.Discard()
-	dirtyCount := 0
-	err = rtx.ScanPrefix(ctx, []byte("dirty/"), func(_, _ []byte) error {
-		dirtyCount++
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("scan dirty keys: %v", err)
-	}
-	if dirtyCount != 1 {
-		t.Fatalf("expected dirty key to remain after probe error, got %d", dirtyCount)
+	// The dirty block remains for the next flush.
+	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != 1 {
+		t.Fatalf("expected dirty key to remain after probe error, got %d", n)
 	}
 }
 
 // TestSyncControllerFlushOrdersBlocksByGCGraph writes parent blocks before their children.
 func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
-	// Set the lifetime of the upload fixture.
+	// Open the dirty store and pack manifest.
 	ctx := context.Background()
-
-	// Create a durable queue and its published pack manifest.
 	dirtyStore := newSyncTestKvStore()
-	manifestStore := newSyncTestKvStore()
-	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	// Capture the physical block order of the uploaded pack.
-	var pushedBody []byte
-
-	// Retain uploaded packs and preserve the test response handler.
-	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Respond with the status and upload observations this fixture requires.
-		if r.URL.Path != "/api/bstore/test-res/sync/push" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatalf("read body: %v", err)
-		}
-		pushedBody = bytes.Clone(body)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	// Authorize uploads through the production session client.
+	// Start the push server and a client for it.
+	push := startTestPushServer(t)
 	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		return fn("ticket-push")
-	}
+	cli := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String())
 
-	// Store blocks and their upload markers in one committed queue.
+	// Open a dirty transaction over the upper store.
 	upper := newSyncTestBlockStore()
 	wtx, err := dirtyStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -1925,7 +1533,7 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 	}
 	defer wtx.Discard()
 
-	// Commit the graph fixtures together with their pending upload markers.
+	// Mark four blocks dirty out of graph order.
 	stray := addSyncDirtyBlock(t, ctx, wtx, upper, "stray")
 	childA := addSyncDirtyBlock(t, ctx, wtx, upper, "child-a")
 	rootB := addSyncDirtyBlock(t, ctx, wtx, upper, "root-b")
@@ -1934,95 +1542,55 @@ func TestSyncControllerFlushOrdersBlocksByGCGraph(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
-	// Connect parent and child blocks through the GC reference graph.
+	// Root each object at one block, with child-a under root-a.
 	graph := newSyncTestRefGraph()
 	graph.add(block_gc.ObjectIRI("object-b"), block_gc.BlockIRI(rootB))
 	graph.add(block_gc.ObjectIRI("object-a"), block_gc.BlockIRI(rootA))
 	graph.add(block_gc.BlockIRI(rootA), block_gc.BlockIRI(childA))
 
-	// Use the readable lower store when new packs enter the manifest.
+	// Flush in graph order.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      lower,
+		lower:      push.lower(t),
 		upper:      upper,
 		refGraph:   graph,
 	}
-
-	// Drain the queue through the production packer and HTTP upload.
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
-	// Require parent blocks to precede their children in the pack.
+	// Each root precedes its children, then the unreferenced block.
 	want := []string{
 		rootA.GetHash().MarshalString(),
 		childA.GetHash().MarshalString(),
 		rootB.GetHash().MarshalString(),
 		stray.GetHash().MarshalString(),
 	}
-	if got := readPackPhysicalKeys(t, pushedBody); !slices.Equal(got, want) {
+	if got := readPackPhysicalKeys(t, testPushedBody(t, push)); !slices.Equal(got, want) {
 		t.Fatalf("physical pack order = %v, want %v", got, want)
 	}
 }
 
 // TestSyncControllerFlushChunksBlockCountCeiling splits packs at the wire block limit.
 func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
-	// Set the lifetime of the upload fixture.
+	// Open the dirty store and pack manifest.
 	ctx := context.Background()
-
-	// Create a durable queue and its published pack manifest.
 	dirtyStore := newSyncTestKvStore()
-	manifestStore := newSyncTestKvStore()
-	mfst, err := packfile_manifest.New(ctx, manifestStore)
+	mfst, err := packfile_manifest.New(ctx, newSyncTestKvStore())
 	if err != nil {
 		t.Fatalf("new manifest: %v", err)
 	}
 
-	// Observe each pack count at the upload boundary.
-	var pushBlockCounts []int
-
-	// Retain uploaded packs and preserve the test response handler.
-	srv, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Respond with the status and upload observations this fixture requires.
-		if r.URL.Path != "/api/bstore/test-res/sync/push" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		count, err := strconv.Atoi(r.Header.Get("X-Block-Count"))
-		if err != nil {
-			t.Fatalf("parse X-Block-Count: %v", err)
-		}
-		if r.Header.Get("X-Bloom-Filter") == "" {
-			t.Fatal("missing X-Bloom-Filter")
-		}
-		pushBlockCounts = append(pushBlockCounts, count)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	// Authorize uploads through the production session client.
+	// Start the push server and a client for it.
+	push := startTestPushServer(t)
 	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		// Validate the resource and ticket audience before submitting the pack.
-		if resourceID != "test-res" {
-			t.Fatalf("unexpected resource id: %s", resourceID)
-		}
-		if audience != writeTicketAudienceBstoreSyncPush {
-			t.Fatalf("unexpected audience: %s", audience)
-		}
-		return fn("ticket-push")
-	}
+	cli := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, priv, pid.String())
 
-	// Queue one block more than the per-pack count ceiling.
+	// Mark one block more than a pack may hold dirty.
 	blockCount := int(writer.DefaultMaxBlocksPerPack) + 1
 
 	// Store blocks and their upload markers in one committed queue.
@@ -2048,33 +1616,38 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		t.Fatalf("commit dirty tx: %v", err)
 	}
 
-	// Use the readable lower store when new packs enter the manifest.
+	// Flush the dirty set.
 	s := &syncController{
 		le:         logrus.NewEntry(logrus.New()),
 		store:      dirtyStore,
 		client:     cli,
 		resourceID: "test-res",
 		mfst:       mfst,
-		lower:      lower,
+		lower:      push.lower(t),
 		upper:      upper,
 	}
-
-	// Drain the queue through the production packer and HTTP upload.
 	if err := s.flush(ctx, true); err != nil {
 		t.Fatalf("flush: %v", err)
 	}
 
-	// Require exactly two packs whose total covers the entire queue.
-	if len(pushBlockCounts) != 2 {
-		t.Fatalf("expected 2 sync pushes, got %d", len(pushBlockCounts))
+	// The flush split the blocks across two packs within the ceiling.
+	pushed := push.committed()
+	if len(pushed) != 2 {
+		t.Fatalf("expected 2 sync pushes, got %d", len(pushed))
 	}
 	total := 0
-	for i, count := range pushBlockCounts {
+	for i, pack := range pushed {
+		if len(pack.req.GetBloomFilter()) == 0 {
+			t.Fatal("missing bloom filter")
+		}
+		count := int(pack.req.GetBlockCount()) //nolint:gosec // test counts are small
 		if count > int(writer.DefaultMaxBlocksPerPack) {
 			t.Fatalf("push %d exceeded block ceiling: %d", i, count)
 		}
 		total += count
 	}
+
+	// Every block was pushed and the manifest holds both packs.
 	if total != blockCount {
 		t.Fatalf("pushed block total = %d, want %d", total, blockCount)
 	}
@@ -2082,65 +1655,4 @@ func TestSyncControllerFlushChunksBlockCountCeiling(t *testing.T) {
 		t.Fatalf("expected 2 manifest entries, got %d", len(mfst.GetEntries()))
 	}
 	assertSyncPackEntryMetadata(t, mfst.GetEntries())
-}
-
-// TestSyncPush_RetryResendsFullBody verifies that a write-ticket retry sends
-// the whole packfile again rather than the drained reader of the first attempt.
-func TestSyncPush_RetryResendsFullBody(t *testing.T) {
-	fileContent := []byte("retry-pack-data")
-	h := sha256.Sum256(fileContent)
-	bloomFilter := []byte("bloom-filter-bytes")
-
-	var bodies [][]byte
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("read body: %v", err)
-		}
-		bodies = append(bodies, body)
-		if len(bodies) == 1 {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
-
-	tmpFile, err := os.CreateTemp(t.TempDir(), "test-pack-*.bin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tmpFile.Write(fileContent); err != nil {
-		t.Fatal(err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	priv, pid := generateTestKeypair(t)
-	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
-	cli.executeWriteTicketAudience = func(
-		ctx context.Context,
-		resourceID string,
-		audience writeTicketAudience,
-		fn func(ticket string) error,
-	) error {
-		if err := fn("ticket-1"); err == nil {
-			return errors.New("expected first attempt to fail")
-		}
-		return fn("ticket-2")
-	}
-
-	err = cli.SyncPush(context.Background(), "test-res", "test-pack-id", 1, tmpFile.Name(), h[:], bloomFilter, packfile.BloomFormatVersionV1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(bodies) != 2 {
-		t.Fatalf("expected 2 attempts, got %d", len(bodies))
-	}
-	for i, body := range bodies {
-		if !bytes.Equal(body, fileContent) {
-			t.Fatalf("attempt %d sent %q, want %q", i+1, body, fileContent)
-		}
-	}
 }

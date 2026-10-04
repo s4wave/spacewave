@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/packfile"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/sirupsen/logrus"
 )
@@ -101,27 +102,21 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 
 // TestSyncDeadlineSurvivesContinuousWrites exercises the real pack and HTTP path.
 func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
-	// Retain uploaded packs so a later mark can probe the published catalog.
+	// Serve uploads, recording the time of the first.
 	uploaded := make(chan time.Time, 1)
-	server, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	push := startTestPushServer(t)
+	push.onUpload = func(*packfile.PushRequest) {
 		select {
 		case uploaded <- time.Now():
 		default:
 		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	// Configure a one-second deadline on a queue with one pending block.
-	key, pid := generateTestKeypair(t)
-	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, pid.String())
-	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-		return submit("test-ticket")
 	}
 
-	// Retain the published pack while configuring the pending queue.
+	// Build a syncer with one queued block and read its deadline.
+	key, pid := generateTestKeypair(t)
+	client := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, key, pid.String())
 	syncer := newDirtySyncExecuteTestController(t, client, nil)
-	syncer.lower = lower
+	syncer.lower = push.lower(t)
 	syncer.conf.SizeThresholdBytes = 0
 	candidates, err := syncer.scanDirtyCandidates(t.Context())
 	if err != nil || len(candidates) != 1 {
@@ -129,7 +124,7 @@ func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
 	}
 	first, _, _ := syncer.pendingSnapshot()
 
-	// Join the controller after cancellation, including its final queue drain.
+	// Run the syncer until the test ends.
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() { done <- syncer.Execute(ctx) }()
@@ -164,22 +159,14 @@ func TestSyncDeadlineSurvivesContinuousWrites(t *testing.T) {
 
 // TestSyncUploadedBlockCanBeMarkedAgain drains a repeated mark through the remote pack.
 func TestSyncUploadedBlockCanBeMarkedAgain(t *testing.T) {
-	// Retain the first upload and count requests through the production client.
-	pushes := 0
-	server, lower := newSyncTestPackServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		pushes++
-		w.WriteHeader(http.StatusOK)
-	}))
-	t.Cleanup(server.Close)
+	// Retain the first upload behind the production client.
+	push := startTestPushServer(t)
 	key, pid := generateTestKeypair(t)
-	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, pid.String())
-	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
-		return submit("test-ticket")
-	}
+	client := NewSessionClient(http.DefaultClient, push.base, DefaultSigningEnvPrefix, key, pid.String())
 
 	// Publish the pending block into the lower store's manifest.
 	syncer := newDirtySyncExecuteTestController(t, client, nil)
-	syncer.lower = lower
+	syncer.lower = push.lower(t)
 	candidates, err := syncer.scanDirtyCandidates(t.Context())
 	if err != nil || len(candidates) != 1 {
 		t.Fatalf("initial queue: %v (%d blocks)", err, len(candidates))
@@ -195,8 +182,8 @@ func TestSyncUploadedBlockCanBeMarkedAgain(t *testing.T) {
 	if err := syncer.FlushNow(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if pushes != 1 {
-		t.Fatalf("repeated mark uploaded %d packs, want 1", pushes)
+	if packs, _ := push.uploadTotals(); packs != 1 {
+		t.Fatalf("repeated mark uploaded %d packs, want 1", packs)
 	}
 	if _, size, _ := syncer.pendingSnapshot(); size != 0 {
 		t.Fatalf("repeated mark left %d pending bytes", size)
