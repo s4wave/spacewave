@@ -72,31 +72,26 @@ func (s *wrapperForwardTestStore) GetBlock(
 	return s.StoreOps.GetBlock(ctx, ref)
 }
 
-func TestBstoreTrackerDetectsPublicReadSpaceBlockStore(t *testing.T) {
-	acc := &ProviderAccount{}
-	acc.SetSharedObjectMetadata("space-1", &api.SpaceMetadataResponse{
-		ObjectType:  "space",
-		PublicRead:  true,
-		DisplayName: "Public Space",
-	})
-
-	tracker := &bstoreTracker{a: acc, id: "space-1"}
-	if !tracker.isPublicReadSpaceBlockStore(context.Background()) {
-		t.Fatal("expected public_read Space with matching block store id")
-	}
-}
-
-func TestBstoreTrackerRejectsNonPublicReadBlockStore(t *testing.T) {
-	acc := &ProviderAccount{}
-	acc.SetSharedObjectMetadata("space-1", &api.SpaceMetadataResponse{
-		ObjectType:  "space",
-		PublicRead:  false,
-		DisplayName: "Private Space",
-	})
-
-	tracker := &bstoreTracker{a: acc, id: "space-1"}
-	if tracker.isPublicReadSpaceBlockStore(context.Background()) {
-		t.Fatal("private Space should use the authenticated Worker read path")
+// TestBstoreTrackerPublicBaseURL checks that only a public Space's block
+// store reads its published files.
+func TestBstoreTrackerPublicBaseURL(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		meta *api.SpaceMetadataResponse
+		want string
+	}{
+		{"public space", &api.SpaceMetadataResponse{ObjectType: "space", PublicRead: true, PublicBaseUrl: "https://pub.test/file/public"}, "https://pub.test/file/public"},
+		{"private space", &api.SpaceMetadataResponse{ObjectType: "space"}, ""},
+		{"public other object", &api.SpaceMetadataResponse{ObjectType: "org", PublicRead: true, PublicBaseUrl: "https://pub.test/file/public"}, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			acc := &ProviderAccount{}
+			acc.SetSharedObjectMetadata("space-1", tc.meta)
+			tracker := &bstoreTracker{a: acc, id: "space-1"}
+			if got := tracker.publicBaseURL(context.Background()); got != tc.want {
+				t.Fatalf("public base URL %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -632,7 +627,7 @@ func TestPackReadGrants(t *testing.T) {
 
 	// Count grants and reads on a test server.
 	var grants, reads int
-	var refuse bool
+	var refuse int
 	mux := http.NewServeMux()
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
@@ -666,9 +661,13 @@ func TestPackReadGrants(t *testing.T) {
 		if r.Header.Get("X-Signature") != "" {
 			t.Fatal("range read carries the session signature")
 		}
-		if r.PathValue("n") != strconv.Itoa(grants) || refuse {
-			refuse = false
+		if r.PathValue("n") != strconv.Itoa(grants) {
 			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if refuse != 0 {
+			w.WriteHeader(refuse)
+			refuse = 0
 			return
 		}
 
@@ -710,16 +709,20 @@ func TestPackReadGrants(t *testing.T) {
 		t.Fatalf("grants %d, reads %d, data %q", grants, reads, buf)
 	}
 
-	// A refused read drops the grant, and the next read asks for another.
-	rd, refuse = newReader(), true
-	if _, err := rd.ReadAt(buf, 12); err == nil {
-		t.Fatal("refused read succeeded")
-	}
-	if _, err := rd.ReadAt(buf, 12); err != nil && err != io.EOF {
-		t.Fatalf("read after refusal: %v", err)
-	}
-	if grants != 2 || string(buf) != "cdef" {
-		t.Fatalf("grants %d, data %q", grants, buf)
+	// A read refused for an expired authorization, or for a pack that moved
+	// to the public bucket, drops the grant, and the next read asks for
+	// another.
+	for i, status := range []int{http.StatusUnauthorized, http.StatusNotFound} {
+		rd, refuse = newReader(), status
+		if _, err := rd.ReadAt(buf, 12); err == nil {
+			t.Fatalf("read refused with %d succeeded", status)
+		}
+		if _, err := rd.ReadAt(buf, 12); err != nil && err != io.EOF {
+			t.Fatalf("read after refusal with %d: %v", status, err)
+		}
+		if grants != i+2 || string(buf) != "cdef" {
+			t.Fatalf("after %d: grants %d, data %q", status, grants, buf)
+		}
 	}
 }
 
