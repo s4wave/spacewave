@@ -1512,38 +1512,6 @@ message SignalTicketResponse {
   string token = 1;
 }
 
-// PackMetadataRepairEntry is one pack metadata replacement for admin repair.
-message PackMetadataRepairEntry {
-  // Id is the immutable pack id.
-  string id = 1;
-  // BloomFilter is the repaired serialized Hydra bloom filter.
-  bytes bloom_filter = 2;
-  // BlockCount is the repaired indexed block count.
-  uint64 block_count = 3;
-  // SizeBytes is the immutable pack byte size observed during repair.
-  uint64 size_bytes = 4;
-  // Sha256Hex is the expected SHA-256 hex digest of the immutable pack bytes.
-  string sha256_hex = 5;
-}
-
-// PackMetadataRepairRequest applies pack metadata replacements to a block store.
-message PackMetadataRepairRequest {
-  // DryRun validates the repair entries without writing BlockStore metadata.
-  bool dry_run = 1;
-  // Entries is the metadata replacement set.
-  repeated PackMetadataRepairEntry entries = 2;
-}
-
-// PackMetadataRepairResponse reports the repair application result.
-message PackMetadataRepairResponse {
-  // Scanned is the number of requested entries validated.
-  uint64 scanned = 1;
-  // Changed is the number of metadata rows updated.
-  uint64 changed = 2;
-  // DryRun indicates whether no writes were applied.
-  bool dry_run = 3;
-}
-
 // RbacGrantLifecycleQuery identifies the grant lifecycle to read back.
 message RbacGrantLifecycleQuery {
   // GrantId identifies the grant.
