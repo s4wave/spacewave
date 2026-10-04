@@ -483,6 +483,17 @@ func (x *TrashRequest) GetRetirePackIds() []string {
 	return nil
 }
 
+// TrashResponse acknowledges a trash request.
+type TrashResponse struct {
+	unknownFields []byte
+}
+
+func (x *TrashResponse) Reset() {
+	*x = TrashResponse{}
+}
+
+func (*TrashResponse) ProtoMessage() {}
+
 // ReadResponse is the response to a read request.
 type ReadResponse struct {
 	unknownFields []byte
@@ -699,6 +710,21 @@ func (m *TrashRequest) CloneVT() *TrashRequest {
 }
 
 func (m *TrashRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TrashResponse) CloneVT() *TrashResponse {
+	if m == nil {
+		return (*TrashResponse)(nil)
+	}
+	r := new(TrashResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TrashResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -979,6 +1005,23 @@ func (this *TrashRequest) EqualVT(that *TrashRequest) bool {
 
 func (this *TrashRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*TrashRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TrashResponse) EqualVT(that *TrashResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TrashResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TrashResponse)
 	if !ok {
 		return false
 	}
@@ -1770,6 +1813,36 @@ func (x *TrashRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TrashResponse message to JSON.
+func (x *TrashResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TrashResponse to JSON.
+func (x *TrashResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TrashResponse message from JSON.
+func (x *TrashResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the TrashResponse from JSON.
+func (x *TrashResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the ReadResponse message to JSON.
 func (x *ReadResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2377,6 +2450,38 @@ func (m *TrashRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TrashResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TrashResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TrashResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ReadResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2574,6 +2679,16 @@ func (m *TrashRequest) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringSlice(1, m.TrashPackIds)
 	n += protobuf_go_lite.SizeStringSlice(1, m.RetirePackIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TrashResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -2896,6 +3011,16 @@ func (x *TrashRequest) MarshalProtoText() string {
 }
 
 func (x *TrashRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TrashResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "TrashResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TrashResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3717,6 +3842,49 @@ func (m *TrashRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.RetirePackIds = append(m.RetirePackIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TrashResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TrashResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TrashResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

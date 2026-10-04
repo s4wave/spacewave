@@ -3,7 +3,10 @@
 /* eslint-disable */
 
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
@@ -499,6 +502,19 @@ export const TrashRequest: MessageType<TrashRequest> =
       },
     ] satisfies readonly PartialFieldInfo[],
   })
+
+/**
+ * TrashResponse acknowledges a trash request.
+ *
+ * @generated from message packfile.TrashResponse
+ */
+export interface TrashResponse {}
+
+export const TrashResponse: MessageType<TrashResponse> =
+  /* @__PURE__ */ createEmptyMessageType<TrashResponse>(
+    'packfile.TrashResponse',
+    true,
+  )
 
 /**
  * ReadResponse is the response to a read request.

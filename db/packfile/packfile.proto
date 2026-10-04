@@ -142,6 +142,9 @@ message TrashRequest {
   repeated string retire_pack_ids = 2;
 }
 
+// TrashResponse acknowledges a trash request.
+message TrashResponse {}
+
 // ReadResponse is the response to a read request.
 message ReadResponse {
   // Grants holds one grant per requested packfile, in request order.
