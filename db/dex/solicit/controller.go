@@ -214,7 +214,7 @@ func (c *Controller) removeSessionIfCurrent(remotePeer string, sess *peerSession
 // excluding the session that originated the request. It returns what
 // peerBlockFanout.run returns.
 func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, hops uint32, exclude *peerSession) (*DexMessage, error) {
-	sessions, err := c.waitSessions(ctx, exclude)
+	sessions, err := c.waitSessions(ctx, exclude, false)
 	if err != nil {
 		return nil, err
 	}
@@ -224,18 +224,23 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 // waitSessions waits until the solicitation has settled and returns the peer
 // sessions other than exclude. A peer the solicitation is still negotiating
 // with may hold the block, so a read must not report a miss before then.
-func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession) ([]*peerSession, error) {
+//
+// When wantPeer is set it also waits until at least one such session exists.
+// The solicitation settles while no link is up, and a miss that no peer was
+// asked about is not a miss: a read waits for a peer to connect instead.
+func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession, wantPeer bool) ([]*peerSession, error) {
 	var sessions []*peerSession
 	err := c.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
 		if !c.settled {
 			return false, nil
 		}
+		sessions = sessions[:0]
 		for _, s := range c.sessions {
 			if s != exclude {
 				sessions = append(sessions, s)
 			}
 		}
-		return true, nil
+		return !wantPeer || len(sessions) != 0, nil
 	})
 	return sessions, err
 }
@@ -273,8 +278,9 @@ type lookupResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	// Ask the settled peer sessions for the block.
-	sessions, err := r.c.waitSessions(ctx, nil)
+	// Ask the settled peer sessions for the block. The resolver does not wait
+	// for a peer, so a lookup that ends at idle still completes offline.
+	sessions, err := r.c.waitSessions(ctx, nil, false)
 	if err != nil {
 		return err
 	}

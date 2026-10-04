@@ -9,8 +9,9 @@ import (
 )
 
 // Store is a read-only block store view owned by a solicitation Controller.
-// Reads wait for the solicitation to settle, then fan out to the controller's
-// peer sessions.
+// Reads wait for the solicitation to settle and for at least one peer session,
+// then fan out to the controller's peer sessions. Existence checks do not wait
+// for a peer: with none connected they report the block missing.
 type Store struct {
 	controller *Controller
 }
@@ -52,7 +53,7 @@ func (*Store) Sync(context.Context) (bool, error) { return true, nil }
 
 // GetBlock fans the request out to the controller's peer sessions.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	found, err := s.fetch(ctx, ref)
+	found, err := s.fetch(ctx, ref, true)
 	if found == nil || err != nil {
 		return nil, false, err
 	}
@@ -62,7 +63,7 @@ func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool
 // GetStoredBlock fans the request out to the controller's peer sessions.
 // RefsKnown is unset when the answering peer held the block without its refs.
 func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
-	found, err := s.fetch(ctx, ref)
+	found, err := s.fetch(ctx, ref, true)
 	if found == nil || err != nil {
 		return nil, err
 	}
@@ -73,12 +74,12 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	}, nil
 }
 
-// fetch requests a block from the settled peer sessions. Returns nil when
-// every peer answered that it does not have the block, and an error when the
-// exchange failed.
-func (s *Store) fetch(ctx context.Context, ref *block.BlockRef) (*DexMessage, error) {
+// fetch requests a block from the settled peer sessions, first waiting for a
+// peer session when wantPeer is set. Returns nil when every peer answered that
+// it does not have the block, and an error when the exchange failed.
+func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (*DexMessage, error) {
 	// Ask the settled peer sessions for the block.
-	sessions, err := s.controller.waitSessions(ctx, nil)
+	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer)
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +102,11 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef) (*DexMessage, er
 	return found, nil
 }
 
-// GetBlockExists checks whether any connected peer has the block.
+// GetBlockExists checks whether any connected peer has the block. It does not
+// wait for a peer to connect.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	_, found, err := s.GetBlock(ctx, ref)
-	return found, err
+	found, err := s.fetch(ctx, ref, false)
+	return found != nil, err
 }
 
 // GetBlockExistsBatch checks whether any connected peer has each block.

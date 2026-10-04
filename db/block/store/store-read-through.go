@@ -201,21 +201,65 @@ func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.S
 	return stored, nil
 }
 
-// GetBlockExists follows the same source order as GetBlock.
+// GetBlockExists checks the primary source, then the current lower source.
+// It asks each source for existence rather than reading the block, so a lower
+// source can answer without waiting to serve data, and nothing is written back.
 func (s *StoreReadThrough) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	_, found, err := s.GetBlock(ctx, ref)
-	return found, err
+	// Report a block the primary store holds.
+	primary := s.source(s.primary)
+	if primary != nil {
+		found, err := primary.GetBlockExists(ctx, ref)
+		if err != nil || found {
+			return found, err
+		}
+	}
+
+	// Ask the lower store about a primary miss.
+	lower := s.source(s.lower)
+	if lower == nil {
+		return false, nil
+	}
+	return lower.GetBlockExists(ctx, ref)
 }
 
-// GetBlockExistsBatch follows the same source order as GetBlock.
+// GetBlockExistsBatch checks the primary source for every ref, then asks the
+// current lower source about the primary misses.
 func (s *StoreReadThrough) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Check the primary store for every ref.
 	out := make([]bool, len(refs))
-	for i, ref := range refs {
-		found, err := s.GetBlockExists(ctx, ref)
+	primary := s.source(s.primary)
+	if primary != nil {
+		found, err := primary.GetBlockExistsBatch(ctx, refs)
 		if err != nil {
 			return nil, err
 		}
-		out[i] = found
+		copy(out, found)
+	}
+
+	// Collect the primary misses.
+	lower := s.source(s.lower)
+	if lower == nil {
+		return out, nil
+	}
+	var missIdx []int
+	var missRefs []*block.BlockRef
+	for i, found := range out {
+		if !found {
+			missIdx = append(missIdx, i)
+			missRefs = append(missRefs, refs[i])
+		}
+	}
+	if len(missRefs) == 0 {
+		return out, nil
+	}
+
+	// Ask the lower store about the misses.
+	found, err := lower.GetBlockExistsBatch(ctx, missRefs)
+	if err != nil {
+		return nil, err
+	}
+	for j, i := range missIdx {
+		out[i] = found[j]
 	}
 	return out, nil
 }

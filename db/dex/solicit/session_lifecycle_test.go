@@ -446,6 +446,77 @@ func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
 	}
 }
 
+// TestStoreReadWaitsForPeerSession proves a read on a settled solicitation
+// with no peer waits for a peer session instead of reporting a miss nobody was
+// asked about, while an existence check answers at once.
+func TestStoreReadWaitsForPeerSession(t *testing.T) {
+	// Keep the peer session within the test lifetime.
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	// Check existence with no peer connected.
+	c := newTestDexSolicitController()
+	store := NewStore(c)
+	want := []byte("late-peer-data")
+	ref := testDexBlockRef(t, string(want))
+	exists, err := store.GetBlockExists(ctx, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		t.Fatal("existence check found a block with no peer connected")
+	}
+
+	// Start a read, which must wait while no peer is connected.
+	type readResult struct {
+		data  []byte
+		found bool
+		err   error
+	}
+	reads := make(chan readResult, 1)
+	go func() {
+		data, found, err := store.GetBlock(ctx, ref)
+		reads <- readResult{data: data, found: found, err: err}
+	}()
+	assertNoTestDexValue(t, reads, "read before a peer connected")
+
+	// Connect a peer that serves the block.
+	remoteID := peer.ID("late-peer")
+	sess, remote, cleanup := newTestPeerSessionPair(c, remoteID)
+	defer cleanup()
+	sess.start(ctx)
+	remoteErr := make(chan error, 1)
+	go func() {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err != nil {
+			remoteErr <- err
+			return
+		}
+		remoteErr <- remote.SendMsg(&DexMessage{
+			RequestId:  req.GetRequestId(),
+			IsResponse: true,
+			Found:      true,
+			Data:       want,
+		})
+	}()
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.sessions[remoteID.String()] = sess
+		broadcast()
+	})
+
+	// Verify the waiting read returns the peer's block.
+	if err := recvTestDexValue(t, remoteErr, "late peer response"); err != nil {
+		t.Fatal(err)
+	}
+	res := recvTestDexValue(t, reads, "read after the peer connected")
+	if res.err != nil {
+		t.Fatal(res.err)
+	}
+	if !res.found || string(res.data) != string(want) {
+		t.Fatalf("read = %q found=%v, want %q", res.data, res.found, want)
+	}
+}
+
 func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 	// Keep the origin peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
