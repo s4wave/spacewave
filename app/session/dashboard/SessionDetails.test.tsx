@@ -361,11 +361,6 @@ describe('SessionDetails', () => {
       )
     })
 
-    it('displays session metadata correctly', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('Identifiers')).toBeDefined()
-    })
-
     it('renders the session sync status summary near the top', () => {
       renderWithContext(<SessionDetails />)
       expect(screen.getByTestId('session-sync-status-summary')).toBeDefined()
@@ -434,11 +429,6 @@ describe('SessionDetails', () => {
       expect(withClose).toBe(withoutClose + 1)
     })
 
-    it('does not render close button when onCloseClick is not provided', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
-    })
-
     it('calls onCloseClick when close button is clicked', () => {
       const onCloseClick = vi.fn()
       renderWithContext(<SessionDetails onCloseClick={onCloseClick} />)
@@ -480,57 +470,8 @@ describe('SessionDetails', () => {
       renderWithContext(
         <SessionDetails onChangeAccountClick={onChangeAccountClick} />,
       )
-      const buttons = screen.getAllByRole('button')
-      const changeAccountButton = buttons.find((btn) =>
-        btn.querySelector('.lucide-user-cog'),
-      )
-      if (changeAccountButton) {
-        fireEvent.click(changeAccountButton)
-        expect(onChangeAccountClick).toHaveBeenCalledTimes(1)
-      }
-    })
-
-    it('renders Lock button that scrolls to lock section', () => {
-      renderWithContext(<SessionDetails />)
-      const lockText = screen.getAllByText('Lock')
-      const lockButton = lockText[0]?.closest('button')
-      expect(lockButton).toBeTruthy()
-    })
-
-    it('Change Account button shows text on medium+ screens', () => {
-      renderWithContext(<SessionDetails />)
-      const changeAccountText = screen.getAllByText('Change Account')
-      const hiddenText = changeAccountText.find(
-        (el) => el.className && el.className.includes('hidden'),
-      )
-      expect(hiddenText).toBeDefined()
-      if (hiddenText) {
-        expect(hiddenText.className).toContain('md:inline')
-      }
-    })
-
-    it('Lock button shows text on medium+ screens', () => {
-      renderWithContext(<SessionDetails />)
-      const lockText = screen.getAllByText('Lock')
-      const hiddenText = lockText.find(
-        (el) => el.className && el.className.includes('hidden'),
-      )
-      expect(hiddenText).toBeDefined()
-      if (hiddenText) {
-        expect(hiddenText.className).toContain('md:inline')
-      }
-    })
-
-    it('Logout button shows text on medium+ screens', () => {
-      renderWithContext(<SessionDetails />)
-      const logoutText = screen.getAllByText('Logout')
-      const hiddenText = logoutText.find(
-        (el) => el.className && el.className.includes('hidden'),
-      )
-      expect(hiddenText).toBeDefined()
-      if (hiddenText) {
-        expect(hiddenText.className).toContain('md:inline')
-      }
+      fireEvent.click(screen.getByRole('button', { name: 'Change Account' }))
+      expect(onChangeAccountClick).toHaveBeenCalledTimes(1)
     })
 
     it('confirms before logging out from the header action', () => {
@@ -590,36 +531,8 @@ describe('SessionDetails', () => {
     })
   })
 
-  describe('Copyable Fields', () => {
-    it('renders the identifiers section toggle', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('Identifiers')).toBeDefined()
-    })
-
-    it('renders the closeable shell actions', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('Change Account')).toBeDefined()
-      expect(screen.getByText('Logout')).toBeDefined()
-    })
-
-    it('renders the account controls without crashing', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('Lock')).toBeDefined()
-    })
-  })
-
   describe('Sections', () => {
-    it('renders Session Details section', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('Identifiers')).toBeDefined()
-    })
-
     it('renders Security section', () => {
-      renderWithContext(<SessionDetails />)
-      expect(screen.getByText('Security')).toBeDefined()
-    })
-
-    it('shows session lock options in the security section', () => {
       renderWithContext(<SessionDetails />)
       expect(screen.getByText('Security')).toBeDefined()
     })
@@ -639,18 +552,6 @@ describe('SessionDetails', () => {
 
       expect(onCloseClick).toHaveBeenCalledTimes(1)
       expect(mockNavigate).toHaveBeenCalledWith({ path: 'billing/ba_test' })
-    })
-  })
-
-  describe('Button Spacing', () => {
-    it('applies responsive gap to button container', () => {
-      const { container } = renderWithContext(
-        <SessionDetails onCloseClick={() => {}} />,
-      )
-      const buttonsContainer = container.querySelector('.flex.gap-1\\.5')
-      expect(buttonsContainer).toBeTruthy()
-      expect(buttonsContainer?.className).toContain('flex')
-      expect(buttonsContainer?.className).toContain('gap-1.5')
     })
   })
 

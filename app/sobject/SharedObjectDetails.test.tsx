@@ -159,22 +159,25 @@ describe('SharedObjectDetails', () => {
   }
 
   describe('Rendering', () => {
-    it('renders without crashing', () => {
+    it('displays the object name, body type, and identifiers', () => {
       renderWithContext(<SharedObjectDetails />)
       expect(screen.getByText('Untitled')).toBeDefined()
-    })
-
-    it('displays object metadata correctly', () => {
-      renderWithContext(<SharedObjectDetails />)
+      expect(screen.getByText(/counter/)).toBeDefined()
       expect(screen.getByText('test-object-id')).toBeDefined()
       expect(screen.getByText('test-blockstore-id')).toBeDefined()
       expect(screen.getByText('test-peer-id')).toBeDefined()
     })
 
-    it('displays body type name', () => {
-      renderWithContext(<SharedObjectDetails />)
-      expect(screen.getByText(/counter/)).toBeDefined()
-    })
+    it.each(['test-object-id', 'test-blockstore-id', 'test-peer-id'])(
+      'copies %s to the clipboard when clicked',
+      (id) => {
+        renderWithContext(<SharedObjectDetails />)
+        const field = screen.getByText(id).closest('button')
+        expect(field).not.toBeNull()
+        fireEvent.click(field!)
+        expect(mockClipboard.writeText).toHaveBeenCalledWith(id)
+      },
+    )
 
     it('handles unknown body type', () => {
       const unknownTypeMeta: MountSharedObjectResponse = {
@@ -219,12 +222,8 @@ describe('SharedObjectDetails', () => {
           onRenameStart={onRenameStart}
         />,
       )
-      const button = screen.getByText('Rename').closest('button')
-      expect(button).toBeDefined()
-      if (button) {
-        fireEvent.click(button)
-        expect(onRenameStart).toHaveBeenCalledTimes(1)
-      }
+      fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
+      expect(onRenameStart).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -274,127 +273,26 @@ describe('SharedObjectDetails', () => {
     })
   })
 
-  describe('Export Button', () => {
-    it('renders export button', () => {
+  describe.each([
+    { label: 'Export Data', prop: 'onExportClick' },
+    { label: 'Delete Object', prop: 'onDeleteClick' },
+  ] as const)('$label button', ({ label, prop }) => {
+    it('is disabled without a handler', () => {
       renderWithContext(<SharedObjectDetails />)
-      expect(screen.getByText('Export Data')).toBeDefined()
-      expect(screen.getByText('Download object contents')).toBeDefined()
+      expect(screen.getByText(label).closest('button')?.disabled).toBe(true)
     })
 
-    it('calls onExportClick when export button is clicked', () => {
-      const onExportClick = vi.fn()
-      renderWithContext(<SharedObjectDetails onExportClick={onExportClick} />)
-      const exportButton = screen.getByText('Export Data').closest('button')
-      if (exportButton) {
-        fireEvent.click(exportButton)
-        expect(onExportClick).toHaveBeenCalledTimes(1)
-      }
-    })
-
-    it('disables export button when onExportClick is not provided', () => {
-      renderWithContext(<SharedObjectDetails />)
-      const exportButton = screen.getByText('Export Data').closest('button')
-      expect(exportButton?.disabled).toBe(true)
-    })
-
-    it('enables export button when onExportClick is provided', () => {
-      const onExportClick = vi.fn()
-      renderWithContext(<SharedObjectDetails onExportClick={onExportClick} />)
-      const exportButton = screen.getByText('Export Data').closest('button')
-      expect(exportButton?.disabled).toBe(false)
-    })
-  })
-
-  describe('Delete Button', () => {
-    it('renders delete button', () => {
-      renderWithContext(<SharedObjectDetails />)
-      expect(screen.getByText('Delete Object')).toBeDefined()
-      expect(
-        screen.getByText('Permanently remove this object and all its data'),
-      ).toBeDefined()
-    })
-
-    it('calls onDeleteClick when delete button is clicked', () => {
-      const onDeleteClick = vi.fn()
-      renderWithContext(<SharedObjectDetails onDeleteClick={onDeleteClick} />)
-      const deleteButton = screen.getByText('Delete Object').closest('button')
-      if (deleteButton) {
-        fireEvent.click(deleteButton)
-        expect(onDeleteClick).toHaveBeenCalledTimes(1)
-      }
-    })
-
-    it('disables delete button when onDeleteClick is not provided', () => {
-      renderWithContext(<SharedObjectDetails />)
-      const deleteButton = screen.getByText('Delete Object').closest('button')
-      expect(deleteButton?.disabled).toBe(true)
-    })
-
-    it('enables delete button when onDeleteClick is provided', () => {
-      const onDeleteClick = vi.fn()
-      renderWithContext(<SharedObjectDetails onDeleteClick={onDeleteClick} />)
-      const deleteButton = screen.getByText('Delete Object').closest('button')
-      expect(deleteButton?.disabled).toBe(false)
-    })
-  })
-
-  describe('Copyable Fields', () => {
-    it('copies object ID to clipboard when clicked', () => {
-      renderWithContext(<SharedObjectDetails />)
-      const objectIdField = screen.getByText('test-object-id').closest('button')
-      if (objectIdField) {
-        fireEvent.click(objectIdField)
-        expect(mockClipboard.writeText).toHaveBeenCalledWith('test-object-id')
-      }
-    })
-
-    it('copies block store ID to clipboard when clicked', () => {
-      renderWithContext(<SharedObjectDetails />)
-      const blockStoreField = screen
-        .getByText('test-blockstore-id')
-        .closest('button')
-      if (blockStoreField) {
-        fireEvent.click(blockStoreField)
-        expect(mockClipboard.writeText).toHaveBeenCalledWith(
-          'test-blockstore-id',
-        )
-      }
-    })
-
-    it('copies peer ID to clipboard when clicked', () => {
-      renderWithContext(<SharedObjectDetails />)
-      const peerIdField = screen.getByText('test-peer-id').closest('button')
-      if (peerIdField) {
-        fireEvent.click(peerIdField)
-        expect(mockClipboard.writeText).toHaveBeenCalledWith('test-peer-id')
-      }
-    })
-
-    it('shows check icon after copying', () => {
-      vi.useFakeTimers()
-      renderWithContext(<SharedObjectDetails />)
-      const objectIdField = screen.getByText('test-object-id').closest('button')
-      if (objectIdField) {
-        fireEvent.click(objectIdField)
-        const checkIcon = objectIdField.querySelector('.lucide-check')
-        expect(checkIcon).toBeDefined()
-      }
-      vi.useRealTimers()
+    it('calls its handler when clicked', () => {
+      const handler = vi.fn()
+      renderWithContext(<SharedObjectDetails {...{ [prop]: handler }} />)
+      const button = screen.getByText(label).closest('button')
+      expect(button?.disabled).toBe(false)
+      fireEvent.click(button!)
+      expect(handler).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('Sections', () => {
-    it('renders Details section', () => {
-      renderWithContext(<SharedObjectDetails />)
-      expect(screen.getByText('Identifiers')).toBeDefined()
-      expect(screen.getByText('Object ID')).toBeDefined()
-    })
-
-    it('renders Data section', () => {
-      renderWithContext(<SharedObjectDetails />)
-      expect(screen.getByText('Data')).toBeDefined()
-    })
-
     it('renders object header badge and actions when provided', () => {
       renderWithContext(
         <SharedObjectDetails
@@ -412,17 +310,6 @@ describe('SharedObjectDetails', () => {
       renderWithContext(<SharedObjectDetails />)
       expect(screen.getByText('Sharing')).toBeDefined()
       expect(screen.getByText('No users added yet')).toBeDefined()
-    })
-
-    it('renders Danger Zone section', () => {
-      renderWithContext(<SharedObjectDetails />)
-      expect(screen.getByText('Danger Zone')).toBeDefined()
-    })
-
-    it('renders Export Data in Data section', () => {
-      renderWithContext(<SharedObjectDetails />)
-      expect(screen.getByText('Export Data')).toBeDefined()
-      expect(screen.getByText('Download object contents')).toBeDefined()
     })
   })
 

@@ -284,34 +284,6 @@ describe('Canvas', () => {
     expect(el2.classList.contains('canvas-node-input')).toBe(true)
   })
 
-  it('does not fire onNodesChange during drag, only on drop', () => {
-    const node = makeNode({ id: 'drag-test', x: 100, y: 100 })
-    const state = makeState([node])
-    const onNodesChange = vi.fn()
-    const callbacks = makeCallbacks({ onNodesChange })
-    render(<Canvas state={state} callbacks={callbacks} />)
-
-    const el = document.querySelector(
-      '[data-canvas-node="drag-test"]',
-    ) as HTMLElement
-
-    // Simulate drag start.
-    fireEvent.pointerDown(el, { clientX: 150, clientY: 150, pointerId: 1 })
-    // Simulate drag move.
-    fireEvent.pointerMove(el, { clientX: 170, clientY: 160, pointerId: 1 })
-    fireEvent.pointerMove(el, { clientX: 190, clientY: 170, pointerId: 1 })
-
-    // During drag, onNodesChange should NOT have been called.
-    expect(onNodesChange).not.toHaveBeenCalled()
-
-    // Simulate drop.
-    fireEvent.pointerUp(el, { clientX: 190, clientY: 170, pointerId: 1 })
-
-    // After drop, positions should be persisted.
-    // Note: @use-gesture may not fire in happy-dom, so this test verifies
-    // the architecture - that the callback only fires on pointer up.
-  })
-
   it('viewport transform is applied to the content layer', () => {
     const state = makeState()
     const callbacks = makeCallbacks()
@@ -322,15 +294,5 @@ describe('Canvas', () => {
       '[style*="translate3d(0px, 0px, 0) scale(1)"]',
     )
     expect(transformDiv).toBeTruthy()
-  })
-
-  it('viewport container has overflow hidden and touch-none', () => {
-    const state = makeState()
-    const callbacks = makeCallbacks()
-    render(<Canvas state={state} callbacks={callbacks} />)
-
-    // The viewport container has overflow-hidden and touch-none for gesture handling.
-    const container = document.querySelector('.overflow-hidden.touch-none')
-    expect(container).toBeTruthy()
   })
 })

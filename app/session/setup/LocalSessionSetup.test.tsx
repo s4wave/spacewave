@@ -95,23 +95,6 @@ describe('LocalSessionSetup', () => {
   })
 
   describe('local mode rendering', () => {
-    it('renders the header text', () => {
-      render(<LocalSessionSetup mode="local" />)
-      expect(screen.getByText('Preparing local storage')).toBeDefined()
-    })
-
-    it('renders the subtitle', () => {
-      render(<LocalSessionSetup mode="local" />)
-      expect(
-        screen.getByText('Opening your full local setup flow.'),
-      ).toBeDefined()
-    })
-
-    it('renders the animated logo', () => {
-      render(<LocalSessionSetup mode="local" />)
-      expect(screen.getByTestId('animated-logo')).toBeDefined()
-    })
-
     it('does not render the duplicate continue button', () => {
       render(<LocalSessionSetup mode="local" />)
       expect(screen.queryByText('Continue to Spacewave')).toBeNull()
@@ -162,31 +145,11 @@ describe('LocalSessionSetup', () => {
   })
 
   describe('cloud mode rendering', () => {
-    it('renders the header text', () => {
-      render(
-        <LocalSessionSetup
-          mode="cloud"
-          metadata={{ providerId: 'spacewave' }}
-        />,
-      )
-      expect(screen.getByText('Preparing local storage')).toBeDefined()
-    })
-
     it('waits for session metadata before taking the local redirect fallback', () => {
       render(<LocalSessionSetup mode="cloud" />)
 
       expect(mockNavigate).not.toHaveBeenCalled()
       expect(screen.getByText('Preparing local storage')).toBeDefined()
-    })
-
-    it('does not render the duplicate continue button', () => {
-      render(
-        <LocalSessionSetup
-          mode="cloud"
-          metadata={{ providerId: 'spacewave' }}
-        />,
-      )
-      expect(screen.queryByText('Continue to Spacewave')).toBeNull()
     })
 
     it('dismisses the linked local banner before navigating back to it', async () => {

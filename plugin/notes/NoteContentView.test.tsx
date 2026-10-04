@@ -327,8 +327,7 @@ describe('NoteContentView', () => {
       />,
     )
     const textarea = container.querySelector('textarea')
-    expect(textarea).toBeDefined()
-    expect(textarea!.value).toBe('Editable text')
+    expect(textarea?.value).toBe('Editable text')
     // Should show WYSIWYG button in source mode.
     expect(screen.getByText('WYSIWYG')).toBeDefined()
   })

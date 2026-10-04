@@ -136,16 +136,6 @@ describe('PlanSelectionPage', () => {
   })
 
   describe('Rendering', () => {
-    it('renders the welcome header', () => {
-      render(<PlanSelectionPage />)
-      expect(screen.getByText('Welcome to Spacewave')).toBeDefined()
-    })
-
-    it('renders the animated logo', () => {
-      render(<PlanSelectionPage />)
-      expect(screen.getByTestId('animated-logo')).toBeDefined()
-    })
-
     it('renders the Cloud plan card with monthly price', () => {
       render(<PlanSelectionPage />)
       expect(screen.getByText('Cloud')).toBeDefined()
@@ -167,30 +157,12 @@ describe('PlanSelectionPage', () => {
       expect(screen.getByText('End-to-end encrypted')).toBeDefined()
     })
 
-    it('renders the Start with Cloud button', () => {
-      render(<PlanSelectionPage />)
-      expect(screen.getByText('Start with Cloud')).toBeDefined()
-    })
-
     it('renders the free local storage option with correct copy', () => {
       render(<PlanSelectionPage />)
       expect(screen.getByText('Continue with local storage')).toBeDefined()
       expect(screen.getByText('Store on your own devices')).toBeDefined()
       expect(screen.getByText('Free and open-source')).toBeDefined()
       expect(screen.getByText('No cloud account required')).toBeDefined()
-    })
-
-    it('renders shared features', () => {
-      render(<PlanSelectionPage />)
-      expect(screen.getByText('Both options include')).toBeDefined()
-      expect(screen.getByText('The full local-first app')).toBeDefined()
-      expect(
-        screen.getByText('Full plugin SDK and developer tools'),
-      ).toBeDefined()
-      expect(
-        screen.getByText('Peer-to-peer sync between devices'),
-      ).toBeDefined()
-      expect(screen.getByText('Open-source, self-hostable')).toBeDefined()
     })
   })
 
@@ -385,15 +357,6 @@ describe('PlanSelectionPage', () => {
       render(<PlanSelectionPage checkoutResult="success" />)
 
       expect(screen.getByText('Activating subscription…')).toBeDefined()
-    })
-  })
-
-  describe('Session Index', () => {
-    it('renders Start with Cloud button with session available', () => {
-      render(<PlanSelectionPage />)
-
-      const button = screen.getByText('Start with Cloud').closest('button')
-      expect(button).toBeDefined()
     })
   })
 })

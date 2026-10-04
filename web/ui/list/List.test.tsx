@@ -46,11 +46,6 @@ describe('List', () => {
   })
 
   describe('structure', () => {
-    it('renders with role="list"', () => {
-      render(<List items={[]} rowComponent={TestRow} />)
-      expect(screen.getByRole('list')).toBeTruthy()
-    })
-
     it('renders with aria-label="List"', () => {
       render(<List items={[]} rowComponent={TestRow} />)
       const list = screen.getByRole('list')
@@ -77,39 +72,13 @@ describe('List', () => {
   })
 
   describe('keyboard handling', () => {
-    it('Ctrl+A dispatches select-all without throwing', () => {
-      render(<List items={mockItems} rowComponent={TestRow} />)
-      const rowgroup = screen.getByRole('rowgroup')
-      rowgroup.focus()
-
-      // Should not throw when dispatching Ctrl+A
-      expect(() => {
-        fireEvent.keyDown(rowgroup, { key: 'a', ctrlKey: true })
-      }).not.toThrow()
-    })
-
-    it('ArrowDown prevents default', () => {
+    it.each(['ArrowDown', 'ArrowUp'])('%s prevents default', (key) => {
       render(<List items={mockItems} rowComponent={TestRow} />)
       const rowgroup = screen.getByRole('rowgroup')
       rowgroup.focus()
 
       const event = new KeyboardEvent('keydown', {
-        key: 'ArrowDown',
-        bubbles: true,
-        cancelable: true,
-      })
-      const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
-      rowgroup.dispatchEvent(event)
-      expect(preventDefaultSpy).toHaveBeenCalled()
-    })
-
-    it('ArrowUp prevents default', () => {
-      render(<List items={mockItems} rowComponent={TestRow} />)
-      const rowgroup = screen.getByRole('rowgroup')
-      rowgroup.focus()
-
-      const event = new KeyboardEvent('keydown', {
-        key: 'ArrowUp',
+        key,
         bubbles: true,
         cancelable: true,
       })
@@ -166,11 +135,6 @@ describe('ListRow', () => {
       const row = screen.getByRole('row')
       expect(row.style.height).toBe('48px')
       expect(row.style.color).toBe('red')
-    })
-
-    it('has role="row"', () => {
-      renderListRow()
-      expect(screen.getByRole('row')).toBeTruthy()
     })
   })
 

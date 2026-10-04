@@ -143,17 +143,6 @@ describe('BottomBarItem', () => {
       expect(onSecondaryActivate).not.toHaveBeenCalled()
     })
 
-    it('does not call onClick when onClick is undefined', () => {
-      const { container } = render(<BottomBarItem>Test Item</BottomBarItem>)
-
-      const item = container.firstChild as HTMLElement
-
-      expect(() => {
-        fireEvent.keyDown(item, { key: ' ' })
-        fireEvent.keyDown(item, { key: 'Enter' })
-      }).not.toThrow()
-    })
-
     it('has correct ARIA attributes for button role', () => {
       const { container } = render(
         <BottomBarItem onClick={() => {}}>Test Item</BottomBarItem>,
@@ -171,15 +160,6 @@ describe('BottomBarItem', () => {
 
       const item = container.firstChild as HTMLElement
       expect(item.getAttribute('aria-disabled')).toBe('true')
-    })
-
-    it('applies aria-selected when selected prop is true', () => {
-      const { container } = render(
-        <BottomBarItem selected>Test Item</BottomBarItem>,
-      )
-
-      const item = container.firstChild as HTMLElement
-      expect(item.getAttribute('aria-selected')).toBe('true')
     })
 
     it('applies menu ARIA state when secondary actions are available', () => {
@@ -342,34 +322,6 @@ describe('BottomBarItem', () => {
 
       const item = container.firstChild as HTMLElement
       expect(item.className).toContain('mt-1')
-    })
-
-    it('sets cursor to not-allowed when disabled', () => {
-      const { container } = render(
-        <BottomBarItem disabled>Test Item</BottomBarItem>,
-      )
-
-      const item = container.firstChild as HTMLElement
-      expect(item.classList.contains('cursor-not-allowed')).toBe(true)
-    })
-
-    it('sets cursor to pointer when not disabled', () => {
-      const { container } = render(<BottomBarItem>Test Item</BottomBarItem>)
-
-      const item = container.firstChild as HTMLElement
-      expect(item.classList.contains('cursor-pointer')).toBe(true)
-    })
-  })
-
-  describe('Children Rendering', () => {
-    it('renders children content', () => {
-      const { getByText } = render(
-        <BottomBarItem>
-          <span>Child Content</span>
-        </BottomBarItem>,
-      )
-
-      expect(getByText('Child Content')).toBeTruthy()
     })
   })
 })

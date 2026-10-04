@@ -107,7 +107,7 @@ describe('OrganizationDetails', () => {
   })
 
   describe('Owner view', () => {
-    it('shows Members, Invites, Settings, Billing, Identifiers sections', () => {
+    it('shows the org name, Owner role, and every owner section', () => {
       render(
         <OrganizationDetails
           orgId="org-1"
@@ -120,16 +120,6 @@ describe('OrganizationDetails', () => {
       expect(screen.getByTestId('section-settings')).toBeDefined()
       expect(screen.getByTestId('section-billing')).toBeDefined()
       expect(screen.getByTestId('section-identifiers')).toBeDefined()
-    })
-
-    it('shows org name and Owner role', () => {
-      render(
-        <OrganizationDetails
-          orgId="org-1"
-          orgState={makeOrgState('org:owner')}
-          isOwner={true}
-        />,
-      )
       expect(screen.getAllByText('Test Org').length).toBeGreaterThanOrEqual(1)
       // Role label appears in both the header and member list badges
       expect(screen.getAllByText('Owner').length).toBeGreaterThanOrEqual(1)
@@ -262,7 +252,7 @@ describe('OrganizationDetails', () => {
   })
 
   describe('Non-owner view', () => {
-    it('shows Members and Identifiers sections', () => {
+    it('shows the Member role and hides owner-only sections', () => {
       render(
         <OrganizationDetails
           orgId="org-1"
@@ -272,16 +262,7 @@ describe('OrganizationDetails', () => {
       )
       expect(screen.getByTestId('section-members')).toBeDefined()
       expect(screen.getByTestId('section-identifiers')).toBeDefined()
-    })
-
-    it('hides Invites, Settings, Billing sections for non-owners', () => {
-      render(
-        <OrganizationDetails
-          orgId="org-1"
-          orgState={makeOrgState('org:member')}
-          isOwner={false}
-        />,
-      )
+      expect(screen.getAllByText('Member').length).toBeGreaterThanOrEqual(1)
       expect(screen.queryByTestId('section-invites')).toBeNull()
       expect(screen.queryByTestId('section-settings')).toBeNull()
       expect(screen.queryByTestId('section-billing')).toBeNull()
@@ -317,18 +298,6 @@ describe('OrganizationDetails', () => {
           .getByRole('button', { name: 'Reinitialize' })
           .hasAttribute('disabled'),
       ).toBe(true)
-    })
-
-    it('shows Member role label', () => {
-      render(
-        <OrganizationDetails
-          orgId="org-1"
-          orgState={makeOrgState('org:member')}
-          isOwner={false}
-        />,
-      )
-      // Role label appears in both the header and member list badges
-      expect(screen.getAllByText('Member').length).toBeGreaterThanOrEqual(1)
     })
 
     it('shows an explicit empty member state', () => {
