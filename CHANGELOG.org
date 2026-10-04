@@ -1,5 +1,27 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.24
+<2026-10-04 Sun>
+
+Spacewave 0.57.24 frees cloud storage held by deleted data and fixes Git pushes
+that could wait forever.
+
+** Improvements
+- Cloud Spaces now free the storage of data that is no longer referenced. A
+  device holding a complete copy of a Space marks unused storage for removal,
+  and the storage is removed a day later, after any data still in use is
+  copied out.
+- Released versions of Spacewave now free the storage of replaced files after
+  each publish.
+
+** Fixes
+- Git pushes to a Space and Git LFS uploads now wait only for that Space's
+  uploads, so a push no longer hangs while another Space is syncing.
+- Quitting the desktop app after reopening its window now exits cleanly.
+- Plugin tasks interrupted by a plugin reload now resume instead of failing,
+  and tasks left behind by a restart now finish or cancel.
+- Signing up for email updates on the blog now sends one request.
+
 * v0.57.23
 <2026-10-04 Sun>
 

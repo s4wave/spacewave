@@ -1,4 +1,13 @@
 
+¡
+0.57.24
+2026-10-04hSpacewave 0.57.24 frees cloud storage held by deleted data and fixes Git pushes that could wait forever."hSpacewave 0.57.24 frees cloud storage held by deleted data and fixes Git pushes that could wait forever.2ú
+ãGit pushes to a Space and Git LFS uploads now wait only for that Space's uploads, so a push no longer hangs while another Space is syncing.ãGit pushes to a Space and Git LFS uploads now wait only for that Space's uploads, so a push no longer hangs while another Space is syncing.2ê
+FQuitting the desktop app after reopening its window now exits cleanly.FQuitting the desktop app after reopening its window now exits cleanly.2å
+ÉPlugin tasks interrupted by a plugin reload now resume instead of failing, and tasks left behind by a restart now finish or cancel.ÉPlugin tasks interrupted by a plugin reload now resume instead of failing, and tasks left behind by a restart now finish or cancel.2Ç
+?Signing up for email updates on the blog now sends one request.?Signing up for email updates on the blog now sends one request.:÷
+ËCloud Spaces now free the storage of data that is no longer referenced. A device holding a complete copy of a Space marks unused storage for removal, and the storage is removed a day later, after any data still in use is copied out.ËCloud Spaces now free the storage of data that is no longer referenced. A device holding a complete copy of a Space marks unused storage for removal, and the storage is removed a day later, after any data still in use is copied out.:∂
+YReleased versions of Spacewave now free the storage of replaced files after each publish.YReleased versions of Spacewave now free the storage of replaced files after each publish.
 Æ
 0.57.23
 2026-10-04´Spacewave 0.57.23 adds Space controls for edit syncing, group decisions, and offline storage, while improving sign-in, invites, file storage, and reconnection reliability."´Spacewave 0.57.23 adds Space controls for edit syncing, group decisions, and offline storage, while improving sign-in, invites, file storage, and reconnection reliability.*¸
