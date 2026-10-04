@@ -69,20 +69,22 @@ func TestShouldEmitOnboardingStatusFirstEmissionGate(t *testing.T) {
 // TestBuildBillingUsageInfoPreservesSpendingConsent keeps exact ledger units and
 // the payer's subscription boundary intact through the generated SDK projection.
 func TestBuildBillingUsageInfoPreservesSpendingConsent(t *testing.T) {
+	// Project a usage response with every billing field set.
 	usage := BuildBillingUsageInfo(&api.BillingUsageResponse{
-		StorageBytes: 123, StorageBaselineBytes: 107374182400,
-		WriteOps: 50001, WriteOpsBaseline: 50000, ReadOps: 250000, ReadOpsBaseline: 250000,
-		OverageLimitCents: 500, AccruedOverageMicrodollars: 20, ReservedOverageMicrodollars: 10,
-		CurrentPeriodStart: 1776900000000, CurrentPeriodEnd: 1779492000000, OfferVersion: "cloud-monthly-v2",
-		MonthlyPriceCents: 900, WriteMicrodollars: 30, ReadMicrodollars: 15, PolicyVersion: "2026-09-10",
+		StorageBytes: 123, StorageBaselineBytes: 107374182400, WriteOps: 50001, ReadOps: 250000,
+		OverageLimitCents: 500, AccruedOverageMicrodollars: 20,
+		CurrentPeriodStart: 1776900000000, CurrentPeriodEnd: 1779492000000, OfferVersion: "cloud-monthly-v3",
+		MonthlyPriceCents: 900, StorageMicrodollarsPerGibMonth: 30000, PolicyVersion: "2026-10-02",
 	})
-	if usage.GetMonthlyPriceCents() != 900 || usage.GetWriteMicrodollars() != 30 || usage.GetReadMicrodollars() != 15 || usage.GetPolicyVersion() != "2026-09-10" {
+
+	// Check the accepted prices, spending and period survive the projection.
+	if usage.GetMonthlyPriceCents() != 900 || usage.GetStorageMicrodollarsPerGibMonth() != 30000 || usage.GetPolicyVersion() != "2026-10-02" {
 		t.Fatalf("billing projection lost accepted prices: %+v", usage)
 	}
-	if usage.GetAccruedOverageMicrodollars() != 20 || usage.GetOverageLimitCents() != 500 || usage.GetReservedOverageMicrodollars() != 10 {
+	if usage.GetAccruedOverageMicrodollars() != 20 || usage.GetOverageLimitCents() != 500 {
 		t.Fatalf("spending projection lost exact ledger units: %+v", usage)
 	}
-	if usage.GetCurrentPeriodStart() != 1776900000000 || usage.GetCurrentPeriodEnd() != 1779492000000 || usage.GetWriteOpsBaseline() != 50000 {
-		t.Fatalf("spending projection lost its period or allowance: %+v", usage)
+	if usage.GetCurrentPeriodStart() != 1776900000000 || usage.GetCurrentPeriodEnd() != 1779492000000 || usage.GetStorageBaselineBytes() != 107374182400 {
+		t.Fatalf("spending projection lost its period or included storage: %+v", usage)
 	}
 }

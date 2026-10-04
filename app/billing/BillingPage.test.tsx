@@ -34,9 +34,7 @@ const mockBillingState = vi.hoisted(() => ({
       storageBytes: 1,
       storageBaselineBytes: 10,
       writeOps: 1n,
-      writeOpsBaseline: 10n,
       readOps: 1n,
-      readOpsBaseline: 10n,
     },
   },
 }))

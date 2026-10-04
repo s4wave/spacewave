@@ -10,17 +10,13 @@ const mockBillingState = vi.hoisted(() => ({
       storageBytes: 80 * 2 ** 30,
       storageBaselineBytes: 100 * 2 ** 30,
       writeOps: 42_500n,
-      writeOpsBaseline: 50_000n,
       readOps: 225_000n,
-      readOpsBaseline: 250_000n,
       overageLimitCents: 1000,
       monthlyPriceCents: 900,
-      writeMicrodollars: 30,
-      readMicrodollars: 15,
-      offerVersion: 'cloud-monthly-v2',
-      policyVersion: '2026-09-10',
+      storageMicrodollarsPerGibMonth: 30_000,
+      offerVersion: 'cloud-monthly-v3',
+      policyVersion: '2026-10-02',
       accruedOverageMicrodollars: 2_000_000n,
-      reservedOverageMicrodollars: 500_000n,
       currentPeriodStart: 1_800_000_000_000n,
       currentPeriodEnd: 1_802_592_000_000n,
     },
@@ -37,31 +33,23 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 afterEach(cleanup)
 
 describe('UsageBars', () => {
-  it('shows accrued charges, pending exposure, available budget, and the subscription reset date', () => {
+  it('shows accrued charges, available budget, and the subscription reset date', () => {
     render(<UsageBars />)
     expect(
-      screen.getByText(
-        /Accrued: \$2.00 · Reserved: \$0.50 · Available: \$7.50/,
-      ),
+      screen.getByText(/Accrued: \$2.00 · Available: \$8.00/),
     ).toBeDefined()
     expect(screen.getByText(/Subscription period:/)).toBeDefined()
     expect(screen.getByText(/Service maximum: \$19.00/)).toBeDefined()
-    expect(screen.getByText(/Extra writes cost \$0.30/)).toBeDefined()
-    expect(screen.getByText(/Extra uncached reads cost \$0.15/)).toBeDefined()
-    expect(screen.getByText(/Peer-only traffic and cached reads/)).toBeDefined()
-    expect(screen.queryByText('Extra storage')).toBeNull()
+    expect(screen.getByText(/\$0.03 per GiB-month/)).toBeDefined()
+    expect(screen.getByText(/Reads and writes are not billed/)).toBeDefined()
   })
 
-  it('shows threshold alerts against the monthly offer', () => {
+  it('shows unbilled operation counts and the included storage alert', () => {
     render(<UsageBars />)
+    expect(screen.getByText('Writes 42.5K')).toBeDefined()
+    expect(screen.getByText('Reads 225.0K')).toBeDefined()
     expect(
-      screen.getByText('Storage has reached 80% of included usage.'),
-    ).toBeDefined()
-    expect(
-      screen.getByText('Write Ops has reached 85% of included usage.'),
-    ).toBeDefined()
-    expect(
-      screen.getByText('Cloud Reads has reached 90% of included usage.'),
+      screen.getByText(/Storage has reached 80% of included/),
     ).toBeDefined()
   })
 })

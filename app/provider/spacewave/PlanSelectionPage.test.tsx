@@ -149,7 +149,9 @@ describe('PlanSelectionPage', () => {
       expect(screen.getByText('Shared Spaces with collaborators')).toBeDefined()
       expect(screen.getByText('100 GiB cloud storage included')).toBeDefined()
       expect(
-        screen.getByText('40K writes / 100K uncached reads per month'),
+        screen.getByText(
+          'Extra storage at $0.02 per GiB-month, reads and writes not billed',
+        ),
       ).toBeDefined()
       expect(
         screen.getByText('Always-on sync across all devices'),
@@ -222,7 +224,7 @@ describe('PlanSelectionPage', () => {
           policyVersion: CLOUD_OFFER.policyVersion,
           renewalAccepted: true,
           overageAccepted: true,
-          overageLimitCents: 1000,
+          overageLimitCents: CLOUD_OFFER.defaultOverageLimitCents,
         },
       })
     })
@@ -234,9 +236,9 @@ describe('PlanSelectionPage', () => {
       })
       render(<PlanSelectionPage startCloud />)
       expect(screen.queryByRole('checkbox')).toBeNull()
-      const maximum = screen.getByRole('combobox') as HTMLSelectElement
-      expect(maximum.value).toBe('1000')
-      fireEvent.change(maximum, { target: { value: '0' } })
+      const limit = screen.getByRole('combobox') as HTMLSelectElement
+      expect(limit.value).toBe(String(CLOUD_OFFER.defaultOverageLimitCents))
+      fireEvent.change(limit, { target: { value: '0' } })
       await acceptMonthlyOffer()
       expect(mockCreateCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({

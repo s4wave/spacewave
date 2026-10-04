@@ -198,7 +198,7 @@ func runBillingUsage(
 	return writeBillingUsageOutput(os.Stdout, outputFormat, sessionIdx, billingAccountID, resp.GetUsage())
 }
 
-// writeBillingUsageOutput renders the current offer and metered operation usage.
+// writeBillingUsageOutput renders the current offer and metered storage usage.
 func writeBillingUsageOutput(
 	w io.Writer,
 	outputFormat string,
@@ -236,9 +236,6 @@ func writeBillingUsageOutput(
 		ms.WriteObjectField("accruedOverageMicrodollars")
 		ms.WriteInt64(usage.GetAccruedOverageMicrodollars())
 		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("reservedOverageMicrodollars")
-		ms.WriteInt64(usage.GetReservedOverageMicrodollars())
-		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("currentPeriodStart")
 		ms.WriteInt64(usage.GetCurrentPeriodStart())
 		ms.WriteMoreIf(&f)
@@ -251,11 +248,8 @@ func writeBillingUsageOutput(
 		ms.WriteObjectField("monthlyPriceCents")
 		ms.WriteUint32(usage.GetMonthlyPriceCents())
 		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("writeMicrodollars")
-		ms.WriteUint32(usage.GetWriteMicrodollars())
-		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("readMicrodollars")
-		ms.WriteUint32(usage.GetReadMicrodollars())
+		ms.WriteObjectField("storageMicrodollarsPerGibMonth")
+		ms.WriteUint32(usage.GetStorageMicrodollarsPerGibMonth())
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("policyVersion")
 		ms.WriteString(usage.GetPolicyVersion())
@@ -266,14 +260,8 @@ func writeBillingUsageOutput(
 		ms.WriteObjectField("writeOps")
 		ms.WriteInt64(usage.GetWriteOps())
 		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("writeOpsBaseline")
-		ms.WriteInt64(usage.GetWriteOpsBaseline())
-		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("readOps")
 		ms.WriteInt64(usage.GetReadOps())
-		ms.WriteMoreIf(&f)
-		ms.WriteObjectField("readOpsBaseline")
-		ms.WriteInt64(usage.GetReadOpsBaseline())
 		ms.WriteObjectEnd()
 		return formatOutput(buf.Bytes(), outputFormat)
 	}
@@ -281,7 +269,7 @@ func writeBillingUsageOutput(
 		return formatOutput(nil, outputFormat)
 	}
 
-	// Present spending, allowances, rates, and freshness with explicit units.
+	// Present spending, storage, its rate, and freshness with explicit units.
 	baLabel := "default"
 	if billingAccountID != "" {
 		baLabel = billingAccountID
@@ -291,12 +279,10 @@ func writeBillingUsageOutput(
 		{"Monthly Price", billingFormatCurrency(float64(usage.GetMonthlyPriceCents()) / 100)},
 		{"Extra Spending Limit", billingFormatCurrency(float64(usage.GetOverageLimitCents()) / 100)},
 		{"Extra Usage Charges", billingFormatCurrency(float64(usage.GetAccruedOverageMicrodollars()) / 1e6)},
-		{"Pending Extra Charges", billingFormatCurrency(float64(usage.GetReservedOverageMicrodollars()) / 1e6)},
 		{"Storage", billingFormatBytes(usage.GetStorageBytes()) + " / " + billingFormatBytes(usage.GetStorageBaselineBytes()) + " included"},
-		{"Write Ops", strconv.FormatInt(usage.GetWriteOps(), 10) + " / " + strconv.FormatInt(usage.GetWriteOpsBaseline(), 10) + " included"},
-		{"Read Ops", strconv.FormatInt(usage.GetReadOps(), 10) + " / " + strconv.FormatInt(usage.GetReadOpsBaseline(), 10) + " included"},
-		{"Extra Write Rate", "$" + strconv.FormatFloat(float64(usage.GetWriteMicrodollars())/1e6, 'f', 6, 64) + " per write"},
-		{"Extra Read Rate", "$" + strconv.FormatFloat(float64(usage.GetReadMicrodollars())/1e6, 'f', 6, 64) + " per uncached read"},
+		{"Extra Storage Rate", "$" + strconv.FormatFloat(float64(usage.GetStorageMicrodollarsPerGibMonth())/1e6, 'f', 2, 64) + " per GiB-month"},
+		{"Writes", strconv.FormatInt(usage.GetWriteOps(), 10) + " (not billed)"},
+		{"Reads", strconv.FormatInt(usage.GetReadOps(), 10) + " (not billed)"},
 		{"Metered Through", billingFormatTimestamp(usage.GetUsageMeteredThroughAt())},
 	}
 	if usage.GetCurrentPeriodStart() > 0 && usage.GetCurrentPeriodEnd() > 0 {

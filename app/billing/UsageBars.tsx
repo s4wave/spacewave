@@ -3,15 +3,13 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { formatBytes } from '@s4wave/web/transform/TransformConfigDisplay.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useBillingConsent } from '../provider/spacewave/useBillingConsent.js'
-import { CLOUD_OFFER } from '../provider/spacewave/pricing.js'
+import {
+  CLOUD_OFFER,
+  formatStorageRate,
+} from '../provider/spacewave/pricing.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
 
 const SOFT_USAGE_ALERT_RATIO = 0.8
-
-type UsageAlert = {
-  label: string
-  percent: number
-}
 
 function formatCount(n: number): string {
   if (n < 1000) return String(n)
@@ -30,21 +28,8 @@ function formatCurrency(amount: number): string {
   return `$${amount.toFixed(2)}`
 }
 
-function usageAlert(
-  label: string,
-  used: number,
-  baseline: number,
-): UsageAlert | null {
-  if (baseline <= 0) return null
-  const ratio = used / baseline
-  if (ratio < SOFT_USAGE_ALERT_RATIO) return null
-  return {
-    label,
-    percent: Math.round(ratio * 100),
-  }
-}
-
-// UsageBars shows storage, write ops, and read ops progress bars.
+// UsageBars shows included storage, unbilled operation counts, and the
+// payer's extra storage spending.
 export function UsageBars(props: { actions?: ReactNode }) {
   const billingState = useBillingStateContext()
   const session = SessionContext.useContext().value
@@ -57,12 +42,9 @@ export function UsageBars(props: { actions?: ReactNode }) {
   const storageUsed = usage.storageBytes ?? 0
   const storageBaseline = usage.storageBaselineBytes ?? 1
   const writeOps = Number(usage.writeOps ?? 0n)
-  const writeBaseline = Number(usage.writeOpsBaseline ?? 1n)
   const readOps = Number(usage.readOps ?? 0n)
-  const readBaseline = Number(usage.readOpsBaseline ?? 1n)
   const overageLimit = (usage.overageLimitCents ?? 0) / 100
   const accrued = Number(usage.accruedOverageMicrodollars ?? 0n) / 1_000_000
-  const reserved = Number(usage.reservedOverageMicrodollars ?? 0n) / 1_000_000
   const periodStart = Number(usage.currentPeriodStart ?? 0n)
   const periodEnd = Number(usage.currentPeriodEnd ?? 0n)
 
@@ -71,11 +53,10 @@ export function UsageBars(props: { actions?: ReactNode }) {
     version: usage.offerVersion ?? CLOUD_OFFER.version,
     policyVersion: usage.policyVersion ?? CLOUD_OFFER.policyVersion,
     monthlyPriceCents: usage.monthlyPriceCents ?? CLOUD_OFFER.monthlyPriceCents,
-    writeMicrodollars: usage.writeMicrodollars ?? CLOUD_OFFER.writeMicrodollars,
-    readMicrodollars: usage.readMicrodollars ?? CLOUD_OFFER.readMicrodollars,
+    storageMicrodollarsPerGibMonth:
+      usage.storageMicrodollarsPerGibMonth ??
+      CLOUD_OFFER.storageMicrodollarsPerGibMonth,
     storageBytes: storageBaseline,
-    writeOperations: writeBaseline,
-    readOperations: readBaseline,
   }
 
   async function changeLimit() {
@@ -100,11 +81,7 @@ export function UsageBars(props: { actions?: ReactNode }) {
     }
   }
   const meteredThroughAt = Number(usage.usageMeteredThroughAt ?? 0n)
-  const softAlerts = [
-    usageAlert('Storage', storageUsed, storageBaseline),
-    usageAlert('Write Ops', writeOps, writeBaseline),
-    usageAlert('Cloud Reads', readOps, readBaseline),
-  ].filter((alert): alert is UsageAlert => alert !== null)
+  const storageRatio = storageBaseline > 0 ? storageUsed / storageBaseline : 0
 
   return (
     <div className="space-y-3">
@@ -120,82 +97,61 @@ export function UsageBars(props: { actions?: ReactNode }) {
           Usage metered through {formatMeteredThrough(meteredThroughAt)}
         </div>
       )}
-      {softAlerts.length > 0 && (
+      {storageRatio >= SOFT_USAGE_ALERT_RATIO && (
         <div className="rounded-md border border-yellow-400/20 bg-yellow-400/10 px-2.5 py-2 text-xs leading-relaxed">
           <div className="text-foreground text-xs font-medium">
-            Included usage alert
+            Included storage alert
           </div>
-          <div className="text-foreground-alt/60 mt-1 space-y-0.5">
-            {softAlerts.map((alert) => (
-              <div key={alert.label}>
-                {alert.label} has reached {alert.percent}% of included usage.
-              </div>
-            ))}
+          <div className="text-foreground-alt/60 mt-1">
+            Storage has reached {Math.round(storageRatio * 100)}% of included
+            storage.
           </div>
         </div>
       )}
-      <div className="space-y-2">
-        <UsageBar
-          label="Storage"
-          used={storageUsed}
-          baseline={storageBaseline}
-          formatValue={formatBytes}
-          barClassName="bg-blue-500"
-        />
+      <UsageBar
+        label="Storage"
+        used={storageUsed}
+        baseline={storageBaseline}
+        formatValue={formatBytes}
+        barClassName="bg-blue-500"
+      />
+      <div className="text-foreground-alt/70 flex justify-between text-xs">
+        <span>Writes {formatCount(writeOps)}</span>
+        <span>Reads {formatCount(readOps)}</span>
+        <span className="text-foreground-alt/50">Not billed</span>
       </div>
-      <UsageBar
-        label="Write Ops"
-        used={writeOps}
-        baseline={writeBaseline}
-        formatValue={formatCount}
-      />
-      <UsageBar
-        label="Cloud Reads"
-        used={readOps}
-        baseline={readBaseline}
-        formatValue={formatCount}
-      />
       <div className="text-foreground-alt space-y-2 rounded border p-3 text-xs">
         <div>
-          Extra usage:{' '}
+          Extra storage:{' '}
           {overageLimit
-            ? `${formatCurrency(overageLimit)} monthly maximum`
+            ? `${formatCurrency(overageLimit)} monthly limit`
             : 'off'}
           . Service maximum:{' '}
           {formatCurrency(offer.monthlyPriceCents / 100 + overageLimit)} before
           tax.
         </div>
         <div>
-          Accrued: {formatCurrency(accrued)} · Reserved:{' '}
-          {formatCurrency(reserved)} · Available:{' '}
-          {formatCurrency(Math.max(0, overageLimit - accrued - reserved))}
+          Accrued: {formatCurrency(accrued)} · Available:{' '}
+          {formatCurrency(Math.max(0, overageLimit - accrued))}
         </div>
         {periodEnd > 0 && (
           <div>
             Subscription period: {new Date(periodStart).toLocaleDateString()} –{' '}
-            {new Date(periodEnd).toLocaleDateString()}. Allowances reset{' '}
+            {new Date(periodEnd).toLocaleDateString()}. Spending resets{' '}
             {new Date(periodEnd).toLocaleString()}.
           </div>
         )}
         <p>
-          Extra writes cost ${(offer.writeMicrodollars / 100).toFixed(2)} per
-          10,000. Extra uncached reads cost $
-          {(offer.readMicrodollars / 100).toFixed(2)} per 10,000. Charges accrue
-          proportionally. Change or turn off the monthly extra-usage maximum
-          below.
+          Storage above the included amount costs{' '}
+          {formatStorageRate(offer.storageMicrodollarsPerGibMonth)}, measured
+          hourly. Reads and writes are not billed; rate limits protect the
+          service. Change or turn off the monthly spending limit below. One GiB
+          is 1,073,741,824 bytes.
         </p>
-        <p>
-          A cloud write is a successful sync upload or billed cloud mutation.
-          Many edits can share one upload. A cloud read is a sync download or
-          shared-state read answered from cloud storage. Peer-only traffic and
-          cached reads do not consume cloud operation allowances. One GiB is
-          1,073,741,824 bytes.
-        </p>
-        {accrued + reserved > overageLimit && (
+        {accrued >= overageLimit && storageUsed >= storageBaseline && (
           <p>
-            Previously accrued charges and reserved work remain payable. Further
-            extra writes are paused, and cloud reads slow to about ten per
-            minute.
+            Accrued charges remain payable. Uploads are paused until the period
+            renews or you raise the limit.
           </p>
         )}
         {billingState.selfServiceAllowed && (
@@ -205,7 +161,7 @@ export function UsageBars(props: { actions?: ReactNode }) {
             disabled={saving || !session}
             onClick={() => void changeLimit()}
           >
-            {saving ? 'Saving…' : 'Change extra-usage maximum'}
+            {saving ? 'Saving…' : 'Change spending limit'}
           </button>
         )}
         {error && (

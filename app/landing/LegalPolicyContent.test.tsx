@@ -25,10 +25,13 @@ describe('canonical customer policies', () => {
       screen.getByText(`Policy version: ${offer.policyVersion}`),
     ).toBeTruthy()
     expect(screen.getByText(/includes 100 GiB/).textContent).toContain(
-      `${offer.writeOperations.toLocaleString('en-US')} write operations`,
+      `${offer.storageBytes.toLocaleString('en-US')} bytes`,
     )
-    expect(screen.getByText(/includes 100 GiB/).textContent).toContain(
-      `${offer.readOperations.toLocaleString('en-US')} uncached read operations`,
+    expect(screen.getByText(/Optional storage above/).textContent).toContain(
+      `$${offer.storageMicrodollarsPerGibMonth / 1_000_000} per GiB-month`,
+    )
+    expect(screen.getByText(/Optional storage above/).textContent).toContain(
+      `Checkout initially selects $${offer.defaultOverageLimitCents / 100}`,
     )
     expect(
       screen.getByRole('heading', {

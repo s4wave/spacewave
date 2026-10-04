@@ -1,8 +1,6 @@
 package sessioninfo
 
 import (
-	"math"
-
 	"github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
@@ -24,26 +22,17 @@ func ShouldEmitOnboardingStatus(stateLoaded bool, accountStatus provider.Provide
 	return false
 }
 
-// BuildEmptyBillingUsageInfo returns a BillingUsageInfo with only baseline values.
+// BuildEmptyBillingUsageInfo returns a BillingUsageInfo with only the current
+// offer's terms.
 func BuildEmptyBillingUsageInfo() *s4wave_provider_spacewave.BillingUsageInfo {
 	offer := api.CurrentCloudOffer()
 	return &s4wave_provider_spacewave.BillingUsageInfo{
-		StorageBaselineBytes: float64(offer.StorageBytes),
-		WriteOpsBaseline:     cloudOfferOperationsInt64(offer.WriteOperations),
-		ReadOpsBaseline:      cloudOfferOperationsInt64(offer.ReadOperations),
-		OfferVersion:         offer.Version,
-		MonthlyPriceCents:    offer.MonthlyPriceCents,
-		WriteMicrodollars:    offer.WriteMicrodollars,
-		ReadMicrodollars:     offer.ReadMicrodollars,
-		PolicyVersion:        offer.PolicyVersion,
+		StorageBaselineBytes:           float64(offer.StorageBytes),
+		OfferVersion:                   offer.Version,
+		MonthlyPriceCents:              offer.MonthlyPriceCents,
+		StorageMicrodollarsPerGibMonth: offer.StorageMicrodollarsPerGibMonth,
+		PolicyVersion:                  offer.PolicyVersion,
 	}
-}
-
-func cloudOfferOperationsInt64(value uint64) int64 {
-	if value > math.MaxInt64 {
-		panic("cloud offer operation baseline exceeds int64 range")
-	}
-	return int64(value) //nolint:gosec // the explicit MaxInt64 check protects the billing projection field.
 }
 
 // BuildBillingUsageInfo projects the payer's accepted usage, period, and budget.
@@ -52,22 +41,18 @@ func BuildBillingUsageInfo(usage *api.BillingUsageResponse) *s4wave_provider_spa
 		return BuildEmptyBillingUsageInfo()
 	}
 	return &s4wave_provider_spacewave.BillingUsageInfo{
-		StorageBytes:                usage.GetStorageBytes(),
-		StorageBaselineBytes:        usage.GetStorageBaselineBytes(),
-		WriteOps:                    usage.GetWriteOps(),
-		WriteOpsBaseline:            usage.GetWriteOpsBaseline(),
-		ReadOps:                     usage.GetReadOps(),
-		ReadOpsBaseline:             usage.GetReadOpsBaseline(),
-		UsageMeteredThroughAt:       usage.GetUsageMeteredThroughAt(),
-		OverageLimitCents:           usage.GetOverageLimitCents(),
-		AccruedOverageMicrodollars:  usage.GetAccruedOverageMicrodollars(),
-		CurrentPeriodStart:          usage.GetCurrentPeriodStart(),
-		CurrentPeriodEnd:            usage.GetCurrentPeriodEnd(),
-		ReservedOverageMicrodollars: usage.GetReservedOverageMicrodollars(),
-		OfferVersion:                usage.GetOfferVersion(),
-		MonthlyPriceCents:           usage.GetMonthlyPriceCents(),
-		WriteMicrodollars:           usage.GetWriteMicrodollars(),
-		ReadMicrodollars:            usage.GetReadMicrodollars(),
-		PolicyVersion:               usage.GetPolicyVersion(),
+		StorageBytes:                   usage.GetStorageBytes(),
+		StorageBaselineBytes:           usage.GetStorageBaselineBytes(),
+		WriteOps:                       usage.GetWriteOps(),
+		ReadOps:                        usage.GetReadOps(),
+		UsageMeteredThroughAt:          usage.GetUsageMeteredThroughAt(),
+		OverageLimitCents:              usage.GetOverageLimitCents(),
+		AccruedOverageMicrodollars:     usage.GetAccruedOverageMicrodollars(),
+		CurrentPeriodStart:             usage.GetCurrentPeriodStart(),
+		CurrentPeriodEnd:               usage.GetCurrentPeriodEnd(),
+		OfferVersion:                   usage.GetOfferVersion(),
+		MonthlyPriceCents:              usage.GetMonthlyPriceCents(),
+		StorageMicrodollarsPerGibMonth: usage.GetStorageMicrodollarsPerGibMonth(),
+		PolicyVersion:                  usage.GetPolicyVersion(),
 	}
 }
