@@ -44,9 +44,14 @@ message ResourceFailure {
 // ResourceRpcPacket negotiates a resource and carries existing SRPC data frames.
 message ResourceRpcPacket {
   oneof body {
+    // Init selects the resource before any data is sent.
     ResourceRpcInit init = 1;
+    // Ack reports whether the server accepted the route.
     ResourceRpcAck ack = 2;
+    // Data carries an SRPC packet after the route acknowledgement.
     bytes data = 3;
+    // Abandon releases this route's published children that remain unadopted.
+    ResourceRpcAbandon abandon = 4;
   }
 }
 
@@ -58,6 +63,12 @@ message ResourceRpcInit {
 // ResourceRpcAck accepts the route when failure is absent.
 message ResourceRpcAck {
   ResourceFailure failure = 1;
+}
+
+// ResourceRpcAbandon reports that a unary caller failed to receive its result.
+// The server releases only children still pending adoption, even after the
+// invoked handler has returned. Closing a route alone does not abandon it.
+message ResourceRpcAbandon {
 }
 
 // ResourceClientRequest is a control packet for ResourceClient.

@@ -30,14 +30,16 @@ class ResourceFailure(_message.Message):
     def __init__(self, code: _Optional[_Union[ResourceFailureCode, str]] = ..., message: _Optional[str] = ...) -> None: ...
 
 class ResourceRpcPacket(_message.Message):
-    __slots__ = ("init", "ack", "data")
+    __slots__ = ("init", "ack", "data", "abandon")
     INIT_FIELD_NUMBER: _ClassVar[int]
     ACK_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
+    ABANDON_FIELD_NUMBER: _ClassVar[int]
     init: ResourceRpcInit
     ack: ResourceRpcAck
     data: bytes
-    def __init__(self, init: _Optional[_Union[ResourceRpcInit, _Mapping]] = ..., ack: _Optional[_Union[ResourceRpcAck, _Mapping]] = ..., data: _Optional[bytes] = ...) -> None: ...
+    abandon: ResourceRpcAbandon
+    def __init__(self, init: _Optional[_Union[ResourceRpcInit, _Mapping]] = ..., ack: _Optional[_Union[ResourceRpcAck, _Mapping]] = ..., data: _Optional[bytes] = ..., abandon: _Optional[_Union[ResourceRpcAbandon, _Mapping]] = ...) -> None: ...
 
 class ResourceRpcInit(_message.Message):
     __slots__ = ("resource_id",)
@@ -50,6 +52,10 @@ class ResourceRpcAck(_message.Message):
     FAILURE_FIELD_NUMBER: _ClassVar[int]
     failure: ResourceFailure
     def __init__(self, failure: _Optional[_Union[ResourceFailure, _Mapping]] = ...) -> None: ...
+
+class ResourceRpcAbandon(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
 
 class ResourceClientRequest(_message.Message):
     __slots__ = ("control_id", "init", "adopt", "release")

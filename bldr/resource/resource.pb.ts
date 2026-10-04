@@ -120,6 +120,21 @@ export const ResourceRpcAck: MessageType<ResourceRpcAck> =
   })
 
 /**
+ * ResourceRpcAbandon reports that a unary caller failed to receive its result.
+ * The server releases only children still pending adoption, even after the
+ * invoked handler has returned. Closing a route alone does not abandon it.
+ *
+ * @generated from message resource.ResourceRpcAbandon
+ */
+export interface ResourceRpcAbandon {}
+
+export const ResourceRpcAbandon: MessageType<ResourceRpcAbandon> =
+  /* @__PURE__ */ createEmptyMessageType<ResourceRpcAbandon>(
+    'resource.ResourceRpcAbandon',
+    true,
+  )
+
+/**
  * ResourceRpcPacket negotiates a resource and carries existing SRPC data frames.
  *
  * @generated from message resource.ResourceRpcPacket
@@ -135,6 +150,8 @@ export interface ResourceRpcPacket {
       }
     | {
         /**
+         * Init selects the resource before any data is sent.
+         *
          * @generated from field: resource.ResourceRpcInit init = 1;
          */
         value: ResourceRpcInit
@@ -142,6 +159,8 @@ export interface ResourceRpcPacket {
       }
     | {
         /**
+         * Ack reports whether the server accepted the route.
+         *
          * @generated from field: resource.ResourceRpcAck ack = 2;
          */
         value: ResourceRpcAck
@@ -149,10 +168,21 @@ export interface ResourceRpcPacket {
       }
     | {
         /**
+         * Data carries an SRPC packet after the route acknowledgement.
+         *
          * @generated from field: bytes data = 3;
          */
         value: Uint8Array
         case: 'data'
+      }
+    | {
+        /**
+         * Abandon releases this route's published children that remain unadopted.
+         *
+         * @generated from field: resource.ResourceRpcAbandon abandon = 4;
+         */
+        value: ResourceRpcAbandon
+        case: 'abandon'
       }
 }
 
@@ -173,6 +203,13 @@ export const ResourceRpcPacket: MessageType<ResourceRpcPacket> =
         name: 'data',
         kind: 'scalar',
         T: ScalarType.BYTES,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'abandon',
+        kind: 'message',
+        T: ResourceRpcAbandon,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],

@@ -8,8 +8,9 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
-// resourceRPCContext retains invocation children until a response publishes
-// them. Handler completion releases unpublished children that remain pending.
+// resourceRPCContext retains published children until the route closes.
+// Handler completion releases unpublished children; abandonment also releases
+// published children that remain pending adoption.
 type resourceRPCContext struct {
 	// client owns the resource generation and guards this state with server.bcast.
 	client *RemoteResourceClient
@@ -17,8 +18,12 @@ type resourceRPCContext struct {
 	parentResourceID uint32
 	// unpublished holds resource IDs not yet covered by a successful response.
 	unpublished map[uint32]struct{}
+	// published retains successfully sent IDs for the route's abandonment cleanup.
+	published map[uint32]struct{}
 	// ended rejects registrations after handler completion.
 	ended bool
+	// abandoned rejects publication transfers after route abandonment.
+	abandoned bool
 }
 
 // newResourceRPCContext constructs the registration scope for one invocation.
@@ -58,9 +63,16 @@ func (c *resourceRPCContext) send(strm srpc.Stream, msg srpc.Message) error {
 		return err
 	}
 
-	// Transfer published registrations to the generation's Adopt/Release controls.
+	// Retain published IDs for abandonment after the handler has returned.
 	c.client.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if c.abandoned {
+			return
+		}
+		if c.published == nil {
+			c.published = make(map[uint32]struct{}, len(ids))
+		}
 		for _, id := range ids {
+			c.published[id] = struct{}{}
 			delete(c.unpublished, id)
 		}
 	})
@@ -69,12 +81,27 @@ func (c *resourceRPCContext) send(strm srpc.Stream, msg srpc.Message) error {
 
 // releaseUnpublished releases pending registrations after the handler exits.
 func (c *resourceRPCContext) releaseUnpublished() {
-	// Remove only unpublished, unadopted resources under the adoption lock.
+	c.releasePending(false)
+}
+
+// abandon releases every invocation child that remains pending adoption.
+func (c *resourceRPCContext) abandon() {
+	c.releasePending(true)
+}
+
+// releasePending ends registration and removes pending children under the adoption lock.
+func (c *resourceRPCContext) releasePending(abandon bool) {
+	// Select unpublished children, or all children when the route is abandoned.
 	var releaseFns []func()
 	var releasedIDs []uint32
 	c.client.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Release invocation children in ID order using the generation's tree cleanup.
 		c.ended = true
+		if abandon {
+			c.abandoned = true
+			maps.Copy(c.unpublished, c.published)
+			clear(c.published)
+		}
 		ids := slices.Sorted(maps.Keys(c.unpublished))
 		for _, id := range ids {
 			if res := c.client.resources[id]; res != nil && res.pending {

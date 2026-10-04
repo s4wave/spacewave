@@ -210,3 +210,38 @@ func TestUnpublishedCleanupPreservesAdoptedResource(t *testing.T) {
 		t.Fatalf("release callbacks = %d, want 1", releases)
 	}
 }
+
+// TestAbandonPreservesAdoptedResource checks that adoption wins route abandonment.
+func TestAbandonPreservesAdoptedResource(t *testing.T) {
+	// Retain one adopted child beside a pending child from the same invocation.
+	_, client := ownershipTestClient(t)
+	invocation := newResourceRPCContext(client, 1)
+	releases := 0
+	adoptedID, err := invocation.AddResource(srpc.NewMux(), func() { releases++ })
+	if err != nil {
+		t.Fatal(err)
+	}
+	pendingID, err := invocation.AddResource(srpc.NewMux(), func() { releases++ })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !client.adoptResource(adoptedID) {
+		t.Fatal("adoption failed")
+	}
+
+	// Abandonment removes only the pending child and rejects later registration.
+	invocation.abandon()
+	invocation.releaseUnpublished()
+	if client.resources[adoptedID] == nil || client.resources[pendingID] != nil || releases != 1 {
+		t.Fatal("abandonment did not preserve the adopted child and release the pending child")
+	}
+	if _, err := invocation.AddResource(srpc.NewMux(), nil); err != context.Canceled {
+		t.Fatalf("late registration error = %v, want context.Canceled", err)
+	}
+
+	// The adopted child keeps its independently controlled release lifetime.
+	client.ReleaseResource(adoptedID)
+	if releases != 2 {
+		t.Fatalf("release callbacks = %d, want 2", releases)
+	}
+}

@@ -14,12 +14,13 @@ import {
   StreamConn,
   combineUint8ArrayListTransform,
 } from 'starpc'
-import type { LookupMethod, OpenStreamFunc } from 'starpc'
+import type { LookupMethod } from 'starpc'
 import { pushable } from 'it-pushable'
 import type { Pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 import { ResourceFailureCode } from './resource.pb.js'
 import { openResourceRpcStream, ResourceFailureError } from './rpc-stream.js'
+import type { ResourceRpcStream } from './rpc-stream.js'
 
 // ReleasedResourceClient is returned from the client getter when a resource has been released.
 // It allows DevTools serialization to work without throwing, but throws on actual usage.
@@ -209,25 +210,41 @@ interface ClientInitState {
   rootResourceId: number
 }
 
-/**
- * Creates a reference to a remote resource.
- */
+/** OrderedSRPCClient applies lifecycle controls before opening a resource route. */
 class OrderedSRPCClient extends SRPCClient {
   constructor(
     private readonly resourceClient: Client,
-    openStreamFn: OpenStreamFunc,
+    private readonly openRoute: (
+      retain?: boolean,
+    ) => Promise<ResourceRpcStream>,
   ) {
-    super(openStreamFn)
+    super(() => openRoute())
   }
 
+  /** request abandons children when a unary result never reaches its caller. */
   override async request(
     service: string,
     method: string,
     data: Uint8Array,
     abortSignal?: AbortSignal,
   ): Promise<Uint8Array> {
+    // Keep this call's route separate from concurrent unary and streaming calls.
     await this.resourceClient.waitForControls(abortSignal)
-    return super.request(service, method, data, abortSignal)
+    let route: ResourceRpcStream | undefined
+    const call = new SRPCClient(async () => {
+      route = await this.openRoute(true)
+      return route
+    })
+
+    // Settle the result before closing the outer ResourceRpc stream.
+    try {
+      const result = await call.request(service, method, data, abortSignal)
+      route?.finish(false)
+      return result
+    } catch (error) {
+      route?.finish(true)
+      throw error
+    }
   }
 
   override async clientStreamingRequest(
@@ -303,11 +320,12 @@ function createResourceRef(
   let srpcClient: SRPCClient | null = null
   const getSrpcClient = (): SRPCClient => {
     if (!srpcClient) {
-      srpcClient = new OrderedSRPCClient(client, async () => {
+      srpcClient = new OrderedSRPCClient(client, async (retain) => {
         return withResourceClientInitTimeout(
           openResourceRpcStream(
             id,
             client.service.ResourceRpc.bind(client.service),
+            retain,
           ),
         ).catch((error) => {
           if (isServerMissingResourceError(error)) {

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ERR_RPC_ABORT, Packet } from 'starpc'
+import { pushable } from 'it-pushable'
 import { ResourceFailureCode, type ResourceRpcPacket } from './resource.pb.js'
 
 import type {
@@ -25,6 +26,55 @@ function setInitializedResourceSession(client: Client): void {
 }
 
 describe('ResourceClient', () => {
+  it('abandons a canceled unary call before closing its ResourceRpc route', async () => {
+    // Observe the real client request stream while leaving its reply unread.
+    const service = buildUnusedService()
+    const started = Promise.withResolvers<void>()
+    const closed = Promise.withResolvers<void>()
+    const packets: ResourceRpcPacket[] = []
+    service.ResourceRpc = (requests, signal) => {
+      // Consume route controls independently of the response iterator.
+      const responses = pushable<ResourceRpcPacket>({ objectMode: true })
+      signal?.addEventListener('abort', () => responses.end(), { once: true })
+      void (async () => {
+        for await (const packet of requests) {
+          packets.push(packet)
+          if (packet.body?.case === 'init') {
+            responses.push({ body: { case: 'ack', value: {} } })
+          }
+          if (packet.body?.case === 'data') {
+            started.resolve()
+          }
+        }
+        closed.resolve()
+      })().catch(closed.reject)
+      return responses
+    }
+
+    // Cancel only the nested unary call while the generation stays live.
+    const client = new Client(service, new AbortController().signal)
+    setInitializedResourceSession(client)
+    const ref = client.createResourceReference(51)
+    const controller = new AbortController()
+    const result = ref.client.request(
+      'test.Root',
+      'Spawn',
+      new Uint8Array(),
+      controller.signal,
+    )
+    await started.promise
+    controller.abort()
+    await expect(result).rejects.toThrow(ERR_RPC_ABORT)
+    await closed.promise
+
+    // The route carries abandonment after its data and before request EOF.
+    expect(packets.at(-1)?.body).toEqual({ case: 'abandon', value: {} })
+    expect(
+      packets.filter((packet) => packet.body?.case === 'init'),
+    ).toHaveLength(1)
+    ref.release()
+  })
+
   it('retires an idle transport generation and acquires a fresh root', async () => {
     const service = buildUnusedService()
     const signals: AbortSignal[] = []

@@ -94,6 +94,7 @@ type ResourceRpcPacket struct {
 	//	*ResourceRpcPacket_Init
 	//	*ResourceRpcPacket_Ack
 	//	*ResourceRpcPacket_Data
+	//	*ResourceRpcPacket_Abandon
 	Body isResourceRpcPacket_Body `protobuf_oneof:"body"`
 }
 
@@ -131,20 +132,35 @@ func (x *ResourceRpcPacket) GetData() []byte {
 	return nil
 }
 
+func (x *ResourceRpcPacket) GetAbandon() *ResourceRpcAbandon {
+	if x, ok := x.GetBody().(*ResourceRpcPacket_Abandon); ok {
+		return x.Abandon
+	}
+	return nil
+}
+
 type isResourceRpcPacket_Body interface {
 	isResourceRpcPacket_Body()
 }
 
 type ResourceRpcPacket_Init struct {
+	// Init selects the resource before any data is sent.
 	Init *ResourceRpcInit `protobuf:"bytes,1,opt,name=init,proto3,oneof"`
 }
 
 type ResourceRpcPacket_Ack struct {
+	// Ack reports whether the server accepted the route.
 	Ack *ResourceRpcAck `protobuf:"bytes,2,opt,name=ack,proto3,oneof"`
 }
 
 type ResourceRpcPacket_Data struct {
+	// Data carries an SRPC packet after the route acknowledgement.
 	Data []byte `protobuf:"bytes,3,opt,name=data,proto3,oneof"`
+}
+
+type ResourceRpcPacket_Abandon struct {
+	// Abandon releases this route's published children that remain unadopted.
+	Abandon *ResourceRpcAbandon `protobuf:"bytes,4,opt,name=abandon,proto3,oneof"`
 }
 
 func (*ResourceRpcPacket_Init) isResourceRpcPacket_Body() {}
@@ -152,6 +168,8 @@ func (*ResourceRpcPacket_Init) isResourceRpcPacket_Body() {}
 func (*ResourceRpcPacket_Ack) isResourceRpcPacket_Body() {}
 
 func (*ResourceRpcPacket_Data) isResourceRpcPacket_Body() {}
+
+func (*ResourceRpcPacket_Abandon) isResourceRpcPacket_Body() {}
 
 // ResourceRpcInit selects a resource opened by ResourceClient or ResourceAttach.
 type ResourceRpcInit struct {
@@ -190,6 +208,19 @@ func (x *ResourceRpcAck) GetFailure() *ResourceFailure {
 	}
 	return nil
 }
+
+// ResourceRpcAbandon reports that a unary caller failed to receive its result.
+// The server releases only children still pending adoption, even after the
+// invoked handler has returned. Closing a route alone does not abandon it.
+type ResourceRpcAbandon struct {
+	unknownFields []byte
+}
+
+func (x *ResourceRpcAbandon) Reset() {
+	*x = ResourceRpcAbandon{}
+}
+
+func (*ResourceRpcAbandon) ProtoMessage() {}
 
 // ResourceClientRequest is a control packet for ResourceClient.
 type ResourceClientRequest struct {
@@ -857,6 +888,19 @@ func (m *ResourceRpcPacket_Data) CloneOneofVT() isResourceRpcPacket_Body {
 	return m.CloneVT()
 }
 
+func (m *ResourceRpcPacket_Abandon) CloneVT() *ResourceRpcPacket_Abandon {
+	if m == nil {
+		return (*ResourceRpcPacket_Abandon)(nil)
+	}
+	r := new(ResourceRpcPacket_Abandon)
+	r.Abandon = protobuf_go_lite.CloneVTValue(m.Abandon)
+	return r
+}
+
+func (m *ResourceRpcPacket_Abandon) CloneOneofVT() isResourceRpcPacket_Body {
+	return m.CloneVT()
+}
+
 func (m *ResourceRpcInit) CloneVT() *ResourceRpcInit {
 	if m == nil {
 		return (*ResourceRpcInit)(nil)
@@ -886,6 +930,21 @@ func (m *ResourceRpcAck) CloneVT() *ResourceRpcAck {
 }
 
 func (m *ResourceRpcAck) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResourceRpcAbandon) CloneVT() *ResourceRpcAbandon {
+	if m == nil {
+		return (*ResourceRpcAbandon)(nil)
+	}
+	r := new(ResourceRpcAbandon)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceRpcAbandon) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1450,6 +1509,23 @@ func (this *ResourceRpcPacket_Data) EqualVT(thatIface isResourceRpcPacket_Body) 
 	return true
 }
 
+func (this *ResourceRpcPacket_Abandon) EqualVT(thatIface isResourceRpcPacket_Body) bool {
+	that, ok := thatIface.(*ResourceRpcPacket_Abandon)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Abandon, that.Abandon, func() *ResourceRpcAbandon { return &ResourceRpcAbandon{} }) {
+		return false
+	}
+	return true
+}
+
 func (this *ResourceRpcInit) EqualVT(that *ResourceRpcInit) bool {
 	if this == that {
 		return true
@@ -1484,6 +1560,23 @@ func (this *ResourceRpcAck) EqualVT(that *ResourceRpcAck) bool {
 
 func (this *ResourceRpcAck) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ResourceRpcAck)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResourceRpcAbandon) EqualVT(that *ResourceRpcAbandon) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceRpcAbandon) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceRpcAbandon)
 	if !ok {
 		return false
 	}
@@ -2208,6 +2301,10 @@ func (x *ResourceRpcPacket) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("data")
 			s.WriteBytes(ov.Data)
+		case *ResourceRpcPacket_Abandon:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("abandon")
+			ov.Abandon.MarshalProtoJSON(s.WithField("abandon"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -2250,6 +2347,15 @@ func (x *ResourceRpcPacket) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			ov := &ResourceRpcPacket_Data{}
 			x.Body = ov
 			ov.Data = s.ReadBytes()
+		case "abandon":
+			ov := &ResourceRpcPacket_Abandon{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Abandon = nil
+				return
+			}
+			ov.Abandon = &ResourceRpcAbandon{}
+			ov.Abandon.UnmarshalProtoJSON(s.WithField("abandon", true))
 		}
 	})
 }
@@ -2344,6 +2450,36 @@ func (x *ResourceRpcAck) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the ResourceRpcAck from JSON.
 func (x *ResourceRpcAck) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceRpcAbandon message to JSON.
+func (x *ResourceRpcAbandon) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceRpcAbandon to JSON.
+func (x *ResourceRpcAbandon) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceRpcAbandon message from JSON.
+func (x *ResourceRpcAbandon) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceRpcAbandon from JSON.
+func (x *ResourceRpcAbandon) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3357,6 +3493,30 @@ func (m *ResourceRpcPacket_Data) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *ResourceRpcPacket_Abandon) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcPacket_Abandon) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Abandon != nil {
+		size, err := m.Abandon.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ResourceRpcInit) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3432,6 +3592,38 @@ func (m *ResourceRpcAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceRpcAbandon) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceRpcAbandon) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceRpcAbandon) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
 	return len(dAtA) - i, nil
 }
@@ -4453,6 +4645,21 @@ func (m *ResourceRpcPacket_Data) SizeVT() (n int) {
 	return n
 }
 
+func (m *ResourceRpcPacket_Abandon) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Abandon != nil {
+		l = m.Abandon.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
 func (m *ResourceRpcInit) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4474,6 +4681,16 @@ func (m *ResourceRpcAck) SizeVT() (n int) {
 		l = m.Failure.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResourceRpcAbandon) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -4915,6 +5132,13 @@ func (x *ResourceRpcPacket) MarshalProtoText() string {
 	case *ResourceRpcPacket_Data:
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "data")
 		protobuf_go_lite.TextWriteBytes(&sb, body.Data)
+	case *ResourceRpcPacket_Abandon:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "abandon")
+		if body.Abandon == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ResourceRpcAbandon{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Abandon)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4948,6 +5172,16 @@ func (x *ResourceRpcAck) MarshalProtoText() string {
 }
 
 func (x *ResourceRpcAck) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceRpcAbandon) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ResourceRpcAbandon")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceRpcAbandon) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5407,6 +5641,26 @@ func (m *ResourceRpcPacket) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Body = &ResourceRpcPacket_Data{Data: v}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Abandon", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*ResourceRpcPacket_Abandon); ok {
+				if err := oneof.Abandon.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ResourceRpcAbandon{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &ResourceRpcPacket_Abandon{Abandon: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -5517,6 +5771,49 @@ func (m *ResourceRpcAck) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceRpcAbandon) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceRpcAbandon: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceRpcAbandon: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

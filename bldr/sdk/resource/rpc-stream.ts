@@ -34,6 +34,7 @@ export function resourceFailure(error: unknown): Message<ResourceFailure> {
 /** receiveData accepts only SRPC data after the Resource acknowledgement. */
 async function* receiveData(
   incoming: AsyncIterator<Message<ResourceRpcPacket>>,
+  retain = false,
 ): AsyncGenerator<Message<RpcStreamPacket>> {
   try {
     for (;;) {
@@ -44,8 +45,14 @@ async function* receiveData(
       yield { body: next.value.body }
     }
   } finally {
-    await incoming.return?.()
+    if (!retain) await incoming.return?.()
   }
+}
+
+/** ResourceRpcStream keeps a unary route open until its result is settled. */
+export interface ResourceRpcStream extends PacketStream {
+  /** finish abandons an unsuccessful unary result and closes its route. */
+  finish(abandon: boolean): void
 }
 
 /** openResourceRpcStream negotiates a numeric resource with one typed acknowledgement. */
@@ -55,18 +62,23 @@ export async function openResourceRpcStream(
     requests: MessageStream<ResourceRpcPacket>,
     signal?: AbortSignal,
   ) => MessageStream<ResourceRpcPacket>,
-): Promise<PacketStream> {
+  retain = false,
+): Promise<ResourceRpcStream> {
   // The outer call owns cancellation even while acknowledgement is pending.
   const controller = new AbortController()
-  const outgoing = pushable<Message<RpcStreamPacket>>({ objectMode: true })
+  const outgoing = pushable<Message<ResourceRpcPacket>>({ objectMode: true })
+  let requestsClosed!: () => void
+  const requestsDone = new Promise<void>((resolve) => {
+    requestsClosed = resolve
+  })
   const requests = (async function* (): AsyncGenerator<
     Message<ResourceRpcPacket>
   > {
-    yield { body: { case: 'init', value: { resourceId } } }
-    for await (const packet of outgoing) {
-      if (packet.body?.case !== 'data')
-        throw new Error('expected ResourceRpc data')
-      yield { body: packet.body }
+    try {
+      yield { body: { case: 'init', value: { resourceId } } }
+      yield* outgoing
+    } finally {
+      requestsClosed()
     }
   })()
   const incoming = caller(requests, controller.signal)[Symbol.asyncIterator]()
@@ -79,14 +91,45 @@ export async function openResourceRpcStream(
     }
     const failure = next.value.body.value.failure
     if (failure) throw new ResourceFailureError(failure)
-    return new RpcStream(outgoing, receiveData(incoming), () => {
+    const close = () => {
       controller.abort()
-      void incoming.return?.().catch(() => {})
+      void Promise.resolve(incoming.return?.()).catch(() => {})
+    }
+    let finished = false
+    // RpcStream calls only push and end on its packet writer.
+    const stream = new RpcStream(
+      {
+        push: (packet) => {
+          if (packet.body?.case !== 'data') {
+            throw new Error('expected ResourceRpc data')
+          }
+          outgoing.push({ body: packet.body })
+        },
+        end: (error) => {
+          if (!retain) outgoing.end(error)
+        },
+      } as ConstructorParameters<typeof RpcStream>[0],
+      receiveData(incoming, retain),
+      retain ? () => {} : close,
+    )
+    return Object.assign(stream, {
+      finish(abandon: boolean) {
+        // Queue abandonment before ending the request stream or canceling it.
+        if (finished) return
+        finished = true
+        if (abandon) outgoing.push({ body: { case: 'abandon', value: {} } })
+        outgoing.end()
+        if (abandon) {
+          void requestsDone.then(close)
+          return
+        }
+        close()
+      },
     })
   } catch (error) {
     outgoing.end()
     controller.abort()
-    await incoming.return?.().catch(() => {})
+    await Promise.resolve(incoming.return?.()).catch(() => {})
     throw error
   }
 }
