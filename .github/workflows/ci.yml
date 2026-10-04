@@ -578,26 +578,12 @@ jobs:
             "go" => {
               "build_script" => "build:release:web:e2e:ci",
               "smoke_script" => "test:go:e2e:release-wasm",
-              "e2e_tinygo" => "",
               "e2e_goscript" => "",
-              "install_binaryen" => false,
-              "install_tinygo" => false,
-            },
-            "tinygo" => {
-              "build_script" => "build:release:web:e2e:tinygo",
-              "smoke_script" => "test:go:e2e:release-wasm",
-              "e2e_tinygo" => true,
-              "e2e_goscript" => "",
-              "install_binaryen" => true,
-              "install_tinygo" => true,
             },
             "goscript" => {
               "build_script" => "build:release:web:e2e:goscript",
               "smoke_script" => "test:go:e2e:release-wasm:goscript",
-              "e2e_tinygo" => "",
               "e2e_goscript" => true,
-              "install_binaryen" => false,
-              "install_tinygo" => false,
             },
           }
           unless build_matrix.all? { |entry| expected.key?(entry.fetch("compiler")) }
@@ -614,32 +600,7 @@ jobs:
             abort("release-WASM smoke must consume release-wasm-build")
           end
 
-          ["Install Binaryen", "Install TinyGo"].each do |name|
-            producer = step.call(build, name)
-            consumer = step.call(smoke, name)
-            unless producer["run"] == consumer["run"]
-              abort("#{name} differs between build and smoke jobs")
-            end
-            unless producer["if"] == consumer["if"]
-              abort("#{name} condition differs between build and smoke jobs")
-            end
-          end
-
-          verify = step.call(smoke, "Verify release-WASM fallback toolchain")
-          unless verify.fetch("if") == "matrix.install_binaryen || matrix.install_tinygo"
-            abort("smoke job must gate fallback toolchain probes on the matrix arm")
-          end
-          unless verify.fetch("run").include?("command -v tinygo") &&
-              verify.fetch("run").include?("command -v wasm-opt")
-            abort("smoke job must probe each required release-WASM toolchain")
-          end
-
           matrix_expression = "$" + "{{ matrix.compiler }}"
-          smoke_steps = smoke.fetch("steps")
-          verify_index = smoke_steps.index(verify)
-          test_index = smoke_steps.index { |candidate| candidate["name"] == "Run release-WASM #{matrix_expression} browser smoke" }
-          abort("toolchain probe must precede the smoke test") unless verify_index < test_index
-
           [build, smoke].each do |job|
             artifact_step = step.call(job, job.equal?(build) ? "Upload release-WASM browser artifact" : "Download release-WASM browser artifact")
             unless artifact_step.fetch("with").fetch("name").include?(matrix_expression)

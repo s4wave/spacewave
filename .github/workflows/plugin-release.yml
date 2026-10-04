@@ -39,7 +39,6 @@ permissions:
 
 env:
   SPACEWAVE_RELEASE_ENV: ${{ inputs.environment }}
-  TINYGO_VERSION: 0.41.1
 
 jobs:
   prep:
@@ -137,20 +136,6 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-
-      # No release build compiles with TinyGo, so this step is disabled. Set
-      # the condition back to true to restore TinyGo builds.
-      - name: Install TinyGo
-        if: false
-        shell: bash
-        run: |
-          set -euo pipefail
-          tinygo_deb="tinygo_${TINYGO_VERSION}_amd64.deb"
-          wget --quiet "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/${tinygo_deb}"
-          sudo dpkg -i "${tinygo_deb}"
-          sudo sed -i 's/return t[.]roundTrip(req)/return roundTrip(req)/' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
-          grep -q 'return roundTrip(req)' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
-          tinygo version
 
       - name: Install Bun dependencies
         shell: bash

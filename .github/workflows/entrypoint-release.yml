@@ -51,11 +51,10 @@ permissions:
 
 env:
   GO_VERSION: 1.27.1
-  TINYGO_VERSION: 0.41.1
   BINARYEN_VERSION: 129
   # Binaryen's static Linux release binaries can segfault in pthreaded
-  # wasm-opt on deep optimization recursion. Keep TinyGo's optimization level
-  # unchanged, but force wasm-opt to avoid pthread workers on GitHub Linux.
+  # wasm-opt on deep optimization recursion, so wasm-opt runs without pthread
+  # workers on GitHub Linux.
   BINARYEN_CORES: 1
 
 jobs:
@@ -339,20 +338,6 @@ jobs:
           echo "${RUNNER_TEMP}/binaryen/bin" >> "${GITHUB_PATH}"
           "${RUNNER_TEMP}/binaryen/bin/wasm-opt" --version
 
-      # No release build compiles with TinyGo, so this step is disabled. Set
-      # the condition back to true to restore TinyGo builds.
-      - name: Install TinyGo
-        if: false
-        shell: bash
-        run: |
-          set -euo pipefail
-          tinygo_deb="tinygo_${TINYGO_VERSION}_amd64.deb"
-          wget --quiet "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/${tinygo_deb}"
-          sudo dpkg -i "${tinygo_deb}"
-          sudo sed -i 's/return t[.]roundTrip(req)/return roundTrip(req)/' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
-          grep -q 'return roundTrip(req)' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
-          tinygo version
-
       - name: Install Bun dependencies
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
         shell: bash
@@ -365,13 +350,9 @@ jobs:
         if: steps.browser_handoff_cache.outputs.cache-hit != 'true'
         timeout-minutes: 60
         shell: bash
-        env:
-          BLDR_TINYGO_TRACE: 'true'
-          BLDR_TINYGO_WORK: 'true'
-          TMPDIR: ${{ github.workspace }}/.tmp/tinygo-tmp
         run: |
           set -euo pipefail
-          mkdir -p "${BLDR_WASM_OPT_DIAGNOSTICS_DIR}" "${TMPDIR}"
+          mkdir -p "${BLDR_WASM_OPT_DIAGNOSTICS_DIR}"
           go run ./cmd/entrypoint-handoff \
             --version "${{ needs.prep.outputs.version }}" \
             --browser-only \
@@ -384,15 +365,6 @@ jobs:
         with:
           name: wasm-opt-diagnostics-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.run_id }}
           path: .tmp/wasm-opt-diagnostics
-          include-hidden-files: true
-          if-no-files-found: warn
-
-      - name: Upload TinyGo work diagnostics
-        if: failure() && steps.browser_handoff_cache.outputs.cache-hit != 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: tinygo-work-diagnostics-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.run_id }}
-          path: .tmp/tinygo-tmp
           include-hidden-files: true
           if-no-files-found: warn
 

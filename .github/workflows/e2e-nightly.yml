@@ -12,14 +12,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  TINYGO_VERSION: 0.41.1
-  BINARYEN_VERSION: 129
-  # Binaryen's static Linux release binaries can segfault in pthreaded
-  # wasm-opt on deep optimization recursion. Keep TinyGo's optimization level
-  # unchanged, but force wasm-opt to avoid pthread workers on GitHub Linux.
-  BINARYEN_CORES: 1
-
 jobs:
   e2e-electron-nightly:
     name: Nightly E2E (electron / ${{ matrix.os }})
@@ -95,34 +87,16 @@ jobs:
           - compiler: go
             build_script: build:release:web:e2e:ci
             smoke_script: test:go:e2e:release-wasm
-            e2e_tinygo: ''
             e2e_goscript: ''
-            install_binaryen: false
-            install_tinygo: false
-          # TinyGo is unused for now, so its arm is disabled. Uncomment it to
-          # restore TinyGo coverage.
-          # - compiler: tinygo
-          #   build_script: build:release:web:e2e:tinygo
-          #   smoke_script: test:go:e2e:release-wasm
-          #   e2e_tinygo: true
-          #   e2e_goscript: ''
-          #   install_binaryen: true
-          #   install_tinygo: true
           - compiler: goscript
             build_script: build:release:web:e2e:goscript
             smoke_script: test:go:e2e:release-wasm:goscript
-            e2e_tinygo: ''
             e2e_goscript: true
-            install_binaryen: false
-            install_tinygo: false
     runs-on: ubuntu-latest
     env:
       BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
       BLDR_GO_WASM_OPTIMIZE: false
-      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'optimized' || '' }}
-      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'precise' || '' }}
       E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.build_script }}
-      E2E_RELEASE_WASM_TINYGO: ${{ matrix.e2e_tinygo }}
       E2E_RELEASE_WASM_GOSCRIPT: ${{ matrix.e2e_goscript }}
     timeout-minutes: 45
     steps:
@@ -143,35 +117,6 @@ jobs:
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
-
-      - &release-wasm-install-binaryen
-        if: matrix.install_binaryen
-        name: Install Binaryen
-        shell: bash
-        run: |
-          set -euo pipefail
-          binaryen_tar="binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
-          binaryen_url="https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}"
-          wget --quiet "${binaryen_url}/${binaryen_tar}"
-          wget --quiet "${binaryen_url}/${binaryen_tar}.sha256"
-          sha256sum --check "${binaryen_tar}.sha256"
-          mkdir -p "${RUNNER_TEMP}/binaryen"
-          tar -xzf "${binaryen_tar}" -C "${RUNNER_TEMP}/binaryen" --strip-components=1
-          echo "${RUNNER_TEMP}/binaryen/bin" >> "${GITHUB_PATH}"
-          "${RUNNER_TEMP}/binaryen/bin/wasm-opt" --version
-
-      - &release-wasm-install-tinygo
-        if: matrix.install_tinygo
-        name: Install TinyGo
-        shell: bash
-        run: |
-          set -euo pipefail
-          tinygo_deb="tinygo_${TINYGO_VERSION}_amd64.deb"
-          wget --quiet "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/${tinygo_deb}"
-          sudo dpkg -i "${tinygo_deb}"
-          sudo sed -i 's/return t[.]roundTrip(req)/return roundTrip(req)/' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
-          grep -q 'return roundTrip(req)' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
-          tinygo version
 
       - name: Cache aptre tools
         uses: actions/cache@v6
@@ -195,12 +140,8 @@ jobs:
             echo "compiler=${{ matrix.compiler }}"
             echo "build_script=${{ matrix.build_script }}"
             echo "build_sequence=${{ matrix.build_script == 'build:release:web:e2e:ci' && 'assets,dist' || 'core,assets,dist' }}"
-            echo "BLDR_TINYGO_PROFILE=${BLDR_TINYGO_PROFILE}"
-            echo "BLDR_TINYGO_GC=${BLDR_TINYGO_GC}"
             go version
-            if [[ "${{ matrix.install_tinygo }}" == "true" ]]; then tinygo version; fi
             bun --version
-            if [[ "${{ matrix.install_binaryen }}" == "true" ]]; then wasm-opt --version; fi
             df -h
             free -h || true
             ulimit -a
@@ -312,10 +253,7 @@ jobs:
     env:
       ENABLE_E2E_RELEASE_WASM: true
       BLDR_GO_WASM_OPTIMIZE: false
-      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'optimized' || '' }}
-      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'precise' || '' }}
       E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.build_script }}
-      E2E_RELEASE_WASM_TINYGO: ${{ matrix.e2e_tinygo }}
       E2E_RELEASE_WASM_GOSCRIPT: ${{ matrix.e2e_goscript }}
       E2E_RELEASE_WASM_BROWSER: chromium
     timeout-minutes: 30
@@ -337,24 +275,6 @@ jobs:
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
-      - *release-wasm-install-binaryen
-
-      - *release-wasm-install-tinygo
-
-      - name: Verify release-WASM fallback toolchain
-        if: matrix.install_binaryen || matrix.install_tinygo
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${{ matrix.install_tinygo }}" == "true" ]]; then
-            command -v tinygo
-            tinygo version
-          fi
-          if [[ "${{ matrix.install_binaryen }}" == "true" ]]; then
-            command -v wasm-opt
-            wasm-opt --version
-          fi
-
       - name: Install Playwright browsers
         run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps chromium
 
