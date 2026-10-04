@@ -85,6 +85,41 @@ func (c *SessionClient) EnrollSpaceMember(
 	return &s4wave_provider_spacewave.EnrollSpaceMemberResponse{Results: results}, nil
 }
 
+// EnrollSpacePeer adds a session peer to a Space with the role, granting it
+// the current key epoch with the caller's grant. It serves service sessions,
+// such as a release pipeline's, whose account has no entity key to join
+// through a membership. It returns true when it wrote a change.
+func (c *SessionClient) EnrollSpacePeer(
+	ctx context.Context,
+	spaceID string,
+	peerID string,
+	role sobject.SOParticipantRole,
+) (bool, error) {
+	// Require the inputs and the session identity.
+	if c == nil {
+		return false, errors.New("session client is required")
+	}
+	if spaceID == "" {
+		return false, errors.New("space id is required")
+	}
+	if peerID == "" {
+		return false, errors.New("peer id is required")
+	}
+	if c.priv == nil {
+		return false, errors.New("session private key not available")
+	}
+	if c.peerID == "" {
+		return false, errors.New("session peer id not available")
+	}
+
+	// Enroll the peer by its public key.
+	targetPub, err := session.ExtractPublicKeyFromPeerID(peerID)
+	if err != nil {
+		return false, errors.Wrap(err, "extract pubkey")
+	}
+	return c.addStandalonePeerParticipant(ctx, spaceID, peerID, targetPub, role)
+}
+
 // addStandaloneParticipant adds or updates a participant with a current key
 // epoch grant.
 // It keeps a higher existing role and fills a missing entity or username.
@@ -236,6 +271,110 @@ func (c *SessionClient) addStandaloneParticipant(
 	}
 
 	return nil, errors.New("add participant failed after max retries due to config conflicts")
+}
+
+// addStandalonePeerParticipant sets the peer's participant entry to the role,
+// keeping its entity, and grants it the current key epoch when it lacks a
+// grant. It returns true when it wrote a change.
+func (c *SessionClient) addStandalonePeerParticipant(
+	ctx context.Context,
+	spaceID string,
+	targetPeerID string,
+	targetPub crypto.PubKey,
+	role sobject.SOParticipantRole,
+) (bool, error) {
+	if err := sobject.ValidateSOParticipantRole(role, false); err != nil {
+		return false, err
+	}
+	for attempt := range maxWriteRetries {
+		// Read the config and the current key epoch.
+		state, currentCfg, epochs, err := c.loadStandaloneConfigState(ctx, spaceID)
+		if err != nil {
+			return false, err
+		}
+		epoch := currentEpochWithFallback(state, epochs)
+		if epoch == nil {
+			return false, errSharedObjectCurrentKeyEpochMissing
+		}
+
+		// Find the peer's entries; one entry with the role and a grant is done.
+		var entries []*sobject.SOParticipantConfig
+		for _, p := range currentCfg.GetParticipants() {
+			if p.GetPeerId() == targetPeerID {
+				entries = append(entries, p)
+			}
+		}
+		configCurrent := len(entries) == 1 && entries[0].GetRole() == role
+		grantExists := epoch.FindGrant(targetPeerID) != nil
+		if configCurrent && grantExists {
+			return false, nil
+		}
+		grantInner, err := c.decryptLocalEpochGrant(spaceID, epoch)
+		if err != nil {
+			return false, err
+		}
+
+		// Replace the peer's entries with one entry holding the role.
+		var entry *sobject.SOConfigChange
+		var entryData []byte
+		if !configCurrent {
+			next := &sobject.SOParticipantConfig{PeerId: targetPeerID, Role: role}
+			if len(entries) != 0 {
+				next.EntityId = entries[0].GetEntityId()
+			}
+			nextCfg := currentCfg.CloneVT()
+			nextCfg.Participants = slices.DeleteFunc(nextCfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+				return p.GetPeerId() == targetPeerID
+			})
+			nextCfg.Participants = append(nextCfg.Participants, next)
+			entry, err = sobject.BuildSOConfigChange(
+				spaceID,
+				currentCfg,
+				nextCfg,
+				sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPANT,
+				c.priv,
+				nil,
+			)
+			if err != nil {
+				return false, errors.Wrap(err, "build config change")
+			}
+			entryData, err = entry.MarshalVT()
+			if err != nil {
+				return false, errors.Wrap(err, "marshal config change")
+			}
+		}
+
+		// Add the target's grant to the current key epoch when it lacks one.
+		var postedEpoch *sobject.SOKeyEpoch
+		if !grantExists {
+			grant, err := sobject.EncryptSOGrant(c.priv, targetPub, spaceID, grantInner)
+			if err != nil {
+				return false, errors.Wrap(err, "encrypt grant for target peer")
+			}
+			postedEpoch = epoch
+			postedEpoch.Grants = append(postedEpoch.GetGrants(), grant)
+		}
+
+		// Seal the recovery envelopes for the resulting config.
+		recoveryCfg, err := recoveryConfigSnapshot(currentCfg, entry)
+		if err != nil {
+			return false, errors.Wrap(err, "build recovery config snapshot")
+		}
+		recoveryEnvelopes, err := buildSORecoveryEnvelopes(ctx, c, spaceID, recoveryCfg, epoch.GetEpoch(), grantInner)
+		if err != nil {
+			return false, err
+		}
+
+		// Post the change, retrying a config conflict.
+		err = c.postStandaloneParticipant(ctx, spaceID, entryData, postedEpoch, recoveryEnvelopes)
+		var ce *cloudError
+		if errors.As(err, &ce) && ce.StatusCode == http.StatusConflict && attempt+1 < maxWriteRetries {
+			continue
+		}
+		return err == nil, err
+	}
+
+	return false, errors.New("add peer participant failed after max retries due to config conflicts")
 }
 
 // decryptLocalEpochGrant decrypts the local session's grant in epoch.
