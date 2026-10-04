@@ -1,10 +1,8 @@
 package provider_spacewave
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -22,13 +20,8 @@ const pendingUploadStateKey = "sync/pending"
 // pendingUploadOrderPrefix stores complete blocks by insertion sequence.
 const pendingUploadOrderPrefix = "dirty-order/"
 
-// pendingUploadAdoptKey marks unfinished adoption of markers written before the
-// queue summary existed. Its value is the last visited marker key.
-const pendingUploadAdoptKey = "sync/pending-adopt"
-
 // readPendingUploadState reads committed accounting, or a new empty queue.
-// An unaccounted existing queue is left intact and reported as an error until
-// adoptLegacyPendingUploads indexes it.
+// An unaccounted existing queue is left intact and reported as an error.
 func readPendingUploadState(ctx context.Context, tx kvtx.Tx) (*PendingUploadState, error) {
 	// Read the durable summary without scanning the pending records.
 	data, found, err := tx.Get(ctx, []byte(pendingUploadStateKey))
@@ -147,122 +140,4 @@ func acknowledgePendingUploads(ctx context.Context, tx kvtx.Tx, blocks []dirtyCa
 // pendingUploadOrderKey encodes the queue's monotonically ordered position.
 func pendingUploadOrderKey(sequence uint64) []byte {
 	return binary.BigEndian.AppendUint64([]byte(pendingUploadOrderPrefix), sequence)
-}
-
-// adoptLegacyPendingUploads indexes markers that predate the queue summary.
-// Those markers store the block size as decimal text; adoption appends each to
-// the sequence index and clears its value. One call adopts at most one mutation
-// batch and resumes after the recorded cursor. It reports whether adoption is
-// complete.
-func adoptLegacyPendingUploads(ctx context.Context, tx kvtx.Tx) (bool, error) {
-	// A summary without a cursor is a fully indexed queue.
-	cursor, adopting, err := tx.Get(ctx, []byte(pendingUploadAdoptKey))
-	if err != nil {
-		return false, err
-	}
-	_, summarized, err := tx.Get(ctx, []byte(pendingUploadStateKey))
-	if err != nil {
-		return false, err
-	}
-	if summarized && !adopting {
-		return true, nil
-	}
-
-	// Load the queue summary to extend with adopted markers.
-	state := &PendingUploadState{}
-	if summarized {
-		if state, err = readPendingUploadState(ctx, tx); err != nil {
-			return false, err
-		}
-	}
-
-	// Collect one batch before writing, so the iterator never observes its own
-	// mutations. Markers with empty values are already indexed.
-	type legacyMarker struct {
-		key  []byte
-		size int64
-	}
-
-	// Declare the legacy marker accumulator and start the dirty-marker iterator.
-	var legacy []legacyMarker
-	var last []byte
-	iter := tx.Iterate(ctx, []byte("dirty/"), true, false)
-	var valid bool
-	if len(cursor) == 0 {
-		valid = iter.Next()
-	} else {
-		if err := iter.Seek(cursor); err != nil {
-			iter.Close()
-			return false, err
-		}
-		valid = iter.Valid()
-		if valid && bytes.Equal(iter.Key(), cursor) {
-			valid = iter.Next()
-		}
-	}
-
-	// Collect one batch of legacy markers before writing, so the iterator never observes its own mutations.
-	for valid && len(legacy) < pendingUploadMutationLimit {
-		last = bytes.Clone(iter.Key())
-		value, err := iter.Value()
-		if err != nil {
-			iter.Close()
-			return false, err
-		}
-		if len(value) != 0 {
-			size, err := strconv.ParseInt(string(value), 10, 64)
-			if err != nil {
-				iter.Close()
-				return false, errors.Wrapf(err, "decode pending marker %s", last)
-			}
-			legacy = append(legacy, legacyMarker{key: last, size: size})
-		}
-		valid = iter.Next()
-	}
-
-	// Close the iterator and stop when the queue has no unindexed markers.
-	err = iter.Err()
-	iter.Close()
-	if err != nil {
-		return false, err
-	}
-	if !summarized && last == nil {
-		return true, nil
-	}
-
-	// Append each marker at the end of the queue with its original size.
-	for _, marker := range legacy {
-		state.LastSequence++
-		entry := &PendingUploadBlock{
-			Sequence:  state.GetLastSequence(),
-			SizeBytes: marker.size,
-			Hash:      string(marker.key[len("dirty/"):]),
-		}
-		data, err := entry.MarshalVT()
-		if err != nil {
-			return false, err
-		}
-		if err := tx.Set(ctx, marker.key, nil); err != nil {
-			return false, err
-		}
-		if err := tx.Set(ctx, pendingUploadOrderKey(entry.GetSequence()), data); err != nil {
-			return false, err
-		}
-		if state.GetCount() == 0 {
-			state.PendingSinceNanos = time.Now().UnixNano()
-		}
-		state.Count++
-		state.SizeBytes += marker.size
-	}
-
-	// Write the extended queue summary.
-	if err := writePendingUploadState(ctx, tx, state); err != nil {
-		return false, err
-	}
-
-	// Record the cursor with the batch so a restart resumes after it.
-	if !valid {
-		return true, tx.Delete(ctx, []byte(pendingUploadAdoptKey))
-	}
-	return false, tx.Set(ctx, []byte(pendingUploadAdoptKey), last)
 }

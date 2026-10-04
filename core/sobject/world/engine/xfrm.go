@@ -3,7 +3,6 @@ package sobject_world_engine
 import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -47,36 +46,21 @@ func BuildInitialInnerState(initOp *InitWorldOp) (*InnerState, error) {
 	}, nil
 }
 
-// worldTransformer permits legacy plaintext world reads but rejects every
-// write until the Space has migrated to authenticated encryption.
-type worldTransformer struct {
-	*block_transform.Transformer
-	writeErr error
-}
-
+// newWorldTransformer builds the World block transformer. conf must name an
+// authenticated encryption step.
 func newWorldTransformer(
 	opts controller.ConstructOpts,
 	sfs *block_transform.StepFactorySet,
 	conf *block_transform.Config,
-) (*worldTransformer, error) {
-	xfrm, err := block_transform.NewTransformer(opts, sfs, conf)
-	if err != nil {
+) (*block_transform.Transformer, error) {
+	if err := validateWorldWriteTransform(conf); err != nil {
 		return nil, err
 	}
-	return &worldTransformer{
-		Transformer: xfrm,
-		writeErr:    validateWorldWriteTransform(conf),
-	}, nil
+	return block_transform.NewTransformer(opts, sfs, conf)
 }
 
-// EncodeBlock encodes an authenticated world block.
-func (t *worldTransformer) EncodeBlock(data []byte) ([]byte, error) {
-	if t.writeErr != nil {
-		return nil, t.writeErr
-	}
-	return t.Transformer.EncodeBlock(data)
-}
-
+// validateWorldWriteTransform returns errUnauthenticatedWorldTransform unless
+// conf has a valid authenticated encryption step.
 func validateWorldWriteTransform(conf *block_transform.Config) error {
 	for _, step := range conf.GetSteps() {
 		if step.GetId() != transform_blockenc.ConfigID {
@@ -98,8 +82,3 @@ func validateWorldWriteTransform(conf *block_transform.Config) error {
 	}
 	return errUnauthenticatedWorldTransform
 }
-
-var (
-	_ block.Transformer                  = (*worldTransformer)(nil)
-	_ block.DecodedBlockCacheTransformer = (*worldTransformer)(nil)
-)

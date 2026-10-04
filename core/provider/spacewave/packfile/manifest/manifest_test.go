@@ -199,55 +199,6 @@ func TestManifest(t *testing.T) {
 	}
 }
 
-// TestManifestLoadsLegacyInlineBloomFilter verifies an entry stored with an
-// inline bloom filter loads with that filter.
-func TestManifestLoadsLegacyInlineBloomFilter(t *testing.T) {
-	// Open a write transaction for the legacy layout.
-	ctx := t.Context()
-	store := newTestStore()
-	tx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Discard()
-
-	// Store one entry with its bloom filter inline.
-	entry := &packfile.PackfileEntry{
-		Id:          "01ARZ3NDEKTSV4RRFFQ69G5FAY",
-		BloomFilter: []byte("legacy-bloom"),
-		BlockCount:  1,
-		SizeBytes:   42,
-	}
-	data, err := entry.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Set(ctx, manifestPackKey(entry.GetId()), data); err != nil {
-		t.Fatal(err)
-	}
-
-	// Store the cursor and commit.
-	if err := tx.Set(ctx, metaLastPullSequenceKey, []byte("1")); err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	// The loaded entry carries the inline filter.
-	m, err := New(ctx, store)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := m.GetEntries()
-	if len(got) != 1 {
-		t.Fatalf("expected 1 entry, got %d", len(got))
-	}
-	if string(got[0].GetBloomFilter()) != "legacy-bloom" {
-		t.Fatalf("unexpected legacy bloom filter: %q", got[0].GetBloomFilter())
-	}
-}
-
 // TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents verifies a
 // delta updates entries by id and a replacement event drops the replaced pack
 // and its cached index tail.

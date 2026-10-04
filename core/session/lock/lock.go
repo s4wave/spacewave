@@ -39,29 +39,16 @@ func DecryptAutoUnlock(storageKey [32]byte, encrypted []byte) ([]byte, error) {
 	return decryptSessionLockBytes(storageKey[:], encrypted)
 }
 
+// newSessionLockMethod returns the AES-256-GCM method that seals session keys.
 func newSessionLockMethod(key []byte) (blockenc.Method, error) {
 	return blockenc.NewAES256GCM(key)
 }
 
+// decryptSessionLockBytes opens session bytes sealed by newSessionLockMethod.
 func decryptSessionLockBytes(key []byte, encrypted []byte) ([]byte, error) {
-	// Attempt to decrypt the session bytes with AES-GCM.
 	method, err := newSessionLockMethod(key)
 	if err != nil {
 		return nil, err
 	}
-	out, err := method.Decrypt(blockenc.DefaultAllocFn(), encrypted)
-	if err == nil {
-		return out, nil
-	}
-
-	// Recover session bytes encrypted with the legacy XChaCha method.
-	legacyMethod, legacyErr := blockenc.NewXChaCha20Poly1305(key)
-	if legacyErr != nil {
-		return nil, err
-	}
-	out, legacyErr = legacyMethod.Decrypt(blockenc.DefaultAllocFn(), encrypted)
-	if legacyErr == nil {
-		return out, nil
-	}
-	return nil, legacyErr
+	return method.Decrypt(blockenc.DefaultAllocFn(), encrypted)
 }

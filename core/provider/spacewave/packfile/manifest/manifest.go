@@ -83,18 +83,17 @@ func (m *Manifest) loadEntries(ctx context.Context) error {
 		func(ctx context.Context, tx kvtx.Tx) error {
 			attemptEntries := make([]*packfile.PackfileEntry, 0)
 			err := tx.ScanPrefix(ctx, []byte("packs/"), func(key, value []byte) error {
+				// Decode the entry, then attach its separately stored bloom filter.
 				entry := &packfile.PackfileEntry{}
 				if err := entry.UnmarshalVT(value); err != nil {
 					return errors.Wrap(err, "unmarshaling packfile entry")
 				}
-				if len(entry.GetBloomFilter()) == 0 {
-					bloomData, found, err := tx.Get(ctx, manifestBloomKey(entry.GetId()))
-					if err != nil {
-						return errors.Wrap(err, "getting pack bloom filter")
-					}
-					if found {
-						entry.BloomFilter = bytes.Clone(bloomData)
-					}
+				bloomData, found, err := tx.Get(ctx, manifestBloomKey(entry.GetId()))
+				if err != nil {
+					return errors.Wrap(err, "getting pack bloom filter")
+				}
+				if found {
+					entry.BloomFilter = bytes.Clone(bloomData)
 				}
 				attemptEntries = append(attemptEntries, entry)
 				return nil
@@ -243,11 +242,8 @@ func (m *Manifest) ApplyDelta(
 					); err != nil {
 						return errors.Wrap(err, "putting bloom filter")
 					}
-				}
-				if len(entry.GetBloomFilter()) == 0 {
-					if err := tx.Delete(ctx, manifestBloomKey(entry.GetId())); err != nil {
-						return err
-					}
+				} else if err := tx.Delete(ctx, manifestBloomKey(entry.GetId())); err != nil {
+					return err
 				}
 				changed[entry.GetId()] = entry.CloneVT()
 			}

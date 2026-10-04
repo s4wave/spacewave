@@ -17,8 +17,6 @@ import (
 // TestAuthenticatedCatchupPinsPagesAndContinues proves real paired streams catch
 // up across multiple history pages and then propagate configuration-only changes.
 func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
-
-	// withTimeout ctx,cancel via context.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	const soID = "paged-authenticated-catchup"
@@ -64,7 +62,6 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 	observed := &authenticationStream{Conn: left, messages: make(chan *SOSyncMessage, 64)}
 	localDone, remoteDone := make(chan error, 1), make(chan error, 1)
 
-	// func.
 	go func() { localDone <- local.runStream(ctx, gateLogger(), observed, "transport-a", "transport-b") }()
 	go func() { remoteDone <- remote.runStream(ctx, gateLogger(), right, "transport-b", "transport-a") }()
 	accepted, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
@@ -128,8 +125,7 @@ func TestAuthenticatedCatchupPinsPagesAndContinues(t *testing.T) {
 // TestAuthenticatedReaderCannotPromoteSnapshot submits the escalation over the
 // actual authenticated protocol and checks that authority and content stay held.
 func TestAuthenticatedReaderCannotPromoteSnapshot(t *testing.T) {
-
-	// withTimeout ctx,cancel via context.
+	// The owner and a reader start from the same authenticated state.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	const soID = "authenticated-reader-forgery"
@@ -137,15 +133,17 @@ func TestAuthenticatedReaderCannotPromoteSnapshot(t *testing.T) {
 	initial := authenticationState(t, soID, owner, reader)
 	local := newAuthenticationPeer(t, soID, owner, initial)
 	remote := newAuthenticationPeer(t, soID, reader, initial)
-	left, right := net.Pipe()
 
-	// cleanup.
+	// The reader authenticates by hand against the owner's stream.
+	left, right := net.Pipe()
 	t.Cleanup(func() { left.Close(); right.Close() })
 	done := make(chan error, 1)
 	go func() { done <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
 	if _, err := remote.authenticate(ctx, stream_packet.NewSession(right, 64*1024), "transport-b", "transport-a"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Acknowledge the owner's head so the stream reaches catch-up.
 	session := stream_packet.NewSession(right, maxMessageSize)
 	localHead := &SOSyncMessage{}
 	if err := session.RecvMsg(localHead); err != nil {
@@ -170,7 +168,7 @@ func TestAuthenticatedReaderCannotPromoteSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Record request.
+	// Answer the history request with the forged snapshot.
 	request := &SOSyncMessage{}
 	if err := session.RecvMsg(request); err != nil {
 		t.Fatal(err)
@@ -194,17 +192,16 @@ func TestAuthenticatedReaderCannotPromoteSnapshot(t *testing.T) {
 	}
 }
 
-// TestCatchupMissingHistoryRequiresRecovery preserves divergent legacy state.
+// TestCatchupMissingHistoryRequiresRecovery preserves divergent local state.
 func TestCatchupMissingHistoryRequiresRecovery(t *testing.T) {
-
-	// withTimeout ctx,cancel via context.
+	// The owner and a reader start from the same authenticated state.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	const soID = "missing-history-recovery"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
 	initial := authenticationState(t, soID, owner, reader)
 
-	// cloneVT candidate via initial.
+	// The owner advances its config by one change.
 	candidate := initial.CloneVT()
 	change, err := sobject.BuildSOConfigChange(soID, initial.Config, initial.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
 	if err != nil {
@@ -222,7 +219,7 @@ func TestCatchupMissingHistoryRequiresRecovery(t *testing.T) {
 	t.Cleanup(func() { left.Close(); right.Close() })
 	localDone, remoteDone := make(chan error, 1), make(chan error, 1)
 
-	// func.
+	// Both sides stop with recovery, and the receiver keeps its state.
 	go func() { localDone <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
 	go func() { remoteDone <- remote.runStream(ctx, gateLogger(), right, "transport-b", "transport-a") }()
 	for _, done := range []<-chan error{localDone, remoteDone} {
@@ -241,16 +238,15 @@ func TestCatchupMissingHistoryRequiresRecovery(t *testing.T) {
 	}
 }
 
-// TestLegacyCatchupRequiresRecovery preserves local data and reports recovery
-// for an empty checkpoint or an older authenticated snapshot exchange.
-func TestLegacyCatchupRequiresRecovery(t *testing.T) {
+// TestUnverifiableCatchupRequiresRecovery preserves local data and reports
+// recovery for an empty checkpoint or an unrequested snapshot.
+func TestUnverifiableCatchupRequiresRecovery(t *testing.T) {
 	for _, mode := range []string{"empty checkpoint", "unrequested snapshot"} {
 		t.Run(mode, func(t *testing.T) {
-
-			// withTimeout ctx,cancel via context.
+			// Build the shared state, without a checkpoint in the first mode.
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
-			const soID = "legacy-catchup-recovery"
+			const soID = "unverifiable-catchup-recovery"
 			owner, reader := mustKeyPair(t), mustKeyPair(t)
 			initial := authenticationState(t, soID, owner, reader)
 			if mode == "empty checkpoint" {
@@ -258,7 +254,7 @@ func TestLegacyCatchupRequiresRecovery(t *testing.T) {
 				initial.Config.ConfigChainSeqno = 0
 			}
 
-			// newAuthenticationPeer local.
+			// The owner reports each recovery decision for its peer.
 			local := newAuthenticationPeer(t, soID, owner, initial)
 			remote := newAuthenticationPeer(t, soID, reader, initial)
 			recovery := make(chan bool, 1)
@@ -267,14 +263,14 @@ func TestLegacyCatchupRequiresRecovery(t *testing.T) {
 			t.Cleanup(func() { left.Close(); right.Close() })
 			done := make(chan error, 1)
 
-			// func.
+			// An empty checkpoint fails admission at authentication.
 			go func() { done <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
 			_, authErr := remote.authenticate(ctx, stream_packet.NewSession(right, 64*1024), "transport-b", "transport-a")
 			if mode == "empty checkpoint" && !errors.Is(authErr, sobject.ErrConfigHistoryUnavailable) {
 				t.Fatalf("empty checkpoint admission = %v", authErr)
 			}
 
-			// Check the condition before continuing.
+			// An authenticated reader answers with a snapshot nobody requested.
 			if mode != "empty checkpoint" && authErr != nil {
 				t.Fatal(authErr)
 			}
@@ -291,27 +287,27 @@ func TestLegacyCatchupRequiresRecovery(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			select {
 
-			// Perform the action.
+			// The owner stops with recovery and keeps its state.
+			select {
 			case err := <-done:
 				if !errors.Is(err, sobject.ErrConfigHistoryUnavailable) {
-					t.Fatalf("legacy exchange result = %v", err)
+					t.Fatalf("catchup result = %v", err)
 				}
 			case <-ctx.Done():
-				t.Fatal("legacy exchange did not terminate")
+				t.Fatal("catchup did not terminate")
 			}
 			select {
 			case needed := <-recovery:
 				if !needed {
-					t.Fatal("legacy exchange cleared recovery")
+					t.Fatal("catchup cleared recovery")
 				}
 			default:
-				t.Fatal("legacy exchange did not report recovery")
+				t.Fatal("catchup did not report recovery")
 			}
 			got, err := local.soHost.GetHostState(ctx)
 			if err != nil || !got.EqualVT(initial) {
-				t.Fatalf("legacy exchange changed local state: %v", err)
+				t.Fatalf("catchup changed local state: %v", err)
 			}
 		})
 	}

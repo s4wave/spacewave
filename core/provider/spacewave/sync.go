@@ -92,9 +92,6 @@ type syncController struct {
 // failures are returned so callers can wait for account/resource invalidation
 // instead of retrying. Must be called before Execute.
 func (s *syncController) Init(ctx context.Context) error {
-	if err := s.adoptLegacyPendingUploads(ctx); err != nil {
-		return err
-	}
 	if err := s.updateDirtyState(ctx); err != nil {
 		return err
 	}
@@ -489,30 +486,6 @@ func (s *syncController) MarkDirty(ctx context.Context, marks []block_store_writ
 
 		// Publish each committed batch; retrying a partial mark is idempotent.
 		s.publishDirtyState(state)
-	}
-	return nil
-}
-
-// adoptLegacyPendingUploads indexes a queue stored before the summary existed,
-// one bounded transaction at a time, before any flush reads the queue.
-func (s *syncController) adoptLegacyPendingUploads(ctx context.Context) error {
-	release, err := s.dirtyMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
-	for done := false; !done; {
-		err := kvtx.RunTransaction(ctx, true,
-			func(ctx context.Context) (kvtx.Tx, error) { return s.store.NewTransaction(ctx, true) },
-			func(ctx context.Context, tx kvtx.Tx) error {
-				var err error
-				done, err = adoptLegacyPendingUploads(ctx, tx)
-				return err
-			},
-		)
-		if err != nil {
-			return errors.Wrap(err, "adopt pending blocks")
-		}
 	}
 	return nil
 }

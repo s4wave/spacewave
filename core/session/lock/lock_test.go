@@ -9,7 +9,6 @@ import (
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/db/object"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
 )
 
@@ -102,42 +101,6 @@ func TestAutoUnlockRoundTrip(t *testing.T) {
 	// Verify auto-unlock restores the original session bytes.
 	if !bytes.Equal(decrypted, plaintext) {
 		t.Fatal("decrypted data does not match original")
-	}
-}
-
-func TestAutoUnlockDecryptsLegacyXChaCha(t *testing.T) {
-	// Generate the volume private key for the legacy session fixture.
-	priv, _, err := crypto.GenerateEd25519Key(crypto_rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Derive the storage key used by the legacy session fixture.
-	storageKey, err := DeriveStorageKey(priv)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Encrypt the legacy session fixture with XChaCha20-Poly1305.
-	plaintext := []byte("legacy session private key PEM data")
-	method, err := blockenc.NewXChaCha20Poly1305(storageKey[:])
-	if err != nil {
-		t.Fatal(err)
-	}
-	encrypted, err := method.Encrypt(blockenc.DefaultAllocFn(), plaintext)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Decrypt the legacy session fixture through auto-unlock.
-	decrypted, err := DecryptAutoUnlock(storageKey, encrypted)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify auto-unlock restores the legacy session bytes.
-	if !bytes.Equal(decrypted, plaintext) {
-		t.Fatal("decrypted legacy data does not match original")
 	}
 }
 

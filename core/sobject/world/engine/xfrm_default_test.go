@@ -166,36 +166,16 @@ func TestUnauthenticatedWorldInitializationIsRejected(t *testing.T) {
 	}
 }
 
-// TestLegacyPlaintextWorldTransformIsReadOnly checks that a World with a
-// plaintext transform reads its blocks but refuses to write.
-func TestLegacyPlaintextWorldTransformIsReadOnly(t *testing.T) {
+// TestUnauthenticatedWorldTransformerIsRejected checks that a World with an
+// unauthenticated transform does not load.
+func TestUnauthenticatedWorldTransformerIsRejected(t *testing.T) {
 	conf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 	if err != nil {
-		t.Fatalf("build legacy transform config: %v", err)
+		t.Fatalf("build unauthenticated transform config: %v", err)
 	}
-	xfrm, err := newWorldTransformer(controller.ConstructOpts{}, transform_all.BuildFactorySet(), conf)
-	if err != nil {
-		t.Fatalf("build legacy world transformer: %v", err)
-	}
-
-	if _, err := xfrm.EncodeBlock([]byte("must not become dirty")); !errors.Is(err, errUnauthenticatedWorldTransform) {
-		t.Fatalf("legacy world write error = %v, want %v", err, errUnauthenticatedWorldTransform)
-	}
-
-	gzipStep, err := transform_gzip.NewGzip(&transform_gzip.Config{})
-	if err != nil {
-		t.Fatalf("build gzip step: %v", err)
-	}
-	encoded, err := gzipStep.EncodeBlock([]byte("legacy readable block"))
-	if err != nil {
-		t.Fatalf("encode legacy block: %v", err)
-	}
-	decoded, err := xfrm.DecodeBlock(encoded)
-	if err != nil {
-		t.Fatalf("decode legacy block: %v", err)
-	}
-	if string(decoded) != "legacy readable block" {
-		t.Fatalf("decoded legacy block = %q", decoded)
+	_, err = newWorldTransformer(controller.ConstructOpts{}, transform_all.BuildFactorySet(), conf)
+	if !errors.Is(err, errUnauthenticatedWorldTransform) {
+		t.Fatalf("world transformer error = %v, want %v", err, errUnauthenticatedWorldTransform)
 	}
 }
 
