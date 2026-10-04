@@ -479,23 +479,6 @@ func (s *PackStore) readPackIndex(ctx context.Context, entry *packfile.PackfileE
 	defer pack.Close()
 
 	// Read the index at its tail.
-	_, tail, err := kvfile.ReadIndexTail(pack.ReaderAt(ctx), size)
-	if err != nil {
-		return nil, errors.Wrap(err, "read packfile index "+entry.GetId())
-	}
-	rd, err := kvfile.BuildReaderWithIndexTail(tail, size)
-	if err != nil {
-		return nil, errors.Wrap(err, "open packfile index "+entry.GetId())
-	}
-
-	// Collect its entries.
-	var index []*kvfile.IndexEntry
-	err = rd.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
-		index = append(index, ie.CloneVT())
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "scan packfile index "+entry.GetId())
-	}
-	return index, nil
+	index, err := packfile.ReadIndex(pack.ReaderAt(ctx), size)
+	return index, errors.Wrap(err, entry.GetId())
 }

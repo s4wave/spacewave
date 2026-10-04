@@ -304,6 +304,11 @@ func (c *promoteTestClient) SyncPushData(context.Context, string, string, int, [
 	return nil
 }
 
+func (c *promoteTestClient) SyncReplaceData(context.Context, string, string, int, []byte, []byte, []byte, uint32, []string) error {
+	c.pushes++
+	return nil
+}
+
 func (c *promoteTestClient) PostCheckpoint(context.Context, string, *sobject.SOCheckpoint) error {
 	c.checkpoints++
 	return nil

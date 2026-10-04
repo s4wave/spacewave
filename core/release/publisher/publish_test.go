@@ -185,7 +185,7 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, entry := range first {
-		_, found, err := reader.Get([]byte(entry.ref.GetHash().MarshalString()))
+		_, found, err := reader.Get(packfile.BlockKey(entry.ref.GetHash()))
 		if err != nil || found {
 			t.Fatalf("republished existing release block: found=%v error=%v", found, err)
 		}

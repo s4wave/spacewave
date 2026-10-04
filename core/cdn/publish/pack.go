@@ -80,6 +80,19 @@ func PushSinglePack(
 // PushPackData verifies and uploads a kvfile with the shared publication retry
 // policy. Callers retain ownership of the bytes until the operation returns.
 func PushPackData(ctx context.Context, opts Options, packBytes, bloomFilter []byte) error {
+	return pushPackData(ctx, opts, packBytes, bloomFilter, nil)
+}
+
+// PushReplacementData uploads a kvfile like PushPackData that atomically
+// supersedes the replaced packs. The caller must first make every block still
+// reachable from the destination's checkpoint available outside them. At most
+// 32 packs may be replaced.
+func PushReplacementData(ctx context.Context, opts Options, packBytes, bloomFilter []byte, replaced []string) error {
+	return pushPackData(ctx, opts, packBytes, bloomFilter, replaced)
+}
+
+// pushPackData verifies and uploads a kvfile that supersedes replaced.
+func pushPackData(ctx context.Context, opts Options, packBytes, bloomFilter []byte, replaced []string) error {
 	// Derive resource-scoped identity from verified content and pack policy.
 	metadata, err := BuildKVFilePushMetadata(ctx, packBytes)
 	if err != nil {
@@ -95,40 +108,31 @@ func PushPackData(ctx context.Context, opts Options, packBytes, bloomFilter []by
 
 	// Transient service failures retry the same immutable content identity.
 	packHash := sha256.Sum256(packBytes)
-	if err := syncPushDataWithRetry(ctx, opts, packID, metadata, packBytes, packHash[:], bloomFilter); err != nil {
+	push := func() error {
+		if len(replaced) == 0 {
+			return opts.Client.SyncPushData(ctx, opts.DstSpaceID, packID, metadata.BlockCount, packBytes, packHash[:], bloomFilter, packfile.BloomFormatVersionV1)
+		}
+		return opts.Client.SyncReplaceData(ctx, opts.DstSpaceID, packID, metadata.BlockCount, packBytes, packHash[:], bloomFilter, packfile.BloomFormatVersionV1, replaced)
+	}
+	if err := retrySyncPush(ctx, push); err != nil {
 		return errors.Wrap(err, "sync push")
 	}
 	_, err = io.WriteString(
 		opts.output(),
 		"  pushed pack "+packID+
 			" size="+strconv.Itoa(len(packBytes))+
-			" blocks="+strconv.Itoa(metadata.BlockCount)+"\n",
+			" blocks="+strconv.Itoa(metadata.BlockCount)+
+			" replaced="+strconv.Itoa(len(replaced))+"\n",
 	)
 	return err
 }
 
-// syncPushDataWithRetry bounds transient retries and honors cancellation.
-func syncPushDataWithRetry(
-	ctx context.Context,
-	opts Options,
-	packID string,
-	metadata *KVFilePushMetadata,
-	packBytes []byte,
-	packHash []byte,
-	bloomFilter []byte,
-) error {
+// retrySyncPush bounds transient retries of push and honors cancellation. A
+// retried replacement of a pack the catalog already committed succeeds.
+func retrySyncPush(ctx context.Context, push func() error) error {
 	var lastErr error
 	for attempt := range 3 {
-		err := opts.Client.SyncPushData(
-			ctx,
-			opts.DstSpaceID,
-			packID,
-			metadata.BlockCount,
-			packBytes,
-			packHash,
-			bloomFilter,
-			packfile.BloomFormatVersionV1,
-		)
+		err := push()
 		if err == nil {
 			return nil
 		}

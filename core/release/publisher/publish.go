@@ -27,10 +27,12 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// Publish uploads a committed release World, then advances its public checkpoint.
+// Publish uploads a committed release World, advances its public checkpoint,
+// then rewrites the destination packs that are mostly unreachable from it.
 // Every referenced block must exist before any network write begins. Failed
 // uploads leave the previous checkpoint intact; content-addressed packs are retryable.
-// The caller must exclusively own the local World for the operation's lifetime.
+// The caller must exclusively own the local World for the operation's lifetime,
+// and the destination Space must have one publisher at a time.
 func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMetadata, opts cdn_publish.Options) (*sobject.SOCheckpointInner, error) {
 	// Require explicit cloud authority and a complete release before exporting.
 	if eng == nil || opts.Client == nil || opts.DstSpaceID == "" || opts.OwnerKeyPem == "" || opts.CdnBaseURL == "" {
@@ -68,8 +70,8 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		return nil, errors.Wrap(err, "check published release blocks")
 	}
 
-	// Keep only the missing blocks.
-	missing := blocks[:0]
+	// Keep the missing blocks apart from the closure, which reclaim needs.
+	var missing []packedBlock
 	var missingBytes uint64
 	for i, entry := range blocks {
 		if !exists[i] {
@@ -77,18 +79,17 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 			missingBytes += uint64(len(entry.stored.Data))
 		}
 	}
-	blocks = missing
 	if opts.Logger != nil {
-		opts.Logger.WithField("blocks", len(blocks)).WithField("bytes", missingBytes).Info("publishing missing release content")
+		opts.Logger.WithField("blocks", len(missing)).WithField("bytes", missingBytes).Info("publishing missing release content")
 	}
 
 	// Use the standard pack writer and resource-scoped content identity.
 	index := 0
 	_, err = delta.EmitDeltaChunks(ctx, opts.DstSpaceID, func() (*hash.Hash, *block.StoredBlock, error) {
-		if index == len(blocks) {
+		if index == len(missing) {
 			return nil, nil, nil
 		}
-		entry := blocks[index]
+		entry := missing[index]
 		index++
 		return entry.ref.GetHash(), entry.stored, nil
 	}, delta.DefaultMaxChunkBytes, func(ctx context.Context, chunk int, entry *packfile.PackfileEntry, data []byte) error {
@@ -102,7 +103,23 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 	}
 
 	// The signed checkpoint is the sole publication point after all packs are durable.
-	return cdn_publish.PostCheckpoint(ctx, opts, head)
+	checkpoint, err := cdn_publish.PostCheckpoint(ctx, opts, head)
+	if err != nil {
+		return nil, err
+	}
+
+	// Drop the content no longer reachable from the posted head. The release
+	// is already published, so a failed pass only delays the reclaim.
+	dropped, err := reclaim(ctx, opts, head, blocks)
+	if opts.Logger != nil {
+		log := opts.Logger.WithField("dropped-bytes", dropped)
+		if err != nil {
+			log.WithError(err).Warn("reclaim of unreferenced release content failed")
+		} else {
+			log.Info("reclaimed unreferenced release content")
+		}
+	}
+	return checkpoint, nil
 }
 
 // packedBlock retains a content-addressed block from the verified local
