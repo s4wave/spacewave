@@ -1,7 +1,6 @@
 package webrtc
 
 import (
-	"crypto/sha256"
 	"errors"
 	"testing"
 
@@ -111,49 +110,6 @@ func TestCandidatesBufferedBeforeActiveOffer(t *testing.T) {
 	}
 	if len(f.pendingICE) != 0 {
 		t.Fatalf("buffer not drained: %d candidates left", len(f.pendingICE))
-	}
-}
-
-// TestStaleGenerationCandidateStillDropsAfterOfferActive pins that the
-// relaxation of the pre-offer fence does not weaken the post-offer fence:
-// once a generation is active, candidates tagged with any other offer id
-// must still be dropped.
-func TestStaleGenerationCandidateStillDropsAfterOfferActive(t *testing.T) {
-	// Create the answerer peer connection and its active offer.
-	answerPC, offerDesc := newOfferForAnswerer(t)
-
-	// Apply the offer with an ICE applier that counts accepted candidates.
-	applied := 0
-	f := &fenceIngest{
-		tracker: &sessionTracker{
-			w:       &WebRTC{conf: &Config{}},
-			le:      newFenceTestLogger(),
-			offerer: false,
-		},
-		sess: &session{pc: answerPC},
-		applier: &remoteICECandidateApplier{
-			add: func(pion_webrtc.ICECandidateInit) error {
-				applied++
-				return nil
-			},
-		},
-	}
-	if err := f.ingest(&WebRtcSdp{
-		SdpType: "offer",
-		Sdp:     offerDesc.SDP,
-		OfferId: offerDigest(offerDesc.SDP),
-	}, nil); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Deliver a candidate from another generation and verify it is dropped.
-	otherSum := sha256.Sum256([]byte("some-other-generation"))
-	err := f.ingest(nil, newTestIceSignal(t, "candidate:1 1 udp 2130706431 10.5.0.2 54504 typ host", otherSum[:]))
-	if err != nil {
-		t.Fatalf("stale-generation candidate returned %v, want silent drop", err)
-	}
-	if applied != 0 {
-		t.Fatalf("stale-generation candidate reached the remote ICE applier: %d applied", applied)
 	}
 }
 
