@@ -240,3 +240,23 @@ func TestAgentReportsTransferErrors(t *testing.T) {
 		}
 	}
 }
+
+// TestRefuseAnswersInit answers git-lfs's init event with the cause, so
+// git-lfs fails the batch with that message.
+func TestRefuseAnswersInit(t *testing.T) {
+	// Refuse an init event.
+	var out bytes.Buffer
+	if err := Refuse(strings.NewReader(initRequest+"\n"), &out, errors.New("space offline")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Expect one response carrying the cause as its error.
+	msg, err := fastjson.Parse(out.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	errObj := msg.Get("error")
+	if errObj.GetInt("code") != transferErrorCode || string(errObj.GetStringBytes("message")) != "space offline" {
+		t.Fatalf("init response = %s, want error %q", msg, "space offline")
+	}
+}

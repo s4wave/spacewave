@@ -311,15 +311,12 @@ func TestResolveSpaceIDFromListPreservesExactID(t *testing.T) {
 	}
 }
 
-func TestResolveSpaceIDFromListKeepsUnknownArgument(t *testing.T) {
-	got, err := resolveSpaceIDFromList("missing", []*s4wave_space_core.SpaceSoListEntry{
+func TestResolveSpaceIDFromListRejectsUnknownSpace(t *testing.T) {
+	_, err := resolveSpaceIDFromList("missing", []*s4wave_space_core.SpaceSoListEntry{
 		testSpaceListEntry("01agents", "Agent clients"),
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "missing" {
-		t.Fatalf("got %q, want missing", got)
+	if err == nil || !strings.Contains(err.Error(), `space "missing" not found`) {
+		t.Fatalf("got %v, want a not found error naming the space", err)
 	}
 }
 

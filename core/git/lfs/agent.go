@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// transferErrorCode is the error code reported for a failed transfer.
+// transferErrorCode is the error code reported for a failed init or transfer.
 // git-lfs shows the message and does not interpret the code.
 const transferErrorCode = 1
 
@@ -80,6 +80,23 @@ func (a *Agent) Run(ctx context.Context, r io.Reader, w io.Writer) error {
 			return err
 		}
 	}
+}
+
+// Refuse answers the init event read from r with cause, so git-lfs reports
+// why the agent cannot serve transfers and fails the batch. An agent that
+// exits without answering leaves git-lfs printing only EOF.
+func Refuse(r io.Reader, w io.Writer, cause error) error {
+	// Read the init event git-lfs sends first.
+	line, err := bufio.NewReader(r).ReadBytes('\n')
+	if len(line) == 0 && err != nil {
+		return errors.Wrap(err, "read init event")
+	}
+
+	// Answer it with the cause.
+	out := &events{w: bufio.NewWriter(w)}
+	msg := out.arena.NewObject()
+	msg.Set("error", out.error(cause))
+	return out.send(msg)
 }
 
 // upload stores the file at path as oid unless the Store already holds it,
@@ -193,12 +210,17 @@ func (e *events) complete(oid, path string, transferErr error) error {
 		msg.Set("path", e.arena.NewString(path))
 	}
 	if transferErr != nil {
-		errObj := e.arena.NewObject()
-		errObj.Set("code", e.arena.NewNumberInt(transferErrorCode))
-		errObj.Set("message", e.arena.NewString(transferErr.Error()))
-		msg.Set("error", errObj)
+		msg.Set("error", e.error(transferErr))
 	}
 	return e.send(msg)
+}
+
+// error encodes err as a protocol error object.
+func (e *events) error(err error) *fastjson.Value {
+	obj := e.arena.NewObject()
+	obj.Set("code", e.arena.NewNumberInt(transferErrorCode))
+	obj.Set("message", e.arena.NewString(err.Error()))
+	return obj
 }
 
 // event starts a message of the given event type for oid.

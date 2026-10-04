@@ -304,7 +304,8 @@ func (c *sdkClient) resolveSpaceID(ctx context.Context, sess *s4wave_session.Ses
 	return resolveSpaceIDFromList(spaceID, resp.GetSpacesList())
 }
 
-// resolveSpaceIDFromList selects an exact ID, display name, or sole Space.
+// resolveSpaceIDFromList selects an exact ID, display name, or sole Space,
+// and rejects a Space the session does not list.
 func resolveSpaceIDFromList(spaceID string, spaces []*s4wave_space_core.SpaceSoListEntry) (string, error) {
 	if len(spaces) == 0 {
 		return "", errors.New("no spaces found; specify --space")
@@ -321,7 +322,7 @@ func resolveSpaceIDFromList(spaceID string, spaces []*s4wave_space_core.SpaceSoL
 				return sp.GetEntry().GetRef().GetProviderResourceRef().GetId(), nil
 			}
 		}
-		return spaceID, nil
+		return "", errors.Errorf("space %q not found in this session; an ID can predate a reset, so prefer the Space name from spacewave space list", spaceID)
 	}
 	if len(spaces) > 1 {
 		return "", errors.New("multiple spaces found; specify --space")
@@ -806,12 +807,17 @@ func mountObjectChain(
 	}
 	rels = append(rels, sess.Release)
 
-	// Resolve the space ID.
-	spaceID := uri.spaceID
-	if spaceID == "" {
+	// Resolve the Space ID or name, or the default Space when none was given.
+	var spaceID string
+	if uri.spaceID == "" {
 		spaceID, err = client.getSpaceByName(ctx, sess, "")
 		if err != nil {
 			return fail(errors.Wrap(err, "resolve default space"))
+		}
+	} else {
+		spaceID, err = client.resolveSpaceID(ctx, sess, uri.spaceID)
+		if err != nil {
+			return fail(err)
 		}
 	}
 

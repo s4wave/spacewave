@@ -216,30 +216,44 @@ func buildGitLfsAgentCommand() *cli.Command {
 		Hidden:    true,
 		Flags:     commonFsFlags(&statePath, &spaceID, &sessIdx),
 		Action: func(c *cli.Context) error {
-			// Parse the fs URI from the argument.
+			// Open the Store, then serve git-lfs over it. A failure to open
+			// answers git-lfs's init event so git-lfs reports the cause.
 			ctx := c.Context
-			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
+			store, tmpDir, cleanup, err := openGitLfsAgentStore(c, statePath, spaceID, sessIdx)
 			if err != nil {
-				return err
-			}
-
-			// git-lfs renames downloads into its object store, so they
-			// must be written on the same filesystem.
-			tmpDir, err := gitOutput(ctx, "rev-parse", "--path-format=absolute", "--git-path", "lfs/tmp")
-			if err != nil {
-				return errors.Wrap(err, "find git-lfs temporary directory")
-			}
-
-			// Find the git-lfs temporary directory and mount the fs context.
-			fc, cleanup, err := mountFsContext(c, statePath, uri)
-			if err != nil {
+				_ = git_lfs.Refuse(os.Stdin, os.Stdout, err) // err is the one to report
 				return err
 			}
 			defer cleanup()
-			store := git_lfs.NewUnixFSStore(fc.fsSvc, fc.resClient)
 			return git_lfs.NewAgent(store, tmpDir).Run(ctx, os.Stdin, os.Stdout)
 		},
 	}
+}
+
+// openGitLfsAgentStore mounts the UnixFS object named by the agent's URI
+// argument as a Store and finds the directory that receives downloads.
+func openGitLfsAgentStore(c *cli.Context, statePath, spaceID string, sessIdx int) (git_lfs.Store, string, func(), error) {
+	// Parse the fs URI from the argument.
+	arg := c.Args().First()
+	uri, err := parseFsURI(arg, spaceID, sessIdx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	// git-lfs renames downloads into its object store, so they must be
+	// written on the same filesystem.
+	tmpDir, err := gitOutput(c.Context, "rev-parse", "--path-format=absolute", "--git-path", "lfs/tmp")
+	if err != nil {
+		return nil, "", nil, errors.Wrap(err, "find git-lfs temporary directory")
+	}
+
+	// Mount the fs context. A Space recreated under a new ID leaves the
+	// configured URI dangling, which setup repairs.
+	fc, cleanup, err := mountFsContext(c, statePath, uri)
+	if err != nil {
+		return nil, "", nil, errors.Wrapf(err, "open %s (rerun spacewave git lfs setup if the Space changed)", arg)
+	}
+	return git_lfs.NewUnixFSStore(fc.fsSvc, fc.resClient), tmpDir, cleanup, nil
 }
 
 // buildGitLfsFlushCommand builds the git lfs flush subcommand that the
