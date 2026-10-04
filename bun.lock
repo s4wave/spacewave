@@ -8,7 +8,7 @@
         "@aptre/flex-layout": "^0.6.4",
         "@aptre/it-ws": "^1.1.2",
         "@aptre/pragmasevka": "^1.0.5",
-        "@aptre/protobuf-es-lite": "1.1.4",
+        "@aptre/protobuf-es-lite": "1.1.5",
         "@aptre/v86": "^0.6.8",
         "@fontsource-variable/manrope": "^5.3.0",
         "@fontsource/commit-mono": "^5.3.0",
@@ -121,7 +121,7 @@
     "orga@4.7.1": "patches/orga@4.7.1.patch",
   },
   "overrides": {
-    "@aptre/protobuf-es-lite": "1.1.4",
+    "@aptre/protobuf-es-lite": "1.1.5",
     "quickjs-wasi-reactor": "0.15.1",
   },
   "packages": {
@@ -133,7 +133,7 @@
 
     "@aptre/pragmasevka": ["@aptre/pragmasevka@1.0.5", "", {}, "sha512-0yda2y0w/tUDH0RBESMIsKylV+nur7rXvW9AKptGhn/JTWrxdYF543KV1Sqbs63eY5p3oDB4/Ah1tFfFz0ILxA=="],
 
-    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@1.1.4", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0", "typescript": "5.9.3" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-riUaMgS83AhIxzSZzcJnzXnLseuK7cOS6nHHBCxT4NXKUUlSK26kmn0COYIU0wDu/wNHt+2syu6JLcvBt3V9uw=="],
+    "@aptre/protobuf-es-lite": ["@aptre/protobuf-es-lite@1.1.5", "", { "dependencies": { "@typescript/vfs": "^1.5.0", "lz-string": "^1.5.0", "typescript": "5.9.3" }, "bin": { "protoc-gen-es-lite": "bin/protoc-gen-es-lite" } }, "sha512-DtpJq7hiE8ry3pL9Ljo4cg/MXMk3d94QH+wBBLEYm6/bNQat1Voy+h7ysaPyF8iESpbJcltZqfooFpun6fIpHQ=="],
 
     "@aptre/v86": ["@aptre/v86@0.6.8", "", {}, "sha512-x2Ot8tn3r/QV+y3ezbC5+/N560PwWxQEqP0UC0GOMT+a/b8v+8oydc7HNmeLOyPBhkeP5m2efw2CfxM+LJc1tg=="],
 
