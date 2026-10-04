@@ -281,7 +281,7 @@ type promoteTestClient struct {
 	checkpoints int
 }
 
-func (c *promoteTestClient) Do(*http.Request) (*http.Response, error) {
+func (c *promoteTestClient) ReadGrants(context.Context, string, []string) ([]*packfile.ReadGrant, error) {
 	return nil, nil
 }
 

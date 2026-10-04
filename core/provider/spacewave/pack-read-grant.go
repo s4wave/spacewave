@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/packfile"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
 // readGrantRefresh is how long before its expiry a read grant is replaced, so
@@ -45,6 +46,27 @@ func (c *SessionClient) ReadGrants(ctx context.Context, resourceID string, packI
 		return nil, errors.Errorf("read response has %d grants for %d packs", len(resp.GetGrants()), len(packIDs))
 	}
 	return resp.GetGrants(), nil
+}
+
+// OpenPackReader opens a pack of a block store for HTTP Range reads on its
+// granted read URLs, renewing the grant before it expires. The size comes
+// from the manifest entry, so no HEAD request is issued.
+func (c *SessionClient) OpenPackReader(httpCli *http.Client, resourceID, packID string, size int64) (*packfile_store.PackReader, error) {
+	if size <= 0 {
+		return nil, errors.New("pack size must be known from the manifest")
+	}
+	return packfile_store.NewHTTPRangeReader(
+		httpCli,
+		"",
+		size,
+		httpReaderAtReadAheadSize,
+		func(req *http.Request) error {
+			return c.grantPackRead(req, resourceID, packID)
+		},
+		func(resp *http.Response) {
+			c.observePackRead(resp, resourceID, packID)
+		},
+	), nil
 }
 
 // packReadURL returns a read URL of a pack valid for at least

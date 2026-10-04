@@ -3,7 +3,6 @@ package publish
 import (
 	"context"
 	"io"
-	"net/http"
 	"os"
 
 	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -14,7 +13,7 @@ import (
 
 // SessionClient is the authenticated Spacewave client surface needed to publish.
 type SessionClient interface {
-	Do(req *http.Request) (*http.Response, error)
+	ReadGrants(ctx context.Context, resourceID string, packIDs []string) ([]*packfile.ReadGrant, error)
 	GetSOState(ctx context.Context, soID string, since uint64, reason spacewave_provider.SeedReason) ([]byte, error)
 	SyncPull(ctx context.Context, resourceID string, since uint64) (*packfile.PullResponse, error)
 	SyncPushData(ctx context.Context, resourceID string, packID string, blockCount int, packData []byte, bodyHash []byte, bloomFilter []byte, bloomFormatVersion uint32) error

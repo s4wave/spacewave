@@ -621,34 +621,15 @@ func (s *sourceTrackingStore) track(ctx context.Context, ref *block.BlockRef, re
 	return true, nil
 }
 
-// BuildBlockStoreOpener builds a packfile Opener for a given block store ID.
-// The opener builds shared pack readers backed by HTTP Range requests on
-// granted read URLs. The size is taken from the manifest entry, so no HEAD request is issued.
+// BuildBlockStoreOpener builds a packfile Opener for a given block store ID
+// that reads packs through the current session.
 func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.Opener {
 	return func(packID string, size int64) (*packfile_store.PackReader, error) {
-		// Range reads need the manifest size and a session to grant them.
-		if size <= 0 {
-			return nil, errors.New("pack size must be known from the manifest")
-		}
 		cli := a.currentSessionClient()
 		if cli == nil {
 			return nil, errors.New("session client not available")
 		}
-
-		// Point each Range request at the pack's granted read URL, renewing
-		// the grant before it expires.
-		return packfile_store.NewHTTPRangeReader(
-			a.p.httpCli,
-			"",
-			size,
-			httpReaderAtReadAheadSize,
-			func(req *http.Request) error {
-				return cli.grantPackRead(req, bstoreID, packID)
-			},
-			func(resp *http.Response) {
-				cli.observePackRead(resp, bstoreID, packID)
-			},
-		), nil
+		return cli.OpenPackReader(a.p.httpCli, bstoreID, packID, size)
 	}
 }
 

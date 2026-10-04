@@ -7,7 +7,6 @@ import (
 	"io"
 	"math"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
-	spacewave_provider "github.com/s4wave/spacewave/core/provider/spacewave"
 	"github.com/s4wave/spacewave/db/block/bloom"
 	"github.com/s4wave/spacewave/db/packfile"
 	"github.com/s4wave/spacewave/db/packfile/identity"
@@ -28,19 +26,18 @@ func FetchSourcePackToTempFile(
 	opts Options,
 	entry *packfile.PackfileEntry,
 ) (string, error) {
-	// Fetch through the authenticated source rather than a public cache.
-	reqURL, err := url.JoinPath(opts.Endpoint, "/api/bstore", opts.SrcSpaceID, "pack", entry.GetId())
+	// Ask the authenticated source for a read grant rather than a public cache.
+	grants, err := opts.Client.ReadGrants(ctx, opts.SrcSpaceID, []string{entry.GetId()})
 	if err != nil {
-		return "", errors.Wrap(err, "build source pack url")
+		return "", errors.Wrap(err, "grant source pack read")
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, grants[0].GetUrl(), nil)
 	if err != nil {
 		return "", errors.Wrap(err, "build source pack request")
 	}
-	req.Header.Set(spacewave_provider.SeedReasonHeader, string(spacewave_provider.SeedReasonColdSeed))
 
-	// Fetch the source pack and require a successful HTTP response.
-	resp, err := opts.Client.Do(req)
+	// Fetch the granted pack and require a successful HTTP response.
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "request source pack")
 	}
