@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -120,9 +121,9 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 	putPack(t, bucket, store, "a0", "a1")
 
 	// Count the liveness checks and fail on any fence.
-	checks := 0
+	var checks atomic.Int32
 	live := func(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
-		checks++
+		checks.Add(1)
 		alive := make([]bool, len(refs))
 		for i := range alive {
 			alive[i] = true
@@ -140,8 +141,8 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if checks != 1 {
-		t.Fatalf("first pass checked %d packfiles, want 1", checks)
+	if checks.Load() != 1 {
+		t.Fatalf("first pass checked %d packfiles, want 1", checks.Load())
 	}
 	if !next.IsZero() {
 		t.Fatalf("first pass expects another at %v", next)
@@ -163,8 +164,8 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 			t.Fatalf("skipped pass expects another at %v", next)
 		}
 	}
-	if checks != 1 {
-		t.Fatalf("skipped passes checked %d packfiles", checks-1)
+	if checks.Load() != 1 {
+		t.Fatalf("skipped passes checked %d packfiles", checks.Load()-1)
 	}
 
 	// Check a write schedules a pass reclaimMaxInterval after the last.
@@ -183,8 +184,8 @@ func TestPackStoreReclaimSchedule(t *testing.T) {
 	if _, err := selfHosted.Reclaim(ctx, fence, live); err != nil {
 		t.Fatal(err)
 	}
-	if checks != 3 {
-		t.Fatalf("self-hosted pass checked %d packfiles, want 2", checks-1)
+	if checks.Load() != 3 {
+		t.Fatalf("self-hosted pass checked %d packfiles, want 2", checks.Load()-1)
 	}
 	if next := reclaimStateKeys(bucket); len(next) != 1 || next[0] == states[0] {
 		t.Fatalf("bucket holds reclaim states %v after %v", next, states)
@@ -203,9 +204,9 @@ func TestPackStoreReclaimFenceFailure(t *testing.T) {
 	putPack(t, bucket, store, strings.Repeat("x", 1<<20))
 
 	// Count the liveness checks, report every block dead, and fail the fence.
-	checks := 0
+	var checks atomic.Int32
 	live := func(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
-		checks++
+		checks.Add(1)
 		return make([]bool, len(refs)), nil
 	}
 	errNotReady := errors.New("not ready")
@@ -228,8 +229,8 @@ func TestPackStoreReclaimFenceFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if checks != 1 {
-		t.Fatalf("passes checked %d packfiles, want 1", checks)
+	if checks.Load() != 1 {
+		t.Fatalf("passes checked %d packfiles, want 1", checks.Load())
 	}
 	if !skipped.Equal(next) {
 		t.Fatalf("skipped pass expects the next at %v, want %v", skipped, next)
