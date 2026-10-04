@@ -1956,11 +1956,9 @@ export interface SpaceMetadataResponse {
    */
   objectType?: string
   /**
-   * PublicRead marks the shared object as publicly readable. When true, the
-   * Worker routes sync/push writes into CDN_PACK_STORE and regenerates a
-   * root.packedmsg artifact alongside the pack bytes; clients read pack bytes
-   * and the root pointer directly from cdn.spacewave.app. The Worker does not
-   * expose anonymous REST reads. All writes remain authenticated regardless.
+   * PublicRead marks the shared object as publicly readable. The packs and
+   * root.packedmsg of a public Space are published under PublicBaseUrl, where
+   * anyone may read them. Writes stay authenticated.
    *
    * @generated from field: bool public_read = 4;
    */
@@ -1971,6 +1969,15 @@ export interface SpaceMetadataResponse {
    * @generated from field: string owner_id = 5;
    */
   ownerId?: string
+  /**
+   * PublicBaseUrl is the base URL of a public Space's published files,
+   * {base}/{spaceId}/root.packedmsg and
+   * {base}/{spaceId}/packs/{shard}/{packId}.kvf. Empty unless the object is a
+   * public Space.
+   *
+   * @generated from field: string public_base_url = 6;
+   */
+  publicBaseUrl?: string
 }
 
 export const SpaceMetadataResponse: MessageType<SpaceMetadataResponse> =
@@ -1982,6 +1989,7 @@ export const SpaceMetadataResponse: MessageType<SpaceMetadataResponse> =
       { no: 3, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'public_read', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'public_base_url', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

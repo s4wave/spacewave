@@ -806,14 +806,17 @@ message SpaceMetadataResponse {
   string display_name = 2;
   // ObjectType is the type of the shared object.
   string object_type = 3;
-  // PublicRead marks the shared object as publicly readable. When true, the
-  // Worker routes sync/push writes into CDN_PACK_STORE and regenerates a
-  // root.packedmsg artifact alongside the pack bytes; clients read pack bytes
-  // and the root pointer directly from cdn.spacewave.app. The Worker does not
-  // expose anonymous REST reads. All writes remain authenticated regardless.
+  // PublicRead marks the shared object as publicly readable. The packs and
+  // root.packedmsg of a public Space are published under PublicBaseUrl, where
+  // anyone may read them. Writes stay authenticated.
   bool public_read = 4;
   // OwnerId is the owner principal id (account id or organization id).
   string owner_id = 5;
+  // PublicBaseUrl is the base URL of a public Space's published files,
+  // {base}/{spaceId}/root.packedmsg and
+  // {base}/{spaceId}/packs/{shard}/{packId}.kvf. Empty unless the object is a
+  // public Space.
+  string public_base_url = 6;
 }
 
 // -- Organizations --

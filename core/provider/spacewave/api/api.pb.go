@@ -2969,14 +2969,17 @@ type SpaceMetadataResponse struct {
 	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
 	// ObjectType is the type of the shared object.
 	ObjectType string `protobuf:"bytes,3,opt,name=object_type,json=objectType,proto3" json:"objectType,omitempty"`
-	// PublicRead marks the shared object as publicly readable. When true, the
-	// Worker routes sync/push writes into CDN_PACK_STORE and regenerates a
-	// root.packedmsg artifact alongside the pack bytes; clients read pack bytes
-	// and the root pointer directly from cdn.spacewave.app. The Worker does not
-	// expose anonymous REST reads. All writes remain authenticated regardless.
+	// PublicRead marks the shared object as publicly readable. The packs and
+	// root.packedmsg of a public Space are published under PublicBaseUrl, where
+	// anyone may read them. Writes stay authenticated.
 	PublicRead bool `protobuf:"varint,4,opt,name=public_read,json=publicRead,proto3" json:"publicRead,omitempty"`
 	// OwnerId is the owner principal id (account id or organization id).
 	OwnerId string `protobuf:"bytes,5,opt,name=owner_id,json=ownerId,proto3" json:"ownerId,omitempty"`
+	// PublicBaseUrl is the base URL of a public Space's published files,
+	// {base}/{spaceId}/root.packedmsg and
+	// {base}/{spaceId}/packs/{shard}/{packId}.kvf. Empty unless the object is a
+	// public Space.
+	PublicBaseUrl string `protobuf:"bytes,6,opt,name=public_base_url,json=publicBaseUrl,proto3" json:"publicBaseUrl,omitempty"`
 }
 
 func (x *SpaceMetadataResponse) Reset() {
@@ -3016,6 +3019,13 @@ func (x *SpaceMetadataResponse) GetPublicRead() bool {
 func (x *SpaceMetadataResponse) GetOwnerId() string {
 	if x != nil {
 		return x.OwnerId
+	}
+	return ""
+}
+
+func (x *SpaceMetadataResponse) GetPublicBaseUrl() string {
+	if x != nil {
+		return x.PublicBaseUrl
 	}
 	return ""
 }
@@ -11370,6 +11380,7 @@ func (m *SpaceMetadataResponse) CloneVT() *SpaceMetadataResponse {
 	r.ObjectType = m.ObjectType
 	r.PublicRead = m.PublicRead
 	r.OwnerId = m.OwnerId
+	r.PublicBaseUrl = m.PublicBaseUrl
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -16968,6 +16979,9 @@ func (this *SpaceMetadataResponse) EqualVT(that *SpaceMetadataResponse) bool {
 		return false
 	}
 	if this.OwnerId != that.OwnerId {
+		return false
+	}
+	if this.PublicBaseUrl != that.PublicBaseUrl {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -26379,6 +26393,11 @@ func (x *SpaceMetadataResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ownerId")
 		s.WriteString(x.OwnerId)
 	}
+	if x.PublicBaseUrl != "" || s.HasField("publicBaseUrl") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("publicBaseUrl")
+		s.WriteString(x.PublicBaseUrl)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -26411,6 +26430,9 @@ func (x *SpaceMetadataResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "owner_id", "ownerId":
 			s.AddField("owner_id")
 			x.OwnerId = s.ReadString()
+		case "public_base_url", "publicBaseUrl":
+			s.AddField("public_base_url")
+			x.PublicBaseUrl = s.ReadString()
 		}
 	})
 }
@@ -41364,6 +41386,11 @@ func (m *SpaceMetadataResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PublicBaseUrl) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PublicBaseUrl)
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.OwnerId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.OwnerId)
 		i--
@@ -52012,6 +52039,7 @@ func (m *SpaceMetadataResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectType)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.PublicRead)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OwnerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PublicBaseUrl)
 	n += len(m.unknownFields)
 	return n
 }
@@ -56513,6 +56541,10 @@ func (x *SpaceMetadataResponse) MarshalProtoText() string {
 	if x.OwnerId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "owner_id")
 		protobuf_go_lite.TextWriteString(&sb, x.OwnerId)
+	}
+	if x.PublicBaseUrl != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "public_base_url")
+		protobuf_go_lite.TextWriteString(&sb, x.PublicBaseUrl)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -65820,6 +65852,16 @@ func (m *SpaceMetadataResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.OwnerId = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PublicBaseUrl", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PublicBaseUrl = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
