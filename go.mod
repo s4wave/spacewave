@@ -54,14 +54,14 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20261004103050-baef7b3e68b2 // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.11.2
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/klauspost/compress v1.20.2-0.20261002184158-6b9199594fc5
+	github.com/klauspost/compress v1.20.2-0.20261004115517-d189b4c2eb01
 	github.com/libp2p/go-yamux/v5 v5.1.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-isatty v0.0.24
