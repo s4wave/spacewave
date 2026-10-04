@@ -2595,6 +2595,18 @@ message ClientErrorReportResponse {
   uint32 retry_after_seconds = 2;
 }
 
+// EmailCaptureRequest is the request body for POST /api/email/capture. The
+// X-Turnstile-Token header carries the browser's Turnstile token.
+message EmailCaptureRequest {
+  // Email is the address that asked for development updates.
+  string email = 1;
+  // Source is the website surface that captured it: blog, landing or pricing.
+  string source = 2;
+}
+
+// EmailCaptureResponse acknowledges a stored email capture.
+message EmailCaptureResponse {}
+
 // -- WebSocket frame envelopes --
 
 // SsoCallbackResult is the SSO callback payload pushed to the auth-session

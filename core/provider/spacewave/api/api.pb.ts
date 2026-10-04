@@ -9548,6 +9548,49 @@ export const ClientErrorReportResponse: MessageType<ClientErrorReportResponse> =
   })
 
 /**
+ * EmailCaptureRequest is the request body for POST /api/email/capture. The
+ * X-Turnstile-Token header carries the browser's Turnstile token.
+ *
+ * @generated from message provider.spacewave.api.EmailCaptureRequest
+ */
+export interface EmailCaptureRequest {
+  /**
+   * Email is the address that asked for development updates.
+   *
+   * @generated from field: string email = 1;
+   */
+  email?: string
+  /**
+   * Source is the website surface that captured it: blog, landing or pricing.
+   *
+   * @generated from field: string source = 2;
+   */
+  source?: string
+}
+
+export const EmailCaptureRequest: MessageType<EmailCaptureRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.EmailCaptureRequest',
+    fields: [
+      { no: 1, name: 'email', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'source', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * EmailCaptureResponse acknowledges a stored email capture.
+ *
+ * @generated from message provider.spacewave.api.EmailCaptureResponse
+ */
+export interface EmailCaptureResponse {}
+
+export const EmailCaptureResponse: MessageType<EmailCaptureResponse> =
+  /* @__PURE__ */ createEmptyMessageType<EmailCaptureResponse>(
+    'provider.spacewave.api.EmailCaptureResponse',
+    true,
+  )
+
+/**
  * SsoCallbackResult is the SSO callback payload pushed to the auth-session
  * WebSocket after an OAuth provider redirect. Mirrors the cloud SSOResult
  * shape on the wire.

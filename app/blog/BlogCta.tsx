@@ -3,6 +3,7 @@ import { isDesktop } from '@aptre/bldr'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { LuCheck, LuArrowRight, LuGithub } from 'react-icons/lu'
 
+import { EmailCaptureRequest } from '@s4wave/core/provider/spacewave/api/api.pb.js'
 import {
   Turnstile,
   TURNSTILE_PROD_SITE_KEY,
@@ -73,57 +74,26 @@ export function BlogCta() {
       setTurnstileActive(true)
 
       try {
-        const captureResponse = await fetch('/api/email/capture', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            source: 'blog',
-          }),
-        })
-
-        if (!captureResponse.ok) {
-          const data = (await captureResponse.json().catch(() => ({}))) as {
-            code?: string
-            error?: string
-          }
-          setErrorMessage(
-            parseErrorMessage(captureResponse.status, data.error ?? data.code),
-          )
-          setFormState('error')
-          return
-        }
-
-        const capture = (await captureResponse.json().catch(() => ({}))) as {
-          capture_id?: string
-        }
-        if (!capture.capture_id) throw new Error('Missing capture id')
-
+        // Pass Turnstile, then store the address.
         const turnstile = await waitForTurnstile()
         const turnstileToken = await turnstile.getResponsePromise()
         if (!turnstileToken) throw new Error('Turnstile verification failed')
-
-        const upgradeResponse = await fetch(
-          `/api/email/capture/${encodeURIComponent(capture.capture_id)}/upgrade`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ turnstile_token: turnstileToken }),
+        const response = await fetch('/api/email/capture', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'X-Turnstile-Token': turnstileToken,
           },
-        )
-
-        if (!upgradeResponse.ok) {
-          const data = (await upgradeResponse.json().catch(() => ({}))) as {
+          body: EmailCaptureRequest.toBinary({ email, source: 'blog' }).slice(),
+        })
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as {
             code?: string
-            error?: string
           }
-          setErrorMessage(
-            parseErrorMessage(upgradeResponse.status, data.error ?? data.code),
-          )
+          setErrorMessage(parseErrorMessage(response.status, data.code))
           setFormState('error')
           return
         }
-
         setFormState('success')
       } catch {
         setErrorMessage('Something went wrong. Please try again.')

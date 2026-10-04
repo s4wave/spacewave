@@ -9254,6 +9254,47 @@ func (x *ClientErrorReportResponse) GetRetryAfterSeconds() uint32 {
 	return 0
 }
 
+// EmailCaptureRequest is the request body for POST /api/email/capture. The
+// X-Turnstile-Token header carries the browser's Turnstile token.
+type EmailCaptureRequest struct {
+	unknownFields []byte
+	// Email is the address that asked for development updates.
+	Email string `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	// Source is the website surface that captured it: blog, landing or pricing.
+	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+}
+
+func (x *EmailCaptureRequest) Reset() {
+	*x = EmailCaptureRequest{}
+}
+
+func (*EmailCaptureRequest) ProtoMessage() {}
+
+func (x *EmailCaptureRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *EmailCaptureRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+// EmailCaptureResponse acknowledges a stored email capture.
+type EmailCaptureResponse struct {
+	unknownFields []byte
+}
+
+func (x *EmailCaptureResponse) Reset() {
+	*x = EmailCaptureResponse{}
+}
+
+func (*EmailCaptureResponse) ProtoMessage() {}
+
 // SsoCallbackResult is the SSO callback payload pushed to the auth-session
 // WebSocket after an OAuth provider redirect. Mirrors the cloud SSOResult
 // shape on the wire.
@@ -14508,6 +14549,38 @@ func (m *ClientErrorReportResponse) CloneVT() *ClientErrorReportResponse {
 }
 
 func (m *ClientErrorReportResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *EmailCaptureRequest) CloneVT() *EmailCaptureRequest {
+	if m == nil {
+		return (*EmailCaptureRequest)(nil)
+	}
+	r := new(EmailCaptureRequest)
+	r.Email = m.Email
+	r.Source = m.Source
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *EmailCaptureRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *EmailCaptureResponse) CloneVT() *EmailCaptureResponse {
+	if m == nil {
+		return (*EmailCaptureResponse)(nil)
+	}
+	r := new(EmailCaptureResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *EmailCaptureResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -21346,6 +21419,46 @@ func (this *ClientErrorReportResponse) EqualVT(that *ClientErrorReportResponse) 
 
 func (this *ClientErrorReportResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ClientErrorReportResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *EmailCaptureRequest) EqualVT(that *EmailCaptureRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Email != that.Email {
+		return false
+	}
+	if this.Source != that.Source {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EmailCaptureRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EmailCaptureRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *EmailCaptureResponse) EqualVT(that *EmailCaptureResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EmailCaptureResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EmailCaptureResponse)
 	if !ok {
 		return false
 	}
@@ -36598,6 +36711,86 @@ func (x *ClientErrorReportResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the EmailCaptureRequest message to JSON.
+func (x *EmailCaptureRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Email != "" || s.HasField("email") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("email")
+		s.WriteString(x.Email)
+	}
+	if x.Source != "" || s.HasField("source") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("source")
+		s.WriteString(x.Source)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the EmailCaptureRequest to JSON.
+func (x *EmailCaptureRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EmailCaptureRequest message from JSON.
+func (x *EmailCaptureRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "email":
+			s.AddField("email")
+			x.Email = s.ReadString()
+		case "source":
+			s.AddField("source")
+			x.Source = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the EmailCaptureRequest from JSON.
+func (x *EmailCaptureRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the EmailCaptureResponse message to JSON.
+func (x *EmailCaptureResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the EmailCaptureResponse to JSON.
+func (x *EmailCaptureResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EmailCaptureResponse message from JSON.
+func (x *EmailCaptureResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the EmailCaptureResponse from JSON.
+func (x *EmailCaptureResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SsoCallbackResult message to JSON.
 func (x *SsoCallbackResult) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -49514,6 +49707,80 @@ func (m *ClientErrorReportResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *EmailCaptureRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EmailCaptureRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EmailCaptureRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Source) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Source)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Email) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Email)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EmailCaptureResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EmailCaptureResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EmailCaptureResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SsoCallbackResult) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -53980,6 +54247,28 @@ func (m *ClientErrorReportResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Accepted)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryAfterSeconds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EmailCaptureRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Email)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Source)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EmailCaptureResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -59754,6 +60043,34 @@ func (x *ClientErrorReportResponse) MarshalProtoText() string {
 }
 
 func (x *ClientErrorReportResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *EmailCaptureRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "EmailCaptureRequest")
+	if x.Email != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "email")
+		protobuf_go_lite.TextWriteString(&sb, x.Email)
+	}
+	if x.Source != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source")
+		protobuf_go_lite.TextWriteString(&sb, x.Source)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *EmailCaptureRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *EmailCaptureResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "EmailCaptureResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *EmailCaptureResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -77628,6 +77945,112 @@ func (m *ClientErrorReportResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *EmailCaptureRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EmailCaptureRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EmailCaptureRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Email", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Email = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Source", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Source = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *EmailCaptureResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EmailCaptureResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EmailCaptureResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

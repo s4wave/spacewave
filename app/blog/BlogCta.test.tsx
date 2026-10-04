@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import type { Ref } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EmailCaptureRequest } from '@s4wave/core/provider/spacewave/api/api.pb.js'
+
 import { BlogCta } from './BlogCta.js'
 
 interface MockTurnstileInstance {
@@ -54,15 +56,6 @@ vi.mock('@s4wave/web/ui/turnstile.js', () => ({
 
 const originalFetch = globalThis.fetch
 
-function parseJsonBody(init: RequestInit | undefined): unknown {
-  const body = init?.body
-  if (typeof body !== 'string') {
-    throw new Error('expected a JSON string request body')
-  }
-  const value: unknown = JSON.parse(body)
-  return value
-}
-
 describe('BlogCta', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
@@ -77,75 +70,47 @@ describe('BlogCta', () => {
     vi.restoreAllMocks()
   })
 
-  it('posts email before resolving Turnstile and upgrades the capture with the token', async () => {
+  it('posts the email with the Turnstile token once Turnstile resolves', async () => {
     const user = userEvent.setup()
     const email = 'ada@example.com'
-    let resolveCaptureResponse: (response: Response) => void = () => {}
-    const captureResponse = new Promise<Response>((resolve) => {
-      resolveCaptureResponse = resolve
-    })
     let resolveTurnstileToken: (token: string) => void = () => {}
     const turnstileToken = new Promise<string>((resolve) => {
       resolveTurnstileToken = resolve
     })
     const fetchMock = vi.fn<
       (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-    >((input) => {
-      if (input === '/api/email/capture') {
-        return captureResponse
-      }
-      if (input === '/api/email/capture/capture-123/upgrade') {
-        return Promise.resolve(Response.json({ success: true }))
-      }
-      return Promise.resolve(new Response(null, { status: 404 }))
-    })
+    >(() => Promise.resolve(new Response(new Uint8Array())))
     globalThis.fetch = fetchMock
     turnstileHarness.getResponsePromise.mockReturnValue(turnstileToken)
 
     render(<BlogCta />)
-
     expect(screen.queryByTestId('turnstile')).toBeNull()
 
     await user.type(screen.getByPlaceholderText('your@email.com'), email)
     await user.click(screen.getByRole('button', { name: 'Subscribe' }))
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    expect(screen.getByTestId('turnstile')).toBeDefined()
-    expect(turnstileHarness.getResponsePromise).not.toHaveBeenCalled()
-
-    const [captureUrl, captureInit] = fetchMock.mock.calls[0]
-    expect(captureUrl).toBe('/api/email/capture')
-    expect(captureInit?.method).toBe('POST')
-    expect(parseJsonBody(captureInit)).toEqual({
-      email,
-      source: 'blog',
-    })
-
-    resolveCaptureResponse(
-      Response.json({ success: true, capture_id: 'capture-123' }),
-    )
-
     await waitFor(() =>
       expect(turnstileHarness.getResponsePromise).toHaveBeenCalledTimes(1),
     )
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('turnstile')).toBeDefined()
+    expect(fetchMock).not.toHaveBeenCalled()
 
     resolveTurnstileToken('turnstile-token-123')
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-
-    const [upgradeUrl, upgradeInit] = fetchMock.mock.calls[1]
-    expect(upgradeUrl).toBe('/api/email/capture/capture-123/upgrade')
-    expect(upgradeInit?.method).toBe('POST')
-    expect(parseJsonBody(upgradeInit)).toEqual({
-      turnstile_token: 'turnstile-token-123',
-    })
-
-    expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(
-      turnstileHarness.getResponsePromise.mock.invocationCallOrder[0],
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/email/capture')
+    expect(init?.method).toBe('POST')
+    expect(new Headers(init?.headers).get('X-Turnstile-Token')).toBe(
+      'turnstile-token-123',
     )
-    expect(
-      turnstileHarness.getResponsePromise.mock.invocationCallOrder[0],
-    ).toBeLessThan(fetchMock.mock.invocationCallOrder[1])
+    if (!(init?.body instanceof Uint8Array)) {
+      throw new Error('expected a binary request body')
+    }
+    expect(EmailCaptureRequest.fromBinary(init.body)).toEqual({
+      email,
+      source: 'blog',
+    })
+    await screen.findByText('Subscribed. Thanks for joining.')
   })
 })
