@@ -216,7 +216,130 @@ export const PullResponse: MessageType<PullResponse> =
   })
 
 /**
- * PushResponse is the response to a push request.
+ * PushRequest describes a packfile a client uploads to a block store. The
+ * server admits the upload and returns where to send the bytes; the packfile
+ * joins the catalog only when the client commits it and the stored bytes match
+ * SizeBytes and Sha256.
+ *
+ * @generated from message packfile.PushRequest
+ */
+export interface PushRequest {
+  /**
+   * PackId is the packfile identifier.
+   *
+   * @generated from field: string pack_id = 1;
+   */
+  packId?: string
+  /**
+   * BlockCount is the number of blocks in the packfile.
+   *
+   * @generated from field: uint64 block_count = 2;
+   */
+  blockCount?: bigint
+  /**
+   * BloomFilter is the serialized bloom filter for the packfile.
+   *
+   * @generated from field: bytes bloom_filter = 3;
+   */
+  bloomFilter?: Uint8Array
+  /**
+   * BloomFormatVersion is the encoding version of the bloom_filter bytes.
+   *
+   * @generated from field: uint32 bloom_format_version = 4;
+   */
+  bloomFormatVersion?: number
+  /**
+   * SizeBytes is the size of the packfile in bytes.
+   *
+   * @generated from field: uint64 size_bytes = 5;
+   */
+  sizeBytes?: bigint
+  /**
+   * Sha256 is the SHA-256 digest of the packfile bytes.
+   *
+   * @generated from field: bytes sha256 = 6;
+   */
+  sha256?: Uint8Array
+  /**
+   * ReplacesPackIds are committed packfiles the packfile supersedes
+   * atomically when it commits. Empty for an ordinary push.
+   *
+   * @generated from field: repeated string replaces_pack_ids = 7;
+   */
+  replacesPackIds?: string[]
+}
+
+export const PushRequest: MessageType<PushRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.PushRequest',
+    fields: [
+      { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'block_count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'bloom_filter', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 4,
+        name: 'bloom_format_version',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      { no: 5, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 6, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 7,
+        name: 'replaces_pack_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * PushUpload authorizes one upload of a packfile's bytes straight to storage.
+ *
+ * @generated from message packfile.PushUpload
+ */
+export interface PushUpload {
+  /**
+   * Url is the signed URL the client sends the packfile bytes to with PUT.
+   *
+   * @generated from field: string url = 1;
+   */
+  url?: string
+  /**
+   * Headers are the request headers the upload sends with exactly these
+   * values. Storage refuses an upload that omits or changes one.
+   *
+   * @generated from field: map<string, string> headers = 2;
+   */
+  headers?: { [key: string]: string }
+  /**
+   * ExpiresAt is when the URL stops admitting the upload and the server
+   * forgets the uncommitted push.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 3;
+   */
+  expiresAt?: Date
+}
+
+export const PushUpload: MessageType<PushUpload> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.PushUpload',
+    fields: [
+      { no: 1, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'headers',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
+      },
+      { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * PushResponse is the response to a push or commit request.
  *
  * @generated from message packfile.PushResponse
  */
@@ -239,6 +362,13 @@ export interface PushResponse {
    * @generated from field: uint64 size_bytes = 3;
    */
   sizeBytes?: bigint
+  /**
+   * Upload is set when the client must upload the bytes and then commit the
+   * push, and unset when the catalog holds the packfile.
+   *
+   * @generated from field: packfile.PushUpload upload = 4;
+   */
+  upload?: PushUpload
 }
 
 export const PushResponse: MessageType<PushResponse> =
@@ -248,5 +378,93 @@ export const PushResponse: MessageType<PushResponse> =
       { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'already_exists', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'upload', kind: 'message', T: PushUpload },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReadRequest asks for read URLs of packfiles in one block store.
+ *
+ * @generated from message packfile.ReadRequest
+ */
+export interface ReadRequest {
+  /**
+   * PackIds are the packfiles to read. Each must be in the store's catalog.
+   *
+   * @generated from field: repeated string pack_ids = 1;
+   */
+  packIds?: string[]
+}
+
+export const ReadRequest: MessageType<ReadRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.ReadRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'pack_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReadGrant authorizes reads of one packfile's bytes until it expires.
+ *
+ * @generated from message packfile.ReadGrant
+ */
+export interface ReadGrant {
+  /**
+   * PackId is the packfile identifier.
+   *
+   * @generated from field: string pack_id = 1;
+   */
+  packId?: string
+  /**
+   * Url is the opaque URL the client reads the packfile from with GET and
+   * Range requests. It sends no other credentials.
+   *
+   * @generated from field: string url = 2;
+   */
+  url?: string
+  /**
+   * ExpiresAt is when the URL stops admitting reads.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 3;
+   */
+  expiresAt?: Date
+}
+
+export const ReadGrant: MessageType<ReadGrant> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.ReadGrant',
+    fields: [
+      { no: 1, name: 'pack_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'url', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'expires_at', kind: 'message', T: () => Timestamp },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReadResponse is the response to a read request.
+ *
+ * @generated from message packfile.ReadResponse
+ */
+export interface ReadResponse {
+  /**
+   * Grants holds one grant per requested packfile, in request order.
+   *
+   * @generated from field: repeated packfile.ReadGrant grants = 1;
+   */
+  grants?: ReadGrant[]
+}
+
+export const ReadResponse: MessageType<ReadResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'packfile.ReadResponse',
+    fields: [
+      { no: 1, name: 'grants', kind: 'message', T: ReadGrant, repeated: true },
     ] satisfies readonly PartialFieldInfo[],
   })

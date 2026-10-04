@@ -7,6 +7,7 @@ package packfile
 import (
 	fmt "fmt"
 	io "io"
+	maps "maps"
 	slices "slices"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
@@ -214,7 +215,125 @@ func (x *PullResponse) GetRestart() bool {
 	return false
 }
 
-// PushResponse is the response to a push request.
+// PushRequest describes a packfile a client uploads to a block store. The
+// server admits the upload and returns where to send the bytes; the packfile
+// joins the catalog only when the client commits it and the stored bytes match
+// SizeBytes and Sha256.
+type PushRequest struct {
+	unknownFields []byte
+	// PackId is the packfile identifier.
+	PackId string `protobuf:"bytes,1,opt,name=pack_id,json=packId,proto3" json:"packId,omitempty"`
+	// BlockCount is the number of blocks in the packfile.
+	BlockCount uint64 `protobuf:"varint,2,opt,name=block_count,json=blockCount,proto3" json:"blockCount,omitempty"`
+	// BloomFilter is the serialized bloom filter for the packfile.
+	BloomFilter []byte `protobuf:"bytes,3,opt,name=bloom_filter,json=bloomFilter,proto3" json:"bloomFilter,omitempty"`
+	// BloomFormatVersion is the encoding version of the bloom_filter bytes.
+	BloomFormatVersion uint32 `protobuf:"varint,4,opt,name=bloom_format_version,json=bloomFormatVersion,proto3" json:"bloomFormatVersion,omitempty"`
+	// SizeBytes is the size of the packfile in bytes.
+	SizeBytes uint64 `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"sizeBytes,omitempty"`
+	// Sha256 is the SHA-256 digest of the packfile bytes.
+	Sha256 []byte `protobuf:"bytes,6,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	// ReplacesPackIds are committed packfiles the packfile supersedes
+	// atomically when it commits. Empty for an ordinary push.
+	ReplacesPackIds []string `protobuf:"bytes,7,rep,name=replaces_pack_ids,json=replacesPackIds,proto3" json:"replacesPackIds,omitempty"`
+}
+
+func (x *PushRequest) Reset() {
+	*x = PushRequest{}
+}
+
+func (*PushRequest) ProtoMessage() {}
+
+func (x *PushRequest) GetPackId() string {
+	if x != nil {
+		return x.PackId
+	}
+	return ""
+}
+
+func (x *PushRequest) GetBlockCount() uint64 {
+	if x != nil {
+		return x.BlockCount
+	}
+	return 0
+}
+
+func (x *PushRequest) GetBloomFilter() []byte {
+	if x != nil {
+		return x.BloomFilter
+	}
+	return nil
+}
+
+func (x *PushRequest) GetBloomFormatVersion() uint32 {
+	if x != nil {
+		return x.BloomFormatVersion
+	}
+	return 0
+}
+
+func (x *PushRequest) GetSizeBytes() uint64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *PushRequest) GetSha256() []byte {
+	if x != nil {
+		return x.Sha256
+	}
+	return nil
+}
+
+func (x *PushRequest) GetReplacesPackIds() []string {
+	if x != nil {
+		return x.ReplacesPackIds
+	}
+	return nil
+}
+
+// PushUpload authorizes one upload of a packfile's bytes straight to storage.
+type PushUpload struct {
+	unknownFields []byte
+	// Url is the signed URL the client sends the packfile bytes to with PUT.
+	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	// Headers are the request headers the upload sends with exactly these
+	// values. Storage refuses an upload that omits or changes one.
+	Headers map[string]string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// ExpiresAt is when the URL stops admitting the upload and the server
+	// forgets the uncommitted push.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+}
+
+func (x *PushUpload) Reset() {
+	*x = PushUpload{}
+}
+
+func (*PushUpload) ProtoMessage() {}
+
+func (x *PushUpload) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *PushUpload) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *PushUpload) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+// PushResponse is the response to a push or commit request.
 type PushResponse struct {
 	unknownFields []byte
 	// PackId is the packfile identifier.
@@ -223,6 +342,9 @@ type PushResponse struct {
 	AlreadyExists bool `protobuf:"varint,2,opt,name=already_exists,json=alreadyExists,proto3" json:"alreadyExists,omitempty"`
 	// SizeBytes is the size of the packfile in bytes.
 	SizeBytes uint64 `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"sizeBytes,omitempty"`
+	// Upload is set when the client must upload the bytes and then commit the
+	// push, and unset when the catalog holds the packfile.
+	Upload *PushUpload `protobuf:"bytes,4,opt,name=upload,proto3" json:"upload,omitempty"`
 }
 
 func (x *PushResponse) Reset() {
@@ -250,6 +372,118 @@ func (x *PushResponse) GetSizeBytes() uint64 {
 		return x.SizeBytes
 	}
 	return 0
+}
+
+func (x *PushResponse) GetUpload() *PushUpload {
+	if x != nil {
+		return x.Upload
+	}
+	return nil
+}
+
+// ReadRequest asks for read URLs of packfiles in one block store.
+type ReadRequest struct {
+	unknownFields []byte
+	// PackIds are the packfiles to read. Each must be in the store's catalog.
+	PackIds []string `protobuf:"bytes,1,rep,name=pack_ids,json=packIds,proto3" json:"packIds,omitempty"`
+}
+
+func (x *ReadRequest) Reset() {
+	*x = ReadRequest{}
+}
+
+func (*ReadRequest) ProtoMessage() {}
+
+func (x *ReadRequest) GetPackIds() []string {
+	if x != nil {
+		return x.PackIds
+	}
+	return nil
+}
+
+// ReadGrant authorizes reads of one packfile's bytes until it expires.
+type ReadGrant struct {
+	unknownFields []byte
+	// PackId is the packfile identifier.
+	PackId string `protobuf:"bytes,1,opt,name=pack_id,json=packId,proto3" json:"packId,omitempty"`
+	// Url is the opaque URL the client reads the packfile from with GET and
+	// Range requests. It sends no other credentials.
+	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// ExpiresAt is when the URL stops admitting reads.
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expiresAt,omitempty"`
+}
+
+func (x *ReadGrant) Reset() {
+	*x = ReadGrant{}
+}
+
+func (*ReadGrant) ProtoMessage() {}
+
+func (x *ReadGrant) GetPackId() string {
+	if x != nil {
+		return x.PackId
+	}
+	return ""
+}
+
+func (x *ReadGrant) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *ReadGrant) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+// ReadResponse is the response to a read request.
+type ReadResponse struct {
+	unknownFields []byte
+	// Grants holds one grant per requested packfile, in request order.
+	Grants []*ReadGrant `protobuf:"bytes,1,rep,name=grants,proto3" json:"grants,omitempty"`
+}
+
+func (x *ReadResponse) Reset() {
+	*x = ReadResponse{}
+}
+
+func (*ReadResponse) ProtoMessage() {}
+
+func (x *ReadResponse) GetGrants() []*ReadGrant {
+	if x != nil {
+		return x.Grants
+	}
+	return nil
+}
+
+type PushUpload_HeadersEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *PushUpload_HeadersEntry) Reset() {
+	*x = PushUpload_HeadersEntry{}
+}
+
+func (*PushUpload_HeadersEntry) ProtoMessage() {}
+
+func (x *PushUpload_HeadersEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *PushUpload_HeadersEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
 }
 
 func (m *PackfileEntry) CloneVT() *PackfileEntry {
@@ -314,6 +548,46 @@ func (m *PullResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *PushRequest) CloneVT() *PushRequest {
+	if m == nil {
+		return (*PushRequest)(nil)
+	}
+	r := new(PushRequest)
+	r.PackId = m.PackId
+	r.BlockCount = m.BlockCount
+	r.BloomFormatVersion = m.BloomFormatVersion
+	r.SizeBytes = m.SizeBytes
+	r.BloomFilter = protobuf_go_lite.CloneBytes(m.BloomFilter)
+	r.Sha256 = protobuf_go_lite.CloneBytes(m.Sha256)
+	r.ReplacesPackIds = protobuf_go_lite.CloneSlice(m.ReplacesPackIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PushRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *PushUpload) CloneVT() *PushUpload {
+	if m == nil {
+		return (*PushUpload)(nil)
+	}
+	r := new(PushUpload)
+	r.Url = m.Url
+	r.Headers = protobuf_go_lite.CloneMap(m.Headers)
+	r.ExpiresAt = protobuf_go_lite.CloneVTValue(m.ExpiresAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *PushUpload) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *PushResponse) CloneVT() *PushResponse {
 	if m == nil {
 		return (*PushResponse)(nil)
@@ -322,6 +596,7 @@ func (m *PushResponse) CloneVT() *PushResponse {
 	r.PackId = m.PackId
 	r.AlreadyExists = m.AlreadyExists
 	r.SizeBytes = m.SizeBytes
+	r.Upload = protobuf_go_lite.CloneVTValue(m.Upload)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -329,6 +604,56 @@ func (m *PushResponse) CloneVT() *PushResponse {
 }
 
 func (m *PushResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadRequest) CloneVT() *ReadRequest {
+	if m == nil {
+		return (*ReadRequest)(nil)
+	}
+	r := new(ReadRequest)
+	r.PackIds = protobuf_go_lite.CloneSlice(m.PackIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadGrant) CloneVT() *ReadGrant {
+	if m == nil {
+		return (*ReadGrant)(nil)
+	}
+	r := new(ReadGrant)
+	r.PackId = m.PackId
+	r.Url = m.Url
+	r.ExpiresAt = protobuf_go_lite.CloneVTValue(m.ExpiresAt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadGrant) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReadResponse) CloneVT() *ReadResponse {
+	if m == nil {
+		return (*ReadResponse)(nil)
+	}
+	r := new(ReadResponse)
+	r.Grants = protobuf_go_lite.CloneVTSlice(m.Grants)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -434,6 +759,70 @@ func (this *PullResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *PushRequest) EqualVT(that *PushRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PackId != that.PackId {
+		return false
+	}
+	if this.BlockCount != that.BlockCount {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.BloomFilter, that.BloomFilter) {
+		return false
+	}
+	if this.BloomFormatVersion != that.BloomFormatVersion {
+		return false
+	}
+	if this.SizeBytes != that.SizeBytes {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Sha256, that.Sha256) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.ReplacesPackIds, that.ReplacesPackIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PushRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PushRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *PushUpload) EqualVT(that *PushUpload) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Url != that.Url {
+		return false
+	}
+	if !protobuf_go_lite.EqualMap(this.Headers, that.Headers) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ExpiresAt, that.ExpiresAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *PushUpload) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*PushUpload)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *PushResponse) EqualVT(that *PushResponse) bool {
 	if this == that {
 		return true
@@ -449,11 +838,80 @@ func (this *PushResponse) EqualVT(that *PushResponse) bool {
 	if this.SizeBytes != that.SizeBytes {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Upload, that.Upload) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *PushResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PushResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadRequest) EqualVT(that *ReadRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.PackIds, that.PackIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadGrant) EqualVT(that *ReadGrant) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PackId != that.PackId {
+		return false
+	}
+	if this.Url != that.Url {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ExpiresAt, that.ExpiresAt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadGrant) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadGrant)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReadResponse) EqualVT(that *ReadResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Grants, that.Grants, func() *ReadGrant { return &ReadGrant{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReadResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReadResponse)
 	if !ok {
 		return false
 	}
@@ -756,6 +1214,227 @@ func (x *PullResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the PushRequest message to JSON.
+func (x *PushRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackId != "" || s.HasField("packId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packId")
+		s.WriteString(x.PackId)
+	}
+	if x.BlockCount != 0 || s.HasField("blockCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockCount")
+		s.WriteUint64(x.BlockCount)
+	}
+	if len(x.BloomFilter) > 0 || s.HasField("bloomFilter") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bloomFilter")
+		s.WriteBytes(x.BloomFilter)
+	}
+	if x.BloomFormatVersion != 0 || s.HasField("bloomFormatVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bloomFormatVersion")
+		s.WriteUint32(x.BloomFormatVersion)
+	}
+	if x.SizeBytes != 0 || s.HasField("sizeBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sizeBytes")
+		s.WriteUint64(x.SizeBytes)
+	}
+	if len(x.Sha256) > 0 || s.HasField("sha256") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sha256")
+		s.WriteBytes(x.Sha256)
+	}
+	if len(x.ReplacesPackIds) > 0 || s.HasField("replacesPackIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replacesPackIds")
+		s.WriteStringArray(x.ReplacesPackIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PushRequest to JSON.
+func (x *PushRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PushRequest message from JSON.
+func (x *PushRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pack_id", "packId":
+			s.AddField("pack_id")
+			x.PackId = s.ReadString()
+		case "block_count", "blockCount":
+			s.AddField("block_count")
+			x.BlockCount = s.ReadUint64()
+		case "bloom_filter", "bloomFilter":
+			s.AddField("bloom_filter")
+			x.BloomFilter = s.ReadBytes()
+		case "bloom_format_version", "bloomFormatVersion":
+			s.AddField("bloom_format_version")
+			x.BloomFormatVersion = s.ReadUint32()
+		case "size_bytes", "sizeBytes":
+			s.AddField("size_bytes")
+			x.SizeBytes = s.ReadUint64()
+		case "sha256":
+			s.AddField("sha256")
+			x.Sha256 = s.ReadBytes()
+		case "replaces_pack_ids", "replacesPackIds":
+			s.AddField("replaces_pack_ids")
+			if s.ReadNil() {
+				x.ReplacesPackIds = nil
+				return
+			}
+			x.ReplacesPackIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PushRequest from JSON.
+func (x *PushRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PushUpload_HeadersEntry message to JSON.
+func (x *PushUpload_HeadersEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PushUpload_HeadersEntry to JSON.
+func (x *PushUpload_HeadersEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PushUpload_HeadersEntry message from JSON.
+func (x *PushUpload_HeadersEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PushUpload_HeadersEntry from JSON.
+func (x *PushUpload_HeadersEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the PushUpload message to JSON.
+func (x *PushUpload) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Url != "" || s.HasField("url") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("url")
+		s.WriteString(x.Url)
+	}
+	if x.Headers != nil || s.HasField("headers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("headers")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.Headers)) {
+			v := x.Headers[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
+	}
+	if x.ExpiresAt != nil || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		x.ExpiresAt.MarshalProtoJSON(s.WithField("expiresAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the PushUpload to JSON.
+func (x *PushUpload) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the PushUpload message from JSON.
+func (x *PushUpload) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "url":
+			s.AddField("url")
+			x.Url = s.ReadString()
+		case "headers":
+			s.AddField("headers")
+			if s.ReadNil() {
+				x.Headers = nil
+				return
+			}
+			x.Headers = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.Headers[key] = s.ReadString()
+			})
+		case "expires_at", "expiresAt":
+			if s.ReadNil() {
+				x.ExpiresAt = nil
+				return
+			}
+			x.ExpiresAt = &timestamppb.Timestamp{}
+			x.ExpiresAt.UnmarshalProtoJSON(s.WithField("expires_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the PushUpload from JSON.
+func (x *PushUpload) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the PushResponse message to JSON.
 func (x *PushResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -778,6 +1457,11 @@ func (x *PushResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("sizeBytes")
 		s.WriteUint64(x.SizeBytes)
+	}
+	if x.Upload != nil || s.HasField("upload") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("upload")
+		x.Upload.MarshalProtoJSON(s.WithField("upload"))
 	}
 	s.WriteObjectEnd()
 }
@@ -805,12 +1489,190 @@ func (x *PushResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "size_bytes", "sizeBytes":
 			s.AddField("size_bytes")
 			x.SizeBytes = s.ReadUint64()
+		case "upload":
+			if s.ReadNil() {
+				x.Upload = nil
+				return
+			}
+			x.Upload = &PushUpload{}
+			x.Upload.UnmarshalProtoJSON(s.WithField("upload", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the PushResponse from JSON.
 func (x *PushResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadRequest message to JSON.
+func (x *ReadRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.PackIds) > 0 || s.HasField("packIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packIds")
+		s.WriteStringArray(x.PackIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadRequest to JSON.
+func (x *ReadRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadRequest message from JSON.
+func (x *ReadRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pack_ids", "packIds":
+			s.AddField("pack_ids")
+			if s.ReadNil() {
+				x.PackIds = nil
+				return
+			}
+			x.PackIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadRequest from JSON.
+func (x *ReadRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadGrant message to JSON.
+func (x *ReadGrant) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PackId != "" || s.HasField("packId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packId")
+		s.WriteString(x.PackId)
+	}
+	if x.Url != "" || s.HasField("url") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("url")
+		s.WriteString(x.Url)
+	}
+	if x.ExpiresAt != nil || s.HasField("expiresAt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAt")
+		x.ExpiresAt.MarshalProtoJSON(s.WithField("expiresAt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadGrant to JSON.
+func (x *ReadGrant) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadGrant message from JSON.
+func (x *ReadGrant) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "pack_id", "packId":
+			s.AddField("pack_id")
+			x.PackId = s.ReadString()
+		case "url":
+			s.AddField("url")
+			x.Url = s.ReadString()
+		case "expires_at", "expiresAt":
+			if s.ReadNil() {
+				x.ExpiresAt = nil
+				return
+			}
+			x.ExpiresAt = &timestamppb.Timestamp{}
+			x.ExpiresAt.UnmarshalProtoJSON(s.WithField("expires_at", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadGrant from JSON.
+func (x *ReadGrant) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReadResponse message to JSON.
+func (x *ReadResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Grants) > 0 || s.HasField("grants") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grants")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Grants {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("grants"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReadResponse to JSON.
+func (x *ReadResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReadResponse message from JSON.
+func (x *ReadResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "grants":
+			s.AddField("grants")
+			if s.ReadNil() {
+				x.Grants = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Grants = append(x.Grants, nil)
+					return
+				}
+				v := &ReadGrant{}
+				v.UnmarshalProtoJSON(s.WithField("grants", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Grants = append(x.Grants, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReadResponse from JSON.
+func (x *ReadResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1023,6 +1885,137 @@ func (m *PullResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PushRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PushRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PushRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ReplacesPackIds) > 0 {
+		for iNdEx := len(m.ReplacesPackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.ReplacesPackIds[iNdEx])
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.Sha256) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Sha256)
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.SizeBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SizeBytes))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.BloomFormatVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BloomFormatVersion))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.BloomFilter) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.BloomFilter)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.BlockCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.BlockCount))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.PackId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PushUpload) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PushUpload) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *PushUpload) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpiresAt != nil {
+		size, err := m.ExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Headers) > 0 {
+		for k := range m.Headers {
+			v := m.Headers[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeString(dAtA, i, v)
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Url) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Url)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *PushResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1052,6 +2045,16 @@ func (m *PushResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Upload != nil {
+		size, err := m.Upload.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.SizeBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SizeBytes))
 		i--
@@ -1066,6 +2069,141 @@ func (m *PushResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackId)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PackIds) > 0 {
+		for iNdEx := len(m.PackIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.PackIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadGrant) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadGrant) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadGrant) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpiresAt != nil {
+		size, err := m.ExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Url) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Url)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PackId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReadResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReadResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReadResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Grants) > 0 {
+		for iNdEx := len(m.Grants) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Grants[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -1129,6 +2267,44 @@ func (m *PullResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *PushRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.BlockCount)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.BloomFilter)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.BloomFormatVersion)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SizeBytes)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Sha256)
+	n += protobuf_go_lite.SizeStringSlice(1, m.ReplacesPackIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *PushUpload) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Url)
+	for k, v := range m.Headers {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
+	if m.ExpiresAt != nil {
+		l = m.ExpiresAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *PushResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1138,6 +2314,51 @@ func (m *PushResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackId)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AlreadyExists)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SizeBytes)
+	if m.Upload != nil {
+		l = m.Upload.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.PackIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadGrant) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Url)
+	if m.ExpiresAt != nil {
+		l = m.ExpiresAt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReadResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Grants {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1264,6 +2485,95 @@ func (x *PullResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *PushRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PushRequest")
+	if x.PackId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PackId)
+	}
+	if x.BlockCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.BlockCount)
+	}
+	if len(x.BloomFilter) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bloom_filter")
+		protobuf_go_lite.TextWriteBytes(&sb, x.BloomFilter)
+	}
+	if x.BloomFormatVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bloom_format_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.BloomFormatVersion)
+	}
+	if x.SizeBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "size_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.SizeBytes)
+	}
+	if len(x.Sha256) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sha256")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Sha256)
+	}
+	if len(x.ReplacesPackIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "replaces_pack_ids")
+		for i, v := range x.ReplacesPackIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PushRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PushUpload_HeadersEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "HeadersEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteString(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PushUpload_HeadersEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *PushUpload) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PushUpload")
+	if x.Url != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "url")
+		protobuf_go_lite.TextWriteString(&sb, x.Url)
+	}
+	if len(x.Headers) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "headers")
+		for _, k := range slices.Sorted(maps.Keys(x.Headers)) {
+			v := x.Headers[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.ExpiresAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ExpiresAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *PushUpload) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *PushResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PushResponse")
@@ -1279,10 +2589,76 @@ func (x *PushResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "size_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.SizeBytes)
 	}
+	if x.Upload != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upload")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Upload)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *PushResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadRequest")
+	if len(x.PackIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "pack_ids")
+		for i, v := range x.PackIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadGrant) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadGrant")
+	if x.PackId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pack_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PackId)
+	}
+	if x.Url != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "url")
+		protobuf_go_lite.TextWriteString(&sb, x.Url)
+	}
+	if x.ExpiresAt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ExpiresAt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadGrant) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReadResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReadResponse")
+	if len(x.Grants) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "grants")
+		for i, v := range x.Grants {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ReadGrant{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReadResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1593,6 +2969,222 @@ func (m *PullResponse) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *PushRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PushRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PushRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockCount", wireType)
+			}
+			m.BlockCount = 0
+			m.BlockCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BloomFilter", wireType)
+			}
+			m.BloomFilter, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.BloomFilter, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BloomFormatVersion", wireType)
+			}
+			m.BloomFormatVersion = 0
+			m.BloomFormatVersion, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SizeBytes", wireType)
+			}
+			m.SizeBytes = 0
+			m.SizeBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sha256", wireType)
+			}
+			m.Sha256, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Sha256, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReplacesPackIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReplacesPackIds = append(m.ReplacesPackIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *PushUpload) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PushUpload: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PushUpload: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Url", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Url = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Headers", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.Headers == nil {
+				m.Headers = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.Headers[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ExpiresAt == nil {
+				m.ExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.ExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *PushResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1642,6 +3234,208 @@ func (m *PushResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Upload", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Upload == nil {
+				m.Upload = &PushUpload{}
+			}
+			if err := m.Upload.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackIds = append(m.PackIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadGrant) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadGrant: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadGrant: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Url", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Url = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ExpiresAt == nil {
+				m.ExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := m.ExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReadResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReadResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReadResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Grants", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Grants = append(m.Grants, &ReadGrant{})
+			if err := m.Grants[len(m.Grants)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

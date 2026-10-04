@@ -63,7 +63,41 @@ message PullResponse {
   bool restart = 5;
 }
 
-// PushResponse is the response to a push request.
+// PushRequest describes a packfile a client uploads to a block store. The
+// server admits the upload and returns where to send the bytes; the packfile
+// joins the catalog only when the client commits it and the stored bytes match
+// SizeBytes and Sha256.
+message PushRequest {
+  // PackId is the packfile identifier.
+  string pack_id = 1;
+  // BlockCount is the number of blocks in the packfile.
+  uint64 block_count = 2;
+  // BloomFilter is the serialized bloom filter for the packfile.
+  bytes bloom_filter = 3;
+  // BloomFormatVersion is the encoding version of the bloom_filter bytes.
+  uint32 bloom_format_version = 4;
+  // SizeBytes is the size of the packfile in bytes.
+  uint64 size_bytes = 5;
+  // Sha256 is the SHA-256 digest of the packfile bytes.
+  bytes sha256 = 6;
+  // ReplacesPackIds are committed packfiles the packfile supersedes
+  // atomically when it commits. Empty for an ordinary push.
+  repeated string replaces_pack_ids = 7;
+}
+
+// PushUpload authorizes one upload of a packfile's bytes straight to storage.
+message PushUpload {
+  // Url is the signed URL the client sends the packfile bytes to with PUT.
+  string url = 1;
+  // Headers are the request headers the upload sends with exactly these
+  // values. Storage refuses an upload that omits or changes one.
+  map<string, string> headers = 2;
+  // ExpiresAt is when the URL stops admitting the upload and the server
+  // forgets the uncommitted push.
+  .google.protobuf.Timestamp expires_at = 3;
+}
+
+// PushResponse is the response to a push or commit request.
 message PushResponse {
   // PackId is the packfile identifier.
   string pack_id = 1;
@@ -71,4 +105,30 @@ message PushResponse {
   bool already_exists = 2;
   // SizeBytes is the size of the packfile in bytes.
   uint64 size_bytes = 3;
+  // Upload is set when the client must upload the bytes and then commit the
+  // push, and unset when the catalog holds the packfile.
+  PushUpload upload = 4;
+}
+
+// ReadRequest asks for read URLs of packfiles in one block store.
+message ReadRequest {
+  // PackIds are the packfiles to read. Each must be in the store's catalog.
+  repeated string pack_ids = 1;
+}
+
+// ReadGrant authorizes reads of one packfile's bytes until it expires.
+message ReadGrant {
+  // PackId is the packfile identifier.
+  string pack_id = 1;
+  // Url is the opaque URL the client reads the packfile from with GET and
+  // Range requests. It sends no other credentials.
+  string url = 2;
+  // ExpiresAt is when the URL stops admitting reads.
+  .google.protobuf.Timestamp expires_at = 3;
+}
+
+// ReadResponse is the response to a read request.
+message ReadResponse {
+  // Grants holds one grant per requested packfile, in request order.
+  repeated ReadGrant grants = 1;
 }
