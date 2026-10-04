@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	"github.com/s4wave/spacewave/db/block"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
@@ -236,14 +237,16 @@ func (s *syncController) takeCompactDue() bool {
 }
 
 // Execute dispatches from the first pending change, without extending its
-// deadline. When ctx ends, Execute drains pending work once before returning.
+// deadline. When ctx ends, Execute drains pending work once before returning,
+// unless the cloud's Retry-After from the last failed flush still runs.
 func (s *syncController) Execute(ctx context.Context) error {
 	// Run remote pulls for the life of ctx, then drain pending work.
 	if s.remotePullRoutine != nil && !s.skipPull {
 		s.remotePullRoutine.SetContext(ctx)
 		defer s.remotePullRoutine.ClearContext()
 	}
-	defer s.drain(ctx)
+	var retryAt time.Time
+	defer func() { s.drain(ctx, retryAt) }()
 
 	// Keep the existing pressure and pack limits independent of the time boundary.
 	bo := providerBackoff.Construct()
@@ -287,6 +290,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 		}
 
 		if err := s.FlushNow(ctx); err != nil {
+			retryAt = time.Now().Add(clouderror.RetryAfter(err))
 			if ctx.Err() != nil {
 				return nil
 			}
@@ -308,6 +312,7 @@ func (s *syncController) Execute(ctx context.Context) error {
 
 		// A flush with no progress must not spin on an expired deadline.
 		bo.Reset()
+		retryAt = time.Time{}
 		next, _, changed := s.pendingSnapshot()
 		if !next.IsZero() && !next.After(first) {
 			if err := waitDirtySyncRetry(ctx, changed, syncNoProgressBackoff); err != nil {
@@ -321,11 +326,13 @@ func (s *syncController) Execute(ctx context.Context) error {
 // drain flushes pending blocks and publications once after ctx ends. A
 // short-lived mount, such as a CLI write, releases the store before the
 // checkpoint deadline; without the drain its edits wait for the next mount. A
-// failed drain keeps the durable obligation for that mount.
-func (s *syncController) drain(ctx context.Context) {
-	// Skip the drain when nothing is pending.
+// failed or skipped drain keeps the durable obligation for that mount. The
+// drain is skipped before retryAt, the end of the Retry-After the cloud gave
+// the last failed flush, so a rate-limited store is not called early.
+func (s *syncController) drain(ctx context.Context, retryAt time.Time) {
+	// Skip the drain when nothing is pending or the Retry-After still runs.
 	first, dirty, _ := s.pendingSnapshot()
-	if first.IsZero() && dirty == 0 {
+	if first.IsZero() && dirty == 0 || time.Now().Before(retryAt) {
 		return
 	}
 
