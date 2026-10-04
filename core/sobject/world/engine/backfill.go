@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/backoff"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -41,16 +42,32 @@ type BackfillEngine interface {
 	// the retained roots into its local store in the background. The choice
 	// persists on this device.
 	SetBackfill(ctx context.Context, enabled bool) error
+	// GetBackfill watches this device's backfill choice.
+	GetBackfill() ccontainer.Watchable[bool]
 }
 
 // SetBackfill stores this device's backfill choice and starts or stops the
 // copy.
 func (e *soEngine) SetBackfill(ctx context.Context, enabled bool) error {
+	// Serialize choices so the stored and the published choice agree.
+	unlockWriteMtx, err := e.c.writeMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer unlockWriteMtx()
+
+	// Store the choice, then publish it and start or stop the copy.
 	if err := writeBackfill(ctx, e.so, enabled); err != nil {
 		return err
 	}
+	e.backfillChoice.SetValue(enabled)
 	e.backfill.SetState(enabled)
 	return nil
+}
+
+// GetBackfill watches this device's backfill choice.
+func (e *soEngine) GetBackfill() ccontainer.Watchable[bool] {
+	return e.backfillChoice
 }
 
 // readBackfill reads this device's backfill choice for the World of so.

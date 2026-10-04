@@ -58,6 +58,9 @@ service SpaceResourceService {
   // stored on this device.
   rpc SetSpaceBackfill(SetSpaceBackfillRequest) returns (SetSpaceBackfillResponse) {}
 
+  // WatchSpaceBackfill watches this device's backfill choice.
+  rpc WatchSpaceBackfill(WatchSpaceBackfillRequest) returns (stream SpaceBackfillState) {}
+
   // ApproveSpaceChange agrees, as a voter, to a change another voter asked the
   // group for.
   rpc ApproveSpaceChange(ApproveSpaceChangeRequest) returns (ApproveSpaceChangeResponse) {}
@@ -464,6 +467,15 @@ message SetSpaceBackfillRequest {
 
 // SetSpaceBackfillResponse is the response to SetSpaceBackfill.
 message SetSpaceBackfillResponse {}
+
+// WatchSpaceBackfillRequest is the request to watch the backfill choice.
+message WatchSpaceBackfillRequest {}
+
+// SpaceBackfillState is this device's backfill choice.
+message SpaceBackfillState {
+  // Backfill is set when this device copies the whole World locally.
+  bool backfill = 1;
+}
 
 // SetSpaceControlRequest chooses who controls the Space.
 message SetSpaceControlRequest {

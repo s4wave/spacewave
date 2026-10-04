@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useId, useReducer, useRef } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useReducer,
+  useRef,
+  useState,
+} from 'react'
 import {
   LuCheck,
   LuLogIn,
@@ -7,6 +14,7 @@ import {
 } from 'react-icons/lu'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { SOInviteMessage } from '@s4wave/core/sobject/sobject.pb.js'
 import { JoinSpaceViaInviteResult } from '@s4wave/sdk/session/session.pb.js'
@@ -25,6 +33,7 @@ import {
 
 import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
 import { PENDING_BEARER_INVITE_PREFIX } from '@s4wave/app/routes/pendingJoin.js'
+import { mountSpace } from '@s4wave/app/space/space.js'
 
 export interface JoinSpaceDialogProps {
   open: boolean
@@ -123,6 +132,7 @@ export function JoinSpaceDialog({
     ...initialState,
     code: initialCode ?? '',
   })
+  const [backfill, setBackfill] = useState(false)
 
   useEffect(() => {
     if (!open) {
@@ -167,6 +177,7 @@ export function JoinSpaceDialog({
             throw new Error('Accepted invite did not return a shared Space')
           }
           dispatch({ type: 'enrolled', spaceId: sharedObjectId })
+          if (backfill) void backfillJoinedSpace(session, sharedObjectId)
           return
         }
         case JoinSpaceViaInviteResult.JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL:
@@ -188,7 +199,7 @@ export function JoinSpaceDialog({
         message: err instanceof Error ? err.message : 'Failed to join space',
       })
     }
-  }, [session, state.code, isCloud])
+  }, [session, state.code, isCloud, backfill])
 
   const busy = state.phase === 'resolving' || state.phase === 'connecting'
 
@@ -251,6 +262,22 @@ export function JoinSpaceDialog({
             </p>
           </div>
 
+          {state.phase !== 'enrolled' && state.phase !== 'pending' && (
+            <label className="text-foreground-alt flex items-start gap-2 text-xs select-none">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={backfill}
+                disabled={busy}
+                onChange={(e) => setBackfill(e.target.checked)}
+              />
+              <span>
+                Download the whole Space to this device. Otherwise items
+                download when you open them.
+              </span>
+            </label>
+          )}
+
           {state.phase === 'enrolled' ? (
             <div className="border-success/20 bg-success/5 rounded-lg border p-4 text-center">
               <LuCheck className="text-success mx-auto mb-2 size-5" />
@@ -281,6 +308,8 @@ export function JoinSpaceDialog({
               <p className="text-foreground-alt/60 mt-1 text-xs">
                 The owner must approve this invite before you can open the
                 shared Space. Return here to retry after approval.
+                {backfill &&
+                  ' To download the whole Space, choose Whole Space in its settings after approval.'}
               </p>
               <button
                 type="button"
@@ -374,6 +403,38 @@ export function JoinSpaceDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+// backfillJoinedSpace makes this device download the whole joined Space. The
+// join already succeeded, so a failure only reports where to choose again.
+async function backfillJoinedSpace(
+  session: Session,
+  sharedObjectId: string,
+): Promise<void> {
+  const resources: Array<{ [Symbol.dispose](): void }> = []
+  const cleanup = <T extends { [Symbol.dispose](): void } | null | undefined>(
+    resource: T,
+  ): T => {
+    if (resource) resources.push(resource)
+    return resource
+  }
+  try {
+    const space = await mountSpace({
+      session,
+      spaceResp: {
+        sharedObjectRef: { providerResourceRef: { id: sharedObjectId } },
+      },
+      abortSignal: new AbortController().signal,
+      cleanup,
+    })
+    await space.setSpaceBackfill(true)
+  } catch (err) {
+    toast.error('Could not download the whole Space', {
+      description: `${err instanceof Error ? err.message : String(err)}. Choose Whole Space in the Space settings to try again.`,
+    })
+  } finally {
+    for (const resource of resources.reverse()) resource[Symbol.dispose]()
+  }
 }
 
 // resolveInvite resolves the user's input to an SOInviteMessage.

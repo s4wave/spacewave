@@ -8,7 +8,6 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
-	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
@@ -17,22 +16,25 @@ func newSpaceBackfillCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	return &cli.Command{
 		Name:      "backfill",
 		Usage:     "choose whether this device copies the whole space locally",
-		ArgsUsage: "[space-id] on|off",
+		ArgsUsage: "[space-id] [on|off]",
 		Description: "With backfill on, this device copies the whole space into its " +
 			"local store in the background. With backfill off, the default, it " +
-			"fetches data when it is read and keeps what it wrote or read.",
+			"fetches data when it is read and keeps what it wrote or read. " +
+			"Without on or off, it prints the current choice.",
 		Action: func(c *cli.Context) error {
-			// Parse the choice from the last argument.
+			// Take the optional choice from the last argument.
 			args := c.Args().Slice()
-			if len(args) == 0 || len(args) > 2 {
-				return errors.New("usage: space backfill [space-id] on|off")
+			if len(args) > 2 {
+				return errors.New("usage: space backfill [space-id] [on|off]")
 			}
-			backfill, err := parseBackfill(args[len(args)-1])
-			if err != nil {
-				return err
+			var choice, spaceArg string
+			if n := len(args); n != 0 && (args[n-1] == "on" || args[n-1] == "off") {
+				choice, args = args[n-1], args[:n-1]
 			}
-			var spaceArg string
 			if len(args) == 2 {
+				return errors.New("usage: space backfill [space-id] [on|off]")
+			}
+			if len(args) == 1 {
 				spaceArg = args[0]
 			}
 
@@ -49,53 +51,63 @@ func newSpaceBackfillCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer sess.Release()
 
-			// Resolve the Space and store the choice.
+			// Resolve and mount the Space.
 			spaceID, err := client.resolveSpaceID(ctx, sess, spaceArg)
 			if err != nil {
 				return err
 			}
-			return setSpaceBackfill(ctx, client, sess, spaceID, backfill)
-		},
-	}
-}
+			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+			if err != nil {
+				return err
+			}
+			defer spaceCleanup()
 
-// parseBackfill parses an on or off backfill choice.
-func parseBackfill(arg string) (bool, error) {
-	switch arg {
-	case "on":
-		return true, nil
-	case "off":
-		return false, nil
-	default:
-		return false, errors.Errorf("backfill must be on or off, not %q", arg)
+			// Print the current choice, or store the new one.
+			if choice == "" {
+				state := readSpaceBackfill(ctx, spaceSvc)
+				if state == nil {
+					return errors.New("this space has no backfill choice")
+				}
+				os.Stdout.WriteString(formatBackfill(state.GetBackfill()) + "\n")
+				return nil
+			}
+			return setSpaceBackfill(ctx, spaceSvc, choice == "on")
+		},
 	}
 }
 
 // setSpaceBackfill stores this device's backfill choice for the Space and
 // reports it.
-func setSpaceBackfill(
-	ctx context.Context,
-	client *sdkClient,
-	sess *s4wave_session.Session,
-	spaceID string,
-	backfill bool,
-) error {
-	// Mount the Space service.
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		return err
-	}
-	defer spaceCleanup()
-
-	// Store the choice.
+func setSpaceBackfill(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient, backfill bool) error {
 	req := &s4wave_space.SetSpaceBackfillRequest{Backfill: backfill}
 	if _, err := spaceSvc.SetSpaceBackfill(ctx, req); err != nil {
 		return errors.Wrap(err, "set space backfill")
 	}
-	if backfill {
-		os.Stdout.WriteString("backfill on: this device copies the whole space locally\n")
-	} else {
-		os.Stdout.WriteString("backfill off: this device fetches data on demand\n")
-	}
+	os.Stdout.WriteString(formatBackfill(backfill) + "\n")
 	return nil
+}
+
+// readSpaceBackfill reads this device's backfill choice for the Space, or
+// returns nil when the Space has none.
+func readSpaceBackfill(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient) *s4wave_space.SpaceBackfillState {
+	// Read the first state from the watch.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	strm, err := spaceSvc.WatchSpaceBackfill(ctx, &s4wave_space.WatchSpaceBackfillRequest{})
+	if err != nil {
+		return nil
+	}
+	state, err := strm.Recv()
+	if err != nil {
+		return nil
+	}
+	return state
+}
+
+// formatBackfill describes a backfill choice.
+func formatBackfill(backfill bool) string {
+	if backfill {
+		return "on, this device copies the whole space locally"
+	}
+	return "off, this device fetches data on demand"
 }

@@ -55,6 +55,8 @@ type SRPCSpaceResourceServiceClient interface {
 	// blocks on demand and keeps the blocks it wrote or read. The choice is
 	// stored on this device.
 	SetSpaceBackfill(ctx context.Context, in *SetSpaceBackfillRequest) (*SetSpaceBackfillResponse, error)
+	// WatchSpaceBackfill watches this device's backfill choice.
+	WatchSpaceBackfill(ctx context.Context, in *WatchSpaceBackfillRequest) (SRPCSpaceResourceService_WatchSpaceBackfillClient, error)
 	// ApproveSpaceChange agrees, as a voter, to a change another voter asked the
 	// group for.
 	ApproveSpaceChange(ctx context.Context, in *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
@@ -324,6 +326,39 @@ func (c *srpcSpaceResourceServiceClient) SetSpaceBackfill(ctx context.Context, i
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) WatchSpaceBackfill(ctx context.Context, in *WatchSpaceBackfillRequest) (SRPCSpaceResourceService_WatchSpaceBackfillClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchSpaceBackfill", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSpaceResourceService_WatchSpaceBackfillClient{stream}
+	// A failed half-close means the call ended; MsgRecv reports its outcome.
+	_ = strm.CloseSend()
+	return strm, nil
+}
+
+type SRPCSpaceResourceService_WatchSpaceBackfillClient interface {
+	srpc.Stream
+	Recv() (*SpaceBackfillState, error)
+	RecvTo(*SpaceBackfillState) error
+}
+
+type srpcSpaceResourceService_WatchSpaceBackfillClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceResourceService_WatchSpaceBackfillClient) Recv() (*SpaceBackfillState, error) {
+	m := new(SpaceBackfillState)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSpaceResourceService_WatchSpaceBackfillClient) RecvTo(m *SpaceBackfillState) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcSpaceResourceServiceClient) ApproveSpaceChange(ctx context.Context, in *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error) {
 	out := new(ApproveSpaceChangeResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ApproveSpaceChange", in, out)
@@ -374,6 +409,8 @@ type SRPCSpaceResourceServiceServer interface {
 	// blocks on demand and keeps the blocks it wrote or read. The choice is
 	// stored on this device.
 	SetSpaceBackfill(context.Context, *SetSpaceBackfillRequest) (*SetSpaceBackfillResponse, error)
+	// WatchSpaceBackfill watches this device's backfill choice.
+	WatchSpaceBackfill(*WatchSpaceBackfillRequest, SRPCSpaceResourceService_WatchSpaceBackfillStream) error
 	// ApproveSpaceChange agrees, as a voter, to a change another voter asked the
 	// group for.
 	ApproveSpaceChange(context.Context, *ApproveSpaceChangeRequest) (*ApproveSpaceChangeResponse, error)
@@ -421,6 +458,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"SetSpaceSequencer",
 		"SetSpaceControl",
 		"SetSpaceBackfill",
+		"WatchSpaceBackfill",
 		"ApproveSpaceChange",
 	}
 }
@@ -466,6 +504,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_SetSpaceControl(d.impl, strm)
 	case "SetSpaceBackfill":
 		return true, d.InvokeMethod_SetSpaceBackfill(d.impl, strm)
+	case "WatchSpaceBackfill":
+		return true, d.InvokeMethod_WatchSpaceBackfill(d.impl, strm)
 	case "ApproveSpaceChange":
 		return true, d.InvokeMethod_ApproveSpaceChange(d.impl, strm)
 	default:
@@ -647,6 +687,15 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_SetSpaceBackfill(impl SRPCSp
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_WatchSpaceBackfill(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(WatchSpaceBackfillRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSpaceResourceService_WatchSpaceBackfillStream{strm}
+	return impl.WatchSpaceBackfill(req, serverStrm)
 }
 
 func (SRPCSpaceResourceServiceHandler) InvokeMethod_ApproveSpaceChange(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
@@ -861,6 +910,29 @@ type SRPCSpaceResourceService_SetSpaceBackfillStream interface {
 
 type srpcSpaceResourceService_SetSpaceBackfillStream struct {
 	srpc.Stream
+}
+
+type SRPCSpaceResourceService_WatchSpaceBackfillStream interface {
+	srpc.Stream
+	Send(*SpaceBackfillState) error
+	SendAndClose(*SpaceBackfillState) error
+}
+
+type srpcSpaceResourceService_WatchSpaceBackfillStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceResourceService_WatchSpaceBackfillStream) Send(m *SpaceBackfillState) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSpaceResourceService_WatchSpaceBackfillStream) SendAndClose(m *SpaceBackfillState) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
 
 type SRPCSpaceResourceService_ApproveSpaceChangeStream interface {

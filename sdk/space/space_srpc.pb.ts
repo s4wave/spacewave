@@ -30,11 +30,13 @@ import {
   SetSpaceControlResponse,
   SetSpaceSequencerRequest,
   SetSpaceSequencerResponse,
+  SpaceBackfillState,
   SpaceContentsState,
   SpaceSharingState,
   SpaceState,
   WatchProcessBindingsRequest,
   WatchProcessBindingsResponse,
+  WatchSpaceBackfillRequest,
   WatchSpaceContentsStateRequest,
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
@@ -225,6 +227,17 @@ export const SpaceResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchSpaceBackfill watches this device's backfill choice.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
+     */
+    WatchSpaceBackfill: {
+      name: 'WatchSpaceBackfill',
+      I: WatchSpaceBackfillRequest,
+      O: SpaceBackfillState,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
      * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
      * group for.
      *
@@ -393,6 +406,16 @@ export interface SpaceResourceService {
     request: SetSpaceBackfillRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetSpaceBackfillResponse>
+
+  /**
+   * WatchSpaceBackfill watches this device's backfill choice.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
+   */
+  WatchSpaceBackfill(
+    request: WatchSpaceBackfillRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SpaceBackfillState>
 
   /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
@@ -578,6 +601,17 @@ export interface SpaceResourceServiceHandler {
   ): Promise<SetSpaceBackfillResponse>
 
   /**
+   * WatchSpaceBackfill watches this device's backfill choice.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
+   */
+  WatchSpaceBackfill(
+    request: WatchSpaceBackfillRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SpaceBackfillState>
+
+  /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
    * group for.
    *
@@ -615,6 +649,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.SetSpaceSequencer = this.SetSpaceSequencer.bind(this)
     this.SetSpaceControl = this.SetSpaceControl.bind(this)
     this.SetSpaceBackfill = this.SetSpaceBackfill.bind(this)
+    this.WatchSpaceBackfill = this.WatchSpaceBackfill.bind(this)
     this.ApproveSpaceChange = this.ApproveSpaceChange.bind(this)
   }
   /**
@@ -909,6 +944,25 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return SetSpaceBackfillResponse.fromBinary(result)
+  }
+
+  /**
+   * WatchSpaceBackfill watches this device's backfill choice.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
+   */
+  WatchSpaceBackfill(
+    request: WatchSpaceBackfillRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<SpaceBackfillState> {
+    const requestMsg = WatchSpaceBackfillRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SpaceResourceServiceDefinition.methods.WatchSpaceBackfill.name,
+      WatchSpaceBackfillRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(SpaceBackfillState)(result)
   }
 
   /**

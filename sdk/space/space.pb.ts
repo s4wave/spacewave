@@ -1522,6 +1522,41 @@ export const SetSpaceBackfillResponse: MessageType<SetSpaceBackfillResponse> =
   )
 
 /**
+ * WatchSpaceBackfillRequest is the request to watch the backfill choice.
+ *
+ * @generated from message s4wave.space.WatchSpaceBackfillRequest
+ */
+export interface WatchSpaceBackfillRequest {}
+
+export const WatchSpaceBackfillRequest: MessageType<WatchSpaceBackfillRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchSpaceBackfillRequest>(
+    's4wave.space.WatchSpaceBackfillRequest',
+    true,
+  )
+
+/**
+ * SpaceBackfillState is this device's backfill choice.
+ *
+ * @generated from message s4wave.space.SpaceBackfillState
+ */
+export interface SpaceBackfillState {
+  /**
+   * Backfill is set when this device copies the whole World locally.
+   *
+   * @generated from field: bool backfill = 1;
+   */
+  backfill?: boolean
+}
+
+export const SpaceBackfillState: MessageType<SpaceBackfillState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SpaceBackfillState',
+    fields: [
+      { no: 1, name: 'backfill', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SetSpaceControlRequest chooses who controls the Space.
  *
  * @generated from message s4wave.space.SetSpaceControlRequest

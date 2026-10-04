@@ -4,7 +4,7 @@
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.3-0.20261003013036-4cdf88642ec9,protobuf-es-lite=1.1.5",
   "packages": {
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "96f45c1403dbbebcf35e800a9afe693dce9720188f798ad278eb3e2c0b15e60f",
+      "hash": "f9cb787e5c2aa97d16dbd8c283785df34bf3f90963982c6c843efc3afd059652",
       "generatedFiles": [
         "sdk/space/space.pb.go",
         "sdk/space/space.pb.ts",

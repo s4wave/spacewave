@@ -344,6 +344,33 @@ func (r *SpaceResource) SetSpaceBackfill(
 	return &s4wave_space.SetSpaceBackfillResponse{}, nil
 }
 
+// WatchSpaceBackfill streams this device's backfill choice.
+func (r *SpaceResource) WatchSpaceBackfill(
+	req *s4wave_space.WatchSpaceBackfillRequest,
+	strm s4wave_space.SRPCSpaceResourceService_WatchSpaceBackfillStream,
+) error {
+	// Only a shared object World keeps a backfill choice.
+	ctx := strm.Context()
+	engine, ok := r.space.GetWorldEngine().(sobject_world_engine.BackfillEngine)
+	if !ok {
+		return errors.New("this Space's World cannot be backfilled")
+	}
+
+	// Send the choice, then each change.
+	choice := engine.GetBackfill()
+	backfill := choice.GetValue()
+	for {
+		if err := strm.Send(&s4wave_space.SpaceBackfillState{Backfill: backfill}); err != nil {
+			return err
+		}
+		var err error
+		backfill, err = choice.WaitValueChange(ctx, backfill, nil)
+		if err != nil {
+			return err
+		}
+	}
+}
+
 // SetSpaceControl chooses who controls the Space. An owner hands control to
 // the group at once; under group control the viewer agrees to the change and
 // the group decides it.

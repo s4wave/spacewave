@@ -14,12 +14,15 @@ import {
   BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  SetSpaceBackfillResponse,
   SetSpaceControlResponse,
   SetSpaceSequencerResponse,
+  SpaceBackfillState,
   SpaceControl,
   SpaceSequencer,
   SpaceSharingState,
   SpaceState,
+  WatchSpaceBackfillRequest,
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
 } from './space.pb.js'
@@ -49,6 +52,23 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<SpaceSharingState> {
     return this.service.WatchSpaceSharingState(req ?? {}, abortSignal)
+  }
+
+  // watchSpaceBackfill watches this device's backfill choice for the space.
+  public watchSpaceBackfill(
+    req?: WatchSpaceBackfillRequest,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<SpaceBackfillState> {
+    return this.service.WatchSpaceBackfill(req ?? {}, abortSignal)
+  }
+
+  // setSpaceBackfill chooses whether this device copies the whole space into
+  // its local store in the background.
+  public async setSpaceBackfill(
+    backfill: boolean,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceBackfillResponse> {
+    return await this.service.SetSpaceBackfill({ backfill }, abortSignal)
   }
 
   // accessWorld accesses the Engine associated with the space.

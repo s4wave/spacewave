@@ -207,6 +207,15 @@ func (c *Controller) executeWorld(
 			return err
 		}
 	}
+
+	// Load this device's backfill choice before readers can watch it.
+	backfill, err := readBackfill(ctx, so)
+	if err != nil {
+		return err
+	}
+	engine.backfillChoice.SetValue(backfill)
+
+	// Wrap the engine with logging when verbose.
 	var wengine world.Engine = engine
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
@@ -257,12 +266,8 @@ func (c *Controller) executeWorld(
 	}()
 
 	// Backfill the World when this device chose to.
-	backfill, err := readBackfill(ctx, so)
-	if err != nil {
-		return err
-	}
 	engine.backfill.SetContext(bgCtx, false)
-	engine.backfill.SetState(backfill)
+	engine.backfill.SetState(engine.backfillChoice.GetValue())
 
 	// Follow the operation set into the World.
 	return c.executeWatchSOState(ctx, soStateCtr, engine)

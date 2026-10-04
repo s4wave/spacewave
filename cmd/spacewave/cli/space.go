@@ -299,7 +299,8 @@ func newSpaceInfoCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				}
 				return formatOutput(data, c.String("output"))
 			default:
-				printSpaceState(spaceID, state, readSpaceStorage(ctx, sess, spaceID))
+				storage := readSpaceStorage(ctx, sess, spaceID)
+				printSpaceState(spaceID, state, storage, readSpaceBackfill(ctx, spaceSvc))
 				return nil
 			}
 		},
@@ -775,7 +776,12 @@ func runDeployBlockExchange(
 }
 
 // printSpaceState prints space state details to stdout.
-func printSpaceState(spaceID string, state *s4wave_space.SpaceState, storage *s4wave_session.WatchSpaceStorageResponse) {
+func printSpaceState(
+	spaceID string,
+	state *s4wave_space.SpaceState,
+	storage *s4wave_session.WatchSpaceStorageResponse,
+	backfill *s4wave_space.SpaceBackfillState,
+) {
 	// Write the Space state, storage, and plugin list.
 	w := os.Stdout
 	stateStr := "loading"
@@ -788,6 +794,9 @@ func printSpaceState(spaceID string, state *s4wave_space.SpaceState, storage *s4
 	}
 	if storage != nil {
 		fields = append(fields, [2]string{"Storage", formatSpaceStorage(storage)})
+	}
+	if backfill != nil {
+		fields = append(fields, [2]string{"Backfill", formatBackfill(backfill.GetBackfill())})
 	}
 	writeFields(w, fields)
 	if state.GetReady() {

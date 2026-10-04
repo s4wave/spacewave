@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -193,6 +194,9 @@ type soEngine struct {
 	// backfill copies the installed World and the retained roots into the
 	// local store while this device's backfill choice is on.
 	backfill *routine.StateRoutineContainer[bool]
+	// backfillChoice is this device's backfill choice, written under the
+	// controller's writer lock.
+	backfillChoice *ccontainer.CContainer[bool]
 	// rejected are the rejected edits last reported, guarded by the
 	// controller's writer lock.
 	rejected []*sobject.SORejectedEdit
@@ -210,10 +214,11 @@ type soEngine struct {
 // newSoEngine constructs the shared object engine.
 func newSoEngine(c *Controller, so sobject.SharedObject, engine *world_block.Engine, replay *replayer) *soEngine {
 	e := &soEngine{
-		c:       c,
-		so:      so,
-		bengine: engine,
-		replay:  replay,
+		c:              c,
+		so:             so,
+		bengine:        engine,
+		replay:         replay,
+		backfillChoice: ccontainer.NewCContainer(false),
 	}
 	e.backfill = routine.NewStateRoutineContainer[bool](
 		nil,

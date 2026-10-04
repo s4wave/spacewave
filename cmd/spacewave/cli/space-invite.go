@@ -176,7 +176,12 @@ func newSpaceJoinCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			if !c.Bool("backfill") {
 				return nil
 			}
-			return setSpaceBackfill(ctx, client, sess, resp.GetSharedObjectId(), true)
+			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, resp.GetSharedObjectId())
+			if err != nil {
+				return err
+			}
+			defer spaceCleanup()
+			return setSpaceBackfill(ctx, spaceSvc, true)
 		},
 	}
 }
