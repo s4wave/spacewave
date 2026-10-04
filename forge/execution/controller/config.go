@@ -69,13 +69,12 @@ func (c *Config) Validate() error {
 
 // BuildUniqueID builds the durable execution controller ID.
 func (c *Config) BuildUniqueID() string {
-	// Hash the World engine, peer and object key as the Execution identity.
+	// Hash the World, peer, Execution, and Worker as the controller identity.
 	h := blake3.NewDeriveKey("forge/execution/controller: config: unique id")
-	_, _ = h.WriteString(c.GetEngineId())
-	_, _ = h.WriteString("\x00")
-	_, _ = h.WriteString(c.GetPeerId())
-	_, _ = h.WriteString("\x00")
-	_, _ = h.WriteString(c.GetObjectKey())
+	for _, part := range []string{c.GetEngineId(), c.GetPeerId(), c.GetObjectKey(), c.GetWorkerObjectKey()} {
+		_, _ = h.WriteString(part)
+		_, _ = h.WriteString("\x00")
+	}
 
 	// Encode the Execution identity hash as a UUID.
 	hsum := h.Sum(nil)
@@ -99,7 +98,7 @@ func (c *Config) ParseResolveControllerConfigTimeout() (time.Duration, error) {
 	return time.ParseDuration(timeoutStr)
 }
 
-// ParseClaimLease parses the claim lease duration, defaulting when unset.
+// ParseClaimLease parses a lease longer than the clock-skew allowance.
 func (c *Config) ParseClaimLease() (time.Duration, error) {
 	// Use the default lease when none is configured.
 	leaseStr := c.GetClaimLease()
@@ -107,13 +106,13 @@ func (c *Config) ParseClaimLease() (time.Duration, error) {
 		return forge_execution.DefaultClaimLease, nil
 	}
 
-	// Require a positive duration.
+	// Leave time for execution before the claimant's early fencing deadline.
 	lease, err := time.ParseDuration(leaseStr)
 	if err != nil {
 		return 0, err
 	}
-	if lease <= 0 {
-		return 0, errors.New("claim lease must be positive")
+	if lease <= forge_execution.ClaimClockSkew {
+		return 0, errors.New("claim lease must exceed the clock-skew allowance")
 	}
 	return lease, nil
 }

@@ -30,7 +30,7 @@ export interface Config {
   objectKey?: string
   /**
    * PeerId is the peer ID to use for the execution controller.
-   * If the Execution already has a peer_id set, must match it.
+   * Must match the Execution peer except when reclaiming an expired claim.
    * If not set, will look up the peer id from the state.
    *
    * @generated from field: string peer_id = 3;
@@ -63,11 +63,18 @@ export interface Config {
   /**
    * ClaimLease is how long a claim stays live without renewal, as a duration
    * string. The controller renews at a third of the lease. Peers may reclaim
-   * an Execution once its holder has missed the lease. Defaults to one minute.
+   * an Execution once its holder has missed the lease. Defaults to five minutes.
    *
    * @generated from field: string claim_lease = 8;
    */
   claimLease?: string
+  /**
+   * WorkerObjectKey selects the Worker's placement on reclaim. Required when
+   * reclaiming a placed Execution; the peer must be linked to this Worker.
+   *
+   * @generated from field: string worker_object_key = 9;
+   */
+  workerObjectKey?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -91,6 +98,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 6, name: 'input_world', kind: 'message', T: () => InputWorld },
     { no: 7, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 8, name: 'claim_lease', kind: 'scalar', T: ScalarType.STRING },
+    { no: 9, name: 'worker_object_key', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
 })
 

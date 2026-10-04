@@ -1,181 +1,212 @@
-package execution_controller
+package execution_controller_test
 
 import (
 	"context"
 	"errors"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	space_exec "github.com/s4wave/spacewave/core/forge/exec"
 	"github.com/s4wave/spacewave/db/world"
-	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	forge_core "github.com/s4wave/spacewave/forge/core"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	execution_tx "github.com/s4wave/spacewave/forge/execution/tx"
-	forge_lib_kvtx "github.com/s4wave/spacewave/forge/lib/kvtx"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	forge_testbed "github.com/s4wave/spacewave/forge/testbed"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	worker_controller "github.com/s4wave/spacewave/forge/worker/controller"
+	forge_world "github.com/s4wave/spacewave/forge/world"
+	"github.com/s4wave/spacewave/identity"
+	identity_world "github.com/s4wave/spacewave/identity/world"
+	"github.com/s4wave/spacewave/net/peer"
+	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
 )
 
-// leaseHandler blocks its first invocation until canceled, as a claimant that
-// is still working when it dies, and completes every later invocation.
-type leaseHandler struct {
-	invocations *atomic.Int32
-	started     chan<- struct{}
+// TestPeerReclaimsExecutionAfterWorkerDies runs two real Workers on independent
+// buses with distinct peers. Synctest injects time into timers and timestamps.
+func TestPeerReclaimsExecutionAfterWorkerDies(t *testing.T) {
+	synctest.Test(t, testPeerReclaimsExecutionAfterWorkerDies)
 }
 
-// Execute runs the handler.
-func (h *leaseHandler) Execute(ctx context.Context) error {
-	if h.invocations.Add(1) != 1 {
-		return nil
-	}
-	close(h.started)
-	<-ctx.Done()
-	return ctx.Err()
-}
-
-func TestPeerReclaimsExecutionAfterClaimantDies(t *testing.T) {
-	// Start a World testbed with the target controller factories.
+// testPeerReclaimsExecutionAfterWorkerDies verifies that only the surviving peer
+// takes custody after production Worker demand ends.
+func testPeerReclaimsExecutionAfterWorkerDies(t *testing.T) {
+	// Start World and Forge factories under the injected clock.
 	ctx := t.Context()
-	tb, err := world_testbed.Default(ctx)
+	tb, err := forge_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
-	tb.StaticResolver.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
-	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
+	op := world.NewLookupOpController("forge-lease-ops", tb.EngineID, forge_world.LookupWorldOp)
+	stopOp, err := tb.Bus.AddController(ctx, op, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stopOp)
 
-	// Register a target whose first run blocks and whose later runs complete.
+	// Mount the same authorized World in the second daemon's independent bus.
+	secondBus, secondResolver, err := forge_core.NewCoreBus(ctx, tb.Logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopMount, err := secondBus.AddController(ctx, world.NewEngineController(tb.EngineID, tb.Engine), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stopMount)
+
+	// Register a target that retains its first claimant until Worker cancellation.
 	const configID = "test/claim-lease-handler"
 	var invocations atomic.Int32
 	started := make(chan struct{})
+	drained := make(chan struct{})
 	registry := space_exec.NewRegistry()
 	registry.Register(configID, func(
-		context.Context,
-		*logrus.Entry,
-		world.WorldState,
-		forge_target.ExecControllerHandle,
-		forge_target.InputMap,
-		[]byte,
+		context.Context, *logrus.Entry, world.WorldState,
+		forge_target.ExecControllerHandle, forge_target.InputMap, []byte,
 	) (space_exec.Handler, error) {
-		return &leaseHandler{invocations: &invocations, started: started}, nil
+		return &leaseHandler{invocations: &invocations, started: started, drained: drained}, nil
 	})
 	for _, factory := range space_exec.BridgeFactories(registry) {
 		tb.StaticResolver.AddFactory(factory)
+		secondResolver.AddFactory(factory)
 	}
 
-	// Create a pending Execution for the target.
-	target := &forge_target.Target{
-		Exec: &forge_target.Exec{
-			Controller: &configset_proto.ControllerConfig{Id: configID, Rev: 1},
-		},
+	// Enroll distinct peer identities and their Workers in the same World.
+	peers := make([]peer.Peer, 0, 2)
+	buses := []bus.Bus{tb.Bus, secondBus}
+	for i, name := range []string{"claimant", "reclaimer"} {
+		// Attach the Worker's peer to the controller bus.
+		p, err := peer.NewPeer(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stopPeer, err := buses[i].AddController(ctx, peer_controller.NewController(tb.Logger, p), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(stopPeer)
+
+		// Link the Worker to its peer keypair.
+		keypair, err := identity.NewKeypair(p.GetPubKey(), "", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := forge_worker.CreateWorker(ctx, tb.WorldState, "workers/"+name, name, []*identity.Keypair{keypair}, tb.Volume.GetPeerID()); err != nil {
+			t.Fatal(err)
+		}
+		peers = append(peers, p)
 	}
-	peerID := tb.Volume.GetPeerID()
-	objKey := "test/execution/claim-lease"
-	_, err = forge_execution.CreateExecutionWithTarget(
-		ctx,
-		tb.WorldState,
-		peerID,
-		objKey,
-		peerID,
-		forge_target.NewValueSet(),
-		target,
-		nil,
-		timestamp.Now(),
-	)
+
+	// Create a placed Execution and start its claimant's production Worker.
+	const objKey = "exec/claim-lease"
+	firstPeer := peers[0].GetPeerID()
+	placement := &forge_worker.Placement{WorkerObjectKey: "workers/claimant", PeerId: firstPeer.String()}
+	target := &forge_target.Target{Exec: &forge_target.Exec{
+		Controller: &configset_proto.ControllerConfig{Id: configID, Rev: 1},
+	}}
+	_, err = forge_execution.CreateExecutionWithTarget(ctx, tb.WorldState, firstPeer, objKey, firstPeer,
+		forge_target.NewValueSet(), target, placement, timestamp.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Run each controller as its own claimant with a short lease.
-	const claimLease = "1s"
-	newController := func(claimID string) *Controller {
-		conf := NewConfig(tb.EngineID, objKey, peerID, &forge_target.InputWorld{EngineId: tb.EngineID})
-		conf.ClaimId = claimID
-		conf.ClaimLease = claimLease
-		return NewController(tb.Logger, tb.Bus, conf)
+	// Retain the first Worker's demand until the test simulates its death.
+	claimantCtx, stopClaimant := context.WithCancel(ctx)
+	t.Cleanup(stopClaimant)
+	_, claimantRef, err := worker_controller.StartControllerWithConfig(claimantCtx, tb.Bus,
+		worker_controller.NewConfig(tb.EngineID, placement.GetWorkerObjectKey(), firstPeer, true))
+	if err != nil {
+		t.Fatal(err)
 	}
-	execute := func(ctrl *Controller) (stop func()) {
-		execCtx, execCancel := context.WithCancel(ctx)
-		done := make(chan error, 1)
-		go func() {
-			done <- ctrl.Execute(execCtx)
-			close(done)
-		}()
-		return func() {
-			execCancel()
-			if err := <-done; err != nil && !errors.Is(err, context.Canceled) {
-				t.Errorf("controller %s: %v", ctrl.claimID, err)
-			}
-		}
-	}
-
-	// Let the first claimant start the target under epoch one.
-	stopDead := execute(newController("dead-claimant"))
-	defer stopDead()
+	t.Cleanup(claimantRef.Release)
 	<-started
 
-	// Read the claim the first claimant holds.
-	obj, err := world.MustGetObject(ctx, tb.WorldState, objKey)
+	// Retain the original epoch for late writes and its original expiry bound.
+	claimed, obj, err := forge_execution.LookupExecution(ctx, tb.WorldState, objKey)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer world.ReleaseObjectState(obj)
-	claimed, claimedObj, err := forge_execution.LookupExecution(ctx, tb.WorldState, objKey)
-	world.ReleaseObjectState(claimedObj)
-	if err != nil {
-		t.Fatal(err)
-	}
-	deadClaim := claimed.GetClaim()
-	if deadClaim.GetClaimId() != "dead-claimant" || deadClaim.GetEpoch() != 1 {
-		t.Fatalf("claim = %q/%d, want dead-claimant/1", deadClaim.GetClaimId(), deadClaim.GetEpoch())
+	t.Cleanup(func() { world.ReleaseObjectState(obj) })
+	deadClaim := claimed.GetClaim().CloneVT()
+	if deadClaim.GetEpoch() != 1 {
+		t.Fatalf("initial claim epoch = %d, want 1", deadClaim.GetEpoch())
 	}
 
-	// Start two live peers that observe the claim, then kill the claimant.
-	stopPeerA := execute(newController("peer-a"))
-	defer stopPeerA()
-	stopPeerB := execute(newController("peer-b"))
-	defer stopPeerB()
-	stopDead()
-
-	// Wait for a peer to reclaim and complete the Execution.
-	finalState, err := forge_execution.WaitExecutionComplete(
-		ctx,
-		tb.Logger.WithField("control-loop", "claim-lease"),
-		tb.WorldState,
-		objKey,
-	)
+	// Give the second Worker standing demand to observe this shared Execution.
+	secondPeer := peers[1].GetPeerID()
+	_, _, err = identity_world.LinkObjectToKeypair(ctx, tb.WorldState, firstPeer, objKey, secondPeer, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, reclaimerRef, err := worker_controller.StartControllerWithConfig(ctx, secondBus,
+		worker_controller.NewConfig(tb.EngineID, "workers/reclaimer", secondPeer, true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(reclaimerRef.Release)
+	synctest.Wait()
+
+	// Kill the first Worker and wait for its target to drain before expiry.
+	stopClaimant()
+	claimantRef.Release()
+	<-drained
+	synctest.Wait()
+	if !time.Now().Before(deadClaim.GetLeaseExpiresAt().AsTime()) {
+		t.Fatal("claimant did not stop before its lease deadline")
+	}
+
+	// Advance injected time to expiry by waiting for final settlement.
+	finalState, err := forge_execution.WaitExecutionComplete(ctx, tb.Logger, tb.WorldState, objKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	synctest.Wait()
 	if !finalState.GetResult().IsSuccessful() {
 		t.Fatalf("execution failed: %s", finalState.GetResult().GetFailError())
-	}
-
-	// Require exactly one reclaim, so both peers did not take the claim.
-	finalClaim := finalState.GetClaim()
-	if finalClaim.GetEpoch() != 2 {
-		t.Fatalf("claim epoch = %d, want 2", finalClaim.GetEpoch())
-	}
-	if id := finalClaim.GetClaimId(); id != "peer-a" && id != "peer-b" {
-		t.Fatalf("claim holder = %q, want a live peer", id)
 	}
 	if got := invocations.Load(); got != 2 {
 		t.Fatalf("target invocations = %d, want 2", got)
 	}
-
-	// Require the dead claimant's late writes to fail the epoch fence.
-	var staleErr *execution_tx.StaleClaimEpochError
-	_, _, err = obj.ApplyObjectOp(ctx, execution_tx.NewTxComplete(forge_value.NewResultWithSuccess(), deadClaim), peerID)
-	if !errors.As(err, &staleErr) {
-		t.Fatalf("late completion error = %v, want StaleClaimEpochError", err)
+	if finalState.GetClaim().GetEpoch() != 2 || finalState.GetPeerId() != secondPeer.String() {
+		t.Fatalf("reclaimed epoch/peer = %d/%s", finalState.GetClaim().GetEpoch(), finalState.GetPeerId())
 	}
-	_, _, err = obj.ApplyObjectOp(ctx, execution_tx.NewTxRenewClaim(deadClaim, time.Now().Add(time.Hour)), peerID)
-	if !errors.As(err, &staleErr) {
-		t.Fatalf("late renewal error = %v, want StaleClaimEpochError", err)
+
+	// Require the surviving Worker's placement and sole Worker graph edge.
+	wantPlacement := &forge_worker.Placement{WorkerObjectKey: "workers/reclaimer", PeerId: secondPeer.String()}
+	if !finalState.GetPlacement().EqualVT(wantPlacement) {
+		t.Fatalf("placement = %v, want %v", finalState.GetPlacement(), wantPlacement)
+	}
+	quads, err := tb.WorldState.LookupGraphQuads(ctx, forge_execution.NewExecutionToWorkerQuad(objKey, ""), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(quads) != 1 || quads[0].GetObj() != forge_execution.NewExecutionToWorkerQuad(objKey, "workers/reclaimer").GetObj() {
+		t.Fatalf("Worker edges = %v", quads)
+	}
+
+	// Reject a competing reclaim and the dead claimant's late fenced writes.
+	now := time.Now()
+	_, _, err = tb.WorldState.ApplyWorldOp(ctx, execution_tx.NewTxReclaim(objKey, firstPeer, "late-reclaimer", 1, now,
+		now.Add(forge_execution.DefaultClaimLease), placement), firstPeer)
+	if err == nil {
+		t.Fatal("a second reclaim succeeded")
+	}
+	for _, tx := range []*execution_tx.Tx{
+		execution_tx.NewTxComplete(forge_value.NewResultWithSuccess(), deadClaim),
+		execution_tx.NewTxRenewClaim(deadClaim, now.Add(forge_execution.DefaultClaimLease)),
+	} {
+		_, _, err := obj.ApplyObjectOp(ctx, tx, firstPeer)
+		if _, ok := errors.AsType[*execution_tx.StaleClaimEpochError](err); !ok {
+			t.Fatalf("late %s error = %v, want StaleClaimEpochError", tx.GetTxType(), err)
+		}
 	}
 }

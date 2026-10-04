@@ -7,8 +7,11 @@ import (
 
 // ClaimLiveError reports a reclaim of a claim whose lease has not expired.
 type ClaimLiveError struct {
-	ClaimID        string
-	Epoch          uint64
+	// ClaimID identifies the live claimant.
+	ClaimID string
+	// Epoch is the live claim's fencing token.
+	Epoch uint64
+	// LeaseExpiresAt is the earliest time a peer may reclaim this claim.
 	LeaseExpiresAt time.Time
 }
 

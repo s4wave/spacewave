@@ -37,28 +37,27 @@ const ControllerID = "forge/execution"
 // Usually constructed & managed by the Pass controller.
 // Spawns "exec" controllers on the provided bus.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the execution controller bus
+	// bus is the execution controller bus.
 	bus bus.Bus
-	// conf is the config
+	// conf is the config.
 	conf *Config
-	// uniqueID is the derived unique id
+	// uniqueID is the derived unique ID.
 	uniqueID string
-	// claimID identifies this controller instance across Execute retries
+	// claimID identifies this controller instance across Execute retries.
 	claimID string
 	// claimLease is how long this controller's claim stays live between renewals.
 	claimLease time.Duration
-	// peerID is the parsed peer id
+	// peerID is the parsed peer ID.
 	peerID peer.ID
-	// busEngine is the bus world engine handle
+	// busEngine is the bus World engine handle.
 	busEngine *world.BusEngine
-	// ws is the world state handle for busEngine
+	// ws is the World state for busEngine.
 	ws world.WorldState
-	// objLoop is the object tracking loop
+	// objLoop is the object tracking loop.
 	objLoop *world_control.WatchLoop
-	// execRoutine is the execution routine resolving execResult
-	// note: value_set and result are set to nil
+	// execRoutine executes the target under its granted claim.
 	execRoutine *routine.StateRoutineContainer[*ExecConfig]
 	// reclaimRoutine reclaims the Execution once the claim lease of another
 	// controller expires.
@@ -256,12 +255,7 @@ func (c *Controller) processExecutionState(
 		return nil, nil, false, nil
 	}
 
-	// check peer id matches if set
-	if err := exState.CheckPeerID(peerID); err != nil {
-		return nil, nil, true, err
-	}
-
-	// lookup the peer on the bus (wait for it to exist)
+	// Require a local peer before claiming or observing work for recovery.
 	_, _, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID, false, nil)
 	if err != nil {
 		return nil, nil, false, err
@@ -272,6 +266,12 @@ func (c *Controller) processExecutionState(
 	// starting side effects until this controller observes its durable claim.
 	if currState == forge_execution.State_ExecutionState_PENDING ||
 		exState.GetClaim() == nil {
+		// Preserve placement authority for the initial claim.
+		if err := exState.CheckPeerID(peerID); err != nil {
+			return nil, nil, true, err
+		}
+
+		// Start the claim before the watch permits target execution.
 		le.Debugf("claiming execution with peer id: %s", peerID.String())
 		txd := execution_transaction.NewTxStart(peerID, time.Now().Add(c.claimLease), c.claimID)
 		_, _, err = obj.ApplyObjectOp(ctx, txd, peerID)
@@ -294,6 +294,11 @@ func (c *Controller) processExecutionState(
 		return nil, foreign, true, nil
 	}
 
+	// Require the authoritative peer before executing this controller's claim.
+	if err := exState.CheckPeerID(peerID); err != nil {
+		return nil, nil, true, err
+	}
+
 	// RUNNING and CANCELING both retain adapter custody. Cancellation is
 	// delivered to the target while the routine retains its settlement context.
 	if currState != forge_execution.State_ExecutionState_RUNNING &&
@@ -304,21 +309,25 @@ func (c *Controller) processExecutionState(
 		)
 	}
 
-	// check if equivalent to the current
+	// Normalize fields that change while the same target is running.
 	execConfigState := exState.CloneVT()
 	execConfigState.Result = nil
 	execConfigState.ExecutionState = forge_execution.State_ExecutionState_RUNNING
 	execConfigState.LogEntries = nil
 	execConfigState.WaitingPluginId = ""
-	execConfigState.Claim.LeaseExpiresAt = nil
 	if execConfigState.ValueSet == nil {
 		execConfigState.ValueSet = &forge_target.ValueSet{}
-	} else {
-		execConfigState.ValueSet.Outputs = nil
 	}
+	execConfigState.ValueSet.Outputs = nil
 
 	// Refresh the target configuration only when the Execution inputs change.
 	prevConfigState := c.execRoutine.GetState()
+	if prevClaim := prevConfigState.GetExecution().GetClaim(); prevClaim.GetClaimId() == exState.GetClaim().GetClaimId() &&
+		prevClaim.GetEpoch() == exState.GetClaim().GetEpoch() {
+		execConfigState.Claim.LeaseExpiresAt = prevClaim.GetLeaseExpiresAt()
+	}
+
+	// Resolve changed target inputs while preserving a live routine on renewal.
 	if !prevConfigState.GetExecution().EqualVT(execConfigState) {
 		var tgt *forge_target.Target
 		_, err = world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
@@ -341,15 +350,13 @@ func (c *Controller) processExecutionState(
 			Execution: execConfigState,
 			Target:    tgt,
 		}
-	} else {
+	}
+	if execConfig == nil {
 		execConfig = prevConfigState
 	}
 
 	return execConfig, nil, true, nil
 }
-
-// _ is a type assertion
-var _ world_control.WatchLoopHandler = (*Controller)(nil).ProcessState
 
 // CheckExecControllerConfig checks if the controller config is OK to execute.
 func (c *Controller) CheckExecControllerConfig(ctx context.Context, conf config.Config) error {
@@ -370,3 +377,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var _ controller.Controller = (*Controller)(nil)
+
+// _ is a type assertion
+var _ world_control.WatchLoopHandler = (*Controller)(nil).ProcessState

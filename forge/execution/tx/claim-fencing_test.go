@@ -17,13 +17,19 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// claimFixture owns the World and retained Execution handle used by claim tests.
 type claimFixture struct {
-	tb     *world_testbed.Testbed
+	// tb runs the fixture's World and controller factories.
+	tb *world_testbed.Testbed
+	// peerID identifies the sender of fixture operations.
 	peerID peer.ID
+	// objKey locates the Execution in the World.
 	objKey string
-	obj    world.ObjectState
+	// obj retains the Execution for object-scoped writes.
+	obj world.ObjectState
 }
 
+// newClaimFixture creates an Execution and releases its resources with the test.
 func newClaimFixture(t *testing.T) *claimFixture {
 	// Create the World testbed and register execution controller factories.
 	t.Helper()
@@ -63,15 +69,22 @@ func newClaimFixture(t *testing.T) *claimFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { world.ReleaseObjectState(obj) })
 	return &claimFixture{tb: tb, peerID: peerID, objKey: objKey, obj: obj}
 }
 
+// apply sends reclaim through the World and other transitions through the object.
 func (f *claimFixture) apply(t *testing.T, tx *Tx) error {
 	t.Helper()
+	if tx.GetTxType() == TxType_TxType_RECLAIM {
+		_, _, err := f.tb.WorldState.ApplyWorldOp(t.Context(), tx, f.peerID)
+		return err
+	}
 	_, _, err := f.obj.ApplyObjectOp(t.Context(), tx, f.peerID)
 	return err
 }
 
+// execution reads the current claim without retaining another object handle.
 func (f *claimFixture) execution(t *testing.T) *forge_execution.Execution {
 	// Read the current execution record through the fixture World.
 	t.Helper()
@@ -83,6 +96,7 @@ func (f *claimFixture) execution(t *testing.T) *forge_execution.Execution {
 	return execution
 }
 
+// TestSecondClaimantObservesLiveClaim rejects a competing claim before expiry.
 func TestSecondClaimantObservesLiveClaim(t *testing.T) {
 	// Start the first execution claim in a fresh fixture.
 	f := newClaimFixture(t)
@@ -116,6 +130,7 @@ func TestSecondClaimantObservesLiveClaim(t *testing.T) {
 	}
 }
 
+// TestStaleWritesRejectedAfterReclaim fences the replaced claim's state mutations.
 func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 	// Replace the first execution claim, whose lease has expired, after
 	// setting a waiting plugin.
@@ -128,7 +143,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now()
-	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now, now.Add(time.Hour))); err != nil {
+	if err := f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-2", 1, now, now.Add(time.Hour), nil)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -202,6 +217,7 @@ func TestStaleWritesRejectedAfterReclaim(t *testing.T) {
 	}
 }
 
+// TestClaimOwnerSurvivesControllerRetry preserves the granted epoch on restart.
 func TestClaimOwnerSurvivesControllerRetry(t *testing.T) {
 	// Retry the execution start with the same claim identity.
 	f := newClaimFixture(t)
@@ -219,6 +235,7 @@ func TestClaimOwnerSurvivesControllerRetry(t *testing.T) {
 	}
 }
 
+// TestReclaimRequiresExpiredLease transfers custody once at the committed expiry.
 func TestReclaimRequiresExpiredLease(t *testing.T) {
 	// Start a claim whose lease is live.
 	f := newClaimFixture(t)
@@ -228,7 +245,7 @@ func TestReclaimRequiresExpiredLease(t *testing.T) {
 	}
 
 	// Require a reclaim observed before the lease expires to leave the claim in place.
-	err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now, now.Add(time.Hour)))
+	err := f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-2", 1, now, now.Add(time.Hour), nil))
 	if _, ok := errors.AsType[*ClaimLiveError](err); !ok {
 		t.Fatalf("early reclaim error = %v, want ClaimLiveError", err)
 	}
@@ -239,7 +256,7 @@ func TestReclaimRequiresExpiredLease(t *testing.T) {
 	// Require a reclaim observed at the lease expiry to take the claim and its new lease.
 	expiry := now.Add(time.Hour)
 	newLease := expiry.Add(time.Minute)
-	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, expiry, newLease)); err != nil {
+	if err := f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-2", 1, expiry, newLease, nil)); err != nil {
 		t.Fatal(err)
 	}
 	got := f.execution(t).GetClaim()
@@ -249,12 +266,13 @@ func TestReclaimRequiresExpiredLease(t *testing.T) {
 
 	// Require a second reclaim of the replaced claim to lose the epoch fence.
 	later := newLease.Add(time.Minute)
-	err = f.apply(t, NewTxReclaim(f.peerID, "owner-3", 1, later, later.Add(time.Hour)))
+	err = f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-3", 1, later, later.Add(time.Hour), nil))
 	if _, ok := errors.AsType[*StaleClaimEpochError](err); !ok {
 		t.Fatalf("second reclaim error = %v, want StaleClaimEpochError", err)
 	}
 }
 
+// TestRenewClaimExtendsLease preserves custody until renewal expires.
 func TestRenewClaimExtendsLease(t *testing.T) {
 	// Start a claim and renew its lease.
 	f := newClaimFixture(t)
@@ -280,14 +298,14 @@ func TestRenewClaimExtendsLease(t *testing.T) {
 	}
 
 	// Require a reclaim observed before the renewed lease expires to fail.
-	err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now.Add(2*time.Minute), now.Add(time.Hour)))
+	err := f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-2", 1, now.Add(2*time.Minute), now.Add(time.Hour), nil))
 	if _, ok := errors.AsType[*ClaimLiveError](err); !ok {
 		t.Fatalf("reclaim of renewed claim error = %v, want ClaimLiveError", err)
 	}
 
 	// Require the previous owner's renewal to fail the epoch fence after reclaim.
 	expiry := renewed.Add(time.Minute)
-	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, expiry, expiry.Add(time.Hour))); err != nil {
+	if err := f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-2", 1, expiry, expiry.Add(time.Hour), nil)); err != nil {
 		t.Fatal(err)
 	}
 	err = f.apply(t, NewTxRenewClaim(owner1, expiry.Add(time.Hour)))
@@ -296,6 +314,7 @@ func TestRenewClaimExtendsLease(t *testing.T) {
 	}
 }
 
+// TestReclaimCancelingExecution transfers custody without discarding cancellation.
 func TestReclaimCancelingExecution(t *testing.T) {
 	// Cancel an execution whose claimant then missed its lease.
 	f := newClaimFixture(t)
@@ -308,7 +327,7 @@ func TestReclaimCancelingExecution(t *testing.T) {
 	}
 
 	// Require another claimant to take the canceling execution.
-	if err := f.apply(t, NewTxReclaim(f.peerID, "owner-2", 1, now, now.Add(time.Hour))); err != nil {
+	if err := f.apply(t, NewTxReclaim(f.objKey, f.peerID, "owner-2", 1, now, now.Add(time.Hour), nil)); err != nil {
 		t.Fatal(err)
 	}
 	execution := f.execution(t)

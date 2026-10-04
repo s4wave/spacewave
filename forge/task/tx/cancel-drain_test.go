@@ -23,20 +23,26 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// custodyFixture owns the World and target used to check cancellation custody.
 type custodyFixture struct {
-	ctx     context.Context
-	tb      *world_testbed.Testbed
-	peerID  peer.ID
+	// ctx bounds fixture operations to the test lifetime.
+	ctx context.Context
+	// tb supplies the fixture's World and controller factories.
+	tb *world_testbed.Testbed
+	// peerID identifies the fixture's executor.
+	peerID peer.ID
+	// claimID identifies the fixture's Execution claimant.
 	claimID string
-	target  *forge_target.Target
-	ts      *timestamp.Timestamp
+	// target is the resolved target used by fixture Passes.
+	target *forge_target.Target
+	// ts is the fixture's initial state timestamp.
+	ts *timestamp.Timestamp
 }
 
+// newCustodyFixture creates the World and target for cancellation tests.
 func newCustodyFixture(t *testing.T) *custodyFixture {
-	// Mark the helper and assemble the fixture.
-	t.Helper()
-
 	// Start the world testbed and register supporting factories.
+	t.Helper()
 	ctx := t.Context()
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -63,11 +69,10 @@ func newCustodyFixture(t *testing.T) *custodyFixture {
 	}
 }
 
+// createRunningPass creates a Pass and starts its claimed Execution.
 func (f *custodyFixture) createRunningPass(t *testing.T, passKey string, nonce uint64) string {
-	// Mark the helper.
-	t.Helper()
-
 	// Create the running pass on the world state.
+	t.Helper()
 	createdObject, _, err := forge_pass.CreatePassWithTarget(
 		f.ctx,
 		f.tb.WorldState,
@@ -88,13 +93,10 @@ func (f *custodyFixture) createRunningPass(t *testing.T, passKey string, nonce u
 	return f.startPassExecution(t, passKey)
 }
 
+// startPassExecution starts and claims the fixture peer's Pass Execution.
 func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string {
-	// Mark the helper.
-	t.Helper()
-
-	// Start the pass and its local execution.
-
 	// Start the pass with a local execution spec.
+	t.Helper()
 	_, _, err := f.tb.WorldState.ApplyWorldOp(
 		f.ctx,
 		pass_tx.NewTxStart(passKey, []*pass_tx.ExecSpec{{PeerId: f.peerID.String()}}, true),
@@ -122,13 +124,10 @@ func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string
 	return executionKey
 }
 
+// cancelPass records a durable cancellation request for the Pass.
 func (f *custodyFixture) cancelPass(t *testing.T, passKey string) *forge_value.Result {
-	// Mark the helper.
-	t.Helper()
-
-	// Cancel the pass with a canceled result.
-
 	// Apply the cancel transaction with a canceled result.
+	t.Helper()
 	result := forge_value.NewResultWithCanceled(errors.New("test cancellation"))
 	_, _, err := f.tb.WorldState.ApplyWorldOp(
 		f.ctx,
@@ -141,25 +140,23 @@ func (f *custodyFixture) cancelPass(t *testing.T, passKey string) *forge_value.R
 	return result
 }
 
+// cancelExecution cancels an Execution and lends its handle to the caller.
 func (f *custodyFixture) cancelExecution(t *testing.T, executionKey string) world.ObjectState {
-	// Mark the helper.
-	t.Helper()
-
-	// Cancel the execution object.
-
 	// Cancel the execution object and return it for assertions.
+	t.Helper()
 	executionObject, err := world.MustGetObject(f.ctx, f.tb.WorldState, executionKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, _, err = executionObject.ApplyObjectOp(f.ctx, execution_tx.NewTxCancel(), f.peerID)
 	if err != nil {
+		world.ReleaseObjectState(executionObject)
 		t.Fatal(err)
 	}
 	return executionObject
 }
 
-// Create a running pass and cancel it while the execution drains.
+// TestPassCancelWaitsForExecutionDrain retains Pass custody until its target drains.
 func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
 	// Create a running pass and cancel it while the execution drains.
 	f := newCustodyFixture(t)
@@ -236,6 +233,7 @@ func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
 	}
 }
 
+// TestTaskStartDoesNotCreateSuccessorOverLivePass fences a live predecessor.
 func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 	// Create a task whose start must fence on a live predecessor.
 	f := newCustodyFixture(t)
@@ -307,6 +305,7 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 	}
 }
 
+// TestTaskInputChangeRestartsOnlyAfterDrain retains the old Pass until settlement.
 func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 	// Create a task whose input change waits for the pass to drain.
 	f := newCustodyFixture(t)
@@ -448,6 +447,7 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 	}
 }
 
+// TestCreateExecSpecsPreservesCancelingExecution preserves durable cancellation.
 func TestCreateExecSpecsPreservesCancelingExecution(t *testing.T) {
 	// Cancel a running execution and recreate its exec specs.
 	f := newCustodyFixture(t)
@@ -483,6 +483,7 @@ func TestCreateExecSpecsPreservesCancelingExecution(t *testing.T) {
 	}
 }
 
+// TestCancelReplayRecoversAfterRestart settles replayed cancellation after drain.
 func TestCancelReplayRecoversAfterRestart(t *testing.T) {
 	// Replay cancellation requests after a simulated restart.
 	f := newCustodyFixture(t)

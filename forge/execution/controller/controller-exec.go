@@ -21,9 +21,21 @@ const targetWorldInput = "world"
 
 // executeWithConfig is the routine to execute the Execution controller.
 func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfig) error {
+	// Renew the granted claim through its existing World operation.
+	claim := execConf.GetExecution().GetClaim()
+	lease := NewLease(c.le, claim.GetLeaseExpiresAt().AsTime(), c.claimLease, func(ctx context.Context, expiry time.Time) error {
+		return c.applyClaimTx(ctx, execution_transaction.NewTxRenewClaim(claim, expiry), c.peerID)
+	})
+	return lease.Execute(rctx, func(ctx context.Context) error {
+		return c.executeClaimed(ctx, execConf)
+	})
+}
+
+// executeClaimed executes and settles one target while its Lease retains custody.
+func (c *Controller) executeClaimed(claimCtx context.Context, execConf *ExecConfig) error {
 	// Interrupt setup and target execution, but retain the routine context for
 	// the durable completion after processExec has drained and closed the target.
-	ctx, ctxCancel := context.WithCancel(rctx)
+	ctx, ctxCancel := context.WithCancel(claimCtx)
 	defer ctxCancel()
 	stopCancel := context.AfterFunc(c.cancelCtx, ctxCancel)
 	defer stopCancel()
@@ -31,36 +43,36 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		ctxCancel()
 	}
 
-	// Keep the claim lease live while this controller owns the Execution,
-	// including its durable completion. Losing the claim interrupts the target.
-	renewCtx, renewCancel := context.WithCancel(rctx)
-	defer renewCancel()
-	go c.renewClaim(renewCtx, execConf.GetExecution().GetClaim(), ctxCancel)
-
-	// process the execution
+	// Run and drain the target under the live claim.
 	execErr := c.processExec(ctx, execConf)
 
-	// ignore error if context canceled
-	if cerr := rctx.Err(); cerr != nil {
-		return context.Canceled
+	// Leave settlement to the next claimant once this lease is canceled.
+	if claimCtx.Err() != nil {
+		return nil
 	}
 
 	// Retry the durable completion until it commits. A failed write, such as
 	// a full disk, must not leave the Execution running with no routine.
 	bo := (&backoff.Backoff{}).Construct()
 	for {
-		err := c.completeExecution(rctx, execConf, execErr)
+		// Settle the target only while this controller retains its claim.
+		err := c.completeExecution(claimCtx, execConf, execErr)
 		var drainErr *drainError
 		if err == nil || errors.As(err, &drainErr) {
 			return err
 		}
-		if rctx.Err() != nil {
-			return context.Canceled
+		if execution_transaction.IsClaimFenced(err) {
+			return err
 		}
+		if claimCtx.Err() != nil {
+			return nil
+		}
+
+		// Retry a transient completion failure within the committed lease.
 		c.le.WithError(err).Warn("retrying execution completion")
 		select {
-		case <-rctx.Done():
-			return context.Canceled
+		case <-claimCtx.Done():
+			return nil
 		case <-time.After(bo.NextBackOff()):
 		}
 	}
@@ -69,6 +81,7 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 // drainError reports a canceled execution whose target failed while draining.
 // Retrying its completion cannot succeed.
 type drainError struct {
+	// err is the target's failure while draining a canceled execution.
 	err error
 }
 

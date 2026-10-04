@@ -27,6 +27,7 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
+// TestRemoteSharedObjectWorldApplyPreservesExecutionClaim retains remote custody.
 func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 	// Start a testbed with the SharedObject World engine and local provider.
 	ctx := context.Background()
@@ -119,6 +120,7 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 	remote, cleanup := newRemoteSharedObjectEngine(t, ctx, tb, engine)
 	t.Cleanup(cleanup)
 	if err := world.ExecTransaction(ctx, remote, false, func(ctx context.Context, ws world.WorldState) error {
+		// Read the initial Execution and release its remote handle.
 		execution, objectState, err := forge_execution.LookupExecution(ctx, ws, objectKey)
 		world.ReleaseObjectState(objectState)
 		if err != nil {
@@ -154,11 +156,14 @@ func TestRemoteSharedObjectWorldApplyPreservesExecutionClaim(t *testing.T) {
 
 	// Require the claim to survive the remote boundary.
 	if err := world.ExecTransaction(ctx, remote, false, func(ctx context.Context, ws world.WorldState) error {
+		// Read the claimed Execution and release its remote handle.
 		execution, objectState, err := forge_execution.LookupExecution(ctx, ws, objectKey)
 		world.ReleaseObjectState(objectState)
 		if err != nil {
 			return err
 		}
+
+		// Require the remote Execution to retain its running claim.
 		if got := execution.GetExecutionState(); got != forge_execution.State_ExecutionState_RUNNING {
 			t.Fatalf("execution state = %s, want RUNNING", got)
 		}
@@ -191,6 +196,7 @@ func newRemoteSharedObjectEngine(
 	tb *testbed.Testbed,
 	engine world.Engine,
 ) (*sdk_world_engine.SDKEngine, func()) {
+	// Connect the client and server transports for the remote Engine.
 	t.Helper()
 	clientPipe, serverPipe := net.Pipe()
 	clientMux, err := srpc.NewMuxedConn(clientPipe, true, nil)
@@ -205,6 +211,8 @@ func newRemoteSharedObjectEngine(
 		closeRemoteSharedObjectTestResource(t, "server pipe", serverPipe)
 		t.Fatal(err)
 	}
+
+	// Expose the supplied Engine through the production resource service.
 	engineResource := resource_world.NewEngineResource(
 		tb.Logger,
 		tb.Bus,
@@ -224,6 +232,8 @@ func newRemoteSharedObjectEngine(
 	go func() {
 		serverErr <- server.AcceptMuxedConn(ctx, serverMuxed)
 	}()
+
+	// Close both transports and join the resource server on release.
 	stopServer := func() {
 		closeRemoteSharedObjectTestResource(t, "client pipe", clientPipe)
 		closeRemoteSharedObjectTestResource(t, "server pipe", serverPipe)
@@ -234,6 +244,8 @@ func newRemoteSharedObjectEngine(
 			t.Errorf("remote SharedObject server: %v", err)
 		}
 	}
+
+	// Retain the resource client and construct its World Engine capability.
 	client := srpc.NewClientWithMuxedConn(clientMux)
 	resources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(client))
 	if err != nil {
@@ -249,6 +261,8 @@ func newRemoteSharedObjectEngine(
 		stopServer()
 		t.Fatal(err)
 	}
+
+	// Release the Engine and client before closing their transport.
 	cleanup := func() {
 		remote.Release()
 		resources.Release()

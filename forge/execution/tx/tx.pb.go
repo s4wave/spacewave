@@ -15,6 +15,7 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	execution "github.com/s4wave/spacewave/forge/execution"
 	value "github.com/s4wave/spacewave/forge/value"
+	worker "github.com/s4wave/spacewave/forge/worker"
 )
 
 // TxType indicates the kind of transaction.
@@ -421,6 +422,11 @@ type TxReclaim struct {
 	// LeaseExpiresAt is the initial lease expiry of the new claim.
 	// Must be after observed_at.
 	LeaseExpiresAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"leaseExpiresAt,omitempty"`
+	// ExecutionObjectKey identifies the Execution to reclaim in a World operation.
+	ExecutionObjectKey string `protobuf:"bytes,6,opt,name=execution_object_key,json=executionObjectKey,proto3" json:"executionObjectKey,omitempty"`
+	// Placement selects the reclaiming Worker's custody. Required when replacing
+	// an existing placement; its peer must match PeerId and be linked to the Worker.
+	Placement *worker.Placement `protobuf:"bytes,7,opt,name=placement,proto3" json:"placement,omitempty"`
 }
 
 func (x *TxReclaim) Reset() {
@@ -460,6 +466,20 @@ func (x *TxReclaim) GetObservedAt() *timestamppb.Timestamp {
 func (x *TxReclaim) GetLeaseExpiresAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.LeaseExpiresAt
+	}
+	return nil
+}
+
+func (x *TxReclaim) GetExecutionObjectKey() string {
+	if x != nil {
+		return x.ExecutionObjectKey
+	}
+	return ""
+}
+
+func (x *TxReclaim) GetPlacement() *worker.Placement {
+	if x != nil {
+		return x.Placement
 	}
 	return nil
 }
@@ -643,8 +663,10 @@ func (m *TxReclaim) CloneVT() *TxReclaim {
 	r.PeerId = m.PeerId
 	r.ClaimId = m.ClaimId
 	r.ExpectedClaimEpoch = m.ExpectedClaimEpoch
+	r.ExecutionObjectKey = m.ExecutionObjectKey
 	r.ObservedAt = protobuf_go_lite.CloneVTValue(m.ObservedAt)
 	r.LeaseExpiresAt = protobuf_go_lite.CloneVTValue(m.LeaseExpiresAt)
+	r.Placement = protobuf_go_lite.CloneVTValue(m.Placement)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -886,6 +908,12 @@ func (this *TxReclaim) EqualVT(that *TxReclaim) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.LeaseExpiresAt, that.LeaseExpiresAt) {
+		return false
+	}
+	if this.ExecutionObjectKey != that.ExecutionObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Placement, that.Placement) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1497,6 +1525,16 @@ func (x *TxReclaim) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("leaseExpiresAt")
 		x.LeaseExpiresAt.MarshalProtoJSON(s.WithField("leaseExpiresAt"))
 	}
+	if x.ExecutionObjectKey != "" || s.HasField("executionObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("executionObjectKey")
+		s.WriteString(x.ExecutionObjectKey)
+	}
+	if x.Placement != nil || s.HasField("placement") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("placement")
+		x.Placement.MarshalProtoJSON(s.WithField("placement"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1537,6 +1575,16 @@ func (x *TxReclaim) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.LeaseExpiresAt = &timestamppb.Timestamp{}
 			x.LeaseExpiresAt.UnmarshalProtoJSON(s.WithField("lease_expires_at", true))
+		case "execution_object_key", "executionObjectKey":
+			s.AddField("execution_object_key")
+			x.ExecutionObjectKey = s.ReadString()
+		case "placement":
+			if s.ReadNil() {
+				x.Placement = nil
+				return
+			}
+			x.Placement = &worker.Placement{}
+			x.Placement.UnmarshalProtoJSON(s.WithField("placement", true))
 		}
 	})
 }
@@ -2065,6 +2113,21 @@ func (m *TxReclaim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Placement != nil {
+		size, err := m.Placement.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.ExecutionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ExecutionObjectKey)
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.LeaseExpiresAt != nil {
 		size, err := m.LeaseExpiresAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2305,6 +2368,11 @@ func (m *TxReclaim) SizeVT() (n int) {
 		l = m.LeaseExpiresAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ExecutionObjectKey)
+	if m.Placement != nil {
+		l = m.Placement.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2529,6 +2597,14 @@ func (x *TxReclaim) MarshalProtoText() string {
 	if x.LeaseExpiresAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease_expires_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LeaseExpiresAt)
+	}
+	if x.ExecutionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "execution_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ExecutionObjectKey)
+	}
+	if x.Placement != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "placement")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Placement)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3249,6 +3325,31 @@ func (m *TxReclaim) UnmarshalVT(dAtA []byte) error {
 				m.LeaseExpiresAt = &timestamppb.Timestamp{}
 			}
 			if err := m.LeaseExpiresAt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExecutionObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ExecutionObjectKey = v
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Placement", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Placement == nil {
+				m.Placement = &worker.Placement{}
+			}
+			if err := m.Placement.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

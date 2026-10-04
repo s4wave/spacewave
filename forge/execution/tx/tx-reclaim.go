@@ -7,7 +7,10 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	identity_world "github.com/s4wave/spacewave/identity/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
@@ -17,19 +20,23 @@ import (
 // observedAt is when the sender saw the claim lease expire. The new claim stays
 // live until leaseExpiresAt unless its holder renews it.
 func NewTxReclaim(
+	executionObjectKey string,
 	peerID peer.ID,
 	claimID string,
 	expectedClaimEpoch uint64,
 	observedAt, leaseExpiresAt time.Time,
+	placement *forge_worker.Placement,
 ) *Tx {
 	return &Tx{
 		TxType: TxType_TxType_RECLAIM,
 		TxReclaim: &TxReclaim{
+			ExecutionObjectKey: executionObjectKey,
 			PeerId:             peerID.String(),
 			ClaimId:            claimID,
 			ExpectedClaimEpoch: expectedClaimEpoch,
 			ObservedAt:         timestamp.New(observedAt),
 			LeaseExpiresAt:     timestamp.New(leaseExpiresAt),
+			Placement:          placement.CloneVT(),
 		},
 	}
 }
@@ -46,13 +53,18 @@ func (t *TxReclaim) GetTxType() TxType {
 
 // Validate performs a cursory check of the transaction.
 func (t *TxReclaim) Validate() error {
-	// Require a peer, claim identity, and expected epoch for reclaim.
+	// Require the Execution key and the peer taking custody.
+	if t.GetExecutionObjectKey() == "" {
+		return world.ErrEmptyObjectKey
+	}
 	if len(t.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
 	if _, err := t.ParsePeerID(); err != nil {
 		return err
 	}
+
+	// Require a claim identity, expected epoch, and a future lease.
 	if t.GetClaimId() == "" {
 		return errors.New("claim_id cannot be empty")
 	}
@@ -65,7 +77,69 @@ func (t *TxReclaim) Validate() error {
 	if !t.GetLeaseExpiresAt().AsTime().After(t.GetObservedAt().AsTime()) {
 		return errors.New("lease_expires_at must be after observed_at")
 	}
+
+	// Require the requested placement to identify the reclaiming peer.
+	if placement := t.GetPlacement(); placement != nil {
+		if err := placement.Validate(); err != nil {
+			return err
+		}
+		if placement.GetPeerId() != t.GetPeerId() {
+			return errors.New("reclaim peer_id does not match placement")
+		}
+	}
 	return nil
+}
+
+// applyWorldOp replaces the claim, peer, placement and Worker edge together.
+// World replay uses the same epoch and expiry checks as the initial operation.
+func (t *TxReclaim) applyWorldOp(ctx context.Context, ws world.WorldState, sender peer.ID) error {
+	// Require the requested Worker to carry the reclaiming peer.
+	if err := t.Validate(); err != nil {
+		return err
+	}
+	if placement := t.GetPlacement(); placement != nil {
+		if err := placement.ValidateLinked(ctx, ws); err != nil {
+			return err
+		}
+	}
+
+	// Replace the Execution only if the observed claim is still expired.
+	objKey := t.GetExecutionObjectKey()
+	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(cursor *block.Cursor) error {
+		// Decode the current claim and apply the fenced custody transfer.
+		root, err := forge_execution.UnmarshalExecution(ctx, cursor)
+		if err != nil {
+			return err
+		}
+		return t.ExecuteTx(ctx, sender, cursor, root)
+	})
+	if err != nil {
+		return err
+	}
+
+	// Replace the sole Worker relationship with the committed placement.
+	quads, err := ws.LookupGraphQuads(ctx, forge_execution.NewExecutionToWorkerQuad(objKey, ""), 0)
+	if err != nil {
+		return err
+	}
+	for _, q := range quads {
+		if err := ws.DeleteGraphQuad(ctx, q); err != nil {
+			return err
+		}
+	}
+	if placement := t.GetPlacement(); placement != nil {
+		if err := ws.SetGraphQuad(ctx, forge_execution.NewExecutionToWorkerQuad(objKey, placement.GetWorkerObjectKey())); err != nil {
+			return err
+		}
+	}
+
+	// Notify the reclaiming Worker's existing keypair watch of its new custody.
+	peerID, err := t.ParsePeerID()
+	if err != nil {
+		return err
+	}
+	_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
+	return err
 }
 
 // ExecuteTx executes the transaction against the execution instance.
@@ -89,9 +163,8 @@ func (t *TxReclaim) ExecuteTx(
 			txPeerID.String(), sender.String(),
 		)
 	}
-	if err := root.CheckPeerID(txPeerID); err != nil {
-		return err
-	}
+
+	// Require an active Execution and the exact claim being replaced.
 	if err := root.GetExecutionState().EnsureMatches(
 		forge_execution.State_ExecutionState_RUNNING,
 		forge_execution.State_ExecutionState_CANCELING,
@@ -114,7 +187,12 @@ func (t *TxReclaim) ExecuteTx(
 		}
 	}
 
-	// Replace the execution claim and clear its waiting plugin.
+	// Preserve placed custody by requiring a linked replacement Worker.
+	if root.GetPlacement() != nil && t.GetPlacement() == nil {
+		return errors.New("reclaim of a placed execution requires placement")
+	}
+
+	// Replace the executor, placement, claim, and waiting plugin in one root.
 	claimEpoch := root.GetClaim().GetEpoch() + 1
 	if claimEpoch == 0 {
 		return errors.New("execution claim epoch overflow")
@@ -124,6 +202,8 @@ func (t *TxReclaim) ExecuteTx(
 		Epoch:          claimEpoch,
 		LeaseExpiresAt: t.GetLeaseExpiresAt(),
 	}
+	root.PeerId = t.GetPeerId()
+	root.Placement = t.GetPlacement().CloneVT()
 	root.WaitingPluginId = ""
 	exCursor.SetBlock(root, true)
 	return root.Validate()

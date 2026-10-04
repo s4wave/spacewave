@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// TestTxRetryValidateRejectsOutputs rejects outputs supplied as continuation inputs.
 func TestTxRetryValidateRejectsOutputs(t *testing.T) {
 	tx := &TxRetry{NextInputs: &forge_target.ValueSet{
 		Outputs: forge_value.ValueSlice{forge_value.NewValue("output")},
@@ -28,6 +29,7 @@ func TestTxRetryValidateRejectsOutputs(t *testing.T) {
 	}
 }
 
+// TestTxRetryValidateAcceptsNamedInputs accepts a continuation input snapshot.
 func TestTxRetryValidateAcceptsNamedInputs(t *testing.T) {
 	tx := &TxRetry{NextInputs: &forge_target.ValueSet{
 		Inputs: forge_value.ValueSlice{forge_value.NewValueWithWorldObjectSnapshot(
@@ -40,6 +42,7 @@ func TestTxRetryValidateAcceptsNamedInputs(t *testing.T) {
 	}
 }
 
+// TestSameInputsUsesValueContent compares continuation input content.
 func TestSameInputsUsesValueContent(t *testing.T) {
 	// Verify separately allocated input values compare by their content.
 	left := forge_value.ValueSlice{forge_value.NewValue("continuation")}
@@ -55,6 +58,7 @@ func TestSameInputsUsesValueContent(t *testing.T) {
 	}
 }
 
+// TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory preserves old results.
 func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	// Open a World testbed for the retry and its retained attempt history.
 	ctx := t.Context()
@@ -283,6 +287,7 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	}
 }
 
+// TestTxRetryRequiresTerminalFailedTask rejects live and successful attempts.
 func TestTxRetryRequiresTerminalFailedTask(t *testing.T) {
 	tx := &TxRetry{ExpectedPassNonce: 1}
 	for _, state := range []forge_task.State{
@@ -304,4 +309,5 @@ func TestTxRetryRequiresTerminalFailedTask(t *testing.T) {
 	}
 }
 
+// errRetryFixture is the failure retained in predecessor attempt history.
 var errRetryFixture = errors.New("retry fixture failed")

@@ -37,10 +37,12 @@ func TestExecutionHandleRetainsGrantedEpoch(t *testing.T) {
 	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxStart(peerID, time.Now().Add(-time.Minute), conf.GetClaimId()), peerID); err != nil {
 		t.Fatal(err)
 	}
-	handle := newExecControllerHandle(ctx, NewController(tb.Logger, tb.Bus, conf), tb.WorldState, tb.WorldState, ts, 1)
+	c := NewController(tb.Logger, tb.Bus, conf)
+	c.busEngine.SetContext(ctx)
+	handle := newExecControllerHandle(ctx, c, tb.WorldState, tb.WorldState, ts, 1)
 
 	// Replace the authoritative claim without replacing the caller's handle.
-	if _, _, err := obj.ApplyObjectOp(ctx, execution_tx.NewTxReclaim(peerID, "next-owner", 1, time.Now(), time.Now().Add(time.Hour)), peerID); err != nil {
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, execution_tx.NewTxReclaim(conf.GetObjectKey(), peerID, "next-owner", 1, time.Now(), time.Now().Add(time.Hour), nil), peerID); err != nil {
 		t.Fatal(err)
 	}
 	if handle.GetExecutionObjectKey() != execKey || handle.GetExecutionClaimEpoch() != 1 {
@@ -51,5 +53,14 @@ func TestExecutionHandleRetainsGrantedEpoch(t *testing.T) {
 	var stale *execution_tx.StaleClaimEpochError
 	if err := handle.WriteLog(ctx, "info", "stale caller"); !errors.As(err, &stale) {
 		t.Fatalf("stale log write returned %v, want StaleClaimEpochError", err)
+	}
+
+	// Stop completion permanently when settlement discovers the replaced claim.
+	err = c.executeClaimed(ctx, &ExecConfig{
+		Execution: &forge_execution.Execution{Claim: &forge_execution.Claim{ClaimId: conf.GetClaimId(), Epoch: 1}},
+		Target:    &forge_target.Target{Exec: &forge_target.Exec{Disable: true}},
+	})
+	if !errors.As(err, &stale) {
+		t.Fatalf("stale settlement returned %v, want StaleClaimEpochError", err)
 	}
 }

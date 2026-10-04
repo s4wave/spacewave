@@ -15,16 +15,13 @@ import (
 // ObjectOperationTypeID is the transaction object operation type id.
 var ObjectOperationTypeID = "forge/execution/tx"
 
-// LookupWorldOp performs the lookup operation for the pass op types.
+// LookupWorldOp decodes Execution transaction operations.
 func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	if opTypeID == ObjectOperationTypeID {
 		return &Tx{}, nil
 	}
 	return nil, nil
 }
-
-// _ is a type assertion
-var _ world.LookupOp = LookupWorldOp
 
 // Transaction is an instance of a transaction object.
 type Transaction interface {
@@ -138,14 +135,17 @@ func (t *Tx) GetOperationTypeId() string {
 	return ObjectOperationTypeID
 }
 
-// ApplyWorldOp applies the operation as a world operation.
-// returns false, ErrUnhandledOp if the operation cannot handle a world op
+// ApplyWorldOp reclaims an Execution and its placement in one World operation.
+// Other transitions remain object operations.
 func (t *Tx) ApplyWorldOp(
 	ctx context.Context,
 	le *logrus.Entry,
 	worldHandle world.WorldState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	if t.GetTxType() == TxType_TxType_RECLAIM {
+		return false, t.GetTxReclaim().applyWorldOp(ctx, worldHandle, sender)
+	}
 	return false, world.ErrUnhandledOp
 }
 
@@ -156,6 +156,11 @@ func (t *Tx) ApplyWorldObjectOp(
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
+	// Reclaim needs World scope to update placement and its graph atomically.
+	if t.GetTxType() == TxType_TxType_RECLAIM {
+		return false, world.ErrUnhandledOp
+	}
+
 	// Validate the execution transaction operation type.
 	if err := t.GetTxType().Validate(); err != nil {
 		return false, err
@@ -199,3 +204,6 @@ func (t *Tx) UnmarshalBlock(data []byte) error {
 
 // _ is a type assertion
 var _ world.Operation = (*Tx)(nil)
+
+// _ is a type assertion
+var _ world.LookupOp = LookupWorldOp
