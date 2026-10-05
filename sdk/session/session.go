@@ -210,6 +210,12 @@ func (s *Session) AcceptLocalPairingAnswer(ctx context.Context, answerPayload st
 	return s.service.AcceptLocalPairingAnswer(ctx, &AcceptLocalPairingAnswerRequest{AnswerPayload: answerPayload})
 }
 
+// UnlinkDevice revokes a session of this local account and its Space access.
+func (s *Session) UnlinkDevice(ctx context.Context, peerID string) error {
+	_, err := s.service.UnlinkDevice(ctx, &UnlinkDeviceRequest{PeerId: peerID})
+	return err
+}
+
 // CreateSpaceInvite creates an invite for a space shared object.
 func (s *Session) CreateSpaceInvite(ctx context.Context, req *CreateSpaceInviteRequest) (*CreateSpaceInviteResponse, error) {
 	return s.service.CreateSpaceInvite(ctx, req)

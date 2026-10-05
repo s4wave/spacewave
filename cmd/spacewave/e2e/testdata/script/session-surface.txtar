@@ -1,10 +1,11 @@
-# Session exposes list/info/logout/revoke and autostarts for list behavior.
+# Session exposes list/info/pair/logout/revoke and autostarts for list behavior.
 spacewave session --help
 stdout "manage sessions"
 stdout "list sessions"
 stdout "show session details and peer info"
 stdout "sign out a local session"
-stdout "revoke a Spacewave provider session by peer ID"
+stdout "issue a code that adds this session's account to another device"
+stdout "revoke a session of this account by peer ID"
 
 spacewave session list --help
 stdout "list sessions"

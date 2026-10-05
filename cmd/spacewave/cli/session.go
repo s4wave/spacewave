@@ -12,6 +12,7 @@ import (
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
@@ -254,10 +255,14 @@ func newSessionLogoutCommand() *cli.Command {
 	}
 }
 
+// sessionLogoutTarget selects the session to sign out.
 type sessionLogoutTarget struct {
+	// Positional is the index, session ID, or account ID argument.
 	Positional string
-	SessionID  string
-	AccountID  string
+	// SessionID is the --session-id flag value.
+	SessionID string
+	// AccountID is the --account-id flag value.
+	AccountID string
 }
 
 func sessionLogoutFlags(statePath *string, sessionIdx *uint, sessionID *string, accountID *string, yes *bool) []cli.Flag {
@@ -410,7 +415,7 @@ func newSessionRevokeCommand() *cli.Command {
 	var pemFile string
 	return &cli.Command{
 		Name:      "revoke",
-		Usage:     "revoke a Spacewave provider session by peer ID",
+		Usage:     "revoke a session of this account by peer ID",
 		ArgsUsage: "<session-peer-id>",
 		Flags:     append(clientFlags(&statePath, &sessionIdx), pemFileFlag(&pemFile)),
 		Action: func(c *cli.Context) error {
@@ -457,6 +462,15 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	// A local account revokes through the Session that holds its key.
+	if provID == provider_local.ProviderID {
+		if err := sess.UnlinkDevice(ctx, sessionPeerID); err != nil {
+			return errors.Wrap(err, "revoke session")
+		}
+		printSessionRevoked(sessionPeerID)
+		return nil
+	}
+
 	// Access the account service.
 	acctSvc, acctCleanup, err := client.accessAccount(ctx, provID, acctID)
 	if err != nil {
@@ -478,14 +492,18 @@ func runSessionRevoke(c *cli.Context, statePath string, sessionIdx uint32, authP
 	if err != nil {
 		return errors.Wrap(err, "revoke session")
 	}
+	printSessionRevoked(sessionPeerID)
+	return nil
+}
 
-	// Report the revoked peer.
+// printSessionRevoked reports the revoked session by its shortened peer ID.
+func printSessionRevoked(sessionPeerID string) {
+	// Shorten the peer ID and print it.
 	pidStr := sessionPeerID
 	if len(pidStr) > 16 {
 		pidStr = pidStr[:16] + "..."
 	}
 	os.Stdout.WriteString("session revoked (" + pidStr + ")\n")
-	return nil
 }
 
 func validateSessionPeerID(value string) error {
