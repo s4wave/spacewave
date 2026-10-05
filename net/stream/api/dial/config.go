@@ -1,22 +1,28 @@
 package stream_api_dial
 
 import (
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
-// Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// Validate checks that the values are well formed and that the target is not
+// the local peer.
 func (c *Config) Validate() error {
-	// Require and parse the target peer ID.
+	// Require the target peer ID.
 	if c.GetPeerId() == "" {
 		return peer.ErrEmptyPeerID
 	}
 
-	// Validate the optional local peer ID constraint.
-	if _, err := c.ParseLocalPeerID(); err != nil {
+	// Validate the optional local peer ID constraint. A stream to the local
+	// peer would wait forever: no transport links a peer to itself.
+	localPeerID, err := c.ParseLocalPeerID()
+	if err != nil {
 		return err
+	}
+	if localPeerID != "" && localPeerID.String() == c.GetPeerId() {
+		return errors.Errorf("cannot dial the local peer %s", localPeerID)
 	}
 
 	// Validate the stream protocol identifier.
@@ -28,8 +34,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// ParseLocalPeerID parses the local peer ID constraint.
-// may be empty.
+// ParseLocalPeerID parses the local peer ID constraint, which may be empty.
 func (c *Config) ParseLocalPeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetLocalPeerId())
 }
