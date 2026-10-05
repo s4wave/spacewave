@@ -74,6 +74,7 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 				}
 				return []*cli.Command{command}
 			}},
+			nil,
 		)
 		return
 	}
@@ -86,6 +87,9 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 		wantCommand    string
 		wantError      string
 		wantErrorCount int
+		// usageError fails while parsing, before logging starts, so it
+		// reaches only stderr.
+		usageError bool
 	}{
 		{
 			name:           "ordinary error",
@@ -104,12 +108,11 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 			wantErrorCount: 1,
 		},
 		{
-			name:           "required flag error",
-			mode:           "required-flag",
-			exitCode:       1,
-			wantCommand:    "test-entrypoint stopped",
-			wantError:      `Required flag \"token\" not set`,
-			wantErrorCount: 1,
+			name:       "required flag error",
+			mode:       "required-flag",
+			exitCode:   1,
+			wantError:  `Required flag "token" not set`,
+			usageError: true,
 		},
 		{
 			name:           "nested command error",
@@ -144,6 +147,12 @@ func TestMainLogsTerminalCommandError(t *testing.T) {
 			out, err := cmd.CombinedOutput()
 			if exitErr, ok := err.(*exec.ExitError); !ok || exitErr.ExitCode() != tt.exitCode {
 				t.Fatalf("child exit = %v, want status %d; output: %s", err, tt.exitCode, out)
+			}
+			if tt.usageError {
+				if !strings.Contains(string(out), tt.wantError) {
+					t.Fatalf("output missing usage error: %q", out)
+				}
+				return
 			}
 
 			// Read the log and check the error and terminal records.

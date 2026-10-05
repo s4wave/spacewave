@@ -38,7 +38,7 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{example_cli.NewCliCommands}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("my-app", "", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("my-app", "", factories, configSets, cliCommands, nil) }
 `
 
 const expectedCodegenMultiple = `package main
@@ -74,7 +74,7 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{alpha_cli.NewCliCommands, beta_cli.NewCliCommands}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("multi-app", "", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("multi-app", "", factories, configSets, cliCommands, nil) }
 `
 
 const expectedCodegenNoBus = `package main
@@ -108,7 +108,7 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("no-bus-app", "", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("no-bus-app", "", factories, configSets, cliCommands, nil) }
 `
 
 const expectedCodegenEmpty = `package main
@@ -136,7 +136,7 @@ var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFun
 var cliCommands = []cli_entrypoint.BuildCommandsFunc{}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("test-empty", "", factories, configSets, cliCommands) }
+func main() { cli_entrypoint.Main("test-empty", "", factories, configSets, cliCommands, nil) }
 `
 
 const expectedCodegenComposed = `package main
@@ -171,7 +171,7 @@ var cliCommands = []cli_entrypoint.BuildCommandsFunc{example_cli.NewCliCommands}
 // main is the main entrypoint.
 func main() {
 	composition := project_compose.Compose()
-	cli_entrypoint.Main("my-app", "my-app", append(factories, composition.Factories...), configSets, append(cliCommands, composition.Commands...))
+	cli_entrypoint.Main("my-app", "my-app", append(factories, composition.Factories...), configSets, append(cliCommands, composition.Commands...), composition.Flags)
 }
 `
 

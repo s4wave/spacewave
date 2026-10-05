@@ -274,5 +274,5 @@ var cliCommands = []cli_entrypoint.BuildCommandsFunc{}
 // main is the main entrypoint.
 func main() {
 	composition := project_compose.Compose()
-	cli_entrypoint.Main("spacewave", "spacewave", append(factories, composition.Factories...), configSets, append(cliCommands, composition.Commands...))
+	cli_entrypoint.Main("spacewave", "spacewave", append(factories, composition.Factories...), configSets, append(cliCommands, composition.Commands...), composition.Flags)
 }

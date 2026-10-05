@@ -152,6 +152,7 @@ func runCliMain(
 			Value:   "auto",
 		},
 	}
+	app.Flags = append(app.Flags, composition.Flags...)
 
 	// Prepare logging and state paths before each command.
 	app.Before = func(c *cli.Context) error {
@@ -244,21 +245,33 @@ func runCliMain(
 	return app.RunContext(ctx, os.Args)
 }
 
+// distVersionIdentity is the release identity the version command prints.
 type distVersionIdentity struct {
-	SchemaVersion  int
-	ProjectID      string
+	// SchemaVersion is the version of this record's JSON shape.
+	SchemaVersion int
+	// ProjectID is the bldr project ID.
+	ProjectID string
+	// EntrypointRole names the kind of distribution entrypoint.
 	EntrypointRole string
-	ChannelKey     string
-	PlatformID     string
+	// ChannelKey is the release channel.
+	ChannelKey string
+	// PlatformID is the distribution's platform.
+	PlatformID string
+	// StartupPlugins are the plugins the distribution starts.
 	StartupPlugins []string
-	Manifest       distVersionManifestIdentity
+	// Manifest identifies the release manifest.
+	Manifest distVersionManifestIdentity
 }
 
+// distVersionManifestIdentity identifies a distribution's release manifest.
 type distVersionManifestIdentity struct {
+	// ManifestID is the manifest ID.
 	ManifestID string
-	Rev        uint64
+	// Rev is the manifest revision.
+	Rev uint64
 }
 
+// newDistVersionCommand builds the version command from the dist metadata.
 func newDistVersionCommand(distMeta *bldr_dist.DistMeta) *cli.Command {
 	return &cli.Command{
 		Name:  "version",
@@ -280,6 +293,7 @@ func newDistVersionCommand(distMeta *bldr_dist.DistMeta) *cli.Command {
 					Rev:        distMeta.GetManifestRev(),
 				},
 			}
+
 			// Write the identity as JSON or plain text.
 			if c.Bool("json") {
 				_, err := c.App.Writer.Write(marshalDistVersionIdentity(identity))
@@ -291,6 +305,7 @@ func newDistVersionCommand(distMeta *bldr_dist.DistMeta) *cli.Command {
 	}
 }
 
+// marshalDistVersionIdentity encodes identity as a JSON line.
 func marshalDistVersionIdentity(identity distVersionIdentity) []byte {
 	// Encode the scalar identity fields into a JSON object.
 	var arena fastjson.Arena

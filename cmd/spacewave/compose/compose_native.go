@@ -68,4 +68,5 @@ func composeNative(composition *compose.Composition) {
 		}
 		return spacewave_cli.NewCliCommands(protectedGetBus, yield)
 	})
+	composition.Flags = append(composition.Flags, spacewave_cli.NewRootFlags()...)
 }

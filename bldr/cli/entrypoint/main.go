@@ -23,13 +23,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Main boots the CliBus and runs the CLI application.
+// Main boots the CliBus and runs the CLI application. flags are added to the
+// root flags, so they are accepted before any command.
 func Main(
 	appName string,
 	projectID string,
 	factories []AddFactoryFunc,
 	configSets []BuildConfigSetFunc,
 	commandBuilders []BuildCommandsFunc,
+	flags []cli.Flag,
 ) {
 	// Run until the process is interrupted.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -187,6 +189,7 @@ func Main(
 			Value:   "auto",
 		},
 	}
+	app.Flags = append(app.Flags, flags...)
 
 	// app.Before initializes logging and attaches log file hooks.
 	app.Before = func(c *cli.Context) error {
@@ -345,18 +348,28 @@ func Main(
 	}
 }
 
+// standaloneVersionIdentity is the release identity the version command prints.
 type standaloneVersionIdentity struct {
-	SchemaVersion  int
-	ProjectID      string
+	// SchemaVersion is the version of this record's JSON shape.
+	SchemaVersion int
+	// ProjectID is the bldr project ID.
+	ProjectID string
+	// EntrypointRole names the kind of entrypoint, here standalone.
 	EntrypointRole string
-	ChannelKey     string
-	PlatformID     string
-	Manifest       struct {
+	// ChannelKey is the release channel; empty outside a distribution.
+	ChannelKey string
+	// PlatformID is the host platform, as desktop/<os>/<arch>.
+	PlatformID string
+	// Manifest identifies the release manifest; empty outside a distribution.
+	Manifest struct {
+		// ManifestID is the manifest ID.
 		ManifestID string
-		Rev        uint64
+		// Rev is the manifest revision.
+		Rev uint64
 	}
 }
 
+// newStandaloneVersionCommand builds the version command of a standalone CLI.
 func newStandaloneVersionCommand(projectID string) *cli.Command {
 	return &cli.Command{
 		Name:  "version",
@@ -381,6 +394,7 @@ func newStandaloneVersionCommand(projectID string) *cli.Command {
 	}
 }
 
+// marshalStandaloneVersionIdentity encodes identity as a JSON line.
 func marshalStandaloneVersionIdentity(identity standaloneVersionIdentity) []byte {
 	// Marshal the top-level identity fields into a JSON object.
 	var arena fastjson.Arena

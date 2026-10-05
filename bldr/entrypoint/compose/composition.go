@@ -2,7 +2,10 @@
 
 package compose
 
-import cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+import (
+	"github.com/aperturerobotics/cli"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+)
 
 // Composition is the project-supplied part of a native host process.
 type Composition struct {
@@ -13,4 +16,6 @@ type Composition struct {
 	Factories []AddFactoriesFunc
 	// Commands build the project's CLI commands.
 	Commands []cli_entrypoint.BuildCommandsFunc
+	// Flags are the project's root CLI flags, accepted before any command.
+	Flags []cli.Flag
 }

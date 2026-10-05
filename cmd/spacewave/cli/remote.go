@@ -16,7 +16,13 @@ import (
 // remoteEnvVars are the environment variables that select a remote daemon.
 var remoteEnvVars = []string{"SPACEWAVE_REMOTE_DAEMON"}
 
+// NewRootFlags returns the flags accepted before any command.
+func NewRootFlags() []cli.Flag {
+	return []cli.Flag{remoteFlag()}
+}
+
 // remoteFlag returns the flag that sends commands to another session's daemon.
+// It is both a root flag and a client command flag.
 func remoteFlag() cli.Flag {
 	return &cli.StringFlag{
 		Name:    "remote-daemon",

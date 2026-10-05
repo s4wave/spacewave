@@ -28,7 +28,8 @@ output binary
 
 The generated `main.go` calls `cli_entrypoint.Main()` which:
 
-1. Parses global flags (`--state-path`, `--log-level`, `--watch`)
+1. Parses global flags (`--state-path`, `--log-level`, `--watch`, and any
+   composition `Flags`)
 2. Boots a DevtoolBus with storage and world engine
 3. Registers all discovered controller factories
 4. Applies the embedded ConfigSet
@@ -36,7 +37,8 @@ The generated `main.go` calls `cli_entrypoint.Main()` which:
 6. Adds all custom CLI commands from `cli_pkgs`
 
 With `composePackage`, `main` first calls the package's `Compose()` and adds its
-factories and commands to the discovered ones.
+factories and commands to the discovered ones. Its `Flags` become root flags,
+accepted before any command.
 
 ## Configuration
 
