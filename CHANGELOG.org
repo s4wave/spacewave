@@ -1,5 +1,49 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.25
+<2026-10-04 Sun>
+
+Spacewave 0.57.25 adds command-line tools for linking devices of the same
+account, fixes sign-in after logging out, and makes release updates and shared
+local storage more reliable.
+
+** Features
+- The command line can now link another device to a Session. `spacewave session
+  pair` issues a pairing code, shows the `login pair` command to run on the
+  other device, and approves the device after the emoji check. Add `--yes` to
+  approve without the prompt when scripting.
+- A Spacewave daemon can now be reached directly from another Session of the
+  same account. Run `spacewave serve --udp-listen host:port` on one device, then
+  pass `--remote-daemon <peer-id>@<host:port>` to any command on another device.
+  The Session key never leaves the device that holds it.
+
+** Fixes
+- Logging out and then signing back in to the same account now works. Before,
+  the old Session could stay active and block the new sign-in.
+- `session pair` now prints the ID of the Session that was actually linked, and
+  `session revoke` accepts that ID. Before, it printed a temporary pairing ID,
+  and revoking that ID reported success while leaving the linked Session in
+  place.
+- `session revoke` now works for local accounts, which have no password or
+  passkey, and refuses IDs that are not a Session or paired device of the
+  account.
+- A command run against the device's own Session now fails immediately instead
+  of hanging.
+- Long-running copies of Spacewave now keep following published updates. Before,
+  content changed by a release could fail to load until you restarted the app.
+
+** Improvements
+- When several Spacewave processes share the same local storage, a process
+  waiting for its turn to write now resumes as soon as the other process
+  finishes, without a fixed delay between checks.
+
+** Security
+- Remote shell access now requires the connecting device to be signed in to the
+  same account. Devices from other accounts that happen to share a Space are
+  refused.
+- Direct device-to-device connections between Sessions are admitted only for
+  active, unrevoked Sessions of the same account.
+
 * v0.57.24
 <2026-10-04 Sun>
 
