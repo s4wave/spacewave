@@ -1,4 +1,5 @@
-# Importing a local git repository stores a readable git/repo object.
+# Importing a local git repository stores a git/repo object that stays
+# readable after the daemon restarts.
 env SPACEWAVE_CLI_AUTOSTART=true
 git-fixture $WORK/git-fixture
 
@@ -15,6 +16,15 @@ stdout "Repo:      fixture"
 stdout "HEAD:      main ("
 stdout "Empty:     false"
 stdout "README:    README.md"
+stdout "Message:    initial fixture"
+
+spacewave --state-path $WORK/state stop
+stdout "Stopped Spacewave daemon."
+
+# Restart the daemon and read the repo back from its stored blocks.
+spacewave --state-path $WORK/state git show fixture
+stdout "Repo:      fixture"
+stdout "HEAD:      main ("
 stdout "Message:    initial fixture"
 
 spacewave --state-path $WORK/state stop
