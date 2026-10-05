@@ -288,6 +288,12 @@ func TestAccountPairingExchange(t *testing.T) {
 				t.Fatal("paired Session was not named with the receiver's label")
 			}
 
+			// The approving client learns the enrolled Session, not the pairing link.
+			enrolled := settings.FindAccountSession(verifying.SessionPeerID)
+			if enrolled == nil || enrolled.GetRevoked() || verifying.SessionPeerID == receivingSession.GetPeerId().String() {
+				t.Fatalf("approval named Session peer %q, want the enrolled Session", verifying.SessionPeerID)
+			}
+
 			// Open the offered account on the receiving store.
 			account, releaseAccount, err := receiver.t.p.AccessProviderAccount(ctx, source.GetAccountID(), nil)
 			if err != nil {

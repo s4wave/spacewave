@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
@@ -12,12 +13,14 @@ import (
 // UnlinkDevice removes a paired device from the account settings SO and
 // revokes its SO participant access on all shared objects.
 func (a *ProviderAccount) UnlinkDevice(ctx context.Context, remotePeerID peer.ID) error {
+	// Hold the replica auth lock until unlinking finishes.
 	release, err := a.replicaAuth.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
+	// Resolve the account settings and the peer identity to revoke.
 	remotePeerIDStr := remotePeerID.String()
 	accountSettingsRef, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
@@ -29,7 +32,18 @@ func (a *ProviderAccount) UnlinkDevice(ctx context.Context, remotePeerID peer.ID
 		return err
 	}
 	identities := []string{remotePeerIDStr}
-	if member := settings.FindAccountSession(remotePeerIDStr); member != nil {
+
+	// Refuse a peer that is neither a Session nor a paired Device of the account.
+	member := settings.FindAccountSession(remotePeerIDStr)
+	paired := slices.ContainsFunc(settings.GetPairedDevices(), func(device *account_settings.PairedDevice) bool {
+		return device.GetPeerId() == remotePeerIDStr
+	})
+	if member == nil && !paired {
+		return errors.Errorf("peer %s is not a session or paired device of this account", remotePeerIDStr)
+	}
+
+	// Revoke the session member and release its replica peer.
+	if member != nil {
 		writer, err := a.vol.GetPeer(ctx, true)
 		if err != nil {
 			return err
@@ -72,6 +86,7 @@ func (a *ProviderAccount) UnlinkDevice(ctx context.Context, remotePeerID peer.ID
 	}
 	a.releaseAccountReplicaPeer(remotePeerID)
 
+	// Revoke the peer on every shared object and remove the paired device.
 	soList := a.soListCtr.GetValue()
 	for _, entry := range soList.GetSharedObjects() {
 		ref := entry.GetRef()

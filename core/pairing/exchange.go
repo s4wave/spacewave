@@ -184,13 +184,18 @@ func (e *Engine) runStream(ctx context.Context, active *attempt, strm io.ReadWri
 
 	// Publish the offer, identity, and emoji as the verifying snapshot.
 	e.update(active, func(a *attempt) {
-		// Record the remote peer, account, provider, and emoji to verify.
-		a.snapshot.RemotePeerID = remote
+		// Record the offered account and its provider.
 		a.snapshot.AccountID = offer.GetAccountId()
 		a.snapshot.AccountName = offer.GetDisplayName()
 		a.snapshot.ProviderID = SessionProviderID(offer)
 		a.snapshot.Receiving = !enrollment.Offering
+
+		// Record the pairing link, the other client, and the Session it enrolls.
+		a.snapshot.RemotePeerID = remote
 		a.snapshot.RemoteLabel = enrollment.RemoteLabel
+		a.snapshot.SessionPeerID = identity.GetSessionProof().GetResponderPeerId()
+
+		// Show the emoji for both people to compare.
 		a.snapshot.Emoji = emoji
 		a.snapshot.Status = StatusVerifyingEmoji
 	})

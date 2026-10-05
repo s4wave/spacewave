@@ -158,7 +158,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "078c66e49654b0236b411510f028fa81589898d2fc3730e623980630f68557a6",
+      "hash": "5c8564f91ee497da2022b9279069af51a02749be29e6f64137e0b3d2a2bb9452",
       "generatedFiles": [
         "sdk/session/session_pb2.py",
         "sdk/session/session_pb2.pyi",

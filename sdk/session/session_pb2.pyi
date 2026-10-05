@@ -750,7 +750,7 @@ class WatchPairingStatusRequest(_message.Message):
     def __init__(self) -> None: ...
 
 class WatchPairingStatusResponse(_message.Message):
-    __slots__ = ("status", "remote_peer_id", "code", "emoji", "error_message", "account_id", "receiving", "account_name", "choice", "remote_label")
+    __slots__ = ("status", "remote_peer_id", "code", "emoji", "error_message", "account_id", "receiving", "account_name", "choice", "remote_label", "session_peer_id")
     STATUS_FIELD_NUMBER: _ClassVar[int]
     REMOTE_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     CODE_FIELD_NUMBER: _ClassVar[int]
@@ -761,6 +761,7 @@ class WatchPairingStatusResponse(_message.Message):
     ACCOUNT_NAME_FIELD_NUMBER: _ClassVar[int]
     CHOICE_FIELD_NUMBER: _ClassVar[int]
     REMOTE_LABEL_FIELD_NUMBER: _ClassVar[int]
+    SESSION_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     status: PairingStatus
     remote_peer_id: str
     code: str
@@ -771,7 +772,8 @@ class WatchPairingStatusResponse(_message.Message):
     account_name: str
     choice: _pairing_pb2.AccountChoice
     remote_label: str
-    def __init__(self, status: _Optional[_Union[PairingStatus, str]] = ..., remote_peer_id: _Optional[str] = ..., code: _Optional[str] = ..., emoji: _Optional[_Iterable[str]] = ..., error_message: _Optional[str] = ..., account_id: _Optional[str] = ..., receiving: _Optional[bool] = ..., account_name: _Optional[str] = ..., choice: _Optional[_Union[_pairing_pb2.AccountChoice, _Mapping]] = ..., remote_label: _Optional[str] = ...) -> None: ...
+    session_peer_id: str
+    def __init__(self, status: _Optional[_Union[PairingStatus, str]] = ..., remote_peer_id: _Optional[str] = ..., code: _Optional[str] = ..., emoji: _Optional[_Iterable[str]] = ..., error_message: _Optional[str] = ..., account_id: _Optional[str] = ..., receiving: _Optional[bool] = ..., account_name: _Optional[str] = ..., choice: _Optional[_Union[_pairing_pb2.AccountChoice, _Mapping]] = ..., remote_label: _Optional[str] = ..., session_peer_id: _Optional[str] = ...) -> None: ...
 
 class CreateSpaceInviteRequest(_message.Message):
     __slots__ = ("space_id", "role", "target_peer_id", "max_uses", "expires_at", "approval_required", "participant_of")

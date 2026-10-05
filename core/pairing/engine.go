@@ -16,54 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Status matches the Session resource's pairing status enum.
-type Status int32
-
-const (
-	StatusIdle Status = iota
-	StatusCodeGenerated
-	StatusWaitingForPeer
-	StatusPeerConnected
-	StatusVerifyingEmoji
-	StatusVerified
-	StatusFailed
-	StatusSignalingFailed
-	StatusConnectionTimeout
-	StatusWaitingForRemote
-	StatusBothConfirmed
-	StatusPairingRejected
-	StatusConfirmationTimeout
-	StatusEnrolling
-	StatusSelectingAccount
-)
-
-// Snapshot describes one Session's current pairing operation.
-type Snapshot struct {
-	// Status is the operation's current phase.
-	Status Status
-	// Code is the pairing code this client registered, when it created one.
-	Code string
-	// RemotePeerID is the other client's Session peer once it is known.
-	RemotePeerID peer.ID
-	// Emoji is the SAS sequence both people compare before approving.
-	Emoji []string
-	// ErrMsg describes the failure when Status is a failure phase.
-	ErrMsg string
-	// AccountID is the account selected for enrollment.
-	AccountID string
-	// AccountName is the selected account's display name.
-	AccountName string
-	// ProviderID is the provider that holds the selected account.
-	ProviderID string
-	// RemoteLabel is the name the other client gave itself, shown on the
-	// approval screen and recorded for the Session it enrolls.
-	RemoteLabel string
-	// Receiving indicates this client is adding the selected account.
-	Receiving bool
-	// Choice is the proposed account relationship once both offers are known.
-	Choice *AccountChoice
-}
-
 // Engine owns approval and enrollment for one mounted Session. Account adapters
 // own provider authorization and persistence; its transport remains owned by the
 // Session's ordinary transport lifecycle.
@@ -316,8 +268,13 @@ func (e *Engine) Snapshot() (Snapshot, <-chan struct{}) {
 }
 
 var (
-	ErrExchangeMissing      = errors.New("pairing exchange is missing")
-	ErrExchangeUnconfirmed  = errors.New("account enrollment is not complete")
+	// ErrExchangeMissing is returned when no pairing operation is active.
+	ErrExchangeMissing = errors.New("pairing exchange is missing")
+	// ErrExchangeUnconfirmed is returned before both clients approve and the
+	// receiving side holds its enrolled Session.
+	ErrExchangeUnconfirmed = errors.New("account enrollment is not complete")
+	// ErrExchangePeerMismatch is returned when the caller names a peer other
+	// than the active operation's pairing link.
 	ErrExchangePeerMismatch = errors.New("pairing exchange peer does not match")
 )
 

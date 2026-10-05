@@ -28,15 +28,16 @@ func (r *SessionResource) WatchPairingStatus(
 // pairingSnapshotToProto converts a pairing snapshot to a proto response.
 func pairingSnapshotToProto(snap pairing.Snapshot) *s4wave_session.WatchPairingStatusResponse {
 	resp := &s4wave_session.WatchPairingStatusResponse{
-		Status:       s4wave_session.PairingStatus(snap.Status),
-		Code:         snap.Code,
-		Emoji:        snap.Emoji,
-		ErrorMessage: snap.ErrMsg,
-		AccountId:    snap.AccountID,
-		AccountName:  snap.AccountName,
-		Choice:       snap.Choice.CloneVT(),
-		Receiving:    snap.Receiving,
-		RemoteLabel:  snap.RemoteLabel,
+		Status:        s4wave_session.PairingStatus(snap.Status),
+		Code:          snap.Code,
+		Emoji:         snap.Emoji,
+		ErrorMessage:  snap.ErrMsg,
+		AccountId:     snap.AccountID,
+		AccountName:   snap.AccountName,
+		Choice:        snap.Choice.CloneVT(),
+		Receiving:     snap.Receiving,
+		RemoteLabel:   snap.RemoteLabel,
+		SessionPeerId: snap.SessionPeerID,
 	}
 	if len(snap.RemotePeerID) > 0 {
 		resp.RemotePeerId = snap.RemotePeerID.String()

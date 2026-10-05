@@ -812,6 +812,10 @@ message WatchPairingStatusResponse {
   // RemoteLabel is the name the other device gave itself (set during
   // verification).
   string remote_label = 10;
+  // SessionPeerId is the base58 peer ID of the receiving Session the approval
+  // enrolls (set during verification). It differs from RemotePeerId, which
+  // names the pairing link.
+  string session_peer_id = 11;
 }
 
 // -- Space Invites --

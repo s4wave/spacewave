@@ -3107,6 +3107,14 @@ export interface WatchPairingStatusResponse {
    * @generated from field: string remote_label = 10;
    */
   remoteLabel?: string
+  /**
+   * SessionPeerId is the base58 peer ID of the receiving Session the approval
+   * enrolls (set during verification). It differs from RemotePeerId, which
+   * names the pairing link.
+   *
+   * @generated from field: string session_peer_id = 11;
+   */
+  sessionPeerId?: string
 }
 
 export const WatchPairingStatusResponse: MessageType<WatchPairingStatusResponse> =
@@ -3129,6 +3137,7 @@ export const WatchPairingStatusResponse: MessageType<WatchPairingStatusResponse>
       { no: 8, name: 'account_name', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'choice', kind: 'message', T: () => AccountChoice },
       { no: 10, name: 'remote_label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 11, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

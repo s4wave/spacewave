@@ -78,7 +78,7 @@ func (a *sessionPairArgs) Run(c *cli.Context) error {
 	}
 
 	// Approve the device that enters the code.
-	remotePeerID, remoteLabel, err := a.approve(ctx, sess, outputFormat)
+	sessionPeerID, remoteLabel, err := a.approve(ctx, sess, outputFormat)
 	if err != nil {
 		return err
 	}
@@ -86,20 +86,21 @@ func (a *sessionPairArgs) Run(c *cli.Context) error {
 	// Report the linked device.
 	if outputFormat == "json" || outputFormat == "yaml" {
 		return writePairingRecord(outputFormat, "linked", [][2]string{
-			{"remotePeerId", remotePeerID},
+			{"sessionPeerId", sessionPeerID},
 			{"remoteLabel", remoteLabel},
 		}, nil, false)
 	}
 	os.Stdout.WriteString("Device linked.\n\n")
 	writeFields(os.Stdout, [][2]string{
 		{"Device", remoteLabel},
-		{"Peer", remotePeerID},
+		{"Session peer", sessionPeerID},
 	})
 	return nil
 }
 
 // approve drives the offering side of the pairing until both devices confirm.
-// It returns the peer ID and label of the linked device.
+// It returns the linked Session's peer ID, which session revoke accepts, and
+// the device label.
 func (a *sessionPairArgs) approve(ctx context.Context, sess *s4wave_session.Session, outputFormat string) (string, string, error) {
 	// Watch pairing status until both devices confirm.
 	watch, err := sess.WatchPairingStatus(ctx)
@@ -133,7 +134,7 @@ func (a *sessionPairArgs) approve(ctx context.Context, sess *s4wave_session.Sess
 			if !confirmed {
 				return "", "", errors.New("other device confirmed before local verification")
 			}
-			return state.GetRemotePeerId(), state.GetRemoteLabel(), nil
+			return state.GetSessionPeerId(), state.GetRemoteLabel(), nil
 		case s4wave_session.PairingStatus_PairingStatus_PAIRING_REJECTED:
 			return "", "", errors.New("pairing rejected on the other device")
 		case s4wave_session.PairingStatus_PairingStatus_CONFIRMATION_TIMEOUT:
