@@ -259,7 +259,9 @@ func wrapReleaseWithTask(release func(), task *trace.Task) func() {
 
 // NewTransaction opens a read snapshot or a serialized write candidate.
 // Writes replay the current operation set before forking and hold the writer
-// lock until Commit or Discard. Always call Discard when done.
+// lock until Commit or Discard. A write fails with the replay's error when an
+// operation's block is not available, and holds no lock. Always call Discard
+// when done.
 func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	// Read transaction.
 	if !write {
@@ -372,10 +374,19 @@ func (e *soEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ig
 
 // advance replays snap, installs the World after its last placed operation
 // and reports this device's rejected edits. fork, when set, supplies the World
-// after a local write. The caller holds the writer lock.
+// after a local write. When replay stops at an operation whose block is not
+// available, advance installs the World before it and returns the replay's
+// error, so the next advance resumes at that operation. The caller holds the
+// writer lock.
 func (e *soEngine) advance(ctx context.Context, snap sobject.SharedObjectStateSnapshot, fork *replayFork) ([]replayOutcome, error) {
 	// Replay and install the World.
 	state, outcomes, err := e.replay.sync(ctx, snap, fork)
+	if state != nil && errors.Is(err, block.ErrNotFound) {
+		if installErr := e.updateEngineState(ctx, state); installErr != nil {
+			return nil, installErr
+		}
+		return nil, err
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -54,9 +54,14 @@ func (s *replayTestSpace) sign(name string, priv crypto.PrivKey, key string, lin
 	if err != nil {
 		s.t.Fatal(err.Error())
 	}
-	data := marshalApplyTxOpForProcessTest(s.t, tx)
+	return s.signTx(name, priv, tx, link)
+}
 
-	// Sign it under the Space config.
+// signTx signs a World transaction as the next operation of an author.
+func (s *replayTestSpace) signTx(name string, priv crypto.PrivKey, tx *world_block_tx.Tx, link *sobject.SOOperationLink) *sobject.SOOperation {
+	// Encode the transaction and sign it under the Space config.
+	s.t.Helper()
+	data := marshalApplyTxOpForProcessTest(s.t, tx)
 	link.ConfigHash = s.config.GetConfigChainHash()
 	op, err := sobject.BuildSOOperation(replayTestObjectID, priv, data, link, sobject.NewSOOperationLocalID())
 	if err != nil {
