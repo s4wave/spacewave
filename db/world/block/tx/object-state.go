@@ -119,11 +119,10 @@ func (t *ObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, opS
 		return 0, false, tx.ErrDiscarded
 	}
 
-	// Own the op's payload even if it fails, then apply and record it.
-	t.w.addPayloadsLocked(op)
+	// Apply the op, then record it and its payload.
 	objRev, sysErr, err := t.o.ApplyObjectOp(ctx, op, opSender)
 	if err == nil {
-		t.w.txBatch.Txs = append(t.w.txBatch.Txs, tt)
+		t.w.recordLocked(tt, op)
 	}
 	return objRev, sysErr, err
 }
