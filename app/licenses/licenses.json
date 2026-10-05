@@ -790,7 +790,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20261004101904-ce8197909cd4",
+      "version": "v0.0.0-20261005001257-e61f5b5a16a9",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -1090,7 +1090,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-beta.1",
+      "version": "v6.0.0-beta.1.0.20261004195433-f7fe2d920dc4",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
