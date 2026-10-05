@@ -16,8 +16,13 @@ type SessionController interface {
 	// RegisterSession registers a session ref in storage or returns the existing matching entry.
 	// If metadata is non-nil, it is written to the session controller ObjectStore.
 	RegisterSession(ctx context.Context, ref *SessionRef, metadata *SessionMetadata) (*SessionListEntry, error)
-	// DeleteSession removes the matching session ref from the list.
-	// Returns nil if not found.
+	// TrackSession registers a mounted lifetime's stop function until the returned release is called.
+	// DeleteSession calls stop and waits for it to release the Session's resources.
+	// stop must tolerate concurrent calls from repeated deletions.
+	// A lifetime may be tracked before registration while a provider completes login.
+	TrackSession(ref *SessionRef, stop func(context.Context) error) func()
+	// DeleteSession removes the registration and waits for tracked lifetimes to stop.
+	// Returns nil if neither a registration nor a tracked lifetime exists.
 	DeleteSession(ctx context.Context, ref *SessionRef) error
 	// GetSessionMetadata returns the metadata for a session by index.
 	// Returns nil, nil if not found.
@@ -32,5 +37,6 @@ type SessionController interface {
 // SessionTransitionController atomically rebinds a registered client after
 // provider migration has durably installed its independent credential.
 type SessionTransitionController interface {
+	// TransitionSession replaces a registered attachment with its accepted destination.
 	TransitionSession(context.Context, *SessionRef, *SessionRef) error
 }

@@ -26,7 +26,7 @@ import (
 // ControllerID is the controller id.
 const ControllerID = "session"
 
-// Version is the component version
+// Version is the component version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -34,14 +34,31 @@ var controllerDescrip = "session list controller"
 
 // Controller is the session controller.
 type Controller struct {
+	// BusController provides the configured controller and bus lifetime.
 	*bus.BusController[*Config]
 
-	mtx           sync.Mutex
-	bcast         broadcast.Broadcast
-	volumeID      string
+	// mtx serializes Session storage and guards lifetimes and the cached store.
+	mtx sync.Mutex
+	// bcast announces changes to the registered Sessions.
+	bcast broadcast.Broadcast
+	// volumeID identifies the Volume containing the Session registry.
+	volumeID string
+	// objectStoreID identifies the Session registry ObjectStore.
 	objectStoreID string
-	objStore      object.ObjectStore
-	objStoreRel   func()
+	// objStore is the cached registry store, guarded by mtx.
+	objStore object.ObjectStore
+	// objStoreRel releases the cached store directive, guarded by mtx.
+	objStoreRel func()
+	// lifetimes holds mounted Session stop functions, guarded by mtx.
+	lifetimes map[*sessionLifetime]struct{}
+}
+
+// sessionLifetime binds a mounted Session to its provider's shutdown operation.
+type sessionLifetime struct {
+	// ref identifies the mounted Session independently of caller mutations.
+	ref *session.SessionRef
+	// stop cancels the mounted lifetime and waits for all its resources to release.
+	stop func(context.Context) error
 }
 
 // sessionListPrefix is the key prefix for items in the session list.
@@ -451,13 +468,56 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 	return nil
 }
 
-// DeleteSession removes the matching session ref from the list.
-// Returns nil if not found.
-func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef) error {
-	// Serialize access to the session list.
+// TrackSession retains a stop function for a mounted Session until released.
+func (c *Controller) TrackSession(ref *session.SessionRef, stop func(context.Context) error) func() {
+	// Retain an independent reference and its cleanup under the registry lock.
+	lifetime := &sessionLifetime{ref: ref.CloneVT(), stop: stop}
 	c.mtx.Lock()
-	defer c.mtx.Unlock()
+	if c.lifetimes == nil {
+		c.lifetimes = make(map[*sessionLifetime]struct{})
+	}
+	c.lifetimes[lifetime] = struct{}{}
+	c.mtx.Unlock()
 
+	// Remove the completed lifetime without stopping other mounts of the Session.
+	return func() {
+		c.mtx.Lock()
+		delete(c.lifetimes, lifetime)
+		c.mtx.Unlock()
+	}
+}
+
+// DeleteSession removes the Session registration and waits for its mounted resources to stop.
+// Returns nil if neither a registration nor a mounted lifetime exists.
+func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef) error {
+	// Commit the registry deletion before stopping the matching mounted lifetimes.
+	c.mtx.Lock()
+	err := c.deleteSessionLocked(ctx, ref)
+	lifetimes := make([]*sessionLifetime, 0, len(c.lifetimes))
+	if err == nil {
+		for lifetime := range c.lifetimes {
+			if lifetime.ref.EqualVT(ref) {
+				lifetimes = append(lifetimes, lifetime)
+			}
+		}
+	}
+	c.mtx.Unlock()
+	if err != nil {
+		return err
+	}
+
+	// Stop outside the registry lock because trackers release registry references.
+	var stopErrs []error
+	for _, lifetime := range lifetimes {
+		if err := lifetime.stop(ctx); err != nil {
+			stopErrs = append(stopErrs, err)
+		}
+	}
+	return errors.Join(stopErrs...)
+}
+
+// deleteSessionLocked deletes Session records with mtx held.
+func (c *Controller) deleteSessionLocked(ctx context.Context, ref *session.SessionRef) error {
 	// Open the sessions object store.
 	objStore, err := c.buildObjectStoreLocked(ctx)
 	if err != nil {
