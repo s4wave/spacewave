@@ -27,6 +27,7 @@ func newSessionCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newSessionListCommand(),
 			newSessionInfoCommand(),
 			newSessionAttachLocalCommand(),
+			newSessionPairCommand(),
 			newSessionLogoutCommand(),
 			newSessionRevokeCommand(),
 		},

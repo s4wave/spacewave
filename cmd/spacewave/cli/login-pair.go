@@ -202,35 +202,49 @@ func verifyLoginPairing(ctx context.Context, sess *s4wave_session.Session, remot
 // printPairingEmoji writes the emoji the person approving on the other device
 // compares. Structured output emits one record before the final Session record.
 func printPairingEmoji(emoji []string, outputFormat string) error {
-	// Start the verify object and write the status.
-	if outputFormat != "json" && outputFormat != "yaml" {
-		os.Stdout.WriteString("Ask the person approving in Spacewave to check these emoji match:\n" + strings.Join(emoji, " ") + "\n")
-		return nil
+	if outputFormat == "json" || outputFormat == "yaml" {
+		return writePairingRecord(outputFormat, "verify", nil, emoji, true)
 	}
+	os.Stdout.WriteString("Ask the person approving in Spacewave to check these emoji match:\n" + strings.Join(emoji, " ") + "\n")
+	return nil
+}
+
+// writePairingRecord writes one structured pairing progress record with its
+// status, string fields, and optional emoji. More separates it from the
+// record that follows in a YAML stream.
+func writePairingRecord(outputFormat, status string, fields [][2]string, emoji []string, more bool) error {
+	// Write the status and the string fields.
 	buf, ms := newMarshalBuf()
 	ms.WriteObjectStart()
 	var f bool
 	ms.WriteMoreIf(&f)
 	ms.WriteObjectField("status")
-	ms.WriteString("verify")
-
-	// Write the emoji array and close the object.
-	ms.WriteMoreIf(&f)
-	ms.WriteObjectField("emoji")
-	ms.WriteArrayStart()
-	var g bool
-	for _, e := range emoji {
-		ms.WriteMoreIf(&g)
-		ms.WriteString(e)
+	ms.WriteString(status)
+	for _, field := range fields {
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField(field[0])
+		ms.WriteString(field[1])
 	}
-	ms.WriteArrayEnd()
+
+	// Write the emoji array when present and close the object.
+	if len(emoji) != 0 {
+		ms.WriteMoreIf(&f)
+		ms.WriteObjectField("emoji")
+		ms.WriteArrayStart()
+		var g bool
+		for _, e := range emoji {
+			ms.WriteMoreIf(&g)
+			ms.WriteString(e)
+		}
+		ms.WriteArrayEnd()
+	}
 	ms.WriteObjectEnd()
 
-	// Emit the verify object.
+	// Emit the record.
 	if err := formatOutput(buf.Bytes(), outputFormat); err != nil {
 		return err
 	}
-	if outputFormat == "yaml" {
+	if more && outputFormat == "yaml" {
 		os.Stdout.WriteString("---\n")
 	}
 	return nil
