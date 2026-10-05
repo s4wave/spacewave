@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
+	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 )
 
 // MaxRootPackedmsgBytes caps anonymous root.packedmsg fetches.
@@ -26,6 +28,40 @@ func RootPointerBaseURL(cdnBaseURL, rootBaseURL string) string {
 		return rootBaseURL
 	}
 	return cdnBaseURL
+}
+
+// waitPointerChange returns the root pointer guarded by bcast once it differs
+// from prev. current reads the pointer under the lock and reports whether the
+// store has closed.
+func waitPointerChange(
+	ctx context.Context,
+	bcast *broadcast.Broadcast,
+	prev *cdn.CdnRootPointer,
+	current func() (*cdn.CdnRootPointer, bool),
+) (*cdn.CdnRootPointer, error) {
+	for {
+		// Read the pointer and its next change event under the same lock.
+		var ptr *cdn.CdnRootPointer
+		var closed bool
+		var changed <-chan struct{}
+		bcast.HoldLock(func(_ func(), wait func() <-chan struct{}) {
+			ptr, closed = current()
+			changed = wait()
+		})
+
+		// Return a changed pointer, or wait for the next publication.
+		if closed {
+			return nil, packfile_store.ErrPackfileStoreClosed
+		}
+		if !ptr.EqualVT(prev) {
+			return ptr, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-changed:
+		}
+	}
 }
 
 // FetchRootPointer fetches and decodes root.packedmsg for a CDN Space.
@@ -81,8 +117,12 @@ func FetchRootPointer(ctx context.Context, httpCli *http.Client, cdnBaseURL, spa
 	return pointer, nil
 }
 
+// rootPointerResponse is a platform HTTP response for root.packedmsg.
 type rootPointerResponse interface {
+	// StatusCode returns the HTTP status code.
 	StatusCode() int
+	// Body returns the response body.
 	Body() io.Reader
+	// Close releases the response.
 	Close()
 }

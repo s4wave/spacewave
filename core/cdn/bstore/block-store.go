@@ -296,6 +296,14 @@ func (s *CdnBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error
 	return s.loadPointer(ctx)
 }
 
+// WaitPointer blocks until the cached root pointer differs from prev and
+// returns it.
+func (s *CdnBlockStore) WaitPointer(ctx context.Context, prev *cdn.CdnRootPointer) (*cdn.CdnRootPointer, error) {
+	return waitPointerChange(ctx, &s.bcast, prev, func() (*cdn.CdnRootPointer, bool) {
+		return s.pointer, s.closed
+	})
+}
+
 // Invalidate drops the cached pointer so the next read re-fetches.
 func (s *CdnBlockStore) Invalidate() {
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {

@@ -145,8 +145,8 @@ func (s *CdnSharedObject) GetCheckpoint() (*sobject.SOCheckpointInner, error) {
 
 // RefreshSnapshot forces the CDN block store to re-fetch the root pointer
 // and emits a fresh cdnStateSnapshot on the watch container. Callers that
-// observe cdn-root-changed signals invoke this so downstream consumers
-// (engine refresh goroutine, SpaceSharedObjectBody) see the new head ref.
+// observe cdn-root-changed signals invoke this so snapshot consumers such as
+// SpaceSharedObjectBody see the new head ref.
 func (s *CdnSharedObject) RefreshSnapshot(ctx context.Context) error {
 	if _, err := s.bs.Refresh(ctx); err != nil {
 		s.health.SetValue(sobject.BuildSharedObjectHealthFromError(

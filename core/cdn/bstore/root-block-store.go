@@ -23,6 +23,10 @@ type RootBlockStore interface {
 	// Refresh re-fetches the root pointer.
 	// Returns nil if the CDN Space has no published root.
 	Refresh(ctx context.Context) (*cdn.CdnRootPointer, error)
+	// WaitPointer blocks until the cached root pointer differs from prev and
+	// returns it. Every fetch that changes the pointer wakes it, including
+	// the pointer TTL refresh made by a block read.
+	WaitPointer(ctx context.Context, prev *cdn.CdnRootPointer) (*cdn.CdnRootPointer, error)
 	// Close releases resources owned by the store.
 	Close()
 }

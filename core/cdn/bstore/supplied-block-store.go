@@ -25,6 +25,9 @@ type SuppliedOptions struct {
 	SpaceID string
 	// HttpClient overrides the default http.Client for root pointer fetches.
 	HttpClient *http.Client
+	// PointerTTL is the age at which a read re-fetches the root pointer. Zero
+	// falls back to DefaultPointerTTL; negative disables the re-fetch.
+	PointerTTL time.Duration
 	// Store serves every block read. Another owner holds the CDN transport,
 	// pack readers, and durable writeback behind it.
 	Store block_store.Store
@@ -37,7 +40,10 @@ type SuppliedOptions struct {
 // owning process holds the single CDN transport, pack readers, index cache,
 // decoded-block cache, and durable writeback, and every other process reads
 // the same Space through that owner rather than opening a second transport.
-// The root pointer stays local so the reader can build its world view.
+// The root pointer stays local so the reader can build its world view. The
+// owner replaces its pack manifest as its own pointer ages, so reads here
+// re-fetch an aged pointer too and the world view follows the owner's
+// manifest.
 type SuppliedBlockStore struct {
 	// store serves every block read.
 	store block_store.Store
@@ -47,15 +53,22 @@ type SuppliedBlockStore struct {
 	rootBaseURL string
 	// spaceID is the CDN Space ULID.
 	spaceID string
+	// pointerTTL is the age at which a read re-fetches the pointer.
+	pointerTTL time.Duration
 
-	// bcast guards the cached pointer.
+	// bcast guards the cached pointer and its fetch state.
 	bcast broadcast.Broadcast
 	// pointer is the most recently fetched root pointer.
 	pointer *cdn.CdnRootPointer
+	// pointerTime is when pointer was fetched; zero before the first Refresh.
+	pointerTime time.Time
+	// refreshing is set while a read re-fetches an aged pointer.
+	refreshing bool
 }
 
 // NewSuppliedBlockStore constructs a SuppliedBlockStore. The pointer is not
-// fetched until Refresh is called.
+// fetched until Refresh is called; reads re-fetch it once it is older than
+// PointerTTL.
 func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
 	// Require the CDN origin, Space, and supplied store.
 	if opts.CdnBaseURL == "" {
@@ -73,11 +86,16 @@ func NewSuppliedBlockStore(opts SuppliedOptions) (*SuppliedBlockStore, error) {
 	if cli == nil {
 		cli = http.DefaultClient
 	}
+	ttl := opts.PointerTTL
+	if ttl == 0 {
+		ttl = DefaultPointerTTL
+	}
 	return &SuppliedBlockStore{
 		store:       opts.Store,
 		cli:         cli,
 		rootBaseURL: RootPointerBaseURL(opts.CdnBaseURL, opts.RootPointerBaseURL),
 		spaceID:     opts.SpaceID,
+		pointerTTL:  ttl,
 	}, nil
 }
 
@@ -118,12 +136,49 @@ func (s *SuppliedBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, 
 	if err != nil {
 		return nil, err
 	}
-	// Publish the fetched pointer to watchers.
+	// Publish a changed pointer to watchers.
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		changed := !ptr.EqualVT(s.pointer)
 		s.pointer = ptr
-		broadcastFn()
+		s.pointerTime = time.Now()
+		if changed {
+			broadcastFn()
+		}
 	})
 	return ptr, nil
+}
+
+// WaitPointer blocks until the cached root pointer differs from prev and
+// returns it.
+func (s *SuppliedBlockStore) WaitPointer(ctx context.Context, prev *cdn.CdnRootPointer) (*cdn.CdnRootPointer, error) {
+	return waitPointerChange(ctx, &s.bcast, prev, func() (*cdn.CdnRootPointer, bool) {
+		return s.pointer, false
+	})
+}
+
+// refreshAgedPointer re-fetches a pointer older than the pointer TTL. One read
+// fetches at a time while the others continue. A failed fetch keeps the
+// current pointer for the next read to retry: the supplying owner serves the
+// block either way, so the fetch never fails the read.
+func (s *SuppliedBlockStore) refreshAgedPointer(ctx context.Context) {
+	// Claim the re-fetch of a pointer past its TTL.
+	var due bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		due = !s.refreshing && !s.pointerTime.IsZero() &&
+			s.pointerTTL >= 0 && time.Since(s.pointerTime) >= s.pointerTTL
+		if due {
+			s.refreshing = true
+		}
+	})
+	if !due {
+		return
+	}
+
+	// Re-fetch the pointer, then release the claim.
+	_, _ = s.Refresh(ctx)
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		s.refreshing = false
+	})
 }
 
 // Close releases resources used by the store. The supplied store is owned by
@@ -142,31 +197,37 @@ func (s *SuppliedBlockStore) GetSupportedFeatures() block.StoreFeature {
 
 // BeginReadOperation opens a read scope on the supplied store.
 func (s *SuppliedBlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	s.refreshAgedPointer(ctx)
 	return s.store.BeginReadOperation(ctx)
 }
 
 // GetBlock forwards to the supplied store.
 func (s *SuppliedBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	s.refreshAgedPointer(ctx)
 	return s.store.GetBlock(ctx, ref)
 }
 
 // GetStoredBlock forwards to the inner store.
 func (s *SuppliedBlockStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	s.refreshAgedPointer(ctx)
 	return s.store.GetStoredBlock(ctx, ref)
 }
 
 // GetBlockExists forwards to the supplied store.
 func (s *SuppliedBlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	s.refreshAgedPointer(ctx)
 	return s.store.GetBlockExists(ctx, ref)
 }
 
 // GetBlockExistsBatch forwards to the supplied store.
 func (s *SuppliedBlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	s.refreshAgedPointer(ctx)
 	return s.store.GetBlockExistsBatch(ctx, refs)
 }
 
 // StatBlock forwards to the supplied store.
 func (s *SuppliedBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+	s.refreshAgedPointer(ctx)
 	return s.store.StatBlock(ctx, ref)
 }
 

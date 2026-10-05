@@ -83,6 +83,9 @@ func (c *Controller) ownsBlockStore() bool {
 // no CDN transport is opened here; the root pointer is still fetched so the
 // mount can build its world head.
 func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockStore, func(), error) {
+	// Both read paths re-fetch the root pointer at the configured age.
+	pointerTTL, _ := c.conf.ParsePointerTTLDur()
+
 	// Reuse the configured authority when another bus owns the CDN store.
 	if suppliedID := c.conf.GetSuppliedBlockStoreId(); suppliedID != "" {
 		suppliedStore, _, suppliedRef, err := block_store.ExLookupFirstBlockStore(ctx, c.b, suppliedID, false, nil)
@@ -94,6 +97,7 @@ func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockSto
 			RootPointerBaseURL: c.conf.GetRootPointerBaseUrl(),
 			SpaceID:            c.conf.GetSpaceId(),
 			HttpClient:         http.DefaultClient,
+			PointerTTL:         pointerTTL,
 			Store:              suppliedStore,
 		})
 		if err != nil {
@@ -104,7 +108,6 @@ func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockSto
 	}
 
 	// Otherwise own the CDN transport and its durable writeback cache.
-	pointerTTL, _ := c.conf.ParsePointerTTLDur()
 	store, releaseStore, err := cdn_bstore.NewCachedBlockStore(ctx, c.b, cdn_bstore.CachedBlockStoreOptions{
 		CdnBaseURL:           c.conf.GetCdnBaseUrl(),
 		RootPointerBaseURL:   c.conf.GetRootPointerBaseUrl(),

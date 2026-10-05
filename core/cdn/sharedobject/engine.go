@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -19,9 +18,11 @@ import (
 )
 
 // WorldEngine is the read-only world engine constructed for a CdnSharedObject.
-// The engine supports SetRootRef for live refresh when the CDN root changes.
-// A background refresh routine watches the CdnSharedObject snapshot container
-// and advances Engine via SetRootRef when the published head changes.
+// A background routine watches the CDN block store's root pointer and advances
+// Engine via SetRootRef whenever the pointer changes. The store replaces its
+// pack manifest with each new pointer, including the TTL refresh made by any
+// block read, and a reclaimed root drops the packs of the previous head, so
+// the head must follow every pointer the store publishes.
 type WorldEngine struct {
 	// Engine is the read-only world block engine. The engine's own root ref
 	// (via GetRootRef) is authoritative for the currently applied head.
@@ -34,7 +35,7 @@ type WorldEngine struct {
 	so *CdnSharedObject
 	// bucketID is the CDN block store ID that authored refs resolve through.
 	bucketID string
-	// refresh runs the head-ref watcher goroutine; owned by Release.
+	// refresh runs the root pointer watcher goroutine; owned by Release.
 	refresh *routine.RoutineContainer
 }
 
@@ -47,9 +48,9 @@ type WorldEngine struct {
 // The caller owns the returned WorldEngine and must call Release when done.
 // Operation lookup belongs to the resource serving this engine.
 //
-// A background routine is started to watch the CdnSharedObject snapshot
-// container and advance the engine's root ref via SetRootRef whenever the
-// published head changes. The routine exits when Release is called.
+// A background routine is started to watch the block store's root pointer
+// and advance the engine's root ref via SetRootRef whenever the pointer
+// changes. The routine exits when Release is called.
 func NewWorldEngine(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -139,25 +140,26 @@ func NewWorldEngine(
 		bucketID: bucketID,
 	}
 
-	// Follow published heads for the lifetime of the returned engine.
-	watchable, _, _ := so.AccessSharedObjectState(ctx, nil)
+	// Follow the root pointer for the lifetime of the returned engine.
 	w.refresh = routine.NewRoutineContainerWithLogger(le)
 	w.refresh.SetRoutine(func(rctx context.Context) error {
-		return ccontainer.WatchChanges[sobject.SharedObjectStateSnapshot](
-			rctx,
-			nil,
-			watchable,
-			func(_ sobject.SharedObjectStateSnapshot) error {
-				if err := w.applyHead(rctx); err != nil {
-					if rctx.Err() != nil {
-						return rctx.Err()
-					}
-					le.WithError(err).Warn("cdn engine refresh failed")
+		ptr := so.bs.Pointer()
+		for {
+			// Apply the head of the current pointer.
+			if err := w.applyHead(rctx); err != nil {
+				if rctx.Err() != nil {
+					return rctx.Err()
 				}
-				return nil
-			},
-			nil,
-		)
+				le.WithError(err).Warn("cdn engine refresh failed")
+			}
+
+			// Wait for the store to publish another pointer.
+			next, err := so.bs.WaitPointer(rctx, ptr)
+			if err != nil {
+				return err
+			}
+			ptr = next
+		}
 	})
 	w.refresh.SetContext(ctx, true)
 	return w, nil
@@ -185,7 +187,7 @@ func (w *WorldEngine) Release() {
 
 // Refresh fetches the published root pointer and advances Engine to its head
 // before returning. The refresh routine applies the same head when it observes
-// the new snapshot, so a caller that must read the new head right away, such
+// the new pointer, so a caller that must read the new head right away, such
 // as the writer of the root pointer, calls Refresh instead of waiting for it.
 func (w *WorldEngine) Refresh(ctx context.Context) error {
 	if err := w.so.RefreshSnapshot(ctx); err != nil {
