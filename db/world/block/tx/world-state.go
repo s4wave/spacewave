@@ -29,8 +29,7 @@ type WorldState struct {
 	discarded bool
 	// txBatch is the batch of applied txs so far
 	txBatch *TxBatch
-	// payloads are the payload roots of the operations applied so far,
-	// including failed ones
+	// payloads are the payload roots of the operations in txBatch
 	payloads []*block.BlockRef
 }
 
@@ -180,11 +179,10 @@ func (w *WorldState) ApplyWorldOp(
 		return 0, false, tx.ErrDiscarded
 	}
 
-	// Own the op's payload even if it fails, then apply and record it.
-	w.addPayloadsLocked(op)
+	// Apply the op, then record it and its payload.
 	seqno, sysErr, err := w.world.ApplyWorldOp(ctx, op, opSender)
 	if err == nil {
-		w.txBatch.Txs = append(w.txBatch.Txs, t)
+		w.recordLocked(t, op)
 	}
 	return seqno, sysErr, err
 }
@@ -520,8 +518,7 @@ func (w *WorldState) DeleteGraphObject(ctx context.Context, value string) error 
 	return w.world.DeleteGraphObject(ctx, value)
 }
 
-// GetTxBatch returns the transaction batch.
-// NOTE: call this after Commit or Discard!
+// GetTxBatch returns the transaction batch. Call it after Commit or Discard.
 func (w *WorldState) GetTxBatch() *TxBatch {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
@@ -529,9 +526,8 @@ func (w *WorldState) GetTxBatch() *TxBatch {
 	return w.txBatch
 }
 
-// TakePayloadRefs returns the payload roots of the operations applied so far
-// and forgets them. The caller releases them once the transaction's outcome is
-// final; see world.PayloadOperation.
+// TakePayloadRefs returns the payload roots of the operations recorded so far
+// and forgets them; see world.PayloadOperation.
 func (w *WorldState) TakePayloadRefs() []*block.BlockRef {
 	// Hand the recorded roots to the caller.
 	w.mtx.Lock()
@@ -541,8 +537,10 @@ func (w *WorldState) TakePayloadRefs() []*block.BlockRef {
 	return payloads
 }
 
-// addPayloadsLocked records op's payload roots. Caller holds mtx.
-func (w *WorldState) addPayloadsLocked(op world.Operation) {
+// recordLocked appends the batch entry of an applied op and records its
+// payload roots. Caller holds mtx.
+func (w *WorldState) recordLocked(entry *Tx, op world.Operation) {
+	w.txBatch.Txs = append(w.txBatch.Txs, entry)
 	if pop, ok := op.(world.PayloadOperation); ok {
 		w.payloads = append(w.payloads, pop.GetPayloadRefs()...)
 	}

@@ -12,8 +12,8 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// Tx implements the hydra world transaction interface.
-// uses a mutex for concurrent-safe calls
+// Tx implements the World transaction interface. A mutex makes its calls
+// concurrency safe.
 type Tx struct {
 	// state is the underlying root state object
 	state *WorldState
@@ -193,6 +193,15 @@ func (t *Tx) CommitBlockTransaction(ctx context.Context) (*block.BlockRef, error
 func (t *Tx) Commit(ctx context.Context) error {
 	_, err := t.CommitBlockTransaction(ctx)
 	return err
+}
+
+// KeepRoots keeps the blocks the transaction wrote that roots reach owned when
+// Discard releases the rest. See WorldState.KeepRoots.
+func (t *Tx) KeepRoots(roots ...*block.BlockRef) {
+	lkr := t.rmtx.Locker()
+	lkr.Lock()
+	t.state.KeepRoots(roots...)
+	lkr.Unlock()
 }
 
 // Discard cancels the transaction.

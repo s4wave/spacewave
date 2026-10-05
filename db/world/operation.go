@@ -20,8 +20,8 @@ type Operation interface {
 	// GetOperationTypeId returns the operation type identifier.
 	GetOperationTypeId() string
 
-	// ApplyWorldOp applies the operation as a world operation.
-	// returns false, ErrUnhandledOp if the operation cannot handle a world op
+	// ApplyWorldOp applies the operation as a world operation. It returns
+	// false, ErrUnhandledOp if the operation cannot handle a world op.
 	ApplyWorldOp(
 		ctx context.Context,
 		le *logrus.Entry,
@@ -29,8 +29,8 @@ type Operation interface {
 		sender peer.ID,
 	) (sysErr bool, err error)
 
-	// ApplyWorldObjectOp applies the operation to a world object handle.
-	// returns false, ErrUnhandledOp if the operation cannot handle a object op
+	// ApplyWorldObjectOp applies the operation to a world object handle. It
+	// returns false, ErrUnhandledOp if the operation cannot handle an object op.
 	ApplyWorldObjectOp(
 		ctx context.Context,
 		le *logrus.Entry,
@@ -40,10 +40,9 @@ type Operation interface {
 }
 
 // PayloadOperation is an Operation whose payload was written outside the World
-// tree before the operation was applied. Replay reads the payload through its
-// roots, so the transaction that applied the operation owns them until the
-// operation is accepted or rejected. A payload the accepted World references
-// survives through that reference.
+// tree before the operation was applied. The World after the operation need not
+// reference the payload, but replay reads it again through its roots, so a
+// writer that records the operation for replay keeps the payload owned.
 type PayloadOperation interface {
 	Operation
 

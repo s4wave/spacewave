@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
@@ -18,13 +19,17 @@ import (
 	block_file "github.com/s4wave/spacewave/db/block/file"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/testbed"
+	"github.com/sirupsen/logrus"
 )
 
 // errAbandon abandons a test transaction.
@@ -32,10 +37,14 @@ var errAbandon = errors.New("abandon")
 
 // spaceWorld is a World engine on a local Space SharedObject.
 type spaceWorld struct {
-	eng    world.Engine
-	vol    volume.Volume
-	rg     block_gc.RefGraphOps
-	bucket string
+	bus      bus.Bus
+	soRef    *sobject.SharedObjectRef
+	engineID string
+	sender   peer.ID
+	eng      world.Engine
+	vol      volume.Volume
+	rg       block_gc.RefGraphOps
+	bucket   string
 }
 
 // newSpaceWorld starts a World engine on a new local Space SharedObject.
@@ -86,8 +95,9 @@ func newSpaceWorld(ctx context.Context, t *testing.T) *spaceWorld {
 	}
 	t.Cleanup(ctrlRef.Release)
 
-	// Register the mock operations and get the engine.
-	relOpc, err := tb.Bus.AddController(ctx, world.NewLookupOpController("file-gc-ops", engineID, world_mock.LookupMockOp), nil)
+	// Register the mock and file operations and get the engine.
+	lookupOp := world.NewLookupOpFromSlice(world.LookupOpSlice{world_mock.LookupMockOp, unixfs_world.LookupFsOp})
+	relOpc, err := tb.Bus.AddController(ctx, world.NewLookupOpController("file-gc-ops", engineID, lookupOp), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,10 +114,14 @@ func newSpaceWorld(ctx context.Context, t *testing.T) *spaceWorld {
 	}
 	t.Cleanup(volRef.Release)
 	return &spaceWorld{
-		eng:    eng,
-		vol:    vol,
-		rg:     vol.(kvtx_volume.KvtxVolume).GetRefGraph(),
-		bucket: block_gc.BucketIRI(provider_local.BlockStoreBucketID(providerID, accountID, provider_local.SobjectBlockStoreID(sobjectID))),
+		bus:      tb.Bus,
+		soRef:    soRef,
+		engineID: engineID,
+		sender:   tb.Volume.GetPeerID(),
+		eng:      eng,
+		vol:      vol,
+		rg:       vol.(kvtx_volume.KvtxVolume).GetRefGraph(),
+		bucket:   block_gc.BucketIRI(provider_local.BlockStoreBucketID(providerID, accountID, provider_local.SobjectBlockStoreID(sobjectID))),
 	}
 }
 
@@ -218,6 +232,115 @@ func checkRawFile(ctx context.Context, ws world.WorldState, i int) error {
 		}
 		return nil
 	})
+}
+
+// fileData is the content appended to the file of the payload test.
+var fileData = []byte("appended file content")
+
+// createFile creates FS object "fs" holding the empty file "file".
+func (w *spaceWorld) createFile(ctx context.Context, ws world.WorldState) error {
+	// Create the FS object.
+	_, _, err := unixfs_world.FsInit(ctx, ws, w.sender, "fs", unixfs_world.FSType_FSType_FS_NODE, nil, false, time.Now())
+	if err != nil {
+		return err
+	}
+
+	// Create the file in it.
+	obj, err := world.MustGetObject(ctx, ws, "fs")
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return err
+	}
+	_, _, err = unixfs_world.FsMknod(ctx, obj, w.sender, unixfs_world.FSType_FSType_FS_NODE, [][]string{{"file"}}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Now())
+	return err
+}
+
+// appendFile appends fileData to the empty file "file" of FS object "fs".
+func (w *spaceWorld) appendFile(ctx context.Context, ws world.WorldState) error {
+	// Look up the FS object and write at the file's end.
+	obj, err := world.MustGetObject(ctx, ws, "fs")
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return err
+	}
+	_, _, err = unixfs_world.FsWriteAt(ctx, ws, obj, w.sender, unixfs_world.FSType_FSType_FS_NODE, []string{"file"}, 0, fileData, time.Now())
+	return err
+}
+
+// checkFile checks that the file "file" of FS object "fs" holds fileData.
+func checkFile(ctx context.Context, ws world.WorldState) error {
+	return readObject(ctx, ws, "fs", func(cursor *block.Cursor) error {
+		// Find the file in the FS tree.
+		root, err := unixfs_block.NewFSTree(ctx, cursor, unixfs_block.NodeType_NodeType_UNKNOWN)
+		if err != nil {
+			return err
+		}
+		node, _, err := unixfs_block.LookupFSTreePath(root, []string{"file"})
+		if err != nil {
+			return err
+		}
+
+		// Read its content and compare it with what was written.
+		fh, err := node.BuildFileHandle(ctx)
+		if err != nil {
+			return err
+		}
+		defer fh.Close()
+		data, err := io.ReadAll(fh)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(data, fileData) {
+			return errors.New("file read " + strconv.Quote(string(data)))
+		}
+		return nil
+	})
+}
+
+// TestWorldEngineKeepsOperationPayloads checks that the payload of a file
+// write survives a sweep while its operation is above the checkpoint, so a
+// replay from the checkpoint rebuilds the file. An append copies the payload
+// into the file, so the World after the write does not reference the payload.
+func TestWorldEngineKeepsOperationPayloads(t *testing.T) {
+	// Start the Space World.
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	w := newSpaceWorld(ctx, t)
+
+	// Create an empty file, append to it, then sweep everything unreferenced.
+	if err := world.ExecTransaction(ctx, w.eng, true, w.createFile); err != nil {
+		t.Fatal(err)
+	}
+	if err := world.ExecTransaction(ctx, w.eng, true, w.appendFile); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := block_gc.NewCollector(w.rg, w.vol, nil).Collect(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the Space's operation set.
+	so, soRef, err := sobject.ExMountSharedObject(ctx, w.bus, w.soRef, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer soRef.Release()
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Replay it from the checkpoint, as another member does.
+	le := logrus.NewEntry(logrus.New())
+	replayed, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, le, w.bus, so, w.engineID, unixfs_world.LookupFsOp, snap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	// The replayed World holds the appended content.
+	if err := world.ExecTransaction(ctx, replayed, false, checkFile); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestWorldEngineObjectBlocksHaveParents checks that every block a

@@ -141,6 +141,11 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		return err
 	}
 
+	// Every member replays the operation from the checkpoint and reads its
+	// payloads, which the candidate World need not reference. Keep them owned
+	// when Discard releases the blocks the candidate does not reach.
+	t.btx.KeepRoots(t.TakePayloadRefs()...)
+
 	// Add the operation and install the World after it. An ordered world
 	// commit lets the provider write the operation ordered.
 	taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/queue-operation")
