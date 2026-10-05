@@ -152,6 +152,7 @@ func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
 	// Decrement ownership and mark the state for retirement.
 	retire := false
 	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Drop one owner; only the last one stops and retires the state.
 		if state.owners == 0 {
 			return
 		}
@@ -180,6 +181,7 @@ func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
 func (a *ProviderAccount) releaseP2PSyncLowerSource(state *p2pSyncState) {
 	var lower *p2pSyncState
 	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Take the held predecessor so it is released exactly once.
 		if !state.lowerSourceHeld {
 			return
 		}
@@ -226,6 +228,7 @@ func (s *p2pSyncState) hasSO(soID string) bool {
 func (s *p2pSyncState) addSO(soID string, syncRoutine *accountObjectSync) bool {
 	var added bool
 	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Register the routine once, and only while the generation is active.
 		if s.stopping || s.ctx.Err() != nil {
 			return
 		}
@@ -287,6 +290,15 @@ func (s *p2pSyncState) getStore(bucketID string) block.StoreOps {
 		}
 	})
 	return store
+}
+
+// getExchange returns the DEX controller of bucketID, or nil when none started.
+func (s *p2pSyncState) getExchange(bucketID string) *dex_solicit.Controller {
+	var exchange *dex_solicit.Controller
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		exchange = s.exchanges[bucketID]
+	})
+	return exchange
 }
 
 // StartP2PSync starts SO sync and DEX block exchange for all mounted
@@ -431,6 +443,7 @@ func (a *ProviderAccount) clearP2PPendingEnrollPeer(remotePeerID peer.ID) {
 // state restarts. Device enrollment calls it with the persisted invite owner
 // so daemon restart reconnects without repeating the one-use invite.
 func (a *ProviderAccount) RetainP2PPeer(ctx context.Context, remotePeerID peer.ID) error {
+	// Record the peer for later generations, then retain it on the running one.
 	if remotePeerID == "" {
 		return errors.New("remote P2P peer ID is required")
 	}
@@ -532,6 +545,7 @@ func (a *ProviderAccount) retainConfiguredP2PPeers(state *p2pSyncState) error {
 // own context to end, whichever comes first. Giving up releases this caller's
 // reference without stopping the run; it ends only when the last holder leaves.
 func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncState) error {
+	// Wait until startup completes or the caller gives up.
 	for {
 		var waitCh <-chan struct{}
 		var complete bool
@@ -551,6 +565,7 @@ func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncS
 		}
 	}
 
+	// Report the startup result of a state that is still current.
 	var running bool
 	var startErr error
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -575,6 +590,8 @@ func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncS
 func (s *p2pSyncState) finishStart(err error) bool {
 	restart := false
 	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// A stopping state cannot start. A pending restart runs startup again
+		// before any result is recorded.
 		if err == nil && s.stopping {
 			err = context.Canceled
 		}
@@ -615,6 +632,7 @@ func (a *ProviderAccount) runP2PSyncStart(
 	sessionTransport *transport.SessionTransport,
 	childBus bus.Bus,
 ) {
+	// Start the controllers until startup records a stable result.
 	var (
 		err           error
 		inviteStarted bool
@@ -663,6 +681,7 @@ func (a *ProviderAccount) runP2PSyncStart(
 		}
 	}
 
+	// Startup failed or the state stopped: restore the predecessor and retire.
 	state.markStartupExited()
 	a.restoreP2PSyncAfterFailedStart(state, previous, previousRetained)
 	a.retireP2PSyncState(state)
@@ -677,6 +696,8 @@ func (a *ProviderAccount) restoreP2PSyncAfterFailedStart(
 ) {
 	retirePrevious := false
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Restore the retained predecessor when it is still live, and retire it
+		// otherwise.
 		if a.p2pSync != state {
 			return
 		}
@@ -855,10 +876,12 @@ func (a *ProviderAccount) retireP2PSyncState(state *p2pSyncState) {
 // stopP2PSyncState cancels state, waits for startup and registered workers, and
 // releases each resource exactly once. Concurrent callers wait for cleanup.
 func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
+	// A nil state has nothing to stop.
 	if state == nil {
 		return
 	}
 
+	// Stop the state, then take cleanup or wait for the caller running it.
 	for {
 		var (
 			waitCh <-chan struct{}
@@ -896,6 +919,7 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 		<-waitCh
 	}
 
+	// Wait for startup and every registered worker to exit.
 	for {
 		var (
 			waitCh <-chan struct{}
@@ -938,6 +962,7 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 		}
 	}
 
+	// Release the controller references and resources in registration order.
 	var (
 		refs   []directive.Reference
 		relFns []func()
@@ -956,6 +981,7 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 	}
 	a.releaseP2PSyncLowerSource(state)
 
+	// Publish that cleanup is done.
 	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		state.cleanupDone = true
 		state.cleanupRunning = false
@@ -1046,8 +1072,10 @@ func (a *ProviderAccount) startSOSync(
 	// Copy a Space to the account replica alongside its sync.
 	if bodyType == space.SpaceBodyType {
 		objectSync.copy = routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-copy"), routine.WithRetry(providerBackoff))
+		provRef := ref.GetProviderResourceRef()
+		exchange := state.getExchange(BlockStoreBucketID(provRef.GetProviderId(), provRef.GetProviderAccountId(), ref.GetBlockStoreId()))
 		objectSync.copy.SetRoutine(func(ctx context.Context) error {
-			return a.runAccountReplicaCopy(ctx, childBus, so, space.SpaceEngineId(ref), state)
+			return a.runAccountReplicaCopy(ctx, childBus, so, space.SpaceEngineId(ref), state, exchange)
 		})
 	}
 
@@ -1273,6 +1301,7 @@ func (a *ProviderAccount) mountListedSharedObject(ctx context.Context, sharedObj
 // startDEXSolicit loads a DEX solicit controller on the child bus for
 // the given block store bucket.
 func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus, bucketID, protocolContext string, state *p2pSyncState) error {
+	// Start the controller and register its store and exchange for the bucket.
 	ctrl, _, dexRef, err := loader.WaitExecControllerRunningTyped[*dex_solicit.Controller](
 		ctx,
 		childBus,

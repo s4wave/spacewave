@@ -2,9 +2,11 @@ package provider_local
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -110,5 +112,31 @@ func TestSharedObjectBlockStoreRetainsRoots(t *testing.T) {
 	// Its block store must reach the volume's root retention.
 	if !block.SupportsRootRetention(so.GetBlockStore()) {
 		t.Fatal("shared object block store hides root retention")
+	}
+}
+
+// TestWaitStateOrWake checks that a wake returns the unchanged state while a
+// canceled caller still sees its own cancellation.
+func TestWaitStateOrWake(t *testing.T) {
+	// Hold an empty state that never changes.
+	states := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](nil)
+	wake := func(context.Context) error { return nil }
+
+	// A wake ends the wait without a new state.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	if _, err := waitStateOrWake(ctx, states, nil, wake); err != nil {
+		t.Fatalf("wake returned %v", err)
+	}
+
+	// A canceled caller is not a wake.
+	canceled, cancelWait := context.WithCancel(ctx)
+	cancelWait()
+	hold := func(ctx context.Context) error {
+		<-ctx.Done()
+		return ctx.Err()
+	}
+	if _, err := waitStateOrWake(canceled, states, nil, hold); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled wait returned %v", err)
 	}
 }

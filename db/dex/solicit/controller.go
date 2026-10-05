@@ -44,6 +44,8 @@ type Controller struct {
 	// key: remote peer ID string
 	// guarded by bcast
 	sessions map[string]*peerSession
+	// sessionStarts counts the peer sessions started, guarded by bcast.
+	sessionStarts uint64
 	// settled reports that the solicitation has delivered a session for every
 	// peer it matched, guarded by bcast.
 	settled bool
@@ -70,6 +72,24 @@ func (c *Controller) GetTransferSnapshot() (TransferSnapshot, <-chan struct{}) {
 		wait = getWait()
 	})
 	return result, wait
+}
+
+// GetSessionStarts returns how many peer sessions have started.
+func (c *Controller) GetSessionStarts() uint64 {
+	var starts uint64
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		starts = c.sessionStarts
+	})
+	return starts
+}
+
+// WaitSessionStart waits until a peer session starts after GetSessionStarts
+// returned starts. A block every connected peer lacks may arrive with a peer
+// that connects later.
+func (c *Controller) WaitSessionStart(ctx context.Context, starts uint64) error {
+	return c.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return c.sessionStarts != starts, nil
+	})
 }
 
 // recordTransfer runs outside the peer's write lock to preserve lock ordering.
@@ -183,6 +203,7 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 			old.close()
 		}
 		c.sessions[remotePeer] = sess
+		c.sessionStarts++
 		broadcast()
 	})
 

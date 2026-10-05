@@ -5,12 +5,15 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -19,7 +22,18 @@ import (
 // with the operation set replayed onto it, as the World engine engineID builds
 // it on b. Cached blocks survive cancellation and restart; a persisted
 // completion record is valid only for its exact immutable head.
-func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, b bus.Bus, so sobject.SharedObject, engineID string, state *p2pSyncState) error {
+//
+// A block that no connected peer holds is not a failure: the copy logs it once
+// and waits for a new state, or for a peer session to start on exchange that
+// may hold the block. exchange is nil when the bucket has no DEX controller.
+func (a *ProviderAccount) runAccountReplicaCopy(
+	ctx context.Context,
+	b bus.Bus,
+	so sobject.SharedObject,
+	engineID string,
+	state *p2pSyncState,
+	exchange *dex_solicit.Controller,
+) error {
 	// Open the copy's local progress store and the object state stream.
 	local, release, err := so.AccessLocalStateStore(ctx, "account-replica-copy", nil)
 	if err != nil {
@@ -45,8 +59,17 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, b bus.Bus, 
 	// Copy each new World head as its state arrives.
 	var snapshot sobject.SharedObjectStateSnapshot
 	var previousHead *bucket.ObjectRef
+	var missing bool
+	var starts uint64
 	for {
-		snapshot, err = states.WaitValueChange(ctx, snapshot, nil)
+		// While a block is missing, a peer that connects may hold it.
+		var peerStart func(context.Context) error
+		if missing && exchange != nil {
+			peerStart = func(ctx context.Context) error {
+				return exchange.WaitSessionStart(ctx, starts)
+			}
+		}
+		snapshot, err = waitStateOrWake(ctx, states, snapshot, peerStart)
 		if err != nil {
 			return err
 		}
@@ -56,20 +79,96 @@ func (a *ProviderAccount) runAccountReplicaCopy(ctx context.Context, b bus.Bus, 
 
 		// Replay the operation set onto the checkpoint's World. Members write
 		// edits as operations, so the checkpoint alone lags the World they
-		// hold. Skip unchanged heads.
+		// hold. Count peer sessions first so one starting during the replay
+		// still wakes the wait.
+		if exchange != nil {
+			starts = exchange.GetSessionStarts()
+		}
 		head, err := sobject_world_engine.ReplayWorld(ctx, a.le, b, a.GetStepFactorySet(), so, engineID, space_world_optypes.LookupWorldOp, snapshot)
+		if errors.Is(err, block.ErrNotFound) {
+			if !missing {
+				a.le.WithError(err).Info("waiting for a peer that holds a missing World block")
+			}
+			missing = true
+			continue
+		}
 		if err != nil {
 			return err
 		}
+		missing = false
+
+		// Start the copy for a new head.
 		if head.GetHeadRef() == nil || head.GetHeadRef().EqualVT(previousHead) {
 			continue
 		}
-
-		// Start the copy for this new head.
 		previousHead = head.GetHeadRef().CloneVT()
 		copier.SetRoutine(func(ctx context.Context) error {
-			return a.copyAndPersistAccountWorld(ctx, so, state, local, head.GetHeadRef())
+			return a.copyAccountWorldHead(ctx, so, state, local, head.GetHeadRef(), exchange)
 		})
+	}
+}
+
+// waitStateOrWake waits for a state other than snapshot. When wake is set and
+// returns nil first, it returns snapshot unchanged.
+func waitStateOrWake(
+	ctx context.Context,
+	states ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
+	snapshot sobject.SharedObjectStateSnapshot,
+	wake func(context.Context) error,
+) (sobject.SharedObjectStateSnapshot, error) {
+	// Without a wake, only a new state ends the wait.
+	if wake == nil {
+		return states.WaitValueChange(ctx, snapshot, nil)
+	}
+
+	// Cancel the state wait when wake returns; woke tells that cancel apart
+	// from the caller's.
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	woke := make(chan struct{})
+	go func() {
+		if wake(waitCtx) == nil {
+			close(woke)
+			cancel()
+		}
+	}()
+	next, err := states.WaitValueChange(waitCtx, snapshot, nil)
+	if err != nil && ctx.Err() == nil {
+		select {
+		case <-woke:
+			return snapshot, nil
+		default:
+		}
+	}
+	return next, err
+}
+
+// copyAccountWorldHead copies head until it completes. A block that no
+// connected peer holds is logged once, and the copy retries when a peer
+// session starts on exchange.
+func (a *ProviderAccount) copyAccountWorldHead(
+	ctx context.Context,
+	so sobject.SharedObject,
+	state *p2pSyncState,
+	local kvtx.Store,
+	head *bucket.ObjectRef,
+	exchange *dex_solicit.Controller,
+) error {
+	for logged := false; ; logged = true {
+		var starts uint64
+		if exchange != nil {
+			starts = exchange.GetSessionStarts()
+		}
+		err := a.copyAndPersistAccountWorld(ctx, so, state, local, head)
+		if exchange == nil || !errors.Is(err, block.ErrNotFound) {
+			return err
+		}
+		if !logged {
+			a.le.WithError(err).Info("waiting for a peer that holds a missing World block")
+		}
+		if err := exchange.WaitSessionStart(ctx, starts); err != nil {
+			return err
+		}
 	}
 }
 
