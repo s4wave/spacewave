@@ -25,7 +25,11 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/hash"
+	"golang.org/x/sync/errgroup"
 )
+
+// packUploads bounds the release packs uploaded at once.
+const packUploads = 4
 
 // Publish uploads a committed release World, advances its public checkpoint,
 // then rewrites the destination packs that are mostly unreachable from it.
@@ -83,9 +87,12 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		opts.Logger.WithField("blocks", len(missing)).WithField("bytes", missingBytes).Info("publishing missing release content")
 	}
 
-	// Use the standard pack writer and resource-scoped content identity.
+	// Encode packs with the standard writer and resource-scoped content
+	// identity, uploading up to packUploads at once. Each chunk owns its bytes.
+	uploads, uploadCtx := errgroup.WithContext(ctx)
+	uploads.SetLimit(packUploads)
 	index := 0
-	_, err = delta.EmitDeltaChunks(ctx, opts.DstSpaceID, func() (*hash.Hash, *block.StoredBlock, error) {
+	_, err = delta.EmitDeltaChunks(uploadCtx, opts.DstSpaceID, func() (*hash.Hash, *block.StoredBlock, error) {
 		if index == len(missing) {
 			return nil, nil, nil
 		}
@@ -96,8 +103,14 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		if opts.Logger != nil {
 			opts.Logger.WithField("pack", chunk).WithField("bytes", len(data)).Info("uploading release content")
 		}
-		return cdn_publish.PushPackData(ctx, opts, data, entry.GetBloomFilter())
+		uploads.Go(func() error {
+			return cdn_publish.PushPackData(uploadCtx, opts, data, entry.GetBloomFilter())
+		})
+		return nil
 	})
+	if waitErr := uploads.Wait(); err == nil {
+		err = waitErr
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "upload release packs")
 	}
