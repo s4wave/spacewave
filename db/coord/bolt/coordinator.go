@@ -4,15 +4,12 @@ package bolt
 
 import (
 	"context"
-	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 )
-
-const crossProcessLockRetryDelay = 250 * time.Millisecond
 
 // Coordinator adapts bbolt commit generation into the Volume coordinator contract.
 type Coordinator struct {
@@ -125,60 +122,46 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits until the logical bbolt write lease is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
+	// Keyed scopes coordinate through the inner coordinator.
 	if scope.Key != "" {
 		return c.inner.WaitAcquireWriteLease(ctx, scope)
 	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
 
-		// Reserve the local write turn or await its release notification.
-		reserved, waitCh := c.reserveWriteLease()
-		if !reserved {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-waitCh:
-			}
-			continue
-		}
+	// Reserve this process's write turn, waiting for a local holder to release it.
+	if err := c.waitReserveWriteLease(ctx); err != nil {
+		return nil, err
+	}
 
-		// Acquire the inner lease after reserving this process's write turn.
-		inner, err := c.inner.WaitAcquireWriteLease(ctx, scope)
-		if err != nil {
-			c.releaseWriteLease()
-			return nil, err
-		}
+	// Acquire the inner lease after reserving this process's write turn.
+	inner, err := c.inner.WaitAcquireWriteLease(ctx, scope)
+	if err != nil {
+		c.releaseWriteLease()
+		return nil, err
+	}
 
-		// Acquire the cross-process bbolt lock and return the combined lease.
-		releaseCoordinationLock, acquired, err := c.tryAcquireCoordinationLock()
-		if err != nil {
-			_ = inner.Release(context.Background())
-			c.releaseWriteLease()
-			return nil, err
-		}
-		if acquired {
-			return &lease{c: c, scope: scope, inner: inner, releaseCoordinationLock: releaseCoordinationLock}, nil
-		}
-
-		// Release local state before waiting for another process's lock turn.
+	// Wait for other processes to release the bbolt lock.
+	releaseCoordinationLock, err := c.waitCoordinationLock(ctx, func() {
 		_ = inner.Release(context.Background())
 		c.releaseWriteLease()
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &lease{c: c, scope: scope, inner: inner, releaseCoordinationLock: releaseCoordinationLock}, nil
+}
 
-		// bbolt exposes cross-process coordination as a non-blocking file-lock
-		// probe; external processes cannot broadcast their release here.
-		timer := time.NewTimer(crossProcessLockRetryDelay)
+// waitReserveWriteLease reserves this process's write turn, waiting for its
+// release notification while another local lease holds it.
+func (c *Coordinator) waitReserveWriteLease(ctx context.Context) error {
+	for {
+		reserved, waitCh := c.reserveWriteLease()
+		if reserved {
+			return nil
+		}
 		select {
 		case <-ctx.Done():
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
-			return nil, ctx.Err()
-		case <-timer.C:
+			return ctx.Err()
+		case <-waitCh:
 		}
 	}
 }
@@ -216,6 +199,41 @@ func (c *Coordinator) tryAcquireCoordinationLock() (func() error, bool, error) {
 		return nil, acquired, err
 	}
 	return c.db.ReleaseCoordinationLock, true, nil
+}
+
+// waitCoordinationLock blocks in the kernel until this process holds the bbolt
+// coordination lock, returning its release function. On failure it calls
+// releaseTurn. If ctx ends first, it returns ctx.Err() and a goroutine calls
+// releaseTurn once the blocked acquire returns: the lock belongs to the
+// process, so the local write turn must stay reserved until then or a second
+// waiter would share the grant.
+func (c *Coordinator) waitCoordinationLock(ctx context.Context, releaseTurn func()) (func() error, error) {
+	// A coordinator without a database has no other process to wait for.
+	if c == nil || c.db == nil {
+		return func() error { return nil }, nil
+	}
+
+	// Acquire in the background so the wait can follow ctx.
+	acquired := make(chan error, 1)
+	go func() { acquired <- c.db.AcquireCoordinationLock() }()
+	select {
+	case err := <-acquired:
+		if err != nil {
+			releaseTurn()
+			return nil, err
+		}
+		return c.db.ReleaseCoordinationLock, nil
+	case <-ctx.Done():
+	}
+
+	// Release the lock and the turn once the abandoned acquire returns.
+	go func() {
+		if err := <-acquired; err == nil {
+			_ = c.db.ReleaseCoordinationLock()
+		}
+		releaseTurn()
+	}()
+	return nil, ctx.Err()
 }
 
 func (c *Coordinator) generation() uint64 {

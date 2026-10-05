@@ -12,6 +12,7 @@ import (
 // lockFilesSupported reports that advisory file locks exist on this platform.
 const lockFilesSupported = true
 
+// tryLockFile takes the exclusive advisory lock on file without waiting.
 func tryLockFile(file *os.File) (bool, error) {
 	var overlapped windows.Overlapped
 	err := windows.LockFileEx(
@@ -31,6 +32,20 @@ func tryLockFile(file *os.File) (bool, error) {
 	return false, err
 }
 
+// lockFile waits for the exclusive advisory lock on file.
+func lockFile(file *os.File) error {
+	var overlapped windows.Overlapped
+	return windows.LockFileEx(
+		windows.Handle(file.Fd()),
+		windows.LOCKFILE_EXCLUSIVE_LOCK,
+		0,
+		1,
+		0,
+		&overlapped,
+	)
+}
+
+// unlockFile releases the advisory lock on file.
 func unlockFile(file *os.File) error {
 	var overlapped windows.Overlapped
 	return windows.UnlockFileEx(

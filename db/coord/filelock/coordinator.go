@@ -8,20 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/coord"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 )
 
-const (
-	// lockDirName is the directory holding one lock file per keyed scope.
-	lockDirName = ".coord-locks"
-	// crossProcessLockRetryDelay paces the non-blocking file lock probe:
-	// external processes cannot broadcast their release here.
-	crossProcessLockRetryDelay = 250 * time.Millisecond
-)
+// lockDirName is the directory holding one lock file per keyed scope.
+const lockDirName = ".coord-locks"
 
 // Coordinator combines an inner coordinator for ObjectStore scopes with one
 // advisory lock file per keyed scope for cross-process keyed exclusion.
@@ -99,10 +93,16 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	}
 
 	// Probe the lock file and release the keyed lease if acquisition fails.
-	file, locked, err := c.openLockedFile(ctx, scope)
-	if err != nil || !locked {
+	file, err := c.openLockFile(ctx, scope)
+	if err != nil {
 		_ = inner.Release(context.Background())
-		return nil, locked, err
+		return nil, false, err
+	}
+	locked, err := tryLockFile(file)
+	if err != nil || !locked {
+		_ = file.Close()
+		_ = inner.Release(context.Background())
+		return nil, false, wrapLockError(err)
 	}
 	return &lease{inner: inner, file: file}, true, nil
 }
@@ -114,55 +114,38 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 		return c.inner.WaitAcquireWriteLease(ctx, scope)
 	}
 
-	// Retry keyed acquisition until both in-memory and file locks are held.
-	for {
-		inner, err := c.keyed.WaitAcquireWriteLease(ctx, scope)
-		if err != nil {
-			return nil, err
-		}
-		if !lockFilesSupported {
-			return &lease{inner: inner}, nil
-		}
-
-		// Probe the lock file after the keyed lease is available.
-		file, locked, err := c.openLockedFile(ctx, scope)
-		if err != nil {
-			_ = inner.Release(context.Background())
-			return nil, err
-		}
-		if locked {
-			return &lease{inner: inner, file: file}, nil
-		}
-		_ = inner.Release(context.Background())
-
-		// Release the keyed lease before pacing the next cross-process probe.
-		timer := time.NewTimer(crossProcessLockRetryDelay)
-		select {
-		case <-ctx.Done():
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
-			return nil, ctx.Err()
-		case <-timer.C:
-		}
+	// Hold the in-memory keyed lease while waiting for the file lock.
+	inner, err := c.keyed.WaitAcquireWriteLease(ctx, scope)
+	if err != nil {
+		return nil, err
 	}
+	if !lockFilesSupported {
+		return &lease{inner: inner}, nil
+	}
+
+	// Open the lock file and wait for other processes to unlock it.
+	file, err := c.openLockFile(ctx, scope)
+	if err != nil {
+		_ = inner.Release(context.Background())
+		return nil, err
+	}
+	if err := waitLockFile(ctx, file, func() { _ = inner.Release(context.Background()) }); err != nil {
+		return nil, err
+	}
+	return &lease{inner: inner, file: file}, nil
 }
 
-// openLockedFile opens and try-locks the lock file for scope, returning the
-// locked file, whether the lock was acquired, and any error.
-func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*os.File, bool, error) {
+// openLockFile creates the lock directory and opens the lock file for scope.
+func (c *Coordinator) openLockFile(ctx context.Context, scope coord.Scope) (*os.File, error) {
 	// Validate context and lock identity before creating the lock directory.
 	if err := ctx.Err(); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	if c.dir == "" {
-		return nil, false, errors.New("filelock: lock directory cannot be empty")
+		return nil, errors.New("filelock: lock directory cannot be empty")
 	}
 	if c.storeID == "" {
-		return nil, false, errors.New("filelock: backing store identity cannot be empty")
+		return nil, errors.New("filelock: backing store identity cannot be empty")
 	}
 
 	// Create the private lock directory before opening this scope's file.
@@ -170,10 +153,10 @@ func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*o
 
 	// #nosec G703 -- lockDir is the coordinator's configured root directory joined with a constant name.
 	if err := os.MkdirAll(lockDir, 0o700); err != nil {
-		return nil, false, pkgerrors.Wrap(err, "create lock directory")
+		return nil, pkgerrors.Wrap(err, "create lock directory")
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// Open the scope's lock file.
@@ -182,24 +165,47 @@ func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*o
 	// #nosec G703 -- path is the managed lock directory joined with a hex digest filename.
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
-		return nil, false, pkgerrors.Wrap(err, "open lock file")
+		return nil, pkgerrors.Wrap(err, "open lock file")
 	}
 	if err := ctx.Err(); err != nil {
 		_ = file.Close()
-		return nil, false, err
+		return nil, err
+	}
+	return file, nil
+}
+
+// waitLockFile blocks in the kernel until file holds its advisory lock. On
+// failure it closes file and calls releaseTurn. If ctx ends first, it returns
+// ctx.Err() and a goroutine unlocks and closes file and calls releaseTurn once
+// the blocked lock returns.
+func waitLockFile(ctx context.Context, file *os.File, releaseTurn func()) error {
+	// Lock in the background so the wait can follow ctx.
+	locked := make(chan error, 1)
+	go func() { locked <- lockFile(file) }()
+	select {
+	case err := <-locked:
+		if err != nil {
+			_ = file.Close()
+			releaseTurn()
+		}
+		return wrapLockError(err)
+	case <-ctx.Done():
 	}
 
-	// Try the advisory file lock without blocking.
-	locked, err := tryLockFile(file)
-	if err != nil {
+	// Release the file and the turn once the abandoned lock returns.
+	go func() {
+		if err := <-locked; err == nil {
+			_ = unlockFile(file)
+		}
 		_ = file.Close()
-		return nil, false, pkgerrors.Wrap(err, "acquire lock file")
-	}
-	if !locked {
-		_ = file.Close()
-		return nil, false, nil
-	}
-	return file, true, nil
+		releaseTurn()
+	}()
+	return ctx.Err()
+}
+
+// wrapLockError labels a file lock failure, passing nil through.
+func wrapLockError(err error) error {
+	return pkgerrors.Wrap(err, "acquire lock file")
 }
 
 // lockDigest names the lock file for one backing store and scope.

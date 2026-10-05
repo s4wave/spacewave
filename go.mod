@@ -22,7 +22,7 @@ require (
 	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/aperturerobotics/bbolt v0.0.0-20261004101904-ce8197909cd4 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20261005001257-e61f5b5a16a9 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
 	github.com/aperturerobotics/cli v1.1.1-0.20261004095549-d4875ce31004 // master
@@ -53,7 +53,7 @@ require (
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-beta.1 // main
+	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261004195433-f7fe2d920dc4 // main
 	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261004145020-bc8978a79aa8 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.11.2

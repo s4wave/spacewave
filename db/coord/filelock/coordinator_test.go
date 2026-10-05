@@ -162,6 +162,45 @@ func TestKeyedLeaseReleaseCompletesUnderCanceledContext(t *testing.T) {
 	}
 }
 
+// TestKeyedWaitFollowsContextAndReleasesAbandonedLock checks that a wait
+// blocked on another holder's file lock ends with its context, and that the
+// abandoned wait gives the lock and keyed lease back once the holder unlocks.
+func TestKeyedWaitFollowsContextAndReleasesAbandonedLock(t *testing.T) {
+	// Hold the scope's lock file through a separate descriptor.
+	dir := t.TempDir()
+	c := NewCoordinator(dir, filepath.Join(dir, "volume.db"), coord_inmem.NewCoordinator())
+	scope := keyedScope("a", "world-1")
+	holder, err := c.openLockFile(t.Context(), scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer holder.Close()
+	if locked, err := tryLockFile(holder); err != nil || !locked {
+		t.Fatalf("hold lock file: locked=%v err=%v", locked, err)
+	}
+
+	// Wait until the context ends while the holder keeps the lock.
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := c.WaitAcquireWriteLease(ctx, scope); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("wait error = %v, want deadline exceeded", err)
+	}
+
+	// Unlock and verify a new wait acquires the scope.
+	if err := unlockFile(holder); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel = context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	lease, err := c.WaitAcquireWriteLease(ctx, scope)
+	if err != nil {
+		t.Fatalf("wait after unlock: %v", err)
+	}
+	if err := lease.Release(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestKeyedCapabilityWithoutGenerations(t *testing.T) {
 	// Create a keyed scope for file-lock capability checks.
 	ctx := context.Background()
