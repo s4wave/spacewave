@@ -106,6 +106,18 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 		t.Fatalf("dropped %d bytes", dropped)
 	}
 
+	// The next pass skips the superseded packs the catalog still lists.
+	supersede := func(entry *packfile.PackfileEntry) *packfile.PackfileEntry {
+		entry = entry.CloneVT()
+		entry.SupersededBy = "01kreplacement000000000000"
+		return entry
+	}
+	client.entries = []*packfile.PackfileEntry{supersede(mixed), supersede(dead), livePack}
+	client.replaced, client.replacedKeys = nil, nil
+	if _, err := reclaim(t.Context(), opts, head, blocks); err != nil || len(client.replaced) != 0 {
+		t.Fatalf("superseded: err=%v replaced=%v", err, client.replaced)
+	}
+
 	// A group of dead packs borrows the smallest kept pack.
 	client.entries = []*packfile.PackfileEntry{dead, livePack}
 	client.replaced, client.replacedKeys = nil, nil

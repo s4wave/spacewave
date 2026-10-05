@@ -3,6 +3,7 @@ package publish
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/packedmsg"
@@ -13,13 +14,15 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
-// FetchPackEntries reads the pack manifest for a resource-scoped block store.
+// FetchPackEntries reads the active packs of a resource-scoped block store.
+// The pulled catalog also lists superseded packs for incremental readers;
+// they are dropped, since their blocks live in the packs that replaced them.
 func FetchPackEntries(ctx context.Context, client SessionClient, spaceID string) ([]*packfile.PackfileEntry, error) {
 	catalog, err := packfile.PullCatalog(ctx, client, spaceID)
 	if err != nil {
 		return nil, errors.Wrap(err, "sync pull pack manifest")
 	}
-	return catalog.GetEntries(), nil
+	return slices.DeleteFunc(catalog.GetEntries(), (*packfile.PackfileEntry).IsSuperseded), nil
 }
 
 // DecodeHeadRef decodes the World head ref of the checkpoint in a
