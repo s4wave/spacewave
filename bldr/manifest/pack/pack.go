@@ -68,7 +68,7 @@ func PackManifestBundle(
 					if _, ok := blocks[key]; ok {
 						return true, nil
 					}
-					children, err := block.ExtractBlockRefs(entry.Blk)
+					children, err := entry.BlockRefs(ctx, bls.GetBucket())
 					if err != nil {
 						return false, err
 					}
