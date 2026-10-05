@@ -96,7 +96,10 @@ func newReplayer(c *Controller, so sobject.SharedObject) *replayer {
 
 // sync replays snap and returns the World after the last operation it can
 // place, with the outcome of every placed operation in order. fork, when set,
-// supplies the World after a local write in place of replaying it.
+// supplies the World after a local write in place of replaying it. When a block
+// an operation needs is not available, replay stops at that operation and sync
+// returns the World before it with an error wrapping block.ErrNotFound; the
+// next sync resumes at the same operation.
 func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnapshot, fork *replayFork) (*InnerState, []replayOutcome, error) {
 	// Restart from the checkpoint's World when it changed.
 	checkpoint, err := snap.GetCheckpoint(ctx)
@@ -306,8 +309,10 @@ func (r *replayer) head() (*InnerState, *InnerState, int) {
 }
 
 // replay replays set after the longest prefix its order shares with the
-// previous replay. A World of that prefix may have been collected since, so a
-// missing block while resuming replays again from the base.
+// previous replay. The World after that prefix may have been collected since,
+// so when its root is missing, replay starts again from the base. Any other
+// missing block belongs to the operation that needs it and stops replay there,
+// with the positions before it kept.
 func (r *replayer) replay(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
@@ -349,10 +354,14 @@ func (r *replayer) replay(
 		if set.Equivocated(h) {
 			outcome.reason = sobject.ReasonEquivocated
 		} else {
-			next, why, conflict, err := r.replayOp(ctx, snap, set.Get(h), n+i, state)
-			if errors.Is(err, block.ErrNotFound) && n != 0 {
-				r.positions = nil
-				return r.replay(ctx, snap, set, nil)
+			inner := set.Get(h)
+			next, why, conflict, err := r.replayOp(ctx, snap, inner, n+i, state)
+			if errors.Is(err, block.ErrNotFound) {
+				if i == 0 && n != 0 && r.worldLost(ctx, state) {
+					r.positions = nil
+					return r.replay(ctx, snap, set, nil)
+				}
+				return state, nil, errors.Wrapf(err, "replay stopped at operation %d (nonce %d of %s)", n+i, inner.GetNonce(), inner.GetPeerId())
 			}
 			if err != nil {
 				return nil, nil, err
@@ -371,6 +380,21 @@ func (r *replayer) replay(
 		outcomes[i] = pos.outcome
 	}
 	return state, outcomes, nil
+}
+
+// worldLost reports whether the root block of the World state is missing from
+// the block store.
+func (r *replayer) worldLost(ctx context.Context, state *InnerState) bool {
+	head := state.GetHeadRef()
+	if head.GetEmpty() {
+		return false
+	}
+	ws, err := r.c.buildBlkEngine(ctx, r.c.le, r.so, head, head.GetTransformConf())
+	if err != nil {
+		return errors.Is(err, block.ErrNotFound)
+	}
+	ws.Release()
+	return false
 }
 
 // place appends the outcome of the next operation and the World after it, and

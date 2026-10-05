@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
@@ -52,7 +53,10 @@ func (c *Controller) executeWatchSOState(
 	}
 }
 
-// executeWatchSOStateOnce replays one shared object state into the World.
+// executeWatchSOStateOnce replays one shared object state into the World. A
+// block that is not available stops replay at its operation without ending the
+// watch: the World before that operation stays served, and the next state
+// change or write resumes replay there.
 func (c *Controller) executeWatchSOStateOnce(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
@@ -61,6 +65,10 @@ func (c *Controller) executeWatchSOStateOnce(
 	ctx, task := trace.NewTask(ctx, "alpha/watch-state/process-snapshot")
 	defer task.End()
 	_, err := soEngine.advance(ctx, snap, nil)
+	if errors.Is(err, block.ErrNotFound) {
+		c.le.WithError(err).Warn("replay waits for a block that is not available")
+		return nil
+	}
 	return err
 }
 
