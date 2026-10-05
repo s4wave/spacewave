@@ -101,6 +101,9 @@ type Controller struct {
 	links map[uint64]*establishedLink
 	// linksByPeerID is the set of links keyed by peer id
 	linksByPeerID map[peer.ID][]*establishedLink
+	// authEpoch counts Reauthorize calls, so a link admitted before the
+	// latest one is authorized again before it mounts.
+	authEpoch uint64
 }
 
 // NewController constructs a new transport controller.

@@ -199,6 +199,12 @@ func (l *Link) AcceptStream() (stream.Stream, stream.OpenOpts, error) {
 
 // Close closes the connection.
 func (l *Link) Close() error {
+	return l.CloseWithReason("")
+}
+
+// CloseWithReason closes the connection and sends reason to the remote peer
+// in the QUIC connection close.
+func (l *Link) CloseWithReason(reason string) error {
 	l.closedOnce.Do(func() {
 		// Cancel the link context before invoking the close callback.
 		l.ctxCancel()
@@ -208,11 +214,14 @@ func (l *Link) Close() error {
 
 		// Close the QUIC session after invoking the close callback.
 		if l.sess != nil {
-			_ = l.sess.CloseWithError(0, "")
+			_ = l.sess.CloseWithError(0, reason)
 		}
 	})
 	return nil
 }
 
 // _ is a type assertion
-var _ link.MessageLink = (*Link)(nil)
+var (
+	_ link.MessageLink  = (*Link)(nil)
+	_ link.ReasonCloser = (*Link)(nil)
+)

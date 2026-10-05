@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/net/stream"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -157,6 +158,9 @@ type testMountedStream struct {
 
 // GetStream returns the in-memory connection.
 func (s *testMountedStream) GetStream() stream.Stream { return s.conn }
+
+// GetProtocolID returns the remote shell protocol.
+func (s *testMountedStream) GetProtocolID() protocol.ID { return s4wave_terminal.RemoteShellProtocolID }
 
 // GetPeerID returns the remote peer.
 func (s *testMountedStream) GetPeerID() peer.ID { return s.remote }

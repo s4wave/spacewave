@@ -20,6 +20,7 @@ import (
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/link"
+	"github.com/s4wave/spacewave/net/stream"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	"github.com/sirupsen/logrus"
@@ -37,8 +38,10 @@ var deviceRemoteShellControllerVersion = controller.MustParseVersion("0.0.1")
 // remoteShellPolicy refuses an OPEN request the device policy does not permit.
 type remoteShellPolicy func(*s4wave_terminal.TerminalFrame) error
 
-// remoteShellAuthorizer refuses a remote peer that may not open a shell.
-type remoteShellAuthorizer func(ctx context.Context, ms link.MountedStream) error
+// remoteShellAuthorizer refuses a remote peer that may not open a shell. It
+// returns the stream the session uses, also on refusal, so the refusal can be
+// reported over it.
+type remoteShellAuthorizer func(ctx context.Context, ms link.MountedStream) (stream.Stream, error)
 
 // remoteShellProcess is a running shell attached to a terminal.
 type remoteShellProcess interface {
@@ -158,12 +161,13 @@ type deviceRemoteShellHandler struct {
 // HandleMountedStream refuses an unauthorized peer, then runs the session.
 func (h *deviceRemoteShellHandler) HandleMountedStream(ctx context.Context, ms link.MountedStream) error {
 	go func() {
-		// Frame the stream and close it when the session ends.
-		defer ms.GetStream().Close()
-		session := stream_packet.NewSession(ms.GetStream(), deviceRemoteShellFrameMaxBytes)
+		// Admit the stream, frame it, and close it when the session ends.
+		strm, err := h.authorize(ctx, ms)
+		defer strm.Close()
+		session := stream_packet.NewSession(strm, deviceRemoteShellFrameMaxBytes)
 
 		// Refuse a peer outside the account before touching the link.
-		if err := h.authorize(ctx, ms); err != nil {
+		if err != nil {
 			h.le.WithError(err).WithField("remote-peer", ms.GetPeerID().String()).Warn("remote shell peer refused")
 			_ = sendTerminalError(session, "remote shell refused: "+err.Error())
 			return
@@ -393,20 +397,21 @@ func sendTerminalError(session *stream_packet.Session, msg string) error {
 }
 
 // authorizeAccountSessionPeer admits a remote peer that the local Session's
-// transport authorizes: an active session of the same account. A stream whose
-// local peer runs no Session transport on b is refused.
+// transport authorizes: an active session of the same account. The transport
+// closes the shell's stream if it later refuses the peer. A stream whose local
+// peer runs no Session transport on b is refused.
 func authorizeAccountSessionPeer(b bus.Bus) remoteShellAuthorizer {
-	return func(ctx context.Context, ms link.MountedStream) error {
+	return func(ctx context.Context, ms link.MountedStream) (stream.Stream, error) {
 		// Resolve the transport of the Session the stream reached.
 		st, release, err := transport.ResolveSessionTransport(ctx, b, ms.GetLink().GetLocalPeer(), nil)
 		if err != nil {
-			return err
+			return ms.GetStream(), err
 		}
 		defer release()
 		if st == nil {
-			return errors.New("no session transport for the local peer")
+			return ms.GetStream(), errors.New("no session transport for the local peer")
 		}
-		return st.AuthorizePeer(ctx, ms.GetPeerID())
+		return st.AdmitStream(ctx, ms)
 	}
 }
 

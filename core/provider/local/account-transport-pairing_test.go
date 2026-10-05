@@ -20,6 +20,7 @@ import (
 )
 
 func newPairingTransportAccount(ctx context.Context, t *testing.T) (*ProviderAccount, crypto.PrivKey, func()) {
+	// Open a testbed and a pairing account with a fresh key.
 	t.Helper()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -33,6 +34,7 @@ func newPairingTransportAccount(ctx context.Context, t *testing.T) (*ProviderAcc
 	acc := &ProviderAccount{
 		t:            &providerAccountTracker{p: &Provider{b: tb.Bus}},
 		le:           logrus.New().WithField("test", t.Name()),
+		vol:          tb.Volume,
 		lifecycleCtx: ctx,
 	}
 	release := func() {

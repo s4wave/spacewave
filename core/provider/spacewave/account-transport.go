@@ -245,6 +245,7 @@ func (a *ProviderAccount) createSessionTransportForSession(
 	options = append(options,
 		transport.WithStartupRetry(),
 		transport.WithPeerAuthorizer(a.authorizeAccountSession),
+		transport.WithPeerAuthorizationWatch(a.watchAccountSessions),
 		transport.WithBridgeDirectiveFilter(func(di directive.Instance) (bool, error) {
 			_, isMount := di.GetDirective().(sobject.MountSharedObject)
 			return !isMount, nil

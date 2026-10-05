@@ -41,26 +41,37 @@ func newTransportHandler(ctx context.Context, c *Controller) *transportHandler {
 func (h *transportHandler) HandleLinkEstablished(lnk link.Link) {
 	// Mount directly when every peer is admitted.
 	if h.c.authorizePeer == nil {
-		h.mountLink(lnk)
+		h.mountLink(lnk, 0)
 		return
 	}
 
-	// Authorize the peer, then mount the link unless it was lost meanwhile.
+	// Authorize the peer off the callback path.
 	h.authMtx.Lock()
 	h.authorizing[lnk] = struct{}{}
 	h.authMtx.Unlock()
-	go func() {
-		err := h.c.authorizePeer(h.ctx, lnk.GetRemotePeer())
-		if !h.takeAuthorizing(lnk) {
-			return
-		}
-		if err != nil {
-			h.c.loggerForLink(lnk).WithError(err).Warn("remote peer refused, closing link")
-			_ = lnk.Close()
-			return
-		}
-		h.mountLink(lnk)
-	}()
+	go h.authorizeLink(lnk)
+}
+
+// authorizeLink authorizes the remote peer of lnk, then mounts the link
+// unless it was lost meanwhile. A refused link closes with the reason.
+func (h *transportHandler) authorizeLink(lnk link.Link) {
+	// Note the authorization epoch, then authorize the peer.
+	var epoch uint64
+	h.c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		epoch = h.c.authEpoch
+	})
+	err := h.c.authorizePeer(h.ctx, lnk.GetRemotePeer())
+
+	// Drop a lost link, close a refused one, and mount the rest.
+	if !h.takeAuthorizing(lnk) {
+		return
+	}
+	if err != nil {
+		h.c.loggerForLink(lnk).WithError(err).Warn("remote peer refused, closing link")
+		_ = link.CloseWithReason(lnk, err.Error())
+		return
+	}
+	h.mountLink(lnk, epoch)
 }
 
 // takeAuthorizing removes lnk from the links awaiting authorization and
@@ -74,8 +85,10 @@ func (h *transportHandler) takeAuthorizing(lnk link.Link) bool {
 	return ok
 }
 
-// mountLink registers an admitted link with the controller.
-func (h *transportHandler) mountLink(lnk link.Link) {
+// mountLink registers an admitted link with the controller. epoch is the
+// authorization epoch the admission read; a link admitted under an older
+// epoch is authorized again instead.
+func (h *transportHandler) mountLink(lnk link.Link, epoch uint64) {
 	// Capture link identity for registration and logging.
 	le := h.c.loggerForLink(lnk)
 
@@ -105,6 +118,15 @@ func (h *transportHandler) mountLink(lnk link.Link) {
 		if remotePeer == h.c.peerID {
 			le.Warn("self-dial detected, closing link")
 			go lnk.Close()
+			return
+		}
+
+		// Authorize again when the admitted peers changed meanwhile.
+		if h.c.authEpoch != epoch {
+			h.authMtx.Lock()
+			h.authorizing[lnk] = struct{}{}
+			h.authMtx.Unlock()
+			go h.authorizeLink(lnk)
 			return
 		}
 

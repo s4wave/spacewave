@@ -238,6 +238,7 @@ func (a *ProviderAccount) startSessionTransportLocked(
 		signingEnvPrefix,
 		transport.WithStartupRetry(),
 		transport.WithPeerAuthorizer(a.authorizeAccountSession),
+		transport.WithPeerAuthorizationWatch(a.watchAccountSessions),
 		a.t.p.localNetwork,
 	)
 	if err != nil {

@@ -24,3 +24,27 @@ func (a *ProviderAccount) authorizeAccountSession(ctx context.Context, remotePee
 	}
 	return nil
 }
+
+// watchAccountSessions calls changed after each account settings change, since
+// a change may add or revoke account sessions. It returns nil at once when the
+// account has no settings.
+func (a *ProviderAccount) watchAccountSessions(ctx context.Context, changed func()) error {
+	// Follow the account settings.
+	ref, err := a.lookupAccountSettingsRef(ctx)
+	if err != nil || ref == nil {
+		return err
+	}
+	watch, err := a.watchAccountSettings(ctx, ref)
+	if err != nil {
+		return err
+	}
+	defer watch.release()
+
+	// Report each settings change.
+	for {
+		if _, err := watch.next(ctx); err != nil {
+			return err
+		}
+		changed()
+	}
+}

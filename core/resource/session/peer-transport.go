@@ -2,6 +2,7 @@ package resource_session
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -162,7 +163,7 @@ func (r *SessionResource) serveRemoteResources(ctx context.Context, st *transpor
 		b:      st.GetChildBus(),
 		server: srpc.NewServer(invokers[0]),
 	}
-	releaseHandler, err := st.ServeAuthorized(s4wave_session.RemoteResourceProtocolID, handler)
+	releaseHandler, err := st.ServeAuthorized(s4wave_session.RemoteResourceProtocolID, handler, refuseRemoteResources)
 	if err != nil {
 		invokerRef.Release()
 		return err
@@ -205,6 +206,34 @@ func (h *remoteResourceHandler) HandleMountedStream(ctx context.Context, ms link
 	return nil
 }
 
+// remoteRefusalTimeout bounds how long a refused peer may hold its stream
+// while it reads the refusal.
+const remoteRefusalTimeout = 10 * time.Second
+
+// refuseRemoteResources answers every call on a refused remote resource stream
+// with err, so the client reports why it was refused.
+func refuseRemoteResources(ctx context.Context, ms link.MountedStream, err error) {
+	// Serve the refusal until the client hangs up or the timeout ends.
+	ctx, cancel := context.WithTimeout(ctx, remoteRefusalTimeout)
+	defer cancel()
+	mc, muxErr := srpc.NewMuxedConnWithRwc(ctx, ms.GetStream(), false, nil)
+	if muxErr != nil {
+		return
+	}
+	_ = srpc.NewServer(refusedInvoker{err: err}).AcceptMuxedConn(ctx, mc)
+}
+
+// refusedInvoker fails every call with err.
+type refusedInvoker struct {
+	// err is the refusal.
+	err error
+}
+
+// InvokeMethod fails the call with the refusal.
+func (i refusedInvoker) InvokeMethod(_, _ string, _ srpc.Stream) (bool, error) {
+	return true, i.err
+}
+
 // sharedObjectTransportPeer returns the verified endpoint retained by enrollment.
 func (r *SessionResource) sharedObjectTransportPeer(sharedObjectID string) string {
 	account, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
@@ -220,4 +249,7 @@ func (r *SessionResource) sharedObjectTransportPeer(sharedObjectID string) strin
 }
 
 // _ is a type assertion
-var _ link.MountedStreamHandler = (*remoteResourceHandler)(nil)
+var (
+	_ link.MountedStreamHandler = (*remoteResourceHandler)(nil)
+	_ srpc.Invoker              = refusedInvoker{}
+)

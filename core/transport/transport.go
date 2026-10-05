@@ -4,6 +4,7 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
@@ -48,6 +49,13 @@ type SessionTransport struct {
 	startLocalTransport LocalTransportFunc
 	// authorizePeer admits remote peers to gated links and services; nil refuses all.
 	authorizePeer transport_controller.PeerAuthorizer
+	// watchPeers reports changes to the peers authorizePeer admits; nil
+	// reports none.
+	watchPeers PeerAuthorizationWatch
+	// streamsMtx guards streams.
+	streamsMtx sync.Mutex
+	// streams holds the gated streams admitted and not yet closed.
+	streams map[*admittedStream]struct{}
 	// sessionKey is the session's Ed25519 private key.
 	sessionKey bifrost_crypto.PrivKey
 	// peerID is the peer ID derived from the session key.
@@ -504,11 +512,27 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	}
 	defer releaseLookup()
 
-	// Announce transport readiness and run until its context ends.
+	// Re-authorize gated links and streams whenever the admitted peers change.
+	watchErr := make(chan error, 1)
+	if t.watchPeers != nil {
+		go func() {
+			watchErr <- t.watchPeers(ctx, func() { t.Reauthorize(ctx) })
+		}()
+	}
+
+	// Announce transport readiness and run until its context ends. A failed
+	// watch stops the transport, since revocations would no longer apply.
 	t.setStartupStage("ready")
 	t.publishReady()
 	le.Debug("session transport started")
-	<-ctx.Done()
+	select {
+	case <-ctx.Done():
+	case err := <-watchErr:
+		if err != nil && ctx.Err() == nil {
+			return errors.Wrap(err, "watch authorized peers")
+		}
+		<-ctx.Done()
+	}
 	return ctx.Err()
 }
 
