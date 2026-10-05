@@ -24,50 +24,17 @@ import (
 // ownership domain before graph or block mutation.
 var ErrAtomicSweepUnsupported = errors.New("atomic sweep unsupported")
 
-// AtomicSweepStore rechecks current ownership and removes still-orphaned nodes
-// and their physical blocks in one transaction, serialized with publication. A
-// candidate snapshot alone never authorizes deletion. The graph argument binds
-// this operation to the collector's reachability scope. It returns the nodes it
-// removed; a failed transaction removes none.
+// AtomicSweepStore removes still-orphaned nodes and their physical blocks,
+// serialized with publication.
 type AtomicSweepStore interface {
+	// SweepUnreferenced rechecks the current ownership of each candidate and
+	// removes the nodes still orphaned. A candidate snapshot alone never
+	// authorizes deletion. The graph argument binds the sweep to the
+	// collector's reachability scope. The store sizes its transactions to
+	// bound how long each holds its writer; a transaction removes its nodes,
+	// their edges and their blocks together or not at all. It returns the
+	// nodes removed by committed transactions, also when it returns an error.
 	SweepUnreferenced(ctx context.Context, graph RefGraphOps, nodes []string) ([]string, error)
-}
-
-// atomicSweepBatchSize bounds the candidates rechecked in one atomic sweep
-// transaction. The transaction holds the store's single writer lock, so every
-// foreground write waits for the whole batch. Batching amortizes the per-commit
-// cost; a small batch keeps that wait short on a busy volume.
-const atomicSweepBatchSize = 16
-
-// Stats holds GC cycle statistics.
-type Stats struct {
-	// AtomicSweepCount and AtomicSweepDuration include atomic ownership rechecks.
-	AtomicSweepCount    int
-	AtomicSweepDuration time.Duration
-	// NodesSwept is the number of nodes swept.
-	NodesSwept int
-	// UnreferencedNodeCount is the number of unreferenced node entries read.
-	UnreferencedNodeCount int
-	// RemoveNodeRefsCount is the number of nodes whose outgoing refs were removed.
-	RemoveNodeRefsCount int
-	// RemoveUnreferencedEdgeCount is the number of unreferenced marker edges removed.
-	RemoveUnreferencedEdgeCount int
-	// OnSweptCount is the number of onSwept callbacks run.
-	OnSweptCount int
-	// RemoveBlockCount is the number of physical block deletes attempted.
-	RemoveBlockCount int
-	// Duration is how long the GC cycle took.
-	Duration time.Duration
-	// UnreferencedScanDuration is time spent listing unreferenced nodes.
-	UnreferencedScanDuration time.Duration
-	// RemoveNodeRefsDuration is time spent removing outgoing node refs.
-	RemoveNodeRefsDuration time.Duration
-	// RemoveUnreferencedEdgeDuration is time spent removing unreferenced markers.
-	RemoveUnreferencedEdgeDuration time.Duration
-	// OnSweptDuration is time spent in onSwept callbacks.
-	OnSweptDuration time.Duration
-	// RemoveBlockDuration is time spent physically deleting block-backed nodes.
-	RemoveBlockDuration time.Duration
 }
 
 // Collector sweeps unreferenced nodes from the ref graph.
@@ -246,33 +213,33 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 	return stats, nil
 }
 
-// sweepAtomic sweeps one candidate snapshot through the store's atomic sweep in
-// bounded batches and returns the number of nodes removed.
+// sweepAtomic sweeps one candidate snapshot through the store's atomic sweep
+// and returns the number of nodes removed.
 func (c *Collector) sweepAtomic(ctx context.Context, atomic AtomicSweepStore, nodes []string, stats *Stats) (int, error) {
+	// Leave permanent roots out of the candidates.
 	candidates := slices.DeleteFunc(slices.Clone(nodes), IsPermanentRoot)
-	var swept int
-	for len(candidates) != 0 {
-		batch := candidates[:min(len(candidates), atomicSweepBatchSize)]
-		candidates = candidates[len(batch):]
-		start := time.Now()
-		removed, err := atomic.SweepUnreferenced(ctx, c.refGraph, batch)
-		stats.AtomicSweepDuration += time.Since(start)
-		stats.AtomicSweepCount += len(batch)
-		if err != nil {
-			if ctx.Err() != nil {
-				return swept, ctx.Err()
-			}
-			return swept, errors.Wrap(err, "atomic sweep")
-		}
-		for _, node := range removed {
-			swept++
-			stats.NodesSwept++
-			stats.RemoveNodeRefsCount++
-			stats.RemoveUnreferencedEdgeCount++
-			if _, ok := ParseBlockIRI(node); ok {
-				stats.RemoveBlockCount++
-			}
+	if len(candidates) == 0 {
+		return 0, nil
+	}
+
+	// Sweep the candidates and account for the nodes removed, also on error.
+	start := time.Now()
+	removed, err := atomic.SweepUnreferenced(ctx, c.refGraph, candidates)
+	stats.AtomicSweepDuration += time.Since(start)
+	stats.AtomicSweepCount += len(candidates)
+	for _, node := range removed {
+		stats.NodesSwept++
+		stats.RemoveNodeRefsCount++
+		stats.RemoveUnreferencedEdgeCount++
+		if _, ok := ParseBlockIRI(node); ok {
+			stats.RemoveBlockCount++
 		}
 	}
-	return swept, nil
+	if err != nil {
+		if ctx.Err() != nil {
+			return len(removed), ctx.Err()
+		}
+		return len(removed), errors.Wrap(err, "atomic sweep")
+	}
+	return len(removed), nil
 }

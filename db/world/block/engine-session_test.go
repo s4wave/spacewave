@@ -14,13 +14,13 @@ import (
 
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/s4wave/spacewave/db/block"
+	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
-	"github.com/s4wave/spacewave/db/volume"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -92,7 +92,7 @@ type sessionFixture struct {
 	engine    *Engine
 	publisher *sessionPublisher
 	db        *bdb.DB
-	volume    volume.Volume
+	volume    *volume_kvtx.Volume
 	load      func(context.Context) (*bucket.ObjectRef, error)
 	legacy    atomic.Int64
 }
@@ -128,8 +128,9 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(rel)
-	f := &sessionFixture{publisher: &sessionPublisher{AtomicPublisher: publisher}, db: volume_bolt.GetBoltDB(tb.Volume), volume: tb.Volume}
-	if f.db == nil || f.db.NoSync || f.db.NoFreelistSync {
+	f := &sessionFixture{publisher: &sessionPublisher{AtomicPublisher: publisher}, db: volume_bolt.GetBoltDB(tb.Volume)}
+	f.volume, _ = tb.Volume.(*volume_kvtx.Volume)
+	if f.volume == nil || f.db == nil || f.db.NoSync || f.db.NoFreelistSync {
 		t.Fatal("test requires durable native Bolt")
 	}
 
@@ -203,6 +204,19 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 		}
 	})
 	return f
+}
+
+// collect reaps released root pins, then collects unreferenced nodes, in the
+// order of the volume GC sweep.
+func (f *sessionFixture) collect(t *testing.T) {
+	t.Helper()
+	ctx := t.Context()
+	if err := f.volume.ReapRootPins(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := block_gc.NewCollector(f.volume.GetRefGraph(), f.volume, nil).Collect(ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func sessionWriter(t *testing.T, f *sessionFixture) *EngineTx {
@@ -285,9 +299,7 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	f := newSessionFixture(t)
 	initial := f.engine.GetRootRef()
 	g := f.publisher.arm(t, nil)
-	before := f.volume.(interface {
-		GetPublicationStats() volume_kvtx.PublicationStats
-	}).GetPublicationStats().PhysicalCommits
+	before := f.volume.GetPublicationStats().PhysicalCommits
 	first := sessionWriter(t, f)
 	sessionObject(t, first, "one")
 	r1 := sessionSubmit(t, first)
@@ -332,9 +344,7 @@ func TestEngineSessionRunAheadGroupsWithoutPublishingPrivateHead(t *testing.T) {
 	if err := sessionWait(t, r2); err != nil {
 		t.Fatal(err)
 	}
-	if n := f.volume.(interface {
-		GetPublicationStats() volume_kvtx.PublicationStats
-	}).GetPublicationStats().PhysicalCommits - before; n != 1 {
+	if n := f.volume.GetPublicationStats().PhysicalCommits - before; n != 1 {
 		t.Fatalf("two revisions used %d physical commits, want 1", n)
 	}
 

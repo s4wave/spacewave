@@ -43,9 +43,8 @@ func (g *transactionRefGraph) read(ctx context.Context, fn func(*block_gc.RefGra
 
 // write runs fn against a fresh writable reference graph in one transaction.
 func (g *transactionRefGraph) write(ctx context.Context, fn func(*block_gc.RefGraph) error) error {
-	return g.volume.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		err := fn(rg)
-		return err == nil, err
+	return g.volume.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
+		return fn(rg)
 	})
 }
 
@@ -128,8 +127,6 @@ func (g *transactionRefGraph) RemoveObjectRoot(ctx context.Context, objectKey st
 // Close releases the transaction-scoped graph; it holds no resources.
 func (*transactionRefGraph) Close() error { return nil }
 
-var _ block_gc.RefGraphOps = (*transactionRefGraph)(nil)
-
 // The nested TxStore commits are virtual. If a later slice or the outer commit
 // fails, none of the transition became durable; never expose a suffix-only
 // remainder from RefGraph.ApplyRefBatch to a caller that retains retry work.
@@ -152,3 +149,6 @@ func (e *atomicRefBatchError) Unwrap() error { return e.err }
 func (e *atomicRefBatchError) RefBatchRemainder() ([]block_gc.RefEdge, []block_gc.RefEdge) {
 	return append([]block_gc.RefEdge(nil), e.adds...), append([]block_gc.RefEdge(nil), e.removes...)
 }
+
+// _ is a type assertion
+var _ block_gc.RefGraphOps = (*transactionRefGraph)(nil)

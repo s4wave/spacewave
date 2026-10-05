@@ -31,12 +31,11 @@ func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
 
 	// Hang the stage under the process owner.
 	stage := stagePrefix + ulid.NewULID()
-	err = v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
+	err = v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
+		return rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
 			{Subject: block_gc.NodeGCRoot, Object: owner},
 			{Subject: owner, Object: stage},
 		}, nil)
-		return err == nil, err
 	})
 	if err != nil {
 		return "", nil, err
@@ -46,12 +45,11 @@ func (v *Volume) OpenStage(ctx context.Context) (string, func(), error) {
 	// is reaped.
 	release := sync.OnceFunc(func() {
 		ctx := context.Background()
-		_ = v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		_ = v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
 			if _, err := rg.RemoveNodeRefs(ctx, stage, true); err != nil {
-				return false, err
+				return err
 			}
-			err := rg.RemoveRef(ctx, owner, stage)
-			return err == nil, err
+			return rg.RemoveRef(ctx, owner, stage)
 		})
 	})
 	return stage, release, nil

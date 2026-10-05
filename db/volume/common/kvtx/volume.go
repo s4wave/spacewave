@@ -72,13 +72,22 @@ type Volume struct {
 	directClosed bool
 	// closeErr stores the error from Close.
 	closeErr error
-	// rootPinMu guards reader pin counts and their volume lease. It is never
-	// held across a volume transaction.
+	// rootPinMu guards reader pin counts and their volume lease. Direct
+	// transactions take it to carry released pins, so it is never held while
+	// opening a volume transaction.
 	rootPinMu      csync.Mutex
 	rootPinOwner   string
 	rootPinLease   coord.WriteLease
 	rootPins       map[string]*rootPin
 	rootPinsClosed bool
+	// proofMu guards the pending root proofs and the sweep count. It is never
+	// held across a volume transaction.
+	proofMu sync.Mutex
+	// rootProofs are the completion proofs no commit has carried yet, keyed by
+	// root node.
+	rootProofs map[string]*block.BlockRef
+	// sweeps counts the sweep transactions that may have removed nodes.
+	sweeps uint64
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.

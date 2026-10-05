@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -51,9 +50,7 @@ func TestStageWorldStateReclaimsUnadoptedBuild(t *testing.T) {
 	dropped := stageBody(t, stage, "dropped")
 	collect := func(want map[*block.BlockRef]bool) {
 		t.Helper()
-		if _, err := block_gc.NewCollector(f.volume.GetRefGraph(), f.volume, nil).Collect(ctx); err != nil {
-			t.Fatal(err)
-		}
+		f.collect(t)
 		for ref, exists := range want {
 			if found, err := store.GetBlockExists(ctx, ref); err != nil || found != exists {
 				t.Fatalf("block %s want=%v found=%v err=%v", ref.MarshalString(), exists, found, err)
@@ -140,9 +137,7 @@ func TestAccessObjectStateReclaimsReplayedBuild(t *testing.T) {
 	}
 
 	// Only the published root survives a sweep.
-	if _, err := block_gc.NewCollector(f.volume.GetRefGraph(), f.volume, nil).Collect(ctx); err != nil {
-		t.Fatal(err)
-	}
+	f.collect(t)
 	want := map[*block.BlockRef]bool{outRef.GetRootRef(): true, strays[0]: false, strays[1]: false}
 	for ref, exists := range want {
 		if found, err := f.engine.writeBlockStore.GetBlockExists(ctx, ref); err != nil || found != exists {

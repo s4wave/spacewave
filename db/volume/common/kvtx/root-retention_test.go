@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"slices"
 	"sync"
 	"testing"
 
@@ -231,9 +232,13 @@ func TestRootRetentionConcurrentPins(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A held pin retains its root; the released root is collected.
+	// A held pin retains its root; the released root is collected once its
+	// deferred edge removal is written.
 	release, err := v.PinBucketRoot(ctx, roots[0])
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := v.ReapRootPins(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := block_gc.NewCollector(v.GetRefGraph(), v, nil).Collect(ctx); err != nil {
@@ -286,5 +291,91 @@ func TestReleaseBucketRootsKeepsReferencedRoots(t *testing.T) {
 		if found, err := v.GetBlockExists(ctx, check.ref); err != nil || found != check.want {
 			t.Fatalf("block %s found=%v err=%v, want %v", check.ref.MarshalString(), found, err, check.want)
 		}
+	}
+}
+
+// TestRootRetentionDefersEditsToNextCommit checks that releasing a reader pin,
+// marking a root complete and repeating a preparation commit nothing of their
+// own, and that the next changing direct transaction makes the released pin
+// and the proof durable in its one commit.
+func TestRootRetentionDefersEditsToNextCommit(t *testing.T) {
+	// Prepare and pin a root, then note the physical commit count.
+	v, raw := newPublicationTestVolume(t)
+	ctx := t.Context()
+	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("deferred root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	release, err := v.PinBucketRoot(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commits := func() int {
+		raw.mu.Lock()
+		defer raw.mu.Unlock()
+		return raw.commits
+	}
+	before := commits()
+
+	// Release the pin, mark the root complete and prepare the root again.
+	release()
+	if err := v.MarkRootsComplete(ctx, []*block.BlockRef{root}); err != nil {
+		t.Fatal(err)
+	}
+	if found, err := v.RootComplete(ctx, root); err != nil || !found {
+		t.Fatalf("pending root proof found=%v err=%v", found, err)
+	}
+	if _, existed, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("deferred root"), nil); err != nil || !existed {
+		t.Fatalf("repeated preparation existed=%v err=%v", existed, err)
+	}
+	if n := commits() - before; n != 0 {
+		t.Fatalf("unchanged and deferred edits made %d commits", n)
+	}
+
+	// Prepare another block and verify its commit carries both edits.
+	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("next write"), nil); err != nil {
+		t.Fatal(err)
+	}
+	if n := commits() - before; n != 1 {
+		t.Fatalf("next write made %d commits", n)
+	}
+	node := block_gc.BlockIRI(root)
+	proofs, err := v.GetRefGraph().GetOutgoingRefs(ctx, node)
+	if err != nil || !slices.Equal(proofs, []string{completeWorldNode}) {
+		t.Fatalf("root proof edges=%v err=%v", proofs, err)
+	}
+	owners, err := v.GetRefGraph().GetIncomingRefs(ctx, node)
+	if err != nil || !slices.Equal(owners, []string{block_gc.BucketIRI("bucket")}) {
+		t.Fatalf("root owners=%v err=%v", owners, err)
+	}
+}
+
+// TestRootRetentionSweepDropsPendingProof checks that sweeping a root also
+// drops its proof before any commit carried it.
+func TestRootRetentionSweepDropsPendingProof(t *testing.T) {
+	// Orphan a prepared root, then mark it complete.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("swept root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := v.ReleaseBucketRoots(ctx, "bucket", []*block.BlockRef{root}); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.MarkRootsComplete(ctx, []*block.BlockRef{root}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Sweep the root and verify neither block nor proof remains.
+	removed, err := v.SweepUnreferenced(ctx, v.GetRefGraph(), []string{block_gc.BlockIRI(root)})
+	if err != nil || len(removed) != 1 {
+		t.Fatalf("sweep removed=%v err=%v", removed, err)
+	}
+	if found, err := v.RootComplete(ctx, root); err != nil || found {
+		t.Fatalf("swept root kept a proof: %v %v", found, err)
+	}
+	if found, err := v.GetBlockExists(ctx, root); err != nil || found {
+		t.Fatalf("swept root kept its block: %v %v", found, err)
 	}
 }

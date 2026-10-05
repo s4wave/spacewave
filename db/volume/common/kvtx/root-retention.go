@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"encoding/base64"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -25,56 +26,89 @@ const RootOwnerPrefix = "head:"
 // proof edge together with its other immutable dependencies.
 const completeWorldNode = "world:complete"
 
-// MarkRootsComplete persists a copy's proof batch without per-block commits.
+// MarkRootsComplete records completion proofs for stored roots. A proof stays
+// pending in memory until the next changing direct transaction carries it, so
+// marking costs no write barrier of its own. A crash loses only pending proofs,
+// which a later retention recomputes.
 func (v *Volume) MarkRootsComplete(ctx context.Context, roots []*block.BlockRef) error {
-	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		// Collect proof edges for stored roots that are not already complete.
-		var adds []block_gc.RefEdge
+	for {
+		// Note the sweeps attempted before checking that the roots exist.
+		v.proofMu.Lock()
+		sweeps := v.sweeps
+		v.proofMu.Unlock()
+
+		// Require stored bytes before recording a root completion proof.
 		for _, root := range roots {
-			// Require stored bytes before adding a root completion proof.
 			if root.GetEmpty() {
 				continue
 			}
-			found, err := blocks.GetBlockExists(ctx, root)
+			found, err := v.GetBlockExists(ctx, root)
 			if err != nil {
-				return false, err
+				return err
 			}
 			if !found {
-				return false, block.ErrNotFound
-			}
-
-			// Add the root proof only when its graph does not already contain it.
-			node := block_gc.BlockIRI(root)
-			refs, err := rg.GetOutgoingRefs(ctx, node)
-			if err != nil {
-				return false, err
-			}
-			if !slices.Contains(refs, completeWorldNode) {
-				adds = append(adds, block_gc.RefEdge{Subject: node, Object: completeWorldNode})
+				return block.ErrNotFound
 			}
 		}
-		if len(adds) == 0 {
-			return false, nil
-		}
 
-		// Persist all missing root proofs in the shared transaction.
-		err := rg.ApplyRefBatch(ctx, adds, nil)
-		return err == nil, err
-	})
+		// Record the proofs unless a sweep may have removed a root after its
+		// check, in which case check again.
+		v.proofMu.Lock()
+		recorded := v.sweeps == sweeps
+		if recorded {
+			if v.rootProofs == nil {
+				v.rootProofs = make(map[string]*block.BlockRef)
+			}
+			for _, root := range roots {
+				if !root.GetEmpty() {
+					v.rootProofs[block_gc.BlockIRI(root)] = root
+				}
+			}
+		}
+		v.proofMu.Unlock()
+		if recorded {
+			return nil
+		}
+	}
 }
 
-// RootComplete checks the proof in the volume ownership graph.
+// RootComplete checks for a pending proof, then for the proof in the volume
+// ownership graph.
 func (v *Volume) RootComplete(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	refs, err := v.refGraph.GetOutgoingRefs(ctx, block_gc.BlockIRI(ref))
+	// Accept a proof still waiting for a changing transaction.
+	node := block_gc.BlockIRI(ref)
+	v.proofMu.Lock()
+	_, pending := v.rootProofs[node]
+	v.proofMu.Unlock()
+	if pending {
+		return true, nil
+	}
+
+	// Otherwise read the durable proof edge.
+	refs, err := v.refGraph.GetOutgoingRefs(ctx, node)
 	return slices.Contains(refs, completeWorldNode), err
+}
+
+// forgetSweptProofs drops the pending proofs of nodes a sweep transaction may
+// have removed and counts the sweep, once the transaction has finished.
+func (v *Volume) forgetSweptProofs(nodes []string) {
+	// A transaction that swept no nodes invalidates no proof.
+	if len(nodes) == 0 {
+		return
+	}
+	v.proofMu.Lock()
+	defer v.proofMu.Unlock()
+	v.sweeps++
+	for _, node := range nodes {
+		delete(v.rootProofs, node)
+	}
 }
 
 // SetBucketRoot replaces one durable root within a bucket. Ownership changes
 // share a physical transaction with sweep eligibility and existence checks.
 func (v *Volume) SetBucketRoot(ctx context.Context, bucketID, name string, ref *block.BlockRef) error {
-	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		err := setBucketRoot(ctx, blocks, rg, bucketID, name, ref)
-		return err == nil, err
+	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
+		return setBucketRoot(ctx, blocks, rg, bucketID, name, ref)
 	})
 }
 
@@ -147,9 +181,8 @@ func (v *Volume) releaseOwnerRoots(ctx context.Context, owner string, refs []*bl
 	}
 
 	// Remove them, marking roots left without an owner for the sweep.
-	return v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		err := rg.ApplyRefBatch(ctx, nil, removes)
-		return err == nil, err
+	return v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
+		return rg.ApplyRefBatch(ctx, nil, removes)
 	})
 }
 
@@ -161,7 +194,9 @@ func (v *Volume) PinBucketRoot(ctx context.Context, ref *block.BlockRef) (func()
 	return release, err
 }
 
-// rootPin counts the in-process readers of one root.
+// rootPin counts the in-process readers of one root. A root whose last reader
+// leaves keeps its durable edge at count zero until a changing direct
+// transaction carries the removal, and a new reader meanwhile reuses the edge.
 type rootPin struct {
 	// count is the number of unreleased pins.
 	count int
@@ -221,19 +256,21 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 		pin = &rootPin{count: 1, settled: make(chan struct{})}
 		v.rootPins[node] = pin
 		unlock()
-		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 			// Require the reader root to exist before retaining its graph edge.
 			found, err := blocks.GetBlockExists(ctx, ref)
 			if err != nil {
-				return false, err
+				return err
 			}
 			if !found {
-				return false, block.ErrNotFound
+				return block.ErrNotFound
 			}
 
 			// Retain the reader root under the process lease in the same transaction.
-			err = rg.ApplyRefBatch(ctx, []block_gc.RefEdge{{Subject: block_gc.NodeGCRoot, Object: owner}, {Subject: owner, Object: node}}, nil)
-			return err == nil, err
+			return rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
+				{Subject: block_gc.NodeGCRoot, Object: owner},
+				{Subject: owner, Object: node},
+			}, nil)
 		})
 		v.settleRootPin(node, pin, err != nil)
 		if err != nil {
@@ -266,35 +303,15 @@ func (v *Volume) rootPinOwnerLocked(ctx context.Context) (string, error) {
 	return owner, nil
 }
 
-// unpinRoot releases one reader and removes the durable edge after the last.
+// unpinRoot releases one reader. The last release leaves the durable edge for
+// the next changing direct transaction to remove, so it costs no write barrier
+// of its own.
 func (v *Volume) unpinRoot(node string) {
-	// Find the reader pin under the Volume pin lock.
-	ctx := context.Background()
-	unlock, _ := v.rootPinMu.Lock(ctx)
-	pin := v.rootPins[node]
-	if v.rootPinsClosed || pin == nil || pin.count == 0 {
-		unlock()
-		return
+	unlock, _ := v.rootPinMu.Lock(context.Background())
+	defer unlock()
+	if pin := v.rootPins[node]; !v.rootPinsClosed && pin != nil && pin.count != 0 {
+		pin.count--
 	}
-
-	// Release the reader count and retain roots with other readers.
-	pin.count--
-	if pin.count != 0 {
-		unlock()
-		return
-	}
-
-	// Reserve the last reader edge removal before releasing the pin lock.
-	pin.settled = make(chan struct{})
-	owner := v.rootPinOwner
-	unlock()
-
-	// Failed cleanup remains retained until this volume closes or its lease is reaped.
-	_ = v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		err := rg.ApplyRefBatch(ctx, nil, []block_gc.RefEdge{{Subject: owner, Object: node}})
-		return err == nil, err
-	})
-	v.settleRootPin(node, pin, true)
 }
 
 // settleRootPin finishes pin's edge write and wakes pins waiting on it. A
@@ -310,20 +327,101 @@ func (v *Volume) settleRootPin(node string, pin *rootPin, forget bool) {
 	pin.settled = nil
 }
 
+// deferredEdits are the deferred edits one direct transaction carries.
+type deferredEdits struct {
+	// unpins are the released pins whose edge removals the transaction carries,
+	// keyed by root node.
+	unpins map[string]*rootPin
+	// proofs are the root nodes of the pending proofs the transaction carries.
+	proofs []string
+}
+
+// applyDeferred writes the removals of released reader pins and the pending
+// root proofs into a direct transaction. A proof whose root is gone is
+// dropped. The caller settles the returned edits once the transaction ends,
+// also on error.
+func (v *Volume) applyDeferred(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph) (deferredEdits, error) {
+	// Reserve the edge removals of released reader pins.
+	var edits deferredEdits
+	var adds, removes []block_gc.RefEdge
+	unlock, err := v.rootPinMu.Lock(ctx)
+	if err != nil {
+		return edits, err
+	}
+	for node, pin := range v.rootPins {
+		if pin.count != 0 || pin.settled != nil {
+			continue
+		}
+		if edits.unpins == nil {
+			edits.unpins = make(map[string]*rootPin)
+		}
+		pin.settled = make(chan struct{})
+		edits.unpins[node] = pin
+		removes = append(removes, block_gc.RefEdge{Subject: v.rootPinOwner, Object: node})
+	}
+	unlock()
+
+	// Take the pending root proofs.
+	v.proofMu.Lock()
+	proofs := maps.Clone(v.rootProofs)
+	v.proofMu.Unlock()
+
+	// Add the proof of each root still stored.
+	for node, root := range proofs {
+		edits.proofs = append(edits.proofs, node)
+		found, err := blocks.GetBlockExists(ctx, root)
+		if err != nil {
+			return edits, err
+		}
+		if found {
+			adds = append(adds, block_gc.RefEdge{Subject: node, Object: completeWorldNode})
+		}
+	}
+	if len(adds) == 0 && len(removes) == 0 {
+		return edits, nil
+	}
+
+	// Apply the edits together, marking roots left without an owner.
+	return edits, rg.ApplyRefBatch(ctx, adds, removes)
+}
+
+// settleDeferred finishes a transaction's deferred edits. A committed
+// transaction forgets its released pins and pending proofs; otherwise the
+// next changing transaction carries them again.
+func (v *Volume) settleDeferred(edits deferredEdits, committed bool) {
+	// Settle the released pins, forgetting them only after a commit.
+	for node, pin := range edits.unpins {
+		v.settleRootPin(node, pin, committed)
+	}
+
+	// Forget the proofs a committed transaction wrote.
+	if !committed || len(edits.proofs) == 0 {
+		return
+	}
+	v.proofMu.Lock()
+	defer v.proofMu.Unlock()
+	for _, node := range edits.proofs {
+		delete(v.rootProofs, node)
+	}
+}
+
+// closeRootPins stops new reader pins, then releases this process's reader
+// edges, stages and lease.
 func (v *Volume) closeRootPins() error {
-	// Stop new reader pins while holding the Volume pin lock.
+	// Stop new reader pins and take the owner under the Volume pin lock.
 	ctx := context.Background()
 	unlock, _ := v.rootPinMu.Lock(ctx)
-	defer unlock()
 	v.rootPinsClosed = true
-	if v.rootPinLease == nil {
+	owner, lease := v.rootPinOwner, v.rootPinLease
+	clear(v.rootPins)
+	unlock()
+	if lease == nil {
 		return nil
 	}
 
 	// Release the process reader edges and their coordination lease.
-	err := v.releaseRootPin(ctx, v.rootPinOwner)
-	leaseErr := v.rootPinLease.Release(ctx)
-	clear(v.rootPins)
+	err := v.releaseRootPin(ctx, owner)
+	leaseErr := lease.Release(ctx)
 	if err != nil {
 		return err
 	}
@@ -335,21 +433,27 @@ func (v *Volume) rootPinScope(owner string) coord.Scope {
 }
 
 func (v *Volume) releaseRootPin(ctx context.Context, owner string) error {
-	return v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+	return v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
 		if _, err := rg.RemoveNodeRefs(ctx, owner, true); err != nil {
-			return false, err
+			return err
 		}
-		err := rg.RemoveRef(ctx, block_gc.NodeGCRoot, owner)
-		return err == nil, err
+		return rg.RemoveRef(ctx, block_gc.NodeGCRoot, owner)
 	})
 }
 
 // ReapRootPins drops only pins whose coordination lease is no longer held.
-// It scans root owners, not the block inventory or retained history.
+// It scans root owners, not the block inventory or retained history. It first
+// writes this process's deferred edits, so a collection that follows sees its
+// released pins.
 func (v *Volume) ReapRootPins(ctx context.Context) error {
 	// Skip reader-pin recovery outside the atomic publication domain.
 	if !v.SupportsAtomicPublication() {
 		return nil
+	}
+
+	// Write the released pins and pending proofs of this process.
+	if err := v.withDirectAtomic(ctx, nil); err != nil {
+		return err
 	}
 
 	// Read retained root owners from the Volume reference graph.

@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"context"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
@@ -9,16 +10,22 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// withDirectAtomic joins direct preparation/sweep calls on Close and uses the
-// same raw physical transaction domain as the queued writer. It deliberately
-// does not acquire a coordinator lease or an Engine publication guard.
+// withDirectAtomic joins direct preparation and sweep calls on Close and uses
+// the same raw physical transaction domain as the queued writer. It
+// deliberately does not acquire a coordinator lease or an Engine publication
+// guard.
+//
+// Every commit costs a write barrier, so a transaction fn leaves unchanged ends
+// without one. A changing transaction also carries the Volume's deferred edits,
+// the edges of released reader pins and pending root proofs, which therefore
+// cost no barrier of their own. A nil fn applies only the deferred edits.
 //
 // It commits with write ordering when the store supports it. Every direct
 // stage is safe to lose in a crash as long as no earlier commit is lost:
-// prepared blocks stay owned by their bucket or stage, and root proofs, pins and sweeps
-// are recomputed or redone. The head publication that follows commits fully
-// and makes these writes durable, as does Sync.
-func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *block_gc.RefGraph) (bool, error)) error {
+// prepared blocks stay owned by their bucket or stage, and root proofs, pins and
+// sweeps are recomputed or redone. The head publication that follows commits
+// fully and makes these writes durable, as does Sync.
+func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *block_gc.RefGraph) error) error {
 	// Join direct Volume operations and reject writes after storage closes.
 	v.directMu.RLock()
 	defer v.directMu.RUnlock()
@@ -45,25 +52,36 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 	}
 	defer rg.Close()
 
-	// Apply the direct operation and skip unchanged transactions.
-	changed, err := fn(blocks, rg)
-	if err != nil || !changed {
-		return err
+	// Apply the direct operation.
+	if fn != nil {
+		if err := fn(blocks, rg); err != nil {
+			return err
+		}
 	}
 
-	// Commit the direct changes using the Volume write-ordering contract.
-	if v.ordered != nil {
-		err = kvtx.CommitOrdered(ctx, tx)
-	} else {
-		err = tx.Commit(ctx)
+	// Carry the deferred edits in a changing transaction only, and end an
+	// unchanged one without a commit.
+	var edits deferredEdits
+	if fn == nil || store.Wrote() {
+		edits, err = v.applyDeferred(ctx, blocks, rg)
 	}
-	if err != nil {
-		return err
+	committed := false
+	if err == nil && store.Wrote() {
+		// Commit using the Volume write-ordering contract.
+		if v.ordered != nil {
+			err = kvtx.CommitOrdered(ctx, tx)
+		} else {
+			err = tx.Commit(ctx)
+		}
+		committed = err == nil
 	}
 
-	// Wake Volume statistics watchers after the committed changes.
-	v.broadcastStorageStatsChanged()
-	return nil
+	// Settle the deferred edits and wake Volume statistics watchers.
+	v.settleDeferred(edits, committed)
+	if committed {
+		v.broadcastStorageStatsChanged()
+	}
+	return err
 }
 
 // PrepareOwnedBlock durably prepares a potentially oversized body together with
@@ -115,35 +133,42 @@ func (v *Volume) prepareOwned(
 	if !v.SupportsAtomicPublication() {
 		return block.ErrAtomicPublicationUnsupported
 	}
-	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
+	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 		// Write unowned blocks directly in the shared transaction.
 		if owner == "" {
-			err := put(blocks)
-			return err == nil, err
+			return put(blocks)
 		}
 
 		// Claim the owner, then write the blocks and flush their ownership
 		// together.
 		if err := claim(ctx, rg, owner); err != nil {
-			return false, err
+			return err
 		}
 		gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
-		err := put(gc)
-		if err == nil {
-			err = gc.FlushPending(ctx)
+		if err := put(gc); err != nil {
+			return err
 		}
-		return err == nil, err
+		return gc.FlushPending(ctx)
 	})
 }
 
+// sweepChunkSize bounds the candidates one reference batch releases. The
+// orphan marker owns every candidate, so releasing nodes one at a time would
+// rewrite its posting list once per node, which is quadratic in the number of
+// orphans.
+const sweepChunkSize = 64
+
+// sweepBudget bounds the time one sweep transaction spends releasing chunks
+// while it holds the writer. A commit costs a write barrier however little it
+// changes, so a transaction sweeps chunks until the budget runs out.
+const sweepBudget = 50 * time.Millisecond
+
 // SweepUnreferenced treats candidate snapshots as hints, not deletion authority.
-// Current owners, outgoing edges, orphan markers, and physical deletion for the
-// whole batch share one raw transaction with the same serialization as grouped
-// head publication.
-//
-// The batch releases its edges in one ownership transition. The orphan marker
-// owns every candidate, so releasing nodes one at a time rewrites its posting
-// list once per node, which is quadratic in the number of orphans.
+// Current owners, outgoing edges, orphan markers, and physical deletion of each
+// candidate share one raw transaction with the same serialization as grouped
+// head publication. Each transaction sweeps chunks of candidates until
+// sweepBudget elapses. It returns the nodes removed by committed transactions,
+// also when a later transaction fails.
 func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphOps, nodes []string) ([]string, error) {
 	// Require the Volume transaction domain for atomic sweeping.
 	actual, ok := v.refGraph.(*transactionRefGraph)
@@ -152,59 +177,82 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 		return nil, block_gc.ErrAtomicSweepUnsupported
 	}
 
-	// Sweep candidates and their graph edges in one physical transaction.
+	// Sweep the candidates in budgeted transactions. Each consumes chunks from
+	// the front of nodes.
 	var swept []string
-	err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) (bool, error) {
-		// Collect the candidates the marker still owns alone, with their edges.
-		swept = swept[:0]
-		var removes []block_gc.RefEdge
-		seen := make(map[string]struct{}, len(nodes))
-		for _, node := range nodes {
-			if _, dup := seen[node]; dup {
-				continue
-			}
-			seen[node] = struct{}{}
-			orphan, err := isMarkedOrphan(ctx, rg, node)
-			if err != nil {
-				return false, err
-			}
-			if !orphan {
-				continue
-			}
-			targets, err := rg.GetOutgoingRefs(ctx, node)
-			if err != nil {
-				return false, err
-			}
-			for _, target := range targets {
-				removes = append(removes, block_gc.RefEdge{Subject: node, Object: target})
-			}
-			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: node})
-			swept = append(swept, node)
-		}
-		if len(swept) == 0 {
-			return false, nil
-		}
-
-		// Release the edges together. Removing a node's own marker keeps it
-		// unmarked, and each child left without an owner gains a marker.
-		if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
-			return false, err
-		}
-
-		// Delete the swept blocks.
-		for _, node := range swept {
-			if ref, ok := block_gc.ParseBlockIRI(node); ok {
-				if err := blocks.RmBlock(ctx, ref); err != nil {
-					return false, err
+	for len(nodes) != 0 {
+		var batch []string
+		err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
+			start := time.Now()
+			for len(nodes) != 0 && time.Since(start) < sweepBudget {
+				chunk := nodes[:min(len(nodes), sweepChunkSize)]
+				nodes = nodes[len(chunk):]
+				removed, err := sweepChunk(ctx, blocks, rg, chunk)
+				if err != nil {
+					return err
 				}
+				batch = append(batch, removed...)
+			}
+			return nil
+		})
+
+		// Forget the pending proofs of the nodes the transaction may have
+		// removed, and report only the nodes of committed transactions.
+		v.forgetSweptProofs(batch)
+		if err != nil {
+			return swept, err
+		}
+		swept = append(swept, batch...)
+	}
+	return swept, nil
+}
+
+// sweepChunk removes the chunk's candidates the orphan marker still owns alone,
+// with their edges and blocks, and returns them.
+func sweepChunk(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, chunk []string) ([]string, error) {
+	// Collect the candidates the marker still owns alone, with their edges.
+	var swept []string
+	var removes []block_gc.RefEdge
+	seen := make(map[string]struct{}, len(chunk))
+	for _, node := range chunk {
+		if _, dup := seen[node]; dup {
+			continue
+		}
+		seen[node] = struct{}{}
+		orphan, err := isMarkedOrphan(ctx, rg, node)
+		if err != nil {
+			return nil, err
+		}
+		if !orphan {
+			continue
+		}
+		targets, err := rg.GetOutgoingRefs(ctx, node)
+		if err != nil {
+			return nil, err
+		}
+		for _, target := range targets {
+			removes = append(removes, block_gc.RefEdge{Subject: node, Object: target})
+		}
+		removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: node})
+		swept = append(swept, node)
+	}
+	if len(swept) == 0 {
+		return nil, nil
+	}
+
+	// Release the edges together. Removing a node's own marker keeps it
+	// unmarked, and each child left without an owner gains a marker.
+	if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
+		return nil, err
+	}
+
+	// Delete the swept blocks.
+	for _, node := range swept {
+		if ref, ok := block_gc.ParseBlockIRI(node); ok {
+			if err := blocks.RmBlock(ctx, ref); err != nil {
+				return nil, err
 			}
 		}
-		return true, nil
-	})
-
-	// A failed physical transaction must not report a successful sweep.
-	if err != nil {
-		return nil, err
 	}
 	return swept, nil
 }

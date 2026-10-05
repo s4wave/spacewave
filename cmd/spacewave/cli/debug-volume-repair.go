@@ -26,9 +26,6 @@ import (
 // volumeRepairEdgeBatch bounds the edges one ref graph transaction removes.
 const volumeRepairEdgeBatch = 4096
 
-// volumeRepairSweepBatch bounds the orphans one sweep transaction removes.
-const volumeRepairSweepBatch = 1024
-
 // volumeRepairKeyBatch bounds the keys one delete transaction removes.
 const volumeRepairKeyBatch = 50000
 
@@ -182,21 +179,17 @@ func repairVolume(ctx context.Context, le *logrus.Entry, path string, compact bo
 			return err
 		}
 		le.Infof("sweeping %d orphaned nodes", len(nodes))
-		var swept uint64
-		for chunk := range slices.Chunk(nodes, volumeRepairSweepBatch) {
-			done, err := vol.SweepUnreferenced(ctx, rg, chunk)
-			if err != nil {
-				return errors.Wrap(err, "sweep orphans")
+		swept, err := vol.SweepUnreferenced(ctx, rg, nodes)
+		for _, node := range swept {
+			if _, ok := block_gc.ParseBlockIRI(node); ok {
+				res.blocksSwept++
 			}
-			for _, node := range done {
-				if _, ok := block_gc.ParseBlockIRI(node); ok {
-					res.blocksSwept++
-				}
-			}
-			swept += uint64(len(done))
 		}
-		res.nodesSwept += swept
-		if swept == 0 {
+		res.nodesSwept += uint64(len(swept))
+		if err != nil {
+			return errors.Wrap(err, "sweep orphans")
+		}
+		if len(swept) == 0 {
 			break
 		}
 	}

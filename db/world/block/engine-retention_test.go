@@ -7,9 +7,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -20,13 +18,7 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 	f := newSessionFixture(t)
 	ctx := t.Context()
 	store := f.engine.writeBlockStore
-	kvStore := f.volume.(volume_kvtx.KvtxVolume).GetKvtxStore()
-	collect := func() {
-		t.Helper()
-		if _, err := block_gc.NewCollector(f.volume.GetRefGraph(), f.volume, nil).Collect(ctx); err != nil {
-			t.Fatal(err)
-		}
-	}
+	kvStore := f.volume.GetKvtxStore()
 
 	// Retain the first snapshot until both its reader and writable fork close.
 	var firstRoot, firstBody *block.BlockRef
@@ -90,7 +82,7 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 		}
 
 		// Collection must preserve the current World and every pinned snapshot.
-		collect()
+		f.collect(t)
 		for _, ref := range []*block.BlockRef{body, f.engine.GetRootRef().GetRootRef(), firstRoot, firstBody} {
 			if i >= 16 && (ref.EqualsRef(firstRoot) || ref.EqualsRef(firstBody)) {
 				continue
@@ -104,14 +96,14 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 		if i == 15 {
 			sessionHas(t, reader, "object", true)
 			reader.Discard()
-			collect()
+			f.collect(t)
 			if found, err := store.GetBlockExists(ctx, firstBody); err != nil || !found {
 				t.Fatalf("fork lost its base: %v %v", found, err)
 			}
 
 			// Closing the final fork makes its obsolete snapshot collectible.
 			fork.Discard()
-			collect()
+			f.collect(t)
 			for _, ref := range []*block.BlockRef{firstRoot, firstBody} {
 				if found, err := store.GetBlockExists(ctx, ref); err != nil || found {
 					t.Fatalf("released snapshot retained: %v %v", found, err)
@@ -189,9 +181,7 @@ func TestEngineRetentionPreservesExplicitHistory(t *testing.T) {
 	}
 
 	// Collection releases the superseded World but keeps its historical body.
-	if _, err := block_gc.NewCollector(f.volume.GetRefGraph(), f.volume, nil).Collect(ctx); err != nil {
-		t.Fatal(err)
-	}
+	f.collect(t)
 	if found, err := f.volume.GetBlockExists(ctx, old); err != nil || found {
 		t.Fatalf("superseded World retained: %v %v", found, err)
 	}

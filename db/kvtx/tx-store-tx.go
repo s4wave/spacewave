@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/tx"
 )
@@ -17,9 +18,11 @@ type TxStoreTx struct {
 	rmtx sync.RWMutex
 	// discarded indicates the tx was already discarded
 	discarded bool
+	// wrote records writes for the owning TxStore, nil outside a TxStore.
+	wrote *atomic.Bool
 }
 
-// NewTxStoreTx constructs a new TxStoreTx from a TxOps
+// NewTxStoreTx constructs a new TxStoreTx from a TxOps.
 func NewTxStoreTx(ops TxOps) (*TxStoreTx, error) {
 	if ops == nil {
 		return nil, errors.New("tx ops cannot be empty")
@@ -97,6 +100,8 @@ func (t *TxStoreTx) Set(ctx context.Context, key, value []byte) error {
 		return tx.ErrDiscarded
 	}
 
+	// Record the write for the owning store and apply it.
+	t.markWrote()
 	return t.tx.Set(ctx, key, value)
 }
 
@@ -118,6 +123,8 @@ func (t *TxStoreTx) Delete(ctx context.Context, key []byte) error {
 		return tx.ErrDiscarded
 	}
 
+	// Record the write for the owning store and apply it.
+	t.markWrote()
 	return t.tx.Delete(ctx, key)
 }
 
@@ -188,11 +195,9 @@ func (t *TxStoreTx) Exists(ctx context.Context, key []byte) (bool, error) {
 	return t.tx.Exists(ctx, key)
 }
 
-// Commit commits the transaction to storage.
-// Can return an error to indicate tx failure.
-// TxStore: does nothing internally
-// TxStore: if called after Discard, returns ErrDiscarded
-// TxStore: all ops will return ErrDiscarded if called after Commit or Discard
+// Commit ends the transaction. The operations already reached the underlying
+// transaction, so Commit only marks it finished: it returns ErrDiscarded after
+// Commit or Discard, and so does every later operation.
 func (t *TxStoreTx) Commit(ctx context.Context) error {
 	return t.discardOnce()
 }
@@ -203,6 +208,13 @@ func (t *TxStoreTx) Commit(ctx context.Context) error {
 // Can be called unlimited times.
 func (t *TxStoreTx) Discard() {
 	_ = t.discardOnce()
+}
+
+// markWrote records a write for the owning TxStore.
+func (t *TxStoreTx) markWrote() {
+	if t.wrote != nil {
+		t.wrote.Store(true)
+	}
 }
 
 // discardOnce locks & discards the tx, returns ErrDiscarded if already discarded
