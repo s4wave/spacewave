@@ -12,6 +12,37 @@ interface GraphLinkPillProps {
   onDelete?: () => void
 }
 
+interface GraphLinkBadgesProps {
+  edge: EphemeralEdge
+}
+
+/** GraphLinkBadges flags a link as protected, capped, or partly hidden. */
+function GraphLinkBadges({ edge }: GraphLinkBadgesProps) {
+  const capped =
+    (edge.direction === 'out' && edge.outgoingTruncated) ||
+    (edge.direction === 'in' && edge.incomingTruncated)
+
+  return (
+    <>
+      {edge.protected && (
+        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
+          protected
+        </span>
+      )}
+      {capped && (
+        <span className="border-warning/20 bg-warning/10 text-warning rounded px-1 py-0.5">
+          capped
+        </span>
+      )}
+      {edge.hiddenCount > 0 && (
+        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
+          hidden {edge.hiddenCount}
+        </span>
+      )}
+    </>
+  )
+}
+
 // GraphLinkPill renders the inline Canvas graph-link action pill.
 export function GraphLinkPill({
   edge,
@@ -20,10 +51,6 @@ export function GraphLinkPill({
   onHide,
   onDelete,
 }: GraphLinkPillProps) {
-  const capped =
-    (edge.direction === 'out' && edge.outgoingTruncated) ||
-    (edge.direction === 'in' && edge.incomingTruncated)
-
   return (
     <div className="flex h-6.5 max-w-64 items-center">
       <button
@@ -44,21 +71,7 @@ export function GraphLinkPill({
             {edge.linkedObjectTypeLabel}
           </span>
         )}
-        {edge.protected && (
-          <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
-            protected
-          </span>
-        )}
-        {capped && (
-          <span className="border-warning/20 bg-warning/10 text-warning rounded px-1 py-0.5">
-            capped
-          </span>
-        )}
-        {edge.hiddenCount > 0 && (
-          <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
-            hidden {edge.hiddenCount}
-          </span>
-        )}
+        <GraphLinkBadges edge={edge} />
         <span className="ml-auto flex items-center gap-1">
           {loaded ? (
             <LuLocateFixed className="size-3" />

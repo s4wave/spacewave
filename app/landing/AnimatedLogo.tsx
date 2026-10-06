@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, type RefObject } from 'react'
 import { useDocumentVisibility } from '@aptre/bldr-react'
 import { useMouse } from '@uidotdev/usehooks'
 
@@ -18,6 +18,117 @@ function rectEquals(a: DOMRect | null, b: DOMRect): boolean {
   )
 }
 
+/** useIsOnScreen reports whether the element is intersecting the viewport. */
+function useIsOnScreen(
+  ref: RefObject<HTMLElement | null>,
+  enabled: boolean,
+): boolean {
+  const [isOnScreen, setIsOnScreen] = useState(false)
+
+  useEffect(() => {
+    if (!enabled) return
+
+    const el = ref.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      const next = entry?.isIntersecting ?? false
+      setIsOnScreen((prev) => (prev === next ? prev : next))
+    })
+    observer.observe(el)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [enabled, ref])
+
+  return isOnScreen
+}
+
+/** useHasFinePointer reports whether the device has a hovering fine pointer. */
+function useHasFinePointer(enabled: boolean): boolean {
+  const [hasMouse, setHasMouse] = useState(false)
+
+  useEffect(() => {
+    if (!enabled) return
+
+    const query = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const update = () =>
+      setHasMouse((prev) => (prev === query.matches ? prev : query.matches))
+    update()
+    query.addEventListener('change', update)
+
+    return () => {
+      query.removeEventListener('change', update)
+    }
+  }, [enabled])
+
+  return hasMouse
+}
+
+/** useElementRect tracks the bounding rect of the element while enabled. */
+function useElementRect(
+  ref: RefObject<HTMLElement | null>,
+  enabled: boolean,
+): DOMRect | null {
+  const [elementRect, setElementRect] = useState<DOMRect | null>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!enabled || !el) return
+
+    const updateRect = () => {
+      const next = el.getBoundingClientRect()
+      setElementRect((prev) => (rectEquals(prev, next) ? prev : next))
+    }
+
+    updateRect()
+
+    const resizeObserver = new ResizeObserver(updateRect)
+    resizeObserver.observe(el)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [enabled, ref])
+
+  return elementRect
+}
+
+interface LogoTilt {
+  rotateX: number
+  rotateY: number
+  scale: number
+}
+
+const neutralTilt: LogoTilt = { rotateX: 0, rotateY: 0, scale: 1 }
+
+/** useLogoTilt turns the pointer position relative to the logo into a 3D tilt. */
+function useLogoTilt(
+  mouse: { x: number | null; y: number | null },
+  canAnimate: boolean,
+  elementRect: DOMRect | null,
+): LogoTilt {
+  return useMemo(() => {
+    if (!canAnimate || !elementRect) return neutralTilt
+
+    const mouseX = mouse.x ?? 0
+    const mouseY = mouse.y ?? 0
+    const x = (mouseX / window.innerWidth) * 2 - 1
+    const y = (mouseY / window.innerHeight) * 2 - 1
+
+    const dx = mouseX - (elementRect.left + elementRect.width / 2)
+    const dy = mouseY - (elementRect.top + elementRect.height / 2)
+    const distance = Math.min(Math.hypot(dx, dy) / 1000, 1)
+
+    return {
+      rotateX: y * -9.262, // 8.42 * 1.1
+      rotateY: x * 8.42,
+      scale: 1 + distance * 0.002,
+    }
+  }, [mouse.x, mouse.y, canAnimate, elementRect])
+}
+
 const AnimatedLogo = ({
   className,
   containerClassName,
@@ -34,85 +145,16 @@ const AnimatedLogo = ({
   const [mouse, mouseRef] = useMouse<HTMLDivElement>()
   const docVisible = useDocumentVisibility()
   const isTabActive = useIsTabActive()
-  const [elementRect, setElementRect] = useState<DOMRect | null>(null)
-  const [isOnScreen, setIsOnScreen] = useState(false)
-  const [hasMouse, setHasMouse] = useState(false)
+  const tracking = followMouse && !reduceMotion
+  const isOnScreen = useIsOnScreen(mouseRef, tracking)
+  const hasMouse = useHasFinePointer(tracking)
   const canRunAnimation =
     !reduceMotion && isOnScreen && docVisible === 'visible' && isTabActive
   const canAnimate = !reduceMotion && followMouse && canRunAnimation && hasMouse
+  const elementRect = useElementRect(mouseRef, canAnimate)
 
-  useEffect(() => {
-    if (!followMouse || reduceMotion) return
+  const transform = useLogoTilt(mouse, canAnimate, elementRect)
 
-    const el = mouseRef.current
-    if (!el) return
-
-    const observer = new IntersectionObserver(([entry]) => {
-      const next = entry?.isIntersecting ?? false
-      setIsOnScreen((prev) => (prev === next ? prev : next))
-    })
-    observer.observe(el)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [followMouse, mouseRef, reduceMotion])
-
-  useEffect(() => {
-    if (!followMouse || reduceMotion) return
-
-    const query = window.matchMedia('(hover: hover) and (pointer: fine)')
-    const update = () =>
-      setHasMouse((prev) => (prev === query.matches ? prev : query.matches))
-    update()
-    query.addEventListener('change', update)
-
-    return () => {
-      query.removeEventListener('change', update)
-    }
-  }, [followMouse, reduceMotion])
-
-  useEffect(() => {
-    if (!canAnimate || !mouseRef.current) return
-
-    const updateRect = () => {
-      if (mouseRef.current) {
-        const next = mouseRef.current.getBoundingClientRect()
-        setElementRect((prev) => (rectEquals(prev, next) ? prev : next))
-      }
-    }
-
-    updateRect()
-
-    const resizeObserver = new ResizeObserver(updateRect)
-    resizeObserver.observe(mouseRef.current)
-
-    return () => {
-      resizeObserver.disconnect()
-    }
-  }, [canAnimate, mouseRef])
-
-  const mousePosition = useMemo(() => {
-    if (!canAnimate || !elementRect) return { x: 0, y: 0, distance: 0 }
-
-    const elementCenterX = elementRect.left + elementRect.width / 2
-    const elementCenterY = elementRect.top + elementRect.height / 2
-
-    const x = ((mouse.x ?? 0) / window.innerWidth) * 2 - 1
-    const y = ((mouse.y ?? 0) / window.innerHeight) * 2 - 1
-
-    const dx = (mouse.x ?? 0) - elementCenterX
-    const dy = (mouse.y ?? 0) - elementCenterY
-    const distance = Math.min(Math.hypot(dx, dy) / 1000, 1)
-
-    return { x, y, distance }
-  }, [mouse.x, mouse.y, canAnimate, elementRect])
-
-  const transform = {
-    rotateX: canAnimate ? mousePosition.y * -9.262 : 0, // 8.42 * 1.1
-    rotateY: canAnimate ? mousePosition.x * 8.42 : 0,
-    scale: canAnimate ? 1 + mousePosition.distance * 0.002 : 1,
-  }
   return (
     <div
       ref={mouseRef}
