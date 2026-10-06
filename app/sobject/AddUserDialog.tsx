@@ -329,6 +329,7 @@ export function AddUserDialog({
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <button
+                  type="button"
                   onClick={() => void handleCopy(shortCode)}
                   className={cn(
                     actionButtonClass,
@@ -355,6 +356,7 @@ export function AddUserDialog({
               </p>
             ) : (
               <button
+                type="button"
                 onClick={() => void handleCreateInvite()}
                 disabled={state.creating || !session}
                 className={actionButtonClass}
@@ -383,6 +385,7 @@ export function AddUserDialog({
                   className={inputClass}
                 />
                 <button
+                  type="button"
                   onClick={() => void handleSendUsernameInvite()}
                   disabled={
                     state.creating || !session || !state.username.trim()
@@ -439,6 +442,7 @@ export function AddUserDialog({
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <button
+                  type="button"
                   onClick={() => void handleCopy(inviteLink)}
                   className={cn(
                     actionButtonClass,
@@ -460,6 +464,7 @@ export function AddUserDialog({
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => void handleCreateInvite()}
                 disabled={state.creating || !session}
                 className={actionButtonClass}
@@ -597,6 +602,7 @@ function OrgMembersTab({
           const isEnrolling = enrolling === accountId
           return (
             <button
+              type="button"
               key={member.id}
               disabled={isEnrolled || isEnrolling || !session}
               onClick={() => void handleEnroll(accountId)}

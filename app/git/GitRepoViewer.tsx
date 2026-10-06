@@ -218,6 +218,7 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
         detail={gitResource.error.message}
         action={
           <button
+            type="button"
             className="text-brand mt-2 text-xs underline"
             onClick={gitResource.retry}
           >
@@ -323,6 +324,7 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
             {fileError.message}
           </div>
           <button
+            type="button"
             className="text-brand mt-2 text-xs underline"
             onClick={handleRetry}
           >

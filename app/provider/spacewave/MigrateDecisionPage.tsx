@@ -58,6 +58,7 @@ export function MigrateDecisionPage() {
     <PageWrapper
       backButton={
         <button
+          type="button"
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
@@ -80,6 +81,7 @@ export function MigrateDecisionPage() {
 
       {/* Migrate card */}
       <button
+        type="button"
         onClick={handleMigrate}
         disabled={unlinking}
         className={cn(
@@ -106,6 +108,7 @@ export function MigrateDecisionPage() {
 
       {/* Keep separate card */}
       <button
+        type="button"
         onClick={() => void handleKeepSeparate()}
         disabled={unlinking || !session}
         className={cn(

@@ -49,6 +49,7 @@ export function SelectedRefBar({
   return (
     <div className="border-foreground/8 flex items-center gap-2 border-b px-1.5 py-1 text-xs select-none">
       <button
+        type="button"
         className="flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 hover:bg-white/[0.03]"
         onClick={onClickCommit}
       >
@@ -63,6 +64,7 @@ export function SelectedRefBar({
       </button>
       {onClickTree && (
         <button
+          type="button"
           className="text-foreground-alt hover:text-foreground shrink-0 rounded p-0.5 hover:bg-white/[0.05]"
           onClick={onClickTree}
           title="Browse files"
@@ -72,6 +74,7 @@ export function SelectedRefBar({
       )}
       {onClickLog && (
         <button
+          type="button"
           className="text-foreground-alt hover:text-foreground shrink-0 rounded p-0.5 hover:bg-white/[0.05]"
           onClick={onClickLog}
           title="View commit log"

@@ -71,6 +71,7 @@ function LicenseGroup({
         </span>
         {baseText && (
           <button
+            type="button"
             onClick={toggleBase}
             className="text-foreground-alt/60 hover:text-foreground-alt ml-auto flex cursor-pointer items-center gap-1 text-xs transition-colors"
           >
@@ -108,6 +109,7 @@ function LicenseGroup({
               <div className="flex items-center gap-2">
                 {(hasCustomText || hasCopyright) && (
                   <button
+                    type="button"
                     onClick={() => toggleEntry(entryKey)}
                     aria-expanded={isExpanded}
                     aria-label={buttonLabel}

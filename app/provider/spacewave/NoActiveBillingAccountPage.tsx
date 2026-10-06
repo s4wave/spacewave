@@ -273,6 +273,7 @@ export function NoActiveBillingAccountPage() {
           </div>
           {checkout.showRetry && (
             <button
+              type="button"
               onClick={checkout.continueCheckout}
               className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
             >
@@ -322,6 +323,7 @@ export function NoActiveBillingAccountPage() {
                 </div>
                 <div className="border-foreground/6 flex items-center justify-end gap-2 border-t px-4 py-2">
                   <button
+                    type="button"
                     onClick={() => handleManage(baId)}
                     className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
                   >
@@ -329,6 +331,7 @@ export function NoActiveBillingAccountPage() {
                     <span className="select-none">Manage</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => void handleActivate(ba)}
                     disabled={isBusy || disableActions}
                     className={cn(
@@ -353,6 +356,7 @@ export function NoActiveBillingAccountPage() {
 
       <div className="flex justify-center">
         <button
+          type="button"
           onClick={() => void handleCreate()}
           disabled={creating || disableActions}
           className={cn(

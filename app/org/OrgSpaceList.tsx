@@ -30,6 +30,7 @@ function OrgSpaceRow(props: { orgId: string; space: OrgSpaceInfo }) {
 
   return (
     <button
+      type="button"
       onClick={handleSpaceSelect}
       className="hover:bg-foreground/5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
     >

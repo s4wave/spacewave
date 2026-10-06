@@ -134,6 +134,7 @@ export function BillingCancelPage() {
     <PageWrapper
       backButton={
         <button
+          type="button"
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
@@ -272,6 +273,7 @@ export function BillingCancelPage() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           {isCancelScheduled ? (
             <button
+              type="button"
               onClick={() => void handleKeep()}
               disabled={action !== 'idle' || checkout.polling}
               className={cn(
@@ -292,6 +294,7 @@ export function BillingCancelPage() {
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => void handleCancel()}
               disabled={action !== 'idle' || !canScheduleCancel}
               className={cn(
@@ -305,6 +308,7 @@ export function BillingCancelPage() {
             </button>
           )}
           <button
+            type="button"
             onClick={handleBack}
             className="border-foreground/15 bg-background/40 text-foreground hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300"
           >
@@ -338,6 +342,7 @@ export function BillingCancelPage() {
             </div>
             {checkout.showRetry && (
               <button
+                type="button"
                 onClick={checkout.continueCheckout}
                 className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
               >

@@ -31,6 +31,7 @@ export function UpgradeLoginPage() {
     <AuthScreenLayout
       topLeft={
         <button
+          type="button"
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
         >

@@ -43,6 +43,7 @@ export function BillingAccountCard({
 
   return (
     <button
+      type="button"
       onClick={onManage}
       className="border-foreground/6 bg-background-card/20 hover:border-foreground/12 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"
     >

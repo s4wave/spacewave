@@ -89,6 +89,7 @@ export function useUnixFSInlineEntryRenderer({
               }}
             />
             <button
+              type="button"
               tabIndex={0}
               aria-label="Confirm rename"
               className="text-brand hover:text-brand-highlight shrink-0 p-0.5"
@@ -101,6 +102,7 @@ export function useUnixFSInlineEntryRenderer({
               <LuCheck className="size-3" />
             </button>
             <button
+              type="button"
               tabIndex={0}
               aria-label="Cancel rename"
               className="text-foreground-alt hover:text-foreground shrink-0 p-0.5"

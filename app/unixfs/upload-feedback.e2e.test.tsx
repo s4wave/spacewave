@@ -78,7 +78,11 @@ function DriveViewerStub({ handle }: { handle: FSHandle }) {
 function CancelAllControl() {
   const manager = useSessionUploadManager()
   return (
-    <button data-testid="cancel-all" onClick={() => manager?.cancelAll()}>
+    <button
+      type="button"
+      data-testid="cancel-all"
+      onClick={() => manager?.cancelAll()}
+    >
       Cancel all
     </button>
   )

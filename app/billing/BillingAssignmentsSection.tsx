@@ -165,6 +165,7 @@ export function BillingAssignmentsSection({
               >
                 <span>{label}</span>
                 <button
+                  type="button"
                   onClick={() =>
                     setDetachTarget({
                       ownerType: a.ownerType as 'account' | 'organization',

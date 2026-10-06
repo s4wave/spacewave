@@ -78,6 +78,7 @@ export function StatusSection({
   return (
     <div className="border-foreground/8 border-b">
       <button
+        type="button"
         className="text-foreground flex w-full items-center gap-1 px-3 py-1.5 text-xs font-medium select-none hover:bg-white/[0.03]"
         onClick={toggle}
       >
@@ -112,12 +113,14 @@ export function StatusSection({
                   {letter}
                 </span>
                 <button
+                  type="button"
                   className="text-foreground min-w-0 flex-1 truncate text-left text-xs"
                   onClick={() => onFileClick?.(path)}
                 >
                   {path}
                 </button>
                 <button
+                  type="button"
                   className="text-brand hover:text-brand/80 shrink-0 text-xs opacity-0 transition-opacity group-hover:opacity-100"
                   onClick={() => onAction([path])}
                 >

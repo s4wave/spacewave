@@ -52,6 +52,7 @@ export function DetachAssignmentDialog({
         </DialogHeader>
         <DialogFooter>
           <button
+            type="button"
             onClick={onCancel}
             disabled={busy}
             className="text-foreground-alt hover:text-foreground cursor-pointer rounded px-3 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -59,6 +60,7 @@ export function DetachAssignmentDialog({
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={busy}
             className="border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"

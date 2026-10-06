@@ -105,6 +105,7 @@ export function CommitDetail({
               <span className="flex gap-1.5">
                 {commit.parentHashes?.map((ph) => (
                   <button
+                    type="button"
                     key={ph}
                     className="text-brand font-mono hover:underline"
                     onClick={() => onNavigateCommit?.(ph)}

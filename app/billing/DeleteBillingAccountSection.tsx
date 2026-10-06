@@ -156,6 +156,7 @@ export function DeleteBillingAccountSection({
           {error && <div className="text-destructive text-xs">{error}</div>}
           <DialogFooter>
             <button
+              type="button"
               onClick={() => handleOpenChange(false)}
               disabled={deleting}
               className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -163,6 +164,7 @@ export function DeleteBillingAccountSection({
               Cancel
             </button>
             <button
+              type="button"
               onClick={() => void handleDelete()}
               disabled={!confirmed || deleting}
               className={cn(

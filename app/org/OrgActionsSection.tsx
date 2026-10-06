@@ -41,6 +41,7 @@ export function OrgActionsSection({
 
       <div className="space-y-2">
         <button
+          type="button"
           onClick={() => setDialogOpen(true)}
           disabled={blocked}
           className={cn(
@@ -154,6 +155,7 @@ function DeleteOrgDialog(props: {
         {error && <p className="text-destructive text-xs">{error}</p>}
         <DialogFooter>
           <button
+            type="button"
             onClick={() => handleOpenChange(false)}
             disabled={deleting}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -161,6 +163,7 @@ function DeleteOrgDialog(props: {
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => void handleDelete()}
             disabled={!confirmed || deleting}
             className={cn(

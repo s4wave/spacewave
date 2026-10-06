@@ -22,6 +22,7 @@ export function BlogLayout({ children, showBack = true }: BlogLayoutProps) {
       {showBack && (
         <div className="relative z-10 mx-auto w-full max-w-3xl px-4 pt-4 @lg:px-8">
           <button
+            type="button"
             onClick={goBack}
             className="text-foreground-alt/60 hover:text-foreground flex cursor-pointer items-center gap-2 text-xs font-medium transition-colors"
           >

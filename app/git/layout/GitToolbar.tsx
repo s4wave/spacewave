@@ -48,6 +48,7 @@ export function GitToolbar({
       />
       <div className="flex">
         <button
+          type="button"
           onClick={onBack}
           disabled={!canGoBack}
           className={cn(
@@ -58,6 +59,7 @@ export function GitToolbar({
           <LuChevronLeft className="text-foreground-alt size-4" />
         </button>
         <button
+          type="button"
           onClick={onForward}
           disabled={!canGoForward}
           className={cn(
@@ -70,6 +72,7 @@ export function GitToolbar({
           <LuChevronRight className="text-foreground-alt size-4" />
         </button>
         <button
+          type="button"
           onClick={onUp}
           disabled={currentPath === '/'}
           className={cn(

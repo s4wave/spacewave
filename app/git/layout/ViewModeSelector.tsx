@@ -48,6 +48,7 @@ export function ViewModeSelector({
     <div className="border-foreground/8 flex items-center gap-0.5 border-b px-2 py-0.5">
       {tabs.map((tab) => (
         <button
+          type="button"
           key={tab.key}
           className={cn(
             'rounded px-2 py-0.5 text-xs select-none',
