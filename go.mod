@@ -54,7 +54,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261005145446-43077f29f67b // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261005152300-3efcc8a355ca // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261006101203-431ad3c239ea // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.11.2
 	github.com/gomodule/redigo v2.0.0+incompatible
