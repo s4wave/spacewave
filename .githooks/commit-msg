@@ -5,6 +5,9 @@
 # commit view. Trailers and raw URL lines are exempt because wrapping
 # breaks them; comment lines are stripped by git anyway.
 #
+# A commit names its author and Signed-off-by and credits no co-author,
+# person or tool, so a Co-authored-by trailer is rejected.
+#
 # The sign-off rule is the one CONTRIBUTING.md states and the DCO workflow
 # checks, moved to commit time so the author sees it while the commit is
 # still cheap to amend rather than after a push and a CI round.
@@ -68,6 +71,12 @@ END {
 	}
 }
 ' "$msg" || failed=1
+
+if sed '/^# -* >8 -*$/q' "$msg" | grep -v '^#' | grep -qi '^[[:space:]]*co-authored-by:'; then
+	printf 'commit-msg: remove the Co-authored-by trailer; the author and\n' >&2
+	printf 'Signed-off-by identify who wrote the commit.\n' >&2
+	failed=1
+fi
 
 # Two things have to hold, and each one catches what the other misses.
 #
