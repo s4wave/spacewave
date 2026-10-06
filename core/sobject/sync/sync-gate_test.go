@@ -392,10 +392,11 @@ func advanceSnapshotCheckpoint(t *testing.T, soID string, state *sobject.SOState
 func writeSyncOp(t *testing.T, soID string, state *sobject.SOState, priv crypto.PrivKey, data string) *sobject.SOOperation {
 	// Sign the operation at the author's next link and add it.
 	t.Helper()
-	link, err := state.NextOperationLink(soID, mustPeerIDStr(t, priv))
+	set, err := state.OperationSet(soID)
 	if err != nil {
 		t.Fatal(err)
 	}
+	link := state.NextOperationLink(set, mustPeerIDStr(t, priv))
 	op, err := sobject.BuildSOOperation(soID, priv, []byte(data), link, ulid.NewULID())
 	if err != nil {
 		t.Fatal(err)

@@ -31,10 +31,11 @@ func linkAt(state *SOState, priv crypto.PrivKey, nonce uint64) *SOOperationLink 
 	}
 	link := &SOOperationLink{}
 	if state != nil {
-		link, err = state.NextOperationLink(mockSharedObjectID, peerID.String())
+		set, err := state.OperationSet(mockSharedObjectID)
 		if err != nil {
 			panic(err)
 		}
+		link = state.NextOperationLink(set, peerID.String())
 	}
 	if len(link.ConfigHash) == 0 {
 		link.ConfigHash = mockConfigHash
@@ -198,10 +199,11 @@ func writeTestOp(t *testing.T, state *SOState, priv crypto.PrivKey, data string)
 	if err != nil {
 		t.Fatal(err)
 	}
-	link, err := state.NextOperationLink(mockSharedObjectID, peerID.String())
+	set, err := state.OperationSet(mockSharedObjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
+	link := state.NextOperationLink(set, peerID.String())
 	op, err := BuildSOOperation(mockSharedObjectID, priv, enc, link, NewSOOperationLocalID())
 	if err != nil {
 		t.Fatal(err)

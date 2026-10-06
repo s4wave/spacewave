@@ -40,7 +40,7 @@ func CheckpointWorld(
 	sharedObjectID := so.GetSharedObjectID()
 	snap := sobject.NewSOStateParticipantHandle(le, sfs, sharedObjectID, state, privKey, peerID)
 	if host, ok := so.(sobject.StateHost); ok {
-		snap = snap.WithConfigHistory(host.GetSOHost().ReadConfigEntry)
+		snap = snap.WithConfigHistory(host.GetSOHost().ReadConfigEntry).WithOperationVerifier(host.GetSOHost().GetOperationVerifier())
 	}
 	replayed, err := ReplayWorld(ctx, le, b, sfs, so, engineID, lookupOp, snap)
 	if err != nil {

@@ -99,6 +99,8 @@ type SOStateParticipantHandle struct {
 	peerIDStr      string
 	// configEntry reads a retained config change by hash, or is nil.
 	configEntry func(context.Context, []byte) (*SOConfigChange, error)
+	// verifier builds the operation set of the state.
+	verifier *SOOperationVerifier
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -125,6 +127,7 @@ func NewSOStateParticipantHandle(
 		privKey:        privKey,
 		peerID:         localPeerID,
 		peerIDStr:      localPeerID.String(),
+		verifier:       NewSOOperationVerifier(sharedObjectID),
 		transformers:   make(map[uint64]*block_transform.Transformer),
 	}
 }
@@ -134,6 +137,13 @@ func NewSOStateParticipantHandle(
 // sharing the handle.
 func (s *SOStateParticipantHandle) WithConfigHistory(read func(context.Context, []byte) (*SOConfigChange, error)) *SOStateParticipantHandle {
 	s.configEntry = read
+	return s
+}
+
+// WithOperationVerifier builds the operation set through verifier, which the
+// snapshots of one shared object share. Call it before sharing the handle.
+func (s *SOStateParticipantHandle) WithOperationVerifier(verifier *SOOperationVerifier) *SOStateParticipantHandle {
+	s.verifier = verifier
 	return s
 }
 
@@ -228,7 +238,7 @@ func (s *SOStateParticipantHandle) GetOperationSet(context.Context) (*SOOperatio
 	if s.opSet != nil {
 		return s.opSet, nil
 	}
-	set, err := s.state.OperationSet(s.sharedObjectID)
+	set, err := s.verifier.OperationSet(s.state)
 	if err != nil {
 		return nil, err
 	}

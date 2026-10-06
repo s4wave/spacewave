@@ -29,6 +29,8 @@ type SOHost struct {
 	syncFuncs SOHostSyncFuncs
 	// sharedObjectID is the id of the shared object.
 	sharedObjectID string
+	// verifier builds the operation sets of the states of the shared object.
+	verifier *SOOperationVerifier
 	// soRc contains the shared object refcount instance.
 	soRc *refcount.RefCount[ccontainer.Watchable[*SOState]]
 }
@@ -37,7 +39,7 @@ type SOHost struct {
 //
 // ctx can be nil.
 func NewSOHost(ctx context.Context, watchFn SOStateWatchFunc, lockFn SOStateLockFunc, sharedObjectID string, syncFuncs ...*SOHostSyncFuncs) *SOHost {
-	h := &SOHost{watchFn: watchFn, lockFn: lockFn, sharedObjectID: sharedObjectID}
+	h := &SOHost{watchFn: watchFn, lockFn: lockFn, sharedObjectID: sharedObjectID, verifier: NewSOOperationVerifier(sharedObjectID)}
 	if len(syncFuncs) != 0 && syncFuncs[0] != nil {
 		h.syncFuncs = *syncFuncs[0]
 	}
@@ -63,6 +65,13 @@ func (s *SOHost) ClearContext() {
 // GetSharedObjectID returns the sharedObjectID for the SOHost.
 func (s *SOHost) GetSharedObjectID() string {
 	return s.sharedObjectID
+}
+
+// GetOperationVerifier returns the verifier of the shared object's operations.
+// Snapshots of the host's states share it, so a state that gains an operation
+// verifies only that one.
+func (s *SOHost) GetOperationVerifier() *SOOperationVerifier {
+	return s.verifier
 }
 
 // CanWatchSOState returns true if the host can watch shared object state.
@@ -391,10 +400,11 @@ func (s *SOHost) AddLocalOperation(
 	// Encode the data for the head of this peer's chain. An acknowledgment
 	// has no data to encode.
 	next := lk.GetSOState().CloneVT()
-	link, err := next.NextOperationLink(s.sharedObjectID, peerID.String())
+	set, err := s.verifier.OperationSet(next)
 	if err != nil {
 		return "", 0, err
 	}
+	link := next.NextOperationLink(set, peerID.String())
 	var opDataEnc []byte
 	if len(opData) != 0 {
 		handle := NewSOStateParticipantHandle(le, sfs, s.sharedObjectID, next, privKey, peerID)

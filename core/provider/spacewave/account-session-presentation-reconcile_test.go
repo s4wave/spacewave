@@ -300,10 +300,11 @@ func (s *testSessionPresentationSharedObject) QueueOperation(
 	if err != nil {
 		return "", err
 	}
-	link, err := s.state.NextOperationLink(s.GetSharedObjectID(), s.peerID.String())
+	set, err := s.state.OperationSet(s.GetSharedObjectID())
 	if err != nil {
 		return "", err
 	}
+	link := s.state.NextOperationLink(set, s.peerID.String())
 	data, err := xfrm.EncodeBlock(op)
 	if err != nil {
 		return "", err

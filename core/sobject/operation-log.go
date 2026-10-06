@@ -316,24 +316,29 @@ func links(inner *SOOperationInner) []*SOOperationPosition {
 // or the checkpoint covers it. An author's second operation at one sequence is
 // kept as evidence.
 func (s *SOOperationSet) Add(op *SOOperation) (bool, error) {
-	// Verify the operation and skip one the set or the checkpoint holds.
 	inner, err := op.Verify(s.sharedObjectID)
 	if err != nil {
 		return false, err
 	}
+	return s.insert(string(op.Hash()), inner), nil
+}
+
+// insert adds the verified body inner of the operation with hash key. It reports
+// false when the set already holds the operation or the checkpoint covers it.
+func (s *SOOperationSet) insert(key string, inner *SOOperationInner) bool {
+	// Skip an operation the checkpoint or the set holds.
 	if s.Covers(inner.GetPeerId(), inner.GetNonce()) {
-		return false, nil
+		return false
 	}
-	key := string(op.Hash())
 	if _, ok := s.ops[key]; ok {
-		return false, nil
+		return false
 	}
 
 	// Index it by hash and by its author position.
 	s.ops[key] = inner
 	pos := soAuthorSeq{author: inner.GetPeerId(), nonce: inner.GetNonce()}
 	s.byAuthorSeq[pos] = append(s.byAuthorSeq[pos], key)
-	return true, nil
+	return true
 }
 
 // Len returns the number of operations in the set.
