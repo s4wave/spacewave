@@ -100,7 +100,7 @@ function useSelfEnrollmentActions(status: SessionSelfEnrollmentStatusView) {
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const run = useCallback(async (action: () => Promise<void>) => {
+  const run = useCallback(async (action: () => Promise<unknown>) => {
     setBusy(true)
     setActionError('')
     try {
