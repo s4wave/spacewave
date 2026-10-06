@@ -62,7 +62,7 @@ describe('PathInput', () => {
     const user = userEvent.setup()
     render(<PathInput path="/Users/testuser" />)
 
-    const container = screen.getByRole('button', { name: 'File path' })
+    const container = screen.getByRole('button', { name: 'Edit path' })
     await user.click(container)
 
     const input = screen.getByRole('textbox')
@@ -77,7 +77,7 @@ describe('PathInput', () => {
     const user = userEvent.setup()
     render(<PathInput path="/Users/testuser" />)
 
-    const container = screen.getByRole('button', { name: 'File path' })
+    const container = screen.getByRole('button', { name: 'Edit path' })
     container.focus()
     await user.keyboard('{Enter}')
 
@@ -92,7 +92,7 @@ describe('PathInput', () => {
     const onPathChange = vi.fn()
     render(<PathInput path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getByRole('button', { name: 'File path' })
+    const container = screen.getByRole('button', { name: 'Edit path' })
     await user.click(container)
 
     const input = screen.getByRole('textbox')
@@ -110,7 +110,7 @@ describe('PathInput', () => {
     const onPathChange = vi.fn()
     render(<PathInput path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getByRole('button', { name: 'File path' })
+    const container = screen.getByRole('button', { name: 'Edit path' })
     await user.click(container)
 
     const input = screen.getByRole('textbox')
@@ -131,7 +131,7 @@ describe('PathInput', () => {
     const onPathChange = vi.fn()
     render(<PathInput path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getByRole('button', { name: 'File path' })
+    const container = screen.getByRole('button', { name: 'Edit path' })
     await user.click(container)
 
     const input = screen.getByRole('textbox')
@@ -150,7 +150,7 @@ describe('PathInput', () => {
     const onPathChange = vi.fn()
     render(<PathInput path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getByRole('button', { name: 'File path' })
+    const container = screen.getByRole('button', { name: 'Edit path' })
     await user.click(container)
 
     const input = screen.getByRole('textbox')
@@ -185,7 +185,7 @@ describe('PathInput', () => {
   it('applies custom className', () => {
     render(<PathInput path="/Users/testuser" className="mt-1" />)
 
-    const container = screen.getByRole('button', { name: 'File path' })
+    const container = screen.getByRole('group', { name: 'File path' })
     expect(container.className).toContain('mt-1')
   })
 

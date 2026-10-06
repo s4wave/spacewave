@@ -19,7 +19,7 @@ export function CopyableField({ label, value }: CopyableFieldProps) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-foreground-alt text-xs select-none">{label}</span>
-      <button
+      <button type="button"
         onClick={handleCopy}
         className="group hover:bg-foreground/5 -ml-2 flex items-center gap-2 rounded-md px-2 py-1 text-left transition-colors"
         aria-label={copied ? 'Copied!' : 'Click to copy'}

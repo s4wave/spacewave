@@ -28,7 +28,7 @@ describe('PathBar', () => {
     const user = userEvent.setup()
     render(<PathBar path="/Users/testuser" />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     await waitFor(() => {
@@ -41,7 +41,7 @@ describe('PathBar', () => {
     const user = userEvent.setup()
     render(<PathBar path="/Users/testuser" />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     container.focus()
     await user.keyboard('{Enter}')
 
@@ -82,7 +82,7 @@ describe('PathBar', () => {
     const onPathChange = vi.fn()
     render(<PathBar path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     const input = await screen.findByRole('textbox')
@@ -100,7 +100,7 @@ describe('PathBar', () => {
     const onPathChange = vi.fn()
     render(<PathBar path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     const input = await screen.findByRole('textbox')
@@ -119,7 +119,7 @@ describe('PathBar', () => {
     const user = userEvent.setup()
     render(<PathBar path="/Users/testuser" />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     const input = await screen.findByRole('textbox')
@@ -145,7 +145,7 @@ describe('PathBar', () => {
     const user = userEvent.setup()
     render(<PathBar path="/Users/testuser" />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     const inputEl = await screen.findByRole('textbox')
@@ -168,7 +168,7 @@ describe('PathBar', () => {
     const onNavigate = vi.fn()
     render(<PathBar path="/Users/testuser" onNavigate={onNavigate} />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     expect(onNavigate).not.toHaveBeenCalled()
@@ -195,7 +195,7 @@ describe('PathBar', () => {
     expect(initialHeight).toContain('h-5')
 
     const clickableContainer = screen.getAllByRole('button', {
-      name: 'File path',
+      name: 'Edit path',
     })[0]
     await user.click(clickableContainer)
 
@@ -217,7 +217,7 @@ describe('PathBar', () => {
     const onPathChange = vi.fn()
     render(<PathBar path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     const input = await screen.findByRole('textbox')
@@ -235,7 +235,7 @@ describe('PathBar', () => {
     const onPathChange = vi.fn()
     render(<PathBar path="/Users/testuser" onPathChange={onPathChange} />)
 
-    const container = screen.getAllByRole('button', { name: 'File path' })[0]
+    const container = screen.getAllByRole('button', { name: 'Edit path' })[0]
     await user.click(container)
 
     const input = await screen.findByRole('textbox')
