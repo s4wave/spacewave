@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 
 import { useCommands } from './CommandContext.js'
@@ -59,14 +59,20 @@ export function useKeybindingEditorModel({
   const selectedSettingsEditable =
     selectedLayerEditable && selectedController.settingsEditable
 
-  useEffect(() => {
-    if (!open) return
-    setSelectedScope(initialScope)
-    setSelectedCommandId(initialCommandId ?? null)
-    setPendingBinding(null)
-    setCapture(null)
-    setCaptureError(null)
-  }, [open, initialScope, initialCommandId])
+  // Reset the selection and recording state whenever the editor opens or is
+  // retargeted, before the stale selection renders.
+  const openKey = open ? `${initialScope}\0${initialCommandId ?? ''}` : null
+  const [syncedOpenKey, setSyncedOpenKey] = useState(openKey)
+  if (openKey !== syncedOpenKey) {
+    setSyncedOpenKey(openKey)
+    if (openKey !== null) {
+      setSelectedScope(initialScope)
+      setSelectedCommandId(initialCommandId ?? null)
+      setPendingBinding(null)
+      setCapture(null)
+      setCaptureError(null)
+    }
+  }
 
   const rows = useMemo(
     () => buildCommandRows(commands, bindingGraph, query),
