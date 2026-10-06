@@ -106,15 +106,25 @@ func newWSTracker(le *logrus.Entry, getClient func() *SessionClient) *wsTracker 
 		t.resolve,
 		&refcount.Options{
 			RetryBackoff: providerBackoff,
-			ShouldRetry: func(err error) bool {
-				return err != nil &&
-					!errors.Is(err, context.Canceled) &&
-					!isUnauthCloudError(err) &&
-					!isNonRetryableCloudError(err)
-			},
+			ShouldRetry:  t.shouldRetry,
 		},
 	)
 	return t
+}
+
+// shouldRetry reports whether the shared websocket retries after err. It logs
+// every give-up except cancellation, since the daemon receives no cloud push
+// events until the tracker restarts.
+func (t *wsTracker) shouldRetry(err error) bool {
+	// Stop quietly on success or cancellation, and loudly on a final error.
+	if err == nil || errors.Is(err, context.Canceled) {
+		return false
+	}
+	if isUnauthCloudError(err) || isNonRetryableCloudError(err) {
+		t.le.WithError(err).Warn("session websocket stopped retrying")
+		return false
+	}
+	return true
 }
 
 // SetContext sets the parent lifecycle context for the shared websocket.
@@ -518,6 +528,7 @@ func parseBlockStoreNonceEventPayload(payload []byte) (string, uint64, bool) {
 // invite_mailbox_update session events. Returns false if the payload cannot
 // be parsed or is missing the entry.
 func parseInviteMailboxEventPayload(payload []byte) (*api.MailboxEntry, int64, bool) {
+	// Decode the payload and require its entry.
 	if len(payload) == 0 {
 		return nil, 0, false
 	}
