@@ -1,5 +1,5 @@
 /* eslint-disable react-doctor/no-giant-component */
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import Markdown from 'markdown-to-jsx'
 import {
   LuBookOpen,
@@ -46,18 +46,20 @@ export const DocumentationTypeID = 'spacewave-docs/documentation'
 // DOC_SOURCE_PREDICATE is the graph predicate linking documentation to its UnixFS source.
 const DOC_SOURCE_PREDICATE = '<doc/source>'
 
-// DocumentationViewer displays a Documentation world object with a file sidebar
-// and markdown content viewer.
-export function DocumentationViewer({
-  objectInfo,
-  worldState,
-  objectState,
-}: ObjectViewerComponentProps) {
-  const objectKey = getObjectKey(objectInfo)
-  const ns = useStateNamespace(['docs', objectKey])
-  const doc = useForgeBlockData(objectState, DocumentationTypeID, Documentation)
+type DocHandle = NonNullable<ReturnType<typeof useUnixFSRootHandle>['value']>
+type DocEntry = NonNullable<
+  ReturnType<typeof useUnixFSHandleEntries>['value']
+>[number]
+type DocTextResource = ReturnType<typeof useUnixFSHandleTextContent>
 
-  // Resolve the doc/source graph edge to find the linked UnixFS object key.
+/**
+ * useDocSource resolves the doc/source graph edge to the linked UnixFS object
+ * key. sourceKey is empty while resolving or when nothing is linked.
+ */
+function useDocSource(
+  worldState: ObjectViewerComponentProps['worldState'],
+  objectKey: string,
+) {
   const linkedSource = useResource(
     worldState,
     async (world: IWorldState, signal: AbortSignal) => {
@@ -78,56 +80,52 @@ export function DocumentationViewer({
     [objectKey],
   )
 
-  const sourceKey = useMemo(
-    () => linkedSource.value ?? '',
-    [linkedSource.value],
-  )
+  return { sourceKey: linkedSource.value ?? '', loading: linkedSource.loading }
+}
 
-  // Access the UnixFS root and list directory entries.
-  const rootHandle = useUnixFSRootHandle(worldState, sourceKey)
-  const entries = useUnixFSHandleEntries(rootHandle, {
-    enabled: !!sourceKey,
-  })
+/** createUntitledPage creates the next free untitled page and returns its name. */
+async function createUntitledPage(
+  handle: DocHandle,
+  mdEntries: DocEntry[],
+): Promise<string> {
+  const existing = new Set(mdEntries.map((e) => e.name))
+  let name = 'untitled.md'
+  let counter = 1
+  while (existing.has(name)) {
+    name = `untitled-${counter}.md`
+    counter++
+  }
 
-  // Filter to .md files only.
-  const mdEntries = useMemo(() => {
-    if (!entries.value) return []
-    return entries.value.filter(
-      (entry) => !entry.isDir && entry.name.endsWith('.md'),
-    )
-  }, [entries.value])
+  await handle.mknod([name], MknodType.FILE)
+  const child = await handle.lookup(name)
+  const title = name.replace(/\.md$/, '')
+  const template = `# ${title}\n`
+  const encoded = new TextEncoder().encode(template)
+  await child.writeAt(0n, encoded)
+  await child.sync()
+  child.release()
+  return name
+}
 
-  // Persisted state for selected page and editing mode.
+/**
+ * useDocPage tracks the selected page and its edit session. The selected page
+ * and editing mode persist in the viewer's state namespace.
+ */
+function useDocPage(
+  ns: ReturnType<typeof useStateNamespace>,
+  rootHandle: ReturnType<typeof useUnixFSRootHandle>,
+) {
   const [selectedPage, setSelectedPage] = useStateAtom<string>(
     ns,
     'selectedPage',
     '',
   )
   const [editing, setEditing] = useStateAtom<boolean>(ns, 'editing', false)
-  const [searchQuery, setSearchQuery] = useState('')
-
-  // Filter entries by search query.
-  const filteredEntries = useMemo(() => {
-    if (!searchQuery) return mdEntries
-    const lower = searchQuery.toLowerCase()
-    return mdEntries.filter((entry) => entry.name.toLowerCase().includes(lower))
-  }, [mdEntries, searchQuery])
-
-  // File handle and content for the selected page.
+  const [editContent, setEditContent] = useState<string | null>(null)
   const fileHandle = useUnixFSHandle(rootHandle, selectedPage)
   const textResource = useUnixFSHandleTextContent(fileHandle)
 
-  // Edit state for the textarea content.
-  const [editContent, setEditContent] = useState<string | null>(null)
-
-  // Narrow-width navigation drawer state. portalContainer scopes the drawer
-  // overlay to this viewer so it stays inside a resizable pane.
-  const [navOpen, setNavOpen] = useState(false)
-  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(
-    null,
-  )
-
-  const handleSelectPage = useCallback(
+  const selectPage = useCallback(
     (name: string) => {
       setSelectedPage(name)
       setEditing(false)
@@ -136,7 +134,7 @@ export function DocumentationViewer({
     [setSelectedPage, setEditing],
   )
 
-  const handleToggleEdit = useCallback(() => {
+  const toggleEdit = useCallback(() => {
     if (editing) {
       // Save on exit from edit mode.
       if (editContent !== null) {
@@ -155,86 +153,68 @@ export function DocumentationViewer({
     setEditing((prev) => !prev)
   }, [editing, editContent, fileHandle.value, textResource.value, setEditing])
 
-  const handleCancelEdit = useCallback(() => {
+  const cancelEdit = useCallback(() => {
     setEditContent(null)
     setEditing(false)
   }, [setEditing])
 
-  const handleCreatePage = useCallback(async () => {
-    const handle = rootHandle.value
-    if (!handle) return
+  return {
+    selectedPage,
+    editing,
+    editContent,
+    setEditContent,
+    textResource,
+    selectPage,
+    toggleEdit,
+    cancelEdit,
+  }
+}
 
-    const existing = new Set(mdEntries.map((e) => e.name))
-    let name = 'untitled.md'
-    let counter = 1
-    while (existing.has(name)) {
-      name = `untitled-${counter}.md`
-      counter++
-    }
-
-    await handle.mknod([name], MknodType.FILE)
-    const child = await handle.lookup(name)
-    const title = name.replace(/\.md$/, '')
-    const template = `# ${title}\n`
-    const encoded = new TextEncoder().encode(template)
-    await child.writeAt(0n, encoded)
-    await child.sync()
-    child.release()
-    handleSelectPage(name)
-  }, [rootHandle.value, mdEntries, handleSelectPage])
-
-  const title = doc?.name || 'Documentation'
-
-  // Gate the viewer on the doc source resource: while the linked UnixFS source
-  // is resolving (or the initial directory listing has not arrived yet), show a
-  // single LoadingCard in the content chrome instead of flashing partial UI.
-  const docLoading =
-    linkedSource.loading || (!!sourceKey && entries.loading && !entries.value)
-  if (docLoading) {
-    return (
-      <div className="bg-background-primary flex h-full w-full flex-col">
-        <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-          <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-            <LuBookOpen className="size-4" />
-            <span className="tracking-tight">{title}</span>
-          </div>
-        </div>
-        <div className="flex flex-1 items-center justify-center p-6">
-          <div className="w-full max-w-sm">
-            <LoadingCard
-              view={{
-                state: 'active',
-                title: 'Loading documentation',
-                detail: 'Resolving the source and reading pages.',
-              }}
-            />
-          </div>
+/** DocPlaceholder shows the documentation title bar over a single centered body. */
+function DocPlaceholder({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <div className="bg-background-primary flex h-full w-full flex-col">
+      <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
+        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
+          <LuBookOpen className="size-4" />
+          <span className="tracking-tight">{title}</span>
         </div>
       </div>
-    )
-  }
+      {children}
+    </div>
+  )
+}
 
-  // No source linked state.
-  if (!sourceKey) {
-    return (
-      <div className="bg-background-primary flex h-full w-full flex-col">
-        <div className="border-foreground/8 flex h-9 shrink-0 items-center border-b px-4">
-          <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-            <LuBookOpen className="size-4" />
-            <span className="tracking-tight">{title}</span>
-          </div>
-        </div>
-        <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-          No documentation source linked
-        </div>
-      </div>
-    )
-  }
+interface DocSidebarBodyProps {
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  mdEntries: DocEntry[]
+  selectedPage: string
+  onSelectPage: (name: string) => void
+  onCreatePage: () => void
+}
 
-  // sidebarBody is the search, create, and page listing shared by the desktop
-  // rail and the narrow-width drawer. Selecting or creating a page closes the
-  // drawer; on desktop the drawer is already closed so the call is a no-op.
-  const sidebarBody = (
+/** DocSidebarBody is the search, create, and page listing shared by the rail and the drawer. */
+function DocSidebarBody({
+  searchQuery,
+  onSearchChange,
+  mdEntries,
+  selectedPage,
+  onSelectPage,
+  onCreatePage,
+}: DocSidebarBodyProps) {
+  const lower = searchQuery.toLowerCase()
+  const filteredEntries = searchQuery
+    ? mdEntries.filter((entry) => entry.name.toLowerCase().includes(lower))
+    : mdEntries
+
+  return (
     <>
       {/* Search and create */}
       <div className="border-border flex items-center gap-1 border-b px-2 py-1.5">
@@ -245,17 +225,14 @@ export function DocumentationViewer({
             type="text"
             placeholder="Search pages…"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"
           />
         </div>
         <button
           type="button"
           className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded p-1.5"
-          onClick={() => {
-            setNavOpen(false)
-            void handleCreatePage()
-          }}
+          onClick={onCreatePage}
           title="New page"
         >
           <LuPlus className="size-3.5" />
@@ -272,10 +249,7 @@ export function DocumentationViewer({
                 <button
                   type="button"
                   className="bg-brand text-brand-foreground rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90"
-                  onClick={() => {
-                    setNavOpen(false)
-                    void handleCreatePage()
-                  }}
+                  onClick={onCreatePage}
                 >
                   Create first page
                 </button>
@@ -285,32 +259,309 @@ export function DocumentationViewer({
             )}
           </div>
         ) : (
-          filteredEntries.map((entry) => {
-            const label = entry.name.replace(/\.md$/, '')
-            const selected = selectedPage === entry.name
-            return (
-              <button
-                key={entry.name}
-                type="button"
-                className={cn(
-                  'flex w-full items-center gap-2 px-3 py-2 text-left text-xs',
-                  'hover:bg-list-hover-background',
-                  selected &&
-                    'bg-list-active-selection-background text-list-active-selection-foreground',
-                )}
-                onClick={() => {
-                  setNavOpen(false)
-                  handleSelectPage(entry.name)
-                }}
-              >
-                <LuFile className="size-3 shrink-0" />
-                <span className="truncate">{label}</span>
-              </button>
-            )
-          })
+          filteredEntries.map((entry) => (
+            <button
+              key={entry.name}
+              type="button"
+              className={cn(
+                'flex w-full items-center gap-2 px-3 py-2 text-left text-xs',
+                'hover:bg-list-hover-background',
+                selectedPage === entry.name &&
+                  'bg-list-active-selection-background text-list-active-selection-foreground',
+              )}
+              onClick={() => onSelectPage(entry.name)}
+            >
+              <LuFile className="size-3 shrink-0" />
+              <span className="truncate">
+                {entry.name.replace(/\.md$/, '')}
+              </span>
+            </button>
+          ))
         )}
       </div>
     </>
+  )
+}
+
+interface DocNavDrawerProps {
+  title: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  portalContainer: HTMLDivElement | null
+  children: ReactNode
+}
+
+/** DocNavDrawer is the narrow-width page drawer, scoped to the viewer's pane. */
+function DocNavDrawer({
+  title,
+  open,
+  onOpenChange,
+  portalContainer,
+  children,
+}: DocNavDrawerProps) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3 @lg:hidden">
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            aria-label="Open documentation pages"
+            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground -ml-1 flex items-center justify-center rounded p-1.5"
+          >
+            <LuMenu className="size-4" />
+          </button>
+        </SheetTrigger>
+        <LuBookOpen className="text-foreground size-4 shrink-0" />
+        <span className="text-foreground truncate text-sm font-semibold tracking-tight">
+          {title}
+        </span>
+      </div>
+      <SheetContent
+        side="left"
+        position="absolute"
+        portalContainer={portalContainer}
+        showCloseButton={false}
+        variant="docs"
+        className="w-60 max-w-(--max-width-content)"
+      >
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2.5">
+            <SheetTitle variant="docs">
+              <LuBookOpen className="size-4 shrink-0" />
+              {title}
+            </SheetTitle>
+            <SheetClose asChild>
+              <button
+                type="button"
+                aria-label="Close documentation pages"
+                className="text-foreground-alt hover:text-foreground rounded-md p-1.5 transition-colors"
+              >
+                <LuX className="size-4" />
+              </button>
+            </SheetClose>
+          </div>
+          {children}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+interface DocPageBodyProps {
+  textResource: DocTextResource
+  editing: boolean
+  editContent: string | null
+  onEditContentChange: (content: string) => void
+}
+
+/** DocPageBody renders the page as loading, an error, the editor, or markdown. */
+function DocPageBody({
+  textResource,
+  editing,
+  editContent,
+  onEditContentChange,
+}: DocPageBodyProps) {
+  if (textResource.loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-4">
+        <LoadingInline label="Loading page" tone="muted" size="sm" />
+      </div>
+    )
+  }
+  if (textResource.error) {
+    return (
+      <div className="text-destructive flex flex-1 flex-col items-center justify-center gap-2 p-4 text-xs">
+        <span>Failed to load page</span>
+        <span className="text-foreground-alt/50 text-xs">
+          {textResource.error.message}
+        </span>
+      </div>
+    )
+  }
+  if (editing) {
+    return (
+      <div className="flex-1 overflow-auto">
+        <textarea
+          aria-label="Document content"
+          className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
+          value={editContent ?? textResource.value ?? ''}
+          onChange={(e) => onEditContentChange(e.target.value)}
+        />
+      </div>
+    )
+  }
+  return (
+    <div className="flex-1 overflow-auto p-4">
+      <div className="docs-prose">
+        <Markdown options={docsMarkdownOverrides}>
+          {textResource.value ?? ''}
+        </Markdown>
+      </div>
+    </div>
+  )
+}
+
+interface DocContentProps extends DocPageBodyProps {
+  selectedPage: string
+  onToggleEdit: () => void
+  onCancelEdit: () => void
+}
+
+/** DocContent shows the selected page with its edit controls, or a prompt to pick one. */
+function DocContent({
+  selectedPage,
+  onToggleEdit,
+  onCancelEdit,
+  ...body
+}: DocContentProps) {
+  const { editing } = body
+  if (!selectedPage) {
+    return (
+      <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
+        Select a page to view
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {/* Content header */}
+      <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
+        <span className="text-xs font-medium">
+          {selectedPage.replace(/\.md$/, '')}
+        </span>
+        <div className="flex items-center gap-1">
+          {editing && (
+            <button
+              type="button"
+              className="text-foreground-alt hover:bg-list-hover-background flex items-center gap-1 rounded px-2 py-0.5 text-xs"
+              onClick={onCancelEdit}
+              title="Cancel editing"
+            >
+              <LuX className="size-3" />
+              Cancel
+            </button>
+          )}
+          <button
+            type="button"
+            className={cn(
+              'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
+              'hover:bg-list-hover-background',
+              editing ? 'text-brand' : 'text-foreground-alt',
+            )}
+            onClick={onToggleEdit}
+            title={editing ? 'Save and preview' : 'Edit page'}
+          >
+            <LuPenLine className="size-3" />
+            {editing ? 'Save' : 'Edit'}
+          </button>
+        </div>
+      </div>
+
+      <DocPageBody {...body} />
+    </>
+  )
+}
+
+// DocumentationViewer displays a Documentation world object with a file sidebar
+// and markdown content viewer.
+export function DocumentationViewer({
+  objectInfo,
+  worldState,
+  objectState,
+}: ObjectViewerComponentProps) {
+  const objectKey = getObjectKey(objectInfo)
+  const ns = useStateNamespace(['docs', objectKey])
+  const doc = useForgeBlockData(objectState, DocumentationTypeID, Documentation)
+  const { sourceKey, loading: sourceLoading } = useDocSource(
+    worldState,
+    objectKey,
+  )
+
+  // Access the UnixFS root and list directory entries.
+  const rootHandle = useUnixFSRootHandle(worldState, sourceKey)
+  const entries = useUnixFSHandleEntries(rootHandle, {
+    enabled: !!sourceKey,
+  })
+
+  // Filter to .md files only.
+  const mdEntries = useMemo(() => {
+    if (!entries.value) return []
+    return entries.value.filter(
+      (entry) => !entry.isDir && entry.name.endsWith('.md'),
+    )
+  }, [entries.value])
+
+  const page = useDocPage(ns, rootHandle)
+  const { selectPage } = page
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Narrow-width navigation drawer state. portalContainer scopes the drawer
+  // overlay to this viewer so it stays inside a resizable pane.
+  const [navOpen, setNavOpen] = useState(false)
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(
+    null,
+  )
+
+  // Selecting or creating a page closes the drawer; on desktop the drawer is
+  // already closed so the call is a no-op.
+  const handleSelectPage = useCallback(
+    (name: string) => {
+      setNavOpen(false)
+      selectPage(name)
+    },
+    [selectPage],
+  )
+
+  const handleCreatePage = useCallback(async () => {
+    setNavOpen(false)
+    const handle = rootHandle.value
+    if (!handle) return
+    selectPage(await createUntitledPage(handle, mdEntries))
+  }, [rootHandle.value, mdEntries, selectPage])
+
+  const title = doc?.name || 'Documentation'
+
+  // Gate the viewer on the doc source resource: while the linked UnixFS source
+  // is resolving (or the initial directory listing has not arrived yet), show a
+  // single LoadingCard in the content chrome instead of flashing partial UI.
+  if (sourceLoading || (!!sourceKey && entries.loading && !entries.value)) {
+    return (
+      <DocPlaceholder title={title}>
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="w-full max-w-sm">
+            <LoadingCard
+              view={{
+                state: 'active',
+                title: 'Loading documentation',
+                detail: 'Resolving the source and reading pages.',
+              }}
+            />
+          </div>
+        </div>
+      </DocPlaceholder>
+    )
+  }
+
+  if (!sourceKey) {
+    return (
+      <DocPlaceholder title={title}>
+        <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
+          No documentation source linked
+        </div>
+      </DocPlaceholder>
+    )
+  }
+
+  const sidebarBody = (
+    <DocSidebarBody
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      mdEntries={mdEntries}
+      selectedPage={page.selectedPage}
+      onSelectPage={handleSelectPage}
+      onCreatePage={() => void handleCreatePage()}
+    />
   )
 
   return (
@@ -318,51 +569,14 @@ export function DocumentationViewer({
       ref={setPortalContainer}
       className="bg-background-primary @container relative flex h-full w-full flex-col overflow-hidden"
     >
-      {/* Navigation drawer - narrow widths only */}
-      <Sheet open={navOpen} onOpenChange={setNavOpen}>
-        <div className="border-foreground/8 flex h-9 shrink-0 items-center gap-2 border-b px-3 @lg:hidden">
-          <SheetTrigger asChild>
-            <button
-              type="button"
-              aria-label="Open documentation pages"
-              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground -ml-1 flex items-center justify-center rounded p-1.5"
-            >
-              <LuMenu className="size-4" />
-            </button>
-          </SheetTrigger>
-          <LuBookOpen className="text-foreground size-4 shrink-0" />
-          <span className="text-foreground truncate text-sm font-semibold tracking-tight">
-            {title}
-          </span>
-        </div>
-        <SheetContent
-          side="left"
-          position="absolute"
-          portalContainer={portalContainer}
-          showCloseButton={false}
-          variant="docs"
-          className="w-60 max-w-(--max-width-content)"
-        >
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2.5">
-              <SheetTitle variant="docs">
-                <LuBookOpen className="size-4 shrink-0" />
-                {title}
-              </SheetTitle>
-              <SheetClose asChild>
-                <button
-                  type="button"
-                  aria-label="Close documentation pages"
-                  className="text-foreground-alt hover:text-foreground rounded-md p-1.5 transition-colors"
-                >
-                  <LuX className="size-4" />
-                </button>
-              </SheetClose>
-            </div>
-            {sidebarBody}
-          </div>
-        </SheetContent>
-      </Sheet>
+      <DocNavDrawer
+        title={title}
+        open={navOpen}
+        onOpenChange={setNavOpen}
+        portalContainer={portalContainer}
+      >
+        {sidebarBody}
+      </DocNavDrawer>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Sidebar - wide widths only */}
@@ -379,77 +593,15 @@ export function DocumentationViewer({
 
         {/* Content area */}
         <div className="flex min-w-0 flex-1 flex-col">
-          {selectedPage ? (
-            <>
-              {/* Content header */}
-              <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
-                <span className="text-xs font-medium">
-                  {selectedPage.replace(/\.md$/, '')}
-                </span>
-                <div className="flex items-center gap-1">
-                  {editing && (
-                    <button
-                      type="button"
-                      className="text-foreground-alt hover:bg-list-hover-background flex items-center gap-1 rounded px-2 py-0.5 text-xs"
-                      onClick={handleCancelEdit}
-                      title="Cancel editing"
-                    >
-                      <LuX className="size-3" />
-                      Cancel
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className={cn(
-                      'flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-                      'hover:bg-list-hover-background',
-                      editing ? 'text-brand' : 'text-foreground-alt',
-                    )}
-                    onClick={handleToggleEdit}
-                    title={editing ? 'Save and preview' : 'Edit page'}
-                  >
-                    <LuPenLine className="size-3" />
-                    {editing ? 'Save' : 'Edit'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Content body */}
-              {textResource.loading ? (
-                <div className="flex flex-1 items-center justify-center p-4">
-                  <LoadingInline label="Loading page" tone="muted" size="sm" />
-                </div>
-              ) : textResource.error ? (
-                <div className="text-destructive flex flex-1 flex-col items-center justify-center gap-2 p-4 text-xs">
-                  <span>Failed to load page</span>
-                  <span className="text-foreground-alt/50 text-xs">
-                    {textResource.error.message}
-                  </span>
-                </div>
-              ) : editing ? (
-                <div className="flex-1 overflow-auto">
-                  <textarea
-                    aria-label="Document content"
-                    className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
-                    value={editContent ?? textResource.value ?? ''}
-                    onChange={(e) => setEditContent(e.target.value)}
-                  />
-                </div>
-              ) : (
-                <div className="flex-1 overflow-auto p-4">
-                  <div className="docs-prose">
-                    <Markdown options={docsMarkdownOverrides}>
-                      {textResource.value ?? ''}
-                    </Markdown>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-muted-foreground flex flex-1 items-center justify-center text-xs">
-              Select a page to view
-            </div>
-          )}
+          <DocContent
+            selectedPage={page.selectedPage}
+            editing={page.editing}
+            editContent={page.editContent}
+            onEditContentChange={page.setEditContent}
+            textResource={page.textResource}
+            onToggleEdit={page.toggleEdit}
+            onCancelEdit={page.cancelEdit}
+          />
         </div>
       </div>
     </div>
