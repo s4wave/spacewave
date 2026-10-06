@@ -7,20 +7,9 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// Mark names a written block.
-type Mark struct {
-	// Hash is the block hash.
-	Hash *hash.Hash
-	// Size is the block size in bytes.
-	Size int64
-}
-
-// MarkFunc durably records written blocks before their writes are
-// acknowledged. A batch write passes all of its blocks in one call.
-type MarkFunc func(ctx context.Context, marks []Mark) error
-
 // decodedBlockRefInvalidator removes decoded values after storage mutation.
 type decodedBlockRefInvalidator interface {
+	// InvalidateDecodedBlockRef drops the decoded value of a block.
 	InvalidateDecodedBlockRef(context.Context, *block.BlockRef)
 }
 
@@ -72,12 +61,15 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 // PutBlockBatch marks every successful non-tombstone write in one call.
 // A failed marker returns an error; repeating the batch repairs the markers.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	// Write the batch to the inner store first.
 	if err := m.store.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
+	return m.markEntries(ctx, entries)
+}
 
-	// Collect marks for every successful non-tombstone entry.
+// markEntries marks every non-tombstone entry of a written batch in one call
+// and invalidates the decoded values of its tombstones.
+func (m *MarkingStore) markEntries(ctx context.Context, entries []*block.PutBatchEntry) error {
 	marks := make([]Mark, 0, len(entries))
 	for _, entry := range entries {
 		if entry == nil {

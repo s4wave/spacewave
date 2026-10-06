@@ -10,9 +10,9 @@ import (
 // SupportsRootRetention reports the underlying ownership capability.
 func (s *VLoggerStore) SupportsRootRetention() bool { return block.SupportsRootRetention(s.st) }
 
-// SetRetainedRoot forwards durable root ownership to the underlying store.
-func (s *VLoggerStore) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
-	return block.SetRetainedRoot(ctx, s.st, name, ref)
+// SetRetainedRoots forwards durable root ownership to the underlying store.
+func (s *VLoggerStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRetainedRoots(ctx, s.st, entries, roots)
 }
 
 // PinRoot forwards a reader pin to the underlying store.

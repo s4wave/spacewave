@@ -5,9 +5,9 @@ import "context"
 // SupportsRootRetention reports the underlying ownership capability.
 func (b *StoreRW) SupportsRootRetention() bool { return SupportsRootRetention(b.writeHandle) }
 
-// SetRetainedRoot forwards durable root ownership to the underlying store.
-func (b *StoreRW) SetRetainedRoot(ctx context.Context, name string, ref *BlockRef) error {
-	return SetRetainedRoot(ctx, b.writeHandle, name, ref)
+// SetRetainedRoots forwards durable root ownership to the underlying store.
+func (b *StoreRW) SetRetainedRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
+	return SetRetainedRoots(ctx, b.writeHandle, entries, roots)
 }
 
 // PinRoot forwards a reader pin to the underlying store.

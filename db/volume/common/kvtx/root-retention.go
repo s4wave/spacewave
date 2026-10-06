@@ -104,11 +104,37 @@ func (v *Volume) forgetSweptProofs(nodes []string) {
 	}
 }
 
-// SetBucketRoot replaces one durable root within a bucket. Ownership changes
-// share a physical transaction with sweep eligibility and existence checks.
-func (v *Volume) SetBucketRoot(ctx context.Context, bucketID, name string, ref *block.BlockRef) error {
+// SetBucketRoots writes entries owned by a bucket and replaces its named
+// roots in one physical transaction, so a root may hold a block entries
+// writes. Ownership changes share the transaction with sweep eligibility and
+// existence checks.
+func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if !v.SupportsAtomicPublication() {
+		return block.ErrAtomicPublicationUnsupported
+	}
 	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
-		return setBucketRoot(ctx, blocks, rg, bucketID, name, ref)
+		// Write the entries under the bucket's ownership.
+		if len(entries) != 0 {
+			bucket := block_gc.BucketIRI(bucketID)
+			if err := claimBucket(ctx, rg, bucket); err != nil {
+				return err
+			}
+			gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, bucket, block_gc.BucketFlushTask())
+			if err := gc.PutBlockBatch(ctx, entries); err != nil {
+				return err
+			}
+			if err := gc.FlushPending(ctx); err != nil {
+				return err
+			}
+		}
+
+		// Move each named root.
+		for _, root := range roots {
+			if err := setBucketRoot(ctx, blocks, rg, bucketID, root.Name, root.Ref); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 

@@ -32,7 +32,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 
 	// Retain the root through two named bucket owners.
 	for _, name := range []string{"head", "fork"} {
-		if err := v.SetBucketRoot(ctx, "bucket", name, root); err != nil {
+		if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: name, Ref: root}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -57,7 +57,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	}
 
 	// Remove one named owner and verify the other retains the root.
-	if err := v.SetBucketRoot(ctx, "bucket", "head", nil); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head"}}); err != nil {
 		t.Fatal(err)
 	}
 	collect(true)
@@ -73,7 +73,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	}
 
 	// Verify releasing one reader leaves the other reader retaining the root.
-	if err := v.SetBucketRoot(ctx, "bucket", "fork", nil); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "fork"}}); err != nil {
 		t.Fatal(err)
 	}
 	one()
@@ -93,7 +93,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := v.SetBucketRoot(ctx, "bucket", "head", root); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head", Ref: root}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := v.PinBucketRoot(ctx, root); err != nil {
@@ -101,7 +101,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	}
 
 	// Drop the named root and simulate loss of the reader process lease.
-	if err := v.SetBucketRoot(ctx, "bucket", "head", nil); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := v.rootPinLease.Release(ctx); err != nil {
@@ -176,7 +176,7 @@ func TestRootRetentionFollowsBucketDeletion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := v.SetBucketRoot(ctx, "deleted-bucket", "head", root); err != nil {
+	if err := v.SetBucketRoots(ctx, "deleted-bucket", nil, []block.NamedRoot{{Name: "head", Ref: root}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -203,10 +203,10 @@ func TestRootRetentionConcurrentPins(t *testing.T) {
 			t.Fatal(err)
 		}
 		roots = append(roots, root)
-		if err := v.SetBucketRoot(ctx, "bucket", data, root); err != nil {
+		if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: data, Ref: root}}); err != nil {
 			t.Fatal(err)
 		}
-		if err := v.SetBucketRoot(ctx, "bucket", data, nil); err != nil {
+		if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: data}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -271,7 +271,7 @@ func TestReleaseBucketRootsKeepsReferencedRoots(t *testing.T) {
 	spliced := prepare("spliced payload")
 	prepare("file range", spliced)
 	named := prepare("named payload")
-	if err := v.SetBucketRoot(ctx, "bucket", "head", named); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head", Ref: named}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -378,4 +378,52 @@ func TestRootRetentionSweepDropsPendingProof(t *testing.T) {
 	if found, err := v.GetBlockExists(ctx, root); err != nil || found {
 		t.Fatalf("swept root kept its block: %v %v", found, err)
 	}
+}
+
+// TestSetBucketRootsHoldsWrittenEntries checks that named roots hold blocks
+// written by the same call, after their staging ownership is released.
+func TestSetBucketRootsHoldsWrittenEntries(t *testing.T) {
+	// Prepare a child the bucket stages.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	child, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("child"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Write a root referencing it and hold it under two names.
+	data := []byte("root")
+	root, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := []*block.PutBatchEntry{{Ref: root, Data: data, Refs: []*block.BlockRef{child}}}
+	roots := []block.NamedRoot{{Name: "head", Ref: root}, {Name: "span", Ref: root}}
+	if err := v.SetBucketRoots(ctx, "bucket", entries, roots); err != nil {
+		t.Fatal(err)
+	}
+
+	// Collect after releasing staging ownership and check the retained state.
+	collect := func(want bool) {
+		t.Helper()
+		if _, err := block_gc.NewCollector(v.GetRefGraph(), v, nil).Collect(ctx); err != nil {
+			t.Fatal(err)
+		}
+		for _, ref := range []*block.BlockRef{root, child} {
+			if found, err := v.GetBlockExists(ctx, ref); err != nil || found != want {
+				t.Fatalf("retention want=%v found=%v err=%v", want, found, err)
+			}
+		}
+	}
+	if err := v.ReleaseBucketRoots(ctx, "bucket", []*block.BlockRef{root, child}); err != nil {
+		t.Fatal(err)
+	}
+	collect(true)
+
+	// Release both names in one call and check the graph is collected.
+	release := []block.NamedRoot{{Name: "head"}, {Name: "span"}}
+	if err := v.SetBucketRoots(ctx, "bucket", nil, release); err != nil {
+		t.Fatal(err)
+	}
+	collect(false)
 }

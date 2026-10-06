@@ -54,8 +54,8 @@ func (s *ReadOnlyStore) SupportsRootRetention() bool {
 	return SupportsRootRetention(s.StoreOps)
 }
 
-// SetRetainedRoot rejects the change of a named root.
-func (s *ReadOnlyStore) SetRetainedRoot(context.Context, string, *BlockRef) error {
+// SetRetainedRoots rejects the change of a named root.
+func (s *ReadOnlyStore) SetRetainedRoots(context.Context, []*PutBatchEntry, []NamedRoot) error {
 	return tx.ErrNotWrite
 }
 

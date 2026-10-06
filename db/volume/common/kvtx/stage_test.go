@@ -91,7 +91,7 @@ func TestStageReleaseKeepsAdoptedBuild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := v.SetBucketRoot(ctx, "bucket", "head", parent); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head", Ref: parent}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -116,7 +116,7 @@ func TestStageReleaseRootsKeepsStageOpen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := v.SetBucketRoot(ctx, "bucket", "head", parent); err != nil {
+	if err := v.SetBucketRoots(ctx, "bucket", nil, []block.NamedRoot{{Name: "head", Ref: parent}}); err != nil {
 		t.Fatal(err)
 	}
 

@@ -9,9 +9,9 @@ import (
 // SupportsRootRetention reports the underlying ownership capability.
 func (g *GCStoreOps) SupportsRootRetention() bool { return block.SupportsRootRetention(g.store) }
 
-// SetRetainedRoot forwards durable root ownership to the underlying store.
-func (g *GCStoreOps) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
-	return block.SetRetainedRoot(ctx, g.store, name, ref)
+// SetRetainedRoots forwards durable root ownership to the underlying store.
+func (g *GCStoreOps) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	return block.SetRetainedRoots(ctx, g.store, entries, roots)
 }
 
 // PinRoot forwards a reader pin to the underlying store.

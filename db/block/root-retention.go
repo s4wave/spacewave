@@ -8,12 +8,22 @@ import "context"
 // edges, other named roots, and reader pins. Unsupported stores keep their
 // existing retention policy.
 type RootRetainer interface {
+	// SupportsRootRetention reports whether the store owns roots. The other
+	// methods require it.
 	SupportsRootRetention() bool
-	SetRetainedRoot(context.Context, string, *BlockRef) error
+	// SetRetainedRoots writes the entries and moves every named root as one
+	// change. A root may hold a block the entries write.
+	SetRetainedRoots(context.Context, []*PutBatchEntry, []NamedRoot) error
+	// PinRoot protects a root until the returned release is called.
 	PinRoot(context.Context, *BlockRef) (func(), error)
+	// OpenStage returns a store whose writes a new stage owns until release.
 	OpenStage(context.Context) (StoreOps, func(), error)
+	// ReleaseRoots drops the staging ownership of roots held by the owner of
+	// this store's writes.
 	ReleaseRoots(context.Context, []*BlockRef) error
+	// MarkRootsComplete records that the graphs under the roots are stored.
 	MarkRootsComplete(context.Context, []*BlockRef) error
+	// RootComplete reports whether the graph under a root is recorded stored.
 	RootComplete(context.Context, *BlockRef) (bool, error)
 }
 
@@ -47,13 +57,30 @@ func SupportsRootRetention(store StoreOps) bool {
 	return ok && r.SupportsRootRetention()
 }
 
+// NamedRoot is a durable named root and the block it holds. An empty Ref
+// releases the name.
+type NamedRoot struct {
+	// Name is the root name, unique within the store's bucket.
+	Name string
+	// Ref is the block the name holds, or empty to release the name.
+	Ref *BlockRef
+}
+
 // SetRetainedRoot advances a named root when the store supports root ownership.
 // The caller serializes this operation with publication of the corresponding head.
 func SetRetainedRoot(ctx context.Context, store StoreOps, name string, ref *BlockRef) error {
-	if !SupportsRootRetention(store) {
+	return SetRetainedRoots(ctx, store, nil, []NamedRoot{{Name: name, Ref: ref}})
+}
+
+// SetRetainedRoots writes entries and advances every named root in roots as
+// one change when the store supports root ownership. A root may hold a block
+// entries writes. The caller serializes this operation with publication of the
+// corresponding heads. A store without root ownership writes nothing.
+func SetRetainedRoots(ctx context.Context, store StoreOps, entries []*PutBatchEntry, roots []NamedRoot) error {
+	if len(roots) == 0 || !SupportsRootRetention(store) {
 		return nil
 	}
-	return store.(RootRetainer).SetRetainedRoot(ctx, name, ref)
+	return store.(RootRetainer).SetRetainedRoots(ctx, entries, roots)
 }
 
 // PinRoot protects a root until release. The caller must already hold a live

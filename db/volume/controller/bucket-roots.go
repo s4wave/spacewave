@@ -6,16 +6,30 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+// bucketRootVolume is a volume that owns named roots, reader pins and stages
+// in its block ownership graph.
 type bucketRootVolume interface {
+	// SupportsAtomicPublication reports whether bytes and ownership share one
+	// physical transaction. The other methods require it.
 	SupportsAtomicPublication() bool
-	SetBucketRoot(context.Context, string, string, *block.BlockRef) error
+	// SetBucketRoots writes entries a bucket owns and moves its named roots in
+	// one transaction.
+	SetBucketRoots(context.Context, string, []*block.PutBatchEntry, []block.NamedRoot) error
+	// PinBucketRoot protects a reader's root until the returned release.
 	PinBucketRoot(context.Context, *block.BlockRef) (func(), error)
+	// OpenStage opens a stage owner node, released by the returned func.
 	OpenStage(context.Context) (string, func(), error)
+	// PrepareStagedBlock writes a block the stage owns.
 	PrepareStagedBlock(context.Context, string, []byte, *block.PutOpts) (*block.BlockRef, bool, error)
+	// PrepareStagedBlockBatch writes a batch of blocks the stage owns.
 	PrepareStagedBlockBatch(context.Context, string, []*block.PutBatchEntry) error
+	// ReleaseBucketRoots drops a bucket's staging edges to roots.
 	ReleaseBucketRoots(context.Context, string, []*block.BlockRef) error
+	// ReleaseStageRoots drops a stage's edges to roots.
 	ReleaseStageRoots(context.Context, string, []*block.BlockRef) error
+	// MarkRootsComplete records completion proofs for stored roots.
 	MarkRootsComplete(context.Context, []*block.BlockRef) error
+	// RootComplete reports whether a root has a completion proof.
 	RootComplete(context.Context, *block.BlockRef) (bool, error)
 }
 
@@ -35,12 +49,13 @@ func (b *bucketHandle) SupportsRootRetention() bool {
 	return ok && b.readOps == nil && v.SupportsAtomicPublication() && b.gcOps != nil && !b.gcOps.HasWALAppender()
 }
 
-// SetRetainedRoot replaces one named durable root for this bucket.
-func (b *bucketHandle) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
+// SetRetainedRoots writes entries owned by this bucket and replaces its named
+// durable roots in one volume transaction.
+func (b *bucketHandle) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
 	if !b.SupportsRootRetention() {
 		return nil
 	}
-	return b.v.(bucketRootVolume).SetBucketRoot(ctx, b.t.bucketID, name, ref)
+	return b.v.(bucketRootVolume).SetBucketRoots(ctx, b.t.bucketID, entries, roots)
 }
 
 // PinRoot retains a reader's root until the returned release is called.

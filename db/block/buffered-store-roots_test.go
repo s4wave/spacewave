@@ -17,7 +17,9 @@ type pinStore struct {
 
 func (s *pinStore) SupportsRootRetention() bool { return true }
 
-func (s *pinStore) SetRetainedRoot(context.Context, string, *BlockRef) error { return nil }
+func (s *pinStore) SetRetainedRoots(context.Context, []*PutBatchEntry, []NamedRoot) error {
+	return nil
+}
 
 func (s *pinStore) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	if found, err := s.GetBlockExists(ctx, ref); err != nil || !found {

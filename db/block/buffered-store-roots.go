@@ -9,12 +9,13 @@ import (
 // SupportsRootRetention reports the destination's root ownership capability.
 func (s *BufferedStore) SupportsRootRetention() bool { return SupportsRootRetention(s.inner) }
 
-// SetRetainedRoot fences prepared blocks before publishing their durable root.
-func (s *BufferedStore) SetRetainedRoot(ctx context.Context, name string, ref *BlockRef) error {
+// SetRetainedRoots fences prepared blocks before publishing their durable
+// roots. The drain also turns deferred reader pins into inner pins.
+func (s *BufferedStore) SetRetainedRoots(ctx context.Context, entries []*PutBatchEntry, roots []NamedRoot) error {
 	if _, err := s.Sync(ctx); err != nil {
 		return err
 	}
-	return SetRetainedRoot(ctx, s.inner, name, ref)
+	return SetRetainedRoots(ctx, s.inner, entries, roots)
 }
 
 // PinRoot acquires a reader pin on ref. A root still pending here is not in

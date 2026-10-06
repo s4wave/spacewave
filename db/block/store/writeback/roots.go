@@ -13,9 +13,13 @@ func (m *MarkingStore) SupportsRootRetention() bool {
 	return block.SupportsRootRetention(m.store)
 }
 
-// SetRetainedRoot forwards durable root ownership to the inner store.
-func (m *MarkingStore) SetRetainedRoot(ctx context.Context, name string, ref *block.BlockRef) error {
-	return block.SetRetainedRoot(ctx, m.store, name, ref)
+// SetRetainedRoots forwards durable root ownership to the inner store and
+// marks the blocks it wrote.
+func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	if err := block.SetRetainedRoots(ctx, m.store, entries, roots); err != nil {
+		return err
+	}
+	return m.markEntries(ctx, entries)
 }
 
 // PinRoot forwards a reader pin to the inner store.

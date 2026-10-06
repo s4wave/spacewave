@@ -537,9 +537,9 @@ func (e *soEngine) queueOperation(ctx context.Context, opData []byte, fork *repl
 	return nil
 }
 
-// updateEngineState installs a replayed World, holds it and its retained roots
-// in this participant's block store, and saves the replay that reached it. The
-// caller holds the writer lock.
+// updateEngineState installs a replayed World, holds it, its retained roots
+// and the replay that reached it in this participant's block store in one
+// call, and saves the replay. The caller holds the writer lock.
 func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) error {
 	// Trace the update.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/update-engine-state")
@@ -547,27 +547,42 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 
 	// Install and hold a changed head once. The watcher, the next write and
 	// the committing write all install the same head.
+	hold := newRootHold(e.so.GetBlockStore())
 	ref := state.GetHeadRef().CloneVT()
 	if ref == nil {
 		ref = &bucket.ObjectRef{}
 	}
 	ref.BucketId = e.so.GetBlockStore().GetID()
-	if !e.retained.EqualVT(ref) || !e.bengine.GetRootRef().EqualVT(ref) {
+	headChanged := !e.retained.EqualVT(ref) || !e.bengine.GetRootRef().EqualVT(ref)
+	if headChanged {
 		if err := e.bengine.SetRootRef(ctx, ref); err != nil {
 			return err
 		}
-		if err := holdWorldRoot(ctx, e.so, acceptedWorldRootName, ref.GetRootRef()); err != nil {
+		if err := hold.world(ctx, acceptedWorldRootName, ref.GetRootRef()); err != nil {
 			return err
 		}
+	}
+
+	// Hold changed retained roots and the Worlds the replay reads.
+	rootsChanged := !slices.EqualFunc(state.GetRetainedRoots(), e.retainedRoots, (*RetainedRoot).EqualVT)
+	if rootsChanged {
+		if err := hold.rootSet(retainedRootsName, state.GetRetainedRoots()); err != nil {
+			return err
+		}
+	}
+	if err := e.replay.holdSpan(hold); err != nil {
+		return err
+	}
+	if err := hold.apply(ctx); err != nil {
+		return err
+	}
+
+	// Record what is held.
+	if headChanged {
 		e.retained = ref
 		e.c.notifyWrite()
 	}
-
-	// Hold changed retained roots.
-	if !slices.EqualFunc(state.GetRetainedRoots(), e.retainedRoots, (*RetainedRoot).EqualVT) {
-		if err := holdRootSet(ctx, e.so, retainedRootsName, state.GetRetainedRoots()); err != nil {
-			return err
-		}
+	if rootsChanged {
 		e.retainedRoots = state.GetRetainedRoots()
 	}
 
@@ -579,25 +594,14 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 const acceptedWorldRootName = "accepted-world"
 
 // holdWorldRoot holds the World graph under root in the local block store
-// under the local root name, or releases the name when root is empty. It
-// stores only the root block: the volume keeps every block this device wrote
-// or read that the root still reaches, and reads fetch the rest on demand.
-// Callers serialize calls through the writer lock.
+// under the local root name, or releases the name when root is empty. Callers
+// serialize calls through the writer lock.
 func holdWorldRoot(ctx context.Context, so sobject.SharedObject, name string, root *block.BlockRef) error {
-	// Release the name of an empty World.
-	store := so.GetBlockStore()
-	if !block.SupportsRootRetention(store) {
-		return nil
-	}
-	if root.GetEmpty() {
-		return block.SetRetainedRoot(ctx, store, name, nil)
-	}
-
-	// Store the root block before it replaces the named root.
-	if err := storeRootBlock(ctx, so, root); err != nil {
+	hold := newRootHold(so.GetBlockStore())
+	if err := hold.world(ctx, name, root); err != nil {
 		return err
 	}
-	return block.SetRetainedRoot(ctx, store, name, root)
+	return hold.apply(ctx)
 }
 
 // _ is a type assertion

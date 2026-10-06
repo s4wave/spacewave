@@ -38,7 +38,7 @@ func TestDebugVolumeRepair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := vol.SetBucketRoot(ctx, "space", "world", root); err != nil {
+	if err := vol.SetBucketRoots(ctx, "space", nil, []block.NamedRoot{{Name: "world", Ref: root}}); err != nil {
 		t.Fatal(err)
 	}
 	leaked, _, err := vol.PrepareOwnedBlock(ctx, "space", []byte("superseded root"), nil)

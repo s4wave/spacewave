@@ -263,18 +263,13 @@ func (r *replayer) load(ctx context.Context) error {
 	return nil
 }
 
-// save holds the World after every position and writes the replay to the
-// local state of the World when it changed. The caller holds the World after
-// the replay, so a later load resumes from a World whose blocks are kept.
+// save writes the replay to the local state of the World when it changed. The
+// caller first holds the span and the World after the replay, so a later load
+// resumes from Worlds whose blocks are kept.
 func (r *replayer) save(ctx context.Context) error {
 	// Skip an unchanged replay.
 	if !r.changed {
 		return nil
-	}
-
-	// Hold the Worlds a replay from the checkpoint reads.
-	if err := r.holdSpan(ctx); err != nil {
-		return err
 	}
 
 	// Encode the base, the outcomes and the World after them.
@@ -315,13 +310,13 @@ func (r *replayer) save(ctx context.Context) error {
 	return nil
 }
 
-// holdSpan holds the World after every position under replaySpanRootName,
-// releasing the Worlds of positions a checkpoint now covers.
-func (r *replayer) holdSpan(ctx context.Context) error {
+// holdSpan adds to hold the World after every position under
+// replaySpanRootName when the replay changed, releasing the Worlds of
+// positions a checkpoint now covers.
+func (r *replayer) holdSpan(hold *rootHold) error {
 	// Collect each World once, in replay order. A rejected operation leaves
 	// the World of the position before it.
-	store := r.so.GetBlockStore()
-	if !block.SupportsRootRetention(store) {
+	if !r.changed {
 		return nil
 	}
 	var worlds []*block.BlockRef
@@ -332,15 +327,16 @@ func (r *replayer) holdSpan(ctx context.Context) error {
 		worlds = append(worlds, pos.world)
 	}
 	if len(worlds) == 0 {
-		return block.SetRetainedRoot(ctx, store, replaySpanRootName, nil)
+		hold.release(replaySpanRootName)
+		return nil
 	}
 
-	// Store the span block referencing them and hold it.
+	// Hold the span block referencing them.
 	data, err := (&ReplaySpan{Worlds: worlds}).MarshalVT()
 	if err != nil {
 		return err
 	}
-	return holdRefBlock(ctx, store, replaySpanRootName, data, worlds)
+	return hold.refBlock(replaySpanRootName, data, worlds)
 }
 
 // head returns the replay base and the World after the last replayed position,

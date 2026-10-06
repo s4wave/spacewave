@@ -112,41 +112,13 @@ func validateRetainedRootName(name string) error {
 }
 
 // holdRootSet holds the World graph of each root in the local store under one
-// local root name, or releases the name when roots is empty. Like
-// holdWorldRoot, it copies nothing: the set block references the roots, and
-// the volume keeps their blocks this device holds.
+// local root name, or releases the name when roots is empty.
 func holdRootSet(ctx context.Context, so sobject.SharedObject, name string, roots []*RetainedRoot) error {
-	// Release the set when it is empty.
-	store := so.GetBlockStore()
-	if len(roots) == 0 {
-		return block.SetRetainedRoot(ctx, store, name, nil)
-	}
-
-	// Encode the set block referencing the roots.
-	refs := make([]*block.BlockRef, 0, len(roots))
-	for _, root := range roots {
-		refs = append(refs, root.GetRootRef())
-	}
-	data, err := (&RetainedRootSet{Roots: roots}).MarshalVT()
-	if err != nil {
+	hold := newRootHold(so.GetBlockStore())
+	if err := hold.rootSet(name, roots); err != nil {
 		return err
 	}
-	return holdRefBlock(ctx, store, name, data, refs)
-}
-
-// holdRefBlock stores data as a block whose outgoing refs are refs and holds
-// it under the local root name, so the store keeps every block refs reach.
-func holdRefBlock(ctx context.Context, store block.StoreOps, name string, data []byte, refs []*block.BlockRef) error {
-	// Store the block with its outgoing refs and hold it.
-	ref, err := block.BuildBlockRef(data, nil)
-	if err != nil {
-		return err
-	}
-	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs}
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
-		return err
-	}
-	return block.SetRetainedRoot(ctx, store, name, ref)
+	return hold.apply(ctx)
 }
 
 // copyWorlds copies the complete World graph of each root into the local
