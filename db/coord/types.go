@@ -12,8 +12,6 @@ const (
 	BackendKindInMemory BackendKind = "in-memory"
 	// BackendKindBbolt identifies the bbolt coordinator adapter.
 	BackendKindBbolt BackendKind = "bbolt"
-	// BackendKindOPFS identifies the OPFS coordinator adapter.
-	BackendKindOPFS BackendKind = "opfs"
 	// BackendKindFileLock identifies the advisory file lock coordinator adapter.
 	BackendKindFileLock BackendKind = "filelock"
 	// BackendKindRedis identifies the redis coordinator adapter.

@@ -31,7 +31,7 @@ func writeVolumes() error {
 	// selection keeps the second volume there.
 	ctx := context.Background()
 	for _, name := range []string{opfsVolume, idbVolume} {
-		if err := device_opfs.Delete(name); err != nil && !opfs.IsNotFound(err) {
+		if err := device_opfs.Delete(name); err != nil {
 			return err
 		}
 		if err := volume_idb.DeleteDatabase(name); err != nil {

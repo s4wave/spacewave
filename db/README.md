@@ -12,13 +12,12 @@
  - **Replication**: bucket policies implement data replication behaviors.
 
 Stores peer-to-peer data structures (similar to IPLD) on pluggable storage
-backends like [bbolt], [BadgerDB], [Valkey], [IndexedDB] and more. Any K/V store
+backends like [bbolt], [BadgerDB], [Valkey], browser storage and more. Any K/V store
 can be used as a storage backend.
 
 [bbolt]: https://github.com/etcd-io/bbolt
 [BadgerDB]: https://github.com/dgraph-io/badger
 [Valkey]: https://github.com/valkey-io/valkey
-[IndexedDB]: https://github.com/aperturerobotics/go-indexeddb
 
 ## Overview
 
@@ -68,9 +67,9 @@ The following volume types are currently implemented in this repository:
  - [BadgerDB]: high performance on-disk key/value data store.
  - [Block]: nested volume backed by a peer-to-peer block graph.
  - [BoltDB]: embedded key/value data store, using bbolt.
+ - [Browser]: append-only payload log and index on OPFS or IndexedDB in the web
+   browser.
  - [In-memory]: in-memory key/value store for temporary data.
- - [IndexedDB]: with GopherJS/WASM in the web browser.
- - [OPFS]: Origin Private Filesystem with WASM in the web browser.
  - [RPC]: access a Volume on a remote Bus via a RPC service.
  - [Redis]: key/value storage with a remote Redis database.
  - [World]: nested volume backed by Object in a shared World.
@@ -88,9 +87,8 @@ to create a shared Volume, which can be encrypted or compressed by adding a
 [BadgerDB]: ./volume/badger/badger.proto#L10
 [Block]: ./volume/block/volume.proto#L11
 [BoltDB]: ./volume/bolt/bolt.proto#L9
+[Browser]: ./volume/browser/browser.proto
 [In-memory]: ./volume/kvtxinmem/kvtxinmem.proto#L9
-[IndexedDB]: ./volume/js/indexeddb/indexeddb.proto#L10
-[OPFS]: ./volume/js/opfs/opfs.proto#L9
 [Redis]: ./volume/redis/redis.proto#L10
 [RPC]: ./volume/rpc/volume.proto
 [Store]: ./store/store.go
@@ -118,20 +116,8 @@ bun run test:go:db:opfs:chrome:stress
 ```
 
 The smoke profile is intended for routine automation. The stress profile covers
-concurrent block and metadata writers, metadata overflow, Web Lock behavior,
-worker termination recovery, and the integrated OPFS volume slice.
-
-### Browser OPFS alpha reset policy
-
-Browser OPFS volumes use storage format version 2. During alpha, browser OPFS
-opens reset non-v2 roots automatically instead of trying to migrate or mix
-layouts. The runtime writes `.spacewave-opfs-format.json` for the clean v2 root
-and logs `reset opfs volume root for v2 format` with `root_path`, `reason`, and
-`format_version` fields when it deletes an incompatible or unknown root. Reset counts are exposed from the browser runtime by reset reason for
-operator diagnostics.
-
-This policy intentionally applies only to browser OPFS volume roots. Other
-storage backends keep their existing persistence behavior.
+Web Lock behavior, worker termination, the browser volume across worker
+restarts, and world crash recovery.
 
 ## Examples
 
@@ -388,8 +374,8 @@ Hydra compiles for the native platform and for WebAssembly. Go build
 constraints select the code for each target:
 
 - `js` (`GOOS=js GOARCH=wasm`): WebAssembly in the browser, using `syscall/js`
-  for browser APIs. The IndexedDB and OPFS volumes and the rest of the browser
-  storage stack build here. The daemon, CLI, and bolt-backed stores are marked
+  for browser APIs. The browser volume and the rest of the browser storage stack
+  build here. The daemon, CLI, and bolt-backed stores are marked
   `!js && !wasip1`.
 - `tinygo`: defined by the [TinyGo] compiler, which produces a smaller browser
   WASM binary. Files marked `js && tinygo` under [opfs](./opfs) and

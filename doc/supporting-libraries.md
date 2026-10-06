@@ -41,7 +41,6 @@ Lightweight / modified forks of other libraries:
 - [**FlexLayout**][flex-layout] - Interactive drag/drop layout manager for React
 - [**fastjson**][fastjson] - Reflection-free json parser and validator
 - [**go-brotli-decoder**][go-brotli-decoder] - Pure Go Brotli decompressor
-- [**go-indexeddb**][go-indexeddb] - Low-level Go driver for IndexedDB in Wasm
 - [**json-iterator-lite**][json-iterator-lite] - Minimal and fast reflection-free json marshal and unmarshal for Go
 
 [cayley]: https://github.com/aperturerobotics/cayley
@@ -50,7 +49,6 @@ Lightweight / modified forks of other libraries:
 [flex-layout]: https://github.com/aperturerobotics/flex-layout
 [go-kvfile]: https://github.com/aperturerobotics/go-kvfile
 [go-brotli-decoder]: https://github.com/aperturerobotics/go-brotli-decoder
-[go-indexeddb]: https://github.com/aperturerobotics/go-indexeddb
 [go-quickjs-wasi]: https://github.com/paralin/go-quickjs-wasi
 [go-quickjs-wasi-reactor]: https://github.com/aperturerobotics/go-quickjs-wasi-reactor
 [goprotowrap]: https://github.com/aperturerobotics/goprotowrap

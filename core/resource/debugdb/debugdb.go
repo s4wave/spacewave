@@ -40,12 +40,7 @@ func (r *DebugDbResource) GetStorageInfo(
 	_ context.Context,
 	_ *s4wave_debugdb.GetStorageInfoRequest,
 ) (*s4wave_debugdb.GetStorageInfoResponse, error) {
-	info := &s4wave_debugdb.StorageInfo{
-		VolumeType: "hydra/volume/opfs",
-		Goos:       runtime.GOOS,
-		Goarch:     runtime.GOARCH,
-	}
-	return &s4wave_debugdb.GetStorageInfoResponse{Info: info}, nil
+	return &s4wave_debugdb.GetStorageInfoResponse{Info: storageInfo()}, nil
 }
 
 // StartBenchmark starts a new benchmark run.
@@ -53,11 +48,7 @@ func (r *DebugDbResource) StartBenchmark(
 	ctx context.Context,
 	req *s4wave_debugdb.StartBenchmarkRequest,
 ) (*s4wave_debugdb.StartBenchmarkResponse, error) {
-	info := &s4wave_debugdb.StorageInfo{
-		VolumeType: "hydra/volume/opfs",
-		Goos:       runtime.GOOS,
-		Goarch:     runtime.GOARCH,
-	}
+	info := storageInfo()
 
 	_, resourceID, err := resource_server.ConstructChildResource(ctx,
 		func(subCtx context.Context) (srpc.Invoker, struct{}, func(), error) {
@@ -72,6 +63,15 @@ func (r *DebugDbResource) StartBenchmark(
 	}
 
 	return &s4wave_debugdb.StartBenchmarkResponse{ResourceId: resourceID}, nil
+}
+
+// storageInfo describes the browser volume and the runtime it runs in.
+func storageInfo() *s4wave_debugdb.StorageInfo {
+	return &s4wave_debugdb.StorageInfo{
+		VolumeType: "hydra/volume/browser",
+		Goos:       runtime.GOOS,
+		Goarch:     runtime.GOARCH,
+	}
 }
 
 // _ is a type assertion.

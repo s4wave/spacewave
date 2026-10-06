@@ -24,7 +24,7 @@ message GetStorageInfoResponse {
 
 // StorageInfo describes the current storage backend configuration.
 message StorageInfo {
-  // VolumeType is the volume implementation type (e.g. "hydra/volume/opfs").
+  // VolumeType is the volume implementation type (e.g. "hydra/volume/browser").
   string volume_type = 1;
   // Retired mutable-shard and page-store tuning.
   reserved 2 to 6;

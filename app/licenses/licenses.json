@@ -861,13 +861,6 @@
       "copyrightNotice": "Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors."
     },
     {
-      "name": "github.com/aperturerobotics/go-indexeddb",
-      "version": "v0.2.4-0.20260924002540-d61711789781",
-      "spdx": "Apache-2.0",
-      "source": "go",
-      "repo": "https://github.com/aperturerobotics/go-indexeddb"
-    },
-    {
       "name": "github.com/aperturerobotics/go-kvfile",
       "version": "v0.10.1-0.20260705010911-5c5ed949ddfe",
       "spdx": "MIT",

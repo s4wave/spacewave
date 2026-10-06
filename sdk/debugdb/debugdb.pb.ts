@@ -30,7 +30,7 @@ export const GetStorageInfoRequest: MessageType<GetStorageInfoRequest> =
  */
 export interface StorageInfo {
   /**
-   * VolumeType is the volume implementation type (e.g. "hydra/volume/opfs").
+   * VolumeType is the volume implementation type (e.g. "hydra/volume/browser").
    *
    * @generated from field: string volume_type = 1;
    */

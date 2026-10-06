@@ -11,8 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/opfs"
-	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
+	volume_browser "github.com/s4wave/spacewave/db/volume/browser"
 	s4wave_debugdb "github.com/s4wave/spacewave/sdk/debugdb"
 	"github.com/sirupsen/logrus"
 )
@@ -55,6 +54,7 @@ func NewBenchmarkRunner(
 
 // Run executes all benchmark suites. Call from a goroutine.
 func (r *BenchmarkRunner) Run(ctx context.Context) {
+	// Record the run's configuration and start.
 	start := time.Now()
 	results := &s4wave_debugdb.BenchmarkResults{
 		Info:                r.info,
@@ -62,6 +62,7 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 		StartTimeUnixMillis: uint64(start.UnixMilli()),
 	}
 
+	// Open the throw-away volume, deleting it when the run ends.
 	vol, deleteVol, err := r.allocateVolume(ctx)
 	if err != nil {
 		r.le.WithError(err).Warn("benchmark: failed to allocate volume")
@@ -75,22 +76,12 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 		}
 	}()
 
+	// Engine suites benchmark the volume's block store without the GC wrapper.
 	sr := newSuiteRunner(ctx, r)
-
-	// Engine suites benchmark the standalone immutable block store.
-	engineStore, engineCleanup, err := createEngineBlockStore(ctx)
-	if err != nil {
-		r.le.WithError(err).Warn("benchmark: failed to create immutable engine")
-		r.finish(results, start)
-		return
-	}
-	putSuite, engineRefs := sr.runEnginePutSingle(engineStore)
+	putSuite, engineRefs := sr.runEnginePutSingle(vol)
 	results.Suites = append(results.Suites, putSuite)
-	results.Suites = append(results.Suites, sr.runEnginePutBatch(engineStore))
-	results.Suites = append(results.Suites, sr.runEngineGet(engineStore, engineRefs))
-	if err := engineCleanup(); err != nil {
-		r.le.WithError(err).Warn("benchmark: failed to cleanup immutable engine")
-	}
+	results.Suites = append(results.Suites, sr.runEnginePutBatch(vol))
+	results.Suites = append(results.Suites, sr.runEngineGet(vol, engineRefs))
 
 	// Block store suites: through the full StoreOps interface (includes GC wrapper).
 	gcStore := block_gc.NewGCStoreOps(vol, vol.GetRefGraph())
@@ -116,6 +107,7 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 	// Meta store suite.
 	results.Suites = append(results.Suites, sr.runMetaStoreRW(vol.GetKvtxStore()))
 
+	// Publish the results.
 	r.finish(results, start)
 }
 
@@ -123,6 +115,7 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 func (r *BenchmarkRunner) finish(results *s4wave_debugdb.BenchmarkResults, start time.Time) {
 	results.TotalDurationMillis = uint64(time.Since(start).Milliseconds())
 	r.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		// Store the results and wake the watchers.
 		r.done = true
 		r.results = results
 		r.progress.Done = true
@@ -164,32 +157,18 @@ func (r *BenchmarkRunner) GetResults(ctx context.Context) (*s4wave_debugdb.Bench
 	}
 }
 
-// allocateVolume creates a throw-away OPFS volume for benchmarking.
-func (r *BenchmarkRunner) allocateVolume(ctx context.Context) (*volume_opfs.Opfs, func() error, error) {
-	// Open a new volume under a unique root.
-	rootPath := "debugdb-bench-" + time.Now().Format("20060102-150405.000000000")
-	conf := &volume_opfs.Config{
-		RootPath:             rootPath,
-		LockPrefix:           rootPath,
-		DriverMode:           "auto",
-		StorageFormatVersion: volume_opfs.StorageFormatVersion,
-	}
-	le := r.le.WithField("volume", rootPath)
-	vol, err := volume_opfs.NewOpfs(ctx, le, conf)
+// allocateVolume opens a throw-away browser volume under a unique name. The
+// caller closes the volume, then calls the returned func to delete it.
+func (r *BenchmarkRunner) allocateVolume(ctx context.Context) (*volume_browser.Volume, func() error, error) {
+	// Open the volume on the device the browser selects.
+	name := "debugdb-bench-" + time.Now().Format("20060102-150405.000000000")
+	conf := &volume_browser.Config{Name: name}
+	vol, err := volume_browser.NewVolume(ctx, r.le.WithField("volume", name), conf)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "create benchmark volume")
 	}
 
-	// Delete the whole root when the benchmark ends.
-	deleteVol := func() error {
-		root, err := opfs.GetRoot()
-		if err != nil {
-			return err
-		}
-		return opfs.DeleteEntry(root, rootPath, true)
-	}
-
 	// Yield before the benchmark starts timing.
 	runtime.Gosched()
-	return vol, deleteVol, nil
+	return vol, func() error { return volume_browser.Delete(name) }, nil
 }

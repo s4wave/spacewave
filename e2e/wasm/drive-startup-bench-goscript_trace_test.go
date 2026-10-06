@@ -131,8 +131,8 @@ func TestSummarizeBrowserCPUProfileBucketsSamples(t *testing.T) {
 			map[string]any{
 				"id": 3,
 				"callFrame": map[string]any{
-					"functionName": "Publish",
-					"url":          "https://example.invalid/db/volume/js/opfs/engine/publication.gs.js",
+					"functionName": "Write",
+					"url":          "https://example.invalid/db/volume/device/opfs/opfs.gs.js",
 				},
 			},
 		},

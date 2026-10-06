@@ -40,7 +40,7 @@ func TestDedicatedWorkerHostFallback(t *testing.T) {
 	AssertQuickstartContentAfterProgress(t, ready)
 	AssertBrowserStartupDone(t, h, page)
 	assertDedicatedWorkerHostTopology(t, page, dedicatedHostRoleHost)
-	assertDirectOpfsMarkers(t, page)
+	assertOpfsVolumes(t, page)
 
 	// Create a folder and record the Drive route.
 	createDriveFolder(t, page, dedicatedFallbackFolder)
@@ -63,7 +63,7 @@ func TestDedicatedWorkerHostFallback(t *testing.T) {
 	WaitForDriveReady(t, h, page)
 	AssertBrowserStartupDone(t, h, page)
 	assertDedicatedWorkerHostTopology(t, page, dedicatedHostRoleHost)
-	assertDirectOpfsMarkers(t, page)
+	assertOpfsVolumes(t, page)
 	waitForDriveEntry(t, page, dedicatedFallbackFolder)
 	assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
 }
@@ -130,7 +130,7 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	// Require the failover fetch and a new folder.
 	assertDedicatedWorkerPluginAssetFetch(t, rightPage, pluginAssetURL)
 	assertPluginAssetFetchSucceeds(t, rightPage, pluginAssetURL, "after DedicatedWorker failover")
-	assertDirectOpfsMarkers(t, rightPage)
+	assertOpfsVolumes(t, rightPage)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabLeft)
 	createDriveFolder(t, rightPage, dedicatedMultiTabRight)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabRight)
@@ -680,13 +680,17 @@ func waitForDedicatedWorkerHostRole(
 	}
 }
 
-func assertDirectOpfsMarkers(t testing.TB, page playwright.Page) []string {
+// assertOpfsVolumes requires a browser volume on OPFS, which the dedicated
+// worker host can open with sync access handles.
+func assertOpfsVolumes(t testing.TB, page playwright.Page) {
+	// Find an OPFS volume among the page's browser volumes.
 	t.Helper()
-	markers := listOpfsFormatMarkers(t, page)
-	if len(markers) == 0 {
-		t.Fatal("expected a direct page OPFS format marker after Drive readiness")
+	for _, v := range listBrowserVolumes(t, page) {
+		if strings.HasPrefix(v, "opfs:") {
+			return
+		}
 	}
-	return markers
+	t.Fatal("expected an OPFS browser volume after Drive readiness")
 }
 
 func loadPageURL(t testing.TB, page playwright.Page, targetURL string) {

@@ -50,23 +50,23 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 	if err != nil {
 		return nil, err
 	}
-	st, err := openDevice(ctx, conf.GetName())
+	dev, err := openDevice(ctx, conf.GetName())
 	if err != nil {
 		return nil, err
 	}
 
 	// Open the index and the engine on the device.
-	idx, err := logindex.Open(ctx, st.dev, logindex.Options{})
+	idx, err := logindex.Open(ctx, dev, logindex.Options{})
 	if err != nil {
-		return nil, errors.Join(err, st.dev.Close())
+		return nil, errors.Join(err, dev.Close())
 	}
 	hashType := conf.GetStoreConfig().ResolveHashType()
-	s, err := paylog.Open(ctx, st.dev, idx, hashType)
+	s, err := paylog.Open(ctx, dev, idx, hashType)
 	if err != nil {
-		return nil, errors.Join(err, st.dev.Close())
+		return nil, errors.Join(err, dev.Close())
 	}
 	closeStore := func() error {
-		return errors.Join(s.Close(), st.dev.Close())
+		return errors.Join(s.Close(), dev.Close())
 	}
 
 	// Metadata and the garbage collection graph have disjoint namespaces.
@@ -92,7 +92,7 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 	vol, err := volume_kvtx.NewVolumeWithBlockStoreAndGC(
 		ctx, ControllerID, keys, store, s, graph, conf.GetStoreConfig(),
 		conf.GetNoGenerateKey(), conf.GetNoWriteKey(), stats, closeStore,
-		st.remove,
+		func() error { return Delete(conf.GetName()) },
 	)
 	if err != nil {
 		return nil, errors.Join(err, closeStore())

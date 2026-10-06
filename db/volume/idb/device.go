@@ -22,6 +22,9 @@ const (
 	// chunk may be shorter than ChunkSize or absent; the missing bytes below
 	// the file length read as zero.
 	chunkStore = "chunks"
+	// syncStore holds one record an empty flushed write rewrites, so the
+	// transaction has a write to make durable.
+	syncStore = "sync"
 )
 
 // ChunkSize is the length of a full chunk.
@@ -67,6 +70,7 @@ type chunkID struct {
 // OpenDevice opens the device database name, creating it when absent. It
 // returns device.ErrHeld while another Device in the origin has name open.
 func OpenDevice(ctx context.Context, name string) (*Device, error) {
+	// Hold the device's Web Lock, then open its database.
 	release, acquired, err := opfs.AcquireWebLockIfAvailable(lockPrefix+name, true)
 	if err != nil {
 		return nil, err
@@ -101,10 +105,9 @@ func OpenDevice(ctx context.Context, name string) (*Device, error) {
 // the batch overwrites only in part is read first in one read transaction,
 // unless it is a file's last written chunk.
 func (d *Device) Write(ctx context.Context, writes []device.Write, flush bool) error {
+	// Find the chunks the batch changes and the ones it needs to read.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-
-	// Find the chunks the batch changes and the ones it needs to read.
 	chunks := make(map[chunkID][]byte)
 	var order []chunkID
 	var reads []chunkID
@@ -190,10 +193,9 @@ func (d *Device) Write(ctx context.Context, writes []device.Write, flush bool) e
 
 // Read fills every read, reading the chunks in one transaction.
 func (d *Device) Read(ctx context.Context, reads []device.Read) error {
+	// Find the chunks the reads cover.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-
-	// Find the chunks the reads cover.
 	chunks := make(map[chunkID][]byte)
 	var ids []chunkID
 	for _, r := range reads {
@@ -238,6 +240,7 @@ func (d *Device) Read(ctx context.Context, reads []device.Read) error {
 // Truncate sets a file's length. Shrinking deletes the chunks past the end
 // and cuts the new last chunk, so growing again reads zeros.
 func (d *Device) Truncate(ctx context.Context, name string, size int64) error {
+	// Check the name and lock the device.
 	if err := device.ValidName(name); err != nil {
 		return err
 	}
@@ -259,7 +262,8 @@ func (d *Device) Truncate(ctx context.Context, name string, size int64) error {
 		}
 	}
 
-	// Delete the chunks past the end, cut the last one, and store the length.
+	// Delete the chunks past the end, cut the last one, and store the length,
+	// in one transaction.
 	tx := transaction(d.db, true, false, fileStore, chunkStore)
 	chunkObjects := tx.Call("objectStore", chunkStore)
 	if size < old {
@@ -275,6 +279,8 @@ func (d *Device) Truncate(ctx context.Context, name string, size int64) error {
 	if err := complete(tx); err != nil {
 		return err
 	}
+
+	// Record the new length; the cached tail no longer matches.
 	d.sizes[name] = size
 	delete(d.tails, name)
 	return nil
@@ -282,11 +288,14 @@ func (d *Device) Truncate(ctx context.Context, name string, size int64) error {
 
 // Remove deletes files and their chunks in one transaction.
 func (d *Device) Remove(ctx context.Context, names []string) error {
+	// Check every name before changing anything.
 	for _, name := range names {
 		if err := device.ValidName(name); err != nil {
 			return err
 		}
 	}
+
+	// Delete the files and their chunks in one transaction.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	tx := transaction(d.db, true, false, fileStore, chunkStore)
@@ -298,6 +307,8 @@ func (d *Device) Remove(ctx context.Context, names []string) error {
 	if err := complete(tx); err != nil {
 		return err
 	}
+
+	// Forget the removed files' lengths and tails.
 	for _, name := range names {
 		delete(d.sizes, name)
 		delete(d.tails, name)
@@ -307,6 +318,7 @@ func (d *Device) Remove(ctx context.Context, names []string) error {
 
 // List returns every file from the lengths the device holds.
 func (d *Device) List(ctx context.Context) ([]device.File, error) {
+	// Copy the lengths out in name order.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	out := make([]device.File, 0, len(d.sizes))
@@ -327,6 +339,7 @@ func (d *Device) Close() error {
 // readChunks reads the chunks of ids into chunks in one transaction, leaving
 // an absent chunk nil.
 func (d *Device) readChunks(chunks map[chunkID][]byte, ids []chunkID) error {
+	// Request every chunk in one transaction.
 	if len(ids) == 0 {
 		return nil
 	}

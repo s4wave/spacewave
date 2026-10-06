@@ -44,17 +44,17 @@ describe('plugin-goscript generation lifecycle', () => {
     }
     const originalEnv = host.process?.env
     try {
-      const storageMode = Promise.withResolvers<string | undefined>()
+      const envValue = Promise.withResolvers<string | undefined>()
       main(
         api,
         async () => async () => {
-          storageMode.resolve(host.process?.env?.BLDR_BROWSER_STORAGE)
+          envValue.resolve(host.process?.env?.BLDR_EXAMPLE)
           await new Promise<void>(() => {})
         },
-        { BLDR_BROWSER_STORAGE: 'indexeddb' },
+        { BLDR_EXAMPLE: 'value' },
       )
 
-      await expect(storageMode.promise).resolves.toBe('indexeddb')
+      await expect(envValue.promise).resolves.toBe('value')
     } finally {
       if (host.process) {
         host.process.env = originalEnv

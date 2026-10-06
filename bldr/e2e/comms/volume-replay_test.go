@@ -30,8 +30,8 @@ func volumeBrowsers(t *testing.T) []string {
 }
 
 // TestGoScriptVolumeStorage runs the Device contract on the OPFS and
-// IndexedDB devices and the record store contract on the IndexedDB store in
-// a GoScript worker, each followed by a reopen that finds the same contents.
+// IndexedDB devices in a GoScript worker, each followed by a reopen that finds
+// the same contents.
 func TestGoScriptVolumeStorage(t *testing.T) {
 	for _, browser := range volumeBrowsers(t) {
 		t.Run(browser, func(t *testing.T) {
@@ -50,9 +50,9 @@ func TestGoScriptVolumeStorage(t *testing.T) {
 				t.Fatalf("volume storage fixture failed: %v", results["detail"])
 			}
 
-			// Assert each device and record-store check reports ok.
+			// Assert each device check reports ok.
 			report := parseReport(t, results)
-			for _, check := range []string{"opfs-device", "idb-device", "idb-records"} {
+			for _, check := range []string{"opfs-device", "idb-device"} {
 				if got := string(report.GetStringBytes(check)); got != "ok" {
 					t.Errorf("%s: %s", check, got)
 				}
@@ -62,12 +62,11 @@ func TestGoScriptVolumeStorage(t *testing.T) {
 }
 
 // volumeTargets are the engines the replay fixture opens by name.
-var volumeTargets = []string{"e1-opfs", "e1-idb", "e5-idb", "e4-opfs", "e3-sqlite", "e1-opfs-t2"}
+var volumeTargets = []string{"e1-opfs", "e1-idb", "e3-sqlite", "e1-opfs-t2"}
 
 // TestGoScriptVolumeReplay replays the workload traces in WORKLOAD_TRACES, a
-// directory of .trace files, against E1 on OPFS and IndexedDB, E5 on
-// IndexedDB, format 3 on OPFS, SQLite in a device worker, and E1 on OPFS
-// behind a device worker relay, from a GoScript worker, and logs each
+// directory of .trace files, against E1 on OPFS and IndexedDB, SQLite in a
+// device worker, and E1 on OPFS behind a device worker relay, from a GoScript worker, and logs each
 // replay's report.
 func TestGoScriptVolumeReplay(t *testing.T) {
 	// Skip when no workload trace directory was configured.
