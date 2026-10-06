@@ -14,6 +14,7 @@ import { TextEncoder, TextDecoder } from "./text-encoding.js";
 import { ReadableStream } from "./readable-stream.js";
 import { createQuickjsConsole, type Console } from "./console.js";
 import { createQuickjsPerformance, type Performance } from "./performance.js";
+import { createQuickjsCrypto, type QuickjsCrypto } from "./crypto.js";
 import { atob, btoa } from "./base64.js";
 
 // quickjs has a reduced standard library.
@@ -45,6 +46,8 @@ export interface QuickjsPolyfillGlobalScope extends QuickjsGlobalScope {
   console: Console;
   // performance is the polyfilled performance object.
   performance: Performance;
+  // crypto is the polyfilled Web Crypto subset.
+  crypto: QuickjsCrypto;
 
   /**
    * Call the function func after delay ms. Return a handle to the timer.
@@ -192,6 +195,7 @@ export function applyPolyfills(
 
   target.console = createQuickjsConsole(target.console);
   target.performance = createQuickjsPerformance(target.performance);
+  target.crypto = createQuickjsCrypto(target.os);
   target.Event = createEvent();
   target.EventTarget = createEventTarget();
   target.CustomEvent = createCustomEvent();
