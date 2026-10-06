@@ -143,73 +143,55 @@ function GraphNode({
   )
 }
 
-function GraphLinkPill({
+// GraphLinkPillBadges renders the target type, cap, and protection badges.
+function GraphLinkPillBadges({
   fixture,
   variant,
 }: {
   fixture: GraphLinkFixture
   variant: PillVariant
 }) {
-  const loaded = fixture.state === 'loaded'
-  const compact = variant === 'compact'
-  const balanced = variant === 'balanced'
-  const metadata = variant === 'metadata'
-  const hidden = fixture.hidden ?? false
-  const policy = fixture.policy ?? 'normal'
-  if (balanced) {
-    return (
-      <div data-testid={`graph-link-pill-${variant}-${fixture.state}`}>
-        <ProductionGraphLinkPill
-          edge={fixtureToEphemeralEdge(fixture)}
-          loaded={loaded}
-          onPrimary={() => undefined}
-          onHide={() => undefined}
-        />
-      </div>
-    )
-  }
+  if (variant === 'compact') return null
+
   return (
-    <div
-      data-testid={`graph-link-pill-${variant}-${fixture.state}`}
-      className={cn(
-        'bg-background-card/50 text-foreground flex items-center rounded-md border shadow-lg backdrop-blur-sm',
-        compact
-          ? 'gap-1 px-1.5 py-0.5 micro-fine'
-          : balanced
-            ? 'gap-1 px-1.5 py-0.5 micro-text'
-            : 'gap-1.5 px-2 py-1 micro-text',
-        metadata && 'px-2.5 py-1.5',
-        loaded ? 'border-brand/20' : 'border-foreground/10',
-        hidden && 'opacity-55',
-      )}
-    >
-      <span className="text-brand/60 font-medium">{fixture.predicate}</span>
-      <span className="text-foreground-alt/30">/</span>
-      <span className="max-w-28 truncate font-medium">
-        {fixture.targetLabel}
+    <>
+      <span
+        className={cn(
+          'text-foreground-alt/50',
+          variant === 'metadata' &&
+            'border-foreground/8 bg-foreground/5 rounded px-1 py-0.5',
+        )}
+      >
+        {fixture.targetType}
       </span>
-      {!compact && (
-        <span
-          className={cn(
-            'text-foreground-alt/50',
-            metadata &&
-              'border-foreground/8 bg-foreground/5 rounded px-1 py-0.5',
-          )}
-        >
-          {fixture.targetType}
-        </span>
-      )}
-      {fixture.truncated && !compact && (
+      {fixture.truncated && (
         <span className="border-warning/20 bg-warning/10 text-warning rounded px-1 py-0.5">
           capped
         </span>
       )}
-      {policy === 'protected' && !compact && (
+      {fixture.policy === 'protected' && (
         <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 flex items-center gap-1 rounded px-1 py-0.5">
           <LuLock className="size-2.5" />
           protected
         </span>
       )}
+    </>
+  )
+}
+
+// GraphLinkPillActions renders the focus or load, hide, and delete buttons.
+function GraphLinkPillActions({
+  fixture,
+  compact,
+}: {
+  fixture: GraphLinkFixture
+  compact: boolean
+}) {
+  const loaded = fixture.state === 'loaded'
+  const hidden = fixture.hidden ?? false
+
+  return (
+    <>
       <button
         type="button"
         className="hover:bg-foreground/8 flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors"
@@ -231,7 +213,7 @@ function GraphLinkPill({
       >
         <LuEyeOff className="size-3" />
       </button>
-      {policy === 'deletable' && (
+      {fixture.policy === 'deletable' && (
         <button
           type="button"
           className="text-destructive hover:bg-destructive/10 rounded-md p-0.5 transition-colors"
@@ -240,6 +222,63 @@ function GraphLinkPill({
           <LuTrash2 className="size-3" />
         </button>
       )}
+    </>
+  )
+}
+
+// FixtureGraphLinkPill renders the static pill variants for visual comparison.
+function FixtureGraphLinkPill({
+  fixture,
+  variant,
+}: {
+  fixture: GraphLinkFixture
+  variant: PillVariant
+}) {
+  const compact = variant === 'compact'
+
+  return (
+    <div
+      data-testid={`graph-link-pill-${variant}-${fixture.state}`}
+      className={cn(
+        'bg-background-card/50 text-foreground flex items-center rounded-md border shadow-lg backdrop-blur-sm',
+        compact
+          ? 'gap-1 px-1.5 py-0.5 micro-fine'
+          : 'gap-1.5 px-2 py-1 micro-text',
+        variant === 'metadata' && 'px-2.5 py-1.5',
+        fixture.state === 'loaded' ? 'border-brand/20' : 'border-foreground/10',
+        fixture.hidden && 'opacity-55',
+      )}
+    >
+      <span className="text-brand/60 font-medium">{fixture.predicate}</span>
+      <span className="text-foreground-alt/30">/</span>
+      <span className="max-w-28 truncate font-medium">
+        {fixture.targetLabel}
+      </span>
+      <GraphLinkPillBadges fixture={fixture} variant={variant} />
+      <GraphLinkPillActions fixture={fixture} compact={compact} />
+    </div>
+  )
+}
+
+function GraphLinkPill({
+  fixture,
+  variant,
+}: {
+  fixture: GraphLinkFixture
+  variant: PillVariant
+}) {
+  if (variant !== 'balanced') {
+    return <FixtureGraphLinkPill fixture={fixture} variant={variant} />
+  }
+
+  return (
+    <div data-testid={`graph-link-pill-${variant}-${fixture.state}`}>
+      <ProductionGraphLinkPill
+        edge={fixtureToEphemeralEdge(fixture)}
+        loaded={fixture.state === 'loaded'}
+        onPrimary={() => undefined}
+        onHide={() => undefined}
+      />
     </div>
   )
 }

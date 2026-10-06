@@ -457,6 +457,49 @@ function CommandChordItem({
   )
 }
 
+// countCommands totals the commands across groups.
+function countCommands(groups: { commands: unknown[] }[]): number {
+  return groups.reduce((count, group) => count + group.commands.length, 0)
+}
+
+// countLabel formats a count with its singular or plural noun.
+function countLabel(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
+// palettePlaceholder describes what the palette input accepts. A command that
+// lists sub-items takes the input as its own search.
+function palettePlaceholder(
+  mode: PaletteMode,
+  subItemCommand: ReturnType<typeof findActiveCommand>,
+): string {
+  if (subItemCommand) {
+    return `Search ${subItemCommand.command?.label ?? ''}...`
+  }
+  if (mode === 'chord') return 'Type a chord, /, or a command name...'
+  return 'Type a command or search...'
+}
+
+// paletteResultSummary summarizes the visible results. A null subItemCount or
+// chordCount means the palette is not listing sub-items or chords.
+function paletteResultSummary({
+  subItemCount,
+  chordCount,
+  totalCommandCount,
+  visibleCommandCount,
+}: {
+  subItemCount: number | null
+  chordCount: number | null
+  totalCommandCount: number
+  visibleCommandCount: number
+}): string {
+  if (subItemCount !== null) return countLabel(subItemCount, 'item', 'items')
+  if (chordCount !== null) {
+    return `${countLabel(chordCount, 'chord', 'chords')} · ${totalCommandCount} commands`
+  }
+  return countLabel(visibleCommandCount, 'match', 'matches')
+}
+
 // useCommandPaletteController owns palette mode, chord traversal, sub-item
 // loading, query projection, and command invocation.
 function useCommandPaletteController() {
@@ -756,30 +799,16 @@ function useCommandPaletteController() {
   const activeSubItemCommand = subItemCommandId
     ? findActiveCommand(commands, subItemCommandId)
     : undefined
-  const placeholder = activeSubItemCommand
-    ? `Search ${activeSubItemCommand.command?.label ?? ''}...`
-    : paletteMode === 'chord'
-      ? 'Type a chord, /, or a command name...'
-      : 'Type a command or search...'
+  const placeholder = palettePlaceholder(paletteMode, activeSubItemCommand)
   const inputValue = subItemCommandId ? subQuery : query
   const inputChange = subItemCommandId ? setSubQuery : handlePaletteQueryChange
-  const visibleCommandCount = filteredGrouped.reduce(
-    (count, group) => count + group.commands.length,
-    0,
-  )
-  const totalCommandCount = grouped.reduce(
-    (count, group) => count + group.commands.length,
-    0,
-  )
-  const resultSummary = subItemCommandId
-    ? `${subItems.length} ${subItems.length === 1 ? 'item' : 'items'}`
-    : paletteMode === 'chord' && !query
-      ? `${chordContinuations.length} ${
-          chordContinuations.length === 1 ? 'chord' : 'chords'
-        } · ${totalCommandCount} commands`
-      : `${visibleCommandCount} ${
-          visibleCommandCount === 1 ? 'match' : 'matches'
-        }`
+  const resultSummary = paletteResultSummary({
+    subItemCount: subItemCommandId ? subItems.length : null,
+    chordCount:
+      paletteMode === 'chord' && !query ? chordContinuations.length : null,
+    totalCommandCount: countCommands(grouped),
+    visibleCommandCount: countCommands(filteredGrouped),
+  })
 
   return {
     activeSubItemCommand,
