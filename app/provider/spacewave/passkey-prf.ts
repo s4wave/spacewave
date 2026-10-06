@@ -49,10 +49,6 @@ function toUint8Array(dat: BufferSource): Uint8Array {
   return new Uint8Array(dat)
 }
 
-function cloneJson<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T
-}
-
 function parseAuthParams(authParamsBase64: string) {
   const params = PasskeyPrfAuthParams.fromBinary(
     base64ToBytes(authParamsBase64),
@@ -83,7 +79,7 @@ export async function generatePasskeyPrfSalt(
 
 // addRegistrationPrfInput injects a locally-generated PRF salt into registration options.
 export function addRegistrationPrfInput<T>(options: T, prfSalt: string): T {
-  const next = cloneJson(options) as Record<string, unknown>
+  const next = structuredClone(options) as Record<string, unknown>
   const extensions = (next.extensions ?? {}) as Record<string, unknown>
   extensions.prf = {
     eval: {
@@ -96,7 +92,7 @@ export function addRegistrationPrfInput<T>(options: T, prfSalt: string): T {
 
 // addAuthenticationPrfInputs converts server-provided PRF base64url fields into BufferSource inputs.
 export function addAuthenticationPrfInputs<T>(options: T): T {
-  const next = cloneJson(options) as Record<string, unknown>
+  const next = structuredClone(options) as Record<string, unknown>
   const extensions = next.extensions as PasskeyPrfClientExtensions | undefined
   const prf = extensions?.prf
   if (!prf) {
