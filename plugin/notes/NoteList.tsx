@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 
 import type { NotebookSource } from './proto/notebook.pb.js'
 import type { Frontmatter } from './frontmatter.js'
@@ -345,264 +345,318 @@ function useNoteListController({
 
 type NoteListController = ReturnType<typeof useNoteListController>
 
-// NoteListView selects resource states and renders note navigation and dialogs.
-function NoteListView({ controller }: { controller: NoteListController }) {
+// noteListNotice returns the message that replaces the list while the source
+// or its entries are not ready, or null when the list can render.
+function noteListNotice(
+  controller: NoteListController,
+): { text: string; error: boolean; padded: boolean } | null {
+  const { entriesResource, fileEntries, noteEntries, objectKey, source } =
+    controller
+  if (!source) return { text: 'Select a source', error: false, padded: false }
+  if (!objectKey) {
+    return { text: 'Invalid source ref', error: false, padded: true }
+  }
+  if (entriesResource.loading) {
+    return { text: 'Loading…', error: false, padded: false }
+  }
+  if (entriesResource.error) {
+    return { text: entriesResource.error.message, error: true, padded: true }
+  }
+  if (noteEntries.error) {
+    return { text: noteEntries.error.message, error: true, padded: true }
+  }
+  if (noteEntries.loading && fileEntries.length > 0) {
+    return { text: 'Loading…', error: false, padded: false }
+  }
+  return null
+}
+
+// NoteListToolbar renders the note search field and the create actions.
+function NoteListToolbar({
+  controller,
+}: {
+  controller: Pick<
+    NoteListController,
+    | 'canCreateOrg'
+    | 'handleCreateFolder'
+    | 'handleCreateNote'
+    | 'handleCreateNoteDefault'
+    | 'searchQuery'
+    | 'setSearchQuery'
+  >
+}) {
   const {
     canCreateOrg,
-    closeDeleteDialog,
-    closeRenameDialog,
+    handleCreateFolder,
+    handleCreateNote,
+    handleCreateNoteDefault,
+    searchQuery,
+    setSearchQuery,
+  } = controller
+
+  return (
+    <div className="border-border flex min-w-0 items-center gap-1 border-b px-2 py-1.5">
+      <label className="bg-muted flex min-w-0 flex-1 items-center gap-1.5 rounded px-2 md:pointer-fine:py-1">
+        <LuSearch className="text-muted-foreground size-3 shrink-0" />
+        <input
+          type="text"
+          aria-label="Search notes"
+          placeholder="Search notes…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="text-foreground placeholder:text-muted-foreground min-h-11 w-full min-w-0 border-none bg-transparent text-xs outline-none md:pointer-fine:min-h-0"
+        />
+      </label>
+      <button
+        type="button"
+        className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
+        onClick={() => handleCreateFolder()}
+        title="New folder"
+      >
+        <LuFolderPlus className="size-3.5" />
+      </button>
+      <button
+        type="button"
+        className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
+        onClick={() => void handleCreateNote()}
+        title="New note"
+      >
+        <LuPlus className="size-3.5" />
+      </button>
+      {canCreateOrg && (
+        <button
+          type="button"
+          className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded text-xs font-medium md:pointer-fine:size-auto md:pointer-fine:px-1.5 md:pointer-fine:py-1"
+          onClick={() => void handleCreateNoteDefault('org')}
+          title="New Org note"
+        >
+          Org
+        </button>
+      )}
+    </div>
+  )
+}
+
+// NoteListFilters renders the active tag and status filters with clear actions.
+function NoteListFilters({
+  controller,
+}: {
+  controller: Pick<
+    NoteListController,
+    'filterStatus' | 'filterTag' | 'onFilterStatusChange' | 'onFilterTagChange'
+  >
+}) {
+  const { filterStatus, filterTag, onFilterStatusChange, onFilterTagChange } =
+    controller
+
+  return (
+    <div className="bg-brand/5 border-border flex flex-wrap items-center gap-2 border-b px-3 py-1 text-xs">
+      <span className="text-muted-foreground">Filtering:</span>
+      {filterTag && (
+        <button
+          type="button"
+          className="bg-brand/10 text-brand inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
+          onClick={() => onFilterTagChange?.(undefined)}
+          title="Clear tag filter"
+        >
+          {filterTag}
+          <LuX className="size-2.5" />
+        </button>
+      )}
+      {filterStatus && (
+        <button
+          type="button"
+          className="bg-muted text-foreground-alt inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
+          onClick={() => onFilterStatusChange?.(undefined)}
+          title="Clear status filter"
+        >
+          {filterStatus}
+          <LuX className="size-2.5" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+// NoteListEmptyState explains why the list has no entries.
+function NoteListEmptyState({
+  isEmptyDirectory,
+  onCreateNote,
+}: {
+  isEmptyDirectory: boolean
+  onCreateNote: NoteListController['handleCreateNote']
+}) {
+  return (
+    <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
+      {isEmptyDirectory ? (
+        <>
+          <span className="text-xs">No notes yet</span>
+          <button
+            type="button"
+            className="bg-brand text-brand-foreground min-h-11 rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90 md:pointer-fine:min-h-0"
+            onClick={onCreateNote}
+          >
+            Create your first note
+          </button>
+        </>
+      ) : (
+        <span className="text-xs">No matching notes</span>
+      )}
+    </div>
+  )
+}
+
+// NoteListNoteRow renders one note with its rename and delete actions.
+function NoteListNoteRow({
+  entry,
+  notePath,
+  selected,
+  extra,
+  onSelect,
+  onRename,
+  onDelete,
+}: {
+  entry: NoteListEntry
+  notePath: string
+  selected: boolean
+  extra: ReactNode
+  onSelect: (notePath: string) => void
+  onRename: (name: string) => void
+  onDelete: (name: string) => void
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1 pr-1',
+        selected &&
+          'bg-list-active-selection-background text-list-active-selection-foreground',
+      )}
+    >
+      <button
+        type="button"
+        data-testid="notes-note-row"
+        data-note-path={notePath}
+        className="hover:bg-list-hover-background flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
+        onClick={() => onSelect(notePath)}
+      >
+        <LuFile className="size-3 shrink-0" />
+        <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+        {extra}
+      </button>
+      <button
+        type="button"
+        className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
+        onClick={() => onRename(entry.name)}
+        title="Rename note"
+      >
+        <LuPenLine className="size-3" />
+      </button>
+      <button
+        type="button"
+        className="text-foreground-alt hover:bg-list-hover-background hover:text-destructive flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
+        onClick={() => onDelete(entry.name)}
+        title="Delete note"
+      >
+        <LuTrash2 className="size-3" />
+      </button>
+    </div>
+  )
+}
+
+// NoteListEntries renders the folders and notes of the current directory.
+function NoteListEntries({
+  controller,
+}: {
+  controller: Pick<
+    NoteListController,
+    | 'currentPath'
+    | 'filteredDirEntries'
+    | 'filteredNoteEntries'
+    | 'handleDeleteNote'
+    | 'handleRenameNote'
+    | 'onChangePath'
+    | 'onSelectNote'
+    | 'renderEntryExtra'
+    | 'selectedNote'
+  >
+}) {
+  const {
     currentPath,
-    deleteTarget,
-    entriesResource,
-    fileEntries,
-    filterStatus,
-    filterTag,
     filteredDirEntries,
     filteredNoteEntries,
+    handleDeleteNote,
+    handleRenameNote,
+    onChangePath,
+    onSelectNote,
+    renderEntryExtra,
+    selectedNote,
+  } = controller
+
+  return (
+    <>
+      {filteredDirEntries.map((entry) => (
+        <button
+          key={entry.name}
+          type="button"
+          className="hover:bg-list-hover-background flex min-h-11 w-full items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
+          onClick={() => onChangePath?.(joinNotePath(currentPath, entry.name))}
+        >
+          <LuFolder className="size-3 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+        </button>
+      ))}
+      {filteredNoteEntries.map((entry) => {
+        const notePath = joinNotePath(currentPath, entry.name)
+        return (
+          <NoteListNoteRow
+            key={notePath}
+            entry={entry}
+            notePath={notePath}
+            selected={selectedNote === notePath}
+            extra={renderEntryExtra?.(notePath)}
+            onSelect={onSelectNote}
+            onRename={handleRenameNote}
+            onDelete={handleDeleteNote}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+// NoteListDialogs renders the folder, rename, and delete dialogs.
+function NoteListDialogs({
+  controller,
+}: {
+  controller: Pick<
+    NoteListController,
+    | 'closeDeleteDialog'
+    | 'closeRenameDialog'
+    | 'deleteTarget'
+    | 'folderDialogOpen'
+    | 'handleConfirmCreateFolder'
+    | 'handleConfirmDeleteNote'
+    | 'handleConfirmRenameNote'
+    | 'renameDefaultValue'
+    | 'renameTarget'
+    | 'setFolderDialogOpen'
+  >
+}) {
+  const {
+    closeDeleteDialog,
+    closeRenameDialog,
+    deleteTarget,
     folderDialogOpen,
     handleConfirmCreateFolder,
     handleConfirmDeleteNote,
     handleConfirmRenameNote,
-    handleCreateFolder,
-    handleCreateNote,
-    handleCreateNoteDefault,
-    handleDeleteNote,
-    handleRenameNote,
-    hasFilter,
-    isEmptyDirectory,
-    noteEntries,
-    objectKey,
-    onChangePath,
-    onFilterStatusChange,
-    onFilterTagChange,
-    onSelectNote,
     renameDefaultValue,
     renameTarget,
-    renderEntryExtra,
-    searchQuery,
-    selectedNote,
     setFolderDialogOpen,
-    setSearchQuery,
-    showEmptyState,
-    source,
   } = controller
-
-  if (!source) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Select a source
-      </div>
-    )
-  }
-
-  if (!objectKey) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center p-4 text-center text-xs">
-        Invalid source ref
-      </div>
-    )
-  }
-
-  if (entriesResource.loading) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading…
-      </div>
-    )
-  }
-
-  if (entriesResource.error) {
-    return (
-      <div className="text-destructive flex h-full items-center justify-center p-4 text-center text-xs">
-        {entriesResource.error.message}
-      </div>
-    )
-  }
-
-  if (noteEntries.error) {
-    return (
-      <div className="text-destructive flex h-full items-center justify-center p-4 text-center text-xs">
-        {noteEntries.error.message}
-      </div>
-    )
-  }
-
-  if (noteEntries.loading && fileEntries.length > 0) {
-    return (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Loading…
-      </div>
-    )
-  }
 
   return (
     <>
-      <div
-        className="flex h-full flex-col overflow-y-auto"
-        data-testid="notes-note-list"
-      >
-        <div className="border-border flex min-w-0 items-center gap-1 border-b px-2 py-1.5">
-          <label className="bg-muted flex min-w-0 flex-1 items-center gap-1.5 rounded px-2 md:pointer-fine:py-1">
-            <LuSearch className="text-muted-foreground size-3 shrink-0" />
-            <input
-              type="text"
-              aria-label="Search notes"
-              placeholder="Search notes…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="text-foreground placeholder:text-muted-foreground min-h-11 w-full min-w-0 border-none bg-transparent text-xs outline-none md:pointer-fine:min-h-0"
-            />
-          </label>
-          <button
-            type="button"
-            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
-            onClick={() => handleCreateFolder()}
-            title="New folder"
-          >
-            <LuFolderPlus className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1.5"
-            onClick={() => void handleCreateNote()}
-            title="New note"
-          >
-            <LuPlus className="size-3.5" />
-          </button>
-          {canCreateOrg && (
-            <button
-              type="button"
-              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded text-xs font-medium md:pointer-fine:size-auto md:pointer-fine:px-1.5 md:pointer-fine:py-1"
-              onClick={() => void handleCreateNoteDefault('org')}
-              title="New Org note"
-            >
-              Org
-            </button>
-          )}
-        </div>
-        {currentPath && (
-          <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
-            <button
-              type="button"
-              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
-              onClick={() => onChangePath?.(getParentPath(currentPath))}
-              title="Up one level"
-            >
-              <LuChevronLeft className="size-3" />
-            </button>
-            <span className="text-muted-foreground truncate">
-              /{currentPath}
-            </span>
-          </div>
-        )}
-        {hasFilter && (
-          <div className="bg-brand/5 border-border flex flex-wrap items-center gap-2 border-b px-3 py-1 text-xs">
-            <span className="text-muted-foreground">Filtering:</span>
-            {filterTag && (
-              <button
-                type="button"
-                className="bg-brand/10 text-brand inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-                onClick={() => onFilterTagChange?.(undefined)}
-                title="Clear tag filter"
-              >
-                {filterTag}
-                <LuX className="size-2.5" />
-              </button>
-            )}
-            {filterStatus && (
-              <button
-                type="button"
-                className="bg-muted text-foreground-alt inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 py-0.5 font-medium md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-                onClick={() => onFilterStatusChange?.(undefined)}
-                title="Clear status filter"
-              >
-                {filterStatus}
-                <LuX className="size-2.5" />
-              </button>
-            )}
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto">
-          {showEmptyState ? (
-            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 p-6 text-center">
-              {isEmptyDirectory ? (
-                <>
-                  <span className="text-xs">No notes yet</span>
-                  <button
-                    type="button"
-                    className="bg-brand text-brand-foreground min-h-11 rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90 md:pointer-fine:min-h-0"
-                    onClick={handleCreateNote}
-                  >
-                    Create your first note
-                  </button>
-                </>
-              ) : (
-                <span className="text-xs">No matching notes</span>
-              )}
-            </div>
-          ) : (
-            <>
-              {filteredDirEntries.map((entry) => (
-                <button
-                  key={entry.name}
-                  type="button"
-                  className="hover:bg-list-hover-background flex min-h-11 w-full items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
-                  onClick={() =>
-                    onChangePath?.(joinNotePath(currentPath, entry.name))
-                  }
-                >
-                  <LuFolder className="size-3 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                </button>
-              ))}
-              {filteredNoteEntries.map((entry) => {
-                const notePath = joinNotePath(currentPath, entry.name)
-                const selected = selectedNote === notePath
-                return (
-                  <div
-                    key={notePath}
-                    className={cn(
-                      'flex items-center gap-1 pr-1',
-                      selected &&
-                        'bg-list-active-selection-background text-list-active-selection-foreground',
-                    )}
-                  >
-                    <button
-                      type="button"
-                      data-testid="notes-note-row"
-                      data-note-path={notePath}
-                      className="hover:bg-list-hover-background flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs md:pointer-fine:min-h-0 md:pointer-fine:py-1.5"
-                      onClick={() => onSelectNote(notePath)}
-                    >
-                      <LuFile className="size-3 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">
-                        {entry.title}
-                      </span>
-                      {renderEntryExtra?.(notePath)}
-                    </button>
-                    <button
-                      type="button"
-                      className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
-                      onClick={() => handleRenameNote(entry.name)}
-                      title="Rename note"
-                    >
-                      <LuPenLine className="size-3" />
-                    </button>
-                    <button
-                      type="button"
-                      className="text-foreground-alt hover:bg-list-hover-background hover:text-destructive flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
-                      onClick={() => handleDeleteNote(entry.name)}
-                      title="Delete note"
-                    >
-                      <LuTrash2 className="size-3" />
-                    </button>
-                  </div>
-                )
-              })}
-            </>
-          )}
-        </div>
-      </div>
       <TextInputDialog
         open={folderDialogOpen}
         title="New folder"
@@ -635,6 +689,64 @@ function NoteListView({ controller }: { controller: NoteListController }) {
         onOpenChange={closeDeleteDialog}
         onConfirm={() => void handleConfirmDeleteNote()}
       />
+    </>
+  )
+}
+
+// NoteListView renders note navigation and dialogs once the source is ready.
+function NoteListView({ controller }: { controller: NoteListController }) {
+  const { currentPath, hasFilter, isEmptyDirectory, onChangePath } = controller
+  const notice = noteListNotice(controller)
+
+  if (notice) {
+    return (
+      <div
+        className={cn(
+          'flex h-full items-center justify-center text-xs',
+          notice.error ? 'text-destructive' : 'text-muted-foreground',
+          notice.padded && 'p-4 text-center',
+        )}
+      >
+        {notice.text}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div
+        className="flex h-full flex-col overflow-y-auto"
+        data-testid="notes-note-list"
+      >
+        <NoteListToolbar controller={controller} />
+        {currentPath && (
+          <div className="border-border flex items-center gap-1 border-b px-2 py-1 text-xs">
+            <button
+              type="button"
+              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex size-11 shrink-0 items-center justify-center rounded md:pointer-fine:size-auto md:pointer-fine:p-1"
+              onClick={() => onChangePath?.(getParentPath(currentPath))}
+              title="Up one level"
+            >
+              <LuChevronLeft className="size-3" />
+            </button>
+            <span className="text-muted-foreground truncate">
+              /{currentPath}
+            </span>
+          </div>
+        )}
+        {hasFilter && <NoteListFilters controller={controller} />}
+        <div className="flex-1 overflow-y-auto">
+          {controller.showEmptyState ? (
+            <NoteListEmptyState
+              isEmptyDirectory={isEmptyDirectory}
+              onCreateNote={controller.handleCreateNote}
+            />
+          ) : (
+            <NoteListEntries controller={controller} />
+          )}
+        </div>
+      </div>
+      <NoteListDialogs controller={controller} />
     </>
   )
 }
