@@ -9,8 +9,10 @@ import (
 
 // Handle is one device file used as a positional file. Writes collect until
 // Sync, which issues them with the flush in one device call, so a caller that
-// writes many ranges and then syncs costs one round trip. Close and every
-// other call issue collected writes first, unflushed, to keep device order.
+// writes many ranges and then syncs costs one round trip. Truncate and Close
+// issue collected writes first, unflushed, to keep device order; reads see
+// them without issuing. A failed device write keeps the collected writes for
+// the next call, so a write the caller saw succeed is never dropped.
 // A Handle satisfies bbolt's Storage.
 type Handle struct {
 	// ctx bounds every device call the handle makes.
@@ -24,6 +26,8 @@ type Handle struct {
 	mtx sync.Mutex
 	// size is the file length including collected writes.
 	size int64
+	// devSize is the file length on the device, excluding collected writes.
+	devSize int64
 	// pending holds collected writes in order.
 	pending []Write
 }
@@ -45,7 +49,7 @@ func OpenHandle(ctx context.Context, dev Device, name string) (*Handle, error) {
 	h := &Handle{ctx: ctx, dev: dev, name: name}
 	for _, f := range files {
 		if f.Name == name {
-			h.size = f.Size
+			h.size, h.devSize = f.Size, f.Size
 		}
 	}
 	return h, nil
@@ -53,24 +57,31 @@ func OpenHandle(ctx context.Context, dev Device, name string) (*Handle, error) {
 
 // ReadAt reads len(p) bytes at off, returning io.EOF when the file ends first.
 func (h *Handle) ReadAt(p []byte, off int64) (int, error) {
-	// Issue pending handle writes before reading under its lock.
+	// Read the range the device holds and zero the rest of the file range.
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
-	if err := h.issue(false); err != nil {
-		return 0, err
-	}
-
-	// Read the available file range and report EOF for a short result.
-	n := int(min(int64(len(p)), max(h.size-off, 0)))
-	if n != 0 {
-		if err := h.dev.Read(h.ctx, []Read{{Name: h.name, Offset: off, Data: p[:n]}}); err != nil {
+	n := min(int64(len(p)), max(h.size-off, 0))
+	d := min(n, max(h.devSize-off, 0))
+	if d != 0 {
+		if err := h.dev.Read(h.ctx, []Read{{Name: h.name, Offset: off, Data: p[:d]}}); err != nil {
 			return 0, err
 		}
 	}
-	if n < len(p) {
-		return n, io.EOF
+	clear(p[d:n])
+
+	// Lay the collected writes over the range in the order they were made.
+	for _, w := range h.pending {
+		start, end := max(w.Offset, off), min(w.Offset+int64(len(w.Data)), off+n)
+		if start < end {
+			copy(p[start-off:end-off], w.Data[start-w.Offset:])
+		}
 	}
-	return n, nil
+
+	// Report EOF for a short result.
+	if n < int64(len(p)) {
+		return int(n), io.EOF
+	}
+	return int(n), nil
 }
 
 // WriteAt collects a copy of p for the next device call, merging it into the
@@ -114,7 +125,7 @@ func (h *Handle) Truncate(size int64) error {
 	if err := h.dev.Truncate(h.ctx, h.name, size); err != nil {
 		return err
 	}
-	h.size = size
+	h.size, h.devSize = size, size
 	return nil
 }
 
@@ -134,12 +145,16 @@ func (h *Handle) Close() error {
 }
 
 // issue sends the collected writes in one device call. With flush set it
-// makes the call even when nothing is collected.
+// makes the call even when nothing is collected. On failure it keeps the
+// writes; the device may hold any part of them, and sending them again in
+// order rewrites the same bytes.
 func (h *Handle) issue(flush bool) error {
 	if len(h.pending) == 0 && !flush {
 		return nil
 	}
-	err := h.dev.Write(h.ctx, h.pending, flush)
-	h.pending = nil
-	return err
+	if err := h.dev.Write(h.ctx, h.pending, flush); err != nil {
+		return err
+	}
+	h.pending, h.devSize = nil, h.size
+	return nil
 }

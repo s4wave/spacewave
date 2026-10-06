@@ -42,11 +42,11 @@ func TestMemoryPowerLoss(t *testing.T) {
 
 		// The flushed first sector survives; each later sector is either
 		// version, or zero past the flushed end.
-		// Verify the flushed first sector survived the power loss.
 		data := m.files["a"]
 		if !bytes.Equal(data[:SectorSize], flushed[:SectorSize]) {
 			t.Fatalf("seed %d: flushed sector lost", seed)
 		}
+
 		// Classify each later sector as unflushed, flushed, or zero.
 		var outcome []byte
 		for start := SectorSize; start < len(data); start += SectorSize {
@@ -66,7 +66,6 @@ func TestMemoryPowerLoss(t *testing.T) {
 	}
 
 	// Across seeds the loss keeps the whole write, drops it, and tears it.
-	// Check every expected outcome occurred across the seeds.
 	for _, want := range []string{"uu", "f", "fu", "u0"} {
 		if !outcomes[want] {
 			t.Errorf("outcome %q never occurred in %v", want, outcomes)
@@ -91,8 +90,6 @@ func TestHandle(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-
-	// Check no device calls happened before Sync.
 	if m.Calls() != 0 {
 		t.Fatalf("%d device calls before Sync", m.Calls())
 	}
@@ -106,7 +103,6 @@ func TestHandle(t *testing.T) {
 	}
 
 	// A read sees collected writes and stops at the end of the file.
-	// Read the file back and check its contents and end of file.
 	if _, err := h.WriteAt([]byte("G"), 6); err != nil {
 		t.Fatal(err)
 	}
@@ -116,13 +112,71 @@ func TestHandle(t *testing.T) {
 		t.Fatalf("read %q, %v", buf[:n], err)
 	}
 
-	// A reopened handle finds the file length.
-	// Reopen the handle and check the recorded file length.
+	// Close issues the collected write, and a reopened handle finds the
+	// file length.
+	if err := h.Close(); err != nil {
+		t.Fatal(err)
+	}
 	h, err = OpenHandle(ctx, m, "f")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if size, _ := h.Size(); size != 7 {
 		t.Fatalf("reopened size %d, want 7", size)
+	}
+}
+
+// failDevice is a Memory device whose writes fail while fail is set.
+type failDevice struct {
+	*Memory
+	fail bool
+}
+
+// Write fails while fail is set and writes to the memory device otherwise.
+func (d *failDevice) Write(ctx context.Context, ws []Write, flush bool) error {
+	if d.fail {
+		return errors.New("device full")
+	}
+	return d.Memory.Write(ctx, ws, flush)
+}
+
+// TestHandleFailedWrite checks that a Handle keeps collected writes when the
+// device refuses them: reads still see them and the next Sync issues them.
+func TestHandleFailedWrite(t *testing.T) {
+	// Collect writes over an existing file, then fail the Sync.
+	ctx := t.Context()
+	d := &failDevice{Memory: NewMemory()}
+	if err := d.Write(ctx, []Write{{Name: "f", Data: []byte("abcd")}}, true); err != nil {
+		t.Fatal(err)
+	}
+	h, err := OpenHandle(ctx, d, "f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range []Write{{Offset: 2, Data: []byte("XYZ")}, {Offset: 7, Data: []byte("q")}} {
+		if _, err := h.WriteAt(w.Data, w.Offset); err != nil {
+			t.Fatal(err)
+		}
+	}
+	d.fail = true
+	if err := h.Sync(); err == nil {
+		t.Fatal("Sync succeeded on a failing device")
+	}
+
+	// Reads see the device bytes, the collected writes, and zeros between.
+	want := "abXYZ\x00\x00q"
+	buf := make([]byte, len(want))
+	if _, err := h.ReadAt(buf, 0); err != nil || string(buf) != want {
+		t.Fatalf("read %q, %v; want %q", buf, err, want)
+	}
+
+	// Once the device accepts writes, Sync issues the kept ones.
+	d.fail = false
+	if err := h.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	clear(buf)
+	if err := d.Read(ctx, []Read{{Name: "f", Data: buf}}); err != nil || string(buf) != want {
+		t.Fatalf("device holds %q, %v; want %q", buf, err, want)
 	}
 }
