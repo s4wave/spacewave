@@ -163,6 +163,7 @@ function CommitLogInner({ handle, refName, onCommitClick }: CommitLogProps) {
       </div>
       {(hasMore || (initialHasMore && extraCommits.length === 0)) && (
         <button
+          type="button"
           className="flex w-full items-center px-3 py-1.5 text-left text-xs hover:underline"
           onClick={handleShowMore}
           disabled={loadingMore}

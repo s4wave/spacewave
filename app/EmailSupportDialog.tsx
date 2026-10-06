@@ -45,12 +45,14 @@ export function EmailSupportDialog({
         </DialogHeader>
         <DialogFooter>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
           >
             Close
           </button>
           <button
+            type="button"
             onClick={handleOpenEmail}
             className={cn(
               'rounded-md border px-4 py-2 text-sm transition-all',

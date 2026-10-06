@@ -311,6 +311,7 @@ export function SharedObjectDetails({
             compact={compact}
           >
             <button
+              type="button"
               onClick={onDeleteClick}
               disabled={!onDeleteClick}
               className={cn(

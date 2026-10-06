@@ -23,12 +23,24 @@ function Navigation() {
   const nav = useNavLinks()
   return (
     <>
-      <button onClick={nav.docs}>Docs</button>
-      <button onClick={nav.legal}>Legal</button>
-      <button onClick={nav.blog}>Blog</button>
-      <button onClick={nav.support}>Support</button>
-      <button onClick={nav.download}>Download</button>
-      <button onClick={nav.changelog}>Changelog</button>
+      <button type="button" onClick={nav.docs}>
+        Docs
+      </button>
+      <button type="button" onClick={nav.legal}>
+        Legal
+      </button>
+      <button type="button" onClick={nav.blog}>
+        Blog
+      </button>
+      <button type="button" onClick={nav.support}>
+        Support
+      </button>
+      <button type="button" onClick={nav.download}>
+        Download
+      </button>
+      <button type="button" onClick={nav.changelog}>
+        Changelog
+      </button>
     </>
   )
 }
@@ -54,7 +66,7 @@ describe('session informational pages', () => {
         <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
           <BottomBarLevel
             id="account"
-            button={() => <button>Session 7</button>}
+            button={() => <button type="button">Session 7</button>}
           >
             <SessionIndexContext value={7}>
               <Routes>

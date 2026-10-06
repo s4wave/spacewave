@@ -219,6 +219,7 @@ export function DeleteCloudAccountPage() {
       <div className="bg-background-landing relative flex flex-1 flex-col items-center overflow-y-auto p-6 outline-none md:p-10">
         <div className="relative z-10 my-auto flex w-full max-w-lg flex-col gap-4">
           <button
+            type="button"
             onClick={handleBack}
             className="text-foreground-alt hover:text-foreground -mb-2 flex items-center gap-1.5 self-start text-xs transition-colors select-none"
           >
@@ -350,6 +351,7 @@ function InitiateDeleteView({
         </div>
 
         <button
+          type="button"
           onClick={onSend}
           disabled={!canSend}
           className={cn(
@@ -400,6 +402,7 @@ function InitiateDeleteView({
 
         <div className="flex flex-col gap-2 pt-1">
           <button
+            type="button"
             onClick={onConfirm}
             disabled={verifying || !codeValid}
             className={cn(
@@ -412,6 +415,7 @@ function InitiateDeleteView({
             {verifying ? 'Confirming…' : 'Confirm delete account'}
           </button>
           <button
+            type="button"
             onClick={onCancel}
             className="text-foreground-alt hover:text-foreground text-center text-xs transition-colors select-none"
           >
@@ -467,6 +471,7 @@ function PendingDeleteView({
 
       <div className={cn(cardClass, 'space-y-3')}>
         <button
+          type="button"
           onClick={onUndo}
           disabled={undoing}
           className={cn(
@@ -486,6 +491,7 @@ function PendingDeleteView({
 
       <div className="flex flex-col gap-2">
         <button
+          type="button"
           onClick={onDashboard}
           className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none"
         >
@@ -493,6 +499,7 @@ function PendingDeleteView({
           Return to dashboard
         </button>
         <button
+          type="button"
           onClick={onLogout}
           disabled={loggingOut}
           className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50"

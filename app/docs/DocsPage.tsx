@@ -107,6 +107,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
         <div className="flex shrink-0 items-center gap-1">
           <button
+            type="button"
             onClick={handleCopyMarkdown}
             className={cn(
               toolbarActionBase,
@@ -138,6 +139,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
+                type="button"
                 className={cn(toolbarActionBase, toolbarActionIdle)}
                 title="Open in AI"
                 aria-label="Open page in an AI assistant"
@@ -182,6 +184,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
         <nav className="mt-12 grid grid-cols-1 gap-3 @sm:grid-cols-2 @sm:gap-4">
           {prevDoc ? (
             <button
+              type="button"
               onClick={navigatePrev}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-4 text-left transition duration-200 @lg:p-5"
             >
@@ -199,6 +202,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
           {nextDoc ? (
             <button
+              type="button"
               onClick={navigateNext}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-4 text-right transition duration-200 @lg:p-5"
             >

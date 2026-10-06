@@ -114,6 +114,7 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
           <nav className="mt-12 grid grid-cols-2 gap-4">
             {prevPost ? (
               <button
+                type="button"
                 onClick={navigatePrev}
                 className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-5 text-left transition duration-200"
               >
@@ -131,6 +132,7 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
 
             {nextPost ? (
               <button
+                type="button"
                 onClick={navigateNext}
                 className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-5 text-right transition duration-200"
               >

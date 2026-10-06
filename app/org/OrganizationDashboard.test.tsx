@@ -64,7 +64,11 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
   }: {
     children: React.ReactNode
     onSelect?: () => void
-  }) => <button onClick={() => onSelect?.()}>{children}</button>,
+  }) => (
+    <button type="button" onClick={() => onSelect?.()}>
+      {children}
+    </button>
+  ),
   CommandList: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),

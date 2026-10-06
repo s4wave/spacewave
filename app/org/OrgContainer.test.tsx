@@ -55,7 +55,7 @@ vi.mock('@s4wave/web/frame/bottom-bar-level.js', () => ({
 
 vi.mock('@s4wave/web/frame/bottom-bar-item.js', () => ({
   BottomBarItem: ({ children }: { children?: React.ReactNode }) => (
-    <button>{children}</button>
+    <button type="button">{children}</button>
   ),
 }))
 

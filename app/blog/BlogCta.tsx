@@ -116,6 +116,7 @@ export function BlogCta() {
             </p>
             <div className="mt-1 flex flex-wrap gap-3">
               <button
+                type="button"
                 onClick={goToQuickstart}
                 className="border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
               >
@@ -123,6 +124,7 @@ export function BlogCta() {
                 <LuArrowRight className="size-3.5" />
               </button>
               <button
+                type="button"
                 onClick={goToCommunity}
                 className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
               >

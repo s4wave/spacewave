@@ -352,6 +352,7 @@ function useShellGridController() {
 
       renderValues.stickyButtons.push(
         <button
+          type="button"
           key="close-tab"
           className="flexlayout__tab_toolbar_button"
           onClick={() => selectedTabId && handleCloseTab(selectedTabId)}
@@ -361,6 +362,7 @@ function useShellGridController() {
           <LuX className="size-3" />
         </button>,
         <button
+          type="button"
           key="add-tab"
           className="flexlayout__tab_toolbar_button"
           onClick={handleAddTab}
@@ -369,6 +371,7 @@ function useShellGridController() {
           <LuPlus className="size-3" />
         </button>,
         <button
+          type="button"
           key="popout-tab"
           className="flexlayout__tab_toolbar_button"
           onClick={() => selectedTabId && handlePopoutTab(selectedTabId)}

@@ -71,7 +71,7 @@ vi.mock('@s4wave/web/object/ObjectViewer.js', () => ({
   }) => {
     h.viewer({ onNavigate, ...props })
     return (
-      <button onClick={() => onNavigate?.({ path: '/login' })}>
+      <button type="button" onClick={() => onNavigate?.({ path: '/login' })}>
         Sign in or create account
       </button>
     )
@@ -182,7 +182,9 @@ function AppRouteHarness() {
           <Route path="/login">
             <div>
               <p>Spacewave Cloud login</p>
-              <button onClick={goBack}>Back to device wizard</button>
+              <button type="button" onClick={goBack}>
+                Back to device wizard
+              </button>
             </div>
           </Route>
         </Routes>

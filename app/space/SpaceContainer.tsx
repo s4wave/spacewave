@@ -626,6 +626,7 @@ function useSpaceContainerController() {
               orgIndicator={
                 spaceOrgId ? (
                   <button
+                    type="button"
                     onClick={() =>
                       navigate({ path: `../../org/${spaceOrgId}` })
                     }

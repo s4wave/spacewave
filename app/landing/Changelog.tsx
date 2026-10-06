@@ -55,6 +55,7 @@ export function Changelog() {
       {/* Back button */}
       <div className="relative z-10 px-4 pt-6 @lg:px-8">
         <button
+          type="button"
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >
@@ -78,6 +79,7 @@ export function Changelog() {
         <div className="relative z-20 mx-auto w-full max-w-4xl px-4 pb-6 @lg:px-8">
           <div className="relative inline-block">
             <button
+              type="button"
               onClick={toggleDropdown}
               className={cn(
                 'border-foreground/15 bg-background-card/50 text-foreground flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium backdrop-blur-sm transition-colors',
@@ -96,6 +98,7 @@ export function Changelog() {
               <div className="border-foreground/15 bg-background-card absolute left-0 mt-1 max-h-60 w-48 overflow-y-auto rounded-md border shadow-lg backdrop-blur-sm">
                 {releases.map((release) => (
                   <button
+                    type="button"
                     key={release.version}
                     onClick={() => scrollToVersion(release.version ?? '')}
                     className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground w-full cursor-pointer px-4 py-2 text-left text-sm transition-colors"

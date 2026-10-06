@@ -180,7 +180,9 @@ function Harness() {
         onChange={(e) => ws.handleUpdateName(e.target.value)}
       />
       {ws.configEditor.element}
-      <button onClick={() => void ws.persistDraftState()}>Persist</button>
+      <button type="button" onClick={() => void ws.persistDraftState()}>
+        Persist
+      </button>
     </>
   )
 }

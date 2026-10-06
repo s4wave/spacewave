@@ -65,13 +65,22 @@ function HookHarness() {
   const auth = useSpacewaveAuth(mockNavigateToSession)
   return (
     <>
-      <button onClick={() => void auth.handleContinueWithPasskey()}>
+      <button
+        type="button"
+        onClick={() => void auth.handleContinueWithPasskey()}
+      >
         passkey
       </button>
-      <button onClick={() => void auth.handleSignInWithSSO('google')}>
+      <button
+        type="button"
+        onClick={() => void auth.handleSignInWithSSO('google')}
+      >
         google-sso
       </button>
-      <button onClick={() => void auth.handleSignInWithSSO('github')}>
+      <button
+        type="button"
+        onClick={() => void auth.handleSignInWithSSO('github')}
+      >
         github-sso
       </button>
     </>

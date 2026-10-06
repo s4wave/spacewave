@@ -23,6 +23,7 @@ export function ActionCard({
 }: ActionCardProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={!onClick}
       className={cn(

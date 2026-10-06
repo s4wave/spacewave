@@ -94,6 +94,7 @@ function UploadProgressOverlay({
         <div className="flex flex-wrap items-center gap-2">
           {uploadManager.items.some((i) => i.status === 'done') && (
             <button
+              type="button"
               className="border-popover-border text-foreground-alt hover:text-foreground rounded-md border px-3 py-1.5 text-sm"
               onClick={uploadManager.clearDone}
             >
@@ -104,6 +105,7 @@ function UploadProgressOverlay({
             (i) => i.status === 'queued' || i.status === 'uploading',
           ) && (
             <button
+              type="button"
               className="border-destructive/30 text-destructive hover:text-destructive/80 rounded-md border px-3 py-1.5 text-sm"
               onClick={uploadManager.cancelAll}
             >
@@ -234,6 +236,7 @@ function UploadItemRow({
         </div>
         {quotaError && onOpenStorageHealth && (
           <button
+            type="button"
             className="text-brand hover:text-brand-highlight w-fit text-xs font-medium transition-colors"
             onClick={onOpenStorageHealth}
           >
@@ -263,6 +266,7 @@ function UploadItemRow({
       <div className="flex size-8 flex-shrink-0 items-center justify-center">
         {(item.status === 'uploading' || item.status === 'queued') && (
           <button
+            type="button"
             className="text-foreground-alt hover:text-foreground"
             onClick={handleCancel}
             title="Cancel"
@@ -275,6 +279,7 @@ function UploadItemRow({
         )}
         {item.status === 'error' && (
           <button
+            type="button"
             className="text-foreground-alt hover:text-foreground"
             onClick={handleCancel}
             title="Dismiss"
@@ -370,6 +375,7 @@ export function UploadProgressBottomBar({
       <Popover open={feedback !== null}>
         <PopoverAnchor asChild>
           <button
+            type="button"
             onClick={onClick}
             className={cn(
               'flex h-full shrink-0 items-center gap-1.5 px-2 text-xs whitespace-nowrap',

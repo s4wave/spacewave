@@ -37,6 +37,7 @@ export function DocsIndex({ sections }: DocsIndexProps) {
           const firstPage = section.pages[0]
           return (
             <button
+              type="button"
               key={section.id}
               onClick={() => firstPage && goToSection(firstPage.url)}
               disabled={!firstPage}

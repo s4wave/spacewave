@@ -131,6 +131,7 @@ export function VerifyEmailPage() {
           {/* Continue button after successful verification */}
           {hasVerified && (
             <button
+              type="button"
               onClick={() => navigate({ path: '../' })}
               className={cn(
                 'flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
@@ -146,6 +147,7 @@ export function VerifyEmailPage() {
           {!hasVerified && (
             <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
               <button
+                type="button"
                 onClick={() => setAddExpanded(!addExpanded)}
                 className="flex w-full items-center gap-3 p-4"
               >
@@ -183,6 +185,7 @@ export function VerifyEmailPage() {
                     className={inputClass}
                   />
                   <button
+                    type="button"
                     onClick={() => void handleAddEmail()}
                     disabled={busy || !newEmail}
                     className={cn(
@@ -287,6 +290,7 @@ function EmailCard({
         <div className="flex items-center gap-1">
           {!verified && (
             <button
+              type="button"
               onClick={() => void onSendCode(addr)}
               disabled={sending || busy || retryAfter > 0}
               className={cn(
@@ -306,6 +310,7 @@ function EmailCard({
           )}
           {!primary && !verified && (
             <button
+              type="button"
               onClick={() => void onRemove(addr)}
               disabled={busy}
               className="text-foreground-alt/50 hover:text-destructive rounded p-1.5 transition-colors disabled:opacity-50"
@@ -344,6 +349,7 @@ function EmailCard({
             )}
           />
           <button
+            type="button"
             onClick={() => void onVerifyCode()}
             disabled={busy || code.length !== 6}
             className={cn(
@@ -359,6 +365,7 @@ function EmailCard({
             {!busy && <LuArrowRight className="text-foreground-alt size-4" />}
           </button>
           <button
+            type="button"
             onClick={() => void onSendCode(addr)}
             disabled={sending || busy || retryAfter > 0}
             className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors disabled:opacity-50"

@@ -522,6 +522,7 @@ function GitWorktreeReadyContent({
             {fileError.message}
           </div>
           <button
+            type="button"
             className="text-brand mt-2 text-xs underline"
             onClick={handleRetry}
           >
@@ -628,6 +629,7 @@ function GitWorktreeContent({
         detail={worktreeResource.error.message}
         action={
           <button
+            type="button"
             className="text-brand mt-2 text-xs underline"
             onClick={worktreeResource.retry}
           >

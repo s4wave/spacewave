@@ -85,6 +85,7 @@ export function BillingSection({
         )}
         {billing && billing.status === BillingStatus.BillingStatus_NONE && (
           <button
+            type="button"
             onClick={() => {
               handleNavigate('plan')
             }}
@@ -105,6 +106,7 @@ export function BillingSection({
           org.billingAccountId
             ? [
                 <button
+                  type="button"
                   key={org.id}
                   onClick={() => {
                     handleNavigate(`org/${org.id}/billing`)

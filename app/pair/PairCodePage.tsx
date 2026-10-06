@@ -243,6 +243,7 @@ export function PairCodePage(props: PairCodePageProps) {
 
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={handleBack}
                   className={cn(
                     'rounded-md border transition-all duration-300',
@@ -253,6 +254,7 @@ export function PairCodePage(props: PairCodePageProps) {
                   <LuArrowLeft className="text-foreground-alt size-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => void handleSubmit()}
                   disabled={
                     loading || code.length < 8 || (!providedSession && !root)
@@ -275,6 +277,7 @@ export function PairCodePage(props: PairCodePageProps) {
                 </button>
               </div>
               <button
+                type="button"
                 onClick={() => setStep('direct')}
                 disabled={loading}
                 className="text-foreground-alt hover:text-foreground w-full text-center text-xs"
@@ -502,6 +505,7 @@ function PairDirectStep({
           />
 
           <button
+            type="button"
             onClick={() => setScanning(true)}
             className={cn(
               'w-full rounded-md border transition-all duration-300',
@@ -528,6 +532,7 @@ function PairDirectStep({
               onClick={(e) => (e.target as HTMLInputElement).select()}
             />
             <button
+              type="button"
               onClick={handleCopy}
               className={cn(
                 'rounded-md border px-2 py-1.5 transition-all duration-300',
@@ -556,6 +561,7 @@ function PairDirectStep({
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onBack}
           className={cn(
             'rounded-md border transition-all duration-300',
@@ -567,6 +573,7 @@ function PairDirectStep({
         </button>
         {!answerPayload && (
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading || !offerInput.trim() || (!session && !root)}
             className={cn(
@@ -635,6 +642,7 @@ function PairDirectQRScanner({
             Scan direct pairing QR
           </h3>
           <button
+            type="button"
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >

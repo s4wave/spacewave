@@ -27,6 +27,7 @@ vi.mock('@s4wave/web/ui/ObjectKeySelector.js', () => ({
     disabled?: boolean
   }) => (
     <button
+      type="button"
       data-testid="object-key-selector"
       data-value={value}
       data-placeholder={placeholder}

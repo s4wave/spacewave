@@ -87,7 +87,7 @@ vi.mock('@s4wave/web/ui/command.js', () => ({
     disabled?: boolean
     onSelect?: () => void
   }) => (
-    <button disabled={disabled} onClick={() => onSelect?.()}>
+    <button type="button" disabled={disabled} onClick={() => onSelect?.()}>
       {children}
     </button>
   ),
