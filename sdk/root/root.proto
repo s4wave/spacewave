@@ -502,6 +502,12 @@ message AccessWebListenerRequest {
   string listen_multiaddr = 1;
   // Background keeps the listener in the daemon registry after the CLI exits.
   bool background = 2;
+  // SpaceId binds the listener to one Space. A bound listener serves a
+  // read-only Resource service at /_spacewave/resource limited to this Space
+  // in session session_idx. Empty serves no Resource service.
+  string space_id = 3;
+  // SessionIdx is the session holding space_id. Required with space_id.
+  uint32 session_idx = 4;
 }
 
 // AccessWebListenerResponse is the response type for AccessWebListener.
@@ -533,6 +539,10 @@ message WebListenerInfo {
   string url = 3;
   // Background is true when the listener is daemon-owned.
   bool background = 4;
+  // SpaceId is the Space the listener is bound to, or empty.
+  string space_id = 5;
+  // SessionIdx is the session of the bound Space, or zero.
+  uint32 session_idx = 6;
 }
 
 // WatchWebListenersResponse is the response type for WatchWebListeners.

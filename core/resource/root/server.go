@@ -50,6 +50,9 @@ type CoreRootServer struct {
 	stateAtomStoreIndexBuilder func(context.Context) (*session.StateAtomStoreIndex, func(), error)
 	// cdnRegistry owns the process-scoped map of CdnInstances.
 	cdnRegistry *resource_cdn.Registry
+	// rootMux is the Root resource mux this server is registered on. Bound web
+	// listeners serve it through their filtered Resource service.
+	rootMux srpc.Invoker
 	// webListeners owns daemon-background localhost web listeners.
 	webListeners *webListenerRegistry
 	// recoveryStatusRegistry owns volatile renderer recovery facts by logical
@@ -133,8 +136,10 @@ func (s *CoreRootServer) Close() {
 	s.closeStateAtomStoreIndex()
 }
 
-// Register registers the server with the mux.
+// Register registers the server with the Root resource mux. Bound web
+// listeners serve the same mux, so register on it before they start.
 func (s *CoreRootServer) Register(mux srpc.Mux) error {
+	s.rootMux = mux
 	return s4wave_root.SRPCRegisterRootResourceService(mux, s)
 }
 
@@ -160,10 +165,10 @@ func (s *CoreRootServer) GetDebugDb(
 	return &s4wave_root.GetDebugDbResponse{ResourceId: id}, nil
 }
 
-// _ is a type assertion
-var _ s4wave_root.SRPCRootResourceServiceServer = (*CoreRootServer)(nil)
-
 // SetAppPluginIDs supplies application composition before the resource is published.
 func (s *CoreRootServer) SetAppPluginIDs(ids []string) {
 	s.appPluginIDs = slices.Clone(ids)
 }
+
+// _ is a type assertion
+var _ s4wave_root.SRPCRootResourceServiceServer = (*CoreRootServer)(nil)

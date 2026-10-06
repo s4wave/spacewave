@@ -23,9 +23,8 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
+	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	"github.com/sirupsen/logrus"
@@ -39,14 +38,23 @@ const webCapabilityTTL = 10 * time.Minute
 
 const webListenerReadHeaderTimeout = 5 * time.Second
 
+// webResourcePath serves a bound listener's Resource service over a websocket.
+const webResourcePath = "/_spacewave/resource"
+
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
 	ctx context.Context,
 	req *s4wave_root.AccessWebListenerRequest,
 ) (*s4wave_root.AccessWebListenerResponse, error) {
+	// Parse the listen address and the optional Space binding.
+	spec, err := parseWebListenRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Resolve daemon-owned listeners through the shared registry.
 	if req.GetBackground() {
-		listener, reused, err := s.webListeners.access(ctx, s.b, req.GetListenMultiaddr())
+		listener, reused, err := s.webListeners.access(ctx, s.b, s.rootMux, spec)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +66,7 @@ func (s *CoreRootServer) AccessWebListener(
 	if err != nil {
 		return nil, err
 	}
-	listener, err := newWebListener(ctx, s.le, s.b, req.GetListenMultiaddr())
+	listener, err := newWebListener(ctx, s.le, s.b, s.rootMux, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -144,15 +152,12 @@ func (r *webListenerRegistry) close() {
 func (r *webListenerRegistry) access(
 	ctx context.Context,
 	b bus.Bus,
-	listenMultiaddr string,
+	rootMux srpc.Invoker,
+	spec *webListenSpec,
 ) (*webListener, bool, error) {
-	// Parse the requested address and register explicit-port listeners.
-	spec, err := parseWebListenSpec(listenMultiaddr)
-	if err != nil {
-		return nil, false, err
-	}
+	// Register explicit-port listeners without reuse.
 	if spec.port != 0 {
-		listener, err := newWebListenerWithSpec(ctx, r.le, b, spec)
+		listener, err := newWebListener(ctx, r.le, b, rootMux, spec)
 		if err != nil {
 			return nil, false, err
 		}
@@ -163,7 +168,7 @@ func (r *webListenerRegistry) access(
 		return listener, false, nil
 	}
 
-	// Reuse the existing listener for this ephemeral-port address.
+	// Reuse the existing listener for this ephemeral-port address and binding.
 	key := spec.reuseKey()
 	var existing *webListener
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -174,7 +179,7 @@ func (r *webListenerRegistry) access(
 	}
 
 	// Register a new listener unless another caller already supplied one.
-	listener, err := newWebListenerWithSpec(ctx, r.le, b, spec)
+	listener, err := newWebListener(ctx, r.le, b, rootMux, spec)
 	if err != nil {
 		return nil, false, err
 	}
@@ -244,41 +249,63 @@ type webListener struct {
 	id              string
 	listenMultiaddr string
 	url             string
+	spec            *webListenSpec
 	le              *logrus.Entry
 	b               bus.Bus
-	pkgServer       *web_pkg_http.Server
-	server          *http.Server
-	listener        net.Listener
-	closed          atomic.Bool
+	bldrHTTP        *web_runtime_http.Handler
+	// resources serves the bound Resource service, or is nil when unbound.
+	resources *srpc.HTTPServer
+	server    *http.Server
+	listener  net.Listener
+	// cancel ends the requests of the listener, including hijacked websockets
+	// that http.Server.Close leaves open.
+	cancel context.CancelFunc
+	closed atomic.Bool
 
 	bcast         broadcast.Broadcast
 	bootstrapKeys map[string]time.Time
 	capabilities  map[string]time.Time
 }
 
+// newWebListener starts a web listener for spec. rootMux is the Root resource
+// mux a bound listener serves through its webBinding; an unbound listener and
+// a listener without a bus ignore it.
 func newWebListener(
 	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
-	listenMultiaddr string,
-) (*webListener, error) {
-	spec, err := parseWebListenSpec(listenMultiaddr)
-	if err != nil {
-		return nil, err
-	}
-	return newWebListenerWithSpec(ctx, le, b, spec)
-}
-
-func newWebListenerWithSpec(
-	ctx context.Context,
-	le *logrus.Entry,
-	b bus.Bus,
+	rootMux srpc.Invoker,
 	spec *webListenSpec,
 ) (*webListener, error) {
-	// Bind the web listener to the requested TCP address.
+	// Stop before binding when the request is already canceled.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Build the bound Resource service before taking the port.
+	var resources *srpc.HTTPServer
+	if spec.spaceID != "" {
+		if rootMux == nil {
+			return nil, errors.New("bound web listener requires the Root resource")
+		}
+		binding := &webBinding{
+			le:         le.WithField("space-id", spec.spaceID),
+			sessionIdx: spec.sessionIdx,
+			spaceID:    spec.spaceID,
+		}
+		mux := srpc.NewMux()
+		server := resource_server.NewFilteredResourceServer(rootMux, binding.filter)
+		if err := server.Register(mux); err != nil {
+			return nil, err
+		}
+		var err error
+		resources, err = srpc.NewHTTPServer(mux, webResourcePath, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Bind the web listener to the requested TCP address.
 	lis, err := net.Listen("tcp", net.JoinHostPort(spec.host, strconv.Itoa(int(spec.port))))
 	if err != nil {
 		return nil, errors.Wrap(err, "listen web")
@@ -296,30 +323,35 @@ func newWebListenerWithSpec(
 		return nil, err
 	}
 
-	// Create the package server and HTTP handler for the bound listener.
-	var pkgServer *web_pkg_http.Server
+	// Create the native runtime handler and HTTP server for the listener.
+	var bldrHTTP *web_runtime_http.Handler
 	if b != nil {
-		pkgServer = web_pkg_http.NewServer(le, b, false)
+		bldrHTTP = web_runtime_http.NewHandler(le, b)
 	}
 	host, port, err := tcpListenHostPort(lis.Addr())
 	if err != nil {
 		_ = lis.Close()
 		return nil, err
 	}
+	serveCtx, cancel := context.WithCancel(context.Background())
 	listener := &webListener{
 		id:              "web-" + strconv.FormatUint(uint64(port), 10) + "-" + idSecret[:8],
 		listenMultiaddr: resolved.String(),
 		url:             "http://" + net.JoinHostPort(host, strconv.Itoa(int(port))),
+		spec:            spec,
 		le:              le,
 		b:               b,
-		pkgServer:       pkgServer,
+		bldrHTTP:        bldrHTTP,
+		resources:       resources,
 		listener:        lis,
+		cancel:          cancel,
 		bootstrapKeys:   make(map[string]time.Time),
 		capabilities:    make(map[string]time.Time),
 	}
 	listener.server = &http.Server{
 		Handler:           listener,
 		ReadHeaderTimeout: webListenerReadHeaderTimeout,
+		BaseContext:       func(net.Listener) context.Context { return serveCtx },
 	}
 
 	// Serve web requests until the listener closes.
@@ -353,6 +385,8 @@ func (l *webListener) info(background bool) *s4wave_root.WebListenerInfo {
 		ListenMultiaddr: l.listenMultiaddr,
 		Url:             l.url,
 		Background:      background,
+		SpaceId:         l.spec.spaceID,
+		SessionIdx:      l.spec.sessionIdx,
 	}
 }
 
@@ -361,10 +395,13 @@ func (l *webListener) Close() {
 	if !l.closed.CompareAndSwap(false, true) {
 		return
 	}
+	l.cancel()
 	_ = l.server.Close()
 	_ = l.listener.Close()
 }
 
+// ServeHTTP serves the boot shell and bootstrap exchange to anyone, and every
+// other route only to a request carrying a live capability cookie.
 func (l *webListener) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Route web requests through bootstrap, authorization, and runtime handlers.
 	if req.URL.Path == "/_spacewave/health" {
@@ -382,6 +419,14 @@ func (l *webListener) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	if !l.isAuthorized(req) {
 		http.Error(rw, "spacewave: missing localhost capability", http.StatusUnauthorized)
+		return
+	}
+	if req.URL.Path == webResourcePath {
+		if l.resources == nil {
+			http.NotFound(rw, req)
+			return
+		}
+		l.resources.ServeHTTP(rw, req)
 		return
 	}
 	if strings.HasPrefix(req.URL.Path, "/b/") || strings.HasPrefix(req.URL.Path, "/p/") {
@@ -617,18 +662,12 @@ func quoteWebListenerScriptString(value string) string {
 }
 
 func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// Route native runtime requests through the available package or bus handler.
+	// Serve the Bldr frontend, package, and plugin file routes from the bus.
 	if l.b == nil {
 		http.Error(rw, "spacewave: native runtime unavailable", http.StatusNotFound)
 		return
 	}
-	pkgPrefix := bldr_plugin.PluginWebPkgHttpPrefix
-	if strings.HasPrefix(req.URL.Path, pkgPrefix) && len(req.URL.Path) > len(pkgPrefix) {
-		if l.pkgServer == nil {
-			http.Error(rw, "spacewave: native package runtime unavailable", http.StatusNotFound)
-			return
-		}
-		l.pkgServer.ServeWebModuleHTTP(req.URL.Path[len(pkgPrefix):], rw, req)
+	if l.bldrHTTP.ServeBldrHTTP(rw, req) {
 		return
 	}
 
@@ -716,13 +755,37 @@ func copyHTTPHeaders(dst, src http.Header) {
 	}
 }
 
+// webListenSpec is the address and binding of a web listener.
 type webListenSpec struct {
 	host string
 	port uint32
+	// spaceID and sessionIdx bind the listener to one Space, or are empty.
+	spaceID    string
+	sessionIdx uint32
 }
 
+// reuseKey identifies the ephemeral-port listeners a request may reuse: the
+// same host and the same binding.
 func (s *webListenSpec) reuseKey() string {
-	return strings.ToLower(strings.Trim(s.host, "[]"))
+	key := strings.ToLower(strings.Trim(s.host, "[]"))
+	if s.spaceID != "" {
+		key += "/" + strconv.FormatUint(uint64(s.sessionIdx), 10) + "/" + s.spaceID
+	}
+	return key
+}
+
+// parseWebListenRequest parses the address and binding of a listener request.
+func parseWebListenRequest(req *s4wave_root.AccessWebListenerRequest) (*webListenSpec, error) {
+	// Parse the address, then require a complete binding or none.
+	spec, err := parseWebListenSpec(req.GetListenMultiaddr())
+	if err != nil {
+		return nil, err
+	}
+	spec.spaceID, spec.sessionIdx = req.GetSpaceId(), req.GetSessionIdx()
+	if (spec.spaceID == "") != (spec.sessionIdx == 0) {
+		return nil, errors.New("web listener binding needs both a space id and a session index")
+	}
+	return spec, nil
 }
 
 func parseWebListenSpec(listenMultiaddr string) (*webListenSpec, error) {

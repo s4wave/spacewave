@@ -1578,6 +1578,12 @@ type AccessWebListenerRequest struct {
 	ListenMultiaddr string `protobuf:"bytes,1,opt,name=listen_multiaddr,json=listenMultiaddr,proto3" json:"listenMultiaddr,omitempty"`
 	// Background keeps the listener in the daemon registry after the CLI exits.
 	Background bool `protobuf:"varint,2,opt,name=background,proto3" json:"background,omitempty"`
+	// SpaceId binds the listener to one Space. A bound listener serves a
+	// read-only Resource service at /_spacewave/resource limited to this Space
+	// in session session_idx. Empty serves no Resource service.
+	SpaceId string `protobuf:"bytes,3,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// SessionIdx is the session holding space_id. Required with space_id.
+	SessionIdx uint32 `protobuf:"varint,4,opt,name=session_idx,json=sessionIdx,proto3" json:"sessionIdx,omitempty"`
 }
 
 func (x *AccessWebListenerRequest) Reset() {
@@ -1598,6 +1604,20 @@ func (x *AccessWebListenerRequest) GetBackground() bool {
 		return x.Background
 	}
 	return false
+}
+
+func (x *AccessWebListenerRequest) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *AccessWebListenerRequest) GetSessionIdx() uint32 {
+	if x != nil {
+		return x.SessionIdx
+	}
+	return 0
 }
 
 // AccessWebListenerResponse is the response type for AccessWebListener.
@@ -1687,6 +1707,10 @@ type WebListenerInfo struct {
 	Url string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
 	// Background is true when the listener is daemon-owned.
 	Background bool `protobuf:"varint,4,opt,name=background,proto3" json:"background,omitempty"`
+	// SpaceId is the Space the listener is bound to, or empty.
+	SpaceId string `protobuf:"bytes,5,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// SessionIdx is the session of the bound Space, or zero.
+	SessionIdx uint32 `protobuf:"varint,6,opt,name=session_idx,json=sessionIdx,proto3" json:"sessionIdx,omitempty"`
 }
 
 func (x *WebListenerInfo) Reset() {
@@ -1721,6 +1745,20 @@ func (x *WebListenerInfo) GetBackground() bool {
 		return x.Background
 	}
 	return false
+}
+
+func (x *WebListenerInfo) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *WebListenerInfo) GetSessionIdx() uint32 {
+	if x != nil {
+		return x.SessionIdx
+	}
+	return 0
 }
 
 // WatchWebListenersResponse is the response type for WatchWebListeners.
@@ -3063,6 +3101,8 @@ func (m *AccessWebListenerRequest) CloneVT() *AccessWebListenerRequest {
 	r := new(AccessWebListenerRequest)
 	r.ListenMultiaddr = m.ListenMultiaddr
 	r.Background = m.Background
+	r.SpaceId = m.SpaceId
+	r.SessionIdx = m.SessionIdx
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3118,6 +3158,8 @@ func (m *WebListenerInfo) CloneVT() *WebListenerInfo {
 	r.ListenMultiaddr = m.ListenMultiaddr
 	r.Url = m.Url
 	r.Background = m.Background
+	r.SpaceId = m.SpaceId
+	r.SessionIdx = m.SessionIdx
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -4628,6 +4670,12 @@ func (this *AccessWebListenerRequest) EqualVT(that *AccessWebListenerRequest) bo
 	if this.Background != that.Background {
 		return false
 	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.SessionIdx != that.SessionIdx {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4707,6 +4755,12 @@ func (this *WebListenerInfo) EqualVT(that *WebListenerInfo) bool {
 		return false
 	}
 	if this.Background != that.Background {
+		return false
+	}
+	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.SessionIdx != that.SessionIdx {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8064,6 +8118,16 @@ func (x *AccessWebListenerRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("background")
 		s.WriteBool(x.Background)
 	}
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.SessionIdx != 0 || s.HasField("sessionIdx") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionIdx")
+		s.WriteUint32(x.SessionIdx)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8087,6 +8151,12 @@ func (x *AccessWebListenerRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "background":
 			s.AddField("background")
 			x.Background = s.ReadBool()
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "session_idx", "sessionIdx":
+			s.AddField("session_idx")
+			x.SessionIdx = s.ReadUint32()
 		}
 	})
 }
@@ -8236,6 +8306,16 @@ func (x *WebListenerInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("background")
 		s.WriteBool(x.Background)
 	}
+	if x.SpaceId != "" || s.HasField("spaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceId")
+		s.WriteString(x.SpaceId)
+	}
+	if x.SessionIdx != 0 || s.HasField("sessionIdx") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sessionIdx")
+		s.WriteUint32(x.SessionIdx)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8265,6 +8345,12 @@ func (x *WebListenerInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "background":
 			s.AddField("background")
 			x.Background = s.ReadBool()
+		case "space_id", "spaceId":
+			s.AddField("space_id")
+			x.SpaceId = s.ReadString()
+		case "session_idx", "sessionIdx":
+			s.AddField("session_idx")
+			x.SessionIdx = s.ReadUint32()
 		}
 	})
 }
@@ -11436,6 +11522,16 @@ func (m *AccessWebListenerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.SessionIdx != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SessionIdx))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.Background {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Background)
 		i--
@@ -11571,6 +11667,16 @@ func (m *WebListenerInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.SessionIdx != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.SessionIdx))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.SpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.Background {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Background)
@@ -12947,6 +13053,8 @@ func (m *AccessWebListenerRequest) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ListenMultiaddr)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Background)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SessionIdx)
 	n += len(m.unknownFields)
 	return n
 }
@@ -12987,6 +13095,8 @@ func (m *WebListenerInfo) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ListenMultiaddr)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Url)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Background)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.SessionIdx)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14183,6 +14293,14 @@ func (x *AccessWebListenerRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "background")
 		protobuf_go_lite.TextWriteBool(&sb, x.Background)
 	}
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.SessionIdx != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_idx")
+		protobuf_go_lite.TextWriteUint(&sb, x.SessionIdx)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -14252,6 +14370,14 @@ func (x *WebListenerInfo) MarshalProtoText() string {
 	if x.Background != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "background")
 		protobuf_go_lite.TextWriteBool(&sb, x.Background)
+	}
+	if x.SpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.SessionIdx != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_idx")
+		protobuf_go_lite.TextWriteUint(&sb, x.SessionIdx)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -17974,6 +18100,25 @@ func (m *AccessWebListenerRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Background = bool(v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionIdx", wireType)
+			}
+			m.SessionIdx = 0
+			m.SessionIdx, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -18202,6 +18347,25 @@ func (m *WebListenerInfo) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Background = bool(v)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceId = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SessionIdx", wireType)
+			}
+			m.SessionIdx = 0
+			m.SessionIdx, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

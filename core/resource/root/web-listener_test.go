@@ -36,7 +36,7 @@ func TestParseWebListenSpec(t *testing.T) {
 
 func TestWebListenerServesHealth(t *testing.T) {
 	// Start a localhost web listener for the health request.
-	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
+	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, nil, testWebListenSpec(t, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestWebListenerServesBootShell(t *testing.T) {
 	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
 
 	// Start the web listener against the release fixture.
-	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
+	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, nil, testWebListenSpec(t, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
 	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
 
 	// Start the web listener against the display fixture.
-	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
+	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, nil, testWebListenSpec(t, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
 
 func TestWebListenerBootstrapSetsSingleUseCapability(t *testing.T) {
 	// Start a web listener for the single-use bootstrap exchange.
-	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
+	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, nil, testWebListenSpec(t, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +199,7 @@ func TestWebListenerGatesReleaseAssets(t *testing.T) {
 	t.Setenv("SPACEWAVE_WEB_ENDPOINT", upstream.URL)
 
 	// Start the web listener against the release descriptor fixture.
-	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, "")
+	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, nil, testWebListenSpec(t, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestWebListenerRegistryReusesPortZeroHostname(t *testing.T) {
 	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
 
 	// Allocate the first listener and verify it was created.
-	a, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
+	a, reused, err := reg.access(t.Context(), nil, nil, testWebListenSpec(t, "/ip4/127.0.0.1/tcp/0"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestWebListenerRegistryReusesPortZeroHostname(t *testing.T) {
 	}
 
 	// Access the same listen address and verify its listener is reused.
-	b, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
+	b, reused, err := reg.access(t.Context(), nil, nil, testWebListenSpec(t, "/ip4/127.0.0.1/tcp/0"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,6 +286,16 @@ func TestWebListenerRegistryReusesPortZeroHostname(t *testing.T) {
 	if aResp.GetBootstrapSecret() == bResp.GetBootstrapSecret() {
 		t.Fatal("reused listener should issue a fresh bootstrap secret")
 	}
+}
+
+// testWebListenSpec parses an unbound listen address.
+func testWebListenSpec(t *testing.T, listenMultiaddr string) *webListenSpec {
+	t.Helper()
+	spec, err := parseWebListenSpec(listenMultiaddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return spec
 }
 
 func exchangeWebBootstrap(listener *webListener) (*http.Response, error) {
@@ -319,7 +329,7 @@ func TestWebListenerRegistryDoesNotReuseExplicitPort(t *testing.T) {
 	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
 
 	// Allocate a listener whose port remains in use.
-	a, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
+	a, reused, err := reg.access(t.Context(), nil, nil, testWebListenSpec(t, "/ip4/127.0.0.1/tcp/0"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +343,7 @@ func TestWebListenerRegistryDoesNotReuseExplicitPort(t *testing.T) {
 	if len(parts) != 2 {
 		t.Fatalf("unexpected listener multiaddr: %s", a.listenMultiaddr)
 	}
-	if _, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/"+parts[1]); err == nil || reused {
+	if _, reused, err := reg.access(t.Context(), nil, nil, testWebListenSpec(t, "/ip4/127.0.0.1/tcp/"+parts[1])); err == nil || reused {
 		t.Fatalf("explicit port should allocate distinctly and fail while in use, reused=%v err=%v", reused, err)
 	}
 }
@@ -351,7 +361,7 @@ func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
 	}
 
 	// Allocate the explicit-port listener and verify it is new.
-	listener, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/"+strconv.Itoa(port))
+	listener, reused, err := reg.access(t.Context(), nil, nil, testWebListenSpec(t, "/ip4/127.0.0.1/tcp/"+strconv.Itoa(port)))
 	if err != nil {
 		t.Fatal(err)
 	}

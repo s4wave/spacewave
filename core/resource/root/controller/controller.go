@@ -23,7 +23,6 @@ import (
 	space_world_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_command_registry "github.com/s4wave/spacewave/sdk/command/registry"
-	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 )
 
@@ -138,11 +137,6 @@ func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 				c.rootResource.SetListenerStatusBroker(c.listenerStatus)
 			}
 			if err := c.rootResource.Register(c.rootResourceMux); err != nil {
-				return nil, err
-			}
-
-			// register handler to the root resource mux
-			if err := s4wave_root.SRPCRegisterRootResourceService(c.rootResourceMux, c.rootResource); err != nil {
 				return nil, err
 			}
 

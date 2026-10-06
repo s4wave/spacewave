@@ -1710,6 +1710,20 @@ export interface AccessWebListenerRequest {
    * @generated from field: bool background = 2;
    */
   background?: boolean
+  /**
+   * SpaceId binds the listener to one Space. A bound listener serves a
+   * read-only Resource service at /_spacewave/resource limited to this Space
+   * in session session_idx. Empty serves no Resource service.
+   *
+   * @generated from field: string space_id = 3;
+   */
+  spaceId?: string
+  /**
+   * SessionIdx is the session holding space_id. Required with space_id.
+   *
+   * @generated from field: uint32 session_idx = 4;
+   */
+  sessionIdx?: number
 }
 
 export const AccessWebListenerRequest: MessageType<AccessWebListenerRequest> =
@@ -1718,6 +1732,8 @@ export const AccessWebListenerRequest: MessageType<AccessWebListenerRequest> =
     fields: [
       { no: 1, name: 'listen_multiaddr', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'background', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -1821,6 +1837,18 @@ export interface WebListenerInfo {
    * @generated from field: bool background = 4;
    */
   background?: boolean
+  /**
+   * SpaceId is the Space the listener is bound to, or empty.
+   *
+   * @generated from field: string space_id = 5;
+   */
+  spaceId?: string
+  /**
+   * SessionIdx is the session of the bound Space, or zero.
+   *
+   * @generated from field: uint32 session_idx = 6;
+   */
+  sessionIdx?: number
 }
 
 export const WebListenerInfo: MessageType<WebListenerInfo> =
@@ -1831,6 +1859,8 @@ export const WebListenerInfo: MessageType<WebListenerInfo> =
       { no: 2, name: 'listen_multiaddr', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'url', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'background', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'session_idx', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
   })
 

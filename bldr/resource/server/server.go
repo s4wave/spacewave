@@ -15,6 +15,8 @@ import (
 type ResourceServer struct {
 	// rootResourceMux serves the retained root for every generation.
 	rootResourceMux srpc.Invoker
+	// filter wraps the invoker of every served resource, or is nil.
+	filter InvokerFilter
 
 	// bcast guards the client and resource lifecycle state below.
 	bcast broadcast.Broadcast
@@ -26,8 +28,18 @@ type ResourceServer struct {
 	clients map[uint32]*RemoteResourceClient
 }
 
+// InvokerFilter wraps the invoker of a served resource. It sees every call a
+// client makes to the root and to each resource added beneath it.
+type InvokerFilter func(srpc.Invoker) srpc.Invoker
+
 // NewResourceServer constructs a ResourceServer for rootResourceMux.
 func NewResourceServer(rootResourceMux srpc.Invoker) *ResourceServer {
+	return NewFilteredResourceServer(rootResourceMux, nil)
+}
+
+// NewFilteredResourceServer constructs a ResourceServer that routes every
+// resource call through filter. A nil filter serves calls directly.
+func NewFilteredResourceServer(rootResourceMux srpc.Invoker, filter InvokerFilter) *ResourceServer {
 	// Supply an empty service mux when the caller has no root methods.
 	if rootResourceMux == nil {
 		rootResourceMux = srpc.NewMux()
@@ -35,6 +47,7 @@ func NewResourceServer(rootResourceMux srpc.Invoker) *ResourceServer {
 
 	return &ResourceServer{
 		rootResourceMux: rootResourceMux,
+		filter:          filter,
 		clients:         make(map[uint32]*RemoteResourceClient),
 	}
 }
@@ -230,6 +243,9 @@ func (s *ResourceServer) ResourceRpc(strm resource.SRPCResourceService_ResourceR
 		// Fail when no live generation owns the resource.
 		if mux == nil {
 			return nil, resource.ErrResourceOrClientReleased
+		}
+		if client != nil && s.filter != nil {
+			mux = s.filter(mux)
 		}
 		return &resourceServerClientInvoker{mux: mux, client: client, parentResourceID: resourceID}, nil
 	})

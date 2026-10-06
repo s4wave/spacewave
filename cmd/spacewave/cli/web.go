@@ -3,6 +3,7 @@
 package spacewave_cli
 
 import (
+	"context"
 	"net"
 	"net/url"
 	"os"
@@ -12,21 +13,26 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 )
+
+// webArgs are the arguments of the web command.
+type webArgs struct {
+	statePath        string
+	sessionIdx       uint
+	space            string
+	host             string
+	port             uint
+	listenMultiaddr  string
+	background       bool
+	printURL         bool
+	displayPath      string
+	displayComponent string
+}
 
 // newWebCommand builds the web command that exposes the native runtime on localhost.
 func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
-	// Declare the web listener flags.
-	var statePath string
-	var host string
-	var listenMultiaddr string
-	var port uint
-	var background bool
-	var printURL bool
-	var displayPath string
-	var displayComponent string
-
-	// Return the web command.
+	args := &webArgs{}
 	return &cli.Command{
 		Name:  "web",
 		Usage: "start a localhost web listener for the native runtime",
@@ -34,61 +40,149 @@ func newWebCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			newWebListCommand(),
 			newWebStopCommand(),
 		},
-		Flags: append(
-			daemonClientFlags(&statePath),
-			&cli.StringFlag{
-				Name:        "host",
-				Usage:       "localhost hostname or loopback address to bind",
-				Value:       "127.0.0.1",
-				Destination: &host,
-			},
-			&cli.UintFlag{
-				Name:        "port",
-				Usage:       "tcp port to bind; 0 chooses a random free port",
-				Value:       0,
-				Destination: &port,
-			},
-			&cli.StringFlag{
-				Name:        "listen",
-				Usage:       "listen multiaddr, overriding --host and --port",
-				Destination: &listenMultiaddr,
-			},
-			&cli.BoolFlag{
-				Name:        "background",
-				Aliases:     []string{"bg"},
-				Usage:       "keep the listener in the daemon after this command exits",
-				Destination: &background,
-			},
-			&cli.BoolFlag{
-				Name:        "print-url",
-				Usage:       "print only the resolved browser URL to stdout",
-				Destination: &printURL,
-			},
-			&cli.StringFlag{
-				Name:        "display",
-				Usage:       "open web in kiosk display mode for the given object path",
-				Destination: &displayPath,
-			},
-			&cli.StringFlag{
-				Name:        "display-component",
-				Usage:       "preferred object viewer component id for kiosk display mode",
-				Destination: &displayComponent,
-			},
-		),
-		Action: func(c *cli.Context) error {
-			return runWeb(
-				c,
-				statePath,
-				host,
-				port,
-				listenMultiaddr,
-				background,
-				printURL,
-				displayPath,
-				displayComponent,
-			)
-		},
+		Flags:  args.BuildFlags(),
+		Action: args.Run,
 	}
+}
+
+// BuildFlags returns the flags of the web command.
+func (a *webArgs) BuildFlags() []cli.Flag {
+	return append(
+		clientFlags(&a.statePath, &a.sessionIdx),
+		&cli.StringFlag{
+			Name:        "space",
+			Usage:       "bind the listener to this Space ID or name and serve it read-only",
+			Destination: &a.space,
+		},
+		&cli.StringFlag{
+			Name:        "host",
+			Usage:       "localhost hostname or loopback address to bind",
+			Value:       "127.0.0.1",
+			Destination: &a.host,
+		},
+		&cli.UintFlag{
+			Name:        "port",
+			Usage:       "tcp port to bind; 0 chooses a random free port",
+			Value:       0,
+			Destination: &a.port,
+		},
+		&cli.StringFlag{
+			Name:        "listen",
+			Usage:       "listen multiaddr, overriding --host and --port",
+			Destination: &a.listenMultiaddr,
+		},
+		&cli.BoolFlag{
+			Name:        "background",
+			Aliases:     []string{"bg"},
+			Usage:       "keep the listener in the daemon after this command exits",
+			Destination: &a.background,
+		},
+		&cli.BoolFlag{
+			Name:        "print-url",
+			Usage:       "print only the resolved browser URL to stdout",
+			Destination: &a.printURL,
+		},
+		&cli.StringFlag{
+			Name:        "display",
+			Usage:       "open web in kiosk display mode for the given object path",
+			Destination: &a.displayPath,
+		},
+		&cli.StringFlag{
+			Name:        "display-component",
+			Usage:       "preferred object viewer component id for kiosk display mode",
+			Destination: &a.displayComponent,
+		},
+	)
+}
+
+// Run starts the web listener and prints its browser URL.
+func (a *webArgs) Run(c *cli.Context) error {
+	// Reject an invalid port and connect to the daemon.
+	ctx := c.Context
+	if a.port > 65535 {
+		return errors.New("port must be <= 65535")
+	}
+	if a.displayPath == "" && a.displayComponent != "" {
+		return errors.New("--display-component requires --display")
+	}
+	client, err := connectDaemonFromContext(ctx, c, a.statePath)
+	if err != nil {
+		return err
+	}
+	defer client.close()
+
+	// Build the listen address and the optional Space binding.
+	req := &s4wave_root.AccessWebListenerRequest{
+		ListenMultiaddr: a.listenMultiaddr,
+		Background:      a.background,
+	}
+	if req.ListenMultiaddr == "" {
+		req.ListenMultiaddr = buildWebListenMultiaddr(a.host, uint32(a.port))
+	}
+	if a.space != "" {
+		req.SessionIdx = sessionIndex32(a.sessionIdx)
+		req.SpaceId, err = resolveWebSpaceID(ctx, client, req.SessionIdx, a.space)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Access the web listener and release its resource when the command returns.
+	resp, err := client.root.AccessWebListener(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "access web listener")
+	}
+	if resp.GetResourceId() != 0 {
+		ref := client.resClient.CreateResourceReference(resp.GetResourceId())
+		defer ref.Release()
+	}
+
+	// Build the browser URL from the display path and component.
+	queryParts := make([]string, 0, 2)
+	if a.displayPath != "" {
+		queryParts = append(queryParts, "path="+url.QueryEscape(a.displayPath))
+	}
+	if a.displayComponent != "" {
+		queryParts = append(queryParts, "component="+url.QueryEscape(a.displayComponent))
+	}
+	webPath := "/"
+	if len(queryParts) != 0 {
+		webPath = "/display?" + strings.Join(queryParts, "&")
+	}
+	browserURL := resp.GetUrl() + webPath + "#otp=" + resp.GetBootstrapSecret()
+
+	// Print the browser URL and wait unless the listener is backgrounded.
+	if a.printURL {
+		os.Stdout.WriteString(browserURL + "\n")
+		if a.background {
+			return nil
+		}
+		<-ctx.Done()
+		return nil
+	}
+	if a.background {
+		if resp.GetReused() {
+			os.Stdout.WriteString("Reusing background Spacewave web session:\n  " + browserURL + "\n")
+		} else {
+			os.Stdout.WriteString("Spacewave is running in the background:\n  " + browserURL + "\n")
+		}
+		os.Stdout.WriteString("Use `spacewave web list` to see listeners or `spacewave web stop <listener-id>` to stop one.\n")
+		return nil
+	}
+	os.Stdout.WriteString("Spacewave is ready in your browser:\n  " + browserURL + "\n")
+	os.Stdout.WriteString("Press Ctrl-C to stop this listener.\n")
+	<-ctx.Done()
+	return nil
+}
+
+// resolveWebSpaceID resolves a Space ID or name in session sessionIdx.
+func resolveWebSpaceID(ctx context.Context, client *sdkClient, sessionIdx uint32, space string) (string, error) {
+	sess, err := client.mountSession(ctx, sessionIdx)
+	if err != nil {
+		return "", err
+	}
+	defer sess.Release()
+	return client.resolveSpaceID(ctx, sess, space)
 }
 
 func newWebListCommand() *cli.Command {
@@ -119,87 +213,6 @@ func newWebStopCommand() *cli.Command {
 			return runWebStop(c, statePath, listenerID)
 		},
 	}
-}
-
-func runWeb(
-	c *cli.Context,
-	statePath string,
-	host string,
-	port uint,
-	listenMultiaddr string,
-	background bool,
-	printURL bool,
-	displayPath string,
-	displayComponent string,
-) error {
-	// Reject an invalid port and connect to the daemon.
-	ctx := c.Context
-	if port > 65535 {
-		return errors.New("port must be <= 65535")
-	}
-	if displayPath == "" && displayComponent != "" {
-		return errors.New("--display-component requires --display")
-	}
-	client, err := connectDaemonFromContext(ctx, c, statePath)
-	if err != nil {
-		return err
-	}
-	defer client.close()
-
-	// Build the listen address and access the web listener.
-	reqMultiaddr := listenMultiaddr
-	if reqMultiaddr == "" {
-		reqMultiaddr = buildWebListenMultiaddr(host, uint32(port))
-	}
-	resp, err := client.root.AccessWebListener(ctx, reqMultiaddr, background)
-	if err != nil {
-		return errors.Wrap(err, "access web listener")
-	}
-
-	// Release the listener resource when the command returns.
-	var release func()
-	if resp.GetResourceId() != 0 {
-		ref := client.resClient.CreateResourceReference(resp.GetResourceId())
-		release = ref.Release
-		defer release()
-	}
-
-	// Build the browser URL from the display path and component.
-	queryParts := make([]string, 0, 2)
-	if displayPath != "" {
-		queryParts = append(queryParts, "path="+url.QueryEscape(displayPath))
-	}
-	if displayComponent != "" {
-		queryParts = append(queryParts, "component="+url.QueryEscape(displayComponent))
-	}
-	webPath := "/"
-	if len(queryParts) != 0 {
-		webPath = "/display?" + strings.Join(queryParts, "&")
-	}
-	browserURL := resp.GetUrl() + webPath + "#otp=" + resp.GetBootstrapSecret()
-
-	// Print the browser URL and wait unless the listener is backgrounded.
-	if printURL {
-		os.Stdout.WriteString(browserURL + "\n")
-		if background {
-			return nil
-		}
-		<-ctx.Done()
-		return nil
-	}
-	if background {
-		if resp.GetReused() {
-			os.Stdout.WriteString("Reusing background Spacewave web session:\n  " + browserURL + "\n")
-		} else {
-			os.Stdout.WriteString("Spacewave is running in the background:\n  " + browserURL + "\n")
-		}
-		os.Stdout.WriteString("Use `spacewave web list` to see listeners or `spacewave web stop <listener-id>` to stop one.\n")
-		return nil
-	}
-	os.Stdout.WriteString("Spacewave is ready in your browser:\n  " + browserURL + "\n")
-	os.Stdout.WriteString("Press Ctrl-C to stop this listener.\n")
-	<-ctx.Done()
-	return nil
 }
 
 func runWebList(c *cli.Context, statePath string) error {

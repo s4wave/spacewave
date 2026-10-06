@@ -138,13 +138,9 @@ func (r *Root) RemoveSpaceRootAlias(ctx context.Context, aliasID string) (bool, 
 // AccessWebListener creates or reuses a localhost web listener.
 func (r *Root) AccessWebListener(
 	ctx context.Context,
-	listenMultiaddr string,
-	background bool,
+	req *AccessWebListenerRequest,
 ) (*AccessWebListenerResponse, error) {
-	return r.service.AccessWebListener(ctx, &AccessWebListenerRequest{
-		ListenMultiaddr: listenMultiaddr,
-		Background:      background,
-	})
+	return r.service.AccessWebListener(ctx, req)
 }
 
 // WatchWebListeners streams the daemon-owned localhost web listeners.

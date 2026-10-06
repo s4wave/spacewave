@@ -99,7 +99,10 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := client.root.AccessWebListener(ctx, "/ip4/127.0.0.1/tcp/0", true)
+	resp, err := client.root.AccessWebListener(ctx, &s4wave_root.AccessWebListenerRequest{
+		ListenMultiaddr: "/ip4/127.0.0.1/tcp/0",
+		Background:      true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
