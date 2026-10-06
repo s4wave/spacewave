@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // TestCommitMaxSizeExceeded checks a commit whose operation exceeds
@@ -23,9 +24,11 @@ func TestCommitMaxSizeExceeded(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer big.Discard()
-	if _, err := big.CreateObject(ctx, bigKey, nil); err != nil {
+	obj, err := big.CreateObject(ctx, bigKey, nil)
+	if err != nil {
 		t.Fatal(err)
 	}
+	world.ReleaseObjectState(obj)
 	if err := big.Commit(ctx); !errors.Is(err, sobject.ErrMaxSizeExceeded) {
 		t.Fatalf("oversized commit = %v, want %v", err, sobject.ErrMaxSizeExceeded)
 	}
@@ -36,9 +39,11 @@ func TestCommitMaxSizeExceeded(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer small.Discard()
-	if _, err := small.CreateObject(ctx, "small", nil); err != nil {
+	obj, err = small.CreateObject(ctx, "small", nil)
+	if err != nil {
 		t.Fatal(err)
 	}
+	world.ReleaseObjectState(obj)
 	if err := small.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +55,9 @@ func TestCommitMaxSizeExceeded(t *testing.T) {
 	}
 	defer read.Discard()
 	for key, want := range map[string]bool{bigKey: false, "small": true} {
-		if _, found, err := read.GetObject(ctx, key); err != nil || found != want {
+		obj, found, err := read.GetObject(ctx, key)
+		world.ReleaseObjectState(obj)
+		if err != nil || found != want {
 			t.Fatalf("object %.16q found = %v, %v; want %v", key, found, err, want)
 		}
 	}
