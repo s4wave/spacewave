@@ -60,6 +60,8 @@ github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261006140529-7f1
 github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261006140529-7f1cdbf2ce7d/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260906074410-727d9e299192 h1:OytXHk45dZ9UezuFlCJPhdsmV7oAbKzuVhxHbfBuw38=
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260906074410-727d9e299192/go.mod h1:YPUNAejo0sSHIFzZCnUbt0b3OR0Gw74cBxHIdv+yzkw=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261006140529-7f1cdbf2ce7d h1:nB2frR4n6z4V+BgN1EwdHiPRpWdDJb6Npft5p0CuKqk=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261006140529-7f1cdbf2ce7d/go.mod h1:YPUNAejo0sSHIFzZCnUbt0b3OR0Gw74cBxHIdv+yzkw=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260910142736-349504d079da h1:xRS+FY1PAhIfHHcCRlNDy7DbOwA1TygcD7xJqNlNxOA=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20260910142736-349504d079da/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05 h1:u7Wqib6RFTGKIWKERYoenApCoMKRuqPEjn3x+9qmfic=
@@ -342,6 +344,8 @@ go.opentelemetry.io/otel/trace v1.41.0 h1:Vbk2co6bhj8L59ZJ6/xFTskY+tGAbOnCtQGVVa
 go.opentelemetry.io/otel/trace v1.41.0/go.mod h1:U1NU4ULCoxeDKc09yCWdWe+3QoyweJcISEVa1RBzOis=
 go.starlark.net v0.0.0-20260930220527-d7438c5a85ac h1:pNA9PRXGPFURORAsI3IqfQJ4RLsRXqghCFdvypd/4GY=
 go.starlark.net v0.0.0-20260930220527-d7438c5a85ac/go.mod h1:Iue6g6iirlfLoVi/DYCi5/x0h/bAOuWF3dULTKpt2Vo=
+go.starlark.net v0.0.0-20261005163335-bcb1a1a55bf9 h1:4VVDUeX0KRm+NfetZh9/JNrFQLzTS+jZiVMzhnt5/dg=
+go.starlark.net v0.0.0-20261005163335-bcb1a1a55bf9/go.mod h1:Iue6g6iirlfLoVi/DYCi5/x0h/bAOuWF3dULTKpt2Vo=
 go.uber.org/mock v0.5.2 h1:LbtPTcP8A5k9WPXj54PPPbjcI4Y6lhyOZXn+VS7wNko=
 go.uber.org/mock v0.5.2/go.mod h1:wLlUxC2vVTPTaE3UD51E0BGOAElKrILxhVSDYQLld5o=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
@@ -350,6 +354,8 @@ golang.org/x/crypto v0.57.0 h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M=
 golang.org/x/crypto v0.57.0/go.mod h1:Fdz0i5U6CoizGwLda9DttjSk6qlZo25zYNtR+ycvuZA=
 golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba h1:Ck8QetSgk912qxWLMCKxd0in+aiyBQyDSMae6e/xmpU=
 golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba/go.mod h1:50RgIsmK7OwqzTTeqcSXQW8SswW0o8fRcDxmqGluJ8E=
+golang.org/x/exp v0.0.0-20261005173118-76772065c9b0 h1:qUp3i6M39kccSm3OMMIE3tvs7YQWO9rFeCKdk1sSaFk=
+golang.org/x/exp v0.0.0-20261005173118-76772065c9b0/go.mod h1:SRjTzy5WcYqRRqquLUvHeeovSwLO0CZ3xcltZNO4Fck=
 golang.org/x/mod v0.41.0 h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c=
 golang.org/x/mod v0.41.0/go.mod h1:Ek9pY8RKWXwsWvd3rQiHYtMqkjSUV+s1Rj7j4H5Ur6o=
 golang.org/x/net v0.59.0 h1:5zfYln+w5XCxwrnMMJPufRgNoXEaGxl0wo5GqPXyues=
