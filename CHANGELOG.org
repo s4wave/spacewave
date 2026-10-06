@@ -1,5 +1,66 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.27
+<2026-10-06 Tue>
+
+Spacewave 0.57.27 moves all local storage to a new single-file database on
+desktop and to a new storage format in the browser, fixes lost file data in
+shared Spaces, and makes devices reconnect more reliably.
+
+** Features
+- The browser keeps its local data in a new storage format, on OPFS or, where
+  that is unavailable, IndexedDB. Data a browser saved before this release is
+  not opened, so the browser starts with empty local storage. Spaces held in
+  Spacewave Cloud or on another device download again; data that existed only
+  in that browser is not carried over.
+- Desktop and command-line storage now uses s4db, a new database that keeps
+  each volume in one file. Several Spacewave processes can share a volume
+  safely, and readers never wait on a writer.
+- Existing desktop and command-line volumes convert to s4db in place the first
+  time this release opens them. The conversion keeps the volume's identity and
+  data, checks that every key and value matches, and needs free disk space equal
+  to the volume. A crash during conversion leaves the old file, which converts
+  on the next start.
+- The Badger storage engine and the `--badger-db` option are removed.
+- The command line can repair lost Space data on a stopped device:
+  `spacewave debug payload-restore` rebuilds a lost file payload from its
+  source, and `spacewave debug ref-repair` restores the block links that
+  storage cleanup relies on.
+- Forge now names the plugin a waiting Execution needs.
+
+** Fixes
+- Files written into a shared Space could lose their content on other
+  devices: storage cleanup removed data that replaying the Space still needed,
+  and replay stopped with "block not found". That data is now kept as long as
+  replay reads it.
+- Two devices could stay disconnected after one of them restarted, until one
+  restarted again. A lost connection offer is now sent again until it is
+  answered, and a device follows the signaling service across reconnects.
+- A device linked to a Space from the command line was not offered as a Forge
+  worker, because its setup never finished. It now reaches the ready state.
+- A returning browser visit after a release no longer starts Spacewave twice,
+  and a single failed network request no longer makes it fall back to the
+  cached release.
+- A plugin that fails at start now waits longer between restarts, up to five
+  minutes, instead of restarting about once a minute forever.
+- Plugins running in the QuickJS host can use `crypto.getRandomValues`, and
+  have a larger stack.
+- `git push --force-with-lease` to a Spacewave Git remote now works. Before,
+  the remote refused the push.
+
+** Improvements
+- Saving a change to a Space takes one storage commit instead of five, and
+  checking a Space's history verifies only new changes.
+- A device catching up on a Space resumes where its last pass stopped instead
+  of replaying the Space's history each time.
+- The browser caches each plugin's files, so a returning visit no longer
+  downloads them again.
+- The billing page groups subscription management under Plan and lays out
+  extra storage spending more clearly.
+- Buttons and form fields across the app have accessible labels and native
+  semantics, and external links open without access to the app's window.
+- A long replay logs its progress every 30 seconds.
+
 * v0.57.26
 <2026-10-05 Mon>
 
