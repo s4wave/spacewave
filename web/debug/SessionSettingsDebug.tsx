@@ -44,6 +44,7 @@ export function SessionSettingsDebug() {
         <button
           type="button"
           onClick={goBack}
+          aria-label="Go back"
           className="text-foreground-alt hover:text-foreground transition-colors"
         >
           <LuArrowLeft className="size-4" />

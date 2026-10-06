@@ -48,7 +48,7 @@ vi.mock('@s4wave/web/ui/DropdownMenu.js', () => ({
       {children}
     </button>
   ),
-  DropdownMenuSeparator: () => <hr role="separator" />,
+  DropdownMenuSeparator: () => <hr />,
 }))
 
 vi.mock('@s4wave/web/ui/DropdownMenuGhostAnchor.js', () => ({

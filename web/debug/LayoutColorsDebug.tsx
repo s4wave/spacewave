@@ -280,13 +280,15 @@ function DemoLayout({
   )
 }
 
+const noColorSchemeVars: Record<string, string> = {}
+
 // useColorSchemeVars scopes the debug palette to one preview surface. The
 // values are already CSS custom properties; assigning them through the DOM
 // keeps the palette data-driven without injecting ordinary inline styles.
-function useColorSchemeVars(vars?: Record<string, string>) {
+function useColorSchemeVars(vars: Record<string, string> = noColorSchemeVars) {
   return useCallback(
     (element: HTMLDivElement | null) => {
-      if (!element || !vars) return
+      if (!element) return
       for (const [name, value] of Object.entries(vars)) {
         element.style.setProperty(name, value)
       }
@@ -425,6 +427,7 @@ export function LayoutColorsDebug() {
     <div className="bg-background @container flex w-full flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 @lg:px-8">
         <button
+          type="button"
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
         >

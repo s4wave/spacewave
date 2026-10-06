@@ -591,6 +591,7 @@ function VmSettingsPanel({
                   {OVERRIDE_LABEL[slot]}
                 </span>
                 <select
+                  aria-label={OVERRIDE_LABEL[slot]}
                   value={current}
                   onChange={(e) => {
                     void onOverrideChange(slot, e.target.value)
