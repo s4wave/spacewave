@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/prototypes/s4db/s4db"
 )
 
 // engine opens one key-value engine in a directory.
@@ -28,7 +29,13 @@ type engine struct {
 	// name selects the engine on the command line.
 	name string
 	// open opens or creates the engine's files under dir.
-	open func(ctx context.Context, dir string) (store, error)
+	open func(ctx context.Context, dir string, t tuning) (store, error)
+}
+
+// tuning holds the engine options the flags select.
+type tuning struct {
+	// s4db holds the s4db options.
+	s4db s4db.Options
 }
 
 // store is an open engine.
@@ -40,6 +47,7 @@ type store interface {
 
 // syncer is a store that can make ordered commits durable.
 type syncer interface {
+	// Sync makes every earlier commit durable.
 	Sync(ctx context.Context) error
 }
 
@@ -69,8 +77,15 @@ func main() {
 	churn := flag.Bool("churn", true, "run the churn phase")
 	readers := flag.Int("readers", 1, "goroutines sharing the point reads")
 	writers := flag.Int("writers", 1, "goroutines sharing the fill commits")
+
+	// Parse the profiling and engine tuning options.
 	cpuProfile := flag.String("cpuprofile", "", "write a CPU profile of the fill to this file")
+	memProfile := flag.String("memprofile", "", "write a heap profile after the fill to this file")
+	ckptMin := flag.Int64("ckpt-min", 0, "s4db overlay MiB that starts a checkpoint at least; 0 selects the default")
+	ckptMax := flag.Int64("ckpt-max", 0, "s4db overlay MiB that starts a checkpoint at most; 0 selects the default")
 	flag.Parse()
+	var t tuning
+	t.s4db.CheckpointMin, t.s4db.CheckpointMax = *ckptMin<<20, *ckptMax<<20
 
 	// Resolve the engine and prepare an empty directory.
 	var eng *engine
@@ -97,7 +112,7 @@ func main() {
 		eng.name, *n, *profile, *batch, *ordered, *writers, *readers, mib(w.liveBytes()))
 
 	// Fill the engine.
-	s, err := eng.open(ctx, *dir)
+	s, err := eng.open(ctx, *dir, t)
 	if err != nil {
 		panic(err)
 	}
@@ -125,6 +140,9 @@ func main() {
 		fill.Seconds(), float64(*n)/fill.Seconds(), float64(w.liveBytes())/(1<<20)/fill.Seconds(),
 		pct(lat), mib(written), float64(written)/float64(w.liveBytes()))
 	fmt.Printf("after fill  disk %s  heap %s  rss %s\n", mib(diskUsage(*dir)), mib(heap()), mib(rss()))
+	if *memProfile != "" {
+		writeHeapProfile(*memProfile)
+	}
 
 	// Close, drop the page cache for the engine's files, and reopen.
 	if err := s.Close(); err != nil {
@@ -133,7 +151,7 @@ func main() {
 	dropCache(*dir)
 	runtime.GC()
 	start = time.Now()
-	s, err = eng.open(ctx, *dir)
+	s, err = eng.open(ctx, *dir, t)
 	if err != nil {
 		panic(err)
 	}
@@ -461,7 +479,23 @@ func heap() int64 {
 	return int64(ms.HeapInuse)
 }
 
-// pct formats the median and 99th percentile of lat.
+// writeHeapProfile writes the live heap to path.
+func writeHeapProfile(path string) {
+	// Create the file.
+	f, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	// Collect garbage so the profile shows live objects, and write it.
+	runtime.GC()
+	if err := pprof.WriteHeapProfile(f); err != nil {
+		panic(err)
+	}
+}
+
+// pct formats the median, 99th percentile, and maximum of lat.
 func pct(lat []time.Duration) string {
 	// Nothing was measured.
 	if len(lat) == 0 {
@@ -472,7 +506,8 @@ func pct(lat []time.Duration) string {
 	s := slices.Clone(lat)
 	slices.Sort(s)
 	p := func(q float64) time.Duration { return s[int(q*float64(len(s)-1))] }
-	return fmt.Sprintf("p50 %s p99 %s", p(0.5).Round(time.Microsecond), p(0.99).Round(time.Microsecond))
+	r := func(q float64) time.Duration { return p(q).Round(time.Microsecond) }
+	return fmt.Sprintf("p50 %s p99 %s max %s", r(0.5), r(0.99), r(1))
 }
 
 // mib formats a byte count in MiB.

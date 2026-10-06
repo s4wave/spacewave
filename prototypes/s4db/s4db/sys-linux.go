@@ -20,6 +20,12 @@ func flushOrdered(*os.File) error {
 	return nil
 }
 
+// flushBarrier orders earlier writes before later ones. Linux has no
+// cheaper ordering than a full flush, so the barrier is durable.
+func flushBarrier(f *os.File) (bool, error) {
+	return true, flushDurable(f)
+}
+
 // punch deallocates n bytes at off, keeping the file length.
 func punch(f *os.File, off, n int64) error {
 	return unix.Fallocate(int(f.Fd()), unix.FALLOC_FL_PUNCH_HOLE|unix.FALLOC_FL_KEEP_SIZE, off, n)

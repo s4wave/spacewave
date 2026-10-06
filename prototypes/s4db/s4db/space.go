@@ -336,6 +336,12 @@ func (s *space) freePages(pages []uint64, tag uint64) {
 	}
 }
 
+// due reports whether release(seq, ckpt) would free anything.
+func (s *space) due(seq, ckpt uint64) bool {
+	return (len(s.values) != 0 && s.values[0].tag <= seq) ||
+		(len(s.pages) != 0 && s.pages[0].tag <= ckpt)
+}
+
 // release frees value runs with tags through seq and page runs with tags
 // through ckpt, and raises the marks.
 func (s *space) release(seq, ckpt uint64) {

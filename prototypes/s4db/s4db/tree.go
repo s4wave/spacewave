@@ -3,7 +3,6 @@ package s4db
 import (
 	"bytes"
 	"slices"
-	"sync/atomic"
 )
 
 // pager reads tree pages.
@@ -541,12 +540,16 @@ func (b *builder) packInner(kids []child) []child {
 	return out
 }
 
+// placeBatch is the number of pages place encodes before writing them.
+const placeBatch = 256
+
 // place assigns consecutive pages from first to the new pages reachable from
-// top, children first, and returns their encodings and the root page.
-func (b *builder) place(top *child, first uint64) ([]uint64, []*node, []byte) {
+// top, children first, passes their encodings to write in batches, and
+// returns the nodes in page order; the last is the root.
+func (b *builder) place(top *child, first uint64, write func(buf []byte, page uint64) error) ([]*node, error) {
 	// Number the new pages in post order.
 	if top.n == nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 	pages := make(map[*node]uint64)
 	var order []*node
@@ -562,29 +565,50 @@ func (b *builder) place(top *child, first uint64) ([]uint64, []*node, []byte) {
 	}
 	visit(top.n)
 
-	// Resolve new children to their pages and encode.
-	nums := make([]uint64, len(order))
-	buf := make([]byte, 0, len(order)*pageSize)
+	// Resolve new children to their pages, encode, and write a batch of
+	// pages at a time. Each returned node is decoded from its own page, so a
+	// cached node never holds the buffers of the pages it replaced.
+	buf := make([]byte, 0, placeBatch*pageSize)
+	at := first
+	placed := make(map[*node]*node, len(order))
+	out := make([]*node, len(order))
 	for i, n := range order {
-		n.heads = make([]uint64, len(n.keys))
-		for j, k := range n.keys {
-			n.heads[j] = head(k)
-		}
-		if !n.leaf {
-			n.inner = make([]atomic.Pointer[node], len(n.kids))
-		}
 		for j, s := range b.sub[n] {
 			if s != nil {
 				n.kids[j] = pages[s]
 			}
+		}
+		buf = n.encode(buf)
+
+		// Decode the page and link its new inner children.
+		d, err := decodeNode(bytes.Clone(buf[len(buf)-pageSize:]))
+		if err != nil {
+			return nil, err
+		}
+		for j, s := range b.sub[n] {
 			if s != nil && !s.leaf {
-				n.inner[j].Store(s)
+				d.inner[j].Store(placed[s])
 			}
 		}
-		nums[i] = pages[n]
-		buf = append(buf, n.encode()...)
+		placed[n], out[i] = d, d
+
+		// Write a full batch.
+		if len(buf) == cap(buf) {
+			if err := write(buf, at); err != nil {
+				return nil, err
+			}
+			at += placeBatch
+			buf = buf[:0]
+		}
 	}
-	return nums, order, buf
+
+	// Write the last partial batch.
+	if len(buf) != 0 {
+		if err := write(buf, at); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 // reachable counts the new pages reachable from top.

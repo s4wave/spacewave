@@ -23,7 +23,7 @@ var engines = []engine{
 }
 
 // openBolt opens a bbolt file with the bucket the volume uses.
-func openBolt(ctx context.Context, dir string) (store, error) {
+func openBolt(ctx context.Context, dir string, _ tuning) (store, error) {
 	return store_kvtx_bolt.Open(filepath.Join(dir, "bolt.db"), 0o600, &bbolt.Options{NoFreelistSync: true}, []byte("hydra"))
 }
 
@@ -56,7 +56,7 @@ func (s badgerStore) Compact() error {
 }
 
 // openBadger opens badger with the volume's defaults.
-func openBadger(ctx context.Context, dir string) (store, error) {
+func openBadger(ctx context.Context, dir string, _ tuning) (store, error) {
 	// Match the volume's options: durable writes, no conflict detection.
 	o := bdb.DefaultOptions(dir)
 	o.DetectConflicts = false
@@ -76,7 +76,7 @@ type logindexStore struct {
 
 // openLogindex opens the in-memory copy-on-write table with its log and
 // checkpoint on a directory device. It holds every value in memory.
-func openLogindex(ctx context.Context, dir string) (store, error) {
+func openLogindex(ctx context.Context, dir string, _ tuning) (store, error) {
 	// Open the device, then the index on it.
 	dev, err := device.OpenDir(dir)
 	if err != nil {
@@ -89,7 +89,7 @@ func openLogindex(ctx context.Context, dir string) (store, error) {
 	return logindexStore{idx}, nil
 }
 
-// openS4db opens a single-file s4db database with its default options.
-func openS4db(ctx context.Context, dir string) (store, error) {
-	return s4db.Open(filepath.Join(dir, "db.s4wave"), s4db.Options{})
+// openS4db opens a single-file s4db database.
+func openS4db(ctx context.Context, dir string, t tuning) (store, error) {
+	return s4db.Open(filepath.Join(dir, "db.s4wave"), t.s4db)
 }

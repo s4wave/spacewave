@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"encoding/binary"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -203,14 +204,16 @@ func innerEntrySize(key []byte) int {
 	return uvarintLen(uint64(len(key))) + len(key) + 8
 }
 
-// encode writes n into a page.
-func (n *node) encode() []byte {
+// encode appends the page holding n to dst.
+func (n *node) encode(dst []byte) []byte {
 	// Write the kind and count.
-	b := make([]byte, pageHeader, pageSize)
+	start := len(dst)
+	b := slices.Grow(dst, pageSize)[:start+pageHeader]
+	b[start] = 0
 	if n.leaf {
-		b[0] = 1
+		b[start] = 1
 	}
-	binary.LittleEndian.PutUint16(b[1:], uint16(len(n.keys)))
+	binary.LittleEndian.PutUint16(b[start+1:], uint16(len(n.keys)))
 
 	// Write each key with its value or child page.
 	for i, k := range n.keys {
@@ -224,8 +227,11 @@ func (n *node) encode() []byte {
 	}
 
 	// Pad the page and seal it.
-	b = b[:pageSize]
-	binary.LittleEndian.PutUint32(b[pageSize-4:], checksum(b[:pageSize-4]))
+	end := len(b)
+	b = b[:start+pageSize]
+	clear(b[end:])
+	page := b[start:]
+	binary.LittleEndian.PutUint32(page[pageSize-4:], checksum(page[:pageSize-4]))
 	return b
 }
 

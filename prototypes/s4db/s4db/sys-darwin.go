@@ -22,6 +22,12 @@ func flushOrdered(f *os.File) error {
 	return err
 }
 
+// flushBarrier orders earlier writes before later ones, reporting that it
+// did not make them durable.
+func flushBarrier(f *os.File) (bool, error) {
+	return false, flushOrdered(f)
+}
+
 // fpunchhole is struct fpunchhole from sys/fcntl.h.
 type fpunchhole struct {
 	flags    uint32

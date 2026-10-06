@@ -31,23 +31,6 @@ import (
 // MaxKeySize is the longest key.
 const MaxKeySize = 1024
 
-// Options configures a database.
-type Options struct {
-	// InlineMax is the largest value stored in the index when creating a
-	// file. Zero selects 512 bytes.
-	InlineMax int
-	// CachePages bounds the decoded index pages kept in memory. Zero
-	// selects 16384 pages.
-	CachePages int
-	// CheckpointMin and CheckpointMax bound the overlay size that starts a
-	// checkpoint; between them a checkpoint starts at a quarter of the tree.
-	// Zero selects 4 MiB and 64 MiB.
-	CheckpointMin, CheckpointMax int64
-	// RelocateBudget is the value bytes compaction may move after each
-	// commit. Zero selects 4 MiB; negative disables compaction.
-	RelocateBudget int64
-}
-
 // relocateVisits bounds the entries one incremental relocation pass reads, so
 // a commit's compaction work does not grow with the key count.
 const relocateVisits = 4096
@@ -89,6 +72,11 @@ type DB struct {
 	pinned pin
 	// durable is the last commit known flushed to the drive.
 	durable uint64
+	// ckptWritten is the checkpoint of the newest superblock in the file,
+	// and ckptDurable the newest one known flushed. Pages a checkpoint
+	// replaces stay unreleased until its superblock is durable, so a
+	// crash that reverts to the previous superblock finds its tree intact.
+	ckptWritten, ckptDurable uint64
 	// flushing is set while one caller flushes for every waiting commit.
 	flushing bool
 	// flushed is closed when the running flush ends.
@@ -284,6 +272,7 @@ func (db *DB) open() error {
 	defer db.mtx.Unlock()
 	st.refs = new(refCount)
 	db.cur.Store(st)
+	db.ckptWritten = st.ckpt
 	return db.updatePin()
 }
 
@@ -496,10 +485,12 @@ func (db *DB) publish(st *state) {
 		return
 	}
 
-	// Replace the state, keeping the old one until its snapshots end.
+	// Replace the state, keeping the old one until its snapshots end. Its
+	// checkpoint is in the file, whichever process wrote it.
 	st.refs = new(refCount)
 	db.cur.Store(st)
 	db.retired = append(db.retired, cur)
+	db.ckptWritten = max(db.ckptWritten, st.ckpt)
 	_ = db.updatePin()
 }
 
@@ -752,15 +743,16 @@ func (db *DB) catchUp() error {
 	if err := flushDurable(db.f); err != nil {
 		return err
 	}
-	db.setDurable(st.seq)
+	db.setDurable(st.seq, st.ckpt)
 	return nil
 }
 
-// setDurable advances durable.
-func (db *DB) setDurable(seq uint64) {
+// setDurable advances the durable commit and checkpoint after a flush.
+func (db *DB) setDurable(seq, ckpt uint64) {
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
 	db.durable = max(db.durable, seq)
+	db.ckptDurable = max(db.ckptDurable, ckpt)
 }
 
 // commit appends a commit record for changes on base, writes its values,
@@ -929,23 +921,26 @@ func (db *DB) writeValues(r *record, writes []valueWrite) error {
 // records the space's release marks in r. The marks only rise, so replaying
 // any record repeats every release the writer made before it.
 func (db *DB) releaseSpace(base *state, r *record) error {
-	// Skip reading the slots when nothing awaits release.
+	// Bound the release by durability and this handle's snapshots, and skip
+	// reading the slots when nothing pending falls under that bound.
 	sp := db.sp
 	defer func() { r.released = sp.marks }()
-	if len(sp.values) == 0 && len(sp.pages) == 0 {
+	db.mtx.Lock()
+	local := db.localPin()
+	seq := min(local.seq, db.durable)
+	ckpt := min(local.ckpt, base.ckpt, db.ckptDurable)
+	db.mtx.Unlock()
+	if !sp.due(seq, ckpt) {
 		return nil
 	}
 
-	// Release value runs freed by durable commits no snapshot predates, and
-	// pages freed by checkpoints no snapshot predates.
+	// Lower the bound by every other process's snapshots and release value
+	// runs and pages below it.
 	p, err := db.minPin()
 	if err != nil {
 		return err
 	}
-	db.mtx.Lock()
-	durable := db.durable
-	db.mtx.Unlock()
-	sp.release(min(p.seq, durable), min(p.ckpt, base.ckpt))
+	sp.release(min(p.seq, seq), min(p.ckpt, ckpt))
 	return nil
 }
 
@@ -1012,14 +1007,17 @@ func (db *DB) checkpoint() error {
 		root = top.page
 		if fresh = b.reachable(top); fresh != 0 {
 			r := sp.alloc(uint64(fresh))
-			nums, nodes, buf := b.place(top, r.start)
-			if _, err := db.f.WriteAt(buf, int64(r.start*pageSize)); err != nil {
+			nodes, err := b.place(top, r.start, func(buf []byte, page uint64) error {
+				_, err := db.f.WriteAt(buf, int64(page*pageSize))
+				return err
+			})
+			if err != nil {
 				return err
 			}
 			for i, n := range nodes {
-				db.cache.put(nums[i], n)
+				db.cache.put(r.start+uint64(i), n)
 			}
-			root = nums[len(nums)-1]
+			root = r.start + uint64(len(nodes)) - 1
 		}
 	}
 
@@ -1038,10 +1036,22 @@ func (db *DB) checkpoint() error {
 		return err
 	}
 
-	// Make the pages and space durable, then switch superblocks.
-	if err := flushDurable(db.f); err != nil {
+	// Order the pages and space before the superblock that names them. A
+	// durable barrier also makes the records and the previous superblock
+	// durable.
+	db.mtx.Lock()
+	prev := db.ckptWritten
+	db.mtx.Unlock()
+	durable, err := flushBarrier(db.f)
+	if err != nil {
 		return err
 	}
+	if durable {
+		db.setDurable(st.seq, prev)
+	}
+
+	// Switch superblocks. The new one becomes durable with a later flush,
+	// which releases the pages it replaced.
 	sb := superblock{
 		gen: st.gen + 1, seq: st.seq, root: root, count: uint64(st.count),
 		treePages: st.sb.treePages + uint64(fresh) - uint64(len(b.freed)),
@@ -1050,10 +1060,6 @@ func (db *DB) checkpoint() error {
 	if _, err := db.f.WriteAt(sb.encode(), int64(superPage+sb.gen%2)*pageSize); err != nil {
 		return err
 	}
-	if err := flushDurable(db.f); err != nil {
-		return err
-	}
-	db.setDurable(st.seq)
 
 	// Publish the tree.
 	next := *db.stateOf(sb)
@@ -1202,7 +1208,7 @@ func (db *DB) Compact() error {
 				return err
 			}
 		}
-		if err := db.checkpoint(); err != nil {
+		if err := db.checkpointDurable(); err != nil {
 			return err
 		}
 		if err := db.releaseNow(); err != nil {
@@ -1252,6 +1258,16 @@ func (db *DB) moveLog() error {
 	return nil
 }
 
+// checkpointDurable checkpoints and flushes, so releaseNow can return the
+// pages the checkpoint replaced. The caller holds the writer lock.
+func (db *DB) checkpointDurable() error {
+	if err := db.checkpoint(); err != nil {
+		return err
+	}
+	st := db.cur.Load()
+	return db.syncThrough(st.seq, st.ckpt)
+}
+
 // releaseNow returns freed space no snapshot reads to the file system
 // without writing a record. The next commit record carries release marks at
 // least as high, so recovery repeats the release before reusing the space.
@@ -1268,24 +1284,24 @@ func (db *DB) releaseNow() error {
 
 // Sync makes every earlier commit durable.
 func (db *DB) Sync(ctx context.Context) error {
-	return db.syncThrough(db.cur.Load().seq)
+	return db.syncThrough(db.cur.Load().seq, 0)
 }
 
 // WaitDurable returns once every earlier commit is durable, flushing the
 // file when any is not. A flush from any process persists every process's
 // writes.
 func (db *DB) WaitDurable(ctx context.Context) error {
-	return db.syncThrough(db.cur.Load().seq)
+	return db.syncThrough(db.cur.Load().seq, 0)
 }
 
-// syncThrough returns once commit seq is durable. Commits share flushes: one
-// caller flushes for every commit published before its flush starts, and
-// callers arriving meanwhile wait for it, then flush the next group if it did
-// not cover them.
-func (db *DB) syncThrough(seq uint64) error {
+// syncThrough returns once commit seq and checkpoint ckpt are durable.
+// Commits share flushes: one caller flushes for every commit published before
+// its flush starts, and callers arriving meanwhile wait for it, then flush the
+// next group if it did not cover them.
+func (db *DB) syncThrough(seq, ckpt uint64) error {
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
-	for db.durable < seq {
+	for db.durable < seq || db.ckptDurable < ckpt {
 		// Wait for a running flush.
 		if db.flushing {
 			done := db.flushed
@@ -1295,8 +1311,8 @@ func (db *DB) syncThrough(seq uint64) error {
 			continue
 		}
 
-		// Flush every published commit.
-		target := db.cur.Load().seq
+		// Flush every published commit and the newest superblock.
+		target, ckpt := db.cur.Load().seq, db.ckptWritten
 		db.flushing, db.flushed = true, make(chan struct{})
 		db.mtx.Unlock()
 		err := flushDurable(db.f)
@@ -1307,6 +1323,7 @@ func (db *DB) syncThrough(seq uint64) error {
 			return err
 		}
 		db.durable = max(db.durable, target)
+		db.ckptDurable = max(db.ckptDurable, ckpt)
 	}
 	return nil
 }
@@ -1322,7 +1339,7 @@ func (db *DB) Close() error {
 	var err error
 	if ok, lerr := db.tryLockWriter(); lerr == nil && ok {
 		if err = db.catchUp(); err == nil {
-			err = db.checkpoint()
+			err = db.checkpointDurable()
 		}
 		if err == nil {
 			err = db.releaseNow()
