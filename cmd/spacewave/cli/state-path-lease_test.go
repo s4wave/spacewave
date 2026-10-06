@@ -325,8 +325,34 @@ func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
 	}
 }
 
-// TestStatePathLeaseHolderProcess holds the kernel runtime lease until its stdin
-// closes; a forced exit deliberately leaves bbolt's persistent metadata behind.
+// TestAcquireStatePathLeaseAfterProcessExit verifies that the system releases
+// the runtime lease when a holder dies without running its cleanup.
+func TestAcquireStatePathLeaseAfterProcessExit(t *testing.T) {
+	// Wait for another process to hold the runtime lease before killing it.
+	statePath := t.TempDir()
+	holder, _ := startStatePathLeaseHolder(t, statePath)
+	if err := holder.Process.Kill(); err != nil {
+		t.Fatalf("kill lease holder: %v", err)
+	}
+	var exitErr *exec.ExitError
+	if err := holder.Wait(); !errors.As(err, &exitErr) {
+		t.Fatalf("join killed lease holder: %v", err)
+	}
+
+	// Reacquire immediately after the process exit without repairing files.
+	lease, err := acquireStatePathLease(t.Context(), statePath, false)
+	if err != nil {
+		t.Fatalf("acquire state path after holder exit: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := lease.release(); err != nil {
+			t.Errorf("release replacement lease: %v", err)
+		}
+	})
+}
+
+// TestStatePathLeaseHolderProcess holds the runtime lease until its stdin
+// closes or the process is killed.
 func TestStatePathLeaseHolderProcess(t *testing.T) {
 	// Exit early when not running as the lease holder subprocess.
 	statePath := os.Getenv(statePathLeaseHolderEnv)

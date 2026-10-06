@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/rand/v2"
+	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -58,6 +59,9 @@ type DB struct {
 	retired []*state
 	// leases holds the lock bytes of this handle's leases and lease waits.
 	leases map[int64]struct{}
+	// lockWaits counts lease lock calls in progress. The file stays open
+	// until they return, so the system never grants a lock on a closed file.
+	lockWaits sync.WaitGroup
 	// closed is set once Close finishes.
 	closed bool
 
@@ -550,7 +554,8 @@ func (db *DB) WaitDurable(ctx context.Context) error {
 }
 
 // Close checkpoints when this handle can take the writer lock without
-// waiting, flushes, and closes the file. Transactions must end first.
+// waiting, flushes, and closes the file. Transactions must end and leases be
+// released first; Close waits for an abandoned lease wait to return.
 func (db *DB) Close() error {
 	// Stop the warm-up so its snapshot does not hold space, and let a
 	// background checkpoint finish.
@@ -586,8 +591,9 @@ func (db *DB) Close() error {
 		err = serr
 	}
 
-	// Close the watcher last: on darwin closing any descriptor of the file
-	// drops the process's record locks.
+	// Close the watcher last, once no lease lock call is pending: on darwin
+	// closing any descriptor of the file drops the process's record locks.
+	db.lockWaits.Wait()
 	db.watch.close()
 	if cerr := db.s.close(); err == nil {
 		err = cerr
