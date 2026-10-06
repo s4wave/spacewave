@@ -58,7 +58,7 @@ var (
 	// DevFsMount is the path we mount the system device files within the vm.
 	DevFsMount = "/dev"
 
-	// BDirMount is the path we mount the /b/ tree within the vm
+	// BDirMount is the path we mount the /b/ tree within the vm.
 	BDirMount = "/b"
 
 	// BDirWebPkgsMount is the path within BDir we mount the web pkgs within the vm.
@@ -364,7 +364,7 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		}
 		defer muxedConn.Close()
 
-		// Mount the device filesystem for async output.
+		// Mount the device filesystem for async output and secure randomness.
 
 		// NOTE stdin is currently the only fd which implements Poll.
 		// all other fds will call and block on read() (blocking I/O only).

@@ -3,323 +3,149 @@
 package plugin_host_wazero_quickjs
 
 import (
+	"crypto/rand"
 	"io"
 	"io/fs"
-	"time"
 
 	wazero_exp_sys "github.com/tetratelabs/wazero/experimental/sys"
 	wazero_sys "github.com/tetratelabs/wazero/sys"
 )
 
-// devFS implements a minimal /dev filesystem for QuickJS I/O operations.
-// It provides /dev/out as a write-only file for async output.
+// devFS is the /dev filesystem of a QuickJS plugin. QuickJS has no host
+// bindings beyond WASI files, so devices carry what the plugin needs from the
+// host:
+//
+//	out:     write-only, the plugin's async output stream.
+//	urandom: read-only, cryptographically secure random bytes.
 type devFS struct {
-	writer io.Writer
+	wazero_exp_sys.UnimplementedFS
+	out io.Writer
 }
 
-// newDevFS creates a new devFS with the given writer for /dev/out.
-func newDevFS(writer io.Writer) *devFS {
-	return &devFS{writer: writer}
+// newDevFS creates a devFS that writes /dev/out to out.
+func newDevFS(out io.Writer) *devFS {
+	return &devFS{out: out}
 }
 
-// OpenFile opens a file in the /dev filesystem.
-func (d *devFS) OpenFile(name string, flag wazero_exp_sys.Oflag, perm fs.FileMode) (wazero_exp_sys.File, wazero_exp_sys.Errno) {
+// devEntries lists the /dev directory.
+var devEntries = []wazero_exp_sys.Dirent{
+	{Name: "out", Type: fs.ModeCharDevice},
+	{Name: "urandom", Type: fs.ModeCharDevice},
+}
+
+// OpenFile opens the /dev directory or one of its devices.
+func (d *devFS) OpenFile(name string, flag wazero_exp_sys.Oflag, _ fs.FileMode) (wazero_exp_sys.File, wazero_exp_sys.Errno) {
+	writable := flag&(wazero_exp_sys.O_WRONLY|wazero_exp_sys.O_RDWR) != 0
 	switch name {
 	case ".":
-		// /dev directory - read-only
-		if flag&(wazero_exp_sys.O_WRONLY|wazero_exp_sys.O_RDWR) != 0 {
+		if writable {
 			return nil, wazero_exp_sys.EACCES
 		}
-		return &DevDirFile{}, 0
+		return &devDirFile{}, 0
 	case "out":
-		return &DevOutFile{writer: d.writer}, 0
+		return &devOutFile{w: d.out}, 0
+	case "urandom":
+		if writable {
+			return nil, wazero_exp_sys.EACCES
+		}
+		return &devRandomFile{}, 0
 	default:
 		return nil, wazero_exp_sys.ENOENT
 	}
 }
 
-// Lstat returns file status for /dev files.
+// Lstat returns the status of the /dev directory or one of its devices.
 func (d *devFS) Lstat(name string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 	switch name {
 	case ".":
-		return wazero_sys.Stat_t{
-			Mode: fs.ModeDir | 0o555, // read-only directory
-			Size: 0,
-		}, 0
+		return devDirStat, 0
 	case "out":
-		return wazero_sys.Stat_t{
-			Mode: fs.ModeCharDevice | 0o200, // write-only character device
-			Size: 0,
-		}, 0
+		return devOutStat, 0
+	case "urandom":
+		return devRandomStat, 0
 	default:
 		return wazero_sys.Stat_t{}, wazero_exp_sys.ENOENT
 	}
 }
 
-// Stat returns file status for /dev files (same as Lstat for this implementation).
+// Stat returns the same status as Lstat: /dev has no links.
 func (d *devFS) Stat(name string) (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
 	return d.Lstat(name)
 }
 
-// Mkdir is not supported in /dev.
-func (d *devFS) Mkdir(name string, perm fs.FileMode) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
+var (
+	devDirStat    = wazero_sys.Stat_t{Mode: fs.ModeDir | 0o555}
+	devOutStat    = wazero_sys.Stat_t{Mode: fs.ModeCharDevice | 0o200}
+	devRandomStat = wazero_sys.Stat_t{Mode: fs.ModeCharDevice | 0o444}
+)
+
+// devDirFile is the open /dev directory.
+type devDirFile struct {
+	wazero_exp_sys.UnimplementedFile
+	// read is the number of entries Readdir already returned.
+	read int
 }
 
-// Chmod is not supported in /dev.
-func (d *devFS) Chmod(name string, perm fs.FileMode) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Rename is not supported in /dev.
-func (d *devFS) Rename(from, to string) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Rmdir is not supported in /dev.
-func (d *devFS) Rmdir(name string) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Unlink is not supported in /dev.
-func (d *devFS) Unlink(name string) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Link is not supported in /dev.
-func (d *devFS) Link(oldname, newname string) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Symlink is not supported in /dev.
-func (d *devFS) Symlink(oldname, linkname string) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Readlink is not supported in /dev.
-func (d *devFS) Readlink(name string) (string, wazero_exp_sys.Errno) {
-	return "", wazero_exp_sys.ENOSYS
-}
-
-// Utimens is not supported in /dev.
-func (d *devFS) Utimens(name string, atim, mtim int64) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// _ is a type assertion
-var _ wazero_exp_sys.FS = (*devFS)(nil)
-
-// DevDirFile implements a read-only directory for /dev.
-type DevDirFile struct{}
-
-// Dev returns 0 for device ID.
-func (f *DevDirFile) Dev() (uint64, wazero_exp_sys.Errno) {
-	return 0, 0
-}
-
-// Ino returns 0 for inode number.
-func (f *DevDirFile) Ino() (wazero_sys.Inode, wazero_exp_sys.Errno) {
-	return 0, 0
-}
-
-// IsDir returns true as this is a directory.
-func (f *DevDirFile) IsDir() (bool, wazero_exp_sys.Errno) {
+// IsDir reports that /dev is a directory.
+func (f *devDirFile) IsDir() (bool, wazero_exp_sys.Errno) {
 	return true, 0
 }
 
-// IsAppend returns false as directories don't support append mode.
-func (f *DevDirFile) IsAppend() bool {
-	return false
+// Stat returns the status of the /dev directory.
+func (f *devDirFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
+	return devDirStat, 0
 }
 
-// SetAppend is not supported for directories.
-func (f *DevDirFile) SetAppend(enable bool) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Stat returns file status for /dev directory.
-func (f *DevDirFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
-	now := time.Now().UnixNano()
-	return wazero_sys.Stat_t{
-		Mode: fs.ModeDir | 0o555, // read-only directory
-		Size: 0,
-		Mtim: now,
-		Atim: now,
-		Ctim: now,
-	}, 0
-}
-
-// Read is not supported on directories.
-func (f *DevDirFile) Read(buf []byte) (int, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.EISDIR
-}
-
-// Pread is not supported on directories.
-func (f *DevDirFile) Pread(buf []byte, off int64) (int, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.EISDIR
-}
-
-// Seek is not supported on directories.
-func (f *DevDirFile) Seek(offset int64, whence int) (int64, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.ENOSYS
-}
-
-// Readdir returns directory entries for /dev.
-func (f *DevDirFile) Readdir(n int) ([]wazero_exp_sys.Dirent, wazero_exp_sys.Errno) {
-	entries := []wazero_exp_sys.Dirent{
-		{Name: "out", Type: fs.ModeCharDevice},
+// Readdir returns up to n of the remaining entries, or all of them when n <= 0.
+func (f *devDirFile) Readdir(n int) ([]wazero_exp_sys.Dirent, wazero_exp_sys.Errno) {
+	rest := devEntries[f.read:]
+	if n > 0 && n < len(rest) {
+		rest = rest[:n]
 	}
-
-	if n <= 0 {
-		return entries, 0
-	}
-
-	if n > len(entries) {
-		n = len(entries)
-	}
-
-	return entries[:n], 0
+	f.read += len(rest)
+	return rest, 0
 }
 
-// Write is not supported on directories.
-func (f *DevDirFile) Write(buf []byte) (int, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.EISDIR
+// devOutFile is the open /dev/out device.
+type devOutFile struct {
+	wazero_exp_sys.UnimplementedFile
+	w io.Writer
 }
 
-// Pwrite is not supported on directories.
-func (f *DevDirFile) Pwrite(buf []byte, off int64) (int, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.EISDIR
+// Stat returns the status of /dev/out.
+func (f *devOutFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
+	return devOutStat, 0
 }
 
-// Truncate is not supported on directories.
-func (f *DevDirFile) Truncate(size int64) wazero_exp_sys.Errno {
-	return wazero_exp_sys.EISDIR
-}
-
-// Sync is a no-op for directories.
-func (f *DevDirFile) Sync() wazero_exp_sys.Errno {
-	return 0
-}
-
-// Datasync is a no-op for directories.
-func (f *DevDirFile) Datasync() wazero_exp_sys.Errno {
-	return 0
-}
-
-// Utimens is not supported on directories.
-func (f *DevDirFile) Utimens(atim, mtim int64) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Close is a no-op for directories.
-func (f *DevDirFile) Close() wazero_exp_sys.Errno {
-	return 0
-}
-
-// DevOutFile implements a write-only file for /dev/out.
-type DevOutFile struct {
-	writer io.Writer
-}
-
-// Dev returns 0 for device ID.
-func (f *DevOutFile) Dev() (uint64, wazero_exp_sys.Errno) {
-	return 0, 0
-}
-
-// Ino returns 0 for inode number.
-func (f *DevOutFile) Ino() (wazero_sys.Inode, wazero_exp_sys.Errno) {
-	return 0, 0
-}
-
-// IsDir returns false as /dev/out is not a directory.
-func (f *DevOutFile) IsDir() (bool, wazero_exp_sys.Errno) {
-	return false, 0
-}
-
-// IsAppend returns false as /dev/out doesn't support append mode.
-func (f *DevOutFile) IsAppend() bool {
-	return false
-}
-
-// SetAppend is not supported for /dev/out.
-func (f *DevOutFile) SetAppend(enable bool) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Stat returns file status for /dev/out.
-func (f *DevOutFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
-	now := time.Now().UnixNano()
-	return wazero_sys.Stat_t{
-		Mode: fs.ModeCharDevice | 0o200, // write-only character device
-		Size: 0,
-		Mtim: now,
-		Atim: now,
-		Ctim: now,
-	}, 0
-}
-
-// Read is not supported on /dev/out (write-only).
-func (f *DevOutFile) Read(buf []byte) (int, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.EBADF
-}
-
-// Pread is not supported on /dev/out (write-only).
-func (f *DevOutFile) Pread(buf []byte, off int64) (int, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.EBADF
-}
-
-// Seek is not supported on /dev/out.
-func (f *DevOutFile) Seek(offset int64, whence int) (int64, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.ENOSYS
-}
-
-// Readdir is not supported on /dev/out (not a directory).
-func (f *DevOutFile) Readdir(n int) ([]wazero_exp_sys.Dirent, wazero_exp_sys.Errno) {
-	return nil, wazero_exp_sys.ENOTDIR
-}
-
-// Write writes data to the underlying writer.
-func (f *DevOutFile) Write(buf []byte) (int, wazero_exp_sys.Errno) {
-	n, err := f.writer.Write(buf)
+// Write writes buf to the plugin's output stream.
+func (f *devOutFile) Write(buf []byte) (int, wazero_exp_sys.Errno) {
+	n, err := f.w.Write(buf)
 	if err != nil {
 		return n, wazero_exp_sys.EIO
 	}
 	return n, 0
 }
 
-// Pwrite is not supported on /dev/out.
-func (f *DevOutFile) Pwrite(buf []byte, off int64) (int, wazero_exp_sys.Errno) {
-	return 0, wazero_exp_sys.ENOSYS
+// devRandomFile is the open /dev/urandom device.
+type devRandomFile struct {
+	wazero_exp_sys.UnimplementedFile
 }
 
-// Truncate is not supported on /dev/out.
-func (f *DevOutFile) Truncate(size int64) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
+// Stat returns the status of /dev/urandom.
+func (f *devRandomFile) Stat() (wazero_sys.Stat_t, wazero_exp_sys.Errno) {
+	return devRandomStat, 0
 }
 
-// Sync is a no-op for /dev/out.
-func (f *DevOutFile) Sync() wazero_exp_sys.Errno {
-	return 0
-}
-
-// Datasync is a no-op for /dev/out.
-func (f *DevOutFile) Datasync() wazero_exp_sys.Errno {
-	return 0
-}
-
-// Utimens is not supported on /dev/out.
-func (f *DevOutFile) Utimens(atim, mtim int64) wazero_exp_sys.Errno {
-	return wazero_exp_sys.ENOSYS
-}
-
-// Close is a no-op for /dev/out.
-func (f *DevOutFile) Close() wazero_exp_sys.Errno {
-	return 0
+// Read fills buf with random bytes from crypto/rand, which never fails.
+func (f *devRandomFile) Read(buf []byte) (int, wazero_exp_sys.Errno) {
+	rand.Read(buf)
+	return len(buf), 0
 }
 
 // _ is a type assertion
 var (
 	_ wazero_exp_sys.FS   = (*devFS)(nil)
-	_ wazero_exp_sys.File = (*DevDirFile)(nil)
-	_ wazero_exp_sys.File = (*DevOutFile)(nil)
+	_ wazero_exp_sys.File = (*devDirFile)(nil)
+	_ wazero_exp_sys.File = (*devOutFile)(nil)
+	_ wazero_exp_sys.File = (*devRandomFile)(nil)
 )
