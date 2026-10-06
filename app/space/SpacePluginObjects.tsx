@@ -41,7 +41,7 @@ export function SpacePluginObjects({
     } catch (cause) {
       if (!signal.aborted) setError(String(cause))
     } finally {
-      if (!signal.aborted) setPending(false)
+      setPending(false)
     }
   }
 
