@@ -16,6 +16,12 @@ import (
 // which every replay starts from.
 const replayBaseRootName = "replay-base"
 
+// replaySpanRootName names the local root that holds the World after every
+// replayed operation above the checkpoint. A member replaying from the
+// checkpoint reads each of them, while the head may no longer reach an object
+// root that an operation created and a later operation replaced.
+const replaySpanRootName = "replay-span"
+
 // replayCursorStoreID is the local state store holding the saved replay.
 const replayCursorStoreID = "world-replay"
 
@@ -44,6 +50,9 @@ type replayPosition struct {
 	// state is the World after the operation. A position restored from a
 	// saved replay keeps it only for the last position.
 	state *InnerState
+	// world is the root block of the World after the operation. A restored
+	// position keeps it.
+	world *block.BlockRef
 }
 
 // replayFork is a local write computed on the World after the first index
@@ -242,6 +251,7 @@ func (r *replayer) load(ctx context.Context) error {
 			conflict: outcome.GetConflict(),
 			revoked:  outcome.GetRevoked(),
 		}
+		r.positions[i].world = outcome.GetWorld()
 		if outcome.GetReason() == "" || outcome.GetRevoked() {
 			r.markApplied(outcome.GetHash())
 		}
@@ -253,13 +263,18 @@ func (r *replayer) load(ctx context.Context) error {
 	return nil
 }
 
-// save writes the replay to the local state of the World when it changed. The
-// caller holds the World after the replay, so a later load resumes from a
-// World whose blocks are kept.
+// save holds the World after every position and writes the replay to the
+// local state of the World when it changed. The caller holds the World after
+// the replay, so a later load resumes from a World whose blocks are kept.
 func (r *replayer) save(ctx context.Context) error {
 	// Skip an unchanged replay.
 	if !r.changed {
 		return nil
+	}
+
+	// Hold the Worlds a replay from the checkpoint reads.
+	if err := r.holdSpan(ctx); err != nil {
+		return err
 	}
 
 	// Encode the base, the outcomes and the World after them.
@@ -275,6 +290,7 @@ func (r *replayer) save(ctx context.Context) error {
 			Reason:   pos.outcome.reason,
 			Conflict: pos.outcome.conflict,
 			Revoked:  pos.outcome.revoked,
+			World:    pos.world,
 		}
 	}
 	data, err := cursor.MarshalVT()
@@ -297,6 +313,34 @@ func (r *replayer) save(ctx context.Context) error {
 	}
 	r.changed = false
 	return nil
+}
+
+// holdSpan holds the World after every position under replaySpanRootName,
+// releasing the Worlds of positions a checkpoint now covers.
+func (r *replayer) holdSpan(ctx context.Context) error {
+	// Collect each World once, in replay order. A rejected operation leaves
+	// the World of the position before it.
+	store := r.so.GetBlockStore()
+	if !block.SupportsRootRetention(store) {
+		return nil
+	}
+	var worlds []*block.BlockRef
+	for _, pos := range r.positions {
+		if pos.world.GetEmpty() || (len(worlds) != 0 && worlds[len(worlds)-1].EqualsRef(pos.world)) {
+			continue
+		}
+		worlds = append(worlds, pos.world)
+	}
+	if len(worlds) == 0 {
+		return block.SetRetainedRoot(ctx, store, replaySpanRootName, nil)
+	}
+
+	// Store the span block referencing them and hold it.
+	data, err := (&ReplaySpan{Worlds: worlds}).MarshalVT()
+	if err != nil {
+		return err
+	}
+	return holdRefBlock(ctx, store, replaySpanRootName, data, worlds)
 }
 
 // head returns the replay base and the World after the last replayed position,
@@ -385,6 +429,7 @@ func (r *replayer) replay(
 // worldLost reports whether the root block of the World state is missing from
 // the block store.
 func (r *replayer) worldLost(ctx context.Context, state *InnerState) bool {
+	// Bind the World root; only a missing block counts as lost.
 	head := state.GetHeadRef()
 	if head.GetEmpty() {
 		return false
@@ -405,7 +450,7 @@ func (r *replayer) place(outcome replayOutcome, state *InnerState) {
 	} else {
 		_, outcome.revoked = r.applied[string(outcome.hash)]
 	}
-	r.positions = append(r.positions, replayPosition{outcome: outcome, state: state})
+	r.positions = append(r.positions, replayPosition{outcome: outcome, state: state, world: state.GetHeadRef().GetRootRef()})
 }
 
 // markApplied records that this device applied the operation with hash h.

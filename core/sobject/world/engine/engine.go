@@ -534,19 +534,6 @@ func (e *soEngine) queueOperation(ctx context.Context, opData []byte, fork *repl
 	return nil
 }
 
-// acknowledge queues an acknowledgment after every write transaction this
-// device has started.
-func (e *soEngine) acknowledge(ctx context.Context) error {
-	// Queue it under the writer lock.
-	unlockWriteMtx, err := e.c.writeMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer unlockWriteMtx()
-	_, err = e.so.QueueOperation(ctx, nil)
-	return err
-}
-
 // updateEngineState installs a replayed World, holds it and its retained roots
 // in this participant's block store, and saves the replay that reached it. The
 // caller holds the writer lock.

@@ -139,6 +139,24 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer soStateCtrRel()
 
+	// Acknowledge the edits this device holds and restore returning devices
+	// to the trimming roster while the shared object is mounted. A device
+	// whose replay stalls on a missing block still acknowledges, so the
+	// checkpointer can checkpoint past the stall and the device can resume
+	// from that checkpoint.
+	go func() {
+		if err := sobject.Acknowledge(rctx, so, c.acknowledger(so)); err != nil && rctx.Err() == nil {
+			le.WithError(err).Warn("stopped acknowledging edits")
+		}
+	}()
+	if roster, ok := so.(sobject.RosterHost); ok {
+		go func() {
+			if err := sobject.RestoreRoster(rctx, so, roster); err != nil && rctx.Err() == nil {
+				le.WithError(err).Warn("stopped restoring returning devices")
+			}
+		}()
+	}
+
 	// Serve the World while this participant can replay it. A participant
 	// that loses read access waits for readmission or a missing grant here:
 	// restarting through the controller backoff would report the stale denial
@@ -226,25 +244,10 @@ func (c *Controller) executeWorld(
 	c.engineCtr.SetValue(&wengine)
 	defer c.engineCtr.SetValue(nil)
 
-	// Acknowledge the edits this device builds on and restore returning
-	// devices to the trimming roster while it serves the World.
+	// Order the Space as its main device, vote in the group's decisions and
+	// reclaim storage while the World is served.
 	bgCtx, bgCancel := context.WithCancel(ctx)
 	defer bgCancel()
-	go func() {
-		if err := sobject.Acknowledge(bgCtx, so, engine.acknowledge); err != nil && bgCtx.Err() == nil {
-			le.WithError(err).Warn("stopped acknowledging edits")
-		}
-	}()
-	if roster, ok := so.(sobject.RosterHost); ok {
-		go func() {
-			if err := sobject.RestoreRoster(bgCtx, so, roster); err != nil && bgCtx.Err() == nil {
-				le.WithError(err).Warn("stopped restoring returning devices")
-			}
-		}()
-	}
-
-	// Order the Space as its main device, vote in the group's decisions and
-	// reclaim storage.
 	if mainDevice, ok := so.(sobject.MainDevice); ok {
 		go func() {
 			if err := sobject.Sequence(bgCtx, so, mainDevice.SequenceOperations); err != nil && bgCtx.Err() == nil {
@@ -271,6 +274,21 @@ func (c *Controller) executeWorld(
 
 	// Follow the operation set into the World.
 	return c.executeWatchSOState(ctx, soStateCtr, engine)
+}
+
+// acknowledger returns the acknowledgment write for so: it queues an empty
+// operation after every write transaction this device has started.
+func (c *Controller) acknowledger(so sobject.SharedObject) func(context.Context) error {
+	return func(ctx context.Context) error {
+		// Queue it under the writer lock.
+		unlockWriteMtx, err := c.writeMtx.Lock(ctx)
+		if err != nil {
+			return err
+		}
+		defer unlockWriteMtx()
+		_, err = so.QueueOperation(ctx, nil)
+		return err
+	}
 }
 
 // HandleDirective asks if the handler can resolve the directive.

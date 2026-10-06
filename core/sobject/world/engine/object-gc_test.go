@@ -11,6 +11,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/s4wave/spacewave/core/bstore"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -45,6 +46,27 @@ type spaceWorld struct {
 	vol      volume.Volume
 	rg       block_gc.RefGraphOps
 	bucket   string
+}
+
+// freshMember is a Space SharedObject seen by a member that has decoded none
+// of its blocks, so its replay reads every block from the store.
+type freshMember struct {
+	sobject.SharedObject
+}
+
+// GetBlockStore returns the block store without its decoded block cache.
+func (m freshMember) GetBlockStore() bstore.BlockStore {
+	return uncachedStore{m.SharedObject.GetBlockStore()}
+}
+
+// uncachedStore is a block store with no decoded block cache.
+type uncachedStore struct {
+	bstore.BlockStore
+}
+
+// GetDecodedBlockCache returns nil, so each reader decodes from the store.
+func (uncachedStore) GetDecodedBlockCache() *block.DecodedBlockCache {
+	return nil
 }
 
 // newSpaceWorld starts a World engine on a new local Space SharedObject.
@@ -87,9 +109,12 @@ func newSpaceWorld(ctx context.Context, t *testing.T) *spaceWorld {
 		t.Fatal(err)
 	}
 
-	// Start the World engine on the SharedObject.
+	// Start the World engine on the SharedObject without a changelog, as a
+	// Space does, so replaced roots are unreachable from the head.
 	engineID := "file-gc-engine"
-	ctrl, _, ctrlRef, err := sobject_world_engine.StartEngineWithConfig(ctx, tb.Bus, sobject_world_engine.NewConfig(engineID, soRef), nil)
+	conf := sobject_world_engine.NewConfig(engineID, soRef)
+	conf.InitWorldOp = &sobject_world_engine.InitWorldOp{LastChangeDisable: true}
+	ctrl, _, ctrlRef, err := sobject_world_engine.StartEngineWithConfig(ctx, tb.Bus, conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +356,7 @@ func TestWorldEngineKeepsOperationPayloads(t *testing.T) {
 
 	// Replay it from the checkpoint, as another member does.
 	le := logrus.NewEntry(logrus.New())
-	replayed, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, le, w.bus, so, w.engineID, unixfs_world.LookupFsOp, snap)
+	replayed, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, le, w.bus, freshMember{so}, w.engineID, unixfs_world.LookupFsOp, snap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,6 +364,77 @@ func TestWorldEngineKeepsOperationPayloads(t *testing.T) {
 
 	// The replayed World holds the appended content.
 	if err := world.ExecTransaction(ctx, replayed, false, checkFile); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// editRecord applies a mock object op to object "record", which reads the
+// object's root when it applies.
+func (w *spaceWorld) editRecord(ctx context.Context, ws world.WorldState) error {
+	// Apply the op to the existing object.
+	obj, err := world.MustGetObject(ctx, ws, "record")
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return err
+	}
+	_, _, err = obj.ApplyObjectOp(ctx, world_mock.NewMockObjectOp("edited"), w.sender)
+	return err
+}
+
+// TestWorldEngineKeepsReplacedObjectRoots checks that an object root a later
+// write replaced survives a sweep while the operations that read it are above
+// the checkpoint, so a replay from the checkpoint reaches the head. The head
+// reaches only the last root of the object.
+func TestWorldEngineKeepsReplacedObjectRoots(t *testing.T) {
+	// Start the Space World.
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	w := newSpaceWorld(ctx, t)
+
+	// Create the object, edit it with an operation that reads its root,
+	// replace its root, then sweep everything unreferenced.
+	writes := []func(context.Context, world.WorldState) error{
+		func(ctx context.Context, ws world.WorldState) error {
+			return writeExample(ctx, ws, "record", "created")
+		},
+		w.editRecord,
+		func(ctx context.Context, ws world.WorldState) error {
+			return writeExample(ctx, ws, "record", "replaced")
+		},
+	}
+	for _, write := range writes {
+		if err := world.ExecTransaction(ctx, w.eng, true, write); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := block_gc.NewCollector(w.rg, w.vol, nil).Collect(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the Space's operation set.
+	so, soRef, err := sobject.ExMountSharedObject(ctx, w.bus, w.soRef, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer soRef.Release()
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Replay it from the checkpoint, as another member does.
+	le := logrus.NewEntry(logrus.New())
+	replayed, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, le, w.bus, freshMember{so}, w.engineID, world_mock.LookupMockObjectOp, snap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	// The replayed World holds the last root.
+	err = world.ExecTransaction(ctx, replayed, false, func(ctx context.Context, ws world.WorldState) error {
+		return checkExample(ctx, ws, "record", "replaced")
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 }

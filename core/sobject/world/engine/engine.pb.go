@@ -188,6 +188,8 @@ type ReplayCursorOutcome struct {
 	// Revoked is set when the operation is not applied but an earlier replay on
 	// this device applied it.
 	Revoked bool `protobuf:"varint,4,opt,name=revoked,proto3" json:"revoked,omitempty"`
+	// World is the root block of the World after the operation.
+	World *block.BlockRef `protobuf:"bytes,5,opt,name=world,proto3" json:"world,omitempty"`
 }
 
 func (x *ReplayCursorOutcome) Reset() {
@@ -222,6 +224,35 @@ func (x *ReplayCursorOutcome) GetRevoked() bool {
 		return x.Revoked
 	}
 	return false
+}
+
+func (x *ReplayCursorOutcome) GetWorld() *block.BlockRef {
+	if x != nil {
+		return x.World
+	}
+	return nil
+}
+
+// ReplaySpan is the block each member keeps as its one local named root for
+// the Worlds after the replayed operations above the checkpoint. Its outgoing
+// refs are those Worlds.
+type ReplaySpan struct {
+	unknownFields []byte
+	// Worlds are the World root blocks in replay order.
+	Worlds []*block.BlockRef `protobuf:"bytes,1,rep,name=worlds,proto3" json:"worlds,omitempty"`
+}
+
+func (x *ReplaySpan) Reset() {
+	*x = ReplaySpan{}
+}
+
+func (*ReplaySpan) ProtoMessage() {}
+
+func (x *ReplaySpan) GetWorlds() []*block.BlockRef {
+	if x != nil {
+		return x.Worlds
+	}
+	return nil
 }
 
 // RetainedRoot is a past World root kept restorable under a name.
@@ -494,6 +525,7 @@ func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
 	r.Conflict = m.Conflict
 	r.Revoked = m.Revoked
 	r.Hash = protobuf_go_lite.CloneBytes(m.Hash)
+	r.World = protobuf_go_lite.CloneVTValue(m.World)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -501,6 +533,22 @@ func (m *ReplayCursorOutcome) CloneVT() *ReplayCursorOutcome {
 }
 
 func (m *ReplayCursorOutcome) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReplaySpan) CloneVT() *ReplaySpan {
+	if m == nil {
+		return (*ReplaySpan)(nil)
+	}
+	r := new(ReplaySpan)
+	r.Worlds = protobuf_go_lite.CloneVTSlice(m.Worlds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReplaySpan) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -749,11 +797,34 @@ func (this *ReplayCursorOutcome) EqualVT(that *ReplayCursorOutcome) bool {
 	if this.Revoked != that.Revoked {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.World, that.World) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ReplayCursorOutcome) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ReplayCursorOutcome)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReplaySpan) EqualVT(that *ReplaySpan) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Worlds, that.Worlds, func() *block.BlockRef { return &block.BlockRef{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReplaySpan) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReplaySpan)
 	if !ok {
 		return false
 	}
@@ -1235,6 +1306,11 @@ func (x *ReplayCursorOutcome) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("revoked")
 		s.WriteBool(x.Revoked)
 	}
+	if x.World != nil || s.HasField("world") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("world")
+		x.World.MarshalProtoJSON(s.WithField("world"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1264,12 +1340,82 @@ func (x *ReplayCursorOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "revoked":
 			s.AddField("revoked")
 			x.Revoked = s.ReadBool()
+		case "world":
+			if s.ReadNil() {
+				x.World = nil
+				return
+			}
+			x.World = &block.BlockRef{}
+			x.World.UnmarshalProtoJSON(s.WithField("world", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ReplayCursorOutcome from JSON.
 func (x *ReplayCursorOutcome) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReplaySpan message to JSON.
+func (x *ReplaySpan) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Worlds) > 0 || s.HasField("worlds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("worlds")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Worlds {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("worlds"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReplaySpan to JSON.
+func (x *ReplaySpan) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReplaySpan message from JSON.
+func (x *ReplaySpan) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "worlds":
+			s.AddField("worlds")
+			if s.ReadNil() {
+				x.Worlds = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Worlds = append(x.Worlds, nil)
+					return
+				}
+				v := &block.BlockRef{}
+				v.UnmarshalProtoJSON(s.WithField("worlds", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Worlds = append(x.Worlds, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReplaySpan from JSON.
+func (x *ReplaySpan) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1845,6 +1991,16 @@ func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.World != nil {
+		size, err := m.World.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.Revoked {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Revoked)
 		i--
@@ -1864,6 +2020,50 @@ func (m *ReplayCursorOutcome) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Hash)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReplaySpan) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReplaySpan) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReplaySpan) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Worlds) > 0 {
+		for iNdEx := len(m.Worlds) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Worlds[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -2281,6 +2481,24 @@ func (m *ReplayCursorOutcome) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Conflict)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Revoked)
+	if m.World != nil {
+		l = m.World.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReplaySpan) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Worlds {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2529,10 +2747,36 @@ func (x *ReplayCursorOutcome) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revoked")
 		protobuf_go_lite.TextWriteBool(&sb, x.Revoked)
 	}
+	if x.World != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "world")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.World)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ReplayCursorOutcome) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReplaySpan) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReplaySpan")
+	if len(x.Worlds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "worlds")
+		for i, v := range x.Worlds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &block.BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReplaySpan) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2997,6 +3241,77 @@ func (m *ReplayCursorOutcome) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Revoked = bool(v)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field World", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.World == nil {
+				m.World = &block.BlockRef{}
+			}
+			if err := m.World.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReplaySpan) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReplaySpan: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReplaySpan: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Worlds", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Worlds = append(m.Worlds, &block.BlockRef{})
+			if err := m.Worlds[len(m.Worlds)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

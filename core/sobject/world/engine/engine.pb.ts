@@ -232,6 +232,12 @@ export interface ReplayCursorOutcome {
    * @generated from field: bool revoked = 4;
    */
   revoked?: boolean
+  /**
+   * World is the root block of the World after the operation.
+   *
+   * @generated from field: block.BlockRef world = 5;
+   */
+  world?: BlockRef
 }
 
 export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
@@ -242,6 +248,7 @@ export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
       { no: 2, name: 'reason', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'conflict', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'revoked', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'world', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -287,6 +294,36 @@ export const ReplayCursor: MessageType<ReplayCursor> =
         repeated: true,
       },
       { no: 3, name: 'head', kind: 'message', T: InnerState },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReplaySpan is the block each member keeps as its one local named root for
+ * the Worlds after the replayed operations above the checkpoint. Its outgoing
+ * refs are those Worlds.
+ *
+ * @generated from message sobject.world.engine.ReplaySpan
+ */
+export interface ReplaySpan {
+  /**
+   * Worlds are the World root blocks in replay order.
+   *
+   * @generated from field: repeated block.BlockRef worlds = 1;
+   */
+  worlds?: BlockRef[]
+}
+
+export const ReplaySpan: MessageType<ReplaySpan> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.world.engine.ReplaySpan',
+    fields: [
+      {
+        no: 1,
+        name: 'worlds',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

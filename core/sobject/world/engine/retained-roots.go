@@ -131,17 +131,22 @@ func holdRootSet(ctx context.Context, so sobject.SharedObject, name string, root
 	if err != nil {
 		return err
 	}
-	setRef, err := block.BuildBlockRef(data, nil)
+	return holdRefBlock(ctx, store, name, data, refs)
+}
+
+// holdRefBlock stores data as a block whose outgoing refs are refs and holds
+// it under the local root name, so the store keeps every block refs reach.
+func holdRefBlock(ctx context.Context, store block.StoreOps, name string, data []byte, refs []*block.BlockRef) error {
+	// Store the block with its outgoing refs and hold it.
+	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		return err
 	}
-
-	// Store the set block and hold it.
-	entry := &block.PutBatchEntry{Ref: setRef, Data: data, Refs: refs}
+	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs}
 	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 		return err
 	}
-	return block.SetRetainedRoot(ctx, store, name, setRef)
+	return block.SetRetainedRoot(ctx, store, name, ref)
 }
 
 // copyWorlds copies the complete World graph of each root into the local

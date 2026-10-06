@@ -77,6 +77,16 @@ message ReplayCursorOutcome {
   // Revoked is set when the operation is not applied but an earlier replay on
   // this device applied it.
   bool revoked = 4;
+  // World is the root block of the World after the operation.
+  .block.BlockRef world = 5;
+}
+
+// ReplaySpan is the block each member keeps as its one local named root for
+// the Worlds after the replayed operations above the checkpoint. Its outgoing
+// refs are those Worlds.
+message ReplaySpan {
+  // Worlds are the World root blocks in replay order.
+  repeated .block.BlockRef worlds = 1;
 }
 
 // RetainedRoot is a past World root kept restorable under a name.
