@@ -4,9 +4,9 @@
 // The workload mixes durable and ordered key-value commits, block puts and
 // removes, journal appends, and syncs. A durable commit or sync makes the whole
 // live state durable. An ordered commit may survive a crash only after every
-// ordered commit before it, and block writes survive only through a later
-// commit that publishes them. The commit a crash interrupts may or may not
-// survive.
+// ordered commit before it, and block writes survive when they return or
+// only through a later commit that publishes them, depending on the target.
+// The commit a crash interrupts may or may not survive.
 package crashtest
 
 import (
@@ -44,7 +44,18 @@ const (
 	DurableBlocks Blocks = iota
 	// AllBlocks targets publish pending blocks with every commit.
 	AllBlocks
+	// ImmediateBlocks targets make each block write and remove durable,
+	// with every commit before it, before it returns.
+	ImmediateBlocks
 )
+
+// writeCommit returns how a block write or remove commits on the target.
+func (b Blocks) writeCommit() commitKind {
+	if b == ImmediateBlocks {
+		return commitDurable
+	}
+	return commitNone
+}
 
 // Device is storage that crashes and loses power on request.
 type Device interface {
@@ -202,12 +213,12 @@ func runWorkload(ctx context.Context, s Target, blocks Blocks, seed uint64) ([]s
 			i := rng.IntN(blockSpace)
 			nextLive.blocks[i] = true
 			_, _, err = s.PutBlock(ctx, blockData(i), nil)
-			commit = commitNone
+			commit = blocks.writeCommit()
 		case 3:
 			i := rng.IntN(blockSpace)
 			delete(nextLive.blocks, i)
 			err = s.RmBlock(ctx, blockRef(i))
-			commit = commitNone
+			commit = blocks.writeCommit()
 		case 4:
 			nextLive.journal++
 			edge := block_gc.RefEdge{Subject: "s" + strconv.Itoa(step), Object: "o"}

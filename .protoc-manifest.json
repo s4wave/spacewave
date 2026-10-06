@@ -2487,6 +2487,16 @@
         "db/volume/rpc/server/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/db/volume/s4db": {
+      "hash": "4e6cc71f0e815fd48c78269ac87663ce5416cabf568807a63c4e37a27c9ee9c1",
+      "generatedFiles": [
+        "db/volume/s4db/s4db.pb.go",
+        "db/volume/s4db/s4db.pb.ts"
+      ],
+      "protoFiles": [
+        "db/volume/s4db/s4db.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/db/volume/sqlite": {
       "hash": "75b27dbd647620e5c5f21e604593e441ff75eecf9f39cb8ac92bf96355aaedfc",
       "generatedFiles": [
