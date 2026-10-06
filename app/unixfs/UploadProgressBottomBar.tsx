@@ -1,3 +1,4 @@
+import type { IconType } from 'react-icons'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LuCheck, LuCircleAlert, LuFolder, LuUpload, LuX } from 'react-icons/lu'
 
@@ -176,6 +177,77 @@ function SummaryCell({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** uploadStatusLabel returns the status text of an upload item. */
+function uploadStatusLabel(item: UploadItem): string {
+  switch (item.status) {
+    case 'uploading':
+      return 'Uploading'
+    case 'queued':
+      return 'Queued'
+    case 'done':
+      return 'Complete'
+    default:
+      return formatUploadError(item.error) ?? 'Failed'
+  }
+}
+
+/** UploadItemAction shows the cancel, complete, or dismiss control of an upload item. */
+function UploadItemAction({
+  item,
+  onCancel,
+}: {
+  item: UploadItem
+  onCancel: (id: string) => void
+}) {
+  const handleCancel = useCallback(() => {
+    onCancel(item.id)
+  }, [item.id, onCancel])
+
+  if (item.status === 'done') {
+    return <LuCheck className="size-4 text-green-500" />
+  }
+  const dismissing = item.status === 'error'
+  return (
+    <button
+      type="button"
+      className="text-foreground-alt hover:text-foreground"
+      onClick={handleCancel}
+      title={dismissing ? 'Dismiss' : 'Cancel'}
+    >
+      <LuX className={cn('size-4', dismissing && 'text-destructive')} />
+    </button>
+  )
+}
+
+/** UploadItemProgress renders the progress bar with the byte and percent counts. */
+function UploadItemProgress({ item }: { item: UploadItem }) {
+  const progress =
+    item.totalSize > 0
+      ? Math.round((item.bytesWritten / item.totalSize) * 100)
+      : 0
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="bg-muted h-1.5 min-w-40 flex-1 overflow-hidden rounded-full">
+        <div
+          className="bg-brand upload-progress-width progress-width-transition h-full rounded-full"
+          style={{ '--upload-progress-width': `${progress}%` }}
+        />
+      </div>
+      <span className="text-foreground-alt text-xs tabular-nums">
+        {formatBytes(
+          item.status === 'done' ? item.totalSize : item.bytesWritten,
+        )}
+        {' / '}
+        {formatBytes(item.totalSize)}
+      </span>
+      <span className="text-foreground-alt text-xs tabular-nums">
+        {progress}%
+      </span>
+    </div>
+  )
+}
+
 // UploadItemRow renders a single upload item row.
 function UploadItemRow({
   item,
@@ -186,24 +258,7 @@ function UploadItemRow({
   onCancel: (id: string) => void
   onOpenStorageHealth?: () => void
 }) {
-  const progress =
-    item.totalSize > 0
-      ? Math.round((item.bytesWritten / item.totalSize) * 100)
-      : 0
-
-  const handleCancel = useCallback(() => {
-    onCancel(item.id)
-  }, [item.id, onCancel])
   const quotaError = isStorageQuotaError(item.error)
-
-  const statusLabel =
-    item.status === 'uploading'
-      ? 'Uploading'
-      : item.status === 'queued'
-        ? 'Queued'
-        : item.status === 'done'
-          ? 'Complete'
-          : (formatUploadError(item.error) ?? 'Failed')
 
   return (
     <div className="border-popover-border flex items-start gap-3 border-t px-5 py-4 first:border-t-0">
@@ -231,7 +286,7 @@ function UploadItemRow({
                 'text-foreground-alt',
             )}
           >
-            {statusLabel}
+            {uploadStatusLabel(item)}
           </span>
         </div>
         {quotaError && onOpenStorageHealth && (
@@ -244,90 +299,73 @@ function UploadItemRow({
           </button>
         )}
         <div className="text-foreground-alt truncate text-xs">{item.path}</div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-muted h-1.5 min-w-40 flex-1 overflow-hidden rounded-full">
-            <div
-              className="bg-brand upload-progress-width progress-width-transition h-full rounded-full"
-              style={{ '--upload-progress-width': `${progress}%` }}
-            />
-          </div>
-          <span className="text-foreground-alt text-xs tabular-nums">
-            {formatBytes(
-              item.status === 'done' ? item.totalSize : item.bytesWritten,
-            )}
-            {' / '}
-            {formatBytes(item.totalSize)}
-          </span>
-          <span className="text-foreground-alt text-xs tabular-nums">
-            {progress}%
-          </span>
-        </div>
+        <UploadItemProgress item={item} />
       </div>
       <div className="flex size-8 flex-shrink-0 items-center justify-center">
-        {(item.status === 'uploading' || item.status === 'queued') && (
-          <button
-            type="button"
-            className="text-foreground-alt hover:text-foreground"
-            onClick={handleCancel}
-            title="Cancel"
-          >
-            <LuX className="size-4" />
-          </button>
-        )}
-        {item.status === 'done' && (
-          <LuCheck className="size-4 text-green-500" />
-        )}
-        {item.status === 'error' && (
-          <button
-            type="button"
-            className="text-foreground-alt hover:text-foreground"
-            onClick={handleCancel}
-            title="Dismiss"
-          >
-            <LuX className="text-destructive size-4" />
-          </button>
-        )}
+        <UploadItemAction item={item} onCancel={onCancel} />
       </div>
     </div>
   )
 }
 
+type UploadFeedbackTone = 'started' | 'complete' | 'errors'
+
+interface UploadFeedbackCopy {
+  tone: UploadFeedbackTone
+  title: string
+  detail: string
+}
+
+/** uploadFeedbackCopy returns the tone and text for an upload lifecycle event. */
+function uploadFeedbackCopy(feedback: UploadEvent): UploadFeedbackCopy {
+  const files = feedback.fileCount === 1 ? 'file' : 'files'
+  if (feedback.kind === 'started') {
+    return {
+      tone: 'started',
+      title: 'Upload started',
+      detail: `Uploading ${feedback.fileCount} ${files}. Track progress here.`,
+    }
+  }
+  if (feedback.errorCount > 0) {
+    return {
+      tone: 'errors',
+      title: 'Upload finished with errors',
+      detail: `${feedback.fileCount} uploaded, ${feedback.errorCount} failed.`,
+    }
+  }
+  return {
+    tone: 'complete',
+    title: 'Upload complete',
+    detail: `${feedback.fileCount} ${files} added to this folder.`,
+  }
+}
+
+const feedbackToneClassName: Record<UploadFeedbackTone, string> = {
+  started: 'bg-brand/10 text-brand',
+  complete: 'bg-green-500/10 text-green-500',
+  errors: 'bg-destructive/10 text-destructive',
+}
+
+const FeedbackToneIcon: Record<UploadFeedbackTone, IconType> = {
+  started: LuUpload,
+  complete: LuCheck,
+  errors: LuCircleAlert,
+}
+
 // UploadFeedbackContent renders the anchored start/completion notification copy.
 function UploadFeedbackContent({ feedback }: { feedback: UploadEvent }) {
-  const started = feedback.kind === 'started'
-  const hasErrors = feedback.errorCount > 0
-  const title = started
-    ? 'Upload started'
-    : hasErrors
-      ? 'Upload finished with errors'
-      : 'Upload complete'
-  const detail = started
-    ? `Uploading ${feedback.fileCount} ${
-        feedback.fileCount === 1 ? 'file' : 'files'
-      }. Track progress here.`
-    : hasErrors
-      ? `${feedback.fileCount} uploaded, ${feedback.errorCount} failed.`
-      : `${feedback.fileCount} ${
-          feedback.fileCount === 1 ? 'file' : 'files'
-        } added to this folder.`
+  const { tone, title, detail } = uploadFeedbackCopy(feedback)
+  const ToneIcon = FeedbackToneIcon[tone]
 
   return (
     <div className="flex items-start gap-3" data-testid="upload-feedback">
       <div
         className={cn(
           'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
-          started && 'bg-brand/10 text-brand',
-          !started && !hasErrors && 'bg-green-500/10 text-green-500',
-          hasErrors && 'bg-destructive/10 text-destructive',
+          feedbackToneClassName[tone],
         )}
       >
-        {started ? (
-          <LuUpload className="size-4" />
-        ) : hasErrors ? (
-          <LuCircleAlert className="size-4" />
-        ) : (
-          <LuCheck className="size-4" />
-        )}
+        <ToneIcon className="size-4" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-foreground text-sm font-semibold">{title}</div>
