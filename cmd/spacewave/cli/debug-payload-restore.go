@@ -173,10 +173,15 @@ func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucket
 // readWorldTransform reads the World transform from the replay cursor the
 // Space keeps in its account's object store.
 func readWorldTransform(db *bbolt.DB, spaceID string) (*block_transform.Config, error) {
-	// Collect the cursor values of the Space across the object stores.
+	// Collect the cursor values of the Space across the object stores. The
+	// local provider keeps local state under so/<id>/ls/, the Spacewave
+	// provider under so-local/<id>/.
 	conf := kvkey.DefaultConfig()
 	prefix := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix())
-	suffix := []byte("so-local/" + spaceID + "/world-replay/cursor")
+	suffixes := [][]byte{
+		[]byte("so/" + spaceID + "/ls/world-replay/cursor"),
+		[]byte("so-local/" + spaceID + "/world-replay/cursor"),
+	}
 	var values [][]byte
 	err := db.View(func(tx *bbolt.Tx) error {
 		// Skip a volume without the store bucket.
@@ -188,7 +193,7 @@ func readWorldTransform(db *bbolt.DB, spaceID string) (*block_transform.Config, 
 		// Match the cursor key of the Space in every object store.
 		cur := b.Cursor()
 		for k, v := cur.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = cur.Next() {
-			if bytes.HasSuffix(k, suffix) {
+			if slices.ContainsFunc(suffixes, func(suffix []byte) bool { return bytes.HasSuffix(k, suffix) }) {
 				values = append(values, bytes.Clone(v))
 			}
 		}

@@ -55,7 +55,7 @@ func TestDebugPayloadRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	conf := kvkey.DefaultConfig()
-	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so-local/"+spaceID+"/world-replay/cursor"))
+	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+spaceID+"/ls/world-replay/cursor"))
 	err = volume_bolt.GetBoltDB(vol).Update(func(tx *bbolt.Tx) error {
 		return tx.Bucket([]byte("hydra")).Put(key, cursor)
 	})
