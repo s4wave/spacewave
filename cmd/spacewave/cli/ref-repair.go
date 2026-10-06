@@ -493,7 +493,11 @@ func (r *refRepair) objectRootCtor(ctx context.Context, key string, world *bucke
 		}
 		typeID, err = world_types.GetObjectType(ctx, tx, key)
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "read type of object %s", key)
+			if ctx.Err() != nil {
+				return nil, "", ctx.Err()
+			}
+			r.le.WithError(err).Warnf("cannot read type of object %s", key)
+			return nil, "object with an unreadable type", nil
 		}
 		if typeID != "" {
 			r.types[key] = typeID
