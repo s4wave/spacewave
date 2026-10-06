@@ -168,14 +168,150 @@ function SymlinkViewer({
   )
 }
 
-// UnixFSFileViewer displays file content.
-export function UnixFSFileViewer({
+/** FileBodyKind is how the file content is shown; media kinds carry their URL. */
+type FileBodyKind =
+  | { kind: 'symlink' | 'text' | 'binary' }
+  | { kind: 'image' | 'pdf' | 'audio' | 'video'; url: string }
+
+/** fileBodyKindFor picks how the file content is shown. */
+function fileBodyKindFor(
+  stat: StatResult,
+  inlineFileURL: string | undefined,
+): FileBodyKind {
+  const fileKind = stat.fileKind ?? getUnixFSFileInfoKind(stat.info)
+  if (fileKind === 'symlink') return { kind: 'symlink' }
+
+  const { mimeType } = stat
+  if (inlineFileURL) {
+    if (isImageMimeType(mimeType)) return { kind: 'image', url: inlineFileURL }
+    if (mimeType === 'application/pdf') {
+      return { kind: 'pdf', url: inlineFileURL }
+    }
+    if (isAudioMimeType(mimeType)) return { kind: 'audio', url: inlineFileURL }
+    if (isVideoMimeType(mimeType)) return { kind: 'video', url: inlineFileURL }
+  }
+  return { kind: isTextMimeType(mimeType) ? 'text' : 'binary' }
+}
+
+/** baseName returns the last path segment, or the fallback for the root. */
+function baseName(path: string, fallback: string): string {
+  return path.split('/').filter(Boolean).at(-1) ?? fallback
+}
+
+/** resolveSymlinkTarget resolves a symlink target against its parent directory. */
+function resolveSymlinkTarget(target: string, path: string): string {
+  const parent = path.replace(/\/[^/]*$/, '') || '/'
+  const parts = (
+    target.startsWith('/') || parent === '/'
+      ? []
+      : parent.split('/').filter(Boolean)
+  ).concat(target.split('/').filter(Boolean))
+  const resolved: string[] = []
+  for (const part of parts) {
+    if (part === '..') {
+      resolved.pop()
+    } else if (part !== '.') {
+      resolved.push(part)
+    }
+  }
+  return '/' + resolved.join('/')
+}
+
+/** SymlinkBody reads the symlink target and navigates to it on request. */
+function SymlinkBody({
+  rootHandle,
+  path,
+}: {
+  rootHandle: Resource<FSHandle>
+  path: string
+}) {
+  const navigate = useNavigate()
+  const symlinkHandle = useUnixFSHandle(rootHandle, path)
+  const targetResource = useResource(
+    symlinkHandle,
+    (h: { readlink: () => Promise<string> }) => h.readlink(),
+    [],
+  )
+
+  const target = targetResource.value
+  const resolvedTarget = useMemo(
+    () => (target ? resolveSymlinkTarget(target, path) : null),
+    [target, path],
+  )
+
+  const handleNavigate = useCallback(() => {
+    if (resolvedTarget) {
+      navigate(localNavigation({ path: resolvedTarget }))
+    }
+  }, [resolvedTarget, navigate])
+
+  return (
+    <SymlinkViewer
+      target={target ?? ''}
+      loading={targetResource.loading}
+      onNavigate={resolvedTarget ? handleNavigate : undefined}
+    />
+  )
+}
+
+/** FileBody renders the file content for its kind. */
+function FileBody({
   path,
   stat,
   rootHandle,
-  hideToolbar,
   inlineFileURL,
-}: UnixFSFileViewerProps) {
+}: Pick<
+  UnixFSFileViewerProps,
+  'path' | 'stat' | 'rootHandle' | 'inlineFileURL'
+>) {
+  const body = fileBodyKindFor(stat, inlineFileURL)
+
+  switch (body.kind) {
+    case 'symlink':
+      return <SymlinkBody rootHandle={rootHandle} path={path} />
+    case 'image':
+      return (
+        <ImageFileViewer
+          alt={baseName(path, 'image')}
+          inlineFileURL={body.url}
+        />
+      )
+    case 'pdf':
+      return (
+        <UnixFSPdfFileViewer
+          title={baseName(path, 'pdf')}
+          inlineFileURL={body.url}
+        />
+      )
+    case 'audio':
+      return (
+        <UnixFSAudioFileViewer
+          title={baseName(path, 'audio')}
+          inlineFileURL={body.url}
+        />
+      )
+    case 'video':
+      return (
+        <UnixFSVideoFileViewer
+          title={baseName(path, 'video')}
+          inlineFileURL={body.url}
+        />
+      )
+    case 'text':
+      return (
+        <UnixFSTextFileViewer
+          key={`${rootHandle.value?.id}/${path}`}
+          rootHandle={rootHandle}
+          path={path}
+        />
+      )
+    case 'binary':
+      return <BinaryFileViewer mimeType={stat.mimeType} />
+  }
+}
+
+/** FileToolbar renders the path toolbar with history and parent navigation. */
+function FileToolbar({ path }: { path: string }) {
   const navigate = useNavigate()
   const history = useHistory()
 
@@ -198,109 +334,44 @@ export function UnixFSFileViewer({
     [navigate],
   )
 
-  const fileKind = stat.fileKind ?? getUnixFSFileInfoKind(stat.info)
-  const isSymlink = fileKind === 'symlink'
-  const isText = !isSymlink && isTextMimeType(stat.mimeType)
-  const isImage = !isSymlink && isImageMimeType(stat.mimeType)
-  const isPdf = !isSymlink && stat.mimeType === 'application/pdf'
-  const isAudio = !isSymlink && isAudioMimeType(stat.mimeType)
-  const isVideo = !isSymlink && isVideoMimeType(stat.mimeType)
-
-  // Read symlink target when viewing a symlink.
-  const symlinkHandle = useUnixFSHandle(rootHandle, isSymlink ? path : '')
-  const symlinkTargetResource = useResource(
-    symlinkHandle,
-    async (h: { readlink: () => Promise<string> }) => {
-      if (!h || !isSymlink) return null
-      return h.readlink()
-    },
-    [isSymlink],
+  return (
+    <Toolbar
+      currentPath={path}
+      onPathChange={handlePathChange}
+      onNavigate={handlePathChange}
+      onBack={handleBack}
+      onForward={handleForward}
+      onUp={handleUp}
+      canGoBack={history?.canGoBack ?? false}
+      canGoForward={history?.canGoForward ?? false}
+      canGoUp={path !== '/'}
+    />
   )
+}
 
-  // Resolve the symlink target to an absolute path for navigation.
-  const resolvedTarget = useMemo(() => {
-    const target = symlinkTargetResource.value
-    if (!target) return null
-    // Resolve relative target against the symlink's parent directory.
-    const parent = path.replace(/\/[^/]*$/, '') || '/'
-    const parts = (
-      target.startsWith('/') || parent === '/'
-        ? []
-        : parent.split('/').filter(Boolean)
-    ).concat(target.split('/').filter(Boolean))
-    const resolved: string[] = []
-    for (const part of parts) {
-      if (part === '..') {
-        resolved.pop()
-      } else if (part !== '.') {
-        resolved.push(part)
-      }
-    }
-    return '/' + resolved.join('/')
-  }, [symlinkTargetResource.value, path])
-
-  const handleNavigateSymlink = useCallback(() => {
-    if (resolvedTarget) {
-      navigate(localNavigation({ path: resolvedTarget }))
-    }
-  }, [resolvedTarget, navigate])
-
+// UnixFSFileViewer displays file content.
+export function UnixFSFileViewer({
+  path,
+  stat,
+  rootHandle,
+  hideToolbar,
+  inlineFileURL,
+}: UnixFSFileViewerProps) {
   return (
     <div
       data-testid="unixfs-browser"
       className="flex h-full w-full flex-col overflow-hidden"
     >
-      {!hideToolbar && (
-        <Toolbar
-          currentPath={path}
-          onPathChange={handlePathChange}
-          onNavigate={handlePathChange}
-          onBack={handleBack}
-          onForward={handleForward}
-          onUp={handleUp}
-          canGoBack={history?.canGoBack ?? false}
-          canGoForward={history?.canGoForward ?? false}
-          canGoUp={path !== '/'}
-        />
-      )}
+      {!hideToolbar && <FileToolbar path={path} />}
 
       {/* File content */}
       <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
-        {isSymlink ? (
-          <SymlinkViewer
-            target={symlinkTargetResource.value ?? ''}
-            loading={symlinkTargetResource.loading}
-            onNavigate={resolvedTarget ? handleNavigateSymlink : undefined}
-          />
-        ) : isImage && inlineFileURL ? (
-          <ImageFileViewer
-            alt={path.split('/').filter(Boolean).at(-1) ?? 'image'}
-            inlineFileURL={inlineFileURL}
-          />
-        ) : isPdf && inlineFileURL ? (
-          <UnixFSPdfFileViewer
-            title={path.split('/').filter(Boolean).at(-1) ?? 'pdf'}
-            inlineFileURL={inlineFileURL}
-          />
-        ) : isAudio && inlineFileURL ? (
-          <UnixFSAudioFileViewer
-            title={path.split('/').filter(Boolean).at(-1) ?? 'audio'}
-            inlineFileURL={inlineFileURL}
-          />
-        ) : isVideo && inlineFileURL ? (
-          <UnixFSVideoFileViewer
-            title={path.split('/').filter(Boolean).at(-1) ?? 'video'}
-            inlineFileURL={inlineFileURL}
-          />
-        ) : isText ? (
-          <UnixFSTextFileViewer
-            key={`${rootHandle.value?.id}/${path}`}
-            rootHandle={rootHandle}
-            path={path}
-          />
-        ) : (
-          <BinaryFileViewer mimeType={stat.mimeType} />
-        )}
+        <FileBody
+          path={path}
+          stat={stat}
+          rootHandle={rootHandle}
+          inlineFileURL={inlineFileURL}
+        />
       </div>
     </div>
   )
