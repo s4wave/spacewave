@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useId } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
@@ -30,6 +30,7 @@ export function KvValueEditor({
   rows = 6,
   ariaLabel,
 }: KvValueEditorProps) {
+  const textareaId = useId()
   const updateDraft = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       onDraftChange(event.target.value)
@@ -40,12 +41,16 @@ export function KvValueEditor({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-foreground text-xs font-medium select-none">
+        <label
+          htmlFor={textareaId}
+          className="text-foreground text-xs font-medium select-none"
+        >
           {label}
         </label>
         <KvDisplayModeToggle mode={mode} onModeChange={onModeChange} />
       </div>
       <textarea
+        id={textareaId}
         value={draft}
         onChange={updateDraft}
         disabled={disabled}

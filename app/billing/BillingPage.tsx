@@ -163,6 +163,7 @@ export function BillingPage() {
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
                 onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return
                   if (e.key === 'Enter') void handleRenameSave()
                   if (e.key === 'Escape') handleRenameCancel()
                 }}

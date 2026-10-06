@@ -123,7 +123,10 @@ export function SqlResultGrid({
         <table className="w-full border-collapse text-left text-xs">
           <thead className="bg-background-primary sticky top-0 z-10">
             <tr className="border-foreground/8 border-b">
-              <th className="text-foreground-alt/40 w-10 px-2 py-1.5 text-right font-medium tabular-nums">
+              <th
+                aria-label="Row number"
+                className="text-foreground-alt/40 w-10 px-2 py-1.5 text-right font-medium tabular-nums"
+              >
                 #
               </th>
               {data.columns.map((column, index) => (

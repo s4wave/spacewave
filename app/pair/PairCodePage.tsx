@@ -220,6 +220,7 @@ export function PairCodePage(props: PairCodePageProps) {
               <div className="flex justify-center">
                 <input
                   ref={handleCodeInputRef}
+                  aria-label="Pairing code"
                   type="text"
                   value={formatted}
                   onChange={(e) => handleCodeChange(e.target.value)}
@@ -494,6 +495,7 @@ function PairDirectStep({
       {!answerPayload && (
         <>
           <textarea
+            aria-label="Offer payload"
             value={offerInput}
             onChange={(e) => setOfferInput(e.target.value)}
             placeholder="Paste offer payload here…"

@@ -427,6 +427,7 @@ export function PasskeyPage() {
                 usernameError && 'border-destructive',
               )}
               onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return
                 if (e.key === 'Enter') {
                   void handleContinue()
                 }

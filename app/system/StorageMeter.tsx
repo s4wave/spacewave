@@ -21,13 +21,16 @@ export function StorageMeter({
   const label = `${formatBytes(usage)} of ${formatBytes(quota)} browser quota`
   return (
     <div>
-      <div
-        role="meter"
+      <meter
         aria-label="Browser storage used"
-        aria-valuemin={0}
-        aria-valuemax={quota}
-        aria-valuenow={usage}
-        aria-valuetext={label}
+        min={0}
+        max={quota}
+        value={usage}
+        title={label}
+        className="sr-only"
+      />
+      <div
+        aria-hidden
         className={cn(
           'bg-foreground/8 overflow-hidden rounded-full',
           compact ? 'h-1' : 'h-1.5',

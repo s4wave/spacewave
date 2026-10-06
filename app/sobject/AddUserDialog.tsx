@@ -574,6 +574,7 @@ function OrgMembersTab({
       <div className="relative">
         <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 size-3.5" />
         <input
+          aria-label="Search org members"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search org members…"

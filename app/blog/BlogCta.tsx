@@ -150,6 +150,7 @@ export function BlogCta() {
                 >
                   <div className="flex gap-2">
                     <input
+                      aria-label="Email address"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}

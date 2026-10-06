@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { LuTrash2 } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -75,20 +75,30 @@ export function OrgActionsSection({
   )
 }
 
-function DeleteOrgDialog(props: {
+interface DeleteOrgDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   orgId: string
   displayName: string
-}) {
+}
+
+// DeleteOrgDialog confirms deletion by asking the owner to type the
+// organization name.
+function DeleteOrgDialog({
+  open,
+  onOpenChange,
+  orgId,
+  displayName,
+}: DeleteOrgDialogProps) {
   const session = SessionContext.useContext().value
   const navigateSession = useSessionNavigate()
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const confirmInputId = useId()
 
   const confirmed =
-    confirmText.trim().toLowerCase() === props.displayName.trim().toLowerCase()
+    confirmText.trim().toLowerCase() === displayName.trim().toLowerCase()
   const handleConfirmInputRef = useCallback((node: HTMLInputElement | null) => {
     node?.focus()
   }, [])
@@ -100,9 +110,9 @@ function DeleteOrgDialog(props: {
         setConfirmText('')
         setError(null)
       }
-      props.onOpenChange(next)
+      onOpenChange(next)
     },
-    [deleting, props],
+    [deleting, onOpenChange],
   )
 
   const handleDelete = useCallback(async () => {
@@ -110,16 +120,16 @@ function DeleteOrgDialog(props: {
     setDeleting(true)
     setError(null)
     try {
-      await session.spacewave.deleteOrganization(props.orgId)
+      await session.spacewave.deleteOrganization(orgId)
       navigateSession({ path: '' })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete')
       setDeleting(false)
     }
-  }, [session, props.orgId, confirmed, deleting, navigateSession])
+  }, [session, orgId, confirmed, deleting, navigateSession])
 
   return (
-    <Dialog open={props.open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete Organization</DialogTitle>
@@ -128,24 +138,27 @@ function DeleteOrgDialog(props: {
           </DialogDescription>
         </DialogHeader>
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            htmlFor={confirmInputId}
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+          >
             Type{' '}
-            <span className="text-foreground font-medium">
-              {props.displayName}
-            </span>{' '}
+            <span className="text-foreground font-medium">{displayName}</span>{' '}
             to confirm.
           </label>
           <input
+            id={confirmInputId}
             ref={handleConfirmInputRef}
             type="text"
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
-            placeholder={props.displayName}
+            placeholder={displayName}
             className={cn(
               'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
               'focus:border-destructive/50',
             )}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
               if (e.key === 'Enter' && confirmed && !deleting) {
                 void handleDelete()
               }

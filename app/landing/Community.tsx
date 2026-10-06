@@ -301,6 +301,7 @@ export function Community() {
         <div className="relative mx-auto mb-8 max-w-md">
           <LuSearch className="text-foreground-alt/30 pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
           <input
+            aria-label="Filter packages"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}

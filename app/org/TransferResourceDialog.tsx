@@ -76,6 +76,7 @@ export function TransferResourceDialog(props: {
       </div>
       <div className="relative">
         <select
+          aria-label="Transfer to"
           value={targetOrgId}
           onChange={(e) => setTargetOrgId(e.target.value)}
           className={inputClass}

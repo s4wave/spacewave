@@ -83,6 +83,7 @@ export function DeleteSpaceDialog({
             placeholder={spaceName}
             className={inputClass}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
               if (
                 e.key === 'Enter' &&
                 confirmText === spaceName &&
