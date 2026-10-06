@@ -75,14 +75,16 @@ func (n *iceNetwork) ip(i int) string {
 }
 
 // startTransport runs a WebRTC transport on b with the next unused address and
-// returns a function that crashes it. Crashing silences the address before
-// stopping the transport, so the remote peer hears nothing from it again.
+// opts, and returns a function that crashes it. Crashing silences the address
+// before stopping the transport, so the remote peer hears nothing from it
+// again.
 func (n *iceNetwork) startTransport(
 	ctx context.Context,
 	t *testing.T,
 	le *logrus.Entry,
 	b bus.Bus,
 	conf *webrtc.Config,
+	opts ...webrtc.Option,
 ) func() {
 	// Take the next unused address.
 	t.Helper()
@@ -91,7 +93,7 @@ func (n *iceNetwork) startTransport(
 	ip := n.ip(i)
 
 	// Construct and run the transport controller on the peer bus.
-	ctrl, err := webrtc.NewFactory(b, webrtc.WithICENet(n.nets[i])).Construct(
+	ctrl, err := webrtc.NewFactory(b, append(opts, webrtc.WithICENet(n.nets[i]))...).Construct(
 		ctx,
 		conf,
 		controller.ConstructOpts{Logger: le.WithField("transport-ip", ip)},
