@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"runtime/debug"
@@ -604,17 +605,18 @@ func (s *session) onNegotiationNeeded() {
 	})
 }
 
-// acceptIncomingSignalLocked accepts sig only while this session is live.
-// The caller must hold s.bcast.
-func (s *session) acceptIncomingSignalLocked(sig *incomingSignal) {
-	if sig == nil || s.fatalErr != nil {
-		return
-	}
-	switch s.connState {
-	case webrtc.PeerConnectionStateDisconnected, webrtc.PeerConnectionStateFailed:
-		return
+// acceptIncomingSignalLocked accepts sig unless this session is terminal, and
+// reports whether it did. The session owner exits on the same terminal states
+// without acting on a refused signal, so the signal ingress hands it to the
+// successor. A disconnected session still accepts: its owner acts on the
+// signal, and the remote peer's request for a new session is the usual way out
+// of that state. The caller must hold s.bcast.
+func (s *session) acceptIncomingSignalLocked(sig *incomingSignal) bool {
+	if sig == nil || s.fatalErr != nil || s.connState == webrtc.PeerConnectionStateFailed {
+		return false
 	}
 	sig.accept()
+	return true
 }
 
 // failWithErr fences signal acceptance before exposing a routine error.
@@ -786,6 +788,7 @@ func (s *session) activeOfferID() []byte {
 func (s *sessionTracker) retransmitOutstandingOffer(
 	sess *session,
 	currLocalSeqno uint64,
+	reason string,
 	xmitSignal func(*WebRtcSignal),
 ) (bool, error) {
 	// Require an outstanding local offer with retained SDP before replaying it.
@@ -796,9 +799,10 @@ func (s *sessionTracker) retransmitOutstandingOffer(
 	if sess.pendingOfferSDP == "" {
 		return false, pkgerrors.New("retransmit outstanding offer: no pending offer sdp")
 	}
-	if s.w.GetVerbose() {
-		s.le.Debug("signal tx: retransmit outstanding offer")
-	}
+	s.le.WithFields(logrus.Fields{
+		"offer-id": shortOfferID(sess.pendingOfferID),
+		"reason":   reason,
+	}).Info("signal tx: retransmit outstanding offer")
 	xmitSdp := &WebRtcSdp{
 		TxSeqno: currLocalSeqno,
 		SdpType: webrtc.SDPTypeOffer.String(),
@@ -825,10 +829,7 @@ func (s *sessionTracker) transmitLocalNegotiation(
 	// Choose an offer or offer request for the current negotiation role.
 	var xmit *WebRtcSignal
 	if s.offerer {
-		if s.w.GetVerbose() {
-			le.Debug("signal tx: offer sdp")
-		}
-		retransmitted, err := s.retransmitOutstandingOffer(sess, currLocalSeqno, xmitSignal)
+		retransmitted, err := s.retransmitOutstandingOffer(sess, currLocalSeqno, "adopted session", xmitSignal)
 		if err != nil {
 			return lastLocalSeqno, false, err
 		}
@@ -847,6 +848,7 @@ func (s *sessionTracker) transmitLocalNegotiation(
 		offerSum := sha256.Sum256([]byte(localDesc.SDP))
 		sess.pendingOfferID = offerSum[:]
 		sess.pendingOfferSDP = localDesc.SDP
+		le.WithField("offer-id", shortOfferID(sess.pendingOfferID)).Info("signal tx: offer")
 		xmitSdp := NewWebRtcSdp(currLocalSeqno, &localDesc)
 		xmitSdp.OfferId = offerSum[:]
 		xmit = &WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: xmitSdp}}
@@ -1098,11 +1100,17 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		}
 
 		// A channel receive is not acceptance. The terminal-state transition
-		// and this acceptance fence are serialized by the session owner.
+		// and this acceptance fence are serialized by the session owner. A
+		// refused signal is left for the successor: the snapshot below
+		// observes the same terminal state and exits.
 		if currIncomingSignal != nil {
+			var accepted bool
 			sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-				sess.acceptIncomingSignalLocked(currIncomingSignal)
+				accepted = sess.acceptIncomingSignalLocked(currIncomingSignal)
 			})
+			if !accepted {
+				currIncomingSignal = nil
+			}
 		}
 
 		// Process the incoming signal, if any.
@@ -1119,7 +1127,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 				// The remote asks for an offer: retransmit the outstanding
 				// offer so a restarted answerer re-receives the generation
 				// its buffered candidates belong to.
-				retransmitted, err := s.retransmitOutstandingOffer(sess, b.RequestOffer, xmitSignal)
+				retransmitted, err := s.retransmitOutstandingOffer(sess, b.RequestOffer, "offer requested", xmitSignal)
 				if err != nil {
 					return err
 				}
@@ -1241,7 +1249,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		// Retransmit the unanswered offer once the outbox has drained.
 		if retryDue {
 			retryDue = false
-			retransmitted, err := s.retransmitOutstandingOffer(sess, currLocalSeqno, xmitSignal)
+			retransmitted, err := s.retransmitOutstandingOffer(sess, currLocalSeqno, "no answer", xmitSignal)
 			if err != nil {
 				return err
 			}
@@ -1374,6 +1382,12 @@ func (a *remoteICECandidateApplier) apply(candidates []webrtc.ICECandidateInit) 
 		}
 	}
 	return nil
+}
+
+// shortOfferID returns the leading hex digits of an offer digest, enough to
+// match the offers and answers of one negotiation in the logs.
+func shortOfferID(offerID []byte) string {
+	return hex.EncodeToString(offerID[:min(len(offerID), 4)])
 }
 
 // isOfferer checks if peer ID A is the offerer or answerer.

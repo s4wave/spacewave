@@ -48,32 +48,39 @@ func TestCompleteExecutionWaitsForChildCompletion(t *testing.T) {
 	})
 }
 
-func TestDisconnectedSessionDefersSignalAcceptance(t *testing.T) {
-	// Construct a disconnected session and its pending incoming signal.
-	incoming := &incomingSignal{accepted: make(chan struct{})}
-	sess := &session{connState: pion_webrtc.PeerConnectionStateDisconnected}
-
-	// Attempt signal acceptance while the session is disconnected.
-	sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		sess.acceptIncomingSignalLocked(incoming)
-	})
-
-	// Verify the disconnected session leaves the signal pending.
-	select {
-	case <-incoming.accepted:
-		t.Fatal("disconnected session accepted a signal before reconnect or replacement")
-	default:
+func TestSessionAcceptsSignalsUntilTerminal(t *testing.T) {
+	// A disconnected session still accepts: its owner acts on the signal, so
+	// leaving it pending would park the peer's signal ingress behind it.
+	cases := []struct {
+		name     string
+		sess     *session
+		accepted bool
+	}{
+		{"connected", &session{connState: pion_webrtc.PeerConnectionStateConnected}, true},
+		{"disconnected", &session{connState: pion_webrtc.PeerConnectionStateDisconnected}, true},
+		{"failed", &session{connState: pion_webrtc.PeerConnectionStateFailed}, false},
+		{"fatal", &session{fatalErr: errors.New("link routine failed")}, false},
 	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Offer the signal to the session.
+			incoming := &incomingSignal{accepted: make(chan struct{})}
+			var accepted bool
+			c.sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+				accepted = c.sess.acceptIncomingSignalLocked(incoming)
+			})
 
-	// Reconnect the session and verify acceptance of the pending signal.
-	sess.connState = pion_webrtc.PeerConnectionStateConnected
-	sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		sess.acceptIncomingSignalLocked(incoming)
-	})
-	select {
-	case <-incoming.accepted:
-	default:
-		t.Fatal("reconnected session did not accept the pending signal")
+			// Require the report and the signal state to agree with the case.
+			var closed bool
+			select {
+			case <-incoming.accepted:
+				closed = true
+			default:
+			}
+			if accepted != c.accepted || closed != c.accepted {
+				t.Fatalf("accepted=%v closed=%v, want %v", accepted, closed, c.accepted)
+			}
+		})
 	}
 }
 
