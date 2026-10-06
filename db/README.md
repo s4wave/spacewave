@@ -12,11 +12,10 @@
  - **Replication**: bucket policies implement data replication behaviors.
 
 Stores peer-to-peer data structures (similar to IPLD) on pluggable storage
-backends like [bbolt], [BadgerDB], [Valkey], browser storage and more. Any K/V store
+backends like [bbolt], [Valkey], browser storage and more. Any K/V store
 can be used as a storage backend.
 
 [bbolt]: https://github.com/etcd-io/bbolt
-[BadgerDB]: https://github.com/dgraph-io/badger
 [Valkey]: https://github.com/valkey-io/valkey
 
 ## Overview
@@ -64,7 +63,6 @@ Hydra assigns a persistent public/private keypair and peer ID to volumes.
 
 The following volume types are currently implemented in this repository:
 
- - [BadgerDB]: high performance on-disk key/value data store.
  - [Block]: nested volume backed by a peer-to-peer block graph.
  - [BoltDB]: embedded key/value data store, using bbolt.
  - [Browser]: append-only payload log and index on OPFS or IndexedDB in the web
@@ -72,6 +70,7 @@ The following volume types are currently implemented in this repository:
  - [In-memory]: in-memory key/value store for temporary data.
  - [RPC]: access a Volume on a remote Bus via a RPC service.
  - [Redis]: key/value storage with a remote Redis database.
+ - [s4db]: single-file on-disk key/value store, the native default.
  - [World]: nested volume backed by Object in a shared World.
 
 The [volume controller] accepts any implementation of the [Store] interface.
@@ -84,12 +83,12 @@ Volumes can be nested: the [Block] volume uses the [kvtx/block] key/value store
 to create a shared Volume, which can be encrypted or compressed by adding a
 [transform config]. The [World] volume stores data in a world.
 
-[BadgerDB]: ./volume/badger/badger.proto#L10
 [Block]: ./volume/block/volume.proto#L11
 [BoltDB]: ./volume/bolt/bolt.proto#L9
 [Browser]: ./volume/browser/browser.proto
 [In-memory]: ./volume/kvtxinmem/kvtxinmem.proto#L9
 [Redis]: ./volume/redis/redis.proto#L10
+[s4db]: ./volume/s4db/s4db.proto#L9
 [RPC]: ./volume/rpc/volume.proto
 [Store]: ./store/store.go
 [World]: ./volume/world/volume.proto#L10
@@ -141,7 +140,6 @@ The full list of available daemon CLI flags is currently:
 
 ```
 OPTIONS:
-   --badger-db value [ --badger-db value ]              set a path to a badger db dir to load on startup [$HYDRA_BADGER_DB]
    --s4db value [ --s4db value ]                        set a path to an s4db file to load on startup [$HYDRA_S4DB]
    --s4db-verbose                                       if set, mark s4db databases as verbose (default: false) [$HYDRA_S4DB_VERBOSE]
    --redis-url value                                    set a url to a redis instance to connect to on startup [$HYDRA_REDIS_URL]

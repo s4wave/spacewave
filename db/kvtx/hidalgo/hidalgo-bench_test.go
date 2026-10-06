@@ -2,14 +2,14 @@ package kvtx_hidalgo
 
 import (
 	"context"
+	"path/filepath"
 	"strconv"
 	"testing"
 
 	"github.com/aperturerobotics/cayley/kv"
 	"github.com/aperturerobotics/cayley/kv/flat"
 	"github.com/aperturerobotics/cayley/kv/options"
-	badger "github.com/dgraph-io/badger/v4"
-	store_kvtx_badger "github.com/s4wave/spacewave/db/store/kvtx/badger"
+	"github.com/s4wave/spacewave/db/s4db"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
@@ -17,13 +17,13 @@ func BenchmarkTxScanPrefixEarlyStop(b *testing.B) {
 	b.Run("inmem", func(b *testing.B) {
 		benchmarkTxScanPrefixEarlyStop(b, NewKV(store_kvtx_inmem.NewStore()))
 	})
-	b.Run("badger", func(b *testing.B) {
-		store, err := store_kvtx_badger.Open(badger.DefaultOptions(b.TempDir()).WithLogger(nil))
+	b.Run("s4db", func(b *testing.B) {
+		store, err := s4db.Open(filepath.Join(b.TempDir(), "bench.s4wave"), s4db.Options{})
 		if err != nil {
 			b.Fatal(err)
 		}
 		b.Cleanup(func() {
-			if err := store.GetDB().Close(); err != nil {
+			if err := store.Close(); err != nil {
 				b.Error(err)
 			}
 		})

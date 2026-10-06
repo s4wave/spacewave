@@ -131,7 +131,7 @@ self-sufficient** apps running fully on the client side.
 
 Spacewave utilizes these features to provide resources to apps with an
 abstraction layer smoothing the differences between platforms. For example, an
-app can allocate a SQL database and store it in Redis, BadgerDB, or IndexedDB,
+app can allocate a SQL database and store it in Redis, s4db, or IndexedDB,
 all without changing a single line of code when switching backends.
 
 We look forward to building a new generation of apps that are both open-source
@@ -157,7 +157,7 @@ Components:
 
 - **[Hydra]** - Store data anywhere w/ p2p sync
   - Many supported data structures: SQL, K/V, GraphDB, ...
-  - Pluggable storage backends: BadgerDB, Redis, S3, ...
+  - Pluggable storage backends: s4db, Redis, S3, ...
   - Supports IndexedDB in the web browser
 
 - **[Bldr]** - Build and run on any OS or browser
