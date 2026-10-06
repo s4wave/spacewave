@@ -18,8 +18,10 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"math/rand/v2"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -70,17 +72,27 @@ type DB struct {
 	watch *watcher
 	// tailDone is closed when the tail loop exits.
 	tailDone chan struct{}
+	// closing is closed when Close starts.
+	closing chan struct{}
+	// warmDone is closed when the cache warm-up exits.
+	warmDone chan struct{}
+
+	// cur is the published state. Read transactions acquire it without
+	// taking mtx.
+	cur atomic.Pointer[state]
 
 	// mtx guards the fields below.
 	mtx sync.Mutex
-	// st is the published state.
-	st *state
-	// snaps counts open snapshots of each state.
-	snaps map[*state]int
+	// retired holds earlier states that snapshots may still read.
+	retired []*state
 	// pinned is the pin last written to the slot.
 	pinned pin
 	// durable is the last commit known flushed to the drive.
 	durable uint64
+	// flushing is set while one caller flushes for every waiting commit.
+	flushing bool
+	// flushed is closed when the running flush ends.
+	flushed chan struct{}
 
 	// wmtx is held by the write transaction of this handle. The fields below
 	// belong to the writer.
@@ -110,11 +122,39 @@ type state struct {
 	// count is the number of keys.
 	count int64
 	// overlay holds changes after ckpt.
-	overlay *btree.BTreeG[oentry]
+	overlay *btree.BTreeG[*oentry]
+	// filter holds every key the overlay has held since ckpt, so lookups of
+	// other keys skip the overlay.
+	filter *filter
 	// overlayBytes estimates the overlay's encoded size.
 	overlayBytes int64
 	// pos is the offset of the next record and end is the end of its chunk.
 	pos, end uint64
+	// refs counts the snapshots reading the state; publish sets it.
+	refs *refCount
+}
+
+// refStripes is the number of counters a state's snapshot count spreads
+// over, so concurrent readers do not share one cache line.
+const refStripes = 16
+
+// refCount counts a state's snapshots in stripes. A state is read while any
+// stripe is nonzero.
+type refCount [refStripes]struct {
+	// n is this stripe's count.
+	n atomic.Int64
+	// _ pads the stripe to its own cache line.
+	_ [56]byte
+}
+
+// held reports whether any snapshot reads the state.
+func (r *refCount) held() bool {
+	for i := range r {
+		if r[i].n.Load() != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // oentry is one change in the overlay.
@@ -130,12 +170,12 @@ type oentry struct {
 }
 
 // lessOEntry orders overlay entries by key.
-func lessOEntry(a, b oentry) bool {
+func lessOEntry(a, b *oentry) bool {
 	return bytes.Compare(a.key, b.key) < 0
 }
 
 // newOverlay returns an empty overlay.
-func newOverlay() *btree.BTreeG[oentry] {
+func newOverlay() *btree.BTreeG[*oentry] {
 	return btree.NewBTreeGOptions(lessOEntry, btree.Options{NoLocks: true})
 }
 
@@ -167,9 +207,10 @@ func Open(path string, opts Options) (*DB, error) {
 	db := &DB{
 		f:        f,
 		opts:     opts,
-		cache:    &cache{nodes: make(map[uint64]*node), max: opts.CachePages},
-		snaps:    make(map[*state]int),
+		cache:    newCache(opts.CachePages),
 		tailDone: make(chan struct{}),
+		closing:  make(chan struct{}),
+		warmDone: make(chan struct{}),
 	}
 	if db.watch, err = newWatcher(path); err != nil {
 		_ = f.Close()
@@ -181,6 +222,7 @@ func Open(path string, opts Options) (*DB, error) {
 		return nil, err
 	}
 	go db.tailLoop()
+	go db.warm()
 	return db, nil
 }
 
@@ -232,13 +274,16 @@ func (db *DB) open() error {
 	if err != nil {
 		return err
 	}
-	st, err := db.tail(stateOf(sb), true)
+	st, err := db.tail(db.stateOf(sb), true)
 	if err != nil {
 		return err
 	}
+
+	// Publish the loaded state and pin it.
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
-	db.st = st
+	st.refs = new(refCount)
+	db.cur.Store(st)
 	return db.updatePin()
 }
 
@@ -280,10 +325,10 @@ func (db *DB) create() error {
 }
 
 // stateOf returns the state of a checkpoint with no later records.
-func stateOf(sb superblock) *state {
+func (db *DB) stateOf(sb superblock) *state {
 	return &state{
 		seq: sb.seq, ckpt: sb.seq, gen: sb.gen, sb: sb, root: sb.root, count: int64(sb.count),
-		overlay: newOverlay(), pos: sb.logPos, end: sb.logEnd,
+		overlay: newOverlay(), filter: newFilter(db.checkpointLimit(sb)), pos: sb.logPos, end: sb.logEnd,
 	}
 }
 
@@ -320,14 +365,16 @@ func (db *DB) tail(st *state, verify bool) (*state, error) {
 	switch {
 	case sb.gen <= st.gen:
 	case sb.seq > st.seq:
-		next = *stateOf(sb)
+		next = *db.stateOf(sb)
 	default:
 		next.ckpt, next.gen, next.sb, next.root = sb.seq, sb.gen, sb, sb.root
 		next.overlay = newOverlay()
+		next.filter = newFilter(db.checkpointLimit(sb))
 		next.overlayBytes = 0
-		st.overlay.Scan(func(e oentry) bool {
+		st.overlay.Scan(func(e *oentry) bool {
 			if e.seq > sb.seq {
 				next.overlay.Set(e)
+				next.filter.add(e.key)
 				next.overlayBytes += overlaySize(e)
 			}
 			return true
@@ -386,7 +433,8 @@ func (st *state) apply(r *record) {
 	}
 	st.count += r.delta
 	for _, o := range r.ops {
-		e := oentry{key: o.key, del: o.del, val: o.val, seq: r.seq}
+		e := &oentry{key: o.key, del: o.del, val: o.val, seq: r.seq}
+		st.filter.add(e.key)
 		if old, ok := st.overlay.Set(e); ok {
 			st.overlayBytes -= overlaySize(old)
 		}
@@ -395,7 +443,7 @@ func (st *state) apply(r *record) {
 }
 
 // overlaySize estimates the bytes an overlay entry adds to a checkpoint.
-func overlaySize(e oentry) int64 {
+func overlaySize(e *oentry) int64 {
 	return int64(leafEntrySize(e.key, e.val))
 }
 
@@ -404,48 +452,74 @@ func (db *DB) tailLoop() {
 	defer close(db.tailDone)
 	for db.watch.wait() {
 		db.mtx.Lock()
-		if st, err := db.tail(db.st, false); err == nil && st != db.st {
-			db.st = st
-			_ = db.updatePin()
+		if st, err := db.tail(db.cur.Load(), false); err == nil {
+			db.publish(st)
 		}
 		db.mtx.Unlock()
 	}
 }
 
-// acquire returns the published state and counts it as an open snapshot.
-func (db *DB) acquire() *state {
-	db.mtx.Lock()
-	defer db.mtx.Unlock()
-	db.snaps[db.st]++
-	return db.st
-}
-
-// release ends a snapshot of st.
-func (db *DB) release(st *state) {
-	db.mtx.Lock()
-	defer db.mtx.Unlock()
-	if db.snaps[st]--; db.snaps[st] == 0 {
-		delete(db.snaps, st)
+// acquire returns the published state and counts it as an open snapshot in
+// a random stripe, which the snapshot passes to release. A state stays
+// readable while it is published or counted, so acquire retries when
+// publish replaced the state before the count landed: the pin may already
+// exclude it.
+func (db *DB) acquire() (*state, int) {
+	stripe := rand.IntN(refStripes)
+	for {
+		st := db.cur.Load()
+		st.refs[stripe].n.Add(1)
+		if db.cur.Load() == st {
+			return st, stripe
+		}
+		st.refs[stripe].n.Add(-1)
 	}
-	_ = db.updatePin()
 }
 
-// publish makes st the published state. The caller holds mtx.
-func (db *DB) publish(st *state) {
-	if st.seq < db.st.seq || (st.seq == db.st.seq && st.gen < db.st.gen) {
+// release ends a snapshot of st counted in stripe. The pin moves only when
+// a replaced state's last snapshot may have ended.
+func (db *DB) release(st *state, stripe int) {
+	if st.refs[stripe].n.Add(-1) != 0 || db.cur.Load() == st {
 		return
 	}
-	db.st = st
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
 	_ = db.updatePin()
 }
 
-// localPin returns the oldest state this handle's snapshots read. The
+// publish makes st the published state unless a newer one is published. The
 // caller holds mtx.
-func (db *DB) localPin() pin {
-	p := pin{seq: db.st.seq, ckpt: db.st.ckpt}
-	for s := range db.snaps {
-		p.seq, p.ckpt = min(p.seq, s.seq), min(p.ckpt, s.ckpt)
+func (db *DB) publish(st *state) {
+	// Keep a newer published state.
+	cur := db.cur.Load()
+	if st == cur || st.seq < cur.seq || (st.seq == cur.seq && st.gen < cur.gen) {
+		return
 	}
+
+	// Replace the state, keeping the old one until its snapshots end.
+	st.refs = new(refCount)
+	db.cur.Store(st)
+	db.retired = append(db.retired, cur)
+	_ = db.updatePin()
+}
+
+// localPin returns the oldest state this handle's snapshots read, and
+// forgets replaced states no snapshot reads. The caller holds mtx.
+func (db *DB) localPin() pin {
+	// Start from the published state.
+	cur := db.cur.Load()
+	p := pin{seq: cur.seq, ckpt: cur.ckpt}
+
+	// Lower the pin by each replaced state still read.
+	live := db.retired[:0]
+	for _, s := range db.retired {
+		if s.refs.held() {
+			p.seq, p.ckpt = min(p.seq, s.seq), min(p.ckpt, s.ckpt)
+			live = append(live, s)
+		}
+	}
+	clear(db.retired[len(live):])
+	db.retired = live
 	return p
 }
 
@@ -535,10 +609,38 @@ func (db *DB) node(page uint64) (*node, error) {
 	return n, nil
 }
 
+// root returns the decoded root page, keeping the last one outside the
+// shards.
+func (db *DB) root(page uint64) (*node, error) {
+	if r := db.cache.root.Load(); r != nil && r.page == page {
+		return r.n, nil
+	}
+	n, err := db.node(page)
+	if err == nil {
+		db.cache.root.Store(&cacheSlot{page: page, n: n})
+	}
+	return n, err
+}
+
+// child returns child i of inner page n, linking decoded inner children
+// into n so later lookups skip the cache.
+func (db *DB) child(n *node, i int) (*node, error) {
+	if c := n.inner[i].Load(); c != nil {
+		return c, nil
+	}
+	c, err := db.node(n.kids[i])
+	if err == nil && !c.leaf {
+		n.inner[i].Store(c)
+	}
+	return c, err
+}
+
 // lookup returns the value of key in st.
 func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
-	if e, ok := st.overlay.Get(oentry{key: key}); ok {
-		return e.val, !e.del, nil
+	if st.filter.has(key) {
+		if e, ok := st.overlay.Get(&oentry{key: key}); ok {
+			return e.val, !e.del, nil
+		}
 	}
 	return treeGet(db, st.root, key)
 }
@@ -547,12 +649,14 @@ func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
 // lock across all processes until Commit or Discard.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	if !write {
-		return &Tx{db: db, st: db.acquire()}, nil
+		st, stripe := db.acquire()
+		return &Tx{db: db, st: st, stripe: stripe}, nil
 	}
 	if err := db.lockWriter(); err != nil {
 		return nil, err
 	}
-	return &Tx{db: db, st: db.acquire(), changes: newChanges()}, nil
+	st, stripe := db.acquire()
+	return &Tx{db: db, st: st, stripe: stripe, changes: newChanges()}, nil
 }
 
 // lockWriter takes the writer lock and brings the writer state up to date
@@ -584,10 +688,10 @@ func (db *DB) unlockWriter() {
 func (db *DB) catchUp() error {
 	// Apply the new records and keep the space when it is still current.
 	db.mtx.Lock()
-	st, err := db.tail(db.st, false)
+	st, err := db.tail(db.cur.Load(), false)
 	if err == nil {
 		db.publish(st)
-		st = db.st
+		st = db.cur.Load()
 	}
 	db.mtx.Unlock()
 	if err != nil {
@@ -730,50 +834,57 @@ func (db *DB) commit(base *state, changes []tentry, ordered bool) error {
 	if err := db.releaseSpace(base, r); err != nil {
 		return err
 	}
-	db.mtx.Lock()
-	r.durable = db.durable
-	db.mtx.Unlock()
 
-	// Write values in runs of adjacent placements, then the record.
+	// Write values in runs of adjacent placements.
 	if err := db.writeValues(r, writes); err != nil {
 		return err
 	}
-	if link != nil {
-		if _, err := db.f.WriteAt(link, int64(linkPos)); err != nil {
-			return err
-		}
-	}
+
+	// Write the record and publish the new state together, so the tail loop
+	// never reads a record of this handle before it is published. Copying a
+	// tree writes to it, so copies also happen under mtx.
+	db.mtx.Lock()
+	r.durable = db.durable
 	rec := encodeCommit(r)
-	if _, err := db.f.WriteAt(rec, int64(pos)); err != nil {
+	err := db.writeRecord(link, linkPos, rec, pos)
+	if err == nil {
+		next := *base
+		next.overlay = base.overlay.Copy()
+		next.apply(r)
+		next.pos, next.end = pos+uint64(len(rec)), end
+		db.publish(&next)
+	}
+	db.mtx.Unlock()
+	if err != nil {
 		return err
 	}
+
+	// Order the next commit's writes after this one's and release space.
+	// A durable commit flushes after the writer lock is released.
 	if ordered {
 		if err := flushOrdered(db.f); err != nil {
 			return err
 		}
-	} else {
-		if err := flushDurable(db.f); err != nil {
-			return err
-		}
-		db.setDurable(seq)
 	}
 	if err := db.punch(); err != nil {
 		return err
 	}
 
-	// Publish the new state. Copying a tree writes to it, so copies happen
-	// under mtx.
-	next := *base
-	db.mtx.Lock()
-	next.overlay = base.overlay.Copy()
-	next.apply(r)
-	next.pos, next.end = pos+uint64(len(rec)), end
-	db.publish(&next)
-	db.mtx.Unlock()
-
 	// The space now reflects the record.
 	db.spSeq = seq
 	return nil
+}
+
+// writeRecord writes a commit record at pos, after the link that leads to
+// its chunk when link is set.
+func (db *DB) writeRecord(link []byte, linkPos uint64, rec []byte, pos uint64) error {
+	if link != nil {
+		if _, err := db.f.WriteAt(link, int64(linkPos)); err != nil {
+			return err
+		}
+	}
+	_, err := db.f.WriteAt(rec, int64(pos))
+	return err
 }
 
 // valueWrite is a large value awaiting its write.
@@ -862,20 +973,23 @@ func (db *DB) punch() error {
 	return nil
 }
 
+// checkpointLimit returns the overlay size that starts a checkpoint after
+// the checkpoint sb.
+func (db *DB) checkpointLimit(sb superblock) int64 {
+	return min(max(int64(sb.treePages)*pageSize/4, db.opts.CheckpointMin), db.opts.CheckpointMax)
+}
+
 // checkpointDue reports whether the overlay of st should be written into
 // the tree.
 func (db *DB) checkpointDue(st *state) bool {
-	limit := min(max(int64(st.sb.treePages)*pageSize/4, db.opts.CheckpointMin), db.opts.CheckpointMax)
-	return st.overlayBytes > limit
+	return st.overlayBytes > db.checkpointLimit(st.sb)
 }
 
 // checkpoint writes the overlay into the tree and saves a superblock. The
 // caller holds the writer lock.
 func (db *DB) checkpoint() error {
 	// Skip when no commit follows the last checkpoint.
-	db.mtx.Lock()
-	st := db.st
-	db.mtx.Unlock()
+	st := db.cur.Load()
 	if st.seq == st.ckpt {
 		return nil
 	}
@@ -883,7 +997,7 @@ func (db *DB) checkpoint() error {
 
 	// Rewrite the changed pages into one new run.
 	changes := make([]change, 0, st.overlay.Len())
-	st.overlay.Scan(func(e oentry) bool {
+	st.overlay.Scan(func(e *oentry) bool {
 		changes = append(changes, change{key: e.key, del: e.del, val: e.val})
 		return true
 	})
@@ -942,7 +1056,7 @@ func (db *DB) checkpoint() error {
 	db.setDurable(st.seq)
 
 	// Publish the tree.
-	next := *stateOf(sb)
+	next := *db.stateOf(sb)
 	next.pos, next.end = st.pos, st.end
 	db.mtx.Lock()
 	db.publish(&next)
@@ -991,9 +1105,7 @@ func pagesFor(n int) uint64 {
 func (db *DB) relocate(budget int64, visits int) (bool, error) {
 	// Read the published state.
 	sp := db.sp
-	db.mtx.Lock()
-	st := db.st
-	db.mtx.Unlock()
+	st := db.cur.Load()
 
 	// Start the walk at the saved key.
 	it := newIterator(db, st, nil, nil, false)
@@ -1049,9 +1161,7 @@ func (db *DB) relocate(budget int64, visits int) (bool, error) {
 func (db *DB) afterCommit() error {
 	// Checkpoint when the overlay has grown enough, and release the pages
 	// it replaced unless a snapshot still reads them.
-	db.mtx.Lock()
-	st := db.st
-	db.mtx.Unlock()
+	st := db.cur.Load()
 	if db.checkpointDue(st) {
 		if err := db.checkpoint(); err != nil {
 			return err
@@ -1111,9 +1221,7 @@ func (db *DB) Compact() error {
 func (db *DB) moveLog() error {
 	// Take the lowest free chunk, keeping the log where it is when the chunk
 	// lies above it.
-	db.mtx.Lock()
-	st := db.st
-	db.mtx.Unlock()
+	st := db.cur.Load()
 	sp := db.sp
 	chunk, ok := sp.fit(extentPages, extentPages)
 	if !ok {
@@ -1150,9 +1258,7 @@ func (db *DB) moveLog() error {
 // The caller holds the writer lock.
 func (db *DB) releaseNow() error {
 	// Release and punch against the current state.
-	db.mtx.Lock()
-	st := db.st
-	db.mtx.Unlock()
+	st := db.cur.Load()
 	r := &record{}
 	if err := db.releaseSpace(st, r); err != nil {
 		return err
@@ -1162,34 +1268,56 @@ func (db *DB) releaseNow() error {
 
 // Sync makes every earlier commit durable.
 func (db *DB) Sync(ctx context.Context) error {
-	// Flush, then mark the commits seen before the flush durable.
-	db.mtx.Lock()
-	seq := db.st.seq
-	db.mtx.Unlock()
-	if err := flushDurable(db.f); err != nil {
-		return err
-	}
-	db.setDurable(seq)
-	return nil
+	return db.syncThrough(db.cur.Load().seq)
 }
 
 // WaitDurable returns once every earlier commit is durable, flushing the
 // file when any is not. A flush from any process persists every process's
 // writes.
 func (db *DB) WaitDurable(ctx context.Context) error {
-	// Flush only when a commit is not yet durable.
+	return db.syncThrough(db.cur.Load().seq)
+}
+
+// syncThrough returns once commit seq is durable. Commits share flushes: one
+// caller flushes for every commit published before its flush starts, and
+// callers arriving meanwhile wait for it, then flush the next group if it did
+// not cover them.
+func (db *DB) syncThrough(seq uint64) error {
 	db.mtx.Lock()
-	done := db.durable >= db.st.seq
-	db.mtx.Unlock()
-	if done {
-		return nil
+	defer db.mtx.Unlock()
+	for db.durable < seq {
+		// Wait for a running flush.
+		if db.flushing {
+			done := db.flushed
+			db.mtx.Unlock()
+			<-done
+			db.mtx.Lock()
+			continue
+		}
+
+		// Flush every published commit.
+		target := db.cur.Load().seq
+		db.flushing, db.flushed = true, make(chan struct{})
+		db.mtx.Unlock()
+		err := flushDurable(db.f)
+		db.mtx.Lock()
+		db.flushing = false
+		close(db.flushed)
+		if err != nil {
+			return err
+		}
+		db.durable = max(db.durable, target)
 	}
-	return db.Sync(ctx)
+	return nil
 }
 
 // Close checkpoints when this handle can take the writer lock without
 // waiting, flushes, and closes the file.
 func (db *DB) Close() error {
+	// Stop the warm-up so its snapshot does not hold space.
+	close(db.closing)
+	<-db.warmDone
+
 	// Checkpoint and release when no other process is writing.
 	var err error
 	if ok, lerr := db.tryLockWriter(); lerr == nil && ok {

@@ -200,12 +200,15 @@ func (l *logReader) window() []byte {
 		}
 	}
 
-	// Refill from pos, reading at least the next record when it is large.
-	want := uint64(64 << 10)
-	var hdr [4]byte
-	if _, err := l.f.ReadAt(hdr[:], int64(l.pos)); err == nil {
-		want = max(want, uint64(binary.LittleEndian.Uint32(hdr[:])))
+	// Read the next header, stopping at the end of the log without filling
+	// a window: a reader at the end, the usual case, reads 17 bytes.
+	var hdr [recordHeader]byte
+	if _, err := l.f.ReadAt(hdr[:], int64(l.pos)); err != nil || binary.LittleEndian.Uint64(hdr[8:]) != l.seq {
+		return nil
 	}
+
+	// Refill from pos, reading at least the next record when it is large.
+	want := max(64<<10, uint64(binary.LittleEndian.Uint32(hdr[:])))
 	want = min(want, l.end-l.pos)
 
 	// Read the window.

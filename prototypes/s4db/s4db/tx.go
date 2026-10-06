@@ -38,6 +38,8 @@ type Tx struct {
 	db *DB
 	// st is the snapshot.
 	st *state
+	// stripe is the counter of st holding the snapshot.
+	stripe int
 	// changes buffers the writes of a write transaction; nil when read-only.
 	changes *btree.BTreeG[tentry]
 	// done is set after Commit or Discard.
@@ -208,24 +210,31 @@ func (t *Tx) commit(ordered bool) error {
 		return nil
 	}
 
-	// End the transaction, releasing the writer lock on return.
+	// Collect the changes in key order.
 	t.done = true
 	db := t.db
-	defer db.unlockWriter()
-
-	// Write the changes in key order, then run checkpoint and compaction
-	// work with the snapshot released.
 	changes := make([]tentry, 0, t.changes.Len())
 	t.changes.Scan(func(c tentry) bool {
 		changes = append(changes, c)
 		return true
 	})
+
+	// Write them, then run checkpoint and compaction work with the snapshot
+	// released, and release the writer lock.
 	err := db.commit(t.st, changes, ordered)
-	db.release(t.st)
-	if err != nil {
+	db.release(t.st, t.stripe)
+	if err == nil {
+		err = db.afterCommit()
+	}
+	seq := db.cur.Load().seq
+	db.unlockWriter()
+	if err != nil || ordered {
 		return err
 	}
-	return db.afterCommit()
+
+	// Flush outside the writer lock, sharing the flush with concurrent
+	// commits.
+	return db.syncThrough(seq)
 }
 
 // Discard ends the transaction without writing.
@@ -234,7 +243,7 @@ func (t *Tx) Discard() {
 		return
 	}
 	t.done = true
-	t.db.release(t.st)
+	t.db.release(t.st, t.stripe)
 	if t.changes != nil {
 		t.db.unlockWriter()
 	}
@@ -360,11 +369,11 @@ func newIterator(db *DB, st *state, changes *btree.BTreeG[tentry], prefix []byte
 		})
 	}
 	it.layers = append(it.layers,
-		&treeIter[oentry]{
+		&treeIter[*oentry]{
 			it:    st.overlay.Iter(),
-			keyOf: func(e oentry) []byte { return e.key },
-			probe: func(k []byte) oentry { return oentry{key: k} },
-			conv:  func(e oentry) mentry { return mentry{del: e.del, val: e.val} },
+			keyOf: func(e *oentry) []byte { return e.key },
+			probe: func(k []byte) *oentry { return &oentry{key: k} },
+			conv:  func(e *oentry) mentry { return mentry{del: e.del, val: e.val} },
 		},
 		&pageIter{cursor{p: db, root: st.root}},
 	)

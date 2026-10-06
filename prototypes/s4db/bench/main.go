@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -66,6 +67,8 @@ func main() {
 	ordered := flag.Bool("ordered", false, "commit with write ordering and Sync every 32 commits")
 	reads := flag.Int("reads", 50000, "random point reads")
 	churn := flag.Bool("churn", true, "run the churn phase")
+	readers := flag.Int("readers", 1, "goroutines sharing the point reads")
+	writers := flag.Int("writers", 1, "goroutines sharing the fill commits")
 	cpuProfile := flag.String("cpuprofile", "", "write a CPU profile of the fill to this file")
 	flag.Parse()
 
@@ -90,8 +93,8 @@ func main() {
 	// Generate the workload.
 	ctx := context.Background()
 	w := newWorkload(*n, *profile)
-	fmt.Printf("engine %s  keys %d  values %s  batch %d  ordered %v  live %s\n",
-		eng.name, *n, *profile, *batch, *ordered, mib(w.liveBytes()))
+	fmt.Printf("engine %s  keys %d  values %s  batch %d  ordered %v  writers %d  readers %d  live %s\n",
+		eng.name, *n, *profile, *batch, *ordered, *writers, *readers, mib(w.liveBytes()))
 
 	// Fill the engine.
 	s, err := eng.open(ctx, *dir)
@@ -111,7 +114,7 @@ func main() {
 	}
 	io0 := ioWritten()
 	start := time.Now()
-	lat := w.write(ctx, s, 0, len(w.keys), *batch, *ordered)
+	lat := w.writeParallel(ctx, s, len(w.keys), *batch, *ordered, *writers)
 	fill := time.Since(start)
 	pprof.StopCPUProfile()
 
@@ -136,26 +139,13 @@ func main() {
 	}
 	fmt.Printf("reopen      %8.1f ms  heap %s  rss %s\n", ms(time.Since(start)), mib(heap()), mib(rss()))
 
-	// Read random existing keys, first with a cold page cache.
+	// Read random existing keys with a cold cache, then again from the
+	// engine's warm state, split across the requested readers.
 	rng := rand.New(rand.NewPCG(1, 2))
-	rlat := make([]time.Duration, 0, *reads)
-	start = time.Now()
-	for range *reads {
-		i := rng.IntN(len(w.keys))
-		t0 := time.Now()
-		tx, err := s.NewTransaction(ctx, false)
-		if err != nil {
-			panic(err)
-		}
-		val, found, err := tx.Get(ctx, w.keys[i])
-		if err != nil || !found || len(val) != w.sizes[i] {
-			panic(fmt.Sprintf("read %d: found %v len %d want %d err %v", i, found, len(val), w.sizes[i], err))
-		}
-		tx.Discard()
-		rlat = append(rlat, time.Since(t0))
+	for _, pass := range []string{"read", "read hot"} {
+		rlat, el := w.read(ctx, s, *reads, *readers)
+		fmt.Printf("%-11s %8.0f gets/s  %s  heap %s  rss %s\n", pass, float64(*reads)/el.Seconds(), pct(rlat), mib(heap()), mib(rss()))
 	}
-	el := time.Since(start)
-	fmt.Printf("read        %8.0f gets/s  %s  heap %s  rss %s\n", float64(*reads)/el.Seconds(), pct(rlat), mib(heap()), mib(rss()))
 
 	// Scan object prefixes, as World state reads do.
 	slat := make([]time.Duration, 0, 2000)
@@ -293,6 +283,70 @@ func (w *workload) write(ctx context.Context, s store, from, to, batch int, orde
 			}
 		}
 		commit(ctx, s, tx, ordered, &commits)
+		lat = append(lat, time.Since(t0))
+	}
+	return lat
+}
+
+// writeParallel sets keys [0, n) from writers goroutines, each committing
+// an interleaved share of the batches, and returns every commit latency.
+func (w *workload) writeParallel(ctx context.Context, s store, n, batch int, ordered bool, writers int) []time.Duration {
+	// One writer commits the batches in order.
+	if writers <= 1 {
+		return w.write(ctx, s, 0, n, batch, ordered)
+	}
+
+	// Split the key range into one contiguous share per writer.
+	var mtx sync.Mutex
+	var lat []time.Duration
+	var wg sync.WaitGroup
+	share := (n + writers - 1) / writers
+	for lo := 0; lo < n; lo += share {
+		wg.Go(func() {
+			l := w.write(ctx, s, lo, min(lo+share, n), batch, ordered)
+			mtx.Lock()
+			lat = append(lat, l...)
+			mtx.Unlock()
+		})
+	}
+	wg.Wait()
+	return lat
+}
+
+// read gets reads random existing keys from readers goroutines, each in its
+// own read transaction, and returns every latency and the elapsed time.
+func (w *workload) read(ctx context.Context, s store, reads, readers int) ([]time.Duration, time.Duration) {
+	// Start the readers together.
+	readers = max(1, readers)
+	lats := make([][]time.Duration, readers)
+	var wg sync.WaitGroup
+	start := time.Now()
+	for r := range readers {
+		wg.Go(func() {
+			lats[r] = w.readShare(ctx, s, uint64(r), reads/readers)
+		})
+	}
+	wg.Wait()
+	return slices.Concat(lats...), time.Since(start)
+}
+
+// readShare reads n random existing keys chosen by a generator seeded with
+// seed.
+func (w *workload) readShare(ctx context.Context, s store, seed uint64, n int) []time.Duration {
+	rng := rand.New(rand.NewPCG(seed, 2))
+	lat := make([]time.Duration, 0, n)
+	for range n {
+		i := rng.IntN(len(w.keys))
+		t0 := time.Now()
+		tx, err := s.NewTransaction(ctx, false)
+		if err != nil {
+			panic(err)
+		}
+		val, found, err := tx.Get(ctx, w.keys[i])
+		if err != nil || !found || len(val) != w.sizes[i] {
+			panic(fmt.Sprintf("read %d: found %v len %d want %d err %v", i, found, len(val), w.sizes[i], err))
+		}
+		tx.Discard()
 		lat = append(lat, time.Since(t0))
 	}
 	return lat

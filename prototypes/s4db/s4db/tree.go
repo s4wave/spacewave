@@ -3,18 +3,23 @@ package s4db
 import (
 	"bytes"
 	"slices"
+	"sync/atomic"
 )
 
 // pager reads tree pages.
 type pager interface {
 	// node returns the decoded page.
 	node(page uint64) (*node, error)
+	// root returns the decoded root page.
+	root(page uint64) (*node, error)
+	// child returns child i of inner page n.
+	child(n *node, i int) (*node, error)
 }
 
 // childIndex returns the child of inner page n covering key.
 func childIndex(n *node, key []byte) int {
-	i, _ := slices.BinarySearchFunc(n.keys, key, bytes.Compare)
-	if i < len(n.keys) && bytes.Equal(n.keys[i], key) {
+	i, found := n.search(key)
+	if found {
 		return i
 	}
 	return max(0, i-1)
@@ -26,16 +31,16 @@ func treeGet(p pager, root uint64, key []byte) (value, bool, error) {
 	if root == 0 {
 		return value{}, false, nil
 	}
-	n, err := p.node(root)
+	n, err := p.root(root)
 	for err == nil && !n.leaf {
-		n, err = p.node(n.kids[childIndex(n, key)])
+		n, err = p.child(n, childIndex(n, key))
 	}
 	if err != nil {
 		return value{}, false, err
 	}
 
 	// Find key in the leaf.
-	i, ok := slices.BinarySearchFunc(n.keys, key, bytes.Compare)
+	i, ok := n.search(key)
 	if !ok {
 		return value{}, false, nil
 	}
@@ -125,7 +130,7 @@ func (c *cursor) seek(key []byte, reverse bool) {
 	// Position in the leaf, stepping to a neighbor leaf when key falls
 	// outside it.
 	f := &c.path[len(c.path)-1]
-	i, found := slices.BinarySearchFunc(f.n.keys, key, bytes.Compare)
+	i, found := f.n.search(key)
 	f.i = i
 	if !reverse && i == len(f.n.keys) {
 		f.i--
@@ -561,9 +566,19 @@ func (b *builder) place(top *child, first uint64) ([]uint64, []*node, []byte) {
 	nums := make([]uint64, len(order))
 	buf := make([]byte, 0, len(order)*pageSize)
 	for i, n := range order {
+		n.heads = make([]uint64, len(n.keys))
+		for j, k := range n.keys {
+			n.heads[j] = head(k)
+		}
+		if !n.leaf {
+			n.inner = make([]atomic.Pointer[node], len(n.kids))
+		}
 		for j, s := range b.sub[n] {
 			if s != nil {
 				n.kids[j] = pages[s]
+			}
+			if s != nil && !s.leaf {
+				n.inner[j].Store(s)
 			}
 		}
 		nums[i] = pages[n]

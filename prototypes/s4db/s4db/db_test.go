@@ -199,11 +199,11 @@ func TestTornTail(t *testing.T) {
 	// Commit once more, noting where the last record lies.
 	before := maps.Clone(m)
 	db.mtx.Lock()
-	pos := db.st.pos
+	pos := db.cur.Load().pos
 	db.mtx.Unlock()
 	randomCommit(t, r, db, m, 500)
 	db.mtx.Lock()
-	end := db.st.pos
+	end := db.cur.Load().pos
 	db.mtx.Unlock()
 
 	// Copy the file as a crash would leave it: the last record half written.
@@ -306,7 +306,7 @@ func checkSpace(t *testing.T, db *DB) {
 		t.Fatal(err)
 	}
 	defer db.unlockWriter()
-	sp, st := db.sp, db.st
+	sp, st := db.sp, db.cur.Load()
 	owner := make(map[uint64]string)
 	claim := func(p uint64, who string, shared bool) {
 		if prev, ok := owner[p]; ok && !(shared && prev == who) {

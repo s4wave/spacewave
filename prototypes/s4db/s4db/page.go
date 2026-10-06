@@ -1,8 +1,11 @@
 package s4db
 
 import (
+	"bytes"
+	"cmp"
 	"encoding/binary"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 )
@@ -136,10 +139,17 @@ type node struct {
 	// keys holds the leaf keys, or the low key of each child of an inner
 	// page. The first inner key is empty.
 	keys [][]byte
+	// heads holds the head of each key, so a search compares within one
+	// array and reads a key only on a tie.
+	heads []uint64
 	// vals holds the leaf values.
 	vals []value
 	// kids holds the child pages of an inner page.
 	kids []uint64
+	// inner holds the decoded children of an inner page that are themselves
+	// inner pages, filled as reads descend. A child page is freed only with
+	// every page that references it, so a link never outlives its target.
+	inner []atomic.Pointer[node]
 }
 
 // Page layout: kind byte, entry count, entries, zero padding, and a CRC-32C of
@@ -150,6 +160,38 @@ const (
 	// pageRoom is the space for entries.
 	pageRoom = pageSize - pageHeader - 4
 )
+
+// head returns the first eight bytes of key as a big-endian integer, zero
+// padded, so integers order as their keys do except on ties.
+func head(key []byte) uint64 {
+	if len(key) >= 8 {
+		return binary.BigEndian.Uint64(key)
+	}
+	var b [8]byte
+	copy(b[:], key)
+	return binary.BigEndian.Uint64(b[:])
+}
+
+// search returns the position of the first key at or after key and whether
+// it equals key.
+func (n *node) search(key []byte) (int, bool) {
+	// Bisect on heads, comparing whole keys on equal heads.
+	h := head(key)
+	lo, hi := 0, len(n.keys)
+	for lo < hi {
+		m := int(uint(lo+hi) >> 1)
+		c := cmp.Compare(n.heads[m], h)
+		if c == 0 {
+			c = bytes.Compare(n.keys[m], key)
+		}
+		if c < 0 {
+			lo = m + 1
+		} else {
+			hi = m
+		}
+	}
+	return lo, lo < len(n.keys) && bytes.Equal(n.keys[lo], key)
+}
 
 // leafEntrySize returns the encoded length of a leaf entry.
 func leafEntrySize(key []byte, v value) int {
@@ -202,11 +244,14 @@ func decodeNode(b []byte) (*node, error) {
 		n.vals = make([]value, count)
 	} else {
 		n.kids = make([]uint64, count)
+		n.inner = make([]atomic.Pointer[node], count)
 	}
 
 	// Read each key with its value or child page.
+	n.heads = make([]uint64, count)
 	for i := range count {
 		n.keys[i] = d.bytes()
+		n.heads[i] = head(n.keys[i])
 		if n.leaf {
 			n.vals[i] = d.value()
 		} else {
@@ -216,47 +261,120 @@ func decodeNode(b []byte) (*node, error) {
 	return n, d.err
 }
 
-// cache holds decoded pages. Pages are never changed once written, so
-// entries never go stale; a page number is only reused after every snapshot
-// that could read the old page has closed, and freeing drops the entry.
+// cacheShards is the number of independently locked cache shards.
+const cacheShards = 64
+
+// cache holds decoded pages in shards, each evicting by CLOCK. Pages are
+// never changed once written, so entries never go stale; a page number is
+// only reused after every snapshot that could read the old page has closed,
+// and freeing drops the entry.
 type cache struct {
-	// mtx guards nodes.
+	// root holds the last root page read, so lookups start without taking
+	// a shard lock.
+	root atomic.Pointer[cacheSlot]
+	// shards hold the pages by page number.
+	shards [cacheShards]cacheShard
+}
+
+// cacheShard is one locked part of the cache.
+type cacheShard struct {
+	// mtx guards the fields below.
 	mtx sync.Mutex
-	// nodes maps page numbers to decoded pages.
-	nodes map[uint64]*node
-	// max bounds the number of cached pages.
+	// index maps page numbers to positions in ring.
+	index map[uint64]int
+	// ring holds the cached pages in clock order.
+	ring []cacheSlot
+	// hand is the next position the clock examines.
+	hand int
+	// max bounds len(ring).
 	max int
+}
+
+// cacheSlot is one cached page.
+type cacheSlot struct {
+	// page is the page number.
+	page uint64
+	// n is the decoded page; nil marks a free slot.
+	n *node
+	// used is set by a hit and cleared as the clock passes.
+	used bool
+}
+
+// newCache returns a cache bounded to about pages pages.
+func newCache(pages int) *cache {
+	c := &cache{}
+	for i := range c.shards {
+		c.shards[i] = cacheShard{index: make(map[uint64]int), max: max(1, pages/cacheShards)}
+	}
+	return c
+}
+
+// shard returns the shard holding page.
+func (c *cache) shard(page uint64) *cacheShard {
+	return &c.shards[(page*0x9e3779b97f4a7c15)>>58]
 }
 
 // get returns a cached page.
 func (c *cache) get(page uint64) *node {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	return c.nodes[page]
+	// Find the page in its shard.
+	s := c.shard(page)
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	i, ok := s.index[page]
+	if !ok {
+		return nil
+	}
+
+	// Mark it used so the clock passes it once.
+	s.ring[i].used = true
+	return s.ring[i].n
 }
 
-// put caches a page, evicting arbitrary pages when full.
+// put caches a page. A full shard evicts the first page the clock finds
+// unused since it last passed, so pages read once leave before pages read
+// again.
 func (c *cache) put(page uint64, n *node) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	if len(c.nodes) >= c.max {
-		drop := len(c.nodes) / 8
-		for k := range c.nodes {
-			if drop == 0 {
-				break
-			}
-			delete(c.nodes, k)
-			drop--
-		}
+	// Replace a cached page in place.
+	s := c.shard(page)
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if i, ok := s.index[page]; ok {
+		s.ring[i].n = n
+		return
 	}
-	c.nodes[page] = n
+
+	// Grow the ring until it is full.
+	if len(s.ring) < s.max {
+		s.index[page] = len(s.ring)
+		s.ring = append(s.ring, cacheSlot{page: page, n: n})
+		return
+	}
+
+	// Advance the clock to a free or unused slot and take it.
+	for s.ring[s.hand].n != nil && s.ring[s.hand].used {
+		s.ring[s.hand].used = false
+		s.hand = (s.hand + 1) % len(s.ring)
+	}
+	if old := s.ring[s.hand]; old.n != nil {
+		delete(s.index, old.page)
+	}
+	s.ring[s.hand] = cacheSlot{page: page, n: n}
+	s.index[page] = s.hand
+	s.hand = (s.hand + 1) % len(s.ring)
 }
 
 // drop removes freed pages.
 func (c *cache) drop(start, n uint64) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+	if r := c.root.Load(); r != nil && r.page >= start && r.page < start+n {
+		c.root.CompareAndSwap(r, nil)
+	}
 	for p := start; p < start+n; p++ {
-		delete(c.nodes, p)
+		s := c.shard(p)
+		s.mtx.Lock()
+		if i, ok := s.index[p]; ok {
+			delete(s.index, p)
+			s.ring[i] = cacheSlot{}
+		}
+		s.mtx.Unlock()
 	}
 }
