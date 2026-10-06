@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useId, useState, type ReactNode } from 'react'
 import {
   LuBuilding2,
@@ -26,9 +25,13 @@ import {
   type SharedObjectHealth,
 } from '@s4wave/core/sobject/sobject.pb.js'
 import type {
+  OrganizationRootStateInfo,
+  OrgInviteInfo,
+  OrgMemberInfo,
   SharedObjectMutationPermission,
   WatchOrganizationStateResponse,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 import {
   SessionContext,
   useSessionNavigate,
@@ -74,6 +77,20 @@ export interface OrganizationDetailsProps {
 function getRoleLabel(role?: string): string {
   if (role === ORG_ROLE_OWNER) return 'Owner'
   return 'Member'
+}
+
+/** orgIdentity resolves the display name and role label of the organization. */
+function orgIdentity(
+  info: WatchOrganizationStateResponse['organization'],
+  fallbackOrgName: string | undefined,
+  isOwner: boolean,
+): { orgName: string; roleLabel: string } {
+  return {
+    orgName: info?.displayName || fallbackOrgName || 'Organization',
+    roleLabel: getRoleLabel(
+      info?.role ?? (isOwner ? ORG_ROLE_OWNER : 'org:member'),
+    ),
+  }
 }
 
 function getRecoverySummary(health?: SharedObjectHealth | null): {
@@ -200,78 +217,416 @@ function RecoveryActionButton({
   )
 }
 
-// OrganizationDetails renders the overlay panel for organization management.
-// Mirrors SessionDetails: header bar + scrollable collapsible sections.
-export function OrganizationDetails({
-  orgId,
-  orgState,
-  orgName: fallbackOrgName,
-  degraded = false,
-  isOwner,
-  onCloseClick,
-}: OrganizationDetailsProps) {
-  const usernameInviteId = useId()
-  const renameInputId = useId()
-  const session = SessionContext.useContext().value
-  const navigateSession = useSessionNavigate()
-  const ns = useStateNamespace(['org-details'])
+/** SectionProps is the open state a CollapsibleSection needs. */
+interface SectionProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
 
-  const info = orgState?.organization
-  const rootState = orgState?.rootState
-  const members = orgState?.members ?? []
-  const invites = orgState?.invites ?? []
-  const spaces = orgState?.spaces ?? []
-  const orgName = info?.displayName || fallbackOrgName || 'Organization'
-  const roleLabel = getRoleLabel(
-    info?.role ?? (isOwner ? ORG_ROLE_OWNER : 'org:member'),
-  )
-  const recoverySummary = getRecoverySummary(rootState?.health)
-  const recoveryPermission = getRecoveryPermission(
-    rootState?.mutationPermission,
-    isOwner,
-  )
-  const rootSharedObjectId = rootState?.sharedObjectId || orgId
+/** SectionPropsFor returns the open state of the named section. */
+type SectionPropsFor = (section: Exclude<OrgOpenSection, null>) => SectionProps
 
-  const [openSection, setOpenSection] = useStateAtom<OrgOpenSection>(
-    ns,
-    'open-section',
-    degraded ? 'recovery' : 'members',
-  )
-  const [mutationPending, setMutationPending] = useState(false)
-  const [mutationError, setMutationError] = useState('')
-  const [confirmingReinitialize, setConfirmingReinitialize] = useState(false)
+/**
+ * tolerateNotFound runs a removal and reports a not-found failure as already
+ * done, since the watched org state will drop the entry on its own.
+ */
+async function tolerateNotFound(
+  run: () => Promise<unknown>,
+  alreadyDoneMessage: string,
+) {
+  try {
+    await run()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : ''
+    if (msg.toLowerCase().includes('not found')) {
+      toast.info(alreadyDoneMessage, { duration: 3000 })
+      return
+    }
+    throw err
+  }
+}
 
-  const handleSectionOpenChange = useCallback(
-    (section: Exclude<OrgOpenSection, null>) => (open: boolean) => {
-      setOpenSection(open ? section : null)
+/** recoveryToneClasses maps a recovery tone to its card and icon colors. */
+const recoveryToneClasses = {
+  loading: {
+    card: 'border-foreground/8 bg-background-card/30',
+    icon: 'bg-foreground/5',
+  },
+  degraded: {
+    card: 'border-warning/20 bg-warning/5',
+    icon: 'bg-warning/10',
+  },
+  closed: {
+    card: 'border-destructive/20 bg-destructive/5',
+    icon: 'bg-destructive/10',
+  },
+} as const
+
+type RecoverySummary = ReturnType<typeof getRecoverySummary>
+
+/** RecoveryToneIcon renders the icon for a recovery tone. */
+function RecoveryToneIcon({ tone }: { tone: RecoverySummary['tone'] }) {
+  if (tone === 'loading') return <Spinner variant="foreground" />
+  if (tone === 'degraded') {
+    return <LuTriangleAlert className="text-warning size-4" />
+  }
+  return <LuShieldAlert className="text-destructive size-4" />
+}
+
+/** RecoverySummaryCard renders the health summary of the org root object. */
+function RecoverySummaryCard({
+  summary,
+  healthError,
+}: {
+  summary: RecoverySummary
+  healthError?: string
+}) {
+  const classes = recoveryToneClasses[summary.tone]
+  return (
+    <div className={cn('rounded-md border px-3 py-2', classes.card)}>
+      <div className="flex items-start gap-2">
+        <div
+          className={cn(
+            'flex size-7 shrink-0 items-center justify-center rounded-md',
+            classes.icon,
+          )}
+        >
+          <RecoveryToneIcon tone={summary.tone} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground text-xs font-medium">{summary.title}</p>
+          <p className="text-foreground-alt/65 mt-1 text-xs">
+            {summary.description}
+          </p>
+          {summary.hint && (
+            <p className="text-foreground-alt/60 text-metadata mt-2">
+              {summary.hint}
+            </p>
+          )}
+          {healthError && (
+            <div className="border-foreground/8 bg-background-card/30 text-foreground-alt/70 micro-label mt-2 rounded-md border px-2 py-1.5 break-words whitespace-pre-wrap">
+              {healthError}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** useRecoveryAction runs repair or reinitialize on the org root object. */
+function useRecoveryAction(session: Session | null, sharedObjectId: string) {
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+
+  const run = useCallback(
+    async (kind: 'repair' | 'reinitialize') => {
+      if (!session || !sharedObjectId || pending) return
+      setPending(true)
+      setError('')
+      try {
+        if (kind === 'repair') {
+          await session.spacewave.repairSharedObject(sharedObjectId)
+        } else {
+          await session.spacewave.reinitializeSharedObject(sharedObjectId)
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Action failed')
+      } finally {
+        setPending(false)
+      }
     },
-    [setOpenSection],
+    [pending, sharedObjectId, session],
   )
 
-  // Member management
-  const [creatingInvite, setCreatingInvite] = useState(false)
-  const [usernameInvite, setUsernameInvite] = useState('')
-  const [usernameInvitePending, setUsernameInvitePending] = useState(false)
-  const [usernameInviteSent, setUsernameInviteSent] = useState(false)
+  return { pending, error, run }
+}
+
+/** ReinitializeConfirm asks the owner to confirm the destructive reinitialize. */
+function ReinitializeConfirm({
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  pending: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border px-3 py-2">
+      <div className="text-destructive/80 micro-caption font-medium tracking-widest uppercase">
+        Confirm Reinitialize
+      </div>
+      <p className="text-foreground-alt/70 mt-1 text-xs">
+        Reinitialize is destructive. It rewrites the organization root shared
+        object in place on the same shared object id and canonical org route.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <DashboardButton icon={<LuX className="size-3.5" />} onClick={onCancel}>
+          Cancel
+        </DashboardButton>
+        <DashboardButton
+          icon={<LuShieldAlert className="size-3.5" />}
+          onClick={onConfirm}
+          disabled={pending}
+          variant="destructive"
+        >
+          {pending ? 'Reinitializing…' : 'Confirm reinitialize'}
+        </DashboardButton>
+      </div>
+    </div>
+  )
+}
+
+/** disabledReasonFor returns the reason an action is blocked, or ''. */
+function disabledReasonFor(
+  allowed: boolean | undefined,
+  permission: SharedObjectMutationPermission,
+): string {
+  return allowed ? '' : (permission.disabledReason ?? '')
+}
+
+/** RecoveryRemediation renders the repair and reinitialize controls. */
+function RecoveryRemediation({
+  session,
+  sharedObjectId,
+  permission,
+}: {
+  session: Session | null
+  sharedObjectId: string
+  permission: SharedObjectMutationPermission
+}) {
+  const { pending, error, run } = useRecoveryAction(session, sharedObjectId)
+  const [confirming, setConfirming] = useState(false)
+
+  return (
+    <div className="border-foreground/8 bg-background-card/20 rounded-md border px-3 py-2">
+      <div className="text-foreground-alt/45 micro-caption font-medium tracking-widest uppercase">
+        Remediation
+      </div>
+      <p className="text-foreground-alt/65 mt-1 text-xs">
+        This works in place on the canonical organization root shared object at
+        the current org-owned id.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <RecoveryActionButton
+          label={pending ? 'Repairing...' : 'Repair'}
+          icon={<LuRefreshCw className="size-3.5" />}
+          onClick={() => {
+            setConfirming(false)
+            void run('repair')
+          }}
+          disabled={pending}
+          disabledReason={disabledReasonFor(permission.canRepair, permission)}
+        />
+        <RecoveryActionButton
+          label="Reinitialize"
+          icon={<LuShieldAlert className="size-3.5" />}
+          onClick={() => setConfirming(true)}
+          disabled={pending}
+          disabledReason={disabledReasonFor(
+            permission.canReinitialize,
+            permission,
+          )}
+          destructive={true}
+        />
+      </div>
+      {confirming && (
+        <ReinitializeConfirm
+          pending={pending}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false)
+            void run('reinitialize')
+          }}
+        />
+      )}
+      {error && <p className="text-destructive mt-2 text-xs">{error}</p>}
+      <p className="text-foreground-alt/55 mt-2 text-xs">
+        Shared object ID: {sharedObjectId}
+      </p>
+    </div>
+  )
+}
+
+/** OrgRecoverySection renders the degraded-mode recovery tools. */
+function OrgRecoverySection({
+  orgId,
+  rootState,
+  isOwner,
+  open,
+  onOpenChange,
+}: SectionProps & {
+  orgId: string
+  rootState?: OrganizationRootStateInfo
+  isOwner: boolean
+}) {
+  const session = SessionContext.useContext().value
+
+  return (
+    <CollapsibleSection
+      title="Recovery"
+      icon={<LuCircleAlert className="size-3.5" />}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      <InfoCard>
+        <div className="space-y-3">
+          <RecoverySummaryCard
+            summary={getRecoverySummary(rootState?.health)}
+            healthError={rootState?.health?.error}
+          />
+          <RecoveryRemediation
+            session={session}
+            sharedObjectId={rootState?.sharedObjectId || orgId}
+            permission={getRecoveryPermission(
+              rootState?.mutationPermission,
+              isOwner,
+            )}
+          />
+        </div>
+      </InfoCard>
+    </CollapsibleSection>
+  )
+}
+
+/** OrgMembersSection lists the members and lets owners remove them. */
+function OrgMembersSection({
+  orgId,
+  members,
+  isOwner,
+  open,
+  onOpenChange,
+}: SectionProps & {
+  orgId: string
+  members: OrgMemberInfo[]
+  isOwner: boolean
+}) {
+  const session = SessionContext.useContext().value
 
   const handleRemoveMember = useCallback(
     async (memberId: string) => {
       if (!session) return
-      try {
-        await session.spacewave.removeOrgMember(orgId, memberId)
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : ''
-        if (msg.toLowerCase().includes('not found')) {
-          toast.info('Member already removed. Refreshing...', {
-            duration: 3000,
-          })
-          return
-        }
-        throw err
-      }
+      await tolerateNotFound(
+        () => session.spacewave.removeOrgMember(orgId, memberId),
+        'Member already removed. Refreshing...',
+      )
     },
     [session, orgId],
   )
+
+  return (
+    <CollapsibleSection
+      title="Members"
+      icon={<LuUsers className="size-3.5" />}
+      open={open}
+      onOpenChange={onOpenChange}
+      badge={
+        <span className="text-foreground-alt/40 text-xs">{members.length}</span>
+      }
+    >
+      <p className="text-foreground-alt/60 mb-2 text-xs">
+        Members are shown by username first. Their account ID stays underneath
+        for review or copy.
+      </p>
+      <OrgMemberList
+        members={members}
+        isOwner={isOwner}
+        onRemove={handleRemoveMember}
+      />
+    </CollapsibleSection>
+  )
+}
+
+/** useUsernameInvite sends an org invite to a Spacewave username. */
+function useUsernameInvite(session: Session | null, orgId: string) {
+  const [username, setUsername] = useState('')
+  const [pending, setPending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  const change = useCallback((next: string) => {
+    setUsername(next)
+    setSent(false)
+  }, [])
+
+  const submit = useCallback(async () => {
+    const target = username.trim()
+    if (!session || !target || pending) return
+    setPending(true)
+    setSent(false)
+    try {
+      await session.spacewave.createOrganizationTargetedInvitationByUsername(
+        target,
+        orgId,
+        'org:member',
+      )
+      setUsername('')
+      setSent(true)
+    } finally {
+      setPending(false)
+    }
+  }, [session, orgId, username, pending])
+
+  return { username, pending, sent, change, submit }
+}
+
+/** usernameInviteLabel returns the invite button label for its state. */
+function usernameInviteLabel(pending: boolean, sent: boolean): string {
+  if (pending) return 'Sending…'
+  return sent ? 'Sent' : 'Invite'
+}
+
+/** UsernameInviteForm renders the username field and its invite button. */
+function UsernameInviteForm({
+  session,
+  orgId,
+}: {
+  session: Session | null
+  orgId: string
+}) {
+  const inputId = useId()
+  const invite = useUsernameInvite(session, orgId)
+
+  return (
+    <div className="border-foreground/8 bg-background-card/20 mb-3 rounded-md border px-3 py-2">
+      <label
+        htmlFor={inputId}
+        className="text-foreground-alt mb-1.5 block text-xs select-none"
+      >
+        Spacewave username
+      </label>
+      <div className="flex gap-2">
+        <input
+          id={inputId}
+          value={invite.username}
+          onChange={(e) => invite.change(e.target.value)}
+          placeholder="alice"
+          className={cn(
+            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-w-0 flex-1 rounded-md border px-2 py-1.5 font-mono text-xs transition-colors outline-none',
+            'focus:border-brand/50',
+          )}
+        />
+        <DashboardButton
+          icon={<LuUserPlus className="size-3" />}
+          onClick={() => void invite.submit()}
+          disabled={invite.pending || !invite.username.trim() || !session}
+        >
+          {usernameInviteLabel(invite.pending, invite.sent)}
+        </DashboardButton>
+      </div>
+    </div>
+  )
+}
+
+/** OrgInvitesSection lists invites and lets owners create and revoke them. */
+function OrgInvitesSection({
+  orgId,
+  invites,
+  open,
+  onOpenChange,
+}: SectionProps & { orgId: string; invites: OrgInviteInfo[] }) {
+  const session = SessionContext.useContext().value
+  const [creatingInvite, setCreatingInvite] = useState(false)
 
   const handleCreateInvite = useCallback(async () => {
     if (!session || creatingInvite) return
@@ -283,42 +638,256 @@ export function OrganizationDetails({
     }
   }, [session, creatingInvite, orgId])
 
-  const handleCreateUsernameInvite = useCallback(async () => {
-    const username = usernameInvite.trim()
-    if (!session || !username || usernameInvitePending) return
-    setUsernameInvitePending(true)
-    setUsernameInviteSent(false)
-    try {
-      await session.spacewave.createOrganizationTargetedInvitationByUsername(
-        username,
-        orgId,
-        'org:member',
-      )
-      setUsernameInvite('')
-      setUsernameInviteSent(true)
-    } finally {
-      setUsernameInvitePending(false)
-    }
-  }, [session, orgId, usernameInvite, usernameInvitePending])
-
   const handleRevokeInvite = useCallback(
     async (inviteId: string) => {
       if (!session) return
-      try {
-        await session.spacewave.revokeOrgInvite(orgId, inviteId)
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : ''
-        if (msg.toLowerCase().includes('not found')) {
-          toast.info('Invite already revoked. Refreshing...', {
-            duration: 3000,
-          })
-          return
-        }
-        throw err
-      }
+      await tolerateNotFound(
+        () => session.spacewave.revokeOrgInvite(orgId, inviteId),
+        'Invite already revoked. Refreshing...',
+      )
     },
     [session, orgId],
   )
+
+  return (
+    <CollapsibleSection
+      title="Invites"
+      icon={<LuLink className="size-3.5" />}
+      open={open}
+      onOpenChange={onOpenChange}
+      badge={
+        invites.length > 0 ? (
+          <span className="text-foreground-alt/40 text-xs">
+            {invites.length}
+          </span>
+        ) : undefined
+      }
+      headerActions={
+        <button
+          type="button"
+          onClick={() => void handleCreateInvite()}
+          disabled={creatingInvite}
+          aria-label="Create invite"
+          title="Create invite"
+          className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <LuPlus className="size-3.5" />
+        </button>
+      }
+    >
+      <UsernameInviteForm session={session} orgId={orgId} />
+      <OrgInviteSection invites={invites} onRevoke={handleRevokeInvite} />
+    </CollapsibleSection>
+  )
+}
+
+/** focusInput focuses the input when it mounts. */
+function focusInput(node: HTMLInputElement | null) {
+  node?.focus()
+}
+
+/** useOrgRename edits and saves the organization display name. */
+function useOrgRename(session: Session | null, orgId: string, orgName: string) {
+  const [value, setValue] = useState('')
+  const [renaming, setRenaming] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const start = useCallback(() => {
+    setValue(orgName)
+    setRenaming(true)
+  }, [orgName])
+
+  const cancel = useCallback(() => {
+    setRenaming(false)
+    setValue('')
+  }, [])
+
+  const save = useCallback(async () => {
+    if (!session || saving || value.trim() === orgName) return
+    setSaving(true)
+    try {
+      await session.spacewave.updateOrganization(orgId, value.trim())
+      setRenaming(false)
+    } finally {
+      setSaving(false)
+    }
+  }, [session, orgId, value, orgName, saving])
+
+  return { value, renaming, saving, setValue, start, cancel, save }
+}
+
+type OrgRename = ReturnType<typeof useOrgRename>
+
+/** OrgRenameEditor renders the display name input with save and cancel. */
+function OrgRenameEditor({
+  inputId,
+  orgName,
+  rename,
+}: {
+  inputId: string
+  orgName: string
+  rename: OrgRename
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        ref={focusInput}
+        id={inputId}
+        type="text"
+        value={rename.value}
+        onChange={(e) => rename.setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return
+          if (e.key === 'Enter') void rename.save()
+          if (e.key === 'Escape') rename.cancel()
+        }}
+        className={cn(
+          'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-2 py-1 text-xs transition-colors outline-none',
+          'focus:border-brand/50',
+        )}
+      />
+      <DashboardButton
+        icon={<LuSave className="size-3" />}
+        onClick={() => void rename.save()}
+        disabled={rename.saving || rename.value.trim() === orgName}
+      >
+        {rename.saving ? 'Saving…' : 'Save'}
+      </DashboardButton>
+      <DashboardButton
+        icon={<LuX className="size-3" />}
+        onClick={rename.cancel}
+        disabled={rename.saving}
+      >
+        Cancel
+      </DashboardButton>
+    </div>
+  )
+}
+
+/** OrgRenameDisplay renders the display name with its edit affordances. */
+function OrgRenameDisplay({
+  orgName,
+  onStart,
+}: {
+  orgName: string
+  onStart: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <button
+        type="button"
+        className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors"
+        onDoubleClick={onStart}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onStart()
+          }
+        }}
+      >
+        {orgName}
+      </button>
+      <DashboardButton icon={<LuPencil className="size-3" />} onClick={onStart}>
+        Edit
+      </DashboardButton>
+    </div>
+  )
+}
+
+/** OrgSettingsSection lets owners rename the organization. */
+function OrgSettingsSection({
+  orgId,
+  orgName,
+  open,
+  onOpenChange,
+}: SectionProps & { orgId: string; orgName: string }) {
+  const renameInputId = useId()
+  const session = SessionContext.useContext().value
+  const rename = useOrgRename(session, orgId, orgName)
+
+  return (
+    <CollapsibleSection
+      title="Settings"
+      icon={<LuSettings className="size-3.5" />}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      <InfoCard>
+        <div className="space-y-2">
+          <div>
+            <label
+              htmlFor={renameInputId}
+              className="text-foreground-alt mb-1 block text-xs select-none"
+            >
+              Display Name
+            </label>
+            {rename.renaming ? (
+              <OrgRenameEditor
+                inputId={renameInputId}
+                orgName={orgName}
+                rename={rename}
+              />
+            ) : (
+              <OrgRenameDisplay orgName={orgName} onStart={rename.start} />
+            )}
+          </div>
+        </div>
+      </InfoCard>
+    </CollapsibleSection>
+  )
+}
+
+/** OrgOwnerSections renders the invite, settings, and billing sections. */
+function OrgOwnerSections({
+  orgId,
+  orgName,
+  billingAccountId,
+  invites,
+  sectionProps,
+}: {
+  orgId: string
+  orgName: string
+  billingAccountId?: string
+  invites: OrgInviteInfo[]
+  sectionProps: SectionPropsFor
+}) {
+  return (
+    <>
+      <OrgInvitesSection
+        orgId={orgId}
+        invites={invites}
+        {...sectionProps('invites')}
+      />
+      <OrgSettingsSection
+        orgId={orgId}
+        orgName={orgName}
+        {...sectionProps('settings')}
+      />
+      <OrgBillingSection
+        orgId={orgId}
+        billingAccountId={billingAccountId}
+        {...sectionProps('billing')}
+      />
+    </>
+  )
+}
+
+/** OrgHeader renders the organization title, leave action, and close button. */
+function OrgHeader({
+  orgId,
+  orgName,
+  roleLabel,
+  canLeave,
+  onCloseClick,
+}: {
+  orgId: string
+  orgName: string
+  roleLabel: string
+  canLeave: boolean
+  onCloseClick?: () => void
+}) {
+  const session = SessionContext.useContext().value
+  const navigateSession = useSessionNavigate()
 
   const handleLeave = useCallback(async () => {
     if (!session) return
@@ -326,447 +895,139 @@ export function OrganizationDetails({
     navigateSession({ path: '' })
   }, [session, orgId, navigateSession])
 
-  // Rename state
-  const [renameValue, setRenameValue] = useState('')
-  const [renaming, setRenaming] = useState(false)
-  const [renameSaving, setRenameSaving] = useState(false)
+  return (
+    <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
+      <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
+        <div className="bg-brand/10 text-brand flex size-5 shrink-0 items-center justify-center rounded">
+          <LuBuilding2 className="size-3" />
+        </div>
+        <span className="min-w-0 truncate tracking-tight">{orgName}</span>
+        <span className="text-foreground-alt/50 text-xs font-normal">
+          {roleLabel}
+        </span>
+      </div>
+      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+        {canLeave && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DashboardButton
+                icon={<LuLogOut className="size-4" />}
+                variant="destructive"
+                onClick={() => void handleLeave()}
+              >
+                <span className="hidden md:inline">Leave</span>
+              </DashboardButton>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Leave organization</TooltipContent>
+          </Tooltip>
+        )}
+        {onCloseClick && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DashboardButton
+                icon={<LuX className="size-4" />}
+                onClick={onCloseClick}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Close</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </div>
+  )
+}
 
-  const handleRenameStart = useCallback(() => {
-    setRenameValue(orgName)
-    setRenaming(true)
-  }, [orgName])
+/** OrgLoading renders the placeholder shown until the org state arrives. */
+function OrgLoading() {
+  return (
+    <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <LoadingCard
+          view={{
+            state: 'active',
+            title: 'Loading organization',
+            detail: 'Reading the organization state and sharing details.',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
 
-  const handleRenameInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
-
-  const handleRenameSave = useCallback(async () => {
-    if (!session || renameSaving || renameValue.trim() === orgName) return
-    setRenameSaving(true)
-    try {
-      await session.spacewave.updateOrganization(orgId, renameValue.trim())
-      setRenaming(false)
-    } finally {
-      setRenameSaving(false)
-    }
-  }, [session, orgId, renameValue, orgName, renameSaving])
-
-  const handleRenameCancel = useCallback(() => {
-    setRenaming(false)
-    setRenameValue('')
-  }, [])
-
-  const runRecoveryAction = useCallback(
-    async (kind: 'repair' | 'reinitialize') => {
-      if (!session || !rootSharedObjectId || mutationPending) return
-      setMutationPending(true)
-      setMutationError('')
-      try {
-        if (kind === 'repair') {
-          await session.spacewave.repairSharedObject(rootSharedObjectId)
-        } else {
-          await session.spacewave.reinitializeSharedObject(rootSharedObjectId)
-        }
-      } catch (err) {
-        setMutationError(err instanceof Error ? err.message : 'Action failed')
-      } finally {
-        setMutationPending(false)
-      }
-    },
-    [mutationPending, rootSharedObjectId, session],
+// OrganizationDetails renders the overlay panel for organization management.
+// Mirrors SessionDetails: header bar + scrollable collapsible sections.
+export function OrganizationDetails({
+  orgId,
+  orgState,
+  orgName: fallbackOrgName,
+  degraded = false,
+  isOwner,
+  onCloseClick,
+}: OrganizationDetailsProps) {
+  const ns = useStateNamespace(['org-details'])
+  const [openSection, setOpenSection] = useStateAtom<OrgOpenSection>(
+    ns,
+    'open-section',
+    degraded ? 'recovery' : 'members',
   )
 
+  const sectionProps = useCallback<SectionPropsFor>(
+    (section) => ({
+      open: openSection === section,
+      onOpenChange: (open) => setOpenSection(open ? section : null),
+    }),
+    [openSection, setOpenSection],
+  )
+
+  const info = orgState?.organization
+  const { orgName, roleLabel } = orgIdentity(info, fallbackOrgName, isOwner)
+
   if (!orgState && !degraded) {
-    return (
-      <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading organization',
-              detail: 'Reading the organization state and sharing details.',
-            }}
-          />
-        </div>
-      </div>
-    )
+    return <OrgLoading />
   }
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
-      <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
-        <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-          <div className="bg-brand/10 text-brand flex size-5 shrink-0 items-center justify-center rounded">
-            <LuBuilding2 className="size-3" />
-          </div>
-          <span className="min-w-0 truncate tracking-tight">{orgName}</span>
-          <span className="text-foreground-alt/50 text-xs font-normal">
-            {roleLabel}
-          </span>
-        </div>
-        <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-          {!isOwner && info && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DashboardButton
-                  icon={<LuLogOut className="size-4" />}
-                  variant="destructive"
-                  onClick={() => void handleLeave()}
-                >
-                  <span className="hidden md:inline">Leave</span>
-                </DashboardButton>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Leave organization</TooltipContent>
-            </Tooltip>
-          )}
-          {onCloseClick && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DashboardButton
-                  icon={<LuX className="size-4" />}
-                  onClick={onCloseClick}
-                />
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Close</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      </div>
+      <OrgHeader
+        orgId={orgId}
+        orgName={orgName}
+        roleLabel={roleLabel}
+        canLeave={!isOwner && !!info}
+        onCloseClick={onCloseClick}
+      />
 
       <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
         <div className="space-y-3">
           {degraded && (
-            <CollapsibleSection
-              title="Recovery"
-              icon={<LuCircleAlert className="size-3.5" />}
-              open={openSection === 'recovery'}
-              onOpenChange={handleSectionOpenChange('recovery')}
-            >
-              <InfoCard>
-                <div className="space-y-3">
-                  <div
-                    className={cn(
-                      'rounded-md border px-3 py-2',
-                      recoverySummary.tone === 'loading' &&
-                        'border-foreground/8 bg-background-card/30',
-                      recoverySummary.tone === 'degraded' &&
-                        'border-warning/20 bg-warning/5',
-                      recoverySummary.tone === 'closed' &&
-                        'border-destructive/20 bg-destructive/5',
-                    )}
-                  >
-                    <div className="flex items-start gap-2">
-                      <div
-                        className={cn(
-                          'flex size-7 shrink-0 items-center justify-center rounded-md',
-                          recoverySummary.tone === 'loading' &&
-                            'bg-foreground/5',
-                          recoverySummary.tone === 'degraded' &&
-                            'bg-warning/10',
-                          recoverySummary.tone === 'closed' &&
-                            'bg-destructive/10',
-                        )}
-                      >
-                        {recoverySummary.tone === 'loading' ? (
-                          <Spinner variant="foreground" />
-                        ) : recoverySummary.tone === 'degraded' ? (
-                          <LuTriangleAlert className="text-warning size-4" />
-                        ) : (
-                          <LuShieldAlert className="text-destructive size-4" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-foreground text-xs font-medium">
-                          {recoverySummary.title}
-                        </p>
-                        <p className="text-foreground-alt/65 mt-1 text-xs">
-                          {recoverySummary.description}
-                        </p>
-                        {recoverySummary.hint && (
-                          <p className="text-foreground-alt/60 text-metadata mt-2">
-                            {recoverySummary.hint}
-                          </p>
-                        )}
-                        {rootState?.health?.error && (
-                          <div className="border-foreground/8 bg-background-card/30 text-foreground-alt/70 micro-label mt-2 rounded-md border px-2 py-1.5 break-words whitespace-pre-wrap">
-                            {rootState.health.error}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-foreground/8 bg-background-card/20 rounded-md border px-3 py-2">
-                    <div className="text-foreground-alt/45 micro-caption font-medium tracking-widest uppercase">
-                      Remediation
-                    </div>
-                    <p className="text-foreground-alt/65 mt-1 text-xs">
-                      This works in place on the canonical organization root
-                      shared object at the current org-owned id.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <RecoveryActionButton
-                        label={mutationPending ? 'Repairing...' : 'Repair'}
-                        icon={<LuRefreshCw className="size-3.5" />}
-                        onClick={() => {
-                          setConfirmingReinitialize(false)
-                          void runRecoveryAction('repair')
-                        }}
-                        disabled={mutationPending}
-                        disabledReason={
-                          recoveryPermission.canRepair
-                            ? ''
-                            : (recoveryPermission.disabledReason ?? '')
-                        }
-                      />
-                      <RecoveryActionButton
-                        label="Reinitialize"
-                        icon={<LuShieldAlert className="size-3.5" />}
-                        onClick={() => setConfirmingReinitialize(true)}
-                        disabled={mutationPending}
-                        disabledReason={
-                          recoveryPermission.canReinitialize
-                            ? ''
-                            : (recoveryPermission.disabledReason ?? '')
-                        }
-                        destructive={true}
-                      />
-                    </div>
-                    {confirmingReinitialize && (
-                      <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border px-3 py-2">
-                        <div className="text-destructive/80 micro-caption font-medium tracking-widest uppercase">
-                          Confirm Reinitialize
-                        </div>
-                        <p className="text-foreground-alt/70 mt-1 text-xs">
-                          Reinitialize is destructive. It rewrites the
-                          organization root shared object in place on the same
-                          shared object id and canonical org route.
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <DashboardButton
-                            icon={<LuX className="size-3.5" />}
-                            onClick={() => setConfirmingReinitialize(false)}
-                          >
-                            Cancel
-                          </DashboardButton>
-                          <DashboardButton
-                            icon={<LuShieldAlert className="size-3.5" />}
-                            onClick={() => {
-                              setConfirmingReinitialize(false)
-                              void runRecoveryAction('reinitialize')
-                            }}
-                            disabled={mutationPending}
-                            variant="destructive"
-                          >
-                            {mutationPending
-                              ? 'Reinitializing…'
-                              : 'Confirm reinitialize'}
-                          </DashboardButton>
-                        </div>
-                      </div>
-                    )}
-                    {mutationError && (
-                      <p className="text-destructive mt-2 text-xs">
-                        {mutationError}
-                      </p>
-                    )}
-                    <p className="text-foreground-alt/55 mt-2 text-xs">
-                      Shared object ID: {rootSharedObjectId}
-                    </p>
-                  </div>
-                </div>
-              </InfoCard>
-            </CollapsibleSection>
+            <OrgRecoverySection
+              orgId={orgId}
+              rootState={orgState?.rootState}
+              isOwner={isOwner}
+              {...sectionProps('recovery')}
+            />
           )}
           {orgState && (
-            <CollapsibleSection
-              title="Members"
-              icon={<LuUsers className="size-3.5" />}
-              open={openSection === 'members'}
-              onOpenChange={handleSectionOpenChange('members')}
-              badge={
-                <span className="text-foreground-alt/40 text-xs">
-                  {members.length}
-                </span>
-              }
-            >
-              <p className="text-foreground-alt/60 mb-2 text-xs">
-                Members are shown by username first. Their account ID stays
-                underneath for review or copy.
-              </p>
-              <OrgMemberList
-                members={members}
-                isOwner={isOwner}
-                onRemove={handleRemoveMember}
-              />
-            </CollapsibleSection>
-          )}
-
-          {isOwner && orgState && (
-            <CollapsibleSection
-              title="Invites"
-              icon={<LuLink className="size-3.5" />}
-              open={openSection === 'invites'}
-              onOpenChange={handleSectionOpenChange('invites')}
-              badge={
-                invites.length > 0 ? (
-                  <span className="text-foreground-alt/40 text-xs">
-                    {invites.length}
-                  </span>
-                ) : undefined
-              }
-              headerActions={
-                <button
-                  type="button"
-                  onClick={() => void handleCreateInvite()}
-                  disabled={creatingInvite}
-                  aria-label="Create invite"
-                  title="Create invite"
-                  className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <LuPlus className="size-3.5" />
-                </button>
-              }
-            >
-              <div className="border-foreground/8 bg-background-card/20 mb-3 rounded-md border px-3 py-2">
-                <label
-                  htmlFor={usernameInviteId}
-                  className="text-foreground-alt mb-1.5 block text-xs select-none"
-                >
-                  Spacewave username
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id={usernameInviteId}
-                    value={usernameInvite}
-                    onChange={(e) => {
-                      setUsernameInvite(e.target.value)
-                      setUsernameInviteSent(false)
-                    }}
-                    placeholder="alice"
-                    className={cn(
-                      'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 min-w-0 flex-1 rounded-md border px-2 py-1.5 font-mono text-xs transition-colors outline-none',
-                      'focus:border-brand/50',
-                    )}
-                  />
-                  <DashboardButton
-                    icon={<LuUserPlus className="size-3" />}
-                    onClick={() => void handleCreateUsernameInvite()}
-                    disabled={
-                      usernameInvitePending ||
-                      !usernameInvite.trim() ||
-                      !session
-                    }
-                  >
-                    {usernameInvitePending
-                      ? 'Sending…'
-                      : usernameInviteSent
-                        ? 'Sent'
-                        : 'Invite'}
-                  </DashboardButton>
-                </div>
-              </div>
-              <OrgInviteSection
-                invites={invites}
-                onRevoke={handleRevokeInvite}
-              />
-            </CollapsibleSection>
-          )}
-
-          {isOwner && orgState && (
-            <CollapsibleSection
-              title="Settings"
-              icon={<LuSettings className="size-3.5" />}
-              open={openSection === 'settings'}
-              onOpenChange={handleSectionOpenChange('settings')}
-            >
-              <InfoCard>
-                <div className="space-y-2">
-                  <div>
-                    <label
-                      htmlFor={renameInputId}
-                      className="text-foreground-alt mb-1 block text-xs select-none"
-                    >
-                      Display Name
-                    </label>
-                    {renaming ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          ref={handleRenameInputRef}
-                          id={renameInputId}
-                          type="text"
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.nativeEvent.isComposing) return
-                            if (e.key === 'Enter') void handleRenameSave()
-                            if (e.key === 'Escape') handleRenameCancel()
-                          }}
-                          className={cn(
-                            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-2 py-1 text-xs transition-colors outline-none',
-                            'focus:border-brand/50',
-                          )}
-                        />
-                        <DashboardButton
-                          icon={<LuSave className="size-3" />}
-                          onClick={() => void handleRenameSave()}
-                          disabled={
-                            renameSaving || renameValue.trim() === orgName
-                          }
-                        >
-                          {renameSaving ? 'Saving…' : 'Save'}
-                        </DashboardButton>
-                        <DashboardButton
-                          icon={<LuX className="size-3" />}
-                          onClick={handleRenameCancel}
-                          disabled={renameSaving}
-                        >
-                          Cancel
-                        </DashboardButton>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors"
-                          onDoubleClick={handleRenameStart}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              handleRenameStart()
-                            }
-                          }}
-                        >
-                          {orgName}
-                        </button>
-                        <DashboardButton
-                          icon={<LuPencil className="size-3" />}
-                          onClick={handleRenameStart}
-                        >
-                          Edit
-                        </DashboardButton>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </InfoCard>
-            </CollapsibleSection>
-          )}
-
-          {isOwner && orgState && (
-            <OrgBillingSection
+            <OrgMembersSection
               orgId={orgId}
+              members={orgState.members ?? []}
+              isOwner={isOwner}
+              {...sectionProps('members')}
+            />
+          )}
+          {isOwner && orgState && (
+            <OrgOwnerSections
+              orgId={orgId}
+              orgName={orgName}
               billingAccountId={info?.billingAccountId}
-              open={openSection === 'billing'}
-              onOpenChange={handleSectionOpenChange('billing')}
+              invites={orgState.invites ?? []}
+              sectionProps={sectionProps}
             />
           )}
 
           <CollapsibleSection
             title="Identifiers"
             icon={<LuFingerprint className="size-3.5" />}
-            open={openSection === 'identifiers'}
-            onOpenChange={handleSectionOpenChange('identifiers')}
+            {...sectionProps('identifiers')}
           >
             <InfoCard>
               <div className="space-y-2">
@@ -779,7 +1040,7 @@ export function OrganizationDetails({
             <OrgActionsSection
               orgId={orgId}
               displayName={orgName}
-              spaceCount={spaces.length}
+              spaceCount={orgState.spaces?.length ?? 0}
             />
           )}
         </div>
