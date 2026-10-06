@@ -46,6 +46,14 @@ type Options struct {
 	RelocateBudget int64
 }
 
+// relocateVisits bounds the entries one incremental relocation pass reads, so
+// a commit's compaction work does not grow with the key count.
+const relocateVisits = 4096
+
+// compactBatch bounds the value bytes Compact holds in memory and commits
+// at once.
+const compactBatch = 64 << 20
+
 // DB is an open database file.
 type DB struct {
 	// f is the database file.
@@ -976,17 +984,13 @@ func pagesFor(n int) uint64 {
 	return (uint64(n) + pageSize - 1) / pageSize
 }
 
-// relocate moves up to budget value bytes out of sparse pages so their
-// pages can be freed. It reports whether it found anything to move. The
-// caller holds the writer lock.
-func (db *DB) relocate(budget int64) (bool, error) {
-	// Skip unless sparse value pages or free runs hold a quarter of the
-	// space.
+// relocate moves up to budget value bytes out of sparse pages, and out of
+// the file's last quarter when free space below would take them, reading at most visits entries from where the last
+// pass stopped. It reports whether it moved values or the walk has more
+// keys to read. The caller holds the writer lock.
+func (db *DB) relocate(budget int64, visits int) (bool, error) {
+	// Read the published state.
 	sp := db.sp
-	live, held := sp.stats()
-	if held-live < max(1<<20, held/4) && sp.freeBytes() < max(1<<20, int64(sp.end)*pageSize/4) {
-		return false, nil
-	}
 	db.mtx.Lock()
 	st := db.st
 	db.mtx.Unlock()
@@ -1003,13 +1007,15 @@ func (db *DB) relocate(budget int64) (bool, error) {
 	tail := sp.end * 3 / 4
 	var moves []tentry
 	var moved int64
-	for ; it.Valid() && moved < budget; it.Next() {
+	for ; it.Valid() && moved < budget && visits > 0; it.Next() {
+		visits--
 		v := it.cur
 		if !v.isRef {
 			continue
 		}
 		p := v.ref.off / pageSize
-		if sp.live[p] >= pageSize/2 && p < tail {
+		sparse := sp.live[p] < pageSize/2
+		if !sparse && (p < tail || !sp.lower(int(v.ref.n), p)) {
 			continue
 		}
 		data, err := db.readValue(v)
@@ -1055,9 +1061,12 @@ func (db *DB) afterCommit() error {
 		}
 	}
 
-	// Move a bounded batch of values out of sparse pages.
-	if db.opts.RelocateBudget > 0 {
-		_, err := db.relocate(db.opts.RelocateBudget)
+	// Move a bounded batch of values out of sparse pages once they hold a
+	// quarter of the value space. Free runs need no move: they are punched,
+	// so they cost file length but no disk.
+	live, held := db.sp.stats()
+	if db.opts.RelocateBudget > 0 && held-live >= max(1<<20, held/4) {
+		_, err := db.relocate(db.opts.RelocateBudget, relocateVisits)
 		return err
 	}
 	return nil
@@ -1066,24 +1075,23 @@ func (db *DB) afterCommit() error {
 // Compact moves every value out of sparse pages and the file's tail,
 // checkpoints, and releases freed space.
 func (db *DB) Compact() error {
-	// Relocate until no value moves.
+	// Take the writer lock.
 	if err := db.lockWriter(); err != nil {
 		return err
 	}
 	defer db.unlockWriter()
-	for {
-		moved, err := db.relocate(math.MaxInt64)
-		if err != nil {
-			return err
-		}
-		if !moved {
-			break
-		}
-	}
 
-	// Checkpoint to free the replaced pages, then move the log into the
-	// space they leave and checkpoint again to free its old chunk.
+	// Each round moves values in one full pass of bounded batches,
+	// checkpoints to free the replaced pages, and moves the log into the
+	// space they leave. The second round fills the space the first
+	// released and frees the old log chunk.
 	for range 2 {
+		db.relocKey = nil
+		for first := true; first || db.relocKey != nil; first = false {
+			if _, err := db.relocate(compactBatch, math.MaxInt); err != nil {
+				return err
+			}
+		}
 		if err := db.checkpoint(); err != nil {
 			return err
 		}

@@ -79,7 +79,15 @@ func (s *space) alloc(n uint64) run {
 // fit takes want pages from the lowest free run that holds them, or else the
 // largest free run of at least least pages.
 func (s *space) fit(least, want uint64) (run, bool) {
-	// Scan the free runs from the lowest page.
+	r, ok := s.choose(least, want)
+	if ok {
+		s.take(r)
+	}
+	return r, ok
+}
+
+// choose returns the run fit would take without taking it.
+func (s *space) choose(least, want uint64) (run, bool) {
 	var best run
 	found := false
 	s.free.Scan(func(start, n uint64) bool {
@@ -92,12 +100,15 @@ func (s *space) fit(least, want uint64) (run, bool) {
 		}
 		return true
 	})
-
-	// Take the chosen pages.
-	if found {
-		s.take(best)
-	}
 	return best, found
+}
+
+// lower reports whether a value of n bytes placed in a new extent would
+// start below page p.
+func (s *space) lower(n int, p uint64) bool {
+	need := (uint64(n) + pageSize - 1) / pageSize
+	r, ok := s.choose(need, max(need, extentPages))
+	return ok && r.start < p
 }
 
 // take removes r from the free runs, extending the file to cover it.
@@ -354,16 +365,6 @@ func (s *space) drain() []run {
 // stats returns the live value bytes and the bytes value pages occupy.
 func (s *space) stats() (live, held int64) {
 	return s.liveBytes, int64(len(s.live)) * pageSize
-}
-
-// freeBytes returns the bytes in free runs below the file end.
-func (s *space) freeBytes() int64 {
-	var n uint64
-	s.free.Scan(func(_, run uint64) bool {
-		n += run
-		return true
-	})
-	return int64(n) * pageSize
 }
 
 // encode writes the space with the open extent closed.

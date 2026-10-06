@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"slices"
 	"time"
 
@@ -65,6 +66,7 @@ func main() {
 	ordered := flag.Bool("ordered", false, "commit with write ordering and Sync every 32 commits")
 	reads := flag.Int("reads", 50000, "random point reads")
 	churn := flag.Bool("churn", true, "run the churn phase")
+	cpuProfile := flag.String("cpuprofile", "", "write a CPU profile of the fill to this file")
 	flag.Parse()
 
 	// Resolve the engine and prepare an empty directory.
@@ -97,11 +99,23 @@ func main() {
 		panic(err)
 	}
 
-	// Write every key and report throughput and write amplification.
+	// Write every key, profiling the fill when asked.
+	if *cpuProfile != "" {
+		f, err := os.Create(*cpuProfile)
+		if err != nil {
+			panic(err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			panic(err)
+		}
+	}
 	io0 := ioWritten()
 	start := time.Now()
 	lat := w.write(ctx, s, 0, len(w.keys), *batch, *ordered)
 	fill := time.Since(start)
+	pprof.StopCPUProfile()
+
+	// Report throughput and write amplification.
 	syncStore(ctx, s)
 	written := ioWritten() - io0
 	fmt.Printf("fill        %8.2f s  %9.0f keys/s  %8.1f MiB/s  commit %s  written %s (%.2fx live)\n",
