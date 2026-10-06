@@ -10,7 +10,7 @@ import "embed"
 //go:embed app/quickstart/options.ts
 //go:embed app/quickstart/perf-test.ts app/quickstart/startup-boundary.ts app/space/create-op-builders.ts
 //go:embed app/space/space-settings.ts app/space/space.ts app/urls.ts app/vm/v86-wizard-config.ts
-//go:embed bldr/manifest/manifest.pb.ts
+//go:embed bldr/manifest/manifest.pb.ts db/block/store/s3/s3.pb.ts forge/worker/worker.pb.ts
 //go:embed app/wizard/intro.ts core/account/settings/settings.pb.ts core/changelog/changelog.pb.ts
 //go:embed core/pairing/pairing.pb.ts
 //go:embed core/forge/dashboard/dashboard.pb.ts core/forge/job/job.pb.ts core/forge/task/task.pb.ts
@@ -43,7 +43,7 @@ import "embed"
 //go:embed sdk/debugdb/debugdb_srpc.pb.ts sdk/deploy/deploy.pb.ts
 //go:embed sdk/device/computers/create-computers-dashboard.ts sdk/device/device.pb.ts sdk/device/device.ts
 //go:embed sdk/device/device_srpc.pb.ts sdk/forge/dashboard/create-forge-dashboard.ts sdk/forge/execution.ts
-//go:embed sdk/forge/dashboard/init-forge-quickstart.ts sdk/kv/index.ts sdk/kv/kv.ts sdk/layout/layout-host.ts
+//go:embed sdk/forge/dashboard/init-forge-quickstart.ts sdk/forge/watch.ts sdk/kv/index.ts sdk/kv/kv.ts sdk/layout/layout-host.ts
 //go:embed sdk/layout/layout.pb.ts sdk/layout/layout.ts sdk/layout/layout_srpc.pb.ts
 //go:embed sdk/layout/world/object-layout.ts sdk/layout/world/world.pb.ts
 //go:embed sdk/objecttype/registry/registry.pb.ts sdk/objecttype/registry/registry_srpc.pb.ts
@@ -72,7 +72,8 @@ import "embed"
 //go:embed sdk/world/object-ref.ts sdk/world/object-state.ts sdk/world/object_iterator.ts
 //go:embed sdk/world/types/errors.ts
 //go:embed sdk/world/types/types.ts sdk/world/utils.ts sdk/world/wizard/create-wizard.ts
-//go:embed sdk/world/wizard/wizard.pb.ts sdk/world/wizard/wizard_srpc.pb.ts sdk/world/world-state.ts
+//go:embed sdk/world/wizard/wizard.pb.ts sdk/world/wizard/wizard_srpc.pb.ts sdk/world/world-query.ts
+//go:embed sdk/world/world-state.ts
 //go:embed sdk/world/world.pb.ts sdk/world/world_srpc.pb.ts
 //go:embed sdk/sync/index.ts net/peer/base58.ts
 //go:embed sdk/sync/query.ts sdk/sync/live-query.ts sdk/sync/attachment.ts sdk/sync/instance.ts sdk/sync/plugin.ts

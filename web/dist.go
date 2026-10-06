@@ -39,7 +39,8 @@ import "embed"
 //go:embed hooks/useAccessTypedHandle.ts hooks/useContainerDensity.ts hooks/useDynamicRegistrations.ts
 //go:embed hooks/useEmailManagement.ts hooks/useMobile.ts hooks/useMountAccount.ts
 //go:embed hooks/useObjectTypeMetadata.ts hooks/usePromise.tsx hooks/useRootResource.tsx hooks/useSessionInfo.ts
-//go:embed hooks/useTypedObjectState.ts hooks/useUnixFSHandle.tsx hooks/useViewerRegistry.tsx images/AppLogo.tsx
+//go:embed hooks/useTypedObjectState.ts hooks/useUnixFSHandle.tsx hooks/useViewerRegistry.tsx
+//go:embed hooks/useWorldQuery.ts images/AppLogo.tsx
 //go:embed images/spacewave-icon.png launcher/UpdateNotifier.tsx layout/BaseLayout.tsx
 //go:embed layout/BaseLayoutContext.tsx layout/FlexTabContextMenu.tsx
 //go:embed layout/layout.ts object/ComponentSelector.tsx object/DebugObjectViewer.tsx
