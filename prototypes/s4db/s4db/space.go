@@ -54,6 +54,9 @@ type space struct {
 	// released collects runs freed since the caller last drained it, for
 	// hole punching.
 	released []run
+	// marks are the highest release marks applied: value runs through
+	// marks.seq and page runs through marks.ckpt are free.
+	marks pin
 }
 
 // newSpace returns the space of a new file.
@@ -133,7 +136,7 @@ func (s *space) take(r run) {
 // unrelease drops r from the runs awaiting hole punching, since it is about
 // to hold data.
 func (s *space) unrelease(r run) {
-	out := s.released[:0]
+	out := make([]run, 0, len(s.released)+1)
 	for _, x := range s.released {
 		if x.start+x.n <= r.start || x.start >= r.start+r.n {
 			out = append(out, x)
@@ -242,16 +245,44 @@ func spans(off uint64, n int, fn func(page uint64, bytes uint32)) {
 	}
 }
 
-// useValue counts n live bytes at off. Recovery calls it for values the
-// saved state recorded as free.
+// useValue counts n live bytes at off. Replay calls it for values on pages
+// the saved state holds as free or pending.
 func (s *space) useValue(off uint64, n int) {
 	spans(off, n, func(p uint64, b uint32) {
 		if s.live[p] == 0 && !s.inOpen(p) {
-			s.take(run{start: p, n: 1})
+			s.claim(run{start: p, n: 1})
 		}
 		s.live[p] += b
 	})
 	s.liveBytes += int64(n)
+}
+
+// claim takes r for a use replay found in the log. The writer never uses a
+// pending page, so a used page left the queues before the use: through a
+// release the writer made without a record, or, for a page of the writer's
+// open extent that replay pended when its values were freed, never.
+func (s *space) claim(r run) {
+	s.values = cut(s.values, r)
+	s.pages = cut(s.pages, r)
+	s.take(r)
+}
+
+// cut removes the pages of r from the runs in q.
+func cut(q []pending, r run) []pending {
+	out := make([]pending, 0, len(q)+1)
+	for _, x := range q {
+		if x.start+x.n <= r.start || x.start >= r.start+r.n {
+			out = append(out, x)
+			continue
+		}
+		if x.start < r.start {
+			out = append(out, pending{run: run{start: x.start, n: r.start - x.start}, tag: x.tag})
+		}
+		if x.start+x.n > r.start+r.n {
+			out = append(out, pending{run: run{start: r.start + r.n, n: x.start + x.n - r.start - r.n}, tag: x.tag})
+		}
+	}
+	return out
 }
 
 // freeValue drops n live bytes at off, freed by commit tag.
@@ -295,9 +326,10 @@ func (s *space) freePages(pages []uint64, tag uint64) {
 }
 
 // release frees value runs with tags through seq and page runs with tags
-// through ckpt.
+// through ckpt, and raises the marks.
 func (s *space) release(seq, ckpt uint64) {
 	// Free value runs through seq.
+	s.marks = pin{seq: max(s.marks.seq, seq), ckpt: max(s.marks.ckpt, ckpt)}
 	i := 0
 	for ; i < len(s.values) && s.values[i].tag <= seq; i++ {
 		s.addFree(s.values[i].run)
@@ -336,9 +368,11 @@ func (s *space) freeBytes() int64 {
 
 // encode writes the space with the open extent closed.
 func (s *space) encode() []byte {
-	// Write the file end and the free runs.
+	// Write the release marks, the file end, and the free runs.
 	var b []byte
 	u := func(v uint64) { b = binary.AppendUvarint(b, v) }
+	u(s.marks.seq)
+	u(s.marks.ckpt)
 	u(s.end)
 	u(uint64(s.free.Len()))
 	s.free.Scan(func(start, n uint64) bool {
@@ -373,9 +407,10 @@ func (s *space) encode() []byte {
 
 // decodeSpace reads an encoded space.
 func decodeSpace(b []byte) (*space, error) {
-	// Read the file end and the free runs.
+	// Read the release marks, the file end, and the free runs.
 	s := newSpace()
 	d := decoder{b: b}
+	s.marks = pin{seq: d.uvarint(), ckpt: d.uvarint()}
 	s.end = d.uvarint()
 	for range d.uvarint() {
 		s.free.Set(d.uvarint(), d.uvarint())

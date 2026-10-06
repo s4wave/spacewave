@@ -11,6 +11,7 @@ import (
 	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
 	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/db/volume/logindex"
+	"github.com/s4wave/spacewave/prototypes/s4db/s4db"
 )
 
 // engines lists the engines the harness can drive.
@@ -18,6 +19,7 @@ var engines = []engine{
 	{name: "bolt", open: openBolt},
 	{name: "badger", open: openBadger},
 	{name: "logindex", open: openLogindex},
+	{name: "s4db", open: openS4db},
 }
 
 // openBolt opens a bbolt file with the bucket the volume uses.
@@ -85,4 +87,9 @@ func openLogindex(ctx context.Context, dir string) (store, error) {
 		return nil, err
 	}
 	return logindexStore{idx}, nil
+}
+
+// openS4db opens a single-file s4db database with its default options.
+func openS4db(ctx context.Context, dir string) (store, error) {
+	return s4db.Open(filepath.Join(dir, "db.s4wave"), s4db.Options{})
 }

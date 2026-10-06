@@ -146,6 +146,10 @@ func TestModel(t *testing.T) {
 			}
 			m.check(t, db)
 		}
+		for range 20 {
+			randomCommit(t, r, db, m, 4000)
+		}
+		checkCrash(t, path, m)
 		if err := db.Close(); err != nil {
 			t.Fatal(err)
 		}
@@ -263,7 +267,38 @@ func TestTwoHandles(t *testing.T) {
 	}
 }
 
-// checkSpace fails when a live value lies on a free or pending page.
+// checkCrash copies the file of an open database, as a crash would leave
+// it, and checks that a process recovering the copy rebuilds the same
+// contents and a consistent space.
+func checkCrash(t *testing.T, path string, m model) {
+	// Copy the file.
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	crashed := path + ".crashed"
+	if err := os.WriteFile(crashed, b, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Recover it and check, then commit more so the rebuilt space is used.
+	db := openTest(t, crashed, Options{})
+	defer db.Close()
+	m.check(t, db)
+	checkSpace(t, db)
+	c := maps.Clone(m)
+	r := rand.New(rand.NewPCG(7, 8))
+	for range 50 {
+		randomCommit(t, r, db, c, 4000)
+		checkSpace(t, db)
+	}
+	c.check(t, db)
+}
+
+// checkSpace fails when two uses claim one page: a live value, a tree
+// page, a log chunk, or the saved space against each other or against a
+// free or pending run.
 func checkSpace(t *testing.T, db *DB) {
 	// Hold the writer lock so the space is stable.
 	t.Helper()
@@ -271,26 +306,58 @@ func checkSpace(t *testing.T, db *DB) {
 		t.Fatal(err)
 	}
 	defer db.unlockWriter()
-
-	// Check each page under every stored value.
-	sp := db.sp
-	it := newIterator(db, db.st, nil, nil, false)
-	for it.Next() {
-		if !it.cur.isRef {
-			continue
+	sp, st := db.sp, db.st
+	owner := make(map[uint64]string)
+	claim := func(p uint64, who string, shared bool) {
+		if prev, ok := owner[p]; ok && !(shared && prev == who) {
+			t.Fatalf("page %d claimed by %s and %s", p, prev, who)
 		}
-		spans(it.cur.ref.off, int(it.cur.ref.n), func(p uint64, _ uint32) {
-			if p >= sp.end {
-				t.Fatalf("key %s: page %d past the end %d", it.Key(), p, sp.end)
+		owner[p] = who
+	}
+
+	// Claim the pages under every stored value, the tree, the log chunks,
+	// and the saved space.
+	it := newIterator(db, st, nil, nil, false)
+	for it.Next() {
+		if it.cur.isRef {
+			spans(it.cur.ref.off, int(it.cur.ref.n), func(p uint64, _ uint32) { claim(p, "value", true) })
+		}
+	}
+	var walk func(p uint64)
+	walk = func(p uint64) {
+		claim(p, "tree", false)
+		n, err := db.node(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, c := range n.kids {
+			walk(c)
+		}
+	}
+	if st.root != 0 {
+		walk(st.root)
+	}
+	for _, c := range sp.chunks {
+		for _, p := range pageRange(c.start, c.n) {
+			claim(p, "log", false)
+		}
+	}
+	for _, p := range pageRange(st.sb.space.off/pageSize, pagesFor(int(st.sb.space.n))) {
+		claim(p, "space", false)
+	}
+
+	// No claimed page may be free, pending, or past the end.
+	for p, who := range owner {
+		if p >= sp.end {
+			t.Fatalf("%s page %d past the end %d", who, p, sp.end)
+		}
+		if s, n, ok := sp.before(p + 1); ok && p < s+n {
+			t.Fatalf("%s page %d in free run %d+%d", who, p, s, n)
+		}
+		for _, x := range slices.Concat(sp.values, sp.pages) {
+			if p >= x.start && p < x.start+x.n {
+				t.Fatalf("%s page %d awaits release in %+v", who, p, x)
 			}
-			if s, n, ok := sp.before(p + 1); ok && p < s+n {
-				t.Fatalf("key %s: page %d in free run %d+%d", it.Key(), p, s, n)
-			}
-			for _, x := range slices.Concat(sp.values, sp.pages) {
-				if p >= x.start && p < x.start+x.n {
-					t.Fatalf("key %s: page %d awaits release in %+v", it.Key(), p, x)
-				}
-			}
-		})
+		}
 	}
 }

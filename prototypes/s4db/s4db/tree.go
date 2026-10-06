@@ -253,30 +253,186 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 	}
 
 	// Rewrite each child with changes in its range and keep the rest.
+	// Adjacent rewritten leaves pack together, so the checkpoint, which
+	// rewrites them anyway, leaves them as full as their entries allow.
 	var kids []child
+	var leaves []change
+	var leavesLow []byte
+	inRun := false
+	flush := func() {
+		if packed := b.packLeaves(leaves); len(packed) != 0 {
+			packed[0].low = leavesLow
+			kids = append(kids, packed...)
+		}
+		leaves, inRun = nil, false
+	}
 	for i, k := range n.keys {
+		// Keep a child without changes.
 		j := len(changes)
 		if i+1 < len(n.keys) {
 			j, _ = slices.BinarySearchFunc(changes, n.keys[i+1], func(c change, k []byte) int { return bytes.Compare(c.key, k) })
 		}
 		if j == 0 {
+			flush()
 			kids = append(kids, child{low: k, page: n.kids[i]})
 			continue
 		}
-		sub, err := b.apply(n.kids[i], k, changes[:j])
+
+		// Add a changed leaf's entries to the run, or rewrite an inner
+		// child.
+		c, err := b.p.node(n.kids[i])
 		if err != nil {
 			return nil, err
 		}
-		kids = append(kids, sub...)
+		if c.leaf {
+			if !inRun {
+				leavesLow, inRun = k, true
+			}
+			b.freed = append(b.freed, n.kids[i])
+			leaves = append(leaves, mergeLeaf(c.keys, c.vals, changes[:j])...)
+		} else {
+			flush()
+			sub, err := b.apply(n.kids[i], k, changes[:j])
+			if err != nil {
+				return nil, err
+			}
+			kids = append(kids, sub...)
+		}
 		changes = changes[j:]
 	}
+	flush()
 
-	// Pack the children into new inner pages.
+	// Merge underfull new children and pack them into new inner pages.
+	kids, err = b.rebalance(kids)
+	if err != nil {
+		return nil, err
+	}
 	out := b.packInner(kids)
 	if len(out) != 0 && low != nil {
 		out[0].low = low
 	}
 	return out, nil
+}
+
+// rebalance merges each new child filled under half a page into a
+// neighbor when the two fit in one page, so deletes do not leave sparse
+// pages behind. Each merge removes a page, so the loop ends. Pages the
+// checkpoint did not rewrite stay as they are.
+func (b *builder) rebalance(kids []child) ([]child, error) {
+	for i := 0; i < len(kids); i++ {
+		// Skip existing and well filled children.
+		if kids[i].n == nil || fill(kids[i].n) >= pageRoom/2 {
+			continue
+		}
+
+		// Find a neighbor, right first, that fits in one page with it.
+		lo := -1
+		for _, j := range []int{i, i - 1} {
+			if j < 0 || j+1 >= len(kids) {
+				continue
+			}
+			fits, err := b.fits(kids[j], kids[j+1])
+			if err != nil {
+				return nil, err
+			}
+			if fits {
+				lo = j
+				break
+			}
+		}
+		if lo < 0 {
+			continue
+		}
+
+		// Merge the pair and look at the result again.
+		merged, err := b.merge(kids[lo], kids[lo+1])
+		if err != nil {
+			return nil, err
+		}
+		kids = slices.Replace(kids, lo, lo+2, merged...)
+		i = lo - 1
+	}
+	return kids, nil
+}
+
+// fits reports whether the entries of two children fit in one page.
+func (b *builder) fits(l, r child) (bool, error) {
+	total := 0
+	for _, c := range []child{l, r} {
+		n := c.n
+		if n == nil {
+			var err error
+			if n, err = b.p.node(c.page); err != nil {
+				return false, err
+			}
+		}
+		total += fill(n)
+	}
+	return total <= pageRoom, nil
+}
+
+// merge repacks the entries of two adjacent children of one level into new
+// pages, replacing any existing page among them.
+func (b *builder) merge(l, r child) ([]child, error) {
+	// Load existing pages, which the new ones replace.
+	var nodes [2]*node
+	for i, c := range []child{l, r} {
+		nodes[i] = c.n
+		if c.n == nil {
+			n, err := b.p.node(c.page)
+			if err != nil {
+				return nil, err
+			}
+			nodes[i] = n
+			b.freed = append(b.freed, c.page)
+		}
+	}
+
+	// Leaves repack their entries.
+	var out []child
+	if nodes[0].leaf {
+		var entries []change
+		for _, n := range nodes {
+			for j, k := range n.keys {
+				entries = append(entries, change{key: k, val: n.vals[j]})
+			}
+		}
+		out = b.packLeaves(entries)
+		out[0].low = l.low
+		return out, nil
+	}
+
+	// Inner pages repack their children.
+	var kids []child
+	for i, n := range nodes {
+		subs := b.sub[n]
+		for j, k := range n.keys {
+			c := child{low: k, page: n.kids[j]}
+			if j == 0 {
+				c.low = []child{l, r}[i].low
+			}
+			if subs != nil {
+				c.n = subs[j]
+			}
+			kids = append(kids, c)
+		}
+	}
+	out = b.packInner(kids)
+	out[0].low = l.low
+	return out, nil
+}
+
+// fill returns the bytes the entries of n occupy.
+func fill(n *node) int {
+	total := 0
+	for i, k := range n.keys {
+		if n.leaf {
+			total += leafEntrySize(k, n.vals[i])
+		} else {
+			total += innerEntrySize(k)
+		}
+	}
+	return total
 }
 
 // mergeLeaf merges sorted changes into sorted leaf entries.

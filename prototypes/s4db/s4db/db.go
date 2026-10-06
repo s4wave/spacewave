@@ -610,10 +610,13 @@ func (db *DB) catchUp() error {
 			return errors.Errorf("log ends before record %d", st.seq)
 		}
 		if r.kind == kindLink {
-			sp.take(r.next)
+			sp.claim(r.next)
 			sp.chunks = append(sp.chunks, r.next)
 			continue
 		}
+		// Release first: the writer placed this record's values after
+		// every release its marks cover.
+		sp.release(r.released.seq, r.released.ckpt)
 		for _, o := range r.ops {
 			if o.val.isRef {
 				sp.useValue(o.val.ref.off, int(o.val.ref.n))
@@ -622,7 +625,6 @@ func (db *DB) catchUp() error {
 		for _, f := range r.frees {
 			sp.freeValue(f.off, int(f.n), r.seq)
 		}
-		sp.release(r.released.seq, r.released.ckpt)
 	}
 
 	// Adopt the space; its writer already punched what it released.
@@ -805,10 +807,12 @@ func (db *DB) writeValues(r *record, writes []valueWrite) error {
 }
 
 // releaseSpace returns freed runs no snapshot reads to free space and
-// records the release marks in r.
+// records the space's release marks in r. The marks only rise, so replaying
+// any record repeats every release the writer made before it.
 func (db *DB) releaseSpace(base *state, r *record) error {
 	// Skip reading the slots when nothing awaits release.
 	sp := db.sp
+	defer func() { r.released = sp.marks }()
 	if len(sp.values) == 0 && len(sp.pages) == 0 {
 		return nil
 	}
@@ -822,8 +826,7 @@ func (db *DB) releaseSpace(base *state, r *record) error {
 	db.mtx.Lock()
 	durable := db.durable
 	db.mtx.Unlock()
-	r.released = pin{seq: min(p.seq, durable), ckpt: min(p.ckpt, base.ckpt)}
-	sp.release(r.released.seq, r.released.ckpt)
+	sp.release(min(p.seq, durable), min(p.ckpt, base.ckpt))
 	return nil
 }
 
@@ -1038,12 +1041,16 @@ func (db *DB) relocate(budget int64) (bool, error) {
 // afterCommit runs checkpoint and compaction work. The caller holds the
 // writer lock.
 func (db *DB) afterCommit() error {
-	// Checkpoint when the overlay has grown enough.
+	// Checkpoint when the overlay has grown enough, and release the pages
+	// it replaced unless a snapshot still reads them.
 	db.mtx.Lock()
 	st := db.st
 	db.mtx.Unlock()
 	if db.checkpointDue(st) {
 		if err := db.checkpoint(); err != nil {
+			return err
+		}
+		if err := db.releaseNow(); err != nil {
 			return err
 		}
 	}
@@ -1129,8 +1136,10 @@ func (db *DB) moveLog() error {
 	return nil
 }
 
-// releaseNow writes an empty release record so freed space no snapshot
-// reads returns to the file system. The caller holds the writer lock.
+// releaseNow returns freed space no snapshot reads to the file system
+// without writing a record. The next commit record carries release marks at
+// least as high, so recovery repeats the release before reusing the space.
+// The caller holds the writer lock.
 func (db *DB) releaseNow() error {
 	// Release and punch against the current state.
 	db.mtx.Lock()
