@@ -195,39 +195,21 @@ function StateEntryNode({
   return (
     <div className="flex flex-col">
       <div
-        role="button"
-        tabIndex={0}
-        onClick={handleSelect}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            handleSelect()
-          }
-        }}
         className={cn(
-          'debug-tree-indent flex h-6 cursor-pointer items-center gap-1 text-xs transition-colors duration-100',
+          'debug-tree-indent flex h-6 items-center gap-1 text-xs transition-colors duration-100',
           isSelected
             ? 'bg-ui-selected text-foreground'
             : 'text-text-secondary hover:bg-pulldown-hover/50',
         )}
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
-        <span
-          role="button"
-          tabIndex={hasChildren ? 0 : -1}
-          onClick={(e) => {
-            e.stopPropagation()
-            if (hasChildren) handleToggle()
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              e.stopPropagation()
-              if (hasChildren) handleToggle()
-            }
-          }}
+        <button
+          type="button"
+          aria-label={isExpanded ? 'Collapse' : 'Expand'}
+          disabled={!hasChildren}
+          onClick={handleToggle}
           className={cn(
-            'flex size-4 shrink-0 items-center justify-center',
+            'flex size-4 shrink-0 cursor-pointer items-center justify-center',
             !hasChildren && 'invisible',
           )}
         >
@@ -236,13 +218,19 @@ function StateEntryNode({
           ) : (
             <LuChevronRight className="size-3" />
           )}
-        </span>
+        </button>
 
-        <LuDatabase className="text-brand size-3 shrink-0" />
-        <span className="truncate text-xs font-medium">{label}</span>
-        <span className="text-foreground-alt ml-auto truncate font-mono text-xs">
-          {preview}
-        </span>
+        <button
+          type="button"
+          onClick={handleSelect}
+          className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1 text-left"
+        >
+          <LuDatabase className="text-brand size-3 shrink-0" />
+          <span className="truncate text-xs font-medium">{label}</span>
+          <span className="text-foreground-alt ml-auto truncate font-mono text-xs">
+            {preview}
+          </span>
+        </button>
       </div>
 
       {isExpanded && hasChildren && (
@@ -304,37 +292,19 @@ function StateTreeNodeInner({
   return (
     <div className="flex flex-col">
       <div
-        role="button"
-        tabIndex={0}
-        onClick={handleSelect}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            handleSelect()
-          }
-        }}
         className={cn(
-          'debug-tree-indent flex h-5 cursor-pointer items-center gap-1 text-xs',
+          'debug-tree-indent flex h-5 items-center gap-1 text-xs',
           'text-text-secondary hover:bg-pulldown-hover/50 transition-colors duration-100',
         )}
         style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
-        <span
-          role="button"
-          tabIndex={isExpandable ? 0 : -1}
-          onClick={(e) => {
-            e.stopPropagation()
-            if (isExpandable) handleToggle()
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              e.stopPropagation()
-              if (isExpandable) handleToggle()
-            }
-          }}
+        <button
+          type="button"
+          aria-label={isExpanded ? 'Collapse' : 'Expand'}
+          disabled={!isExpandable}
+          onClick={handleToggle}
           className={cn(
-            'flex size-4 shrink-0 items-center justify-center',
+            'flex size-4 shrink-0 cursor-pointer items-center justify-center',
             !isExpandable && 'invisible',
           )}
         >
@@ -343,12 +313,18 @@ function StateTreeNodeInner({
           ) : (
             <LuChevronRight className="size-2.5" />
           )}
-        </span>
+        </button>
 
-        <span className="text-foreground font-mono text-xs">{nodeKey}:</span>
-        <span className={cn('truncate font-mono text-xs', valueColor)}>
-          {displayValue}
-        </span>
+        <button
+          type="button"
+          onClick={handleSelect}
+          className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1 text-left"
+        >
+          <span className="text-foreground font-mono text-xs">{nodeKey}:</span>
+          <span className={cn('truncate font-mono text-xs', valueColor)}>
+            {displayValue}
+          </span>
+        </button>
       </div>
 
       {isExpanded && isExpandable && (

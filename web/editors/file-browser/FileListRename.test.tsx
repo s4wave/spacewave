@@ -89,7 +89,7 @@ function RenameTestHarness({
               renameRef.current = e.target.value
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 confirmRename()
               }
@@ -106,6 +106,7 @@ function RenameTestHarness({
             }}
           />
           <button
+            type="button"
             tabIndex={0}
             data-testid="rename-confirm"
             onClick={(e) => {
@@ -117,6 +118,7 @@ function RenameTestHarness({
             Confirm
           </button>
           <button
+            type="button"
             tabIndex={0}
             data-testid="rename-cancel"
             onClick={(e) => {
@@ -135,6 +137,7 @@ function RenameTestHarness({
   return (
     <div>
       <button
+        type="button"
         data-testid="trigger-rename"
         onClick={() => {
           const entry = mockEntries.find((e) => e.id === '2')

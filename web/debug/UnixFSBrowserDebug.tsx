@@ -721,7 +721,7 @@ function ErrorStateSection() {
           <div className="text-foreground-alt/70 mt-1 text-xs">
             failed to read directory: permission denied
           </div>
-          <button className="text-brand mt-2 text-xs underline">Retry</button>
+          <button type="button" className="text-brand mt-2 text-xs underline">Retry</button>
         </div>
       </Variant>
 
@@ -795,10 +795,10 @@ function DestructiveDialogSection() {
         note="bg-destructive + text-destructive-foreground"
       >
         <div className="bg-background flex justify-end gap-2 p-3">
-          <button className="hover:bg-accent rounded-md px-4 py-2 text-xs">
+          <button type="button" className="hover:bg-accent rounded-md px-4 py-2 text-xs">
             Cancel
           </button>
-          <button className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md px-4 py-2 text-xs">
+          <button type="button" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md px-4 py-2 text-xs">
             Delete
           </button>
         </div>
@@ -809,10 +809,10 @@ function DestructiveDialogSection() {
         note="border-destructive/30 bg-destructive/10 hover:bg-destructive/15"
       >
         <div className="bg-background flex justify-end gap-2 p-3">
-          <button className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors">
+          <button type="button" className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors">
             Cancel
           </button>
-          <button className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150">
+          <button type="button" className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150">
             Delete
           </button>
         </div>
