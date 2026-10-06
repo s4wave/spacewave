@@ -3,12 +3,10 @@
 package goscript_opfs_storage
 
 import (
-	"context"
 	"syscall/js"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
-	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
 )
 
 const (
@@ -16,7 +14,7 @@ const (
 	dirName = "goscript-opfs-storage-proof"
 	// fileName contains the raw OPFS persistence proof.
 	fileName = "data.txt"
-	// payload is the expected raw and volume metadata content.
+	// payload is the raw file content.
 	payload = "hello from goscript opfs"
 )
 
@@ -77,9 +75,9 @@ func readMode() string {
 	return parsed.Get("instanceKey").String()
 }
 
-// writeProofData seeds legacy bytes and writes through the recovered volume.
+// writeProofData writes the raw OPFS file the restart checks.
 func writeProofData() error {
-	// Start with a disposable fixture directory and recognizable saved data.
+	// Start with a disposable fixture directory holding recognizable bytes.
 	root, err := opfs.GetRoot()
 	if err != nil {
 		return err
@@ -91,51 +89,13 @@ func writeProofData() error {
 	if err != nil {
 		return err
 	}
-	if err := opfs.WriteFile(dir, fileName, []byte(payload)); err != nil {
-		return err
-	}
-
-	// Seed a legacy volume root with its format marker and data.
-	legacy, err := opfs.GetDirectory(dir, "volume", true)
-	if err != nil {
-		return err
-	}
-	if err := opfs.WriteFile(legacy, ".spacewave-opfs-format", []byte("spacewave-opfs-volume/1\n")); err != nil {
-		return err
-	}
-	if err := opfs.WriteFile(legacy, fileName, []byte(payload)); err != nil {
-		return err
-	}
-
-	// A legacy root must automatically mount a new writable volume.
-	ctx := context.Background()
-	vol, err := volume_opfs.NewOpfs(ctx, nil, &volume_opfs.Config{RootPath: dirName + "/volume"})
-	if err != nil {
-		return err
-	}
-	defer vol.Close()
-
-	// Write metadata durably and record the replacement's identity.
-	tx, err := vol.GetKvtxStore().NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-	if err := tx.Set(ctx, []byte(fileName), []byte(payload)); err != nil {
-		return err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return err
-	}
-	if _, err := vol.Sync(ctx); err != nil {
-		return err
-	}
-	return opfs.WriteFile(dir, "volume-id", []byte(vol.GetID()))
+	return opfs.WriteFile(dir, fileName, []byte(payload))
 }
 
-// readProofData verifies remount identity, metadata, and legacy preservation on deletion.
+// readProofData checks that the raw OPFS file survived the worker restart,
+// then deletes the fixture directory.
 func readProofData() error {
-	// Verify the raw file survives the worker restart.
+	// Read the file written before the restart.
 	root, err := opfs.GetRoot()
 	if err != nil {
 		return err
@@ -150,87 +110,6 @@ func readProofData() error {
 	}
 	if string(data) != payload {
 		return errors.Errorf("read %q, want %q", string(data), payload)
-	}
-
-	// Reopening the configured path must retain the replacement's identity and data.
-	ctx := context.Background()
-	vol, err := volume_opfs.NewOpfs(ctx, nil, &volume_opfs.Config{RootPath: dirName + "/volume"})
-	if err != nil {
-		return err
-	}
-	defer vol.Close()
-
-	// The replacement keeps its volume identity.
-	id, err := opfs.ReadFile(dir, "volume-id")
-	if err != nil {
-		return err
-	}
-	if string(id) != vol.GetID() {
-		return errors.New("replacement volume identity changed on remount")
-	}
-
-	// The replacement keeps the metadata written before the restart.
-	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
-	if err != nil {
-		return err
-	}
-	data, found, err := tx.Get(ctx, []byte(fileName))
-	tx.Discard()
-	if err != nil {
-		return err
-	}
-	if !found || string(data) != payload {
-		return errors.New("replacement metadata did not survive worker restart")
-	}
-
-	// Deleting the active volume must retain all legacy bytes.
-	if err := vol.Delete(); err != nil {
-		return err
-	}
-	if _, err := opfs.GetDirectory(dir, "volume.spacewave-opfs-v4", false); !opfs.IsNotFound(err) {
-		return errors.Errorf("replacement remains after Delete: %v", err)
-	}
-
-	// Recreate the active volume and exercise deletion without a mounted handle.
-	reopened, err := volume_opfs.NewOpfs(ctx, nil, &volume_opfs.Config{RootPath: dirName + "/volume"})
-	if err != nil {
-		return err
-	}
-	if err := reopened.Close(); err != nil {
-		return err
-	}
-
-	// DeleteRoot removes the replacement and is safe to repeat.
-	if err := volume_opfs.DeleteRoot(dirName + "/volume"); err != nil {
-		return err
-	}
-	if err := volume_opfs.DeleteRoot(dirName + "/volume"); err != nil {
-		return errors.Wrap(err, "repeat replacement deletion")
-	}
-	if _, err := opfs.GetDirectory(dir, "volume.spacewave-opfs-v4", false); !opfs.IsNotFound(err) {
-		return errors.Errorf("replacement remains after DeleteRoot: %v", err)
-	}
-
-	// Both deletion APIs must leave the incompatible root available for recovery.
-	legacy, err := opfs.GetDirectory(dir, "volume", false)
-	if err != nil {
-		return err
-	}
-	data, err = opfs.ReadFile(legacy, fileName)
-	if err != nil {
-		return err
-	}
-	if string(data) != payload {
-		return errors.New("legacy data changed")
-	}
-
-	// The legacy root keeps its original format marker.
-	marker, err := opfs.ReadFile(legacy, ".spacewave-opfs-format")
-	if err != nil {
-		return err
-	}
-	if string(marker) != "spacewave-opfs-volume/1\n" {
-		return errors.New("legacy format marker changed")
 	}
 	return opfs.DeleteEntry(root, dirName, true)
 }

@@ -15,7 +15,6 @@ import {
 import {
   WebDocument,
   registerUpdatedServiceWorker,
-  runtimeWasmEnvForCapabilities,
   shouldForceDedicatedWorkers,
 } from './web-document.js'
 import {
@@ -635,51 +634,6 @@ describe('WebDocument service worker startup', () => {
     controllerChangeListeners[0](new Event('controllerchange'))
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(waitConn).toHaveBeenCalledOnce()
-  })
-})
-
-describe('runtimeWasmEnvForCapabilities', () => {
-  afterEach(() => {
-    delete (
-      globalThis as typeof globalThis & {
-        BLDR_RUNTIME_WASM_ENV?: Record<string, string>
-      }
-    ).BLDR_RUNTIME_WASM_ENV
-  })
-
-  it('selects IndexedDB when the active browser profile cannot open OPFS', () => {
-    expect(
-      runtimeWasmEnvForCapabilities({
-        config: 'B',
-        caps: {
-          crossOriginIsolated: true,
-          sabAvailable: true,
-          opfsAvailable: false,
-          webLocksAvailable: true,
-          broadcastChannelAvailable: true,
-        },
-      }),
-    ).toEqual({ BLDR_BROWSER_STORAGE: 'indexeddb' })
-  })
-
-  it('preserves an explicit browser storage selection', () => {
-    ;(
-      globalThis as typeof globalThis & {
-        BLDR_RUNTIME_WASM_ENV?: Record<string, string>
-      }
-    ).BLDR_RUNTIME_WASM_ENV = { BLDR_BROWSER_STORAGE: 'custom' }
-    expect(
-      runtimeWasmEnvForCapabilities({
-        config: 'C',
-        caps: {
-          crossOriginIsolated: true,
-          sabAvailable: true,
-          opfsAvailable: true,
-          webLocksAvailable: true,
-          broadcastChannelAvailable: true,
-        },
-      }),
-    ).toEqual({ BLDR_BROWSER_STORAGE: 'custom' })
   })
 })
 

@@ -21,14 +21,6 @@ type openedDevice interface {
 	Close() error
 }
 
-// storage is the device holding a volume.
-type storage struct {
-	// dev is the open device.
-	dev openedDevice
-	// remove deletes the device's data once dev is closed.
-	remove func() error
-}
-
 // errOPFSUnavailable reports a context where OPFS sync access handles do not
 // work, such as a shared worker or a WebKit private window.
 var errOPFSUnavailable = errors.New("OPFS sync access handles unavailable")
@@ -37,7 +29,7 @@ var errOPFSUnavailable = errors.New("OPFS sync access handles unavailable")
 // database keeps the volume there. Otherwise the volume is on OPFS when its
 // probe passes and in a new IndexedDB database when it does not. Both devices
 // failing is permanent.
-func openDevice(ctx context.Context, name string) (*storage, error) {
+func openDevice(ctx context.Context, name string) (openedDevice, error) {
 	// Keep a volume already in IndexedDB there.
 	idbErr := volume_idb.Available()
 	if idbErr == nil {
@@ -46,24 +38,24 @@ func openDevice(ctx context.Context, name string) (*storage, error) {
 			return nil, err
 		}
 		if exists {
-			return openIDB(ctx, name)
+			return volume_idb.OpenDevice(ctx, name)
 		}
 	}
 
 	// Prefer OPFS, falling back to IndexedDB where OPFS is unavailable.
-	s, err := openOPFS(name)
+	dev, err := openOPFS(name)
 	if !errors.Is(err, errOPFSUnavailable) {
-		return s, err
+		return dev, err
 	}
 	if idbErr != nil {
 		return nil, volume.Permanent(errors.Join(err, idbErr))
 	}
-	return openIDB(ctx, name)
+	return volume_idb.OpenDevice(ctx, name)
 }
 
 // openOPFS opens the OPFS directory name, returning errOPFSUnavailable when
 // the context cannot use OPFS sync access handles.
-func openOPFS(name string) (*storage, error) {
+func openOPFS(name string) (openedDevice, error) {
 	// Open the directory where sync access handles work.
 	if !opfs.SyncAvailable() {
 		return nil, errOPFSUnavailable
@@ -75,14 +67,22 @@ func openOPFS(name string) (*storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &storage{dev: dev, remove: func() error { return device_opfs.Delete(name) }}, nil
+	return dev, nil
 }
 
-// openIDB opens the IndexedDB database name.
-func openIDB(ctx context.Context, name string) (*storage, error) {
-	dev, err := volume_idb.OpenDevice(ctx, name)
-	if err != nil {
-		return nil, err
+// Delete deletes the data of the volume name from both devices. The volume
+// must be closed. A device without the volume, or unavailable in this
+// context, has nothing to delete.
+func Delete(name string) error {
+	// Delete the OPFS directory where OPFS is reachable.
+	err := device_opfs.Delete(name)
+	if opfs.IsSecurity(err) || opfs.IsUnknown(err) {
+		err = nil
 	}
-	return &storage{dev: dev, remove: func() error { return volume_idb.DeleteDatabase(name) }}, nil
+
+	// Delete the IndexedDB database where IndexedDB exists.
+	if volume_idb.Available() == nil {
+		err = errors.Join(err, volume_idb.DeleteDatabase(name))
+	}
+	return err
 }

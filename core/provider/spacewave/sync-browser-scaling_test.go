@@ -13,8 +13,7 @@ import (
 
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
-	"github.com/s4wave/spacewave/db/opfs"
-	"github.com/s4wave/spacewave/db/volume/js/opfs/engine"
+	volume_browser "github.com/s4wave/spacewave/db/volume/browser"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,36 +45,29 @@ func TestSyncBrowserDrainScaling100000(t *testing.T) {
 	testSyncBrowserDrainScaling(t, 100000)
 }
 
-// testSyncBrowserDrainScaling exercises real OPFS metadata, queue, and packing.
+// testSyncBrowserDrainScaling exercises real browser volume metadata, queue,
+// and packing.
 func testSyncBrowserDrainScaling(t *testing.T, count int) {
-	// Skip without OPFS: the Bun runtime has none, so run with goscript test --browser.
+	// Skip without browser storage: the Bun runtime has none, so run with goscript test --browser.
 	t.Helper()
 	if nav := js.Global().Get("navigator"); nav.IsUndefined() || nav.Get("storage").IsUndefined() {
-		t.Skip("browser OPFS is unavailable in this runtime")
+		t.Skip("browser storage is unavailable in this runtime")
 	}
 
-	// Create a fresh OPFS directory removed when the test ends.
+	// Open a fresh browser volume, deleted when the test ends, and a measured
+	// pack catalog over its metadata store.
 	ctx := t.Context()
-	driver := opfs.BrowserDriver{}
-	root, err := driver.GetRoot()
-	if err != nil {
-		t.Fatal(err)
-	}
 	name := "pending-upload-scaling-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-	dir, err := driver.GetDirectory(root, name, true)
+	volume, err := volume_browser.NewVolume(ctx, nil, &volume_browser.Config{Name: name})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { driver.DeleteEntry(root, name, true) })
-
-	// Open the volume and a measured pack catalog over its metadata store.
-	backend := engine.NewBrowserBackend(driver, dir, name)
-	volume, err := engine.Open(ctx, backend)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { volume.Close() })
-	metadata := &syncMeasuredStore{store: volume.MetadataStore()}
+	t.Cleanup(func() {
+		if err := volume.Delete(); err != nil {
+			t.Error(err)
+		}
+	})
+	metadata := &syncMeasuredStore{store: volume.GetKvtxStore()}
 	catalog, err := manifest.New(ctx, metadata)
 	if err != nil {
 		t.Fatal(err)

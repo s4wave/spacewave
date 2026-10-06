@@ -50,7 +50,7 @@ var sharedHarness *chromeHarness
 type chromeHarness struct {
 	// dir owns the disposable asset and profile directory.
 	dir string
-	// server serves the compiled worker and bridge.
+	// server serves the compiled worker.
 	server *httptest.Server
 	// pw owns the Playwright driver process.
 	pw *playwright.Playwright
@@ -101,171 +101,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// TestOpfsChromeConcurrentBlockReadersWriters checks concurrent publication, live reads, maintenance, and remount.
-func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeStress)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Clear a fresh OPFS root before starting the worker workload.
-	root := "opfs-chrome-block-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-
-	// Run concurrent block readers and writers and verify the published blocks.
-	const (
-		writers    = 4
-		readers    = 2
-		iterations = 24
-		batch      = 12
-	)
-	var args []workerArgs
-	for i := range writers {
-		args = append(args, workerArgs{
-			scenario:   "block-writer",
-			root:       root,
-			worker:     i,
-			workers:    writers,
-			iterations: iterations,
-			batch:      batch,
-		})
-	}
-	for i := range readers {
-		args = append(args, workerArgs{
-			scenario:   "block-reader",
-			root:       root,
-			worker:     i,
-			workers:    writers,
-			iterations: iterations,
-			batch:      batch,
-		})
-	}
-	s.runWorkersStaged(t, args[writers:], args[:writers])
-	s.runWorker(t, workerArgs{
-		scenario:   "block-verify",
-		root:       root,
-		workers:    writers,
-		iterations: iterations,
-		batch:      batch,
-	})
-}
-
-// TestOpfsChromeSharedVolumeCacheLifecycle checks shared-volume reads across local worker lifetimes.
-func TestOpfsChromeSharedVolumeCacheLifecycle(t *testing.T) {
-	requireChromeProfile(t, chromeSmoke, chromeStress)
-	runSharedVolumeCacheLifecycle(t, false)
-}
-
-// TestOpfsChromeRemoteSharedVolumeCacheLifecycle checks shared-volume reads through remote OPFS bridges.
-func TestOpfsChromeRemoteSharedVolumeCacheLifecycle(t *testing.T) {
-	requireChromeProfile(t, chromeSmoke)
-	runSharedVolumeCacheLifecycle(t, true)
-}
-
-// runSharedVolumeCacheLifecycle runs readers before publishers and checks a fresh mount afterwards.
-func runSharedVolumeCacheLifecycle(t *testing.T, remote bool) {
-	// Attribute shared volume lifecycle failures to the calling test.
-	t.Helper()
-
-	// Open one browser session for the shared volume cell.
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Clear a driver-specific volume root before starting runtimes.
-	mode := "direct"
-	if remote {
-		mode = "remote"
-	}
-	root := "opfs-chrome-" + mode + "-cache-lifecycle-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-		remote:   remote,
-	})
-
-	// Start both reader runtimes before publishing from writer runtimes.
-	const (
-		writers    = 2
-		iterations = 16
-		batch      = 8
-	)
-	args := []workerArgs{
-		{
-			scenario:   "block-reader",
-			root:       root,
-			worker:     0,
-			workers:    writers,
-			iterations: iterations,
-			batch:      batch,
-			remote:     remote,
-		},
-		{
-			scenario:   "block-reader-compact",
-			root:       root,
-			worker:     1,
-			workers:    writers,
-			iterations: iterations,
-			batch:      batch,
-			remote:     remote,
-		},
-	}
-	for i := range writers {
-		args = append(args, workerArgs{
-			scenario:   "block-writer",
-			root:       root,
-			worker:     i,
-			workers:    writers,
-			iterations: iterations,
-			batch:      batch,
-			remote:     remote,
-		})
-	}
-
-	// Run the simultaneous publish and compaction cell.
-	s.runWorkersStaged(t, args[:2], args[2:])
-
-	// Remount one fresh runtime and verify every durable block.
-	s.runWorker(t, workerArgs{
-		scenario:   "block-verify",
-		root:       root,
-		workers:    writers,
-		iterations: iterations,
-		batch:      batch,
-		remote:     remote,
-	})
-}
-
-// TestOpfsChromeRemoteDriverCacheLifecycle checks bridge replacement rejects stale handles and preserves data.
-func TestOpfsChromeRemoteDriverCacheLifecycle(t *testing.T) {
-	// Require the browser profile selected for the OPFS scenario.
-	requireChromeProfile(t, chromeSmoke)
-
-	// Open one browser session around a live bridge replacement.
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Clear the direct root before the remote bridge owns the volume.
-	root := "opfs-chrome-remote-cache-lifecycle-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-
-	// Swap the bridge, remount, and report remaining remote handles.
-	result := s.runRemoteSwapWorker(t, workerArgs{
-		scenario: "remote-cache-lifecycle",
-		root:     root,
-		remote:   true,
-	})
-	t.Logf("remote driver live handles after remount and release: %d", result.remoteHandles)
-}
-
 // TestOpfsChromeCopyWalkWrapperConcurrency probes whether the production
 // AccessWorldState -> CopyObjectToBucket -> WalkObjectBlocks wrapper deadlocks
 // at a raised maxConcurrency on real OPFS under native Go-WASM, isolating a
@@ -300,88 +135,6 @@ func TestOpfsChromeCopyWalkWrapperConcurrency(t *testing.T) {
 	})
 	t.Logf("copy-walk-wrapper concurrency=%d inputBytes=%d durationMs=%d",
 		concurrency, inputBytes, res.durationMS)
-}
-
-// TestOpfsChromeConcurrentMetaWriters checks every concurrent writer's metadata survives remount.
-func TestOpfsChromeConcurrentMetaWriters(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeStress)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Clear a fresh OPFS root before starting the worker workload.
-	root := "opfs-chrome-meta-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-
-	// Run the metadata writers and verify their durable records.
-	const (
-		writers    = 4
-		iterations = 32
-	)
-	var args []workerArgs
-	for i := range writers {
-		args = append(args, workerArgs{
-			scenario:   "meta-writer",
-			root:       root,
-			worker:     i,
-			workers:    writers,
-			iterations: iterations,
-			batch:      1,
-		})
-	}
-	s.runWorkers(t, args)
-	s.runWorker(t, workerArgs{
-		scenario:   "meta-verify",
-		root:       root,
-		workers:    writers,
-		iterations: iterations,
-		batch:      1,
-	})
-}
-
-// TestOpfsChromeConcurrentMetaOverflowWriters checks concurrent small and large metadata values.
-func TestOpfsChromeConcurrentMetaOverflowWriters(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeStress)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Clear a fresh OPFS root before starting the worker workload.
-	root := "opfs-chrome-meta-overflow-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-
-	// Run mixed-size metadata writers and verify their durable records.
-	const (
-		workers    = 4
-		iterations = 12
-	)
-	var args []workerArgs
-	for i := range workers {
-		args = append(args, workerArgs{
-			scenario:   "meta-mixed-writer",
-			root:       root,
-			worker:     i,
-			workers:    workers,
-			iterations: iterations,
-			batch:      1,
-		})
-	}
-	s.runWorkers(t, args)
-	s.runWorker(t, workerArgs{
-		scenario:   "meta-mixed-verify",
-		root:       root,
-		workers:    workers,
-		iterations: iterations,
-		batch:      1,
-	})
 }
 
 // TestOpfsChromeClassifiesPromiseRejection checks browser NotFound rejection classification.
@@ -565,99 +318,6 @@ func TestOpfsChromeTinyGoLargeWriteReadList(t *testing.T) {
 	})
 }
 
-// TestOpfsChromeTinyGoLargeBlockShardBatch checks durable large block batches under TinyGo.
-func TestOpfsChromeTinyGoLargeBlockShardBatch(t *testing.T) {
-	// Require the selected browser profile and TinyGo compiler for the worker scenario.
-	requireChromeProfile(t, chromeSmoke)
-	if os.Getenv(tinyGoEnv) != "1" && !strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
-		t.Skipf("set %s=1 to exercise the TinyGo immutable-engine large-upload path", tinyGoEnv)
-	}
-
-	// Open a browser session for the selected OPFS worker scenario.
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Publish and verify large TinyGo block batches in a fresh OPFS root.
-	root := "opfs-chrome-large-block-batch-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "large-block-batch",
-		root:       root,
-		iterations: envIntDefault(t, largeSizeEnv, 68056093),
-		batch:      96,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "large-block-verify",
-		root:       root,
-		iterations: envIntDefault(t, largeSizeEnv, 68056093),
-		batch:      96,
-	})
-}
-
-// TestOpfsChromeBlockShardStorageAmplification bounds actual disk growth for a large block workload.
-func TestOpfsChromeBlockShardStorageAmplification(t *testing.T) {
-	// Require the browser profile selected for the OPFS scenario.
-	requireChromeProfile(t, chromeSmoke)
-
-	// Open a browser session for the selected OPFS worker scenario.
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Measure OPFS usage before and after publishing the block workload.
-	const sourceBytes = 68056093
-	root := "opfs-chrome-storage-amplification-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	before := s.readStorageSnapshot(t)
-	s.runWorker(t, workerArgs{
-		scenario:   "large-block-batch",
-		root:       root,
-		iterations: sourceBytes,
-		batch:      96,
-	})
-	after := s.readStorageSnapshot(t)
-
-	// Verify block storage growth stays within the amplification and quota limits.
-	opfsGrowth := after.opfsBytes - before.opfsBytes
-	usageGrowth := after.usage - before.usage
-	if opfsGrowth <= 0 {
-		t.Fatalf("OPFS growth = %d, want positive", opfsGrowth)
-	}
-	if opfsGrowth*100 > sourceBytes*101 {
-		t.Fatalf("OPFS amplification = %.6f, want at most 1.01", float64(opfsGrowth)/sourceBytes)
-	}
-	if usageGrowth*100 > sourceBytes*101 {
-		t.Fatalf("origin usage amplification = %.6f, want at most 1.01", float64(usageGrowth)/sourceBytes)
-	}
-	if after.quota <= after.usage {
-		t.Fatalf("storage estimate quota=%d usage=%d, want positive headroom", after.quota, after.usage)
-	}
-	t.Logf(
-		"storage estimate: source=%d quota=%d usage_before=%d usage_after=%d usage_growth=%d opfs_before=%d opfs_after=%d opfs_growth=%d files_before=%d files_after=%d persisted_before=%t persisted_after=%t opfs_amplification=%.6f usage_amplification=%.6f",
-		sourceBytes,
-		after.quota,
-		before.usage,
-		after.usage,
-		usageGrowth,
-		before.opfsBytes,
-		after.opfsBytes,
-		opfsGrowth,
-		before.files,
-		after.files,
-		before.persisted,
-		after.persisted,
-		float64(opfsGrowth)/float64(sourceBytes),
-		float64(usageGrowth)/float64(sourceBytes),
-	)
-}
-
 // TestOpfsChromeUnixFSStorageAmplification bounds actual disk growth for a large UnixFS upload.
 func TestOpfsChromeUnixFSStorageAmplification(t *testing.T) {
 	// Require the browser profile selected for the OPFS scenario.
@@ -738,69 +398,6 @@ func TestOpfsChromeReadAtHelperLoop(t *testing.T) {
 		scenario:   "read-at-helper-loop",
 		root:       root,
 		iterations: 64,
-	})
-}
-
-// TestOpfsChromePersistsAcrossPageLifecycle requires published data to survive page replacement.
-func TestOpfsChromePersistsAcrossPageLifecycle(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeSmoke)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Clear a fresh OPFS root before starting the worker workload.
-	root := "opfs-chrome-lifecycle-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-
-	// Publish blocks and metadata before replacing the browser page.
-	const (
-		blockIterations = 8
-		blockBatch      = 4
-		metaWorkers     = 2
-		metaIterations  = 6
-	)
-	s.runWorker(t, workerArgs{
-		scenario:   "block-writer",
-		root:       root,
-		worker:     0,
-		workers:    1,
-		iterations: blockIterations,
-		batch:      blockBatch,
-	})
-	var metaArgs []workerArgs
-	for i := range metaWorkers {
-		metaArgs = append(metaArgs, workerArgs{
-			scenario:   "meta-mixed-writer",
-			root:       root,
-			worker:     i,
-			workers:    metaWorkers,
-			iterations: metaIterations,
-			batch:      1,
-		})
-	}
-	s.runWorkers(t, metaArgs)
-
-	// Replace the browser page while retaining its storage context.
-	s.reopenPage(t)
-
-	// Verify the published blocks and metadata after page replacement.
-	s.runWorker(t, workerArgs{
-		scenario:   "block-verify",
-		root:       root,
-		workers:    1,
-		iterations: blockIterations,
-		batch:      blockBatch,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "meta-mixed-verify",
-		root:       root,
-		workers:    metaWorkers,
-		iterations: metaIterations,
-		batch:      1,
 	})
 }
 
@@ -1052,187 +649,6 @@ func TestOpfsChromeWebLockCancellation(t *testing.T) {
 	})
 }
 
-// TestOpfsChromeTerminatedBlockWriterLeavesRecoverableVolume checks recovery before block-root publication.
-func TestOpfsChromeTerminatedBlockWriterLeavesRecoverableVolume(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeStress)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Verify an interrupted block writer leaves a recoverable OPFS volume.
-	root := "opfs-chrome-block-terminated-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "block-writer",
-		root:       root,
-		worker:     0,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	s.runTerminatedReadyWorker(t, workerArgs{
-		scenario: "engine-crash-before-root-block",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "block-verify",
-		root:       root,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "engine-crash-verify-block-clean",
-		root:     root,
-	})
-}
-
-// TestOpfsChromeTerminatedMetaWriterRecovery checks recovery on both sides of root publication.
-func TestOpfsChromeTerminatedMetaWriterRecovery(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeStress)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Verify metadata recovery on both sides of root publication.
-	root := "opfs-chrome-meta-terminated-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "meta-writer",
-		root:       root,
-		worker:     0,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	s.runTerminatedReadyWorker(t, workerArgs{
-		scenario: "engine-crash-before-root-meta",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "meta-verify",
-		root:       root,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	s.runTerminatedReadyWorker(t, workerArgs{
-		scenario: "engine-crash-after-root-meta",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "engine-crash-verify-meta",
-		root:       root,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-}
-
-// TestOpfsChromeTerminationRecoverySurvivesFreshContext checks crash recovery after profile reopen.
-func TestOpfsChromeTerminationRecoverySurvivesFreshContext(t *testing.T) {
-	// Prepare a named browser profile and OPFS root for crash recovery.
-	requireChromeProfile(t, chromeStress)
-	h := newChromeHarness(t)
-	profile := "opfs-chrome-termination-profile-" + time.Now().Format("150405.000000000")
-	root := "opfs-chrome-termination-reload-" + time.Now().Format("150405.000000000")
-
-	// Publish records and terminate writers at their announced crash boundaries.
-	s := h.newPersistentSession(t, profile)
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "block-writer",
-		root:       root,
-		worker:     0,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	s.runTerminatedReadyWorker(t, workerArgs{
-		scenario: "engine-crash-before-root-block",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario:   "meta-writer",
-		root:       root,
-		worker:     0,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	s.runTerminatedReadyWorker(t, workerArgs{
-		scenario: "engine-crash-before-root-meta",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "counter-init",
-		root:     root,
-	})
-
-	// Terminate a counter lock holder before closing the persistent browser session.
-	const (
-		workers    = 2
-		iterations = 3
-	)
-	holder := workerArgs{
-		scenario: "counter-hold",
-		root:     root,
-	}
-	var args []workerArgs
-	for i := range workers {
-		args = append(args, workerArgs{
-			scenario:   "counter-queued-increment",
-			root:       root,
-			worker:     i,
-			workers:    workers,
-			iterations: iterations,
-			batch:      1,
-		})
-	}
-	s.runTerminatedLockHolderWorkers(t, holder, args)
-	s.close(t)
-
-	// Reopen the browser profile and verify durable blocks, metadata, and counters.
-	reopened := h.newPersistentSession(t, profile)
-	defer reopened.close(t)
-	reopened.runWorker(t, workerArgs{
-		scenario:   "block-verify",
-		root:       root,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	reopened.runWorker(t, workerArgs{
-		scenario: "engine-crash-verify-block-clean",
-		root:     root,
-	})
-	reopened.runWorker(t, workerArgs{
-		scenario:   "meta-verify",
-		root:       root,
-		workers:    1,
-		iterations: 1,
-		batch:      1,
-	})
-	reopened.runWorker(t, workerArgs{
-		scenario:   "counter-verify",
-		root:       root,
-		workers:    workers,
-		iterations: iterations,
-		batch:      1,
-	})
-}
-
 // TestOpfsChromeVolumeRuntimeSlice checks interrupted initialization, durable remount, and explicit deletion.
 func TestOpfsChromeVolumeRuntimeSlice(t *testing.T) {
 	// Open a browser session for the selected OPFS worker scenario.
@@ -1274,81 +690,6 @@ func TestOpfsChromeVolumeRuntimeSlice(t *testing.T) {
 	})
 }
 
-// TestOpfsChromeVolumeCoordinator checks lease exclusion and cross-worker revision visibility.
-func TestOpfsChromeVolumeCoordinator(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeSmoke)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Verify lease exclusion and revision broadcasts in a fresh OPFS root.
-	root := "opfs-chrome-volume-coord-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "volume-coord-local",
-		root:     root,
-	})
-	s.runWorkersStaged(t, []workerArgs{{
-		scenario: "volume-coord-watch",
-		root:     root,
-	}}, []workerArgs{{
-		scenario: "volume-coord-broadcast",
-		root:     root,
-	}})
-}
-
-// TestOpfsChromeVolumeRuntimeRecoversIncompatibleRoot requires old-format bytes to remain intact.
-func TestOpfsChromeVolumeRuntimeRecoversIncompatibleRoot(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeSmoke)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Seed an incompatible OPFS volume and verify its saved bytes are recovered.
-	root := "opfs-chrome-volume-recover-incompat-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-seed-incompatible",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-verify-incompatible-recovered",
-		root:     root,
-	})
-}
-
-// TestOpfsChromeVolumeRuntimeRecoversUnknownRoot requires unrecognized saved bytes to remain intact.
-func TestOpfsChromeVolumeRuntimeRecoversUnknownRoot(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeSmoke)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Seed an unknown OPFS volume and verify its saved bytes are recovered.
-	root := "opfs-chrome-volume-recover-unknown-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-seed-unknown",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "volume-runtime-verify-unknown-recovered",
-		root:     root,
-	})
-}
-
 // TestOpfsChromeWorldInitUnixFS checks world initialization through the product volume.
 func TestOpfsChromeWorldInitUnixFS(t *testing.T) {
 	// Open a browser session for the selected OPFS worker scenario.
@@ -1365,26 +706,6 @@ func TestOpfsChromeWorldInitUnixFS(t *testing.T) {
 	})
 	s.runWorker(t, workerArgs{
 		scenario: "world-init-unixfs",
-		root:     root,
-	})
-}
-
-// TestOpfsChromeWorldCoordinatorMultiWriter checks serialized world writes and stale-head rejection.
-func TestOpfsChromeWorldCoordinatorMultiWriter(t *testing.T) {
-	// Open a browser session for the selected OPFS worker scenario.
-	requireChromeProfile(t, chromeSmoke)
-	h := newChromeHarness(t)
-	s := h.newSession(t)
-	defer s.close(t)
-
-	// Verify serialized World writes and stale-head rejection in a fresh OPFS root.
-	root := "opfs-chrome-world-coord-multi-writer-" + time.Now().Format("150405.000000000")
-	s.runWorker(t, workerArgs{
-		scenario: "clear",
-		root:     root,
-	})
-	s.runWorker(t, workerArgs{
-		scenario: "world-coord-multi-writer",
 		root:     root,
 	})
 }
@@ -1857,17 +1178,6 @@ func (s *chromeSession) close(t testing.TB) {
 	}
 }
 
-// reopenPage replaces the current page while preserving its URL and context.
-func (s *chromeSession) reopenPage(t testing.TB) {
-	t.Helper()
-
-	url := s.page.URL()
-	if err := s.page.Close(); err != nil {
-		t.Fatal(err)
-	}
-	s.openPage(t, url)
-}
-
 // openPage creates the session page and waits for its initial document.
 func (s *chromeSession) openPage(t testing.TB, url string) {
 	// Attribute browser page failures to the calling test.
@@ -1988,17 +1298,6 @@ func (s *chromeSession) runWorkers(t testing.TB, args []workerArgs) []workerResu
 }`, map[string]any{"workers": mapWorkerArgs(args)})
 }
 
-// runWorkersStaged waits for readers to announce readiness before starting publishers.
-func (s *chromeSession) runWorkersStaged(t testing.TB, readyWorkers, workers []workerArgs) []workerResult {
-	t.Helper()
-	return s.runWorkersScript(t, `async ({ readyWorkers, workers }) => {
-  return await window.runOpfsWorkersStaged(readyWorkers, workers)
-	}`, map[string]any{
-		"readyWorkers": mapWorkerArgs(readyWorkers),
-		"workers":      mapWorkerArgs(workers),
-	})
-}
-
 // runBlockedLockWorkers queues writers behind a holder and then releases it.
 func (s *chromeSession) runBlockedLockWorkers(t testing.TB, holder workerArgs, workers []workerArgs) []workerResult {
 	t.Helper()
@@ -2036,28 +1335,6 @@ func (s *chromeSession) runHeldLockCheck(t testing.TB, holder, check workerArgs)
 	})
 }
 
-// runTerminatedReadyWorker terminates a worker at its announced crash boundary.
-func (s *chromeSession) runTerminatedReadyWorker(t testing.TB, worker workerArgs) workerResult {
-	t.Helper()
-	results := s.runWorkersScript(t, `async ({ worker }) => {
-  return await window.runOpfsTerminateReadyWorker(worker)
-}`, map[string]any{
-		"worker": mapSingleWorkerArg(worker),
-	})
-	return results[0]
-}
-
-// runRemoteSwapWorker replaces the remote bridge after the worker announces readiness.
-func (s *chromeSession) runRemoteSwapWorker(t testing.TB, worker workerArgs) workerResult {
-	t.Helper()
-	results := s.runWorkersScript(t, `async ({ worker }) => {
-  return await window.runOpfsRemoteSwapWorker(worker)
-}`, map[string]any{
-		"worker": mapSingleWorkerArg(worker),
-	})
-	return results[0]
-}
-
 // runWorkersScript checks and logs every worker's terminal result.
 func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[string]any) []workerResult {
 	// Collect worker results and report each unsuccessful scenario.
@@ -2070,7 +1347,7 @@ func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[s
 		if !res.ok {
 			t.Fatalf("worker scenario=%s worker=%d failed: %s", res.scenario, res.worker, res.err)
 		}
-		t.Logf("worker scenario=%s worker=%d ok=%t duration=%dms remote_handles=%d", res.scenario, res.worker, res.ok, res.durationMS, res.remoteHandles)
+		t.Logf("worker scenario=%s worker=%d ok=%t duration=%dms", res.scenario, res.worker, res.ok, res.durationMS)
 	}
 	return results
 }
@@ -2167,12 +1444,9 @@ func runWorkersScriptTimeout(t testing.TB) time.Duration {
 	return timeout
 }
 
-// buildAssets builds the worker program and browser bridge into the disposable asset directory.
+// buildAssets builds the worker program into the disposable asset directory.
 func buildAssets(dir string) error {
 	// Build and publish the worker program and browser assets.
-	if err := buildOpfsBridgeWorker(dir); err != nil {
-		return err
-	}
 	if err := buildWasm(filepath.Join(dir, "testprog.wasm")); err != nil {
 		return err
 	}
@@ -2188,35 +1462,6 @@ func buildAssets(dir string) error {
 	}
 	if err := os.WriteFile(filepath.Join(dir, "worker.js"), []byte(workerJS), 0o644); err != nil {
 		return errors.Wrap(err, "write worker")
-	}
-	return nil
-}
-
-// buildOpfsBridgeWorker bundles the product OPFS bridge for worker tests.
-func buildOpfsBridgeWorker(dir string) error {
-	// Resolve the repository source for the real bridge worker.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-	root, err := repoRoot()
-	if err != nil {
-		return err
-	}
-
-	// Compile the TypeScript worker as a browser module.
-	cmd := exec.CommandContext(
-		ctx,
-		"bun",
-		"build",
-		filepath.Join(root, "bldr/web/bldr/opfs-worker.ts"),
-		"--outfile",
-		filepath.Join(dir, "opfs-worker.js"),
-		"--target",
-		"browser",
-	)
-	cmd.Dir = root
-	data, err := cmd.CombinedOutput()
-	if err != nil {
-		return errors.Errorf("build OPFS bridge worker failed: %v\n%s", err, data)
 	}
 	return nil
 }
@@ -2601,9 +1846,8 @@ func decodeWorkerResults(raw any) ([]workerResult, error) {
 				m,
 				"durationMs",
 			),
-			remoteHandles: intField(m, "remoteHandles"),
-			opNanos:       int64Field(m, "opNanos"),
-			ops:           int64Field(m, "ops"),
+			opNanos: int64Field(m, "opNanos"),
+			ops:     int64Field(m, "ops"),
 		}
 	}
 
@@ -2628,7 +1872,6 @@ func mapSingleWorkerArg(arg workerArgs) map[string]any {
 		"workers":    arg.workers,
 		"iterations": arg.iterations,
 		"batch":      arg.batch,
-		"remote":     arg.remote,
 	}
 }
 
@@ -2698,8 +1941,6 @@ type workerArgs struct {
 	iterations int
 	// batch sets batch size or readback window for this scenario.
 	batch int
-	// remote routes OPFS through the product bridge.
-	remote bool
 }
 
 // workerResult contains one worker's terminal status and optional operation timings.
@@ -2714,8 +1955,6 @@ type workerResult struct {
 	err string
 	// durationMS measures total worker duration in milliseconds.
 	durationMS int
-	// remoteHandles reports live bridge handles at completion.
-	remoteHandles int
 	// opNanos measures only the requested storage operations in nanoseconds.
 	opNanos int64
 	// ops counts the measured storage operations.
@@ -2858,16 +2097,6 @@ const indexHTML = `<!doctype html>
         }
         const started = workers.map((args) => runWorker(args))
         return await waitWorkers([...ready, ...started])
-      }
-
-      window.runOpfsRemoteSwapWorker = async (args) => {
-        const worker = runWorker(args)
-        const ready = await worker.ready
-        if (ready.kind === 'result') {
-          return compactResults([ready])
-        }
-        await worker.swapBridge()
-        return await waitWorkers([worker])
       }
 
       window.runOpfsBlockedLockWorkers = async (holderArgs, workers) => {
@@ -3035,27 +2264,8 @@ const indexHTML = `<!doctype html>
         return String(reason)
       }
 
-      function openOpfsBridge() {
-        return new Promise((resolve, reject) => {
-          const bridge = new Worker('/opfs-worker.js', { type: 'module' })
-          const channel = new MessageChannel()
-          bridge.onerror = (event) => {
-            bridge.terminate()
-            reject(new Error(event.message))
-          }
-          channel.port1.onmessage = (event) => {
-            if (event.data?.opfsWorkerReady !== true) {
-              return
-            }
-            channel.port1.onmessage = null
-            resolve({ worker: bridge, port: channel.port1 })
-          }
-          bridge.postMessage({}, [channel.port2])
-        })
-      }
       function runWorker(args) {
         let readyResolve
-        let bridgeWorker
         recordWorkerProgress(args, 'start')
         const worker = new Worker('/worker.js', { type: 'classic' })
         const ready = new Promise((resolve) => {
@@ -3064,7 +2274,6 @@ const indexHTML = `<!doctype html>
         const done = new Promise((resolve) => {
           const fail = (message) => {
             worker.terminate()
-            bridgeWorker?.terminate()
             window.__opfsChromeWorkerWatchdog.exception(message)
             const data = {
               kind: 'result',
@@ -3092,7 +2301,6 @@ const indexHTML = `<!doctype html>
             if (data.kind === 'result') {
               recordWorkerProgress(data, data.ok ? 'result-ok' : 'result-error')
               worker.terminate()
-              bridgeWorker?.terminate()
               readyResolve(data)
               resolve(data)
             }
@@ -3100,31 +2308,13 @@ const indexHTML = `<!doctype html>
           worker.onerror = (event) => {
             fail(event.message)
           }
-          void (async () => {
-            if (!args.remote) {
-              worker.postMessage(args)
-              return
-            }
-            const bridge = await openOpfsBridge()
-            bridgeWorker = bridge.worker
-            worker.postMessage(args, [bridge.port])
-          })().catch((reason) => {
-            fail(describeBrowserError(reason))
-          })
+          worker.postMessage(args)
         })
         return {
           ready,
           done,
           stop: () => {
             worker.terminate()
-            bridgeWorker?.terminate()
-          },
-          swapBridge: async () => {
-            const bridge = await openOpfsBridge()
-            const previous = bridgeWorker
-            bridgeWorker = bridge.worker
-            worker.postMessage({ kind: 'opfsBridgeSwap' }, [bridge.port])
-            previous?.terminate()
           },
         }
       }
@@ -3622,84 +2812,8 @@ self.onunhandledrejection = (event) => {
 }
 
 
-class OpfsChrometestBridgeClient {
-  constructor(port) {
-    this.port = port
-    this.nextID = 1
-    this.pending = new Map()
-    this.handles = new Map()
-    port.onmessage = (event) => {
-      const response = event.data
-      const pending = this.pending.get(response?.id)
-      if (!pending) {
-        return
-      }
-      this.pending.delete(response.id)
-      if (!response.ok) {
-        const error = new Error(response.error?.message ?? 'OPFS bridge request failed')
-        error.name = response.error?.name ?? 'Error'
-        pending.reject(error)
-        return
-      }
-      const result = response.result
-      if (result && typeof result.id === 'number') {
-        this.handles.set(result.id, pending.op)
-      }
-      if (pending.op === 'closeFile') {
-        this.handles.delete(pending.args.file)
-      }
-      if (pending.op === 'closeReadSnapshot') {
-        this.handles.delete(pending.args.snapshot)
-      }
-      if (pending.op === 'streamClose' || pending.op === 'streamAbort') {
-        this.handles.delete(pending.args.stream)
-      }
-      pending.resolve(result)
-    }
-    port.start()
-  }
-
-  get liveHandles() {
-    return this.handles.size
-  }
-
-  request(op, args) {
-    const id = this.nextID++
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { op, args, resolve, reject })
-      this.port.postMessage({ id, op, args })
-    })
-  }
-
-  close() {
-    for (const pending of this.pending.values()) {
-      const error = new Error('OPFS bridge closed')
-      error.name = 'AbortError'
-      pending.reject(error)
-    }
-    this.pending.clear()
-    this.handles.clear()
-    this.port.close()
-  }
-}
-
-function installOpfsChrometestBridge(port) {
-  const previous = self.__spacewaveOpfsBridgePort
-  const client = new OpfsChrometestBridgeClient(port)
-  previous?.close()
-  self.__spacewaveOpfsBridgePort = client
-  self.__spacewaveInstallOpfsRemoteDriver?.(client)
-}
-
 self.onmessage = async (event) => {
-  if (event.data?.kind === 'opfsBridgeSwap') {
-    installOpfsChrometestBridge(event.ports[0])
-    return
-  }
   const args = event.data
-  if (args.remote) {
-    installOpfsChrometestBridge(event.ports[0])
-  }
   __opfsChrometestCurrentArgs = args
   const go = new Go()
   self.__BLDR_TINYGO_CURRENT_GO = go

@@ -4,15 +4,11 @@ package goscript_volume_replay
 
 import (
 	"context"
-	"strings"
 	"sync"
 
-	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/device"
 	device_opfs "github.com/s4wave/spacewave/db/volume/device/opfs"
-	"github.com/s4wave/spacewave/db/volume/direct"
 	volume_idb "github.com/s4wave/spacewave/db/volume/idb"
-	opfs_engine "github.com/s4wave/spacewave/db/volume/js/opfs/engine"
 	"github.com/s4wave/spacewave/db/volume/logindex"
 	"github.com/s4wave/spacewave/db/volume/paylog"
 	"github.com/s4wave/spacewave/db/volume/records"
@@ -21,14 +17,11 @@ import (
 
 // counts counts the storage calls an engine makes.
 type counts struct {
-	// Writes counts device Write calls, record store Commit calls, or format
-	// 3 backend Write and Remove calls.
+	// Writes counts device Write calls or record store Commit calls.
 	Writes int `json:"writes"`
-	// Flushes counts flushed writes, durable commits, or format 3 backend
-	// Write calls, each of which publishes a whole file.
+	// Flushes counts flushed writes or durable commits.
 	Flushes int `json:"flushes"`
-	// Reads counts device Read calls, record store Get, Has, and Scan calls,
-	// or format 3 backend Read calls.
+	// Reads counts device Read calls or record store Get, Has, and Scan calls.
 	Reads int `json:"reads"`
 	// Bytes counts written bytes.
 	Bytes int64 `json:"bytes"`
@@ -132,30 +125,6 @@ func (s countingStore) Commit(ctx context.Context, ops []records.Op, durable boo
 	return s.Store.Commit(ctx, ops, durable)
 }
 
-// countingBackend counts the calls made through a format 3 backend.
-type countingBackend struct {
-	opfs_engine.Backend
-	counter *counter
-}
-
-// Read counts and forwards a read.
-func (b countingBackend) Read(ctx context.Context, name string, offset int64, length int) ([]byte, error) {
-	b.counter.add(false, false, 0)
-	return b.Backend.Read(ctx, name, offset, length)
-}
-
-// Write counts and forwards a whole-file write.
-func (b countingBackend) Write(ctx context.Context, name string, data []byte) error {
-	b.counter.add(true, true, int64(len(data)))
-	return b.Backend.Write(ctx, name, data)
-}
-
-// Remove counts and forwards a remove.
-func (b countingBackend) Remove(ctx context.Context, name string) error {
-	b.counter.add(true, false, 0)
-	return b.Backend.Remove(ctx, name)
-}
-
 // openE1 opens E1 on a device from open, which reopens the same storage.
 func openE1(ctx context.Context, open func() (device.Device, func() error, error), destroy func() error) (engine, error) {
 	c := &counter{}
@@ -238,110 +207,4 @@ func openE1IDB(ctx context.Context) (engine, error) {
 	}, func() error {
 		return volume_idb.DeleteDatabase(name)
 	})
-}
-
-// openE5IDB opens E5 on a fresh IndexedDB record store.
-func openE5IDB(ctx context.Context) (engine, error) {
-	name := storageName + "-e5"
-	if err := volume_idb.DeleteDatabase(name); err != nil {
-		return engine{}, err
-	}
-	c := &counter{}
-	start := func() (*direct.Store, *volume_idb.Store, error) {
-		rs, err := volume_idb.OpenStore(ctx, name)
-		if err != nil {
-			return nil, nil, err
-		}
-		s, err := direct.Open(ctx, countingStore{Store: rs, counter: c})
-		if err != nil {
-			_ = rs.Close()
-			return nil, nil, err
-		}
-		return s, rs, nil
-	}
-	s, rs, err := start()
-	if err != nil {
-		return engine{}, err
-	}
-	closeStore := func() error {
-		if s == nil {
-			return nil
-		}
-		_ = s.Close()
-		return rs.Close()
-	}
-	return engine{
-		target: s,
-		reopen: func(ctx context.Context) (workload.Target, error) {
-			if err := closeStore(); err != nil {
-				return nil, err
-			}
-			s, rs, err = start()
-			if err != nil {
-				return nil, err
-			}
-			return s, nil
-		},
-		counts: c.snapshot,
-		destroy: func() error {
-			_ = closeStore()
-			return volume_idb.DeleteDatabase(name)
-		},
-	}, nil
-}
-
-// openE4OPFS opens format 3 (E4) on a fresh OPFS directory through its
-// browser backend.
-func openE4OPFS(ctx context.Context) (engine, error) {
-	path := storageName + "/e4"
-	if err := device_opfs.Delete(path); err != nil {
-		return engine{}, err
-	}
-	c := &counter{}
-	start := func() (opfs_engine.ReplayTarget, error) {
-		root, err := opfs.GetRoot()
-		if err != nil {
-			return opfs_engine.ReplayTarget{}, err
-		}
-		dir, err := opfs.GetDirectoryPath(root, strings.Split(path, "/"), true)
-		if err != nil {
-			return opfs_engine.ReplayTarget{}, err
-		}
-		backend := opfs_engine.NewBrowserBackend(opfs.DefaultDriver, dir, path)
-		e, err := opfs_engine.Open(ctx, countingBackend{Backend: backend, counter: c})
-		if err != nil {
-			_ = backend.Close()
-			return opfs_engine.ReplayTarget{}, err
-		}
-		return opfs_engine.ReplayTarget{Engine: e, BlockStore: opfs_engine.NewBlockStore(ctx, e, 0)}, nil
-	}
-	t, err := start()
-	if err != nil {
-		return engine{}, err
-	}
-	closeTarget := func() error {
-		if t.Engine == nil {
-			return nil
-		}
-		_ = t.BlockStore.Close()
-		return t.Engine.Close()
-	}
-	return engine{
-		target: t,
-		reopen: func(ctx context.Context) (workload.Target, error) {
-			if err := closeTarget(); err != nil {
-				return nil, err
-			}
-			t, err = start()
-			if err != nil {
-				return nil, err
-			}
-			return t, nil
-		},
-		counts: c.snapshot,
-		destroy: func() error {
-			_ = closeTarget()
-			return device_opfs.Delete(storageName)
-		},
-	}, nil
 }

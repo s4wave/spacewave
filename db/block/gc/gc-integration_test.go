@@ -11,16 +11,16 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	volume_opfs "github.com/s4wave/spacewave/db/volume/js/opfs"
+	volume_browser "github.com/s4wave/spacewave/db/volume/browser"
 	"github.com/sirupsen/logrus"
 )
 
-// testHarness exposes one public OPFS volume's block, graph, and journal hooks.
+// testHarness exposes one browser volume's block, graph, and journal hooks.
 type testHarness struct {
 	// t reports cleanup failures.
 	t *testing.T
 	// volume owns the disposable persisted volume.
-	volume *volume_opfs.Opfs
+	volume *volume_browser.Volume
 	// blkStore provides the public block operations.
 	blkStore block.StoreOps
 	// gcGraph provides the public collector graph.
@@ -33,14 +33,13 @@ type testHarness struct {
 
 // newTestHarness opens the product volume and requires its GC integration hooks.
 func newTestHarness(t *testing.T, name string) *testHarness {
-	t.Helper()
-
 	// Open the product volume that owns the block store and GC state.
+	t.Helper()
 	ctx := context.Background()
-	volume, err := volume_opfs.NewOpfs(
+	volume, err := volume_browser.NewVolume(
 		ctx,
 		logrus.NewEntry(logrus.New()),
-		&volume_opfs.Config{RootPath: name, LockPrefix: name},
+		&volume_browser.Config{Name: name},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -52,14 +51,14 @@ func newTestHarness(t *testing.T, name string) *testHarness {
 		if err := volume.Delete(); err != nil {
 			t.Errorf("delete test volume: %v", err)
 		}
-		t.Fatal("OPFS volume has no GC manager hooks")
+		t.Fatal("browser volume has no GC manager hooks")
 	}
 	appender := volume.GetWALAppender()
 	if appender == nil {
 		if err := volume.Delete(); err != nil {
 			t.Errorf("delete test volume: %v", err)
 		}
-		t.Fatal("OPFS volume has no GC journal appender")
+		t.Fatal("browser volume has no GC journal appender")
 	}
 
 	// Retain only public interfaces consumed by the observable sweep tests.
@@ -225,10 +224,10 @@ func TestGCIntegrationSweepUnreachable(t *testing.T) {
 // TestGCIntegrationConcurrentWriteAndSweep writes blocks from multiple
 // goroutines while a sweep runs, verifying no data corruption.
 func TestGCIntegrationConcurrentWriteAndSweep(t *testing.T) {
+	// Open the volume and its bucket.
 	h := newTestHarness(t, "test-gc-integ-conc")
 	defer h.cleanup()
 	ctx := context.Background()
-
 	bucketIRI := block_gc.BucketIRI("conc-bucket")
 
 	// Phase 1: Write some initial blocks that will be reachable.
@@ -248,12 +247,13 @@ func TestGCIntegrationConcurrentWriteAndSweep(t *testing.T) {
 	const writers = 4
 	const blocksPerWriter = 5
 
-	// Collect all block IRIs so we can verify they survive.
+	// Each writer stores its blocks and collects their IRIs so we can verify
+	// they survive.
 	results := make([][]string, writers)
-
 	for w := range writers {
 		wg.Add(1)
 		go func() {
+			// Put and flush the writer's blocks.
 			defer wg.Done()
 			wOps := h.newGCStoreOps(bucketIRI)
 			var iris []string
@@ -289,6 +289,7 @@ func TestGCIntegrationConcurrentWriteAndSweep(t *testing.T) {
 		}
 	}()
 
+	// Wait for the writers and the sweep.
 	wg.Wait()
 	if t.Failed() {
 		return

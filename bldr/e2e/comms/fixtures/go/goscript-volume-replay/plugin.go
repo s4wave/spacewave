@@ -21,8 +21,6 @@ import (
 	"github.com/s4wave/spacewave/db/volume/device/devicetest"
 	device_opfs "github.com/s4wave/spacewave/db/volume/device/opfs"
 	volume_idb "github.com/s4wave/spacewave/db/volume/idb"
-	"github.com/s4wave/spacewave/db/volume/records"
-	"github.com/s4wave/spacewave/db/volume/records/recordstest"
 	"github.com/s4wave/spacewave/db/volume/workload"
 )
 
@@ -108,14 +106,12 @@ type engine struct {
 var targets = []target{
 	{name: "e1-opfs", open: openE1OPFS},
 	{name: "e1-idb", open: openE1IDB},
-	{name: "e5-idb", open: openE5IDB},
-	{name: "e4-opfs", open: openE4OPFS},
 	{name: "e3-sqlite", open: openE3SQLite},
 	{name: "e1-opfs-t2", open: openT2(openE1OPFS)},
 }
 
-// check runs the device and record store contract checks, each followed by a
-// reopen that must find the same contents.
+// check runs the device contract checks, each followed by a reopen that must
+// find the same contents.
 func check(ctx context.Context) (map[string]string, error) {
 	out := make(map[string]string)
 
@@ -148,16 +144,6 @@ func check(ctx context.Context) (map[string]string, error) {
 		return d, d.Close, nil
 	}))
 	if err := volume_idb.DeleteDatabase(deviceDB); err != nil {
-		return nil, err
-	}
-
-	// The IndexedDB record store.
-	storeDB := storageName + "-check-records"
-	if err := volume_idb.DeleteDatabase(storeDB); err != nil {
-		return nil, err
-	}
-	out["idb-records"] = result(checkStore(ctx, storeDB))
-	if err := volume_idb.DeleteDatabase(storeDB); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -214,47 +200,6 @@ func readDevice(ctx context.Context, d device.Device) (map[string][]byte, error)
 		out[f.Name] = data
 	}
 	return out, nil
-}
-
-// checkStore runs the record store checks, reopens the store, and compares
-// every record.
-func checkStore(ctx context.Context, name string) error {
-	s, err := volume_idb.OpenStore(ctx, name)
-	if err != nil {
-		return err
-	}
-	if err := recordstest.Check(ctx, s); err != nil {
-		_ = s.Close()
-		return err
-	}
-	before, err := scanStore(ctx, s)
-	_ = s.Close()
-	if err != nil {
-		return err
-	}
-	s, err = volume_idb.OpenStore(ctx, name)
-	if err != nil {
-		return err
-	}
-	defer s.Close()
-	after, err := scanStore(ctx, s)
-	if err != nil {
-		return err
-	}
-	if after != before {
-		return errors.Errorf("reopened records %q, want %q", after, before)
-	}
-	return nil
-}
-
-// scanStore renders every record of a store.
-func scanStore(ctx context.Context, s records.Store) (string, error) {
-	var b strings.Builder
-	err := s.Scan(ctx, nil, func(key, value []byte) error {
-		b.WriteString(string(key) + "=" + string(value) + ";")
-		return nil
-	})
-	return b.String(), err
 }
 
 // result renders a check error, "ok" when there is none.

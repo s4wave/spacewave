@@ -5,21 +5,17 @@ package resource_debugdb
 import (
 	"context"
 	"encoding/binary"
-	std_errors "errors"
 	"runtime"
 	"strconv"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/db/opfs"
-	"github.com/s4wave/spacewave/db/volume/js/opfs/engine"
 	s4wave_debugdb "github.com/s4wave/spacewave/sdk/debugdb"
 )
 
-// suiteRunner manages suite execution against a throw-away engine.
+// suiteRunner manages suite execution against a throw-away volume.
 type suiteRunner struct {
 	// ctx bounds all operations in this run.
 	ctx context.Context
@@ -75,12 +71,14 @@ func (s *suiteRunner) timer(idx int) *SuiteTimer {
 
 // runEnginePutSingle benchmarks durable sequential block writes and retains a
 // bounded existing-ref corpus for the engine get suite.
-func (s *suiteRunner) runEnginePutSingle(store *engine.BlockStore) (*s4wave_debugdb.BenchmarkSuite, []*block.BlockRef) {
+func (s *suiteRunner) runEnginePutSingle(store block.StoreOps) (*s4wave_debugdb.BenchmarkSuite, []*block.BlockRef) {
+	// Publish the suite and start its time budget.
 	idx := 0
 	s.updateProgress(idx, "put-single")
 	timer := s.timer(idx)
 	m := NewMetricCollector("put-single", "ms")
 
+	// Write and sync one block at a time, retaining refs for the get suite.
 	const maxRetainedRefs = 1000
 	refs := make([]*block.BlockRef, 0, maxRetainedRefs)
 	var id uint64
@@ -109,12 +107,14 @@ func (s *suiteRunner) runEnginePutSingle(store *engine.BlockStore) (*s4wave_debu
 }
 
 // runEnginePutBatch benchmarks durable batches through the engine block store.
-func (s *suiteRunner) runEnginePutBatch(store *engine.BlockStore) *s4wave_debugdb.BenchmarkSuite {
+func (s *suiteRunner) runEnginePutBatch(store block.StoreOps) *s4wave_debugdb.BenchmarkSuite {
+	// Publish the suite and start its time budget.
 	idx := 1
 	s.updateProgress(idx, "put-batch")
 	timer := s.timer(idx)
 	m := NewMetricCollector("put-batch-32", "ms")
 
+	// Write and sync batches of 32 blocks.
 	batchSize := 32
 	var id uint64
 	for timer.Running() {
@@ -152,12 +152,14 @@ func (s *suiteRunner) runEnginePutBatch(store *engine.BlockStore) *s4wave_debugd
 }
 
 // runEngineGet benchmarks engine block reads from the retained existing corpus.
-func (s *suiteRunner) runEngineGet(store *engine.BlockStore, refs []*block.BlockRef) *s4wave_debugdb.BenchmarkSuite {
+func (s *suiteRunner) runEngineGet(store block.StoreOps, refs []*block.BlockRef) *s4wave_debugdb.BenchmarkSuite {
+	// Publish the suite and start its time budget.
 	idx := 2
 	s.updateProgress(idx, "get")
 	timer := s.timer(idx)
 	m := NewMetricCollector("get", "ms")
 
+	// Without retained refs there is nothing to read.
 	if len(refs) == 0 {
 		return &s4wave_debugdb.BenchmarkSuite{
 			Name:    "engine-get",
@@ -165,6 +167,7 @@ func (s *suiteRunner) runEngineGet(store *engine.BlockStore, refs []*block.Block
 		}
 	}
 
+	// Read the retained blocks round robin.
 	i := 0
 	for timer.Running() {
 		ref := refs[i%len(refs)]
@@ -194,11 +197,13 @@ func engineBenchmarkBlock(family byte, id uint64) []byte {
 
 // runBlockStorePut benchmarks PutBlock through the full StoreOps interface.
 func (s *suiteRunner) runBlockStorePut(store block.StoreOps) *s4wave_debugdb.BenchmarkSuite {
+	// Publish the suite and start its time budget.
 	idx := 3
 	s.updateProgress(idx, "putblock")
 	timer := s.timer(idx)
 	m := NewMetricCollector("putblock-4k", "ms")
 
+	// Write one block at a time.
 	for timer.Running() {
 		data := make([]byte, 4096)
 		runtime.Gosched()
@@ -218,11 +223,13 @@ func (s *suiteRunner) runBlockStorePut(store block.StoreOps) *s4wave_debugdb.Ben
 
 // runBlockStoreGet benchmarks GetBlock through the full StoreOps interface.
 func (s *suiteRunner) runBlockStoreGet(store block.StoreOps, refs []*block.BlockRef) *s4wave_debugdb.BenchmarkSuite {
+	// Publish the suite and start its time budget.
 	idx := 4
 	s.updateProgress(idx, "getblock")
 	timer := s.timer(idx)
 	m := NewMetricCollector("getblock", "ms")
 
+	// Without retained refs there is nothing to read.
 	if len(refs) == 0 {
 		return &s4wave_debugdb.BenchmarkSuite{
 			Name:    "blockstore-get",
@@ -230,6 +237,7 @@ func (s *suiteRunner) runBlockStoreGet(store block.StoreOps, refs []*block.Block
 		}
 	}
 
+	// Read the retained blocks round robin.
 	i := 0
 	for timer.Running() {
 		ref := refs[i%len(refs)]
@@ -251,11 +259,13 @@ func (s *suiteRunner) runBlockStoreGet(store block.StoreOps, refs []*block.Block
 
 // runGCFlush benchmarks FlushPending after buffered block puts.
 func (s *suiteRunner) runGCFlush(store *block_gc.GCStoreOps) *s4wave_debugdb.BenchmarkSuite {
+	// Publish the suite and start its time budget.
 	idx := 5
 	s.updateProgress(idx, "flush-pending")
 	timer := s.timer(idx)
 	m := NewMetricCollector("flush-pending", "ms")
 
+	// Buffer ten puts, then time the flush.
 	for timer.Running() {
 		for range 10 {
 			data := make([]byte, 4096)
@@ -281,12 +291,14 @@ func (s *suiteRunner) runGCFlush(store *block_gc.GCStoreOps) *s4wave_debugdb.Ben
 
 // runMetaStoreRW benchmarks kvtx read/write operations.
 func (s *suiteRunner) runMetaStoreRW(store kvtx.Store) *s4wave_debugdb.BenchmarkSuite {
+	// Publish the suite and start its time budget.
 	idx := 6
 	s.updateProgress(idx, "meta-rw")
 	timer := s.timer(idx)
 	mWrite := NewMetricCollector("meta-write", "ms")
 	mRead := NewMetricCollector("meta-read", "ms")
 
+	// Time a write transaction, then a read of the same key.
 	i := 0
 	for timer.Running() {
 		key := []byte("meta-" + strconv.Itoa(i))
@@ -331,33 +343,4 @@ func (s *suiteRunner) runMetaStoreRW(store kvtx.Store) *s4wave_debugdb.Benchmark
 			mRead.Build(),
 		},
 	}
-}
-
-// createEngineBlockStore creates a standalone immutable engine and block store.
-func createEngineBlockStore(ctx context.Context) (*engine.BlockStore, func() error, error) {
-	root, err := opfs.GetRoot()
-	if err != nil {
-		return nil, nil, err
-	}
-	dirName := "debugdb-bench-engine-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-	dir, err := opfs.GetDirectory(root, dirName, true)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "create engine directory")
-	}
-	e, err := engine.Open(ctx, engine.NewBrowserBackend(opfs.DefaultDriver, dir, dirName))
-	if err != nil {
-		return nil, nil, errors.Wrap(
-			std_errors.Join(err, opfs.DeleteEntry(root, dirName, true)),
-			"create engine",
-		)
-	}
-	store := engine.NewBlockStore(ctx, e, block.DefaultHashType)
-	cleanup := func() error {
-		return std_errors.Join(
-			store.Close(),
-			e.Close(),
-			opfs.DeleteEntry(root, dirName, true),
-		)
-	}
-	return store, cleanup, nil
 }

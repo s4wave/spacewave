@@ -33,7 +33,6 @@ require (
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
-	github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261006140529-7f1cdbf2ce7d

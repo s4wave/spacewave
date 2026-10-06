@@ -1,7 +1,7 @@
 //go:build js
 
-// Package volume_idb implements the browser volume engines' storage
-// primitives on IndexedDB: a chunked device.Device and a records.Store.
+// Package volume_idb implements a chunked device.Device on IndexedDB for the
+// browser volume.
 //
 // Every call is one IndexedDB transaction. A call issues all of its requests
 // in one JavaScript task and returns on the transaction's complete event, so

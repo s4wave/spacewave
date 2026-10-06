@@ -54,7 +54,7 @@ var notEnrolledInAnySlice = []string{
 	"TestGoScriptCliTerminalCommands",
 	"TestGoScriptDeviceQuickstartOpensDurableComputersDashboard",
 	"TestGoScriptDeviceViewerPresentationSmoke",
-	"TestGoScriptDriveAccountDeleteRemovesOpfsSubtree",
+	"TestGoScriptDriveAccountDeleteRemovesVolume",
 	"TestGoScriptDriveBrowserLayoutDropReloadUIParity",
 	"TestGoScriptDriveBrowserMoveDragDeleteUIParity",
 	"TestGoScriptDriveStartupBench",
