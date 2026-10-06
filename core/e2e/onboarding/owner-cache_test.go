@@ -30,9 +30,10 @@ import (
 
 // TestCloudOwnerFreshCache checks that cloud admission and nonce consumption
 // survive an independently constructed provider cache with the registered key.
-// The original Session remains alive; this does not establish Worker transport.
+// The original Session remains alive, so the test does not cover a Session
+// that reconnects to the coordinator.
 func TestCloudOwnerFreshCache(t *testing.T) {
-	// Create the account and Space through the isolated Workers backend.
+	// Mount a new cloud account through the isolated coordinator.
 	ctx, cancel := context.WithTimeout(env.ctx, 90*time.Second)
 	t.Cleanup(cancel)
 	entry := createCloudSession(ctx, t)
@@ -40,12 +41,16 @@ func TestCloudOwnerFreshCache(t *testing.T) {
 	t.Cleanup(release)
 	t.Cleanup(resource.Close)
 	account := original.GetProviderAccount().(*provider_spacewave.ProviderAccount)
+
+	// Give the account the subscription and email that creating a Space needs.
 	setTestSubscriptionStatus(t, account.GetAccountID(), "active")
 	setTestEmailVerified(t, ctx, account.GetAccountID(), "owner-cache-"+ulid.NewULID()+"@example.com")
 	account.BumpLocalEpoch()
 	if _, err := waitForSubscriptionStatus(ctx, account, "active"); err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the Space.
 	meta, err := space.NewSharedObjectMeta("Owner cache")
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +88,8 @@ func TestCloudOwnerFreshCache(t *testing.T) {
 		}
 		t.Cleanup(ref.Release)
 	}
+
+	// Look up the fresh provider and Session inventory.
 	provider, providerRef, err := core_provider.ExLookupProvider(ctx, fresh.Bus, "spacewave", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -109,6 +116,8 @@ func TestCloudOwnerFreshCache(t *testing.T) {
 	if mounted.GetPeerId() != original.GetPeerId() {
 		t.Fatal("restored Session changed its registered identity")
 	}
+
+	// Serve the restored Session's resource to an approval client.
 	freshResource := resource_session.NewSessionResource(logrus.NewEntry(logrus.New()), fresh.Bus, mounted)
 	t.Cleanup(freshResource.Close)
 	freshApproval := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(

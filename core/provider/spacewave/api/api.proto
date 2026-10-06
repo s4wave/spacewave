@@ -2317,7 +2317,8 @@ message GetSOSequencerResponse {
 message PostConfigStateRequest {
   // ConfigChange is the serialized SOConfigChange entry.
   bytes config_change = 1;
-  // Invites is the full invite list after applying the mutation.
+  // Invites is the full invite list after an invite change. Any other change
+  // keeps the stored invites and may omit them.
   repeated .sobject.SOInvite invites = 2;
   // KeyEpoch is the key epoch to store alongside the config change.
   .sobject.SOKeyEpoch key_epoch = 3;

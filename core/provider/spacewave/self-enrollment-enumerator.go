@@ -94,24 +94,34 @@ func (a *ProviderAccount) SetSelfEnrollmentSkippedGenerationKey(key string) {
 	})
 }
 
-// GetIDs returns the shared object IDs needing self-enrollment.
+// GetIDs returns the shared object IDs needing self-enrollment. A nil summary
+// has none; its getters answer the zero value, as protobuf getters do.
 func (s *SelfEnrollmentSummary) GetIDs() []string {
+	if s == nil {
+		return nil
+	}
 	return slices.Clone(s.ids)
 }
 
 // GetGenerationKey returns the generation key for the current pending set.
 func (s *SelfEnrollmentSummary) GetGenerationKey() string {
+	if s == nil {
+		return ""
+	}
 	return s.generationKey
 }
 
 // GetCount returns the number of shared objects needing self-enrollment.
 func (s *SelfEnrollmentSummary) GetCount() uint32 {
+	if s == nil {
+		return 0
+	}
 	return s.count
 }
 
 // GetLoaded returns whether every shared-object list entry was evaluated.
 func (s *SelfEnrollmentSummary) GetLoaded() bool {
-	return s.loaded
+	return s != nil && s.loaded
 }
 
 func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(

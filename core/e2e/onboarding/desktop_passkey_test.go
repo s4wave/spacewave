@@ -129,7 +129,7 @@ func loadAccountHostCeremony(
 func newConfiguredVirtualAuthenticator(t *testing.T) *virtualAuthenticator {
 	t.Helper()
 	va, err := newVirtualAuthenticatorWithOrigin(
-		env.passkeyOrigin,
+		env.accountOrigin,
 		env.passkeyRpID,
 	)
 	if err != nil {
@@ -254,15 +254,32 @@ func generateEntityAndSessionKeys(
 	return entityPEM, entityPeerID.String(), sessionPeerID.String()
 }
 
+// newEntityKey returns a new entity key and its peer ID.
+func newEntityKey(t *testing.T) (bifcrypto.PrivKey, bifpeer.ID) {
+	// Generate the key and derive its peer ID.
+	t.Helper()
+	priv, _, err := bifcrypto.GenerateEd25519Key(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	peerID, err := bifpeer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return priv, peerID
+}
+
+// registerPasskeyForAccount adds a passkey to the account with a new entity
+// key, as the app does, and returns the key's peer ID.
 func registerPasskeyForAccount(
 	ctx context.Context,
 	t *testing.T,
 	cli *provider_spacewave.SessionClient,
-	entityPriv bifcrypto.PrivKey,
-	entityPeerID bifpeer.ID,
 	va *virtualAuthenticator,
-) {
+) bifpeer.ID {
+	// Request registration options for a new entity key.
 	t.Helper()
+	entityPriv, entityPeerID := newEntityKey(t)
 	optionsJSON, err := cli.PasskeyRegisterOptions(ctx)
 	if err != nil {
 		t.Fatalf("passkey register options: %v", err)
@@ -271,6 +288,8 @@ func registerPasskeyForAccount(
 	if challenge == "" {
 		t.Fatal("registration options missing challenge")
 	}
+
+	// Sign the challenge and register the credential with the wrapped key.
 	credJSON := va.createRegistrationResponse(challenge)
 	_, wrappedEntityKey := marshalEntityPEM(t, entityPriv)
 	if _, err := cli.PasskeyRegisterVerify(
@@ -284,6 +303,7 @@ func registerPasskeyForAccount(
 	); err != nil {
 		t.Fatalf("passkey register verify: %v", err)
 	}
+	return entityPeerID
 }
 
 func simulateDesktopPasskeyLoginBrowser(
@@ -600,18 +620,23 @@ func simulateDesktopPasskeyReauthBrowser(
 	return nil
 }
 
+// TestDesktopPasskeyLoginLinkedEndToEnd logs in to an existing account with
+// a passkey through the desktop browser handoff.
 func TestDesktopPasskeyLoginLinkedEndToEnd(t *testing.T) {
+	// Bound the test by the suite context.
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
-	cloudEntry, entityPriv, entityPeerID := createCloudSessionWithKey(ctx, t)
+	// Create a cloud account and register a passkey for it.
+	cloudEntry := createCloudSession(ctx, t)
 	accountID := cloudEntry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	acc, relAcc := accessSpacewaveAccount(ctx, t, accountID)
 	defer relAcc()
 	username := getAccountUsername(ctx, t, acc)
 	va := newConfiguredVirtualAuthenticator(t)
-	registerPasskeyForAccount(ctx, t, acc.GetSessionClient(), entityPriv, entityPeerID, va)
+	registerPasskeyForAccount(ctx, t, acc.GetSessionClient(), va)
 
+	// Answer the handoff with a simulated browser login.
 	restore := provider_spacewave_handoff.SetBrowserOpenerForTesting(
 		func(rawURL string) error {
 			return simulateDesktopPasskeyLoginBrowser(ctx, t, rawURL, username, va)
@@ -619,6 +644,7 @@ func TestDesktopPasskeyLoginLinkedEndToEnd(t *testing.T) {
 	)
 	defer restore()
 
+	// Start the handoff and read the linked entity key.
 	swResource := buildSpacewaveProviderResource(ctx, t)
 	startResp, err := swResource.StartDesktopPasskey(
 		ctx,
@@ -638,6 +664,8 @@ func TestDesktopPasskeyLoginLinkedEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decode linked desktop passkey pem: %v", err)
 	}
+
+	// Log in with the entity key and expect the same account.
 	loginResp, err := swResource.LoginWithEntityKey(
 		ctx,
 		&s4wave_provider_spacewave.LoginWithEntityKeyRequest{
@@ -735,19 +763,27 @@ func TestDesktopPasskeyLoginNewAccountEndToEnd(t *testing.T) {
 	}
 }
 
+// TestDesktopPasskeyRegisterEndToEnd registers a passkey through the desktop
+// browser handoff, then logs in with it.
 func TestDesktopPasskeyRegisterEndToEnd(t *testing.T) {
+	// Bound the test by the suite context.
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
-	cloudEntry, entityPriv, entityPeerID := createCloudSessionWithKey(ctx, t)
+	// Create a cloud account and its account resource.
+	cloudEntry := createCloudSession(ctx, t)
 	accountID := cloudEntry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	acc, relAcc := accessSpacewaveAccount(ctx, t, accountID)
 	defer relAcc()
 	accResource := resource_account.NewAccountResource(acc)
 	defer accResource.Release()
+
+	// Make the new entity key and authenticator, as the app does.
+	entityPriv, entityPeerID := newEntityKey(t)
 	entityPEM, wrappedEntityKey := marshalEntityPEM(t, entityPriv)
 	va := newConfiguredVirtualAuthenticator(t)
 
+	// Answer the handoff with a simulated browser registration.
 	restore := provider_spacewave_handoff.SetBrowserOpenerForTesting(
 		func(rawURL string) error {
 			return simulateDesktopPasskeyRegisterBrowser(ctx, t, rawURL, va)
@@ -755,6 +791,7 @@ func TestDesktopPasskeyRegisterEndToEnd(t *testing.T) {
 	)
 	defer restore()
 
+	// Run the handoff and verify the returned credential.
 	handoffResp, err := accResource.StartDesktopPasskeyRegisterHandoff(
 		ctx,
 		&s4wave_account.StartDesktopPasskeyRegisterHandoffRequest{},
@@ -779,6 +816,7 @@ func TestDesktopPasskeyRegisterEndToEnd(t *testing.T) {
 		t.Fatalf("desktop passkey register verify: %v", err)
 	}
 
+	// Request authentication options for the account.
 	username := getAccountUsername(ctx, t, acc)
 	optionsJSON, err := provider_spacewave.PasskeyAuthOptions(
 		ctx,
@@ -793,6 +831,8 @@ func TestDesktopPasskeyRegisterEndToEnd(t *testing.T) {
 	if challenge == "" {
 		t.Fatal("passkey auth options missing challenge")
 	}
+
+	// Authenticate with the new passkey.
 	authResp, err := provider_spacewave.PasskeyAuthVerify(
 		ctx,
 		httpClient,
@@ -805,11 +845,14 @@ func TestDesktopPasskeyRegisterEndToEnd(t *testing.T) {
 	if authResp.GetAccountId() != accountID {
 		t.Fatalf("expected auth verify for account %s, got %s", accountID, authResp.GetAccountId())
 	}
-	if authResp.GetEncryptedBlob() == "" {
-		t.Fatal("passkey auth verify after desktop register returned no encrypted blob")
+
+	// The passkey unwraps the entity key registered through the handoff.
+	pemDat, err := base64.StdEncoding.DecodeString(authResp.GetEncryptedBlob())
+	if err != nil {
+		t.Fatalf("decode passkey auth blob: %v", err)
 	}
-	if len(entityPEM) == 0 {
-		t.Fatal("entity pem unexpectedly empty")
+	if !bytes.Equal(pemDat, entityPEM) {
+		t.Fatal("passkey auth after desktop register returned another entity key")
 	}
 }
 
@@ -820,14 +863,14 @@ func TestDesktopPasskeyReauthEndToEnd(t *testing.T) {
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
-	// Create a cloud account and register a passkey for its entity key.
-	cloudEntry, entityPriv, entityPeerID := createCloudSessionWithKey(ctx, t)
+	// Create a cloud account and register a passkey with its own entity key.
+	cloudEntry := createCloudSession(ctx, t)
 	accountID := cloudEntry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	acc, relAcc := accessSpacewaveAccount(ctx, t, accountID)
 	defer relAcc()
 	username := getAccountUsername(ctx, t, acc)
 	va := newConfiguredVirtualAuthenticator(t)
-	registerPasskeyForAccount(ctx, t, acc.GetSessionClient(), entityPriv, entityPeerID, va)
+	entityPeerID := registerPasskeyForAccount(ctx, t, acc.GetSessionClient(), va)
 
 	// Build the Session and account resources under test.
 	cloudResource, cloudSess, relCloudResource := mountSessionResource(ctx, t, cloudEntry)

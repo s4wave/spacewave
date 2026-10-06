@@ -39,7 +39,7 @@ import (
 // TestCloudSpaceGuestDevice joins a cloud-owned Space through a targeted
 // invitation using an independent local session, without cloud owner credentials.
 func TestCloudSpaceGuestDevice(t *testing.T) {
-	// Mount the real cloud account against the isolated Workers backend.
+	// Mount the real cloud account against the isolated coordinator.
 	ctx, cancel := context.WithTimeout(env.ctx, 90*time.Second)
 	t.Cleanup(cancel)
 	env.tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(env.tb.Bus))
@@ -77,6 +77,8 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Mount the Space and set its index path.
 	ownerSpace, releaseOwnerSpace, err := space.ExMountSpaceSoBody(ctx, owner.GetBus(), ref, false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -101,7 +103,7 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 		t.Fatal("guest inherited the owner identity")
 	}
 
-	// The guest proves its own key; approval must not create a cloud Session.
+	// Build the guest's link request for its own key.
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
 		t.Fatal(err)
@@ -119,6 +121,8 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Sign the request with the guest key into a ticket.
 	signature, err := guest.GetPrivKey().Sign(payload)
 	if err != nil {
 		t.Fatal(err)
@@ -129,6 +133,9 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// The owner approves the ticket once without creating a cloud Session,
+	// and refuses a replay.
 	approval := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(ownerResource.GetMux()))),
 	)
@@ -161,6 +168,8 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 		localProvider.(*provider_local.Provider),
 	)
 	t.Cleanup(provider.Release)
+
+	// Complete the enrollment with the guest key and the invitation.
 	result, err := provider.CompleteSpaceLinkEnrollment(ctx, &s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest{
 		SessionPemPrivateKey: pem,
 		SessionPeerId:        guest.GetPeerId().String(),

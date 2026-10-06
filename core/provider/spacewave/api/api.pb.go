@@ -8260,7 +8260,8 @@ type PostConfigStateRequest struct {
 	unknownFields []byte
 	// ConfigChange is the serialized SOConfigChange entry.
 	ConfigChange []byte `protobuf:"bytes,1,opt,name=config_change,json=configChange,proto3" json:"configChange,omitempty"`
-	// Invites is the full invite list after applying the mutation.
+	// Invites is the full invite list after an invite change. Any other change
+	// keeps the stored invites and may omit them.
 	Invites []*sobject.SOInvite `protobuf:"bytes,2,rep,name=invites,proto3" json:"invites,omitempty"`
 	// KeyEpoch is the key epoch to store alongside the config change.
 	KeyEpoch *sobject.SOKeyEpoch `protobuf:"bytes,3,opt,name=key_epoch,json=keyEpoch,proto3" json:"keyEpoch,omitempty"`

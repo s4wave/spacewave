@@ -3,9 +3,7 @@
 package onboarding_test
 
 import (
-	"bytes"
 	"context"
-	"net/http"
 	"testing"
 	"time"
 
@@ -20,7 +18,7 @@ import (
 )
 
 // TestApplicationRegistration exercises signed registration and operator readback
-// through mounted provider accounts against an isolated Worker database.
+// through mounted provider accounts against an isolated coordinator database.
 func TestApplicationRegistration(t *testing.T) {
 	// Retain independent administrator and operator Sessions for the whole flow.
 	ctx, cancel := context.WithTimeout(env.ctx, 2*time.Minute)
@@ -36,21 +34,7 @@ func TestApplicationRegistration(t *testing.T) {
 	var arena fastjson.Arena
 	grant := arena.NewObject()
 	grant.Set("account_id", arena.NewString(adminID))
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, env.cloudURL+"/api/test/set-admin", bytes.NewReader(grant.MarshalTo(nil)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := resp.Body.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("grant test administration: HTTP %d", resp.StatusCode)
-	}
+	postTestHelper(ctx, t, "/api/test/set-admin", grant)
 
 	// Register without accepting a payer or granting active application access.
 	input := &api.RegisterApplicationRequest{
@@ -112,6 +96,8 @@ func TestApplicationRegistration(t *testing.T) {
 	if funded.GetAssignment().GetBillingAccountId() != payerID {
 		t.Fatal("funding returned a different payer")
 	}
+
+	// Retrying the same funding request returns the accepted assignment.
 	retryFunding, err := operatorClient.SetApplicationFunding(ctx, fundingRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +106,7 @@ func TestApplicationRegistration(t *testing.T) {
 		t.Fatal("funding retry changed the accepted assignment")
 	}
 
-	// Read accepted history through the generated Go-to-Worker response codec.
+	// Read accepted history through the generated response codec.
 	history, err := operatorClient.ListApplicationFunding(ctx, &api.ListApplicationFundingRequest{
 		ApplicationId: app.GetId(),
 	})
@@ -141,6 +127,8 @@ func TestApplicationRegistration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	// Two independent credentials enroll into the same managed account.
 	changeState(2, api.ApplicationState_APPLICATION_STATE_ACTIVE)
 	first, accountID := enrollApplicationTestSession(ctx, t, operatorClient, app.GetId(), 3)
 	second, recoveredID := enrollApplicationTestSession(ctx, t, operatorClient, app.GetId(), 3)
@@ -153,7 +141,8 @@ func TestApplicationRegistration(t *testing.T) {
 		}
 	}
 
-	// Paused Sessions survive, and disabling cannot resurrect them on reactivation.
+	// A paused application refuses account operations, and its Sessions
+	// work again on reactivation.
 	changeState(3, api.ApplicationState_APPLICATION_STATE_PAUSED)
 	if _, err := first.GetAccountInfo(ctx); err == nil {
 		t.Fatal("paused application admitted an account operation")
@@ -162,11 +151,15 @@ func TestApplicationRegistration(t *testing.T) {
 	if _, err := first.GetAccountInfo(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Disabling ends the Sessions, and reactivation does not restore them.
 	changeState(5, api.ApplicationState_APPLICATION_STATE_DISABLED)
 	changeState(6, api.ApplicationState_APPLICATION_STATE_ACTIVE)
 	if _, err := first.GetAccountInfo(ctx); err == nil {
 		t.Fatal("reactivation restored a disabled Session")
 	}
+
+	// A fresh login after reactivation recovers the managed account.
 	third, reactivatedID := enrollApplicationTestSession(ctx, t, operatorClient, app.GetId(), 7)
 	if reactivatedID != accountID {
 		t.Fatal("fresh login after disable lost the managed account")

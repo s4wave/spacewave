@@ -4,10 +4,10 @@ package onboarding_test
 
 import (
 	"context"
-	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/ulid"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
@@ -96,63 +96,49 @@ func assignOwnerBillingToOrg(
 }
 
 func setTestBillingSubscriptionStatus(t *testing.T, billingAccountID, status string) {
+	// Set the status through the coordinator test helper.
 	t.Helper()
-
-	body := `{"billing_account_id":"` + billingAccountID + `","subscription_status":"` + status + `"}`
-	req, err := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodPost,
-		env.cloudURL+"/api/test/set-billing-subscription",
-		strings.NewReader(body),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("set billing subscription status returned %d", resp.StatusCode)
-	}
+	var a fastjson.Arena
+	body := a.NewObject()
+	body.Set("billing_account_id", a.NewString(billingAccountID))
+	body.Set("subscription_status", a.NewString(status))
+	postTestHelper(context.Background(), t, "/api/test/set-billing-subscription", body)
 }
 
 func TestBillingSelfServiceOwnership(t *testing.T) {
+	// Bound the test by the suite context.
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
+	// Open two unrelated cloud accounts and their session clients.
 	a := createCloudSession(ctx, t)
 	b := createCloudSession(ctx, t)
-
 	cliA := accessSessionClient(ctx, t, a.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 	cliB := accessSessionClient(ctx, t, b.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 
-	infoA, err := cliA.GetAccountInfo(ctx)
+	// Give each account its own billing account.
+	baA, err := cliA.CreateBillingAccount(ctx, "Billing A "+ulid.NewULID())
 	if err != nil {
 		t.Fatal(err)
 	}
-	infoB, err := cliB.GetAccountInfo(ctx)
+	baB, err := cliB.CreateBillingAccount(ctx, "Billing B "+ulid.NewULID())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if infoA.GetBillingAccountId() == "" || infoB.GetBillingAccountId() == "" {
-		t.Fatal("expected billing account ids for both accounts")
-	}
 
-	if _, err := cliA.GetBillingState(ctx, infoA.GetBillingAccountId()); err != nil {
+	// The owner reads its own billing state.
+	if _, err := cliA.GetBillingState(ctx, baA); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = cliA.GetBillingState(ctx, infoB.GetBillingAccountId())
+	// The coordinator refuses a read of the other account's billing state.
+	_, err = cliA.GetBillingState(ctx, baB)
 	if err == nil || !strings.Contains(err.Error(), "billing_access_denied") {
 		t.Fatalf("expected billing_access_denied for foreign billing state, got %v", err)
 	}
 
-	_, err = cliA.CancelSubscription(ctx, infoB.GetBillingAccountId())
+	// The coordinator refuses to cancel the other account's subscription.
+	_, err = cliA.CancelSubscription(ctx, baB)
 	if err == nil || !strings.Contains(err.Error(), "billing_access_denied") {
 		t.Fatalf("expected billing_access_denied for foreign billing cancel, got %v", err)
 	}
@@ -187,20 +173,24 @@ func TestOrgOwnedCreateRequiresManageSpaces(t *testing.T) {
 }
 
 func TestSharedObjectMetadataRequiresReadAccess(t *testing.T) {
+	// Bound the test by the suite context.
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
+	// Open the owner's and an outsider's cloud accounts.
 	owner := createCloudSession(ctx, t)
 	outsider := createCloudSession(ctx, t)
-
 	ownerCli := accessSessionClient(ctx, t, owner.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 	outsiderCli := accessSessionClient(ctx, t, outsider.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 
+	// Subscribe the owner and create its Space.
+	subscribeCloudAccount(ctx, t, owner.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 	soID := ulid.NewULID()
 	if err := ownerCli.CreateSharedObject(ctx, soID, "secret", "space", "", "", false); err != nil {
 		t.Fatal(err)
 	}
 
+	// The owner reads the Space metadata.
 	metaData, err := ownerCli.GetSOMetadata(ctx, soID)
 	if err != nil {
 		t.Fatal(err)
@@ -213,6 +203,7 @@ func TestSharedObjectMetadataRequiresReadAccess(t *testing.T) {
 		t.Fatalf("unexpected metadata display name: %q", meta.GetDisplayName())
 	}
 
+	// The coordinator refuses the outsider's metadata read.
 	_, err = outsiderCli.GetSOMetadata(ctx, soID)
 	if err == nil || !strings.Contains(err.Error(), "rbac_denied") {
 		t.Fatalf("expected rbac_denied for foreign metadata read, got %v", err)
@@ -220,28 +211,34 @@ func TestSharedObjectMetadataRequiresReadAccess(t *testing.T) {
 }
 
 func TestTransferRequiresResourceTransferAndOrgManageSpaces(t *testing.T) {
+	// Bound the test by the suite context.
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
+	// Open the owner's and a member's cloud accounts.
 	owner := createCloudSession(ctx, t)
 	member := createCloudSession(ctx, t)
-
 	ownerCli := accessSessionClient(ctx, t, owner.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 	memberCli := accessSessionClient(ctx, t, member.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 
+	// Create an organization the member joins.
 	orgID := createOrganization(t, ownerCli, ctx)
 	inviteAndJoinMember(t, ctx, ownerCli, memberCli, orgID)
 
+	// Subscribe the owner and create its personal Space.
+	subscribeCloudAccount(ctx, t, owner.GetSessionRef().GetProviderResourceRef().GetProviderAccountId())
 	soID := ulid.NewULID()
 	if err := ownerCli.CreateSharedObject(ctx, soID, "transfer-me", "space", "", "", false); err != nil {
 		t.Fatal(err)
 	}
 
+	// The coordinator refuses a transfer by the member, who does not control the Space.
 	_, err := memberCli.TransferResource(ctx, soID, "organization", orgID)
 	if err == nil || !strings.Contains(err.Error(), "rbac_denied") {
 		t.Fatalf("expected rbac_denied for member transfer without source control, got %v", err)
 	}
 
+	// The owner transfers the Space to the organization.
 	if _, err := ownerCli.TransferResource(ctx, soID, "organization", orgID); err != nil {
 		t.Fatalf("owner transfer failed: %v", err)
 	}

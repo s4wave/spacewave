@@ -8584,7 +8584,8 @@ export interface PostConfigStateRequest {
    */
   configChange?: Uint8Array
   /**
-   * Invites is the full invite list after applying the mutation.
+   * Invites is the full invite list after an invite change. Any other change
+   * keeps the stored invites and may omit them.
    *
    * @generated from field: repeated sobject.SOInvite invites = 2;
    */

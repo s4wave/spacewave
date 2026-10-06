@@ -61,40 +61,41 @@ func waitForSubscriptionStatus(
 // to upgrade later, and pulls quickstart data from another local session into
 // the new linked local target.
 func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
+	// Bound the test by the suite context.
 	ctx, cancel := context.WithCancel(env.ctx)
 	defer cancel()
 
+	// Count the sessions that exist before the test adds its own.
 	sessCtrl, relSess, err := lookupSessionController(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer relSess()
-
 	initialSessions, err := sessCtrl.ListSessions(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	initialCount := len(initialSessions)
 
-	// 1. Independent local session with a quickstart space (the "free" data
-	//    the user accumulated before deciding to register cloud).
+	// Create an independent local session with a quickstart Space, the data
+	// the user accumulated before registering a cloud account.
 	originalLocal, _ := createLocalSession(ctx, t, "")
 	spaceName := "Free Tier Space"
 	createLocalSpace(ctx, t, originalLocal, spaceName)
 
-	// 2. Register cloud account. The default subscription_status in D1 is
-	//    "none" which the cloud RBAC layer treats as the free tier.
+	// Register a cloud account. A new account has no subscription and holds
+	// the free platform role.
 	cloudEntry := createCloudSession(ctx, t)
 	cloudRef := cloudEntry.GetSessionRef().GetProviderResourceRef()
 	cloudAccountID := cloudRef.GetProviderAccountId()
 	cloudSessionID := cloudRef.GetId()
 
+	// Access the account through the spacewave provider.
 	prov, provRef, err := provider.ExLookupProvider(ctx, env.tb.Bus, "spacewave", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer provRef.Release()
-
 	swProv := prov.(*provider_spacewave.Provider)
 	accIface, relAcc, err := swProv.AccessProviderAccount(ctx, cloudAccountID, nil)
 	if err != nil {
@@ -103,9 +104,8 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 	defer relAcc()
 	swAcc := accIface.(*provider_spacewave.ProviderAccount)
 
-	// 3. Verify free-tier baseline: no active subscription on the fresh
-	//    account. The cloud RBAC layer assigns the "free" role on
-	//    subscription_status of "none" or "lapsed".
+	// The fresh account has no active subscription. The coordinator assigns
+	// the "free" role while the subscription status is "none" or "lapsed".
 	freeStatus, err := swAcc.GetSubscriptionStatus(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -114,13 +114,13 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 		t.Fatalf("expected non-active subscription on fresh cloud account, got %q", freeStatus)
 	}
 
-	// 4. Upgrade to an active subscription via the cloud test endpoint.
-	//    This swaps the platform RBAC role to "subscriber" and bumps the
-	//    account epoch so the local provider account refreshes its state.
+	// Upgrade to an active subscription through the coordinator test
+	// helper, which swaps the platform role to "subscriber". Bump the epoch
+	// so the provider account refreshes its state.
 	setTestSubscriptionStatus(t, cloudAccountID, "active")
 	swAcc.BumpLocalEpoch()
 
-	// 5. Wait for the bump to propagate then verify active state.
+	// Wait for the account to read the active subscription.
 	activeStatus, err := waitForSubscriptionStatus(ctx, swAcc, "active")
 	if err != nil {
 		t.Fatalf("waiting for active subscription: %v", err)
@@ -129,11 +129,9 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 		t.Fatalf("expected active subscription after upgrade, got %q", activeStatus)
 	}
 
-	// 6. Mount the cloud session resource and create the linked local target
-	//    via the same RPC the UI uses post-upgrade.
+	// Build the cloud session's Spacewave resource.
 	cloudResource, cloudSess, relCloudResource := mountSessionResource(ctx, t, cloudEntry)
 	defer relCloudResource()
-
 	swResource := resource_session.NewSpacewaveSessionResource(
 		cloudResource,
 		logrus.NewEntry(logrus.StandardLogger()),
@@ -141,6 +139,9 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 		cloudSess,
 		swAcc,
 	)
+
+	// Create the linked local target through the RPC the UI calls after an
+	// upgrade.
 	created, err := swResource.CreateLinkedLocalSession(
 		ctx,
 		&s4wave_provider_spacewave.CreateLinkedLocalSessionRequest{},
@@ -159,6 +160,7 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 		t.Fatal("linked local session must be distinct from cloud session")
 	}
 
+	// The account records the link from the cloud session to the target.
 	found, linkedIdx, err := swAcc.GetLinkedLocalSession(ctx, cloudSessionID)
 	if err != nil {
 		t.Fatal(err)
@@ -173,17 +175,16 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 		)
 	}
 
-	// initialCount + originalLocal + cloud + linkedLocal
+	// The list holds the original local, cloud, and linked local sessions.
 	beforeTransfer := waitForSessionCount(ctx, t, sessCtrl, initialCount+3)
 	if len(beforeTransfer) != initialCount+3 {
 		t.Fatalf("expected %d sessions before transfer, got %d", initialCount+3, len(beforeTransfer))
 	}
 
-	// 7. Transfer the original local session's space into the linked local
-	//    target via MERGE so the source is removed afterward.
+	// Merge the original local session's Space into the linked local
+	// target, which removes the source afterward.
 	targetResource, _, relTargetResource := mountSessionResource(ctx, t, linkedLocal)
 	defer relTargetResource()
-
 	if _, err := targetResource.StartTransfer(ctx, &s4wave_session.StartTransferRequest{
 		SourceSessionIndex: originalLocal.GetSessionIndex(),
 		TargetSessionIndex: linkedLocal.GetSessionIndex(),
@@ -191,19 +192,18 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-
 	xfer := targetResource.GetActiveTransfer()
 	if xfer == nil {
 		t.Fatal("expected active transfer after StartTransfer")
 	}
 	waitForTransferComplete(t, xfer)
 
-	// MERGE deletes the source local session, leaving cloud + linked local.
+	// The merge deletes the source local session, leaving the cloud and
+	// linked local sessions.
 	afterTransfer := waitForSessionCount(ctx, t, sessCtrl, initialCount+2)
 	if len(afterTransfer) != initialCount+2 {
 		t.Fatalf("expected %d sessions after transfer, got %d", initialCount+2, len(afterTransfer))
 	}
-
 	srcEntry, err := sessCtrl.GetSessionByIdx(ctx, originalLocal.GetSessionIndex())
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +212,7 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 		t.Fatal("expected original independent local session to be deleted after merge")
 	}
 
-	// 8. Inventory the linked local target and confirm the space migrated.
+	// The target's inventory holds the migrated Space.
 	inventory, err := targetResource.GetTransferInventory(
 		ctx,
 		&s4wave_session.GetTransferInventoryRequest{
@@ -222,7 +222,6 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	hasTransferredSpace := false
 	for _, sp := range inventory.GetSpaces() {
 		if sp.GetSpaceMeta().GetName() == spaceName {
@@ -234,7 +233,7 @@ func TestCloudFreeToUpgradeFullFlow(t *testing.T) {
 		t.Fatalf("expected transferred space %q on linked local target", spaceName)
 	}
 
-	// 9. Cloud session must remain linked to the same local session.
+	// The cloud session stays linked to the same local session.
 	found, linkedIdx, err = swAcc.GetLinkedLocalSession(ctx, cloudSessionID)
 	if err != nil {
 		t.Fatal(err)
