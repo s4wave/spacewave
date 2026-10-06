@@ -20,8 +20,12 @@ const reliabilityFixture = "goscript-volume-replay"
 // markerTimeout bounds each wait for a worker marker.
 const markerTimeout = 90 * time.Second
 
-// TestGoScriptVolumeReliability runs the E1 OPFS volume through the browser
-// failures the engine must survive: a killed browser, a closed page, a full
+// reliabilityEngines are the volume engines the reliability scenarios run
+// on, each on OPFS.
+var reliabilityEngines = []string{"e1", "s4db"}
+
+// TestGoScriptVolumeReliability runs each OPFS volume engine through the
+// browser failures it must survive: a killed browser, a closed page, a full
 // quota, eviction at rest and while open, and a second opener.
 func TestGoScriptVolumeReliability(t *testing.T) {
 	ensureGoScriptFixtureWorker(t, &volumeReplayGoScriptFixtureWorker)
@@ -31,60 +35,74 @@ func TestGoScriptVolumeReliability(t *testing.T) {
 			if browser == "safari" {
 				t.Skip("Safari's WebDriver cannot kill, observe, or coordinate a page")
 			}
-
-			// Run the kill and page-close scenarios at each sync step.
-			for _, at := range []int{40, 400} {
-				// Killing the device browser would take down the operator's Chrome.
-				if browser != "android" {
-					t.Run("kill-"+strconv.Itoa(at), func(t *testing.T) { testReliabilityKill(t, browser, at) })
-				}
-				t.Run("page-close-"+strconv.Itoa(at), func(t *testing.T) { testReliabilityPageClose(t, browser, at) })
+			for _, engine := range reliabilityEngines {
+				t.Run(engine, func(t *testing.T) { testReliabilityEngine(t, rel{browser: browser, engine: engine}) })
 			}
-			t.Run("evict-at-rest", func(t *testing.T) { testReliabilityEvictAtRest(t, browser) })
-			t.Run("contend", func(t *testing.T) { testReliabilityContend(t, browser) })
-
-			// Run the Chromium-only quota and open-volume eviction scenarios.
-			if !chromiumFamily(browser) {
-				return
-			}
-			t.Run("quota", func(t *testing.T) { testReliabilityQuota(t, browser) })
-			t.Run("evict-open", func(t *testing.T) { testReliabilityEvictOpen(t, browser) })
 		})
 	}
 }
 
+// rel is the browser and volume engine a reliability scenario runs on.
+type rel struct {
+	// browser is the browser running the page.
+	browser string
+	// engine is the volume engine the page opens.
+	engine string
+}
+
+// testReliabilityEngine runs every reliability scenario r's browser supports.
+func testReliabilityEngine(t *testing.T, r rel) {
+	// Run the kill and page-close scenarios at each sync step.
+	for _, at := range []int{40, 400} {
+		// Killing the device browser would take down the operator's Chrome.
+		if r.browser != "android" {
+			t.Run("kill-"+strconv.Itoa(at), func(t *testing.T) { testReliabilityKill(t, r, at) })
+		}
+		t.Run("page-close-"+strconv.Itoa(at), func(t *testing.T) { testReliabilityPageClose(t, r, at) })
+	}
+	t.Run("evict-at-rest", func(t *testing.T) { testReliabilityEvictAtRest(t, r) })
+	t.Run("contend", func(t *testing.T) { testReliabilityContend(t, r) })
+
+	// Run the Chromium-only quota and open-volume eviction scenarios.
+	if !chromiumFamily(r.browser) {
+		return
+	}
+	t.Run("quota", func(t *testing.T) { testReliabilityQuota(t, r) })
+	t.Run("evict-open", func(t *testing.T) { testReliabilityEvictOpen(t, r) })
+}
+
 // testReliabilityKill kills the browser once a burst syncs step at, then
 // checks that a relaunch on the same profile recovers every synced step.
-func testReliabilityKill(t *testing.T, browser string, at int) {
+func testReliabilityKill(t *testing.T, r rel, at int) {
 	// Launch a persistent browser context that reports its close.
 	dir := t.TempDir()
-	ctx := launchContext(t, browser, dir)
+	ctx := launchContext(t, r.browser, dir)
 	closed := make(chan struct{})
 	ctx.OnClose(func(playwright.BrowserContext) { close(closed) })
 
 	// Sync a burst of steps, kill the browser, and wait for its exit.
 	lines := newMarkers(at)
-	startPage(t, ctx, browser, reliabilityFixture, reliabilityRun("burst:kill", lines))
+	startPage(t, ctx, r.browser, reliabilityFixture, r.run("burst:kill", lines))
 	awaitClosed(t, "synced", lines.reached)
 	if out, err := exec.Command("pkill", "-9", "-f", dir).CombinedOutput(); err != nil {
-		t.Fatalf("kill %s: %v: %s", browser, err, out)
+		t.Fatalf("kill %s: %v: %s", r.browser, err, out)
 	}
 	awaitClosed(t, "browser exit", closed)
 
 	// Relaunch on the same profile and verify recovery from the synced step.
 	synced := lines.lastSynced()
-	ctx = launchContext(t, browser, dir)
-	rep := runReliability(t, ctx, browser, "verify:kill:"+strconv.Itoa(synced), nil)
+	ctx = launchContext(t, r.browser, dir)
+	rep := r.runReliability(t, ctx, "verify:kill:"+strconv.Itoa(synced), nil)
 	t.Logf("killed after synced %d, recovered head %d", synced, rep.head)
 }
 
 // testReliabilityPageClose closes the page once a burst syncs step at, then
 // checks that a new page in the same browser recovers every synced step.
-func testReliabilityPageClose(t *testing.T, browser string, at int) {
+func testReliabilityPageClose(t *testing.T, r rel, at int) {
 	// Sync a burst of steps in a new page and close that page.
-	ctx := launchContext(t, browser, t.TempDir())
+	ctx := launchContext(t, r.browser, t.TempDir())
 	lines := newMarkers(at)
-	page, _ := startPage(t, ctx, browser, reliabilityFixture, reliabilityRun("burst:close", lines))
+	page, _ := startPage(t, ctx, r.browser, reliabilityFixture, r.run("burst:close", lines))
 	awaitClosed(t, "synced", lines.reached)
 	if err := page.Close(); err != nil {
 		t.Fatalf("close page: %v", err)
@@ -92,17 +110,17 @@ func testReliabilityPageClose(t *testing.T, browser string, at int) {
 
 	// Open a new page in the same browser and verify recovery.
 	synced := lines.lastSynced()
-	rep := runReliability(t, ctx, browser, "verify:close:"+strconv.Itoa(synced), nil)
+	rep := r.runReliability(t, ctx, "verify:close:"+strconv.Itoa(synced), nil)
 	t.Logf("closed after synced %d, recovered head %d", synced, rep.head)
 }
 
 // testReliabilityEvictAtRest clears the origin's storage between sessions and
 // checks that the volume reopens empty.
-func testReliabilityEvictAtRest(t *testing.T, browser string) {
+func testReliabilityEvictAtRest(t *testing.T, r rel) {
 	// Write steps and then clear the origin's storage between sessions.
-	ctx := launchContext(t, browser, t.TempDir())
-	runReliability(t, ctx, browser, "write:rest:40", nil)
-	if chromiumFamily(browser) {
+	ctx := launchContext(t, r.browser, t.TempDir())
+	r.runReliability(t, ctx, "write:rest:40", nil)
+	if chromiumFamily(r.browser) {
 		page, cdp := cdpSession(t, ctx)
 		cdpSend(t, cdp, "Storage.clearDataForOrigin", map[string]any{
 			"origin":       testServer.url,
@@ -110,22 +128,22 @@ func testReliabilityEvictAtRest(t *testing.T, browser string) {
 		})
 		_ = page.Close()
 	} else {
-		runReliability(t, ctx, browser, "wipe:rest", nil)
+		r.runReliability(t, ctx, "wipe:rest", nil)
 	}
 
 	// Reopen the volume and expect it to start empty.
-	runReliability(t, ctx, browser, "reopen:rest:-1", nil)
+	r.runReliability(t, ctx, "reopen:rest:-1", nil)
 }
 
 // testReliabilityContend holds the volume on one page while a second page
 // tries to open it, which must fail cleanly and leave the holder working.
-func testReliabilityContend(t *testing.T, browser string) {
+func testReliabilityContend(t *testing.T, r rel) {
 	// Hold the volume open on one page.
-	ctx := launchContext(t, browser, t.TempDir())
+	ctx := launchContext(t, r.browser, t.TempDir())
 	lines := newMarkers(-1)
-	_, waitHolder := startPage(t, ctx, browser, reliabilityFixture, reliabilityRun("hold:contend", lines))
+	_, waitHolder := startPage(t, ctx, r.browser, reliabilityFixture, r.run("hold:contend", lines))
 	awaitClosed(t, "held", lines.marker("held"))
-	contender := runReliability(t, ctx, browser, "contend:contend&instance=contender", nil)
+	contender := r.runReliability(t, ctx, "contend:contend&instance=contender", nil)
 	t.Logf("contender errors: %v", contender.errors)
 
 	// Expect the holder page to keep working after the failed open.
@@ -134,9 +152,9 @@ func testReliabilityContend(t *testing.T, browser string) {
 
 // testReliabilityQuota fills the volume against a 4 MiB origin quota, then
 // lifts the quota and checks that the volume keeps working.
-func testReliabilityQuota(t *testing.T, browser string) {
+func testReliabilityQuota(t *testing.T, r rel) {
 	// Impose a small origin quota through the DevTools protocol.
-	ctx := launchContext(t, browser, t.TempDir())
+	ctx := launchContext(t, r.browser, t.TempDir())
 	_, cdp := cdpSession(t, ctx)
 	cdpSend(t, cdp, "Storage.overrideQuotaForOrigin", map[string]any{
 		"origin":    testServer.url,
@@ -145,7 +163,7 @@ func testReliabilityQuota(t *testing.T, browser string) {
 
 	// Fill the volume until the page hits the quota.
 	lines := newMarkers(-1)
-	page, wait := startPage(t, ctx, browser, reliabilityFixture, reliabilityRun("quota:quota", lines))
+	page, wait := startPage(t, ctx, r.browser, reliabilityFixture, r.run("quota:quota", lines))
 	awaitClosed(t, "quota-hit", lines.marker("quota-hit"))
 
 	// Lift the quota and expect the volume to keep working.
@@ -165,12 +183,12 @@ func testReliabilityQuota(t *testing.T, browser string) {
 // new page reopens it and takes writes. The evicted page is closed rather
 // than closing the volume: Chromium's FileSystemSyncAccessHandle.close never
 // returns after the origin is cleared under an open handle.
-func testReliabilityEvictOpen(t *testing.T, browser string) {
+func testReliabilityEvictOpen(t *testing.T, r rel) {
 	// Open the volume and clear the origin's storage under it.
-	ctx := launchContext(t, browser, t.TempDir())
+	ctx := launchContext(t, r.browser, t.TempDir())
 	_, cdp := cdpSession(t, ctx)
 	lines := newMarkers(-1)
-	page, wait := startPage(t, ctx, browser, reliabilityFixture, reliabilityRun("evict:open", lines))
+	page, wait := startPage(t, ctx, r.browser, reliabilityFixture, r.run("evict:open", lines))
 	awaitClosed(t, "evict-ready", lines.marker("evict-ready"))
 	cdpSend(t, cdp, "Storage.clearDataForOrigin", map[string]any{
 		"origin":       testServer.url,
@@ -188,7 +206,7 @@ func testReliabilityEvictOpen(t *testing.T, browser string) {
 	}
 
 	// Reopen the volume in a new page and expect writes to land.
-	rep = runReliability(t, ctx, browser, "reopen:open:-2", nil)
+	rep = r.runReliability(t, ctx, "reopen:open:-2", nil)
 	t.Logf("reopened after eviction: head %d", rep.head)
 }
 
@@ -198,13 +216,13 @@ func chromiumFamily(browser string) bool {
 	return browser == "chromium" || browser == "chrome" || browser == "android"
 }
 
-// reliabilityRun is the page run of one reliability mode, feeding its console
-// lines to lines when set.
-func reliabilityRun(mode string, lines *markers) fixtureRun {
+// run is the page run of one reliability mode on r's engine, feeding its
+// console lines to lines when set.
+func (r rel) run(mode string, lines *markers) fixtureRun {
 	// Configure a persistent page run with the reliability mode and timeout.
 	run := fixtureRun{
 		persistent: true,
-		query:      "mode=reliability:" + mode,
+		query:      "mode=reliability:" + r.engine + ":" + mode,
 		timeout:    110 * time.Second,
 	}
 	if lines != nil {
@@ -215,10 +233,10 @@ func reliabilityRun(mode string, lines *markers) fixtureRun {
 
 // runReliability runs one reliability mode to completion in a new page of
 // ctx and returns its checked report.
-func runReliability(t *testing.T, ctx playwright.BrowserContext, browser, mode string, lines *markers) relReport {
+func (r rel) runReliability(t *testing.T, ctx playwright.BrowserContext, mode string, lines *markers) relReport {
 	// Run the mode in a new page and check its report.
 	t.Helper()
-	return checkReliability(t, runPage(t, ctx, browser, reliabilityFixture, reliabilityRun(mode, lines)))
+	return checkReliability(t, runPage(t, ctx, r.browser, reliabilityFixture, r.run(mode, lines)))
 }
 
 // relReport is the part of a reliability report the checks read.
