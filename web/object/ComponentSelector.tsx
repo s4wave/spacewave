@@ -118,15 +118,6 @@ export function ComponentSelector({
     handleSelect(comp)
   })
 
-  const handleTriggerKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return
-      event.preventDefault()
-      onOpenChange(!open)
-    },
-    [onOpenChange, open],
-  )
-
   useEffect(() => {
     if (!open) return
 
@@ -182,17 +173,17 @@ export function ComponentSelector({
 
   return (
     <div className="relative" ref={triggerRef}>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
         className="flex cursor-pointer items-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         onClick={() => {
           onOpenChange(!open)
         }}
-        onKeyDown={handleTriggerKeyDown}
       >
         {children}
-      </div>
+      </button>
 
       {open && (
         <div

@@ -402,28 +402,30 @@ describe('LayoutObjectViewer', () => {
       />,
     )
 
-    const props = mockBaseLayout.mock.calls.at(-1)?.[0] as
-      | MockBaseLayoutProps
-      | undefined
-    const onRenderTab = props?.flexLayoutProps?.onRenderTab
-    if (typeof onRenderTab !== 'function') {
-      throw new Error('LayoutObjectViewer did not pass onRenderTab')
-    }
-
     const { model, nodes } = createMockObjectLayoutModel([
       { id: 'tab-a', name: 'Alpha' },
       { id: 'tab-b', name: 'Beta' },
     ])
-    const renderValues = { content: null as ReactNode, buttons: [] }
 
-    onRenderTab(nodes[0], renderValues)
-
-    render(
-      <>
-        {renderValues.content}
-        {renderValues.buttons}
-      </>,
-    )
+    // renderTab runs the latest onRenderTab, as FlexLayout does on each render.
+    const renderTab = () => {
+      const props = mockBaseLayout.mock.calls.at(-1)?.[0] as
+        | MockBaseLayoutProps
+        | undefined
+      const onRenderTab = props?.flexLayoutProps?.onRenderTab
+      if (typeof onRenderTab !== 'function') {
+        throw new Error('LayoutObjectViewer did not pass onRenderTab')
+      }
+      const renderValues = { content: null as ReactNode, buttons: [] }
+      onRenderTab(nodes[0], renderValues)
+      return (
+        <>
+          {renderValues.content}
+          {renderValues.buttons}
+        </>
+      )
+    }
+    const tab = render(renderTab())
 
     const closeButton = screen.getByRole('button', { name: /close alpha/i })
     expect(closeButton.className).toContain('flexlayout__tab_button_trailing')
@@ -437,6 +439,7 @@ describe('LayoutObjectViewer', () => {
 
     model.doAction.mockClear()
     fireEvent.doubleClick(screen.getByText('Alpha'))
+    tab.rerender(renderTab())
     const input = screen.getByLabelText('Rename tab-a')
     fireEvent.change(input, { target: { value: 'Proof' } })
     fireEvent.keyDown(input, { key: 'Enter' })
