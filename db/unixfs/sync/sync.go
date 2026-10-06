@@ -33,8 +33,15 @@ func Sync(
 		return err
 	}
 
+	// Open the output root, which also sets file times, for the checkout.
+	root, err := os.OpenRoot(outPath)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+
 	// construct a BillyFS at the outPath & checkout
-	outFS := osfs.New(outPath)
+	outFS := &rootChtimesFS{Filesystem: osfs.New(outPath), root: root}
 	return SyncToBilly(ctx, outFS, fsHandle, deleteMode, filterCb)
 }
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"time"
 
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/go-git/go-billy/v6"
@@ -21,6 +22,13 @@ import (
 // last blob block, up to blob.DefChunkingMaxSize, on every write, so writes
 // smaller than that block rewrite it many times.
 const copyBufferSize = 4 << 20
+
+// modTimeSetter is a BillyFS that can set a file modification time.
+// It is the Chtimes method of billy.Change, which go-billy's osfs lacks.
+type modTimeSetter interface {
+	// Chtimes sets the access and modification times of the named file.
+	Chtimes(name string, atime, mtime time.Time) error
+}
 
 // BillyFS has the needed billy filesystem interfaces.
 type BillyFS interface {
@@ -46,7 +54,8 @@ type ChangeCb func(outPath string, kind ChangeKind)
 
 // SyncToBilly recursively synchronizes the contents of the UnixFS to a BillyFS.
 //
-// Attempts to skip files by checking size and modification time.
+// Attempts to skip files by checking size and modification time. A written
+// file takes the source modification time when the destination can set it.
 // The output path does not have to be empty when starting.
 // TODO: Node types other than directory, regular file, and symlink are not supported.
 func SyncToBilly(
@@ -133,6 +142,9 @@ func syncToBillyOnce(
 	if bfsSymlinkOk {
 		bfsStat = bfsSymlink.Lstat
 	}
+
+	// Carry source modification times to a destination that can set them.
+	bfsChtimes, bfsChtimesOk := bfs.(modTimeSetter)
 
 	// stackElem is a element in the fs location stack.
 	type stackElem struct {
@@ -439,6 +451,16 @@ func syncToBillyOnce(
 		scrub.Scrub(xferBuf)
 		if err != nil {
 			return &fs.PathError{Op: "write", Path: outPath, Err: err}
+		}
+
+		// Record the source modification time after the content, so a file
+		// left partly written by an interrupted sync is never taken as identical.
+		// Skip unchanged content when comparing contents to keep watchers idle.
+		if bfsChtimesOk && (changed || !compareContents) {
+			srcModTime := srcFileInfo.ModTime()
+			if err := bfsChtimes.Chtimes(outPath, srcModTime, srcModTime); err != nil {
+				return &fs.PathError{Op: "chtimes", Path: outPath, Err: err}
+			}
 		}
 		if changed && changeCb != nil {
 			changeCb(outPath, writeKind(outStatErr))

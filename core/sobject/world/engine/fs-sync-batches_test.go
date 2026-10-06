@@ -3,6 +3,7 @@ package sobject_world_engine_test
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -55,14 +56,19 @@ func writeSyncBatchesTree(t *testing.T) string {
 // syncDirToFiles mirrors the source directory into the UnixFS object in ws,
 // as the fs sync command does.
 func syncDirToFiles(ctx context.Context, ws world.WorldState, src string, mode unixfs_sync.DeleteMode) error {
+	return syncFSToFiles(ctx, ws, os.DirFS(src), mode)
+}
+
+// syncFSToFiles mirrors the source filesystem into the UnixFS object in ws.
+func syncFSToFiles(ctx context.Context, ws world.WorldState, src fs.FS, mode unixfs_sync.DeleteMode) error {
 	// Open the UnixFS root for writing, then sync the source into it.
 	ref := &unixfs_world.UnixfsRef{ObjectKey: syncBatchesObjectKey}
-	fs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, nil, ws, "", ref, false, true, time.Now())
+	root, err := unixfs_world.BuildFSFromUnixfsRef(ctx, nil, ws, "", ref, false, true, time.Now())
 	if err != nil {
 		return err
 	}
-	defer fs.Release()
-	return unixfs_sync.SyncFromDisk(ctx, fs, src, mode, nil)
+	defer root.Release()
+	return unixfs_sync.SyncFromFS(ctx, root, src, mode, nil)
 }
 
 // initSyncBatchesObject creates the UnixFS object holding the file "stale".
@@ -103,14 +109,14 @@ func checkSyncBatchesTree(ctx context.Context, t *testing.T, sw *spaceWorld, wan
 	}
 	defer tx.Discard()
 	ref := &unixfs_world.UnixfsRef{ObjectKey: syncBatchesObjectKey}
-	fs, err := unixfs_world.BuildFSFromUnixfsRef(ctx, nil, tx, "", ref, false, false, time.Now())
+	root, err := unixfs_world.BuildFSFromUnixfsRef(ctx, nil, tx, "", ref, false, false, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer fs.Release()
+	defer root.Release()
 
 	// Read every file back.
-	bfs := unixfs_billy.NewBillyFS(ctx, fs, "", time.Time{})
+	bfs := unixfs_billy.NewBillyFS(ctx, root, "", time.Time{})
 	for i := range syncBatchesFileCount {
 		got, err := billy_util.ReadFile(bfs, syncBatchesPath(i))
 		if err != nil {
