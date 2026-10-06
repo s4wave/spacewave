@@ -185,42 +185,14 @@ export function SqlWorkbenchViewer({
 
       {workbench ? (
         <div className="flex min-h-0 flex-1">
-          <div
-            className="border-foreground/8 sql-sidebar-width flex shrink-0 flex-col overflow-auto border-r"
-            style={{ '--sql-sidebar-width': sidebarWidth }}
-          >
-            <SidebarSection title="Database">
-              {targetDbKey ? (
-                <div className="h-64">
-                  <EmbeddedObject
-                    objectKey={targetDbKey}
-                    worldState={worldState}
-                    targetDbObjectKey={targetDbKey}
-                  />
-                </div>
-              ) : (
-                <div className="text-foreground-alt/40 px-3 py-2 text-xs">
-                  No target database.
-                </div>
-              )}
-            </SidebarSection>
-            <SidebarSection title="Pinned Queries">
-              {pins.length === 0 ? (
-                <div className="text-foreground-alt/40 px-3 py-2 text-xs">
-                  No pinned queries.
-                </div>
-              ) : (
-                pins.map((queryKey) => (
-                  <PinnedRow
-                    key={queryKey}
-                    queryKey={queryKey}
-                    onOpen={openPinned}
-                    onUnpin={unpin}
-                  />
-                ))
-              )}
-            </SidebarSection>
-          </div>
+          <WorkbenchSidebar
+            width={sidebarWidth}
+            targetDbKey={targetDbKey}
+            pins={pins}
+            worldState={worldState}
+            onOpenPinned={openPinned}
+            onUnpin={unpin}
+          />
 
           <div className="flex min-w-0 flex-1 flex-col">
             <TabStrip
@@ -246,6 +218,64 @@ export function SqlWorkbenchViewer({
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+interface WorkbenchSidebarProps {
+  width: number
+  targetDbKey: string
+  pins: string[]
+  worldState: Resource<IWorldState>
+  onOpenPinned: (queryKey: string) => void
+  onUnpin: (queryKey: string) => void
+}
+
+/** WorkbenchSidebar shows the target database schema and the pinned queries. */
+function WorkbenchSidebar({
+  width,
+  targetDbKey,
+  pins,
+  worldState,
+  onOpenPinned,
+  onUnpin,
+}: WorkbenchSidebarProps) {
+  return (
+    <div
+      className="border-foreground/8 sql-sidebar-width flex shrink-0 flex-col overflow-auto border-r"
+      style={{ '--sql-sidebar-width': width }}
+    >
+      <SidebarSection title="Database">
+        {targetDbKey ? (
+          <div className="h-64">
+            <EmbeddedObject
+              objectKey={targetDbKey}
+              worldState={worldState}
+              targetDbObjectKey={targetDbKey}
+            />
+          </div>
+        ) : (
+          <div className="text-foreground-alt/40 px-3 py-2 text-xs">
+            No target database.
+          </div>
+        )}
+      </SidebarSection>
+      <SidebarSection title="Pinned Queries">
+        {pins.length === 0 ? (
+          <div className="text-foreground-alt/40 px-3 py-2 text-xs">
+            No pinned queries.
+          </div>
+        ) : (
+          pins.map((queryKey) => (
+            <PinnedRow
+              key={queryKey}
+              queryKey={queryKey}
+              onOpen={onOpenPinned}
+              onUnpin={onUnpin}
+            />
+          ))
+        )}
+      </SidebarSection>
     </div>
   )
 }
