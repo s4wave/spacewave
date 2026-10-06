@@ -15,7 +15,6 @@ import (
 	"github.com/s4wave/spacewave/bldr/core"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
-	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
 	web_pkg_mock "github.com/s4wave/spacewave/bldr/web/pkg/mock"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
@@ -68,7 +67,7 @@ func TestImmutablePluginFilesHTTP(t *testing.T) {
 		}
 		defer release()
 	}
-	runtime := &Controller{le: le, bus: tb.Bus}
+	runtime := NewController(le, tb.Bus, nil, "test", controller.MustParseVersion("0.0.1"))
 
 	// Serve each immutable path through both HTTP prefixes.
 	for _, prefix := range []string{bldr_plugin.PluginDistHttpPrefix, bldr_plugin.PluginAssetsHttpPrefix} {
@@ -94,9 +93,7 @@ func TestImmutablePluginFilesHTTP(t *testing.T) {
 
 func TestServeServiceWorkerHTTPServesBrowserIndexSeed(t *testing.T) {
 	// Request the browser index seed from the service worker handler.
-	rtCtrl := &Controller{
-		le: logrus.NewEntry(logrus.New()),
-	}
+	rtCtrl := NewController(logrus.NewEntry(logrus.New()), nil, nil, "test", controller.MustParseVersion("0.0.1"))
 	rw := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/b/__index.html", nil)
 
@@ -158,11 +155,7 @@ func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
 	defer rel()
 
 	// Serve a file inside the mock web pkg through the runtime handler.
-	rtCtrl := &Controller{
-		le:        le,
-		bus:       b,
-		pkgServer: web_pkg_http.NewServer(le, b, true),
-	}
+	rtCtrl := NewController(le, b, nil, "test", controller.MustParseVersion("0.0.1"))
 	rw := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/b/pkg/"+mockWebPkg.GetId()+"/testdir/testing.txt", nil)
 
@@ -189,7 +182,7 @@ func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
 	}
 }
 
-func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
+func TestServeServiceWorkerHTTPDisablesPluginFileCaching(t *testing.T) {
 	// Start a testbed for the cache header checks.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -224,23 +217,20 @@ func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
 	defer accessRel()
 
 	// Serve the plugin file through each HTTP surface.
-	rtCtrl := &Controller{
-		le:  btb.Logger,
-		bus: btb.Bus,
-	}
+	rtCtrl := NewController(btb.Logger, btb.Bus, nil, "test", controller.MustParseVersion("0.0.1"))
 	tests := []struct {
-		name  string
-		serve func(string, http.ResponseWriter, *http.Request)
+		name string
+		path string
 	}{
-		{name: "dist", serve: rtCtrl.ServePluginDistFsHTTP},
-		{name: "assets", serve: rtCtrl.ServePluginAssetsFsHTTP},
+		{name: "dist", path: bldr_plugin.PluginDistHTTPPath(pluginID, "/entry.mjs")},
+		{name: "assets", path: bldr_plugin.PluginAssetHTTPPath(pluginID, "/entry.mjs")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rw := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, "/entry.mjs", nil)
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 
-			tt.serve(pluginID, rw, req)
+			rtCtrl.ServeServiceWorkerHTTP(rw, req)
 
 			assertHTTPAssetResponse(
 				t,
@@ -251,7 +241,7 @@ func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
 	}
 }
 
-func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
+func TestServeServiceWorkerHTTPRebindsPendingFrontendAssets(t *testing.T) {
 	// Start a debug-logging testbed.
 	ctx := t.Context()
 	log := logrus.New()
@@ -305,10 +295,7 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 	defer accessRel()
 
 	// Build the runtime controller and the served path cases.
-	rtCtrl := &Controller{
-		le:  tb.Logger,
-		bus: tb.Bus,
-	}
+	rtCtrl := NewController(tb.Logger, tb.Bus, nil, "test", controller.MustParseVersion("0.0.1"))
 
 	// Define the served path cases for the second generation.
 	tests := []struct {
@@ -347,10 +334,10 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 
 				// Serve the request in the background.
 				rw := httptest.NewRecorder()
-				req := httptest.NewRequest("GET", tt.path, nil).WithContext(reqCtx)
+				req := httptest.NewRequest("GET", bldr_plugin.PluginAssetHTTPPath(pluginID, tt.path), nil).WithContext(reqCtx)
 				done := make(chan struct{})
 				go func() {
-					rtCtrl.ServePluginAssetsFsHTTP(pluginID, rw, req)
+					rtCtrl.ServeServiceWorkerHTTP(rw, req)
 					close(done)
 				}()
 
@@ -385,8 +372,8 @@ func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 
 			// Serve the final generation directly.
 			rw := httptest.NewRecorder()
-			req := httptest.NewRequest("GET", tt.path, nil)
-			rtCtrl.ServePluginAssetsFsHTTP(pluginID, rw, req)
+			req := httptest.NewRequest("GET", bldr_plugin.PluginAssetHTTPPath(pluginID, tt.path), nil)
+			rtCtrl.ServeServiceWorkerHTTP(rw, req)
 			assertHTTPAssetResponse(t, rw, tt.body)
 		})
 	}

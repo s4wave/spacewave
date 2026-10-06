@@ -10,15 +10,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
-	frontend "github.com/s4wave/spacewave/bldr/frontend"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	fetch "github.com/s4wave/spacewave/bldr/web/fetch"
-	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
-	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,8 +41,8 @@ type Controller struct {
 	// runtimeVersion is the version
 	runtimeVersion controller.Version
 
-	// pkgServer is the web pkg server
-	pkgServer *web_pkg_http.Server
+	// bldrHTTP serves the /b/ frontend, package, and plugin file routes.
+	bldrHTTP *web_runtime_http.Handler
 
 	// bcast guards below fields
 	bcast broadcast.Broadcast
@@ -69,7 +66,7 @@ func NewController(
 		runtimeID:      runtimeID,
 		runtimeVersion: runtimeVersion,
 
-		pkgServer: web_pkg_http.NewServer(le, bus, false),
+		bldrHTTP: web_runtime_http.NewHandler(le, bus),
 	}
 }
 
@@ -209,58 +206,8 @@ func (c *Controller) ServeServiceWorkerHTTP(rw http.ResponseWriter, req *http.Re
 		rw.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 		c.le.Debugf("serve /b/ path: %s", rpath)
 
-		// Modules use an existing compiler grant. Expired attachments settle
-		// instead of waiting for a service that will never be recreated.
-		if strings.HasPrefix(rpath, "/b/fe/") {
-			setNoCacheHeaders(rw.Header())
-			serviceID, err := frontend.RouteService(rpath)
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusBadRequest)
-				return
-			}
-			client := frontend.NewSRPCFrontendClientWithServiceID(bifrost_rpc.NewBusClientWithWait(c.bus,
-				!strings.HasPrefix(rpath, "/b/fe/rpc/")), serviceID)
-			err = fetch.Fetch(req.Context(), func(ctx context.Context) (fetch.SRPCFetchService_FetchClient, error) { return client.Fetch(ctx) }, req, rw)
-			if err != nil && req.Context().Err() == nil {
-				c.le.WithError(err).Warn("frontend module request failed")
-				http.Error(rw, "frontend module unavailable", http.StatusBadGateway)
-			}
-			return
-		}
-
-		// /b/pkg/ is for Web module distribution files (like react)
-		bPkgPrefix := bldr_plugin.PluginWebPkgHttpPrefix
-		if strings.HasPrefix(rpath, bPkgPrefix) && len(rpath) > len(bPkgPrefix) {
-			pkgPath := rpath[len(bPkgPrefix):]
-			c.ServeWebModuleHTTP(pkgPath, rw, req)
-			return
-		}
-
-		// /b/pd/ is for Web plugin distribution files
-		bPdPrefix := bldr_plugin.PluginDistHttpPrefix
-		if strings.HasPrefix(rpath, bPdPrefix) && len(rpath) > len(bPdPrefix) {
-			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginArtifact(rpath[len(bldr_plugin.PluginDistHttpPrefix):])
-			if err != nil {
-				http.Error(rw, "bldr: invalid plugin id: "+err.Error(), http.StatusNotFound)
-				return
-			}
-
-			req.URL.Path = suffix
-			c.ServePluginDistFsHTTP(pluginID, rw, req)
-			return
-		}
-
-		// /b/pa/ is for Web plugin distribution files
-		bPaPrefix := bldr_plugin.PluginAssetsHttpPrefix
-		if strings.HasPrefix(rpath, bPaPrefix) && len(rpath) > len(bPaPrefix) {
-			pluginID, suffix, err := bldr_plugin.ParseHTTPPathPluginArtifact(rpath[len(bldr_plugin.PluginAssetsHttpPrefix):])
-			if err != nil {
-				http.Error(rw, "bldr: invalid plugin id: "+err.Error(), http.StatusNotFound)
-				return
-			}
-
-			req.URL.Path = suffix
-			c.ServePluginAssetsFsHTTP(pluginID, rw, req)
+		// Serve frontend modules, web packages, and plugin files.
+		if c.bldrHTTP.ServeBldrHTTP(rw, req) {
 			return
 		}
 
@@ -319,67 +266,6 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 		http.Error(rw, "bldr: request failed: plugin "+pluginID+": "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-// setNoCacheHeaders keeps controller headers non-load-bearing for plugin asset
-// freshness; the generation-scoped ServiceWorker cache handles warm reads.
-func setNoCacheHeaders(hdr http.Header) {
-	hdr.Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	hdr.Set("Pragma", "no-cache")
-	hdr.Set("Expires", "0")
-}
-
-// ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
-func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
-	// Log the plugin distribution filesystem request.
-	c.le.
-		WithField("plugin-id", pluginID).
-		WithField("path", req.URL.Path).
-		Debug("accessing plugin dist filesystem")
-
-	// see: plugin/host/controller/plugin-tracker.go distFsID
-	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
-	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
-
-	// Disable response caching for the plugin distribution filesystem.
-	setNoCacheHeaders(rw.Header())
-
-	// Serve the plugin distribution file through UnixFS.
-	handler.ServeHTTP(rw, req)
-}
-
-// ServePluginAssetsFsHTTP serves a HTTP request for a plugin assets filesystem.
-func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
-	// Log the plugin assets filesystem request.
-	c.le.
-		WithField("plugin-id", pluginID).
-		WithField("path", req.URL.Path).
-		Debug("accessing plugin assets filesystem")
-
-	// see: plugin/host/controller/plugin-tracker.go assetsFsID
-	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
-	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
-
-	// Disable response caching for the plugin assets filesystem.
-	setNoCacheHeaders(rw.Header())
-
-	// Serve the plugin asset file through UnixFS.
-	handler.ServeHTTP(rw, req)
-}
-
-// ServeWebModuleHTTP serves a ServiceWorker HTTP request for a web module at /b/pkg.
-//
-// pkgPath is the path after /b/pkg/ - for example, "pkg" or "pkg/client.js" or "@my/pkg".
-// The first element(s) of the path (split by /) are used as the package name.
-// If the path begins with @, it is treated as a scope: @scope/package/...
-func (c *Controller) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req *http.Request) {
-	// set headers preventing caching
-	// we always want to do this since WebModule might be loaded from an alternative source
-
-	// TODO: This causes an issue where the request never loads. Why?
-	// setNoCacheHeaders(rw.Header())
-
-	c.pkgServer.ServeWebModuleHTTP(pkgPath, rw, req)
 }
 
 // ServeBrowserIndexHTML serves the browser root document from the Go runtime.
