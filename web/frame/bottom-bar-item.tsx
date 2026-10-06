@@ -20,7 +20,7 @@ export interface BottomBarSecondaryActivation {
   trigger: HTMLElement
 }
 
-export interface IBottomBarItemProps extends DOMAttributes<HTMLDivElement> {
+export interface IBottomBarItemProps extends DOMAttributes<HTMLButtonElement> {
   selected?: boolean
   disabled?: boolean
   children?: React.ReactNode
@@ -29,7 +29,7 @@ export interface IBottomBarItemProps extends DOMAttributes<HTMLDivElement> {
   onClick?: () => void
   onSecondaryActivate?: (activation: BottomBarSecondaryActivation) => void
   contextMenuOpen?: boolean
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLButtonElement>
 }
 
 const longPressDelayMs = 550
@@ -95,7 +95,7 @@ export function BottomBarItem({
     onSecondaryActivate?.({ openKind, x, y, trigger })
   }
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     onKeyDown?.(event)
     if (event.defaultPrevented) return
 
@@ -120,7 +120,7 @@ export function BottomBarItem({
     }
   }
 
-  const handlePrimaryActivate = (event: MouseEvent<HTMLDivElement>) => {
+  const handlePrimaryActivate = (event: MouseEvent<HTMLButtonElement>) => {
     if (suppressNextClickRef.current) {
       suppressNextClickRef.current = false
       event.preventDefault()
@@ -130,7 +130,7 @@ export function BottomBarItem({
     onClick?.()
   }
 
-  const handleContextMenu = (event: MouseEvent<HTMLDivElement>) => {
+  const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => {
     onContextMenu?.(event)
     if (!onSecondaryActivate || event.defaultPrevented) return
 
@@ -145,7 +145,7 @@ export function BottomBarItem({
     )
   }
 
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerDown?.(event)
     if (
       !onSecondaryActivate ||
@@ -174,7 +174,7 @@ export function BottomBarItem({
     }
   }
 
-  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerMove?.(event)
     const pending = longPressRef.current
     if (!pending || pending.pointerId !== event.pointerId) return
@@ -185,26 +185,25 @@ export function BottomBarItem({
     }
   }
 
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerUp?.(event)
     cancelLongPress()
   }
 
-  const handlePointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerCancel = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerCancel?.(event)
     cancelLongPress()
   }
 
-  const handlePointerLeave = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerLeave = (event: PointerEvent<HTMLButtonElement>) => {
     onPointerLeave?.(event)
     cancelLongPress()
   }
 
   return (
-    <div
+    <button
       ref={ref}
-      role="button"
-      tabIndex={0}
+      type="button"
       onClick={handlePrimaryActivate}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
@@ -214,7 +213,7 @@ export function BottomBarItem({
       onPointerCancel={handlePointerCancel}
       onPointerLeave={handlePointerLeave}
       aria-disabled={disabled}
-      aria-selected={selected}
+      aria-pressed={selected}
       aria-haspopup={onSecondaryActivate ? 'menu' : undefined}
       aria-expanded={onSecondaryActivate ? !!contextMenuOpen : undefined}
       {...rest}
@@ -230,6 +229,6 @@ export function BottomBarItem({
       }}
     >
       {children}
-    </div>
+    </button>
   )
 }

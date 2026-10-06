@@ -406,7 +406,8 @@ export function ViewerFrame(props: ViewerFrameProps) {
     </>
   )
 
-  const activeOverlay = items.find((item) => item.id === openMenu)?.overlay?.()
+  const activeItem = items.find((item) => item.id === openMenu)
+  const activeOverlay = activeItem?.overlay?.()
   const contextMenuItem = contextMenuState
     ? items.find((item) => item.id === contextMenuState.itemId)
     : undefined
@@ -421,6 +422,11 @@ export function ViewerFrame(props: ViewerFrameProps) {
           right,
         }}
         overlay={activeOverlay}
+        overlayLabel={
+          typeof activeItem?.menuLabel === 'string'
+            ? activeItem.menuLabel
+            : activeItem?.id
+        }
         onCloseOverlay={() => setOpenMenu('')}
       >
         {props.children}
