@@ -193,7 +193,7 @@ export function BuiltinCommands() {
     menuGroup: 10,
     menuOrder: 4,
     handler: useCallback(() => {
-      window.open(GITHUB_ISSUES_URL, '_blank')
+      window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer')
     }, []),
   })
 
@@ -213,7 +213,7 @@ export function BuiltinCommands() {
     menuGroup: 10,
     menuOrder: 6,
     handler: useCallback(() => {
-      window.open(DISCORD_INVITE_URL, '_blank')
+      window.open(DISCORD_INVITE_URL, '_blank', 'noopener,noreferrer')
     }, []),
   })
 

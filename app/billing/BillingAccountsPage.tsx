@@ -190,7 +190,7 @@ export function BillingAccountsPage() {
       }
       const url = resp.checkoutUrl ?? ''
       if (url) {
-        window.open(url, '_blank')
+        window.open(url, '_blank', 'noopener,noreferrer')
       }
       navigateSession({ path: `billing/${baId}` })
     } catch (e) {

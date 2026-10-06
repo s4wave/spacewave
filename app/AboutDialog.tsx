@@ -91,7 +91,9 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           <TooltipTrigger asChild>
             <button
               type="button"
-              onClick={() => window.open('https://cjs.zip', '_blank')}
+              onClick={() =>
+                window.open('https://cjs.zip', '_blank', 'noopener,noreferrer')
+              }
               className="bg-muted/30 border-border block cursor-pointer border-t px-6 py-3 text-center"
             >
               <p className="text-foreground-alt/50 text-xs">
