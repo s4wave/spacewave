@@ -18,6 +18,7 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 
 const roleLabels: Record<number, string> = {
   [SOParticipantRole.SOParticipantRole_OWNER]: 'Owner',
@@ -110,45 +111,20 @@ function getMailboxEntryInviteLabel(entry: MailboxEntryInfo): string {
   return `via ${truncatePeerId(entry.inviteId)}`
 }
 
-// SpaceMembersPanelProps configures the members panel.
-export interface SpaceMembersPanelProps {
-  // Tightens the surrounding card padding for a narrow container.
-  compact?: boolean
-}
-
-// SpaceMembersPanel displays active members and invites for a space.
-export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
-  const session = useResourceValue(SessionContext.useContext())
-  const { spaceId, spaceSharingState } = SpaceContainerContext.useContext()
-
+/**
+ * useSpaceMemberActions runs the remove, revoke, and process-request actions
+ * of the members panel and tracks which row is busy.
+ */
+function useSpaceMemberActions(
+  session: Session | null | undefined,
+  spaceId: string | undefined,
+) {
   const [state, dispatch] = useReducer(reducer, {
     removingMember: undefined,
     revokingInvite: undefined,
     processingEntry: undefined,
     error: undefined,
   })
-
-  const participantInfo = useMemo(
-    () => spaceSharingState?.participantInfo ?? [],
-    [spaceSharingState?.participantInfo],
-  )
-  const invites = useMemo(
-    () => (spaceSharingState?.invites ?? []).filter((inv) => !inv.revoked),
-    [spaceSharingState?.invites],
-  )
-  const mailboxEntries = useMemo(
-    () =>
-      (spaceSharingState?.mailboxEntries ?? []).filter(
-        (entry) => entry.status === 'pending',
-      ),
-    [spaceSharingState?.mailboxEntries],
-  )
-  const canManage = spaceSharingState?.canManage ?? false
-  // Under group control a voter asks the group to remove a member.
-  const canRemove =
-    spaceSharingState?.control === SpaceControl.SpaceControl_GROUP
-      ? !!spaceSharingState.canVote
-      : canManage
 
   const handleRemove = useCallback(
     async (member: SpaceParticipantInfo) => {
@@ -222,6 +198,120 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
     [session, spaceId],
   )
 
+  return { state, handleRemove, handleRevoke, handleProcessEntry }
+}
+
+/** InvitesSection lists the active invites with their revoke actions. */
+function InvitesSection({
+  invites,
+  bordered,
+  canRevoke,
+  revokingInvite,
+  onRevoke,
+}: {
+  invites: SOInvite[]
+  bordered: boolean
+  canRevoke: boolean
+  revokingInvite: string | undefined
+  onRevoke: (inviteId: string) => void
+}) {
+  return (
+    <div className={cn(bordered && 'border-foreground/6 mt-2 border-t pt-2')}>
+      <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
+        Invites
+      </div>
+      <div className="space-y-1">
+        {invites.map((inv) => (
+          <InviteRow
+            key={inv.inviteId}
+            invite={inv}
+            canRevoke={canRevoke}
+            revoking={revokingInvite === inv.inviteId}
+            onRevoke={() => onRevoke(inv.inviteId ?? '')}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** PendingRequestsSection lists the pending mailbox requests with accept and reject actions. */
+function PendingRequestsSection({
+  entries,
+  bordered,
+  processingEntry,
+  onProcess,
+}: {
+  entries: MailboxEntryInfo[]
+  bordered: boolean
+  processingEntry: bigint | undefined
+  onProcess: (entryId: bigint, accept: boolean) => void
+}) {
+  return (
+    <div className={cn(bordered && 'border-foreground/6 mt-2 border-t pt-2')}>
+      <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
+        Pending Requests
+      </div>
+      {entries.length > 0 ? (
+        <div className="space-y-1">
+          {entries.map((entry) => (
+            <PendingRequestRow
+              key={String(entry.id)}
+              entry={entry}
+              processing={processingEntry === entry.id}
+              onAccept={() => onProcess(entry.id ?? BigInt(0), true)}
+              onReject={() => onProcess(entry.id ?? BigInt(0), false)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div
+          className="text-foreground-alt/40 px-1 py-0.5 text-xs"
+          data-testid="pending-request-empty"
+        >
+          No pending requests yet
+        </div>
+      )}
+    </div>
+  )
+}
+
+// SpaceMembersPanelProps configures the members panel.
+export interface SpaceMembersPanelProps {
+  // Tightens the surrounding card padding for a narrow container.
+  compact?: boolean
+}
+
+// SpaceMembersPanel displays active members and invites for a space.
+export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
+  const session = useResourceValue(SessionContext.useContext())
+  const { spaceId, spaceSharingState } = SpaceContainerContext.useContext()
+
+  const { state, handleRemove, handleRevoke, handleProcessEntry } =
+    useSpaceMemberActions(session, spaceId)
+
+  const participantInfo = useMemo(
+    () => spaceSharingState?.participantInfo ?? [],
+    [spaceSharingState?.participantInfo],
+  )
+  const invites = useMemo(
+    () => (spaceSharingState?.invites ?? []).filter((inv) => !inv.revoked),
+    [spaceSharingState?.invites],
+  )
+  const mailboxEntries = useMemo(
+    () =>
+      (spaceSharingState?.mailboxEntries ?? []).filter(
+        (entry) => entry.status === 'pending',
+      ),
+    [spaceSharingState?.mailboxEntries],
+  )
+  const canManage = spaceSharingState?.canManage ?? false
+  // Under group control a voter asks the group to remove a member.
+  const canRemove =
+    spaceSharingState?.control === SpaceControl.SpaceControl_GROUP
+      ? !!spaceSharingState.canVote
+      : canManage
+
   const empty =
     !!spaceSharingState &&
     participantInfo.length === 0 &&
@@ -264,64 +354,24 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
       )}
 
       {invites.length > 0 && (
-        <div
-          className={cn(
-            participantInfo.length > 0 &&
-              'border-foreground/6 mt-2 border-t pt-2',
-          )}
-        >
-          <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
-            Invites
-          </div>
-          <div className="space-y-1">
-            {invites.map((inv) => (
-              <InviteRow
-                key={inv.inviteId}
-                invite={inv}
-                canRevoke={canManage}
-                revoking={state.revokingInvite === inv.inviteId}
-                onRevoke={() => void handleRevoke(inv.inviteId ?? '')}
-              />
-            ))}
-          </div>
-        </div>
+        <InvitesSection
+          invites={invites}
+          bordered={participantInfo.length > 0}
+          canRevoke={canManage}
+          revokingInvite={state.revokingInvite}
+          onRevoke={(inviteId) => void handleRevoke(inviteId)}
+        />
       )}
 
       {showPendingRequests && (
-        <div
-          className={cn(
-            (participantInfo.length > 0 || invites.length > 0) &&
-              'border-foreground/6 mt-2 border-t pt-2',
-          )}
-        >
-          <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
-            Pending Requests
-          </div>
-          {mailboxEntries.length > 0 ? (
-            <div className="space-y-1">
-              {mailboxEntries.map((entry) => (
-                <PendingRequestRow
-                  key={String(entry.id)}
-                  entry={entry}
-                  processing={state.processingEntry === entry.id}
-                  onAccept={() =>
-                    void handleProcessEntry(entry.id ?? BigInt(0), true)
-                  }
-                  onReject={() =>
-                    void handleProcessEntry(entry.id ?? BigInt(0), false)
-                  }
-                />
-              ))}
-            </div>
-          ) : (
-            <div
-              className="text-foreground-alt/40 px-1 py-0.5 text-xs"
-              data-testid="pending-request-empty"
-            >
-              No pending requests yet
-            </div>
-          )}
-        </div>
+        <PendingRequestsSection
+          entries={mailboxEntries}
+          bordered={participantInfo.length > 0 || invites.length > 0}
+          processingEntry={state.processingEntry}
+          onProcess={(entryId, accept) =>
+            void handleProcessEntry(entryId, accept)
+          }
+        />
       )}
 
       {state.error && (
