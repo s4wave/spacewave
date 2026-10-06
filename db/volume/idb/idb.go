@@ -12,6 +12,7 @@ import (
 	"syscall/js"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/opfs"
 )
 
 // schemaVersion is the database version whose upgrade creates the stores.
@@ -19,6 +20,7 @@ const schemaVersion = 1
 
 // openDB opens the database name, creating stores on first open.
 func openDB(name string, stores ...string) (js.Value, error) {
+	// Create the stores when the open upgrades the database.
 	req := js.Global().Get("indexedDB").Call("open", name, schemaVersion)
 	upgrade := js.FuncOf(func(this js.Value, args []js.Value) any {
 		db := req.Get("result")
@@ -29,10 +31,34 @@ func openDB(name string, stores ...string) (js.Value, error) {
 	})
 	defer upgrade.Release()
 	req.Set("onupgradeneeded", upgrade)
+
+	// Wait for the open to finish.
 	if err := wait(req, "success", "error", "blocked"); err != nil {
 		return js.Undefined(), errors.Wrapf(err, "open %s", name)
 	}
 	return req.Get("result"), nil
+}
+
+// Available returns an error when the context has no IndexedDB.
+func Available() error {
+	if !js.Global().Get("indexedDB").Truthy() {
+		return errors.New("IndexedDB unavailable")
+	}
+	return nil
+}
+
+// DatabaseExists reports whether the origin has a database named name.
+func DatabaseExists(name string) (bool, error) {
+	list, err := opfs.AwaitPromise(js.Global().Get("indexedDB").Call("databases"))
+	if err != nil {
+		return false, errors.Wrap(err, "list databases")
+	}
+	for i := range list.Length() {
+		if list.Index(i).Get("name").String() == name {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // DeleteDatabase deletes the database name. A missing database is not an
@@ -45,6 +71,7 @@ func DeleteDatabase(name string) error {
 // transaction starts a transaction on stores. A write transaction is strict
 // when durable is set and relaxed otherwise.
 func transaction(db js.Value, write, durable bool, stores ...string) js.Value {
+	// Start a read transaction, or a write transaction with its durability.
 	names := make([]any, len(stores))
 	for i, store := range stores {
 		names[i] = store
@@ -68,6 +95,7 @@ func complete(tx js.Value) error {
 // wait blocks until target fires the ok event or a failure event, returning
 // the target's error for a failure.
 func wait(target js.Value, ok string, fail ...string) error {
+	// Listen for the first of the events.
 	done := make(chan string, 1)
 	handler := js.FuncOf(func(this js.Value, args []js.Value) any {
 		select {
@@ -81,6 +109,8 @@ func wait(target js.Value, ok string, fail ...string) error {
 	for _, ev := range events {
 		target.Call("addEventListener", ev, handler)
 	}
+
+	// Wait for one to fire, then stop listening and report it.
 	fired := <-done
 	for _, ev := range events {
 		target.Call("removeEventListener", ev, handler)

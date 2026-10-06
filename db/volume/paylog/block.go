@@ -11,9 +11,10 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// GetHashType returns zero to select the default hash type.
+// GetHashType returns the hash type of new block references; zero selects
+// the default.
 func (s *Store) GetHashType() hash.HashType {
-	return 0
+	return s.hashType
 }
 
 // GetSupportedFeatures reports native batches and the store's own buffering.
