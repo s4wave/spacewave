@@ -22,6 +22,11 @@ const rootPinPrefix = "reader:"
 // that owns such a node retains its blocks through its named roots.
 const RootOwnerPrefix = "head:"
 
+// RootOwnerIRI returns the owner node of the root named name in bucketID.
+func RootOwnerIRI(bucketID, name string) string {
+	return RootOwnerPrefix + base64.RawURLEncoding.EncodeToString([]byte(bucketID)) + "/" + base64.RawURLEncoding.EncodeToString([]byte(name))
+}
+
 // completeWorldNode is a graph-only proof target. Sweeping a root removes its
 // proof edge together with its other immutable dependencies.
 const completeWorldNode = "world:complete"
@@ -141,7 +146,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 // setBucketRoot requires a shared physical transaction for bytes and graph.
 func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, bucketID, name string, ref *block.BlockRef) error {
 	// Read the root the owner node holds now.
-	owner := RootOwnerPrefix + base64.RawURLEncoding.EncodeToString([]byte(bucketID)) + "/" + base64.RawURLEncoding.EncodeToString([]byte(name))
+	owner := RootOwnerIRI(bucketID, name)
 	bucket := block_gc.BucketIRI(bucketID)
 	old, err := rg.GetOutgoingRefs(ctx, owner)
 	if err != nil {

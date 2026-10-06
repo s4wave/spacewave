@@ -24,6 +24,7 @@ import (
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
+	"github.com/s4wave/spacewave/db/bucket"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
@@ -414,16 +415,49 @@ func resolveRestoreVolume(ctx context.Context, le *logrus.Entry, vol *volume_bol
 // readWorldTransform reads the World transform from the replay cursor the
 // Space keeps in its account's object store.
 func readWorldTransform(db *bbolt.DB, spaceID string) (*block_transform.Config, error) {
-	// Collect the cursor values of the Space across the object stores. The
-	// local provider keeps local state under so/<id>/ls/, the Spacewave
-	// provider under so-local/<id>/.
+	// Read the one cursor of the Space.
+	cursors, err := readReplayCursors(db, spaceID)
+	if err != nil {
+		return nil, err
+	}
+	if len(cursors) != 1 {
+		return nil, errors.Errorf("found %d replay cursors for space %s, expected one", len(cursors), spaceID)
+	}
+
+	// Take the inline transform of the World the cursor holds.
+	xfrm := cursors[0].world().GetTransformConf()
+	if xfrm.GetEmpty() {
+		return nil, errors.New("replay cursor names no inline World transform")
+	}
+	return xfrm, nil
+}
+
+// spaceReplayCursor is the saved replay of one Space.
+type spaceReplayCursor struct {
+	// spaceID is the SharedObject the cursor replays.
+	spaceID string
+	// cursor is the decoded replay.
+	cursor *sobject_world_engine.ReplayCursor
+}
+
+// world returns the World the cursor last replayed to, or its base when it
+// has replayed nothing.
+func (c spaceReplayCursor) world() *bucket.ObjectRef {
+	state := c.cursor.GetHead()
+	if state == nil {
+		state = c.cursor.GetBase()
+	}
+	return state.GetHeadRef()
+}
+
+// readReplayCursors reads the replay cursors the account object stores in db
+// keep, of spaceID alone when it is set. The local provider keeps local state
+// under so/<id>/ls/, the Spacewave provider under so-local/<id>/.
+func readReplayCursors(db *bbolt.DB, spaceID string) ([]spaceReplayCursor, error) {
+	// Scan the object stores of the store bucket.
 	conf := kvkey.DefaultConfig()
 	prefix := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix())
-	suffixes := [][]byte{
-		[]byte("so/" + spaceID + "/ls/world-replay/cursor"),
-		[]byte("so-local/" + spaceID + "/world-replay/cursor"),
-	}
-	var values [][]byte
+	var cursors []spaceReplayCursor
 	err := db.View(func(tx *bbolt.Tx) error {
 		// Skip a volume without the store bucket.
 		b := tx.Bucket([]byte("hydra"))
@@ -431,36 +465,48 @@ func readWorldTransform(db *bbolt.DB, spaceID string) (*block_transform.Config, 
 			return nil
 		}
 
-		// Match the cursor key of the Space in every object store.
+		// Decode each cursor key of the selected Spaces.
 		cur := b.Cursor()
 		for k, v := cur.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = cur.Next() {
-			if slices.ContainsFunc(suffixes, func(suffix []byte) bool { return bytes.HasSuffix(k, suffix) }) {
-				values = append(values, bytes.Clone(v))
+			id, ok := parseReplayCursorKey(k)
+			if !ok || (spaceID != "" && id != spaceID) {
+				continue
 			}
+			cursor := &sobject_world_engine.ReplayCursor{}
+			if err := cursor.UnmarshalVT(v); err != nil {
+				return errors.Wrapf(err, "decode replay cursor of space %s", id)
+			}
+			cursors = append(cursors, spaceReplayCursor{spaceID: id, cursor: cursor})
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	if len(values) != 1 {
-		return nil, errors.Errorf("found %d replay cursors for space %s, expected one", len(values), spaceID)
-	}
+	return cursors, err
+}
 
-	// Take the inline transform of the World the cursor holds.
-	cursor := &sobject_world_engine.ReplayCursor{}
-	if err := cursor.UnmarshalVT(values[0]); err != nil {
-		return nil, errors.Wrap(err, "decode replay cursor")
+// parseReplayCursorKey returns the Space ID of a replay cursor key, which ends
+// in so/<id>/ls/world-replay/cursor or so-local/<id>/world-replay/cursor.
+func parseReplayCursorKey(key []byte) (string, bool) {
+	// Strip the cursor suffix and the local provider's state segment.
+	rest, ok := bytes.CutSuffix(key, []byte("/world-replay/cursor"))
+	if !ok {
+		return "", false
 	}
-	state := cursor.GetHead()
-	if state == nil {
-		state = cursor.GetBase()
+	rest, local := bytes.CutSuffix(rest, []byte("/ls"))
+
+	// Split the Space ID from the provider segment before it.
+	sep := bytes.LastIndexByte(rest, '/')
+	if sep < 0 {
+		return "", false
 	}
-	xfrm := state.GetHeadRef().GetTransformConf()
-	if xfrm.GetEmpty() {
-		return nil, errors.New("replay cursor names no inline World transform")
+	parent, id := rest[:sep], string(rest[sep+1:])
+	segment := []byte("so-local")
+	if local {
+		segment = []byte("so")
 	}
-	return xfrm, nil
+	if id == "" || !(bytes.Equal(parent, segment) || bytes.HasSuffix(parent, append([]byte("/"), segment...))) {
+		return "", false
+	}
+	return id, true
 }
 
 // findSpaceBucket returns the one bucket under the permanent root whose ID has
