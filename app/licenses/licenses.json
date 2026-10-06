@@ -901,7 +901,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs",
-      "version": "v0.0.0-20260906074410-727d9e299192",
+      "version": "v0.0.0-20261006140529-7f1cdbf2ce7d",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -1684,7 +1684,7 @@
     },
     {
       "name": "go.starlark.net",
-      "version": "v0.0.0-20260930220527-d7438c5a85ac",
+      "version": "v0.0.0-20261005163335-bcb1a1a55bf9",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "fullText": "Copyright (c) 2017 The Bazel Authors.  All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n1. Redistributions of source code must retain the above copyright\n   notice, this list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright\n   notice, this list of conditions and the following disclaimer in the\n   documentation and/or other materials provided with the\n   distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived\n   from this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nHOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
@@ -1699,7 +1699,7 @@
     },
     {
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260908205506-85c1c2202aba",
+      "version": "v0.0.0-20261005173118-76772065c9b0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/exp",
