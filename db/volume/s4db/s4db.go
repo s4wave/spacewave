@@ -11,11 +11,10 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/controller"
-	coord_filelock "github.com/s4wave/spacewave/db/coord/filelock"
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
+	coord_s4db "github.com/s4wave/spacewave/db/coord/s4db"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/kvtx/vlogger"
 	"github.com/s4wave/spacewave/db/s4db"
@@ -67,8 +66,8 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 		return nil, errors.Join(err, db.Close())
 	}
 
-	// Coordinate writers across processes through the volume file lock.
-	vol.Coordinator = coord_filelock.NewCoordinator(filepath.Dir(path), path, coord_inmem.ForVolume(vol.GetID()))
+	// Coordinate writers across processes through the database file.
+	vol.Coordinator = coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(vol.GetID()))
 	return vol, nil
 }
 

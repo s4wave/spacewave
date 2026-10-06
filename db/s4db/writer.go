@@ -159,15 +159,10 @@ func (w *writer) create() error {
 func (w *writer) catchUp(ctx context.Context) error {
 	// Apply the new records and keep the space when it is still current.
 	db := w.db
-	st, _, err := db.tail(db.cur.Load(), false)
-	if err != nil {
+	if err := db.Refresh(ctx); err != nil {
 		return err
 	}
-	db.observe(st)
-	if err := db.publish(ctx, st); err != nil {
-		return err
-	}
-	st = db.cur.Load()
+	st := db.cur.Load()
 	if w.sp != nil && w.spSeq == st.seq && w.spGen == st.gen {
 		return nil
 	}

@@ -14,6 +14,8 @@ const (
 	BackendKindBbolt BackendKind = "bbolt"
 	// BackendKindFileLock identifies the advisory file lock coordinator adapter.
 	BackendKindFileLock BackendKind = "filelock"
+	// BackendKindS4db identifies the s4db file coordinator.
+	BackendKindS4db BackendKind = "s4db"
 	// BackendKindRedis identifies the redis coordinator adapter.
 	BackendKindRedis BackendKind = "redis"
 	// BackendKindRPC identifies a remote coordinator adapter.
