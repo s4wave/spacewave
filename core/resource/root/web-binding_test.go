@@ -12,7 +12,11 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	"github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/sobject"
+	space "github.com/s4wave/spacewave/core/space"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	"github.com/sirupsen/logrus"
 )
 
@@ -169,5 +173,54 @@ func TestRenderBoundBootShell(t *testing.T) {
 	}
 	if strings.Contains(text, "/boot.mjs") {
 		t.Fatalf("bound boot shell should not start the WASM runtime: %s", text)
+	}
+}
+
+// testSendStream records the messages a handler sends.
+type testSendStream struct {
+	srpc.Stream
+	sent []srpc.Message
+}
+
+func (s *testSendStream) MsgSend(msg srpc.Message) error {
+	s.sent = append(s.sent, msg)
+	return nil
+}
+
+// testSpacesHandler answers WatchResourcesList with a fixed Space list.
+type testSpacesHandler struct {
+	spaces []*space.SpaceSoListEntry
+}
+
+func (h *testSpacesHandler) InvokeMethod(_, _ string, strm srpc.Stream) (bool, error) {
+	return true, strm.MsgSend(&s4wave_session.WatchResourcesListResponse{SpacesList: h.spaces})
+}
+
+func TestWebBindingNarrowsSpacesList(t *testing.T) {
+	// List two Spaces in the session.
+	spaceEntry := func(id string) *space.SpaceSoListEntry {
+		return &space.SpaceSoListEntry{Entry: &sobject.SharedObjectListEntry{
+			Ref: &sobject.SharedObjectRef{ProviderResourceRef: &provider.ProviderResourceRef{Id: id}},
+		}}
+	}
+	handler := &testSpacesHandler{spaces: []*space.SpaceSoListEntry{spaceEntry("bound"), spaceEntry("other")}}
+
+	// Watch the list through a binding to one of them.
+	binding := &webBinding{le: logrus.NewEntry(logrus.New()), sessionIdx: 1, spaceID: "bound"}
+	strm := &testSendStream{}
+	if _, err := binding.filter(handler).InvokeMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "WatchResourcesList", strm); err != nil {
+		t.Fatal(err)
+	}
+
+	// Send only the bound Space and leave the handler's list intact.
+	if len(strm.sent) != 1 {
+		t.Fatalf("sent %d messages, want 1", len(strm.sent))
+	}
+	got := strm.sent[0].(*s4wave_session.WatchResourcesListResponse).GetSpacesList()
+	if len(got) != 1 || got[0].GetEntry().GetRef().GetProviderResourceRef().GetId() != "bound" {
+		t.Fatalf("spaces list = %v, want only the bound Space", got)
+	}
+	if len(handler.spaces) != 2 || handler.spaces[1].GetEntry().GetRef().GetProviderResourceRef().GetId() != "other" {
+		t.Fatalf("handler list changed: %v", handler.spaces)
 	}
 }
