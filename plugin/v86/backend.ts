@@ -77,11 +77,16 @@ async function resolveAssetPath(
   const entry = parsed[key]
   if (entry?.frontendBinding) return frontendBindingPath(entry.frontendBinding)
   if (entry?.file) {
-    const pluginId = api.startInfo.pluginId
-    if (!pluginId) {
-      throw new Error('missing plugin id in backend start info')
+    const { pluginId, manifestRoot } = api.startInfo
+    if (!pluginId || !manifestRoot) {
+      throw new Error(
+        'missing plugin id or manifest root in backend start info',
+      )
     }
-    return api.utils.pluginAssetHttpPath(pluginId, 'v/b/fe/' + entry.file)
+    return api.utils.pluginAssetHttpPath(
+      `${pluginId}/manifest/${manifestRoot}`,
+      'v/b/fe/' + entry.file,
+    )
   }
   return srcPath
 }

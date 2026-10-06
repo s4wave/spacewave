@@ -59,6 +59,15 @@ import {
 // verboseDebug is the verbose debugging flag
 const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
 
+// stableMinifyOutput minifies while keeping top-level and cross-chunk export
+// names. Rolldown assigns mangled names by use frequency, so any source change
+// renames symbols throughout a chunk and in every chunk that imports it, which
+// defeats block sharing between releases.
+const stableMinifyOutput = {
+  minify: { compress: true, mangle: { toplevel: false } },
+  minifyInternalExports: false,
+} as const
+
 // Parse command line arguments
 function parseArgs() {
   const args = process.argv.slice(2)
@@ -279,6 +288,12 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     if (!mergedConfig.build.rolldownOptions) {
       mergedConfig.build.rolldownOptions = {}
     }
+    if (jsMinification) {
+      mergedConfig.build.rolldownOptions.output = {
+        ...mergedConfig.build.rolldownOptions.output,
+        ...stableMinifyOutput,
+      }
+    }
 
     // Externalize BldrExternal packages (react, etc.) and webPkg packages
     // (@s4wave/web, etc.) via rolldownOptions.external.
@@ -395,8 +410,11 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
                   chunkInfo.facadeModuleId,
                   chunkInfo.name,
                 ),
-          chunkFileNames: '[name]-[hash].mjs',
-          assetFileNames: '[name]-[hash][extname]',
+          // Plugin frontends load below their manifest root, which already
+          // tells releases apart. A content hash would change whenever any
+          // imported chunk changes and rewrite every importer.
+          chunkFileNames: '[name].mjs',
+          assetFileNames: '[name][extname]',
         },
       }
 
@@ -640,6 +658,7 @@ async function buildWebPkg(
             entryFileNames: '[name].mjs',
             chunkFileNames: '[name]-[hash].mjs',
             assetFileNames: '[name]-[hash][extname]',
+            ...(jsMinification ? stableMinifyOutput : {}),
           },
         },
       },
