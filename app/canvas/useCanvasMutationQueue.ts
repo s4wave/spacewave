@@ -8,9 +8,12 @@ import type {
   CanvasLayoutMetadataData,
 } from './types.js'
 
-// CanvasMutation represents a pending canvas state change.
+// CanvasMutation represents a pending canvas state change. It is confirmed
+// once the backend accepted it, and then stays optimistic until the watched
+// state contains it.
 interface CanvasMutation {
   seq: number
+  confirmed?: boolean
   setNodes?: Map<string, CanvasNodeData>
   removeNodeIds?: string[]
   addEdges?: CanvasEdgeData[]
@@ -249,6 +252,30 @@ export interface MutationQueueResult {
   pending: number
 }
 
+// dropAppliedConfirmed removes the confirmed mutations the server state has applied.
+function dropAppliedConfirmed(
+  queue: CanvasMutation[],
+  serverState: CanvasStateData | null,
+): CanvasMutation[] {
+  const next = queue.filter(
+    (m) => !(m.confirmed && mutationApplied(serverState, m)),
+  )
+  return next.length === queue.length ? queue : next
+}
+
+// confirmMutation marks the mutation as accepted by the backend, dropping it
+// when the server state already contains it.
+function confirmMutation(
+  queue: CanvasMutation[],
+  seq: number,
+  serverState: CanvasStateData | null,
+): CanvasMutation[] {
+  return queue.flatMap((m) => {
+    if (m.seq !== seq) return [m]
+    return mutationApplied(serverState, m) ? [] : [{ ...m, confirmed: true }]
+  })
+}
+
 // useCanvasMutationQueue manages optimistic canvas state via a mutation queue.
 // Mutations are applied locally on top of server state and sent to the backend.
 // Once the server confirms (RPC success) and watched state contains the change,
@@ -261,26 +288,18 @@ export function useCanvasMutationQueue(
 ): MutationQueueResult {
   const nextSeqRef = useRef(0)
   const [queue, setQueue] = useState<CanvasMutation[]>([])
-  const confirmedSeqs = useRef(new Set<number>())
   const serverStateRef = useRef(serverState)
   const sendRef = useRef(sendMutation)
 
   // Confirmed mutations stay optimistic until the watched state contains them.
+  const [seenServerState, setSeenServerState] = useState(serverState)
+  if (seenServerState !== serverState) {
+    setSeenServerState(serverState)
+    setQueue(dropAppliedConfirmed(queue, serverState))
+  }
+
   useEffect(() => {
     serverStateRef.current = serverState
-    if (!serverState || confirmedSeqs.current.size === 0) return
-
-    const confirmed = confirmedSeqs.current
-    setQueue((prev) => {
-      const next = prev.filter((m) => {
-        if (!confirmed.has(m.seq)) return true
-        if (!mutationApplied(serverState, m)) return true
-        confirmed.delete(m.seq)
-        return false
-      })
-      if (next.length === prev.length) return prev
-      return next
-    })
   }, [serverState])
 
   // Ref for sendMutation so the enqueue callback stays stable.
@@ -302,17 +321,7 @@ export function useCanvasMutationQueue(
 
       void send(mutation).then(
         () => {
-          confirmedSeqs.current.add(seq)
-          setQueue((prev) => {
-            const next = prev.filter((m) => {
-              if (m.seq !== seq) return true
-              if (!mutationApplied(serverStateRef.current, m)) return true
-              confirmedSeqs.current.delete(seq)
-              return false
-            })
-            if (next.length === prev.length) return prev
-            return next
-          })
+          setQueue((prev) => confirmMutation(prev, seq, serverStateRef.current))
         },
         (err) => {
           // On failure, remove this mutation from queue.
