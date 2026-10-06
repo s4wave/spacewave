@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -51,7 +52,7 @@ func buildPluginImportManifestCommand(getBus func() cli_entrypoint.CliBus) *cli.
 	var targetDBPath string
 	return &cli.Command{
 		Name:  "import-manifest",
-		Usage: "import a built manifest into the local plugin host store",
+		Usage: "import a built manifest into the local plugin host store, replacing earlier imports of it",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "db",
@@ -162,7 +163,7 @@ func runPluginImportManifest(
 		}
 	}
 
-	// Create the manifest store and record each imported manifest.
+	// Open a transaction and create the manifest store.
 	tx, err := destEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
@@ -171,9 +172,29 @@ func runPluginImportManifest(
 	if _, err := bldr_manifest_world.CreateManifestStore(ctx, tx, objectKey); err != nil {
 		return errors.Wrap(err, "create plugin host manifest store")
 	}
+
+	// Replace earlier imports of the manifest, such as another build type at
+	// the same revision, so the store selects exactly the imported builds.
 	imported := make([]string, 0, len(collectedManifests))
 	for _, collected := range collectedManifests {
-		manifestKey := bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta())
+		imported = append(imported, bldr_manifest.NewManifestKey(objectKey, collected.Manifest.GetMeta()))
+	}
+	previous, _, err := bldr_manifest_world.CollectManifestsForManifestID(ctx, tx, manifestID, nil, objectKey)
+	if err != nil {
+		return errors.Wrap(err, "collect previous manifests")
+	}
+	for _, prev := range previous {
+		if slices.Contains(imported, prev.ManifestKey) {
+			continue
+		}
+		if _, err := tx.DeleteObject(ctx, prev.ManifestKey); err != nil {
+			return errors.Wrap(err, "remove previous manifest")
+		}
+	}
+
+	// Record each imported manifest.
+	for i, collected := range collectedManifests {
+		manifestKey := imported[i]
 		objRef := collected.ManifestRef.Clone()
 		objRef.BucketId = destBucketID
 		objRef.TransformConf = transformConf
@@ -183,7 +204,6 @@ func runPluginImportManifest(
 		if err := tx.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objectKey, manifestKey, manifestID)); err != nil {
 			return errors.Wrap(err, "link manifest")
 		}
-		imported = append(imported, manifestKey)
 	}
 
 	// Commit and sync the import, then print each manifest key.
