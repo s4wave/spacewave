@@ -169,6 +169,22 @@ service SpacewaveSessionResourceService {
   rpc ApproveGuestSpaceLink(.s4wave.provider.spacewave.ApproveSpaceLinkRequest) returns (.sobject.SOInviteMessage);
   // ResetSession resets a PIN-locked session.
   rpc ResetSession(.s4wave.provider.spacewave.ResetSessionRequest) returns (.s4wave.provider.spacewave.ResetSessionResponse);
+  // GetAdminJson reads one cloud administration route as the session's
+  // account. The cloud answers only accounts that hold the platform admin role.
+  rpc GetAdminJson(GetAdminJsonRequest) returns (GetAdminJsonResponse);
+}
+
+// GetAdminJsonRequest is the request for GetAdminJson.
+message GetAdminJsonRequest {
+  // Path is the administration route below /api/admin, with its query string,
+  // such as "accounts?limit=50".
+  string path = 1;
+}
+
+// GetAdminJsonResponse is the response for GetAdminJson.
+message GetAdminJsonResponse {
+  // Body is the route's JSON response body.
+  string body = 1;
 }
 
 // MountSharedObjectSelfEnrollmentRequest is the request for MountSharedObjectSelfEnrollment.

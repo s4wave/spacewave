@@ -596,6 +596,17 @@ export class SpacewaveSession extends Resource {
     await this.service.ResetSession(request, abortSignal)
   }
 
+  // getAdminJson reads one cloud administration route below /api/admin, such
+  // as "accounts?limit=50", and returns its JSON body. The cloud answers only
+  // accounts that hold the platform admin role.
+  public async getAdminJson(
+    path: string,
+    abortSignal?: AbortSignal,
+  ): Promise<string> {
+    const resp = await this.service.GetAdminJson({ path }, abortSignal)
+    return resp.body ?? ''
+  }
+
   // startDesktopSSOLink runs the native-owned desktop SessionDetails SSO-link
   // flow. The handler opens the system browser, waits on the cloud relay for
   // the OAuth result, and returns { provider, code } for LinkSSO completion.

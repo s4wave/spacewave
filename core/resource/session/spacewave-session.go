@@ -2268,6 +2268,18 @@ func (r *SpacewaveSessionResource) mountSpaceSO(
 	return swSO, rel, nil
 }
 
+// GetAdminJson reads one cloud administration route as the session's account.
+func (r *SpacewaveSessionResource) GetAdminJson(
+	ctx context.Context,
+	req *s4wave_session.GetAdminJsonRequest,
+) (*s4wave_session.GetAdminJsonResponse, error) {
+	body, err := r.swAcc.GetSessionClient().GetAdminJSON(ctx, req.GetPath())
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_session.GetAdminJsonResponse{Body: string(body)}, nil
+}
+
 // ResetSession resets a PIN-locked session.
 func (r *SpacewaveSessionResource) ResetSession(
 	ctx context.Context,

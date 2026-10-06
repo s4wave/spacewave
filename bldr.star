@@ -586,6 +586,12 @@ js_plugin("spacewave-colors", rev=1, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/colors/ColorViewer.tsx"),
 ])
 
+js_plugin("spacewave-backoffice", rev=1, modules=[
+    js_module("JS_MODULE_KIND_BACKEND", "./plugin/backoffice/backend.ts",
+              entrypoint=True),
+    js_module("JS_MODULE_KIND_FRONTEND", "./plugin/backoffice/BackofficeViewer.tsx"),
+])
+
 js_plugin("spacewave-v86", rev=1, modules=[
     js_module("JS_MODULE_KIND_BACKEND", "./plugin/v86/backend.ts",
               entrypoint=True),

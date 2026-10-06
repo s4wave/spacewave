@@ -138,6 +138,8 @@ import {
 } from '../provider/spacewave/spacewave.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
+  GetAdminJsonRequest,
+  GetAdminJsonResponse,
   MountSharedObjectSelfEnrollmentRequest,
   MountSharedObjectSelfEnrollmentResponse,
 } from './spacewave-session.pb.js'
@@ -934,6 +936,18 @@ export const SpacewaveSessionResourceServiceDefinition = {
       O: ResetSessionResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * GetAdminJson reads one cloud administration route as the session's
+     * account. The cloud answers only accounts that hold the platform admin role.
+     *
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetAdminJson
+     */
+    GetAdminJson: {
+      name: 'GetAdminJson',
+      I: GetAdminJsonRequest,
+      O: GetAdminJsonResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -1650,6 +1664,17 @@ export interface SpacewaveSessionResourceService {
     request: ResetSessionRequest,
     abortSignal?: AbortSignal,
   ): Promise<ResetSessionResponse>
+
+  /**
+   * GetAdminJson reads one cloud administration route as the session's
+   * account. The cloud answers only accounts that hold the platform admin role.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetAdminJson
+   */
+  GetAdminJson(
+    request: GetAdminJsonRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetAdminJsonResponse>
 }
 
 /**
@@ -2434,6 +2459,18 @@ export interface SpacewaveSessionResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<ResetSessionResponse>
+
+  /**
+   * GetAdminJson reads one cloud administration route as the session's
+   * account. The cloud answers only accounts that hold the platform admin role.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetAdminJson
+   */
+  GetAdminJson(
+    request: GetAdminJsonRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetAdminJsonResponse>
 }
 
 export const SpacewaveSessionResourceServiceServiceName =
@@ -2519,6 +2556,7 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
     this.ApproveSpaceLink = this.ApproveSpaceLink.bind(this)
     this.ApproveGuestSpaceLink = this.ApproveGuestSpaceLink.bind(this)
     this.ResetSession = this.ResetSession.bind(this)
+    this.GetAdminJson = this.GetAdminJson.bind(this)
   }
   /**
    * WatchOnboardingStatus streams Onboarding Status, the Spacewave cloud session
@@ -3896,5 +3934,25 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
       abortSignal || undefined,
     )
     return ResetSessionResponse.fromBinary(result)
+  }
+
+  /**
+   * GetAdminJson reads one cloud administration route as the session's
+   * account. The cloud answers only accounts that hold the platform admin role.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetAdminJson
+   */
+  async GetAdminJson(
+    request: GetAdminJsonRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetAdminJsonResponse> {
+    const requestMsg = GetAdminJsonRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.GetAdminJson.name,
+      GetAdminJsonRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetAdminJsonResponse.fromBinary(result)
   }
 }

@@ -11,6 +11,51 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
+ * GetAdminJsonRequest is the request for GetAdminJson.
+ *
+ * @generated from message s4wave.session.GetAdminJsonRequest
+ */
+export interface GetAdminJsonRequest {
+  /**
+   * Path is the administration route below /api/admin, with its query string,
+   * such as "accounts?limit=50".
+   *
+   * @generated from field: string path = 1;
+   */
+  path?: string
+}
+
+export const GetAdminJsonRequest: MessageType<GetAdminJsonRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.GetAdminJsonRequest',
+    fields: [
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * GetAdminJsonResponse is the response for GetAdminJson.
+ *
+ * @generated from message s4wave.session.GetAdminJsonResponse
+ */
+export interface GetAdminJsonResponse {
+  /**
+   * Body is the route's JSON response body.
+   *
+   * @generated from field: string body = 1;
+   */
+  body?: string
+}
+
+export const GetAdminJsonResponse: MessageType<GetAdminJsonResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.GetAdminJsonResponse',
+    fields: [
+      { no: 1, name: 'body', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * MountSharedObjectSelfEnrollmentRequest is the request for MountSharedObjectSelfEnrollment.
  *
  * @generated from message s4wave.session.MountSharedObjectSelfEnrollmentRequest

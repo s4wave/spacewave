@@ -453,12 +453,16 @@ class GetCdnResponse(_message.Message):
     def __init__(self, resource_id: _Optional[int] = ..., cdn_space_id: _Optional[str] = ...) -> None: ...
 
 class AccessWebListenerRequest(_message.Message):
-    __slots__ = ("listen_multiaddr", "background")
+    __slots__ = ("listen_multiaddr", "background", "space_id", "session_idx")
     LISTEN_MULTIADDR_FIELD_NUMBER: _ClassVar[int]
     BACKGROUND_FIELD_NUMBER: _ClassVar[int]
+    SPACE_ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_IDX_FIELD_NUMBER: _ClassVar[int]
     listen_multiaddr: str
     background: bool
-    def __init__(self, listen_multiaddr: _Optional[str] = ..., background: _Optional[bool] = ...) -> None: ...
+    space_id: str
+    session_idx: int
+    def __init__(self, listen_multiaddr: _Optional[str] = ..., background: _Optional[bool] = ..., space_id: _Optional[str] = ..., session_idx: _Optional[int] = ...) -> None: ...
 
 class AccessWebListenerResponse(_message.Message):
     __slots__ = ("resource_id", "listener_id", "listen_multiaddr", "url", "bootstrap_secret", "reused")
@@ -481,16 +485,20 @@ class WatchWebListenersRequest(_message.Message):
     def __init__(self) -> None: ...
 
 class WebListenerInfo(_message.Message):
-    __slots__ = ("listener_id", "listen_multiaddr", "url", "background")
+    __slots__ = ("listener_id", "listen_multiaddr", "url", "background", "space_id", "session_idx")
     LISTENER_ID_FIELD_NUMBER: _ClassVar[int]
     LISTEN_MULTIADDR_FIELD_NUMBER: _ClassVar[int]
     URL_FIELD_NUMBER: _ClassVar[int]
     BACKGROUND_FIELD_NUMBER: _ClassVar[int]
+    SPACE_ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_IDX_FIELD_NUMBER: _ClassVar[int]
     listener_id: str
     listen_multiaddr: str
     url: str
     background: bool
-    def __init__(self, listener_id: _Optional[str] = ..., listen_multiaddr: _Optional[str] = ..., url: _Optional[str] = ..., background: _Optional[bool] = ...) -> None: ...
+    space_id: str
+    session_idx: int
+    def __init__(self, listener_id: _Optional[str] = ..., listen_multiaddr: _Optional[str] = ..., url: _Optional[str] = ..., background: _Optional[bool] = ..., space_id: _Optional[str] = ..., session_idx: _Optional[int] = ...) -> None: ...
 
 class WatchWebListenersResponse(_message.Message):
     __slots__ = ("listeners",)

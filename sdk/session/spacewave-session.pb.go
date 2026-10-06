@@ -15,6 +15,47 @@ import (
 	_ "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
+// GetAdminJsonRequest is the request for GetAdminJson.
+type GetAdminJsonRequest struct {
+	unknownFields []byte
+	// Path is the administration route below /api/admin, with its query string,
+	// such as "accounts?limit=50".
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+}
+
+func (x *GetAdminJsonRequest) Reset() {
+	*x = GetAdminJsonRequest{}
+}
+
+func (*GetAdminJsonRequest) ProtoMessage() {}
+
+func (x *GetAdminJsonRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+// GetAdminJsonResponse is the response for GetAdminJson.
+type GetAdminJsonResponse struct {
+	unknownFields []byte
+	// Body is the route's JSON response body.
+	Body string `protobuf:"bytes,1,opt,name=body,proto3" json:"body,omitempty"`
+}
+
+func (x *GetAdminJsonResponse) Reset() {
+	*x = GetAdminJsonResponse{}
+}
+
+func (*GetAdminJsonResponse) ProtoMessage() {}
+
+func (x *GetAdminJsonResponse) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
 // MountSharedObjectSelfEnrollmentRequest is the request for MountSharedObjectSelfEnrollment.
 type MountSharedObjectSelfEnrollmentRequest struct {
 	unknownFields []byte
@@ -46,6 +87,38 @@ func (x *MountSharedObjectSelfEnrollmentResponse) GetResourceId() uint32 {
 	return 0
 }
 
+func (m *GetAdminJsonRequest) CloneVT() *GetAdminJsonRequest {
+	if m == nil {
+		return (*GetAdminJsonRequest)(nil)
+	}
+	r := new(GetAdminJsonRequest)
+	r.Path = m.Path
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetAdminJsonRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetAdminJsonResponse) CloneVT() *GetAdminJsonResponse {
+	if m == nil {
+		return (*GetAdminJsonResponse)(nil)
+	}
+	r := new(GetAdminJsonResponse)
+	r.Body = m.Body
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetAdminJsonResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *MountSharedObjectSelfEnrollmentRequest) CloneVT() *MountSharedObjectSelfEnrollmentRequest {
 	if m == nil {
 		return (*MountSharedObjectSelfEnrollmentRequest)(nil)
@@ -75,6 +148,46 @@ func (m *MountSharedObjectSelfEnrollmentResponse) CloneVT() *MountSharedObjectSe
 
 func (m *MountSharedObjectSelfEnrollmentResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *GetAdminJsonRequest) EqualVT(that *GetAdminJsonRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Path != that.Path {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetAdminJsonRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetAdminJsonRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetAdminJsonResponse) EqualVT(that *GetAdminJsonResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Body != that.Body {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetAdminJsonResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetAdminJsonResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *MountSharedObjectSelfEnrollmentRequest) EqualVT(that *MountSharedObjectSelfEnrollmentRequest) bool {
@@ -112,6 +225,90 @@ func (this *MountSharedObjectSelfEnrollmentResponse) EqualMessageVT(thatMsg any)
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the GetAdminJsonRequest message to JSON.
+func (x *GetAdminJsonRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Path != "" || s.HasField("path") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("path")
+		s.WriteString(x.Path)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetAdminJsonRequest to JSON.
+func (x *GetAdminJsonRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetAdminJsonRequest message from JSON.
+func (x *GetAdminJsonRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "path":
+			s.AddField("path")
+			x.Path = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetAdminJsonRequest from JSON.
+func (x *GetAdminJsonRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetAdminJsonResponse message to JSON.
+func (x *GetAdminJsonResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Body != "" || s.HasField("body") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("body")
+		s.WriteString(x.Body)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetAdminJsonResponse to JSON.
+func (x *GetAdminJsonResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetAdminJsonResponse message from JSON.
+func (x *GetAdminJsonResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "body":
+			s.AddField("body")
+			x.Body = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetAdminJsonResponse from JSON.
+func (x *GetAdminJsonResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the MountSharedObjectSelfEnrollmentRequest message to JSON.
@@ -186,6 +383,80 @@ func (x *MountSharedObjectSelfEnrollmentResponse) UnmarshalJSON(b []byte) error 
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *GetAdminJsonRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetAdminJsonRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetAdminJsonRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Path) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Path)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetAdminJsonResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetAdminJsonResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetAdminJsonResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Body) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Body)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MountSharedObjectSelfEnrollmentRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -255,6 +526,28 @@ func (m *MountSharedObjectSelfEnrollmentResponse) MarshalToSizedBufferVT(dAtA []
 	return len(dAtA) - i, nil
 }
 
+func (m *GetAdminJsonRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetAdminJsonResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Body)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *MountSharedObjectSelfEnrollmentRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -274,6 +567,34 @@ func (m *MountSharedObjectSelfEnrollmentResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x *GetAdminJsonRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetAdminJsonRequest")
+	if x.Path != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "path")
+		protobuf_go_lite.TextWriteString(&sb, x.Path)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetAdminJsonRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetAdminJsonResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetAdminJsonResponse")
+	if x.Body != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "body")
+		protobuf_go_lite.TextWriteString(&sb, x.Body)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetAdminJsonResponse) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *MountSharedObjectSelfEnrollmentRequest) MarshalProtoText() string {
@@ -298,6 +619,112 @@ func (x *MountSharedObjectSelfEnrollmentResponse) MarshalProtoText() string {
 
 func (x *MountSharedObjectSelfEnrollmentResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *GetAdminJsonRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetAdminJsonRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetAdminJsonRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Path", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Path = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetAdminJsonResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetAdminJsonResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetAdminJsonResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Body = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *MountSharedObjectSelfEnrollmentRequest) UnmarshalVT(dAtA []byte) error {

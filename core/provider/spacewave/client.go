@@ -1034,8 +1034,25 @@ func NewSessionClientSigner(
 }
 
 // GetAdminJSON sends a signed admin GET request and returns the JSON response body.
+// requestPath is relative to /api/admin and may carry a query string. A path
+// that leaves /api/admin is rejected.
 func (c *SessionClient) GetAdminJSON(ctx context.Context, requestPath string) ([]byte, error) {
-	return c.doGet(ctx, path.Join("/api/admin", requestPath), SeedReasonColdSeed)
+	// Parse the route and its query, refusing a reference to another host.
+	ref, err := url.Parse(requestPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse admin path")
+	}
+	if ref.IsAbs() || ref.Host != "" {
+		return nil, errors.New("admin path must be relative")
+	}
+
+	// Resolve the route below /api/admin and send it with the query unchanged.
+	adminPath := path.Join("/api/admin", ref.Path)
+	if adminPath != "/api/admin" && !strings.HasPrefix(adminPath, "/api/admin/") {
+		return nil, errors.New("admin path must stay below /api/admin")
+	}
+	ref.Path, ref.RawPath = adminPath, ""
+	return c.doGet(ctx, ref.String(), SeedReasonColdSeed)
 }
 
 // DoMultiSig sends a pre-signed multi-sig request to the cloud and returns the

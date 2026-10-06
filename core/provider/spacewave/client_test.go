@@ -441,6 +441,34 @@ func TestDoGet_Success(t *testing.T) {
 	}
 }
 
+// TestGetAdminJSONKeepsPathBelowAdmin verifies GetAdminJSON sends the query
+// unchanged and rejects paths that leave /api/admin.
+func TestGetAdminJSONKeepsPathBelowAdmin(t *testing.T) {
+	// Serve an echo of each request URI the client sends.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(r.URL.RequestURI()))
+	}))
+	defer srv.Close()
+
+	// Read one admin route with a query that must reach the server unchanged.
+	signed, _ := newTestSignedClient(t, srv.URL)
+	cli := &SessionClient{SignedHTTPClient: signed}
+	resp, err := cli.GetAdminJSON(context.Background(), "accounts?q=a/../b&limit=5")
+	if err != nil {
+		t.Fatalf("GetAdminJSON: %v", err)
+	}
+	if got, want := string(resp), "/api/admin/accounts?q=a/../b&limit=5"; got != want {
+		t.Fatalf("request URI: got %q, want %q", got, want)
+	}
+
+	// Reject paths that escape the admin routes or name another host.
+	for _, requestPath := range []string{"../session", "accounts/../../x", "%2e%2e/x", "//evil.example/api/admin", "https://evil.example/"} {
+		if _, err := cli.GetAdminJSON(context.Background(), requestPath); err == nil {
+			t.Fatalf("GetAdminJSON(%q): expected error", requestPath)
+		}
+	}
+}
+
 // TestDoGet_ErrorStatus verifies doGet returns an error for non-200 status.
 func TestDoGet_ErrorStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
