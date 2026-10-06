@@ -350,6 +350,179 @@ function useCanvasNodeController({
   }
 }
 
+interface CanvasNodeContentProps {
+  node: CanvasNodeData
+  callbacks: CanvasCallbacks
+  isOutlineOnly: boolean
+  isCompact: boolean
+  onTextChange: (content: string) => void
+}
+
+/** CanvasNodeContent renders the body of a node by its type and zoom level. */
+function CanvasNodeContent({
+  node,
+  callbacks,
+  isOutlineOnly,
+  isCompact,
+  onTextChange,
+}: CanvasNodeContentProps) {
+  if (isOutlineOnly) {
+    // The short label shown in outline-only mode.
+    return (
+      <div className="flex h-full items-center justify-center overflow-hidden p-1">
+        <span className="text-foreground-alt/60 truncate text-center text-xs font-medium">
+          {node.objectKey ?? node.type}
+        </span>
+      </div>
+    )
+  }
+
+  if (node.type === 'text') {
+    return (
+      <CanvasTextNode
+        content={node.textContent ?? ''}
+        onChange={onTextChange}
+      />
+    )
+  }
+
+  if ((node.type === 'drawing' || node.type === 'shape') && node.shapeData) {
+    return <CanvasGeometryNode node={node} />
+  }
+
+  if (node.type === 'world_object' && callbacks.renderNodeContent) {
+    return callbacks.renderNodeContent(node)
+  }
+
+  if (isCompact) {
+    return (
+      <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
+        {node.type}
+      </div>
+    )
+  }
+
+  return null
+}
+
+/** nodeTypeBackgroundClass returns the card background for a node type. */
+function nodeTypeBackgroundClass(
+  type: CanvasNodeData['type'],
+  isOutlineOnly: boolean,
+): string | null {
+  if (isOutlineOnly) return 'bg-background-card/50'
+  if (type === 'world_object') {
+    return 'bg-background-card/30 shadow-sm backdrop-blur-sm'
+  }
+  if (type === 'text') return 'bg-background-card/20'
+  return null
+}
+
+/** isInkNode reports whether the node is a drawing, shape, or text node. */
+function isInkNode(type: CanvasNodeData['type']): boolean {
+  return type === 'drawing' || type === 'shape' || type === 'text'
+}
+
+/** nodeClassName returns the surface classes for a node. */
+function nodeClassName(
+  node: CanvasNodeData,
+  isOutlineOnly: boolean,
+  selected: boolean,
+): string {
+  const unselectedInk = !isOutlineOnly && !selected
+  return cn(
+    'canvas-node-position canvas-node-transform canvas-node-size canvas-node-input text-card-foreground border-foreground/6 pointer-events-auto box-border cursor-grab rounded-lg border transition-shadow duration-150 select-none',
+    nodeTypeBackgroundClass(node.type, isOutlineOnly),
+    selected && 'shadow-md',
+    unselectedInk &&
+      isInkNode(node.type) &&
+      'border-transparent bg-transparent shadow-none',
+    unselectedInk && node.type === 'drawing' && 'pointer-events-none',
+  )
+}
+
+/** CanvasNodeBorderHandles renders the invisible edges that start a node drag. */
+function CanvasNodeBorderHandles() {
+  return (
+    <>
+      <DragEdgeHandle className="top-0 right-2 left-2 h-1.5 rounded-t-lg" />
+      <DragEdgeHandle className="right-2 bottom-0 left-2 h-1.5 rounded-b-lg" />
+      <DragEdgeHandle className="top-2 bottom-2 left-0 w-1.5 rounded-l-lg" />
+      <DragEdgeHandle className="top-2 right-0 bottom-2 w-1.5 rounded-r-lg" />
+    </>
+  )
+}
+
+interface CanvasNodeSelectionProps {
+  scale: number
+  isContentFocused: boolean
+  onResizeDelta: ResizeHandleProps['onResizeDelta']
+}
+
+/** CanvasNodeSelection renders the selection ring and the resize handles. */
+function CanvasNodeSelection({
+  scale,
+  isContentFocused,
+  onResizeDelta,
+}: CanvasNodeSelectionProps) {
+  return (
+    <>
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-0 rounded-lg ring-1',
+          isContentFocused ? 'ring-brand/30' : 'ring-brand/50',
+        )}
+      />
+      {(['ne', 'se', 'sw', 'nw'] as const).map((direction) => (
+        <ResizeHandle
+          key={direction}
+          direction={direction}
+          scale={scale}
+          onResizeDelta={onResizeDelta}
+        />
+      ))}
+    </>
+  )
+}
+
+interface CanvasNodeContentFrameProps {
+  hasInteractiveContent: boolean
+  internalScale: number
+  isContentFocused: boolean
+  children: React.ReactNode
+}
+
+/** CanvasNodeContentFrame counter-scales node content to its native pixel size. */
+function CanvasNodeContentFrame({
+  hasInteractiveContent,
+  internalScale,
+  isContentFocused,
+  children,
+}: CanvasNodeContentFrameProps) {
+  const contentSize =
+    internalScale < 1 ? `${(100 / internalScale).toFixed(2)}%` : '100%'
+
+  return (
+    <div
+      data-interactive-content={hasInteractiveContent ? '' : undefined}
+      style={{
+        '--canvas-content-transform':
+          internalScale < 1 ? `scale(${internalScale})` : 'none',
+        '--canvas-content-transform-origin': 'top left',
+        '--canvas-content-width': contentSize,
+        '--canvas-content-height': contentSize,
+        '--canvas-content-touch-action': isContentFocused ? 'auto' : 'none',
+      }}
+      className={cn(
+        'canvas-content-transform h-full w-full overflow-hidden',
+        isContentFocused && 'cursor-default select-auto',
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
 // CanvasNode renders a single positioned node on the canvas.
 export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
   const {
@@ -376,47 +549,15 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
 
   if (!visible && !mountedAfterHide && !wasVisible.current) return null
 
-  // labelText is the short label shown in outline-only mode.
-  const labelText = node.objectKey ?? node.type
-
-  const content = (() => {
-    if (isOutlineOnly) {
-      return (
-        <div className="flex h-full items-center justify-center overflow-hidden p-1">
-          <span className="text-foreground-alt/60 truncate text-center text-xs font-medium">
-            {labelText}
-          </span>
-        </div>
-      )
-    }
-
-    if (node.type === 'text') {
-      return (
-        <CanvasTextNode
-          content={node.textContent ?? ''}
-          onChange={handleTextChange}
-        />
-      )
-    }
-
-    if ((node.type === 'drawing' || node.type === 'shape') && node.shapeData) {
-      return <CanvasGeometryNode node={node} />
-    }
-
-    if (node.type === 'world_object' && callbacks.renderNodeContent) {
-      return callbacks.renderNodeContent(node)
-    }
-
-    if (isCompact) {
-      return (
-        <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
-          {node.type}
-        </div>
-      )
-    }
-
-    return null
-  })()
+  const content = (
+    <CanvasNodeContent
+      node={node}
+      callbacks={callbacks}
+      isOutlineOnly={isOutlineOnly}
+      isCompact={isCompact}
+      onTextChange={handleTextChange}
+    />
+  )
 
   return (
     <div
@@ -433,95 +574,29 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
         '--canvas-node-height': `${resizeOverride?.h ?? node.height}px`,
         '--canvas-node-z-index': node.zIndex,
       }}
-      className={cn(
-        'canvas-node-position canvas-node-transform canvas-node-size canvas-node-input text-card-foreground border-foreground/6 pointer-events-auto box-border cursor-grab rounded-lg border transition-shadow duration-150 select-none',
-        isOutlineOnly
-          ? 'bg-background-card/50'
-          : node.type === 'world_object'
-            ? 'bg-background-card/30 shadow-sm backdrop-blur-sm'
-            : node.type === 'text'
-              ? 'bg-background-card/20'
-              : null,
-        selected && 'shadow-md',
-        !isOutlineOnly &&
-          (node.type === 'drawing' ||
-            node.type === 'shape' ||
-            node.type === 'text') &&
-          !selected &&
-          'border-transparent bg-transparent shadow-none',
-        !isOutlineOnly &&
-          node.type === 'drawing' &&
-          !selected &&
-          'pointer-events-none',
-      )}
+      className={nodeClassName(node, isOutlineOnly, selected)}
     >
       {/* Invisible hit area extending outward from the border for easier clicking.
           z-[-1] keeps it behind node content so it doesn't steal clicks. */}
       <div className="pointer-events-auto absolute -inset-1.5 -z-1 rounded-lg" />
-      {showsBorderDragHandles && (
-        <>
-          <DragEdgeHandle className="top-0 right-2 left-2 h-1.5 rounded-t-lg" />
-          <DragEdgeHandle className="right-2 bottom-0 left-2 h-1.5 rounded-b-lg" />
-          <DragEdgeHandle className="top-2 bottom-2 left-0 w-1.5 rounded-l-lg" />
-          <DragEdgeHandle className="top-2 right-0 bottom-2 w-1.5 rounded-r-lg" />
-        </>
-      )}
+      {showsBorderDragHandles && <CanvasNodeBorderHandles />}
       {isOutlineOnly ? (
         content
       ) : (
-        <div
-          data-interactive-content={hasInteractiveContent ? '' : undefined}
-          style={{
-            '--canvas-content-transform':
-              internalScale < 1 ? `scale(${internalScale})` : 'none',
-            '--canvas-content-transform-origin': 'top left',
-            '--canvas-content-width':
-              internalScale < 1
-                ? `${(100 / internalScale).toFixed(2)}%`
-                : '100%',
-            '--canvas-content-height':
-              internalScale < 1
-                ? `${(100 / internalScale).toFixed(2)}%`
-                : '100%',
-            '--canvas-content-touch-action': isContentFocused ? 'auto' : 'none',
-          }}
-          className={cn(
-            'canvas-content-transform h-full w-full overflow-hidden',
-            isContentFocused && 'cursor-default select-auto',
-          )}
+        <CanvasNodeContentFrame
+          hasInteractiveContent={hasInteractiveContent}
+          internalScale={internalScale}
+          isContentFocused={isContentFocused}
         >
           {content}
-        </div>
+        </CanvasNodeContentFrame>
       )}
       {selected && (
-        <>
-          <div
-            className={cn(
-              'pointer-events-none absolute inset-0 rounded-lg ring-1',
-              isContentFocused ? 'ring-brand/30' : 'ring-brand/50',
-            )}
-          />
-          <ResizeHandle
-            direction="ne"
-            scale={scale}
-            onResizeDelta={handleResizeDelta}
-          />
-          <ResizeHandle
-            direction="se"
-            scale={scale}
-            onResizeDelta={handleResizeDelta}
-          />
-          <ResizeHandle
-            direction="sw"
-            scale={scale}
-            onResizeDelta={handleResizeDelta}
-          />
-          <ResizeHandle
-            direction="nw"
-            scale={scale}
-            onResizeDelta={handleResizeDelta}
-          />
-        </>
+        <CanvasNodeSelection
+          scale={scale}
+          isContentFocused={isContentFocused}
+          onResizeDelta={handleResizeDelta}
+        />
       )}
     </div>
   )
