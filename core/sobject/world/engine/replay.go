@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -28,6 +29,9 @@ const replayCursorStoreID = "world-replay"
 
 // replayCursorKey is the key of the saved replay in its store.
 var replayCursorKey = []byte("cursor")
+
+// replayProgressInterval is how often a long replay logs its progress.
+const replayProgressInterval = 30 * time.Second
 
 // replayOutcome is the deterministic outcome of one replayed operation.
 type replayOutcome struct {
@@ -490,7 +494,14 @@ func (r *replayer) replay(
 	if n != 0 {
 		state = r.positions[n-1].state
 	}
+	lastProgress := time.Now()
 	for i, h := range order[n:] {
+		// Log the progress of a long replay.
+		if time.Since(lastProgress) >= replayProgressInterval {
+			lastProgress = time.Now()
+			r.c.le.Infof("replay placed %d of %d operations", n+i, len(order))
+		}
+
 		// Adopt a local write that follows exactly the positions it forked
 		// from.
 		if i == 0 && fork != nil && fork.base == r.base && fork.index == n && bytes.Equal(fork.hash, h) {
