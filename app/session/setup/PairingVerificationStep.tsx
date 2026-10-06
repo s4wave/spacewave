@@ -10,7 +10,6 @@ import type { Session } from '@s4wave/sdk/session/session.js'
 import { AccountOutcome } from '@s4wave/core/pairing/pairing.pb.js'
 import { pairingStatusIsTerminalFailure } from '@s4wave/app/loading/status/pairing.js'
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import { cn } from '@s4wave/web/style/utils.js'
 import { PairingChannelProgress } from './PairingChannelProgress.js'
 import { PairingAccountChoice } from './PairingAccountChoice.js'
 
@@ -20,17 +19,12 @@ interface PairingVerificationStepProps {
   onAbort: () => void
 }
 
-// PairingVerificationStep presents the selected account and follows the provider's
-// bilateral approval and enrollment operation across every pairing entry point.
-export function PairingVerificationStep({
-  session,
-  onContinue,
-  onAbort,
-}: PairingVerificationStepProps) {
+// usePairingStatus follows the session's pairing status until it reaches a
+// terminal failure or both devices confirm. It returns the latest snapshot and
+// the failure message, which setError also sets for local failures.
+function usePairingStatus(session: Session | null | undefined) {
   const [snapshot, setSnapshot] = useState<WatchPairingStatusResponse>()
-  const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string>()
-  const continuePairing = useEffectEvent(onContinue)
 
   useRetryWithAbort(
     async (signal) => {
@@ -60,6 +54,20 @@ export function PairingVerificationStep({
     undefined,
     [session],
   )
+
+  return { snapshot, error, setError }
+}
+
+// PairingVerificationStep presents the selected account and follows the provider's
+// bilateral approval and enrollment operation across every pairing entry point.
+export function PairingVerificationStep({
+  session,
+  onContinue,
+  onAbort,
+}: PairingVerificationStepProps) {
+  const { snapshot, error, setError } = usePairingStatus(session)
+  const [submitted, setSubmitted] = useState(false)
+  const continuePairing = useEffectEvent(onContinue)
 
   useEffect(() => {
     if (snapshot?.status === PairingStatus.PairingStatus_BOTH_CONFIRMED) {
@@ -113,11 +121,25 @@ export function PairingVerificationStep({
     )
   }
 
+  return (
+    <PairingVerification
+      snapshot={snapshot}
+      submitted={submitted}
+      onConfirm={(approved) => void confirm(approved)}
+    />
+  )
+}
+
+// describePairing returns the heading, instructions, and account summary for a
+// pairing snapshot. submitted marks that this device has already confirmed.
+function describePairing(
+  snapshot: WatchPairingStatusResponse | undefined,
+  submitted: boolean,
+) {
   const enrolling = snapshot?.status === PairingStatus.PairingStatus_ENROLLING
   const waiting =
     submitted ||
     snapshot?.status === PairingStatus.PairingStatus_WAITING_FOR_REMOTE_CONFIRM
-  const emoji = snapshot?.emoji ?? []
   const accountName = snapshot?.accountName || 'this account'
   const remoteName = snapshot?.remoteLabel || 'the other device'
   const outcome = snapshot?.choice?.outcome
@@ -128,11 +150,59 @@ export function PairingVerificationStep({
     outcome === AccountOutcome.AccountOutcome_MERGE_INTO_OFFERED
       ? snapshot?.choice?.receivingAccount
       : snapshot?.choice?.offeredAccount
-  const summary = merging
-    ? `Merge ${source?.displayName || 'the other account'} into ${accountName}. Move its Spaces and Sessions, keeping ${accountName}'s settings and storage provider.`
-    : snapshot?.receiving
-      ? `Add ${accountName} to this device. Other accounts stay separate.`
-      : `Allow ${remoteName} to access ${accountName}. Other accounts stay separate.`
+
+  let summary = `Allow ${remoteName} to access ${accountName}. Other accounts stay separate.`
+  if (merging) {
+    summary = `Merge ${source?.displayName || 'the other account'} into ${accountName}. Move its Spaces and Sessions, keeping ${accountName}'s settings and storage provider.`
+  } else if (snapshot?.receiving) {
+    summary = `Add ${accountName} to this device. Other accounts stay separate.`
+  }
+
+  if (enrolling && merging) {
+    return {
+      busy: true,
+      summary,
+      heading: 'Merging accounts',
+      body: 'Saving the account transition and transferring your Spaces. Source data stays recoverable until the transfer is complete.',
+    }
+  }
+  if (enrolling) {
+    return {
+      busy: true,
+      summary,
+      heading: 'Connecting account',
+      body: 'Saving account access and preparing your Spaces.',
+    }
+  }
+  if (waiting) {
+    return {
+      busy: true,
+      summary,
+      heading: 'Waiting for other device',
+      body: 'Confirm the same emoji on the other device.',
+    }
+  }
+  return {
+    busy: false,
+    summary,
+    heading: 'Verify connection',
+    body: 'Confirm the emoji match on both devices to approve this account choice.',
+  }
+}
+
+// PairingVerification shows the verification emoji and the confirm actions, or
+// a spinner while enrollment or the other device is pending.
+function PairingVerification({
+  snapshot,
+  submitted,
+  onConfirm,
+}: {
+  snapshot: WatchPairingStatusResponse | undefined
+  submitted: boolean
+  onConfirm: (approved: boolean) => void
+}) {
+  const { busy, summary, heading, body } = describePairing(snapshot, submitted)
+  const emoji = snapshot?.emoji ?? []
 
   return (
     <div className="space-y-4">
@@ -140,27 +210,11 @@ export function PairingVerificationStep({
         <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
           <LuShieldCheck className="text-brand size-5" />
         </div>
-        <h2 className="text-foreground text-sm font-medium">
-          {enrolling
-            ? merging
-              ? 'Merging accounts'
-              : 'Connecting account'
-            : waiting
-              ? 'Waiting for other device'
-              : 'Verify connection'}
-        </h2>
+        <h2 className="text-foreground text-sm font-medium">{heading}</h2>
         {snapshot?.accountId && (
           <p className="text-foreground text-xs leading-relaxed">{summary}</p>
         )}
-        <p className="text-foreground-alt text-xs leading-relaxed">
-          {enrolling
-            ? merging
-              ? 'Saving the account transition and transferring your Spaces. Source data stays recoverable until the transfer is complete.'
-              : 'Saving account access and preparing your Spaces.'
-            : waiting
-              ? 'Confirm the same emoji on the other device.'
-              : 'Confirm the emoji match on both devices to approve this account choice.'}
-        </p>
+        <p className="text-foreground-alt text-xs leading-relaxed">{body}</p>
       </div>
 
       {emoji.length > 0 && (
@@ -178,7 +232,7 @@ export function PairingVerificationStep({
           ))}
         </div>
       )}
-      {enrolling || waiting ? (
+      {busy ? (
         <div className="flex h-10 justify-center">
           <Spinner size="lg" />
         </div>
@@ -188,20 +242,16 @@ export function PairingVerificationStep({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => void confirm(false)}
-            className={cn(
-              'border-destructive/30 hover:bg-destructive/10 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border',
-            )}
+            onClick={() => onConfirm(false)}
+            className="border-destructive/30 hover:bg-destructive/10 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >
             <LuX className="text-destructive size-4" />
             <span className="text-destructive text-sm">No, abort</span>
           </button>
           <button
             type="button"
-            onClick={() => void confirm(true)}
-            className={cn(
-              'border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border',
-            )}
+            onClick={() => onConfirm(true)}
+            className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >
             <LuCircleCheck className="text-brand size-4" />
             <span className="text-foreground text-sm">Yes, they match</span>
