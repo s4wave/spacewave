@@ -22,12 +22,12 @@ require (
 	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
 	github.com/Microsoft/go-winio v0.6.2
-	github.com/aperturerobotics/bbolt v0.0.0-20261006070104-9b9158806797 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260922044400-0559a321408f // master
 	github.com/aperturerobotics/cli v1.1.1-0.20261004095549-d4875ce31004 // master
-	github.com/aperturerobotics/common v0.35.5-0.20261003015225-453f9b46dfcf // master
-	github.com/aperturerobotics/controllerbus v0.53.6-0.20261001195447-86f830af47c0 // master
+	github.com/aperturerobotics/common v0.35.5-0.20261006081939-817dcebc778f // master
+	github.com/aperturerobotics/controllerbus v0.53.6-0.20261006090449-629971629b36 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260929192932-26bdf6cab5b3
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
@@ -41,9 +41,9 @@ require (
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260910142736-349504d079da
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
-	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20260926160815-9337dc7c6cda // master
-	github.com/aperturerobotics/starpc v0.52.3-0.20261005112333-b1d8957476e8 // master
-	github.com/aperturerobotics/util v1.34.10-0.20261002030236-9b993d4c208f // master
+	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261006081947-6c15c9bde28b // master
+	github.com/aperturerobotics/starpc v0.52.3-0.20261006081950-e03641ffbcc3 // master
+	github.com/aperturerobotics/util v1.34.10-0.20261006081936-7765b80f85f1 // master
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.9.7-0.20261002165227-78b99b8b0f01
@@ -78,7 +78,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.63.0
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.4.1-0.20261006065614-f5f8d807787c
+	github.com/s4wave/goscript v0.4.1-0.20261006091023-938439643cb8
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
