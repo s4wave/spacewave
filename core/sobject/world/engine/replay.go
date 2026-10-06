@@ -16,12 +16,12 @@ import (
 // which every replay starts from.
 const replayBaseRootName = "replay-base"
 
-// replaySpanRootName names the local root that holds the World after every
+// ReplaySpanRootName names the local root that holds the World after every
 // replayed operation above the checkpoint and the payloads of those
 // operations. A member replaying from the checkpoint reads each of them, while
 // the head may no longer reach an object root that an operation created and a
 // later operation replaced, and no World need reach a payload.
-const replaySpanRootName = "replay-span"
+const ReplaySpanRootName = "replay-span"
 
 // replayCursorStoreID is the local state store holding the saved replay.
 const replayCursorStoreID = "world-replay"
@@ -324,7 +324,7 @@ func (r *replayer) save(ctx context.Context) error {
 }
 
 // holdSpan adds to hold the World after every position and the payloads of
-// every position under replaySpanRootName when save will write the replay,
+// every position under ReplaySpanRootName when save will write the replay,
 // releasing those of positions a checkpoint now covers.
 func (r *replayer) holdSpan(hold *rootHold) error {
 	// Skip a saved or deferred replay.
@@ -339,10 +339,10 @@ func (r *replayer) holdSpan(hold *rootHold) error {
 	// Hold the span block, or release the name when no World or payload
 	// follows the checkpoint.
 	if span == nil {
-		hold.release(replaySpanRootName)
+		hold.release(ReplaySpanRootName)
 		return nil
 	}
-	return hold.refBlock(replaySpanRootName, span.Data, span.Refs)
+	return hold.refBlock(ReplaySpanRootName, span.Data, span.Refs)
 }
 
 // pendingSave returns the unsaved replay as parts of a publication: the span
@@ -363,7 +363,7 @@ func (r *replayer) pendingSave(publisher sobject.StatePublisher, payloads []*blo
 	// Name the span, or release the name when no World or payload follows
 	// the checkpoint.
 	var entries []*block.PutBatchEntry
-	root := block.NamedRoot{Name: replaySpanRootName}
+	root := block.NamedRoot{Name: ReplaySpanRootName}
 	if span != nil {
 		entries, root.Ref = []*block.PutBatchEntry{span}, span.Ref
 	}
