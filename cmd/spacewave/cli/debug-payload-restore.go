@@ -26,7 +26,7 @@ import (
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
+	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
@@ -40,7 +40,7 @@ const restoreBatchBytes = 32 << 20
 type debugPayloadRestoreArgs struct {
 	// spaceID is the SharedObject whose World references the payload.
 	spaceID string
-	// filePath is the file whose whole contents the payload carried.
+	// filePath is the file one of whose write extents the payload carried.
 	filePath string
 	// hash is the base64 digest of the missing block.
 	hash string
@@ -63,7 +63,7 @@ func (a *debugPayloadRestoreArgs) BuildFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "file",
-			Usage:       "file holding the bytes the payload carried, with --hash",
+			Usage:       "file one of whose write extents the payload carried, with --hash",
 			Destination: &a.filePath,
 		},
 		&cli.StringFlag{
@@ -73,7 +73,7 @@ func (a *debugPayloadRestoreArgs) BuildFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "source-root",
-			Usage:       "restore the missing whole-file payloads of every file under this directory",
+			Usage:       "restore the missing write extent payloads of every file under this directory",
 			Destination: &a.sourceRoot,
 		},
 		&cli.StringFlag{
@@ -152,7 +152,6 @@ func (a *debugPayloadRestoreArgs) runSourceRoot(ctx context.Context, le *logrus.
 		{"Present blocks", strconv.Itoa(res.present)},
 		{restored, strconv.Itoa(res.restored)},
 		{"Restored bytes", strconv.FormatInt(res.restoredBytes, 10)},
-		{"Multi-extent files", strconv.Itoa(len(res.extentFiles))},
 	})
 	return nil
 }
@@ -164,25 +163,24 @@ func newDebugPayloadRestoreCommand() *cli.Command {
 		Name:      "payload-restore",
 		Usage:     "rebuild lost operation payloads from their source files",
 		ArgsUsage: "<volume-file>",
-		Description: "Rebuilds the blob a file write carried, encodes it with the Space World's " +
-			"transform and writes its blocks into a stopped bbolt volume under the Space's " +
-			"bucket. Blob encoding and chunking are deterministic, so the same bytes yield the " +
-			"same blocks. With --file, the blob is written only when its root digest equals " +
-			"--hash. With --source-root, the whole-file blob of every regular file under the " +
-			"directory is rebuilt and each block the volume lacks is written; blocks no " +
-			"operation references stay owned by the bucket until a repair removes them. A " +
-			"file larger than one write extent may have been written in several payloads, " +
-			"which the walk does not rebuild; it logs those files. Stop the daemon and keep a " +
-			"copy (cp -c clones it on APFS) before running it.",
+		Description: "Rebuilds the blobs a file upload carried, encodes them with the Space World's " +
+			"transform and writes their blocks into a stopped bbolt volume under the Space's " +
+			"bucket. An upload writes a file in extents of 4 MiB, one blob each. Blob encoding " +
+			"and chunking are deterministic, so the same bytes yield the same blocks. With " +
+			"--file, the extent whose blob root digest equals --hash is written. With " +
+			"--source-root, the extent blobs of every regular file under the directory are " +
+			"rebuilt and each block the volume lacks is written; blocks no operation " +
+			"references stay owned by the bucket until a repair removes them. Stop the daemon " +
+			"and keep a copy (cp -c clones it on APFS) before running it.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}
 }
 
-// restorePayload rebuilds the payload blob of data with the World transform
-// of spaceID, checks its root digest against want, and writes the blocks the
-// volume at path lacks, owned by bucketID, or by the one bucket named for the
-// Space when bucketID is empty. It returns the root ref, the blob's block
+// restorePayload rebuilds the extent blobs of data with the World transform
+// of spaceID, selects the one whose root digest is want, and writes the blocks
+// the volume at path lacks, owned by bucketID, or by the one bucket named for
+// the Space when bucketID is empty. It returns the root ref, the blob's block
 // count, and the number of blocks written.
 func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, data, want []byte) (*block.BlockRef, int, int, error) {
 	// Open the stopped volume with the World transform and owning bucket.
@@ -192,13 +190,21 @@ func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucket
 	}
 	defer rv.vol.Close()
 
-	// Encode the blob and refuse a root other than the missing one.
-	ref, entries, err := encodePayload(ctx, rv.xfrm, rv.vol.GetHashType(), data)
-	if err != nil {
-		return nil, 0, 0, err
+	// Encode each extent's blob and select the missing root.
+	var ref *block.BlockRef
+	var entries []*block.PutBatchEntry
+	for extent := range slices.Chunk(data, unixfs_sync.CopyBufferSize) {
+		ref, entries, err = encodePayload(ctx, rv.xfrm, rv.vol.GetHashType(), extent)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		if bytes.Equal(ref.GetHash().GetHash(), want) {
+			break
+		}
+		entries = nil
 	}
-	if got := ref.GetHash().GetHash(); !bytes.Equal(got, want) {
-		return nil, 0, 0, errors.Errorf("rebuilt block digest %s differs from %s", base64.StdEncoding.EncodeToString(got), base64.StdEncoding.EncodeToString(want))
+	if entries == nil {
+		return nil, 0, 0, errors.Errorf("no write extent of the file rebuilds digest %s", base64.StdEncoding.EncodeToString(want))
 	}
 
 	// Write the missing blocks with their bucket ownership.
@@ -249,13 +255,11 @@ type sourceTreeResult struct {
 	restored int
 	// restoredBytes is the encoded size of the restored blocks.
 	restoredBytes int64
-	// extentFiles are the files larger than one write extent.
-	extentFiles []string
 }
 
-// restoreSourceTree rebuilds the whole-file payload blob of every regular
-// file under root and writes each block the volume at path lacks, owned by
-// the Space's bucket. A dry run only counts the missing blocks.
+// restoreSourceTree rebuilds the extent payload blobs of every regular file
+// under root and writes each block the volume at path lacks, owned by the
+// Space's bucket. A dry run only counts the missing blocks.
 func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID, root string, dryRun bool) (*sourceTreeResult, error) {
 	// Open the stopped volume with the World transform and owning bucket.
 	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID)
@@ -287,10 +291,11 @@ func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 	defer src.Close()
 	srcFS := src.FS()
 
-	// Rebuild each regular file's blob and queue the blocks the volume lacks.
+	// Rebuild each regular file's extent blobs and queue the blocks the volume
+	// lacks.
 	seen := make(map[string]struct{})
 	err = fs.WalkDir(srcFS, ".", func(filePath string, d fs.DirEntry, err error) error {
-		// Read each regular file and note one too large for a single write.
+		// Read each regular file and encode the blob of each write extent.
 		if err != nil || !d.Type().IsRegular() {
 			return err
 		}
@@ -299,13 +304,13 @@ func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 			return err
 		}
 		res.files++
-		if len(data) > unixfs_block_fs.OptimalWriteSize {
-			res.extentFiles = append(res.extentFiles, filePath)
-			le.Warnf("%s is larger than one write extent; restoring its whole-file blob only", filePath)
-		}
-		_, entries, err := encodePayload(ctx, rv.xfrm, rv.vol.GetHashType(), data)
-		if err != nil {
-			return errors.Wrap(err, filePath)
+		var entries []*block.PutBatchEntry
+		for extent := range slices.Chunk(data, unixfs_sync.CopyBufferSize) {
+			_, extentEntries, err := encodePayload(ctx, rv.xfrm, rv.vol.GetHashType(), extent)
+			if err != nil {
+				return errors.Wrap(err, filePath)
+			}
+			entries = append(entries, extentEntries...)
 		}
 
 		// Skip the blocks already handled and probe the rest.

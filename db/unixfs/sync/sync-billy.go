@@ -18,10 +18,11 @@ import (
 	"github.com/s4wave/spacewave/db/util/mbuffer"
 )
 
-// copyBufferSize is the size of each file write. A UnixFS file rewrites its
-// last blob block, up to blob.DefChunkingMaxSize, on every write, so writes
-// smaller than that block rewrite it many times.
-const copyBufferSize = 4 << 20
+// CopyBufferSize is the size of each file write, so an upload writes a file
+// in extents of this size. A UnixFS file rewrites its last blob block, up to
+// blob.DefChunkingMaxSize, on every write, so writes smaller than that block
+// rewrite it many times.
+const CopyBufferSize = 4 << 20
 
 // modTimeSetter is a BillyFS that can set a file modification time.
 // It is the Chtimes method of billy.Change, which go-billy's osfs lacks.
@@ -434,12 +435,12 @@ func syncToBillyOnce(
 			return &fs.PathError{Op: "openfile", Path: outPath, Err: err}
 		}
 
-		xferBuf := cpyBuffer.GetOrAllocate(copyBufferSize)
+		xferBuf := cpyBuffer.GetOrAllocate(CopyBufferSize)
 		changed := createTruncateFile
 		if createTruncateFile {
 			err = unixfs_billy.CopyToBillyFSFile(ctx, of, handle, xferBuf)
 		} else {
-			wbuffer := writeBuffer.GetOrAllocate(copyBufferSize)
+			wbuffer := writeBuffer.GetOrAllocate(CopyBufferSize)
 			changed, err = unixfs_billy.SyncToBillyFSFile(ctx, of, handle, xferBuf, wbuffer)
 		}
 

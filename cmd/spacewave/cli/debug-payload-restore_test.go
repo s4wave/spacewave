@@ -19,6 +19,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
+	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
@@ -159,7 +160,7 @@ func TestDebugPayloadRestore(t *testing.T) {
 	// Refuse a digest the file does not reproduce.
 	data := bytes.Repeat([]byte("package imports\n"), 1024)
 	_, _, _, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, make([]byte, 32))
-	if err == nil || !strings.Contains(err.Error(), "differs") {
+	if err == nil || !strings.Contains(err.Error(), "rebuilds digest") {
 		t.Fatalf("expected a digest mismatch, got %v", err)
 	}
 
@@ -207,14 +208,14 @@ func TestDebugPayloadRestore(t *testing.T) {
 
 // TestDebugPayloadRestoreSourceTree checks that the source tree restore skips
 // blocks the volume holds, counts a repeated file once, writes every block of
-// a chunked blob, and writes nothing in a dry run.
+// each write extent's chunked blob, and writes nothing in a dry run.
 func TestDebugPayloadRestoreSourceTree(t *testing.T) {
-	// Make a present file, a missing file, and a missing file large enough
-	// to chunk.
+	// Make a present file, a missing file, and a missing file written in two
+	// extents.
 	ctx := t.Context()
 	present := []byte("package present\n")
 	missing := []byte("package missing\n")
-	large := make([]byte, 2<<20)
+	large := make([]byte, unixfs_sync.CopyBufferSize+2<<20)
 	for i := range large {
 		large[i] = byte(i * 7 / 13)
 	}
@@ -238,23 +239,30 @@ func TestDebugPayloadRestoreSourceTree(t *testing.T) {
 	}
 	f := newRestoreFixture(t, present)
 
-	// Count the large file's blocks.
-	_, largeEntries, err := encodePayload(ctx, f.xfrm, f.hashType, large)
-	if err != nil {
-		t.Fatal(err)
+	// Count the distinct blocks of the large file's extents.
+	extents := slices.Collect(slices.Chunk(large, unixfs_sync.CopyBufferSize))
+	largeBlocks := make(map[string]struct{})
+	for _, extent := range extents {
+		_, entries, err := encodePayload(ctx, f.xfrm, f.hashType, extent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(entries) < 2 {
+			t.Fatalf("expected a chunked blob, got %d blocks", len(entries))
+		}
+		for _, e := range entries {
+			largeBlocks[e.Ref.MarshalString()] = struct{}{}
+		}
 	}
-	if len(largeEntries) < 2 {
-		t.Fatalf("expected a chunked blob, got %d blocks", len(largeEntries))
-	}
-	wantMissing := 1 + len(largeEntries)
+	wantMissing := 1 + len(largeBlocks)
 
 	// Report the missing blocks without writing them.
 	res, err := restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.files != 4 || res.present != 1 || res.restored != wantMissing || len(res.extentFiles) != 1 {
-		t.Fatalf("dry run: %+v, expected 4 files, 1 present, %d missing, 1 extent file", res, wantMissing)
+	if res.files != 4 || res.present != 1 || res.restored != wantMissing {
+		t.Fatalf("dry run: %+v, expected 4 files, 1 present, %d missing", res, wantMissing)
 	}
 
 	// Restore them, then find nothing missing.
@@ -276,5 +284,7 @@ func TestDebugPayloadRestoreSourceTree(t *testing.T) {
 	// Check the bucket owns every restored block.
 	vol := f.open(t)
 	f.requireOwned(t, vol, missing)
-	f.requireOwned(t, vol, large)
+	for _, extent := range extents {
+		f.requireOwned(t, vol, extent)
+	}
 }
