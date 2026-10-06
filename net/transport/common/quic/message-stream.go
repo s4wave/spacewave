@@ -159,7 +159,8 @@ func (s *messageStream) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-// SetWriteDeadline sets the deadline of future Writes. A Write never blocks.
+// SetWriteDeadline sets the deadline of future Writes. A Write waits only
+// while the link already queues its maximum of datagrams.
 func (s *messageStream) SetWriteDeadline(t time.Time) error {
 	s.writeDeadline.Set(t)
 	return nil

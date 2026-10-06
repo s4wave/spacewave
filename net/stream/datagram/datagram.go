@@ -5,6 +5,7 @@
 package stream_datagram
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -24,6 +25,12 @@ import (
 // followed by exactly that many bytes. Empty datagrams are preserved. Packets
 // may arrive out of order, as UDP permits.
 const MaxPacketSize = 65507
+
+// outboxSize bounds the packets waiting for the peer stream. When the link
+// sends slower than the application, the oldest waiting packet is dropped:
+// a backlog would delay every later packet, and real-time traffic wants the
+// newest one.
+const outboxSize = 8
 
 // Forward owns socket and peerStream until it returns, including on failure.
 // socket must be unconnected and peer is the only permitted UDP sender and
@@ -92,10 +99,10 @@ func forward(ctx context.Context, socket *net.UDPConn, remote netip.AddrPort, pe
 	stop := context.AfterFunc(groupCtx, func() { socket.Close(); peerStream.Close() })
 	defer stop()
 
-	// Send each accepted UDP packet as one message, or framed on the control
-	// stream when it does not fit in one.
+	// Read accepted UDP packets as fast as they arrive, so a slow peer stream
+	// never leaves them waiting in the socket buffer.
+	outbox := make(chan []byte, outboxSize)
 	group.Go(func() error {
-		control := peerStream.Control()
 		packet := make([]byte, MaxPacketSize+1)
 		for {
 			n, source, err := socket.ReadFromUDPAddrPort(packet)
@@ -115,10 +122,25 @@ func forward(ctx context.Context, socket *net.UDPConn, remote netip.AddrPort, pe
 			if n > MaxPacketSize {
 				return errors.New("UDP packet exceeds maximum size")
 			}
-			if _, err := peerStream.Write(packet[:n]); err == nil {
+			push(outbox, bytes.Clone(packet[:n]))
+		}
+	})
+
+	// Send each queued packet as one message, or framed on the control stream
+	// when it does not fit in one.
+	group.Go(func() error {
+		control := peerStream.Control()
+		for {
+			var packet []byte
+			select {
+			case packet = <-outbox:
+			case <-groupCtx.Done():
+				return groupCtx.Err()
+			}
+			if _, err := peerStream.Write(packet); err == nil {
 				continue
 			}
-			if err := writeFrame(control, packet[:n]); err != nil {
+			if err := writeFrame(control, packet); err != nil {
 				return err
 			}
 		}
@@ -155,6 +177,22 @@ func forward(ctx context.Context, socket *net.UDPConn, remote netip.AddrPort, pe
 		return ctx.Err()
 	}
 	return err
+}
+
+// push queues packet, dropping the oldest waiting packet when queue is full.
+// It needs to be the queue's only sender.
+func push(queue chan []byte, packet []byte) {
+	for {
+		select {
+		case queue <- packet:
+			return
+		default:
+		}
+		select {
+		case <-queue:
+		default:
+		}
+	}
 }
 
 // writeFrame writes packet to w as one length-prefixed frame.
