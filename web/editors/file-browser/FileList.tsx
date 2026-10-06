@@ -17,10 +17,11 @@ import {
   ListSortFn,
   RenderHeaderProps,
   RowComponentProps,
+  useListState,
+  type ListStateHandle,
 } from '@s4wave/web/ui/list'
 import type { AppDragEnvelope } from '@s4wave/web/dnd/app-drag.js'
 import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
-import type { ListState } from '@s4wave/web/ui/list/ListState.js'
 import { FileEntry, GetFileEntryDetailsCallback } from './types.js'
 import { SortColumn, sortFileEntries } from './FileListState.js'
 import { FileListEntry } from './FileListEntry.js'
@@ -35,7 +36,8 @@ interface FileListProps {
   getEntryDetails?: GetFileEntryDetailsCallback
   onOpen?: (entries: FileEntry[]) => void
   onContextMenu?: (item: ListItem<FileEntry>, event: MouseEvent) => void
-  onStateChange?: (state: ListState) => void
+  // state is the List state from useFileListState.
+  state: ListStateHandle
   rowHeight?: number
   loadingId?: string | null
   autoHeight?: boolean
@@ -117,13 +119,23 @@ const sortFn: ListSortFn<FileEntry> = (items, sortKey, sortDirection) => {
   return sorted.map((entry) => ({ id: entry.id, data: entry }))
 }
 
+// useFileListState keeps a FileList's selection and sort in the file browser
+// state namespace, sorted by name to start.
+export function useFileListState(): ListStateHandle {
+  const namespace = useStateNamespace(['file-browser'])
+  return useListState(namespace, 'fileList', {
+    sortKey: 'name',
+    sortDirection: 'asc',
+  })
+}
+
 // FileList renders a file browser list with column headers.
 export function FileList({
   entries,
   getEntryDetails,
   onOpen,
   onContextMenu,
-  onStateChange,
+  state,
   rowHeight,
   loadingId,
   autoHeight,
@@ -137,7 +149,6 @@ export function FileList({
   onEntryDragLeave,
   onEntryDrop,
 }: FileListProps) {
-  const namespace = useStateNamespace(['file-browser'])
   const coarsePointer = useSyncExternalStore(
     subscribeCoarsePointer,
     getCoarsePointerSnapshot,
@@ -250,13 +261,9 @@ export function FileList({
         rowComponent={FileListRow}
         onRowDefaultAction={handleOpen}
         onRowContextMenu={onContextMenu}
-        onStateChange={onStateChange}
+        state={state}
         renderHeader={renderHeader}
         sortFn={sortFn}
-        defaultSortKey="name"
-        defaultSortDirection="asc"
-        namespace={namespace}
-        stateKey="fileList"
         autoHeight={autoHeight}
         placeholder={placeholder}
       />

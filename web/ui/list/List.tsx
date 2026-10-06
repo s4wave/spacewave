@@ -1,24 +1,14 @@
 /* eslint-disable react-doctor/no-giant-component */
-import {
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { List as VirtualList, ListImperativeAPI } from 'react-window'
 import { cn } from '@s4wave/web/style/utils.js'
 import isEqual from '@s4wave/web/util/isEqual.js'
-import {
-  useStateReducerAtom,
-  StateNamespace,
-} from '@s4wave/web/state/persist.js'
 import { ListItem } from './ListItem.js'
 import {
   ListAction,
   ListDispatch,
   ListState,
+  ListStateHandle,
   ListStateContext,
   ListDispatchContext,
   SortDirection,
@@ -69,12 +59,9 @@ export interface ListProps<T = void> {
   header?: React.ReactNode
   renderHeader?: (props: RenderHeaderProps) => React.ReactNode
   sortFn?: ListSortFn<T>
-  defaultSortKey?: string
-  defaultSortDirection?: SortDirection
-  onStateChange?: (state: ListState) => void
-  namespace?: StateNamespace
-  stateKey?: string
-  defaultState?: Partial<ListState>
+  // state is the selection, focus, and sort the List shows and changes, from
+  // useListState.
+  state: ListStateHandle
   onRowContextMenu?: (item: ListItem<T>, event: React.MouseEvent) => void
   // autoHeight disables virtualization and renders all rows at natural height.
   // The list takes its content height instead of filling its container.
@@ -92,58 +79,27 @@ export function List<T>({
   header,
   renderHeader,
   sortFn,
-  defaultSortKey,
-  defaultSortDirection = 'asc',
-  onStateChange,
-  namespace,
-  stateKey = 'list',
-  defaultState,
+  state: [state, update],
   onRowContextMenu,
   autoHeight,
 }: ListProps<T>) {
   const listRef = useRef<ListImperativeAPI | null>(null)
 
-  // Build initial state with defaults - computed once on mount
-  const [initialState] = useState<ListState>(() => ({
-    selectedIds: [],
-    sortKey: defaultSortKey,
-    sortDirection: defaultSortDirection,
-    ...defaultState,
-  }))
-
   // Track sorted items for the reducer - use ref to avoid stale closure
   const sortedItemsRef = useRef<ListItem<T>[]>(items)
 
-  // Reducer wrapper that uses current sorted items
-  const reducer = useCallback(
-    (state: ListState, action: ListAction) =>
-      listReducer(sortedItemsRef.current, state, action),
-    [],
-  )
-
-  // Use persisted state via useStateReducerAtom
-  const [state, dispatch] = useStateReducerAtom<ListState, ListAction>(
-    namespace ?? null,
-    stateKey,
-    reducer,
-    initialState,
+  const dispatch = useCallback(
+    (action: ListAction) =>
+      update((prev) => listReducer(sortedItemsRef.current, prev, action)),
+    [update],
   )
 
   // Compute sorted items based on current state
   const sortedItems = useMemo(() => {
     if (!sortFn) return items
-    const key = state.sortKey ?? defaultSortKey
-    const dir = state.sortDirection ?? defaultSortDirection
-    if (!key) return items
-    return sortFn(items, key, dir)
-  }, [
-    items,
-    sortFn,
-    state.sortKey,
-    state.sortDirection,
-    defaultSortKey,
-    defaultSortDirection,
-  ])
+    if (!state.sortKey) return items
+    return sortFn(items, state.sortKey, state.sortDirection ?? 'asc')
+  }, [items, sortFn, state.sortKey, state.sortDirection])
 
   // Track previous sorted items for index translation
   const prevSortedItemsRef = useRef<ListItem<T>[]>(sortedItems)
@@ -168,16 +124,6 @@ export function List<T>({
       prevSortedItemsRef.current = sortedItems
     }
   }, [sortedItems, state, dispatch])
-
-  // Notify parent of state changes using useEffectEvent to access latest callback
-  const notifyStateChange = useEffectEvent((newState: ListState) => {
-    onStateChange?.(newState)
-  })
-  useEffect(() => {
-    // onStateChange observes persisted updates, including changes with no local event.
-    // eslint-disable-next-line react-doctor/no-prop-callback-in-effect
-    notifyStateChange(state)
-  }, [state])
 
   // Store state ref for callbacks
   const stateRef = useRef<ListState>(state)

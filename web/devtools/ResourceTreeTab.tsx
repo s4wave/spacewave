@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
-import { Tree, type TreeNode } from '@s4wave/web/ui/tree/index.js'
+import {
+  Tree,
+  useTreeState,
+  type TreeNode,
+  type TreeUpdate,
+} from '@s4wave/web/ui/tree/index.js'
 import { useStateNamespace } from '@s4wave/web/state/persist.js'
 import {
   useResourceDevToolsContext,
@@ -34,17 +39,21 @@ export function ResourceTreeTab() {
     return buildTreeNodes(resources)
   }, [resources, tick])
 
-  const devtoolsRef = useRef(devtools)
-  useEffect(() => {
-    devtoolsRef.current = devtools
-  }, [devtools])
-
-  const handleSelectionChange = useCallback((selectedIds: Set<string>) => {
-    const dt = devtoolsRef.current
-    if (!dt) return
-    const firstId = selectedIds.values().next().value
-    dt.setSelectedId(firstId ?? null)
-  }, [])
+  // Each Tree update shows the first selected resource in the details panel.
+  // The state atom setter applies the update before it returns.
+  const [treeState, setTreeState] = useTreeState(namespace, 'state')
+  const updateTree = useCallback<TreeUpdate>(
+    (update) => {
+      let selectedIds = treeState.selectedIds
+      setTreeState((prev) => {
+        const next = update(prev)
+        selectedIds = next.selectedIds
+        return next
+      })
+      devtools?.setSelectedId(selectedIds.values().next().value ?? null)
+    },
+    [devtools, treeState.selectedIds, setTreeState],
+  )
 
   const resourceCount = resources.size
 
@@ -68,10 +77,8 @@ export function ResourceTreeTab() {
       {/* Tree content */}
       <Tree
         nodes={nodes}
-        namespace={namespace}
-        stateKey="state"
+        state={[treeState, updateTree]}
         placeholder="No resources tracked"
-        onSelectionChange={handleSelectionChange}
         className="flex-1"
       />
     </div>

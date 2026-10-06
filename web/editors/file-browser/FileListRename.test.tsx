@@ -7,8 +7,14 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useCallback, useRef, useState, useMemo } from 'react'
-import { FileList } from './FileList.js'
+import {
+  type ComponentProps,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { FileList, useFileListState } from './FileList.js'
 import type { FileEntry } from './types.js'
 import type { RenderEntryCallback } from './FileListEntry.js'
 
@@ -17,6 +23,12 @@ const mockEntries: FileEntry[] = [
   { id: '2', name: 'hello.txt', isDir: false },
   { id: '3', name: 'README.md', isDir: false },
 ]
+
+// TestFileList owns the file list state the way a file browser does.
+function TestFileList(props: Omit<ComponentProps<typeof FileList>, 'state'>) {
+  const state = useFileListState()
+  return <FileList {...props} state={state} />
+}
 
 function getRenameInput(): HTMLInputElement {
   const input = screen.getByTestId('rename-input')
@@ -146,7 +158,7 @@ function RenameTestHarness({
       >
         Start Rename
       </button>
-      <FileList entries={mockEntries} renderEntry={renderEntry} />
+      <TestFileList entries={mockEntries} renderEntry={renderEntry} />
     </div>
   )
 }

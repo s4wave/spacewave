@@ -1,61 +1,54 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { isExpandable, TreeNode } from './TreeNode.js'
 import {
   findNodeById,
   findParentNode,
   getVisibleNodes,
   treeReducer,
-  TreeState,
   TreeAction,
+  TreeState,
+  TreeStateHandle,
   TreeStateContext,
   TreeDispatchContext,
 } from './TreeState.js'
 import { TreeRow } from './TreeRow.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import {
-  useStateReducerAtom,
-  StateNamespace,
-} from '@s4wave/web/state/persist.js'
 
 export interface TreeProps<T = void> {
   nodes: TreeNode<T>[]
+  // state is the expansion, selection, and focus the Tree shows and changes,
+  // from useTreeState.
+  state: TreeStateHandle
   placeholder?: React.ReactNode
   className?: string
   onRowDefaultAction?: (nodes: TreeNode<T>[]) => void
   onRowContextMenu?: (node: TreeNode<T>, event: React.MouseEvent) => void
-  onSelectionChange?: (selectedIds: Set<string>) => void
-  onExpandedChange?: (expandedIds: Set<string>) => void
-  defaultExpandedIds?: Set<string>
-  defaultSelectedIds?: Set<string>
-  namespace?: StateNamespace
-  stateKey?: string
-  defaultState?: Partial<TreeState>
+}
+
+// withDefaultFocus focuses the first node while no node has focus.
+function withDefaultFocus(state: TreeState, firstId?: string): TreeState {
+  if (state.focusedId != null || firstId == null) return state
+  return {
+    ...state,
+    focusedId: firstId,
+    lastSelectedId: state.lastSelectedId ?? firstId,
+  }
 }
 
 // Tree renders a hierarchical tree with keyboard navigation and selection.
 export function Tree<T>({
   nodes,
+  state: [storedState, update],
   placeholder,
   className,
   onRowDefaultAction,
   onRowContextMenu,
-  onSelectionChange,
-  onExpandedChange,
-  defaultExpandedIds,
-  defaultSelectedIds,
-  namespace,
-  stateKey = 'tree',
-  defaultState,
 }: TreeProps<T>) {
   const firstNodeID = nodes[0]?.id
-
-  const [initialState] = useState<TreeState>(() => ({
-    expandedIds: defaultExpandedIds ?? new Set<string>(),
-    selectedIds: defaultSelectedIds ?? new Set<string>(),
-    focusedId: firstNodeID,
-    lastSelectedId: firstNodeID,
-    ...defaultState,
-  }))
+  const state = useMemo(
+    () => withDefaultFocus(storedState, firstNodeID),
+    [storedState, firstNodeID],
+  )
 
   // Track nodes for the reducer - update via effect to avoid ref update during render
   const nodesRef = useRef<TreeNode<T>[]>(nodes)
@@ -63,34 +56,17 @@ export function Tree<T>({
     nodesRef.current = nodes
   }, [nodes])
 
-  // Reducer wrapper that uses current nodes
-  const reducer = useCallback(
-    (state: TreeState, action: TreeAction) =>
-      treeReducer<T>(nodesRef.current, state, action),
-    [],
+  const dispatch = useCallback(
+    (action: TreeAction) =>
+      update((prev) =>
+        treeReducer<T>(
+          nodesRef.current,
+          withDefaultFocus(prev, nodesRef.current[0]?.id),
+          action,
+        ),
+      ),
+    [update],
   )
-
-  // Use persisted state via useStateReducerAtom
-  const [state, dispatch] = useStateReducerAtom<TreeState, TreeAction>(
-    namespace ?? null,
-    stateKey,
-    reducer,
-    initialState,
-  )
-
-  // Notify when selection changes
-  const prevSelectedIdsRef = useRef<Set<string>>(state.selectedIds)
-  useEffect(() => {
-    if (onSelectionChange && state.selectedIds !== prevSelectedIdsRef.current) {
-      prevSelectedIdsRef.current = state.selectedIds
-      onSelectionChange(state.selectedIds)
-    }
-  }, [state.selectedIds, onSelectionChange])
-
-  // Report expansion so an owner can load the children of expanded nodes.
-  useEffect(() => {
-    onExpandedChange?.(state.expandedIds)
-  }, [state.expandedIds, onExpandedChange])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -265,20 +241,14 @@ export function Tree<T>({
           aria-multiselectable="true"
           aria-orientation="vertical"
           onFocus={(e) => {
-            if (e.target === e.currentTarget) {
-              if (state.focusedId) {
-                const focusedElement = document.getElementById(state.focusedId)
-                if (focusedElement) {
-                  e.preventDefault()
-                  requestAnimationFrame(() => {
-                    focusedElement.focus({ preventScroll: true })
-                    focusedElement.scrollIntoView({ block: 'nearest' })
-                  })
-                }
-              } else if (nodes.length > 0) {
-                dispatch({ type: 'SELECT_NODE', id: nodes[0].id, focus: true })
-              }
-            }
+            if (e.target !== e.currentTarget || !state.focusedId) return
+            const focusedElement = document.getElementById(state.focusedId)
+            if (!focusedElement) return
+            e.preventDefault()
+            requestAnimationFrame(() => {
+              focusedElement.focus({ preventScroll: true })
+              focusedElement.scrollIntoView({ block: 'nearest' })
+            })
           }}
           aria-describedby="tree-instructions"
           aria-activedescendant={

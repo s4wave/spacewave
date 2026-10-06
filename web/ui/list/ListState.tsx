@@ -1,4 +1,5 @@
-import { createContext } from 'react'
+import { createContext, useState } from 'react'
+import { useStateAtom, type StateNamespace } from '@s4wave/web/state/persist.js'
 import { ListItem } from './ListItem.js'
 
 export type SortDirection = 'asc' | 'desc'
@@ -35,6 +36,27 @@ export type UpdateIndicesAction = {
 export type ListAction = SelectItemAction | SetSortAction | UpdateIndicesAction
 
 export type ListDispatch = (action: ListAction) => void
+
+// ListUpdate applies a change to the latest List state.
+export type ListUpdate = (update: (state: ListState) => ListState) => void
+
+// ListStateHandle is the state a List shows and the update that changes it.
+export type ListStateHandle = readonly [ListState, ListUpdate]
+
+// useListState keeps a List's state under key in the state namespace. The
+// component that renders the List owns it, so it reads the selection and sort
+// directly instead of mirroring them from the List.
+export function useListState(
+  namespace: StateNamespace | null,
+  key: string,
+  initial?: Partial<ListState>,
+): ListStateHandle {
+  const [initialState] = useState<ListState>(() => ({
+    selectedIds: [],
+    ...initial,
+  }))
+  return useStateAtom(namespace, key, initialState)
+}
 
 // listReducer processes actions against the current sorted items array.
 export function listReducer<T>(

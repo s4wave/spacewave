@@ -7,15 +7,21 @@ A generic, virtualized list component with keyboard navigation, multi-selection,
 - **Virtualized rendering** - Uses `react-window` for efficient rendering of large lists
 - **Keyboard navigation** - Arrow keys, vim keys (j/k), Home/End
 - **Multi-selection** - Click, Shift+click, Ctrl/Cmd+click
-- **Integrated sorting** - List manages sort state internally to ensure correct selection indices
-- **State persistence** - Uses `useStateReducerAtom` for automatic localStorage persistence
+- **Integrated sorting** - List sorts the items itself, so selection indices match the sorted rows
+- **Owner-held state** - The parent holds the state from `useListState`, which persists through a state namespace
 - **Customizable rows** - Pass your own row component
 - **Accessible** - Full ARIA support
 
 ## Basic Usage
 
 ```tsx
-import { List, ListItem, RowComponentProps, ListStateContext } from '@s4wave/web/ui/list'
+import {
+  List,
+  ListItem,
+  RowComponentProps,
+  ListStateContext,
+  useListState,
+} from '@s4wave/web/ui/list'
 import { useStateNamespace } from '@s4wave/web/state/persist.js'
 
 interface MyData {
@@ -46,14 +52,14 @@ function MyRow({
 
 function MyComponent() {
   const namespace = useStateNamespace(['my-feature'])
+  const state = useListState(namespace, 'myList')
 
   return (
     <List
       items={items}
       rowComponent={MyRow}
       rowHeight={24}
-      namespace={namespace}
-      stateKey="myList"
+      state={state}
       onRowDefaultAction={(items) => console.log('Open:', items)}
     />
   )
@@ -76,6 +82,10 @@ const sortFn: ListSortFn<MyData> = (items, sortKey, sortDirection) => {
 
 function MyComponent() {
   const namespace = useStateNamespace(['my-feature'])
+  const state = useListState(namespace, 'myList', {
+    sortKey: 'name',
+    sortDirection: 'asc',
+  })
 
   const renderHeader = useCallback(({ state, dispatch }: RenderHeaderProps) => {
     const handleSort = (key: string) => dispatch({ type: 'SET_SORT', sortKey: key })
@@ -97,11 +107,8 @@ function MyComponent() {
       items={items}
       rowComponent={MyRow}
       sortFn={sortFn}
-      defaultSortKey="name"
-      defaultSortDirection="asc"
       renderHeader={renderHeader}
-      namespace={namespace}
-      stateKey="myList"
+      state={state}
     />
   )
 }
@@ -120,6 +127,7 @@ function MyComponent() {
 ### List Props
 
 - `items: ListItem<T>[]` - Array of items to display
+- `state: ListStateHandle` - The list state and its updater, from `useListState`
 - `rowComponent: React.ComponentType<RowComponentProps<T>>` - Component to render each row
 - `rowHeight?: number` - Height of each row in pixels (default: 24)
 - `placeholder?: React.ReactNode` - Content to show when list is empty
@@ -127,13 +135,16 @@ function MyComponent() {
 - `header?: React.ReactNode` - Static header content
 - `renderHeader?: (props: RenderHeaderProps) => React.ReactNode` - Dynamic header with state/dispatch access
 - `sortFn?: ListSortFn<T>` - Sorting function (required for sortable lists)
-- `defaultSortKey?: string` - Initial sort key
-- `defaultSortDirection?: 'asc' | 'desc'` - Initial sort direction (default: 'asc')
 - `onRowDefaultAction?: (items: ListItem<T>[]) => void` - Called on Enter/double-click
-- `onStateChange?: (state: ListState) => void` - Called when state changes
-- `namespace?: StateNamespace` - State persistence namespace
-- `stateKey?: string` - Key within namespace (default: 'list')
-- `defaultState?: Partial<ListState>` - Initial state if no persisted state exists
+
+### useListState
+
+`useListState(namespace, key, initial?)` returns the `[state, update]` handle a
+List renders. The component that renders the List owns it, so it reads the
+selection and sort directly and changes them with
+`update((prev) => next)`. With a `namespace` the state persists under `key`;
+with `null` it lives in memory. `initial` fills fields such as `sortKey` and
+`sortDirection` when no persisted state exists.
 
 ### RowComponentProps
 

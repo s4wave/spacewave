@@ -22,22 +22,18 @@ export interface ObjectTree {
   // nodes are the root nodes with the children of each expanded node, or null
   // while the root level loads.
   nodes: TreeNode<ObjectTreeNode>[] | null
-  // onExpandedChange loads the levels under the expanded node ids.
-  onExpandedChange: (expandedIds: Set<string>) => void
   // loadMore reads one more page of the level under prefix.
   loadMore: (prefix: string) => void
 }
 
 // useObjectTree follows the root level of a World's object tree and the level
-// under each expanded node. A level with unread entries ends in a node that
-// reads one more page of that level when activated.
+// under each node in expandedIds. A level with unread entries ends in a node
+// that reads one more page of that level when activated.
 export function useObjectTree(
   world: Resource<IWorldState>,
+  expandedIds: ReadonlySet<string>,
   metadataById?: ObjectTypeMetadataById,
 ): ObjectTree {
-  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  )
   const [limits, setLimits] = useState<ReadonlyMap<string, number>>(
     () => new Map(),
   )
@@ -83,7 +79,7 @@ export function useObjectTree(
     [levels, loadMore],
   )
 
-  return { nodes, onExpandedChange: setExpandedIds, loadMore }
+  return { nodes, loadMore }
 }
 
 // attachLevels returns the nodes of the level under prefix, nesting the loaded

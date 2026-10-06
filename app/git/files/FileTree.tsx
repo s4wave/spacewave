@@ -1,5 +1,8 @@
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
-import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
+import {
+  FileList,
+  useFileListState,
+} from '@s4wave/web/editors/file-browser/FileList.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 
 // FileTreeProps are props for the FileTree component.
@@ -21,9 +24,11 @@ export function FileTree({
   renderEntry,
   currentPath,
 }: FileTreeProps) {
+  const listState = useFileListState()
   return (
     <FileList
       entries={entries}
+      state={listState}
       onOpen={onOpen}
       loadingId={loadingId ?? undefined}
       autoHeight={autoHeight}

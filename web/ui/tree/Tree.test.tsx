@@ -7,7 +7,8 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Tree } from './Tree.js'
+import { Tree, type TreeProps } from './Tree.js'
+import { useTreeState } from './TreeState.js'
 import type { TreeNode } from './TreeNode.js'
 
 interface TestData {
@@ -35,18 +36,27 @@ const mockNodes: TreeNode<TestData>[] = [
   { id: 'sibling', name: 'Sibling', data: { value: 6 } },
 ]
 
+// TestTree owns the tree state the way an application component does.
+function TestTree<T>({
+  expandedIds,
+  ...props
+}: Omit<TreeProps<T>, 'state'> & { expandedIds?: Set<string> }) {
+  const state = useTreeState(null, 'tree', expandedIds && { expandedIds })
+  return <Tree {...props} state={state} />
+}
+
 describe('Tree', () => {
   afterEach(() => {
     cleanup()
   })
 
   it('should render the tree container', () => {
-    render(<Tree nodes={mockNodes} />)
+    render(<TestTree nodes={mockNodes} />)
     expect(screen.getByRole('tree')).toBeTruthy()
   })
 
   it('should render tree nodes', async () => {
-    render(<Tree nodes={mockNodes} />)
+    render(<TestTree nodes={mockNodes} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -56,17 +66,17 @@ describe('Tree', () => {
   })
 
   it('should show placeholder when no nodes', () => {
-    render(<Tree nodes={[]} placeholder="No items available" />)
+    render(<TestTree nodes={[]} placeholder="No items available" />)
     expect(screen.getByText('No items available')).toBeTruthy()
   })
 
   it('should show default placeholder when empty', () => {
-    render(<Tree nodes={[]} />)
+    render(<TestTree nodes={[]} />)
     expect(screen.getByText('No items')).toBeTruthy()
   })
 
-  it('should expand nodes when defaultExpandedIds is set', async () => {
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+  it('should expand nodes in the initial state', async () => {
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Child 1')).toBeTruthy()
@@ -75,7 +85,7 @@ describe('Tree', () => {
   })
 
   it('should not show children when node is collapsed', async () => {
-    render(<Tree nodes={mockNodes} />)
+    render(<TestTree nodes={mockNodes} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -87,7 +97,7 @@ describe('Tree', () => {
 
   it('should handle single click selection', async () => {
     const user = userEvent.setup()
-    render(<Tree nodes={mockNodes} />)
+    render(<TestTree nodes={mockNodes} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -106,7 +116,7 @@ describe('Tree', () => {
   it('should handle double click to trigger default action', async () => {
     const user = userEvent.setup()
     const onAction = vi.fn()
-    render(<Tree nodes={mockNodes} onRowDefaultAction={onAction} />)
+    render(<TestTree nodes={mockNodes} onRowDefaultAction={onAction} />)
 
     await waitFor(() => {
       expect(screen.getByText('Sibling')).toBeTruthy()
@@ -126,7 +136,7 @@ describe('Tree', () => {
 
   it('should expand/collapse on chevron click', async () => {
     const user = userEvent.setup()
-    render(<Tree nodes={mockNodes} />)
+    render(<TestTree nodes={mockNodes} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -152,7 +162,7 @@ describe('Tree', () => {
 
   it('should handle keyboard navigation with ArrowDown', async () => {
     const user = userEvent.setup()
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -173,7 +183,7 @@ describe('Tree', () => {
   })
 
   it('should handle keyboard navigation with j/k', async () => {
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -214,7 +224,7 @@ describe('Tree', () => {
   })
 
   it('should handle expand with ArrowRight', async () => {
-    render(<Tree nodes={mockNodes} />)
+    render(<TestTree nodes={mockNodes} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -235,7 +245,7 @@ describe('Tree', () => {
   })
 
   it('should handle collapse with ArrowLeft', async () => {
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Child 1')).toBeTruthy()
@@ -252,7 +262,7 @@ describe('Tree', () => {
   })
 
   it('should navigate to parent with ArrowLeft when collapsed', async () => {
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Child 1')).toBeTruthy()
@@ -274,7 +284,7 @@ describe('Tree', () => {
   })
 
   it('should handle range selection with Shift+Arrow', async () => {
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -305,7 +315,7 @@ describe('Tree', () => {
   })
 
   it('should handle toggle selection with Ctrl+click', async () => {
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -328,7 +338,7 @@ describe('Tree', () => {
   })
 
   it('should handle Space to toggle expand on parent node', async () => {
-    render(<Tree nodes={mockNodes} />)
+    render(<TestTree nodes={mockNodes} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()
@@ -347,10 +357,10 @@ describe('Tree', () => {
   it('should handle Enter to trigger default action', async () => {
     const onAction = vi.fn()
     render(
-      <Tree
+      <TestTree
         nodes={mockNodes}
         onRowDefaultAction={onAction}
-        defaultExpandedIds={new Set(['root'])}
+        expandedIds={new Set(['root'])}
       />,
     )
 
@@ -372,7 +382,7 @@ describe('Tree', () => {
   })
 
   it('should have proper ARIA attributes', async () => {
-    render(<Tree nodes={mockNodes} defaultExpandedIds={new Set(['root'])} />)
+    render(<TestTree nodes={mockNodes} expandedIds={new Set(['root'])} />)
 
     await waitFor(() => {
       expect(screen.getByText('Root')).toBeTruthy()

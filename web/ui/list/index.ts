@@ -10,6 +10,7 @@ export { ListRow } from './ListRow.js'
 export {
   ListStateContext,
   ListDispatchContext,
+  useListState,
   listReducer,
   setSortReducer,
   selectItemReducer,
@@ -26,4 +27,6 @@ export type {
   UpdateIndicesAction,
   SortDirection,
   ListDispatch,
+  ListStateHandle,
+  ListUpdate,
 } from './ListState.js'
