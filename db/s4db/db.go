@@ -212,10 +212,14 @@ func (db *DB) readSuper() (superblock, error) {
 // the values of records the writer had not flushed, stopping before the
 // first record whose values are torn and reporting it.
 func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
-	// Adopt a newer checkpoint.
+	// Adopt a newer checkpoint. One another process wrote may reuse pages
+	// the cache still holds, so drop them first.
 	sb, err := db.readSuper()
 	if err != nil {
 		return nil, false, err
+	}
+	if sb.gen > st.gen && sb.gen > db.ownGen.Load() {
+		db.p.cache.clear()
 	}
 	next := st
 	switch {

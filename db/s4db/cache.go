@@ -9,9 +9,10 @@ import (
 const cacheShards = 64
 
 // cache holds decoded pages within a memory budget, in shards that each
-// evict by CLOCK. Pages are never changed once written, so entries never go
-// stale; a page number is only reused after every snapshot that could read
-// the old page has closed, and freeing drops the entry.
+// evict by CLOCK. Pages are never changed once written, and a page number is
+// only reused after every snapshot that could read the old page has closed.
+// Freeing drops the entry in the freeing handle; other handles clear the
+// cache when they adopt the checkpoint that may reuse it.
 type cache struct {
 	// root holds the last root page read, so lookups start without taking
 	// a shard lock.
@@ -121,6 +122,20 @@ func (c *cache) drop(r run) {
 		if i, ok := s.index[p]; ok {
 			s.remove(i)
 		}
+		s.mtx.Unlock()
+	}
+}
+
+// clear removes every page. Another process's checkpoint may reuse page
+// numbers this handle never freed, so a handle adopting such a checkpoint
+// clears the cache before it reads the new tree.
+func (c *cache) clear() {
+	c.root.Store(nil)
+	for i := range c.shards {
+		s := &c.shards[i]
+		s.mtx.Lock()
+		clear(s.index)
+		s.ring, s.free, s.hand, s.bytes = nil, nil, 0, 0
 		s.mtx.Unlock()
 	}
 }
