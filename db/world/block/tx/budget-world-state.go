@@ -56,25 +56,27 @@ func (w *BudgetWorldState) GetObject(ctx context.Context, key string) (world.Obj
 		world.ReleaseObjectState(obj)
 		return nil, false, err
 	}
-	return newBudgetObjectState(w, obj), true, nil
+	return &budgetObjectState{ObjectState: obj, w: w}, true, nil
 }
 
 // CreateObject creates an object whose operations count against the budget.
 func (w *BudgetWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	obj, err := w.WorldState.CreateObject(ctx, key, rootRef)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
-	return newBudgetObjectState(w, obj), nil
+	return &budgetObjectState{ObjectState: obj, w: w}, nil
 }
 
 // RenameObject renames an object, whose operations count against the budget.
 func (w *BudgetWorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	obj, err := w.WorldState.RenameObject(ctx, oldKey, newKey, descendants)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
-	return newBudgetObjectState(w, obj), nil
+	return &budgetObjectState{ObjectState: obj, w: w}, nil
 }
 
 // applyBudgeted runs apply if an entry of size bytes fits in the budget and
