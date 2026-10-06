@@ -148,11 +148,10 @@ func buildBrowserBundle(t *testing.T, root, distDir string) error {
 		return err
 	}
 	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
-		WorkDir:         root,
-		OutputPath:      artifactRoot,
-		Packages:        []string{"github.com/s4wave/spacewave/prototypes/opfs-browser-harness"},
-		BuildFlags:      []string{"-tags=goscript,purego"},
-		AllDependencies: true,
+		WorkDir:    root,
+		OutputPath: artifactRoot,
+		Packages:   []string{"github.com/s4wave/spacewave/prototypes/opfs-browser-harness"},
+		BuildFlags: []string{"-tags=goscript,purego"},
 	}); err != nil {
 		return fmt.Errorf("goscript compile: %w", err)
 	}
