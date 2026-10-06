@@ -635,6 +635,7 @@ export class WebDocumentTracker {
         lockAbortController.signal,
       )
       let removeWebDocumentOnFailure = false
+      let notReady = false
 
       try {
         console.log(
@@ -669,6 +670,7 @@ export class WebDocumentTracker {
           throw result
         }
         if (result.error) {
+          notReady = true
           throw new Error(result.error)
         }
         if (!result.webRuntimePort) {
@@ -699,8 +701,12 @@ export class WebDocumentTracker {
             `ServiceWorker: connecting via WebDocument closed: ${webDocumentId}`,
             err,
           )
-        }
-        if (!expectedClose) {
+        } else if (notReady) {
+          console.warn(
+            `ServiceWorker: WebDocument not ready to connect: ${webDocumentId}`,
+            err,
+          )
+        } else {
           console.error(
             `ServiceWorker: connecting via WebDocument failed: ${webDocumentId}`,
             err,

@@ -87,6 +87,8 @@ type TestWebDocument = {
     generation?: string
   }): Promise<unknown>
   taskEnsureWebRuntimeConn(): void
+  initServiceWorkerPort(sw: { postMessage: (msg: unknown) => void }): void
+  startWebRuntimeConnection(): void
   webDocumentLivenessLockState?: 'idle' | 'pending' | 'held'
   webRuntimeClient: {
     openStream: () => Promise<unknown>
@@ -1198,6 +1200,41 @@ describe('WebDocument plugin generation state', () => {
     await Promise.resolve()
     await Promise.resolve()
     expect(waitConn).toHaveBeenCalledOnce()
+  })
+
+  it('registers with the ServiceWorker only once the liveness lock is held', () => {
+    let grant: (() => Promise<void> | undefined) | undefined
+    const lockRequest = vi.fn(
+      (
+        _name: string,
+        _opts: { signal: AbortSignal },
+        callback: () => Promise<void> | undefined,
+      ) => {
+        grant = callback
+        return new Promise<void>(() => {})
+      },
+    )
+    vi.stubGlobal('navigator', {
+      locks: { request: lockRequest },
+    })
+
+    const doc = buildTestWebDocument()
+    doc.webDocumentLivenessLockState = 'idle'
+    const taskEnsureWebRuntimeConn = vi.fn()
+    doc.taskEnsureWebRuntimeConn = taskEnsureWebRuntimeConn
+
+    const postMessage = vi.fn()
+    doc.initServiceWorkerPort({ postMessage })
+    expect(postMessage).not.toHaveBeenCalled()
+
+    void grant?.()
+    expect(doc.webDocumentLivenessLockState).toBe('held')
+    expect(postMessage).toHaveBeenCalledOnce()
+    expect(taskEnsureWebRuntimeConn).not.toHaveBeenCalled()
+
+    doc.startWebRuntimeConnection()
+    expect(lockRequest).toHaveBeenCalledOnce()
+    expect(taskEnsureWebRuntimeConn).toHaveBeenCalledOnce()
   })
 
   it('routes attached DedicatedWorker runtime clients through the elected host owner', async () => {

@@ -812,6 +812,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // second same-document lock request behind the lock this document already
   // holds.
   private webDocumentLivenessLockState: 'idle' | 'pending' | 'held' = 'idle'
+  // webRuntimeConnectOnLivenessHeld records that a runtime connection was
+  // requested while the liveness lock was not yet held.
+  private webRuntimeConnectOnLivenessHeld = false
+  // serviceWorkerOnLivenessHeld is the ServiceWorker to register with once the
+  // liveness lock is held.
+  private serviceWorkerOnLivenessHeld?: ServiceWorker
   // pluginSingletonReady resolves when this tab can create plugin workers.
   // A Web Lock ensures only one tab creates runtime-scoped dedicated plugin
   // workers at a time. The holder keeps the lock until close so other tabs use
@@ -1995,8 +2001,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // initServiceWorkerPort initializes & sends the ServiceWorker connection port.
+  // The ServiceWorker probes the liveness lock as soon as it has the port, so
+  // registration waits until this document holds it.
   private initServiceWorkerPort(sw: ServiceWorker) {
     if (this.closed) {
+      return
+    }
+    if (
+      shouldUseWebDocumentLivenessLock() &&
+      this.webDocumentLivenessLockState !== 'held'
+    ) {
+      this.serviceWorkerOnLivenessHeld = sw
+      this.acquireWebDocumentLivenessLock()
       return
     }
     this.serviceWorkerPort?.close()
@@ -3012,34 +3028,40 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     })
   }
 
-  // startWebRuntimeConnection acquires the liveness Web Lock and connects to the
-  // WebRuntime. It is idempotent: when the lock is already held it just ensures
-  // the runtime channel, when a request is in flight it does nothing, and when
-  // the lock is idle (never acquired, or released while the tab was hidden and
-  // throttled/frozen) it re-acquires it. The become-visible path calls this to
-  // restore reliable disconnect detection instead of leaving the runtime torn
-  // down until a manual reload.
+  // startWebRuntimeConnection connects to the WebRuntime once this document
+  // holds its liveness Web Lock. It is idempotent: when the lock is held it
+  // ensures the runtime channel, otherwise it requests the lock and connects
+  // on grant. The become-visible path calls this to restore reliable
+  // disconnect detection instead of leaving the runtime torn down until a
+  // manual reload.
   private startWebRuntimeConnection() {
     if (this.closed) {
       return
     }
-    // Acquire a Web Lock to enable reliable disconnect detection. The WebRuntime
-    // tries to acquire the same lock; when this page closes or crashes the lock
-    // releases and the WebRuntime detects the disconnect without timeouts.
-    //
-    // The lock must be acquired BEFORE connecting to the WebRuntime, then an
-    // armWebLock message tells the WebRuntime to start watching. This avoids a
-    // race where the WebRuntime acquires the lock first.
-    if (!shouldUseWebDocumentLivenessLock()) {
-      // No Web Locks support - connect immediately.
+    if (
+      !shouldUseWebDocumentLivenessLock() ||
+      this.webDocumentLivenessLockState === 'held'
+    ) {
       this.taskEnsureWebRuntimeConn()
       return
     }
-    if (this.webDocumentLivenessLockState === 'held') {
-      this.taskEnsureWebRuntimeConn()
-      return
-    }
-    if (this.webDocumentLivenessLockState === 'pending') {
+    this.webRuntimeConnectOnLivenessHeld = true
+    this.acquireWebDocumentLivenessLock()
+  }
+
+  // acquireWebDocumentLivenessLock requests the liveness Web Lock when it is
+  // idle and holds it until close. The ServiceWorker tracker and the
+  // WebRuntime both probe this lock: a grant to them means this document is
+  // gone. The document must hold it before registering its ServiceWorker port
+  // or connecting to the WebRuntime, otherwise a probe can be granted first
+  // and a live document is dropped. Lock requests from different contexts are
+  // not ordered, so requesting it first is not enough.
+  private acquireWebDocumentLivenessLock() {
+    if (
+      this.closed ||
+      !shouldUseWebDocumentLivenessLock() ||
+      this.webDocumentLivenessLockState !== 'idle'
+    ) {
       return
     }
     this.webDocumentLivenessAbort = new AbortController()
@@ -3059,10 +3081,15 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           return undefined
         }
         this.webDocumentLivenessLockState = 'held'
-        // Lock acquired - now safe to connect to WebRuntime. The runtime waits
-        // for this lock when we send armWebLock.
-        this.taskEnsureWebRuntimeConn()
-        // Hold the lock until the page closes.
+        const sw = this.serviceWorkerOnLivenessHeld
+        if (sw) {
+          this.serviceWorkerOnLivenessHeld = undefined
+          this.initServiceWorkerPort(sw)
+        }
+        // The runtime waits for this lock when we send armWebLock.
+        if (this.webRuntimeConnectOnLivenessHeld) {
+          this.taskEnsureWebRuntimeConn()
+        }
         return new Promise<void>(() => {})
       })
       .catch(() => {
