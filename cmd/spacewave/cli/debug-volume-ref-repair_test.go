@@ -64,7 +64,8 @@ func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*bloc
 // GC tracking lacks for a UnixFS World, writes nothing on a dry run, adds them
 // all once applied, and finds none left afterward.
 func TestDebugRefRepair(t *testing.T) {
-	// Open a volume holding the Space's bucket.
+	// Open a volume configuring the Space's bucket, which GC tracking never
+	// rooted.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	path := filepath.Join(t.TempDir(), "volume.s4wave")
@@ -73,7 +74,7 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer vol.Close()
-	if _, _, err := vol.PrepareOwnedBlock(ctx, restoreTestBucket, []byte("seed"), nil); err != nil {
+	if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: restoreTestBucket, Rev: 1}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -160,7 +161,7 @@ func TestDebugRefRepair(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("dry run: %+v", dry)
-	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.owned != 1 || dry.written != 0 {
+	if dry.spaces != 1 || dry.lacking == 0 || dry.edges == 0 || dry.owned != 1 || dry.rooted != 1 || dry.written != 0 {
 		t.Fatalf("dry run: %+v", dry)
 	}
 	if dry.absent != 0 || dry.undecodable != 0 || dry.untyped["object type "+unixfs_world.FSNodeTypeID] != 0 {
@@ -172,7 +173,7 @@ func TestDebugRefRepair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if again.edges != dry.edges || again.owned != dry.owned {
+	if again.edges != dry.edges || again.owned != dry.owned || again.rooted != dry.rooted {
 		t.Fatalf("dry run wrote edges: %+v then %+v", dry, again)
 	}
 
@@ -181,8 +182,9 @@ func TestDebugRefRepair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applied.written != dry.edges+dry.owned {
-		t.Fatalf("applied %d edges, expected %d", applied.written, dry.edges+dry.owned)
+	want := dry.edges + dry.owned + uint64(dry.rooted)
+	if applied.written != want {
+		t.Fatalf("applied %d edges, expected %d", applied.written, want)
 	}
 
 	// Nothing is missing afterward.
@@ -190,7 +192,7 @@ func TestDebugRefRepair(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if after.lacking != 0 || after.edges != 0 || after.owned != 0 || after.blocks != dry.blocks {
+	if after.lacking != 0 || after.edges != 0 || after.owned != 0 || after.rooted != 0 || after.blocks != dry.blocks {
 		t.Fatalf("after repair: %+v", after)
 	}
 }

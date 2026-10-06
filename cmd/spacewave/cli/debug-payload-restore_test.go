@@ -18,6 +18,7 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
+	"github.com/s4wave/spacewave/db/bucket"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
@@ -53,7 +54,7 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := vol.PrepareOwnedBlock(ctx, restoreTestBucket, []byte("world"), nil); err != nil {
+	if _, _, _, err := vol.ApplyBucketConfig(ctx, &bucket.Config{Id: restoreTestBucket, Rev: 1}); err != nil {
 		t.Fatal(err)
 	}
 
