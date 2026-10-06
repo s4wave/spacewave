@@ -31,8 +31,8 @@ func (s *BufferedStore) DrainReachable(ctx context.Context, roots ...*BlockRef) 
 	return s.drainAll(ctx)
 }
 
-// keepReachable drops every pending block roots do not reach and queues the
-// rest with children before parents.
+// keepReachable drops every pending block that neither roots nor a reader pin
+// reach and queues the rest with children before parents.
 func (s *BufferedStore) keepReachable(ctx context.Context, roots []*BlockRef) error {
 	// Hold the drain lock for the exclusive reachable-set rewrite.
 	release, err := s.drainMu.Lock(ctx)
@@ -46,9 +46,14 @@ func (s *BufferedStore) keepReachable(ctx context.Context, roots []*BlockRef) er
 			ref *BlockRef
 			key string
 		}
-		stack := make([]visit, 0, len(roots))
+
+		// Start from the roots and every pinned root.
+		stack := make([]visit, 0, len(roots)+len(s.pins))
 		for _, root := range roots {
 			stack = append(stack, visit{ref: root})
+		}
+		for _, pins := range s.pins {
+			stack = append(stack, visit{ref: pins[0].ref})
 		}
 
 		// Pop each visit, retaining reachable pending blocks in order.

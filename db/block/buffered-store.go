@@ -60,6 +60,10 @@ type BufferedStore struct {
 	// drainErr captures the last drain error to surface on subsequent calls.
 	drainErr error
 
+	// pins holds the reader pins of pending roots by ref key until the drain
+	// writes each root.
+	pins map[string][]*bufferedPin
+
 	// written maps the ref key of each block written to inner to its outgoing
 	// refs. Nil unless the store records writes.
 	written map[string]*writtenBlock
@@ -86,6 +90,7 @@ func NewBufferedStoreWithSettings(
 	s := &BufferedStore{
 		inner:                   inner,
 		pending:                 make(map[string]*pendingBlock),
+		pins:                    make(map[string][]*bufferedPin),
 		maxPendingBytes:         settings.MaxPendingBytes,
 		maxPendingMetadataBytes: settings.MaxPendingMetadataBytes,
 		maxPendingBlocks:        settings.MaxPendingEntries,
@@ -582,7 +587,11 @@ func (s *BufferedStore) drainAll(ctx context.Context) error {
 		return err
 	}
 	defer release()
+	return s.drainQueue(ctx)
+}
 
+// drainQueue writes batches until the queue is empty. Caller holds drainMu.
+func (s *BufferedStore) drainQueue(ctx context.Context) error {
 	for {
 		drained, err := s.drainNextBatch(ctx)
 		if err != nil {
@@ -672,13 +681,27 @@ func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 	writeTask.End()
 
 	// Complete the batch and publish any persistent drain failure.
+	var pins []*bufferedPin
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		s.completeBatchLocked(batch, err)
-		if err != nil && ctx.Err() == nil {
+		if err == nil {
+			pins = s.takeWrittenPinsLocked(batch)
+		} else if ctx.Err() == nil {
 			s.drainErr = err
 		}
 		broadcastFn()
 	})
+
+	// Move the reader pins of written roots to the inner store. A pin that
+	// fails to hold poisons the buffer, since its holder relies on it.
+	if err == nil {
+		if err = s.acquirePins(ctx, pins); err != nil {
+			s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+				s.drainErr = err
+				broadcastFn()
+			})
+		}
+	}
 	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return true, ctxErr
@@ -771,72 +794,6 @@ func (s *BufferedStore) completeBatchLocked(batch *drainBatch, err error) {
 		}
 	}
 	s.queue = append(retry, s.queue...)
-}
-
-// PendingBatch is an immutable borrow of buffered entries. Complete must be
-// called exactly once after the publisher is finished, even on admission failure.
-// Entries remain readable through the BufferedStore until successful completion.
-type PendingBatch struct {
-	// Entries are the borrowed batch entries.
-	Entries []*PutBatchEntry
-	// complete resolves the borrow with the publication result.
-	complete func(error)
-	// completed records that Complete already ran; further calls are no-ops.
-	completed bool
-}
-
-// Complete resolves the borrow exactly once with the publication result.
-func (b *PendingBatch) Complete(err error) { b.complete(err) }
-
-// TakePending borrows all currently queued entries without writing or forgetting
-// them. Further writes can prepare the next publication while this borrow is in
-// flight. Both queued and borrowed content count against the existing bounds.
-func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) {
-	// Serialize the publication borrow with buffered drains.
-	// Serialize the publication borrow with buffered drains.
-	release, err := s.drainMu.Lock(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Borrow all queued entries under the store state lock.
-	defer release()
-
-	// Borrow all queued entries under the store state lock.
-	var batch *drainBatch
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if err = ctx.Err(); err != nil {
-			return
-		}
-		if err = s.drainErr; err != nil {
-			return
-		}
-		batch = s.takeDrainBatchLocked(0)
-	})
-
-	// Expose borrowed entries with their publication completion callback.
-	if err != nil {
-		return nil, err
-	}
-
-	// Expose borrowed entries with their publication completion callback.
-	out := &PendingBatch{complete: func(error) {}}
-	if batch != nil {
-		out.Entries = batch.entries
-		out.complete = func(err error) {
-			s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
-				if out.completed {
-					return
-				}
-				out.completed = true
-				s.completeBatchLocked(batch, err)
-				broadcastFn()
-			})
-		}
-	}
-
-	// Skip storage writes for an empty block batch.
-	return out, nil
 }
 
 // writeBatch writes the entries to the inner store as one put batch.
