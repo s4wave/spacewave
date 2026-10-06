@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { LuBuilding2, LuPlus } from 'react-icons/lu'
 
+import type { Session } from '@s4wave/sdk/session/session.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import {
   SessionContext,
@@ -42,41 +43,14 @@ export function OrganizationsSection({
   const loading = orgList?.loading ?? false
 
   const [showCreate, setShowCreate] = useState(false)
-  const [orgName, setOrgName] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const trimmedOrgName = orgName.trim()
-  const handleOrgNameInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
 
-  const handleCreate = useCallback(async () => {
-    if (!session || !trimmedOrgName || creating) return
-    setCreating(true)
-    setError(null)
-    try {
-      await session.spacewave.createOrganization(trimmedOrgName)
-      setOrgName('')
-      setShowCreate(false)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to create organization',
-      )
-    } finally {
-      setCreating(false)
+  const handleOpenOrganization = (orgId: string) => {
+    if (onNavigateToOrganization) {
+      onNavigateToOrganization(orgId)
+      return
     }
-  }, [creating, session, trimmedOrgName])
-
-  const handleOpenOrganization = useCallback(
-    (orgId: string) => {
-      if (onNavigateToOrganization) {
-        onNavigateToOrganization(orgId)
-        return
-      }
-      navigateSession({ path: `org/${orgId}/` })
-    },
-    [navigateSession, onNavigateToOrganization],
-  )
+    navigateSession({ path: `org/${orgId}/` })
+  }
 
   if (isLocal && !orgList) return null
 
@@ -116,66 +90,12 @@ export function OrganizationsSection({
             </button>
           ))}
 
-        {showCreate && (
-          <div className="space-y-2">
-            <input
-              ref={handleOrgNameInputRef}
-              value={orgName}
-              disabled={creating}
-              aria-busy={creating}
-              onChange={(e) => {
-                setOrgName(e.target.value)
-                setError(null)
-              }}
-              placeholder="Organization name"
-              className={cn(
-                'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-1.5 text-xs transition-colors outline-none',
-                'focus:border-brand/50',
-              )}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && trimmedOrgName && !creating) {
-                  void handleCreate()
-                }
-              }}
-            />
-            {creating && (
-              <div className="text-foreground-alt flex items-center gap-1.5 text-xs">
-                <Spinner size="sm" />
-                <span>Creating organization…</span>
-              </div>
-            )}
-            {error && <p className="text-destructive text-xs">{error}</p>}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => void handleCreate()}
-                disabled={creating || !trimmedOrgName}
-                aria-busy={creating}
-                className={cn(
-                  'flex-1 rounded-md border py-1.5 text-xs transition-all',
-                  'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
-              >
-                {creating ? 'Creating…' : 'Create'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreate(false)
-                  setOrgName('')
-                  setError(null)
-                }}
-                disabled={creating}
-                className="border-foreground/10 hover:bg-foreground/5 flex-1 rounded-md border py-1.5 text-xs transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!showCreate && (
+        {showCreate ? (
+          <CreateOrganizationForm
+            session={session}
+            onClose={() => setShowCreate(false)}
+          />
+        ) : (
           <button
             type="button"
             onClick={() => setShowCreate(true)}
@@ -187,5 +107,95 @@ export function OrganizationsSection({
         )}
       </div>
     </CollapsibleSection>
+  )
+}
+
+// CreateOrganizationForm collects an organization name and creates it. It owns
+// the draft state, so closing the form discards the draft and any error.
+function CreateOrganizationForm({
+  session,
+  onClose,
+}: {
+  session: Session | null | undefined
+  onClose: () => void
+}) {
+  const [orgName, setOrgName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const trimmedOrgName = orgName.trim()
+  const handleOrgNameInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
+  const handleCreate = async () => {
+    if (!session || !trimmedOrgName || creating) return
+    setCreating(true)
+    setError(null)
+    try {
+      await session.spacewave.createOrganization(trimmedOrgName)
+      onClose()
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to create organization',
+      )
+      setCreating(false)
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <input
+        ref={handleOrgNameInputRef}
+        value={orgName}
+        disabled={creating}
+        aria-busy={creating}
+        aria-label="Organization name"
+        onChange={(e) => {
+          setOrgName(e.target.value)
+          setError(null)
+        }}
+        placeholder="Organization name"
+        className={cn(
+          'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-1.5 text-xs transition-colors outline-none',
+          'focus:border-brand/50',
+        )}
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return
+          if (e.key === 'Enter' && trimmedOrgName && !creating) {
+            void handleCreate()
+          }
+        }}
+      />
+      {creating && (
+        <div className="text-foreground-alt flex items-center gap-1.5 text-xs">
+          <Spinner size="sm" />
+          <span>Creating organization…</span>
+        </div>
+      )}
+      {error && <p className="text-destructive text-xs">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => void handleCreate()}
+          disabled={creating || !trimmedOrgName}
+          aria-busy={creating}
+          className={cn(
+            'flex-1 rounded-md border py-1.5 text-xs transition-all',
+            'border-brand/30 bg-brand/10 hover:bg-brand/20',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+          )}
+        >
+          {creating ? 'Creating…' : 'Create'}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={creating}
+          className="border-foreground/10 hover:bg-foreground/5 flex-1 rounded-md border py-1.5 text-xs transition"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   )
 }
