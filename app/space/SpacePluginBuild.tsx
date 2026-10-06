@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, type ReactNode } from 'react'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 
 import type { Space } from '@s4wave/sdk/space/space.js'
@@ -44,16 +44,16 @@ export function SpacePluginBuild({
   return <BuildPanel key={space.id} space={space} context={context} />
 }
 
-function BuildPanel({
-  space,
-  context,
-}: {
-  space: Space
-  context: SpaceContainerContextValue
-}) {
-  const id = useId()
-  // Selections remain personal; source and build state come from the open World.
-  const { spaceWorldResource, navigateToObjects } = context
+interface BuildSelections {
+  sourceKey: string
+  deviceKey: string
+  manifestId: string
+}
+
+/** useBuildChoices lists the Space's source folders and build devices. */
+function useBuildChoices(
+  spaceWorldResource: SpaceContainerContextValue['spaceWorldResource'],
+) {
   const choices = useWorldQuery(
     spaceWorldResource,
     async (world, signal) => {
@@ -65,17 +65,23 @@ function BuildPanel({
     },
     [],
   ).value
-  const sources = choices?.sources ?? []
-  const devices = choices?.devices ?? []
-  const [sourceKey, setSourceKey] = useState('')
-  const [deviceKey, setDeviceKey] = useState('')
-  const [manifestId, setManifestId] = useState('')
+
+  return { sources: choices?.sources ?? [], devices: choices?.devices ?? [] }
+}
+
+/**
+ * useSpacePluginBuild queues a pinned build for the selections and watches its
+ * task. The watch releases on panel close; an immutable build keeps running.
+ */
+function useSpacePluginBuild(
+  space: Space,
+  spaceWorldResource: SpaceContainerContextValue['spaceWorldResource'],
+  { sourceKey, deviceKey, manifestId }: BuildSelections,
+) {
   const [submitted, setSubmitted] = useState<SubmittedBuild | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const [authoring, setAuthoring] = useState(false)
 
-  // The subscription releases on panel close; an immutable build keeps running.
   const status = useStreamingResource(
     spaceWorldResource,
     async function* (world, signal) {
@@ -95,11 +101,10 @@ function BuildPanel({
   const result = task?.result
   const building =
     submitted != null && task?.taskState !== State.TaskState_COMPLETE
-  const ready = result?.success === true
   const canBuild =
     sourceKey !== '' &&
     deviceKey !== '' &&
-    isValidSpacePluginId(manifestId.trim()) &&
+    isValidSpacePluginId(request.manifestId) &&
     !pending &&
     !building
 
@@ -128,10 +133,146 @@ function BuildPanel({
     }
   }
 
+  return {
+    request,
+    submitted,
+    pending,
+    error,
+    status,
+    building,
+    canBuild,
+    build,
+    message: buildMessage(result, building),
+  }
+}
+
+/** buildMessage returns the status line for the build result. */
+function buildMessage(
+  result:
+    | { success?: boolean; canceled?: boolean; failError?: string }
+    | undefined,
+  building: boolean,
+): string {
+  if (result?.success === true) {
+    return 'Plugin installed. Its status appears in the installed list.'
+  }
+  if (result?.canceled) return 'Build canceled. You can build again.'
+  if (result?.failError) return result.failError
+  if (building) {
+    return 'The build continues on your device and installs when it completes.'
+  }
+  return ''
+}
+
+const selectClass =
+  'border-foreground/10 bg-background w-full rounded-md border p-2 text-xs [@media(pointer:coarse)]:h-11'
+const touchTargetClass = '[@media(pointer:coarse)]:min-h-11'
+
+interface BuildSelectProps {
+  label: string
+  value: string
+  options: string[]
+  placeholder: string
+  disabled: boolean
+  onChange: (value: string) => void
+  children?: ReactNode
+}
+
+/** BuildSelect is a labeled select over object keys, with optional trailing actions. */
+function BuildSelect({
+  label,
+  value,
+  options,
+  placeholder,
+  disabled,
+  onChange,
+  children,
+}: BuildSelectProps) {
+  const id = useId()
+
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-xs">
+        {label}
+      </label>
+      <select
+        id={id}
+        className={selectClass}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      {children}
+    </div>
+  )
+}
+
+/** BuildAuthoringDialog hosts the source-and-preview workbench for the manifest. */
+function BuildAuthoringDialog({
+  open,
+  onOpenChange,
+  request,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  request: BuildSelections
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent variant="editor">
+        <DialogHeader variant="editor">
+          <DialogTitle variant="editor">Edit {request.manifestId}</DialogTitle>
+          <DialogDescription>
+            Source changes update this preview. Close it and build to publish a
+            new plugin version into the Space.
+          </DialogDescription>
+        </DialogHeader>
+        {open && <SpacePluginWorkbench request={request} />}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function BuildPanel({
+  space,
+  context,
+}: {
+  space: Space
+  context: SpaceContainerContextValue
+}) {
+  const id = useId()
+  // Selections remain personal; source and build state come from the open World.
+  const { spaceWorldResource, navigateToObjects } = context
+  const { sources, devices } = useBuildChoices(spaceWorldResource)
+  const [sourceKey, setSourceKey] = useState('')
+  const [deviceKey, setDeviceKey] = useState('')
+  const [manifestId, setManifestId] = useState('')
+  const [authoring, setAuthoring] = useState(false)
+  const {
+    request,
+    submitted,
+    pending,
+    error,
+    status,
+    building,
+    canBuild,
+    build,
+    message,
+  } = useSpacePluginBuild(space, spaceWorldResource, {
+    sourceKey,
+    deviceKey,
+    manifestId,
+  })
+  const locked = pending || building
+
   // Use the existing settings layout and a retained source-and-preview dialog.
-  const selectClass =
-    'border-foreground/10 bg-background w-full rounded-md border p-2 text-xs [@media(pointer:coarse)]:h-11'
-  const touchTargetClass = '[@media(pointer:coarse)]:min-h-11'
   return (
     <details className="border-foreground/10 rounded-lg border p-3">
       <summary className="cursor-pointer text-xs font-medium [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
@@ -142,28 +283,18 @@ function BuildPanel({
           Choose a source folder with bldr.yaml and a registered build device. A
           completed build installs into this Space.
         </p>
-        <div className="space-y-1">
-          <label htmlFor={`${id}-source`} className="text-xs">
-            Source folder
-          </label>
-          <select
-            id={`${id}-source`}
-            className={selectClass}
-            value={sourceKey}
-            onChange={(event) => setSourceKey(event.target.value)}
-            disabled={pending || building}
-          >
-            <option value="">
-              {sources.length
-                ? 'Choose a source folder'
-                : 'Add a source folder to this Space'}
-            </option>
-            {sources.map((source) => (
-              <option key={source} value={source}>
-                {source}
-              </option>
-            ))}
-          </select>
+        <BuildSelect
+          label="Source folder"
+          value={sourceKey}
+          options={sources}
+          placeholder={
+            sources.length
+              ? 'Choose a source folder'
+              : 'Add a source folder to this Space'
+          }
+          disabled={locked}
+          onChange={setSourceKey}
+        >
           {sourceKey && (
             <Button
               size="sm"
@@ -174,30 +305,19 @@ function BuildPanel({
               Edit source
             </Button>
           )}
-        </div>
-        <div className="space-y-1">
-          <label htmlFor={`${id}-device`} className="text-xs">
-            Build device
-          </label>
-          <select
-            id={`${id}-device`}
-            className={selectClass}
-            value={deviceKey}
-            onChange={(event) => setDeviceKey(event.target.value)}
-            disabled={pending || building}
-          >
-            <option value="">
-              {devices.length
-                ? 'Choose a build device'
-                : 'Register a device in Computers first'}
-            </option>
-            {devices.map((device) => (
-              <option key={device} value={device}>
-                {device}
-              </option>
-            ))}
-          </select>
-        </div>
+        </BuildSelect>
+        <BuildSelect
+          label="Build device"
+          value={deviceKey}
+          options={devices}
+          placeholder={
+            devices.length
+              ? 'Choose a build device'
+              : 'Register a device in Computers first'
+          }
+          disabled={locked}
+          onChange={setDeviceKey}
+        />
         <div className="space-y-1">
           <label htmlFor={`${id}-manifest`} className="text-xs">
             Plugin manifest ID
@@ -209,7 +329,7 @@ function BuildPanel({
             placeholder="my-colors"
             variant="plugin"
             className={touchTargetClass}
-            disabled={pending || building}
+            disabled={locked}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -243,14 +363,7 @@ function BuildPanel({
           )}
         </div>
         <div role="status" className="text-foreground-alt/70 text-xs">
-          {ready
-            ? 'Plugin installed. Its status appears in the installed list.'
-            : result?.canceled
-              ? 'Build canceled. You can build again.'
-              : result?.failError ||
-                (building
-                  ? 'The build continues on your device and installs when it completes.'
-                  : '')}
+          {message}
         </div>
         <SpacePluginObjects
           space={space}
@@ -276,18 +389,11 @@ function BuildPanel({
           </div>
         )}
       </div>
-      <Dialog open={authoring} onOpenChange={setAuthoring}>
-        <DialogContent variant="editor">
-          <DialogHeader variant="editor">
-            <DialogTitle variant="editor">Edit {manifestId.trim()}</DialogTitle>
-            <DialogDescription>
-              Source changes update this preview. Close it and build to publish
-              a new plugin version into the Space.
-            </DialogDescription>
-          </DialogHeader>
-          {authoring && <SpacePluginWorkbench request={request} />}
-        </DialogContent>
-      </Dialog>
+      <BuildAuthoringDialog
+        open={authoring}
+        onOpenChange={setAuthoring}
+        request={request}
+      />
     </details>
   )
 }
