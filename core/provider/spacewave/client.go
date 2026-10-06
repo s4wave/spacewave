@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -151,6 +153,7 @@ func (c *SignedHTTPClient) signRequest(req *http.Request, body []byte) error {
 
 // signRequestPrecomputed signs an HTTP request using a pre-computed body hash and content length.
 func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []byte, contentLength int64) error {
+	// Refuse to sign without a key or an external signer.
 	if c.priv == nil && c.sign == nil {
 		return ErrSigningUnavailable
 	}
@@ -173,6 +176,7 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 		hdrs.WriteString(req.Header.Get(k))
 	}
 
+	// Stamp the request time and encode the body hash.
 	timestampMs := time.Now().UnixMilli()
 	bodyHashHex := hex.EncodeToString(bodyHash)
 
@@ -192,6 +196,7 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 		return errors.Wrap(err, "marshal signing payload")
 	}
 
+	// Sign with the held key, or with the external signer when one is set.
 	signPayload := func(payload []byte) ([]byte, error) {
 		return c.priv.Sign(payload)
 	}
@@ -294,11 +299,11 @@ func rateLimitDelay(resp *http.Response) (time.Duration, error) {
 // doPost signs and executes a POST request, returning the response body.
 // reason tags the request with X-Alpha-Seed-Reason when non-empty.
 func (c *SignedHTTPClient) doPost(ctx context.Context, path string, contentType string, body []byte, headers map[string]string, reason SeedReason) ([]byte, error) {
+	// Build the request at the joined path with its content type and headers.
 	reqURL, err := url.JoinPath(c.baseURL, path)
 	if err != nil {
 		return nil, errors.Wrap(err, "build URL")
 	}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -307,25 +312,8 @@ func (c *SignedHTTPClient) doPost(ctx context.Context, path string, contentType 
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
-	if reason != "" {
-		req.Header.Set(SeedReasonHeader, string(reason))
-	}
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
+	return c.send(req, reason)
 }
 
 // doPostBinary signs and executes a POST request with protobuf binary content
@@ -336,116 +324,21 @@ func (c *SignedHTTPClient) doPost(ctx context.Context, path string, contentType 
 // headers carries any extra request headers (e.g., X-Turnstile-Token).
 // reason tags the request with X-Alpha-Seed-Reason when non-empty.
 func (c *SignedHTTPClient) doPostBinary(ctx context.Context, path string, body []byte, headers map[string]string, reason SeedReason) ([]byte, error) {
-	reqURL, err := url.JoinPath(c.baseURL, path)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("Accept", "application/octet-stream")
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	if reason != "" {
-		req.Header.Set(SeedReasonHeader, string(reason))
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
+	binHeaders := map[string]string{"Accept": "application/octet-stream"}
+	maps.Copy(binHeaders, headers)
+	return c.doPost(ctx, path, "application/octet-stream", body, binHeaders, reason)
 }
 
 // doDelete signs and executes a DELETE request, returning the response body.
 // reason tags the request with X-Alpha-Seed-Reason when non-empty.
 func (c *SignedHTTPClient) doDelete(ctx context.Context, path string, reason SeedReason) ([]byte, error) {
-	base, err := url.Parse(c.baseURL)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse base URL")
-	}
-	ref, err := url.Parse(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse path")
-	}
-	reqURL := base.ResolveReference(ref).String()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/octet-stream")
-	if reason != "" {
-		req.Header.Set(SeedReasonHeader, string(reason))
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
+	return c.doResolved(ctx, http.MethodDelete, path, "application/octet-stream", reason)
 }
 
 // doGet signs and executes a GET request, returning the response body.
 // reason tags the request with X-Alpha-Seed-Reason when non-empty.
 func (c *SignedHTTPClient) doGet(ctx context.Context, path string, reason SeedReason) ([]byte, error) {
-	base, err := url.Parse(c.baseURL)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse base URL")
-	}
-	ref, err := url.Parse(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse path")
-	}
-	reqURL := base.ResolveReference(ref).String()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	if reason != "" {
-		req.Header.Set(SeedReasonHeader, string(reason))
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
+	return c.doResolved(ctx, http.MethodGet, path, "", reason)
 }
 
 // doGetBinary signs and executes a GET request, advertising protobuf binary on
@@ -454,6 +347,14 @@ func (c *SignedHTTPClient) doGet(ctx context.Context, path string, reason SeedRe
 //
 // reason tags the request with X-Alpha-Seed-Reason when non-empty.
 func (c *SignedHTTPClient) doGetBinary(ctx context.Context, path string, reason SeedReason) ([]byte, error) {
+	return c.doResolved(ctx, http.MethodGet, path, "application/octet-stream", reason)
+}
+
+// doResolved signs and executes a bodiless request at path, which may carry a
+// query string, resolved against the base URL. accept sets the Accept header
+// when non-empty.
+func (c *SignedHTTPClient) doResolved(ctx context.Context, method, path, accept string, reason SeedReason) ([]byte, error) {
+	// Resolve the path and its query against the base URL.
 	base, err := url.Parse(c.baseURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse base URL")
@@ -462,32 +363,120 @@ func (c *SignedHTTPClient) doGetBinary(ctx context.Context, path string, reason 
 	if err != nil {
 		return nil, errors.Wrap(err, "parse path")
 	}
-	reqURL := base.ResolveReference(ref).String()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	// Build the request and send it.
+	req, err := http.NewRequestWithContext(ctx, method, base.ResolveReference(ref).String(), nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "application/octet-stream")
+	if accept != "" {
+		req.Header.Set("Accept", accept)
+	}
+	return c.send(req, reason)
+}
+
+// send signs and executes req, tagging it with reason when non-empty. It
+// returns the body of a 2xx response, or the cloud error any other status
+// carries.
+func (c *SignedHTTPClient) send(req *http.Request, reason SeedReason) ([]byte, error) {
+	// Tag and send the request.
 	if reason != "" {
 		req.Header.Set(SeedReasonHeader, string(reason))
 	}
-
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
+	// Read the body and report a non-2xx status as the cloud error.
 	respBody, err := readResponseBody(resp)
 	if err != nil {
 		return nil, err
 	}
-
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, parseCloudResponseError(resp, respBody)
 	}
 	return respBody, nil
+}
+
+// postMessage signs and posts req to path and decodes the response into resp.
+func (c *SignedHTTPClient) postMessage(ctx context.Context, path string, req, resp protobuf_go_lite.Message, reason SeedReason) error {
+	body, err := req.MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "marshal request")
+	}
+	return c.postBody(ctx, path, body, resp, reason)
+}
+
+// postBody signs and posts an encoded body to path and decodes the response
+// into resp.
+func (c *SignedHTTPClient) postBody(ctx context.Context, path string, body []byte, resp protobuf_go_lite.Message, reason SeedReason) error {
+	data, err := c.doPostBinary(ctx, path, body, nil, reason)
+	return decodeResponse(resp, data, err)
+}
+
+// getMessage signs and sends a GET to path and decodes the response into resp.
+func (c *SignedHTTPClient) getMessage(ctx context.Context, path string, resp protobuf_go_lite.Message, reason SeedReason) error {
+	data, err := c.doGetBinary(ctx, path, reason)
+	return decodeResponse(resp, data, err)
+}
+
+// deleteMessage signs and sends a DELETE to path and decodes the response
+// into resp.
+func (c *SignedHTTPClient) deleteMessage(ctx context.Context, path string, resp protobuf_go_lite.Message, reason SeedReason) error {
+	data, err := c.doDelete(ctx, path, reason)
+	return decodeResponse(resp, data, err)
+}
+
+// decodeResponse decodes a response body into resp, returning the request
+// error unchanged when the request failed.
+func decodeResponse(resp protobuf_go_lite.Message, data []byte, err error) error {
+	if err != nil {
+		return err
+	}
+	return errors.Wrap(resp.UnmarshalVT(data), "unmarshal response")
+}
+
+// sendMultiSig sends an encoded MultiSigRequest without a session signature,
+// since multi-sig routes authenticate by the entity signatures in the body,
+// and decodes the MultiSigActionResponse. reason tags the request when
+// non-empty.
+func (c *SignedHTTPClient) sendMultiSig(ctx context.Context, method, reqPath string, body []byte, reason SeedReason) (*api.MultiSigActionResponse, error) {
+	// Build the unsigned request.
+	reqURL, err := url.JoinPath(c.baseURL, reqPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "build URL")
+	}
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, errors.Wrap(err, "create request")
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	if reason != "" {
+		req.Header.Set(SeedReasonHeader, string(reason))
+	}
+
+	// Send it and report a status other than 200 as the cloud error.
+	resp, err := c.httpCli.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "multi-sig request")
+	}
+	defer httpclient.DrainAndCloseResponseBody(resp)
+	respBody, err := readResponseBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, parseCloudResponseError(resp, respBody)
+	}
+
+	// Decode the action response; an empty body carries no result.
+	out := &api.MultiSigActionResponse{}
+	if err := out.UnmarshalVT(respBody); err != nil {
+		return nil, errors.Wrap(err, "unmarshal multi-sig response")
+	}
+	return out, nil
 }
 
 // MultiSigContext is the signing context for multi-sig actions.
@@ -572,6 +561,7 @@ func NewEntityClientSigner(
 
 // initPrivKey initializes the private key from the peer if not already set.
 func (c *EntityClient) initPrivKey(ctx context.Context, p peer.Peer) error {
+	// Load the entity key from the peer once.
 	if c.priv != nil {
 		return nil
 	}
@@ -587,10 +577,12 @@ func (c *EntityClient) initPrivKey(ctx context.Context, p peer.Peer) error {
 //
 // Returns the server-generated account ID.
 func (c *EntityClient) RegisterAccount(ctx context.Context, entityID, authMethod string, authParams []byte, turnstileToken string) (string, error) {
+	// Require the entity key that signs the registration.
 	if c.priv == nil {
 		return "", errors.New("no private key configured")
 	}
 
+	// Encode the account with its first entity keypair.
 	req := &api.RegisterAccountRequest{
 		EntityId: entityID,
 		Keypairs: []*session.EntityKeypair{{
@@ -604,19 +596,13 @@ func (c *EntityClient) RegisterAccount(ctx context.Context, entityID, authMethod
 		return "", errors.Wrap(err, "marshal register request")
 	}
 
-	headers := make(map[string]string)
-	if turnstileToken != "" {
-		headers["X-Turnstile-Token"] = turnstileToken
-	}
-	if deviceTypeValue != "" {
-		headers["X-Device-Type"] = deviceTypeValue
-	}
-
-	respBody, err := c.doPostBinary(ctx, "/api/account/register", body, headers, SeedReasonMutation)
+	// Register the account.
+	respBody, err := c.doPostBinary(ctx, "/api/account/register", body, registrationHeaders(turnstileToken), SeedReasonMutation)
 	if err != nil {
 		return "", errors.Wrap(err, "register account")
 	}
 
+	// Read the server-generated account ID.
 	var resp api.RegisterAccountResponse
 	if err := resp.UnmarshalVT(respBody); err != nil {
 		return "", errors.Wrap(err, "unmarshal register response")
@@ -659,6 +645,7 @@ func (c *EntityClient) RegisterSessionDirectWithResponse(ctx context.Context, se
 // SpaceLink approval can set APP/DEVICE type, label, and future request fields
 // without adding another positional helper.
 func (c *EntityClient) RegisterSessionWithRequest(ctx context.Context, req *api.RegisterSessionRequest, turnstileToken string) (*api.RegisterSessionResponse, error) {
+	// Encode the registration request.
 	if req == nil {
 		return nil, errors.New("session registration request is required")
 	}
@@ -667,15 +654,8 @@ func (c *EntityClient) RegisterSessionWithRequest(ctx context.Context, req *api.
 		return nil, errors.Wrap(err, "marshal session request")
 	}
 
-	headers := make(map[string]string)
-	if turnstileToken != "" {
-		headers["X-Turnstile-Token"] = turnstileToken
-	}
-	if deviceTypeValue != "" {
-		headers["X-Device-Type"] = deviceTypeValue
-	}
-
-	respBody, err := c.doPostBinary(ctx, "/api/account/session/register", body, headers, SeedReasonMutation)
+	// Register the session, mapping unknown entity and keypair errors.
+	respBody, err := c.doPostBinary(ctx, "/api/account/session/register", body, registrationHeaders(turnstileToken), SeedReasonMutation)
 	if err != nil {
 		var ce *cloudError
 		if errors.As(err, &ce) {
@@ -689,11 +669,25 @@ func (c *EntityClient) RegisterSessionWithRequest(ctx context.Context, req *api.
 		return nil, errors.Wrap(err, "register session")
 	}
 
+	// Decode the registration response.
 	var resp api.RegisterSessionResponse
 	if err := resp.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal session response")
 	}
 	return &resp, nil
+}
+
+// registrationHeaders returns the Turnstile token and device type headers of
+// an account or session registration, omitting the ones that are unset.
+func registrationHeaders(turnstileToken string) map[string]string {
+	headers := make(map[string]string)
+	if turnstileToken != "" {
+		headers["X-Turnstile-Token"] = turnstileToken
+	}
+	if deviceTypeValue != "" {
+		headers["X-Device-Type"] = deviceTypeValue
+	}
+	return headers
 }
 
 // RollbackSessionRegistration removes a just-created APP/DEVICE registration
@@ -714,9 +708,12 @@ func (c *EntityClient) signMultiSig(
 	keys []crypto.PrivKey,
 	peerIDs []string,
 ) ([]*api.EntitySignature, error) {
+	// Require one peer ID per signing key.
 	if len(keys) != len(peerIDs) {
 		return nil, errors.New("keys and peerIDs length mismatch")
 	}
+
+	// Sign the time-stamped payload with each key.
 	now := timestamppb.New(time.Now().Truncate(time.Millisecond))
 	payload := BuildMultiSigPayload(now, envelope)
 	sigs := make([]*api.EntitySignature, len(keys))
@@ -746,6 +743,7 @@ func (c *EntityClient) doMultiSig(
 	keys []crypto.PrivKey,
 	peerIDs []string,
 ) (*api.MultiSigActionResponse, error) {
+	// Encode the envelope and sign it with each entity key.
 	envelope := &api.MultiSigActionEnvelope{
 		AccountId: accountID,
 		Kind:      kind,
@@ -761,42 +759,13 @@ func (c *EntityClient) doMultiSig(
 	if err != nil {
 		return nil, err
 	}
-	msReq := &api.MultiSigRequest{Envelope: envBytes, Signatures: sigs}
-	body, err := msReq.MarshalVT()
+
+	// Send the envelope with its signatures.
+	body, err := (&api.MultiSigRequest{Envelope: envBytes, Signatures: sigs}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal multi-sig request")
 	}
-	reqURL, err := url.JoinPath(c.baseURL, reqPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	req.Header.Set("Content-Type", "application/octet-stream")
-	resp, err := c.httpCli.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "multi-sig request")
-	}
-	defer httpclient.DrainAndCloseResponseBody(resp)
-	respBody, readErr := readResponseBody(resp)
-	if resp.StatusCode != http.StatusOK {
-		if readErr != nil {
-			return nil, readErr
-		}
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	if readErr != nil {
-		return nil, readErr
-	}
-	out := &api.MultiSigActionResponse{}
-	if len(respBody) != 0 {
-		if err := out.UnmarshalVT(respBody); err != nil {
-			return nil, errors.Wrap(err, "unmarshal multi-sig response")
-		}
-	}
-	return out, nil
+	return c.sendMultiSig(ctx, method, reqPath, body, "")
 }
 
 // postMultiSig builds, signs, and posts a typed multi-sig envelope to the
@@ -822,6 +791,7 @@ func (c *EntityClient) AddKeypair(
 	entityKeys []crypto.PrivKey,
 	entityPeerIDs []string,
 ) (*api.KeypairAddResult, error) {
+	// Encode the action and send it with the entity signatures.
 	payload, err := (&api.AddKeypairAction{Keypair: keypair}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal add keypair action")
@@ -838,6 +808,8 @@ func (c *EntityClient) AddKeypair(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the per-action result.
 	result := resp.GetKeypairAdd()
 	if result == nil {
 		return nil, errors.New("multi-sig response missing keypair add result")
@@ -854,6 +826,7 @@ func (c *EntityClient) RemoveKeypair(
 	entityKeys []crypto.PrivKey,
 	entityPeerIDs []string,
 ) (*api.KeypairRemoveResult, error) {
+	// Encode the action and send it with the entity signatures.
 	payload, err := (&api.RemoveKeypairAction{PeerId: peerIDToRemove}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal remove keypair action")
@@ -870,6 +843,8 @@ func (c *EntityClient) RemoveKeypair(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the per-action result.
 	result := resp.GetKeypairRemove()
 	if result == nil {
 		return nil, errors.New("multi-sig response missing keypair remove result")
@@ -886,6 +861,7 @@ func (c *EntityClient) UpdateThreshold(
 	entityKeys []crypto.PrivKey,
 	entityPeerIDs []string,
 ) (*api.ThresholdChangeResult, error) {
+	// Encode the action and send it with the entity signatures.
 	payload, err := (&api.UpdateThresholdAction{Threshold: threshold}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal update threshold action")
@@ -902,6 +878,8 @@ func (c *EntityClient) UpdateThreshold(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the per-action result.
 	result := resp.GetThresholdChange()
 	if result == nil {
 		return nil, errors.New("multi-sig response missing threshold change result")
@@ -917,6 +895,7 @@ func (c *EntityClient) RevokeSession(
 	entityKeys []crypto.PrivKey,
 	entityPeerIDs []string,
 ) (*api.SessionRevokeResult, error) {
+	// Encode the action and send it with the entity signatures.
 	payload, err := (&api.RevokeSessionAction{SessionPeerId: sessionPeerID}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal revoke session action")
@@ -934,6 +913,8 @@ func (c *EntityClient) RevokeSession(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the per-action result.
 	result := resp.GetSessionRevoke()
 	if result == nil {
 		return nil, errors.New("multi-sig response missing session revoke result")
@@ -949,6 +930,7 @@ func (c *EntityClient) DeleteAccount(
 	entityKeys []crypto.PrivKey,
 	entityPeerIDs []string,
 ) (*api.AccountDeleteResult, error) {
+	// Encode the action and send it with the entity signatures.
 	payload, err := (&api.DeleteAccountAction{}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal delete account action")
@@ -966,6 +948,8 @@ func (c *EntityClient) DeleteAccount(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the per-action result.
 	result := resp.GetAccountDelete()
 	if result == nil {
 		return nil, errors.New("multi-sig response missing account delete result")
@@ -1059,53 +1043,14 @@ func (c *SessionClient) GetAdminJSON(ctx context.Context, requestPath string) ([
 // parsed MultiSigActionResponse envelope.
 // Multi-sig routes authenticate via body signatures, not session headers.
 func (c *SessionClient) DoMultiSig(ctx context.Context, method string, reqPath string, body []byte) (*api.MultiSigActionResponse, error) {
-	reqURL, err := url.JoinPath(c.baseURL, reqPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "create request")
-	}
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set(SeedReasonHeader, string(SeedReasonMutation))
-	resp, err := c.httpCli.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "multi-sig request")
-	}
-	defer httpclient.DrainAndCloseResponseBody(resp)
-	respBody, readErr := readResponseBody(resp)
-	if resp.StatusCode != http.StatusOK {
-		if readErr != nil {
-			return nil, readErr
-		}
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	if readErr != nil {
-		return nil, readErr
-	}
-	out := &api.MultiSigActionResponse{}
-	if len(respBody) != 0 {
-		if err := out.UnmarshalVT(respBody); err != nil {
-			return nil, errors.Wrap(err, "unmarshal multi-sig response")
-		}
-	}
-	return out, nil
+	return c.sendMultiSig(ctx, method, reqPath, body, SeedReasonMutation)
 }
 
 // GetSessionTicket requests a short-lived JWT ticket for WebSocket auth.
 func (c *SessionClient) GetSessionTicket(ctx context.Context) (string, error) {
-	body, err := (&api.SessionTicketRequest{}).MarshalVT()
-	if err != nil {
-		return "", errors.Wrap(err, "marshal session ticket request")
-	}
-	data, err := c.doPostBinary(ctx, "/api/session/ticket", body, nil, SeedReasonReconnect)
-	if err != nil {
-		return "", errors.Wrap(err, "get session ticket")
-	}
 	var resp api.TicketResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return "", errors.Wrap(err, "unmarshal ticket response")
+	if err := c.postMessage(ctx, "/api/session/ticket", &api.SessionTicketRequest{}, &resp, SeedReasonReconnect); err != nil {
+		return "", errors.Wrap(err, "get session ticket")
 	}
 	if resp.GetTicket() == "" {
 		return "", errors.New("empty ticket in response")
@@ -1183,8 +1128,9 @@ func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *s
 		return errors.New("sync push bloom_format_version required")
 	}
 
-	// Encode the push request that admits the pack.
-	reqData, err := (&packfile.PushRequest{
+	// Admit the pack, learning whether the catalog needs its bytes.
+	pushPath := path.Join("/api/bstore", resourceID, "sync/push")
+	req := &packfile.PushRequest{
 		PackId:             pack.packID,
 		BlockCount:         uint64(pack.blockCount), //nolint:gosec // block counts are positive
 		BloomFilter:        pack.bloomFilter,
@@ -1192,20 +1138,10 @@ func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *s
 		SizeBytes:          uint64(size), //nolint:gosec // sizes are positive
 		Sha256:             pack.bodyHash,
 		ReplacesPackIds:    pack.replacedPackIDs,
-	}).MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal push request")
-	}
-
-	// Admit the pack, learning whether the catalog needs its bytes.
-	pushPath := path.Join("/api/bstore", resourceID, "sync/push")
-	respData, err := c.doPostBinary(ctx, pushPath, reqData, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "sync push")
 	}
 	resp := &packfile.PushResponse{}
-	if err := resp.UnmarshalVT(respData); err != nil {
-		return errors.Wrap(err, "unmarshal push response")
+	if err := c.postMessage(ctx, pushPath, req, resp, SeedReasonMutation); err != nil {
+		return errors.Wrap(err, "sync push")
 	}
 	upload := resp.GetUpload()
 	if upload == nil {
@@ -1218,10 +1154,8 @@ func (c *SessionClient) syncPush(ctx context.Context, resourceID string, pack *s
 	}
 
 	// Commit the stored pack to the catalog.
-	if _, err := c.doPostBinary(ctx, path.Join(pushPath, pack.packID, "commit"), nil, nil, SeedReasonMutation); err != nil {
-		return errors.Wrap(err, "sync push commit")
-	}
-	return nil
+	_, err := c.doPostBinary(ctx, path.Join(pushPath, pack.packID, "commit"), nil, nil, SeedReasonMutation)
+	return errors.Wrap(err, "sync push commit")
 }
 
 // uploadPack sends size bytes of body to the signed upload URL.
@@ -1259,25 +1193,18 @@ func (c *SessionClient) SyncPull(ctx context.Context, resourceID string, since u
 	}
 
 	// Fetch and decode the binary catalog page.
-	data, err := c.doGet(ctx, p, SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "sync pull")
-	}
 	resp := &packfile.PullResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal pull response")
+	if err := c.getMessage(ctx, p, resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "sync pull")
 	}
 	return resp, nil
 }
 
 // PostOp posts one signed operation to a shared object.
 func (c *SessionClient) PostOp(ctx context.Context, soID string, opData []byte) error {
-	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "op"), opData, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "post op")
-	}
 	var resp api.SubmitOpResponse
-	return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit op response")
+	err := c.postBody(ctx, path.Join("/api/sobject", soID, "op"), opData, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post op")
 }
 
 // maxOpsBatchBytes is the largest operation batch body the cloud accepts.
@@ -1297,31 +1224,18 @@ func (c *SessionClient) PostOps(ctx context.Context, soID string, operations []*
 		return errors.New("operation batch exceeds 256 KiB")
 	}
 
-	// Post it.
-	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "ops"), body, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "post ops")
-	}
+	// Post the batch.
 	var resp api.SubmitOpResponse
-	return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit ops response")
+	err = c.postBody(ctx, path.Join("/api/sobject", soID, "ops"), body, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post ops")
 }
 
 // PostCheckpoint posts an owner-signed checkpoint to a shared object. The
 // first checkpoint of a new object is its genesis checkpoint.
 func (c *SessionClient) PostCheckpoint(ctx context.Context, soID string, checkpoint *sobject.SOCheckpoint) error {
-	// Encode the checkpoint request.
-	body, err := (&api.PostCheckpointRequest{Checkpoint: checkpoint}).MarshalVT()
-	if err != nil {
-		return err
-	}
-
-	// Post it.
-	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "checkpoint"), body, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "post checkpoint")
-	}
 	var resp api.SubmitCheckpointResponse
-	return errors.Wrap(resp.UnmarshalVT(data), "unmarshal submit checkpoint response")
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "checkpoint"), &api.PostCheckpointRequest{Checkpoint: checkpoint}, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post checkpoint")
 }
 
 // PostClientErrorReport submits a best-effort diagnostic report for a client-side failure.
@@ -1333,31 +1247,16 @@ func (c *SessionClient) PostClientErrorReport(
 	resourceID string,
 	detail string,
 ) error {
-	body, err := (&api.ClientErrorReportRequest{
+	req := &api.ClientErrorReportRequest{
 		ErrorCode:    errorCode,
 		Component:    component,
 		ResourceType: resourceType,
 		ResourceId:   resourceID,
 		Detail:       detail,
-	}).MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal client error report request")
-	}
-	data, err := c.doPostBinary(
-		ctx,
-		"/api/account/client-error-report",
-		body,
-		nil,
-		SeedReasonMutation,
-	)
-	if err != nil {
-		return errors.Wrap(err, "post client error report")
 	}
 	var resp api.ClientErrorReportResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal client error report response")
-	}
-	return nil
+	err := c.postMessage(ctx, "/api/account/client-error-report", req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post client error report")
 }
 
 // CreateSharedObject creates a new shared object in the cloud.
@@ -1371,30 +1270,16 @@ func (c *SessionClient) CreateSharedObject(
 	ownerID string,
 	accountPrivate bool,
 ) error {
-	// Marshal the shared-object creation request.
-	body, err := (&api.CreateSObjectRequest{
+	req := &api.CreateSObjectRequest{
 		DisplayName:    displayName,
 		ObjectType:     objectType,
 		OwnerType:      ownerType,
 		OwnerId:        ownerID,
 		AccountPrivate: accountPrivate,
-	}).MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal create request")
 	}
-
-	// Submit the creation mutation to the cloud.
-	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "create"), body, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "create shared object")
-	}
-
-	// Decode the cloud response before returning.
 	var resp api.CreateSObjectResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal create shared object response")
-	}
-	return nil
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "create"), req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "create shared object")
 }
 
 // ListSharedObjects lists shared objects from the cloud.
@@ -1410,10 +1295,13 @@ func (c *SessionClient) ListSharedObjects(ctx context.Context) ([]byte, error) {
 // If since > 0, the server may use it as a hint for incremental delivery.
 // reason tags the fan-out origin (cold-seed, gap-recovery, or reconnect).
 func (c *SessionClient) GetSOState(ctx context.Context, soID string, since uint64, reason SeedReason) ([]byte, error) {
+	// Address the state, hinting the last seen sequence.
 	p := path.Join("/api/sobject", soID, "state")
 	if since > 0 {
 		p += "?since=" + strconv.FormatUint(since, 10)
 	}
+
+	// Fetch the encoded state.
 	data, err := c.doGet(ctx, p, reason)
 	if err != nil {
 		return nil, errors.Wrap(err, "get so state")
@@ -1432,15 +1320,9 @@ func (c *SessionClient) GetConfigChain(ctx context.Context, soID string) ([]byte
 
 // PostConfig posts a signed config change to a shared object.
 func (c *SessionClient) PostConfig(ctx context.Context, soID string, configData []byte) error {
-	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "config"), configData, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "post config")
-	}
 	var resp api.PostConfigResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal post config response")
-	}
-	return nil
+	err := c.postBody(ctx, path.Join("/api/sobject", soID, "config"), configData, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post config")
 }
 
 // PostConfigState posts a signed config change and updated invite state.
@@ -1458,25 +1340,9 @@ func (c *SessionClient) PostConfigState(
 		KeyEpoch:          keyEpoch,
 		RecoveryEnvelopes: recoveryEnvelopes,
 	}
-	body, err := req.MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal config state request")
-	}
-	data, err := c.doPostBinary(
-		ctx,
-		path.Join("/api/sobject", soID, "config-state"),
-		body,
-		nil,
-		SeedReasonMutation,
-	)
-	if err != nil {
-		return errors.Wrap(err, "post config state")
-	}
 	var resp api.PostConfigStateResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal post config state response")
-	}
-	return nil
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "config-state"), req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post config state")
 }
 
 // PostControl posts signed control messages of the open group decision. The
@@ -1503,42 +1369,26 @@ func (c *SessionClient) PostKeyEpoch(
 	epoch *sobject.SOKeyEpoch,
 	recoveryEnvelopes []*sobject.SOEntityRecoveryEnvelope,
 ) error {
-	body, err := (&api.PostKeyEpochRequest{
+	req := &api.PostKeyEpochRequest{
 		KeyEpoch:          epoch,
 		RecoveryEnvelopes: recoveryEnvelopes,
-	}).MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal key epoch request")
-	}
-	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "key-epoch"), body, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "post key epoch")
 	}
 	var resp api.PostKeyEpochResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal post key epoch response")
-	}
-	return nil
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "key-epoch"), req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "post key epoch")
 }
 
 // EnrollMember resolves all registered session peer IDs for a target account
 // on a given shared object. The SO DO queries D1 sessions for the account.
 // Returns the list of session peers keyed by peer_id.
 func (c *SessionClient) EnrollMember(ctx context.Context, soID, accountID string, ignoreExclusion bool) (*api.EnrollMemberResponse, error) {
-	body, err := (&api.EnrollMemberRequest{
+	req := &api.EnrollMemberRequest{
 		AccountId:       accountID,
 		IgnoreExclusion: ignoreExclusion,
-	}).MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal enroll member request")
-	}
-	data, err := c.doPost(ctx, path.Join("/api/sobject", soID, "enroll-member"), "application/octet-stream", body, nil, SeedReasonRejoin)
-	if err != nil {
-		return nil, err
 	}
 	resp := &api.EnrollMemberResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal enroll member response")
+	if err := c.postMessage(ctx, path.Join("/api/sobject", soID, "enroll-member"), req, resp, SeedReasonRejoin); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }
@@ -1546,17 +1396,9 @@ func (c *SessionClient) EnrollMember(ctx context.Context, soID, accountID string
 // ResolveMemberParticipants resolves the current SO participant peer IDs for a
 // target account on a given shared object.
 func (c *SessionClient) ResolveMemberParticipants(ctx context.Context, soID, accountID string) (*api.ResolveMemberParticipantsResponse, error) {
-	body, err := (&api.ResolveMemberParticipantsRequest{AccountId: accountID}).MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal resolve member participants request")
-	}
-	data, err := c.doPost(ctx, path.Join("/api/sobject", soID, "member-participants"), "application/octet-stream", body, nil, SeedReasonRejoin)
-	if err != nil {
-		return nil, err
-	}
 	resp := &api.ResolveMemberParticipantsResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal resolve member participants response")
+	if err := c.postMessage(ctx, path.Join("/api/sobject", soID, "member-participants"), &api.ResolveMemberParticipantsRequest{AccountId: accountID}, resp, SeedReasonRejoin); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }
@@ -1567,13 +1409,9 @@ func (c *SessionClient) ListSORecoveryEntityKeypairs(
 	ctx context.Context,
 	soID string,
 ) (*api.ListSORecoveryEntityKeypairsResponse, error) {
-	data, err := c.doGet(ctx, path.Join("/api/sobject", soID, "recovery-entity-keypairs"), SeedReasonRejoin)
-	if err != nil {
-		return nil, errors.Wrap(err, "list recovery entity keypairs")
-	}
 	resp := &api.ListSORecoveryEntityKeypairsResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal recovery entity keypairs response")
+	if err := c.getMessage(ctx, path.Join("/api/sobject", soID, "recovery-entity-keypairs"), resp, SeedReasonRejoin); err != nil {
+		return nil, errors.Wrap(err, "list recovery entity keypairs")
 	}
 	return resp, nil
 }
@@ -1584,13 +1422,9 @@ func (c *SessionClient) GetSORecoveryEnvelope(
 	ctx context.Context,
 	soID string,
 ) (*sobject.SOEntityRecoveryEnvelope, error) {
-	data, err := c.doGet(ctx, path.Join("/api/sobject", soID, "recovery-envelope"), SeedReasonRejoin)
-	if err != nil {
-		return nil, errors.Wrap(err, "get recovery envelope")
-	}
 	resp := &api.GetSORecoveryEnvelopeResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal recovery envelope response")
+	if err := c.getMessage(ctx, path.Join("/api/sobject", soID, "recovery-envelope"), resp, SeedReasonRejoin); err != nil {
+		return nil, errors.Wrap(err, "get recovery envelope")
 	}
 	if resp.GetEnvelope() == nil {
 		return nil, errors.New("recovery envelope missing from response")
@@ -1602,13 +1436,9 @@ func (c *SessionClient) GetSORecoveryEnvelope(
 // object's order with.
 func (c *SessionClient) GetSOSequencer(ctx context.Context, soID string) (string, error) {
 	// Fetch and decode the sequencer response.
-	data, err := c.doGet(ctx, path.Join("/api/sobject", soID, "sequencer"), SeedReasonColdSeed)
-	if err != nil {
-		return "", errors.Wrap(err, "get sequencer")
-	}
 	resp := &api.GetSOSequencerResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return "", errors.Wrap(err, "unmarshal sequencer response")
+	if err := c.getMessage(ctx, path.Join("/api/sobject", soID, "sequencer"), resp, SeedReasonColdSeed); err != nil {
+		return "", errors.Wrap(err, "get sequencer")
 	}
 
 	// A Cloud without a sequencer secret names no peer.
@@ -1621,30 +1451,16 @@ func (c *SessionClient) GetSOSequencer(ctx context.Context, soID string) (string
 // RegisterInviteCode registers a short invite code for the shared object.
 // The code maps to the full serialized SOInviteMessage for lookup.
 func (c *SessionClient) RegisterInviteCode(ctx context.Context, soID string, req *api.RegisterInviteCodeRequest) error {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal register invite code request")
-	}
-	data, err := c.doPost(ctx, path.Join("/api/sobject", soID, "invite-code"), "application/octet-stream", body, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "register invite code")
-	}
 	var resp api.RegisterInviteCodeResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal register invite code response")
-	}
-	return nil
+	err := c.postMessage(ctx, path.Join("/api/sobject", soID, "invite-code"), req, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "register invite code")
 }
 
 // LookupInviteCode resolves a short invite code to the full SOInviteMessage.
 func (c *SessionClient) LookupInviteCode(ctx context.Context, code string) (*api.LookupInviteCodeResponse, error) {
-	respBody, err := c.doGet(ctx, "/api/sobject/lookup-code?code="+url.QueryEscape(code), SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "lookup invite code")
-	}
 	resp := &api.LookupInviteCodeResponse{}
-	if err := resp.UnmarshalVT(respBody); err != nil {
-		return nil, errors.Wrap(err, "unmarshal lookup invite code response")
+	if err := c.getMessage(ctx, "/api/sobject/lookup-code?code="+url.QueryEscape(code), resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "lookup invite code")
 	}
 	return resp, nil
 }
@@ -1694,17 +1510,9 @@ func (c *SessionClient) SubmitMailboxEntry(
 	soID string,
 	req *api.SubmitMailboxEntryRequest,
 ) (*api.SubmitMailboxEntryResponse, error) {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal submit mailbox request")
-	}
-	respBody, err := c.doPost(ctx, "/api/sobject/"+soID+"/invite-mailbox", "application/octet-stream", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "submit mailbox entry")
-	}
 	resp := &api.SubmitMailboxEntryResponse{}
-	if err := resp.UnmarshalVT(respBody); err != nil {
-		return nil, errors.Wrap(err, "unmarshal submit mailbox response")
+	if err := c.postMessage(ctx, "/api/sobject/"+soID+"/invite-mailbox", req, resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, "submit mailbox entry")
 	}
 	return resp, nil
 }
@@ -1715,17 +1523,9 @@ func (c *SessionClient) ProcessMailboxEntry(
 	soID string,
 	req *api.ProcessMailboxEntryRequest,
 ) (*api.ProcessMailboxEntryResponse, error) {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal process mailbox request")
-	}
-	respBody, err := c.doPost(ctx, "/api/sobject/"+soID+"/invite-mailbox/process", "application/octet-stream", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "process mailbox entry")
-	}
 	resp := &api.ProcessMailboxEntryResponse{}
-	if err := resp.UnmarshalVT(respBody); err != nil {
-		return nil, errors.Wrap(err, "unmarshal process mailbox response")
+	if err := c.postMessage(ctx, "/api/sobject/"+soID+"/invite-mailbox/process", req, resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, "process mailbox entry")
 	}
 	return resp, nil
 }
@@ -1734,37 +1534,24 @@ func (c *SessionClient) ProcessMailboxEntry(
 // and returns how many it withdrew.
 func (c *SessionClient) WithdrawMailboxEntries(ctx context.Context, soID string) (uint32, error) {
 	// The route identifies the peer by its signed request, so it has no body.
-	respBody, err := c.doPost(ctx, "/api/sobject/"+soID+"/invite-mailbox/withdraw", "application/octet-stream", nil, nil, SeedReasonMutation)
-	if err != nil {
-		return 0, errors.Wrap(err, "withdraw mailbox entries")
-	}
-
-	// Decode how many pending entries the peer withdrew.
 	resp := &api.WithdrawMailboxEntriesResponse{}
-	if err := resp.UnmarshalVT(respBody); err != nil {
-		return 0, errors.Wrap(err, "unmarshal withdraw mailbox response")
+	if err := c.postBody(ctx, "/api/sobject/"+soID+"/invite-mailbox/withdraw", nil, resp, SeedReasonMutation); err != nil {
+		return 0, errors.Wrap(err, "withdraw mailbox entries")
 	}
 	return resp.GetWithdrawn(), nil
 }
 
 // CreateCheckoutSession submits the customer's explicit monthly-offer consent.
 func (c *SessionClient) CreateCheckoutSession(ctx context.Context, req *s4wave_provider_spacewave.CreateCheckoutSessionRequest) (*api.CheckoutResponse, error) {
-	body, err := (&api.CheckoutRequest{
+	checkout := &api.CheckoutRequest{
 		SuccessUrl:       req.GetSuccessUrl(),
 		CancelUrl:        req.GetCancelUrl(),
 		BillingInterval:  req.GetBillingInterval(),
 		BillingAccountId: req.GetBillingAccountId(),
 		Consent:          req.GetConsent(),
-	}).MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	data, err := c.doPost(ctx, "/api/billing/checkout", "application/octet-stream", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, err
 	}
 	var resp api.CheckoutResponse
-	if err := resp.UnmarshalVT(data); err != nil {
+	if err := c.postMessage(ctx, "/api/billing/checkout", checkout, &resp, SeedReasonMutation); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -1773,18 +1560,11 @@ func (c *SessionClient) CreateCheckoutSession(ctx context.Context, req *s4wave_p
 // CreateBillingAccount creates a new unassigned billing account owned
 // (managed) by the caller. Returns the new BA's ULID.
 func (c *SessionClient) CreateBillingAccount(ctx context.Context, displayName string) (string, error) {
-	body, err := (&api.CreateBillingAccountRequest{
+	req := &api.CreateBillingAccountRequest{
 		DisplayName: displayName,
-	}).MarshalVT()
-	if err != nil {
-		return "", err
-	}
-	data, err := c.doPost(ctx, "/api/billing/accounts", "application/octet-stream", body, nil, SeedReasonMutation)
-	if err != nil {
-		return "", err
 	}
 	var resp api.CreateBillingAccountResponse
-	if err := resp.UnmarshalVT(data); err != nil {
+	if err := c.postMessage(ctx, "/api/billing/accounts", req, &resp, SeedReasonMutation); err != nil {
 		return "", err
 	}
 	return resp.GetBillingAccountId(), nil
@@ -1807,27 +1587,16 @@ func (c *SessionClient) RenameBillingAccount(ctx context.Context, baID, displayN
 
 // DeleteBillingAccount permanently removes a canceled BA the caller manages.
 func (c *SessionClient) DeleteBillingAccount(ctx context.Context, baID string) error {
-	data, err := c.doDelete(ctx, "/api/billing/accounts/"+baID, SeedReasonMutation)
-	if err != nil {
-		return err
-	}
 	var resp api.DeleteBillingAccountResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return err
-	}
-	return nil
+	return c.deleteMessage(ctx, "/api/billing/accounts/"+baID, &resp, SeedReasonMutation)
 }
 
 // CancelCheckoutSession cancels pending checkout attempts and expires the
 // Stripe session. Returns 'completed' if the subscription activated during
 // the race window.
 func (c *SessionClient) CancelCheckoutSession(ctx context.Context) (*api.CheckoutResponse, error) {
-	data, err := c.doDelete(ctx, "/api/billing/checkout", SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	var resp api.CheckoutResponse
-	if err := resp.UnmarshalVT(data); err != nil {
+	if err := c.deleteMessage(ctx, "/api/billing/checkout", &resp, SeedReasonMutation); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -1845,34 +1614,18 @@ func (c *SessionClient) GetBillingUsage(ctx context.Context, baID string) ([]byt
 
 // CancelSubscription cancels a billing account subscription.
 func (c *SessionClient) CancelSubscription(ctx context.Context, baID string) (*api.CancelBillingResponse, error) {
-	body, err := (&api.CancelBillingRequest{}).MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	data, err := c.doPostBinary(ctx, "/api/billing/"+baID+"/cancel", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	resp := &api.CancelBillingResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal cancel billing response")
+	if err := c.postMessage(ctx, "/api/billing/"+baID+"/cancel", &api.CancelBillingRequest{}, resp, SeedReasonMutation); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }
 
 // ReactivateSubscription reactivates a canceled billing account subscription.
 func (c *SessionClient) ReactivateSubscription(ctx context.Context, baID string) (*api.ReactivateBillingResponse, error) {
-	body, err := (&api.ReactivateBillingRequest{}).MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	data, err := c.doPostBinary(ctx, "/api/billing/"+baID+"/reactivate", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	resp := &api.ReactivateBillingResponse{}
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal reactivate billing response")
+	if err := c.postMessage(ctx, "/api/billing/"+baID+"/reactivate", &api.ReactivateBillingRequest{}, resp, SeedReasonMutation); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }
@@ -1889,30 +1642,18 @@ func (c *SessionClient) SetBillingSpendingLimit(ctx context.Context, baID string
 
 // CreateBillingPortal creates a Stripe billing portal session and returns the URL.
 func (c *SessionClient) CreateBillingPortal(ctx context.Context, baID string) (string, error) {
-	body, err := (&api.BillingPortalRequest{}).MarshalVT()
-	if err != nil {
-		return "", err
-	}
-	data, err := c.doPostBinary(ctx, "/api/billing/"+baID+"/portal", body, nil, SeedReasonMutation)
-	if err != nil {
-		return "", err
-	}
 	var resp api.BillingPortalResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return "", errors.Wrap(err, "unmarshal portal response")
+	if err := c.postMessage(ctx, "/api/billing/"+baID+"/portal", &api.BillingPortalRequest{}, &resp, SeedReasonMutation); err != nil {
+		return "", err
 	}
 	return resp.GetUrl(), nil
 }
 
 // GetAccountInfo retrieves account info from the cloud.
 func (c *SessionClient) GetAccountInfo(ctx context.Context) (*api.AccountInfoResponse, error) {
-	data, err := c.doGetBinary(ctx, "/api/account/info", SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "get account info")
-	}
 	var resp api.AccountInfoResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal account info")
+	if err := c.getMessage(ctx, "/api/account/info", &resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "get account info")
 	}
 	return &resp, nil
 }
@@ -1934,39 +1675,27 @@ func (c *SessionClient) SelfRevoke(ctx context.Context) error {
 
 // ListSessions retrieves the attached cloud auth session set for the account.
 func (c *SessionClient) ListSessions(ctx context.Context) ([]*api.AccountSessionInfo, error) {
-	data, err := c.doGetBinary(ctx, "/api/account/sessions", SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "list sessions")
-	}
 	var resp api.ListAccountSessionsResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal sessions response")
+	if err := c.getMessage(ctx, "/api/account/sessions", &resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "list sessions")
 	}
 	return resp.GetSessions(), nil
 }
 
 // ListKeypairs retrieves entity keypairs from the cloud.
 func (c *SessionClient) ListKeypairs(ctx context.Context) ([]*session.EntityKeypair, error) {
-	data, err := c.doGetBinary(ctx, "/api/account/keypairs", SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "list keypairs")
-	}
 	var resp api.ListKeypairsResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal keypair list")
+	if err := c.getMessage(ctx, "/api/account/keypairs", &resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "list keypairs")
 	}
 	return resp.GetKeypairs(), nil
 }
 
 // GetAccountState retrieves combined account info and keypairs from the cloud.
 func (c *SessionClient) GetAccountState(ctx context.Context) (*api.AccountStateResponse, error) {
-	data, err := c.doGetBinary(ctx, "/api/account/state", SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "get account state")
-	}
 	var resp api.AccountStateResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal account state")
+	if err := c.getMessage(ctx, "/api/account/state", &resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "get account state")
 	}
 	return &resp, nil
 }
@@ -1977,31 +1706,8 @@ func (c *SessionClient) EnsureAccountSObjectBinding(
 	ctx context.Context,
 	purpose string,
 ) (*api.AccountSObjectBinding, error) {
-	body, err := (&api.EnsureAccountSObjectBindingRequest{
-		Purpose: purpose,
-	}).MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal ensure account sobject binding request")
-	}
-	data, err := c.doPost(
-		ctx,
-		"/api/account/sobject-binding/ensure",
-		"application/octet-stream",
-		body,
-		nil,
-		SeedReasonMutation,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "ensure account sobject binding")
-	}
-	var resp api.EnsureAccountSObjectBindingResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal ensure account sobject binding response")
-	}
-	if resp.GetBinding() == nil {
-		return nil, errors.New("missing account sobject binding in response")
-	}
-	return resp.GetBinding(), nil
+	req := &api.EnsureAccountSObjectBindingRequest{Purpose: purpose}
+	return c.postAccountSObjectBinding(ctx, "ensure", req, &api.EnsureAccountSObjectBindingResponse{})
 }
 
 // FinalizeAccountSObjectBinding marks a reserved account-owned shared object
@@ -2011,27 +1717,27 @@ func (c *SessionClient) FinalizeAccountSObjectBinding(
 	purpose string,
 	soID string,
 ) (*api.AccountSObjectBinding, error) {
-	body, err := (&api.FinalizeAccountSObjectBindingRequest{
-		Purpose: purpose,
-		SoId:    soID,
-	}).MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal finalize account sobject binding request")
-	}
-	data, err := c.doPost(
-		ctx,
-		"/api/account/sobject-binding/finalize",
-		"application/octet-stream",
-		body,
-		nil,
-		SeedReasonMutation,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "finalize account sobject binding")
-	}
-	var resp api.FinalizeAccountSObjectBindingResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal finalize account sobject binding response")
+	req := &api.FinalizeAccountSObjectBindingRequest{Purpose: purpose, SoId: soID}
+	return c.postAccountSObjectBinding(ctx, "finalize", req, &api.FinalizeAccountSObjectBindingResponse{})
+}
+
+// accountSObjectBindingResponse is a response carrying an account shared
+// object binding.
+type accountSObjectBindingResponse interface {
+	protobuf_go_lite.Message
+	GetBinding() *api.AccountSObjectBinding
+}
+
+// postAccountSObjectBinding posts req to the given step of the account shared
+// object binding route and returns the binding resp carries.
+func (c *SessionClient) postAccountSObjectBinding(
+	ctx context.Context,
+	step string,
+	req protobuf_go_lite.Message,
+	resp accountSObjectBindingResponse,
+) (*api.AccountSObjectBinding, error) {
+	if err := c.postMessage(ctx, "/api/account/sobject-binding/"+step, req, resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, step+" account sobject binding")
 	}
 	if resp.GetBinding() == nil {
 		return nil, errors.New("missing account sobject binding in response")
@@ -2063,19 +1769,9 @@ func (c *SessionClient) UpdateSOMetadata(ctx context.Context, soID string, meta 
 
 // ReinitializeSharedObject destructively rewrites a broken shared object in place.
 func (c *SessionClient) ReinitializeSharedObject(ctx context.Context, soID string) error {
-	body, err := (&api.ReinitializeSObjectRequest{}).MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal reinitialize shared object request")
-	}
-	data, err := c.doPostBinary(ctx, "/api/sobject/"+soID+"/reinitialize", body, nil, SeedReasonMutation)
-	if err != nil {
-		return errors.Wrap(err, "reinitialize shared object")
-	}
 	var resp api.ReinitializeSObjectResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return errors.Wrap(err, "unmarshal reinitialize shared object response")
-	}
-	return nil
+	err := c.postMessage(ctx, "/api/sobject/"+soID+"/reinitialize", &api.ReinitializeSObjectRequest{}, &resp, SeedReasonMutation)
+	return errors.Wrap(err, "reinitialize shared object")
 }
 
 // CreateOrganization creates a new organization.
@@ -2103,34 +1799,18 @@ func (c *SessionClient) CreateOrgInvite(ctx context.Context, orgID string, invit
 
 // ResolveUsername resolves an exact username for an allowed context.
 func (c *SessionClient) ResolveUsername(ctx context.Context, req *api.ResolveUsernameRequest) (*api.ResolveUsernameResponse, error) {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal username resolve request")
-	}
-	data, err := c.doPostBinary(ctx, "/api/account/username/resolve", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "resolve username")
-	}
 	var resp api.ResolveUsernameResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal username resolve response")
+	if err := c.postMessage(ctx, "/api/account/username/resolve", req, &resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, "resolve username")
 	}
 	return &resp, nil
 }
 
 // CreateTargetedInvitation creates a signed pending targeted invitation.
 func (c *SessionClient) CreateTargetedInvitation(ctx context.Context, req *api.CreateTargetedInvitationRequest) (*api.CreateTargetedInvitationResponse, error) {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal targeted invitation request")
-	}
-	data, err := c.doPostBinary(ctx, "/api/account/targeted-invitation", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "create targeted invitation")
-	}
 	var resp api.CreateTargetedInvitationResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal targeted invitation response")
+	if err := c.postMessage(ctx, "/api/account/targeted-invitation", req, &resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, "create targeted invitation")
 	}
 	return &resp, nil
 }
@@ -2138,12 +1818,15 @@ func (c *SessionClient) CreateTargetedInvitation(ctx context.Context, req *api.C
 // SignTargetedInvitationEnvelope signs a targeted invitation envelope with the
 // current session key after clearing the signature field.
 func (c *SessionClient) SignTargetedInvitationEnvelope(envelope *api.TargetedInvitationEnvelope) error {
+	// Require an envelope and the session key.
 	if envelope == nil {
 		return errors.New("targeted invitation envelope is nil")
 	}
 	if c.priv == nil {
 		return errors.New("no private key configured for signing")
 	}
+
+	// Sign the envelope without its signature field.
 	payload, err := targetedInvitationSignaturePayload(envelope)
 	if err != nil {
 		return err
@@ -2159,12 +1842,15 @@ func (c *SessionClient) SignTargetedInvitationEnvelope(envelope *api.TargetedInv
 // VerifyTargetedInvitationEnvelope verifies a targeted invitation envelope
 // signature against the embedded signer peer ID.
 func VerifyTargetedInvitationEnvelope(envelope *api.TargetedInvitationEnvelope) error {
+	// Require a signed envelope.
 	if envelope == nil {
 		return errors.New("targeted invitation envelope is nil")
 	}
 	if len(envelope.GetSignature()) == 0 {
 		return errors.New("targeted invitation envelope signature is required")
 	}
+
+	// Check the signature against the signer's peer ID.
 	pub, err := session.ExtractPublicKeyFromPeerID(envelope.GetSignerPeerId())
 	if err != nil {
 		return err
@@ -2183,10 +1869,16 @@ func VerifyTargetedInvitationEnvelope(envelope *api.TargetedInvitationEnvelope) 
 	return nil
 }
 
+// targetedInvitationSignaturePayload returns the signed bytes of a targeted
+// invitation envelope: the signature context followed by the envelope encoded
+// without its signature.
 func targetedInvitationSignaturePayload(envelope *api.TargetedInvitationEnvelope) ([]byte, error) {
+	// Require an envelope.
 	if envelope == nil {
 		return nil, errors.New("targeted invitation envelope is nil")
 	}
+
+	// Encode the envelope without its signature after the context.
 	body := envelope.CloneVT()
 	body.Signature = nil
 	payload, err := body.MarshalVT()
@@ -2198,56 +1890,36 @@ func targetedInvitationSignaturePayload(envelope *api.TargetedInvitationEnvelope
 
 // ListTargetedInvitations lists the caller's targeted invitation inbox.
 func (c *SessionClient) ListTargetedInvitations(ctx context.Context) (*api.ListTargetedInvitationsResponse, error) {
-	data, err := c.doGetBinary(ctx, "/api/account/targeted-invitations", SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "list targeted invitations")
-	}
 	var resp api.ListTargetedInvitationsResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal targeted invitations response")
+	if err := c.getMessage(ctx, "/api/account/targeted-invitations", &resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "list targeted invitations")
 	}
 	return &resp, nil
 }
 
 // GetTargetedInvitation reads a single targeted invitation.
 func (c *SessionClient) GetTargetedInvitation(ctx context.Context, id string) (*api.GetTargetedInvitationResponse, error) {
-	data, err := c.doGetBinary(ctx, "/api/account/targeted-invitation/"+url.PathEscape(id), SeedReasonColdSeed)
-	if err != nil {
-		return nil, errors.Wrap(err, "get targeted invitation")
-	}
 	var resp api.GetTargetedInvitationResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal targeted invitation response")
+	if err := c.getMessage(ctx, "/api/account/targeted-invitation/"+url.PathEscape(id), &resp, SeedReasonColdSeed); err != nil {
+		return nil, errors.Wrap(err, "get targeted invitation")
 	}
 	return &resp, nil
 }
 
 // RevokeTargetedInvitation revokes a pending targeted invitation.
 func (c *SessionClient) RevokeTargetedInvitation(ctx context.Context, id string) (*api.RevokeTargetedInvitationResponse, error) {
-	data, err := c.doPostBinary(ctx, "/api/account/targeted-invitation/"+url.PathEscape(id)+"/revoke", nil, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "revoke targeted invitation")
-	}
 	var resp api.RevokeTargetedInvitationResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal targeted invitation revoke response")
+	if err := c.postBody(ctx, "/api/account/targeted-invitation/"+url.PathEscape(id)+"/revoke", nil, &resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, "revoke targeted invitation")
 	}
 	return &resp, nil
 }
 
 // ProcessTargetedInvitation applies a recipient lifecycle action.
 func (c *SessionClient) ProcessTargetedInvitation(ctx context.Context, req *api.ProcessTargetedInvitationRequest) (*api.ProcessTargetedInvitationResponse, error) {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal targeted invitation process request")
-	}
-	data, err := c.doPostBinary(ctx, "/api/account/targeted-invitation/"+url.PathEscape(req.GetId())+"/process", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "process targeted invitation")
-	}
 	var resp api.ProcessTargetedInvitationResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal targeted invitation process response")
+	if err := c.postMessage(ctx, "/api/account/targeted-invitation/"+url.PathEscape(req.GetId())+"/process", req, &resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, "process targeted invitation")
 	}
 	return &resp, nil
 }
@@ -2255,17 +1927,9 @@ func (c *SessionClient) ProcessTargetedInvitation(ctx context.Context, req *api.
 // AcceptTargetedOrganizationInvitation fulfills a pending organization targeted
 // invitation for the authenticated recipient.
 func (c *SessionClient) AcceptTargetedOrganizationInvitation(ctx context.Context, orgID string, req *api.AcceptTargetedOrganizationInvitationRequest) (*api.AcceptTargetedOrganizationInvitationResponse, error) {
-	body, err := req.MarshalVT()
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal targeted organization invitation accept request")
-	}
-	data, err := c.doPostBinary(ctx, "/api/org/"+url.PathEscape(orgID)+"/targeted-invitation/fulfill", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, errors.Wrap(err, "accept targeted organization invitation")
-	}
 	var resp api.AcceptTargetedOrganizationInvitationResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal targeted organization invitation accept response")
+	if err := c.postMessage(ctx, "/api/org/"+url.PathEscape(orgID)+"/targeted-invitation/fulfill", req, &resp, SeedReasonMutation); err != nil {
+		return nil, errors.Wrap(err, "accept targeted organization invitation")
 	}
 	return &resp, nil
 }
@@ -2281,34 +1945,18 @@ func (c *SessionClient) JoinOrganization(ctx context.Context, token string) ([]b
 
 // UpdateOrganization updates an organization's display name.
 func (c *SessionClient) UpdateOrganization(ctx context.Context, orgID, displayName string) (*api.UpdateOrgResponse, error) {
-	body, err := (&api.UpdateOrgRequest{DisplayName: displayName}).MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	data, err := c.doPostBinary(ctx, "/api/org/"+orgID+"/update", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	var resp api.UpdateOrgResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal update organization response")
+	if err := c.postMessage(ctx, "/api/org/"+orgID+"/update", &api.UpdateOrgRequest{DisplayName: displayName}, &resp, SeedReasonMutation); err != nil {
+		return nil, err
 	}
 	return &resp, nil
 }
 
 // DeleteOrganization deletes an organization.
 func (c *SessionClient) DeleteOrganization(ctx context.Context, orgID string) (*api.OrgDeleteResponse, error) {
-	body, err := (&api.OrgDeleteRequest{}).MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	data, err := c.doPostBinary(ctx, "/api/org/"+orgID+"/delete", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	var resp api.OrgDeleteResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal delete organization response")
+	if err := c.postMessage(ctx, "/api/org/"+orgID+"/delete", &api.OrgDeleteRequest{}, &resp, SeedReasonMutation); err != nil {
+		return nil, err
 	}
 	return &resp, nil
 }
@@ -2325,43 +1973,27 @@ func (c *SessionClient) ListOrgInvites(ctx context.Context, orgID string) ([]byt
 
 // RevokeOrgInvite revokes an invite by ID.
 func (c *SessionClient) RevokeOrgInvite(ctx context.Context, orgID, inviteID string) (*api.CancelOrgInviteResponse, error) {
-	data, err := c.doDelete(ctx, "/api/org/"+orgID+"/invite/"+inviteID, SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	var resp api.CancelOrgInviteResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal cancel org invite response")
+	if err := c.deleteMessage(ctx, "/api/org/"+orgID+"/invite/"+inviteID, &resp, SeedReasonMutation); err != nil {
+		return nil, err
 	}
 	return &resp, nil
 }
 
 // LeaveOrganization leaves an organization.
 func (c *SessionClient) LeaveOrganization(ctx context.Context, orgID string) (*api.OrgLeaveResponse, error) {
-	body, err := (&api.OrgLeaveRequest{}).MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	data, err := c.doPostBinary(ctx, "/api/org/"+orgID+"/leave", body, nil, SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	var resp api.OrgLeaveResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal leave organization response")
+	if err := c.postMessage(ctx, "/api/org/"+orgID+"/leave", &api.OrgLeaveRequest{}, &resp, SeedReasonMutation); err != nil {
+		return nil, err
 	}
 	return &resp, nil
 }
 
 // RemoveOrgMember removes a member from an organization.
 func (c *SessionClient) RemoveOrgMember(ctx context.Context, orgID, memberID string) (*api.RemoveOrgMemberResponse, error) {
-	data, err := c.doDelete(ctx, "/api/org/"+orgID+"/member/"+memberID, SeedReasonMutation)
-	if err != nil {
-		return nil, err
-	}
 	var resp api.RemoveOrgMemberResponse
-	if err := resp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal remove org member response")
+	if err := c.deleteMessage(ctx, "/api/org/"+orgID+"/member/"+memberID, &resp, SeedReasonMutation); err != nil {
+		return nil, err
 	}
 	return &resp, nil
 }
