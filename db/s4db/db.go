@@ -490,8 +490,9 @@ func (db *DB) Compact(ctx context.Context) error {
 	if err := db.w.lock(ctx); err != nil {
 		return err
 	}
-	defer db.w.unlock()
-	return db.w.compact(ctx)
+	err := db.w.compact(ctx)
+	db.w.unlock(err)
+	return err
 }
 
 // Sync makes every earlier commit durable.
@@ -523,7 +524,7 @@ func (db *DB) Close() error {
 		if err == nil {
 			err = db.w.releaseNow(ctx)
 		}
-		db.w.unlock()
+		db.w.unlock(err)
 	}
 
 	// Stop tailing and the deadline flush, clear the reader slot, and

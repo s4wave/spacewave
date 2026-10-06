@@ -115,7 +115,7 @@ func checkSpace(t *testing.T, db *DB) {
 	if err := db.w.lock(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	defer db.w.unlock()
+	defer db.w.unlock(nil)
 	sp, st := db.w.sp, db.cur.Load()
 	owner := make(map[uint64]string)
 	claim := func(p uint64, who string, shared bool) {

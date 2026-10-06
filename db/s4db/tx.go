@@ -214,7 +214,7 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 		err = db.w.afterCommit(ctx)
 	}
 	seq := db.cur.Load().seq
-	db.w.unlock()
+	db.w.unlock(err)
 	if err != nil || ordered {
 		return err
 	}
@@ -232,7 +232,7 @@ func (t *Tx) Discard() {
 	t.done = true
 	t.db.release(t.st, t.stripe)
 	if t.changes != nil {
-		t.db.w.unlock()
+		t.db.w.unlock(nil)
 	}
 }
 
