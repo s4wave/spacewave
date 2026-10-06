@@ -80,7 +80,6 @@ func BenchmarkCommit(b *testing.B) {
 	}
 }
 
-
 // requireSameSet fails unless got holds the operations, order, heads and
 // evidence of want.
 func requireSameSet(t *testing.T, got, want *SOOperationSet) {
