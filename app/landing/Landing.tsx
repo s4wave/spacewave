@@ -14,16 +14,16 @@ export const metadata = {
   description:
     'Free, open-source, local-first platform for file sync, encrypted messaging, device management, and plugins. End-to-end encrypted. Runs in your browser.',
   canonicalPath: '/',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
   jsonLd: {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'Organization',
         name: 'Aperture Robotics',
-        url: 'https://spacewave.app',
-        logo: 'https://spacewave.app/images/spacewave-icon.png',
+        url: 'https://aperture.us',
+        logo: 'https://spacewave.app/static/assets/spacewave-icon.png',
         sameAs: [
+          'https://spacewave.app',
           'https://github.com/aperturerobotics',
           'https://discord.gg/KJutMESRsT',
         ],

@@ -20,7 +20,6 @@ export const metadata = {
   description:
     'Review the third-party open source software licenses, package notices, SPDX identifiers, and dependency attributions used by Spacewave.',
   canonicalPath: '/licenses',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 function getLicenseEntryKey(entry: AnnotatedLicenseEntry): string {

@@ -34,8 +34,8 @@ export function buildStartupShell(iconUrl: string): string {
           <div class="swl-console">
             <div class="swl-brand" aria-hidden="true">Spacewave</div>
             <div class="swl-head" aria-live="polite" aria-atomic="true">
-              <h1 class="swl-title swl-boot-title">Preparing Spacewave</h1>
-              <h1 class="swl-title swl-boot-error-title">Unable to open Spacewave</h1>
+              <h2 class="swl-title swl-boot-title">Preparing Spacewave</h2>
+              <h2 class="swl-title swl-boot-error-title">Unable to open Spacewave</h2>
             </div>
             <div class="swl-phases"><ol class="swb-steps" aria-label="Startup phases">${rail}</ol></div>
             <p data-sw-boot-status hidden>Loading the app shell.</p>

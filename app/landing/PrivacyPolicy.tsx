@@ -9,7 +9,6 @@ export const metadata = {
   description:
     'How Spacewave handles encrypted content, account and billing records, service providers, retention, deletion, and privacy requests.',
   canonicalPath: '/privacy',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // PrivacyPolicy renders the canonical privacy and retention account.

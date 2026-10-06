@@ -9,7 +9,6 @@ export const metadata = {
   description:
     'Spacewave service terms, monthly cloud subscriptions, cancellation, content rights, dispute resolution, and business data processing.',
   canonicalPath: '/tos',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // TermsOfService renders the canonical service terms and processing addendum.

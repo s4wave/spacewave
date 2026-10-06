@@ -18,7 +18,6 @@ export const metadata = {
   description:
     'Open-source controller coordination framework. Hot-reload, directive-based, deterministic lifecycle, protobuf config. The coordination layer behind Spacewave.',
   canonicalPath: '/landing/controllerbus',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 const FEATURES = [

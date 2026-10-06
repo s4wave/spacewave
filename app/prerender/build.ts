@@ -77,6 +77,8 @@ export interface PrerenderContext {
   mainCssUrl: string
   hydrateCssUrls: string[]
   iconUrl: string
+  // ogImageUrl is the absolute URL of the default link preview image.
+  ogImageUrl: string
   importMap: string
   bootstrapScript: string
   hydrateScriptTag: string
@@ -113,6 +115,12 @@ export async function prerenderElement(
   return streamToString(prelude)
 }
 
+// resolveOgImage returns the absolute link preview image URL for a page,
+// falling back to the site default when the page names none.
+export function resolveOgImage(ctx: PrerenderContext, ogImage?: string) {
+  return new URL(ogImage ?? ctx.ogImageUrl, ctx.siteOrigin).href
+}
+
 function validateMetadata(path: string, meta: PageMetadata) {
   if (!meta.title) {
     throw new Error(`[prerender] SEO error: missing title for ${path}`)
@@ -122,9 +130,6 @@ function validateMetadata(path: string, meta: PageMetadata) {
   }
   if (!meta.canonicalPath && path !== '/') {
     throw new Error(`[prerender] SEO error: missing canonicalPath for ${path}`)
-  }
-  if (!meta.ogImage) {
-    console.warn(`[prerender] SEO warning: missing ogImage for ${path}`)
   }
   if (meta.description.length < 120 || meta.description.length > 160) {
     console.warn(
@@ -242,6 +247,7 @@ export function buildPrerenderContext(
     mainCssUrl: staticAssets.mainCssUrl,
     hydrateCssUrls: staticAssets.additionalCssUrls,
     iconUrl: staticAssets.iconUrl,
+    ogImageUrl: SITE_ORIGIN + staticAssets.ogImageUrl,
     importMap,
     bootstrapScript,
     hydrateScriptTag,
@@ -275,16 +281,12 @@ async function main() {
     ctx.log(`Prerendering ${page.path}...`)
     const body = await prerenderElement(createElement(Component), page.path)
 
-    const canonicalUrl = meta.canonicalPath
-      ? ctx.siteOrigin + meta.canonicalPath
-      : undefined
-
     const pageHtml = buildPageHtml({
       body,
       title: meta.title,
       description: meta.description,
-      canonicalUrl,
-      ogImage: meta.ogImage,
+      canonicalUrl: ctx.siteOrigin + (meta.canonicalPath ?? page.path),
+      ogImage: resolveOgImage(ctx, meta.ogImage),
       ogType: meta.ogType,
       twitterCard: meta.twitterCard,
       jsonLd: meta.jsonLd,
@@ -318,11 +320,12 @@ async function main() {
   // Build blog pages using the same prerender context.
   await buildBlog(ctx, includeDrafts)
 
-  // Generate sitemap.xml from all prerendered paths.
+  // Generate sitemap.xml from all indexable prerendered paths. Tag pages are
+  // noindex listings of posts the sitemap already names.
   const sitePaths = new Set([
     '/',
     ...STATIC_ROUTES.map((page) => page.path),
-    ...blogPaths,
+    ...blogPaths.filter((path) => !path.startsWith('/blog/tag/')),
   ])
   const sitemapUrls = [...sitePaths]
     .sort()
@@ -330,8 +333,7 @@ async function main() {
       let priority = '0.5'
       if (path === '/') priority = '1.0'
       else if (path === '/landing' || path === '/pricing') priority = '0.8'
-      else if (path === '/blog' || path.startsWith('/blog/tag/'))
-        priority = '0.7'
+      else if (path === '/blog') priority = '0.7'
       else if (path.startsWith('/blog/')) priority = '0.6'
       else if (path.startsWith('/landing/')) priority = '0.5'
       else if (path === '/tos' || path === '/privacy' || path === '/dmca')
@@ -362,16 +364,14 @@ async function main() {
 async function buildRootTemplate(ctx: PrerenderContext) {
   const landingHtml = await prerenderElement(createElement(Landing), '/')
 
-  const canonicalUrl = ctx.siteOrigin + '/'
-
   const body = `<div id="sw-landing" class="${ROOT_LANDING_SHELL_CLASS}">${landingHtml}</div>${buildStartupShell(ctx.iconUrl)}`
 
   const rootHtml = buildPageHtml({
     body,
     title: landingMetadata.title,
     description: landingMetadata.description,
-    canonicalUrl,
-    ogImage: landingMetadata.ogImage,
+    canonicalUrl: ctx.siteOrigin + '/',
+    ogImage: ctx.ogImageUrl,
     jsonLd: landingMetadata.jsonLd,
     bootstrapScript: ctx.bootstrapScript,
     headScript: ROOT_BOOT_VISIBILITY_SCRIPT,

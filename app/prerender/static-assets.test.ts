@@ -89,6 +89,7 @@ describe('preparePrerenderStaticAssets', () => {
     writeFileSync(join(outputDir, 'hydrate-abc.js'), '')
     writeFileSync(join(outputDir, 'assets', 'hydrate-abc.css'), '')
     writeFileSync(join(sourceAssetsDir, 'spacewave-icon.png'), 'icon')
+    writeFileSync(join(sourceAssetsDir, 'og.png'), 'og')
     writeFileSync(join(sourceAssetsDir, 'brand.svg'), 'brand')
 
     expect(
@@ -100,10 +101,12 @@ describe('preparePrerenderStaticAssets', () => {
       mainCssUrl: '/static/assets/hydrate-abc.css',
       additionalCssUrls: [],
       iconUrl: '/static/assets/spacewave-icon.png',
+      ogImageUrl: '/static/assets/og.png',
     })
     expect(collectRequiredStaticAssetUrls(outputDir).sort()).toEqual([
       '/static/assets/brand.svg',
       '/static/assets/hydrate-abc.css',
+      '/static/assets/og.png',
       '/static/assets/spacewave-icon.png',
       '/static/hydrate-abc.js',
     ])

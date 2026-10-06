@@ -4,6 +4,7 @@ export interface PageMetadata {
   title: string
   description: string
   canonicalPath?: string
+  // ogImage overrides the site's default link preview image.
   ogImage?: string
   ogType?: string
   twitterCard?: string

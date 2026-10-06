@@ -17,7 +17,6 @@ export const metadata = {
   description:
     'Try a real Spacewave Drive in your browser. Files live in a private Space that syncs to the devices you link, with encrypted cloud backup only if you want it.',
   canonicalPath: '/landing/drive',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // LandingDrive renders the Drive use-case page. liveApp mounts the demo Drive.

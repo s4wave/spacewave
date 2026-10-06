@@ -47,6 +47,5 @@ export function buildQuickstartMetadata(option: QuickstartOption) {
     title: `${option.name} - Spacewave`,
     description: option.seoDescription ?? option.description,
     canonicalPath: `/quickstart/${option.id}`,
-    ogImage: 'https://cdn.spacewave.app/og-default.png',
   }
 }

@@ -12,7 +12,6 @@ export const metadata = {
   description:
     'Try a real Spacewave chat channel in your browser. Messages live in a private Space, encrypted end to end and synced to the devices and people you invite.',
   canonicalPath: '/landing/chat',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // LandingChat renders the Chat use-case page. liveApp mounts the demo channel.

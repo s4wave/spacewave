@@ -36,7 +36,6 @@ export const metadata = {
   description:
     'Join the Spacewave open-source community. Built with Go, TypeScript, React, and WebAssembly. Contribute code, docs, ideas.',
   canonicalPath: '/community',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 const PRINCIPLES = [

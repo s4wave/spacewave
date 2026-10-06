@@ -18,7 +18,6 @@ export const metadata = {
   description:
     'Open-source P2P network router. Transport-agnostic, NAT traversal, multiplexed streams, Ed25519 identity. The networking layer behind Spacewave.',
   canonicalPath: '/landing/bifrost',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 const FEATURES = [

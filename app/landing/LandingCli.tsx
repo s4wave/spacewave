@@ -10,7 +10,6 @@ export const metadata = {
   description:
     'The spacewave command runs the full Spacewave runtime in your terminal. Create Spaces, write files and link devices from a shell or script.',
   canonicalPath: '/landing/cli',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // CliStep is one group of commands in the CLI walkthrough.

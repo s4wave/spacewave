@@ -18,7 +18,6 @@ export const metadata = {
   description:
     'Try a real Spacewave notebook in your browser. Notes are Markdown files in a private Space that syncs to the devices you link.',
   canonicalPath: '/landing/notes',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // LandingNotes renders the Notes use-case page. liveApp mounts the demo notebook.

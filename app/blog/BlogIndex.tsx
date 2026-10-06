@@ -11,7 +11,7 @@ import type { BlogPost } from './types.js'
 export const metadata = {
   title: 'Blog - Spacewave',
   description:
-    'Development updates, release announcements, and technical deep dives from the Spacewave team.',
+    'Release announcements, development updates, and technical deep dives on local-first sync, encryption, and peer-to-peer networking from the Spacewave team.',
 }
 
 // BlogIndexProps defines the props for BlogIndex.

@@ -19,7 +19,6 @@ export const metadata = {
   description:
     'Download the Spacewave desktop app and CLI for macOS, Windows, and Linux. Auto-detected build for your platform plus every per-arch option.',
   canonicalPath: '/download',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 export const cliMetadata = {

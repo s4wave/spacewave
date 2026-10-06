@@ -21,7 +21,11 @@ import { createHighlighter } from 'shiki'
 
 import { buildPageHtml } from '../prerender/html-template.js'
 import { serializeJsonScriptData } from '../prerender/json-script.js'
-import { prerenderElement, type PrerenderContext } from '../prerender/build.js'
+import {
+  prerenderElement,
+  resolveOgImage,
+  type PrerenderContext,
+} from '../prerender/build.js'
 import { authors } from './authors.js'
 import { BlogIndex, metadata as blogIndexMetadata } from './BlogIndex.js'
 import { BlogPostPage } from './BlogPost.js'
@@ -247,6 +251,8 @@ export async function buildBlog(
     body: indexBody + indexBlogDataTag,
     title: blogIndexMetadata.title,
     description: blogIndexMetadata.description,
+    canonicalUrl: ctx.siteOrigin + '/blog',
+    ogImage: ctx.ogImageUrl,
     bootstrapScript: ctx.bootstrapScript,
     hydrateScript: ctx.hydrateScriptTag,
     criticalCss: '',
@@ -270,15 +276,25 @@ export async function buildBlog(
       post.url,
     )
 
+    const canonicalUrl = ctx.siteOrigin + post.url
+    const ogImage = resolveOgImage(ctx, post.ogImage)
     const jsonLd = {
       '@context': 'https://schema.org',
-      '@type': 'Article',
+      '@type': 'BlogPosting',
       headline: post.title,
       datePublished: post.date,
+      url: canonicalUrl,
+      mainEntityOfPage: canonicalUrl,
+      image: ogImage,
       author: {
         '@type': 'Person',
         name: post.author.name,
         url: post.author.url,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Aperture Robotics',
+        url: 'https://aperture.us',
       },
       description: post.summary,
     }
@@ -296,7 +312,9 @@ export async function buildBlog(
       body: postBody + blogDataTag,
       title: `${post.title} - Spacewave Blog`,
       description: post.summary,
-      ogImage: post.ogImage,
+      canonicalUrl,
+      ogImage,
+      ogType: 'article',
       jsonLd,
       bootstrapScript: ctx.bootstrapScript,
       hydrateScript: ctx.hydrateScriptTag,
@@ -337,6 +355,9 @@ export async function buildBlog(
       body: tagBody + tagBlogDataTag,
       title: `"${tag}" posts - Spacewave Blog`,
       description: `Blog posts tagged "${tag}".`,
+      canonicalUrl: ctx.siteOrigin + `/blog/tag/${tag}`,
+      ogImage: ctx.ogImageUrl,
+      robots: 'noindex, follow',
       bootstrapScript: ctx.bootstrapScript,
       hydrateScript: ctx.hydrateScriptTag,
       criticalCss: '',

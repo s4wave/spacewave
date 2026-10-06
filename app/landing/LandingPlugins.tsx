@@ -15,7 +15,6 @@ export const metadata = {
   description:
     'Try the Spacewave SQL Database plugin in your browser. Plugins in Go or TypeScript add object types and viewers that run on your own devices.',
   canonicalPath: '/landing/plugins',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // LandingPlugins renders the Plugins use-case page. liveApp mounts the demo SQL

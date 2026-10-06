@@ -16,6 +16,8 @@ describe('buildPageHtml', () => {
       criticalCss: '',
       mainCssUrl: '/static/app.css',
       iconUrl: '/static/assets/icon.png',
+      canonicalUrl: 'https://spacewave.app/',
+      ogImage: 'https://spacewave.app/static/assets/og.png',
     })
 
     expect(html).toContain('<meta name="darkreader-lock"/>')
@@ -35,6 +37,8 @@ describe('buildPageHtml', () => {
       mainCssUrl: '/static/App-abc.css',
       additionalCssUrls: ['/static/BlogRoutes-def.css'],
       iconUrl: '/static/assets/icon.png',
+      canonicalUrl: 'https://spacewave.app/',
+      ogImage: 'https://spacewave.app/static/assets/og.png',
     })
 
     expect(html).toContain(
@@ -56,6 +60,8 @@ describe('buildPageHtml', () => {
       criticalCss: ROOT_BOOT_VISIBILITY_CSS,
       mainCssUrl: '/static/app.css',
       iconUrl: '/static/assets/icon.png',
+      canonicalUrl: 'https://spacewave.app/',
+      ogImage: 'https://spacewave.app/static/assets/og.png',
     })
 
     const headEnd = html.indexOf('</head>')
@@ -68,5 +74,29 @@ describe('buildPageHtml', () => {
     expect(visibilityCss).toBeGreaterThan(decision)
     expect(visibilityCss).toBeLessThan(headEnd)
     expect(stylesheet).toBeGreaterThan(visibilityCss)
+  })
+
+  it('escapes page text in head attributes', () => {
+    const html = buildPageHtml({
+      body: '<main>Tag</main>',
+      title: '"a&b" posts',
+      description: 'Blog posts tagged "<a&b>".',
+      bootstrapScript: '<script type="module" src="/boot.mjs"></script>',
+      criticalCss: '',
+      mainCssUrl: '/static/app.css',
+      iconUrl: '/static/assets/icon.png',
+      canonicalUrl: 'https://spacewave.app/blog/tag/a&b',
+      ogImage: 'https://spacewave.app/static/assets/og.png',
+      robots: 'noindex, follow',
+    })
+
+    expect(html).toContain('<title>&quot;a&amp;b&quot; posts</title>')
+    expect(html).toContain(
+      '<meta name="description" content="Blog posts tagged &quot;&lt;a&amp;b&gt;&quot;."/>',
+    )
+    expect(html).toContain(
+      '<link rel="canonical" href="https://spacewave.app/blog/tag/a&amp;b"/>',
+    )
+    expect(html).toContain('<meta name="robots" content="noindex, follow"/>')
   })
 })

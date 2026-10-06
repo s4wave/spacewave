@@ -63,6 +63,7 @@ export interface PrerenderStaticAssets {
   mainCssUrl: string
   additionalCssUrls: string[]
   iconUrl: string
+  ogImageUrl: string
 }
 
 // preparePrerenderStaticAssets verifies the hydration output and copies the
@@ -84,11 +85,15 @@ export function preparePrerenderStaticAssets(
     }
   }
 
+  // The icon and the link preview image are referenced by every page head.
   const iconFile = 'spacewave-icon.png'
-  if (!existsSync(join(sourceAssetsDir, iconFile))) {
-    throw new Error(
-      `Prerender icon not found at ${join(sourceAssetsDir, iconFile)}`,
-    )
+  const ogImageFile = 'og.png'
+  for (const file of [iconFile, ogImageFile]) {
+    if (!existsSync(join(sourceAssetsDir, file))) {
+      throw new Error(
+        `Prerender image not found at ${join(sourceAssetsDir, file)}`,
+      )
+    }
   }
 
   const outputAssetsDir = join(outputDir, 'assets')
@@ -102,6 +107,7 @@ export function preparePrerenderStaticAssets(
     mainCssUrl: '/static/' + mainCssFile,
     additionalCssUrls: additionalCssFiles.map((file) => '/static/' + file),
     iconUrl: '/static/assets/' + iconFile,
+    ogImageUrl: '/static/assets/' + ogImageFile,
   }
 }
 

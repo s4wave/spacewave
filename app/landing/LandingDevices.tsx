@@ -18,7 +18,6 @@ export const metadata = {
   description:
     'Try the Spacewave Computers dashboard in your browser. Link a machine with the Spacewave CLI, or add an SSH host and open a terminal to it.',
   canonicalPath: '/landing/devices',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // LandingDevices renders the Devices use-case page. liveApp mounts the demo

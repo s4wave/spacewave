@@ -17,7 +17,6 @@ export const metadata = {
   description:
     'Spacewave is free forever. Add cloud sync, backup, and collaboration for $8/month. 100 GiB encrypted storage. Cancel anytime.',
   canonicalPath: '/pricing',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
   jsonLd: {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -30,7 +29,12 @@ export const metadata = {
         price: '8',
         priceCurrency: 'USD',
         name: 'Cloud',
-        billingPeriod: 'P1M',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: '8',
+          priceCurrency: 'USD',
+          billingDuration: 'P1M',
+        },
       },
     ],
   },

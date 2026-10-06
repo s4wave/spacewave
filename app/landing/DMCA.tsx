@@ -6,7 +6,6 @@ export const metadata = {
   description:
     'Find Spacewave DMCA policy details, designated agent contact information, takedown notice requirements, and counter-notification steps.',
   canonicalPath: '/dmca',
-  ogImage: 'https://cdn.spacewave.app/og-default.png',
 }
 
 // DMCA renders the DMCA compliance page.
