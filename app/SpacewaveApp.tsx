@@ -66,7 +66,7 @@ export function SpacewaveApp({
   const [running, setRunning] = useState<RunningApp | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [progress, setProgress] = useState('Opening app storage')
-  const teardown = useRef(Promise.resolve())
+  const teardown = useRef<Promise<void> | undefined>(undefined)
   const resetWaiters = useRef<
     Array<{ resolve(): void; reject(error: unknown): void }>
   >([])
@@ -99,6 +99,7 @@ export function SpacewaveApp({
     const controller = new AbortController()
     const environment = createAppEnvironment(appId)
     const resources: Array<{ [Symbol.dispose](): void }> = []
+    let cancelled = false
     let closed = false
     let runtime: AppRuntime | undefined
     let unbind: (() => void) | undefined
@@ -126,7 +127,7 @@ export function SpacewaveApp({
     const previousTeardown = teardown.current
     const start = async () => {
       await previousTeardown
-      controller.signal.throwIfAborted()
+      if (cancelled) return
       setProgress('Opening app storage')
       setDebugContext(debug, appId)
       runtime = await parentRoot.mountApp(
@@ -141,7 +142,7 @@ export function SpacewaveApp({
       const root = cleanup(
         new Root(await runtime.resourceClient.accessRootResource()),
       )
-      controller.signal.throwIfAborted()
+      if (cancelled) return
       const releaseListener = runtime.resourceClient.onResourceReleased(
         (event) => {
           if (controller.signal.aborted || event.resourceId !== root.id) return
@@ -178,8 +179,9 @@ export function SpacewaveApp({
           if (!controller.signal.aborted) setProgress(detail)
         },
       })
-      controller.signal.throwIfAborted()
+      if (cancelled) return
       await runtime.resourceClient.waitForControls(controller.signal)
+      if (cancelled) return
       if (result) environment.navigation.setAppPath(result.path)
       debug = { ...debug, ...result?.debug, status: 'ready' }
       setDebugContext(debug, appId)
@@ -205,6 +207,7 @@ export function SpacewaveApp({
         waiter.reject(failure)
     })
     return () => {
+      cancelled = true
       controller.abort()
       disposeResources()
       clearDebugContext(debug, appId)
