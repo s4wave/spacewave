@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { LuCheck, LuCopy, LuDatabase, LuKey } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -7,6 +7,7 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/persist.js'
 import { formatBytes } from '@s4wave/web/transform/TransformConfigDisplay.js'
+import type { SessionCryptoInfo } from '@s4wave/sdk/session/session.pb.js'
 import { EntityKeypairsSection } from './EntityKeypairsSection.js'
 
 export interface CryptoKeysSectionProps {
@@ -31,15 +32,6 @@ export function CryptoKeysSection({
   const isLocal = providerId === 'local'
   const crypto = sessionInfo?.cryptoInfo
 
-  const [pemCopied, setPemCopied] = useState(false)
-  const handleCopyPem = useCallback(() => {
-    const pem = crypto?.publicKeyPem
-    if (!pem) return
-    void navigator.clipboard.writeText(pem)
-    setPemCopied(true)
-    setTimeout(() => setPemCopied(false), 2000)
-  }, [crypto])
-
   if (!crypto && !isLocal) return null
 
   return (
@@ -50,50 +42,7 @@ export function CryptoKeysSection({
       onOpenChange={handleOpenChange}
     >
       <div className="space-y-3">
-        {crypto && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              {crypto.keyType && (
-                <span className="text-foreground-alt text-xs">
-                  {crypto.keyType}
-                </span>
-              )}
-              {crypto.publicKeyPem && (
-                <button
-                  type="button"
-                  onClick={handleCopyPem}
-                  className="hover:bg-foreground/5 text-foreground-alt hover:text-foreground flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs transition-colors"
-                  aria-label={pemCopied ? 'Copied!' : 'Copy public key PEM'}
-                >
-                  {pemCopied ? (
-                    <LuCheck className="size-3 text-green-500" />
-                  ) : (
-                    <LuCopy className="size-3" />
-                  )}
-                  <span>
-                    {pemCopied ? 'Copied' : 'Export Public Key (PEM)'}
-                  </span>
-                </button>
-              )}
-            </div>
-            {(crypto.spaceCount ?? 0) > 0 && (
-              <div className="border-foreground/10 flex items-center gap-4 border-t pt-2">
-                <div className="text-foreground-alt flex items-center gap-1 text-xs">
-                  <LuDatabase className="size-3" />
-                  <span>
-                    {crypto.spaceCount}{' '}
-                    {crypto.spaceCount === 1 ? 'space' : 'spaces'}
-                  </span>
-                </div>
-                {(crypto.totalStorageBytes ?? 0n) > 0n && (
-                  <div className="text-foreground-alt text-xs">
-                    {formatBytes(crypto.totalStorageBytes ?? 0n)}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {crypto && <CryptoIdentity crypto={crypto} />}
         {isLocal && (
           <>
             {crypto && <div className="border-foreground/10 border-t" />}
@@ -102,5 +51,58 @@ export function CryptoKeysSection({
         )}
       </div>
     </CollapsibleSection>
+  )
+}
+
+// CryptoIdentity shows the session key type, a public key export, and the
+// space and storage totals.
+function CryptoIdentity({ crypto }: { crypto: SessionCryptoInfo }) {
+  const [pemCopied, setPemCopied] = useState(false)
+  const handleCopyPem = () => {
+    const pem = crypto.publicKeyPem
+    if (!pem) return
+    void navigator.clipboard.writeText(pem)
+    setPemCopied(true)
+    setTimeout(() => setPemCopied(false), 2000)
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        {crypto.keyType && (
+          <span className="text-foreground-alt text-xs">{crypto.keyType}</span>
+        )}
+        {crypto.publicKeyPem && (
+          <button
+            type="button"
+            onClick={handleCopyPem}
+            className="hover:bg-foreground/5 text-foreground-alt hover:text-foreground flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs transition-colors"
+            aria-label={pemCopied ? 'Copied!' : 'Copy public key PEM'}
+          >
+            {pemCopied ? (
+              <LuCheck className="size-3 text-green-500" />
+            ) : (
+              <LuCopy className="size-3" />
+            )}
+            <span>{pemCopied ? 'Copied' : 'Export Public Key (PEM)'}</span>
+          </button>
+        )}
+      </div>
+      {(crypto.spaceCount ?? 0) > 0 && (
+        <div className="border-foreground/10 flex items-center gap-4 border-t pt-2">
+          <div className="text-foreground-alt flex items-center gap-1 text-xs">
+            <LuDatabase className="size-3" />
+            <span>
+              {crypto.spaceCount} {crypto.spaceCount === 1 ? 'space' : 'spaces'}
+            </span>
+          </div>
+          {(crypto.totalStorageBytes ?? 0n) > 0n && (
+            <div className="text-foreground-alt text-xs">
+              {formatBytes(crypto.totalStorageBytes ?? 0n)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
