@@ -23,7 +23,11 @@ import {
   type DownloadDragTarget,
   writeDownloadURLDragTarget,
 } from '@s4wave/web/dnd/download-url-drag.js'
-import { FileEntry, GetFileEntryDetailsCallback } from './types.js'
+import {
+  FileEntry,
+  FileEntryDetails,
+  GetFileEntryDetailsCallback,
+} from './types.js'
 import type { FileListDragEnvelopeContext } from './FileList.js'
 
 function isEditableElement(el: Element | null): el is HTMLElement {
@@ -75,105 +79,32 @@ interface FileListEntryProps extends RowComponentProps<FileEntry> {
   onEntryDrop?: (entry: FileEntry, event: DragEvent<HTMLDivElement>) => void
 }
 
-// FileListEntry renders a file browser row with icon, name, date, and size.
-export function FileListEntry({
-  item,
-  itemIndex,
-  getEntryDetails,
-  loadingId,
-  renderEntry,
-  currentPath,
-  getDragEnvelope,
-  getDownloadDragTarget,
-  dropTargetEntryId,
-  onEntryDragOver,
-  onEntryDragLeave,
-  onEntryDrop,
-  onRowClick,
-  onContextMenu,
-  style,
-  ariaAttributes,
-}: FileListEntryProps) {
-  const entry = item.data
-  const isEntryLoading = entry ? entry.id === loadingId : false
+type EntryDragProps = Pick<
+  FileListEntryProps,
+  | 'getDragEnvelope'
+  | 'getDownloadDragTarget'
+  | 'onEntryDragOver'
+  | 'onEntryDragLeave'
+  | 'onEntryDrop'
+>
 
-  const handleEntrySelect = useCallback(
-    (e: MouseEvent) => {
-      onRowClick?.(itemIndex, item, e, 1)
-    },
-    [itemIndex, item, onRowClick],
-  )
-
-  const handleDoubleClick = useCallback(
-    (e: MouseEvent) => {
-      onRowClick?.(itemIndex, item, e, 2)
-    },
-    [itemIndex, item, onRowClick],
-  )
-
-  const handleEntryKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      onRowClick?.(itemIndex, item, e as unknown as MouseEvent, 1)
-    },
-    [itemIndex, item, onRowClick],
-  )
-
-  const handleContextMenu = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      onContextMenu?.(itemIndex, item, e)
-    },
-    [itemIndex, item, onContextMenu],
-  )
-
-  const handleDotsClick = useCallback(
-    (e: MouseEvent) => {
-      e.stopPropagation()
-      onContextMenu?.(itemIndex, item, e)
-    },
-    [itemIndex, item, onContextMenu],
-  )
-
-  const context = use(ListStateContext)
-  const selected = entry
-    ? (context?.selectedIds?.includes(entry.id) ?? false)
-    : false
-  const focused = itemIndex === context?.focusedIndex
-
-  const divRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!focused || !divRef.current) return
-    const hasInput = divRef.current.querySelector(
-      'input, textarea, select, [contenteditable="true"]',
-    )
-    if (hasInput) return
-    const active = document.activeElement
-    if (isEditableElement(active) && !divRef.current.contains(active)) return
-    divRef.current.focus()
-  }, [focused])
-
-  const fetchDetails = useCallback(
-    (signal: AbortSignal) => {
-      if (!getEntryDetails || !entry) {
-        return Promise.resolve(null)
-      }
-      return getEntryDetails(itemIndex, entry, signal)
-    },
-    [entry, itemIndex, getEntryDetails],
-  )
-
-  const { data: entryDetails } = usePromise(fetchDetails)
-  const isDropTargetActive = entry?.id === dropTargetEntryId
-
+// useEntryDrag binds the drag source and drop target handlers of a row.
+function useEntryDrag(
+  entry: FileEntry,
+  selectedIds: string[],
+  {
+    getDragEnvelope,
+    getDownloadDragTarget,
+    onEntryDragOver,
+    onEntryDragLeave,
+    onEntryDrop,
+  }: EntryDragProps,
+) {
   // handleDragStart builds the drag payloads for the current selection and
   // cancels the drag when the entry offers none.
   const handleDragStart = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      if (!entry) return
-      const selection = { selectedIds: context?.selectedIds ?? [] }
+      const selection = { selectedIds }
       const dragEnvelope = getDragEnvelope?.(entry, selection) ?? null
       const downloadDragTarget =
         getDownloadDragTarget?.(entry, selection) ?? null
@@ -194,7 +125,7 @@ export function FileListEntry({
       }
       e.dataTransfer.effectAllowed = 'copyMove'
     },
-    [context?.selectedIds, entry, getDownloadDragTarget, getDragEnvelope],
+    [selectedIds, entry, getDownloadDragTarget, getDragEnvelope],
   )
 
   const handleDragEnd = useCallback(() => {
@@ -203,7 +134,6 @@ export function FileListEntry({
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      if (!entry) return
       if (!onEntryDragOver?.(entry, e)) return
       e.preventDefault()
       e.stopPropagation()
@@ -214,7 +144,6 @@ export function FileListEntry({
 
   const handleDragLeave = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      if (!entry) return
       onEntryDragLeave?.(entry, e)
     },
     [entry, onEntryDragLeave],
@@ -222,7 +151,6 @@ export function FileListEntry({
 
   const handleDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
-      if (!entry) return
       if (!onEntryDragOver?.(entry, e)) return
       e.preventDefault()
       e.stopPropagation()
@@ -231,68 +159,199 @@ export function FileListEntry({
     [entry, onEntryDragOver, onEntryDrop],
   )
 
-  if (!entry) return null
+  return {
+    draggable: !!getDragEnvelope || !!getDownloadDragTarget,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
+  }
+}
 
-  const defaultNode = (
-    <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
-      {isEntryLoading ? (
-        <Spinner variant="brand" className="shrink-0" />
-      ) : entry.isDir ? (
-        <LuFolder
-          className={cn(
-            'file-entry-color size-4 shrink-0',
-            selected ? 'text-brand' : 'text-foreground-alt/80',
-          )}
-          style={{ '--file-entry-color': entry.color }}
-        />
-      ) : (
-        <LuFile
-          className={cn(
-            'file-entry-color size-4 shrink-0',
-            selected ? 'text-foreground' : 'text-foreground-alt/60',
-          )}
-          style={{ '--file-entry-color': entry.color }}
-        />
+// useFocusRow moves DOM focus to the row when it becomes the focused row,
+// unless the user is typing in an input.
+function useFocusRow(focused: boolean) {
+  const divRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!focused || !divRef.current) return
+    const hasInput = divRef.current.querySelector(
+      'input, textarea, select, [contenteditable="true"]',
+    )
+    if (hasInput) return
+    const active = document.activeElement
+    if (isEditableElement(active) && !divRef.current.contains(active)) return
+    divRef.current.focus()
+  }, [focused])
+
+  return divRef
+}
+
+// entrySizeLabel formats the size column of an entry.
+function entrySizeLabel(
+  entry: FileEntry,
+  details: FileEntryDetails | null | undefined,
+): string {
+  if (!details?.size || entry.isSymlink) return '—'
+  if (entry.isDir) return String(details.size)
+  return formatBytes(details.size, 0)
+}
+
+type RowHandlerProps = Pick<
+  FileListEntryProps,
+  'item' | 'itemIndex' | 'onRowClick' | 'onContextMenu'
+>
+
+// useRowHandlers binds the selection and context menu handlers of a row.
+function useRowHandlers(
+  item: RowHandlerProps['item'],
+  itemIndex: RowHandlerProps['itemIndex'],
+  onRowClick: RowHandlerProps['onRowClick'],
+  onContextMenu: RowHandlerProps['onContextMenu'],
+) {
+  const select = useCallback(
+    (e: MouseEvent) => {
+      onRowClick?.(itemIndex, item, e, 1)
+    },
+    [itemIndex, item, onRowClick],
+  )
+
+  const doubleClick = useCallback(
+    (e: MouseEvent) => {
+      onRowClick?.(itemIndex, item, e, 2)
+    },
+    [itemIndex, item, onRowClick],
+  )
+
+  const keyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      onRowClick?.(itemIndex, item, e as unknown as MouseEvent, 1)
+    },
+    [itemIndex, item, onRowClick],
+  )
+
+  const contextMenu = useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      onContextMenu?.(itemIndex, item, e)
+    },
+    [itemIndex, item, onContextMenu],
+  )
+
+  const dotsClick = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation()
+      onContextMenu?.(itemIndex, item, e)
+    },
+    [itemIndex, item, onContextMenu],
+  )
+
+  return { select, doubleClick, keyDown, contextMenu, dotsClick }
+}
+
+// FileEntryName renders the default icon and name of an entry.
+function FileEntryName({
+  entry,
+  loading,
+  selected,
+}: {
+  entry: FileEntry
+  loading: boolean
+  selected: boolean
+}) {
+  let icon = (
+    <LuFile
+      className={cn(
+        'file-entry-color size-4 shrink-0',
+        selected ? 'text-foreground' : 'text-foreground-alt/60',
       )}
+      style={{ '--file-entry-color': entry.color }}
+    />
+  )
+  if (entry.isDir) {
+    icon = (
+      <LuFolder
+        className={cn(
+          'file-entry-color size-4 shrink-0',
+          selected ? 'text-brand' : 'text-foreground-alt/80',
+        )}
+        style={{ '--file-entry-color': entry.color }}
+      />
+    )
+  }
+  if (loading) icon = <Spinner variant="brand" className="shrink-0" />
+
+  return (
+    <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
+      {icon}
       <span className="truncate">{entry.name || entry.id}</span>
     </div>
   )
+}
 
-  const rowContent = (
-    <>
-      {renderEntry
-        ? renderEntry({
-            entry,
-            defaultNode,
-            path: currentPath ?? '/',
-          })
-        : defaultNode}
-      <div className="text-foreground-alt/50 w-35 min-w-25 shrink text-xs">
-        {entryDetails?.modTime
-          ? format(entryDetails.modTime, 'MMM dd, yyyy')
-          : '—'}
-      </div>
-      <div className="text-foreground-alt/50 w-17.5 min-w-12.5 shrink text-right text-xs">
-        {entryDetails?.size && !entry.isSymlink
-          ? entry.isDir
-            ? entryDetails.size
-            : formatBytes(entryDetails.size, 0)
-          : '—'}
-      </div>
-      <button
-        type="button"
-        aria-label={`More actions for ${entry.name || entry.id}`}
-        className="flex h-full w-8 shrink-0 items-center justify-center [@media(pointer:coarse)]:size-11"
-        onClick={handleDotsClick}
-        onDoubleClick={(e) => {
-          e.stopPropagation()
-          handleDotsClick(e)
-        }}
-        onContextMenu={handleDotsClick}
-      >
-        <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100" />
-      </button>
-    </>
+// FileListEntry renders a file browser row with icon, name, date, and size.
+export function FileListEntry(props: FileListEntryProps) {
+  const entry = props.item.data
+  if (!entry) return null
+
+  return <FileEntryRow {...props} entry={entry} />
+}
+
+// FileEntryRow renders the row of an entry that exists.
+function FileEntryRow({
+  entry,
+  item,
+  itemIndex,
+  getEntryDetails,
+  loadingId,
+  renderEntry,
+  currentPath,
+  getDragEnvelope,
+  getDownloadDragTarget,
+  dropTargetEntryId,
+  onEntryDragOver,
+  onEntryDragLeave,
+  onEntryDrop,
+  onRowClick,
+  onContextMenu,
+  style,
+  ariaAttributes,
+}: FileListEntryProps & { entry: FileEntry }) {
+  const context = use(ListStateContext)
+  const selectedIds = context?.selectedIds
+  const selected = selectedIds?.includes(entry.id) ?? false
+  const focused = itemIndex === context?.focusedIndex
+  const divRef = useFocusRow(focused)
+  const row = useRowHandlers(item, itemIndex, onRowClick, onContextMenu)
+  const drag = useEntryDrag(entry, selectedIds ?? [], {
+    getDragEnvelope,
+    getDownloadDragTarget,
+    onEntryDragOver,
+    onEntryDragLeave,
+    onEntryDrop,
+  })
+
+  const fetchDetails = useCallback(
+    (signal: AbortSignal) => {
+      if (!getEntryDetails) {
+        return Promise.resolve(null)
+      }
+      return getEntryDetails(itemIndex, entry, signal)
+    },
+    [entry, itemIndex, getEntryDetails],
+  )
+
+  const { data: entryDetails } = usePromise(fetchDetails)
+
+  const defaultNode = (
+    <FileEntryName
+      entry={entry}
+      loading={entry.id === loadingId}
+      selected={selected}
+    />
   )
 
   return (
@@ -311,24 +370,52 @@ export function FileListEntry({
           ? 'bg-brand/10 text-foreground'
           : 'text-foreground/90 hover:bg-foreground/5',
         focused && !selected && 'ring-brand/25 ring-1 ring-inset',
-        isDropTargetActive && 'bg-brand/10 ring-brand/40 ring-1 ring-inset',
+        entry.id === dropTargetEntryId &&
+          'bg-brand/10 ring-brand/40 ring-1 ring-inset',
         style['--list-row-height'] !== undefined && 'list-row-height',
       )}
-      draggable={!!entry && (!!getDragEnvelope || !!getDownloadDragTarget)}
-      onClick={handleEntrySelect}
-      onKeyDown={handleEntryKeyDown}
-      onDoubleClick={handleDoubleClick}
-      onContextMenu={handleContextMenu}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      draggable={drag.draggable}
+      onClick={row.select}
+      onKeyDown={row.keyDown}
+      onDoubleClick={row.doubleClick}
+      onContextMenu={row.contextMenu}
+      onDragStart={drag.onDragStart}
+      onDragEnd={drag.onDragEnd}
+      onDragOver={drag.onDragOver}
+      onDragLeave={drag.onDragLeave}
+      onDrop={drag.onDrop}
     >
       {selected && (
         <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-0.5 rounded-r" />
       )}
-      {rowContent}
+      {renderEntry
+        ? renderEntry({
+            entry,
+            defaultNode,
+            path: currentPath ?? '/',
+          })
+        : defaultNode}
+      <div className="text-foreground-alt/50 w-35 min-w-25 shrink text-xs">
+        {entryDetails?.modTime
+          ? format(entryDetails.modTime, 'MMM dd, yyyy')
+          : '—'}
+      </div>
+      <div className="text-foreground-alt/50 w-17.5 min-w-12.5 shrink text-right text-xs">
+        {entrySizeLabel(entry, entryDetails)}
+      </div>
+      <button
+        type="button"
+        aria-label={`More actions for ${entry.name || entry.id}`}
+        className="flex h-full w-8 shrink-0 items-center justify-center [@media(pointer:coarse)]:size-11"
+        onClick={row.dotsClick}
+        onDoubleClick={(e) => {
+          e.stopPropagation()
+          row.dotsClick(e)
+        }}
+        onContextMenu={row.dotsClick}
+      >
+        <LuEllipsis className="text-foreground-alt size-4 opacity-0 transition-opacity group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100" />
+      </button>
     </div>
   )
 }
