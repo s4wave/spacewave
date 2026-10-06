@@ -5,6 +5,7 @@ package resource_root
 import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	s4wave_command_registry "github.com/s4wave/spacewave/sdk/command/registry"
 	s4wave_configtype_registry "github.com/s4wave/spacewave/sdk/configtype/registry"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
@@ -49,7 +50,17 @@ var webBindingMethods = map[string]webBindingCheck{
 	webMethod(s4wave_viewer_registry.SRPCViewerRegistryResourceServiceServiceID, "WatchViewers"):             nil,
 	webMethod(s4wave_configtype_registry.SRPCConfigTypeRegistryResourceServiceServiceID, "WatchConfigTypes"): nil,
 
-	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "GetSessionInfo"): nil,
+	// Command registrations belong to the client that made them: a client
+	// watches and invokes only its own commands, whose handlers run in its tab.
+	webMethod(s4wave_command_registry.SRPCCommandRegistryResourceServiceServiceID, "RegisterCommand"): nil,
+	webMethod(s4wave_command_registry.SRPCCommandRegistryResourceServiceServiceID, "SetActive"):       nil,
+	webMethod(s4wave_command_registry.SRPCCommandRegistryResourceServiceServiceID, "SetEnabled"):      nil,
+	webMethod(s4wave_command_registry.SRPCCommandRegistryResourceServiceServiceID, "WatchCommands"):   nil,
+	webMethod(s4wave_command_registry.SRPCCommandRegistryResourceServiceServiceID, "GetSubItems"):     nil,
+	webMethod(s4wave_command_registry.SRPCCommandRegistryResourceServiceServiceID, "InvokeCommand"):   nil,
+
+	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "GetSessionInfo"):  nil,
+	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "WatchSyncStatus"): nil,
 	webMethod(s4wave_session.SRPCSessionResourceServiceServiceID, "MountSharedObject"): func(b *webBinding, msg srpc.Message) bool {
 		req, ok := msg.(*s4wave_session.MountSharedObjectRequest)
 		return ok && req.GetSharedObjectId() == b.spaceID
