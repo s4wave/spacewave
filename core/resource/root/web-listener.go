@@ -18,11 +18,13 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	ma "github.com/aperturerobotics/go-multiaddr"
 	manet "github.com/aperturerobotics/go-multiaddr/net"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
@@ -41,9 +43,12 @@ const webListenerReadHeaderTimeout = 5 * time.Second
 // webResourcePath serves a bound listener's Resource service over a websocket.
 const webResourcePath = "/_spacewave/resource"
 
+// webAppPluginID is the plugin whose browser build a bound listener serves.
+const webAppPluginID = "spacewave-app"
+
 // webAppFrontendPath is the root of the app plugin's frontend build. A bound
 // listener's shell loads the app entry from its Vite manifest.
-const webAppFrontendPath = "/b/pa/spacewave-app/v/b/fe/"
+const webAppFrontendPath = "/b/pa/" + webAppPluginID + "/v/b/fe/"
 
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
@@ -259,6 +264,8 @@ type webListener struct {
 	bldrHTTP        *web_runtime_http.Handler
 	// resources serves the bound Resource service, or is nil when unbound.
 	resources *srpc.HTTPServer
+	// appAssets holds the app plugin's browser files mounted while bound.
+	appAssets directive.Reference
 	server    *http.Server
 	listener  net.Listener
 	// cancel ends the requests of the listener, including hijacked websockets
@@ -352,6 +359,14 @@ func newWebListener(
 		bootstrapKeys:   make(map[string]time.Time),
 		capabilities:    make(map[string]time.Time),
 	}
+	if spec.spaceID != "" && b != nil {
+		_, listener.appAssets, err = b.AddDirective(bldr_plugin.NewLoadPluginAssets(webAppPluginID), nil)
+		if err != nil {
+			cancel()
+			_ = lis.Close()
+			return nil, err
+		}
+	}
 	listener.server = &http.Server{
 		Handler:           listener,
 		ReadHeaderTimeout: webListenerReadHeaderTimeout,
@@ -396,12 +411,16 @@ func (l *webListener) info(background bool) *s4wave_root.WebListenerInfo {
 
 // Close closes the listener.
 func (l *webListener) Close() {
+	// Stop serving once, then release the bound app files.
 	if !l.closed.CompareAndSwap(false, true) {
 		return
 	}
 	l.cancel()
 	_ = l.server.Close()
 	_ = l.listener.Close()
+	if l.appAssets != nil {
+		l.appAssets.Release()
+	}
 }
 
 // ServeHTTP serves the boot shell and bootstrap exchange to anyone, and every

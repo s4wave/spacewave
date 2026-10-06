@@ -35,6 +35,11 @@ type LoadPlugin interface {
 	// LoadPluginManifests selects the installation and its recovery artifacts, newest first.
 	// Replacement uses prepared admission; nil follows normal catalog selection.
 	LoadPluginManifests() []*manifest.ManifestRef
+
+	// LoadPluginServeAssets reports that the caller serves the plugin's files
+	// to a browser. When no host can run the plugin, the scheduler mounts the
+	// files of its browser manifest without running it.
+	LoadPluginServeAssets() bool
 }
 
 // LoadPluginValue is the result type for LoadPlugin.
@@ -47,6 +52,7 @@ type loadPlugin struct {
 	instanceKey  string
 	manifestRoot string
 	manifests    []*manifest.ManifestRef
+	serveAssets  bool
 }
 
 // NewLoadPlugin constructs a new LoadPlugin directive.
@@ -71,6 +77,11 @@ func NewLoadPluginWithManifests(pluginID, instanceKey string, refs ...*manifest.
 		cloned[i] = ref.CloneVT()
 	}
 	return &loadPlugin{pluginID: pluginID, instanceKey: instanceKey, manifests: cloned}
+}
+
+// NewLoadPluginAssets loads a plugin whose files the caller serves to a browser.
+func NewLoadPluginAssets(pluginID string) LoadPlugin {
+	return &loadPlugin{pluginID: pluginID, serveAssets: true}
 }
 
 // ExLoadPlugin executes the LoadPlugin directive.
@@ -111,8 +122,8 @@ func ExLoadPluginInstanced(
 	)
 }
 
-// ExLoadPluginWaitClient calls LoadPlugin and returns the rpc client to be set.
-// if returnIfIdle is set, returns nil, nil, nil if the directive becomes idle.
+// ExPluginLoadWaitClient calls LoadPlugin and returns the rpc client to be set.
+// If returnIfIdle is set, it returns nil, nil, nil when the directive becomes idle.
 func ExPluginLoadWaitClient(
 	ctx context.Context,
 	b bus.Bus,
@@ -163,13 +174,12 @@ func waitRunningPluginClient(
 	return rp.GetRpcClient(), rpRef, nil
 }
 
-// ExLoadPluginAccess calls LoadPlugin and returns the running plugin handle.
+// ExPluginLoadAccess calls LoadPlugin and passes the running plugin to cb.
 //
-// the callback will be canceled & restarted if the client becomes invalid.
-// the callback context is canceled when the client value changes.
-// the callback should return context.Canceled in that case.
-//
-// if the callback returns nil, the outer function will also return nil.
+// The callback is canceled and restarted if the plugin becomes invalid. Its
+// context is canceled when the plugin value changes, and it should return
+// context.Canceled in that case. If the callback returns nil, so does
+// ExPluginLoadAccess.
 func ExPluginLoadAccess(
 	ctx context.Context,
 	b bus.Bus,
@@ -215,13 +225,12 @@ func ExPluginLoadAccess(
 	return routineCtr.WaitExited(ctx, false, errCh)
 }
 
-// ExLoadPluginAccessClient calls LoadPlugin and returns the rpc client.
+// ExPluginLoadAccessClient calls LoadPlugin and passes the rpc client to cb.
 //
-// the callback will be canceled & restarted if the client becomes invalid.
-// the callback context is canceled when the client value changes.
-// the callback should return context.Canceled in that case.
-//
-// if the callback returns nil, the outer function will also return nil.
+// The callback is canceled and restarted if the client becomes invalid. Its
+// context is canceled when the client value changes, and it should return
+// context.Canceled in that case. If the callback returns nil, so does
+// ExPluginLoadAccessClient.
 func ExPluginLoadAccessClient(
 	ctx context.Context,
 	b bus.Bus,
@@ -233,8 +242,7 @@ func ExPluginLoadAccessClient(
 	})
 }
 
-// Validate validates the directive.
-// This is a cursory validation to see if the values "look correct."
+// Validate checks that the directive's values look correct.
 func (d *loadPlugin) Validate() error {
 	if d.pluginID == "" {
 		return ErrEmptyPluginID
@@ -258,7 +266,7 @@ func (d *loadPlugin) Validate() error {
 	return nil
 }
 
-// GetValueLoadPluginOptions returns options relating to value handling.
+// GetValueOptions returns options relating to value handling.
 func (d *loadPlugin) GetValueOptions() directive.ValueOptions {
 	return directive.ValueOptions{}
 }
@@ -283,6 +291,11 @@ func (d *loadPlugin) LoadPluginManifests() []*manifest.ManifestRef {
 	return d.manifests
 }
 
+// LoadPluginServeAssets reports whether the caller serves the plugin's files.
+func (d *loadPlugin) LoadPluginServeAssets() bool {
+	return d.serveAssets
+}
+
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
@@ -294,6 +307,7 @@ func (d *loadPlugin) IsEquivalent(other directive.Directive) bool {
 	return d.LoadPluginID() == od.LoadPluginID() &&
 		d.LoadPluginInstanceKey() == od.LoadPluginInstanceKey() &&
 		d.LoadPluginManifestRoot() == od.LoadPluginManifestRoot() &&
+		d.LoadPluginServeAssets() == od.LoadPluginServeAssets() &&
 		slices.EqualFunc(d.LoadPluginManifests(), od.LoadPluginManifests(), (*manifest.ManifestRef).EqualVT)
 }
 
@@ -302,9 +316,8 @@ func (d *loadPlugin) GetName() string {
 	return "LoadPlugin"
 }
 
-// GetDebugString returns the directive arguments stringified.
-// This should be something like param1="test", param2="test".
-// This is not necessarily unique, and is primarily intended for display.
+// GetDebugVals returns the directive arguments for display. They are not
+// necessarily unique.
 func (d *loadPlugin) GetDebugVals() directive.DebugValues {
 	// Collect the plugin identity and manifest fields for display.
 	vals := directive.DebugValues{}
@@ -317,6 +330,9 @@ func (d *loadPlugin) GetDebugVals() directive.DebugValues {
 	}
 	if len(d.manifests) != 0 {
 		vals["installed-root"] = []string{d.manifests[0].GetManifestRef().GetRootRef().GetHash().MarshalString()}
+	}
+	if d.serveAssets {
+		vals["serve-assets"] = []string{"true"}
 	}
 	return vals
 }

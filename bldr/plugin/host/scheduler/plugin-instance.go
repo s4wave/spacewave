@@ -38,6 +38,8 @@ type pluginInstance struct {
 	start *ccontainer.CContainer[bool]
 	// selectedManifest is the explicit installation target, independent of catalog order.
 	selectedManifest atomic.Pointer[installedManifests]
+	// assetsDemand counts the references that serve the plugin's files.
+	assetsDemand atomic.Int32
 	// selections and selectionSequence track retained installation demands under pluginUpdateMtx.
 	selections        map[uint64]*installedManifests
 	selectionSequence uint64

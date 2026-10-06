@@ -117,23 +117,6 @@ type pluginHostSet struct {
 	err error
 }
 
-// toPlatformIDs converts the host set to a list of platform ids.
-func (s *pluginHostSet) toPlatformIDs() []string {
-	// An empty host set has no platform ids.
-	if s == nil || len(s.pluginHosts) == 0 {
-		return nil
-	}
-
-	// Collect the sorted unique platform ids.
-	ids := make([]string, len(s.pluginHosts))
-	for i, h := range s.pluginHosts {
-		ids[i] = h.GetPlatformId()
-	}
-	slices.Sort(ids)
-	ids = slices.Compact(ids)
-	return ids
-}
-
 // toPlatformIDsMap converts the host set to a map of platform ids to plugin hosts.
 func (s *pluginHostSet) toPlatformIDsMap() map[string]bldr_plugin_host.PluginHost {
 	// An empty host set has no platform map.
@@ -413,7 +396,7 @@ func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Re
 	if instanceKey == "" {
 		instanceKey = c.conf.GetInstanceKey()
 	}
-	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID(), instanceKey, dir.LoadPluginManifestRoot(), dir.LoadPluginManifests()), nil
+	return bldr_plugin_host.NewLoadPluginResolver(c, dir, instanceKey), nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -474,6 +457,19 @@ func (c *Controller) AddSelectedPluginReference(pluginID, instanceKey string, se
 	plg.start.SetValue(true)
 	return plg, sync.OnceFunc(func() {
 		releaseSelection()
+		ref.Release()
+	})
+}
+
+// AddAssetsPluginReference retains a plugin whose files the caller serves to a
+// browser. While any such reference exists, the binding mounts the files of a
+// browser manifest when no host can run the plugin.
+func (c *Controller) AddAssetsPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func()) {
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
+	releaseAssets := plg.addAssetsDemand()
+	plg.start.SetValue(true)
+	return plg, sync.OnceFunc(func() {
+		releaseAssets()
 		ref.Release()
 	})
 }
@@ -600,6 +596,12 @@ func (c *Controller) buildPluginMux(
 	return mux, pluginHostRoot.Release
 }
 
+// SetPluginHostBus binds host discovery before Execute. Hosts remain owned by
+// their publishing bus; the scheduler owns their watch and selection lifetime.
+func (c *Controller) SetPluginHostBus(hostBus bus.Bus) {
+	c.hostBus = hostBus
+}
+
 // _ is a type assertion
 var (
 	_ controller.Controller                = (*Controller)(nil)
@@ -607,9 +609,3 @@ var (
 	_ bldr_plugin_host.PluginHostScheduler = (*Controller)(nil)
 	_ bldr_plugin.PluginScheduler          = (*Controller)(nil)
 )
-
-// SetPluginHostBus binds host discovery before Execute. Hosts remain owned by
-// their publishing bus; the scheduler owns their watch and selection lifetime.
-func (c *Controller) SetPluginHostBus(hostBus bus.Bus) {
-	c.hostBus = hostBus
-}

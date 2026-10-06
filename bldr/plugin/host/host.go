@@ -74,4 +74,8 @@ type PluginHostScheduler interface {
 
 	// AddSelectedPluginReference selects an installed artifact for a logical binding.
 	AddSelectedPluginReference(pluginID, instanceKey string, refs ...*manifest.ManifestRef) (bldr_plugin.RunningPluginRef, func())
+
+	// AddAssetsPluginReference retains a plugin whose files the caller serves
+	// to a browser, mounting a browser manifest when no host can run it.
+	AddAssetsPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func())
 }

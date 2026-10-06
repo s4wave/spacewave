@@ -2,7 +2,6 @@ package plugin_host_scheduler
 
 import (
 	"context"
-	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -77,9 +76,8 @@ func (t *pluginInstance) processManifestWorldStateCore(
 
 	// Collect the plugin's linked manifests for currently available hosts.
 	// Build the sorted platform id list for the available hosts.
-	platformIDsMap := hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID)
-	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
-	slices.Sort(platformIDs)
+	platformIDsMap := t.platformHosts(hosts)
+	platformIDs := sortedPlatformIDs(platformIDsMap)
 	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
 
 	// Collect startup manifest eligibility for those platforms at the root.
@@ -174,12 +172,15 @@ func (t *pluginInstance) processManifestWorldStateCore(
 
 	// Sort manifests by platform preference, revision, and ref string.
 	slices.SortFunc(manifests, func(a, b *bldr_manifest_world.CollectedManifest) int {
-		// Rank by platform preference, then revision, then ref string.
-		aRank := platformPreferenceRank(a.Manifest.GetMeta().GetPlatformId())
-		bRank := platformPreferenceRank(b.Manifest.GetMeta().GetPlatformId())
+		// Rank by platform preference and whether a host runs it.
+		aPlatformID, bPlatformID := a.Manifest.GetMeta().GetPlatformId(), b.Manifest.GetMeta().GetPlatformId()
+		aRank := candidateRank(aPlatformID, platformIDsMap[aPlatformID])
+		bRank := candidateRank(bPlatformID, platformIDsMap[bPlatformID])
 		if aRank != bRank {
 			return aRank - bRank
 		}
+
+		// Prefer the newer revision, then the greater ref string.
 		aRev := a.GetRev()
 		bRev := b.GetRev()
 		if aRev > bRev {
@@ -209,10 +210,10 @@ func (t *pluginInstance) processManifestWorldStateCore(
 			// Prefer candidates in sorted order, but keep looking past external
 			// copy candidates for an execute-eligible manifest.
 			for _, manifest := range manifests {
-				// The host must still be part of this selection's platform set.
+				// The platform must still be part of this selection's set.
 				manifestPlatformID := manifest.Manifest.GetMeta().GetPlatformId()
 				manifestPluginHost, ok := platformIDsMap[manifestPlatformID]
-				if !ok || manifestPluginHost == nil {
+				if !ok {
 					continue
 				}
 
@@ -329,6 +330,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 				changed := t.setExecutePluginState(&executePluginArgs{
 					manifestSnapshot: executeManifest,
 					pluginHost:       executeManifestHost,
+					serveAssets:      executeManifestHost == nil,
 				})
 				anyChanged = anyChanged || changed
 			} else {

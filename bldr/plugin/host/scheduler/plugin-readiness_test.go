@@ -233,7 +233,7 @@ func TestLoadPluginResolverWaitsForWorkerRpcConnection(t *testing.T) {
 
 	// Resolve the LoadPlugin directive against a value handler.
 	handler := newLoadPluginValuesHandler()
-	resolver := bldr_plugin_host.NewLoadPluginResolver(ctrl, "test-plugin", "", "", nil)
+	resolver := bldr_plugin_host.NewLoadPluginResolver(ctrl, bldr_plugin.NewLoadPlugin("test-plugin"), "")
 	resolveDone := make(chan error, 1)
 	go func() { resolveDone <- resolver.Resolve(ctx, handler) }()
 

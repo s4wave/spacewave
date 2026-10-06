@@ -65,30 +65,37 @@ func (t *pluginInstance) selectInstalledManifestLocked(hosts *pluginHostSet) {
 	}
 
 	// Select the newest runnable artifact; older ones are its fallbacks.
-	candidates := installedManifestCandidates(selected, hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID))
+	candidates := installedManifestCandidates(selected, t.platformHosts(hosts))
 	candidates[0].fallbacks = candidates[1:]
 	t.setExecutePluginStateLocked(candidates[0])
 }
 
 // installedManifestCandidates lists the installation's artifacts newest first
-// for the platforms that have a host. An installation spans platforms, so
-// artifacts for other platforms are skipped. If no artifact can run, it returns
-// the newest one without a host to report it as unrunnable.
+// for the selectable platforms, those a host runs before those only served. An
+// installation spans platforms, so artifacts for other platforms are skipped.
+// If no artifact is selectable, it returns the newest one without a host to
+// report it as unrunnable.
 func installedManifestCandidates(selected *installedManifests, platforms map[string]bldr_plugin_host.PluginHost) []*executePluginArgs {
-	// Keep the artifacts that one of the hosts can execute.
-	candidates := make([]*executePluginArgs, 0, len(selected.refs))
+	// Keep the artifacts of the selectable platforms.
+	var run, serve []*executePluginArgs
 	for _, ref := range selected.refs {
-		pluginHost := platforms[ref.GetMeta().GetPlatformId()]
-		if pluginHost == nil {
+		pluginHost, ok := platforms[ref.GetMeta().GetPlatformId()]
+		if !ok {
 			continue
 		}
-		candidates = append(candidates, &executePluginArgs{
+		candidate := &executePluginArgs{
 			manifestSnapshot: &manifest.ManifestSnapshot{ManifestRef: ref.GetManifestRef()},
 			pluginHost:       pluginHost,
+			serveAssets:      pluginHost == nil,
 			installation:     selected,
-		})
+		}
+		if candidate.serveAssets {
+			serve = append(serve, candidate)
+		} else {
+			run = append(run, candidate)
+		}
 	}
-	if len(candidates) != 0 {
+	if candidates := append(run, serve...); len(candidates) != 0 {
 		return candidates
 	}
 

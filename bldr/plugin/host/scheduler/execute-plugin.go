@@ -23,8 +23,10 @@ import (
 type executePluginArgs struct {
 	manifestSnapshot *bldr_manifest.ManifestSnapshot
 	pluginHost       bldr_plugin_host.PluginHost
-	installation     *installedManifests
-	fallbacks        []*executePluginArgs
+	// serveAssets mounts the manifest's files without a host to run it.
+	serveAssets  bool
+	installation *installedManifests
+	fallbacks    []*executePluginArgs
 }
 
 // executePluginArgsEqual compares two executePluginArgs for equality.
@@ -33,7 +35,7 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
-	if a.installation != b.installation || len(a.fallbacks) != len(b.fallbacks) {
+	if a.serveAssets != b.serveAssets || a.installation != b.installation || len(a.fallbacks) != len(b.fallbacks) {
 		return false
 	}
 	for i, fallback := range a.fallbacks {
@@ -69,7 +71,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	if args == nil ||
 		args.manifestSnapshot == nil ||
 		args.manifestSnapshot.GetManifestRef() == nil ||
-		args.pluginHost == nil {
+		args.pluginHost == nil && !args.serveAssets {
 		return nil
 	}
 
@@ -216,6 +218,12 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		// fetches lost with a runtime after the next runtime announces the root.
 		if !t.physical {
 			t.emitPluginManifestRoot(manifestRoot)
+		}
+
+		// Served files stay mounted until the selection changes.
+		if args.serveAssets {
+			<-ctx.Done()
+			return context.Canceled
 		}
 
 		// Hold each dependency while this plugin runs. Dependencies start

@@ -104,8 +104,13 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", rerr)
 		}
 	}()
+	if args.serveAssets {
+		return t.serveAssets(ctx, args)
+	}
 	if args.pluginHost == nil {
-		return errors.New("installed plugin has no compatible host")
+		// A host change selects the candidate again; retrying finds no host.
+		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "prepare plugin", errors.New("installed plugin has no compatible host"))
+		return nil
 	}
 
 	// Probe the current worker's declared admission contract. Go and JavaScript

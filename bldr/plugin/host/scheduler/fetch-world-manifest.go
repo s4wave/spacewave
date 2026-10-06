@@ -41,8 +41,8 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 	defer task.End()
 	t.logPluginAccountingFields(ctx)
 
-	// Filter the platform IDs this plugin can run on and log them.
-	platformIDs := t.c.conf.FilterPluginPlatformIDs(t.pluginID, hosts.toPlatformIDs())
+	// Collect the platform IDs this plugin can select and log them.
+	platformIDs := sortedPlatformIDs(t.platformHosts(hosts))
 	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
 	t.le.
 		WithField("platform-ids", platformIDs).
@@ -228,7 +228,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 	// Hold the fetched references per value ID and the platform host mapping.
 	var mtx sync.Mutex
 	allRefs := make(map[uint32][]*bldr_manifest.ManifestRef)
-	platformIDsMap := hosts.toPluginPlatformIDsMap(t.c.conf, t.pluginID)
+	platformIDsMap := t.platformHosts(hosts)
 
 	// Re-select the best compatible manifest candidate from all fetched refs.
 	selectBest := func() {
@@ -244,7 +244,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 			for _, ref := range refs {
 				meta := ref.GetMeta()
 				host, ok := platformIDsMap[meta.GetPlatformId()]
-				if !ok || host == nil {
+				if !ok {
 					continue
 				}
 				if t.incompatibleManifest(ref.GetManifestRef()) {
@@ -277,6 +277,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 			t.setExecutePluginState(&executePluginArgs{
 				manifestSnapshot: snapshot,
 				pluginHost:       best.host,
+				serveAssets:      best.host == nil,
 			})
 			t.setDownloadManifestState(ctx, snapshot, t.c.conf.GetEngineId())
 			t.loggedNotFound.Store(false)

@@ -13,8 +13,19 @@ import (
 type manifestCandidate struct {
 	// ref carries the canonical manifest identity and release metadata.
 	ref *bldr_manifest.ManifestRef
-	// host executes this manifest's platform.
+	// host executes this manifest's platform, or is nil for served files.
 	host plugin_host.PluginHost
+}
+
+// platformID returns the platform of the candidate's manifest.
+func (c *manifestCandidate) platformID() string {
+	return c.ref.GetMeta().GetPlatformId()
+}
+
+// rank orders candidates a host runs by platform preference and the
+// candidates only served after them. Lower ranks are preferred.
+func (c *manifestCandidate) rank() int {
+	return candidateRank(c.platformID(), c.host)
 }
 
 // betterThan orders initial selection by platform, revision, and content identity.
@@ -25,9 +36,7 @@ func (c *manifestCandidate) betterThan(other *manifestCandidate) bool {
 	}
 
 	// Prefer native desktop execution and JavaScript browser execution.
-	rank := platformPreferenceRank(c.host.GetPlatformId())
-	otherRank := platformPreferenceRank(other.host.GetPlatformId())
-	if rank != otherRank {
+	if rank, otherRank := c.rank(), other.rank(); rank != otherRank {
 		return rank < otherRank
 	}
 
@@ -42,7 +51,7 @@ func (c *manifestCandidate) betterThan(other *manifestCandidate) bool {
 	if ref, otherRef := c.ref.String(), other.ref.String(); ref != otherRef {
 		return ref > otherRef
 	}
-	return c.host.GetPlatformId() > other.host.GetPlatformId()
+	return c.platformID() > other.platformID()
 }
 
 // shouldRemainCurrent keeps a still-selectable admitted generation until a
@@ -50,18 +59,26 @@ func (c *manifestCandidate) betterThan(other *manifestCandidate) bool {
 //
 // A native build always replaces a non-native execution: native and
 // JavaScript builds carry independent revision counters, so a higher
-// JavaScript revision says nothing about which build is newer.
+// JavaScript revision says nothing about which build is newer. Any execution
+// replaces served files.
 func (c *manifestCandidate) shouldRemainCurrent(best *manifestCandidate) bool {
+	// An empty generation yields to any candidate and holds against none.
 	if c == nil {
 		return false
 	}
 	if best == nil {
 		return true
 	}
-	if platformPreferenceRank(best.host.GetPlatformId()) == 0 &&
-		platformPreferenceRank(c.host.GetPlatformId()) != 0 {
+
+	// Replace served files and non-native execution when a better kind exists.
+	if best.host != nil && c.host == nil {
 		return false
 	}
+	if best.rank() == 0 && c.rank() != 0 {
+		return false
+	}
+
+	// Otherwise only a newer revision replaces the admitted generation.
 	return c.ref.GetMeta().GetRev() >= best.ref.GetMeta().GetRev()
 }
 
@@ -75,6 +92,15 @@ func (c *manifestCandidate) matchesState(state *executePluginArgs) bool {
 		state.manifestSnapshot.GetManifestRef(),
 		c.ref.GetManifestRef(),
 	)
+}
+
+// candidateRank ranks a manifest for platformID by its platform preference,
+// or after every platform when no host runs it.
+func candidateRank(platformID string, host plugin_host.PluginHost) int {
+	if host == nil {
+		return 3
+	}
+	return platformPreferenceRank(platformID)
 }
 
 // platformPreferenceRank prefers native desktop hosts, then JavaScript, then

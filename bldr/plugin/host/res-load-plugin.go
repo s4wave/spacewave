@@ -5,7 +5,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
-	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
 
@@ -13,33 +12,34 @@ import (
 type LoadPluginResolver struct {
 	// c is the controller
 	c PluginHostScheduler
-	// pluginID is the plugin identifier
-	pluginID string
-	// instanceKey is the instance key for instanced plugins.
+	// dir is the directive being resolved.
+	dir bldr_plugin.LoadPlugin
+	// instanceKey is the effective instance key for instanced plugins.
 	instanceKey string
-	// manifestRoot selects immutable execution when nonempty.
-	manifestRoot string
-	// manifests contains the caller's installation and recovery artifacts.
-	manifests []*manifest.ManifestRef
 }
 
-// NewLoadPluginResolver constructs a new LoadPluginResolver.
-func NewLoadPluginResolver(c PluginHostScheduler, pluginID, instanceKey, manifestRoot string, selected []*manifest.ManifestRef) *LoadPluginResolver {
-	return &LoadPluginResolver{c: c, pluginID: pluginID, instanceKey: instanceKey, manifestRoot: manifestRoot, manifests: selected}
+// NewLoadPluginResolver constructs a new LoadPluginResolver. instanceKey
+// replaces the directive's instance key, which may be empty.
+func NewLoadPluginResolver(c PluginHostScheduler, dir bldr_plugin.LoadPlugin, instanceKey string) *LoadPluginResolver {
+	return &LoadPluginResolver{c: c, dir: dir, instanceKey: instanceKey}
 }
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	// Add the plugin reference matching the requested manifests, manifest
-	// root, or plain plugin ID, releasing it when resolution ends.
+	// root, served assets, or plain plugin ID, releasing it when resolution ends.
+	pluginID, manifestRoot := r.dir.LoadPluginID(), r.dir.LoadPluginManifestRoot()
 	var ref bldr_plugin.RunningPluginRef
 	var relRef func()
-	if len(r.manifests) != 0 {
-		ref, relRef = r.c.AddSelectedPluginReference(r.pluginID, r.instanceKey, r.manifests...)
-	} else if r.manifestRoot == "" {
-		ref, relRef = r.c.AddPluginReference(r.pluginID, r.instanceKey)
-	} else {
-		ref, relRef = r.c.AddPinnedPluginReference(r.pluginID, r.instanceKey, r.manifestRoot)
+	switch {
+	case len(r.dir.LoadPluginManifests()) != 0:
+		ref, relRef = r.c.AddSelectedPluginReference(pluginID, r.instanceKey, r.dir.LoadPluginManifests()...)
+	case manifestRoot != "":
+		ref, relRef = r.c.AddPinnedPluginReference(pluginID, r.instanceKey, manifestRoot)
+	case r.dir.LoadPluginServeAssets():
+		ref, relRef = r.c.AddAssetsPluginReference(pluginID, r.instanceKey)
+	default:
+		ref, relRef = r.c.AddPluginReference(pluginID, r.instanceKey)
 	}
 	defer relRef()
 
@@ -60,8 +60,8 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			continue
 		}
 		if next.GetInitialCapabilityRegistrationState() == bldr_plugin.InitialCapabilityRegistrationFailed {
-			if r.manifestRoot != "" {
-				return errors.Errorf("plugin %s: exact manifest %s is unavailable", r.pluginID, r.manifestRoot)
+			if manifestRoot != "" {
+				return errors.Errorf("plugin %s: exact manifest %s is unavailable", pluginID, manifestRoot)
 			}
 			handler.MarkIdle(true)
 			continue

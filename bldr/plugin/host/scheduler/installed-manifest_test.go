@@ -119,3 +119,39 @@ func TestInstalledManifestSkipsForeignPlatforms(t *testing.T) {
 		release()
 	}
 }
+
+// TestInstalledManifestServesAssets proves a browser artifact without a host
+// is served only while a reference demands its files.
+func TestInstalledManifestServesAssets(t *testing.T) {
+	// Build a controller whose only host cannot run the browser artifact.
+	le := logrus.NewEntry(logrus.New())
+	hosts := &pluginHostSet{pluginHosts: []plugin_host.PluginHost{&testPluginHost{id: "desktop/darwin/arm64"}}}
+	c := NewController(le, nil, &Config{})
+	c.pluginHostsCtr = ccontainer.NewCContainer(hosts)
+	_, instance := c.newPluginInstance(pluginReference{pluginID: "app"})
+	release := instance.addManifestSelection(newTestManifestRef("app", "js", 1, "app"))
+	defer release()
+
+	// serving reports whether the selection serves the artifact's files.
+	serving := func() bool {
+		state := instance.executePluginRoutine.GetState()
+		if state == nil || state.pluginHost != nil {
+			t.Fatal("browser artifact selected a host")
+		}
+		return state.serveAssets
+	}
+	if serving() {
+		t.Fatal("served files without demand")
+	}
+
+	// Demand serves the files until its last release.
+	releaseAssets := instance.addAssetsDemand()
+	if !serving() {
+		t.Fatal("demand did not serve files")
+	}
+	releaseAssets()
+	releaseAssets()
+	if serving() {
+		t.Fatal("served files after release")
+	}
+}
