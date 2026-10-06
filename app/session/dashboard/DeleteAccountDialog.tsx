@@ -10,6 +10,8 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import { TypedConfirmField } from './TypedConfirmField.js'
+
 export interface DeleteAccountDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -96,27 +98,20 @@ export function DeleteAccountDialog({
 
         {step === 'confirm' && (
           <>
-            <div>
-              <label className="text-foreground-alt mb-1.5 block text-xs select-none">
-                Type{' '}
-                <span className="text-destructive font-medium">DELETE</span> to
-                confirm
-              </label>
-              <input
-                value={typedName}
-                onChange={(e) => setTypedName(e.target.value)}
-                placeholder="DELETE"
-                className={cn(
-                  'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-                  'focus:border-destructive/50',
-                )}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && typedName === 'DELETE') {
-                    setStep('final')
-                  }
-                }}
-              />
-            </div>
+            <TypedConfirmField
+              label={
+                <>
+                  Type{' '}
+                  <span className="text-destructive font-medium">DELETE</span>{' '}
+                  to confirm
+                </>
+              }
+              value={typedName}
+              onChange={setTypedName}
+              placeholder="DELETE"
+              canSubmit={typedName === 'DELETE'}
+              onSubmit={() => setStep('final')}
+            />
             <DialogFooter>
               <button
                 type="button"
