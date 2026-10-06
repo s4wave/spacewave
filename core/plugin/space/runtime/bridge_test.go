@@ -20,8 +20,10 @@ import (
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	resource_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
 	"github.com/s4wave/spacewave/core/resource/registration"
+	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/hash"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	sdk_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	sdk_registration "github.com/s4wave/spacewave/sdk/plugin/registration"
@@ -126,7 +128,8 @@ func addTestDirective(t *testing.T, b bus.Bus, dir directive.Directive) {
 }
 
 // TestParentFilterForwardsInstallationLoads checks that the parent reaches
-// this Space's plugin installation and scheduler and nothing else.
+// this Space's plugin installation, scheduler, and pinned plugin files and
+// nothing else.
 func TestParentFilterForwardsInstallationLoads(t *testing.T) {
 	// Bridge a parent bus into a recorded child bus.
 	ctx := t.Context()
@@ -145,22 +148,37 @@ func TestParentFilterForwardsInstallationLoads(t *testing.T) {
 	addTestController(t, child, recorder)
 	addTestController(t, parent, bus_bridge.NewBusBridge(child, parentFilter("space-a", []string{"app"})))
 
-	// The scheduler lookup and this installation's loads reach the child.
+	// Pin plugin files to a manifest root.
+	root, err := hash.Sum(hash.RecommendedHashType, []byte("manifest"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pinned := bldr_plugin.PluginArtifactID("plugin", root.MarshalString())
+	pinnedApp := bldr_plugin.PluginArtifactID("app", root.MarshalString())
+
+	// The scheduler lookup, this installation's loads, and the pinned files of
+	// Space plugins reach the child.
 	forwarded := []directive.Directive{
 		bldr_plugin.NewLookupPluginScheduler(),
 		bldr_plugin.NewLoadPluginInstanced("plugin", "space-a"),
+		unixfs_access.NewAccessUnixFS(bldr_plugin.PluginAssetsFsId(pinned)),
+		unixfs_access.NewAccessUnixFS(bldr_plugin.PluginDistFsId(pinned)),
 	}
 	for _, dir := range forwarded {
 		addTestDirective(t, parent, dir)
 		recorder.waitFor(t, dir)
 	}
 
-	// Default, other installation, and app plugin loads stay on the parent.
+	// Default, other installation, and app plugin loads, unpinned and app
+	// plugin files, and other filesystems stay on the parent.
 	kept := []directive.Directive{
 		bldr_plugin.NewLoadPlugin("plugin"),
 		bldr_plugin.NewLoadPluginInstanced("plugin", "space-b"),
 		bldr_plugin.NewLoadPluginInstanced("app", "space-a"),
 		objecttype.NewLookupObjectTypeForEngine("test/type", "space-a"),
+		unixfs_access.NewAccessUnixFS(bldr_plugin.PluginAssetsFsId("plugin")),
+		unixfs_access.NewAccessUnixFS(bldr_plugin.PluginAssetsFsId(pinnedApp)),
+		unixfs_access.NewAccessUnixFS("other/" + pinned),
 	}
 	for _, dir := range kept {
 		addTestDirective(t, parent, dir)

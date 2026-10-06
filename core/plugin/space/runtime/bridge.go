@@ -2,11 +2,13 @@ package plugin_space_runtime
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
+	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
@@ -61,10 +63,11 @@ func parentFilter(instanceKey string, appPluginIDs []string) func(directive.Inst
 }
 
 // parentDirective reports whether dir on the parent bus resolves in the
-// generation: LookupPluginScheduler, so session status sees its scheduler, and
+// generation: LookupPluginScheduler, so session status sees its scheduler,
 // loads of this Space's plugin installation, so the daemon can reach a Space
-// plugin that registered a handler. An empty instanceKey forwards no loads.
-// App plugin loads stay on the parent.
+// plugin that registered a handler, and the pinned files of a Space plugin
+// execution, so a browser can load the viewers it registered. An empty
+// instanceKey forwards no loads. App plugin loads and files stay on the parent.
 func parentDirective(dir directive.Directive, instanceKey string, appPluginIDs []string) bool {
 	switch d := dir.(type) {
 	case bldr_plugin.LookupPluginScheduler:
@@ -73,7 +76,27 @@ func parentDirective(dir directive.Directive, instanceKey string, appPluginIDs [
 		return instanceKey != "" &&
 			d.LoadPluginInstanceKey() == instanceKey &&
 			!slices.Contains(appPluginIDs, d.LoadPluginID())
+	case unixfs_access.AccessUnixFS:
+		return pinnedPluginFiles(d.AccessUnixFSID(), appPluginIDs)
 	default:
 		return false
 	}
+}
+
+// pinnedPluginFiles reports whether fsID names the dist or assets files of a
+// Space plugin pinned to a manifest root. The root names the exact content, so
+// every generation that answers serves the same files.
+func pinnedPluginFiles(fsID string, appPluginIDs []string) bool {
+	// Cut the assets or dist prefix from the filesystem ID.
+	artifactID, ok := strings.CutPrefix(fsID, bldr_plugin.PluginAssetsFsIdPrefix)
+	if !ok {
+		artifactID, ok = strings.CutPrefix(fsID, bldr_plugin.PluginDistFsIdPrefix)
+	}
+	if !ok {
+		return false
+	}
+
+	// Require a Space plugin pinned to a manifest root.
+	pluginID, manifestRoot, err := bldr_plugin.ParsePluginArtifactID(artifactID, false)
+	return err == nil && manifestRoot != "" && !slices.Contains(appPluginIDs, pluginID)
 }
