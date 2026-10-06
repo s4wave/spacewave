@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync"
 
@@ -53,6 +54,7 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 	storeManifests := !t.c.conf.GetDisableStoreManifest()
 	trace.Logf(ctx, "store-manifests", "%t", storeManifests)
 	var handler directive.ReferenceHandler
+	var announced announcedManifestKeys
 	if storeManifests {
 		// Keyed set of FetchManifestValue store routines.
 		storeFetchedManifests := keyed.NewKeyedWithLogger(
@@ -66,6 +68,7 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 			// value added
 			func(av directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
 				manifestValue := av.GetValue()
+				var keys []string
 				for i, manifestRef := range manifestValue.GetManifestRefs() {
 					if err := manifestRef.Validate(); err != nil {
 						t.le.WithError(err).Warn("skipping invalid manifest ref")
@@ -74,7 +77,9 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 
 					storer, _ := storeFetchedManifests.SetKey(storeFetchedManifestsKey{valueID: av.GetValueID(), refIndex: i}, true)
 					storer.value.SetResult(av.GetValue(), nil)
+					keys = append(keys, bldr_manifest.NewManifestArtifactKey(manifestRef.GetManifestRef()))
 				}
+				announced.set(av.GetValueID(), keys)
 			},
 			// value removed
 			func(av directive.TypedAttachedValue[*bldr_manifest.FetchManifestValue]) {
@@ -83,6 +88,7 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 						storeFetchedManifests.RemoveKey(key)
 					}
 				}
+				announced.set(av.GetValueID(), nil)
 			},
 			// disposed (ignore, only happens once ctx cancels)
 			nil, // func() {},
@@ -110,13 +116,19 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 		return err
 	}
 
-	// Record each directive idle error in the plugin status.
+	// Record each directive idle error in the plugin status, and release a
+	// first selection waiting for the announced manifests.
 	releaseIdle := di.AddIdleCallback(func(isIdle bool, errs []error) {
 		if !isIdle {
 			return
 		}
 		for _, err := range errs {
 			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "fetch plugin manifest", err)
+		}
+		if storeManifests && !t.fetchSettled.Load() {
+			keys := announced.keys()
+			t.announcedManifests.Store(&keys)
+			t.watchWorldManifestRoutine.RestartRoutine()
 		}
 	})
 
@@ -126,6 +138,78 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 		ref.Release()
 	})
 	return nil
+}
+
+// announcedManifestKeys tracks the manifest keys of each fetched value.
+type announcedManifestKeys struct {
+	// mtx guards byValue.
+	mtx sync.Mutex
+	// byValue maps an attached value ID to its manifest keys.
+	byValue map[uint32][]string
+}
+
+// set replaces the keys of one value. Nil keys remove the value.
+func (a *announcedManifestKeys) set(valueID uint32, keys []string) {
+	// Guard the value map for the whole call.
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	// Drop a removed value.
+	if keys == nil {
+		delete(a.byValue, valueID)
+		return
+	}
+
+	// Record the keys of an attached value.
+	if a.byValue == nil {
+		a.byValue = make(map[uint32][]string)
+	}
+	a.byValue[valueID] = keys
+}
+
+// keys returns the manifest keys of every attached value.
+func (a *announcedManifestKeys) keys() []string {
+	// Guard the value map for the whole call.
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
+
+	// Flatten the keys of every value.
+	var keys []string
+	for _, valueKeys := range a.byValue {
+		keys = append(keys, valueKeys...)
+	}
+	return keys
+}
+
+// awaitingFetch reports whether this selection must wait for FetchManifest:
+// the scheduler awaits fetches, this plugin's first selection has not yet
+// seen every announced manifest among its candidates, and so far either the
+// directive has not gone idle or a stored manifest is still unlinked.
+func (t *pluginInstance) awaitingFetch(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+	// Only a stored, watched fetch for the logical binding gates selection.
+	conf := t.c.conf
+	if !conf.GetAwaitFetchManifest() || !conf.GetWatchFetchManifest() || conf.GetDisableStoreManifest() ||
+		t.manifestRoot != "" || t.fetchSettled.Load() {
+		return false
+	}
+
+	// Wait until the directive first goes idle.
+	announced := t.announcedManifests.Load()
+	if announced == nil {
+		return true
+	}
+
+	// Wait until every announced manifest is linked, then stop gating.
+	for _, key := range *announced {
+		linked := slices.ContainsFunc(candidates, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+			return c.ObjectKey == key
+		})
+		if !linked {
+			return true
+		}
+	}
+	t.fetchSettled.Store(true)
+	return false
 }
 
 // fetchManifestValueStorer stores fetched manifest values on the plugin

@@ -23,7 +23,7 @@ func (c *Controller) Refresh(ctx context.Context, req *RefreshRequest) (*Refresh
 	if req.GetSpaceId() != "" && req.GetSpaceId() != c.conf.GetSpaceId() {
 		return &RefreshResponse{}, nil
 	}
-	if _, err := c.ctr.WaitValue(ctx, nil); err != nil {
+	if _, err := c.GetWorldEngine(ctx); err != nil {
 		return nil, err
 	}
 	c.refresh.RestartRoutine()

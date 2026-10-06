@@ -226,6 +226,16 @@ export interface Config {
    * @generated from field: repeated string plugin_ids = 21;
    */
   pluginIds?: string[]
+  /**
+   * AwaitFetchManifest holds each plugin's first manifest selection until the
+   * FetchManifest directive is idle and every manifest it announced is stored,
+   * so startup runs the announced release instead of replacing a cached one.
+   * Requires WatchFetchManifest and FetchManifest resolvers that mark idle,
+   * including while their source is unreachable.
+   *
+   * @generated from field: bool await_fetch_manifest = 22;
+   */
+  awaitFetchManifest?: boolean
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -307,6 +317,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
+    },
+    {
+      no: 22,
+      name: 'await_fetch_manifest',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
     },
   ] satisfies readonly PartialFieldInfo[],
 })

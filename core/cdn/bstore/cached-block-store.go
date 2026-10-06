@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/db/kvtx"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
 	"github.com/s4wave/spacewave/db/volume"
 )
@@ -43,12 +44,14 @@ type CachedBlockStoreOptions struct {
 //
 // With CacheBlockStoreID set it looks up the writeback block store and the
 // durable pack-index object store on the bus, wires both into the CDN store,
-// and returns a release function that closes the store and frees the bus
+// keeps the last fetched root pointer in the pack-index object store, and
+// returns a release function that closes the store and frees the bus
 // references. On assembly failure every acquired reference is freed before
 // the error returns.
 func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOptions) (*CdnBlockStore, func(), error) {
 	// Declare the cache and release slots for the bus lookups.
 	var indexCache packfile_store.IndexCache
+	var pointerStore kvtx.Store
 	var cacheStore block_store.LookupBlockStoreValue
 	var releaseCache, releaseIndex func()
 
@@ -86,6 +89,7 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 		if objHandle != nil {
 			releaseIndex = objRef.Release
 			indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
+			pointerStore = objHandle.GetObjectStore()
 		}
 	}
 
@@ -97,6 +101,7 @@ func NewCachedBlockStore(ctx context.Context, b bus.Bus, opts CachedBlockStoreOp
 		HttpClient:         opts.HttpClient,
 		PointerTTL:         opts.PointerTTL,
 		IndexCache:         indexCache,
+		PointerStore:       pointerStore,
 	})
 	if err != nil {
 		releaseRefs()

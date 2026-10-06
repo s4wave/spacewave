@@ -46,24 +46,48 @@ type Controller struct {
 	conf *Config
 	// engine owns the active CDN cursor and refresh routine.
 	engine *cdn_sharedobject.WorldEngine
-	// ctr publishes the engine after the current head becomes readable.
-	ctr *ccontainer.CContainer[world.Engine]
+	// ctr publishes the outcome of the latest mount attempt.
+	ctr *ccontainer.CContainer[*mountState]
 	// storeCtr publishes block-store authority while this controller owns it.
 	storeCtr *ccontainer.CContainer[*blockStoreAuthority]
-	// refresh coalesces invalidations under the active mount's lifetime.
+	// refresh coalesces invalidations under the active mount's lifetime and
+	// retries failed pointer fetches with backoff.
 	refresh *routine.RoutineContainer
+	// refreshed publishes the outcome of the latest pointer fetch.
+	refreshed *ccontainer.CContainer[*refreshResult]
+}
+
+// refreshResult is the outcome of one root pointer fetch.
+type refreshResult struct {
+	// err is the fetch failure, or nil after a successful fetch.
+	err error
+}
+
+// mountState is the outcome of a mount attempt: a readable engine, or the
+// failure that left the Space unreadable.
+type mountState struct {
+	// engine is the world engine over the current readable head.
+	engine world.Engine
+	// err is the mount failure while no head is readable.
+	err error
 }
 
 // NewController builds a new CDN world controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
-	return &Controller{
-		le:       le.WithField("engine-id", conf.GetEngineId()),
-		b:        b,
-		conf:     conf,
-		ctr:      ccontainer.NewCContainer[world.Engine](nil),
-		storeCtr: ccontainer.NewCContainer[*blockStoreAuthority](nil),
-		refresh:  routine.NewRoutineContainerWithLogger(le, routine.WithRetry(&backoff.Backoff{})),
+	c := &Controller{
+		le:        le.WithField("engine-id", conf.GetEngineId()),
+		b:         b,
+		conf:      conf,
+		ctr:       ccontainer.NewCContainer[*mountState](nil),
+		storeCtr:  ccontainer.NewCContainer[*blockStoreAuthority](nil),
+		refreshed: ccontainer.NewCContainer[*refreshResult](nil),
 	}
+	c.refresh = routine.NewRoutineContainerWithLogger(
+		le,
+		routine.WithRetry(&backoff.Backoff{}),
+		routine.WithExitCb(func(err error) { c.refreshed.SetValue(&refreshResult{err: err}) }),
+	)
+	return c
 }
 
 // GetControllerInfo returns information about the controller.
@@ -120,8 +144,18 @@ func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockSto
 	return store, releaseStore, err
 }
 
-// Execute builds the CDN world engine and holds it until shutdown.
+// Execute builds the CDN world engine and holds it until shutdown. A failed
+// mount is published so lookups stop waiting on an unreachable Space.
 func (c *Controller) Execute(ctx context.Context) error {
+	err := c.mount(ctx)
+	if err != nil && ctx.Err() == nil {
+		c.ctr.SetValue(&mountState{err: err})
+	}
+	return err
+}
+
+// mount builds the CDN world engine and holds it until ctx is canceled.
+func (c *Controller) mount(ctx context.Context) error {
 	// Hold the backing store until the mount is withdrawn.
 	store, releaseStore, err := c.newBlockStore(ctx)
 	if err != nil {
@@ -152,15 +186,23 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// The refresh routine owns pointer fetches, including the first one, so
-	// mounting fetches the pointer once.
+	// mounting fetches the pointer once. While the CDN is unreachable the
+	// routine retries and the store stays mounted, so cached blocks remain
+	// readable and lookups learn the Space is unreachable.
+	c.refreshed.SetValue(nil)
 	c.refresh.SetRoutine(so.RefreshSnapshot)
 	c.refresh.SetContext(ctx, false)
 	defer c.refresh.ClearContext()
-	if err := c.refresh.WaitExited(ctx, false, nil); err != nil {
-		if ctx.Err() != nil {
+	var refreshed *refreshResult
+	for refreshed == nil || refreshed.err != nil {
+		var err error
+		refreshed, err = c.refreshed.WaitValueChange(ctx, refreshed, nil)
+		if err != nil {
 			return nil
 		}
-		return err
+		if refreshed.err != nil {
+			c.ctr.SetValue(&mountState{err: refreshed.err})
+		}
 	}
 
 	// Wait for a readable head, then publish one engine until cancellation.
@@ -171,6 +213,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 				return err
 			}
 			c.le.WithError(err).Debug("CDN world engine waiting for published head")
+			c.ctr.SetValue(&mountState{err: err})
 			select {
 			case <-ctx.Done():
 				return nil
@@ -179,7 +222,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 		}
 		c.engine = engine
-		c.ctr.SetValue(engine.Engine)
+		c.ctr.SetValue(&mountState{engine: engine.Engine})
 		c.le.Info("CDN world engine ready")
 		<-ctx.Done()
 		c.refresh.ClearContext()
@@ -202,7 +245,7 @@ func (c *Controller) HandleDirective(_ context.Context, di directive.Instance) (
 		if id := dir.LookupWorldEngineID(); id != "" && id != c.conf.GetEngineId() {
 			return nil, nil
 		}
-		return directive.R(world.NewWorldEngineResolver(c))
+		return directive.R(&worldEngineResolver{ctr: c.ctr}, nil)
 	case block_store.LookupBlockStore:
 		// A supplied-store mount reads through another owner's block store, so
 		// answering here would publish a second provider for the same id.
@@ -222,7 +265,13 @@ func (c *Controller) HandleDirective(_ context.Context, di directive.Instance) (
 
 // GetWorldEngine waits for the engine to be built.
 func (c *Controller) GetWorldEngine(ctx context.Context) (world.Engine, error) {
-	return c.ctr.WaitValue(ctx, nil)
+	state, err := c.ctr.WaitValueWithValidator(ctx, func(state *mountState) (bool, error) {
+		return state != nil && state.engine != nil, nil
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+	return state.engine, nil
 }
 
 // Close releases any resources used by the controller.

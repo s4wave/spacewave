@@ -7,6 +7,7 @@ import (
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/pkg/errors"
+	dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
 	compiler "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	project "github.com/s4wave/spacewave/bldr/project"
 	starlark "github.com/s4wave/spacewave/bldr/project/starlark"
@@ -38,14 +39,24 @@ func localCDNProject(repoRoot, baseURL string) (*project.ProjectConfig, string, 
 		return nil, "", err
 	}
 
-	// Route the bootstrap World configuration to the local CDN origin.
+	// Read the Release World the distribution mounts before startup.
+	var distConf dist_compiler.Config
+	if err := distConf.UnmarshalJSON(build.ManifestOverrides["spacewave-browser"].Config); err != nil {
+		return nil, "", err
+	}
+
+	// Route it to the local CDN origin.
 	var worldConf cdn_world.Config
-	if err := worldConf.UnmarshalJSON(bootstrap.HostConfigSet["release-world"].Config); err != nil {
+	if err := worldConf.UnmarshalJSON(distConf.HostConfigSet["release-world"].Config); err != nil {
 		return nil, "", err
 	}
 	worldConf.CdnBaseUrl = baseURL + "/cdn"
 	worldConf.SpaceId = localCDNSpaceID
-	bootstrap.HostConfigSet["release-world"].Config, err = worldConf.MarshalJSON()
+	distConf.HostConfigSet["release-world"].Config, err = worldConf.MarshalJSON()
+	if err != nil {
+		return nil, "", err
+	}
+	build.ManifestOverrides["spacewave-browser"].Config, err = distConf.MarshalJSON()
 	if err != nil {
 		return nil, "", err
 	}

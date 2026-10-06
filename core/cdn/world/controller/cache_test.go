@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -34,6 +35,7 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/hash"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
@@ -162,6 +164,145 @@ func writePackRange(w http.ResponseWriter, rangeHeader string, pack []byte) {
 	_, _ = w.Write(pack[off : end+1])
 }
 
+// addTestCacheStore serves ops as the block store id on b until the test ends.
+func addTestCacheStore(ctx context.Context, t *testing.T, b bus.Bus, id string, ops block.StoreOps) {
+	// Serve ops under id from a block store controller.
+	t.Helper()
+	ctrl := block_store_controller.NewController(
+		logrus.NewEntry(logrus.New()),
+		controller.NewInfo("test/cache", controller.MustParseVersion("0.0.1"), "test cache"),
+		func(context.Context, func()) (block_store.Store, func(), error) {
+			return block_store.NewStore(id, ops), nil, nil
+		},
+		[]string{id},
+		true,
+		nil,
+		false,
+		false,
+	)
+	release, err := b.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(release)
+}
+
+// TestCdnOutageKeepsCachedBlocksReadable proves that a controller started
+// while the CDN is unreachable reports its World engine unavailable and still
+// serves blocks cached under the last fetched root pointer.
+func TestCdnOutageKeepsCachedBlocksReadable(t *testing.T) {
+	// Name the fixture and bound the test.
+	const (
+		spaceID = "01kpftest0000000000000003"
+		cacheID = "dist"
+		packID  = "01kcdnpack0000000000000008"
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Publish one packed block under the Space root pointer.
+	data := []byte("cached before a CDN outage")
+	blockHash, packData, packEntry := packTestBlock(t, packID, data)
+	pointer := encodeRootPointer(t, &cdn.CdnRootPointer{
+		SpaceId: spaceID,
+		Packs:   []*packfile.PackfileEntry{packEntry},
+	})
+
+	// Serve the CDN until it goes down.
+	var down atomic.Bool
+	cdnURL := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case down.Load():
+			http.Error(w, "CDN is unavailable", http.StatusServiceUnavailable)
+		case r.URL.Path == "/"+spaceID+"/root.packedmsg":
+			_, _ = w.Write(pointer)
+		case strings.HasSuffix(r.URL.Path, "/"+packID+".kvf"):
+			if rangeHeader := r.Header.Get("Range"); rangeHeader != "" {
+				writePackRange(w, rangeHeader, packData)
+				return
+			}
+			_, _ = w.Write(packData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+
+	// Start a bus with an in-memory volume to back the cache.
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), testbed.WithVolumeConfig(
+		&volume_kvtxinmem.Config{
+			VolumeConfig: &volume_controller.Config{
+				VolumeIdAlias:           []string{cacheID},
+				DisableLookupBlockStore: true,
+			},
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	b := tb.Bus
+	cacheStoreOps := &notifyingBlockStore{
+		StoreOps: tb.Volume,
+		putCh:    make(chan struct{}, 1),
+	}
+	addTestCacheStore(ctx, t, b, cacheID, cacheStoreOps)
+
+	// Read the block once while the CDN is up, caching it and its pointer.
+	conf := NewConfig("release-world", spaceID, cdnURL)
+	conf.CacheBlockStoreId = cacheID
+	onlineStore, releaseOnline, err := NewController(logrus.NewEntry(logrus.New()), b, conf).newBlockStore(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := &block.BlockRef{Hash: blockHash}
+	if got, found, err := onlineStore.GetBlock(ctx, ref); err != nil || !found || !bytes.Equal(got, data) {
+		t.Fatalf("online read found=%v err=%v data=%q", found, err, got)
+	}
+	if err := cacheStoreOps.waitPut(ctx); err != nil {
+		t.Fatalf("wait for CDN writeback: %v", err)
+	}
+	releaseOnline()
+
+	// Mount the Space in a new controller while the CDN is down.
+	down.Store(true)
+	release, err := b.AddController(ctx, NewController(logrus.NewEntry(logrus.New()), b, conf), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	// The engine lookup goes idle without a value.
+	errUnavailable := errors.New("world engine unavailable")
+	_, _, engineRef, err := bus.ExecWaitValue[world.LookupWorldEngineValue](
+		ctx, b, world.NewLookupWorldEngine(conf.GetEngineId()),
+		func(isIdle bool, _ []error) (bool, error) {
+			if isIdle {
+				return false, errUnavailable
+			}
+			return true, nil
+		},
+		nil,
+		nil,
+	)
+	if engineRef != nil {
+		engineRef.Release()
+	}
+	if !errors.Is(err, errUnavailable) {
+		t.Fatalf("engine lookup returned %v, want idle without an engine", err)
+	}
+
+	// The cached block still reads through the mounted store.
+	store, _, storeRef, err := block_store.ExLookupFirstBlockStore(ctx, b, spaceID, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer storeRef.Release()
+	got, found, err := store.GetBlock(ctx, ref)
+	if err != nil || !found || !bytes.Equal(got, data) {
+		t.Fatalf("cached read during outage found=%v err=%v data=%q", found, err, got)
+	}
+}
+
 // TestConfiguredCacheWritebackSurvivesCdnRestart proves a block read from the
 // CDN is written back to the configured cache, and a restarted controller
 // serves it from that cache without another Range request.
@@ -233,23 +374,7 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 		StoreOps: tb.Volume,
 		putCh:    make(chan struct{}, 1),
 	}
-	cacheCtrl := block_store_controller.NewController(
-		logrus.NewEntry(logrus.New()),
-		controller.NewInfo("test/cache", controller.MustParseVersion("0.0.1"), "test cache"),
-		func(context.Context, func()) (block_store.Store, func(), error) {
-			return block_store.NewStore(cacheID, cacheStoreOps), nil, nil
-		},
-		[]string{cacheID},
-		true,
-		nil,
-		false,
-		false,
-	)
-	cacheControllerRelease, err := b.AddController(ctx, cacheCtrl, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cacheControllerRelease()
+	addTestCacheStore(ctx, t, b, cacheID, cacheStoreOps)
 
 	// Configure the controller to write CDN reads back to the cache.
 	conf := NewConfig("release-world", spaceID, cdnURL)

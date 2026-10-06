@@ -15,35 +15,6 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// DefaultPointerTTL is the fallback TTL for cached root pointers when the
-// caller does not override it.
-const DefaultPointerTTL = 30 * time.Second
-
-// Options configure a CdnBlockStore.
-type Options struct {
-	// CdnBaseURL is the public CDN origin (e.g. https://cdn.spacewave.app).
-	CdnBaseURL string
-	// RootPointerBaseURL optionally serves root.packedmsg from another origin.
-	// Empty reads the pointer from CdnBaseURL.
-	RootPointerBaseURL string
-	// SpaceID is the CDN Space ULID.
-	SpaceID string
-	// HttpClient overrides the default http.Client.
-	HttpClient *http.Client
-	// PointerTTL is the cache TTL for the decoded root pointer. Zero falls
-	// back to DefaultPointerTTL. Negative disables the TTL (pointer is cached
-	// until explicitly invalidated).
-	PointerTTL time.Duration
-	// IndexCache optionally persists raw packfile index tails across restarts.
-	IndexCache packfile_store.IndexCache
-}
-
-// PackIndexObjectStoreID returns the stable metadata ObjectStore ID for a CDN
-// Space's durable packfile index cache.
-func PackIndexObjectStoreID(spaceID string) string {
-	return "cdn/" + spaceID + "/pack-index"
-}
-
 // CdnBlockStore is a read-only block.StoreOps backed by the public Spacewave
 // CDN. Reads are served by a packfile_store.PackfileStore fed by an anonymous
 // HTTP Range opener. Writes return ErrReadOnly. The cached root pointer is
@@ -414,10 +385,14 @@ func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer,
 		return cached, epoch, nil
 	}
 
-	// Fetch the expired CDN pointer and capture its publication epoch.
+	// Fetch the expired CDN pointer and capture its publication epoch. While
+	// the CDN is unreachable, serve the last fetched manifest.
 	ptr, err := s.loadPointer(ctx)
 	if err != nil {
-		return nil, 0, err
+		ptr, err = s.stalePointer(ctx, cached, err)
+		if err != nil {
+			return nil, 0, err
+		}
 	}
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		epoch = s.pointerEpoch
@@ -474,12 +449,17 @@ func (s *CdnBlockStore) loadPointer(ctx context.Context) (*cdn.CdnRootPointer, e
 			continue
 		}
 
-		// Fetch and publish the CDN pointer for the shared request.
+		// Fetch, publish, and store the CDN pointer for the shared request. The
+		// stored pointer only serves later outages, so failing to store it
+		// leaves this read unaffected.
+		prev := s.Pointer()
 		ptr, err := FetchRootPointer(ctx, s.cli, RootPointerBaseURL(s.opts.CdnBaseURL, s.opts.RootPointerBaseURL), s.opts.SpaceID)
 		if err == nil {
 			if _, published := s.setPointer(ctx, ptr); !published {
 				ptr = nil
 				err = packfile_store.ErrPackfileStoreClosed
+			} else if !ptr.EqualVT(prev) {
+				_ = s.writeStoredPointer(ctx, ptr)
 			}
 		}
 
