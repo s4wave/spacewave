@@ -6,28 +6,12 @@ import {
   BootReportState,
   BootValidationViolationKind,
 } from './report.pb.js'
+import {
+  openBootReportStore,
+  type OpenBootReportStoreOptions,
+} from './store.js'
 
-// The red-confirmed gate landed these durability tests before any store
-// implementation existed. They load ./store.js through requireStoreModule so
-// a missing implementation names the missing durability behavior instead of
-// failing on an unresolved module import.
-// The computed specifier keeps Vite from analyzing this import during
-// transformation; resolution then fails inside the guarded call at test time.
-const storeModuleSpecifier = './store.js'
-
-async function requireStoreModule(
-  behavior: string,
-): Promise<any> {
-  try {
-    return await import(/* @vite-ignore */ storeModuleSpecifier)
-  } catch (cause) {
-    throw new Error(
-      `missing BootReportStore durability behavior (${behavior}): ` +
-        'bldr/web/boot/store.ts is not implemented yet',
-      { cause },
-    )
-  }
-}
+type StoreIdbFactory = NonNullable<OpenBootReportStoreOptions['idbFactory']>
 
 // The fake IndexedDB implements the native request/transaction callback
 // surface only: requests settle through onsuccess/onerror, transactions
@@ -120,7 +104,8 @@ class FakeIDBObjectStore {
     const key = value[this.keyPath] as string
     return this.transaction._track(
       () => {
-        if (this.database.factory.putFailure) throw this.database.factory.putFailure
+        if (this.database.factory.putFailure)
+          throw this.database.factory.putFailure
         this.records.set(key, value)
         return key
       },
@@ -214,7 +199,11 @@ class FakeIDBTransaction {
 class FakeIDatabase {
   readonly stores = new Map<
     string,
-    { name: string; keyPath: string; records: Map<string, Record<string, unknown>> }
+    {
+      name: string
+      keyPath: string
+      records: Map<string, Record<string, unknown>>
+    }
   >()
   putFailure: Error | null = null
   commitFailure = false
@@ -271,9 +260,7 @@ class FakeIDBFactory {
   readonly databases = new Map<string, FakeIDatabase>()
   putFailure: Error | null = null
   commitFailure = false
-  holdPredicate:
-    | ((meta?: { key?: string }) => boolean)
-    | null = null
+  holdPredicate: ((meta?: { key?: string }) => boolean) | null = null
   readonly held: Array<{
     execute: () => void
     settle: () => void
@@ -428,30 +415,21 @@ function recordingReport(reportId: string, labels: string[]): BootReport {
 }
 
 interface InlineShellGlobals {
-  __swStartupMarks?:
-    | {
-        name: string
-        label: string
-        sequence: number
-        detail: Record<string, unknown>
-      }[]
+  __swStartupMarks?: {
+    name: string
+    label: string
+    sequence: number
+    detail: Record<string, unknown>
+  }[]
   __swStartupMarkOverflows?: number
   __swBootReport?: unknown
 }
 
-async function openStore(options: {
-  idbFactory: IDBFactory
-  locks?: LockManager | null
-}): Promise<any> {
-  const storeModule = await requireStoreModule('openBootReportStore')
-  return storeModule.openBootReportStore(options)
-}
-
 // waitForStoreRecord polls the store until the collector's asynchronous
 // attach/journal path has persisted at least one record.
-async function waitForStoreRecord(
-  store: { list(): Promise<unknown[]> },
-): Promise<unknown[]> {
+async function waitForStoreRecord(store: {
+  list(): Promise<unknown[]>
+}): Promise<unknown[]> {
   for (let attempt = 0; attempt < 50; attempt++) {
     const listed = await store.list()
     if (listed.length > 0) return listed
@@ -463,8 +441,8 @@ async function waitForStoreRecord(
 describe('BootReportStore durability', () => {
   it('opens every transaction on the reports store with the native signature', async () => {
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
     const report = recordingReport('boot-report-txn', ['boot.started'])
     await store.put(report)
@@ -485,31 +463,23 @@ describe('BootReportStore durability', () => {
   })
 
   it('fails closed against a newer schema version without resetting data', async () => {
-    const storeModule = await requireStoreModule(
-      'unknown/newer schema version fails closed without destructive reset',
-    )
-
     const factory = new FakeIDBFactory()
-    factory.seedDatabaseAtVersion(
-      'bldr-boot-reports',
-      99,
-      (database) => {
-        const store = database.createObjectStore('reports', {
-          keyPath: 'reportId',
-        })
-        store.createIndex('state', 'state')
-        store.createIndex('sealedAt', 'sealedAt')
-        const future = recordingReport('boot-report-future', ['boot.started'])
-        store.records.set(
-          'boot-report-future',
-          future as unknown as Record<string, unknown>,
-        )
-      },
-    )
+    factory.seedDatabaseAtVersion('bldr-boot-reports', 99, (database) => {
+      const store = database.createObjectStore('reports', {
+        keyPath: 'reportId',
+      })
+      store.createIndex('state', 'state')
+      store.createIndex('sealedAt', 'sealedAt')
+      const future = recordingReport('boot-report-future', ['boot.started'])
+      store.records.set(
+        'boot-report-future',
+        future as unknown as Record<string, unknown>,
+      )
+    })
 
     await expect(
-      storeModule.openBootReportStore({
-        idbFactory: factory as unknown as IDBFactory,
+      openBootReportStore({
+        idbFactory: factory as unknown as StoreIdbFactory,
       }),
     ).rejects.toThrow(/version/i)
 
@@ -519,20 +489,16 @@ describe('BootReportStore durability', () => {
   })
 
   it('marks stale RECORDING aborted when the crash released its web lock', async () => {
-    const storeModule = await requireStoreModule(
-      'crash-released web lock recovers stale RECORDING to ABORTED',
-    )
-
     const factory = new FakeIDBFactory()
-    const writer = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const writer = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerAcquirable(),
     })
     const prior = recordingReport('boot-report-deadtab', ['boot.started'])
     await writer.put(prior)
 
-    const recovery = await storeModule.openBootReportStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const recovery = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerAcquirable(),
     })
     await recovery.recoverOnStartup()
@@ -540,19 +506,15 @@ describe('BootReportStore durability', () => {
     const recovered = await recovery.get('boot-report-deadtab')
     expect(recovered?.state).toBe(BootReportState.ABORTED)
     // The exact prior partial timeline survives for recovery reading.
-    expect(recovered?.marks.map((mark: BootMark) => mark.label)).toEqual([
-      'boot.started',
-    ])
+    expect(
+      (recovered?.marks ?? []).map((mark: BootMark) => mark.label),
+    ).toEqual(['boot.started'])
   })
 
   it('keeps a live tab recording and preserves its partial timeline across reload', async () => {
-    const storeModule = await requireStoreModule(
-      'live tab stays RECORDING untouched while its web lock is held',
-    )
-
     const factory = new FakeIDBFactory()
-    const liveTab = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const liveTab = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerHeldElsewhere(),
     })
     const partial = recordingReport('boot-report-livetab', [
@@ -561,8 +523,8 @@ describe('BootReportStore durability', () => {
     ])
     await liveTab.put(partial)
 
-    const recovery = await storeModule.openBootReportStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const recovery = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerAcquirable(),
     })
     await recovery.recoverOnStartup()
@@ -572,30 +534,25 @@ describe('BootReportStore durability', () => {
 
     // A reload reopens the same database and reads the exact prior partial
     // timeline back without mutation.
-    const reopened = await storeModule.openBootReportStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const reopened = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerAcquirable(),
     })
     const readback = await reopened.get('boot-report-livetab')
     expect(readback?.state).toBe(BootReportState.RECORDING)
-    expect(readback?.marks.map((mark: BootMark) => mark.label)).toEqual([
-      'boot.started',
-      'content-ready',
-    ])
+    expect((readback?.marks ?? []).map((mark: BootMark) => mark.label)).toEqual(
+      ['boot.started', 'content-ready'],
+    )
   })
 
   it('surfaces quota failures instead of dropping writes', async () => {
-    await requireStoreModule(
-      'store/quota errors surface instead of silently dropping writes',
-    )
-
     const factory = new FakeIDBFactory()
     factory.putFailure = Object.assign(new Error('write failed'), {
       name: 'QuotaExceededError',
     })
 
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
     await expect(
       store.put(recordingReport('boot-report-quota', ['boot.started'])),
@@ -603,13 +560,10 @@ describe('BootReportStore durability', () => {
   })
 
   it('rejects a write when the transaction aborts after request success', async () => {
-    await requireStoreModule(
-      'transaction abort after request success rejects the operation',
-    )
     const factory = new FakeIDBFactory()
     factory.commitFailure = true
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
     await expect(
       store.put(recordingReport('boot-report-abort', ['boot.started'])),
@@ -617,18 +571,15 @@ describe('BootReportStore durability', () => {
   })
 
   it('serializes concurrent writes in schedule order', async () => {
-    await requireStoreModule(
-      'serialized writer applies writes one at a time in schedule order',
-    )
     const factory = new FakeIDBFactory()
     // Hold only the first scheduled write: a concurrent (non-serialized)
     // implementation would land writes two and three first and the record
     // order would come out reversed. The serialized writer must not issue
     // the later operations until the held one commits.
     const ids = ['boot-report-s1', 'boot-report-s2', 'boot-report-s3']
-    factory.holdPredicate = (meta) => meta?.key === 'boot-report-s1' 
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    factory.holdPredicate = (meta) => meta?.key === 'boot-report-s1'
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
     const pending = ids.map((reportId) =>
       store.put(recordingReport(reportId, ['boot.started'])),
@@ -640,19 +591,18 @@ describe('BootReportStore durability', () => {
     await Promise.all(pending)
 
     const keys = [
-      ...factory.databases.get('bldr-boot-reports')!.stores
-        .get('reports')!.records.keys(),
+      ...factory.databases
+        .get('bldr-boot-reports')!
+        .stores.get('reports')!
+        .records.keys(),
     ]
     expect(keys).toEqual(ids)
   })
 
   it('seals a report atomically in one terminal write', async () => {
-    await requireStoreModule(
-      'seal atomicity writes one complete terminal record',
-    )
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
     await store.put(recordingReport('boot-report-seal', ['boot.started']))
 
@@ -661,7 +611,7 @@ describe('BootReportStore durability', () => {
       BootReportState.READY,
     )
     expect(sealed.state).toBe(BootReportState.READY)
-    expect(sealed.sealedAt).toBeDefined()
+    expect((sealed as { sealedAt?: bigint }).sealedAt).toBeDefined()
 
     const records = factory.databases
       .get('bldr-boot-reports')
@@ -669,16 +619,15 @@ describe('BootReportStore durability', () => {
     expect(records?.size).toBe(1)
     const readback = await store.get('boot-report-seal')
     expect(readback?.state).toBe(BootReportState.READY)
-    expect(readback?.sealedAt).toBeDefined()
+    expect(
+      (readback as { sealedAt?: bigint } | undefined)?.sealedAt,
+    ).toBeDefined()
   })
 
   it('applies retention limits without evicting RECORDING or newest FAILED', async () => {
-    await requireStoreModule(
-      'retention keeps the newest sealed reports and protects live boots and the newest FAILED',
-    )
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
     for (let index = 1; index <= 101; index += 1) {
       const ready = recordingReport(`boot-report-ready-${index}`, [
@@ -688,11 +637,15 @@ describe('BootReportStore durability', () => {
       ;(ready as { sealedAt?: bigint }).sealedAt = BigInt(1000 + index)
       await store.put(ready)
     }
-    const failedOld = recordingReport('boot-report-failed-old', ['boot.started'])
+    const failedOld = recordingReport('boot-report-failed-old', [
+      'boot.started',
+    ])
     failedOld.state = BootReportState.FAILED
     ;(failedOld as { sealedAt?: bigint }).sealedAt = 0n
     await store.put(failedOld)
-    const failedNew = recordingReport('boot-report-failed-new', ['boot.started'])
+    const failedNew = recordingReport('boot-report-failed-new', [
+      'boot.started',
+    ])
     failedNew.state = BootReportState.FAILED
     ;(failedNew as { sealedAt?: bigint }).sealedAt = 5000n
     await store.put(failedNew)
@@ -702,19 +655,25 @@ describe('BootReportStore durability', () => {
     const result = await store.applyRetention()
 
     const survivors = await store.list()
-    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-recording')).toBe(
-      true,
+    expect(
+      survivors.some((r: BootReport) => r.reportId === 'boot-report-recording'),
+    ).toBe(true)
+    expect(
+      survivors.some(
+        (r: BootReport) => r.reportId === 'boot-report-failed-new',
+      ),
+    ).toBe(true)
+    expect(
+      survivors.some(
+        (r: BootReport) => r.reportId === 'boot-report-failed-old',
+      ),
+    ).toBe(false)
+    expect(
+      survivors.some((r: BootReport) => r.reportId === 'boot-report-ready-1'),
+    ).toBe(false)
+    const terminals = survivors.filter(
+      (r: BootReport) => r.state !== BootReportState.RECORDING,
     )
-    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-failed-new')).toBe(
-      true,
-    )
-    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-failed-old')).toBe(
-      false,
-    )
-    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-ready-1')).toBe(
-      false,
-    )
-    const terminals = survivors.filter((r: BootReport) => r.state !== BootReportState.RECORDING)
     expect(terminals.length).toBeLessThanOrEqual(100)
     expect(result.evicted.length).toBeGreaterThanOrEqual(2)
     const evictions = result.evicted as Array<{
@@ -727,19 +686,14 @@ describe('BootReportStore durability', () => {
   })
 
   it('uses encoded byte length for the body budget across multibyte content', async () => {
-    await requireStoreModule(
-      'body budget counts encoded bytes, not characters',
-    )
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
 
     // A multibyte-heavy label encodes to more bytes than its character
     // count suggests; the budget must measure the encoded body.
-    const wide = recordingReport('boot-report-wide', [
-      '\u{1F600}'.repeat(24),
-    ])
+    const wide = recordingReport('boot-report-wide', ['\u{1F600}'.repeat(24)])
     wide.state = BootReportState.READY
     ;(wide as { sealedAt?: bigint }).sealedAt = 10n
     await store.put(wide)
@@ -761,10 +715,12 @@ describe('BootReportStore durability', () => {
       bodyBudgetBytes: Math.floor((wideBytes + smallBytes) / 2),
     })
     const survivors = await store.list()
-    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-small')).toBe(
-      true,
+    expect(
+      survivors.some((r: BootReport) => r.reportId === 'boot-report-small'),
+    ).toBe(true)
+    const evictedIds = result.evicted.map(
+      (eviction: { reportId: string; reason: string }) => eviction.reportId,
     )
-    const evictedIds = result.evicted.map((eviction: { reportId: string; reason: string }) => eviction.reportId)
     expect(evictedIds).toContain('boot-report-wide')
     const evictions = result.evicted as Array<{
       reportId: string
@@ -776,12 +732,9 @@ describe('BootReportStore durability', () => {
   })
 
   it('never evicts the newest FAILED even when it exceeds the whole body budget', async () => {
-    await requireStoreModule(
-      'newest FAILED over budget is protected while other sealed reports are evicted',
-    )
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
 
     const hugeFailed = recordingReport('boot-report-failed-huge', [
@@ -805,19 +758,18 @@ describe('BootReportStore durability', () => {
     expect(survivors.map((r: BootReport) => r.reportId)).toEqual([
       'boot-report-failed-huge',
     ])
-    expect(result.evicted.map((eviction: { reportId: string; reason: string }) => eviction.reportId)).toEqual([
-      'boot-report-old-ready',
-    ])
+    expect(
+      result.evicted.map(
+        (eviction: { reportId: string; reason: string }) => eviction.reportId,
+      ),
+    ).toEqual(['boot-report-old-ready'])
     expect(result.evicted[0]?.reason).toBe('sealed-limit')
   })
 
   it('orders retention recency with BigInt-safe comparisons', async () => {
-    await requireStoreModule(
-      'retention recency compares sealed timestamps beyond the safe integer range',
-    )
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
 
     const bigBase = 9007199254740990n
@@ -835,19 +787,18 @@ describe('BootReportStore durability', () => {
 
     // Number() coercion would collapse both stamps to the same double and
     // could evict the wrong side; BigInt comparison keeps the newer report.
-    expect(survivors.map((r: BootReport) => r.reportId)).toEqual(['boot-report-big-new'])
-    expect(result.evicted.map((eviction: { reportId: string; reason: string }) => eviction.reportId)).toEqual([
-      'boot-report-big-old',
+    expect(survivors.map((r: BootReport) => r.reportId)).toEqual([
+      'boot-report-big-new',
     ])
+    expect(
+      result.evicted.map(
+        (eviction: { reportId: string; reason: string }) => eviction.reportId,
+      ),
+    ).toEqual(['boot-report-big-old'])
   })
 
   it('hands the inline shell buffer and first mark to the durable store through the collector', async () => {
-    await requireStoreModule(
-      'inline input-buffer and first-mark handoff journaled into IndexedDB',
-    )
-    const collectorModule = await import(
-      /* @vite-ignore */ './collector.js'
-    )
+    const collectorModule = await import(/* @vite-ignore */ './collector.js')
     const globals = globalThis as InlineShellGlobals
     globals.__swStartupMarks = [
       {
@@ -867,8 +818,8 @@ describe('BootReportStore durability', () => {
     const factory = new FakeIDBFactory()
     // Durable RECORDING journaling requires a held boot lease, so the store
     // opens with a granting lock manager.
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerShared(),
     })
     const collector = collectorModule.initBootReportCollector(
@@ -894,12 +845,7 @@ describe('BootReportStore durability', () => {
   })
 
   it('persists inline buffer overflow as a REPORT_CONTRACT validation failure at seal', async () => {
-    await requireStoreModule(
-      'inline overflow becomes a persisted validation failure',
-    )
-    const collectorModule = await import(
-      /* @vite-ignore */ './collector.js'
-    )
+    const collectorModule = await import(/* @vite-ignore */ './collector.js')
     const globals = globalThis as InlineShellGlobals
     delete globals.__swBootReport
     globals.__swStartupMarks = [
@@ -913,8 +859,8 @@ describe('BootReportStore durability', () => {
     globals.__swStartupMarkOverflows = 3
 
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
     })
     const collector = collectorModule.initBootReportCollector(
       { entrypointId: 'drive', usableMark: 'webview.revealed' },
@@ -963,12 +909,12 @@ describe('BootReport lock and lazy-attach races', () => {
   it('grants one boot lock across stores through web locks contention', async () => {
     const factory = new FakeIDBFactory()
     const locks = lockManagerShared()
-    const first = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const first = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks,
     })
-    const second = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const second = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks,
     })
 
@@ -985,8 +931,8 @@ describe('BootReport lock and lazy-attach races', () => {
       recordingReport('boot-report-contend', ['boot.started']),
       BootReportState.READY,
     )
-    const third = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const third = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks,
     })
     await expect(third.holdBootLock('boot-report-contend')).resolves.toBe(true)
@@ -995,16 +941,16 @@ describe('BootReport lock and lazy-attach races', () => {
   it('keeps the held boot lock releasable when a contender request fails', async () => {
     const factory = new FakeIDBFactory()
     const locks = lockManagerShared()
-    const first = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const first = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks,
     })
     await expect(first.holdBootLock('boot-report-fail')).resolves.toBe(true)
 
     // A contender whose manager rejects must not disturb the live hold's
     // registration; only its own failed request cleans up.
-    const failing = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const failing = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerRejecting(),
     })
     await expect(failing.holdBootLock('boot-report-fail')).resolves.toBe(false)
@@ -1015,17 +961,15 @@ describe('BootReport lock and lazy-attach races', () => {
       recordingReport('boot-report-fail', ['boot.started']),
       BootReportState.READY,
     )
-    const third = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const third = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks,
     })
     await expect(third.holdBootLock('boot-report-fail')).resolves.toBe(true)
   })
 
   it('persists the sealed snapshot when the boot seals before the durable store opens', async () => {
-    const collectorModule = await import(
-      /* @vite-ignore */ './collector.js'
-    )
+    const collectorModule = await import(/* @vite-ignore */ './collector.js')
     const globals = globalThis as InlineShellGlobals & {
       indexedDB?: IDBFactory
     }
@@ -1080,24 +1024,24 @@ describe('BootReport lock and lazy-attach races', () => {
     // Fresh module registry keeps the document-global collector state
     // hermetic against earlier construction-time seals.
     vi.resetModules()
-    const collectorModule = await import(
-      /* @vite-ignore */ './collector.js'
-    )
-    const globals = globalThis as InlineShellGlobals & { __swBootReport?: BootReport }
+    const collectorModule = await import(/* @vite-ignore */ './collector.js')
+    const globals = globalThis as InlineShellGlobals & {
+      __swBootReport?: BootReport
+    }
     delete globals.__swBootReport
     const factory = new FakeIDBFactory()
     // One shared exclusive manager across every store in this boot, so the
     // lease contention is real rather than per-instance.
     const locks = lockManagerShared()
     // A crashed tab left a stale RECORDING row whose web lock died with it.
-    const seeded = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const seeded = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks,
     })
     await seeded.put(recordingReport('boot-report-dead', ['boot.started']))
 
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks,
     })
     const collector = collectorModule.initBootReportCollector(
@@ -1131,8 +1075,8 @@ describe('BootReport lock and lazy-attach races', () => {
         const mine = await store.get(reportId)
         expect(mine?.state).toBe(BootReportState.RECORDING)
       })
-      const contender = await openStore({
-        idbFactory: factory as unknown as IDBFactory,
+      const contender = await openBootReportStore({
+        idbFactory: factory as unknown as StoreIdbFactory,
         locks,
       })
       await expect(contender.holdBootLock(reportId)).resolves.toBe(false)
@@ -1147,14 +1091,14 @@ describe('BootReport lock and lazy-attach races', () => {
     // Fresh module registry keeps the document-global collector state
     // hermetic against earlier construction-time seals.
     vi.resetModules()
-    const collectorModule = await import(
-      /* @vite-ignore */ './collector.js'
-    )
-    const globals = globalThis as InlineShellGlobals & { __swBootReport?: BootReport }
+    const collectorModule = await import(/* @vite-ignore */ './collector.js')
+    const globals = globalThis as InlineShellGlobals & {
+      __swBootReport?: BootReport
+    }
     delete globals.__swBootReport
     const factory = new FakeIDBFactory()
-    const store = await openStore({
-      idbFactory: factory as unknown as IDBFactory,
+    const store = await openBootReportStore({
+      idbFactory: factory as unknown as StoreIdbFactory,
       locks: lockManagerDenied(),
     })
     const collector = collectorModule.initBootReportCollector(
@@ -1247,7 +1191,8 @@ describe('BootReport lock and lazy-attach races', () => {
           const records = [
             ...factory.databases
               .get('bldr-boot-reports')!
-              .stores.get('reports')!.records.values(),
+              .stores.get('reports')!
+              .records.values(),
           ]
           expect(records.length).toBe(expectedRows)
         })
@@ -1258,7 +1203,8 @@ describe('BootReport lock and lazy-attach races', () => {
       const records = [
         ...factory.databases
           .get('bldr-boot-reports')!
-          .stores.get('reports')!.records.values(),
+          .stores.get('reports')!
+          .records.values(),
       ] as BootReport[]
       expect(records.length).toBe(2)
       for (const record of records) {

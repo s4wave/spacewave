@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+import { app, BrowserWindow } from 'electron'
 
 // Match the desktop entrypoint's profile selection before requesting the lock.
 app.setPath('userData', process.env.BLDR_PLUGIN_STATE_PATH)
