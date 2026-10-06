@@ -124,7 +124,16 @@ func (t *TxApplyWorldOp) ExecuteTx(
 
 // decodeOp validates the transaction and decodes its operation, resolving the
 // operation type with lookupOp.
-func (t *TxApplyWorldOp) decodeOp(ctx context.Context, lookupOp world.LookupOp) (op world.Operation, rerr error) {
+func (t *TxApplyWorldOp) decodeOp(ctx context.Context, lookupOp world.LookupOp) (world.Operation, error) {
+	if err := t.Validate(); err != nil {
+		return nil, err
+	}
+	return decodeOperation(ctx, lookupOp, t.GetOperationTypeId(), t.GetOperationBody())
+}
+
+// decodeOperation constructs the operation type opTypeID with lookupOp and
+// decodes body into it.
+func decodeOperation(ctx context.Context, lookupOp world.LookupOp, opTypeID string, body []byte) (op world.Operation, rerr error) {
 	// Translate decoding panics into errors.
 	defer func() {
 		if err := recover(); err != nil {
@@ -136,13 +145,7 @@ func (t *TxApplyWorldOp) decodeOp(ctx context.Context, lookupOp world.LookupOp) 
 		}
 	}()
 
-	// Validate the transaction before resolving its operation.
-	if err := t.Validate(); err != nil {
-		return nil, err
-	}
-
 	// Construct the operation type and decode the body.
-	opTypeID := t.GetOperationTypeId()
 	op, err := lookupOp(ctx, opTypeID)
 	if err == nil && op == nil {
 		err = errors.Wrap(world.ErrUnhandledOp, opTypeID)
@@ -150,7 +153,7 @@ func (t *TxApplyWorldOp) decodeOp(ctx context.Context, lookupOp world.LookupOp) 
 	if err != nil {
 		return nil, err
 	}
-	if err := op.UnmarshalBlock(t.GetOperationBody()); err != nil {
+	if err := op.UnmarshalBlock(body); err != nil {
 		return nil, err
 	}
 	return op, nil

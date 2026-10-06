@@ -114,10 +114,13 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
-// PayloadRefs returns the payload roots of the World operations in the
-// transaction, resolving operation types with lookupOp; see
+// PayloadRefs returns the payload roots of the World and object operations in
+// the transaction, resolving operation types with lookupOp; see
 // world.PayloadOperation.
 func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block.BlockRef, error) {
+	// Decode the operation, or collect the roots of each batched transaction.
+	var op world.Operation
+	var err error
 	switch t.GetTxType() {
 	case TxType_TxType_BATCH:
 		var refs []*block.BlockRef
@@ -130,13 +133,19 @@ func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block
 		}
 		return refs, nil
 	case TxType_TxType_APPLY_WORLD_OP:
-		op, err := t.GetTxApplyWorldOp().decodeOp(ctx, lookupOp)
-		if err != nil {
-			return nil, err
-		}
-		if pop, ok := op.(world.PayloadOperation); ok {
-			return pop.GetPayloadRefs(), nil
-		}
+		op, err = t.GetTxApplyWorldOp().decodeOp(ctx, lookupOp)
+	case TxType_TxType_APPLY_OBJECT_OP:
+		op, err = t.GetTxApplyObjectOp().decodeOp(ctx, lookupOp)
+	default:
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the roots of a payload operation.
+	if pop, ok := op.(world.PayloadOperation); ok {
+		return pop.GetPayloadRefs(), nil
 	}
 	return nil, nil
 }

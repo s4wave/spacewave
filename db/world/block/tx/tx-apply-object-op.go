@@ -96,44 +96,35 @@ func (t *TxApplyObjectOp) ExecuteTx(
 		}
 	}()
 
-	// Validate the object operation transaction and resolve its recorded sender.
-	if err := t.Validate(); err != nil {
+	// Decode the operation and resolve its recorded sender.
+	op, err := t.decodeOp(ctx, lookupWorldOp)
+	if err != nil {
 		return false, err
 	}
 	if opSender := t.GetOpSender(); opSender != "" {
-		var err error
 		sender, err = confparse.ParsePeerID(opSender)
 		if err != nil {
 			return false, err
 		}
 	}
 
-	// resolve + construct the operation type
-	opTypeID := t.GetOperationTypeId()
-	op, err := lookupWorldOp(ctx, opTypeID)
-	if err == nil && op == nil {
-		err = errors.Wrap(world.ErrUnhandledOp, opTypeID)
-	}
-	if err != nil {
-		return false, err
-	}
-
-	// unmarshal the block
-	err = op.UnmarshalBlock(t.GetOperationBody())
-	if err != nil {
-		return false, err
-	}
-
-	// lookup the object
+	// Look up the object and apply the operation to it.
 	obj, err := world.MustGetObject(ctx, worldInstance, t.GetObjectKey())
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}
-
-	// apply the operation
 	_, _, err = obj.ApplyObjectOp(ctx, op, sender)
-	return false, nameMissingBlock(err, opTypeID+" on "+t.GetObjectKey(), op)
+	return false, nameMissingBlock(err, t.GetOperationTypeId()+" on "+t.GetObjectKey(), op)
+}
+
+// decodeOp validates the transaction and decodes its operation, resolving the
+// operation type with lookupOp.
+func (t *TxApplyObjectOp) decodeOp(ctx context.Context, lookupOp world.LookupOp) (world.Operation, error) {
+	if err := t.Validate(); err != nil {
+		return nil, err
+	}
+	return decodeOperation(ctx, lookupOp, t.GetOperationTypeId(), t.GetOperationBody())
 }
 
 // _ is a type assertion
