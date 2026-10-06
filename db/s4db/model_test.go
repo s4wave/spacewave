@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"slices"
 	"testing"
@@ -125,14 +126,34 @@ func checkSpace(t *testing.T, db *DB) {
 		owner[p] = who
 	}
 
-	// Claim the pages under every stored value, the tree, the log chunks,
-	// and the saved space.
+	// Claim the pages under every stored value, counting their live bytes.
+	live := make(map[uint64]uint32)
 	it := newIterator(db.p, st, nil, nil, false)
 	for it.Next() {
 		if v := it.cur.val; v.isRef {
-			spans(v.ref.off, int(v.ref.n), func(p uint64, _ uint32) { claim(p, "value", true) })
+			spans(v.ref.off, int(v.ref.n), func(p uint64, b uint32) {
+				claim(p, "value", true)
+				live[p] += b
+			})
 		}
 	}
+
+	// The space counts the same live bytes.
+	if !maps.Equal(live, sp.live) {
+		for p, b := range live {
+			if sp.live[p] != b {
+				t.Errorf("value page %d holds %d live bytes, space counts %d", p, b, sp.live[p])
+			}
+		}
+		for p, b := range sp.live {
+			if _, ok := live[p]; !ok {
+				t.Errorf("space counts %d live bytes on page %d, which holds none", b, p)
+			}
+		}
+		t.FailNow()
+	}
+
+	// Claim the tree, the log chunks, and the saved space.
 	var walk func(p uint64)
 	walk = func(p uint64) {
 		claim(p, "tree", false)

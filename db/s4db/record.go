@@ -13,7 +13,9 @@ const (
 )
 
 // recordHeader is the length, checksum, sequence, and kind of a record. The
-// checksum covers everything after itself.
+// checksum covers everything after itself and continues from the previous
+// record's, so a record left behind by an earlier log at the same place
+// fails it.
 const recordHeader = 4 + 4 + 8 + 1
 
 // linkSize is the length of a link record.
@@ -41,6 +43,8 @@ type record struct {
 	next run
 	// size is the encoded length.
 	size int
+	// crc is the record's checksum.
+	crc uint32
 }
 
 // op is one key change in a commit record.
@@ -59,8 +63,9 @@ func newLink(seq uint64, next run) *record {
 }
 
 // decodeRecord reads the record at the start of b, reporting false when b
-// holds no complete valid record with sequence seq.
-func decodeRecord(b []byte, seq uint64) (*record, bool) {
+// holds no complete valid record with sequence seq following the record
+// with checksum prev.
+func decodeRecord(b []byte, seq uint64, prev uint32) (*record, bool) {
 	// Check that a whole record with the expected sequence is present.
 	if len(b) < recordHeader {
 		return nil, false
@@ -69,12 +74,13 @@ func decodeRecord(b []byte, seq uint64) (*record, bool) {
 	if n < recordHeader || n > len(b) || binary.LittleEndian.Uint64(b[8:]) != seq {
 		return nil, false
 	}
-	if checksum(b[8:n]) != binary.LittleEndian.Uint32(b[4:]) {
+	crc := chain(prev, b[8:n])
+	if crc != binary.LittleEndian.Uint32(b[4:]) {
 		return nil, false
 	}
 
 	// A link holds only the next chunk.
-	r := &record{seq: seq, kind: b[16], size: n}
+	r := &record{seq: seq, kind: b[16], size: n, crc: crc}
 	d := decoder{b: b[recordHeader:n]}
 	if r.kind == kindLink {
 		r.next = run{start: d.u64(), n: d.u64()}
@@ -106,14 +112,15 @@ func decodeRecord(b []byte, seq uint64) (*record, bool) {
 	return r, d.err == nil
 }
 
-// encode returns the encoding of r.
-func (r *record) encode() []byte {
+// encode returns the encoding of r following the record with checksum
+// prev, and sets r.crc.
+func (r *record) encode(prev uint32) []byte {
 	// A link holds only the next chunk.
 	if r.kind == kindLink {
 		b := make([]byte, recordHeader, linkSize)
 		b = binary.LittleEndian.AppendUint64(b, r.next.start)
 		b = binary.LittleEndian.AppendUint64(b, r.next.n)
-		return r.seal(b)
+		return r.seal(b, prev)
 	}
 
 	// Write the commit's bookkeeping.
@@ -141,7 +148,7 @@ func (r *record) encode() []byte {
 		b = binary.AppendUvarint(b, f.off)
 		b = binary.AppendUvarint(b, uint64(f.n))
 	}
-	return r.seal(b)
+	return r.seal(b, prev)
 }
 
 // bound returns an upper bound on the encoded length of a commit record,
@@ -154,13 +161,15 @@ func (r *record) bound() int {
 	return n + 2*binary.MaxVarintLen64*len(r.frees)
 }
 
-// seal fills in the record header of b.
-func (r *record) seal(b []byte) []byte {
+// seal fills in the record header of b following the record with checksum
+// prev.
+func (r *record) seal(b []byte, prev uint32) []byte {
 	// Write the length, sequence, and kind, then the checksum over all
 	// after it.
 	binary.LittleEndian.PutUint32(b[0:], uint32(len(b))) // #nosec G115 -- commit bounds records by maxRecord.
 	binary.LittleEndian.PutUint64(b[8:], r.seq)
 	b[16] = r.kind
-	binary.LittleEndian.PutUint32(b[4:], checksum(b[8:]))
+	r.crc = chain(prev, b[8:])
+	binary.LittleEndian.PutUint32(b[4:], r.crc)
 	return b
 }

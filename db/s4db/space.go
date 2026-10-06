@@ -68,6 +68,8 @@ type space struct {
 	// marks are the highest release marks applied: value runs through
 	// marks.seq and page runs through marks.ckpt are free.
 	marks pin
+	// reserved lists the runs checkpoints are writing new pages into.
+	reserved []run
 }
 
 // newSpace returns the space of a new file.
@@ -413,8 +415,18 @@ func (s *space) encode() []byte {
 		prev = r.end()
 	}
 
-	// Write the runs awaiting release and the log chunks.
-	for _, q := range [][]pending{s.values, s.pages} {
+	// Write the runs awaiting release and the log chunks. No saved tree
+	// names a reserved run, so it is saved as a page run released at tag
+	// zero.
+	pages := s.pages
+	if len(s.reserved) != 0 {
+		pages = make([]pending, 0, len(s.reserved)+len(s.pages))
+		for _, r := range s.reserved {
+			pages = append(pages, pending{run: r})
+		}
+		pages = append(pages, s.pages...)
+	}
+	for _, q := range [][]pending{s.values, pages} {
 		u(uint64(len(q)))
 		for _, p := range q {
 			u(p.tag)

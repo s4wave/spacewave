@@ -5,7 +5,7 @@ import (
 )
 
 // superSize is the encoded length of a superblock.
-const superSize = 80
+const superSize = 88
 
 // superblock names the last checkpoint. Two copies alternate so a torn write
 // leaves the previous one intact.
@@ -22,10 +22,17 @@ type superblock struct {
 	treePages uint64
 	// space locates the encoded allocator state.
 	space extentRef
+	// spaceSeq is the last record the saved space includes. A checkpoint
+	// built while commits continued saves the space after them, so it can
+	// be later than seq.
+	spaceSeq uint64
 	// logPos is the file offset of the first record after seq.
 	logPos uint64
 	// logEnd is the end of the log chunk holding logPos.
 	logEnd uint64
+	// logCrc is the checksum of record seq, which the record at logPos
+	// continues.
+	logCrc uint32
 }
 
 // extentRef locates checksummed bytes in the file.
@@ -56,11 +63,13 @@ func decodeSuperblock(b []byte) (superblock, bool) {
 		treePages: u(4),
 		space: extentRef{
 			off: u(5),
-			n:   binary.LittleEndian.Uint32(b[64:]),
-			crc: binary.LittleEndian.Uint32(b[68:]),
+			n:   binary.LittleEndian.Uint32(b[72:]),
+			crc: binary.LittleEndian.Uint32(b[76:]),
 		},
-		logPos: u(6),
-		logEnd: u(7),
+		spaceSeq: u(6),
+		logPos:   u(7),
+		logEnd:   u(8),
+		logCrc:   binary.LittleEndian.Uint32(b[80:]),
 	}
 	return s, s.gen != 0
 }
@@ -74,12 +83,13 @@ func (s *superblock) page() int64 {
 func (s *superblock) encode() []byte {
 	// Write the fields, then the checksum over them.
 	b := make([]byte, pageSize)
-	fields := []uint64{s.gen, s.seq, s.root, s.count, s.treePages, s.space.off, s.logPos, s.logEnd}
+	fields := []uint64{s.gen, s.seq, s.root, s.count, s.treePages, s.space.off, s.spaceSeq, s.logPos, s.logEnd}
 	for i, v := range fields {
 		binary.LittleEndian.PutUint64(b[i*8:], v)
 	}
-	binary.LittleEndian.PutUint32(b[64:], s.space.n)
-	binary.LittleEndian.PutUint32(b[68:], s.space.crc)
+	binary.LittleEndian.PutUint32(b[72:], s.space.n)
+	binary.LittleEndian.PutUint32(b[76:], s.space.crc)
+	binary.LittleEndian.PutUint32(b[80:], s.logCrc)
 	binary.LittleEndian.PutUint32(b[superSize-4:], checksum(b[:superSize-4]))
 	return b
 }
