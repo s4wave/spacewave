@@ -341,9 +341,17 @@ func checkGenerationRootPrefixAndMissedEventRecovery(t *testing.T, factory Facto
 		ParticipantID: "reader",
 	}
 
+	// Read the generation before the change. A backend may count
+	// publications or its own durable commits, so the publication itself need
+	// not advance it.
+	before, err := readerC.Snapshot(ctx, reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Watch the reader scope before publishing a root change.
 	root := &bucket.ObjectRef{BucketId: "bucket-a"}
-	liveWatch, err := readerC.Watch(ctx, reader, 0)
+	liveWatch, err := readerC.Watch(ctx, reader, before.Generation)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,8 +377,9 @@ func checkGenerationRootPrefixAndMissedEventRecovery(t *testing.T, factory Facto
 	}
 
 	// Verify the published snapshot contains the new generation and root.
-	if snapshot.Generation != 1 {
-		t.Fatalf("snapshot generation = %d, want 1", snapshot.Generation)
+	generation := snapshot.Generation
+	if generation < before.Generation {
+		t.Fatalf("snapshot generation = %d, want at least %d", generation, before.Generation)
 	}
 	if !snapshot.Root.EqualsRef(root) {
 		t.Fatalf("snapshot root = %#v, want %#v", snapshot.Root, root)
@@ -378,8 +387,8 @@ func checkGenerationRootPrefixAndMissedEventRecovery(t *testing.T, factory Facto
 
 	// Verify the live watch delivers the root change and affected key prefix.
 	liveEvent := nextEvent(t, liveWatch.Events())
-	if liveEvent.Generation != 1 {
-		t.Fatalf("live event generation = %d, want 1", liveEvent.Generation)
+	if liveEvent.Generation != generation {
+		t.Fatalf("live event generation = %d, want %d", liveEvent.Generation, generation)
 	}
 	if !liveEvent.RootChanged.EqualsRef(root) {
 		t.Fatalf("live event root = %#v, want %#v", liveEvent.RootChanged, root)
@@ -395,15 +404,15 @@ func checkGenerationRootPrefixAndMissedEventRecovery(t *testing.T, factory Facto
 	}
 
 	// Verify snapshot recovery retains the published generation and root.
-	if recovered.Generation != 1 {
-		t.Fatalf("recovered generation = %d, want 1", recovered.Generation)
+	if recovered.Generation != generation {
+		t.Fatalf("recovered generation = %d, want %d", recovered.Generation, generation)
 	}
 	if !recovered.Root.EqualsRef(root) {
 		t.Fatalf("recovered root = %#v, want %#v", recovered.Root, root)
 	}
 
 	// Start another watch from the generation preceding the root change.
-	watch, err := readerC.Watch(ctx, reader, 0)
+	watch, err := readerC.Watch(ctx, reader, before.Generation)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,8 +420,8 @@ func checkGenerationRootPrefixAndMissedEventRecovery(t *testing.T, factory Facto
 
 	// Verify the new watch recovers the missed generation and root change.
 	event := nextEvent(t, watch.Events())
-	if event.Generation != 1 {
-		t.Fatalf("watch event generation = %d, want 1", event.Generation)
+	if event.Generation != generation {
+		t.Fatalf("watch event generation = %d, want %d", event.Generation, generation)
 	}
 	if !event.RootChanged.EqualsRef(root) {
 		t.Fatalf("watch event root = %#v, want %#v", event.RootChanged, root)

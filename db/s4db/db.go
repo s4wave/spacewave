@@ -56,6 +56,8 @@ type DB struct {
 	bcast broadcast.Broadcast
 	// retired holds earlier states that snapshots may still read.
 	retired []*state
+	// leases holds the lock bytes of this handle's leases and lease waits.
+	leases map[int64]struct{}
 	// closed is set once Close finishes.
 	closed bool
 
@@ -85,6 +87,7 @@ func open(s storage, opts Options) (*DB, error) {
 		p:      &pager{r: s, cache: newCache(opts.CacheBytes)},
 		tailer: routine.NewRoutineContainer(),
 		warmer: routine.NewRoutineContainer(),
+		leases: make(map[int64]struct{}),
 	}
 	db.flush = newFlusher(s, &db.cur)
 	db.w = &writer{db: db}
@@ -314,12 +317,20 @@ func (db *DB) verify(r *record) bool {
 // A failed tail leaves the published state; the next change retries it.
 func (db *DB) tailLoop(ctx context.Context) error {
 	for db.watch.wait() {
-		if st, _, err := db.tail(db.cur.Load(), false); err == nil {
-			db.observe(st)
-			_ = db.publish(ctx, st)
-		}
+		_ = db.Refresh(ctx)
 	}
 	return nil
+}
+
+// Refresh publishes the commits and checkpoint other processes wrote, without
+// waiting for the tail loop to notice them.
+func (db *DB) Refresh(ctx context.Context) error {
+	st, _, err := db.tail(db.cur.Load(), false)
+	if err != nil {
+		return err
+	}
+	db.observe(st)
+	return db.publish(ctx, st)
 }
 
 // observe marks the handle shared when st holds a commit or checkpoint

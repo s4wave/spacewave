@@ -26,6 +26,10 @@ const (
 	lockWriter = 1 << 40
 	// lockSlot is the first reader slot lock; slot i locks lockSlot+i.
 	lockSlot = lockWriter + 1
+	// lockLease is the first of leaseLocks lease locks, one per name hash.
+	lockLease = 1 << 41
+	// leaseLocks is the number of lease lock bytes.
+	leaseLocks = 1 << 40
 )
 
 // slotSize is the length of one reader slot record.
