@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   LuCloud,
   LuLink,
@@ -40,6 +40,64 @@ export interface SessionsSectionProps {
   onLinkDeviceClick?: () => void
 }
 
+// useSessionActions unlinks local sessions and signs out cloud sessions. A
+// cloud session opens a revoke step-up for the row, which handleConfirmRevoke
+// completes.
+function useSessionActions(account: Resource<Account>) {
+  const sessionResource = SessionContext.useContext()
+  const session = useResourceValue(sessionResource)
+  const mountedAccount = useResourceValue(account)
+  const [pendingPeerId, setPendingPeerId] = useState<string | null>(null)
+  const [revokeRow, setRevokeRow] = useState<AccountSession | null>(null)
+
+  const handleRowAction = async (row: AccountSession) => {
+    const peerId = row.peerId ?? ''
+    if (!peerId || row.currentSession) return
+    if (!isLocalSession(row)) {
+      setRevokeRow(row)
+      return
+    }
+    const label = row.label || peerId
+    if (!window.confirm(`Are you sure you want to unlink ${label}?`)) {
+      return
+    }
+
+    setPendingPeerId(peerId)
+    try {
+      if (!session) return
+      await session.unlinkDevice(peerId)
+    } catch {
+      // Watched snapshot convergence is authoritative; errors can be surfaced later.
+    } finally {
+      setPendingPeerId(null)
+    }
+  }
+
+  const handleConfirmRevoke = async (credential: AuthCredential) => {
+    const peerId = revokeRow?.peerId ?? ''
+    if (!mountedAccount || !peerId) return
+
+    setPendingPeerId(peerId)
+    try {
+      await mountedAccount.revokeSession({
+        sessionPeerId: peerId,
+        credential: buildEntityCredential(credential),
+      })
+      setRevokeRow(null)
+    } finally {
+      setPendingPeerId(null)
+    }
+  }
+
+  return {
+    pendingPeerId,
+    revokeRow,
+    clearRevokeRow: () => setRevokeRow(null),
+    handleRowAction,
+    handleConfirmRevoke,
+  }
+}
+
 // SessionsSection renders the provider-account attached session list for both
 // local and cloud providers.
 export function SessionsSection({
@@ -50,9 +108,6 @@ export function SessionsSection({
   onOpenChange,
   onLinkDeviceClick,
 }: SessionsSectionProps) {
-  const sessionResource = SessionContext.useContext()
-  const session = useResourceValue(sessionResource)
-  const mountedAccount = useResourceValue(account)
   const navigateSession = useSessionNavigate()
   const sessionsResource = useStreamingResource(
     account,
@@ -64,72 +119,17 @@ export function SessionsSection({
     [],
   )
   const rows: AccountSession[] = sessionsResource.value?.sessions ?? []
-  const loading = sessionsResource.loading
-  const [pendingPeerId, setPendingPeerId] = useState<string | null>(null)
-  const [revokeRow, setRevokeRow] = useState<AccountSession | null>(null)
+  const actions = useSessionActions(account)
   const isOpen = open ?? true
   const handleOpenChange = onOpenChange ?? (() => {})
 
-  const handleLinkDeviceClick = useCallback(() => {
+  const handleLinkDeviceClick = () => {
     if (onLinkDeviceClick) {
       onLinkDeviceClick()
       return
     }
     navigateSession({ path: 'setup/link-device' })
-  }, [navigateSession, onLinkDeviceClick])
-
-  const handleRowAction = useCallback(
-    async (row: AccountSession) => {
-      const peerId = row.peerId ?? ''
-      if (!peerId || row.currentSession) return
-      const isLocalRow =
-        row.kind ===
-        AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION
-      if (!isLocalRow) {
-        setRevokeRow(row)
-        return
-      }
-      const label = row.label || peerId
-      if (!window.confirm(`Are you sure you want to unlink ${label}?`)) {
-        return
-      }
-
-      setPendingPeerId(peerId)
-      try {
-        if (!session) return
-        await session.unlinkDevice(peerId)
-      } catch {
-        // Watched snapshot convergence is authoritative; errors can be surfaced later.
-      } finally {
-        setPendingPeerId(null)
-      }
-    },
-    [session],
-  )
-
-  const handleConfirmRevoke = useCallback(
-    async (credential: AuthCredential) => {
-      const peerId = revokeRow?.peerId ?? ''
-      if (!mountedAccount || !peerId) return
-
-      setPendingPeerId(peerId)
-      try {
-        await mountedAccount.revokeSession({
-          sessionPeerId: peerId,
-          credential: buildEntityCredential(credential),
-        })
-        setRevokeRow(null)
-      } finally {
-        setPendingPeerId(null)
-      }
-    },
-    [mountedAccount, revokeRow],
-  )
-
-  const badge = useMemo(() => {
-    if (rows.length === 0) return undefined
-    return <span className="text-foreground-alt/50 text-xs">{rows.length}</span>
-  }, [rows.length])
+  }
 
   return (
     <CollapsibleSection
@@ -137,13 +137,17 @@ export function SessionsSection({
       icon={<LuCloud className="size-3.5" />}
       open={isOpen}
       onOpenChange={handleOpenChange}
-      badge={badge}
+      badge={
+        rows.length > 0 ? (
+          <span className="text-foreground-alt/50 text-xs">{rows.length}</span>
+        ) : undefined
+      }
     >
       <div className="space-y-2">
-        {loading && (
+        {sessionsResource.loading && (
           <p className="text-foreground-alt text-xs">Loading sessions…</p>
         )}
-        {!loading && rows.length === 0 && (
+        {!sessionsResource.loading && rows.length === 0 && (
           <div className="flex items-center justify-between py-1">
             <p className="text-foreground-alt text-xs">
               {isLocal ? 'No linked sessions yet.' : 'No other sessions found.'}
@@ -159,65 +163,120 @@ export function SessionsSection({
             )}
           </div>
         )}
-        {!loading && rows.length > 0 && (
+        {!sessionsResource.loading && rows.length > 0 && (
           <div className="space-y-2">
             {rows.map((row) => (
               <SessionRow
                 key={row.peerId}
                 row={row}
-                pending={pendingPeerId === (row.peerId ?? '')}
-                onAction={handleRowAction}
+                pending={actions.pendingPeerId === (row.peerId ?? '')}
+                onAction={actions.handleRowAction}
               />
             ))}
-            {isLocal && (
-              <div className="border-foreground/10 border-t pt-2">
-                <button
-                  type="button"
-                  onClick={handleLinkDeviceClick}
-                  className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors"
-                >
-                  <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
-                    <LuLink className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-foreground text-xs font-medium select-none">
-                      Link Another Device
-                    </span>
-                    <span className="text-foreground-alt text-xs select-none">
-                      Connect another device to sync your data peer-to-peer.
-                    </span>
-                  </div>
-                </button>
-              </div>
-            )}
+            {isLocal && <LinkDeviceCard onClick={handleLinkDeviceClick} />}
           </div>
         )}
       </div>
       {!isLocal && (
-        <AuthConfirmDialog
-          open={!!revokeRow}
-          onOpenChange={(next) => {
-            if (!next) {
-              setRevokeRow(null)
-            }
-          }}
-          title="Sign Out Session"
-          description={`Sign out ${revokeRow?.label || revokeRow?.peerId || 'this session'} from Spacewave Cloud.`}
-          confirmLabel="Sign Out"
-          intent={{
-            kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION,
-            title: 'Sign Out Session',
-            description: `Sign out ${revokeRow?.label || revokeRow?.peerId || 'this session'} from Spacewave Cloud.`,
-            targetLabel: revokeRow?.label,
-            targetPeerId: revokeRow?.peerId,
-          }}
-          onConfirm={handleConfirmRevoke}
+        <RevokeSessionDialog
           account={account}
-          retainAfterClose={retainStepUp}
+          row={actions.revokeRow}
+          retainStepUp={retainStepUp}
+          onClose={actions.clearRevokeRow}
+          onConfirm={actions.handleConfirmRevoke}
         />
       )}
     </CollapsibleSection>
   )
+}
+
+// LinkDeviceCard renders the action that links another device.
+function LinkDeviceCard({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="border-foreground/10 border-t pt-2">
+      <button
+        type="button"
+        onClick={onClick}
+        className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors"
+      >
+        <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
+          <LuLink className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-foreground text-xs font-medium select-none">
+            Link Another Device
+          </span>
+          <span className="text-foreground-alt text-xs select-none">
+            Connect another device to sync your data peer-to-peer.
+          </span>
+        </div>
+      </button>
+    </div>
+  )
+}
+
+// RevokeSessionDialog confirms signing a cloud session out. The dialog is open
+// while row is set.
+function RevokeSessionDialog({
+  account,
+  row,
+  retainStepUp,
+  onClose,
+  onConfirm,
+}: {
+  account: Resource<Account>
+  row: AccountSession | null
+  retainStepUp: boolean
+  onClose: () => void
+  onConfirm: (credential: AuthCredential) => Promise<void>
+}) {
+  const description = `Sign out ${row?.label || row?.peerId || 'this session'} from Spacewave Cloud.`
+
+  return (
+    <AuthConfirmDialog
+      open={!!row}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+      title="Sign Out Session"
+      description={description}
+      confirmLabel="Sign Out"
+      intent={{
+        kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REVOKE_SESSION,
+        title: 'Sign Out Session',
+        description,
+        targetLabel: row?.label,
+        targetPeerId: row?.peerId,
+      }}
+      onConfirm={onConfirm}
+      account={account}
+      retainAfterClose={retainStepUp}
+    />
+  )
+}
+
+// isLocalSession reports whether row is a session linked through the local
+// provider.
+function isLocalSession(row: AccountSession): boolean {
+  return (
+    row.kind ===
+    AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION
+  )
+}
+
+// describeSessionStatus summarizes when a session was last seen, paired, or
+// created.
+function describeSessionStatus(row: AccountSession): string {
+  if (row.currentSession) return 'Current session'
+  if (row.lastSeenAt) return `Last seen ${row.lastSeenAt.toLocaleDateString()}`
+  if (isLocalSession(row)) {
+    return row.createdAt
+      ? `Paired ${row.createdAt.toLocaleDateString()}`
+      : 'Linked device'
+  }
+  return row.createdAt
+    ? `Created ${row.createdAt.toLocaleDateString()}`
+    : 'Cloud session'
 }
 
 interface SessionRowProps {
@@ -227,31 +286,14 @@ interface SessionRowProps {
 }
 
 function SessionRow({ row, pending, onAction }: SessionRowProps) {
-  const kind =
-    row.kind ??
-    AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_UNSPECIFIED
-  const isLocalRow =
-    kind ===
-    AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION
+  const isLocalRow = isLocalSession(row)
   // The local provider stamps deviceType "linked", which the Linked badge
   // already conveys; cloud sessions carry a real platform ("web", "desktop").
   const platform = row.deviceType === 'linked' ? '' : row.deviceType
   const details = [platform, row.clientName, row.os, row.location]
     .filter(Boolean)
     .join(' · ')
-  const createdAt = row.createdAt ?? null
-  const lastSeenAt = row.lastSeenAt ?? null
-  const status = row.currentSession
-    ? 'Current session'
-    : lastSeenAt
-      ? `Last seen ${lastSeenAt.toLocaleDateString()}`
-      : isLocalRow
-        ? createdAt
-          ? `Paired ${createdAt.toLocaleDateString()}`
-          : 'Linked device'
-        : createdAt
-          ? `Created ${createdAt.toLocaleDateString()}`
-          : 'Cloud session'
+  const status = describeSessionStatus(row)
 
   const actionLabel = isLocalRow ? 'Unlink session' : 'Log out session'
   const label = row.label || row.peerId || 'Session'
