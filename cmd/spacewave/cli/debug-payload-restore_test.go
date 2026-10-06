@@ -158,7 +158,7 @@ func TestDebugPayloadRestore(t *testing.T) {
 
 	// Refuse a digest the file does not reproduce.
 	data := bytes.Repeat([]byte("package imports\n"), 1024)
-	_, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, make([]byte, 32))
+	_, _, _, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, make([]byte, 32))
 	if err == nil || !strings.Contains(err.Error(), "differs") {
 		t.Fatalf("expected a digest mismatch, got %v", err)
 	}
@@ -168,12 +168,17 @@ func TestDebugPayloadRestore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash())
+	ref, _, restored, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !ref.EqualsRef(want) {
-		t.Fatalf("restored %s, expected %s", ref.MarshalString(), want.MarshalString())
+	if !ref.EqualsRef(want) || restored != 1 {
+		t.Fatalf("restored %d blocks of %s, expected 1 of %s", restored, ref.MarshalString(), want.MarshalString())
+	}
+
+	// Find the payload present on a second restore.
+	if _, _, restored, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash()); err != nil || restored != 0 {
+		t.Fatalf("second restore wrote %d blocks, err %v", restored, err)
 	}
 
 	// Check the bucket owns the block.

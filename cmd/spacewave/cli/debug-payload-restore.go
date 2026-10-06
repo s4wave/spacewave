@@ -117,15 +117,17 @@ func (a *debugPayloadRestoreArgs) Run(c *cli.Context) error {
 		return err
 	}
 
-	// Restore the payload and print where it went.
-	ref, err := restorePayload(c.Context, le, path, a.spaceID, a.bucketID, data, want)
+	// Restore the payload and print what was written.
+	ref, total, restored, err := restorePayload(c.Context, le, path, a.spaceID, a.bucketID, data, want)
 	if err != nil {
 		return err
 	}
 	writeFields(os.Stdout, [][2]string{
 		{"Volume", path},
 		{"Space", a.spaceID},
-		{"Restored", ref.MarshalString()},
+		{"Payload", ref.MarshalString()},
+		{"Present blocks", strconv.Itoa(total - restored)},
+		{"Restored blocks", strconv.Itoa(restored)},
 	})
 	return nil
 }
@@ -178,32 +180,62 @@ func newDebugPayloadRestoreCommand() *cli.Command {
 }
 
 // restorePayload rebuilds the payload blob of data with the World transform
-// of spaceID, checks its root digest against want, and writes its blocks into
-// the volume at path owned by bucketID, or by the one bucket named for the
-// Space when bucketID is empty.
-func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, data, want []byte) (*block.BlockRef, error) {
+// of spaceID, checks its root digest against want, and writes the blocks the
+// volume at path lacks, owned by bucketID, or by the one bucket named for the
+// Space when bucketID is empty. It returns the root ref, the blob's block
+// count, and the number of blocks written.
+func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, data, want []byte) (*block.BlockRef, int, int, error) {
 	// Open the stopped volume with the World transform and owning bucket.
 	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
 	defer rv.vol.Close()
 
 	// Encode the blob and refuse a root other than the missing one.
 	ref, entries, err := encodePayload(ctx, rv.xfrm, rv.vol.GetHashType(), data)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
 	if got := ref.GetHash().GetHash(); !bytes.Equal(got, want) {
-		return nil, errors.Errorf("rebuilt block digest %s differs from %s", base64.StdEncoding.EncodeToString(got), base64.StdEncoding.EncodeToString(want))
+		return nil, 0, 0, errors.Errorf("rebuilt block digest %s differs from %s", base64.StdEncoding.EncodeToString(got), base64.StdEncoding.EncodeToString(want))
 	}
 
-	// Write the blocks with their bucket ownership.
-	le.Infof("restoring %s (%d blocks) into bucket %s", ref.MarshalString(), len(entries), rv.bucketID)
-	if err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, entries); err != nil {
-		return nil, errors.Wrap(err, "write blocks")
+	// Write the missing blocks with their bucket ownership.
+	missing, err := missingBlocks(ctx, rv.vol, entries)
+	if err != nil {
+		return nil, 0, 0, err
 	}
-	return ref, nil
+	if len(missing) == 0 {
+		return ref, len(entries), 0, nil
+	}
+	le.Infof("restoring %d of %d blocks of %s into bucket %s", len(missing), len(entries), ref.MarshalString(), rv.bucketID)
+	if err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, missing); err != nil {
+		return nil, 0, 0, errors.Wrap(err, "write blocks")
+	}
+	return ref, len(entries), len(missing), nil
+}
+
+// missingBlocks returns the entries whose blocks vol lacks.
+func missingBlocks(ctx context.Context, vol *volume_bolt.Bolt, entries []*block.PutBatchEntry) ([]*block.PutBatchEntry, error) {
+	// Probe the blocks in one batch.
+	refs := make([]*block.BlockRef, len(entries))
+	for i, e := range entries {
+		refs[i] = e.Ref
+	}
+	exists, err := vol.GetBlockExistsBatch(ctx, refs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Keep the entries not found.
+	var missing []*block.PutBatchEntry
+	for i, e := range entries {
+		if !exists[i] {
+			missing = append(missing, e)
+		}
+	}
+	return missing, nil
 }
 
 // sourceTreeResult counts the outcome of a source tree restore.
@@ -283,21 +315,14 @@ func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 			seen[key] = struct{}{}
 			return dup
 		})
-		refs := make([]*block.BlockRef, len(entries))
-		for i, e := range entries {
-			refs[i] = e.Ref
-		}
-		exists, err := rv.vol.GetBlockExistsBatch(ctx, refs)
+		missing, err := missingBlocks(ctx, rv.vol, entries)
 		if err != nil {
 			return err
 		}
+		res.present += len(entries) - len(missing)
 
 		// Queue the missing blocks and write them once the batch is full.
-		for i, e := range entries {
-			if exists[i] {
-				res.present++
-				continue
-			}
+		for _, e := range missing {
 			le.Infof("missing %s from %s", e.Ref.MarshalString(), filePath)
 			res.restored++
 			res.restoredBytes += int64(len(e.Data))
