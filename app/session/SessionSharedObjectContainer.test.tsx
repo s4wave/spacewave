@@ -113,7 +113,11 @@ vi.mock('@s4wave/web/ui/ErrorState.js', () => ({
     <div data-testid="error-state">
       <div>{props.title}</div>
       <div>{props.message}</div>
-      {props.onRetry && <button onClick={props.onRetry}>Retry</button>}
+      {props.onRetry && (
+        <button type="button" onClick={props.onRetry}>
+          Retry
+        </button>
+      )}
     </div>
   ),
 }))
@@ -152,7 +156,7 @@ vi.mock('./dashboard/AuthConfirmDialog.js', () => ({
     props.open ? (
       <div data-testid="auth-confirm-dialog">
         <div>{props.title}</div>
-        <button onClick={() => void props.onConfirm?.()}>
+        <button type="button" onClick={() => void props.onConfirm?.()}>
           {props.confirmLabel ?? 'Confirm'}
         </button>
       </div>

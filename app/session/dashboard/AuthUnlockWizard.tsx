@@ -211,6 +211,7 @@ function AuthUnlockWizardContent({
 
         <DialogFooter>
           <button
+            type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50"
@@ -218,6 +219,7 @@ function AuthUnlockWizardContent({
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => void handleConfirm()}
             disabled={submitting || !canConfirm}
             className={cn(
@@ -478,6 +480,7 @@ function KeypairRow({
           </div>
         </div>
         <button
+          type="button"
           onClick={() => void handleLock()}
           disabled={disabled}
           className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
@@ -599,6 +602,7 @@ function CredentialUnlockCard({
 
       <div className="flex justify-end">
         <button
+          type="button"
           onClick={onUnlock}
           disabled={disabled || !canUnlock}
           className={cn(
@@ -715,6 +719,7 @@ function BrowserUnlockCard({
           </button>
         )}
         <button
+          type="button"
           onClick={needsPin ? onUnlockPin : onStart}
           disabled={
             needsPin

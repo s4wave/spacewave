@@ -271,6 +271,7 @@ export function TransferWizard() {
     <div className="bg-background-landing flex flex-1 flex-col overflow-y-auto p-6 md:p-10">
       <div className="mx-auto w-full max-w-lg">
         <button
+          type="button"
           onClick={step === 'select' ? handleBack : handleStepBack}
           disabled={step === 'progress' || step === 'complete'}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors disabled:opacity-50"
@@ -328,6 +329,7 @@ export function TransferWizard() {
           <div className="border-foreground/10 flex justify-end gap-2 border-t p-4">
             {step === 'select' && (
               <button
+                type="button"
                 onClick={() => setStep('inventory')}
                 disabled={!canProceedToInventory}
                 className={cn(
@@ -344,6 +346,7 @@ export function TransferWizard() {
 
             {step === 'inventory' && (
               <button
+                type="button"
                 onClick={handleStartTransferClick}
                 disabled={selectedCount === 0}
                 className={cn(
@@ -360,6 +363,7 @@ export function TransferWizard() {
 
             {step === 'progress' && (
               <button
+                type="button"
                 onClick={handleCancelClick}
                 className={cn(
                   'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all',
@@ -374,6 +378,7 @@ export function TransferWizard() {
 
             {step === 'complete' && (
               <button
+                type="button"
                 onClick={handleComplete}
                 className={cn(
                   'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all',

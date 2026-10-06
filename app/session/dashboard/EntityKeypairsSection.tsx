@@ -107,6 +107,7 @@ export function EntityKeypairsSection({
         <div className="flex items-center justify-between py-1">
           <p className="text-foreground-alt text-xs">No entity keypairs yet.</p>
           <button
+            type="button"
             onClick={() => setShowAdd(true)}
             className="text-brand hover:text-brand/80 text-xs font-medium transition-colors"
           >
@@ -128,6 +129,7 @@ export function EntityKeypairsSection({
           {!showAdd && (
             <div className="border-foreground/10 border-t pt-2">
               <button
+                type="button"
                 onClick={() => setShowAdd(true)}
                 className="text-brand hover:text-brand/80 flex items-center gap-1 text-xs font-medium transition-colors"
               >
@@ -257,6 +259,7 @@ function KeypairRow({
       </div>
       {canRemove && (
         <button
+          type="button"
           onClick={() => void onRemove(peerId)}
           disabled={removing}
           className={cn(

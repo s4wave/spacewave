@@ -150,6 +150,7 @@ export function SessionsSection({
             </p>
             {isLocal && (
               <button
+                type="button"
                 onClick={handleLinkDeviceClick}
                 className="text-brand hover:text-brand/80 text-xs font-medium transition-colors"
               >
@@ -293,6 +294,7 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
       </div>
       {!row.currentSession && (
         <button
+          type="button"
           onClick={() => void onAction(row)}
           disabled={pending}
           className={cn(

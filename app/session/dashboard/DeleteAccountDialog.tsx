@@ -75,12 +75,14 @@ export function DeleteAccountDialog({
         {step === 'warning' && (
           <DialogFooter>
             <button
+              type="button"
               onClick={() => handleOpenChange(false)}
               className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={() => setStep('confirm')}
               className={cn(
                 'rounded-md border px-4 py-2 text-sm transition-all',
@@ -117,6 +119,7 @@ export function DeleteAccountDialog({
             </div>
             <DialogFooter>
               <button
+                type="button"
                 onClick={() => {
                   setStep('warning')
                   setTypedName('')
@@ -126,6 +129,7 @@ export function DeleteAccountDialog({
                 Back
               </button>
               <button
+                type="button"
                 disabled={typedName !== 'DELETE'}
                 onClick={() => setStep('final')}
                 className={cn(
@@ -152,6 +156,7 @@ export function DeleteAccountDialog({
 
             <DialogFooter>
               <button
+                type="button"
                 onClick={() => setStep('confirm')}
                 disabled={submitting}
                 className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
@@ -159,6 +164,7 @@ export function DeleteAccountDialog({
                 Back
               </button>
               <button
+                type="button"
                 onClick={() => void handleDelete()}
                 disabled={submitting}
                 className={cn(

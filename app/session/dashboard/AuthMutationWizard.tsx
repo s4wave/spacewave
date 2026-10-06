@@ -278,6 +278,7 @@ function AuthMutationWizardContent({
         <DialogFooter>
           {complete ? (
             <button
+              type="button"
               onClick={handleDone}
               className={cn(
                 'rounded-md border px-4 py-2 text-sm transition-all',
@@ -290,6 +291,7 @@ function AuthMutationWizardContent({
             <>
               {step > 0 && (
                 <button
+                  type="button"
                   onClick={() => {
                     setStep((current) => current - 1)
                     setError(null)
@@ -303,6 +305,7 @@ function AuthMutationWizardContent({
               )}
               <div className="flex-1" />
               <button
+                type="button"
                 onClick={() => handleOpenChange(false)}
                 disabled={executing}
                 className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
@@ -311,6 +314,7 @@ function AuthMutationWizardContent({
               </button>
               {step < 2 ? (
                 <button
+                  type="button"
                   onClick={() => {
                     setError(null)
                     setStep((current) => current + 1)
@@ -327,6 +331,7 @@ function AuthMutationWizardContent({
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={() => void handleExecute()}
                   disabled={executing || !canExecute}
                   className={cn(
@@ -611,6 +616,7 @@ function UnlockRow({
           </div>
         </div>
         <button
+          type="button"
           onClick={() => void handleLock()}
           className="text-foreground-alt hover:text-foreground text-xs transition-colors"
         >
@@ -677,6 +683,7 @@ function UnlockRow({
           </>
         )}
         <button
+          type="button"
           onClick={() => void handleUnlock()}
           disabled={unlocking || !canUnlock}
           className={cn(

@@ -64,6 +64,7 @@ export function DeletedAccountOverlay({
             </p>
 
             <button
+              type="button"
               onClick={handleRemoveClick}
               className={cn(
                 'group w-full rounded-md border transition-all duration-300',

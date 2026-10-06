@@ -135,6 +135,7 @@ export function ReAuthOverlay({
             />
 
             <button
+              type="button"
               onClick={() => void handleSubmit()}
               disabled={submitting || !cred.hasCredential}
               className={cn(
@@ -151,6 +152,7 @@ export function ReAuthOverlay({
             </button>
 
             <button
+              type="button"
               onClick={() => navigate({ path: '/recover' })}
               className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
             >
@@ -159,6 +161,7 @@ export function ReAuthOverlay({
 
             <div className="border-foreground/10 border-t pt-4">
               <button
+                type="button"
                 onClick={() => setLogoutOpen(true)}
                 className="text-destructive/70 hover:text-destructive flex w-full items-center justify-center gap-2 text-center text-xs transition-colors"
               >

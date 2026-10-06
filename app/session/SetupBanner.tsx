@@ -59,6 +59,7 @@ export function SetupBanner() {
   return (
     <div className="border-brand/20 bg-brand/5 relative flex items-center border-b">
       <button
+        type="button"
         onClick={handleSetupClick}
         className="group flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-colors"
       >
@@ -68,6 +69,7 @@ export function SetupBanner() {
         <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
       </button>
       <button
+        type="button"
         onClick={handleDismiss}
         className="text-foreground-alt hover:text-foreground shrink-0 px-2 py-1.5 transition-colors"
         aria-label="Dismiss setup banner"

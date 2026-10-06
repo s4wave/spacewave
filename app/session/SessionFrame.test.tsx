@@ -28,7 +28,11 @@ describe('SessionFrame', () => {
                 id="test-item"
                 button={(selected, onClick) => {
                   onClickCalls.push(onClick)
-                  return <button data-testid="test-button">Test</button>
+                  return (
+                    <button type="button" data-testid="test-button">
+                      Test
+                    </button>
+                  )
                 }}
               >
                 <SessionFrame>
@@ -59,7 +63,11 @@ describe('SessionFrame', () => {
             <BottomBarLevel
               id="test-item"
               button={(selected, onClick) => (
-                <button data-testid="test-button" onClick={onClick}>
+                <button
+                  type="button"
+                  data-testid="test-button"
+                  onClick={onClick}
+                >
                   Test
                 </button>
               )}
@@ -88,7 +96,11 @@ describe('SessionFrame', () => {
             <BottomBarLevel
               id="test-item"
               button={(selected, onClick) => (
-                <button data-testid="test-button" onClick={onClick}>
+                <button
+                  type="button"
+                  data-testid="test-button"
+                  onClick={onClick}
+                >
                   Test
                 </button>
               )}
@@ -120,7 +132,11 @@ describe('SessionFrame', () => {
               id="test-item"
               button={(selected, onClick, className) => {
                 classNames.push(className)
-                return <button data-testid="test-button">Test</button>
+                return (
+                  <button type="button" data-testid="test-button">
+                    Test
+                  </button>
+                )
               }}
             >
               <SessionFrame>
@@ -151,7 +167,11 @@ describe('SessionFrame', () => {
               id="test-item"
               button={(selected, onClick, className) => {
                 classNames.push(className)
-                return <button data-testid="test-button">Test</button>
+                return (
+                  <button type="button" data-testid="test-button">
+                    Test
+                  </button>
+                )
               }}
             >
               <SessionFrame>
