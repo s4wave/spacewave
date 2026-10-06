@@ -174,12 +174,6 @@ jobs:
           set -euo pipefail
           scripts/release/build-browser-plugin.sh spacewave-notes
 
-      - name: Build browser plugin channel manifest (spacewave-backoffice)
-        shell: bash
-        run: |
-          set -euo pipefail
-          scripts/release/build-browser-plugin.sh spacewave-backoffice
-
       - name: Build browser plugin channel manifest (spacewave-sql)
         shell: bash
         run: |
