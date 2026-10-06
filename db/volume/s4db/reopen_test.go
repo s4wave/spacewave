@@ -1,6 +1,6 @@
-//go:build !js && !wasip1 && !bldr_sqlite
+//go:build !js && !wasip1
 
-package volume_bolt_test
+package volume_s4db_test
 
 import (
 	"bytes"
@@ -21,8 +21,8 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	resource_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -37,15 +37,15 @@ const (
 	nativeReopenClosedEnv         = "SPACEWAVE_NATIVE_REOPEN_CLOSED"
 	nativeReopenObjectKey         = "native-reopen/fixed-object"
 	nativeReopenBoundary          = "attached-space-resource-rpc"
-	nativeReopenControllerID      = "hydra/volume/bolt"
+	nativeReopenControllerID      = volume_s4db.ControllerID
 )
 
 var nativeReopenRole = flag.String("spacewave-native-reopen-role", "", "native reopen child role")
 
-// TestBoltVolumeFreshProcessSpaceReopen measures a clean native reopen through
+// TestFreshProcessSpaceReopen measures a clean native reopen through
 // a manually attached SpaceResource and the public Space and World RPC services.
 // Full Session/Space mount and persisted Space resolution remain outside this slice.
-func TestBoltVolumeFreshProcessSpaceReopen(t *testing.T) {
+func TestFreshProcessSpaceReopen(t *testing.T) {
 	// Dispatch the native reopen subprocess role.
 	if *nativeReopenRole != "" {
 		runNativeReopenRole(t, *nativeReopenRole)
@@ -54,13 +54,13 @@ func TestBoltVolumeFreshProcessSpaceReopen(t *testing.T) {
 
 	// Prepare the shared database and cleanup marker paths.
 	dir := t.TempDir()
-	boltPath := filepath.Join(dir, "space-reopen.db")
+	path := filepath.Join(dir, "space-reopen.s4wave")
 	metadataPath := filepath.Join(dir, "seed-metadata")
 	seedClosedPath := filepath.Join(dir, "seed-closed")
 	reopenClosedPath := filepath.Join(dir, "reopen-closed")
 
 	// Seed the database and verify its metadata and cleanup marker.
-	seed := nativeReopenCommand(t, "seed", boltPath, "", "", metadataPath, seedClosedPath)
+	seed := nativeReopenCommand(t, "seed", path, "", "", metadataPath, seedClosedPath)
 	if err := seed.Run(); err != nil {
 		t.Fatalf("seed failed: %v\n%s", err, cmdOutput(seed))
 	}
@@ -76,7 +76,7 @@ func TestBoltVolumeFreshProcessSpaceReopen(t *testing.T) {
 	}
 
 	// Reopen the database and verify the subprocess result and cleanup.
-	reopen := nativeReopenCommand(t, "reopen", boltPath, metadata["volume_id"], metadata["controller_id"], "", reopenClosedPath)
+	reopen := nativeReopenCommand(t, "reopen", path, metadata["volume_id"], metadata["controller_id"], "", reopenClosedPath)
 	if err := reopen.Run(); err != nil {
 		t.Fatalf("reopen failed: %v\n%s", err, cmdOutput(reopen))
 	}
@@ -92,7 +92,7 @@ func TestBoltVolumeFreshProcessSpaceReopen(t *testing.T) {
 func nativeReopenCommand(
 	t *testing.T,
 	role string,
-	boltPath string,
+	path string,
 	expectedVolume string,
 	expectedController string,
 	metadataPath string,
@@ -102,12 +102,12 @@ func nativeReopenCommand(
 	t.Helper()
 
 	// Configure the native reopen subprocess and capture its output.
-	cmd := exec.Command(os.Args[0], "-test.run=^TestBoltVolumeFreshProcessSpaceReopen$", "-test.v", "-spacewave-native-reopen-role="+role) //nolint:gosec
+	cmd := exec.Command(os.Args[0], "-test.run=^TestFreshProcessSpaceReopen$", "-test.v", "-spacewave-native-reopen-role="+role) //nolint:gosec
 	var output bytes.Buffer
 	cmd.Stdout = &output
 	cmd.Stderr = &output
 	cmd.Env = append(os.Environ(),
-		nativeReopenPathEnv+"="+boltPath,
+		nativeReopenPathEnv+"="+path,
 		nativeReopenExpectedVolumeEnv+"="+expectedVolume,
 		nativeReopenExpectedCtrlEnv+"="+expectedController,
 		nativeReopenMetadataEnv+"="+metadataPath,
@@ -171,11 +171,11 @@ type nativeReopenEnv struct {
 	tb *resource_world_testbed.Testbed
 }
 
-func newNativeReopenEnv(ctx context.Context, boltPath string) (*nativeReopenEnv, error) {
+func newNativeReopenEnv(ctx context.Context, path string) (*nativeReopenEnv, error) {
 	tb, err := resource_world_testbed.WithTestbedOptions(
 		ctx,
-		[]db_testbed.Option{db_testbed.WithVolumeConfig(&volume_bolt.Config{
-			Path:         boltPath,
+		[]db_testbed.Option{db_testbed.WithVolumeConfig(&volume_s4db.Config{
+			Path:         path,
 			VolumeConfig: &volume_controller.Config{},
 		})},
 		nil,
@@ -389,4 +389,12 @@ func readNativeReopenMetadata(path string) (map[string]string, error) {
 		metadata[key] = value
 	}
 	return metadata, nil
+}
+
+// cmdOutput returns the output cmd captured in a buffer.
+func cmdOutput(cmd *exec.Cmd) string {
+	if buf, ok := cmd.Stdout.(*bytes.Buffer); ok {
+		return buf.String()
+	}
+	return ""
 }

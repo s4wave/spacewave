@@ -33,9 +33,10 @@ var Version = controller.MustParseVersion("0.0.1")
 // Volume is the s4db volume.
 type Volume = volume_kvtx.Volume
 
-// NewVolume opens the database file named by conf, creating it when absent.
+// NewVolume opens the database file named by conf, creating it when absent
+// and converting a bolt Volume file in place.
 func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, error) {
-	// Check the config and open the database.
+	// Check the config.
 	if err := conf.Validate(); err != nil {
 		return nil, volume.Permanent(err)
 	}
@@ -43,7 +44,12 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 	if err != nil {
 		return nil, err
 	}
+
+	// Convert a bolt Volume file and open the database.
 	path := conf.GetPath()
+	if err := convertBolt(ctx, path); err != nil {
+		return nil, err
+	}
 	db, err := s4db.Open(path, s4db.Options{})
 	if err != nil {
 		return nil, err
