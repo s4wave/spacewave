@@ -193,6 +193,13 @@ if [ "$#" -gt 0 ]; then
 	rm -f "$compile_out" "$lint_out"
 fi
 
+# Check the staged go.mod. The check runs go, so it reads the file instead of
+# the index this commit records.
 if printf "%s\n" "$files" | grep -Eq '^go\.mod$'; then
-	.githooks/check-go-mod-ref-pins
+	staged_go_mod=$(mktemp)
+	git show :go.mod >"$staged_go_mod"
+	pins_rc=0
+	GO_MOD_REF_PINS_FILE=$staged_go_mod .githooks/check-go-mod-ref-pins || pins_rc=$?
+	rm -f "$staged_go_mod"
+	exit "$pins_rc"
 fi
