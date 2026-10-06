@@ -41,6 +41,10 @@ const webListenerReadHeaderTimeout = 5 * time.Second
 // webResourcePath serves a bound listener's Resource service over a websocket.
 const webResourcePath = "/_spacewave/resource"
 
+// webAppFrontendPath is the root of the app plugin's frontend build. A bound
+// listener's shell loads the app entry from its Vite manifest.
+const webAppFrontendPath = "/b/pa/spacewave-app/v/b/fe/"
+
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
 	ctx context.Context,
@@ -557,7 +561,7 @@ func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	// Render and serve the local bootstrap shell.
-	shell, err := renderWebListenerBootShell(metadata)
+	shell, err := renderWebListenerBootShell(metadata, l.spec)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -618,7 +622,40 @@ func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBoo
 	}, nil
 }
 
-func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata) ([]byte, error) {
+// renderWebListenerBootShell renders the shell that exchanges the bootstrap
+// secret for the capability cookie and then starts the app. An unbound
+// listener starts the released WASM runtime. A bound listener skips it: the
+// shell loads the native app entry and renders it over the listener's
+// Resource websocket, opening the bound Space when no route is given.
+func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec) ([]byte, error) {
+	start := "await import('/boot.mjs');"
+	if spec.spaceID != "" {
+		route := "/u/" + strconv.FormatUint(uint64(spec.sessionIdx), 10) + "/so/" + url.PathEscape(spec.spaceID)
+		start = `if (!location.hash) history.replaceState(null, '', '#' + ` + quoteWebListenerScriptString(route) + `);
+const appBase = ` + quoteWebListenerScriptString(webAppFrontendPath) + `;
+const manifestResp = await fetch(appBase + '.vite/manifest.json');
+if (!manifestResp.ok) {
+  setBootstrapFailure('Spacewave app manifest failed: ' + manifestResp.status);
+  throw new Error('Spacewave app manifest failed');
+}
+const manifest = await manifestResp.json();
+const seen = new Set();
+const addStyles = (key) => {
+  const entry = manifest[key];
+  if (!entry || seen.has(key)) return;
+  seen.add(key);
+  for (const href of entry.css ?? []) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = appBase + href;
+    document.head.append(link);
+  }
+  for (const dep of entry.imports ?? []) addStyles(dep);
+};
+addStyles('app/App.tsx');
+const app = await import(appBase + manifest['app/App.tsx'].file);
+app.renderBoundApp(document.getElementById('bldr-root'), ` + quoteWebListenerScriptString(webResourcePath) + `);`
+	}
 	stylesheetLinks := quoteWebListenerScriptString(metadata.stylesheetLinks)
 	return []byte(`<!doctype html>
 <meta charset="utf-8">
@@ -648,7 +685,7 @@ if (otp) {
 }
 const stylesheetLinks = ` + stylesheetLinks + `;
 if (stylesheetLinks) document.head.insertAdjacentHTML('beforeend', stylesheetLinks);
-await import('/boot.mjs');
+` + start + `
 </script>`), nil
 }
 
