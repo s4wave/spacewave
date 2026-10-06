@@ -55,7 +55,8 @@ func (db *DB) TryLease(name string) (*Lease, bool, error) {
 
 // WaitLease waits until it holds the lease name. When ctx ends while another
 // process holds the name, the abandoned wait keeps the name claimed in this
-// handle until the system grants the lock, then releases it.
+// handle until the system grants the lock, then releases it; Close waits for
+// it.
 func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 	// Wait for this handle's holder to release the byte, then claim it.
 	off := leaseOff(name)
@@ -67,6 +68,7 @@ func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 	}
 
 	// Lock the byte in the background so the wait follows ctx.
+	db.lockWaits.Add(1)
 	locked := make(chan error, 1)
 	go func() {
 		_, err := db.s.lock(off, true)
@@ -74,6 +76,7 @@ func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 	}()
 	select {
 	case err := <-locked:
+		db.lockWaits.Done()
 		if err != nil {
 			db.dropLease(off)
 			return nil, err
@@ -86,6 +89,7 @@ func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 	// the handle, so the claim stays until then or another waiter here would
 	// share the grant.
 	go func() {
+		defer db.lockWaits.Done()
 		if err := <-locked; err == nil {
 			_ = db.s.unlock(off)
 		}
