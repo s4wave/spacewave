@@ -392,7 +392,7 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 			},
 		}, nil
 	})
-	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord) (string, error) {
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord, onBlocked func(error)) (string, error) {
 		upsertRecord = record
 		return "devices/build-host", nil
 	})
@@ -551,6 +551,7 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 		client *sdkClient,
 		statePath string,
 		record *deviceSetupRecord,
+		onBlocked func(error),
 	) (string, error) {
 		upsertCalled = true
 		if upsertErr != nil {
@@ -601,6 +602,7 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 		client *sdkClient,
 		statePath string,
 		record *deviceSetupRecord,
+		onBlocked func(error),
 	) (string, error) {
 		upserted = record
 		return deviceObjectKey(record.PeerID), nil
@@ -665,7 +667,7 @@ func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing
 			SessionListEntry: &core_session.SessionListEntry{SessionIndex: 9},
 		}, nil
 	})
-	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord) (string, error) {
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord, onBlocked func(error)) (string, error) {
 		return "", errors.New("world write rejected")
 	})
 
@@ -991,7 +993,7 @@ func withDeviceMountSessionStub(
 
 func withDeviceObjectUpsertStub(
 	t *testing.T,
-	upsert func(context.Context, *sdkClient, string, *deviceSetupRecord) (string, error),
+	upsert func(context.Context, *sdkClient, string, *deviceSetupRecord, func(error)) (string, error),
 ) {
 	t.Helper()
 
@@ -1183,7 +1185,7 @@ func TestOpenLocalDeviceSessionPersistsActivationBeforeProjection(t *testing.T) 
 	t.Cleanup(func() { deviceMountLocalSession = oldMount })
 
 	// Stub the Device object upsert to fail.
-	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, string, *deviceSetupRecord) (string, error) {
+	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, string, *deviceSetupRecord, func(error)) (string, error) {
 		return "", errors.New("base World root is stale")
 	})
 	got, err := openLocalDeviceSession(context.Background(), nil, statePath, record)
@@ -1199,5 +1201,44 @@ func TestOpenLocalDeviceSessionPersistsActivationBeforeProjection(t *testing.T) 
 	}
 	if persisted.SessionIndex != 3 || persisted.SetupState != deviceSetupStateImported || persisted.FailureReason == "" {
 		t.Fatalf("persisted pending activation = %+v", persisted)
+	}
+}
+
+// TestOpenLocalDeviceSessionProjectsReadyDevice checks that the Device object
+// is written in the session-ready state the persisted record reaches, so
+// Forge can select the Device.
+func TestOpenLocalDeviceSessionProjectsReadyDevice(t *testing.T) {
+	// Seed the state path and stub the session mount hook.
+	statePath := t.TempDir()
+	record := &deviceSetupRecord{SetupState: deviceSetupStateImported, PeerID: "peer", ResourceID: "resource"}
+	oldMount := deviceMountLocalSession
+	deviceMountLocalSession = func(context.Context, *sdkClient, string, *deviceSetupRecord) (*deviceSetupRecord, error) {
+		next := *record
+		next.SessionIndex = 3
+		return &next, nil
+	}
+	t.Cleanup(func() { deviceMountLocalSession = oldMount })
+
+	// Record the setup state the Device object is projected with.
+	var projected string
+	withDeviceObjectUpsertStub(t, func(_ context.Context, _ *sdkClient, _ string, current *deviceSetupRecord, _ func(error)) (string, error) {
+		projected = current.SetupState
+		return "devices/key", nil
+	})
+	got, err := openLocalDeviceSession(context.Background(), nil, statePath, record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projected != deviceSetupStateSessionReady {
+		t.Fatalf("projected setup state = %q, want %q", projected, deviceSetupStateSessionReady)
+	}
+	persisted, err := readDeviceSetupRecord(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range []*deviceSetupRecord{got, persisted} {
+		if r.SetupState != deviceSetupStateSessionReady || r.DeviceObjectKey != "devices/key" || r.FailureReason != "" {
+			t.Fatalf("ready activation = %+v", r)
+		}
 	}
 }

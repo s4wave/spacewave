@@ -300,13 +300,15 @@ func TestReconcileLocalSessionMountsRetainsConfiguredSession(t *testing.T) {
 }
 
 // TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession covers the
-// persisted local completion across session snapshots and keeper shutdown.
+// persisted local completion across session snapshots and keeper shutdown:
+// the restore retains the session once and projects the pending Device as
+// session-ready before the release drops the session.
 func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) {
-	// Seed the device setup record and stub the local mount.
+	// Seed a pending local enrollment and stub the local mount.
 	statePath := t.TempDir()
 	record := &deviceSetupRecord{
-		SetupState: deviceSetupStateSessionReady, Completion: deviceLocalCompletionPrefix + "stub",
-		SessionIndex: 3, DeviceObjectKey: "devices/key",
+		SetupState: deviceSetupStateImported, Completion: deviceLocalCompletionPrefix + "stub",
+		SessionIndex: 3, FailureReason: "Device object projection pending: block not found",
 	}
 	if err := writeDeviceSetupRecord(statePath, record); err != nil {
 		t.Fatal(err)
@@ -317,11 +319,17 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 	}
 	t.Cleanup(func() { deviceMountLocalSession = oldMount })
 
-	// Create the local session mount stub and mount counter.
-	mount := &testLocalSessionMount{}
-	mountCalls := 0
+	// Stub the projection, which must wait for the World.
+	var projected string
+	waits := false
+	withDeviceObjectUpsertStub(t, func(_ context.Context, _ *sdkClient, _ string, current *deviceSetupRecord, onBlocked func(error)) (string, error) {
+		projected, waits = current.SetupState, onBlocked != nil
+		return "devices/key", nil
+	})
 
 	// Mount the configured session index and count the calls.
+	mount := &testLocalSessionMount{}
+	mountCalls := 0
 	mountFunc := func(index uint32) (localSessionMount, error) {
 		mountCalls++
 		if index != 3 {
@@ -330,69 +338,28 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 		return mount, nil
 	}
 
-	// Reconcile the configured session across snapshots.
-	entries := []*session.SessionListEntry{{SessionIndex: 3}}
+	// Reconcile across two snapshots and confirm one retained mount.
 	le := logrus.NewEntry(logrus.New())
 	var cleanup func()
-	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, entries, mountFunc, &cleanup)
-	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, entries, mountFunc, &cleanup)
+	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, mountFunc, &cleanup)
+	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, mountFunc, &cleanup)
 	if cleanup == nil || mountCalls != 1 || mount.released {
 		t.Fatalf("retained enrollment: cleanup=%v mounts=%d released=%v", cleanup != nil, mountCalls, mount.released)
 	}
+
+	// Release, which waits for the projection, and check the ready record.
 	cleanup()
 	if !mount.released {
 		t.Fatal("daemon shutdown did not release Device session")
 	}
-}
-
-// TestReconcileDeviceEnrollmentRetriesPendingProjection checks that a failed
-// World write remains pending until a later eligible session-list revision.
-func TestReconcileDeviceEnrollmentRetriesPendingProjection(t *testing.T) {
-	// Seed the pending device setup record and stub the projection.
-	statePath := t.TempDir()
-	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{
-		SetupState: deviceSetupStateImported, SessionIndex: 3,
-	}); err != nil {
-		t.Fatal(err)
+	if projected != deviceSetupStateSessionReady || !waits {
+		t.Fatalf("projection state=%q waits=%v", projected, waits)
 	}
-	attempts := 0
-
-	// Stub the Device object upsert to fail on the first attempt.
-	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, string, *deviceSetupRecord) (string, error) {
-		attempts++
-		if attempts == 1 {
-			return "", errors.New("base World root is stale")
-		}
-		return "devices/key", nil
-	})
-	mount := func(uint32) (localSessionMount, error) {
-		t.Fatal("linked Device should not restore local enrollment")
-		return nil, nil
-	}
-	le := logrus.NewEntry(logrus.New())
-	var cleanup func()
-	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, []*session.SessionListEntry{{SessionIndex: 4}}, mount, &cleanup)
-	if attempts != 0 {
-		t.Fatalf("projection before eligible revision: %d attempts", attempts)
-	}
-
-	// Seed the pending device setup record and stub the projection.
-	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, []*session.SessionListEntry{{SessionIndex: 3}}, mount, &cleanup)
-	pending, err := readDeviceSetupRecord(statePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if attempts != 1 || pending.SetupState != deviceSetupStateImported || pending.DeviceObjectKey != "" || pending.FailureReason == "" {
-		t.Fatalf("pending projection: attempts=%d record=%+v", attempts, pending)
-	}
-
-	// Stub the Device object upsert to fail on the first attempt.
-	reconcileDeviceEnrollment(t.Context(), le, statePath, nil, []*session.SessionListEntry{{SessionIndex: 3}, {SessionIndex: 4}}, mount, &cleanup)
 	ready, err := readDeviceSetupRecord(statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if attempts != 2 || ready.SetupState != deviceSetupStateSessionReady || ready.DeviceObjectKey != "devices/key" || ready.FailureReason != "" {
-		t.Fatalf("projected Device: attempts=%d record=%+v", attempts, ready)
+	if ready.SetupState != deviceSetupStateSessionReady || ready.DeviceObjectKey != "devices/key" || ready.FailureReason != "" {
+		t.Fatalf("projected Device record = %+v", ready)
 	}
 }

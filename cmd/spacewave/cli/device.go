@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -35,6 +36,7 @@ import (
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_provider_local "github.com/s4wave/spacewave/sdk/provider/local"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -55,49 +57,91 @@ const (
 	deviceDockerStatePath    = "/var/lib/spacewave"
 )
 
+// deviceSetupRecord is the Device's persisted setup state in setup.json.
 type deviceSetupRecord struct {
-	SetupState       string `json:"setupState"`
-	PeerID           string `json:"peerId,omitempty"`
-	Label            string `json:"label,omitempty"`
-	RequestedRole    string `json:"requestedRole,omitempty"`
-	TargetHint       string `json:"targetHint,omitempty"`
-	CompletionMode   string `json:"completionMode,omitempty"`
-	Completion       string `json:"completion,omitempty"`
-	CompletionAt     int64  `json:"completionAt,omitempty"`
+	// SetupState is the setup step the Device has reached.
+	SetupState string `json:"setupState"`
+	// PeerID is the Device identity's peer ID.
+	PeerID string `json:"peerId,omitempty"`
+	// Label is the Device's display label.
+	Label string `json:"label,omitempty"`
+	// RequestedRole is the Space role the ticket requests.
+	RequestedRole string `json:"requestedRole,omitempty"`
+	// TargetHint names the Space the operator intends to link.
+	TargetHint string `json:"targetHint,omitempty"`
+	// CompletionMode is how the completion reaches the Device.
+	CompletionMode string `json:"completionMode,omitempty"`
+	// Completion is the imported approval completion.
+	Completion string `json:"completion,omitempty"`
+	// CompletionAt is when the completion was imported, in Unix seconds.
+	CompletionAt int64 `json:"completionAt,omitempty"`
+	// CompletionStatus is the approval's reported status.
 	CompletionStatus string `json:"completionStatus,omitempty"`
-	AccountID        string `json:"accountId,omitempty"`
-	ResourceID       string `json:"resourceId,omitempty"`
-	SessionID        string `json:"sessionId,omitempty"`
-	SessionIndex     uint32 `json:"sessionIndex,omitempty"`
-	SessionPeerID    string `json:"sessionPeerId,omitempty"`
-	DeviceObjectKey  string `json:"deviceObjectKey,omitempty"`
-	FailureReason    string `json:"failureReason,omitempty"`
-	ExpiresAt        int64  `json:"expiresAt,omitempty"`
-	Ticket           string `json:"ticket,omitempty"`
+	// AccountID is the provider account holding the Device session.
+	AccountID string `json:"accountId,omitempty"`
+	// ResourceID is the base64 linked Space ID.
+	ResourceID string `json:"resourceId,omitempty"`
+	// SessionID is the Device session's ID.
+	SessionID string `json:"sessionId,omitempty"`
+	// SessionIndex is the daemon's index for the mounted Device session.
+	SessionIndex uint32 `json:"sessionIndex,omitempty"`
+	// SessionPeerID is the peer ID the Device session runs as.
+	SessionPeerID string `json:"sessionPeerId,omitempty"`
+	// DeviceObjectKey is the World key of the projected Device object.
+	DeviceObjectKey string `json:"deviceObjectKey,omitempty"`
+	// FailureReason explains the last failed or pending step.
+	FailureReason string `json:"failureReason,omitempty"`
+	// ExpiresAt is when the ticket expires, in Unix seconds.
+	ExpiresAt int64 `json:"expiresAt,omitempty"`
+	// Ticket is the Space Link ticket the operator approves.
+	Ticket string `json:"ticket,omitempty"`
 }
 
+// deviceStatusOutput reports the daemon and the setup record. Fields shared
+// with deviceSetupRecord mean the same; the completion is never reported.
 type deviceStatusOutput struct {
-	DaemonStatus     string `json:"daemonStatus"`
-	SetupState       string `json:"setupState"`
-	StatePath        string `json:"statePath"`
-	Socket           string `json:"socket"`
-	PeerID           string `json:"peerId,omitempty"`
-	Label            string `json:"label,omitempty"`
-	RequestedRole    string `json:"requestedRole,omitempty"`
-	TargetHint       string `json:"targetHint,omitempty"`
-	CompletionMode   string `json:"completionMode,omitempty"`
-	CompletionAt     int64  `json:"completionAt,omitempty"`
+	// DaemonStatus is the daemon's state.
+	DaemonStatus string `json:"daemonStatus"`
+	// SetupState is the setup step the Device has reached.
+	SetupState string `json:"setupState"`
+	// StatePath is the daemon's resolved state directory.
+	StatePath string `json:"statePath"`
+	// Socket is the daemon's control socket path.
+	Socket string `json:"socket"`
+	// PeerID is the Device identity's peer ID.
+	PeerID string `json:"peerId,omitempty"`
+	// Label is the Device's display label.
+	Label string `json:"label,omitempty"`
+	// RequestedRole is the Space role the ticket requests.
+	RequestedRole string `json:"requestedRole,omitempty"`
+	// TargetHint names the Space the operator intends to link.
+	TargetHint string `json:"targetHint,omitempty"`
+	// CompletionMode is how the completion reaches the Device.
+	CompletionMode string `json:"completionMode,omitempty"`
+	// CompletionAt is when the completion was imported, in Unix seconds.
+	CompletionAt int64 `json:"completionAt,omitempty"`
+	// CompletionStatus is the approval's reported status.
 	CompletionStatus string `json:"completionStatus,omitempty"`
-	AccountID        string `json:"accountId,omitempty"`
-	ResourceID       string `json:"resourceId,omitempty"`
-	SessionID        string `json:"sessionId,omitempty"`
-	SessionIndex     uint32 `json:"sessionIndex,omitempty"`
-	SessionPeerID    string `json:"sessionPeerId,omitempty"`
-	DeviceObjectKey  string `json:"deviceObjectKey,omitempty"`
-	FailureReason    string `json:"failureReason,omitempty"`
-	ExpiresAt        int64  `json:"expiresAt,omitempty"`
-	Ticket           string `json:"ticket,omitempty"`
-	IdentityCreated  bool   `json:"identityCreated,omitempty"`
+	// AccountID is the provider account holding the Device session.
+	AccountID string `json:"accountId,omitempty"`
+	// ResourceID is the base64 linked Space ID.
+	ResourceID string `json:"resourceId,omitempty"`
+	// SessionID is the Device session's ID.
+	SessionID string `json:"sessionId,omitempty"`
+	// SessionIndex is the daemon's index for the mounted Device session.
+	SessionIndex uint32 `json:"sessionIndex,omitempty"`
+	// SessionPeerID is the peer ID the Device session runs as.
+	SessionPeerID string `json:"sessionPeerId,omitempty"`
+	// DeviceObjectKey is the World key of the projected Device object.
+	DeviceObjectKey string `json:"deviceObjectKey,omitempty"`
+	// FailureReason explains the last failed or pending step.
+	FailureReason string `json:"failureReason,omitempty"`
+	// ExpiresAt is when the ticket expires, in Unix seconds.
+	ExpiresAt int64 `json:"expiresAt,omitempty"`
+	// Ticket is the Space Link ticket the operator approves.
+	Ticket string `json:"ticket,omitempty"`
+	// IdentityCreated reports that this request created the Device identity.
+	IdentityCreated bool `json:"identityCreated,omitempty"`
 }
 
 // newDeviceStatusOutput projects a setup record into the status output for
@@ -127,6 +171,7 @@ func newDeviceStatusOutput(record *deviceSetupRecord, resolvedStatePath, sockPat
 	}
 }
 
+// deviceSetupArgs holds the flags of device setup.
 type deviceSetupArgs struct {
 	statePath     string
 	outputFormat  string
@@ -136,22 +181,33 @@ type deviceSetupArgs struct {
 	expiresIn     time.Duration
 }
 
+// deviceCompleteArgs holds the flags of device complete.
 type deviceCompleteArgs struct {
 	statePath    string
 	outputFormat string
 	completion   string
 }
 
+// deviceDockerSetupReport describes the setup a Docker Device container needs.
 type deviceDockerSetupReport struct {
-	Label              string `json:"label"`
-	StatePath          string `json:"statePath"`
-	Socket             string `json:"socket"`
+	// Label is the Device's display label.
+	Label string `json:"label"`
+	// StatePath is the host state directory.
+	StatePath string `json:"statePath"`
+	// Socket is the daemon's control socket path.
+	Socket string `json:"socket"`
+	// ContainerStatePath is the state directory inside the container.
 	ContainerStatePath string `json:"containerStatePath"`
-	SessionType        string `json:"sessionType"`
-	RequestedRole      string `json:"requestedRole"`
-	Completion         string `json:"completion"`
-	Enrollment         string `json:"enrollment"`
-	Ticket             string `json:"ticket"`
+	// SessionType is the session type the Device creates.
+	SessionType string `json:"sessionType"`
+	// RequestedRole is the Space role the Device requests.
+	RequestedRole string `json:"requestedRole"`
+	// Completion is how the completion reaches the Device.
+	Completion string `json:"completion"`
+	// Enrollment is the enrollment's progress.
+	Enrollment string `json:"enrollment"`
+	// Ticket is the ticket's progress.
+	Ticket string `json:"ticket"`
 }
 
 var deviceMountLinkedSession = func(
@@ -802,7 +858,7 @@ func openDeviceSession(
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionIndex = entry.GetSessionIndex()
 	updated.SessionPeerID = pid.String()
-	objectKey, err := deviceUpsertObject(ctx, client, statePath, &updated)
+	objectKey, err := deviceUpsertObject(ctx, client, statePath, &updated, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "create or update device object")
 	}
@@ -812,7 +868,8 @@ func openDeviceSession(
 
 // openLocalDeviceSession activates a local SpaceLink enrollment: the daemon's
 // local provider creates or reopens the Device's own session from its durable
-// key and joins the target Space through the one-use targeted invite.
+// key and joins the target Space through the one-use targeted invite. It then
+// waits for the joined World to accept the Device object.
 func openLocalDeviceSession(
 	ctx context.Context,
 	client *sdkClient,
@@ -831,54 +888,71 @@ func openLocalDeviceSession(
 		return nil, errors.Wrap(err, "persist activated Device session")
 	}
 
-	// Project the Device object and mark the session ready.
-	objectKey, err := deviceUpsertObject(ctx, client, statePath, updated)
-	if err != nil {
-		updated.FailureReason = "Device object projection pending: " + err.Error()
-		if persistErr := writeDeviceSetupRecord(statePath, updated); persistErr != nil {
-			return nil, errors.Wrapf(persistErr, "persist pending Device projection after: %v", err)
-		}
-		return updated, nil
-	}
-	updated.DeviceObjectKey = objectKey
-	updated.FailureReason = ""
-	updated.SetupState = deviceSetupStateSessionReady
-	return updated, nil
+	// Project the Device object, reporting while the World is not writable.
+	return projectDeviceEnrollment(ctx, client, statePath, updated, func(err error) {
+		fmt.Fprintf(os.Stderr, "waiting for the Space World to accept the Device: %v\n", err)
+	})
 }
 
-// projectPendingDeviceEnrollment retries World projection after the imported
-// Device session has been durably activated.
-func projectPendingDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) error {
-	// Read the setup record and skip projection unless enrollment is pending.
-	record, err := readDeviceSetupRecord(statePath)
-	if err != nil {
-		return err
+// projectDeviceEnrollment writes the session-ready Device object for an
+// activated record and persists the result. onBlocked, when set, reports each
+// failed write while the projection waits for the World to advance; without it
+// the first failure returns. A failed first projection persists the record as
+// imported with its reason; a failed repair of a projected record changes
+// nothing. The result is not persisted when another completion replaced the
+// record during the projection.
+func projectDeviceEnrollment(
+	ctx context.Context,
+	client *sdkClient,
+	statePath string,
+	record *deviceSetupRecord,
+	onBlocked func(error),
+) (*deviceSetupRecord, error) {
+	// Project the record as session-ready.
+	ready := *record
+	ready.SetupState = deviceSetupStateSessionReady
+	ready.FailureReason = ""
+	objectKey, err := deviceUpsertObject(ctx, client, statePath, &ready, onBlocked)
+
+	// Keep a newer enrollment that replaced this record while projecting.
+	current, readErr := readDeviceSetupRecord(statePath)
+	if readErr != nil {
+		return nil, readErr
 	}
-	if record.SetupState != deviceSetupStateImported || record.SessionIndex == 0 || record.DeviceObjectKey != "" {
-		return nil
+	if current.Completion != record.Completion {
+		return nil, errors.New("device setup record was replaced during projection")
 	}
 
-	// Upsert the Device object, recording a pending projection on failure.
-	objectKey, err := deviceUpsertObject(ctx, client, statePath, record)
+	// Record a failed first projection as pending.
 	if err != nil {
-		record.FailureReason = "Device object projection pending: " + err.Error()
-		if persistErr := writeDeviceSetupRecord(statePath, record); persistErr != nil {
-			return errors.Wrapf(persistErr, "persist pending Device projection after: %v", err)
+		if record.DeviceObjectKey != "" {
+			return nil, err
 		}
-		return err
+		pending := *record
+		pending.SetupState = deviceSetupStateImported
+		pending.FailureReason = "Device object projection pending: " + err.Error()
+		if persistErr := writeDeviceSetupRecord(statePath, &pending); persistErr != nil {
+			return nil, errors.Wrapf(persistErr, "persist pending Device projection after: %v", err)
+		}
+		return &pending, nil
 	}
 
-	// Mark the enrollment session-ready and save the record.
-	record.DeviceObjectKey = objectKey
-	record.FailureReason = ""
-	record.SetupState = deviceSetupStateSessionReady
-	return writeDeviceSetupRecord(statePath, record)
+	// Persist the ready record with its object key.
+	ready.DeviceObjectKey = objectKey
+	if err := writeDeviceSetupRecord(statePath, &ready); err != nil {
+		return nil, err
+	}
+	return &ready, nil
 }
 
 // restoreLocalDeviceEnrollment retains the persisted local Device session on
 // daemon startup and reasserts its P2P enrollment without replaying the invite.
+// It then projects the Device object in the background, waiting for the World
+// to accept it, so an interrupted or stale projection is repaired. The
+// returned release stops the projection and drops the session.
 func restoreLocalDeviceEnrollment(
 	ctx context.Context,
+	le *logrus.Entry,
 	statePath string,
 	client *sdkClient,
 	mount func(uint32) (localSessionMount, error),
@@ -909,7 +983,24 @@ func restoreLocalDeviceEnrollment(
 		sess.Release()
 		return nil, err
 	}
-	return sess.Release, nil
+
+	// Project the Device object while the session is retained.
+	projectCtx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, err := projectDeviceEnrollment(projectCtx, client, statePath, updated, func(err error) {
+			le.WithError(err).Warn("Device object projection waiting for the World")
+		})
+		if err != nil && projectCtx.Err() == nil {
+			le.WithError(err).Warn("Device object projection failed")
+		}
+	}()
+	return func() {
+		cancel()
+		<-done
+		sess.Release()
+	}, nil
 }
 
 // mountLocalDeviceSession restores the durable session and P2P enrollment
@@ -973,6 +1064,7 @@ func upsertLinkedDeviceObject(
 	client *sdkClient,
 	statePath string,
 	record *deviceSetupRecord,
+	onBlocked func(error),
 ) (string, error) {
 	// Decode the resource ID and require a session index.
 	if record == nil {
@@ -1007,40 +1099,63 @@ func upsertLinkedDeviceObject(
 	}
 	defer engineCleanup()
 
-	// Read the device policy and upsert the Device object.
+	// Read the device policy.
 	policy, err := device_policy.ReadFile(statePath)
 	if err != nil {
 		return "", err
 	}
-	return upsertLinkedDeviceObjectInWorld(ctx, engine, record, policy, time.Now())
+
+	// Upsert the Device object.
+	return upsertLinkedDeviceObjectInWorld(ctx, engine, record, policy, time.Now(), onBlocked)
 }
 
 // upsertLinkedDeviceObjectInWorld replays the Device projection from a fresh
-// World snapshot when another writer advances the SharedObject root.
+// World snapshot when another writer advances the SharedObject root. When
+// onBlocked is set, every other failed write is reported and retried once the
+// World advances past the revision it was attempted against, such as after a
+// block the replay waits for arrives. Without onBlocked it returns the error.
 func upsertLinkedDeviceObjectInWorld(
 	ctx context.Context,
 	engine world.Engine,
 	record *deviceSetupRecord,
 	policy *device_policy.DevicePolicy,
 	now time.Time,
+	onBlocked func(error),
 ) (string, error) {
 	objectKey := deviceObjectKey(record.PeerID)
-	var lastErr error
-	// Reopen the complete read/merge/write transaction after a stale base.
-	for range 10 {
-		err := upsertLinkedDeviceObjectAttempt(ctx, engine, objectKey, record, policy, now)
+	stale := 0
+	for {
+		// Note the revision this attempt writes against.
+		seqno, err := engine.GetSeqno(ctx)
+		if err != nil {
+			return "", err
+		}
+
+		// Reopen the complete read/merge/write transaction after a stale base.
+		err = upsertLinkedDeviceObjectAttempt(ctx, engine, objectKey, record, policy, now)
 		if err == nil {
 			return objectKey, nil
-		}
-		if !errors.Is(err, coord.ErrStaleGeneration) {
-			return "", err
 		}
 		if ctx.Err() != nil {
 			return "", ctx.Err()
 		}
-		lastErr = err
+		if errors.Is(err, coord.ErrStaleGeneration) {
+			stale++
+			if stale < 10 {
+				continue
+			}
+		}
+		if onBlocked == nil {
+			return "", err
+		}
+
+		// Wait for the World to advance before the next attempt.
+		onBlocked(err)
+		stale = 0
+		if _, err := engine.WaitSeqno(ctx, seqno+1); err != nil {
+			return "", err
+		}
 	}
-	return "", lastErr
 }
 
 // upsertLinkedDeviceObjectAttempt reads and writes the Device in one World

@@ -15,6 +15,7 @@ import (
 
 // localSessionMount retains a session resource until the keeper releases it.
 type localSessionMount interface {
+	// Release drops the retained session.
 	Release()
 }
 
@@ -115,50 +116,30 @@ func startLocalSessionKeeper(
 				mounted,
 				mount,
 			)
-			reconcileDeviceEnrollment(ctx, le, statePath, client, resp.GetSessions(), mount, &enrollmentCleanup)
+			reconcileDeviceEnrollment(ctx, le, statePath, client, mount, &enrollmentCleanup)
 		}
 	}()
 }
 
-// reconcileDeviceEnrollment restores a persisted local Device mount and retries
-// pending World projection only when the recorded session appears in the list.
+// reconcileDeviceEnrollment restores a persisted local Device enrollment once
+// its session can be mounted, and keeps it until the keeper exits.
 func reconcileDeviceEnrollment(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
 	client *sdkClient,
-	entries []*core_session.SessionListEntry,
 	mount func(uint32) (localSessionMount, error),
 	enrollmentCleanup *func(),
 ) {
-	// Restore the local Device enrollment when missing.
-	if *enrollmentCleanup == nil {
-		cleanup, err := restoreLocalDeviceEnrollment(ctx, statePath, client, mount)
-		if err != nil {
-			le.WithError(err).Warn("local Device enrollment restore failed")
-			return
-		}
-		*enrollmentCleanup = cleanup
+	if *enrollmentCleanup != nil {
+		return
 	}
-
-	// Restore the Device setup record for the imported session.
-	record, err := readDeviceSetupRecord(statePath)
+	cleanup, err := restoreLocalDeviceEnrollment(ctx, le, statePath, client, mount)
 	if err != nil {
-		le.WithError(err).Warn("Device setup state unavailable")
+		le.WithError(err).Warn("local Device enrollment restore failed")
 		return
 	}
-	if record.SetupState != deviceSetupStateImported || record.SessionIndex == 0 || record.DeviceObjectKey != "" {
-		return
-	}
-	for _, entry := range entries {
-		if entry.GetSessionIndex() != record.SessionIndex {
-			continue
-		}
-		if err := projectPendingDeviceEnrollment(ctx, statePath, client); err != nil {
-			le.WithError(err).Warn("Device object projection pending")
-		}
-		return
-	}
+	*enrollmentCleanup = cleanup
 }
 
 // reconcileLocalSessionMounts keeps local sessions in the latest list mounted
