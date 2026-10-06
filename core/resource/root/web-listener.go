@@ -429,14 +429,16 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	// Return the capability cookie and token to the bootstrap client.
-	http.SetCookie(rw, &http.Cookie{
+	// Return the capability cookie and token to the bootstrap client. The
+	// listener serves plain HTTP on a local host only, so the cookie is not
+	// Secure: WebKit drops Secure cookies on HTTP loopback even though it
+	// treats loopback as a secure context.
+	http.SetCookie(rw, &http.Cookie{ //nolint:gosec // plain HTTP on a local host; see above.
 		Name:     webCapabilityCookie,
 		Value:    token,
 		Path:     "/",
 		MaxAge:   int(webCapabilityTTL.Seconds()),
 		HttpOnly: true,
-		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 	})
 	rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
