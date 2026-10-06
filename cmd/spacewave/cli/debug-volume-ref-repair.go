@@ -63,6 +63,7 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 		{"Blocks undecodable", strconv.FormatUint(res.undecodable, 10)},
 		{"Blocks lacking edges", strconv.FormatUint(res.lacking, 10)},
 		{"Child edges missing", strconv.FormatUint(res.edges, 10)},
+		{"Unrooted buckets", strconv.Itoa(res.rooted)},
 		{"Unowned roots", strconv.FormatUint(res.owned, 10)},
 		{"Edges added", strconv.FormatUint(res.written, 10)},
 	}
@@ -101,7 +102,7 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 	}
 
 	// Walk each Space, then write the missing edges unless this is a dry run.
-	rr := newRefRepair(le, vol, vol.GetRefGraph())
+	rr := newRefRepair(le, vol)
 	defer rr.closeTypes()
 	for _, sc := range cursors {
 		if err := rr.walkSpace(ctx, sc); err != nil {
@@ -126,7 +127,7 @@ func newDebugRefRepairCommand() *cli.Command {
 		ArgsUsage: "<volume-file>",
 		Description: "Walks the Worlds each Space's replay cursor retains, decoding each block by its type, " +
 			"and adds every edge from a block to its refs that the ref graph lacks, plus a bucket edge to each root " +
-			"nothing holds. It never removes an edge. Blocks written while GC tracking was off carry no edges. " +
+			"nothing holds and a GC root edge to each Space bucket. It never removes an edge. Blocks written while GC tracking was off carry no edges. " +
 			"Run it only on a stopped volume, with --dry-run first.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

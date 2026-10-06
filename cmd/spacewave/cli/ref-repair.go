@@ -18,10 +18,12 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
+	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -60,6 +62,8 @@ type refRepairResult struct {
 	edges uint64
 	// owned is the number of roots nothing held, given to their bucket.
 	owned uint64
+	// rooted is the number of Space buckets the GC root did not hold.
+	rooted int
 	// written is the number of edges added to the graph.
 	written uint64
 	// untyped counts the refs whose type the walk cannot name, by reason.
@@ -79,6 +83,8 @@ type refRepair struct {
 	store block.StoreOps
 	// rg is the volume's ref graph.
 	rg block_gc.RefGraphOps
+	// buckets lists the volume's bucket configs.
+	buckets bucket_store.Store
 	// visited holds the IRIs of the blocks already walked.
 	visited map[string]struct{}
 	// adds are the missing edges found, in walk order.
@@ -101,12 +107,13 @@ type refRepair struct {
 	res refRepairResult
 }
 
-// newRefRepair constructs a ref repair over a stopped volume's blocks and graph.
-func newRefRepair(le *logrus.Entry, store block.StoreOps, rg block_gc.RefGraphOps) *refRepair {
+// newRefRepair constructs a ref repair over a stopped volume.
+func newRefRepair(le *logrus.Entry, vol *volume_bolt.Bolt) *refRepair {
 	return &refRepair{
 		le:      le,
-		store:   store,
-		rg:      rg,
+		store:   vol,
+		rg:      vol.GetRefGraph(),
+		buckets: vol,
 		visited: make(map[string]struct{}),
 		planned: make(map[string]struct{}),
 		types:   make(map[string]string),
@@ -120,7 +127,7 @@ func newRefRepair(le *logrus.Entry, store block.StoreOps, rg block_gc.RefGraphOp
 // the World and payloads of each outcome. A root nothing else holds is then given to the Space's bucket.
 func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 	// Find the bucket that owns the Space's blocks.
-	bucketID, err := findSpaceBucket(ctx, r.rg, sc.spaceID)
+	bucketID, err := findSpaceBucket(ctx, r.buckets, sc.spaceID)
 	if err != nil {
 		return err
 	}
@@ -181,6 +188,9 @@ func (r *refRepair) walkSpace(ctx context.Context, sc spaceReplayCursor) error {
 		}
 	}
 	bucketIRI := block_gc.BucketIRI(bucketID)
+	if err := r.rootBucket(ctx, bucketIRI); err != nil {
+		return err
+	}
 	for _, root := range roots {
 		if err := r.own(ctx, bucketIRI, root.ref); err != nil {
 			return err
@@ -553,6 +563,19 @@ func (r *refRepair) transformer(conf *block_transform.Config) (block.Transformer
 	}
 	r.xfrms[string(data)] = xfrm
 	return xfrm, nil
+}
+
+// rootBucket roots the bucket at bucketIRI under the GC root, as a bucket
+// handle with GC tracking does when it opens.
+func (r *refRepair) rootBucket(ctx context.Context, bucketIRI string) error {
+	// Plan the GC root edge unless the root holds the bucket.
+	held, err := r.rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
+	if err != nil || slices.Contains(held, bucketIRI) {
+		return err
+	}
+	r.plan(block_gc.NodeGCRoot, bucketIRI)
+	r.res.rooted++
+	return nil
 }
 
 // own gives a present root that nothing holds to the bucket at bucketIRI, as

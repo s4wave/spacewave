@@ -8,9 +8,9 @@ import (
 	"encoding/base64"
 	"io/fs"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/bbolt"
@@ -20,11 +20,11 @@ import (
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
@@ -404,7 +404,7 @@ func resolveRestoreVolume(ctx context.Context, le *logrus.Entry, vol *volume_bol
 
 	// Find the bucket named for the Space unless one is given.
 	if bucketID == "" {
-		bucketID, err = findSpaceBucket(ctx, vol.GetRefGraph(), spaceID)
+		bucketID, err = findSpaceBucket(ctx, vol, spaceID)
 		if err != nil {
 			return nil, err
 		}
@@ -509,22 +509,21 @@ func parseReplayCursorKey(key []byte) (string, bool) {
 	return id, true
 }
 
-// findSpaceBucket returns the one bucket under the permanent root whose ID has
-// spaceID as a path segment, as the providers' block store buckets do.
-func findSpaceBucket(ctx context.Context, rg block_gc.RefGraphOps, spaceID string) (string, error) {
-	// List the buckets under the permanent root.
-	roots, err := rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
+// findSpaceBucket returns the one bucket configured in buckets whose ID has
+// spaceID as a path segment, as the providers' block store buckets do. It
+// reads the bucket configs because a bucket is in the ref graph only once GC
+// tracking has rooted it.
+func findSpaceBucket(ctx context.Context, buckets bucket_store.Store, spaceID string) (string, error) {
+	// List the buckets named for the Space.
+	infos, err := buckets.ListBucketInfo(ctx, regexp.MustCompile("(^|/)"+regexp.QuoteMeta(spaceID)+"(/|$)"))
 	if err != nil {
 		return "", err
 	}
 
-	// Keep the buckets named for the Space and require exactly one.
-	var found []string
-	for _, root := range roots {
-		id, ok := block_gc.ParseBucketIRI(root)
-		if ok && slices.Contains(strings.Split(id, "/"), spaceID) {
-			found = append(found, id)
-		}
+	// Require exactly one.
+	found := make([]string, 0, len(infos))
+	for _, info := range infos {
+		found = append(found, info.GetConfig().GetId())
 	}
 	if len(found) != 1 {
 		return "", errors.Errorf("found buckets %v for space %s, expected one", found, spaceID)
