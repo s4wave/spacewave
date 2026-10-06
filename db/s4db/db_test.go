@@ -87,6 +87,9 @@ func TestModel(t *testing.T) {
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.NewTransaction(ctx, false); !errors.Is(err, ErrClosed) {
+		t.Fatalf("NewTransaction after Close = %v, want ErrClosed", err)
+	}
 	used, size := usage(t, path)
 	t.Logf("empty file: %d bytes long, %d allocated", size, used)
 	if used > 256<<10 || size > 2<<20 {

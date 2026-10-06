@@ -50,6 +50,9 @@ type DB struct {
 	// cur is the published state. Read transactions acquire it without a
 	// lock.
 	cur atomic.Pointer[state]
+	// closed is set once Close finishes. Close sets it under bcast, so a
+	// waiter woken by the close sees it.
+	closed atomic.Bool
 
 	// bcast guards the fields below, serializes overlay copies and state
 	// publication, and wakes waiters when a state is published or the
@@ -62,8 +65,6 @@ type DB struct {
 	// lockWaits counts lease lock calls in progress. The file stays open
 	// until they return, so the system never grants a lock on a closed file.
 	lockWaits sync.WaitGroup
-	// closed is set once Close finishes.
-	closed bool
 
 	// pinMtx guards pinned and serializes writes to the slot.
 	pinMtx csync.Mutex
@@ -185,6 +186,20 @@ func takeSlot(s storage) (int, error) {
 		}
 	}
 	return 0, ErrSlotsFull
+}
+
+// Shared reports whether another process has the file open.
+func (db *DB) Shared() (bool, error) {
+	for i := range slots {
+		if i == db.slot {
+			continue
+		}
+		held, err := db.s.held(lockSlot + int64(i))
+		if err != nil || held {
+			return held, err
+		}
+	}
+	return false, nil
 }
 
 // readSuper returns the newer valid superblock.
@@ -502,10 +517,16 @@ func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
 // NewTransaction opens a transaction. A write transaction holds the writer
 // lock across all processes until Commit or Discard.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Refuse a closed handle and serve a read from the published state.
+	if db.closed.Load() {
+		return nil, ErrClosed
+	}
 	if !write {
 		st, stripe := db.acquire()
 		return &Tx{db: db, st: st, stripe: stripe}, nil
 	}
+
+	// Take the writer lock, then read the state it caught up to.
 	if err := db.w.lock(ctx); err != nil {
 		return nil, err
 	}
@@ -528,7 +549,7 @@ func (db *DB) Seq() uint64 {
 // process or another.
 func (db *DB) WaitSeq(ctx context.Context, seq uint64) error {
 	return db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		if db.closed {
+		if db.closed.Load() {
 			return false, ErrClosed
 		}
 		return db.cur.Load().seq >= seq, nil
@@ -605,7 +626,7 @@ func (db *DB) Close() error {
 
 	// Wake waiters.
 	l := db.bcast.Lock()
-	db.closed = true
+	db.closed.Store(true)
 	l.Broadcast()
 	l.Unlock()
 	return err

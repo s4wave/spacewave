@@ -9,7 +9,8 @@ import (
 
 // deviceFile is a database file on a device. A device has one opener, so
 // no other process shares the file: every lock is free and no watcher
-// fires.
+// fires. A crash may keep or tear each unflushed device write on its own, so
+// a write reaches the device in order but survives in no particular order.
 type deviceFile struct {
 	*device.Handle
 }
@@ -34,22 +35,29 @@ func (f deviceFile) truncate(n int64) error {
 	return f.Truncate(n)
 }
 
-// flushDurable issues the collected writes with a device flush.
+// flushDurable flushes the earlier device calls, then issues the collected
+// writes with a flush. Other files on the device, written before a commit,
+// are then durable before any record of the commit, so a crash never keeps
+// the commit without them.
 func (f deviceFile) flushDurable() error {
+	if err := f.Barrier(); err != nil {
+		return err
+	}
 	return f.Sync()
 }
 
-// flushOrdered does nothing. A device keeps its calls in order but a crash
-// may tear any unflushed write, so ordered commits rely on record
-// checksums: recovery keeps the longest valid prefix of the log.
-func (deviceFile) flushOrdered() error {
-	return nil
+// flushOrdered issues the collected writes without a flush, so a later flush
+// through any handle on the device makes them durable. A crash may keep any
+// subset of them, so ordered commits rely on record checksums: recovery keeps
+// the longest valid prefix of the log.
+func (f deviceFile) flushOrdered() error {
+	return f.Issue()
 }
 
 // flushBarrier makes earlier writes durable; a device has no cheaper
 // ordering.
 func (f deviceFile) flushBarrier() (bool, error) {
-	return true, f.Sync()
+	return true, f.flushDurable()
 }
 
 // punch does nothing: a device cannot deallocate within a file, so space

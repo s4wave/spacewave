@@ -9,8 +9,8 @@ import (
 
 // Handle is one device file used as a positional file. Writes collect until
 // Sync, which issues them with the flush in one device call, so a caller that
-// writes many ranges and then syncs costs one round trip. Truncate and Close
-// issue collected writes first, unflushed, to keep device order; reads see
+// writes many ranges and then syncs costs one round trip. Issue, Truncate and
+// Close issue collected writes unflushed, to keep device order; reads see
 // them without issuing. A failed device write keeps the collected writes for
 // the next call, so a write the caller saw succeed is never dropped.
 // A Handle satisfies bbolt's Storage.
@@ -135,6 +135,22 @@ func (h *Handle) Sync() error {
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 	return h.issue(true)
+}
+
+// Issue sends the collected writes without a flush, so a later flush through
+// any handle on the device makes them durable.
+func (h *Handle) Issue() error {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+	return h.issue(false)
+}
+
+// Barrier flushes the device without issuing the collected writes, so every
+// earlier call on the device is durable before any of them.
+func (h *Handle) Barrier() error {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+	return h.dev.Write(h.ctx, nil, true)
 }
 
 // Close issues the collected writes without a flush.

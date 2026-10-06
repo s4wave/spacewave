@@ -319,6 +319,17 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		return err
 	}
 
+	// Order an ordered commit's writes before the next commit's. A failure
+	// leaves the state unpublished; erasing the header at linkPos ends the
+	// log before the record, so a later issue of its writes cannot make it
+	// readable.
+	if ordered {
+		if err := db.s.flushOrdered(); err != nil {
+			_, _ = db.s.WriteAt(make([]byte, recordHeader), fileOff(linkPos))
+			return err
+		}
+	}
+
 	// Publish the new state.
 	next := db.derive(base)
 	next.apply(r)
@@ -330,12 +341,9 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		w.changed = append(w.changed, r)
 	}
 
-	// Order the next commit's writes after this one's and release space.
-	// A durable commit flushes after the writer lock is released.
+	// Arm the deadline flush of an ordered commit and release space. A
+	// durable commit flushes after the writer lock is released.
 	if ordered {
-		if err := db.s.flushOrdered(); err != nil {
-			return err
-		}
 		db.flush.ordered()
 	}
 	if err := w.punch(); err != nil {
