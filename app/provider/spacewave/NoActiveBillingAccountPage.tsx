@@ -19,6 +19,7 @@ import { Redirect } from '@s4wave/web/router/Redirect.js'
 import { usePath } from '@s4wave/web/router/router.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 import type { ManagedBillingAccount } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import {
   isStatusActive,
@@ -60,27 +61,11 @@ function isAssignedToTarget(
   )
 }
 
-// NoActiveBillingAccountPage lists the caller's managed billing accounts when
-// none are currently active, and offers per-row activation plus a create-new
-// CTA that routes through the standard checkout flow.
-export function NoActiveBillingAccountPage() {
-  const sessionResource = SessionContext.useContext()
-  const session = useResourceValue(sessionResource)
-  const navigateSession = useSessionNavigate()
-  const sessionIdx = useSessionIndex() || null
-  const path = usePath()
-  const sessionMetadata = useSessionMetadata(sessionIdx)
-  const { accountId: callerAccountId } = useSessionInfo(session)
-  const orgListCtx = SpacewaveOrgListContext.useContextSafe()
+type BillingCheckout = ReturnType<typeof useBillingAccountCheckout>
 
-  const [activatingBaId, setActivatingBaId] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
+/** useManagedBillingAccounts loads the caller's managed billing accounts and exposes a reload. */
+function useManagedBillingAccounts(session: Session | null | undefined) {
   const [reloadKey, setReloadKey] = useState(0)
-  const checkout = useBillingAccountCheckout({
-    onCompleted: () => navigateSession({ path: 'setup' }),
-  })
-
   const { data, loading, error } = usePromise(
     useCallback(
       (signal: AbortSignal) =>
@@ -89,17 +74,32 @@ export function NoActiveBillingAccountPage() {
       [session, reloadKey], // eslint-disable-line react-hooks/exhaustive-deps -- reloadKey triggers re-fetch
     ),
   )
-
   const accounts = useMemo<ManagedBillingAccount[]>(
     () => data?.accounts ?? [],
     [data?.accounts],
   )
-  const hasAccounts = accounts.length > 0
+  const reload = useCallback(() => {
+    setReloadKey((k) => k + 1)
+  }, [])
+
+  return { accounts, loading, error, reload }
+}
+
+/** useBillingTarget resolves the owner the billing account is being set up for. */
+function useBillingTarget(
+  session: Session | null | undefined,
+): BillingSetupTarget {
+  const path = usePath()
+  const sessionIdx = useSessionIndex() || null
+  const sessionMetadata = useSessionMetadata(sessionIdx)
+  const { accountId: callerAccountId } = useSessionInfo(session)
+  const orgListCtx = SpacewaveOrgListContext.useContextSafe()
   const targetOverride = useMemo(
     () => getNoActiveBillingTargetOverride(path),
     [path],
   )
-  const target = useMemo<BillingSetupTarget>(() => {
+
+  return useMemo<BillingSetupTarget>(() => {
     if (targetOverride?.ownerType === 'organization') {
       const org = (orgListCtx?.organizations ?? []).find(
         (item) => item.id === targetOverride.ownerId,
@@ -125,15 +125,23 @@ export function NoActiveBillingAccountPage() {
     sessionMetadata?.displayName,
     targetOverride,
   ])
-  const targetHasAssignedActiveBilling = useMemo(
-    () =>
-      accounts.some(
-        (ba) =>
-          isStatusActive(ba.subscriptionStatus) &&
-          isAssignedToTarget(ba, target),
-      ),
-    [accounts, target],
-  )
+}
+
+/**
+ * useBillingAccountActions activates an existing billing account for the
+ * target or creates a new one, tracking the in-flight account and any error.
+ */
+function useBillingAccountActions(
+  session: Session | null | undefined,
+  target: BillingSetupTarget,
+  checkout: BillingCheckout,
+  reload: () => void,
+) {
+  const navigateSession = useSessionNavigate()
+  const [activatingBaId, setActivatingBaId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+
   const handleActivate = useCallback(
     async (ba: ManagedBillingAccount) => {
       const baId = ba.id ?? ''
@@ -174,32 +182,242 @@ export function NoActiveBillingAccountPage() {
     if (!session || creating || checkout.polling) return
     setCreating(true)
     try {
-      const sw = session.spacewave
-      const baId = await sw.createBillingAccount('Billing Account')
-      setReloadKey((k) => k + 1)
+      const baId =
+        await session.spacewave.createBillingAccount('Billing Account')
+      reload()
       await checkout.startCheckout(baId)
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e))
     } finally {
       setCreating(false)
     }
-  }, [checkout, creating, session])
+  }, [checkout, creating, reload, session])
 
-  const handleManage = useCallback(
-    (baId: string) => {
-      navigateSession({ path: `billing/${baId}` })
-    },
-    [navigateSession],
+  return { activatingBaId, actionError, creating, handleActivate, handleCreate }
+}
+
+/** BillingTargetBadge shows who the billing account is being set up for. */
+function BillingTargetBadge({ target }: { target: BillingSetupTarget }) {
+  return (
+    <div className="mt-4 flex w-full justify-start">
+      <div className="border-foreground/10 bg-background-card/35 inline-flex items-center gap-3 rounded-xl border p-3 backdrop-blur-sm">
+        <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-xl">
+          {target.ownerType === 'organization' ? (
+            <LuBuilding2 className="size-5" />
+          ) : (
+            <RxPerson className="size-5" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="text-foreground-alt/60 text-metadata tracking-brand-medium font-medium uppercase">
+            Setting billing for
+          </div>
+          <div className="text-foreground max-w-64 truncate text-sm font-semibold tracking-tight">
+            {target.label}
+          </div>
+        </div>
+      </div>
+    </div>
   )
+}
 
-  const disableActions = !session || checkout.polling || !target.ownerId
-
+/** BillingHeader renders the logo, title, and subtitle for the reactivation prompt. */
+function BillingHeader({ hasAccounts }: { hasAccounts: boolean }) {
   const title = hasAccounts
     ? 'Reactivate a billing account'
     : 'Create a billing account'
   const subtitle = hasAccounts
     ? 'None of your billing accounts are currently active. Reactivate one below or create a new one to continue using Spacewave Cloud.'
     : 'Create a billing account to continue using Spacewave Cloud.'
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <AnimatedLogo followMouse={false} />
+      <h1 className="mt-2 text-xl font-semibold tracking-wide">{title}</h1>
+      <p className="text-foreground-alt max-w-md text-center text-sm">
+        {subtitle}
+      </p>
+    </div>
+  )
+}
+
+/** ErrorNotice renders a destructive-toned error message. */
+function ErrorNotice({ message }: { message: string }) {
+  return (
+    <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm backdrop-blur-sm">
+      {message}
+    </div>
+  )
+}
+
+/** CheckoutPollingNotice explains that activation is pending and offers the Stripe retry. */
+function CheckoutPollingNotice({ checkout }: { checkout: BillingCheckout }) {
+  return (
+    <div className="border-brand/20 bg-brand/5 rounded-lg border p-3 text-sm backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+        <Spinner variant="brand" />
+        <span className="text-foreground">
+          Activating subscription, this page will update when confirmation
+          arrives.
+        </span>
+      </div>
+      {checkout.showRetry && (
+        <button
+          type="button"
+          onClick={checkout.continueCheckout}
+          className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+        >
+          <LuZap className="size-3.5" />
+          <span>Continue with Stripe</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+interface BillingAccountRowProps {
+  account: ManagedBillingAccount
+  busy: boolean
+  disabled: boolean
+  onManage: (baId: string) => void
+  onActivate: (ba: ManagedBillingAccount) => Promise<void>
+}
+
+/** BillingAccountRow lists one billing account with its manage and activate actions. */
+function BillingAccountRow({
+  account,
+  busy,
+  disabled,
+  onManage,
+  onActivate,
+}: BillingAccountRowProps) {
+  const baId = account.id ?? ''
+  const activateLabel = isStatusActive(account.subscriptionStatus)
+    ? 'Use this billing account'
+    : 'Activate'
+
+  return (
+    <li
+      className={cn(
+        'border-foreground/6 bg-background-card/30 rounded-lg border backdrop-blur-sm transition-all duration-150',
+        'hover:border-foreground/12 hover:bg-background-card/50',
+      )}
+    >
+      <div className="flex flex-col gap-1 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-foreground text-sm font-medium select-none">
+            {account.displayName || baId}
+          </span>
+          <span
+            className={cn(
+              'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase',
+              subscriptionStatusBadgeColor(account.subscriptionStatus),
+            )}
+          >
+            {statusLabel(account.subscriptionStatus)}
+          </span>
+        </div>
+        {account.lifecycleState && (
+          <div className="text-foreground-alt/50 micro-text select-none">
+            {lifecycleStateLabel(account.lifecycleState)}
+          </div>
+        )}
+      </div>
+      <div className="border-foreground/6 flex items-center justify-end gap-2 border-t px-4 py-2">
+        <button
+          type="button"
+          onClick={() => onManage(baId)}
+          className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
+        >
+          <LuSettings className="size-3.5" />
+          <span className="select-none">Manage</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => void onActivate(account)}
+          disabled={busy || disabled}
+          className={cn(
+            'flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-300 select-none',
+            'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+          )}
+        >
+          {busy ? <Spinner size="sm" /> : <LuZap className="size-3.5" />}
+          <span>{busy ? 'Starting…' : activateLabel}</span>
+        </button>
+      </div>
+    </li>
+  )
+}
+
+interface CreateBillingAccountButtonProps {
+  creating: boolean
+  disabled: boolean
+  hasAccounts: boolean
+  onCreate: () => Promise<void>
+}
+
+/** CreateBillingAccountButton starts creating a new billing account. */
+function CreateBillingAccountButton({
+  creating,
+  disabled,
+  hasAccounts,
+  onCreate,
+}: CreateBillingAccountButtonProps) {
+  return (
+    <div className="flex justify-center">
+      <button
+        type="button"
+        onClick={() => void onCreate()}
+        disabled={creating || disabled}
+        className={cn(
+          'flex cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
+          hasAccounts
+            ? 'border-foreground/20 bg-foreground/5 text-foreground hover:bg-foreground/10'
+            : 'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+        )}
+      >
+        {creating ? <Spinner /> : <LuPlus className="size-4" />}
+        <span>{creating ? 'Creating…' : 'Create new billing account'}</span>
+      </button>
+    </div>
+  )
+}
+
+// NoActiveBillingAccountPage lists the caller's managed billing accounts when
+// none are currently active, and offers per-row activation plus a create-new
+// CTA that routes through the standard checkout flow.
+export function NoActiveBillingAccountPage() {
+  const sessionResource = SessionContext.useContext()
+  const session = useResourceValue(sessionResource)
+  const navigateSession = useSessionNavigate()
+  const checkout = useBillingAccountCheckout({
+    onCompleted: () => navigateSession({ path: 'setup' }),
+  })
+  const { accounts, loading, error, reload } =
+    useManagedBillingAccounts(session)
+  const target = useBillingTarget(session)
+  const {
+    activatingBaId,
+    actionError,
+    creating,
+    handleActivate,
+    handleCreate,
+  } = useBillingAccountActions(session, target, checkout, reload)
+
+  const hasAccounts = accounts.length > 0
+  const targetHasAssignedActiveBilling = accounts.some(
+    (ba) =>
+      isStatusActive(ba.subscriptionStatus) && isAssignedToTarget(ba, target),
+  )
+  const disableActions = !session || checkout.polling || !target.ownerId
+  const handleManage = useCallback(
+    (baId: string) => {
+      navigateSession({ path: `billing/${baId}` })
+    },
+    [navigateSession],
+  )
 
   // Relative redirects resolve against the current URL, not the session
   // base. This component renders at /plan/no-active, so two levels up is
@@ -212,33 +430,8 @@ export function NoActiveBillingAccountPage() {
   return (
     <PageWrapper>
       {checkout.consentDialog}
-      <div className="mt-4 flex w-full justify-start">
-        <div className="border-foreground/10 bg-background-card/35 inline-flex items-center gap-3 rounded-xl border p-3 backdrop-blur-sm">
-          <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-xl">
-            {target.ownerType === 'organization' ? (
-              <LuBuilding2 className="size-5" />
-            ) : (
-              <RxPerson className="size-5" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <div className="text-foreground-alt/60 text-metadata tracking-brand-medium font-medium uppercase">
-              Setting billing for
-            </div>
-            <div className="text-foreground max-w-64 truncate text-sm font-semibold tracking-tight">
-              {target.label}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center gap-2">
-        <AnimatedLogo followMouse={false} />
-        <h1 className="mt-2 text-xl font-semibold tracking-wide">{title}</h1>
-        <p className="text-foreground-alt max-w-md text-center text-sm">
-          {subtitle}
-        </p>
-      </div>
+      <BillingTargetBadge target={target} />
+      <BillingHeader hasAccounts={hasAccounts} />
 
       {loading && (
         <div className="flex items-center justify-center">
@@ -249,128 +442,33 @@ export function NoActiveBillingAccountPage() {
           />
         </div>
       )}
-
-      {error && (
-        <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm backdrop-blur-sm">
-          {error.message}
-        </div>
-      )}
-
+      {error && <ErrorNotice message={error.message} />}
       {(actionError || checkout.error) && (
-        <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm backdrop-blur-sm">
-          {actionError || checkout.error}
-        </div>
+        <ErrorNotice message={actionError || checkout.error || ''} />
       )}
-
-      {checkout.polling && (
-        <div className="border-brand/20 bg-brand/5 rounded-lg border p-3 text-sm backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <Spinner variant="brand" />
-            <span className="text-foreground">
-              Activating subscription, this page will update when confirmation
-              arrives.
-            </span>
-          </div>
-          {checkout.showRetry && (
-            <button
-              type="button"
-              onClick={checkout.continueCheckout}
-              className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
-            >
-              <LuZap className="size-3.5" />
-              <span>Continue with Stripe</span>
-            </button>
-          )}
-        </div>
-      )}
+      {checkout.polling && <CheckoutPollingNotice checkout={checkout} />}
 
       {hasAccounts && (
         <ul className="space-y-2">
-          {accounts.map((ba) => {
-            const baId = ba.id ?? ''
-            const isBusy = activatingBaId === baId
-            const isActive = isStatusActive(ba.subscriptionStatus)
-            const activateLabel = isActive
-              ? 'Use this billing account'
-              : 'Activate'
-            return (
-              <li
-                key={baId}
-                className={cn(
-                  'border-foreground/6 bg-background-card/30 rounded-lg border backdrop-blur-sm transition-all duration-150',
-                  'hover:border-foreground/12 hover:bg-background-card/50',
-                )}
-              >
-                <div className="flex flex-col gap-1 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-foreground text-sm font-medium select-none">
-                      {ba.displayName || baId}
-                    </span>
-                    <span
-                      className={cn(
-                        'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase',
-                        subscriptionStatusBadgeColor(ba.subscriptionStatus),
-                      )}
-                    >
-                      {statusLabel(ba.subscriptionStatus)}
-                    </span>
-                  </div>
-                  {ba.lifecycleState && (
-                    <div className="text-foreground-alt/50 micro-text select-none">
-                      {lifecycleStateLabel(ba.lifecycleState)}
-                    </div>
-                  )}
-                </div>
-                <div className="border-foreground/6 flex items-center justify-end gap-2 border-t px-4 py-2">
-                  <button
-                    type="button"
-                    onClick={() => handleManage(baId)}
-                    className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
-                  >
-                    <LuSettings className="size-3.5" />
-                    <span className="select-none">Manage</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleActivate(ba)}
-                    disabled={isBusy || disableActions}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-300 select-none',
-                      'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-                      'disabled:cursor-not-allowed disabled:opacity-50',
-                    )}
-                  >
-                    {isBusy ? (
-                      <Spinner size="sm" />
-                    ) : (
-                      <LuZap className="size-3.5" />
-                    )}
-                    <span>{isBusy ? 'Starting…' : activateLabel}</span>
-                  </button>
-                </div>
-              </li>
-            )
-          })}
+          {accounts.map((ba) => (
+            <BillingAccountRow
+              key={ba.id ?? ''}
+              account={ba}
+              busy={activatingBaId === (ba.id ?? '')}
+              disabled={disableActions}
+              onManage={handleManage}
+              onActivate={handleActivate}
+            />
+          ))}
         </ul>
       )}
 
-      <div className="flex justify-center">
-        <button
-          type="button"
-          onClick={() => void handleCreate()}
-          disabled={creating || disableActions}
-          className={cn(
-            'flex cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
-            hasAccounts
-              ? 'border-foreground/20 bg-foreground/5 text-foreground hover:bg-foreground/10'
-              : 'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-          )}
-        >
-          {creating ? <Spinner /> : <LuPlus className="size-4" />}
-          <span>{creating ? 'Creating…' : 'Create new billing account'}</span>
-        </button>
-      </div>
+      <CreateBillingAccountButton
+        creating={creating}
+        disabled={disableActions}
+        hasAccounts={hasAccounts}
+        onCreate={handleCreate}
+      />
 
       <PageFooter />
     </PageWrapper>

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import {
   LuArrowRight,
   LuCheck,
@@ -19,12 +19,141 @@ import { useEmailManagement } from '@s4wave/web/hooks/useEmailManagement.js'
 import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
 import type { EmailInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
+interface EmailVisibility {
+  hasVerified: boolean
+  hasUnverified: boolean
+  visibleEmails: EmailInfo[]
+}
+
+/**
+ * emailVisibility decides which emails the gate shows. Onboarding Status
+ * decides account-level verification; the email list may still be one fetch
+ * behind that gate, so either source marks the account verified.
+ */
+function emailVisibility(
+  emails: EmailInfo[] | null | undefined,
+  accountEmailVerified: boolean,
+): EmailVisibility {
+  const hasVerified =
+    accountEmailVerified || (emails?.some((e) => e.verified) ?? false)
+  return {
+    hasVerified,
+    hasUnverified: emails?.some((e) => !e.verified) ?? false,
+    visibleEmails: hasVerified
+      ? (emails?.filter((e) => e.verified) ?? [])
+      : (emails ?? []),
+  }
+}
+
+/** ContinueButton leaves the gate once an email is verified. */
+function ContinueButton() {
+  const navigate = useNavigate()
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate({ path: '../' })}
+      className={cn(
+        'flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
+        'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
+      )}
+    >
+      Continue
+      <LuArrowRight className="size-4" />
+    </button>
+  )
+}
+
+/** AddEmailCard is the collapsible form for verifying a different address. */
+function AddEmailCard({
+  busy,
+  onAddEmail,
+}: {
+  busy: boolean
+  onAddEmail: (email: string) => Promise<boolean>
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const handleInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
+  const handleAdd = useCallback(async () => {
+    if (!newEmail) return
+    const ok = await onAddEmail(newEmail)
+    if (!ok) return
+    setNewEmail('')
+    setExpanded(false)
+  }, [onAddEmail, newEmail])
+
+  return (
+    <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-3 p-4"
+      >
+        <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-lg">
+          <LuPlus className="text-foreground-alt size-4" />
+        </div>
+        <div className="flex-1 text-left">
+          <h3 className="text-foreground text-sm font-medium">
+            Use a different email
+          </h3>
+          <p className="text-foreground-alt text-xs">
+            Add another address to verify instead
+          </p>
+        </div>
+        <LuChevronDown
+          className={cn(
+            'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
+            expanded && 'rotate-180',
+          )}
+        />
+      </button>
+      {expanded && (
+        <div className="border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4">
+          <input
+            aria-label="New email address"
+            ref={handleInputRef}
+            type="email"
+            placeholder="you@example.com"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
+              if (e.key === 'Enter') {
+                void handleAdd()
+              }
+            }}
+            className={inputClass}
+          />
+          <button
+            type="button"
+            onClick={() => void handleAdd()}
+            disabled={busy || !newEmail}
+            className={cn(
+              'group w-full rounded-md border transition-all duration-300',
+              'border-brand/30 bg-brand/10 hover:bg-brand/20',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              'flex h-10 items-center justify-center gap-2',
+            )}
+          >
+            <LuSend className="text-foreground size-4" />
+            <span className="text-foreground text-sm">
+              {busy ? 'Adding…' : 'Add & send code'}
+            </span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // VerifyEmailPage renders the email verification gate page.
 // Shown after checkout when the user has no verified email.
 export function VerifyEmailPage() {
-  const navigate = useNavigate()
   const onboarding = SpacewaveOnboardingContext.useContextSafe()
-
   const {
     emails,
     loading,
@@ -42,34 +171,13 @@ export function VerifyEmailPage() {
     removeEmail,
   } = useEmailManagement()
 
-  const [addExpanded, setAddExpanded] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
-  const handleNewEmailInputRef = useCallback(
-    (node: HTMLInputElement | null) => {
-      node?.focus()
-    },
-    [],
-  )
-
   const busy = verifyingCode || addingEmail || removingEmail !== null
-
-  const handleAddEmail = useCallback(async () => {
-    if (!newEmail) return
-    const ok = await addEmail(newEmail)
-    if (!ok) return
-    setNewEmail('')
-    setAddExpanded(false)
-  }, [addEmail, newEmail])
-
-  // Onboarding Status decides route status for account-level email
-  // verification; the email list may still be one fetch behind that gate.
-  const accountEmailVerified = onboarding?.emailVerified ?? false
-  const hasVerifiedEmail = emails?.some((e) => e.verified) ?? false
-  const hasVerified = accountEmailVerified || hasVerifiedEmail
-  const visibleEmails = hasVerified
-    ? (emails?.filter((e) => e.verified) ?? [])
-    : (emails ?? [])
-  const hasUnverified = emails?.some((e) => !e.verified)
+  const { hasVerified, hasUnverified, visibleEmails } = emailVisibility(
+    emails,
+    onboarding?.emailVerified ?? false,
+  )
+  const showSendHint =
+    !hasVerified && hasUnverified && !verifyingEmail && !sendingCode
 
   return (
     <SessionFrame>
@@ -108,107 +216,30 @@ export function VerifyEmailPage() {
                   busy={busy}
                 />
               ))}
-
               {hasVerified && visibleEmails.length === 0 && (
                 <VerifiedEmailCard />
               )}
-
               {/* Prompt to send code if there's an unverified email but user
                   hasn't clicked send yet. */}
-              {!hasVerified &&
-                hasUnverified &&
-                !verifyingEmail &&
-                !sendingCode && (
-                  <p className="text-foreground-alt text-center text-xs">
-                    Click{' '}
-                    <span className="text-brand font-medium">Send code</span> to
-                    receive a 6-digit verification code by email.
-                  </p>
-                )}
+              {showSendHint && <SendCodeHint />}
             </>
           )}
 
-          {/* Continue button after successful verification */}
-          {hasVerified && (
-            <button
-              type="button"
-              onClick={() => navigate({ path: '../' })}
-              className={cn(
-                'flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',
-                'border-brand bg-brand/10 text-foreground hover:bg-brand/20',
-              )}
-            >
-              Continue
-              <LuArrowRight className="size-4" />
-            </button>
-          )}
-
-          {/* Add another email (collapsible, hidden after verification) */}
-          {!hasVerified && (
-            <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-              <button
-                type="button"
-                onClick={() => setAddExpanded(!addExpanded)}
-                className="flex w-full items-center gap-3 p-4"
-              >
-                <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-lg">
-                  <LuPlus className="text-foreground-alt size-4" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-foreground text-sm font-medium">
-                    Use a different email
-                  </h3>
-                  <p className="text-foreground-alt text-xs">
-                    Add another address to verify instead
-                  </p>
-                </div>
-                <LuChevronDown
-                  className={cn(
-                    'text-foreground-alt size-4 shrink-0 transition-transform duration-200',
-                    addExpanded && 'rotate-180',
-                  )}
-                />
-              </button>
-              {addExpanded && (
-                <div className="border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4">
-                  <input
-                    aria-label="New email address"
-                    ref={handleNewEmailInputRef}
-                    type="email"
-                    placeholder="you@example.com"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.nativeEvent.isComposing) return
-                      if (e.key === 'Enter') {
-                        void handleAddEmail()
-                      }
-                    }}
-                    className={inputClass}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleAddEmail()}
-                    disabled={busy || !newEmail}
-                    className={cn(
-                      'group w-full rounded-md border transition-all duration-300',
-                      'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                      'disabled:cursor-not-allowed disabled:opacity-50',
-                      'flex h-10 items-center justify-center gap-2',
-                    )}
-                  >
-                    <LuSend className="text-foreground size-4" />
-                    <span className="text-foreground text-sm">
-                      {busy ? 'Adding…' : 'Add & send code'}
-                    </span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {hasVerified && <ContinueButton />}
+          {!hasVerified && <AddEmailCard busy={busy} onAddEmail={addEmail} />}
         </div>
       </div>
     </SessionFrame>
+  )
+}
+
+/** SendCodeHint points the user at the Send code action. */
+function SendCodeHint() {
+  return (
+    <p className="text-foreground-alt text-center text-xs">
+      Click <span className="text-brand font-medium">Send code</span> to receive
+      a 6-digit verification code by email.
+    </p>
   )
 }
 
@@ -226,6 +257,101 @@ function VerifiedEmailCard() {
         </h3>
         <p className="text-brand text-xs">Verified</p>
       </div>
+    </div>
+  )
+}
+
+/** sendCodeLabel is the Send code button content for an email row. */
+function sendCodeLabel(sending: boolean, retryAfter: number): ReactNode {
+  if (sending) return <Spinner size="sm" />
+  if (retryAfter > 0) return retryAfter + 's'
+  return 'Send code'
+}
+
+/** resendLabel is the text of the resend link under the code entry. */
+function resendLabel(sending: boolean, retryAfter: number): string {
+  if (sending) return 'Sending…'
+  if (retryAfter > 0) return 'Resend in ' + retryAfter + 's'
+  return "Didn't get it? Send again"
+}
+
+interface EmailCodeEntryProps {
+  addr: string
+  code: string
+  sending: boolean
+  busy: boolean
+  retryAfter: number
+  onCodeChange: (v: string) => void
+  onSendCode: (email: string) => Promise<unknown>
+  onVerifyCode: () => Promise<unknown>
+}
+
+/** EmailCodeEntry takes the 6-digit code once it has been sent. */
+function EmailCodeEntry({
+  addr,
+  code,
+  sending,
+  busy,
+  retryAfter,
+  onCodeChange,
+  onSendCode,
+  onVerifyCode,
+}: EmailCodeEntryProps) {
+  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
+  return (
+    <div className="border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4">
+      <p className="text-foreground-alt text-xs leading-relaxed">
+        We sent a 6-digit code to{' '}
+        <strong className="text-foreground">{addr}</strong>. Check your inbox
+        and enter it below.
+      </p>
+      <input
+        aria-label="Verification code"
+        ref={handleCodeInputRef}
+        type="text"
+        inputMode="numeric"
+        maxLength={6}
+        placeholder="000000"
+        value={code}
+        onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ''))}
+        onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return
+          if (e.key === 'Enter') {
+            void onVerifyCode()
+          }
+        }}
+        className={cn(
+          inputClass,
+          'text-center font-mono text-lg tracking-brand-extra-wide',
+        )}
+      />
+      <button
+        type="button"
+        onClick={() => void onVerifyCode()}
+        disabled={busy || code.length !== 6}
+        className={cn(
+          'group w-full rounded-md border transition-all duration-300',
+          'border-brand/30 bg-brand/10 hover:bg-brand/20',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          'flex h-10 items-center justify-center gap-2',
+        )}
+      >
+        <span className="text-foreground text-sm">
+          {busy ? 'Verifying…' : 'Verify email'}
+        </span>
+        {!busy && <LuArrowRight className="text-foreground-alt size-4" />}
+      </button>
+      <button
+        type="button"
+        onClick={() => void onSendCode(addr)}
+        disabled={sending || busy || retryAfter > 0}
+        className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors disabled:opacity-50"
+      >
+        {resendLabel(sending, retryAfter)}
+      </button>
     </div>
   )
 }
@@ -258,9 +384,6 @@ function EmailCard({
   const addr = email.email ?? ''
   const verified = email.verified ?? false
   const primary = email.primary ?? false
-  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
 
   return (
     <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
@@ -301,16 +424,10 @@ function EmailCard({
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              {sending ? (
-                <Spinner size="sm" />
-              ) : retryAfter > 0 ? (
-                retryAfter + 's'
-              ) : (
-                'Send code'
-              )}
+              {sendCodeLabel(sending, retryAfter)}
             </button>
           )}
-          {!primary && !verified && (
+          {!verified && !primary && (
             <button
               type="button"
               onClick={() => void onRemove(addr)}
@@ -326,61 +443,16 @@ function EmailCard({
 
       {/* Code entry (expanded when code has been sent) */}
       {verifying && !verified && (
-        <div className="border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4">
-          <p className="text-foreground-alt text-xs leading-relaxed">
-            We sent a 6-digit code to{' '}
-            <strong className="text-foreground">{addr}</strong>. Check your
-            inbox and enter it below.
-          </p>
-          <input
-            aria-label="Verification code"
-            ref={handleCodeInputRef}
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="000000"
-            value={code}
-            onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ''))}
-            onKeyDown={(e) => {
-              if (e.nativeEvent.isComposing) return
-              if (e.key === 'Enter') {
-                void onVerifyCode()
-              }
-            }}
-            className={cn(
-              inputClass,
-              'text-center font-mono text-lg tracking-brand-extra-wide',
-            )}
-          />
-          <button
-            type="button"
-            onClick={() => void onVerifyCode()}
-            disabled={busy || code.length !== 6}
-            className={cn(
-              'group w-full rounded-md border transition-all duration-300',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'flex h-10 items-center justify-center gap-2',
-            )}
-          >
-            <span className="text-foreground text-sm">
-              {busy ? 'Verifying…' : 'Verify email'}
-            </span>
-            {!busy && <LuArrowRight className="text-foreground-alt size-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={() => void onSendCode(addr)}
-            disabled={sending || busy || retryAfter > 0}
-            className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors disabled:opacity-50"
-          >
-            {sending
-              ? 'Sending…'
-              : retryAfter > 0
-                ? 'Resend in ' + retryAfter + 's'
-                : "Didn't get it? Send again"}
-          </button>
-        </div>
+        <EmailCodeEntry
+          addr={addr}
+          code={code}
+          sending={sending}
+          busy={busy}
+          retryAfter={retryAfter}
+          onCodeChange={onCodeChange}
+          onSendCode={onSendCode}
+          onVerifyCode={onVerifyCode}
+        />
       )}
     </div>
   )
