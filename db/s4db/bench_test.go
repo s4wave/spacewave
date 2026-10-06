@@ -5,6 +5,7 @@ package s4db
 import (
 	"context"
 	"encoding/binary"
+	"math"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
@@ -18,24 +19,34 @@ const benchKeys = 200000
 // loadBench fills a database with benchKeys small values in ordered commits
 // of 128 keys and returns it with its keys.
 func loadBench(b *testing.B) (*DB, [][]byte) {
+	db, keys, _ := fill(b, benchKeys, Options{})
+	return db, keys
+}
+
+// fill opens a fresh database with opts, commits n random keys with 150-byte
+// values in ordered commits of 128 keys, and returns it with its keys and
+// the slowest commit.
+func fill(b *testing.B, n int, opts Options) (*DB, [][]byte, time.Duration) {
 	// Open a fresh file.
 	b.Helper()
 	ctx := context.Background()
-	db, err := Open(filepath.Join(b.TempDir(), "bench.s4wave"), Options{})
+	db, err := Open(filepath.Join(b.TempDir(), "bench.s4wave"), opts)
 	if err != nil {
 		b.Fatal(err)
 	}
 
-	// Commit random keys with 150-byte values.
+	// Commit the keys, timing each commit.
 	rng := rand.New(rand.NewPCG(1, 2))
-	keys := make([][]byte, benchKeys)
+	keys := make([][]byte, n)
 	val := make([]byte, 150)
-	for i := 0; i < benchKeys; i += 128 {
+	var slowest time.Duration
+	for i := 0; i < n; i += 128 {
+		start := time.Now()
 		tx, err := db.NewTransaction(ctx, true)
 		if err != nil {
 			b.Fatal(err)
 		}
-		for j := i; j < min(i+128, benchKeys); j++ {
+		for j := i; j < min(i+128, n); j++ {
 			keys[j] = binary.BigEndian.AppendUint64(nil, rng.Uint64())
 			if err := tx.Set(ctx, keys[j], val); err != nil {
 				b.Fatal(err)
@@ -44,8 +55,9 @@ func loadBench(b *testing.B) (*DB, [][]byte) {
 		if err := tx.(*Tx).CommitOrdered(ctx); err != nil {
 			b.Fatal(err)
 		}
+		slowest = max(slowest, time.Since(start))
 	}
-	return db, keys
+	return db, keys, slowest
 }
 
 // BenchmarkGet measures point reads, each in its own read transaction, from
@@ -84,6 +96,41 @@ func BenchmarkFill(b *testing.B) {
 	for b.Loop() {
 		db, _ := loadBench(b)
 		_ = db.Close()
+	}
+}
+
+// BenchmarkCheckpointFill measures ordered commits of 128 small values into
+// a million keys with checkpoints on and off. It reports the slowest commit
+// and the drive's flush time: checkpoints build their trees off the writer
+// lock, so no commit should wait much longer than a flush.
+func BenchmarkCheckpointFill(b *testing.B) {
+	runs := []struct {
+		name string
+		opts Options
+	}{
+		{"checkpoints", Options{}},
+		{"no-checkpoints", Options{CheckpointMin: math.MaxInt64, CheckpointMax: math.MaxInt64}},
+	}
+	for _, run := range runs {
+		b.Run(run.name, func(b *testing.B) {
+			for b.Loop() {
+				// Fill, then time one flush of the filled file.
+				db, _, slowest := fill(b, 1_000_000, run.opts)
+				start := time.Now()
+				if err := db.s.flushDurable(); err != nil {
+					b.Fatal(err)
+				}
+				b.ReportMetric(float64(time.Since(start).Microseconds())/1000, "flush-ms")
+				b.ReportMetric(float64(slowest.Microseconds())/1000, "slowest-commit-ms")
+
+				// Close without timing the final checkpoint.
+				b.StopTimer()
+				if err := db.Close(); err != nil {
+					b.Fatal(err)
+				}
+				b.StartTimer()
+			}
+		})
 	}
 }
 

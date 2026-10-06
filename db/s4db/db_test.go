@@ -135,6 +135,59 @@ func TestTornTail(t *testing.T) {
 	before.check(t, db)
 }
 
+// TestStaleRecord loses one record of two to a crash, then commits a record
+// of the same length in its place, and checks that the record after it,
+// left from before the crash, stays out of the log.
+func TestStaleRecord(t *testing.T) {
+	// Open a file and a helper committing one key.
+	ctx := context.Background()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "stale.s4wave")
+	db := openTest(t, path, Options{})
+	set := func(db *DB, key string) {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, []byte(key), []byte("v")); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Commit two records of one length, noting where the first lies.
+	pos := db.cur.Load().pos
+	set(db, "a")
+	end := db.cur.Load().pos
+	set(db, "b")
+
+	// Copy the file as a crash would leave it: the first record lost and
+	// the second intact.
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clear(b[pos:end])
+	crashed := filepath.Join(dir, "crashed.s4wave")
+	if err := os.WriteFile(crashed, b, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_ = db.Close()
+
+	// Commit a record of the same length where the lost one was, then
+	// commit again: the writer tails the log first.
+	db = openTest(t, crashed, Options{})
+	defer db.Close()
+	set(db, "c")
+	if got := db.cur.Load().pos; got != end {
+		t.Fatalf("new record ends at %d, the lost one at %d", got, end)
+	}
+	set(db, "d")
+	model{"c": []byte("v"), "d": []byte("v")}.check(t, db)
+}
+
 // childEnv names the file a child process of TestTwoProcesses writes.
 const childEnv = "S4DB_TEST_CHILD"
 

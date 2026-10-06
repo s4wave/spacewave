@@ -29,6 +29,8 @@ type state struct {
 	pos uint64
 	// end is the end of the chunk holding pos.
 	end uint64
+	// crc is the checksum of record seq, which the next record continues.
+	crc uint32
 	// refs counts the snapshots reading the state; publish sets it.
 	refs *refCount
 }
@@ -47,29 +49,64 @@ func newState(sb superblock, limit int64) *state {
 		filter:  newFilter(limit),
 		pos:     sb.logPos,
 		end:     sb.logEnd,
+		crc:     sb.logCrc,
 	}
 }
 
 // rebase returns st moved onto the later checkpoint sb, keeping the overlay
 // entries after it.
 func (st *state) rebase(sb superblock, limit int64) *state {
-	// Start an empty overlay at the new checkpoint.
+	c := newCarried(sb.seq, limit)
+	st.overlay.Scan(c.add)
+	return st.onto(sb, c)
+}
+
+// onto returns st moved onto the later checkpoint sb under the overlay
+// entries c carried over.
+func (st *state) onto(sb superblock, c *carried) *state {
 	next := *st
 	next.ckpt, next.gen, next.sb, next.root = sb.seq, sb.gen, sb, sb.root
-	next.overlay = newOverlay()
-	next.filter = newFilter(limit)
-	next.overlayBytes = 0
-
-	// Carry over the entries the checkpoint does not hold.
-	st.overlay.Scan(func(it overlayItem) bool {
-		if e := it.e; e.seq > sb.seq {
-			next.overlay.Set(it)
-			next.filter.add(e.key)
-			next.overlayBytes += e.size()
-		}
-		return true
-	})
+	next.overlay, next.filter, next.overlayBytes = c.overlay, c.filter, c.bytes
 	return &next
+}
+
+// carried collects the overlay entries after a checkpoint, for the state
+// moved onto it.
+type carried struct {
+	// seq is the last commit the checkpoint includes.
+	seq uint64
+	// overlay holds the entries after seq.
+	overlay *btree.BTreeG[overlayItem]
+	// filter holds their keys.
+	filter *filter
+	// bytes estimates their encoded size.
+	bytes int64
+}
+
+// newCarried returns an empty carry onto the checkpoint through seq, with a
+// filter sized for an overlay of limit bytes.
+func newCarried(seq uint64, limit int64) *carried {
+	return &carried{seq: seq, overlay: newOverlay(), filter: newFilter(limit)}
+}
+
+// add keeps it when it follows the checkpoint, replacing an entry of its
+// key added before. It returns true to serve as a scan callback.
+func (c *carried) add(it overlayItem) bool {
+	if e := it.e; e.seq > c.seq {
+		if old, ok := c.overlay.Set(it); ok {
+			c.bytes -= old.e.size()
+		}
+		c.filter.add(e.key)
+		c.bytes += e.size()
+	}
+	return true
+}
+
+// addRecord adds the changes of commit record r.
+func (c *carried) addRecord(r *record) {
+	for _, o := range r.ops {
+		c.add(newOverlayItem(&oentry{key: o.key, del: o.del, val: o.val, seq: r.seq}))
+	}
 }
 
 // apply applies records in order to st, whose overlay the caller owns.
@@ -81,7 +118,7 @@ func (st *state) apply(rs ...*record) {
 	}
 	es := make([]oentry, 0, n)
 	for _, r := range rs {
-		st.seq = r.seq
+		st.seq, st.crc = r.seq, r.crc
 		if r.kind != kindCommit {
 			continue
 		}

@@ -73,6 +73,11 @@ func checksum(b []byte) uint32 {
 	return crc32.Checksum(b, crcTable)
 }
 
+// chain returns the CRC-32C of b continued from prev.
+func chain(prev uint32, b []byte) uint32 {
+	return crc32.Update(prev, crcTable, b)
+}
+
 // pagesFor returns the pages that hold n bytes.
 func pagesFor(n int) uint64 {
 	return (uint64(n) + pageSize - 1) / pageSize // #nosec G115 -- byte counts are not negative.

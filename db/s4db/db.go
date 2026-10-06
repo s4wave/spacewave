@@ -214,7 +214,7 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	}
 	var recs []read
 	var durable uint64
-	lr := newLogReader(db.s, next.pos, next.end, next.seq)
+	lr := newLogReader(db.s, next.pos, next.end, next.seq, next.crc)
 	for {
 		r, ok := lr.next()
 		if !ok {
@@ -509,10 +509,12 @@ func (db *DB) WaitDurable(ctx context.Context) error {
 // Close checkpoints when this handle can take the writer lock without
 // waiting, flushes, and closes the file. Transactions must end first.
 func (db *DB) Close() error {
-	// Stop the warm-up so its snapshot does not hold space.
+	// Stop the warm-up so its snapshot does not hold space, and let a
+	// background checkpoint finish.
 	if wait, _ := db.warmer.SetRoutine(nil); wait != nil {
 		<-wait
 	}
+	db.w.builds.Wait()
 
 	// Checkpoint and release when no other process is writing.
 	ctx := context.Background()

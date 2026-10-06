@@ -18,30 +18,32 @@ type logReader struct {
 	end uint64
 	// seq is the sequence of the next record.
 	seq uint64
+	// crc is the checksum of the previous record.
+	crc uint32
 	// buf holds file bytes from off.
 	buf []byte
 	// off is the file offset of buf.
 	off uint64
 }
 
-// newLogReader returns a reader of the records after seq starting at pos in
-// the chunk ending at end.
-func newLogReader(r io.ReaderAt, pos, end, seq uint64) *logReader {
-	return &logReader{r: r, pos: pos, end: end, seq: seq + 1}
+// newLogReader returns a reader of the records after seq, whose checksum is
+// crc, starting at pos in the chunk ending at end.
+func newLogReader(r io.ReaderAt, pos, end, seq uint64, crc uint32) *logReader {
+	return &logReader{r: r, pos: pos, end: end, seq: seq + 1, crc: crc}
 }
 
 // next returns the next record, following links, or false at the end of the
 // valid log.
 func (l *logReader) next() (*record, bool) {
 	// Decode the record at pos.
-	r, ok := decodeRecord(l.window(), l.seq)
+	r, ok := decodeRecord(l.window(), l.seq, l.crc)
 	if !ok {
 		return nil, false
 	}
 
 	// Advance past it, moving to the next chunk after a link.
 	l.pos += uint64(r.size) // #nosec G115 -- record sizes are not negative.
-	l.seq++
+	l.seq, l.crc = l.seq+1, r.crc
 	if r.kind == kindLink {
 		l.pos, l.end = r.next.start*pageSize, (r.next.start+r.next.n)*pageSize
 		l.buf = nil
