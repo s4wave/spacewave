@@ -260,6 +260,7 @@ export function WarningCard({
 
         <div className="space-y-3">
           <button
+            type="button"
             onClick={onDownload}
             disabled={isDesktop}
             className={cn(
@@ -290,6 +291,7 @@ export function WarningCard({
           </button>
 
           <button
+            type="button"
             onClick={onUpgrade}
             disabled={upgradeLoading}
             className="border-foreground/10 hover:border-brand/30 hover:bg-brand/5 flex w-full cursor-pointer items-center gap-3 rounded-md border p-3 text-left transition-colors disabled:opacity-50"

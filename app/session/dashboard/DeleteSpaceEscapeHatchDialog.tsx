@@ -256,12 +256,14 @@ export function DeleteSpaceEscapeHatchDialog({
           {step === 'select' && (
             <>
               <button
+                type="button"
                 onClick={() => handleOpenChange(false)}
                 className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 disabled={!selected}
                 onClick={handleContinueFromSelect}
                 className={cn(
@@ -278,6 +280,7 @@ export function DeleteSpaceEscapeHatchDialog({
           {step === 'warning' && (
             <>
               <button
+                type="button"
                 onClick={() => {
                   setStep('select')
                   setAcknowledged(false)
@@ -287,6 +290,7 @@ export function DeleteSpaceEscapeHatchDialog({
                 Back
               </button>
               <button
+                type="button"
                 disabled={!acknowledged}
                 onClick={handleContinueFromWarning}
                 className={cn(
@@ -303,6 +307,7 @@ export function DeleteSpaceEscapeHatchDialog({
           {step === 'final' && (
             <>
               <button
+                type="button"
                 onClick={() => {
                   setStep('warning')
                   setTypedConfirm('')
@@ -313,6 +318,7 @@ export function DeleteSpaceEscapeHatchDialog({
                 Back
               </button>
               <button
+                type="button"
                 onClick={() => void handleDelete()}
                 disabled={!canDelete}
                 className={cn(

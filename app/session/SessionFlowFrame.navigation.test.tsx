@@ -21,7 +21,7 @@ vi.mock('./SessionFrame.js', () => ({
 function EntryPage() {
   const navigate = useNavigate()
   return (
-    <button onClick={() => navigate({ path: '/u/7/plan' })}>
+    <button type="button" onClick={() => navigate({ path: '/u/7/plan' })}>
       Finish setting up your account
     </button>
   )
@@ -31,7 +31,10 @@ function PlanPage() {
   const navigate = useNavigate()
   return (
     <SessionFlowFrame fallbackPath="/u/7">
-      <button onClick={() => navigate({ path: '/u/7/plan/upgrade' })}>
+      <button
+        type="button"
+        onClick={() => navigate({ path: '/u/7/plan/upgrade' })}
+      >
         Start with Cloud
       </button>
     </SessionFlowFrame>
@@ -43,7 +46,7 @@ function LoginPage() {
   return (
     <SessionFlowFrame fallbackPath="/u/7">
       <h1>Create a Cloud Account</h1>
-      <button onClick={() => navigate({ path: '../../' })}>
+      <button type="button" onClick={() => navigate({ path: '../../' })}>
         Back to plan selection
       </button>
     </SessionFlowFrame>

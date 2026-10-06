@@ -308,6 +308,7 @@ function UnsupportedLinkStep({
       </div>
 
       <button
+        type="button"
         onClick={onDone}
         className={cn(
           'w-full rounded-md border transition-all duration-300',
@@ -390,6 +391,7 @@ function ChooseStep({
       )}
 
       <button
+        type="button"
         onClick={onSkip}
         className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
       >
@@ -435,6 +437,7 @@ function ChooseOption({
 }: ChooseOptionProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         'w-full rounded-md border transition-all duration-300',
@@ -498,6 +501,7 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
       </div>
 
       <button
+        type="button"
         onClick={onContinue}
         className={cn(
           'group w-full rounded-md border transition-all duration-300',
@@ -510,6 +514,7 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
       </button>
 
       <button
+        type="button"
         onClick={onBack}
         className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
       >
@@ -663,6 +668,7 @@ function PairingStep({
             {connectionError}
           </p>
           <button
+            type="button"
             onClick={() => {
               setConnectionError(null)
               onRegenerateCode()
@@ -685,6 +691,7 @@ function PairingStep({
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onBack}
           className={cn(
             'rounded-md border transition-all duration-300',
@@ -695,6 +702,7 @@ function PairingStep({
           <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         <button
+          type="button"
           onClick={onRegenerateCode}
           disabled={loading}
           className={cn(
@@ -790,6 +798,7 @@ function QRScannerModal({ onCodeScanned, onClose }: QRScannerModalProps) {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-foreground text-sm font-medium">Scan QR code</h3>
           <button
+            type="button"
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >
@@ -958,6 +967,7 @@ function EnterCodeStep({
       />
 
       <button
+        type="button"
         onClick={() => setScanning(true)}
         className={cn(
           'w-full rounded-md border transition-all duration-300',
@@ -973,6 +983,7 @@ function EnterCodeStep({
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onBack}
           className={cn(
             'rounded-md border transition-all duration-300',
@@ -983,6 +994,7 @@ function EnterCodeStep({
           <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         <button
+          type="button"
           onClick={() => {
             void handleSubmit()
           }}
@@ -1121,6 +1133,7 @@ function DirectOfferStep({
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <button
+                type="button"
                 onClick={handleCopy}
                 className={cn(
                   'rounded-md border px-2 py-1.5 transition-all duration-300',
@@ -1162,6 +1175,7 @@ function DirectOfferStep({
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onBack}
           className={cn(
             'rounded-md border transition-all duration-300',
@@ -1172,6 +1186,7 @@ function DirectOfferStep({
           <LuArrowLeft className="text-foreground-alt size-4" />
         </button>
         <button
+          type="button"
           onClick={() => {
             void handleAcceptAnswer()
           }}
@@ -1311,6 +1326,7 @@ function DirectAnswerStep({
           />
 
           <button
+            type="button"
             onClick={() => setScanning(true)}
             className={cn(
               'w-full rounded-md border transition-all duration-300',
@@ -1337,6 +1353,7 @@ function DirectAnswerStep({
               onClick={(e) => (e.target as HTMLInputElement).select()}
             />
             <button
+              type="button"
               onClick={handleCopy}
               className={cn(
                 'rounded-md border px-2 py-1.5 transition-all duration-300',
@@ -1365,6 +1382,7 @@ function DirectAnswerStep({
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onBack}
           className={cn(
             'rounded-md border transition-all duration-300',
@@ -1376,6 +1394,7 @@ function DirectAnswerStep({
         </button>
         {!answerPayload && (
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading || !offerInput.trim() || !session}
             className={cn(
@@ -1442,6 +1461,7 @@ function DirectQRScannerModal({
             Scan direct pairing QR
           </h3>
           <button
+            type="button"
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >

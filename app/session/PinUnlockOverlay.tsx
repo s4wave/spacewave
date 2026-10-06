@@ -155,6 +155,7 @@ export function PinUnlockOverlay({
                 )}
 
                 <button
+                  type="button"
                   data-testid="pin-unlock-submit"
                   onClick={() => void handleUnlock()}
                   disabled={unlocking || pin.length === 0}
@@ -172,6 +173,7 @@ export function PinUnlockOverlay({
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setShowRecovery(true)}
                   className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
                 >
@@ -193,6 +195,7 @@ export function PinUnlockOverlay({
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setShowRecovery(false)}
                   className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
                 >
@@ -218,6 +221,7 @@ export function PinUnlockOverlay({
                 />
 
                 <button
+                  type="button"
                   onClick={() => void handleReset()}
                   disabled={resetting || !cred.hasCredential}
                   className={cn(
@@ -233,6 +237,7 @@ export function PinUnlockOverlay({
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setShowRecovery(false)}
                   className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
                 >

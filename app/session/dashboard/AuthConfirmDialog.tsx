@@ -184,6 +184,7 @@ function AuthConfirmDialogContent({
 
         <DialogFooter>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
@@ -191,6 +192,7 @@ function AuthConfirmDialogContent({
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => void handleFallbackConfirm()}
             disabled={submitting}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 rounded-md border px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"

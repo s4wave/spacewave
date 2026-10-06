@@ -41,6 +41,7 @@ export function LinkDeviceDoneStep({
         <h2 className="text-foreground text-sm font-medium">Pairing failed</h2>
         <p className="text-destructive text-xs">{error}</p>
         <button
+          type="button"
           onClick={() => onLinkMore()}
           className="border-foreground/20 hover:border-foreground/40 flex h-10 w-full items-center justify-center gap-2 rounded-md border"
         >
@@ -73,6 +74,7 @@ export function LinkDeviceDoneStep({
       {result && (
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => onLinkMore(result.sessionListEntry)}
             className="border-foreground/20 hover:border-foreground/40 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >
@@ -80,6 +82,7 @@ export function LinkDeviceDoneStep({
             <span className="text-foreground text-sm">Link more</span>
           </button>
           <button
+            type="button"
             onClick={() => onDone(result.sessionListEntry)}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 flex-1 items-center justify-center gap-2 rounded-md border"
           >

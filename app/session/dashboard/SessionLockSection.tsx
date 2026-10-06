@@ -152,6 +152,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
 
           {currentMode === 'pin' && !hasChanges && (
             <button
+              type="button"
               onClick={() => setChangingPin(true)}
               className="text-foreground-alt hover:text-foreground text-xs transition-colors"
             >
@@ -164,6 +165,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
           {hasChanges && (
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => void handleSave()}
                 disabled={saving}
                 className={cn(
@@ -175,6 +177,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
                 {saving ? 'Saving…' : 'Save'}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setSelectedMode(null)
                   setChangingPin(false)

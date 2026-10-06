@@ -145,6 +145,7 @@ function LocalSetupWizard({
         {/* Backup key card */}
         <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
           <button
+            type="button"
             onClick={() =>
               setExpandedCard(expandedCard === 'backup' ? null : 'backup')
             }
@@ -196,6 +197,7 @@ function LocalSetupWizard({
                 passwordPlaceholder="Choose a password for recovery"
               />
               <button
+                type="button"
                 onClick={() => void handlePemDownloaded()}
                 disabled={wiz.downloading || !wiz.accountReady || !wiz.password}
                 className={cn(
@@ -220,6 +222,7 @@ function LocalSetupWizard({
         {/* PIN lock card */}
         <div className="border-foreground/20 bg-background-get-started overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
           <button
+            type="button"
             onClick={() =>
               setExpandedCard(expandedCard === 'pin' ? null : 'pin')
             }
@@ -320,6 +323,7 @@ function LocalSetupWizard({
                 <p className="text-destructive text-xs">{wiz.error}</p>
               )}
               <button
+                type="button"
                 onClick={() => void handleFinishLock()}
                 disabled={wiz.saving}
                 className={cn(
@@ -342,6 +346,7 @@ function LocalSetupWizard({
 
         {/* Continue button */}
         <button
+          type="button"
           onClick={() => navigate({ path: exitPath })}
           className={cn(
             'flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none',

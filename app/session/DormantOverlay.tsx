@@ -101,6 +101,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
             </p>
 
             <button
+              type="button"
               onClick={() => {
                 void handleReactivate()
               }}
@@ -124,6 +125,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
             )}
 
             <button
+              type="button"
               onClick={handleOpenLocal}
               className={cn(
                 'group w-full rounded-md border transition-all duration-300',

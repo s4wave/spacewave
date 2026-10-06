@@ -104,6 +104,7 @@ export function OrganizationsSection({
         {!loading &&
           orgs.map((org) => (
             <button
+              type="button"
               key={org.id}
               onClick={() => handleOpenOrganization(org.id ?? '')}
               className="flex w-full cursor-pointer items-center justify-between py-1 text-left"
@@ -146,6 +147,7 @@ export function OrganizationsSection({
             {error && <p className="text-destructive text-xs">{error}</p>}
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => void handleCreate()}
                 disabled={creating || !trimmedOrgName}
                 aria-busy={creating}
@@ -158,6 +160,7 @@ export function OrganizationsSection({
                 {creating ? 'Creating…' : 'Create'}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setShowCreate(false)
                   setOrgName('')
@@ -174,6 +177,7 @@ export function OrganizationsSection({
 
         {!showCreate && (
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
             className="text-brand/60 hover:text-brand flex items-center gap-1 text-xs transition-colors"
           >

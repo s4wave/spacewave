@@ -671,6 +671,7 @@ export function SessionDetails({
                   <div className="space-y-2">
                     {isLocal && sessionIdx != null && (
                       <button
+                        type="button"
                         onClick={handleUpgradeToCloud}
                         className={cn(
                           'border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
@@ -691,6 +692,7 @@ export function SessionDetails({
                     )}
 
                     <button
+                      type="button"
                       onClick={() =>
                         invokeCommand(
                           'spacewave.preferences.keyboard-shortcuts',
@@ -717,6 +719,7 @@ export function SessionDetails({
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => navigateSession({ path: 'settings/cli' })}
                       className={cn(
                         'border-foreground/10 bg-foreground/5 hover:border-foreground/20 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
@@ -737,6 +740,7 @@ export function SessionDetails({
 
                     {showTransfer && (
                       <button
+                        type="button"
                         onClick={() =>
                           navigateSession({ path: 'settings/transfer' })
                         }
@@ -760,6 +764,7 @@ export function SessionDetails({
 
                     {showLogout && (
                       <button
+                        type="button"
                         onClick={handleLogoutClick}
                         disabled={loggingOut}
                         className={cn(
@@ -788,6 +793,7 @@ export function SessionDetails({
                     >
                       <div className="space-y-2">
                         <button
+                          type="button"
                           onClick={() => setDeleteSpaceOpen(true)}
                           disabled={!session}
                           className={cn(
@@ -810,6 +816,7 @@ export function SessionDetails({
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => setDeleteAcctOpen(true)}
                           className={cn(
                             'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',

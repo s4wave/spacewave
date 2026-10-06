@@ -60,6 +60,7 @@ export function CryptoKeysSection({
               )}
               {crypto.publicKeyPem && (
                 <button
+                  type="button"
                   onClick={handleCopyPem}
                   className="hover:bg-foreground/5 text-foreground-alt hover:text-foreground flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs transition-colors"
                   aria-label={pemCopied ? 'Copied!' : 'Copy public key PEM'}

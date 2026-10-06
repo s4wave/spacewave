@@ -146,6 +146,7 @@ export function PairingAccountChoice({
             </p>
           )}
           <button
+            type="button"
             disabled={submitting}
             onClick={() => void submit()}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-foreground h-10 w-full rounded-md border text-sm disabled:opacity-50"
@@ -160,6 +161,7 @@ export function PairingAccountChoice({
         </p>
       )}
       <button
+        type="button"
         onClick={onAbort}
         className="text-foreground-alt hover:text-foreground h-8 w-full text-xs"
       >
