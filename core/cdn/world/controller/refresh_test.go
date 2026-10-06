@@ -2,6 +2,7 @@ package cdn_world_controller
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"sync/atomic"
 	"testing"
@@ -70,5 +71,50 @@ func TestRefreshRPCRefetchesMountedWorld(t *testing.T) {
 	current, err := ctrl.GetWorldEngine(ctx)
 	if err != nil || current != engine {
 		t.Fatal("refresh replaced the mounted engine")
+	}
+}
+
+// TestMountRetriesOneFailedPointerFetch proves a single failed pointer fetch
+// is retried before the Space is reported unreachable, so one dropped request
+// does not start the cached release.
+func TestMountRetriesOneFailedPointerFetch(t *testing.T) {
+	// Bound the test.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	// Fail the first pointer fetch, then serve a world with an empty head.
+	pointer := encodeRootPointer(t, &cdn.CdnRootPointer{
+		SpaceId:    "release-space",
+		Checkpoint: testHeadCheckpoint(t, "release-space"),
+	})
+	var requests atomic.Int32
+	cdnURL := serveTestCDN(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if requests.Add(1) == 1 {
+			http.Error(w, "dropped", http.StatusServiceUnavailable)
+			return
+		}
+		_, _ = w.Write(pointer)
+	}))
+
+	// Mount the world.
+	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("release", "release-space", cdnURL))
+	done := make(chan error, 1)
+	go func() { done <- ctrl.Execute(ctx) }()
+	defer func() { cancel(); <-done }()
+
+	// The mount publishes the engine without first reporting the Space
+	// unreachable.
+	errUnreachable := errors.New("space reported unreachable")
+	_, err := ctrl.ctr.WaitValueWithValidator(ctx, func(state *mountState) (bool, error) {
+		if state != nil && state.err != nil {
+			return false, errUnreachable
+		}
+		return state != nil && state.engine != nil, nil
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := requests.Load(); n != 2 {
+		t.Fatalf("pointer fetched %d times, want 2", n)
 	}
 }

@@ -29,6 +29,10 @@ var Version = controller.MustParseVersion("0.0.1")
 // missingHeadRetryDelay bounds retries while a CDN Space has no published head.
 const missingHeadRetryDelay = time.Second
 
+// unreachableAfterFailures is the number of consecutive failed pointer fetches
+// after which a mounting Space is reported unreachable.
+const unreachableAfterFailures = 2
+
 // releaseWorldEngineID selects the shared Release World block-store authority.
 const releaseWorldEngineID = "spacewave-release-world"
 
@@ -188,19 +192,23 @@ func (c *Controller) mount(ctx context.Context) error {
 	// The refresh routine owns pointer fetches, including the first one, so
 	// mounting fetches the pointer once. While the CDN is unreachable the
 	// routine retries and the store stays mounted, so cached blocks remain
-	// readable and lookups learn the Space is unreachable.
+	// readable. Lookups learn the Space is unreachable only after a retry also
+	// fails, so one dropped request does not start the cached release.
 	c.refreshed.SetValue(nil)
 	c.refresh.SetRoutine(so.RefreshSnapshot)
 	c.refresh.SetContext(ctx, false)
 	defer c.refresh.ClearContext()
 	var refreshed *refreshResult
-	for refreshed == nil || refreshed.err != nil {
+	for failures := 1; ; failures++ {
 		var err error
 		refreshed, err = c.refreshed.WaitValueChange(ctx, refreshed, nil)
 		if err != nil {
 			return nil
 		}
-		if refreshed.err != nil {
+		if refreshed.err == nil {
+			break
+		}
+		if failures >= unreachableAfterFailures {
 			c.ctr.SetValue(&mountState{err: refreshed.err})
 		}
 	}
