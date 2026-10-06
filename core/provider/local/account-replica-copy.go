@@ -24,9 +24,10 @@ import (
 // operations the state added. Cached blocks survive cancellation and restart; a persisted
 // completion record is valid only for its exact immutable head.
 //
-// A block that no connected peer holds is not a failure: the copy logs it once
-// and waits for a new state, or for a peer session to start on exchange that
-// may hold the block. exchange is nil when the bucket has no DEX controller.
+// A block that no connected peer holds, or holds only without its refs, is not
+// a failure: the copy logs it once and waits for a new state, or for a peer
+// session to start on exchange that may hold the block. exchange is nil when
+// the bucket has no DEX controller.
 func (a *ProviderAccount) runAccountReplicaCopy(
 	ctx context.Context,
 	b bus.Bus,
@@ -150,8 +151,10 @@ func waitStateOrWake(
 }
 
 // copyAccountWorldHead copies head until it completes. A block that no
-// connected peer holds is logged once, and the copy retries when a peer
-// session starts on exchange.
+// reachable source holds, or holds only without its refs, does not appear by
+// retrying the same head: the copy logs it once and retries when a peer
+// session starts on exchange. Without exchange it waits for the next head,
+// which cancels this routine.
 func (a *ProviderAccount) copyAccountWorldHead(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -161,16 +164,24 @@ func (a *ProviderAccount) copyAccountWorldHead(
 	exchange *dex_solicit.Controller,
 ) error {
 	for logged := false; ; logged = true {
+		// Count peer sessions first so one starting during the copy still
+		// wakes the wait.
 		var starts uint64
 		if exchange != nil {
 			starts = exchange.GetSessionStarts()
 		}
 		err := a.copyAndPersistAccountWorld(ctx, so, state, local, head)
-		if exchange == nil || !errors.Is(err, block.ErrNotFound) {
+		if !errors.Is(err, block.ErrNotFound) && !errors.Is(err, block.ErrRefsUnknown) {
 			return err
 		}
+
+		// Wait for a source that may hold the block with its refs.
 		if !logged {
-			a.le.WithError(err).Info("waiting for a peer that holds a missing World block")
+			a.le.WithError(err).Info("waiting for a peer that holds a World block with its refs")
+		}
+		if exchange == nil {
+			<-ctx.Done()
+			return context.Cause(ctx)
 		}
 		if err := exchange.WaitSessionStart(ctx, starts); err != nil {
 			return err
