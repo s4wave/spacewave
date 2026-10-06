@@ -134,7 +134,7 @@ func (t *TxApplyWorldOp) ExecuteTx(
 
 	// apply the operation
 	_, sysErr, err = worldInstance.ApplyWorldOp(ctx, op, sender)
-	return sysErr, err
+	return sysErr, nameMissingBlock(err, opTypeID, op)
 }
 
 // _ is a type assertion

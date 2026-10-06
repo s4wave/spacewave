@@ -3,6 +3,7 @@ package sobject_world_engine
 import (
 	"context"
 	"io"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -69,6 +70,8 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 	privA, pidA := newReplayTestKey(t)
 	space := newReplayTestSpace(t, pidA)
 	space.c.SetStaticLookupOp(world_mock.LookupMockObjectOp)
+
+	// Write the block the fourth operation's object uses as its root.
 	transformConf := space.genesis.GetHeadRef().GetTransformConf()
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, space.c.sfs, transformConf)
 	if err != nil {
@@ -80,6 +83,9 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Build the fourth operation's object on that root and the fifth's edit
+	// of it.
 	ghost, err := world_block_tx.NewTxCreateObject("ghost", &bucket.ObjectRef{RootRef: payload, TransformConf: transformConf})
 	if err != nil {
 		t.Fatal(err.Error())
@@ -88,24 +94,30 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Sign the five operations as one chain.
 	o1 := space.sign("o1", privA, "object-1", &sobject.SOOperationLink{Nonce: 1})
 	o2 := space.sign("o2", privA, "object-2", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: o1.Hash()})
 	o3 := space.sign("o3", privA, "object-3", &sobject.SOOperationLink{Nonce: 3, PrevOpHash: o2.Hash()})
 	o4 := space.signTx("ghost", privA, ghost, &sobject.SOOperationLink{Nonce: 4, PrevOpHash: o3.Hash()})
 	o5 := space.signTx("edit", privA, edit, &sobject.SOOperationLink{Nonce: 5, PrevOpHash: o4.Hash()})
 
-	// Serve the operations from an engine whose store withholds the payload.
+	// Encode the genesis World as the checkpoint state.
 	genesisData, err := space.genesis.MarshalVT()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	checkpoint := &sobject.SOCheckpointInner{StateData: genesisData}
+
+	// Order the operations above the checkpoint.
 	set := sobject.NewSOOperationSet(replayTestObjectID, checkpoint)
 	for _, op := range []*sobject.SOOperation{o1, o2, o3, o4, o5} {
 		if _, err := set.Add(op); err != nil {
 			t.Fatal(err.Error())
 		}
 	}
+
+	// Build the engine over a store that hides the root block.
 	snap := &replayTestSnapshot{config: space.config, checkpoint: checkpoint, set: set}
 	store := &hidingBlockStore{BlockStore: space.so.blockStore, ref: payload}
 	store.hidden.Store(true)
@@ -128,7 +140,10 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 			t.Fatalf("replay started %d operations; want %d", got, want)
 		}
 	}
+
+	// writeLockFree fails the test when the write lock stays held.
 	writeLockFree := func() {
+		// Take and drop the lock within two seconds.
 		t.Helper()
 		lockCtx, lockCancel := context.WithTimeout(ctx, 2*time.Second)
 		defer lockCancel()
@@ -146,6 +161,8 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 			tx.Discard()
 		}
 		t.Fatalf("write with a missing block = %v; want block.ErrNotFound", err)
+	} else if want := world_mock.MockObjectOpId + " on ghost"; !strings.Contains(err.Error(), want) {
+		t.Fatalf("write with a missing block = %v; want it to name %q", err, want)
 	}
 	wantApplied(5)
 	writeLockFree()

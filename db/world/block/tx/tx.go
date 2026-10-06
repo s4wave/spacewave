@@ -209,6 +209,17 @@ func (t *Tx) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	return nil
 }
 
+// nameMissingBlock wraps an operation's failure on a missing block with a
+// label naming the operation and with its decoded body, so a stalled replay
+// names the write whose block is gone. Other errors pass through unchanged:
+// their messages become rejection reasons every member must agree on.
+func nameMissingBlock(err error, label string, op world.Operation) error {
+	if !errors.Is(err, block.ErrNotFound) {
+		return err
+	}
+	return errors.Wrapf(err, "%s %v", label, op)
+}
+
 // _ is a type assertion
 var (
 	_ block.Block              = (*Tx)(nil)

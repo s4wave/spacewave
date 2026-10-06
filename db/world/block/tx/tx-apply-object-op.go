@@ -133,7 +133,7 @@ func (t *TxApplyObjectOp) ExecuteTx(
 
 	// apply the operation
 	_, _, err = obj.ApplyObjectOp(ctx, op, sender)
-	return false, err
+	return false, nameMissingBlock(err, opTypeID+" on "+t.GetObjectKey(), op)
 }
 
 // _ is a type assertion
