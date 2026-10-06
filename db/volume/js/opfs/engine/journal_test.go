@@ -8,7 +8,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
-	"github.com/s4wave/spacewave/db/volume/js/opfs/refgraph"
+	"github.com/s4wave/spacewave/db/volume/refgraph"
 )
 
 // journalSweepTarget deletes swept block IRIs from the durable pack store.

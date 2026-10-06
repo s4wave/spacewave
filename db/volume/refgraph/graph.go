@@ -1,5 +1,5 @@
-// Package refgraph stores the garbage-collection ownership graph in the OPFS
-// volume catalogue.
+// Package refgraph stores the garbage collection ownership graph as plain
+// records in a transactional key-value store.
 package refgraph
 
 import (
@@ -12,12 +12,12 @@ import (
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 )
 
-// graphPrefix separates graph records from the other volume catalogue records.
+// graphPrefix separates graph records from the other records in the store.
 const graphPrefix byte = 0x02
 
 // Graph stores graph records in one transactional key/value namespace.
 type Graph struct {
-	// store owns the graph namespace within the volume catalogue.
+	// store holds the graph records under graphPrefix.
 	store kvtx.Store
 }
 
@@ -38,7 +38,7 @@ func graphKey(kind byte, nodes ...string) []byte {
 	key := make([]byte, 1, size)
 	key[0] = kind
 	for _, node := range nodes {
-		key = binary.BigEndian.AppendUint32(key, uint32(len(node))) //nolint:gosec // graph node keys are bounded by the OPFS record size contract.
+		key = binary.BigEndian.AppendUint32(key, uint32(len(node))) //nolint:gosec // node IRIs are far shorter than 4 GiB.
 		key = append(key, node...)
 	}
 	return key

@@ -17,7 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/engine"
-	"github.com/s4wave/spacewave/db/volume/js/opfs/refgraph"
+	"github.com/s4wave/spacewave/db/volume/refgraph"
 	"github.com/sirupsen/logrus"
 )
 
