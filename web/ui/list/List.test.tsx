@@ -48,13 +48,13 @@ describe('List', () => {
   describe('structure', () => {
     it('renders with aria-label="List"', () => {
       render(<List items={[]} rowComponent={TestRow} />)
-      const list = screen.getByRole('list')
+      const list = screen.getByRole('group')
       expect(list.getAttribute('aria-label')).toBe('List')
     })
 
     it('applies custom className', () => {
       render(<List items={[]} rowComponent={TestRow} className="mt-1" />)
-      const list = screen.getByRole('list')
+      const list = screen.getByRole('group')
       expect(list.className).toContain('mt-1')
     })
 

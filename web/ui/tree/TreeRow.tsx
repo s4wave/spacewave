@@ -168,7 +168,7 @@ export function TreeRow<T = void>({
         </div>
       )}
       {hasChildren ? (
-        <button
+        <button type="button"
           className="hover:bg-foreground/5 rounded p-0.5 transition-colors"
           onClick={handleToggle}
           tabIndex={-1}
@@ -205,7 +205,7 @@ export function TreeRow<T = void>({
       {node.icons && (
         <div className="ml-2 flex shrink-0 items-center gap-1">
           {node.icons.map((iconData, iconIndex) => (
-            <button
+            <button type="button"
               key={iconIndex}
               className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground relative rounded p-0.5 transition-colors [&>svg]:h-3 [&>svg]:w-3"
               onClick={(e) => {

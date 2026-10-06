@@ -74,7 +74,7 @@ export function SearchBox({
         />
       )}
       {!focused && (
-        <button
+        <button type="button"
           className="absolute inset-0"
           onClick={() => {
             setFocused(true)

@@ -430,7 +430,7 @@ export function List<T>({
               : 'flex min-h-0 flex-1 flex-col overflow-hidden',
             className,
           )}
-          role="list"
+          role="group"
           aria-label="List"
         >
           {headerContent}
@@ -452,7 +452,7 @@ export function List<T>({
                 {placeholder ?? 'No items'}
               </div>
             ) : autoHeight ? (
-              <div role="list" className="relative">
+              <ul className="relative">
                 {sortedItems.map((item, index) => (
                   <RowComponentInternal
                     key={item.id}
@@ -465,7 +465,7 @@ export function List<T>({
                     }}
                   />
                 ))}
-              </div>
+              </ul>
             ) : (
               <VirtualList
                 listRef={listRef}

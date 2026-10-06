@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 
 // StatusListItemStatus defines the status of an item.
@@ -85,14 +85,6 @@ export function StatusList({
   onItemClick,
 }: StatusListProps) {
   const labels = { ...defaultStatusLabels, ...statusLabels }
-  const handleItemKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key !== 'Enter' && e.key !== ' ') return
-    e.preventDefault()
-    e.currentTarget.dispatchEvent(
-      new MouseEvent('click', { bubbles: true, cancelable: true }),
-    )
-  }, [])
-
   return (
     <div
       className={cn(
@@ -108,13 +100,13 @@ export function StatusList({
         items.map((item) => {
           const content = (
             <>
-              <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5">
                 <StatusIndicator
                   status={item.status}
                   label={labels[item.status]}
                 />
                 <span className="truncate">{item.label}</span>
-              </div>
+              </span>
               {item.detail && (
                 <span className="text-foreground-alt micro-ten shrink-0">
                   {item.detail}
@@ -133,16 +125,14 @@ export function StatusList({
             )
           }
           return (
-            <div
+            <button
               key={item.id}
-              role="button"
-              tabIndex={0}
-              className="hover:bg-background-tertiary flex cursor-pointer items-center justify-between gap-2 py-0.5"
+              type="button"
+              className="hover:bg-background-tertiary flex w-full cursor-pointer items-center justify-between gap-2 py-0.5 text-left"
               onClick={() => onItemClick(item)}
-              onKeyDown={handleItemKeyDown}
             >
               {content}
-            </div>
+            </button>
           )
         })
       )}
