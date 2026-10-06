@@ -1,10 +1,7 @@
 import { useMemo } from 'react'
 
 import type { Frontmatter } from './frontmatter.js'
-import {
-  getFrontmatterTags,
-  stripWikiLinks,
-} from './frontmatter.js'
+import { getFrontmatterTags, stripWikiLinks } from './frontmatter.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { LuTag, LuUser, LuCalendar, LuExternalLink } from 'react-icons/lu'
 
@@ -13,6 +10,82 @@ interface FrontmatterDisplayProps {
   className?: string
   onTagClick?: (tag: string | undefined) => void
   onStatusClick?: (status: string | undefined) => void
+}
+
+// statusTone picks the badge colors for a frontmatter status.
+function statusTone(status: string): string {
+  if (status === 'done' || status === 'complete') {
+    return 'bg-green-500/10 text-green-400'
+  }
+  if (status === 'in-progress') return 'bg-yellow-500/10 text-yellow-400'
+  return 'bg-muted text-muted-foreground'
+}
+
+// StatusBadge renders the status, as a filter button when onClick is set.
+function StatusBadge({
+  status,
+  onClick,
+}: {
+  status: string
+  onClick?: (status: string) => void
+}) {
+  const className = cn(
+    'rounded-full px-2 py-0.5 text-xs font-medium',
+    statusTone(status),
+  )
+  if (!onClick) return <span className={className}>{status}</span>
+
+  return (
+    <button
+      type="button"
+      className={cn(className, 'hover:opacity-80')}
+      onClick={() => onClick(status)}
+      title={`Filter by status: ${status}`}
+    >
+      {status}
+    </button>
+  )
+}
+
+// FrontmatterByline renders the authors, date, and source link.
+function FrontmatterByline({
+  authors,
+  frontmatter,
+}: {
+  authors: string[]
+  frontmatter: Frontmatter
+}) {
+  const date = frontmatter.published ?? frontmatter.created
+
+  return (
+    <>
+      {authors.length > 0 && (
+        <span className="text-muted-foreground flex items-center gap-1 text-xs">
+          <LuUser className="size-2.5" />
+          {authors.join(', ')}
+        </span>
+      )}
+
+      {date && (
+        <span className="text-muted-foreground flex items-center gap-1 text-xs">
+          <LuCalendar className="size-2.5" />
+          {date}
+        </span>
+      )}
+
+      {frontmatter.url && (
+        <a
+          href={frontmatter.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brand flex items-center gap-1 text-xs hover:underline"
+        >
+          <LuExternalLink className="size-2.5" />
+          source
+        </a>
+      )}
+    </>
+  )
 }
 
 // FrontmatterDisplay renders parsed frontmatter as structured UI.
@@ -34,14 +107,15 @@ function FrontmatterDisplay({
     [frontmatter.author],
   )
 
-  const hasContent =
-    tags.length > 0 ||
-    categories.length > 0 ||
-    authors.length > 0 ||
-    frontmatter.status ||
-    frontmatter.created ||
-    frontmatter.published ||
-    frontmatter.url
+  const hasContent = [
+    tags,
+    categories,
+    authors,
+    frontmatter.status,
+    frontmatter.created,
+    frontmatter.published,
+    frontmatter.url,
+  ].some((value) => (Array.isArray(value) ? value.length > 0 : value))
 
   if (!hasContent) return null
 
@@ -52,35 +126,9 @@ function FrontmatterDisplay({
         className,
       )}
     >
-      {frontmatter.status &&
-        (onStatusClick ?
-          <button
-            type="button"
-            className={cn(
-              'rounded-full px-2 py-0.5 text-xs font-medium hover:opacity-80',
-              frontmatter.status === 'done' || frontmatter.status === 'complete'
-                ? 'bg-green-500/10 text-green-400'
-                : frontmatter.status === 'in-progress'
-                  ? 'bg-yellow-500/10 text-yellow-400'
-                  : 'bg-muted text-muted-foreground',
-            )}
-            onClick={() => onStatusClick(frontmatter.status)}
-            title={`Filter by status: ${frontmatter.status}`}
-          >
-            {frontmatter.status}
-          </button>
-        : <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-xs font-medium',
-              frontmatter.status === 'done' || frontmatter.status === 'complete'
-                ? 'bg-green-500/10 text-green-400'
-                : frontmatter.status === 'in-progress'
-                  ? 'bg-yellow-500/10 text-yellow-400'
-                  : 'bg-muted text-muted-foreground',
-            )}
-          >
-            {frontmatter.status}
-          </span>)}
+      {frontmatter.status && (
+        <StatusBadge status={frontmatter.status} onClick={onStatusClick} />
+      )}
 
       {tags.map((tag) => (
         <button
@@ -104,31 +152,7 @@ function FrontmatterDisplay({
         </span>
       ))}
 
-      {authors.length > 0 && (
-        <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <LuUser className="size-2.5" />
-          {authors.join(', ')}
-        </span>
-      )}
-
-      {(frontmatter.created || frontmatter.published) && (
-        <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <LuCalendar className="size-2.5" />
-          {frontmatter.published ?? frontmatter.created}
-        </span>
-      )}
-
-      {frontmatter.url && (
-        <a
-          href={frontmatter.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-brand flex items-center gap-1 text-xs hover:underline"
-        >
-          <LuExternalLink className="size-2.5" />
-          source
-        </a>
-      )}
+      <FrontmatterByline authors={authors} frontmatter={frontmatter} />
     </div>
   )
 }

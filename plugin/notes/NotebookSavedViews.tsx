@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { LuChevronDown } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -21,6 +21,190 @@ interface NotebookSavedViewsProps {
   onLoad(view: SavedView): string | null
 }
 
+type SavedViewDialog = 'save' | 'rename' | 'delete'
+
+const actionClassName =
+  'min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0'
+
+// SavedViewButton renders one saved view action.
+function SavedViewButton({
+  disabled,
+  onClick,
+  children,
+}: {
+  disabled?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      className={actionClassName}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  )
+}
+
+// SavedViewSelect chooses the shared view that Load, Rename, and Delete act on.
+function SavedViewSelect({
+  currentId,
+  views,
+  loading,
+  disabled,
+  onSelect,
+}: {
+  currentId: string
+  views: SavedView[]
+  loading: boolean
+  disabled: boolean
+  onSelect: (id: string) => void
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      Saved view
+      <span className="relative">
+        <select
+          value={currentId}
+          disabled={disabled}
+          onChange={(event) => onSelect(event.target.value)}
+          className="border-border bg-background-primary h-11 w-full appearance-none rounded border py-1 pr-6 pl-1 md:pointer-fine:h-auto md:pointer-fine:appearance-auto md:pointer-fine:pr-1"
+        >
+          <option value="">
+            {loading ? 'Loading views…' : 'Choose a saved view'}
+          </option>
+          {views.map((view) => (
+            <option key={view.id} value={view.id}>
+              {view.name}
+            </option>
+          ))}
+        </select>
+        <LuChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 right-1 size-3 -translate-y-1/2 md:pointer-fine:hidden"
+        />
+      </span>
+    </label>
+  )
+}
+
+// SavedViewActions renders the load, save, rename, and delete actions.
+function SavedViewActions({
+  current,
+  canSaveDraft,
+  disabled,
+  onLoad,
+  onSaveNew,
+  onSaveChanges,
+  onRename,
+  onDelete,
+}: {
+  current: SavedView | undefined
+  canSaveDraft: boolean
+  disabled: boolean
+  onLoad: () => void
+  onSaveNew: () => void
+  onSaveChanges: () => void
+  onRename: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <SavedViewButton disabled={!current || disabled} onClick={onLoad}>
+        Load view
+      </SavedViewButton>
+      <SavedViewButton disabled={!canSaveDraft || disabled} onClick={onSaveNew}>
+        Save new view
+      </SavedViewButton>
+      <SavedViewButton
+        disabled={!current || !canSaveDraft || disabled}
+        onClick={onSaveChanges}
+      >
+        Save changes
+      </SavedViewButton>
+      <SavedViewButton disabled={!current || disabled} onClick={onRename}>
+        Rename
+      </SavedViewButton>
+      <SavedViewButton disabled={!current || disabled} onClick={onDelete}>
+        Delete
+      </SavedViewButton>
+    </div>
+  )
+}
+
+// SavedViewStatus shows the saving state and the latest failure, with a retry
+// action when the failure came from the shared views.
+function SavedViewStatus({
+  pending,
+  message,
+  onRetry,
+}: {
+  pending: boolean
+  message: string | null | undefined
+  onRetry?: () => void
+}) {
+  return (
+    <>
+      {pending && <p role="status">Saving shared view…</p>}
+      {message && (
+        <div role="alert">
+          <p>{message}</p>
+          {onRetry && (
+            <SavedViewButton onClick={onRetry}>
+              Retry shared views
+            </SavedViewButton>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+// SavedViewDialogs renders the name and delete confirmation dialogs.
+function SavedViewDialogs({
+  dialog,
+  current,
+  onConfirmName,
+  onDelete,
+  onClose,
+}: {
+  dialog: SavedViewDialog | null
+  current: SavedView | undefined
+  onConfirmName: (name: string) => void
+  onDelete: () => void
+  onClose: () => void
+}) {
+  const renaming = dialog === 'rename'
+  const handleOpenChange = (open: boolean) => {
+    if (!open) onClose()
+  }
+
+  return (
+    <>
+      <TextInputDialog
+        open={dialog === 'save' || renaming}
+        title={renaming ? 'Rename shared view' : 'Save shared view'}
+        label="View name"
+        defaultValue={renaming ? (current?.name ?? '') : ''}
+        confirmLabel={renaming ? 'Rename' : 'Save for everyone'}
+        requireValue
+        onOpenChange={handleOpenChange}
+        onConfirm={onConfirmName}
+      />
+      <ConfirmActionDialog
+        open={dialog === 'delete'}
+        title="Delete shared view"
+        description={`Delete “${current?.name ?? ''}” for everyone? Your current filters stay here.`}
+        confirmLabel="Delete view"
+        onOpenChange={handleOpenChange}
+        onConfirm={onDelete}
+      />
+    </>
+  )
+}
+
 /** NotebookSavedViews shares explicit definitions while keeping selection and drafts personal. */
 export default function NotebookSavedViews({
   world,
@@ -36,13 +220,12 @@ export default function NotebookSavedViews({
     'selectedSavedView',
     '',
   )
-  const [dialog, setDialog] = useState<'save' | 'rename' | 'delete' | null>(
-    null,
-  )
+  const [dialog, setDialog] = useState<SavedViewDialog | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const saved = useNotebookSavedViews(world, notebook, handle)
   const current = saved.views.find((view) => view.id === selected)
   const disabled = saved.pending || !saved.ready
+  const canSaveDraft = !!draft.sourceRef
 
   // Loading is a personal action; incoming shared edits never replace a local draft.
   const load = () => {
@@ -70,130 +253,56 @@ export default function NotebookSavedViews({
           Save filters for everyone in this Notebook. Load a view to use it
           here.
         </p>
-        <label className="flex flex-col gap-1">
-          Saved view
-          <span className="relative">
-            <select
-              value={current?.id ?? ''}
-              disabled={saved.loading || saved.pending}
-              onChange={(event) => {
-                setSelected(event.target.value)
-                setLoadError(null)
-              }}
-              className="border-border bg-background-primary h-11 w-full appearance-none rounded border py-1 pr-6 pl-1 md:pointer-fine:h-auto md:pointer-fine:appearance-auto md:pointer-fine:pr-1"
-            >
-              <option value="">
-                {saved.loading ? 'Loading views…' : 'Choose a saved view'}
-              </option>
-              {saved.views.map((view) => (
-                <option key={view.id} value={view.id}>
-                  {view.name}
-                </option>
-              ))}
-            </select>
-            <LuChevronDown
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 right-1 size-3 -translate-y-1/2 md:pointer-fine:hidden"
-            />
-          </span>
-        </label>
+        <SavedViewSelect
+          currentId={current?.id ?? ''}
+          views={saved.views}
+          loading={saved.loading}
+          disabled={saved.loading || saved.pending}
+          onSelect={(id) => {
+            setSelected(id)
+            setLoadError(null)
+          }}
+        />
         {selected && !current && !saved.loading && !saved.pending && (
           <p role="status">
             The selected view is no longer available. Choose another view or
             save your current filters.
           </p>
         )}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-            disabled={!current || disabled}
-            onClick={load}
-          >
-            Load view
-          </button>
-          <button
-            type="button"
-            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-            disabled={!draft.sourceRef || disabled}
-            onClick={() => setDialog('save')}
-          >
-            Save new view
-          </button>
-          <button
-            type="button"
-            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-            disabled={!current || !draft.sourceRef || disabled}
-            onClick={() =>
-              current &&
-              saved.save({
-                ...draft,
-                id: current.id,
-                notebook,
-                name: current.name,
-              })
-            }
-          >
-            Save changes
-          </button>
-          <button
-            type="button"
-            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-            disabled={!current || disabled}
-            onClick={() => setDialog('rename')}
-          >
-            Rename
-          </button>
-          <button
-            type="button"
-            className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-            disabled={!current || disabled}
-            onClick={() => setDialog('delete')}
-          >
-            Delete
-          </button>
-        </div>
-        {saved.pending && <p role="status">Saving shared view…</p>}
-        {(saved.error || loadError) && (
-          <div role="alert">
-            <p>{saved.error?.message ?? loadError}</p>
-            {saved.error && (
-              <button
-                type="button"
-                className="min-h-11 min-w-11 md:pointer-fine:min-h-0 md:pointer-fine:min-w-0"
-                onClick={saved.retry}
-              >
-                Retry shared views
-              </button>
-            )}
-          </div>
-        )}
+        <SavedViewActions
+          current={current}
+          canSaveDraft={canSaveDraft}
+          disabled={disabled}
+          onLoad={load}
+          onSaveNew={() => setDialog('save')}
+          onSaveChanges={() =>
+            current &&
+            saved.save({
+              ...draft,
+              id: current.id,
+              notebook,
+              name: current.name,
+            })
+          }
+          onRename={() => setDialog('rename')}
+          onDelete={() => setDialog('delete')}
+        />
+        <SavedViewStatus
+          pending={saved.pending}
+          message={saved.error?.message ?? loadError}
+          onRetry={saved.error ? saved.retry : undefined}
+        />
       </div>
 
-      <TextInputDialog
-        open={dialog === 'save' || dialog === 'rename'}
-        title={dialog === 'rename' ? 'Rename shared view' : 'Save shared view'}
-        label="View name"
-        defaultValue={dialog === 'rename' ? (current?.name ?? '') : ''}
-        confirmLabel={dialog === 'rename' ? 'Rename' : 'Save for everyone'}
-        requireValue
-        onOpenChange={(open) => {
-          if (!open) setDialog(null)
-        }}
-        onConfirm={confirmName}
-      />
-      <ConfirmActionDialog
-        open={dialog === 'delete'}
-        title="Delete shared view"
-        description={`Delete “${current?.name ?? ''}” for everyone? Your current filters stay here.`}
-        confirmLabel="Delete view"
-        onOpenChange={(open) => {
-          if (!open) setDialog(null)
-        }}
-        onConfirm={() => {
+      <SavedViewDialogs
+        dialog={dialog}
+        current={current}
+        onConfirmName={confirmName}
+        onDelete={() => {
           if (current) saved.remove({ id: current.id })
           setDialog(null)
         }}
+        onClose={() => setDialog(null)}
       />
     </details>
   )

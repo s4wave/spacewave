@@ -7,6 +7,112 @@ import { useAppAttachment } from '@s4wave/web/sync/useAppAttachment.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { colors, rankedColors } from './app.js'
 
+interface RankedColor {
+  key: string
+  value: { name: string; hex: string; likes: number }
+}
+
+// ColorViewerFailure shows a failed attachment or query with a recovery action.
+function ColorViewerFailure({
+  error,
+  onRetry,
+}: {
+  error: Error | null
+  onRetry: () => void
+}) {
+  return (
+    <div role="alert" className="p-4">
+      <p>{error?.message}</p>
+      <button type="button" onClick={onRetry}>
+        Reopen color votes
+      </button>
+    </div>
+  )
+}
+
+// ColorChoices lists the ranked colors and reports the picked key.
+function ColorChoices({
+  colors,
+  selected,
+  onSelect,
+}: {
+  colors: RankedColor[]
+  selected: string | null
+  onSelect: (key: string) => void
+}) {
+  return (
+    <ul className="flex flex-col gap-2" aria-label="Colors ranked by votes">
+      {colors.map(({ key, value }) => (
+        <li key={key}>
+          <button
+            type="button"
+            aria-pressed={selected === key}
+            onClick={() => onSelect(key)}
+            className={cn(
+              'border-border flex w-full items-center gap-3 rounded border p-3 text-left',
+              selected === key && 'bg-background-secondary',
+            )}
+          >
+            <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="12" fill={value.hex} />
+            </svg>
+            <span className="flex-1">{value.name}</span>
+            <span>
+              {value.likes} {value.likes === 1 ? 'vote' : 'votes'}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// ColorVoteButton votes for the selected color while a vote is saving.
+function ColorVoteButton({
+  current,
+  pending,
+  onVote,
+}: {
+  current: RankedColor | undefined
+  pending: boolean
+  onVote: (key: string) => void
+}) {
+  let label = 'Select a color to vote'
+  if (current) label = `Vote for ${current.value.name}`
+  if (pending) label = 'Saving vote…'
+
+  return (
+    <button
+      type="button"
+      disabled={!current || pending}
+      className="bg-primary text-primary-foreground rounded px-4 py-2 disabled:opacity-50"
+      onClick={() => current && onVote(current.key)}
+    >
+      {label}
+    </button>
+  )
+}
+
+// MutationFailure shows a failed mutation with its retry action.
+function MutationFailure({
+  error,
+  retryLabel,
+  onRetry,
+}: {
+  error: Error
+  retryLabel: string
+  onRetry: () => void
+}) {
+  return (
+    <div role="alert">
+      <p>{error.message}</p>
+      <button type="button" onClick={onRetry}>
+        {retryLabel}
+      </button>
+    </div>
+  )
+}
+
 /** ColorViewer keeps selection and search local while votes synchronize through World. */
 export default function ColorViewer({
   objectInfo,
@@ -23,14 +129,7 @@ export default function ColorViewer({
   // Failed attachments and queries stay visible with a concrete recovery action.
   if (app.error || result.status === 'error') {
     const error = app.error ?? (result.status === 'error' ? result.error : null)
-    return (
-      <div role="alert" className="p-4">
-        <p>{error?.message}</p>
-        <button type="button" onClick={app.retry}>
-          Reopen color votes
-        </button>
-      </div>
-    )
+    return <ColorViewerFailure error={error} onRetry={app.retry} />
   }
   if (app.loading || result.status !== 'current') {
     return (
@@ -40,7 +139,6 @@ export default function ColorViewer({
     )
   }
   const current = result.value.find(({ key }) => key === selected)
-  const pending = vote.state.status === 'pending'
 
   // Shared values are rendered directly from the query; no optimistic copy is kept.
   return (
@@ -59,29 +157,11 @@ export default function ColorViewer({
           onChange={(event) => setSearch(event.target.value)}
         />
       </label>
-      <ul className="flex flex-col gap-2" aria-label="Colors ranked by votes">
-        {result.value.map(({ key, value }) => (
-          <li key={key}>
-            <button
-              type="button"
-              aria-pressed={selected === key}
-              onClick={() => setSelected(key)}
-              className={cn(
-                'border-border flex w-full items-center gap-3 rounded border p-3 text-left',
-                selected === key && 'bg-background-secondary',
-              )}
-            >
-              <svg aria-hidden="true" className="size-6" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="12" fill={value.hex} />
-              </svg>
-              <span className="flex-1">{value.name}</span>
-              <span>
-                {value.likes} {value.likes === 1 ? 'vote' : 'votes'}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      <ColorChoices
+        colors={result.value}
+        selected={selected}
+        onSelect={setSelected}
+      />
       {result.value.length === 0 && (
         <p>
           {search ? 'No matching colors.' : 'Add the starter colors to begin.'}
@@ -96,33 +176,24 @@ export default function ColorViewer({
           Add starter colors
         </button>
       )}
-      <button
-        type="button"
-        disabled={!current || pending}
-        className="bg-primary text-primary-foreground rounded px-4 py-2 disabled:opacity-50"
-        onClick={() => current && vote.submit({ id: current.key })}
-      >
-        {pending
-          ? 'Saving vote…'
-          : current
-            ? `Vote for ${current.value.name}`
-            : 'Select a color to vote'}
-      </button>
+      <ColorVoteButton
+        current={current}
+        pending={vote.state.status === 'pending'}
+        onVote={(id) => vote.submit({ id })}
+      />
       {vote.state.status === 'error' && (
-        <div role="alert">
-          <p>{vote.state.error.message}</p>
-          <button type="button" onClick={vote.retry}>
-            Retry vote
-          </button>
-        </div>
+        <MutationFailure
+          error={vote.state.error}
+          retryLabel="Retry vote"
+          onRetry={vote.retry}
+        />
       )}
       {initializing.state.status === 'error' && (
-        <div role="alert">
-          <p>{initializing.state.error.message}</p>
-          <button type="button" onClick={initializing.retry}>
-            Retry starter colors
-          </button>
-        </div>
+        <MutationFailure
+          error={initializing.state.error}
+          retryLabel="Retry starter colors"
+          onRetry={initializing.retry}
+        />
       )}
     </section>
   )
