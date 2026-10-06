@@ -191,6 +191,42 @@ func TestStaleRecord(t *testing.T) {
 	model{"c": []byte("v"), "d": []byte("v")}.check(t, db)
 }
 
+// TestBulkOverlay commits large batches back to back, as a bulk import
+// does, and checks that the overlay stays bounded while background
+// checkpoints run behind the writer.
+func TestBulkOverlay(t *testing.T) {
+	// Open a file with small checkpoints.
+	ctx := context.Background()
+	opts := Options{CheckpointMin: 16 << 10, CheckpointMax: 64 << 10}
+	db := openTest(t, filepath.Join(t.TempDir(), "bulk.s4wave"), opts)
+	defer db.Close()
+
+	// Commit batches of keys interleaved across streams, each batch about
+	// one CheckpointMax.
+	const streams, perStream, rounds = 64, 32, 200
+	limit := 4 * opts.CheckpointMax
+	for i := range rounds {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for s := range streams {
+			for j := range perStream {
+				key := fmt.Appendf(nil, "%02d/%08d", s, i*perStream+j)
+				if err := tx.Set(ctx, key, key); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if got := db.cur.Load().overlayBytes; got > limit {
+			t.Fatalf("commit %d: overlay holds %d bytes, over %d", i, got, limit)
+		}
+	}
+}
+
 // childEnv names the file a child process of TestTwoProcesses writes.
 const childEnv = "S4DB_TEST_CHILD"
 

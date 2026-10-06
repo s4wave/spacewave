@@ -20,10 +20,6 @@ const relocateVisits = 4096
 // at once.
 const compactBatch = 64 << 20
 
-// carryOps bounds the changes a background checkpoint leaves for its save
-// to fold in under the writer lock.
-const carryOps = 1024
-
 // writer appends commits, checkpoints, and moves values for one handle. Its
 // fields belong to the holder of the writer lock.
 type writer struct {
@@ -483,10 +479,29 @@ func (w *writer) startCheckpoint() {
 	w.changed = nil
 	st, stripe := w.db.acquire()
 
-	// Build, then save and release under the writer lock.
+	// Build, then save and release under the writer lock, and wake the
+	// writers waiting for the build.
 	w.builds.Go(func() {
-		defer w.building.Store(false)
 		w.runCheckpoint(st, stripe)
+		w.building.Store(false)
+		w.db.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
+	})
+}
+
+// waitBuild waits while a background checkpoint runs and the published
+// overlay exceeds twice CheckpointMax, so a writer that outpaces
+// checkpoints holds bounded memory. The caller does not hold the writer
+// lock, which the build needs.
+func (w *writer) waitBuild(ctx context.Context) error {
+	db := w.db
+	limit := 2 * db.opts.CheckpointMax
+	if db.cur.Load().overlayBytes <= limit {
+		return nil
+	}
+	return db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return !w.building.Load() || db.cur.Load().overlayBytes <= limit, nil
 	})
 }
 
@@ -595,9 +610,10 @@ func (w *writer) writeTree(t *tree) error {
 }
 
 // carryOver collects the overlay entries that follow t's state, so
-// saveTree folds in only the few commits published after it. Records
-// another process appended reload the space, which drops the tree, so
-// this handle's records are the only ones to follow.
+// saveTree folds in under the writer lock only the commits published
+// during the fold. Records another process appended reload the space,
+// which drops the tree, so this handle's records are the only ones to
+// follow.
 func (w *writer) carryOver(ctx context.Context, t *tree) error {
 	// Scan the published state without the writer lock: published states
 	// do not change. The filter is sized for the current tree, which the
@@ -607,32 +623,26 @@ func (w *writer) carryOver(ctx context.Context, t *tree) error {
 	pre.overlay.Scan(t.carried.add)
 
 	// Fold in the records published meanwhile, taking the writer lock only
-	// to copy their list, until few remain. A record is never changed
-	// once listed.
-	for {
-		if err := w.lock(ctx); err != nil {
-			return err
-		}
-		changed := w.changed
-		w.unlock(nil)
-		if t.fold(changed) < carryOps {
-			return nil
-		}
+	// to copy their list. A record is never changed once listed. Folding
+	// again would chase a writer that commits as fast as the fold runs.
+	if err := w.lock(ctx); err != nil {
+		return err
 	}
+	changed := w.changed
+	w.unlock(nil)
+	t.fold(changed)
+	return nil
 }
 
 // fold adds the changes of the records in changed after the carried ones
-// to t.carried, returning the number of changes added.
-func (t *tree) fold(changed []*record) int {
-	var n int
+// to t.carried.
+func (t *tree) fold(changed []*record) {
 	for _, r := range changed {
 		if r.seq > t.carriedSeq {
 			t.carried.addRecord(r)
 			t.carriedSeq = r.seq
-			n += len(r.ops)
 		}
 	}
-	return n
 }
 
 // saveTree saves t and a superblock naming it, and publishes the state
