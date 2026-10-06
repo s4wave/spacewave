@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -21,9 +20,9 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/sirupsen/logrus"
@@ -91,7 +90,6 @@ func (p *sessionPublisher) SubmitAtomic(ctx context.Context, publication *block.
 type sessionFixture struct {
 	engine    *Engine
 	publisher *sessionPublisher
-	db        *bdb.DB
 	volume    *volume_kvtx.Volume
 	load      func(context.Context) (*bucket.ObjectRef, error)
 	legacy    atomic.Int64
@@ -103,8 +101,8 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 	ctx := t.Context()
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel)
-	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(log), testbed.WithVolumeConfig(&volume_bolt.Config{
-		Path: filepath.Join(t.TempDir(), "session.bolt"), VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(log), testbed.WithVolumeConfig(&volume_s4db.Config{
+		Path: filepath.Join(t.TempDir(), "session.s4wave"), VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -122,16 +120,16 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 		t.Fatal("native synced bucket must support publication")
 	}
 
-	// Open the session-head store and require durable Bolt.
+	// Open the session-head store and require a native s4db Volume.
 	store, rel, err := tb.Volume.AccessObjectStore(ctx, "session-head", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(rel)
-	f := &sessionFixture{publisher: &sessionPublisher{AtomicPublisher: publisher}, db: volume_bolt.GetBoltDB(tb.Volume)}
+	f := &sessionFixture{publisher: &sessionPublisher{AtomicPublisher: publisher}}
 	f.volume, _ = tb.Volume.(*volume_kvtx.Volume)
-	if f.volume == nil || f.db == nil || f.db.NoSync || f.db.NoFreelistSync {
-		t.Fatal("test requires durable native Bolt")
+	if f.volume == nil || volume_s4db.GetDB(tb.Volume) == nil {
+		t.Fatal("test requires a native s4db Volume")
 	}
 
 	// Define the head callbacks and open the session engine.

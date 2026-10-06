@@ -5,27 +5,21 @@ package spacewave_cli
 import (
 	"bytes"
 	"cmp"
+	"context"
 	"os"
 	"slices"
 	"strconv"
-	"time"
 
-	"github.com/aperturerobotics/bbolt"
-	bbolt_errors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/aperturerobotics/cli"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/s4db"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
+	"github.com/sirupsen/logrus"
 )
-
-// volumeOpenTimeout bounds the wait for the volume file lock. A daemon shares
-// the lock for its whole lifetime, and a repair holds it exclusively for its
-// whole run, so waiting longer never helps.
-const volumeOpenTimeout = time.Second
 
 // volumeKeyClass accumulates the keys that share one grouping prefix.
 type volumeKeyClass struct {
-	// bucket is the bbolt bucket holding the keys.
-	bucket string
 	// class is the grouping prefix of the keys.
 	class string
 	// keys counts the keys in the class.
@@ -48,8 +42,8 @@ func newDebugVolumeUsageCommand() *cli.Command {
 		Name:      "volume-usage",
 		Usage:     "break down a volume file's keys and bytes by key prefix",
 		ArgsUsage: "<volume-file>",
-		Description: "Reads a bbolt volume file read-only. A running daemon locks its volume, " +
-			"so scan a copy instead (cp -c clones it on APFS).",
+		Description: "Scans an s4db volume file in one snapshot. It may run beside the " +
+			"daemon that has the volume open.",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "prefix",
@@ -85,13 +79,14 @@ func newDebugVolumeUsageCommand() *cli.Command {
 			if c.NArg() != 1 {
 				return errors.New("expected one volume file argument")
 			}
-			return runDebugVolumeUsage(c.Args().First(), []byte(prefix), []byte(separator), depth, width, top, c.String("output"))
+			return runDebugVolumeUsage(c.Context, c.Args().First(), []byte(prefix), []byte(separator), depth, width, top, c.String("output"))
 		},
 	}
 }
 
 // runDebugVolumeUsage scans a volume file and prints its key classes by size.
 func runDebugVolumeUsage(
+	ctx context.Context,
 	path string,
 	prefix []byte,
 	separator []byte,
@@ -111,37 +106,37 @@ func runDebugVolumeUsage(
 	}
 	fileBytes := uint64(fi.Size()) //nolint:gosec // Stat sizes are never negative.
 
-	// Open read-only beside a running daemon, and fail fast while a repair
-	// holds the volume.
-	db, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Timeout: volumeOpenTimeout})
-	if errors.Is(err, bbolt_errors.ErrTimeout) {
-		return errors.Errorf("%s is held by a volume repair; scan it once the repair ends", path)
-	}
+	// Open the file beside any daemon that has it open.
+	db, err := s4db.Open(path, s4db.Options{})
 	if err != nil {
 		return errors.Wrap(err, "open volume")
 	}
 	defer db.Close()
 
+	// Read every key from one snapshot.
+	tx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
 	// Group every key under the prefix by its class.
 	classes := make(map[string]*volumeKeyClass)
 	var total volumeKeyClass
-	err = db.View(func(tx *bbolt.Tx) error {
-		return tx.ForEach(func(name []byte, b *bbolt.Bucket) error {
-			cur := b.Cursor()
-			for k, v := cur.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = cur.Next() {
-				class := volumeKeyClassOf(k[len(prefix):], separator, depth, width)
-				id := string(name) + "\x00" + class
-				kc := classes[id]
-				if kc == nil {
-					kc = &volumeKeyClass{bucket: string(name), class: string(prefix) + class}
-					classes[id] = kc
-				}
-				kc.keys++
-				kc.keyBytes += uint64(len(k))
-				kc.valueBytes += uint64(len(v))
-			}
-			return nil
-		})
+	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
+		// Find or add the key's class.
+		class := volumeKeyClassOf(k[len(prefix):], separator, depth, width)
+		kc := classes[class]
+		if kc == nil {
+			kc = &volumeKeyClass{class: string(prefix) + class}
+			classes[class] = kc
+		}
+
+		// Count the key and its bytes.
+		kc.keys++
+		kc.keyBytes += uint64(len(k))
+		kc.valueBytes += uint64(len(v))
+		return nil
 	})
 	if err != nil {
 		return errors.Wrap(err, "scan volume")
@@ -180,7 +175,6 @@ func runDebugVolumeUsage(
 			ms.WriteMoreIf(&moreClass)
 			ms.WriteObjectStart()
 			var moreField bool
-			writeJSONStringField(ms, &moreField, "bucket", kc.bucket)
 			writeJSONStringField(ms, &moreField, "class", kc.class)
 			writeJSONUint64Field(ms, &moreField, "keys", kc.keys)
 			writeJSONUint64Field(ms, &moreField, "keyBytes", kc.keyBytes)
@@ -201,10 +195,9 @@ func runDebugVolumeUsage(
 		{"Value Bytes", humanize.IBytes(total.valueBytes)},
 	})
 	os.Stdout.WriteString("\n")
-	rows := [][]string{{"BUCKET", "CLASS", "KEYS", "KEY BYTES", "VALUE BYTES"}}
+	rows := [][]string{{"CLASS", "KEYS", "KEY BYTES", "VALUE BYTES"}}
 	for _, kc := range ranked {
 		rows = append(rows, []string{
-			kc.bucket,
 			kc.class,
 			strconv.FormatUint(kc.keys, 10),
 			humanize.IBytes(kc.keyBytes),
@@ -241,4 +234,34 @@ func volumeKeyClassOf(key, separator []byte, depth, width int) string {
 		}
 	}
 	return string(class)
+}
+
+// openStoppedVolume opens the volume file at path without creating or
+// rewriting its peer key, and refuses it while another process has it open.
+// A daemon started meanwhile shares the file, so stop it for the whole run.
+// The caller closes the volume.
+func openStoppedVolume(ctx context.Context, le *logrus.Entry, path string) (*volume_s4db.Volume, error) {
+	// Refuse a missing file, which the open would create.
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
+		Path:          path,
+		NoGenerateKey: true,
+		NoWriteKey:    true,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "open volume")
+	}
+
+	// Refuse a volume a daemon has open.
+	shared, err := volume_s4db.GetDB(vol).Shared()
+	if err == nil && shared {
+		err = errors.Errorf("%s is open in another process; stop the daemon first", path)
+	}
+	if err != nil {
+		vol.Close()
+		return nil, err
+	}
+	return vol, nil
 }

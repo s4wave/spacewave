@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/util/prng"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
@@ -20,7 +19,7 @@ import (
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
@@ -31,7 +30,7 @@ import (
 type untrackedCopyBucket struct {
 	bucket.BucketOps
 	// vol receives the copies.
-	vol *volume_bolt.Bolt
+	vol *volume_s4db.Volume
 }
 
 // PutBlock writes the block and copies it.
@@ -69,7 +68,7 @@ func TestDebugRefRepair(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	path := filepath.Join(t.TempDir(), "volume.s4wave")
-	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{Path: path})
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,10 +144,7 @@ func TestDebugRefRepair(t *testing.T) {
 	}
 	conf := kvkey.DefaultConfig()
 	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/world-replay/cursor"))
-	err = volume_bolt.GetBoltDB(vol).Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket([]byte("hydra")).Put(key, data)
-	})
-	if err != nil {
+	if err := putKey(ctx, vol, key, data); err != nil {
 		t.Fatal(err)
 	}
 	if err := vol.Close(); err != nil {

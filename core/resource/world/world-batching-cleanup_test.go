@@ -11,8 +11,8 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	sdk_cursor "github.com/s4wave/spacewave/sdk/bucket/lookup"
@@ -23,12 +23,12 @@ import (
 // Count real owner-side Resource handles, not merely local goroutines or a mock
 // cursor count. Successful commits and discarded staged attempts must release
 // every transaction, object, and cursor handle back to the same baseline.
-func TestWorldBatchingResourceCleanupSyncedBolt(t *testing.T) {
+func TestWorldBatchingResourceCleanupS4db(t *testing.T) {
 
 	// context ctx.
 	ctx := t.Context()
-	tb, err := world_testbed.WithTestbedOptions(ctx, []db_testbed.Option{db_testbed.WithVolumeConfig(&volume_bolt.Config{
-		Path: filepath.Join(t.TempDir(), "resources.bolt"), VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
+	tb, err := world_testbed.WithTestbedOptions(ctx, []db_testbed.Option{db_testbed.WithVolumeConfig(&volume_s4db.Config{
+		Path: filepath.Join(t.TempDir(), "resources.s4wave"), VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
 	})}, nil)
 	if err != nil {
 		t.Fatal(err)

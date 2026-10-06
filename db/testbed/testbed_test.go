@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/testbed"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,8 +14,8 @@ import (
 func TestReleaseClosesVolume(t *testing.T) {
 	// Start a testbed with a file-backed volume whose closure can be observed.
 	ctx := t.Context()
-	path := filepath.Join(t.TempDir(), "volume.db")
-	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), testbed.WithVolumeConfig(&volume_bolt.Config{Path: path}))
+	path := filepath.Join(t.TempDir(), "volume.s4wave")
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), testbed.WithVolumeConfig(&volume_s4db.Config{Path: path}))
 	if err != nil {
 		t.Fatal(err)
 	}

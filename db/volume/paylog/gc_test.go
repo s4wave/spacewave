@@ -5,6 +5,8 @@ package paylog
 import (
 	"context"
 	"slices"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -126,7 +128,7 @@ func TestMaintenanceRemoved(t *testing.T) {
 			}
 
 			// Remove the second while maintenance reads it for the move.
-			d.onRead = func() {
+			onRead := func() {
 				if err := s.RmBlock(ctx, refs[1]); err != nil {
 					t.Error(err)
 				}
@@ -134,10 +136,11 @@ func TestMaintenanceRemoved(t *testing.T) {
 					t.Error(err)
 				}
 			}
+			d.onRead.Store(&onRead)
 			if err := s.Maintenance(ctx); err != nil {
 				t.Fatal(err)
 			}
-			d.onRead = nil
+			d.onRead.Store(nil)
 			checkBlocks(t, s, refs, "", "")
 			checkStats(t, s, 0, 0)
 
@@ -153,18 +156,23 @@ func TestMaintenanceRemoved(t *testing.T) {
 	}
 }
 
-// hookDevice is a device that calls onRead, once, before a read.
+// hookDevice is a device that calls onRead, once, before a segment read. An
+// index may read its own files from other goroutines meanwhile.
 type hookDevice struct {
 	device.Device
-	// onRead is called before the next read, then cleared.
-	onRead func()
+	// onRead is called before the next segment read, then cleared.
+	onRead atomic.Pointer[func()]
 }
 
-// Read calls and clears onRead, then reads.
+// Read calls and clears onRead before a segment read, then reads.
 func (d *hookDevice) Read(ctx context.Context, reads []device.Read) error {
-	if fn := d.onRead; fn != nil {
-		d.onRead = nil
-		fn()
+	segment := slices.ContainsFunc(reads, func(r device.Read) bool {
+		return strings.HasPrefix(r.Name, segmentPrefix)
+	})
+	if segment {
+		if fn := d.onRead.Swap(nil); fn != nil {
+			(*fn)()
+		}
 	}
 	return d.Device.Read(ctx, reads)
 }

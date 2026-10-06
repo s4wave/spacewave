@@ -8,17 +8,17 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/bucket"
-	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
+	"github.com/s4wave/spacewave/db/s4db"
 )
 
 // TestLoadHeadStateWithActiveReader requires head reads to coexist with retained snapshots.
 func TestLoadHeadStateWithActiveReader(t *testing.T) {
-	// Seed the persisted head through the same Bolt store used by native controllers.
-	store, err := store_kvtx_bolt.Open(filepath.Join(t.TempDir(), "head.db"), 0o600, nil, []byte("head"))
+	// Seed the persisted head through the same s4db store used by native controllers.
+	store, err := s4db.Open(filepath.Join(t.TempDir(), "head.s4wave"), s4db.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = store.GetDB().Close() })
+	t.Cleanup(func() { _ = store.Close() })
 	controller := &Controller{conf: &Config{}}
 	want := &bucket.ObjectRef{BucketId: "retained"}
 	if err := controller.writeHeadState(t.Context(), store, nil, want); err != nil {

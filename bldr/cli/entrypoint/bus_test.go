@@ -7,8 +7,8 @@ import (
 	"errors"
 	"testing"
 
-	bbolt_errors "github.com/aperturerobotics/bbolt/errors"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	"github.com/s4wave/spacewave/db/s4db"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +20,7 @@ func TestReleaseClosesStorage(t *testing.T) {
 			name = "canceled parent"
 		}
 		t.Run(name, func(t *testing.T) {
-			// Build the CLI bus and resolve its Bolt database.
+			// Build the CLI bus and resolve its s4db database.
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 			b, err := BuildCliBus(ctx, logrus.NewEntry(logrus.New()), "test", t.TempDir())
@@ -28,9 +28,9 @@ func TestReleaseClosesStorage(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer b.Release()
-			db := volume_bolt.GetBoltDB(b.GetVolume())
+			db := volume_s4db.GetDB(b.GetVolume())
 			if db == nil {
-				t.Fatal("CLI storage did not provide a Bolt database")
+				t.Fatal("CLI storage did not provide an s4db database")
 			}
 
 			// Verify on release that caller cleanup runs after storage closes.
@@ -38,11 +38,11 @@ func TestReleaseClosesStorage(t *testing.T) {
 				if b.GetContext().Err() == nil {
 					t.Error("caller cleanup ran before bus cancellation")
 				}
-				tx, err := db.Begin(false)
+				tx, err := db.NewTransaction(context.Background(), false)
 				if tx != nil {
-					_ = tx.Rollback()
+					tx.Discard()
 				}
-				if !errors.Is(err, bbolt_errors.ErrDatabaseNotOpen) {
+				if !errors.Is(err, s4db.ErrClosed) {
 					t.Errorf("caller cleanup ran before database close: %v", err)
 				}
 			})

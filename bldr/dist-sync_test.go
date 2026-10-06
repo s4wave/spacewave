@@ -17,7 +17,7 @@ func TestAbsolutizeRelativeReplaces(t *testing.T) {
 
 go 1.25.0
 
-replace github.com/aperturerobotics/bbolt => ../bbolt
+replace github.com/aperturerobotics/controllerbus => ../controllerbus
 
 replace github.com/aperturerobotics/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
 `)
@@ -34,21 +34,21 @@ replace github.com/aperturerobotics/logrus => github.com/aperturerobotics/logrus
 	}
 
 	// Collect replacement paths by the original module identity.
-	var gotBbolt string
+	var gotLocal string
 	var gotLogrus string
 	for _, replace := range modFile.Replace {
 		switch replace.Old.Path {
-		case "github.com/aperturerobotics/bbolt":
-			gotBbolt = replace.New.Path
+		case "github.com/aperturerobotics/controllerbus":
+			gotLocal = replace.New.Path
 		case "github.com/aperturerobotics/logrus":
 			gotLogrus = replace.New.Path
 		}
 	}
 
 	// Verify local paths become absolute while versioned paths stay module paths.
-	wantBbolt := filepath.Clean(filepath.Join(repoRoot, "../bbolt"))
-	if gotBbolt != wantBbolt {
-		t.Fatalf("bbolt replace path = %q, want %q", gotBbolt, wantBbolt)
+	wantLocal := filepath.Clean(filepath.Join(repoRoot, "../controllerbus"))
+	if gotLocal != wantLocal {
+		t.Fatalf("local replace path = %q, want %q", gotLocal, wantLocal)
 	}
 	if gotLogrus != "github.com/aperturerobotics/logrus" {
 		t.Fatalf("module replace path = %q, want module path", gotLogrus)
@@ -59,7 +59,7 @@ replace github.com/aperturerobotics/logrus => github.com/aperturerobotics/logrus
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := string(formatted); !strings.Contains(got, "github.com/aperturerobotics/bbolt => "+wantBbolt) {
-		t.Fatalf("formatted go.mod does not contain absolute bbolt replace:\n%s", got)
+	if got := string(formatted); !strings.Contains(got, "github.com/aperturerobotics/controllerbus => "+wantLocal) {
+		t.Fatalf("formatted go.mod does not contain absolute local replace:\n%s", got)
 	}
 }

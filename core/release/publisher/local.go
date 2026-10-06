@@ -11,8 +11,8 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	db_core "github.com/s4wave/spacewave/db/core"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/sirupsen/logrus"
@@ -29,12 +29,12 @@ type LocalWorld struct {
 
 // OpenLocalWorld mounts an application's dedicated publication database.
 // Identifiers are process-local aliases, not cloud accounts or Space IDs.
-func OpenLocalWorld(ctx context.Context, le *logrus.Entry, boltPath, engineID, bucketID string) (_ *LocalWorld, rerr error) {
+func OpenLocalWorld(ctx context.Context, le *logrus.Entry, path, engineID, bucketID string) (_ *LocalWorld, rerr error) {
 	// Require an explicit publication destination before opening local storage.
-	if boltPath == "" || engineID == "" || bucketID == "" {
+	if path == "" || engineID == "" || bucketID == "" {
 		return nil, errors.New("release database, engine, and bucket are required")
 	}
-	absPath, err := filepath.Abs(boltPath)
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func OpenLocalWorld(ctx context.Context, le *logrus.Entry, boltPath, engineID, b
 	}
 	sr.AddFactory(world_block_engine.NewFactory(b))
 	_, _, volumeRef, err := loader.WaitExecControllerRunning(ctx, b,
-		resolver.NewLoadControllerWithConfig(&volume_bolt.Config{
+		resolver.NewLoadControllerWithConfig(&volume_s4db.Config{
 			Path: absPath, NoWriteKey: true,
 			VolumeConfig: &volume_controller.Config{VolumeIdAlias: []string{"release-volume"}},
 		}), nil)

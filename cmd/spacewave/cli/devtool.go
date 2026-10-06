@@ -21,7 +21,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -37,18 +37,18 @@ const (
 	devtoolPluginHostObjectKey = "devtool"
 )
 
-// openDevtoolVolume opens the devtool bolt volume at the given .bldr/ path.
+// openDevtoolVolume opens the devtool volume at the given .bldr/ path.
 func openDevtoolVolume(ctx context.Context, le *logrus.Entry, bldrPath string) (volume.Volume, error) {
 	dbPath := filepath.Join(bldrPath, "devtool.s4wave")
 	if _, err := os.Stat(dbPath); err != nil {
 		return nil, errors.Errorf("devtool database not found at %s", dbPath)
 	}
-	conf := &volume_bolt.Config{
+	conf := &volume_s4db.Config{
 		Path:          dbPath,
 		NoGenerateKey: true,
 		NoWriteKey:    true,
 	}
-	return volume_bolt.NewBolt(ctx, le, conf)
+	return volume_s4db.NewVolume(ctx, le, conf)
 }
 
 // buildStepFactorySet builds the block transform step factory set with gzip support.
@@ -192,11 +192,15 @@ func openDevtoolWorldEngine(
 	return &devtoolWorldEngine{Engine: eng, release: rel}, nil
 }
 
+// devtoolWorldEngine is a World engine that releases its controller on
+// Close.
 type devtoolWorldEngine struct {
 	world.Engine
+	// release releases the engine controller.
 	release func()
 }
 
+// Close releases the engine controller.
 func (e *devtoolWorldEngine) Close() error {
 	e.release()
 	return nil

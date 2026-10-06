@@ -12,10 +12,10 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	store_kvtx_redis "github.com/s4wave/spacewave/db/store/kvtx/redis"
 	volume_badger "github.com/s4wave/spacewave/db/volume/badger"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	volume_redis "github.com/s4wave/spacewave/db/volume/redis"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 )
 
 // CLIVolumeIDAlias is an alias applied to match the default CLI volume.
@@ -26,11 +26,11 @@ type DaemonArgs struct {
 	// BadgerDBs contains a list of badger database directories.
 	// Use a YAML configuration file to adjust options.
 	BadgerDBs cli.StringSlice
-	// BoltDBs contains a list of bolt database files.
+	// S4dbs contains a list of s4db database files.
 	// Use a YAML configuration file to adjust options.
-	BoltDBs cli.StringSlice
-	// BoltDBVerbose marks bolt databases as verbose.
-	BoltDBVerbose bool
+	S4dbs cli.StringSlice
+	// S4dbVerbose marks s4db databases as verbose.
+	S4dbVerbose bool
 	// InmemDB starts an in-memory volume.
 	InmemDB bool
 	// InmemDBVerbose marks the in-memory volume as verbose.
@@ -50,17 +50,17 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 			Destination: &a.BadgerDBs,
 		},
 		&cli.StringSliceFlag{
-			Name:        "bolt-db",
-			Usage:       "set a path to a bolt db file to load on startup",
-			EnvVars:     []string{"HYDRA_BOLT_DB"},
-			Value:       &a.BoltDBs,
-			Destination: &a.BoltDBs,
+			Name:        "s4db",
+			Usage:       "set a path to an s4db file to load on startup",
+			EnvVars:     []string{"HYDRA_S4DB"},
+			Value:       &a.S4dbs,
+			Destination: &a.S4dbs,
 		},
 		&cli.BoolFlag{
-			Name:        "bolt-db-verbose",
-			Usage:       "if set, mark bolt database as verbose",
-			EnvVars:     []string{"HYDRA_BOLT_DB_VERBOSE"},
-			Destination: &a.BoltDBVerbose,
+			Name:        "s4db-verbose",
+			Usage:       "if set, mark s4db databases as verbose",
+			EnvVars:     []string{"HYDRA_S4DB_VERBOSE"},
+			Destination: &a.S4dbVerbose,
 		},
 		&cli.StringFlag{
 			Name:        "redis-url",
@@ -121,17 +121,17 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 	}
 
-	// Register each configured Bolt volume.
-	for i, bdbi := range a.BoltDBs.Value() {
-		id := "cli-bolt-volume-" + strconv.Itoa(i)
-		bdb := strings.TrimSpace(bdbi)
-		if bdb == "" {
+	// Register each configured s4db volume.
+	for i, pathi := range a.S4dbs.Value() {
+		id := "cli-s4db-volume-" + strconv.Itoa(i)
+		path := strings.TrimSpace(pathi)
+		if path == "" {
 			continue
 		}
 		if _, ok := confSet[id]; !ok || overwrite {
-			confSet[id] = configset.NewControllerConfig(1, &volume_bolt.Config{
-				Path:         bdb,
-				Verbose:      a.BoltDBVerbose,
+			confSet[id] = configset.NewControllerConfig(1, &volume_s4db.Config{
+				Path:         path,
+				Verbose:      a.S4dbVerbose,
 				VolumeConfig: baseVolCtrlConf,
 			})
 		}
@@ -180,22 +180,19 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 		}
 	}
 
-	// Build a Bolt volume when a database file is configured.
-	for _, bdbi := range a.BoltDBs.Value() {
-		bdb := strings.TrimSpace(bdbi)
-		if bdb == "" {
+	// Build an s4db volume when a database file is configured.
+	for _, pathi := range a.S4dbs.Value() {
+		path := strings.TrimSpace(pathi)
+		if path == "" {
 			continue
 		}
 		if id != "" {
-			dir := filepath.Dir(bdb)
-			fileName := filepath.Base(bdb)
-			ext := filepath.Ext(fileName)
-			nameWithoutExt := strings.TrimSuffix(fileName, ext)
-			bdb = filepath.Join(dir, nameWithoutExt+"-"+id+ext)
+			ext := filepath.Ext(path)
+			path = strings.TrimSuffix(path, ext) + "-" + id + ext
 		}
-		return &volume_bolt.Config{
-			Path:         bdb,
-			Verbose:      a.BoltDBVerbose,
+		return &volume_s4db.Config{
+			Path:         path,
+			Verbose:      a.S4dbVerbose,
 			VolumeConfig: baseVolCtrlConf,
 		}
 	}

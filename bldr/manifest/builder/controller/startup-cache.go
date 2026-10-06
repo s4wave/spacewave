@@ -25,7 +25,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -143,7 +143,7 @@ func (c *Controller) validateStartupManifestAvailability(
 		if err != nil {
 			return "", err
 		}
-		currentVolumeID = volume.NewVolumeID(volume_bolt.ControllerID, peerID)
+		currentVolumeID = volume.NewVolumeID(volume_s4db.ControllerID, peerID)
 	}
 	var currentBucketID string
 	if currentVolumeID == "" {

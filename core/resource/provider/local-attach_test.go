@@ -29,7 +29,7 @@ func TestAttachAccountRecoversSpaceAfterCatalogLoss(t *testing.T) {
 	open := func() (*testbed.Testbed, *provider_local.Provider, session.SessionController, func()) {
 		// Start the local account testbed over the persistent storage root.
 		t.Helper()
-		tb, err := testbed.Default(ctx, testbed.WithStorages(storage_native.NewBoltDB(false, stateRoot)))
+		tb, err := testbed.Default(ctx, testbed.WithStorages(storage_native.NewS4db(false, stateRoot)))
 		if err != nil {
 			t.Fatal(err)
 		}

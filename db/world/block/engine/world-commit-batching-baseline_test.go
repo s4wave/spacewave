@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	bdb "github.com/aperturerobotics/bbolt"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/s4db"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	sdk_cursor "github.com/s4wave/spacewave/sdk/bucket/lookup"
@@ -32,21 +32,21 @@ type batchingFixture struct {
 	tb     *world_testbed.Testbed
 	client *resource_client.Client
 	engine *sdk_world.Engine
-	db     *bdb.DB
+	db     *s4db.DB
 }
 
 func newBatchingFixture(t testing.TB, history int) *batchingFixture {
 	t.Helper()
-	return newBatchingFixtureAt(t, history, filepath.Join(t.TempDir(), "world.bolt"))
+	return newBatchingFixtureAt(t, history, filepath.Join(t.TempDir(), "world.s4wave"))
 }
 
 func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixture {
-	// Build the Bolt storage testbed for the Resource batching fixture.
+	// Build the s4db storage testbed for the Resource batching fixture.
 	t.Helper()
 	ctx := t.Context()
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel)
-	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(log), db_testbed.WithVolumeConfig(&volume_bolt.Config{
+	tb, err := db_testbed.NewTestbed(ctx, logrus.NewEntry(log), db_testbed.WithVolumeConfig(&volume_s4db.Config{
 		Path:         path,
 		VolumeConfig: &volume_controller.Config{GcIntervalDur: "1h"},
 	}))
@@ -110,25 +110,23 @@ func newBatchingFixtureAt(t testing.TB, history int, path string) *batchingFixtu
 		t.Fatal(err)
 	}
 
-	// Require the fixture to use a native Bolt database with durability enabled.
-	db := volume_bolt.GetBoltDB(tb.Volume)
+	// Require the fixture to use a native s4db database.
+	db := volume_s4db.GetDB(tb.Volume)
 	if db == nil {
-		t.Fatal("not a native Bolt volume")
-	}
-	if db.NoSync || db.NoFreelistSync {
-		t.Fatal("durability must remain enabled")
+		t.Fatal("not a native s4db volume")
 	}
 	return &batchingFixture{tb: wtb, client: client, engine: eng, db: db}
 }
 
 // batchingResourceUpdate times the entire public Resource operation, and records
 // construction and Commit separately. Setup and exact readback are outside the
-// complete-update timer. Physical counts come from bbolt, not logical wrappers.
+// complete-update timer. Physical counts come from the s4db commit sequence,
+// not logical wrappers; a record that starts a log chunk counts once more.
 func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int) (time.Duration, time.Duration, time.Duration, uint64, uint64, uint32) {
 	// Open the Resource World transaction and begin complete-update timing.
 	t.Helper()
 	ctx := t.Context()
-	before := f.db.CommitCounter()
+	before := f.db.Seq()
 	start := time.Now()
 	wtx, err := f.engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -139,7 +137,7 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 
 	// Prepare the Resource objects and record construction commits.
 	keys := batchingResourcePopulate(t, ctx, f, wtx, sample, count)
-	prepared := f.db.CommitCounter()
+	prepared := f.db.Seq()
 
 	// Measure Resource publication latency and its physical commits.
 	commitStart := time.Now()
@@ -148,7 +146,7 @@ func batchingResourceUpdate(t testing.TB, f *batchingFixture, sample, count int)
 	}
 	commitElapsed := time.Since(commitStart)
 	totalElapsed := time.Since(start)
-	after := f.db.CommitCounter()
+	after := f.db.Seq()
 	if b, ok := t.(*testing.B); ok {
 		b.StopTimer()
 	}

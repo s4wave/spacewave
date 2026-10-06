@@ -1070,11 +1070,11 @@ for host_key, platform_id in RELEASE_HOSTS:
 #
 # The spacewave-release remote is the staging area for uploading manifests to
 # the R2-hosted remote world. =bldr publish -p spacewave-release= copies the
-# selected REMOTE_WORLD_MANIFESTS from the devtool world into a local bolt DB
-# at =.bldr/release-spacewave.bdb=. Release automation exports that bolt DB as
-# a kvfile and uploads it to the plugin channel namespace at
+# selected REMOTE_WORLD_MANIFESTS from the devtool world into a local s4db
+# Volume at =.bldr/release-spacewave.s4wave=. Release automation packs that
+# World into a kvfile and uploads it to the plugin channel namespace at
 # =release/plugins/world/<plugin-rev>.kvfile=. The publish timestamp is pinned
-# so identical inputs yield byte-identical bolt output across runs; bump
+# so identical inputs yield identical World contents across runs; bump
 # =RELEASE_PIN_TIMESTAMP_SECONDS= at each release cut.
 
 # Pinned timestamp used for publish so reproducible builds stay stable
@@ -1086,8 +1086,8 @@ remote("spacewave-release",
     engineId="spacewave-release-world",
     objectKey="spacewave/release/manifests",
     hostConfigSet={
-        "release-volume": config_entry("hydra/volume/bolt", 1, {
-            "path": ".bldr/release-spacewave.bdb",
+        "release-volume": config_entry("hydra/volume/s4db", 1, {
+            "path": ".bldr/release-spacewave.s4wave",
             "noWriteKey": True,
             "volumeConfig": {
                 "volumeIdAlias": ["release-volume"],

@@ -13,15 +13,15 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// startBoltLocalProvider starts a testbed and local provider whose accounts
-// store their volumes in bolt databases under dir. The returned release stops
+// startLocalProvider starts a testbed and local provider whose accounts
+// store their volumes in s4db files under dir. The returned release stops
 // both.
-func startBoltLocalProvider(ctx context.Context, t *testing.T, dir string) (*provider_local.Provider, func()) {
+func startLocalProvider(ctx context.Context, t *testing.T, dir string) (*provider_local.Provider, func()) {
 	// Mark this helper for test failure attribution.
 	t.Helper()
 
-	// Open a Bolt-backed testbed and register the local provider factory.
-	tb, err := testbed.Default(ctx, testbed.WithStorages(storage_native.NewBoltDB(false, dir)))
+	// Open an s4db-backed testbed and register the local provider factory.
+	tb, err := testbed.Default(ctx, testbed.WithStorages(storage_native.NewS4db(false, dir)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,16 +76,16 @@ func accountSettingsID(ctx context.Context, t *testing.T, prov *provider_local.P
 // binding survives a restart of the provider and its account with no cloud
 // account.
 //
-// Each run starts a fresh bus on the same bolt directory. The second bus opens
+// Each run starts a fresh bus on the same storage directory. The second bus opens
 // the account volume only after the first releases its file lock, so the
 // account tracker restarts from stored state rather than reusing a live one.
 func TestAccountSettingsBindingPersistsAcrossAccountRestart(t *testing.T) {
-	// Use a temporary Bolt directory for the restart.
+	// Use a temporary storage directory for the restart.
 	ctx := t.Context()
 	dir := t.TempDir()
 
 	// Create an account and record its settings id before shutdown.
-	prov, release := startBoltLocalProvider(ctx, t, dir)
+	prov, release := startLocalProvider(ctx, t, dir)
 	sessRef, err := prov.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
 		release()
@@ -96,7 +96,7 @@ func TestAccountSettingsBindingPersistsAcrossAccountRestart(t *testing.T) {
 	release()
 
 	// Restart the provider and require the same settings id.
-	prov, release = startBoltLocalProvider(ctx, t, dir)
+	prov, release = startLocalProvider(ctx, t, dir)
 	defer release()
 	if id2 := accountSettingsID(ctx, t, prov, accountID); id2 != id1 {
 		t.Fatalf("expected account settings id %q after account restart, got %q", id1, id2)

@@ -14,6 +14,7 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/db/volume/logindex"
 	"github.com/s4wave/spacewave/db/volume/workload"
@@ -33,8 +34,10 @@ type engine struct {
 	open func(ctx context.Context, d device.Device) (Index, error)
 }
 
-// boltEngine is the bbolt index.
-var boltEngine = engine{name: "bolt", open: OpenBolt}
+// s4dbEngine is the s4db index in one device file.
+var s4dbEngine = engine{name: "s4db", open: func(ctx context.Context, d device.Device) (Index, error) {
+	return s4db.OpenDevice(ctx, d, "index", s4db.Options{})
+}}
 
 // logEngine returns the log-structured index with opts.
 func logEngine(opts logindex.Options) engine {
@@ -44,7 +47,7 @@ func logEngine(opts logindex.Options) engine {
 }
 
 // engines are the indexes every store test runs on.
-var engines = []engine{boltEngine, logEngine(logindex.Options{})}
+var engines = []engine{s4dbEngine, logEngine(logindex.Options{})}
 
 // openStore opens a Store on d with e.
 func (e engine) openStore(ctx context.Context, d device.Device) (*Store, error) {

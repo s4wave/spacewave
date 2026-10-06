@@ -2,5 +2,5 @@ hydra
 data/
 *.pem
 hydra.exe
-data.boltdb
+data.s4wave
 __debug_bin

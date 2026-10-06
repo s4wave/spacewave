@@ -15,7 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
-	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
+	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +25,7 @@ func TestSyncDrainScaling(t *testing.T) {
 		t.Run(strconv.Itoa(count), func(t *testing.T) {
 			// Persist metadata in the same native backend used by local volumes.
 			ctx := t.Context()
-			backend, err := store_kvtx_bolt.Open(filepath.Join(t.TempDir(), "queue.db"), 0600, nil, []byte("metadata"))
+			backend, err := s4db.Open(filepath.Join(t.TempDir(), "queue.s4wave"), s4db.Options{})
 			if err != nil {
 				t.Fatal(err)
 			}

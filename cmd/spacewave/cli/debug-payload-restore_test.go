@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/controllerbus/controller"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
@@ -21,7 +20,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -50,7 +49,7 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 		le:   logrus.NewEntry(logrus.New()),
 		path: filepath.Join(t.TempDir(), "volume.s4wave"),
 	}
-	vol, err := volume_bolt.NewBolt(ctx, f.le, &volume_bolt.Config{Path: f.path})
+	vol, err := volume_s4db.NewVolume(ctx, f.le, &volume_s4db.Config{Path: f.path})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,10 +79,7 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 	}
 	conf := kvkey.DefaultConfig()
 	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/world-replay/cursor"))
-	err = volume_bolt.GetBoltDB(vol).Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket([]byte("hydra")).Put(key, cursor)
-	})
-	if err != nil {
+	if err := putKey(ctx, vol, key, cursor); err != nil {
 		t.Fatal(err)
 	}
 
@@ -106,8 +102,8 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 }
 
 // open opens the fixture volume and closes it when the test ends.
-func (f *restoreFixture) open(t *testing.T) *volume_bolt.Bolt {
-	vol, err := volume_bolt.NewBolt(t.Context(), f.le, &volume_bolt.Config{Path: f.path})
+func (f *restoreFixture) open(t *testing.T) *volume_s4db.Volume {
+	vol, err := volume_s4db.NewVolume(t.Context(), f.le, &volume_s4db.Config{Path: f.path})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +113,7 @@ func (f *restoreFixture) open(t *testing.T) *volume_bolt.Bolt {
 
 // requireOwned fails unless the Space's bucket owns the root of data's blob
 // and the root reaches each of its other blocks.
-func (f *restoreFixture) requireOwned(t *testing.T, vol *volume_bolt.Bolt, data []byte) {
+func (f *restoreFixture) requireOwned(t *testing.T, vol *volume_s4db.Volume, data []byte) {
 	// Rebuild the blob's blocks.
 	ctx := t.Context()
 	root, entries, err := encodePayload(ctx, f.xfrm, f.hashType, data)

@@ -68,10 +68,10 @@ import (
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	object_peer "github.com/s4wave/spacewave/db/object/peer"
 	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	volume_sqlite "github.com/s4wave/spacewave/db/volume/sqlite"
 	volume_world "github.com/s4wave/spacewave/db/volume/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -232,11 +232,11 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{unixfs_access_http.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{volume_bolt.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{volume_kvtxinmem.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{volume_rpc_client.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{volume_s4db.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{volume_rpc_server.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

@@ -71,6 +71,21 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 	return vol, nil
 }
 
+// GetDB returns the database of an s4db Volume, or nil for another Volume.
+func GetDB(vol volume.Volume) *s4db.DB {
+	// Unwrap the verbose logger from the Volume's store.
+	kv, ok := vol.(volume_kvtx.KvtxVolume)
+	if !ok {
+		return nil
+	}
+	store := kv.GetKvtxStore()
+	if l, ok := store.(*kvtx_vlogger.VLoggerStore); ok {
+		store = l.Unwrap()
+	}
+	db, _ := store.(*s4db.DB)
+	return db
+}
+
 // storageStats reports the size of the file at path and the number of keys
 // in db.
 func storageStats(ctx context.Context, db *s4db.DB, path string) (*volume.StorageStats, error) {

@@ -10,16 +10,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aperturerobotics/bbolt"
-	bbolt_errors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/aperturerobotics/cli"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/s4db"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,9 +27,6 @@ const volumeRepairEdgeBatch = 4096
 
 // volumeRepairKeyBatch bounds the keys one delete transaction removes.
 const volumeRepairKeyBatch = 50000
-
-// volumeCompactTxBytes bounds the bytes one compaction copy transaction holds.
-const volumeCompactTxBytes = 64 << 20
 
 // volumeRepairResult counts the changes one repair made.
 type volumeRepairResult struct {
@@ -54,18 +50,19 @@ func newDebugVolumeRepairCommand() *cli.Command {
 	var compact bool
 	return &cli.Command{
 		Name:      "volume-repair",
-		Usage:     "release blocks leaked into bucket ownership and optionally compact the file",
+		Usage:     "release blocks leaked into bucket ownership and optionally compact the volume",
 		ArgsUsage: "<volume-file>",
-		Description: "Rewrites a stopped bbolt volume in place. A bucket that owns named roots " +
+		Description: "Rewrites a stopped s4db volume in place. A bucket that owns named roots " +
 			"retains its blocks through them, so its direct block edges are left over from " +
 			"interrupted or superseded writes: the repair removes them, sweeps every block no " +
 			"longer owned, and deletes the local completion proofs the volume graph replaced. " +
-			"With --compact it then copies the volume into a fresh file and swaps it in. " +
+			"With --compact it then moves the remaining values out of sparse pages and " +
+			"returns the freed space to the filesystem. " +
 			"Stop the daemon and keep a copy (cp -c clones it on APFS) before running it.",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:        "compact",
-				Usage:       "copy the repaired volume into a fresh file to return freed pages to the filesystem",
+				Usage:       "compact the repaired volume to return freed space to the filesystem",
 				Destination: &compact,
 			},
 		},
@@ -87,14 +84,9 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 	}
 	res := &volumeRepairResult{bytesBefore: uint64(fi.Size())} //nolint:gosec // Stat sizes are never negative.
 
-	// Refuse a running volume.
-	if err := requireVolumeStopped(path); err != nil {
-		return err
-	}
-
 	// Release the leaked history and its proofs, and compact when asked.
 	le := logrus.NewEntry(logrus.New())
-	if err := repairVolume(ctx, le, path, compact, fi.Mode().Perm(), res); err != nil {
+	if err := repairVolume(ctx, le, path, compact, res); err != nil {
 		return err
 	}
 	fi, err = os.Stat(path)
@@ -132,33 +124,14 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 	return nil
 }
 
-// requireVolumeStopped refuses a volume another process has open. Holding it
-// exclusively would otherwise wait for that process to exit.
-func requireVolumeStopped(path string) error {
-	probe, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Exclusive: true, Timeout: volumeOpenTimeout})
-	if errors.Is(err, bbolt_errors.ErrTimeout) {
-		return errors.Errorf("%s is open in another process; stop the daemon first", path)
-	}
-	if err != nil {
-		return errors.Wrap(err, "open volume")
-	}
-	return probe.Close()
-}
-
-// repairVolume holds the volume exclusively, releases its leaked bucket edges,
+// repairVolume opens the stopped volume, releases its leaked bucket edges,
 // sweeps the blocks they held, deletes the obsolete local proofs and, with
-// compact, replaces the file with a compacted copy.
-func repairVolume(ctx context.Context, le *logrus.Entry, path string, compact bool, mode os.FileMode, res *volumeRepairResult) error {
-	// Hold the volume exclusively without creating or rewriting its peer key.
-	// A daemon started meanwhile waits for the repair to end.
-	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{
-		Path:          path,
-		NoGenerateKey: true,
-		NoWriteKey:    true,
-		Exclusive:     true,
-	})
+// compact, compacts the file.
+func repairVolume(ctx context.Context, le *logrus.Entry, path string, compact bool, res *volumeRepairResult) error {
+	// Open the stopped volume.
+	vol, err := openStoppedVolume(ctx, le, path)
 	if err != nil {
-		return errors.Wrap(err, "open volume")
+		return err
 	}
 	defer vol.Close()
 
@@ -200,19 +173,15 @@ func repairVolume(ctx context.Context, le *logrus.Entry, path string, compact bo
 	}
 
 	// Delete the local proofs the volume graph replaced.
-	db := volume_bolt.GetBoltDB(vol)
-	if db == nil {
-		return errors.New("volume is not bolt-backed")
-	}
-	res.proofKeysDeleted, err = deleteLocalProofKeys(le, db)
+	db := volume_s4db.GetDB(vol)
+	res.proofKeysDeleted, err = deleteLocalProofKeys(ctx, le, db)
 	if err != nil || !compact {
 		return err
 	}
 
-	// Compact while the volume is still held, so no process opens the file
-	// before the compacted copy replaces it.
+	// Release the space the sweep freed.
 	le.Info("compacting volume")
-	return compactVolume(db, path, mode)
+	return db.Compact(ctx)
 }
 
 // releaseBucketBlockEdges removes each direct bucket block edge of the buckets
@@ -268,91 +237,68 @@ func releaseBucketBlockEdges(ctx context.Context, le *logrus.Entry, rg block_gc.
 // deleteLocalProofKeys deletes the RetainWorld completion proofs kept in object
 // stores. A volume that retains roots holds the proofs in its graph and never
 // reads these keys; the next retention pass records what it still needs.
-func deleteLocalProofKeys(le *logrus.Entry, db *bbolt.DB) (uint64, error) {
+func deleteLocalProofKeys(ctx context.Context, le *logrus.Entry, db *s4db.DB) (uint64, error) {
 	// Match the proof segment within the object store keys.
 	conf := kvkey.DefaultConfig()
 	prefix := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix())
 	segment := []byte("/" + sobject_world_engine.LocalProofKeyPrefix)
-	bucketName := []byte("hydra")
 
 	// Delete the matching keys in bounded transactions.
 	var deleted uint64
 	start := prefix
 	for start != nil {
-		err := db.Update(func(tx *bbolt.Tx) error {
-			// Skip a volume without the store bucket.
-			b := tx.Bucket(bucketName)
-			if b == nil {
-				start = nil
-				return nil
-			}
-
-			// Collect a bounded batch, then continue after its last key.
-			var keys [][]byte
-			cur := b.Cursor()
-			k, _ := cur.Seek(start)
-			for ; k != nil && bytes.HasPrefix(k, prefix) && len(keys) < volumeRepairKeyBatch; k, _ = cur.Next() {
-				if bytes.Contains(k, segment) {
-					keys = append(keys, bytes.Clone(k))
-				}
-			}
-			start = nil
-			if k != nil && bytes.HasPrefix(k, prefix) {
-				start = bytes.Clone(k)
-			}
-
-			// Delete the batch outside the cursor walk.
-			for _, key := range keys {
-				if err := b.Delete(key); err != nil {
-					return err
-				}
-			}
-			deleted += uint64(len(keys))
-			return nil
-		})
+		n, next, err := deleteProofKeyBatch(ctx, db, prefix, segment, start)
+		deleted += n
 		if err != nil {
 			return deleted, errors.Wrap(err, "delete proof keys")
 		}
+		start = next
 	}
 	le.Infof("deleted %d local proof keys", deleted)
 	return deleted, nil
 }
 
-// compactVolume copies src, the held volume at path, into a fresh file and
-// renames it over path, returning the pages bbolt freed to the filesystem.
-// Opens waiting for src follow the rename once src closes.
-func compactVolume(src *bbolt.DB, path string, mode os.FileMode) error {
-	// Refuse to overwrite the output of an interrupted compaction.
-	dstPath := path + ".compact"
-	if _, err := os.Stat(dstPath); err == nil {
-		return errors.Errorf("%s exists; remove it after checking it is stale", dstPath)
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-
-	// Copy every bucket into the fresh file.
-	dst, err := bbolt.Open(dstPath, mode, &bbolt.Options{FreelistType: bbolt.FreelistMapType})
+// deleteProofKeyBatch deletes the keys under prefix containing segment among
+// up to volumeRepairKeyBatch keys from start, in one transaction. It returns
+// the number deleted and the key to continue from, or nil at the end.
+func deleteProofKeyBatch(ctx context.Context, db *s4db.DB, prefix, segment, start []byte) (uint64, []byte, error) {
+	// Open a write transaction, discarded unless it commits.
+	tx, err := db.NewTransaction(ctx, true)
 	if err != nil {
-		return errors.Wrap(err, "create compacted volume")
+		return 0, nil, err
 	}
-	if err := bbolt.Compact(dst, src, volumeCompactTxBytes); err != nil {
-		_ = dst.Close()
-		_ = os.Remove(dstPath)
-		return errors.Wrap(err, "compact volume")
-	}
-	if err := dst.Close(); err != nil {
-		_ = os.Remove(dstPath)
-		return err
-	}
+	defer tx.Discard()
 
-	// Swap the copy in and drop the lock files its open created.
-	if err := os.Rename(dstPath, path); err != nil {
-		return err
-	}
-	for _, suffix := range []string{"-lock", "-lock-coord"} {
-		if err := os.Remove(dstPath + suffix); err != nil && !os.IsNotExist(err) {
-			return err
+	// Collect a bounded batch, then continue after its last key.
+	var keys [][]byte
+	var next []byte
+	it := tx.Iterate(ctx, prefix, true, false)
+	for err = it.Seek(start); err == nil && it.Valid(); it.Next() {
+		k := it.Key()
+		if len(keys) == volumeRepairKeyBatch {
+			next = bytes.Clone(k)
+			break
+		}
+		if bytes.Contains(k, segment) {
+			keys = append(keys, bytes.Clone(k))
 		}
 	}
-	return nil
+	if err == nil {
+		err = it.Err()
+	}
+	it.Close()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Delete the batch outside the walk and commit.
+	for _, key := range keys {
+		if err := tx.Delete(ctx, key); err != nil {
+			return 0, nil, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, nil, err
+	}
+	return uint64(len(keys)), next, nil
 }

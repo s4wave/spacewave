@@ -18,14 +18,14 @@ import (
 	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 	web_plugin_electron "github.com/s4wave/spacewave/bldr/web/plugin/electron"
 	web_plugin_saucer "github.com/s4wave/spacewave/bldr/web/plugin/saucer"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	volume_sqlite "github.com/s4wave/spacewave/db/volume/sqlite"
 )
 
 // AddFactories adds the devtool factories.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
 	// volumes
-	sr.AddFactory(volume_bolt.NewFactory(b))
+	sr.AddFactory(volume_s4db.NewFactory(b))
 	sr.AddFactory(volume_sqlite.NewFactory(b))
 
 	// Register factories shared across architecture-specific devtool sets.

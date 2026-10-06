@@ -62,7 +62,7 @@ func (c *failingUpload) PostCheckpoint(context.Context, string, *sobject.SOCheck
 func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 	// Mount the same plaintext publication format used by Bldr remotes.
 	ctx := t.Context()
-	w, err := OpenLocalWorld(ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "release.bdb"), "test-release", "test-release")
+	w, err := OpenLocalWorld(ctx, logrus.NewEntry(logrus.New()), filepath.Join(t.TempDir(), "release.s4wave"), "test-release", "test-release")
 	if err != nil {
 		t.Fatal(err)
 	}

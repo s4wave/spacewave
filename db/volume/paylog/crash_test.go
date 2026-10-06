@@ -19,7 +19,7 @@ import (
 // crashEngines are the engines the crash test runs on. The log engine
 // checkpoints often and in the foreground, so its device calls keep one order
 // and the crash points cover its checkpoints.
-var crashEngines = []engine{boltEngine, logEngine(logindex.Options{CheckpointBytes: 128, Foreground: true})}
+var crashEngines = []engine{s4dbEngine, logEngine(logindex.Options{CheckpointBytes: 128, Foreground: true})}
 
 // TestCrashRecovery runs the crash workload on the memory device with every
 // crash engine.

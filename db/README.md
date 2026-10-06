@@ -142,8 +142,8 @@ The full list of available daemon CLI flags is currently:
 ```
 OPTIONS:
    --badger-db value [ --badger-db value ]              set a path to a badger db dir to load on startup [$HYDRA_BADGER_DB]
-   --bolt-db value [ --bolt-db value ]                  set a path to a bolt db file to load on startup [$HYDRA_BOLT_DB]
-   --bolt-db-verbose                                    if set, mark bolt database as verbose (default: false) [$HYDRA_BOLT_DB_VERBOSE]
+   --s4db value [ --s4db value ]                        set a path to an s4db file to load on startup [$HYDRA_S4DB]
+   --s4db-verbose                                       if set, mark s4db databases as verbose (default: false) [$HYDRA_S4DB_VERBOSE]
    --redis-url value                                    set a url to a redis instance to connect to on startup [$HYDRA_REDIS_URL]
    --inmem-db                                           if set, start a in-memory volume on startup (default: false) [$HYDRA_INMEM_DB]
    --inmem-db-verbose                                   if set, mark inmem database as verbose. implies --inmem-db (default: false) [$HYDRA_INMEM_DB_VERBOSE]
@@ -251,7 +251,7 @@ Controllers:
         controllerbus/configset 0.0.1
         hydra/daemon/api 0.0.1
         bifrost/transport/udp 0.0.1
-        hydra/volume/bolt 0.0.1
+        hydra/volume/s4db 0.0.1
         hydra/world/block/engine 0.0.1
         bifrost/floodsub 0.0.1
         hydra/dex/psecho 0.0.1
@@ -269,14 +269,14 @@ controllers to load and run concurrently with associated configurations.
 For example:
 
 ```yaml
-# In the below example, "my-bolt-db-volume" is the unique ConfigSet controller ID.
+# In the below example, "my-volume" is the unique ConfigSet controller ID.
 # If multiple ConfigSet are applied with the same ID, the config with the highest revision will be used.
 
-# Starts a bbolt database at a path.
-my-bolt-db-volume:
-  id: hydra/volume/bolt
+# Starts an s4db database at a path.
+my-volume:
+  id: hydra/volume/s4db
   config:
-    path: data.bbolt
+    path: data.s4wave
     volumeConfig:
       volumeIdAlias: ["default"]
     verbose: true

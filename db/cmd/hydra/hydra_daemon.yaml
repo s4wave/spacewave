@@ -1,7 +1,7 @@
-cli-bolt-volume-0:
-  id: hydra/volume/bolt
+cli-s4db-volume-0:
+  id: hydra/volume/s4db
   config:
-    path: ./data.boltdb
+    path: ./data.s4wave
     volumeConfig:
       volumeIdAlias:
       - default

@@ -46,7 +46,7 @@ func TestLocalWorldCommitCrash(t *testing.T) {
 	}
 }
 
-// worldCommitCrashWorker runs one step of the crash test on the bolt storage
+// worldCommitCrashWorker runs one step of the crash test on the s4db storage
 // under dir.
 func worldCommitCrashWorker(t *testing.T, role, dir string) {
 	// Start the World, creating it in the seed step.
@@ -66,7 +66,7 @@ func worldCommitCrashWorker(t *testing.T, role, dir string) {
 	if err := os.MkdirAll(storage, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	w := startBoltWorld(t, storage, soRef)
+	w := startLocalWorld(t, storage, soRef)
 
 	// Seed two committed objects and save the SharedObject.
 	switch role {
