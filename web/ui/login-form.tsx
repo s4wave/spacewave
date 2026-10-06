@@ -1,9 +1,9 @@
-/* eslint-disable react-doctor/no-giant-component */
 import React, {
   useCallback,
   useEffect,
   useEffectEvent,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react'
@@ -210,6 +210,893 @@ function Divider({ label }: { label: string }) {
   )
 }
 
+// focusNode focuses an input when it mounts.
+function focusNode(node: HTMLInputElement | null) {
+  node?.focus()
+}
+
+type BrowserSignInHandlers = Pick<
+  LoginFormProps,
+  'onBrowserAuth' | 'onContinueWithPasskey' | 'onSignInWithSSO'
+>
+
+// browserSignInRunner picks the handler that runs a browser sign-in action, or
+// undefined when the form was not given that handler.
+function browserSignInRunner(
+  action: BrowserSignInAction,
+  {
+    onBrowserAuth,
+    onContinueWithPasskey,
+    onSignInWithSSO,
+  }: BrowserSignInHandlers,
+): ((abortSignal: AbortSignal) => Promise<void>) | undefined {
+  if (action === 'browser') {
+    return (
+      onBrowserAuth &&
+      (async (abortSignal) => {
+        await onBrowserAuth(abortSignal)
+      })
+    )
+  }
+  if (action === 'passkey') {
+    return (
+      onContinueWithPasskey &&
+      (async (abortSignal) => {
+        await onContinueWithPasskey(abortSignal)
+      })
+    )
+  }
+  return (
+    onSignInWithSSO &&
+    (async (abortSignal) => {
+      await onSignInWithSSO(action, abortSignal)
+    })
+  )
+}
+
+// authErrorMessage returns the message shown for a sign-in failure.
+function authErrorMessage(msg: string, publicHost: string): string {
+  if (msg.includes('connection refused')) {
+    return 'Cannot reach the server. Please check your connection and try again.'
+  }
+  if (!isDesktop && msg.includes('unsupported host')) {
+    return `Spacewave Cloud sign-in is only supported on ${publicHost}`
+  }
+  return msg
+}
+
+interface PasswordFormState {
+  usernameValid: boolean
+  passwordValid: boolean
+  creatingAccount: boolean
+  agreed: boolean
+  turnstileReady: boolean
+  passwordsMatch: boolean
+}
+
+// passwordFormError returns why the password form cannot be submitted, or null
+// when it can.
+function passwordFormError(form: PasswordFormState): string | null {
+  if (!form.usernameValid) {
+    return 'Username must be a valid DNS label (lowercase letters, numbers, hyphens)'
+  }
+  if (!form.passwordValid) return 'Password must be at least 8 characters'
+  if (form.creatingAccount && !form.agreed) {
+    return 'You must agree to the Terms of Service and Privacy Policy'
+  }
+  if (!form.turnstileReady) return 'Loading server configuration'
+  if (form.creatingAccount && !form.passwordsMatch) {
+    return 'Passwords do not match'
+  }
+  return null
+}
+
+// passwordSubmitBlocked reports whether the password submit button is disabled.
+function passwordSubmitBlocked(
+  form: PasswordFormState,
+  busy: boolean,
+  rateLimitCountdown: number,
+): boolean {
+  return (
+    busy ||
+    !form.usernameValid ||
+    !form.passwordValid ||
+    (form.creatingAccount && !form.agreed) ||
+    !form.turnstileReady ||
+    rateLimitCountdown > 0
+  )
+}
+
+// LoginFooter renders the tagline below the form.
+function LoginFooter({ creatingAccount }: { creatingAccount: boolean }) {
+  return (
+    <div className="text-foreground-alt text-center text-xs leading-relaxed">
+      {creatingAccount ? (
+        'creating a new cloud account'
+      ) : (
+        <>
+          local-first, end-to-end encrypted,{' '}
+          <span className="text-white">no account required</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+// useRateLimitCountdown counts down a server rate limit and remembers that the
+// password submit should be retried once the countdown ends.
+function useRateLimitCountdown() {
+  const [countdown, setCountdown] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingRetryRef = useRef(false)
+
+  useEffect(() => {
+    return () => clearTimeout(timerRef.current ?? undefined)
+  }, [])
+
+  const start = useCallback((seconds: number) => {
+    setCountdown(seconds)
+    pendingRetryRef.current = true
+    let remaining = seconds
+    const tick = () => {
+      remaining -= 1
+      if (remaining <= 0) {
+        timerRef.current = null
+        setCountdown(0)
+        return
+      }
+      timerRef.current = setTimeout(tick, 1000)
+      setCountdown(remaining)
+    }
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(tick, 1000)
+  }, [])
+
+  // consumeRetry reports whether a retry is pending and clears the pending flag.
+  const consumeRetry = useCallback(() => {
+    const pending = pendingRetryRef.current
+    pendingRetryRef.current = false
+    return pending
+  }, [])
+
+  return { countdown, start, consumeRetry }
+}
+
+interface BrowserSignInOptions extends BrowserSignInHandlers {
+  setLoading: (value: string | null) => void
+  setError: (error: string | null) => void
+  onError: (err: unknown) => void
+}
+
+// useBrowserSignIn runs desktop sign-in actions that continue in the system
+// browser. After a delay it prompts the user to reopen or cancel the attempt.
+function useBrowserSignIn({
+  setLoading,
+  setError,
+  onError,
+  ...handlers
+}: BrowserSignInOptions) {
+  const [prompt, setPrompt] = useState<BrowserSignInAction | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  const clearPrompt = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setPrompt(null)
+  }, [])
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    clearPrompt()
+    setLoading(null)
+  }, [clearPrompt, setLoading])
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+      clearTimeout(timerRef.current ?? undefined)
+    }
+  }, [])
+
+  const { onBrowserAuth, onContinueWithPasskey, onSignInWithSSO } = handlers
+  const start = useCallback(
+    async (action: BrowserSignInAction) => {
+      const runner = browserSignInRunner(action, {
+        onBrowserAuth,
+        onContinueWithPasskey,
+        onSignInWithSSO,
+      })
+      if (!runner) return
+
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+      clearPrompt()
+      setLoading(action)
+      setError(null)
+      timerRef.current = setTimeout(() => {
+        if (abortRef.current !== controller) return
+        if (controller.signal.aborted) return
+        setPrompt(action)
+      }, browserSignInPromptDelayMs)
+
+      try {
+        await runner(controller.signal)
+      } catch (err) {
+        if (controller.signal.aborted || isAbortError(err)) return
+        onError(err)
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null
+          clearPrompt()
+          setLoading(null)
+        }
+      }
+    },
+    [
+      clearPrompt,
+      onBrowserAuth,
+      onContinueWithPasskey,
+      onError,
+      onSignInWithSSO,
+      setError,
+      setLoading,
+    ],
+  )
+
+  return { prompt, start, cancel }
+}
+
+interface SignInActionsOptions extends BrowserSignInHandlers {
+  setLoading: (value: string | null) => void
+  setError: (error: string | null) => void
+  onError: (err: unknown) => void
+  startBrowserSignIn: (action: BrowserSignInAction) => Promise<void>
+  onContinueWithoutAccount: LoginFormProps['onContinueWithoutAccount']
+  onLoginWithPem: LoginFormProps['onLoginWithPem']
+  onNavigateToSession: LoginFormProps['onNavigateToSession']
+}
+
+// useSignInActions binds the sign-in methods other than the password: backup
+// key, passkey, SSO, browser auth, and the local account. Desktop routes the
+// browser methods through the browser sign-in prompt.
+function useSignInActions({
+  setLoading,
+  setError,
+  onError,
+  startBrowserSignIn,
+  onContinueWithoutAccount,
+  onLoginWithPem,
+  onNavigateToSession,
+  onContinueWithPasskey,
+  onBrowserAuth,
+  onSignInWithSSO,
+}: SignInActionsOptions) {
+  const [pemFileName, setPemFileName] = useState<string | null>(null)
+
+  const runAction = useCallback(
+    async (action: string, handler?: () => void | Promise<void>) => {
+      if (!handler) return
+      setLoading(action)
+      setError(null)
+      try {
+        await handler()
+      } catch (err) {
+        setError(errorText(err))
+      } finally {
+        setLoading(null)
+      }
+    },
+    [setError, setLoading],
+  )
+
+  const changePemFile = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      readBackupKey(
+        file,
+        (key) => {
+          setPemFileName(file.name)
+          void runAction('pem', async () => {
+            const login = await onLoginWithPem?.(key)
+            if (!login) return
+            onNavigateToSession?.(login.sessionIndex, false)
+          })
+        },
+        () => setError('Failed to read backup key'),
+      )
+      e.target.value = ''
+    },
+    [runAction, onLoginWithPem, onNavigateToSession, setError],
+  )
+
+  const signInWithSSO = useCallback(
+    async (provider: 'google' | 'github') => {
+      if (!onSignInWithSSO) return
+      setLoading(provider)
+      setError(null)
+      try {
+        await onSignInWithSSO(provider)
+      } catch (err) {
+        onError(err)
+      } finally {
+        setLoading(null)
+      }
+    },
+    [onError, onSignInWithSSO, setError, setLoading],
+  )
+
+  return {
+    pemFileName,
+    changePemFile,
+    signInWithSSO: (provider: 'google' | 'github') =>
+      void signInWithSSO(provider),
+    signInWithBrowser: () =>
+      isDesktop ? void startBrowserSignIn('browser') : void onBrowserAuth?.(),
+    signInWithPasskey: () =>
+      isDesktop
+        ? void startBrowserSignIn('passkey')
+        : void runAction('passkey', onContinueWithPasskey),
+    continueWithoutAccount: () =>
+      void runAction('continue', onContinueWithoutAccount),
+  }
+}
+
+// LoginFields renders the username, password, and confirmation inputs.
+function LoginFields({
+  username,
+  password,
+  confirm,
+  busy,
+  creatingAccount,
+  passwordsMatch,
+  onUsernameChange,
+  onPasswordChange,
+  onConfirmChange,
+}: {
+  username: string
+  password: string
+  confirm: string
+  busy: boolean
+  creatingAccount: boolean
+  passwordsMatch: boolean
+  onUsernameChange: (value: string) => void
+  onPasswordChange: (value: string) => void
+  onConfirmChange: (value: string) => void
+}) {
+  const usernameId = useId()
+  const passwordId = useId()
+  const confirmId = useId()
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className={labelClassName} htmlFor={usernameId}>
+          Username
+        </label>
+        <input
+          ref={focusNode}
+          id={usernameId}
+          type="text"
+          value={username}
+          onChange={(e) => onUsernameChange(e.target.value)}
+          placeholder="alice"
+          disabled={busy || creatingAccount}
+          className={inputClassName}
+        />
+      </div>
+
+      <div>
+        <label className={labelClassName} htmlFor={passwordId}>
+          Password
+        </label>
+        <input
+          id={passwordId}
+          type="password"
+          value={password}
+          onChange={(e) => onPasswordChange(e.target.value)}
+          placeholder="Enter password"
+          disabled={busy}
+          className={inputClassName}
+        />
+      </div>
+
+      {creatingAccount && (
+        <div>
+          <label className={labelClassName} htmlFor={confirmId}>
+            Confirm password
+          </label>
+          <input
+            ref={focusNode}
+            id={confirmId}
+            type="password"
+            value={confirm}
+            onChange={(e) => onConfirmChange(e.target.value)}
+            placeholder="Confirm password"
+            disabled={busy}
+            className={cn(
+              inputClassName,
+              confirm.length > 0 && !passwordsMatch && 'border-destructive/50',
+            )}
+          />
+        </div>
+      )}
+
+      {password.length > 0 && <PasswordStrength password={password} />}
+    </div>
+  )
+}
+
+// TermsAgreement renders the terms of service checkbox of account creation.
+function TermsAgreement({
+  agreed,
+  busy,
+  onChange,
+}: {
+  agreed: boolean
+  busy: boolean
+  onChange: (agreed: boolean) => void
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2 select-none">
+      <input
+        type="checkbox"
+        checked={agreed}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={busy}
+        className="accent-brand mt-0.5 size-4 shrink-0 rounded"
+      />
+      <span className="text-foreground-alt text-xs leading-relaxed">
+        I agree to the{' '}
+        <a
+          href="#/tos"
+          className="text-brand inline-flex min-h-11 items-center hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Terms of Service
+        </a>{' '}
+        and{' '}
+        <a
+          href="#/privacy"
+          className="text-brand inline-flex min-h-11 items-center hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Privacy Policy
+        </a>
+      </span>
+    </label>
+  )
+}
+
+// LoginNotices renders the error, rate limit, and browser auth notices.
+function LoginNotices({
+  error,
+  forgotPasswordUrl,
+  rateLimitCountdown,
+  browserAuthRequired,
+  onBrowserAuth,
+}: {
+  error: string | null
+  forgotPasswordUrl: string
+  rateLimitCountdown: number
+  browserAuthRequired: boolean
+  onBrowserAuth: () => void
+}) {
+  return (
+    <>
+      {error && (
+        <div>
+          <p className="text-destructive text-xs">{error}</p>
+          {error.includes('Wrong password') && (
+            <a
+              href={forgotPasswordUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground inline-flex min-h-11 items-center text-xs underline"
+            >
+              Forgot your password?
+            </a>
+          )}
+        </div>
+      )}
+
+      {rateLimitCountdown > 0 && (
+        <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
+          <p className="text-foreground text-xs">
+            Rate limited, retrying in {rateLimitCountdown}s…
+          </p>
+        </div>
+      )}
+
+      {browserAuthRequired && (
+        <div className="border-brand/30 bg-brand/10 rounded-md border p-3">
+          <p className="text-foreground mb-2 text-xs">
+            Enhanced security required. Sign in via your browser.
+          </p>
+          <button
+            type="button"
+            onClick={onBrowserAuth}
+            className={cn(
+              'w-full rounded-md border transition-all duration-300',
+              'border-brand/30 bg-brand/20 hover:bg-brand/30',
+              'flex h-11 items-center justify-center gap-2',
+            )}
+          >
+            <LuKeyRound className="text-foreground size-4" />
+            <span className="text-foreground text-sm">
+              Open browser to sign in…
+            </span>
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+const creatingSteps = [
+  'Creating secure account keys',
+  'Protecting your account credentials',
+  'Opening your first session',
+]
+
+const signingInSteps = [
+  'Checking your credentials',
+  'Unlocking your account key',
+  'Opening your session',
+]
+
+// PasswordSubmit renders the password submit button and, while it runs, the
+// progress card.
+function PasswordSubmit({
+  busy,
+  disabled,
+  creatingAccount,
+  onSubmit,
+}: {
+  busy: boolean
+  disabled: boolean
+  creatingAccount: boolean
+  onSubmit: () => void
+}) {
+  let label = 'Continue with password'
+  if (creatingAccount) label = 'Confirm and create account'
+  if (busy) label = 'Connecting…'
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={disabled}
+        className={cn(
+          'group w-full rounded-md border transition-all duration-300',
+          'border-brand/30 bg-brand/10 hover:bg-brand/20',
+          'disabled:cursor-not-allowed disabled:border-foreground/10 disabled:bg-foreground/5 disabled:opacity-60 disabled:hover:bg-foreground/5',
+          'flex h-11 items-center justify-center gap-2',
+        )}
+      >
+        {busy ? (
+          <Spinner className="text-foreground" />
+        ) : (
+          <LuKeyRound className="text-foreground size-4" />
+        )}
+        <span className="text-foreground text-sm">{label}</span>
+      </button>
+
+      {busy && (
+        <AuthProgressCard
+          title={
+            creatingAccount
+              ? 'Creating your secure account'
+              : 'Signing in securely'
+          }
+          detail="Spacewave is securing your account on this device. This can take a moment."
+          steps={creatingAccount ? creatingSteps : signingInSteps}
+        />
+      )}
+    </>
+  )
+}
+
+const ssoProviders = {
+  google: { label: 'Google', icon: <FcGoogle className="size-5" /> },
+  github: {
+    label: 'GitHub',
+    icon: <LuGithub className="text-foreground-alt size-5" />,
+  },
+}
+
+// SignInMethods renders the backup key, passkey, and SSO sign-in buttons.
+function SignInMethods({
+  loading,
+  pemFileName,
+  canUsePem,
+  canUsePasskey,
+  ssoEnabled,
+  onPemFileChange,
+  onPasskey,
+  onSSO,
+}: {
+  loading: string | null
+  pemFileName: string | null
+  canUsePem: boolean
+  canUsePasskey: boolean
+  ssoEnabled: Record<'google' | 'github', boolean>
+  onPemFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onPasskey: () => void
+  onSSO: (provider: 'google' | 'github') => void
+}) {
+  const pemInputRef = useRef<HTMLInputElement>(null)
+  const busy = loading !== null
+  let pemLabel = 'Backup key (.pem)'
+  if (pemFileName) pemLabel = `Backup key: ${pemFileName}`
+  if (loading === 'pem') pemLabel = 'Signing in with backup key...'
+
+  return (
+    <div className="space-y-2">
+      <input
+        ref={pemInputRef}
+        type="file"
+        accept=".pem"
+        onChange={onPemFileChange}
+        className="hidden"
+      />
+      <SignInMethodButton
+        fullWidth
+        enabled={canUsePem}
+        busy={busy}
+        loading={loading === 'pem'}
+        icon={<LuKeyRound className="text-foreground-alt size-5" />}
+        label={pemLabel}
+        onClick={() => pemInputRef.current?.click()}
+      />
+      <div className="flex gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <SignInMethodButton
+              enabled={canUsePasskey}
+              busy={busy}
+              loading={loading === 'passkey'}
+              icon={<LuFingerprint className="text-foreground-alt size-5" />}
+              label="Passkey"
+              onClick={onPasskey}
+            />
+          </TooltipTrigger>
+          {!canUsePasskey && (
+            <TooltipContent side="bottom">Coming soon</TooltipContent>
+          )}
+        </Tooltip>
+        {(['google', 'github'] as const).map(
+          (provider) =>
+            ssoEnabled[provider] && (
+              <Tooltip key={provider}>
+                <TooltipTrigger asChild>
+                  <SignInMethodButton
+                    enabled
+                    busy={busy}
+                    loading={loading === provider}
+                    icon={ssoProviders[provider].icon}
+                    label={ssoProviders[provider].label}
+                    onClick={() => onSSO(provider)}
+                  />
+                </TooltipTrigger>
+              </Tooltip>
+            ),
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ContinueWithoutAccount renders the local account button.
+function ContinueWithoutAccount({
+  loading,
+  onContinue,
+}: {
+  loading: string | null
+  onContinue: () => void
+}) {
+  return (
+    <>
+      <Divider label="or" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={loading !== null}
+            className={cn(
+              'group relative w-full overflow-hidden rounded-md border transition-all duration-300',
+              'border-foreground/20 bg-background/20 hover:border-brand/30 hover:bg-background/40',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              'flex h-11 items-center justify-between px-4',
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <PiUserCircleDuotone className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
+              <span className="text-foreground-alt group-hover:text-foreground text-sm transition-colors">
+                {loading === 'continue'
+                  ? 'Starting…'
+                  : 'Continue without account'}
+              </span>
+            </div>
+            <RxArrowRight
+              className={cn(
+                'text-foreground-alt group-hover:text-brand size-4 transition-all duration-300',
+                'group-hover:translate-x-1',
+              )}
+            />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          Creates a local account stored only on your device
+        </TooltipContent>
+      </Tooltip>
+    </>
+  )
+}
+
+// BrowserSignInDialog asks the user to reopen or cancel a sign-in that
+// continues in the system browser.
+function BrowserSignInDialog({
+  prompt,
+  onOpenAgain,
+  onCancel,
+}: {
+  prompt: BrowserSignInAction | null
+  onOpenAgain: (action: BrowserSignInAction) => void
+  onCancel: () => void
+}) {
+  return (
+    <Dialog
+      open={prompt !== null}
+      onOpenChange={(open) => {
+        if (!open) onCancel()
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Continue sign-in in your browser</DialogTitle>
+          <DialogDescription>
+            Spacewave opened a {getBrowserSignInLabel(prompt ?? 'browser')}{' '}
+            sign-in page in your web browser. If it did not appear, open it
+            again or cancel this attempt.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => {
+              if (prompt) onOpenAgain(prompt)
+            }}
+            className={cn(
+              'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
+              'border-brand/30 bg-brand/10 text-foreground hover:bg-brand/20',
+            )}
+          >
+            Open again
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className={cn(
+              'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
+              'border-foreground/20 bg-background text-foreground-alt hover:text-foreground',
+            )}
+          >
+            Cancel attempt
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// applyLoginResult routes the outcome of a password login to the form.
+function applyLoginResult(
+  result: LoginResult,
+  actions: {
+    navigate: (sessionIndex: number) => void
+    confirmCreate: () => void
+    fail: (message: string) => void
+  },
+) {
+  switch (result.type) {
+    case 'session':
+      actions.navigate(result.sessionIndex)
+      break
+    case 'new_account':
+      actions.confirmCreate()
+      break
+    case 'error':
+      actions.fail(getErrorMessage(result.errorCode, 'password'))
+      break
+  }
+}
+
+// submitPassword creates the account or logs in, and routes the outcome.
+async function submitPassword(
+  creatingAccount: boolean,
+  credentials: { username: string; password: string; token: string },
+  handlers: Pick<
+    LoginFormProps,
+    | 'onLoginWithPassword'
+    | 'onCreateAccountWithPassword'
+    | 'onNavigateToSession'
+  >,
+  actions: { confirmCreate: () => void; fail: (message: string) => void },
+) {
+  const { username, password, token } = credentials
+  const {
+    onLoginWithPassword,
+    onCreateAccountWithPassword,
+    onNavigateToSession,
+  } = handlers
+  if (creatingAccount) {
+    const result = await onCreateAccountWithPassword?.(
+      username,
+      password,
+      token,
+    )
+    if (result) onNavigateToSession?.(result.sessionIndex, true)
+    return
+  }
+
+  const result = await onLoginWithPassword?.(username, password, token)
+  if (result) {
+    applyLoginResult(result, {
+      navigate: (sessionIndex) => onNavigateToSession?.(sessionIndex, false),
+      ...actions,
+    })
+  }
+}
+
+// errorText returns the message of a thrown value.
+function errorText(err: unknown): string {
+  return err instanceof Error ? err.message : 'An error occurred'
+}
+
+// loginConfig derives the cloud settings that the form depends on.
+function loginConfig(
+  config: CloudProviderConfig | null | undefined,
+  canSignInWithSSO: boolean,
+) {
+  const publicBaseUrl = config?.publicBaseUrl ?? SPACEWAVE_PUBLIC_BASE_URL
+  const turnstileSiteKey = config?.turnstileSiteKey ?? ''
+
+  return {
+    turnstileSiteKey,
+    turnstileReady: isDesktop || turnstileSiteKey !== '',
+    publicHost: stripHost(publicBaseUrl),
+    forgotPasswordUrl: buildHashRouteURL(publicBaseUrl, '/recover'),
+    ssoEnabled: {
+      google: canSignInWithSSO && !!config?.googleSsoEnabled,
+      github: canSignInWithSSO && !!config?.githubSsoEnabled,
+    },
+  }
+}
+
+// readBackupKey reads a backup key file, reporting its bytes or a read failure.
+function readBackupKey(
+  file: File,
+  onRead: (key: Uint8Array) => void,
+  onFail: () => void,
+) {
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (reader.result instanceof ArrayBuffer) {
+      onRead(new Uint8Array(reader.result))
+    }
+  }
+  reader.onerror = onFail
+  reader.readAsArrayBuffer(file)
+}
+
 // LoginForm renders a unified authentication screen with username+password
 // fields and a "Continue with password" button that handles both new account
 // creation and login to existing accounts.
@@ -237,57 +1124,22 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<LoginMode>('login')
   const [agreed, setAgreed] = useState(false)
-  const [rateLimitCountdown, setRateLimitCountdown] = useState(0)
   const [browserAuthRequired, setBrowserAuthRequired] = useState(false)
-  const [browserSignInPrompt, setBrowserSignInPrompt] =
-    useState<BrowserSignInAction | null>(null)
-  const [pemFileName, setPemFileName] = useState<string | null>(null)
   const turnstileRef = useRef<TurnstileInstance>(null)
-  const pemInputRef = useRef<HTMLInputElement>(null)
-  const usernameId = useId()
-  const passwordId = useId()
-  const confirmId = useId()
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const browserSignInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  )
-  const browserSignInAbortRef = useRef<AbortController | null>(null)
-  const turnstileSiteKey = cloudProviderConfig?.turnstileSiteKey ?? ''
-  const publicBaseUrl =
-    cloudProviderConfig?.publicBaseUrl ?? SPACEWAVE_PUBLIC_BASE_URL
-  const publicHost = stripHost(publicBaseUrl)
-  const forgotPasswordUrl = buildHashRouteURL(publicBaseUrl, '/recover')
-  const turnstileReady = isDesktop || turnstileSiteKey !== ''
+  const {
+    turnstileSiteKey,
+    turnstileReady,
+    publicHost,
+    forgotPasswordUrl,
+    ssoEnabled,
+  } = loginConfig(cloudProviderConfig, !!onSignInWithSSO)
   const creatingAccount = mode === 'confirm_create'
-  const googleSsoEnabled =
-    !!onSignInWithSSO && !!cloudProviderConfig?.googleSsoEnabled
-  const githubSsoEnabled =
-    !!onSignInWithSSO && !!cloudProviderConfig?.githubSsoEnabled
+  const busy = loading !== null
   const passwordBusy = loading === 'password'
 
   const usernameValid = dnsLabelRegex.test(username)
   const passwordValid = password.length >= 8
   const passwordsMatch = password === confirm
-
-  const wasRateLimitedRef = useRef(false)
-  const pendingRetryRef = useRef(false)
-  const handleUsernameInputRef = useCallback(
-    (node: HTMLInputElement | null) => {
-      node?.focus()
-    },
-    [],
-  )
-  const handleConfirmInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
-
-  const clearBrowserSignInPrompt = useCallback(() => {
-    if (browserSignInTimerRef.current) {
-      clearTimeout(browserSignInTimerRef.current)
-      browserSignInTimerRef.current = null
-    }
-    setBrowserSignInPrompt(null)
-  }, [])
 
   const onAuthBusyChangeRef = useLatestRef(onAuthBusyChange)
   const setLoading = useCallback(
@@ -298,62 +1150,15 @@ export function LoginForm({
     [onAuthBusyChangeRef],
   )
 
-  const cancelBrowserSignInAttempt = useCallback(() => {
-    browserSignInAbortRef.current?.abort()
-    browserSignInAbortRef.current = null
-    clearBrowserSignInPrompt()
-    setLoading(null)
-  }, [clearBrowserSignInPrompt, setLoading])
-
   const notifyAuthIdleOnUnmount = useEffectEvent(() => {
     onAuthBusyChange?.(false)
   })
 
   useEffect(() => {
-    return () => {
-      notifyAuthIdleOnUnmount()
-      browserSignInAbortRef.current?.abort()
-      clearTimeout(browserSignInTimerRef.current ?? undefined)
-      clearTimeout(retryTimerRef.current ?? undefined)
-    }
+    return () => notifyAuthIdleOnUnmount()
   }, [])
 
-  const startRateLimitCountdown = useCallback((seconds: number) => {
-    setRateLimitCountdown(seconds)
-    setBrowserAuthRequired(false)
-    setError(null)
-    wasRateLimitedRef.current = true
-    pendingRetryRef.current = true
-    let remaining = seconds
-    const tick = () => {
-      remaining -= 1
-      if (remaining <= 0) {
-        retryTimerRef.current = null
-        setRateLimitCountdown(0)
-        return
-      }
-      retryTimerRef.current = setTimeout(tick, 1000)
-      setRateLimitCountdown(remaining)
-    }
-    if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
-    retryTimerRef.current = setTimeout(tick, 1000)
-  }, [])
-
-  const handleAction = useCallback(
-    async (action: string, handler?: () => void | Promise<void>) => {
-      if (!handler) return
-      setLoading(action)
-      setError(null)
-      try {
-        await handler()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(null)
-      }
-    },
-    [setLoading],
-  )
+  const rateLimit = useRateLimitCountdown()
 
   const getTurnstileToken = useCallback(async (): Promise<string> => {
     if (isDesktop) return ''
@@ -362,9 +1167,10 @@ export function LoginForm({
     return token
   }, [])
 
+  const startRateLimit = rateLimit.start
   const handleAuthError = useCallback(
     (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'An error occurred'
+      const msg = errorText(err)
       if (isBrowserAuthRequired(msg)) {
         setBrowserAuthRequired(true)
         setError(null)
@@ -372,43 +1178,59 @@ export function LoginForm({
       }
       const retryAfter = parseRateLimitError(msg)
       if (retryAfter > 0) {
-        startRateLimitCountdown(retryAfter)
+        setBrowserAuthRequired(false)
+        setError(null)
+        startRateLimit(retryAfter)
         return
       }
-      if (msg.includes('connection refused')) {
-        setError(
-          'Cannot reach the server. Please check your connection and try again.',
-        )
-      } else if (!isDesktop && msg.includes('unsupported host')) {
-        setError(`Spacewave Cloud sign-in is only supported on ${publicHost}`)
-      } else {
-        setError(msg)
-      }
+      setError(authErrorMessage(msg, publicHost))
     },
-    [publicHost, startRateLimitCountdown],
+    [publicHost, startRateLimit],
   )
 
+  const browserSignIn = useBrowserSignIn({
+    setLoading,
+    setError,
+    onError: handleAuthError,
+    onBrowserAuth,
+    onContinueWithPasskey,
+    onSignInWithSSO,
+  })
+  const actions = useSignInActions({
+    setLoading,
+    setError,
+    onError: handleAuthError,
+    startBrowserSignIn: browserSignIn.start,
+    onContinueWithoutAccount,
+    onLoginWithPem,
+    onNavigateToSession,
+    onContinueWithPasskey,
+    onBrowserAuth,
+    onSignInWithSSO,
+  })
+
+  const passwordForm = useMemo<PasswordFormState>(
+    () => ({
+      usernameValid,
+      passwordValid,
+      creatingAccount,
+      agreed,
+      turnstileReady,
+      passwordsMatch,
+    }),
+    [
+      usernameValid,
+      passwordValid,
+      creatingAccount,
+      agreed,
+      turnstileReady,
+      passwordsMatch,
+    ],
+  )
   const handleContinueWithPassword = useCallback(async () => {
-    if (!usernameValid) {
-      setError(
-        'Username must be a valid DNS label (lowercase letters, numbers, hyphens)',
-      )
-      return
-    }
-    if (!passwordValid) {
-      setError('Password must be at least 8 characters')
-      return
-    }
-    if (creatingAccount && !agreed) {
-      setError('You must agree to the Terms of Service and Privacy Policy')
-      return
-    }
-    if (!turnstileReady) {
-      setError('Loading server configuration')
-      return
-    }
-    if (creatingAccount && !passwordsMatch) {
-      setError('Passwords do not match')
+    const invalid = passwordFormError(passwordForm)
+    if (invalid) {
+      setError(invalid)
       return
     }
 
@@ -416,41 +1238,24 @@ export function LoginForm({
     setLoading('password')
     try {
       const token = await getTurnstileToken()
-      if (creatingAccount) {
-        const result = await onCreateAccountWithPassword?.(
-          username,
-          password,
-          token,
-        )
-        if (result) onNavigateToSession?.(result.sessionIndex, true)
-      } else {
-        const result = await onLoginWithPassword?.(username, password, token)
-        if (result) {
-          switch (result.type) {
-            case 'session':
-              onNavigateToSession?.(result.sessionIndex, false)
-              break
-            case 'new_account':
-              setMode('confirm_create')
-              break
-            case 'error':
-              setError(getErrorMessage(result.errorCode, 'password'))
-              break
-          }
-        }
-      }
+      await submitPassword(
+        creatingAccount,
+        { username, password, token },
+        {
+          onLoginWithPassword,
+          onCreateAccountWithPassword,
+          onNavigateToSession,
+        },
+        { confirmCreate: () => setMode('confirm_create'), fail: setError },
+      )
     } catch (err) {
       handleAuthError(err)
     } finally {
       setLoading(null)
     }
   }, [
-    usernameValid,
-    passwordValid,
-    agreed,
-    turnstileReady,
+    passwordForm,
     creatingAccount,
-    passwordsMatch,
     getTurnstileToken,
     handleAuthError,
     onLoginWithPassword,
@@ -473,137 +1278,22 @@ export function LoginForm({
     void handleContinueWithPassword()
   })
 
+  // Retry the password submit once the rate limit ends.
+  const { countdown: rateLimitCountdown, consumeRetry } = rateLimit
   useEffect(() => {
-    if (
-      rateLimitCountdown !== 0 ||
-      !pendingRetryRef.current ||
-      loading !== null
-    ) {
-      return
-    }
-    pendingRetryRef.current = false
+    if (rateLimitCountdown !== 0 || loading !== null || !consumeRetry()) return
     const id = setTimeout(continueWithPassword, 0)
     return () => clearTimeout(id)
-  }, [loading, rateLimitCountdown])
+  }, [loading, rateLimitCountdown, consumeRetry])
 
-  const handleUsernameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setUsername(e.target.value.toLowerCase())
-      setError(null)
-    },
-    [],
-  )
-
-  const handlePasswordChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setPassword(e.target.value)
-      setError(null)
-    },
-    [],
-  )
-
-  const handleConfirmChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setConfirm(e.target.value)
-      setError(null)
-    },
-    [],
-  )
-
-  const handlePemFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result
-        if (!(result instanceof ArrayBuffer)) return
-        setPemFileName(file.name)
-        void handleAction('pem', async () => {
-          const login = await onLoginWithPem?.(new Uint8Array(result))
-          if (!login) return
-          onNavigateToSession?.(login.sessionIndex, false)
-        })
-      }
-      reader.onerror = () => {
-        setError('Failed to read backup key')
-      }
-      reader.readAsArrayBuffer(file)
-      e.target.value = ''
-    },
-    [handleAction, onLoginWithPem, onNavigateToSession],
-  )
-
-  const handleDesktopBrowserSignIn = useCallback(
-    async (action: BrowserSignInAction) => {
-      let runner: ((abortSignal: AbortSignal) => Promise<void>) | undefined
-      if (action === 'browser') {
-        if (!onBrowserAuth) return
-        runner = async (abortSignal) => {
-          await onBrowserAuth(abortSignal)
-        }
-      } else if (action === 'passkey') {
-        if (!onContinueWithPasskey) return
-        runner = async (abortSignal) => {
-          await onContinueWithPasskey(abortSignal)
-        }
-      } else {
-        if (!onSignInWithSSO) return
-        runner = async (abortSignal) => {
-          await onSignInWithSSO(action, abortSignal)
-        }
-      }
-
-      browserSignInAbortRef.current?.abort()
-      const controller = new AbortController()
-      browserSignInAbortRef.current = controller
-      clearBrowserSignInPrompt()
-      setLoading(action)
-      setError(null)
-      browserSignInTimerRef.current = setTimeout(() => {
-        if (browserSignInAbortRef.current !== controller) return
-        if (controller.signal.aborted) return
-        setBrowserSignInPrompt(action)
-      }, browserSignInPromptDelayMs)
-
-      try {
-        await runner(controller.signal)
-      } catch (err) {
-        if (controller.signal.aborted || isAbortError(err)) return
-        handleAuthError(err)
-      } finally {
-        if (browserSignInAbortRef.current === controller) {
-          browserSignInAbortRef.current = null
-          clearBrowserSignInPrompt()
-          setLoading(null)
-        }
-      }
-    },
-    [
-      clearBrowserSignInPrompt,
-      handleAuthError,
-      onBrowserAuth,
-      onContinueWithPasskey,
-      onSignInWithSSO,
-      setLoading,
-    ],
-  )
-
-  const handleSSOSignIn = useCallback(
-    async (provider: 'google' | 'github') => {
-      if (!onSignInWithSSO) return
-      setLoading(provider)
-      setError(null)
-      try {
-        await onSignInWithSSO(provider)
-      } catch (err) {
-        handleAuthError(err)
-      } finally {
-        setLoading(null)
-      }
-    },
-    [handleAuthError, onSignInWithSSO, setLoading],
-  )
+  const edit = useCallback((set: (value: string) => void, value: string) => {
+    set(value)
+    setError(null)
+  }, [])
+  const returnToLogin = () => {
+    setMode('login')
+    edit(setConfirm, '')
+  }
 
   return (
     <div
@@ -614,212 +1304,49 @@ export function LoginForm({
     >
       <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
         <div className="space-y-3 p-6">
-          <div className="space-y-3">
-            <div>
-              <label className={labelClassName} htmlFor={usernameId}>
-                Username
-              </label>
-              <input
-                ref={handleUsernameInputRef}
-                id={usernameId}
-                type="text"
-                value={username}
-                onChange={handleUsernameChange}
-                placeholder="alice"
-                disabled={loading !== null || creatingAccount}
-                className={inputClassName}
-              />
-            </div>
-
-            <div>
-              <label className={labelClassName} htmlFor={passwordId}>
-                Password
-              </label>
-              <input
-                id={passwordId}
-                type="password"
-                value={password}
-                onChange={handlePasswordChange}
-                placeholder="Enter password"
-                disabled={loading !== null}
-                className={inputClassName}
-              />
-            </div>
-
-            {creatingAccount && (
-              <div>
-                <label className={labelClassName} htmlFor={confirmId}>
-                  Confirm password
-                </label>
-                <input
-                  ref={handleConfirmInputRef}
-                  id={confirmId}
-                  type="password"
-                  value={confirm}
-                  onChange={handleConfirmChange}
-                  placeholder="Confirm password"
-                  disabled={loading !== null}
-                  className={cn(
-                    inputClassName,
-                    confirm.length > 0 &&
-                      !passwordsMatch &&
-                      'border-destructive/50',
-                  )}
-                />
-              </div>
-            )}
-
-            {password.length > 0 && <PasswordStrength password={password} />}
-          </div>
+          <LoginFields
+            username={username}
+            password={password}
+            confirm={confirm}
+            busy={busy}
+            creatingAccount={creatingAccount}
+            passwordsMatch={passwordsMatch}
+            onUsernameChange={(value) => edit(setUsername, value.toLowerCase())}
+            onPasswordChange={(value) => edit(setPassword, value)}
+            onConfirmChange={(value) => edit(setConfirm, value)}
+          />
 
           {creatingAccount && (
-            <label className="flex cursor-pointer items-start gap-2 select-none">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                disabled={loading !== null}
-                className="accent-brand mt-0.5 size-4 shrink-0 rounded"
-              />
-              <span className="text-foreground-alt text-xs leading-relaxed">
-                I agree to the{' '}
-                <a
-                  href="#/tos"
-                  className="text-brand inline-flex min-h-11 items-center hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a
-                  href="#/privacy"
-                  className="text-brand inline-flex min-h-11 items-center hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Privacy Policy
-                </a>
-              </span>
-            </label>
+            <TermsAgreement agreed={agreed} busy={busy} onChange={setAgreed} />
           )}
 
-          {error && (
-            <div>
-              <p className="text-destructive text-xs">{error}</p>
-              {error.includes('Wrong password') && (
-                <a
-                  href={forgotPasswordUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground inline-flex min-h-11 items-center text-xs underline"
-                >
-                  Forgot your password?
-                </a>
-              )}
-            </div>
-          )}
-
-          {rateLimitCountdown > 0 && (
-            <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3">
-              <p className="text-foreground text-xs">
-                Rate limited, retrying in {rateLimitCountdown}s…
-              </p>
-            </div>
-          )}
-
-          {browserAuthRequired && (
-            <div className="border-brand/30 bg-brand/10 rounded-md border p-3">
-              <p className="text-foreground mb-2 text-xs">
-                Enhanced security required. Sign in via your browser.
-              </p>
-              <button
-                type="button"
-                onClick={() =>
-                  isDesktop
-                    ? void handleDesktopBrowserSignIn('browser')
-                    : void onBrowserAuth?.()
-                }
-                className={cn(
-                  'w-full rounded-md border transition-all duration-300',
-                  'border-brand/30 bg-brand/20 hover:bg-brand/30',
-                  'flex h-11 items-center justify-center gap-2',
-                )}
-              >
-                <LuKeyRound className="text-foreground size-4" />
-                <span className="text-foreground text-sm">
-                  Open browser to sign in…
-                </span>
-              </button>
-            </div>
-          )}
+          <LoginNotices
+            error={error}
+            forgotPasswordUrl={forgotPasswordUrl}
+            rateLimitCountdown={rateLimitCountdown}
+            browserAuthRequired={browserAuthRequired}
+            onBrowserAuth={actions.signInWithBrowser}
+          />
 
           {!isDesktop && turnstileSiteKey !== '' && (
             <Turnstile ref={turnstileRef} siteKey={turnstileSiteKey} />
           )}
 
-          <button
-            type="button"
-            onClick={() => void handleContinueWithPassword()}
-            disabled={
-              loading !== null ||
-              !usernameValid ||
-              !passwordValid ||
-              (creatingAccount && !agreed) ||
-              !turnstileReady ||
-              rateLimitCountdown > 0
-            }
-            className={cn(
-              'group w-full rounded-md border transition-all duration-300',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:border-foreground/10 disabled:bg-foreground/5 disabled:opacity-60 disabled:hover:bg-foreground/5',
-              'flex h-11 items-center justify-center gap-2',
+          <PasswordSubmit
+            busy={passwordBusy}
+            disabled={passwordSubmitBlocked(
+              passwordForm,
+              busy,
+              rateLimitCountdown,
             )}
-          >
-            {passwordBusy ? (
-              <Spinner className="text-foreground" />
-            ) : (
-              <LuKeyRound className="text-foreground size-4" />
-            )}
-            <span className="text-foreground text-sm">
-              {passwordBusy
-                ? 'Connecting…'
-                : creatingAccount
-                  ? 'Confirm and create account'
-                  : 'Continue with password'}
-            </span>
-          </button>
-
-          {passwordBusy && (
-            <AuthProgressCard
-              title={
-                creatingAccount
-                  ? 'Creating your secure account'
-                  : 'Signing in securely'
-              }
-              detail="Spacewave is securing your account on this device. This can take a moment."
-              steps={
-                creatingAccount
-                  ? [
-                      'Creating secure account keys',
-                      'Protecting your account credentials',
-                      'Opening your first session',
-                    ]
-                  : [
-                      'Checking your credentials',
-                      'Unlocking your account key',
-                      'Opening your session',
-                    ]
-              }
-            />
-          )}
+            creatingAccount={creatingAccount}
+            onSubmit={() => void handleContinueWithPassword()}
+          />
 
           {!passwordBusy && creatingAccount && (
             <button
               type="button"
-              onClick={() => {
-                setMode('login')
-                setConfirm('')
-                setError(null)
-              }}
+              onClick={returnToLogin}
               className="text-foreground-alt hover:text-brand min-h-11 w-full text-center text-xs transition-colors"
             >
               &larr; Return to login
@@ -829,190 +1356,34 @@ export function LoginForm({
           {!passwordBusy && mode === 'login' && (
             <>
               <Divider label="or sign in with" />
-
-              <div className="space-y-2">
-                <input
-                  ref={pemInputRef}
-                  type="file"
-                  accept=".pem"
-                  onChange={handlePemFileChange}
-                  className="hidden"
-                />
-                <SignInMethodButton
-                  fullWidth
-                  enabled={!!onLoginWithPem}
-                  busy={loading !== null}
-                  loading={loading === 'pem'}
-                  icon={<LuKeyRound className="text-foreground-alt size-5" />}
-                  label={
-                    loading === 'pem'
-                      ? 'Signing in with backup key...'
-                      : pemFileName
-                        ? `Backup key: ${pemFileName}`
-                        : 'Backup key (.pem)'
-                  }
-                  onClick={() => pemInputRef.current?.click()}
-                />
-                <div className="flex gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SignInMethodButton
-                        enabled={!!onContinueWithPasskey}
-                        busy={loading !== null}
-                        loading={loading === 'passkey'}
-                        icon={
-                          <LuFingerprint className="text-foreground-alt size-5" />
-                        }
-                        label="Passkey"
-                        onClick={() =>
-                          isDesktop
-                            ? void handleDesktopBrowserSignIn('passkey')
-                            : void handleAction(
-                                'passkey',
-                                onContinueWithPasskey,
-                              )
-                        }
-                      />
-                    </TooltipTrigger>
-                    {!onContinueWithPasskey && (
-                      <TooltipContent side="bottom">Coming soon</TooltipContent>
-                    )}
-                  </Tooltip>
-                  {googleSsoEnabled && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <SignInMethodButton
-                          enabled
-                          busy={loading !== null}
-                          loading={loading === 'google'}
-                          icon={<FcGoogle className="size-5" />}
-                          label="Google"
-                          onClick={() => void handleSSOSignIn('google')}
-                        />
-                      </TooltipTrigger>
-                    </Tooltip>
-                  )}
-                  {githubSsoEnabled && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <SignInMethodButton
-                          enabled
-                          busy={loading !== null}
-                          loading={loading === 'github'}
-                          icon={
-                            <LuGithub className="text-foreground-alt size-5" />
-                          }
-                          label="GitHub"
-                          onClick={() => void handleSSOSignIn('github')}
-                        />
-                      </TooltipTrigger>
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-
+              <SignInMethods
+                loading={loading}
+                pemFileName={actions.pemFileName}
+                canUsePem={!!onLoginWithPem}
+                canUsePasskey={!!onContinueWithPasskey}
+                ssoEnabled={ssoEnabled}
+                onPemFileChange={actions.changePemFile}
+                onPasskey={actions.signInWithPasskey}
+                onSSO={actions.signInWithSSO}
+              />
               {onContinueWithoutAccount && (
-                <>
-                  <Divider label="or" />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void handleAction(
-                            'continue',
-                            onContinueWithoutAccount,
-                          )
-                        }
-                        disabled={loading !== null}
-                        className={cn(
-                          'group relative w-full overflow-hidden rounded-md border transition-all duration-300',
-                          'border-foreground/20 bg-background/20 hover:border-brand/30 hover:bg-background/40',
-                          'disabled:cursor-not-allowed disabled:opacity-50',
-                          'flex h-11 items-center justify-between px-4',
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <PiUserCircleDuotone className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
-                          <span className="text-foreground-alt group-hover:text-foreground text-sm transition-colors">
-                            {loading === 'continue'
-                              ? 'Starting…'
-                              : 'Continue without account'}
-                          </span>
-                        </div>
-                        <RxArrowRight
-                          className={cn(
-                            'text-foreground-alt group-hover:text-brand size-4 transition-all duration-300',
-                            'group-hover:translate-x-1',
-                          )}
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      Creates a local account stored only on your device
-                    </TooltipContent>
-                  </Tooltip>
-                </>
+                <ContinueWithoutAccount
+                  loading={loading}
+                  onContinue={actions.continueWithoutAccount}
+                />
               )}
             </>
           )}
         </div>
       </div>
 
-      <Dialog
-        open={browserSignInPrompt !== null}
-        onOpenChange={(open) => {
-          if (!open) cancelBrowserSignInAttempt()
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Continue sign-in in your browser</DialogTitle>
-            <DialogDescription>
-              Spacewave opened a{' '}
-              {getBrowserSignInLabel(browserSignInPrompt ?? 'browser')} sign-in
-              page in your web browser. If it did not appear, open it again or
-              cancel this attempt.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => {
-                if (!browserSignInPrompt) return
-                void handleDesktopBrowserSignIn(browserSignInPrompt)
-              }}
-              className={cn(
-                'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
-                'border-brand/30 bg-brand/10 text-foreground hover:bg-brand/20',
-              )}
-            >
-              Open again
-            </button>
-            <button
-              type="button"
-              onClick={cancelBrowserSignInAttempt}
-              className={cn(
-                'min-h-11 rounded-md border px-4 py-2 text-sm transition-colors',
-                'border-foreground/20 bg-background text-foreground-alt hover:text-foreground',
-              )}
-            >
-              Cancel attempt
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BrowserSignInDialog
+        prompt={browserSignIn.prompt}
+        onOpenAgain={(action) => void browserSignIn.start(action)}
+        onCancel={browserSignIn.cancel}
+      />
 
-      <div className="text-foreground-alt text-center text-xs leading-relaxed">
-        {creatingAccount ? (
-          'creating a new cloud account'
-        ) : (
-          <>
-            local-first, end-to-end encrypted,{' '}
-            <span className="text-white">no account required</span>
-          </>
-        )}
-      </div>
+      <LoginFooter creatingAccount={creatingAccount} />
     </div>
   )
 }

@@ -11,12 +11,70 @@ interface LoadingCardProps {
   className?: string
 }
 
+const tileTone: Record<LoadingState, string> = {
+  loading: 'bg-foreground/5 text-foreground-alt',
+  active: 'bg-brand/10 text-brand',
+  synced: 'bg-foreground/5 text-brand',
+  error: 'bg-destructive/10 text-destructive',
+}
+
+// LoadingCardProgress renders the progress bar, or the transfer rates when no
+// progress is known.
+function LoadingCardProgress({ view }: { view: LoadingView }) {
+  if (view.progress !== undefined || view.progressIndeterminate) {
+    return (
+      <div className="mt-2.5">
+        <ProgressBar
+          value={view.progress === undefined ? undefined : view.progress * 100}
+          indeterminate={view.progressIndeterminate}
+          rate={view.rate?.down ?? view.rate?.up}
+        />
+      </div>
+    )
+  }
+  if (!view.rate) return null
+
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      <RatePill label="Up" value={view.rate.up ?? '0 B/s'} />
+      <RatePill label="Down" value={view.rate.down ?? '0 B/s'} />
+    </div>
+  )
+}
+
+// LoadingCardActions renders the retry and cancel buttons that the view offers.
+function LoadingCardActions({ view }: { view: LoadingView }) {
+  if (!view.onRetry && !view.onCancel) return null
+
+  return (
+    <div className="mt-2.5 flex gap-2">
+      {view.onRetry ? (
+        <button
+          type="button"
+          onClick={view.onRetry}
+          className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground micro-label rounded-md border px-2 py-1 font-medium transition duration-150"
+        >
+          {view.retryLabel ?? 'Retry'}
+        </button>
+      ) : null}
+      {view.onCancel ? (
+        <button
+          type="button"
+          onClick={view.onCancel}
+          className="text-foreground-alt/60 hover:text-foreground-alt micro-label rounded-md px-2 py-1 font-medium transition-colors"
+        >
+          {view.cancelLabel ?? 'Cancel'}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 // LoadingCard is the primary loading surface. Glass card with an size-8 icon
 // box, title, detail, optional progress, rate pills, last-activity footer,
 // error box, and retry / cancel buttons. Four states: loading / active /
 // synced / error.
 export function LoadingCard({ view, className }: LoadingCardProps) {
-  const { state } = view
   return (
     <div
       className={cn(
@@ -28,13 +86,10 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
         <div
           className={cn(
             'flex size-8 shrink-0 items-center justify-center rounded-md',
-            state === 'loading' && 'bg-foreground/5 text-foreground-alt',
-            state === 'active' && 'bg-brand/10 text-brand',
-            state === 'synced' && 'bg-foreground/5 text-brand',
-            state === 'error' && 'bg-destructive/10 text-destructive',
+            tileTone[view.state],
           )}
         >
-          <LoadingCardIcon state={state} />
+          <LoadingCardIcon state={view.state} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-foreground text-sm font-semibold tracking-tight">
@@ -45,23 +100,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
               {view.detail}
             </div>
           ) : null}
-          {view.progress !== undefined || view.progressIndeterminate ? (
-            <div className="mt-2.5">
-              <ProgressBar
-                value={
-                  view.progress === undefined ? undefined : view.progress * 100
-                }
-                indeterminate={view.progressIndeterminate}
-                rate={view.rate?.down ?? view.rate?.up}
-              />
-            </div>
-          ) : null}
-          {view.rate && view.progress === undefined ? (
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <RatePill label="Up" value={view.rate.up ?? '0 B/s'} />
-              <RatePill label="Down" value={view.rate.down ?? '0 B/s'} />
-            </div>
-          ) : null}
+          <LoadingCardProgress view={view} />
           {view.lastActivity ? (
             <div className="text-foreground-alt/40 micro-label mt-2">
               {view.lastActivity}
@@ -72,28 +111,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
               {view.error}
             </div>
           ) : null}
-          {view.onRetry || view.onCancel ? (
-            <div className="mt-2.5 flex gap-2">
-              {view.onRetry ? (
-                <button
-                  type="button"
-                  onClick={view.onRetry}
-                  className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground micro-label rounded-md border px-2 py-1 font-medium transition duration-150"
-                >
-                  {view.retryLabel ?? 'Retry'}
-                </button>
-              ) : null}
-              {view.onCancel ? (
-                <button
-                  type="button"
-                  onClick={view.onCancel}
-                  className="text-foreground-alt/60 hover:text-foreground-alt micro-label rounded-md px-2 py-1 font-medium transition-colors"
-                >
-                  {view.cancelLabel ?? 'Cancel'}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
+          <LoadingCardActions view={view} />
         </div>
       </div>
     </div>
