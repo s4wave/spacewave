@@ -30,8 +30,10 @@ func waitForDriveEntry(t testing.TB, page playwright.Page, name string) {
 }
 
 func openDriveEntry(t testing.TB, page playwright.Page, name string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open the Drive row.
 	row := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + name + "')").First()
 	if err := row.WaitFor(); err != nil {
 		t.Fatalf("wait for %s row: %v", name, err)
@@ -49,13 +51,16 @@ func openDriveEntry(t testing.TB, page playwright.Page, name string) {
 }
 
 func waitForVideoState(t testing.TB, page playwright.Page, label string) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait for the video element.
 	err := page.Locator("video").First().WaitFor()
 	if err != nil {
 		t.Fatalf("wait for video element %q: %v", label, err)
 	}
 
+	// Read the video state from the page.
 	raw, err := page.Evaluate(`async ({label}) => {
 		const node = document.querySelector('video')
 		if (!(node instanceof HTMLVideoElement)) {
@@ -116,8 +121,10 @@ func numberValue(t testing.TB, label string, value any) float64 {
 }
 
 func seekVideo(t testing.TB, page playwright.Page, label string, seconds float64) float64 {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Seek the video and return its current time.
 	raw, err := page.Evaluate(`async ({label, seconds}) => {
 		const node = document.querySelector('video')
 		if (!(node instanceof HTMLVideoElement)) {
@@ -158,12 +165,15 @@ func seekVideo(t testing.TB, page playwright.Page, label string, seconds float64
 // TestQuickstartDriveVideoPreview verifies projected mp4/webm previews load,
 // seek, and survive file-viewer navigation without stale player state.
 func TestQuickstartDriveVideoPreview(t *testing.T) {
+	// Open a clean Drive scenario.
 	sess := harness(t).NewCleanSession(t)
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
+	// Wait for Drive.
 	WaitForDriveReady(t, harness(t), page)
 
+	// Upload the MP4 and WebM fixtures.
 	mp4Name := "video-preview.mp4"
 	webmName := "video-preview.webm"
 	UploadViaPicker(t, page, []playwright.InputFile{
@@ -181,6 +191,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	waitForDriveEntry(t, page, mp4Name)
 	waitForDriveEntry(t, page, webmName)
 
+	// Open the MP4, play it, and seek.
 	openDriveEntry(t, page, mp4Name)
 	mp4State := waitForVideoState(t, page, mp4Name)
 	mp4Src, _ := mp4State["src"].(string)
@@ -194,6 +205,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 		t.Fatalf("expected mp4 seek to advance playback, got %f", currentTime)
 	}
 
+	// Go up and open the WebM.
 	if err := page.Locator("button[title='Up']").First().Click(); err != nil {
 		t.Fatalf("click up from mp4 preview: %v", err)
 	}
@@ -201,6 +213,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	waitForDriveEntry(t, page, webmName)
 	openDriveEntry(t, page, webmName)
 
+	// Play the WebM and seek.
 	webmState := waitForVideoState(t, page, webmName)
 	webmSrc, _ := webmState["src"].(string)
 	if !strings.Contains(webmSrc, "/p/spacewave-core/fs/") || !strings.Contains(webmSrc, "inline=1") {
@@ -216,6 +229,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 		t.Fatalf("expected webm seek to advance playback, got %f", currentTime)
 	}
 
+	// Go back to the Drive list.
 	if err := page.Locator("button[title='Back']").First().Click(); err != nil {
 		t.Fatalf("click back to drive root: %v", err)
 	}
@@ -223,6 +237,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	waitForDriveEntry(t, page, mp4Name)
 	waitForDriveEntry(t, page, webmName)
 
+	// Go back to the MP4 and require it near the start.
 	if err := page.Locator("button[title='Back']").First().Click(); err != nil {
 		t.Fatalf("click back to mp4 preview: %v", err)
 	}
@@ -235,6 +250,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 		t.Fatalf("expected remounted mp4 preview to reset playback, got %f", currentTime)
 	}
 
+	// Go forward to the Drive list.
 	if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
 		t.Fatalf("click forward to drive root: %v", err)
 	}
@@ -242,6 +258,7 @@ func TestQuickstartDriveVideoPreview(t *testing.T) {
 	waitForDriveEntry(t, page, mp4Name)
 	waitForDriveEntry(t, page, webmName)
 
+	// Go forward to the WebM and require its seek.
 	if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
 		t.Fatalf("click forward to webm preview: %v", err)
 	}

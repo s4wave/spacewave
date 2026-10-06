@@ -90,10 +90,12 @@ func NewProvider(
 	peer peer.Peer,
 	handler provider.ProviderHandler,
 ) *Provider {
+	// Register the gzip and block-encryption transform factories.
 	sfs := block_transform.NewStepFactorySet()
 	sfs.AddStepFactory(transform_gzip.NewStepFactory())
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 
+	// Build the provider and its retrying account tracker.
 	p := &Provider{
 		le:                 le,
 		b:                  b,
@@ -186,6 +188,7 @@ func (p *Provider) createAccountSession(ctx context.Context, localAccountID, loc
 	tkr.seedPEM = slices.Clone(keyPEM)
 	tkr.ref.SetResult(sessRef, nil)
 
+	// Wait for the session, persist a linked cloud account, and release the tracker.
 	_, err = tkr.sessionProm.Await(ctx)
 	if err != nil {
 		tkrRef.Release()
@@ -204,6 +207,7 @@ func (p *Provider) createAccountSession(ctx context.Context, localAccountID, loc
 
 // setSeedKey stores a session seed key PEM in the provider-level map.
 func (p *Provider) setSeedKey(providerID, accountID, sessionID string, keyPEM []byte) {
+	// Store a copy of the seed key under the session's provider-level id.
 	release, err := p.seedKeysMtx.Lock(context.Background())
 	if err != nil {
 		p.le.WithError(err).Warn("provider seed key lock failed")
@@ -233,6 +237,7 @@ func seedKeyID(providerID, accountID, sessionID string) string {
 }
 
 func (a *ProviderAccount) writeLinkedCloudAccountID(ctx context.Context, sessionID, cloudAccountID string) error {
+	// Mount the session object store and release it when the write returns.
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
 		ctx,
 		a.t.p.b,
@@ -246,6 +251,7 @@ func (a *ProviderAccount) writeLinkedCloudAccountID(ctx context.Context, session
 	}
 	defer diRef.Release()
 
+	// Write the linked cloud account id under the session key.
 	key := LinkedCloudKey(sessionID)
 	data := []byte(cloudAccountID)
 	err = kvtx.RunTransaction(ctx, true,

@@ -12,6 +12,7 @@ import (
 )
 
 func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -20,6 +21,7 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
@@ -28,11 +30,13 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for starter guidance.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
+	// Prepare the layout and require its tabs.
 	prepare := runObjectLayoutRuntimeScript(t, page, "prepare")
 	objectHash := stringField(prepare, "objectHash")
 	if objectHash == "" {
@@ -42,10 +46,12 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		{id: "files", name: "Files"},
 	})
 
+	// Open the layout object and wait for the getting-started file.
 	NavigateHash(t, harness(t), page, objectHash)
 	waitForObjectLayoutRoute(t, page)
 	waitForDriveEntry(t, page, gettingStartedFileName)
 
+	// Upload a layout file and require its text.
 	layoutFile := playwright.InputFile{
 		Name:     "row7-object-layout.md",
 		MimeType: "text/markdown",
@@ -55,11 +61,13 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 	dropUnixFSOpenableOnObjectLayout(t, page, layoutFile.Name)
 	waitForUnixFSFileText(t, page, "object layout drag tab", "row7 object layout drag body survives route reload")
 
+	// Require the layout tabs after the upload.
 	waitForObjectLayoutTabs(t, page, []layoutTabExpectation{
 		{id: "files"},
 		{name: layoutFile.Name, infoCase: "unixfsObjectInfo", unixfsPath: "/" + layoutFile.Name},
 	})
 
+	// Mutate the layout and require the updated tabs.
 	mutated := runObjectLayoutRuntimeScript(t, page, "typed-mutate")
 	if got := stringField(mutated, "navigatedPath"); got != "/getting-started.md" {
 		t.Fatalf("typed NavigateTab path=%q want /getting-started.md: %#v", got, mutated)
@@ -72,6 +80,7 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		{name: layoutFile.Name, infoCase: "unixfsObjectInfo", unixfsPath: "/" + layoutFile.Name},
 	})
 
+	// Reload and require the tabs.
 	if _, err := page.Reload(); err != nil {
 		t.Fatalf("reload ObjectLayout route: %v", err)
 	}
@@ -83,6 +92,7 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		{name: layoutFile.Name, infoCase: "unixfsObjectInfo", unixfsPath: "/" + layoutFile.Name},
 	})
 
+	// Leave and reopen the layout, and require the tabs.
 	NavigateHash(t, harness(t), page, "#/")
 	NavigateHash(t, harness(t), page, objectHash)
 	waitForObjectLayoutRoute(t, page)
@@ -92,6 +102,7 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 		{name: layoutFile.Name, infoCase: "unixfsObjectInfo", unixfsPath: "/" + layoutFile.Name},
 	})
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after GoScript ObjectLayout parity: %+v", report)
@@ -102,6 +113,7 @@ func TestGoScriptObjectLayoutRuntimeParity(t *testing.T) {
 }
 
 func TestGoScriptObjectLayoutSeedModelParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -110,6 +122,7 @@ func TestGoScriptObjectLayoutSeedModelParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
@@ -118,11 +131,13 @@ func TestGoScriptObjectLayoutSeedModelParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for starter guidance.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
+	// Seed the layout model and require its tabs.
 	seeded := runObjectLayoutRuntimeScript(t, page, "seed-model")
 	objectHash := stringField(seeded, "objectHash")
 	if objectHash == "" {
@@ -135,6 +150,7 @@ func TestGoScriptObjectLayoutSeedModelParity(t *testing.T) {
 		{id: "files", name: "Files", infoCase: "worldObjectInfo"},
 	})
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after GoScript ObjectLayout seed model proof: %+v", report)
@@ -152,8 +168,10 @@ type layoutTabExpectation struct {
 }
 
 func runObjectLayoutRuntimeScript(t testing.TB, page playwright.Page, action string) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Run the layout script and return its result.
 	raw, err := page.Evaluate(harness(t).Script("object-layout-runtime-parity.ts"), map[string]any{
 		"action":     action,
 		"deadlineMs": 120000,
@@ -231,8 +249,10 @@ func assertObjectLayoutTabs(t testing.TB, result map[string]any, want []layoutTa
 }
 
 func waitForObjectLayoutTabs(t testing.TB, page playwright.Page, want []layoutTabExpectation) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Poll until the layout tabs match.
 	deadline := time.Now().Add(30 * time.Second)
 	tick := time.NewTicker(500 * time.Millisecond)
 	defer tick.Stop()

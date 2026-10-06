@@ -51,6 +51,7 @@ func startTestSessionTransport(
 	sessionKey crypto.PrivKey,
 	signalingURL string,
 ) *sessionTransportState {
+	// Build a session transport for the test account.
 	t.Helper()
 	st, err := transport.NewSessionTransport(
 		acc.le,
@@ -63,6 +64,8 @@ func startTestSessionTransport(
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Start the transport routine and publish it on the account.
 	rc := routine.NewRoutineContainer(routine.WithRetry(providerBackoff))
 	sts := &sessionTransportState{transport: st, rc: rc}
 	rc.SetRoutine(st.Execute)
@@ -104,17 +107,21 @@ func waitForPairingStatus(ctx context.Context, t *testing.T, engine *pairing.Eng
 // TestUnauthorizedSignalingStopsSessionTransport checks that a rejected
 // session identity ends the transport and removes it from the account.
 func TestUnauthorizedSignalingStopsSessionTransport(t *testing.T) {
+	// Bound the unauthorized-signaling test.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
+	// Start a pairing account and release it on return.
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
+	// Serve a signaling endpoint that rejects the ticket.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown session", http.StatusUnauthorized)
 	}))
 	defer server.Close()
 
+	// Start the transport and require it to stop after rejection.
 	sts, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
 	if sts == nil {
 		t.Fatalf("ensureSessionTransport returned no transport state: %v", err)
@@ -146,14 +153,17 @@ func TestUnauthorizedSignalingStopsSessionTransport(t *testing.T) {
 }
 
 func TestTransportStartupCancellationReturnsCancellation(t *testing.T) {
+	// Start a pairing account and release it on return.
 	ctx := t.Context()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
+	// Start a session transport the test can cancel.
 	transportCtx, transportCancel := context.WithCancel(ctx)
 	defer transportCancel()
 	sts := startTestSessionTransport(transportCtx, t, acc, sessionKey, "")
 
+	// Cancel the wait and require context.Canceled.
 	waitCtx, waitCancel := context.WithCancel(ctx)
 	waitCancel()
 	if err := acc.waitSessionTransportReady(waitCtx, sts); !errors.Is(err, context.Canceled) {
@@ -162,15 +172,18 @@ func TestTransportStartupCancellationReturnsCancellation(t *testing.T) {
 }
 
 func TestSupersededTransportStartupReturnsSuperseded(t *testing.T) {
+	// Start a pairing account and release it on return.
 	ctx := t.Context()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
+	// Start a session transport and mark it replaced.
 	transportCtx, transportCancel := context.WithCancel(ctx)
 	defer transportCancel()
 	sts := startTestSessionTransport(transportCtx, t, acc, sessionKey, "")
 	sts.setReplaced()
 
+	// Require the wait to report the transport as superseded.
 	err := acc.waitSessionTransportReady(ctx, sts)
 	if !errors.Is(err, errSessionTransportSuperseded) {
 		t.Fatalf("superseded startup returned %v", err)
@@ -179,11 +192,13 @@ func TestSupersededTransportStartupReturnsSuperseded(t *testing.T) {
 }
 
 func TestCreateSessionTransportCancellationAfterReadyRecreatesCurrent(t *testing.T) {
+	// Start a pairing account under a cancelable context.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
+	// Create a transport and capture its ready wait channels.
 	sts, err := acc.createSessionTransport(ctx, sessionKey, "")
 	if err != nil {
 		t.Fatalf("createSessionTransport: %v", err)
@@ -196,6 +211,7 @@ func TestCreateSessionTransportCancellationAfterReadyRecreatesCurrent(t *testing
 		providerWaitCh = getWaitCh()
 	})
 
+	// Cancel the caller and wait until both channels close.
 	cancel()
 	select {
 	case <-stateWaitCh:
@@ -208,6 +224,7 @@ func TestCreateSessionTransportCancellationAfterReadyRecreatesCurrent(t *testing
 		t.Fatal("ready transport was not removed after owner cancellation")
 	}
 
+	// Require a later ensure to build a fresh transport.
 	newCtx, newCancel := context.WithTimeout(context.Background(), time.Second)
 	defer newCancel()
 	if err := acc.EnsureSessionTransport(newCtx, sessionKey, ""); err != nil {
@@ -236,16 +253,19 @@ func TestSessionTransportReadyCommitRejectsReplacement(t *testing.T) {
 // TestCreateSessionTransportOutlivesCaller proves that a session mounted by an
 // enrollment RPC does not bind its transport to the RPC deadline.
 func TestCreateSessionTransportOutlivesCaller(t *testing.T) {
+	// Start a pairing account and release it on return.
 	ctx := t.Context()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
+	// Create the transport, then cancel the caller context.
 	callerCtx, cancelCaller := context.WithCancel(ctx)
 	if err := acc.CreateSessionTransport(callerCtx, sessionKey, ""); err != nil {
 		t.Fatal(err)
 	}
 	cancelCaller()
 
+	// Require the transport to stay up after the caller returns.
 	timer := time.NewTimer(100 * time.Millisecond)
 	defer timer.Stop()
 	for {
@@ -270,16 +290,19 @@ func TestCreateSessionTransportOutlivesCaller(t *testing.T) {
 // follows the session tracker's transport rather than creating an RPC-owned
 // replacement when the requested signaling configuration differs.
 func TestEnsureConfiguredSessionTransportOutlivesCaller(t *testing.T) {
+	// Start a pairing account and release it on return.
 	ctx := t.Context()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
 
+	// Ensure the configured transport, then cancel the caller.
 	callerCtx, cancelCaller := context.WithCancel(ctx)
 	if err := acc.EnsureConfiguredSessionTransport(callerCtx, sessionKey); err != nil {
 		t.Fatal(err)
 	}
 	cancelCaller()
 
+	// Require the configured transport to stay up after the caller returns.
 	timer := time.NewTimer(100 * time.Millisecond)
 	defer timer.Stop()
 	for {
@@ -301,6 +324,7 @@ func TestEnsureConfiguredSessionTransportOutlivesCaller(t *testing.T) {
 }
 
 func TestEnsureConfiguredSessionTransportDoesNotReplaceMountedTransport(t *testing.T) {
+	// Start a pairing account with a signaling URL and a mounted transport.
 	ctx := t.Context()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
 	defer release()
@@ -309,6 +333,8 @@ func TestEnsureConfiguredSessionTransportDoesNotReplaceMountedTransport(t *testi
 		t.Fatal(err)
 	}
 	defer acc.StopSessionTransport()
+
+	// Require ensure to keep the mounted transport.
 	mounted := acc.GetSessionTransport()
 	if mounted == nil {
 		t.Fatal("expected mounted session transport")

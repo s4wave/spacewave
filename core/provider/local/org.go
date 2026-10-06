@@ -24,10 +24,12 @@ func (a *ProviderAccount) CreateOrgSharedObject(ctx context.Context, orgID, disp
 
 // initOrgSO mounts an org SO and queues InitOrganizationOp.
 func (a *ProviderAccount) initOrgSO(ctx context.Context, le *logrus.Entry, soID, displayName string) error {
+	// Read the provider, account, and block store that address this organization.
 	providerID := a.t.accountInfo.GetProviderId()
 	accountID := a.t.accountInfo.GetProviderAccountId()
 	blockStoreID := SobjectBlockStoreID(soID)
 
+	// Mount the organization shared object and release it when initialization ends.
 	ref := sobject.NewSharedObjectRef(providerID, accountID, soID, blockStoreID)
 	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
@@ -36,6 +38,7 @@ func (a *ProviderAccount) initOrgSO(ctx context.Context, le *logrus.Entry, soID,
 	}
 	defer relSO()
 
+	// Queue the initialization operation on the mounted organization.
 	initOp := &s4wave_org.InitOrganizationOp{
 		OrgObjectKey:     s4wave_org.OrgObjectKey,
 		DisplayName:      displayName,
@@ -57,11 +60,13 @@ func (a *ProviderAccount) initOrgSO(ctx context.Context, le *logrus.Entry, soID,
 
 // QueueOrgUpdateOp queues an UpdateOrgOp on the org SO.
 func (a *ProviderAccount) QueueOrgUpdateOp(ctx context.Context, orgID string, op *s4wave_org.UpdateOrgOp) error {
+	// Read the logger and the provider, account, and block store for this organization.
 	le := a.le.WithField("org-id", orgID)
 	providerID := a.t.accountInfo.GetProviderId()
 	accountID := a.t.accountInfo.GetProviderAccountId()
 	blockStoreID := SobjectBlockStoreID(orgID)
 
+	// Mount the organization shared object and release it when the update is queued.
 	ref := sobject.NewSharedObjectRef(providerID, accountID, orgID, blockStoreID)
 	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
 	if err != nil {
@@ -70,6 +75,7 @@ func (a *ProviderAccount) QueueOrgUpdateOp(ctx context.Context, orgID string, op
 	}
 	defer relSO()
 
+	// Marshal the update and queue it on the mounted organization.
 	opData, err := s4wave_org.MarshalUpdateOrgSOOp(op)
 	if err != nil {
 		le.WithError(err).Warn("failed to marshal update org op")

@@ -79,6 +79,7 @@ func (f *fakeS3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // list writes a single-page ListObjectsV2 result for prefix.
 func (f *fakeS3) list(w http.ResponseWriter, prefix string) {
+	// List the fake bucket objects as an S3 listing.
 	var b strings.Builder
 	b.WriteString("<ListBucketResult><IsTruncated>false</IsTruncated>")
 	for key, data := range f.objects {
@@ -119,14 +120,17 @@ type placedStoreTest struct {
 // setupPlacedStore writes a root referencing a child into a new Space, moves
 // the Space onto a fake S3 backend, and waits for both uploads.
 func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
+	// Start a local account and release it when the test returns.
 	t.Helper()
 	_, _, acc, _, release := setupProviderAndSessionInternal(ctx, t)
 	t.Cleanup(release)
 
+	// Serve a fake S3 bucket for the placed store.
 	bucket := &fakeS3{objects: make(map[string][]byte)}
 	srv := httptest.NewServer(bucket)
 	t.Cleanup(srv.Close)
 
+	// Add the fake backend and require an empty usage check.
 	backendID, check, err := acc.AddStorageBackend(ctx, "fake", &account_settings.S3Location{
 		Endpoint:     strings.TrimPrefix(srv.URL, "http://"),
 		Region:       "us-east-1",
@@ -144,6 +148,7 @@ func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
 		t.Fatalf("new prefix holds %d objects", check.GetUsage().GetObjects())
 	}
 
+	// Create a space and wait for its block store.
 	soRef, err := acc.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -174,6 +179,7 @@ func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
 		t.Fatal(err)
 	}
 
+	// Record move progress and move the space onto the fake backend.
 	p := &placedStoreTest{
 		acc:       acc,
 		bucket:    bucket,
@@ -203,6 +209,7 @@ func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
 
 // loseLocalBlocks removes the local copies of the blocks.
 func (p *placedStoreTest) loseLocalBlocks(ctx context.Context, t *testing.T) *BlockStore {
+	// Delete the local blocks and require the cache to miss them.
 	t.Helper()
 	for ref := range p.blocks {
 		if err := p.acc.GetVolume().RmBlock(ctx, ref); err != nil {
@@ -226,6 +233,7 @@ func (p *placedStoreTest) loseLocalBlocks(ctx context.Context, t *testing.T) *Bl
 // checkLocalGraph checks that the local store holds both blocks and the edge
 // from the root to the child.
 func (p *placedStoreTest) checkLocalGraph(ctx context.Context, t *testing.T, bs *BlockStore) {
+	// Require the local graph to hold the root, the child, and their edge.
 	t.Helper()
 	for ref, want := range p.blocks {
 		stored, err := bs.placement.local.GetStoredBlock(ctx, ref)
@@ -248,9 +256,11 @@ func (p *placedStoreTest) checkLocalGraph(ctx context.Context, t *testing.T, bs 
 // TestMoveSpaceStorageRoundTrip moves a Space onto a storage backend, loses
 // its local blocks, and moves it back: the blocks return from the bucket.
 func TestMoveSpaceStorageRoundTrip(t *testing.T) {
+	// Bound the round trip and move the space back to local storage.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
+	// Drop the local cache, move the space home, and require the graph.
 	p := setupPlacedStore(ctx, t)
 	p.loseLocalBlocks(ctx, t)
 	p.phases = nil
@@ -271,9 +281,11 @@ func TestMoveSpaceStorageRoundTrip(t *testing.T) {
 // a placed Space, then copies its graph through the store: the copy reads the
 // blocks and their edges back from the bucket.
 func TestPlacedStoreGraphCopyAfterCacheLoss(t *testing.T) {
+	// Bound the cache-loss copy.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
+	// Drop the local blocks and the root edge, then copy the graph back.
 	p := setupPlacedStore(ctx, t)
 	bs := p.loseLocalBlocks(ctx, t)
 	if _, err := p.acc.GetVolume().GetRefGraph().RemoveNodeRefs(ctx, block_gc.BlockIRI(p.rootRef), false); err != nil {
@@ -289,15 +301,18 @@ func TestPlacedStoreGraphCopyAfterCacheLoss(t *testing.T) {
 // Space and moves it off a backend that cannot be reached: the move fails and
 // keeps the placement and the bucket's objects.
 func TestMoveSpaceStorageUnreachableBackend(t *testing.T) {
+	// Bound the unreachable-backend move.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
+	// Move the space out, then mark the fake bucket unavailable.
 	p := setupPlacedStore(ctx, t)
 	p.loseLocalBlocks(ctx, t)
 	p.bucket.mtx.Lock()
 	p.bucket.unavailable = true
 	p.bucket.mtx.Unlock()
 
+	// Require the failed move to keep the backend placement and remote objects.
 	if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err == nil {
 		t.Fatal("move off an unreachable backend succeeded")
 	}
@@ -320,13 +335,16 @@ func TestMoveSpaceStorageUnreachableBackend(t *testing.T) {
 // and closes the tracker's backend store before moving it back: the move reads
 // the blocks from the bucket rather than skipping them.
 func TestMoveSpaceStorageClosedRemote(t *testing.T) {
+	// Bound the closed-remote move.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
+	// Drop the local cache and close the remote store.
 	p := setupPlacedStore(ctx, t)
 	p.loseLocalBlocks(ctx, t)
 	p.tkr.swapRemote(nil)
 
+	// Move the space home and require the local graph.
 	if err := p.acc.MoveSpaceStorage(ctx, p.soID, "", p.record); err != nil {
 		t.Fatal(err)
 	}

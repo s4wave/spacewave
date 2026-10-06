@@ -39,6 +39,7 @@ import (
 // TestAccountMergeCloudProviders runs against an isolated local Worker with
 // ENVIRONMENT=test and ENABLE_TEST_HELPERS=true. It never uses a saved account.
 func TestAccountMergeCloudProviders(t *testing.T) {
+	// Skip unless the pairing fixture is a loopback Worker.
 	endpoint := os.Getenv("SPACEWAVE_PAIRING_CLOUD_ENDPOINT")
 	if endpoint == "" {
 		t.Skip("set SPACEWAVE_PAIRING_CLOUD_ENDPOINT to an isolated local Worker")
@@ -49,6 +50,7 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 	}
 	for _, direction := range []string{"local-to-cloud", "cloud-to-local", "cloud-to-cloud"} {
 		t.Run(direction, func(t *testing.T) {
+			// Bound the subtest and start the local account on an in-process network.
 			ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 			defer cancel()
 			network := inproc.NewNetwork()
@@ -56,6 +58,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				p.localNetwork = transport.WithInprocNetwork(network)
 			})
 			defer release()
+
+			// Load the session controller and register the local session.
 			tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 			tb.StaticResolver.AddFactory(provider_spacewave.NewFactory(tb.Bus, transport.WithInprocNetwork(network)))
 			_, controllerRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{VolumeId: tb.EngineVolumeID}), nil)
@@ -63,6 +67,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer controllerRef.Release()
+
+			// Look up the session controller and register the local session.
 			controller, controllerLookup, err := session.ExLookupSessionController(ctx, tb.Bus, "", false, nil)
 			if err != nil {
 				t.Fatal(err)
@@ -71,6 +77,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 			if _, err := controller.RegisterSession(ctx, localSession.GetSessionRef(), nil); err != nil {
 				t.Fatal(err)
 			}
+
+			// Install the replica-payload block type decoder.
 			decoder := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
 				if typeID == "test/replica-payload" {
 					return blocktype.NewBlockType(typeID, block_mock.NewRootBlock), nil
@@ -82,6 +90,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer releaseDecoder()
+
+			// Load the spacewave cloud provider against the fixture endpoint.
 			_, cloudRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_spacewave.Config{ProviderId: "spacewave", Endpoint: endpoint, AccountEndpoint: endpoint, PublicBaseUrl: endpoint, SigningEnvPrefix: "spacewave"}), nil)
 			if err != nil {
 				t.Fatal(err)
@@ -93,8 +103,10 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 			}
 			defer cloudLookup.Release()
 			createCloud := func() (provider_migration.Account, session.Session) {
+				// Name the cloud fixture account.
 				t.Helper()
 				name := "pair" + ulid.NewULID()
+
 				// Exercise native signed registration with a low-cost password fixture.
 				// Production password work is covered by the authentication package.
 				params := &auth_method_password.Parameters{Salt: make([]byte, 16), ScryptN: 10, ScryptR: 8, ScryptP: 1}
@@ -113,6 +125,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+
+				// Register the cloud account and retain its entity key.
 				client := provider_spacewave.NewEntityClientDirect(http.DefaultClient, endpoint, "spacewave", key, pid)
 				id, err := client.RegisterAccount(ctx, name, auth_method_password.MethodID, authParams, "")
 				if err != nil {
@@ -120,6 +134,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				}
 				bootstrap := cloud.(*provider_spacewave.Provider).RetainEntityKeyBootstrap(id, key, pid)
 				defer bootstrap.Release()
+
+				// Activate the fixture and request its billing account.
 				setCloudFixture(ctx, t, endpoint, "set-subscription", map[string]any{"account_id": id, "subscription_status": "active"})
 				setCloudFixture(ctx, t, endpoint, "set-email", map[string]any{"account_id": id, "email": name + "@example.test", "verified": true})
 				request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"/api/test/billing-account?account_id="+id, nil)
@@ -130,6 +146,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+
+				// Read the billing id and mark that subscription active.
 				body, err := io.ReadAll(io.LimitReader(response.Body, 2000))
 				response.Body.Close()
 				billingID := fastjson.GetString(body, "ba_id")
@@ -137,6 +155,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 					t.Fatalf("billing fixture: %d %v", response.StatusCode, err)
 				}
 				setCloudFixture(ctx, t, endpoint, "set-billing-subscription", map[string]any{"billing_account_id": billingID, "subscription_status": "active"})
+
+				// Mount a cloud session and register it.
 				account, releaseAccount, err := cloud.AccessProviderAccount(ctx, id, nil)
 				if err != nil {
 					t.Fatal(err)
@@ -152,9 +172,12 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 					t.Fatal(err)
 				}
 
+				// Bump the local epoch and return the cloud account.
 				account.(*provider_spacewave.ProviderAccount).BumpLocalEpoch()
 				return account.(provider_migration.Account), mounted
 			}
+
+			// Choose the source and destination accounts for this direction.
 			var source, destination provider_migration.Account = local, local
 			var moving, target session.Session = localSession, localSession
 			if direction != "local-to-cloud" {
@@ -163,6 +186,7 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 			if direction != "cloud-to-local" {
 				destination, target = createCloud()
 			}
+
 			// Keep a distinct cloud Session locked while account authority moves.
 			// Unlocking later must consume the provider's durable transition.
 			var returning session.Session
@@ -219,6 +243,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+
+			// Seed a space and payload on the source and the destination.
 			var refs []*sobject.SharedObjectRef
 			var leaves []*block.BlockRef
 			var payloads [][]byte
@@ -234,6 +260,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				leaf, payload := seedProviderReplicaPayload(ctx, t, local, account, ref)
 				refs, leaves, payloads = append(refs, ref), append(leaves, leaf), append(payloads, payload)
 			}
+
+			// For a local-to-cloud merge, enroll an offline local replica.
 			var returningLocal *ProviderAccount
 			var returningLocalSession *Session
 			var returningLocalController session.SessionController
@@ -259,6 +287,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 				}
 				defer releaseCloud()
 			}
+
+			// Merge the accounts and require the moving session identity to stay.
 			t.Log("source payload committed; merging account")
 			commit, err := provider_migration.Merge(ctx, source, moving, destination, target.GetSessionRef())
 			if err != nil {
@@ -271,6 +301,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 			if moved.GetProviderResourceRef().GetId() != moving.GetSessionRef().GetProviderResourceRef().GetId() {
 				t.Fatal("moving Session identity changed")
 			}
+
+			// Require the waiting local replica to follow the cloud destination.
 			if returningLocal != nil {
 				local.StopP2PSync()
 				local.StopSessionTransport()
@@ -314,6 +346,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 					}
 				}
 			}
+
+			// Require the locked cloud session to unlock on the destination.
 			if returning != nil {
 				if err := returning.UnlockSession(ctx, []byte("123456")); err != nil {
 					t.Fatal(err)
@@ -353,6 +387,8 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 					}
 				}
 			}
+
+			// Require each destination copy to hold the seeded payload.
 			for i, ref := range refs {
 				copiedRef := sobject.NewSharedObjectRef(destination.GetProviderID(), destination.GetAccountID(), ref.GetProviderResourceRef().GetId(), SobjectBlockStoreID(ref.GetProviderResourceRef().GetId()))
 				object, releaseObject, err := destination.MountSharedObject(ctx, copiedRef, nil)
@@ -370,6 +406,7 @@ func TestAccountMergeCloudProviders(t *testing.T) {
 }
 
 func setCloudFixture(ctx context.Context, t *testing.T, endpoint, action string, value map[string]any) {
+	// Build the JSON body for the fixture action.
 	t.Helper()
 	var arena fastjson.Arena
 	object := arena.NewObject()
@@ -388,6 +425,8 @@ func setCloudFixture(ctx context.Context, t *testing.T, endpoint, action string,
 		}
 	}
 	body := object.MarshalTo(nil)
+
+	// Post the fixture action and require an ok response.
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint+"/api/test/"+action, bytes.NewReader(body))
 	if err != nil {
 		t.Fatal(err)

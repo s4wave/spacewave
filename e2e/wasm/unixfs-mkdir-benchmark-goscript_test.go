@@ -15,21 +15,27 @@ import (
 )
 
 func measureGoScriptUnixFSMkdir(t testing.TB, sess *TestSession, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Prepare the benchmark and release it afterward.
 	prepareUnixFSMkdirBenchmark(t, page)
 	defer releaseUnixFSMkdirBenchmark(t, page)
 
+	// Collect three mkdir samples.
 	samples := make([]float64, 3)
 	for idx := range samples {
 		samples[idx] = runUnixFSMkdirBenchmark(t, page, "mkdir-sample-"+strconv.Itoa(idx))
 	}
 
+	// Resolve the compiler and the artifact directory.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve compiler for UnixFS mkdir benchmark: %v", err)
 	}
 	artifactDir := unixFSMkdirArtifactDir(t)
+
+	// Build the measurement object from those samples.
 	var arena fastjson.Arena
 	measurement := arena.NewObject()
 	measurement.Set("compiler", arena.NewString(string(compiler)))
@@ -42,6 +48,8 @@ func measureGoScriptUnixFSMkdir(t testing.TB, sess *TestSession, page playwright
 		)
 	}
 	measurement.Set("samplesMs", measurementSamples)
+
+	// Define the measurement writer and log the samples.
 	writeMeasurement := func() {
 		measurementPath := filepath.Join(artifactDir, "benchmark.json")
 		if err := WriteTraceArtifact(measurementPath, append(measurement.MarshalTo(nil), '\n')); err != nil {
@@ -55,10 +63,13 @@ func measureGoScriptUnixFSMkdir(t testing.TB, sess *TestSession, page playwright
 		samples[2],
 	)
 
+	// Skip tracing when the trace service is disabled.
 	if !E2EWasmTraceServiceEnabled(compiler) {
 		writeMeasurement()
 		return
 	}
+
+	// Capture a traced mkdir and write the runtime trace.
 	var tracedSampleMs float64
 	traceData, err := sess.CaptureTrace(t.Context(), "goscript-unixfs-mkdir", func(context.Context) error {
 		tracedSampleMs = runUnixFSMkdirBenchmark(t, page, "mkdir-traced")
@@ -71,6 +82,8 @@ func measureGoScriptUnixFSMkdir(t testing.TB, sess *TestSession, page playwright
 	if err := WriteTraceArtifact(tracePath, traceData); err != nil {
 		t.Fatalf("write UnixFS mkdir runtime trace: %v", err)
 	}
+
+	// Attach the trace summary and write the measurement.
 	summary, _, _, _, _, operationShape := summarizeTrace(t, traceData)
 	if operationShape != nil {
 		measurement.Set("operationShape", drivebench.MarshalOperationShapeValue(&arena, *operationShape))
@@ -84,8 +97,10 @@ func measureGoScriptUnixFSMkdir(t testing.TB, sess *TestSession, page playwright
 }
 
 func prepareUnixFSMkdirBenchmark(t testing.TB, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Prepare the page for the mkdir benchmark.
 	raw, err := page.Evaluate(`async () => {
 		if (globalThis.__s4waveUnixFSMkdirBenchmark) {
 			return { error: 'UnixFS mkdir benchmark is already mounted' }
@@ -155,8 +170,10 @@ func prepareUnixFSMkdirBenchmark(t testing.TB, page playwright.Page) {
 }
 
 func runUnixFSMkdirBenchmark(t testing.TB, page playwright.Page, name string) float64 {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Run one mkdir and return its duration.
 	raw, err := page.Evaluate(`async (name) => {
 		const bench = globalThis.__s4waveUnixFSMkdirBenchmark
 		if (!bench?.rootHandle) return { error: 'UnixFS mkdir benchmark is not mounted' }

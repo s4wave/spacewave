@@ -32,6 +32,7 @@ func CompileTestScripts(dir, outDir string) (CompiledScripts, error) {
 // alphaRoot is the Spacewave source root and vendorDir is the caller's Go
 // vendor directory, which may belong to a downstream repository.
 func CompileTestScriptsFor(dir, outDir, alphaRoot, vendorDir string) (CompiledScripts, error) {
+	// Collect TypeScript fixtures and prepare the output directory.
 	matches, err := filepath.Glob(filepath.Join(dir, "*.ts"))
 	if err != nil {
 		return nil, errors.Wrap(err, "glob ts files")
@@ -43,6 +44,7 @@ func CompileTestScriptsFor(dir, outDir, alphaRoot, vendorDir string) (CompiledSc
 		return nil, errors.Wrap(err, "create output dir")
 	}
 
+	// Build one Rolldown entrypoint per fixture.
 	entrypoints := make([]*bldr_web_bundler_rolldown.Entrypoint, 0, len(matches))
 	scripts := make(CompiledScripts, len(matches))
 	for _, inputPath := range matches {
@@ -59,6 +61,7 @@ func CompileTestScriptsFor(dir, outDir, alphaRoot, vendorDir string) (CompiledSc
 		scripts[name] = "/e2e/" + entrypointName + ".mjs"
 	}
 
+	// Compile the fixtures and return their scripts.
 	spacewaveVendor := filepath.Join(vendorDir, "github.com", "s4wave", "spacewave")
 	result, err := bldr_web_bundler_rolldown.Build(
 		context.Background(),

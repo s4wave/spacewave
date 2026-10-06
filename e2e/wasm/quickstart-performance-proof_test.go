@@ -14,6 +14,7 @@ const (
 )
 
 func TestGoScriptQuickstartDrivePerformanceProof(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -22,6 +23,7 @@ func TestGoScriptQuickstartDrivePerformanceProof(t *testing.T) {
 		t.Skipf("GoScript quickstart performance proof requires %s=goscript", E2EWasmCompilerEnv)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanBlankSession(t)
 	script := "globalThis.__s4waveLogQuickstartTiming = true;"
 	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
@@ -39,6 +41,7 @@ func TestGoScriptQuickstartDrivePerformanceProof(t *testing.T) {
 		}
 	}()
 
+	// Load the Drive quickstart and require startup and content.
 	if err := harness(t).loadAppPageURL(sess, harness(t).baseURL+"/#/quickstart/drive"); err != nil {
 		t.Fatalf("load direct drive route: %v", err)
 	}
@@ -49,14 +52,17 @@ func TestGoScriptQuickstartDrivePerformanceProof(t *testing.T) {
 	AssertQuickstartContentAfterProgress(t, ready)
 	AssertBrowserStartupDone(t, harness(t), page)
 
+	// Run the post-load workload and log the proof summary.
 	postLoadSOWorkload := runQuickstartPerformanceProofPostLoadSO(t, page)
 	proofSummary := collectQuickstartPerformanceProofSummary(t, page, compiler, postLoadSOWorkload)
 	t.Logf("quickstart browser performance proof: %s", proofSummary)
 }
 
 func runQuickstartPerformanceProofPostLoadSO(t testing.TB, page playwright.Page) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Evaluate the post-load SharedObject workload in the page.
 	raw, err := page.Evaluate(`async (args) => {
 		const debug = globalThis.__s4wave_debug
 		if (!debug?.root) {
@@ -96,8 +102,10 @@ func runQuickstartPerformanceProofPostLoadSO(t testing.TB, page playwright.Page)
 }
 
 func collectQuickstartPerformanceProofSummary(t testing.TB, page playwright.Page, compiler E2EWasmCompiler, postLoadSOWorkload map[string]any) string {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Collect the performance proof summary from the page.
 	raw, err := page.Evaluate(`(args) => {
 		const roundMs = (value) =>
 			typeof value === 'number' && Number.isFinite(value) ?

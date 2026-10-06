@@ -46,13 +46,16 @@ func (s *countingBatchStore) PutBlockBatch(ctx context.Context, entries []*block
 var _ block.StoreOps = (*countingBatchStore)(nil)
 
 func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
+	// Use a background context for the overlay batch write.
 	ctx := context.Background()
 
+	// Build the volume key for the lower block store.
 	kvKey, err := store_kvkey.NewKVKey(store_kvkey.DefaultConfig())
 	if err != nil {
 		t.Fatalf("NewKVKey failed: %v", err)
 	}
 
+	// Open a volume whose lower block store counts batch writes.
 	kvStore := store_kvtx_inmem.NewStore()
 	lowerBlocks := newCountingBatchStore()
 	baseVol, err := common_kvtx.NewVolumeWithBlockStore(
@@ -72,6 +75,7 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = baseVol.Close() })
 
+	// Wrap the volume with an upper-read-cache overlay.
 	upperBlocks := newCountingBatchStore()
 	overlay := block.NewOverlay(
 		ctx,
@@ -84,6 +88,7 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 	)
 	wrapped := hydra_volume.NewVolumeBlockStore(baseVol, overlay)
 
+	// Build two block refs for the batch.
 	ref1, err := block.BuildBlockRef([]byte("hello"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef failed: %v", err)
@@ -93,6 +98,7 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 		t.Fatalf("BuildBlockRef failed: %v", err)
 	}
 
+	// Write both blocks through the wrapped volume store.
 	if err := wrapped.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: ref1, Data: []byte("hello")},
 		{Ref: ref2, Data: []byte("world")},
@@ -100,6 +106,7 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
 
+	// Require the batch to land on the lower store, not the upper cache.
 	if upperBlocks.putBatchCalls != 0 || upperBlocks.putCalls != 0 {
 		t.Fatalf("upper store should be unused in UPPER_READ_CACHE writes: batch=%d put=%d", upperBlocks.putBatchCalls, upperBlocks.putCalls)
 	}
@@ -112,13 +119,16 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 }
 
 func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
+	// Use a background context for the GC batch write.
 	ctx := context.Background()
 
+	// Build the volume key for the lower block store.
 	kvKey, err := store_kvkey.NewKVKey(store_kvkey.DefaultConfig())
 	if err != nil {
 		t.Fatalf("NewKVKey failed: %v", err)
 	}
 
+	// Open a volume whose lower block store counts batch writes.
 	kvStore := store_kvtx_inmem.NewStore()
 	lowerBlocks := newCountingBatchStore()
 	baseVol, err := common_kvtx.NewVolumeWithBlockStore(
@@ -138,6 +148,7 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = baseVol.Close() })
 
+	// Wrap the volume and put a GC store in front of the overlay.
 	upperBlocks := newCountingBatchStore()
 	overlay := block.NewOverlay(
 		ctx,
@@ -156,6 +167,7 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 		block_gc.BucketFlushTask(),
 	)
 
+	// Build two block refs for the GC batch.
 	ref1, err := block.BuildBlockRef([]byte("hello"), nil)
 	if err != nil {
 		t.Fatalf("BuildBlockRef failed: %v", err)
@@ -165,6 +177,7 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 		t.Fatalf("BuildBlockRef failed: %v", err)
 	}
 
+	// Write both blocks through the GC store.
 	if err := gcOps.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: ref1, Data: []byte("hello")},
 		{Ref: ref2, Data: []byte("world")},
@@ -172,6 +185,7 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
 
+	// Require the batch to land on the lower store, not the upper cache.
 	if upperBlocks.putBatchCalls != 0 || upperBlocks.putCalls != 0 {
 		t.Fatalf("upper store should be unused in UPPER_READ_CACHE writes: batch=%d put=%d", upperBlocks.putBatchCalls, upperBlocks.putCalls)
 	}

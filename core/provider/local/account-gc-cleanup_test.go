@@ -15,10 +15,12 @@ import (
 )
 
 func TestLocalGCCleanupRunnerCoalescesTriggerDuringSweep(t *testing.T) {
+	// Build an account whose cleanup collector the test replaces.
 	acc := &ProviderAccount{
 		le: logrus.New().WithField("test", t.Name()),
 	}
 
+	// Count sweeps and hold the first one until the test releases it.
 	var calls atomic.Int32
 	firstStarted := make(chan struct{})
 	firstRelease := make(chan struct{})
@@ -39,6 +41,7 @@ func TestLocalGCCleanupRunnerCoalescesTriggerDuringSweep(t *testing.T) {
 	}
 	acc.gcCleanupRunner = acc.newGCCleanupRunner()
 
+	// Run cleanup until the test cancels the account context.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	errCh := make(chan error, 1)
@@ -46,11 +49,14 @@ func TestLocalGCCleanupRunnerCoalescesTriggerDuringSweep(t *testing.T) {
 		errCh <- acc.runGCCleanup(ctx)
 	}()
 
+	// Trigger a second sweep while the first is held, then release it.
 	acc.triggerGCCleanup()
 	<-firstStarted
 	acc.triggerGCCleanup()
 	close(firstRelease)
 	<-secondStarted
+
+	// Require both sweeps to finish, then require cancellation and generation 2.
 	if err := acc.WaitGCCleanup(context.Background()); err != nil {
 		t.Fatalf("wait cleanup: %v", err)
 	}
@@ -67,6 +73,7 @@ func TestLocalGCCleanupRunnerCoalescesTriggerDuringSweep(t *testing.T) {
 }
 
 func TestRemoveSharedObjectGCRefsRemovesLocalBucketRoots(t *testing.T) {
+	// Build a volume ref graph and the shared-object bucket identity.
 	ctx := context.Background()
 	vol := newGCCleanupTestVolume(t)
 	rg := vol.GetRefGraph()
@@ -75,6 +82,8 @@ func TestRemoveSharedObjectGCRefsRemovesLocalBucketRoots(t *testing.T) {
 	blockStoreID := SobjectBlockStoreID("so-1")
 	bucketID := BlockStoreBucketID(providerID, accountID, blockStoreID)
 	bucketIRI := block_gc.BucketIRI(bucketID)
+
+	// Add root and provider GC refs for the shared-object bucket.
 	providerIRI := ProviderIRI(providerID)
 	gcOps := block_gc.NewGCStoreOps(vol, rg)
 	if err := gcOps.AddGCRef(ctx, block_gc.NodeGCRoot, bucketIRI); err != nil {
@@ -84,12 +93,14 @@ func TestRemoveSharedObjectGCRefsRemovesLocalBucketRoots(t *testing.T) {
 		t.Fatalf("add provider ref: %v", err)
 	}
 
+	// Remove the shared-object bucket refs through the account.
 	acc := &ProviderAccount{
 		le:  logrus.New().WithField("test", t.Name()),
 		vol: vol,
 	}
 	acc.removeSharedObjectGCRefs(ctx, providerID, bucketID, acc.le)
 
+	// Require the root and provider refs to be gone.
 	rootRefs, err := rg.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
 	if err != nil {
 		t.Fatalf("get root refs: %v", err)
@@ -97,6 +108,8 @@ func TestRemoveSharedObjectGCRefsRemovesLocalBucketRoots(t *testing.T) {
 	if len(rootRefs) != 0 {
 		t.Fatalf("expected root ref removed, got %v", rootRefs)
 	}
+
+	// Require the provider ref to be gone and the bucket to be marked unreferenced.
 	providerRefs, err := rg.GetOutgoingRefs(ctx, providerIRI)
 	if err != nil {
 		t.Fatalf("get provider refs: %v", err)
@@ -114,6 +127,7 @@ func TestRemoveSharedObjectGCRefsRemovesLocalBucketRoots(t *testing.T) {
 }
 
 func newGCCleanupTestVolume(t *testing.T) *common_kvtx.Volume {
+	// Build an in-memory volume with a ref graph for the cleanup test.
 	t.Helper()
 	kvKey, err := store_kvkey.NewKVKey(store_kvkey.DefaultConfig())
 	if err != nil {

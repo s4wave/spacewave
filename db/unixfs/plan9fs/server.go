@@ -59,6 +59,7 @@ func (s *Server) Serve(ctx context.Context, t Transport) error {
 // Concurrent calls on different fids are safe. Concurrent calls on the
 // same fid require external serialization.
 func (s *Server) HandleMessage(ctx context.Context, msg []byte) ([]byte, error) {
+	// Validate the request header and extract its message type and tag.
 	if len(msg) < headerSize {
 		return nil, errors.New("message too short")
 	}
@@ -75,6 +76,7 @@ func (s *Server) HandleMessage(ctx context.Context, msg []byte) ([]byte, error) 
 	}
 	payload := msg[headerSize:]
 
+	// Dispatch the request and translate handler errors into protocol errors.
 	resp, err := s.dispatch(ctx, msgType, tag, payload)
 	if err != nil {
 		return buildErrorResponse(tag, toErrno(err)), nil

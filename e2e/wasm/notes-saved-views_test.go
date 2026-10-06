@@ -12,11 +12,14 @@ import (
 // the same retained SharedObject, including local drafts, reload, and deletion.
 // Both pages share a Session, so its personal StateAtoms may synchronize.
 func TestNotebookSavedViewsAcrossClients(t *testing.T) {
+	// Open a notebook on the first retained page.
 	h := harness(t)
 	first := h.NewRetainedStatePageSession(t)
 	firstPage := first.Page()
 	scenario := createNotesDynamicQuickstartScenario(t, h, firstPage, "notebook")
 	waitForNotebookReady(t, firstPage, "welcome")
+
+	// Open the same notebook on a second retained page.
 	second := h.NewRetainedStatePageSession(t)
 	secondPage := second.Page()
 	NavigateHash(t, h, secondPage, scenario.objectHash("notebook"))
@@ -27,6 +30,7 @@ func TestNotebookSavedViewsAcrossClients(t *testing.T) {
 		t.Fatalf("second Notebook: %v\nurl: %s\nbody: %s", err, secondPage.URL(), body)
 	}
 
+	// Fill a personal search on the first page.
 	panel := func(page playwright.Page) playwright.Locator {
 		return page.Locator("details:visible").Filter(playwright.LocatorFilterOptions{
 			Has: page.Locator("summary").Filter(playwright.LocatorFilterOptions{HasText: "Shared views"}),
@@ -59,6 +63,7 @@ func TestNotebookSavedViewsAcrossClients(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Save that search as a view and require it on the first page.
 	click(button(panel(firstPage), "Save new view"))
 	if err := firstPage.GetByLabel("View name").Fill("Team review"); err != nil {
 		t.Fatal(err)
@@ -69,11 +74,13 @@ func TestNotebookSavedViewsAcrossClients(t *testing.T) {
 		t.Fatalf("shared save changed the other client's search: %q, %v", value, err)
 	}
 
+	// Start an unsubmitted draft on the second page.
 	click(button(panel(secondPage), "Save new view"))
 	if err := secondPage.GetByLabel("View name").Fill("Unsubmitted draft"); err != nil {
 		t.Fatal(err)
 	}
 
+	// Rename the saved view and require it on the second page.
 	click(button(panel(firstPage), "Rename"))
 	if err := firstPage.GetByLabel("View name").Fill("Team planning"); err != nil {
 		t.Fatal(err)
@@ -84,6 +91,8 @@ func TestNotebookSavedViewsAcrossClients(t *testing.T) {
 		t.Fatalf("shared rename changed the other client's draft: %q, %v", value, err)
 	}
 	click(secondPage.GetByRole("dialog").GetByRole("button", playwright.LocatorGetByRoleOptions{Name: "Cancel", Exact: new(true)}))
+
+	// Reload the second page and require the renamed view.
 	if _, err := secondPage.Reload(); err != nil {
 		t.Fatal(err)
 	}
@@ -91,6 +100,7 @@ func TestNotebookSavedViewsAcrossClients(t *testing.T) {
 	click(panel(secondPage).Locator("summary"))
 	waitView(secondPage, "Team planning", playwright.WaitForSelectorStateAttached)
 
+	// Delete the view and require the second page to drop it.
 	labels := []string{"Team planning"}
 	if _, err := panel(secondPage).GetByLabel("Saved view").SelectOption(playwright.SelectOptionValues{Labels: &labels}); err != nil {
 		t.Fatal(err)

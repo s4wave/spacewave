@@ -27,17 +27,24 @@ func (c *Config) Validate() error {
 // ParseSignalingURL accepts an absolute HTTP(S) URL or an origin-relative path
 // for browser signaling. Empty disables signaling for standalone local sessions.
 func (c *Config) ParseSignalingURL() (*url.URL, error) {
+	// Treat a blank signaling URL as signaling disabled.
 	raw := strings.TrimSpace(c.GetSignalingUrl())
 	if raw == "" {
 		return nil, nil
 	}
+
+	// Parse the raw signaling URL before checking its shape.
 	u, err := url.Parse(raw)
 	if err != nil {
 		return nil, err
 	}
+
+	// Accept an origin-relative path for browser signaling.
 	if u.Scheme == "" && u.Host == "" && strings.HasPrefix(raw, "/") && !strings.HasPrefix(raw, "//") {
 		return u, nil
 	}
+
+	// Require an absolute HTTP or HTTPS URL with a host.
 	switch u.Scheme {
 	case "http", "https":
 	default:

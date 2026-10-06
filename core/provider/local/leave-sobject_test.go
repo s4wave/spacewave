@@ -115,6 +115,7 @@ func TestNativeSpaceLeave(t *testing.T) {
 	}
 	t.Cleanup(releaseReadable)
 	if _, err := readable.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		// Wait until the departed copy is no longer a participant and cannot decrypt.
 		if snapshot == nil {
 			return false, nil
 		}

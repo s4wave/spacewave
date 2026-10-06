@@ -58,6 +58,7 @@ func (r *signalPeerResolver) Resolve(ctx context.Context, handler directive.Reso
 	}
 	defer ref.Release()
 
+	// Select the local identity used to filter signaling requests.
 	localPeerID := p.GetPeerID()
 
 	// Check local peer ID filter.
@@ -67,6 +68,7 @@ func (r *signalPeerResolver) Resolve(ctx context.Context, handler directive.Reso
 		}
 	}
 
+	// Select the remote identity whose relay will carry signaling messages.
 	remotePeerID := r.dir.SignalRemotePeerID()
 
 	// Wait for a relay session targeting this remote peer.

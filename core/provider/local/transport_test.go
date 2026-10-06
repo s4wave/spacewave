@@ -5,11 +5,14 @@ import "testing"
 // TestSessionTransportCreate verifies that CreateSessionTransport creates a
 // transport with the session's private key and the child bus resolves the peer.
 func TestSessionTransportCreate(t *testing.T) {
+	// Use the test context for the transport lifetime.
 	ctx := t.Context()
 
+	// Start a local account session and release it when the test returns.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
+	// Require the session private key before creating a transport.
 	privKey := sess.GetPrivKey()
 	if privKey == nil {
 		t.Fatal("session private key is nil")
@@ -21,6 +24,7 @@ func TestSessionTransportCreate(t *testing.T) {
 	}
 	defer acc.StopSessionTransport()
 
+	// Require the created session transport to be available.
 	st := acc.GetSessionTransport()
 	if st == nil {
 		t.Fatal("expected session transport to be non-nil")
@@ -41,16 +45,20 @@ func TestSessionTransportCreate(t *testing.T) {
 // TestTransportCleanup verifies that StopSessionTransport stops the transport
 // goroutine cleanly with no leaks.
 func TestTransportCleanup(t *testing.T) {
+	// Use the test context for transport cleanup.
 	ctx := t.Context()
 
+	// Start a local account session and release it when the test returns.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
+	// Create a session transport from the session private key.
 	privKey := sess.GetPrivKey()
 	if err := acc.CreateSessionTransport(ctx, privKey, ""); err != nil {
 		t.Fatal(err)
 	}
 
+	// Require the running transport to expose its child bus.
 	st := acc.GetSessionTransport()
 	if st == nil {
 		t.Fatal("expected transport to be running")
@@ -73,6 +81,7 @@ func TestTransportCleanup(t *testing.T) {
 	}
 	defer acc.StopSessionTransport()
 
+	// Require the replacement transport and its child bus.
 	st2 := acc.GetSessionTransport()
 	if st2 == nil {
 		t.Fatal("expected new transport after re-create")

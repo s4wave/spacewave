@@ -17,12 +17,14 @@ import (
 
 func TestLocalBlockStoreNetworkLookupUsesLocalOwner(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
+		// Cancel the test buses when the synthetic test returns.
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		le := logrus.NewEntry(logrus.New())
 		mainBus := bus_inmem.NewBus(directive_controller.NewController(ctx, le))
 		childBus := bus_inmem.NewBus(directive_controller.NewController(ctx, le))
 
+		// Mount the local block store and bridge it onto the child bus.
 		local := newBatchForwardTestStore()
 		const storeID = "p/local/account/blk/store"
 		releaseStore, err := mainBus.AddController(
@@ -40,6 +42,7 @@ func TestLocalBlockStoreNetworkLookupUsesLocalOwner(t *testing.T) {
 		}
 		defer releaseBridge()
 
+		// Build a read-through block store for a block the local owner lacks.
 		ref, err := block.BuildBlockRef([]byte("missing local block"), nil)
 		if err != nil {
 			t.Fatal(err)
@@ -54,6 +57,7 @@ func TestLocalBlockStoreNetworkLookupUsesLocalOwner(t *testing.T) {
 			readStore: block_store.NewStore(storeID, readOps),
 		}
 
+		// Look up the missing block without blocking the synthetic clock.
 		type lookupResult struct {
 			found bool
 			err   error
@@ -65,6 +69,7 @@ func TestLocalBlockStoreNetworkLookupUsesLocalOwner(t *testing.T) {
 		}()
 		synctest.Wait()
 
+		// Require the lookup to miss locally instead of entering the session DEX.
 		select {
 		case result := <-resultCh:
 			if result.err != nil {

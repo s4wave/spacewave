@@ -25,6 +25,7 @@ import (
 // pairing phase, which proves the WebRTC data channel opened and bifrost link
 // wiring completed even when the snapshot stream coalesces a transition.
 func TestNoCloudPairingDirect(t *testing.T) {
+	// Skip the test unless this compiler enables browser WebRTC.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -33,17 +34,21 @@ func TestNoCloudPairingDirect(t *testing.T) {
 		t.Skipf("requires browser WebRTC transport support; compiler=%s", compiler)
 	}
 
+	// Open two clean sessions.
 	sessA := harness(t).NewCleanSession(t)
 	sessB := harness(t).NewCleanSession(t)
 
+	// Bound the pairing attempt.
 	ctx, cancel := context.WithTimeout(harness(t).Context(), 90*time.Second)
 	t.Cleanup(cancel)
 
+	// Mount a fresh local session on each side.
 	sdkA := mountFreshLocalSession(ctx, t, sessA)
 	defer sdkA.Release()
 	sdkB := mountFreshLocalSession(ctx, t, sessB)
 	defer sdkB.Release()
 
+	// Watch pairing status on both sessions.
 	watchA, err := sdkA.WatchPairingStatus(ctx)
 	if err != nil {
 		t.Fatalf("WatchPairingStatus A: %v", err)
@@ -60,6 +65,7 @@ func TestNoCloudPairingDirect(t *testing.T) {
 	expectInitialPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_IDLE)
 	expectInitialPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_IDLE)
 
+	// Create a local pairing offer.
 	offerResp, err := sdkA.CreateLocalPairingOffer(ctx)
 	if err != nil {
 		t.Fatalf("CreateLocalPairingOffer (A): %v", err)
@@ -68,6 +74,7 @@ func TestNoCloudPairingDirect(t *testing.T) {
 		t.Fatal("expected non-empty offer payload from A")
 	}
 
+	// Accept the offer and require an answer.
 	answerResp, err := sdkB.AcceptLocalPairingOffer(ctx, offerResp.GetOfferPayload(), false)
 	if err != nil {
 		t.Fatalf("AcceptLocalPairingOffer (B): %v", err)
@@ -76,6 +83,7 @@ func TestNoCloudPairingDirect(t *testing.T) {
 		t.Fatal("expected non-empty answer payload from B")
 	}
 
+	// Accept the answer and require the remote peer.
 	finalAnswerResp, err := sdkA.AcceptLocalPairingAnswer(ctx, answerResp.GetAnswerPayload())
 	if err != nil {
 		t.Fatalf("AcceptLocalPairingAnswer (A): %v", err)
@@ -84,6 +92,7 @@ func TestNoCloudPairingDirect(t *testing.T) {
 		t.Fatal("expected non-empty remote peer ID from A's AcceptLocalPairingAnswer")
 	}
 
+	// Wait until both peers report a connection.
 	waitForPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_PEER_CONNECTED)
 	waitForPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_PEER_CONNECTED)
 }
@@ -92,13 +101,16 @@ func TestNoCloudPairingDirect(t *testing.T) {
 // session and mounts the resulting session resource. The returned SDK Session
 // must be released by the caller.
 func mountFreshLocalSession(ctx context.Context, t *testing.T, sess *TestSession) *s4wave_session.Session {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Require the session root.
 	root := sess.Root()
 	if root == nil {
 		t.Fatal("expected non-nil root resource")
 	}
 
+	// Look up the local provider.
 	provID, err := root.LookupProvider(ctx, "local")
 	if err != nil {
 		t.Fatalf("LookupProvider local: %v", err)
@@ -106,11 +118,13 @@ func mountFreshLocalSession(ctx context.Context, t *testing.T, sess *TestSession
 	provRef := sess.ResourceClient().CreateResourceReference(provID)
 	defer provRef.Release()
 
+	// Open the local provider client.
 	lp, err := s4wave_provider_local.NewLocalProvider(sess.ResourceClient(), provRef)
 	if err != nil {
 		t.Fatalf("NewLocalProvider: %v", err)
 	}
 
+	// Create a local account and require its session index.
 	resp, err := lp.CreateAccount(ctx)
 	if err != nil {
 		t.Fatalf("CreateAccount on local provider: %v", err)
@@ -120,6 +134,7 @@ func mountFreshLocalSession(ctx context.Context, t *testing.T, sess *TestSession
 		t.Fatal("expected non-zero session index from CreateAccount")
 	}
 
+	// Mount that session.
 	sdk, err := sess.MountSessionByIdx(ctx, idx)
 	if err != nil {
 		t.Fatalf("MountSessionByIdx %d: %v", idx, err)

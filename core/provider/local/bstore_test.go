@@ -83,12 +83,15 @@ func (s *localDEXTestStore) GetStoredBlock(ctx context.Context, ref *block.Block
 var _ block.StoreOps = (*localDEXTestStore)(nil)
 
 func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
+	// Bound the replacement-window read.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
+	// Start a local account session and release it on return.
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
 
+	// Create the first session transport.
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatal(err)
 	}
@@ -98,6 +101,7 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		t.Fatal("expected initial session transport")
 	}
 
+	// Put the block in a prior store the replacement must still read.
 	data := []byte("from-prior-production-source")
 	blockRef, err := block.BuildBlockRef(data, nil)
 	if err != nil {
@@ -108,6 +112,7 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Mount that prior store as the account's P2P sync source.
 	bstoreRef, err := acc.CreateBlockStore(ctx, "replacement-window")
 	if err != nil {
 		t.Fatal(err)
@@ -134,6 +139,7 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		bcast()
 	})
 
+	// Replace the session transport while the prior source is still mounted.
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatal(err)
 	}
@@ -142,11 +148,13 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		t.Fatal("expected replacement session transport")
 	}
 
+	// Hold the second transport's DEX load until the test releases it.
 	loadStarted := make(chan struct{})
 	releaseLoad := make(chan struct{})
 	var gate atomic.Bool
 	removeHandler, err := second.GetChildBus().AddHandler(directive.NewFuncHandler(
 		func(handlerCtx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			// Capture the DEX load and hold it until the test releases the gate.
 			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
 			if !ok {
 				return nil, nil
@@ -169,12 +177,14 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 	}
 	defer removeHandler()
 
+	// Mount the block store that should read through the prior source.
 	mounted, releaseMounted, err := acc.MountBlockStore(ctx, bstoreRef, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer releaseMounted()
 
+	// Start the replacement sync and drop the prior source mid-read.
 	startDone := make(chan error, 1)
 	go func() {
 		startDone <- acc.StartP2PSync(ctx, second)
@@ -191,11 +201,13 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		}
 	})
 
+	// Require the mounted store to return the prior source's block.
 	got, found, err := mounted.GetBlock(ctx, blockRef)
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("production replacement lower source = %q/%v/%v", got, found, err)
 	}
 
+	// Release the DEX load and require the replacement sync to take over.
 	close(releaseLoad)
 	if err := <-startDone; err != nil {
 		t.Fatal(err)
@@ -237,6 +249,7 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 }
 
 func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
+	// Cancel the test and build a block the local store lacks.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	data := []byte("from-session-dex")
@@ -245,6 +258,7 @@ func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Point a local store's miss path at a session DEX that has the block.
 	remote := newBatchForwardTestStore()
 	if _, _, err := remote.PutBlock(ctx, data, nil); err != nil {
 		t.Fatal(err)
@@ -261,6 +275,7 @@ func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 		readStore: block_store.NewStore("local-store", readOps),
 	}
 
+	// Require the first miss to fetch and store the block.
 	got, found, err := store.GetBlock(ctx, ref)
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("local DEX fallback = %q/%v/%v", got, found, err)
@@ -272,6 +287,7 @@ func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 		t.Fatalf("local cache writes = %d, want 1", local.putBlockHits)
 	}
 
+	// Require the second read to hit locally without another DEX request.
 	got, found, err = store.GetBlock(ctx, ref)
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("local cache hit = %q/%v/%v", got, found, err)
@@ -282,6 +298,7 @@ func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 }
 
 func TestBlockStoreBucketUsesLocalOnlyLookup(t *testing.T) {
+	// Build a tracker whose bucket lookup stays local.
 	tracker := &bstoreTracker{
 		a: &ProviderAccount{
 			t: &providerAccountTracker{
@@ -296,6 +313,7 @@ func TestBlockStoreBucketUsesLocalOnlyLookup(t *testing.T) {
 		id: "block-store",
 	}
 
+	// Build the bucket config and require its id and revision.
 	conf, err := tracker.buildBucketConf()
 	if err != nil {
 		t.Fatal(err)
@@ -307,6 +325,7 @@ func TestBlockStoreBucketUsesLocalOnlyLookup(t *testing.T) {
 		t.Fatalf("bucket config revision = %d, want %d", got, blockStoreBucketConfigRev)
 	}
 
+	// Require the lookup to keep misses, puts, and writeback local.
 	var lookupConf lookup_concurrent.Config
 	if err := lookupConf.UnmarshalJSON(conf.GetLookup().GetController().GetConfig()); err != nil {
 		t.Fatal(err)
@@ -323,6 +342,7 @@ func TestBlockStoreBucketUsesLocalOnlyLookup(t *testing.T) {
 }
 
 func TestBlockStoreForwardsNativeOperations(t *testing.T) {
+	// Build a block store over a counting inner store.
 	ctx := context.Background()
 	inner := newBatchForwardTestStore()
 	store := &BlockStore{store: inner}
@@ -332,6 +352,7 @@ func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Require PutBlockBatch to reach the inner store.
 	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: batchRef, Data: batchData}}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
@@ -339,6 +360,7 @@ func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 		t.Fatalf("expected 1 PutBlockBatch call, got %d", inner.putBlockBatchHits)
 	}
 
+	// Require PutBlock to reach the inner store.
 	if _, _, err := store.PutBlock(ctx, []byte("hello"), nil); err != nil {
 		t.Fatalf("PutBlock failed: %v", err)
 	}
@@ -346,6 +368,7 @@ func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 		t.Fatalf("expected 1 PutBlock call, got %d", inner.putBlockHits)
 	}
 
+	// Require GetBlockExistsBatch to reach the inner store.
 	if _, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{batchRef}); err != nil {
 		t.Fatalf("GetBlockExistsBatch failed: %v", err)
 	}
@@ -355,6 +378,7 @@ func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 }
 
 func TestBlockStoreReadOperationSharesDecodedBlockCache(t *testing.T) {
+	// Open a decoded-block cache and close it on return.
 	ctx := context.Background()
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
@@ -362,6 +386,7 @@ func TestBlockStoreReadOperationSharesDecodedBlockCache(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Begin a read operation on a store that shares that cache.
 	store := &BlockStore{
 		store:         newBatchForwardTestStore(),
 		decodedBlocks: decodedBlocks,
@@ -372,6 +397,7 @@ func TestBlockStoreReadOperationSharesDecodedBlockCache(t *testing.T) {
 	}
 	defer release()
 
+	// Require the scoped store to keep the same decoded-block cache.
 	scopedStore, ok := scoped.(*BlockStore)
 	if !ok {
 		t.Fatalf("scoped store type = %T, want *BlockStore", scoped)
@@ -382,6 +408,7 @@ func TestBlockStoreReadOperationSharesDecodedBlockCache(t *testing.T) {
 }
 
 func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
+	// Open a decoded-block cache and close it on return.
 	ctx := context.Background()
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
@@ -389,6 +416,7 @@ func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Put a block and warm the decoded-block cache.
 	store := &BlockStore{
 		store:         newBatchForwardTestStore(),
 		decodedBlocks: decodedBlocks,
@@ -404,6 +432,7 @@ func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
 	}
 	decodedBlocks.Wait()
 
+	// Remove the block and require the cache to miss it.
 	if err := store.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -418,6 +447,7 @@ func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
 }
 
 func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
+	// Open a decoded-block cache and close it on return.
 	ctx := context.Background()
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
@@ -425,6 +455,7 @@ func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
 	}
 	defer decodedBlocks.Close()
 
+	// Put a block and warm the decoded-block cache.
 	store := &BlockStore{
 		store:         newBatchForwardTestStore(),
 		decodedBlocks: decodedBlocks,
@@ -440,6 +471,7 @@ func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
 	}
 	decodedBlocks.Wait()
 
+	// Tombstone the block and require the cache to miss it.
 	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
 		t.Fatal(err.Error())
 	}

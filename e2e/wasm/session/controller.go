@@ -45,6 +45,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Config{}
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
+			// Construct the relay registry and register the session harness RPC services.
 			c := &Controller{
 				BusController: base,
 				relays:        newRelayRegistry(),
@@ -118,6 +119,7 @@ func (c *Controller) GetPeerInfo(
 	ctx context.Context,
 	req *GetPeerInfoRequest,
 ) (*GetPeerInfoResponse, error) {
+	// Resolve the local peer identity through the controller bus.
 	b := c.GetBus()
 	p, _, ref, err := peer.GetPeerWithID(ctx, b, peer.ID(""), false, nil)
 	if err != nil {
@@ -132,6 +134,7 @@ func (c *Controller) GetPeerInfo(
 // messages carry opaque signaling bytes forwarded between the Go test
 // process and the browser WASM SignalPeer resolver.
 func (c *Controller) SignalRelay(strm SRPCSignalRelayService_SignalRelayStream) error {
+	// Use the relay stream context for signaling session lifetime.
 	ctx := strm.Context()
 
 	// Read the init message.
@@ -148,6 +151,7 @@ func (c *Controller) SignalRelay(strm SRPCSignalRelayService_SignalRelayStream) 
 		return errors.Wrap(err, "decode remote peer id")
 	}
 
+	// Register the remote peer relay for the lifetime of this stream.
 	rs := newRelaySession(ctx, remotePeer)
 	defer rs.Close()
 	if err := c.relays.register(rs); err != nil {
@@ -165,6 +169,7 @@ func (c *Controller) SignalRelay(strm SRPCSignalRelayService_SignalRelayStream) 
 	}
 	defer ref.Release()
 
+	// Publish the relay session to the WebRTC signaling handler.
 	sess := &signalPeerSession{
 		localPeerID:  p.GetPeerID(),
 		remotePeerID: remotePeer,
@@ -236,8 +241,10 @@ func (c *Controller) WatchState(
 	req *WatchStateRequest,
 	strm SRPCEstablishLinkResourceService_WatchStateStream,
 ) error {
+	// Use the state stream context for link establishment lifetime.
 	ctx := strm.Context()
 
+	// Decode the requested target peer for link establishment.
 	targetPeer, err := peer.IDB58Decode(req.GetTargetPeerId())
 	if err != nil {
 		return errors.Wrap(err, "decode target peer id")
@@ -250,11 +257,14 @@ func (c *Controller) WatchState(
 		return err
 	}
 
+	// Use the controller bus to establish the requested peer link.
 	b := c.GetBus()
 
+	// Buffer link arrival and failure notifications for the state stream.
 	linkCh := make(chan link.MountedLink, 1)
 	failCh := make(chan struct{}, 1)
 
+	// Coalesce failure notifications for the pending link request.
 	notifyFail := func() {
 		select {
 		case failCh <- struct{}{}:
@@ -262,6 +272,7 @@ func (c *Controller) WatchState(
 		}
 	}
 
+	// Translate mounted link additions and removals into stream notifications.
 	handler := directive.NewTypedCallbackHandler(
 		func(v directive.TypedAttachedValue[link.MountedLink]) {
 			select {
@@ -275,6 +286,7 @@ func (c *Controller) WatchState(
 		nil, nil,
 	)
 
+	// Request the peer link and retain its directive while watching state.
 	di, diRef, err := b.AddDirective(
 		link.NewEstablishLinkWithPeer(peer.ID(""), targetPeer),
 		handler,

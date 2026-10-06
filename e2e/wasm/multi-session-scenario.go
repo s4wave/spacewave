@@ -28,17 +28,21 @@ type MultiSessionScenario struct {
 // CreateMultiSessionScenario creates a PIN-backed local drive session and a
 // second local session in the same browser context.
 func CreateMultiSessionScenario(t testing.TB, h *Harness, session *TestSession) *MultiSessionScenario {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Finish local onboarding in the first session.
 	first := CreateLocalOnboardingScenario(t, h, session)
 	page := session.Page()
 
+	// Open a second local quickstart and require a new session index.
 	NavigateHash(t, h, page, "#/quickstart/local")
 	secondSessionIndex := waitForSessionRoute(t, page)
 	if secondSessionIndex == first.GetSessionIndex() {
 		t.Fatalf("expected quickstart/local to create a second session, got %d twice", secondSessionIndex)
 	}
 
+	// Record both sessions and wait for the local badge.
 	scenario := &MultiSessionScenario{
 		h:                  h,
 		session:            session,
@@ -66,8 +70,10 @@ func (s *MultiSessionScenario) GetFirstSpaceID() string { return s.firstSpaceID 
 // ExitToSessionSelector follows the same selector route used by local session
 // switch and lock commands.
 func (s *MultiSessionScenario) ExitToSessionSelector(t testing.TB) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open the session selector.
 	page := s.session.Page()
 	NavigateHash(t, s.h, page, "#/sessions")
 	err := page.Locator("[data-testid='session-selector']").First().WaitFor(
@@ -80,8 +86,10 @@ func (s *MultiSessionScenario) ExitToSessionSelector(t testing.TB) {
 
 // SwitchToSession opens a session from the selector and waits for its route.
 func (s *MultiSessionScenario) SwitchToSession(t testing.TB, sessionIndex uint32) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Click the session card and require its route.
 	s.ExitToSessionSelector(t)
 	page := s.session.Page()
 	card := page.Locator(
@@ -98,8 +106,10 @@ func (s *MultiSessionScenario) SwitchToSession(t testing.TB, sessionIndex uint32
 
 // WaitForLocalBadge waits for the account bottom-bar badge to report LOCAL.
 func (s *MultiSessionScenario) WaitForLocalBadge(t testing.TB) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Unlock with the PIN when the badge is behind the lock.
 	page := s.session.Page()
 	state, err := waitForLocalBadgeOrPIN(page)
 	if err != nil {
@@ -112,8 +122,10 @@ func (s *MultiSessionScenario) WaitForLocalBadge(t testing.TB) {
 }
 
 func (s *MultiSessionScenario) waitForLocalBadge(t testing.TB) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Require the visible provider badge to say LOCAL.
 	page := s.session.Page()
 	badge := page.Locator("[data-testid='session-account-provider-badge']").First()
 	if err := badge.WaitFor(playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)}); err != nil {
@@ -145,19 +157,24 @@ func (s *MultiSessionScenario) OpenFirstDrive(t testing.TB) {
 // LockFirstSessionAtNestedRoute locks the first session while the browser is on
 // its nested drive route and waits for the PIN overlay.
 func (s *MultiSessionScenario) LockFirstSessionAtNestedRoute(t testing.TB) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open the first session's Drive.
 	s.OpenFirstDrive(t)
 
+	// Bound the lock request.
 	ctx, cancel := context.WithTimeout(s.h.Context(), 30*time.Second)
 	defer cancel()
 
+	// Mount the first session.
 	sdk, err := s.session.MountSessionByIdx(ctx, s.firstSessionIndex)
 	if err != nil {
 		t.Fatalf("mount first session for lock: %v", err)
 	}
 	defer sdk.Release()
 
+	// Lock the session and wait for the PIN overlay.
 	if err := sdk.LockSession(ctx); err != nil {
 		t.Fatalf("lock first session: %v", err)
 	}
@@ -176,8 +193,10 @@ func (s *MultiSessionScenario) UnlockVisiblePIN(t testing.TB) {
 }
 
 func (s *MultiSessionScenario) submitVisiblePIN(t testing.TB) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Fill and submit the visible PIN.
 	page := s.session.Page()
 	WaitForPinUnlockOverlay(t, page)
 	if err := page.Locator("[data-testid='pin-unlock-input']").Fill(multiSessionPIN); err != nil {
@@ -189,6 +208,7 @@ func (s *MultiSessionScenario) submitVisiblePIN(t testing.TB) {
 }
 
 func waitForLocalBadgeOrPIN(page playwright.Page) (string, error) {
+	// Evaluate the page until the local badge or PIN overlay appears.
 	raw, err := page.Evaluate(`async ({ deadlineMs }) => {
 		const deadline = Date.now() + deadlineMs
 		for (;;) {
@@ -241,8 +261,10 @@ func waitForCount(ctx context.Context, next func(context.Context) (int, error), 
 }
 
 func (s *MultiSessionScenario) waitForSessionCount(t testing.TB, want int) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Watch sessions for the expected count.
 	ctx, cancel := context.WithTimeout(s.h.Context(), 30*time.Second)
 	defer cancel()
 	watch, err := s.session.Root().WatchSessions(ctx)
@@ -255,6 +277,7 @@ func (s *MultiSessionScenario) waitForSessionCount(t testing.TB, want int) {
 		}
 	}()
 
+	// Wait until the watched session count matches.
 	if err := waitForCount(ctx, func(ctx context.Context) (int, error) {
 		resp, err := watch.Recv()
 		if err != nil {
@@ -267,8 +290,10 @@ func (s *MultiSessionScenario) waitForSessionCount(t testing.TB, want int) {
 }
 
 func waitForSessionRoute(t testing.TB, page playwright.Page) uint32 {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait until the page URL contains a session route.
 	raw, err := page.Evaluate(`async ({ deadlineMs }) => {
 		const deadline = Date.now() + deadlineMs
 		for (;;) {
@@ -287,6 +312,7 @@ func waitForSessionRoute(t testing.TB, page playwright.Page) uint32 {
 		failWithPageBody(t, page, "wait for session route", err)
 	}
 
+	// Parse the session index from that URL.
 	rawURL, ok := raw.(string)
 	if !ok {
 		t.Fatalf("session route wait returned %T: %#v", raw, raw)
@@ -299,11 +325,13 @@ func waitForSessionRoute(t testing.TB, page playwright.Page) uint32 {
 }
 
 func parseSessionRoute(rawURL string) (uint32, error) {
+	// Require a hash route.
 	hashIdx := strings.Index(rawURL, "#")
 	if hashIdx == -1 || hashIdx == len(rawURL)-1 {
 		return 0, errors.New("missing hash route")
 	}
 
+	// Parse the session index from the user path.
 	parts := strings.Split(strings.TrimPrefix(rawURL[hashIdx:], "#"), "/")
 	if len(parts) < 3 || parts[1] != "u" {
 		return 0, errors.Errorf("unexpected route %q", rawURL[hashIdx:])

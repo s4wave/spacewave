@@ -87,6 +87,7 @@ func (b *Buffer) ReadU64() uint64 {
 
 // ReadString reads a 2-byte length-prefixed UTF-8 string.
 func (b *Buffer) ReadString() string {
+	// Decode the length-prefixed string and advance the wire buffer.
 	n := int(b.ReadU16())
 	if b.err != nil || b.off+n > len(b.data) {
 		b.err = errShortRead
@@ -99,6 +100,7 @@ func (b *Buffer) ReadString() string {
 
 // ReadBytes reads n bytes from the buffer.
 func (b *Buffer) ReadBytes(n int) []byte {
+	// Copy the requested bytes and advance the wire buffer.
 	if b.err != nil || b.off+n > len(b.data) {
 		b.err = errShortRead
 		return nil
@@ -161,6 +163,7 @@ func (b *Buffer) WriteQID(q QID) {
 
 // buildMessage wraps a payload with the 9p header [size:u32][type:u8][tag:u16].
 func buildMessage(msgType uint8, tag uint16, payload []byte) []byte {
+	// Encode the message header and append its payload.
 	size := uint32(headerSize + len(payload)) //nolint:gosec
 	msg := make([]byte, size)
 	binary.LittleEndian.PutUint32(msg[0:], size)

@@ -25,6 +25,7 @@ const backgroundThrottleResumeFolder = "background-throttle-resume-proof"
 // beyond common timer-throttling windows and resume without document deletion,
 // runtime reconnection churn, or stream loss.
 func TestBackgroundThrottledLifecycle(t *testing.T) {
+	// Open the harness and the left Drive page.
 	h := harness(t)
 	sess := h.NewCleanSession(t)
 	scenario := CreateDriveScenario(t, h, sess)
@@ -36,6 +37,7 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
+	// Open a second page and wait for startup.
 	rightPage, err := h.newBrowserPage(sess)
 	if err != nil {
 		t.Fatalf("open second app document: %v", err)
@@ -52,6 +54,7 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 	WaitForDriveReady(t, h, rightPage)
 	AssertBrowserStartupDone(t, h, rightPage)
 
+	// Record startup marks and collect console messages.
 	leftRuntimeConnected := startupMarkCount(t, leftPage, "runtime.connected")
 	rightRuntimeConnected := startupMarkCount(t, rightPage, "runtime.connected")
 	if leftRuntimeConnected == 0 || rightRuntimeConnected == 0 {
@@ -65,6 +68,7 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 	defer stopConsole()
 	consoleCollector := startBackgroundThrottleConsoleCollector(console)
 
+	// Open a foreground page so the Drive tabs go to the background.
 	foregroundPage, err := sess.BrowserContext().NewPage()
 	if err != nil {
 		t.Fatalf("open foreground page: %v", err)
@@ -77,8 +81,10 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 		t.Fatalf("bring foreground page forward: %v", err)
 	}
 
+	// Wait through the background throttle window.
 	waitBackgroundThrottleWindow(t, 60*time.Second)
 
+	// Restore the left page and require its runtime connection.
 	if err := leftPage.BringToFront(); err != nil {
 		t.Fatalf("bring left app page forward: %v", err)
 	}
@@ -87,6 +93,7 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 	AssertBrowserStartupDone(t, h, leftPage)
 	assertStartupMarkCount(t, leftPage, "runtime.connected", leftRuntimeConnected)
 
+	// Restore the right page and require its runtime connection.
 	if err := rightPage.BringToFront(); err != nil {
 		t.Fatalf("bring right app page forward: %v", err)
 	}
@@ -95,9 +102,11 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 	AssertBrowserStartupDone(t, h, rightPage)
 	assertStartupMarkCount(t, rightPage, "runtime.connected", rightRuntimeConnected)
 
+	// Create a folder on the left and require it on the right.
 	createDriveFolder(t, leftPage, backgroundThrottleResumeFolder)
 	waitForDriveEntry(t, rightPage, backgroundThrottleResumeFolder)
 
+	// Require no remote document deletion while backgrounded.
 	stopConsole()
 	consoleCollector.Wait()
 	messages := consoleCollector.Messages()
@@ -108,6 +117,7 @@ func TestBackgroundThrottledLifecycle(t *testing.T) {
 // TestNeverFocusedBackgroundTabLoads proves a tab loaded behind a foreground
 // page can open runtime streams before the test ever brings it to the front.
 func TestNeverFocusedBackgroundTabLoads(t *testing.T) {
+	// Open a session and collect console messages.
 	h := harness(t)
 	sess := h.NewCleanBlankSession(t)
 	page := sess.Page()
@@ -115,6 +125,7 @@ func TestNeverFocusedBackgroundTabLoads(t *testing.T) {
 	defer stopConsole()
 	consoleCollector := startBackgroundThrottleConsoleCollector(console)
 
+	// Open a foreground page before the Drive tab loads.
 	foregroundPage, err := sess.BrowserContext().NewPage()
 	if err != nil {
 		t.Fatalf("open foreground page: %v", err)
@@ -127,6 +138,7 @@ func TestNeverFocusedBackgroundTabLoads(t *testing.T) {
 		t.Fatalf("bring foreground page forward: %v", err)
 	}
 
+	// Load Drive in the unfocused tab and require a runtime connection.
 	loadPageURL(t, page, h.BaseURL()+"/#/quickstart/drive")
 	WaitForApp(t, page)
 	WaitForDriveReady(t, h, page)
@@ -135,6 +147,7 @@ func TestNeverFocusedBackgroundTabLoads(t *testing.T) {
 		t.Fatal("background page opened the Drive route without a runtime connection mark")
 	}
 
+	// Require no remote document deletion.
 	stopConsole()
 	consoleCollector.Wait()
 	messages := consoleCollector.Messages()
@@ -179,13 +192,16 @@ func assertStartupMarkCount(
 }
 
 func waitBackgroundThrottleWindow(t testing.TB, d time.Duration) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Bound the throttle window.
 	ctx, cancel := context.WithTimeout(t.Context(), d+5*time.Second)
 	defer cancel()
 	timer := time.NewTimer(d)
 	defer timer.Stop()
 
+	// Wait for the window or the test deadline.
 	select {
 	case <-timer.C:
 	case <-ctx.Done():

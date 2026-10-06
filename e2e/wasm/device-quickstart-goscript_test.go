@@ -18,6 +18,7 @@ const (
 // STORY_DEV_001 / STORY_DEV_002: the Device quickstart opens Computers first,
 // then the Add Device control launches the setup wizard.
 func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -26,6 +27,7 @@ func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean page and capture its console.
 	h := harness(t)
 	sess := h.NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
@@ -40,11 +42,13 @@ func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
 		}
 	}()
 
+	// Open the device quickstart.
 	page := sess.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, h, page, "#/quickstart/device")
 
+	// Require the computers dashboard and its object type.
 	proof := waitForDeviceQuickstartSurface(t, page)
 	if proof.Timeout {
 		t.Fatalf("Device quickstart did not reach a typed surface before timeout; proof: %+v", proof)
@@ -68,6 +72,7 @@ func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
 		t.Fatalf("Device quickstart hash = %q, want canonical Computers object route; proof: %+v", proof.Hash, proof)
 	}
 
+	// Open the add-device wizard.
 	addDevice := page.Locator("button:has-text('Add Device')").First()
 	if err := addDevice.Click(playwright.LocatorClickOptions{
 		Timeout: playwright.Float(deviceQuickstartWaitMS),
@@ -80,6 +85,7 @@ func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
 // Presentation-only smoke coverage for the Device viewer. This intentionally
 // seeds a world object and must not be used as enrollment or lifecycle proof.
 func TestGoScriptDeviceViewerPresentationSmoke(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -88,6 +94,7 @@ func TestGoScriptDeviceViewerPresentationSmoke(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean page and capture its console.
 	h := harness(t)
 	sess := h.NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
@@ -102,6 +109,7 @@ func TestGoScriptDeviceViewerPresentationSmoke(t *testing.T) {
 		}
 	}()
 
+	// Open the device quickstart and require its surface.
 	page := sess.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
@@ -111,6 +119,7 @@ func TestGoScriptDeviceViewerPresentationSmoke(t *testing.T) {
 		t.Fatalf("Device quickstart did not reach the viewer smoke surface; proof: %+v", proof)
 	}
 
+	// Seed a device, open its row, and wait for the viewer.
 	seededDevice := seedDeviceQuickstartDevice(t, h, page)
 	deviceObjectKey := stringField(seededDevice, "objectKey")
 	if deviceObjectKey == "" {
@@ -398,8 +407,10 @@ func deviceQuickstartJSONStringSlice(values []*fastjson.Value) []string {
 }
 
 func seedDeviceQuickstartDevice(t testing.TB, h *Harness, page playwright.Page) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Seed a device through the quickstart script and require its type.
 	raw, err := page.Evaluate(h.Script("device-quickstart.ts"), map[string]any{
 		"action":     "seed-device",
 		"objectKey":  "devices/e2e-build-host",

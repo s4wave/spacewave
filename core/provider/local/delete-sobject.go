@@ -31,6 +31,7 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 	}
 	defer relMtx()
 
+	// Delete the shared object unless another cleanup already removed it.
 	if err := a.deleteSharedObjectLocked(ctx, id); err != nil && err != sobject.ErrSharedObjectNotFound {
 		return err
 	}
@@ -39,6 +40,7 @@ func (a *ProviderAccount) DeleteSharedObject(ctx context.Context, id string) err
 
 // deleteSharedObjectLocked deletes a shared object. Assumes mtx is locked.
 func (a *ProviderAccount) deleteSharedObjectLocked(ctx context.Context, id string) error {
+	// Read the provider and account that own the shared-object bucket.
 	providerID := a.t.accountInfo.GetProviderId()
 	providerAccountID := a.t.accountInfo.GetProviderAccountId()
 
@@ -56,6 +58,7 @@ func (a *ProviderAccount) deleteSharedObjectLocked(ctx context.Context, id strin
 		return sobject.ErrSharedObjectNotFound
 	}
 
+	// Resolve the block store and bucket for the shared object being removed.
 	soEntry := sharedObjectList.GetSharedObjects()[idx]
 	blockStoreID := soEntry.GetRef().GetBlockStoreId()
 	bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
@@ -69,6 +72,7 @@ func (a *ProviderAccount) deleteSharedObjectLocked(ctx context.Context, id strin
 	}
 	a.soListCtr.SetValue(sharedObjectList)
 
+	// Drop the deleted bucket's GC refs and sweep newly rootless blocks.
 	a.removeSharedObjectGCRefs(ctx, providerID, bucketID, a.le.WithField("sobject-id", id))
 	a.triggerGCCleanup()
 

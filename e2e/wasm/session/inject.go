@@ -17,6 +17,7 @@ import (
 // compiler manifests in the project config so the session harness is available
 // in plugin processes without modifying the production project config.
 func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error {
+	// Encode the WebRTC transport configuration for session harness plugins.
 	webrtcConf := &webrtc.Config{
 		SignalingId: "webrtc",
 		WebRtc: &webrtc.WebRtcConfig{
@@ -30,6 +31,8 @@ func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error
 	if err != nil {
 		return err
 	}
+
+	// Encode the session harness and link solicitation controller configurations.
 	sessionConfBytes, err := configjson.MarshalCanonical(&Config{})
 	if err != nil {
 		return err
@@ -38,6 +41,8 @@ func InjectSessionHarnessConfig(projectConfig *bldr_project.ProjectConfig) error
 	if err != nil {
 		return err
 	}
+
+	// Add the session harness packages and controllers to Go compiler manifests.
 	for _, manifest := range projectConfig.GetManifests() {
 		builder := manifest.GetBuilder()
 		if builder == nil || builder.GetId() != bldr_plugin_compiler_go.ConfigID {

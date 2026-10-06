@@ -16,16 +16,19 @@ import (
 // opens with ready health after the page is recreated inside the same browser
 // context.
 func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
+	// Open a clean Drive scenario.
 	sess := harness(t).NewCleanSession(t)
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
+	// Wait for Drive and read its hash route.
 	WaitForDriveReady(t, harness(t), page)
 	targetHash, err := currentHash(page.URL())
 	if err != nil {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
+	// Replace the page and reload that Drive route.
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace page in current context: %v", err)
 	}
@@ -33,11 +36,13 @@ func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
 		t.Fatalf("load drive route after page replacement: %v", err)
 	}
 
+	// Wait for the app and browser startup.
 	page = sess.Page()
 	WaitForApp(t, page)
 	AssertRootImportMap(t, harness(t), page)
 	AssertBrowserStartupDone(t, harness(t), page)
 
+	// Reconnect resources and wait for SharedObject health.
 	ctx, cancel := context.WithTimeout(harness(t).Context(), 90*time.Second)
 	defer cancel()
 	if err := sess.ConnectResources(ctx); err != nil {
@@ -48,10 +53,12 @@ func TestRecreatedPageSharedObjectHealthGuard(t *testing.T) {
 	}
 	waitForSharedObjectReadyHealth(t, ctx, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
 
+	// Reopen Drive and require no health card.
 	NavigateHash(t, harness(t), page, targetHash)
 	WaitForDriveReady(t, harness(t), page)
 	assertNoSharedObjectHealthCard(t, page)
 
+	// Log the recreated page result.
 	t.Logf(
 		"recreated-page shared-object health guard passed: session_index=%d space_id=%s url=%s",
 		scenario.GetSessionIndex(),
@@ -93,20 +100,24 @@ func waitForSharedObjectReadyHealth(
 	sessionIndex uint32,
 	spaceID string,
 ) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Mount the session.
 	sdk, err := sess.MountSessionByIdx(ctx, sessionIndex)
 	if err != nil {
 		t.Fatalf("mount session %d for health check: %v", sessionIndex, err)
 	}
 	defer sdk.Release()
 
+	// Watch SharedObject health for the Space.
 	strm, err := sdk.WatchSharedObjectHealth(ctx, spaceID)
 	if err != nil {
 		t.Fatalf("watch shared-object health: %v", err)
 	}
 	defer strm.Close()
 
+	// Return when health is ready, or fail when it closes or degrades.
 	var last *sobject.SharedObjectHealth
 	for {
 		resp, err := strm.Recv()

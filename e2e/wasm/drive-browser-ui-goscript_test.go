@@ -15,6 +15,7 @@ import (
 const driveBrowserUIWaitTimeout = 60 * time.Second
 
 func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -23,6 +24,7 @@ func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
@@ -31,15 +33,18 @@ func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for starter guidance.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
+	// Open the getting-started file and return to its row.
 	openGettingStartedFile(t, page)
 	clickDriveToolbarButton(t, page, "Up")
 	waitForDriveEntry(t, page, gettingStartedFileName)
 
+	// Upload a preview file and rename it.
 	previewFile := playwright.InputFile{
 		Name:     "row3-preview.md",
 		MimeType: "text/markdown",
@@ -52,6 +57,7 @@ func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
 	renameDriveEntryViaContextMenu(t, page, previewFile.Name, "row3-renamed.md")
 	waitForDriveEntry(t, page, "row3-renamed.md")
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after GoScript Drive preview/rename parity: %+v", report)
@@ -62,6 +68,7 @@ func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
 }
 
 func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -70,6 +77,7 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
@@ -78,13 +86,16 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for starter guidance.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
+	// Create the target folder.
 	createDriveFolder(t, page, "row5-target")
 
+	// Move a file into the target folder.
 	moveFile := playwright.InputFile{
 		Name:     "row5-move-dialog.md",
 		MimeType: "text/markdown",
@@ -93,6 +104,7 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 	uploadDriveFileThroughUI(t, page, moveFile)
 	moveDriveEntryViaContextMenu(t, page, moveFile.Name, "row5-target")
 
+	// Drag a file onto the target and require it to leave the root.
 	dragFile := playwright.InputFile{
 		Name:     "row5-drag-move.md",
 		MimeType: "text/markdown",
@@ -102,6 +114,7 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 	dropDriveEntryOnFolder(t, page, dragFile.Name, "row5-target")
 	waitForDriveEntryGone(t, page, dragFile.Name)
 
+	// Upload a file and delete it from the context menu.
 	deleteFile := playwright.InputFile{
 		Name:     "row5-delete.md",
 		MimeType: "text/markdown",
@@ -111,11 +124,13 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 	deleteDriveEntryViaContextMenu(t, page, deleteFile.Name)
 	waitForDriveEntriesPresentAndAbsent(t, page, []string{gettingStartedFileName, "row5-target"}, []string{deleteFile.Name})
 
+	// Open the target and require the deleted file to be gone.
 	openDriveEntry(t, page, "row5-target")
 	waitForDriveEntry(t, page, moveFile.Name)
 	waitForDriveEntry(t, page, dragFile.Name)
 	waitForDriveEntryGone(t, page, deleteFile.Name)
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after GoScript Drive move/drag/delete parity: %+v", report)
@@ -126,6 +141,7 @@ func TestGoScriptDriveBrowserMoveDragDeleteUIParity(t *testing.T) {
 }
 
 func TestGoScriptDriveBrowserLayoutDropReloadUIParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -134,6 +150,7 @@ func TestGoScriptDriveBrowserLayoutDropReloadUIParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
@@ -142,11 +159,13 @@ func TestGoScriptDriveBrowserLayoutDropReloadUIParity(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for starter guidance.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 	waitForStarterDriveGuidance(t, page)
 
+	// Drop a layout file onto the shell and require its text.
 	layoutFile := playwright.InputFile{
 		Name:     "row6-layout.md",
 		MimeType: "text/markdown",
@@ -156,6 +175,7 @@ func TestGoScriptDriveBrowserLayoutDropReloadUIParity(t *testing.T) {
 	dropUnixFSOpenableOnShellLayout(t, page, scenario, layoutFile.Name)
 	waitForUnixFSFileText(t, page, "row6 layout drop", "row6 layout drag body survives shell tab drop and reload")
 
+	// Reload and require the dropped file.
 	if _, err := page.Reload(); err != nil {
 		t.Fatalf("reload Drive layout state: %v", err)
 	}
@@ -165,6 +185,7 @@ func TestGoScriptDriveBrowserLayoutDropReloadUIParity(t *testing.T) {
 	waitForDriveEntry(t, page, gettingStartedFileName)
 	waitForDriveEntry(t, page, layoutFile.Name)
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after GoScript Drive layout drop/reload parity: %+v", report)
@@ -186,8 +207,10 @@ func waitForStarterDriveGuidance(t testing.TB, page playwright.Page) {
 }
 
 func uploadDriveFileThroughUI(t testing.TB, page playwright.Page, file playwright.InputFile) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Upload the file through the picker and clear the done notice.
 	UploadViaPicker(t, page, []playwright.InputFile{file})
 	waitForDriveUploadSummary(t, page, "1/1 uploaded")
 	waitForDriveEntry(t, page, file.Name)
@@ -254,13 +277,16 @@ func clickDriveToolbarButton(t testing.TB, page playwright.Page, title string) {
 }
 
 func openDriveEntryContextMenu(t testing.TB, page playwright.Page, name string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait for the Drive row.
 	row := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + name + "')").First()
 	if err := row.WaitFor(); err != nil {
 		failWithPageBody(t, page, "wait for Drive entry row "+name, err)
 	}
 
+	// Open the row context menu.
 	_, err := page.Evaluate(`({ name }) => {
 		const browser = document.querySelector('[data-testid="unixfs-browser"]')
 		if (!(browser instanceof HTMLElement)) {
@@ -304,8 +330,10 @@ func clickDropdownMenuItem(t testing.TB, page playwright.Page, label string) {
 }
 
 func renameDriveEntryViaContextMenu(t testing.TB, page playwright.Page, oldName, newName string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Rename the entry from its context menu.
 	openDriveEntryContextMenu(t, page, oldName)
 	clickDropdownMenuItem(t, page, "Rename")
 	input := page.Locator("[data-testid='unixfs-browser'] input").First()
@@ -331,8 +359,10 @@ func openDriveEntryViaContextMenu(t testing.TB, page playwright.Page, name strin
 }
 
 func moveDriveEntryViaContextMenu(t testing.TB, page playwright.Page, name, target string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Move the entry into the folder from its context menu.
 	openDriveEntryContextMenu(t, page, name)
 	clickDropdownMenuItem(t, page, "Move")
 	dialog := page.Locator("[role='dialog']:has-text('Move " + name + "')").First()
@@ -349,8 +379,10 @@ func moveDriveEntryViaContextMenu(t testing.TB, page playwright.Page, name, targ
 }
 
 func deleteDriveEntryViaContextMenu(t testing.TB, page playwright.Page, name string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Delete the entry from its context menu.
 	openDriveEntryContextMenu(t, page, name)
 	clickDropdownMenuItem(t, page, "Delete")
 	dialog := page.Locator("[role='dialog']:has-text('Delete item')").First()
@@ -364,8 +396,10 @@ func deleteDriveEntryViaContextMenu(t testing.TB, page playwright.Page, name str
 }
 
 func driveEntryAppDragEnvelope(t testing.TB, page playwright.Page, name string, wantOpenable bool) string {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Build the app drag envelope for the entry.
 	raw, err := page.Evaluate(`({ name, wantOpenable }) => {
 		const mime = 'application/x-s4wave-app-drag+json'
 		const row = Array.from(document.querySelectorAll('[data-testid="unixfs-browser"] [role="row"]')).find((el) => {
@@ -463,8 +497,10 @@ func dropDriveEntryOnFolder(t testing.TB, page playwright.Page, entryName string
 }
 
 func dropUnixFSOpenableOnShellLayout(t testing.TB, page playwright.Page, scenario *DriveScenario, name string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Drop the entry onto the shell layout.
 	payload := driveEntryAppDragEnvelope(t, page, name, true)
 	routePath := fmt.Sprintf(
 		"/u/%d/so/%s/-/files/-%s",
@@ -509,6 +545,7 @@ func dropUnixFSOpenableOnShellLayout(t testing.TB, page playwright.Page, scenari
 		t.Fatalf("drop %s on shell layout: %v", name, err)
 	}
 
+	// Wait for the dropped route.
 	_, err = page.WaitForFunction(`({ routePath }) => {
 		try {
 			const snapshot = JSON.parse(localStorage.getItem('browser-shell-tabs') ?? 'null')

@@ -49,6 +49,7 @@ func TestE2ESignalingReconnect(t *testing.T) {
 	// Each generation reopens the actual WebSocket, frame, and signaling RPC path.
 	for range 2 {
 		func() {
+			// Request tickets and connect both signaling clients.
 			clients := make([]*signaling_client.Client, 2)
 			for i := range clients {
 				req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint+"/api/signal/ticket", nil)
@@ -99,6 +100,8 @@ func TestE2ESignalingReconnect(t *testing.T) {
 				_, err := a.Send(ctx, []byte("after reconnect"))
 				sent <- err
 			}()
+
+			// Receive the signed message and require the send to succeed.
 			msg, err := b.Recv(ctx)
 			if err != nil {
 				t.Fatal(err)

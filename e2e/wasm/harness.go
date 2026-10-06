@@ -136,11 +136,13 @@ func resolveBrowserName(explicit string) string {
 //
 // The returned Harness must be released with Release when done.
 func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, retErr error) {
+	// Apply the boot options.
 	o := &options{}
 	for _, opt := range opts {
 		opt(o)
 	}
 
+	// Resolve the repository root.
 	repoRoot := o.repoRoot
 	if repoRoot == "" {
 		var err error
@@ -150,11 +152,14 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		}
 	}
 
+	// Resolve whether startup builds reuse the cache.
 	envStartupBuildCache, err := ResolveE2EWasmStartupBuildCacheEnabled()
 	if err != nil {
 		return nil, err
 	}
 	preserveStartupBuildCache := resolveStartupBuildCache(envStartupBuildCache, o.preserveStartupBuildCache)
+
+	// Build the state roots and reap stale cache-off roots.
 	stateRoot, err := buildHarnessStateRoot(repoRoot, preserveStartupBuildCache)
 	if err != nil {
 		return nil, err
@@ -169,6 +174,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	}
 	reapHarnessCacheOffStateRoots(le, filepath.Dir(stateRoot), stateRoot, stableStateRoot, stateRootOwner)
 
+	// Resolve the worker mode and claim the state root.
 	workerMode, err := ResolveE2EWasmWorkerMode(o.workerMode)
 	if err != nil {
 		return nil, err
@@ -209,17 +215,20 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		le.WithField("state-root", stateRoot).Info("preserving e2e wasm startup build cache")
 	}
 
+	// Load the Chromium launch policy.
 	chromiumPolicy, err := e2eharness.NewChromiumLaunchPolicy(le)
 	if err != nil {
 		return nil, err
 	}
 
+	// Cancel the harness with the parent context and set the manifest wait.
 	hctx, cancel := context.WithCancel(ctx)
 	manifestWait := o.manifestBuildTimeout
 	if manifestWait == 0 {
 		manifestWait = defaultManifestBuildTimeout
 	}
 
+	// Construct the harness, record its owner, and clear build state.
 	h := &Harness{
 		ctx:                       hctx,
 		chromiumPolicy:            chromiumPolicy,
@@ -248,21 +257,25 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		return nil, err
 	}
 
+	// Build the devtool bus.
 	d, err := devtool.BuildDevtoolBus(hctx, le, repoRoot, stateRoot, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "build devtool bus")
 	}
 	h.devtool = d
 
+	// Resolve the bldr module used by dist sources.
 	bldrVersion, bldrSum, bldrSrcPath, err := resolveBldrDependency(repoRoot)
 	if err != nil {
 		return nil, err
 	}
 
+	// Sync dist sources from that module.
 	if err := d.SyncDistSources(bldrVersion, bldrSum, bldrSrcPath); err != nil {
 		return nil, errors.Wrap(err, "sync dist sources")
 	}
 
+	// Start the cloud auth-config endpoint.
 	cloudEndpoint, stopCloudEndpoint, err := startE2ECloudAuthConfigEndpoint(stableE2ECloudAuthConfigAddr(stateRoot))
 	if err != nil {
 		return nil, errors.Wrap(err, "start cloud auth config endpoint")
@@ -270,6 +283,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	h.cloudEndpoint = cloudEndpoint
 	h.cloudEndpointClose = stopCloudEndpoint
 
+	// Load the project config and point it at that endpoint.
 	projConfig, err := loadProjectConfig(repoRoot)
 	if err != nil {
 		return nil, err
@@ -289,12 +303,14 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		LinkObjectKeys: []string{d.GetPluginHostObjectKey()},
 	}
 
+	// Apply caller config mutators.
 	for _, mut := range o.configMutators {
 		if err := mut(projConfig); err != nil {
 			return nil, errors.Wrap(err, "apply config mutator")
 		}
 	}
 
+	// Validate the project config.
 	if err := projConfig.Validate(); err != nil {
 		return nil, errors.Wrap(err, "validate project config")
 	}
@@ -329,6 +345,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	startupManifestPreflights := devtool.ProjectOwnedStartupManifestPreflightsForPlatforms(projConfig, h.goPlatformID, "web/js/wasm")
 	webStartupSrcPath, _ := projConfig.GetStart().ParseWebStartupPath()
 
+	// Bind a free port and record the base URL.
 	port, err := findFreePort()
 	if err != nil {
 		return nil, errors.Wrap(err, "find free port")
@@ -393,6 +410,7 @@ func ScriptDir() string {
 // shared web packages (react, @aptre/bldr, etc.) so the browser resolves
 // them via the app's import map, sharing module instances with the running app.
 func (h *Harness) CompileScripts(dir string) error {
+	// Compile the directory's TypeScript fixtures into the harness entry.
 	outDir := filepath.Join(h.devtool.GetStateRoot(), "entry", "web", "wasm", "e2e")
 	scripts, err := CompileTestScripts(dir, outDir)
 	if err != nil {
@@ -450,14 +468,17 @@ func (h *Harness) GetProjectConfig() *bldr_project.ProjectConfig { return h.proj
 func (h *Harness) Cleanup(t testing.TB) { t.Cleanup(h.Release) }
 
 func (h *Harness) leaseBrowserPeer(s *TestSession, p peer.ID) bool {
+	// Lock the peer-lease map.
 	key := string(p)
 	h.peerLeaseMu.Lock()
 	defer h.peerLeaseMu.Unlock()
 
+	// Create the lease map on first use.
 	if h.peerLeases == nil {
 		h.peerLeases = make(map[string]*TestSession)
 	}
 
+	// Grant the lease unless another session already owns it.
 	owner := h.peerLeases[key]
 	if owner != nil && owner != s {
 		return false
@@ -495,6 +516,7 @@ func (h *Harness) waitBrowserPeerLease(ctx context.Context, s *TestSession, p pe
 }
 
 func (h *Harness) releaseBrowserPeerLease(s *TestSession, p peer.ID) {
+	// Ignore an empty peer and lock the lease map.
 	if len(p) == 0 {
 		return
 	}
@@ -502,6 +524,7 @@ func (h *Harness) releaseBrowserPeerLease(s *TestSession, p peer.ID) {
 	h.peerLeaseMu.Lock()
 	defer h.peerLeaseMu.Unlock()
 
+	// Drop this session's lease and wake waiters.
 	if h.peerLeases[key] == s {
 		delete(h.peerLeases, key)
 		if h.peerLeaseWaitCh != nil {
@@ -512,6 +535,7 @@ func (h *Harness) releaseBrowserPeerLease(s *TestSession, p peer.ID) {
 }
 
 func (h *Harness) browserPeerLeaseOwner(p peer.ID) *TestSession {
+	// Return the session that holds this peer lease.
 	if len(p) == 0 {
 		return nil
 	}
@@ -544,6 +568,7 @@ func (h *Harness) setRetainedStateResourcePeer(p peer.ID) {
 // and releases all controllers and the devtool bus. Individual test
 // sessions are released via their own cleanup (t.Cleanup).
 func (h *Harness) Release() {
+	// Close the retained browser and clear peer leases.
 	h.closeRetainedStateContext()
 	h.closeBrowser()
 	if h.peerWatcher != nil {
@@ -552,12 +577,16 @@ func (h *Harness) Release() {
 	h.peerLeaseMu.Lock()
 	h.peerLeases = nil
 	h.peerLeaseMu.Unlock()
+
+	// Cancel the harness and wait for the wasm server to exit.
 	if h.cancel != nil {
 		h.cancel()
 	}
 	if h.wasmDone != nil {
 		<-h.wasmDone
 	}
+
+	// Release the cloud endpoint, project, and devtool.
 	if h.cloudEndpointClose != nil {
 		h.cloudEndpointClose()
 		h.cloudEndpointClose = nil
@@ -569,6 +598,8 @@ func (h *Harness) Release() {
 	if h.devtool != nil {
 		h.devtool.Release()
 	}
+
+	// Release the state-root lock and remove an uncached root.
 	if h.stateRootLock != nil {
 		if err := h.stateRootLock.Close(); err != nil && h.le != nil {
 			h.le.WithError(err).WithField("state-root", h.stateRoot).Error("release e2e wasm state root lock")
@@ -623,15 +654,18 @@ func (r manifestFetchRequest) summary() string {
 // loadProjectConfig reads and merges bldr.yaml and bldr.star at the repo root.
 // bldr.star takes precedence over bldr.yaml when both exist.
 func loadProjectConfig(repoRoot string) (*bldr_project.ProjectConfig, error) {
+	// Locate bldr.yaml and bldr.star.
 	yamlPath := filepath.Join(repoRoot, "bldr.yaml")
 	starPath := filepath.Join(repoRoot, "bldr.star")
 
+	// Require at least one project config file.
 	yamlData, yamlErr := os.ReadFile(yamlPath)
 	_, starErr := os.Stat(starPath)
 	if yamlErr != nil && starErr != nil {
 		return nil, errors.Wrap(yamlErr, "read bldr.yaml")
 	}
 
+	// Start from an empty project config.
 	conf := &bldr_project.ProjectConfig{}
 
 	// Load bldr.yaml as base config if it exists.
@@ -657,6 +691,7 @@ func loadProjectConfig(repoRoot string) (*bldr_project.ProjectConfig, error) {
 
 // findFreePort allocates an ephemeral TCP port and returns it.
 func findFreePort() (int, error) {
+	// Listen on an ephemeral port and return it.
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return 0, err
@@ -697,6 +732,7 @@ func (h *Harness) assertStartupManifestFetches() error {
 // loaded it, opening a serving outage mid-test. Settling to a fixpoint drains
 // those waves before the harness serves the app.
 func (h *Harness) settleStartupManifests(ctx context.Context) error {
+	// Re-run the startup preflight until consecutive digests match.
 	le := h.le.WithField("component", "harness")
 	const maxPasses = 8
 	var prev map[string]string
@@ -723,6 +759,7 @@ func (h *Harness) settleStartupManifests(ctx context.Context) error {
 // the startup manifest fetches, wait for their builds, and return the settled
 // per-plugin manifest digest so the caller can detect a build fixpoint.
 func (h *Harness) preflightStartupManifests(ctx context.Context) (map[string]string, error) {
+	// Release prior fetches, wait for startup manifests, and return their digests.
 	h.releaseManifestFetches()
 	if err := h.assertStartupManifestFetches(); err != nil {
 		return nil, errors.Wrap(err, "assert startup manifest fetches")
@@ -740,6 +777,7 @@ func (h *Harness) preflightStartupManifests(ctx context.Context) (map[string]str
 // SettleProjectManifest builds one lazy project plugin to the same fixpoint as
 // browser startup manifests before a test path requests it from PluginHost.
 func (h *Harness) SettleProjectManifest(pluginID string) error {
+	// Require a project-owned wasm preflight for the plugin.
 	preflight, ok := devtool.ProjectOwnedStartupManifestPreflight(h.projConfig, pluginID, "web/js/wasm")
 	if !ok {
 		return errors.Errorf("project manifest %q not found", pluginID)
@@ -749,9 +787,11 @@ func (h *Harness) SettleProjectManifest(pluginID string) error {
 		platformIDs: preflight.PlatformIDs,
 	}
 
+	// Bound the settle to eight manifest waits.
 	ctx, cancel := context.WithTimeout(h.ctx, h.manifestWait*8)
 	defer cancel()
 
+	// Re-run the lazy fetch until consecutive digests match.
 	const maxPasses = 8
 	var prev string
 	for pass := 1; pass <= maxPasses; pass++ {
@@ -770,10 +810,12 @@ func (h *Harness) SettleProjectManifest(pluginID string) error {
 }
 
 func (h *Harness) preflightManifestFetch(ctx context.Context, req manifestFetchRequest) (string, error) {
+	// Require the plugin manifest in the project config.
 	if _, ok := h.projConfig.GetManifests()[req.pluginID]; !ok {
 		return "", errors.Errorf("manifest %q not found in project config", req.pluginID)
 	}
 
+	// Assert the lazy fetch and register its idle callback.
 	waitState := newManifestWaitState(req.pluginID)
 	h.le.WithFields(req.logFields()).Info("asserting lazy manifest fetch")
 	di, ref, err := h.devtool.GetBus().AddDirective(req.directive(), waitState.handler())
@@ -783,6 +825,7 @@ func (h *Harness) preflightManifestFetch(ctx context.Context, req manifestFetchR
 	defer ref.Release()
 	di.AddIdleCallback(waitState.handleIdle)
 
+	// Wait for that fetch and return its digest.
 	wait := manifestWait{req: req, state: waitState}
 	if err := h.waitForManifest(ctx, wait); err != nil {
 		return "", err
@@ -823,10 +866,12 @@ func (h *Harness) releaseManifestFetches() {
 // directives to resolve on the devtool bus. This ensures builds are complete
 // before Playwright loads the app.
 func (h *Harness) waitForManifests(ctx context.Context) error {
+	// Bound the manifest wait.
 	le := h.le.WithField("component", "harness")
 	waitCtx, cancel := context.WithTimeout(ctx, h.manifestWait)
 	defer cancel()
 
+	// Wait for every asserted manifest concurrently.
 	fns := make([]ccall.CallConcurrentlyFunc, 0, len(h.manifestWaits))
 	for _, wait := range h.manifestWaits {
 		fns = append(fns, func(ctx context.Context) error {
@@ -854,6 +899,7 @@ func (h *Harness) waitForManifests(ctx context.Context) error {
 		return errors.Wrap(err, "wait for startup manifest callbacks")
 	}
 
+	// Report that every plugin manifest has built.
 	le.Info("all plugin manifests built")
 	return nil
 }
@@ -903,9 +949,11 @@ func (s *manifestWaitState) handleValueRemoved(v directive.TypedAttachedValue[*b
 }
 
 func (s *manifestWaitState) handleIdle(isIdle bool, errs []error) {
+	// Lock the manifest wait state.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	// Record idle, errors, and wake waiters.
 	s.idle = isIdle
 	s.errs = errs
 	s.checkLocked()
@@ -950,9 +998,11 @@ func (s *manifestWaitState) signalLocked(err error) {
 // Two preflight passes that yield the same digest prove the plugin's web build
 // has quiesced; a changed digest means a delayed invalidation wave rebuilt it.
 func (s *manifestWaitState) digest() string {
+	// Lock the manifest wait state.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	// Hash the sorted manifest references.
 	refs := make([]string, 0, len(s.values))
 	for _, val := range s.values {
 		for _, mref := range val.GetManifestRefs() {
@@ -1033,6 +1083,7 @@ const bldrModPath = "github.com/s4wave/spacewave"
 // vendored dist source tree follows local bldr checkouts instead of re-vendoring
 // an older module version.
 func resolveBldrDependency(repoRoot string) (version, sum, srcPath string, err error) {
+	// Use the repository when its module path is known.
 	repoModulePath, repoModuleErr := repoGoModulePath(repoRoot)
 	if repoModuleErr == nil && repoModulePath != "" && repoModulePath != bldrModPath {
 		if p, ok := resolveLocalModulePath("", repoRoot); ok {
@@ -1047,6 +1098,7 @@ func resolveBldrDependency(repoRoot string) (version, sum, srcPath string, err e
 		return "", "", repoRoot, nil
 	}
 
+	// Read build info, then fall back to go.mod.
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {
 		return resolveBldrDependencyFromGoMod(repoRoot)
@@ -1084,6 +1136,7 @@ func resolveBldrDependency(repoRoot string) (version, sum, srcPath string, err e
 // resolveBldrDependencyFromGoMod falls back to repoRoot/go.mod when build info
 // does not expose the dependency graph, which can happen in test binaries.
 func resolveBldrDependencyFromGoMod(repoRoot string) (version, sum, srcPath string, err error) {
+	// Require a repository root and parse its go.mod.
 	if repoRoot == "" {
 		return "", "", "", errors.New("unable to resolve bldr dependency")
 	}
@@ -1099,6 +1152,8 @@ func resolveBldrDependencyFromGoMod(repoRoot string) (version, sum, srcPath stri
 	if mod.Module != nil && mod.Module.Mod.Path == bldrModPath {
 		return "", "", repoRoot, nil
 	}
+
+	// Use a local replace path, or the required module version.
 	for _, repl := range mod.Replace {
 		if repl.Old.Path != bldrModPath {
 			continue
@@ -1124,6 +1179,7 @@ func resolveBldrDependencyFromGoMod(repoRoot string) (version, sum, srcPath stri
 }
 
 func repoGoModulePath(repoRoot string) (string, error) {
+	// Read the module path from the repository go.mod.
 	if repoRoot == "" {
 		return "", errors.New("repo root is required")
 	}
@@ -1210,6 +1266,7 @@ func writeHarnessStateRootOwner(stateRoot string, owner harnessStateRootOwner) e
 }
 
 func marshalHarnessStateRootOwner(owner harnessStateRootOwner) []byte {
+	// Encode the owner pid, creation time, and token.
 	var b strings.Builder
 	b.WriteString(strconv.Itoa(owner.pid))
 	b.WriteByte('\n')
@@ -1229,10 +1286,13 @@ func readHarnessStateRootOwner(stateRoot string) (harnessStateRootOwner, error) 
 }
 
 func parseHarnessStateRootOwner(data []byte) (harnessStateRootOwner, error) {
+	// Require a three-line owner marker.
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	if len(lines) != 3 {
 		return harnessStateRootOwner{}, errors.Errorf("state root owner marker has %d fields", len(lines))
 	}
+
+	// Parse the pid, creation time, and token.
 	pid, err := strconv.Atoi(lines[0])
 	if err != nil {
 		return harnessStateRootOwner{}, errors.Wrap(err, "parse state root owner pid")
@@ -1253,6 +1313,7 @@ func parseHarnessStateRootOwner(data []byte) (harnessStateRootOwner, error) {
 }
 
 func reapHarnessCacheOffStateRoots(le *logrus.Entry, parent, currentStateRoot, stableStateRoot string, currentOwner harnessStateRootOwner) {
+	// Scan sibling state roots and remove stale cache-off ones.
 	entries, err := os.ReadDir(parent)
 	if err != nil {
 		if !os.IsNotExist(err) && le != nil {
@@ -1289,6 +1350,7 @@ func reapHarnessCacheOffStateRoots(le *logrus.Entry, parent, currentStateRoot, s
 }
 
 func shouldReapHarnessCacheOffStateRoot(stateRoot string, entry os.DirEntry, now time.Time, currentOwner harnessStateRootOwner) (bool, error) {
+	// Reap a recycled owner token, a dead owner, or a stale markerless root.
 	owner, err := readHarnessStateRootOwner(stateRoot)
 	if err == nil {
 		// The marker token is kept in the live Harness state-root marker and
@@ -1309,6 +1371,7 @@ func shouldReapHarnessCacheOffStateRoot(stateRoot string, entry os.DirEntry, now
 	if err != nil {
 		return false, err
 	}
+
 	// Pre-fix cache-off roots have no state-root marker. The 24h threshold only
 	// reaps stale markerless wasm roots after the stable cache-on root name has
 	// been excluded; young markerless roots may belong to an older live binary.
@@ -1341,6 +1404,7 @@ func isHarnessCacheOffStateRootName(name string) bool {
 // parallel. They must not share the same `.bldr/e2e-wasm` directory or one
 // package can delete `src/` while another is syncing it.
 func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (string, error) {
+	// Name the state root from the working directory when it is inside the repository.
 	stateRoot := filepath.Join(repoRoot, ".bldr", "e2e-wasm")
 	scope := "default"
 	label := "wasm"
@@ -1353,6 +1417,8 @@ func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (str
 		scope = rel
 		label = filepath.Base(cwd)
 	}
+
+	// Hash the executable and cache mode into the state-root name.
 	exe, err := os.Executable()
 	if err != nil {
 		return "", errors.Wrap(err, "get executable path")

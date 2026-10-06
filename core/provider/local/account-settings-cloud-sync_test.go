@@ -21,6 +21,7 @@ import (
 )
 
 func TestBuildAccountSettingsSyncOps(t *testing.T) {
+	// Build source and target account settings with overlapping devices.
 	source := &account_settings.AccountSettings{
 		DisplayName: "Device A",
 		PairedDevices: []*account_settings.PairedDevice{{
@@ -46,6 +47,7 @@ func TestBuildAccountSettingsSyncOps(t *testing.T) {
 		}},
 	}
 
+	// Build the sync ops and require one op per changed field.
 	ops, err := buildAccountSettingsSyncOps(source, target)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +58,7 @@ func TestBuildAccountSettingsSyncOps(t *testing.T) {
 }
 
 func TestAccountSettingsSyncTerminalError(t *testing.T) {
+	// Wrap permanent and unauthorized cloud errors.
 	wrap := func(err error) error {
 		// Mirror the routine body, which wraps every failure with context.
 		return errors.Wrap(err, "mount cloud account settings")
@@ -71,6 +74,7 @@ func TestAccountSettingsSyncTerminalError(t *testing.T) {
 		Retryable:  false,
 	}
 
+	// Require only the permanent and unauthorized wraps to be terminal.
 	cases := []struct {
 		name string
 		err  error
@@ -110,6 +114,7 @@ func newAccountSettingsSyncTestRoutine(
 	t *testing.T,
 	run cutil_routine.StateRoutine[string],
 ) *cutil_routine.StateRoutineContainer[string] {
+	// Build a discarded-log state routine and clear it on cleanup.
 	t.Helper()
 	log := logrus.New()
 	log.SetOutput(io.Discard)
@@ -131,6 +136,7 @@ func awaitAccountSettingsSyncCall(
 	want int32,
 	timeout time.Duration,
 ) {
+	// Poll the call channel until the expected call or the timeout.
 	t.Helper()
 	var last int32
 	deadline := time.NewTimer(timeout)
@@ -152,6 +158,7 @@ func TestAccountSettingsSyncTerminalStopWiring(t *testing.T) {
 	ctx := t.Context()
 
 	t.Run("terminal error stops until link state changes", func(t *testing.T) {
+		// Count calls and install a hard-terminal sync error.
 		var calls atomic.Int32
 		callCh := make(chan int32, 16)
 		hardTerminal := &clouderror.Error{
@@ -160,6 +167,7 @@ func TestAccountSettingsSyncTerminalStopWiring(t *testing.T) {
 			Retryable:  false,
 		}
 		run := func(_ context.Context, _ string) error {
+			// Record the call and return the wrapped terminal error.
 			n := calls.Add(1)
 			select {
 			case callCh <- n:
@@ -175,6 +183,7 @@ func TestAccountSettingsSyncTerminalStopWiring(t *testing.T) {
 		ctr.SetState("cloud-account-1")
 		ctr.SetContext(ctx, true)
 
+		// Wait for the first call and require the routine to exit.
 		awaitAccountSettingsSyncCall(t, callCh, 1, 10*time.Second)
 		if err := ctr.WaitExited(ctx, false, nil); err != nil {
 			t.Fatalf("routine exited with error: %v", err)
@@ -202,6 +211,7 @@ func TestAccountSettingsSyncTerminalStopWiring(t *testing.T) {
 	})
 
 	t.Run("access-gated error keeps retrying and recovers", func(t *testing.T) {
+		// Count calls and install a gated sync error.
 		var calls atomic.Int32
 		callCh := make(chan int32, 16)
 		gated := &clouderror.Error{
@@ -242,14 +252,17 @@ func TestAccountSettingsSyncTerminalStopWiring(t *testing.T) {
 }
 
 func TestLoadLinkedCloudAccountID(t *testing.T) {
+	// Use the test context for the linked-cloud load.
 	ctx := t.Context()
 
+	// Open a testbed and release it when the test returns.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Load the local provider controller.
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&Config{
 		ProviderId: "local",
@@ -261,12 +274,14 @@ func TestLoadLinkedCloudAccountID(t *testing.T) {
 	}
 	defer provCtrlRef.Release()
 
+	// Look up the local provider and release it on return.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer provRef.Release()
 
+	// Open the local account.
 	localProv := prov.(*Provider)
 	accIface, accRel, err := localProv.AccessProviderAccount(
 		ctx,
@@ -278,6 +293,7 @@ func TestLoadLinkedCloudAccountID(t *testing.T) {
 	}
 	defer accRel()
 
+	// Write and read the linked cloud account id.
 	acc := accIface.(*ProviderAccount)
 	if err := acc.writeLinkedCloudAccountID(ctx, "local-session-123", "cloud-account-123"); err != nil {
 		t.Fatal(err)
@@ -292,6 +308,7 @@ func TestLoadLinkedCloudAccountID(t *testing.T) {
 }
 
 func TestFindLinkedCloudSessionRef(t *testing.T) {
+	// Build the wanted session ref and the session list.
 	want := &session.SessionRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "cloud-session",
@@ -321,6 +338,7 @@ func TestFindLinkedCloudSessionRef(t *testing.T) {
 		{SessionRef: want},
 	}
 
+	// Require the matching ref and a miss for an unknown account.
 	got := findLinkedCloudSessionRef(entries, "cloud-account")
 	if !got.EqualVT(want) {
 		t.Fatalf("linked cloud session ref = %v, want %v", got, want)
@@ -331,6 +349,7 @@ func TestFindLinkedCloudSessionRef(t *testing.T) {
 }
 
 func TestWaitForLinkedCloudSessionRef(t *testing.T) {
+	// Open a testbed and release it when the test returns.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -338,6 +357,7 @@ func TestWaitForLinkedCloudSessionRef(t *testing.T) {
 	}
 	defer tb.Release()
 
+	// Load the session controller.
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	_, sessionCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
 		VolumeId: tb.EngineVolumeID,
@@ -347,12 +367,14 @@ func TestWaitForLinkedCloudSessionRef(t *testing.T) {
 	}
 	defer sessionCtrlRef.Release()
 
+	// Look up the session controller and release it on return.
 	ctrl, ctrlRef, err := session.ExLookupSessionController(ctx, tb.Bus, "", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer ctrlRef.Release()
 
+	// Start the wait before the session is registered.
 	type result struct {
 		ref *session.SessionRef
 		err error
@@ -363,6 +385,7 @@ func TestWaitForLinkedCloudSessionRef(t *testing.T) {
 		resultCh <- result{ref: ref, err: err}
 	}()
 
+	// Register the wanted session.
 	want := &session.SessionRef{
 		ProviderResourceRef: &provider.ProviderResourceRef{
 			Id:                "cloud-session",
@@ -374,6 +397,7 @@ func TestWaitForLinkedCloudSessionRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Require the wait to return that session.
 	select {
 	case got := <-resultCh:
 		if got.err != nil {

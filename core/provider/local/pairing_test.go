@@ -54,6 +54,7 @@ func handleTestSignaling(w http.ResponseWriter, r *http.Request, signalTickets c
 }
 
 func signedSignalTicketMatches(r *http.Request, expectedEnvPrefix string, expectedPeerID peer.ID) bool {
+	// Validate the ticket peer, timestamp, and empty-body hash.
 	if r.Header.Get("X-Peer-ID") != expectedPeerID.String() {
 		return false
 	}
@@ -66,6 +67,8 @@ func signedSignalTicketMatches(r *http.Request, expectedEnvPrefix string, expect
 	if r.Header.Get("X-Sw-Hash") != bodyHashHex {
 		return false
 	}
+
+	// Build the ticket signing payload.
 	payload, err := (&api.SigningPayload{
 		EnvPrefix:     expectedEnvPrefix,
 		Method:        http.MethodPost,
@@ -77,6 +80,8 @@ func signedSignalTicketMatches(r *http.Request, expectedEnvPrefix string, expect
 	if err != nil {
 		return false
 	}
+
+	// Verify the ticket signature with the expected peer key.
 	signature, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Signature"))
 	if err != nil {
 		return false
@@ -137,6 +142,7 @@ func newPairingRelayServer(remotePeerID peer.ID) *httptest.Server {
 func newSignedPairingRelayServer(t *testing.T, expectedEnvPrefix string, expectedPeerID peer.ID) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Handle signaling and validate the pairing request headers.
 		if handleTestSignaling(w, r, nil) {
 			return
 		}
@@ -152,6 +158,8 @@ func newSignedPairingRelayServer(t *testing.T, expectedEnvPrefix string, expecte
 			http.Error(w, "unexpected signed headers", http.StatusBadRequest)
 			return
 		}
+
+		// Read the binary pairing request and require its peer identity.
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -166,6 +174,8 @@ func newSignedPairingRelayServer(t *testing.T, expectedEnvPrefix string, expecte
 			http.Error(w, "peer mismatch", http.StatusForbidden)
 			return
 		}
+
+		// Validate the request hash and timestamp.
 		bodyHash := sha256.Sum256(body)
 		bodyHashHex := hex.EncodeToString(bodyHash[:])
 		if got := r.Header.Get("X-Sw-Hash"); got != bodyHashHex {
@@ -177,6 +187,8 @@ func newSignedPairingRelayServer(t *testing.T, expectedEnvPrefix string, expecte
 			http.Error(w, "bad timestamp", http.StatusBadRequest)
 			return
 		}
+
+		// Build the pairing signing payload.
 		payload := &api.SigningPayload{
 			EnvPrefix:     expectedEnvPrefix,
 			Method:        http.MethodPost,
@@ -190,6 +202,8 @@ func newSignedPairingRelayServer(t *testing.T, expectedEnvPrefix string, expecte
 			http.Error(w, "payload marshal failed", http.StatusInternalServerError)
 			return
 		}
+
+		// Verify the pairing request signature.
 		signature, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Signature"))
 		if err != nil {
 			http.Error(w, "bad signature encoding", http.StatusBadRequest)
@@ -222,18 +236,22 @@ func TestGeneratePairingCodeSignsRelayRequestWithSigningEnvPrefix(t *testing.T) 
 		{name: "staging", envPrefix: "spacewave-staging"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// Start the local account session for signed pairing.
 			ctx := t.Context()
 			_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 			defer release()
 
+			// Start the session transport for pairing.
 			if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 				t.Fatal(err)
 			}
 			defer acc.StopSessionTransport()
 
+			// Serve the signed pairing relay for this environment prefix.
 			srv := newSignedPairingRelayServer(t, tc.envPrefix, sess.GetPeerId())
 			defer srv.Close()
 
+			// Generate a pairing code and require a nonempty result.
 			code, err := pairingEngineForTest(t, sess).GenerateCode(ctx, pairing.Relay{URL: srv.URL, SigningEnvPrefix: tc.envPrefix})
 			if err != nil {
 				t.Fatal(err)
@@ -248,8 +266,10 @@ func TestGeneratePairingCodeSignsRelayRequestWithSigningEnvPrefix(t *testing.T) 
 // TestPairingCreatesTransport verifies that GeneratePairingCode creates
 // the session transport if it is not already running.
 func TestPairingCreatesTransport(t *testing.T) {
+	// Use the test context for pairing.
 	ctx := t.Context()
 
+	// Start the local account session.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
@@ -258,14 +278,17 @@ func TestPairingCreatesTransport(t *testing.T) {
 		t.Fatalf("settle session transport startup: %v", err)
 	}
 
+	// Create the session transport before generating a code.
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatal(err)
 	}
 
+	// Serve the pairing relay and stop the transport on return.
 	srv := newPairingRelayServer("")
 	defer srv.Close()
 	defer acc.StopSessionTransport()
 
+	// Generate a pairing code and require a nonempty result.
 	code, err := pairingEngineForTest(t, sess).GenerateCode(ctx, pairing.Relay{URL: srv.URL, SigningEnvPrefix: ""})
 	if err != nil {
 		t.Fatal(err)
@@ -274,6 +297,7 @@ func TestPairingCreatesTransport(t *testing.T) {
 		t.Fatal("expected non-empty pairing code")
 	}
 
+	// Require the transport to expose its bus and session identity.
 	st := acc.GetSessionTransport()
 	if st == nil {
 		t.Fatal("expected transport to be running after GeneratePairingCode")
@@ -301,8 +325,10 @@ func TestPairingCreatesTransport(t *testing.T) {
 // TestCompletePairingWaitsForLink verifies that CompletePairing ensures
 // transport is running and sets up a link watch for the remote peer.
 func TestCompletePairingWaitsForLink(t *testing.T) {
+	// Use the test context for pairing completion.
 	ctx := t.Context()
 
+	// Start the local account session.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
@@ -316,6 +342,7 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Serve the relay with the remote peer identity.
 	srv := newPairingRelayServer(remotePeerID)
 	defer srv.Close()
 
@@ -324,6 +351,7 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Complete the pairing code and require the remote peer.
 	got, err := completeCodeForTest(ctx, t, sess, pairing.Relay{URL: srv.URL, SigningEnvPrefix: ""}, "TESTCODE", false)
 	if err != nil {
 		t.Fatal(err)
@@ -341,11 +369,13 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 		t.Fatal("expected child bus to be non-nil")
 	}
 
+	// Require the pairing snapshot to record the remote peer.
 	snapshot, _ := pairingEngineForTest(t, sess).Snapshot()
 	if snapshot.RemotePeerID != remotePeerID {
 		t.Fatal("pairing lost the resolved peer")
 	}
 
+	// Clear pairing and stop the transport.
 	pairingEngineForTest(t, sess).Clear()
 	acc.StopSessionTransport()
 }
@@ -353,12 +383,15 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 // TestCompletePairingReplacesEmptyTransportWithSignaling verifies that the
 // deployed short-code path starts signaling after accepting a code.
 func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
+	// Use the test context for transport replacement.
 	ctx := t.Context()
 
+	// Start the local account session and stop its transport on return.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 	defer acc.StopSessionTransport()
 
+	// Generate the remote peer identity for the relay.
 	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -368,8 +401,10 @@ func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Serve signaling and the pairing response from one relay.
 	signalTickets := make(chan struct{}, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Validate signed signaling tickets and route the pairing request.
 		if r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket" &&
 			!signedSignalTicketMatches(r, "spacewave-staging", sess.GetPeerId()) {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -382,6 +417,8 @@ func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+
+		// Encode and return the remote pairing identity.
 		resp := &api.PairingResponse{PeerId: remotePeerID.String()}
 		data, err := resp.MarshalVT()
 		if err != nil {
@@ -395,10 +432,12 @@ func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Settle the empty transport before completing the signaled pairing.
 	if err := acc.EnsureSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatalf("settle session transport startup: %v", err)
 	}
 
+	// Complete the code and require the remote peer.
 	got, err := completeCodeForTest(ctx, t, sess, pairing.Relay{URL: srv.URL, SigningEnvPrefix: "spacewave-staging"}, "TESTCODE", false)
 	if err != nil {
 		t.Fatal(err)
@@ -421,8 +460,10 @@ func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
 // TestWatchPairingStatus verifies that pairing state transitions are
 // tracked through the broadcast and reflected in snapshots.
 func TestWatchPairingStatus(t *testing.T) {
+	// Use the test context for status changes.
 	ctx := t.Context()
 
+	// Start the local account session.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
@@ -441,11 +482,13 @@ func TestWatchPairingStatus(t *testing.T) {
 	srv := newPairingRelayServer("")
 	defer srv.Close()
 
+	// Generate a pairing code through the relay.
 	code, err := pairingEngineForTest(t, sess).GenerateCode(ctx, pairing.Relay{URL: srv.URL, SigningEnvPrefix: ""})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Require the generated-code snapshot to contain that code.
 	snap, _ = pairingEngineForTest(t, sess).Snapshot()
 	if snap.Status != pairing.StatusCodeGenerated {
 		t.Fatalf("expected CODE_GENERATED, got %d", snap.Status)
@@ -466,17 +509,20 @@ func TestWatchPairingStatus(t *testing.T) {
 	srv2 := newPairingRelayServer(remotePeerID)
 	defer srv2.Close()
 
+	// Require the session transport before completing the code.
 	if acc.GetSessionTransport() == nil {
 		if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 			t.Fatal(err)
 		}
 	}
 
+	// Complete the code against the remote relay.
 	_, err = completeCodeForTest(ctx, t, sess, pairing.Relay{URL: srv2.URL, SigningEnvPrefix: ""}, "TESTCODE", false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Require the snapshot to wait for the remote peer.
 	snap, _ = pairingEngineForTest(t, sess).Snapshot()
 	if snap.Status != pairing.StatusWaitingForPeer {
 		t.Fatalf("expected WAITING_FOR_PEER, got %d", snap.Status)
@@ -502,6 +548,7 @@ func TestWatchPairingStatus(t *testing.T) {
 		t.Fatalf("expected idle after clear, got %d", snap.Status)
 	}
 
+	// Stop the session transport after the status checks.
 	acc.StopSessionTransport()
 }
 

@@ -14,39 +14,48 @@ import (
 
 // TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs checks operation counts and numeric fields from a real Go trace.
 func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
+	// Start a trace buffer.
 	var buf bytes.Buffer
 	if err := trace.Start(&buf); err != nil {
 		t.Fatalf("start trace: %v", err)
 	}
 
+	// Record a block-write task.
 	ctx := context.Background()
 	ctx, blockTask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root")
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/write-shape", "encoded_blocks=%d put_blocks=%d", 3, 2)
 	blockTask.End()
 
+	// Record a GC WAL task.
 	ctx, gcTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/wal-append")
 	trace.Logf(ctx, "hydra/block-gc/store/flush-pending/wal-append/shape", "adds=%d removes=%d", 7, 1)
 	trace.Logf(ctx, "hydra/block-gc/wal/append/file", "bytes=%d files=%d", 512, 1)
 	gcTask.End()
 
+	// Record a Cayley delta task.
 	ctx, graphTask := trace.NewTask(ctx, "cayley/kv/apply-deltas")
 	trace.Log(ctx, "hydra/world-graph/set-quad/shape", "adds=1 duplicates=0")
 	graphTask.End()
 
+	// Record an OPFS read task.
 	ctx, readTask := trace.NewTask(ctx, "hydra/opfs-engine/read")
 	trace.Log(ctx, "hydra/opfs-engine/read/shape", "bytes=65536 files=1")
 	readTask.End()
 
+	// Record an OPFS publish task.
 	ctx, publishTask := trace.NewTask(ctx, "hydra/opfs-engine/publish")
 	trace.Log(ctx, "hydra/opfs-engine/publish/shape", "files=4 bytes=512 retired=2")
 	publishTask.End()
 
+	// Record an OPFS block-batch task.
 	ctx, opfsBatchTask := trace.NewTask(ctx, "hydra/opfs-engine/block-store/put-block-batch")
 	trace.Logf(ctx, "hydra/opfs-engine/block-store/put-block-batch/shape", "entries=%d bytes=%d tombstones=%d", 6, 128, 1)
 	opfsBatchTask.End()
 
+	// Stop the trace.
 	trace.Stop()
 
+	// Summarize the trace and require tasks, logs, and a shape.
 	_, tasks, _, logs, _, shape := summarizeTrace(t, buf.Bytes())
 	if tasks < 2 {
 		t.Fatalf("tasks = %d, want at least 2", tasks)
@@ -58,6 +67,7 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 		t.Fatal("operation shape is nil")
 	}
 
+	// Require the block-write operation fields.
 	block := findOperation(t, shape, "block-write")
 	if block.Count == 0 {
 		t.Fatalf("block-write count = 0")
@@ -65,6 +75,7 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	assertOperationField(t, block, "write-shape.encoded_blocks", 3)
 	assertOperationField(t, block, "write-shape.put_blocks", 2)
 
+	// Require the GC WAL operation fields.
 	gc := findOperation(t, shape, "gc-wal")
 	if gc.Count == 0 {
 		t.Fatalf("gc-wal count = 0")
@@ -73,6 +84,7 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	assertOperationField(t, gc, "wal-append.shape.removes", 1)
 	assertOperationField(t, gc, "append.file.bytes", 512)
 
+	// Require the Cayley and OPFS read operation fields.
 	cayley := findOperation(t, shape, "cayley-delta")
 	if cayley.Count == 0 {
 		t.Fatalf("cayley-delta count = 0")
@@ -85,6 +97,7 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	assertOperationField(t, read, "shape.bytes", 65536)
 	assertOperationField(t, read, "shape.files", 1)
 
+	// Require the OPFS publish operation fields.
 	publish := findOperation(t, shape, "opfs-publish")
 	if publish.Count == 0 {
 		t.Fatalf("opfs-publish count = 0")
@@ -97,6 +110,7 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 
 // TestSummarizeBrowserCPUProfileBucketsSamples checks self time, inclusive time, and valid profile serialization.
 func TestSummarizeBrowserCPUProfileBucketsSamples(t *testing.T) {
+	// Build a CPU profile with GoScript, OPFS, and browser frames.
 	profile := map[string]any{
 		"nodes": []any{
 			map[string]any{
@@ -126,6 +140,7 @@ func TestSummarizeBrowserCPUProfileBucketsSamples(t *testing.T) {
 		"timeDeltas": []any{100, 250},
 	}
 
+	// Bucket the samples and require their times.
 	buckets := summarizeBrowserCPUProfile(profile)
 	goscript := findProfileBucket(t, buckets, "goscript-runtime")
 	if goscript.Count != 1 || goscript.SelfUs != 100 || goscript.TotalUs != 100 {
@@ -140,6 +155,7 @@ func TestSummarizeBrowserCPUProfileBucketsSamples(t *testing.T) {
 		t.Fatalf("browser bucket = %+v", browser)
 	}
 
+	// Require the profile JSON to parse.
 	data := marshalBrowserProfileJSON(profile)
 	if err := fastjson.ValidateBytes(data); err != nil {
 		t.Fatalf("profile JSON invalid: %v", err)

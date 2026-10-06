@@ -136,8 +136,10 @@ func isTransientAppWaitError(err error) bool {
 
 // AssertBrowserStartupDone verifies that the connected runtime revealed its frame.
 func AssertBrowserStartupDone(t testing.TB, h *Harness, page playwright.Page) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Read the startup proof and require the done, synced phase.
 	proof := readRuntimeStartupProof(t, h, page)
 	if got := stringField(proof, "phaseId"); got != "done" {
 		t.Fatalf("browser startup phase=%q want done; proof=%#v", got, proof)
@@ -145,6 +147,8 @@ func AssertBrowserStartupDone(t testing.TB, h *Harness, page playwright.Page) ma
 	if got := stringField(proof, "viewState"); got != "synced" {
 		t.Fatalf("browser startup view state=%q want synced; proof=%#v", got, proof)
 	}
+
+	// Require a connected runtime with no terminal failure and a revealed frame.
 	runtime := mapField(t, proof, "runtime")
 	if terminalFailure := runtime["terminalFailure"]; terminalFailure != nil {
 		t.Fatalf("browser startup has terminal failure: %#v", terminalFailure)
@@ -161,8 +165,10 @@ func AssertBrowserStartupDone(t testing.TB, h *Harness, page playwright.Page) ma
 
 // AssertRootImportMap requires the shared React and protobuf runtime specifiers.
 func AssertRootImportMap(t testing.TB, h *Harness, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Require a non-empty import map that includes React and protobuf.
 	proof := readRuntimeStartupProof(t, h, page)
 	importMap := mapField(t, proof, "importMap")
 	if !boolField(importMap, "hasReact") {
@@ -181,8 +187,10 @@ func AssertRootImportMap(t testing.TB, h *Harness, page playwright.Page) {
 
 // readRuntimeStartupProof reads the browser's published startup state.
 func readRuntimeStartupProof(t testing.TB, h *Harness, page playwright.Page) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Evaluate the runtime startup proof in the page.
 	raw, err := page.Evaluate(h.Script("runtime-startup-state.ts"), nil)
 	if err != nil {
 		t.Fatalf("read runtime startup proof: %v", err)
@@ -318,8 +326,10 @@ func WaitForDriveShell(t testing.TB, page playwright.Page) {
 // WaitForEmptySpaceReady waits for the static Space quickstart root route to
 // render the empty Space affordance.
 func WaitForEmptySpaceReady(t testing.TB, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait until one of the empty-space selectors is visible.
 	for _, selector := range []string{
 		"text=Empty Space",
 		"text=Create your first object",
@@ -545,8 +555,10 @@ func EnableQuickstartTimingLogs(t testing.TB, page playwright.Page) {
 
 // WaitForDriveReady waits for the drive viewer to render its demo content.
 func WaitForDriveReady(t testing.TB, h *Harness, page playwright.Page) DriveReadyResult {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait for the Drive shell.
 	WaitForDriveShell(t, page)
 
 	// Wait for starter content, then retain the quickstart's timing evidence.
@@ -565,8 +577,10 @@ func WaitForDriveReady(t testing.TB, h *Harness, page playwright.Page) DriveRead
 
 // parseDriveReadyResult decodes the browser's Drive readiness and timing record.
 func parseDriveReadyResult(t testing.TB, raw any) DriveReadyResult {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Decode the Drive-ready evaluation result.
 	m, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected drive ready result %T: %#v", raw, raw)
@@ -637,8 +651,10 @@ func optionalIntField(m map[string]any, key string) *int {
 
 // AssertQuickstartContentAfterProgress checks the quickstart's recorded phase order.
 func AssertQuickstartContentAfterProgress(t testing.TB, result DriveReadyResult) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Require quickstart content to become ready after progress.
 	if result.QuickstartError != "" {
 		t.Fatalf("quickstart timing recorded an error: %s", result.QuickstartError)
 	}
@@ -696,11 +712,13 @@ func trimPageText(s string) string {
 
 // parseQuickstartRoute extracts the Session index and Space ID from a hash route.
 func parseQuickstartRoute(rawURL string) (uint32, string, error) {
+	// Require a hash route.
 	hashIdx := strings.Index(rawURL, "#")
 	if hashIdx == -1 || hashIdx == len(rawURL)-1 {
 		return 0, "", errors.New("missing hash route")
 	}
 
+	// Require a user and SharedObject path.
 	parts := strings.Split(strings.TrimPrefix(rawURL[hashIdx:], "#"), "/")
 	if len(parts) < 5 {
 		return 0, "", errors.Errorf("unexpected route %q", rawURL[hashIdx:])
@@ -709,6 +727,7 @@ func parseQuickstartRoute(rawURL string) (uint32, string, error) {
 		return 0, "", errors.Errorf("unexpected route %q", rawURL[hashIdx:])
 	}
 
+	// Parse the session index and require a Space ID.
 	idx, err := strconv.ParseUint(parts[2], 10, 32)
 	if err != nil {
 		return 0, "", errors.Wrap(err, "parse session index")

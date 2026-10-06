@@ -289,6 +289,7 @@ func (h *Harness) tryConnectSessionWithTimeout(
 	clientCtx context.Context,
 	browserPeer peer.ID,
 ) (*sessionResourceConnection, error) {
+	// Prepare a late-result cleanup for the connection attempt.
 	resultCh := make(chan sessionResourceConnectionResult, 1)
 	var cleanupOnce sync.Once
 	cleanupLateResult := func() {
@@ -300,11 +301,13 @@ func (h *Harness) tryConnectSessionWithTimeout(
 		})
 	}
 
+	// Connect the session in the background.
 	go func() {
 		conn, err := h.tryConnectSession(clientCtx, browserPeer)
 		resultCh <- sessionResourceConnectionResult{conn: conn, err: err}
 	}()
 
+	// Return the connection or stop when the attempt times out.
 	select {
 	case result := <-resultCh:
 		cleanupOnce.Do(func() {})
@@ -317,6 +320,7 @@ func (h *Harness) tryConnectSessionWithTimeout(
 
 // tryConnectSession attempts a single resource connection on the TestSession.
 func (h *Harness) tryConnectSession(ctx context.Context, browserPeer peer.ID) (*sessionResourceConnection, error) {
+	// Open an SRPC client on the session stream.
 	openStreamFn := stream_srpc.NewOpenStreamFunc(
 		h.devtool.GetBus(),
 		browserProtocolID,
@@ -326,6 +330,7 @@ func (h *Harness) tryConnectSession(ctx context.Context, browserPeer peer.ID) (*
 	)
 	client := srpc.NewClient(openStreamFn)
 
+	// Open the plugin resource service.
 	serviceID := "plugin/spacewave-core/" + resource.SRPCResourceServiceServiceID
 	resourceSvc := resource.NewSRPCResourceServiceClientWithServiceID(client, serviceID)
 	resClient, err := resource_client.NewClient(ctx, resourceSvc)
@@ -333,6 +338,7 @@ func (h *Harness) tryConnectSession(ctx context.Context, browserPeer peer.ID) (*
 		return nil, errors.Wrap(err, "resource client")
 	}
 
+	// Open the root resource.
 	rootRef := resClient.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resClient, rootRef)
 	if err != nil {

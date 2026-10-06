@@ -12,15 +12,18 @@ import (
 // browser context can reload a static plugin asset after the first page warms
 // the generation-scoped ServiceWorker cache.
 func TestReturnVisitorStaticPluginAssetCache(t *testing.T) {
+	// Open a clean Drive scenario.
 	h := harness(t)
 	sess := h.NewCleanSession(t)
 	scenario := CreateDriveScenario(t, h, sess)
 	page := scenario.GetSession().Page()
 
+	// Fetch the plugin asset as the first visitor.
 	WaitForDriveReady(t, h, page)
 	pluginAssetURL := serviceWorkerRestartPluginAssetURL(t, page)
 	assertStaticPluginAssetFetch(t, page, pluginAssetURL, "initial visitor", "")
 
+	// Replace the page and fetch the same asset as a return visitor.
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace return-visitor page: %v", err)
 	}
@@ -39,6 +42,7 @@ func assertStaticPluginAssetFetch(
 	label string,
 	wantCacheProvenance string,
 ) {
+	// Require the page fetch to match the expected cache label.
 	t.Helper()
 	raw, err := page.Evaluate(`async (arg) => {
 		const [url, label] = arg

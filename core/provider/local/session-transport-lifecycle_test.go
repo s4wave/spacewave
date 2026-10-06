@@ -9,6 +9,7 @@ import (
 // TestSessionTransportSurvivesConsumerHandoff exercises the temporary pairing
 // mount ending before the registered Session's account view mounts it again.
 func TestSessionTransportSurvivesConsumerHandoff(t *testing.T) {
+	// Bound the handoff and mount the first session consumer.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	_, ref, account, first, release := setupProviderAndSessionInternal(ctx, t)
@@ -46,6 +47,7 @@ func TestSessionTransportSurvivesConsumerHandoff(t *testing.T) {
 // TestPINLockStopsSessionTransport verifies that an account-owned connection
 // cannot keep authenticating with a credential after the user locks it.
 func TestPINLockStopsSessionTransport(t *testing.T) {
+	// Bound the test and start the configured session transport.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	_, _, account, sess, release := setupProviderAndSessionInternal(ctx, t)
@@ -53,6 +55,8 @@ func TestPINLockStopsSessionTransport(t *testing.T) {
 	if err := account.EnsureConfiguredSessionTransport(ctx, sess.GetPrivKey()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Lock the session and require its credential and transport to clear.
 	before := account.GetSessionTransport()
 	pin := []byte("2468")
 	configureLowCostPINLock(ctx, t, sess, pin)
@@ -62,6 +66,8 @@ func TestPINLockStopsSessionTransport(t *testing.T) {
 	if sess.GetPrivKey() != nil || account.GetSessionTransport() != nil {
 		t.Fatal("locking retained the Session credential or its transport")
 	}
+
+	// Unlock the session and require a fresh authorized transport.
 	if err := sess.UnlockSession(ctx, pin); err != nil {
 		t.Fatal(err)
 	}

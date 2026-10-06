@@ -61,6 +61,7 @@ func startE2ECloudAuthConfigEndpoint(bindAddr string) (string, func(), error) {
 
 	// Advertise only local endpoints to browser clients.
 	mux.HandleFunc(e2eCloudAuthConfigPath, func(w http.ResponseWriter, r *http.Request) {
+		// Answer CORS preflight and reject a non-GET.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", http.MethodGet+", "+http.MethodOptions)
 		w.Header().Set("Access-Control-Allow-Headers", "Accept")
@@ -73,6 +74,7 @@ func startE2ECloudAuthConfigEndpoint(bindAddr string) (string, func(), error) {
 			return
 		}
 
+		// Write the local auth-config response.
 		resp := &api.AuthConfigResponse{
 			SsoBaseUrl:       endpoint + "/api/auth/sso/start",
 			ExchangeUrl:      endpoint + "/api/auth/sso/code/exchange",
@@ -105,6 +107,7 @@ func startE2ECloudAuthConfigEndpoint(bindAddr string) (string, func(), error) {
 		}
 	}()
 
+	// Return the endpoint and its stop function.
 	stop := func() {
 		cancel()
 		if err := srv.Shutdown(context.Background()); err != nil {
@@ -146,10 +149,13 @@ func applyE2ECloudAuthConfigEndpoint(projectConfig *bldr_project.ProjectConfig, 
 	if err != nil {
 		return errors.Wrap(err, "decode provider-spacewave config")
 	}
+
+	// Point the Spacewave provider at the fixture endpoint.
 	swConf.Endpoint = endpoint
 	swConf.AccountEndpoint = endpoint
 	swConf.PublicBaseUrl = endpoint
 
+	// Store the rewritten provider config on the builder entry.
 	providerData, err := configjson.MarshalCanonical(swConf)
 	if err != nil {
 		return errors.Wrap(err, "marshal provider-spacewave config")

@@ -13,6 +13,7 @@ import (
 const gitQuickstartWaitMS = 240000
 
 func TestGoScriptGitQuickstartLocalCreateReloadParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -21,6 +22,7 @@ func TestGoScriptGitQuickstartLocalCreateReloadParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean page and capture its console.
 	sess := harness(t).NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
@@ -34,17 +36,20 @@ func TestGoScriptGitQuickstartLocalCreateReloadParity(t *testing.T) {
 		}
 	}()
 
+	// Create a Git quickstart and record the repo and worktree routes.
 	page := sess.Page()
 	scenario := createGitQuickstartScenario(t, harness(t), page)
 	repoHash := scenario.objectHash(scenario.repoObjectKey)
 	worktreeObjectKey := scenario.repoObjectKey + "/worktree"
 	worktreeHash := scenario.objectHash(worktreeObjectKey)
 
+	// Require the repo viewer to survive a reload and reopen.
 	waitForGitRepoViewerReady(t, page, scenario.repoObjectKey)
 	assertGitRouteReloadAndReopen(t, harness(t), page, repoHash, func() {
 		waitForGitRepoViewerReady(t, page, scenario.repoObjectKey)
 	})
 
+	// Require the empty worktree viewer to survive a reload and reopen.
 	NavigateHash(t, harness(t), page, worktreeHash)
 	waitForGitWorktreeViewerReady(t, page, worktreeObjectKey)
 	assertGitEmptyWorktreeHidesLogTab(t, page, worktreeObjectKey)
@@ -65,15 +70,20 @@ func createGitQuickstartScenario(
 	h *Harness,
 	page playwright.Page,
 ) *gitQuickstartScenario {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Use a fixed repository name and object key.
 	const repoName = "GoScript Git Row 8"
 	const repoObjectKey = "goscript-git-row-8-1"
 
+	// Open the Git wizard.
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, h, page, "#/quickstart/git")
 	waitForGitWizardReady(t, page)
+
+	// Create the empty repository and wait for its viewer.
 	clickGitWizardText(t, page, "New empty repository")
 	clickGitWizardText(t, page, "Next")
 	repoNameInput := page.Locator("input[placeholder='Enter repository name...']").First()
@@ -83,6 +93,7 @@ func createGitQuickstartScenario(
 	clickGitWizardText(t, page, "Create")
 	waitForGitRepoViewerReady(t, page, repoObjectKey)
 
+	// Return the quickstart session, Space, and repository identity.
 	sessionIndex, spaceID, err := parseQuickstartRoute(page.URL())
 	if err != nil {
 		t.Fatalf("parse Git quickstart route: %v", err)
@@ -211,14 +222,17 @@ func assertGitRouteReloadAndReopen(
 	hash string,
 	assertReady func(),
 ) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Reload the page and require the viewer.
 	if _, err := page.Reload(); err != nil {
 		t.Fatalf("reload Git route: %v", err)
 	}
 	WaitForApp(t, page)
 	assertReady()
 
+	// Leave the route and reopen it.
 	NavigateHash(t, h, page, "#/")
 	NavigateHash(t, h, page, hash)
 	assertReady()

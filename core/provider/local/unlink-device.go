@@ -126,6 +126,7 @@ func (a *ProviderAccount) queueRemoveSessionPresentation(
 	so sobject.SharedObject,
 	peerID string,
 ) error {
+	// Marshal the remove-session-presentation operation and queue it.
 	removeOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_RemoveSessionPresentation{
 			RemoveSessionPresentation: &account_settings.RemoveSessionPresentationOp{
@@ -150,6 +151,7 @@ func (a *ProviderAccount) queueRemovePairedDevice(
 	so sobject.SharedObject,
 	remotePeerIDStr string,
 ) error {
+	// Marshal the remove-paired-device operation.
 	removeOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_RemovePairedDevice{
 			RemovePairedDevice: &account_settings.RemovePairedDeviceOp{
@@ -162,6 +164,7 @@ func (a *ProviderAccount) queueRemovePairedDevice(
 		return errors.Wrap(err, "marshal remove paired device op")
 	}
 
+	// Queue the remove-paired-device operation on the mounted shared object.
 	if _, err := so.QueueOperation(ctx, opData); err != nil {
 		return errors.Wrap(err, "queue remove paired device operation")
 	}
@@ -175,11 +178,13 @@ func (a *ProviderAccount) removeSOParticipant(
 	so sobject.SharedObject,
 	remotePeerIDStr string,
 ) error {
+	// Require the mounted object to be a local shared object.
 	localSO, ok := so.(*SharedObject)
 	if !ok {
 		return errors.New("unexpected shared object type")
 	}
 
+	// Read the volume peer and its private key for the removal signature.
 	volPeer, err := a.vol.GetPeer(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "get volume peer")
@@ -189,6 +194,7 @@ func (a *ProviderAccount) removeSOParticipant(
 		return errors.Wrap(err, "get volume private key")
 	}
 
+	// Remove the peer's participant config and grant from the shared object.
 	_, err = sobject.RemoveSOParticipant(ctx, localSO.soHost, remotePeerIDStr, volPriv, nil)
 	return err
 }

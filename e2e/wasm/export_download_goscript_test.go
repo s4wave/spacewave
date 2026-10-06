@@ -23,6 +23,7 @@ import (
 const projectedExportPluginPathPrefix = "/p/spacewave-core"
 
 func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -31,6 +32,7 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
@@ -44,10 +46,12 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		}
 	}()
 
+	// Open Drive and wait for it.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 
+	// Seed the projected export fixtures.
 	seed := seedGoScriptProjectedExportFixtures(t, page)
 	projectedObject := buildProjectedObjectContentPath(
 		scenario.GetSessionIndex(),
@@ -56,6 +60,7 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		"",
 	)
 
+	// Download the single file through an anchor.
 	fileDownload := downloadViaAnchor(
 		t,
 		page,
@@ -71,6 +76,7 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		t.Fatalf("single-file download body mismatch: %q", string(fileDownload))
 	}
 
+	// Probe the spaced filename and require its body.
 	spacedFileURL := projectedExportPluginPathPrefix + "/fs/" + buildProjectedObjectContentPath(
 		scenario.GetSessionIndex(),
 		scenario.GetSpaceID(),
@@ -95,6 +101,7 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 		t.Fatalf("inline spaced-file content-disposition = %q, want empty", spacedProbe.contentDisposition)
 	}
 
+	// Download the Space zip and require its entries.
 	wholeSpaceZip := readZipEntries(t, downloadViaAnchor(
 		t,
 		page,
@@ -108,6 +115,7 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, "-", seed.dirName, "alpha.txt"), "row7 dir alpha\n")
 	assertZipText(t, wholeSpaceZip, path.Join(seed.objectKey, "-", seed.dirName, "nested", "beta.txt"), "row7 dir beta\n")
 
+	// Download the directory zip and require its entries.
 	directoryZip := readZipEntries(t, downloadViaAnchor(
 		t,
 		page,
@@ -122,6 +130,7 @@ func TestGoScriptProjectedExportDownloadBrowserParity(t *testing.T) {
 	assertZipText(t, directoryZip, path.Join(seed.dirName, "alpha.txt"), "row7 dir alpha\n")
 	assertZipText(t, directoryZip, path.Join(seed.dirName, "nested", "beta.txt"), "row7 dir beta\n")
 
+	// Download the batch zip and require its entries.
 	batchZip := readZipEntries(t, downloadViaAnchor(
 		t,
 		page,
@@ -143,8 +152,10 @@ type projectedExportSeed struct {
 }
 
 func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) projectedExportSeed {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Evaluate the seed script in the page.
 	raw, err := page.Evaluate(`async () => {
 		function streamFromText(text) {
 			return new ReadableStream({
@@ -292,6 +303,8 @@ func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) pro
 	if err != nil {
 		t.Fatalf("seed projected export fixtures: %v", err)
 	}
+
+	// Require the seed result fields.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected projected export seed result %T: %#v", raw, raw)
@@ -303,6 +316,8 @@ func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) pro
 	if objectKey == "" {
 		t.Fatalf("projected export seed returned no object key: %#v", result)
 	}
+
+	// Return the seed names.
 	fileName := stringField(result, "fileName")
 	spacedFileName := stringField(result, "spacedFileName")
 	dirName := stringField(result, "dirName")
@@ -318,8 +333,10 @@ func seedGoScriptProjectedExportFixtures(t testing.TB, page playwright.Page) pro
 }
 
 func downloadViaAnchor(t testing.TB, page playwright.Page, targetURL, filename string) []byte {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Probe the URL before starting the download.
 	probe := probeDownloadURL(t, page, targetURL)
 	if probe.status < 200 || probe.status >= 300 {
 		if probe.status == 0 && len(probe.body) != 0 {
@@ -343,6 +360,7 @@ func downloadViaAnchor(t testing.TB, page playwright.Page, targetURL, filename s
 		}
 	}
 
+	// Click the anchor and accept the download.
 	timeout := float64(120000)
 	download, err := page.ExpectDownload(func() error {
 		_, evalErr := page.Evaluate(`async ({ url, filename }) => {
@@ -375,6 +393,7 @@ func downloadViaAnchor(t testing.TB, page playwright.Page, targetURL, filename s
 		)
 	}
 
+	// Save the download and return its bytes.
 	savePath := filepath.Join(t.TempDir(), download.SuggestedFilename())
 	if savePath == "" || strings.HasSuffix(savePath, string(os.PathSeparator)) {
 		savePath = filepath.Join(t.TempDir(), "download")
@@ -397,8 +416,10 @@ type downloadProbe struct {
 }
 
 func probeDownloadURL(t testing.TB, page playwright.Page, targetURL string) downloadProbe {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Evaluate the download probe in the page.
 	raw, err := page.Evaluate(`async ({ url }) => {
 		function encodeBase64(bytes) {
 			let binary = ''
@@ -432,6 +453,8 @@ func probeDownloadURL(t testing.TB, page playwright.Page, targetURL string) down
 	if err != nil {
 		t.Fatalf("preflight fetch %s: %v", targetURL, err)
 	}
+
+	// Decode the probe body and return it.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected preflight fetch result %T: %#v", raw, raw)
@@ -516,8 +539,10 @@ func encodeExportBatchRequest(t testing.TB, paths []string) string {
 }
 
 func readZipEntries(t testing.TB, data []byte) map[string]string {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Read the zip entries.
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		t.Fatalf("open zip: %v", err)

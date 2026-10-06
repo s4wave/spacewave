@@ -36,13 +36,18 @@ import (
 // mountPluginBuildDevice joins a disposable native participant to the browser's
 // Space. Its own World engine signs worker operations and retains local blocks.
 func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_session.Session, spaceID string) (bus.Bus, *resolver_static.Resolver, world.Engine, peer.ID) {
+	// Report failures at the caller.
 	t.Helper()
+
+	// Open a testbed and release it with the test.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(tb.Release)
 	// Root retention traverses every built-in Space object on this device.
+
+	// Register block types and the session controller.
 	releaseBlockTypes, err := tb.Bus.AddController(ctx, blocktype_controller.NewController(space_world.LookupBlockType), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -54,6 +59,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 		t.Fatal(err)
 	}
 	t.Cleanup(sessionsRef.Release)
+
+	// Register the local provider and world engine.
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
 	_, providerRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
@@ -63,6 +70,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 		t.Fatal(err)
 	}
 	t.Cleanup(providerRef.Release)
+
+	// Open the local provider and create an account session.
 	raw, lookupRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -73,6 +82,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the account and mount its session.
 	rawAccount, releaseAccount, err := local.AccessProviderAccount(ctx, sessionRef.GetProviderResourceRef().GetProviderAccountId(), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -84,6 +95,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseSession)
+
+	// Keep a session resource for that mount.
 	native := resource_session.NewSessionResource(tb.Logger, tb.Bus, mounted)
 	t.Cleanup(native.Close)
 
@@ -99,6 +112,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	if _, err := author.AcceptLocalPairingAnswer(ctx, answer.GetAnswerPayload()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Read the author peer from the session info.
 	info, err := author.GetSessionInfo(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -107,6 +122,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Open the pairing engine and wait for emoji verification.
 	enginePairing, err := mounted.(*provider_local.Session).GetPairingEngine()
 	if err != nil {
 		t.Fatal(err)
@@ -127,6 +144,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 		}
 	}
 	waitPairing(pairing.StatusVerifyingEmoji)
+
+	// Confirm the SAS and wait for both sides.
 	watch, err := author.WatchPairingStatus(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -139,6 +158,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	}
 	waitPairing(pairing.StatusBothConfirmed)
 	waitForPairingStatus(t, "author", watch, s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED)
+
+	// Read the paired account.
 	pairedRef, err := enginePairing.Result(authorPeer)
 	if err != nil {
 		t.Fatal(err)
@@ -149,11 +170,15 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	}
 	t.Cleanup(releasePaired)
 	account = rawPaired.(*provider_local.ProviderAccount)
+
+	// Mount the paired session.
 	paired, releasePairedSession, err := account.MountSession(ctx, pairedRef, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(releasePairedSession)
+
+	// Start the Space world engine.
 	ref := sobject.NewSharedObjectRef("local", pairedRef.GetProviderResourceRef().GetProviderAccountId(), spaceID, provider_local.SobjectBlockStoreID(spaceID))
 	engine, _, engineRef, err := sobject_world_engine.StartEngineWithConfig(ctx, tb.Bus,
 		sobject_world_engine.NewConfig("plugin-device-space", ref), nil)
@@ -165,6 +190,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	if _, err := engine.GetWorldEngine(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Open a world engine and peer for the paired device.
 	worldEngine := world.NewBusEngine(ctx, tb.Bus, "plugin-device-space")
 	t.Cleanup(worldEngine.ClearContext)
 	localPeer, err := peer.NewPeer(paired.GetPrivKey())
@@ -175,6 +202,8 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Register the peer and start the build plugins.
 	t.Cleanup(releasePeer)
 	startBuildDevicePlugins(t, ctx, tb, paired.GetPeerId())
 	return tb.Bus, tb.StaticResolver, worldEngine, paired.GetPeerId()
@@ -184,7 +213,10 @@ func mountPluginBuildDevice(t *testing.T, ctx context.Context, author *s4wave_se
 // implementations as its browser peer. It executes retained operations through
 // QuickJS without installing UI registrations on this headless build device.
 func startBuildDevicePlugins(t *testing.T, ctx context.Context, tb *testbed.Testbed, sender peer.ID) {
+	// Report failures at the caller.
 	t.Helper()
+
+	// Register the plugin host.
 	b := tb.Bus
 	tb.StaticResolver.AddFactory(plugin_quickjs.NewFactory(b))
 	tb.StaticResolver.AddFactory(plugin_scheduler.NewFactory(b))
@@ -194,6 +226,8 @@ func startBuildDevicePlugins(t *testing.T, ctx context.Context, tb *testbed.Test
 		t.Fatal(err)
 	}
 	t.Cleanup(hostRef.Release)
+
+	// Start the colors plugin scheduler.
 	conf := plugin_scheduler.NewConfig("", "plugin-device-space", "projects/colors/builds",
 		tb.EngineVolumeID, sender.String(), false, true, true)
 	_, _, schedulerRef, err := loader.WaitExecControllerRunning(ctx, b,
@@ -202,6 +236,8 @@ func startBuildDevicePlugins(t *testing.T, ctx context.Context, tb *testbed.Test
 		t.Fatal(err)
 	}
 	t.Cleanup(schedulerRef.Release)
+
+	// Register object types and the world-op bridge.
 	releaseTypes, err := b.AddController(ctx, objecttype_controller.NewController(space_objecttypes.LookupObjectType), nil)
 	if err != nil {
 		t.Fatal(err)

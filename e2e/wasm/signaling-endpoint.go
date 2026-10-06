@@ -33,6 +33,7 @@ func registerE2ESignaling(ctx context.Context, mux *http.ServeMux) error {
 
 	// Issue identities only for syntactically valid session peers.
 	mux.HandleFunc("/api/signal/ticket", func(w http.ResponseWriter, r *http.Request) {
+		// Answer CORS preflight and reject a non-POST.
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Peer-ID, X-Timestamp, X-Sw-Hash, X-Signature")
@@ -44,6 +45,8 @@ func registerE2ESignaling(ctx context.Context, mux *http.ServeMux) error {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+
+		// Decode the peer ID and write a ticket.
 		pid, err := peer.IDB58Decode(r.Header.Get("X-Peer-ID"))
 		if err != nil || pid == "" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -62,6 +65,7 @@ func registerE2ESignaling(ctx context.Context, mux *http.ServeMux) error {
 
 	// Bind every RPC stream to the ticket identity until the fixture shuts down.
 	mux.HandleFunc("/api/signal/ws", func(w http.ResponseWriter, r *http.Request) {
+		// Reject a missing ticket peer and accept the websocket.
 		pid, err := peer.IDB58Decode(r.URL.Query().Get("tk"))
 		if err != nil || pid == "" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -74,6 +78,7 @@ func registerE2ESignaling(ctx context.Context, mux *http.ServeMux) error {
 		defer conn.CloseNow()
 		streamCtx, cancel := context.WithCancel(context.WithValue(ctx, signalingPeerKey{}, pid))
 		defer cancel()
+
 		// Socket closure and fixture cancellation terminate the read pump.
 		frames := signaling_rpc_frame.NewConn(streamCtx, conn)
 		_ = frames.ReadPump(signaling_rpc_frame.NewServerAccept(streamCtx, rpcMux))

@@ -129,12 +129,14 @@ func (s *Session) GetLockState(ctx context.Context) (session.SessionLockMode, bo
 
 // UnlockSession unlocks a PIN-locked session. No-op if already unlocked.
 func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
+	// Hold the lock transition until unlock finishes.
 	release, err := s.lockTransition.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
+	// Return when the session is already unlocked or not PIN-locked.
 	if s.sessionPriv != nil {
 		return nil
 	}
@@ -142,6 +144,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		return errors.New("session is not PIN-locked")
 	}
 
+	// Read the PIN lock files for this session.
 	encPriv, encSymKey, config, err := session_lock.ReadPINLockFiles(ctx, s.objStore, s.tkr.id)
 	if err != nil {
 		return errors.Wrap(err, "read PIN lock files")
@@ -150,21 +153,25 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		return errors.New("PIN lock files not found")
 	}
 
+	// Unlock the session private key with the PIN and scrub the PEM.
 	privPEM, err := session_lock.UnlockPIN(encPriv, encSymKey, config, pin)
 	if err != nil {
 		return err
 	}
 	defer scrub.Scrub(privPEM)
 
+	// Parse the unlocked session private key.
 	privKey, err := keypem.ParsePrivKeyPem(privPEM)
 	if err != nil {
 		return errors.Wrap(err, "parse unlocked key")
 	}
 
+	// Install the unlocked private key on the session.
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		s.sessionPriv = privKey
 	})
 
+	// Pin the session, publish it, and start its account-transition watcher.
 	selfRef, _, _ := s.tkr.a.sessions.AddKeyRef(s.tkr.id)
 	s.tkr.setPinnedRef(selfRef.Release)
 	s.tkr.sessionProm.SetResult(s, nil)
@@ -172,6 +179,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		s.transitionWatcher.SetContext(s.ctx, true)
 	}
 
+	// Broadcast the unlocked state.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
@@ -182,12 +190,14 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 // LockSession locks a running session, scrubbing the privkey from memory.
 // The session tracker will restart and enter PIN-wait state when re-mounted.
 func (s *Session) LockSession(ctx context.Context) error {
+	// Hold the lock transition until locking finishes.
 	release, err := s.lockTransition.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
+	// Refuse a session that is not PIN-locked, and return when it is already locked.
 	if s.lockMode != session_lock.SessionLockMode_PIN_ENCRYPTED {
 		return errors.New("cannot lock: PIN mode not configured")
 	}
@@ -195,6 +205,7 @@ func (s *Session) LockSession(ctx context.Context) error {
 		return nil
 	}
 
+	// Stop pairing and the account-transition watcher before the transport ends.
 	s.clearPairingEngine()
 	if s.transitionWatcher != nil {
 		s.transitionWatcher.ClearContext()
@@ -232,12 +243,14 @@ func (s *Session) LockSession(ctx context.Context) error {
 
 // SetLockMode changes the session lock mode. Hot switch: session stays running.
 func (s *Session) SetLockMode(ctx context.Context, mode session.SessionLockMode, pin []byte) error {
+	// Hold the lock transition until the mode change finishes.
 	release, err := s.lockTransition.Lock(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 
+	// Require an unlocked session and marshal its private key.
 	if s.sessionPriv == nil {
 		return errors.New("session is locked")
 	}
@@ -247,6 +260,7 @@ func (s *Session) SetLockMode(ctx context.Context, mode session.SessionLockMode,
 	}
 	defer scrub.Scrub(privPEM)
 
+	// Write the private key in the requested lock mode.
 	switch mode {
 	case session.SessionLockMode_SESSION_LOCK_MODE_AUTO_UNLOCK:
 		encPriv, err := session_lock.EncryptAutoUnlock(s.storageKey, privPEM)
@@ -268,6 +282,7 @@ func (s *Session) SetLockMode(ctx context.Context, mode session.SessionLockMode,
 		return nil
 	}
 
+	// Publish the new lock mode to lock-state watchers.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.lockMode = session_lock.SessionLockMode(mode)
 		broadcast()
@@ -363,6 +378,7 @@ type sessionTracker struct {
 
 // setPinnedRef retains the tracker across temporary mount handoffs.
 func (t *sessionTracker) setPinnedRef(release func()) {
+	// Replace the pinned session reference and release the previous one.
 	t.pinnedRefMtx.Lock()
 	previous := t.releasePinnedRefFn
 	t.releasePinnedRefFn = release
@@ -374,6 +390,7 @@ func (t *sessionTracker) setPinnedRef(release func()) {
 
 // releasePinnedRef releases the unlocked lifetime outside the reference guard.
 func (t *sessionTracker) releasePinnedRef() {
+	// Clear and release the pinned session reference.
 	t.pinnedRefMtx.Lock()
 	release := t.releasePinnedRefFn
 	t.releasePinnedRefFn = nil
@@ -388,6 +405,7 @@ func (t *sessionTracker) releasePinnedRef() {
 // local work never waits on transport startup. Returns only context.Canceled;
 // other failures are logged.
 func (t *sessionTracker) startTransport(ctx context.Context, sessionPriv crypto.PrivKey) error {
+	// Resolve the cloud relay for a linked account.
 	relay := cloudRelayEndpoint{}
 	if t.cloudAccountID != "" {
 		relay = t.a.lookupCloudRelayEndpoint(ctx)
@@ -396,6 +414,7 @@ func (t *sessionTracker) startTransport(ctx context.Context, sessionPriv crypto.
 		relay = t.a.fallbackSignalingEndpoint()
 	}
 
+	// Start the session transport and its persistent peer sync.
 	le := t.a.le.WithField("session-id", t.id)
 	_, _, err := t.a.ensureSessionTransportWithOwner(ctx, t.a.lifecycleCtx, sessionPriv, relay.url, relay.signingEnvPrefix, false)
 	if errors.Is(err, context.Canceled) {
@@ -435,9 +454,11 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		}
 	}()
 
+	// Cancel the tracker context when this execution returns.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
+	// Log the session mount.
 	le := t.a.le.WithField("session-id", t.id)
 	le.Debug("mounting session")
 
@@ -447,6 +468,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		return err
 	}
 
+	// Read the provider, account, and session ids from the session reference.
 	provRef := sessionRef.GetProviderResourceRef()
 	providerID := provRef.GetProviderId()
 	providerAccountID := provRef.GetProviderAccountId()
@@ -468,8 +490,10 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	}
 	defer diRef.Release()
 
+	// Log that the session object store mounted.
 	le.Debug("mounted object store for session successfully")
 
+	// Take the object store from the mounted handle.
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Derive storage key from volume peer key.
@@ -514,9 +538,11 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		t.cloudAccountID = linkedCloudAccountID
 	}
 
+	// Hold the unlocked PEM and private key across the lock-mode branches.
 	var privPEM []byte
 	var sessionPriv crypto.PrivKey
 
+	// Load or wait for the session private key according to the lock mode.
 	if lockMode == session_lock.SessionLockMode_PIN_ENCRYPTED {
 		// Block until unlock RPC is called.
 		le.Debug("session is PIN-locked, waiting for unlock")
@@ -594,16 +620,20 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		}
 	}
 
+	// Derive the session peer id from the private key.
 	sessionPeerID, err := peer.IDFromPrivateKey(sessionPriv)
 	if err != nil {
 		return err
 	}
 
+	// Log the loaded session peer.
 	le.WithField("sess-peer-id", sessionPeerID.String()).Debug("loaded session peer")
 
+	// Build the state-atom manager and release it when the tracker returns.
 	stateAtomMgr := resource_state.NewStateAtomManager(t.a.t.p.b, objectStoreID, volID)
 	defer stateAtomMgr.Release()
 
+	// Build the session and its account-transition watcher.
 	so := &Session{
 		ctx:                 ctx,
 		tkr:                 t,
@@ -659,10 +689,12 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 // UnlockPINSession unlocks a PIN-locked session before it is mounted.
 // Stores the decrypted key on the ProviderAccount for the tracker to consume.
 func (a *ProviderAccount) UnlockPINSession(ctx context.Context, ref *session.SessionRef, pin []byte) error {
+	// Reject a session reference that does not validate.
 	if err := ref.Validate(); err != nil {
 		return err
 	}
 
+	// Read the provider, account, and session ids from the reference.
 	provRef := ref.GetProviderResourceRef()
 	providerID := provRef.GetProviderId()
 	providerAccountID := provRef.GetProviderAccountId()
@@ -677,6 +709,7 @@ func (a *ProviderAccount) UnlockPINSession(ctx context.Context, ref *session.Ses
 	}
 	defer diRef.Release()
 
+	// Take the object store from the mounted handle.
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Read PIN lock files.
@@ -710,10 +743,12 @@ func (a *ProviderAccount) UnlockPINSession(ctx context.Context, ref *session.Ses
 //
 // It is usually called by the provider controller.
 func (a *ProviderAccount) MountSession(ctx context.Context, ref *session.SessionRef, released func()) (session.Session, func(), error) {
+	// Reject a session reference that does not validate.
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
 	}
 
+	// Retain the session tracker until the caller releases the mount.
 	sessionID := ref.GetProviderResourceRef().GetId()
 	tkrRef, tkr, _ := a.sessions.AddKeyRef(sessionID)
 
@@ -733,15 +768,18 @@ func (a *ProviderAccount) MountSession(ctx context.Context, ref *session.Session
 // GetPINSessionRecoveryState reports whether the local PIN reset path has a
 // recovery envelope to unlock with a password or backup key.
 func (a *ProviderAccount) GetPINSessionRecoveryState(ctx context.Context, ref *session.SessionRef) (session.SessionRecoveryState, error) {
+	// Reject a session reference that does not validate.
 	if err := ref.Validate(); err != nil {
 		return session.SessionRecoveryState_SESSION_RECOVERY_STATE_UNKNOWN, err
 	}
 
+	// Read the provider, account, and session ids from the reference.
 	provRef := ref.GetProviderResourceRef()
 	providerID := provRef.GetProviderId()
 	providerAccountID := provRef.GetProviderAccountId()
 	sessionID := provRef.GetId()
 
+	// Mount the session object store and release it when the check returns.
 	volID := a.vol.GetID()
 	objectStoreID := SessionObjectStoreID(providerID, providerAccountID)
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, a.t.p.b, false, objectStoreID, volID, nil)
@@ -750,6 +788,7 @@ func (a *ProviderAccount) GetPINSessionRecoveryState(ctx context.Context, ref *s
 	}
 	defer diRef.Release()
 
+	// Report envelope recovery when a session envelope is present.
 	hasEnvelope, err := HasSessionEnvelope(ctx, objStoreHandle.GetObjectStore(), sessionID)
 	if err != nil {
 		return session.SessionRecoveryState_SESSION_RECOVERY_STATE_UNKNOWN, err
@@ -765,6 +804,7 @@ func (a *ProviderAccount) GetPINSessionRecoveryState(ctx context.Context, ref *s
 // private key from the envelope, re-encrypts it in auto-unlock mode,
 // and restarts the session tracker.
 func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.SessionRef, cred *session.EntityCredential) error {
+	// Require a valid session reference and an entity credential.
 	if err := ref.Validate(); err != nil {
 		return err
 	}
@@ -772,11 +812,13 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 		return errors.New("credential is required for local session reset")
 	}
 
+	// Read the provider, account, and session ids from the reference.
 	provRef := ref.GetProviderResourceRef()
 	providerID := provRef.GetProviderId()
 	providerAccountID := provRef.GetProviderAccountId()
 	sessionID := provRef.GetId()
 
+	// Mount the session object store and release it when the reset returns.
 	volID := a.vol.GetID()
 	objectStoreID := SessionObjectStoreID(providerID, providerAccountID)
 	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(ctx, a.t.p.b, false, objectStoreID, volID, nil)
@@ -785,6 +827,7 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 	}
 	defer diRef.Release()
 
+	// Take the object store from the mounted handle.
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Derive entity private key from credential.
@@ -820,11 +863,13 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 		return errors.Wrap(err, "derive storage key")
 	}
 
+	// Encrypt the recovered key for auto-unlock.
 	encPriv, err := session_lock.EncryptAutoUnlock(storageKey, pemData)
 	if err != nil {
 		return errors.Wrap(err, "encrypt recovered key")
 	}
 
+	// Replace the PIN lock with the auto-unlock ciphertext.
 	if err := session_lock.WriteAutoUnlock(ctx, objStore, sessionID, encPriv); err != nil {
 		return errors.Wrap(err, "write auto-unlock key")
 	}

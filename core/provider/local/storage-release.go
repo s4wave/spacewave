@@ -51,6 +51,7 @@ func pendingStorageReleases(settings *account_settings.AccountSettings) []storag
 // returns the store while another device deletes can still lose the objects
 // it uploads meanwhile; its local copy remains.
 func (a *ProviderAccount) releaseBlockStore(ctx context.Context, release storageRelease) error {
+	// Read the account settings and stop when the backend is already gone.
 	settings, err := a.readAccountSettings(ctx)
 	if err != nil {
 		return err
@@ -59,6 +60,8 @@ func (a *ProviderAccount) releaseBlockStore(ctx context.Context, release storage
 	if backend == nil {
 		return nil
 	}
+
+	// Read the backend credentials and delete the released block store's objects.
 	creds, err := a.ReadStorageCredentials(ctx, backend)
 	if err != nil {
 		return err
@@ -66,6 +69,8 @@ func (a *ProviderAccount) releaseBlockStore(ctx context.Context, release storage
 	if err := deleteS3BlockStore(ctx, backend.GetS3(), release.blockStoreID, creds); err != nil {
 		return err
 	}
+
+	// Complete the storage release in the account settings.
 	return a.commitAccountSettingsOps(ctx, &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_CompleteStorageRelease{
 			CompleteStorageRelease: &account_settings.BlockStorePlacement{

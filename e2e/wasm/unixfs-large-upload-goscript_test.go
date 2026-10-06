@@ -17,6 +17,7 @@ const (
 )
 
 func TestGoScriptUnixFSLargeMultiFileDropCompletes(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -25,6 +26,7 @@ func TestGoScriptUnixFSLargeMultiFileDropCompletes(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
@@ -33,10 +35,12 @@ func TestGoScriptUnixFSLargeMultiFileDropCompletes(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for it.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 
+	// Drop the large files and log the upload duration.
 	files := unixFSLargeDropFiles()
 	started := time.Now()
 	UploadViaDnd(t, page, files)
@@ -55,6 +59,7 @@ func TestGoScriptUnixFSLargeMultiFileDropCompletes(t *testing.T) {
 		float64(totalBytes)/(1024*1024)/duration.Seconds(),
 	)
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after GoScript UnixFS large multi-file drop: %+v", report)

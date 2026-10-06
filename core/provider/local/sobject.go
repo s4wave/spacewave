@@ -97,6 +97,7 @@ func (s *SharedObject) QueueOrdersBlockWrites() bool {
 // AccessLocalStateStore isolates state by SharedObject and store ID within the
 // account's object store. Releasing the mount invalidates its local stores.
 func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {
+	// Prefix the account object store and release the caller's callback with the mount.
 	prefixedObjStore := object.NewPrefixer(s.objStore, s.localStatePrefix(storeID))
 	if released == nil {
 		return prefixedObjStore, func() {}, nil
@@ -550,7 +551,7 @@ func (a *ProviderAccount) AccessSharedObjectHealth(
 	ref *sobject.SharedObjectRef,
 	released func(),
 ) (ccontainer.Watchable[*sobject.SharedObjectHealth], func(), error) {
-	// Validate the ref before tracking its shared object.
+	// Validate the reference and retain the shared-object health watch.
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -675,7 +676,7 @@ func (a *ProviderAccount) readSharedObjectList(ctx context.Context) (*sobject.Sh
 			return objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
-			// Read the stored list, or start an empty one.
+			// Decode the stored shared-object list, or an empty list when absent.
 			data, found, err := tx.Get(ctx, SobjectObjectStoreListKey())
 			if err != nil {
 				return err

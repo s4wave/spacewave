@@ -18,25 +18,31 @@ import (
 // no-op when no paired devices have been recorded. It must NOT spin up
 // P2P sync controllers for accounts that never paired.
 func TestAutoStartP2PSyncIfNeededNoDevices(t *testing.T) {
+	// Use the test context for the auto-start check.
 	ctx := t.Context()
 
+	// Start a local account session and release it when the test returns.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
+	// Create a session transport and stop it when the test returns.
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatalf("CreateSessionTransport: %v", err)
 	}
 	defer acc.StopSessionTransport()
 
+	// Require the session transport before checking auto-start.
 	st := acc.GetSessionTransport()
 	if st == nil {
 		t.Fatal("expected non-nil session transport")
 	}
 
+	// Auto-start P2P sync when no paired device needs it.
 	if err := acc.AutoStartP2PSyncIfNeeded(ctx, st); err != nil {
 		t.Fatalf("AutoStartP2PSyncIfNeeded: %v", err)
 	}
 
+	// Require sync to stay stopped when the account has no paired device.
 	if acc.IsP2PSyncRunning() {
 		t.Fatal("expected P2P sync to be idle when no paired devices recorded")
 	}
@@ -47,13 +53,16 @@ func TestAutoStartP2PSyncIfNeededNoDevices(t *testing.T) {
 // proving the session-mount path will resume P2P sync after a remount with
 // a paired peer.
 func TestAutoStartP2PSyncIfNeededWithDevice(t *testing.T) {
+	// Use the test context for the paired-device auto-start.
 	ctx := t.Context()
 
+	// Start the local account and a remote session, releasing both on return.
 	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 	_, _, _, remoteSess, releaseRemote := setupProviderAndSession(ctx, t)
 	defer releaseRemote()
 
+	// Record the remote peer and wait until the paired device is visible.
 	remotePeerID := remoteSess.GetPeerId().String()
 	if err := acc.RecordPairedDevice(ctx, remotePeerID, "Auto-Start Test Device"); err != nil {
 		t.Fatalf("RecordPairedDevice: %v", err)
@@ -63,6 +72,7 @@ func TestAutoStartP2PSyncIfNeededWithDevice(t *testing.T) {
 	waitPairedDevice(ctx, t, so, remotePeerID)
 	soRelease()
 
+	// Create a session transport, auto-start sync, and require it to run.
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatalf("CreateSessionTransport: %v", err)
 	}
@@ -84,15 +94,18 @@ func TestAutoStartP2PSyncIfNeededWithDevice(t *testing.T) {
 // restores P2P sync after restart even though invite enrollment does not add a
 // paired-device record.
 func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
+	// Bound the test and start the local and remote sessions.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
+	// Read the remote peer id used as the shared-space transport target.
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 	_, _, _, remoteSess, releaseRemote := setupProviderAndSession(ctx, t)
 	defer releaseRemote()
 	remotePeerID := remoteSess.GetPeerId().String()
 
+	// Create a space and point its list entry at the remote peer.
 	spaceRef, err := acc.CreateSharedObject(ctx, "auto-start-shared-space", &sobject.SharedObjectMeta{
 		BodyType: "space",
 	}, "", "")
@@ -108,6 +121,7 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	}
 	acc.GetSOListCtr().SetValue(soList)
 
+	// Create a session transport and capture the link directive it submits.
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatalf("CreateSessionTransport: %v", err)
 	}
@@ -135,6 +149,7 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	}
 	defer removeHandler()
 
+	// Auto-start sync, cancel the request, and require the remote link.
 	startCtx, cancelStart := context.WithCancel(ctx)
 	if err := acc.AutoStartP2PSyncIfNeeded(startCtx, st); err != nil {
 		t.Fatalf("AutoStartP2PSyncIfNeeded: %v", err)
