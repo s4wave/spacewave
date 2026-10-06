@@ -20,15 +20,6 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
     onSelectPost(post)
   }, [onSelectPost, post])
 
-  const handleHeroCardKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      handleHeroCardSelect()
-    },
-    [handleHeroCardSelect],
-  )
-
   const author = useMemo(
     () => resolveAuthor(authorRegistry ?? {}, post.author),
     [authorRegistry, post.author],
@@ -36,10 +27,6 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
 
   return (
     <article
-      role="link"
-      tabIndex={0}
-      onClick={handleHeroCardSelect}
-      onKeyDown={handleHeroCardKeyDown}
       className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12"
     >
       <div className="relative flex flex-col gap-6 p-6 @lg:flex-row @lg:items-start @lg:gap-10 @lg:p-10">
@@ -51,7 +38,13 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
           </div>
 
           <h2 className="text-foreground group-hover:text-brand mb-3 text-2xl font-semibold tracking-tight transition-colors duration-300 @lg:text-3xl">
-            {post.title}
+            <button
+              type="button"
+              onClick={handleHeroCardSelect}
+              className="cursor-pointer text-left after:absolute after:inset-0"
+            >
+              {post.title}
+            </button>
           </h2>
 
           {post.summary && (

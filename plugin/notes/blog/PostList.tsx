@@ -17,26 +17,19 @@ function PostListItem({ post, onSelectPost }: PostListItemProps) {
     onSelectPost(post)
   }, [onSelectPost, post])
 
-  const handlePostRowKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      handlePostSelect()
-    },
-    [handlePostSelect],
-  )
-
   return (
     <article
-      role="link"
-      tabIndex={0}
-      onClick={handlePostSelect}
-      onKeyDown={handlePostRowKeyDown}
-      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b p-5 transition duration-200 last:border-b-0 @lg:items-center"
+      className="border-foreground/6 hover:bg-background-card/30 group relative flex cursor-pointer items-start gap-5 border-b p-5 transition duration-200 last:border-b-0 @lg:items-center"
     >
       <div className="min-w-0 flex-1">
         <h3 className="text-foreground group-hover:text-brand mb-1.5 text-sm font-semibold transition-colors duration-200 @lg:text-base">
-          {post.title}
+          <button
+            type="button"
+            onClick={handlePostSelect}
+            className="cursor-pointer text-left after:absolute after:inset-0"
+          >
+            {post.title}
+          </button>
         </h3>
         {post.summary && (
           <p className="text-foreground-alt/60 line-clamp-1 hidden text-xs @md:block">

@@ -53,7 +53,7 @@ vi.mock('./blog/BlogReadingView.js', () => ({
 
 vi.mock('./NoteContentView.js', () => ({
   default: ({ onContentSaved }: { onContentSaved?: () => void }) => (
-    <button data-testid="note-content-view" onClick={onContentSaved}>
+    <button type="button" data-testid="note-content-view" onClick={onContentSaved}>
       note content
     </button>
   ),
@@ -68,10 +68,10 @@ vi.mock('./NoteList.js', () => ({
     onSelectNote?: (path: string) => void
   }) => (
     <>
-      <button title="New note" onClick={onCreateNote}>
+      <button type="button" title="New note" onClick={onCreateNote}>
         New note
       </button>
-      <button title="Select post" onClick={() => onSelectNote?.('post.md')}>
+      <button type="button" title="Select post" onClick={() => onSelectNote?.('post.md')}>
         Select post
       </button>
     </>
