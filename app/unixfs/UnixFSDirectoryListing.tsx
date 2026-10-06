@@ -9,7 +9,7 @@ import type {
 } from '@s4wave/web/editors/file-browser/types.js'
 import type { AppDragEnvelope } from '@s4wave/web/dnd/app-drag.js'
 import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
-import type { ListItem } from '@s4wave/web/ui/list'
+import type { ListItem, ListStateHandle } from '@s4wave/web/ui/list'
 
 import type { UnixFSBrowserDirectoryHeaderProps } from './UnixFSBrowser.js'
 
@@ -66,7 +66,8 @@ interface UnixFSDirectoryListingProps {
   getEntryDetails?: GetFileEntryDetailsCallback
   onOpen: (entries: FileEntry[]) => void
   onContextMenu: (item: ListItem<FileEntry>, event: MouseEvent) => void
-  onStateChange: (state: { selectedIds?: string[] }) => void
+  // listState is the file list's selection and sort, owned by the browser.
+  listState: ListStateHandle
   onNewFolder: () => void
   onUploadFiles: () => void
   getDragEnvelope: (
@@ -97,7 +98,7 @@ export function UnixFSDirectoryListing({
   getEntryDetails,
   onOpen,
   onContextMenu,
-  onStateChange,
+  listState,
   onNewFolder,
   onUploadFiles,
   getDragEnvelope,
@@ -122,7 +123,7 @@ export function UnixFSDirectoryListing({
         entries={displayEntries}
         onOpen={onOpen}
         onContextMenu={onContextMenu}
-        onStateChange={onStateChange}
+        state={listState}
         loadingId={loadingId}
         placeholder={
           placeholder ?? (

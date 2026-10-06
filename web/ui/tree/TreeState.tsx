@@ -1,4 +1,5 @@
-import { createContext } from 'react'
+import { createContext, useState } from 'react'
+import { useStateAtom, type StateNamespace } from '@s4wave/web/state/persist.js'
 import { TreeNode } from './TreeNode.js'
 
 export interface TreeState {
@@ -22,6 +23,28 @@ export type TreeAction =
   | { type: 'TOGGLE_EXPAND'; id: string }
 
 export type TreeDispatch = (action: TreeAction) => void
+
+// TreeUpdate applies a change to the latest Tree state.
+export type TreeUpdate = (update: (state: TreeState) => TreeState) => void
+
+// TreeStateHandle is the state a Tree shows and the update that changes it.
+export type TreeStateHandle = readonly [TreeState, TreeUpdate]
+
+// useTreeState keeps a Tree's state under key in the state namespace. The
+// component that renders the Tree owns it, so it reads expansion and selection
+// directly instead of mirroring them from the Tree.
+export function useTreeState(
+  namespace: StateNamespace | null,
+  key: string,
+  initial?: Partial<TreeState>,
+): TreeStateHandle {
+  const [initialState] = useState<TreeState>(() => ({
+    expandedIds: new Set<string>(),
+    selectedIds: new Set<string>(),
+    ...initial,
+  }))
+  return useStateAtom(namespace, key, initialState)
+}
 
 export function findNodeById<T>(
   nodes: TreeNode<T>[],

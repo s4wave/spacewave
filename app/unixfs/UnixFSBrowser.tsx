@@ -20,6 +20,7 @@ import {
 import { ObjectInfo, UnixfsObjectInfo } from '@s4wave/web/object/object.pb.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
+import { useFileListState } from '@s4wave/web/editors/file-browser/FileList.js'
 import type { ListItem } from '@s4wave/web/ui/list'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { useTabContext } from '@s4wave/web/object/TabContext.js'
@@ -137,7 +138,6 @@ function UnixFSLoadingDiagnostics({
 interface UnixFSBrowserState {
   pendingName: string | null
   contextMenu: ContextMenuState | null
-  selectedIds: string[]
   newFolderName: string | null
   newFileName: string | null
   deleteTargets: FileEntry[] | null
@@ -150,14 +150,12 @@ interface UnixFSBrowserState {
 type UnixFSBrowserAction =
   | { type: 'set-pending-name'; name: string | null }
   | { type: 'set-context-menu'; menu: ContextMenuState | null }
-  | { type: 'set-selected-ids'; ids: string[] }
   | { type: 'start-rename'; entry: FileEntry }
   | { type: 'clear-rename' }
   | { type: 'request-delete'; entries: FileEntry[] }
   | { type: 'clear-delete' }
   | { type: 'request-move'; items: UnixFSMoveItem[] }
   | { type: 'clear-move' }
-  | { type: 'complete-move' }
   | { type: 'start-new-folder' }
   | { type: 'set-new-folder-name'; name: string }
   | { type: 'clear-new-folder' }
@@ -167,10 +165,12 @@ type UnixFSBrowserAction =
   | { type: 'set-dragging'; dragging: boolean }
   | { type: 'set-folder-drop-entry'; id: string | null }
 
+// noSelection is the selection of a file list that has none.
+const noSelection: string[] = []
+
 const initialUnixFSBrowserState: UnixFSBrowserState = {
   pendingName: null,
   contextMenu: null,
-  selectedIds: [],
   newFolderName: null,
   newFileName: null,
   deleteTargets: null,
@@ -189,8 +189,6 @@ function unixFSBrowserReducer(
       return { ...state, pendingName: action.name }
     case 'set-context-menu':
       return { ...state, contextMenu: action.menu }
-    case 'set-selected-ids':
-      return { ...state, selectedIds: action.ids }
     case 'start-rename':
       return { ...state, renamingEntry: action.entry }
     case 'clear-rename':
@@ -207,8 +205,6 @@ function unixFSBrowserReducer(
       }
     case 'clear-move':
       return { ...state, moveDialogItems: null }
-    case 'complete-move':
-      return { ...state, selectedIds: [], moveDialogItems: null }
     case 'start-new-folder':
       return {
         ...state,
@@ -287,7 +283,6 @@ function useUnixFSBrowserElement({
   const {
     pendingName,
     contextMenu,
-    selectedIds,
     newFolderName,
     newFileName,
     deleteTargets,
@@ -308,12 +303,8 @@ function useUnixFSBrowserElement({
   // File input ref for upload button
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleListStateChange = useCallback(
-    (state: { selectedIds?: string[] }) => {
-      dispatch({ type: 'set-selected-ids', ids: state.selectedIds ?? [] })
-    },
-    [],
-  )
+  const listState = useFileListState()
+  const [{ selectedIds = noSelection }, updateListState] = listState
 
   const selectedEntries = useMemo(() => {
     const selected = new Set(selectedIds)
@@ -550,9 +541,16 @@ function useUnixFSBrowserElement({
         moveDialogItems,
         destinationPath,
       )
-      dispatch({ type: 'complete-move' })
+      updateListState((prev) => ({ ...prev, selectedIds: [] }))
+      dispatch({ type: 'clear-move' })
     },
-    [displayPath, moveDialogItems, pathHandle.value, rootHandle.value],
+    [
+      displayPath,
+      moveDialogItems,
+      pathHandle.value,
+      rootHandle.value,
+      updateListState,
+    ],
   )
 
   const handleCancelDelete = useCallback(() => {
@@ -823,7 +821,7 @@ function useUnixFSBrowserElement({
               loadingId={entriesResource.loading ? pendingName : null}
               onOpen={handleOpen}
               onContextMenu={handleContextMenu}
-              onStateChange={handleListStateChange}
+              listState={listState}
               onNewFolder={handleNewFolder}
               onUploadFiles={handleUploadFiles}
               getDragEnvelope={getDragEnvelope}
@@ -947,7 +945,7 @@ function useUnixFSBrowserElement({
           getEntryDetails={getEntryDetails}
           onOpen={handleOpen}
           onContextMenu={handleContextMenu}
-          onStateChange={handleListStateChange}
+          listState={listState}
           onNewFolder={handleNewFolder}
           onUploadFiles={handleUploadFiles}
           getDragEnvelope={getDragEnvelope}

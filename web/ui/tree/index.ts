@@ -6,6 +6,7 @@ export {
   TreeStateContext,
   TreeDispatchContext,
   treeReducer,
+  useTreeState,
   findNodeById,
   findParentNode,
   getVisibleNodes,
@@ -15,4 +16,6 @@ export type {
   TreeAction,
   SelectNodeAction,
   TreeDispatch,
+  TreeStateHandle,
+  TreeUpdate,
 } from './TreeState.js'

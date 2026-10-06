@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ComponentProps, type ReactNode, useEffect } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   render,
@@ -10,7 +10,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import { APP_DRAG_MIME, APP_DRAG_VERSION } from '@s4wave/web/dnd/app-drag.js'
 import { DOWNLOAD_URL_DRAG_FORMAT } from '@s4wave/web/dnd/download-url-drag.js'
-import { FileList } from './FileList.js'
+import { FileList, useFileListState } from './FileList.js'
 import { FileEntry } from './types.js'
 
 const mockEntries: FileEntry[] = [
@@ -29,6 +29,12 @@ const longFilenameEntries: FileEntry[] = [
   },
   { id: '3', name: 'short.txt', isDir: false },
 ]
+
+// TestFileList owns the file list state the way a file browser does.
+function TestFileList(props: Omit<ComponentProps<typeof FileList>, 'state'>) {
+  const state = useFileListState()
+  return <FileList {...props} state={state} />
+}
 
 function MountProbe({
   name,
@@ -49,7 +55,7 @@ describe('FileList', () => {
   })
 
   it('should render the file list container and header', () => {
-    render(<FileList entries={mockEntries} />)
+    render(<TestFileList entries={mockEntries} />)
 
     expect(screen.getByRole('rowgroup')).toBeTruthy()
     expect(screen.getByText('Name')).toBeTruthy()
@@ -58,7 +64,7 @@ describe('FileList', () => {
   })
 
   it('should render file entries', async () => {
-    render(<FileList entries={mockEntries} />)
+    render(<TestFileList entries={mockEntries} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -71,7 +77,7 @@ describe('FileList', () => {
 
   it('should handle single click selection', async () => {
     const user = userEvent.setup()
-    render(<FileList entries={mockEntries} />)
+    render(<TestFileList entries={mockEntries} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -92,7 +98,7 @@ describe('FileList', () => {
   it('should handle double click to open', async () => {
     const user = userEvent.setup()
     const onOpen = vi.fn<(entries: FileEntry[]) => void>()
-    render(<FileList entries={mockEntries} onOpen={onOpen} />)
+    render(<TestFileList entries={mockEntries} onOpen={onOpen} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -115,7 +121,7 @@ describe('FileList', () => {
 
   it('publishes a provided app-drag envelope on drag start', async () => {
     render(
-      <FileList
+      <TestFileList
         entries={mockEntries}
         getDragEnvelope={(entry) => ({
           version: APP_DRAG_VERSION,
@@ -154,7 +160,9 @@ describe('FileList', () => {
         items: [{ id: entry.id, label: entry.name, capabilities: [] }],
       }),
     )
-    render(<FileList entries={mockEntries} getDragEnvelope={getDragEnvelope} />)
+    render(
+      <TestFileList entries={mockEntries} getDragEnvelope={getDragEnvelope} />,
+    )
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -195,7 +203,7 @@ describe('FileList', () => {
 
   it('publishes a provided download drag target alongside app drag data', async () => {
     render(
-      <FileList
+      <TestFileList
         entries={mockEntries}
         getDragEnvelope={(entry) => ({
           version: APP_DRAG_VERSION,
@@ -234,7 +242,7 @@ describe('FileList', () => {
 
   it('can publish only download drag data for rows without an app envelope', async () => {
     render(
-      <FileList
+      <TestFileList
         entries={mockEntries}
         getDownloadDragTarget={(entry) => ({
           mimeType: 'text/plain',
@@ -271,7 +279,7 @@ describe('FileList', () => {
 
   it('omits download drag data when the provider returns null', async () => {
     render(
-      <FileList
+      <TestFileList
         entries={mockEntries}
         getDragEnvelope={(entry) => ({
           version: APP_DRAG_VERSION,
@@ -305,7 +313,7 @@ describe('FileList', () => {
   it('routes accepted row drops through the folder drop target props', async () => {
     const onEntryDrop = vi.fn()
     render(
-      <FileList
+      <TestFileList
         entries={mockEntries}
         dropTargetEntryId="1"
         onEntryDragOver={(entry) => entry.isDir === true}
@@ -358,7 +366,7 @@ describe('FileList', () => {
       </MountProbe>
     )
     const { rerender } = render(
-      <FileList entries={mockEntries} renderEntry={renderEntry} />,
+      <TestFileList entries={mockEntries} renderEntry={renderEntry} />,
     )
 
     await waitFor(() => {
@@ -371,7 +379,7 @@ describe('FileList', () => {
     expect(documentsEntry).toBeTruthy()
 
     rerender(
-      <FileList
+      <TestFileList
         entries={mockEntries}
         renderEntry={renderEntry}
         dropTargetEntryId="1"
@@ -388,7 +396,7 @@ describe('FileList', () => {
 
   it('should handle keyboard navigation', async () => {
     const user = userEvent.setup()
-    render(<FileList entries={mockEntries} />)
+    render(<TestFileList entries={mockEntries} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -420,7 +428,7 @@ describe('FileList', () => {
 
   it('should handle select all with Ctrl+A', async () => {
     const user = userEvent.setup()
-    render(<FileList entries={mockEntries} />)
+    render(<TestFileList entries={mockEntries} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -441,7 +449,7 @@ describe('FileList', () => {
 
   it('should handle range selection with Shift', async () => {
     const user = userEvent.setup()
-    render(<FileList entries={mockEntries} />)
+    render(<TestFileList entries={mockEntries} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -471,7 +479,7 @@ describe('FileList', () => {
 
   it('should handle toggle selection with Ctrl/Cmd', async () => {
     const user = userEvent.setup()
-    render(<FileList entries={mockEntries} />)
+    render(<TestFileList entries={mockEntries} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -500,7 +508,7 @@ describe('FileList', () => {
   })
 
   it('should truncate long filenames with ellipsis', async () => {
-    render(<FileList entries={longFilenameEntries} />)
+    render(<TestFileList entries={longFilenameEntries} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('getting-started.md')[0]).toBeTruthy()
@@ -529,7 +537,7 @@ describe('FileList', () => {
   it('should call onOpen with directory entry when double-clicking a directory', async () => {
     const user = userEvent.setup()
     const onOpen = vi.fn<(entries: FileEntry[]) => void>()
-    render(<FileList entries={mockEntries} onOpen={onOpen} />)
+    render(<TestFileList entries={mockEntries} onOpen={onOpen} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
@@ -556,7 +564,7 @@ describe('FileList', () => {
   it('should call onOpen with file entry when double-clicking a file', async () => {
     const user = userEvent.setup()
     const onOpen = vi.fn<(entries: FileEntry[]) => void>()
-    render(<FileList entries={mockEntries} onOpen={onOpen} />)
+    render(<TestFileList entries={mockEntries} onOpen={onOpen} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('file.txt')[0]).toBeTruthy()
@@ -581,7 +589,7 @@ describe('FileList', () => {
   it('should call onOpen with all selected files when double-clicking with multiple selection', async () => {
     const user = userEvent.setup()
     const onOpen = vi.fn<(entries: FileEntry[]) => void>()
-    render(<FileList entries={mockEntries} onOpen={onOpen} />)
+    render(<TestFileList entries={mockEntries} onOpen={onOpen} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('file.txt')[0]).toBeTruthy()
@@ -627,7 +635,7 @@ describe('FileList', () => {
   it('should call onOpen with mixed selection when double-clicking with files and directories selected', async () => {
     const user = userEvent.setup()
     const onOpen = vi.fn<(entries: FileEntry[]) => void>()
-    render(<FileList entries={mockEntries} onOpen={onOpen} />)
+    render(<TestFileList entries={mockEntries} onOpen={onOpen} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Documents')[0]).toBeTruthy()
