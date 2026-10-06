@@ -11,13 +11,12 @@ import (
 	"sync/atomic"
 	"testing"
 
-	badger "github.com/dgraph-io/badger/v4"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
+	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
-	store_kvtx_badger "github.com/s4wave/spacewave/db/store/kvtx/badger"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/net/hash"
@@ -67,15 +66,15 @@ func newBenchBlockStoreWithOps(inner block.StoreOps) *benchBlockStore {
 	}
 }
 
-func newBenchBadgerBlockStore(tb testing.TB) *benchBlockStore {
-	// Open the temporary Badger database and register its cleanup.
+func newBenchS4dbBlockStore(tb testing.TB) *benchBlockStore {
+	// Open the temporary s4db database and register its cleanup.
 	tb.Helper()
-	kv, err := store_kvtx_badger.Open(badger.DefaultOptions(tb.TempDir()).WithLogger(nil))
+	kv, err := s4db.Open(filepath.Join(tb.TempDir(), "bench.s4wave"), s4db.Options{})
 	if err != nil {
 		tb.Fatal(err)
 	}
 	tb.Cleanup(func() {
-		if err := kv.GetDB().Close(); err != nil {
+		if err := kv.Close(); err != nil {
 			tb.Error(err)
 		}
 	})
@@ -638,10 +637,10 @@ func measureBenchTreeDeleteReads(t *testing.T, ctx context.Context, mode string)
 	return tree.store.getBlocks.Load()
 }
 
-func TestIAVLBenchBadgerBlockStoreCounts(t *testing.T) {
-	// Open the Badger-backed fixture for a value lookup.
+func TestIAVLBenchS4dbBlockStoreCounts(t *testing.T) {
+	// Open the s4db-backed fixture for a value lookup.
 	ctx := context.Background()
-	tree := buildBenchTreeWithStore(t, makeBenchKeys(32, benchKeySequential), newBenchBadgerBlockStore(t))
+	tree := buildBenchTreeWithStore(t, makeBenchKeys(32, benchKeySequential), newBenchS4dbBlockStore(t))
 	tx := newBenchReadTx(t, ctx, tree)
 	defer tx.Discard()
 
@@ -1256,17 +1255,17 @@ func BenchmarkIAVLDeleteCursorCommit(b *testing.B) {
 	}
 }
 
-func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
+func BenchmarkIAVLS4dbBlockStore(b *testing.B) {
 	const size = 1024
 
 	b.Run("cold_get_cursor/"+benchSizeName(size), func(b *testing.B) {
 		// Build the tree fixture and prepare the measured operation.
 		ctx := context.Background()
-		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
+		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchS4dbBlockStore(b))
 		tree.store.resetCounts()
 		b.ResetTimer()
 
-		// Measure Badger-backed cursor lookups through fresh transactions.
+		// Measure s4db-backed cursor lookups through fresh transactions.
 		for i := range b.N {
 			tx := newBenchReadTx(b, ctx, tree)
 			_, err := tx.GetCursorAtKey(ctx, tree.keys[benchLookupIndex(i, size)])
@@ -1284,11 +1283,11 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 	b.Run("cold_get_value/"+benchSizeName(size), func(b *testing.B) {
 		// Build the tree fixture and prepare the measured operation.
 		ctx := context.Background()
-		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
+		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchS4dbBlockStore(b))
 		tree.store.resetCounts()
 		b.ResetTimer()
 
-		// Measure Badger-backed value lookups through fresh transactions.
+		// Measure s4db-backed value lookups through fresh transactions.
 		for i := range b.N {
 			tx := newBenchReadTx(b, ctx, tree)
 			_, found, err := tx.Get(ctx, tree.keys[benchLookupIndex(i, size)])
@@ -1309,11 +1308,11 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 	b.Run("updates_100/"+benchSizeName(size), func(b *testing.B) {
 		// Build the tree fixture and prepare the measured operation.
 		ctx := context.Background()
-		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchBadgerBlockStore(b))
+		tree := buildBenchTreeWithStore(b, makeBenchKeys(size, benchKeySequential), newBenchS4dbBlockStore(b))
 		tree.store.resetCounts()
 		b.ResetTimer()
 
-		// Measure Badger-backed commits containing a hundred updates.
+		// Measure s4db-backed commits containing a hundred updates.
 		for i := range b.N {
 			btx, rootCursor := block.NewTransaction(tree.storeOps(), nil, tree.rootRef, nil)
 			tx, err := NewTx(ctx, rootCursor, nil, true, nil)

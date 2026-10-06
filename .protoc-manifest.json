@@ -2375,16 +2375,6 @@
         "db/volume/volume.proto"
       ]
     },
-    "github.com/s4wave/spacewave/db/volume/badger": {
-      "hash": "12af54a02640193fcf79d0b86987371c4f9758f439364907a5bd6616fb247d15",
-      "generatedFiles": [
-        "db/volume/badger/badger.pb.go",
-        "db/volume/badger/badger.pb.ts"
-      ],
-      "protoFiles": [
-        "db/volume/badger/badger.proto"
-      ]
-    },
     "github.com/s4wave/spacewave/db/volume/block": {
       "hash": "c0a8e14226fe6aaf7340b1ebd95a05e08e0e101423e82edf343bc3304b37c654",
       "generatedFiles": [
