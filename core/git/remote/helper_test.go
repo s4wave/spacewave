@@ -25,7 +25,7 @@ func TestHelperPushListFetch(t *testing.T) {
 
 	// The helper advertises its capabilities and lists no refs before a push.
 	push := NewHelper(engine, testRepoKey, filepath.Join(src, ".git"))
-	if got := run(t, ctx, push, "capabilities\n"); got != "fetch\npush\n\n" {
+	if got := run(t, ctx, push, "capabilities\n"); got != "fetch\npush\noption\n\n" {
 		t.Fatalf("capabilities = %q", got)
 	}
 	if got := run(t, ctx, push, "list for-push\n"); got != "\n" {
@@ -77,6 +77,38 @@ func TestHelperRejectsNonFastForward(t *testing.T) {
 	}
 	if got := run(t, ctx, h, "push +refs/heads/master:refs/heads/master\n\n"); got != "ok refs/heads/master\n\n" {
 		t.Fatalf("forced push = %q", got)
+	}
+	if got := run(t, ctx, h, "list\n"); !strings.Contains(got, rewritten+" refs/heads/master\n") {
+		t.Fatalf("list = %q, want %s", got, rewritten)
+	}
+}
+
+// TestHelperForceWithLease checks that a lease forces a non-fast-forward
+// update only while the ref still holds the expected hash.
+func TestHelperForceWithLease(t *testing.T) {
+	// Push a first commit to master.
+	ctx := t.Context()
+	engine := newTestWorld(t, ctx)
+	src := newLocalRepo(t)
+	first := commit(t, src, "one")
+	h := NewHelper(engine, testRepoKey, filepath.Join(src, ".git"))
+	run(t, ctx, h, "push refs/heads/master:refs/heads/master\n\n")
+
+	// Replace the branch with an unrelated history.
+	gitCmd(t, src, "checkout", "-q", "--orphan", "other")
+	gitCmd(t, src, "branch", "-q", "-D", "master")
+	gitCmd(t, src, "checkout", "-q", "-b", "master")
+	rewritten := commit(t, src, "two")
+
+	// A stale lease is refused, as Git sends it: options, then an unforced push.
+	stale := strings.Repeat("1", 40)
+	if got := run(t, ctx, h, "option cas refs/heads/master:"+stale+"\npush refs/heads/master:refs/heads/master\n\n"); got != "ok\nerror refs/heads/master stale info\n\n" {
+		t.Fatalf("stale lease push = %q", got)
+	}
+
+	// A lease on the current hash replaces master.
+	if got := run(t, ctx, h, "option cas refs/heads/master:"+first+"\npush refs/heads/master:refs/heads/master\n\n"); got != "ok\nok refs/heads/master\n\n" {
+		t.Fatalf("leased push = %q", got)
 	}
 	if got := run(t, ctx, h, "list\n"); !strings.Contains(got, rewritten+" refs/heads/master\n") {
 		t.Fatalf("list = %q, want %s", got, rewritten)

@@ -40,6 +40,9 @@ type Helper struct {
 	gitDir string
 	// pushed records whether a push changed the Repo.
 	pushed bool
+	// leases maps a Repo ref to the hash Git expects it to hold, from
+	// "option cas" lines; a zero hash expects the ref to be absent.
+	leases map[string]plumbing.Hash
 }
 
 // NewHelper builds a Helper that moves refs and objects between the local
@@ -58,6 +61,9 @@ func (h *Helper) Pushed() bool {
 type pushCommand struct {
 	// force permits a non-fast-forward update.
 	force bool
+	// lease is the hash dst must hold for a forced update, or nil without a
+	// lease; a zero hash requires dst to be absent.
+	lease *plumbing.Hash
 	// src is the local ref or object; empty deletes dst.
 	src string
 	// dst is the Repo ref to update.
@@ -79,7 +85,9 @@ func (h *Helper) Run(ctx context.Context, in io.Reader, out io.Writer) error {
 
 		switch {
 		case line == "capabilities":
-			_, err = w.WriteString("fetch\npush\n\n")
+			_, err = w.WriteString("fetch\npush\noption\n\n")
+		case strings.HasPrefix(line, "option "):
+			_, err = w.WriteString(h.setOption(strings.TrimPrefix(line, "option ")) + "\n")
 		case line == "list" || line == "list for-push":
 			err = h.list(ctx, w)
 		case strings.HasPrefix(line, "fetch "):
@@ -95,6 +103,30 @@ func (h *Helper) Run(ctx context.Context, in io.Reader, out io.Writer) error {
 		if err := w.Flush(); err != nil {
 			return err
 		}
+	}
+}
+
+// setOption applies one "option <name> <value>" line and returns Git's reply.
+// Only "cas" changes behavior: Git sends it for --force-with-lease and pushes
+// without the force marker, leaving the helper to check the lease and force the
+// update.
+func (h *Helper) setOption(option string) string {
+	name, value, _ := strings.Cut(option, " ")
+	switch name {
+	case "cas":
+		ref, hash, ok := strings.Cut(value, ":")
+		if !ok || !plumbing.IsHash(hash) {
+			return "error malformed cas " + value
+		}
+		if h.leases == nil {
+			h.leases = make(map[string]plumbing.Hash)
+		}
+		h.leases[ref] = plumbing.NewHash(hash)
+		return "ok"
+	case "progress", "verbosity":
+		return "ok"
+	default:
+		return "unsupported"
 	}
 }
 
@@ -259,6 +291,9 @@ func (h *Helper) servePush(ctx context.Context, r *bufio.Reader, w *bufio.Writer
 		if !ok || cmd.dst == "" {
 			return errors.Errorf("malformed push command %q", line)
 		}
+		if lease, ok := h.leases[cmd.dst]; ok {
+			cmd.lease = &lease
+		}
 		cmds = append(cmds, cmd)
 	}
 
@@ -344,8 +379,25 @@ func (h *Helper) pushAt(ctx context.Context, cmds []pushCommand, prevRef *bucket
 // pushOne applies one ref update inside the Repo and returns the reason it was
 // refused, or an error when the Repo itself failed.
 func (h *Helper) pushOne(ctx context.Context, repo *git.Repository, remote *git.Remote, cmd pushCommand) (string, error) {
-	// Delete the destination ref for an empty source.
+	// Refuse a leased update unless dst still holds the expected hash, then
+	// force it.
 	dst := plumbing.ReferenceName(cmd.dst)
+	if cmd.lease != nil {
+		var current plumbing.Hash
+		ref, err := repo.Storer.Reference(dst)
+		switch {
+		case err == nil:
+			current = ref.Hash()
+		case !errors.Is(err, plumbing.ErrReferenceNotFound):
+			return "", err
+		}
+		if current != *cmd.lease {
+			return "stale info", nil
+		}
+		cmd.force = true
+	}
+
+	// Delete the destination ref for an empty source.
 	if cmd.src == "" {
 		return "", repo.Storer.RemoveReference(dst)
 	}
