@@ -40,8 +40,8 @@ import (
 // staleAnswerDropPrefix is the consumer fence log line the defect produces.
 const staleAnswerDropPrefix = "dropping stale answer"
 
-// redXmitSession stands in for the outbound signaling session execute opens
-// through ExSignalPeer. Every transmitted signal lands on sendCh.
+// redXmitSession stands in for the outbound signaling session execute follows
+// through the SignalPeer directive. Every transmitted signal lands on sendCh.
 type redXmitSession struct {
 	localPeerID  peer.ID
 	remotePeerID peer.ID
@@ -248,7 +248,7 @@ func TestHostedJoinKeepsAnswersAcrossTrackerRegeneration(t *testing.T) {
 	tpt := newHostedFlowTransport(ctx, ident.ident, logs)
 
 	// Wire the outbound signaling session through a real bus so
-	// sessionTracker.execute resolves ExSignalPeer exactly as in production.
+	// sessionTracker.execute resolves SignalPeer exactly as in production.
 	xmit := &redXmitSession{
 		localPeerID:  ident.localPeerID,
 		remotePeerID: ident.remotePeerID,

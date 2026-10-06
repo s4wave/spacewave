@@ -37,17 +37,29 @@ const restartReconnectBound = 15 * time.Second
 // silent on its old address, as a crashed process does, and a fresh transport
 // with the same peer identity starts on a new address. pion keeps its default
 // ICE timeouts so a stale PeerConnection cannot fail over quickly.
+//
+// In the reconnect cases the surviving peer first replaces its signaling
+// client while the link stays up, as a hosted signaling websocket does when
+// it reconnects. The survivor must then signal the restarted peer through the
+// new client instead of the closed one.
 func TestTransportPeerRestartReconnects(t *testing.T) {
 	for _, restart := range []int{0, 2} {
-		t.Run(fmt.Sprintf("restart-p%d", restart), func(t *testing.T) {
-			testTransportPeerRestart(t, restart)
-		})
+		for _, reconnect := range []bool{false, true} {
+			name := fmt.Sprintf("restart-p%d", restart)
+			if reconnect {
+				name += "-after-signaling-reconnect"
+			}
+			t.Run(name, func(t *testing.T) {
+				testTransportPeerRestart(t, restart, reconnect)
+			})
+		}
 	}
 }
 
-// testTransportPeerRestart links p0 and p2 over WebRTC, restarts the
-// transport of peer restart, and requires the link to return in time.
-func testTransportPeerRestart(t *testing.T, restart int) {
+// testTransportPeerRestart links p0 and p2 over WebRTC, optionally restarts
+// the signaling client of the surviving peer, restarts the transport of peer
+// restart, and requires the link to return in time.
+func testTransportPeerRestart(t *testing.T, restart int, reconnectSignaling bool) {
 	// Configure logging for transport negotiation and recovery.
 	ctx := t.Context()
 	log := logrus.New()
@@ -114,10 +126,6 @@ func testTransportPeerRestart(t *testing.T, restart int) {
 			ServerPeerIds: []string{p1.GetPeerID().String()},
 		},
 	}
-	for _, p := range []*graph.Peer{p0, p2} {
-		p.AddFactory(func(b bus.Bus) controller.Factory { return signaling_rpc_client.NewFactory(b) })
-		p.AddConfig("signaling-client", signalClientConf)
-	}
 
 	// Connect both endpoint peers to the signaling server.
 	lan1 := graph.AddLAN(g)
@@ -170,6 +178,34 @@ func testTransportPeerRestart(t *testing.T, restart int) {
 	}
 	crash := []func(){startTransport(0), nil, startTransport(2)}
 
+	// startSignaling runs a signaling client for peer i and returns a
+	// function that stops it. Stopping removes the client's SignalPeer
+	// values, and its sessions never deliver again.
+	startSignaling := func(i int) func() {
+		// Construct and run the signaling client controller on the peer bus.
+		t.Helper()
+		b := px[i].GetTestbed().Bus
+		ctrl, err := signaling_rpc_client.NewFactory(b).Construct(
+			ctx,
+			signalClientConf,
+			controller.ConstructOpts{Logger: le.WithField("signaling-client", i)},
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		sigCtx, sigCancel := context.WithCancel(ctx)
+		go func() { _ = b.ExecuteController(sigCtx, ctrl) }()
+		return sigCancel
+	}
+	stopSignaling := []func(){startSignaling(0), nil, startSignaling(2)}
+	defer func() {
+		for _, stop := range stopSignaling {
+			if stop != nil {
+				stop()
+			}
+		}
+	}()
+
 	// Hold a link from each endpoint to the other, as both daemons do.
 	for _, ids := range [][2]*graph.Peer{{p0, p2}, {p2, p0}} {
 		_, ref, err := sim.GetPeerByID(ids[0].GetPeerID()).GetTestbed().Bus.AddDirective(
@@ -211,6 +247,16 @@ func testTransportPeerRestart(t *testing.T, restart int) {
 		}
 	}
 	waitConnectivity("initial", 30*time.Second)
+
+	// Replace the signaling client of the surviving peer. The established
+	// link does not depend on signaling and stays up.
+	if reconnectSignaling {
+		survivor := 2 - restart
+		le.Infof("reconnecting the signaling client of p%d", survivor)
+		stopSignaling[survivor]()
+		stopSignaling[survivor] = startSignaling(survivor)
+		waitConnectivity("after-signaling-reconnect", restartReconnectBound)
+	}
 
 	// Crash the transport of the restarted peer and start its successor.
 	le.Infof("restarting the transport of p%d", restart)

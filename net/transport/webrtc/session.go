@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
@@ -923,16 +924,49 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	})
 
 	// Construct the signal transmit routine and route failures into session
-	// state. It starts once the signaling session is open.
-	xmitRoutine := routine.NewRoutineContainer(
+	// state. It sends the outbox over the current signaling session.
+	var outbox signalOutbox
+	xmitRoutine := routine.NewStateRoutineContainer(
+		func(t1, t2 signaling.SignalPeerSession) bool { return t1 == t2 },
 		routine.WithExitCb(func(err error) {
 			if err != nil {
 				current.Load().failWithErr(errCh, pkgerrors.Wrap(err, "signal transmit routine"))
 			}
 		}),
 	)
+	_, _, _ = xmitRoutine.SetStateRoutine(func(ctx context.Context, signal signaling.SignalPeerSession) error {
+		return s.executeOutbox(ctx, &outbox, signal)
+	})
 
-	// Set the context for the link routine.
+	// Follow the signaling session with the remote peer. A signaling client
+	// that reconnects replaces its session value, and a session of the
+	// closed connection never delivers again, so the outbox moves to the
+	// replacement. The watch is released after the routines stop.
+	phase = "watch signaling session"
+	_, signalRef, err := s.w.b.AddDirective(
+		signaling.NewSignalPeer(s.w.conf.GetSignalingId(), s.w.peerID, s.peerID),
+		directive.NewTypedCallbackHandler(
+			func(v directive.TypedAttachedValue[signaling.SignalPeerSession]) {
+				_, _, _, _ = xmitRoutine.SetState(v.GetValue())
+			},
+			func(v directive.TypedAttachedValue[signaling.SignalPeerSession]) {
+				_, _, _, _, _ = xmitRoutine.SwapValue(func(signal signaling.SignalPeerSession) signaling.SignalPeerSession {
+					if signal == v.GetValue() {
+						return nil
+					}
+					return signal
+				})
+			},
+			nil,
+			nil,
+		),
+	)
+	if err != nil {
+		return pkgerrors.Wrap(err, phase)
+	}
+	defer signalRef.Release()
+
+	// Set the context for the link and transmit routines.
 	phase = "bind routines"
 	linkRoutine.SetContext(ctx, true)
 	xmitRoutine.SetContext(ctx, true)
@@ -940,30 +974,11 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	// Stop child routines before retiring this execution generation.
 	defer func() {
 		linkDone, _, _, _ = linkRoutine.SetState(nil)
-		xmitDone, _ = xmitRoutine.SetRoutine(nil)
+		xmitDone, _, _ = xmitRoutine.SetStateRoutine(nil)
 	}()
-
-	// Open the signaling session with the remote peer.
-	phase = "open signaling session"
-	signal, signalRel, err := signaling.ExSignalPeer(
-		ctx,
-		s.w.b,
-		s.w.conf.GetSignalingId(),
-		s.w.peerID,
-		s.peerID,
-		false,
-	)
-	if err != nil {
-		return pkgerrors.Wrap(err, phase)
-	}
-	defer signalRel()
 
 	// xmitSignal queues a signal for the remote peer. signalSent is closed
 	// once the most recently queued signal is sent.
-	var outbox signalOutbox
-	_, _ = xmitRoutine.SetRoutine(func(ctx context.Context) error {
-		return s.executeOutbox(ctx, &outbox, signal)
-	})
 	var signalSent <-chan struct{}
 	xmitSignal := func(msg *WebRtcSignal) {
 		signalSent = outbox.push(msg)
