@@ -36,7 +36,7 @@ require (
 	github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260924002540-d61711789781 // master
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
-	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261006140529-7f1cdbf2ce7d
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260906074410-727d9e299192
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260910142736-349504d079da
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
