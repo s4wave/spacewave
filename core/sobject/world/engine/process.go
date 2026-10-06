@@ -251,9 +251,9 @@ func (c *Controller) processApplyTxOpWithEngine(
 		return nil, nil, context.Canceled
 	}
 
-	// A missing block is a local gap, not a property of the operation, so it
-	// stops replay instead of rejecting.
-	if errors.Is(aerr, block.ErrNotFound) {
+	// A block that is not available is a local gap, not a property of the
+	// operation, so it stops replay instead of rejecting.
+	if block.IsNotAvailable(aerr) {
 		return nil, nil, aerr
 	}
 

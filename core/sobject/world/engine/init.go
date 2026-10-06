@@ -2,7 +2,6 @@ package sobject_world_engine
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -34,7 +33,7 @@ func (c *Controller) waitWorldInit(
 			return nil, err
 		}
 		state, _, err := replay.sync(ctx, snap, nil)
-		stalled := state != nil && errors.Is(err, block.ErrNotFound)
+		stalled := state != nil && block.IsNotAvailable(err)
 		if stalled {
 			c.le.WithError(err).Warn("replay waits for a block that is not available")
 		} else if err != nil {

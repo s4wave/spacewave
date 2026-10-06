@@ -62,10 +62,13 @@ func (c *Controller) executeWatchSOStateOnce(
 	snap sobject.SharedObjectStateSnapshot,
 	soEngine *soEngine,
 ) error {
+	// Trace the pass.
 	ctx, task := trace.NewTask(ctx, "alpha/watch-state/process-snapshot")
 	defer task.End()
+
+	// Replay, waiting out a block that is not available.
 	_, err := soEngine.advance(ctx, snap, nil)
-	if errors.Is(err, block.ErrNotFound) {
+	if block.IsNotAvailable(err) {
 		c.le.WithError(err).Warn("replay waits for a block that is not available")
 		return nil
 	}

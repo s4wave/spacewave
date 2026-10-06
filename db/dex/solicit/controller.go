@@ -2,6 +2,7 @@ package dex_solicit
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -340,9 +341,10 @@ type fanoutResult struct {
 
 // run requests the block from every session and waits until each answers,
 // its session closes, or ctx ends. It returns the first verified response and
-// cancels the other requests, which tells their peers to stop serving them. It returns nil and no error only when
-// every peer answered that it does not have the block, and an error when no
-// peer had the block and a request failed, so a dropped link or a timeout is
+// cancels the other requests, which tells their peers to stop serving them.
+// It returns nil and no error only when every peer answered that it does not
+// have the block. When no peer had the block and a request failed, it returns
+// an error wrapping block.ErrUnavailable, so a dropped link or a timeout is
 // never mistaken for a missing block.
 func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 	// Scope the peer requests to this fanout.
@@ -379,7 +381,7 @@ func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 
 	// Report a failed exchange, or a miss every peer confirmed.
 	if firstErr != nil {
-		return nil, errors.Wrapf(firstErr, "no peer served block %s", f.ref.MarshalString())
+		return nil, fmt.Errorf("%w: no peer served block %s: %w", block.ErrUnavailable, f.ref.MarshalString(), firstErr)
 	}
 	return nil, nil
 }

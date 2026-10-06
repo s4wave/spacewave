@@ -384,7 +384,7 @@ func (e *soEngine) WaitObjectRev(ctx context.Context, key string, rev uint64, ig
 func (e *soEngine) advance(ctx context.Context, snap sobject.SharedObjectStateSnapshot, fork *replayFork) ([]replayOutcome, error) {
 	// Replay and install the World.
 	state, outcomes, err := e.replay.sync(ctx, snap, fork)
-	if state != nil && errors.Is(err, block.ErrNotFound) {
+	if state != nil && block.IsNotAvailable(err) {
 		if installErr := e.updateEngineState(ctx, state); installErr != nil {
 			return nil, installErr
 		}

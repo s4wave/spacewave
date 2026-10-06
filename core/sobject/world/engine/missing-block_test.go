@@ -30,12 +30,15 @@ type hidingBlockStore struct {
 	bstore.BlockStore
 	ref    *block.BlockRef
 	hidden atomic.Bool
+	// err is the error a read of the hidden block returns, or nil to report
+	// the block missing.
+	err error
 }
 
-// GetBlock reads a block, reporting the hidden block as not found.
+// GetBlock reads a block, withholding the hidden block.
 func (s *hidingBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if s.hidden.Load() && ref.EqualsRef(s.ref) {
-		return nil, false, nil
+		return nil, false, s.err
 	}
 	return s.BlockStore.GetBlock(ctx, ref)
 }
@@ -59,11 +62,23 @@ func (c *opCounter) Fire(entry *logrus.Entry) error {
 }
 
 // TestEngineStopsReplayAtMissingBlock replays a log whose last operation needs
-// a block that is not available. The initial replay and each later one must
-// stop at that operation without holding the write lock, serve the World before
-// it, fail writers with the missing block, and resume at that operation, never
-// applying an earlier operation again, once the block arrives.
+// a block that is not available, because the store lacks it or because no peer
+// served it. The initial replay and each later one must stop at that operation
+// without holding the write lock, serve the World before it, fail writers with
+// the read error, and resume at that operation, never applying an earlier
+// operation again, once the block arrives.
 func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
+	t.Run("missing", func(t *testing.T) { testEngineStopsReplayAtBlockGap(t, nil, block.ErrNotFound) })
+	t.Run("unserved", func(t *testing.T) {
+		unserved := errors.Wrap(block.ErrUnavailable, "no peer served block")
+		testEngineStopsReplayAtBlockGap(t, unserved, block.ErrUnavailable)
+	})
+}
+
+// testEngineStopsReplayAtBlockGap runs TestEngineStopsReplayAtMissingBlock
+// with a store whose reads of the hidden block return readErr. Writers must
+// fail with an error matching want.
+func testEngineStopsReplayAtBlockGap(t *testing.T, readErr, want error) {
 	// Build a Space whose operations create three objects, create one whose
 	// root block is missing, and then edit it.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -120,7 +135,7 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 
 	// Build the engine over a store that hides the root block.
 	snap := &replayTestSnapshot{config: space.config, checkpoint: checkpoint, set: set}
-	store := &hidingBlockStore{BlockStore: space.so.blockStore, ref: payload}
+	store := &hidingBlockStore{BlockStore: space.so.blockStore, ref: payload, err: readErr}
 	store.hidden.Store(true)
 	so := &testSharedObject{peerID: pidA, blockStore: store, localStore: store_kvtx_inmem.NewStore(), snapshot: snap}
 
@@ -165,13 +180,13 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 
 	// A writer fails with the missing block after replay applied the four
 	// operations before it and tried the fifth.
-	if tx, err := engine.NewTransaction(ctx, true); !errors.Is(err, block.ErrNotFound) {
+	if tx, err := engine.NewTransaction(ctx, true); !errors.Is(err, want) {
 		if err == nil {
 			tx.Discard()
 		}
-		t.Fatalf("write with a missing block = %v; want block.ErrNotFound", err)
-	} else if want := world_mock.MockObjectOpId + " on ghost"; !strings.Contains(err.Error(), want) {
-		t.Fatalf("write with a missing block = %v; want it to name %q", err, want)
+		t.Fatalf("write with a missing block = %v; want %v", err, want)
+	} else if op := world_mock.MockObjectOpId + " on ghost"; !strings.Contains(err.Error(), op) {
+		t.Fatalf("write with a missing block = %v; want it to name %q", err, op)
 	}
 	wantApplied(5)
 	writeLockFree()
@@ -196,11 +211,11 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 		t.Fatalf("watcher ended on a missing block: %v", err)
 	}
 	wantApplied(6)
-	if tx, err := engine.NewTransaction(ctx, true); !errors.Is(err, block.ErrNotFound) {
+	if tx, err := engine.NewTransaction(ctx, true); !errors.Is(err, want) {
 		if err == nil {
 			tx.Discard()
 		}
-		t.Fatalf("second write with a missing block = %v; want block.ErrNotFound", err)
+		t.Fatalf("second write with a missing block = %v; want %v", err, want)
 	}
 	wantApplied(7)
 	writeLockFree()

@@ -25,6 +25,10 @@ var (
 	ErrEmptyChanges = errors.New("changes set cannot be empty")
 	// ErrNotFound is returned when a block was not found but was required.
 	ErrNotFound = errors.New("block not found")
+	// ErrUnavailable is returned when a read of a block that may exist failed:
+	// no source served it, so a later read may succeed. Unlike ErrNotFound, it
+	// does not report the block missing.
+	ErrUnavailable = errors.New("block unavailable")
 	// ErrRefsUnknown is returned when a graph copy reaches a block whose source
 	// holds its bytes without its outgoing refs.
 	ErrRefsUnknown = errors.New("block refs unknown")
@@ -58,6 +62,7 @@ type publicationDependencyError struct {
 	cause error
 }
 
+// Error returns the sentinel message followed by the predecessor failure.
 func (e *publicationDependencyError) Error() string {
 	return ErrPublicationDependency.Error() + ": " + e.cause.Error()
 }
@@ -71,4 +76,12 @@ func (e *publicationDependencyError) Unwrap() []error {
 // with ErrPublicationDependency. Use it to reject a dependent publication.
 func NewPublicationDependencyError(cause error) error {
 	return &publicationDependencyError{cause: cause}
+}
+
+// IsNotAvailable reports whether err means a block is not available here now:
+// missing from the store, or not served by any source. A reader that needs the
+// block can wait for it and retry, so the failure is not a property of the data
+// that refers to it.
+func IsNotAvailable(err error) bool {
+	return errors.Is(err, ErrNotFound) || errors.Is(err, ErrUnavailable)
 }

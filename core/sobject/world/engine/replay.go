@@ -107,7 +107,7 @@ func newReplayer(c *Controller, so sobject.SharedObject) *replayer {
 // place, with the outcome of every placed operation in order. fork, when set,
 // supplies the World after a local write in place of replaying it. When a block
 // an operation needs is not available, replay stops at that operation and sync
-// returns the World before it with an error wrapping block.ErrNotFound; the
+// returns the World before it with an error block.IsNotAvailable reports; the
 // next sync resumes at the same operation.
 func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnapshot, fork *replayFork) (*InnerState, []replayOutcome, error) {
 	// Restart from the checkpoint's World when it changed.
@@ -409,7 +409,7 @@ func (r *replayer) replay(
 		} else {
 			inner := set.Get(h)
 			next, why, conflict, opErr := r.replayOp(ctx, w, snap, inner, n+i, state)
-			if errors.Is(opErr, block.ErrNotFound) {
+			if block.IsNotAvailable(opErr) {
 				if i == 0 && n != 0 && r.worldLost(ctx, state) {
 					r.positions = nil
 					return r.replay(ctx, snap, set, nil)
