@@ -3,10 +3,13 @@ package s4db
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"maps"
 	"math/rand/v2"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/db/volume/device"
 )
@@ -98,6 +101,125 @@ func TestDevicePowerLoss(t *testing.T) {
 		// A clean reopen keeps it all.
 		db = openDevice(t, mem, opts)
 		got.check(t, db)
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// quotaDevice is a memory device that refuses a write or truncate leaving
+// its files larger than limit bytes in total.
+type quotaDevice struct {
+	*device.Memory
+	limit int64
+}
+
+// errQuota is the error of a refused write.
+var errQuota = errors.New("quota exceeded")
+
+// Write refuses ws when it grows the files past the limit.
+func (q *quotaDevice) Write(ctx context.Context, ws []device.Write, flush bool) error {
+	grow := make(map[string]int64)
+	for _, w := range ws {
+		grow[w.Name] = max(grow[w.Name], w.Offset+int64(len(w.Data)))
+	}
+	if err := q.check(ctx, grow); err != nil {
+		return err
+	}
+	return q.Memory.Write(ctx, ws, flush)
+}
+
+// Truncate refuses to extend a file past the limit.
+func (q *quotaDevice) Truncate(ctx context.Context, name string, size int64) error {
+	if err := q.check(ctx, map[string]int64{name: size}); err != nil {
+		return err
+	}
+	return q.Memory.Truncate(ctx, name, size)
+}
+
+// check fails when growing the named files to at least the given sizes
+// exceeds the limit.
+func (q *quotaDevice) check(ctx context.Context, grow map[string]int64) error {
+	// Total the files at their grown sizes, including new ones.
+	files, err := q.List(ctx)
+	if err != nil {
+		return err
+	}
+	var total int64
+	for _, f := range files {
+		total += max(f.Size, grow[f.Name])
+		delete(grow, f.Name)
+	}
+	for _, size := range grow {
+		total += size
+	}
+	if total > q.limit {
+		return errQuota
+	}
+	return nil
+}
+
+// TestDeviceQuota fills a device past its quota with ordered commits and
+// syncs, and checks that every commit reported done stays readable, that
+// commits continue once space returns, and that a reopen keeps them all.
+func TestDeviceQuota(t *testing.T) {
+	ctx := context.Background()
+	for limit := int64(1100 << 10); limit < 2600<<10; limit += 60 << 10 {
+		// Commit 16 KiB values and sync every fourth until the quota
+		// refuses a write.
+		q := &quotaDevice{Memory: device.NewMemory(), limit: limit}
+		db := openDevice(t, q, Options{})
+		m := make(model)
+		step := func(i int) error {
+			// Set key i in a write transaction.
+			k, v := fmt.Sprintf("k/%06d", i), bytes.Repeat([]byte{byte(i)}, 16<<10)
+			tx, err := db.NewTransaction(ctx, true)
+			if err != nil {
+				return err
+			}
+			defer tx.Discard()
+			if err := tx.Set(ctx, []byte(k), v); err != nil {
+				return err
+			}
+
+			// Commit it ordered, then sync every fourth step.
+			if err := tx.(kvtx.OrderedCommitTx).CommitOrdered(ctx); err != nil {
+				return err
+			}
+			m[k] = v
+			if i%4 == 3 {
+				return db.Sync(ctx)
+			}
+			return nil
+		}
+		i := 0
+		for ; ; i++ {
+			err := step(i)
+			if errors.Is(err, errQuota) {
+				break
+			}
+			if err != nil {
+				t.Fatalf("limit %d step %d: %v", limit, i, err)
+			}
+		}
+
+		// The commits reported done read back, and later ones succeed once
+		// the quota lifts.
+		m.check(t, db)
+		q.limit = 1 << 30
+		for i++; i%8 != 0; i++ {
+			if err := step(i); err != nil {
+				t.Fatalf("limit %d step %d after the quota lifted: %v", limit, i, err)
+			}
+		}
+		checkSpace(t, db)
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		// A reopen keeps them all.
+		db = openDevice(t, q, Options{})
+		m.check(t, db)
 		if err := db.Close(); err != nil {
 			t.Fatal(err)
 		}

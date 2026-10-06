@@ -55,7 +55,7 @@ func (w *writer) lock(ctx context.Context) error {
 
 	// Apply what other processes wrote.
 	if err := w.catchUp(ctx); err != nil {
-		w.unlock()
+		w.unlock(err)
 		return err
 	}
 	return nil
@@ -80,8 +80,15 @@ func (w *writer) tryLock() (bool, error) {
 }
 
 // unlock releases the writer lock and tells other processes the file
-// changed.
-func (w *writer) unlock() {
+// changed. err is the result of the work done under the lock: a failed
+// step may have changed the space for writes the log does not hold, so
+// the space is dropped and the next lock rebuilds it from the log.
+func (w *writer) unlock(err error) {
+	// Drop a space a failed step may have left ahead of the log.
+	if err != nil {
+		w.sp = nil
+	}
+
 	// Release other processes and wake their watchers, then this handle's
 	// writers.
 	_ = w.db.s.unlock(lockWriter)
