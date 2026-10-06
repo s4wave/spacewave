@@ -130,13 +130,8 @@ func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int
 		if (p != nil && p.loc != nil) || (p == nil && stored[i]) {
 			continue
 		}
-		if s.offset != 0 && s.offset+int64(len(entry.Data)) > segmentSize {
-			s.segment++
-			s.offset = 0
-		}
-		loc := &location{segment: s.segment, offset: s.offset, length: int64(len(entry.Data))}
+		loc := s.place(int64(len(entry.Data)))
 		writes = append(writes, device.Write{Name: segmentName(loc.segment), Offset: loc.offset, Data: entry.Data})
-		s.offset += loc.length
 		added[key] = &pendingBlock{loc: loc}
 	}
 	if len(writes) != 0 {
@@ -199,20 +194,28 @@ func (s *Store) locate(ctx context.Context, refs []*block.BlockRef) ([]*location
 	return locs, err
 }
 
-// GetBlock reads a block's payload.
+// GetBlock reads a block's payload. A read that fails while maintenance
+// moves the block retries at its new location.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	// Locate the block and read its payload from the segment.
-	locs, err := s.locate(ctx, []*block.BlockRef{ref})
-	if err != nil || locs[0] == nil {
-		return nil, false, err
+	refs := []*block.BlockRef{ref}
+	locs, err := s.locate(ctx, refs)
+	for err == nil && locs[0] != nil {
+		// Read the payload from the segment.
+		loc := locs[0]
+		data := make([]byte, loc.length)
+		read := []device.Read{{Name: segmentName(loc.segment), Offset: loc.offset, Data: data}}
+		readErr := s.dev.Read(ctx, read)
+		if readErr == nil {
+			return data, true, nil
+		}
+
+		// Retry if the block moved or was removed meanwhile.
+		locs, err = s.locate(ctx, refs)
+		if err == nil && locs[0] != nil && *locs[0] == *loc {
+			return nil, false, errors.Wrap(readErr, "read block")
+		}
 	}
-	loc := locs[0]
-	data := make([]byte, loc.length)
-	read := []device.Read{{Name: segmentName(loc.segment), Offset: loc.offset, Data: data}}
-	if err := s.dev.Read(ctx, read); err != nil {
-		return nil, false, errors.Wrap(err, "read block")
-	}
-	return data, true, nil
+	return nil, false, err
 }
 
 // GetStoredBlock serves the block without refs because this store keeps

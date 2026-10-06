@@ -40,6 +40,9 @@ const (
 	blockPrefix = "b/"
 	// journalPrefix holds garbage collection journal entries by sequence.
 	journalPrefix = "j/"
+	// segmentStatsPrefix maps a segment number to the count and bytes of
+	// its published blocks.
+	segmentStatsPrefix = "s/"
 )
 
 // Index is the ordered key-value index a Store keeps on its device. Read
@@ -78,12 +81,19 @@ type Store struct {
 	pending map[string]*pendingBlock
 	// journal is the sequence of the last journal entry.
 	journal uint64
+
+	// stw is held shared by journal appends and exclusively by a collector
+	// sweep, so a sweep sees each append entirely before or after it.
+	stw sync.RWMutex
 }
 
 // pendingBlock is one unpublished block write or remove.
 type pendingBlock struct {
 	// loc is the payload location; nil for a remove.
 	loc *location
+	// from is set on a move: the location the block is moved from. The move
+	// publishes only if the block is still there.
+	from *location
 }
 
 // Open opens the store on dev with index, an index opened on the same device.
@@ -168,26 +178,46 @@ func (s *Store) commit(ctx context.Context, tx kvtx.Tx, ordered bool) error {
 	return s.publish(ctx, tx)
 }
 
-// publish writes the pending block locations into tx, commits it, and drops
-// the published entries from pending. Entries replaced during the commit stay.
+// publish writes the pending block locations and the segment statistics they
+// change into tx, commits it, and drops the published entries from pending.
+// Entries replaced during the commit stay.
 func (s *Store) publish(ctx context.Context, tx kvtx.Tx) error {
 	// Snapshot pending after the payload writes it names were issued.
 	s.mtx.Lock()
 	published := maps.Clone(s.pending)
 	s.mtx.Unlock()
 
-	// Write the locations in key order and commit; the commit's flush covers
-	// the payloads. A B+tree index splits nodes only at commit, so unordered
-	// puts would shift a growing leaf on every insert.
+	// Write the locations in key order, tracking the change to each
+	// segment's statistics. A B+tree index splits nodes only at commit, so
+	// unordered puts would shift a growing leaf on every insert.
+	stats := make(map[uint64]segmentStats)
 	for _, key := range slices.Sorted(maps.Keys(published)) {
-		loc := published[key].loc
-		if loc == nil {
-			if err := tx.Delete(ctx, []byte(key)); err != nil {
-				return err
-			}
+		p := published[key]
+		prev, err := getLocation(ctx, tx, []byte(key))
+		if err != nil {
+			return err
+		}
+		if p.from != nil && (prev == nil || *prev != *p.from) {
 			continue
 		}
-		if err := tx.Set(ctx, []byte(key), loc.marshal()); err != nil {
+		if prev != nil {
+			stats[prev.segment] = stats[prev.segment].add(-1, -prev.length)
+		}
+		if p.loc == nil {
+			err = tx.Delete(ctx, []byte(key))
+		} else {
+			stats[p.loc.segment] = stats[p.loc.segment].add(1, p.loc.length)
+			err = tx.Set(ctx, []byte(key), p.loc.marshal())
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the statistics changes and commit; the commit's flush covers the
+	// payloads.
+	for segment, delta := range stats {
+		if err := addSegmentStats(ctx, tx, segment, delta); err != nil {
 			return err
 		}
 	}
@@ -280,9 +310,6 @@ func (w *writeTx) commit(ctx context.Context, ordered bool) error {
 	return w.s.commit(ctx, w.itx, ordered)
 }
 
-// _ is a type assertion
-var _ kvtx.OrderedCommitTx = (*writeTx)(nil)
-
 // location is where a block payload lives.
 type location struct {
 	// segment is the segment number.
@@ -299,6 +326,15 @@ func (l *location) marshal() []byte {
 	b := binary.AppendUvarint(nil, l.segment)
 	b = binary.AppendUvarint(b, uint64(l.offset))    //nolint:gosec
 	return binary.AppendUvarint(b, uint64(l.length)) //nolint:gosec
+}
+
+// getLocation reads the location stored at key in tx, nil when absent.
+func getLocation(ctx context.Context, tx kvtx.Tx, key []byte) (*location, error) {
+	v, found, err := tx.Get(ctx, key)
+	if err != nil || !found {
+		return nil, err
+	}
+	return unmarshalLocation(v)
 }
 
 // unmarshalLocation decodes a location.
@@ -331,3 +367,6 @@ func parseSegment(name string) (uint64, bool) {
 	n, err := strconv.ParseUint(rest, 10, 64)
 	return n, err == nil
 }
+
+// _ is a type assertion
+var _ kvtx.OrderedCommitTx = (*writeTx)(nil)

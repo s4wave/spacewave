@@ -44,38 +44,37 @@ func (s *Store) appendJournal(ctx context.Context, adds, removes []block_gc.RefE
 	})
 }
 
-// ReplayJournal passes every journal entry in order to apply and removes the
-// entries in one index commit, skipping the commit when the journal is empty.
+// ReplayJournal passes every journal entry in order to apply, outside any
+// index transaction, and then removes them in one durable index commit. A
+// crash before the removal passes the same entries again, so apply must be
+// idempotent over the sequence.
 func (s *Store) ReplayJournal(ctx context.Context, apply func(adds, removes []block_gc.RefEdge) error) error {
 	// Read the entries.
 	var keys, values [][]byte
 	err := s.view(ctx, func(tx kvtx.Tx) error {
-		it := tx.Iterate(ctx, []byte(journalPrefix), true, false)
-		defer it.Close()
-		for it.Next() {
-			value, err := it.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			keys = append(keys, bytes.Clone(it.Key()))
-			values = append(values, value)
-		}
-		return it.Err()
+		return tx.ScanPrefix(ctx, []byte(journalPrefix), func(key, value []byte) error {
+			keys, values = append(keys, bytes.Clone(key)), append(values, bytes.Clone(value))
+			return nil
+		})
 	})
 	if err != nil || len(keys) == 0 {
 		return err
 	}
 
-	// Apply and remove them.
+	// Apply them in order.
+	for _, value := range values {
+		adds, removes, err := journal.Unmarshal(value)
+		if err != nil {
+			return err
+		}
+		if err := apply(adds, removes); err != nil {
+			return err
+		}
+	}
+
+	// Remove them.
 	return s.update(ctx, false, func(tx kvtx.Tx) error {
-		for i, key := range keys {
-			adds, removes, err := journal.Unmarshal(values[i])
-			if err != nil {
-				return err
-			}
-			if err := apply(adds, removes); err != nil {
-				return err
-			}
+		for _, key := range keys {
 			if err := tx.Delete(ctx, key); err != nil {
 				return err
 			}
