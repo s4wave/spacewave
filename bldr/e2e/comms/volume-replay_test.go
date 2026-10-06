@@ -62,12 +62,12 @@ func TestGoScriptVolumeStorage(t *testing.T) {
 }
 
 // volumeTargets are the engines the replay fixture opens by name.
-var volumeTargets = []string{"e1-opfs", "e1-idb", "e3-sqlite", "e1-opfs-t2"}
+var volumeTargets = []string{"e1-opfs", "e1-idb", "e3-sqlite", "e1-opfs-t2", "s4db-opfs", "s4db-idb"}
 
 // TestGoScriptVolumeReplay replays the workload traces in WORKLOAD_TRACES, a
 // directory of .trace files, against E1 on OPFS and IndexedDB, SQLite in a
-// device worker, and E1 on OPFS behind a device worker relay, from a GoScript worker, and logs each
-// replay's report.
+// device worker, E1 on OPFS behind a device worker relay, and s4db on OPFS
+// and IndexedDB, from a GoScript worker, and logs each replay's report.
 func TestGoScriptVolumeReplay(t *testing.T) {
 	// Skip when no workload trace directory was configured.
 	dir := os.Getenv("WORKLOAD_TRACES")

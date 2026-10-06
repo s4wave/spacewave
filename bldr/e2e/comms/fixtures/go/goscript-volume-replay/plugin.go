@@ -57,10 +57,9 @@ func run() {
 	// Run the mode: "check", "replay:<trace>/<target>", or
 	// "reliability:<mode>:<name>[:<arg>]".
 	ctx := context.Background()
-	mode := readMode()
 	var report any
 	var err error
-	switch {
+	switch mode := readMode(); {
 	case mode == "check":
 		report, err = check(ctx)
 	case strings.HasPrefix(mode, "replay:"):
@@ -74,6 +73,8 @@ func run() {
 		postFailure(err)
 		return
 	}
+
+	// Report the result.
 	encoded, err := json.Marshal(report)
 	if err != nil {
 		postFailure(err)
@@ -108,14 +109,15 @@ var targets = []target{
 	{name: "e1-idb", open: openE1IDB},
 	{name: "e3-sqlite", open: openE3SQLite},
 	{name: "e1-opfs-t2", open: openT2(openE1OPFS)},
+	{name: "s4db-opfs", open: openS4DBOPFS},
+	{name: "s4db-idb", open: openS4DBIDB},
 }
 
 // check runs the device contract checks, each followed by a reopen that must
 // find the same contents.
 func check(ctx context.Context) (map[string]string, error) {
+	// Check the OPFS device.
 	out := make(map[string]string)
-
-	// The OPFS device.
 	opfsPath := storageName + "/check"
 	if err := device_opfs.Delete(opfsPath); err != nil {
 		return nil, err
@@ -131,7 +133,7 @@ func check(ctx context.Context) (map[string]string, error) {
 		return nil, err
 	}
 
-	// The IndexedDB device.
+	// Check the IndexedDB device.
 	deviceDB := storageName + "-check-device"
 	if err := volume_idb.DeleteDatabase(deviceDB); err != nil {
 		return nil, err
@@ -152,6 +154,7 @@ func check(ctx context.Context) (map[string]string, error) {
 // checkDevice runs the device checks, reopens the device, and compares every
 // file.
 func checkDevice(ctx context.Context, open func() (device.Device, func() error, error)) error {
+	// Check the device and read what it holds.
 	d, closeDevice, err := open()
 	if err != nil {
 		return err
@@ -165,6 +168,8 @@ func checkDevice(ctx context.Context, open func() (device.Device, func() error, 
 	if err != nil {
 		return err
 	}
+
+	// Reopen it and compare every file.
 	d, closeDevice, err = open()
 	if err != nil {
 		return err
@@ -187,6 +192,7 @@ func checkDevice(ctx context.Context, open func() (device.Device, func() error, 
 
 // readDevice reads every file of a device.
 func readDevice(ctx context.Context, d device.Device) (map[string][]byte, error) {
+	// List the files and read each one whole.
 	files, err := d.List(ctx)
 	if err != nil {
 		return nil, err
@@ -212,23 +218,36 @@ func result(err error) string {
 
 // replayReport is the result of one trace replay.
 type replayReport struct {
-	Trace          string                `json:"trace"`
-	Target         string                `json:"target"`
-	Policy         string                `json:"policy"`
-	Records        int                   `json:"records"`
-	WallMs         float64               `json:"wallMs"`
-	OpenMs         float64               `json:"openMs"`
-	RecoverMs      float64               `json:"recoverMs"`
-	OrderedCommits int                   `json:"orderedCommits"`
-	CommitErrors   int                   `json:"commitErrors"`
-	Storage        counts                `json:"storage"`
-	Latency        map[string][2]float64 `json:"latency"`
-	Error          string                `json:"error,omitempty"`
+	// Trace names the replayed trace.
+	Trace string `json:"trace"`
+	// Target names the engine and storage primitive.
+	Target string `json:"target"`
+	// Policy is "durable" or "ordered".
+	Policy string `json:"policy"`
+	// Records is the number of replayed records.
+	Records int `json:"records"`
+	// WallMs is the replay's wall time.
+	WallMs float64 `json:"wallMs"`
+	// OpenMs is the time to reopen the engine after the replay.
+	OpenMs float64 `json:"openMs"`
+	// RecoverMs is the time to replay the journal after the reopen.
+	RecoverMs float64 `json:"recoverMs"`
+	// OrderedCommits is the number of commits made without a flush.
+	OrderedCommits int `json:"orderedCommits"`
+	// CommitErrors is the number of failed commits.
+	CommitErrors int `json:"commitErrors"`
+	// Storage counts the storage calls the replay made.
+	Storage counts `json:"storage"`
+	// Latency holds the median and 99th percentile of each operation.
+	Latency map[string][2]float64 `json:"latency"`
+	// Error is the replay's failure, empty when it succeeded.
+	Error string `json:"error,omitempty"`
 }
 
 // replay replays one trace against one target, given as "<trace>/<target>",
 // once durably and once ordered.
 func replay(ctx context.Context, spec string) ([]replayReport, error) {
+	// Find the target and fetch the trace.
 	name, targetName, _ := strings.Cut(spec, "/")
 	i := slices.IndexFunc(targets, func(t target) bool { return t.name == targetName })
 	if i < 0 {
@@ -239,6 +258,8 @@ func replay(ctx context.Context, spec string) ([]replayReport, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Replay it under each commit policy.
 	out := make([]replayReport, 0, 2)
 	for _, policy := range []string{"durable", "ordered"} {
 		logf("replay %s %s %s", name, t.name, policy)
@@ -303,6 +324,7 @@ func replayOne(ctx context.Context, recs []workload.Record, t target, ordered bo
 
 // fetchRecords fetches the text records of a trace from the fixture server.
 func fetchRecords(name string) ([]workload.Record, error) {
+	// Fetch the trace and check the status.
 	resp, err := opfs.AwaitPromise(js.Global().Call("fetch", "/traces/"+name+".records"))
 	if err != nil {
 		return nil, err
@@ -310,6 +332,8 @@ func fetchRecords(name string) ([]workload.Record, error) {
 	if !resp.Get("ok").Bool() {
 		return nil, errors.Errorf("fetch trace %s: status %d", name, resp.Get("status").Int())
 	}
+
+	// Read and parse the body.
 	text, err := opfs.AwaitPromise(resp.Call("text"))
 	if err != nil {
 		return nil, err
@@ -324,6 +348,7 @@ func ms(d time.Duration) float64 {
 
 // readMode reads the worker's requested mode.
 func readMode() string {
+	// The start info is base64 JSON whose instance key names the mode.
 	encoded := js.Global().Get("BLDR_PLUGIN_START_INFO")
 	if encoded.IsUndefined() || encoded.IsNull() {
 		return ""
