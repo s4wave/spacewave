@@ -101,7 +101,7 @@ func (db *DB) WaitLease(ctx context.Context, name string) (*Lease, error) {
 // claimLeaseLocked claims the lock byte off in this handle, reporting false
 // while a lease of the handle holds it. The caller holds bcast.
 func (db *DB) claimLeaseLocked(off int64) (bool, error) {
-	if db.closed {
+	if db.closed.Load() {
 		return false, ErrClosed
 	}
 	if _, held := db.leases[off]; held {

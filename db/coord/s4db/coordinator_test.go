@@ -125,7 +125,11 @@ func TestCoordinatorProcesses(t *testing.T) {
 		t.Fatalf("read child commit: %v", err)
 	}
 
-	// The lease is busy, and the watch reports the child's commit.
+	// The file is shared, the lease is busy, and the watch reports the
+	// child's commit.
+	if shared, err := db.Shared(); err != nil || !shared {
+		t.Fatalf("Shared while the child has the file open = %v, %v", shared, err)
+	}
 	if l, ok, err := c.TryAcquireWriteLease(ctx, testScope); err != nil || ok {
 		t.Fatalf("TryAcquireWriteLease while the child holds it = %v, %v, %v", l, ok, err)
 	}
