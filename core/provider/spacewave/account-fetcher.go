@@ -84,6 +84,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 		var ch <-chan struct{}
 		var bootstrapped bool
 		a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			// Snapshot the fetch inputs under the broadcast lock.
 			epoch = a.state.epoch
 			lastFetched = a.state.lastFetchedEpoch
 			cli = a.sessionClient
@@ -107,7 +108,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			if err != nil {
 				if isNonRetryableCloudError(err) {
 					if isUnauthCloudError(err) {
-						if err := a.waitAccountFetcherReauth(ctx, err); err != nil {
+						if err := a.waitReauth(ctx, err); err != nil {
 							return err
 						}
 						continue
@@ -169,10 +170,10 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 	}
 }
 
-// waitAccountFetcherReauth marks the account unauthenticated after err and
+// waitReauth marks the account unauthenticated after err and
 // waits until its status changes. It returns err when the account was deleted
 // and nil when the account is usable again.
-func (a *ProviderAccount) waitAccountFetcherReauth(ctx context.Context, err error) error {
+func (a *ProviderAccount) waitReauth(ctx context.Context, err error) error {
 	// Publish the unauthenticated status once.
 	var rejoinState *selfRejoinSweepState
 	a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -253,6 +254,7 @@ func (a *ProviderAccount) applyFetchedAccountState(
 
 // writeAccountStateCache serializes AccountStateCache and writes it to ObjectStore.
 func (a *ProviderAccount) writeAccountStateCache(ctx context.Context, state *api.AccountStateResponse) error {
+	// Encode the state with its fetched epoch.
 	cache := &api.AccountStateCache{
 		State:        state,
 		FetchedEpoch: state.GetEpoch(),
@@ -284,6 +286,7 @@ func (a *ProviderAccount) loadAccountStateCache(ctx context.Context) (*api.Accou
 			return a.objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the stored cache entry, if any.
 			data, found, err := tx.Get(ctx, []byte(accountStateCacheKey))
 			if err != nil {
 				return errors.Wrap(err, "get account state cache")
