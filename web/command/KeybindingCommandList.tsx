@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+
 import { LuChevronDown, LuSearch, LuSettings2 } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -22,6 +24,12 @@ export function KeybindingCommandList() {
     setSelectedCommandId,
     setSelectedScope,
   } = useKeybindingEditorContext()
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // Focus the search field when the editor opens.
+  useEffect(() => {
+    searchRef.current?.focus()
+  }, [])
 
   return (
     <aside
@@ -83,7 +91,7 @@ export function KeybindingCommandList() {
         <LuSearch className="text-brand size-3.5" />
         <span className="sr-only">Search commands or shortcuts</span>
         <input
-          autoFocus
+          ref={searchRef}
           className="placeholder:text-foreground-alt/50 text-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
           placeholder="Search commands or shortcuts…"
           value={query}
