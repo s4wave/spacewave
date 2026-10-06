@@ -64,6 +64,153 @@ function usePairRouteCleanup(): RegisterCleanup {
   }, [])
 }
 
+/** normalizePairCode strips a pairing code to at most 8 uppercase alphanumerics. */
+function normalizePairCode(value: string): string {
+  return value
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase()
+    .slice(0, 8)
+}
+
+interface PairBackButtonProps {
+  onClick: () => void
+}
+
+/** PairBackButton renders the icon-only back control of the pairing steps. */
+function PairBackButton({ onClick }: PairBackButtonProps) {
+  return (
+    <button
+      type="button"
+      aria-label="Back"
+      onClick={onClick}
+      className={cn(
+        'rounded-md border transition-all duration-300',
+        'border-foreground/20 hover:border-foreground/40',
+        'flex size-10 shrink-0 items-center justify-center',
+      )}
+    >
+      <LuArrowLeft className="text-foreground-alt size-4" />
+    </button>
+  )
+}
+
+interface PairCodeEnterStepProps {
+  code: string
+  loading: boolean
+  error: string | null
+  canSubmit: boolean
+  onCodeChange: (code: string) => void
+  onSubmit: () => void
+  onBack: () => void
+  onDirect: () => void
+}
+
+/** PairCodeEnterStep collects the 8-character pairing code shown on the other device. */
+function PairCodeEnterStep({
+  code,
+  loading,
+  error,
+  canSubmit,
+  onCodeChange,
+  onSubmit,
+  onBack,
+  onDirect,
+}: PairCodeEnterStepProps) {
+  const formatted =
+    code.length > 4 ? `${code.slice(0, 4)} ${code.slice(4)}` : code
+  const ready = !loading && code.length === 8 && canSubmit
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      e.preventDefault()
+      onCodeChange(normalizePairCode(e.clipboardData.getData('text')))
+    },
+    [onCodeChange],
+  )
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && ready) onSubmit()
+    },
+    [ready, onSubmit],
+  )
+
+  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center">
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+          <LuLink className="text-brand size-5" />
+        </div>
+        <h2 className="text-foreground text-sm font-medium">
+          Pair another device
+        </h2>
+        <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
+          Enter the 8-character code shown on your other device.
+        </p>
+      </div>
+
+      <div className="flex justify-center">
+        <input
+          ref={handleCodeInputRef}
+          aria-label="Pairing code"
+          type="text"
+          value={formatted}
+          onChange={(e) => onCodeChange(normalizePairCode(e.target.value))}
+          onPaste={handlePaste}
+          onKeyDown={handleKeyDown}
+          placeholder="XXXX XXXX"
+          maxLength={9}
+          disabled={loading}
+          className={cn(
+            'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-brand-wide',
+            'placeholder:text-foreground/20 focus:border-brand/50 focus:outline-none',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            'h-14 px-3',
+          )}
+        />
+      </div>
+
+      {error && <p className="text-destructive text-center text-xs">{error}</p>}
+
+      <div className="flex gap-2">
+        <PairBackButton onClick={onBack} />
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={loading || code.length < 8 || !canSubmit}
+          className={cn(
+            'flex-1 rounded-md border transition-all duration-300',
+            'border-brand/30 bg-brand/10 hover:bg-brand/20',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            'flex h-10 items-center justify-center gap-2',
+          )}
+        >
+          {loading ? (
+            <Spinner />
+          ) : (
+            <>
+              <LuLink className="text-brand size-4" />
+              <span className="text-foreground text-sm">Connect</span>
+            </>
+          )}
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onDirect}
+        disabled={loading}
+        className="text-foreground-alt hover:text-foreground w-full text-center text-xs"
+      >
+        Use a QR code or link
+      </button>
+    </div>
+  )
+}
+
 // PairCodePage handles device pairing code entry and verification.
 // Two modes: top-level (#/pair/:code) creates a session on submit,
 // session-scoped (#/u/N/pair) uses the already-mounted session.
@@ -72,12 +219,7 @@ export function PairCodePage(props: PairCodePageProps) {
   const params = useParams()
   const rawCode = params.code ?? ''
   const isDirectMode = rawCode === 'direct' || rawCode.length > 8
-  const initialCode = isDirectMode
-    ? ''
-    : rawCode
-        .replace(/[^A-Za-z0-9]/g, '')
-        .toUpperCase()
-        .slice(0, 8)
+  const initialCode = isDirectMode ? '' : normalizePairCode(rawCode)
   const initialOfferPayload = rawCode.length > 8 ? rawCode : undefined
   const navigate = useNavigate()
 
@@ -102,26 +244,6 @@ export function PairCodePage(props: PairCodePageProps) {
     const timer = window.setTimeout(() => setCurrentSession(providedSession), 0)
     return () => window.clearTimeout(timer)
   }, [providedSession])
-
-  const handleCodeChange = useCallback((value: string) => {
-    setCode(
-      value
-        .replace(/[^A-Za-z0-9]/g, '')
-        .toUpperCase()
-        .slice(0, 8),
-    )
-  }, [])
-
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault()
-    setCode(
-      e.clipboardData
-        .getData('text')
-        .replace(/[^A-Za-z0-9]/g, '')
-        .toUpperCase()
-        .slice(0, 8),
-    )
-  }, [])
 
   const handleSubmit = useCallback(async () => {
     if (code.length < 8) return
@@ -179,109 +301,21 @@ export function PairCodePage(props: PairCodePageProps) {
     [navigate, props.donePath],
   )
 
-  const formatted =
-    code.length > 4 ? `${code.slice(0, 4)} ${code.slice(4)}` : code
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (
-        e.key === 'Enter' &&
-        code.length === 8 &&
-        !loading &&
-        (providedSession || root)
-      ) {
-        void handleSubmit()
-      }
-    },
-    [code, loading, providedSession, root, handleSubmit],
-  )
-  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
-
   return (
     <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center p-4">
       <div className="border-foreground/20 bg-background-get-started w-full max-w-sm rounded-lg border p-6 shadow-lg backdrop-blur-sm">
         <div className="p-0">
           {step === 'enter' && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-                  <LuLink className="text-brand size-5" />
-                </div>
-                <h2 className="text-foreground text-sm font-medium">
-                  Pair another device
-                </h2>
-                <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
-                  Enter the 8-character code shown on your other device.
-                </p>
-              </div>
-
-              <div className="flex justify-center">
-                <input
-                  ref={handleCodeInputRef}
-                  type="text"
-                  value={formatted}
-                  onChange={(e) => handleCodeChange(e.target.value)}
-                  onPaste={handlePaste}
-                  onKeyDown={handleKeyDown}
-                  placeholder="XXXX XXXX"
-                  maxLength={9}
-                  disabled={loading}
-                  className={cn(
-                    'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-brand-wide',
-                    'placeholder:text-foreground/20 focus:border-brand/50 focus:outline-none',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    'h-14 px-3',
-                  )}
-                />
-              </div>
-
-              {error && (
-                <p className="text-destructive text-center text-xs">{error}</p>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  onClick={handleBack}
-                  className={cn(
-                    'rounded-md border transition-all duration-300',
-                    'border-foreground/20 hover:border-foreground/40',
-                    'flex size-10 shrink-0 items-center justify-center',
-                  )}
-                >
-                  <LuArrowLeft className="text-foreground-alt size-4" />
-                </button>
-                <button
-                  onClick={() => void handleSubmit()}
-                  disabled={
-                    loading || code.length < 8 || (!providedSession && !root)
-                  }
-                  className={cn(
-                    'flex-1 rounded-md border transition-all duration-300',
-                    'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    'flex h-10 items-center justify-center gap-2',
-                  )}
-                >
-                  {loading ? (
-                    <Spinner />
-                  ) : (
-                    <>
-                      <LuLink className="text-brand size-4" />
-                      <span className="text-foreground text-sm">Connect</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <button
-                onClick={() => setStep('direct')}
-                disabled={loading}
-                className="text-foreground-alt hover:text-foreground w-full text-center text-xs"
-              >
-                Use a QR code or link
-              </button>
-            </div>
+            <PairCodeEnterStep
+              code={code}
+              loading={loading}
+              error={error}
+              canSubmit={!!providedSession || !!root}
+              onCodeChange={setCode}
+              onSubmit={() => void handleSubmit()}
+              onBack={handleBack}
+              onDirect={() => setStep('direct')}
+            />
           )}
 
           {step === 'direct' && (
@@ -491,6 +525,7 @@ function PairDirectStep({
       {!answerPayload && (
         <>
           <textarea
+            aria-label="Offer payload"
             value={offerInput}
             onChange={(e) => setOfferInput(e.target.value)}
             placeholder="Paste offer payload here…"
@@ -502,6 +537,7 @@ function PairDirectStep({
           />
 
           <button
+            type="button"
             onClick={() => setScanning(true)}
             className={cn(
               'w-full rounded-md border transition-all duration-300',
@@ -520,6 +556,7 @@ function PairDirectStep({
           <div className="flex w-full items-center gap-2">
             <input
               readOnly
+              aria-label="Answer payload"
               value={answerPayload}
               className={cn(
                 'border-foreground/20 bg-foreground/5 text-foreground flex-1 rounded-md border px-2 py-1.5 font-mono text-xs',
@@ -528,6 +565,8 @@ function PairDirectStep({
               onClick={(e) => (e.target as HTMLInputElement).select()}
             />
             <button
+              type="button"
+              aria-label="Copy to clipboard"
               onClick={handleCopy}
               className={cn(
                 'rounded-md border px-2 py-1.5 transition-all duration-300',
@@ -555,18 +594,10 @@ function PairDirectStep({
       {error && <p className="text-destructive text-center text-xs">{error}</p>}
 
       <div className="flex gap-2">
-        <button
-          onClick={onBack}
-          className={cn(
-            'rounded-md border transition-all duration-300',
-            'border-foreground/20 hover:border-foreground/40',
-            'flex size-10 shrink-0 items-center justify-center',
-          )}
-        >
-          <LuArrowLeft className="text-foreground-alt size-4" />
-        </button>
+        <PairBackButton onClick={onBack} />
         {!answerPayload && (
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading || !offerInput.trim() || (!session && !root)}
             className={cn(
@@ -635,6 +666,8 @@ function PairDirectQRScanner({
             Scan direct pairing QR
           </h3>
           <button
+            type="button"
+            aria-label="Close scanner"
             onClick={onClose}
             className="text-foreground-alt hover:text-foreground"
           >

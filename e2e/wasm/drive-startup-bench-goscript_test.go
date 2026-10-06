@@ -135,6 +135,7 @@ func runDriveBenchCell(
 	compiler E2EWasmCompiler,
 	in driveBenchCellInput,
 ) {
+	// Report failures at the caller.
 	t.Helper()
 	page := sess.Page()
 	cellDir, err := drivebench.CellDir(in.runStamp, in.cell)
@@ -142,6 +143,7 @@ func runDriveBenchCell(
 		t.Fatalf("resolve cell dir: %v", err)
 	}
 
+	// Prepare the Drive-open function.
 	var (
 		routeAcceptedMs int64
 		unixfsVisibleMs int64
@@ -149,6 +151,7 @@ func runDriveBenchCell(
 		driveReady      DriveReadyResult
 	)
 	driveOpen := func(context.Context) error {
+		// Open the Drive quickstart and return.
 		NavigateHash(t, h, page, "#/quickstart/drive")
 		routeAcceptedMs = msSince(in.navStart)
 		WaitForDriveShell(t, page)
@@ -158,6 +161,7 @@ func runDriveBenchCell(
 		return nil
 	}
 
+	// Capture a trace around the Drive open when tracing is enabled.
 	var traceData []byte
 	traceEnabled := E2EWasmTraceServiceEnabled(compiler)
 	openAndTrace := func(ctx context.Context) error {
@@ -176,6 +180,7 @@ func runDriveBenchCell(
 		t.Fatalf("drive open (%s): %v", in.cell, err)
 	}
 
+	// Record connection timing and startup marks.
 	connTiming := sess.ResourceConnectionTiming()
 	run := drivebench.Run{
 		Timestamp:    in.navStart.UTC().Format(time.RFC3339Nano),
@@ -208,6 +213,7 @@ func runDriveBenchCell(
 	// unbundled dev build serves an unbundled module graph with no single bundle,
 	// and its worker-loaded modules never appear on the page resource timeline.
 
+	// Attach the trace summary when a trace was captured.
 	if traceEnabled {
 		tracePath := filepath.Join(cellDir, "runtime.trace")
 		if err := drivebench.WriteArtifact(tracePath, traceData); err != nil {
@@ -230,6 +236,7 @@ func runDriveBenchCell(
 		run.OperationShape = operationShape
 	}
 
+	// Write the bench run and log it.
 	runPath, err := drivebench.WriteRun(cellDir, run)
 	if err != nil {
 		t.Fatalf("write run.json: %v", err)
@@ -247,6 +254,7 @@ func captureDriveBenchBrowserProfile(
 	cellDir string,
 	work func(context.Context) error,
 ) (*drivebench.BrowserProfile, error) {
+	// Report failures at the caller.
 	t.Helper()
 	if !E2EWasmDriveBenchJSProfileEnabled() {
 		return nil, work(ctx)
@@ -260,6 +268,7 @@ func captureDriveBenchBrowserProfile(
 		return profile, work(ctx)
 	}
 
+	// Open a CDP profiler session.
 	cdp, err := sess.BrowserContext().NewCDPSession(sess.Page())
 	if err != nil {
 		return nil, errors.Wrap(err, "new cdp session")
@@ -271,6 +280,8 @@ func captureDriveBenchBrowserProfile(
 	if _, err := cdp.Send("Profiler.start", nil); err != nil {
 		return nil, errors.Wrap(err, "start profiler")
 	}
+
+	// Run the work and stop the profiler.
 	started := time.Now().UTC()
 	workErr := work(ctx)
 	resp, stopErr := cdp.Send("Profiler.stop", nil)
@@ -282,6 +293,7 @@ func captureDriveBenchBrowserProfile(
 		return nil, errors.Wrap(stopErr, "stop profiler")
 	}
 
+	// Write the profile and its bucket summary.
 	rawProfile := resp
 	if respObj, ok := resp.(map[string]any); ok {
 		rawProfile = respObj
@@ -300,6 +312,7 @@ func captureDriveBenchBrowserProfile(
 		return nil, errors.Wrap(err, "write browser JS profile summary")
 	}
 
+	// Return the captured profile.
 	profile.Captured = true
 	profile.ProfilePath = profilePath
 	profile.SummaryPath = summaryPath
@@ -362,6 +375,7 @@ func marshalCDPValue(arena *fastjson.Arena, value any) *fastjson.Value {
 
 // summarizeBrowserCPUProfile aggregates self and inclusive sample time by subsystem.
 func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
+	// Index profile nodes by ID.
 	obj, ok := profile.(map[string]any)
 	if !ok {
 		return nil
@@ -370,6 +384,7 @@ func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
 	if len(nodesRaw) == 0 {
 		return nil
 	}
+
 	// nodeInfo retains the subsystem attributed to one sampled frame.
 	type nodeInfo struct {
 		// bucket names the frame's report subsystem.
@@ -399,6 +414,7 @@ func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
 		nodes[id] = nodeInfo{bucket: bucket}
 	}
 
+	// Prepare bucket accumulators.
 	buckets := map[string]*drivebench.ProfileBucket{}
 	addSelf := func(name string, delta int64) {
 		bucket := profileBucket(buckets, name)
@@ -409,6 +425,7 @@ func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
 		profileBucket(buckets, name).TotalUs += delta
 	}
 
+	// Assign samples to buckets.
 	samples, _ := obj["samples"].([]any)
 	timeDeltas, _ := obj["timeDeltas"].([]any)
 	for i, sampleRaw := range samples {
@@ -454,6 +471,7 @@ func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
 		}
 	}
 
+	// Return the sorted buckets.
 	out := make([]drivebench.ProfileBucket, 0, len(buckets))
 	for _, bucket := range buckets {
 		out = append(out, *bucket)
@@ -478,6 +496,7 @@ func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
 
 // profileBucket returns or creates the named subsystem accumulator.
 func profileBucket(buckets map[string]*drivebench.ProfileBucket, name string) *drivebench.ProfileBucket {
+	// Return the named bucket, creating it when missing.
 	bucket := buckets[name]
 	if bucket != nil {
 		return bucket
@@ -582,6 +601,7 @@ func bootDriveBenchPage(t *testing.T, ctx context.Context, sess *TestSession) {
 // access handles) has been replaced, so no worker holds an OPFS lock during the
 // clear. Chromium-only: it drives the CDP Storage domain.
 func resetSpaceStateKeepCache(sess *TestSession, origin string) error {
+	// Clear site data through CDP while keeping the HTTP cache.
 	cdp, err := sess.BrowserContext().NewCDPSession(sess.Page())
 	if err != nil {
 		return errors.Wrap(err, "new cdp session")
@@ -647,12 +667,14 @@ type benchTaskAgg struct {
 // raw task aggregates, and a compact operation-shape projection from task timing
 // plus numeric trace-log payloads.
 func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebench.Task, *drivebench.OperationShape) {
+	// Report failures at the caller.
 	t.Helper()
 	reader, err := exptrace.NewReader(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("trace reader rejected the capture: %v", err)
 	}
 
+	// Prepare task aggregators.
 	type openTask struct {
 		typ   string
 		begin exptrace.Time
@@ -674,6 +696,7 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 		return agg
 	}
 
+	// Read trace events into the aggregators.
 	for {
 		ev, err := reader.ReadEvent()
 		if err == io.EOF {
@@ -713,6 +736,7 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 			operationShape.addLog(ev.Log())
 		}
 	}
+
 	// Tasks that began but never ended still count by type; their duration is
 	// unknown, so they contribute count only.
 	for _, ot := range open {
@@ -720,6 +744,7 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 		operationShape.addOpenTask(ot.typ)
 	}
 
+	// Return sorted task aggregates.
 	taskAggs := make([]drivebench.Task, 0, len(aggByType))
 	for _, agg := range aggByType {
 		taskAggs = append(taskAggs, drivebench.Task{
@@ -749,17 +774,20 @@ func summarizeTrace(t testing.TB, data []byte) (string, int, int, int, []drivebe
 // tracetool.txt. Each prefix section lists its task types ranked by total
 // duration, then count, capped at the slowest twenty.
 func renderTraceSummary(aggByType map[string]*benchTaskAgg, tasks, regions, logs int) string {
+	// Start the trace summary.
 	var b strings.Builder
 	b.WriteString("tasks\t" + strconv.Itoa(tasks) + "\n")
 	b.WriteString("regions\t" + strconv.Itoa(regions) + "\n")
 	b.WriteString("logs\t" + strconv.Itoa(logs) + "\n")
 
+	// Group task aggregates by prefix.
 	buckets := map[string][]*benchTaskAgg{}
 	for _, agg := range aggByType {
 		prefix := benchTracePrefixFor(agg.typ)
 		buckets[prefix] = append(buckets[prefix], agg)
 	}
 
+	// Write each prefix and return the summary.
 	order := append(slices.Clone(benchTracePrefixes), "other")
 	for _, prefix := range order {
 		aggs := buckets[prefix]

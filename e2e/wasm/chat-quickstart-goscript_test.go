@@ -19,6 +19,7 @@ const chatQuickstartWaitMS = 240000
 const chatMessageInputSelector = "textarea[placeholder=\"Type a message…\"]"
 
 func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -27,6 +28,7 @@ func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Open a clean page and capture its console.
 	sess := harness(t).NewCleanPageSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
@@ -40,21 +42,25 @@ func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 		}
 	}()
 
+	// Open the chat quickstart.
 	page := sess.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, harness(t), page, "#/quickstart/chat")
 
+	// Require the general channel route.
 	waitForChatRoute(t, page)
 	route := page.URL()
 	if !strings.Contains(route, "/-/chat/channel/general") {
 		t.Fatalf("Chat quickstart route = %q, want /-/chat/channel/general; debug: %v", route, collectChatQuickstartDebug(page))
 	}
 
+	// Send a message and wait for it.
 	message := "GoScript Chat Proof"
 	sendChatMessage(t, page, message)
 	waitForChatMessage(t, page, message)
 
+	// Reload the page and require the message to remain.
 	if _, err := page.Reload(playwright.PageReloadOptions{
 		WaitUntil: playwright.WaitUntilStateDomcontentloaded,
 		Timeout:   playwright.Float(chatQuickstartWaitMS),
@@ -63,6 +69,7 @@ func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 	}
 	waitForChatMessage(t, page, message)
 
+	// Leave and return to the channel, and require the message again.
 	NavigateHash(t, harness(t), page, "#/")
 	hashIdx := strings.Index(route, "#")
 	if hashIdx < 0 {

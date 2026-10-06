@@ -35,6 +35,7 @@ Navigation churn should not stall root readdir.
 // side, and churn file browser navigation while collecting stuck-state
 // diagnostics on failures.
 func TestQuickstartDriveSplitTabNavigation(t *testing.T) {
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	page := sess.Page()
 	if err := page.SetViewportSize(1440, 900); err != nil {
@@ -43,12 +44,14 @@ func TestQuickstartDriveSplitTabNavigation(t *testing.T) {
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and install the split probe.
 	probe := newSplitDriveProbe(t, page, console)
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page = scenario.GetSession().Page()
 	probe.page = page
 	WaitForDriveReady(t, harness(t), page)
 
+	// Upload a file and verify it.
 	upload := playwright.InputFile{
 		Name:     splitDriveUploadName,
 		MimeType: "text/markdown",
@@ -58,35 +61,42 @@ func TestQuickstartDriveSplitTabNavigation(t *testing.T) {
 	probe.waitForPaneEntry(0, splitDriveUploadName)
 	verifyUploadedFile(t, scenario, page, upload)
 
+	// Open the upload and record its path.
 	probe.openPaneEntry(0, splitDriveUploadName)
 	probe.waitForPaneText(0, "uploaded file before split", splitDriveUploadNeedle)
 	uploadedPath := currentSplitDriveAppPath(t, page)
 
+	// Go up and record the getting-started path.
 	probe.clickPaneButton(0, "Up")
 	probe.waitForPaneEntry(0, gettingStartedFileName)
 	probe.openPaneEntry(0, gettingStartedFileName)
 	probe.waitForPaneText(0, "getting-started before split", gettingStartedWelcomeText)
 	gettingStartedPath := currentSplitDriveAppPath(t, page)
 
+	// Enter the split layout and require both panes.
 	probe.enterSplitLayout(gettingStartedPath, uploadedPath)
 	probe.waitForPaneText(0, "left split getting-started", gettingStartedWelcomeText)
 	probe.waitForPaneText(1, "right split uploaded file", splitDriveUploadNeedle)
 
+	// Reopen the right pane upload.
 	probe.clickPaneButton(1, "Up")
 	probe.waitForPaneEntry(1, splitDriveUploadName)
 	probe.openPaneEntry(1, splitDriveUploadName)
 	probe.waitForPaneText(1, "right split uploaded file after reopen", splitDriveUploadNeedle)
 
+	// Reopen the left pane getting-started file.
 	probe.clickPaneButton(0, "Up")
 	probe.waitForPaneEntry(0, gettingStartedFileName)
 	probe.openPaneEntry(0, gettingStartedFileName)
 	probe.waitForPaneText(0, "left split getting-started after reopen", gettingStartedWelcomeText)
 
+	// Go back and forward on the right pane.
 	probe.clickPaneButton(1, "Back")
 	probe.waitForPaneEntry(1, splitDriveUploadName)
 	probe.clickPaneButton(1, "Forward")
 	probe.waitForPaneText(1, "right split uploaded file after forward", splitDriveUploadNeedle)
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after split-tab Drive navigation: %+v\n%s", report, probe.captureDiagnostics())
@@ -113,8 +123,10 @@ func newSplitDriveProbe(t testing.TB, page playwright.Page, console <-chan strin
 }
 
 func (p *splitDriveProbe) enterSplitLayout(leftPath, rightPath string) {
+	// Report failures at the caller.
 	p.t.Helper()
 
+	// Install the split layout and wait for the shell grid.
 	layoutData := encodeSplitDriveLayout(p.t)
 	_, err := p.page.Evaluate(`({ layoutData, leftPath, rightPath }) => {
 		const records = [
@@ -162,8 +174,10 @@ func (p *splitDriveProbe) enterSplitLayout(leftPath, rightPath string) {
 }
 
 func (p *splitDriveProbe) waitForShellGrid() {
+	// Report failures at the caller.
 	p.t.Helper()
 
+	// Wait for the shell grid and both panes.
 	_, err := p.page.WaitForFunction(`() => {
 		if (!window.location.hash.startsWith('#/g/')) return false
 		const tabsets = Array.from(
@@ -195,8 +209,10 @@ func (p *splitDriveProbe) waitForShellGrid() {
 }
 
 func (p *splitDriveProbe) waitForPaneText(pane int, label, want string) {
+	// Report failures at the caller.
 	p.t.Helper()
 
+	// Wait for the pane text.
 	_, err := p.page.WaitForFunction(`({ pane, want }) => {
 		const browser = splitDriveVisibleBrowser(pane)
 		const pre = browser?.querySelector('pre')
@@ -282,8 +298,10 @@ func (p *splitDriveProbe) openPaneEntry(pane int, name string) {
 }
 
 func (p *splitDriveProbe) clickPaneButton(pane int, title string) {
+	// Report failures at the caller.
 	p.t.Helper()
 
+	// Click the pane button and wait for it to settle.
 	_, err := p.page.WaitForFunction(`({ pane, title }) => {
 		const browser = splitDriveVisibleBrowser(pane)
 		if (!browser) return false
@@ -360,8 +378,10 @@ func (p *splitDriveProbe) waitForPaneSettled(pane int, label string) {
 }
 
 func (p *splitDriveProbe) panePreText(pane int) (string, error) {
+	// Report failures at the caller.
 	p.t.Helper()
 
+	// Read the pane text.
 	raw, err := p.page.Evaluate(`(pane) => {
 		const browser = splitDriveVisibleBrowser(pane)
 		return browser?.querySelector('pre')?.textContent ?? ''
@@ -384,8 +404,10 @@ func (p *splitDriveProbe) panePreText(pane int) (string, error) {
 }
 
 func (p *splitDriveProbe) fail(label string, err error) {
+	// Report failures at the caller.
 	p.t.Helper()
 
+	// Fail with split-drive diagnostics.
 	errText := "<nil>"
 	if err != nil {
 		errText = err.Error()
@@ -401,6 +423,7 @@ func (p *splitDriveProbe) fail(label string, err error) {
 }
 
 func (p *splitDriveProbe) captureDiagnostics() string {
+	// Capture split-drive diagnostics from the page.
 	raw, err := p.page.Evaluate(`() => {
 		const cleanText = (el) => (el?.textContent || '')
 			.replace(/\s+/g, ' ')
@@ -467,8 +490,10 @@ func (p *splitDriveProbe) captureDiagnostics() string {
 }
 
 func currentSplitDriveAppPath(t testing.TB, page playwright.Page) string {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Read the current Drive app path.
 	raw, err := page.Evaluate(`() => {
 		const hash = window.location.hash || '#/'
 		if (!hash.startsWith('#')) return '/'
@@ -489,8 +514,10 @@ func currentSplitDriveAppPath(t testing.TB, page playwright.Page) string {
 }
 
 func encodeSplitDriveLayout(t testing.TB) string {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Encode a two-pane Drive layout.
 	snapshot := &s4wave_layout.LayoutSnapshot{
 		Model: &s4wave_layout.LayoutModel{
 			Layout: &s4wave_layout.RowDef{

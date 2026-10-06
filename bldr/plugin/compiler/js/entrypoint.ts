@@ -94,14 +94,23 @@ function resolveBackendEntrypointImportPath(
   if (!pluginId) {
     return importPath
   }
-
-  // Backend assets must follow the worker's immutable executable, including replay.
-  const root = backendAPI.startInfo.manifestRoot
-  if (!root) throw new Error('Backend worker has no immutable manifest binding')
   return backendAPI.utils.pluginAssetHttpPath(
-    `${pluginId}/manifest/${root}`,
+    pinnedPluginArtifactID(backendAPI, pluginId),
     importPath.slice('/assets/'.length),
   )
+}
+
+// pinnedPluginArtifactID binds asset URLs to the worker's immutable manifest,
+// so backend imports, including replay, and the documents it renders keep
+// loading the release they started with. Frontend file names carry no content
+// hash, so the manifest root is what tells releases apart.
+function pinnedPluginArtifactID(
+  backendAPI: BackendAPI,
+  pluginId: string,
+): string {
+  const root = backendAPI.startInfo.manifestRoot
+  if (!root) throw new Error('Backend worker has no immutable manifest binding')
+  return `${pluginId}/manifest/${root}`
 }
 
 type BackendEntrypointModule = Record<string, unknown>
@@ -346,13 +355,13 @@ async function loadFrontendEntrypoints(
         setRenderModeRequestBin,
       )
 
-      // Override the script path to be /b/pa/{plugin-id}/...
+      // Override the script path to be /b/pa/{plugin-id}/manifest/{root}/...
       if (
         setRenderModeRequest.scriptPath &&
         !setRenderModeRequest.frontendBinding
       ) {
         setRenderModeRequest.scriptPath = backendAPI.utils.pluginAssetHttpPath(
-          ourPluginID,
+          pinnedPluginArtifactID(backendAPI, ourPluginID),
           setRenderModeRequest.scriptPath,
         )
       }
@@ -370,12 +379,12 @@ async function loadFrontendEntrypoints(
         setHtmlLinksRequestBin,
       )
 
-      // Override the href paths to be /b/pa/{plugin-id}/...
+      // Override the href paths to be /b/pa/{plugin-id}/manifest/{root}/...
       if (setHtmlLinksRequest.setLinks) {
         for (const link of Object.values(setHtmlLinksRequest.setLinks)) {
           if (link?.href) {
             link.href = backendAPI.utils.pluginAssetHttpPath(
-              ourPluginID,
+              pinnedPluginArtifactID(backendAPI, ourPluginID),
               link.href,
             )
           }

@@ -342,8 +342,14 @@ func TestWorldEngineKeepsOperationPayloads(t *testing.T) {
 	if _, err := block_gc.NewCollector(w.rg, w.vol, nil).Collect(ctx); err != nil {
 		t.Fatal(err)
 	}
+	w.checkReplayedFile(ctx, t)
+}
 
+// checkReplayedFile replays the Space's operation set from the checkpoint, as
+// another member does, and checks that the replayed World holds the file.
+func (w *spaceWorld) checkReplayedFile(ctx context.Context, t *testing.T) {
 	// Read the Space's operation set.
+	t.Helper()
 	so, soRef, err := sobject.ExMountSharedObject(ctx, w.bus, w.soRef, false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -354,7 +360,7 @@ func TestWorldEngineKeepsOperationPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Replay it from the checkpoint, as another member does.
+	// Replay it from the checkpoint.
 	le := logrus.NewEntry(logrus.New())
 	replayed, release, err := sobject_world_engine.OpenReadCheckpoint(ctx, le, w.bus, freshMember{so}, w.engineID, unixfs_world.LookupFsOp, snap)
 	if err != nil {

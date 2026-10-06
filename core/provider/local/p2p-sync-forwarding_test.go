@@ -13,9 +13,11 @@ import (
 // TestStartP2PSyncConfiguresOneForwardHop proves local-provider startup gives
 // each shared-object DEX controller the immediate-relay forwarding budget.
 func TestStartP2PSyncConfiguresOneForwardHop(t *testing.T) {
+	// Bound the test and release its timeout.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
+	// Start a local account session and its session transport.
 	_, _, account, session, release := setupProviderAndSession(ctx, t)
 	t.Cleanup(release)
 	if err := account.CreateSessionTransport(ctx, session.GetPrivKey(), ""); err != nil {
@@ -27,6 +29,7 @@ func TestStartP2PSyncConfiguresOneForwardHop(t *testing.T) {
 	configs := make(chan *dex_solicit.Config, 1)
 	removeHandler, err := account.GetSessionTransport().GetChildBus().AddHandler(directive.NewFuncHandler(
 		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			// Capture the DEX controller config submitted on the session child bus.
 			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
 			if !ok {
 				return nil, nil

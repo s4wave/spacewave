@@ -17,8 +17,10 @@ const (
 )
 
 func createDriveFolder(t testing.TB, page playwright.Page, name string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Create a folder from the Drive toolbar and wait for its row.
 	browser := visibleDriveBrowser(page)
 	waitForDriveSettled(t, page)
 	if err := browser.Locator("button[title='New folder']:not([disabled])").Click(); err != nil {
@@ -49,8 +51,10 @@ func waitForDriveSettled(t testing.TB, page playwright.Page) {
 }
 
 func openGettingStartedFile(t testing.TB, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open the getting-started file and wait for its content.
 	waitForDriveEntry(t, page, gettingStartedFileName)
 	row := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + gettingStartedFileName + "')").First()
 	if err := row.Dblclick(); err != nil {
@@ -60,8 +64,10 @@ func openGettingStartedFile(t testing.TB, page playwright.Page) {
 }
 
 func waitForGettingStartedContentView(t testing.TB, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Require the getting-started welcome text.
 	content := visibleDriveBrowser(page).Locator("pre").First()
 	if err := content.WaitFor(); err != nil {
 		t.Fatalf("wait for %s content view: %v", gettingStartedFileName, err)

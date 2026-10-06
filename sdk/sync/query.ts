@@ -114,8 +114,12 @@ export async function evaluateQuery<S extends Schema, R>(
     collection: (name) => {
       if (!active) throw new SyncError('CLOSED', 'Query evaluation has ended')
       const original = source.collection(name)
-      if (!collections.has(name))
-        collections.set(name, { prefixes: new Set(), records: new Map() })
+      let tracked = collections.get(name)
+      if (!tracked) {
+        tracked = { prefixes: new Set(), records: new Map() }
+        collections.set(name, tracked)
+      }
+      const prefixes = tracked.prefixes
       const track = <T>(read: () => Promise<T>): Promise<T> => {
         if (!active)
           return Promise.reject(
@@ -131,7 +135,7 @@ export async function evaluateQuery<S extends Schema, R>(
           track(async () => record(name, key, await original.get(key))),
         scan: (query: Query = {}) =>
           track(async () => {
-            collections.get(name)!.prefixes.add(query.prefix ?? '')
+            prefixes.add(query.prefix ?? '')
             return (await original.scan(query)).map((entry) => ({
               key: entry.key,
               value: record(name, entry.key, entry.value),

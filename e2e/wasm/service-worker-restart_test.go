@@ -21,11 +21,13 @@ const (
 // TestServiceWorkerRestartRecoversBldrWebHarness proves the ServiceWorker can
 // stop mid-session and recover the runtime fetch relay without reloading tabs.
 func TestServiceWorkerRestartRecoversBldrWebHarness(t *testing.T) {
+	// Skip unless the browser is Chromium.
 	h := harness(t)
 	if h.BrowserName() != "chromium" {
 		t.Skipf("ServiceWorker.stopWorker is a Chromium CDP control; browser=%s", h.BrowserName())
 	}
 
+	// Open a blank session and connect its resources.
 	sess := h.NewCleanBlankSession(t)
 	installServiceWorkerRestartReloadCounter(t, sess)
 	if err := h.loadAppPageURL(sess, h.BaseURL()+"/#/"); err != nil {
@@ -38,9 +40,11 @@ func TestServiceWorkerRestartRecoversBldrWebHarness(t *testing.T) {
 		t.Fatalf("connect resources: %v", err)
 	}
 
+	// Collect console messages.
 	console, stopConsole := sess.WatchConsole()
 	consoleCollector := startBackgroundThrottleConsoleCollector(console)
 
+	// Open Drive and record the left page load count.
 	scenario := CreateDriveScenario(t, h, sess)
 	leftPage := scenario.GetSession().Page()
 	WaitForDriveReady(t, h, leftPage)
@@ -51,6 +55,7 @@ func TestServiceWorkerRestartRecoversBldrWebHarness(t *testing.T) {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
+	// Open a second page in the same session.
 	rightPage, err := h.newBrowserPage(sess)
 	if err != nil {
 		t.Fatalf("open second app document: %v", err)
@@ -62,6 +67,8 @@ func TestServiceWorkerRestartRecoversBldrWebHarness(t *testing.T) {
 			t.Errorf("close second app document: %v", err)
 		}
 	}()
+
+	// Load the Drive route on the second page and record its load count.
 	loadPageURL(t, rightPage, h.BaseURL()+"/"+targetHash)
 	WaitForApp(t, rightPage)
 	WaitForDriveReady(t, h, rightPage)
@@ -70,21 +77,27 @@ func TestServiceWorkerRestartRecoversBldrWebHarness(t *testing.T) {
 	AssertBrowserStartupDone(t, h, rightPage)
 	rightLoadCount := serviceWorkerRestartLoadCount(t, rightPage)
 
+	// Create a folder and fetch a plugin asset before the restart.
 	createDriveFolder(t, leftPage, serviceWorkerRestartPreFolder)
 	waitForDriveEntry(t, rightPage, serviceWorkerRestartPreFolder)
 	pluginAssetURL := serviceWorkerRestartPluginAssetURL(t, leftPage)
 	assertPluginAssetFetchSucceeds(t, leftPage, pluginAssetURL, "before ServiceWorker restart")
 
+	// Open CDP control and stop the running ServiceWorker.
 	control := newServiceWorkerRestartCDPControl(t, rightPage)
 	defer control.Close()
 	active := control.WaitForRunning(t)
 	stopped := control.Stop(t, active)
 	control.Drain()
+
+	// Require the asset fetch after the stop, on the same version.
 	assertPluginAssetFetchSucceeds(t, rightPage, pluginAssetURL, "after ServiceWorker restart")
 	restarted := control.WaitForRunning(t)
 	if restarted.VersionID != stopped.VersionID {
 		t.Fatalf("ServiceWorker restarted unexpected version: stopped=%#v running=%#v", stopped, restarted)
 	}
+
+	// Require no reload and shared Drive entries after the restart.
 	assertServiceWorkerRestartLoadCount(t, leftPage, leftLoadCount)
 	assertServiceWorkerRestartLoadCount(t, rightPage, rightLoadCount)
 	createDriveFolder(t, rightPage, serviceWorkerRestartPostFolder)
@@ -92,6 +105,7 @@ func TestServiceWorkerRestartRecoversBldrWebHarness(t *testing.T) {
 	waitForDriveEntry(t, rightPage, serviceWorkerRestartPreFolder)
 	waitForDriveEntry(t, rightPage, serviceWorkerRestartPostFolder)
 
+	// Require no console failure and no remote document deletion.
 	stopConsole()
 	consoleCollector.Wait()
 	messages := consoleCollector.Messages()
@@ -112,8 +126,10 @@ type serviceWorkerRestartVersion struct {
 }
 
 func newServiceWorkerRestartCDPControl(t testing.TB, page playwright.Page) *serviceWorkerRestartCDPControl {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open a CDP session and return the ServiceWorker control.
 	session, err := page.Context().NewCDPSession(page)
 	if err != nil {
 		t.Fatalf("new ServiceWorker CDP session: %v", err)
@@ -167,14 +183,17 @@ func (c *serviceWorkerRestartCDPControl) Stop(
 	t testing.TB,
 	version serviceWorkerRestartVersion,
 ) serviceWorkerRestartVersion {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Stop the ServiceWorker version.
 	if _, err := c.session.Send("ServiceWorker.stopWorker", map[string]any{
 		"versionId": version.VersionID,
 	}); err != nil {
 		t.Fatalf("stop ServiceWorker version %s: %v", version.VersionID, err)
 	}
 
+	// Wait for a version that is no longer running.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 	return c.waitForVersion(ctx, t, func(candidate serviceWorkerRestartVersion) bool {
@@ -211,6 +230,7 @@ func (v serviceWorkerRestartVersion) isHarnessServiceWorker() bool {
 }
 
 func parseServiceWorkerRestartVersions(raw any) []serviceWorkerRestartVersion {
+	// Decode ServiceWorker versions from the CDP payload.
 	payload, ok := raw.(map[string]any)
 	if !ok {
 		return nil
@@ -268,8 +288,10 @@ func assertServiceWorkerRestartLoadCount(t testing.TB, page playwright.Page, exp
 }
 
 func assertServiceWorkerRestartCrossTabConfig(t testing.TB, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Require the cross-tab ServiceWorker config.
 	raw, err := page.Evaluate(`() => {
 		const mark = (globalThis.__swStartupMarks ?? []).find((item) =>
 			item.label === 'worker-comms.detected'
@@ -290,8 +312,10 @@ func assertServiceWorkerRestartCrossTabConfig(t testing.TB, page playwright.Page
 }
 
 func serviceWorkerRestartPluginAssetURL(t testing.TB, page playwright.Page) string {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Read the plugin asset URL from the page.
 	raw, err := page.Evaluate(`() => {
 		const marks = globalThis.__swStartupMarks ?? []
 		const dispatch = marks.find((mark) =>
@@ -325,8 +349,10 @@ func assertPluginAssetFetchSucceeds(
 	url string,
 	label string,
 ) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Require the plugin asset fetch to succeed.
 	raw, err := page.Evaluate(`async (arg) => {
 		const [url, label] = Array.isArray(arg) ? arg : [arg.url, arg.label]
 		const startedAt = performance.now()

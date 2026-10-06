@@ -157,6 +157,7 @@ export function ChangePasswordDialog({
 
         <DialogFooter>
           <button
+            type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
@@ -164,6 +165,7 @@ export function ChangePasswordDialog({
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
             className={cn(

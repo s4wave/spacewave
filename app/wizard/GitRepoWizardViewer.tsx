@@ -22,37 +22,16 @@ export const GitRepoWizardTypeID = 'wizard/git/repo'
 const githubBrowserCloneError =
   'The browser cannot clone directly from GitHub because GitHub does not set the required cross-origin headers. Use the desktop app to clone this repository.'
 
-// GitRepoWizardViewer is a custom wizard viewer for creating Git repositories.
-// Step 0: config editor (mode toggle + clone options). Step 1: repository name.
-export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
-  const ws = useWizardState(props, 'git/repo')
-  const { state, configEditor } = ws
+type WizardState = ReturnType<typeof useWizardState>
+type GitCloneOpts = CreateGitRepoWizardOp['cloneOpts']
 
-  const config = configEditor.value as CreateGitRepoWizardOp | undefined
-  const isClone = config?.clone ?? false
-  const cloneOpts = config?.cloneOpts
-  const inferredCloneName = useMemo(
-    () => inferGitRepoName(cloneOpts?.url ?? ''),
-    [cloneOpts?.url],
-  )
-  const cloneUrlError =
-    isClone && !isDesktop && isGithubCloneUrl(cloneOpts?.url ?? '')
-      ? githubBrowserCloneError
-      : ''
+/** useCloneAutoName names the repository after the clone URL until the user renames it. */
+function useCloneAutoName(
+  ws: WizardState,
+  isClone: boolean,
+  inferredCloneName: string,
+) {
   const lastAutoNameRef = useRef<string | undefined>(undefined)
-  const completedObjectKeyRef = useRef<string | undefined>(undefined)
-
-  const cloneProgressResource = useStreamingResource(
-    ws.wizardResource,
-    (handle, signal) => handle.watchGitCloneProgress(signal),
-    [],
-  )
-  const cloneProgress = cloneProgressResource.value ?? undefined
-  const cloneState = cloneProgress?.state ?? GitCloneProgressState.IDLE
-  const cloning = cloneState === GitCloneProgressState.RUNNING
-  const cloneFailed = cloneState === GitCloneProgressState.FAILED
-  const currentStep = state?.step ?? 0
-  const totalSteps = isClone ? 3 : 2
 
   useEffect(() => {
     if (!isClone || !inferredCloneName) return
@@ -62,22 +41,36 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     lastAutoNameRef.current = inferredCloneName
     ws.handleUpdateName(inferredCloneName)
   }, [inferredCloneName, isClone, ws])
+}
+
+/** useCloneCompletion opens the cloned repository once, when the clone finishes. */
+function useCloneCompletion(
+  ws: WizardState,
+  cloneProgress: GitCloneProgress | undefined,
+) {
+  const completedObjectKeyRef = useRef<string | undefined>(undefined)
+  const cloneState = cloneProgress?.state
+  const objectKey = cloneProgress?.objectKey
 
   useEffect(() => {
-    const objectKey = cloneProgress?.objectKey
     if (cloneState !== GitCloneProgressState.DONE || !objectKey) return
     if (completedObjectKeyRef.current === objectKey) return
     completedObjectKeyRef.current = objectKey
     toast.success(`Cloned ${ws.localName}`)
     ws.navigateToObjects([objectKey])
-  }, [cloneProgress?.objectKey, cloneState, ws])
+  }, [objectKey, cloneState, ws])
+}
 
-  const handleNext = useCallback(async () => {
-    const handle = ws.wizardResource.value
-    if (!handle) return
-    await ws.persistDraftState()
-    await handle.updateState({ step: 1 })
-  }, [ws])
+/**
+ * useGitRepoFinalize returns the click handler that creates the repository,
+ * or starts the clone, from the wizard's draft.
+ */
+function useGitRepoFinalize(
+  ws: WizardState,
+  isClone: boolean,
+  cloneOpts: GitCloneOpts,
+) {
+  const { state } = ws
 
   const handleFinalize = useCallback(async () => {
     if (!state || ws.creating || !ws.localName.trim()) return
@@ -136,29 +129,85 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
     }
   }, [state, ws, isClone, cloneOpts])
 
-  const handleFinalizeClick = useCallback(() => {
+  return useCallback(() => {
     void handleFinalize()
   }, [handleFinalize])
+}
+
+/** useGitCloneProgress watches the wizard's clone progress stream. */
+function useGitCloneProgress(ws: WizardState) {
+  const cloneProgressResource = useStreamingResource(
+    ws.wizardResource,
+    (handle, signal) => handle.watchGitCloneProgress(signal),
+    [],
+  )
+  const progress = cloneProgressResource.value ?? undefined
+  const cloneState = progress?.state ?? GitCloneProgressState.IDLE
+
+  return {
+    progress,
+    cloning: cloneState === GitCloneProgressState.RUNNING,
+    failed: cloneState === GitCloneProgressState.FAILED,
+  }
+}
+
+/** cloneUrlErrorFor returns the browser-only error for a clone URL, or an empty string. */
+function cloneUrlErrorFor(isClone: boolean, url: string): string {
+  return isClone && !isDesktop && isGithubCloneUrl(url)
+    ? githubBrowserCloneError
+    : ''
+}
+
+/** GitRepoWizardLoading is shown until the wizard state arrives. */
+function GitRepoWizardLoading() {
+  return (
+    <div className="flex flex-1 items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <LoadingCard
+          view={{
+            state: 'active',
+            title: 'Loading wizard',
+            detail: 'Preparing the Git repository workflow.',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// GitRepoWizardViewer is a custom wizard viewer for creating Git repositories.
+// Step 0: config editor (mode toggle + clone options). Step 1: repository name.
+export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
+  const ws = useWizardState(props, 'git/repo')
+  const { state, configEditor } = ws
+
+  const config = configEditor.value as CreateGitRepoWizardOp | undefined
+  const isClone = config?.clone ?? false
+  const cloneOpts = config?.cloneOpts
+  const inferredCloneName = useMemo(
+    () => inferGitRepoName(cloneOpts?.url ?? ''),
+    [cloneOpts?.url],
+  )
+  const cloneUrlError = cloneUrlErrorFor(isClone, cloneOpts?.url ?? '')
+  const { progress, cloning, failed } = useGitCloneProgress(ws)
+  const currentStep = state?.step ?? 0
+
+  useCloneAutoName(ws, isClone, inferredCloneName)
+  useCloneCompletion(ws, progress)
+  const handleFinalizeClick = useGitRepoFinalize(ws, isClone, cloneOpts)
+
+  const handleNext = useCallback(async () => {
+    const handle = ws.wizardResource.value
+    if (!handle) return
+    await ws.persistDraftState()
+    await handle.updateState({ step: 1 })
+  }, [ws])
 
   const handleCancel = useCallback(() => {
     void ws.handleCancel()
   }, [ws])
 
-  if (!state) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading wizard',
-              detail: 'Preparing the Git repository workflow.',
-            }}
-          />
-        </div>
-      </div>
-    )
-  }
+  if (!state) return <GitRepoWizardLoading />
 
   return (
     <WizardShell
@@ -169,7 +218,7 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
         </>
       }
       step={currentStep}
-      totalSteps={totalSteps}
+      totalSteps={isClone ? 3 : 2}
       localName={ws.localName}
       onUpdateName={ws.handleUpdateName}
       onBack={() => void ws.handleBack()}
@@ -195,14 +244,14 @@ export function GitRepoWizardViewer(props: ObjectViewerComponentProps) {
         </>
       )}
       {currentStep === 2 && (
-        <GitCloneProgressStep progress={cloneProgress} failed={cloneFailed} />
+        <GitCloneProgressStep progress={progress} failed={failed} />
       )}
     </WizardShell>
   )
 }
 
 async function replaceSpaceIndexIfWizardIsCurrent(
-  ws: ReturnType<typeof useWizardState>,
+  ws: WizardState,
   objectKey: string,
 ) {
   if (

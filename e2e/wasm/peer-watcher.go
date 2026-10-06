@@ -38,6 +38,7 @@ type BrowserPeerObservation struct {
 // NewPeerWatcher registers a HandleMountedStream handler on the bus filtering
 // for HostProtocolID and returns a PeerWatcher that tracks discovered peers.
 func NewPeerWatcher(b bus.Bus) (*PeerWatcher, error) {
+	// Register the peer watcher on the bus.
 	pw := &PeerWatcher{
 		pending: make(chan BrowserPeerObservation, 64),
 	}
@@ -55,6 +56,7 @@ func NewPeerWatcher(b bus.Bus) (*PeerWatcher, error) {
 // startup failure, so these events must not be deduplicated across the whole
 // package run.
 func (pw *PeerWatcher) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Accept only a mounted devtool host stream with a remote peer.
 	hms, ok := di.GetDirective().(link.HandleMountedStream)
 	if !ok {
 		return nil, nil
@@ -67,6 +69,7 @@ func (pw *PeerWatcher) HandleDirective(_ context.Context, di directive.Instance)
 		return nil, nil
 	}
 
+	// Record that peer.
 	pw.observePeer(remotePeer)
 	return nil, nil
 }

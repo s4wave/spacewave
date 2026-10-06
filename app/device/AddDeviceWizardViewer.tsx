@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useId, useMemo, useState, type ReactNode } from 'react'
 import {
   LuCircleCheck,
   LuClipboardCheck,
@@ -272,20 +272,17 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
 
       const label = (ws.localName || state.name || 'SSH Host').trim()
       const timestamp = new Date()
-      const hostObjectKey = await buildObjectKey(
-        ws.spaceWorld,
-        'ssh-host/',
-        label,
-      )
-
-      const credentials = await createSshCredentialSecrets({
-        space,
-        label,
-        config: sshConfig,
-        draft: sshCredentialDraft,
-        world: ws.spaceWorld,
-        readerPublicKeyPem,
-      })
+      const [hostObjectKey, credentials] = await Promise.all([
+        buildObjectKey(ws.spaceWorld, 'ssh-host/', label),
+        createSshCredentialSecrets({
+          space,
+          label,
+          config: sshConfig,
+          draft: sshCredentialDraft,
+          world: ws.spaceWorld,
+          readerPublicKeyPem,
+        }),
+      ])
       const hostKeyPins = buildSshHostKeyPins(
         sshConfig,
         ws.sessionPeerId,
@@ -606,6 +603,46 @@ function AddDeviceWizardSteps({
   )
 }
 
+interface WizardCopy {
+  totalSteps: number
+  stepName: string
+  nameLabel: string
+  createLabel: string
+  creatingLabel: string
+  nextBusyLabel: string
+}
+
+/** wizardCopy returns the step count and labels for the connection mode and step. */
+function wizardCopy(
+  mode: AddDeviceWizardMode,
+  currentStep: number,
+  isSshInstallMode: boolean,
+): WizardCopy {
+  if (mode === 'ssh') {
+    return {
+      totalSteps: currentStep === 0 ? 3 : 2,
+      stepName: currentStep === 0 ? 'Choose connection' : 'Configure SSH',
+      nameLabel: 'Host Name',
+      createLabel: isSshInstallMode
+        ? 'Install Agent unavailable'
+        : 'Add SSH Host and open terminal',
+      creatingLabel: isSshInstallMode
+        ? 'Install Agent unavailable'
+        : 'Adding SSH Host and opening terminal…',
+      nextBusyLabel: 'Opening SSH setup…',
+    }
+  }
+  const stepNames = ['Choose connection', 'Set up Device', 'Finish']
+  return {
+    totalSteps: 3,
+    stepName: stepNames[Math.min(currentStep, 2)] ?? 'Finish',
+    nameLabel: 'Device Name',
+    createLabel: 'Open Device',
+    creatingLabel: 'Opening Device…',
+    nextBusyLabel: 'Preparing Device setup…',
+  }
+}
+
 // AddDeviceWizardContent selects the loading state and configures the shared
 // wizard shell.
 function AddDeviceWizardContent({
@@ -646,15 +683,7 @@ function AddDeviceWizardContent({
     )
   }
 
-  const totalSteps = currentStep === 0 ? 3 : mode === 'ssh' ? 2 : 3
-  const stepName =
-    currentStep === 0
-      ? 'Choose connection'
-      : mode === 'ssh'
-        ? 'Configure SSH'
-        : currentStep === 1
-          ? 'Set up Device'
-          : 'Finish'
+  const copy = wizardCopy(mode, currentStep, isSshInstallMode)
   return (
     <WizardShell
       title={
@@ -664,8 +693,8 @@ function AddDeviceWizardContent({
         </>
       }
       step={currentStep}
-      totalSteps={totalSteps}
-      stepName={stepName}
+      totalSteps={copy.totalSteps}
+      stepName={copy.stepName}
       localName={ws.localName || 'Device'}
       onUpdateName={ws.handleUpdateName}
       onBack={() => {
@@ -674,24 +703,12 @@ function AddDeviceWizardContent({
         void ws.handleBack()
       }}
       onCancel={handleCancel}
-      nameLabel={mode === 'ssh' ? 'Host Name' : 'Device Name'}
+      nameLabel={copy.nameLabel}
       namePlaceholder="Build server"
       nameStep={0}
       creating={ws.creating}
-      createLabel={
-        isSshInstallMode
-          ? 'Install Agent unavailable'
-          : mode === 'ssh'
-            ? 'Add SSH Host and open terminal'
-            : 'Open Device'
-      }
-      creatingLabel={
-        isSshInstallMode
-          ? 'Install Agent unavailable'
-          : mode === 'ssh'
-            ? 'Adding SSH Host and opening terminal…'
-            : 'Opening Device…'
-      }
+      createLabel={copy.createLabel}
+      creatingLabel={copy.creatingLabel}
       onFinalize={handleFinalize}
       canFinalize={
         mode === 'ssh'
@@ -700,9 +717,7 @@ function AddDeviceWizardContent({
           : !!completion
       }
       onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
-      nextBusyLabel={
-        mode === 'ssh' ? 'Opening SSH setup…' : 'Preparing Device setup…'
-      }
+      nextBusyLabel={copy.nextBusyLabel}
       nextBusy={isOpeningStep}
       canNext={!!ws.localName.trim() && !isOpeningStep}
       finalizeStep={mode === 'ssh' ? 1 : 2}
@@ -756,6 +771,21 @@ function ModeButton({
   )
 }
 
+const sshCardClassName =
+  'border-foreground/6 bg-background-card/30 rounded-lg border p-3.5'
+
+/** hostKeyTrustMode describes how the host key of the SSH host is verified. */
+function hostKeyTrustMode(config: SshHostWizardConfig): string {
+  const fingerprint = config.hostKeyFingerprint?.trim()
+  return fingerprint ? `Pinned to ${fingerprint}` : 'Ask on first connection'
+}
+
+/** fieldError renders an inline validation message, or nothing when valid. */
+function fieldError(message: string): ReactNode {
+  if (!message) return undefined
+  return <span className="text-destructive text-xs">{message}</span>
+}
+
 function SshHostSetupForm({
   config,
   credentialDraft,
@@ -771,207 +801,254 @@ function SshHostSetupForm({
   onConfigChange: (patch: Partial<SshHostWizardConfig>) => void
   onCredentialChange: (patch: Partial<SshCredentialDraft>) => void
 }) {
+  return (
+    <section className="space-y-3">
+      <SshEndpointCard config={config} onConfigChange={onConfigChange} />
+      <SshCredentialCard
+        authMode={authMode}
+        credentialDraft={credentialDraft}
+        onConfigChange={onConfigChange}
+        onCredentialChange={onCredentialChange}
+      />
+      <SshHostKeyTrustCard config={config} onConfigChange={onConfigChange} />
+      <SshSetupModeCard setupMode={setupMode} onConfigChange={onConfigChange} />
+      <SshReviewCard config={config} authMode={authMode} />
+    </section>
+  )
+}
+
+/** SshEndpointCard edits the host, port, and user of the SSH endpoint. */
+function SshEndpointCard({
+  config,
+  onConfigChange,
+}: {
+  config: SshHostWizardConfig
+  onConfigChange: (patch: Partial<SshHostWizardConfig>) => void
+}) {
   const port = normalizeSshPort(config.port)
   const hostError = !config.host?.trim() ? 'Host is required.' : ''
   const userError = !config.username?.trim() ? 'User is required.' : ''
   const portError =
     port < 1 || port > 65535 ? 'Port must be between 1 and 65535.' : ''
+
+  return (
+    <div className={sshCardClassName}>
+      <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
+        <LuServer className="size-3.5" />
+        SSH Endpoint
+      </div>
+      <div className="sm:grid-cols-device grid gap-2">
+        <WizardField
+          label="Host"
+          value={config.host ?? ''}
+          onChange={(e) => onConfigChange({ host: e.target.value })}
+          placeholder="host.example.com"
+          help={fieldError(hostError)}
+        />
+        <WizardField
+          label="Port"
+          type="number"
+          min={1}
+          max={65535}
+          value={String(port)}
+          onChange={(e) =>
+            onConfigChange({ port: parsePortInput(e.target.value) })
+          }
+          aria-label="SSH port"
+          help={fieldError(portError)}
+        />
+        <WizardField
+          label="User"
+          value={config.username ?? ''}
+          onChange={(e) => onConfigChange({ username: e.target.value })}
+          placeholder="user"
+          help={fieldError(userError)}
+        />
+      </div>
+    </div>
+  )
+}
+
+/** SshCredentialCard picks the auth mode and edits its password or private key. */
+function SshCredentialCard({
+  authMode,
+  credentialDraft,
+  onConfigChange,
+  onCredentialChange,
+}: {
+  authMode: SshAuthMode
+  credentialDraft: SshCredentialDraft
+  onConfigChange: (patch: Partial<SshHostWizardConfig>) => void
+  onCredentialChange: (patch: Partial<SshCredentialDraft>) => void
+}) {
   const credentialError =
     authMode === 'private-key' && !credentialDraft.privateKey.trim()
       ? 'Private key is required.'
       : ''
-  const trustMode = config.hostKeyFingerprint?.trim()
-    ? `Pinned to ${config.hostKeyFingerprint.trim()}`
-    : 'Ask on first connection'
-  const credentialKind = authMode === 'private-key' ? 'Private key' : 'Password'
-  const endpoint = config.host?.trim()
-    ? `${config.host.trim()}:${port}`
+
+  return (
+    <div className={sshCardClassName}>
+      <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
+        <LuKeyRound className="size-3.5" />
+        SSH Credential
+      </div>
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <AuthModeButton
+          active={authMode === 'password'}
+          label="Password"
+          onClick={() => onConfigChange({ authMode: 'password' })}
+        />
+        <AuthModeButton
+          active={authMode === 'private-key'}
+          label="Private Key"
+          onClick={() => onConfigChange({ authMode: 'private-key' })}
+        />
+      </div>
+      {authMode === 'password' ? (
+        <WizardField
+          label="Password"
+          type="password"
+          value={credentialDraft.password}
+          onChange={(e) => onCredentialChange({ password: e.target.value })}
+          placeholder="SSH password"
+          help="Leave blank if the host accepts an empty password or requires no authentication."
+        />
+      ) : (
+        <div className="space-y-2">
+          <WizardTextareaField
+            label="Private key"
+            value={credentialDraft.privateKey}
+            onChange={(e) => onCredentialChange({ privateKey: e.target.value })}
+            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+            className="min-h-28"
+            help={fieldError(credentialError)}
+          />
+          <WizardField
+            label="Passphrase"
+            type="password"
+            value={credentialDraft.passphrase}
+            onChange={(e) => onCredentialChange({ passphrase: e.target.value })}
+            placeholder="Private key passphrase (optional)"
+            help="Optional for unencrypted private keys."
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** SshHostKeyTrustCard edits the optional pinned host key. */
+function SshHostKeyTrustCard({
+  config,
+  onConfigChange,
+}: {
+  config: SshHostWizardConfig
+  onConfigChange: (patch: Partial<SshHostWizardConfig>) => void
+}) {
+  return (
+    <details className={sshCardClassName}>
+      <summary className="text-foreground flex cursor-pointer items-center justify-between text-xs font-medium select-none">
+        <span>Host-key trust (advanced)</span>
+        <span className="text-foreground-alt/60 text-xs">optional</span>
+      </summary>
+      <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
+        Trust mode:{' '}
+        <span className="font-medium">{hostKeyTrustMode(config)}</span>. Leave
+        the fields empty to ask on the first connection.
+      </p>
+      <div className="sm:grid-cols-form mt-3 grid gap-2">
+        <WizardField
+          label="Algorithm"
+          value={config.hostKeyAlgorithm ?? 'ssh-ed25519'}
+          onChange={(e) => onConfigChange({ hostKeyAlgorithm: e.target.value })}
+          placeholder="ssh-ed25519"
+          variant="compactMono"
+        />
+        <WizardField
+          label="Fingerprint"
+          value={config.hostKeyFingerprint ?? ''}
+          onChange={(e) =>
+            onConfigChange({ hostKeyFingerprint: e.target.value })
+          }
+          placeholder="SHA256:..."
+          variant="compactMono"
+        />
+      </div>
+      <WizardTextareaField
+        label="Public key"
+        value={config.hostKeyPublicKey ?? ''}
+        onChange={(e) => onConfigChange({ hostKeyPublicKey: e.target.value })}
+        placeholder="[host]:22 ssh-ed25519 AAAA… or ssh-ed25519 AAAA…"
+        className="min-h-16 font-mono text-xs"
+        fieldClassName="mt-2"
+      />
+    </details>
+  )
+}
+
+/** SshSetupModeCard shows the setup actions; installing the agent is unavailable. */
+function SshSetupModeCard({
+  setupMode,
+  onConfigChange,
+}: {
+  setupMode: SshSetupMode
+  onConfigChange: (patch: Partial<SshHostWizardConfig>) => void
+}) {
+  return (
+    <div className={sshCardClassName}>
+      <div className="text-foreground mb-2 text-xs font-medium">
+        What do you want to do?
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <AuthModeButton
+          active={setupMode === 'host'}
+          label="Add SSH Host"
+          onClick={() => onConfigChange({ setupMode: 'host' })}
+        />
+        <AuthModeButton
+          active={setupMode === 'install-agent'}
+          label="Install Agent"
+          onClick={() => undefined}
+          disabled
+        />
+      </div>
+    </div>
+  )
+}
+
+/** SshReviewCard summarizes the SSH host before it is created. */
+function SshReviewCard({
+  config,
+  authMode,
+}: {
+  config: SshHostWizardConfig
+  authMode: SshAuthMode
+}) {
+  const host = config.host?.trim()
+  const endpoint = host
+    ? `${host}:${normalizeSshPort(config.port)}`
     : 'Host not set'
 
   return (
-    <section className="space-y-3">
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
-          <LuServer className="size-3.5" />
-          SSH Endpoint
-        </div>
-        <div className="sm:grid-cols-device grid gap-2">
-          <WizardField
-            label="Host"
-            value={config.host ?? ''}
-            onChange={(e) => onConfigChange({ host: e.target.value })}
-            placeholder="host.example.com"
-            help={
-              hostError ? (
-                <span className="text-destructive text-xs">{hostError}</span>
-              ) : undefined
-            }
-          />
-          <WizardField
-            label="Port"
-            type="number"
-            min={1}
-            max={65535}
-            value={String(port)}
-            onChange={(e) =>
-              onConfigChange({ port: parsePortInput(e.target.value) })
-            }
-            aria-label="SSH port"
-            help={
-              portError ? (
-                <span className="text-destructive text-xs">{portError}</span>
-              ) : undefined
-            }
-          />
-          <WizardField
-            label="User"
-            value={config.username ?? ''}
-            onChange={(e) => onConfigChange({ username: e.target.value })}
-            placeholder="user"
-            help={
-              userError ? (
-                <span className="text-destructive text-xs">{userError}</span>
-              ) : undefined
-            }
-          />
-        </div>
-      </div>
-
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
-          <LuKeyRound className="size-3.5" />
-          SSH Credential
-        </div>
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          <AuthModeButton
-            active={authMode === 'password'}
-            label="Password"
-            onClick={() => onConfigChange({ authMode: 'password' })}
-          />
-          <AuthModeButton
-            active={authMode === 'private-key'}
-            label="Private Key"
-            onClick={() => onConfigChange({ authMode: 'private-key' })}
-          />
-        </div>
-        {authMode === 'password' ? (
-          <WizardField
-            label="Password"
-            type="password"
-            value={credentialDraft.password}
-            onChange={(e) => onCredentialChange({ password: e.target.value })}
-            placeholder="SSH password"
-            help="Leave blank if the host accepts an empty password or requires no authentication."
-          />
-        ) : (
-          <div className="space-y-2">
-            <WizardTextareaField
-              label="Private key"
-              value={credentialDraft.privateKey}
-              onChange={(e) =>
-                onCredentialChange({ privateKey: e.target.value })
-              }
-              placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-              className="min-h-28"
-              help={
-                credentialError ? (
-                  <span className="text-destructive text-xs">
-                    {credentialError}
-                  </span>
-                ) : undefined
-              }
-            />
-            <WizardField
-              label="Passphrase"
-              type="password"
-              value={credentialDraft.passphrase}
-              onChange={(e) =>
-                onCredentialChange({ passphrase: e.target.value })
-              }
-              placeholder="Private key passphrase (optional)"
-              help="Optional for unencrypted private keys."
-            />
-          </div>
-        )}
-      </div>
-
-      <details className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <summary className="text-foreground flex cursor-pointer items-center justify-between text-xs font-medium select-none">
-          <span>Host-key trust (advanced)</span>
-          <span className="text-foreground-alt/60 text-xs">optional</span>
-        </summary>
-        <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
-          Trust mode: <span className="font-medium">{trustMode}</span>. Leave
-          the fields empty to ask on the first connection.
-        </p>
-        <div className="sm:grid-cols-form mt-3 grid gap-2">
-          <WizardField
-            label="Algorithm"
-            value={config.hostKeyAlgorithm ?? 'ssh-ed25519'}
-            onChange={(e) =>
-              onConfigChange({ hostKeyAlgorithm: e.target.value })
-            }
-            placeholder="ssh-ed25519"
-            variant="compactMono"
-          />
-          <WizardField
-            label="Fingerprint"
-            value={config.hostKeyFingerprint ?? ''}
-            onChange={(e) =>
-              onConfigChange({ hostKeyFingerprint: e.target.value })
-            }
-            placeholder="SHA256:..."
-            variant="compactMono"
-          />
-        </div>
-        <WizardTextareaField
-          label="Public key"
-          value={config.hostKeyPublicKey ?? ''}
-          onChange={(e) => onConfigChange({ hostKeyPublicKey: e.target.value })}
-          placeholder="[host]:22 ssh-ed25519 AAAA… or ssh-ed25519 AAAA…"
-          className="min-h-16 font-mono text-xs"
-          fieldClassName="mt-2"
+    <div className={sshCardClassName}>
+      <div className="text-foreground mb-2 text-xs font-medium">Review</div>
+      <dl className="grid gap-2 text-xs sm:grid-cols-2">
+        <ReviewRow label="Host label" value={host || 'Not set'} />
+        <ReviewRow label="SSH endpoint" value={endpoint} mono />
+        <ReviewRow
+          label="Username"
+          value={config.username?.trim() || 'Not set'}
         />
-      </details>
-
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 text-xs font-medium">
-          What do you want to do?
-        </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <AuthModeButton
-            active={setupMode === 'host'}
-            label="Add SSH Host"
-            onClick={() => onConfigChange({ setupMode: 'host' })}
-          />
-          <AuthModeButton
-            active={setupMode === 'install-agent'}
-            label="Install Agent"
-            onClick={() => undefined}
-            disabled
-          />
-        </div>
-      </div>
-
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 text-xs font-medium">Review</div>
-        <dl className="grid gap-2 text-xs sm:grid-cols-2">
-          <ReviewRow
-            label="Host label"
-            value={config.host?.trim() || 'Not set'}
-          />
-          <ReviewRow label="SSH endpoint" value={endpoint} mono />
-          <ReviewRow
-            label="Username"
-            value={config.username?.trim() || 'Not set'}
-          />
-          <ReviewRow label="Credential" value={credentialKind} />
-          <ReviewRow label="Trust mode" value={trustMode} />
-        </dl>
-      </div>
-    </section>
+        <ReviewRow
+          label="Credential"
+          value={authMode === 'private-key' ? 'Private key' : 'Password'}
+        />
+        <ReviewRow label="Trust mode" value={hostKeyTrustMode(config)} />
+      </dl>
+    </div>
   )
 }
+
 function ReviewRow({
   label,
   value,
@@ -1076,6 +1153,7 @@ function SpaceLinkApprovalPanel({
   onApprove: () => void
   onSignIn: () => void
 }) {
+  const ticketId = useId()
   if (loading) {
     return (
       <LoadingCard
@@ -1137,7 +1215,10 @@ function SpaceLinkApprovalPanel({
         </div>
       )}
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <label className="text-foreground text-xs font-medium select-none">
+        <label
+          htmlFor={ticketId}
+          className="text-foreground text-xs font-medium select-none"
+        >
           {ticketReady ? 'Approve Device ticket' : '2. Paste the Device ticket'}
         </label>
         <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
@@ -1146,6 +1227,8 @@ function SpaceLinkApprovalPanel({
             : 'Paste the base64 ticket printed by the Device setup command.'}
         </p>
         <textarea
+          id={ticketId}
+          aria-label="Device ticket"
           value={ticket}
           onChange={(e) => onTicketChange(e.target.value)}
           placeholder="Paste the base64 ticket from spacewave device setup"

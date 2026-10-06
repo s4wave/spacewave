@@ -36,3 +36,9 @@ func TestForgeCreateWorkerExposesSessionPeerAndClusterInputs(t *testing.T) {
 	createWorker := findTestSubcommand(t, cmd, "create-worker")
 	assertCommandFlags(t, createWorker, "state-path", "socket-path", "session-index", "space", "name", "peer-id", "cluster")
 }
+
+func TestForgeShowExecutionTakesAKeyInTheSpace(t *testing.T) {
+	cmd := newForgeCommand(nil)
+	showExecution := findTestSubcommand(t, cmd, "show-execution")
+	assertCommandFlags(t, showExecution, "state-path", "socket-path", "session-index", "space")
+}

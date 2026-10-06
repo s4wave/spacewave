@@ -20,8 +20,10 @@ import (
 // and rebuild it: an unchanged settled digest means startup reused a stale
 // build after the source changed.
 func TestStartupBuildCacheInvalidatesOnSourceChange(t *testing.T) {
+	// Enable the startup build cache.
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "true")
 
+	// Snapshot app source and restore it when the test ends.
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "find repo root"))
@@ -37,12 +39,14 @@ func TestStartupBuildCacheInvalidatesOnSourceChange(t *testing.T) {
 		}
 	})
 
+	// Bound the two boots.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
+	// Boot once and record the startup manifest digests.
 	first, err := Boot(ctx, le,
 		WithManifestBuildTimeout(20*time.Minute),
 	)
@@ -56,12 +60,14 @@ func TestStartupBuildCacheInvalidatesOnSourceChange(t *testing.T) {
 	}
 	first.Release()
 
+	// Append a probe comment to the app source.
 	mutated := append([]byte(nil), original...)
 	mutated = append(mutated, []byte("\n// e2e startup cache invalidation probe\n")...)
 	if err := os.WriteFile(appSource, mutated, 0o644); err != nil {
 		t.Fatal(errors.Wrap(err, "mutate app source"))
 	}
 
+	// Boot again and record the new startup manifest digests.
 	second, err := Boot(ctx, le,
 		WithManifestBuildTimeout(20*time.Minute),
 	)
@@ -74,6 +80,7 @@ func TestStartupBuildCacheInvalidatesOnSourceChange(t *testing.T) {
 		t.Fatalf("settle second boot manifests: %v", err)
 	}
 
+	// Require the app manifest digest to change.
 	const pluginID = "spacewave-app"
 	firstDigest, ok := firstDigests[pluginID]
 	if !ok {

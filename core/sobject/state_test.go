@@ -117,10 +117,11 @@ func TestNextOperationLink(t *testing.T) {
 	keys := mustPrivKeys(t, peers)
 	state, _ := newTestSOState(t, peers)
 	ids := []string{peers[0].GetPeerID().String(), peers[1].GetPeerID().String()}
-	link, err := state.NextOperationLink(mockSharedObjectID, ids[0])
+	set, err := state.OperationSet(mockSharedObjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
+	link := state.NextOperationLink(set, ids[0])
 	if link.Nonce != 1 || len(link.PrevOpHash) != 0 || len(link.Parents) != 0 {
 		t.Fatalf("first link %v; want nonce 1 and no heads", link)
 	}
@@ -131,10 +132,11 @@ func TestNextOperationLink(t *testing.T) {
 	// After one write each, the owner extends its head and names the writer's.
 	first := writeTestOp(t, state, keys[0], "a")
 	other := writeTestOp(t, state, keys[1], "b")
-	link, err = state.NextOperationLink(mockSharedObjectID, ids[0])
+	set, err = state.OperationSet(mockSharedObjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
+	link = state.NextOperationLink(set, ids[0])
 	if link.Nonce != 2 || !bytes.Equal(link.PrevOpHash, first.Hash()) {
 		t.Fatalf("second link %v; want nonce 2 after the first", link)
 	}

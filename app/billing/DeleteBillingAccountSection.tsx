@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { LuTrash2 } from 'react-icons/lu'
 
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
@@ -44,6 +44,7 @@ export function DeleteBillingAccountSection({
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const confirmInputId = useId()
 
   const disabledReason =
     disabledReasonOverride ??
@@ -132,11 +133,15 @@ export function DeleteBillingAccountSection({
             </DialogDescription>
           </DialogHeader>
           <div>
-            <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+            <label
+              htmlFor={confirmInputId}
+              className="text-foreground-alt mb-1.5 block text-xs select-none"
+            >
               Type <span className="text-destructive font-medium">DELETE</span>{' '}
               to confirm.
             </label>
             <input
+              id={confirmInputId}
               ref={handleConfirmInputRef}
               type="text"
               value={confirmText}
@@ -147,6 +152,7 @@ export function DeleteBillingAccountSection({
                 'focus:border-destructive/50',
               )}
               onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return
                 if (e.key === 'Enter' && confirmed && !deleting) {
                   void handleDelete()
                 }
@@ -156,6 +162,7 @@ export function DeleteBillingAccountSection({
           {error && <div className="text-destructive text-xs">{error}</div>}
           <DialogFooter>
             <button
+              type="button"
               onClick={() => handleOpenChange(false)}
               disabled={deleting}
               className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -163,6 +170,7 @@ export function DeleteBillingAccountSection({
               Cancel
             </button>
             <button
+              type="button"
               onClick={() => void handleDelete()}
               disabled={!confirmed || deleting}
               className={cn(

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   LuArrowLeft,
   LuArrowRight,
@@ -109,45 +109,58 @@ interface AuthMutationWizardContentProps extends AuthMutationWizardProps {
   accountInfoResource: Resource<WatchAccountInfoResponse>
 }
 
-function AuthMutationWizardContent({
-  open,
-  onClose,
-  mode,
+// describeMutation returns the dialog title and description for the wizard
+// operation.
+function describeMutation(
+  mode: WizardMode,
+  addMethodType?: AddMethodType,
+  removeMethodLabel?: string,
+): { title: string; description: string } {
+  if (mode === 'remove') {
+    return {
+      title: 'Remove auth method',
+      description: `Remove "${removeMethodLabel ?? 'auth method'}" from your account.`,
+    }
+  }
+  return {
+    title: addMethodType === 'pem' ? 'Add backup key' : 'Add auth method',
+    description: 'Step through the wizard to securely add a new auth method.',
+  }
+}
+
+interface MutationExecutionOptions {
+  account: Resource<Account>
+  mode: WizardMode
+  addMethodType?: AddMethodType
+  removePeerId?: string
+  cred: ReturnType<typeof useCredentialProof>
+  canExecute: boolean
+}
+
+// useMutationExecution runs the add or remove operation once enough keypairs
+// are unlocked, and tracks its progress and failure.
+function useMutationExecution({
   account,
-  retainAfterClose = false,
-  removePeerId,
-  removeMethodLabel,
+  mode,
   addMethodType,
-  accountInfoResource,
-}: AuthMutationWizardContentProps) {
-  const [step, setStep] = useState(0)
+  removePeerId,
+  cred,
+  canExecute,
+}: MutationExecutionOptions) {
   const [error, setError] = useState<string | null>(null)
   const [executing, setExecuting] = useState(false)
   const [complete, setComplete] = useState(false)
 
-  const cred = useCredentialProof()
-
-  const threshold = accountInfoResource.value?.authThreshold ?? 0
-
-  const {
-    keypairs,
-    unlockedCount,
-    loading: keypairsLoading,
-  } = useEntityKeypairs(account)
-  const required = threshold + 1
-  const canExecute = unlockedCount >= required
-
-  const labels = useMemo(() => stepLabels(mode), [mode])
-
-  const handleExecute = useCallback(async () => {
-    if (!account.value || !canExecute) return
+  const execute = async () => {
+    const mounted = account.value
+    if (!mounted || !canExecute) return
     setExecuting(true)
     setError(null)
     try {
       if (mode === 'add' && addMethodType === 'pem') {
         const credential = cred.credential
         if (!credential) return
-        const resp = await account.value.generateBackupKey({ credential })
+        const resp = await mounted.generateBackupKey({ credential })
         const data = resp.pemData
         if (data && data.length > 0) {
           downloadPemFile(data)
@@ -155,7 +168,7 @@ function AuthMutationWizardContent({
       } else if (mode === 'remove' && removePeerId) {
         // In multi-sig mode the server uses unlocked keypairs to sign
         // internally, so pass an empty credential.
-        await account.value.removeAuthMethod({
+        await mounted.removeAuthMethod({
           peerId: removePeerId,
           credential: cred.credential ?? {
             credential: { case: 'password' as const, value: '' },
@@ -169,116 +182,115 @@ function AuthMutationWizardContent({
     } finally {
       setExecuting(false)
     }
-  }, [
-    account.value,
-    canExecute,
-    mode,
-    addMethodType,
-    removePeerId,
-    cred.credential,
-  ])
+  }
 
-  const handleLockAll = useCallback(async () => {
-    if (retainAfterClose) return
-    if (!account.value) return
-    try {
-      await account.value.lockAllEntityKeypairs()
-    } catch {
-      // best-effort cleanup
-    }
-  }, [account.value, retainAfterClose])
-
-  const resetState = useCallback(() => {
-    setStep(0)
+  const reset = () => {
     setError(null)
     setExecuting(false)
     setComplete(false)
-    cred.reset()
-  }, [cred])
+  }
 
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (!next) {
-        void handleLockAll()
-        resetState()
-        onClose()
-      }
-    },
-    [onClose, handleLockAll, resetState],
+  return { error, setError, executing, complete, execute, reset }
+}
+
+function AuthMutationWizardContent({
+  open,
+  onClose,
+  mode,
+  account,
+  retainAfterClose = false,
+  removePeerId,
+  removeMethodLabel,
+  addMethodType,
+  accountInfoResource,
+}: AuthMutationWizardContentProps) {
+  const [step, setStep] = useState(0)
+  const cred = useCredentialProof()
+  const {
+    keypairs,
+    unlockedCount,
+    loading: keypairsLoading,
+  } = useEntityKeypairs(account)
+  const required = (accountInfoResource.value?.authThreshold ?? 0) + 1
+  const canExecute = unlockedCount >= required
+  const execution = useMutationExecution({
+    account,
+    mode,
+    addMethodType,
+    removePeerId,
+    cred,
+    canExecute,
+  })
+  const { title, description } = describeMutation(
+    mode,
+    addMethodType,
+    removeMethodLabel,
   )
 
-  const handleDone = useCallback(() => {
-    void handleLockAll()
-    resetState()
+  const close = () => {
+    if (!retainAfterClose) {
+      void account.value?.lockAllEntityKeypairs().catch(() => {
+        // best-effort cleanup
+      })
+    }
+    setStep(0)
+    execution.reset()
+    cred.reset()
     onClose()
-  }, [onClose, handleLockAll, resetState])
+  }
 
   // Step 0 readiness depends on mode.
   const step0Ready = mode === 'add' ? cred.hasCredential : !!removePeerId
 
-  const title =
-    mode === 'add'
-      ? addMethodType === 'pem'
-        ? 'Add backup key'
-        : 'Add auth method'
-      : 'Remove auth method'
-
-  const description =
-    mode === 'add'
-      ? 'Step through the wizard to securely add a new auth method.'
-      : `Remove "${removeMethodLabel ?? 'auth method'}" from your account.`
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) close()
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {/* Step indicator */}
-        <StepIndicator labels={labels} current={step} complete={complete} />
+        <StepIndicator
+          labels={stepLabels(mode)}
+          current={step}
+          complete={execution.complete}
+        />
 
-        {/* Step content */}
         <div className="min-h-30">
-          {complete ? (
+          {execution.complete ? (
             <CompleteView mode={mode} addMethodType={addMethodType} />
-          ) : step === 0 ? (
-            <Step0Content
+          ) : (
+            <MutationStep
+              step={step}
               mode={mode}
               removePeerId={removePeerId}
               removeMethodLabel={removeMethodLabel}
               addMethodType={addMethodType}
               cred={cred}
               keypairs={keypairs}
-            />
-          ) : step === 1 ? (
-            <Step1Unlock
-              keypairs={keypairs}
               unlockedCount={unlockedCount}
               required={required}
-              loading={keypairsLoading}
+              keypairsLoading={keypairsLoading}
               account={account}
-              onError={setError}
-            />
-          ) : (
-            <Step2Confirm
-              mode={mode}
-              addMethodType={addMethodType}
-              removeMethodLabel={removeMethodLabel}
-              keypairs={keypairs}
-              unlockedCount={unlockedCount}
-              required={required}
+              onError={execution.setError}
             />
           )}
 
-          {error && <p className="text-destructive mt-2 text-xs">{error}</p>}
+          {execution.error && (
+            <p className="text-destructive mt-2 text-xs">{execution.error}</p>
+          )}
         </div>
 
         <DialogFooter>
-          {complete ? (
+          {execution.complete ? (
             <button
-              onClick={handleDone}
+              type="button"
+              onClick={close}
               className={cn(
                 'rounded-md border px-4 py-2 text-sm transition-all',
                 'border-brand/30 bg-brand/10 hover:bg-brand/20',
@@ -287,79 +299,205 @@ function AuthMutationWizardContent({
               Close
             </button>
           ) : (
-            <>
-              {step > 0 && (
-                <button
-                  onClick={() => {
-                    setStep((current) => current - 1)
-                    setError(null)
-                  }}
-                  disabled={executing}
-                  className="text-foreground-alt hover:text-foreground flex items-center gap-1 rounded-md px-3 py-2 text-sm transition-colors"
-                >
-                  <LuArrowLeft className="size-3" />
-                  Back
-                </button>
-              )}
-              <div className="flex-1" />
-              <button
-                onClick={() => handleOpenChange(false)}
-                disabled={executing}
-                className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
-              >
-                Cancel
-              </button>
-              {step < 2 ? (
-                <button
-                  onClick={() => {
-                    setError(null)
-                    setStep((current) => current + 1)
-                  }}
-                  disabled={step === 0 && !step0Ready}
-                  className={cn(
-                    'flex items-center gap-1 rounded-md border px-4 py-2 text-sm transition-all',
-                    'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                  )}
-                >
-                  Next
-                  <LuArrowRight className="size-3" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => void handleExecute()}
-                  disabled={executing || !canExecute}
-                  className={cn(
-                    'flex items-center gap-1 rounded-md border px-4 py-2 text-sm transition-all',
-                    mode === 'remove'
-                      ? 'border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive'
-                      : 'border-brand/30 bg-brand/10 hover:bg-brand/20',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                  )}
-                >
-                  {executing ? (
-                    <>
-                      <Spinner size="sm" />
-                      Executing…
-                    </>
-                  ) : mode === 'remove' ? (
-                    <>
-                      <LuTrash2 className="size-3" />
-                      Remove
-                    </>
-                  ) : (
-                    <>
-                      <LuDownload className="size-3" />
-                      Generate and download
-                    </>
-                  )}
-                </button>
-              )}
-            </>
+            <MutationNav
+              step={step}
+              mode={mode}
+              executing={execution.executing}
+              canExecute={canExecute}
+              step0Ready={step0Ready}
+              onBack={() => {
+                setStep((current) => current - 1)
+                execution.setError(null)
+              }}
+              onNext={() => {
+                execution.setError(null)
+                setStep((current) => current + 1)
+              }}
+              onCancel={close}
+              onExecute={() => void execution.execute()}
+            />
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+interface MutationStepProps {
+  step: number
+  mode: WizardMode
+  removePeerId?: string
+  removeMethodLabel?: string
+  addMethodType?: AddMethodType
+  cred: ReturnType<typeof useCredentialProof>
+  keypairs: EntityKeypairState[]
+  unlockedCount: number
+  required: number
+  keypairsLoading: boolean
+  account: Resource<Account>
+  onError: (msg: string | null) => void
+}
+
+// MutationStep renders the content of the current wizard step.
+function MutationStep({
+  step,
+  mode,
+  removePeerId,
+  removeMethodLabel,
+  addMethodType,
+  cred,
+  keypairs,
+  unlockedCount,
+  required,
+  keypairsLoading,
+  account,
+  onError,
+}: MutationStepProps) {
+  if (step === 0) {
+    return (
+      <Step0Content
+        mode={mode}
+        removePeerId={removePeerId}
+        removeMethodLabel={removeMethodLabel}
+        addMethodType={addMethodType}
+        cred={cred}
+        keypairs={keypairs}
+      />
+    )
+  }
+  if (step === 1) {
+    return (
+      <Step1Unlock
+        keypairs={keypairs}
+        unlockedCount={unlockedCount}
+        required={required}
+        loading={keypairsLoading}
+        account={account}
+        onError={onError}
+      />
+    )
+  }
+  return (
+    <Step2Confirm
+      mode={mode}
+      addMethodType={addMethodType}
+      removeMethodLabel={removeMethodLabel}
+      keypairs={keypairs}
+      unlockedCount={unlockedCount}
+      required={required}
+    />
+  )
+}
+
+interface MutationNavProps {
+  step: number
+  mode: WizardMode
+  executing: boolean
+  canExecute: boolean
+  step0Ready: boolean
+  onBack: () => void
+  onNext: () => void
+  onCancel: () => void
+  onExecute: () => void
+}
+
+// MutationNav renders the back, cancel, and next or execute buttons.
+function MutationNav({
+  step,
+  mode,
+  executing,
+  canExecute,
+  step0Ready,
+  onBack,
+  onNext,
+  onCancel,
+  onExecute,
+}: MutationNavProps) {
+  return (
+    <>
+      {step > 0 && (
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={executing}
+          className="text-foreground-alt hover:text-foreground flex items-center gap-1 rounded-md px-3 py-2 text-sm transition-colors"
+        >
+          <LuArrowLeft className="size-3" />
+          Back
+        </button>
+      )}
+      <div className="flex-1" />
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={executing}
+        className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+      >
+        Cancel
+      </button>
+      {step < 2 ? (
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={step === 0 && !step0Ready}
+          className={cn(
+            'flex items-center gap-1 rounded-md border px-4 py-2 text-sm transition-all',
+            'border-brand/30 bg-brand/10 hover:bg-brand/20',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+          )}
+        >
+          Next
+          <LuArrowRight className="size-3" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onExecute}
+          disabled={executing || !canExecute}
+          className={cn(
+            'flex items-center gap-1 rounded-md border px-4 py-2 text-sm transition-all',
+            mode === 'remove'
+              ? 'border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive'
+              : 'border-brand/30 bg-brand/10 hover:bg-brand/20',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+          )}
+        >
+          <ExecuteLabel mode={mode} executing={executing} />
+        </button>
+      )}
+    </>
+  )
+}
+
+// ExecuteLabel renders the execute button content for its state.
+function ExecuteLabel({
+  mode,
+  executing,
+}: {
+  mode: WizardMode
+  executing: boolean
+}) {
+  if (executing) {
+    return (
+      <>
+        <Spinner size="sm" />
+        Executing…
+      </>
+    )
+  }
+  if (mode === 'remove') {
+    return (
+      <>
+        <LuTrash2 className="size-3" />
+        Remove
+      </>
+    )
+  }
+  return (
+    <>
+      <LuDownload className="size-3" />
+      Generate and download
+    </>
   )
 }
 
@@ -611,6 +749,7 @@ function UnlockRow({
           </div>
         </div>
         <button
+          type="button"
           onClick={() => void handleLock()}
           className="text-foreground-alt hover:text-foreground text-xs transition-colors"
         >
@@ -640,6 +779,7 @@ function UnlockRow({
             type="password"
             value={cred.password}
             onChange={(e) => cred.setPassword(e.target.value)}
+            aria-label="Password"
             placeholder="Enter password"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && canUnlock) void handleUnlock()
@@ -677,6 +817,7 @@ function UnlockRow({
           </>
         )}
         <button
+          type="button"
           onClick={() => void handleUnlock()}
           disabled={unlocking || !canUnlock}
           className={cn(

@@ -14,6 +14,8 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Account } from '@s4wave/sdk/account/account.js'
+import type { Root } from '@s4wave/sdk/root/root.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 import type { EntityKeypairState } from '@s4wave/sdk/account/account.pb.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
@@ -211,6 +213,7 @@ function AuthUnlockWizardContent({
 
         <DialogFooter>
           <button
+            type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:opacity-50"
@@ -218,6 +221,7 @@ function AuthUnlockWizardContent({
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => void handleConfirm()}
             disabled={submitting || !canConfirm}
             className={cn(
@@ -241,28 +245,286 @@ interface KeypairRowProps {
   onError: (msg: string | null) => void
 }
 
-// KeypairRow renders a single entity keypair with its lock status and unlock controls.
+// KeypairRow renders a single entity keypair with its lock status and the
+// unlock controls its auth method needs.
 function KeypairRow({
   keypairState,
   account,
   disabled,
   onError,
 }: KeypairRowProps) {
-  const rootResource = useRootResource()
-  const root = useResourceValue(rootResource)
-  const sessionResource = SessionContext.useContext()
-  const session = useResourceValue(sessionResource)
-  const cloudProviderConfig = useCloudProviderConfig()
   const peerId = keypairState.keypair?.peerId ?? ''
   const method = keypairState.keypair?.authMethod ?? 'unknown'
-  const unlocked = keypairState.unlocked ?? false
-  const truncated = truncatePeerId(peerId)
+  const props = {
+    account,
+    peerId,
+    method,
+    truncated: truncatePeerId(peerId),
+    disabled,
+    onError,
+  }
 
-  const cred = useCredentialProof()
+  if (keypairState.unlocked) {
+    return <UnlockedKeypairRow {...props} />
+  }
+  if (
+    method === 'passkey' ||
+    method === 'google_sso' ||
+    method === 'github_sso'
+  ) {
+    return <BrowserKeypairRow {...props} />
+  }
+  return <CredentialKeypairRow {...props} />
+}
+
+interface KeypairRowStateProps {
+  account: Resource<Account>
+  peerId: string
+  method: string
+  truncated: string
+  disabled: boolean
+  onError: (msg: string | null) => void
+}
+
+// UnlockedKeypairRow renders an unlocked keypair with its lock control.
+function UnlockedKeypairRow({
+  account,
+  peerId,
+  method,
+  truncated,
+  disabled,
+  onError,
+}: KeypairRowStateProps) {
+  const handleLock = async () => {
+    if (!account.value || !peerId) {
+      return
+    }
+    try {
+      await account.value.lockEntityKeypair(peerId)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Lock failed')
+    }
+  }
+
+  return (
+    <div className="border-foreground/10 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <LuLockOpen className="text-brand size-3.5 shrink-0" />
+        <div className="min-w-0">
+          <p className="text-foreground text-sm font-medium">
+            {methodLabel(method)}
+          </p>
+          <p className="text-foreground-alt truncate font-mono text-xs">
+            {truncated}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => void handleLock()}
+        disabled={disabled}
+        className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
+      >
+        Lock
+      </button>
+    </div>
+  )
+}
+
+// CredentialKeypairRow unlocks a password or backup-key keypair.
+function CredentialKeypairRow({
+  account,
+  peerId,
+  method,
+  truncated,
+  disabled,
+  onError,
+}: KeypairRowStateProps) {
+  const runner = useUnlockRunner(onError)
+  const { credential, unlockWithCredential } = useCredentialUnlock(
+    account,
+    peerId,
+    runner,
+  )
+
+  return (
+    <CredentialUnlockCard
+      method={method}
+      truncated={truncated}
+      credential={credential}
+      disabled={disabled || runner.unlocking}
+      unlocking={runner.unlocking}
+      showPassword={method === 'password'}
+      onUnlock={() => void unlockWithCredential()}
+    />
+  )
+}
+
+// BrowserKeypairRow unlocks a passkey or SSO keypair through a browser or
+// desktop ceremony, resuming with a PIN when the recovered key is PIN wrapped.
+function BrowserKeypairRow({
+  account,
+  peerId,
+  method,
+  truncated,
+  disabled,
+  onError,
+}: KeypairRowStateProps) {
+  const runner = useUnlockRunner(onError)
+  const recovered = useRecoveredUnlock(account, peerId, runner)
+  const flow = useBrowserFlow()
+  const { unlockWithPasskey, unlockWithSSO } = useBrowserUnlock({
+    peerId,
+    method,
+    runner,
+    flow,
+    finishRecovery: recovered.finishRecovery,
+  })
+
+  const handleCancel = () => {
+    flow.cancel()
+    runner.setUnlocking(false)
+  }
+
+  return (
+    <BrowserUnlockCard
+      method={method}
+      truncated={truncated}
+      pin={recovered.pin}
+      onPinChange={recovered.setPin}
+      needsPin={recovered.pendingRecovered?.case === 'pin'}
+      waiting={runner.unlocking}
+      disabled={disabled}
+      flowActive={flow.active}
+      desktopRelayActive={flow.desktopRelayActive}
+      onStart={() => {
+        if (method === 'passkey') {
+          void unlockWithPasskey()
+          return
+        }
+        void unlockWithSSO()
+      }}
+      onCancel={flow.active ? handleCancel : undefined}
+      onUnlockPin={() => void recovered.unlockWithPin()}
+    />
+  )
+}
+
+interface UnlockRunner {
+  onError: (msg: string | null) => void
+  unlocking: boolean
+  setUnlocking: (unlocking: boolean) => void
+  runUnlock: (
+    work: () => Promise<void>,
+    opts?: { ignoreCanceled?: boolean; cleanup?: () => void },
+  ) => Promise<void>
+}
+
+// useUnlockRunner tracks the in-flight unlock and reports its failure through
+// onError. ignoreCanceled drops a user-canceled ceremony silently, and cleanup
+// runs once the unlock settles.
+function useUnlockRunner(onError: (msg: string | null) => void): UnlockRunner {
   const [unlocking, setUnlocking] = useState(false)
+
+  const runUnlock: UnlockRunner['runUnlock'] = async (work, opts = {}) => {
+    setUnlocking(true)
+    onError(null)
+    try {
+      await work()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unlock failed'
+      if (!opts.ignoreCanceled || !msg.includes('canceled')) {
+        onError(mapAuthError(msg))
+      }
+    } finally {
+      opts.cleanup?.()
+      setUnlocking(false)
+    }
+  }
+
+  return { onError, unlocking, setUnlocking, runUnlock }
+}
+
+// useCredentialUnlock unlocks a keypair with the password or backup key held
+// by the credential proof.
+function useCredentialUnlock(
+  account: Resource<Account>,
+  peerId: string,
+  runner: UnlockRunner,
+) {
+  const credential = useCredentialProof()
+
+  const unlockWithCredential = async () => {
+    const mounted = account.value
+    const proof = credential.credential
+    if (!mounted || !peerId || !proof) {
+      return
+    }
+    await runner.runUnlock(async () => {
+      await mounted.unlockEntityKeypair(peerId, proof)
+      credential.reset()
+    })
+  }
+
+  return { credential, unlockWithCredential }
+}
+
+// useRecoveredUnlock unlocks a keypair from a recovered PEM, holding a
+// PIN-wrapped recovery until the user enters the PIN.
+function useRecoveredUnlock(
+  account: Resource<Account>,
+  peerId: string,
+  runner: UnlockRunner,
+) {
+  const rootResource = useRootResource()
+  const root = useResourceValue(rootResource)
   const [pin, setPin] = useState('')
   const [pendingRecovered, setPendingRecovered] =
     useState<RecoveredEntityPem | null>(null)
+
+  const unlockWithPem = async (pemPrivateKey: Uint8Array) => {
+    if (!account.value || !peerId) {
+      return
+    }
+    await account.value.unlockEntityKeypair(peerId, {
+      credential: {
+        case: 'pemPrivateKey',
+        value: pemPrivateKey,
+      },
+    })
+    setPendingRecovered(null)
+    setPin('')
+  }
+
+  const finishRecovery = async (recovered: RecoveredEntityPem) => {
+    if (recovered.case === 'pin') {
+      setPendingRecovered(recovered)
+      return
+    }
+    await unlockWithPem(recovered.pemPrivateKey)
+  }
+
+  const unlockWithPin = async () => {
+    if (!pendingRecovered) {
+      return
+    }
+    if (!root) {
+      runner.onError('Provider is not ready')
+      return
+    }
+    await runner.runUnlock(async () => {
+      await unlockWithPem(
+        await resolveRecoveredEntityPem(root, pendingRecovered, pin),
+      )
+    })
+  }
+
+  return { pin, setPin, pendingRecovered, finishRecovery, unlockWithPin }
+}
+
+// useBrowserFlow tracks the SSO popup and the desktop relays that a browser
+// ceremony has in flight, and cancels whatever is active on unmount.
+function useBrowserFlow() {
   const [ssoFlow, setSSOFlow] = useState<SSOPopupFlow | null>(null)
   const [desktopSSOAbort, setDesktopSSOAbort] =
     useState<AbortController | null>(null)
@@ -277,267 +539,173 @@ function KeypairRow({
     }
   }, [desktopPasskeyAbort, desktopSSOAbort, ssoFlow])
 
-  const needsPassword = method === 'password'
-  const needsPasskey = method === 'passkey'
-  const needsSSO = method === 'google_sso' || method === 'github_sso'
-  const needsPin = pendingRecovered?.case === 'pin'
-
-  const unlockWithCredential = useCallback(async () => {
-    if (!account.value || !peerId || !cred.credential) {
-      return
-    }
-    setUnlocking(true)
-    onError(null)
-    try {
-      await account.value.unlockEntityKeypair(peerId, cred.credential)
-      cred.reset()
-      setPendingRecovered(null)
-      setPin('')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unlock failed'
-      onError(mapAuthError(msg))
-    } finally {
-      setUnlocking(false)
-    }
-  }, [account.value, cred, onError, peerId])
-
-  const unlockWithPem = useCallback(
-    async (pemPrivateKey: Uint8Array) => {
-      if (!account.value || !peerId) {
-        return
-      }
-      await account.value.unlockEntityKeypair(peerId, {
-        credential: {
-          case: 'pemPrivateKey',
-          value: pemPrivateKey,
-        },
-      })
-      setPendingRecovered(null)
-      setPin('')
-    },
-    [account.value, peerId],
-  )
-
-  const handlePasskeyUnlock = useCallback(async () => {
-    if (!root) {
-      onError('Not connected to server')
-      return
-    }
-    setUnlocking(true)
-    onError(null)
-    try {
-      let recovered: RecoveredEntityPem
-      if (isDesktop) {
-        if (!session) {
-          throw new Error('Session is not ready')
-        }
-        if (!peerId) {
-          throw new Error('Signer is not available')
-        }
-        const controller = new AbortController()
-        setDesktopPasskeyAbort(controller)
-        recovered = await recoverPasskeyEntityPem(root, {
-          desktopSession: session.spacewave,
-          targetPeerId: peerId,
-          abortSignal: controller.signal,
-        })
-      } else {
-        recovered = await recoverPasskeyEntityPem(root)
-      }
-      if (recovered.case === 'pin') {
-        setPendingRecovered(recovered)
-        return
-      }
-      await unlockWithPem(recovered.pemPrivateKey)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unlock failed'
-      if (msg.includes('canceled')) {
-        return
-      }
-      onError(mapAuthError(msg))
-    } finally {
-      setDesktopPasskeyAbort(null)
-      setUnlocking(false)
-    }
-  }, [onError, peerId, root, session, unlockWithPem])
-
-  const handleSSOUnlock = useCallback(async () => {
-    const accountBaseUrl = cloudProviderConfig?.accountBaseUrl ?? ''
-    if (!root || !accountBaseUrl) {
-      onError('SSO is not configured')
-      return
-    }
-    setUnlocking(true)
-    onError(null)
-    try {
-      let code: string
-      const provider = method === 'google_sso' ? 'google' : 'github'
-      if (isDesktop) {
-        if (!session) {
-          throw new Error('Session is not ready')
-        }
-        const controller = new AbortController()
-        setDesktopSSOAbort(controller)
-        const resp = await session.spacewave.startDesktopSSOLink(
-          { ssoProvider: provider },
-          controller.signal,
-        )
-        code = resp.code ?? ''
-        if (!code) {
-          throw new Error(
-            'Desktop SSO unlock did not return an authorization code',
-          )
-        }
-      } else {
-        const ssoBaseUrl = cloudProviderConfig?.ssoBaseUrl ?? ''
-        if (!ssoBaseUrl) {
-          throw new Error('SSO is not configured')
-        }
-        const flow = startSSOPopupFlow({
-          provider,
-          ssoBaseUrl,
-          origin: window.location.origin,
-          mode: 'unlock',
-        })
-        setSSOFlow(flow)
-        code = await flow.waitForResult
-      }
-      const recovered = await recoverSSOEntityPem(
-        root,
-        provider,
-        code,
-        `${accountBaseUrl}/auth/sso/callback`,
-      )
-      if (recovered.case === 'pin') {
-        setPendingRecovered(recovered)
-        return
-      }
-      await unlockWithPem(recovered.pemPrivateKey)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unlock failed'
-      if (msg.includes('canceled')) {
-        return
-      }
-      onError(mapAuthError(msg))
-    } finally {
-      setDesktopSSOAbort(null)
-      setSSOFlow(null)
-      setUnlocking(false)
-    }
-  }, [cloudProviderConfig, method, onError, root, session, unlockWithPem])
-
-  const handlePinUnlock = useCallback(async () => {
-    if (!pendingRecovered) {
-      return
-    }
-    if (!root) {
-      onError('Provider is not ready')
-      return
-    }
-    setUnlocking(true)
-    onError(null)
-    try {
-      const pemPrivateKey = await resolveRecoveredEntityPem(
-        root,
-        pendingRecovered,
-        pin,
-      )
-      await unlockWithPem(pemPrivateKey)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unlock failed'
-      onError(mapAuthError(msg))
-    } finally {
-      setUnlocking(false)
-    }
-  }, [onError, pendingRecovered, pin, root, unlockWithPem])
-
-  const handleLock = useCallback(async () => {
-    if (!account.value || !peerId) {
-      return
-    }
-    try {
-      await account.value.lockEntityKeypair(peerId)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Lock failed'
-      onError(msg)
-    }
-  }, [account.value, onError, peerId])
-
-  if (unlocked) {
-    return (
-      <div className="border-foreground/10 flex items-center justify-between gap-2 rounded-md border px-3 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <LuLockOpen className="text-brand size-3.5 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-foreground text-sm font-medium">
-              {methodLabel(method)}
-            </p>
-            <p className="text-foreground-alt truncate font-mono text-xs">
-              {truncated}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => void handleLock()}
-          disabled={disabled}
-          className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
-        >
-          Lock
-        </button>
-      </div>
-    )
-  }
-
-  if (!needsPasskey && !needsSSO && !needsPin) {
-    return (
-      <CredentialUnlockCard
-        method={method}
-        truncated={truncated}
-        credential={cred}
-        disabled={disabled || unlocking}
-        unlocking={unlocking}
-        showPassword={needsPassword}
-        onUnlock={() => void unlockWithCredential()}
-      />
-    )
-  }
-
-  const handleCancelBrowserFlow = () => {
+  const cancel = () => {
     ssoFlow?.cancel()
     desktopSSOAbort?.abort()
     desktopPasskeyAbort?.abort()
     setDesktopSSOAbort(null)
     setDesktopPasskeyAbort(null)
     setSSOFlow(null)
-    setUnlocking(false)
   }
 
-  return (
-    <BrowserUnlockCard
-      method={method}
-      truncated={truncated}
-      pin={pin}
-      onPinChange={setPin}
-      needsPin={needsPin}
-      waiting={unlocking}
-      disabled={disabled}
-      flowActive={!!ssoFlow || !!desktopSSOAbort || !!desktopPasskeyAbort}
-      desktopRelayActive={!!desktopSSOAbort || !!desktopPasskeyAbort}
-      onStart={() => {
-        if (needsPasskey) {
-          void handlePasskeyUnlock()
-          return
-        }
-        void handleSSOUnlock()
-      }}
-      onCancel={
-        ssoFlow || desktopSSOAbort || desktopPasskeyAbort
-          ? handleCancelBrowserFlow
-          : undefined
-      }
-      onUnlockPin={() => void handlePinUnlock()}
-    />
-  )
+  return {
+    active: !!ssoFlow || !!desktopSSOAbort || !!desktopPasskeyAbort,
+    desktopRelayActive: !!desktopSSOAbort || !!desktopPasskeyAbort,
+    setSSOFlow,
+    setDesktopSSOAbort,
+    setDesktopPasskeyAbort,
+    cancel,
+  }
+}
+
+type BrowserFlow = ReturnType<typeof useBrowserFlow>
+
+// recoverPasskeyForSigner recovers the signer's PEM with a passkey. Desktop
+// relays the ceremony through the session and reports its abort controller to
+// onAbort.
+async function recoverPasskeyForSigner(
+  root: Root,
+  session: Session | null,
+  peerId: string,
+  onAbort: (controller: AbortController) => void,
+): Promise<RecoveredEntityPem> {
+  if (!isDesktop) {
+    return await recoverPasskeyEntityPem(root)
+  }
+  if (!session) {
+    throw new Error('Session is not ready')
+  }
+  if (!peerId) {
+    throw new Error('Signer is not available')
+  }
+  const controller = new AbortController()
+  onAbort(controller)
+  return await recoverPasskeyEntityPem(root, {
+    desktopSession: session.spacewave,
+    targetPeerId: peerId,
+    abortSignal: controller.signal,
+  })
+}
+
+// requestSSOCode runs the SSO ceremony for provider and resolves the
+// authorization code. Desktop relays through the session; the browser opens a
+// popup.
+async function requestSSOCode(
+  session: Session | null,
+  config: ReturnType<typeof useCloudProviderConfig>,
+  provider: string,
+  flow: BrowserFlow,
+): Promise<string> {
+  if (isDesktop) {
+    if (!session) {
+      throw new Error('Session is not ready')
+    }
+    const controller = new AbortController()
+    flow.setDesktopSSOAbort(controller)
+    const resp = await session.spacewave.startDesktopSSOLink(
+      { ssoProvider: provider },
+      controller.signal,
+    )
+    if (!resp.code) {
+      throw new Error('Desktop SSO unlock did not return an authorization code')
+    }
+    return resp.code
+  }
+  const ssoBaseUrl = config?.ssoBaseUrl ?? ''
+  if (!ssoBaseUrl) {
+    throw new Error('SSO is not configured')
+  }
+  const popup = startSSOPopupFlow({
+    provider,
+    ssoBaseUrl,
+    origin: window.location.origin,
+    mode: 'unlock',
+  })
+  flow.setSSOFlow(popup)
+  return await popup.waitForResult
+}
+
+interface BrowserUnlockOptions {
+  peerId: string
+  method: string
+  runner: UnlockRunner
+  flow: BrowserFlow
+  finishRecovery: (recovered: RecoveredEntityPem) => Promise<void>
+}
+
+// useBrowserUnlock starts the passkey or SSO ceremony that recovers a
+// keypair's PEM.
+function useBrowserUnlock({
+  peerId,
+  method,
+  runner,
+  flow,
+  finishRecovery,
+}: BrowserUnlockOptions) {
+  const rootResource = useRootResource()
+  const root = useResourceValue(rootResource)
+  const sessionResource = SessionContext.useContext()
+  const session = useResourceValue(sessionResource)
+  const cloudProviderConfig = useCloudProviderConfig()
+
+  const unlockWithPasskey = async () => {
+    if (!root) {
+      runner.onError('Not connected to server')
+      return
+    }
+    await runner.runUnlock(
+      async () => {
+        await finishRecovery(
+          await recoverPasskeyForSigner(
+            root,
+            session ?? null,
+            peerId,
+            flow.setDesktopPasskeyAbort,
+          ),
+        )
+      },
+      {
+        ignoreCanceled: true,
+        cleanup: () => flow.setDesktopPasskeyAbort(null),
+      },
+    )
+  }
+
+  const unlockWithSSO = async () => {
+    const accountBaseUrl = cloudProviderConfig?.accountBaseUrl ?? ''
+    if (!root || !accountBaseUrl) {
+      runner.onError('SSO is not configured')
+      return
+    }
+    const provider = method === 'google_sso' ? 'google' : 'github'
+    await runner.runUnlock(
+      async () => {
+        const code = await requestSSOCode(
+          session ?? null,
+          cloudProviderConfig,
+          provider,
+          flow,
+        )
+        await finishRecovery(
+          await recoverSSOEntityPem(
+            root,
+            provider,
+            code,
+            `${accountBaseUrl}/auth/sso/callback`,
+          ),
+        )
+      },
+      {
+        ignoreCanceled: true,
+        cleanup: () => {
+          flow.setDesktopSSOAbort(null)
+          flow.setSSOFlow(null)
+        },
+      },
+    )
+  }
+
+  return { unlockWithPasskey, unlockWithSSO }
 }
 
 interface CredentialUnlockCardProps {
@@ -565,17 +733,7 @@ function CredentialUnlockCard({
 
   return (
     <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-      <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt size-3.5 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground text-sm font-medium">
-            {methodLabel(method)}
-          </p>
-          <p className="text-foreground-alt truncate font-mono text-xs">
-            {truncated}
-          </p>
-        </div>
-      </div>
+      <UnlockCardHeader method={method} truncated={truncated} />
 
       <CredentialProofInput
         password={credential.password}
@@ -599,6 +757,7 @@ function CredentialUnlockCard({
 
       <div className="flex justify-end">
         <button
+          type="button"
           onClick={onUnlock}
           disabled={disabled || !canUnlock}
           className={cn(
@@ -629,6 +788,100 @@ interface BrowserUnlockCardProps {
   onUnlockPin: () => void
 }
 
+// describeBrowserUnlock explains what the shared passkey / SSO prompt expects
+// from the user next.
+function describeBrowserUnlock(
+  method: string,
+  needsPin: boolean,
+  flowActive: boolean,
+  desktopRelayActive: boolean,
+): string {
+  const isPasskey = method === 'passkey'
+  if (needsPin) {
+    return 'Enter the PIN for the recovered key to finish unlocking this signer.'
+  }
+  if (flowActive && desktopRelayActive && isPasskey) {
+    return 'Complete passkey verification in your browser, then return here.'
+  }
+  if (flowActive) {
+    return `Complete ${methodLabel(method)} in the browser, then return here.`
+  }
+  if (isPasskey) {
+    return 'Use your passkey to unlock this signer in the shared escalation prompt.'
+  }
+  return `Use ${methodLabel(method)} to unlock this signer in the shared escalation prompt.`
+}
+
+// UnlockCardHeader renders the lock icon, method label, and signer id shared
+// by the unlock cards.
+function UnlockCardHeader({
+  method,
+  truncated,
+}: {
+  method: string
+  truncated: string
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <LuLock className="text-foreground-alt size-3.5 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-foreground text-sm font-medium">
+          {methodLabel(method)}
+        </p>
+        <p className="text-foreground-alt truncate font-mono text-xs">
+          {truncated}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// MethodIcon renders the icon for a passkey or SSO method.
+function MethodIcon({ method }: { method: string }) {
+  if (method === 'passkey') {
+    return <LuFingerprint className="size-3" />
+  }
+  if (method === 'google_sso') {
+    return <FcGoogle className="size-3" />
+  }
+  return <LuGithub className="size-3" />
+}
+
+// PinField renders the PIN input for resuming a PIN-wrapped recovery. Enter
+// submits a non-empty PIN.
+function PinField({
+  pin,
+  onChange,
+  onSubmit,
+  locked,
+}: {
+  pin: string
+  onChange: (pin: string) => void
+  onSubmit: () => void
+  locked: boolean
+}) {
+  return (
+    <input
+      type="password"
+      value={pin}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label="PIN"
+      placeholder="Enter PIN"
+      disabled={locked}
+      readOnly={locked}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && pin.length > 0) {
+          onSubmit()
+        }
+      }}
+      className={cn(
+        'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-2.5 py-1.5 text-xs transition-colors outline-none',
+        'focus:border-brand/50 disabled:opacity-50',
+      )}
+    />
+  )
+}
+
 // BrowserUnlockCard renders the shared passkey / SSO unlock states for browser
 // ceremonies, including waiting, PIN resume, cancel, and retry.
 function BrowserUnlockCard({
@@ -645,51 +898,25 @@ function BrowserUnlockCard({
   onCancel,
   onUnlockPin,
 }: BrowserUnlockCardProps) {
-  const isPasskey = method === 'passkey'
-  const actionLabel = isPasskey ? 'Use passkey' : `Use ${methodLabel(method)}`
-  const helperText = needsPin
-    ? 'Enter the PIN for the recovered key to finish unlocking this signer.'
-    : flowActive && desktopRelayActive && isPasskey
-      ? 'Complete passkey verification in your browser, then return here.'
-      : flowActive
-        ? `Complete ${methodLabel(method)} in the browser, then return here.`
-        : isPasskey
-          ? 'Use your passkey to unlock this signer in the shared escalation prompt.'
-          : `Use ${methodLabel(method)} to unlock this signer in the shared escalation prompt.`
+  const helperText = describeBrowserUnlock(
+    method,
+    needsPin,
+    flowActive,
+    desktopRelayActive,
+  )
 
   return (
     <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-      <div className="flex items-center gap-2">
-        <LuLock className="text-foreground-alt size-3.5 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground text-sm font-medium">
-            {methodLabel(method)}
-          </p>
-          <p className="text-foreground-alt truncate font-mono text-xs">
-            {truncated}
-          </p>
-        </div>
-      </div>
+      <UnlockCardHeader method={method} truncated={truncated} />
 
       <p className="text-foreground-alt text-xs">{helperText}</p>
 
       {needsPin && (
-        <input
-          type="password"
-          value={pin}
-          onChange={(e) => onPinChange(e.target.value)}
-          placeholder="Enter PIN"
-          disabled={disabled || waiting}
-          readOnly={disabled || waiting}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && pin.length > 0) {
-              onUnlockPin()
-            }
-          }}
-          className={cn(
-            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-2.5 py-1.5 text-xs transition-colors outline-none',
-            'focus:border-brand/50 disabled:opacity-50',
-          )}
+        <PinField
+          pin={pin}
+          onChange={onPinChange}
+          onSubmit={onUnlockPin}
+          locked={disabled || waiting}
         />
       )}
 
@@ -714,36 +941,39 @@ function BrowserUnlockCard({
             Cancel
           </button>
         )}
-        <button
-          onClick={needsPin ? onUnlockPin : onStart}
-          disabled={
-            needsPin
-              ? disabled || waiting || pin.length === 0
-              : disabled || waiting
-          }
-          className={cn(
-            'shrink-0 rounded-md border px-3 py-1.5 text-xs transition-all',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            !needsPin && 'inline-flex items-center gap-1.5',
-          )}
-        >
-          {!needsPin && isPasskey && <LuFingerprint className="size-3" />}
-          {!needsPin &&
-            !isPasskey &&
-            (method === 'google_sso' ? (
-              <FcGoogle className="size-3" />
-            ) : (
-              <LuGithub className="size-3" />
-            ))}
-          {needsPin
-            ? waiting
-              ? '...'
-              : 'Unlock'
-            : waiting
+        {needsPin ? (
+          <button
+            type="button"
+            onClick={onUnlockPin}
+            disabled={disabled || waiting || pin.length === 0}
+            className={cn(
+              'shrink-0 rounded-md border px-3 py-1.5 text-xs transition-all',
+              'border-brand/30 bg-brand/10 hover:bg-brand/20',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+            )}
+          >
+            {waiting ? '...' : 'Unlock'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={disabled || waiting}
+            className={cn(
+              'shrink-0 rounded-md border px-3 py-1.5 text-xs transition-all',
+              'border-brand/30 bg-brand/10 hover:bg-brand/20',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              'inline-flex items-center gap-1.5',
+            )}
+          >
+            <MethodIcon method={method} />
+            {waiting
               ? 'Waiting…'
-              : actionLabel}
-        </button>
+              : method === 'passkey'
+                ? 'Use passkey'
+                : `Use ${methodLabel(method)}`}
+          </button>
+        )}
       </div>
     </div>
   )

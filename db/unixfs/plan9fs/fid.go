@@ -40,6 +40,7 @@ func NewFidTable() *FidTable {
 
 // Get returns the fid with the given id.
 func (t *FidTable) Get(id uint32) (*Fid, error) {
+	// Look up the fid under the table lock.
 	t.mu.Lock()
 	f, ok := t.fids[id]
 	t.mu.Unlock()
@@ -51,6 +52,7 @@ func (t *FidTable) Get(id uint32) (*Fid, error) {
 
 // Add adds a new fid to the table.
 func (t *FidTable) Add(id uint32, f *Fid) error {
+	// Register the fid unless its identifier is already in use.
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if _, ok := t.fids[id]; ok {
@@ -62,6 +64,7 @@ func (t *FidTable) Add(id uint32, f *Fid) error {
 
 // Remove removes and returns the fid with the given id.
 func (t *FidTable) Remove(id uint32) (*Fid, error) {
+	// Detach the fid under the table lock.
 	t.mu.Lock()
 	f, ok := t.fids[id]
 	if ok {
@@ -76,6 +79,7 @@ func (t *FidTable) Remove(id uint32) (*Fid, error) {
 
 // ReleaseAll releases all fids and their FSHandles.
 func (t *FidTable) ReleaseAll() {
+	// Detach the session fids and release their filesystem handles.
 	t.mu.Lock()
 	fids := t.fids
 	t.fids = make(map[uint32]*Fid)
@@ -89,6 +93,7 @@ func (t *FidTable) ReleaseAll() {
 // AllocQIDPath allocates a unique QID path for an FSHandle.
 // Returns the same path if the handle was already seen.
 func (t *FidTable) AllocQIDPath(h *unixfs.FSHandle) uint64 {
+	// Reuse or allocate the QID path under the table lock.
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if p, ok := t.qidPaths[h]; ok {

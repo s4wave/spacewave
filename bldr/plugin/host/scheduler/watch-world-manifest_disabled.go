@@ -5,6 +5,7 @@ package plugin_host_scheduler
 import (
 	"context"
 
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -16,6 +17,6 @@ func (t *pluginInstance) processManifestWorldState(
 	hosts *pluginHostSet,
 	ws world.WorldState,
 	obj world.ObjectState,
-) (bool, error) {
+) (bool, []*bldr_manifest_world.StartupManifestCandidateEligibility, error) {
 	return t.processManifestWorldStateCore(ctx, le, hosts, ws, obj)
 }

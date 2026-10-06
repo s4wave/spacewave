@@ -6,7 +6,7 @@ import path from 'node:path'
 
 const electronBinary = process.env['E2E_ELECTRON_BINARY']
 const stateRoot = process.env['SPACEWAVE_STATE_PATH']
-const childScript = path.join(import.meta.dir, 'profile-lock-child.cjs')
+const childScript = path.join(import.meta.dir, 'profile-lock-child.mjs')
 const children: ChildProcessWithoutNullStreams[] = []
 
 afterEach(() => {

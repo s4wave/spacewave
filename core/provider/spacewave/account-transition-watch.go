@@ -57,6 +57,13 @@ func (s *Session) watchAccountTransition(ctx context.Context) error {
 		return err
 	}
 	info, err := client.GetAccountInfo(ctx)
+	for isUnauthCloudError(err) {
+		// A revoked Session cannot read account info until reauthentication.
+		if err := a.waitReauth(ctx, err); err != nil {
+			return err
+		}
+		info, err = client.GetAccountInfo(ctx)
+	}
 	if err != nil {
 		return err
 	}

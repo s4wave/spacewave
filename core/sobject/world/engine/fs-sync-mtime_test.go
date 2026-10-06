@@ -12,7 +12,6 @@ import (
 
 	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/core/sobject"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -94,7 +93,7 @@ func TestSyncBatchesSkipsUnchangedFiles(t *testing.T) {
 	syncTree := func() int {
 		t.Helper()
 		var rounds int
-		err := world_block_tx.CommitBatches(ctx, sw.eng, sobject.MaxBatchSize, func(ctx context.Context, ws world.WorldState) error {
+		err := world_block_tx.CommitBatches(ctx, sw.eng, syncBatchesBudget, func(ctx context.Context, ws world.WorldState) error {
 			rounds++
 			return syncFSToFiles(ctx, ws, src, unixfs_sync.DeleteMode_DeleteMode_NONE)
 		})

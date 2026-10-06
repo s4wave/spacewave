@@ -14,18 +14,22 @@ import (
 // baseline with timings for the route, loading, UnixFS shell, and content-ready
 // layers.
 func TestExistingDriveOpenMeasurement(t *testing.T) {
+	// Open a retained Drive scenario.
 	sess := harness(t).NewRetainedStatePageSession(t)
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 
+	// Wait for Drive and read its hash route.
 	WaitForDriveReady(t, harness(t), page)
 	targetHash, err := currentHash(page.URL())
 	if err != nil {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
+	// Leave Drive for the session root.
 	NavigateHash(t, harness(t), page, "#/u/"+uintString(scenario.GetSessionIndex()))
 
+	// Measure reopening the existing Drive.
 	raw, err := page.Evaluate(harness(t).Script("measure-existing-drive-open.ts"), map[string]any{
 		"targetHash": targetHash,
 		"deadlineMs": 120000,
@@ -34,6 +38,7 @@ func TestExistingDriveOpenMeasurement(t *testing.T) {
 		t.Fatalf("measure existing drive open: %v", err)
 	}
 
+	// Require the measurement to complete and log it.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected measurement result %T", raw)

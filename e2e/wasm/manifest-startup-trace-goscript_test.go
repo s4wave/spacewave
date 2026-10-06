@@ -16,6 +16,7 @@ const e2eWasmManifestStartupTraceEnv = "E2E_WASM_MANIFEST_STARTUP_TRACE"
 // TestGoScriptManifestStartupTrace captures and writes the root browser runtime
 // from process initialization through configured startup completion.
 func TestGoScriptManifestStartupTrace(t *testing.T) {
+	// Skip unless this is a dedicated GoScript startup-trace run.
 	if os.Getenv(e2eWasmManifestStartupTraceEnv) == "" {
 		t.Skip("set " + e2eWasmManifestStartupTraceEnv + "=1 to capture the Manifest startup trace")
 	}
@@ -30,6 +31,7 @@ func TestGoScriptManifestStartupTrace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve e2e wasm worker mode: %v", err)
 	}
+
 	// sess.Workers() is populated from page.OnWorker, which reports dedicated
 	// workers only. In shared-worker mode the instrumented root runtime lives in
 	// a SharedWorker the scan never reaches, so the capture would fail looking
@@ -46,6 +48,7 @@ func TestGoScriptManifestStartupTrace(t *testing.T) {
 		t.Fatalf("shared harness already built without the trace tag; run this test alone with -run %s", t.Name())
 	}
 
+	// Boot a clean page with runtime startup tracing and no build cache.
 	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "1")
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "false")
 	h := harness(t)
@@ -56,6 +59,7 @@ func TestGoScriptManifestStartupTrace(t *testing.T) {
 	WaitForApp(t, sess.Page())
 	AssertBrowserStartupDone(t, h, sess.Page())
 
+	// Stop the trace, write the artifact, and require it to parse.
 	data := stopStartupTrace(t, sess)
 	tracePath := TraceArtifactPath(t)
 	if err := WriteTraceArtifact(tracePath, data); err != nil {
@@ -66,6 +70,7 @@ func TestGoScriptManifestStartupTrace(t *testing.T) {
 }
 
 func stopStartupTrace(t testing.TB, sess *TestSession) []byte {
+	// Read the startup trace from the page or its workers.
 	t.Helper()
 	const (
 		stopScript = `() => {

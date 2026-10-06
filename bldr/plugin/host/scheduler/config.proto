@@ -82,6 +82,12 @@ message Config {
   // directives and plugin RPC lookups of every other plugin to the rest of the
   // bus. Empty schedules every plugin not in ExternalPluginIds.
   repeated string plugin_ids = 21;
+  // AwaitFetchManifest holds each plugin's first manifest selection until the
+  // FetchManifest directive is idle and every manifest it announced is stored,
+  // so startup runs the announced release instead of replacing a cached one.
+  // Requires WatchFetchManifest and FetchManifest resolvers that mark idle,
+  // including while their source is unreachable.
+  bool await_fetch_manifest = 22;
 }
 
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.

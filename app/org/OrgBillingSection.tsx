@@ -255,6 +255,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
   return (
     <div className="flex flex-col items-start gap-1">
       <button
+        type="button"
         onClick={() => setOpen(true)}
         disabled={!session}
         className="text-foreground-alt hover:text-destructive flex cursor-pointer items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -281,6 +282,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
           </DialogHeader>
           <DialogFooter>
             <button
+              type="button"
               onClick={handleCancel}
               disabled={detaching}
               className="text-foreground-alt hover:text-foreground cursor-pointer rounded px-3 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -288,6 +290,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
               Cancel
             </button>
             <button
+              type="button"
               onClick={() => void handleConfirm()}
               disabled={detaching}
               className="border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"

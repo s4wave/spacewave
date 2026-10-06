@@ -113,7 +113,9 @@ describe('Shell menu container collapse', () => {
           data-menu-collapsed="false"
           data-testid="overlay"
         >
-          <button aria-label="logo">L</button>
+          <button type="button" aria-label="logo">
+            L
+          </button>
           <div className="shell-menu-collapsible" data-testid="menu-items">
             <span className="inline-block w-45">menus</span>
           </div>

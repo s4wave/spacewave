@@ -10,7 +10,6 @@ import { reassembleOrgMetadata, splitOrgMetadata } from './org/org.js'
 
 interface UseNoteWriteOptions {
   fileHandle: Resource<FSHandle>
-  filePath: string
   loadedContent: string
   editing: boolean
   noteFormat: NoteFileFormat
@@ -18,11 +17,12 @@ interface UseNoteWriteOptions {
   onContentSaved?: () => void
 }
 
-// useNoteWrite owns queued note writes, retained drafts, and mode transitions.
-// Revisions and file paths guard asynchronous completions from stale writes.
+// useNoteWrite owns queued note writes, retained drafts, and mode transitions
+// for one note file. Callers mount it per file, keyed by path, so a different
+// file starts from fresh state. Revisions guard asynchronous completions from
+// stale writes.
 export function useNoteWrite({
   fileHandle,
-  filePath,
   loadedContent,
   editing,
   noteFormat,
@@ -36,19 +36,13 @@ export function useNoteWrite({
     'idle' | 'saving' | 'saved' | 'failed'
   >('idle')
   const [writeError, setWriteError] = useState<Error | null>(null)
-  const failedWrite = useRef<{ filePath: string; content: string } | null>(null)
-  const currentFilePath = useLatestRef(filePath)
+  const failedWrite = useRef<string | null>(null)
   const saveRevision = useRef(0)
-  const saveTargetPath = useRef(filePath)
-  const writeTails = useRef(new Map<string, Promise<void>>())
+  const writeTail = useRef<Promise<void> | null>(null)
   const mounted = useRef(true)
-  const [savedContent, setSavedContent] = useState<{
-    filePath: string
-    content: string
-  } | null>(null)
+  const [savedContent, setSavedContent] = useState<string | null>(null)
   const skipNextSourceBlurSave = useRef(false)
-  const content =
-    savedContent?.filePath === filePath ? savedContent.content : loadedContent
+  const content = savedContent ?? loadedContent
   // Full note text of the last completed write or initial load. Editor
   // updates that re-export this text are not edits.
   const lastSettledContent = useLatestRef(content)
@@ -66,8 +60,6 @@ export function useNoteWrite({
       : (parsedNote?.rawFrontmatter ?? '')
   const editorContent =
     noteFormat === 'org' ? (orgNote?.body ?? '') : (parsedNote?.body ?? '')
-  const displayedSaveState =
-    saveTargetPath.current === filePath ? saveState : 'idle'
 
   useEffect(() => {
     mounted.current = true
@@ -76,22 +68,12 @@ export function useNoteWrite({
     }
   }, [])
 
-  useEffect(() => {
-    saveTargetPath.current = filePath
-    failedWrite.current = null
-    setWriteError(null)
-    setSaveState('idle')
-    sourceContentRef.current = null
-    setSourceContent(null)
-  }, [filePath])
-
   const writeFile = useCallback(
     (nextContent: string) => {
       const handle = fileHandle.value
       if (!handle) {
         const error = new Error('note file handle is not ready')
-        failedWrite.current = { filePath, content: nextContent }
-        saveTargetPath.current = filePath
+        failedWrite.current = nextContent
         setWriteError(error)
         setSaveState('failed')
         return Promise.reject(error)
@@ -103,65 +85,38 @@ export function useNoteWrite({
         : saveRevision.current + 1
       if (!isReexport) {
         saveRevision.current = revision
-        saveTargetPath.current = filePath
         setSaveState('saving')
       }
       const encoded = new TextEncoder().encode(nextContent)
-      const prior = writeTails.current.get(filePath) ?? Promise.resolve()
-      const operation = prior
+      const operation = (writeTail.current ?? Promise.resolve())
         .catch(() => {})
         .then(async () => {
           await handle.writeAt(0n, encoded)
           await handle.truncate(BigInt(encoded.byteLength))
         })
-      writeTails.current.set(filePath, operation)
+      writeTail.current = operation
 
       void operation.then(
         () => {
-          if (
-            !mounted.current ||
-            revision !== saveRevision.current ||
-            currentFilePath.current !== filePath
-          ) {
-            return
-          }
-          setSavedContent({ filePath, content: nextContent })
+          if (!mounted.current || revision !== saveRevision.current) return
+          setSavedContent(nextContent)
           setWriteError(null)
           failedWrite.current = null
           setSaveState('saved')
           onContentSaved?.()
         },
         (error: unknown) => {
-          if (
-            !mounted.current ||
-            revision !== saveRevision.current ||
-            currentFilePath.current !== filePath
-          ) {
-            return
-          }
+          if (!mounted.current || revision !== saveRevision.current) return
           const nextError =
             error instanceof Error ? error : new Error(String(error))
           setWriteError(nextError)
-          failedWrite.current = { filePath, content: nextContent }
+          failedWrite.current = nextContent
           setSaveState('failed')
         },
       )
-      void operation
-        .finally(() => {
-          if (writeTails.current.get(filePath) === operation) {
-            writeTails.current.delete(filePath)
-          }
-        })
-        .catch(() => {})
       return operation
     },
-    [
-      fileHandle.value,
-      filePath,
-      onContentSaved,
-      currentFilePath,
-      lastSettledContent,
-    ],
+    [fileHandle.value, onContentSaved, lastSettledContent],
   )
 
   const handleWysiwygDraftChange = useCallback(
@@ -175,10 +130,10 @@ export function useNoteWrite({
         saveRevision.current += 1
         setSaveState((state) => (state === 'failed' ? state : 'idle'))
       }
-      if (failedWrite.current?.filePath !== filePath) return
-      failedWrite.current = { filePath, content: full }
+      if (failedWrite.current === null) return
+      failedWrite.current = full
     },
-    [filePath, noteFormat, rawMetadata, lastSettledContent],
+    [noteFormat, rawMetadata, lastSettledContent],
   )
 
   // WYSIWYG save: re-assemble format metadata + exported body, then write.
@@ -205,15 +160,11 @@ export function useNoteWrite({
 
   const handleRetrySave = useCallback(() => {
     const failed = failedWrite.current
-    if (failed === null || failed.filePath !== filePath) return
+    if (failed === null) return
     void (async () => {
       try {
-        await writeFile(failed.content)
-        if (
-          editing &&
-          currentFilePath.current === filePath &&
-          sourceContentRef.current === failed.content
-        ) {
+        await writeFile(failed)
+        if (editing && sourceContentRef.current === failed) {
           sourceContentRef.current = null
           setSourceContent(null)
         }
@@ -221,7 +172,7 @@ export function useNoteWrite({
         // writeFile keeps the failed draft and error available for another retry.
       }
     })()
-  }, [editing, filePath, writeFile, currentFilePath])
+  }, [editing, writeFile])
 
   const handleToggle = useCallback(() => {
     if (editing) {
@@ -262,23 +213,20 @@ export function useNoteWrite({
     }
   }, [editing])
 
-  const handleSourceChange = useCallback(
-    (nextContent: string) => {
-      saveRevision.current += 1
-      setSaveState((state) => (state === 'failed' ? state : 'idle'))
-      sourceContentRef.current = nextContent
-      setSourceContent(nextContent)
-      if (failedWrite.current?.filePath === filePath) {
-        failedWrite.current = { filePath, content: nextContent }
-      }
-    },
-    [filePath],
-  )
+  const handleSourceChange = useCallback((nextContent: string) => {
+    saveRevision.current += 1
+    setSaveState((state) => (state === 'failed' ? state : 'idle'))
+    sourceContentRef.current = nextContent
+    setSourceContent(nextContent)
+    if (failedWrite.current !== null) {
+      failedWrite.current = nextContent
+    }
+  }, [])
 
   return {
     sourceContent,
     sourceSaving,
-    displayedSaveState,
+    saveState,
     writeError,
     handleRetrySave,
     handleSourceBlur,

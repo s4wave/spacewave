@@ -52,6 +52,7 @@ type MoveProgress struct {
 // ListBlockStoreRefs returns every block the block store holds: the blocks
 // reachable in the volume's GC ref graph from the store's bucket node.
 func (a *ProviderAccount) ListBlockStoreRefs(ctx context.Context, blockStoreID string) ([]*block.BlockRef, error) {
+	// Resolve the block-store bucket in the volume ref graph.
 	rg := a.GetVolume().GetRefGraph()
 	if rg == nil {
 		return nil, nil
@@ -102,6 +103,7 @@ func (a *ProviderAccount) MoveSpaceStorage(
 	backendID string,
 	fn func(MoveProgress) error,
 ) error {
+	// Resolve the shared object's block store and the named storage backend.
 	blockStoreID := a.lookupSharedObjectBlockStoreID(sharedObjectID)
 	if blockStoreID == "" {
 		return sobject.ErrSharedObjectNotFound
@@ -114,9 +116,11 @@ func (a *ProviderAccount) MoveSpaceStorage(
 		return errors.Wrap(account_settings.ErrStorageBackendNotFound, backendID)
 	}
 
+	// Retain the block-store tracker until the move returns.
 	tkrRef, tkr, _ := a.bstores.AddKeyRef(blockStoreID)
 	defer tkrRef.Release()
 
+	// Fetch blocks only the old backend holds, then place and wait for upload.
 	current := settings.FindBlockStorePlacement(blockStoreID).GetStorageBackendId()
 	if current != backendID {
 		if current != "" {
@@ -165,6 +169,7 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 	backend *account_settings.StorageBackend,
 	fn func(MoveProgress) error,
 ) error {
+	// Open the local store and the backend bucket, closing the bucket on return.
 	bs, err := tkr.bstoreCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
@@ -174,6 +179,8 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 		return errors.Wrap(err, "open storage backend")
 	}
 	defer bucket.Close()
+
+	// Read through the backend and peers, then list the blocks to fetch.
 	bucketID := BlockStoreBucketID(a.t.p.info.GetProviderId(), a.t.accountInfo.GetProviderAccountId(), tkr.id)
 	remote := block_store.NewStoreReadThrough(
 		func() block.StoreOps { return bucket },
@@ -185,6 +192,7 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 		return errors.Wrap(err, "list blocks to fetch")
 	}
 
+	// Report fetch progress, then copy each missing chunk into local storage.
 	progress := MoveProgress{Phase: MovePhaseFetch, Total: len(refs)}
 	if err := fn(progress); err != nil {
 		return err

@@ -18,6 +18,7 @@ type CrashReport struct {
 
 // AddMessage records one browser or worker diagnostic line.
 func (r *CrashReport) AddMessage(msg string) {
+	// Classify a browser message as a Go exit, fatal error, page error, range error, or worker error.
 	lower := strings.ToLower(msg)
 	if strings.Contains(msg, exitedGoProgramMessage) {
 		r.ExitedGoCount++

@@ -12,6 +12,7 @@ import (
 )
 
 func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve e2e wasm compiler: %v", err)
@@ -20,13 +21,16 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 		t.Skipf("GoScript-only SharedWorker OPFS probe; compiler=%s", compiler)
 	}
 
+	// Skip unless the browser is Chromium.
 	h := harness(t)
 	if h.BrowserName() != "chromium" {
 		t.Skipf("Chromium-only SharedWorker OPFS probe; browser=%s", h.BrowserName())
 	}
 
+	// Open a clean blank session.
 	sess := h.NewCleanBlankSession(t)
 
+	// Load Drive and capture its console.
 	if err := h.loadAppPageURL(sess, h.baseURL+"/#/quickstart/drive"); err != nil {
 		t.Fatalf("load direct drive route: %v", err)
 	}
@@ -45,7 +49,9 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 		}
 	}()
 
+	// Read the SharedWorker OPFS topology and log it.
 	topology := readSharedWorkerOpfsTopology(t, page)
+
 	// The runtime-worker OPFS bridge only activates when the engine runtime runs
 	// in a SharedWorker, which is the staging/production topology and the only
 	// scope that hits the OPFS getDirectory SecurityError. The shared harness
@@ -66,6 +72,7 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 		topology,
 	)
 
+	// Hold the page open when the probe env asks for it.
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("E2E_WASM_OPFS_SHAREDWORKER_HOLD_OPEN"))) {
 	case "true", "1", "yes", "on":
 		t.Logf("holding browser open for manual SharedWorker inspection: %s", page.URL())
@@ -74,13 +81,16 @@ func TestGoScriptSharedWorkerOPFSProbe(t *testing.T) {
 }
 
 func TestSharedWorkerOpfsReturnGate(t *testing.T) {
+	// Skip unless the browser is Chromium.
 	h := harness(t)
 	if h.BrowserName() != "chromium" {
 		t.Skipf("Chromium-only SharedWorker OPFS return gate; browser=%s", h.BrowserName())
 	}
 
+	// Open a clean blank session.
 	sess := h.NewCleanBlankSession(t)
 
+	// Load Drive and capture its console.
 	if err := h.loadAppPageURL(sess, h.baseURL+"/#/quickstart/drive"); err != nil {
 		t.Fatalf("load direct drive route: %v", err)
 	}
@@ -99,6 +109,7 @@ func TestSharedWorkerOpfsReturnGate(t *testing.T) {
 		}
 	}()
 
+	// Read the topology and require the return gate.
 	topology := readSharedWorkerOpfsTopology(t, page)
 	if got, _ := topology["runtimeMode"].(string); got != "dedicated-worker" {
 		t.Fatalf("runtime worker mode = %q, want current hard-disable dedicated-worker; topology=%#v", got, topology)
@@ -152,6 +163,7 @@ func TestSharedWorkerOpfsReturnGate(t *testing.T) {
 // reports whether navigator.storage.getDirectory() succeeds inside it. This is
 // the direct reproduction of Chromium issue 528332884.
 func runSharedWorkerOpfsProbe(t testing.TB, page playwright.Page) map[string]any {
+	// Run the OPFS probe in the page.
 	t.Helper()
 	probeRaw, err := page.Evaluate(`async () => {
 		const script = [
@@ -224,8 +236,10 @@ func runSharedWorkerOpfsProbe(t testing.TB, page playwright.Page) map[string]any
 }
 
 func readSharedWorkerOpfsTopology(t testing.TB, page playwright.Page) map[string]any {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Evaluate the SharedWorker OPFS topology.
 	topologyRaw, err := page.Evaluate(`() => {
 		const marks = globalThis.__swStartupMarks ?? []
 		let runtimeMode = null

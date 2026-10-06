@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { LuKey, LuPlus, LuTrash2, LuDownload } from 'react-icons/lu'
 
 import { downloadPemFile } from '@s4wave/web/download.js'
@@ -12,6 +12,8 @@ import { useCredentialProof } from '@s4wave/web/ui/credential/useCredentialProof
 import { truncatePeerId } from '@s4wave/web/ui/credential/auth-utils.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
+import type { Account } from '@s4wave/sdk/account/account.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 import type { EntityKeypair } from '@s4wave/core/session/session.pb.js'
 
 export interface EntityKeypairsSectionProps {
@@ -40,63 +42,20 @@ export function EntityKeypairsSection({
   const loading = keypairsResource.loading
 
   const [showAdd, setShowAdd] = useState(false)
-  const [adding, setAdding] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
-  const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const cred = useCredentialProof()
 
-  const handleAddPassword = useCallback(async () => {
-    if (!session || !cred.credential) return
-    setAdding(true)
+  const handleRemove = async (peerId: string) => {
+    if (!session || !peerId) return
+    setRemoving(peerId)
     setError(null)
     try {
-      await session.localProvider.addEntityKeypair({
-        credential: cred.credential,
-      })
-      cred.reset()
-      setShowAdd(false)
+      await session.localProvider.removeEntityKeypair({ peerId })
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to add keypair')
+      setError(e instanceof Error ? e.message : 'Failed to remove keypair')
     }
-    setAdding(false)
-  }, [session, cred])
-
-  const handleAddBackup = useCallback(async () => {
-    const account = accountResource.value
-    if (!account) return
-    setExporting(true)
-    setError(null)
-    try {
-      const resp = await account.generateBackupKey({})
-      if (resp.pemData) {
-        const filename = `backup-key-${resp.peerId?.slice(0, 8) ?? 'key'}.pem`
-        downloadPemFile(resp.pemData, filename)
-      }
-      cred.reset()
-      setShowAdd(false)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to add backup key')
-    }
-    setExporting(false)
-  }, [accountResource.value, cred])
-
-  const handleRemove = useCallback(
-    async (peerId: string) => {
-      if (!session || !peerId) return
-      setRemoving(peerId)
-      setError(null)
-      try {
-        await session.localProvider.removeEntityKeypair({ peerId })
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Failed to remove keypair')
-      }
-      setRemoving(null)
-    },
-    [session],
-  )
-
-  const busy = adding || exporting
+    setRemoving(null)
+  }
 
   const content = (
     <>
@@ -107,6 +66,7 @@ export function EntityKeypairsSection({
         <div className="flex items-center justify-between py-1">
           <p className="text-foreground-alt text-xs">No entity keypairs yet.</p>
           <button
+            type="button"
             onClick={() => setShowAdd(true)}
             className="text-brand hover:text-brand/80 text-xs font-medium transition-colors"
           >
@@ -128,6 +88,7 @@ export function EntityKeypairsSection({
           {!showAdd && (
             <div className="border-foreground/10 border-t pt-2">
               <button
+                type="button"
                 onClick={() => setShowAdd(true)}
                 className="text-brand hover:text-brand/80 flex items-center gap-1 text-xs font-medium transition-colors"
               >
@@ -140,75 +101,13 @@ export function EntityKeypairsSection({
       )}
 
       {showAdd && (
-        <div className="border-foreground/10 space-y-3 border-t pt-3">
-          <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-            <div>
-              <p className="text-foreground text-xs font-medium">
-                Password key
-              </p>
-              <p className="text-foreground-alt mt-1 text-xs">
-                Adds a key derived from this password. Use the password to
-                recover this local session if it becomes locked.
-              </p>
-            </div>
-            <CredentialProofInput
-              password={cred.password}
-              onPasswordChange={cred.setPassword}
-              showPem={false}
-              passwordLabel="Password"
-              passwordPlaceholder="Enter password for entity key"
-              disabled={busy}
-              focusOnMount
-            />
-            <button
-              type="button"
-              onClick={() => void handleAddPassword()}
-              disabled={busy || !cred.hasCredential}
-              className={cn(
-                'bg-brand hover:bg-brand/90 rounded px-3 py-1.5 text-xs font-medium text-white transition-colors',
-                (busy || !cred.hasCredential) &&
-                  'cursor-not-allowed opacity-50',
-              )}
-            >
-              {adding ? 'Adding…' : 'Add password key'}
-            </button>
-          </div>
-          <div className="border-foreground/10 space-y-3 rounded-md border p-3">
-            <div>
-              <p className="text-foreground text-xs font-medium">Backup key</p>
-              <p className="text-foreground-alt mt-1 text-xs">
-                Creates and adds a separate backup key, then downloads its PEM
-                file. Use the file to recover this local session if the password
-                is unavailable. Store it somewhere safe.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void handleAddBackup()}
-              disabled={busy}
-              className={cn(
-                'border-foreground/20 hover:border-brand/30 flex items-center gap-1 rounded border px-3 py-1.5 text-xs font-medium transition-colors',
-                busy && 'cursor-not-allowed opacity-50',
-              )}
-            >
-              <LuDownload className="size-3" />
-              {exporting ? 'Adding…' : 'Add backup key'}
-            </button>
-          </div>
-          {error && <p className="text-destructive text-xs">{error}</p>}
-          <button
-            type="button"
-            onClick={() => {
-              setShowAdd(false)
-              setError(null)
-              cred.reset()
-            }}
-            disabled={busy}
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+        <AddKeypairPanel
+          session={session}
+          account={accountResource.value}
+          error={error}
+          onError={setError}
+          onClose={() => setShowAdd(false)}
+        />
       )}
     </>
   )
@@ -225,6 +124,130 @@ export function EntityKeypairsSection({
       </div>
       <InfoCard>{content}</InfoCard>
     </section>
+  )
+}
+
+// AddKeypairPanel adds a password key or a downloaded backup key. It owns the
+// credential draft, and reports failures through onError.
+function AddKeypairPanel({
+  session,
+  account,
+  error,
+  onError,
+  onClose,
+}: {
+  session: Session | null | undefined
+  account: Account | null | undefined
+  error: string | null
+  onError: (error: string | null) => void
+  onClose: () => void
+}) {
+  const [adding, setAdding] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const cred = useCredentialProof()
+  const busy = adding || exporting
+
+  const handleAddPassword = async () => {
+    if (!session || !cred.credential) return
+    setAdding(true)
+    onError(null)
+    try {
+      await session.localProvider.addEntityKeypair({
+        credential: cred.credential,
+      })
+      cred.reset()
+      onClose()
+    } catch (e: unknown) {
+      onError(e instanceof Error ? e.message : 'Failed to add keypair')
+    }
+    setAdding(false)
+  }
+
+  const handleAddBackup = async () => {
+    if (!account) return
+    setExporting(true)
+    onError(null)
+    try {
+      const resp = await account.generateBackupKey({})
+      if (resp.pemData) {
+        const filename = `backup-key-${resp.peerId?.slice(0, 8) ?? 'key'}.pem`
+        downloadPemFile(resp.pemData, filename)
+      }
+      cred.reset()
+      onClose()
+    } catch (e: unknown) {
+      onError(e instanceof Error ? e.message : 'Failed to add backup key')
+    }
+    setExporting(false)
+  }
+
+  return (
+    <div className="border-foreground/10 space-y-3 border-t pt-3">
+      <div className="border-foreground/10 space-y-3 rounded-md border p-3">
+        <div>
+          <p className="text-foreground text-xs font-medium">Password key</p>
+          <p className="text-foreground-alt mt-1 text-xs">
+            Adds a key derived from this password. Use the password to recover
+            this local session if it becomes locked.
+          </p>
+        </div>
+        <CredentialProofInput
+          password={cred.password}
+          onPasswordChange={cred.setPassword}
+          showPem={false}
+          passwordLabel="Password"
+          passwordPlaceholder="Enter password for entity key"
+          disabled={busy}
+          focusOnMount
+        />
+        <button
+          type="button"
+          onClick={() => void handleAddPassword()}
+          disabled={busy || !cred.hasCredential}
+          className={cn(
+            'bg-brand hover:bg-brand/90 rounded px-3 py-1.5 text-xs font-medium text-white transition-colors',
+            (busy || !cred.hasCredential) && 'cursor-not-allowed opacity-50',
+          )}
+        >
+          {adding ? 'Adding…' : 'Add password key'}
+        </button>
+      </div>
+      <div className="border-foreground/10 space-y-3 rounded-md border p-3">
+        <div>
+          <p className="text-foreground text-xs font-medium">Backup key</p>
+          <p className="text-foreground-alt mt-1 text-xs">
+            Creates and adds a separate backup key, then downloads its PEM file.
+            Use the file to recover this local session if the password is
+            unavailable. Store it somewhere safe.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void handleAddBackup()}
+          disabled={busy}
+          className={cn(
+            'border-foreground/20 hover:border-brand/30 flex items-center gap-1 rounded border px-3 py-1.5 text-xs font-medium transition-colors',
+            busy && 'cursor-not-allowed opacity-50',
+          )}
+        >
+          <LuDownload className="size-3" />
+          {exporting ? 'Adding…' : 'Add backup key'}
+        </button>
+      </div>
+      {error && <p className="text-destructive text-xs">{error}</p>}
+      <button
+        type="button"
+        onClick={() => {
+          onClose()
+          onError(null)
+          cred.reset()
+        }}
+        disabled={busy}
+        className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
   )
 }
 
@@ -257,6 +280,7 @@ function KeypairRow({
       </div>
       {canRemove && (
         <button
+          type="button"
           onClick={() => void onRemove(peerId)}
           disabled={removing}
           className={cn(

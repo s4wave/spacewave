@@ -64,7 +64,7 @@ export function PathInput({
     onNavigate?.('/')
   }, [onNavigate])
 
-  const handleContainerClick = useCallback(() => {
+  const handleEditClick = useCallback(() => {
     setIsEditing(true)
   }, [])
 
@@ -121,22 +121,14 @@ export function PathInput({
 
   return (
     <div
-      onClick={handleContainerClick}
+      role="group"
+      aria-label="File path"
       className={cn(
-        'bg-file-path-bar hover:bg-file-path-bar-hover text-foreground flex h-5 flex-1 cursor-text items-center gap-0.5 overflow-hidden rounded px-2 text-xs transition-colors select-none',
+        'bg-file-path-bar hover:bg-file-path-bar-hover text-foreground flex h-5 flex-1 items-center gap-0.5 overflow-hidden rounded px-2 text-xs transition-colors select-none',
         mobileTouchTargets &&
           'min-w-0 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:px-0 [@media(pointer:coarse)]:text-sm',
         className,
       )}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          setIsEditing(true)
-        }
-      }}
-      aria-label="File path"
     >
       <button
         type="button"
@@ -199,6 +191,13 @@ export function PathInput({
           </button>
         </div>
       ))}
+
+      <button
+        type="button"
+        aria-label="Edit path"
+        onClick={handleEditClick}
+        className="h-full min-w-2 flex-1 cursor-text self-stretch"
+      />
     </div>
   )
 }

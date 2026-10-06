@@ -1,7 +1,10 @@
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useState, type ComponentProps } from 'react'
 
-import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import {
+  useResource,
+  type Resource,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
 import { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
@@ -153,47 +156,9 @@ function useGitRepoController({
 
 type GitRepoController = ReturnType<typeof useGitRepoController>
 
-// GitRepoContent selects the repository state and renders the corresponding
-// file, commit, loading, or failure surface.
-function GitRepoContent({ controller }: { controller: GitRepoController }) {
-  const {
-    displayPath,
-    effectiveRef,
-    entriesResource,
-    fileEntries,
-    gitResource,
-    inlineFileURL,
-    isDir,
-    nav,
-    navigate,
-    objectKey,
-    pathHandle,
-    pendingName,
-    readmeContent,
-    readmePath,
-    refBarProps,
-    repoInfoResource,
-    rootHandleResource,
-    route,
-    staleEntries,
-    statResource,
-    toolbarProps,
-  } = controller
-  const viewerFrameProps = {
-    toolbarProps,
-    refBarProps,
-  }
-
-  const repoInfo = repoInfoResource.value
-  if (repoInfo?.isEmpty) {
-    return (
-      <GitViewerCenteredState
-        title="Empty Repository"
-        subtitle={objectKey}
-        detail="This repository has no commits yet."
-      />
-    )
-  }
+/** GitRepoLoadState renders the loading, error, or not-found repository state. */
+function GitRepoLoadState({ controller }: { controller: GitRepoController }) {
+  const { gitResource, objectKey } = controller
 
   if (gitResource.loading) {
     return (
@@ -218,6 +183,7 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
         detail={gitResource.error.message}
         action={
           <button
+            type="button"
             className="text-brand mt-2 text-xs underline"
             onClick={gitResource.retry}
           >
@@ -228,23 +194,67 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
     )
   }
 
-  if (!gitResource.value) {
-    return (
-      <GitViewerCenteredState
-        title={
-          <span className="text-foreground-alt text-xs">
-            Git repository not found
-          </span>
-        }
-        detail={`Object: ${objectKey || 'none'}`}
-      />
-    )
-  }
+  return (
+    <GitViewerCenteredState
+      title={
+        <span className="text-foreground-alt text-xs">
+          Git repository not found
+        </span>
+      }
+      detail={`Object: ${objectKey || 'none'}`}
+    />
+  )
+}
 
-  if (route.mode !== 'commit' && isDir === false && statResource.value) {
+/** fileResources lists the file resources of a repo path, in error priority. */
+function fileResources(c: GitRepoController): Resource<unknown>[] {
+  return [c.rootHandleResource, c.pathHandle, c.statResource, c.entriesResource]
+}
+
+type FileView = 'file' | 'loading' | 'error' | 'ready'
+
+/** fileViewFor picks what the path shows in place of its directory tree. */
+function fileViewFor(c: GitRepoController): FileView {
+  if (c.route.mode === 'commit') return 'ready'
+  if (c.isDir === false && c.statResource.value) return 'file'
+  const isLoading =
+    c.rootHandleResource.loading ||
+    c.pathHandle.loading ||
+    c.statResource.loading ||
+    (c.isDir === true && c.entriesResource.loading)
+  if (isLoading) return 'loading'
+  if (fileResources(c).some((resource) => resource.error)) return 'error'
+  return 'ready'
+}
+
+type FrameProps = Omit<ComponentProps<typeof GitViewerFrame>, 'children'>
+
+interface GitRepoFileStatusProps {
+  controller: GitRepoController
+  view: FileView
+}
+
+/** GitRepoFileStatus renders the file, loading, or error view of the path. */
+function GitRepoFileStatus({ controller, view }: GitRepoFileStatusProps) {
+  const {
+    displayPath,
+    inlineFileURL,
+    nav,
+    pendingName,
+    readmePath,
+    refBarProps,
+    rootHandleResource,
+    route,
+    staleEntries,
+    statResource,
+    toolbarProps,
+  } = controller
+  const bareFrameProps: FrameProps = { toolbarProps, refBarProps }
+
+  if (view === 'file' && statResource.value) {
     return (
       <GitViewerFrame
-        {...viewerFrameProps}
+        {...bareFrameProps}
         mode={route.mode}
         onModeChange={nav.handleModeChange}
         hasReadme={!!readmePath}
@@ -259,121 +269,148 @@ function GitRepoContent({ controller }: { controller: GitRepoController }) {
     )
   }
 
-  const isFileLoading =
-    rootHandleResource.loading ||
-    pathHandle.loading ||
-    statResource.loading ||
-    (isDir === true && entriesResource.loading)
-
-  if (route.mode !== 'commit' && isFileLoading && staleEntries.length > 0) {
+  if (view === 'loading') {
     return (
-      <GitViewerFrame {...viewerFrameProps}>
-        <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
-          <FileTree
-            entries={staleEntries}
-            onOpen={nav.handleOpen}
-            loadingId={pendingName}
-          />
-        </div>
-      </GitViewerFrame>
-    )
-  }
-
-  if (route.mode !== 'commit' && isFileLoading) {
-    return (
-      <GitViewerFrame {...viewerFrameProps}>
-        <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-          <div className="text-foreground-alt text-xs">Loading files…</div>
-        </div>
-      </GitViewerFrame>
-    )
-  }
-
-  const fileError =
-    route.mode === 'commit'
-      ? null
-      : (rootHandleResource.error ??
-        pathHandle.error ??
-        statResource.error ??
-        entriesResource.error)
-  if (fileError) {
-    function handleRetry() {
-      if (rootHandleResource.error) {
-        rootHandleResource.retry()
-        return
-      }
-      if (pathHandle.error) {
-        pathHandle.retry()
-        return
-      }
-      if (statResource.error) {
-        statResource.retry()
-        return
-      }
-      if (entriesResource.error) {
-        entriesResource.retry()
-      }
-    }
-
-    return (
-      <GitViewerFrame {...viewerFrameProps}>
-        <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-          <div className="text-destructive text-xs">Error loading files</div>
-          <div className="text-foreground-alt/70 mt-1 text-xs">
-            {fileError.message}
+      <GitViewerFrame {...bareFrameProps}>
+        {staleEntries.length > 0 ? (
+          <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
+            <FileTree
+              entries={staleEntries}
+              onOpen={nav.handleOpen}
+              loadingId={pendingName}
+            />
           </div>
-          <button
-            className="text-brand mt-2 text-xs underline"
-            onClick={handleRetry}
-          >
-            Retry
-          </button>
-        </div>
+        ) : (
+          <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
+            <div className="text-foreground-alt text-xs">Loading files…</div>
+          </div>
+        )}
       </GitViewerFrame>
     )
   }
 
+  const failed = fileResources(controller).find((resource) => resource.error)
+  return (
+    <GitViewerFrame {...bareFrameProps}>
+      <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
+        <div className="text-destructive text-xs">Error loading files</div>
+        <div className="text-foreground-alt/70 mt-1 text-xs">
+          {failed?.error?.message}
+        </div>
+        <button
+          type="button"
+          className="text-brand mt-2 text-xs underline"
+          onClick={failed?.retry}
+        >
+          Retry
+        </button>
+      </div>
+    </GitViewerFrame>
+  )
+}
+
+interface GitRepoRouteBodyProps {
+  controller: GitRepoController
+  handle: GitRepoHandle
+}
+
+/** GitRepoRouteBody renders the file tree, README, log, or commit panel. */
+function GitRepoRouteBody({ controller, handle }: GitRepoRouteBodyProps) {
+  const {
+    displayPath,
+    effectiveRef,
+    fileEntries,
+    nav,
+    navigate,
+    readmeContent,
+    readmePath,
+    route,
+  } = controller
   const isRoot = displayPath === '/'
 
+  if (!isRoot || route.mode === 'files') {
+    return <FileTree entries={fileEntries} onOpen={nav.handleOpen} autoHeight />
+  }
+
+  switch (route.mode) {
+    case 'readme':
+      return (
+        <ReadmeSection
+          readmePath={readmePath ?? ''}
+          content={readmeContent.value}
+          loading={readmeContent.loading}
+        />
+      )
+    case 'log':
+      return (
+        effectiveRef && (
+          <CommitLog
+            handle={handle}
+            refName={effectiveRef}
+            onCommitClick={(hash) => navigate({ path: '/commit/' + hash })}
+          />
+        )
+      )
+    case 'commit':
+      return (
+        route.commitHash && (
+          <CommitDetail
+            handle={handle}
+            commitHash={route.commitHash}
+            onNavigateCommit={(hash) => navigate({ path: '/commit/' + hash })}
+          />
+        )
+      )
+    default:
+      return null
+  }
+}
+
+// GitRepoContent selects the repository state and renders the corresponding
+// file, commit, loading, or failure surface.
+function GitRepoContent({ controller }: { controller: GitRepoController }) {
+  const {
+    gitResource,
+    nav,
+    objectKey,
+    readmePath,
+    refBarProps,
+    repoInfoResource,
+    route,
+    toolbarProps,
+  } = controller
+
+  if (repoInfoResource.value?.isEmpty) {
+    return (
+      <GitViewerCenteredState
+        title="Empty Repository"
+        subtitle={objectKey}
+        detail="This repository has no commits yet."
+      />
+    )
+  }
+
+  const handle = gitResource.value
+  if (gitResource.loading || gitResource.error || !handle) {
+    return <GitRepoLoadState controller={controller} />
+  }
+
+  const view = fileViewFor(controller)
+  if (view !== 'ready') {
+    return <GitRepoFileStatus controller={controller} view={view} />
+  }
+
+  const isCommit = route.mode === 'commit'
   return (
     <GitViewerFrame
-      {...viewerFrameProps}
       toolbarProps={{ ...toolbarProps, showPath: route.mode === 'files' }}
-      mode={route.mode === 'commit' ? undefined : route.mode}
-      onModeChange={route.mode === 'commit' ? undefined : nav.handleModeChange}
+      refBarProps={refBarProps}
+      mode={isCommit ? undefined : route.mode}
+      onModeChange={isCommit ? undefined : nav.handleModeChange}
       hasReadme={!!readmePath}
     >
       <div className="bg-file-back min-h-0 flex-1 overflow-auto">
-        {(!isRoot || route.mode === 'files') && (
-          <FileTree entries={fileEntries} onOpen={nav.handleOpen} autoHeight />
-        )}
-        {isRoot && route.mode === 'readme' && (
-          <ReadmeSection
-            readmePath={readmePath ?? ''}
-            content={readmeContent.value}
-            loading={readmeContent.loading}
-          />
-        )}
-        {isRoot &&
-          route.mode === 'log' &&
-          gitResource.value &&
-          effectiveRef && (
-            <CommitLog
-              handle={gitResource.value}
-              refName={effectiveRef}
-              onCommitClick={(hash) => navigate({ path: '/commit/' + hash })}
-            />
-          )}
-        {isRoot &&
-          route.mode === 'commit' &&
-          gitResource.value &&
-          route.commitHash && (
-            <CommitDetail
-              handle={gitResource.value}
-              commitHash={route.commitHash}
-              onNavigateCommit={(hash) => navigate({ path: '/commit/' + hash })}
-            />
-          )}
+        <GitRepoRouteBody controller={controller} handle={handle} />
       </div>
     </GitViewerFrame>
   )

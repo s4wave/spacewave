@@ -26,9 +26,11 @@ func RelayCrossConnect(
 	ctx context.Context,
 	strmA, strmB e2e_wasm_session.SRPCSignalRelayService_SignalRelayClient,
 ) (<-chan RelayProgress, <-chan error) {
+	// Buffer relay progress and errors.
 	progressCh := make(chan RelayProgress, 16)
 	errCh := make(chan error, 2)
 
+	// Forward signal frames from one relay stream to the other.
 	forward := func(direction string, src, dst e2e_wasm_session.SRPCSignalRelayService_SignalRelayClient) {
 		var messages, bytes uint64
 		for {
@@ -59,6 +61,7 @@ func RelayCrossConnect(
 		}
 	}
 
+	// Start both relay directions.
 	go forward("A->B", strmA, strmB)
 	go forward("B->A", strmB, strmA)
 	return progressCh, errCh

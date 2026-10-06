@@ -481,7 +481,7 @@ ${original}`;
       assetFileNames: request.assetFileNames || "[name]-[hash][extname]",
       sourcemap: outputSourcemap,
       codeSplitting: request.codeSplitting ?? false,
-      minify: request.minify ? { compress: !request.minifySkipCompress, mangle: true } : false,
+      minify: request.minify ? { compress: !request.minifySkipCompress, mangle: { toplevel: false } } : false,
       comments: false,
       banner: request.banner || undefined,
       cleanDir: request.cleanOutputDir ?? false

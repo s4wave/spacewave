@@ -83,7 +83,7 @@ func TestDistributionCacheExcludesPreviousInstall(t *testing.T) {
 		if err != nil || !found {
 			t.Fatalf("host object: found=%t, error=%v", found, err)
 		}
-		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+		if _, _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 			t.Fatal(err)
 		}
 		return instance.executePluginRoutine.GetState()

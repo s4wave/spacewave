@@ -86,12 +86,14 @@ vi.mock('./dashboard/SessionDashboard.js', () => ({
     return (
       <>
         <button
+          type="button"
           data-testid="quickstart-drive"
           onClick={() => props.onQuickstartClick?.('drive')}
         >
           Drive
         </button>
         <button
+          type="button"
           data-testid="quickstart-gizmo"
           onClick={() => props.onQuickstartClick?.('gizmo-workspace')}
         >

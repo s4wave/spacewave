@@ -10,6 +10,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	trace "github.com/s4wave/spacewave/db/traceutil"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/peer"
@@ -96,6 +97,23 @@ func (c *Controller) processOp(
 		ole.Warn("rejecting op: unknown op type")
 		return nil, opRejection(peerID, nonce, "unknown operation type"), nil
 	}
+}
+
+// opPayloadRefs returns the payload roots of the World operations in the
+// encoded operation, resolving operation types with lookupOp.
+func opPayloadRefs(ctx context.Context, lookupOp world.LookupOp, opData []byte) ([]*block.BlockRef, error) {
+	// Decode the operation.
+	op := &SOWorldOp{}
+	if err := op.UnmarshalVT(opData); err != nil {
+		return nil, err
+	}
+
+	// Only a World transaction carries payloads.
+	tx := op.GetApplyTxOp().GetTx()
+	if tx == nil {
+		return nil, nil
+	}
+	return tx.PayloadRefs(ctx, lookupOp)
 }
 
 // processInitWorldOp processes an InitWorld operation.

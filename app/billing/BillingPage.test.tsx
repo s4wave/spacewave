@@ -89,10 +89,6 @@ vi.mock('./PlanControls.js', () => ({
   PlanControls: () => <div>plan-controls</div>,
 }))
 
-vi.mock('./StripePortalLink.js', () => ({
-  StripePortalLink: () => <div>portal-link</div>,
-}))
-
 vi.mock('./UsageBars.js', () => ({
   UsageBars: ({ actions }: { actions?: ReactNode }) => (
     <div>

@@ -56,6 +56,7 @@ export function useUnixFSInlineEntryRenderer({
             onMouseDown={(event) => event.stopPropagation()}
           >
             <input
+              aria-label="Rename entry"
               ref={(element) => {
                 if (!element) return
                 element.focus()
@@ -72,6 +73,8 @@ export function useUnixFSInlineEntryRenderer({
                 renameRef.current = event.target.value
               }}
               onKeyDown={(event) => {
+                event.stopPropagation()
+                if (event.nativeEvent.isComposing) return
                 if (event.key === 'Enter') {
                   event.preventDefault()
                   void onConfirmRename()
@@ -80,7 +83,6 @@ export function useUnixFSInlineEntryRenderer({
                   event.preventDefault()
                   onCancelRename()
                 }
-                event.stopPropagation()
               }}
               onBlur={(event) => {
                 const related = event.relatedTarget as HTMLElement | null
@@ -89,6 +91,7 @@ export function useUnixFSInlineEntryRenderer({
               }}
             />
             <button
+              type="button"
               tabIndex={0}
               aria-label="Confirm rename"
               className="text-brand hover:text-brand-highlight shrink-0 p-0.5"
@@ -101,6 +104,7 @@ export function useUnixFSInlineEntryRenderer({
               <LuCheck className="size-3" />
             </button>
             <button
+              type="button"
               tabIndex={0}
               aria-label="Cancel rename"
               className="text-foreground-alt hover:text-foreground shrink-0 p-0.5"
@@ -132,11 +136,14 @@ export function useUnixFSInlineEntryRenderer({
           onMouseDown={(event) => event.stopPropagation()}
         >
           <input
+            aria-label={placeholder}
             ref={(element) => element?.focus()}
             className="bg-background text-foreground border-brand min-w-0 flex-1 rounded border px-1 py-0 text-xs outline-none"
             value={value}
             onChange={(event) => handleNameChange(event.target.value)}
             onKeyDown={(event) => {
+              event.stopPropagation()
+              if (event.nativeEvent.isComposing) return
               if (event.key === 'Enter') {
                 event.preventDefault()
                 void handleConfirm(event.currentTarget.value)
@@ -145,7 +152,6 @@ export function useUnixFSInlineEntryRenderer({
                 event.preventDefault()
                 handleCancel()
               }
-              event.stopPropagation()
             }}
             onBlur={(event) => {
               if (event.currentTarget.value.trim()) {

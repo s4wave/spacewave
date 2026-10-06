@@ -87,16 +87,8 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 	}
 	res := &volumeRepairResult{bytesBefore: uint64(fi.Size())} //nolint:gosec // Stat sizes are never negative.
 
-	// Refuse a volume another process has open before holding it
-	// exclusively, which would otherwise wait for that process to exit.
-	probe, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Exclusive: true, Timeout: volumeOpenTimeout})
-	if errors.Is(err, bbolt_errors.ErrTimeout) {
-		return errors.Errorf("%s is open in another process; stop the daemon first", path)
-	}
-	if err != nil {
-		return errors.Wrap(err, "open volume")
-	}
-	if err := probe.Close(); err != nil {
+	// Refuse a running volume.
+	if err := requireVolumeStopped(path); err != nil {
 		return err
 	}
 
@@ -138,6 +130,19 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 		{"File After", humanize.IBytes(res.bytesAfter)},
 	})
 	return nil
+}
+
+// requireVolumeStopped refuses a volume another process has open. Holding it
+// exclusively would otherwise wait for that process to exit.
+func requireVolumeStopped(path string) error {
+	probe, err := bbolt.Open(path, 0o400, &bbolt.Options{ReadOnly: true, Exclusive: true, Timeout: volumeOpenTimeout})
+	if errors.Is(err, bbolt_errors.ErrTimeout) {
+		return errors.Errorf("%s is open in another process; stop the daemon first", path)
+	}
+	if err != nil {
+		return errors.Wrap(err, "open volume")
+	}
+	return probe.Close()
 }
 
 // repairVolume holds the volume exclusively, releases its leaked bucket edges,

@@ -96,6 +96,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
     <div>
       <header className="mb-10">
         <button
+          type="button"
           onClick={goToHub}
           className="text-foreground-alt/50 hover:text-foreground-alt mb-4 flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
         >
@@ -114,6 +115,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
         <div className="mb-10 grid gap-4 @lg:grid-cols-3">
           {startPaths.map((path) => (
             <button
+              type="button"
               key={path.url}
               onClick={() => goToPage(path.url)}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-5 text-left transition-colors duration-200"
@@ -138,6 +140,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
           const firstPage = section.pages[0]
           return (
             <button
+              type="button"
               key={section.id}
               onClick={() => firstPage && goToPage(firstPage.url)}
               disabled={!firstPage}
@@ -180,6 +183,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
           <div className="flex flex-wrap gap-3">
             {otherSites.map((other) => (
               <button
+                type="button"
                 key={other.id}
                 onClick={() => goToPage(`/docs/${other.id}`)}
                 className="text-foreground-alt/70 hover:text-foreground cursor-pointer text-sm transition-colors"

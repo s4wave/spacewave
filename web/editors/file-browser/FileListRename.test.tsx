@@ -7,8 +7,14 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useCallback, useRef, useState, useMemo } from 'react'
-import { FileList } from './FileList.js'
+import {
+  type ComponentProps,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { FileList, useFileListState } from './FileList.js'
 import type { FileEntry } from './types.js'
 import type { RenderEntryCallback } from './FileListEntry.js'
 
@@ -17,6 +23,12 @@ const mockEntries: FileEntry[] = [
   { id: '2', name: 'hello.txt', isDir: false },
   { id: '3', name: 'README.md', isDir: false },
 ]
+
+// TestFileList owns the file list state the way a file browser does.
+function TestFileList(props: Omit<ComponentProps<typeof FileList>, 'state'>) {
+  const state = useFileListState()
+  return <FileList {...props} state={state} />
+}
 
 function getRenameInput(): HTMLInputElement {
   const input = screen.getByTestId('rename-input')
@@ -89,7 +101,7 @@ function RenameTestHarness({
               renameRef.current = e.target.value
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                 e.preventDefault()
                 confirmRename()
               }
@@ -106,6 +118,7 @@ function RenameTestHarness({
             }}
           />
           <button
+            type="button"
             tabIndex={0}
             data-testid="rename-confirm"
             onClick={(e) => {
@@ -117,6 +130,7 @@ function RenameTestHarness({
             Confirm
           </button>
           <button
+            type="button"
             tabIndex={0}
             data-testid="rename-cancel"
             onClick={(e) => {
@@ -135,6 +149,7 @@ function RenameTestHarness({
   return (
     <div>
       <button
+        type="button"
         data-testid="trigger-rename"
         onClick={() => {
           const entry = mockEntries.find((e) => e.id === '2')
@@ -143,7 +158,7 @@ function RenameTestHarness({
       >
         Start Rename
       </button>
-      <FileList entries={mockEntries} renderEntry={renderEntry} />
+      <TestFileList entries={mockEntries} renderEntry={renderEntry} />
     </div>
   )
 }

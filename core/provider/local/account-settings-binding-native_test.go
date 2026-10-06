@@ -17,14 +17,17 @@ import (
 // store their volumes in bolt databases under dir. The returned release stops
 // both.
 func startBoltLocalProvider(ctx context.Context, t *testing.T, dir string) (*provider_local.Provider, func()) {
+	// Mark this helper for test failure attribution.
 	t.Helper()
 
+	// Open a Bolt-backed testbed and register the local provider factory.
 	tb, err := testbed.Default(ctx, testbed.WithStorages(storage_native.NewBoltDB(false, dir)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 
+	// Load the local provider controller.
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: "local",
 		PeerId:     tb.Volume.GetPeerID().String(),
@@ -35,6 +38,7 @@ func startBoltLocalProvider(ctx context.Context, t *testing.T, dir string) (*pro
 		t.Fatal(err)
 	}
 
+	// Look up the local provider and release the testbed with it.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, "local", false, nil)
 	if err != nil {
 		provCtrlRef.Release()
@@ -50,14 +54,17 @@ func startBoltLocalProvider(ctx context.Context, t *testing.T, dir string) (*pro
 
 // accountSettingsID returns the id of the account's bound settings object.
 func accountSettingsID(ctx context.Context, t *testing.T, prov *provider_local.Provider, accountID string) string {
+	// Mark this helper for test failure attribution.
 	t.Helper()
 
+	// Open the account and release it when the id is read.
 	acc, release, err := prov.AccessProviderAccount(ctx, accountID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer release()
 
+	// Return the bound account-settings object id.
 	ref, err := acc.(*provider_local.ProviderAccount).GetAccountSettingsRef(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -73,9 +80,11 @@ func accountSettingsID(ctx context.Context, t *testing.T, prov *provider_local.P
 // the account volume only after the first releases its file lock, so the
 // account tracker restarts from stored state rather than reusing a live one.
 func TestAccountSettingsBindingPersistsAcrossAccountRestart(t *testing.T) {
+	// Use a temporary Bolt directory for the restart.
 	ctx := t.Context()
 	dir := t.TempDir()
 
+	// Create an account and record its settings id before shutdown.
 	prov, release := startBoltLocalProvider(ctx, t, dir)
 	sessRef, err := prov.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
@@ -86,6 +95,7 @@ func TestAccountSettingsBindingPersistsAcrossAccountRestart(t *testing.T) {
 	id1 := accountSettingsID(ctx, t, prov, accountID)
 	release()
 
+	// Restart the provider and require the same settings id.
 	prov, release = startBoltLocalProvider(ctx, t, dir)
 	defer release()
 	if id2 := accountSettingsID(ctx, t, prov, accountID); id2 != id1 {

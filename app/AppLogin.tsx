@@ -153,6 +153,7 @@ export function AppLogin({
           )}
         >
           <button
+            type="button"
             onClick={() => navigate({ path: '/pair' })}
             className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors"
           >
@@ -169,10 +170,14 @@ export function AppLogin({
           )}
         >
           <button
+            type="button"
             onClick={() => {
-              void addRootAlias.add().then((aliasId) => {
-                if (aliasId) navigate({ path: '/sessions' })
-              })
+              void addRootAlias
+                .add()
+                .then((aliasId) => {
+                  if (aliasId) navigate({ path: '/sessions' })
+                })
+                .catch(() => {})
             }}
             disabled={!addRootAlias.canAdd}
             className="text-foreground-alt hover:text-brand flex items-center gap-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50"

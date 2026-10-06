@@ -14,6 +14,75 @@ import {
 import { Button } from '@s4wave/web/ui/button.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
+interface TextFileToolbarProps {
+  draft: string | null
+  text: string
+  complete: boolean
+  saved: boolean
+  saving: boolean
+  canSave: boolean
+  onEdit: () => void
+  onSave: () => void
+  onCancel: () => void
+}
+
+/** TextFileToolbar renders the edit, save, and cancel controls for a text file. */
+function TextFileToolbar({
+  draft,
+  text,
+  complete,
+  saved,
+  saving,
+  canSave,
+  onEdit,
+  onSave,
+  onCancel,
+}: TextFileToolbarProps) {
+  return (
+    <div className="border-foreground/10 flex items-center gap-2 border-b p-2">
+      {draft === null ? (
+        <Button
+          size="default"
+          variant="ghost"
+          className="pointer-coarse:min-h-11"
+          disabled={!complete}
+          onClick={onEdit}
+        >
+          Edit file
+        </Button>
+      ) : (
+        <>
+          <Button
+            size="default"
+            className="pointer-coarse:min-h-11"
+            disabled={saving || !canSave || draft === text}
+            onClick={onSave}
+          >
+            {saving ? 'Saving…' : 'Save file'}
+          </Button>
+          <Button
+            size="default"
+            variant="ghost"
+            className="pointer-coarse:min-h-11"
+            disabled={saving}
+            onClick={onCancel}
+          >
+            {draft === text ? 'Done editing' : 'Cancel edits'}
+          </Button>
+        </>
+      )}
+      {!complete && (
+        <span className="text-xs">This preview is too large to edit here.</span>
+      )}
+      {saved && !saving && (
+        <span role="status" className="text-xs">
+          File saved
+        </span>
+      )}
+    </div>
+  )
+}
+
 /** UnixFSTextFileViewer edits complete UTF-8 files through atomic World uploads. */
 export function UnixFSTextFileViewer({
   rootHandle,
@@ -74,7 +143,7 @@ export function UnixFSTextFileViewer({
     } catch (cause) {
       if (!signal.aborted) setError(String(cause))
     } finally {
-      if (!signal.aborted) setSaving(false)
+      setSaving(false)
     }
   }
 
@@ -101,55 +170,20 @@ export function UnixFSTextFileViewer({
   // Saving replaces one file in one accepted transaction, preserving sibling files.
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-foreground/10 flex items-center gap-2 border-b p-2">
-        {draft === null ? (
-          <Button
-            size="default"
-            variant="ghost"
-            className="pointer-coarse:min-h-11"
-            disabled={!content.value.complete}
-            onClick={() => setDraft(text)}
-          >
-            Edit file
-          </Button>
-        ) : (
-          <>
-            <Button
-              size="default"
-              className="pointer-coarse:min-h-11"
-              disabled={saving || !rootHandle.value || draft === text}
-              onClick={() => void save()}
-            >
-              {saving ? 'Saving…' : 'Save file'}
-            </Button>
-            <Button
-              size="default"
-              variant="ghost"
-              className="pointer-coarse:min-h-11"
-              disabled={saving}
-              onClick={() => {
-                setDraft(null)
-                setError('')
-              }}
-            >
-              {draft === text ? 'Done editing' : 'Cancel edits'}
-            </Button>
-          </>
-        )}
-        {!content.value.complete && (
-          <span className="text-xs">
-            This preview is too large to edit here.
-          </span>
-        )}
-        {acceptedText !== null &&
-          !saving &&
-          !error &&
-          acceptedText === draft && (
-            <span role="status" className="text-xs">
-              File saved
-            </span>
-          )}
-      </div>
+      <TextFileToolbar
+        draft={draft}
+        text={text}
+        complete={content.value.complete}
+        saved={acceptedText !== null && acceptedText === draft && !error}
+        saving={saving}
+        canSave={!!rootHandle.value}
+        onEdit={() => setDraft(text)}
+        onSave={() => void save()}
+        onCancel={() => {
+          setDraft(null)
+          setError('')
+        }}
+      />
 
       {error && (
         <div role="alert" className="text-destructive p-2 text-sm">

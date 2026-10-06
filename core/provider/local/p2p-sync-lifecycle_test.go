@@ -13,12 +13,16 @@ import (
 // TestRetrySharedObjectSyncRestartsOnlySelectedSO verifies that retry replaces
 // one SO routine serially without disturbing its generation or sibling SOs.
 func TestRetrySharedObjectSyncRestartsOnlySelectedSO(t *testing.T) {
+	// Bound the selected shared-object retry.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
+	// Build sync routines that count concurrent executions.
 	newSyncRoutine := func(started chan<- struct{}, running *atomic.Int32) *routine.RoutineContainer {
+		// Start the counted sync routine and stop it on cleanup.
 		rc := routine.NewRoutineContainer()
 		rc.SetRoutine(func(ctx context.Context) error {
+			// Announce the running sync and hold it until cancellation.
 			if active := running.Add(1); active != 1 {
 				t.Errorf("SO sync overlapped %d executions", active)
 			}
@@ -37,6 +41,7 @@ func TestRetrySharedObjectSyncRestartsOnlySelectedSO(t *testing.T) {
 		return rc
 	}
 
+	// Start target and other shared-object routines.
 	targetStarted := make(chan struct{}, 2)
 	otherStarted := make(chan struct{}, 2)
 	var targetRunning atomic.Int32
@@ -51,11 +56,14 @@ func TestRetrySharedObjectSyncRestartsOnlySelectedSO(t *testing.T) {
 			"other":  {sync: otherRoutine},
 		},
 	}
+
+	// Publish both shared-object routines on the account.
 	account := &ProviderAccount{}
 	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		account.p2pSync = state
 	})
 
+	// Retry the target after both routines start.
 	<-targetStarted
 	<-otherStarted
 	if !account.RetrySharedObjectSync("target") {
@@ -63,6 +71,7 @@ func TestRetrySharedObjectSyncRestartsOnlySelectedSO(t *testing.T) {
 	}
 	<-targetStarted
 
+	// Require the other routine and the account sync state to stay unchanged.
 	select {
 	case <-otherStarted:
 		t.Fatal("retry restarted an unrelated SO sync")
@@ -79,6 +88,7 @@ func TestRetrySharedObjectSyncRestartsOnlySelectedSO(t *testing.T) {
 // TestRetrySharedObjectSyncRejectsUnknownSOWithoutRestart verifies that list
 // reconciliation can still own initial startup when no routine exists yet.
 func TestRetrySharedObjectSyncRejectsUnknownSOWithoutRestart(t *testing.T) {
+	// Start a routine for the known shared object.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	started := make(chan struct{}, 2)
@@ -95,6 +105,8 @@ func TestRetrySharedObjectSyncRejectsUnknownSOWithoutRestart(t *testing.T) {
 			<-exitedCh
 		}
 	})
+
+	// Publish the known shared-object routine on the account.
 	state := &p2pSyncState{
 		ctx:     ctx,
 		started: true,
@@ -102,6 +114,7 @@ func TestRetrySharedObjectSyncRejectsUnknownSOWithoutRestart(t *testing.T) {
 	}
 	account := &ProviderAccount{p2pSync: state}
 
+	// Reject an unknown object without restarting the routine.
 	<-started
 	if account.RetrySharedObjectSync("missing") {
 		t.Fatal("unknown SO sync was restarted")
@@ -116,6 +129,7 @@ func TestRetrySharedObjectSyncRejectsUnknownSOWithoutRestart(t *testing.T) {
 // TestRetireP2PSyncStateWaitsForSOSyncRoutine verifies that retirement joins
 // SO routines before completing generation cleanup.
 func TestRetireP2PSyncStateWaitsForSOSyncRoutine(t *testing.T) {
+	// Hold a sync routine after cancellation until the test releases it.
 	ctx, cancel := context.WithCancel(t.Context())
 	routineStarted := make(chan struct{})
 	routineCanceled := make(chan struct{})
@@ -123,6 +137,7 @@ func TestRetireP2PSyncStateWaitsForSOSyncRoutine(t *testing.T) {
 	var routineExited atomic.Bool
 	rc := routine.NewRoutineContainer()
 	rc.SetRoutine(func(ctx context.Context) error {
+		// Announce start and cancellation before waiting for permission to exit.
 		close(routineStarted)
 		<-ctx.Done()
 		close(routineCanceled)
@@ -131,6 +146,8 @@ func TestRetireP2PSyncStateWaitsForSOSyncRoutine(t *testing.T) {
 		return ctx.Err()
 	})
 	rc.SetContext(ctx, false)
+
+	// Publish the held routine on the account sync state.
 	state := &p2pSyncState{
 		ctx:           ctx,
 		cancel:        cancel,
@@ -141,6 +158,7 @@ func TestRetireP2PSyncStateWaitsForSOSyncRoutine(t *testing.T) {
 	}
 	account := &ProviderAccount{p2pSync: state}
 
+	// Retire the sync state and require retirement to wait for routine exit.
 	<-routineStarted
 	retired := make(chan struct{})
 	go func() {
@@ -161,20 +179,24 @@ func TestRetireP2PSyncStateWaitsForSOSyncRoutine(t *testing.T) {
 }
 
 func TestP2PSyncStateFinishStartPublishesStableState(t *testing.T) {
+	// Build an unstarted sync state.
 	ctx := t.Context()
 	state := &p2pSyncState{ctx: ctx}
 
+	// Finish startup and require no restart.
 	restart := state.finishStart(nil)
 	if restart {
 		t.Fatal("stable startup requested a restart")
 	}
 
+	// Require the stable startup flags to be published.
 	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if !state.startComplete || !state.started || state.startErr != nil {
 			t.Fatalf("unexpected completed state: %+v", state)
 		}
 	})
 
+	// Require a later canceled finish not to restart.
 	restart = state.finishStart(context.Canceled)
 	if restart {
 		t.Fatal("completed startup requested a restart")
@@ -182,9 +204,11 @@ func TestP2PSyncStateFinishStartPublishesStableState(t *testing.T) {
 }
 
 func TestP2PSyncStateRestartStaysIncompleteUntilStable(t *testing.T) {
+	// Build a sync state with a pending restart.
 	ctx := t.Context()
 	state := &p2pSyncState{ctx: ctx, restartPending: true}
 
+	// Finish startup and require the pending restart.
 	restart := state.finishStart(nil)
 	if !restart {
 		t.Fatal("pending startup did not request a restart")
@@ -198,6 +222,7 @@ func TestP2PSyncStateRestartStaysIncompleteUntilStable(t *testing.T) {
 		}
 	})
 
+	// Finish the stable restart without another restart request.
 	restart = state.finishStart(nil)
 	if restart {
 		t.Fatal("stable startup requested an extra restart")
@@ -205,6 +230,7 @@ func TestP2PSyncStateRestartStaysIncompleteUntilStable(t *testing.T) {
 }
 
 func TestRetireP2PSyncStateWaitsForOwnedWork(t *testing.T) {
+	// Build a sync state with owned work.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	state := &p2pSyncState{
@@ -219,12 +245,14 @@ func TestRetireP2PSyncStateWaitsForOwnedWork(t *testing.T) {
 		account.p2pSync = state
 	})
 
+	// Retire the account sync in a background goroutine.
 	retired := make(chan struct{})
 	go func() {
 		account.retireP2PSyncState(nil)
 		close(retired)
 	}()
 
+	// Wait until the state is marked stopping.
 	for {
 		var (
 			stopping bool
@@ -242,12 +270,14 @@ func TestRetireP2PSyncStateWaitsForOwnedWork(t *testing.T) {
 		<-waitCh
 	}
 
+	// Require retirement to wait for owned work.
 	select {
 	case <-retired:
 		t.Fatal("retirement completed while owned work remained")
 	default:
 	}
 
+	// Release owned work and wait for retirement.
 	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		state.startupExited = true
 		state.workers = 0
@@ -255,6 +285,7 @@ func TestRetireP2PSyncStateWaitsForOwnedWork(t *testing.T) {
 	})
 	<-retired
 
+	// Require the state to have released its lower source.
 	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if !state.cleanupDone {
 			t.Fatal("retirement did not complete cleanup")
@@ -263,6 +294,7 @@ func TestRetireP2PSyncStateWaitsForOwnedWork(t *testing.T) {
 }
 
 func TestRetireP2PSyncStateReleasesLowerChain(t *testing.T) {
+	// Build sync states with retained lower sources.
 	makeState := func(lower *p2pSyncState) *p2pSyncState {
 		ctx, cancel := context.WithCancel(context.Background())
 		return &p2pSyncState{
@@ -277,6 +309,7 @@ func TestRetireP2PSyncStateReleasesLowerChain(t *testing.T) {
 		}
 	}
 
+	// Install a three-state lower-source chain.
 	first := makeState(nil)
 	second := makeState(first)
 	third := makeState(second)
@@ -285,8 +318,10 @@ func TestRetireP2PSyncStateReleasesLowerChain(t *testing.T) {
 		account.p2pSync = third
 	})
 
+	// Retire the account sync and its lower chain.
 	account.retireP2PSyncState(nil)
 
+	// Require every state in the chain to retire.
 	for name, state := range map[string]*p2pSyncState{
 		"first":  first,
 		"second": second,
@@ -307,6 +342,7 @@ func TestRetireP2PSyncStateReleasesLowerChain(t *testing.T) {
 }
 
 func TestFailedP2PSyncStartDoesNotRestoreStoppedPrevious(t *testing.T) {
+	// Build stopped sync states for the failed startup.
 	makeState := func(stopping bool) *p2pSyncState {
 		ctx, cancel := context.WithCancel(context.Background())
 		return &p2pSyncState{
@@ -319,6 +355,7 @@ func TestFailedP2PSyncStartDoesNotRestoreStoppedPrevious(t *testing.T) {
 		}
 	}
 
+	// Install the failed state after a stopped predecessor.
 	previous := makeState(true)
 	failed := makeState(true)
 	account := &ProviderAccount{}
@@ -326,8 +363,10 @@ func TestFailedP2PSyncStartDoesNotRestoreStoppedPrevious(t *testing.T) {
 		account.p2pSync = failed
 	})
 
+	// Attempt to restore the stopped predecessor.
 	account.restoreP2PSyncAfterFailedStart(failed, previous, false)
 
+	// Require neither state to be restored.
 	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if account.p2pSync != nil {
 			t.Fatal("failed replacement restored a stopped previous state")
@@ -341,6 +380,7 @@ func TestFailedP2PSyncStartDoesNotRestoreStoppedPrevious(t *testing.T) {
 }
 
 func TestFailedP2PSyncStartDoesNotRestoreErroredPrevious(t *testing.T) {
+	// Install a failed state after an errored predecessor.
 	previousCtx, previousCancel := context.WithCancel(context.Background())
 	previousCancel()
 	previous := &p2pSyncState{
@@ -364,8 +404,10 @@ func TestFailedP2PSyncStartDoesNotRestoreErroredPrevious(t *testing.T) {
 		account.p2pSync = failed
 	})
 
+	// Attempt to restore the errored predecessor.
 	account.restoreP2PSyncAfterFailedStart(failed, previous, true)
 
+	// Require neither state to be restored.
 	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if account.p2pSync != nil {
 			t.Fatal("failed replacement restored a previous state with an errored context")
@@ -379,9 +421,11 @@ func TestFailedP2PSyncStartDoesNotRestoreErroredPrevious(t *testing.T) {
 }
 
 func TestFailedP2PSyncStartDoesNotRestoreRetiredRetainedPredecessor(t *testing.T) {
+	// Bound the retained-predecessor startup failure.
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
+	// Build sync states with startup and ownership flags.
 	makeState := func(owners int, complete bool) *p2pSyncState {
 		stateCtx, stateCancel := context.WithCancel(ctx)
 		return &p2pSyncState{
@@ -394,11 +438,13 @@ func TestFailedP2PSyncStartDoesNotRestoreRetiredRetainedPredecessor(t *testing.T
 		}
 	}
 
+	// Install three overlapping startup states.
 	oldest := makeState(1, true)
 	middle := makeState(1, false)
 	newest := makeState(1, false)
 	account := &ProviderAccount{}
 	account.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Retain the oldest state as the middle state lower source.
 		account.p2pSync = oldest
 		if !account.retainP2PSyncLowerSourceLocked(oldest) {
 			t.Fatal("middle start did not retain oldest state")
@@ -406,6 +452,8 @@ func TestFailedP2PSyncStartDoesNotRestoreRetiredRetainedPredecessor(t *testing.T
 		middle.lowerSource = oldest
 		middle.lowerSourceHeld = true
 		account.p2pSync = middle
+
+		// Retain the middle state as the newest state lower source.
 		if !account.retainP2PSyncLowerSourceLocked(middle) {
 			t.Fatal("newest start did not retain middle state")
 		}
@@ -419,6 +467,7 @@ func TestFailedP2PSyncStartDoesNotRestoreRetiredRetainedPredecessor(t *testing.T
 	// retain the replacement chain.
 	account.releaseP2PSyncState(oldest)
 
+	// Retire the middle state while the newest state retains it.
 	middleRetired := make(chan struct{})
 	go func() {
 		account.retireP2PSyncState(middle)
@@ -440,6 +489,7 @@ func TestFailedP2PSyncStartDoesNotRestoreRetiredRetainedPredecessor(t *testing.T
 		}
 	})
 
+	// Fail the newest startup and wait for its retirement.
 	if restart := newest.finishStart(errors.New("controlled startup failure")); restart {
 		t.Fatal("failed newest start requested a restart")
 	}
@@ -456,6 +506,7 @@ func TestFailedP2PSyncStartDoesNotRestoreRetiredRetainedPredecessor(t *testing.T
 		t.Fatal("newest state retirement did not complete")
 	}
 
+	// Require the retired predecessor not to become current.
 	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if account.p2pSync != nil {
 			t.Fatal("failed newest start restored a retired predecessor")

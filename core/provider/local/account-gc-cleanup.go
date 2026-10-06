@@ -31,9 +31,12 @@ func (a *ProviderAccount) runGCCleanup(ctx context.Context) error {
 }
 
 func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (*block_gc.Stats, error) {
+	// Use the installed collector when a test replaces the volume sweep.
 	if a.gcCleanupCollect != nil {
 		return a.gcCleanupCollect(ctx)
 	}
+
+	// Sweep rootless blocks through the volume ref graph when one is present.
 	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
 	if !ok {
 		return nil, nil
@@ -51,6 +54,7 @@ func (a *ProviderAccount) removeSharedObjectGCRefs(
 	bucketID string,
 	le *logrus.Entry,
 ) {
+	// Resolve the volume ref graph, or return when this volume has none.
 	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
 	if !ok {
 		return
@@ -59,6 +63,8 @@ func (a *ProviderAccount) removeSharedObjectGCRefs(
 	if rg == nil {
 		return
 	}
+
+	// Drop the node and provider GC refs for the deleted shared-object bucket.
 	gcOps := block_gc.NewGCStoreOps(a.vol, rg)
 	bucketIRI := block_gc.BucketIRI(bucketID)
 	if err := gcOps.RemoveGCRef(ctx, block_gc.NodeGCRoot, bucketIRI); err != nil {

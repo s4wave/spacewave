@@ -17,13 +17,16 @@ type ForgeScenario struct {
 
 // CreateForgeScenario creates a forge environment in a fresh harness session.
 func CreateForgeScenario(t testing.TB, h *Harness, session *TestSession) *ForgeScenario {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open the Forge quickstart.
 	page := session.Page()
 	WaitForApp(t, page)
 	NavigateHash(t, h, page, "#/quickstart/forge")
 	WaitForForgeViewer(t, page)
 
+	// Parse the quickstart route.
 	sessionIndex, spaceID, err := parseQuickstartRoute(page.URL())
 	if err != nil {
 		t.Fatalf("parse forge route: %v", err)

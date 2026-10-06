@@ -33,8 +33,10 @@ func UploadPathsViaPicker(t testing.TB, page playwright.Page, paths []string) {
 
 // UploadViaDnd uploads files by dispatching a native file drop onto UnixFS.
 func UploadViaDnd(t testing.TB, page playwright.Page, files []playwright.InputFile) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Build the drop payload from the fixture files.
 	payload := make([]map[string]string, 0, len(files))
 	for _, file := range files {
 		payload = append(payload, map[string]string{
@@ -44,6 +46,7 @@ func UploadViaDnd(t testing.TB, page playwright.Page, files []playwright.InputFi
 		})
 	}
 
+	// Drop the files onto the page.
 	_, err := page.Evaluate(`async ({ files }) => {
 		const target = document.querySelector('[data-testid="unixfs-upload-drop-target"]')
 		if (!(target instanceof HTMLElement)) {

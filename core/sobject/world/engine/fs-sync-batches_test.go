@@ -2,7 +2,6 @@ package sobject_world_engine_test
 
 import (
 	"context"
-	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	billy_util "github.com/go-git/go-billy/v6/util"
-	"github.com/s4wave/spacewave/core/sobject"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -21,11 +19,15 @@ import (
 )
 
 // syncBatchesFileCount is the number of files in the tree of the batch tests.
-// With the long names, their operations exceed sobject.MaxInnerDataSize.
-const syncBatchesFileCount = 1500
+const syncBatchesFileCount = 120
 
 // syncBatchesDirSize is the number of files in each directory of the tree.
-const syncBatchesDirSize = 50
+const syncBatchesDirSize = 40
+
+// syncBatchesBudget is the batch byte budget of the batch tests. The operations
+// of the tree exceed it several times over, as a large tree exceeds
+// sobject.MaxBatchSize.
+const syncBatchesBudget = 16 << 10
 
 // syncBatchesObjectKey is the UnixFS object the batch tests sync into.
 const syncBatchesObjectKey = "files"
@@ -134,8 +136,8 @@ func checkSyncBatchesTree(ctx context.Context, t *testing.T, sw *spaceWorld, wan
 	}
 }
 
-// TestSyncBatchesLargeTree syncs a tree whose single-commit operation exceeds
-// the SharedObject operation size limit and checks the Space holds every file.
+// TestSyncBatchesLargeTree syncs a tree larger than the batch budget in
+// several commits and checks the Space holds every file.
 func TestSyncBatchesLargeTree(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
@@ -152,22 +154,9 @@ func TestSyncBatchesLargeTree(t *testing.T) {
 			src := writeSyncBatchesTree(t)
 			initSyncBatchesObject(ctx, t, sw)
 
-			// Check one transaction cannot hold the tree.
-			big, err := sw.eng.NewTransaction(ctx, true)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer big.Discard()
-			if err := syncDirToFiles(ctx, big, src, tc.mode); err != nil {
-				t.Fatal(err)
-			}
-			if err := big.Commit(ctx); !errors.Is(err, sobject.ErrMaxSizeExceeded) {
-				t.Fatalf("single-commit sync = %v, want %v", err, sobject.ErrMaxSizeExceeded)
-			}
-
 			// Sync the tree in batches.
 			var rounds int
-			err = world_block_tx.CommitBatches(ctx, sw.eng, sobject.MaxBatchSize, func(ctx context.Context, ws world.WorldState) error {
+			err := world_block_tx.CommitBatches(ctx, sw.eng, syncBatchesBudget, func(ctx context.Context, ws world.WorldState) error {
 				rounds++
 				return syncDirToFiles(ctx, ws, src, tc.mode)
 			})

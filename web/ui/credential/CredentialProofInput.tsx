@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useId } from 'react'
 import { LuUpload } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -46,6 +46,8 @@ export function CredentialProofInput({
   onPasswordKeyDown,
   className,
 }: CredentialProofInputProps) {
+  const passwordId = useId()
+  const pemId = useId()
   const handlePasswordRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (focusOnMount) node?.focus()
@@ -57,10 +59,14 @@ export function CredentialProofInput({
     <div className={cn('space-y-3', className)}>
       {showPassword && (
         <div>
-          <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+          <label
+            htmlFor={passwordId}
+            className="text-foreground-alt mb-1.5 block text-xs select-none"
+          >
             {passwordLabel}
           </label>
           <input
+            id={passwordId}
             ref={handlePasswordRef}
             type="password"
             value={password}
@@ -83,10 +89,14 @@ export function CredentialProofInput({
             </div>
           )}
           <div>
-            <label className="text-foreground-alt mb-1.5 block text-xs select-none">
+            <label
+              htmlFor={pemId}
+              className="text-foreground-alt mb-1.5 block text-xs select-none"
+            >
               {pemLabel}
             </label>
             <button
+              id={pemId}
               type="button"
               onClick={() => fileInputRef?.current?.click()}
               disabled={disabled}

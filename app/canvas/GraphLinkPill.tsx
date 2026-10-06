@@ -12,6 +12,37 @@ interface GraphLinkPillProps {
   onDelete?: () => void
 }
 
+interface GraphLinkBadgesProps {
+  edge: EphemeralEdge
+}
+
+/** GraphLinkBadges flags a link as protected, capped, or partly hidden. */
+function GraphLinkBadges({ edge }: GraphLinkBadgesProps) {
+  const capped =
+    (edge.direction === 'out' && edge.outgoingTruncated) ||
+    (edge.direction === 'in' && edge.incomingTruncated)
+
+  return (
+    <>
+      {edge.protected && (
+        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
+          protected
+        </span>
+      )}
+      {capped && (
+        <span className="border-warning/20 bg-warning/10 text-warning rounded px-1 py-0.5">
+          capped
+        </span>
+      )}
+      {edge.hiddenCount > 0 && (
+        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
+          hidden {edge.hiddenCount}
+        </span>
+      )}
+    </>
+  )
+}
+
 // GraphLinkPill renders the inline Canvas graph-link action pill.
 export function GraphLinkPill({
   edge,
@@ -20,13 +51,10 @@ export function GraphLinkPill({
   onHide,
   onDelete,
 }: GraphLinkPillProps) {
-  const capped =
-    (edge.direction === 'out' && edge.outgoingTruncated) ||
-    (edge.direction === 'in' && edge.incomingTruncated)
-
   return (
     <div className="flex h-6.5 max-w-64 items-center">
       <button
+        type="button"
         className={cn(
           'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 min-w-0 items-center gap-1 rounded-l-md border border-r-0 px-1.5 py-0.5 micro-text shadow-lg backdrop-blur-sm transition-colors',
         )}
@@ -43,21 +71,7 @@ export function GraphLinkPill({
             {edge.linkedObjectTypeLabel}
           </span>
         )}
-        {edge.protected && (
-          <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
-            protected
-          </span>
-        )}
-        {capped && (
-          <span className="border-warning/20 bg-warning/10 text-warning rounded px-1 py-0.5">
-            capped
-          </span>
-        )}
-        {edge.hiddenCount > 0 && (
-          <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded px-1 py-0.5">
-            hidden {edge.hiddenCount}
-          </span>
-        )}
+        <GraphLinkBadges edge={edge} />
         <span className="ml-auto flex items-center gap-1">
           {loaded ? (
             <LuLocateFixed className="size-3" />
@@ -69,6 +83,7 @@ export function GraphLinkPill({
       </button>
       {edge.hideable && onHide && (
         <button
+          type="button"
           className={cn(
             'bg-background-card/50 text-foreground border-foreground/10 hover:border-foreground/20 flex h-6.5 items-center border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors',
             edge.userRemovable && onDelete ? 'border-r-0' : 'rounded-r-md',
@@ -81,6 +96,7 @@ export function GraphLinkPill({
       )}
       {edge.userRemovable && onDelete && (
         <button
+          type="button"
           className="bg-background-card/50 text-destructive border-foreground/10 hover:border-destructive/20 hover:bg-destructive/10 flex h-6.5 items-center rounded-r-md border px-1 py-0.5 shadow-lg backdrop-blur-sm transition-colors"
           onClick={onDelete}
           title={`Delete ${edge.predicate} link`}

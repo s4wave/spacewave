@@ -32,7 +32,7 @@ import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { Input } from '@s4wave/web/ui/input.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import type { TreeNode } from '@s4wave/web/ui/tree/TreeNode.js'
-import { Tree } from '@s4wave/web/ui/tree/index.js'
+import { Tree, useTreeState } from '@s4wave/web/ui/tree/index.js'
 import { applySpaceIndexPath } from './space-settings.js'
 
 export interface SpaceObjectBrowserProps {
@@ -70,8 +70,13 @@ function useSpaceObjectBrowserController() {
   const [renameValue, setRenameValue] = useState('')
   const [renameSaving, setRenameSaving] = useState(false)
 
-  const tree = useObjectTree(spaceWorldResource, objectTypeMetadataById)
-  const { loadMore, onExpandedChange } = tree
+  const treeState = useTreeState(null, 'tree')
+  const tree = useObjectTree(
+    spaceWorldResource,
+    treeState[0].expandedIds,
+    objectTypeMetadataById,
+  )
+  const { loadMore } = tree
 
   const openObject = useCallback(
     (objectKey: string) => {
@@ -317,7 +322,6 @@ function useSpaceObjectBrowserController() {
     handleRenameInputRef,
     handleSetAsIndex,
     menuState,
-    onExpandedChange,
     openCommand,
     pendingDelete,
     pendingIndex,
@@ -328,6 +332,7 @@ function useSpaceObjectBrowserController() {
     setMenuState,
     setRenameValue,
     treeNodes,
+    treeState,
   }
 }
 
@@ -361,7 +366,6 @@ function SpaceObjectBrowserView({
     handleRenameInputRef,
     handleSetAsIndex,
     menuState,
-    onExpandedChange,
     openCommand,
     pendingDelete,
     pendingIndex,
@@ -372,6 +376,7 @@ function SpaceObjectBrowserView({
     setMenuState,
     setRenameValue,
     treeNodes,
+    treeState,
   } = controller
 
   const treeCard = (
@@ -381,7 +386,7 @@ function SpaceObjectBrowserView({
           nodes={treeNodes}
           onRowDefaultAction={handleOpen}
           onRowContextMenu={handleContextMenu}
-          onExpandedChange={onExpandedChange}
+          state={treeState}
           placeholder="No objects"
         />
       </div>

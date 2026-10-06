@@ -31,19 +31,23 @@ func mountForgeSpace(
 	sessionIndex uint32,
 	spaceID string,
 ) *mountedForgeSpace {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Mount the session.
 	sessionSDK, err := sess.MountSessionByIdx(ctx, sessionIndex)
 	if err != nil {
 		t.Fatalf("MountSessionByIdx: %v", err)
 	}
 	defer sessionSDK.Release()
 
+	// Mount the Space SharedObject.
 	mountResp, err := sessionSDK.MountSharedObject(ctx, spaceID)
 	if err != nil {
 		t.Fatalf("MountSharedObject: %v", err)
 	}
 
+	// Open the mounted SharedObject client.
 	sharedObjectRef := sess.ResourceClient().CreateResourceReference(mountResp.GetResourceId())
 	sharedObjectSrpcClient, err := sharedObjectRef.GetClient()
 	if err != nil {
@@ -51,6 +55,7 @@ func mountForgeSpace(
 		t.Fatalf("GetClient(shared object): %v", err)
 	}
 
+	// Mount the SharedObject body.
 	sharedObjectSvc := s4wave_sobject.NewSRPCSharedObjectResourceServiceClient(sharedObjectSrpcClient)
 	bodyResp, err := s4wave_sobject.MountSharedObjectBody(ctx, sharedObjectSvc)
 	if err != nil {
@@ -58,6 +63,7 @@ func mountForgeSpace(
 		t.Fatalf("MountSharedObjectBody: %v", err)
 	}
 
+	// Open the Space resource client.
 	spaceRef := sess.ResourceClient().CreateResourceReference(bodyResp.GetResourceId())
 	spaceSrpcClient, err := spaceRef.GetClient()
 	if err != nil {
@@ -66,6 +72,7 @@ func mountForgeSpace(
 		t.Fatalf("GetClient(space): %v", err)
 	}
 
+	// Access the Space World.
 	spaceSvc := s4wave_space.NewSRPCSpaceResourceServiceClient(spaceSrpcClient)
 	accessWorldResp, err := spaceSvc.AccessWorld(ctx, &s4wave_space.AccessWorldRequest{})
 	if err != nil {
@@ -74,6 +81,7 @@ func mountForgeSpace(
 		t.Fatalf("AccessWorld: %v", err)
 	}
 
+	// Open the World engine.
 	engineRef := sess.ResourceClient().CreateResourceReference(accessWorldResp.GetResourceId())
 	eng, err := sdk_world_engine.NewSDKEngine(sess.ResourceClient(), engineRef)
 	if err != nil {
@@ -83,6 +91,7 @@ func mountForgeSpace(
 		t.Fatalf("NewEngine: %v", err)
 	}
 
+	// Mount the Space contents.
 	contentsResp, err := spaceSvc.MountSpaceContents(ctx, &s4wave_space.MountSpaceContentsRequest{})
 	if err != nil {
 		eng.Release()
@@ -91,6 +100,7 @@ func mountForgeSpace(
 		t.Fatalf("MountSpaceContents: %v", err)
 	}
 
+	// Open the contents client.
 	contentsRef := sess.ResourceClient().CreateResourceReference(contentsResp.GetResourceId())
 	contentsSrpcClient, err := contentsRef.GetClient()
 	if err != nil {
@@ -164,14 +174,17 @@ func assertNoForgePasses(
 	engine hydra_world.Engine,
 	jobKey string,
 ) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open a read transaction on the World engine.
 	tx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatalf("NewTransaction: %v", err)
 	}
 	defer tx.Discard()
 
+	// Require no pass linked from the job.
 	taskKeys, err := listLinkedObjectKeys(ctx, tx, forge_job.PredJobToTask.String(), jobKey)
 	if err != nil {
 		t.Fatalf("ListJobTasks: %v", err)

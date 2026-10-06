@@ -352,6 +352,7 @@ func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T
 		le:                  logrus.New().WithField("test", t.Name()),
 		client:              NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, ownerPriv, ownerPID.String()),
 		soID:                soID,
+		soHost:              sobject.NewSOHost(nil, nil, nil, soID),
 		privKey:             ownerPriv,
 		peerID:              ownerPID,
 		stateCtr:            ccontainer.NewCContainer[*sobject.SOState](nil),
@@ -568,10 +569,11 @@ func writeTestOperation(t *testing.T, state *sobject.SOState, priv crypto.PrivKe
 	if err != nil {
 		t.Fatal(err)
 	}
-	link, err := state.NextOperationLink(testSharedObjectID, peerID.String())
+	set, err := state.OperationSet(testSharedObjectID)
 	if err != nil {
 		t.Fatal(err)
 	}
+	link := state.NextOperationLink(set, peerID.String())
 
 	// Build and add the operation.
 	op, err := sobject.BuildSOOperation(testSharedObjectID, priv, []byte("op"), link, sobject.NewSOOperationLocalID())

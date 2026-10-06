@@ -25,6 +25,7 @@ export function MigrationPage() {
     <div className="bg-background-landing flex flex-1 flex-col overflow-y-auto p-6 md:p-10">
       <div className="mx-auto w-full max-w-lg">
         <button
+          type="button"
           onClick={handleBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex items-center gap-1.5 text-sm transition-colors"
         >

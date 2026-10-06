@@ -118,6 +118,7 @@ export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
           View on GitHub
         </ExternalLink>
         <button
+          type="button"
           onClick={currentDoc ? goToIndex : goHome}
           className="text-foreground-alt/50 hover:bg-foreground/5 hover:text-foreground-alt focus-visible:ring-brand/30 flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-xs transition-colors focus-visible:ring-1 focus-visible:outline-none @2xl:min-h-9"
         >

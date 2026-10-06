@@ -44,15 +44,18 @@ func (t *Factory) Construct(
 	conf config.Config,
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
+	// Take the construct logger and the local provider config.
 	le := opts.GetLogger()
 	cc := conf.(*Config)
 
+	// Reject a peer id that does not parse.
 	if cc.GetPeerId() != "" {
 		if _, err := cc.ParsePeerID(); err != nil {
 			return nil, err
 		}
 	}
 
+	// Default an empty provider id to the local provider id.
 	providerID := cc.GetProviderId()
 	if providerID == "" {
 		providerID = ProviderID

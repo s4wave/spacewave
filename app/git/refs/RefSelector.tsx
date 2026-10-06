@@ -36,6 +36,7 @@ export function RefSelector({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
+          type="button"
           className={cn(
             'text-topbar-menu text-topbar-button-text hover:text-topbar-button-text-hi hover:bg-pulldown-hover flex h-5 items-center gap-1 rounded px-1 select-none',
             loading && 'opacity-60',

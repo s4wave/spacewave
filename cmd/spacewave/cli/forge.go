@@ -9,6 +9,7 @@ import (
 	"time"
 
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
+	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 
@@ -46,6 +47,7 @@ func newForgeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			buildForgeCreateClusterCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
 			buildForgeCreateJobCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
 			buildForgeCreateWorkerCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
+			buildForgeShowExecutionCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
 			buildForgeWorkerProcessCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags), true),
 			buildForgeWorkerProcessCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags), false),
 		},
@@ -226,6 +228,76 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 
 			// Report that the job was created.
 			os.Stdout.WriteString("Created job \"" + key + "\".\n")
+			return nil
+		},
+	}
+}
+
+// buildForgeShowExecutionCommand builds the forge show-execution subcommand.
+func buildForgeShowExecutionCommand(statePath *string, sessionIdx *uint, spaceID *string, commonFlags []cli.Flag) *cli.Command {
+	return &cli.Command{
+		Name:      "show-execution",
+		Usage:     "show a forge execution's state and the plugin it waits for",
+		ArgsUsage: "<key>",
+		Flags:     commonFlags,
+		Action: func(c *cli.Context) error {
+			// Require an execution key and connect to the daemon.
+			key := c.Args().First()
+			if key == "" {
+				return errors.New("execution key required")
+			}
+			ctx := c.Context
+			client, err := connectDaemonFromContext(ctx, c, *statePath)
+			if err != nil {
+				return err
+			}
+			defer client.close()
+
+			// Mount the session and the Space, and open its World engine.
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
+			if err != nil {
+				return err
+			}
+			defer sess.Release()
+			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
+			if err != nil {
+				return err
+			}
+			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
+			if err != nil {
+				return err
+			}
+			defer spaceCleanup()
+			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+			if err != nil {
+				return err
+			}
+			defer engineCleanup()
+
+			// Read the execution in a read transaction.
+			tx, err := engine.NewTransaction(ctx, false)
+			if err != nil {
+				return errors.Wrap(err, "new transaction")
+			}
+			defer tx.Discard()
+			exec, objState, err := forge_execution.LookupExecution(ctx, tx, key)
+			world.ReleaseObjectState(objState)
+			if err != nil {
+				return errors.Wrapf(err, "lookup execution %q", key)
+			}
+
+			// Report the state, the plugin the execution waits for, and any failure.
+			fields := [][2]string{
+				{"Key", key},
+				{"State", strings.TrimPrefix(exec.GetExecutionState().String(), "ExecutionState_")},
+			}
+			if pluginID := exec.GetWaitingPluginId(); pluginID != "" {
+				fields = append(fields, [2]string{"Waiting for plugin", pluginID + " (not loaded; see spacewave plugin list)"})
+			}
+			if failErr := exec.GetResult().GetFailError(); failErr != "" {
+				fields = append(fields, [2]string{"Error", failErr})
+			}
+			writeFields(os.Stdout, fields)
 			return nil
 		},
 	}

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import { List } from './List.js'
+import { List, type ListProps } from './List.js'
 import { ListRow } from './ListRow.js'
-import { ListStateContext } from './ListState.js'
+import { ListStateContext, useListState } from './ListState.js'
 import type { ListState } from './ListState.js'
 import type { RowComponentProps } from './List.js'
 import type { ListItem } from './ListItem.js'
@@ -14,6 +14,12 @@ function TestRow<T>({ item, style, ariaAttributes }: RowComponentProps<T>) {
       {item.id}
     </div>
   )
+}
+
+// TestList owns the list state the way an application component does.
+function TestList<T>(props: Omit<ListProps<T>, 'state'>) {
+  const state = useListState(null, 'list')
+  return <List {...props} state={state} />
 }
 
 const mockItems: ListItem[] = [
@@ -29,13 +35,13 @@ describe('List', () => {
 
   describe('empty state', () => {
     it('shows default placeholder "No items" when items array is empty', () => {
-      render(<List items={[]} rowComponent={TestRow} />)
+      render(<TestList items={[]} rowComponent={TestRow} />)
       expect(screen.getByText('No items')).toBeTruthy()
     })
 
     it('shows custom placeholder when provided', () => {
       render(
-        <List
+        <TestList
           items={[]}
           rowComponent={TestRow}
           placeholder="Nothing to display"
@@ -47,20 +53,20 @@ describe('List', () => {
 
   describe('structure', () => {
     it('renders with aria-label="List"', () => {
-      render(<List items={[]} rowComponent={TestRow} />)
-      const list = screen.getByRole('list')
+      render(<TestList items={[]} rowComponent={TestRow} />)
+      const list = screen.getByRole('group')
       expect(list.getAttribute('aria-label')).toBe('List')
     })
 
     it('applies custom className', () => {
-      render(<List items={[]} rowComponent={TestRow} className="mt-1" />)
-      const list = screen.getByRole('list')
+      render(<TestList items={[]} rowComponent={TestRow} className="mt-1" />)
+      const list = screen.getByRole('group')
       expect(list.className).toContain('mt-1')
     })
 
     it('renders header content when header prop is provided', () => {
       render(
-        <List
+        <TestList
           items={[]}
           rowComponent={TestRow}
           header={<div data-testid="test-header">Header Content</div>}
@@ -73,7 +79,7 @@ describe('List', () => {
 
   describe('keyboard handling', () => {
     it.each(['ArrowDown', 'ArrowUp'])('%s prevents default', (key) => {
-      render(<List items={mockItems} rowComponent={TestRow} />)
+      render(<TestList items={mockItems} rowComponent={TestRow} />)
       const rowgroup = screen.getByRole('rowgroup')
       rowgroup.focus()
 

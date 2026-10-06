@@ -222,7 +222,7 @@ class FakeBroadcastChannel {
 function buildApi(pluginId: string, instanceKey = '') {
   const client = {}
   return {
-    startInfo: { pluginId, instanceKey },
+    startInfo: { pluginId, instanceKey, manifestRoot: 'root' },
     client,
     buildPluginOpenStream: vi.fn((target: string) => target),
     utils: {
@@ -397,7 +397,8 @@ describe('v86 backend registration', () => {
         typeId: 'vm/v86',
         viewerName: 'V86',
         componentId: 'spacewave.v86.viewer',
-        scriptPath: '/asset/spacewave-v86/v/b/fe/assets/v86-viewer.mjs',
+        scriptPath:
+          '/asset/spacewave-v86/manifest/root/v/b/fe/assets/v86-viewer.mjs',
         surface: ViewerSurface.WEB,
       },
     ])

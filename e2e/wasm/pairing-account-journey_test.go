@@ -16,7 +16,9 @@ import (
 // TestPairingHomeDriveJourney enters from Home, reads its durable copy offline,
 // then receives a new file after both clients reconnect with preserved stores.
 func TestPairingHomeDriveJourney(t *testing.T) {
+	// Time the pairing journey and restore pages when the test ends.
 	started := time.Now()
+
 	// Retain failures from both independent browser processes.
 	h := harness(t)
 	t.Logf("harness ready after %s", time.Since(started).Round(time.Millisecond))
@@ -60,6 +62,8 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 	file := playwright.InputFile{Name: "paired-file.md", MimeType: "text/markdown", Buffer: []byte("This file survives after the original pairing client leaves.\n")}
 	uploadDriveFileThroughUI(t, a.Page(), file)
 	waitForDriveEntry(t, a.Page(), file.Name)
+
+	// Mount the source session and read its info.
 	source, err := a.MountSessionByIdx(ctx, drive.GetSessionIndex())
 	if err != nil {
 		t.Fatal(err)
@@ -103,6 +107,8 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 	defer stream.Close()
 	waitPairingSpaceCopy(t, stream, drive.GetSpaceID())
 	t.Logf("receiver copy durable after %s", time.Since(started).Round(time.Millisecond))
+
+	// Open the copied file on the receiver.
 	NavigateHash(t, h, b.Page(), fmt.Sprintf("#/u/%d/so/%s", index, drive.GetSpaceID()))
 	WaitForDriveReady(t, h, b.Page())
 	openDriveEntry(t, b.Page(), file.Name)
@@ -129,6 +135,8 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 	WaitForApp(t, a.Page())
 	WaitForDriveReady(t, h, a.Page())
 	t.Logf("source restarted after %s", time.Since(started).Round(time.Millisecond))
+
+	// Upload a file after reconnect and require it on the receiver.
 	update := playwright.InputFile{Name: "after-reconnect.md", MimeType: "text/markdown", Buffer: []byte("This update arrived after both clients restarted.\n")}
 	uploadDriveFileThroughUI(t, a.Page(), update)
 	waitForDriveEntry(t, a.Page(), update.Name)
@@ -167,6 +175,7 @@ func waitPairingSpaceCopy(t *testing.T, stream s4wave_session.SRPCSessionResourc
 
 // startPairingPages exchanges real direct payloads through the shared pairing UI.
 func startPairingPages(t *testing.T, source, receiving playwright.Page, sourceIndex uint32, receivingRoute string) {
+	// Report failures at the caller.
 	t.Helper()
 
 	// Both clients run on this host. Gather host candidates without waiting
@@ -385,6 +394,7 @@ func TestPairingSignedInDriveJourney(t *testing.T) {
 
 // confirmPairingPages compares both displayed proofs before authorizing access.
 func confirmPairingPages(t *testing.T, source, receiving playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
 	// Wait until both participants can inspect the shared proof.

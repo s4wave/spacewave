@@ -42,6 +42,7 @@ export function BillingSummary() {
 
   return (
     <button
+      type="button"
       onClick={handleManage}
       className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors"
     >

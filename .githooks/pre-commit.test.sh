@@ -64,6 +64,7 @@ STUB
 #!/bin/sh
 printf 'go %s\n' "$*" >>"${HOOKTEST_LOG:?}"
 printf 'go GIT_DIR=%s\n' "${GIT_DIR:-}" >>"$HOOKTEST_LOG"
+printf 'go GIT_INDEX_FILE=%s\n' "${GIT_INDEX_FILE:-}" >>"$HOOKTEST_LOG"
 if [ "${1:-}" = run ] && [ "${2:-}" = ./.githooks/go-paragraphs ] && [ -n "${HOOKTEST_PARAGRAPHS_FAIL:-}" ]; then
 	exit 1
 fi
@@ -305,7 +306,7 @@ test_docs_skip_go_paragraphs() {
 }
 
 test_worktree_go_without_git_dir() {
-	label='worktree: go runs without GIT_DIR and the main checkout tools resolve'
+	label='worktree: go runs without GIT_DIR or GIT_INDEX_FILE and the main checkout tools resolve'
 	new_repo
 	git -C "$test_dir/repo" config core.hooksPath "$test_dir/repo/.git/hooks"
 	printf 'package main\n' >"$test_dir/repo/root.go"
@@ -315,7 +316,24 @@ test_worktree_go_without_git_dir() {
 	git -C "$test_dir/wt" add root.go
 	try_commit ok wt &&
 		log_has 'go list ./.' &&
-		! grep -q '^go GIT_DIR=.' "$test_dir/hook.log"
+		! grep -q '^go GIT_DIR=.' "$test_dir/hook.log" &&
+		! grep -q '^go GIT_INDEX_FILE=.' "$test_dir/hook.log"
+	note_result $? "$label"
+	cleanup
+}
+
+test_commit_all_reads_temporary_index() {
+	label='commit -a: the hook reads the temporary index git commits'
+	new_repo
+	printf 'package main\n' >"$test_dir/repo/root.go"
+	seed_commit
+	printf 'package main\nvar A = 1\n' >"$test_dir/repo/root.go"
+	log="$test_dir/hook.log"
+	: >"$log"
+	(cd "$test_dir/repo" && PATH="$test_dir:$PATH" HOOKTEST_LOG="$log" \
+		git commit -qam "test commit" >"$test_dir/commit.out" 2>&1) &&
+		log_has 'go list ./.' &&
+		! grep -q '^go GIT_INDEX_FILE=.' "$log"
 	note_result $? "$label"
 	cleanup
 }
@@ -333,7 +351,8 @@ for t in \
 	test_vendor_dirty_not_candidate \
 	test_go_paragraphs_gate \
 	test_docs_skip_go_paragraphs \
-	test_worktree_go_without_git_dir
+	test_worktree_go_without_git_dir \
+	test_commit_all_reads_temporary_index
 do
 	"$t"
 done

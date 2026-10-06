@@ -83,6 +83,7 @@ export function DeleteSpaceDialog({
             placeholder={spaceName}
             className={inputClass}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
               if (
                 e.key === 'Enter' &&
                 confirmText === spaceName &&
@@ -98,6 +99,7 @@ export function DeleteSpaceDialog({
 
         <DialogFooter>
           <button
+            type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
@@ -105,6 +107,7 @@ export function DeleteSpaceDialog({
             Cancel
           </button>
           <button
+            type="button"
             onClick={() => void handleDelete()}
             disabled={confirmText !== spaceName || submitting}
             className={cn(

@@ -1442,7 +1442,7 @@ describe('service worker fetch release cache routing', () => {
     expect(proxyFetch).not.toHaveBeenCalled()
   })
 
-  it('serves a current-generation static hit before runtime and revalidates it', async () => {
+  it('serves a current-generation static hit without a runtime fetch', async () => {
     const caches = globalThis.caches as unknown as FakeCacheStorage
     const release = buildRelease('gen-a')
     await writeBrowserReleaseState(caches, {
@@ -1457,26 +1457,39 @@ describe('service worker fetch release cache routing', () => {
       pluginAssetCachePath(path, '2abc'),
       new Response('cached app', { status: 200 }),
     )
-    const revalidation = newDeferred<Response>()
-    vi.mocked(proxyFetch).mockReturnValue(revalidation.promise)
+    vi.mocked(proxyFetch).mockClear()
 
     const fetchEvent = buildClientFetchEvent(path, 'client-a')
     const response = await swFetch(fetchEvent.ev)
 
     expect(await response.text()).toBe('cached app')
     expect(response.headers.get('X-Bldr-Plugin-Asset-Cache')).toBe('generation')
-    expect(proxyFetch).toHaveBeenCalledOnce()
-    expect(fetchEvent.waitUntilPromises).toHaveLength(1)
-    revalidation.resolve(new Response('fresh app', { status: 200 }))
-    await fetchEvent.waitUntilPromises[0]
+    expect(proxyFetch).not.toHaveBeenCalled()
+    expect(fetchEvent.waitUntilPromises).toHaveLength(0)
+  })
 
-    const cache = await caches.open('bldr-generation-gen-a')
-    const cached = await cache.match(
-      new Request(
-        new URL(pluginAssetCachePath(path, '2abc'), self.location.href),
-      ),
-    )
-    expect(await cached?.text()).toBe('fresh app')
+  it('caches a manifest-pinned plugin file before its root is announced', async () => {
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: buildRelease('gen-a'),
+    })
+    const path = '/b/pd/spacewave-core/manifest/3pin/chunks/plugin.gs.mjs'
+    const body = 'export const main = () => {}\n'
+    vi.mocked(proxyFetch).mockResolvedValue(new Response(body, { status: 200 }))
+
+    const cold = buildClientFetchEvent(path, 'client-a')
+    expect(await (await swFetch(cold.ev)).text()).toBe(body)
+    await Promise.all(cold.waitUntilPromises)
+
+    // Another announced root does not invalidate files its path pins.
+    await announcePluginRoot('spacewave-core', '4next')
+    vi.mocked(proxyFetch).mockClear()
+    const warm = await swFetch(buildClientFetchEvent(path, 'client-a').ev)
+
+    expect(await warm.text()).toBe(body)
+    expect(warm.headers.get('X-Bldr-Plugin-Asset-Cache')).toBe('generation')
+    expect(proxyFetch).not.toHaveBeenCalled()
   })
 
   it('rejects a cache hit when promotion changes between resolve and match', async () => {
@@ -1636,34 +1649,6 @@ describe('service worker fetch release cache routing', () => {
     expect(waitReady).toHaveBeenCalledOnce()
     await Promise.all(fetchEvent.waitUntilPromises)
     waitReady.mockRestore()
-  })
-
-  it('repairs a stable-name asset after one same-generation stale response', async () => {
-    const caches = globalThis.caches as unknown as FakeCacheStorage
-    const release = buildRelease('gen-a')
-    const path = '/b/pd/spacewave-app/backend.mjs'
-    await writeBrowserReleaseState(caches, {
-      ...createEmptyBrowserReleaseState(),
-      promotedCurrent: release,
-    })
-    await announcePluginRoot('spacewave-app', '2abc')
-    await writeGenerationCacheResponse(
-      caches,
-      release.generationId,
-      pluginAssetCachePath(path, '2abc'),
-      new Response('stale stable entry', { status: 200 }),
-    )
-    vi.mocked(proxyFetch).mockResolvedValue(
-      new Response('refreshed stable entry', { status: 200 }),
-    )
-
-    const first = buildClientFetchEvent(path, 'client-a')
-    const firstResponse = await swFetch(first.ev)
-    expect(await firstResponse.text()).toBe('stale stable entry')
-    await Promise.all(first.waitUntilPromises)
-
-    const secondResponse = await swFetch(buildFetchOnlyEvent(path))
-    expect(await secondResponse.text()).toBe('refreshed stable entry')
   })
 
   it('keeps dynamic plugin HTTP outside the static asset cache-first path', async () => {

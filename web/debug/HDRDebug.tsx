@@ -134,7 +134,7 @@ export function HDRDebug() {
   return (
     <div className="bg-background @container flex w-full flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 @lg:px-8">
-        <button
+        <button type="button"
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
         >
@@ -737,7 +737,7 @@ function StatusFlashDemoInner() {
   return (
     <div className="bg-background-card flex flex-wrap items-center gap-4 rounded-lg p-4">
       {statuses.map((status) => (
-        <button
+        <button type="button"
           key={status}
           className="hdr-status-color hdr-status-flash cursor-pointer rounded border border-white/10 px-3 py-2 font-mono text-xs font-bold"
           style={{ '--hdr-status-color': statusColors[status] }}

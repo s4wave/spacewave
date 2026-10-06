@@ -49,12 +49,14 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
         disabled={disabled}
         className={authInputClassName}
         onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return
           if (e.key === 'Enter' && !disabled) {
             onSubmit()
           }
         }}
       />
       <input
+        aria-label="Confirm PIN"
         type="password"
         value={confirmPin}
         onChange={(e) => onConfirmPinChange(e.target.value)}
@@ -62,6 +64,7 @@ export function OptionalPinLock(props: OptionalPinLockProps) {
         disabled={disabled}
         className={cn(authInputClassName, pinError && 'border-destructive')}
         onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing) return
           if (e.key === 'Enter' && !disabled) {
             onSubmit()
           }

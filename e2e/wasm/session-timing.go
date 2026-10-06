@@ -71,9 +71,11 @@ func (s *TestSession) recordPeerWaitTiming(
 	obs BrowserPeerObservation,
 	err error,
 ) {
+	// Lock the session timing record.
 	s.timingMu.Lock()
 	defer s.timingMu.Unlock()
 
+	// Append the peer-wait timing.
 	entry := PeerWaitTiming{
 		StartedAt:           start,
 		CompletedAt:         end,
@@ -95,9 +97,11 @@ func (s *TestSession) recordResourceConnectionAttemptTiming(
 	browserPeer peer.ID,
 	err error,
 ) {
+	// Lock the session timing record.
 	s.timingMu.Lock()
 	defer s.timingMu.Unlock()
 
+	// Append the connection-attempt timing.
 	entry := ResourceConnectionAttemptTiming{
 		StartedAt:   start,
 		CompletedAt: end,
@@ -119,9 +123,11 @@ func (s *TestSession) recordResourceStartupReload() {
 // ResourceConnectionTiming returns a snapshot of the latest resource
 // connection timing for the session.
 func (s *TestSession) ResourceConnectionTiming() ResourceConnectionTiming {
+	// Lock the session timing record.
 	s.timingMu.Lock()
 	defer s.timingMu.Unlock()
 
+	// Return a clone of the recorded timings.
 	out := s.resourceTiming
 	out.PeerWaits = slices.Clone(s.resourceTiming.PeerWaits)
 	out.Attempts = slices.Clone(s.resourceTiming.Attempts)

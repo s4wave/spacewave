@@ -31,6 +31,7 @@ func (s *TestSession) StartTrace(ctx context.Context, label string) error {
 
 // StopTrace stops runtime trace capture and returns the raw trace bytes.
 func (s *TestSession) StopTrace(ctx context.Context) ([]byte, error) {
+	// Stop the browser trace stream.
 	if s.browserClient == nil {
 		return nil, errors.New("resources not connected")
 	}
@@ -40,6 +41,7 @@ func (s *TestSession) StopTrace(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 
+	// Read the trace bytes until the stream ends.
 	var buf bytes.Buffer
 	for {
 		resp, err := stream.Recv()
@@ -57,6 +59,7 @@ func (s *TestSession) StopTrace(ctx context.Context) ([]byte, error) {
 // CaptureTrace starts a trace, runs fn, stops the trace, and returns the
 // raw bytes. This brackets only the profiled interaction.
 func (s *TestSession) CaptureTrace(ctx context.Context, label string, fn func(ctx context.Context) error) ([]byte, error) {
+	// Start a trace, run the function, and return the captured bytes.
 	if err := s.StartTrace(ctx, label); err != nil {
 		return nil, errors.Wrap(err, "start trace")
 	}

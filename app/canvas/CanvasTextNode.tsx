@@ -86,6 +86,7 @@ export function CanvasTextNode({
     return (
       <textarea
         ref={textareaRef}
+        aria-label="Node text"
         className={cn(
           'h-full w-full resize-none border-none bg-transparent p-2 text-sm outline-none',
           'font-display',

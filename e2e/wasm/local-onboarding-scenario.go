@@ -23,8 +23,10 @@ type LocalOnboardingScenario struct {
 // banner through the plan and setup pages, downloads a backup PEM, and sets
 // the session lock mode to PIN.
 func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSession) *LocalOnboardingScenario {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open Drive and wait until it is ready.
 	page := session.Page()
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
@@ -32,6 +34,8 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 	CompleteDriveIntroWizard(t, page)
 	WaitForDriveReady(t, h, page)
 	AssertSetupBannerHidden(t, page)
+
+	// Upload the setup-banner fixture and wait for it.
 	UploadViaPicker(t, page, []playwright.InputFile{
 		{
 			Name:     "setup-banner-threshold.bin",
@@ -41,21 +45,25 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 	})
 	WaitForDriveEntry(t, page, "setup-banner-threshold.bin")
 
+	// Read the quickstart session and Space from the route.
 	sessionIndex, spaceID, err := parseQuickstartRoute(page.URL())
 	if err != nil {
 		t.Fatalf("parse local onboarding route: %v", err)
 	}
 
+	// Open account setup from the banner.
 	WaitForSetupBanner(t, h, page)
 	if err := page.Locator("text=Finish setting up your account").First().Click(); err != nil {
 		failWithPageBody(t, page, "open setup banner", err)
 	}
 
+	// Choose local storage on the plan page.
 	WaitForPlanPage(t, h, page)
 	if err := page.Locator("button:visible:has-text('Continue with local storage')").First().Click(); err != nil {
 		failWithPageBody(t, page, "choose local storage plan", err)
 	}
 
+	// Finish PEM backup, PIN lock, and the lock-mode watch.
 	WaitForLocalSetupPage(t, page)
 	CompleteLocalSetupPemStep(t, page)
 	CompleteLocalSetupLockStep(t, page)
@@ -151,8 +159,10 @@ func WaitForLocalSetupPage(t testing.TB, page playwright.Page) {
 // CompleteLocalSetupPemStep downloads the local backup PEM and waits for the
 // setup state to mark the backup step complete.
 func CompleteLocalSetupPemStep(t testing.TB, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Download a password-protected backup key.
 	if err := page.Locator("button:visible:has-text('Download a backup key')").First().Click(); err != nil {
 		failWithPageBody(t, page, "expand backup key step", err)
 	}
@@ -173,8 +183,10 @@ func CompleteLocalSetupPemStep(t testing.TB, page playwright.Page) {
 // CompleteLocalSetupLockStep sets the local session lock mode to PIN and waits
 // for the setup state to mark the lock step complete.
 func CompleteLocalSetupLockStep(t testing.TB, page playwright.Page) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Set a launch PIN and wait for it to be enabled.
 	if err := page.Locator("button:visible:has-text('Set a PIN lock')").First().Click(); err != nil {
 		failWithPageBody(t, page, "expand pin lock step", err)
 	}
@@ -232,23 +244,28 @@ func WaitForSessionLockMode(
 	sessionIndex uint32,
 	want session_core.SessionLockMode,
 ) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Bound the lock-mode watch.
 	ctx, cancel := context.WithTimeout(h.Context(), 60*time.Second)
 	defer cancel()
 
+	// Mount the session.
 	sdk, err := session.MountSessionByIdx(ctx, sessionIndex)
 	if err != nil {
 		t.Fatalf("mount session %d for lock-state check: %v", sessionIndex, err)
 	}
 	defer sdk.Release()
 
+	// Watch lock state.
 	strm, err := sdk.WatchLockState(ctx)
 	if err != nil {
 		t.Fatalf("watch lock state: %v", err)
 	}
 	defer strm.Close()
 
+	// Wait until the lock mode matches.
 	for {
 		resp, err := strm.Recv()
 		if err != nil {

@@ -17,6 +17,7 @@ import type {
   GetFileEntryDetailsCallback,
 } from '@s4wave/web/editors/file-browser/types.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
+import type { ListStateHandle } from '@s4wave/web/ui/list'
 
 import { UnixFSBrowser, type UnixFSBrowserBodyProps } from './UnixFSBrowser.js'
 import { buildUnixFSEntryAppDragEnvelope } from './unixfs-app-drag.js'
@@ -83,7 +84,7 @@ interface MockFileListProps {
     context: { selectedIds: string[] },
   ) => DownloadDragTarget | null
   onContextMenu?: (item: { data: FileEntry }, event: MouseEvent) => void
-  onStateChange?: (state: { selectedIds?: string[] }) => void
+  state?: ListStateHandle
   onEntryDragOver?: (
     entry: FileEntry,
     event: DragEvent<HTMLDivElement>,
@@ -180,45 +181,54 @@ vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
   useUnixFSHandleStat: () => h.mockStatResource ?? buildResource(h.mockStat),
 }))
 
-vi.mock('@s4wave/web/editors/file-browser/FileList.js', () => ({
-  FileList: (props: MockFileListProps) => {
-    h.latestFileListProps = props
-    const {
-      entries,
-      placeholder,
-      dropTargetEntryId,
-      renderEntry,
-      onEntryDragOver,
-      onEntryDragLeave,
-      onEntryDrop,
-    } = props
-    return (
-      <div>
-        {entries.length === 0 ? placeholder : null}
-        {entries.map((entry) => {
-          const defaultNode = <span>{entry.name}</span>
-          return (
-            <div
-              key={entry.id}
-              data-testid={`file-entry-${entry.id}`}
-              data-drop-active={
-                dropTargetEntryId === entry.id ? 'true' : 'false'
-              }
-              onDragOver={(event) => {
-                if (!onEntryDragOver?.(entry, event)) return
-                event.preventDefault()
-              }}
-              onDragLeave={(event) => onEntryDragLeave?.(entry, event)}
-              onDrop={(event) => onEntryDrop?.(entry, event)}
-            >
-              {renderEntry?.({ entry, defaultNode, path: '/' }) ?? defaultNode}
-            </div>
-          )
-        })}
-      </div>
-    )
-  },
-}))
+vi.mock(
+  '@s4wave/web/editors/file-browser/FileList.js',
+  async (importOriginal) => ({
+    useFileListState: (
+      await importOriginal<
+        typeof import('@s4wave/web/editors/file-browser/FileList.js')
+      >()
+    ).useFileListState,
+    FileList: (props: MockFileListProps) => {
+      h.latestFileListProps = props
+      const {
+        entries,
+        placeholder,
+        dropTargetEntryId,
+        renderEntry,
+        onEntryDragOver,
+        onEntryDragLeave,
+        onEntryDrop,
+      } = props
+      return (
+        <div>
+          {entries.length === 0 ? placeholder : null}
+          {entries.map((entry) => {
+            const defaultNode = <span>{entry.name}</span>
+            return (
+              <div
+                key={entry.id}
+                data-testid={`file-entry-${entry.id}`}
+                data-drop-active={
+                  dropTargetEntryId === entry.id ? 'true' : 'false'
+                }
+                onDragOver={(event) => {
+                  if (!onEntryDragOver?.(entry, event)) return
+                  event.preventDefault()
+                }}
+                onDragLeave={(event) => onEntryDragLeave?.(entry, event)}
+                onDrop={(event) => onEntryDrop?.(entry, event)}
+              >
+                {renderEntry?.({ entry, defaultNode, path: '/' }) ??
+                  defaultNode}
+              </div>
+            )
+          })}
+        </div>
+      )
+    },
+  }),
+)
 
 vi.mock('@s4wave/web/editors/file-browser/Toolbar.js', () => ({
   Toolbar: ({ onNewFolder, onNavigate }: MockToolbarProps) => (
@@ -405,11 +415,12 @@ function createNativeFileDataTransfer() {
 }
 
 function setSelection(selectedIds: string[]) {
-  const onStateChange = h.latestFileListProps?.onStateChange
-  if (!onStateChange) {
-    throw new Error('file list did not provide onStateChange')
+  const state = h.latestFileListProps?.state
+  if (!state) {
+    throw new Error('file list did not receive a state')
   }
-  onStateChange({ selectedIds })
+  const [, update] = state
+  update((prev) => ({ ...prev, selectedIds }))
 }
 
 function triggerDownloadCommand() {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
@@ -62,45 +62,28 @@ export function useWizardState(
   )
   const state: WizardState | undefined = wizardState.value ?? undefined
 
-  const [localName, setLocalName] = useState('')
-  const [nameDirty, setNameDirty] = useState(false)
-  const [draftConfigData, setDraftConfigData] = useState<
-    Uint8Array | undefined
-  >(undefined)
-  const [configDirty, setConfigDirty] = useState(false)
-  const [creating, setCreating] = useState(false)
-
-  // Sync local name from remote state on first load or external change. The
-  // write must happen in this effect turn; deferring it can restore a stale
-  // remote name after the user starts editing.
+  // The drafts hold edits the remote state has not caught up to. A draft ends
+  // as soon as the remote value matches it, so later remote changes show.
   const remoteName = state?.name ?? ''
-  useEffect(() => {
-    if (nameDirty) {
-      if (localName === remoteName) setNameDirty(false)
-      return
-    }
-    setLocalName(remoteName)
-  }, [localName, nameDirty, remoteName])
-
   const remoteConfigData = state?.configData ?? undefined
-  useEffect(() => {
-    if (configDirty) {
-      if (bytesEqual(draftConfigData, remoteConfigData)) {
-        setConfigDirty(false)
-      }
-      return
-    }
-    setDraftConfigData(remoteConfigData)
-  }, [configDirty, draftConfigData, remoteConfigData])
+  const [draftName, setDraftName] = useState<string | null>(null)
+  const [draftConfig, setDraftConfig] = useState<{
+    data: Uint8Array
+  } | null>(null)
+  const [creating, setCreating] = useState(false)
+  if (draftName !== null && draftName === remoteName) setDraftName(null)
+  if (draftConfig && bytesEqual(draftConfig.data, remoteConfigData)) {
+    setDraftConfig(null)
+  }
+  const localName = draftName ?? remoteName
+  const configData = draftConfig ? draftConfig.data : remoteConfigData
 
   const handleConfigDataChange = useCallback(
     (data: Uint8Array) => {
-      setDraftConfigData(data)
-      setConfigDirty(!bytesEqual(data, remoteConfigData))
+      setDraftConfig(bytesEqual(data, remoteConfigData) ? null : { data })
     },
     [remoteConfigData],
   )
-  const configData = draftConfigData ?? remoteConfigData
   const configEditor = useConfigEditor(
     configTypeId,
     configData,
@@ -110,33 +93,23 @@ export function useWizardState(
   const persistDraftState = useCallback(async () => {
     const handle = wizardResource.value
     if (!handle) return
-    const configData = draftConfigData ?? new Uint8Array()
     const update: {
       name?: string
       configData?: Uint8Array
     } = {}
-    if (nameDirty && localName !== remoteName && localName !== '') {
-      update.name = localName
+    if (draftName !== null && draftName !== remoteName && draftName !== '') {
+      update.name = draftName
     }
-    if (configDirty && !bytesEqual(configData, remoteConfigData)) {
-      update.configData = configData
+    if (draftConfig && !bytesEqual(draftConfig.data, remoteConfigData)) {
+      update.configData = draftConfig.data
     }
     if (update.name === undefined && update.configData === undefined) return
     await handle.updateState(update)
-  }, [
-    configDirty,
-    draftConfigData,
-    localName,
-    nameDirty,
-    remoteConfigData,
-    remoteName,
-    wizardResource,
-  ])
+  }, [draftConfig, draftName, remoteConfigData, remoteName, wizardResource])
 
   const handleUpdateName = useCallback(
     (name: string) => {
-      setLocalName(name)
-      setNameDirty(name !== remoteName)
+      setDraftName(name === remoteName ? null : name)
     },
     [remoteName],
   )

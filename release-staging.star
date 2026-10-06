@@ -2,7 +2,7 @@
 apply_release_environment(
     channel_key="staging",
     signer_peer_id="12D3KooWJMSrvzA2vZejumpT7o5QZ8BMK4Yb5GYfqiQgXh6d7GoK",
-    worker_endpoint="https://staging.spacewave.app",
+    cloud_api_endpoint="https://staging.spacewave.app",
     account_endpoint="https://account-staging.spacewave.app",
     signing_env_prefix="spacewave-staging",
     world_space_id="01kqzhmjchxwkyqxxnjabdnr1t",

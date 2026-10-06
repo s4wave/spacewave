@@ -388,7 +388,7 @@ describe('BaseLayout E2E', () => {
         layoutHost={layoutHost}
         renderTab={({ tabID, navigate }) => (
           <div data-testid={`tab-content-${tabID}`}>
-            <button
+            <button type="button"
               data-testid={`navigate-btn-${tabID}`}
               onClick={() => void navigate('/test/path')}
             >

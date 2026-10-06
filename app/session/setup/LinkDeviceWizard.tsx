@@ -1,38 +1,22 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
-import React, {
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import React, { useCallback, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import {
-  LuArrowLeft,
   LuArrowRight,
   LuCamera,
-  LuCopy,
   LuKeyboard,
-  LuLink,
   LuMonitor,
-  LuRefreshCw,
   LuSmartphone,
   LuWifi,
-  LuX,
 } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
-import { toast } from '@s4wave/web/ui/toaster.js'
-import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
+import { DirectAnswerStep } from './DirectAnswerStep.js'
+import { DirectOfferStep } from './DirectOfferStep.js'
+import { EnterCodeStep } from './EnterCodeStep.js'
 import { LinkDeviceDoneStep } from './LinkDeviceDoneStep.js'
+import { PairingStep } from './PairingStep.js'
 import { PairingVerificationStep } from './PairingVerificationStep.js'
 import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
-import { PairingCodeChip } from './PairingCodeChip.js'
-import {
-  PAIRING_CODE_INSTRUCTIONS,
-  pairingErrorMessage,
-} from './pairing-copy.js'
 import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
 import { SetupPageLayout } from './SetupPageLayout.js'
 import {
@@ -42,15 +26,10 @@ import {
 } from '@s4wave/web/router/router.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useOptionalLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
-import { pairingStatusReachedPeer } from '@s4wave/app/session/pairing-status.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
-import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
-import QRCode from 'qrcode'
-import { Html5Qrcode } from 'html5-qrcode'
 
 type LinkStep =
   | 'choose'
@@ -62,10 +41,23 @@ type LinkStep =
   | 'verify'
   | 'done'
 
-const CODE_TTL_SECONDS = 600
-
 export interface LinkDeviceWizardProps {
   exitPath?: string
+}
+
+// describeUnsupportedLink returns why device linking cannot start, or null
+// when the session supports pairing.
+function describeUnsupportedLink(
+  error: Error | null | undefined,
+  loading: boolean,
+  pairingSupported: boolean,
+): string | null {
+  if (error) return error.message
+  if (loading) return 'Loading session pairing capabilities...'
+  if (!pairingSupported) {
+    return 'Device linking is not available for this provider.'
+  }
+  return null
 }
 
 // LinkDeviceWizard renders the device linking wizard at /setup/link-device.
@@ -75,7 +67,6 @@ export interface LinkDeviceWizardProps {
 export function LinkDeviceWizard({ exitPath }: LinkDeviceWizardProps) {
   const [step, setStep] = useState<LinkStep>('choose')
   const [remotePeerId, setRemotePeerId] = useState<string | null>(null)
-  const [codeGeneration, setCodeGeneration] = useState(0)
 
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
@@ -91,28 +82,7 @@ export function LinkDeviceWizard({ exitPath }: LinkDeviceWizardProps) {
   const resolvedExitPath = exitPath ?? fallbackExitPath
   const onboarding = useOptionalLocalSessionOnboardingContext()
 
-  const generateCodeCallback = useCallback(
-    (signal: AbortSignal) => {
-      if (!session || step !== 'pairing') return undefined
-      return session.generatePairingCode(signal)
-    },
-    [session, step, codeGeneration], // eslint-disable-line react-hooks/exhaustive-deps -- codeGeneration triggers re-fetch
-  )
-  const codeResult = usePromise(generateCodeCallback)
-
-  const handleRegenerateCode = useCallback(() => {
-    setCodeGeneration((n) => n + 1)
-  }, [])
-
-  const handleBack = useCallback((toStep: LinkStep) => {
-    if (toStep === 'pairing') {
-      setRemotePeerId(null)
-      setCodeGeneration((n) => n + 1)
-    }
-    setStep(toStep)
-  }, [])
-
-  const handleSkip = useCallback(() => {
+  const handleExit = useCallback(() => {
     navigate({ path: resolvedExitPath })
   }, [navigate, resolvedExitPath])
 
@@ -132,154 +102,145 @@ export function LinkDeviceWizard({ exitPath }: LinkDeviceWizardProps) {
     },
     [navigate, onboarding, resolvedExitPath],
   )
-  const handleExit = useCallback(() => {
-    navigate({ path: resolvedExitPath })
-  }, [navigate, resolvedExitPath])
+
+  const handleLinkMore = useCallback(
+    (entry?: SessionListEntry) => {
+      if (entry?.sessionIndex != null) {
+        navigate({ path: `/u/${entry.sessionIndex}/setup/link-device` })
+        return
+      }
+      setRemotePeerId(null)
+      setStep('choose')
+    },
+    [navigate],
+  )
+
   const pairingSupported = providerId === 'local' || providerId === 'spacewave'
-  const directPairingSupported = pairingSupported
+  const unsupportedMessage = describeUnsupportedLink(
+    sessionInfoError,
+    sessionInfoLoading,
+    pairingSupported,
+  )
 
   return (
     <SetupPageLayout title="Link My Device" showHeader={step === 'choose'}>
       <div>
-        {sessionInfoError && (
+        {unsupportedMessage ? (
           <UnsupportedLinkStep
-            message={sessionInfoError.message}
+            message={unsupportedMessage}
             buttonLabel="Back"
             onDone={handleExit}
           />
-        )}
-
-        {!sessionInfoError && sessionInfoLoading && (
-          <UnsupportedLinkStep
-            message="Loading session pairing capabilities..."
-            buttonLabel="Back"
-            onDone={handleExit}
+        ) : (
+          <LinkStepView
+            step={step}
+            session={session}
+            remotePeerId={remotePeerId}
+            onStep={setStep}
+            onSkip={handleExit}
+            onRemotePeerResolved={handleRemotePeerResolved}
+            onDone={handleDone}
+            onLinkMore={handleLinkMore}
           />
         )}
-
-        {!sessionInfoError && !sessionInfoLoading && !pairingSupported && (
-          <UnsupportedLinkStep
-            message="Device linking is not available for this provider."
-            buttonLabel="Back"
-            onDone={handleExit}
-          />
-        )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'choose' && (
-            <ChooseStep
-              onDownload={() => setStep('download')}
-              onGenerate={() => setStep('pairing')}
-              onEnterCode={() => setStep('enter_code')}
-              onDirectOffer={
-                directPairingSupported
-                  ? () => setStep('direct_offer')
-                  : undefined
-              }
-              onDirectAnswer={
-                directPairingSupported
-                  ? () => setStep('direct_answer')
-                  : undefined
-              }
-              onSkip={handleSkip}
-            />
-          )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'download' && (
-            <DownloadStep
-              onContinue={() => setStep('pairing')}
-              onBack={() => setStep('choose')}
-            />
-          )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'pairing' && (
-            <PairingStep
-              session={session}
-              code={codeResult.data ?? null}
-              loading={codeResult.loading}
-              error={codeResult.error ? codeResult.error.message : null}
-              generation={codeGeneration}
-              onRegenerateCode={handleRegenerateCode}
-              onRemotePeerResolved={handleRemotePeerResolved}
-              onBack={() => handleBack('choose')}
-            />
-          )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'enter_code' && (
-            <EnterCodeStep
-              session={session}
-              onRemotePeerResolved={handleRemotePeerResolved}
-              onBack={() => setStep('choose')}
-            />
-          )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'direct_offer' && (
-            <DirectOfferStep
-              session={session}
-              onRemotePeerResolved={handleRemotePeerResolved}
-              onBack={() => setStep('choose')}
-            />
-          )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'direct_answer' && (
-            <DirectAnswerStep
-              session={session}
-              onRemotePeerResolved={handleRemotePeerResolved}
-              onBack={() => setStep('choose')}
-            />
-          )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'verify' && (
-            <PairingVerificationStep
-              session={session}
-              onContinue={() => setStep('done')}
-              onAbort={() => handleBack('choose')}
-            />
-          )}
-
-        {!sessionInfoError &&
-          !sessionInfoLoading &&
-          pairingSupported &&
-          step === 'done' && (
-            <LinkDeviceDoneStep
-              session={session}
-              remotePeerId={remotePeerId}
-              onDone={handleDone}
-              onLinkMore={(entry) => {
-                if (entry?.sessionIndex != null) {
-                  navigate({
-                    path: `/u/${entry.sessionIndex}/setup/link-device`,
-                  })
-                  return
-                }
-                setRemotePeerId(null)
-                setStep('choose')
-              }}
-            />
-          )}
       </div>
     </SetupPageLayout>
   )
+}
+
+interface LinkStepViewProps {
+  step: LinkStep
+  session: Session | null | undefined
+  remotePeerId: string | null
+  onStep: (step: LinkStep) => void
+  onSkip: () => void
+  onRemotePeerResolved: (peerId: string) => void
+  onDone: (entry?: SessionListEntry) => void
+  onLinkMore: (entry?: SessionListEntry) => void
+}
+
+// LinkStepView renders the wizard card for the current step.
+function LinkStepView({
+  step,
+  session,
+  remotePeerId,
+  onStep,
+  onSkip,
+  onRemotePeerResolved,
+  onDone,
+  onLinkMore,
+}: LinkStepViewProps) {
+  const backToChoose = () => onStep('choose')
+
+  switch (step) {
+    case 'choose':
+      return (
+        <ChooseStep
+          onDownload={() => onStep('download')}
+          onGenerate={() => onStep('pairing')}
+          onEnterCode={() => onStep('enter_code')}
+          onDirectOffer={() => onStep('direct_offer')}
+          onDirectAnswer={() => onStep('direct_answer')}
+          onSkip={onSkip}
+        />
+      )
+    case 'download':
+      return (
+        <DownloadStep
+          onContinue={() => onStep('pairing')}
+          onBack={backToChoose}
+        />
+      )
+    case 'pairing':
+      return (
+        <PairingStep
+          session={session}
+          onRemotePeerResolved={onRemotePeerResolved}
+          onBack={backToChoose}
+        />
+      )
+    case 'enter_code':
+      return (
+        <EnterCodeStep
+          session={session}
+          onRemotePeerResolved={onRemotePeerResolved}
+          onBack={backToChoose}
+        />
+      )
+    case 'direct_offer':
+      return (
+        <DirectOfferStep
+          session={session}
+          onRemotePeerResolved={onRemotePeerResolved}
+          onBack={backToChoose}
+        />
+      )
+    case 'direct_answer':
+      return (
+        <DirectAnswerStep
+          session={session}
+          onRemotePeerResolved={onRemotePeerResolved}
+          onBack={backToChoose}
+        />
+      )
+    case 'verify':
+      return (
+        <PairingVerificationStep
+          session={session}
+          onContinue={() => onStep('done')}
+          onAbort={backToChoose}
+        />
+      )
+    case 'done':
+      return (
+        <LinkDeviceDoneStep
+          session={session}
+          remotePeerId={remotePeerId}
+          onDone={onDone}
+          onLinkMore={onLinkMore}
+        />
+      )
+  }
 }
 
 interface UnsupportedLinkStepProps {
@@ -308,6 +269,7 @@ function UnsupportedLinkStep({
       </div>
 
       <button
+        type="button"
         onClick={onDone}
         className={cn(
           'w-full rounded-md border transition-all duration-300',
@@ -323,11 +285,11 @@ function UnsupportedLinkStep({
 }
 
 interface ChooseStepProps {
-  onDownload?: () => void
+  onDownload: () => void
   onGenerate: () => void
   onEnterCode: () => void
-  onDirectOffer?: () => void
-  onDirectAnswer?: () => void
+  onDirectOffer: () => void
+  onDirectAnswer: () => void
   onSkip: () => void
 }
 
@@ -353,14 +315,12 @@ function ChooseStep({
           recommended
           onClick={onGenerate}
         />
-        {onDirectOffer && (
-          <ChooseOption
-            icon={LuWifi}
-            label="Show QR code"
-            description="Display a QR code for your other device to scan"
-            onClick={onDirectOffer}
-          />
-        )}
+        <ChooseOption
+          icon={LuWifi}
+          label="Show QR code"
+          description="Display a QR code for your other device to scan"
+          onClick={onDirectOffer}
+        />
       </OptionGroup>
 
       <OptionGroup label="On your other device">
@@ -370,17 +330,15 @@ function ChooseStep({
           description="Type a code shown on your other device"
           onClick={onEnterCode}
         />
-        {onDirectAnswer && (
-          <ChooseOption
-            icon={LuCamera}
-            label="Scan QR code"
-            description="Scan a QR code shown on your other device"
-            onClick={onDirectAnswer}
-          />
-        )}
+        <ChooseOption
+          icon={LuCamera}
+          label="Scan QR code"
+          description="Scan a QR code shown on your other device"
+          onClick={onDirectAnswer}
+        />
       </OptionGroup>
 
-      {!isDesktop && onDownload && (
+      {!isDesktop && (
         <ChooseOption
           icon={LuMonitor}
           label="Download desktop app"
@@ -390,6 +348,7 @@ function ChooseStep({
       )}
 
       <button
+        type="button"
         onClick={onSkip}
         className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
       >
@@ -435,6 +394,7 @@ function ChooseOption({
 }: ChooseOptionProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
         'w-full rounded-md border transition-all duration-300',
@@ -498,6 +458,7 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
       </div>
 
       <button
+        type="button"
         onClick={onContinue}
         className={cn(
           'group w-full rounded-md border transition-all duration-300',
@@ -510,953 +471,12 @@ function DownloadStep({ onContinue, onBack }: DownloadStepProps) {
       </button>
 
       <button
+        type="button"
         onClick={onBack}
         className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
       >
         Back
       </button>
-    </div>
-  )
-}
-
-// PairingQRCode renders a QR code encoding the deep link URL for the pairing code.
-function PairingQRCode({ code }: { code: string }) {
-  const qrCallback = useCallback(() => {
-    if (!code) return undefined
-    const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${code}`
-    return QRCode.toDataURL(url, {
-      width: 160,
-      margin: 1,
-      color: { dark: '#ffffff', light: '#00000000' },
-    })
-  }, [code])
-  const qrResult = usePromise(qrCallback)
-
-  if (!qrResult.data) return null
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <img
-        src={qrResult.data}
-        alt="Pairing QR code"
-        className="size-40 rounded"
-      />
-      <span className="text-foreground-alt text-xs">Or scan this QR code</span>
-    </div>
-  )
-}
-
-interface PairingStepProps {
-  session: Session | null | undefined
-  code: string | null
-  loading: boolean
-  error: string | null
-  generation: number
-  onRegenerateCode: () => void
-  onRemotePeerResolved: (peerId: string) => void
-  onBack: () => void
-}
-
-function PairingStep({
-  session,
-  code,
-  loading,
-  error,
-  generation,
-  onRegenerateCode,
-  onRemotePeerResolved,
-  onBack,
-}: PairingStepProps) {
-  const [connectionError, setConnectionError] = useState<string | null>(null)
-
-  // Watch pairing status to detect peer connection or transport errors.
-  useEffect(() => {
-    if (!session || !code) return
-    queueMicrotask(() => setConnectionError(null))
-    const controller = new AbortController()
-    ;(async () => {
-      for await (const resp of session.watchPairingStatus(controller.signal)) {
-        if (controller.signal.aborted) break
-        if (pairingStatusReachedPeer(resp.status) && resp.remotePeerId) {
-          onRemotePeerResolved(resp.remotePeerId)
-          break
-        }
-        if (resp.status === PairingStatus.PairingStatus_SIGNALING_FAILED) {
-          setConnectionError(resp.errorMessage || 'Signaling connection failed')
-          break
-        }
-        if (resp.status === PairingStatus.PairingStatus_FAILED) {
-          setConnectionError(resp.errorMessage || 'Pairing failed')
-          break
-        }
-      }
-    })().catch((err) => {
-      if (controller.signal.aborted) return
-      setConnectionError(
-        err instanceof Error ? err.message : 'Pairing status stream failed',
-      )
-    })
-    return () => controller.abort()
-  }, [session, code, onRemotePeerResolved])
-
-  const [elapsed, setElapsed] = useState(0)
-
-  useEffect(() => {
-    queueMicrotask(() => setElapsed(0))
-    if (!code) return
-    const interval = setInterval(() => {
-      setElapsed((e) => e + 1)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [generation, code])
-
-  const secondsLeft = code
-    ? Math.max(0, CODE_TTL_SECONDS - elapsed)
-    : CODE_TTL_SECONDS
-
-  // Auto-regenerate when the code expires.
-  const onRegenerateCodeEvent = useEffectEvent(() => {
-    onRegenerateCode()
-  })
-  const prevSecondsLeft = useRef(secondsLeft)
-  useEffect(() => {
-    if (prevSecondsLeft.current > 0 && secondsLeft === 0 && code) {
-      onRegenerateCodeEvent()
-    }
-    prevSecondsLeft.current = secondsLeft
-  }, [secondsLeft, code])
-
-  const countdown = useMemo(() => {
-    const mins = Math.floor(secondsLeft / 60)
-    const secs = secondsLeft % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }, [secondsLeft])
-
-  const instructions = PAIRING_CODE_INSTRUCTIONS
-
-  return (
-    <div className="border-foreground/20 bg-background-get-started w-full rounded-lg border p-6 shadow-lg backdrop-blur-sm">
-      <div className="text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuLink className="text-brand size-5" />
-        </div>
-        <h2 className="text-foreground text-sm font-medium">Link My Device</h2>
-        <p className="text-foreground-alt mt-1 text-xs">
-          {instructions.heading}
-        </p>
-        <p className="text-foreground-alt mt-1 text-xs">{instructions.hint}</p>
-      </div>
-
-      <div className="flex min-h-16 flex-col items-center justify-center gap-3">
-        {loading && <Spinner size="lg" variant="muted" />}
-        {!loading && code && (
-          <>
-            <PairingCodeChip code={code} />
-            <PairingQRCode code={code} />
-          </>
-        )}
-      </div>
-
-      {connectionError && (
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-destructive text-center text-xs">
-            {connectionError}
-          </p>
-          <button
-            onClick={() => {
-              setConnectionError(null)
-              onRegenerateCode()
-            }}
-            className={cn(
-              'rounded-md border px-3 py-1.5 text-xs transition-all duration-300',
-              'border-foreground/20 hover:border-foreground/40',
-            )}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {error && !connectionError && (
-        <p className="text-destructive text-center text-xs">
-          {pairingErrorMessage(error)}
-        </p>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          onClick={onBack}
-          className={cn(
-            'rounded-md border transition-all duration-300',
-            'border-foreground/20 hover:border-foreground/40',
-            'flex size-10 shrink-0 items-center justify-center',
-          )}
-        >
-          <LuArrowLeft className="text-foreground-alt size-4" />
-        </button>
-        <button
-          onClick={onRegenerateCode}
-          disabled={loading}
-          className={cn(
-            'flex-1 rounded-md border transition-all duration-300',
-            'border-foreground/20 hover:border-foreground/40',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'flex h-10 items-center justify-center gap-2',
-          )}
-        >
-          <LuRefreshCw className="text-foreground-alt size-4" />
-          <span className="text-foreground text-sm">Generate new code</span>
-        </button>
-      </div>
-      {!loading && code && !connectionError && (
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center justify-center gap-2">
-            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
-            <span className="text-foreground-alt text-xs">
-              Waiting for connection…
-            </span>
-          </div>
-          <span
-            className={cn(
-              'text-xs',
-              secondsLeft <= 60 ? 'text-destructive' : 'text-foreground-alt',
-            )}
-          >
-            Code expires in {countdown}
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// extractDirectOfferPayload extracts the raw b58 offer payload from a QR-decoded
-// string. The QR may encode a full URL (https://spacewave.app/#/pair/<payload>)
-// or just the raw payload. Returns the payload either way.
-function extractDirectOfferPayload(decoded: string): string {
-  const match = decoded.match(/#\/pair\/(.+)/)
-  if (match) return match[1]
-  return decoded
-}
-
-// extractCodeFromQR extracts a pairing code from a QR-encoded URL or raw code string.
-function extractCodeFromQR(decoded: string): string | null {
-  const urlMatch = decoded.match(/#\/pair\/([A-Za-z0-9]{8})/)
-  if (urlMatch) return urlMatch[1].toUpperCase()
-  const cleaned = decoded.replace(/[^A-Za-z0-9]/g, '')
-  if (cleaned.length === 8) return cleaned.toUpperCase()
-  return null
-}
-
-interface QRScannerModalProps {
-  onCodeScanned: (code: string) => void
-  onClose: () => void
-}
-
-// QRScannerModal renders a camera-based QR scanner overlay using html5-qrcode.
-function QRScannerModal({ onCodeScanned, onClose }: QRScannerModalProps) {
-  const scannerRef = useRef<Html5Qrcode | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    const scanner = new Html5Qrcode(containerRef.current.id)
-    scannerRef.current = scanner
-
-    scanner
-      .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 200, height: 200 } },
-        (decoded) => {
-          const code = extractCodeFromQR(decoded)
-          if (code) {
-            scanner.stop().catch(() => {})
-            onCodeScanned(code)
-          }
-        },
-        () => {},
-      )
-      .catch(() => {})
-
-    return () => {
-      scanner.stop().catch(() => {})
-    }
-  }, [onCodeScanned])
-
-  return (
-    <div className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
-      <div className="border-foreground/20 bg-background w-full max-w-sm rounded-lg border p-4 shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-foreground text-sm font-medium">Scan QR code</h3>
-          <button
-            onClick={onClose}
-            className="text-foreground-alt hover:text-foreground"
-          >
-            <LuX className="size-4" />
-          </button>
-        </div>
-        <div
-          id="qr-scanner-container"
-          ref={containerRef}
-          className="overflow-hidden rounded"
-        />
-        <p className="text-foreground-alt mt-2 text-center text-xs">
-          Point your camera at the QR code on your other device.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-interface CodeInputProps {
-  value: string
-  onChange: (value: string) => void
-  onPaste: (e: React.ClipboardEvent) => void
-  onSubmit?: () => void
-  disabled?: boolean
-}
-
-// CodeInput renders an OTP-style 8-character pairing code input with paste support.
-function CodeInput({
-  value,
-  onChange,
-  onPaste,
-  onSubmit,
-  disabled,
-}: CodeInputProps) {
-  const formatted =
-    value.length > 4 ? `${value.slice(0, 4)} ${value.slice(4)}` : value
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && value.length === 8 && !disabled) {
-        onSubmit?.()
-      }
-    },
-    [value, disabled, onSubmit],
-  )
-  const handleInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
-
-  return (
-    <div className="flex justify-center">
-      <input
-        ref={handleInputRef}
-        type="text"
-        value={formatted}
-        onChange={(e) => onChange(e.target.value)}
-        onPaste={onPaste}
-        onKeyDown={handleKeyDown}
-        placeholder="XXXX XXXX"
-        maxLength={9}
-        disabled={disabled}
-        className={cn(
-          'border-foreground/20 bg-foreground/5 text-foreground w-48 rounded-md border text-center font-mono text-2xl font-bold tracking-brand-wide',
-          'placeholder:text-foreground/20 focus:border-brand/50 focus:outline-none',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'h-14 px-3',
-        )}
-      />
-    </div>
-  )
-}
-
-interface EnterCodeStepProps {
-  session: Session | null | undefined
-  onRemotePeerResolved: (peerId: string) => void
-  onBack: () => void
-}
-
-function EnterCodeStep({
-  session,
-  onRemotePeerResolved,
-  onBack,
-}: EnterCodeStepProps) {
-  const [code, setCode] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [scanning, setScanning] = useState(false)
-
-  const handleSubmit = useCallback(async () => {
-    if (!session || code.length < 8) return
-    setLoading(true)
-    setError(null)
-    try {
-      const remotePeerId = await session.completePairing({
-        code: code.replace(/\s/g, ''),
-        offerCurrentAccount: true,
-      })
-      if (remotePeerId) {
-        onRemotePeerResolved(remotePeerId)
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to complete pairing'
-      setError(pairingErrorMessage(message))
-      // Surface via toast too: a failed submit can re-render or navigate the
-      // settings pane away from this card before the inline error is seen.
-      toast.error(pairingErrorMessage(message))
-    } finally {
-      setLoading(false)
-    }
-  }, [session, code, onRemotePeerResolved])
-
-  const handleCodeChange = useCallback((value: string) => {
-    const cleaned = value
-      .replace(/[^A-Za-z0-9]/g, '')
-      .toUpperCase()
-      .slice(0, 8)
-    setCode(cleaned)
-  }, [])
-
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault()
-    const pasted = e.clipboardData
-      .getData('text')
-      .replace(/[^A-Za-z0-9]/g, '')
-      .toUpperCase()
-      .slice(0, 8)
-    setCode(pasted)
-  }, [])
-
-  const handleCodeScanned = useCallback((scannedCode: string) => {
-    setCode(scannedCode)
-    setScanning(false)
-  }, [])
-
-  return (
-    <div className="space-y-4">
-      {scanning && (
-        <QRScannerModal
-          onCodeScanned={handleCodeScanned}
-          onClose={() => setScanning(false)}
-        />
-      )}
-
-      <div className="text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuLink className="text-brand size-5" />
-        </div>
-        <h2 className="text-foreground text-sm font-medium">
-          Pair another device
-        </h2>
-        <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
-          Enter the 8-character code shown on your other device.
-        </p>
-      </div>
-
-      <CodeInput
-        value={code}
-        onChange={handleCodeChange}
-        onPaste={handlePaste}
-        onSubmit={() => {
-          void handleSubmit()
-        }}
-        disabled={loading}
-      />
-
-      <button
-        onClick={() => setScanning(true)}
-        className={cn(
-          'w-full rounded-md border transition-all duration-300',
-          'border-foreground/10 hover:border-brand/30 hover:bg-brand/5',
-          'flex h-9 items-center justify-center gap-2',
-        )}
-      >
-        <LuCamera className="text-foreground-alt size-4" />
-        <span className="text-foreground-alt text-xs">Scan QR code</span>
-      </button>
-
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
-
-      <div className="flex gap-2">
-        <button
-          onClick={onBack}
-          className={cn(
-            'rounded-md border transition-all duration-300',
-            'border-foreground/20 hover:border-foreground/40',
-            'flex size-10 shrink-0 items-center justify-center',
-          )}
-        >
-          <LuArrowLeft className="text-foreground-alt size-4" />
-        </button>
-        <button
-          onClick={() => {
-            void handleSubmit()
-          }}
-          disabled={loading || code.length < 8 || !session}
-          className={cn(
-            'flex-1 rounded-md border transition-all duration-300',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'flex h-10 items-center justify-center gap-2',
-          )}
-        >
-          {loading ? (
-            <Spinner />
-          ) : (
-            <>
-              <LuLink className="text-brand size-4" />
-              <span className="text-foreground text-sm">Connect</span>
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-interface DirectOfferStepProps {
-  session: Session | null | undefined
-  onRemotePeerResolved: (peerId: string) => void
-  onBack: () => void
-}
-
-// DirectOfferStep generates a local pairing offer and displays it as a QR
-// code and copyable string. After the user pastes back the answerer's payload,
-// completes the WebRTC connection and transitions to verification.
-function DirectOfferStep({
-  session,
-  onRemotePeerResolved,
-  onBack,
-}: DirectOfferStepProps) {
-  const [offerPayload, setOfferPayload] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [answerInput, setAnswerInput] = useState('')
-  const [accepting, setAccepting] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  // Generate the offer on mount.
-  const generateOffer = useCallback(async () => {
-    if (!session) return
-    setLoading(true)
-    setError(null)
-    try {
-      const resp = await session.createLocalPairingOffer()
-      setOfferPayload(resp.offerPayload ?? null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create offer')
-    } finally {
-      setLoading(false)
-    }
-  }, [session])
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void generateOffer()
-    })
-  }, [generateOffer])
-
-  const handleCopy = useCallback(() => {
-    if (!offerPayload) return
-    void navigator.clipboard.writeText(offerPayload)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [offerPayload])
-
-  const handleAcceptAnswer = useCallback(async () => {
-    if (!session || !answerInput.trim()) return
-    setAccepting(true)
-    setError(null)
-    try {
-      const resp = await session.acceptLocalPairingAnswer(answerInput.trim())
-      if (resp.remotePeerId) {
-        onRemotePeerResolved(resp.remotePeerId)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept answer')
-    } finally {
-      setAccepting(false)
-    }
-  }, [session, answerInput, onRemotePeerResolved])
-
-  const qrCallback = useCallback(() => {
-    if (!offerPayload) return undefined
-    const url = `${SPACEWAVE_PUBLIC_BASE_URL}/#/pair/${offerPayload}`
-    return QRCode.toDataURL(url, {
-      width: 200,
-      margin: 1,
-      color: { dark: '#ffffff', light: '#00000000' },
-      errorCorrectionLevel: 'L',
-    })
-  }, [offerPayload])
-  const qrResult = usePromise(qrCallback)
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuWifi className="text-brand size-5" />
-        </div>
-        <h2 className="text-foreground text-sm font-medium">
-          Direct connection
-        </h2>
-        <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
-          Show this QR code to your other device, or copy the text below.
-        </p>
-      </div>
-
-      <div className="flex min-h-16 flex-col items-center justify-center gap-3">
-        {loading && <Spinner size="lg" variant="muted" />}
-        {!loading && offerPayload && (
-          <>
-            {qrResult.data && (
-              <img
-                src={qrResult.data}
-                alt="Direct pairing QR"
-                className="size-48 rounded"
-              />
-            )}
-            <div className="flex w-full items-center gap-2">
-              <input
-                readOnly
-                value={offerPayload}
-                className={cn(
-                  'border-foreground/20 bg-foreground/5 text-foreground flex-1 rounded-md border px-2 py-1.5 font-mono text-xs',
-                  'select-all focus:outline-none',
-                )}
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
-              <button
-                onClick={handleCopy}
-                className={cn(
-                  'rounded-md border px-2 py-1.5 transition-all duration-300',
-                  'border-foreground/20 hover:border-foreground/40',
-                )}
-                title="Copy to clipboard"
-              >
-                <LuCopy
-                  className={cn(
-                    'size-4',
-                    copied ? 'text-brand' : 'text-foreground-alt',
-                  )}
-                />
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {offerPayload && (
-        <div className="space-y-2">
-          <p className="text-foreground-alt text-center text-xs">
-            Paste the response from the other device:
-          </p>
-          <textarea
-            value={answerInput}
-            onChange={(e) => setAnswerInput(e.target.value)}
-            placeholder="Paste answer payload here…"
-            rows={3}
-            className={cn(
-              'border-foreground/20 bg-foreground/5 text-foreground w-full resize-none rounded-md border px-2 py-1.5 font-mono text-xs',
-              'placeholder:text-foreground/30 focus:border-brand/50 focus:outline-none',
-            )}
-          />
-        </div>
-      )}
-
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
-
-      <div className="flex gap-2">
-        <button
-          onClick={onBack}
-          className={cn(
-            'rounded-md border transition-all duration-300',
-            'border-foreground/20 hover:border-foreground/40',
-            'flex size-10 shrink-0 items-center justify-center',
-          )}
-        >
-          <LuArrowLeft className="text-foreground-alt size-4" />
-        </button>
-        <button
-          onClick={() => {
-            void handleAcceptAnswer()
-          }}
-          disabled={accepting || !answerInput.trim() || !session}
-          className={cn(
-            'flex-1 rounded-md border transition-all duration-300',
-            'border-brand/30 bg-brand/10 hover:bg-brand/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'flex h-10 items-center justify-center gap-2',
-          )}
-        >
-          {accepting ? (
-            <Spinner />
-          ) : (
-            <>
-              <LuLink className="text-brand size-4" />
-              <span className="text-foreground text-sm">Connect</span>
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-interface DirectAnswerStepProps {
-  session: Session | null | undefined
-  onRemotePeerResolved: (peerId: string) => void
-  onBack: () => void
-}
-
-// DirectAnswerStep accepts an offer (via QR scan or paste), generates an
-// answer, and displays it for the offerer to paste back.
-function DirectAnswerStep({
-  session,
-  onRemotePeerResolved,
-  onBack,
-}: DirectAnswerStepProps) {
-  const [offerInput, setOfferInput] = useState('')
-  const [answerPayload, setAnswerPayload] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [scanning, setScanning] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  const handleAcceptOffer = useCallback(
-    async (payload: string) => {
-      if (!session || !payload.trim()) return
-      setLoading(true)
-      setError(null)
-      try {
-        const resp = await session.acceptLocalPairingOffer(payload.trim(), true)
-        setAnswerPayload(resp.answerPayload ?? null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to accept offer')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [session],
-  )
-
-  const handleSubmit = useCallback(() => {
-    void handleAcceptOffer(offerInput)
-  }, [handleAcceptOffer, offerInput])
-
-  const handleQRScanned = useCallback(
-    (decoded: string) => {
-      setScanning(false)
-      const payload = extractDirectOfferPayload(decoded)
-      setOfferInput(payload)
-      void handleAcceptOffer(payload)
-    },
-    [handleAcceptOffer],
-  )
-
-  const handleCopy = useCallback(() => {
-    if (!answerPayload) return
-    void navigator.clipboard.writeText(answerPayload)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [answerPayload])
-
-  // Watch pairing status for peer connection after answer is shared.
-  useEffect(() => {
-    if (!session || !answerPayload) return
-    const controller = new AbortController()
-    ;(async () => {
-      for await (const resp of session.watchPairingStatus(controller.signal)) {
-        if (controller.signal.aborted) break
-        if (pairingStatusReachedPeer(resp.status) && resp.remotePeerId) {
-          onRemotePeerResolved(resp.remotePeerId)
-          break
-        }
-      }
-    })().catch((err) => {
-      if (controller.signal.aborted) return
-      setError(err instanceof Error ? err.message : 'Direct connection failed')
-    })
-    return () => controller.abort()
-  }, [session, answerPayload, onRemotePeerResolved])
-
-  return (
-    <div className="space-y-4">
-      {scanning && (
-        <DirectQRScannerModal
-          onScanned={handleQRScanned}
-          onClose={() => setScanning(false)}
-        />
-      )}
-
-      <div className="text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuCamera className="text-brand size-5" />
-        </div>
-        <h2 className="text-foreground text-sm font-medium">
-          {answerPayload ? 'Share this response' : 'Scan or paste offer'}
-        </h2>
-        <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
-          {answerPayload
-            ? 'Copy this response and paste it on the other device.'
-            : 'Scan the QR code or paste the offer from the other device.'}
-        </p>
-      </div>
-
-      {!answerPayload && (
-        <>
-          <textarea
-            value={offerInput}
-            onChange={(e) => setOfferInput(e.target.value)}
-            placeholder="Paste offer payload here…"
-            rows={3}
-            className={cn(
-              'border-foreground/20 bg-foreground/5 text-foreground w-full resize-none rounded-md border px-2 py-1.5 font-mono text-xs',
-              'placeholder:text-foreground/30 focus:border-brand/50 focus:outline-none',
-            )}
-          />
-
-          <button
-            onClick={() => setScanning(true)}
-            className={cn(
-              'w-full rounded-md border transition-all duration-300',
-              'border-foreground/10 hover:border-brand/30 hover:bg-brand/5',
-              'flex h-9 items-center justify-center gap-2',
-            )}
-          >
-            <LuCamera className="text-foreground-alt size-4" />
-            <span className="text-foreground-alt text-xs">Scan QR code</span>
-          </button>
-        </>
-      )}
-
-      {answerPayload && (
-        <div className="space-y-2">
-          <div className="flex w-full items-center gap-2">
-            <input
-              readOnly
-              value={answerPayload}
-              className={cn(
-                'border-foreground/20 bg-foreground/5 text-foreground flex-1 rounded-md border px-2 py-1.5 font-mono text-xs',
-                'select-all focus:outline-none',
-              )}
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-            />
-            <button
-              onClick={handleCopy}
-              className={cn(
-                'rounded-md border px-2 py-1.5 transition-all duration-300',
-                'border-foreground/20 hover:border-foreground/40',
-              )}
-              title="Copy to clipboard"
-            >
-              <LuCopy
-                className={cn(
-                  'size-4',
-                  copied ? 'text-brand' : 'text-foreground-alt',
-                )}
-              />
-            </button>
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
-            <span className="text-foreground-alt text-xs">
-              Waiting for connection…
-            </span>
-          </div>
-        </div>
-      )}
-
-      {error && <p className="text-destructive text-center text-xs">{error}</p>}
-
-      <div className="flex gap-2">
-        <button
-          onClick={onBack}
-          className={cn(
-            'rounded-md border transition-all duration-300',
-            'border-foreground/20 hover:border-foreground/40',
-            'flex size-10 shrink-0 items-center justify-center',
-          )}
-        >
-          <LuArrowLeft className="text-foreground-alt size-4" />
-        </button>
-        {!answerPayload && (
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !offerInput.trim() || !session}
-            className={cn(
-              'flex-1 rounded-md border transition-all duration-300',
-              'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'flex h-10 items-center justify-center gap-2',
-            )}
-          >
-            {loading ? (
-              <Spinner />
-            ) : (
-              <>
-                <LuLink className="text-brand size-4" />
-                <span className="text-foreground text-sm">Accept offer</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// DirectQRScannerModal is a QR scanner for direct pairing payloads (not codes).
-function DirectQRScannerModal({
-  onScanned,
-  onClose,
-}: {
-  onScanned: (payload: string) => void
-  onClose: () => void
-}) {
-  const scannerRef = useRef<Html5Qrcode | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    const scanner = new Html5Qrcode(containerRef.current.id)
-    scannerRef.current = scanner
-
-    scanner
-      .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decoded) => {
-          scanner.stop().catch(() => {})
-          onScanned(decoded)
-        },
-        () => {},
-      )
-      .catch(() => {})
-
-    return () => {
-      scanner.stop().catch(() => {})
-    }
-  }, [onScanned])
-
-  return (
-    <div className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
-      <div className="border-foreground/20 bg-background w-full max-w-sm rounded-lg border p-4 shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-foreground text-sm font-medium">
-            Scan direct pairing QR
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-foreground-alt hover:text-foreground"
-          >
-            <LuX className="size-4" />
-          </button>
-        </div>
-        <div
-          id="direct-qr-scanner-container"
-          ref={containerRef}
-          className="overflow-hidden rounded"
-        />
-        <p className="text-foreground-alt mt-2 text-center text-xs">
-          Point your camera at the QR code on the other device.
-        </p>
-      </div>
     </div>
   )
 }

@@ -238,6 +238,13 @@ export interface ReplayCursorOutcome {
    * @generated from field: block.BlockRef world = 5;
    */
   world?: BlockRef
+  /**
+   * Payloads are the roots of the operation's payload, which replay reads
+   * again while the operation is above the checkpoint.
+   *
+   * @generated from field: repeated block.BlockRef payloads = 6;
+   */
+  payloads?: BlockRef[]
 }
 
 export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
@@ -249,6 +256,13 @@ export const ReplayCursorOutcome: MessageType<ReplayCursorOutcome> =
       { no: 3, name: 'conflict', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'revoked', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'world', kind: 'message', T: () => BlockRef },
+      {
+        no: 6,
+        name: 'payloads',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -299,8 +313,9 @@ export const ReplayCursor: MessageType<ReplayCursor> =
 
 /**
  * ReplaySpan is the block each member keeps as its one local named root for
- * the Worlds after the replayed operations above the checkpoint. Its outgoing
- * refs are those Worlds.
+ * the Worlds after the replayed operations above the checkpoint and the
+ * payloads of those operations. Its outgoing refs are those Worlds and
+ * payloads.
  *
  * @generated from message sobject.world.engine.ReplaySpan
  */
@@ -311,6 +326,12 @@ export interface ReplaySpan {
    * @generated from field: repeated block.BlockRef worlds = 1;
    */
   worlds?: BlockRef[]
+  /**
+   * Payloads are the operation payload roots in replay order.
+   *
+   * @generated from field: repeated block.BlockRef payloads = 2;
+   */
+  payloads?: BlockRef[]
 }
 
 export const ReplaySpan: MessageType<ReplaySpan> =
@@ -320,6 +341,13 @@ export const ReplaySpan: MessageType<ReplaySpan> =
       {
         no: 1,
         name: 'worlds',
+        kind: 'message',
+        T: () => BlockRef,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'payloads',
         kind: 'message',
         T: () => BlockRef,
         repeated: true,

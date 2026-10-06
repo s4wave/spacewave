@@ -1,34 +1,21 @@
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
 import {
-  type ChangeEvent,
+  type ComponentProps,
   type ComponentType,
-  type MouseEvent,
+  type DragEvent,
+  type ReactNode,
   useCallback,
   useDeferredValue,
   useMemo,
-  useReducer,
   useRef,
 } from 'react'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import { ObjectLayoutTab } from '@s4wave/sdk/layout/world/world.pb.js'
-import { MknodType } from '@s4wave/sdk/unixfs/index.js'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
-import {
-  getUnixFSParentPath,
-  joinUnixFSDisplayPath,
-} from '@s4wave/sdk/unixfs/path.js'
-import { ObjectInfo, UnixfsObjectInfo } from '@s4wave/web/object/object.pb.js'
+import { getUnixFSParentPath } from '@s4wave/sdk/unixfs/path.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
-import type { ListItem } from '@s4wave/web/ui/list'
-import { toast } from '@s4wave/web/ui/toaster.js'
-import { useTabContext } from '@s4wave/web/object/TabContext.js'
+import { useFileListState } from '@s4wave/web/editors/file-browser/FileList.js'
 import { UnixFSPathLoadingCard } from '@s4wave/app/loading/wrappers/UnixFSPathLoadingCard.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import {
-  localNavigation,
-  useHistory,
-} from '@s4wave/web/router/HistoryRouter.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useSessionUploadManager } from '@s4wave/app/session/SessionUploadManagerContext.js'
@@ -37,25 +24,24 @@ import {
   useSessionSyncStatus,
 } from '../session/SessionSyncStatusContext.js'
 import { UnixFSFileViewer } from './UnixFSFileViewer.js'
-import type { ContextMenuState } from './UnixFSContextMenu.js'
 import { UnixFSBrowserDialogs } from './UnixFSBrowserDialogs.js'
 import { UnixFSBrowserDropSurface } from './UnixFSBrowserDropSurface.js'
 import { UnixFSBrowserShell } from './UnixFSBrowserShell.js'
 import { UnixFSDirectoryListing } from './UnixFSDirectoryListing.js'
 import { UnixFSBrowserUnavailableState } from './UnixFSBrowserUnavailableState.js'
-import {
-  buildUnixFSFileInlineURL,
-  downloadUnixFSSelection,
-} from './download.js'
-import {
-  buildUnixFSMoveItems,
-  moveUnixFSItemsFromDirectory,
-  type UnixFSMoveItem,
-} from './move.js'
+import { buildUnixFSFileInlineURL } from './download.js'
 import { useUnixFSBrowserCommands } from './useUnixFSBrowserCommands.js'
+import { useUnixFSBrowserContextMenu } from './useUnixFSBrowserContextMenu.js'
 import { useUnixFSBrowserDrag } from './useUnixFSBrowserDrag.js'
 import { useUnixFSBrowserDragTargets } from './useUnixFSBrowserDragTargets.js'
+import {
+  useUnixFSBrowserEdits,
+  useUnixFSBrowserRename,
+} from './useUnixFSBrowserEdits.js'
+import { useUnixFSBrowserNavigation } from './useUnixFSBrowserNavigation.js'
 import { useUnixFSBrowserResources } from './useUnixFSBrowserResources.js'
+import { useUnixFSBrowserState } from './useUnixFSBrowserState.js'
+import { useUnixFSBrowserTransfer } from './useUnixFSBrowserTransfer.js'
 import { useUnixFSInlineEntryRenderer } from './useUnixFSInlineEntryRenderer.js'
 import { useUnixFSDeleteKeyHandler } from './useUnixFSDeleteKeyHandler.js'
 import { useUnixFSStartupBoundaries } from './useUnixFSStartupBoundaries.js'
@@ -91,6 +77,9 @@ export interface UnixFSBrowserProps {
   // directoryHeader renders caller-supplied content above the file list.
   directoryHeader?: ComponentType<UnixFSBrowserDirectoryHeaderProps>
 }
+
+// noSelection is the selection of a file list that has none.
+const noSelection: string[] = []
 
 function buildUnixFSLoadingStageLabel({
   rootLoading,
@@ -134,137 +123,49 @@ function UnixFSLoadingDiagnostics({
   )
 }
 
-interface UnixFSBrowserState {
-  pendingName: string | null
-  contextMenu: ContextMenuState | null
-  selectedIds: string[]
-  newFolderName: string | null
-  newFileName: string | null
-  deleteTargets: FileEntry[] | null
-  moveDialogItems: UnixFSMoveItem[] | null
-  renamingEntry: FileEntry | null
-  isDragging: boolean
-  folderDropEntryId: string | null
-}
-
-type UnixFSBrowserAction =
-  | { type: 'set-pending-name'; name: string | null }
-  | { type: 'set-context-menu'; menu: ContextMenuState | null }
-  | { type: 'set-selected-ids'; ids: string[] }
-  | { type: 'start-rename'; entry: FileEntry }
-  | { type: 'clear-rename' }
-  | { type: 'request-delete'; entries: FileEntry[] }
-  | { type: 'clear-delete' }
-  | { type: 'request-move'; items: UnixFSMoveItem[] }
-  | { type: 'clear-move' }
-  | { type: 'complete-move' }
-  | { type: 'start-new-folder' }
-  | { type: 'set-new-folder-name'; name: string }
-  | { type: 'clear-new-folder' }
-  | { type: 'start-new-file' }
-  | { type: 'set-new-file-name'; name: string }
-  | { type: 'clear-new-file' }
-  | { type: 'set-dragging'; dragging: boolean }
-  | { type: 'set-folder-drop-entry'; id: string | null }
-
-const initialUnixFSBrowserState: UnixFSBrowserState = {
-  pendingName: null,
-  contextMenu: null,
-  selectedIds: [],
-  newFolderName: null,
-  newFileName: null,
-  deleteTargets: null,
-  moveDialogItems: null,
-  renamingEntry: null,
-  isDragging: false,
-  folderDropEntryId: null,
-}
-
-function unixFSBrowserReducer(
-  state: UnixFSBrowserState,
-  action: UnixFSBrowserAction,
-): UnixFSBrowserState {
-  switch (action.type) {
-    case 'set-pending-name':
-      return { ...state, pendingName: action.name }
-    case 'set-context-menu':
-      return { ...state, contextMenu: action.menu }
-    case 'set-selected-ids':
-      return { ...state, selectedIds: action.ids }
-    case 'start-rename':
-      return { ...state, renamingEntry: action.entry }
-    case 'clear-rename':
-      return { ...state, renamingEntry: null }
-    case 'request-delete':
-      return { ...state, deleteTargets: action.entries }
-    case 'clear-delete':
-      return { ...state, deleteTargets: null }
-    case 'request-move':
-      return {
-        ...state,
-        contextMenu: null,
-        moveDialogItems: action.items,
-      }
-    case 'clear-move':
-      return { ...state, moveDialogItems: null }
-    case 'complete-move':
-      return { ...state, selectedIds: [], moveDialogItems: null }
-    case 'start-new-folder':
-      return {
-        ...state,
-        contextMenu: null,
-        newFolderName: '',
-        newFileName: null,
-        renamingEntry: null,
-      }
-    case 'set-new-folder-name':
-      return { ...state, newFolderName: action.name }
-    case 'clear-new-folder':
-      return { ...state, newFolderName: null }
-    case 'start-new-file':
-      return {
-        ...state,
-        contextMenu: null,
-        newFolderName: null,
-        newFileName: '',
-        renamingEntry: null,
-      }
-    case 'set-new-file-name':
-      return { ...state, newFileName: action.name }
-    case 'clear-new-file':
-      return { ...state, newFileName: null }
-    case 'set-dragging':
-      return { ...state, isDragging: action.dragging }
-    case 'set-folder-drop-entry':
-      return { ...state, folderDropEntryId: action.id }
+/** inlineFileURLFor returns the inline URL of the file at the display path. */
+function inlineFileURLFor(
+  isDir: boolean | null,
+  hasStat: boolean,
+  sessionIndex: number,
+  spaceId: string | null,
+  unixfsId: string,
+  displayPath: string,
+  httpPathPrefix: string,
+): string | undefined {
+  if (isDir !== false || !hasStat || !sessionIndex || !spaceId) {
+    return undefined
   }
+  return buildUnixFSFileInlineURL(
+    sessionIndex,
+    spaceId,
+    unixfsId,
+    displayPath,
+    httpPathPrefix,
+  )
 }
 
-// UnixFSBrowser renders a UnixFS filesystem browser for use in layout tabs.
-export function UnixFSBrowser(props: UnixFSBrowserProps) {
-  return useUnixFSBrowserElement(props)
-}
-
-function useUnixFSBrowserElement({
+/**
+ * useUnixFSBrowserModel owns the resources, state, and handlers of the
+ * browser and returns what the views render.
+ */
+function useUnixFSBrowserModel({
   unixfsId,
   basePath,
   currentPath,
-  mimeTypeOverride,
   worldState,
-  browserBody: BrowserBody,
-  directoryHeader: DirectoryHeader,
 }: UnixFSBrowserProps) {
-  const tabContext = useTabContext()
   const { httpPathPrefix } = useAppEnvironment()
-  const spaceCtx = SpaceContainerContext.useContextSafe()
-  const spaceId = spaceCtx?.spaceId ?? null
+  const spaceId = SpaceContainerContext.useContextSafe()?.spaceId ?? null
   const sessionIndex = useSessionIndex()
   const syncStatus = useSessionSyncStatus()
   const displayPath = currentPath || basePath || '/'
-  const canGoUp = displayPath !== '/'
 
-  // Navigation history for back/forward support
-  const history = useHistory()
+  // Uploads are owned by the session, not this viewer, so an in-flight upload
+  // and its feedback survive navigating away from this folder. Null when this
+  // browser is mounted outside a session (display, debug harness); uploads are
+  // simply unavailable there.
+  const uploadManager = useSessionUploadManager()
 
   const {
     rootHandle,
@@ -274,72 +175,53 @@ function useUnixFSBrowserElement({
     fileEntries,
     getEntryDetails,
     isDir,
-  } = useUnixFSBrowserResources({
-    worldState,
-    unixfsId,
-    displayPath,
-  })
+  } = useUnixFSBrowserResources({ worldState, unixfsId, displayPath })
 
-  const [state, dispatch] = useReducer(
-    unixFSBrowserReducer,
-    initialUnixFSBrowserState,
-  )
-  const {
-    pendingName,
-    contextMenu,
-    selectedIds,
-    newFolderName,
-    newFileName,
-    deleteTargets,
-    moveDialogItems,
-    renamingEntry,
-    isDragging,
-    folderDropEntryId,
-  } = state
+  const [state, dispatch] = useUnixFSBrowserState()
+  const { newFolderName, newFileName, renamingEntry } = state
+  const listState = useFileListState()
+  const [{ selectedIds = noSelection }, updateListState] = listState
   const deferredFileEntries = useDeferredValue(fileEntries)
   const renameRef = useRef('')
 
-  // Uploads are owned by the session, not this viewer, so an in-flight upload
-  // and its feedback survive navigating away from this folder. Null when this
-  // browser is mounted outside a session (display, debug harness); uploads are
-  // simply unavailable there.
-  const uploadManager = useSessionUploadManager()
+  const navigation = useUnixFSBrowserNavigation({
+    unixfsId,
+    displayPath,
+    dispatch,
+  })
 
-  // File input ref for upload button
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleListStateChange = useCallback(
-    (state: { selectedIds?: string[] }) => {
-      dispatch({ type: 'set-selected-ids', ids: state.selectedIds ?? [] })
-    },
-    [],
+  const clearSelection = useCallback(
+    () => updateListState((prev) => ({ ...prev, selectedIds: [] })),
+    [updateListState],
   )
 
   const selectedEntries = useMemo(() => {
     const selected = new Set(selectedIds)
     return fileEntries.filter((entry) => selected.has(entry.id))
   }, [fileEntries, selectedIds])
-  const inlineFileURL = useMemo(() => {
-    if (isDir !== false || !statResource.value || !sessionIndex || !spaceId) {
-      return undefined
-    }
-    return buildUnixFSFileInlineURL(
+
+  const hasStat = !!statResource.value
+  const inlineFileURL = useMemo(
+    () =>
+      inlineFileURLFor(
+        isDir,
+        hasStat,
+        sessionIndex,
+        spaceId,
+        unixfsId,
+        displayPath,
+        httpPathPrefix,
+      ),
+    [
+      displayPath,
+      hasStat,
+      httpPathPrefix,
+      isDir,
       sessionIndex,
       spaceId,
       unixfsId,
-      displayPath,
-      httpPathPrefix,
-    )
-  }, [
-    displayPath,
-    isDir,
-    sessionIndex,
-    spaceId,
-    statResource.value,
-    unixfsId,
-    httpPathPrefix,
-  ])
-  const effectiveMimeType = mimeTypeOverride || statResource.value?.mimeType
+    ],
+  )
 
   const { getDragEnvelope, getDownloadDragTarget } =
     useUnixFSBrowserDragTargets({
@@ -350,325 +232,85 @@ function useUnixFSBrowserElement({
       unixfsId,
     })
 
-  // Get navigate function from router context
-  const navigate = useNavigate()
+  const contextMenu = useUnixFSBrowserContextMenu({
+    displayPath,
+    selectedEntries,
+    selectedIds,
+    dispatch,
+  })
+  const transfer = useUnixFSBrowserTransfer({
+    httpPathPrefix,
+    sessionIndex,
+    spaceId,
+    unixfsId,
+    displayPath,
+    pathHandle,
+    uploadManager,
+  })
+  const rename = useUnixFSBrowserRename({
+    pathHandle,
+    renamingEntry,
+    renameRef,
+    dispatch,
+  })
+  const edits = useUnixFSBrowserEdits({
+    rootHandle,
+    pathHandle,
+    displayPath,
+    state,
+    dispatch,
+    clearSelection,
+  })
 
-  // Handle navigating back in history
-  const handleBack = useCallback(() => {
-    dispatch({ type: 'set-pending-name', name: null })
-    history?.goBack()
-  }, [history])
-
-  // Handle navigating forward in history
-  const handleForward = useCallback(() => {
-    dispatch({ type: 'set-pending-name', name: null })
-    history?.goForward()
-  }, [history])
-
-  // Handle navigating up one directory level
-  const handleUp = useCallback(() => {
-    if (!canGoUp) return
-    dispatch({ type: 'set-pending-name', name: null })
-    navigate(localNavigation({ path: getUnixFSParentPath(displayPath) }))
-  }, [canGoUp, displayPath, navigate])
-
-  // Handle path change from toolbar (user edited path directly)
-  const handlePathChange = useCallback(
-    (newPath: string) => {
-      dispatch({ type: 'set-pending-name', name: null })
-      navigate(localNavigation({ path: newPath }))
-    },
-    [navigate],
+  const setDragging = useCallback(
+    (dragging: boolean) => dispatch({ type: 'set-dragging', dragging }),
+    [dispatch],
   )
-
-  // Handle opening files/directories
-  const handleOpen = useCallback(
-    (entries: FileEntry[]) => {
-      if (!entries.length) return
-
-      // Single item open: navigate in same tab
-      if (entries.length === 1) {
-        const entry = entries[0]
-        dispatch({ type: 'set-pending-name', name: entry.id })
-        navigate({ path: './' + entry.name })
-        return
-      }
-
-      // Multiple items: open new tabs for each
-      if (!tabContext) return
-      for (const entry of entries) {
-        const filePath = joinUnixFSDisplayPath(displayPath, entry.name)
-        const objectInfo: ObjectInfo = {
-          info: {
-            case: 'unixfsObjectInfo',
-            value: {
-              unixfsId,
-              path: filePath,
-            } satisfies UnixfsObjectInfo,
-          },
-        }
-        const tabData = ObjectLayoutTab.toBinary({
-          objectInfo,
-          path: '',
-        })
-        void tabContext.addTab({
-          tab: {
-            id: `tab-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-            name: entry.name,
-            enableClose: true,
-            data: tabData,
-          },
-          select: entry === entries[0],
-        })
-      }
-    },
-    [displayPath, navigate, tabContext, unixfsId],
+  const setFolderDropEntryId = useCallback(
+    (id: string | null) => dispatch({ type: 'set-folder-drop-entry', id }),
+    [dispatch],
   )
-  // Handle retry for root handle, path handle, stat, and entries
-  const handleRetry = useCallback(() => {
-    if (rootHandle.error) {
-      rootHandle.retry()
-    } else if (pathHandle.error) {
-      pathHandle.retry()
-    } else if (statResource.error) {
-      statResource.retry()
-    } else if (entriesResource.error) {
-      entriesResource.retry()
-    }
-  }, [rootHandle, pathHandle, statResource, entriesResource])
-
-  const handleContextMenu = useCallback(
-    (item: ListItem<FileEntry>, event: MouseEvent) => {
-      const entry = item.data ?? null
-      const actionEntries =
-        entry && selectedIds.includes(entry.id) && selectedEntries.length > 0
-          ? selectedEntries
-          : entry
-            ? [entry]
-            : []
-      dispatch({
-        type: 'set-context-menu',
-        menu: {
-          position: { x: event.clientX, y: event.clientY },
-          entry,
-          actionEntries,
-          moveItems: buildUnixFSMoveItems(displayPath, actionEntries),
-        },
-      })
-    },
-    [displayPath, selectedEntries, selectedIds],
-  )
-
-  const handleCloseContextMenu = useCallback(() => {
-    dispatch({ type: 'set-context-menu', menu: null })
-  }, [])
-
-  const handleBackgroundContextMenu = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      dispatch({
-        type: 'set-context-menu',
-        menu: {
-          position: { x: e.clientX, y: e.clientY },
-          entry: null,
-          actionEntries: [],
-          moveItems: [],
-        },
-      })
-    },
-    [],
-  )
-
-  const handleDownload = useCallback(
-    (entries: FileEntry[]) => {
-      if (!sessionIndex || !spaceId || entries.length === 0) return
-      void downloadUnixFSSelection({
-        httpPathPrefix,
-        sessionIndex,
-        sharedObjectId: spaceId,
-        objectKey: unixfsId,
-        currentPath: displayPath,
-        entries,
-      }).catch((err: unknown) => {
-        console.error('failed to download unixfs selection', err)
-        toast.error('Download failed', { description: String(err) })
-      })
-    },
-    [displayPath, sessionIndex, spaceId, unixfsId, httpPathPrefix],
-  )
-
-  // handleStartRename activates inline rename for a file entry.
-  const handleStartRename = useCallback((entry: FileEntry) => {
-    renameRef.current = entry.name
-    dispatch({ type: 'start-rename', entry })
-  }, [])
-
-  const handleConfirmRename = useCallback(async () => {
-    if (!renamingEntry || !pathHandle.value) return
-    const newName = renameRef.current.trim()
-    if (!newName || newName === renamingEntry.name) {
-      dispatch({ type: 'clear-rename' })
-      return
-    }
-    if (newName.includes('/') || newName.includes('\\')) return
-
-    await pathHandle.value.rename(renamingEntry.name, newName)
-    dispatch({ type: 'clear-rename' })
-    dispatch({ type: 'set-context-menu', menu: null })
-  }, [pathHandle.value, renamingEntry])
-
-  const handleCancelRename = useCallback(() => {
-    dispatch({ type: 'clear-rename' })
-  }, [])
-
-  // handleRequestDelete opens the delete confirmation dialog for the given entries.
-  const handleRequestDelete = useCallback((entries: FileEntry[]) => {
-    dispatch({ type: 'request-delete', entries })
-  }, [])
-
-  const handleRequestMove = useCallback((moveItems: UnixFSMoveItem[]) => {
-    if (moveItems.length === 0) return
-    dispatch({ type: 'request-move', items: moveItems })
-  }, [])
-
-  const handleConfirmDelete = useCallback(async () => {
-    if (!deleteTargets || !pathHandle.value) return
-    const names = deleteTargets.map((e) => e.name)
-    await pathHandle.value.remove(names)
-    dispatch({ type: 'clear-delete' })
-  }, [pathHandle.value, deleteTargets])
-
-  const handleConfirmMove = useCallback(
-    async (destinationPath: string) => {
-      const root = rootHandle.value
-      const sourceParent = pathHandle.value
-      if (!root || !sourceParent || !moveDialogItems) return
-      await moveUnixFSItemsFromDirectory(
-        root,
-        sourceParent,
-        displayPath,
-        moveDialogItems,
-        destinationPath,
-      )
-      dispatch({ type: 'complete-move' })
-    },
-    [displayPath, moveDialogItems, pathHandle.value, rootHandle.value],
-  )
-
-  const handleCancelDelete = useCallback(() => {
-    dispatch({ type: 'clear-delete' })
-  }, [])
-
-  // handleNewFolder opens the inline new-folder input.
-  const handleNewFolder = useCallback(() => {
-    dispatch({ type: 'start-new-folder' })
-  }, [])
-
-  const handleNewFolderConfirm = useCallback(
-    async (name: string) => {
-      const folderName = name.trim()
-      if (!folderName || !pathHandle.value) return
-      await pathHandle.value.mkdirAll([folderName])
-      dispatch({ type: 'clear-new-folder' })
-    },
-    [pathHandle.value],
-  )
-
-  const handleNewFolderCancel = useCallback(() => {
-    dispatch({ type: 'clear-new-folder' })
-  }, [])
-
-  // handleNewFile opens the inline new-file input.
-  const handleNewFile = useCallback(() => {
-    dispatch({ type: 'start-new-file' })
-  }, [])
-
-  const handleNewFileConfirm = useCallback(
-    async (name: string) => {
-      const fileName = name.trim()
-      if (!fileName || !pathHandle.value) return
-      await pathHandle.value.mknod([fileName], MknodType.FILE)
-      dispatch({ type: 'clear-new-file' })
-    },
-    [pathHandle.value],
-  )
-
-  const handleNewFileCancel = useCallback(() => {
-    dispatch({ type: 'clear-new-file' })
-  }, [])
-
-  // handleUploadFiles opens the native file picker for uploading.
-  const handleUploadFiles = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
-
-  const handleFileInputChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files
-      if (!files || files.length === 0) return
-      if (pathHandle.value) {
-        uploadManager?.addFiles(pathHandle.value, Array.from(files))
-      }
-      e.target.value = ''
-    },
-    [uploadManager, pathHandle.value],
-  )
-
-  const setDragging = useCallback((dragging: boolean) => {
-    dispatch({ type: 'set-dragging', dragging })
-  }, [])
-
-  const setFolderDropEntryId = useCallback((id: string | null) => {
-    dispatch({ type: 'set-folder-drop-entry', id })
-  }, [])
-
-  const {
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    handleEntryDragOver,
-    handleEntryDragLeave,
-    handleEntryDrop,
-    handlePathTargetDragOver,
-    handlePathTargetDrop,
-  } = useUnixFSBrowserDrag({
+  const drag = useUnixFSBrowserDrag({
     unixfsId,
     displayPath,
     rootHandle: rootHandle.value,
     sourceParentHandle: pathHandle.value,
     uploadManager,
-    folderDropEntryId,
+    folderDropEntryId: state.folderDropEntryId,
     setDragging,
     setFolderDropEntryId,
   })
+
   const handleKeyDown = useUnixFSDeleteKeyHandler({
     selectedEntries,
-    onDelete: handleRequestDelete,
+    onDelete: edits.handleRequestDelete,
   })
 
   useUnixFSBrowserCommands({
     selectedEntries,
-    canGoBack: history?.canGoBack ?? false,
-    canGoForward: history?.canGoForward ?? false,
-    canGoUp,
-    onNewFile: handleNewFile,
-    onNewFolder: handleNewFolder,
-    onUploadFiles: handleUploadFiles,
-    onOpen: handleOpen,
-    onRename: handleStartRename,
-    onDownload: handleDownload,
-    onDelete: handleRequestDelete,
-    onBack: handleBack,
-    onForward: handleForward,
-    onUp: handleUp,
+    canGoBack: navigation.canGoBack,
+    canGoForward: navigation.canGoForward,
+    canGoUp: navigation.canGoUp,
+    onNewFile: edits.handleNewFile,
+    onNewFolder: edits.handleNewFolder,
+    onUploadFiles: transfer.handleUploadFiles,
+    onOpen: navigation.handleOpen,
+    onRename: rename.handleStartRename,
+    onDownload: transfer.handleDownload,
+    onDelete: edits.handleRequestDelete,
+    onBack: navigation.handleBack,
+    onForward: navigation.handleForward,
+    onUp: navigation.handleUp,
   })
+
+  const entriesLoading = isDir === true && entriesResource.loading
   const isLoading =
     rootHandle.loading ||
     pathHandle.loading ||
     statResource.loading ||
-    (isDir === true && entriesResource.loading)
+    entriesLoading
 
-  // Build entries with new folder/file inline input prepended
+  // displayEntries prepends the inline new folder and new file inputs.
   const displayEntries = useMemo(() => {
     const prepend: FileEntry[] = []
     if (newFolderName !== null) {
@@ -688,51 +330,43 @@ function useUnixFSBrowserElement({
     rootHandle: rootHandle.value,
   })
 
-  const handleNewFolderNameChange = useCallback((name: string) => {
-    dispatch({ type: 'set-new-folder-name', name })
-  }, [])
-
-  const handleNewFileNameChange = useCallback((name: string) => {
-    dispatch({ type: 'set-new-file-name', name })
-  }, [])
-
   const renderEntry = useUnixFSInlineEntryRenderer({
     newFolderName,
     newFileName,
     renamingEntry,
     renameRef,
-    onConfirmRename: handleConfirmRename,
-    onCancelRename: handleCancelRename,
-    onNewFolderNameChange: handleNewFolderNameChange,
-    onNewFileNameChange: handleNewFileNameChange,
-    onNewFolderConfirm: handleNewFolderConfirm,
-    onNewFolderCancel: handleNewFolderCancel,
-    onNewFileConfirm: handleNewFileConfirm,
-    onNewFileCancel: handleNewFileCancel,
+    onConfirmRename: rename.handleConfirmRename,
+    onCancelRename: rename.handleCancelRename,
+    onNewFolderNameChange: edits.handleNewFolderNameChange,
+    onNewFileNameChange: edits.handleNewFileNameChange,
+    onNewFolderConfirm: edits.handleNewFolderConfirm,
+    onNewFolderCancel: edits.handleNewFolderCancel,
+    onNewFileConfirm: edits.handleNewFileConfirm,
+    onNewFileCancel: edits.handleNewFileCancel,
   })
 
   const contextMenuProps = useMemo(
     () => ({
-      state: contextMenu,
-      onClose: handleCloseContextMenu,
-      onOpen: handleOpen,
-      onDownload: handleDownload,
-      onMove: handleRequestMove,
-      onRename: handleStartRename,
-      onDelete: handleRequestDelete,
-      onNewFolder: handleNewFolder,
-      onUploadFiles: handleUploadFiles,
+      state: state.contextMenu,
+      onClose: contextMenu.handleCloseContextMenu,
+      onOpen: navigation.handleOpen,
+      onDownload: transfer.handleDownload,
+      onMove: edits.handleRequestMove,
+      onRename: rename.handleStartRename,
+      onDelete: edits.handleRequestDelete,
+      onNewFolder: edits.handleNewFolder,
+      onUploadFiles: transfer.handleUploadFiles,
     }),
     [
-      contextMenu,
-      handleCloseContextMenu,
-      handleOpen,
-      handleDownload,
-      handleRequestMove,
-      handleStartRename,
-      handleRequestDelete,
-      handleNewFolder,
-      handleUploadFiles,
+      state.contextMenu,
+      contextMenu.handleCloseContextMenu,
+      navigation.handleOpen,
+      transfer.handleDownload,
+      edits.handleRequestMove,
+      rename.handleStartRename,
+      edits.handleRequestDelete,
+      edits.handleNewFolder,
+      transfer.handleUploadFiles,
     ],
   )
   const loadingStageLabel = useMemo(
@@ -741,224 +375,254 @@ function useUnixFSBrowserElement({
         rootLoading: rootHandle.loading,
         pathLoading: pathHandle.loading,
         statLoading: statResource.loading,
-        entriesLoading: isDir === true && entriesResource.loading,
+        entriesLoading,
       }),
     [
-      entriesResource.loading,
-      isDir,
+      entriesLoading,
       pathHandle.loading,
       rootHandle.loading,
       statResource.loading,
     ],
   )
-  const loadingDiagnostics = (
-    <UnixFSLoadingDiagnostics
-      stageLabel={loadingStageLabel}
-      status={syncStatus}
-    />
-  )
-  const handleCancelMove = useCallback(() => {
-    dispatch({ type: 'clear-move' })
-  }, [])
-  const dialogs = (
-    <UnixFSBrowserDialogs
-      contextMenuProps={contextMenuProps}
-      fileInputRef={fileInputRef}
-      onFileInputChange={handleFileInputChange}
-      deleteTargets={deleteTargets}
-      onCancelDelete={handleCancelDelete}
-      onConfirmDelete={handleConfirmDelete}
-      moveRootHandle={rootHandle.value}
-      moveDialogItems={moveDialogItems}
-      onCancelMove={handleCancelMove}
-      onConfirmMove={handleConfirmMove}
-    />
-  )
+
   const shellNavigationProps = {
     currentPath: displayPath,
-    onPathChange: handlePathChange,
-    onBack: handleBack,
-    onForward: handleForward,
-    onUp: handleUp,
-    canGoBack: history?.canGoBack ?? false,
-    canGoForward: history?.canGoForward ?? false,
-    canGoUp,
+    onPathChange: navigation.handlePathChange,
+    onBack: navigation.handleBack,
+    onForward: navigation.handleForward,
+    onUp: navigation.handleUp,
+    canGoBack: navigation.canGoBack,
+    canGoForward: navigation.canGoForward,
+    canGoUp: navigation.canGoUp,
     upDropPath: getUnixFSParentPath(displayPath),
-    onPathTargetDragOver: handlePathTargetDragOver,
-    onPathTargetDrop: handlePathTargetDrop,
+    onPathTargetDragOver: drag.handlePathTargetDragOver,
+    onPathTargetDrop: drag.handlePathTargetDrop,
   }
-  const shellActionProps = {
-    ...shellNavigationProps,
-    onNewFolder: handleNewFolder,
-    onUploadFiles: handleUploadFiles,
+
+  // failure is the first resource that failed to load, in dependency order.
+  const failed = [rootHandle, pathHandle, statResource, entriesResource].find(
+    (resource) => resource.error,
+  )
+  const failure = failed?.error
+    ? { error: failed.error, retry: failed.retry }
+    : null
+
+  return {
+    displayPath,
+    unixfsId,
+    rootHandle,
+    pathHandle,
+    statResource,
+    entriesResource,
+    fileEntries,
+    deferredFileEntries,
+    displayEntries,
+    isDir,
+    isLoading,
+    failure,
+    inlineFileURL,
+    renderEntry,
+    pendingName: state.pendingName,
+    isDragging: state.isDragging,
+    handleKeyDown,
+    handleBackgroundContextMenu: contextMenu.handleBackgroundContextMenu,
+    shellNavigationProps,
+    shellActionProps: {
+      ...shellNavigationProps,
+      onNewFolder: edits.handleNewFolder,
+      onUploadFiles: transfer.handleUploadFiles,
+    },
+    dropHandlers: {
+      onDragOver: drag.handleDragOver,
+      onDragLeave: drag.handleDragLeave,
+      onDrop: (e: DragEvent<HTMLDivElement>) => void drag.handleDrop(e),
+    },
+    listingProps: {
+      currentPath: displayPath,
+      getEntryDetails,
+      onOpen: navigation.handleOpen,
+      onContextMenu: contextMenu.handleContextMenu,
+      listState,
+      onNewFolder: edits.handleNewFolder,
+      onUploadFiles: transfer.handleUploadFiles,
+      getDragEnvelope,
+      getDownloadDragTarget,
+      dropTargetEntryId: state.folderDropEntryId,
+      onEntryDragOver: drag.handleEntryDragOver,
+      onEntryDragLeave: drag.handleEntryDragLeave,
+      onEntryDrop: drag.handleEntryDrop,
+    },
+    dialogsProps: {
+      contextMenuProps,
+      fileInputRef: transfer.fileInputRef,
+      onFileInputChange: transfer.handleFileInputChange,
+      deleteTargets: state.deleteTargets,
+      onCancelDelete: edits.handleCancelDelete,
+      onConfirmDelete: edits.handleConfirmDelete,
+      moveRootHandle: rootHandle.value,
+      moveDialogItems: state.moveDialogItems,
+      onCancelMove: edits.handleCancelMove,
+      onConfirmMove: edits.handleConfirmMove,
+    },
+    loadingDiagnostics: (
+      <UnixFSLoadingDiagnostics
+        stageLabel={loadingStageLabel}
+        status={syncStatus}
+      />
+    ),
   }
-  // During directory transitions, keep showing previous entries with a loading indicator
-  if (isLoading && deferredFileEntries.length > 0) {
-    return (
-      <UnixFSBrowserShell
-        {...shellActionProps}
-        interactive
-        onKeyDown={handleKeyDown}
+}
+
+type UnixFSBrowserModel = ReturnType<typeof useUnixFSBrowserModel>
+
+/** UnixFSBrowserInteractive wraps content in the shell, drop surface, and dialogs. */
+function UnixFSBrowserInteractive({
+  model,
+  floatingDiagnostics,
+  children,
+}: {
+  model: UnixFSBrowserModel
+  floatingDiagnostics?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <UnixFSBrowserShell
+      {...model.shellActionProps}
+      interactive
+      onKeyDown={model.handleKeyDown}
+    >
+      <UnixFSBrowserDropSurface
+        isDragging={model.isDragging}
+        floatingDiagnostics={floatingDiagnostics}
+        onContextMenu={model.handleBackgroundContextMenu}
+        {...model.dropHandlers}
       >
-        <UnixFSBrowserDropSurface
-          isDragging={isDragging}
-          floatingDiagnostics={loadingDiagnostics}
-          onContextMenu={handleBackgroundContextMenu}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => void handleDrop(e)}
-        >
-          {BrowserBody ? (
-            <BrowserBody
-              rootHandle={rootHandle}
-              unixfsId={unixfsId}
-              currentPath={displayPath}
-            />
-          ) : (
-            <UnixFSDirectoryListing
-              currentPath={displayPath}
-              entries={deferredFileEntries}
-              displayEntries={deferredFileEntries}
-              getEntryDetails={getEntryDetails}
-              loadingId={entriesResource.loading ? pendingName : null}
-              onOpen={handleOpen}
-              onContextMenu={handleContextMenu}
-              onStateChange={handleListStateChange}
-              onNewFolder={handleNewFolder}
-              onUploadFiles={handleUploadFiles}
-              getDragEnvelope={getDragEnvelope}
-              getDownloadDragTarget={getDownloadDragTarget}
-              dropTargetEntryId={folderDropEntryId}
-              onEntryDragOver={handleEntryDragOver}
-              onEntryDragLeave={handleEntryDragLeave}
-              onEntryDrop={handleEntryDrop}
-            />
-          )}
-        </UnixFSBrowserDropSurface>
-        {dialogs}
-      </UnixFSBrowserShell>
+        {children}
+      </UnixFSBrowserDropSurface>
+      <UnixFSBrowserDialogs {...model.dialogsProps} />
+    </UnixFSBrowserShell>
+  )
+}
+
+/** UnixFSBrowserListing renders the directory listing with the shared handlers. */
+function UnixFSBrowserListing({
+  model,
+  ...listing
+}: { model: UnixFSBrowserModel } & Pick<
+  ComponentProps<typeof UnixFSDirectoryListing>,
+  'entries' | 'displayEntries' | 'loadingId' | 'DirectoryHeader' | 'renderEntry'
+>) {
+  return <UnixFSDirectoryListing {...model.listingProps} {...listing} />
+}
+
+/** UnixFSBrowserLoading renders the full loading state of the first load. */
+function UnixFSBrowserLoading({ model }: { model: UnixFSBrowserModel }) {
+  return (
+    <UnixFSBrowserShell {...model.shellActionProps}>
+      <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden p-6">
+        <div className="w-full max-w-sm">
+          <UnixFSPathLoadingCard
+            root={model.rootHandle}
+            lookup={model.pathHandle}
+            stat={model.statResource}
+            entries={model.isDir === true ? model.entriesResource : null}
+            path={model.displayPath}
+          />
+        </div>
+        {model.loadingDiagnostics}
+      </div>
+    </UnixFSBrowserShell>
+  )
+}
+
+// UnixFSBrowser renders a UnixFS filesystem browser for use in layout tabs.
+export function UnixFSBrowser(props: UnixFSBrowserProps) {
+  const {
+    unixfsId,
+    mimeTypeOverride,
+    browserBody: BrowserBody,
+    directoryHeader: DirectoryHeader,
+  } = props
+  const model = useUnixFSBrowserModel(props)
+  const { rootHandle, statResource, displayPath } = model
+  const browserBody = BrowserBody && (
+    <BrowserBody
+      rootHandle={rootHandle}
+      unixfsId={unixfsId}
+      currentPath={displayPath}
+    />
+  )
+
+  // During directory transitions, keep showing previous entries with a loading indicator
+  if (model.isLoading && model.deferredFileEntries.length > 0) {
+    return (
+      <UnixFSBrowserInteractive
+        model={model}
+        floatingDiagnostics={model.loadingDiagnostics}
+      >
+        {browserBody ?? (
+          <UnixFSBrowserListing
+            model={model}
+            entries={model.deferredFileEntries}
+            displayEntries={model.deferredFileEntries}
+            loadingId={model.entriesResource.loading ? model.pendingName : null}
+          />
+        )}
+      </UnixFSBrowserInteractive>
     )
   }
 
   // Show fullscreen loading state only on initial load
-  if (isLoading) {
-    return (
-      <UnixFSBrowserShell {...shellActionProps}>
-        <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden p-6">
-          <div className="w-full max-w-sm">
-            <UnixFSPathLoadingCard
-              root={rootHandle}
-              lookup={pathHandle}
-              stat={statResource}
-              entries={isDir === true ? entriesResource : null}
-              path={displayPath}
-            />
-          </div>
-          {loadingDiagnostics}
-        </div>
-      </UnixFSBrowserShell>
-    )
-  }
+  if (model.isLoading) return <UnixFSBrowserLoading model={model} />
 
-  // Show error state
-  const error =
-    rootHandle.error ??
-    pathHandle.error ??
-    statResource.error ??
-    entriesResource.error
-  if (error) {
+  if (model.failure) {
     return (
       <UnixFSBrowserUnavailableState
         kind="error"
-        shellProps={shellNavigationProps}
-        error={error}
-        onRetry={handleRetry}
+        shellProps={model.shellNavigationProps}
+        error={model.failure.error}
+        onRetry={model.failure.retry}
       />
     )
   }
 
-  // Show placeholder if UnixFS object not found
   if (!rootHandle.value) {
     return (
       <UnixFSBrowserUnavailableState kind="not-found" unixfsId={unixfsId} />
     )
   }
 
-  if (BrowserBody) {
+  if (browserBody) {
     return (
-      <UnixFSBrowserShell
-        {...shellActionProps}
-        interactive
-        onKeyDown={handleKeyDown}
-      >
-        <UnixFSBrowserDropSurface
-          isDragging={isDragging}
-          onContextMenu={handleBackgroundContextMenu}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => void handleDrop(e)}
-        >
-          <BrowserBody
-            rootHandle={rootHandle}
-            unixfsId={unixfsId}
-            currentPath={displayPath}
-          />
-        </UnixFSBrowserDropSurface>
-        {dialogs}
-      </UnixFSBrowserShell>
+      <UnixFSBrowserInteractive model={model}>
+        {browserBody}
+      </UnixFSBrowserInteractive>
     )
   }
 
-  // Render file viewer for files
-  if (isDir === false && statResource.value) {
+  if (model.isDir === false && statResource.value) {
     return (
       <UnixFSFileViewer
         path={displayPath}
         stat={{
           ...statResource.value,
-          mimeType: effectiveMimeType ?? statResource.value.mimeType,
+          mimeType: mimeTypeOverride || statResource.value.mimeType,
         }}
         rootHandle={rootHandle}
-        inlineFileURL={inlineFileURL}
+        inlineFileURL={model.inlineFileURL}
       />
     )
   }
 
-  // Render directory listing
   return (
-    <UnixFSBrowserShell
-      {...shellActionProps}
-      interactive
-      onKeyDown={handleKeyDown}
-    >
-      <UnixFSBrowserDropSurface
-        isDragging={isDragging}
-        onContextMenu={handleBackgroundContextMenu}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => void handleDrop(e)}
-      >
-        <UnixFSDirectoryListing
-          currentPath={displayPath}
-          entries={fileEntries}
-          displayEntries={displayEntries}
-          DirectoryHeader={DirectoryHeader}
-          renderEntry={renderEntry}
-          getEntryDetails={getEntryDetails}
-          onOpen={handleOpen}
-          onContextMenu={handleContextMenu}
-          onStateChange={handleListStateChange}
-          onNewFolder={handleNewFolder}
-          onUploadFiles={handleUploadFiles}
-          getDragEnvelope={getDragEnvelope}
-          getDownloadDragTarget={getDownloadDragTarget}
-          dropTargetEntryId={folderDropEntryId}
-          onEntryDragOver={handleEntryDragOver}
-          onEntryDragLeave={handleEntryDragLeave}
-          onEntryDrop={handleEntryDrop}
-        />
-      </UnixFSBrowserDropSurface>
-      {dialogs}
-    </UnixFSBrowserShell>
+    <UnixFSBrowserInteractive model={model}>
+      <UnixFSBrowserListing
+        model={model}
+        entries={model.fileEntries}
+        displayEntries={model.displayEntries}
+        DirectoryHeader={DirectoryHeader}
+        renderEntry={model.renderEntry}
+      />
+    </UnixFSBrowserInteractive>
   )
 }

@@ -47,6 +47,7 @@ export function ProviderSetup() {
             />
 
             <button
+              type="button"
               onClick={handleLocal}
               className={cn(
                 'group mt-2 w-full rounded-md border transition-all duration-300',

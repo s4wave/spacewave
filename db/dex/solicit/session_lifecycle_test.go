@@ -2,6 +2,7 @@ package dex_solicit
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -448,7 +449,8 @@ func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
 
 // TestStoreReadWaitsForPeerSession proves a read on a settled solicitation
 // with no peer waits for a peer session instead of reporting a miss nobody was
-// asked about, while an existence check answers at once.
+// asked about, while an existence check and a read that may not wait for a
+// peer answer at once.
 func TestStoreReadWaitsForPeerSession(t *testing.T) {
 	// Keep the peer session within the test lifetime.
 	ctx, cancel := context.WithCancel(t.Context())
@@ -465,6 +467,15 @@ func TestStoreReadWaitsForPeerSession(t *testing.T) {
 	}
 	if exists {
 		t.Fatal("existence check found a block with no peer connected")
+	}
+
+	// Read without waiting for a peer.
+	noWaitCtx, peerWait := block.WithoutPeerWait(ctx)
+	if _, found, err := store.GetBlock(noWaitCtx, ref); found || !errors.Is(err, block.ErrUnavailable) {
+		t.Fatalf("read without a peer wait = found %v, %v; want %v", found, err, block.ErrUnavailable)
+	}
+	if !peerWait.GetRef().EqualsRef(ref) {
+		t.Fatalf("read without a peer wait recorded %v; want %s", peerWait.GetRef(), ref.MarshalString())
 	}
 
 	// Start a read, which must wait while no peer is connected.

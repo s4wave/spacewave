@@ -71,6 +71,7 @@ vi.mock('./AuthConfirmDialog.js', () => ({
     mockAuthConfirmDialog({ open })
     return open ? (
       <button
+        type="button"
         onClick={() => void onConfirm({ type: 'password', password: 'secret' })}
       >
         Confirm Session Revoke

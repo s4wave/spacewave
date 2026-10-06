@@ -17,6 +17,7 @@ export function ChangelogReleasePage({ release }: { release: Release }) {
       {/* Back button */}
       <div className="relative z-10 px-4 pt-6 @lg:px-8">
         <button
+          type="button"
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
         >

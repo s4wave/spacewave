@@ -123,6 +123,7 @@ export function SSOFinishPage() {
   useEffect(() => {
     if (!linkedResult || !root) return
     const controller = new AbortController()
+    let cancelled = false
     const run = async () => {
       try {
         const blob = linkedResult.encryptedBlob
@@ -149,10 +150,11 @@ export function SSOFinishPage() {
             spacewave.loginWithEntityKey(pemBytes, controller.signal),
           controller.signal,
         )
-        if (controller.signal.aborted) return
+        if (cancelled) return
 
         const sessionIndex = loginResp.sessionListEntry?.sessionIndex ?? 0
         const handoff = await completeStoredHandoff(root, sessionIndex)
+        if (cancelled) return
         if (handoff) {
           clearSSOBrowserBinding()
           setState({ step: 'handoff_complete', request: handoff, sessionIndex })
@@ -161,7 +163,7 @@ export function SSOFinishPage() {
         clearSSOBrowserBinding()
         navigate({ path: `/u/${sessionIndex}` })
       } catch (e) {
-        if (!controller.signal.aborted) {
+        if (!cancelled) {
           setState({
             step: 'error',
             message: e instanceof Error ? e.message : 'Login failed',
@@ -171,6 +173,7 @@ export function SSOFinishPage() {
     }
     void run()
     return () => {
+      cancelled = true
       controller.abort()
     }
   }, [linkedResult, root, navigate])

@@ -14,7 +14,7 @@ vi.mock('./JoinSpaceDialog.js', () => ({
   JoinSpaceDialog: (props: {
     onAccepted: (sharedObjectId: string) => void
   }) => (
-    <button onClick={() => props.onAccepted('space-1')}>
+    <button type="button" onClick={() => props.onAccepted('space-1')}>
       Open the shared Space
     </button>
   ),

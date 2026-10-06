@@ -155,7 +155,7 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
           {suites.length} suites,{' '}
           {results.totalDurationMillis?.toString() ?? '0'}ms total
         </div>
-        <button
+        <button type="button"
           onClick={downloadResults}
           className="text-text-secondary hover:text-text-primary flex cursor-pointer items-center gap-1.5 text-xs transition-colors"
         >
@@ -288,7 +288,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
             />
             <span className="text-text-muted">World Transaction Suite</span>
           </label>
-          <button
+          <button type="button"
             onClick={runBenchmark}
             disabled={running || !debugDb.value}
             className={cn(
@@ -353,7 +353,7 @@ export function DebugDbBench() {
   return (
     <div className="bg-background @container flex w-full flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 @lg:px-8">
-        <button
+        <button type="button"
           onClick={goBack}
           className="text-foreground-alt hover:text-foreground mb-6 flex cursor-pointer items-center gap-2 transition-colors"
         >

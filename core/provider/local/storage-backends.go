@@ -86,6 +86,7 @@ func (a *ProviderAccount) AddStorageBackend(
 
 // CheckStorageBackend runs the connectivity check against a saved backend.
 func (a *ProviderAccount) CheckStorageBackend(ctx context.Context, backendID string) (*block_store_s3.CheckResult, error) {
+	// Load the saved backend and check it with its decrypted credentials.
 	settings, err := a.readAccountSettings(ctx)
 	if err != nil {
 		return nil, err
@@ -106,6 +107,7 @@ func (a *ProviderAccount) ReadStorageCredentials(
 	ctx context.Context,
 	backend *account_settings.StorageBackend,
 ) (*block_store_s3.Credentials, error) {
+	// Decrypt the backend credential and decode it as S3 credentials.
 	credential := backend.GetCredential()
 	if credential.GetKind() != s4wave_secret.SecretKindStorageCredential {
 		return nil, s4wave_secret.ErrSecretKindMismatch
@@ -128,6 +130,7 @@ func (a *ProviderAccount) ReadStorageCredentials(
 // since removal drops the credentials. A failed delete leaves its objects in
 // the bucket.
 func (a *ProviderAccount) RemoveStorageBackend(ctx context.Context, backendID string) error {
+	// Refuse removal while Spaces remain, and delete released stores first.
 	settings, err := a.readAccountSettings(ctx)
 	if err != nil {
 		return err
@@ -205,6 +208,7 @@ func (a *ProviderAccount) SetStorageBackendPricing(
 // on: the requested backend, else the account's default, else none. When
 // accountStorage is set, returns none.
 func (a *ProviderAccount) ResolveNewSpaceStorageBackend(ctx context.Context, requestedID string, accountStorage bool) (string, error) {
+	// Choose the requested backend, the account default, or account storage.
 	if accountStorage {
 		if requestedID != "" {
 			return "", errors.New("choose a storage backend or account storage, not both")
@@ -239,6 +243,7 @@ func (a *ProviderAccount) PlaceBlockStore(ctx context.Context, blockStoreID, bac
 
 // commitAccountSettingsOps commits each op to the account settings in order.
 func (a *ProviderAccount) commitAccountSettingsOps(ctx context.Context, ops ...*account_settings.AccountSettingsOp) error {
+	// Mount the account settings shared object and release it when the commit returns.
 	ref, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return err
@@ -248,6 +253,8 @@ func (a *ProviderAccount) commitAccountSettingsOps(ctx context.Context, ops ...*
 		return err
 	}
 	defer release()
+
+	// Commit each account-settings operation in order.
 	for _, op := range ops {
 		if err := commitAccountSettingsOp(ctx, so, op); err != nil {
 			return err
@@ -260,6 +267,7 @@ func (a *ProviderAccount) commitAccountSettingsOps(ctx context.Context, ops ...*
 // SharedObject's block store, then again after each change, until ctx ends
 // or fn fails.
 func (a *ProviderAccount) WatchUploadStatus(ctx context.Context, sharedObjectID string, fn func(UploadStatus) error) error {
+	// Retain the shared object's block-store tracker and watch its upload status.
 	blockStoreID := a.lookupSharedObjectBlockStoreID(sharedObjectID)
 	if blockStoreID == "" {
 		return sobject.ErrSharedObjectNotFound

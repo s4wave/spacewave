@@ -790,7 +790,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20261005001257-e61f5b5a16a9",
+      "version": "v0.0.0-20261006081945-09141165d72c",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -822,7 +822,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.6-0.20261001195447-86f830af47c0",
+      "version": "v0.53.6-0.20261006090449-629971629b36",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
@@ -933,7 +933,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.19.1-0.20260926160815-9337dc7c6cda",
+      "version": "v0.19.1-0.20261006081947-6c15c9bde28b",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
@@ -941,7 +941,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.52.3-0.20261005112333-b1d8957476e8",
+      "version": "v0.52.3-0.20261006081950-e03641ffbcc3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -949,7 +949,7 @@
     },
     {
       "name": "github.com/aperturerobotics/util",
-      "version": "v1.34.10-0.20261002030236-9b993d4c208f",
+      "version": "v1.34.10-0.20261006081936-7765b80f85f1",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/util",
@@ -1090,7 +1090,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-beta.1.0.20261004195433-f7fe2d920dc4",
+      "version": "v6.0.0-beta.1.0.20261005145446-43077f29f67b",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1525,7 +1525,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.4.0",
+      "version": "v0.4.1-0.20261006091023-938439643cb8",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",

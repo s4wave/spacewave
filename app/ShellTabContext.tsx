@@ -183,6 +183,40 @@ export interface ShellTabsContextValue {
   mutationError: BrowserShellTabsStoreError | null
 }
 
+/** reconcileLocalOrder returns the current order when it already matches the records. */
+function reconcileLocalOrder(
+  current: string[],
+  records: BrowserShellTabRecord[],
+): string[] {
+  const next = normalizeLocalOrder(current, records)
+  return current.length === next.length &&
+    current.every((id, index) => id === next[index])
+    ? current
+    : next
+}
+
+/**
+ * reconcileActiveTabId keeps the active tab when it still exists, prefers a
+ * freshly created tab, and falls back to the first record. A fresh or handoff
+ * document may keep no active tab until its first tab is created.
+ */
+function reconcileActiveTabId(
+  current: string,
+  recordIds: Set<string>,
+  pendingCreatedTabId: string | null,
+  entryKind: ShellDocumentEntry['kind'],
+  firstRecordId: string,
+): string {
+  if (pendingCreatedTabId && recordIds.has(pendingCreatedTabId)) {
+    return pendingCreatedTabId
+  }
+  if (current && recordIds.has(current)) return current
+  if (!current && (entryKind === 'fresh' || entryKind === 'handoff')) {
+    return current
+  }
+  return firstRecordId
+}
+
 const ShellTabsContext = createContext<ShellTabsContextValue | null>(null)
 
 export function useShellTabs(): ShellTabsContextValue {
@@ -311,9 +345,7 @@ function useShellTabsContextValue(
       : null,
   )
   const localOrderRef = useLatestRef(localOrder)
-  const previousRecordIdsRef = useRef(
-    new Set(snapshot.records.map((record) => record.id)),
-  )
+  const previousRecordIdsRef = useRef<Set<string> | undefined>(undefined)
 
   const recordsById = useMemo(
     () => new Map(snapshot.records.map((record) => [record.id, record])),
@@ -327,11 +359,37 @@ function useShellTabsContextValue(
       .map(recordAsShellTab)
   }, [localOrder, recordsById, snapshot.records])
 
+  // Reconcile local state with each new snapshot or entry while rendering, so
+  // a removed tab is never shown as active, renamed, or ordered.
+  const [reconciled, setReconciled] = useState({ entry, snapshot })
+  if (reconciled.entry !== entry || reconciled.snapshot !== snapshot) {
+    const currentRecordIds = new Set(
+      snapshot.records.map((record) => record.id),
+    )
+    setReconciled({ entry, snapshot })
+    setLocalOrder(reconcileLocalOrder(localOrder, snapshot.records))
+    setActiveTabIdState(
+      reconcileActiveTabId(
+        activeTabId,
+        currentRecordIds,
+        pendingCreatedTabIdRef.current,
+        entry.kind,
+        snapshot.records[0]?.id ?? '',
+      ),
+    )
+    setRenamingTabId(
+      renamingTabId && currentRecordIds.has(renamingTabId)
+        ? renamingTabId
+        : null,
+    )
+  }
+
+  // Forget the local state of tabs removed from the shared snapshot.
   useEffect(() => {
     const currentRecordIds = new Set(
       snapshot.records.map((record) => record.id),
     )
-    for (const id of previousRecordIdsRef.current) {
+    for (const id of previousRecordIdsRef.current ?? currentRecordIds) {
       if (!currentRecordIds.has(id)) {
         removeShellTabLocalState(
           entry.incarnation,
@@ -342,28 +400,7 @@ function useShellTabsContextValue(
       }
     }
     previousRecordIdsRef.current = currentRecordIds
-    setLocalOrder((current) => {
-      const next = normalizeLocalOrder(current, snapshot.records)
-      return current.length === next.length &&
-        current.every((id, index) => id === next[index])
-        ? current
-        : next
-    })
-    setActiveTabIdState((current) => {
-      const pendingCreatedTabId = pendingCreatedTabIdRef.current
-      if (pendingCreatedTabId && currentRecordIds.has(pendingCreatedTabId)) {
-        return pendingCreatedTabId
-      }
-      if (current && currentRecordIds.has(current)) return current
-      if (!current && (entry.kind === 'fresh' || entry.kind === 'handoff')) {
-        return current
-      }
-      return snapshot.records[0]?.id ?? ''
-    })
-    setRenamingTabId((current) =>
-      current && currentRecordIds.has(current) ? current : null,
-    )
-  }, [entry, snapshot, environment.documentStorage])
+  }, [entry.incarnation, snapshot, environment.documentStorage])
 
   useEffect(() => {
     if (!activeTabId) return

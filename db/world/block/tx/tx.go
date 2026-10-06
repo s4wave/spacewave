@@ -114,6 +114,33 @@ func (t *Tx) LocateTx() (Transaction, error) {
 	}
 }
 
+// PayloadRefs returns the payload roots of the World operations in the
+// transaction, resolving operation types with lookupOp; see
+// world.PayloadOperation.
+func (t *Tx) PayloadRefs(ctx context.Context, lookupOp world.LookupOp) ([]*block.BlockRef, error) {
+	switch t.GetTxType() {
+	case TxType_TxType_BATCH:
+		var refs []*block.BlockRef
+		for i, tx := range t.GetTxBatch().GetTxs() {
+			txRefs, err := tx.PayloadRefs(ctx, lookupOp)
+			if err != nil {
+				return nil, errors.Wrapf(err, "tx_batch[%d]", i)
+			}
+			refs = append(refs, txRefs...)
+		}
+		return refs, nil
+	case TxType_TxType_APPLY_WORLD_OP:
+		op, err := t.GetTxApplyWorldOp().decodeOp(ctx, lookupOp)
+		if err != nil {
+			return nil, err
+		}
+		if pop, ok := op.(world.PayloadOperation); ok {
+			return pop.GetPayloadRefs(), nil
+		}
+	}
+	return nil, nil
+}
+
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (t *Tx) MarshalBlock() ([]byte, error) {

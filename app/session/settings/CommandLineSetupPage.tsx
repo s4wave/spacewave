@@ -27,6 +27,7 @@ import {
   DesktopCLIInstallActionKind,
   DesktopCLIInstallStatus,
   type DesktopCLIInstallActionItem,
+  type DesktopCLIInstallTarget,
   type DesktopCLIEntrypointIdentity,
   type DesktopCLIInstallState,
   type WatchCLIInstallStateResponse,
@@ -253,18 +254,9 @@ async function* watchDesktopCLIInstallState(
 // when the desktop runtime never yields an install state.
 const DESKTOP_CLI_CHECK_TIMEOUT_MS = 15000
 
-export function DesktopCLIInstallCard({
-  state,
-  loading,
-  error,
-  onInvokeAction,
-}: {
-  state?: DesktopCLIInstallState
-  loading?: boolean
-  error?: Error | null
-  onInvokeAction?: (action: DesktopCLIInstallActionItem) => void | Promise<void>
-}) {
-  const checking = !error && (loading || !state)
+// useCheckTimedOut reports whether the install state check has stayed pending
+// for DESKTOP_CLI_CHECK_TIMEOUT_MS. The deadline restarts with each check.
+function useCheckTimedOut(checking: boolean): boolean {
   const [checkTimedOut, setCheckTimedOut] = useState(false)
   useEffect(() => {
     if (!checking) {
@@ -277,19 +269,42 @@ export function DesktopCLIInstallCard({
     )
     return () => clearTimeout(timer)
   }, [checking])
+  return checkTimedOut
+}
+
+// describeTarget returns the detail line for an install target.
+function describeTarget(target: DesktopCLIInstallTarget): string {
+  if (target.detail) return target.detail
+  return target.writable ? 'Writable user target' : 'Manual target review'
+}
+
+// visibleInstallError returns the install state's error message, hiding the
+// unimplemented error that the presentation reports instead.
+function visibleInstallError(state?: DesktopCLIInstallState): string {
+  const message = state?.errorMessage ?? ''
+  return message.toLowerCase().includes('unimplemented') ? '' : message
+}
+
+export function DesktopCLIInstallCard({
+  state,
+  loading,
+  error,
+  onInvokeAction,
+}: {
+  state?: DesktopCLIInstallState
+  loading?: boolean
+  error?: Error | null
+  onInvokeAction?: (action: DesktopCLIInstallActionItem) => void | Promise<void>
+}) {
+  const checkTimedOut = useCheckTimedOut(!error && (loading || !state))
   const presentation = desktopCLIInstallPresentation(
     state,
     loading,
     error,
     checkTimedOut,
   )
-  const selectedTarget = state?.targets?.find((target) => target.selected)
   const actions = state?.actions ?? []
-  const errorMessage = (state?.errorMessage ?? '')
-    .toLowerCase()
-    .includes('unimplemented')
-    ? ''
-    : (state?.errorMessage ?? '')
+  const errorMessage = visibleInstallError(state)
   return (
     <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4 backdrop-blur-sm">
       <div className="mb-3 flex items-start gap-3">
@@ -312,37 +327,8 @@ export function DesktopCLIInstallCard({
       )}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="min-w-0">
-          <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
-            Selected target
-          </p>
-          <code className="text-foreground-alt/90 bg-foreground/5 micro-seven block max-w-full truncate rounded px-1.5 py-1 font-mono">
-            {selectedTarget?.path || 'Not selected'}
-          </code>
-          {selectedTarget && (
-            <p className="text-foreground-alt mt-1 text-xs">
-              {selectedTarget.detail ||
-                (selectedTarget.writable
-                  ? 'Writable user target'
-                  : 'Manual target review')}
-            </p>
-          )}
-        </div>
-
-        <div className="min-w-0">
-          <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
-            Release identity
-          </p>
-          <p className="text-foreground text-xs">
-            {formatCLIIdentity(state?.available) ||
-              'Waiting for release metadata'}
-          </p>
-          {state?.installed?.manifestId && (
-            <p className="text-foreground-alt mt-1 text-xs">
-              Installed {formatCLIIdentity(state.installed)}
-            </p>
-          )}
-        </div>
+        <SelectedTarget state={state} />
+        <ReleaseIdentity state={state} />
       </div>
 
       <TargetOptions
@@ -364,6 +350,46 @@ export function DesktopCLIInstallCard({
         <p className="text-danger mt-3 text-xs">{errorMessage}</p>
       )}
     </section>
+  )
+}
+
+// SelectedTarget shows the install target the CLI will be installed to.
+function SelectedTarget({ state }: { state?: DesktopCLIInstallState }) {
+  const selectedTarget = state?.targets?.find((target) => target.selected)
+
+  return (
+    <div className="min-w-0">
+      <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
+        Selected target
+      </p>
+      <code className="text-foreground-alt/90 bg-foreground/5 micro-seven block max-w-full truncate rounded px-1.5 py-1 font-mono">
+        {selectedTarget?.path || 'Not selected'}
+      </code>
+      {selectedTarget && (
+        <p className="text-foreground-alt mt-1 text-xs">
+          {describeTarget(selectedTarget)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ReleaseIdentity shows the available and installed CLI releases.
+function ReleaseIdentity({ state }: { state?: DesktopCLIInstallState }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
+        Release identity
+      </p>
+      <p className="text-foreground text-xs">
+        {formatCLIIdentity(state?.available) || 'Waiting for release metadata'}
+      </p>
+      {state?.installed?.manifestId && (
+        <p className="text-foreground-alt mt-1 text-xs">
+          Installed {formatCLIIdentity(state.installed)}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -414,10 +440,7 @@ function TargetOptions({
                 {target.path}
               </code>
               <span className="text-foreground-alt micro-compact mt-1 block">
-                {target.detail ||
-                  (target.writable
-                    ? 'Writable user target'
-                    : 'Manual target review')}
+                {describeTarget(target)}
               </span>
             </button>
           )

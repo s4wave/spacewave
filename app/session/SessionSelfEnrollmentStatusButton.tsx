@@ -94,37 +94,44 @@ function SessionSelfEnrollmentStatusGlyph({
   return <LuCircleCheck className="size-3.5" aria-hidden="true" />
 }
 
+// useSelfEnrollmentActions runs the start and skip actions of the status
+// resource, tracking the busy flag and the last action error.
+function useSelfEnrollmentActions(status: SessionSelfEnrollmentStatusView) {
+  const [actionError, setActionError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const run = useCallback(async (action: () => Promise<unknown>) => {
+    setBusy(true)
+    setActionError('')
+    try {
+      await action()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }, [])
+
+  const start = () => {
+    const { resource } = status
+    if (!resource || busy) return
+    void run(() => resource.start())
+  }
+  const skip = () => {
+    const { resource, generationKey } = status
+    if (!resource || !generationKey || busy) return
+    void run(() => resource.skip(generationKey))
+  }
+
+  return { actionError, busy, start, skip }
+}
+
 function SessionSelfEnrollmentStatusPopover({
   status,
 }: {
   status: SessionSelfEnrollmentStatusView
 }) {
-  const [actionError, setActionError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const handleStart = useCallback(async () => {
-    if (!status.resource || busy) return
-    setBusy(true)
-    setActionError('')
-    try {
-      await status.resource.start()
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setBusy(false)
-    }
-  }, [busy, status.resource])
-  const handleSkip = useCallback(async () => {
-    if (!status.resource || !status.generationKey || busy) return
-    setBusy(true)
-    setActionError('')
-    try {
-      await status.resource.skip(status.generationKey)
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setBusy(false)
-    }
-  }, [busy, status.generationKey, status.resource])
+  const { actionError, busy, start, skip } = useSelfEnrollmentActions(status)
 
   return (
     <div
@@ -161,26 +168,7 @@ function SessionSelfEnrollmentStatusPopover({
         />
       )}
 
-      {status.failures.length > 0 && (
-        <div className="border-foreground/8 space-y-1.5 border-t pt-2">
-          <div className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase">
-            Failed spaces
-          </div>
-          {status.failures.slice(0, 3).map((failure) => (
-            <div
-              key={failure.sharedObjectId}
-              className="text-foreground-alt/70 flex items-start justify-between gap-3 text-xs"
-            >
-              <span className="min-w-0 truncate font-mono">
-                {failure.sharedObjectId}
-              </span>
-              <span className="text-destructive text-right">
-                {failure.message}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <FailedSpacesList failures={status.failures} />
 
       {actionError && (
         <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-2 py-1.5 text-xs">
@@ -195,9 +183,7 @@ function SessionSelfEnrollmentStatusPopover({
             variant="outline"
             size="sm"
             disabled={!status.resource || busy || status.running}
-            onClick={() => {
-              void handleStart()
-            }}
+            onClick={start}
           >
             {busy ? (
               <Spinner size="sm" />
@@ -212,9 +198,7 @@ function SessionSelfEnrollmentStatusPopover({
               variant="ghost"
               size="sm"
               disabled={!status.resource || busy || status.running}
-              onClick={() => {
-                void handleSkip()
-              }}
+              onClick={skip}
             >
               <LuSkipForward className="size-3.5" aria-hidden="true" />
               Skip
@@ -222,6 +206,34 @@ function SessionSelfEnrollmentStatusPopover({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// FailedSpacesList lists the first three spaces that failed to enroll.
+function FailedSpacesList({
+  failures,
+}: {
+  failures: SessionSelfEnrollmentStatusView['failures']
+}) {
+  if (failures.length === 0) return null
+
+  return (
+    <div className="border-foreground/8 space-y-1.5 border-t pt-2">
+      <div className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase">
+        Failed spaces
+      </div>
+      {failures.slice(0, 3).map((failure) => (
+        <div
+          key={failure.sharedObjectId}
+          className="text-foreground-alt/70 flex items-start justify-between gap-3 text-xs"
+        >
+          <span className="min-w-0 truncate font-mono">
+            {failure.sharedObjectId}
+          </span>
+          <span className="text-destructive text-right">{failure.message}</span>
+        </div>
+      ))}
     </div>
   )
 }

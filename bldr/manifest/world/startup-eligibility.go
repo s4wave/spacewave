@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -39,6 +40,9 @@ type StartupManifestCandidateEligibility struct {
 	Eligibility StartupManifestEligibility
 	// Reason is a compact diagnostic reason.
 	Reason string
+	// Missing reports that the candidate's manifest blocks are gone from
+	// storage, so the candidate can never start.
+	Missing bool
 	// ManifestID is the candidate manifest ID when known.
 	ManifestID string
 	// PlatformID is the candidate platform ID when known.
@@ -270,6 +274,7 @@ func classifyDirectStartupManifestEligibility(
 		}
 		candidate.Eligibility = StartupManifestEligibilityUnsafe
 		candidate.Reason = "manifest-read:" + err.Error()
+		candidate.Missing = errors.Is(err, block.ErrNotFound)
 		return candidate, nil
 	}
 	candidate.Manifest = manifest

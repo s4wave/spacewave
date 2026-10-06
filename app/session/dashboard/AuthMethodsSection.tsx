@@ -1,5 +1,4 @@
-/* eslint-disable react-doctor/no-giant-component */
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import {
   LuDownload,
   LuFingerprint,
@@ -130,19 +129,16 @@ function AuthMethodsSectionContent({
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'auth-methods', false)
   const sectionOpen = open ?? storedOpen
   const handleOpenChange = onOpenChange ?? setStoredOpen
-  const loading = authMethodsResource.loading
   const authMethods = authMethodsResource.value?.authMethods ?? []
   const keypairCount = authMethods.length
   const threshold = accountInfoResource.value?.authThreshold ?? 0
   const useWizard = threshold > 0
 
   // Wizard state for multi-sig flows.
-  const [wizardRemovePeerId, setWizardRemovePeerId] = useState<string | null>(
-    null,
-  )
-  const [wizardRemoveLabel, setWizardRemoveLabel] = useState<string | null>(
-    null,
-  )
+  const [wizardRemove, setWizardRemove] = useState<{
+    peerId: string
+    label: string
+  } | null>(null)
   const [wizardAddType, setWizardAddType] = useState<AddMethodType | null>(null)
 
   // Simple dialog state for single-sig flows.
@@ -151,68 +147,22 @@ function AuthMethodsSectionContent({
   const [addType, setAddType] = useState<AuthMethodType | null>(null)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
 
-  const handleRemoveClick = useCallback(
-    (peerId: string, methodLabel: string) => {
-      if (useWizard) {
-        setWizardRemovePeerId(peerId)
-        setWizardRemoveLabel(methodLabel)
-      } else {
-        setRemovePeerId(peerId)
-      }
-    },
-    [useWizard],
-  )
+  const handleRemoveClick = (peerId: string, methodLabel: string) => {
+    if (useWizard) {
+      setWizardRemove({ peerId, label: methodLabel })
+    } else {
+      setRemovePeerId(peerId)
+    }
+  }
 
-  const handleRemove = useCallback(
-    async (credential: AuthCredential) => {
-      if (!removePeerId || !account.value) return
-      await account.value.removeAuthMethod({
-        peerId: removePeerId,
-        credential: buildEntityCredential(credential),
-      })
-    },
-    [account, removePeerId],
-  )
-
-  const handleAddBackupKey = useCallback(
-    async (credential: AuthCredential) => {
-      if (!account.value) return
-      let resp
-      try {
-        resp = await account.value.generateBackupKey({
-          credential: buildEntityCredential(credential),
-        })
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes('unknown_keypair')) {
-          throw new Error(
-            'Incorrect password or unrecognized key. Please try again.',
-            { cause: err },
-          )
-        }
-        throw err
-      }
-      const pemData = resp.pemData
-      if (!pemData || pemData.length === 0) return
-
-      downloadPemFile(pemData)
-    },
-    [account],
-  )
-
-  const handlePickMethod = useCallback(
-    (method: AuthMethodType) => {
-      setPickerOpen(false)
-      if (useWizard && method === 'pem') {
-        setWizardAddType('pem')
-      } else if (method === 'passkey') {
-        setAddType('passkey')
-      } else {
-        setAddType(method)
-      }
-    },
-    [useWizard],
-  )
+  const handlePickMethod = (method: AuthMethodType) => {
+    setPickerOpen(false)
+    if (useWizard && method === 'pem') {
+      setWizardAddType('pem')
+    } else {
+      setAddType(method)
+    }
+  }
 
   return (
     <>
@@ -240,12 +190,12 @@ function AuthMethodsSectionContent({
           </button>
         }
       >
-        {loading && (
+        {authMethodsResource.loading && (
           <p className="text-foreground-alt/40 text-xs">
             Loading auth methods…
           </p>
         )}
-        {!loading && authMethods.length === 0 && (
+        {!authMethodsResource.loading && authMethods.length === 0 && (
           <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
             <LuKey className="size-3.5 shrink-0" />
             <span>No auth methods found</span>
@@ -253,177 +203,56 @@ function AuthMethodsSectionContent({
         )}
         {authMethods.length > 0 && (
           <div className="space-y-2">
-            {authMethods.map((method) => {
-              const peerId =
-                method.peerId ?? method.keypair?.peerId ?? 'unknown'
-              const truncated = truncatePeerId(peerId)
-              const label = method.label ?? 'Auth method'
-              const secondary = method.secondaryLabel ?? ''
-              const canChangePassword = isPasswordMethod(method)
-              const canRemove = isRemovableAuthMethod(method)
-
-              return (
-                <div
-                  key={peerId}
-                  className="border-foreground/6 bg-background-card/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-                      <AuthMethodIcon method={method} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-foreground text-sm font-medium">
-                        {label}
-                      </p>
-                      {secondary && (
-                        <p className="text-foreground-alt/50 text-xs">
-                          {secondary}
-                        </p>
-                      )}
-                      <p className="text-foreground-alt/50 font-mono text-xs">
-                        {truncated}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    {canChangePassword && (
-                      <DashboardButton
-                        icon={<LuLock className="size-3" />}
-                        onClick={() => setChangePasswordOpen(true)}
-                      >
-                        Change
-                      </DashboardButton>
-                    )}
-                    {canRemove && (
-                      <DashboardButton
-                        icon={<LuTrash2 className="size-3" />}
-                        disabled={authMethods.length <= 1}
-                        variant={
-                          authMethods.length > 1 ? 'destructive' : undefined
-                        }
-                        onClick={() => handleRemoveClick(peerId, label)}
-                      >
-                        Remove
-                      </DashboardButton>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            {authMethods.map((method) => (
+              <AuthMethodRow
+                key={method.peerId ?? method.keypair?.peerId ?? 'unknown'}
+                method={method}
+                hasOtherMethods={authMethods.length > 1}
+                onChangePassword={() => setChangePasswordOpen(true)}
+                onRemove={handleRemoveClick}
+              />
+            ))}
           </div>
         )}
       </CollapsibleSection>
 
-      {/* Method picker dialog */}
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add auth method</DialogTitle>
-            <DialogDescription>
-              Choose which type of auth method to add.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <MethodOption
-              label="Backup key (.pem)"
-              description="Generate a key file for offline recovery"
-              onClick={() => handlePickMethod('pem')}
-            />
-            <MethodOption
-              label="Passkey"
-              description="Use biometrics or a hardware key"
-              onClick={() => handlePickMethod('passkey')}
-            />
-            <MethodOption
-              label="Google"
-              description="Link your Google identity"
-              icon={<FcGoogle className="size-4" />}
-              onClick={() => handlePickMethod('google')}
-            />
-            <MethodOption
-              label="GitHub"
-              description="Link your GitHub identity"
-              icon={<LuGithub className="size-4" />}
-              onClick={() => handlePickMethod('github')}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AuthMethodPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onPick={handlePickMethod}
+      />
 
-      {/* Multi-sig wizard: remove auth method */}
-      {useWizard && (
-        <AuthMutationWizard
-          open={wizardRemovePeerId !== null}
-          onClose={() => {
-            setWizardRemovePeerId(null)
-            setWizardRemoveLabel(null)
-          }}
-          mode="remove"
-          account={account}
-          retainAfterClose={retainStepUp}
-          removePeerId={wizardRemovePeerId ?? undefined}
-          removeMethodLabel={wizardRemoveLabel ?? undefined}
-        />
-      )}
+      {useWizard ? (
+        <>
+          {/* Multi-sig wizard: remove auth method */}
+          <AuthMutationWizard
+            open={wizardRemove !== null}
+            onClose={() => setWizardRemove(null)}
+            mode="remove"
+            account={account}
+            retainAfterClose={retainStepUp}
+            removePeerId={wizardRemove?.peerId}
+            removeMethodLabel={wizardRemove?.label}
+          />
 
-      {/* Multi-sig wizard: add backup key */}
-      {useWizard && (
-        <AuthMutationWizard
-          open={wizardAddType !== null}
-          onClose={() => setWizardAddType(null)}
-          mode="add"
+          {/* Multi-sig wizard: add backup key */}
+          <AuthMutationWizard
+            open={wizardAddType !== null}
+            onClose={() => setWizardAddType(null)}
+            mode="add"
+            account={account}
+            retainAfterClose={retainStepUp}
+            addMethodType={wizardAddType ?? undefined}
+          />
+        </>
+      ) : (
+        <SingleSigDialogs
           account={account}
-          retainAfterClose={retainStepUp}
-          addMethodType={wizardAddType ?? undefined}
-        />
-      )}
-
-      {/* Single-sig: remove auth method dialog */}
-      {!useWizard && (
-        <AuthConfirmDialog
-          open={removePeerId !== null}
-          onOpenChange={(open) => {
-            if (!open) setRemovePeerId(null)
-          }}
-          title="Remove auth method"
-          description="Confirm your identity to remove this auth method. This cannot be undone."
-          confirmLabel="Remove"
-          intent={{
-            kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REMOVE_AUTH_METHOD,
-            title: 'Remove auth method',
-            description:
-              'Confirm your identity to remove this auth method. This cannot be undone.',
-            targetPeerId: removePeerId ?? undefined,
-          }}
-          onConfirm={handleRemove}
-          account={account}
-          retainAfterClose={retainStepUp}
-        />
-      )}
-
-      {/* Single-sig: add backup key dialog */}
-      {!useWizard && (
-        <AuthConfirmDialog
-          open={addType === 'pem'}
-          onOpenChange={(open) => {
-            if (!open) setAddType(null)
-          }}
-          title="Add backup key"
-          description="Confirm your identity to generate and register a backup key. The .pem file will download automatically."
-          confirmLabel={
-            <>
-              <LuDownload className="inline size-3.5" /> Generate and download
-            </>
-          }
-          intent={{
-            kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_ADD_BACKUP_KEY,
-            title: 'Add backup key',
-            description:
-              'Confirm your identity to generate and register a backup key. The .pem file will download automatically.',
-          }}
-          onConfirm={handleAddBackupKey}
-          account={account}
-          retainAfterClose={retainStepUp}
+          retainStepUp={retainStepUp}
+          removePeerId={removePeerId}
+          addType={addType}
+          onRemoveClose={() => setRemovePeerId(null)}
+          onAddClose={() => setAddType(null)}
         />
       )}
 
@@ -455,6 +284,209 @@ function AuthMethodsSectionContent({
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
         account={account}
+      />
+    </>
+  )
+}
+
+// AuthMethodRow renders an auth method with its change and remove actions.
+// The only remaining method cannot be removed.
+function AuthMethodRow({
+  method,
+  hasOtherMethods,
+  onChangePassword,
+  onRemove,
+}: {
+  method: AccountAuthMethod
+  hasOtherMethods: boolean
+  onChangePassword: () => void
+  onRemove: (peerId: string, label: string) => void
+}) {
+  const peerId = method.peerId ?? method.keypair?.peerId ?? 'unknown'
+  const label = method.label ?? 'Auth method'
+  const secondary = method.secondaryLabel ?? ''
+
+  return (
+    <div className="border-foreground/6 bg-background-card/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+          <AuthMethodIcon method={method} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground text-sm font-medium">{label}</p>
+          {secondary && (
+            <p className="text-foreground-alt/50 text-xs">{secondary}</p>
+          )}
+          <p className="text-foreground-alt/50 font-mono text-xs">
+            {truncatePeerId(peerId)}
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-1">
+        {isPasswordMethod(method) && (
+          <DashboardButton
+            icon={<LuLock className="size-3" />}
+            onClick={onChangePassword}
+          >
+            Change
+          </DashboardButton>
+        )}
+        {isRemovableAuthMethod(method) && (
+          <DashboardButton
+            icon={<LuTrash2 className="size-3" />}
+            disabled={!hasOtherMethods}
+            variant={hasOtherMethods ? 'destructive' : undefined}
+            onClick={() => onRemove(peerId, label)}
+          >
+            Remove
+          </DashboardButton>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// AuthMethodPickerDialog lets the user choose which type of auth method to add.
+function AuthMethodPickerDialog({
+  open,
+  onOpenChange,
+  onPick,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onPick: (method: AuthMethodType) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add auth method</DialogTitle>
+          <DialogDescription>
+            Choose which type of auth method to add.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <MethodOption
+            label="Backup key (.pem)"
+            description="Generate a key file for offline recovery"
+            onClick={() => onPick('pem')}
+          />
+          <MethodOption
+            label="Passkey"
+            description="Use biometrics or a hardware key"
+            onClick={() => onPick('passkey')}
+          />
+          <MethodOption
+            label="Google"
+            description="Link your Google identity"
+            icon={<FcGoogle className="size-4" />}
+            onClick={() => onPick('google')}
+          />
+          <MethodOption
+            label="GitHub"
+            description="Link your GitHub identity"
+            icon={<LuGithub className="size-4" />}
+            onClick={() => onPick('github')}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// SingleSigDialogs renders the confirm dialogs that remove an auth method and
+// add a backup key for accounts without a multi-sig threshold.
+function SingleSigDialogs({
+  account,
+  retainStepUp,
+  removePeerId,
+  addType,
+  onRemoveClose,
+  onAddClose,
+}: {
+  account: Resource<Account>
+  retainStepUp: boolean
+  removePeerId: string | null
+  addType: AuthMethodType | null
+  onRemoveClose: () => void
+  onAddClose: () => void
+}) {
+  const handleRemove = async (credential: AuthCredential) => {
+    if (!removePeerId || !account.value) return
+    await account.value.removeAuthMethod({
+      peerId: removePeerId,
+      credential: buildEntityCredential(credential),
+    })
+  }
+
+  const handleAddBackupKey = async (credential: AuthCredential) => {
+    if (!account.value) return
+    let resp
+    try {
+      resp = await account.value.generateBackupKey({
+        credential: buildEntityCredential(credential),
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('unknown_keypair')) {
+        throw new Error(
+          'Incorrect password or unrecognized key. Please try again.',
+          { cause: err },
+        )
+      }
+      throw err
+    }
+    const pemData = resp.pemData
+    if (!pemData || pemData.length === 0) return
+
+    downloadPemFile(pemData)
+  }
+
+  return (
+    <>
+      {/* Remove auth method dialog */}
+      <AuthConfirmDialog
+        open={removePeerId !== null}
+        onOpenChange={(open) => {
+          if (!open) onRemoveClose()
+        }}
+        title="Remove auth method"
+        description="Confirm your identity to remove this auth method. This cannot be undone."
+        confirmLabel="Remove"
+        intent={{
+          kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_REMOVE_AUTH_METHOD,
+          title: 'Remove auth method',
+          description:
+            'Confirm your identity to remove this auth method. This cannot be undone.',
+          targetPeerId: removePeerId ?? undefined,
+        }}
+        onConfirm={handleRemove}
+        account={account}
+        retainAfterClose={retainStepUp}
+      />
+
+      {/* Add backup key dialog */}
+      <AuthConfirmDialog
+        open={addType === 'pem'}
+        onOpenChange={(open) => {
+          if (!open) onAddClose()
+        }}
+        title="Add backup key"
+        description="Confirm your identity to generate and register a backup key. The .pem file will download automatically."
+        confirmLabel={
+          <>
+            <LuDownload className="inline size-3.5" /> Generate and download
+          </>
+        }
+        intent={{
+          kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_ADD_BACKUP_KEY,
+          title: 'Add backup key',
+          description:
+            'Confirm your identity to generate and register a backup key. The .pem file will download automatically.',
+        }}
+        onConfirm={handleAddBackupKey}
+        account={account}
+        retainAfterClose={retainStepUp}
       />
     </>
   )

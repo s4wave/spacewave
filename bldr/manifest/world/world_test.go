@@ -1066,301 +1066,77 @@ func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T)
 	assertStartupGraphDumpLine(t, dump, "candidate "+unknownKey, "provenance=unknown", "derived=false", "protected=true")
 }
 
-func TestPruneStartupManifestCandidateRemovesOnlyProofGatedDerivedCandidate(t *testing.T) {
-
-	// Set up the test context and logger.
+func TestUnlinkMissingStartupManifests(t *testing.T) {
+	// Start a testbed for the mock World.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer tb.Release()
 
-	// Build an empty cursor for the mock World state.
+	// Build the mock World with a plugin-host manifest store.
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	// Create the plugin-host manifest store in the World.
 	const storeKey = "plugin-host"
 	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Store a wrong-manifest-ID candidate and link its graph edge.
-	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 99)
-	const wrongIDKey = "release/manifests/other-plugin/js"
-	storeTestManifestRefObject(t, ctx, ws, wrongIDKey, wrongIDRef)
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongIDKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Collect startup manifest eligibility for the manifest ID.
-	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	candidate := findStartupCandidateByKey(t, candidates, wrongIDKey)
-	if candidate.Eligibility != StartupManifestEligibilityQuarantined {
-		t.Fatalf("candidate eligibility = %q, want quarantined", candidate.Eligibility)
-	}
-
-	// Prune the quarantined candidate with full proofs.
-	res, err := PruneStartupManifestCandidate(
-		ctx,
-		ws,
-		candidate,
-		StartupManifestPruneProof{
-			Reachability:        true,
-			Quarantine:          true,
-			CopiedStateRelaunch: true,
-		},
-		storeKey,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !res.Pruned || !res.DeletedObject || res.DeletedEdges != 1 {
-		t.Fatalf("prune result = %+v, want one edge and object deleted", res)
-	}
-	{
-		objectState, ok, err := ws.GetObject(ctx, wrongIDKey)
-		world.ReleaseObjectState(objectState)
-		if err != nil {
+	// Link a readable manifest and one whose root block is absent.
+	presentRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 2)
+	missingRef := presentRef.GetManifestRef().Clone()
+	missingRef.RootRef = block.NewBlockRef(hash.NewHash(hash.HashType_HashType_BLAKE3, make([]byte, 32)))
+	const presentKey, missingKey = "manifest/present", "manifest/missing"
+	for key, ref := range map[string]*bucket.ObjectRef{presentKey: presentRef.GetManifestRef(), missingKey: missingRef} {
+		if _, _, err := SetManifest(ctx, ws, peer.ID("test"), key, ref); err != nil {
 			t.Fatal(err.Error())
-		} else if ok {
-			t.Fatal("expected proof-gated derived candidate object to be deleted")
+		}
+		if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, key, "spacewave-web")); err != nil {
+			t.Fatal(err.Error())
 		}
 	}
-	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(storeKey, PredManifest.String(), wrongIDKey, ""), 0)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if len(quads) != 0 {
-		t.Fatalf("expected startup graph edge to be deleted, got %d", len(quads))
-	}
-}
 
-func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t *testing.T) {
-
-	// Set up the test context and logger.
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the plugin-host manifest store in the World.
-	const storeKey = "plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a protected space-local manifest candidate.
-	spaceLocalRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 8)
-	const spaceLocalKey = "spaces/test-space/plugins/generated/manifest"
-	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), spaceLocalKey, spaceLocalRef.GetManifestRef()); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, spaceLocalKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a derived release manifest candidate.
-	derivedRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 9)
-	const derivedKey = "release/manifests/other-plugin/js"
-	storeTestManifestRefObject(t, ctx, ws, derivedKey, derivedRef)
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, derivedKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Collect startup manifest eligibility for both candidates.
+	// Only the absent manifest is classified missing and unlinked.
 	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	spaceLocalCandidate := findStartupCandidateByKey(t, candidates, spaceLocalKey)
-	derivedCandidate := findStartupCandidateByKey(t, candidates, derivedKey)
-
-	// Prune the protected space-local candidate with full proofs.
-	res, err := PruneStartupManifestCandidate(
-		ctx,
-		ws,
-		spaceLocalCandidate,
-		StartupManifestPruneProof{
-			Reachability:        true,
-			Quarantine:          true,
-			CopiedStateRelaunch: true,
-		},
-		storeKey,
-	)
+	if !findStartupCandidateByKey(t, candidates, missingKey).Missing {
+		t.Fatal("expected candidate with an absent root block to be missing")
+	}
+	if findStartupCandidateByKey(t, candidates, presentKey).Missing {
+		t.Fatal("expected readable candidate not to be missing")
+	}
+	unlinked, err := UnlinkMissingStartupManifests(ctx, ws, candidates, storeKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if res.Pruned || res.Reason != "source-protected:space-local-or-ephemeral" {
-		t.Fatalf("space-local prune result = %+v, want protected no-op", res)
+	if len(unlinked) != 1 || unlinked[0] != missingKey {
+		t.Fatalf("unlinked = %v, want [%s]", unlinked, missingKey)
 	}
 
-	// Prune the derived candidate without the relaunch proof.
-	res, err = PruneStartupManifestCandidate(
-		ctx,
-		ws,
-		derivedCandidate,
-		StartupManifestPruneProof{
-			Reachability: true,
-			Quarantine:   true,
-		},
-		storeKey,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if res.Pruned || res.Reason != "missing-copied-state-relaunch-proof" {
-		t.Fatalf("unproven derived prune result = %+v, want relaunch-proof no-op", res)
-	}
-
-	// Prune an unsafe candidate that is not quarantined.
-	unsafeCandidate := &StartupManifestCandidateEligibility{
-		ObjectKey:   derivedKey,
-		Eligibility: StartupManifestEligibilityUnsafe,
-	}
-	res, err = PruneStartupManifestCandidate(
-		ctx,
-		ws,
-		unsafeCandidate,
-		StartupManifestPruneProof{
-			Reachability:        true,
-			Quarantine:          true,
-			CopiedStateRelaunch: true,
-		},
-		storeKey,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if res.Pruned || res.Reason != "not-quarantined:unsafe" {
-		t.Fatalf("unsafe prune result = %+v, want unsafe no-op", res)
-	}
-
-	// Assert both candidate objects remain in the World.
-	for _, key := range []string{spaceLocalKey, derivedKey} {
-		{
-			objectState, ok, err := ws.GetObject(ctx, key)
-			world.ReleaseObjectState(objectState)
-			if err != nil {
-				t.Fatal(err.Error())
-			} else if !ok {
-				t.Fatalf("expected protected/unproven candidate %q to remain", key)
-			}
-		}
-	}
-}
-
-func TestPruneStartupManifestCandidateRequiresExclusiveReachability(t *testing.T) {
-
-	// Set up the test context and logger.
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	// Start a testbed holding the mock World.
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	// Build an empty cursor for the mock World state.
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	// Build the mock World state from the empty cursor.
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Create the plugin-host manifest store in the World.
-	const storeKey = "plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
-		t.Fatal(err.Error())
-	}
-	const otherStoreKey = "other-plugin-host"
-	if _, err := CreateManifestStore(ctx, ws, otherStoreKey); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Store a wrong-manifest-ID candidate shared by two manifest stores.
-	wrongIDRef := createTestManifestRef(t, ctx, tb, "other-plugin", "js", 99)
-	const wrongIDKey = "release/manifests/shared-other-plugin/js"
-	storeTestManifestRefObject(t, ctx, ws, wrongIDKey, wrongIDRef)
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, wrongIDKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-	if err := ws.SetGraphQuad(ctx, NewManifestQuad(otherStoreKey, wrongIDKey, "spacewave-web")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Collect eligibility and prune the shared candidate with full proofs.
-	candidates, err := CollectStartupManifestEligibilityForManifestID(ctx, ws, "spacewave-web", []string{"js"}, storeKey)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	candidate := findStartupCandidateByKey(t, candidates, wrongIDKey)
-	res, err := PruneStartupManifestCandidate(
-		ctx,
-		ws,
-		candidate,
-		StartupManifestPruneProof{
-			Reachability:        true,
-			Quarantine:          true,
-			CopiedStateRelaunch: true,
-		},
-		storeKey,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if res.Pruned || !strings.HasPrefix(res.Reason, "reachable-from-other-root:") {
-		t.Fatalf("shared candidate prune result = %+v, want reachability no-op", res)
-	}
-	{
-		objectState, ok, err := ws.GetObject(ctx, wrongIDKey)
-		world.ReleaseObjectState(objectState)
+	// The missing object and its edge are gone; the readable one remains.
+	for key, want := range map[string]bool{presentKey: true, missingKey: false} {
+		obj, ok, err := ws.GetObject(ctx, key)
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatal(err.Error())
-		} else if !ok {
-			t.Fatal("expected shared reachable candidate object to remain")
+		}
+		quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(storeKey, PredManifest.String(), key, ""), 0)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if ok != want || (len(quads) != 0) != want {
+			t.Fatalf("%s: object exists = %t, edges = %d, want present = %t", key, ok, len(quads), want)
 		}
 	}
 }

@@ -157,6 +157,7 @@ func (b *BlockStore) readOwner() block_store.Store {
 
 // BeginReadOperation opens a read scope on the inner store.
 func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	// Open a read scope and return it as a block store bound to this placement.
 	owner := b.readOwner()
 	store, release, err := owner.BeginReadOperation(ctx)
 	if err != nil {
@@ -559,13 +560,16 @@ func (a *ProviderAccount) CreateBlockStore(ctx context.Context, id string) (*bst
 //
 // usually called by the provider controller
 func (a *ProviderAccount) MountBlockStore(ctx context.Context, ref *bstore.BlockStoreRef, released func()) (bstore.BlockStore, func(), error) {
+	// Reject a block-store reference that does not validate.
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
 	}
 
+	// Retain the block-store tracker until the caller releases the mount.
 	bstoreID := ref.GetProviderResourceRef().GetId()
 	tkrRef, tkr, _ := a.bstores.AddKeyRef(bstoreID)
 
+	// Wait for the mounted block store, releasing the tracker on failure.
 	bstore, err := tkr.bstoreCtr.WaitValue(ctx, nil)
 	if err != nil {
 		tkrRef.Release()

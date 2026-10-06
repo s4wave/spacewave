@@ -126,7 +126,7 @@ type BuildOptions = {
     assetFileNames: string
     sourcemap: false | true | 'inline'
     codeSplitting: boolean
-    minify: false | { compress: boolean; mangle: true }
+    minify: false | { compress: boolean; mangle: { toplevel: false } }
     comments: false
     banner?: string
     cleanDir: boolean
@@ -694,8 +694,11 @@ export async function runBuild(
       assetFileNames: request.assetFileNames || '[name]-[hash][extname]',
       sourcemap: outputSourcemap,
       codeSplitting: request.codeSplitting ?? false,
+      // Top-level names keep their source names. Rolldown assigns mangled
+      // top-level names by frequency, so any source change renames symbols
+      // throughout the bundle and defeats block sharing between releases.
       minify: request.minify
-        ? { compress: !request.minifySkipCompress, mangle: true }
+        ? { compress: !request.minifySkipCompress, mangle: { toplevel: false } }
         : false,
       comments: false,
       banner: request.banner || undefined,

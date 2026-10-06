@@ -190,7 +190,7 @@ export function BillingAccountsPage() {
       }
       const url = resp.checkoutUrl ?? ''
       if (url) {
-        window.open(url, '_blank')
+        window.open(url, '_blank', 'noopener,noreferrer')
       }
       navigateSession({ path: `billing/${baId}` })
     } catch (e) {
@@ -223,6 +223,7 @@ export function BillingAccountsPage() {
             </h1>
           </div>
           <button
+            type="button"
             onClick={() => void handleCreate()}
             disabled={creating || !checkoutResultBaseUrl}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-brand flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -288,6 +289,7 @@ export function BillingAccountsPage() {
                   className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 overflow-hidden rounded-md border transition-colors"
                 >
                   <button
+                    type="button"
                     onClick={() => handleOpen(baId)}
                     className="flex w-full cursor-pointer flex-col gap-1 p-3 text-left"
                   >
@@ -338,6 +340,7 @@ export function BillingAccountsPage() {
                           >
                             <span>{label}</span>
                             <button
+                              type="button"
                               onClick={() =>
                                 setDetachTarget({
                                   ownerType: a.ownerType as

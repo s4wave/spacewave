@@ -5,7 +5,23 @@ set -e
 # finds the same repository from the working directory, while Go runs git in
 # its module cache to fetch modules, where an inherited GIT_DIR turns its
 # git init --bare into a write to this repository's config.
-unset GIT_DIR GIT_WORK_TREE
+#
+# Git also exports GIT_INDEX_FILE, naming the index this commit records: the
+# repository index, or a temporary one for git commit -a or a path list. Only
+# this hook's git commands may read it. Go runs git in other repositories, such
+# as the golangci-lint clone it stamps with VCS data, where a foreign index
+# fails with exit status 128.
+index_file=${GIT_INDEX_FILE:-$(git rev-parse --path-format=absolute --git-path index)}
+case $index_file in
+/*) ;;
+*) index_file=$(pwd)/$index_file ;;
+esac
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+
+# git runs a git command against the index this commit records.
+git() {
+	GIT_INDEX_FILE=$index_file command git "$@"
+}
 
 files=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
 if [ -z "$files" ]; then
@@ -19,7 +35,7 @@ if [ ! -d node_modules ]; then
 	# A submodule's common directory names its checkout in core.worktree; a
 	# clone's common directory is the .git directory inside its checkout.
 	common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
-	main_dir=$(env -u GIT_INDEX_FILE git -C "$common_dir" rev-parse --show-toplevel 2>/dev/null) ||
+	main_dir=$(command git -C "$common_dir" rev-parse --show-toplevel 2>/dev/null) ||
 		main_dir=$(dirname "$common_dir")
 	node_bin=$main_dir/node_modules/.bin
 fi
@@ -77,7 +93,7 @@ if [ -n "$format_files" ]; then
 	format_whole=$(whole_files "$format_files")
 	if [ -n "$format_whole" ]; then
 		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 "$node_bin/oxfmt"
-		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 git add
+		printf "%s\n" "$format_whole" | tr '\n' '\0' | xargs -0 env GIT_INDEX_FILE="$index_file" git add
 	fi
 	check_partial_files "$format_files" oxfmt_stdin
 fi
@@ -92,7 +108,7 @@ if [ -n "$go_files" ]; then
 	go_whole=$(whole_files "$go_files")
 	if [ -n "$go_whole" ]; then
 		printf "%s\n" "$go_whole" | tr '\n' '\0' | xargs -0 gofmt -w
-		printf "%s\n" "$go_whole" | tr '\n' '\0' | xargs -0 git add
+		printf "%s\n" "$go_whole" | tr '\n' '\0' | xargs -0 env GIT_INDEX_FILE="$index_file" git add
 	fi
 	check_partial_files "$go_files" gofmt_stdin
 

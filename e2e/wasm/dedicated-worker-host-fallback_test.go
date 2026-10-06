@@ -24,13 +24,16 @@ const (
 // fallback keeps a one-tab Drive session on DedicatedWorker hosting while the
 // browser still exposes SharedWorker, direct OPFS, and persisted Drive state.
 func TestDedicatedWorkerHostFallback(t *testing.T) {
+	// Skip the test when dedicated-worker fallback is unsupported.
 	h := harness(t)
 	skipDedicatedWorkerFallbackIfUnsupported(t, h)
 
+	// Open a clean session and capture its console.
 	sess := h.NewCleanSession(t)
 	stopConsole := watchFallbackConsole(t, sess, "one-tab DedicatedWorker fallback")
 	defer stopConsole()
 
+	// Open Drive and require direct OPFS markers.
 	scenario := CreateDriveScenario(t, h, sess)
 	page := scenario.GetSession().Page()
 	ready := WaitForDriveReady(t, h, page)
@@ -39,18 +42,22 @@ func TestDedicatedWorkerHostFallback(t *testing.T) {
 	assertDedicatedWorkerHostTopology(t, page, dedicatedHostRoleHost)
 	assertDirectOpfsMarkers(t, page)
 
+	// Create a folder and record the Drive route.
 	createDriveFolder(t, page, dedicatedFallbackFolder)
 	targetHash, err := currentHash(page.URL())
 	if err != nil {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
+	// Replace the page and reload the Drive route.
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace page in current context: %v", err)
 	}
 	if err := h.loadAppPageURL(sess, h.BaseURL()+"/"+targetHash); err != nil {
 		t.Fatalf("reload drive route in same browser context: %v", err)
 	}
+
+	// Require the dedicated host, OPFS markers, and the folder.
 	page = sess.Page()
 	WaitForApp(t, page)
 	WaitForDriveReady(t, h, page)
@@ -65,13 +72,16 @@ func TestDedicatedWorkerHostFallback(t *testing.T) {
 // use one elected DedicatedWorker host generation, then fail over to a survivor
 // after the elected host closes without corrupting OPFS-backed Drive state.
 func TestDedicatedWorkerHostMultiTab(t *testing.T) {
+	// Skip the test when dedicated-worker fallback is unsupported.
 	h := harness(t)
 	skipDedicatedWorkerFallbackIfUnsupported(t, h)
 
+	// Open a clean session and capture its console.
 	sess := h.NewCleanSession(t)
 	stopConsole := watchFallbackConsole(t, sess, "multi-tab DedicatedWorker fallback")
 	defer stopConsole()
 
+	// Open Drive and record the left page route.
 	scenario := CreateDriveScenario(t, h, sess)
 	leftPage := scenario.GetSession().Page()
 	WaitForDriveReady(t, h, leftPage)
@@ -83,6 +93,7 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 		t.Fatalf("current drive hash: %v", err)
 	}
 
+	// Install the failover reload counter and open a second page.
 	installDedicatedWorkerFailoverReloadCounter(t, sess)
 	rightPage, err := h.newBrowserPage(sess)
 	if err != nil {
@@ -96,12 +107,15 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 		}
 	}()
 
+	// Load the Drive route on the second page.
 	loadPageURL(t, rightPage, h.BaseURL()+"/"+targetHash)
 	WaitForApp(t, rightPage)
 	WaitForDriveReady(t, h, rightPage)
 	AssertBrowserStartupDone(t, h, rightPage)
 	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleAttached)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabLeft)
+
+	// Close the host tab and require the second page to take over.
 	pluginAssetURL := dedicatedWorkerPluginAssetURL(t, leftPage)
 	startDedicatedWorkerPluginAssetFetch(t, rightPage, pluginAssetURL)
 	if err := leftPage.Close(); err != nil {
@@ -112,6 +126,8 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	AssertBrowserStartupDone(t, h, rightPage)
 	assertDedicatedWorkerHostTopology(t, rightPage, dedicatedHostRoleHost)
 	assertNoDedicatedWorkerFailoverReload(t, rightPage)
+
+	// Require the failover fetch and a new folder.
 	assertDedicatedWorkerPluginAssetFetch(t, rightPage, pluginAssetURL)
 	assertPluginAssetFetchSucceeds(t, rightPage, pluginAssetURL, "after DedicatedWorker failover")
 	assertDirectOpfsMarkers(t, rightPage)
@@ -119,6 +135,7 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 	createDriveFolder(t, rightPage, dedicatedMultiTabRight)
 	waitForDriveEntry(t, rightPage, dedicatedMultiTabRight)
 
+	// Reload the second page and require the Drive route.
 	reloadPage(t, rightPage)
 	WaitForApp(t, rightPage)
 	WaitForDriveReady(t, h, rightPage)
@@ -135,14 +152,17 @@ func TestDedicatedWorkerHostMultiTab(t *testing.T) {
 // and re-acquires the page-held lock, then checks that Go did not observe a
 // remote-document teardown signal.
 func TestWebDocumentLivenessLockReleaseNoDeletion(t *testing.T) {
+	// Skip the test when dedicated-worker fallback is unsupported.
 	h := harness(t)
 	skipDedicatedWorkerFallbackIfUnsupported(t, h)
 
+	// Open a blank session and capture its console.
 	sess := h.NewCleanBlankSession(t)
 	installWebDocumentLivenessLockReleaseControl(t, sess)
 	console, stopConsole := sess.WatchConsole()
 	var consoleMessages []string
 	defer func() {
+		// Stop the console and require no remote document deletion.
 		stopConsole()
 		consoleMessages = append(consoleMessages, drainConsoleMessages(console)...)
 		report := crashReportFromMessages(consoleMessages)
@@ -155,6 +175,7 @@ func TestWebDocumentLivenessLockReleaseNoDeletion(t *testing.T) {
 		assertNoRemoteDocumentDeletedLog(t, consoleMessages)
 	}()
 
+	// Load the app and connect resources.
 	if err := h.loadAppPageURL(sess, h.BaseURL()+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
@@ -165,12 +186,15 @@ func TestWebDocumentLivenessLockReleaseNoDeletion(t *testing.T) {
 		t.Fatalf("connect resources: %v", err)
 	}
 
+	// Open Drive and require the host topology.
 	scenario := CreateDriveScenario(t, h, sess)
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, h, page)
 	AssertBrowserStartupDone(t, h, page)
 	assertDedicatedWorkerHostTopology(t, page, dedicatedHostRoleHost)
 	assertWebDocumentLivenessLockControlReady(t, page)
+
+	// Release the liveness lock and require recovery.
 	released := releaseWebDocumentLivenessLock(t, page)
 	t.Logf("released WebDocument liveness lock %q", released)
 	assertWebDocumentLivenessLockRecovered(t, page)
@@ -188,6 +212,7 @@ func watchFallbackConsole(t testing.TB, sess *TestSession, label string) func() 
 	t.Helper()
 	console, stopConsole := sess.WatchConsole()
 	return func() {
+		// Stop the console and require no remote document deletion.
 		stopConsole()
 		messages := drainConsoleMessages(console)
 		report := crashReportFromMessages(messages)
@@ -272,6 +297,7 @@ func installWebDocumentLivenessLockReleaseControl(t testing.TB, sess *TestSessio
 }
 
 func assertWebDocumentLivenessLockControlReady(t testing.TB, page playwright.Page) {
+	// Require the WebDocument liveness lock control.
 	t.Helper()
 	raw, err := page.Evaluate(`() => {
 		const control = globalThis.__bldrLivenessLockControl
@@ -303,6 +329,7 @@ func assertWebDocumentLivenessLockControlReady(t testing.TB, page playwright.Pag
 }
 
 func releaseWebDocumentLivenessLock(t testing.TB, page playwright.Page) string {
+	// Release the WebDocument liveness lock and return its name.
 	t.Helper()
 	raw, err := page.Evaluate(`() => {
 		const control = globalThis.__bldrLivenessLockControl
@@ -372,6 +399,7 @@ func assertNoRemoteDocumentDeletedLog(t testing.TB, messages []string) {
 }
 
 func dedicatedWorkerPluginAssetURL(t testing.TB, page playwright.Page) string {
+	// Read the plugin asset URL from the page.
 	t.Helper()
 	raw, err := page.Evaluate(`() => {
 		const marks = globalThis.__swStartupMarks ?? []
@@ -428,6 +456,7 @@ func startDedicatedWorkerPluginAssetFetch(
 }
 
 func assertNoDedicatedWorkerFailoverReload(t testing.TB, page playwright.Page) {
+	// Require that failover did not reload the page.
 	t.Helper()
 	raw, err := page.Evaluate(`(arg) => {
 		const key = Array.isArray(arg) ? arg[0] : arg
@@ -455,6 +484,7 @@ func assertNoDedicatedWorkerFailoverReload(t testing.TB, page playwright.Page) {
 // before the two round trips that follow it. Asserting the instant would fail
 // exactly when the system did the right thing.
 func assertDedicatedWorkerPluginAssetFetch(t testing.TB, page playwright.Page, url string) {
+	// Require the dedicated-worker plugin asset fetch.
 	t.Helper()
 	raw, err := page.Evaluate(`async (arg) => {
 		const wantURL = Array.isArray(arg) ? arg[0] : arg
@@ -491,6 +521,7 @@ func assertDedicatedWorkerHostTopology(
 	page playwright.Page,
 	expectedRole string,
 ) map[string]any {
+	// Evaluate the host topology.
 	t.Helper()
 	raw, err := page.Evaluate(`() => {
 		const marks = globalThis.__swStartupMarks ?? []
@@ -553,6 +584,8 @@ func assertDedicatedWorkerHostTopology(
 	if !ok {
 		t.Fatalf("unexpected DedicatedWorker topology %T: %#v", raw, raw)
 	}
+
+	// Require the dedicated-worker runtime flags.
 	if got := stringField(proof, "sharedWorkerType"); got != "function" {
 		t.Fatalf("SharedWorker type=%q want function; topology=%#v", got, proof)
 	}
@@ -571,6 +604,8 @@ func assertDedicatedWorkerHostTopology(
 	if boolField(proof, "opfsBridgeEnabled") {
 		t.Fatalf("DedicatedWorker fallback unexpectedly enabled the SharedWorker OPFS bridge; topology=%#v", proof)
 	}
+
+	// Require the plugin dispatches for the host role.
 	dispatches, ok := proof["pluginDispatches"].([]any)
 	if !ok {
 		t.Fatalf("unexpected plugin dispatches %T: %#v", proof["pluginDispatches"], proof)
@@ -655,6 +690,7 @@ func assertDirectOpfsMarkers(t testing.TB, page playwright.Page) []string {
 }
 
 func loadPageURL(t testing.TB, page playwright.Page, targetURL string) {
+	// Load the page URL and reject an error status.
 	t.Helper()
 	waitUntil := playwright.WaitUntilStateDomcontentloaded
 	timeout := float64(120000)

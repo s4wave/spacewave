@@ -61,6 +61,7 @@ func observeForgeWorld(
 }
 
 func (o *forgeWorldObserver) stop() {
+	// Cancel the observer and wait for its watches.
 	o.mtx.Lock()
 	if o.stopping {
 		o.mtx.Unlock()
@@ -77,10 +78,12 @@ func (o *forgeWorldObserver) watch(
 	key string,
 	handler world_control.WatchLoopHandler,
 ) {
+	// Ignore an empty key.
 	if key == "" {
 		return
 	}
 
+	// Record the key and start a watch goroutine.
 	o.mtx.Lock()
 	if o.stopping {
 		o.mtx.Unlock()
@@ -94,6 +97,7 @@ func (o *forgeWorldObserver) watch(
 	o.wg.Add(1)
 	o.mtx.Unlock()
 
+	// Run the watch loop until the observer stops.
 	go func() {
 		defer o.wg.Done()
 		err := world_control.NewWatchLoop(o.le, key, handler).Execute(o.ctx, o.ws)
@@ -108,6 +112,7 @@ func (o *forgeWorldObserver) watchJob(jobKey string) {
 	var seen bool
 	o.watch(forgeObserverJob, jobKey, world_control.NewWaitForStateHandler(
 		func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, _ uint64) (bool, error) {
+			// Log a job state change.
 			if obj == nil {
 				return true, nil
 			}
@@ -123,6 +128,7 @@ func (o *forgeWorldObserver) watchJob(jobKey string) {
 				seen = true
 			}
 
+			// Watch each task under the job.
 			taskKeys, err := forge_job.ListJobTasks(ctx, ws, jobKey)
 			if err != nil {
 				o.logError(forgeObserverJob, jobKey, err)
@@ -141,6 +147,7 @@ func (o *forgeWorldObserver) watchTask(taskKey string) {
 	var seen bool
 	o.watch(forgeObserverTask, taskKey, world_control.NewWaitForStateHandler(
 		func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, _ uint64) (bool, error) {
+			// Log a task state change.
 			if obj == nil {
 				return true, nil
 			}
@@ -156,6 +163,7 @@ func (o *forgeWorldObserver) watchTask(taskKey string) {
 				seen = true
 			}
 
+			// Watch each pass under the task.
 			passKeys, err := forge_task.ListTaskPasses(ctx, ws, taskKey)
 			if err != nil {
 				o.logError(forgeObserverTask, taskKey, err)
@@ -174,6 +182,7 @@ func (o *forgeWorldObserver) watchPass(passKey string) {
 	var seen bool
 	o.watch(forgeObserverPass, passKey, world_control.NewWaitForStateHandler(
 		func(ctx context.Context, ws world.WorldState, obj world.ObjectState, rootCs *block.Cursor, _ uint64) (bool, error) {
+			// Log a pass state change.
 			if obj == nil {
 				return true, nil
 			}
@@ -189,6 +198,7 @@ func (o *forgeWorldObserver) watchPass(passKey string) {
 				seen = true
 			}
 
+			// Watch each execution under the pass.
 			executionKeys, err := forge_pass.ListPassExecutions(ctx, ws, passKey)
 			if err != nil {
 				o.logError(forgeObserverPass, passKey, err)
@@ -203,6 +213,7 @@ func (o *forgeWorldObserver) watchPass(passKey string) {
 }
 
 func (o *forgeWorldObserver) watchExecution(executionKey string) {
+	// Watch the execution and log its state changes.
 	var lastState forge_execution.State
 	var lastClaimID string
 	var lastEpoch uint64
@@ -210,6 +221,7 @@ func (o *forgeWorldObserver) watchExecution(executionKey string) {
 	var seen bool
 	o.watch(forgeObserverExecution, executionKey, world_control.NewWaitForStateHandler(
 		func(ctx context.Context, _ world.WorldState, obj world.ObjectState, rootCs *block.Cursor, _ uint64) (bool, error) {
+			// Read the execution state.
 			if obj == nil {
 				return true, nil
 			}
@@ -219,6 +231,7 @@ func (o *forgeWorldObserver) watchExecution(executionKey string) {
 				return true, nil
 			}
 
+			// Log a state change and finish the watch.
 			claimID := ""
 			epoch := uint64(0)
 			if claim := execution.GetClaim(); claim != nil {

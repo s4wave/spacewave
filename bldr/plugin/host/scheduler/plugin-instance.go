@@ -64,6 +64,12 @@ type pluginInstance struct {
 	// manifestSelectionFingerprint is the last input set fully processed by
 	// watchWorldManifestRoutine.
 	manifestSelectionFingerprint atomic.Pointer[manifestSelectionInput]
+	// announcedManifests holds the manifest keys FetchManifest offered when it
+	// last went idle, or nil before it first went idle.
+	announcedManifests atomic.Pointer[[]string]
+	// fetchSettled is set once a selection saw every announced manifest. Later
+	// selections no longer wait for FetchManifest.
+	fetchSettled atomic.Bool
 	// incompatibleManifests holds manifest roots whose startup proved a protocol
 	// mismatch with this host. Selection skips them for the binding's lifetime.
 	incompatibleManifests sync.Map

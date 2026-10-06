@@ -1,4 +1,4 @@
-import { createContext, use, ReactNode } from 'react'
+import { createContext, use, useMemo, ReactNode } from 'react'
 import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 
 // ShellContextValue provides shell-level state to descendant components.
@@ -34,9 +34,6 @@ export interface ShellProviderProps {
 
 // ShellProvider provides shell-level state to descendant components.
 export function ShellProvider({ isGridMode, children }: ShellProviderProps) {
-  return (
-    <ShellContext.Provider value={{ isGridMode }}>
-      {children}
-    </ShellContext.Provider>
-  )
+  const value = useMemo(() => ({ isGridMode }), [isGridMode])
+  return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>
 }

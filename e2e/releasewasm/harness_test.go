@@ -4,6 +4,7 @@ package releasewasm
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"slices"
 	"testing"
@@ -29,10 +30,11 @@ func TestIgnoreBrowserErrorFiltersGoRuntimeInfoLogs(t *testing.T) {
 }
 
 func TestExpectedReleaseWasmHTTPError(t *testing.T) {
-	if !isExpectedReleaseWasmHTTPError("http://127.0.0.1:1234/api/auth/config") {
+	h := &harness{server: &http.Server{}}
+	if !h.isExpectedHTTPError("http://127.0.0.1:1234/api/auth/config") {
 		t.Fatal("expected static auth config probe to be ignored")
 	}
-	if isExpectedReleaseWasmHTTPError("http://127.0.0.1:1234/b/pa/app.mjs") {
+	if h.isExpectedHTTPError("http://127.0.0.1:1234/b/pa/app.mjs") {
 		t.Fatal("expected release asset errors to remain fatal")
 	}
 }

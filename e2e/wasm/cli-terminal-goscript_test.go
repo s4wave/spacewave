@@ -38,6 +38,7 @@ const (
 var cliTerminalSessionHashRE = regexp.MustCompile(`#/u/(\d+)(?:$|/)`)
 
 func TestGoScriptCliTerminalCommands(t *testing.T) {
+	// Skip the test unless the compiler is GoScript.
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -46,8 +47,10 @@ func TestGoScriptCliTerminalCommands(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
+	// Boot a GoScript harness.
 	h := cliTerminalGoScriptHarness(t)
 
+	// Open a clean page and capture its console.
 	sess := h.NewCleanPageSession(t)
 	crashConsole, stopCrashConsole := sess.WatchConsole()
 	defer stopCrashConsole()
@@ -67,13 +70,16 @@ func TestGoScriptCliTerminalCommands(t *testing.T) {
 		consoleLog.Wait()
 	}()
 
+	// Wait for the app and browser startup.
 	page := sess.Page()
 	AssertRootImportMap(t, h, page)
 	AssertBrowserStartupDone(t, h, page)
 
+	// Open the local quickstart and wait for its session.
 	NavigateHash(t, h, page, "#/quickstart/local")
 	sessionIndex := waitForCliTerminalLocalSession(t, page, consoleLog)
 
+	// Open the CLI settings page.
 	NavigateHash(t, h, page, fmt.Sprintf("#/u/%s/settings/cli", sessionIndex))
 	openCLIButton := page.Locator("button:has-text('Open CLI terminal')").First()
 	if err := openCLIButton.WaitFor(playwright.LocatorWaitForOptions{
@@ -87,10 +93,12 @@ func TestGoScriptCliTerminalCommands(t *testing.T) {
 		t.Fatalf("click Open CLI terminal: %v\ndebug: %v", err, collectCliTerminalDebug(page, consoleLog))
 	}
 
+	// Wait for the terminal route and its prompt.
 	waitForCliTerminalRoute(t, page, consoleLog)
 	focusCliTerminal(t, page, consoleLog)
 	waitForCliTerminalText(t, page, consoleLog, []string{"spacewave>"})
 
+	// Run each CLI command and require its output.
 	type commandCase struct {
 		command  string
 		expects  []string
@@ -128,12 +136,15 @@ func TestGoScriptCliTerminalCommands(t *testing.T) {
 }
 
 func cliTerminalGoScriptHarness(t testing.TB) *Harness {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Build a debug logger.
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Resolve the manifest timeout and GoScript boot options.
 	manifestBuildTimeout, err := ResolveE2EWasmManifestBuildTimeout(20 * time.Minute)
 	if err != nil {
 		t.Fatalf("configure CLI terminal GoScript manifest build timeout: %v", err)
@@ -148,12 +159,14 @@ func cliTerminalGoScriptHarness(t testing.TB) *Harness {
 		opts = append(opts, WithConfigMutator(trace_service.InjectTraceConfig))
 	}
 
+	// Boot the harness and release it with the test.
 	h, err := Boot(context.Background(), le, opts...)
 	if err != nil {
 		t.Fatalf("boot CLI terminal GoScript harness: %v", err)
 	}
 	t.Cleanup(h.Release)
 
+	// Launch the browser and return the harness.
 	if err := h.LaunchBrowser(); err != nil {
 		t.Fatalf("launch CLI terminal GoScript browser: %v", err)
 	}
@@ -168,8 +181,10 @@ func configureCliTerminalGoScriptStartup(conf *bldr_project.ProjectConfig) error
 }
 
 func waitForCliTerminalLocalSession(t testing.TB, page playwright.Page, consoleLog *cliTerminalConsoleLog) string {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait for a local session index in the page URL.
 	_, err := page.WaitForFunction(`() => {
 		const hash = window.location.hash
 		return /^#\/u\/\d+\/?$/.test(hash)
@@ -187,8 +202,10 @@ func waitForCliTerminalLocalSession(t testing.TB, page playwright.Page, consoleL
 }
 
 func waitForCliTerminalRoute(t testing.TB, page playwright.Page, consoleLog *cliTerminalConsoleLog) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait for the CLI terminal route.
 	_, err := page.WaitForFunction(`() => window.location.hash.includes('/settings/cli/terminal')`, nil, playwright.PageWaitForFunctionOptions{
 		Timeout: playwright.Float(cliTerminalGoScriptWaitMS),
 	})
@@ -204,8 +221,10 @@ func waitForCliTerminalRoute(t testing.TB, page playwright.Page, consoleLog *cli
 }
 
 func focusCliTerminal(t testing.TB, page playwright.Page, consoleLog *cliTerminalConsoleLog) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Focus the visible terminal.
 	screen := page.Locator(".xterm:visible .xterm-screen").First()
 	if err := screen.WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(cliTerminalGoScriptWaitMS),
@@ -279,6 +298,7 @@ func waitForCliTerminalCommandOutput(
 }
 
 func collectCliTerminalDebug(page playwright.Page, consoleLog *cliTerminalConsoleLog) any {
+	// Collect terminal debug state from the page.
 	raw, err := page.Evaluate(`() => JSON.stringify({
 		url: window.location.href,
 		hash: window.location.hash,

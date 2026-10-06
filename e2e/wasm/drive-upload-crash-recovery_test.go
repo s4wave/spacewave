@@ -31,19 +31,24 @@ const (
 // TestQuickstartDriveUploadTrace writes a runtime trace for the Drive UploadTree
 // path, including the bounded large-file branch used by crash recovery.
 func TestQuickstartDriveUploadTrace(t *testing.T) {
+	// Skip when the trace service is disabled.
 	skipTraceServiceWhenDisabled(t)
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for it.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 
+	// Bound the upload trace.
 	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
 	defer cancel()
 
+	// Capture a trace around the Drive upload.
 	data, err := sess.CaptureTrace(ctx, "quickstart-drive-upload", func(ctx context.Context) error {
 		uploadAndVerifyDriveFixture(t, scenario, page, false)
 		return nil
@@ -52,12 +57,14 @@ func TestQuickstartDriveUploadTrace(t *testing.T) {
 		t.Fatalf("CaptureTrace: %v", err)
 	}
 
+	// Write the trace artifact.
 	path := TraceArtifactPath(t)
 	if err := WriteTraceArtifact(path, data); err != nil {
 		t.Fatalf("WriteTraceArtifact: %v", err)
 	}
 	t.Logf("trace artifact written to %s (%d bytes)", path, len(data))
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after traced upload: %+v", report)
@@ -68,6 +75,7 @@ func TestQuickstartDriveUploadTrace(t *testing.T) {
 }
 
 func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
+	// Resolve the external fixture and its size.
 	path, name, ok := driveUploadExternalFixturePath(t)
 	if !ok {
 		t.Skipf("set %s to a large local video/file path", driveUploadFixturePathEnv)
@@ -77,25 +85,30 @@ func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
 		t.Fatalf("stat large upload fixture: %v", err)
 	}
 
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for it.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 
+	// Capture the TinyGo budget before the upload.
 	before, ok := captureTinyGoBudgetSnapshot(t, sess)
 	if !ok {
 		t.Fatal("TinyGo browser budget report unavailable before upload")
 	}
 
+	// Upload the external fixture and wait for its row.
 	started := time.Now()
 	UploadPathsViaPicker(t, page, []string{path})
 	t.Logf("large external drive upload %s accepted by picker", name)
 	waitForExternalDriveEntry(t, page, name)
 	t.Logf("large external drive upload %s row appeared after %s", name, time.Since(started).Round(time.Millisecond))
 
+	// Capture the budget after the upload and require it not to shrink.
 	after, ok := captureTinyGoBudgetSnapshot(t, sess)
 	if !ok {
 		t.Fatal("TinyGo browser budget report unavailable after upload")
@@ -110,6 +123,7 @@ func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
 		)
 	}
 
+	// Write the budget artifact.
 	artifact := driveUploadBudgetArtifact{
 		FixtureName: name,
 		FixtureSize: fixtureInfo.Size(),
@@ -125,6 +139,7 @@ func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
 	}
 	t.Logf("TinyGo budget artifact written to %s (%d bytes)", artifactPath, len(data))
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after large upload: %+v", report)
@@ -135,21 +150,27 @@ func TestQuickstartDriveLargeUploadBudgetReport(t *testing.T) {
 }
 
 func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for it.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 
+	// Prepare a recorder for each upload profile.
 	var profiles []driveUploadBudgetProfile
 	recordProfile := func(name string, fn func()) {
+		// Capture the budget around one profile.
 		t.Helper()
 		before, ok := captureTinyGoBudgetSnapshot(t, sess)
 		if !ok {
 			t.Fatalf("TinyGo browser budget report unavailable before %s", name)
 		}
+
+		// Run the profile and record the after snapshot.
 		started := time.Now()
 		fn()
 		after, ok := captureTinyGoBudgetSnapshot(t, sess)
@@ -166,6 +187,7 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 		})
 	}
 
+	// Record the many-medium-files profile.
 	recordProfile("many-medium-files", func() {
 		files := driveUploadMediumProfileFiles()
 		UploadViaPicker(t, page, files)
@@ -173,11 +195,14 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 		clearDriveUploadDone(t, page)
 	})
 
+	// Record the overwrite and readback profile.
 	recordProfile("large-overwrite-and-readback", func() {
 		exerciseDriveUploadOverwriteAndReadback(t, scenario, page)
 	})
 
+	// Record the text-preview profile.
 	recordProfile("text-preview-pressure", func() {
+		// Upload a text file and wait for its preview.
 		file := playwright.InputFile{
 			Name:     "budget-preview.txt",
 			MimeType: "text/plain",
@@ -191,6 +216,7 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 		}
 	})
 
+	// Record the external fixture profile when one is configured.
 	if path, name, ok := driveUploadExternalFixturePath(t); ok {
 		recordProfile("abort-before-commit", func() {
 			UploadPathsViaPicker(t, page, []string{path})
@@ -205,6 +231,7 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 		})
 	}
 
+	// Write the budget profile artifact.
 	data := marshalDriveUploadBudgetProfilesArtifact(driveUploadBudgetProfilesArtifact{
 		Profiles: profiles,
 	})
@@ -214,6 +241,7 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 	}
 	t.Logf("TinyGo budget profile artifact written to %s (%d bytes)", artifactPath, len(data))
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after budget profiles: %+v", report)
@@ -224,14 +252,17 @@ func TestQuickstartDriveUploadBudgetProfiles(t *testing.T) {
 }
 
 func TestQuickstartDriveUploadOverwriteBudgetProfile(t *testing.T) {
+	// Open a clean session and capture its console.
 	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 
+	// Open Drive and wait for it.
 	scenario := CreateDriveScenario(t, harness(t), sess)
 	page := scenario.GetSession().Page()
 	WaitForDriveReady(t, harness(t), page)
 
+	// Capture the budget around the overwrite profile.
 	before, ok := captureTinyGoBudgetSnapshot(t, sess)
 	if !ok {
 		t.Fatal("TinyGo browser budget report unavailable before overwrite profile")
@@ -244,6 +275,7 @@ func TestQuickstartDriveUploadOverwriteBudgetProfile(t *testing.T) {
 	assertTinyGoBudgetSnapshot(t, "overwrite profile before", before)
 	assertTinyGoBudgetSnapshot(t, "overwrite profile after", after)
 
+	// Require no crash and no exited Go loop.
 	report := DrainCrashReport(console)
 	if report.HasCrash() {
 		t.Fatalf("unexpected browser/WASM crash report after overwrite profile: %+v", report)
@@ -254,12 +286,15 @@ func TestQuickstartDriveUploadOverwriteBudgetProfile(t *testing.T) {
 }
 
 func uploadAndVerifyDriveFixture(t testing.TB, scenario *DriveScenario, page playwright.Page, includeExternal bool) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Upload the fixture files and verify them.
 	files := driveUploadFixtureFiles()
 	UploadViaPicker(t, page, files)
 	verifyDriveUploadFixture(t, scenario, page, files)
 
+	// Verify the external fixture when requested.
 	if !includeExternal {
 		return
 	}
@@ -300,12 +335,16 @@ func driveUploadFixtureFiles() []playwright.InputFile {
 }
 
 func driveUploadExternalFixturePath(t testing.TB) (string, string, bool) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Read the fixture path from the environment.
 	path := strings.TrimSpace(os.Getenv(driveUploadFixturePathEnv))
 	if path == "" {
 		return "", "", false
 	}
+
+	// Require a file path and return it with its name.
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatalf("stat %s=%q: %v", driveUploadFixturePathEnv, path, err)
@@ -333,8 +372,10 @@ func verifyDriveUploadFixture(t testing.TB, scenario *DriveScenario, page playwr
 }
 
 func verifyUploadedPath(t testing.TB, scenario *DriveScenario, page playwright.Page, name, path string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait for the entry and verify its bytes.
 	waitForExternalDriveEntry(t, page, name)
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -348,8 +389,10 @@ func verifyUploadedPath(t testing.TB, scenario *DriveScenario, page playwright.P
 }
 
 func waitForExternalDriveEntry(t testing.TB, page playwright.Page, name string) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Wait for the external Drive entry.
 	timeout := externalUploadWaitTimeout(t)
 	err := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + name + "')").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: new(float64(timeout / time.Millisecond))},
@@ -362,8 +405,10 @@ func waitForExternalDriveEntry(t testing.TB, page playwright.Page, name string) 
 }
 
 func externalUploadWaitTimeout(t testing.TB) time.Duration {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Parse the external upload wait timeout.
 	raw := strings.TrimSpace(os.Getenv(driveUploadExternalWaitTimeoutEnv))
 	if raw == "" {
 		return 120 * time.Second
@@ -399,8 +444,10 @@ func captureUploadDiagnostics(page playwright.Page) string {
 }
 
 func verifyUploadedFile(t testing.TB, scenario *DriveScenario, page playwright.Page, file playwright.InputFile) {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Evaluate the uploaded file.
 	raw, err := page.Evaluate(`async ({ url, wantText }) => {
 			const response = await fetch(url)
 			if (!response.ok) {
@@ -423,6 +470,8 @@ func verifyUploadedFile(t testing.TB, scenario *DriveScenario, page playwright.P
 	if err != nil {
 		t.Fatalf("verify uploaded %s: %v", file.Name, err)
 	}
+
+	// Require the evaluated file contents.
 	result, ok := raw.(map[string]any)
 	if !ok {
 		t.Fatalf("unexpected upload verification payload for %s: %#v", file.Name, raw)

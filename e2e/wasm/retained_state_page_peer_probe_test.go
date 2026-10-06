@@ -12,15 +12,18 @@ import (
 // retained BrowserContext gets a new browser peer or can reuse the retained
 // peer.
 func TestRetainedStatePagePeerProbe(t *testing.T) {
+	// Open a retained blank session and its peer watcher.
 	h := harness(t)
 	sess := h.NewRetainedStateBlankSession(t)
 	watcher := h.getPeerWatcher()
 
+	// Load the app and record the watcher sequence.
 	firstAfter := watcher.LatestSequence()
 	if err := h.loadAppPageURL(sess, h.BaseURL()+"/#/"); err != nil {
 		t.Fatalf("load first retained-state page: %v", err)
 	}
 
+	// Wait for the first peer observation.
 	firstCtx, firstCancel := context.WithTimeout(h.Context(), 2*time.Minute)
 	firstObs, err := watcher.WaitForPeerObservationAfter(firstCtx, firstAfter)
 	firstCancel()
@@ -28,19 +31,23 @@ func TestRetainedStatePagePeerProbe(t *testing.T) {
 		t.Fatalf("observe first page browser peer: %v", err)
 	}
 
+	// Replace the page in the retained context.
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace page in current retained-state context: %v", err)
 	}
 
+	// Reload the app and record the next watcher sequence.
 	secondAfter := watcher.LatestSequence()
 	if err := h.loadAppPageURL(sess, h.BaseURL()+"/#/"); err != nil {
 		t.Fatalf("load second retained-state page: %v", err)
 	}
 
+	// Wait for a second peer observation.
 	secondCtx, secondCancel := context.WithTimeout(h.Context(), 45*time.Second)
 	secondObs, err := watcher.WaitForPeerObservationAfter(secondCtx, secondAfter)
 	secondCancel()
 
+	// Accept the retained peer when the second observation times out.
 	secondPeer := firstObs.PeerID
 	secondSeq := uint64(0)
 	source := "retained-peer-connect"
@@ -65,6 +72,7 @@ func TestRetainedStatePagePeerProbe(t *testing.T) {
 		conn.Release()
 	}
 
+	// Log the peer probe result.
 	t.Logf(
 		"retained-state page peer probe: first_peer=%s first_sequence=%d second_peer=%s second_sequence=%d source=%s reused_retained_peer=%t",
 		firstObs.PeerID,

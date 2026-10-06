@@ -108,7 +108,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 
 	// Retain the state entry until the locked write has completed.
 	newLock := func(ctx context.Context, sharedObjectID string, checkpoint, peerImport bool) (sobject.SOStateLock, error) {
-		// Wait for the initial state load.
+		// Retain the loaded state entry until the write lock is built.
 		ref, ent, _ := soRc.AddKeyRef(sharedObjectID)
 		_, err := ent.stateProm.Await(ctx)
 		if err != nil {

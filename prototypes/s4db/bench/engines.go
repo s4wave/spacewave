@@ -11,7 +11,7 @@ import (
 	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
 	"github.com/s4wave/spacewave/db/volume/device"
 	"github.com/s4wave/spacewave/db/volume/logindex"
-	"github.com/s4wave/spacewave/prototypes/s4db/s4db"
+	"github.com/s4wave/spacewave/db/s4db"
 )
 
 // engines lists the engines the harness can drive.
@@ -43,7 +43,7 @@ func (s badgerStore) Sync(context.Context) error {
 }
 
 // Compact runs value log garbage collection until it finds nothing to collect.
-func (s badgerStore) Compact() error {
+func (s badgerStore) Compact(context.Context) error {
 	for {
 		err := s.GetDB().RunValueLogGC(0.5)
 		if errors.Is(err, bdb.ErrNoRewrite) {

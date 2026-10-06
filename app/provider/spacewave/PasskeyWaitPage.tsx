@@ -60,6 +60,7 @@ export function PasskeyWaitPage() {
   useEffect(() => {
     if (!isDesktop || !root) return
     const controller = new AbortController()
+    let cancelled = false
     queueMicrotask(() => {
       setState({ step: 'waiting' })
       setPin('')
@@ -75,7 +76,7 @@ export function PasskeyWaitPage() {
             await spacewave.startDesktopPasskey({}, controller.signal),
           controller.signal,
         )
-        if (controller.signal.aborted) return
+        if (cancelled) return
 
         switch (resp.result?.case) {
           case 'linked': {
@@ -140,7 +141,7 @@ export function PasskeyWaitPage() {
             throw new Error('Desktop passkey did not return a result')
         }
       } catch (err) {
-        if (controller.signal.aborted) return
+        if (cancelled) return
         const message = getErrorMessage(err, 'Passkey sign-in failed')
         if (message.includes('abort') || message.includes('cancel')) return
         setState({ step: 'error', message })
@@ -149,6 +150,7 @@ export function PasskeyWaitPage() {
 
     void run()
     return () => {
+      cancelled = true
       controller.abort()
     }
   }, [loginWithPem, navigate, retryCount, root])
@@ -238,6 +240,7 @@ export function PasskeyWaitPage() {
             signing in.
           </p>
           <input
+            aria-label="PIN"
             ref={handlePinInputRef}
             type="password"
             value={pin}
@@ -248,6 +251,7 @@ export function PasskeyWaitPage() {
             className={authInputClassName}
             placeholder="PIN"
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
               if (e.key === 'Enter') {
                 void handleSubmitPin()
               }

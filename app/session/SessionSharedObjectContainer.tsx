@@ -1,11 +1,10 @@
 import { useAppEnvironment } from '@s4wave/web/sdk/app/environment.js'
-/* eslint-disable react-doctor/no-giant-component */
 import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
+  type ComponentProps,
   type ComponentType,
   type ReactNode,
 } from 'react'
@@ -51,6 +50,7 @@ import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListCo
 import {
   useResource,
   useResourceValue,
+  type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { OrganizationInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import {
@@ -61,6 +61,7 @@ import {
   WatchResourcesListRequest,
   WatchResourcesListResponse,
 } from '@s4wave/sdk/session/session.pb.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 import { SharedObjectBodyContainer } from '@s4wave/app/sobject/SharedObjectBodyContainer.js'
 import { SharedObjectSyncNotice } from '@s4wave/app/sobject/SharedObjectSyncNotice.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
@@ -410,10 +411,7 @@ function SharedObjectHealthCard({
   const summary = getHealthSummary(health)
   const isLoading = health.status === SharedObjectHealthStatus.LOADING
   const isDegraded = health.status === SharedObjectHealthStatus.DEGRADED
-  const [selectedAction, setSelectedAction] =
-    useState<SharedObjectRemediationAction>(null)
-  const [confirmingRepair, setConfirmingRepair] = useState(false)
-  const [confirmingReinitialize, setConfirmingReinitialize] = useState(false)
+  const flow = useRemediationFlow(onRepair, onReinitialize)
 
   if (isLoading) {
     return (
@@ -427,10 +425,6 @@ function SharedObjectHealthCard({
   }
 
   const tone = getSharedObjectHealthTone(isLoading, isDegraded)
-
-  const detail = health.error?.trim() ?? ''
-  const showRetry =
-    health.remediationHint === SharedObjectHealthRemediationHint.RETRY
 
   // Layer label appears in error/degraded states. The body vs shared object
   // distinction is internal and never surfaces on the loading screen.
@@ -451,188 +445,29 @@ function SharedObjectHealthCard({
             tone.cardBorder,
           )}
         >
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div
-              className={cn(
-                'flex size-12 shrink-0 items-center justify-center rounded-full',
-                tone.iconWrap,
-              )}
-            >
-              <tone.Icon className={cn('size-6', tone.iconColor)} />
-            </div>
-            <span
-              className={cn(
-                'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase select-none',
-                tone.badgeTone,
-              )}
-            >
-              {badgeLabel}
-            </span>
-            <h1 className="text-foreground text-base font-semibold tracking-tight">
-              {summary.title}
-            </h1>
-            <p className="text-foreground-alt/70 max-w-sm text-xs leading-relaxed">
-              {summary.description}
-            </p>
-          </div>
+          <HealthSummaryHeader
+            tone={tone}
+            badgeLabel={badgeLabel}
+            title={summary.title}
+            description={summary.description}
+          />
 
           <div className="mt-5 space-y-3">
-            <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
-              <div className="flex items-center gap-1.5">
-                <LuCircleAlert className="text-foreground-alt/60 size-3.5" />
-                <span className="text-foreground text-xs font-medium select-none">
-                  Issue
-                </span>
-              </div>
-              <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                {summary.hint ||
-                  'Review the issue details below before choosing the next step.'}
-              </p>
-              {detail ? (
-                <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 micro-seven mt-2.5 rounded-md border px-2.5 py-1.5 leading-relaxed break-words whitespace-pre-wrap">
-                  {detail}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
-              <div className="flex items-center gap-1.5">
-                <LuArrowRight className="text-foreground-alt/60 size-3.5" />
-                <span className="text-foreground text-xs font-medium select-none">
-                  Next step
-                </span>
-              </div>
-              <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                {selectedAction === 'repair'
-                  ? 'Repair keeps the current shared object identity, but it can rewrite recovery state. Confirm only after checking that the current state is backed up or recoverable.'
-                  : selectedAction === 'reinitialize'
-                    ? 'Reinitialize is destructive. It rewrites the broken shared object in place on the same shared object id and canonical URL.'
-                    : mutationPermission.canMutate
-                      ? 'Choose Repair only after checking the current shared object state. Reinitialize rewrites the shared object in place. You can also go back and decide later.'
-                      : 'You do not have permission to repair or reinitialize this shared object from the current account. The action set stays visible here so the owner can recover it without losing this route.'}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {showRetry ? (
-                  <DashboardButton
-                    icon={<LuRotateCcw className="size-3.5" />}
-                    onClick={onRetry}
-                  >
-                    Retry
-                  </DashboardButton>
-                ) : null}
-                <RemediationActionButton
-                  icon={<LuRefreshCw className="size-3.5" />}
-                  label="Repair"
-                  onClick={() => {
-                    setConfirmingRepair(true)
-                  }}
-                  disabledReason={
-                    mutationPermission.canMutate
-                      ? ''
-                      : mutationPermission.disabledReason
-                  }
-                  disabled={mutationPending}
-                  active={selectedAction === 'repair'}
-                />
-                <RemediationActionButton
-                  icon={<LuShieldAlert className="size-3.5" />}
-                  label="Reinitialize"
-                  onClick={() => setConfirmingReinitialize(true)}
-                  disabledReason={
-                    mutationPermission.canMutate
-                      ? ''
-                      : mutationPermission.disabledReason
-                  }
-                  disabled={mutationPending}
-                  active={selectedAction === 'reinitialize'}
-                  variant="destructive"
-                />
-              </div>
-              {confirmingRepair ? (
-                <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
-                  <div className="flex items-center gap-1.5">
-                    <LuTriangleAlert className="text-destructive size-3.5" />
-                    <span className="text-destructive text-xs font-medium select-none">
-                      Confirm repair
-                    </span>
-                  </div>
-                  <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                    Repair keeps this shared object id and URL, but it can post
-                    a replacement root. Continue only if you have checked that
-                    the current state is backed up or recoverable.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <DashboardButton
-                      icon={<LuRotateCcw className="size-3.5" />}
-                      onClick={() => setConfirmingRepair(false)}
-                    >
-                      Cancel
-                    </DashboardButton>
-                    <DashboardButton
-                      icon={<LuTriangleAlert className="size-3.5" />}
-                      onClick={() => {
-                        setSelectedAction('repair')
-                        setConfirmingRepair(false)
-                        setConfirmingReinitialize(false)
-                        onRepair()
-                      }}
-                      disabled={mutationPending}
-                      variant="destructive"
-                    >
-                      Confirm repair
-                    </DashboardButton>
-                  </div>
-                </div>
-              ) : null}
-              {confirmingReinitialize ? (
-                <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
-                  <div className="flex items-center gap-1.5">
-                    <LuShieldAlert className="text-destructive size-3.5" />
-                    <span className="text-destructive text-xs font-medium select-none">
-                      Confirm reinitialize
-                    </span>
-                  </div>
-                  <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
-                    Reinitialize is destructive. It rewrites this shared object
-                    in place on the same shared object id and URL. Use repair
-                    first when you want Alpha to retry the normal recovery path
-                    without discarding the current state.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <DashboardButton
-                      icon={<LuRotateCcw className="size-3.5" />}
-                      onClick={() => setConfirmingReinitialize(false)}
-                    >
-                      Cancel
-                    </DashboardButton>
-                    <DashboardButton
-                      icon={<LuShieldAlert className="size-3.5" />}
-                      onClick={() => {
-                        setSelectedAction('reinitialize')
-                        setConfirmingReinitialize(false)
-                        onReinitialize()
-                      }}
-                      disabled={mutationPending}
-                      variant="destructive"
-                    >
-                      Confirm reinitialize
-                    </DashboardButton>
-                  </div>
-                </div>
-              ) : null}
-              {selectedAction ? (
-                <p className="text-foreground-alt/55 micro-seven mt-2.5">
-                  {selectedAction === 'repair'
-                    ? 'Repair is selected for this broken shared object.'
-                    : 'Reinitialize is selected for this broken shared object.'}
-                </p>
-              ) : null}
-              {mutationError ? (
-                <p className="text-destructive micro-seven mt-2.5">
-                  {mutationError}
-                </p>
-              ) : null}
-            </div>
+            <HealthIssuePanel
+              hint={summary.hint}
+              detail={health.error?.trim() ?? ''}
+            />
+            <RemediationPanel
+              flow={flow}
+              showRetry={
+                health.remediationHint ===
+                SharedObjectHealthRemediationHint.RETRY
+              }
+              onRetry={onRetry}
+              mutationPermission={mutationPermission}
+              mutationPending={mutationPending}
+              mutationError={mutationError}
+            />
           </div>
         </div>
       </div>
@@ -640,30 +475,292 @@ function SharedObjectHealthCard({
   )
 }
 
-// SessionSharedObjectContainer displays a shared object.
-export function SessionSharedObjectContainer() {
-  const environment = useAppEnvironment()
-  const params = useParams()
-  const sharedObjectId = params['sharedObjectId'] ?? ''
-  const navigate = useNavigate()
+type SharedObjectHealthTone = ReturnType<typeof getSharedObjectHealthTone>
+
+// HealthSummaryHeader renders the icon, badge, title, and description at the
+// top of a shared object health card.
+function HealthSummaryHeader({
+  tone,
+  badgeLabel,
+  title,
+  description,
+}: {
+  tone: SharedObjectHealthTone
+  badgeLabel: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div
+        className={cn(
+          'flex size-12 shrink-0 items-center justify-center rounded-full',
+          tone.iconWrap,
+        )}
+      >
+        <tone.Icon className={cn('size-6', tone.iconColor)} />
+      </div>
+      <span
+        className={cn(
+          'rounded-full border px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase select-none',
+          tone.badgeTone,
+        )}
+      >
+        {badgeLabel}
+      </span>
+      <h1 className="text-foreground text-base font-semibold tracking-tight">
+        {title}
+      </h1>
+      <p className="text-foreground-alt/70 max-w-sm text-xs leading-relaxed">
+        {description}
+      </p>
+    </div>
+  )
+}
+
+// HealthIssuePanel renders the issue hint and the raw error detail.
+function HealthIssuePanel({ hint, detail }: { hint: string; detail: string }) {
+  return (
+    <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
+      <div className="flex items-center gap-1.5">
+        <LuCircleAlert className="text-foreground-alt/60 size-3.5" />
+        <span className="text-foreground text-xs font-medium select-none">
+          Issue
+        </span>
+      </div>
+      <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+        {hint ||
+          'Review the issue details below before choosing the next step.'}
+      </p>
+      {detail ? (
+        <div className="border-foreground/8 bg-foreground/5 text-foreground-alt/80 micro-seven mt-2.5 rounded-md border px-2.5 py-1.5 leading-relaxed break-words whitespace-pre-wrap">
+          {detail}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+interface RemediationFlow {
+  selectedAction: SharedObjectRemediationAction
+  confirmingRepair: boolean
+  confirmingReinitialize: boolean
+  requestRepair: () => void
+  requestReinitialize: () => void
+  cancelRepair: () => void
+  cancelReinitialize: () => void
+  confirmRepair: () => void
+  confirmReinitialize: () => void
+}
+
+// useRemediationFlow tracks which remediation action the user selected and
+// which confirmation prompts are open. Confirming an action selects it, closes
+// both prompts, and runs the matching callback.
+function useRemediationFlow(
+  onRepair: () => void,
+  onReinitialize: () => void,
+): RemediationFlow {
+  const [selectedAction, setSelectedAction] =
+    useState<SharedObjectRemediationAction>(null)
+  const [confirmingRepair, setConfirmingRepair] = useState(false)
+  const [confirmingReinitialize, setConfirmingReinitialize] = useState(false)
+
+  return {
+    selectedAction,
+    confirmingRepair,
+    confirmingReinitialize,
+    requestRepair: () => setConfirmingRepair(true),
+    requestReinitialize: () => setConfirmingReinitialize(true),
+    cancelRepair: () => setConfirmingRepair(false),
+    cancelReinitialize: () => setConfirmingReinitialize(false),
+    confirmRepair: () => {
+      setSelectedAction('repair')
+      setConfirmingRepair(false)
+      setConfirmingReinitialize(false)
+      onRepair()
+    },
+    confirmReinitialize: () => {
+      setSelectedAction('reinitialize')
+      setConfirmingReinitialize(false)
+      onReinitialize()
+    },
+  }
+}
+
+// getRemediationMessage describes the next step for the selected action, or
+// for the user's permission when nothing is selected.
+function getRemediationMessage(
+  selectedAction: SharedObjectRemediationAction,
+  canMutate: boolean,
+): string {
+  if (selectedAction === 'repair') {
+    return 'Repair keeps the current shared object identity, but it can rewrite recovery state. Confirm only after checking that the current state is backed up or recoverable.'
+  }
+  if (selectedAction === 'reinitialize') {
+    return 'Reinitialize is destructive. It rewrites the broken shared object in place on the same shared object id and canonical URL.'
+  }
+  if (canMutate) {
+    return 'Choose Repair only after checking the current shared object state. Reinitialize rewrites the shared object in place. You can also go back and decide later.'
+  }
+  return 'You do not have permission to repair or reinitialize this shared object from the current account. The action set stays visible here so the owner can recover it without losing this route.'
+}
+
+// RemediationPanel renders the next-step guidance, the retry, repair, and
+// reinitialize actions, their confirmation prompts, and the mutation status.
+function RemediationPanel({
+  flow,
+  showRetry,
+  onRetry,
+  mutationPermission,
+  mutationPending,
+  mutationError,
+}: {
+  flow: RemediationFlow
+  showRetry: boolean
+  onRetry: () => void
+  mutationPermission: SharedObjectMutationPermission
+  mutationPending: boolean
+  mutationError: string
+}) {
+  const { selectedAction } = flow
+  const disabledReason = mutationPermission.canMutate
+    ? ''
+    : mutationPermission.disabledReason
+
+  return (
+    <div className="border-foreground/8 bg-background-card/30 rounded-lg border p-3">
+      <div className="flex items-center gap-1.5">
+        <LuArrowRight className="text-foreground-alt/60 size-3.5" />
+        <span className="text-foreground text-xs font-medium select-none">
+          Next step
+        </span>
+      </div>
+      <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+        {getRemediationMessage(selectedAction, mutationPermission.canMutate)}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {showRetry ? (
+          <DashboardButton
+            icon={<LuRotateCcw className="size-3.5" />}
+            onClick={onRetry}
+          >
+            Retry
+          </DashboardButton>
+        ) : null}
+        <RemediationActionButton
+          icon={<LuRefreshCw className="size-3.5" />}
+          label="Repair"
+          onClick={flow.requestRepair}
+          disabledReason={disabledReason}
+          disabled={mutationPending}
+          active={selectedAction === 'repair'}
+        />
+        <RemediationActionButton
+          icon={<LuShieldAlert className="size-3.5" />}
+          label="Reinitialize"
+          onClick={flow.requestReinitialize}
+          disabledReason={disabledReason}
+          disabled={mutationPending}
+          active={selectedAction === 'reinitialize'}
+          variant="destructive"
+        />
+      </div>
+      {flow.confirmingRepair ? (
+        <RemediationConfirm
+          Icon={LuTriangleAlert}
+          title="Confirm repair"
+          description="Repair keeps this shared object id and URL, but it can post a replacement root. Continue only if you have checked that the current state is backed up or recoverable."
+          pending={mutationPending}
+          onCancel={flow.cancelRepair}
+          onConfirm={flow.confirmRepair}
+        />
+      ) : null}
+      {flow.confirmingReinitialize ? (
+        <RemediationConfirm
+          Icon={LuShieldAlert}
+          title="Confirm reinitialize"
+          description="Reinitialize is destructive. It rewrites this shared object in place on the same shared object id and URL. Use repair first when you want Alpha to retry the normal recovery path without discarding the current state."
+          pending={mutationPending}
+          onCancel={flow.cancelReinitialize}
+          onConfirm={flow.confirmReinitialize}
+        />
+      ) : null}
+      {selectedAction ? (
+        <p className="text-foreground-alt/55 micro-seven mt-2.5">
+          {selectedAction === 'repair'
+            ? 'Repair is selected for this broken shared object.'
+            : 'Reinitialize is selected for this broken shared object.'}
+        </p>
+      ) : null}
+      {mutationError ? (
+        <p className="text-destructive micro-seven mt-2.5">{mutationError}</p>
+      ) : null}
+    </div>
+  )
+}
+
+// RemediationConfirm renders a destructive confirmation prompt whose header and
+// confirm button share Icon.
+function RemediationConfirm({
+  Icon,
+  title,
+  description,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  Icon: ComponentType<{ className?: string }>
+  title: string
+  description: string
+  pending: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div className="border-destructive/20 bg-destructive/5 mt-3 rounded-md border p-3">
+      <div className="flex items-center gap-1.5">
+        <Icon className="text-destructive size-3.5" />
+        <span className="text-destructive text-xs font-medium select-none">
+          {title}
+        </span>
+      </div>
+      <p className="text-foreground-alt/70 mt-1.5 text-xs leading-relaxed">
+        {description}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <DashboardButton
+          icon={<LuRotateCcw className="size-3.5" />}
+          onClick={onCancel}
+        >
+          Cancel
+        </DashboardButton>
+        <DashboardButton
+          icon={<Icon className="size-3.5" />}
+          onClick={onConfirm}
+          disabled={pending}
+          variant="destructive"
+        >
+          {title}
+        </DashboardButton>
+      </div>
+    </div>
+  )
+}
+
+type SessionNavigate = ReturnType<typeof useSessionNavigate>
+
+type MountedSharedObject = ReturnType<typeof useMountedSharedObject>
+type SharedObjectResource = MountedSharedObject['sharedObjectResource']
+type SharedObjectBodyResource = MountedSharedObject['sharedObjectBodyResource']
+
+// useSpaceOrgRedirect redirects /u/:idx/so/:spaceId to
+// /u/:idx/org/:orgId/so/:spaceId when the space is org-owned. It skips the
+// redirect when the route is already nested under /org/.
+function useSpaceOrgRedirect(sharedObjectId: string) {
   const navigateSession = useSessionNavigate()
-  const sessionIndex = useSessionIndex()
-  const session = SessionContext.useContext()
-  const sessionValue = useResourceValue(session)
-  const { providerId, accountId } = useSessionInfo(sessionValue)
-  const accountResource = useMountAccount(providerId, accountId)
-  const selfEnrollmentStatus = useSessionSelfEnrollmentStatus()
-  const dmcaHref = useStaticHref('/dmca')
   const parentPaths = useParentPaths()
   const orgListCtx = SpacewaveOrgListContext.useContextSafe()
-  const quickstartSharedObjectHandoffPresent = hasQuickstartSharedObjectHandoff(
-    sessionIndex,
-    sharedObjectId,
-    environment.instanceKey,
-  )
 
-  // Redirect /u/:idx/so/:spaceId to /u/:idx/org/:orgId/so/:spaceId
-  // when the space is org-owned. Skip when already nested under /org/.
   const orgRedirectId = useMemo(() => {
     if (!sharedObjectId) return ''
     const underOrg = parentPaths.some((p) => p.includes('/org/'))
@@ -684,28 +781,18 @@ export function SessionSharedObjectContainer() {
       replace: true,
     })
   }, [navigateSession, orgRedirectId, sharedObjectId])
+}
 
-  const resourcesList = useWatchStateRpc(
-    useCallback(
-      (req: WatchResourcesListRequest, signal: AbortSignal) =>
-        sessionValue?.watchResourcesList(req, signal) ?? null,
-      [sessionValue],
-    ),
-    {},
-    WatchResourcesListRequest.equals,
-    WatchResourcesListResponse.equals,
-  )
-
-  const sharedObjectHealthResp = useWatchStateRpc(
-    useCallback(
-      (req: WatchSharedObjectHealthRequest, signal: AbortSignal) =>
-        sessionValue?.watchSharedObjectHealth(req, signal) ?? null,
-      [sessionValue],
-    ),
-    { sharedObjectId },
-    WatchSharedObjectHealthRequest.equals,
-    WatchSharedObjectHealthResponse.equals,
-  )
+// useMountedSharedObject mounts the shared object and then its body, preferring
+// the quickstart handoffs over a fresh mount. A shared object that is not found
+// redirects to the session root.
+function useMountedSharedObject(
+  session: Resource<Session>,
+  sharedObjectId: string,
+  navigateSession: SessionNavigate,
+) {
+  const environment = useAppEnvironment()
+  const sessionIndex = useSessionIndex()
 
   const sharedObjectResource = useResource(
     session,
@@ -799,22 +886,45 @@ export function SessionSharedObjectContainer() {
     [sessionIndex, sharedObjectId],
   )
 
+  return { sharedObjectResource, sharedObjectBodyResource }
+}
+
+// useMissingSpaceGuard reports whether a mounted shared object is absent from
+// the published resources list and should redirect to the session root.
+//
+// Quickstart handoff can mount this SharedObject before WatchResourcesList
+// publishes the new Space. Keep the guard event-driven; background tabs
+// throttle timers, so a timeout would reintroduce the false redirect.
+function useMissingSpaceGuard(
+  sharedObjectId: string,
+  mounted: boolean,
+  resourcesList: WatchResourcesListResponse | null | undefined,
+): boolean {
+  const environment = useAppEnvironment()
+  const sessionIndex = useSessionIndex()
+  const instanceKey = environment.instanceKey
+  const handoffPresent = hasQuickstartSharedObjectHandoff(
+    sessionIndex,
+    sharedObjectId,
+    instanceKey,
+  )
+
   useEffect(() => {
     return () => {
       clearQuickstartSharedObjectHandoffAwaitingResourcesList(
         sessionIndex,
         sharedObjectId,
-        environment.instanceKey,
+        instanceKey,
       )
       releaseQuickstartSharedObjectHandoff(
         sessionIndex,
         sharedObjectId,
-        environment.instanceKey,
+        instanceKey,
       )
     }
-  }, [sessionIndex, sharedObjectId, environment.instanceKey])
+  }, [sessionIndex, sharedObjectId, instanceKey])
 
-  const sharedObjectInResourcesList = useMemo(
+  const inResourcesList = useMemo(
     () =>
       resourcesList?.spacesList?.some(
         (entry) => entry.entry?.ref?.providerResourceRef?.id === sharedObjectId,
@@ -822,57 +932,228 @@ export function SessionSharedObjectContainer() {
     [resourcesList, sharedObjectId],
   )
 
-  const quickstartSharedObjectHandoffActive =
-    !sharedObjectInResourcesList &&
-    (quickstartSharedObjectHandoffPresent ||
-      isQuickstartSharedObjectHandoffAwaitingResourcesList(
-        sessionIndex,
-        sharedObjectId,
-        environment.instanceKey,
-      ))
-
   useEffect(() => {
-    if (sharedObjectInResourcesList) {
+    if (inResourcesList) {
       clearQuickstartSharedObjectHandoffAwaitingResourcesList(
         sessionIndex,
         sharedObjectId,
-        environment.instanceKey,
+        instanceKey,
       )
       return
     }
-    if (quickstartSharedObjectHandoffPresent) {
+    if (handoffPresent) {
       markQuickstartSharedObjectHandoffAwaitingResourcesList(
         sessionIndex,
         sharedObjectId,
-        environment.instanceKey,
+        instanceKey,
       )
     }
   }, [
-    quickstartSharedObjectHandoffPresent,
+    handoffPresent,
     sessionIndex,
-    sharedObjectInResourcesList,
+    inResourcesList,
     sharedObjectId,
-    environment.instanceKey,
+    instanceKey,
   ])
 
-  // Quickstart handoff can mount this SharedObject before WatchResourcesList
-  // publishes the new Space. Keep the guard event-driven; background tabs
-  // throttle timers, so a timeout would reintroduce the false redirect.
-  const shouldRedirectMissingSpace = useMemo(
+  const handoffActive =
+    !inResourcesList &&
+    (handoffPresent ||
+      isQuickstartSharedObjectHandoffAwaitingResourcesList(
+        sessionIndex,
+        sharedObjectId,
+        instanceKey,
+      ))
+
+  return mounted && !!resourcesList && !handoffActive && !inResourcesList
+}
+
+// useSharedObjectRemediation owns the repair and reinitialize mutations, the
+// credential repair step-up, and the self-enrollment step-up for a shared
+// object. Both step-ups retry the mount after they succeed.
+function useSharedObjectRemediation(
+  sharedObjectId: string,
+  sessionValue: Session | null | undefined,
+  onRetry: () => void,
+) {
+  const { providerId, accountId } = useSessionInfo(sessionValue)
+  const selfEnrollmentStatus = useSessionSelfEnrollmentStatus()
+  const [mutationPending, setMutationPending] = useState(false)
+  const [mutationError, setMutationError] = useState('')
+  const [credentialRepairOpen, setCredentialRepairOpen] = useState(false)
+  const [selfEnrollmentStepUpOpen, setSelfEnrollmentStepUpOpen] =
+    useState(false)
+  const [selfEnrollmentAutoOpenKey, setSelfEnrollmentAutoOpenKey] = useState('')
+
+  const needsSelfEnrollmentStepUp = useMemo(
     () =>
-      !!sharedObjectResource.value &&
-      !!resourcesList &&
-      !quickstartSharedObjectHandoffActive &&
-      !sharedObjectInResourcesList,
+      !!sharedObjectId &&
+      selfEnrollmentStatus.credentialRequired &&
+      (selfEnrollmentStatus.snapshot?.sharedObjectIds?.includes(
+        sharedObjectId,
+      ) ??
+        false),
     [
-      quickstartSharedObjectHandoffActive,
-      sharedObjectInResourcesList,
-      sharedObjectResource.value,
-      resourcesList,
+      selfEnrollmentStatus.credentialRequired,
+      selfEnrollmentStatus.snapshot?.sharedObjectIds,
+      sharedObjectId,
     ],
   )
 
-  const debugInfo = (
+  // Open the step-up once per enrollment generation and shared object.
+  const autoOpenKey = needsSelfEnrollmentStepUp
+    ? `${selfEnrollmentStatus.generationKey}:${sharedObjectId}`
+    : ''
+  if (autoOpenKey && autoOpenKey !== selfEnrollmentAutoOpenKey) {
+    setSelfEnrollmentAutoOpenKey(autoOpenKey)
+    setSelfEnrollmentStepUpOpen(true)
+  }
+
+  const runRepairAction = useCallback(
+    async (kind: SharedObjectRemediationAction) => {
+      if (!sharedObjectId || !sessionValue || mutationPending) {
+        return
+      }
+      setMutationPending(true)
+      setMutationError('')
+      try {
+        if (kind === 'repair') {
+          await sessionValue.spacewave.repairSharedObject(sharedObjectId)
+        } else if (kind === 'reinitialize') {
+          await sessionValue.spacewave.reinitializeSharedObject(sharedObjectId)
+        }
+        onRetry()
+      } catch (err) {
+        if (
+          kind === 'repair' &&
+          providerId === 'spacewave' &&
+          !!accountId &&
+          isSharedObjectRecoveryCredentialError(
+            err instanceof Error ? err : undefined,
+          )
+        ) {
+          setCredentialRepairOpen(true)
+          return
+        }
+        setMutationError(err instanceof Error ? err.message : 'Action failed')
+      } finally {
+        setMutationPending(false)
+      }
+    },
+    [
+      accountId,
+      onRetry,
+      mutationPending,
+      providerId,
+      sessionValue,
+      sharedObjectId,
+    ],
+  )
+
+  const confirmCredentialRepair = useCallback(async () => {
+    if (!sharedObjectId || !sessionValue) {
+      return
+    }
+    setMutationPending(true)
+    setMutationError('')
+    try {
+      await sessionValue.spacewave.repairSharedObject(sharedObjectId)
+      setCredentialRepairOpen(false)
+      onRetry()
+    } catch (err) {
+      setMutationError(err instanceof Error ? err.message : 'Action failed')
+      throw err
+    } finally {
+      setMutationPending(false)
+    }
+  }, [onRetry, sessionValue, sharedObjectId])
+
+  const confirmSelfEnrollmentStepUp = useCallback(async () => {
+    if (!selfEnrollmentStatus.resource) return
+    setMutationPending(true)
+    setMutationError('')
+    try {
+      await selfEnrollmentStatus.resource.start()
+      setSelfEnrollmentStepUpOpen(false)
+      onRetry()
+    } catch (err) {
+      setMutationError(err instanceof Error ? err.message : 'Action failed')
+      throw err
+    } finally {
+      setMutationPending(false)
+    }
+  }, [onRetry, selfEnrollmentStatus.resource])
+
+  return {
+    providerId,
+    accountId,
+    mutationPending,
+    mutationError,
+    credentialRepairOpen,
+    setCredentialRepairOpen,
+    selfEnrollmentStepUpOpen,
+    setSelfEnrollmentStepUpOpen,
+    needsSelfEnrollmentStepUp,
+    runRepairAction,
+    confirmCredentialRepair,
+    confirmSelfEnrollmentStepUp,
+  }
+}
+
+// StepUpDialog renders an AuthConfirmDialog that unlocks an account key before
+// a shared object action.
+function StepUpDialog({
+  account,
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  intentDescription,
+  onConfirm,
+}: {
+  account: ComponentProps<typeof AccountDashboardStateProvider>['account']
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  confirmLabel: string
+  intentDescription: string
+  onConfirm: () => Promise<void>
+}) {
+  return (
+    <AccountDashboardStateProvider account={account}>
+      <AuthConfirmDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title={title}
+        description={description}
+        confirmLabel={confirmLabel}
+        intent={{
+          kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED,
+          title,
+          description: intentDescription,
+        }}
+        onConfirm={onConfirm}
+        account={account}
+        retainAfterClose
+      />
+    </AccountDashboardStateProvider>
+  )
+}
+
+// SharedObjectDebugInfo renders the mount state of the shared object and its
+// body in the debug overlay.
+function SharedObjectDebugInfo({
+  sharedObjectId,
+  sharedObjectResource,
+  sharedObjectBodyResource,
+}: {
+  sharedObjectId: string
+  sharedObjectResource: SharedObjectResource
+  sharedObjectBodyResource: SharedObjectBodyResource
+}) {
+  return (
     <DebugInfo>
       Shared Object ID: {sharedObjectId}
       <br />
@@ -898,6 +1179,150 @@ export function SessionSharedObjectContainer() {
       <br />
       Body error: {sharedObjectBodyResource.error?.toString() ?? 'none'}
     </DebugInfo>
+  )
+}
+
+// SharedObjectRouteState renders the state the route is in: the mounted shared
+// object, a step-up prompt, a DMCA block, a health card, or the mounting screen.
+function SharedObjectRouteState({
+  mounted,
+  needsSelfEnrollmentStepUp,
+  onStepUp,
+  isBlocked,
+  resourceError,
+  activeHealth,
+  healthResp,
+  onRetry,
+  onRepair,
+  onReinitialize,
+  onBack,
+  mutationPermission,
+  mutationPending,
+  mutationError,
+}: {
+  mounted: boolean
+  needsSelfEnrollmentStepUp: boolean
+  onStepUp: () => void
+  isBlocked: boolean
+  resourceError: Error | null | undefined
+  activeHealth: SharedObjectHealth | null | undefined
+  healthResp: WatchSharedObjectHealthResponse | null | undefined
+  onRetry: () => void
+  onRepair: () => void
+  onReinitialize: () => void
+  onBack: () => void
+  mutationPermission: SharedObjectMutationPermission
+  mutationPending: boolean
+  mutationError: string
+}) {
+  const dmcaHref = useStaticHref('/dmca')
+
+  if (mounted) {
+    return (
+      <>
+        <SharedObjectSyncNotice health={healthResp?.health} />
+        <SharedObjectBodyContainer />
+      </>
+    )
+  }
+  if (needsSelfEnrollmentStepUp) {
+    return (
+      <ErrorState
+        variant="fullscreen"
+        title="Unlock to open this Space"
+        message="This Space needs your account key so this session can be connected before opening it."
+        onRetry={onStepUp}
+      />
+    )
+  }
+  if (isBlocked) {
+    return (
+      <ErrorState
+        variant="fullscreen"
+        title="Content Unavailable"
+        message="This content has been disabled due to a DMCA takedown notice. If you believe this is an error, you can file a counter-notice."
+        onRetry={onRetry}
+      >
+        <a
+          href={dmcaHref}
+          className="text-foreground-alt hover:text-foreground mt-2 text-sm underline"
+        >
+          DMCA Policy
+        </a>
+      </ErrorState>
+    )
+  }
+  const health = resourceError
+    ? (activeHealth ??
+      buildSharedObjectFallbackHealth(
+        resourceError,
+        SharedObjectHealthLayer.SHARED_OBJECT,
+      ))
+    : activeHealth
+  if (!health) {
+    return (
+      <SpaceMountingScreen
+        stage="resolve"
+        detail="Looking up the shared object."
+        onBack={onBack}
+      />
+    )
+  }
+  return (
+    <SharedObjectHealthCard
+      health={health}
+      onRetry={onRetry}
+      onRepair={onRepair}
+      onReinitialize={onReinitialize}
+      onBack={onBack}
+      mutationPermission={mutationPermission}
+      mutationPending={mutationPending}
+      mutationError={mutationError}
+    />
+  )
+}
+
+// SessionSharedObjectContainer displays a shared object.
+export function SessionSharedObjectContainer() {
+  const params = useParams()
+  const sharedObjectId = params['sharedObjectId'] ?? ''
+  const navigate = useNavigate()
+  const navigateSession = useSessionNavigate()
+  const session = SessionContext.useContext()
+  const sessionValue = useResourceValue(session)
+  const orgListCtx = SpacewaveOrgListContext.useContextSafe()
+
+  useSpaceOrgRedirect(sharedObjectId)
+
+  const resourcesList = useWatchStateRpc(
+    useCallback(
+      (req: WatchResourcesListRequest, signal: AbortSignal) =>
+        sessionValue?.watchResourcesList(req, signal) ?? null,
+      [sessionValue],
+    ),
+    {},
+    WatchResourcesListRequest.equals,
+    WatchResourcesListResponse.equals,
+  )
+
+  const sharedObjectHealthResp = useWatchStateRpc(
+    useCallback(
+      (req: WatchSharedObjectHealthRequest, signal: AbortSignal) =>
+        sessionValue?.watchSharedObjectHealth(req, signal) ?? null,
+      [sessionValue],
+    ),
+    { sharedObjectId },
+    WatchSharedObjectHealthRequest.equals,
+    WatchSharedObjectHealthResponse.equals,
+  )
+
+  const { sharedObjectResource, sharedObjectBodyResource } =
+    useMountedSharedObject(session, sharedObjectId, navigateSession)
+
+  const shouldRedirectMissingSpace = useMissingSpaceGuard(
+    sharedObjectId,
+    !!sharedObjectResource.value,
+    resourcesList,
   )
 
   const resourceError =
@@ -944,112 +1369,16 @@ export function SessionSharedObjectContainer() {
     navigate({ path: '../' })
   }, [navigate])
 
-  const [mutationPending, setMutationPending] = useState(false)
-  const [mutationError, setMutationError] = useState('')
-  const [credentialRepairOpen, setCredentialRepairOpen] = useState(false)
-  const [selfEnrollmentStepUpOpen, setSelfEnrollmentStepUpOpen] =
-    useState(false)
-  const selfEnrollmentAutoOpenKey = useRef('')
-  const needsSelfEnrollmentStepUp = useMemo(
-    () =>
-      !!sharedObjectId &&
-      selfEnrollmentStatus.credentialRequired &&
-      (selfEnrollmentStatus.snapshot?.sharedObjectIds?.includes(
-        sharedObjectId,
-      ) ??
-        false),
-    [
-      selfEnrollmentStatus.credentialRequired,
-      selfEnrollmentStatus.snapshot?.sharedObjectIds,
-      sharedObjectId,
-    ],
-  )
-  useEffect(() => {
-    if (!needsSelfEnrollmentStepUp || !sharedObjectId) return
-    const key = `${selfEnrollmentStatus.generationKey}:${sharedObjectId}`
-    if (selfEnrollmentAutoOpenKey.current === key) return
-    selfEnrollmentAutoOpenKey.current = key
-    setSelfEnrollmentStepUpOpen(true)
-  }, [
-    needsSelfEnrollmentStepUp,
-    selfEnrollmentStatus.generationKey,
+  const remediation = useSharedObjectRemediation(
     sharedObjectId,
-  ])
-
-  const runRepairAction = useCallback(
-    async (kind: SharedObjectRemediationAction) => {
-      if (!sharedObjectId || !sessionValue || mutationPending) {
-        return
-      }
-      setMutationPending(true)
-      setMutationError('')
-      try {
-        if (kind === 'repair') {
-          await sessionValue.spacewave.repairSharedObject(sharedObjectId)
-        } else if (kind === 'reinitialize') {
-          await sessionValue.spacewave.reinitializeSharedObject(sharedObjectId)
-        }
-        handleRetry()
-      } catch (err) {
-        if (
-          kind === 'repair' &&
-          providerId === 'spacewave' &&
-          !!accountId &&
-          isSharedObjectRecoveryCredentialError(
-            err instanceof Error ? err : undefined,
-          )
-        ) {
-          setCredentialRepairOpen(true)
-          return
-        }
-        setMutationError(err instanceof Error ? err.message : 'Action failed')
-      } finally {
-        setMutationPending(false)
-      }
-    },
-    [
-      accountId,
-      handleRetry,
-      mutationPending,
-      providerId,
-      sessionValue,
-      sharedObjectId,
-    ],
+    sessionValue,
+    handleRetry,
   )
-
-  const handleCredentialRepairConfirm = useCallback(async () => {
-    if (!sharedObjectId || !sessionValue) {
-      return
-    }
-    setMutationPending(true)
-    setMutationError('')
-    try {
-      await sessionValue.spacewave.repairSharedObject(sharedObjectId)
-      setCredentialRepairOpen(false)
-      handleRetry()
-    } catch (err) {
-      setMutationError(err instanceof Error ? err.message : 'Action failed')
-      throw err
-    } finally {
-      setMutationPending(false)
-    }
-  }, [handleRetry, sessionValue, sharedObjectId])
-
-  const handleSelfEnrollmentStepUpConfirm = useCallback(async () => {
-    if (!selfEnrollmentStatus.resource) return
-    setMutationPending(true)
-    setMutationError('')
-    try {
-      await selfEnrollmentStatus.resource.start()
-      setSelfEnrollmentStepUpOpen(false)
-      handleRetry()
-    } catch (err) {
-      setMutationError(err instanceof Error ? err.message : 'Action failed')
-      throw err
-    } finally {
-      setMutationPending(false)
-    }
-  }, [handleRetry, selfEnrollmentStatus.resource])
+  const { runRepairAction } = remediation
+  const accountResource = useMountAccount(
+    remediation.providerId,
+    remediation.accountId,
+  )
 
   const mutationPermission = useMemo(
     () =>
@@ -1067,118 +1396,59 @@ export function SessionSharedObjectContainer() {
     ],
   )
 
-  const body = (
-    <>
-      {debugInfo}
-      {sharedObjectResource.value && sharedObjectBodyResource.value ? (
-        <>
-          <SharedObjectSyncNotice health={sharedObjectHealthResp?.health} />
-          <SharedObjectBodyContainer />
-        </>
-      ) : needsSelfEnrollmentStepUp ? (
-        <ErrorState
-          variant="fullscreen"
-          title="Unlock to open this Space"
-          message="This Space needs your account key so this session can be connected before opening it."
-          onRetry={() => setSelfEnrollmentStepUpOpen(true)}
-        />
-      ) : isBlocked ? (
-        <ErrorState
-          variant="fullscreen"
-          title="Content Unavailable"
-          message="This content has been disabled due to a DMCA takedown notice. If you believe this is an error, you can file a counter-notice."
-          onRetry={handleRetry}
-        >
-          <a
-            href={dmcaHref}
-            className="text-foreground-alt hover:text-foreground mt-2 text-sm underline"
-          >
-            DMCA Policy
-          </a>
-        </ErrorState>
-      ) : resourceError ? (
-        <SharedObjectHealthCard
-          health={
-            activeHealth ??
-            buildSharedObjectFallbackHealth(
-              resourceError,
-              SharedObjectHealthLayer.SHARED_OBJECT,
-            )
-          }
-          onRetry={handleRetry}
-          onRepair={() => void runRepairAction('repair')}
-          onReinitialize={() => void runRepairAction('reinitialize')}
-          onBack={handleBack}
-          mutationPermission={mutationPermission}
-          mutationPending={mutationPending}
-          mutationError={mutationError}
-        />
-      ) : activeHealth ? (
-        <SharedObjectHealthCard
-          health={activeHealth}
-          onRetry={handleRetry}
-          onRepair={() => void runRepairAction('repair')}
-          onReinitialize={() => void runRepairAction('reinitialize')}
-          onBack={handleBack}
-          mutationPermission={mutationPermission}
-          mutationPending={mutationPending}
-          mutationError={mutationError}
-        />
-      ) : (
-        <SpaceMountingScreen
-          stage="resolve"
-          detail="Looking up the shared object."
-          onBack={handleBack}
-        />
-      )}
-      {credentialRepairOpen ? (
-        <AccountDashboardStateProvider account={accountResource}>
-          <AuthConfirmDialog
-            open={credentialRepairOpen}
-            onOpenChange={setCredentialRepairOpen}
-            title="Unlock shared object recovery"
-            description="Unlock an account key to grant this session access before attempting shared object repair. Repair may post a replacement root, so continue only after checking that the current state is backed up or recoverable."
-            confirmLabel="Continue repair"
-            intent={{
-              kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED,
-              title: 'Unlock shared object recovery',
-              description:
-                'Unlock an account key to grant this session access before attempting shared object repair.',
-            }}
-            onConfirm={handleCredentialRepairConfirm}
-            account={accountResource}
-            retainAfterClose
-          />
-        </AccountDashboardStateProvider>
-      ) : null}
-      {needsSelfEnrollmentStepUp ? (
-        <AccountDashboardStateProvider account={accountResource}>
-          <AuthConfirmDialog
-            open={selfEnrollmentStepUpOpen}
-            onOpenChange={setSelfEnrollmentStepUpOpen}
-            title="Unlock Space access"
-            description="This Space needs your account key so this session can be connected before opening it."
-            confirmLabel="Unlock and open Space"
-            intent={{
-              kind: AccountEscalationIntentKind.AccountEscalationIntentKind_ACCOUNT_ESCALATION_INTENT_KIND_UNSPECIFIED,
-              title: 'Unlock Space access',
-              description:
-                'Unlock an account key so this session can connect to this Space.',
-            }}
-            onConfirm={handleSelfEnrollmentStepUpConfirm}
-            account={accountResource}
-            retainAfterClose
-          />
-        </AccountDashboardStateProvider>
-      ) : null}
-    </>
-  )
-
   return (
     <SharedObjectContext.Provider resource={sharedObjectResource}>
       <SharedObjectBodyContext.Provider resource={sharedObjectBodyResource}>
         <DebugInfoProvider>
-          <SessionFrame>{body}</SessionFrame>
+          <SessionFrame>
+            <SharedObjectDebugInfo
+              sharedObjectId={sharedObjectId}
+              sharedObjectResource={sharedObjectResource}
+              sharedObjectBodyResource={sharedObjectBodyResource}
+            />
+            <SharedObjectRouteState
+              mounted={
+                !!sharedObjectResource.value && !!sharedObjectBodyResource.value
+              }
+              needsSelfEnrollmentStepUp={remediation.needsSelfEnrollmentStepUp}
+              onStepUp={() => remediation.setSelfEnrollmentStepUpOpen(true)}
+              isBlocked={isBlocked}
+              resourceError={resourceError}
+              activeHealth={activeHealth}
+              healthResp={sharedObjectHealthResp}
+              onRetry={handleRetry}
+              onRepair={() => void runRepairAction('repair')}
+              onReinitialize={() => void runRepairAction('reinitialize')}
+              onBack={handleBack}
+              mutationPermission={mutationPermission}
+              mutationPending={remediation.mutationPending}
+              mutationError={remediation.mutationError}
+            />
+            {remediation.credentialRepairOpen ? (
+              <StepUpDialog
+                account={accountResource}
+                open={remediation.credentialRepairOpen}
+                onOpenChange={remediation.setCredentialRepairOpen}
+                title="Unlock shared object recovery"
+                description="Unlock an account key to grant this session access before attempting shared object repair. Repair may post a replacement root, so continue only after checking that the current state is backed up or recoverable."
+                confirmLabel="Continue repair"
+                intentDescription="Unlock an account key to grant this session access before attempting shared object repair."
+                onConfirm={remediation.confirmCredentialRepair}
+              />
+            ) : null}
+            {remediation.needsSelfEnrollmentStepUp ? (
+              <StepUpDialog
+                account={accountResource}
+                open={remediation.selfEnrollmentStepUpOpen}
+                onOpenChange={remediation.setSelfEnrollmentStepUpOpen}
+                title="Unlock Space access"
+                description="This Space needs your account key so this session can be connected before opening it."
+                confirmLabel="Unlock and open Space"
+                intentDescription="Unlock an account key so this session can connect to this Space."
+                onConfirm={remediation.confirmSelfEnrollmentStepUp}
+              />
+            ) : null}
+          </SessionFrame>
         </DebugInfoProvider>
       </SharedObjectBodyContext.Provider>
     </SharedObjectContext.Provider>

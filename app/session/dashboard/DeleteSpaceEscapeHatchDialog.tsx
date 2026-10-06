@@ -29,6 +29,8 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
+import { TypedConfirmField } from './TypedConfirmField.js'
+
 export interface DeleteSpaceEscapeHatchDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -44,23 +46,9 @@ interface SpaceChoice {
   hasName: boolean
 }
 
-// DeleteSpaceEscapeHatchDialog is a stepwise destructive flow for deleting a
-// space without mounting it, used when a space cannot be opened normally.
-export function DeleteSpaceEscapeHatchDialog({
-  open,
-  onOpenChange,
-  session,
-}: DeleteSpaceEscapeHatchDialogProps) {
-  const [step, setStep] = useState<Step>('select')
-  const [selectedId, setSelectedId] = useState('')
-  const [selectedSnapshot, setSelectedSnapshot] = useState<SpaceChoice | null>(
-    null,
-  )
-  const [acknowledged, setAcknowledged] = useState(false)
-  const [typedConfirm, setTypedConfirm] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string>()
-
+// useSpaceChoices watches the session's spaces while the dialog is open.
+// loading is true until the first list arrives.
+function useSpaceChoices(open: boolean, session: Session | null) {
   const resourcesList = useWatchStateRpc(
     useCallback(
       (req: WatchResourcesListRequest, signal: AbortSignal) =>
@@ -88,14 +76,17 @@ export function DeleteSpaceEscapeHatchDialog({
     })
   }, [resourcesList])
 
-  const liveSelected = useMemo(
-    () => choices.find((c) => c.id === selectedId) ?? null,
-    [choices, selectedId],
-  )
-  const selected = selectedSnapshot ?? liveSelected
+  return { choices, loading: !resourcesList }
+}
 
-  // Only watch health once the user has picked a space. This avoids fanning
-  // out one Watch stream per space in the list.
+// useSelectedSpaceHealth watches the health of the chosen space. It only
+// watches once the user has picked a space, which avoids fanning out one Watch
+// stream per space in the list.
+function useSelectedSpaceHealth(
+  open: boolean,
+  session: Session | null,
+  selectedId: string,
+): SharedObjectHealth | null {
   const healthResp = useWatchStateRpc(
     useCallback(
       (req: WatchSharedObjectHealthRequest, signal: AbortSignal) =>
@@ -108,58 +99,91 @@ export function DeleteSpaceEscapeHatchDialog({
     WatchSharedObjectHealthRequest.equals,
     WatchSharedObjectHealthResponse.equals,
   )
-  const health = healthResp?.health ?? null
+  return healthResp?.health ?? null
+}
 
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (!next) {
-        setStep('select')
-        setSelectedId('')
-        setSelectedSnapshot(null)
-        setAcknowledged(false)
-        setTypedConfirm('')
-        setError(undefined)
-        setSubmitting(false)
-      }
-      onOpenChange(next)
-    },
-    [onOpenChange],
-  )
+// useSpaceDeletion deletes the selected space through the session and tracks
+// the pending and failed state. onDeleted runs after a successful delete.
+function useSpaceDeletion(
+  session: Session | null,
+  selected: SpaceChoice | null,
+  onDeleted: () => void,
+) {
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string>()
 
-  const handleSelect = useCallback(
-    (id: string) => {
-      setSelectedId(id)
-      setSelectedSnapshot(choices.find((c) => c.id === id) ?? null)
-      setError(undefined)
-    },
-    [choices],
-  )
-
-  const handleContinueFromSelect = useCallback(() => {
-    if (!selected) return
-    setStep('warning')
-  }, [selected])
-
-  const handleContinueFromWarning = useCallback(() => {
-    if (!acknowledged) return
-    setStep('final')
-  }, [acknowledged])
-
-  const handleDelete = useCallback(async () => {
+  const deleteSpace = async () => {
     if (!session || !selected) return
     setSubmitting(true)
     setError(undefined)
     try {
       await session.deleteSpace(selected.id)
-      handleOpenChange(false)
+      onDeleted()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed')
       setSubmitting(false)
     }
-  }, [handleOpenChange, selected, session])
+  }
 
-  const confirmMatches = selected ? typedConfirm === selected.name : false
-  const canDelete = !!selected && acknowledged && confirmMatches && !submitting
+  return {
+    submitting,
+    error,
+    deleteSpace,
+    clearError: () => setError(undefined),
+    reset: () => {
+      setError(undefined)
+      setSubmitting(false)
+    },
+  }
+}
+
+// DeleteSpaceEscapeHatchDialog is a stepwise destructive flow for deleting a
+// space without mounting it, used when a space cannot be opened normally.
+export function DeleteSpaceEscapeHatchDialog({
+  open,
+  onOpenChange,
+  session,
+}: DeleteSpaceEscapeHatchDialogProps) {
+  const [step, setStep] = useState<Step>('select')
+  const [selectedId, setSelectedId] = useState('')
+  const [selectedSnapshot, setSelectedSnapshot] = useState<SpaceChoice | null>(
+    null,
+  )
+  const [acknowledged, setAcknowledged] = useState(false)
+  const [typedConfirm, setTypedConfirm] = useState('')
+
+  const { choices, loading } = useSpaceChoices(open, session)
+  const liveSelected = choices.find((c) => c.id === selectedId) ?? null
+  const selected = selectedSnapshot ?? liveSelected
+  const health = useSelectedSpaceHealth(open, session, selectedId)
+  const deletion = useSpaceDeletion(session, selected, () =>
+    handleOpenChange(false),
+  )
+  const { submitting, error } = deletion
+
+  // handleOpenChange resets the flow when the dialog closes.
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      setStep('select')
+      setSelectedId('')
+      setSelectedSnapshot(null)
+      setAcknowledged(false)
+      setTypedConfirm('')
+      deletion.reset()
+    }
+    onOpenChange(next)
+  }
+
+  function handleSelect(id: string) {
+    setSelectedId(id)
+    setSelectedSnapshot(choices.find((c) => c.id === id) ?? null)
+    deletion.clearError()
+  }
+
+  // The typed name must equal the selected space's name; a missing selection
+  // never matches.
+  const canDelete =
+    acknowledged && !submitting && typedConfirm === selected?.name
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -169,165 +193,302 @@ export function DeleteSpaceEscapeHatchDialog({
             <LuShieldAlert className="text-destructive size-4" />
             Delete a Space
           </DialogTitle>
-          {step === 'select' && (
-            <DialogDescription>
-              Pick a space to permanently delete. Use this only when a space
-              will not open and cannot be removed from inside the space itself.
-              Deletion is final and does not require the space to mount.
-            </DialogDescription>
-          )}
-          {step === 'warning' && selected && (
-            <DialogDescription>
-              This will permanently delete{' '}
-              <span className="text-foreground font-medium">
-                {selected.hasName ? selected.name : selected.id}
-              </span>{' '}
-              and all of its data. Confirm you understand before continuing.
-            </DialogDescription>
-          )}
-          {step === 'final' && selected && (
-            <DialogDescription>
-              Type the {selected.hasName ? 'space name' : 'shared object id'}{' '}
-              exactly to confirm.
-            </DialogDescription>
-          )}
+          <DeleteSpaceDescription step={step} selected={selected} />
         </DialogHeader>
 
         {step === 'select' && (
           <SpaceSelectList
             choices={choices}
-            loading={!resourcesList}
+            loading={loading}
             selectedId={selectedId}
             onSelect={handleSelect}
           />
         )}
 
         {step === 'warning' && selected && (
-          <div className="space-y-3">
-            <SelectedSpaceSummary space={selected} health={health} />
-            <label className="border-destructive/30 bg-destructive/5 text-destructive flex cursor-pointer items-start gap-2 rounded-md border p-3 text-xs select-none">
-              <input
-                type="checkbox"
-                checked={acknowledged}
-                onChange={(e) => setAcknowledged(e.target.checked)}
-                className="accent-destructive mt-0.5 size-3.5 shrink-0"
-                aria-label="Confirm delete is permanent"
-              />
-              <span>
-                I understand this permanently deletes the space and its data.
-              </span>
-            </label>
-          </div>
+          <DeleteWarningStep
+            space={selected}
+            health={health}
+            acknowledged={acknowledged}
+            onAcknowledgedChange={setAcknowledged}
+          />
         )}
 
         {step === 'final' && selected && (
-          <div className="space-y-3">
-            <SelectedSpaceSummary space={selected} health={health} />
-            <div>
-              <label className="text-foreground-alt mb-1.5 block text-xs select-none">
-                Type{' '}
-                <span className="text-destructive font-medium break-all">
-                  {selected.name}
-                </span>{' '}
-                to confirm
-              </label>
-              <input
-                value={typedConfirm}
-                onChange={(e) => setTypedConfirm(e.target.value)}
-                placeholder={selected.name}
-                aria-label="Confirm space name or id"
-                className={cn(
-                  'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm transition-colors outline-none',
-                  'focus:border-destructive/50',
-                )}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && canDelete) {
-                    void handleDelete()
-                  }
-                }}
-              />
-            </div>
-          </div>
+          <DeleteFinalStep
+            space={selected}
+            health={health}
+            typedConfirm={typedConfirm}
+            onTypedConfirmChange={setTypedConfirm}
+            canDelete={canDelete}
+            onDelete={() => void deletion.deleteSpace()}
+          />
         )}
 
         {error && <p className="text-destructive text-xs">{error}</p>}
 
         <DialogFooter>
           {step === 'select' && (
-            <>
-              <button
-                onClick={() => handleOpenChange(false)}
-                className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={!selected}
-                onClick={handleContinueFromSelect}
-                className={cn(
-                  'rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
-              >
-                Review space deletion
-              </button>
-            </>
+            <SelectStepActions
+              canContinue={!!selected}
+              onCancel={() => handleOpenChange(false)}
+              onContinue={() => setStep('warning')}
+            />
           )}
 
           {step === 'warning' && (
-            <>
-              <button
-                onClick={() => {
-                  setStep('select')
-                  setAcknowledged(false)
-                }}
-                className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
-              >
-                Back
-              </button>
-              <button
-                disabled={!acknowledged}
-                onClick={handleContinueFromWarning}
-                className={cn(
-                  'rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
-              >
-                Confirm space deletion
-              </button>
-            </>
+            <WarningStepActions
+              acknowledged={acknowledged}
+              onBack={() => {
+                setStep('select')
+                setAcknowledged(false)
+              }}
+              onContinue={() => setStep('final')}
+            />
           )}
 
           {step === 'final' && (
-            <>
-              <button
-                onClick={() => {
-                  setStep('warning')
-                  setTypedConfirm('')
-                }}
-                disabled={submitting}
-                className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
-              >
-                Back
-              </button>
-              <button
-                onClick={() => void handleDelete()}
-                disabled={!canDelete}
-                className={cn(
-                  'rounded-md border px-4 py-2 text-sm transition-all',
-                  'border-destructive bg-destructive/20 text-destructive hover:bg-destructive/30',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                )}
-              >
-                {submitting ? 'Deleting…' : 'Delete Space'}
-              </button>
-            </>
+            <FinalStepActions
+              submitting={submitting}
+              canDelete={canDelete}
+              onBack={() => {
+                setStep('warning')
+                setTypedConfirm('')
+              }}
+              onDelete={() => void deletion.deleteSpace()}
+            />
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+interface DeleteSpaceDescriptionProps {
+  step: Step
+  selected: SpaceChoice | null
+}
+
+// DeleteSpaceDescription explains the current step under the dialog title.
+function DeleteSpaceDescription({
+  step,
+  selected,
+}: DeleteSpaceDescriptionProps) {
+  if (step === 'select') {
+    return (
+      <DialogDescription>
+        Pick a space to permanently delete. Use this only when a space will not
+        open and cannot be removed from inside the space itself. Deletion is
+        final and does not require the space to mount.
+      </DialogDescription>
+    )
+  }
+  if (!selected) return null
+  if (step === 'warning') {
+    return (
+      <DialogDescription>
+        This will permanently delete{' '}
+        <span className="text-foreground font-medium">
+          {selected.hasName ? selected.name : selected.id}
+        </span>{' '}
+        and all of its data. Confirm you understand before continuing.
+      </DialogDescription>
+    )
+  }
+  return (
+    <DialogDescription>
+      Type the {selected.hasName ? 'space name' : 'shared object id'} exactly to
+      confirm.
+    </DialogDescription>
+  )
+}
+
+interface DeleteWarningStepProps {
+  space: SpaceChoice
+  health: SharedObjectHealth | null
+  acknowledged: boolean
+  onAcknowledgedChange: (acknowledged: boolean) => void
+}
+
+// DeleteWarningStep asks the user to acknowledge that deletion is permanent.
+function DeleteWarningStep({
+  space,
+  health,
+  acknowledged,
+  onAcknowledgedChange,
+}: DeleteWarningStepProps) {
+  return (
+    <div className="space-y-3">
+      <SelectedSpaceSummary space={space} health={health} />
+      <label className="border-destructive/30 bg-destructive/5 text-destructive flex cursor-pointer items-start gap-2 rounded-md border p-3 text-xs select-none">
+        <input
+          type="checkbox"
+          checked={acknowledged}
+          onChange={(e) => onAcknowledgedChange(e.target.checked)}
+          className="accent-destructive mt-0.5 size-3.5 shrink-0"
+          aria-label="Confirm delete is permanent"
+        />
+        <span>
+          I understand this permanently deletes the space and its data.
+        </span>
+      </label>
+    </div>
+  )
+}
+
+interface DeleteFinalStepProps {
+  space: SpaceChoice
+  health: SharedObjectHealth | null
+  typedConfirm: string
+  onTypedConfirmChange: (value: string) => void
+  canDelete: boolean
+  onDelete: () => void
+}
+
+// DeleteFinalStep asks the user to type the space name to confirm deletion.
+function DeleteFinalStep({
+  space,
+  health,
+  typedConfirm,
+  onTypedConfirmChange,
+  canDelete,
+  onDelete,
+}: DeleteFinalStepProps) {
+  return (
+    <div className="space-y-3">
+      <SelectedSpaceSummary space={space} health={health} />
+      <TypedConfirmField
+        label={
+          <>
+            Type{' '}
+            <span className="text-destructive font-medium break-all">
+              {space.name}
+            </span>{' '}
+            to confirm
+          </>
+        }
+        value={typedConfirm}
+        onChange={onTypedConfirmChange}
+        placeholder={space.name}
+        ariaLabel="Confirm space name or id"
+        canSubmit={canDelete}
+        onSubmit={onDelete}
+      />
+    </div>
+  )
+}
+
+interface SelectStepActionsProps {
+  canContinue: boolean
+  onCancel: () => void
+  onContinue: () => void
+}
+
+// SelectStepActions renders the footer buttons of the select step.
+function SelectStepActions({
+  canContinue,
+  onCancel,
+  onContinue,
+}: SelectStepActionsProps) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        disabled={!canContinue}
+        onClick={onContinue}
+        className={cn(
+          'rounded-md border px-4 py-2 text-sm transition-all',
+          'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+        )}
+      >
+        Review space deletion
+      </button>
+    </>
+  )
+}
+
+interface WarningStepActionsProps {
+  acknowledged: boolean
+  onBack: () => void
+  onContinue: () => void
+}
+
+// WarningStepActions renders the footer buttons of the warning step.
+function WarningStepActions({
+  acknowledged,
+  onBack,
+  onContinue,
+}: WarningStepActionsProps) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+      >
+        Back
+      </button>
+      <button
+        type="button"
+        disabled={!acknowledged}
+        onClick={onContinue}
+        className={cn(
+          'rounded-md border px-4 py-2 text-sm transition-all',
+          'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+        )}
+      >
+        Confirm space deletion
+      </button>
+    </>
+  )
+}
+
+interface FinalStepActionsProps {
+  submitting: boolean
+  canDelete: boolean
+  onBack: () => void
+  onDelete: () => void
+}
+
+// FinalStepActions renders the footer buttons of the final step.
+function FinalStepActions({
+  submitting,
+  canDelete,
+  onBack,
+  onDelete,
+}: FinalStepActionsProps) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={submitting}
+        className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+      >
+        Back
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={!canDelete}
+        className={cn(
+          'rounded-md border px-4 py-2 text-sm transition-all',
+          'border-destructive bg-destructive/20 text-destructive hover:bg-destructive/30',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+        )}
+      >
+        {submitting ? 'Deleting…' : 'Delete Space'}
+      </button>
+    </>
   )
 }
 

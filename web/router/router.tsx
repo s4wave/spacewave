@@ -243,23 +243,52 @@ export const Routes: FC<{
         ? effectivePath.slice(0, -wildcardPath.length - 1) // -1 for the trailing slash
         : effectivePath
 
-      const value = {
-        ...router,
-        params,
-        wildcardPath,
-        parentPaths: routePattern.endsWith('*')
-          ? [...router.parentPaths, currentPath]
-          : router.parentPaths,
-      }
       return (
-        <RouterContext.Provider value={value}>
+        <RouteScope
+          router={router}
+          params={params}
+          wildcardPath={wildcardPath}
+          parentPath={routePattern.endsWith('*') ? currentPath : undefined}
+        >
           {children}
-        </RouterContext.Provider>
+        </RouteScope>
       )
     }
   }
 
   return null // No route matched; render nothing or a 'Not Found' component.
+}
+
+// RouteScope provides the router context of one matched route to its children.
+function RouteScope({
+  router,
+  params,
+  wildcardPath,
+  parentPath,
+  children,
+}: {
+  router: RouterContextType
+  params: RouterContextType['params']
+  wildcardPath: RouterContextType['wildcardPath']
+  parentPath?: string
+  children: ReactNode
+}) {
+  const value = useMemo(
+    () => ({
+      ...router,
+      params,
+      wildcardPath,
+      parentPaths:
+        parentPath === undefined
+          ? router.parentPaths
+          : [...router.parentPaths, parentPath],
+    }),
+    [router, params, wildcardPath, parentPath],
+  )
+
+  return (
+    <RouterContext.Provider value={value}>{children}</RouterContext.Provider>
+  )
 }
 
 /**

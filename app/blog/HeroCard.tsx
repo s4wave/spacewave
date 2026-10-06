@@ -18,23 +18,8 @@ export function HeroCard({ post }: HeroCardProps) {
     navigate({ path: post.url })
   }, [navigate, post.url])
 
-  const handleHeroCardKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      handleHeroCardSelect()
-    },
-    [handleHeroCardSelect],
-  )
-
   return (
-    <article
-      role="link"
-      tabIndex={0}
-      onClick={handleHeroCardSelect}
-      onKeyDown={handleHeroCardKeyDown}
-      className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12"
-    >
+    <article className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12">
       {/* Subtle gradient glow on hover */}
       <div className="from-brand/5 pointer-events-none absolute inset-0 bg-gradient-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
@@ -48,7 +33,13 @@ export function HeroCard({ post }: HeroCardProps) {
           </div>
 
           <h2 className="text-foreground group-hover:text-brand mb-3 text-2xl font-semibold tracking-tight transition-colors duration-300 @lg:text-3xl">
-            {post.title}
+            <button
+              type="button"
+              onClick={handleHeroCardSelect}
+              className="cursor-pointer text-left after:absolute after:inset-0"
+            >
+              {post.title}
+            </button>
           </h2>
 
           <p className="text-foreground-alt mb-6 text-sm leading-relaxed @lg:text-base @lg:leading-relaxed">
@@ -74,8 +65,7 @@ export function HeroCard({ post }: HeroCardProps) {
               href={safeHref(post.author.url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground text-sm font-medium hover:underline"
-              onClick={(e) => e.stopPropagation()}
+              className="text-foreground relative text-sm font-medium hover:underline"
             >
               {post.author.name}
             </a>

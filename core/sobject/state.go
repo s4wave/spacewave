@@ -139,23 +139,10 @@ func (s *SOState) GetCheckpointInner() (*SOCheckpointInner, error) {
 }
 
 // OperationSet returns the held operations as a verified set above the
-// held checkpoint.
+// held checkpoint. It verifies every operation; a SOOperationVerifier keeps the
+// verification across the states of one shared object.
 func (s *SOState) OperationSet(sharedObjectID string) (*SOOperationSet, error) {
-	// Anchor the set at the checkpoint.
-	checkpoint, err := s.GetCheckpointInner()
-	if err != nil {
-		return nil, err
-	}
-
-	// Verify every held operation into the set, and resolve the sequence.
-	set := NewSOOperationSet(sharedObjectID, checkpoint)
-	for i, op := range s.GetOps() {
-		if _, err := set.Add(op); err != nil {
-			return nil, errors.Wrapf(err, "ops[%d]", i)
-		}
-	}
-	set.setSequence(s.GetConfig().GetSequencer(), s.GetSequence())
-	return set, nil
+	return NewSOOperationVerifier(sharedObjectID).OperationSet(s)
 }
 
 // CurrentKeyEpoch returns the latest key epoch, or nil before the first.
@@ -203,13 +190,9 @@ func (s *SOState) SetKeyEpoch(epoch *SOKeyEpoch) {
 
 // NextOperationLink returns where peerID's next operation goes: one past the
 // head of its chain, naming every other head of the operation DAG, under the
-// current config and key epoch.
-func (s *SOState) NextOperationLink(sharedObjectID, peerID string) (*SOOperationLink, error) {
+// current config and key epoch. set is the operation set of the state.
+func (s *SOState) NextOperationLink(set *SOOperationSet, peerID string) *SOOperationLink {
 	// Extend the author's own head.
-	set, err := s.OperationSet(sharedObjectID)
-	if err != nil {
-		return nil, err
-	}
 	nonce, prev := set.AuthorHead(peerID)
 	link := &SOOperationLink{
 		Nonce:      nonce + 1,
@@ -224,7 +207,7 @@ func (s *SOState) NextOperationLink(sharedObjectID, peerID string) (*SOOperation
 			link.Parents = append(link.Parents, head)
 		}
 	}
-	return link, nil
+	return link
 }
 
 // GetOperation returns peerID's held operation with localID, or nil.

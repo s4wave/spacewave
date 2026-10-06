@@ -5,6 +5,7 @@ package wasm
 import "testing"
 
 func TestCrashReportClassifiesGoFatalAndExitedGoLoop(t *testing.T) {
+	// Record a Go fatal stack and repeated exited-program messages.
 	var report CrashReport
 	report.AddMessage("fatal error: found bad pointer in Go heap")
 	report.AddMessage("runtime.throw({0x123, 0x456})")
@@ -12,6 +13,7 @@ func TestCrashReportClassifiesGoFatalAndExitedGoLoop(t *testing.T) {
 	report.AddMessage("Go program has already exited")
 	report.AddMessage("Go program has already exited")
 
+	// Require a crash, an exited loop, and both fatal frames.
 	if !report.HasCrash() {
 		t.Fatal("expected crash signal")
 	}
@@ -58,10 +60,12 @@ func TestCrashReportStillCatchesRealAbortPageError(t *testing.T) {
 }
 
 func TestDrainCrashReportDoesNotWaitForFutureMessages(t *testing.T) {
+	// Queue a page error and a worker error.
 	messages := make(chan string, 2)
 	messages <- "page error: boom"
 	messages <- "worker plugin/core error: failed"
 
+	// Drain the queued messages without waiting for later ones.
 	report := DrainCrashReport(messages)
 	if !report.HasCrash() {
 		t.Fatal("expected crash signal")

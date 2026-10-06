@@ -225,6 +225,7 @@ export function RecoveryPage() {
       tabIndex={-1}
       topLeft={
         <button
+          type="button"
           onClick={handleBack}
           className="text-foreground-alt hover:text-brand flex items-center gap-2 text-sm transition-colors"
         >
@@ -334,6 +335,7 @@ function RequestRecoveryForm({
           </p>
         </div>
         <button
+          type="button"
           onClick={onGoToLogin}
           className={cn(
             'group w-full rounded-md border transition-all duration-300',
@@ -389,6 +391,7 @@ function RequestRecoveryForm({
       </div>
       {error && <p className="text-destructive text-xs">{error}</p>}
       <button
+        type="button"
         onClick={() => void onSubmit()}
         className={cn(
           'group w-full rounded-md border transition-all duration-300',
@@ -408,6 +411,7 @@ function RequestRecoveryForm({
         </span>
       </button>
       <button
+        type="button"
         onClick={onGoToLogin}
         className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors"
       >
@@ -455,6 +459,7 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
           </p>
         </div>
         <button
+          type="button"
           onClick={onGoToLogin}
           className={cn(
             'group w-full rounded-md border transition-all duration-300',
@@ -588,6 +593,7 @@ function PasswordForm({
       {error && <p className="text-destructive text-xs">{error}</p>}
 
       <button
+        type="button"
         onClick={() => void onSubmit()}
         disabled={!canSubmit}
         className={cn(
@@ -668,6 +674,7 @@ function DoneStep({ onGoToLogin }: { onGoToLogin: () => void }) {
       </div>
 
       <button
+        type="button"
         onClick={onGoToLogin}
         className={cn(
           'group w-full rounded-md border transition-all duration-300',

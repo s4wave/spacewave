@@ -117,6 +117,7 @@ export function GitDiffPatchFiles({
             className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border"
           >
             <button
+              type="button"
               className="hover:bg-background-card/50 flex h-10 w-full items-center gap-2 px-3 text-left transition-colors"
               onClick={() => toggle(section.path)}
             >

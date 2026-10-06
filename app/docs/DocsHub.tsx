@@ -36,6 +36,7 @@ export function DocsHub() {
           const Icon = siteIcons[site.id] ?? LuUser
           return (
             <button
+              type="button"
               key={site.id}
               onClick={() => goToSite(site.id)}
               className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-6 text-left transition duration-200"

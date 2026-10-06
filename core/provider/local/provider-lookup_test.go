@@ -12,15 +12,18 @@ import (
 )
 
 func TestLookupLocalProviderDoesNotWaitForPeer(t *testing.T) {
+	// Bound the lookup so a missing peer cannot hang the test.
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
+	// Build a core bus and register the local provider factory.
 	b, sr, err := bldr_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	sr.AddFactory(NewFactory(b))
 
+	// Load the local provider without waiting for a peer.
 	_, provCtrlRef, err := b.AddDirective(resolver.NewLoadControllerWithConfig(&Config{
 		ProviderId: ProviderID,
 	}), nil)
@@ -29,6 +32,7 @@ func TestLookupLocalProviderDoesNotWaitForPeer(t *testing.T) {
 	}
 	defer provCtrlRef.Release()
 
+	// Look up the provider and require a running instance.
 	prov, provRef, err := provider.ExLookupProvider(ctx, b, ProviderID, false, nil)
 	if err != nil {
 		t.Fatal(err)

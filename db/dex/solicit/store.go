@@ -2,6 +2,7 @@ package dex_solicit
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -10,8 +11,10 @@ import (
 
 // Store is a read-only block store view owned by a solicitation Controller.
 // Reads wait for the solicitation to settle and for at least one peer session,
-// then fan out to the controller's peer sessions. Existence checks do not wait
-// for a peer: with none connected they report the block missing.
+// then fan out to the controller's peer sessions. A read under a context from
+// block.WithoutPeerWait does not wait: with no peer connected it records the
+// block and reports block.ErrUnavailable. Existence checks do not wait for a
+// peer: with none connected they report the block missing.
 type Store struct {
 	controller *Controller
 }
@@ -75,14 +78,23 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 }
 
 // fetch requests a block from the settled peer sessions, first waiting for a
-// peer session when wantPeer is set. Returns nil when every peer answered that
-// it does not have the block, and an error when the exchange failed.
+// peer session when wantPeer is set and ctx allows waiting. Returns nil when
+// every peer answered that it does not have the block, and an error when the
+// exchange failed or no peer was there to ask.
 func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (*DexMessage, error) {
-	// Ask the settled peer sessions for the block.
-	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer)
+	// Settle the peer sessions, waiting for one only when ctx allows it.
+	peerWait := block.GetPeerWait(ctx)
+	skipWait := wantPeer && peerWait != nil
+	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer && !skipWait)
 	if err != nil {
 		return nil, err
 	}
+	if skipWait && len(sessions) == 0 {
+		peerWait.Skip(ref)
+		return nil, fmt.Errorf("%w: no peer session to ask for block %s", block.ErrUnavailable, ref.MarshalString())
+	}
+
+	// Ask the settled peer sessions for the block.
 	found, err := peerBlockFanout{
 		sessions: sessions,
 		ref:      ref,

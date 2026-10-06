@@ -26,6 +26,7 @@ func (c *Controller) RunQuicRwcFixture(
 	ctx context.Context,
 	req *RunQuicRwcFixtureRequest,
 ) (*RunQuicRwcFixtureResponse, error) {
+	// Require an echo payload before setting up the fixture peers.
 	payload := slices.Clone(req.GetPayload())
 	if len(payload) == 0 {
 		return nil, errors.New("fixture payload is empty")
@@ -33,6 +34,7 @@ func (c *Controller) RunQuicRwcFixture(
 	le := c.GetLogger()
 	le.Info("quic fixture phase: peer setup starting")
 
+	// Generate private keys for both fixture peers.
 	privA, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return nil, errors.Wrap(err, "generate peer A key")
@@ -41,6 +43,8 @@ func (c *Controller) RunQuicRwcFixture(
 	if err != nil {
 		return nil, errors.Wrap(err, "generate peer B key")
 	}
+
+	// Derive the peer IDs used to match the fixture links.
 	peerA, err := peer.IDFromPrivateKey(privA)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive peer A ID")
@@ -49,6 +53,8 @@ func (c *Controller) RunQuicRwcFixture(
 	if err != nil {
 		return nil, errors.Wrap(err, "derive peer B ID")
 	}
+
+	// Construct TLS identities for both fixture peers.
 	identityA, err := p2ptls.NewIdentity(privA)
 	if err != nil {
 		return nil, errors.Wrap(err, "construct peer A identity")
@@ -58,6 +64,7 @@ func (c *Controller) RunQuicRwcFixture(
 		return nil, errors.Wrap(err, "construct peer B identity")
 	}
 
+	// Open manual signaling transports for both fixture peers.
 	tptA, err := s4wave_session.NewManualSignalTransport(
 		le.WithField("fixture-peer", "A"), identityA, peerA, nil,
 	)
@@ -73,6 +80,7 @@ func (c *Controller) RunQuicRwcFixture(
 	}
 	defer tptB.Close()
 
+	// Negotiate the WebRTC data channels between the fixture transports.
 	offer, err := tptA.CreateOffer(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "create fixture offer")
@@ -86,6 +94,7 @@ func (c *Controller) RunQuicRwcFixture(
 	}
 	le.Info("quic fixture phase: data channel negotiation complete")
 
+	// Wait for both fixture transports to establish their QUIC links.
 	type linkResult struct {
 		link *transport_quic.Link
 		err  error
@@ -100,6 +109,7 @@ func (c *Controller) RunQuicRwcFixture(
 		linkCh <- linkResult{link: link, err: err}
 	}()
 
+	// Identify both QUIC links and retain them for the echo exchange.
 	var linkA, linkB *transport_quic.Link
 	for range 2 {
 		result := <-linkCh
@@ -119,28 +129,37 @@ func (c *Controller) RunQuicRwcFixture(
 	defer linkB.Close()
 	le.Info("quic fixture phase: handshake complete")
 
+	// Start the echo receiver on the first fixture peer.
 	echoCh := make(chan error, 1)
 	go func() {
+		// Accept the fixture stream and retain it for the echo response.
 		strm, _, err := linkA.AcceptStream()
 		if err != nil {
 			echoCh <- errors.Wrap(err, "accept fixture stream")
 			return
 		}
 		defer strm.Close()
+
+		// Read the complete fixture payload from the accepted stream.
 		buf := make([]byte, len(payload))
 		if _, err := io.ReadFull(strm, buf); err != nil {
 			echoCh <- errors.Wrap(err, "read fixture payload")
 			return
 		}
+
+		// Echo the received payload and report the receiver result.
 		_, err = io.Copy(strm, bytes.NewReader(buf))
 		echoCh <- errors.Wrap(err, "echo fixture payload")
 	}()
 
+	// Open an outgoing fixture stream on the second peer.
 	strm, err := linkB.OpenStream(stream.OpenOpts{})
 	if err != nil {
 		return nil, errors.Wrap(err, "open fixture stream")
 	}
 	defer strm.Close()
+
+	// Send the fixture payload and read its complete echo.
 	if _, err := io.Copy(strm, bytes.NewReader(payload)); err != nil {
 		return nil, errors.Wrap(err, "write fixture payload")
 	}
@@ -148,6 +167,8 @@ func (c *Controller) RunQuicRwcFixture(
 	if _, err := io.ReadFull(strm, echoed); err != nil {
 		return nil, errors.Wrap(err, "read echoed fixture payload")
 	}
+
+	// Require receiver success and matching echoed payload contents.
 	if err := <-echoCh; err != nil {
 		return nil, err
 	}

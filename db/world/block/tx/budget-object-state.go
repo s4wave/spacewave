@@ -16,11 +16,6 @@ type budgetObjectState struct {
 	w *BudgetWorldState
 }
 
-// newBudgetObjectState wraps an object of the world state.
-func newBudgetObjectState(w *BudgetWorldState, obj world.ObjectState) *budgetObjectState {
-	return &budgetObjectState{ObjectState: obj, w: w}
-}
-
 // Release releases the wrapped object handle.
 func (o *budgetObjectState) Release() {
 	world.ReleaseObjectState(o.ObjectState)

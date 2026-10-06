@@ -1,5 +1,12 @@
 /* eslint-disable react-doctor/no-giant-component */
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+  type RefObject,
+} from 'react'
 
 import {
   type SubItemsCallback,
@@ -13,18 +20,28 @@ import type {
   CanvasCallbacks,
   CanvasTool,
   EphemeralEdge,
+  Viewport,
 } from './types.js'
 import { useCanvasViewport, computeGridStyle } from './useCanvasViewport.js'
 import { useVisibleNodes, type ContainerSize } from './useVisibleNodes.js'
-import { useCanvasSelection } from './useCanvasSelection.js'
-import { useCanvasActions } from './useCanvasActions.js'
+import {
+  useCanvasSelection,
+  type UseCanvasSelectionResult,
+} from './useCanvasSelection.js'
+import {
+  useCanvasActions,
+  type UseCanvasActionsResult,
+} from './useCanvasActions.js'
 import { useCanvasCommands } from './useCanvasCommands.js'
 import { CanvasNode } from './CanvasNode.js'
 import { CanvasEdgeLayer } from './CanvasEdgeLayer.js'
 import { CanvasDrawingLayer } from './CanvasDrawingLayer.js'
 import { CanvasTextNode } from './CanvasTextNode.js'
 import { CanvasToolbar } from './CanvasToolbar.js'
-import { CanvasContextMenu } from './CanvasContextMenu.js'
+import {
+  CanvasContextMenu,
+  type CanvasContextMenuState,
+} from './CanvasContextMenu.js'
 import {
   CanvasMinimap,
   DEFAULT_MINIMAP_WIDTH,
@@ -48,9 +65,698 @@ const MIN_TEXT_NODE_HEIGHT = 32
 // stays valid while the user picks an object from the command palette.
 const PENDING_OBJECT_INSERT_TTL_MS = 5000
 
-// generateNodeId creates a unique node ID.
+// MIN_OBJECT_DRAG_SIZE is the smallest dragged rectangle that creates an object.
+const MIN_OBJECT_DRAG_SIZE = 20
+
+interface Point {
+  x: number
+  y: number
+}
+
+interface PendingObjectInsert extends Point {
+  createdAt: number
+}
+
+interface ObjectDragRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+type CanvasNodeMap = CanvasStateData['nodes']
+
+/** generateNodeId creates a unique node ID. */
 function generateNodeId(): string {
   return `node-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** drawingKindFor maps a drawing tool to its geometry kind, or null for other tools. */
+function drawingKindFor(tool: CanvasTool): CanvasGeometryKind | null {
+  switch (tool) {
+    case 'draw':
+      return 'pen'
+    case 'line':
+    case 'arrow':
+    case 'rectangle':
+    case 'ellipse':
+      return tool
+    default:
+      return null
+  }
+}
+
+/** useContainerSize observes the content size of the element. */
+function useContainerSize(ref: RefObject<HTMLElement | null>): ContainerSize {
+  const [containerSize, setContainerSize] = useState<ContainerSize>({
+    width: 0,
+    height: 0,
+  })
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        })
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [ref])
+
+  return containerSize
+}
+
+interface UseFocusNodeParams {
+  focusNodeId: string | null | undefined
+  nodes: CanvasNodeMap
+  selection: UseCanvasSelectionResult
+  view: { scale: number; setViewport: (v: Viewport) => void }
+  containerSize: ContainerSize
+}
+
+/** useFocusNode selects the focus node and centers the viewport on it. */
+function useFocusNode({
+  focusNodeId,
+  nodes,
+  selection,
+  view,
+  containerSize,
+}: UseFocusNodeParams) {
+  useEffect(() => {
+    if (!focusNodeId) return
+    const node = nodes.get(focusNodeId)
+    if (!node) return
+    if (
+      selection.selectedNodeIds.size !== 1 ||
+      !selection.selectedNodeIds.has(focusNodeId)
+    ) {
+      selection.setSelection(new Set([focusNodeId]))
+    }
+    if (selection.focus !== 'border') {
+      selection.setFocus('border')
+    }
+    const cx = node.x + node.width / 2
+    const cy = node.y + node.height / 2
+    view.setViewport({
+      x: containerSize.width / 2 - cx * view.scale,
+      y: containerSize.height / 2 - cy * view.scale,
+      scale: view.scale,
+    })
+  }, [
+    focusNodeId,
+    selection,
+    nodes,
+    selection.selectedNodeIds,
+    selection.focus,
+    selection.setSelection,
+    selection.setFocus,
+    containerSize,
+    view,
+  ])
+}
+
+/**
+ * usePendingText holds the ephemeral text editor shown after a text tool
+ * click, and commits its content as a new text node.
+ */
+function usePendingText(
+  callbacks: CanvasCallbacks,
+  selection: UseCanvasSelectionResult,
+) {
+  const [pendingText, setPendingText] = useState<Point | null>(null)
+  const pendingTextRef = useRef<HTMLDivElement | null>(null)
+
+  const commitPendingText = useCallback(
+    (content: string) => {
+      if (!pendingText) return
+      const el = pendingTextRef.current
+      const id = generateNodeId()
+      const w = el
+        ? Math.max(el.scrollWidth + 4, DEFAULT_TEXT_NODE_WIDTH)
+        : DEFAULT_TEXT_NODE_WIDTH
+      const h = el
+        ? Math.max(el.scrollHeight + 4, MIN_TEXT_NODE_HEIGHT)
+        : MIN_TEXT_NODE_HEIGHT
+      const node: CanvasNodeData = {
+        id,
+        x: pendingText.x - w / 2,
+        y: pendingText.y - h / 2,
+        width: w,
+        height: h,
+        zIndex: 0,
+        type: 'text',
+        textContent: content,
+      }
+      callbacks.onNodesChange?.(new Map([[id, node]]))
+      selection.toggleSelect(id, false)
+      setPendingText(null)
+    },
+    [pendingText, callbacks, selection],
+  )
+
+  const cancelPendingText = useCallback(() => {
+    setPendingText(null)
+  }, [])
+
+  return {
+    pendingText,
+    pendingTextRef,
+    setPendingText,
+    commitPendingText,
+    cancelPendingText,
+  }
+}
+
+/**
+ * useNodeDrag accumulates local drag offsets while nodes move and persists
+ * them when the drag ends.
+ */
+function useNodeDrag(
+  nodes: CanvasNodeMap,
+  selection: UseCanvasSelectionResult,
+  callbacks: CanvasCallbacks,
+) {
+  const [dragOffsets, setDragOffsets] = useState<Map<
+    string,
+    { dx: number; dy: number }
+  > | null>(null)
+
+  // Merge server state with local drag offsets.
+  const effectiveNodes = useMemo(() => {
+    if (!dragOffsets) return nodes
+    const merged = new Map(nodes)
+    for (const [id, offset] of dragOffsets) {
+      const n = merged.get(id)
+      if (n) {
+        merged.set(id, { ...n, x: n.x + offset.dx, y: n.y + offset.dy })
+      }
+    }
+    return merged
+  }, [nodes, dragOffsets])
+
+  const cancelDrag = useCallback(() => {
+    setDragOffsets(null)
+  }, [])
+
+  const handleNodeMove = useCallback(
+    (id: string, dx: number, dy: number) => {
+      // Accumulate local drag offsets without firing RPC.
+      const idsToMove = selection.selectedNodeIds.has(id)
+        ? selection.selectedNodeIds
+        : new Set([id])
+
+      setDragOffsets((prev) => {
+        const next = new Map(prev ?? [])
+        for (const moveId of idsToMove) {
+          const existing = next.get(moveId) ?? { dx: 0, dy: 0 }
+          next.set(moveId, { dx: existing.dx + dx, dy: existing.dy + dy })
+        }
+        return next
+      })
+    },
+    [selection.selectedNodeIds],
+  )
+
+  const handleNodeMoveEnd = useCallback(() => {
+    if (!dragOffsets || dragOffsets.size === 0) return
+
+    // Apply accumulated offsets and persist via callback.
+    const next: CanvasNodeMap = new Map()
+    for (const [id, offset] of dragOffsets) {
+      const n = nodes.get(id)
+      if (n) {
+        next.set(id, { ...n, x: n.x + offset.dx, y: n.y + offset.dy })
+      }
+    }
+    setDragOffsets(null)
+    if (next.size > 0) {
+      callbacks.onNodesChange?.(next)
+    }
+  }, [dragOffsets, nodes, callbacks])
+
+  return { effectiveNodes, cancelDrag, handleNodeMove, handleNodeMoveEnd }
+}
+
+/**
+ * useCanvasCoords converts pointer and container positions into canvas space
+ * for the current viewport.
+ */
+function useCanvasCoords(
+  containerRef: RefObject<HTMLElement | null>,
+  viewport: Viewport,
+) {
+  const screenToCanvas = useCallback(
+    (sx: number, sy: number): Point => ({
+      x: (sx - viewport.x) / viewport.scale,
+      y: (sy - viewport.y) / viewport.scale,
+    }),
+    [viewport],
+  )
+
+  // clientToCanvas converts client coords, or returns null before mount.
+  const clientToCanvas = useCallback(
+    (clientX: number, clientY: number): Point | null => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return null
+      return screenToCanvas(clientX - rect.left, clientY - rect.top)
+    },
+    [containerRef, screenToCanvas],
+  )
+
+  const getViewportCenter = useCallback((): Point => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return { x: 0, y: 0 }
+    return screenToCanvas(rect.width / 2, rect.height / 2)
+  }, [containerRef, screenToCanvas])
+
+  return { clientToCanvas, getViewportCenter }
+}
+
+interface UseCanvasInsertionParams {
+  callbacks: CanvasCallbacks
+  selection: UseCanvasSelectionResult
+  imageObjectKey: string | undefined
+  getViewportCenter: () => Point
+  startPendingText: (point: Point) => void
+}
+
+/**
+ * useCanvasInsertion adds text, pinned objects, and images to the canvas, and
+ * opens the command palette pickers that choose them.
+ */
+function useCanvasInsertion({
+  callbacks,
+  selection,
+  imageObjectKey,
+  getViewportCenter,
+  startPendingText,
+}: UseCanvasInsertionParams) {
+  const openCommand = useOpenCommand()
+  const pendingObjectInsertRef = useRef<PendingObjectInsert | null>(null)
+
+  const addTextAt = useCallback(
+    (point?: Point) => {
+      startPendingText(point ?? getViewportCenter())
+    },
+    [startPendingText, getViewportCenter],
+  )
+
+  const resolvePendingObjectInsertPoint = useCallback((): Point => {
+    const pending = pendingObjectInsertRef.current
+    pendingObjectInsertRef.current = null
+    if (!pending) return getViewportCenter()
+    if (Date.now() - pending.createdAt > PENDING_OBJECT_INSERT_TTL_MS) {
+      return getViewportCenter()
+    }
+    return { x: pending.x, y: pending.y }
+  }, [getViewportCenter])
+
+  const addObjectAt = useCallback(
+    (objectKey: string) => {
+      const point = resolvePendingObjectInsertPoint()
+      callbacks.onPinObject?.(objectKey, point.x, point.y)
+    },
+    [callbacks, resolvePendingObjectInsertPoint],
+  )
+
+  const addImageAt = useCallback(
+    (path: string) => {
+      if (!imageObjectKey) return
+      const point = getViewportCenter()
+      const id = generateNodeId()
+      callbacks.onNodesChange?.(
+        new Map([
+          [
+            id,
+            {
+              id,
+              x: point.x - 200,
+              y: point.y - 150,
+              width: 400,
+              height: 300,
+              zIndex: 0,
+              type: 'world_object',
+              objectKey: imageObjectKey,
+              viewPath: path,
+              pinned: true,
+            },
+          ],
+        ]),
+      )
+      selection.toggleSelect(id, false)
+    },
+    [callbacks, getViewportCenter, imageObjectKey, selection],
+  )
+
+  // requestObjectPicker opens the object picker. A point pins the chosen
+  // object there; without one it lands at the current viewport center.
+  const requestObjectPicker = useCallback(
+    (point: Point | null) => {
+      pendingObjectInsertRef.current = point
+        ? { ...point, createdAt: Date.now() }
+        : null
+      openCommand('canvas.add-object')
+    },
+    [openCommand],
+  )
+
+  const requestImagePicker = useCallback(() => {
+    openCommand('canvas.add-image')
+  }, [openCommand])
+
+  return {
+    addTextAt,
+    addObjectAt,
+    addImageAt,
+    requestObjectPicker,
+    requestImagePicker,
+  }
+}
+
+interface UseCanvasContextMenuParams {
+  actions: UseCanvasActionsResult['actions']
+  clientToCanvas: (clientX: number, clientY: number) => Point | null
+  addTextAt: (point?: Point) => void
+  requestObjectPicker: (point: Point | null) => void
+}
+
+/**
+ * useCanvasContextMenu tracks the background context menu and the canvas
+ * position it was opened at.
+ */
+function useCanvasContextMenu({
+  actions,
+  clientToCanvas,
+  addTextAt,
+  requestObjectPicker,
+}: UseCanvasContextMenuParams) {
+  const [menuState, setMenuState] = useState<CanvasContextMenuState | null>(
+    null,
+  )
+  const canvasPositionRef = useRef<Point | null>(null)
+
+  const closeContextMenu = useCallback(() => {
+    setMenuState(null)
+  }, [])
+
+  const handleBackgroundContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement
+      if (target.closest('[data-canvas-node]')) return
+      const canvasPosition = clientToCanvas(e.clientX, e.clientY)
+      if (!canvasPosition) return
+      e.preventDefault()
+      canvasPositionRef.current = canvasPosition
+      setMenuState({ position: { x: e.clientX, y: e.clientY } })
+    },
+    [clientToCanvas],
+  )
+
+  // takeCanvasPosition returns the position the menu opened at, once.
+  const takeCanvasPosition = useCallback((): Point | null => {
+    const point = canvasPositionRef.current
+    canvasPositionRef.current = null
+    return point
+  }, [])
+
+  const handleAddText = useCallback(() => {
+    const point = takeCanvasPosition()
+    if (!point) return
+    closeContextMenu()
+    addTextAt(point)
+  }, [takeCanvasPosition, closeContextMenu, addTextAt])
+
+  const handleAddObject = useCallback(() => {
+    const point = takeCanvasPosition()
+    if (!point) return
+    closeContextMenu()
+    requestObjectPicker(point)
+  }, [takeCanvasPosition, closeContextMenu, requestObjectPicker])
+
+  // closeThen closes the menu and then runs the canvas action.
+  const closeThen = useCallback(
+    (run: () => void) => () => {
+      closeContextMenu()
+      run()
+    },
+    [closeContextMenu],
+  )
+
+  const menuProps = {
+    state: menuState,
+    onClose: closeContextMenu,
+    onPaste: closeThen(actions.paste),
+    onAddText: handleAddText,
+    onAddObject: handleAddObject,
+    onFitView: closeThen(actions['fit-view']),
+    onZoomReset: closeThen(actions['zoom-reset']),
+    onSelectAll: closeThen(actions['select-all']),
+  }
+
+  return { menuProps, closeContextMenu, handleBackgroundContextMenu }
+}
+
+interface UseBackgroundInputParams {
+  tool: CanvasTool
+  selection: UseCanvasSelectionResult
+  clientToCanvas: (clientX: number, clientY: number) => Point | null
+  startPendingText: (point: Point) => void
+  addTextAt: () => void
+}
+
+/** useBackgroundInput handles clicks and keys on the canvas background. */
+function useBackgroundInput({
+  tool,
+  selection,
+  clientToCanvas,
+  startPendingText,
+  addTextAt,
+}: UseBackgroundInputParams) {
+  const handleBackgroundClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('[data-canvas-node]')) return
+
+      if (tool === 'text') {
+        const pt = clientToCanvas(e.clientX, e.clientY)
+        if (pt) startPendingText(pt)
+        return
+      }
+
+      selection.clearSelection()
+    },
+    [tool, selection, clientToCanvas, startPendingText],
+  )
+
+  const handleBackgroundKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.currentTarget !== e.target) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        selection.clearSelection()
+        return
+      }
+      if (tool !== 'text') return
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      addTextAt()
+    },
+    [tool, selection, addTextAt],
+  )
+
+  return { handleBackgroundClick, handleBackgroundKeyDown }
+}
+
+interface UseObjectDragParams {
+  tool: CanvasTool
+  callbacks: CanvasCallbacks
+  selection: UseCanvasSelectionResult
+  clientToCanvas: (clientX: number, clientY: number) => Point | null
+  selectTool: () => void
+}
+
+/** useObjectDrag creates a world object node from a drag on the background. */
+function useObjectDrag({
+  tool,
+  callbacks,
+  selection,
+  clientToCanvas,
+  selectTool,
+}: UseObjectDragParams) {
+  const dragStartRef = useRef<Point | null>(null)
+  const [dragRect, setDragRect] = useState<ObjectDragRect | null>(null)
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (tool !== 'object') return
+      const target = e.target as HTMLElement
+      if (target.closest('[data-canvas-node]')) return
+      const pt = clientToCanvas(e.clientX, e.clientY)
+      if (!pt) return
+      dragStartRef.current = pt
+      setDragRect({ x: pt.x, y: pt.y, w: 0, h: 0 })
+      target.setPointerCapture(e.pointerId)
+      e.preventDefault()
+    },
+    [tool, clientToCanvas],
+  )
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const start = dragStartRef.current
+      if (!start) return
+      const pt = clientToCanvas(e.clientX, e.clientY)
+      if (!pt) return
+      setDragRect({
+        x: Math.min(start.x, pt.x),
+        y: Math.min(start.y, pt.y),
+        w: Math.abs(pt.x - start.x),
+        h: Math.abs(pt.y - start.y),
+      })
+    },
+    [clientToCanvas],
+  )
+
+  const handlePointerUp = useCallback(() => {
+    const r = dragStartRef.current ? dragRect : null
+    dragStartRef.current = null
+    setDragRect(null)
+    if (!r || r.w < MIN_OBJECT_DRAG_SIZE || r.h < MIN_OBJECT_DRAG_SIZE) return
+    const id = generateNodeId()
+    const node: CanvasNodeData = {
+      id,
+      x: r.x,
+      y: r.y,
+      width: r.w,
+      height: r.h,
+      zIndex: 0,
+      type: 'world_object',
+    }
+    callbacks.onNodesChange?.(new Map([[id, node]]))
+    selection.toggleSelect(id, false)
+    selectTool()
+  }, [dragRect, callbacks, selection, selectTool])
+
+  return { dragRect, handlePointerDown, handlePointerMove, handlePointerUp }
+}
+
+interface CanvasPendingTextProps {
+  pendingText: Point
+  innerRef: RefObject<HTMLDivElement | null>
+  onCommit: (content: string) => void
+  onCancel: () => void
+}
+
+/** CanvasPendingText renders the text editor shown at a text tool click. */
+function CanvasPendingText({
+  pendingText,
+  innerRef,
+  onCommit,
+  onCancel,
+}: CanvasPendingTextProps) {
+  return (
+    <div
+      role="presentation"
+      ref={innerRef}
+      style={{
+        '--canvas-pending-left': `${pendingText.x - DEFAULT_TEXT_NODE_WIDTH / 2}px`,
+        '--canvas-pending-top': `${pendingText.y - MIN_TEXT_NODE_HEIGHT / 2}px`,
+        '--canvas-pending-width': `${DEFAULT_TEXT_NODE_WIDTH}px`,
+        '--canvas-pending-min-height': `${MIN_TEXT_NODE_HEIGHT}px`,
+      }}
+      className="canvas-pending-text bg-background-card/30 text-card-foreground pointer-events-auto rounded-lg backdrop-blur-sm"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <CanvasTextNode
+        content=""
+        autoEdit
+        onChange={onCommit}
+        onCancel={onCancel}
+      />
+    </div>
+  )
+}
+
+interface CanvasObjectDragRectProps {
+  rect: ObjectDragRect
+  viewport: Viewport
+}
+
+/** CanvasObjectDragRect renders the rectangle drawn by the object tool. */
+function CanvasObjectDragRect({ rect, viewport }: CanvasObjectDragRectProps) {
+  return (
+    <div
+      className="canvas-drag-rectangle border-brand/30 bg-brand/5 pointer-events-none absolute rounded-lg border border-dashed"
+      style={{
+        '--canvas-drag-left': `${rect.x * viewport.scale + viewport.x}px`,
+        '--canvas-drag-top': `${rect.y * viewport.scale + viewport.y}px`,
+        '--canvas-drag-width': `${rect.w * viewport.scale}px`,
+        '--canvas-drag-height': `${rect.h * viewport.scale}px`,
+      }}
+    />
+  )
+}
+
+/** CanvasGridLayer renders the background grid driven by the viewport. */
+function CanvasGridLayer({
+  viewport,
+  layerRef,
+}: {
+  viewport: Viewport
+  layerRef: RefObject<HTMLDivElement | null>
+}) {
+  // Transform and grid styles are initial values for React rendering.
+  // During gestures, useCanvasViewport applies these directly to the
+  // DOM via transformLayerRef/gridLayerRef for zero-cost panning.
+  const gridStyle = useMemo(() => computeGridStyle(viewport), [viewport])
+
+  return (
+    <div
+      ref={layerRef}
+      className="canvas-grid pointer-events-none absolute inset-0"
+      style={{
+        '--canvas-grid-color': gridStyle.backgroundColor,
+        '--canvas-grid-image': gridStyle.backgroundImage,
+        '--canvas-grid-size': gridStyle.backgroundSize,
+        '--canvas-grid-position': gridStyle.backgroundPosition,
+        '--canvas-grid-opacity': gridStyle.opacity,
+      }}
+    />
+  )
+}
+
+interface CanvasMinimapPanelProps {
+  nodes: CanvasNodeMap
+  viewport: Viewport
+  containerSize: ContainerSize
+  onViewportChange: (v: Viewport) => void
+}
+
+/** CanvasMinimapPanel sizes the minimap by the container width. */
+function CanvasMinimapPanel({
+  nodes,
+  viewport,
+  containerSize,
+  onViewportChange,
+}: CanvasMinimapPanelProps) {
+  const divisor = containerSize.width >= XL_BREAKPOINT ? 1 : 2
+
+  return (
+    <CanvasMinimap
+      nodes={nodes}
+      viewport={viewport}
+      containerSize={containerSize}
+      onViewportChange={onViewportChange}
+      width={DEFAULT_MINIMAP_WIDTH / divisor}
+      height={DEFAULT_MINIMAP_HEIGHT / divisor}
+    />
+  )
 }
 
 // CanvasProps are the props for the Canvas component.
@@ -83,25 +789,11 @@ export function Canvas({
   const [toolInternal, setToolInternal] = useState<CanvasTool>('select')
   const [drawingColor, setDrawingColor] = useState(DEFAULT_CANVAS_COLOR)
   const tool = toolProp ?? toolInternal
-
-  const [containerSize, setContainerSize] = useState<ContainerSize>({
-    width: 0,
-    height: 0,
-  })
+  const onToolChange = toolProp === undefined ? setToolInternal : undefined
+  const selectTool = useCallback(() => setToolInternal('select'), [])
 
   const viewportContainerRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef({ x: 0, y: 0, scale: 1 })
-  const lastContextMenuCanvasPositionRef = useRef<{
-    x: number
-    y: number
-  } | null>(null)
-  const pendingObjectInsertRef = useRef<{
-    x: number
-    y: number
-    createdAt: number
-  } | null>(null)
-  const openCommand = useOpenCommand()
-
   const selection = useCanvasSelection()
 
   const dragSelectHandler = useMemo(
@@ -140,124 +832,34 @@ export function Canvas({
     viewportRef.current = viewport
   }, [viewport])
 
-  useEffect(() => {
-    if (!focusNodeId) return
-    const node = state.nodes.get(focusNodeId)
-    if (!node) return
-    if (
-      selection.selectedNodeIds.size !== 1 ||
-      !selection.selectedNodeIds.has(focusNodeId)
-    ) {
-      selection.setSelection(new Set([focusNodeId]))
-    }
-    if (selection.focus !== 'border') {
-      selection.setFocus('border')
-    }
-    const cx = node.x + node.width / 2
-    const cy = node.y + node.height / 2
-    setViewport({
-      x: containerSize.width / 2 - cx * viewport.scale,
-      y: containerSize.height / 2 - cy * viewport.scale,
-      scale: viewport.scale,
-    })
-  }, [
-    focusNodeId,
-    selection,
-    state.nodes,
-    selection.selectedNodeIds,
-    selection.focus,
-    selection.setSelection,
-    selection.setFocus,
-    containerSize,
-    viewport.scale,
-    setViewport,
-  ])
-
-  // Observe container size.
-  useEffect(() => {
-    const el = viewportContainerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        })
-      }
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  // Ephemeral text editor state (text tool click before commit).
-  const [pendingText, setPendingText] = useState<{
-    x: number
-    y: number
-  } | null>(null)
-  const pendingTextRef = useRef<HTMLDivElement | null>(null)
-
-  const handlePendingTextCommit = useCallback(
-    (content: string) => {
-      if (!pendingText) return
-      const el = pendingTextRef.current
-      const id = generateNodeId()
-      const w = el
-        ? Math.max(el.scrollWidth + 4, DEFAULT_TEXT_NODE_WIDTH)
-        : DEFAULT_TEXT_NODE_WIDTH
-      const h = el
-        ? Math.max(el.scrollHeight + 4, MIN_TEXT_NODE_HEIGHT)
-        : MIN_TEXT_NODE_HEIGHT
-      const node: CanvasNodeData = {
-        id,
-        x: pendingText.x - w / 2,
-        y: pendingText.y - h / 2,
-        width: w,
-        height: h,
-        zIndex: 0,
-        type: 'text',
-        textContent: content,
-      }
-      callbacks.onNodesChange?.(new Map([[id, node]]))
-      selection.toggleSelect(id, false)
-      setPendingText(null)
-    },
-    [pendingText, callbacks, selection],
+  const view = useMemo(
+    () => ({ scale: viewport.scale, setViewport }),
+    [viewport.scale, setViewport],
   )
+  const containerSize = useContainerSize(viewportContainerRef)
+  useFocusNode({
+    focusNodeId,
+    nodes: state.nodes,
+    selection,
+    view,
+    containerSize,
+  })
 
-  const handlePendingTextCancel = useCallback(() => {
-    setPendingText(null)
-  }, [])
-
-  // Local node overrides during drag (not persisted until drop).
-  const [dragOffsets, setDragOffsets] = useState<Map<
-    string,
-    { dx: number; dy: number }
-  > | null>(null)
-
-  // Merge server state with local drag offsets.
-  const effectiveNodes = useMemo(() => {
-    if (!dragOffsets) return state.nodes
-    const merged = new Map(state.nodes)
-    for (const [id, offset] of dragOffsets) {
-      const n = merged.get(id)
-      if (n) {
-        merged.set(id, { ...n, x: n.x + offset.dx, y: n.y + offset.dy })
-      }
-    }
-    return merged
-  }, [state.nodes, dragOffsets])
-
+  const {
+    pendingText,
+    pendingTextRef,
+    setPendingText,
+    commitPendingText,
+    cancelPendingText,
+  } = usePendingText(callbacks, selection)
+  const { effectiveNodes, cancelDrag, handleNodeMove, handleNodeMoveEnd } =
+    useNodeDrag(state.nodes, selection, callbacks)
   const visibleNodeIds = useVisibleNodes(
     effectiveNodes,
     viewport,
     containerSize,
   )
 
-  const cancelDrag = useCallback(() => {
-    setDragOffsets(null)
-  }, [])
-
-  const onToolChange = toolProp === undefined ? setToolInternal : undefined
   const { actions, moveSelected } = useCanvasActions({
     selection,
     nodes: state.nodes,
@@ -273,193 +875,40 @@ export function Canvas({
     callbacks.onNodeSelect?.(selection.selectedNodeIds)
   }, [selection.selectedNodeIds, callbacks])
 
-  const handleNodeMove = useCallback(
-    (id: string, dx: number, dy: number) => {
-      // Accumulate local drag offsets without firing RPC.
-      const idsToMove = selection.selectedNodeIds.has(id)
-        ? selection.selectedNodeIds
-        : new Set([id])
-
-      setDragOffsets((prev) => {
-        const next = new Map(prev ?? [])
-        for (const moveId of idsToMove) {
-          const existing = next.get(moveId) ?? { dx: 0, dy: 0 }
-          next.set(moveId, { dx: existing.dx + dx, dy: existing.dy + dy })
-        }
-        return next
-      })
-    },
-    [selection.selectedNodeIds],
-  )
-
-  const handleNodeMoveEnd = useCallback(() => {
-    if (!dragOffsets || dragOffsets.size === 0) return
-
-    // Apply accumulated offsets and persist via callback.
-    const next = new Map<
-      string,
-      typeof state.nodes extends Map<string, infer V> ? V : never
-    >()
-    for (const [id, offset] of dragOffsets) {
-      const n = state.nodes.get(id)
-      if (n) {
-        next.set(id, { ...n, x: n.x + offset.dx, y: n.y + offset.dy })
-      }
-    }
-    setDragOffsets(null)
-    if (next.size > 0) {
-      callbacks.onNodesChange?.(next)
-    }
-  }, [dragOffsets, state, callbacks])
-
   const handleNodeResize = useCallback(
-    (id: string, resized: import('./types.js').CanvasNodeData) => {
+    (id: string, resized: CanvasNodeData) => {
       callbacks.onNodesChange?.(new Map([[id, resized]]))
     },
     [callbacks],
   )
 
-  // screenToCanvas converts screen-relative coords to canvas space.
-  const screenToCanvas = useCallback(
-    (sx: number, sy: number) => ({
-      x: (sx - viewport.x) / viewport.scale,
-      y: (sy - viewport.y) / viewport.scale,
-    }),
-    [viewport],
-  )
-
-  const getViewportCenterCanvasPosition = useCallback(() => {
-    const rect = viewportContainerRef.current?.getBoundingClientRect()
-    if (!rect) {
-      return { x: 0, y: 0 }
-    }
-    return screenToCanvas(rect.width / 2, rect.height / 2)
-  }, [screenToCanvas])
-
-  const addTextAt = useCallback(
-    (point?: { x: number; y: number }) => {
-      const nextPoint = point ?? getViewportCenterCanvasPosition()
-      setPendingText(nextPoint)
-      setToolInternal('select')
+  const startPendingText = useCallback(
+    (point: Point) => {
+      setPendingText(point)
+      selectTool()
     },
-    [getViewportCenterCanvasPosition],
+    [setPendingText, selectTool],
   )
-
-  const resolvePendingObjectInsertPoint = useCallback(() => {
-    const pending = pendingObjectInsertRef.current
-    pendingObjectInsertRef.current = null
-    if (!pending) {
-      return getViewportCenterCanvasPosition()
-    }
-    if (Date.now() - pending.createdAt > PENDING_OBJECT_INSERT_TTL_MS) {
-      return getViewportCenterCanvasPosition()
-    }
-    return { x: pending.x, y: pending.y }
-  }, [getViewportCenterCanvasPosition])
-
-  const addObjectAt = useCallback(
-    (objectKey: string) => {
-      const point = resolvePendingObjectInsertPoint()
-      callbacks.onPinObject?.(objectKey, point.x, point.y)
-    },
-    [callbacks, resolvePendingObjectInsertPoint],
+  const { clientToCanvas, getViewportCenter } = useCanvasCoords(
+    viewportContainerRef,
+    viewport,
   )
-
-  const addImageAt = useCallback(
-    (path: string) => {
-      if (!imageObjectKey) return
-      const point = getViewportCenterCanvasPosition()
-      const id = generateNodeId()
-      callbacks.onNodesChange?.(
-        new Map([
-          [
-            id,
-            {
-              id,
-              x: point.x - 200,
-              y: point.y - 150,
-              width: 400,
-              height: 300,
-              zIndex: 0,
-              type: 'world_object',
-              objectKey: imageObjectKey,
-              viewPath: path,
-              pinned: true,
-            },
-          ],
-        ]),
-      )
-      selection.toggleSelect(id, false)
-    },
-    [callbacks, getViewportCenterCanvasPosition, imageObjectKey, selection],
-  )
-
-  const [contextMenuState, setContextMenuState] = useState<{
-    position: { x: number; y: number }
-    canvasPosition: { x: number; y: number }
-  } | null>(null)
-
-  const closeContextMenu = useCallback(() => {
-    setContextMenuState(null)
-  }, [])
-
+  const {
+    addTextAt,
+    addObjectAt,
+    addImageAt,
+    requestObjectPicker,
+    requestImagePicker,
+  } = useCanvasInsertion({
+    callbacks,
+    selection,
+    imageObjectKey,
+    getViewportCenter,
+    startPendingText,
+  })
   const handleCommandAddText = useCallback(() => {
     addTextAt()
   }, [addTextAt])
-
-  const handleContextMenuPaste = useCallback(() => {
-    closeContextMenu()
-    actions.paste()
-  }, [closeContextMenu, actions])
-
-  const handleContextMenuAddText = useCallback(() => {
-    const point = lastContextMenuCanvasPositionRef.current
-    if (!point) return
-    lastContextMenuCanvasPositionRef.current = null
-    closeContextMenu()
-    addTextAt(point)
-  }, [closeContextMenu, addTextAt])
-
-  const handleContextMenuAddObject = useCallback(() => {
-    const point = lastContextMenuCanvasPositionRef.current
-    if (!point) return
-    lastContextMenuCanvasPositionRef.current = null
-    pendingObjectInsertRef.current = {
-      ...point,
-      createdAt: Date.now(),
-    }
-    closeContextMenu()
-    openCommand('canvas.add-object')
-  }, [closeContextMenu, openCommand])
-
-  // handleToolbarAddObject opens the object picker without a pinned position
-  // so the chosen object lands at the current viewport center.
-  const handleToolbarAddObject = useCallback(() => {
-    pendingObjectInsertRef.current = null
-    openCommand('canvas.add-object')
-  }, [openCommand])
-
-  const handleToolbarAddImage = useCallback(() => {
-    openCommand('canvas.add-image')
-  }, [openCommand])
-
-  const canAddObject = !!callbacks.onPinObject && !!objectSubItems
-  const canAddImage = !!imageObjectKey && !!imageSubItems
-
-  const handleContextMenuFitView = useCallback(() => {
-    closeContextMenu()
-    actions['fit-view']()
-  }, [closeContextMenu, actions])
-
-  const handleContextMenuZoomReset = useCallback(() => {
-    closeContextMenu()
-    actions['zoom-reset']()
-  }, [closeContextMenu, actions])
-
-  const handleContextMenuSelectAll = useCallback(() => {
-    closeContextMenu()
-    actions['select-all']()
-  }, [closeContextMenu, actions])
 
   useCanvasCommands({
     actions,
@@ -476,144 +925,45 @@ export function Canvas({
     addImageSubItems: imageSubItems,
   })
 
-  const handleBackgroundClick = useCallback(
-    (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (target.closest('[data-canvas-node]')) return
-
-      if (tool === 'text') {
-        const rect = viewportContainerRef.current?.getBoundingClientRect()
-        if (!rect) return
-        const pt = screenToCanvas(e.clientX - rect.left, e.clientY - rect.top)
-        setPendingText({ x: pt.x, y: pt.y })
-        setToolInternal('select')
-        return
-      }
-
-      selection.clearSelection()
+  const canAddObject = !!callbacks.onPinObject && !!objectSubItems
+  const canAddImage = !!imageObjectKey && !!imageSubItems
+  const { menuProps, closeContextMenu, handleBackgroundContextMenu } =
+    useCanvasContextMenu({
+      actions,
+      clientToCanvas,
+      addTextAt,
+      requestObjectPicker,
+    })
+  const { handleBackgroundClick, handleBackgroundKeyDown } = useBackgroundInput(
+    {
+      tool,
+      selection,
+      clientToCanvas,
+      startPendingText,
+      addTextAt: handleCommandAddText,
     },
-    [tool, selection, screenToCanvas],
   )
+  const objectDrag = useObjectDrag({
+    tool,
+    callbacks,
+    selection,
+    clientToCanvas,
+    selectTool,
+  })
 
-  const handleBackgroundContextMenu = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLElement
-      if (target.closest('[data-canvas-node]')) return
-      const rect = viewportContainerRef.current?.getBoundingClientRect()
-      if (!rect) return
-      e.preventDefault()
-      const canvasPosition = screenToCanvas(
-        e.clientX - rect.left,
-        e.clientY - rect.top,
-      )
-      lastContextMenuCanvasPositionRef.current = canvasPosition
-      setContextMenuState({
-        position: { x: e.clientX, y: e.clientY },
-        canvasPosition,
-      })
-    },
-    [screenToCanvas],
-  )
-
-  const handleBackgroundKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.currentTarget !== e.target) return
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        selection.clearSelection()
-        return
-      }
-      if (tool !== 'text') return
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      addTextAt()
-    },
-    [tool, selection, addTextAt],
-  )
-
-  // Object tool: drag on background to create a world_object node.
-  const objectDragRef = useRef<{ startX: number; startY: number } | null>(null)
-  const [objectDragRect, setObjectDragRect] = useState<{
-    x: number
-    y: number
-    w: number
-    h: number
-  } | null>(null)
-
+  const { handlePointerDown: handleObjectPointerDown } = objectDrag
   const handleBackgroundPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (tool !== 'object') return
-      const target = e.target as HTMLElement
-      if (target.closest('[data-canvas-node]')) return
-      const rect = viewportContainerRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const pt = screenToCanvas(e.clientX - rect.left, e.clientY - rect.top)
-      objectDragRef.current = { startX: pt.x, startY: pt.y }
-      setObjectDragRect({ x: pt.x, y: pt.y, w: 0, h: 0 })
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-      e.preventDefault()
+      closeContextMenu()
+      handleObjectPointerDown(e)
     },
-    [tool, screenToCanvas],
+    [closeContextMenu, handleObjectPointerDown],
   )
 
-  const handleBackgroundPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!objectDragRef.current) return
-      const rect = viewportContainerRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const pt = screenToCanvas(e.clientX - rect.left, e.clientY - rect.top)
-      const sx = objectDragRef.current.startX
-      const sy = objectDragRef.current.startY
-      setObjectDragRect({
-        x: Math.min(sx, pt.x),
-        y: Math.min(sy, pt.y),
-        w: Math.abs(pt.x - sx),
-        h: Math.abs(pt.y - sy),
-      })
-    },
-    [screenToCanvas],
+  const nodeEntries = useMemo(
+    () => Array.from(effectiveNodes),
+    [effectiveNodes],
   )
-
-  const handleBackgroundPointerUp = useCallback(() => {
-    if (!objectDragRef.current || !objectDragRect) {
-      objectDragRef.current = null
-      setObjectDragRect(null)
-      return
-    }
-    objectDragRef.current = null
-    const r = objectDragRect
-    setObjectDragRect(null)
-    if (r.w < 20 || r.h < 20) return
-    const id = generateNodeId()
-    const node: CanvasNodeData = {
-      id,
-      x: r.x,
-      y: r.y,
-      width: r.w,
-      height: r.h,
-      zIndex: 0,
-      type: 'world_object',
-    }
-    callbacks.onNodesChange?.(new Map([[id, node]]))
-    selection.toggleSelect(id, false)
-    setToolInternal('select')
-  }, [objectDragRect, callbacks, selection])
-
-  // Transform and grid styles are initial values for React rendering.
-  // During gestures, useCanvasViewport applies these directly to the
-  // DOM via transformLayerRef/gridLayerRef for zero-cost panning.
-  const gridStyle = useMemo(() => computeGridStyle(viewport), [viewport])
-
-  const nodeEntries = useMemo(() => {
-    const entries: Array<{
-      id: string
-      node: typeof effectiveNodes extends Map<string, infer V> ? V : never
-    }> = []
-    for (const [id, node] of effectiveNodes) {
-      entries.push({ id, node })
-    }
-    return entries
-  }, [effectiveNodes])
 
   const handleStrokeComplete = useCallback(
     (node: CanvasNodeData) => {
@@ -622,15 +972,7 @@ export function Canvas({
     [callbacks],
   )
 
-  const drawingKind: CanvasGeometryKind | null =
-    tool === 'draw'
-      ? 'pen'
-      : tool === 'line' ||
-          tool === 'arrow' ||
-          tool === 'rectangle' ||
-          tool === 'ellipse'
-        ? tool
-        : null
+  const drawingKind = drawingKindFor(tool)
 
   return (
     <div className={cn('flex h-full outline-none', className)}>
@@ -640,8 +982,8 @@ export function Canvas({
         onToolChange={onToolChange ?? (() => {})}
         onColorChange={setDrawingColor}
         actions={actions}
-        onAddObject={canAddObject ? handleToolbarAddObject : undefined}
-        onAddImage={canAddImage ? handleToolbarAddImage : undefined}
+        onAddObject={canAddObject ? () => requestObjectPicker(null) : undefined}
+        onAddImage={canAddImage ? requestImagePicker : undefined}
       />
       <div
         ref={viewportContainerRef}
@@ -650,31 +992,17 @@ export function Canvas({
         aria-label="Canvas"
         className={cn(
           'relative flex-1 touch-none overflow-hidden bg-background-canvas outline-none',
-          tool === 'text' && 'cursor-crosshair',
-          tool === 'object' && 'cursor-crosshair',
+          (tool === 'text' || tool === 'object') && 'cursor-crosshair',
         )}
         onClick={handleBackgroundClick}
         onContextMenu={handleBackgroundContextMenu}
-        onPointerDown={(e) => {
-          setContextMenuState(null)
-          handleBackgroundPointerDown(e)
-        }}
-        onPointerMove={handleBackgroundPointerMove}
-        onPointerUp={handleBackgroundPointerUp}
+        onPointerDown={handleBackgroundPointerDown}
+        onPointerMove={objectDrag.handlePointerMove}
+        onPointerUp={objectDrag.handlePointerUp}
         onKeyDown={handleBackgroundKeyDown}
         tabIndex={0}
       >
-        <div
-          ref={gridLayerRef}
-          className="canvas-grid pointer-events-none absolute inset-0"
-          style={{
-            '--canvas-grid-color': gridStyle.backgroundColor,
-            '--canvas-grid-image': gridStyle.backgroundImage,
-            '--canvas-grid-size': gridStyle.backgroundSize,
-            '--canvas-grid-position': gridStyle.backgroundPosition,
-            '--canvas-grid-opacity': gridStyle.opacity,
-          }}
-        />
+        <CanvasGridLayer viewport={viewport} layerRef={gridLayerRef} />
         {/* Gesture layer for viewport pan/drag-select. Sits below the
             transform layer so canvas nodes receive pointer events directly
             without viewport gesture interference. */}
@@ -693,7 +1021,7 @@ export function Canvas({
             nodes={effectiveNodes}
             callbacks={callbacks}
           />
-          {nodeEntries.map(({ id, node }) => (
+          {nodeEntries.map(([id, node]) => (
             <CanvasNode
               key={id}
               node={node}
@@ -709,26 +1037,12 @@ export function Canvas({
             />
           ))}
           {pendingText && (
-            <div
-              role="presentation"
-              ref={pendingTextRef}
-              style={{
-                '--canvas-pending-left': `${pendingText.x - DEFAULT_TEXT_NODE_WIDTH / 2}px`,
-                '--canvas-pending-top': `${pendingText.y - MIN_TEXT_NODE_HEIGHT / 2}px`,
-                '--canvas-pending-width': `${DEFAULT_TEXT_NODE_WIDTH}px`,
-                '--canvas-pending-min-height': `${MIN_TEXT_NODE_HEIGHT}px`,
-              }}
-              className="canvas-pending-text bg-background-card/30 text-card-foreground pointer-events-auto rounded-lg backdrop-blur-sm"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <CanvasTextNode
-                content=""
-                autoEdit
-                onChange={handlePendingTextCommit}
-                onCancel={handlePendingTextCancel}
-              />
-            </div>
+            <CanvasPendingText
+              pendingText={pendingText}
+              innerRef={pendingTextRef}
+              onCommit={commitPendingText}
+              onCancel={cancelPendingText}
+            />
           )}
         </div>
         <CanvasDrawingLayer
@@ -738,52 +1052,25 @@ export function Canvas({
           color={drawingColor}
           onStrokeComplete={handleStrokeComplete}
         />
-        {objectDragRect && (
-          <div
-            className="canvas-drag-rectangle border-brand/30 bg-brand/5 pointer-events-none absolute rounded-lg border border-dashed"
-            style={{
-              '--canvas-drag-left': `${objectDragRect.x * viewport.scale + viewport.x}px`,
-              '--canvas-drag-top': `${objectDragRect.y * viewport.scale + viewport.y}px`,
-              '--canvas-drag-width': `${objectDragRect.w * viewport.scale}px`,
-              '--canvas-drag-height': `${objectDragRect.h * viewport.scale}px`,
-            }}
+        {objectDrag.dragRect && (
+          <CanvasObjectDragRect
+            rect={objectDrag.dragRect}
+            viewport={viewport}
           />
         )}
         <CanvasSelectionOverlay dragRect={selection.dragRect} />
-        <CanvasMinimap
+        <CanvasMinimapPanel
           nodes={state.nodes}
           viewport={viewport}
           containerSize={containerSize}
           onViewportChange={setViewport}
-          width={
-            containerSize.width >= XL_BREAKPOINT
-              ? DEFAULT_MINIMAP_WIDTH
-              : DEFAULT_MINIMAP_WIDTH / 2
-          }
-          height={
-            containerSize.width >= XL_BREAKPOINT
-              ? DEFAULT_MINIMAP_HEIGHT
-              : DEFAULT_MINIMAP_HEIGHT / 2
-          }
         />
         <CanvasScaleIndicator scale={viewport.scale} />
         {pendingMutations !== undefined && (
           <CanvasSyncStatus pending={pendingMutations} />
         )}
       </div>
-      <CanvasContextMenu
-        state={
-          contextMenuState ? { position: contextMenuState.position } : null
-        }
-        canAddObject={canAddObject}
-        onClose={closeContextMenu}
-        onPaste={handleContextMenuPaste}
-        onAddText={handleContextMenuAddText}
-        onAddObject={handleContextMenuAddObject}
-        onFitView={handleContextMenuFitView}
-        onZoomReset={handleContextMenuZoomReset}
-        onSelectAll={handleContextMenuSelectAll}
-      />
+      <CanvasContextMenu canAddObject={canAddObject} {...menuProps} />
     </div>
   )
 }

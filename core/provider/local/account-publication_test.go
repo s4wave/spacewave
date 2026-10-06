@@ -14,14 +14,17 @@ import (
 )
 
 func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
+	// Use the test context for publication and discovery.
 	ctx := t.Context()
 
+	// Open a testbed and release it when the test returns.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
 
+	// Load the session controller beside the local provider factory.
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	_, sessCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
@@ -32,6 +35,7 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 	}
 	defer sessCtrlRef.Release()
 
+	// Load the local provider controller.
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&Config{
 		ProviderId: ProviderID,
 		PeerId:     tb.Volume.GetPeerID().String(),
@@ -42,12 +46,14 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 	}
 	defer provCtrlRef.Release()
 
+	// Look up the local provider and release it on return.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, ProviderID, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer provRef.Release()
 
+	// Hold linked-cloud discovery until the test releases it.
 	localProv := prov.(*Provider)
 	discoveryStarted := make(chan struct{})
 	discoveryRelease := make(chan struct{})
@@ -65,6 +71,7 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 		}
 	}
 
+	// Access the account while discovery is still blocked.
 	type accessResult struct {
 		acc *ProviderAccount
 		rel func()
@@ -83,12 +90,14 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 		}
 	}()
 
+	// Require discovery to start before account access returns.
 	select {
 	case <-discoveryStarted:
 	case <-time.After(5 * time.Second):
 		t.Fatal("linked-cloud discovery did not start")
 	}
 
+	// Require account access to finish without waiting for discovery.
 	var result accessResult
 	select {
 	case result = <-resultCh:
@@ -100,10 +109,12 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 	}
 	defer result.rel()
 
+	// Require the cloud sync state to stay empty while discovery is blocked.
 	if state := result.acc.accountSettingsCloudSync.GetState(); state != "" {
 		t.Fatalf("linked cloud state before discovery release = %q, want empty", state)
 	}
 
+	// Bound the mount and build the local session reference.
 	mountCtx, mountCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer mountCancel()
 	localSessRef := &session.SessionRef{
@@ -113,6 +124,8 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 			ProviderId:        ProviderID,
 		},
 	}
+
+	// Register the session and resolve it by index.
 	sessCtrl, sessCtrlLookupRef, err := session.ExLookupSessionController(mountCtx, tb.Bus, "", false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -133,6 +146,8 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 	if indexedEntry == nil {
 		t.Fatalf("session index %d did not resolve", entry.GetSessionIndex())
 	}
+
+	// Mount the indexed session and require its id.
 	sess, sessRef, err := session.ExMountSession(mountCtx, tb.Bus, indexedEntry.GetSessionRef(), false, nil)
 	if err != nil {
 		t.Fatalf("mount indexed session while linked-cloud discovery is blocked: %v", err)
@@ -142,6 +157,7 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 		t.Fatalf("mounted session id = %q, want local-session-123", got)
 	}
 
+	// Release discovery and wait until the loader finishes.
 	close(discoveryRelease)
 	select {
 	case <-discoveryDone:
@@ -149,6 +165,7 @@ func TestProviderAccountPublishesBeforeLinkedCloudDiscovery(t *testing.T) {
 		t.Fatal("linked-cloud discovery did not finish")
 	}
 
+	// Wait until the account records the discovered cloud account.
 	deadline := time.After(5 * time.Second)
 	for {
 		if state := result.acc.accountSettingsCloudSync.GetState(); state == "cloud-account-123" {

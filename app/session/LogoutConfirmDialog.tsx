@@ -34,6 +34,7 @@ export function LogoutConfirmDialog({
         </DialogHeader>
         <DialogFooter>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             disabled={loggingOut}
             className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
@@ -41,6 +42,7 @@ export function LogoutConfirmDialog({
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={loggingOut}
             className={cn(

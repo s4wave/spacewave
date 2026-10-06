@@ -36,9 +36,11 @@ type signalingServer struct {
 }
 
 func newSignalingServer() *signalingServer {
+	// Build the signaling server and its ticket and websocket handlers.
 	s := &signalingServer{wsAccepted: make(chan struct{}, 1)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/signal/ticket", func(w http.ResponseWriter, r *http.Request) {
+		// Record the first POST ticket and answer with a test token.
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -59,6 +61,7 @@ func newSignalingServer() *signalingServer {
 		_, _ = w.Write(data)
 	})
 	mux.HandleFunc("/api/signal/ws", func(w http.ResponseWriter, r *http.Request) {
+		// Accept the websocket and hold it until the client closes.
 		conn, err := websocket.Accept(w, r, nil)
 		if err != nil {
 			return
@@ -103,12 +106,14 @@ func awaitReadySessionTransport(ctx context.Context, t *testing.T, acc *provider
 // signaling endpoint delays neither the Session mount nor its transport. The
 // ticket request stalls for the whole test.
 func TestStandaloneSessionMountsWithStalledSignaling(t *testing.T) {
+	// Skip the browser runtime and bound the stalled-signaling test.
 	if runtime.GOOS == "js" {
 		t.Skip("stalled signaling test requires a native HTTP server")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
+	// Start a signaling server that never answers the ticket request.
 	ticketStarted := make(chan struct{}, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
@@ -119,9 +124,11 @@ func TestStandaloneSessionMountsWithStalledSignaling(t *testing.T) {
 	}))
 	defer server.Close()
 
+	// Start a local account against the stalled signaling URL.
 	_, _, acc, _, release := setupProviderAndSession(ctx, t, server.URL)
 	defer release()
 
+	// Require the ticket request and a ready session transport.
 	select {
 	case <-ticketStarted:
 	case <-ctx.Done():
@@ -144,6 +151,7 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 	}
 	for _, prefix := range []string{"", "spacewave-staging"} {
 		t.Run("prefix="+prefix, func(t *testing.T) {
+			// Bound the signaling subtest.
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			defer cancel()
 
@@ -169,9 +177,11 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 			sig := newSignalingServer()
 			defer sig.server.Close()
 
+			// Start a local account against the signaling server.
 			_, _, acc, sess, release := setupProviderAndSession(ctx, t, sig.server.URL, prefix)
 			defer release()
 
+			// Wait until the session transport connects to the signaling websocket.
 			awaitReadySessionTransport(ctx, t, acc)
 			select {
 			case <-sig.wsAccepted:
@@ -179,6 +189,7 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 				t.Fatal("session transport did not connect to the signaling WebSocket")
 			}
 
+			// Require the ticket to name the session peer and parse its timestamp.
 			req := sig.first.Load()
 			if want := sess.GetPeerId().String(); req.peerID != want {
 				t.Fatalf("ticket request peer ID = %q, want session peer %s", req.peerID, want)
@@ -191,6 +202,8 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 			if wantPrefix == "" {
 				wantPrefix = "spacewave"
 			}
+
+			// Build the signing payload the ticket must have signed.
 			payload, err := (&api.SigningPayload{
 				EnvPrefix:     wantPrefix,
 				Method:        http.MethodPost,
@@ -202,6 +215,8 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 			if err != nil {
 				t.Fatalf("marshal signing payload: %v", err)
 			}
+
+			// Verify the ticket signature with the session public key.
 			pub, err := sess.GetPeerId().ExtractPublicKey()
 			if err != nil {
 				t.Fatalf("extract session public key: %v", err)

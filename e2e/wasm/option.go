@@ -253,6 +253,7 @@ func ResolveE2EWasmWorkerMode(explicit WorkerMode) (WorkerMode, error) {
 // ResolveE2EWasmManifestBuildTimeout resolves the startup Manifest build wait
 // for local harness runs.
 func ResolveE2EWasmManifestBuildTimeout(defaultTimeout time.Duration) (time.Duration, error) {
+	// Parse the manifest build timeout, or use the default when unset.
 	raw := strings.TrimSpace(os.Getenv(E2EWasmManifestBuildTimeoutEnv))
 	if raw == "" {
 		return defaultTimeout, nil
@@ -270,6 +271,7 @@ func ResolveE2EWasmManifestBuildTimeout(defaultTimeout time.Duration) (time.Dura
 // ApplyE2EWasmTinyGoCompilerEnv applies the local TinyGo profile to Bldr's
 // TinyGo compiler env before the startup Manifest builder runs.
 func ApplyE2EWasmTinyGoCompilerEnv() error {
+	// Choose the TinyGo profile and publish it to the compiler.
 	profile := strings.TrimSpace(os.Getenv(E2EWasmTinyGoProfileEnv))
 	if profile == "" {
 		profile = strings.TrimSpace(os.Getenv(gocompiler.TinyGoProfileEnv))
@@ -281,6 +283,7 @@ func ApplyE2EWasmTinyGoCompilerEnv() error {
 		return errors.Wrap(err, "set TinyGo profile")
 	}
 
+	// Copy optional TinyGo flags and validate the resulting arguments.
 	if err := copyOptionalTinyGoEnv(E2EWasmTinyGoOptEnv, gocompiler.TinyGoOptEnv); err != nil {
 		return err
 	}
@@ -305,6 +308,7 @@ func ApplyE2EWasmTinyGoCompilerEnv() error {
 		return err
 	}
 
+	// Reject a profile the compiler cannot turn into TinyGo arguments.
 	if _, err := gocompiler.GetDefaultTinygoArgs(); err != nil {
 		return err
 	}
@@ -418,9 +422,12 @@ func ConfigureGoScriptForManifest(manifestID string) func(*bldr_project.ProjectC
 // ConfigureGoScriptBrowserStartup makes the local GoScript e2e lane cover the
 // same browser Go plugin startup surface as the staging GoScript release.
 func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
+	// Override the launcher manifest for the release-web-e2e build.
 	if err := applyBuildManifestOverride(conf, "release-web-e2e", "spacewave-launcher"); err != nil {
 		return err
 	}
+
+	// Resolve whether the e2e build emits source maps.
 	build := conf.GetBuild()["release-web-e2e"]
 	sourceMapsEnabled, err := ResolveE2EWasmJSSourcemapsEnabled()
 	if err != nil {
@@ -430,6 +437,8 @@ func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
 	if sourceMapsEnabled {
 		sourceMaps = enabled.Enabled_ENABLE
 	}
+
+	// Apply the source-map policy and GoScript startup plugins.
 	build.BuildPolicy = build.GetBuildPolicy().Merge(manifest_build.NewBuildPolicy(
 		enabled.Enabled_ENABLE,
 		sourceMaps,
@@ -465,6 +474,7 @@ func updateGoPluginManifest(
 	update func(*bldr_plugin_compiler_go.Config) error,
 ) func(*bldr_project.ProjectConfig) error {
 	return func(conf *bldr_project.ProjectConfig) error {
+		// Require a Go builder on the manifest.
 		manifest := conf.GetManifests()[manifestID]
 		if manifest == nil {
 			return errors.Errorf("manifest %q not found", manifestID)
@@ -477,6 +487,7 @@ func updateGoPluginManifest(
 			return errors.Errorf("manifest %q builder is %q, want %q", manifestID, builder.GetId(), bldr_plugin_compiler_go.ConfigID)
 		}
 
+		// Decode the builder config and apply the update.
 		goConf := &bldr_plugin_compiler_go.Config{}
 		if data := builder.GetConfig(); len(data) != 0 {
 			if err := goConf.UnmarshalJSON(data); err != nil {
@@ -487,6 +498,7 @@ func updateGoPluginManifest(
 			return err
 		}
 
+		// Store the canonical builder config.
 		data, err := configjson.MarshalCanonical(goConf)
 		if err != nil {
 			return errors.Wrapf(err, "marshal %s builder config", manifestID)
@@ -497,6 +509,7 @@ func updateGoPluginManifest(
 }
 
 func applyBuildManifestOverride(conf *bldr_project.ProjectConfig, buildID, manifestID string) error {
+	// Require the build override, manifest, and builder.
 	build := conf.GetBuild()[buildID]
 	if build == nil {
 		return errors.Errorf("build %q not found", buildID)
@@ -513,6 +526,8 @@ func applyBuildManifestOverride(conf *bldr_project.ProjectConfig, buildID, manif
 	if builder == nil {
 		return errors.Errorf("manifest %q has no builder", manifestID)
 	}
+
+	// Copy the override config onto the builder.
 	builder.Config = append([]byte(nil), override.GetConfig()...)
 	return nil
 }
@@ -525,6 +540,7 @@ func setStartupPlugins(conf *bldr_project.ProjectConfig, plugins []string) {
 }
 
 func setWebGoCompiler(goConf *bldr_plugin_compiler_go.Config, mode bldr_plugin_compiler_go.GoCompiler) {
+	// Set the web platform Go compiler.
 	if goConf.PlatformTypes == nil {
 		goConf.PlatformTypes = make(map[string]*bldr_plugin_compiler_go.Config)
 	}
@@ -537,9 +553,11 @@ func setWebGoCompiler(goConf *bldr_plugin_compiler_go.Config, mode bldr_plugin_c
 }
 
 func removeDebugTraceConfig(goConf *bldr_plugin_compiler_go.Config) {
+	// Remove the debug trace package and config.
 	goConf.GoPkgs = removeGoPkg(goConf.GetGoPkgs(), "./core/debug/trace")
 	delete(goConf.ConfigSet, "debug-trace")
 
+	// Remove the debug trace package from the dev build type.
 	devConf := goConf.GetBuildTypes()["dev"]
 	if devConf == nil {
 		return

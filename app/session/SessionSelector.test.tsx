@@ -72,7 +72,9 @@ vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
 
 vi.mock('@s4wave/web/ui/button.js', () => ({
   Button: (props: { children?: ReactNode; onClick?: () => void }) => (
-    <button onClick={props.onClick}>{props.children}</button>
+    <button type="button" onClick={props.onClick}>
+      {props.children}
+    </button>
   ),
 }))
 

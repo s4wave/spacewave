@@ -35,12 +35,15 @@ afterEach(cleanup)
 describe('UsageBars', () => {
   it('shows accrued charges, available budget, and the subscription reset date', () => {
     render(<UsageBars />)
+    expect(screen.getByText('Accrued').nextSibling?.textContent).toBe('$2.00')
+    expect(screen.getByText('Available').nextSibling?.textContent).toBe('$8.00')
+    expect(screen.getByText('Maximum').nextSibling?.textContent).toBe(
+      '$19.00before tax',
+    )
+    expect(screen.getByText(/Spending resets/)).toBeDefined()
     expect(
-      screen.getByText(/Accrued: \$2.00 · Available: \$8.00/),
+      screen.getByText(/\$10.00 monthly limit · \$0.03 per GiB-month/),
     ).toBeDefined()
-    expect(screen.getByText(/Subscription period:/)).toBeDefined()
-    expect(screen.getByText(/Service maximum: \$19.00/)).toBeDefined()
-    expect(screen.getByText(/\$0.03 per GiB-month/)).toBeDefined()
     expect(screen.getByText(/Reads and writes are not billed/)).toBeDefined()
   })
 

@@ -24,6 +24,7 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
         <div role="tablist">
           {tabs?.map((tab) => (
             <button
+              type="button"
               key={tab.id}
               role="tab"
               aria-selected={activeTab === tab.id}

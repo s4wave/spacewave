@@ -107,7 +107,7 @@ export function BlogReadingView({
         {allTags.length > 0 && (
           <div className="mb-6 flex flex-wrap items-center gap-2">
             {allTags.map((tag) => (
-              <button
+              <button type="button"
                 key={tag}
                 onClick={() => handleSelectTag(tag)}
                 className={cn(
@@ -121,7 +121,7 @@ export function BlogReadingView({
               </button>
             ))}
             {tagFilter && (
-              <button
+              <button type="button"
                 onClick={handleClearFilter}
                 className="text-foreground-alt/50 hover:text-foreground flex items-center gap-1 text-xs transition-colors"
               >

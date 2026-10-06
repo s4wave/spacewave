@@ -50,6 +50,7 @@ export function WindowFrame(props: IWindowFrameProps) {
   if (props.onClose) {
     buttons.push(
       <button
+        type="button"
         key="close"
         title="Close Window"
         onClick={props.onClose}

@@ -247,6 +247,7 @@ function AddEmailForm({
         type="email"
         autoComplete="email"
         placeholder="you@example.com"
+        aria-label="Email address"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
@@ -338,19 +339,7 @@ function EmailRow({
   const addr = email.email ?? ''
   const verified = email.verified ?? false
   const primary = email.primary ?? false
-  const source = email.source ?? ''
-  const lastVerified = verified && verifiedCount <= 1
-  const canRemove = !primary && !lastVerified
-  const removeReason = primary
-    ? 'Primary email cannot be removed'
-    : lastVerified
-      ? 'Cannot remove the only verified email'
-      : null
   const canSetPrimary = verified && !primary
-  const busy = removing || sendingCode || verifyingCode || settingPrimary
-  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
-    node?.focus()
-  }, [])
 
   return (
     <div
@@ -358,168 +347,304 @@ function EmailRow({
       className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border"
     >
       <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div
-            className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-md',
-              verified ? 'bg-brand/10' : 'bg-foreground/5',
-            )}
-          >
-            {verified ? (
-              <LuCheck className="text-brand size-4" />
-            ) : (
-              <LuMail className="text-foreground-alt size-4" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className="text-foreground truncate text-sm font-medium">
-                {addr}
-              </p>
-              {primary && (
-                <span className="border-brand/30 bg-brand/10 text-brand micro-fine inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-semibold tracking-widest uppercase select-none">
-                  <LuStar className="size-2.5" />
-                  Primary
-                </span>
-              )}
-            </div>
-            <div className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
-              <span>{verified ? 'Verified' : 'Not yet verified'}</span>
-              {source && (
-                <>
-                  <span aria-hidden className="opacity-40">
-                    &middot;
-                  </span>
-                  <span className="font-mono">{source}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {!verified && (
-            <DashboardButton
-              icon={
-                sendingCode ? (
-                  <Spinner size="sm" />
-                ) : (
-                  <LuSend className="size-3" />
-                )
-              }
-              disabled={busy || retryAfter > 0}
-              onClick={() => void onSendCode(addr)}
-            >
-              {sendingCode
-                ? 'Sending…'
-                : retryAfter > 0
-                  ? retryAfter + 's'
-                  : 'Send code'}
-            </DashboardButton>
-          )}
-          {canSetPrimary && !primaryConfirmOpen && (
-            <DashboardButton
-              icon={<LuStar className="size-3" />}
-              disabled={busy}
-              onClick={onRequestPrimary}
-            >
-              Set primary
-            </DashboardButton>
-          )}
-          <RemoveAction
-            canRemove={canRemove}
-            removing={removing}
-            reason={removeReason}
-            onRemove={() => onRemove(addr)}
-          />
-        </div>
+        <EmailIdentity
+          addr={addr}
+          verified={verified}
+          primary={primary}
+          source={email.source ?? ''}
+        />
+        <EmailRowActions
+          addr={addr}
+          verified={verified}
+          primary={primary}
+          verifiedCount={verifiedCount}
+          removing={removing}
+          sendingCode={sendingCode}
+          verifyingCode={verifyingCode}
+          retryAfter={retryAfter}
+          settingPrimary={settingPrimary}
+          showSetPrimary={canSetPrimary && !primaryConfirmOpen}
+          onSendCode={onSendCode}
+          onRemove={onRemove}
+          onRequestPrimary={onRequestPrimary}
+        />
       </div>
       {canSetPrimary && primaryConfirmOpen && (
-        <div className="border-brand/20 bg-brand/5 space-y-2 border-t px-3 py-2.5">
-          <p className="text-foreground-alt text-xs leading-relaxed">
-            Make <strong className="text-foreground">{addr}</strong> the primary
-            email for billing and notifications?
-          </p>
-          <div className="flex items-center justify-end gap-1.5">
-            <DashboardButton
-              icon={<LuX className="size-3" />}
-              onClick={onCancelPrimary}
-              disabled={settingPrimary}
-            >
-              Cancel
-            </DashboardButton>
-            <DashboardButton
-              icon={
-                settingPrimary ? (
-                  <Spinner size="sm" />
-                ) : (
-                  <LuStar className="size-3" />
-                )
-              }
-              variant="primary"
-              disabled={settingPrimary}
-              onClick={() => void onSetPrimary(addr)}
-            >
-              {settingPrimary ? 'Updating…' : 'Set as primary'}
-            </DashboardButton>
-          </div>
-        </div>
+        <PrimaryConfirmPanel
+          addr={addr}
+          settingPrimary={settingPrimary}
+          onCancel={onCancelPrimary}
+          onSetPrimary={onSetPrimary}
+        />
       )}
       {verifying && !verified && (
-        <div className="border-foreground/6 space-y-3 border-t p-3">
-          <p className="text-foreground-alt text-xs leading-relaxed">
-            We sent a 6-digit code to{' '}
-            <strong className="text-foreground">{addr}</strong>. Check your
-            inbox and enter it below.
-          </p>
-          <input
-            ref={handleCodeInputRef}
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="000000"
-            value={code}
-            onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ''))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                void onVerifyCode()
-              }
-            }}
-            className={cn(
-              inputClass,
-              'text-center font-mono text-base tracking-brand-extra-wide',
-            )}
-            aria-label={'Verification code for ' + addr}
-          />
-          <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => void onSendCode(addr)}
-              disabled={sendingCode || verifyingCode || retryAfter > 0}
-              className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
-            >
-              {sendingCode
-                ? 'Sending…'
-                : retryAfter > 0
-                  ? 'Resend in ' + retryAfter + 's'
-                  : "Didn't get it? Send again"}
-            </button>
-            <DashboardButton
-              icon={
-                verifyingCode ? (
-                  <Spinner size="sm" />
-                ) : (
-                  <LuArrowRight className="size-3" />
-                )
-              }
-              disabled={verifyingCode || code.length !== 6}
-              onClick={() => void onVerifyCode()}
-            >
-              {verifyingCode ? 'Verifying…' : 'Verify email'}
-            </DashboardButton>
-          </div>
-        </div>
+        <VerifyCodePanel
+          addr={addr}
+          code={code}
+          sendingCode={sendingCode}
+          verifyingCode={verifyingCode}
+          retryAfter={retryAfter}
+          onCodeChange={onCodeChange}
+          onSendCode={onSendCode}
+          onVerifyCode={onVerifyCode}
+        />
       )}
+    </div>
+  )
+}
+
+// EmailIdentity renders an email's address, verification state, primary badge,
+// and source.
+function EmailIdentity({
+  addr,
+  verified,
+  primary,
+  source,
+}: {
+  addr: string
+  verified: boolean
+  primary: boolean
+  source: string
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center rounded-md',
+          verified ? 'bg-brand/10' : 'bg-foreground/5',
+        )}
+      >
+        {verified ? (
+          <LuCheck className="text-brand size-4" />
+        ) : (
+          <LuMail className="text-foreground-alt size-4" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <p className="text-foreground truncate text-sm font-medium">{addr}</p>
+          {primary && (
+            <span className="border-brand/30 bg-brand/10 text-brand micro-fine inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-semibold tracking-widest uppercase select-none">
+              <LuStar className="size-2.5" />
+              Primary
+            </span>
+          )}
+        </div>
+        <div className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
+          <span>{verified ? 'Verified' : 'Not yet verified'}</span>
+          {source && (
+            <>
+              <span aria-hidden className="opacity-40">
+                &middot;
+              </span>
+              <span className="font-mono">{source}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// EmailRowActions renders the send-code, set-primary, and remove buttons of an
+// email row.
+function EmailRowActions({
+  addr,
+  verified,
+  primary,
+  verifiedCount,
+  removing,
+  sendingCode,
+  verifyingCode,
+  retryAfter,
+  settingPrimary,
+  showSetPrimary,
+  onSendCode,
+  onRemove,
+  onRequestPrimary,
+}: {
+  addr: string
+  verified: boolean
+  primary: boolean
+  verifiedCount: number
+  removing: boolean
+  sendingCode: boolean
+  verifyingCode: boolean
+  retryAfter: number
+  settingPrimary: boolean
+  showSetPrimary: boolean
+  onSendCode: (email: string) => Promise<unknown>
+  onRemove: (email: string) => Promise<unknown>
+  onRequestPrimary: () => void
+}) {
+  const lastVerified = verified && verifiedCount <= 1
+  const canRemove = !primary && !lastVerified
+  const removeReason = primary
+    ? 'Primary email cannot be removed'
+    : lastVerified
+      ? 'Cannot remove the only verified email'
+      : null
+  const busy = removing || sendingCode || verifyingCode || settingPrimary
+
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {!verified && (
+        <DashboardButton
+          icon={
+            sendingCode ? <Spinner size="sm" /> : <LuSend className="size-3" />
+          }
+          disabled={busy || retryAfter > 0}
+          onClick={() => void onSendCode(addr)}
+        >
+          {sendingCode
+            ? 'Sending…'
+            : retryAfter > 0
+              ? retryAfter + 's'
+              : 'Send code'}
+        </DashboardButton>
+      )}
+      {showSetPrimary && (
+        <DashboardButton
+          icon={<LuStar className="size-3" />}
+          disabled={busy}
+          onClick={onRequestPrimary}
+        >
+          Set primary
+        </DashboardButton>
+      )}
+      <RemoveAction
+        canRemove={canRemove}
+        removing={removing}
+        reason={removeReason}
+        onRemove={() => onRemove(addr)}
+      />
+    </div>
+  )
+}
+
+// PrimaryConfirmPanel asks the user to confirm making addr the primary email.
+function PrimaryConfirmPanel({
+  addr,
+  settingPrimary,
+  onCancel,
+  onSetPrimary,
+}: {
+  addr: string
+  settingPrimary: boolean
+  onCancel: () => void
+  onSetPrimary: (email: string) => Promise<unknown>
+}) {
+  return (
+    <div className="border-brand/20 bg-brand/5 space-y-2 border-t px-3 py-2.5">
+      <p className="text-foreground-alt text-xs leading-relaxed">
+        Make <strong className="text-foreground">{addr}</strong> the primary
+        email for billing and notifications?
+      </p>
+      <div className="flex items-center justify-end gap-1.5">
+        <DashboardButton
+          icon={<LuX className="size-3" />}
+          onClick={onCancel}
+          disabled={settingPrimary}
+        >
+          Cancel
+        </DashboardButton>
+        <DashboardButton
+          icon={
+            settingPrimary ? (
+              <Spinner size="sm" />
+            ) : (
+              <LuStar className="size-3" />
+            )
+          }
+          variant="primary"
+          disabled={settingPrimary}
+          onClick={() => void onSetPrimary(addr)}
+        >
+          {settingPrimary ? 'Updating…' : 'Set as primary'}
+        </DashboardButton>
+      </div>
+    </div>
+  )
+}
+
+// VerifyCodePanel collects the 6-digit verification code sent to addr.
+function VerifyCodePanel({
+  addr,
+  code,
+  sendingCode,
+  verifyingCode,
+  retryAfter,
+  onCodeChange,
+  onSendCode,
+  onVerifyCode,
+}: {
+  addr: string
+  code: string
+  sendingCode: boolean
+  verifyingCode: boolean
+  retryAfter: number
+  onCodeChange: (code: string) => void
+  onSendCode: (email: string) => Promise<unknown>
+  onVerifyCode: () => Promise<unknown>
+}) {
+  const handleCodeInputRef = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
+
+  return (
+    <div className="border-foreground/6 space-y-3 border-t p-3">
+      <p className="text-foreground-alt text-xs leading-relaxed">
+        We sent a 6-digit code to{' '}
+        <strong className="text-foreground">{addr}</strong>. Check your inbox
+        and enter it below.
+      </p>
+      <input
+        ref={handleCodeInputRef}
+        type="text"
+        inputMode="numeric"
+        maxLength={6}
+        placeholder="000000"
+        value={code}
+        onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ''))}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            void onVerifyCode()
+          }
+        }}
+        className={cn(
+          inputClass,
+          'text-center font-mono text-base tracking-brand-extra-wide',
+        )}
+        aria-label={'Verification code for ' + addr}
+      />
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => void onSendCode(addr)}
+          disabled={sendingCode || verifyingCode || retryAfter > 0}
+          className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
+        >
+          {sendingCode
+            ? 'Sending…'
+            : retryAfter > 0
+              ? 'Resend in ' + retryAfter + 's'
+              : "Didn't get it? Send again"}
+        </button>
+        <DashboardButton
+          icon={
+            verifyingCode ? (
+              <Spinner size="sm" />
+            ) : (
+              <LuArrowRight className="size-3" />
+            )
+          }
+          disabled={verifyingCode || code.length !== 6}
+          onClick={() => void onVerifyCode()}
+        >
+          {verifyingCode ? 'Verifying…' : 'Verify email'}
+        </DashboardButton>
+      </div>
     </div>
   )
 }

@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
-	"github.com/s4wave/spacewave/prototypes/s4db/s4db"
+	"github.com/s4wave/spacewave/db/s4db"
 )
 
 // engine opens one key-value engine in a directory.
@@ -49,6 +49,12 @@ type store interface {
 type syncer interface {
 	// Sync makes every earlier commit durable.
 	Sync(ctx context.Context) error
+}
+
+// compacter is a store that can return free space to the system.
+type compacter interface {
+	// Compact rewrites the store into the least space.
+	Compact(ctx context.Context) error
 }
 
 // workload is the generated key set and value sizes.
@@ -205,9 +211,9 @@ func main() {
 		syncStore(ctx, s)
 		written = ioWritten() - io0
 		fmt.Printf("rewrite     %8.2f s  disk %s  live %s  written %s\n", time.Since(start).Seconds(), mib(diskUsage(*dir)), mib(w.liveBytes()), mib(written))
-		if c, ok := s.(interface{ Compact() error }); ok {
+		if c, ok := s.(compacter); ok {
 			start = time.Now()
-			if err := c.Compact(); err != nil {
+			if err := c.Compact(ctx); err != nil {
 				panic(err)
 			}
 			fmt.Printf("compact     %8.2f s  disk %s\n", time.Since(start).Seconds(), mib(diskUsage(*dir)))

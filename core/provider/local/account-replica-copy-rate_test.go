@@ -25,12 +25,14 @@ const (
 // from its paired peer over DEX against a copy that reads the peer's volume in
 // process. It runs only when SPACEWAVE_COPY_RATE is set.
 func TestAccountReplicaCopyRate(t *testing.T) {
+	// Skip the rate measurement unless SPACEWAVE_COPY_RATE is set.
 	if os.Getenv("SPACEWAVE_COPY_RATE") == "" {
 		t.Skip("set SPACEWAVE_COPY_RATE to measure the replica copy rate")
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Second)
 	defer cancel()
 
+	// Start two accounts on one in-process network.
 	network := inproc.NewNetwork()
 	var accounts []*ProviderAccount
 	var sessions []*Session
@@ -45,6 +47,8 @@ func TestAccountReplicaCopyRate(t *testing.T) {
 		accounts = append(accounts, account)
 		sessions = append(sessions, sess)
 	}
+
+	// Create a space, enroll the replica, and wait for the first copy.
 	a := accounts[0]
 	spaceRef, err := a.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
 	if err != nil {
@@ -54,6 +58,7 @@ func TestAccountReplicaCopyRate(t *testing.T) {
 	b, _ := enrollMeshReplica(ctx, t, a, sessions[0], accounts[1], sessions[1])
 	waitReplicaCopy(ctx, t, b, spaceRef)
 
+	// Mount the source and the replica for the rate measurement.
 	source, releaseSource, err := a.MountSharedObject(ctx, spaceRef, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -68,12 +73,15 @@ func TestAccountReplicaCopyRate(t *testing.T) {
 	// Each run copies a fresh graph into the replica's volume the way
 	// RetainWorld does: batched writes, then a durability fence.
 	measure := func(name string, src block.StoreOps, reads int) float64 {
+		// Seed a fresh graph into a buffered destination store.
 		root, blocks := seedRateGraph(ctx, t, source.GetBlockStore(), fmt.Sprintf("%s-%d", name, reads))
 		dst := block.NewBufferedStoreWithSettings(ctx, replica.GetBlockStore(), &block.BufferedStoreSettings{
 			MaxPendingEntries: 1024,
 			MaxPendingBytes:   4 << 20,
 			DrainBatchEntries: 1024,
 		})
+
+		// Copy the graph, sync it, and return the block rate.
 		start := time.Now()
 		if err := block.CopyGraph(ctx, src, dst, root, &block.GraphCopyOptions{Reads: reads}); err != nil {
 			t.Fatalf("%s: %v", name, err)
@@ -87,6 +95,7 @@ func TestAccountReplicaCopyRate(t *testing.T) {
 		return rate
 	}
 
+	// Compare the local copy rate with DEX copies at several read widths.
 	local := measure("local", source.GetBlockStore(), 16)
 	for _, reads := range []int{1, 8, 32} {
 		rate := measure("dex", replica.GetBlockStore(), reads)
@@ -97,6 +106,7 @@ func TestAccountReplicaCopyRate(t *testing.T) {
 // seedRateGraph writes a tree of unique blocks with their edges and returns
 // its root and block count.
 func seedRateGraph(ctx context.Context, t *testing.T, store block.StoreOps, salt string) (*block.BlockRef, int) {
+	// Write the leaf blocks through the store.
 	t.Helper()
 	put := func(data []byte, refs []*block.BlockRef) *block.BlockRef {
 		ref, _, err := store.PutBlock(ctx, data, &block.PutOpts{Refs: refs})
@@ -111,6 +121,8 @@ func seedRateGraph(ctx context.Context, t *testing.T, store block.StoreOps, salt
 		copy(payload, fmt.Sprintf("%s leaf %d", salt, i))
 		level = append(level, put(payload, []*block.BlockRef{}))
 	}
+
+	// Fold the leaves into a tree and sync the store.
 	blocks := len(level)
 	for len(level) > 1 {
 		var parents []*block.BlockRef

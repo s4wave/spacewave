@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/no-giant-component */
 import {
   useCallback,
   useEffect,
@@ -128,23 +127,34 @@ function getOrgMemberSecondaryLabel(member: OrgMemberInfo): string {
   return ''
 }
 
-// AddUserDialog allows the space owner to share a space with other users.
-export function AddUserDialog({
-  open,
-  onOpenChange,
-  spaceId,
-  isCloudProvider = false,
-  orgId,
-  orgMembers,
-  orgMembersLoading,
-}: AddUserDialogProps) {
-  const session = useResourceValue(SessionContext.useContext())
-  const spaceContainer = SpaceContainerContext.useContextSafe()
+/** inputClass styles the read-only and text inputs of the invite tabs. */
+const inputClass = cn(
+  'border-foreground/10 bg-background-card/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm font-mono outline-none transition-colors duration-150',
+  'focus:border-foreground/30',
+)
+
+const actionButtonClass = cn(
+  'border-foreground/10 bg-background-card/20 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all duration-150',
+  'hover:border-foreground/12 hover:bg-background-card/50',
+  'disabled:cursor-not-allowed disabled:opacity-50',
+)
+
+const successActionClass = cn(
+  'border-success/30 bg-success/5 text-success',
+  'hover:border-success/40 hover:bg-success/10',
+)
+
+/**
+ * useInviteFlow owns the invite state of the dialog: creating a code or link,
+ * sending a username invite, and copying the result to the clipboard.
+ */
+function useInviteFlow(
+  session: Session | null | undefined,
+  spaceId: string,
+  isCloudProvider: boolean,
+) {
   const cloudProviderConfig = useCloudProviderConfig()
   const [state, dispatch] = useReducer(reducer, initialState)
-  const inviteCodeId = useId()
-  const usernameInputId = useId()
-  const inviteLinkId = useId()
   const copyGenerationRef = useRef(0)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
@@ -158,15 +168,14 @@ export function AddUserDialog({
     }
   }, [])
 
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (!next) dispatch({ type: 'reset' })
-      onOpenChange(next)
-    },
-    [onOpenChange],
+  const reset = useCallback(() => dispatch({ type: 'reset' }), [])
+
+  const setUsername = useCallback(
+    (value: string) => dispatch({ type: 'username', value }),
+    [],
   )
 
-  const handleCreateInvite = useCallback(async () => {
+  const createInvite = useCallback(async () => {
     if (!session) return
     dispatch({ type: 'creating' })
     try {
@@ -183,7 +192,7 @@ export function AddUserDialog({
     }
   }, [session, spaceId])
 
-  const handleSendUsernameInvite = useCallback(async () => {
+  const sendUsernameInvite = useCallback(async () => {
     const username = state.username.trim()
     if (!session || !username || !isCloudProvider) return
     dispatch({ type: 'creating' })
@@ -203,8 +212,6 @@ export function AddUserDialog({
     }
   }, [isCloudProvider, session, spaceId, state.username])
 
-  const shortCode = state.inviteResp?.shortCode ?? ''
-
   const inviteLink = useMemo(() => {
     if (!state.inviteResp?.inviteMessage) return ''
     const encoded = base58Encode(
@@ -213,7 +220,7 @@ export function AddUserDialog({
     return buildInviteLink(cloudProviderConfig?.publicBaseUrl, encoded)
   }, [state.inviteResp, cloudProviderConfig?.publicBaseUrl])
 
-  const handleCopy = useCallback(async (text: string) => {
+  const copy = useCallback(async (text: string) => {
     const generation = ++copyGenerationRef.current
     if (copyTimerRef.current != null) clearTimeout(copyTimerRef.current)
     try {
@@ -234,31 +241,280 @@ export function AddUserDialog({
     }
   }, [])
 
+  return {
+    ...state,
+    hasSession: !!session,
+    shortCode: state.inviteResp?.shortCode ?? '',
+    inviteLink,
+    reset,
+    setUsername,
+    createInvite,
+    sendUsernameInvite,
+    copy,
+  }
+}
+
+type InviteFlow = ReturnType<typeof useInviteFlow>
+
+/** useOrgMemberSource resolves the org members shown in the Org Members tab. */
+function useOrgMemberSource(
+  orgId: string | undefined,
+  orgMembers: OrgMemberInfo[] | undefined,
+  orgMembersLoading: boolean | undefined,
+) {
+  const spaceContainer = SpaceContainerContext.useContextSafe()
   const effectiveOrgId = orgId ?? ''
-  const effectiveOrgMembers =
-    orgMembers ?? spaceContainer?.orgState?.members ?? []
-  const effectiveOrgMembersLoading =
-    orgMembersLoading ?? (!!effectiveOrgId && !spaceContainer?.orgState)
-  const hasOrgTab = effectiveOrgId.length > 0
 
-  const defaultTab = hasOrgTab
-    ? 'members'
-    : isCloudProvider
-      ? 'username'
-      : 'code'
+  return {
+    hasOrgTab: effectiveOrgId.length > 0,
+    members: orgMembers ?? spaceContainer?.orgState?.members ?? [],
+    loading:
+      orgMembersLoading ?? (!!effectiveOrgId && !spaceContainer?.orgState),
+  }
+}
 
-  const inputClass = cn(
-    'border-foreground/10 bg-background-card/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 text-sm font-mono outline-none transition-colors duration-150',
-    'focus:border-foreground/30',
+/** defaultTabFor picks the invite tab shown when the dialog opens. */
+function defaultTabFor(hasOrgTab: boolean, isCloudProvider: boolean): string {
+  if (hasOrgTab) return 'members'
+  return isCloudProvider ? 'username' : 'code'
+}
+
+/** InviteCopyButton copies the invite text and flashes a copied state. */
+function InviteCopyButton({
+  copied,
+  label,
+  onClick,
+}: {
+  copied: boolean
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(actionButtonClass, copied && successActionClass)}
+    >
+      {copied ? (
+        <>
+          <LuCheck className="size-3.5" />
+          Copied
+        </>
+      ) : (
+        <>
+          <LuCopy className="size-3.5" />
+          {label}
+        </>
+      )}
+    </button>
   )
-  const actionButtonClass = cn(
-    'border-foreground/10 bg-background-card/20 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all duration-150',
-    'hover:border-foreground/12 hover:bg-background-card/50',
-    'disabled:cursor-not-allowed disabled:opacity-50',
+}
+
+/** InviteCodeTab renders the short invite code and its copy action. */
+function InviteCodeTab({ flow }: { flow: InviteFlow }) {
+  const inviteCodeId = useId()
+
+  if (flow.shortCode) {
+    return (
+      <div className="space-y-2">
+        <label
+          htmlFor={inviteCodeId}
+          className="text-foreground-alt mb-1.5 block text-xs select-none"
+        >
+          Invite code
+        </label>
+        <input
+          id={inviteCodeId}
+          value={flow.shortCode}
+          readOnly
+          className={cn(inputClass, 'text-center text-lg tracking-widest')}
+          onClick={(e) => (e.target as HTMLInputElement).select()}
+        />
+        <InviteCopyButton
+          copied={flow.copied}
+          label="Copy Code"
+          onClick={() => void flow.copy(flow.shortCode)}
+        />
+      </div>
+    )
+  }
+
+  if (flow.inviteResp) {
+    return (
+      <p className="text-foreground-alt text-xs">
+        Short codes are only available for cloud sessions. Use the Link tab
+        instead.
+      </p>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void flow.createInvite()}
+      disabled={flow.creating || !flow.hasSession}
+      className={actionButtonClass}
+    >
+      {flow.creating ? 'Creating…' : 'Create Invite Code'}
+    </button>
   )
-  const successActionClass = cn(
-    'border-success/30 bg-success/5 text-success',
-    'hover:border-success/40 hover:bg-success/10',
+}
+
+/** InviteUsernameTab renders the username field and its send action. */
+function InviteUsernameTab({ flow }: { flow: InviteFlow }) {
+  const usernameInputId = useId()
+
+  return (
+    <div className="space-y-2">
+      <label
+        htmlFor={usernameInputId}
+        className="text-foreground-alt mb-1.5 block text-xs select-none"
+      >
+        Spacewave username
+      </label>
+      <input
+        id={usernameInputId}
+        value={flow.username}
+        onChange={(e) => flow.setUsername(e.target.value)}
+        placeholder="alice"
+        className={inputClass}
+      />
+      <button
+        type="button"
+        onClick={() => void flow.sendUsernameInvite()}
+        disabled={flow.creating || !flow.hasSession || !flow.username.trim()}
+        className={cn(
+          actionButtonClass,
+          flow.usernameSent && successActionClass,
+        )}
+      >
+        {flow.usernameSent ? (
+          <>
+            <LuCheck className="size-3.5" />
+            Sent
+          </>
+        ) : (
+          <>
+            <LuUserPlus className="size-3.5" />
+            {flow.creating ? 'Sending…' : 'Send Invite'}
+          </>
+        )}
+      </button>
+    </div>
+  )
+}
+
+/** InviteLinkTab renders the shareable invite link and its copy action. */
+function InviteLinkTab({ flow }: { flow: InviteFlow }) {
+  const inviteLinkId = useId()
+
+  return (
+    <>
+      <div className="border-foreground/8 bg-background-card/20 rounded-lg border p-3">
+        <div className="text-foreground text-sm font-medium">
+          Share a Space invite
+        </div>
+        <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
+          Create one link for this Space, then send it through a trusted
+          channel. The recipient uses Join Space to accept it.
+        </p>
+      </div>
+      {flow.inviteResp?.inviteMessage ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor={inviteLinkId}
+              className="text-foreground-alt text-xs select-none"
+            >
+              Invite link
+            </label>
+            <span className="bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-medium">
+              Ready to share
+            </span>
+          </div>
+          <input
+            id={inviteLinkId}
+            value={flow.inviteLink}
+            readOnly
+            className={inputClass}
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+          />
+          <InviteCopyButton
+            copied={flow.copied}
+            label="Copy Link"
+            onClick={() => void flow.copy(flow.inviteLink)}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void flow.createInvite()}
+          disabled={flow.creating || !flow.hasSession}
+          className={actionButtonClass}
+        >
+          {flow.creating ? 'Creating secure link…' : 'Create Invite Link'}
+        </button>
+      )}
+    </>
+  )
+}
+
+/** AddUserTabList renders the tab triggers for the available invite methods. */
+function AddUserTabList({
+  hasOrgTab,
+  isCloudProvider,
+}: {
+  hasOrgTab: boolean
+  isCloudProvider: boolean
+}) {
+  return (
+    <TabsList>
+      {hasOrgTab && (
+        <TabsTrigger value="members">
+          <LuBuilding2 className="size-3.5" />
+          Org Members
+        </TabsTrigger>
+      )}
+      {isCloudProvider && (
+        <TabsTrigger value="username">
+          <LuUserPlus className="size-3.5" />
+          Username
+        </TabsTrigger>
+      )}
+      <TabsTrigger value="code">
+        <LuQrCode className="size-3.5" />
+        Code
+      </TabsTrigger>
+      <TabsTrigger value="link">
+        <LuLink className="size-3.5" />
+        Link
+      </TabsTrigger>
+    </TabsList>
+  )
+}
+
+// AddUserDialog allows the space owner to share a space with other users.
+export function AddUserDialog({
+  open,
+  onOpenChange,
+  spaceId,
+  isCloudProvider = false,
+  orgId,
+  orgMembers,
+  orgMembersLoading,
+}: AddUserDialogProps) {
+  const session = useResourceValue(SessionContext.useContext())
+  const flow = useInviteFlow(session, spaceId, isCloudProvider)
+  const orgSource = useOrgMemberSource(orgId, orgMembers, orgMembersLoading)
+  const { reset } = flow
+  const defaultTab = defaultTabFor(orgSource.hasOrgTab, isCloudProvider)
+
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) reset()
+      onOpenChange(next)
+    },
+    [onOpenChange, reset],
   )
 
   return (
@@ -274,207 +530,41 @@ export function AddUserDialog({
         </DialogHeader>
 
         <Tabs defaultValue={defaultTab} key={defaultTab}>
-          <TabsList>
-            {hasOrgTab && (
-              <TabsTrigger value="members">
-                <LuBuilding2 className="size-3.5" />
-                Org Members
-              </TabsTrigger>
-            )}
-            {isCloudProvider && (
-              <TabsTrigger value="username">
-                <LuUserPlus className="size-3.5" />
-                Username
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="code">
-              <LuQrCode className="size-3.5" />
-              Code
-            </TabsTrigger>
-            <TabsTrigger value="link">
-              <LuLink className="size-3.5" />
-              Link
-            </TabsTrigger>
-          </TabsList>
+          <AddUserTabList
+            hasOrgTab={orgSource.hasOrgTab}
+            isCloudProvider={isCloudProvider}
+          />
 
-          {hasOrgTab && (
+          {orgSource.hasOrgTab && (
             <TabsContent value="members" variant="formTight">
               <OrgMembersTab
                 session={session ?? null}
                 spaceId={spaceId}
-                members={effectiveOrgMembers}
-                loading={effectiveOrgMembersLoading}
+                members={orgSource.members}
+                loading={orgSource.loading}
                 isCloudProvider={isCloudProvider}
               />
             </TabsContent>
           )}
 
           <TabsContent value="code" variant="formTight">
-            {shortCode ? (
-              <div className="space-y-2">
-                <label
-                  htmlFor={inviteCodeId}
-                  className="text-foreground-alt mb-1.5 block text-xs select-none"
-                >
-                  Invite code
-                </label>
-                <input
-                  id={inviteCodeId}
-                  value={shortCode}
-                  readOnly
-                  className={cn(
-                    inputClass,
-                    'text-center text-lg tracking-widest',
-                  )}
-                  onClick={(e) => (e.target as HTMLInputElement).select()}
-                />
-                <button
-                  onClick={() => void handleCopy(shortCode)}
-                  className={cn(
-                    actionButtonClass,
-                    state.copied && successActionClass,
-                  )}
-                >
-                  {state.copied ? (
-                    <>
-                      <LuCheck className="size-3.5" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <LuCopy className="size-3.5" />
-                      Copy Code
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : state.inviteResp ? (
-              <p className="text-foreground-alt text-xs">
-                Short codes are only available for cloud sessions. Use the Link
-                tab instead.
-              </p>
-            ) : (
-              <button
-                onClick={() => void handleCreateInvite()}
-                disabled={state.creating || !session}
-                className={actionButtonClass}
-              >
-                {state.creating ? 'Creating…' : 'Create Invite Code'}
-              </button>
-            )}
+            <InviteCodeTab flow={flow} />
           </TabsContent>
 
           {isCloudProvider && (
             <TabsContent value="username" variant="formTight">
-              <div className="space-y-2">
-                <label
-                  htmlFor={usernameInputId}
-                  className="text-foreground-alt mb-1.5 block text-xs select-none"
-                >
-                  Spacewave username
-                </label>
-                <input
-                  id={usernameInputId}
-                  value={state.username}
-                  onChange={(e) =>
-                    dispatch({ type: 'username', value: e.target.value })
-                  }
-                  placeholder="alice"
-                  className={inputClass}
-                />
-                <button
-                  onClick={() => void handleSendUsernameInvite()}
-                  disabled={
-                    state.creating || !session || !state.username.trim()
-                  }
-                  className={cn(
-                    actionButtonClass,
-                    state.usernameSent && successActionClass,
-                  )}
-                >
-                  {state.usernameSent ? (
-                    <>
-                      <LuCheck className="size-3.5" />
-                      Sent
-                    </>
-                  ) : (
-                    <>
-                      <LuUserPlus className="size-3.5" />
-                      {state.creating ? 'Sending…' : 'Send Invite'}
-                    </>
-                  )}
-                </button>
-              </div>
+              <InviteUsernameTab flow={flow} />
             </TabsContent>
           )}
 
           <TabsContent value="link" variant="form">
-            <div className="border-foreground/8 bg-background-card/20 rounded-lg border p-3">
-              <div className="text-foreground text-sm font-medium">
-                Share a Space invite
-              </div>
-              <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
-                Create one link for this Space, then send it through a trusted
-                channel. The recipient uses Join Space to accept it.
-              </p>
-            </div>
-            {state.inviteResp?.inviteMessage ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label
-                    htmlFor={inviteLinkId}
-                    className="text-foreground-alt text-xs select-none"
-                  >
-                    Invite link
-                  </label>
-                  <span className="bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-medium">
-                    Ready to share
-                  </span>
-                </div>
-                <input
-                  id={inviteLinkId}
-                  value={inviteLink}
-                  readOnly
-                  className={inputClass}
-                  onClick={(e) => (e.target as HTMLInputElement).select()}
-                />
-                <button
-                  onClick={() => void handleCopy(inviteLink)}
-                  className={cn(
-                    actionButtonClass,
-                    state.copied && successActionClass,
-                  )}
-                >
-                  {state.copied ? (
-                    <>
-                      <LuCheck className="size-3.5" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <LuCopy className="size-3.5" />
-                      Copy Link
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => void handleCreateInvite()}
-                disabled={state.creating || !session}
-                className={actionButtonClass}
-              >
-                {state.creating
-                  ? 'Creating secure link…'
-                  : 'Create Invite Link'}
-              </button>
-            )}
+            <InviteLinkTab flow={flow} />
           </TabsContent>
         </Tabs>
 
-        {state.error && (
+        {flow.error && (
           <p role="alert" className="text-destructive text-xs">
-            {state.error}
+            {flow.error}
           </p>
         )}
       </DialogContent>
@@ -569,6 +659,7 @@ function OrgMembersTab({
       <div className="relative">
         <LuSearch className="text-foreground-alt/50 absolute top-2.5 left-2.5 size-3.5" />
         <input
+          aria-label="Search org members"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search org members…"
@@ -597,6 +688,7 @@ function OrgMembersTab({
           const isEnrolling = enrolling === accountId
           return (
             <button
+              type="button"
               key={member.id}
               disabled={isEnrolled || isEnrolling || !session}
               onClick={() => void handleEnroll(accountId)}

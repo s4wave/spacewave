@@ -827,7 +827,41 @@ async function matchPromotedCurrentGenerationResponse(
 interface StaticPluginAsset {
   pluginId: string
   rootHash: string
+  // pinned is set when the path names the manifest root. Pinned files are
+  // immutable, so they stay current when the announced root changes.
+  pinned: boolean
   generationId?: string
+}
+
+// staticPluginAssetPinnedRoot returns the manifest root named by a
+// /<prefix>/<plugin>/manifest/<root>/<file> path, or null when unpinned.
+function staticPluginAssetPinnedRoot(
+  source: BrowserFetchSource,
+): string | null {
+  const pluginId = staticPluginAssetPluginId(source)
+  if (!pluginId) {
+    return null
+  }
+  const prefixLen = source.path.startsWith(pluginDistPathPrefix)
+    ? pluginDistPathPrefix.length
+    : pluginAssetsPathPrefix.length
+  const suffix = source.path.slice(prefixLen + pluginId.length)
+  const manifestPrefix = '/manifest/'
+  if (!suffix.startsWith(manifestPrefix)) {
+    return null
+  }
+  const slash = suffix.indexOf('/', manifestPrefix.length)
+  if (slash <= manifestPrefix.length) {
+    return null
+  }
+  return suffix.slice(manifestPrefix.length, slash)
+}
+
+// isStaticPluginAssetCurrent checks that an asset's root may still be served.
+function isStaticPluginAssetCurrent(asset: StaticPluginAsset): boolean {
+  return (
+    asset.pinned || activePluginRoots.get(asset.pluginId) === asset.rootHash
+  )
 }
 
 // staticPluginAssetPluginId returns the plugin serving a static plugin asset
@@ -856,6 +890,16 @@ async function resolveStaticPluginAsset(
   if (!pluginId) {
     return null
   }
+  const pinnedRoot = staticPluginAssetPinnedRoot(source)
+  if (pinnedRoot) {
+    const state = await loadBrowserReleaseState()
+    return {
+      pluginId,
+      rootHash: pinnedRoot,
+      pinned: true,
+      generationId: state.promotedCurrent?.generationId,
+    }
+  }
   // Only the currently active announced root may be served or cached. A root
   // that is not yet active waits for its activation update; it never falls
   // back to persisted roots, and old roots never satisfy new requests.
@@ -871,6 +915,7 @@ async function resolveStaticPluginAsset(
   return {
     pluginId,
     rootHash,
+    pinned: false,
     generationId: state.promotedCurrent?.generationId,
   }
 }
@@ -899,7 +944,7 @@ async function cacheStaticPluginAsset(
     request.method !== 'GET' ||
     !response.ok ||
     !asset.generationId ||
-    activePluginRoots.get(asset.pluginId) !== asset.rootHash
+    !isStaticPluginAssetCurrent(asset)
   ) {
     return
   }
@@ -940,11 +985,13 @@ async function matchStaticPluginAsset(
   const response = await cache.match(
     staticPluginAssetCacheRequest(asset, request),
   )
-  if (!response || activePluginRoots.get(asset.pluginId) !== asset.rootHash) {
+  if (!response || !isStaticPluginAssetCurrent(asset)) {
     return null
   }
   const cachedResponse = await responseForMethod(request, response)
-  if (activePluginRoots.get(asset.pluginId) !== asset.rootHash) return null
+  if (!isStaticPluginAssetCurrent(asset)) {
+    return null
+  }
   const headers = new Headers(cachedResponse.headers)
   headers.set('X-Bldr-Plugin-Asset-Cache', 'generation')
   return new Response(cachedResponse.body, {
@@ -952,35 +999,6 @@ async function matchStaticPluginAsset(
     statusText: cachedResponse.statusText,
     headers,
   })
-}
-
-// Static plugin assets are warm-cached by promoted browser-release generation.
-// Content identity and ETag validation remain a follow-on API.
-async function revalidateStaticPluginAsset(
-  source: BrowserFetchSource,
-  asset: StaticPluginAsset,
-  request: Request,
-  clientId: string,
-): Promise<void> {
-  const trackedFetch = serviceWorkerFetchTracker.trackFetch(clientId)
-  try {
-    const response = await proxyBrowserRuntimeFetch(source, request, clientId, {
-      abortSignal: trackedFetch.abortController.signal,
-      headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
-    })
-    if (response.ok) {
-      await cacheStaticPluginAsset(asset, request, response.clone())
-    }
-  } catch (error) {
-    console.warn(
-      'ServiceWorker: %s: static plugin asset revalidation failed: url=%s: %s',
-      serviceWorkerId,
-      request.url,
-      castToError(error, 'unknown error').message,
-    )
-  } finally {
-    trackedFetch.release()
-  }
 }
 
 function newPluginRootAnnouncedSignal(): {
@@ -1937,25 +1955,11 @@ export async function swFetch(
     source.path.startsWith(pluginAssetsPathPrefix)
   const staticPluginId = staticPluginAssetPluginId(source)
   let staticPluginAsset = await resolveStaticPluginAsset(source)
+  // The cache key binds the manifest root, so a hit holds exactly
+  // the bytes the runtime would serve and needs no revalidation.
   if (staticPluginAsset) {
     const cached = await matchStaticPluginAsset(staticPluginAsset, request)
     if (cached) {
-      const cacheRevalidationClientId = resolveBrowserRuntimeFetchClientId(
-        ev.clientId || '',
-        source,
-        webDocumentTracker,
-        serviceWorkerLogicalId,
-      )
-      if (cacheRevalidationClientId) {
-        ev.waitUntil(
-          revalidateStaticPluginAsset(
-            source,
-            staticPluginAsset,
-            request,
-            cacheRevalidationClientId,
-          ),
-        )
-      }
       return cached
     }
   }
@@ -2068,6 +2072,7 @@ export async function swFetch(
 
     if (
       staticPluginAsset &&
+      !staticPluginAsset.pinned &&
       desiredPluginRoots.get(staticPluginAsset.pluginId) !==
         staticPluginAsset.rootHash
     ) {

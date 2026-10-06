@@ -92,7 +92,7 @@ export function ObjectKeySelector({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button
+        <button type="button"
           disabled={disabled}
           className="border-foreground/8 bg-background-primary text-foreground w-full rounded-lg border px-3 py-1.5 text-left text-xs"
         >
@@ -101,7 +101,7 @@ export function ObjectKeySelector({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-0">
         {path.length > 0 && (
-          <button
+          <button type="button"
             onClick={handleBack}
             className="border-foreground/8 flex w-full items-center gap-1 border-b px-3 py-2 text-xs"
           >
@@ -115,7 +115,7 @@ export function ObjectKeySelector({
             const key = node.data?.objectKey ?? node.id
             const isNodeSelected = selected === key
             return (
-              <button
+              <button type="button"
                 key={node.id}
                 onClick={() =>
                   isFolder ? handleDrillIn(node.id) : handleSelect(key)
@@ -140,7 +140,7 @@ export function ObjectKeySelector({
           )}
         </div>
         <div className="border-foreground/8 border-t px-3 py-2">
-          <button
+          <button type="button"
             onClick={handleConfirm}
             disabled={!selected}
             className="bg-accent text-accent-foreground w-full rounded-lg px-3 py-1 text-xs disabled:opacity-50"

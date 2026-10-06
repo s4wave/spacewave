@@ -82,7 +82,12 @@ vi.mock('@s4wave/web/ui/DropdownMenu.js', () => ({
     variant?: string
     disabled?: boolean
   }) => (
-    <button onClick={onClick} data-variant={variant} disabled={disabled}>
+    <button
+      type="button"
+      onClick={onClick}
+      data-variant={variant}
+      disabled={disabled}
+    >
       {children}
     </button>
   ),

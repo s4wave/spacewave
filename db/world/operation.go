@@ -41,8 +41,8 @@ type Operation interface {
 
 // PayloadOperation is an Operation whose payload was written outside the World
 // tree before the operation was applied. The World after the operation need not
-// reference the payload, but replay reads it again through its roots, so a
-// writer that records the operation for replay keeps the payload owned.
+// reference the payload, but replay reads it again through its roots, so the
+// replay keeps the payload owned while the operation is above the checkpoint.
 type PayloadOperation interface {
 	Operation
 

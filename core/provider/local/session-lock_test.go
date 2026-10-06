@@ -10,14 +10,17 @@ import (
 )
 
 func TestMountedPINUnlockRestoresLocalSessionState(t *testing.T) {
+	// Skip the browser runtime, which does not run this native lock test.
 	if runtime.GOOS == "js" {
 		t.Skip("full-cost scrypt PIN lock test is too slow under GoScript; low-cost provider session coverage runs in the provider_local package")
 	}
 
+	// Start a local account session and release it when the test returns.
 	ctx := t.Context()
 	_, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
+	// Switch the session to PIN mode and lock it.
 	pin := []byte("2468")
 	if err := sess.SetLockMode(ctx, session.SessionLockMode_SESSION_LOCK_MODE_PIN_ENCRYPTED, pin); err != nil {
 		t.Fatalf("set PIN lock mode: %v", err)
@@ -29,6 +32,7 @@ func TestMountedPINUnlockRestoresLocalSessionState(t *testing.T) {
 		t.Fatal("expected locked session private key to be cleared")
 	}
 
+	// Watch lock-state events until the session reports locked.
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	defer watchCancel()
 	lockEvents := make(chan bool, 8)
@@ -49,6 +53,7 @@ func TestMountedPINUnlockRestoresLocalSessionState(t *testing.T) {
 	}()
 	waitForLockState(t, lockEvents, watchErr, true)
 
+	// Reject the wrong PIN and keep the session locked.
 	if err := sess.UnlockSession(ctx, []byte("wrong")); err == nil {
 		t.Fatal("expected wrong PIN to fail mounted unlock")
 	}
@@ -56,6 +61,7 @@ func TestMountedPINUnlockRestoresLocalSessionState(t *testing.T) {
 		t.Fatal("wrong PIN restored the session private key")
 	}
 
+	// Unlock with the correct PIN and require the private key back.
 	if err := sess.UnlockSession(ctx, pin); err != nil {
 		t.Fatalf("unlock mounted session: %v", err)
 	}
@@ -64,6 +70,7 @@ func TestMountedPINUnlockRestoresLocalSessionState(t *testing.T) {
 		t.Fatal("expected mounted unlock to restore the session private key")
 	}
 
+	// Remount the session and require the unlocked private key.
 	mountCtx, mountCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer mountCancel()
 	mounted, mountedRelease, err := acc.MountSession(mountCtx, sessRef, nil)

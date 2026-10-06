@@ -59,14 +59,17 @@ func (h *Harness) NewSession(t testing.TB) *TestSession {
 // connections through the devtool bus. Use this when the test requires strict
 // browser-state isolation.
 func (h *Harness) NewCleanSession(t testing.TB) *TestSession {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open a clean page and wait for the app.
 	s := h.NewCleanBlankSession(t)
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
 	WaitForApp(t, s.page)
 
+	// Connect the session resources for the test.
 	ctx, cancel := context.WithCancel(h.ctx)
 	t.Cleanup(cancel)
 	if err := s.ConnectResources(ctx); err != nil {
@@ -88,11 +91,14 @@ func (h *Harness) NewBlankSession(t testing.TB) *TestSession {
 // NewCleanBlankSession creates a fresh BrowserContext and page, but does not
 // load the app or connect SDK resources.
 func (h *Harness) NewCleanBlankSession(t testing.TB) *TestSession {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Release the session when the test ends.
 	s := &TestSession{h: h}
 	t.Cleanup(s.release)
 
+	// Open a clean browser context and page.
 	page, err := h.newBrowserContext(s)
 	if err != nil {
 		t.Fatalf("new browser context: %v", err)
@@ -115,8 +121,10 @@ func (h *Harness) NewPageSession(t testing.TB) *TestSession {
 // SDK resources disconnected. Use this for browser-only tests that still
 // require clean storage and a dedicated WASM process.
 func (h *Harness) NewCleanPageSession(t testing.TB) *TestSession {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open a clean page and wait for the app.
 	s := h.NewCleanBlankSession(t)
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
@@ -132,11 +140,14 @@ func (h *Harness) NewCleanPageSession(t testing.TB) *TestSession {
 // Use this only when the test can run against retained browser storage and the
 // existing WASM process.
 func (h *Harness) NewRetainedStateBlankSession(t testing.TB) *TestSession {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Release the retained session when the test ends.
 	s := &TestSession{h: h, retainedState: true}
 	t.Cleanup(s.release)
 
+	// Open a page in the retained browser context.
 	page, err := h.newRetainedStateBrowserPage(s)
 	if err != nil {
 		t.Fatalf("new retained-state page: %v", err)
@@ -150,10 +161,13 @@ func (h *Harness) NewRetainedStateBlankSession(t testing.TB) *TestSession {
 // warm BrowserContext and loads the app. Use this only when the test can run
 // against retained browser storage and the existing WASM process.
 func (h *Harness) NewRetainedStatePageSession(t testing.TB) *TestSession {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open a retained blank session.
 	s := h.NewRetainedStateBlankSession(t)
 
+	// Load the app and wait for it.
 	if err := h.loadAppPageURL(s, h.baseURL+"/#/"); err != nil {
 		t.Fatalf("load app: %v", err)
 	}
@@ -176,10 +190,13 @@ func (h *Harness) NewSharedPageSession(t testing.TB) *TestSession {
 // BrowserContext. This is an opt-in startup optimization helper; clean-session
 // helpers keep strict BrowserContext, storage, and WASM process isolation.
 func (h *Harness) NewRetainedStateSession(t testing.TB) *TestSession {
+	// Report failures at the caller.
 	t.Helper()
 
+	// Open a retained page session.
 	s := h.NewRetainedStatePageSession(t)
 
+	// Connect the session resources for the test.
 	ctx, cancel := context.WithCancel(h.ctx)
 	t.Cleanup(cancel)
 	if err := s.ConnectResources(ctx); err != nil {
@@ -209,6 +226,7 @@ func (s *TestSession) BrowserContext() playwright.BrowserContext { return s.brow
 // the same BrowserContext. Clean sessions keep their isolated context; retained
 // sessions keep the retained warm context.
 func (s *TestSession) ReplacePageInCurrentContext() error {
+	// Disconnect resources and close the current page.
 	if s.browserCtx == nil {
 		return errors.New("browser context not initialized")
 	}
@@ -222,6 +240,7 @@ func (s *TestSession) ReplacePageInCurrentContext() error {
 		s.clearWorkers()
 	}
 
+	// Open a replacement page in the same context.
 	page, err := s.h.newBrowserPage(s)
 	if err != nil {
 		return err
@@ -243,8 +262,10 @@ func (s *TestSession) ReplacePageInRetainedContext() error {
 // WatchConsole returns browser and worker console messages emitted after it is
 // called.
 func (s *TestSession) WatchConsole() (<-chan string, func()) {
+	// Create the console channel.
 	ch := make(chan string, 64)
 
+	// Register the console subscriber.
 	s.consoleMu.Lock()
 	if s.console == nil {
 		s.console = make(map[chan string]struct{})
@@ -252,6 +273,7 @@ func (s *TestSession) WatchConsole() (<-chan string, func()) {
 	s.console[ch] = struct{}{}
 	s.consoleMu.Unlock()
 
+	// Return the channel and a stop function that unregisters it.
 	stop := func() {
 		s.consoleMu.Lock()
 		if _, ok := s.console[ch]; ok {
@@ -336,6 +358,7 @@ func (s *TestSession) Release() {
 }
 
 func (s *TestSession) disconnectResources() {
+	// Drop the browser peer lease and resource clients.
 	s.h.releaseBrowserPeerLease(s, s.browserPeer)
 	s.browserPeer = ""
 	if s.root != nil {
@@ -352,6 +375,7 @@ func (s *TestSession) disconnectResources() {
 // MountSessionByIdx mounts a session by its 1-based index and returns the
 // Session SDK wrapper. The caller must call Release on the returned Session.
 func (s *TestSession) MountSessionByIdx(ctx context.Context, idx uint32) (*s4wave_session.Session, error) {
+	// Mount the session at the index, or report that it is missing.
 	if s.root == nil {
 		return nil, errors.New("resources not connected")
 	}
@@ -363,6 +387,7 @@ func (s *TestSession) MountSessionByIdx(ctx context.Context, idx uint32) (*s4wav
 		return nil, errors.Errorf("no session at index %d", idx)
 	}
 
+	// Open a session client for the mounted resource.
 	sessRef := s.resClient.CreateResourceReference(resp.GetResourceId())
 	sess, err := s4wave_session.NewSession(s.resClient, sessRef)
 	if err != nil {
@@ -374,6 +399,7 @@ func (s *TestSession) MountSessionByIdx(ctx context.Context, idx uint32) (*s4wav
 
 // release tears down the session's browser context and resource connections.
 func (s *TestSession) release() {
+	// Close console subscribers.
 	s.consoleMu.Lock()
 	for ch := range s.console {
 		delete(s.console, ch)
@@ -381,6 +407,7 @@ func (s *TestSession) release() {
 	}
 	s.consoleMu.Unlock()
 
+	// Disconnect resources and close the owned browser context.
 	s.disconnectResources()
 	if s.page != nil {
 		s.h.unregisterPageSession(s.page)

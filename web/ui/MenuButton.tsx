@@ -8,7 +8,7 @@ interface MenuButtonProps {
 
 export function MenuButton({ children, onClick }: MenuButtonProps) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={cn(
         'rounded-menu-button text-topbar-button-text text-topbar-menu ui-text-shadow',
