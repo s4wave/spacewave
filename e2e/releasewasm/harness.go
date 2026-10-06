@@ -202,8 +202,11 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	// Define the browser launch with the local CDN network policy.
 	launch := func(gpu bool) (playwright.Browser, error) {
 		opts := playwright.BrowserTypeLaunchOptions{Headless: new(true)}
-		if browserName == "chromium" {
+		switch browserName {
+		case "chromium":
 			opts = e2eharness.ChromiumLaunchOptions(true, gpu)
+		case "firefox":
+			opts.FirefoxUserPrefs = firefoxUserPrefs
 		}
 		if os.Getenv(localCDNEnv) == "1" {
 			// The static server rejects proxy requests; all browser network access
@@ -231,8 +234,15 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 // getBaseURL returns the local release origin.
 func (h *harness) getBaseURL() string { return h.baseURL }
 
+// firefoxUserPrefs turns off async stack capture. Playwright attaches a
+// debugger to every Firefox page, and Firefox captures an async stack at each
+// await in a debuggee realm, which a user's browser without devtools never
+// does. The capture costs a fifth of the runtime worker's boot CPU.
+var firefoxUserPrefs = map[string]any{"javascript.options.asyncstack": false}
+
 // persistentBrowserContextLaunchOptions maps the shared Chromium launch
-// options onto a persistent-context launch. Non-Chromium browsers stay plain.
+// options onto a persistent-context launch. Firefox gets firefoxUserPrefs;
+// other browsers stay plain.
 func persistentBrowserContextLaunchOptions(
 	browserName string,
 	gpu bool,
@@ -245,6 +255,9 @@ func persistentBrowserContextLaunchOptions(
 		options.Headless = launchOptions.Headless
 		options.Channel = launchOptions.Channel
 		options.Args = launchOptions.Args
+	}
+	if browserName == "firefox" {
+		options.FirefoxUserPrefs = firefoxUserPrefs
 	}
 	return options
 }

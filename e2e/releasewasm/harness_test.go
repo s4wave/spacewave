@@ -58,6 +58,9 @@ func TestPersistentBrowserContextLaunchOptionsReuseChromiumContract(t *testing.T
 	if other.Headless == nil || !*other.Headless || other.Channel != nil || len(other.Args) != 0 {
 		t.Fatalf("non-Chromium persistent options inherited Chromium state: %#v", other)
 	}
+	if other.FirefoxUserPrefs["javascript.options.asyncstack"] != false {
+		t.Fatalf("firefox persistent options keep async stack capture: %#v", other.FirefoxUserPrefs)
+	}
 }
 
 func TestBrowserPageErrorMessagePreservesPlaywrightStack(t *testing.T) {
