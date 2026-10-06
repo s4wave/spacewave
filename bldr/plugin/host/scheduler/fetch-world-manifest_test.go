@@ -535,7 +535,7 @@ func TestWatchWorldManifestUsesStartupManifestRefsAndSkipsBadCandidate(t *testin
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -625,7 +625,7 @@ func TestWatchWorldManifestFiltersWebPlatformForUnlistedPlugin(t *testing.T) {
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{jsHost, webHost},
 	}, ws, obj)
 	if err != nil {
@@ -721,7 +721,7 @@ func TestWatchWorldManifestExecutesBootstrapManifestAndRecordsUnreadableRetained
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -834,7 +834,7 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -885,7 +885,7 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	}
 
 	// Process the manifest World state.
-	wait, err = pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err = pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -989,7 +989,7 @@ func TestWatchWorldManifestIgnoresWrongPlatformRetainedRefAndSelectsCurrent(t *t
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -1103,7 +1103,7 @@ func TestWatchWorldManifestQuarantinesWrongManifestIDRetainedRef(t *testing.T) {
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -1229,7 +1229,7 @@ func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -1264,7 +1264,7 @@ func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 	storeTestManifestRefObject(t, ctx, ws, retainedRefKey, retainedRef)
 
 	// Process the manifest World state.
-	wait, err = pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err = pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -1435,7 +1435,7 @@ func TestWatchWorldManifestLauncherStartsAfterPruningUnavailableRetainedReleaseR
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -1532,7 +1532,7 @@ func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *test
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -1728,7 +1728,7 @@ func TestWatchWorldManifestSelectsManifestClassPairsByRevision(t *testing.T) {
 			if !ok {
 				t.Fatal("expected plugin host object")
 			}
-			wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+			wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 				pluginHosts: []bldr_plugin_host.PluginHost{host},
 			}, ws, obj)
 			if err != nil {
@@ -1868,7 +1868,7 @@ func TestWatchWorldManifestFallsBackToBestDownloadWhenNoLocalExecutable(t *testi
 	}
 
 	// Process the manifest World state.
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -1982,7 +1982,7 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 	}
 
 	// Process the manifest World state.
-	waitForChanges, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	waitForChanges, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj)
 	if err != nil {
@@ -2150,7 +2150,7 @@ func TestProcessManifestWorldStateSuppressesNoCopyBucketWhileDynamicManifestCopi
 	}
 	process := func(pi *pluginInstance) {
 		t.Helper()
-		wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		wait, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 			pluginHosts: []bldr_plugin_host.PluginHost{host},
 		}, ws, obj)
 		if err != nil {
@@ -2860,7 +2860,7 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 		pluginHost: host,
 	}
 	runningPi.executePluginRoutine.SetState(runningArgs)
-	if _, err := runningPi.processManifestWorldState(ctx, le, &pluginHostSet{
+	if _, _, err := runningPi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj); err != nil {
 		t.Fatal(err.Error())
@@ -2880,7 +2880,7 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
-	if _, err := watchPi.processManifestWorldState(ctx, le, &pluginHostSet{
+	if _, _, err := watchPi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host},
 	}, ws, obj); err != nil {
 		t.Fatal(err.Error())
@@ -3526,7 +3526,7 @@ func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
 	}
 
 	// The initial selection must access the World once.
-	if _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
+	if _, _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
 		t.Fatal(err.Error())
 	}
 	if got := ws.total.Load(); got != 1 {
@@ -3557,7 +3557,7 @@ func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
 	if !ok {
 		t.Fatal("expected plugin host object after unrelated manifest store")
 	}
-	if _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
+	if _, _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
 		t.Fatal(err.Error())
 	}
 	if got := ws.total.Load(); got != 1 {
@@ -3622,7 +3622,7 @@ func TestWatchWorldManifestReprocessesReplacementHostWithSamePlatform(t *testing
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
-	if _, err := pi.processManifestWorldState(ctx, le, hostSet1, ws, obj); err != nil {
+	if _, _, err := pi.processManifestWorldState(ctx, le, hostSet1, ws, obj); err != nil {
 		t.Fatal(err.Error())
 	}
 	initial := pi.executePluginRoutine.GetState()
@@ -3635,7 +3635,7 @@ func TestWatchWorldManifestReprocessesReplacementHostWithSamePlatform(t *testing
 
 	// Create the plugin host fixture.
 	host2 := &testPluginHost{id: "desktop/darwin/arm64"}
-	if _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+	if _, _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 		pluginHosts: []bldr_plugin_host.PluginHost{host2},
 	}, ws, obj); err != nil {
 		t.Fatal(err.Error())
@@ -3714,7 +3714,7 @@ func TestWatchWorldManifestReprocessesNestedSelectionGraphChange(t *testing.T) {
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
-	if _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
+	if _, _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
 		t.Fatal(err.Error())
 	}
 	initial := pi.executePluginRoutine.GetState()
@@ -3727,7 +3727,7 @@ func TestWatchWorldManifestReprocessesNestedSelectionGraphChange(t *testing.T) {
 	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(nestedKey, secondKey, "spacewave-core")); err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
+	if _, _, err := pi.processManifestWorldState(ctx, le, hostSet, ws, obj); err != nil {
 		t.Fatal(err.Error())
 	}
 	updated := pi.executePluginRoutine.GetState()

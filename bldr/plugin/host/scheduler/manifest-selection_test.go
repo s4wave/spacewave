@@ -82,7 +82,7 @@ func TestManifestSelectionPlatformPreference(t *testing.T) {
 					if err != nil || !found {
 						t.Fatalf("host object: found=%t, error=%v", found, err)
 					}
-					if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+					if _, _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 						t.Fatal(err)
 					}
 				}
@@ -155,7 +155,7 @@ func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 		}
 
 		// Run selection over the loaded host object.
-		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+		if _, _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 			t.Fatal(err)
 		}
 		return instance.executePluginRoutine.GetState()
@@ -273,7 +273,7 @@ func TestWorldManifestSelectionSkipsIncompatible(t *testing.T) {
 		}
 
 		// Run selection over the loaded host object.
-		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+		if _, _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 			t.Fatal(err)
 		}
 		return instance.executePluginRoutine.GetState()
@@ -436,7 +436,7 @@ func TestManifestSelectionNativeReplacesJavaScript(t *testing.T) {
 			}
 
 			// Run selection over the loaded host object.
-			if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+			if _, _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 				t.Fatal(err)
 			}
 			return instance.executePluginRoutine.GetState()

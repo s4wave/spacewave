@@ -37,10 +37,23 @@ func (t *pluginInstance) execWatchWorldManifest(ctx context.Context, hosts *plug
 		func(ctx context.Context, le *logrus.Entry, _ world.WorldState, obj world.ObjectState, _ *bucket.ObjectRef, _ uint64) (waitForChanges bool, err error) {
 			// Share one read transaction across graph traversal and candidate reads.
 			// Release it before the watch loop waits for another object revision.
+			var missing []*bldr_manifest_world.StartupManifestCandidateEligibility
 			err = world.ExecTransaction(ctx, engine, false, func(ctx context.Context, snapshot world.WorldState) error {
 				var selectErr error
-				waitForChanges, selectErr = t.processManifestWorldState(ctx, le, hosts, snapshot, obj)
+				waitForChanges, missing, selectErr = t.processManifestWorldState(ctx, le, hosts, snapshot, obj)
 				return selectErr
+			})
+			if err != nil || len(missing) == 0 {
+				return waitForChanges, err
+			}
+
+			// Unlink manifests whose blocks are gone so later loads skip them.
+			err = world.ExecTransaction(ctx, engine, true, func(ctx context.Context, tx world.WorldState) error {
+				unlinked, err := bldr_manifest_world.UnlinkMissingStartupManifests(ctx, tx, missing, t.c.objKey)
+				if len(unlinked) != 0 {
+					le.WithField("manifest-refs", unlinked).Info("unlinked manifest refs with missing blocks")
+				}
+				return err
 			})
 			return waitForChanges, err
 		},
@@ -56,11 +69,11 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	hosts *pluginHostSet,
 	ws world.WorldState,
 	obj world.ObjectState, // may be nil if not found
-) (waitForChanges bool, err error) {
+) (waitForChanges bool, missing []*bldr_manifest_world.StartupManifestCandidateEligibility, err error) {
 	// Warn and wait for changes when the host object is missing.
 	if obj == nil {
 		le.Warnf("plugin host object not found: %v", t.c.objKey)
-		return true, nil
+		return true, nil, nil
 	}
 
 	// Trace manifest selection and log accounting fields.
@@ -90,17 +103,25 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		t.c.objKey,
 	)
 	if err != nil {
-		return true, err
+		return true, nil, err
 	}
+
+	// Set aside candidates whose blocks are gone; the caller unlinks them.
+	candidateEligibility = slices.DeleteFunc(candidateEligibility, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
+		if c.Missing {
+			missing = append(missing, c)
+		}
+		return c.Missing
+	})
 
 	// Skip re-selection when the inputs match the stored fingerprint.
 	selectionFingerprint := manifestSelectionInputFingerprint(platformIDs, candidateEligibility)
 	if t.manifestSelectionInputUnchanged(hosts, selectionFingerprint) {
 		trace.Log(ctx, "manifest-selection-phase", "skipped-unchanged-inputs")
-		return true, nil
+		return true, missing, nil
 	}
 	if ctx.Err() != nil {
-		return true, context.Canceled
+		return true, missing, context.Canceled
 	}
 
 	// Filter the selectable manifests down to compatible ones.
@@ -147,7 +168,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		// and its terminal status until the World offers another manifest.
 		le.Warn("every selectable manifest is incompatible with this plugin host")
 		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
-		return true, nil
+		return true, missing, nil
 	}
 	if len(manifests) == 0 {
 		if t.manifestRoot != "" {
@@ -167,7 +188,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		} else if !t.loggedNotFound.Swap(true) {
 			le.Debugf("no manifests for plugin in world (store disabled, fetch may provide)")
 		}
-		return true, nil
+		return true, missing, nil
 	}
 
 	// Sort manifests by platform preference, revision, and ref string.
@@ -193,7 +214,7 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	})
 
 	// Resolve locality against the same World snapshot used for selection.
-	return true, ws.AccessWorldState(
+	return true, missing, ws.AccessWorldState(
 		ctx,
 		nil,
 		func(bls *bucket_lookup.Cursor) error {

@@ -90,7 +90,7 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 		}
 
 		// Run selection over the loaded host object.
-		if _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
+		if _, _, err := instance.processManifestWorldState(ctx, le, hosts, ws, obj); err != nil {
 			t.Fatal(err)
 		}
 	}
