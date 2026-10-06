@@ -6,9 +6,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"io/fs"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/cli"
@@ -23,10 +26,15 @@ import (
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
+
+// restoreBatchBytes bounds the block bytes one source tree restore
+// transaction writes.
+const restoreBatchBytes = 32 << 20
 
 // debugPayloadRestoreArgs are the arguments of the offline payload restore.
 type debugPayloadRestoreArgs struct {
@@ -36,8 +44,12 @@ type debugPayloadRestoreArgs struct {
 	filePath string
 	// hash is the base64 digest of the missing block.
 	hash string
+	// sourceRoot is a tree whose files the payloads carried.
+	sourceRoot string
 	// bucketID names the owning bucket when the Space has several.
 	bucketID string
+	// dryRun reports the missing blocks without writing them.
+	dryRun bool
 }
 
 // BuildFlags returns the payload restore flags.
@@ -51,30 +63,51 @@ func (a *debugPayloadRestoreArgs) BuildFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "file",
-			Usage:       "file holding the bytes the payload carried",
-			Required:    true,
+			Usage:       "file holding the bytes the payload carried, with --hash",
 			Destination: &a.filePath,
 		},
 		&cli.StringFlag{
 			Name:        "hash",
 			Usage:       "base64 digest of the missing block, as replay names it",
-			Required:    true,
 			Destination: &a.hash,
+		},
+		&cli.StringFlag{
+			Name:        "source-root",
+			Usage:       "restore the missing whole-file payloads of every file under this directory",
+			Destination: &a.sourceRoot,
 		},
 		&cli.StringFlag{
 			Name:        "bucket",
 			Usage:       "bucket that owns the block, when several are named for the Space",
 			Destination: &a.bucketID,
 		},
+		&cli.BoolFlag{
+			Name:        "dry-run",
+			Usage:       "with --source-root, report the missing blocks without writing them",
+			Destination: &a.dryRun,
+		},
 	}
 }
 
-// Run restores the payload into the stopped volume and prints its ref.
+// Run restores the payloads into the stopped volume and reports them.
 func (a *debugPayloadRestoreArgs) Run(c *cli.Context) error {
-	// Read the volume argument, the expected digest and the file.
+	// Read the volume argument and choose the mode.
 	if c.NArg() != 1 {
 		return errors.New("expected one volume file argument")
 	}
+	path := c.Args().First()
+	le := logrus.NewEntry(logrus.New())
+	if a.sourceRoot != "" {
+		if a.filePath != "" || a.hash != "" {
+			return errors.New("--source-root excludes --file and --hash")
+		}
+		return a.runSourceRoot(c.Context, le, path)
+	}
+	if a.filePath == "" || a.hash == "" {
+		return errors.New("expected --file and --hash, or --source-root")
+	}
+
+	// Read the expected digest and the file.
 	want, err := base64.StdEncoding.DecodeString(a.hash)
 	if err != nil {
 		return errors.Wrap(err, "decode hash")
@@ -85,8 +118,6 @@ func (a *debugPayloadRestoreArgs) Run(c *cli.Context) error {
 	}
 
 	// Restore the payload and print where it went.
-	path := c.Args().First()
-	le := logrus.NewEntry(logrus.New())
 	ref, err := restorePayload(c.Context, le, path, a.spaceID, a.bucketID, data, want)
 	if err != nil {
 		return err
@@ -99,29 +130,210 @@ func (a *debugPayloadRestoreArgs) Run(c *cli.Context) error {
 	return nil
 }
 
+// runSourceRoot restores the missing payloads of the source tree and prints
+// the counts.
+func (a *debugPayloadRestoreArgs) runSourceRoot(ctx context.Context, le *logrus.Entry, path string) error {
+	// Walk the tree, then label the missing blocks by whether they were
+	// written.
+	res, err := restoreSourceTree(ctx, le, path, a.spaceID, a.bucketID, a.sourceRoot, a.dryRun)
+	if err != nil {
+		return err
+	}
+	restored := "Restored blocks"
+	if a.dryRun {
+		restored = "Missing blocks"
+	}
+	writeFields(os.Stdout, [][2]string{
+		{"Volume", path},
+		{"Space", a.spaceID},
+		{"Files", strconv.Itoa(res.files)},
+		{"Present blocks", strconv.Itoa(res.present)},
+		{restored, strconv.Itoa(res.restored)},
+		{"Restored bytes", strconv.FormatInt(res.restoredBytes, 10)},
+		{"Multi-extent files", strconv.Itoa(len(res.extentFiles))},
+	})
+	return nil
+}
+
 // newDebugPayloadRestoreCommand builds the offline payload restore.
 func newDebugPayloadRestoreCommand() *cli.Command {
 	args := &debugPayloadRestoreArgs{}
 	return &cli.Command{
 		Name:      "payload-restore",
-		Usage:     "rebuild a lost operation payload from its source file",
+		Usage:     "rebuild lost operation payloads from their source files",
 		ArgsUsage: "<volume-file>",
 		Description: "Rebuilds the blob a file write carried, encodes it with the Space World's " +
-			"transform and writes it into a stopped bbolt volume under the Space's bucket, " +
-			"only when its digest equals --hash. Blob encoding is deterministic, so the same " +
-			"bytes yield the same block. Only a payload of one block, a whole file within the " +
-			"raw blob size, is supported. Stop the daemon and keep a copy (cp -c clones it on " +
-			"APFS) before running it.",
+			"transform and writes its blocks into a stopped bbolt volume under the Space's " +
+			"bucket. Blob encoding and chunking are deterministic, so the same bytes yield the " +
+			"same blocks. With --file, the blob is written only when its root digest equals " +
+			"--hash. With --source-root, the whole-file blob of every regular file under the " +
+			"directory is rebuilt and each block the volume lacks is written; blocks no " +
+			"operation references stay owned by the bucket until a repair removes them. A " +
+			"file larger than one write extent may have been written in several payloads, " +
+			"which the walk does not rebuild; it logs those files. Stop the daemon and keep a " +
+			"copy (cp -c clones it on APFS) before running it.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}
 }
 
-// restorePayload rebuilds the payload block of data with the World transform
-// of spaceID, checks its digest against want, and writes it into the volume at
-// path owned by bucketID, or by the one bucket named for the Space when
-// bucketID is empty.
+// restorePayload rebuilds the payload blob of data with the World transform
+// of spaceID, checks its root digest against want, and writes its blocks into
+// the volume at path owned by bucketID, or by the one bucket named for the
+// Space when bucketID is empty.
 func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string, data, want []byte) (*block.BlockRef, error) {
+	// Open the stopped volume with the World transform and owning bucket.
+	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID)
+	if err != nil {
+		return nil, err
+	}
+	defer rv.vol.Close()
+
+	// Encode the blob and refuse a root other than the missing one.
+	ref, entries, err := encodePayload(ctx, rv.xfrm, rv.vol.GetHashType(), data)
+	if err != nil {
+		return nil, err
+	}
+	if got := ref.GetHash().GetHash(); !bytes.Equal(got, want) {
+		return nil, errors.Errorf("rebuilt block digest %s differs from %s", base64.StdEncoding.EncodeToString(got), base64.StdEncoding.EncodeToString(want))
+	}
+
+	// Write the blocks with their bucket ownership.
+	le.Infof("restoring %s (%d blocks) into bucket %s", ref.MarshalString(), len(entries), rv.bucketID)
+	if err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, entries); err != nil {
+		return nil, errors.Wrap(err, "write blocks")
+	}
+	return ref, nil
+}
+
+// sourceTreeResult counts the outcome of a source tree restore.
+type sourceTreeResult struct {
+	// files is the number of regular files walked.
+	files int
+	// present is the number of distinct blocks the volume already held.
+	present int
+	// restored is the number of distinct blocks written, or missing in a
+	// dry run.
+	restored int
+	// restoredBytes is the encoded size of the restored blocks.
+	restoredBytes int64
+	// extentFiles are the files larger than one write extent.
+	extentFiles []string
+}
+
+// restoreSourceTree rebuilds the whole-file payload blob of every regular
+// file under root and writes each block the volume at path lacks, owned by
+// the Space's bucket. A dry run only counts the missing blocks.
+func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID, root string, dryRun bool) (*sourceTreeResult, error) {
+	// Open the stopped volume with the World transform and owning bucket.
+	rv, err := openRestoreVolume(ctx, le, path, spaceID, bucketID)
+	if err != nil {
+		return nil, err
+	}
+	defer rv.vol.Close()
+
+	// Write the pending blocks in bounded transactions.
+	res := &sourceTreeResult{}
+	var pending []*block.PutBatchEntry
+	var pendingBytes int
+	flush := func() error {
+		if dryRun || len(pending) == 0 {
+			return nil
+		}
+		if err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, pending); err != nil {
+			return errors.Wrap(err, "write blocks")
+		}
+		pending, pendingBytes = nil, 0
+		return nil
+	}
+
+	// Hold the source tree so the walk cannot leave it.
+	src, err := os.OpenRoot(root)
+	if err != nil {
+		return nil, err
+	}
+	defer src.Close()
+	srcFS := src.FS()
+
+	// Rebuild each regular file's blob and queue the blocks the volume lacks.
+	seen := make(map[string]struct{})
+	err = fs.WalkDir(srcFS, ".", func(filePath string, d fs.DirEntry, err error) error {
+		// Read each regular file and note one too large for a single write.
+		if err != nil || !d.Type().IsRegular() {
+			return err
+		}
+		data, err := fs.ReadFile(srcFS, filePath)
+		if err != nil {
+			return err
+		}
+		res.files++
+		if len(data) > unixfs_block_fs.OptimalWriteSize {
+			res.extentFiles = append(res.extentFiles, filePath)
+			le.Warnf("%s is larger than one write extent; restoring its whole-file blob only", filePath)
+		}
+		_, entries, err := encodePayload(ctx, rv.xfrm, rv.vol.GetHashType(), data)
+		if err != nil {
+			return errors.Wrap(err, filePath)
+		}
+
+		// Skip the blocks already handled and probe the rest.
+		entries = slices.DeleteFunc(entries, func(e *block.PutBatchEntry) bool {
+			key := e.Ref.MarshalString()
+			_, dup := seen[key]
+			seen[key] = struct{}{}
+			return dup
+		})
+		refs := make([]*block.BlockRef, len(entries))
+		for i, e := range entries {
+			refs[i] = e.Ref
+		}
+		exists, err := rv.vol.GetBlockExistsBatch(ctx, refs)
+		if err != nil {
+			return err
+		}
+
+		// Queue the missing blocks and write them once the batch is full.
+		for i, e := range entries {
+			if exists[i] {
+				res.present++
+				continue
+			}
+			le.Infof("missing %s from %s", e.Ref.MarshalString(), filePath)
+			res.restored++
+			res.restoredBytes += int64(len(e.Data))
+			if !dryRun {
+				pending = append(pending, e)
+				pendingBytes += len(e.Data)
+			}
+		}
+		if pendingBytes < restoreBatchBytes {
+			return nil
+		}
+		return flush()
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := flush(); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// restoreVolume is a stopped volume opened for payload restores.
+type restoreVolume struct {
+	// vol is the exclusively held volume.
+	vol *volume_bolt.Bolt
+	// xfrm is the Space World's block transformer.
+	xfrm block.Transformer
+	// bucketID is the bucket that owns the Space's blocks.
+	bucketID string
+}
+
+// openRestoreVolume holds the stopped volume at path exclusively and resolves
+// the World transform and owning bucket of spaceID. An empty bucketID selects
+// the one bucket named for the Space. The caller closes the volume.
+func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string) (*restoreVolume, error) {
 	// Hold the stopped volume exclusively.
 	if err := requireVolumeStopped(path); err != nil {
 		return nil, err
@@ -135,39 +347,38 @@ func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucket
 	if err != nil {
 		return nil, errors.Wrap(err, "open volume")
 	}
-	defer vol.Close()
 
-	// Find the World transform and the bucket that owns the Space's blocks.
+	// Build the World transformer and find the bucket that owns the Space's
+	// blocks.
+	rv, err := resolveRestoreVolume(ctx, le, vol, spaceID, bucketID)
+	if err != nil {
+		vol.Close()
+		return nil, err
+	}
+	return rv, nil
+}
+
+// resolveRestoreVolume resolves the World transformer and owning bucket of
+// spaceID in vol.
+func resolveRestoreVolume(ctx context.Context, le *logrus.Entry, vol *volume_bolt.Bolt, spaceID, bucketID string) (*restoreVolume, error) {
+	// Build the World transformer from the replay cursor.
 	conf, err := readWorldTransform(volume_bolt.GetBoltDB(vol), spaceID)
 	if err != nil {
 		return nil, err
 	}
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, transform_all.BuildFactorySet(), conf)
+	if err != nil {
+		return nil, errors.Wrap(err, "build world transform")
+	}
+
+	// Find the bucket named for the Space unless one is given.
 	if bucketID == "" {
 		bucketID, err = findSpaceBucket(ctx, vol.GetRefGraph(), spaceID)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	// Encode the blob and refuse a block other than the missing one.
-	ref, encoded, err := encodePayload(ctx, le, conf, vol.GetHashType(), data)
-	if err != nil {
-		return nil, err
-	}
-	if got := ref.GetHash().GetHash(); !bytes.Equal(got, want) {
-		return nil, errors.Errorf("rebuilt block digest %s differs from %s", base64.StdEncoding.EncodeToString(got), base64.StdEncoding.EncodeToString(want))
-	}
-
-	// Write the block with its bucket ownership.
-	le.Infof("restoring %s into bucket %s", ref.MarshalString(), bucketID)
-	_, _, err = vol.PrepareOwnedBlock(ctx, bucketID, encoded, &block.PutOpts{
-		HashType:      ref.GetHash().GetHashType(),
-		ForceBlockRef: ref,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "write block")
-	}
-	return ref, nil
+	return &restoreVolume{vol: vol, xfrm: xfrm, bucketID: bucketID}, nil
 }
 
 // readWorldTransform reads the World transform from the replay cursor the
@@ -246,36 +457,74 @@ func findSpaceBucket(ctx context.Context, rg block_gc.RefGraphOps, spaceID strin
 }
 
 // encodePayload builds the blob of data as a file write does and returns its
-// block ref and stored bytes. A blob of more than one block is refused.
-func encodePayload(ctx context.Context, le *logrus.Entry, conf *block_transform.Config, hashType hash.HashType, data []byte) (*block.BlockRef, []byte, error) {
-	// Build the World transformer.
-	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, transform_all.BuildFactorySet(), conf)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "build world transform")
+// root ref and every block it stored, encoded with xfrm.
+func encodePayload(ctx context.Context, xfrm block.Transformer, hashType hash.HashType, data []byte) (*block.BlockRef, []*block.PutBatchEntry, error) {
+	// Write the blob into a scratch store that records each block.
+	store := &recordStore{
+		StoreOps: block_store_inmem.NewInmemBlock(kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), hashType, false),
+		seen:     make(map[string]struct{}),
 	}
-
-	// Write the blob into a scratch store.
-	store := block_store_inmem.NewInmemBlock(kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), hashType, false)
 	tx, bcs := block.NewTransaction(store, xfrm, nil, nil)
-	blb, err := blob.BuildBlobWithBytes(ctx, data, bcs)
-	if err != nil {
+	if _, err := blob.BuildBlobWithBytes(ctx, data, bcs); err != nil {
 		return nil, nil, err
-	}
-	if blb.GetBlobType() != blob.BlobType_BlobType_RAW {
-		return nil, nil, errors.Errorf("blob of %d bytes spans several blocks", len(data))
 	}
 	ref, _, err := tx.Write(ctx, true)
 	if err != nil {
 		return nil, nil, err
 	}
+	return ref, store.entries, nil
+}
 
-	// Read back the stored bytes.
-	encoded, found, err := store.GetBlock(ctx, ref)
+// recordStore records the distinct blocks written through it.
+type recordStore struct {
+	block.StoreOps
+
+	// mtx guards the fields below; transactions write blocks concurrently.
+	mtx sync.Mutex
+	// seen holds the marshaled refs of the recorded blocks.
+	seen map[string]struct{}
+	// entries are the recorded blocks in write order.
+	entries []*block.PutBatchEntry
+}
+
+// PutBlock writes and records a block.
+func (s *recordStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ref, existed, err := s.StoreOps.PutBlock(ctx, data, opts)
 	if err != nil {
-		return nil, nil, err
+		return nil, false, err
 	}
-	if !found {
-		return nil, nil, block.ErrNotFound
+	s.record(&block.PutBatchEntry{Ref: ref, Data: data})
+	return ref, existed, nil
+}
+
+// PutBlockBatch writes and records a batch of blocks.
+func (s *recordStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	if err := s.StoreOps.PutBlockBatch(ctx, entries); err != nil {
+		return err
 	}
-	return ref, encoded, nil
+	for _, e := range entries {
+		if !e.Tombstone {
+			s.record(e)
+		}
+	}
+	return nil
+}
+
+// record keeps a copy of e unless its block is already recorded.
+func (s *recordStore) record(e *block.PutBatchEntry) {
+	// Skip a block already recorded.
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	key := e.Ref.MarshalString()
+	if _, ok := s.seen[key]; ok {
+		return
+	}
+
+	// Copy the block, which the caller may reuse.
+	s.seen[key] = struct{}{}
+	s.entries = append(s.entries, &block.PutBatchEntry{
+		Ref:  e.Ref.Clone(),
+		Data: bytes.Clone(e.Data),
+		Refs: e.Refs,
+	})
 }

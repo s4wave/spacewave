@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -12,39 +13,60 @@ import (
 	"github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/controllerbus/controller"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
-// TestDebugPayloadRestore checks that the restore rebuilds a payload with the
-// Space World's transform, refuses a digest it does not reproduce, and writes
-// the block owned by the Space's bucket so it decodes to the file's bytes.
-func TestDebugPayloadRestore(t *testing.T) {
+// restoreTestSpace is the Space of the restore test volume.
+const restoreTestSpace = "space"
+
+// restoreTestBucket is the bucket that owns the Space's blocks.
+const restoreTestBucket = "p/provider/account/blk/" + restoreTestSpace
+
+// restoreFixture is a stopped volume holding a Space with a replay cursor.
+type restoreFixture struct {
+	le       *logrus.Entry
+	path     string
+	hashType hash.HashType
+	xfrm     block.Transformer
+}
+
+// newRestoreFixture builds a stopped volume with the Space's bucket and a
+// replay cursor naming a fresh World transform. Each block of preset is
+// written owned by the bucket.
+func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 	// Open a fresh volume with a Space bucket.
 	ctx := t.Context()
-	path := filepath.Join(t.TempDir(), "volume.s4wave")
-	le := logrus.NewEntry(logrus.New())
-	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{Path: path})
+	f := &restoreFixture{
+		le:   logrus.NewEntry(logrus.New()),
+		path: filepath.Join(t.TempDir(), "volume.s4wave"),
+	}
+	vol, err := volume_bolt.NewBolt(ctx, f.le, &volume_bolt.Config{Path: f.path})
 	if err != nil {
 		t.Fatal(err)
 	}
-	const spaceID = "space"
-	const bucketID = "p/provider/account/blk/" + spaceID
-	if _, _, err := vol.PrepareOwnedBlock(ctx, bucketID, []byte("world"), nil); err != nil {
+	if _, _, err := vol.PrepareOwnedBlock(ctx, restoreTestBucket, []byte("world"), nil); err != nil {
 		t.Fatal(err)
 	}
 
-	// Save a replay cursor whose World names a fresh transform.
+	// Build a World state that names a fresh transform.
 	initOp, err := sobject_world_engine.NewInitWorldOp(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	state, err := sobject_world_engine.BuildInitialInnerState(initOp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.hashType = vol.GetHashType()
+	f.xfrm, err = block_transform.NewTransformer(controller.ConstructOpts{Logger: f.le}, transform_all.BuildFactorySet(), state.GetHeadRef().GetTransformConf())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +77,7 @@ func TestDebugPayloadRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	conf := kvkey.DefaultConfig()
-	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+spaceID+"/ls/world-replay/cursor"))
+	key := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix(), []byte("account/so/"+restoreTestSpace+"/ls/world-replay/cursor"))
 	err = volume_bolt.GetBoltDB(vol).Update(func(tx *bbolt.Tx) error {
 		return tx.Bucket([]byte("hydra")).Put(key, cursor)
 	})
@@ -63,26 +85,90 @@ func TestDebugPayloadRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Write the preset payloads.
+	for _, data := range preset {
+		_, entries, err := encodePayload(ctx, f.xfrm, f.hashType, data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := vol.PrepareOwnedBlockBatch(ctx, restoreTestBucket, entries); err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	// Release the volume as a stopped daemon would.
-	hashType := vol.GetHashType()
 	if err := vol.Close(); err != nil {
 		t.Fatal(err)
 	}
+	return f
+}
+
+// open opens the fixture volume and closes it when the test ends.
+func (f *restoreFixture) open(t *testing.T) *volume_bolt.Bolt {
+	vol, err := volume_bolt.NewBolt(t.Context(), f.le, &volume_bolt.Config{Path: f.path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { vol.Close() })
+	return vol
+}
+
+// requireOwned fails unless the Space's bucket owns the root of data's blob
+// and the root reaches each of its other blocks.
+func (f *restoreFixture) requireOwned(t *testing.T, vol *volume_bolt.Bolt, data []byte) {
+	// Rebuild the blob's blocks.
+	ctx := t.Context()
+	root, entries, err := encodePayload(ctx, f.xfrm, f.hashType, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Collect the blocks reachable from the bucket through the blob.
+	rg := vol.GetRefGraph()
+	reached, err := rg.GetOutgoingRefs(ctx, block_gc.BucketIRI(restoreTestBucket))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(reached, block_gc.BlockIRI(root)) {
+		t.Fatalf("bucket does not own %s", root.MarshalString())
+	}
+	for _, e := range entries {
+		refs, err := rg.GetOutgoingRefs(ctx, block_gc.BlockIRI(e.Ref))
+		if err != nil {
+			t.Fatal(err)
+		}
+		reached = append(reached, refs...)
+	}
+
+	// Require every block of the blob.
+	for _, e := range entries {
+		if !slices.Contains(reached, block_gc.BlockIRI(e.Ref)) {
+			t.Fatalf("bucket does not reach %s", e.Ref.MarshalString())
+		}
+	}
+}
+
+// TestDebugPayloadRestore checks that the restore rebuilds a payload with the
+// Space World's transform, refuses a digest it does not reproduce, and writes
+// the block owned by the Space's bucket so it decodes to the file's bytes.
+func TestDebugPayloadRestore(t *testing.T) {
+	// Build a volume without the payload.
+	ctx := t.Context()
+	f := newRestoreFixture(t)
 
 	// Refuse a digest the file does not reproduce.
 	data := bytes.Repeat([]byte("package imports\n"), 1024)
-	_, err = restorePayload(ctx, le, path, spaceID, "", data, make([]byte, 32))
+	_, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, make([]byte, 32))
 	if err == nil || !strings.Contains(err.Error(), "differs") {
 		t.Fatalf("expected a digest mismatch, got %v", err)
 	}
 
 	// Restore the payload under its own digest.
-	xfrmConf := state.GetHeadRef().GetTransformConf()
-	want, _, err := encodePayload(ctx, le, xfrmConf, hashType, data)
+	want, _, err := encodePayload(ctx, f.xfrm, f.hashType, data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref, err := restorePayload(ctx, le, path, spaceID, "", data, want.GetHash().GetHash())
+	ref, err := restorePayload(ctx, f.le, f.path, restoreTestSpace, "", data, want.GetHash().GetHash())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,31 +177,15 @@ func TestDebugPayloadRestore(t *testing.T) {
 	}
 
 	// Check the bucket owns the block.
-	vol, err = volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{Path: path})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer vol.Close()
-	owned, err := vol.GetRefGraph().GetOutgoingRefs(ctx, block_gc.BucketIRI(bucketID))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Contains(owned, block_gc.BlockIRI(ref)) {
-		t.Fatalf("bucket does not own %s", ref.MarshalString())
-	}
+	vol := f.open(t)
+	f.requireOwned(t, vol, data)
 
-	// Read the stored block.
+	// Decode the stored block with the World transform.
 	encoded, found, err := vol.GetBlock(ctx, ref)
 	if err != nil || !found {
 		t.Fatalf("read restored block: found %v, err %v", found, err)
 	}
-
-	// Decode it with the World transform.
-	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, transform_all.BuildFactorySet(), xfrmConf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, err := xfrm.DecodeBlock(encoded)
+	decoded, err := f.xfrm.DecodeBlock(encoded)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,4 +198,78 @@ func TestDebugPayloadRestore(t *testing.T) {
 	if !bytes.Equal(blb.GetRawData(), data) {
 		t.Fatal("restored blob does not hold the file's bytes")
 	}
+}
+
+// TestDebugPayloadRestoreSourceTree checks that the source tree restore skips
+// blocks the volume holds, counts a repeated file once, writes every block of
+// a chunked blob, and writes nothing in a dry run.
+func TestDebugPayloadRestoreSourceTree(t *testing.T) {
+	// Make a present file, a missing file, and a missing file large enough
+	// to chunk.
+	ctx := t.Context()
+	present := []byte("package present\n")
+	missing := []byte("package missing\n")
+	large := make([]byte, 2<<20)
+	for i := range large {
+		large[i] = byte(i * 7 / 13)
+	}
+
+	// Lay them out in a tree with a copy of the missing file.
+	root := t.TempDir()
+	files := map[string][]byte{
+		"present.go":     present,
+		"a/missing.go":   missing,
+		"b/missing.go":   missing,
+		"vendor/big.bin": large,
+	}
+	for name, data := range files {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f := newRestoreFixture(t, present)
+
+	// Count the large file's blocks.
+	_, largeEntries, err := encodePayload(ctx, f.xfrm, f.hashType, large)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(largeEntries) < 2 {
+		t.Fatalf("expected a chunked blob, got %d blocks", len(largeEntries))
+	}
+	wantMissing := 1 + len(largeEntries)
+
+	// Report the missing blocks without writing them.
+	res, err := restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.files != 4 || res.present != 1 || res.restored != wantMissing || len(res.extentFiles) != 1 {
+		t.Fatalf("dry run: %+v, expected 4 files, 1 present, %d missing, 1 extent file", res, wantMissing)
+	}
+
+	// Restore them, then find nothing missing.
+	res, err = restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.restored != wantMissing {
+		t.Fatalf("restored %d blocks, expected %d", res.restored, wantMissing)
+	}
+	res, err = restoreSourceTree(ctx, f.le, f.path, restoreTestSpace, "", root, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.restored != 0 || res.present != 1+wantMissing {
+		t.Fatalf("after restore: %+v, expected none missing", res)
+	}
+
+	// Check the bucket owns every restored block.
+	vol := f.open(t)
+	f.requireOwned(t, vol, missing)
+	f.requireOwned(t, vol, large)
 }
