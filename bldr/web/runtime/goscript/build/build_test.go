@@ -1110,13 +1110,17 @@ export const Unused = 2
 		t.Fatal(err)
 	}
 
-	// Require mangled output to remove the verbose local names.
+	// Require mangled output to remove the verbose local names but keep
+	// top-level names, which stay stable across releases.
 	mangleOut, err := os.ReadFile(mangleOutPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(string(mangleOut), "verboseLocalName") {
 		t.Fatalf("mangle output should mangle local names:\n%s", mangleOut)
+	}
+	if !strings.Contains(string(mangleOut), "runGoScriptPlugin") {
+		t.Fatalf("mangle output should keep top-level names:\n%s", mangleOut)
 	}
 
 	// Compress folds the constant sum; the mangle level leaves it in place.
