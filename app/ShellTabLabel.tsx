@@ -81,6 +81,7 @@ export function ShellTabLabel({ tab }: ShellTabLabelProps) {
     return (
       <input
         ref={inputRef}
+        aria-label="Tab name"
         className={cn(
           'bg-background-secondary text-foreground rounded-menu-button',
           'border-none outline-none',

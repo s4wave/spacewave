@@ -172,12 +172,14 @@ export function VerifyEmailPage() {
               {addExpanded && (
                 <div className="border-foreground/10 space-y-3 border-t px-4 pt-3 pb-4">
                   <input
+                    aria-label="New email address"
                     ref={handleNewEmailInputRef}
                     type="email"
                     placeholder="you@example.com"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing) return
                       if (e.key === 'Enter') {
                         void handleAddEmail()
                       }
@@ -331,6 +333,7 @@ function EmailCard({
             inbox and enter it below.
           </p>
           <input
+            aria-label="Verification code"
             ref={handleCodeInputRef}
             type="text"
             inputMode="numeric"
@@ -339,6 +342,7 @@ function EmailCard({
             value={code}
             onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
               if (e.key === 'Enter') {
                 void onVerifyCode()
               }

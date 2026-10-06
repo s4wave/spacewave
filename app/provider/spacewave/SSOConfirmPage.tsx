@@ -391,6 +391,7 @@ export function SSOConfirmPage() {
                   usernameError && 'border-destructive/50',
                 )}
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return
                   if (event.key === 'Enter') {
                     handleRequestConfirm()
                   }

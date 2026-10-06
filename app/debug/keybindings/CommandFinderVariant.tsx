@@ -28,6 +28,9 @@ export function CommandFinderVariant({
     commands[0]?.id ?? '',
   )
   const listboxId = `${useId()}-results`
+  const focusSearchInput = useCallback((node: HTMLInputElement | null) => {
+    node?.focus()
+  }, [])
 
   const results = useMemo(
     () => commands.filter((command) => commandMatchesQuery(command, query)),
@@ -86,7 +89,7 @@ export function CommandFinderVariant({
         <div className="border-foreground/8 flex items-center gap-3 border-b px-4 py-3">
           <LuSearch className="text-brand size-5 shrink-0" />
           <Input
-            autoFocus
+            ref={focusSearchInput}
             value={query}
             onChange={handleQueryChange}
             onKeyDown={handleSearchKeyDown}
@@ -162,9 +165,9 @@ export function CommandFinderVariant({
                 </div>
 
                 <div className="border-foreground/8 bg-background-card-alt/50 mt-8 rounded-lg border p-4">
-                  <label className="text-foreground-alt/50 text-xs font-semibold tracking-wider uppercase">
+                  <span className="text-foreground-alt/50 text-xs font-semibold tracking-wider uppercase">
                     Active shortcut
-                  </label>
+                  </span>
                   <BindingCapture
                     binding={selectedCommand.binding}
                     commandLabel={selectedCommand.label}

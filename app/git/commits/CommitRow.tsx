@@ -42,37 +42,26 @@ export function CommitRow({
     }
   }, [hash, expanded, onToggle, onLoadDiffStat])
 
-  const handleHashClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      onCommitClick?.(hash)
-    },
-    [hash, onCommitClick],
-  )
-
-  const handleCommitExpandKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      handleCommitExpand()
-    },
-    [handleCommitExpand],
-  )
+  const handleHashClick = useCallback(() => {
+    onCommitClick?.(hash)
+  }, [hash, onCommitClick])
 
   return (
     <div className="border-foreground/8 border-b last:border-b-0">
-      <div
-        role="button"
-        tabIndex={0}
-        className="flex w-full items-center gap-2 px-3 py-1 text-left text-xs select-none hover:bg-white/[0.03]"
-        onClick={handleCommitExpand}
-        onKeyDown={handleCommitExpandKeyDown}
-      >
-        {expanded ? (
-          <LuChevronDown className="text-foreground-alt size-3 shrink-0" />
-        ) : (
-          <LuChevronRight className="text-foreground-alt size-3 shrink-0" />
-        )}
+      <div className="flex w-full items-center gap-2 px-3 py-1 text-xs select-none hover:bg-white/[0.03]">
+        <button
+          type="button"
+          aria-label={expanded ? 'Collapse commit' : 'Expand commit'}
+          aria-expanded={expanded}
+          className="shrink-0 bg-transparent p-0"
+          onClick={handleCommitExpand}
+        >
+          {expanded ? (
+            <LuChevronDown className="text-foreground-alt size-3" />
+          ) : (
+            <LuChevronRight className="text-foreground-alt size-3" />
+          )}
+        </button>
         <button
           type="button"
           className="text-brand shrink-0 cursor-pointer bg-transparent p-0 font-mono hover:underline"
@@ -80,15 +69,22 @@ export function CommitRow({
         >
           {shortHash}
         </button>
-        <span className="text-foreground min-w-0 flex-1 truncate">
-          {subject}
-        </span>
-        {author && (
-          <span className="text-foreground-alt shrink-0">{author}</span>
-        )}
-        {timeAgo && (
-          <span className="text-foreground-alt/70 shrink-0">{timeAgo}</span>
-        )}
+        <button
+          type="button"
+          aria-expanded={expanded}
+          className="flex min-w-0 flex-1 items-center gap-2 bg-transparent p-0 text-left"
+          onClick={handleCommitExpand}
+        >
+          <span className="text-foreground min-w-0 flex-1 truncate">
+            {subject}
+          </span>
+          {author && (
+            <span className="text-foreground-alt shrink-0">{author}</span>
+          )}
+          {timeAgo && (
+            <span className="text-foreground-alt/70 shrink-0">{timeAgo}</span>
+          )}
+        </button>
       </div>
       {expanded && (
         <div className="bg-black/[0.02] px-3 py-2">

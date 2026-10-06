@@ -698,6 +698,7 @@ export function OrganizationDetails({
                           value={renameValue}
                           onChange={(e) => setRenameValue(e.target.value)}
                           onKeyDown={(e) => {
+                            if (e.nativeEvent.isComposing) return
                             if (e.key === 'Enter') void handleRenameSave()
                             if (e.key === 'Escape') handleRenameCancel()
                           }}
@@ -725,10 +726,9 @@ export function OrganizationDetails({
                       </div>
                     ) : (
                       <div className="flex items-center justify-between gap-2">
-                        <div
-                          className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-xs transition-colors"
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
+                          className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors"
                           onDoubleClick={handleRenameStart}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -738,7 +738,7 @@ export function OrganizationDetails({
                           }}
                         >
                           {orgName}
-                        </div>
+                        </button>
                         <DashboardButton
                           icon={<LuPencil className="size-3" />}
                           onClick={handleRenameStart}

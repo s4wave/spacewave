@@ -241,6 +241,7 @@ export function DocumentationViewer({
         <div className="bg-muted flex flex-1 items-center gap-1.5 rounded px-2 py-1">
           <LuSearch className="text-muted-foreground size-3 shrink-0" />
           <input
+            aria-label="Search pages"
             type="text"
             placeholder="Search pages…"
             value={searchQuery}
@@ -428,6 +429,7 @@ export function DocumentationViewer({
               ) : editing ? (
                 <div className="flex-1 overflow-auto">
                   <textarea
+                    aria-label="Document content"
                     className="bg-background-primary text-editor-foreground h-full w-full resize-none border-none p-4 font-mono text-xs outline-none"
                     value={editContent ?? textResource.value ?? ''}
                     onChange={(e) => setEditContent(e.target.value)}
