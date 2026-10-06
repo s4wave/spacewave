@@ -1395,6 +1395,57 @@ func (x *SetSpaceSequencerResponse) GetAwaitingGroup() bool {
 	return false
 }
 
+// SetSpaceRosterRequest lists the writers to drop from the trimming roster.
+type SetSpaceRosterRequest struct {
+	unknownFields []byte
+	// DroppedPeerIds are the writers to drop. Every other writer is on the
+	// roster; an empty list returns every dropped writer to it.
+	DroppedPeerIds []string `protobuf:"bytes,1,rep,name=dropped_peer_ids,json=droppedPeerIds,proto3" json:"droppedPeerIds,omitempty"`
+}
+
+func (x *SetSpaceRosterRequest) Reset() {
+	*x = SetSpaceRosterRequest{}
+}
+
+func (*SetSpaceRosterRequest) ProtoMessage() {}
+
+func (x *SetSpaceRosterRequest) GetDroppedPeerIds() []string {
+	if x != nil {
+		return x.DroppedPeerIds
+	}
+	return nil
+}
+
+// SetSpaceRosterResponse reports whether the roster changed.
+type SetSpaceRosterResponse struct {
+	unknownFields []byte
+	// Changed is false when the roster already dropped exactly those writers.
+	Changed bool `protobuf:"varint,1,opt,name=changed,proto3" json:"changed,omitempty"`
+	// AwaitingGroup is true when the viewer agreed to the change under group
+	// control, and it applies once the group decides it.
+	AwaitingGroup bool `protobuf:"varint,2,opt,name=awaiting_group,json=awaitingGroup,proto3" json:"awaitingGroup,omitempty"`
+}
+
+func (x *SetSpaceRosterResponse) Reset() {
+	*x = SetSpaceRosterResponse{}
+}
+
+func (*SetSpaceRosterResponse) ProtoMessage() {}
+
+func (x *SetSpaceRosterResponse) GetChanged() bool {
+	if x != nil {
+		return x.Changed
+	}
+	return false
+}
+
+func (x *SetSpaceRosterResponse) GetAwaitingGroup() bool {
+	if x != nil {
+		return x.AwaitingGroup
+	}
+	return false
+}
+
 // SetSpaceBackfillRequest chooses this device's backfill of the World.
 type SetSpaceBackfillRequest struct {
 	unknownFields []byte
@@ -2227,6 +2278,39 @@ func (m *SetSpaceSequencerResponse) CloneVT() *SetSpaceSequencerResponse {
 }
 
 func (m *SetSpaceSequencerResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpaceRosterRequest) CloneVT() *SetSpaceRosterRequest {
+	if m == nil {
+		return (*SetSpaceRosterRequest)(nil)
+	}
+	r := new(SetSpaceRosterRequest)
+	r.DroppedPeerIds = protobuf_go_lite.CloneSlice(m.DroppedPeerIds)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceRosterRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetSpaceRosterResponse) CloneVT() *SetSpaceRosterResponse {
+	if m == nil {
+		return (*SetSpaceRosterResponse)(nil)
+	}
+	r := new(SetSpaceRosterResponse)
+	r.Changed = m.Changed
+	r.AwaitingGroup = m.AwaitingGroup
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetSpaceRosterResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3258,6 +3342,49 @@ func (this *SetSpaceSequencerResponse) EqualVT(that *SetSpaceSequencerResponse) 
 
 func (this *SetSpaceSequencerResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetSpaceSequencerResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpaceRosterRequest) EqualVT(that *SetSpaceRosterRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.DroppedPeerIds, that.DroppedPeerIds) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceRosterRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceRosterRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetSpaceRosterResponse) EqualVT(that *SetSpaceRosterResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Changed != that.Changed {
+		return false
+	}
+	if this.AwaitingGroup != that.AwaitingGroup {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetSpaceRosterResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetSpaceRosterResponse)
 	if !ok {
 		return false
 	}
@@ -5708,6 +5835,102 @@ func (x *SetSpaceSequencerResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SetSpaceRosterRequest message to JSON.
+func (x *SetSpaceRosterRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.DroppedPeerIds) > 0 || s.HasField("droppedPeerIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("droppedPeerIds")
+		s.WriteStringArray(x.DroppedPeerIds)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceRosterRequest to JSON.
+func (x *SetSpaceRosterRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceRosterRequest message from JSON.
+func (x *SetSpaceRosterRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "dropped_peer_ids", "droppedPeerIds":
+			s.AddField("dropped_peer_ids")
+			if s.ReadNil() {
+				x.DroppedPeerIds = nil
+				return
+			}
+			x.DroppedPeerIds = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceRosterRequest from JSON.
+func (x *SetSpaceRosterRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetSpaceRosterResponse message to JSON.
+func (x *SetSpaceRosterResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Changed || s.HasField("changed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("changed")
+		s.WriteBool(x.Changed)
+	}
+	if x.AwaitingGroup || s.HasField("awaitingGroup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("awaitingGroup")
+		s.WriteBool(x.AwaitingGroup)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetSpaceRosterResponse to JSON.
+func (x *SetSpaceRosterResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetSpaceRosterResponse message from JSON.
+func (x *SetSpaceRosterResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "changed":
+			s.AddField("changed")
+			x.Changed = s.ReadBool()
+		case "awaiting_group", "awaitingGroup":
+			s.AddField("awaiting_group")
+			x.AwaitingGroup = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetSpaceRosterResponse from JSON.
+func (x *SetSpaceRosterResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the SetSpaceBackfillRequest message to JSON.
 func (x *SetSpaceBackfillRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -7866,6 +8089,87 @@ func (m *SetSpaceSequencerResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *SetSpaceRosterRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceRosterRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceRosterRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.DroppedPeerIds) > 0 {
+		for iNdEx := len(m.DroppedPeerIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.DroppedPeerIds[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetSpaceRosterResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetSpaceRosterResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetSpaceRosterResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.AwaitingGroup {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitingGroup)
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Changed {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Changed)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SetSpaceBackfillRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8807,6 +9111,29 @@ func (m *SetSpaceSequencerRequest) SizeVT() (n int) {
 }
 
 func (m *SetSpaceSequencerResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Changed)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.AwaitingGroup)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpaceRosterRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.DroppedPeerIds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetSpaceRosterResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -9772,6 +10099,42 @@ func (x *SetSpaceSequencerResponse) MarshalProtoText() string {
 }
 
 func (x *SetSpaceSequencerResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceRosterRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpaceRosterRequest")
+	if len(x.DroppedPeerIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "dropped_peer_ids")
+		for i, v := range x.DroppedPeerIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceRosterRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetSpaceRosterResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetSpaceRosterResponse")
+	if x.Changed != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "changed")
+		protobuf_go_lite.TextWriteBool(&sb, x.Changed)
+	}
+	if x.AwaitingGroup != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "awaiting_group")
+		protobuf_go_lite.TextWriteBool(&sb, x.AwaitingGroup)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetSpaceRosterResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -12302,6 +12665,122 @@ func (m *SetSpaceSequencerResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: SetSpaceSequencerResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Changed", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Changed = bool(v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AwaitingGroup", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AwaitingGroup = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceRosterRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceRosterRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceRosterRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DroppedPeerIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DroppedPeerIds = append(m.DroppedPeerIds, v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetSpaceRosterResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetSpaceRosterResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetSpaceRosterResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

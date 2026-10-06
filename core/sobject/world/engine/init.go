@@ -2,15 +2,19 @@ package sobject_world_engine
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 )
 
 // waitWorldInit replays the shared object state until its World is
 // initialized and returns that World. An owner whose replay finds no World adds
 // the operation that initializes it; when several owners do, replay keeps the
-// first and rejects the rest.
+// first and rejects the rest. A replay that stops at a missing block returns
+// the initialized World before the stalled operation, so the World is served
+// and the watcher resumes the replay at that operation.
 func (c *Controller) waitWorldInit(
 	ctx context.Context,
 	so sobject.SharedObject,
@@ -30,7 +34,10 @@ func (c *Controller) waitWorldInit(
 			return nil, err
 		}
 		state, _, err := replay.sync(ctx, snap, nil)
-		if err != nil {
+		stalled := state != nil && errors.Is(err, block.ErrNotFound)
+		if stalled {
+			c.le.WithError(err).Warn("replay waits for a block that is not available")
+		} else if err != nil {
 			return nil, err
 		}
 		if head := state.GetHeadRef(); !head.GetEmpty() {
@@ -40,8 +47,8 @@ func (c *Controller) waitWorldInit(
 			return state, nil
 		}
 
-		// Initialize the World once as an owner.
-		if !queued && sobject.IsOwner(participant.GetRole()) {
+		// Initialize the World once as an owner whose replay is complete.
+		if !queued && !stalled && sobject.IsOwner(participant.GetRole()) {
 			opData, err := c.buildInitWorldOp()
 			if err != nil {
 				return nil, err

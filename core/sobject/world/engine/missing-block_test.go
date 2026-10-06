@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -58,10 +59,10 @@ func (c *opCounter) Fire(entry *logrus.Entry) error {
 }
 
 // TestEngineStopsReplayAtMissingBlock replays a log whose last operation needs
-// a block that is not available. Replay must stop at that operation without
-// holding the write lock, serve the World before it, fail writers with the
-// missing block, and resume at that operation, never applying an earlier
-// operation again, once the block arrives.
+// a block that is not available. The initial replay and each later one must
+// stop at that operation without holding the write lock, serve the World before
+// it, fail writers with the missing block, and resume at that operation, never
+// applying an earlier operation again, once the block arrives.
 func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 	// Build a Space whose operations create three objects, create one whose
 	// root block is missing, and then edit it.
@@ -122,6 +123,14 @@ func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
 	store := &hidingBlockStore{BlockStore: space.so.blockStore, ref: payload}
 	store.hidden.Store(true)
 	so := &testSharedObject{peerID: pidA, blockStore: store, localStore: store_kvtx_inmem.NewStore(), snapshot: snap}
+
+	// The initial replay serves the World before the missing block.
+	stateCtr := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](snap)
+	if _, err := space.c.waitWorldInit(ctx, so, stateCtr, newReplayer(space.c, so)); err != nil {
+		t.Fatalf("initial replay with a missing block = %v; want the World before it", err)
+	}
+
+	// Build the engine over the same store.
 	blk, err := buildBlockEngine(ctx, space.c.le, space.c.bus, space.c.sfs, so, space.genesis.GetHeadRef(), transformConf, space.c.buildLookupWorldOp(space.c.le), false)
 	if err != nil {
 		t.Fatal(err.Error())

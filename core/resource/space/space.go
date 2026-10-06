@@ -406,6 +406,29 @@ func (r *SpaceResource) SetSpaceControl(
 	return &s4wave_space.SetSpaceControlResponse{}, nil
 }
 
+// SetSpaceRoster drops, as the local owner, exactly the listed writers from
+// the trimming roster, or agrees to under group control.
+func (r *SpaceResource) SetSpaceRoster(
+	ctx context.Context,
+	req *s4wave_space.SetSpaceRosterRequest,
+) (*s4wave_space.SetSpaceRosterResponse, error) {
+	// Only a shared object whose owner signs roster changes has a roster.
+	host, ok := r.space.GetSharedObject().(sobject.RosterHost)
+	if !ok {
+		return nil, errors.New("this Space has no trimming roster")
+	}
+
+	// Drop the writers, or agree to drop them under group control.
+	changed, err := host.SetRosterDropped(ctx, req.GetDroppedPeerIds())
+	if errors.Is(err, sobject.ErrAwaitingGroup) {
+		return &s4wave_space.SetSpaceRosterResponse{AwaitingGroup: true}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_space.SetSpaceRosterResponse{Changed: changed}, nil
+}
+
 // ApproveSpaceChange agrees, as a voter, to a change another voter asked the
 // group for.
 func (r *SpaceResource) ApproveSpaceChange(

@@ -61,6 +61,12 @@ service SpaceResourceService {
   // WatchSpaceBackfill watches this device's backfill choice.
   rpc WatchSpaceBackfill(WatchSpaceBackfillRequest) returns (stream SpaceBackfillState) {}
 
+  // SetSpaceRoster drops, as an owner, exactly the listed writers from the
+  // trimming roster, so the Space trims history they have not built on. A
+  // dropped writer returns to the roster once it builds on the checkpointer's
+  // latest edit.
+  rpc SetSpaceRoster(SetSpaceRosterRequest) returns (SetSpaceRosterResponse) {}
+
   // ApproveSpaceChange agrees, as a voter, to a change another voter asked the
   // group for.
   rpc ApproveSpaceChange(ApproveSpaceChangeRequest) returns (ApproveSpaceChangeResponse) {}
@@ -453,6 +459,22 @@ message SetSpaceSequencerRequest {
 // SetSpaceSequencerResponse reports whether the sequencer changed.
 message SetSpaceSequencerResponse {
   // Changed is false when the chosen sequencer already ordered the edits.
+  bool changed = 1;
+  // AwaitingGroup is true when the viewer agreed to the change under group
+  // control, and it applies once the group decides it.
+  bool awaiting_group = 2;
+}
+
+// SetSpaceRosterRequest lists the writers to drop from the trimming roster.
+message SetSpaceRosterRequest {
+  // DroppedPeerIds are the writers to drop. Every other writer is on the
+  // roster; an empty list returns every dropped writer to it.
+  repeated string dropped_peer_ids = 1;
+}
+
+// SetSpaceRosterResponse reports whether the roster changed.
+message SetSpaceRosterResponse {
+  // Changed is false when the roster already dropped exactly those writers.
   bool changed = 1;
   // AwaitingGroup is true when the viewer agreed to the change under group
   // control, and it applies once the group decides it.

@@ -1487,6 +1487,65 @@ export const SetSpaceSequencerResponse: MessageType<SetSpaceSequencerResponse> =
   })
 
 /**
+ * SetSpaceRosterRequest lists the writers to drop from the trimming roster.
+ *
+ * @generated from message s4wave.space.SetSpaceRosterRequest
+ */
+export interface SetSpaceRosterRequest {
+  /**
+   * DroppedPeerIds are the writers to drop. Every other writer is on the
+   * roster; an empty list returns every dropped writer to it.
+   *
+   * @generated from field: repeated string dropped_peer_ids = 1;
+   */
+  droppedPeerIds?: string[]
+}
+
+export const SetSpaceRosterRequest: MessageType<SetSpaceRosterRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SetSpaceRosterRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'dropped_peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SetSpaceRosterResponse reports whether the roster changed.
+ *
+ * @generated from message s4wave.space.SetSpaceRosterResponse
+ */
+export interface SetSpaceRosterResponse {
+  /**
+   * Changed is false when the roster already dropped exactly those writers.
+   *
+   * @generated from field: bool changed = 1;
+   */
+  changed?: boolean
+  /**
+   * AwaitingGroup is true when the viewer agreed to the change under group
+   * control, and it applies once the group decides it.
+   *
+   * @generated from field: bool awaiting_group = 2;
+   */
+  awaitingGroup?: boolean
+}
+
+export const SetSpaceRosterResponse: MessageType<SetSpaceRosterResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.SetSpaceRosterResponse',
+    fields: [
+      { no: 1, name: 'changed', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'awaiting_group', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * SetSpaceBackfillRequest chooses this device's backfill of the World.
  *
  * @generated from message s4wave.space.SetSpaceBackfillRequest

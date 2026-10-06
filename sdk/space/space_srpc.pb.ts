@@ -28,6 +28,8 @@ import {
   SetSpaceBackfillResponse,
   SetSpaceControlRequest,
   SetSpaceControlResponse,
+  SetSpaceRosterRequest,
+  SetSpaceRosterResponse,
   SetSpaceSequencerRequest,
   SetSpaceSequencerResponse,
   SpaceBackfillState,
@@ -238,6 +240,20 @@ export const SpaceResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * SetSpaceRoster drops, as an owner, exactly the listed writers from the
+     * trimming roster, so the Space trims history they have not built on. A
+     * dropped writer returns to the roster once it builds on the checkpointer's
+     * latest edit.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
+     */
+    SetSpaceRoster: {
+      name: 'SetSpaceRoster',
+      I: SetSpaceRosterRequest,
+      O: SetSpaceRosterResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
      * group for.
      *
@@ -416,6 +432,19 @@ export interface SpaceResourceService {
     request: WatchSpaceBackfillRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<SpaceBackfillState>
+
+  /**
+   * SetSpaceRoster drops, as an owner, exactly the listed writers from the
+   * trimming roster, so the Space trims history they have not built on. A
+   * dropped writer returns to the roster once it builds on the checkpointer's
+   * latest edit.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
+   */
+  SetSpaceRoster(
+    request: SetSpaceRosterRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceRosterResponse>
 
   /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
@@ -612,6 +641,20 @@ export interface SpaceResourceServiceHandler {
   ): MessageStream<SpaceBackfillState>
 
   /**
+   * SetSpaceRoster drops, as an owner, exactly the listed writers from the
+   * trimming roster, so the Space trims history they have not built on. A
+   * dropped writer returns to the roster once it builds on the checkpointer's
+   * latest edit.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
+   */
+  SetSpaceRoster(
+    request: SetSpaceRosterRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetSpaceRosterResponse>
+
+  /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
    * group for.
    *
@@ -650,6 +693,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.SetSpaceControl = this.SetSpaceControl.bind(this)
     this.SetSpaceBackfill = this.SetSpaceBackfill.bind(this)
     this.WatchSpaceBackfill = this.WatchSpaceBackfill.bind(this)
+    this.SetSpaceRoster = this.SetSpaceRoster.bind(this)
     this.ApproveSpaceChange = this.ApproveSpaceChange.bind(this)
   }
   /**
@@ -963,6 +1007,28 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(SpaceBackfillState)(result)
+  }
+
+  /**
+   * SetSpaceRoster drops, as an owner, exactly the listed writers from the
+   * trimming roster, so the Space trims history they have not built on. A
+   * dropped writer returns to the roster once it builds on the checkpointer's
+   * latest edit.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
+   */
+  async SetSpaceRoster(
+    request: SetSpaceRosterRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetSpaceRosterResponse> {
+    const requestMsg = SetSpaceRosterRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.SetSpaceRoster.name,
+      SetSpaceRosterRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetSpaceRosterResponse.fromBinary(result)
   }
 
   /**
