@@ -229,30 +229,31 @@ function NoteBody({
   )
 }
 
-/** NoteContentView displays a note with WYSIWYG (Lexical) or source (textarea) mode. */
-function NoteContentView({
+interface NoteFileViewProps extends Omit<NoteContentViewProps, 'sourceRef'> {
+  objectKey: string
+  filePath: string
+}
+
+// NoteFileView displays one note file. Its write state belongs to that file,
+// so NoteContentView mounts it keyed by file path.
+function NoteFileView({
   worldState,
-  sourceRef,
+  objectKey,
+  filePath,
   noteName,
   editing,
   onToggleEdit,
   onFilterTag,
   onFilterStatus,
   onContentSaved,
-}: NoteContentViewProps) {
-  const parsed = useMemo(() => parseObjectUri(sourceRef), [sourceRef])
-  const filePath = useMemo(() => {
-    const base = parsed.path
-    return base ? `${base}/${noteName}` : noteName
-  }, [parsed.path, noteName])
+}: NoteFileViewProps) {
   const noteFormat = getNoteFileFormat(noteName) ?? 'markdown'
 
-  const rootHandle = useUnixFSRootHandle(worldState, parsed.objectKey)
+  const rootHandle = useUnixFSRootHandle(worldState, objectKey)
   const fileHandle = useUnixFSHandle(rootHandle, filePath)
   const textResource = useUnixFSHandleTextContent(fileHandle)
   const noteWrite = useNoteWrite({
     fileHandle,
-    filePath,
     loadedContent: textResource.value ?? '',
     editing,
     noteFormat,
@@ -292,7 +293,7 @@ function NoteContentView({
         onTogglePointerDown={noteWrite.handleTogglePointerDown}
       />
       <SaveStatus
-        state={noteWrite.displayedSaveState}
+        state={noteWrite.saveState}
         error={noteWrite.writeError}
         onRetry={noteWrite.handleRetrySave}
       />
@@ -311,6 +312,23 @@ function NoteContentView({
         onFilterStatus={onFilterStatus}
       />
     </div>
+  )
+}
+
+/** NoteContentView displays a note with WYSIWYG (Lexical) or source (textarea) mode. */
+function NoteContentView({ sourceRef, ...props }: NoteContentViewProps) {
+  const parsed = useMemo(() => parseObjectUri(sourceRef), [sourceRef])
+  const filePath = parsed.path
+    ? `${parsed.path}/${props.noteName}`
+    : props.noteName
+
+  return (
+    <NoteFileView
+      key={filePath}
+      objectKey={parsed.objectKey}
+      filePath={filePath}
+      {...props}
+    />
   )
 }
 

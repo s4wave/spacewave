@@ -65,7 +65,6 @@ export function TextInputDialog({
               placeholder={placeholder}
               required={requireValue}
               className="border-border bg-background text-foreground focus:border-brand h-8 rounded-md border px-2 text-sm outline-none"
-              autoFocus
             />
           </label>
           <DialogFooter className="mt-4">
@@ -128,7 +127,6 @@ export function SourceInputDialog({
                 name="name"
                 placeholder="Docs"
                 className="border-border bg-background text-foreground focus:border-brand h-8 rounded-md border px-2 text-sm outline-none"
-                autoFocus
               />
             </label>
             <label className="text-foreground flex flex-col gap-1 text-xs">
