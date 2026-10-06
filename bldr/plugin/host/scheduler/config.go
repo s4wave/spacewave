@@ -148,9 +148,13 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
 }
 
+// execBackoffMaxInterval is the default cap between plugin restarts. A plugin
+// that keeps failing costs one start per interval.
+const execBackoffMaxInterval = 5 * time.Minute
+
 // BuildExecBackoff gets the ExecBackoff and fills defaults if applicable.
 func (c *Config) BuildExecBackoff() *backoff.Backoff {
-	return c.buildBackoff(c.GetExecBackoff(), 2100)
+	return c.buildBackoff(c.GetExecBackoff(), uint32(execBackoffMaxInterval/time.Millisecond))
 }
 
 // SchedulesPlugin reports whether the scheduler loads pluginID.

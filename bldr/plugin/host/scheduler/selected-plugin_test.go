@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
@@ -179,5 +180,57 @@ func TestSelectedPluginRetainsAdmittedWorker(t *testing.T) {
 	}
 	if instance.admitExecution(next.worker, func() {}, nil) {
 		t.Fatal("closed binding admitted a late candidate")
+	}
+}
+
+// TestFailingPluginRestartBacksOff checks that a plugin failing at start
+// restarts after exponentially growing delays.
+func TestFailingPluginRestartBacksOff(t *testing.T) {
+	// Fail every execution at startup and record when each begins.
+	le := logrus.NewEntry(logrus.New())
+	c := &Controller{le: le,
+		conf: &Config{ExecBackoff: &backoff.Backoff{
+			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
+			Exponential: &backoff.Exponential{InitialInterval: 20, Multiplier: 2, MaxInterval: 1000},
+		}},
+		pluginStatusCtr: ccontainer.NewCContainer(&plugin.PluginStatusSnapshot{}),
+		pluginStatus:    make(map[string]*plugin.PluginStatus),
+	}
+	_, instance := c.newPluginInstance(pluginReference{pluginID: "sample"})
+	starts := make(chan time.Time, 8)
+	instance.executions = keyed.NewKeyedRefCount(func(key executionReference) (keyed.Routine, *pluginInstance) {
+		_, worker := instance.newExecution(key)
+		return func(context.Context) error {
+			// Record the start and fail before completing registration.
+			starts <- time.Now()
+			worker.beginInitialCapabilityRegistration()
+			err := errors.New("wasm error: out of bounds memory access")
+			worker.finishExecution(err)
+			return err
+		}, worker
+	})
+	instance.executions.SetContext(t.Context(), true)
+	t.Cleanup(instance.executions.ClearContext)
+	t.Cleanup(func() { instance.clearExecution(nil) })
+
+	// Run the selection through the execute routine that owns the retries.
+	instance.executePluginRoutine.SetState(&executePluginArgs{
+		pluginHost: &testPluginHost{id: "test"},
+		manifestSnapshot: &manifest.ManifestSnapshot{
+			ManifestRef: newTestManifestRef("sample", "js", 1, "candidate").GetManifestRef(),
+			Manifest:    &manifest.Manifest{Meta: manifest.NewManifestMeta("sample", manifest.BuildType_RELEASE, "js", 1)},
+		},
+	})
+	instance.executePluginRoutine.SetContext(t.Context(), true)
+	t.Cleanup(func() { instance.executePluginRoutine.ClearContext() })
+
+	// Each delay is at least the backoff interval, which doubles per failure.
+	prev := <-starts
+	for i, want := range []time.Duration{20, 40, 80, 160} {
+		next := <-starts
+		if gap := next.Sub(prev); gap < want*time.Millisecond {
+			t.Fatalf("restart %d after %v, want at least %v", i+1, gap, want*time.Millisecond)
+		}
+		prev = next
 	}
 }

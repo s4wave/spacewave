@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/routine"
@@ -105,6 +106,29 @@ type pluginInstance struct {
 	updatePluginRoutine *routine.StateRoutineContainer[*executePluginArgs]
 	// executePluginRoutine is the routine to execute a plugin with a manifest.
 	executePluginRoutine *routine.StateRoutineContainer[*executePluginArgs]
+	// execBackoff spaces the restarts of executePluginRoutine.
+	execBackoff *restartBackoff
+}
+
+// restartBackoff is a BackOff shared by the execute routine, which draws a
+// delay after each failure, and the admitted worker, which resets it.
+type restartBackoff struct {
+	mtx sync.Mutex
+	bo  cbackoff.BackOff
+}
+
+// NextBackOff returns the delay before the next restart.
+func (b *restartBackoff) NextBackOff() time.Duration {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	return b.bo.NextBackOff()
+}
+
+// Reset restores the initial restart delay.
+func (b *restartBackoff) Reset() {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.bo.Reset()
 }
 
 // GetRunningPluginCtr returns the current running plugin instance.
@@ -138,7 +162,8 @@ func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *plu
 	tr.executions = keyed.NewKeyedRefCountWithLogger(tr.newExecution, le)
 
 	// Build the retry backoff policies from the config.
-	fetchBackoff, execBackoff := c.conf.BuildFetchBackoff(), c.conf.BuildExecBackoff()
+	fetchBackoff := c.conf.BuildFetchBackoff()
+	tr.execBackoff = &restartBackoff{bo: c.conf.BuildExecBackoff().Construct()}
 
 	// Create the fetch, watch, and download manifest routines.
 	tr.fetchWorldManifestRoutine = routine.NewStateRoutineContainerWithLogger(pluginHostSetEqual, le, routine.WithRetry(fetchBackoff))
@@ -159,7 +184,7 @@ func (c *Controller) newPluginInstance(key pluginReference) (keyed.Routine, *plu
 	tr.executePluginRoutine = routine.NewStateRoutineContainerWithLogger(
 		executePluginArgsEqual,
 		le,
-		routine.WithRetry(execBackoff),
+		routine.WithBackoff(tr.execBackoff),
 	)
 	tr.executePluginRoutine.SetStateRoutine(tr.execSelectedPlugin)
 
