@@ -46,7 +46,7 @@ func TestProcessApplyTxOpRejectsUninitializedWorld(t *testing.T) {
 	_, res, err := (&Controller{}).processOp(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
-		nil,
+		&replayWorld{},
 		opData,
 		"test-op",
 		pid,
@@ -93,15 +93,16 @@ func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
 	}
 
 	// Process it from an empty state.
-	nextState, res, err := (&Controller{
+	c := &Controller{
 		le:   tb.Logger,
 		bus:  tb.Bus,
 		conf: &Config{},
 		sfs:  tb.StepFactorySet,
-	}).processOp(
+	}
+	nextState, res, err := c.processOp(
 		ctx,
 		tb.Logger,
-		&testSharedObject{blockStore: store},
+		newReplayWorld(c, &testSharedObject{blockStore: store}),
 		opData,
 		"test-op",
 		pid,
@@ -141,7 +142,8 @@ func TestProcessInitWorldOpWritesDisabledChangelogRoot(t *testing.T) {
 }
 
 // TestProcessOpAppliesOrdinaryTx checks that replay applies an ordinary
-// World transaction and produces the next World state.
+// World transaction and produces the next World state, whose root is stored
+// once the replay World closes.
 func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 	// Build the World and an object creation transaction.
 	ctx := context.Background()
@@ -154,10 +156,11 @@ func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 	}
 
 	// Process the transaction and check it produced a new head.
+	w := newReplayWorld(c, so)
 	nextState, res, err := c.processOp(
 		ctx,
 		logrus.NewEntry(logrus.New()),
-		so,
+		w,
 		marshalApplyTxOpForProcessTest(t, objectTx),
 		"test-op",
 		pid,
@@ -174,10 +177,25 @@ func TestProcessOpAppliesOrdinaryTx(t *testing.T) {
 	if res == nil || !res.GetSuccess() {
 		t.Fatalf("expected ordinary transaction success, got %#v", res)
 	}
+
+	// Close the replay World.
+	if err := w.close(ctx); err != nil {
+		t.Fatalf("close replay world: %v", err)
+	}
+
+	// Closing stored the new root.
+	stored, err := so.GetBlockStore().GetBlockExists(ctx, nextState.GetHeadRef().GetRootRef())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !stored {
+		t.Fatal("expected the replayed root to be stored after close")
+	}
 }
 
 // newProcessTestPeerID returns a fresh peer ID.
 func newProcessTestPeerID(t *testing.T) peer.ID {
+	// Derive the ID from a new key.
 	t.Helper()
 	priv, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
@@ -190,6 +208,7 @@ func newProcessTestPeerID(t *testing.T) peer.ID {
 	return pid
 }
 
+// marshalApplyTxOpForProcessTest encodes tx as an ApplyTx operation.
 func marshalApplyTxOpForProcessTest(t *testing.T, tx *world_block_tx.Tx) []byte {
 	t.Helper()
 	opData, err := (&SOWorldOp{
@@ -203,7 +222,10 @@ func marshalApplyTxOpForProcessTest(t *testing.T, tx *world_block_tx.Tx) []byte 
 	return opData
 }
 
+// newProcessTestWorld returns a Controller and a SharedObject holding an
+// initialized World, with the World's state.
 func newProcessTestWorld(t *testing.T, ctx context.Context) (*Controller, *testSharedObject, *InnerState) {
+	// Start a testbed.
 	t.Helper()
 	tb, err := alpha_testbed.Default(ctx)
 	if err != nil {
@@ -211,12 +233,14 @@ func newProcessTestWorld(t *testing.T, ctx context.Context) (*Controller, *testS
 	}
 	t.Cleanup(tb.Release)
 
+	// Build the World transformer.
 	transformConf := newStateTestTransformConfig(t, &transform_gzip.Config{})
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{}, tb.StepFactorySet, transformConf)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Write an empty World root.
 	store := newTestBlockStore(tb.EngineBucketID, tb.Volume)
 	tx, bcs := block.NewTransaction(store, xfrm, nil, nil)
 	bcs.SetBlock(world_block.NewWorld(true), true)
@@ -225,6 +249,7 @@ func newProcessTestWorld(t *testing.T, ctx context.Context) (*Controller, *testS
 		t.Fatal(err.Error())
 	}
 
+	// Return the World state over the store.
 	return &Controller{
 			le:   tb.Logger,
 			bus:  tb.Bus,

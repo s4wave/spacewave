@@ -70,8 +70,9 @@ func (c *Controller) buildBlkEngine(
 	so sobject.SharedObject,
 	headRef *bucket.ObjectRef,
 	transformConf *block_transform.Config,
+	opts ...world_block.EngineOption,
 ) (*blkEngine, error) {
-	return buildBlockEngine(ctx, le, c.bus, c.sfs, so, headRef, transformConf, c.buildLookupWorldOp(le), c.conf.GetVerbose())
+	return buildBlockEngine(ctx, le, c.bus, c.sfs, so, headRef, transformConf, c.buildLookupWorldOp(le), c.conf.GetVerbose(), opts...)
 }
 
 // buildBlockEngine binds a World root to its SharedObject block store.
@@ -85,6 +86,7 @@ func buildBlockEngine(
 	transformConf *block_transform.Config,
 	lookupWorldOp world.LookupOp,
 	verbose bool,
+	opts ...world_block.EngineOption,
 ) (*blkEngine, error) {
 	// Trace the build.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/build-block-engine")
@@ -161,6 +163,7 @@ func buildBlockEngine(
 			lookupWorldOp,
 			nil, // no commit function needed
 			verbose,
+			opts...,
 		)
 		task.End()
 		if err != nil {

@@ -16,13 +16,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// processOp processes a single operation and returns the next state and
+// processOp processes a single operation on w and returns the next state and
 // operation result. An operation with no peerID is local, and its rejection
 // is returned as an error.
 func (c *Controller) processOp(
 	ctx context.Context,
 	le *logrus.Entry,
-	so sobject.SharedObject,
+	w *replayWorld,
 	opData []byte,
 	localID string,
 	peerID peer.ID,
@@ -53,7 +53,7 @@ func (c *Controller) processOp(
 		return c.processInitWorldOp(
 			ctx,
 			ole,
-			so,
+			w.so,
 			body.InitWorld,
 			headState,
 			peerID,
@@ -64,20 +64,15 @@ func (c *Controller) processOp(
 			return rejectOp(ole, peerID, nonce, "world is not initialized")
 		}
 
-		// Build world state with engine once for all operations
-		var ws *blkEngine
-		{
-			taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/process-op/build-block-engine")
-			var err error
-			ws, err = c.buildBlkEngine(taskCtx, le, so, headState.GetHeadRef(), headState.GetHeadRef().GetTransformConf())
-			task.End()
-			if err != nil {
-				return nil, nil, err
-			}
+		// Bind the head World.
+		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/process-op/bind-world")
+		ws, err := w.bind(taskCtx, headState.GetHeadRef())
+		task.End()
+		if err != nil {
+			return nil, nil, err
 		}
-		defer ws.Release()
 
-		// Process ApplyTxOp using the shared world state
+		// Apply the transaction to it.
 		nhs, res, err := c.processApplyTxOpWithEngine(
 			ctx,
 			ole,
@@ -90,7 +85,8 @@ func (c *Controller) processOp(
 		if err != nil {
 			return nil, nil, err
 		}
-		if res != nil {
+		if nhs != nil {
+			w.advance(nhs.GetHeadRef())
 			ole.Debugf("applied world txn op: %v", body.ApplyTxOp.GetTx().GetTxType().String())
 		}
 		return nhs, res, nil
@@ -160,6 +156,7 @@ func (c *Controller) writeInitialWorldRoot(
 	initOp *InitWorldOp,
 	headRef *bucket.ObjectRef,
 ) error {
+	// Only a World without a changelog starts from a written root.
 	if !initOp.GetLastChangeDisable() {
 		return nil
 	}
@@ -170,6 +167,7 @@ func (c *Controller) writeInitialWorldRoot(
 		return errors.New("initial world transform config is empty")
 	}
 
+	// Write the empty World root under the head's transform.
 	xfrm, err := block_transform.NewTransformer(
 		controller.ConstructOpts{Logger: le},
 		c.sfs,
@@ -188,7 +186,7 @@ func (c *Controller) writeInitialWorldRoot(
 	return nil
 }
 
-// processApplyTxOpWithEngine processes a ApplyTxOp operation with an existing engine.
+// processApplyTxOpWithEngine processes an ApplyTxOp operation with an existing engine.
 func (c *Controller) processApplyTxOpWithEngine(
 	ctx context.Context,
 	le *logrus.Entry,

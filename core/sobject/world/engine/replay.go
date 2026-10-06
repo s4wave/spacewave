@@ -356,13 +356,22 @@ func (r *replayer) head() (*InnerState, *InnerState, int) {
 // previous replay. The World after that prefix may have been collected since,
 // so when its root is missing, replay starts again from the base. Any other
 // missing block belongs to the operation that needs it and stops replay there,
-// with the positions before it kept.
+// with the positions before it kept. The blocks of every placed position are
+// durable when replay returns.
 func (r *replayer) replay(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
 	set *sobject.SOOperationSet,
 	fork *replayFork,
-) (*InnerState, []replayOutcome, error) {
+) (state *InnerState, outcomes []replayOutcome, err error) {
+	// Advance one World through the pass and fence its blocks at the end.
+	w := newReplayWorld(r.c, r.so)
+	defer func() {
+		if cerr := w.close(ctx); cerr != nil {
+			state, outcomes, err = nil, nil, cerr
+		}
+	}()
+
 	// Keep the positions of the prefix the new order shares with the last one.
 	// A restored prefix resumes only from its last position.
 	r.set = set
@@ -380,7 +389,7 @@ func (r *replayer) replay(
 	r.positions = r.positions[:n]
 
 	// Replay the rest of the order from the World after the shared prefix.
-	state := r.base
+	state = r.base
 	if n != 0 {
 		state = r.positions[n-1].state
 	}
@@ -399,16 +408,16 @@ func (r *replayer) replay(
 			outcome.reason = sobject.ReasonEquivocated
 		} else {
 			inner := set.Get(h)
-			next, why, conflict, err := r.replayOp(ctx, snap, inner, n+i, state)
-			if errors.Is(err, block.ErrNotFound) {
+			next, why, conflict, opErr := r.replayOp(ctx, w, snap, inner, n+i, state)
+			if errors.Is(opErr, block.ErrNotFound) {
 				if i == 0 && n != 0 && r.worldLost(ctx, state) {
 					r.positions = nil
 					return r.replay(ctx, snap, set, nil)
 				}
-				return state, nil, errors.Wrapf(err, "replay stopped at operation %d (nonce %d of %s)", n+i, inner.GetNonce(), inner.GetPeerId())
+				return state, nil, errors.Wrapf(opErr, "replay stopped at operation %d (nonce %d of %s)", n+i, inner.GetNonce(), inner.GetPeerId())
 			}
-			if err != nil {
-				return nil, nil, err
+			if opErr != nil {
+				return nil, nil, opErr
 			}
 			if next != nil {
 				state = next
@@ -419,7 +428,7 @@ func (r *replayer) replay(
 	}
 
 	// Report every outcome in order.
-	outcomes := make([]replayOutcome, len(r.positions))
+	outcomes = make([]replayOutcome, len(r.positions))
 	for i, pos := range r.positions {
 		outcomes[i] = pos.outcome
 	}
@@ -461,11 +470,12 @@ func (r *replayer) markApplied(h []byte) {
 	r.applied[string(h)] = struct{}{}
 }
 
-// replayOp applies one operation to state as its author, under the config the
-// operation names. It returns the next World, or nil and the reason the
+// replayOp applies one operation to state on w as its author, under the config
+// the operation names. It returns the next World, or nil and the reason the
 // operation was not applied, with whether the World rejected it.
 func (r *replayer) replayOp(
 	ctx context.Context,
+	w *replayWorld,
 	snap sobject.SharedObjectStateSnapshot,
 	inner *sobject.SOOperationInner,
 	idx int,
@@ -494,7 +504,7 @@ func (r *replayer) replayOp(
 	next, res, err := r.c.processOp(
 		world.WithOperationPerson(ctx, person),
 		r.c.le,
-		r.so,
+		w,
 		opData,
 		inner.GetLocalId(),
 		author,
