@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -260,7 +261,7 @@ func runServeCommand(
 		nativeHostRoot = pluginHost.ProcessHost.GetHostRoot()
 		defer releasePluginHost()
 
-		// Serve the files of a local app build imported into the daemon
+		// Serve the files of local app builds imported into the daemon
 		// World, for bound web listeners. The scheduler leaves every other
 		// plugin to native core and runs nothing: both host platforms deny
 		// the app. Imported blocks are already in the daemon volume.
@@ -275,7 +276,7 @@ func runServeCommand(
 			false, // Keep the World store as the only manifest source.
 			true,  // Do not copy manifests the volume already holds.
 		)
-		schedConf.PluginIds = []string{resource_root.WebAppPluginID}
+		schedConf.PluginIds = slices.Clone(resource_root.BoundPluginIDs)
 		for _, platformID := range []string{
 			bldr_platform.NewJsPlatform().GetPlatformID(),
 			(&bldr_platform.NativePlatform{}).GetPlatformID(),

@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	web_pkg_fs_controller "github.com/s4wave/spacewave/bldr/web/pkg/fs/controller"
 	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
@@ -43,12 +44,22 @@ const webListenerReadHeaderTimeout = 5 * time.Second
 // webResourcePath serves a bound listener's Resource service over a websocket.
 const webResourcePath = "/_spacewave/resource"
 
-// WebAppPluginID is the plugin whose browser build a bound listener serves.
-const WebAppPluginID = "spacewave-app"
+// webAppPluginID is the plugin whose browser build a bound listener serves.
+const webAppPluginID = "spacewave-app"
+
+// webPkgPluginID is the plugin whose assets hold the web packages the app
+// build excludes and imports from /b/pkg/.
+const webPkgPluginID = "spacewave-web"
+
+// webPkgIDs are the web packages the app imports from webPkgPluginID.
+var webPkgIDs = []string{"@s4wave/web", "sonner"}
+
+// BoundPluginIDs are the plugins whose browser files a bound listener serves.
+var BoundPluginIDs = []string{webAppPluginID, webPkgPluginID}
 
 // webAppFrontendPath is the root of the app plugin's frontend build. A bound
 // listener's shell loads the app entry from its Vite manifest.
-const webAppFrontendPath = "/b/pa/" + WebAppPluginID + "/v/b/fe/"
+const webAppFrontendPath = "/b/pa/" + webAppPluginID + "/v/b/fe/"
 
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
@@ -264,10 +275,10 @@ type webListener struct {
 	bldrHTTP        *web_runtime_http.Handler
 	// resources serves the bound Resource service, or is nil when unbound.
 	resources *srpc.HTTPServer
-	// appAssets holds the app plugin's browser files mounted while bound.
-	appAssets directive.Reference
-	server    *http.Server
-	listener  net.Listener
+	// releaseAssets releases the bound plugin files and their web packages.
+	releaseAssets func()
+	server        *http.Server
+	listener      net.Listener
 	// cancel ends the requests of the listener, including hijacked websockets
 	// that http.Server.Close leaves open.
 	cancel context.CancelFunc
@@ -360,7 +371,7 @@ func newWebListener(
 		capabilities:    make(map[string]time.Time),
 	}
 	if spec.spaceID != "" && b != nil {
-		_, listener.appAssets, err = b.AddDirective(bldr_plugin.NewLoadPluginAssets(WebAppPluginID), nil)
+		listener.releaseAssets, err = holdBoundAssets(serveCtx, le, b)
 		if err != nil {
 			cancel()
 			_ = lis.Close()
@@ -418,9 +429,49 @@ func (l *webListener) Close() {
 	l.cancel()
 	_ = l.server.Close()
 	_ = l.listener.Close()
-	if l.appAssets != nil {
-		l.appAssets.Release()
+	if l.releaseAssets != nil {
+		l.releaseAssets()
 	}
+}
+
+// holdBoundAssets mounts the files of BoundPluginIDs without running them and
+// serves the web packages that a running webPkgPluginID would register.
+func holdBoundAssets(ctx context.Context, le *logrus.Entry, b bus.Bus) (func(), error) {
+	// Mount each plugin's browser files.
+	var refs []directive.Reference
+	release := func() {
+		for _, ref := range refs {
+			ref.Release()
+		}
+	}
+	for _, pluginID := range BoundPluginIDs {
+		_, ref, err := b.AddDirective(bldr_plugin.NewLoadPluginAssets(pluginID), nil)
+		if err != nil {
+			release()
+			return nil, err
+		}
+		refs = append(refs, ref)
+	}
+
+	// Resolve the web packages from the mounted assets.
+	ctrl, err := web_pkg_fs_controller.NewController(le, b, &web_pkg_fs_controller.Config{
+		UnixfsId:     bldr_plugin.PluginAssetsFsId(webPkgPluginID),
+		UnixfsPrefix: bldr_plugin.PluginAssetsWebPkgsDir,
+		WebPkgIdList: webPkgIDs,
+	})
+	if err != nil {
+		release()
+		return nil, err
+	}
+	releaseCtrl, err := b.AddController(ctx, ctrl, nil)
+	if err != nil {
+		release()
+		return nil, err
+	}
+	return func() {
+		releaseCtrl()
+		release()
+	}, nil
 }
 
 // ServeHTTP serves the boot shell and bootstrap exchange to anyone, and every
