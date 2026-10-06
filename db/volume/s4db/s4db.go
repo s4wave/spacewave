@@ -47,7 +47,7 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 
 	// Convert a bolt Volume file and open the database.
 	path := conf.GetPath()
-	if err := convertBolt(ctx, path); err != nil {
+	if err := convertBolt(ctx, le, path); err != nil {
 		return nil, err
 	}
 	db, err := s4db.Open(path, s4db.Options{})

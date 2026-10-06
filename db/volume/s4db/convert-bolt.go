@@ -11,10 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdb_errors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/s4wave/spacewave/db/s4db"
+	"github.com/sirupsen/logrus"
 )
 
 // boltMagic is the magic number in a bbolt meta page.
@@ -36,7 +38,7 @@ const convertBatch = 64 << 20
 //
 // The copy goes to a sibling file renamed over path once verified, so a
 // crash leaves the bolt file in place for the next open to convert again.
-func convertBolt(ctx context.Context, path string) error {
+func convertBolt(ctx context.Context, le *logrus.Entry, path string) error {
 	// Read the magic number.
 	isBolt, err := isBoltFile(path)
 	if err != nil || !isBolt {
@@ -58,7 +60,10 @@ func convertBolt(ctx context.Context, path string) error {
 		return err
 	}
 
-	// Copy the keys into a fresh sibling file and check it.
+	// Start a fresh sibling file.
+	le = le.WithField("path", path)
+	le.Info("converting bolt volume to s4db")
+	start := time.Now()
 	tmp := path + ".converting"
 	if err := os.Remove(tmp); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -67,6 +72,8 @@ func convertBolt(ctx context.Context, path string) error {
 	if err != nil {
 		return err
 	}
+
+	// Copy the keys into it and check them.
 	err = copyBolt(ctx, src, dst)
 	if err == nil {
 		err = verifyBolt(ctx, src, dst)
@@ -85,6 +92,7 @@ func convertBolt(ctx context.Context, path string) error {
 	if err := syncDir(filepath.Dir(path)); err != nil {
 		return err
 	}
+	le.WithField("elapsed", time.Since(start)).Info("converted bolt volume to s4db")
 	return removeBoltLocks(path)
 }
 
