@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, type ComponentProps } from 'react'
 import {
   LuChevronDown,
   LuChevronRight,
@@ -73,34 +73,26 @@ export function SessionSelector() {
 
   if (resource.loading || (sessions.length === 0 && rootAliases.loading)) {
     return (
-      <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'loading',
-              title: 'Loading sessions',
-              detail: 'Reading available sessions from the provider.',
-            }}
-          />
-        </div>
-      </div>
+      <SessionSelectorStatus
+        view={{
+          state: 'loading',
+          title: 'Loading sessions',
+          detail: 'Reading available sessions from the provider.',
+        }}
+      />
     )
   }
 
   if (resource.error) {
     return (
-      <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'error',
-              title: 'Failed to load sessions',
-              error: resource.error.message,
-              onRetry: resource.retry,
-            }}
-          />
-        </div>
-      </div>
+      <SessionSelectorStatus
+        view={{
+          state: 'error',
+          title: 'Failed to load sessions',
+          error: resource.error.message,
+          onRetry: resource.retry,
+        }}
+      />
     )
   }
 
@@ -139,54 +131,19 @@ export function SessionSelector() {
           </div>
         )}
 
-        {rootRecords.length > 0 && (
-          <div className="w-full max-w-md">
-            {sessions.length > 0 && (
-              <h2 className="text-foreground-alt/60 mt-6 mb-2 px-1 text-xs font-medium">
-                State roots
-              </h2>
-            )}
-            <div className="space-y-2">
-              {rootRecords.map((record) => (
-                <SpaceRootCard
-                  key={record.aliasId}
-                  record={record}
-                  open={record.aliasId === selectedRootAliasId}
-                  runtime={
-                    record.aliasId === selectedRootAliasId
-                      ? selectedRootRuntime.value
-                      : null
-                  }
-                  onOpenChange={setChosenRootAliasId}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        <StateRootList
+          records={rootRecords}
+          showHeading={sessions.length > 0}
+          selectedAliasId={selectedRootAliasId}
+          selectedRuntime={selectedRootRuntime.value}
+          onOpenChange={setChosenRootAliasId}
+        />
 
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <Button variant="outline" onClick={handleAddAccount}>
-            <LuUserPlus className="size-4" />
-            Add account
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              void addRootAlias.add().then((aliasId) => {
-                if (aliasId) setChosenRootAliasId(aliasId)
-              })
-            }}
-            disabled={!addRootAlias.canAdd}
-          >
-            <LuFolderPlus className="size-4" />
-            {addRootAlias.adding ? 'Adding state root' : 'Add state root'}
-          </Button>
-        </div>
-        {!isDesktop && (
-          <p className="text-foreground-alt/50 mt-2 text-xs">
-            State roots can be added in the desktop app.
-          </p>
-        )}
+        <SelectorActions
+          addRootAlias={addRootAlias}
+          onAddAccount={handleAddAccount}
+          onRootAdded={setChosenRootAliasId}
+        />
       </div>
 
       <div className="relative z-10 pb-3 text-center">
@@ -195,6 +152,92 @@ export function SessionSelector() {
         </p>
       </div>
     </div>
+  )
+}
+
+// SessionSelectorStatus renders a centered loading or error card.
+function SessionSelectorStatus(props: {
+  view: ComponentProps<typeof LoadingCard>['view']
+}) {
+  return (
+    <div className="bg-background-landing flex h-full w-full flex-1 items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <LoadingCard view={props.view} />
+      </div>
+    </div>
+  )
+}
+
+// StateRootList renders the configured state roots, opening the selected one.
+function StateRootList(props: {
+  records: SpaceRootAliasRecord[]
+  showHeading: boolean
+  selectedAliasId: string | null
+  selectedRuntime?: WatchSpaceRootRuntimeResponse | null
+  onOpenChange: (aliasId: string | null) => void
+}) {
+  const { records, selectedAliasId } = props
+  if (records.length === 0) return null
+
+  return (
+    <div className="w-full max-w-md">
+      {props.showHeading && (
+        <h2 className="text-foreground-alt/60 mt-6 mb-2 px-1 text-xs font-medium">
+          State roots
+        </h2>
+      )}
+      <div className="space-y-2">
+        {records.map((record) => (
+          <SpaceRootCard
+            key={record.aliasId}
+            record={record}
+            open={record.aliasId === selectedAliasId}
+            runtime={
+              record.aliasId === selectedAliasId ? props.selectedRuntime : null
+            }
+            onOpenChange={props.onOpenChange}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// SelectorActions renders the add-account and add-state-root controls.
+// onRootAdded receives the alias of a newly added state root.
+function SelectorActions(props: {
+  addRootAlias: ReturnType<typeof useAddSpaceRootAlias>
+  onAddAccount: () => void
+  onRootAdded: (aliasId: string) => void
+}) {
+  const { addRootAlias, onRootAdded } = props
+
+  return (
+    <>
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <Button variant="outline" onClick={props.onAddAccount}>
+          <LuUserPlus className="size-4" />
+          Add account
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            void addRootAlias.add().then((aliasId) => {
+              if (aliasId) onRootAdded(aliasId)
+            })
+          }}
+          disabled={!addRootAlias.canAdd}
+        >
+          <LuFolderPlus className="size-4" />
+          {addRootAlias.adding ? 'Adding state root' : 'Add state root'}
+        </Button>
+      </div>
+      {!isDesktop && (
+        <p className="text-foreground-alt/50 mt-2 text-xs">
+          State roots can be added in the desktop app.
+        </p>
+      )}
+    </>
   )
 }
 
