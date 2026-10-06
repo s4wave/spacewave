@@ -304,6 +304,7 @@ func contend(ctx context.Context, path string, rep *reliabilityReport) error {
 
 // openVolume opens E1 on the OPFS directory at path.
 func openVolume(ctx context.Context, path string) (*paylog.Store, func(), error) {
+	// Open the device, then the index and store over it.
 	dev, err := device_opfs.Open(path)
 	if err != nil {
 		return nil, nil, err
@@ -313,7 +314,7 @@ func openVolume(ctx context.Context, path string) (*paylog.Store, func(), error)
 		_ = dev.Close()
 		return nil, nil, err
 	}
-	s, err := paylog.Open(ctx, dev, idx)
+	s, err := paylog.Open(ctx, dev, idx, 0)
 	if err != nil {
 		_ = dev.Close()
 		return nil, nil, err

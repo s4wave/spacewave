@@ -52,7 +52,7 @@ func (e engine) openStore(ctx context.Context, d device.Device) (*Store, error) 
 	if err != nil {
 		return nil, err
 	}
-	return Open(ctx, d, index)
+	return Open(ctx, d, index, 0)
 }
 
 // openStore opens a Store on d with e and closes it when the test ends.

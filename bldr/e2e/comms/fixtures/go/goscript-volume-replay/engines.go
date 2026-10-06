@@ -160,6 +160,7 @@ func (b countingBackend) Remove(ctx context.Context, name string) error {
 func openE1(ctx context.Context, open func() (device.Device, func() error, error), destroy func() error) (engine, error) {
 	c := &counter{}
 	start := func() (*paylog.Store, func() error, error) {
+		// Open the device, then the index and store over its counted calls.
 		dev, closeDevice, err := open()
 		if err != nil {
 			return nil, nil, err
@@ -170,7 +171,7 @@ func openE1(ctx context.Context, open func() (device.Device, func() error, error
 			_ = closeDevice()
 			return nil, nil, err
 		}
-		s, err := paylog.Open(ctx, counted, idx)
+		s, err := paylog.Open(ctx, counted, idx, 0)
 		if err != nil {
 			_ = closeDevice()
 			return nil, nil, err

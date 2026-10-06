@@ -8,7 +8,9 @@ import (
 )
 
 // TestGoScriptOpfsStorage verifies raw persistence and legacy-volume recovery,
-// including replacement identity across worker restart and safe deletion.
+// including replacement identity across worker restart and safe deletion. It
+// also runs the store contract on the browser volume on OPFS and IndexedDB and
+// checks that both keep their blocks across the restart.
 func TestGoScriptOpfsStorage(t *testing.T) {
 	for _, browser := range []string{"chromium", "webkit"} {
 		t.Run(browser, func(t *testing.T) {

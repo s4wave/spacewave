@@ -35,14 +35,20 @@ func run() {
 		}
 	}()
 
-	// Execute one side of the worker restart persistence check.
+	// Execute one side of the worker restart persistence checks.
 	mode := readMode()
 	var err error
 	switch mode {
 	case "write":
 		err = writeProofData()
+		if err == nil {
+			err = writeVolumes()
+		}
 	case "read":
 		err = readProofData()
+		if err == nil {
+			err = readVolumes()
+		}
 	default:
 		err = errors.Errorf("unknown mode %q", mode)
 	}
@@ -61,6 +67,7 @@ func run() {
 
 // readMode reads the worker's requested persistence phase.
 func readMode() string {
+	// Decode the start info the harness passes the worker.
 	encoded := js.Global().Get("BLDR_PLUGIN_START_INFO")
 	if encoded.IsUndefined() || encoded.IsNull() {
 		return ""
@@ -87,6 +94,8 @@ func writeProofData() error {
 	if err := opfs.WriteFile(dir, fileName, []byte(payload)); err != nil {
 		return err
 	}
+
+	// Seed a legacy volume root with its format marker and data.
 	legacy, err := opfs.GetDirectory(dir, "volume", true)
 	if err != nil {
 		return err
@@ -105,6 +114,8 @@ func writeProofData() error {
 		return err
 	}
 	defer vol.Close()
+
+	// Write metadata durably and record the replacement's identity.
 	tx, err := vol.GetKvtxStore().NewTransaction(ctx, true)
 	if err != nil {
 		return err

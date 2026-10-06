@@ -24,6 +24,7 @@ import (
 	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	kvtx_txcache "github.com/s4wave/spacewave/db/kvtx/txcache"
 	"github.com/s4wave/spacewave/db/volume/device"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // segmentPrefix starts the device file name of every payload segment.
@@ -69,6 +70,9 @@ type Store struct {
 	dev device.Device
 	// index holds the key-value store, the block locations, and the journal.
 	index Index
+	// hashType is the hash type of new block references; zero selects the
+	// default.
+	hashType hash.HashType
 
 	// mtx guards the fields below. It is held across segment writes so a
 	// pending location is never published before its payload write is issued.
@@ -97,13 +101,15 @@ type pendingBlock struct {
 }
 
 // Open opens the store on dev with index, an index opened on the same device.
-// The store owns the index and closes it on Close or on failure.
-func Open(ctx context.Context, dev device.Device, index Index) (*Store, error) {
+// New block references use hashType, or the default when it is zero. The store
+// owns the index and closes it on Close or on failure.
+func Open(ctx context.Context, dev device.Device, index Index, hashType hash.HashType) (*Store, error) {
 	// Construct the store and its prefixed index view.
 	s := &Store{
-		dev:     dev,
-		index:   index,
-		pending: make(map[string]*pendingBlock),
+		dev:      dev,
+		index:    index,
+		hashType: hashType,
+		pending:  make(map[string]*pendingBlock),
 	}
 	s.Store = kvtx_prefixer.NewPrefixer(indexStore{s}, []byte(kvPrefix))
 
