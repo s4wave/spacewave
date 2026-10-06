@@ -670,8 +670,8 @@ manifest("spacewave-cli",
 
 DEV_MANIFESTS = [
     "web", "spacewave-core", "spacewave-web", "spacewave-code",
-    "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "spacewave-debug",
-    "bldr-materializer",
+    "spacewave-app", "spacewave-notes", "spacewave-backoffice", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin",
+    "spacewave-debug", "bldr-materializer",
 ]
 BROWSER_RELEASE_MANIFESTS = [
     "spacewave-launcher", "bldr-materializer",
@@ -695,12 +695,12 @@ CLI_RELEASE_MANIFESTS = [
 # reliable first boot; plugin-promote can replace them after launch by updating
 # the remote plugin world.
 REMOTE_WORLD_MANIFESTS = [
-    "spacewave-loader", "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
-    "spacewave-cli-plugin", "web",
+    "spacewave-loader", "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-backoffice",
+    "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "web",
 ]
 PLUGIN_RELEASE_BROWSER_MANIFESTS = [
-    "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
-    "spacewave-cli-plugin", "web",
+    "spacewave-core", "spacewave-web", "spacewave-code", "spacewave-app", "spacewave-notes", "spacewave-backoffice", "spacewave-v86",
+    "spacewave-sql", "spacewave-cli-plugin", "web",
 ]
 
 # The launcher mounts and verifies Release World before the scheduler resolves
