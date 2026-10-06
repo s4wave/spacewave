@@ -1,0 +1,26 @@
+syntax = "proto3";
+package volume.s4db;
+
+import "github.com/s4wave/spacewave/db/store/kvkey/kvkey.proto";
+import "github.com/s4wave/spacewave/db/store/kvtx/kvtx.proto";
+import "github.com/s4wave/spacewave/db/volume/controller/controller.proto";
+
+// Config is the s4db volume controller config.
+message Config {
+  // Path is the database file, created when absent.
+  string path = 1;
+  // KvKeyOpts are key/value key constants.
+  .store.kvkey.Config kv_key_opts = 2;
+  // NoGenerateKey disables generating a peer private key when the volume has
+  // none.
+  bool no_generate_key = 3;
+  // NoWriteKey disables writing a generated peer private key to storage, so
+  // the peer identity is ephemeral until a key is stored.
+  bool no_write_key = 4;
+  // Verbose enables verbose logging.
+  bool verbose = 5;
+  // VolumeConfig is the volume controller config.
+  .volume.controller.Config volume_config = 6;
+  // StoreConfig is the store configuration for kvtx.
+  .store.kvtx.Config store_config = 7;
+}

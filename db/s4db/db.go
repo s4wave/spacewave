@@ -468,6 +468,12 @@ func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
 	return &Tx{db: db, st: st, stripe: stripe, changes: newChanges()}, nil
 }
 
+// SupportsAtomicCommit reports true: Commit applies a write transaction in
+// full and durably before it returns, and Discard drops it.
+func (db *DB) SupportsAtomicCommit() bool {
+	return true
+}
+
 // Seq returns the last commit of the published state.
 func (db *DB) Seq() uint64 {
 	return db.cur.Load().seq
@@ -562,4 +568,5 @@ func (db *DB) Close() error {
 var (
 	_ kvtx.Store              = (*DB)(nil)
 	_ kvtx.OrderedCommitStore = (*DB)(nil)
+	_ kvtx.AtomicCommitStore  = (*DB)(nil)
 )
