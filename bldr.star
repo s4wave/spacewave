@@ -984,7 +984,7 @@ for host_key, platform_id in RELEASE_HOSTS:
 def apply_release_environment(
         channel_key,
         signer_peer_id,
-        worker_endpoint,
+        cloud_api_endpoint,
         account_endpoint,
         signing_env_prefix,
         world_space_id,
@@ -995,14 +995,14 @@ def apply_release_environment(
     core["goPkgs"] = core_go_pkgs(include_export=include_export)
     core["configSet"] = spacewave_core_config_set(
         include_export=include_export,
-        cloud_api_endpoint=worker_endpoint,
+        cloud_api_endpoint=cloud_api_endpoint,
         account_endpoint=account_endpoint,
         signing_env_prefix=signing_env_prefix,
     )
     core["configSet"]["provider-spacewave"] = config_entry("provider/spacewave", 2, {
-        "endpoint": worker_endpoint,
+        "endpoint": cloud_api_endpoint,
         "accountEndpoint": account_endpoint,
-        "publicBaseUrl": worker_endpoint,
+        "publicBaseUrl": cloud_api_endpoint,
         "signingEnvPrefix": signing_env_prefix,
     })
     manifest("spacewave-core", builder="bldr/plugin/compiler/go",
@@ -1012,7 +1012,7 @@ def apply_release_environment(
     launcher = spacewave_launcher_config(
         launcher_controller_config=spacewave_launcher_controller_config(
             dist_peer_ids=[signer_peer_id],
-            endpoints=[{"url": worker_endpoint.rstrip("/") + "/api/release/config"}],
+            endpoints=[{"url": cloud_api_endpoint.rstrip("/") + "/api/release/config"}],
             channel_key=channel_key,
         ),
         web_go_compiler=web_go_compiler,
