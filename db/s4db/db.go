@@ -4,7 +4,6 @@ import (
 	"context"
 	"math"
 	"math/rand/v2"
-	"os"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -26,10 +25,8 @@ const (
 
 // DB is an open database file.
 type DB struct {
-	// f is the database file.
-	f *os.File
-	// id registers f in the process's open files.
-	id fileID
+	// s is the database file.
+	s storage
 	// hdr is the file header.
 	hdr *header
 	// opts holds the options with defaults applied.
@@ -39,7 +36,7 @@ type DB struct {
 	// slot is this handle's reader slot.
 	slot int
 	// watch wakes the tail loop when the file changes.
-	watch *watcher
+	watch watcher
 	// flush shares flushes between commits.
 	flush *flusher
 	// w writes commits and checkpoints.
@@ -68,37 +65,26 @@ type DB struct {
 	pinned pin
 }
 
-// Open opens or creates the database at path.
-func Open(path string, opts Options) (*DB, error) {
-	// Open the file once per process.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600) // #nosec G703 -- the caller chooses the path.
-	if err != nil {
-		return nil, err
-	}
-	id, err := openFiles.claim(f)
-	if err != nil {
-		_ = f.Close()
-		return nil, err
-	}
+// open opens the database in s, closing s on failure.
+func open(s storage, opts Options) (*DB, error) {
+	// Build the database on s with its cache, flusher, and writer.
 	opts = opts.withDefaults()
 	db := &DB{
-		f:      f,
-		id:     id,
+		s:      s,
 		opts:   opts,
-		p:      &pager{r: f, cache: newCache(opts.CacheBytes)},
+		p:      &pager{r: s, cache: newCache(opts.CacheBytes)},
 		tailer: routine.NewRoutineContainer(),
 		warmer: routine.NewRoutineContainer(),
 	}
-	db.flush = newFlusher(f, &db.cur)
+	db.flush = newFlusher(s, &db.cur)
 	db.w = &writer{db: db}
 
 	// Recover the state, releasing everything on failure.
-	if err := db.open(path); err != nil {
+	if err := db.load(); err != nil {
 		if db.watch != nil {
 			db.watch.close()
 		}
-		_ = f.Close()
-		openFiles.release(id)
+		_ = s.close()
 		return nil, err
 	}
 
@@ -110,14 +96,14 @@ func Open(path string, opts Options) (*DB, error) {
 	return db, nil
 }
 
-// open creates the file if empty, takes a reader slot, and recovers state.
-func (db *DB) open(path string) error {
+// load creates the file if empty, takes a reader slot, and recovers state.
+func (db *DB) load() error {
 	// Create the file under the writer lock so concurrent openers agree.
-	if _, err := lock(db.f, lockWriter, true); err != nil {
+	if _, err := db.s.lock(lockWriter, true); err != nil {
 		return err
 	}
 	err := db.w.create()
-	if uerr := unlock(db.f, lockWriter); err == nil {
+	if uerr := db.s.unlock(lockWriter); err == nil {
 		err = uerr
 	}
 	if err != nil {
@@ -126,7 +112,7 @@ func (db *DB) open(path string) error {
 
 	// Read the header.
 	page := make([]byte, pageSize)
-	if _, err := db.f.ReadAt(page, headerPage*pageSize); err != nil {
+	if _, err := db.s.ReadAt(page, headerPage*pageSize); err != nil {
 		return err
 	}
 	if db.hdr, err = decodeHeader(page); err != nil {
@@ -135,13 +121,13 @@ func (db *DB) open(path string) error {
 
 	// Take a free slot, pin everything until the state is loaded, and
 	// watch the file.
-	if db.slot, err = takeSlot(db.f); err != nil {
+	if db.slot, err = takeSlot(db.s); err != nil {
 		return err
 	}
 	if err := db.writePin(pin{}); err != nil {
 		return err
 	}
-	if db.watch, err = newWatcher(db.f, path, db.slot); err != nil {
+	if db.watch, err = db.s.watch(db.slot); err != nil {
 		return err
 	}
 
@@ -151,9 +137,14 @@ func (db *DB) open(path string) error {
 	if err != nil {
 		return err
 	}
-	st, err := db.tail(newState(sb, db.opts.checkpointLimit(sb)), true)
+	st, torn, err := db.tail(newState(sb, db.opts.checkpointLimit(sb)), true)
 	if err != nil {
 		return err
+	}
+	if torn {
+		if st, err = db.cutTorn(st); err != nil {
+			return err
+		}
 	}
 
 	// Publish the loaded state and pin it.
@@ -164,9 +155,9 @@ func (db *DB) open(path string) error {
 }
 
 // takeSlot locks the first free reader slot and returns its index.
-func takeSlot(f *os.File) (int, error) {
+func takeSlot(s storage) (int, error) {
 	for i := range slots {
-		ok, err := lock(f, lockSlot+int64(i), false)
+		ok, err := s.lock(lockSlot+int64(i), false)
 		if err != nil {
 			return 0, err
 		}
@@ -181,7 +172,7 @@ func takeSlot(f *os.File) (int, error) {
 func (db *DB) readSuper() (superblock, error) {
 	// Read both superblocks.
 	b := make([]byte, 2*pageSize)
-	if _, err := db.f.ReadAt(b, superPage*pageSize); err != nil {
+	if _, err := db.s.ReadAt(b, superPage*pageSize); err != nil {
 		return superblock{}, err
 	}
 
@@ -200,12 +191,12 @@ func (db *DB) readSuper() (superblock, error) {
 // tail returns st advanced to the newest checkpoint and the end of the
 // valid log, or st itself when nothing changed. With verify set it checks
 // the values of records the writer had not flushed, stopping before the
-// first record whose values are torn.
-func (db *DB) tail(st *state, verify bool) (*state, error) {
+// first record whose values are torn and reporting it.
+func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	// Adopt a newer checkpoint.
 	sb, err := db.readSuper()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	next := st
 	switch {
@@ -223,7 +214,7 @@ func (db *DB) tail(st *state, verify bool) (*state, error) {
 	}
 	var recs []read
 	var durable uint64
-	lr := newLogReader(db.f, next.pos, next.end, next.seq)
+	lr := newLogReader(db.s, next.pos, next.end, next.seq)
 	for {
 		r, ok := lr.next()
 		if !ok {
@@ -233,20 +224,22 @@ func (db *DB) tail(st *state, verify bool) (*state, error) {
 		durable = max(durable, r.durable)
 	}
 	if len(recs) == 0 {
-		return next, nil
+		return next, false, nil
 	}
 
 	// Keep the records before the first unflushed one whose values are
 	// missing, when asked to check.
 	rs := make([]*record, 0, len(recs))
+	torn := false
 	for _, rd := range recs {
 		if verify && rd.r.seq > durable && !db.verify(rd.r) {
+			torn = true
 			break
 		}
 		rs = append(rs, rd.r)
 	}
 	if len(rs) == 0 {
-		return next, nil
+		return next, torn, nil
 	}
 
 	// Apply them to a copy.
@@ -256,7 +249,29 @@ func (db *DB) tail(st *state, verify bool) (*state, error) {
 	next.apply(rs...)
 	last := recs[len(rs)-1]
 	next.pos, next.end = last.pos, last.end
-	return next, nil
+	return next, torn, nil
+}
+
+// cutTorn erases the record after st whose values a crash tore, so tails,
+// which trust records, end the log where recovery did. Another process may
+// have appended meanwhile, so it tails again under the writer lock first.
+func (db *DB) cutTorn(st *state) (*state, error) {
+	// Exclude writers and find the torn record again.
+	if _, err := db.s.lock(lockWriter, true); err != nil {
+		return nil, err
+	}
+	st, torn, err := db.tail(st, true)
+
+	// Overwrite its header and flush.
+	if err == nil && torn {
+		if _, err = db.s.WriteAt(make([]byte, recordHeader), fileOff(st.pos)); err == nil {
+			err = db.s.flushDurable()
+		}
+	}
+	if uerr := db.s.unlock(lockWriter); err == nil {
+		err = uerr
+	}
+	return st, err
 }
 
 // derive returns a copy of st whose overlay the caller owns. Copying a tree
@@ -287,7 +302,7 @@ func (db *DB) verify(r *record) bool {
 // A failed tail leaves the published state; the next change retries it.
 func (db *DB) tailLoop(ctx context.Context) error {
 	for db.watch.wait() {
-		if st, err := db.tail(db.cur.Load(), false); err == nil {
+		if st, _, err := db.tail(db.cur.Load(), false); err == nil {
 			_ = db.publish(ctx, st)
 		}
 	}
@@ -396,7 +411,7 @@ func (db *DB) updatePin(ctx context.Context) error {
 // the handle alone.
 func (db *DB) writePin(p pin) error {
 	db.pinned = p
-	_, err := db.f.WriteAt(p.encode(), int64(slotPage*pageSize+db.slot*slotSize))
+	_, err := db.s.WriteAt(p.encode(), int64(slotPage*pageSize+db.slot*slotSize))
 	return err
 }
 
@@ -405,7 +420,7 @@ func (db *DB) minPin() (pin, error) {
 	// Read the slots.
 	p := db.localPin()
 	b := make([]byte, pageSize)
-	if _, err := db.f.ReadAt(b, slotPage*pageSize); err != nil {
+	if _, err := db.s.ReadAt(b, slotPage*pageSize); err != nil {
 		return pin{}, err
 	}
 
@@ -418,7 +433,7 @@ func (db *DB) minPin() (pin, error) {
 		if !ok {
 			continue
 		}
-		live, err := held(db.f, lockSlot+int64(i))
+		live, err := db.s.held(lockSlot + int64(i))
 		if err != nil {
 			return pin{}, err
 		}
@@ -518,20 +533,19 @@ func (db *DB) Close() error {
 	if wait, _ := db.tailer.SetRoutine(nil); wait != nil {
 		<-wait
 	}
-	if _, werr := db.f.WriteAt(make([]byte, slotSize), int64(slotPage*pageSize+db.slot*slotSize)); err == nil {
+	if _, werr := db.s.WriteAt(make([]byte, slotSize), int64(slotPage*pageSize+db.slot*slotSize)); err == nil {
 		err = werr
 	}
-	if serr := flushDurable(db.f); err == nil {
+	if serr := db.s.flushDurable(); err == nil {
 		err = serr
 	}
 
 	// Close the watcher last: on darwin closing any descriptor of the file
 	// drops the process's record locks.
 	db.watch.close()
-	if cerr := db.f.Close(); err == nil {
+	if cerr := db.s.close(); err == nil {
 		err = cerr
 	}
-	openFiles.release(db.id)
 
 	// Wake waiters.
 	l := db.bcast.Lock()

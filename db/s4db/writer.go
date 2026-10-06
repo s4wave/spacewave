@@ -47,7 +47,7 @@ func (w *writer) lock(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if _, err := lock(w.db.f, lockWriter, true); err != nil {
+	if _, err := w.db.s.lock(lockWriter, true); err != nil {
 		release()
 		return err
 	}
@@ -70,7 +70,7 @@ func (w *writer) tryLock() (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	ok, err := lock(w.db.f, lockWriter, false)
+	ok, err := w.db.s.lock(lockWriter, false)
 	if err != nil || !ok {
 		release()
 		return false, err
@@ -84,7 +84,7 @@ func (w *writer) tryLock() (bool, error) {
 func (w *writer) unlock() {
 	// Release other processes and wake their watchers, then this handle's
 	// writers.
-	_ = unlock(w.db.f, lockWriter)
+	_ = w.db.s.unlock(lockWriter)
 	w.db.watch.notify()
 	release := w.unlockMtx
 	w.unlockMtx = nil
@@ -95,17 +95,16 @@ func (w *writer) unlock() {
 // file's writer lock.
 func (w *writer) create() error {
 	// Leave an existing file alone.
-	f := w.db.f
-	info, err := f.Stat()
-	if err != nil || info.Size() != 0 {
+	s := w.db.s
+	if size, err := s.size(); err != nil || size != 0 {
 		return err
 	}
 
 	// Write the header and an empty slot table.
-	if _, err := f.WriteAt(newHeader(w.db.opts.InlineMax).encode(), headerPage*pageSize); err != nil {
+	if _, err := s.WriteAt(newHeader(w.db.opts.InlineMax).encode(), headerPage*pageSize); err != nil {
 		return err
 	}
-	if _, err := f.WriteAt(make([]byte, pageSize), slotPage*pageSize); err != nil {
+	if _, err := s.WriteAt(make([]byte, pageSize), slotPage*pageSize); err != nil {
 		return err
 	}
 
@@ -120,13 +119,13 @@ func (w *writer) create() error {
 
 	// Point the first superblock at the empty log and flush.
 	sb := superblock{gen: 1, space: ref, logPos: chunk.start * pageSize, logEnd: chunk.end() * pageSize}
-	if err := f.Truncate(pageOff(sp.end)); err != nil {
+	if err := s.truncate(pageOff(sp.end)); err != nil {
 		return err
 	}
-	if _, err := f.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
+	if _, err := s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
 		return err
 	}
-	return flushDurable(f)
+	return s.flushDurable()
 }
 
 // catchUp applies new records and rebuilds the space when another process
@@ -134,7 +133,7 @@ func (w *writer) create() error {
 func (w *writer) catchUp(ctx context.Context) error {
 	// Apply the new records and keep the space when it is still current.
 	db := w.db
-	st, err := db.tail(db.cur.Load(), false)
+	st, _, err := db.tail(db.cur.Load(), false)
 	if err != nil {
 		return err
 	}
@@ -158,10 +157,10 @@ func (w *writer) catchUp(ctx context.Context) error {
 // after it.
 func (w *writer) replaySpace(st *state) error {
 	// Load the checkpoint's space.
-	f := w.db.f
+	s := w.db.s
 	ref := st.sb.space
 	b := make([]byte, ref.n)
-	if _, err := f.ReadAt(b, fileOff(ref.off)); err != nil {
+	if _, err := s.ReadAt(b, fileOff(ref.off)); err != nil {
 		return err
 	}
 	if checksum(b) != ref.crc {
@@ -173,7 +172,7 @@ func (w *writer) replaySpace(st *state) error {
 	}
 
 	// Replay the space changes of the records after it.
-	lr := newLogReader(f, st.sb.logPos, st.sb.logEnd, st.sb.seq)
+	lr := newLogReader(s, st.sb.logPos, st.sb.logEnd, st.sb.seq)
 	for lr.seq <= st.seq {
 		r, ok := lr.next()
 		if !ok {
@@ -200,12 +199,12 @@ func (w *writer) replaySpace(st *state) error {
 
 	// Adopt the space; its writer already punched what it released.
 	sp.drain()
-	info, err := f.Stat()
+	size, err := s.size()
 	if err != nil {
 		return err
 	}
 	w.sp, w.spSeq, w.spGen = sp, st.seq, st.gen
-	w.fileEnd = uint64(info.Size()) / pageSize // #nosec G115 -- file sizes are not negative.
+	w.fileEnd = uint64(size) / pageSize // #nosec G115 -- file sizes are not negative.
 	return nil
 }
 
@@ -303,7 +302,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 	// Order the next commit's writes after this one's and release space.
 	// A durable commit flushes after the writer lock is released.
 	if ordered {
-		if err := flushOrdered(db.f); err != nil {
+		if err := db.s.flushOrdered(); err != nil {
 			return err
 		}
 		db.flush.ordered()
@@ -321,11 +320,11 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 // its chunk when link is set.
 func (w *writer) writeRecord(link []byte, linkPos uint64, rec []byte, pos uint64) error {
 	if link != nil {
-		if _, err := w.db.f.WriteAt(link, fileOff(linkPos)); err != nil {
+		if _, err := w.db.s.WriteAt(link, fileOff(linkPos)); err != nil {
 			return err
 		}
 	}
-	_, err := w.db.f.WriteAt(rec, fileOff(pos))
+	_, err := w.db.s.WriteAt(rec, fileOff(pos))
 	return err
 }
 
@@ -338,7 +337,7 @@ func (w *writer) writeValues(r *record, writes []valueWrite) error {
 		if len(buf) == 0 {
 			return nil
 		}
-		_, err := w.db.f.WriteAt(buf, fileOff(at))
+		_, err := w.db.s.WriteAt(buf, fileOff(at))
 		buf = buf[:0]
 		return err
 	}
@@ -395,7 +394,7 @@ func (w *writer) punch() error {
 		}
 		r.n = min(r.n, sp.end-r.start)
 		db.p.cache.drop(r)
-		if err := punch(db.f, pageOff(r.start), pageOff(r.n)); err != nil {
+		if err := db.s.punch(pageOff(r.start), pageOff(r.n)); err != nil {
 			return err
 		}
 	}
@@ -403,7 +402,7 @@ func (w *writer) punch() error {
 	// Cut the file at the end.
 	if sp.end < w.fileEnd {
 		db.p.cache.drop(run{start: sp.end, n: w.fileEnd - sp.end})
-		if err := db.f.Truncate(pageOff(sp.end)); err != nil {
+		if err := db.s.truncate(pageOff(sp.end)); err != nil {
 			return err
 		}
 	}
@@ -444,7 +443,7 @@ func (w *writer) checkpoint(ctx context.Context) error {
 	if fresh != 0 {
 		r := sp.alloc(uint64(fresh)) // #nosec G115 -- counts are not negative.
 		nodes, err := b.place(top, r.start, func(buf []byte, page uint64) error {
-			_, err := db.f.WriteAt(buf, pageOff(page))
+			_, err := db.s.WriteAt(buf, pageOff(page))
 			return err
 		})
 		if err != nil {
@@ -477,7 +476,7 @@ func (w *writer) checkpoint(ctx context.Context) error {
 	// durable barrier also makes the records and the previous superblock
 	// durable.
 	prev := db.flush.newest()
-	durable, err := flushBarrier(db.f)
+	durable, err := db.s.flushBarrier()
 	if err != nil {
 		return err
 	}
@@ -497,7 +496,7 @@ func (w *writer) checkpoint(ctx context.Context) error {
 		logPos:    st.pos,
 		logEnd:    st.end,
 	}
-	if _, err := db.f.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
+	if _, err := db.s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
 		return err
 	}
 
@@ -530,7 +529,7 @@ func (w *writer) writeSpace(sp *space) (extentRef, error) {
 			sp.addFree(r)
 			continue
 		}
-		if _, err := w.db.f.WriteAt(b, pageOff(r.start)); err != nil {
+		if _, err := w.db.s.WriteAt(b, pageOff(r.start)); err != nil {
 			return extentRef{}, err
 		}
 		return extentRef{off: r.start * pageSize, n: uint32(len(b)), crc: checksum(b)}, nil // #nosec G115 -- the space record is far below 4 GiB.
@@ -664,10 +663,10 @@ func (w *writer) moveLog(ctx context.Context) error {
 
 	// Link the log to the chunk.
 	sp.chunks = append(sp.chunks, chunk)
-	if _, err := db.f.WriteAt(newLink(st.seq+1, chunk).encode(), fileOff(st.pos)); err != nil {
+	if _, err := db.s.WriteAt(newLink(st.seq+1, chunk).encode(), fileOff(st.pos)); err != nil {
 		return err
 	}
-	if err := flushOrdered(db.f); err != nil {
+	if err := db.s.flushOrdered(); err != nil {
 		return err
 	}
 

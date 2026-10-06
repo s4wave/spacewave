@@ -11,7 +11,7 @@ import (
 
 // lock takes a write lock on the byte at off, waiting for other holders when
 // wait is set. Without wait it reports false when another holder has it.
-func lock(f *os.File, off int64, wait bool) (bool, error) {
+func (f *osFile) lock(off int64, wait bool) (bool, error) {
 	cmd := cmdSetLock
 	if wait {
 		cmd = cmdSetLockWait
@@ -32,13 +32,13 @@ func lock(f *os.File, off int64, wait bool) (bool, error) {
 }
 
 // unlock releases the lock on the byte at off.
-func unlock(f *os.File, off int64) error {
+func (f *osFile) unlock(off int64) error {
 	lk := unix.Flock_t{Type: unix.F_UNLCK, Start: off, Len: 1}
 	return unix.FcntlFlock(f.Fd(), cmdSetLock, &lk)
 }
 
 // held reports whether another holder has the lock on the byte at off.
-func held(f *os.File, off int64) (bool, error) {
+func (f *osFile) held(off int64) (bool, error) {
 	lk := unix.Flock_t{Type: unix.F_WRLCK, Start: off, Len: 1}
 	if err := unix.FcntlFlock(f.Fd(), cmdGetLock, &lk); err != nil {
 		return false, err

@@ -1,8 +1,6 @@
 package s4db
 
 import (
-	"os"
-
 	"golang.org/x/sys/unix"
 )
 
@@ -19,24 +17,24 @@ const (
 )
 
 // flushDurable makes earlier writes durable on the drive.
-func flushDurable(f *os.File) error {
+func (f *osFile) flushDurable() error {
 	return unix.Fdatasync(int(f.Fd()))
 }
 
 // flushOrdered orders earlier writes before later ones. Linux has no write
 // barrier short of a full flush, so ordered commits rely on record
 // checksums: recovery keeps the longest valid prefix of the log.
-func flushOrdered(*os.File) error {
+func (*osFile) flushOrdered() error {
 	return nil
 }
 
 // flushBarrier orders earlier writes before later ones. Linux has no
 // cheaper ordering than a full flush, so the barrier is durable.
-func flushBarrier(f *os.File) (bool, error) {
-	return true, flushDurable(f)
+func (f *osFile) flushBarrier() (bool, error) {
+	return true, f.flushDurable()
 }
 
 // punch deallocates n bytes at off, keeping the file length.
-func punch(f *os.File, off, n int64) error {
+func (f *osFile) punch(off, n int64) error {
 	return unix.Fallocate(int(f.Fd()), unix.FALLOC_FL_PUNCH_HOLE|unix.FALLOC_FL_KEEP_SIZE, off, n)
 }

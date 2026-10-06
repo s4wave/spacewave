@@ -1,8 +1,6 @@
 package s4db
 
 import (
-	"os"
-
 	"golang.org/x/sys/unix"
 )
 
@@ -20,27 +18,27 @@ const (
 )
 
 // flushDurable makes earlier writes durable on the drive.
-func flushDurable(f *os.File) error {
+func (f *osFile) flushDurable() error {
 	_, err := unix.FcntlInt(f.Fd(), unix.F_FULLFSYNC, 0)
 	return err
 }
 
 // flushOrdered orders earlier writes before later ones without waiting for
 // the drive to make them durable.
-func flushOrdered(f *os.File) error {
+func (f *osFile) flushOrdered() error {
 	_, err := unix.FcntlInt(f.Fd(), unix.F_BARRIERFSYNC, 0)
 	return err
 }
 
 // flushBarrier orders earlier writes before later ones, reporting that it
 // did not make them durable.
-func flushBarrier(f *os.File) (bool, error) {
-	return false, flushOrdered(f)
+func (f *osFile) flushBarrier() (bool, error) {
+	return false, f.flushOrdered()
 }
 
 // punch deallocates n bytes at off, keeping the file length. struct
 // fpunchhole shares its layout with the leading fields of struct fstore,
 // flags, a reserved word, offset and length, so the fstore wrapper passes it.
-func punch(f *os.File, off, n int64) error {
+func (f *osFile) punch(off, n int64) error {
 	return unix.FcntlFstore(f.Fd(), unix.F_PUNCHHOLE, &unix.Fstore_t{Offset: off, Length: n})
 }
