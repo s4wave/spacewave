@@ -81,9 +81,11 @@ var permanentCodes = func() map[string]bool {
 	return m
 }()
 
-// Parse parses a cloud API error response body into an Error.
+// Parse parses a cloud API error response body into an Error. A body that is
+// not a cloud error, such as a gateway's 502 during a deploy, is retryable when
+// its status is a server error or 429.
 func Parse(statusCode int, body []byte) *Error {
-	// Unmarshal the api.ErrorResponse body and override retryability for permanent codes.
+	// Unmarshal the api.ErrorResponse body.
 	ce := &Error{StatusCode: statusCode}
 	var resp api.ErrorResponse
 	if err := resp.UnmarshalJSON(body); err == nil {
@@ -91,6 +93,12 @@ func Parse(statusCode int, body []byte) *Error {
 		ce.Message = resp.GetMessage()
 		ce.Retryable = resp.GetRetryable()
 		ce.RetryAfterSeconds = resp.GetRetryAfterSeconds()
+	}
+
+	// Judge a response without a cloud error code by its status, and never
+	// retry a permanent code.
+	if ce.Code == "" {
+		ce.Retryable = statusCode >= http.StatusInternalServerError || statusCode == http.StatusTooManyRequests
 	}
 	if permanentCodes[ce.Code] {
 		ce.Retryable = false

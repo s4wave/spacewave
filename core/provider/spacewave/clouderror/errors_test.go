@@ -17,6 +17,7 @@ func TestRetryAfterSecondsSaturates(t *testing.T) {
 }
 
 func TestRetryDelayPrefersStructuredRetryAfter(t *testing.T) {
+	// Parse a retryable error that asks for a 3 s delay.
 	body, err := (&api.ErrorResponse{
 		Code:              "temporary_unavailable",
 		Message:           "retry later",
@@ -31,6 +32,7 @@ func TestRetryDelayPrefersStructuredRetryAfter(t *testing.T) {
 		Header:     make(http.Header),
 	}, body)
 
+	// The structured hint outlasts the local backoff.
 	delay := RetryDelay(err, 500*time.Millisecond)
 	if delay != 3*time.Second {
 		t.Fatalf("retry delay: got %s, want %s", delay, 3*time.Second)
@@ -98,5 +100,23 @@ func TestPackReplacementConflictIsFinal(t *testing.T) {
 	err = Parse(http.StatusConflict, body)
 	if !IsPackReplacementConflict(err) || !IsNonRetryable(err) {
 		t.Fatalf("conflict = %v, want a final pack replacement conflict", err)
+	}
+}
+
+func TestGatewayErrorIsRetryable(t *testing.T) {
+	for _, tc := range []struct {
+		status int
+		body   string
+		want   bool
+	}{
+		{http.StatusBadGateway, "", true},
+		{http.StatusServiceUnavailable, "<html>unavailable</html>", true},
+		{http.StatusTooManyRequests, "", true},
+		{http.StatusNotFound, "", false},
+	} {
+		err := Parse(tc.status, []byte(tc.body))
+		if IsNonRetryable(err) == tc.want {
+			t.Errorf("Parse(%d, %q) retryable = %v, want %v", tc.status, tc.body, !tc.want, tc.want)
+		}
 	}
 }
