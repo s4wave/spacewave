@@ -52,9 +52,10 @@ interface ObjectLayoutTabContextMenuState extends FlexTabContextMenuState {
 interface ObjectLayoutTabLabelProps {
   tabId: string
   name: string
-  renaming: boolean
+  editing: boolean
+  onStartRename: () => void
   onRename: (name: string) => void
-  onRenameHandled: () => void
+  onStopRename: () => void
 }
 
 function countObjectLayoutTabs(model: Model | null): number {
@@ -67,85 +68,79 @@ function countObjectLayoutTabs(model: Model | null): number {
   return count
 }
 
-// ObjectLayoutTabLabel renders an object-layout tab name with inline rename.
-function ObjectLayoutTabLabel({
+// ObjectLayoutTabNameInput edits one tab name. It mounts when the rename starts,
+// so the draft starts from the current name.
+function ObjectLayoutTabNameInput({
   tabId,
   name,
-  renaming,
   onRename,
-  onRenameHandled,
-}: ObjectLayoutTabLabelProps) {
-  const [editing, setEditing] = useState(false)
-  const [editValue, setEditValue] = useState('')
+  onStopRename,
+}: Pick<
+  ObjectLayoutTabLabelProps,
+  'tabId' | 'name' | 'onRename' | 'onStopRename'
+>) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!renaming) return
-    setEditValue(name)
-    setEditing(true)
-    onRenameHandled()
-  }, [renaming, name, onRenameHandled])
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
 
-  useEffect(() => {
-    if (!editing || !inputRef.current) return
-    inputRef.current.focus()
-    inputRef.current.select()
-  }, [editing])
+  const handleSave = () => {
+    onRename(inputRef.current?.value.trim() || name)
+    onStopRename()
+  }
 
-  const handleDoubleClick = useCallback(
-    (event: ReactMouseEvent) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    event.stopPropagation()
+    if (event.nativeEvent.isComposing) return
+    if (event.key === 'Enter') {
       event.preventDefault()
-      event.stopPropagation()
-      setEditValue(name)
-      setEditing(true)
-    },
-    [name],
-  )
-
-  const handleSave = useCallback(() => {
-    onRename(editValue.trim() || name)
-    setEditing(false)
-  }, [editValue, name, onRename])
-
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      event.stopPropagation()
-      if (event.key === 'Enter') {
-        event.preventDefault()
-        handleSave()
-      }
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        setEditing(false)
-      }
-    },
-    [handleSave],
-  )
-
-  if (editing) {
-    return (
-      <input
-        ref={inputRef}
-        aria-label={`Rename ${tabId}`}
-        className={cn(
-          'bg-background-secondary text-foreground rounded-menu-button',
-          'border-none outline-none',
-          'text-metadata leading-5 font-medium tracking-tight-brand',
-          'w-full max-w-64 min-w-12 px-1 py-0',
-        )}
-        value={editValue}
-        onChange={(event) => setEditValue(event.target.value)}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        onMouseDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
-      />
-    )
+      handleSave()
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onStopRename()
+    }
   }
 
   return (
-    <span className="truncate" onDoubleClick={handleDoubleClick}>
-      {name}
+    <input
+      ref={inputRef}
+      aria-label={`Rename ${tabId}`}
+      className={cn(
+        'bg-background-secondary text-foreground rounded-menu-button',
+        'border-none outline-none',
+        'text-metadata leading-5 font-medium tracking-tight-brand',
+        'w-full max-w-64 min-w-12 px-1 py-0',
+      )}
+      defaultValue={name}
+      onBlur={handleSave}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    />
+  )
+}
+
+// ObjectLayoutTabLabel renders an object-layout tab name with inline rename.
+function ObjectLayoutTabLabel({
+  editing,
+  onStartRename,
+  ...props
+}: ObjectLayoutTabLabelProps) {
+  if (editing) return <ObjectLayoutTabNameInput {...props} />
+
+  return (
+    <span
+      className="truncate"
+      onDoubleClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onStartRename()
+      }}
+    >
+      {props.name}
     </span>
   )
 }
@@ -224,10 +219,6 @@ function useObjectLayoutController({
       ? selectedTabIds[0]
       : null
 
-  const handleRenameHandled = useCallback(() => {
-    setRenamingTabId(null)
-  }, [])
-
   const handleRenderTab = useCallback(
     (node: TabNode, renderValues: ITabRenderValues) => {
       const model = node.getModel()
@@ -237,9 +228,10 @@ function useObjectLayoutController({
         <ObjectLayoutTabLabel
           tabId={tabId}
           name={node.getName()}
-          renaming={renamingTabId === tabId}
+          editing={renamingTabId === tabId}
+          onStartRename={() => setRenamingTabId(tabId)}
           onRename={(name) => model.doAction(Actions.renameTab(tabId, name))}
-          onRenameHandled={handleRenameHandled}
+          onStopRename={() => setRenamingTabId(null)}
         />
       )
       if (node.isEnableClose()) return
@@ -268,7 +260,7 @@ function useObjectLayoutController({
         </button>,
       )
     },
-    [handleRenameHandled, renamingTabId],
+    [renamingTabId],
   )
 
   const handleContextMenu = useCallback(

@@ -282,7 +282,11 @@ export function useObjectViewer({
     },
   )
   const displayKey = objectKey ?? (isUnixfs ? 'UnixFS' : 'No object')
-  const spaceObjectTargets = spaceContext?.spaceObjectTargets?.targets ?? []
+  const loadedSpaceObjectTargets = spaceContext?.spaceObjectTargets?.targets
+  const spaceObjectTargets = useMemo(
+    () => loadedSpaceObjectTargets ?? [],
+    [loadedSpaceObjectTargets],
+  )
   const moreSpaceObjectTargets = !!spaceContext?.spaceObjectTargets?.more
   const handleOpenObject = useCallback(
     (target: { objectKey: string }) => {
