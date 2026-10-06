@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
+import type { IconType } from 'react-icons'
 import { LuFolderTree, LuPackage, LuTag, LuTerminal } from 'react-icons/lu'
 
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
@@ -20,6 +21,76 @@ function formatBlockRefHash(ref: BlockRef | undefined): string {
   return hex.slice(0, 8) + '...' + hex.slice(-8)
 }
 
+// manifestHeaderMeta summarizes the platform and revision for the header.
+function manifestHeaderMeta(meta: Manifest['meta']): string {
+  return [meta?.platformId, meta?.rev !== undefined ? `rev ${meta.rev}` : null]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+// hasManifestMeta reports whether the manifest carries any identity field.
+function hasManifestMeta(meta: Manifest['meta']): boolean {
+  return !!(
+    meta?.manifestId ||
+    meta?.buildType ||
+    meta?.platformId ||
+    meta?.rev !== undefined ||
+    meta?.description
+  )
+}
+
+interface ManifestSectionProps {
+  icon: IconType
+  title: string
+  children: ReactNode
+}
+
+/** ManifestSection renders a titled info card of manifest fields. */
+function ManifestSection({
+  icon: Icon,
+  title,
+  children,
+}: ManifestSectionProps) {
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+          <Icon className="size-3.5" />
+          {title}
+        </h2>
+      </div>
+      <InfoCard>{children}</InfoCard>
+    </section>
+  )
+}
+
+interface ManifestMetaFieldsProps {
+  meta: Manifest['meta']
+}
+
+/** ManifestMetaFields lists the copyable identity fields of a manifest. */
+function ManifestMetaFields({ meta }: ManifestMetaFieldsProps) {
+  return (
+    <div className="space-y-2">
+      {meta?.manifestId && (
+        <CopyableField label="Manifest ID" value={meta.manifestId} />
+      )}
+      {meta?.buildType && (
+        <CopyableField label="Build Type" value={meta.buildType} />
+      )}
+      {meta?.platformId && (
+        <CopyableField label="Platform" value={meta.platformId} />
+      )}
+      {meta?.rev !== undefined && (
+        <CopyableField label="Rev" value={String(meta.rev)} />
+      )}
+      {meta?.description && (
+        <CopyableField label="Description" value={meta.description} />
+      )}
+    </div>
+  )
+}
+
 // ManifestViewer displays a bldr Manifest world object.
 export function ManifestViewer({
   objectInfo: _objectInfo,
@@ -37,20 +108,8 @@ export function ManifestViewer({
     [manifest?.assetsFsRef],
   )
 
-  const headerMeta = [
-    meta?.platformId,
-    meta?.rev !== undefined ? `rev ${meta.rev}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
-  const hasMeta = !!(
-    meta?.manifestId ||
-    meta?.buildType ||
-    meta?.platformId ||
-    meta?.rev !== undefined ||
-    meta?.description
-  )
+  const headerMeta = manifestHeaderMeta(meta)
+  const hasMeta = hasManifestMeta(meta)
   const hasEntrypoint = !!manifest?.entrypoint
   const hasStorage = !!(distHash || assetsHash)
   const isEmpty = !hasMeta && !hasEntrypoint && !hasStorage
@@ -79,72 +138,26 @@ export function ManifestViewer({
             </InfoCard>
           )}
           {manifest?.entrypoint && (
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                  <LuTerminal className="size-3.5" />
-                  Entrypoint
-                </h2>
-              </div>
-              <InfoCard>
-                <CopyableField label="Path" value={manifest.entrypoint} />
-              </InfoCard>
-            </section>
+            <ManifestSection icon={LuTerminal} title="Entrypoint">
+              <CopyableField label="Path" value={manifest.entrypoint} />
+            </ManifestSection>
           )}
           {hasStorage && (
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                  <LuFolderTree className="size-3.5" />
-                  Storage
-                </h2>
+            <ManifestSection icon={LuFolderTree} title="Storage">
+              <div className="space-y-2">
+                {distHash && (
+                  <CopyableField label="Dist FS Ref" value={distHash} />
+                )}
+                {assetsHash && (
+                  <CopyableField label="Assets FS Ref" value={assetsHash} />
+                )}
               </div>
-              <InfoCard>
-                <div className="space-y-2">
-                  {distHash && (
-                    <CopyableField label="Dist FS Ref" value={distHash} />
-                  )}
-                  {assetsHash && (
-                    <CopyableField label="Assets FS Ref" value={assetsHash} />
-                  )}
-                </div>
-              </InfoCard>
-            </section>
+            </ManifestSection>
           )}
           {hasMeta && (
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-                  <LuTag className="size-3.5" />
-                  Metadata
-                </h2>
-              </div>
-              <InfoCard>
-                <div className="space-y-2">
-                  {meta?.manifestId && (
-                    <CopyableField
-                      label="Manifest ID"
-                      value={meta.manifestId}
-                    />
-                  )}
-                  {meta?.buildType && (
-                    <CopyableField label="Build Type" value={meta.buildType} />
-                  )}
-                  {meta?.platformId && (
-                    <CopyableField label="Platform" value={meta.platformId} />
-                  )}
-                  {meta?.rev !== undefined && (
-                    <CopyableField label="Rev" value={String(meta.rev)} />
-                  )}
-                  {meta?.description && (
-                    <CopyableField
-                      label="Description"
-                      value={meta.description}
-                    />
-                  )}
-                </div>
-              </InfoCard>
-            </section>
+            <ManifestSection icon={LuTag} title="Metadata">
+              <ManifestMetaFields meta={meta} />
+            </ManifestSection>
           )}
         </div>
       </div>

@@ -34,16 +34,55 @@ function formatDate(ms: bigint): string {
   return `${months[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
 }
 
-// SubscriptionLapseBanner shows a two-stage prompt when a subscription is lapsing.
-// Stage 1 (nudge): cancel_at is set but subscription is still active.
-// Stage 2 (read-only): subscription is canceled, show migration wizard link.
-// Reads from SpacewaveOnboardingContext instead of opening its own stream.
-export function SubscriptionLapseBanner() {
+type LapseAction = 'resubscribe' | 'migrate'
+
+interface LapseNotice {
+  message: string
+  action?: LapseAction
+  actionLabel?: string
+}
+
+/** lapseNotice returns the banner message and action for a lapsed or grace-period account. */
+function lapseNotice(
+  lifecycleState: AccountLifecycleState | undefined,
+  isReadOnlyGrace: boolean,
+): LapseNotice | null {
+  switch (lifecycleState) {
+    case AccountLifecycleState.AccountLifecycleState_CANCELED_GRACE_READONLY:
+      return {
+        message:
+          'Your subscription has ended. Cloud data is read-only for 30 days so you can export or re-subscribe.',
+        action: 'resubscribe',
+        actionLabel: 'Resubscribe',
+      }
+    case AccountLifecycleState.AccountLifecycleState_LAPSED_READONLY:
+      return {
+        message: 'Your cloud account is inactive until you re-subscribe.',
+        action: 'resubscribe',
+        actionLabel: 'Resubscribe',
+      }
+    case AccountLifecycleState.AccountLifecycleState_DELETED_PENDING_PURGE:
+    case AccountLifecycleState.AccountLifecycleState_DELETED:
+      return {
+        message: 'This cloud account has been deleted from the product.',
+      }
+  }
+  if (!isReadOnlyGrace) return null
+  return {
+    message:
+      'Your subscription has ended. Cloud data is read-only during the grace period.',
+    action: 'migrate',
+    actionLabel: 'Migrate to local',
+  }
+}
+
+/**
+ * useLapseActions resolves the resubscribe target for the personal canceled
+ * billing account and exposes the migrate shortcut.
+ */
+function useLapseActions() {
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
-  const ctx = SpacewaveOnboardingContext.useContextSafe()
-  const onboarding = ctx?.onboarding ?? null
-  const isReadOnlyGrace = ctx?.isReadOnlyGrace ?? false
   const { accountId } = useSessionInfo(session)
   const navigate = useNavigate()
   const parentPaths = useParentPaths()
@@ -53,11 +92,11 @@ export function SubscriptionLapseBanner() {
   const [error, setError] = useState<string | null>(null)
   const [resolving, setResolving] = useState(false)
 
-  const handleMigrateClick = useCallback(() => {
+  const migrate = useCallback(() => {
     navigate({ path: `${basePath}/settings/migration` })
   }, [navigate, basePath])
 
-  const handleResubscribeClick = useCallback(async () => {
+  const resubscribe = useCallback(async () => {
     if (!session || resolving) return
 
     setOpenMenu?.('')
@@ -81,6 +120,37 @@ export function SubscriptionLapseBanner() {
     }
   }, [accountId, basePath, navigate, resolving, session, setOpenMenu])
 
+  return { error, resolving, migrate, resubscribe }
+}
+
+interface LapseMessageProps {
+  message: string
+  error: string | null
+}
+
+/** LapseMessage renders the warning icon, the notice, and any action error. */
+function LapseMessage({ message, error }: LapseMessageProps) {
+  return (
+    <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
+      <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-foreground/80 text-xs font-medium">{message}</p>
+        {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
+      </div>
+    </div>
+  )
+}
+
+// SubscriptionLapseBanner shows a two-stage prompt when a subscription is lapsing.
+// Stage 1 (nudge): cancel_at is set but subscription is still active.
+// Stage 2 (read-only): subscription is canceled, show migration wizard link.
+// Reads from SpacewaveOnboardingContext instead of opening its own stream.
+export function SubscriptionLapseBanner() {
+  const ctx = SpacewaveOnboardingContext.useContextSafe()
+  const onboarding = ctx?.onboarding ?? null
+  const isReadOnlyGrace = ctx?.isReadOnlyGrace ?? false
+  const { error, resolving, migrate, resubscribe } = useLapseActions()
+
   if (!onboarding) return null
 
   const cancelAt = onboarding.cancelAt ?? 0n
@@ -102,51 +172,14 @@ export function SubscriptionLapseBanner() {
     )
   }
 
-  // Lapsed or grace period: determine message and action.
-  let message: string | undefined
-  let actionLabel: string | undefined
-  let onAction: (() => void | Promise<void>) | undefined
+  // Lapsed or grace period: show the notice, with its action when it has one.
+  const notice = lapseNotice(lifecycleState, isReadOnlyGrace)
+  if (!notice) return null
 
-  if (
-    lifecycleState ===
-    AccountLifecycleState.AccountLifecycleState_CANCELED_GRACE_READONLY
-  ) {
-    message =
-      'Your subscription has ended. Cloud data is read-only for 30 days so you can export or re-subscribe.'
-    actionLabel = 'Resubscribe'
-    onAction = handleResubscribeClick
-  } else if (
-    lifecycleState ===
-    AccountLifecycleState.AccountLifecycleState_LAPSED_READONLY
-  ) {
-    message = 'Your cloud account is inactive until you re-subscribe.'
-    actionLabel = 'Resubscribe'
-    onAction = handleResubscribeClick
-  } else if (
-    lifecycleState ===
-      AccountLifecycleState.AccountLifecycleState_DELETED_PENDING_PURGE ||
-    lifecycleState === AccountLifecycleState.AccountLifecycleState_DELETED
-  ) {
-    message = 'This cloud account has been deleted from the product.'
-  } else if (isReadOnlyGrace) {
-    message =
-      'Your subscription has ended. Cloud data is read-only during the grace period.'
-    actionLabel = 'Migrate to local'
-    onAction = handleMigrateClick
-  }
-
-  if (!message) return null
-
-  if (!onAction || !actionLabel) {
+  if (!notice.action) {
     return (
       <div className="border-destructive/20 bg-destructive/5 flex items-center border-b">
-        <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-          <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-foreground/80 text-xs font-medium">{message}</p>
-            {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
-          </div>
-        </div>
+        <LapseMessage message={notice.message} error={error} />
       </div>
     )
   }
@@ -154,22 +187,16 @@ export function SubscriptionLapseBanner() {
   return (
     <button
       type="button"
-      onClick={() => {
-        void onAction()
-      }}
+      onClick={() =>
+        void (notice.action === 'resubscribe' ? resubscribe() : migrate())
+      }
       aria-disabled={resolving}
       className="border-destructive/20 bg-destructive/5 hover:bg-destructive/8 flex w-full items-center border-b text-left transition-colors disabled:cursor-default"
     >
-      <div className="flex min-w-0 flex-1 items-start gap-2 px-3 py-1.5">
-        <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
-        <div className="min-w-0">
-          <p className="text-foreground/80 text-xs font-medium">{message}</p>
-          {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
-        </div>
-      </div>
+      <LapseMessage message={notice.message} error={error} />
       <div className="group flex shrink-0 items-center gap-1 px-3 py-1.5 transition-colors">
         <span className="text-foreground/70 group-hover:text-foreground text-xs font-medium transition-colors">
-          {resolving ? 'Opening billing…' : actionLabel}
+          {resolving ? 'Opening billing…' : notice.actionLabel}
         </span>
         <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
       </div>
