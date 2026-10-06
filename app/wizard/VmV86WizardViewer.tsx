@@ -50,6 +50,7 @@ import {
 
 import {
   type VmCreationProgress,
+  type VmCreationStage,
   VmCreationProgressScreen,
 } from './VmCreationProgressScreen.js'
 import { WizardShell } from './WizardShell.js'
@@ -429,54 +430,46 @@ async function* runVmCreation(
   yield { stage: 'ready' }
 }
 
-// VmV86WizardViewer is the custom wizard viewer for creating V86 VMs.
-// Step 0: image source selection (existing in-space V86Image, inherit from
-// existing VmV86, or copy default from CDN). Step 1: VM name and memory
-// configuration. Finalize runs the CDN copy (when selected) and then
-// CreateVmV86Op with the resolved image_object_key.
-export function VmV86WizardViewer({
-  objectInfo,
-  worldState,
-}: ObjectViewerComponentProps) {
-  const { spaceWorld, spaceWorldResource, spaceId } =
-    SpaceContainerContext.useContext()
-  const sessionIndex = use(SessionIndexContext)
+type WizardState = ReturnType<typeof useWizardState>
+type WizardResource = WizardState['wizardResource']
+type SpaceWorldResource = ReturnType<
+  typeof SpaceContainerContext.useContext
+>['spaceWorldResource']
+type VmCreationResource = ReturnType<typeof useVmCreation>['creationResource']
 
-  const rootResource = useRootResource()
-  const root = useResourceValue(rootResource)
-
-  const ws = useWizardState({ objectInfo, worldState }, undefined)
-  const {
-    configData,
-    handleConfigDataChange,
-    handleBack,
-    handleCancel,
-    handleUpdateName,
-    localName,
-    objectKey,
-    persistDraftState,
-    sessionPeerId,
-    state,
-    wizardResource,
-    navigateToObjects,
-  } = ws
-
-  const [creating, setCreating] = useState(false)
-  const [cdnPickerOpen, setCdnPickerOpen] = useState(false)
-  const [operationError, setOperationError] = useState('')
-  const [creationRequest, setCreationRequest] =
-    useState<VmCreationRequest | null>(null)
-
-  const cfg = useMemo(() => decodeConfig(configData), [configData])
-  const wizardResourceStageRef = useRef(false)
+/**
+ * useV86WizardStartupMarks records the quickstart startup boundaries the
+ * wizard reaches: the wizard resource acquired and the name step rendered.
+ */
+function useV86WizardStartupMarks(
+  objectKey: string,
+  wizardAcquired: boolean,
+  step: number | undefined,
+) {
+  const acquiredMarkedRef = useRef(false)
   useEffect(() => {
-    if (wizardResourceStageRef.current || !wizardResource.value) return
-    wizardResourceStageRef.current = true
+    if (acquiredMarkedRef.current || !wizardAcquired) return
+    acquiredMarkedRef.current = true
     markQuickstartStartupBoundary('v86.wizard.resource-acquired', {
       objectKey,
     })
-  }, [objectKey, wizardResource.value])
+  }, [objectKey, wizardAcquired])
 
+  const nameMarkedRef = useRef(false)
+  useEffect(() => {
+    if (nameMarkedRef.current || step !== 1) return
+    nameMarkedRef.current = true
+    markQuickstartStartupBoundary('v86.wizard.name-rendered', {
+      objectKey,
+    })
+  }, [objectKey, step])
+}
+
+/**
+ * useV86WorldListings loads the V86 images and VMs already in the space and
+ * resolves the newest VM that has an image, which new VMs inherit from.
+ */
+function useV86WorldListings(spaceWorldResource: SpaceWorldResource) {
   const inSpaceImagesResource = useResource(
     spaceWorldResource,
     (world: EngineWorldState, signal: AbortSignal) =>
@@ -494,10 +487,27 @@ export function VmV86WizardViewer({
       loadExistingVms(world, signal),
     [],
   )
-  const existingVms = useMemo(
-    () => existingVmsResource.value ?? [],
+  const existingDefault = useMemo(
+    () => existingVmsResource.value?.find((vm) => vm.imageKey),
     [existingVmsResource.value],
   )
+
+  return {
+    inSpaceImages,
+    existingDefault,
+    pending: inSpaceImagesResource.loading || existingVmsResource.loading,
+  }
+}
+
+/**
+ * useVmCreation runs the creation stream for the request started by the
+ * wizard and navigates to the new VM once it is ready.
+ */
+function useVmCreation() {
+  const { spaceWorldResource, navigateToObjects } =
+    SpaceContainerContext.useContext()
+  const [creationRequest, setCreationRequest] =
+    useState<VmCreationRequest | null>(null)
 
   const creationResource = useStreamingResource(
     spaceWorldResource,
@@ -507,6 +517,7 @@ export function VmV86WizardViewer({
     },
     [creationRequest],
   )
+
   const completedCreationRef = useRef<VmCreationRequest | null>(null)
   useEffect(() => {
     if (creationResource.value?.stage !== 'ready' || !creationRequest) return
@@ -516,13 +527,21 @@ export function VmV86WizardViewer({
     navigateToObjects([creationRequest.vmKey])
   }, [creationRequest, creationResource.value, navigateToObjects])
 
-  const existingDefault = useMemo(() => {
-    for (const vm of existingVms) {
-      if (vm.imageKey) return vm
-    }
-    return undefined
-  }, [existingVms])
+  return {
+    creationRequest,
+    creationResource,
+    startCreation: setCreationRequest,
+  }
+}
 
+/**
+ * useV86ConfigWriter returns the writers for the wizard config: a draft
+ * update and a persisted update through the wizard resource.
+ */
+function useV86ConfigWriter(
+  wizardResource: WizardResource,
+  handleConfigDataChange: WizardState['handleConfigDataChange'],
+) {
   const updateConfigDraft = useCallback(
     (next: V86WizardConfig) => {
       handleConfigDataChange(V86WizardConfig.toBinary(next))
@@ -541,32 +560,58 @@ export function VmV86WizardViewer({
     [handleConfigDataChange, wizardResource],
   )
 
-  // Compute an intelligent default once the world listings are loaded and the
-  // wizard has no source yet. Prefers inheriting from the newest existing VM,
-  // falls back to the newest in-space V86Image, falls back to COPY_FROM_CDN
-  // (the quickstart pre-seed also sets COPY_FROM_CDN explicitly).
+  return { updateConfigDraft, persistConfig }
+}
+
+interface UseV86SeedArgs {
+  ready: boolean
+  cfg: V86WizardConfig
+  existingDefault: ExistingVmInfo | undefined
+  inSpaceImages: InSpaceV86ImageEntry[]
+  listingsPending: boolean
+  persistConfig: (next: V86WizardConfig) => Promise<void>
+}
+
+/**
+ * useV86Seed computes an intelligent default once the world listings are
+ * loaded and the wizard has no source yet. Prefers inheriting from the newest
+ * existing VM, falls back to the newest in-space V86Image, falls back to
+ * COPY_FROM_CDN (the quickstart pre-seed also sets COPY_FROM_CDN explicitly).
+ */
+function useV86Seed({
+  ready,
+  cfg,
+  existingDefault,
+  inSpaceImages,
+  listingsPending,
+  persistConfig,
+}: UseV86SeedArgs) {
   const seededRef = useRef(false)
   useEffect(() => {
-    if (seededRef.current) return
-    if (!state) return
-    if (inSpaceImagesResource.loading || existingVmsResource.loading) return
-    if (cfg.source !== V86WizardConfig_Source.SOURCE_UNSPECIFIED) {
-      seededRef.current = true
-      return
-    }
+    if (seededRef.current || !ready || listingsPending) return
     seededRef.current = true
-    const next = seedV86WizardConfig(cfg, existingDefault, inSpaceImages)
-    void persistConfig(next)
+    if (cfg.source !== V86WizardConfig_Source.SOURCE_UNSPECIFIED) return
+    void persistConfig(seedV86WizardConfig(cfg, existingDefault, inSpaceImages))
   }, [
-    state,
+    ready,
     cfg,
     existingDefault,
     inSpaceImages,
-    inSpaceImagesResource.loading,
-    existingVmsResource.loading,
+    listingsPending,
     persistConfig,
   ])
+}
 
+/**
+ * useDefaultCdnImage resolves the CDN image for a COPY_FROM_CDN config: the
+ * chosen catalog entry, or the discovered default, which is then written back
+ * to the config. It records the catalog startup boundary once.
+ */
+function useDefaultCdnImage(
+  rootResource: ReturnType<typeof useRootResource>,
+  cfg: V86WizardConfig,
+  persistConfig: (next: V86WizardConfig) => Promise<void>,
+) {
   const defaultCdnImageResource = useResource(
     rootResource,
     (nextRoot: Root, signal: AbortSignal) => {
@@ -585,23 +630,24 @@ export function VmV86WizardViewer({
     },
     [cfg.source, cfg.cdnId, cfg.cdnSourceObjectKey],
   )
-  const catalogStageRef = useRef(false)
+
+  const catalogMarkedRef = useRef(false)
   useEffect(() => {
     if (
-      catalogStageRef.current ||
+      catalogMarkedRef.current ||
       cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN
     ) {
       return
     }
     if (defaultCdnImageResource.error) {
-      catalogStageRef.current = true
+      catalogMarkedRef.current = true
       markQuickstartStartupBoundary('v86.wizard.catalog-error', {
         error: defaultCdnImageResource.error.message,
       })
       return
     }
     if (!defaultCdnImageResource.loading && defaultCdnImageResource.value) {
-      catalogStageRef.current = true
+      catalogMarkedRef.current = true
       markQuickstartStartupBoundary('v86.wizard.catalog-loaded', {
         objectKey: defaultCdnImageResource.value.objectKey,
       })
@@ -625,146 +671,244 @@ export function VmV86WizardViewer({
       cdnId: cfg.cdnId ?? '',
     })
   }, [cfg, defaultCdnImageResource.value, persistConfig])
-  const nameStageRef = useRef(false)
-  useEffect(() => {
-    if (nameStageRef.current || state?.step !== 1) return
-    nameStageRef.current = true
-    markQuickstartStartupBoundary('v86.wizard.name-rendered', {
-      objectKey,
-    })
-  }, [objectKey, state?.step])
 
-  const selectedImage = useMemo((): V86Image | undefined => {
-    if (!cfg.imageObjectKey) return undefined
-    if (cfg.source === V86WizardConfig_Source.COPY_FROM_CDN) {
-      return undefined
-    }
-    return inSpaceImages.find((e) => e.objectKey === cfg.imageObjectKey)?.image
-  }, [cfg.imageObjectKey, cfg.source, inSpaceImages])
+  return defaultCdnImageResource.value
+}
 
-  const selectedCdnImage = useMemo((): V86Image | undefined => {
-    if (cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN) {
-      return undefined
-    }
-    const entry = defaultCdnImageResource.value
-    if (!entry) return undefined
-    if (cfg.cdnSourceObjectKey && entry.objectKey !== cfg.cdnSourceObjectKey) {
-      return undefined
-    }
-    return entry.image
-  }, [cfg.cdnSourceObjectKey, cfg.source, defaultCdnImageResource.value])
+/** selectedInSpaceImage returns the chosen in-space image of the config. */
+function selectedInSpaceImage(
+  cfg: V86WizardConfig,
+  inSpaceImages: InSpaceV86ImageEntry[],
+): V86Image | undefined {
+  if (!cfg.imageObjectKey) return undefined
+  if (cfg.source === V86WizardConfig_Source.COPY_FROM_CDN) return undefined
+  return inSpaceImages.find((e) => e.objectKey === cfg.imageObjectKey)?.image
+}
 
-  const handleSelectInSpaceImage = useCallback(
+/** selectedCdnImage returns the resolved CDN image when it is the chosen one. */
+function selectedCdnImage(
+  cfg: V86WizardConfig,
+  entry: CdnV86ImageEntry | null | undefined,
+): V86Image | undefined {
+  if (cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN) return undefined
+  if (!entry) return undefined
+  if (cfg.cdnSourceObjectKey && entry.objectKey !== cfg.cdnSourceObjectKey) {
+    return undefined
+  }
+  return entry.image
+}
+
+/** hasImageChoice reports whether the config names an image to create from. */
+function hasImageChoice(cfg: V86WizardConfig): boolean {
+  if (!cfg.imageObjectKey) return false
+  return (
+    cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN ||
+    !!cfg.cdnSourceObjectKey
+  )
+}
+
+interface UseV86SourceSelectionArgs {
+  cfg: V86WizardConfig
+  wizardResource: WizardResource
+  persistConfig: (next: V86WizardConfig) => Promise<void>
+  setOperationError: (message: string) => void
+}
+
+/**
+ * useV86SourceSelection handles the image source step: picking an in-space
+ * image or a CDN catalog entry persists the config and advances to step 1.
+ */
+function useV86SourceSelection({
+  cfg,
+  wizardResource,
+  persistConfig,
+  setOperationError,
+}: UseV86SourceSelectionArgs) {
+  const [cdnPickerOpen, setCdnPickerOpen] = useState(false)
+
+  const persistAndAdvance = useCallback(
+    (next: V86WizardConfig) => {
+      void (async () => {
+        await persistConfig(next)
+        const handle = wizardResource.value
+        if (handle) await handle.updateState({ step: 1 })
+      })()
+    },
+    [persistConfig, wizardResource],
+  )
+
+  const selectInSpaceImage = useCallback(
     (imageKey: string) => {
       setOperationError('')
-      const next: V86WizardConfig = { ...cfg }
-      next.source = V86WizardConfig_Source.EXISTING_IN_SPACE
-      next.imageObjectKey = imageKey
-      next.cdnSourceObjectKey = ''
-      void (async () => {
-        await persistConfig(next)
-        const handle = wizardResource.value
-        if (handle) await handle.updateState({ step: 1 })
-      })()
+      persistAndAdvance({
+        ...cfg,
+        source: V86WizardConfig_Source.EXISTING_IN_SPACE,
+        imageObjectKey: imageKey,
+        cdnSourceObjectKey: '',
+      })
     },
-    [cfg, persistConfig, wizardResource],
+    [cfg, persistAndAdvance, setOperationError],
   )
 
-  const handlePickCdnEntry = useCallback(
+  const pickCdnEntry = useCallback(
     (cdnSrcKey: string) => {
       setOperationError('')
-      const next: V86WizardConfig = { ...cfg }
-      next.source = V86WizardConfig_Source.COPY_FROM_CDN
-      next.imageObjectKey = V86_USER_IMAGE_OBJECT_KEY
-      next.cdnSourceObjectKey = cdnSrcKey
-      next.cdnId = next.cdnId ?? ''
       setCdnPickerOpen(false)
-      void (async () => {
-        await persistConfig(next)
-        const handle = wizardResource.value
-        if (handle) await handle.updateState({ step: 1 })
-      })()
+      persistAndAdvance({
+        ...cfg,
+        source: V86WizardConfig_Source.COPY_FROM_CDN,
+        imageObjectKey: V86_USER_IMAGE_OBJECT_KEY,
+        cdnSourceObjectKey: cdnSrcKey,
+        cdnId: cfg.cdnId ?? '',
+      })
     },
-    [cfg, persistConfig, wizardResource],
+    [cfg, persistAndAdvance, setOperationError],
   )
 
-  const handleOpenCdnPicker = useCallback(() => {
+  const openCdnPicker = useCallback(() => {
     setCdnPickerOpen(true)
   }, [])
 
-  const handleCloseCdnPicker = useCallback(() => {
+  const closeCdnPicker = useCallback(() => {
     setCdnPickerOpen(false)
   }, [])
 
-  const handleMemoryChange = useCallback(
-    (memoryMb: number) => {
-      const next: V86WizardConfig = { ...cfg }
-      next.memoryMb = memoryMb
-      updateConfigDraft(next)
+  return {
+    cdnPickerOpen,
+    selectInSpaceImage,
+    pickCdnEntry,
+    openCdnPicker,
+    closeCdnPicker,
+  }
+}
+
+/** finalizeBlocker returns why the config cannot create a VM yet, if it cannot. */
+function finalizeBlocker(
+  cfg: V86WizardConfig,
+  sessionPeerId: string,
+): string | null {
+  if (!cfg.imageObjectKey) return 'Choose a VM image before creating the VM.'
+  if (!hasImageChoice(cfg)) {
+    return 'Choose an image from the catalog before creating the VM.'
+  }
+  if (!sessionPeerId)
+    return 'VM creation is not ready in this session. Try again.'
+  return null
+}
+
+interface BuildVmCreationRequestArgs {
+  cfg: V86WizardConfig
+  vmName: string
+  sessionPeerId: string
+  wizardObjectKey: string
+  root: Root | null | undefined
+  spaceId: string
+  sessionIndex: number
+  spaceWorld: ReturnType<typeof SpaceContainerContext.useContext>['spaceWorld']
+}
+
+/** buildVmCreationRequest resolves the creation request for the wizard config. */
+async function buildVmCreationRequest({
+  cfg,
+  vmName,
+  sessionPeerId,
+  wizardObjectKey,
+  root,
+  spaceId,
+  sessionIndex,
+  spaceWorld,
+}: BuildVmCreationRequestArgs): Promise<VmCreationRequest> {
+  const copyFromCdn = cfg.source === V86WizardConfig_Source.COPY_FROM_CDN
+  if (copyFromCdn) {
+    if (!root) throw new Error('root resource not ready')
+    if (!spaceId) throw new Error('space id not available')
+  }
+  return {
+    copyFromCdn,
+    cdnId: cfg.cdnId ?? '',
+    cdnSourceObjectKey: cfg.cdnSourceObjectKey ?? '',
+    imageObjectKey: cfg.imageObjectKey ?? '',
+    sessionIndex,
+    spaceId,
+    vmKey: await buildObjectKey(spaceWorld, 'vm/v86/', vmName),
+    vmName,
+    memoryMb: cfg.memoryMb || DEFAULT_V86_MEMORY_MB,
+    vgaMemoryMb: cfg.vgaMemoryMb || DEFAULT_V86_VGA_MEMORY_MB,
+    networking: cfg.networking ?? false,
+    sessionPeerId,
+    wizardObjectKey,
+    root: root ?? undefined,
+  }
+}
+
+interface UseV86FinalizeArgs {
+  ready: boolean
+  cfg: V86WizardConfig
+  localName: string
+  sessionPeerId: string
+  objectKey: string
+  persistDraftState: () => Promise<void>
+  startCreation: (request: VmCreationRequest) => void
+  setOperationError: (message: string) => void
+}
+
+/**
+ * useV86Finalize validates the config, persists the draft, and starts VM
+ * creation. Failures surface as the operation error and a toast.
+ */
+function useV86Finalize({
+  ready,
+  cfg,
+  localName,
+  sessionPeerId,
+  objectKey,
+  persistDraftState,
+  startCreation,
+  setOperationError,
+}: UseV86FinalizeArgs) {
+  const { spaceWorld, spaceId } = SpaceContainerContext.useContext()
+  const sessionIndex = use(SessionIndexContext)
+  const root = useResourceValue(useRootResource())
+  const [creating, setCreating] = useState(false)
+
+  const fail = useCallback(
+    (message: string) => {
+      setOperationError(message)
+      toast.error(message)
     },
-    [cfg, updateConfigDraft],
+    [setOperationError],
   )
 
-  const handleCancelClick = useCallback(() => {
-    void handleCancel()
-  }, [handleCancel])
+  const finalize = useCallback(async () => {
+    if (!ready || creating || !localName.trim()) return
+    const blocker = finalizeBlocker(cfg, sessionPeerId)
+    if (blocker) {
+      fail(blocker)
+      return
+    }
 
-  const handleFinalize = useCallback(async () => {
-    if (!state || creating || !localName.trim()) return
-    if (!cfg.imageObjectKey) {
-      const message = 'Choose a VM image before creating the VM.'
-      setOperationError(message)
-      toast.error(message)
-      return
-    }
-    if (
-      cfg.source === V86WizardConfig_Source.COPY_FROM_CDN &&
-      !cfg.cdnSourceObjectKey
-    ) {
-      const message = 'Choose an image from the catalog before creating the VM.'
-      setOperationError(message)
-      toast.error(message)
-      return
-    }
-    if (!sessionPeerId) {
-      const message = 'VM creation is not ready in this session. Try again.'
-      setOperationError(message)
-      toast.error(message)
-      return
-    }
     setOperationError('')
     setCreating(true)
     try {
       await persistDraftState()
-      const copyFromCdn = cfg.source === V86WizardConfig_Source.COPY_FROM_CDN
-      if (copyFromCdn) {
-        if (!root) throw new Error('root resource not ready')
-        if (!spaceId) throw new Error('space id not available')
-      }
-      setCreationRequest({
-        copyFromCdn,
-        cdnId: cfg.cdnId ?? '',
-        cdnSourceObjectKey: cfg.cdnSourceObjectKey ?? '',
-        imageObjectKey: cfg.imageObjectKey,
-        sessionIndex,
-        spaceId,
-        vmKey: await buildObjectKey(spaceWorld, 'vm/v86/', localName),
-        vmName: localName,
-        memoryMb: cfg.memoryMb || DEFAULT_V86_MEMORY_MB,
-        vgaMemoryMb: cfg.vgaMemoryMb || DEFAULT_V86_VGA_MEMORY_MB,
-        networking: cfg.networking ?? false,
-        sessionPeerId,
-        wizardObjectKey: objectKey,
-        root: root ?? undefined,
-      })
+      startCreation(
+        await buildVmCreationRequest({
+          cfg,
+          vmName: localName,
+          sessionPeerId,
+          wizardObjectKey: objectKey,
+          root,
+          spaceId,
+          sessionIndex,
+          spaceWorld,
+        }),
+      )
     } catch {
-      const message = 'VM creation could not start. Try again.'
-      setOperationError(message)
       setCreating(false)
-      toast.error(message)
+      fail('VM creation could not start. Try again.')
     }
   }, [
-    state,
+    ready,
     creating,
     localName,
     cfg,
@@ -775,59 +919,170 @@ export function VmV86WizardViewer({
     objectKey,
     spaceWorld,
     persistDraftState,
+    startCreation,
+    fail,
+    setOperationError,
   ])
 
-  const handleFinalizeClick = useCallback(() => {
-    void handleFinalize()
-  }, [handleFinalize])
+  const finalizeClick = useCallback(() => {
+    void finalize()
+  }, [finalize])
+
+  return { creating, finalizeClick }
+}
+
+/** creationFailureMessage describes the failed creation stage for the user. */
+function creationFailureMessage(stage: VmCreationStage): string {
+  switch (stage) {
+    case 'fetching':
+      return 'The image could not be fetched. Check your connection and try again.'
+    case 'copying':
+      return 'The image copy stopped. Try again to continue.'
+    default:
+      return 'The image is ready, but the VM could not be created. Try again.'
+  }
+}
+
+interface VmCreationScreenProps {
+  request: VmCreationRequest
+  resource: VmCreationResource
+}
+
+/** VmCreationScreen shows the progress of the running VM creation. */
+function VmCreationScreen({ request, resource }: VmCreationScreenProps) {
+  const progress =
+    resource.value ??
+    ({
+      stage: request.copyFromCdn ? 'fetching' : 'creating',
+    } satisfies VmCreationProgress)
+  const error = resource.error
+    ? creationFailureMessage(progress.stage)
+    : undefined
+
+  return (
+    <VmCreationProgressScreen
+      progress={progress}
+      vmName={request.vmName}
+      includesCdnCopy={request.copyFromCdn}
+      error={error}
+      onRetry={error ? resource.retry : undefined}
+    />
+  )
+}
+
+/** WizardLoading shows the loading card until the wizard state arrives. */
+function WizardLoading() {
+  return (
+    <div className="flex flex-1 items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <LoadingCard
+          view={{
+            state: 'active',
+            title: 'Loading wizard',
+            detail: 'Preparing the VM creation workflow.',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+/** OperationErrorAlert shows why VM creation could not proceed. */
+function OperationErrorAlert({ message }: { message: string }) {
+  return (
+    <div
+      className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
+      role="alert"
+    >
+      <div className="font-medium">VM could not be created</div>
+      <div className="mt-0.5">{message}</div>
+    </div>
+  )
+}
+
+/**
+ * VmV86WizardViewer is the custom wizard viewer for creating V86 VMs.
+ * Step 0: image source selection (existing in-space V86Image, inherit from
+ * existing VmV86, or copy default from CDN). Step 1: VM name and memory
+ * configuration. Finalize runs the CDN copy (when selected) and then
+ * CreateVmV86Op with the resolved image_object_key.
+ */
+export function VmV86WizardViewer({
+  objectInfo,
+  worldState,
+}: ObjectViewerComponentProps) {
+  const { spaceWorldResource } = SpaceContainerContext.useContext()
+  const rootResource = useRootResource()
+
+  const {
+    configData,
+    handleConfigDataChange,
+    handleBack,
+    handleCancel,
+    handleUpdateName,
+    localName,
+    objectKey,
+    persistDraftState,
+    sessionPeerId,
+    state,
+    wizardResource,
+  } = useWizardState({ objectInfo, worldState }, undefined)
+  const cfg = useMemo(() => decodeConfig(configData), [configData])
+  const [operationError, setOperationError] = useState('')
+
+  useV86WizardStartupMarks(objectKey, !!wizardResource.value, state?.step)
+  const { inSpaceImages, existingDefault, pending } =
+    useV86WorldListings(spaceWorldResource)
+  const { creationRequest, creationResource, startCreation } = useVmCreation()
+  const { updateConfigDraft, persistConfig } = useV86ConfigWriter(
+    wizardResource,
+    handleConfigDataChange,
+  )
+  useV86Seed({
+    ready: !!state,
+    cfg,
+    existingDefault,
+    inSpaceImages,
+    listingsPending: pending,
+    persistConfig,
+  })
+  const cdnImageEntry = useDefaultCdnImage(rootResource, cfg, persistConfig)
+  const source = useV86SourceSelection({
+    cfg,
+    wizardResource,
+    persistConfig,
+    setOperationError,
+  })
+  const { creating, finalizeClick } = useV86Finalize({
+    ready: !!state,
+    cfg,
+    localName,
+    sessionPeerId,
+    objectKey,
+    persistDraftState,
+    startCreation,
+    setOperationError,
+  })
+
+  const handleMemoryChange = useCallback(
+    (memoryMb: number) => {
+      updateConfigDraft({ ...cfg, memoryMb })
+    },
+    [cfg, updateConfigDraft],
+  )
+
+  const handleCancelClick = useCallback(() => {
+    void handleCancel()
+  }, [handleCancel])
 
   if (creationRequest) {
-    const progress =
-      creationResource.value ??
-      ({
-        stage: creationRequest.copyFromCdn ? 'fetching' : 'creating',
-      } satisfies VmCreationProgress)
-    const error = !creationResource.error
-      ? undefined
-      : progress.stage === 'fetching'
-        ? 'The image could not be fetched. Check your connection and try again.'
-        : progress.stage === 'copying'
-          ? 'The image copy stopped. Try again to continue.'
-          : 'The image is ready, but the VM could not be created. Try again.'
     return (
-      <VmCreationProgressScreen
-        progress={progress}
-        vmName={creationRequest.vmName}
-        includesCdnCopy={creationRequest.copyFromCdn}
-        error={error}
-        onRetry={error ? creationResource.retry : undefined}
-      />
+      <VmCreationScreen request={creationRequest} resource={creationResource} />
     )
   }
-
-  if (!state) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading wizard',
-              detail: 'Preparing the VM creation workflow.',
-            }}
-          />
-        </div>
-      </div>
-    )
-  }
+  if (!state) return <WizardLoading />
 
   const step = state.step ?? 0
-  const memoryMb = cfg.memoryMb || DEFAULT_V86_MEMORY_MB
-  const canFinalize =
-    !!cfg.imageObjectKey &&
-    (cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN ||
-      !!cfg.cdnSourceObjectKey)
-
   return (
     <>
       <WizardShell
@@ -849,8 +1104,8 @@ export function VmV86WizardViewer({
         nameStep={1}
         creating={creating}
         creatingLabel="Starting VM creation…"
-        onFinalize={handleFinalizeClick}
-        canFinalize={canFinalize}
+        onFinalize={finalizeClick}
+        canFinalize={hasImageChoice(cfg)}
         finalizeStep={1}
       >
         {step === 0 && (
@@ -858,37 +1113,27 @@ export function VmV86WizardViewer({
             cfg={cfg}
             existingDefault={existingDefault}
             inSpaceImages={inSpaceImages}
-            onSelectInSpace={handleSelectInSpaceImage}
-            onOpenCdnPicker={handleOpenCdnPicker}
-            pending={
-              inSpaceImagesResource.loading || existingVmsResource.loading
-            }
+            onSelectInSpace={source.selectInSpaceImage}
+            onOpenCdnPicker={source.openCdnPicker}
+            pending={pending}
           />
         )}
         {step === 1 && (
           <ConfigStep
             cfg={cfg}
-            memoryMb={memoryMb}
+            memoryMb={cfg.memoryMb || DEFAULT_V86_MEMORY_MB}
             onMemoryChange={handleMemoryChange}
-            selectedImage={selectedImage}
-            selectedCdnImage={selectedCdnImage}
+            selectedImage={selectedInSpaceImage(cfg, inSpaceImages)}
+            selectedCdnImage={selectedCdnImage(cfg, cdnImageEntry)}
             existingDefault={existingDefault}
           />
         )}
-        {operationError && (
-          <div
-            className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
-            role="alert"
-          >
-            <div className="font-medium">VM could not be created</div>
-            <div className="mt-0.5">{operationError}</div>
-          </div>
-        )}
+        {operationError && <OperationErrorAlert message={operationError} />}
       </WizardShell>
-      {cdnPickerOpen && (
+      {source.cdnPickerOpen && (
         <CdnImagePickerModal
-          onClose={handleCloseCdnPicker}
-          onSelect={handlePickCdnEntry}
+          onClose={source.closeCdnPicker}
+          onSelect={source.pickCdnEntry}
           cdnId={cfg.cdnId ?? ''}
         />
       )}
