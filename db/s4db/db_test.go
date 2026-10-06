@@ -264,14 +264,15 @@ func runChild(path string) error {
 }
 
 // TestTwoProcesses writes one file from two processes at once and checks
-// that each commit lands, the space stays consistent, and the parent sees
-// the child's commits through the change watcher.
+// that each commit lands, the space stays consistent, the parent sees the
+// child's commits through the change watcher, and the file holds them all
+// once both close.
 func TestTwoProcesses(t *testing.T) {
 	// Open the file.
 	ctx := context.Background()
+	opts := Options{CheckpointMin: 32 << 10, CheckpointMax: 64 << 10}
 	path := filepath.Join(t.TempDir(), "two.s4wave")
-	db := openTest(t, path, Options{CheckpointMin: 32 << 10, CheckpointMax: 64 << 10})
-	defer db.Close()
+	db := openTest(t, path, opts)
 
 	// Start the child writing to it.
 	cmd := exec.Command(os.Args[0], "-test.run=^$")
@@ -307,6 +308,15 @@ func TestTwoProcesses(t *testing.T) {
 	}
 	m.check(t, db)
 	checkSpace(t, db)
+
+	// Close, which checkpoints over the child's checkpoints, and check the
+	// file.
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db = openTest(t, path, opts)
+	defer db.Close()
+	m.check(t, db)
 }
 
 // TestOpenInProcess checks that a second handle of an open file in one
