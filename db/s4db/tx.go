@@ -207,7 +207,8 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	})
 
 	// Write them, then run checkpoint and compaction work with the snapshot
-	// released, and release the writer lock.
+	// released, release the writer lock, and wait for a checkpoint the
+	// writes outpaced.
 	err := db.w.commit(ctx, t.st, changes, ordered)
 	db.release(t.st, t.stripe)
 	if err == nil {
@@ -215,6 +216,9 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	}
 	seq := db.cur.Load().seq
 	db.w.unlock(err)
+	if err == nil {
+		err = db.w.waitBuild(ctx)
+	}
 	if err != nil || ordered {
 		return err
 	}
