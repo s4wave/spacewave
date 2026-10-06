@@ -993,6 +993,14 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		}
 	}
 
+	// retry retransmits the local offer while no answer has applied: the relay
+	// delivers at most once and the answerer asks for an offer only once.
+	// retryDue records that the timer fired and the retransmit waits for the
+	// outbox to drain.
+	var retry offerRetry
+	var retryDue bool
+	defer retry.stop()
+
 	// Currently processed local sequence number.
 	var lastLocalSeqno, currRemoteSeqno uint64
 	var currLinkRwc datachannel.ReadWriteCloser
@@ -1055,6 +1063,11 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	for {
 		phase = "wait for session change"
 
+		// Keep the local offer outstanding until its answer applies. A replaced
+		// session transmits a fresh offer, which restarts the backoff.
+		retry.sync(s.offerer && sess.pendingOfferID != nil &&
+			sess.pc.SignalingState() == webrtc.SignalingStateHaveLocalOffer)
+
 		// Wait for something to change or for an incoming signal.
 		var currIncomingSignal *incomingSignal
 
@@ -1076,6 +1089,9 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			case currIncomingSignal = <-execution.rxSignal:
 			case <-signalSent:
 				signalSent = nil
+			case <-retry.due():
+				retry.fired()
+				retryDue = true
 			case <-waitCh:
 			case <-recheck:
 			}
@@ -1218,6 +1234,18 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			case <-signalSent:
 				signalSent = nil
 			default:
+				continue
+			}
+		}
+
+		// Retransmit the unanswered offer once the outbox has drained.
+		if retryDue {
+			retryDue = false
+			retransmitted, err := s.retransmitOutstandingOffer(sess, currLocalSeqno, xmitSignal)
+			if err != nil {
+				return err
+			}
+			if retransmitted {
 				continue
 			}
 		}

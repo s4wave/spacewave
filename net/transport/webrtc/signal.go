@@ -124,14 +124,21 @@ func (s *WebRtcSdp) ParseSDP() (*sdp.SessionDescription, error) {
 // changed id means the remote peer started over, for example after a restart.
 // An unparsable description reports false and is left to negotiation.
 func replacesRemotePeerConnection(current *webrtc.SessionDescription, offer *WebRtcSdp) bool {
-	// Parse the origin of the applied description and of the new offer.
+	// Report no replacement while no description is applied.
 	if current == nil {
 		return false
 	}
-	prev, err := current.Unmarshal()
+
+	// Parse the applied description from a copy: Unmarshal stores its result in
+	// the description it is called on, and the PeerConnection owns the applied
+	// one.
+	appliedCopy := webrtc.SessionDescription{Type: current.Type, SDP: current.SDP}
+	prev, err := appliedCopy.Unmarshal()
 	if err != nil {
 		return false
 	}
+
+	// Parse the new offer and compare the origin session ids.
 	next, err := offer.ParseSDP()
 	if err != nil || next == nil {
 		return false

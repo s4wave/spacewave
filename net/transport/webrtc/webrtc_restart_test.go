@@ -5,15 +5,11 @@ package webrtc_test
 import (
 	"context"
 	"fmt"
-	"net"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/pion/logging"
-	"github.com/pion/transport/v5/vnet"
 	"github.com/s4wave/spacewave/net/link"
 	signaling "github.com/s4wave/spacewave/net/signaling/rpc"
 	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
@@ -66,41 +62,9 @@ func testTransportPeerRestart(t *testing.T, restart int, reconnectSignaling bool
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Route the ICE data path over a vnet that drops traffic to and from
-	// the addresses of crashed transports.
-	var deadMtx sync.Mutex
-	dead := make(map[string]bool)
-	router, err := vnet.NewRouter(&vnet.RouterConfig{
-		CIDR:          "10.0.0.0/24",
-		LoggerFactory: logging.NewDefaultLoggerFactory(),
-	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	router.AddChunkFilter(func(c vnet.Chunk) bool {
-		deadMtx.Lock()
-		defer deadMtx.Unlock()
-		return !dead[addrHost(c.SourceAddr())] && !dead[addrHost(c.DestinationAddr())]
-	})
-
-	// Attach one address for each transport the test runs: both initial
-	// transports and the restarted one. vnet routes only the networks
-	// attached before the router starts.
-	iceNets := make([]*vnet.Net, 3)
-	for i := range iceNets {
-		iceNet, err := vnet.NewNet(&vnet.NetConfig{StaticIPs: []string{fmt.Sprintf("10.0.0.%d", 10+i)}})
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		if err := router.AddNet(iceNet); err != nil {
-			t.Fatal(err.Error())
-		}
-		iceNets[i] = iceNet
-	}
-	if err := router.Start(); err != nil {
-		t.Fatal(err.Error())
-	}
-	defer func() { _ = router.Stop() }()
+	// Route the ICE data path over a vnet with an address for each transport
+	// the test runs: both initial transports and the restarted one.
+	iceNet := newICENetwork(t, 3)
 
 	// Construct the endpoint peers and the signaling server between them.
 	g := graph.NewGraph()
@@ -137,44 +101,18 @@ func testTransportPeerRestart(t *testing.T, restart int, reconnectSignaling bool
 	sim := initSimulator(t, ctx, le, g)
 	px := []*simulate.Peer{sim.GetPeerByID(p0.GetPeerID()), nil, sim.GetPeerByID(p2.GetPeerID())}
 
-	// startTransport runs a WebRTC transport for peer i on the next unused
-	// vnet address and returns a function that crashes the transport.
+	// Configure the WebRTC transport both endpoint peers run.
 	webrtcTptConf := &webrtc.Config{
 		SignalingId: signalingID,
 		AllPeers:    true,
 		BlockPeers:  []string{p1.GetPeerID().String()},
 		Verbose:     true,
 	}
-	nextNet := 0
+
+	// startTransport runs a WebRTC transport for peer i and returns a function
+	// that crashes it.
 	startTransport := func(i int) func() {
-		// Take the next unused address.
-		t.Helper()
-		iceNet := iceNets[nextNet]
-		ip := fmt.Sprintf("10.0.0.%d", 10+nextNet)
-		nextNet++
-
-		// Construct and run the transport controller on the peer bus.
-		b := px[i].GetTestbed().Bus
-		tptLe := le.WithField("transport-ip", ip)
-		ctrl, err := webrtc.NewFactory(b, webrtc.WithICENet(iceNet)).Construct(
-			ctx,
-			webrtcTptConf,
-			controller.ConstructOpts{Logger: tptLe},
-		)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		tptCtx, tptCancel := context.WithCancel(ctx)
-		go func() { _ = b.ExecuteController(tptCtx, ctrl) }()
-
-		// Crashing silences the address before stopping the transport, so
-		// the remote peer hears nothing from it again.
-		return func() {
-			deadMtx.Lock()
-			dead[ip] = true
-			deadMtx.Unlock()
-			tptCancel()
-		}
+		return iceNet.startTransport(ctx, t, le, px[i].GetTestbed().Bus, webrtcTptConf)
 	}
 	crash := []func(){startTransport(0), nil, startTransport(2)}
 
@@ -218,35 +156,12 @@ func testTransportPeerRestart(t *testing.T, restart int, reconnectSignaling bool
 		defer ref.Release()
 	}
 
-	// waitConnectivity probes the link until it carries a stream or the
-	// stage bound passes. Each probe is bounded so a probe over a stale link
-	// cannot hold the stage past the moment the new link comes up.
-	waitConnectivity := func(stage string, timeout time.Duration) {
-		// Bound the stage from now.
+	// waitStage requires the endpoints to link within timeout.
+	waitStage := func(stage string, timeout time.Duration) {
 		t.Helper()
-		start := time.Now()
-		deadline := time.NewTimer(timeout)
-		defer deadline.Stop()
-		var lastErr error
-		for {
-			probeCtx, cancelProbe := context.WithTimeout(ctx, 2*time.Second)
-			err := simulate.TestConnectivity(probeCtx, px[0], px[2])
-			cancelProbe()
-			if err == nil {
-				le.Infof("connectivity ok: %s after %v", stage, time.Since(start))
-				return
-			}
-			lastErr = err
-			select {
-			case <-ctx.Done():
-				t.Fatalf("%s: context done: %v", stage, ctx.Err())
-			case <-deadline.C:
-				t.Fatalf("%s: connectivity not restored in %v: %v", stage, timeout, lastErr)
-			case <-time.After(250 * time.Millisecond):
-			}
-		}
+		waitConnectivity(ctx, t, le, px[0], px[2], stage, timeout)
 	}
-	waitConnectivity("initial", 30*time.Second)
+	waitStage("initial", 30*time.Second)
 
 	// Replace the signaling client of the surviving peer. The established
 	// link does not depend on signaling and stays up.
@@ -255,14 +170,14 @@ func testTransportPeerRestart(t *testing.T, restart int, reconnectSignaling bool
 		le.Infof("reconnecting the signaling client of p%d", survivor)
 		stopSignaling[survivor]()
 		stopSignaling[survivor] = startSignaling(survivor)
-		waitConnectivity("after-signaling-reconnect", restartReconnectBound)
+		waitStage("after-signaling-reconnect", restartReconnectBound)
 	}
 
 	// Crash the transport of the restarted peer and start its successor.
 	le.Infof("restarting the transport of p%d", restart)
 	crash[restart]()
 	crash[restart] = startTransport(restart)
-	waitConnectivity("after-restart", restartReconnectBound)
+	waitStage("after-restart", restartReconnectBound)
 	for _, c := range crash {
 		if c != nil {
 			c()
@@ -270,8 +185,38 @@ func testTransportPeerRestart(t *testing.T, restart int, reconnectSignaling bool
 	}
 }
 
-// addrHost returns the host part of a vnet chunk address.
-func addrHost(addr net.Addr) string {
-	host, _, _ := net.SplitHostPort(addr.String())
-	return host
+// waitConnectivity probes the link between a and b until it carries a stream
+// or the stage bound passes. Each probe is bounded so a probe over a stale link
+// cannot hold the stage past the moment the new link comes up.
+func waitConnectivity(
+	ctx context.Context,
+	t *testing.T,
+	le *logrus.Entry,
+	a, b *simulate.Peer,
+	stage string,
+	timeout time.Duration,
+) {
+	// Bound the stage from now.
+	t.Helper()
+	start := time.Now()
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+	var lastErr error
+	for {
+		probeCtx, cancelProbe := context.WithTimeout(ctx, 2*time.Second)
+		err := simulate.TestConnectivity(probeCtx, a, b)
+		cancelProbe()
+		if err == nil {
+			le.Infof("connectivity ok: %s after %v", stage, time.Since(start))
+			return
+		}
+		lastErr = err
+		select {
+		case <-ctx.Done():
+			t.Fatalf("%s: context done: %v", stage, ctx.Err())
+		case <-deadline.C:
+			t.Fatalf("%s: connectivity not restored in %v: %v", stage, timeout, lastErr)
+		case <-time.After(250 * time.Millisecond):
+		}
+	}
 }
