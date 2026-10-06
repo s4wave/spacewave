@@ -18,7 +18,6 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
 import { UsageBars } from './UsageBars.js'
 import { PlanControls } from './PlanControls.js'
-import { StripePortalLink } from './StripePortalLink.js'
 import { BillingAssignmentsSection } from './BillingAssignmentsSection.js'
 import { DeleteBillingAccountSection } from './DeleteBillingAccountSection.js'
 import {
@@ -300,7 +299,6 @@ export function BillingPage() {
               cancelAt={cancelAt}
               showSelfService={billingState.selfServiceAllowed}
             />
-            <StripePortalLink />
             {baId && (
               <DeleteBillingAccountSection
                 billingAccountId={baId}

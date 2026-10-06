@@ -84,10 +84,6 @@ vi.mock('./PlanControls.js', () => ({
   PlanControls: () => <div>plan-controls</div>,
 }))
 
-vi.mock('./StripePortalLink.js', () => ({
-  StripePortalLink: () => <div>portal-link</div>,
-}))
-
 import { BillingPage } from './BillingPage.js'
 
 // BillingPageSurface fills the viewport and applies the bg-background-primary
