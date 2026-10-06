@@ -7,13 +7,195 @@ import {
   createEmptyMessageType,
   createMessageType,
 } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import {
   SharedObjectConfig,
   SharedObjectHealth,
   SOConfigChange,
+  SOOperationPosition,
 } from '../../core/sobject/sobject.pb.js'
-import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
-import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+
+/**
+ * GetSharedObjectTrimRequest selects the already mounted SharedObject.
+ *
+ * @generated from message s4wave.sobject.GetSharedObjectTrimRequest
+ */
+export interface GetSharedObjectTrimRequest {}
+
+export const GetSharedObjectTrimRequest: MessageType<GetSharedObjectTrimRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetSharedObjectTrimRequest>(
+    's4wave.sobject.GetSharedObjectTrimRequest',
+    true,
+  )
+
+/**
+ * SharedObjectTrimWriter is one writer's share in the stable point.
+ *
+ * @generated from message s4wave.sobject.SharedObjectTrimWriter
+ */
+export interface SharedObjectTrimWriter {
+  /**
+   * PeerId identifies the writer.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+  /**
+   * Dropped is true when the writer is off the trimming roster.
+   *
+   * @generated from field: bool dropped = 2;
+   */
+  dropped?: boolean
+  /**
+   * LatestNonce is the nonce of the writer's latest held operation, or 0.
+   *
+   * @generated from field: uint64 latest_nonce = 3;
+   */
+  latestNonce?: bigint
+  /**
+   * BuiltOnCheckpointer is true when the writer built on the checkpointer's
+   * latest operation.
+   *
+   * @generated from field: bool built_on_checkpointer = 4;
+   */
+  builtOnCheckpointer?: boolean
+}
+
+export const SharedObjectTrimWriter: MessageType<SharedObjectTrimWriter> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sobject.SharedObjectTrimWriter',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'dropped', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'latest_nonce', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'built_on_checkpointer',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * SharedObjectTrim is this device's view of the checkpoint and the history above
+ * it.
+ *
+ * @generated from message s4wave.sobject.SharedObjectTrim
+ */
+export interface SharedObjectTrim {
+  /**
+   * ViewerPeerId identifies this device's participant.
+   *
+   * @generated from field: string viewer_peer_id = 1;
+   */
+  viewerPeerId?: string
+  /**
+   * CheckpointHeight is the height of the held checkpoint.
+   *
+   * @generated from field: uint64 checkpoint_height = 2;
+   */
+  checkpointHeight?: bigint
+  /**
+   * Operations is the number of operations held above the checkpoint.
+   *
+   * @generated from field: int64 operations = 3;
+   */
+  operations?: bigint
+  /**
+   * Placed is the number of them in the replay order.
+   *
+   * @generated from field: int64 placed = 4;
+   */
+  placed?: bigint
+  /**
+   * Stable is the length of the order prefix every roster member built on.
+   *
+   * @generated from field: int64 stable = 5;
+   */
+  stable?: bigint
+  /**
+   * SequencerPeerId is the appointed sequencer, empty under Merge.
+   *
+   * @generated from field: string sequencer_peer_id = 6;
+   */
+  sequencerPeerId?: string
+  /**
+   * CheckpointerPeerId is the peer that signs checkpoints.
+   *
+   * @generated from field: string checkpointer_peer_id = 7;
+   */
+  checkpointerPeerId?: string
+  /**
+   * NeedsAcknowledgment is true when this device should acknowledge now.
+   *
+   * @generated from field: bool needs_acknowledgment = 8;
+   */
+  needsAcknowledgment?: boolean
+  /**
+   * UnplacedHeads are the heads outside the order. Any of them stops every
+   * acknowledgment.
+   *
+   * @generated from field: repeated sobject.SOOperationPosition unplaced_heads = 9;
+   */
+  unplacedHeads?: SOOperationPosition[]
+  /**
+   * Writers are the writers with their place on the trimming roster.
+   *
+   * @generated from field: repeated s4wave.sobject.SharedObjectTrimWriter writers = 10;
+   */
+  writers?: SharedObjectTrimWriter[]
+}
+
+export const SharedObjectTrim: MessageType<SharedObjectTrim> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sobject.SharedObjectTrim',
+    fields: [
+      { no: 1, name: 'viewer_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'checkpoint_height',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 3, name: 'operations', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 4, name: 'placed', kind: 'scalar', T: ScalarType.INT64 },
+      { no: 5, name: 'stable', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 6,
+        name: 'sequencer_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 7,
+        name: 'checkpointer_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      {
+        no: 8,
+        name: 'needs_acknowledgment',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+      {
+        no: 9,
+        name: 'unplaced_heads',
+        kind: 'message',
+        T: () => SOOperationPosition,
+        repeated: true,
+      },
+      {
+        no: 10,
+        name: 'writers',
+        kind: 'message',
+        T: SharedObjectTrimWriter,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * WatchSharedObjectParticipationRequest selects the already mounted SharedObject.

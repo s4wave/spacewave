@@ -13,6 +13,52 @@ service SharedObjectResourceService {
   rpc OpenReadCheckpoint(OpenReadCheckpointRequest) returns (OpenReadCheckpointResponse);
 
   rpc MountSharedObjectBody(MountSharedObjectBodyRequest) returns (MountSharedObjectBodyResponse);
+
+  // GetSharedObjectTrim reports, from this device's state, how far the history
+  // can be trimmed and which members hold it back.
+  rpc GetSharedObjectTrim(GetSharedObjectTrimRequest) returns (SharedObjectTrim);
+}
+
+// GetSharedObjectTrimRequest selects the already mounted SharedObject.
+message GetSharedObjectTrimRequest {}
+
+// SharedObjectTrim is this device's view of the checkpoint and the history above
+// it.
+message SharedObjectTrim {
+  // ViewerPeerId identifies this device's participant.
+  string viewer_peer_id = 1;
+  // CheckpointHeight is the height of the held checkpoint.
+  uint64 checkpoint_height = 2;
+  // Operations is the number of operations held above the checkpoint.
+  int64 operations = 3;
+  // Placed is the number of them in the replay order.
+  int64 placed = 4;
+  // Stable is the length of the order prefix every roster member built on.
+  int64 stable = 5;
+  // SequencerPeerId is the appointed sequencer, empty under Merge.
+  string sequencer_peer_id = 6;
+  // CheckpointerPeerId is the peer that signs checkpoints.
+  string checkpointer_peer_id = 7;
+  // NeedsAcknowledgment is true when this device should acknowledge now.
+  bool needs_acknowledgment = 8;
+  // UnplacedHeads are the heads outside the order. Any of them stops every
+  // acknowledgment.
+  repeated .sobject.SOOperationPosition unplaced_heads = 9;
+  // Writers are the writers with their place on the trimming roster.
+  repeated SharedObjectTrimWriter writers = 10;
+}
+
+// SharedObjectTrimWriter is one writer's share in the stable point.
+message SharedObjectTrimWriter {
+  // PeerId identifies the writer.
+  string peer_id = 1;
+  // Dropped is true when the writer is off the trimming roster.
+  bool dropped = 2;
+  // LatestNonce is the nonce of the writer's latest held operation, or 0.
+  uint64 latest_nonce = 3;
+  // BuiltOnCheckpointer is true when the writer built on the checkpointer's
+  // latest operation.
+  bool built_on_checkpointer = 4;
 }
 
 // WatchSharedObjectParticipationRequest selects the already mounted SharedObject.

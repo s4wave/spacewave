@@ -3,11 +3,13 @@
 /* eslint-disable */
 
 import {
+  GetSharedObjectTrimRequest,
   MountSharedObjectBodyRequest,
   MountSharedObjectBodyResponse,
   OpenReadCheckpointRequest,
   OpenReadCheckpointResponse,
   SharedObjectParticipation,
+  SharedObjectTrim,
   WatchSharedObjectHealthRequest,
   WatchSharedObjectHealthResponse,
   WatchSharedObjectParticipationRequest,
@@ -68,6 +70,18 @@ export const SharedObjectResourceServiceDefinition = {
       O: MountSharedObjectBodyResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * GetSharedObjectTrim reports, from this device's state, how far the history
+     * can be trimmed and which members hold it back.
+     *
+     * @generated from rpc s4wave.sobject.SharedObjectResourceService.GetSharedObjectTrim
+     */
+    GetSharedObjectTrim: {
+      name: 'GetSharedObjectTrim',
+      I: GetSharedObjectTrimRequest,
+      O: SharedObjectTrim,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -112,6 +126,17 @@ export interface SharedObjectResourceService {
     request: MountSharedObjectBodyRequest,
     abortSignal?: AbortSignal,
   ): Promise<MountSharedObjectBodyResponse>
+
+  /**
+   * GetSharedObjectTrim reports, from this device's state, how far the history
+   * can be trimmed and which members hold it back.
+   *
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.GetSharedObjectTrim
+   */
+  GetSharedObjectTrim(
+    request: GetSharedObjectTrimRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SharedObjectTrim>
 }
 
 /**
@@ -159,6 +184,18 @@ export interface SharedObjectResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<MountSharedObjectBodyResponse>
+
+  /**
+   * GetSharedObjectTrim reports, from this device's state, how far the history
+   * can be trimmed and which members hold it back.
+   *
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.GetSharedObjectTrim
+   */
+  GetSharedObjectTrim(
+    request: GetSharedObjectTrimRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SharedObjectTrim>
 }
 
 export const SharedObjectResourceServiceServiceName =
@@ -175,6 +212,7 @@ export class SharedObjectResourceServiceClient implements SharedObjectResourceSe
       this.WatchSharedObjectParticipation.bind(this)
     this.OpenReadCheckpoint = this.OpenReadCheckpoint.bind(this)
     this.MountSharedObjectBody = this.MountSharedObjectBody.bind(this)
+    this.GetSharedObjectTrim = this.GetSharedObjectTrim.bind(this)
   }
   /**
    * @generated from rpc s4wave.sobject.SharedObjectResourceService.WatchSharedObjectHealth
@@ -248,5 +286,25 @@ export class SharedObjectResourceServiceClient implements SharedObjectResourceSe
       abortSignal || undefined,
     )
     return MountSharedObjectBodyResponse.fromBinary(result)
+  }
+
+  /**
+   * GetSharedObjectTrim reports, from this device's state, how far the history
+   * can be trimmed and which members hold it back.
+   *
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.GetSharedObjectTrim
+   */
+  async GetSharedObjectTrim(
+    request: GetSharedObjectTrimRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SharedObjectTrim> {
+    const requestMsg = GetSharedObjectTrimRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SharedObjectResourceServiceDefinition.methods.GetSharedObjectTrim.name,
+      GetSharedObjectTrimRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SharedObjectTrim.fromBinary(result)
   }
 }

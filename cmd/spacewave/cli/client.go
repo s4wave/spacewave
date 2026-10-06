@@ -258,9 +258,10 @@ func (c *sdkClient) mountSession(ctx context.Context, idx uint32) (*s4wave_sessi
 	return sess, nil
 }
 
-// mountSpace mounts a space by shared object ID and returns the SpaceResourceService client.
-func (c *sdkClient) mountSpace(ctx context.Context, sess *s4wave_session.Session, sharedObjectID string) (s4wave_space.SRPCSpaceResourceServiceClient, func(), error) {
-	// Mount the shared object and its space body.
+// mountSharedObject mounts a shared object by ID and returns its
+// SharedObjectResourceService client.
+func (c *sdkClient) mountSharedObject(ctx context.Context, sess *s4wave_session.Session, sharedObjectID string) (s4wave_sobject.SRPCSharedObjectResourceServiceClient, func(), error) {
+	// Mount the shared object.
 	soResp, err := sess.MountSharedObject(ctx, sharedObjectID)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "mount shared object")
@@ -273,21 +274,28 @@ func (c *sdkClient) mountSpace(ctx context.Context, sess *s4wave_session.Session
 		soRef.Release()
 		return nil, nil, errors.Wrap(err, "shared object client")
 	}
+	return s4wave_sobject.NewSRPCSharedObjectResourceServiceClient(soClient), soRef.Release, nil
+}
 
-	// Mount the shared object body.
-	soSvc := s4wave_sobject.NewSRPCSharedObjectResourceServiceClient(soClient)
+// mountSpace mounts a space by shared object ID and returns the SpaceResourceService client.
+func (c *sdkClient) mountSpace(ctx context.Context, sess *s4wave_session.Session, sharedObjectID string) (s4wave_space.SRPCSpaceResourceServiceClient, func(), error) {
+	// Mount the shared object and its space body.
+	soSvc, soRelease, err := c.mountSharedObject(ctx, sess, sharedObjectID)
+	if err != nil {
+		return nil, nil, err
+	}
 	bodyResp, err := s4wave_sobject.MountSharedObjectBody(ctx, soSvc)
 	if err != nil {
-		soRef.Release()
+		soRelease()
 		return nil, nil, errors.Wrap(err, "mount shared object body")
 	}
 
-	// Open the space body resource client and build the cleanup.
+	// Open the space body resource client.
 	bodyRef := c.resClient.CreateResourceReference(bodyResp.GetResourceId())
 	bodyClient, err := bodyRef.GetClient()
 	if err != nil {
 		bodyRef.Release()
-		soRef.Release()
+		soRelease()
 		return nil, nil, errors.Wrap(err, "space body client")
 	}
 
@@ -295,7 +303,7 @@ func (c *sdkClient) mountSpace(ctx context.Context, sess *s4wave_session.Session
 	spaceSvc := s4wave_space.NewSRPCSpaceResourceServiceClient(bodyClient)
 	cleanup := func() {
 		bodyRef.Release()
-		soRef.Release()
+		soRelease()
 	}
 	return spaceSvc, cleanup, nil
 }

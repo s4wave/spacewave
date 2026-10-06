@@ -63,22 +63,13 @@ func (s *SOOperationSet) StablePoint(roster []string) [][]byte {
 // acknowledgments ask nothing, so members never answer each other's answers.
 func (s *SOOperationSet) NeedsAcknowledgment(checkpointer, peerID string, lag int) bool {
 	// An acknowledgment naming an unplaced head would itself wait unplaced.
-	if s.sequence.sequencer != "" {
+	if s.sequence.sequencer != "" || len(s.UnplacedHeads()) != 0 {
 		return false
-	}
-	order := s.Order()
-	placed := make(map[string]struct{}, len(order))
-	for _, h := range order {
-		placed[string(h)] = struct{}{}
-	}
-	for _, head := range s.Heads() {
-		if _, ok := placed[string(head.GetOpHash())]; !ok && !s.Covers(head.GetPeerId(), head.GetNonce()) {
-			return false
-		}
 	}
 
 	// Answer the checkpointer, or count the placed edits peerID has not
 	// built on.
+	order := s.Order()
 	built := s.builtOn(order, peerID)
 	n := 0
 	for _, h := range order {
@@ -94,6 +85,24 @@ func (s *SOOperationSet) NeedsAcknowledgment(checkpointer, peerID string, lag in
 		}
 	}
 	return n >= lag
+}
+
+// UnplacedHeads returns the heads that replay has not placed and the
+// checkpoint does not cover, in hash order. Each waits for an operation it
+// names that this set does not hold.
+func (s *SOOperationSet) UnplacedHeads() []*SOOperationPosition {
+	// Keep the heads outside the order that the checkpoint does not cover.
+	placed := make(map[string]struct{}, len(s.ops))
+	for _, h := range s.Order() {
+		placed[string(h)] = struct{}{}
+	}
+	var unplaced []*SOOperationPosition
+	for _, head := range s.Heads() {
+		if _, ok := placed[string(head.GetOpHash())]; !ok && !s.Covers(head.GetPeerId(), head.GetNonce()) {
+			unplaced = append(unplaced, head)
+		}
+	}
+	return unplaced
 }
 
 // BuiltOnLatest reports whether peerID has built on author's latest operation:

@@ -14,6 +14,168 @@ import (
 	sobject "github.com/s4wave/spacewave/core/sobject"
 )
 
+// GetSharedObjectTrimRequest selects the already mounted SharedObject.
+type GetSharedObjectTrimRequest struct {
+	unknownFields []byte
+}
+
+func (x *GetSharedObjectTrimRequest) Reset() {
+	*x = GetSharedObjectTrimRequest{}
+}
+
+func (*GetSharedObjectTrimRequest) ProtoMessage() {}
+
+// SharedObjectTrim is this device's view of the checkpoint and the history above
+// it.
+type SharedObjectTrim struct {
+	unknownFields []byte
+	// ViewerPeerId identifies this device's participant.
+	ViewerPeerId string `protobuf:"bytes,1,opt,name=viewer_peer_id,json=viewerPeerId,proto3" json:"viewerPeerId,omitempty"`
+	// CheckpointHeight is the height of the held checkpoint.
+	CheckpointHeight uint64 `protobuf:"varint,2,opt,name=checkpoint_height,json=checkpointHeight,proto3" json:"checkpointHeight,omitempty"`
+	// Operations is the number of operations held above the checkpoint.
+	Operations int64 `protobuf:"varint,3,opt,name=operations,proto3" json:"operations,omitempty"`
+	// Placed is the number of them in the replay order.
+	Placed int64 `protobuf:"varint,4,opt,name=placed,proto3" json:"placed,omitempty"`
+	// Stable is the length of the order prefix every roster member built on.
+	Stable int64 `protobuf:"varint,5,opt,name=stable,proto3" json:"stable,omitempty"`
+	// SequencerPeerId is the appointed sequencer, empty under Merge.
+	SequencerPeerId string `protobuf:"bytes,6,opt,name=sequencer_peer_id,json=sequencerPeerId,proto3" json:"sequencerPeerId,omitempty"`
+	// CheckpointerPeerId is the peer that signs checkpoints.
+	CheckpointerPeerId string `protobuf:"bytes,7,opt,name=checkpointer_peer_id,json=checkpointerPeerId,proto3" json:"checkpointerPeerId,omitempty"`
+	// NeedsAcknowledgment is true when this device should acknowledge now.
+	NeedsAcknowledgment bool `protobuf:"varint,8,opt,name=needs_acknowledgment,json=needsAcknowledgment,proto3" json:"needsAcknowledgment,omitempty"`
+	// UnplacedHeads are the heads outside the order. Any of them stops every
+	// acknowledgment.
+	UnplacedHeads []*sobject.SOOperationPosition `protobuf:"bytes,9,rep,name=unplaced_heads,json=unplacedHeads,proto3" json:"unplacedHeads,omitempty"`
+	// Writers are the writers with their place on the trimming roster.
+	Writers []*SharedObjectTrimWriter `protobuf:"bytes,10,rep,name=writers,proto3" json:"writers,omitempty"`
+}
+
+func (x *SharedObjectTrim) Reset() {
+	*x = SharedObjectTrim{}
+}
+
+func (*SharedObjectTrim) ProtoMessage() {}
+
+func (x *SharedObjectTrim) GetViewerPeerId() string {
+	if x != nil {
+		return x.ViewerPeerId
+	}
+	return ""
+}
+
+func (x *SharedObjectTrim) GetCheckpointHeight() uint64 {
+	if x != nil {
+		return x.CheckpointHeight
+	}
+	return 0
+}
+
+func (x *SharedObjectTrim) GetOperations() int64 {
+	if x != nil {
+		return x.Operations
+	}
+	return 0
+}
+
+func (x *SharedObjectTrim) GetPlaced() int64 {
+	if x != nil {
+		return x.Placed
+	}
+	return 0
+}
+
+func (x *SharedObjectTrim) GetStable() int64 {
+	if x != nil {
+		return x.Stable
+	}
+	return 0
+}
+
+func (x *SharedObjectTrim) GetSequencerPeerId() string {
+	if x != nil {
+		return x.SequencerPeerId
+	}
+	return ""
+}
+
+func (x *SharedObjectTrim) GetCheckpointerPeerId() string {
+	if x != nil {
+		return x.CheckpointerPeerId
+	}
+	return ""
+}
+
+func (x *SharedObjectTrim) GetNeedsAcknowledgment() bool {
+	if x != nil {
+		return x.NeedsAcknowledgment
+	}
+	return false
+}
+
+func (x *SharedObjectTrim) GetUnplacedHeads() []*sobject.SOOperationPosition {
+	if x != nil {
+		return x.UnplacedHeads
+	}
+	return nil
+}
+
+func (x *SharedObjectTrim) GetWriters() []*SharedObjectTrimWriter {
+	if x != nil {
+		return x.Writers
+	}
+	return nil
+}
+
+// SharedObjectTrimWriter is one writer's share in the stable point.
+type SharedObjectTrimWriter struct {
+	unknownFields []byte
+	// PeerId identifies the writer.
+	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// Dropped is true when the writer is off the trimming roster.
+	Dropped bool `protobuf:"varint,2,opt,name=dropped,proto3" json:"dropped,omitempty"`
+	// LatestNonce is the nonce of the writer's latest held operation, or 0.
+	LatestNonce uint64 `protobuf:"varint,3,opt,name=latest_nonce,json=latestNonce,proto3" json:"latestNonce,omitempty"`
+	// BuiltOnCheckpointer is true when the writer built on the checkpointer's
+	// latest operation.
+	BuiltOnCheckpointer bool `protobuf:"varint,4,opt,name=built_on_checkpointer,json=builtOnCheckpointer,proto3" json:"builtOnCheckpointer,omitempty"`
+}
+
+func (x *SharedObjectTrimWriter) Reset() {
+	*x = SharedObjectTrimWriter{}
+}
+
+func (*SharedObjectTrimWriter) ProtoMessage() {}
+
+func (x *SharedObjectTrimWriter) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *SharedObjectTrimWriter) GetDropped() bool {
+	if x != nil {
+		return x.Dropped
+	}
+	return false
+}
+
+func (x *SharedObjectTrimWriter) GetLatestNonce() uint64 {
+	if x != nil {
+		return x.LatestNonce
+	}
+	return 0
+}
+
+func (x *SharedObjectTrimWriter) GetBuiltOnCheckpointer() bool {
+	if x != nil {
+		return x.BuiltOnCheckpointer
+	}
+	return false
+}
+
 // WatchSharedObjectParticipationRequest selects the already mounted SharedObject.
 type WatchSharedObjectParticipationRequest struct {
 	unknownFields []byte
@@ -211,6 +373,65 @@ func (x *OpenReadCheckpointResponse) GetConfig() *sobject.SharedObjectConfig {
 	return nil
 }
 
+func (m *GetSharedObjectTrimRequest) CloneVT() *GetSharedObjectTrimRequest {
+	if m == nil {
+		return (*GetSharedObjectTrimRequest)(nil)
+	}
+	r := new(GetSharedObjectTrimRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetSharedObjectTrimRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SharedObjectTrim) CloneVT() *SharedObjectTrim {
+	if m == nil {
+		return (*SharedObjectTrim)(nil)
+	}
+	r := new(SharedObjectTrim)
+	r.ViewerPeerId = m.ViewerPeerId
+	r.CheckpointHeight = m.CheckpointHeight
+	r.Operations = m.Operations
+	r.Placed = m.Placed
+	r.Stable = m.Stable
+	r.SequencerPeerId = m.SequencerPeerId
+	r.CheckpointerPeerId = m.CheckpointerPeerId
+	r.NeedsAcknowledgment = m.NeedsAcknowledgment
+	r.UnplacedHeads = protobuf_go_lite.CloneVTSlice(m.UnplacedHeads)
+	r.Writers = protobuf_go_lite.CloneVTSlice(m.Writers)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SharedObjectTrim) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SharedObjectTrimWriter) CloneVT() *SharedObjectTrimWriter {
+	if m == nil {
+		return (*SharedObjectTrimWriter)(nil)
+	}
+	r := new(SharedObjectTrimWriter)
+	r.PeerId = m.PeerId
+	r.Dropped = m.Dropped
+	r.LatestNonce = m.LatestNonce
+	r.BuiltOnCheckpointer = m.BuiltOnCheckpointer
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SharedObjectTrimWriter) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WatchSharedObjectParticipationRequest) CloneVT() *WatchSharedObjectParticipationRequest {
 	if m == nil {
 		return (*WatchSharedObjectParticipationRequest)(nil)
@@ -367,6 +588,99 @@ func (m *OpenReadCheckpointResponse) CloneVT() *OpenReadCheckpointResponse {
 
 func (m *OpenReadCheckpointResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *GetSharedObjectTrimRequest) EqualVT(that *GetSharedObjectTrimRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetSharedObjectTrimRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetSharedObjectTrimRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SharedObjectTrim) EqualVT(that *SharedObjectTrim) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ViewerPeerId != that.ViewerPeerId {
+		return false
+	}
+	if this.CheckpointHeight != that.CheckpointHeight {
+		return false
+	}
+	if this.Operations != that.Operations {
+		return false
+	}
+	if this.Placed != that.Placed {
+		return false
+	}
+	if this.Stable != that.Stable {
+		return false
+	}
+	if this.SequencerPeerId != that.SequencerPeerId {
+		return false
+	}
+	if this.CheckpointerPeerId != that.CheckpointerPeerId {
+		return false
+	}
+	if this.NeedsAcknowledgment != that.NeedsAcknowledgment {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.UnplacedHeads, that.UnplacedHeads, func() *sobject.SOOperationPosition { return &sobject.SOOperationPosition{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Writers, that.Writers, func() *SharedObjectTrimWriter { return &SharedObjectTrimWriter{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SharedObjectTrim) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SharedObjectTrim)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SharedObjectTrimWriter) EqualVT(that *SharedObjectTrimWriter) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if this.Dropped != that.Dropped {
+		return false
+	}
+	if this.LatestNonce != that.LatestNonce {
+		return false
+	}
+	if this.BuiltOnCheckpointer != that.BuiltOnCheckpointer {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SharedObjectTrimWriter) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SharedObjectTrimWriter)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *WatchSharedObjectParticipationRequest) EqualVT(that *WatchSharedObjectParticipationRequest) bool {
@@ -570,6 +884,258 @@ func (this *OpenReadCheckpointResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the GetSharedObjectTrimRequest message to JSON.
+func (x *GetSharedObjectTrimRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetSharedObjectTrimRequest to JSON.
+func (x *GetSharedObjectTrimRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetSharedObjectTrimRequest message from JSON.
+func (x *GetSharedObjectTrimRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the GetSharedObjectTrimRequest from JSON.
+func (x *GetSharedObjectTrimRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SharedObjectTrim message to JSON.
+func (x *SharedObjectTrim) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ViewerPeerId != "" || s.HasField("viewerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("viewerPeerId")
+		s.WriteString(x.ViewerPeerId)
+	}
+	if x.CheckpointHeight != 0 || s.HasField("checkpointHeight") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointHeight")
+		s.WriteUint64(x.CheckpointHeight)
+	}
+	if x.Operations != 0 || s.HasField("operations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("operations")
+		s.WriteInt64(x.Operations)
+	}
+	if x.Placed != 0 || s.HasField("placed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("placed")
+		s.WriteInt64(x.Placed)
+	}
+	if x.Stable != 0 || s.HasField("stable") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("stable")
+		s.WriteInt64(x.Stable)
+	}
+	if x.SequencerPeerId != "" || s.HasField("sequencerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequencerPeerId")
+		s.WriteString(x.SequencerPeerId)
+	}
+	if x.CheckpointerPeerId != "" || s.HasField("checkpointerPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointerPeerId")
+		s.WriteString(x.CheckpointerPeerId)
+	}
+	if x.NeedsAcknowledgment || s.HasField("needsAcknowledgment") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("needsAcknowledgment")
+		s.WriteBool(x.NeedsAcknowledgment)
+	}
+	if len(x.UnplacedHeads) > 0 || s.HasField("unplacedHeads") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("unplacedHeads")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.UnplacedHeads {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("unplacedHeads"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Writers) > 0 || s.HasField("writers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writers")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Writers {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("writers"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SharedObjectTrim to JSON.
+func (x *SharedObjectTrim) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SharedObjectTrim message from JSON.
+func (x *SharedObjectTrim) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "viewer_peer_id", "viewerPeerId":
+			s.AddField("viewer_peer_id")
+			x.ViewerPeerId = s.ReadString()
+		case "checkpoint_height", "checkpointHeight":
+			s.AddField("checkpoint_height")
+			x.CheckpointHeight = s.ReadUint64()
+		case "operations":
+			s.AddField("operations")
+			x.Operations = s.ReadInt64()
+		case "placed":
+			s.AddField("placed")
+			x.Placed = s.ReadInt64()
+		case "stable":
+			s.AddField("stable")
+			x.Stable = s.ReadInt64()
+		case "sequencer_peer_id", "sequencerPeerId":
+			s.AddField("sequencer_peer_id")
+			x.SequencerPeerId = s.ReadString()
+		case "checkpointer_peer_id", "checkpointerPeerId":
+			s.AddField("checkpointer_peer_id")
+			x.CheckpointerPeerId = s.ReadString()
+		case "needs_acknowledgment", "needsAcknowledgment":
+			s.AddField("needs_acknowledgment")
+			x.NeedsAcknowledgment = s.ReadBool()
+		case "unplaced_heads", "unplacedHeads":
+			s.AddField("unplaced_heads")
+			if s.ReadNil() {
+				x.UnplacedHeads = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.UnplacedHeads = append(x.UnplacedHeads, nil)
+					return
+				}
+				v := &sobject.SOOperationPosition{}
+				v.UnmarshalProtoJSON(s.WithField("unplaced_heads", false))
+				if s.Err() != nil {
+					return
+				}
+				x.UnplacedHeads = append(x.UnplacedHeads, v)
+			})
+		case "writers":
+			s.AddField("writers")
+			if s.ReadNil() {
+				x.Writers = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Writers = append(x.Writers, nil)
+					return
+				}
+				v := &SharedObjectTrimWriter{}
+				v.UnmarshalProtoJSON(s.WithField("writers", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Writers = append(x.Writers, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SharedObjectTrim from JSON.
+func (x *SharedObjectTrim) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SharedObjectTrimWriter message to JSON.
+func (x *SharedObjectTrimWriter) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.Dropped || s.HasField("dropped") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("dropped")
+		s.WriteBool(x.Dropped)
+	}
+	if x.LatestNonce != 0 || s.HasField("latestNonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("latestNonce")
+		s.WriteUint64(x.LatestNonce)
+	}
+	if x.BuiltOnCheckpointer || s.HasField("builtOnCheckpointer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("builtOnCheckpointer")
+		s.WriteBool(x.BuiltOnCheckpointer)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SharedObjectTrimWriter to JSON.
+func (x *SharedObjectTrimWriter) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SharedObjectTrimWriter message from JSON.
+func (x *SharedObjectTrimWriter) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "dropped":
+			s.AddField("dropped")
+			x.Dropped = s.ReadBool()
+		case "latest_nonce", "latestNonce":
+			s.AddField("latest_nonce")
+			x.LatestNonce = s.ReadUint64()
+		case "built_on_checkpointer", "builtOnCheckpointer":
+			s.AddField("built_on_checkpointer")
+			x.BuiltOnCheckpointer = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SharedObjectTrimWriter from JSON.
+func (x *SharedObjectTrimWriter) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the WatchSharedObjectParticipationRequest message to JSON.
@@ -947,6 +1513,186 @@ func (x *OpenReadCheckpointResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *GetSharedObjectTrimRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetSharedObjectTrimRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetSharedObjectTrimRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SharedObjectTrim) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SharedObjectTrim) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SharedObjectTrim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Writers) > 0 {
+		for iNdEx := len(m.Writers) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Writers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x52
+		}
+	}
+	if len(m.UnplacedHeads) > 0 {
+		for iNdEx := len(m.UnplacedHeads) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.UnplacedHeads[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if m.NeedsAcknowledgment {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.NeedsAcknowledgment)
+		i--
+		dAtA[i] = 0x40
+	}
+	if len(m.CheckpointerPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CheckpointerPeerId)
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.SequencerPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SequencerPeerId)
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Stable != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Stable))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Placed != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Placed))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Operations != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Operations))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.CheckpointHeight != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CheckpointHeight))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ViewerPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ViewerPeerId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SharedObjectTrimWriter) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SharedObjectTrimWriter) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SharedObjectTrimWriter) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.BuiltOnCheckpointer {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.BuiltOnCheckpointer)
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.LatestNonce != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LatestNonce))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Dropped {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Dropped)
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchSharedObjectParticipationRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1311,6 +2057,56 @@ func (m *OpenReadCheckpointResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *GetSharedObjectTrimRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SharedObjectTrim) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewerPeerId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CheckpointHeight)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Operations)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Placed)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Stable)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SequencerPeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CheckpointerPeerId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.NeedsAcknowledgment)
+	for _, e := range m.UnplacedHeads {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Writers {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SharedObjectTrimWriter) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Dropped)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.LatestNonce)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.BuiltOnCheckpointer)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchSharedObjectParticipationRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1441,6 +2237,108 @@ func (m *OpenReadCheckpointResponse) SizeVT() (n int) {
 	return n
 }
 
+func (x *GetSharedObjectTrimRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "GetSharedObjectTrimRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetSharedObjectTrimRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SharedObjectTrim) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SharedObjectTrim")
+	if x.ViewerPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ViewerPeerId)
+	}
+	if x.CheckpointHeight != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_height")
+		protobuf_go_lite.TextWriteUint(&sb, x.CheckpointHeight)
+	}
+	if x.Operations != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "operations")
+		protobuf_go_lite.TextWriteInt(&sb, x.Operations)
+	}
+	if x.Placed != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "placed")
+		protobuf_go_lite.TextWriteInt(&sb, x.Placed)
+	}
+	if x.Stable != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "stable")
+		protobuf_go_lite.TextWriteInt(&sb, x.Stable)
+	}
+	if x.SequencerPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequencer_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SequencerPeerId)
+	}
+	if x.CheckpointerPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpointer_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.CheckpointerPeerId)
+	}
+	if x.NeedsAcknowledgment != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "needs_acknowledgment")
+		protobuf_go_lite.TextWriteBool(&sb, x.NeedsAcknowledgment)
+	}
+	if len(x.UnplacedHeads) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "unplaced_heads")
+		for i, v := range x.UnplacedHeads {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOOperationPosition{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Writers) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "writers")
+		for i, v := range x.Writers {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SharedObjectTrimWriter{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SharedObjectTrim) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SharedObjectTrimWriter) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SharedObjectTrimWriter")
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.Dropped != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dropped")
+		protobuf_go_lite.TextWriteBool(&sb, x.Dropped)
+	}
+	if x.LatestNonce != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "latest_nonce")
+		protobuf_go_lite.TextWriteUint(&sb, x.LatestNonce)
+	}
+	if x.BuiltOnCheckpointer != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "built_on_checkpointer")
+		protobuf_go_lite.TextWriteBool(&sb, x.BuiltOnCheckpointer)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SharedObjectTrimWriter) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *WatchSharedObjectParticipationRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	protobuf_go_lite.TextStartMessage(&sb, "WatchSharedObjectParticipationRequest")
@@ -1567,6 +2465,276 @@ func (x *OpenReadCheckpointResponse) MarshalProtoText() string {
 
 func (x *OpenReadCheckpointResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *GetSharedObjectTrimRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetSharedObjectTrimRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetSharedObjectTrimRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SharedObjectTrim) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SharedObjectTrim: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SharedObjectTrim: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ViewerPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ViewerPeerId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointHeight", wireType)
+			}
+			m.CheckpointHeight = 0
+			m.CheckpointHeight, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operations", wireType)
+			}
+			m.Operations = 0
+			m.Operations, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Placed", wireType)
+			}
+			m.Placed = 0
+			m.Placed, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stable", wireType)
+			}
+			m.Stable = 0
+			m.Stable, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SequencerPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SequencerPeerId = v
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointerPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CheckpointerPeerId = v
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NeedsAcknowledgment", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NeedsAcknowledgment = bool(v)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnplacedHeads", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.UnplacedHeads = append(m.UnplacedHeads, &sobject.SOOperationPosition{})
+			if err := m.UnplacedHeads[len(m.UnplacedHeads)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Writers", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Writers = append(m.Writers, &SharedObjectTrimWriter{})
+			if err := m.Writers[len(m.Writers)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SharedObjectTrimWriter) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SharedObjectTrimWriter: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SharedObjectTrimWriter: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Dropped", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Dropped = bool(v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LatestNonce", wireType)
+			}
+			m.LatestNonce = 0
+			m.LatestNonce, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BuiltOnCheckpointer", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BuiltOnCheckpointer = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *WatchSharedObjectParticipationRequest) UnmarshalVT(dAtA []byte) error {
