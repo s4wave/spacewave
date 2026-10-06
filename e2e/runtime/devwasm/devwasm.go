@@ -417,7 +417,7 @@ func (a *Adapter) waitForText(content string, wantVisible bool) error {
 // the Space name to leave the observed UI state.
 func (a *Adapter) DeleteSpace() error {
 	// Open the current object's menu, retaining diagnostics on failure.
-	menu := a.page.Locator("[role='button'][aria-label='Open shared object menu']:visible").Last()
+	menu := a.page.Locator("button[aria-label='Open shared object menu']:visible").Last()
 	if err := menu.Click(); err != nil {
 		snapshot, snapshotErr := a.page.Evaluate(`() => ({
 			url: window.location.href,
@@ -563,7 +563,7 @@ func (a *Adapter) WaitForEvent(event runtime.Event) error {
 			return errors.Wrap(introErr, "complete Drive intro")
 		}
 		if a.resetDriveOnReady {
-			home := a.page.Locator("[role='button'][aria-label='Navigate to root']:visible, button[title='Home']:not([disabled]):visible").First()
+			home := a.page.Locator("button[aria-label='Navigate to root']:visible, button[title='Home']:not([disabled]):visible").First()
 			visible, err := home.IsVisible()
 			if err != nil {
 				return errors.Wrap(err, "inspect Drive home control")
