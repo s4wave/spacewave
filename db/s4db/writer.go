@@ -163,6 +163,7 @@ func (w *writer) catchUp(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	db.observe(st)
 	if err := db.publish(ctx, st); err != nil {
 		return err
 	}
@@ -297,6 +298,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		pos, end = chunk.start*pageSize, chunk.end()*pageSize
 	}
 	r.seq = seq
+	w.db.ownSeq.Store(seq)
 
 	// Place values, then free replaced ones and release what no snapshot
 	// reads.
@@ -711,6 +713,7 @@ func (w *writer) saveTree(ctx context.Context, t *tree) error {
 		logEnd:    st.end,
 		logCrc:    st.crc,
 	}
+	db.ownGen.Store(sb.gen)
 	if _, err := db.s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
 		return err
 	}

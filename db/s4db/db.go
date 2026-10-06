@@ -63,6 +63,16 @@ type DB struct {
 	pinMtx csync.Mutex
 	// pinned is the pin last written to the slot.
 	pinned pin
+	// ownSeq and ownGen are the newest commit and checkpoint this handle
+	// loaded or wrote. The writer stores them before the write reaches the
+	// file, so a tailed state beyond them came from another process.
+	ownSeq, ownGen atomic.Uint64
+	// shared is set once a tail finds another process's commit or
+	// checkpoint. Until then the slot keeps the pin written at open, which
+	// is no newer than any state this handle reads, so the slot is not
+	// rewritten on every commit; another writer reading it only keeps more
+	// space.
+	shared atomic.Bool
 }
 
 // open opens the database in s, closing s on failure.
@@ -150,8 +160,10 @@ func (db *DB) load() error {
 	// Publish the loaded state and pin it.
 	st.refs = new(refCount)
 	db.cur.Store(st)
+	db.ownSeq.Store(st.seq)
+	db.ownGen.Store(st.gen)
 	db.flush.written(st.ckpt)
-	return db.updatePin(context.Background())
+	return db.writePin(db.localPin())
 }
 
 // takeSlot locks the first free reader slot and returns its index.
@@ -303,10 +315,20 @@ func (db *DB) verify(r *record) bool {
 func (db *DB) tailLoop(ctx context.Context) error {
 	for db.watch.wait() {
 		if st, _, err := db.tail(db.cur.Load(), false); err == nil {
+			db.observe(st)
 			_ = db.publish(ctx, st)
 		}
 	}
 	return nil
+}
+
+// observe marks the handle shared when st holds a commit or checkpoint
+// another process wrote. Tails observe before they publish, so this
+// handle's writer cannot pass the other process's commit unseen.
+func (db *DB) observe(st *state) {
+	if st.seq > db.ownSeq.Load() || st.gen > db.ownGen.Load() {
+		db.shared.Store(true)
+	}
 }
 
 // warm reads the tree into the cache within its budget.
@@ -317,7 +339,7 @@ func (db *DB) warm(ctx context.Context) error {
 }
 
 // publish makes st the published state unless the published state is as
-// new, then raises the slot's pin when it can.
+// new, then raises the slot's pin when it can and another process reads it.
 func (db *DB) publish(ctx context.Context, st *state) error {
 	// Keep a published state at least as new. Two states of the same
 	// commit and checkpoint hold the same data, so the first one stays.
@@ -337,6 +359,9 @@ func (db *DB) publish(ctx context.Context, st *state) error {
 
 	// Its checkpoint is in the file, whichever process wrote it.
 	db.flush.written(st.ckpt)
+	if !db.shared.Load() {
+		return nil
+	}
 	return db.updatePin(ctx)
 }
 
@@ -358,9 +383,10 @@ func (db *DB) acquire() (*state, int) {
 }
 
 // release ends a snapshot of st counted in stripe. The pin moves only when
-// a replaced state's last snapshot may have ended.
+// a replaced state's last snapshot may have ended and another process reads
+// the slot.
 func (db *DB) release(st *state, stripe int) {
-	if st.refs[stripe].n.Add(-1) != 0 || db.cur.Load() == st {
+	if st.refs[stripe].n.Add(-1) != 0 || db.cur.Load() == st || !db.shared.Load() {
 		return
 	}
 	_ = db.updatePin(context.Background())
