@@ -73,12 +73,46 @@ func CheckpointWorld(
 	return next, replayed, nil
 }
 
-// ReplayWorld replays the operation set of snap from its checkpoint's World
-// and returns the World after the last operation it can place. so supplies the
-// blocks the operations reference and receives the blocks replay writes.
-// Replay resolves operations as the World engine engineID does: with lookupOp
-// first, then through the bus. It must resolve every operation the engine
-// does, or replay rejects operations the engine applied.
+// WorldReplay replays the operation sets of successive states of one
+// SharedObject World. Each replay resumes after the longest prefix its order
+// shares with the previous replay, so a caller following the state replays
+// only the operations each state adds. so supplies the blocks the operations
+// reference and receives the blocks replay writes. The owner serializes calls.
+type WorldReplay struct {
+	// r is the replayer.
+	r *replayer
+}
+
+// NewWorldReplay constructs a replay of the World of so. Replay resolves
+// operations as the World engine engineID does: with lookupOp first, then
+// through the bus. It must resolve every operation the engine does, or replay
+// rejects operations the engine applied.
+func NewWorldReplay(
+	le *logrus.Entry,
+	b bus.Bus,
+	sfs *block_transform.StepFactorySet,
+	so sobject.SharedObject,
+	engineID string,
+	lookupOp world.LookupOp,
+) (*WorldReplay, error) {
+	// Replay through a controller of the engine.
+	c, err := NewController(le, b, &Config{EngineId: engineID}, sfs)
+	if err != nil {
+		return nil, err
+	}
+	c.SetStaticLookupOp(lookupOp)
+	return &WorldReplay{r: newReplayer(c, so)}, nil
+}
+
+// Replay replays the operation set of snap from its checkpoint's World and
+// returns the World after the last operation it can place.
+func (w *WorldReplay) Replay(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (*InnerState, error) {
+	replayed, _, err := w.r.sync(ctx, snap, nil)
+	return replayed, err
+}
+
+// ReplayWorld replays the operation set of snap once, as a new WorldReplay
+// does.
 func ReplayWorld(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -89,14 +123,11 @@ func ReplayWorld(
 	lookupOp world.LookupOp,
 	snap sobject.SharedObjectStateSnapshot,
 ) (*InnerState, error) {
-	// Replay through a controller of the engine.
-	c, err := NewController(le, b, &Config{EngineId: engineID}, sfs)
+	replay, err := NewWorldReplay(le, b, sfs, so, engineID, lookupOp)
 	if err != nil {
 		return nil, err
 	}
-	c.SetStaticLookupOp(lookupOp)
-	replayed, _, err := newReplayer(c, so).sync(ctx, snap, nil)
-	return replayed, err
+	return replay.Replay(ctx, snap)
 }
 
 // errStableCheckpointStale reports that the held state moved past the stable

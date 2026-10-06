@@ -20,7 +20,8 @@ import (
 // runAccountReplicaCopy hydrates the World of every accepted state through the
 // Session's existing DEX read-through store. The World is the checkpoint's World
 // with the operation set replayed onto it, as the World engine engineID builds
-// it on b. Cached blocks survive cancellation and restart; a persisted
+// it on b. One replay follows every state, so each pass replays only the
+// operations the state added. Cached blocks survive cancellation and restart; a persisted
 // completion record is valid only for its exact immutable head.
 //
 // A block that no connected peer holds is not a failure: the copy logs it once
@@ -34,7 +35,8 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	state *p2pSyncState,
 	exchange *dex_solicit.Controller,
 ) error {
-	// Open the copy's local progress store and the object state stream.
+	// Open the copy's local progress store, the object state stream and the
+	// replay that follows it.
 	local, release, err := so.AccessLocalStateStore(ctx, "account-replica-copy", nil)
 	if err != nil {
 		return err
@@ -45,6 +47,10 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 		return err
 	}
 	defer releaseStates()
+	replay, err := sobject_world_engine.NewWorldReplay(a.le, b, a.GetStepFactorySet(), so, engineID, space_world_optypes.LookupWorldOp)
+	if err != nil {
+		return err
+	}
 
 	// Replacing the head cancels and joins the previous copy before starting
 	// the next one. A missing old block cannot pin replication to an old head.
@@ -84,7 +90,7 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 		if exchange != nil {
 			starts = exchange.GetSessionStarts()
 		}
-		head, err := sobject_world_engine.ReplayWorld(ctx, a.le, b, a.GetStepFactorySet(), so, engineID, space_world_optypes.LookupWorldOp, snapshot)
+		head, err := replay.Replay(ctx, snapshot)
 		if errors.Is(err, block.ErrNotFound) {
 			if !missing {
 				a.le.WithError(err).Info("waiting for a peer that holds a missing World block")
