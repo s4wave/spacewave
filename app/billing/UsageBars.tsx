@@ -1,18 +1,14 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { LuGauge } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { formatBytes } from '@s4wave/web/transform/TransformConfigDisplay.js'
 import type { BillingUsageInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
-import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
-import { useBillingConsent } from '../provider/spacewave/useBillingConsent.js'
-import {
-  CLOUD_OFFER,
-  formatStorageRate,
-} from '../provider/spacewave/pricing.js'
+import { formatStorageRate } from '../provider/spacewave/pricing.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
+import { useSpendingLimit } from './useSpendingLimit.js'
 
 const SOFT_USAGE_ALERT_RATIO = 0.8
 
@@ -96,10 +92,8 @@ export function UsageBars(props: { actions?: ReactNode }) {
 // period, and the control that changes the limit.
 function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
   const billingState = useBillingStateContext()
-  const session = SessionContext.useContext().value
-  const { requestConsent, consentDialog } = useBillingConsent()
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const spending = useSpendingLimit(usage)
+  const { offer } = spending
 
   // Read the limit, spending, and period of the payer.
   const storageUsed = usage.storageBytes ?? 0
@@ -110,44 +104,9 @@ function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
   const periodEnd = Number(usage.currentPeriodEnd ?? 0n)
   const paused = accrued >= overageLimit && storageUsed >= storageBaseline
 
-  // Describe the payer's accepted offer for the spending limit consent.
-  const offer = {
-    ...CLOUD_OFFER,
-    version: usage.offerVersion ?? CLOUD_OFFER.version,
-    policyVersion: usage.policyVersion ?? CLOUD_OFFER.policyVersion,
-    monthlyPriceCents: usage.monthlyPriceCents ?? CLOUD_OFFER.monthlyPriceCents,
-    storageMicrodollarsPerGibMonth:
-      usage.storageMicrodollarsPerGibMonth ??
-      CLOUD_OFFER.storageMicrodollarsPerGibMonth,
-    storageBytes: storageBaseline,
-  }
-
-  // changeLimit asks for consent to a new spending limit and stores it.
-  async function changeLimit() {
-    if (!session || saving) return
-    const consent = await requestConsent(
-      usage.overageLimitCents ?? 0,
-      true,
-      offer,
-    )
-    if (!consent) return
-    setSaving(true)
-    setError(null)
-    try {
-      await session.spacewave.setBillingSpendingLimit(
-        consent,
-        billingState.billingAccountId,
-      )
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return (
     <div className="border-foreground/8 space-y-3 rounded-md border p-3">
-      {consentDialog}
+      {spending.consentDialog}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-foreground text-xs font-medium">
@@ -163,10 +122,10 @@ function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
         {billingState.selfServiceAllowed && (
           <DashboardButton
             icon={<LuGauge className="size-3" />}
-            disabled={saving || !session}
-            onClick={() => void changeLimit()}
+            disabled={spending.saving || !spending.canChange}
+            onClick={() => void spending.changeLimit()}
           >
-            {saving ? 'Saving…' : 'Change limit'}
+            {spending.saving ? 'Saving…' : 'Change limit'}
           </DashboardButton>
         )}
       </div>
@@ -199,9 +158,9 @@ function ExtraStoragePanel({ usage }: { usage: BillingUsageInfo }) {
         are not billed; rate limits protect the service. One GiB is
         1,073,741,824 bytes.
       </p>
-      {error && (
+      {spending.error && (
         <p className="text-destructive text-xs" role="alert">
-          {error}
+          {spending.error}
         </p>
       )}
     </div>
