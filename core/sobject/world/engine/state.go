@@ -17,10 +17,11 @@ func (c *Controller) executeWatchSOState(
 	soEngine *soEngine,
 ) error {
 	var snap sobject.SharedObjectStateSnapshot
-	var err error
+	var missing *block.BlockRef
 	for {
-		// Wait for the state container value to change.
-		_, err = soStateCtr.WaitValueChange(ctx, snap, nil)
+		// Wait for the state to change or the block replay stopped at to
+		// arrive.
+		_, err := c.waitReplayInput(ctx, soEngine.so, soStateCtr, snap, missing)
 		if err != nil {
 			return err
 		}
@@ -41,6 +42,7 @@ func (c *Controller) executeWatchSOState(
 
 		// Watch the state once (sync any changes to soEngine and update local state).
 		err = c.executeWatchSOStateOnce(holdCtx, snap, soEngine)
+		missing = soEngine.replay.missing
 
 		// Be sure to unlock the writeMtx right away.
 		holdTask.End()
@@ -53,10 +55,53 @@ func (c *Controller) executeWatchSOState(
 	}
 }
 
+// waitReplayInput waits for the state to change from snap and returns the new
+// state. When missing is set, it also returns the current state once a peer
+// serves that block, since replay stopped at it.
+func (c *Controller) waitReplayInput(
+	ctx context.Context,
+	so sobject.SharedObject,
+	soStateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
+	snap sobject.SharedObjectStateSnapshot,
+	missing *block.BlockRef,
+) (sobject.SharedObjectStateSnapshot, error) {
+	// Without a missing block only a state change resumes replay.
+	if missing == nil {
+		return soStateCtr.WaitValueChange(ctx, snap, nil)
+	}
+
+	// Fetch the block with a read that waits for a peer, ending the state
+	// wait once it arrives.
+	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	fetched := make(chan struct{})
+	go func() {
+		defer close(fetched)
+		_, found, err := so.GetBlockStore().GetBlock(waitCtx, missing)
+		if err != nil && waitCtx.Err() == nil {
+			c.le.WithError(err).Warn("fetch the block replay stopped at")
+		}
+		if found {
+			cancel()
+		}
+	}()
+
+	// Wait for a state change, then stop the fetch.
+	next, err := soStateCtr.WaitValueChange(waitCtx, snap, nil)
+	cancel()
+	<-fetched
+
+	// An arrived block ends the wait with the current state.
+	if err != nil && ctx.Err() == nil && errors.Is(err, context.Canceled) {
+		return soStateCtr.GetValue(), nil
+	}
+	return next, err
+}
+
 // executeWatchSOStateOnce replays one shared object state into the World. A
 // block that is not available stops replay at its operation without ending the
 // watch: the World before that operation stays served, and the next state
-// change or write resumes replay there.
+// change, write, or arrival of the block resumes replay there.
 func (c *Controller) executeWatchSOStateOnce(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,

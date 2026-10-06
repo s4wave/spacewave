@@ -33,14 +33,36 @@ type hidingBlockStore struct {
 	// err is the error a read of the hidden block returns, or nil to report
 	// the block missing.
 	err error
+	// peer, when set, makes the hidden block one only an absent peer holds:
+	// a read that may wait for a peer blocks until peer is closed, and a read
+	// that may not records the block and reports it unavailable.
+	peer chan struct{}
 }
 
 // GetBlock reads a block, withholding the hidden block.
 func (s *hidingBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	if s.hidden.Load() && ref.EqualsRef(s.ref) {
-		return nil, false, s.err
+		if s.peer == nil {
+			return nil, false, s.err
+		}
+		if peerWait := block.GetPeerWait(ctx); peerWait != nil {
+			peerWait.Skip(ref)
+			return nil, false, block.ErrUnavailable
+		}
+		select {
+		case <-s.peer:
+		case <-ctx.Done():
+			return nil, false, context.Cause(ctx)
+		}
 	}
 	return s.BlockStore.GetBlock(ctx, ref)
+}
+
+// serve supplies the hidden block from now on.
+func (s *hidingBlockStore) serve() {
+	if s.hidden.Swap(false) && s.peer != nil {
+		close(s.peer)
+	}
 }
 
 // opCounter counts the operations replay starts to apply.
@@ -62,23 +84,29 @@ func (c *opCounter) Fire(entry *logrus.Entry) error {
 }
 
 // TestEngineStopsReplayAtMissingBlock replays a log whose last operation needs
-// a block that is not available, because the store lacks it or because no peer
-// served it. The initial replay and each later one must stop at that operation
-// without holding the write lock, serve the World before it, fail writers with
-// the read error, and resume at that operation, never applying an earlier
-// operation again, once the block arrives.
+// a block that is not available, because the store lacks it, because no peer
+// served it, or because only an absent peer holds it. The initial replay and
+// each later one must stop at that operation without holding the write lock,
+// serve the World before it, fail writers with the read error, and resume at
+// that operation, never applying an earlier operation again, once the block
+// arrives. A block only an absent peer holds must also wake the watcher when
+// it arrives.
 func TestEngineStopsReplayAtMissingBlock(t *testing.T) {
-	t.Run("missing", func(t *testing.T) { testEngineStopsReplayAtBlockGap(t, nil, block.ErrNotFound) })
+	t.Run("missing", func(t *testing.T) {
+		testEngineStopsReplayAtBlockGap(t, &hidingBlockStore{}, block.ErrNotFound)
+	})
 	t.Run("unserved", func(t *testing.T) {
 		unserved := errors.Wrap(block.ErrUnavailable, "no peer served block")
-		testEngineStopsReplayAtBlockGap(t, unserved, block.ErrUnavailable)
+		testEngineStopsReplayAtBlockGap(t, &hidingBlockStore{err: unserved}, block.ErrUnavailable)
+	})
+	t.Run("absent-peer", func(t *testing.T) {
+		testEngineStopsReplayAtBlockGap(t, &hidingBlockStore{peer: make(chan struct{})}, block.ErrUnavailable)
 	})
 }
 
 // testEngineStopsReplayAtBlockGap runs TestEngineStopsReplayAtMissingBlock
-// with a store whose reads of the hidden block return readErr. Writers must
-// fail with an error matching want.
-func testEngineStopsReplayAtBlockGap(t *testing.T, readErr, want error) {
+// with store hiding the block. Writers must fail with an error matching want.
+func testEngineStopsReplayAtBlockGap(t *testing.T, store *hidingBlockStore, want error) {
 	// Build a Space whose operations create three objects, create one whose
 	// root block is missing, and then edit it.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -135,7 +163,7 @@ func testEngineStopsReplayAtBlockGap(t *testing.T, readErr, want error) {
 
 	// Build the engine over a store that hides the root block.
 	snap := &replayTestSnapshot{config: space.config, checkpoint: checkpoint, set: set}
-	store := &hidingBlockStore{BlockStore: space.so.blockStore, ref: payload, err: readErr}
+	store.BlockStore, store.ref = space.so.blockStore, payload
 	store.hidden.Store(true)
 	so := &testSharedObject{peerID: pidA, blockStore: store, localStore: store_kvtx_inmem.NewStore(), snapshot: snap}
 
@@ -220,8 +248,24 @@ func testEngineStopsReplayAtBlockGap(t *testing.T, readErr, want error) {
 	wantApplied(7)
 	writeLockFree()
 
+	// A block only an absent peer holds wakes the watcher when it arrives.
+	if store.peer != nil {
+		if !engine.replay.missing.EqualsRef(payload) {
+			t.Fatalf("replay stopped at %v; want %s", engine.replay.missing, payload.MarshalString())
+		}
+		woke := make(chan error, 1)
+		go func() {
+			_, err := space.c.waitReplayInput(ctx, so, stateCtr, snap, engine.replay.missing)
+			woke <- err
+		}()
+		store.serve()
+		if err := <-woke; err != nil {
+			t.Fatalf("watcher wait after the block arrived: %v", err)
+		}
+	}
+
 	// Once the block arrives, a writer resumes at the operation that stopped.
-	store.hidden.Store(false)
+	store.serve()
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatalf("write after the block arrived: %v", err)

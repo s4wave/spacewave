@@ -60,8 +60,9 @@ func (c *Controller) waitWorldInit(
 			queued = true
 		}
 
-		// Wait for the state to change.
-		snap, err = soStateCtr.WaitValueChange(ctx, snap, nil)
+		// Wait for the state to change or the block replay stopped at to
+		// arrive.
+		snap, err = c.waitReplayInput(ctx, so, soStateCtr, snap, replay.missing)
 		if err != nil {
 			return nil, err
 		}

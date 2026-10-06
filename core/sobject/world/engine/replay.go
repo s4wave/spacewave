@@ -110,6 +110,9 @@ type replayer struct {
 	// mismatch is the latest judged checkpoint whose World differs from this
 	// replay's, or nil when the latest judged checkpoint agreed.
 	mismatch *sobject.SOCheckpointMismatch
+	// missing is the block the last sync stopped at because no connected peer
+	// could serve it, or nil when that sync did not stop for that reason.
+	missing *block.BlockRef
 }
 
 // newReplayer constructs a replayer for the World of so.
@@ -122,8 +125,14 @@ func newReplayer(c *Controller, so sobject.SharedObject) *replayer {
 // supplies the World after a local write in place of replaying it. When a block
 // an operation needs is not available, replay stops at that operation and sync
 // returns the World before it with an error block.IsNotAvailable reports; the
-// next sync resumes at the same operation.
+// next sync resumes at the same operation. Reads do not wait for a peer to
+// connect, since the caller holds the writer lock: a block only an absent peer
+// holds stops replay and is recorded in missing.
 func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnapshot, fork *replayFork) (*InnerState, []replayOutcome, error) {
+	// Read without waiting for a peer.
+	ctx, peerWait := block.WithoutPeerWait(ctx)
+	r.missing = nil
+
 	// Restart from the checkpoint's World when it changed.
 	checkpoint, err := snap.GetCheckpoint(ctx)
 	if err != nil {
@@ -152,7 +161,11 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 	if err != nil {
 		return nil, nil, err
 	}
-	return r.replay(ctx, snap, set, fork)
+	state, outcomes, err := r.replay(ctx, snap, set, fork)
+	if block.IsNotAvailable(err) {
+		r.missing = peerWait.GetRef()
+	}
+	return state, outcomes, err
 }
 
 // positionsAbove returns the positions after the last one whose World is
@@ -168,10 +181,11 @@ func (r *replayer) positionsAbove(base *InnerState) []replayPosition {
 }
 
 // coveredWorld returns the World this replay reached after the operations
-// checkpoint covers, and those operations in replay order. It answers only when the last replay held every covered
-// operation, placed them before every other operation, and still holds the
-// World after them; a device missing a covered operation, or holding another
-// that sorts among them, cannot judge the checkpoint.
+// checkpoint covers, and those operations in replay order. It answers only
+// when the last replay held every covered operation, placed them before every
+// other operation, and still holds the World after them; a device missing a
+// covered operation, or holding another that sorts among them, cannot judge
+// the checkpoint.
 func (r *replayer) coveredWorld(checkpoint *sobject.SOCheckpointInner) (*InnerState, [][]byte, bool) {
 	// Judge only after a replay of a held set.
 	if r.set == nil || r.base == nil {
