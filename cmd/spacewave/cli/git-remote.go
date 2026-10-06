@@ -41,6 +41,8 @@ func buildGitRemoteInstallCommand() *cli.Command {
 			"--dir, which must be on your path. Then add a remote:\n\n" +
 			"  git remote add space spacewave://<space>/<object-key>\n" +
 			"  git push space master\n\n" +
+			"To use a session other than the first, name it in the address:\n\n" +
+			"  git remote add space spacewave:///u/<n>/so/<space>/-/<object-key>\n\n" +
 			"The first push creates the Git repository object. Rerunning install\n" +
 			"rewrites the helper for the current binary and daemon flags.",
 		Flags: []cli.Flag{
@@ -99,9 +101,12 @@ func buildGitRemoteServeCommand() *cli.Command {
 		Action: func(c *cli.Context) error {
 			// Parse the remote URL and Git directory.
 			ctx := c.Context
-			space, objectKey, err := parseGitRemoteURL(c.Args().Get(1))
+			uri, err := parseGitRemoteURL(c.Args().Get(1))
 			if err != nil {
 				return err
+			}
+			if sessIdx == 0 {
+				sessIdx = int(uri.sessionIdx)
 			}
 			gitDir, err := gitRemoteDir()
 			if err != nil {
@@ -109,12 +114,12 @@ func buildGitRemoteServeCommand() *cli.Command {
 			}
 
 			// Mount the Git engine and run the remote helper.
-			mount, cleanup, err := mountGitEngine(c, statePath, space, sessIdx)
+			mount, cleanup, err := mountGitEngine(c, statePath, uri.spaceID, sessIdx)
 			if err != nil {
 				return err
 			}
 			defer cleanup()
-			helper := git_remote.NewHelper(mount.engine, objectKey, gitDir)
+			helper := git_remote.NewHelper(mount.engine, uri.objectKey, gitDir)
 			if err := helper.Run(ctx, os.Stdin, os.Stdout); err != nil {
 				return err
 			}
@@ -126,15 +131,30 @@ func buildGitRemoteServeCommand() *cli.Command {
 	}
 }
 
-// parseGitRemoteURL splits a spacewave://<space>/<object-key> URL. Git passes
-// the address without the scheme for the spacewave::<address> form.
-func parseGitRemoteURL(url string) (space, objectKey string, err error) {
+// parseGitRemoteURL parses a spacewave://<space>/<object-key> URL, or the
+// session-qualified spacewave:///u/<n>/so/<space>/-/<object-key>. The session
+// index is zero when the URL names none. Git passes the address without the
+// scheme for the spacewave::<address> form.
+func parseGitRemoteURL(url string) (fsURI, error) {
+	// Parse a session-qualified address as a Spacewave URI naming one object.
 	addr := strings.TrimPrefix(url, gitRemoteURLPrefix)
+	if strings.HasPrefix(addr, "/u/") {
+		uri, err := parseFsURI(addr, "", 0)
+		if err != nil {
+			return fsURI{}, errors.Wrapf(err, "remote URL %q", url)
+		}
+		if uri.spaceID == "" || uri.path != "" {
+			return fsURI{}, errors.Errorf("remote URL %q is not %s/u/<n>/so/<space>/-/<object-key>", url, gitRemoteURLPrefix)
+		}
+		return uri, nil
+	}
+
+	// Split a short address at the end of the Space ID.
 	space, objectKey, ok := strings.Cut(addr, "/")
 	if !ok || space == "" || objectKey == "" {
-		return "", "", errors.Errorf("remote URL %q is not %s<space>/<object-key>", url, gitRemoteURLPrefix)
+		return fsURI{}, errors.Errorf("remote URL %q is not %s<space>/<object-key>", url, gitRemoteURLPrefix)
 	}
-	return space, objectKey, nil
+	return fsURI{spaceID: space, objectKey: objectKey}, nil
 }
 
 // gitRemoteDir returns the local repository's Git directory, which Git passes
