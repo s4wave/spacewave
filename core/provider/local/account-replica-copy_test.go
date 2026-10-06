@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 type replicaDestination struct {
@@ -26,38 +28,10 @@ func (r *replicaDestination) GetBlockStore() bstore.BlockStore {
 // TestAccountReplicaCopyRetainsCompletedSubtrees copies a complete graph from a
 // separate source. Durable completion proofs skip unchanged graphs on later heads.
 func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
-	// Start a provider account and create a seeded Space.
+	// Mount a seeded source Space.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	_, _, account, _, release := setupProviderAndSessionInternal(ctx, t)
-	defer release()
-	ref, err := account.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	leaf, payload := seedAccountReplicaPayload(ctx, t, account, ref)
-
-	// Mount it.
-	so, releaseSO, err := account.MountSharedObject(ctx, ref, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer releaseSO()
-	states, releaseStates, err := so.AccessSharedObjectState(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer releaseStates()
-
-	// Decode its World head.
-	inner, err := states.GetValue().GetCheckpoint(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	head := &sobject_world_engine.InnerState{}
-	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
-		t.Fatal(err)
-	}
+	account, so, head, leaf, payload := mountSeededReplicaSource(ctx, t)
 
 	// Copying twice copies the graph once, in batches.
 	local := newBatchForwardTestStore()
@@ -65,7 +39,7 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 		store: local, readStore: so.GetBlockStore(),
 	}}
 	for i := range 2 {
-		progress := &AccountReplicaCopyState{Head: head.GetHeadRef()}
+		progress := &AccountReplicaCopyState{Head: head}
 		if err := account.copyAccountWorld(ctx, destination, progress, func() {}); err != nil {
 			t.Fatal(err)
 		}
@@ -86,6 +60,100 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 	if err != nil || !found || string(data) != string(payload) {
 		t.Fatalf("local leaf after copy: found=%v err=%v", found, err)
 	}
+}
+
+// TestAccountReplicaCopyWaitsOnUnknownRefs copies from a source that holds
+// every block without its refs. Retrying the same head cannot succeed, so the
+// copy makes one attempt and waits for the next head.
+func TestAccountReplicaCopyWaitsOnUnknownRefs(t *testing.T) {
+	// Mount a seeded source Space.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	account, so, head, _, _ := mountSeededReplicaSource(ctx, t)
+
+	// Read the source through a store that drops every block's refs.
+	source := &refsUnknownStore{StoreOps: so.GetBlockStore()}
+	destination := &replicaDestination{SharedObject: so, store: &BlockStore{
+		store: newBatchForwardTestStore(), copyStore: source,
+	}}
+	local, releaseLocal, err := so.AccessLocalStateStore(ctx, "account-replica-copy-test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseLocal()
+
+	// Without a peer exchange, the copy waits until the next head cancels it.
+	copyCtx, cancelCopy := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() {
+		done <- account.copyAccountWorldHead(copyCtx, destination, &p2pSyncState{}, local, head, nil)
+	}()
+	select {
+	case err := <-done:
+		t.Fatalf("copy returned %v before the next head", err)
+	case <-time.After(500 * time.Millisecond):
+	}
+	cancelCopy()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled copy returned %v", err)
+	}
+	if reads := source.reads.Load(); reads != 1 {
+		t.Fatalf("copy read the source %d times, want one attempt", reads)
+	}
+}
+
+// refsUnknownStore serves its inner store's blocks without their refs.
+type refsUnknownStore struct {
+	block.StoreOps
+	// reads counts the stored block reads.
+	reads atomic.Int32
+}
+
+// GetStoredBlock reads the inner block and drops its refs.
+func (s *refsUnknownStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	s.reads.Add(1)
+	stored, err := s.StoreOps.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil {
+		return stored, err
+	}
+	return &block.StoredBlock{Data: stored.Data}, nil
+}
+
+// mountSeededReplicaSource starts a provider account, seeds a Space with one
+// leaf payload, mounts it, and returns its World head with the leaf.
+func mountSeededReplicaSource(ctx context.Context, t *testing.T) (*ProviderAccount, sobject.SharedObject, *bucket.ObjectRef, *block.BlockRef, []byte) {
+	// Start a provider account and create a seeded Space.
+	t.Helper()
+	_, _, account, _, release := setupProviderAndSessionInternal(ctx, t)
+	t.Cleanup(release)
+	ref, err := account.CreateSharedObject(ctx, ulid.NewULID(), &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, payload := seedAccountReplicaPayload(ctx, t, account, ref)
+
+	// Mount it.
+	so, releaseSO, err := account.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseSO)
+	states, releaseStates, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseStates()
+
+	// Decode its World head.
+	inner, err := states.GetValue().GetCheckpoint(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := &sobject_world_engine.InnerState{}
+	if err := head.UnmarshalVT(inner.GetStateData()); err != nil {
+		t.Fatal(err)
+	}
+	return account, so, head.GetHeadRef(), leaf, payload
 }
 
 // TestSharedObjectBlockStoreRetainsRoots checks that the write-back layer
