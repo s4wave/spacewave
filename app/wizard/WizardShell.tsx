@@ -51,39 +51,52 @@ export interface WizardShellProps {
   width?: 'default' | 'wide'
 }
 
-// WizardShell renders the shared wizard layout: header, step indicator,
-// content slot, name input, and button grid.
-export function WizardShell({
+/** WizardHeader renders the title bar with the delete action. */
+function WizardHeader({
   title,
-  step,
-  totalSteps,
-  stepName,
+  onCancel,
+}: Pick<WizardShellProps, 'title' | 'onCancel'>) {
+  return (
+    <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
+      <h2 className="text-foreground flex min-w-0 items-center text-sm font-semibold tracking-tight select-none">
+        {title}
+      </h2>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DashboardButton
+            icon={<LuTrash2 className="size-3.5" />}
+            onClick={onCancel}
+            aria-label="Delete wizard"
+            variant="destructive"
+          />
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Delete wizard</TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
+type WizardNameFieldProps = Pick<
+  WizardShellProps,
+  | 'localName'
+  | 'onUpdateName'
+  | 'nameLabel'
+  | 'namePlaceholder'
+  | 'nameHelp'
+  | 'nameError'
+  | 'selectNameOnFocus'
+>
+
+/** WizardNameField renders the name input with its optional error message. */
+function WizardNameField({
   localName,
   onUpdateName,
-  onBack,
-  canBack = true,
-  onCancel,
-  children,
   nameLabel = 'Name',
   namePlaceholder = 'Enter a name...',
   nameHelp,
   nameError,
-  nameStep = 0,
   selectNameOnFocus = false,
-  creating,
-  createLabel = 'Create',
-  creatingLabel = 'Creating...',
-  onFinalize,
-  canFinalize = true,
-  onNext,
-  canNext = true,
-  nextLabel = 'Next',
-  nextBusyLabel = 'Opening…',
-  nextBusy = false,
-  finalizeStep,
-  width = 'default',
-}: WizardShellProps) {
-  const showFinalize = finalizeStep === undefined || step === finalizeStep
+}: WizardNameFieldProps) {
   const handleNameInputRef = useCallback(
     (node: HTMLInputElement | null) => {
       node?.focus()
@@ -99,6 +112,127 @@ export function WizardShell({
   )
 
   return (
+    <section>
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <WizardField
+          inputRef={handleNameInputRef}
+          label={nameLabel}
+          value={localName}
+          onChange={(e) => onUpdateName(e.target.value)}
+          placeholder={namePlaceholder}
+          help={nameHelp}
+          aria-invalid={nameError ? true : undefined}
+          aria-describedby={nameError ? 'wizard-name-error' : undefined}
+          variant={nameError ? 'error' : 'default'}
+          onFocus={handleNameFocus}
+        />
+        {nameError && (
+          <p id="wizard-name-error" className="text-destructive mt-1.5 text-xs">
+            {nameError}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+type WizardFooterProps = Pick<
+  WizardShellProps,
+  | 'step'
+  | 'onBack'
+  | 'canBack'
+  | 'creating'
+  | 'createLabel'
+  | 'creatingLabel'
+  | 'onFinalize'
+  | 'canFinalize'
+  | 'onNext'
+  | 'canNext'
+  | 'nextLabel'
+  | 'nextBusyLabel'
+  | 'nextBusy'
+  | 'finalizeStep'
+> & { canSubmit: boolean }
+
+/** WizardFooter renders the back, next, and finalize buttons for the current step. */
+function WizardFooter({
+  step,
+  onBack,
+  canBack = true,
+  creating,
+  createLabel = 'Create',
+  creatingLabel = 'Creating...',
+  onFinalize,
+  canFinalize = true,
+  onNext,
+  canNext = true,
+  nextLabel = 'Next',
+  nextBusyLabel = 'Opening…',
+  nextBusy = false,
+  finalizeStep,
+  canSubmit,
+}: WizardFooterProps) {
+  const showFinalize = finalizeStep === undefined || step === finalizeStep
+
+  return (
+    <div className="border-foreground/8 flex items-center justify-between gap-2 border-t px-4 py-3">
+      <div>
+        {step > 0 && (
+          <DashboardButton
+            icon={<LuArrowLeft className="size-3.5" />}
+            onClick={onBack}
+            disabled={!canBack}
+          >
+            Back
+          </DashboardButton>
+        )}
+      </div>
+      <div className="flex gap-2">
+        {onNext && step < (finalizeStep ?? 0) && (
+          <Button
+            onClick={onNext}
+            disabled={nextBusy || !canNext}
+            variant="brandOutline"
+            size="toolbarWide"
+          >
+            {nextBusy ? nextBusyLabel : nextLabel}
+          </Button>
+        )}
+        {showFinalize && (
+          <Button
+            onClick={onFinalize}
+            disabled={creating || !canSubmit || !canFinalize}
+            variant="brandOutline"
+            size="toolbarWide"
+          >
+            <LuCheck className="size-3.5" />
+            {creating ? creatingLabel : createLabel}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// WizardShell renders the shared wizard layout: header, step indicator,
+// content slot, name input, and button grid.
+export function WizardShell({
+  title,
+  step,
+  totalSteps,
+  stepName,
+  onCancel,
+  children,
+  nameStep = 0,
+  width = 'default',
+  ...rest
+}: WizardShellProps) {
+  const stepLabel =
+    totalSteps !== undefined
+      ? `Step ${step + 1} of ${totalSteps}`
+      : `Step ${step + 1}`
+
+  return (
     <div className="flex h-full w-full items-start justify-center overflow-auto px-4 py-10">
       <div
         className={cn(
@@ -106,30 +240,13 @@ export function WizardShell({
           width === 'wide' ? 'max-w-2xl' : 'max-w-lg',
         )}
       >
-        <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-          <h2 className="text-foreground flex min-w-0 items-center text-sm font-semibold tracking-tight select-none">
-            {title}
-          </h2>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DashboardButton
-                icon={<LuTrash2 className="size-3.5" />}
-                onClick={onCancel}
-                aria-label="Delete wizard"
-                variant="destructive"
-              />
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Delete wizard</TooltipContent>
-          </Tooltip>
-        </div>
+        <WizardHeader title={title} onCancel={onCancel} />
 
         <div className="flex-1 px-4 py-3">
           <div className="space-y-3">
             <div className="text-foreground-alt/50 flex items-center gap-2 select-none">
               <span className="micro-text font-medium tracking-widest uppercase">
-                {totalSteps !== undefined
-                  ? `Step ${step + 1} of ${totalSteps}`
-                  : `Step ${step + 1}`}
+                {stepLabel}
               </span>
               {stepName && (
                 <span className="text-foreground-alt/80 text-xs font-medium">
@@ -138,75 +255,17 @@ export function WizardShell({
               )}
             </div>
 
-            {step === nameStep && (
-              <section>
-                <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                  <WizardField
-                    inputRef={handleNameInputRef}
-                    label={nameLabel}
-                    value={localName}
-                    onChange={(e) => onUpdateName(e.target.value)}
-                    placeholder={namePlaceholder}
-                    help={nameHelp}
-                    aria-invalid={nameError ? true : undefined}
-                    aria-describedby={
-                      nameError ? 'wizard-name-error' : undefined
-                    }
-                    variant={nameError ? 'error' : 'default'}
-                    onFocus={handleNameFocus}
-                  />
-                  {nameError && (
-                    <p
-                      id="wizard-name-error"
-                      className="text-destructive mt-1.5 text-xs"
-                    >
-                      {nameError}
-                    </p>
-                  )}
-                </div>
-              </section>
-            )}
+            {step === nameStep && <WizardNameField {...rest} />}
 
             {children}
           </div>
         </div>
 
-        <div className="border-foreground/8 flex items-center justify-between gap-2 border-t px-4 py-3">
-          <div>
-            {step > 0 && (
-              <DashboardButton
-                icon={<LuArrowLeft className="size-3.5" />}
-                onClick={onBack}
-                disabled={!canBack}
-              >
-                Back
-              </DashboardButton>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {onNext && step < (finalizeStep ?? 0) && (
-              <Button
-                onClick={onNext}
-                disabled={nextBusy || !canNext}
-                variant="brandOutline"
-                size="toolbarWide"
-              >
-                {nextBusy ? nextBusyLabel : nextLabel}
-              </Button>
-            )}
-            {showFinalize && (
-              <Button
-                onClick={onFinalize}
-                disabled={creating || !localName.trim() || !canFinalize}
-                variant="brandOutline"
-                size="toolbarWide"
-              >
-                <LuCheck className="size-3.5" />
-                {creating ? creatingLabel : createLabel}
-              </Button>
-            )}
-          </div>
-        </div>
+        <WizardFooter
+          step={step}
+          canSubmit={!!rest.localName.trim()}
+          {...rest}
+        />
       </div>
     </div>
   )
