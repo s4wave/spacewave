@@ -32,8 +32,6 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
   const [changingPin, setChangingPin] = useState(false)
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
-  const pinId = useId()
-  const confirmPinId = useId()
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -42,15 +40,10 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
   const displayMode = selectedMode ?? currentMode
 
   const handleSave = useCallback(async () => {
-    if (displayMode === 'pin') {
-      if (pin.length < 4) {
-        setError('PIN must be at least 4 digits')
-        return
-      }
-      if (pin !== confirmPin) {
-        setError('PINs do not match')
-        return
-      }
+    const pinError = displayMode === 'pin' ? validatePin(pin, confirmPin) : null
+    if (pinError) {
+      setError(pinError)
+      return
     }
     setError(null)
     setSaving(true)
@@ -74,6 +67,14 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
       setSaving(false)
     }
   }, [session, displayMode, pin, confirmPin])
+
+  function handleCancel() {
+    setSelectedMode(null)
+    setChangingPin(false)
+    setPin('')
+    setConfirmPin('')
+    setError(null)
+  }
 
   const hasChanges =
     changingPin || (selectedMode !== null && selectedMode !== currentMode)
@@ -105,49 +106,12 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
           </div>
 
           {needsPin && (
-            <div className="space-y-2">
-              <div>
-                <label
-                  className="text-foreground-alt mb-1 block text-xs select-none"
-                  htmlFor={pinId}
-                >
-                  PIN
-                </label>
-                <input
-                  id={pinId}
-                  type="password"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  placeholder="Enter PIN"
-                  className={cn(
-                    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-1.5 text-sm transition-colors outline-none',
-                    'focus:border-brand/50',
-                  )}
-                />
-              </div>
-              <div>
-                <label
-                  className="text-foreground-alt mb-1 block text-xs select-none"
-                  htmlFor={confirmPinId}
-                >
-                  Confirm PIN
-                </label>
-                <input
-                  id={confirmPinId}
-                  type="password"
-                  value={confirmPin}
-                  onChange={(e) => setConfirmPin(e.target.value)}
-                  placeholder="Confirm PIN"
-                  className={cn(
-                    'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-1.5 text-sm transition-colors outline-none',
-                    'focus:border-brand/50',
-                    confirmPin.length > 0 &&
-                      pin !== confirmPin &&
-                      'border-destructive/50',
-                  )}
-                />
-              </div>
-            </div>
+            <PinFields
+              pin={pin}
+              confirmPin={confirmPin}
+              onPinChange={setPin}
+              onConfirmPinChange={setConfirmPin}
+            />
           )}
 
           {currentMode === 'pin' && !hasChanges && (
@@ -178,13 +142,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedMode(null)
-                  setChangingPin(false)
-                  setPin('')
-                  setConfirmPin('')
-                  setError(null)
-                }}
+                onClick={handleCancel}
                 className={cn(
                   'flex-1 rounded-md border py-1.5 text-sm transition-all',
                   'border-foreground/10 hover:bg-foreground/5',
@@ -216,5 +174,77 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
       </div>
       <InfoCard>{content}</InfoCard>
     </section>
+  )
+}
+
+// validatePin returns the message for an unusable PIN pair, or null when pin
+// is acceptable and matches confirmPin.
+function validatePin(pin: string, confirmPin: string): string | null {
+  if (pin.length < 4) return 'PIN must be at least 4 digits'
+  if (pin !== confirmPin) return 'PINs do not match'
+  return null
+}
+
+interface PinFieldsProps {
+  pin: string
+  confirmPin: string
+  onPinChange: (pin: string) => void
+  onConfirmPinChange: (confirmPin: string) => void
+}
+
+// PinFields renders the PIN and confirm PIN inputs, marking a mismatch.
+function PinFields({
+  pin,
+  confirmPin,
+  onPinChange,
+  onConfirmPinChange,
+}: PinFieldsProps) {
+  const pinId = useId()
+  const confirmPinId = useId()
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <label
+          className="text-foreground-alt mb-1 block text-xs select-none"
+          htmlFor={pinId}
+        >
+          PIN
+        </label>
+        <input
+          id={pinId}
+          type="password"
+          value={pin}
+          onChange={(e) => onPinChange(e.target.value)}
+          placeholder="Enter PIN"
+          className={cn(
+            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-1.5 text-sm transition-colors outline-none',
+            'focus:border-brand/50',
+          )}
+        />
+      </div>
+      <div>
+        <label
+          className="text-foreground-alt mb-1 block text-xs select-none"
+          htmlFor={confirmPinId}
+        >
+          Confirm PIN
+        </label>
+        <input
+          id={confirmPinId}
+          type="password"
+          value={confirmPin}
+          onChange={(e) => onConfirmPinChange(e.target.value)}
+          placeholder="Confirm PIN"
+          className={cn(
+            'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-1.5 text-sm transition-colors outline-none',
+            'focus:border-brand/50',
+            confirmPin.length > 0 &&
+              pin !== confirmPin &&
+              'border-destructive/50',
+          )}
+        />
+      </div>
+    </div>
   )
 }
