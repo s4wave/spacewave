@@ -54,7 +54,7 @@ func linkAt(state *SOState, priv crypto.PrivKey, nonce uint64) *SOOperationLink 
 	return link
 }
 
-func createMockPeers(t *testing.T, count uint64) []peer.Peer {
+func createMockPeers(t testing.TB, count uint64) []peer.Peer {
 	t.Helper()
 
 	peers := make([]peer.Peer, count)
@@ -69,7 +69,7 @@ func createMockPeers(t *testing.T, count uint64) []peer.Peer {
 }
 
 // mustPrivKeys returns the private key of each peer.
-func mustPrivKeys(t *testing.T, peers []peer.Peer) []crypto.PrivKey {
+func mustPrivKeys(t testing.TB, peers []peer.Peer) []crypto.PrivKey {
 	t.Helper()
 	keys := make([]crypto.PrivKey, len(peers))
 	for i, p := range peers {
@@ -98,7 +98,7 @@ func mustMarshalVT[T interface{ MarshalVT() ([]byte, error) }](
 // first peer, gives each peer its role in roles: OWNER for the first peer and
 // WRITER for the others when roles ends early. Key epoch 0 is granted to every
 // reader. It also returns the genesis config change.
-func newTestSOState(t *testing.T, peers []peer.Peer, roles ...SOParticipantRole) (*SOState, *SOConfigChange) {
+func newTestSOState(t testing.TB, peers []peer.Peer, roles ...SOParticipantRole) (*SOState, *SOConfigChange) {
 	// Name each peer with its role.
 	t.Helper()
 	participants := make([]*SOParticipantConfig, len(peers))
