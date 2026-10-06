@@ -116,6 +116,7 @@ var webBindingMethods = map[string]webBindingCheck{
 	webMethod(s4wave_world.SRPCWorldStateResourceServiceServiceID, "GetObjectMetadataBatch"): nil,
 	webMethod(s4wave_world.SRPCWorldStateResourceServiceServiceID, "GetObjectBodiesBatch"):   nil,
 	webMethod(s4wave_world.SRPCWorldStateResourceServiceServiceID, "QueryGraphPath"):         nil,
+	webMethod(s4wave_world.SRPCWorldStateResourceServiceServiceID, "OpenNestedWorld"):        nil,
 	webMethod(s4wave_world.SRPCObjectIteratorResourceServiceServiceID, "Err"):                nil,
 	webMethod(s4wave_world.SRPCObjectIteratorResourceServiceServiceID, "Valid"):              nil,
 	webMethod(s4wave_world.SRPCObjectIteratorResourceServiceServiceID, "Key"):                nil,
