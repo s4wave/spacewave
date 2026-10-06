@@ -289,6 +289,8 @@ github.com/s4wave/goscript v0.4.1-0.20261006181708-da03a96f88a7 h1:NzXC+fJAsfFsU
 github.com/s4wave/goscript v0.4.1-0.20261006181708-da03a96f88a7/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/s4wave/goscript v0.4.1-0.20261006111715-ea961c4d4970 h1:+PQodcvydMDrqFfaTafbHxzYyG4vNzREVI4nZ5dlCMM=
 github.com/s4wave/goscript v0.4.1-0.20261006111715-ea961c4d4970/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
+github.com/s4wave/goscript v0.4.1-0.20261006120328-d9e73f310f1b h1:xAigYPfTsaQ23C7SfqYHqQJI6B6FQJnVqgiCngv4yN8=
+github.com/s4wave/goscript v0.4.1-0.20261006120328-d9e73f310f1b/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
