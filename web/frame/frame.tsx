@@ -30,6 +30,8 @@ export interface IFrameProps {
   innerClassName?: string
   // overlayClassName is additional className for the overlay container
   overlayClassName?: string
+  // overlayLabel is the accessible name of the overlay dialog.
+  overlayLabel?: string
   // bottomBar are props for the bottom bar.
   bottomBar?: IBarProps
   // topBar are props for the top bar.
@@ -43,7 +45,7 @@ export interface IFrameProps {
 
 // Frame is a body with horizontal bars above and/or below it.
 export function Frame(props: IFrameProps) {
-  const overlayRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<HTMLDialogElement>(null)
   const bottomBar = !props.bottomBar?.hidden ? (
     <Bar hideTopBorder={!!props.overlay} {...props.bottomBar} />
   ) : undefined
@@ -76,14 +78,14 @@ export function Frame(props: IFrameProps) {
       {topBar}
 
       {props.overlay ? (
-        <div
+        <dialog
           ref={overlayRef}
+          open
+          aria-label={props.overlayLabel ?? 'Overlay'}
           className={cn(
-            'border-frame-overlay-border bg-frame-overlay relative flex flex-1 overflow-hidden border-frame-overlay border-solid break-words',
+            'border-frame-overlay-border bg-frame-overlay relative m-0 flex max-h-none w-full max-w-none flex-1 overflow-hidden border-frame-overlay border-solid text-inherit break-words',
             props.overlayClassName,
           )}
-          role="dialog"
-          aria-modal
           tabIndex={-1}
           onKeyDown={(e) => {
             if (e.key === 'Escape' && props.onCloseOverlay) {
@@ -92,7 +94,7 @@ export function Frame(props: IFrameProps) {
           }}
         >
           {props.overlay}
-        </div>
+        </dialog>
       ) : null}
 
       <div

@@ -149,8 +149,8 @@ describe('BottomBarItem', () => {
       )
 
       const item = container.firstChild as HTMLElement
-      expect(item.getAttribute('role')).toBe('button')
-      expect(item.getAttribute('tabIndex')).toBe('0')
+      expect(item.tagName).toBe('BUTTON')
+      expect(item.getAttribute('type')).toBe('button')
     })
 
     it('applies aria-disabled when disabled prop is true', () => {
@@ -303,16 +303,16 @@ describe('BottomBarItem', () => {
   })
 
   describe('Styling', () => {
-    it('reflects selected state via aria-selected attribute', () => {
+    it('reflects selected state via aria-pressed attribute', () => {
       const { container, rerender } = render(
         <BottomBarItem selected>Test Item</BottomBarItem>,
       )
 
       const item = container.firstChild as HTMLElement
-      expect(item.getAttribute('aria-selected')).toBe('true')
+      expect(item.getAttribute('aria-pressed')).toBe('true')
 
       rerender(<BottomBarItem>Test Item</BottomBarItem>)
-      expect(item.getAttribute('aria-selected')).toBeNull()
+      expect(item.getAttribute('aria-pressed')).toBeNull()
     })
 
     it('applies custom className', () => {

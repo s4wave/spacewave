@@ -16,6 +16,20 @@ function TestContextMenuIcon({ className }: { className?: string }) {
   return <span data-testid="test-context-menu-icon" className={className} />
 }
 
+// ItemButton renders the plain bottom bar button used by most registry tests.
+function ItemButton() {
+  return <button type="button">Item</button>
+}
+
+// SelectableItemButton renders a bottom bar button that reports its selection.
+function SelectableItemButton(selected: boolean, onClick: () => void) {
+  return (
+    <button type="button" onClick={onClick}>
+      Item {selected ? 'selected' : 'idle'}
+    </button>
+  )
+}
+
 describe('BottomBarContext', () => {
   beforeEach(() => {
     cleanup()
@@ -33,7 +47,7 @@ describe('BottomBarContext', () => {
           <BottomBarLevel
             id="item1"
             button={(selected) => (
-              <button>Item 1 {selected ? 'on' : 'off'}</button>
+              <button type="button">Item 1 {selected ? 'on' : 'off'}</button>
             )}
           >
             <TestComponent />
@@ -56,9 +70,18 @@ describe('BottomBarContext', () => {
 
       const { getByTestId } = render(
         <BottomBarRoot>
-          <BottomBarLevel id="outer" button={() => <button>Outer</button>}>
-            <BottomBarLevel id="middle" button={() => <button>Middle</button>}>
-              <BottomBarLevel id="inner" button={() => <button>Inner</button>}>
+          <BottomBarLevel
+            id="outer"
+            button={() => <button type="button">Outer</button>}
+          >
+            <BottomBarLevel
+              id="middle"
+              button={() => <button type="button">Middle</button>}
+            >
+              <BottomBarLevel
+                id="inner"
+                button={() => <button type="button">Inner</button>}
+              >
                 <TestComponent />
               </BottomBarLevel>
             </BottomBarLevel>
@@ -115,7 +138,7 @@ describe('BottomBarContext', () => {
         <BottomBarRoot>
           <BottomBarLevel
             id="item"
-            button={() => <button>Item</button>}
+            button={ItemButton}
             overlay={overlayContent}
           >
             <TestComponent />
@@ -161,10 +184,13 @@ describe('BottomBarContext', () => {
 
       render(
         <BottomBarRoot>
-          <BottomBarLevel id="outer" button={() => <button>Outer</button>}>
+          <BottomBarLevel
+            id="outer"
+            button={() => <button type="button">Outer</button>}
+          >
             <BottomBarLevel
               id="inner"
-              button={() => <button>Inner</button>}
+              button={() => <button type="button">Inner</button>}
               contextMenuLabel="Inner actions"
               contextMenuItems={[
                 {
@@ -230,15 +256,13 @@ describe('BottomBarContext', () => {
         return (
           <BottomBarLevel
             id="item"
-            button={(selected, onClick) => (
-              <button onClick={onClick}>
-                Item {selected ? 'selected' : 'idle'}
-              </button>
-            )}
+            button={SelectableItemButton}
             overlay={<div>Overlay {count}</div>}
             overlayKey={count}
           >
-            <button onClick={() => setCount((n) => n + 1)}>Increment</button>
+            <button type="button" onClick={() => setCount((n) => n + 1)}>
+              Increment
+            </button>
           </BottomBarLevel>
         )
       }
@@ -276,7 +300,9 @@ describe('BottomBarContext', () => {
         const [count, setCount] = useState(0)
         const button = useCallback(
           (_selected: boolean, onClick: () => void) => (
-            <button onClick={onClick}>Item {count}</button>
+            <button type="button" onClick={onClick}>
+              Item {count}
+            </button>
           ),
           [count],
         )
@@ -290,7 +316,9 @@ describe('BottomBarContext', () => {
             overlay={overlay}
             overlayKey={count}
           >
-            <button onClick={() => setCount((n) => n + 1)}>Update</button>
+            <button type="button" onClick={() => setCount((n) => n + 1)}>
+              Update
+            </button>
           </BottomBarLevel>
         )
       }
@@ -359,11 +387,13 @@ describe('BottomBarContext', () => {
         return (
           <BottomBarLevel
             id="item"
-            button={() => <button>Item</button>}
+            button={ItemButton}
             contextMenuItems={actions}
             contextMenuKey={count}
           >
-            <button onClick={() => setCount((n) => n + 1)}>Update</button>
+            <button type="button" onClick={() => setCount((n) => n + 1)}>
+              Update
+            </button>
           </BottomBarLevel>
         )
       }
@@ -415,10 +445,12 @@ describe('BottomBarContext', () => {
         return (
           <BottomBarLevel
             id="item"
-            button={() => <button>Item</button>}
+            button={ItemButton}
             contextMenuItems={actions}
           >
-            <button onClick={() => setCount((n) => n + 1)}>Update</button>
+            <button type="button" onClick={() => setCount((n) => n + 1)}>
+              Update
+            </button>
           </BottomBarLevel>
         )
       }
@@ -468,11 +500,13 @@ describe('BottomBarContext', () => {
         return (
           <BottomBarLevel
             id="item"
-            button={() => <button>Item</button>}
+            button={ItemButton}
             contextMenuItems={enabled ? actions : undefined}
             contextMenuKey={enabled ? 'enabled' : 'disabled'}
           >
-            <button onClick={() => setEnabled(false)}>Disable actions</button>
+            <button type="button" onClick={() => setEnabled(false)}>
+              Disable actions
+            </button>
           </BottomBarLevel>
         )
       }
@@ -506,7 +540,7 @@ describe('BottomBarContext', () => {
             <div data-testid="item-count">{items.length}</div>
             <BottomBarLevel
               id="item"
-              button={() => <button>Item</button>}
+              button={ItemButton}
               overlay={<div>Overlay</div>}
             >
               <div>Child</div>
@@ -534,7 +568,10 @@ describe('BottomBarContext', () => {
 
       const { getByTestId } = render(
         <BottomBarRoot>
-          <BottomBarLevel id="item" button={() => <button>Item</button>}>
+          <BottomBarLevel
+            id="item"
+            button={() => <button type="button">Item</button>}
+          >
             <TestComponent />
           </BottomBarLevel>
         </BottomBarRoot>,
@@ -555,7 +592,11 @@ describe('BottomBarContext', () => {
             <div data-testid="has-handler">
               {onBreadcrumbClick ? 'yes' : 'no'}
             </div>
-            <button data-testid="trigger" onClick={() => onBreadcrumbClick?.()}>
+            <button
+              type="button"
+              data-testid="trigger"
+              onClick={() => onBreadcrumbClick?.()}
+            >
               Trigger
             </button>
           </div>
@@ -566,7 +607,7 @@ describe('BottomBarContext', () => {
         <BottomBarRoot>
           <BottomBarLevel
             id="item"
-            button={() => <button>Item</button>}
+            button={ItemButton}
             onBreadcrumbClick={handler}
           >
             <TestComponent />
@@ -592,7 +633,10 @@ describe('BottomBarContext', () => {
 
       const { getByTestId } = render(
         <BottomBarRoot>
-          <BottomBarLevel id="item" button={() => <button>Item</button>}>
+          <BottomBarLevel
+            id="item"
+            button={() => <button type="button">Item</button>}
+          >
             <TestComponent />
           </BottomBarLevel>
         </BottomBarRoot>,
@@ -625,12 +669,18 @@ describe('BottomBarContext', () => {
       const { getByTestId } = render(
         <div>
           <BottomBarRoot>
-            <BottomBarLevel id="tree1" button={() => <button>Tree 1</button>}>
+            <BottomBarLevel
+              id="tree1"
+              button={() => <button type="button">Tree 1</button>}
+            >
               <TestComponent testId="tree1-result" />
             </BottomBarLevel>
           </BottomBarRoot>
           <BottomBarRoot>
-            <BottomBarLevel id="tree2" button={() => <button>Tree 2</button>}>
+            <BottomBarLevel
+              id="tree2"
+              button={() => <button type="button">Tree 2</button>}
+            >
               <TestComponent testId="tree2-result" />
             </BottomBarLevel>
           </BottomBarRoot>
@@ -665,7 +715,7 @@ describe('BottomBarContext', () => {
             id="item"
             button={(selected) => {
               states.push(selected)
-              return <button>{selected ? 'on' : 'off'}</button>
+              return <button type="button">{selected ? 'on' : 'off'}</button>
             }}
           >
             <TestComponent />
@@ -691,18 +741,27 @@ describe('BottomBarContext', () => {
 
       const { getByTestId } = render(
         <BottomBarRoot>
-          <BottomBarLevel id="root" button={() => <button>Root</button>}>
+          <BottomBarLevel
+            id="root"
+            button={() => <button type="button">Root</button>}
+          >
             <TestComponent level="root" />
-            <BottomBarLevel id="child1" button={() => <button>Child 1</button>}>
+            <BottomBarLevel
+              id="child1"
+              button={() => <button type="button">Child 1</button>}
+            >
               <TestComponent level="child1" />
               <BottomBarLevel
                 id="grandchild"
-                button={() => <button>Grandchild</button>}
+                button={() => <button type="button">Grandchild</button>}
               >
                 <TestComponent level="grandchild" />
               </BottomBarLevel>
             </BottomBarLevel>
-            <BottomBarLevel id="child2" button={() => <button>Child 2</button>}>
+            <BottomBarLevel
+              id="child2"
+              button={() => <button type="button">Child 2</button>}
+            >
               <TestComponent level="child2" />
             </BottomBarLevel>
           </BottomBarLevel>
@@ -738,7 +797,7 @@ describe('BottomBarContext', () => {
         return <div data-testid="item-id">{items[0]?.id}</div>
       }
 
-      const buttonFn = () => <button>Item</button>
+      const buttonFn = () => <button type="button">Item</button>
       const overlayContent = <div>Overlay</div>
 
       const { getByTestId, rerender } = render(
@@ -768,7 +827,7 @@ describe('BottomBarContext', () => {
         return <div data-testid="item-id">{items[0]?.id}</div>
       }
 
-      const buttonFn = () => <button>Item</button>
+      const buttonFn = () => <button type="button">Item</button>
 
       const { getByTestId, rerender } = render(
         <BottomBarRoot>
@@ -797,8 +856,8 @@ describe('BottomBarContext', () => {
         return <div data-testid="has-item">{items[0] ? 'yes' : 'no'}</div>
       }
 
-      const buttonFn1 = () => <button>Item 1</button>
-      const buttonFn2 = () => <button>Item 2</button>
+      const buttonFn1 = () => <button type="button">Item 1</button>
+      const buttonFn2 = () => <button type="button">Item 2</button>
 
       const { getByTestId, rerender } = render(
         <BottomBarRoot>

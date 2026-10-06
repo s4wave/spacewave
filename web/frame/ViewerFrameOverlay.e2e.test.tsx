@@ -8,6 +8,18 @@ import { BottomBarLevel } from './bottom-bar-level.js'
 import { BottomBarRoot } from './bottom-bar-root.js'
 import { ViewerFrame } from './ViewerFrame.js'
 
+function ObjectDetailsButton(selected: boolean, onClick: () => void) {
+  return (
+    <BottomBarItem
+      selected={selected}
+      onClick={onClick}
+      aria-label="Object details"
+    >
+      getting-started.md
+    </BottomBarItem>
+  )
+}
+
 function EmbeddedViewer() {
   const [openMenu, setOpenMenu] = useState('')
 
@@ -31,15 +43,7 @@ function EmbeddedViewer() {
                 <BottomBarLevel
                   id="tab-markdown"
                   menuLabel="getting-started.md"
-                  button={(selected, onClick) => (
-                    <BottomBarItem
-                      selected={selected}
-                      onClick={onClick}
-                      aria-label="Object details"
-                    >
-                      getting-started.md
-                    </BottomBarItem>
-                  )}
+                  button={ObjectDetailsButton}
                   overlay={
                     <div data-testid="object-details-overlay">
                       Object details
@@ -68,10 +72,10 @@ describe('ObjectLayout embedded object details overlay', () => {
     await expect
       .element(page.getByTestId('object-details-overlay'))
       .toBeVisible()
-    await expect.element(toggle).toHaveAttribute('aria-selected', 'true')
+    await expect.element(toggle).toHaveAttribute('aria-pressed', 'true')
 
     await toggle.click()
     expect(page.getByTestId('object-details-overlay').query()).toBeNull()
-    await expect.element(toggle).toHaveAttribute('aria-selected', 'false')
+    await expect.element(toggle).toHaveAttribute('aria-pressed', 'false')
   })
 })
