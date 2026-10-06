@@ -11,10 +11,12 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
+	"github.com/s4wave/spacewave/core/sobject"
 	unixfs_errors "github.com/s4wave/spacewave/db/unixfs/errors"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
+	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
@@ -78,27 +80,32 @@ func (a *FsSyncArgs) Run(c *cli.Context) error {
 	}
 	defer release()
 
-	// Apply an upload in one write transaction, so the World commits once and
-	// a failed copy changes nothing. Read a download from a snapshot.
-	tx, err := engine.NewTransaction(ctx, upload)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-
 	// Delete only after the complete copy succeeds, as in rclone sync.
 	mode := unixfs_sync.DeleteMode_DeleteMode_AFTER
 	if a.keepExtra {
 		mode = unixfs_sync.DeleteMode_DeleteMode_NONE
 	}
-	if err := syncFsDir(ctx, tx, uri, localPath, upload, mode); err != nil || !upload {
-		return err
+
+	// Read a download from a snapshot.
+	if !upload {
+		tx, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		return syncFsDir(ctx, tx, uri, localPath, false, mode)
 	}
 
-	// Commit the upload, then wait until the Space's storage has the new blocks.
-	if err := tx.Commit(ctx); err != nil {
+	// Commit an upload in batches under the World operation size limit. Each
+	// batch resumes the sync where the last one stopped.
+	err = world_block_tx.CommitBatches(ctx, engine, sobject.MaxBatchSize, func(ctx context.Context, ws world.WorldState) error {
+		return syncFsDir(ctx, ws, uri, localPath, true, mode)
+	})
+	if err != nil {
 		return errors.Wrap(err, "commit synced World")
 	}
+
+	// Wait until the Space's storage has the new blocks.
 	if _, err := engine.Sync(ctx); err != nil {
 		return errors.Wrap(err, "make synced World durable")
 	}
@@ -154,7 +161,7 @@ func newFsSyncCommand() *cli.Command {
 		Name:        "sync",
 		Usage:       "mirror directory contents between disk and UnixFS, changing only the destination",
 		ArgsUsage:   "SOURCE DESTINATION",
-		Description: fsURIDescription("Prefix exactly one argument with spacewave:. The other is a local directory.\nThe UnixFS directory must exist. Destination-only entries are deleted after\na successful copy unless --keep-extra is set. Files match by size and mtime.\nA failed upload changes nothing. A failed download can leave partial updates,\nand destination-only deletion is skipped.\nUploads wait for World storage durability before returning.", "  spacewave fs sync ./snapshot spacewave:backup\n  spacewave fs sync spacewave:backup ./restore"),
+		Description: fsURIDescription("Prefix exactly one argument with spacewave:. The other is a local directory.\nThe UnixFS directory must exist. Destination-only entries are deleted after\na successful copy unless --keep-extra is set. Files match by size and mtime.\nAn upload commits in batches, so a failed upload can leave a partial tree:\nrun it again to finish. A failed download can leave partial updates, and\ndestination-only deletion is skipped.\nUploads wait for World storage durability before returning.", "  spacewave fs sync ./snapshot spacewave:backup\n  spacewave fs sync spacewave:backup ./restore"),
 		Flags:       args.BuildFlags(),
 		Action:      args.Run,
 	}

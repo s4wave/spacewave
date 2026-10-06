@@ -1,24 +1,30 @@
 package sobject
 
 const (
-	// MaxErrorDetailsSize is the maximum size in bytes for error details
+	// MaxErrorDetailsSize is the maximum size in bytes for error details.
 	MaxErrorDetailsSize = 4096
 
-	// MaxBlockRefSize is the maximum size in bytes for block references
+	// MaxBlockRefSize is the maximum size in bytes for block references.
 	MaxBlockRefSize = 256
 
-	// MaxInnerDataSize is the maximum size in bytes for inner data
+	// MaxInnerDataSize is the maximum size in bytes for inner data.
 	MaxInnerDataSize = 1024 * 1024 // 1 MB
 
-	// MaxSignatureSize is the maximum size in bytes for signatures
+	// MaxBatchSize is the size in bytes at which a long-running write commits
+	// its World batch and continues in the next. It is half of MaxInnerDataSize,
+	// leaving room for the entries the size accounting does not count and for
+	// the operation envelope.
+	MaxBatchSize = MaxInnerDataSize / 2
+
+	// MaxSignatureSize is the maximum size in bytes for signatures.
 	MaxSignatureSize = 512
 
-	// MaxParticipants is the maximum number of participants in a shared object
+	// MaxParticipants is the maximum number of participants in a shared object.
 	MaxParticipants = 100
 
-	// MaxOperations is the maximum number of operations above the checkpoint
+	// MaxOperations is the maximum number of operations above the checkpoint.
 	MaxOperations = 65536
 
-	// MaxStateDataSize is the maximum size in bytes for state data
+	// MaxStateDataSize is the maximum size in bytes for state data.
 	MaxStateDataSize = 10 * 1024 * 1024 // 10 MB
 )
