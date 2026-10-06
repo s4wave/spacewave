@@ -81,49 +81,34 @@ function pipelineReducer(
   }
 }
 
-// CreateSpaceRoute owns the full create-space pipeline for quickstart tiles
-// and renders a chromeless full-screen loading UI with phase progress.
-export function CreateSpaceRoute() {
-  const params = useParams()
-  const quickstartId = params.quickstartId ?? ''
-  const orgId = params.orgId ?? ''
-  const storage = params.storage ?? ''
-  const navigateSession = useSessionNavigate()
+interface CreateSpacePipelineParams {
+  valid: boolean
+  quickstartId: string
+  isDynamic: boolean
+  staticQuickstartId: QuickstartSpaceCreateId | null
+  spaceName: string
+  orgId: string
+  storage: string
+}
 
+/**
+ * useCreateSpacePipeline runs create, mount, and populate for the selected
+ * quickstart, then navigates to the new space. retry restarts a failed run.
+ */
+function useCreateSpacePipeline({
+  valid,
+  quickstartId,
+  isDynamic,
+  staticQuickstartId,
+  spaceName,
+  orgId,
+  storage,
+}: CreateSpacePipelineParams) {
+  const navigateSession = useSessionNavigate()
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
-  const quickstartOptions = useVisibleQuickstartOptions()
-  const backPath = orgId ? `org/${orgId}/` : ''
-
-  const selectedOption = useMemo(
-    () =>
-      quickstartOptions.find(
-        (opt) => opt.id === quickstartId && isSpaceCreatingOption(opt),
-      ) ?? null,
-    [quickstartId, quickstartOptions],
-  )
-  const staticId: QuickstartSpaceCreateId | null = isQuickstartSpaceCreateId(
-    quickstartId,
-  )
-    ? quickstartId
-    : null
-  const valid = !!selectedOption && (!!selectedOption.dynamic || !!staticId)
-  const spaceName = staticId
-    ? getQuickstartSpaceName(staticId)
-    : selectedOption?.spaceName || selectedOption?.name || ''
-
-  useEffect(() => {
-    if (valid) return
-    toast.error('Unknown quickstart: ' + quickstartId)
-    navigateSession({ path: backPath, replace: true })
-  }, [backPath, navigateSession, quickstartId, valid])
-
-  const selectedQuickstartId = selectedOption?.id ?? ''
-  const isDynamic = selectedOption?.dynamic ?? false
-  const staticQuickstartId = staticId
-
   const [state, dispatch] = useReducer(pipelineReducer, {
     phase: 'create',
     error: null,
@@ -132,7 +117,7 @@ export function CreateSpaceRoute() {
 
   useAbortSignalEffect(
     (signal) => {
-      if (!valid || !selectedQuickstartId || !session || !root) return
+      if (!valid || !quickstartId || !session || !root) return
       const resources: Array<{ [Symbol.dispose](): void }> = []
       const cleanup: RegisterCleanup = (resource) => {
         if (resource) resources.push(resource)
@@ -185,12 +170,7 @@ export function CreateSpaceRoute() {
           ...setup,
         }
         if (isDynamic) {
-          await executeDynamicQuickstart(
-            root,
-            selectedQuickstartId,
-            fullSetup,
-            signal,
-          )
+          await executeDynamicQuickstart(root, quickstartId, fullSetup, signal)
         } else if (staticQuickstartId) {
           await populateSpace(staticQuickstartId, fullSetup, signal)
         }
@@ -221,9 +201,9 @@ export function CreateSpaceRoute() {
       isDynamic,
       navigateSession,
       orgId,
+      quickstartId,
       root,
       runId,
-      selectedQuickstartId,
       session,
       spaceName,
       staticQuickstartId,
@@ -232,9 +212,127 @@ export function CreateSpaceRoute() {
     ],
   )
 
-  const handleRetry = useCallback(() => {
+  const retry = useCallback(() => {
     setRunId((n) => n + 1)
   }, [])
+
+  return { state, retry }
+}
+
+const phaseOrder: Record<Phase, number> = {
+  create: 0,
+  mount: 1,
+  populate: 2,
+  done: 3,
+  failed: -1,
+}
+
+/** pipelinePhases returns the checklist rows for the pipeline's current phase. */
+function pipelinePhases(phase: Phase) {
+  const active = phaseOrder[phase]
+  return [
+    { label: 'Create', done: active > 0, active: active === 0 },
+    { label: 'Mount', done: active > 1, active: active === 1 },
+    { label: 'Populate', done: active > 2, active: active === 2 },
+  ]
+}
+
+interface CreateSpaceProgressProps {
+  state: PipelineState
+  spaceName: string
+  onRetry: () => void
+  onCancel: () => void
+}
+
+/** CreateSpaceProgress renders the phase checklist with the retry and cancel actions. */
+function CreateSpaceProgress({
+  state,
+  spaceName,
+  onRetry,
+  onCancel,
+}: CreateSpaceProgressProps) {
+  const failed = state.phase === 'failed'
+
+  return (
+    <SetupPageLayout
+      title={(failed ? 'Failed to create ' : 'Creating ') + spaceName}
+      subtitle={
+        failed
+          ? 'Something went wrong during setup.'
+          : 'Setting up your new space...'
+      }
+    >
+      <PhaseChecklist phases={pipelinePhases(state.phase)} />
+
+      {failed && state.error && (
+        <p className="text-destructive text-center text-xs">{state.error}</p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {failed && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 items-center justify-center rounded-md border text-sm transition-colors"
+          >
+            Retry
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onCancel}
+          className="border-foreground/20 hover:border-foreground/40 flex h-10 items-center justify-center rounded-md border text-sm transition-colors"
+        >
+          {failed ? 'Back to dashboard' : 'Cancel'}
+        </button>
+      </div>
+    </SetupPageLayout>
+  )
+}
+
+// CreateSpaceRoute owns the full create-space pipeline for quickstart tiles
+// and renders a chromeless full-screen loading UI with phase progress.
+export function CreateSpaceRoute() {
+  const params = useParams()
+  const quickstartId = params.quickstartId ?? ''
+  const orgId = params.orgId ?? ''
+  const storage = params.storage ?? ''
+  const navigateSession = useSessionNavigate()
+  const quickstartOptions = useVisibleQuickstartOptions()
+  const backPath = orgId ? `org/${orgId}/` : ''
+
+  const selectedOption = useMemo(
+    () =>
+      quickstartOptions.find(
+        (opt) => opt.id === quickstartId && isSpaceCreatingOption(opt),
+      ) ?? null,
+    [quickstartId, quickstartOptions],
+  )
+  const staticId: QuickstartSpaceCreateId | null = isQuickstartSpaceCreateId(
+    quickstartId,
+  )
+    ? quickstartId
+    : null
+  const valid = !!selectedOption && (!!selectedOption.dynamic || !!staticId)
+  const spaceName = staticId
+    ? getQuickstartSpaceName(staticId)
+    : selectedOption?.spaceName || selectedOption?.name || ''
+
+  useEffect(() => {
+    if (valid) return
+    toast.error('Unknown quickstart: ' + quickstartId)
+    navigateSession({ path: backPath, replace: true })
+  }, [backPath, navigateSession, quickstartId, valid])
+
+  const { state, retry } = useCreateSpacePipeline({
+    valid,
+    quickstartId: selectedOption?.id ?? '',
+    isDynamic: selectedOption?.dynamic ?? false,
+    staticQuickstartId: staticId,
+    spaceName,
+    orgId,
+    storage,
+  })
 
   const handleCancel = useCallback(() => {
     // Leave the in-flight SO in the account per design: no deleteSpace.
@@ -243,55 +341,12 @@ export function CreateSpaceRoute() {
 
   if (!valid) return null
 
-  const title =
-    state.phase === 'failed'
-      ? 'Failed to create ' + spaceName
-      : 'Creating ' + spaceName
-  const subtitle =
-    state.phase === 'failed'
-      ? 'Something went wrong during setup.'
-      : 'Setting up your new space...'
-
-  const order: Record<Phase, number> = {
-    create: 0,
-    mount: 1,
-    populate: 2,
-    done: 3,
-    failed: -1,
-  }
-  const active = state.phase === 'failed' ? -1 : order[state.phase]
-  const phases = [
-    { label: 'Create', done: active > 0, active: active === 0 },
-    { label: 'Mount', done: active > 1, active: active === 1 },
-    { label: 'Populate', done: active > 2, active: active === 2 },
-  ]
-
   return (
-    <SetupPageLayout title={title} subtitle={subtitle}>
-      <PhaseChecklist phases={phases} />
-
-      {state.phase === 'failed' && state.error && (
-        <p className="text-destructive text-center text-xs">{state.error}</p>
-      )}
-
-      <div className="flex flex-col gap-2">
-        {state.phase === 'failed' && (
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="border-brand/30 bg-brand/10 hover:bg-brand/20 flex h-10 items-center justify-center rounded-md border text-sm transition-colors"
-          >
-            Retry
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="border-foreground/20 hover:border-foreground/40 flex h-10 items-center justify-center rounded-md border text-sm transition-colors"
-        >
-          {state.phase === 'failed' ? 'Back to dashboard' : 'Cancel'}
-        </button>
-      </div>
-    </SetupPageLayout>
+    <CreateSpaceProgress
+      state={state}
+      spaceName={spaceName}
+      onRetry={retry}
+      onCancel={handleCancel}
+    />
   )
 }
