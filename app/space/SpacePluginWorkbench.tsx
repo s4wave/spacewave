@@ -16,13 +16,38 @@ import type {
 } from '@s4wave/web/object/object.js'
 import type { ObjectInfo } from '@s4wave/web/object/object.pb.js'
 import { resolvePath } from '@s4wave/web/router/router.js'
-import { usePluginFrontend } from '@s4wave/web/space/usePluginFrontend.js'
+import {
+  usePluginFrontend,
+  type PluginFrontendSession,
+} from '@s4wave/web/space/usePluginFrontend.js'
 import { Button } from '@s4wave/web/ui/button.js'
 
 import { SpacePluginObjects } from './SpacePluginObjects.js'
 
 // previewObjectLimit bounds the preview picker to one World listing page.
 const previewObjectLimit = 1000
+
+/**
+ * liveViewer builds the preview viewer that loads the entrypoint module from
+ * the plugin frontend transport.
+ */
+function liveViewer(
+  attached: PluginFrontendSession,
+  entrypoint: string,
+  typeID: string,
+): ObjectViewerComponent {
+  return {
+    componentID: `live/${attached.session.id}/${entrypoint}`,
+    typeID,
+    name: 'Live preview',
+    component: lazy(async () => {
+      const url = await attached.transport.resolve(entrypoint)
+      return import(/* @vite-ignore */ url) as Promise<{
+        default: React.ComponentType<ObjectViewerComponentProps>
+      }>
+    }),
+  }
+}
 
 /** SpacePluginWorkbench retains source editing and a live custom viewer together. */
 export function SpacePluginWorkbench({
@@ -82,19 +107,7 @@ export function SpacePluginWorkbench({
     if (!attached || !entrypoint || !selectedType) {
       return []
     }
-    return [
-      {
-        componentID: `live/${attached.session.id}/${entrypoint}`,
-        typeID: selectedType,
-        name: 'Live preview',
-        component: lazy(async () => {
-          const url = await attached.transport.resolve(entrypoint)
-          return import(/* @vite-ignore */ url) as Promise<{
-            default: React.ComponentType<ObjectViewerComponentProps>
-          }>
-        }),
-      },
-    ]
+    return [liveViewer(attached, entrypoint, selectedType)]
   }, [frontend.value, frontend.loading, entrypoint, selectedType])
 
   // Keep compiler feedback separate from source editing and accepted app data.

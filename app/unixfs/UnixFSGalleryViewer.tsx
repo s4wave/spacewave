@@ -100,14 +100,104 @@ function GalleryTile({
   )
 }
 
-function UnixFSGalleryBody({
-  rootHandle,
-  currentPath,
-  unixfsId,
-}: UnixFSBrowserBodyProps) {
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
-    null,
+const lightboxButtonClassName =
+  'rounded-full border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20'
+
+interface LightboxSource {
+  spaceId: string | null
+  sessionIndex: number | null
+  unixfsId: string
+  httpPathPrefix: string
+}
+
+interface LightboxToolbarProps {
+  item: GalleryPreviewItem
+  previewURL: string
+  downloadURL: string
+}
+
+/** LightboxToolbar renders the open-in-browser and download actions for one lightbox image. */
+function LightboxToolbar({
+  item,
+  previewURL,
+  downloadURL: fileDownloadURL,
+}: LightboxToolbarProps) {
+  const handleDownload = () => {
+    void downloadURL(fileDownloadURL, item.name).catch((err: unknown) => {
+      console.error('failed to download unixfs file', err)
+      toast.error('Download failed', { description: String(err) })
+    })
+  }
+
+  return (
+    <div className="mr-2 flex items-center gap-2">
+      <button
+        type="button"
+        className={lightboxButtonClassName}
+        onClick={() => window.open(previewURL, '_blank', 'noopener,noreferrer')}
+        title="Open In Browser"
+      >
+        <LuExternalLink className="size-4" />
+      </button>
+      <button
+        type="button"
+        className={lightboxButtonClassName}
+        onClick={handleDownload}
+        title="Download"
+      >
+        <LuDownload className="size-4" />
+      </button>
+    </div>
   )
+}
+
+/**
+ * lightboxToolbarRender builds the PhotoProvider toolbar renderer for the
+ * lightbox items. It renders nothing for an item without a mounted preview.
+ */
+function lightboxToolbarRender(
+  items: GalleryPreviewItem[],
+  { spaceId, sessionIndex, unixfsId, httpPathPrefix }: LightboxSource,
+) {
+  return ({ index }: { index: number }) => {
+    const item = items[index]
+    if (!item?.previewURL || !spaceId || !sessionIndex) return null
+    return (
+      <LightboxToolbar
+        item={item}
+        previewURL={item.previewURL}
+        downloadURL={buildUnixFSFileDownloadURL(
+          sessionIndex,
+          spaceId,
+          unixfsId,
+          item.path,
+          httpPathPrefix,
+        )}
+      />
+    )
+  }
+}
+
+interface GalleryScan {
+  galleryState: Resource<UnixFSGalleryDiscoveryState>
+  previewItems: GalleryPreviewItem[]
+  lightboxItems: GalleryPreviewItem[]
+  scopePath: string
+  isScanning: boolean
+  spaceId: string | null
+  sessionIndex: number | null
+  httpPathPrefix: string
+}
+
+/**
+ * useGalleryScan streams the image candidates under the current path and maps
+ * them to preview items with inline URLs from the mounted session.
+ */
+function useGalleryScan(
+  rootHandle: UnixFSBrowserBodyProps['rootHandle'],
+  currentPath: string,
+  unixfsId: string,
+): GalleryScan {
   const { httpPathPrefix } = useAppEnvironment()
   const spaceCtx = SpaceContainerContext.useContextSafe()
   const sessionIndex = useSessionIndex()
@@ -123,9 +213,6 @@ function UnixFSGalleryBody({
       [currentPath],
     )
   const galleryItems = galleryState.value?.items ?? emptyGalleryItems
-  const galleryErrors = galleryState.value?.errors ?? []
-  const galleryComplete = galleryState.value?.complete ?? false
-  const scopePath = galleryState.value?.scopePath ?? currentPath
   const previewItems: GalleryPreviewItem[] = useMemo(
     () =>
       galleryItems.map((item) => ({
@@ -150,11 +237,124 @@ function UnixFSGalleryBody({
     () => previewItems.filter((item) => !!item.previewURL),
     [previewItems],
   )
-  const isScanning = !galleryComplete && !galleryState.error
+
+  return {
+    galleryState,
+    previewItems,
+    lightboxItems,
+    scopePath: galleryState.value?.scopePath ?? currentPath,
+    isScanning: !(galleryState.value?.complete ?? false) && !galleryState.error,
+    spaceId,
+    sessionIndex,
+    httpPathPrefix,
+  }
+}
+
+interface GalleryHeaderProps {
+  imageCount: number
+  scopePath: string
+  issueCount: number
+  isScanning: boolean
+}
+
+/** GalleryHeader summarizes the discovered image count, scan issues, and scan progress. */
+function GalleryHeader({
+  imageCount,
+  scopePath,
+  issueCount,
+  isScanning,
+}: GalleryHeaderProps) {
+  return (
+    <div className="mb-3 flex min-h-6 items-center justify-between gap-3">
+      <div className="text-foreground-alt/60 min-w-0 truncate text-xs">
+        {imageCount} image
+        {imageCount === 1 ? '' : 's'} under {scopePath}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {issueCount > 0 && (
+          <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-full border px-2 py-0.5 text-xs font-medium">
+            {issueCount} issue
+            {issueCount === 1 ? '' : 's'}
+          </div>
+        )}
+        {isScanning && (
+          <div className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium">
+            <Spinner size="sm" />
+            Scanning
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** GalleryEmptyState explains an empty gallery: still scanning, or no images found. */
+function GalleryEmptyState({ isScanning }: { isScanning: boolean }) {
+  return (
+    <div className="flex h-full min-h-48 items-center justify-center">
+      <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center">
+        <LuImage className="text-foreground-alt size-5" />
+        <div className="text-foreground text-sm font-semibold">
+          {isScanning ? 'Scanning for images' : 'No images under this path'}
+        </div>
+        {isScanning && (
+          <div className="text-foreground-alt text-xs">
+            The gallery will populate as image files are discovered in this
+            subtree.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** GalleryGrid lays out the preview tiles, opening a lightbox for tiles with a preview. */
+function GalleryGrid({ items }: { items: GalleryPreviewItem[] }) {
+  return (
+    <div
+      data-testid="unixfs-gallery-grid"
+      className="grid-cols-gallery grid gap-3"
+    >
+      {items.map((item) => {
+        if (!item.previewURL) {
+          return <GalleryTile key={item.path} interactive={false} item={item} />
+        }
+        return (
+          <PhotoView key={item.path} src={item.previewURL}>
+            <GalleryTile interactive item={item} />
+          </PhotoView>
+        )
+      })}
+    </div>
+  )
+}
+
+function UnixFSGalleryBody({
+  rootHandle,
+  currentPath,
+  unixfsId,
+}: UnixFSBrowserBodyProps) {
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+    null,
+  )
+  const scan = useGalleryScan(rootHandle, currentPath, unixfsId)
+  const { galleryState, previewItems, lightboxItems, isScanning } = scan
+  const { spaceId, sessionIndex, httpPathPrefix } = scan
+  const galleryErrors = galleryState.value?.errors ?? []
   const hasItems = previewItems.length > 0
   const handlePortalContainer = useCallback((el: HTMLDivElement | null) => {
     setPortalContainer(el)
   }, [])
+  const toolbarRender = useMemo(
+    () =>
+      lightboxToolbarRender(lightboxItems, {
+        spaceId,
+        sessionIndex,
+        unixfsId,
+        httpPathPrefix,
+      }),
+    [lightboxItems, spaceId, sessionIndex, unixfsId, httpPathPrefix],
+  )
 
   return (
     <div
@@ -162,131 +362,28 @@ function UnixFSGalleryBody({
       ref={handlePortalContainer}
       className="relative h-full w-full overflow-auto px-4 py-3"
     >
-      <div className="mb-3 flex min-h-6 items-center justify-between gap-3">
-        <div className="text-foreground-alt/60 min-w-0 truncate text-xs">
-          {previewItems.length} image
-          {previewItems.length === 1 ? '' : 's'} under {scopePath}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {galleryErrors.length > 0 && (
-            <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-full border px-2 py-0.5 text-xs font-medium">
-              {galleryErrors.length} issue
-              {galleryErrors.length === 1 ? '' : 's'}
-            </div>
-          )}
-          {isScanning && (
-            <div className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium">
-              <Spinner size="sm" />
-              Scanning
-            </div>
-          )}
-        </div>
-      </div>
+      <GalleryHeader
+        imageCount={previewItems.length}
+        scopePath={scan.scopePath}
+        issueCount={galleryErrors.length}
+        isScanning={isScanning}
+      />
       <div className="min-h-0">
         {galleryState.error && (
           <div className="text-destructive rounded-lg border border-current/20 bg-current/10 px-3 py-2 text-xs">
             {galleryState.error.message}
           </div>
         )}
-        {!galleryState.error && !hasItems && isScanning && (
-          <div className="flex h-full min-h-48 items-center justify-center">
-            <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center">
-              <LuImage className="text-foreground-alt size-5" />
-              <div className="text-foreground text-sm font-semibold">
-                Scanning for images
-              </div>
-              <div className="text-foreground-alt text-xs">
-                The gallery will populate as image files are discovered in this
-                subtree.
-              </div>
-            </div>
-          </div>
-        )}
-        {!galleryState.error && !hasItems && !isScanning && (
-          <div className="flex h-full min-h-48 items-center justify-center">
-            <div className="border-foreground/6 bg-background-card/30 flex max-w-xs flex-col items-center gap-2 rounded-lg border px-4 py-5 text-center">
-              <LuImage className="text-foreground-alt size-5" />
-              <div className="text-foreground text-sm font-semibold">
-                No images under this path
-              </div>
-            </div>
-          </div>
+        {!galleryState.error && !hasItems && (
+          <GalleryEmptyState isScanning={isScanning} />
         )}
         {hasItems && (
           <PhotoProvider
             className="!absolute inset-0 h-full w-full"
             portalContainer={portalContainer ?? undefined}
-            toolbarRender={({ index }) => {
-              const item = lightboxItems[index]
-              if (!item?.previewURL || !spaceId || !sessionIndex) {
-                return null
-              }
-              return (
-                <div className="mr-2 flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20"
-                    onClick={() =>
-                      window.open(
-                        item.previewURL,
-                        '_blank',
-                        'noopener,noreferrer',
-                      )
-                    }
-                    title="Open In Browser"
-                  >
-                    <LuExternalLink className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20"
-                    onClick={() => {
-                      void downloadURL(
-                        buildUnixFSFileDownloadURL(
-                          sessionIndex,
-                          spaceId,
-                          unixfsId,
-                          item.path,
-                          httpPathPrefix,
-                        ),
-                        item.name,
-                      ).catch((err: unknown) => {
-                        console.error('failed to download unixfs file', err)
-                        toast.error('Download failed', {
-                          description: String(err),
-                        })
-                      })
-                    }}
-                    title="Download"
-                  >
-                    <LuDownload className="size-4" />
-                  </button>
-                </div>
-              )
-            }}
+            toolbarRender={toolbarRender}
           >
-            <div
-              data-testid="unixfs-gallery-grid"
-              className="grid-cols-gallery grid gap-3"
-            >
-              {previewItems.map((item) => {
-                const supportsLightbox = !!item.previewURL
-                if (!supportsLightbox) {
-                  return (
-                    <GalleryTile
-                      key={item.path}
-                      interactive={false}
-                      item={item}
-                    />
-                  )
-                }
-                return (
-                  <PhotoView key={item.path} src={item.previewURL}>
-                    <GalleryTile interactive item={item} />
-                  </PhotoView>
-                )
-              })}
-            </div>
+            <GalleryGrid items={previewItems} />
           </PhotoProvider>
         )}
         {!galleryState.error && galleryErrors.length > 0 && (
