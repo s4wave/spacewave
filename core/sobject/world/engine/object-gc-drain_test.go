@@ -61,3 +61,46 @@ func TestWorldEngineDrainedForkReleasesBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestWorldEngineDrainedForkKeepsCommittedPayloads checks that an abandoned
+// transaction which drained a copy of a committed operation's payload leaves
+// the payload owned, so a replay from the checkpoint still rebuilds the file.
+// The payload is held only by the Space bucket, the same owner the abandoned
+// transaction releases its drained blocks from.
+func TestWorldEngineDrainedForkKeepsCommittedPayloads(t *testing.T) {
+	// Start the Space World.
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	w := newSpaceWorld(ctx, t)
+
+	// Commit a file write whose payload the World after it does not reference.
+	if err := world.ExecTransaction(ctx, w.eng, true, w.createFile); err != nil {
+		t.Fatal(err)
+	}
+	if err := world.ExecTransaction(ctx, w.eng, true, w.appendFile); err != nil {
+		t.Fatal(err)
+	}
+
+	// Abandon a transaction that writes the same payload again, then more
+	// blocks than its write buffer holds, so the payload copy drains first.
+	err := world.ExecTransaction(ctx, w.eng, true, func(ctx context.Context, ws world.WorldState) error {
+		if err := w.appendFile(ctx, ws); err != nil {
+			return err
+		}
+		for i := range 5000 {
+			if err := writeExample(ctx, ws, "drained/"+strconv.Itoa(i), "drained "+strconv.Itoa(i)); err != nil {
+				return err
+			}
+		}
+		return errAbandon
+	})
+	if !errors.Is(err, errAbandon) {
+		t.Fatal(err)
+	}
+
+	// Sweep everything unreferenced, then replay from the checkpoint.
+	if _, err := block_gc.NewCollector(w.rg, w.vol, nil).Collect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	w.checkReplayedFile(ctx, t)
+}

@@ -17,9 +17,10 @@ import (
 const replayBaseRootName = "replay-base"
 
 // replaySpanRootName names the local root that holds the World after every
-// replayed operation above the checkpoint. A member replaying from the
-// checkpoint reads each of them, while the head may no longer reach an object
-// root that an operation created and a later operation replaced.
+// replayed operation above the checkpoint and the payloads of those
+// operations. A member replaying from the checkpoint reads each of them, while
+// the head may no longer reach an object root that an operation created and a
+// later operation replaced, and no World need reach a payload.
 const replaySpanRootName = "replay-span"
 
 // replayCursorStoreID is the local state store holding the saved replay.
@@ -41,6 +42,8 @@ type replayOutcome struct {
 	// revoked is set when the operation is not applied but an earlier replay
 	// on this device applied it.
 	revoked bool
+	// payloads are the roots of the operation's payload.
+	payloads []*block.BlockRef
 }
 
 // replayPosition is one replayed operation and the World after it.
@@ -67,6 +70,8 @@ type replayFork struct {
 	hash []byte
 	// state is the World after the write.
 	state *InnerState
+	// payloads are the roots of the write's payload.
+	payloads []*block.BlockRef
 	// published is set when the write committed with the replay save pending
 	// before it, and its World under the accepted World root.
 	published bool
@@ -85,6 +90,8 @@ type replayer struct {
 	c *Controller
 	// so holds the World blocks.
 	so sobject.SharedObject
+	// lookupOp resolves World operations to read their payload roots.
+	lookupOp world.LookupOp
 	// base is the World of the checkpoint, before the first operation.
 	base *InnerState
 	// positions are the replayed operations in order.
@@ -107,7 +114,7 @@ type replayer struct {
 
 // newReplayer constructs a replayer for the World of so.
 func newReplayer(c *Controller, so sobject.SharedObject) *replayer {
-	return &replayer{c: c, so: so}
+	return &replayer{c: c, so: so, lookupOp: c.buildLookupWorldOp(c.le)}
 }
 
 // sync replays snap and returns the World after the last operation it can
@@ -258,6 +265,7 @@ func (r *replayer) load(ctx context.Context) error {
 			reason:   outcome.GetReason(),
 			conflict: outcome.GetConflict(),
 			revoked:  outcome.GetRevoked(),
+			payloads: outcome.GetPayloads(),
 		}
 		r.positions[i].world = outcome.GetWorld()
 		if outcome.GetReason() == "" || outcome.GetRevoked() {
@@ -279,7 +287,7 @@ func (r *replayer) save(ctx context.Context) error {
 	if !r.changed || r.deferred {
 		return nil
 	}
-	_, cursor, err := r.encode()
+	_, cursor, err := r.encode(nil)
 	if err != nil {
 		return err
 	}
@@ -301,21 +309,21 @@ func (r *replayer) save(ctx context.Context) error {
 	return nil
 }
 
-// holdSpan adds to hold the World after every position under
-// replaySpanRootName when save will write the replay, releasing the Worlds of
-// positions a checkpoint now covers.
+// holdSpan adds to hold the World after every position and the payloads of
+// every position under replaySpanRootName when save will write the replay,
+// releasing those of positions a checkpoint now covers.
 func (r *replayer) holdSpan(hold *rootHold) error {
 	// Skip a saved or deferred replay.
 	if !r.changed || r.deferred {
 		return nil
 	}
-	span, _, err := r.encode()
+	span, _, err := r.encode(nil)
 	if err != nil {
 		return err
 	}
 
-	// Hold the span block, or release the name when no World follows the
-	// checkpoint.
+	// Hold the span block, or release the name when no World or payload
+	// follows the checkpoint.
 	if span == nil {
 		hold.release(replaySpanRootName)
 		return nil
@@ -324,26 +332,33 @@ func (r *replayer) holdSpan(hold *rootHold) error {
 }
 
 // pendingSave returns the unsaved replay as parts of a publication: the span
-// block, the span root and the cursor head. It returns no parts when the
-// replay is saved. Call saved once the publication commits.
-func (r *replayer) pendingSave(publisher sobject.StatePublisher) ([]*block.PutBatchEntry, []block.NamedRoot, *block.AtomicHeadUpdate, error) {
-	// Skip a saved replay.
-	if !r.changed {
+// block, the span root and the cursor head. The span also holds payloads, the
+// payloads of the published operation, which replay has not placed yet. It
+// returns no parts when the replay is saved and payloads is empty. Call saved
+// once the publication commits.
+func (r *replayer) pendingSave(publisher sobject.StatePublisher, payloads []*block.BlockRef) ([]*block.PutBatchEntry, []block.NamedRoot, *block.AtomicHeadUpdate, error) {
+	// Skip a saved replay with nothing more to hold.
+	if !r.changed && len(payloads) == 0 {
 		return nil, nil, nil, nil
 	}
-	span, cursor, err := r.encode()
+	span, cursor, err := r.encode(payloads)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	// Name the span, or release the name when no World follows the
-	// checkpoint.
+	// Name the span, or release the name when no World or payload follows
+	// the checkpoint.
 	var entries []*block.PutBatchEntry
 	root := block.NamedRoot{Name: replaySpanRootName}
 	if span != nil {
 		entries, root.Ref = []*block.PutBatchEntry{span}, span.Ref
 	}
-	head := publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
+
+	// Write the cursor only when it changed.
+	var head *block.AtomicHeadUpdate
+	if r.changed {
+		head = publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
+	}
 	return entries, []block.NamedRoot{root}, head, nil
 }
 
@@ -352,21 +367,26 @@ func (r *replayer) saved() {
 	r.changed, r.deferred = false, false
 }
 
-// encode returns the span block referencing the World after every position,
-// or nil when there is none, and the encoded cursor.
-func (r *replayer) encode() (*block.PutBatchEntry, []byte, error) {
+// encode returns the span block referencing the World after every position
+// and the payloads of every position followed by extra, or nil when there is
+// none, and the encoded cursor.
+func (r *replayer) encode(extra []*block.BlockRef) (*block.PutBatchEntry, []byte, error) {
 	// Collect each World once, in replay order. A rejected operation leaves
 	// the World of the position before it.
-	var worlds []*block.BlockRef
+	var worlds, payloads []*block.BlockRef
 	for _, pos := range r.positions {
+		payloads = append(payloads, pos.outcome.payloads...)
 		if pos.world.GetEmpty() || (len(worlds) != 0 && worlds[len(worlds)-1].EqualsRef(pos.world)) {
 			continue
 		}
 		worlds = append(worlds, pos.world)
 	}
+	payloads = append(payloads, extra...)
+
+	// Reference them from one span block.
 	var span *block.PutBatchEntry
-	if len(worlds) != 0 {
-		data, err := (&ReplaySpan{Worlds: worlds}).MarshalVT()
+	if len(worlds) != 0 || len(payloads) != 0 {
+		data, err := (&ReplaySpan{Worlds: worlds, Payloads: payloads}).MarshalVT()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -374,7 +394,7 @@ func (r *replayer) encode() (*block.PutBatchEntry, []byte, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		span = &block.PutBatchEntry{Ref: ref, Data: data, Refs: worlds}
+		span = &block.PutBatchEntry{Ref: ref, Data: data, Refs: slices.Concat(worlds, payloads)}
 	}
 
 	// Encode the base, the outcomes and the World after them.
@@ -391,6 +411,7 @@ func (r *replayer) encode() (*block.PutBatchEntry, []byte, error) {
 			Conflict: pos.outcome.conflict,
 			Revoked:  pos.outcome.revoked,
 			World:    pos.world,
+			Payloads: pos.outcome.payloads,
 		}
 	}
 	data, err := cursor.MarshalVT()
@@ -460,7 +481,7 @@ func (r *replayer) replay(
 		// from.
 		if i == 0 && fork != nil && fork.base == r.base && fork.index == n && bytes.Equal(fork.hash, h) {
 			state = fork.state
-			r.place(replayOutcome{hash: h}, state)
+			r.place(replayOutcome{hash: h, payloads: fork.payloads}, state)
 			continue
 		}
 
@@ -470,7 +491,7 @@ func (r *replayer) replay(
 			outcome.reason = sobject.ReasonEquivocated
 		} else {
 			inner := set.Get(h)
-			next, why, conflict, opErr := r.replayOp(ctx, w, snap, inner, n+i, state)
+			next, opOutcome, opErr := r.replayOp(ctx, w, snap, inner, n+i, state)
 			if block.IsNotAvailable(opErr) {
 				if i == 0 && n != 0 && r.worldLost(ctx, state) {
 					r.positions = nil
@@ -484,7 +505,8 @@ func (r *replayer) replay(
 			if next != nil {
 				state = next
 			}
-			outcome.reason, outcome.conflict = why, conflict
+			opOutcome.hash = h
+			outcome = opOutcome
 		}
 		r.place(outcome, state)
 	}
@@ -533,8 +555,8 @@ func (r *replayer) markApplied(h []byte) {
 }
 
 // replayOp applies one operation to state on w as its author, under the config
-// the operation names. It returns the next World, or nil and the reason the
-// operation was not applied, with whether the World rejected it.
+// the operation names. It returns the next World, or nil when the operation
+// was not applied, and the operation's outcome without its hash.
 func (r *replayer) replayOp(
 	ctx context.Context,
 	w *replayWorld,
@@ -542,20 +564,22 @@ func (r *replayer) replayOp(
 	inner *sobject.SOOperationInner,
 	idx int,
 	state *InnerState,
-) (*InnerState, string, bool, error) {
+) (*InnerState, replayOutcome, error) {
 	// An acknowledgment applies nothing.
+	var outcome replayOutcome
 	if inner.IsAcknowledgment() {
-		return nil, "", false, nil
+		return nil, outcome, nil
 	}
 
 	// Authorize and decode the operation as every member does.
 	writer, opData, reason, err := sobject.PrepareReplayOp(ctx, snap, inner)
 	if err != nil || reason != "" {
-		return nil, reason, false, err
+		outcome.reason = reason
+		return nil, outcome, err
 	}
 	author, err := inner.ParsePeerID()
 	if err != nil {
-		return nil, "", false, err
+		return nil, outcome, err
 	}
 
 	// Apply it as the author's person.
@@ -575,12 +599,21 @@ func (r *replayer) replayOp(
 		state,
 	)
 	if err != nil {
-		return nil, "", false, err
+		return nil, outcome, err
+	}
+
+	// Keep the payload roots of a rejected operation too, since a later order
+	// may apply it. An operation that does not decode applied nothing and
+	// has none.
+	outcome.payloads, err = opPayloadRefs(ctx, r.lookupOp, opData)
+	if err != nil && res.GetSuccess() {
+		return nil, outcome, err
 	}
 	if !res.GetSuccess() {
-		return nil, res.GetErrorDetails().GetErrorMsg(), true, nil
+		outcome.reason, outcome.conflict = res.GetErrorDetails().GetErrorMsg(), true
+		return nil, outcome, nil
 	}
-	return next, "", false, nil
+	return next, outcome, nil
 }
 
 // outcomeReason returns the reason the operation with hash h was not applied,

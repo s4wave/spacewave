@@ -92,28 +92,19 @@ func (t *TxApplyWorldOp) ExecuteTx(
 	lookupOp world.LookupOp,
 	worldInstance world.WorldState,
 ) (sysErr bool, rerr error) {
-	// Translate operation decoding panics into transaction errors.
+	// Translate operation panics into transaction errors.
 	defer func() {
 		if err := recover(); err != nil {
 			if v, ok := err.(error); ok {
 				rerr = v
 			} else {
-				rerr = errors.New("unmarshal operation paniced")
+				rerr = errors.New("apply operation paniced")
 			}
 		}
 	}()
 
-	// Validate the World operation transaction before resolving its operation.
-	if err := t.Validate(); err != nil {
-		return false, err
-	}
-
-	// resolve + construct the operation type
-	opTypeID := t.GetOperationTypeId()
-	op, err := lookupOp(ctx, opTypeID)
-	if err == nil && op == nil {
-		err = errors.Wrap(world.ErrUnhandledOp, opTypeID)
-	}
+	// Decode the operation and resolve its sender.
+	op, err := t.decodeOp(ctx, lookupOp)
 	if err != nil {
 		return false, err
 	}
@@ -126,15 +117,43 @@ func (t *TxApplyWorldOp) ExecuteTx(
 		}
 	}
 
-	// unmarshal the block
-	err = op.UnmarshalBlock(t.GetOperationBody())
-	if err != nil {
-		return false, err
+	// Apply the operation.
+	_, sysErr, err = worldInstance.ApplyWorldOp(ctx, op, sender)
+	return sysErr, nameMissingBlock(err, t.GetOperationTypeId(), op)
+}
+
+// decodeOp validates the transaction and decodes its operation, resolving the
+// operation type with lookupOp.
+func (t *TxApplyWorldOp) decodeOp(ctx context.Context, lookupOp world.LookupOp) (op world.Operation, rerr error) {
+	// Translate decoding panics into errors.
+	defer func() {
+		if err := recover(); err != nil {
+			if v, ok := err.(error); ok {
+				rerr = v
+			} else {
+				rerr = errors.New("unmarshal operation paniced")
+			}
+		}
+	}()
+
+	// Validate the transaction before resolving its operation.
+	if err := t.Validate(); err != nil {
+		return nil, err
 	}
 
-	// apply the operation
-	_, sysErr, err = worldInstance.ApplyWorldOp(ctx, op, sender)
-	return sysErr, nameMissingBlock(err, opTypeID, op)
+	// Construct the operation type and decode the body.
+	opTypeID := t.GetOperationTypeId()
+	op, err := lookupOp(ctx, opTypeID)
+	if err == nil && op == nil {
+		err = errors.Wrap(world.ErrUnhandledOp, opTypeID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := op.UnmarshalBlock(t.GetOperationBody()); err != nil {
+		return nil, err
+	}
+	return op, nil
 }
 
 // _ is a type assertion

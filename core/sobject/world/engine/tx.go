@@ -142,9 +142,10 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	}
 
 	// Every member replays the operation from the checkpoint and reads its
-	// payloads, which the candidate World need not reference. Keep them owned
-	// when Discard releases the blocks the candidate does not reach.
-	t.btx.KeepRoots(t.TakePayloadRefs()...)
+	// payloads, which the candidate World need not reference. The replay span
+	// holds them from the publication, or once replay places the operation,
+	// before Discard releases the blocks the candidate does not reach.
+	t.fork.payloads = t.TakePayloadRefs()
 
 	// Add the operation and install the World after it.
 	taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/queue-operation")
@@ -173,10 +174,11 @@ func (t *soEngineWriteTx) writeBlocks(ctx context.Context) error {
 }
 
 // publish commits the candidate blocks, the state head, the candidate root
-// under the accepted World root and the replay save the last write deferred
-// in one physical transaction, and reports true once it is durable. When
-// head is nil or the store cannot publish, it writes the blocks and reports
-// false; the SharedObject then commits its state itself.
+// under the accepted World root, and the replay save the last write deferred
+// with the span holding the operation's payloads, in one physical
+// transaction, and reports true once it is durable. When head is nil or the
+// store cannot publish, it writes the blocks and reports false; the
+// SharedObject then commits its state itself.
 func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePublisher, root *block.BlockRef, head *block.AtomicHeadUpdate) (bool, error) {
 	// Fall back when the state or the store cannot join a publication.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/publish")
@@ -191,7 +193,7 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 	if err != nil {
 		return false, err
 	}
-	saveEntries, roots, cursor, err := t.eng.replay.pendingSave(publisher)
+	saveEntries, roots, cursor, err := t.eng.replay.pendingSave(publisher, t.fork.payloads)
 	if err != nil {
 		batch.Complete(err)
 		return false, err

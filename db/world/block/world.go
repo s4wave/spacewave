@@ -49,9 +49,6 @@ type WorldState struct {
 	// A buffer over a staged session store leaves them to the publication,
 	// since releasing through that store would publish it early.
 	releaseOwned bool
-	// keepRoots are written roots outside the World tree whose blocks Discard
-	// keeps owned with the final root's. See KeepRoots.
-	keepRoots []*block.BlockRef
 
 	objTree   kvtx.BlockTx
 	graphTree kvtx.BlockTx
@@ -489,14 +486,6 @@ func (t *WorldState) setBlockTransaction(
 	return nil
 }
 
-// KeepRoots keeps the blocks this state wrote that roots reach owned when
-// Discard releases the blocks the final root does not reach. Use it for blocks
-// that outlive the state outside the World tree, such as the payload of an
-// operation that is replayed later.
-func (t *WorldState) KeepRoots(roots ...*block.BlockRef) {
-	t.keepRoots = append(t.keepRoots, roots...)
-}
-
 // Discard discards the resources in the WorldState.
 func (t *WorldState) Discard() {
 	// Discard only once.
@@ -513,10 +502,9 @@ func (t *WorldState) Discard() {
 	}
 	t.btx.DiscardStagedWrites()
 
-	// Release the written blocks neither the final root nor a kept root reaches.
+	// Release the written blocks the final root does not reach.
 	if t.releaseOwned {
-		roots := append([]*block.BlockRef{t.GetRootRef()}, t.keepRoots...)
-		if err := t.ownedStore.ReleaseUnreached(context.Background(), roots...); err != nil {
+		if err := t.ownedStore.ReleaseUnreached(context.Background(), t.GetRootRef()); err != nil {
 			t.le.WithError(err).Warn("unable to release unreached world blocks")
 		}
 	}

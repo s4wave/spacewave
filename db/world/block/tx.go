@@ -201,15 +201,6 @@ func (t *Tx) Commit(ctx context.Context) error {
 	return err
 }
 
-// KeepRoots keeps the blocks the transaction wrote that roots reach owned when
-// Discard releases the rest. See WorldState.KeepRoots.
-func (t *Tx) KeepRoots(roots ...*block.BlockRef) {
-	lkr := t.rmtx.Locker()
-	lkr.Lock()
-	t.state.KeepRoots(roots...)
-	lkr.Unlock()
-}
-
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.

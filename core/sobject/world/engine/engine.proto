@@ -79,14 +79,20 @@ message ReplayCursorOutcome {
   bool revoked = 4;
   // World is the root block of the World after the operation.
   .block.BlockRef world = 5;
+  // Payloads are the roots of the operation's payload, which replay reads
+  // again while the operation is above the checkpoint.
+  repeated .block.BlockRef payloads = 6;
 }
 
 // ReplaySpan is the block each member keeps as its one local named root for
-// the Worlds after the replayed operations above the checkpoint. Its outgoing
-// refs are those Worlds.
+// the Worlds after the replayed operations above the checkpoint and the
+// payloads of those operations. Its outgoing refs are those Worlds and
+// payloads.
 message ReplaySpan {
   // Worlds are the World root blocks in replay order.
   repeated .block.BlockRef worlds = 1;
+  // Payloads are the operation payload roots in replay order.
+  repeated .block.BlockRef payloads = 2;
 }
 
 // RetainedRoot is a past World root kept restorable under a name.
