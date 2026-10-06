@@ -78,6 +78,10 @@ message Config {
   // HostExportPluginIds lists plugins that may execute plugins on this
   // scheduler's plugin hosts through the HostExport service.
   repeated string host_export_plugin_ids = 20;
+  // PluginIds limits the scheduler to these plugins. It leaves the LoadPlugin
+  // directives and plugin RPC lookups of every other plugin to the rest of the
+  // bus. Empty schedules every plugin not in ExternalPluginIds.
+  repeated string plugin_ids = 21;
 }
 
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.

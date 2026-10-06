@@ -90,6 +90,10 @@ type Config struct {
 	// HostExportPluginIds lists plugins that may execute plugins on this
 	// scheduler's plugin hosts through the HostExport service.
 	HostExportPluginIds []string `protobuf:"bytes,20,rep,name=host_export_plugin_ids,json=hostExportPluginIds,proto3" json:"hostExportPluginIds,omitempty"`
+	// PluginIds limits the scheduler to these plugins. It leaves the LoadPlugin
+	// directives and plugin RPC lookups of every other plugin to the rest of the
+	// bus. Empty schedules every plugin not in ExternalPluginIds.
+	PluginIds []string `protobuf:"bytes,21,rep,name=plugin_ids,json=pluginIds,proto3" json:"pluginIds,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -238,6 +242,13 @@ func (x *Config) GetHostExportPluginIds() []string {
 	return nil
 }
 
+func (x *Config) GetPluginIds() []string {
+	if x != nil {
+		return x.PluginIds
+	}
+	return nil
+}
+
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.
 type PlatformSelectionPolicy struct {
 	unknownFields []byte
@@ -304,6 +315,7 @@ func (m *Config) CloneVT() *Config {
 	r.UpdateGuardPluginIds = protobuf_go_lite.CloneSlice(m.UpdateGuardPluginIds)
 	r.ExternalPluginIds = protobuf_go_lite.CloneSlice(m.ExternalPluginIds)
 	r.HostExportPluginIds = protobuf_go_lite.CloneSlice(m.HostExportPluginIds)
+	r.PluginIds = protobuf_go_lite.CloneSlice(m.PluginIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -398,6 +410,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if !protobuf_go_lite.EqualSlice(this.HostExportPluginIds, that.HostExportPluginIds) {
 		return false
 	}
+	if !protobuf_go_lite.EqualSlice(this.PluginIds, that.PluginIds) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -408,7 +423,6 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
-
 func (this *PlatformSelectionPolicy) EqualVT(that *PlatformSelectionPolicy) bool {
 	if this == that {
 		return true
@@ -549,6 +563,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("hostExportPluginIds")
 		s.WriteStringArray(x.HostExportPluginIds)
 	}
+	if len(x.PluginIds) > 0 || s.HasField("pluginIds") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pluginIds")
+		s.WriteStringArray(x.PluginIds)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -665,6 +684,13 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.HostExportPluginIds = s.ReadStringArray()
+		case "plugin_ids", "pluginIds":
+			s.AddField("plugin_ids")
+			if s.ReadNil() {
+				x.PluginIds = nil
+				return
+			}
+			x.PluginIds = s.ReadStringArray()
 		}
 	})
 }
@@ -768,6 +794,15 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PluginIds) > 0 {
+		for iNdEx := len(m.PluginIds) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginIds[iNdEx])
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
 	}
 	if len(m.HostExportPluginIds) > 0 {
 		for iNdEx := len(m.HostExportPluginIds) - 1; iNdEx >= 0; iNdEx-- {
@@ -993,6 +1028,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(2, m.HostStorageId)
 	n += protobuf_go_lite.SizeStringSlice(2, m.ExternalPluginIds)
 	n += protobuf_go_lite.SizeStringSlice(2, m.HostExportPluginIds)
+	n += protobuf_go_lite.SizeStringSlice(2, m.PluginIds)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1117,13 +1153,20 @@ func (x *Config) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.PluginIds) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "plugin_ids")
+		for i, v := range x.PluginIds {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
-
 func (x *PlatformSelectionPolicy) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PlatformSelectionPolicy")
@@ -1153,7 +1196,6 @@ func (x *PlatformSelectionPolicy) MarshalProtoText() string {
 func (x *PlatformSelectionPolicy) String() string {
 	return x.MarshalProtoText()
 }
-
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1386,6 +1428,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.HostExportPluginIds = append(m.HostExportPluginIds, v)
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PluginIds", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PluginIds = append(m.PluginIds, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1408,7 +1460,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-
 func (m *PlatformSelectionPolicy) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

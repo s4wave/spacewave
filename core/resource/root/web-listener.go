@@ -43,12 +43,12 @@ const webListenerReadHeaderTimeout = 5 * time.Second
 // webResourcePath serves a bound listener's Resource service over a websocket.
 const webResourcePath = "/_spacewave/resource"
 
-// webAppPluginID is the plugin whose browser build a bound listener serves.
-const webAppPluginID = "spacewave-app"
+// WebAppPluginID is the plugin whose browser build a bound listener serves.
+const WebAppPluginID = "spacewave-app"
 
 // webAppFrontendPath is the root of the app plugin's frontend build. A bound
 // listener's shell loads the app entry from its Vite manifest.
-const webAppFrontendPath = "/b/pa/" + webAppPluginID + "/v/b/fe/"
+const webAppFrontendPath = "/b/pa/" + WebAppPluginID + "/v/b/fe/"
 
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
@@ -360,7 +360,7 @@ func newWebListener(
 		capabilities:    make(map[string]time.Time),
 	}
 	if spec.spaceID != "" && b != nil {
-		_, listener.appAssets, err = b.AddDirective(bldr_plugin.NewLoadPluginAssets(webAppPluginID), nil)
+		_, listener.appAssets, err = b.AddDirective(bldr_plugin.NewLoadPluginAssets(WebAppPluginID), nil)
 		if err != nil {
 			cancel()
 			_ = lis.Close()

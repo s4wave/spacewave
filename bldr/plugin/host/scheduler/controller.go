@@ -389,7 +389,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 // keys start further instances on this scheduler; the bus the scheduler runs
 // on bounds which callers can reach them.
 func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
-	if slices.Contains(c.conf.GetExternalPluginIds(), dir.LoadPluginID()) {
+	if !c.conf.SchedulesPlugin(dir.LoadPluginID()) {
 		return nil, nil
 	}
 	instanceKey := dir.LoadPluginInstanceKey()
@@ -484,19 +484,19 @@ func (c *Controller) WaitPluginHostClient(ctx context.Context, released func()) 
 	return c.hostClient, nil, nil
 }
 
-// WaitPluginClient waits for an RPC client for a plugin.
-//
-// if pluginID is invalid, returns an error.
-//
-// Released is a function to call if the client becomes invalid.
-// Returns nil, nil, err if any error.
-// Returns nil, nil, nil to skip resolving the client.
-// Otherwise returns client, releaseFunc, nil
+// WaitPluginClient waits for an RPC client for a plugin the scheduler loads.
+// It returns nil, nil, nil for any other plugin, so the lookup stays with the
+// rest of the bus. Released is called if the client becomes invalid.
 func (c *Controller) WaitPluginClient(ctx context.Context, released func(), pluginID string) (srpc.Client, func(), error) {
+	// Reject invalid IDs and leave other plugins to the rest of the bus.
 	if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
 		return nil, nil, err
 	}
+	if !c.conf.SchedulesPlugin(pluginID) {
+		return nil, nil, nil
+	}
 
+	// Load the plugin and wait for its client.
 	client, ref, err := bldr_plugin.ExPluginLoadInstancedWaitClient(
 		ctx,
 		c.bus,

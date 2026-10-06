@@ -11,6 +11,8 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -21,6 +23,7 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/daemon"
@@ -28,6 +31,7 @@ import (
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
+	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -255,6 +259,42 @@ func runServeCommand(
 		releasePluginHost = release
 		nativeHostRoot = pluginHost.ProcessHost.GetHostRoot()
 		defer releasePluginHost()
+
+		// Serve the files of a local app build imported into the daemon
+		// World, for bound web listeners. The scheduler leaves every other
+		// plugin to native core and runs nothing: both host platforms deny
+		// the app. Imported blocks are already in the daemon volume.
+		vol := cliBus.GetVolume()
+		schedConf := plugin_host_default.NewSchedulerConfig(
+			"",
+			cliBus.GetWorldEngineID(),
+			defaultPluginHostObjectKey,
+			vol.GetID(),
+			vol.GetPeerID().String(),
+			false, // No remote catalog fetches manifests.
+			false, // Keep the World store as the only manifest source.
+			true,  // Do not copy manifests the volume already holds.
+		)
+		schedConf.PluginIds = []string{resource_root.WebAppPluginID}
+		for _, platformID := range []string{
+			bldr_platform.NewJsPlatform().GetPlatformID(),
+			(&bldr_platform.NativePlatform{}).GetPlatformID(),
+		} {
+			schedConf.PlatformSelectionPolicies = append(schedConf.PlatformSelectionPolicies, &plugin_host_scheduler.PlatformSelectionPolicy{
+				PlatformId:      platformID,
+				DeniedPluginIds: schedConf.PluginIds,
+			})
+		}
+		_, _, schedRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
+			serveCtx,
+			cliBus.GetBus(),
+			resolver.NewLoadControllerWithConfig(schedConf),
+			nil,
+		)
+		if err != nil {
+			return err
+		}
+		defer schedRef.Release()
 	}
 
 	// Tie background projections and remote services to the serving lifetime.

@@ -19,6 +19,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
+	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
@@ -143,6 +144,7 @@ func runSharedDaemonFixture() error {
 		for _, factory := range plugin_host_default.PluginHostControllerFactories {
 			cliBus.GetStaticResolver().AddFactory(factory(cliBus.GetBus()))
 		}
+		cliBus.GetStaticResolver().AddFactory(plugin_host_scheduler.NewFactory(cliBus.GetBus()))
 		if os.Getenv(sharedDaemonFixtureMode) == "distribution" {
 			pluginStateRoot := filepath.Join(statePath, "plugin", "state")
 			pluginDistRoot := filepath.Join(statePath, "plugin", "dist")

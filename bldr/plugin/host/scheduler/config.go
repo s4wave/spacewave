@@ -44,8 +44,8 @@ func NewConfig(
 	}
 }
 
-// Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// Validate checks that the configuration is well formed. It does not check
+// that the referenced engine, volume, or plugins exist.
 func (c *Config) Validate() error {
 	// Validate the peer, engine, object key, and volume ids.
 	if len(c.GetPeerId()) == 0 {
@@ -82,6 +82,13 @@ func (c *Config) Validate() error {
 					pluginID,
 				)
 			}
+		}
+	}
+
+	// Validate the scheduled plugin ids.
+	for _, pluginID := range c.GetPluginIds() {
+		if err := bldr_plugin.ValidatePluginID(pluginID, false); err != nil {
+			return errors.Wrap(err, "plugin_ids")
 		}
 	}
 
@@ -144,6 +151,15 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 // BuildExecBackoff gets the ExecBackoff and fills defaults if applicable.
 func (c *Config) BuildExecBackoff() *backoff.Backoff {
 	return c.buildBackoff(c.GetExecBackoff(), 2100)
+}
+
+// SchedulesPlugin reports whether the scheduler loads pluginID.
+func (c *Config) SchedulesPlugin(pluginID string) bool {
+	if slices.Contains(c.GetExternalPluginIds(), pluginID) {
+		return false
+	}
+	pluginIDs := c.GetPluginIds()
+	return len(pluginIDs) == 0 || slices.Contains(pluginIDs, pluginID)
 }
 
 // FilterPluginPlatformIDs filters platform IDs through PlatformSelectionPolicies.

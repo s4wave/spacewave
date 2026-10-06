@@ -218,6 +218,14 @@ export interface Config {
    * @generated from field: repeated string host_export_plugin_ids = 20;
    */
   hostExportPluginIds?: string[]
+  /**
+   * PluginIds limits the scheduler to these plugins. It leaves the LoadPlugin
+   * directives and plugin RPC lookups of every other plugin to the rest of the
+   * bus. Empty schedules every plugin not in ExternalPluginIds.
+   *
+   * @generated from field: repeated string plugin_ids = 21;
+   */
+  pluginIds?: string[]
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -289,6 +297,13 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     {
       no: 20,
       name: 'host_export_plugin_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 21,
+      name: 'plugin_ids',
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
