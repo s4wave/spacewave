@@ -13,6 +13,8 @@
  * `.flexlayout__outline_rect` element becomes hidden or is removed,
  * making it impossible to see where the tab would be dropped.
  */
+import { Layout, Model } from '@aptre/flex-layout'
+import { useState } from 'react'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, cleanup } from 'vitest-browser-react'
 
@@ -20,6 +22,35 @@ import '@s4wave/web/style/app.css'
 
 import { AppShell } from './AppShell.js'
 import { EditorShell } from './EditorShell.js'
+
+/** nestedFactory renders the content of the nested layout's only tab. */
+function nestedFactory() {
+  return <div>Nested content</div>
+}
+
+/** NestedLayoutContent renders a nested flex layout, simulating a Space's tab content. */
+function NestedLayoutContent({ testId }: { testId: string }) {
+  const [nestedModel] = useState(() =>
+    Model.fromJson({
+      global: {},
+      layout: {
+        type: 'row',
+        children: [
+          {
+            type: 'tabset',
+            children: [{ type: 'tab', name: 'Nested Tab', component: 'test' }],
+          },
+        ],
+      },
+    }),
+  )
+
+  return (
+    <div className="relative size-full" data-testid={testId}>
+      <Layout model={nestedModel} factory={nestedFactory} />
+    </div>
+  )
+}
 
 describe('Tab Drag Overlay Visibility Bug', () => {
   beforeEach(() => {
@@ -395,35 +426,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     // 1. Creating a mock nested FlexLayout inside tab content
     // 2. Testing drag behavior when cursor moves into nested layout area
 
-    const { Layout, Model } = await import('@aptre/flex-layout')
-
     // Create a component that renders a nested FlexLayout (simulating SpaceFlexLayout)
-    function NestedLayoutContent() {
-      const nestedModel = Model.fromJson({
-        global: {},
-        layout: {
-          type: 'row',
-          children: [
-            {
-              type: 'tabset',
-              children: [
-                { type: 'tab', name: 'Nested Tab', component: 'test' },
-              ],
-            },
-          ],
-        },
-      })
-
-      return (
-        <div className="relative size-full" data-testid="nested-layout-wrapper">
-          <Layout
-            model={nestedModel}
-            factory={() => <div>Nested content</div>}
-          />
-        </div>
-      )
-    }
-
     // Create a custom shell with nested layout
     const shellModel = Model.fromJson({
       global: {},
@@ -446,7 +449,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
         model={shellModel}
         factory={(node) => {
           if (node.getComponent() === 'nested') {
-            return <NestedLayoutContent />
+            return <NestedLayoutContent testId="nested-layout-wrapper" />
           }
           return <div>Simple content for {node.getName()}</div>
         }}
@@ -628,37 +631,6 @@ describe('Tab Drag Overlay Visibility Bug', () => {
     // 2. dragleave fires on shell layout (for the specific child element)
     // This can cause dragEnterCount imbalance in FlexLayout.
 
-    const { Layout, Model } = await import('@aptre/flex-layout')
-
-    function NestedLayoutContent() {
-      const nestedModel = Model.fromJson({
-        global: {},
-        layout: {
-          type: 'row',
-          children: [
-            {
-              type: 'tabset',
-              children: [
-                { type: 'tab', name: 'Nested Tab', component: 'test' },
-              ],
-            },
-          ],
-        },
-      })
-
-      return (
-        <div
-          className="relative size-full"
-          data-testid="nested-layout-wrapper-v2"
-        >
-          <Layout
-            model={nestedModel}
-            factory={() => <div>Nested content</div>}
-          />
-        </div>
-      )
-    }
-
     const shellModel = Model.fromJson({
       global: {},
       layout: {
@@ -680,7 +652,7 @@ describe('Tab Drag Overlay Visibility Bug', () => {
         model={shellModel}
         factory={(node) => {
           if (node.getComponent() === 'nested') {
-            return <NestedLayoutContent />
+            return <NestedLayoutContent testId="nested-layout-wrapper-v2" />
           }
           return <div data-testid="simple-content">Simple content</div>
         }}
