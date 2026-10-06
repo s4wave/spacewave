@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
@@ -186,6 +187,7 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
 	}
 	t.stopStartupWaitBudget()
+	admittedAt := time.Now()
 
 	// The worker's callback keeps public state current even while another
 	// candidate is preparing. A crashed admitted worker is released before retry.
@@ -198,6 +200,12 @@ func (t *pluginInstance) execSelectedCandidate(ctx context.Context, args *execut
 		return err
 	}
 	t.clearExecution(worker)
+
+	// A worker that outlived the longest restart delay restarts promptly. One
+	// that crashes sooner keeps growing the delay like a startup failure.
+	if time.Since(admittedAt) >= execBackoffMaxInterval {
+		t.execBackoff.Reset()
+	}
 	return errors.New("admitted plugin exited")
 }
 
