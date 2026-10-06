@@ -22,8 +22,8 @@ import (
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -32,7 +32,7 @@ import (
 
 const (
 	multiProcessStressEnv        = "SPACEWAVE_WORLD_ENGINE_STRESS_ROLE"
-	multiProcessStressPathEnv    = "SPACEWAVE_WORLD_ENGINE_STRESS_BOLT_PATH"
+	multiProcessStressPathEnv    = "SPACEWAVE_WORLD_ENGINE_STRESS_PATH"
 	multiProcessStressIDEnv      = "SPACEWAVE_WORLD_ENGINE_STRESS_ID"
 	multiProcessStressItersEnv   = "SPACEWAVE_WORLD_ENGINE_STRESS_ITERS"
 	multiProcessStressWritersEnv = "SPACEWAVE_WORLD_ENGINE_STRESS_WRITERS"
@@ -42,29 +42,26 @@ const (
 	multiProcessStressBucketID      = "test-bucket"
 
 	objectStoreCASEnv        = "SPACEWAVE_OBJECTSTORE_CAS_ROLE"
-	objectStoreCASPathEnv    = "SPACEWAVE_OBJECTSTORE_CAS_BOLT_PATH"
+	objectStoreCASPathEnv    = "SPACEWAVE_OBJECTSTORE_CAS_PATH"
 	objectStoreCASIDEnv      = "SPACEWAVE_OBJECTSTORE_CAS_ID"
 	objectStoreCASItersEnv   = "SPACEWAVE_OBJECTSTORE_CAS_ITERS"
 	objectStoreCASWritersEnv = "SPACEWAVE_OBJECTSTORE_CAS_WRITERS"
 	objectStoreCASStoreID    = "multi-process-objectstore-cas"
 )
 
-func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
-	// Dispatch a World stress child or require the enabled parent harness.
+func TestWorldEngineMultiProcessStress(t *testing.T) {
+	// Dispatch a World stress child, or run the parent harness.
 	if role := os.Getenv(multiProcessStressEnv); role != "" {
 		runWorldEngineStressWorker(t, role)
 		return
 	}
-	if os.Getenv("SPACEWAVE_RUN_BBOLT_MULTIPROCESS_STRESS") != "1" {
-		t.Skip("set SPACEWAVE_RUN_BBOLT_MULTIPROCESS_STRESS=1 to run the known-failing bbolt multi-process stress harness")
-	}
 	if testing.Short() {
-		t.Skip("skipping multi-process bbolt world stress in short mode")
+		t.Skip("skipping multi-process World stress in short mode")
 	}
 
-	// Initialize the shared Bolt World before starting stress processes.
-	boltPath := filepath.Join(t.TempDir(), "world-engine-stress.bolt")
-	initWorldEngineStressVolume(t, boltPath)
+	// Initialize the shared s4db World before starting stress processes.
+	path := filepath.Join(t.TempDir(), "world-engine-stress.s4wave")
+	initWorldEngineStressVolume(t, path)
 
 	// Read the World stress writer, reader, and iteration counts.
 	writers := stressEnvInt(multiProcessStressWritersEnv, 3)
@@ -74,10 +71,10 @@ func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
 	// Construct the World stress writer and reader processes.
 	var cmds []*exec.Cmd
 	for i := range writers {
-		cmds = append(cmds, worldEngineStressCommand(t, boltPath, "writer", i, iterations))
+		cmds = append(cmds, worldEngineStressCommand(t, path, "writer", i, iterations))
 	}
 	for i := range readers {
-		cmds = append(cmds, worldEngineStressCommand(t, boltPath, "reader", i, iterations*writers))
+		cmds = append(cmds, worldEngineStressCommand(t, path, "reader", i, iterations*writers))
 	}
 
 	// Start and join all World stress processes.
@@ -93,7 +90,7 @@ func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
 	}
 
 	// Verify the shared World after all stress processes complete.
-	verifier := worldEngineStressCommand(t, boltPath, "verifier", 0, iterations)
+	verifier := worldEngineStressCommand(t, path, "verifier", 0, iterations)
 	verifier.Env = append(verifier.Env, multiProcessStressWritersEnv+"="+strconv.Itoa(writers))
 	if err := verifier.Start(); err != nil {
 		t.Fatalf("start verifier: %v", err)
@@ -103,22 +100,19 @@ func TestWorldEngineBboltMultiProcessStress(t *testing.T) {
 	}
 }
 
-func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
-	// Dispatch an ObjectStore CAS child or require the enabled parent harness.
+func TestObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
+	// Dispatch an ObjectStore CAS child, or run the parent harness.
 	if role := os.Getenv(objectStoreCASEnv); role != "" {
 		runObjectStoreCASWorker(t, role)
 		return
 	}
-	if os.Getenv("SPACEWAVE_RUN_BBOLT_MULTIPROCESS_STRESS") != "1" {
-		t.Skip("set SPACEWAVE_RUN_BBOLT_MULTIPROCESS_STRESS=1 to run the bbolt object store CAS stress harness")
-	}
 	if testing.Short() {
-		t.Skip("skipping multi-process bbolt object store CAS stress in short mode")
+		t.Skip("skipping multi-process object store CAS stress in short mode")
 	}
 
-	// Initialize the shared Bolt ObjectStore before starting CAS writers.
-	boltPath := filepath.Join(t.TempDir(), "objectstore-cas.bolt")
-	initObjectStoreCASVolume(t, boltPath)
+	// Initialize the shared s4db ObjectStore before starting CAS writers.
+	path := filepath.Join(t.TempDir(), "objectstore-cas.s4wave")
+	initObjectStoreCASVolume(t, path)
 
 	// Read the ObjectStore CAS writer and iteration counts.
 	writers := stressEnvInt(objectStoreCASWritersEnv, 3)
@@ -127,7 +121,7 @@ func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
 	// Construct and start the ObjectStore CAS writer processes.
 	var cmds []*exec.Cmd
 	for i := range writers {
-		cmds = append(cmds, objectStoreCASCommand(t, boltPath, "writer", i, iterations))
+		cmds = append(cmds, objectStoreCASCommand(t, path, "writer", i, iterations))
 	}
 	for _, cmd := range cmds {
 		if err := cmd.Start(); err != nil {
@@ -143,7 +137,7 @@ func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
 	}
 
 	// Verify the shared ObjectStore after all CAS writers complete.
-	verifier := objectStoreCASCommand(t, boltPath, "verifier", 0, iterations)
+	verifier := objectStoreCASCommand(t, path, "verifier", 0, iterations)
 	verifier.Env = append(verifier.Env, objectStoreCASWritersEnv+"="+strconv.Itoa(writers))
 	if err := verifier.Start(); err != nil {
 		t.Fatalf("start object store cas verifier: %v", err)
@@ -153,14 +147,14 @@ func TestBboltObjectStoreMultiProcessCoordinationCAS(t *testing.T) {
 	}
 }
 
-func initWorldEngineStressVolume(t *testing.T, boltPath string) {
+func initWorldEngineStressVolume(t *testing.T, path string) {
 	// Bound the initial World stress setup with a context deadline.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	// Open the Bolt testbed and its World engine controller.
-	tb := newWorldEngineStressTestbed(t, ctx, boltPath, "init")
+	// Open the s4db testbed and its World engine controller.
+	tb := newWorldEngineStressTestbed(t, ctx, path, "init")
 	defer tb.Release()
 	ctrl, ref := startWorldEngineStressController(t, ctx, tb, "stress-init")
 	defer ref.Release()
@@ -187,14 +181,14 @@ func initWorldEngineStressVolume(t *testing.T, boltPath string) {
 	}
 }
 
-func initObjectStoreCASVolume(t *testing.T, boltPath string) {
+func initObjectStoreCASVolume(t *testing.T, path string) {
 	// Bound the initial ObjectStore CAS setup with a context deadline.
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	// Open the Bolt testbed and coordinated ObjectStore.
-	tb := newWorldEngineStressTestbed(t, ctx, boltPath, "objectstore-cas-init")
+	// Open the s4db testbed and coordinated ObjectStore.
+	tb := newWorldEngineStressTestbed(t, ctx, path, "objectstore-cas-init")
 	defer tb.Release()
 	store, release := openObjectStoreCASStore(t, ctx, tb)
 	defer release()
@@ -214,7 +208,7 @@ func initObjectStoreCASVolume(t *testing.T, boltPath string) {
 	}
 }
 
-func objectStoreCASCommand(t *testing.T, boltPath, role string, id, iterations int) *exec.Cmd {
+func objectStoreCASCommand(t *testing.T, path, role string, id, iterations int) *exec.Cmd {
 	// Attribute ObjectStore CAS command failures to the calling test.
 	t.Helper()
 
@@ -222,12 +216,12 @@ func objectStoreCASCommand(t *testing.T, boltPath, role string, id, iterations i
 	// through test-owned environment variables.
 	cmd := exec.Command( //nolint:gosec
 		os.Args[0],
-		"-test.run=^TestBboltObjectStoreMultiProcessCoordinationCAS$",
+		"-test.run=^TestObjectStoreMultiProcessCoordinationCAS$",
 		"-test.v",
 	)
 	cmd.Env = append(os.Environ(),
 		objectStoreCASEnv+"="+role,
-		objectStoreCASPathEnv+"="+boltPath,
+		objectStoreCASPathEnv+"="+path,
 		objectStoreCASIDEnv+"="+strconv.Itoa(id),
 		objectStoreCASItersEnv+"="+strconv.Itoa(iterations),
 	)
@@ -237,7 +231,7 @@ func objectStoreCASCommand(t *testing.T, boltPath, role string, id, iterations i
 	return cmd
 }
 
-func worldEngineStressCommand(t *testing.T, boltPath, role string, id, iterations int) *exec.Cmd {
+func worldEngineStressCommand(t *testing.T, path, role string, id, iterations int) *exec.Cmd {
 	// Attribute World stress command failures to the calling test.
 	t.Helper()
 
@@ -245,12 +239,12 @@ func worldEngineStressCommand(t *testing.T, boltPath, role string, id, iteration
 	// through test-owned environment variables.
 	cmd := exec.Command( //nolint:gosec
 		os.Args[0],
-		"-test.run=^TestWorldEngineBboltMultiProcessStress$",
+		"-test.run=^TestWorldEngineMultiProcessStress$",
 		"-test.v",
 	)
 	cmd.Env = append(os.Environ(),
 		multiProcessStressEnv+"="+role,
-		multiProcessStressPathEnv+"="+boltPath,
+		multiProcessStressPathEnv+"="+path,
 		multiProcessStressIDEnv+"="+strconv.Itoa(id),
 		multiProcessStressItersEnv+"="+strconv.Itoa(iterations),
 	)
@@ -289,9 +283,9 @@ func waitWorldEngineStressCommand(cmd *exec.Cmd, timeout time.Duration) error {
 
 func runWorldEngineStressWorker(t *testing.T, role string) {
 	// Read and validate the World stress child configuration.
-	boltPath := os.Getenv(multiProcessStressPathEnv)
-	if boltPath == "" {
-		t.Fatal("stress bolt path env is empty")
+	path := os.Getenv(multiProcessStressPathEnv)
+	if path == "" {
+		t.Fatal("stress volume path env is empty")
 	}
 	id, err := strconv.Atoi(os.Getenv(multiProcessStressIDEnv))
 	if err != nil {
@@ -306,8 +300,8 @@ func runWorldEngineStressWorker(t *testing.T, role string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
-	// Open the shared Bolt World through the stress controller.
-	tb := newWorldEngineStressTestbed(t, ctx, boltPath, fmt.Sprintf("%s-%d", role, id))
+	// Open the shared s4db World through the stress controller.
+	tb := newWorldEngineStressTestbed(t, ctx, path, fmt.Sprintf("%s-%d", role, id))
 	defer tb.Release()
 	ctrl, ref := startWorldEngineStressController(t, ctx, tb, fmt.Sprintf("stress-%s-%d", role, id))
 	defer ref.Release()
@@ -335,9 +329,9 @@ func runWorldEngineStressWorker(t *testing.T, role string) {
 
 func runObjectStoreCASWorker(t *testing.T, role string) {
 	// Read and validate the ObjectStore CAS child configuration.
-	boltPath := os.Getenv(objectStoreCASPathEnv)
-	if boltPath == "" {
-		t.Fatal("object store CAS bolt path env is empty")
+	path := os.Getenv(objectStoreCASPathEnv)
+	if path == "" {
+		t.Fatal("object store CAS volume path env is empty")
 	}
 	id, err := strconv.Atoi(os.Getenv(objectStoreCASIDEnv))
 	if err != nil {
@@ -352,8 +346,8 @@ func runObjectStoreCASWorker(t *testing.T, role string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
-	// Open the shared Bolt ObjectStore for the CAS child.
-	tb := newWorldEngineStressTestbed(t, ctx, boltPath, fmt.Sprintf("objectstore-cas-%s-%d", role, id))
+	// Open the shared s4db ObjectStore for the CAS child.
+	tb := newWorldEngineStressTestbed(t, ctx, path, fmt.Sprintf("objectstore-cas-%s-%d", role, id))
 	defer tb.Release()
 	store, release := openObjectStoreCASStore(t, ctx, tb)
 	defer release()
@@ -376,16 +370,16 @@ func runObjectStoreCASWorker(t *testing.T, role string) {
 func newWorldEngineStressTestbed(
 	t *testing.T,
 	ctx context.Context,
-	boltPath string,
+	path string,
 	id string,
 ) *testbed.Testbed {
-	// Open the shared Bolt testbed and register the World engine factory.
+	// Open the shared s4db testbed and register the World engine factory.
 	t.Helper()
 	log := logrus.New()
 	log.SetLevel(logrus.WarnLevel)
 	le := logrus.NewEntry(log).WithField("stress", id)
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_bolt.Config{
-		Path: boltPath,
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_s4db.Config{
+		Path: path,
 		VolumeConfig: &volume_controller.Config{
 			GcIntervalDur: "0",
 		},
@@ -567,7 +561,7 @@ func startWorldEngineStressController(
 	tb *testbed.Testbed,
 	engineID string,
 ) (*world_block_engine.Controller, interface{ Release() }) {
-	// Configure and start the World stress controller on the shared Bolt volume.
+	// Configure and start the World stress controller on the shared s4db volume.
 	t.Helper()
 	transformConf, err := block_transform.NewConfig(nil)
 	if err != nil {

@@ -4,22 +4,18 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
-	bbolt_errors "github.com/aperturerobotics/bbolt/errors"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	volume "github.com/s4wave/spacewave/db/volume"
 	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/sirupsen/logrus"
 )
 
-type stubCollectorGraph struct {
-	unreferencedErr error
-}
+// stubCollectorGraph is an empty reference graph.
+type stubCollectorGraph struct{}
 
 func (stubCollectorGraph) AddRef(context.Context, string, string) error { return nil }
 func (stubCollectorGraph) RemoveRef(context.Context, string, string) error {
@@ -50,10 +46,7 @@ func (stubCollectorGraph) GetIncomingRefs(context.Context, string) ([]string, er
 	return nil, nil
 }
 
-func (g stubCollectorGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
-	if g.unreferencedErr != nil {
-		return nil, g.unreferencedErr
-	}
+func (stubCollectorGraph) GetUnreferencedNodes(context.Context) ([]string, error) {
 	return nil, nil
 }
 
@@ -159,61 +152,10 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 	}
 }
 
-func TestRunGCSweepReturnsLockFileChanged(t *testing.T) {
-	// Bound the test lifetime if collection fails to return its storage error.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	// Create an in-memory volume for the failing reference graph.
-	vol, err := common_kvtx.NewVolume(
-		ctx,
-		"test-volume",
-		store_kvkey.NewDefaultKVKey(),
-		store_kvtx_inmem.NewStore(),
-		nil,
-		false,
-		false,
-		nil,
-		nil,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer vol.Close()
-
-	// Expose a reference graph whose collection reports a changed lock file.
-	wrapped := &gcSweepTestVolume{
-		Volume: vol,
-		rg:     stubCollectorGraph{unreferencedErr: bbolt_errors.ErrLockFileChanged},
-	}
-	c := &Controller{
-		le:     logrus.NewEntry(logrus.New()),
-		config: &Config{GcIntervalDur: "1ms"},
-		volume: ccontainer.NewCContainer[*volumeCtxPair](nil),
-	}
-	c.volume.SetValue(&volumeCtxPair{vol: wrapped, ctx: ctx})
-
-	// Verify collection propagates the changed lock file error.
-	err = c.runGCSweep(ctx)
-	if !errors.Is(err, bbolt_errors.ErrLockFileChanged) {
-		t.Fatalf("runGCSweep error = %v, want %v", err, bbolt_errors.ErrLockFileChanged)
-	}
-}
-
-type gcSweepTestVolume struct {
-	*common_kvtx.Volume
-	rg block_gc.RefGraphOps
-}
-
-func (v *gcSweepTestVolume) GetRefGraph() block_gc.RefGraphOps {
-	return v.rg
-}
-
 // _ is a type assertion
 var (
 	_ interface {
 		SetGCManagerHooks(block_gc.ManagerHooks)
 		GetGCManagerHooks() (block_gc.ManagerHooks, bool)
 	} = (*common_kvtx.Volume)(nil)
-	_ volume.Volume = (*gcSweepTestVolume)(nil)
 )

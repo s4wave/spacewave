@@ -120,8 +120,8 @@ func TestEngineRetentionPlateausAndPreservesReaders(t *testing.T) {
 			}
 
 			// Count every retained key and value, including volume metadata.
-			// File size minus free pages includes unused allocation beyond bbolt's
-			// high-water mark and cannot measure live data.
+			// The file size includes space the store has not yet released and
+			// cannot measure live data.
 			readTx, err := kvStore.NewTransaction(ctx, false)
 			if err != nil {
 				t.Fatal(err)

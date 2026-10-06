@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
@@ -25,10 +24,11 @@ import (
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_store "github.com/s4wave/spacewave/db/bucket/store"
+	"github.com/s4wave/spacewave/db/s4db"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -165,7 +165,7 @@ func newDebugPayloadRestoreCommand() *cli.Command {
 		Usage:     "rebuild lost operation payloads from their source files",
 		ArgsUsage: "<volume-file>",
 		Description: "Rebuilds the blobs a file upload carried, encodes them with the Space World's " +
-			"transform and writes their blocks into a stopped bbolt volume under the Space's " +
+			"transform and writes their blocks into a stopped s4db volume under the Space's " +
 			"bucket. An upload writes a file in extents of 4 MiB, one blob each. Blob encoding " +
 			"and chunking are deterministic, so the same bytes yield the same blocks. With " +
 			"--file, the extent whose blob root digest equals --hash is written. With " +
@@ -224,7 +224,7 @@ func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucket
 }
 
 // missingBlocks returns the entries whose blocks vol lacks.
-func missingBlocks(ctx context.Context, vol *volume_bolt.Bolt, entries []*block.PutBatchEntry) ([]*block.PutBatchEntry, error) {
+func missingBlocks(ctx context.Context, vol *volume_s4db.Volume, entries []*block.PutBatchEntry) ([]*block.PutBatchEntry, error) {
 	// Probe the blocks in one batch.
 	refs := make([]*block.BlockRef, len(entries))
 	for i, e := range entries {
@@ -353,30 +353,22 @@ func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 
 // restoreVolume is a stopped volume opened for payload restores.
 type restoreVolume struct {
-	// vol is the exclusively held volume.
-	vol *volume_bolt.Bolt
+	// vol is the stopped volume.
+	vol *volume_s4db.Volume
 	// xfrm is the Space World's block transformer.
 	xfrm block.Transformer
 	// bucketID is the bucket that owns the Space's blocks.
 	bucketID string
 }
 
-// openRestoreVolume holds the stopped volume at path exclusively and resolves
-// the World transform and owning bucket of spaceID. An empty bucketID selects
+// openRestoreVolume opens the stopped volume at path and resolves the World
+// transform and owning bucket of spaceID. An empty bucketID selects
 // the one bucket named for the Space. The caller closes the volume.
 func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, bucketID string) (*restoreVolume, error) {
-	// Hold the stopped volume exclusively.
-	if err := requireVolumeStopped(path); err != nil {
-		return nil, err
-	}
-	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{
-		Path:          path,
-		NoGenerateKey: true,
-		NoWriteKey:    true,
-		Exclusive:     true,
-	})
+	// Open the stopped volume.
+	vol, err := openStoppedVolume(ctx, le, path)
 	if err != nil {
-		return nil, errors.Wrap(err, "open volume")
+		return nil, err
 	}
 
 	// Build the World transformer and find the bucket that owns the Space's
@@ -391,9 +383,9 @@ func openRestoreVolume(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 
 // resolveRestoreVolume resolves the World transformer and owning bucket of
 // spaceID in vol.
-func resolveRestoreVolume(ctx context.Context, le *logrus.Entry, vol *volume_bolt.Bolt, spaceID, bucketID string) (*restoreVolume, error) {
+func resolveRestoreVolume(ctx context.Context, le *logrus.Entry, vol *volume_s4db.Volume, spaceID, bucketID string) (*restoreVolume, error) {
 	// Build the World transformer from the replay cursor.
-	conf, err := readWorldTransform(volume_bolt.GetBoltDB(vol), spaceID)
+	conf, err := readWorldTransform(ctx, volume_s4db.GetDB(vol), spaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -414,9 +406,9 @@ func resolveRestoreVolume(ctx context.Context, le *logrus.Entry, vol *volume_bol
 
 // readWorldTransform reads the World transform from the replay cursor the
 // Space keeps in its account's object store.
-func readWorldTransform(db *bbolt.DB, spaceID string) (*block_transform.Config, error) {
+func readWorldTransform(ctx context.Context, db *s4db.DB, spaceID string) (*block_transform.Config, error) {
 	// Read the one cursor of the Space.
-	cursors, err := readReplayCursors(db, spaceID)
+	cursors, err := readReplayCursors(ctx, db, spaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -453,31 +445,28 @@ func (c spaceReplayCursor) world() *bucket.ObjectRef {
 // readReplayCursors reads the replay cursors the account object stores in db
 // keep, of spaceID alone when it is set. The local provider keeps local state
 // under so/<id>/ls/, the Spacewave provider under so-local/<id>/.
-func readReplayCursors(db *bbolt.DB, spaceID string) ([]spaceReplayCursor, error) {
-	// Scan the object stores of the store bucket.
+func readReplayCursors(ctx context.Context, db *s4db.DB, spaceID string) ([]spaceReplayCursor, error) {
+	// Scan the object stores in one snapshot.
 	conf := kvkey.DefaultConfig()
 	prefix := slices.Concat(conf.GetPrefix(), conf.GetObjectStorePrefix())
+	tx, err := db.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+
+	// Decode each cursor key of the selected Spaces.
 	var cursors []spaceReplayCursor
-	err := db.View(func(tx *bbolt.Tx) error {
-		// Skip a volume without the store bucket.
-		b := tx.Bucket([]byte("hydra"))
-		if b == nil {
+	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
+		id, ok := parseReplayCursorKey(k)
+		if !ok || (spaceID != "" && id != spaceID) {
 			return nil
 		}
-
-		// Decode each cursor key of the selected Spaces.
-		cur := b.Cursor()
-		for k, v := cur.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = cur.Next() {
-			id, ok := parseReplayCursorKey(k)
-			if !ok || (spaceID != "" && id != spaceID) {
-				continue
-			}
-			cursor := &sobject_world_engine.ReplayCursor{}
-			if err := cursor.UnmarshalVT(v); err != nil {
-				return errors.Wrapf(err, "decode replay cursor of space %s", id)
-			}
-			cursors = append(cursors, spaceReplayCursor{spaceID: id, cursor: cursor})
+		cursor := &sobject_world_engine.ReplayCursor{}
+		if err := cursor.UnmarshalVT(v); err != nil {
+			return errors.Wrapf(err, "decode replay cursor of space %s", id)
 		}
+		cursors = append(cursors, spaceReplayCursor{spaceID: id, cursor: cursor})
 		return nil
 	})
 	return cursors, err

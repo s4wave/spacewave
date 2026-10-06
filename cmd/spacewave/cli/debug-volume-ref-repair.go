@@ -11,7 +11,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,23 +77,15 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 // repairVolumeRefs walks the Spaces of the stopped volume at path, all of them
 // or spaceID alone, and adds the edges they lack unless dryRun is set.
 func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID string, dryRun bool) (refRepairResult, error) {
-	// Hold the stopped volume exclusively.
-	if err := requireVolumeStopped(path); err != nil {
-		return refRepairResult{}, err
-	}
-	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{
-		Path:          path,
-		NoGenerateKey: true,
-		NoWriteKey:    true,
-		Exclusive:     true,
-	})
+	// Open the stopped volume.
+	vol, err := openStoppedVolume(ctx, le, path)
 	if err != nil {
-		return refRepairResult{}, errors.Wrap(err, "open volume")
+		return refRepairResult{}, err
 	}
 	defer vol.Close()
 
 	// Read the replay cursors of the selected Spaces.
-	cursors, err := readReplayCursors(volume_bolt.GetBoltDB(vol), spaceID)
+	cursors, err := readReplayCursors(ctx, volume_s4db.GetDB(vol), spaceID)
 	if err != nil {
 		return refRepairResult{}, err
 	}

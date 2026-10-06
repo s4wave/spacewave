@@ -18,7 +18,7 @@ func TestRecordChanges(t *testing.T) {
 	// Open a native sync engine for the record comparison.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
-	engine, err := core_sync.Open(ctx, le, storage_native.NewBoltDB(false, t.TempDir()))
+	engine, err := core_sync.Open(ctx, le, storage_native.NewS4db(false, t.TempDir()))
 	if err != nil {
 		t.Fatal(err)
 	}

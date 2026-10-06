@@ -15,7 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// Each worker is a fresh process opening the same native, synced Bolt file.
+// Each worker is a fresh process opening the same native s4db file.
 // The killed writer calls os.Exit with live engines/transactions (no cleanup),
 // not a clean Close disguised as crash recovery. No storage format is replaced.
 func TestWorldCommitBatchingResourceFreshProcessRecovery(t *testing.T) {
@@ -26,8 +26,8 @@ func TestWorldCommitBatchingResourceFreshProcessRecovery(t *testing.T) {
 	}
 	for _, boundary := range []string{"prepared", "admitted", "durable"} {
 		t.Run(boundary, func(t *testing.T) {
-			// Select the Bolt file shared by this recovery boundary.
-			path := filepath.Join(t.TempDir(), "recovery.bolt")
+			// Select the s4db file shared by this recovery boundary.
+			path := filepath.Join(t.TempDir(), "recovery.s4wave")
 			run := func(role string, wantExit int) {
 				// Run a recovery worker process with a bounded execution context.
 				t.Helper()
@@ -123,18 +123,18 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 	// Block the first physical publication at the raw writer turn after the
 	// coordinator refresh. Both admitted revisions must remain invisible.
 	if role == "prepared" || role == "admitted" {
-		physical, err := f.db.Begin(true)
+		physical, err := f.db.NewTransaction(ctx, true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer physical.Rollback()
+		defer physical.Discard()
 	}
 
 	// Prepare the next World revision and stop at the preparation boundary.
-	before := f.db.CommitCounter()
+	before := f.db.Seq()
 	batchingResourcePopulate(t, ctx, f, first, 1, 32)
 	if role == "prepared" {
-		if n := f.db.CommitCounter() - before; n != 0 {
+		if n := f.db.Seq() - before; n != 0 {
 			t.Fatalf("prepared state wrote %d commits", n)
 		}
 		os.Exit(73)
@@ -178,7 +178,7 @@ func batchingRecoveryWorker(t *testing.T, role, path string) {
 			default:
 			}
 		}
-		if n := f.db.CommitCounter() - before; n != 0 {
+		if n := f.db.Seq() - before; n != 0 {
 			t.Fatalf("admission wrote %d commits", n)
 		}
 		os.Exit(73)

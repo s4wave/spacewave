@@ -102,7 +102,7 @@ func prepareLocalCDN(ctx context.Context, le *logrus.Entry, repoRoot, baseURL st
 // live, so a returning visitor can still read the release it cached.
 func exportLocalCDN(ctx context.Context, le *logrus.Entry, stateDir, distDir string) error {
 	// Mount only the dedicated fixture database and stage its current manifests.
-	w, err := publisher.OpenLocalWorld(ctx, le, filepath.Join(stateDir, "publication", "release.bdb"), "spacewave-release-world", "spacewave-release")
+	w, err := publisher.OpenLocalWorld(ctx, le, filepath.Join(stateDir, "publication", "release.s4wave"), "spacewave-release-world", "spacewave-release")
 	if err != nil {
 		return err
 	}

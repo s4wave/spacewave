@@ -35,16 +35,17 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 	t.Cleanup(func() { _ = first.Discard(context.Background()); first.Release() })
 
 	// The first coordinator refresh must precede the blocked physical turn.
-	// Reused same-World authority must not remap the database again while N is
-	// pending. This barrier does not change the sync/freelist configuration.
-	physical, err := f.db.Begin(true)
+	// An open write transaction holds the database writer lock, so no
+	// physical commit lands until it is discarded.
+	physical, err := f.db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer physical.Rollback()
+	defer physical.Discard()
 
-	// Capture the Bolt and publication counters before preparing revisions.
-	before := f.db.CommitCounter()
+	// Capture the commit sequence and publication counters before preparing
+	// revisions.
+	before := f.db.Seq()
 	publications := f.tb.Volume.(interface {
 		GetPublicationStats() volume_kvtx.PublicationStats
 	})
@@ -105,14 +106,12 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 		default:
 		}
 	}
-	if n := f.db.CommitCounter() - before; n != 0 {
+	if n := f.db.Seq() - before; n != 0 {
 		t.Fatalf("construction wrote %d physical commits", n)
 	}
 
 	// Release the physical writer and wait for both Resource commits to persist.
-	if err := physical.Rollback(); err != nil {
-		t.Fatal(err)
-	}
+	physical.Discard()
 	for _, ch := range []<-chan error{done1, done2} {
 		select {
 		case err := <-ch:
@@ -130,7 +129,7 @@ func TestWorldCommitBatchingResourceRunAhead(t *testing.T) {
 	}
 
 	// Reader pins and their release are separate ownership transactions.
-	t.Logf("physical commits including reader ownership: %d", f.db.CommitCounter()-before)
+	t.Logf("physical commits including reader ownership: %d", f.db.Seq()-before)
 	p1 := batchingResourceReadback(t, ctx, f, keys1)
 	p2 := batchingResourceReadback(t, ctx, f, keys2)
 	if p1 != 3919745061 || p2 != 3325196325 {
@@ -152,7 +151,7 @@ func BenchmarkWorldCommitBatchingResourcePipeline(b *testing.B) {
 			b.ResetTimer()
 
 			// Begin timing the Resource pipeline and retain pending acknowledgments.
-			before := f.db.CommitCounter()
+			before := f.db.Seq()
 			start := time.Now()
 			var pending []<-chan pipelineResult
 			var keys [][]string
@@ -196,7 +195,7 @@ func BenchmarkWorldCommitBatchingResourcePipeline(b *testing.B) {
 				join()
 			}
 			total := time.Since(start)
-			physical := f.db.CommitCounter() - before
+			physical := f.db.Seq() - before
 			b.StopTimer()
 
 			// Verify each committed Resource payload outside the timed pipeline.

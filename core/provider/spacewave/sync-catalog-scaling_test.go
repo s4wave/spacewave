@@ -14,16 +14,16 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/packfile"
 	packfile_store "github.com/s4wave/spacewave/db/packfile/store"
-	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
+	"github.com/s4wave/spacewave/db/s4db"
 )
 
 // TestSyncCatalogChangeScaling measures durable mutation and reader publication together.
 func TestSyncCatalogChangeScaling(t *testing.T) {
 	for _, count := range []int{1000, 10000, 100000} {
 		t.Run(strconv.Itoa(count), func(t *testing.T) {
-			// Open a bolt-backed catalog with a fixture key.
+			// Open an s4db-backed catalog with a fixture key.
 			ctx := t.Context()
-			backend, err := store_kvtx_bolt.Open(filepath.Join(t.TempDir(), "catalog.db"), 0600, nil, []byte("metadata"))
+			backend, err := s4db.Open(filepath.Join(t.TempDir(), "catalog.s4wave"), s4db.Options{})
 			if err != nil {
 				t.Fatal(err)
 			}

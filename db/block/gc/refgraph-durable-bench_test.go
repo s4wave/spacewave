@@ -7,19 +7,19 @@ import (
 	"strconv"
 	"testing"
 
-	store_kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
+	"github.com/s4wave/spacewave/db/s4db"
 )
 
-// BenchmarkRefGraphDurableBatch includes the real Bolt commit and fsync path
+// BenchmarkRefGraphDurableBatch includes the real s4db commit and fsync path
 // used by a native block-store drain. Database setup is outside the sample.
 func BenchmarkRefGraphDurableBatch(b *testing.B) {
-	// Open the Bolt store for durable graph measurements.
+	// Open the s4db store for durable graph measurements.
 	ctx := b.Context()
-	store, err := store_kvtx_bolt.Open(filepath.Join(b.TempDir(), "refs.db"), 0o600, nil, []byte("test"))
+	store, err := s4db.Open(filepath.Join(b.TempDir(), "refs.s4wave"), s4db.Options{})
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer store.GetDB().Close()
+	defer store.Close()
 
 	// Open the durable reference graph and register its cleanup.
 	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
@@ -48,7 +48,7 @@ func BenchmarkRefGraphDurableBatch(b *testing.B) {
 }
 
 // BenchmarkRefGraphOwnershipTransfer compares the same prepared transition
-// under two synced commits and the combined commit, using a fresh Bolt store.
+// under two synced commits and the combined commit, using a fresh s4db store.
 func BenchmarkRefGraphOwnershipTransfer(b *testing.B) {
 	for _, separate := range []bool{true, false} {
 		// Choose the commit shape for ownership transfer measurements.
@@ -57,13 +57,13 @@ func BenchmarkRefGraphOwnershipTransfer(b *testing.B) {
 			name = "separate"
 		}
 		b.Run(name, func(b *testing.B) {
-			// Open the Bolt store for durable graph measurements.
+			// Open the s4db store for durable graph measurements.
 			ctx := b.Context()
-			store, err := store_kvtx_bolt.Open(filepath.Join(b.TempDir(), "refs.db"), 0o600, nil, []byte("test"))
+			store, err := s4db.Open(filepath.Join(b.TempDir(), "refs.s4wave"), s4db.Options{})
 			if err != nil {
 				b.Fatal(err)
 			}
-			defer store.GetDB().Close()
+			defer store.Close()
 
 			// Open the durable reference graph and register its cleanup.
 			rg, err := NewRefGraph(ctx, store, []byte("gc/"))

@@ -3,28 +3,27 @@
 package spacewave_cli
 
 import (
-	"os"
+	"context"
 	"path/filepath"
 	"testing"
 
-	"github.com/aperturerobotics/bbolt"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	"github.com/s4wave/spacewave/db/volume"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
 
 // TestDebugVolumeRepair checks that the repair sweeps the blocks a bucket with
 // named roots owns only directly, keeps the blocks its roots reach and the
 // blocks of a bucket without named roots, and deletes the local proof keys. It
-// also checks that the repair refuses an open volume and that compaction leaves
-// no files of its copy behind.
+// also checks that the repair refuses an open volume.
 func TestDebugVolumeRepair(t *testing.T) {
 	// Open a fresh volume.
 	ctx := t.Context()
 	path := filepath.Join(t.TempDir(), "volume.s4wave")
 	le := logrus.NewEntry(logrus.New())
-	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{Path: path})
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,10 +53,7 @@ func TestDebugVolumeRepair(t *testing.T) {
 
 	// Write a local proof key into an object store.
 	proofKey := []byte("h/objs/store/so/space/ls/retention/" + sobject_world_engine.LocalProofKeyPrefix + "space/" + root.MarshalString())
-	err = volume_bolt.GetBoltDB(vol).Update(func(tx *bbolt.Tx) error {
-		return tx.Bucket([]byte("hydra")).Put(proofKey, nil)
-	})
-	if err != nil {
+	if err := putKey(ctx, vol, proofKey, []byte("proof")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -73,14 +69,9 @@ func TestDebugVolumeRepair(t *testing.T) {
 	if err := runDebugVolumeRepair(ctx, path, true, "json"); err != nil {
 		t.Fatal(err)
 	}
-	for _, suffix := range []string{".compact", ".compact-lock", ".compact-lock-coord"} {
-		if _, err := os.Stat(path + suffix); !os.IsNotExist(err) {
-			t.Errorf("%s remains after the repair", path+suffix)
-		}
-	}
 
 	// Only the leaked root is gone.
-	vol, err = volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{Path: path, NoGenerateKey: true, NoWriteKey: true})
+	vol, err = volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{Path: path, NoGenerateKey: true, NoWriteKey: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,13 +96,28 @@ func TestDebugVolumeRepair(t *testing.T) {
 	}
 
 	// The proof key is gone.
-	err = volume_bolt.GetBoltDB(vol).View(func(tx *bbolt.Tx) error {
-		if tx.Bucket([]byte("hydra")).Get(proofKey) != nil {
-			t.Error("local proof key survived the repair")
-		}
-		return nil
-	})
+	tx, err := volume_s4db.GetDB(vol).NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tx.Discard()
+	if found, err := tx.Exists(ctx, proofKey); err != nil || found {
+		t.Errorf("local proof key exists = %v, %v after the repair", found, err)
+	}
+}
+
+// putKey writes key directly into the database of vol.
+func putKey(ctx context.Context, vol volume.Volume, key, value []byte) error {
+	// Open a write transaction, discarded unless it commits.
+	tx, err := volume_s4db.GetDB(vol).NewTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+
+	// Set the key and commit.
+	if err := tx.Set(ctx, key, value); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

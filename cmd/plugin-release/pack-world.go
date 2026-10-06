@@ -24,7 +24,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -36,12 +36,15 @@ const (
 	devtoolPluginHostKey  = "devtool"
 )
 
+// worldFlag collects repeated world path flags.
 type worldFlag []string
 
+// String returns the paths joined by commas.
 func (w *worldFlag) String() string {
 	return strings.Join(*w, ",")
 }
 
+// Set appends a non-empty path.
 func (w *worldFlag) Set(v string) error {
 	if v == "" {
 		return errors.New("world path cannot be empty")
@@ -219,7 +222,7 @@ func createDevtoolWorld(ctx context.Context, le *logrus.Entry, path string) (*mo
 	return openMountedWorld(ctx, le, path, false)
 }
 
-// openMountedWorld opens the bolt volume at path and mounts its devtool world.
+// openMountedWorld opens the s4db volume at path and mounts its devtool world.
 // An existing world is opened without writing its key; otherwise the world is
 // created.
 func openMountedWorld(ctx context.Context, le *logrus.Entry, path string, existing bool) (*mountedWorld, error) {
@@ -230,14 +233,14 @@ func openMountedWorld(ctx context.Context, le *logrus.Entry, path string, existi
 		}
 	}
 
-	// Open the bolt volume.
-	vol, err := volume_bolt.NewBolt(ctx, le, &volume_bolt.Config{
+	// Open the volume.
+	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
 		Path:          path,
 		NoGenerateKey: existing,
 		NoWriteKey:    existing,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "open bolt volume")
+		return nil, errors.Wrap(err, "open volume")
 	}
 
 	// Mount the devtool world over the volume.

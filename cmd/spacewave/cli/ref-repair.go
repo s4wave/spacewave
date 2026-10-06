@@ -23,8 +23,8 @@ import (
 	kvtx_block_iavl "github.com/s4wave/spacewave/db/kvtx/block/iavl"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -108,7 +108,7 @@ type refRepair struct {
 }
 
 // newRefRepair constructs a ref repair over a stopped volume.
-func newRefRepair(le *logrus.Entry, vol *volume_bolt.Bolt) *refRepair {
+func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume) *refRepair {
 	return &refRepair{
 		le:      le,
 		store:   vol,

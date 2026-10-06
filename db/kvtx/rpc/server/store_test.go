@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
-	kvtx_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
+	"github.com/s4wave/spacewave/db/s4db"
 )
 
 func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
@@ -153,15 +153,15 @@ func (s *blockingScanStream) CloseSend() error { return nil }
 func (s *blockingScanStream) Close() error     { return nil }
 
 func TestKvtxTransactionDiscardWaitsForActiveScanPrefix(t *testing.T) {
-	// Open and seed the real bbolt transaction store.
-	boltStore, err := kvtx_bolt.Open(t.TempDir()+"/kvtx.db", 0o600, nil, []byte("kvtx"))
+	// Open and seed the real s4db transaction store.
+	db, err := s4db.Open(t.TempDir()+"/kvtx.s4wave", s4db.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = boltStore.GetDB().Close() })
+	t.Cleanup(func() { _ = db.Close() })
 
 	// Commit the KV record that the retained scan will read.
-	seed, err := boltStore.NewTransaction(context.Background(), true)
+	seed, err := db.NewTransaction(context.Background(), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestKvtxTransactionDiscardWaitsForActiveScanPrefix(t *testing.T) {
 	}
 
 	// Start one retained RPC transaction and capture its operations route.
-	store := NewStore(boltStore)
+	store := NewStore(db)
 	txStream := &transactionTestStream{
 		ctx:       context.Background(),
 		requests:  make(chan *kvtx_rpc.KvtxTransactionRequest, 2),
@@ -215,7 +215,7 @@ func TestKvtxTransactionDiscardWaitsForActiveScanPrefix(t *testing.T) {
 	select {
 	case <-scanStream.sendStarted:
 	case <-time.After(time.Second):
-		t.Fatal("ScanPrefix did not start sending the bbolt result")
+		t.Fatal("ScanPrefix did not start sending the s4db result")
 	}
 
 	// Request discard and require cancellation without an early acknowledgement.

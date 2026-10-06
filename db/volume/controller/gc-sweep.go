@@ -2,10 +2,8 @@ package volume_controller
 
 import (
 	"context"
-	"errors"
 	"time"
 
-	bbolt_errors "github.com/aperturerobotics/bbolt/errors"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	volume "github.com/s4wave/spacewave/db/volume"
 )
@@ -83,14 +81,11 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 			}
 		}
 
-		// Collect unreferenced nodes and propagate terminal storage errors.
+		// Collect unreferenced nodes, retrying failures at the next deadline.
 		stats, err := collector.Collect(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
-			}
-			if errors.Is(err, bbolt_errors.ErrLockFileChanged) {
-				return err
 			}
 			c.le.WithError(err).Warn("gc sweep failed")
 			continue

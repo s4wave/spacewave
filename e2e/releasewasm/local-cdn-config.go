@@ -13,7 +13,7 @@ import (
 	starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	cdn_world "github.com/s4wave/spacewave/core/cdn/world/controller"
 	launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 )
 
 const (
@@ -102,11 +102,11 @@ func localCDNProject(repoRoot, baseURL string) (*project.ProjectConfig, string, 
 
 	// Publish only this closure into a dedicated local World owned by the harness.
 	remote := conf.Remotes["spacewave-release"]
-	var volume volume_bolt.Config
+	var volume volume_s4db.Config
 	if err := volume.UnmarshalJSON(remote.HostConfigSet["release-volume"].Config); err != nil {
 		return nil, "", err
 	}
-	volume.Path = filepath.Join(repoRoot, localCDNState, "publication", "release.bdb")
+	volume.Path = filepath.Join(repoRoot, localCDNState, "publication", "release.s4wave")
 	remote.HostConfigSet["release-volume"].Config, err = volume.MarshalJSON()
 	if err != nil {
 		return nil, "", err

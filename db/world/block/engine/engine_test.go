@@ -22,8 +22,8 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -284,9 +284,9 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Start a Bolt-backed testbed with the World engine factory.
-	boltPath := filepath.Join(t.TempDir(), "world-head-watch.bolt")
-	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_bolt.Config{Path: boltPath}))
+	// Start an s4db-backed testbed with the World engine factory.
+	path := filepath.Join(t.TempDir(), "world-head-watch.s4wave")
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(&volume_s4db.Config{Path: path}))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -29,8 +29,8 @@ func TestEngineReopensWorldCollectionAndDetachesResource(t *testing.T) {
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 
-	// Open a sync engine over a BoltDB-backed storage volume.
-	backing := storage_native.NewBoltDB(false, t.TempDir())
+	// Open a sync engine over an s4db storage volume.
+	backing := storage_native.NewS4db(false, t.TempDir())
 	engine, err := core_sync.Open(ctx, le, backing)
 	if err != nil {
 		t.Fatal(err)

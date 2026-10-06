@@ -146,9 +146,9 @@ type PreBuildHook func(
 	worldEng world.Engine,
 ) (*PreBuildHookResult, error)
 
-// AddPreBuildHook adds a callback that is called just after constructing the plugin working dir.
-// Called before calling the Go compiler or bundling the assets or dist fs.
-// NOTE: may be removed in future
+// AddPreBuildHook adds a callback run just after the plugin working
+// directory is constructed, before the Go compiler runs and before the
+// assets or dist fs are bundled.
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 	if hook != nil {
 		c.preBuildHooks = append(c.preBuildHooks, hook)
@@ -723,7 +723,7 @@ func (c *Controller) BuildPlugin(
 	buildTagsForAnalyze := newBuildTagsForAnalyze(buildPlatform, buildType, goCompiler)
 
 	// Match analysis GOOS/GOARCH to the target so factories gated on
-	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
+	// platform-specific build tags (e.g. volume_s4db with "//go:build !js")
 	// are excluded from the generated factory list when targeting browser
 	// JavaScript, whether the artifact platform is web/js/wasm or js.
 	analyzeGOOS, analyzeGOARCH, err := goAnalysisEnv(buildPlatform)

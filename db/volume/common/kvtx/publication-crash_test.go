@@ -14,9 +14,9 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	db_kvtx "github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
-	store_bolt "github.com/s4wave/spacewave/db/store/kvtx/bolt"
 )
 
 type publicationCrashStore struct {
@@ -64,7 +64,7 @@ func TestPublicationCrashAtomicGroup(t *testing.T) {
 	}
 	for _, cut := range []string{"before", "after"} {
 		t.Run(cut, func(t *testing.T) {
-			path := filepath.Join(t.TempDir(), "publication.bolt")
+			path := filepath.Join(t.TempDir(), "publication.s4wave")
 			for _, step := range []struct {
 				role string
 				code int
@@ -83,18 +83,15 @@ func TestPublicationCrashAtomicGroup(t *testing.T) {
 }
 
 func publicationCrashWorker(t *testing.T, role, path string) {
-	// Open the durable store and require synchronous physical commits.
-	raw, err := store_bolt.Open(path, 0o600, nil, []byte("publication"))
+	// Open the store, whose Commit is durable when it returns.
+	raw, err := s4db.Open(path, s4db.Options{})
 	if err != nil {
 		t.Fatal(err)
-	}
-	if raw.GetDB().NoSync || raw.GetDB().NoFreelistSync {
-		t.Fatal("sync disabled")
 	}
 
 	// Open a Volume with the selected physical crash cut.
 	s := &publicationCrashStore{Store: raw, after: role == "after"}
-	v, err := NewVolume(t.Context(), "publication-crash", store_kvkey.NewDefaultKVKey(), s, &store_kvtx.Config{}, false, false, nil, raw.GetDB().Close)
+	v, err := NewVolume(t.Context(), "publication-crash", store_kvkey.NewDefaultKVKey(), s, &store_kvtx.Config{}, false, false, nil, raw.Close)
 	if err != nil {
 		t.Fatal(err)
 	}

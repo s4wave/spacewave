@@ -232,7 +232,7 @@ func NewEngine(
 	e.writeBlockStore = rawWriteStore
 	if e.deferDurability && e.writeCoordinator == nil {
 		if rawWriteStore.GetSupportedFeatures()&block.StoreFeatureSelfBuffered == 0 {
-			// Not self-buffered (e.g. bbolt): defer behind one long-lived
+			// Not self-buffered (e.g. s4db): defer behind one long-lived
 			// BufferedStore that accumulates writes in memory until Sync.
 			e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
 		}
@@ -381,9 +381,10 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 }
 
 // AdoptRootRefFromWatch updates the root from an advisory coordinator watch
-// only when no local write transaction is active. bbolt emits generation events
-// for intermediate block writes before the durable World head is updated; watch
-// adoption must not roll an in-flight local writer back to the previous head.
+// only when no local write transaction is active. The coordinator emits
+// generation events for intermediate block writes before the durable World
+// head is updated; watch adoption must not roll an in-flight local writer back
+// to the previous head.
 func (e *Engine) AdoptRootRefFromWatch(ctx context.Context, ref *bucket.ObjectRef) error {
 	// Ignore advisory updates while a local writer holds publication authority.
 	locked := e.bcast.Lock()

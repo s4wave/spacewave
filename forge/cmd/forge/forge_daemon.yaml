@@ -1,7 +1,7 @@
-cli-bolt-volume-0:
+cli-s4db-volume-0:
   config:
-    path: forge.db
-  id: hydra/volume/bolt
+    path: forge.s4wave
+  id: hydra/volume/s4db
   rev: 1
 pubsub:
   config: {}
