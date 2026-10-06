@@ -65,6 +65,12 @@ func (t *Tx) Flush(ctx context.Context) error {
 	return t.state.Flush(ctx)
 }
 
+// TakePending borrows the block writes buffered by this tx's world state, so
+// an atomic publication can write them. See WorldState.TakePending.
+func (t *Tx) TakePending(ctx context.Context) (*block.PendingBatch, error) {
+	return t.state.TakePending(ctx)
+}
+
 // GetSeqno returns the current seqno of the world state.
 // This is also the sequence number of the most recent change.
 // Initializes at 0 for initial world state.

@@ -97,6 +97,7 @@ func (l *LocalSOHost) waitPublishedConfig(ctx context.Context, target *sobject.S
 
 	// Accept the target configuration or a descendant with verified history.
 	_, err := l.publishedConfigCtr.WaitValueWithValidator(ctx, func(current *sobject.SharedObjectConfig) (bool, error) {
+		// Wait for the target's sequence number, then accept the target itself.
 		if current == nil || current.GetConfigChainSeqno() < target.GetConfigChainSeqno() {
 			return false, nil
 		}
@@ -122,9 +123,8 @@ func (l *LocalSOHost) AccessSharedObjectState(ctx context.Context, released func
 
 // QueueOperation signs op as the local participant and adds it to the
 // operation set. It returns the local operation id once the published snapshot
-// holds the operation. When ctx carries sobject.WithOrderedOperation, the state
-// write is ordered: applied on return and durable at the store's next
-// durability point.
+// holds the operation. When ctx carries sobject.WithPublishState, an ordinary
+// state write commits through that publication.
 func (l *LocalSOHost) QueueOperation(ctx context.Context, op []byte) (string, error) {
 	// Sign the operation and add it to the host state.
 	ctx, task := trace.NewTask(ctx, "alpha/local-so/queue-operation")

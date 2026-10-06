@@ -40,7 +40,7 @@ func TestPublicationSweepRechecksRescuedCandidate(t *testing.T) {
 
 	// The collector already holds node in a candidate snapshot. Publication
 	// rescues the same bytes before the physical deletion can begin.
-	p.Head = publicationFor(t, "sweep", "one", "two").Head
+	p.Heads = publicationFor(t, "sweep", "one", "two").Heads
 	if err := v.PublishAtomic(t.Context(), p); err != nil {
 		t.Fatal(err)
 	}

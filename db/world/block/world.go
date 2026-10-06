@@ -192,6 +192,17 @@ func (t *WorldState) Flush(ctx context.Context) error {
 	return nil
 }
 
+// TakePending borrows the block writes buffered by this state, so an atomic
+// publication can write them in place of Flush. The caller completes the batch
+// with the publication's result; a failed batch returns to the buffer. A state
+// without a write buffer returns an empty batch.
+func (t *WorldState) TakePending(ctx context.Context) (*block.PendingBatch, error) {
+	if t.ownedStore == nil {
+		return &block.PendingBatch{}, nil
+	}
+	return t.ownedStore.TakePending(ctx)
+}
+
 // SetBufferedStoreSettings overrides the BufferedStore settings used by the
 // underlying block Transaction during Commit. Pass nil to reset to defaults.
 // No-op if the world state has no write transaction.

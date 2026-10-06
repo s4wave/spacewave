@@ -212,7 +212,7 @@ func (e *EngineTx) SubmitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		next.RootRef = root.Clone()
 		publication := &block.AtomicPublication{
 			Entries:  batch.Entries,
-			Head:     e.engine.atomicHeadFn(e.baseHeadRef, next),
+			Heads:    []*block.AtomicHeadUpdate{e.engine.atomicHeadFn(e.baseHeadRef, next)},
 			RootName: e.engine.retainedRootName(),
 			Root:     root.Clone(),
 			Validate: func(ctx context.Context, store block.StoreOps) error {

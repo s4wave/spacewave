@@ -188,8 +188,9 @@ type soEngine struct {
 	// replay computes the World from the operation set, guarded by the
 	// controller's writer lock.
 	replay *replayer
-	// retained is the last head updateEngineState installed and held,
-	// guarded by the controller's writer lock.
+	// retained is the last head held under the accepted World root, by
+	// updateEngineState or a published write, guarded by the controller's
+	// writer lock.
 	retained *bucket.ObjectRef
 	// retainedRoots are the retained roots updateEngineState last held,
 	// guarded by the controller's writer lock.
@@ -546,18 +547,22 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 	defer task.End()
 
 	// Install and hold a changed head once. The watcher, the next write and
-	// the committing write all install the same head.
+	// the committing write all install the same head; a published write
+	// already holds it.
 	hold := newRootHold(e.so.GetBlockStore())
 	ref := state.GetHeadRef().CloneVT()
 	if ref == nil {
 		ref = &bucket.ObjectRef{}
 	}
 	ref.BucketId = e.so.GetBlockStore().GetID()
-	headChanged := !e.retained.EqualVT(ref) || !e.bengine.GetRootRef().EqualVT(ref)
-	if headChanged {
+	installed := !e.bengine.GetRootRef().EqualVT(ref)
+	if installed {
 		if err := e.bengine.SetRootRef(ctx, ref); err != nil {
 			return err
 		}
+	}
+	headChanged := !e.retained.EqualVT(ref)
+	if headChanged {
 		if err := hold.world(ctx, acceptedWorldRootName, ref.GetRootRef()); err != nil {
 			return err
 		}
@@ -580,6 +585,8 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 	// Record what is held.
 	if headChanged {
 		e.retained = ref
+	}
+	if installed {
 		e.c.notifyWrite()
 	}
 	if rootsChanged {

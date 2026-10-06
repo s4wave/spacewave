@@ -5,6 +5,7 @@ import "context"
 // PendingBatch is an immutable borrow of buffered entries. Complete must be
 // called exactly once after the publisher is finished, even on admission failure.
 // Entries remain readable through the BufferedStore until successful completion.
+// The zero PendingBatch borrows nothing.
 type PendingBatch struct {
 	// Entries are the borrowed batch entries.
 	Entries []*PutBatchEntry
@@ -15,7 +16,11 @@ type PendingBatch struct {
 }
 
 // Complete resolves the borrow exactly once with the publication result.
-func (b *PendingBatch) Complete(err error) { b.complete(err) }
+func (b *PendingBatch) Complete(err error) {
+	if b.complete != nil {
+		b.complete(err)
+	}
+}
 
 // TakePending borrows all currently queued entries without writing or forgetting
 // them. Further writes can prepare the next publication while this borrow is in
@@ -56,7 +61,7 @@ func (s *BufferedStore) TakePending(ctx context.Context) (*PendingBatch, error) 
 	}
 
 	// Expose borrowed entries with their publication completion callback.
-	out := &PendingBatch{complete: func(error) {}}
+	out := &PendingBatch{}
 	if batch != nil {
 		out.Entries = batch.entries
 		out.complete = func(err error) {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -13,13 +14,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// commitCountStore counts how the write transactions of a store commit.
+// commitCountStore counts the write transactions a store commits.
 type commitCountStore struct {
 	kvtx.Store
-	// full counts write transactions finished by Commit.
-	full int
-	// ordered counts write transactions finished by CommitOrdered.
-	ordered int
+	// commits counts committed write transactions.
+	commits int
 }
 
 // NewTransaction wraps write transactions to count their commits.
@@ -31,21 +30,15 @@ func (s *commitCountStore) NewTransaction(ctx context.Context, write bool) (kvtx
 	return &commitCountTx{Tx: tx, store: s}, nil
 }
 
-// commitCountTx records its commit kind on the store.
+// commitCountTx records its commit on the store.
 type commitCountTx struct {
 	kvtx.Tx
 	store *commitCountStore
 }
 
-// Commit counts a full commit.
+// Commit counts the commit.
 func (t *commitCountTx) Commit(ctx context.Context) error {
-	t.store.full++
-	return t.Tx.Commit(ctx)
-}
-
-// CommitOrdered counts an ordered commit.
-func (t *commitCountTx) CommitOrdered(ctx context.Context) error {
-	t.store.ordered++
+	t.store.commits++
 	return t.Tx.Commit(ctx)
 }
 
@@ -90,7 +83,7 @@ func newTestGenesisHost(t *testing.T, store kvtx.Store) (*sobject.SOHost, crypto
 	// Seed a genesis store and host it.
 	t.Helper()
 	_, _, priv := seedTestGenesisState(t, store)
-	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(t.Context(), store, "")
+	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(t.Context(), store, "", "")
 	host := sobject.NewSOHost(t.Context(), watch, lock, testSharedObjectID, syncFuncs)
 	t.Cleanup(host.ClearContext)
 	return host, priv
@@ -103,32 +96,63 @@ func testStepFactorySet() *block_transform.StepFactorySet {
 	return sfs
 }
 
-// TestSOStateWriteOrderedOperation checks that only an operation marked with
-// sobject.WithOrderedOperation writes the host state with an ordered commit.
-func TestSOStateWriteOrderedOperation(t *testing.T) {
-	// Open a host over a commit-counting store.
+// TestSOStateWritePublishedOperation checks that an ordinary local operation
+// hands its state write to the publication in its context, and commits it
+// itself when the publication declines.
+func TestSOStateWritePublishedOperation(t *testing.T) {
+	// Open a host over a commit-counting store that publishes as "objs".
 	ctx := t.Context()
 	store := &commitCountStore{Store: store_inmem.NewStore()}
-	host, priv := newTestGenesisHost(t, store)
+	_, _, priv := seedTestGenesisState(t, store)
+	watch, lock, syncFuncs := NewObjectStoreSOStateFuncs(ctx, store, "objs", "")
+	host := sobject.NewSOHost(ctx, watch, lock, testSharedObjectID, syncFuncs)
+	t.Cleanup(host.ClearContext)
 	le := logrus.NewEntry(logrus.New())
-	add := func(ctx context.Context) {
-		// Reset the counters and add one operation.
+	add := func(published bool) *block.AtomicHeadUpdate {
+		// Add one operation through a publication that returns published.
 		t.Helper()
-		store.full, store.ordered = 0, 0
-		if _, _, err := host.AddLocalOperation(ctx, le, testStepFactorySet(), priv, []byte("op")); err != nil {
+		store.commits = 0
+		var head *block.AtomicHeadUpdate
+		publish := func(_ context.Context, h *block.AtomicHeadUpdate) (bool, error) {
+			head = h
+			return published, nil
+		}
+		pctx := sobject.WithPublishState(ctx, publish)
+		if _, _, err := host.AddLocalOperation(pctx, le, testStepFactorySet(), priv, []byte("op")); err != nil {
 			t.Fatal(err)
 		}
+		return head
 	}
 
-	// A marked operation skips the full flush.
-	add(sobject.WithOrderedOperation(ctx))
-	if store.full != 0 || store.ordered != 1 {
-		t.Fatalf("marked operation: full = %d, ordered = %d", store.full, store.ordered)
+	// A declined publication commits the state itself.
+	head := add(false)
+	if head == nil || head.ObjectStoreID != "objs" || string(head.Key) != string(SobjectObjectStoreHostStateKey(testSharedObjectID)) {
+		t.Fatalf("declined publication: head = %v", head)
+	}
+	if store.commits != 1 {
+		t.Fatalf("declined publication: commits = %d", store.commits)
 	}
 
-	// An unmarked operation keeps its full commit.
-	add(ctx)
-	if store.full != 1 || store.ordered != 0 {
-		t.Fatalf("unmarked operation: full = %d, ordered = %d", store.full, store.ordered)
+	// An accepted publication leaves the state write to it.
+	head = add(true)
+	if store.commits != 0 {
+		t.Fatalf("accepted publication: commits = %d", store.commits)
+	}
+
+	// The head replaces only the state the lock loaded.
+	read, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer read.Discard()
+	current, found, err := read.Get(ctx, head.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := head.Replace(ctx, current, found); err != nil {
+		t.Fatalf("replace committed state: %v", err)
+	}
+	if _, err := head.Replace(ctx, nil, false); err == nil {
+		t.Fatal("replace missing state succeeded")
 	}
 }

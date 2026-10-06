@@ -142,12 +142,12 @@ func publicationFor(t *testing.T, id, base, next string) *block.AtomicPublicatio
 	}
 	return &block.AtomicPublication{
 		Entries: []*block.PutBatchEntry{{Ref: ref, Data: data}}, BucketID: "owner", TrackGC: true,
-		Head: &block.AtomicHeadUpdate{ObjectStoreID: id, Key: []byte("head"), Replace: func(_ context.Context, current []byte, found bool) ([]byte, error) {
+		Heads: []*block.AtomicHeadUpdate{{ObjectStoreID: id, Key: []byte("head"), Replace: func(_ context.Context, current []byte, found bool) ([]byte, error) {
 			if (base != "") != found || !bytes.Equal(current, []byte(base)) {
 				return nil, coord.ErrStaleGeneration
 			}
 			return []byte(next), nil
-		}},
+		}}},
 	}
 }
 
@@ -312,7 +312,7 @@ func TestPublicationRejectsBeforeMutationWithoutContaminatingGroup(t *testing.T)
 	// Verify rejected publications leave no blocks or heads.
 	for _, p := range []*block.AtomicPublication{stale, child, invalid, rejected} {
 		assertPublishedBlock(t, v, p, false)
-		assertHead(t, v, p.Head.ObjectStoreID, "")
+		assertHead(t, v, p.Heads[0].ObjectStoreID, "")
 	}
 
 	// Verify the independent publication survives rejection and synchronization.
