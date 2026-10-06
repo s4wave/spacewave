@@ -62,6 +62,7 @@ export function SSOWaitPage() {
   useEffect(() => {
     if (!isDesktop || !root || !provider) return
     const controller = new AbortController()
+    let cancelled = false
     queueMicrotask(() => setState({ step: 'waiting' }))
 
     const run = async () => {
@@ -76,7 +77,7 @@ export function SSOWaitPage() {
             ),
           controller.signal,
         )
-        if (controller.signal.aborted) return
+        if (cancelled) return
 
         switch (resp.result?.case) {
           case 'linked': {
@@ -96,6 +97,7 @@ export function SSOWaitPage() {
             setState({ step: 'logging_in' })
             const sessionIndex = await loginWithEntityPem(root, pemPrivateKey)
             const handoff = await completeStoredHandoff(root, sessionIndex)
+            if (cancelled) return
             if (handoff) {
               setState({
                 step: 'handoff_complete',
@@ -122,7 +124,7 @@ export function SSOWaitPage() {
             throw new Error('Desktop SSO did not return a result')
         }
       } catch (err) {
-        if (controller.signal.aborted) return
+        if (cancelled) return
         const message = getErrorMessage(err, 'Sign-in failed')
         if (message.includes('abort') || message.includes('cancel')) return
         setState({ step: 'error', message })
@@ -131,6 +133,7 @@ export function SSOWaitPage() {
 
     void run()
     return () => {
+      cancelled = true
       controller.abort()
     }
   }, [navigate, provider, retryCount, root])
@@ -145,6 +148,7 @@ export function SSOWaitPage() {
       return
     }
     const controller = new AbortController()
+    let cancelled = false
     const run = async () => {
       try {
         const binding = await withSpacewaveProvider(
@@ -152,7 +156,7 @@ export function SSOWaitPage() {
           (spacewave) => spacewave.prepareBrowserSSO({}, controller.signal),
           controller.signal,
         )
-        if (controller.signal.aborted) return
+        if (cancelled) return
         if (
           binding.verifier?.length !== 32 ||
           binding.verifierHash?.length !== 32 ||
@@ -178,7 +182,7 @@ export function SSOWaitPage() {
         authorizeUrl.searchParams.set('device_public_key', devicePublicKey)
         window.location.replace(authorizeUrl.toString())
       } catch (err) {
-        if (!controller.signal.aborted) {
+        if (!cancelled) {
           setState({
             step: 'error',
             message: getErrorMessage(err, 'Sign-in failed'),
@@ -187,7 +191,10 @@ export function SSOWaitPage() {
       }
     }
     void run()
-    return () => controller.abort()
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [cloudProviderConfig, navigate, provider, root])
 
   const handleRetry = useCallback(() => {
