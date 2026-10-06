@@ -1,14 +1,9 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import {
   useResource,
   useResourceValue,
+  type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { useSessionList } from '@s4wave/app/hooks/useSessionList.js'
@@ -196,24 +191,14 @@ function useDisplayLocation(): [DisplayLocation, () => void] {
   return [displayLocation, syncDisplayLocation]
 }
 
-// useDisplayController owns kiosk resource mounting, URL projection, and
-// navigation callbacks.
-function useDisplayController() {
+/** useKioskSession mounts the first local session for kiosk display. */
+function useKioskSession() {
   const rootResource = useRootResource()
   const sessionList = useSessionList()
   const firstSession = sessionList.value?.sessions?.[0]
   const selectedSessionIndex = firstSession
     ? (firstSession.sessionIndex ?? 1)
     : undefined
-  const [displayLocation, syncDisplayLocation] = useDisplayLocation()
-  const displayTarget = useMemo(
-    () => parseDisplayTarget(displayLocation),
-    [displayLocation],
-  )
-  const parsedPath = useMemo(
-    () => parseObjectUri(displayTarget.path),
-    [displayTarget.path],
-  )
 
   const sessionResource = useResource(
     rootResource,
@@ -231,6 +216,15 @@ function useDisplayController() {
       firstSession?.sessionRef?.providerResourceRef?.providerAccountId,
     ],
   )
+
+  return { sessionList, selectedSessionIndex, sessionResource }
+}
+
+/**
+ * useKioskSpace mounts the first Space of the session with its shared object
+ * body, world state, and contents.
+ */
+function useKioskSpace(sessionResource: Resource<Session | null>) {
   const session = useResourceValue(sessionResource)
   const resourcesList = useWatchStateRpc(
     useCallback(
@@ -306,23 +300,127 @@ function useDisplayController() {
     SpaceState.equals,
   )
   const spaceWorld = useResourceValue(spaceWorldResource)
-  const retryDisplay = useCallback(() => {
-    sessionList.retry()
-    sessionResource.retry()
-    sharedObjectResource.retry()
-    sharedObjectBodyResource.retry()
-    spaceResource.retry()
-    spaceWorldResource.retry()
-    spaceContentsResource.retry()
-  }, [
-    sessionList,
-    sessionResource,
+
+  return {
+    resourcesList,
+    sharedObjectId,
     sharedObjectResource,
     sharedObjectBodyResource,
     spaceResource,
     spaceWorldResource,
     spaceContentsResource,
-  ])
+    spaceState,
+    spaceWorld,
+  }
+}
+
+interface UseDisplayNavigationParams {
+  displayTarget: DisplayTarget
+  objectKey: string
+  viewerPath: string
+  syncDisplayLocation: () => void
+}
+
+/** useDisplayNavigation projects navigation into the display URL. */
+function useDisplayNavigation({
+  displayTarget,
+  objectKey,
+  viewerPath,
+  syncDisplayLocation,
+}: UseDisplayNavigationParams) {
+  const replaceDisplayPath = useCallback(
+    (path: string) => {
+      const next = new URL(window.location.href)
+      setDisplayTargetPath(
+        next,
+        path,
+        displayTarget.componentID,
+        displayTarget.routePathTarget,
+      )
+      window.history.replaceState({}, '', next)
+      syncDisplayLocation()
+    },
+    [
+      displayTarget.componentID,
+      displayTarget.routePathTarget,
+      syncDisplayLocation,
+    ],
+  )
+  const navigateViewerPath = useCallback(
+    (to: To) => {
+      const resolved = resolvePath(viewerPath, to)
+      const stripped = resolved.replace(/^\//, '')
+      const fullPath = stripped ? `${objectKey}/-/${stripped}` : objectKey
+      replaceDisplayPath(fullPath)
+    },
+    [objectKey, replaceDisplayPath, viewerPath],
+  )
+  const navigateToRoot = useCallback(() => {
+    replaceDisplayPath('')
+  }, [replaceDisplayPath])
+  const navigateToObjects = useCallback(
+    (objectKeys: string[]) => {
+      if (objectKeys.length === 0) return
+      replaceDisplayPath(objectKeys[0])
+    },
+    [replaceDisplayPath],
+  )
+  const navigateToSubPath = useCallback(
+    (subpath: string) => {
+      replaceDisplayPath(subpath ? `${objectKey}/-/${subpath}` : objectKey)
+    },
+    [objectKey, replaceDisplayPath],
+  )
+  const buildObjectUrls = useCallback(
+    (objectKeys: string[]): string[] =>
+      objectKeys.map((key) => {
+        const next = new URL(window.location.href)
+        setDisplayTargetPath(
+          next,
+          key,
+          displayTarget.componentID,
+          displayTarget.routePathTarget,
+        )
+        return next.toString()
+      }),
+    [displayTarget.componentID, displayTarget.routePathTarget],
+  )
+
+  return {
+    navigateViewerPath,
+    navigateToRoot,
+    navigateToObjects,
+    navigateToSubPath,
+    buildObjectUrls,
+  }
+}
+
+// useDisplayController owns kiosk resource mounting, URL projection, and
+// navigation callbacks.
+function useDisplayController() {
+  const [displayLocation, syncDisplayLocation] = useDisplayLocation()
+  const displayTarget = useMemo(
+    () => parseDisplayTarget(displayLocation),
+    [displayLocation],
+  )
+  const parsedPath = useMemo(
+    () => parseObjectUri(displayTarget.path),
+    [displayTarget.path],
+  )
+  const { sessionList, selectedSessionIndex, sessionResource } =
+    useKioskSession()
+  const space = useKioskSpace(sessionResource)
+  const { sharedObjectId, spaceWorldResource } = space
+
+  const retryDisplay = useCallback(() => {
+    sessionList.retry()
+    sessionResource.retry()
+    space.sharedObjectResource.retry()
+    space.sharedObjectBodyResource.retry()
+    space.spaceResource.retry()
+    space.spaceWorldResource.retry()
+    space.spaceContentsResource.retry()
+  }, [sessionList, sessionResource, space])
 
   const objectEntryResource = useObjectMetadata(
     spaceWorldResource,
@@ -371,116 +469,29 @@ function useDisplayController() {
     ),
     [],
   )
-  const replaceDisplayPath = useCallback(
-    (path: string) => {
-      const next = new URL(window.location.href)
-      setDisplayTargetPath(
-        next,
-        path,
-        displayTarget.componentID,
-        displayTarget.routePathTarget,
-      )
-      window.history.replaceState({}, '', next)
-      syncDisplayLocation()
-    },
-    [
-      displayTarget.componentID,
-      displayTarget.routePathTarget,
-      syncDisplayLocation,
-    ],
-  )
-  const navigateViewerPath = useCallback(
-    (to: To) => {
-      const resolved = resolvePath(viewerPath, to)
-      const stripped = resolved.replace(/^\//, '')
-      const fullPath = stripped
-        ? `${parsedPath.objectKey}/-/${stripped}`
-        : parsedPath.objectKey
-      replaceDisplayPath(fullPath)
-    },
-    [parsedPath.objectKey, replaceDisplayPath, viewerPath],
-  )
-  const navigateToRoot = useCallback(() => {
-    replaceDisplayPath('')
-  }, [replaceDisplayPath])
-  const navigateToObjects = useCallback(
-    (objectKeys: string[]) => {
-      if (objectKeys.length === 0) return
-      replaceDisplayPath(objectKeys[0])
-    },
-    [replaceDisplayPath],
-  )
-  const navigateToSubPath = useCallback(
-    (subpath: string) => {
-      replaceDisplayPath(
-        subpath ? `${parsedPath.objectKey}/-/${subpath}` : parsedPath.objectKey,
-      )
-    },
-    [parsedPath.objectKey, replaceDisplayPath],
-  )
-
-  const mountError =
-    sessionList.error?.message ??
-    sessionResource.error?.message ??
-    sharedObjectResource.error?.message ??
-    sharedObjectBodyResource.error?.message ??
-    spaceResource.error?.message ??
-    spaceWorldResource.error?.message ??
-    spaceContentsResource.error?.message ??
-    'Unknown error'
-  const hasMountError =
-    !!sessionList.error ||
-    !!sessionResource.error ||
-    !!sharedObjectResource.error ||
-    !!sharedObjectBodyResource.error ||
-    !!spaceResource.error ||
-    !!spaceWorldResource.error ||
-    !!spaceContentsResource.error
-
-  const buildObjectUrls = useCallback(
-    (objectKeys: string[]): string[] =>
-      objectKeys.map((objectKey) => {
-        const next = new URL(window.location.href)
-        setDisplayTargetPath(
-          next,
-          objectKey,
-          displayTarget.componentID,
-          displayTarget.routePathTarget,
-        )
-        return next.toString()
-      }),
-    [displayTarget.componentID, displayTarget.routePathTarget],
-  )
+  const navigation = useDisplayNavigation({
+    displayTarget,
+    objectKey: parsedPath.objectKey,
+    viewerPath,
+    syncDisplayLocation,
+  })
   const buildExportUrl = useCallback(() => exportUrl ?? '', [exportUrl])
+
   return {
+    ...space,
+    ...navigation,
     buildExportUrl,
-    buildObjectUrls,
     displayTarget,
     exportUrl,
-    hasMountError,
-    mountError,
-    navigateToObjects,
-    navigateToRoot,
-    navigateToSubPath,
-    navigateViewerPath,
     objectEntry,
     objectEntryResource,
     objectInfo,
     parsedPath,
     renderMissingDisplayComponent,
-    resourcesList,
     retryDisplay,
     selectedSessionIndex,
     sessionList,
     sessionResource,
-    sharedObjectBodyResource,
-    sharedObjectId,
-    sharedObjectResource,
-    spaceContentsResource,
-    spaceResource,
-    spaceState,
-    spaceWorld,
-    spaceWorldResource,
     stateNamespace,
     viewerPath,
   }
@@ -488,172 +499,193 @@ function useDisplayController() {
 
 type DisplayController = ReturnType<typeof useDisplayController>
 
-// DisplayContent selects mount states and provides the mounted Space resources
-// to the requested object viewer.
-function DisplayContent({ controller }: { controller: DisplayController }) {
+/** firstMountError returns the first mount error, or null when none failed. */
+function firstMountError(c: DisplayController): Error | null {
+  const errors = [
+    c.sessionList.error,
+    c.sessionResource.error,
+    c.sharedObjectResource.error,
+    c.sharedObjectBodyResource.error,
+    c.spaceResource.error,
+    c.spaceWorldResource.error,
+    c.spaceContentsResource.error,
+  ]
+  return errors.find((err) => !!err) ?? null
+}
+
+/** isSpaceMounting reports whether any Space resource is loading or unset. */
+function isSpaceMounting(c: DisplayController): boolean {
+  const mounted = [
+    c.sharedObjectResource,
+    c.sharedObjectBodyResource,
+    c.spaceResource,
+    c.spaceWorldResource,
+    c.spaceContentsResource,
+  ]
+  return (
+    mounted.some((resource) => resource.loading || !resource.value) ||
+    c.objectEntryResource.loading ||
+    !c.spaceState?.ready
+  )
+}
+
+const SPACE_LOADING_STATUS: DisplayStatusCardProps = {
+  state: 'active',
+  title: 'Loading display Space',
+  detail: 'Mounting the first Space and watching its world state.',
+}
+
+/** resolveDisplayStatus returns the mount status card, or null once mounted. */
+function resolveDisplayStatus(
+  c: DisplayController,
+): DisplayStatusCardProps | null {
+  const mountError = firstMountError(c)
+  if (mountError) {
+    return {
+      state: 'error',
+      title: 'Failed to load display',
+      error: mountError.message,
+      onRetry: c.retryDisplay,
+    }
+  }
+  if (c.sessionList.loading) {
+    return {
+      state: 'loading',
+      title: 'Loading sessions',
+      detail: 'Resolving the default kiosk session.',
+    }
+  }
+  if ((c.sessionList.value?.sessions?.length ?? 0) === 0) {
+    return {
+      state: 'error',
+      title: 'No session available',
+      detail: 'Display mode needs one local session to mount a Space.',
+      onRetry: c.retryDisplay,
+    }
+  }
+  if (c.sessionResource.loading || !c.sessionResource.value) {
+    return {
+      state: 'loading',
+      title: 'Loading session',
+      detail: 'Mounting the default kiosk session.',
+    }
+  }
+  if (!c.resourcesList) {
+    return {
+      state: 'loading',
+      title: 'Loading Spaces',
+      detail: 'Watching the session resource list.',
+    }
+  }
+  if (!c.sharedObjectId) {
+    return {
+      state: 'error',
+      title: 'No Space available',
+      detail: 'Display mode needs at least one Space in the selected session.',
+      onRetry: c.retryDisplay,
+    }
+  }
+  return isSpaceMounting(c) ? SPACE_LOADING_STATUS : null
+}
+
+/** DisplayViewer provides the mounted Space resources to the object viewer. */
+function DisplayViewer({
+  controller,
+  spaceState,
+}: {
+  controller: DisplayController
+  spaceState: SpaceState
+}) {
   const {
     buildExportUrl,
     buildObjectUrls,
     displayTarget,
     exportUrl,
-    hasMountError,
-    mountError,
     navigateToObjects,
     navigateToRoot,
     navigateToSubPath,
     navigateViewerPath,
-    objectEntry,
-    objectEntryResource,
     objectInfo,
     parsedPath,
     renderMissingDisplayComponent,
-    resourcesList,
-    retryDisplay,
     selectedSessionIndex,
-    sessionList,
     sessionResource,
     sharedObjectBodyResource,
     sharedObjectId,
     sharedObjectResource,
     spaceContentsResource,
     spaceResource,
-    spaceState,
     spaceWorld,
     spaceWorldResource,
     stateNamespace,
     viewerPath,
   } = controller
 
-  let content: ReactNode
-  if (hasMountError) {
-    content = (
-      <DisplayStatusCard
-        state="error"
-        title="Failed to load display"
-        error={mountError}
-        onRetry={retryDisplay}
-      />
-    )
-  } else if (sessionList.loading) {
-    content = (
-      <DisplayStatusCard
-        state="loading"
-        title="Loading sessions"
-        detail="Resolving the default kiosk session."
-      />
-    )
-  } else if ((sessionList.value?.sessions?.length ?? 0) === 0) {
-    content = (
-      <DisplayStatusCard
-        state="error"
-        title="No session available"
-        detail="Display mode needs one local session to mount a Space."
-        onRetry={retryDisplay}
-      />
-    )
-  } else if (sessionResource.loading || !sessionResource.value) {
-    content = (
-      <DisplayStatusCard
-        state="loading"
-        title="Loading session"
-        detail="Mounting the default kiosk session."
-      />
-    )
-  } else if (!resourcesList) {
-    content = (
-      <DisplayStatusCard
-        state="loading"
-        title="Loading Spaces"
-        detail="Watching the session resource list."
-      />
-    )
-  } else if (!sharedObjectId) {
-    content = (
-      <DisplayStatusCard
-        state="error"
-        title="No Space available"
-        detail="Display mode needs at least one Space in the selected session."
-        onRetry={retryDisplay}
-      />
-    )
-  } else if (
-    sharedObjectResource.loading ||
-    sharedObjectBodyResource.loading ||
-    spaceResource.loading ||
-    spaceWorldResource.loading ||
-    spaceContentsResource.loading ||
-    objectEntryResource.loading ||
-    !sharedObjectResource.value ||
-    !sharedObjectBodyResource.value ||
-    !spaceResource.value ||
-    !spaceWorldResource.value ||
-    !spaceContentsResource.value ||
-    !spaceState?.ready
-  ) {
-    content = (
-      <DisplayStatusCard
-        state="active"
-        title="Loading display Space"
-        detail="Mounting the first Space and watching its world state."
-      />
-    )
-  } else if (!parsedPath.objectKey || !objectEntry) {
-    content = (
+  return (
+    <SessionIndexContext.Provider value={selectedSessionIndex ?? 0}>
+      <SessionContext.Provider resource={sessionResource}>
+        <SharedObjectContext.Provider resource={sharedObjectResource}>
+          <SharedObjectBodyContext.Provider resource={sharedObjectBodyResource}>
+            <SpaceContext.Provider resource={spaceResource}>
+              <SpaceContentsContext.Provider resource={spaceContentsResource}>
+                <SpaceContainerContext.Provider
+                  spaceId={sharedObjectId}
+                  spaceState={spaceState}
+                  spaceWorldResource={spaceWorldResource}
+                  spaceWorld={spaceWorld as EngineWorldState}
+                  navigateToRoot={navigateToRoot}
+                  navigateToObjects={navigateToObjects}
+                  buildObjectUrls={buildObjectUrls}
+                  buildExportUrl={buildExportUrl}
+                  objectKey={parsedPath.objectKey}
+                  objectPath={parsedPath.path || undefined}
+                  navigateToSubPath={navigateToSubPath}
+                >
+                  <ObjectViewer
+                    objectInfo={objectInfo}
+                    worldState={spaceWorldResource}
+                    spaceContents={spaceContentsResource}
+                    standalone
+                    bottomBarId="displayObjectViewer"
+                    path={viewerPath}
+                    exportUrl={exportUrl}
+                    preferredComponentID={displayTarget.componentID}
+                    stateNamespace={stateNamespace}
+                    onNavigate={navigateViewerPath}
+                    renderMissingComponent={
+                      displayTarget.componentID
+                        ? renderMissingDisplayComponent
+                        : undefined
+                    }
+                  />
+                </SpaceContainerContext.Provider>
+              </SpaceContentsContext.Provider>
+            </SpaceContext.Provider>
+          </SharedObjectBodyContext.Provider>
+        </SharedObjectContext.Provider>
+      </SessionContext.Provider>
+    </SessionIndexContext.Provider>
+  )
+}
+
+// DisplayContent selects mount states and provides the mounted Space resources
+// to the requested object viewer.
+function DisplayContent({ controller }: { controller: DisplayController }) {
+  const status = resolveDisplayStatus(controller)
+  const { parsedPath, objectEntry, displayTarget, spaceState } = controller
+  if (status || !spaceState) {
+    return <DisplayStatusCard {...(status ?? SPACE_LOADING_STATUS)} />
+  }
+
+  if (!parsedPath.objectKey || !objectEntry) {
+    return (
       <ObjectViewerNotFoundState
         objectKey={parsedPath.objectKey || displayTarget.path || 'Display path'}
       />
     )
-  } else {
-    content = (
-      <SessionIndexContext.Provider value={selectedSessionIndex ?? 0}>
-        <SessionContext.Provider resource={sessionResource}>
-          <SharedObjectContext.Provider resource={sharedObjectResource}>
-            <SharedObjectBodyContext.Provider
-              resource={sharedObjectBodyResource}
-            >
-              <SpaceContext.Provider resource={spaceResource}>
-                <SpaceContentsContext.Provider resource={spaceContentsResource}>
-                  <SpaceContainerContext.Provider
-                    spaceId={sharedObjectId}
-                    spaceState={spaceState}
-                    spaceWorldResource={spaceWorldResource}
-                    spaceWorld={spaceWorld as EngineWorldState}
-                    navigateToRoot={navigateToRoot}
-                    navigateToObjects={navigateToObjects}
-                    buildObjectUrls={buildObjectUrls}
-                    buildExportUrl={buildExportUrl}
-                    objectKey={parsedPath.objectKey}
-                    objectPath={parsedPath.path || undefined}
-                    navigateToSubPath={navigateToSubPath}
-                  >
-                    <ObjectViewer
-                      objectInfo={objectInfo}
-                      worldState={spaceWorldResource}
-                      spaceContents={spaceContentsResource}
-                      standalone
-                      bottomBarId="displayObjectViewer"
-                      path={viewerPath}
-                      exportUrl={exportUrl}
-                      preferredComponentID={displayTarget.componentID}
-                      stateNamespace={stateNamespace}
-                      onNavigate={navigateViewerPath}
-                      renderMissingComponent={
-                        displayTarget.componentID
-                          ? renderMissingDisplayComponent
-                          : undefined
-                      }
-                    />
-                  </SpaceContainerContext.Provider>
-                </SpaceContentsContext.Provider>
-              </SpaceContext.Provider>
-            </SharedObjectBodyContext.Provider>
-          </SharedObjectContext.Provider>
-        </SessionContext.Provider>
-      </SessionIndexContext.Provider>
-    )
   }
 
-  return content
+  return <DisplayViewer controller={controller} spaceState={spaceState} />
 }
 
 // DisplayContainer renders the kiosk display route outside the session tree.
