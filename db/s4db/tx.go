@@ -52,7 +52,7 @@ func (t *Tx) Size(ctx context.Context) (uint64, error) {
 	return uint64(max(n, 0)), err
 }
 
-// Get returns the value of key.
+// Get returns the value of key. The caller owns the returned bytes.
 func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	// Check the transaction and key.
 	switch {
@@ -65,17 +65,24 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	// A buffered change decides the key.
 	if t.changes != nil {
 		if c, ok := t.changes.Get(tentry{key: key}); ok {
-			return c.data, !c.del, nil
+			return bytes.Clone(c.data), !c.del, nil
 		}
 	}
 
-	// Otherwise read the snapshot.
+	// Otherwise read the snapshot. An extent is read into a new buffer, and
+	// an inline value is copied out of the shared index page.
 	v, found, err := t.db.lookup(t.st, key)
 	if err != nil || !found {
 		return nil, false, err
 	}
 	data, err := t.db.p.readValue(v)
-	return data, err == nil, err
+	if err != nil {
+		return nil, false, err
+	}
+	if !v.isRef {
+		data = bytes.Clone(data)
+	}
+	return data, true, nil
 }
 
 // Exists reports whether key is present.
