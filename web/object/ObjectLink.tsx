@@ -41,32 +41,21 @@ export interface ObjectLinkTarget {
   path?: string
 }
 
-export function ObjectLink({
-  objectKey,
+// useObjectLinkActions binds the open, copy, and open in new tab actions of an
+// object link. Opening adds a tab inside an object layout and otherwise
+// navigates the space container.
+function useObjectLinkActions({
+  targetKey,
   objectType,
   label,
-  kind,
-  status,
   componentID,
   path,
-  className,
-  compact = false,
-}: ObjectLinkProps) {
+}: ObjectLinkTarget & { targetKey: string }) {
   const spaceContainer = SpaceContainerContext.useContextSafe()
   const tabContext = useTabContext()
   const [copied, setCopied] = useState(false)
-  const targetKey = objectKey?.trim() ?? ''
-  const missing = targetKey === ''
-  const displayLabel = useMemo(
-    () => objectLinkDisplayLabel({ objectKey: targetKey, label }),
-    [targetKey, label],
-  )
-  const kindLabel = kind || (objectType ? getObjectTypeLabel(objectType) : '')
-  const canOpenInNewTab = Boolean(
-    targetKey && spaceContainer?.buildObjectUrls([targetKey])[0],
-  )
 
-  const handlePrimary = useCallback(() => {
+  const open = useCallback(() => {
     if (!targetKey) return
     if (tabContext?.isObjectLayout) {
       void tabContext
@@ -94,7 +83,7 @@ export function ObjectLink({
     targetKey,
   ])
 
-  const handleCopy = useCallback(() => {
+  const copy = useCallback(() => {
     if (!targetKey) return
     void navigator.clipboard
       .writeText(targetKey)
@@ -107,7 +96,7 @@ export function ObjectLink({
       )
   }, [targetKey])
 
-  const handleOpenInNewTab = useCallback(() => {
+  const openInNewTab = useCallback(() => {
     if (!targetKey) return
     const url = spaceContainer?.buildObjectUrls([targetKey])[0]
     if (url) {
@@ -117,7 +106,98 @@ export function ObjectLink({
     spaceContainer?.navigateToObjects([targetKey])
   }, [spaceContainer, targetKey])
 
+  return {
+    copied,
+    open,
+    copy,
+    openInNewTab,
+    canOpenInNewTab: Boolean(
+      targetKey && spaceContainer?.buildObjectUrls([targetKey])[0],
+    ),
+    hasSpaceContainer: !!spaceContainer,
+  }
+}
+
+// ObjectLinkPrimary renders the button that opens the object, with its icon,
+// label, and kind.
+function ObjectLinkPrimary({
+  objectType,
+  displayLabel,
+  accessibleLabel,
+  detail,
+  missing,
+  compact,
+  onOpen,
+}: {
+  objectType?: string
+  displayLabel: string
+  accessibleLabel: string
+  detail: string
+  missing: boolean
+  compact: boolean
+  onOpen: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={missing}
+      aria-label={'Open ' + accessibleLabel}
+      onClick={onOpen}
+      className={cn(
+        'inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-l-md text-left transition-colors',
+        compact ? 'px-1.5 py-0.5' : 'px-2 py-1',
+        missing
+          ? 'cursor-not-allowed'
+          : 'hover:bg-foreground/5 text-foreground',
+      )}
+    >
+      <span className="text-foreground-alt/60 shrink-0">
+        {getObjectTypeIcon(objectType ?? '')}
+      </span>
+      <span className="min-w-0">
+        <span className="micro-text block truncate font-mono leading-4">
+          {missing ? displayLabel || 'Missing ref' : displayLabel}
+        </span>
+        {detail && !compact ? (
+          <span className="text-foreground-alt/50 micro-fine block truncate leading-3">
+            {detail}
+          </span>
+        ) : null}
+      </span>
+    </button>
+  )
+}
+
+// ObjectLink renders an object reference that opens, copies, or opens the
+// object in a new tab.
+export function ObjectLink({
+  objectKey,
+  objectType,
+  label,
+  kind,
+  status,
+  componentID,
+  path,
+  className,
+  compact = false,
+}: ObjectLinkProps) {
+  const targetKey = objectKey?.trim() ?? ''
+  const missing = targetKey === ''
+  const actions = useObjectLinkActions({
+    targetKey,
+    objectKey: targetKey,
+    objectType,
+    label,
+    componentID,
+    path,
+  })
+  const displayLabel = useMemo(
+    () => objectLinkDisplayLabel({ objectKey: targetKey, label }),
+    [targetKey, label],
+  )
+  const kindLabel = kind || (objectType ? getObjectTypeLabel(objectType) : '')
   const accessibleLabel = displayLabel || targetKey || 'missing object ref'
+  const buttonSize = compact ? 'h-6 w-6' : 'h-7 w-7'
 
   return (
     <span
@@ -130,33 +210,15 @@ export function ObjectLink({
       data-object-link={targetKey || undefined}
       data-missing-object-link={missing ? 'true' : undefined}
     >
-      <button
-        type="button"
-        disabled={missing}
-        aria-label={'Open ' + accessibleLabel}
-        onClick={handlePrimary}
-        className={cn(
-          'inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-l-md text-left transition-colors',
-          compact ? 'px-1.5 py-0.5' : 'px-2 py-1',
-          missing
-            ? 'cursor-not-allowed'
-            : 'hover:bg-foreground/5 text-foreground',
-        )}
-      >
-        <span className="text-foreground-alt/60 shrink-0">
-          {objectType ? getObjectTypeIcon(objectType) : getObjectTypeIcon('')}
-        </span>
-        <span className="min-w-0">
-          <span className="micro-text block truncate font-mono leading-4">
-            {missing ? displayLabel || 'Missing ref' : displayLabel}
-          </span>
-          {(kindLabel || status) && !compact ? (
-            <span className="text-foreground-alt/50 micro-fine block truncate leading-3">
-              {[kindLabel, status].filter(Boolean).join(' / ')}
-            </span>
-          ) : null}
-        </span>
-      </button>
+      <ObjectLinkPrimary
+        objectType={objectType}
+        displayLabel={displayLabel}
+        accessibleLabel={accessibleLabel}
+        detail={[kindLabel, status].filter(Boolean).join(' / ')}
+        missing={missing}
+        compact={compact}
+        onOpen={actions.open}
+      />
       {missing ? null : (
         <>
           <Tooltip>
@@ -164,13 +226,13 @@ export function ObjectLink({
               <button
                 type="button"
                 aria-label={'Copy ' + accessibleLabel}
-                onClick={handleCopy}
+                onClick={actions.copy}
                 className={cn(
                   'border-foreground/8 hover:bg-foreground/5 inline-flex shrink-0 items-center justify-center border-l transition-colors',
-                  compact ? 'h-6 w-6' : 'h-7 w-7',
+                  buttonSize,
                 )}
               >
-                {copied ? (
+                {actions.copied ? (
                   <LuCheck className="text-success size-3.5" />
                 ) : (
                   <LuCopy className="size-3.5" />
@@ -178,7 +240,7 @@ export function ObjectLink({
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              {copied ? 'Copied' : 'Copy object key'}
+              {actions.copied ? 'Copied' : 'Copy object key'}
             </TooltipContent>
           </Tooltip>
           <Tooltip>
@@ -186,11 +248,13 @@ export function ObjectLink({
               <button
                 type="button"
                 aria-label={'Open ' + accessibleLabel + ' in new tab'}
-                disabled={!canOpenInNewTab && !spaceContainer}
-                onClick={handleOpenInNewTab}
+                disabled={
+                  !actions.canOpenInNewTab && !actions.hasSpaceContainer
+                }
+                onClick={actions.openInNewTab}
                 className={cn(
                   'border-foreground/8 hover:bg-foreground/5 disabled:text-foreground-alt/30 inline-flex shrink-0 items-center justify-center rounded-r-md border-l transition-colors disabled:cursor-not-allowed disabled:hover:bg-transparent',
-                  compact ? 'h-6 w-6' : 'h-7 w-7',
+                  buttonSize,
                 )}
               >
                 <LuExternalLink className="size-3.5" />

@@ -37,6 +37,12 @@ function getCollapseLevel(width: number): CollapseLevel {
   return 'none'
 }
 
+type PathTargetDragOver = (
+  path: string,
+  event: DragEvent<HTMLElement>,
+) => boolean
+type PathTargetDrop = (path: string, event: DragEvent<HTMLElement>) => void
+
 interface ToolbarProps {
   currentPath: string
   onPathChange?: (path: string) => void
@@ -50,14 +56,130 @@ interface ToolbarProps {
   upDropPath?: string
   onNewFolder?: () => void
   onUploadFiles?: () => void
-  onPathTargetDragOver?: (
-    path: string,
-    event: DragEvent<HTMLElement>,
-  ) => boolean
-  onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
+  onPathTargetDragOver?: PathTargetDragOver
+  onPathTargetDrop?: PathTargetDrop
   height?: number
   hideNav?: boolean
 }
+
+// upDropHandlers makes a control accept drops onto the parent folder, when
+// that folder exists.
+function upDropHandlers(
+  canGoUp: boolean,
+  upDropPath: string | undefined,
+  onPathTargetDragOver: PathTargetDragOver | undefined,
+  onPathTargetDrop: PathTargetDrop | undefined,
+) {
+  if (!canGoUp || !upDropPath) return {}
+
+  return {
+    onDragOver: (event: DragEvent<HTMLElement>) =>
+      onPathTargetDragOver?.(upDropPath, event),
+    onDrop: (event: DragEvent<HTMLElement>) =>
+      onPathTargetDrop?.(upDropPath, event),
+  }
+}
+
+// useCollapseLevel tracks how far the toolbar must collapse for its width.
+function useCollapseLevel() {
+  const [collapseLevel, setCollapseLevel] = useState<CollapseLevel>('none')
+  const toolbarRef = useRef<HTMLDivElement>(null)
+
+  const checkWidth = useCallback(() => {
+    if (!toolbarRef.current) return
+    setCollapseLevel(getCollapseLevel(toolbarRef.current.clientWidth))
+  }, [])
+
+  useEffect(() => {
+    checkWidth()
+    const toolbar = toolbarRef.current
+    if (!toolbar) return
+
+    const observer = new ResizeObserver(checkWidth)
+    observer.observe(toolbar)
+    return () => observer.disconnect()
+  }, [checkWidth])
+
+  return { collapseLevel, toolbarRef }
+}
+
+// ToolbarNav renders the back, forward, and up buttons.
+function ToolbarNav({
+  onBack,
+  onForward,
+  onUp,
+  canGoBack,
+  canGoForward,
+  canGoUp,
+  upDrop,
+}: {
+  onBack?: () => void
+  onForward?: () => void
+  onUp?: () => void
+  canGoBack: boolean
+  canGoForward: boolean
+  canGoUp: boolean
+  upDrop: ReturnType<typeof upDropHandlers>
+}) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <NavIconButton
+        icon={<LuChevronLeft className="size-4" />}
+        label="Back"
+        onClick={onBack}
+        disabled={!canGoBack}
+      />
+      <NavIconButton
+        icon={<LuChevronRight className="size-4" />}
+        label="Forward"
+        onClick={onForward}
+        disabled={!canGoForward}
+      />
+      <NavIconButton
+        icon={<LuChevronUp className="size-4" />}
+        label="Up"
+        onClick={onUp}
+        disabled={!canGoUp}
+        {...upDrop}
+      />
+    </div>
+  )
+}
+
+// ToolbarActions renders the new folder and upload buttons.
+function ToolbarActions({
+  showNewFolder,
+  onNewFolder,
+  onUploadFiles,
+}: {
+  showNewFolder: boolean
+  onNewFolder?: () => void
+  onUploadFiles?: () => void
+}) {
+  if (!showNewFolder && !onUploadFiles) return null
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {showNewFolder && (
+        <NavIconButton
+          icon={<LuFolderPlus className="size-4" />}
+          label="New folder"
+          onClick={onNewFolder}
+        />
+      )}
+      {onUploadFiles && (
+        <NavIconButton
+          icon={<LuUpload className="size-4" />}
+          label="Upload files"
+          onClick={onUploadFiles}
+        />
+      )}
+    </div>
+  )
+}
+
+const searchBoxClassName =
+  '[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11'
 
 /** Toolbar keeps the file path and primary action visible as its width shrinks. */
 export function Toolbar({
@@ -78,33 +200,39 @@ export function Toolbar({
   height,
   hideNav,
 }: ToolbarProps) {
-  const [collapseLevel, setCollapseLevel] = useState<CollapseLevel>('none')
+  const { collapseLevel, toolbarRef } = useCollapseLevel()
   const [searchActive, setSearchActive] = useState(false)
-  const toolbarRef = useRef<HTMLDivElement>(null)
-
-  const checkWidth = useCallback(() => {
-    if (!toolbarRef.current) return
-    setCollapseLevel(getCollapseLevel(toolbarRef.current.clientWidth))
-  }, [])
-
-  useEffect(() => {
-    checkWidth()
-    const toolbar = toolbarRef.current
-    if (!toolbar) return
-
-    const observer = new ResizeObserver(checkWidth)
-    observer.observe(toolbar)
-    return () => observer.disconnect()
-  }, [checkWidth])
 
   // Keep upload visible while navigation and folder creation move into More.
-  const showNav =
-    !hideNav && (collapseLevel === 'none' || collapseLevel === 'menus')
-  const showPath = collapseLevel !== 'path'
-  const showOverflow = collapseLevel !== 'none'
-  const showNewFolder =
-    onNewFolder &&
-    (!onUploadFiles || collapseLevel === 'none' || collapseLevel === 'menus')
+  const wide = collapseLevel === 'none' || collapseLevel === 'menus'
+  const showNewFolder = !!onNewFolder && (!onUploadFiles || wide)
+
+  let search = <SearchBox placeholder="Search" className={searchBoxClassName} />
+  if (collapseLevel !== 'none') {
+    search = searchActive ? (
+      <SearchBox
+        placeholder="Search"
+        focusOnMount
+        onBlur={() => setSearchActive(false)}
+        className={searchBoxClassName}
+      />
+    ) : (
+      <OverflowMenu
+        collapseLevel={collapseLevel}
+        onSearchClick={() => setSearchActive(true)}
+        onBack={onBack}
+        onForward={onForward}
+        onUp={onUp}
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
+        canGoUp={canGoUp}
+        upDropPath={upDropPath}
+        onPathTargetDragOver={onPathTargetDragOver}
+        onPathTargetDrop={onPathTargetDrop}
+        onNewFolder={onNewFolder}
+      />
+    )
+  }
 
   return (
     <PanelHeader
@@ -113,40 +241,24 @@ export function Toolbar({
       height={height}
       className="[@media(pointer:coarse)]:min-h-11"
     >
-      {showNav && (
-        <div className="flex items-center gap-0.5">
-          <NavIconButton
-            icon={<LuChevronLeft className="size-4" />}
-            label="Back"
-            onClick={onBack}
-            disabled={!canGoBack}
-          />
-          <NavIconButton
-            icon={<LuChevronRight className="size-4" />}
-            label="Forward"
-            onClick={onForward}
-            disabled={!canGoForward}
-          />
-          <NavIconButton
-            icon={<LuChevronUp className="size-4" />}
-            label="Up"
-            onClick={onUp}
-            disabled={!canGoUp}
-            onDragOver={
-              canGoUp && upDropPath
-                ? (event) => onPathTargetDragOver?.(upDropPath, event)
-                : undefined
-            }
-            onDrop={
-              canGoUp && upDropPath
-                ? (event) => onPathTargetDrop?.(upDropPath, event)
-                : undefined
-            }
-          />
-        </div>
+      {!hideNav && wide && (
+        <ToolbarNav
+          onBack={onBack}
+          onForward={onForward}
+          onUp={onUp}
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          canGoUp={canGoUp}
+          upDrop={upDropHandlers(
+            canGoUp,
+            upDropPath,
+            onPathTargetDragOver,
+            onPathTargetDrop,
+          )}
+        />
       )}
 
-      {showPath && !searchActive ? (
+      {collapseLevel !== 'path' && !searchActive ? (
         <PathBar
           path={currentPath}
           onPathChange={onPathChange}
@@ -158,55 +270,13 @@ export function Toolbar({
         <div className="flex-1" />
       )}
 
-      {(showNewFolder || onUploadFiles) && (
-        <div className="flex items-center gap-0.5">
-          {showNewFolder && (
-            <NavIconButton
-              icon={<LuFolderPlus className="size-4" />}
-              label="New folder"
-              onClick={onNewFolder}
-            />
-          )}
-          {onUploadFiles && (
-            <NavIconButton
-              icon={<LuUpload className="size-4" />}
-              label="Upload files"
-              onClick={onUploadFiles}
-            />
-          )}
-        </div>
-      )}
+      <ToolbarActions
+        showNewFolder={showNewFolder}
+        onNewFolder={onNewFolder}
+        onUploadFiles={onUploadFiles}
+      />
 
-      {showOverflow ? (
-        searchActive ? (
-          <SearchBox
-            placeholder="Search"
-            focusOnMount
-            onBlur={() => setSearchActive(false)}
-            className="[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
-          />
-        ) : (
-          <OverflowMenu
-            collapseLevel={collapseLevel}
-            onSearchClick={() => setSearchActive(true)}
-            onBack={onBack}
-            onForward={onForward}
-            onUp={onUp}
-            canGoBack={canGoBack}
-            canGoForward={canGoForward}
-            canGoUp={canGoUp}
-            upDropPath={upDropPath}
-            onPathTargetDragOver={onPathTargetDragOver}
-            onPathTargetDrop={onPathTargetDrop}
-            onNewFolder={onNewFolder}
-          />
-        )
-      ) : (
-        <SearchBox
-          placeholder="Search"
-          className="[@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
-        />
-      )}
+      {search}
     </PanelHeader>
   )
 }
@@ -261,11 +331,8 @@ interface OverflowMenuProps {
   canGoForward?: boolean
   canGoUp?: boolean
   upDropPath?: string
-  onPathTargetDragOver?: (
-    path: string,
-    event: DragEvent<HTMLElement>,
-  ) => boolean
-  onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
+  onPathTargetDragOver?: PathTargetDragOver
+  onPathTargetDrop?: PathTargetDrop
   onNewFolder?: () => void
 }
 
@@ -328,16 +395,12 @@ function OverflowMenu({
               className="max-sm:min-h-12 [@media(pointer:coarse)]:min-h-12"
               onClick={onUp}
               disabled={!canGoUp}
-              onDragOver={
-                canGoUp && upDropPath
-                  ? (event) => onPathTargetDragOver?.(upDropPath, event)
-                  : undefined
-              }
-              onDrop={
-                canGoUp && upDropPath
-                  ? (event) => onPathTargetDrop?.(upDropPath, event)
-                  : undefined
-              }
+              {...upDropHandlers(
+                canGoUp,
+                upDropPath,
+                onPathTargetDragOver,
+                onPathTargetDrop,
+              )}
             >
               <LuChevronUp className="size-3.5" />
               Up

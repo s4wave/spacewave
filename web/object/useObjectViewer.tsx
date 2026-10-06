@@ -148,20 +148,16 @@ export function getDefaultStateNamespace(
   return ['objectViewer', objectKey ?? 'none']
 }
 
-// useObjectViewer extracts all object viewer state logic for both world and
-// unixfs objects. Shared by ObjectViewer across all embedding contexts.
-export function useObjectViewer({
-  objectInfo,
-  worldState,
-  bottomBarId,
-  stateNamespace,
-  exportUrl,
-  preferredComponentID,
-}: UseObjectViewerProps): UseObjectViewerResult {
-  const infoCase = objectInfo?.info?.case
-  const barId = bottomBarId ?? 'objectViewer'
+type SpaceContext = ReturnType<typeof SpaceContainerContext.useContextSafe>
 
-  // For world objects, use the standard setup hook.
+// useViewerSource resolves the type, state, and viewers of an object. World
+// objects use the standard setup hook and unixfs objects resolve directly.
+function useViewerSource(
+  objectInfo: ObjectInfo,
+  worldState: Resource<IWorldState>,
+  spaceContext: SpaceContext,
+) {
+  const infoCase = objectInfo?.info?.case
   const worldObjectKey =
     infoCase === 'worldObjectInfo'
       ? (objectInfo.info?.value as { objectKey?: string })?.objectKey
@@ -177,30 +173,48 @@ export function useObjectViewer({
     loadObjectState: worldObjectType !== UnixFSTypeID,
   })
 
-  // For unixfs objects, resolve typeID directly.
   const isUnixfs = infoCase === 'unixfsObjectInfo'
-  const spaceContext = SpaceContainerContext.useContextSafe()
   const rootResource = RootContext.useContext()
   const allViewers = useAllViewers(
     rootResource,
     spaceContext?.spaceState.engineId,
   )
-
   const unixfsComponents = useMemo(() => {
     if (!isUnixfs) return []
     return getViewersForType(UnixFSTypeID, allViewers)
   }, [isUnixfs, allViewers])
 
-  // Merge the two paths.
-  const typeID = isUnixfs ? UnixFSTypeID : worldSetup.typeID
-  const objectState = worldSetup.objectState
-  const rootRef = isUnixfs ? undefined : worldSetup.rootRef
-  const visibleComponents = isUnixfs
-    ? unixfsComponents
-    : worldSetup.visibleComponents
-  const objectKey = isUnixfs ? undefined : worldObjectKey
+  return {
+    isUnixfs,
+    typeID: isUnixfs ? UnixFSTypeID : worldSetup.typeID,
+    objectState: worldSetup.objectState,
+    rootRef: isUnixfs ? undefined : worldSetup.rootRef,
+    visibleComponents: isUnixfs
+      ? unixfsComponents
+      : worldSetup.visibleComponents,
+    objectKey: isUnixfs ? undefined : worldObjectKey,
+  }
+}
 
-  // State namespace for component selection persistence.
+interface ViewerSelectionOptions {
+  objectInfo: ObjectInfo
+  objectKey: string | undefined
+  stateNamespace: string[] | undefined
+  visibleComponents: ObjectViewerComponent[]
+  typeID: string | undefined
+  preferredComponentID: string | undefined
+}
+
+// useViewerSelection resolves the selected viewer component, persisting the
+// user's choice in the state namespace.
+function useViewerSelection({
+  objectInfo,
+  objectKey,
+  stateNamespace,
+  visibleComponents,
+  typeID,
+  preferredComponentID,
+}: ViewerSelectionOptions) {
   const defaultNs = useMemo(
     () => getDefaultStateNamespace(objectInfo, objectKey, stateNamespace),
     [objectInfo, objectKey, stateNamespace],
@@ -210,8 +224,6 @@ export function useObjectViewer({
   const [selectedComponentID, setSelectedComponentID] = useStateAtom<
     string | undefined
   >(namespace, 'selectedComponentID', undefined)
-
-  const [selectorOpen, setSelectorOpen] = useState(false)
 
   const { selectedComponent, missingComponentID } = useMemo(() => {
     const selection = resolveObjectViewerSelection(
@@ -251,13 +263,23 @@ export function useObjectViewer({
     [visibleComponents, selectedComponent, handleSelectComponent],
   )
 
-  // Bottom bar state.
-  const isLastItem = useIsLastBottomBarItem(barId)
-  const setOpenMenu = useBottomBarSetOpenMenu()
-  const tabContext = useTabContext()
+  return {
+    selectedComponent,
+    missingComponentID,
+    handleSelectComponent,
+    viewerContextValue,
+  }
+}
 
-  const selectedComponentIDDisplay = selectedComponent?.componentID ?? 'default'
-  const hasMultipleComponents = visibleComponents.length > 1
+// useViewerTitle sets the document title while the viewer's tab is active.
+function useViewerTitle(
+  spaceContext: SpaceContext,
+  objectKey: string | undefined,
+  isUnixfs: boolean,
+  visibleComponents: ObjectViewerComponent[],
+  selectedComponent: ObjectViewerComponent | undefined,
+) {
+  const tabContext = useTabContext()
   const isTabActive = useIsTabActive()
   const focusedTabId = useDocumentTitleFocus()
   const isTopLevelObject = !!objectKey && spaceContext?.objectKey === objectKey
@@ -274,6 +296,7 @@ export function useObjectViewer({
     visibleComponents.length > 1 && selectedComponent?.name
       ? `${objectTitle} · ${selectedComponent.name}`
       : objectTitle
+
   useDocumentTitle(
     { view: viewTitle, space: spaceContext?.spaceName ?? 'Space' },
     {
@@ -281,7 +304,262 @@ export function useObjectViewer({
       priority: isFocusedLayoutTab ? 30 : 20,
     },
   )
-  const displayKey = objectKey ?? (isUnixfs ? 'UnixFS' : 'No object')
+}
+
+// objectExportURL returns the export URL of an object, when it has one.
+function objectExportURL(
+  exportUrl: string | undefined,
+  objectKey: string | undefined,
+): string | undefined {
+  if (!exportUrl || !objectKey) return undefined
+  return `${exportUrl}/-/${encodeURIComponent(objectKey)}`
+}
+
+// useExportCommand registers the Export Object command, active while a world
+// object with an export URL is shown in the active tab.
+function useExportCommand(objectExportUrl: string | undefined) {
+  const isTabActive = useIsTabActive()
+
+  useCommand({
+    commandId: 'spacewave.file.export-object',
+    label: 'Export Object',
+    description: 'Download object contents',
+    menuPath: 'File/Export Object',
+    menuGroup: 30,
+    menuOrder: 3,
+    active: isTabActive && !!objectExportUrl,
+    handler: useCallback(() => {
+      if (!objectExportUrl) return
+      const a = document.createElement('a')
+      a.href = objectExportUrl
+      a.download = ''
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }, [objectExportUrl]),
+  })
+}
+
+// BarComponentLabel renders the selected viewer component, or the type when no
+// viewer is selected, beside the object key in the bottom bar.
+function BarComponentLabel({
+  selectedComponent,
+  typeID,
+  visibleComponents,
+  selectorOpen,
+  onSelectorOpenChange,
+  onSelectComponent,
+}: {
+  selectedComponent: ObjectViewerComponent | undefined
+  typeID: string | undefined
+  visibleComponents: ObjectViewerComponent[]
+  selectorOpen: boolean
+  onSelectorOpenChange: (open: boolean) => void
+  onSelectComponent: (component: ObjectViewerComponent) => void
+}) {
+  let label = null
+  if (typeID) label = `Type: ${typeID}`
+  if (selectedComponent) label = selectedComponent.name
+  if (label === null) return null
+
+  const text = (
+    <div className="text-muted-foreground truncate text-xs">{label}</div>
+  )
+
+  return (
+    <>
+      <div className="bg-border mx-2 h-3 w-px" />
+      {selectedComponent && visibleComponents.length > 1 ? (
+        <ComponentSelector
+          open={selectorOpen}
+          onOpenChange={onSelectorOpenChange}
+          components={visibleComponents}
+          selectedComponent={selectedComponent}
+          onSelectComponent={onSelectComponent}
+        >
+          {text}
+        </ComponentSelector>
+      ) : (
+        text
+      )}
+    </>
+  )
+}
+
+interface ViewerButtonOptions {
+  barId: string
+  displayKey: string
+  typeID: string | undefined
+  visibleComponents: ObjectViewerComponent[]
+  selectedComponent: ObjectViewerComponent | undefined
+  onSelectComponent: (component: ObjectViewerComponent) => void
+}
+
+// useViewerButton renders the bottom bar button of the viewer and the key that
+// changes when it must re-render.
+function useViewerButton({
+  barId,
+  displayKey,
+  typeID,
+  visibleComponents,
+  selectedComponent,
+  onSelectComponent,
+}: ViewerButtonOptions) {
+  const isLastItem = useIsLastBottomBarItem(barId)
+  const [selectorOpen, setSelectorOpen] = useState(false)
+  const selectedComponentIDDisplay = selectedComponent?.componentID ?? 'default'
+  const hasMultipleComponents = visibleComponents.length > 1
+
+  const buttonKeyValue = useMemo(
+    () =>
+      [
+        displayKey,
+        selectedComponentIDDisplay,
+        hasMultipleComponents ? 'multi' : 'single',
+        selectorOpen ? 'open' : 'closed',
+        typeID ?? 'none',
+      ].join(':'),
+    [
+      displayKey,
+      selectedComponentIDDisplay,
+      hasMultipleComponents,
+      selectorOpen,
+      typeID,
+    ],
+  )
+
+  const buttonRender = useCallback(
+    (selected: boolean, onClick: () => void, className?: string) => (
+      <BottomBarItem
+        selected={selected}
+        onClick={onClick}
+        className={className}
+      >
+        <div className="flex-shrink flex-grow truncate">{displayKey}</div>
+        {(selected || isLastItem) && (
+          <BarComponentLabel
+            selectedComponent={selectedComponent}
+            typeID={typeID}
+            visibleComponents={visibleComponents}
+            selectorOpen={selectorOpen}
+            onSelectorOpenChange={setSelectorOpen}
+            onSelectComponent={onSelectComponent}
+          />
+        )}
+      </BottomBarItem>
+    ),
+    [
+      displayKey,
+      isLastItem,
+      selectedComponent,
+      selectorOpen,
+      visibleComponents,
+      onSelectComponent,
+      typeID,
+    ],
+  )
+
+  return { buttonRender, buttonKeyValue, selectedComponentIDDisplay }
+}
+
+interface ViewerOverlayOptions {
+  spaceContext: SpaceContext
+  objectKey: string | undefined
+  typeID: string | undefined
+  rootRef: string | undefined
+  objectExportUrl: string | undefined
+  visibleComponents: ObjectViewerComponent[]
+  selectedComponent: ObjectViewerComponent | undefined
+  missingComponentID: string | undefined
+  selectedComponentIDDisplay: string
+  onSelectComponent: (component: ObjectViewerComponent) => void
+}
+
+// useViewerOverlay renders the object details overlay and the key that changes
+// when it must re-render.
+function useViewerOverlay({
+  spaceContext,
+  objectKey,
+  typeID,
+  rootRef,
+  objectExportUrl,
+  visibleComponents,
+  selectedComponent,
+  missingComponentID,
+  selectedComponentIDDisplay,
+  onSelectComponent,
+}: ViewerOverlayOptions) {
+  const setOpenMenu = useBottomBarSetOpenMenu()
+
+  const overlayKeyValue = useMemo(
+    () =>
+      [
+        objectKey ?? 'none',
+        typeID ?? 'none',
+        rootRef ?? 'none',
+        selectedComponentIDDisplay,
+        spaceContext?.canDeleteObjects ? 'delete' : 'read-only',
+      ].join(':'),
+    [objectKey, typeID, rootRef, selectedComponentIDDisplay, spaceContext],
+  )
+
+  const handleCloseDetails = useCallback(() => {
+    setOpenMenu?.('')
+  }, [setOpenMenu])
+
+  const handleDeleteObject = useCallback(async () => {
+    if (!objectKey || !spaceContext?.canDeleteObjects) return
+    await spaceContext.spaceWorld.deleteObject(objectKey)
+    setOpenMenu?.('')
+    spaceContext.navigateToRoot()
+  }, [objectKey, setOpenMenu, spaceContext])
+
+  const overlayContent = useMemo(
+    () =>
+      typeID && objectKey ? (
+        <ObjectViewerDetails
+          key={selectedComponent?.componentID}
+          objectKey={objectKey}
+          typeID={typeID}
+          rootRef={rootRef ?? ''}
+          exportUrl={objectExportUrl}
+          availableComponents={visibleComponents}
+          selectedComponent={selectedComponent}
+          missingComponentID={missingComponentID}
+          onComponentSelect={onSelectComponent}
+          onCloseClick={handleCloseDetails}
+          onDeleteConfirm={
+            spaceContext?.canDeleteObjects ? handleDeleteObject : undefined
+          }
+        />
+      ) : undefined,
+    [
+      typeID,
+      objectKey,
+      rootRef,
+      objectExportUrl,
+      visibleComponents,
+      selectedComponent,
+      missingComponentID,
+      onSelectComponent,
+      handleCloseDetails,
+      handleDeleteObject,
+      spaceContext?.canDeleteObjects,
+    ],
+  )
+
+  return { overlayContent, overlayKeyValue }
+}
+
+// useViewerContextMenu builds the bottom bar context menu that navigates
+// between the objects of the space.
+function useViewerContextMenu(
+  spaceContext: SpaceContext,
+  objectKey: string | undefined,
+  displayKey: string,
+  hasDetails: boolean,
+) {
+  const tabContext = useTabContext()
   const loadedSpaceObjectTargets = spaceContext?.spaceObjectTargets?.targets
   const spaceObjectTargets = useMemo(
     () => loadedSpaceObjectTargets ?? [],
@@ -312,147 +590,13 @@ export function useObjectViewer({
     [positionOwner],
   )
 
-  const buttonKeyValue = useMemo(
-    () =>
-      [
-        displayKey,
-        selectedComponentIDDisplay,
-        hasMultipleComponents ? 'multi' : 'single',
-        selectorOpen ? 'open' : 'closed',
-        typeID ?? 'none',
-      ].join(':'),
-    [
-      displayKey,
-      selectedComponentIDDisplay,
-      hasMultipleComponents,
-      selectorOpen,
-      typeID,
-    ],
-  )
-
-  const overlayKeyValue = useMemo(
-    () =>
-      [
-        objectKey ?? 'none',
-        typeID ?? 'none',
-        rootRef ?? 'none',
-        selectedComponentIDDisplay,
-        spaceContext?.canDeleteObjects ? 'delete' : 'read-only',
-      ].join(':'),
-    [objectKey, typeID, rootRef, selectedComponentIDDisplay, spaceContext],
-  )
-
-  const handleCloseDetails = useCallback(() => {
-    setOpenMenu?.('')
-  }, [setOpenMenu])
-
-  const handleDeleteObject = useCallback(async () => {
-    if (!objectKey || !spaceContext?.canDeleteObjects) return
-    await spaceContext.spaceWorld.deleteObject(objectKey)
-    setOpenMenu?.('')
-    spaceContext.navigateToRoot()
-  }, [objectKey, setOpenMenu, spaceContext])
-
-  const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => {
-      const showComponentName = selected || isLastItem
-      return (
-        <BottomBarItem
-          selected={selected}
-          onClick={onClick}
-          className={className}
-        >
-          <div className="flex-shrink flex-grow truncate">{displayKey}</div>
-          {showComponentName && selectedComponent && hasMultipleComponents ? (
-            <>
-              <div className="bg-border mx-2 h-3 w-px" />
-              <ComponentSelector
-                open={selectorOpen}
-                onOpenChange={setSelectorOpen}
-                components={visibleComponents}
-                selectedComponent={selectedComponent}
-                onSelectComponent={handleSelectComponent}
-              >
-                <div className="text-muted-foreground truncate text-xs">
-                  {selectedComponent.name}
-                </div>
-              </ComponentSelector>
-            </>
-          ) : showComponentName && selectedComponent ? (
-            <>
-              <div className="bg-border mx-2 h-3 w-px" />
-              <div className="text-muted-foreground truncate text-xs">
-                {selectedComponent.name}
-              </div>
-            </>
-          ) : showComponentName && typeID ? (
-            <>
-              <div className="bg-border mx-2 h-3 w-px" />
-              <div className="text-muted-foreground truncate text-xs">
-                Type: {typeID}
-              </div>
-            </>
-          ) : null}
-        </BottomBarItem>
-      )
-    },
-    [
-      displayKey,
-      isLastItem,
-      selectedComponent,
-      hasMultipleComponents,
-      selectorOpen,
-      visibleComponents,
-      handleSelectComponent,
-      typeID,
-    ],
-  )
-
-  const overlayContent = useMemo(
-    () =>
-      typeID && objectKey ? (
-        <ObjectViewerDetails
-          key={selectedComponent?.componentID}
-          objectKey={objectKey}
-          typeID={typeID}
-          rootRef={rootRef ?? ''}
-          exportUrl={
-            exportUrl && objectKey
-              ? `${exportUrl}/-/${encodeURIComponent(objectKey)}`
-              : undefined
-          }
-          availableComponents={visibleComponents}
-          selectedComponent={selectedComponent}
-          missingComponentID={missingComponentID}
-          onComponentSelect={handleSelectComponent}
-          onCloseClick={handleCloseDetails}
-          onDeleteConfirm={
-            spaceContext?.canDeleteObjects ? handleDeleteObject : undefined
-          }
-        />
-      ) : undefined,
-    [
-      typeID,
-      objectKey,
-      rootRef,
-      exportUrl,
-      visibleComponents,
-      selectedComponent,
-      missingComponentID,
-      handleSelectComponent,
-      handleCloseDetails,
-      handleDeleteObject,
-      spaceContext?.canDeleteObjects,
-    ],
-  )
-
   const contextMenuItems = useMemo(
     () =>
       createSpaceObjectNavigationActions({
         targets: spaceObjectTargets,
         moreTargets: moreSpaceObjectTargets,
         currentObjectKey: objectKey,
-        openDetails: overlayContent ? () => {} : undefined,
+        openDetails: hasDetails ? () => {} : undefined,
         openObject: spaceContext?.navigateToObjects
           ? handleOpenObject
           : undefined,
@@ -464,7 +608,7 @@ export function useObjectViewer({
       spaceObjectTargets,
       moreSpaceObjectTargets,
       objectKey,
-      overlayContent,
+      hasDetails,
       spaceContext?.navigateToObjects,
       handleOpenObject,
       positionOwner,
@@ -476,7 +620,7 @@ export function useObjectViewer({
       [
         displayKey,
         objectKey ?? 'none',
-        overlayContent ? 'details' : 'no-details',
+        hasDetails ? 'details' : 'no-details',
         spaceContext?.navigateToObjects ? 'open' : 'no-open',
         hasObjectViewerSwitchOwner(positionOwner) ? 'switch' : 'no-switch',
         spaceObjectTargets
@@ -487,59 +631,96 @@ export function useObjectViewer({
     [
       displayKey,
       objectKey,
-      overlayContent,
+      hasDetails,
       spaceContext?.navigateToObjects,
       positionOwner,
       spaceObjectTargets,
       moreSpaceObjectTargets,
     ],
   )
-  const contextMenuLabel = `${displayKey} actions`
-
-  // Export object command: active when viewing a world object with an export URL.
-  const objectExportUrl = useMemo(
-    () =>
-      exportUrl && objectKey
-        ? `${exportUrl}/-/${encodeURIComponent(objectKey)}`
-        : undefined,
-    [exportUrl, objectKey],
-  )
-
-  useCommand({
-    commandId: 'spacewave.file.export-object',
-    label: 'Export Object',
-    description: 'Download object contents',
-    menuPath: 'File/Export Object',
-    menuGroup: 30,
-    menuOrder: 3,
-    active: isTabActive && !!objectExportUrl,
-    handler: useCallback(() => {
-      if (!objectExportUrl) return
-      const a = document.createElement('a')
-      a.href = objectExportUrl
-      a.download = ''
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }, [objectExportUrl]),
-  })
 
   return {
-    objectState,
+    contextMenuItems,
+    contextMenuKey,
+    contextMenuLabel: `${displayKey} actions`,
+  }
+}
+
+// useObjectViewer extracts all object viewer state logic for both world and
+// unixfs objects. Shared by ObjectViewer across all embedding contexts.
+export function useObjectViewer({
+  objectInfo,
+  worldState,
+  bottomBarId,
+  stateNamespace,
+  exportUrl,
+  preferredComponentID,
+}: UseObjectViewerProps): UseObjectViewerResult {
+  const spaceContext = SpaceContainerContext.useContextSafe()
+  const source = useViewerSource(objectInfo, worldState, spaceContext)
+  const { typeID, rootRef, objectKey, visibleComponents } = source
+  const selection = useViewerSelection({
+    objectInfo,
+    objectKey,
+    stateNamespace,
+    visibleComponents,
+    typeID,
+    preferredComponentID,
+  })
+  const { selectedComponent, missingComponentID } = selection
+  const onSelectComponent = selection.handleSelectComponent
+  const displayKey = objectKey ?? (source.isUnixfs ? 'UnixFS' : 'No object')
+  const objectExportUrl = objectExportURL(exportUrl, objectKey)
+
+  useViewerTitle(
+    spaceContext,
+    objectKey,
+    source.isUnixfs,
+    visibleComponents,
+    selectedComponent,
+  )
+  useExportCommand(objectExportUrl)
+  const button = useViewerButton({
+    barId: bottomBarId ?? 'objectViewer',
+    displayKey,
+    typeID,
+    visibleComponents,
+    selectedComponent,
+    onSelectComponent,
+  })
+  const overlay = useViewerOverlay({
+    spaceContext,
+    objectKey,
+    typeID,
+    rootRef,
+    objectExportUrl,
+    visibleComponents,
+    selectedComponent,
+    missingComponentID,
+    selectedComponentIDDisplay: button.selectedComponentIDDisplay,
+    onSelectComponent,
+  })
+  const contextMenu = useViewerContextMenu(
+    spaceContext,
+    objectKey,
+    displayKey,
+    !!overlay.overlayContent,
+  )
+
+  return {
+    objectState: source.objectState,
     typeID,
     rootRef,
     objectKey,
     visibleComponents,
     selectedComponent,
     missingComponentID,
-    onSelectComponent: handleSelectComponent,
-    viewerContextValue,
-    buttonRender,
-    overlayContent,
-    buttonKeyValue,
-    overlayKeyValue,
-    contextMenuItems,
-    contextMenuKey,
-    contextMenuLabel,
+    onSelectComponent,
+    viewerContextValue: selection.viewerContextValue,
+    buttonRender: button.buttonRender,
+    overlayContent: overlay.overlayContent,
+    buttonKeyValue: button.buttonKeyValue,
+    overlayKeyValue: overlay.overlayKeyValue,
+    ...contextMenu,
   }
 }
