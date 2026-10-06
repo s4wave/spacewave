@@ -449,6 +449,16 @@ func (h *harness) newBrowserContext(t testing.TB) playwright.BrowserContext {
 			t.Logf("close browser context: %v", err)
 		}
 	})
+
+	// Page diagnostics see page and dedicated worker consoles only. The
+	// ServiceWorker console reaches the context with no page.
+	if os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1" {
+		ctx.OnConsole(func(msg playwright.ConsoleMessage) {
+			if msg.Page() == nil {
+				t.Logf("browser service worker %s: %s", msg.Type(), msg.Text())
+			}
+		})
+	}
 	return ctx
 }
 
