@@ -503,7 +503,7 @@ func parseReplayCursorKey(key []byte) (string, bool) {
 	if local {
 		segment = []byte("so")
 	}
-	if id == "" || !(bytes.Equal(parent, segment) || bytes.HasSuffix(parent, append([]byte("/"), segment...))) {
+	if id == "" || !bytes.Equal(parent, segment) && !bytes.HasSuffix(parent, append([]byte("/"), segment...)) {
 		return "", false
 	}
 	return id, true
