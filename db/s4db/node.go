@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"slices"
 	"sync/atomic"
-	"unsafe"
 
 	"github.com/pkg/errors"
 )
@@ -31,13 +30,14 @@ const (
 	pageLeaf = 1
 )
 
-// Decoded entry costs in memory, beyond the page bytes the node keeps.
+// Decoded entry costs in memory on a 64-bit platform, beyond the page bytes
+// the node keeps. A slice header is 24 bytes and a value 48.
 const (
 	// leafEntryCost is a key slice, its head, and its value.
-	leafEntryCost = int(unsafe.Sizeof([]byte(nil)) + unsafe.Sizeof(uint64(0)) + unsafe.Sizeof(value{}))
+	leafEntryCost = 24 + 8 + 48
 	// innerEntryCost is a key slice, its head, its child page, and its
 	// child link.
-	innerEntryCost = int(unsafe.Sizeof([]byte(nil)) + 2*unsafe.Sizeof(uint64(0)) + unsafe.Sizeof(atomic.Pointer[node]{}))
+	innerEntryCost = 24 + 8 + 8 + 8
 )
 
 // node is a decoded tree page.

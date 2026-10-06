@@ -19,7 +19,7 @@ type zeroData struct {
 // wait is set. Without wait it reports false when another holder has it.
 // Windows locks belong to the handle, and the system drops them when the
 // process exits.
-func lock(f *os.File, off int64, wait bool) (bool, error) {
+func (f *osFile) lock(off int64, wait bool) (bool, error) {
 	// Fail at once on a held lock unless waiting.
 	flags := uint32(windows.LOCKFILE_EXCLUSIVE_LOCK)
 	if !wait {
@@ -39,7 +39,7 @@ func lock(f *os.File, off int64, wait bool) (bool, error) {
 }
 
 // unlock releases the lock on the byte at off.
-func unlock(f *os.File, off int64) error {
+func (f *osFile) unlock(off int64) error {
 	ov := lockOverlapped(off)
 	return windows.UnlockFileEx(windows.Handle(f.Fd()), 0, 1, 0, &ov)
 }
@@ -47,12 +47,12 @@ func unlock(f *os.File, off int64) error {
 // held reports whether another holder has the lock on the byte at off.
 // Windows cannot query a lock, so held takes and drops it; a process taking
 // that slot meanwhile moves on to the next free one.
-func held(f *os.File, off int64) (bool, error) {
-	ok, err := lock(f, off, false)
+func (f *osFile) held(off int64) (bool, error) {
+	ok, err := f.lock(off, false)
 	if err != nil || !ok {
 		return !ok, err
 	}
-	return false, unlock(f, off)
+	return false, f.unlock(off)
 }
 
 // lockOverlapped returns the OVERLAPPED that addresses the byte at off.
@@ -73,26 +73,26 @@ func identify(f *os.File) (fileID, error) {
 }
 
 // flushDurable makes earlier writes durable on the drive.
-func flushDurable(f *os.File) error {
+func (f *osFile) flushDurable() error {
 	return windows.FlushFileBuffers(windows.Handle(f.Fd()))
 }
 
 // flushOrdered orders earlier writes before later ones. Windows has no write
 // barrier short of a full flush, so ordered commits rely on record
 // checksums: recovery keeps the longest valid prefix of the log.
-func flushOrdered(*os.File) error {
+func (*osFile) flushOrdered() error {
 	return nil
 }
 
 // flushBarrier orders earlier writes before later ones. Windows has no
 // cheaper ordering than a full flush, so the barrier is durable.
-func flushBarrier(f *os.File) (bool, error) {
-	return true, flushDurable(f)
+func (f *osFile) flushBarrier() (bool, error) {
+	return true, f.flushDurable()
 }
 
 // punch deallocates n bytes at off, keeping the file length. The file is
 // marked sparse first; marking it again is a no-op.
-func punch(f *os.File, off, n int64) error {
+func (f *osFile) punch(off, n int64) error {
 	// Mark the file sparse so zeroed ranges release their clusters.
 	h := windows.Handle(f.Fd())
 	var done uint32

@@ -2,7 +2,6 @@ package s4db
 
 import (
 	"context"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -16,8 +15,8 @@ const syncDeadline = time.Second
 // flusher tracks which commits and checkpoints are durable and shares
 // flushes between the commits waiting on them.
 type flusher struct {
-	// f is the database file.
-	f *os.File
+	// s is the database file.
+	s storage
 	// cur is the published state; a flush covers every commit in it.
 	cur *atomic.Pointer[state]
 
@@ -45,9 +44,9 @@ type flusher struct {
 	closed bool
 }
 
-// newFlusher returns a flusher of f whose published state is cur.
-func newFlusher(f *os.File, cur *atomic.Pointer[state]) *flusher {
-	return &flusher{f: f, cur: cur}
+// newFlusher returns a flusher of s whose published state is cur.
+func newFlusher(s storage, cur *atomic.Pointer[state]) *flusher {
+	return &flusher{s: s, cur: cur}
 }
 
 // marks returns the durable commit and checkpoint.
@@ -172,7 +171,7 @@ func (f *flusher) syncThrough(ctx context.Context, seq, ckpt uint64) error {
 		l.Unlock()
 
 		// Flush and wake the waiters.
-		err := flushDurable(f.f)
+		err := f.s.flushDurable()
 		l = f.bcast.Lock()
 		f.flushing = false
 		if err == nil {

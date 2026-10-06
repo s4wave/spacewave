@@ -7,11 +7,11 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// watcher waits for commits of other processes on a named event per reader
+// fileWatcher waits for commits of other processes on a named event per reader
 // slot. Windows reports writes through another handle only when that
 // handle closes, so each writer signals the events of the live slots after
 // it unlocks.
-type watcher struct {
+type fileWatcher struct {
 	// f is the database file.
 	f *os.File
 	// slot is this handle's reader slot.
@@ -27,14 +27,14 @@ type watcher struct {
 	peers map[int]windows.Handle
 }
 
-// newWatcher creates the event of slot of the file f.
-func newWatcher(f *os.File, _ string, slot int) (*watcher, error) {
+// newFileWatcher creates the event of slot of the file f.
+func newFileWatcher(f *os.File, _ string, slot int) (*fileWatcher, error) {
 	// Name events by the file's identity, so every path to it agrees.
 	id, err := identify(f)
 	if err != nil {
 		return nil, err
 	}
-	w := &watcher{
+	w := &fileWatcher{
 		f:      f,
 		slot:   slot,
 		prefix: fmt.Sprintf(`Local\s4db-%x-%x-`, id.volume, id.index),
@@ -59,19 +59,19 @@ func newWatcher(f *os.File, _ string, slot int) (*watcher, error) {
 }
 
 // name returns the event name of slot.
-func (w *watcher) name(slot int) string {
+func (w *fileWatcher) name(slot int) string {
 	return fmt.Sprintf("%s%d", w.prefix, slot)
 }
 
 // wait blocks until another process commits, reporting false once stopped.
-func (w *watcher) wait() bool {
+func (w *fileWatcher) wait() bool {
 	ev, err := windows.WaitForMultipleObjects([]windows.Handle{w.event, w.halt}, false, windows.INFINITE)
 	return err == nil && ev == windows.WAIT_OBJECT_0
 }
 
 // notify signals the event of every other live slot. The caller holds the
 // writer lock.
-func (w *watcher) notify() {
+func (w *fileWatcher) notify() {
 	// Read the slots.
 	b := make([]byte, pageSize)
 	if _, err := w.f.ReadAt(b, slotPage*pageSize); err != nil {
@@ -102,12 +102,12 @@ func (w *watcher) notify() {
 }
 
 // stop wakes wait for the last time.
-func (w *watcher) stop() {
+func (w *fileWatcher) stop() {
 	_ = windows.SetEvent(w.halt)
 }
 
 // close releases the watcher's events.
-func (w *watcher) close() {
+func (w *fileWatcher) close() {
 	for _, h := range w.peers {
 		_ = windows.CloseHandle(h)
 	}

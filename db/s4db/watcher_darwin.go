@@ -6,8 +6,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// watcher waits for writes to the database file with kqueue.
-type watcher struct {
+// fileWatcher waits for writes to the database file with kqueue.
+type fileWatcher struct {
 	// kq is the kqueue.
 	kq int
 	// fd is the event-only descriptor of the file.
@@ -16,11 +16,11 @@ type watcher struct {
 	wake [2]int
 }
 
-// newWatcher watches the file at path. Every write raises a kqueue event,
+// newFileWatcher watches the file at path. Every write raises a kqueue event,
 // so the slot is unused.
-func newWatcher(_ *os.File, path string, _ int) (*watcher, error) {
+func newFileWatcher(_ *os.File, path string, _ int) (*fileWatcher, error) {
 	// Open the file for events only.
-	w := &watcher{kq: -1, fd: -1, wake: [2]int{-1, -1}}
+	w := &fileWatcher{kq: -1, fd: -1, wake: [2]int{-1, -1}}
 	var err error
 	if w.fd, err = unix.Open(path, unix.O_EVTONLY|unix.O_CLOEXEC, 0); err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func newWatcher(_ *os.File, path string, _ int) (*watcher, error) {
 }
 
 // wait blocks until the file changes, reporting false once stopped.
-func (w *watcher) wait() bool {
+func (w *fileWatcher) wait() bool {
 	out := make([]unix.Kevent_t, 2)
 	for {
 		n, err := unix.Kevent(w.kq, nil, out, nil)
@@ -67,16 +67,16 @@ func (w *watcher) wait() bool {
 }
 
 // notify tells other processes the file changed. The kernel already did.
-func (w *watcher) notify() {}
+func (w *fileWatcher) notify() {}
 
 // stop wakes wait for the last time.
-func (w *watcher) stop() {
+func (w *fileWatcher) stop() {
 	_, _ = unix.Write(w.wake[1], []byte{0})
 }
 
 // close releases the watcher. It drops the process's record locks on the
 // file, so the database closes it last.
-func (w *watcher) close() {
+func (w *fileWatcher) close() {
 	for _, fd := range []int{w.kq, w.fd, w.wake[0], w.wake[1]} {
 		if fd >= 0 {
 			_ = unix.Close(fd)
