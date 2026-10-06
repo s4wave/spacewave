@@ -67,6 +67,9 @@ type replayFork struct {
 	hash []byte
 	// state is the World after the write.
 	state *InnerState
+	// published is set when the write committed with the replay save pending
+	// before it, and its World under the accepted World root.
+	published bool
 }
 
 // replayer replays an operation set to a World in the set's deterministic
@@ -88,6 +91,10 @@ type replayer struct {
 	positions []replayPosition
 	// changed is set when base or positions differ from the saved replay.
 	changed bool
+	// deferred is set when the only change since the saved replay is the
+	// adopted published fork. The accepted World root holds its World, so the
+	// next publication carries the save.
+	deferred bool
 	// applied holds the operations a replay on this device has applied,
 	// including those of the saved replay.
 	applied map[string]struct{}
@@ -129,7 +136,8 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 				r.mismatch = &sobject.SOCheckpointMismatch{Height: checkpoint.GetHeight()}
 			}
 		}
-		r.base, r.positions, r.changed = base, r.positionsAbove(base), true
+		r.base, r.positions = base, r.positionsAbove(base)
+		r.changed, r.deferred = true, false
 	}
 
 	// Replay the operation set from the shared prefix.
@@ -259,17 +267,114 @@ func (r *replayer) load(ctx context.Context) error {
 	if n := len(r.positions); n != 0 {
 		r.positions[n-1].state = cursor.GetHead()
 	}
-	r.changed = false
+	r.changed, r.deferred = false, false
 	return nil
 }
 
-// save writes the replay to the local state of the World when it changed. The
-// caller first holds the span and the World after the replay, so a later load
-// resumes from Worlds whose blocks are kept.
+// save writes the replay to the local state of the World when it changed and
+// no publication carries it. The caller first holds the span and the World
+// after the replay, so a later load resumes from Worlds whose blocks are kept.
 func (r *replayer) save(ctx context.Context) error {
-	// Skip an unchanged replay.
-	if !r.changed {
+	// Skip a saved or deferred replay.
+	if !r.changed || r.deferred {
 		return nil
+	}
+	_, cursor, err := r.encode()
+	if err != nil {
+		return err
+	}
+
+	// Write the cursor.
+	store, release, err := r.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
+	if err != nil {
+		return err
+	}
+	defer release()
+	open := func(ctx context.Context) (kvtx.Tx, error) { return store.NewTransaction(ctx, true) }
+	err = kvtx.RunTransaction(ctx, true, open, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, replayCursorKey, cursor)
+	})
+	if err != nil {
+		return err
+	}
+	r.saved()
+	return nil
+}
+
+// holdSpan adds to hold the World after every position under
+// replaySpanRootName when save will write the replay, releasing the Worlds of
+// positions a checkpoint now covers.
+func (r *replayer) holdSpan(hold *rootHold) error {
+	// Skip a saved or deferred replay.
+	if !r.changed || r.deferred {
+		return nil
+	}
+	span, _, err := r.encode()
+	if err != nil {
+		return err
+	}
+
+	// Hold the span block, or release the name when no World follows the
+	// checkpoint.
+	if span == nil {
+		hold.release(replaySpanRootName)
+		return nil
+	}
+	return hold.refBlock(replaySpanRootName, span.Data, span.Refs)
+}
+
+// pendingSave returns the unsaved replay as parts of a publication: the span
+// block, the span root and the cursor head. It returns no parts when the
+// replay is saved. Call saved once the publication commits.
+func (r *replayer) pendingSave(publisher sobject.StatePublisher) ([]*block.PutBatchEntry, []block.NamedRoot, *block.AtomicHeadUpdate, error) {
+	// Skip a saved replay.
+	if !r.changed {
+		return nil, nil, nil, nil
+	}
+	span, cursor, err := r.encode()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Name the span, or release the name when no World follows the
+	// checkpoint.
+	var entries []*block.PutBatchEntry
+	root := block.NamedRoot{Name: replaySpanRootName}
+	if span != nil {
+		entries, root.Ref = []*block.PutBatchEntry{span}, span.Ref
+	}
+	head := publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
+	return entries, []block.NamedRoot{root}, head, nil
+}
+
+// saved records that the replay is durable as it stands.
+func (r *replayer) saved() {
+	r.changed, r.deferred = false, false
+}
+
+// encode returns the span block referencing the World after every position,
+// or nil when there is none, and the encoded cursor.
+func (r *replayer) encode() (*block.PutBatchEntry, []byte, error) {
+	// Collect each World once, in replay order. A rejected operation leaves
+	// the World of the position before it.
+	var worlds []*block.BlockRef
+	for _, pos := range r.positions {
+		if pos.world.GetEmpty() || (len(worlds) != 0 && worlds[len(worlds)-1].EqualsRef(pos.world)) {
+			continue
+		}
+		worlds = append(worlds, pos.world)
+	}
+	var span *block.PutBatchEntry
+	if len(worlds) != 0 {
+		data, err := (&ReplaySpan{Worlds: worlds}).MarshalVT()
+		if err != nil {
+			return nil, nil, err
+		}
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		span = &block.PutBatchEntry{Ref: ref, Data: data, Refs: worlds}
 	}
 
 	// Encode the base, the outcomes and the World after them.
@@ -290,53 +395,9 @@ func (r *replayer) save(ctx context.Context) error {
 	}
 	data, err := cursor.MarshalVT()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-
-	// Write it.
-	store, release, err := r.so.AccessLocalStateStore(ctx, replayCursorStoreID, nil)
-	if err != nil {
-		return err
-	}
-	defer release()
-	open := func(ctx context.Context) (kvtx.Tx, error) { return store.NewTransaction(ctx, true) }
-	err = kvtx.RunTransaction(ctx, true, open, func(ctx context.Context, tx kvtx.Tx) error {
-		return tx.Set(ctx, replayCursorKey, data)
-	})
-	if err != nil {
-		return err
-	}
-	r.changed = false
-	return nil
-}
-
-// holdSpan adds to hold the World after every position under
-// replaySpanRootName when the replay changed, releasing the Worlds of
-// positions a checkpoint now covers.
-func (r *replayer) holdSpan(hold *rootHold) error {
-	// Collect each World once, in replay order. A rejected operation leaves
-	// the World of the position before it.
-	if !r.changed {
-		return nil
-	}
-	var worlds []*block.BlockRef
-	for _, pos := range r.positions {
-		if pos.world.GetEmpty() || (len(worlds) != 0 && worlds[len(worlds)-1].EqualsRef(pos.world)) {
-			continue
-		}
-		worlds = append(worlds, pos.world)
-	}
-	if len(worlds) == 0 {
-		hold.release(replaySpanRootName)
-		return nil
-	}
-
-	// Hold the span block referencing them.
-	data, err := (&ReplaySpan{Worlds: worlds}).MarshalVT()
-	if err != nil {
-		return err
-	}
-	return hold.refBlock(replaySpanRootName, data, worlds)
+	return span, data, nil
 }
 
 // head returns the replay base and the World after the last replayed position,
@@ -380,6 +441,11 @@ func (r *replayer) replay(
 		n = 0
 	}
 	if n != len(r.positions) || n != len(order) {
+		// Defer the save of a published fork appended to a saved replay.
+		adopted := fork != nil && fork.published && fork.base == r.base &&
+			fork.index == n && n == len(r.positions) && len(order) == n+1 &&
+			bytes.Equal(fork.hash, order[n])
+		r.deferred = adopted && (!r.changed || r.deferred)
 		r.changed = true
 	}
 	r.positions = r.positions[:n]

@@ -62,16 +62,34 @@ func newPublicationWriter(v *Volume) *publicationWriter {
 
 // publicationSize computes the bounded admission cost of a publication.
 func publicationSize(p *block.AtomicPublication) (int, error) {
-	// Require a bounded block delta and a head replacement in one volume domain.
-	if p == nil || p.Head == nil || p.Head.Replace == nil || p.Head.ObjectStoreID == "" || len(p.Head.Key) == 0 || (p.TrackGC && p.BucketID == "") {
+	// Require a bounded block delta and distinct head replacements in one
+	// volume domain.
+	if p == nil || len(p.Heads) == 0 || (p.TrackGC && p.BucketID == "") {
 		return 0, errInvalidPublication
 	}
 	if len(p.Entries) > publicationMaxEntries {
 		return 0, block.ErrPublicationTooLarge
 	}
+	keys := make(map[string]struct{}, len(p.Heads))
+	for _, head := range p.Heads {
+		if head == nil || head.Replace == nil || head.ObjectStoreID == "" || len(head.Key) == 0 {
+			return 0, errInvalidPublication
+		}
+		key := head.ObjectStoreID + "\x00" + string(head.Key)
+		if _, ok := keys[key]; ok {
+			return 0, errInvalidPublication
+		}
+		keys[key] = struct{}{}
+	}
 
 	// Account for every retained payload and reference before queue admission.
-	size := len(p.Head.Key) + len(p.Head.ObjectStoreID) + len(p.BucketID) + len(p.RootName) + p.Root.SizeVT() + 128
+	size := len(p.BucketID) + len(p.RootName) + p.Root.SizeVT() + 128
+	for _, head := range p.Heads {
+		size += len(head.Key) + len(head.ObjectStoreID) + 64
+	}
+	for _, root := range p.Roots {
+		size += len(root.Name) + root.Ref.SizeVT() + 64
+	}
 	for _, entry := range p.Entries {
 		if entry == nil {
 			return 0, errInvalidPublication
@@ -218,7 +236,9 @@ func (w *publicationWriter) run() {
 // applyGroup never treats TxStore.Discard as a savepoint. Each request is
 // preflighted before mutation. A comparison/validation rejection affects only
 // that request; any error after mutations start aborts the entire physical group.
-// Ready requests are collected opportunistically, with no latency timer.
+// Ready requests are collected opportunistically, with no latency timer. The
+// group also carries the Volume's deferred edits, the edges of released reader
+// pins and pending root proofs, which therefore cost no commit of their own.
 func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publicationRequest, results []error, committed bool) {
 	// Open the physical writer before constructing any transaction-scoped consumer.
 	group = []*publicationRequest{first}
@@ -240,91 +260,30 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 
 	// Preflight each request against prior accepted changes in this physical group.
 	accepted := 0
+	ordered := true
 	prior := make(map[*block.PublicationReceipt]error)
 	for i := 0; i < len(group); i++ {
 		req := group[i]
 		p := req.publication
 		ctx := req.ctx
-		var result error
-		if p.After != nil {
-			if previous, ok := prior[p.After]; ok {
-				if previous != nil {
-					result = block.NewPublicationDependencyError(previous)
-				}
-			} else {
-				select {
-				case <-p.After.Done():
-					if previous := p.After.Wait(ctx); previous != nil {
-						result = block.NewPublicationDependencyError(previous)
-					}
-				default:
-					result = block.ErrPublicationDependency
-				}
-			}
-		}
-		key := append(w.volume.kvKey.GetObjectStorePrefixByID(p.Head.ObjectStoreID), p.Head.Key...)
-		var replacement []byte
-		var prepared *publicationOverlay
-		if result == nil {
-			prepared, result = newPublicationOverlay(blocks, p.Entries)
-		}
-		if result == nil {
-			var current []byte
-			var found bool
-			current, found, result = tx.Get(ctx, key)
-			if result == nil {
-				replacement, result = p.Head.Replace(ctx, bytes.Clone(current), found)
-			}
-		}
-		if result == nil && p.Validate != nil {
-			result = p.Validate(ctx, prepared)
-		}
+		var replacements [][]byte
+		result := w.preflight(ctx, req, prior, tx, blocks, &replacements)
 		results = append(results, result)
 		prior[req.receipt] = result
 		if result == nil {
 			// All failures from here onward are physical-group failures: there are no
 			// per-request savepoints. Do not carry a partially written request onward.
-			if p.TrackGC {
-				if p.BucketID == "" {
-					err = errInvalidPublication
-				} else if rg == nil {
-					rg, err = block_gc.NewRefGraph(ctx, store, volumeRefGraphPrefix())
-				}
-				if err == nil {
-					owner := block_gc.BucketIRI(p.BucketID)
-					err = rg.AddRef(ctx, block_gc.NodeGCRoot, owner)
-					if err == nil {
-						gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
-						err = gc.PutBlockBatch(ctx, p.Entries)
-						if err == nil {
-							err = gc.FlushPending(ctx)
-						}
-						if err == nil && p.RootName != "" {
-							// A temporary reader owner bridges publication and
-							// consumer handoff, and can be reaped after a crash.
-							err = setBucketRoot(ctx, blocks, rg, p.BucketID, p.RootName, p.Root)
-							if err == nil && req.rootOwner != "" {
-								err = rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
-									{Subject: block_gc.NodeGCRoot, Object: req.rootOwner},
-									{Subject: req.rootOwner, Object: block_gc.BlockIRI(p.Root)},
-								}, nil)
-							}
-							if err == nil && !p.Root.GetEmpty() {
-								err = rg.AddRef(ctx, block_gc.BlockIRI(p.Root), completeWorldNode)
-							}
-						}
-					}
-				}
-			} else {
-				err = blocks.PutBlockBatch(ctx, p.Entries)
+			if p.TrackGC && rg == nil {
+				rg, err = block_gc.NewRefGraph(ctx, store, volumeRefGraphPrefix())
 			}
 			if err == nil {
-				err = tx.Set(ctx, key, replacement)
+				err = w.apply(ctx, req, tx, blocks, rg, replacements)
 			}
 			if err != nil {
 				break
 			}
 			accepted++
+			ordered = ordered && p.Ordered
 		}
 		if len(group) < publicationGroupLimit {
 			w.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -336,11 +295,27 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 		}
 	}
 
+	// Carry the Volume's deferred edits with the accepted requests.
+	var edits deferredEdits
+	if err == nil && accepted != 0 {
+		if rg == nil {
+			rg, err = block_gc.NewRefGraph(first.ctx, store, volumeRefGraphPrefix())
+		}
+		if err == nil {
+			edits, err = w.volume.applyDeferred(first.ctx, blocks, rg)
+		}
+	}
+
 	// Publish all accepted requests together, or discard the entire physical group.
 	if err == nil && accepted != 0 {
-		err = tx.Commit(first.ctx)
+		if ordered && w.volume.ordered != nil {
+			err = kvtx.CommitOrdered(first.ctx, tx)
+		} else {
+			err = tx.Commit(first.ctx)
+		}
 		committed = err == nil
 	}
+	w.volume.settleDeferred(edits, committed)
 
 	// Preserve preflight rejections while assigning physical failure to accepted work.
 	if err != nil {
@@ -351,6 +326,141 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 		}
 	}
 	return group, results, committed
+}
+
+// preflight checks one request's dependency, prepared overlay, head
+// comparisons and validation without mutating the group transaction. It
+// stores each head's replacement in replacements, in head order.
+func (w *publicationWriter) preflight(
+	ctx context.Context,
+	req *publicationRequest,
+	prior map[*block.PublicationReceipt]error,
+	tx kvtx.Tx,
+	blocks block.StoreOps,
+	replacements *[][]byte,
+) error {
+	// Require the publication this one depends on to have succeeded.
+	p := req.publication
+	if p.After != nil {
+		if previous, ok := prior[p.After]; ok {
+			if previous != nil {
+				return block.NewPublicationDependencyError(previous)
+			}
+		} else {
+			select {
+			case <-p.After.Done():
+				if previous := p.After.Wait(ctx); previous != nil {
+					return block.NewPublicationDependencyError(previous)
+				}
+			default:
+				return block.ErrPublicationDependency
+			}
+		}
+	}
+
+	// Overlay the entries on the group's prior writes.
+	prepared, err := newPublicationOverlay(blocks, p.Entries)
+	if err != nil {
+		return err
+	}
+
+	// Compare each head with its committed record.
+	for _, head := range p.Heads {
+		current, found, err := tx.Get(ctx, w.headKey(head))
+		if err != nil {
+			return err
+		}
+		replacement, err := head.Replace(ctx, bytes.Clone(current), found)
+		if err != nil {
+			return err
+		}
+		*replacements = append(*replacements, replacement)
+	}
+
+	// Validate the prepared overlay.
+	if p.Validate != nil {
+		return p.Validate(ctx, prepared)
+	}
+	return nil
+}
+
+// apply writes one preflighted request into the group transaction: its
+// entries with bucket ownership, its named roots and its head replacements.
+func (w *publicationWriter) apply(
+	ctx context.Context,
+	req *publicationRequest,
+	tx kvtx.Tx,
+	blocks block.StoreOps,
+	rg *block_gc.RefGraph,
+	replacements [][]byte,
+) error {
+	// Write untracked entries directly.
+	p := req.publication
+	if !p.TrackGC {
+		if err := blocks.PutBlockBatch(ctx, p.Entries); err != nil {
+			return err
+		}
+		return w.setHeads(ctx, tx, p, replacements)
+	}
+
+	// Write the entries owned by the bucket.
+	owner := block_gc.BucketIRI(p.BucketID)
+	if err := rg.AddRef(ctx, block_gc.NodeGCRoot, owner); err != nil {
+		return err
+	}
+	gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
+	if err := gc.PutBlockBatch(ctx, p.Entries); err != nil {
+		return err
+	}
+	if err := gc.FlushPending(ctx); err != nil {
+		return err
+	}
+
+	// Move the published root under its name. A temporary reader owner
+	// bridges publication and consumer handoff, and can be reaped after a
+	// crash.
+	if p.RootName != "" {
+		if err := setBucketRoot(ctx, blocks, rg, p.BucketID, p.RootName, p.Root); err != nil {
+			return err
+		}
+		if req.rootOwner != "" {
+			err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
+				{Subject: block_gc.NodeGCRoot, Object: req.rootOwner},
+				{Subject: req.rootOwner, Object: block_gc.BlockIRI(p.Root)},
+			}, nil)
+			if err != nil {
+				return err
+			}
+		}
+		if !p.Root.GetEmpty() {
+			if err := rg.AddRef(ctx, block_gc.BlockIRI(p.Root), completeWorldNode); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Set the further named roots.
+	for _, root := range p.Roots {
+		if err := setBucketRoot(ctx, blocks, rg, p.BucketID, root.Name, root.Ref); err != nil {
+			return err
+		}
+	}
+	return w.setHeads(ctx, tx, p, replacements)
+}
+
+// setHeads writes each head's replacement.
+func (w *publicationWriter) setHeads(ctx context.Context, tx kvtx.Tx, p *block.AtomicPublication, replacements [][]byte) error {
+	for i, head := range p.Heads {
+		if err := tx.Set(ctx, w.headKey(head), replacements[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// headKey returns the physical key of a head's metadata record.
+func (w *publicationWriter) headKey(head *block.AtomicHeadUpdate) []byte {
+	return append(w.volume.kvKey.GetObjectStorePrefixByID(head.ObjectStoreID), head.Key...)
 }
 
 // fence waits until every publication admitted before the call completes.

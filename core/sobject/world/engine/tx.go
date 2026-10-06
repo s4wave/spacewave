@@ -2,6 +2,8 @@ package sobject_world_engine
 
 import (
 	"context"
+	"errors"
+	"slices"
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -28,6 +30,9 @@ type soEngineWriteTx struct {
 	// candidateRoot is the committed candidate World root whose staging
 	// ownership Discard releases once the installed World holds it.
 	candidateRoot *block.BlockRef
+	// receipt is the durable publication of the write. It keeps the published
+	// World pinned until Discard, after the engine installs it.
+	receipt *block.PublicationReceipt
 }
 
 // newSoEngineWriteTx constructs a new shared object engine tx.
@@ -49,7 +54,9 @@ func newSoEngineWriteTx(
 
 // Commit persists the candidate blocks, adds the transaction to the operation
 // set and installs the World after it. When no other operation arrived since
-// the fork, the candidate is that World; otherwise replay computes it.
+// the fork, the candidate is that World; otherwise replay computes it. A
+// SharedObject that publishes its state commits the blocks, the operation and
+// the accepted World in one physical transaction.
 func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// Keep candidate cleanup and writer release bound to every return path.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/commit")
@@ -85,23 +92,16 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		}
 	}
 
-	// The World bucket owns the candidate root until Discard releases it,
-	// after the installed World holds it or replay replaced it.
+	// The World bucket owns the candidate root until a publication transfers
+	// it or Discard releases it, after the installed World holds it or replay
+	// replaced it.
 	t.candidateRoot = nroot
 
-	// Fence pending block writes before the operation can enter the set. A
-	// set write ordered after the block writes needs them written, not
-	// flushed to the device.
-	{
-		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/sync-blocks")
-		var err error
-		if sobject.QueueOrdersBlockWrites(t.eng.so) {
-			err = t.btx.Flush(taskCtx)
-		} else {
-			_, err = t.btx.Sync(taskCtx)
-		}
-		task.End()
-		if err != nil {
+	// Without publication, write the blocks before the operation can enter
+	// the set.
+	publisher, publishes := t.eng.so.(sobject.StatePublisher)
+	if !publishes {
+		if err := t.writeBlocks(ctx); err != nil {
 			return err
 		}
 	}
@@ -146,14 +146,94 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// when Discard releases the blocks the candidate does not reach.
 	t.btx.KeepRoots(t.TakePayloadRefs()...)
 
-	// Add the operation and install the World after it. An ordered world
-	// commit lets the provider write the operation ordered.
+	// Add the operation and install the World after it.
 	taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/queue-operation")
 	defer task.End()
-	if world.OrderedCommit(taskCtx) {
-		taskCtx = sobject.WithOrderedOperation(taskCtx)
+	if publishes {
+		taskCtx = sobject.WithPublishState(taskCtx, func(ctx context.Context, head *block.AtomicHeadUpdate) (bool, error) {
+			return t.publish(ctx, publisher, nroot, head)
+		})
 	}
 	return t.eng.queueOperation(taskCtx, opData, t.fork)
+}
+
+// writeBlocks writes the candidate blocks. A state write ordered after the
+// block writes needs them written, not flushed to the device.
+func (t *soEngineWriteTx) writeBlocks(ctx context.Context) error {
+	// Trace the block write.
+	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/sync-blocks")
+	defer task.End()
+
+	// Flush the blocks when the queue orders the state after them.
+	if sobject.QueueOrdersBlockWrites(t.eng.so) {
+		return t.btx.Flush(ctx)
+	}
+	_, err := t.btx.Sync(ctx)
+	return err
+}
+
+// publish commits the candidate blocks, the state head, the candidate root
+// under the accepted World root and the replay save the last write deferred
+// in one physical transaction, and reports true once it is durable. When
+// head is nil or the store cannot publish, it writes the blocks and reports
+// false; the SharedObject then commits its state itself.
+func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePublisher, root *block.BlockRef, head *block.AtomicHeadUpdate) (bool, error) {
+	// Fall back when the state or the store cannot join a publication.
+	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/publish")
+	defer task.End()
+	store, ok := t.eng.so.GetBlockStore().(block.AtomicPublisher)
+	if head == nil || !ok || !store.SupportsAtomicPublication() {
+		return false, t.writeBlocks(ctx)
+	}
+
+	// Borrow the candidate blocks and collect the pending replay save.
+	batch, err := t.btx.TakePending(ctx)
+	if err != nil {
+		return false, err
+	}
+	saveEntries, roots, cursor, err := t.eng.replay.pendingSave(publisher)
+	if err != nil {
+		batch.Complete(err)
+		return false, err
+	}
+	heads := []*block.AtomicHeadUpdate{head}
+	if cursor != nil {
+		heads = append(heads, cursor)
+	}
+
+	// Submit them, writing the blocks alone when the store declines.
+	receipt, err := store.SubmitAtomic(ctx, &block.AtomicPublication{
+		Entries:  slices.Concat(batch.Entries, saveEntries),
+		Heads:    heads,
+		RootName: acceptedWorldRootName,
+		Root:     root,
+		Roots:    roots,
+		Ordered:  world.OrderedCommit(ctx),
+	})
+	if errors.Is(err, block.ErrAtomicPublicationUnsupported) || errors.Is(err, block.ErrPublicationTooLarge) {
+		batch.Complete(err)
+		return false, t.writeBlocks(ctx)
+	}
+	if err != nil {
+		batch.Complete(err)
+		return false, err
+	}
+
+	// Admission commits the write to the durable result.
+	err = receipt.Wait(context.WithoutCancel(ctx))
+	batch.Complete(err)
+	if err != nil {
+		receipt.Release()
+		return false, err
+	}
+
+	// The accepted World root holds the candidate, and the replay is saved.
+	held := t.fork.state.GetHeadRef().CloneVT()
+	held.BucketId = t.eng.so.GetBlockStore().GetID()
+	t.receipt, t.candidateRoot, t.eng.retained = receipt, nil, held
+	t.eng.replay.saved()
+	t.fork.published = true
+	return true, nil
 }
 
 // ApplyWorldOp applies op to the candidate as accepted replay will apply it.
@@ -183,6 +263,10 @@ func (t *soEngineWriteTx) Discard() {
 	t.WorldState.Discard()
 	t.btx.Discard()
 	t.unlockWriteMtx()
+	if t.receipt != nil {
+		t.receipt.Release()
+		t.receipt = nil
+	}
 
 	// The installed World holds the candidate or replay replaced it.
 	if t.candidateRoot == nil {

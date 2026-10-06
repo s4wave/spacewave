@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
@@ -37,6 +38,8 @@ type SharedObject struct {
 	lsoHost *LocalSOHost
 	// objStore stores local shared object records.
 	objStore object.ObjectStore
+	// objStoreID names objStore in the account volume.
+	objStoreID string
 	// localPriv authenticates the local participant.
 	localPriv crypto.PrivKey
 	// localPid identifies the local participant.
@@ -94,13 +97,30 @@ func (s *SharedObject) QueueOrdersBlockWrites() bool {
 // AccessLocalStateStore isolates state by SharedObject and store ID within the
 // account's object store. Releasing the mount invalidates its local stores.
 func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {
-	storePrefix := []byte("so/" + s.tkr.id + "/ls/" + storeID + "/")
-	prefixedObjStore := object.NewPrefixer(s.objStore, storePrefix)
+	prefixedObjStore := object.NewPrefixer(s.objStore, s.localStatePrefix(storeID))
 	if released == nil {
 		return prefixedObjStore, func() {}, nil
 	}
 	relReleased := context.AfterFunc(s.ctx, released)
 	return prefixedObjStore, func() { relReleased() }, nil
+}
+
+// LocalStateHead returns a head update that sets key to value in the local
+// state store storeID, for a publication through the block store.
+func (s *SharedObject) LocalStateHead(storeID string, key, value []byte) *block.AtomicHeadUpdate {
+	return &block.AtomicHeadUpdate{
+		ObjectStoreID: s.objStoreID,
+		Key:           append(s.localStatePrefix(storeID), key...),
+		Replace: func(context.Context, []byte, bool) ([]byte, error) {
+			return value, nil
+		},
+	}
+}
+
+// localStatePrefix returns the object store prefix of the local state store
+// storeID.
+func (s *SharedObject) localStatePrefix(storeID string) []byte {
+	return []byte("so/" + s.tkr.id + "/ls/" + storeID + "/")
 }
 
 // GetSharedObjectState returns a snapshot of the shared object state.
@@ -312,7 +332,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 
 	// Share the accepted-state watch and lock with the local persistence owner.
 	// State writes share the account volume, which reports their durability.
-	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, localPeerID)
+	watchFn, lockFn, syncFuncs := NewObjectStoreSOStateFuncs(ctx, objStore, objectStoreID, localPeerID)
 	vol := t.a.vol
 	syncFuncs.WaitDurable = func(ctx context.Context) error {
 		return volume.WaitDurable(ctx, vol)
@@ -341,6 +361,7 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 		soHost:       soHost,
 		lsoHost:      lsoHost,
 		objStore:     objStore,
+		objStoreID:   objectStoreID,
 		localPriv:    localPriv,
 		localPid:     localPeerID,
 		joinRequests: ccontainer.NewCContainer(joinRequests),
@@ -529,9 +550,12 @@ func (a *ProviderAccount) AccessSharedObjectHealth(
 	ref *sobject.SharedObjectRef,
 	released func(),
 ) (ccontainer.Watchable[*sobject.SharedObjectHealth], func(), error) {
+	// Validate the ref before tracking its shared object.
 	if err := ref.Validate(); err != nil {
 		return nil, nil, err
 	}
+
+	// Track the shared object while the caller watches its health.
 	sobjectID := ref.GetProviderResourceRef().GetId()
 	tkrRef, tkr, _ := a.sobjects.AddKeyRef(sobjectID)
 	tkr.ref.SetResult(ref, nil)
@@ -651,6 +675,7 @@ func (a *ProviderAccount) readSharedObjectList(ctx context.Context) (*sobject.Sh
 			return objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
+			// Read the stored list, or start an empty one.
 			data, found, err := tx.Get(ctx, SobjectObjectStoreListKey())
 			if err != nil {
 				return err
@@ -768,4 +793,5 @@ var (
 	_ sobject.SequencerHost              = (*SharedObject)(nil)
 	_ sobject.ControlHost                = (*SharedObject)(nil)
 	_ sobject.MainDevice                 = (*SharedObject)(nil)
+	_ sobject.StatePublisher             = (*SharedObject)(nil)
 )

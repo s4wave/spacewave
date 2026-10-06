@@ -63,6 +63,7 @@ type SharedObject interface {
 // asynchronously. Its store retains graph-completion proofs for the mounted
 // block store; World consumers fence all dependencies before accepting a write.
 type PublicationRetention interface {
+	// AccessPublicationRetention returns the proof store and its release.
 	AccessPublicationRetention(context.Context) (kvtx.Store, func(), error)
 }
 
@@ -80,24 +81,6 @@ type OrderedQueue interface {
 func QueueOrdersBlockWrites(so SharedObject) bool {
 	ordered, ok := so.(OrderedQueue)
 	return ok && ordered.QueueOrdersBlockWrites()
-}
-
-// orderedOperationKey marks a context whose queued operation may be accepted
-// with an ordered commit.
-type orderedOperationKey struct{}
-
-// WithOrderedOperation marks operations queued with ctx as allowed to be
-// accepted with an ordered commit: applied when QueueOperation returns, and
-// durable at the provider's next durability point. Providers that do not
-// support this ignore the mark.
-func WithOrderedOperation(ctx context.Context) context.Context {
-	return context.WithValue(ctx, orderedOperationKey{}, true)
-}
-
-// OrderedOperation reports whether ctx carries WithOrderedOperation.
-func OrderedOperation(ctx context.Context) bool {
-	ordered, _ := ctx.Value(orderedOperationKey{}).(bool)
-	return ordered
 }
 
 // SharedObjectHealthAccessor exposes SharedObject health directly from a mounted object.
