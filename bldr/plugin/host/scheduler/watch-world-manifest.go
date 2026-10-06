@@ -106,6 +106,14 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		return true, nil, err
 	}
 
+	// Hold the first selection until FetchManifest settles, so startup runs
+	// the announced release instead of the cached one it would replace. An
+	// announced candidate with missing blocks still counts as linked.
+	if t.awaitingFetch(candidateEligibility) {
+		trace.Log(ctx, "manifest-selection-phase", "awaiting-fetch")
+		return true, nil, nil
+	}
+
 	// Set aside candidates whose blocks are gone; the caller unlinks them.
 	candidateEligibility = slices.DeleteFunc(candidateEligibility, func(c *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
 		if c.Missing {

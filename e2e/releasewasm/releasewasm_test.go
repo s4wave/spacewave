@@ -21,7 +21,7 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
-	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
+	dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	"github.com/sirupsen/logrus"
@@ -625,22 +625,22 @@ func releaseWorldFixtureConfig(t *testing.T) (releaseWorldConfigValues, error) {
 		return releaseWorldConfigValues{}, err
 	}
 
-	// Select the lazy-plugin fixture and its launcher override.
+	// Select the lazy-plugin fixture and its distribution override.
 	build := result.Config.GetBuild()["release-web-lazy-plugin-fixture"]
 	if build == nil {
 		return releaseWorldConfigValues{}, errors.New("missing release-web-lazy-plugin-fixture build")
 	}
-	launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
-	if launcherOverride == nil {
-		return releaseWorldConfigValues{}, errors.New("missing lazy fixture launcher override")
+	distOverride := build.GetManifestOverrides()["spacewave-browser"]
+	if distOverride == nil {
+		return releaseWorldConfigValues{}, errors.New("missing lazy fixture distribution override")
 	}
 
-	// Decode the launcher configuration and select its Release World host.
-	var launcherConf bldr_plugin_compiler_go.Config
-	if err := launcherConf.UnmarshalJSON(launcherOverride.GetConfig()); err != nil {
-		return releaseWorldConfigValues{}, errors.Wrap(err, "decode lazy fixture launcher config")
+	// Decode the distribution configuration and select its Release World.
+	var distConf dist_compiler.Config
+	if err := distConf.UnmarshalJSON(distOverride.GetConfig()); err != nil {
+		return releaseWorldConfigValues{}, errors.Wrap(err, "decode lazy fixture distribution config")
 	}
-	hostConfig := launcherConf.GetHostConfigSet()["release-world"]
+	hostConfig := distConf.GetHostConfigSet()["release-world"]
 	if hostConfig == nil {
 		return releaseWorldConfigValues{}, errors.New("missing lazy fixture Release World host config")
 	}

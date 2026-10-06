@@ -60,7 +60,7 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 		t.Fatal("lazy fixture does not request terminal plugin through LoadPlugin")
 	}
 
-	// Require the launcher to delegate published-state reads to its host.
+	// Decode the launcher, which must leave Release World to the distribution.
 	launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
 	if launcherOverride == nil {
 		t.Fatal("missing launcher fixture manifest override")
@@ -70,28 +70,38 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 		t.Fatalf("decode launcher fixture config: %v", err)
 	}
 
-	// Verify Release World belongs to the browser host rather than its worker.
+	// Verify Release World belongs to the browser distribution, which mounts it
+	// before the scheduler selects startup plugins.
+	hostConfigSet := distConf.GetHostConfigSet()
 	for _, id := range []string{
 		"release-world",
 		"release-world-fetch",
 		"release-world-cdn-bucket",
 	} {
-		if launcherConf.GetHostConfigSet()[id] == nil {
-			t.Fatalf("launcher host config set missing %q", id)
+		if hostConfigSet[id] == nil {
+			t.Fatalf("distribution host config set missing %q", id)
 		}
 	}
+	if hostConfigSet["release-world-cdn-store"] != nil {
+		t.Fatal("distribution mounts an independent Release World CDN block store")
+	}
+
+	// Verify the launcher neither mounts Release World in its worker nor late
+	// through its host.
 	for id := range launcherConf.GetConfigSet() {
 		if strings.HasPrefix(id, "release-world") {
 			t.Fatalf("browser launcher worker mounts independent Release World config %q", id)
 		}
 	}
-	if launcherConf.GetHostConfigSet()["release-world-cdn-store"] != nil {
-		t.Fatal("launcher page host mounts an independent Release World CDN block store")
+	for id := range launcherConf.GetHostConfigSet() {
+		if strings.HasPrefix(id, "release-world") {
+			t.Fatalf("browser launcher host mounts Release World config %q", id)
+		}
 	}
 
 	// Verify the Release World reader uses the distribution cache.
 	var releaseWorldConf cdn_world_controller.Config
-	if err := releaseWorldConf.UnmarshalJSON(launcherConf.GetHostConfigSet()["release-world"].GetConfig()); err != nil {
+	if err := releaseWorldConf.UnmarshalJSON(hostConfigSet["release-world"].GetConfig()); err != nil {
 		t.Fatalf("decode release-world config: %v", err)
 	}
 	if releaseWorldConf.GetCacheBlockStoreId() != "dist" {
@@ -100,7 +110,7 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 
 	// Verify the release bucket points to the shared CDN store.
 	var cdnBucketConf block_store_bucket.Config
-	if err := cdnBucketConf.UnmarshalJSON(launcherConf.GetHostConfigSet()["release-world-cdn-bucket"].GetConfig()); err != nil {
+	if err := cdnBucketConf.UnmarshalJSON(hostConfigSet["release-world-cdn-bucket"].GetConfig()); err != nil {
 		t.Fatalf("decode release-world-cdn-bucket config: %v", err)
 	}
 	if cdnBucketConf.GetBlockStoreId() != cdn_world_controller.ReleaseBlockStoreID ||
@@ -182,22 +192,34 @@ func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// Verify the worker delegates Release World state to the host.
+			// Verify the launcher leaves Release World state to the distribution.
 			for id := range conf.GetConfigSet() {
 				if strings.HasPrefix(id, "release-world") {
 					t.Fatalf("browser worker mounts Release World config %q", id)
 				}
 			}
-			for _, id := range []string{"release-world", "release-world-fetch", "release-world-cdn-bucket"} {
-				if conf.GetHostConfigSet()[id] == nil {
-					t.Fatalf("browser host config missing %q", id)
+			for id := range conf.GetHostConfigSet() {
+				if strings.HasPrefix(id, "release-world") {
+					t.Fatalf("browser launcher host mounts Release World config %q", id)
 				}
 			}
-			if conf.GetHostConfigSet()["release-world-ops"] != nil {
-				t.Fatal("browser host requires the application operation catalogue")
+
+			// Verify the distribution mounts only the Release World reader.
+			var distConf bldr_dist_compiler.Config
+			if err := distConf.UnmarshalJSON(build.GetManifestOverrides()["spacewave-browser"].GetConfig()); err != nil {
+				t.Fatal(err)
 			}
-			if conf.GetHostConfigSet()["release-world-cdn-store"] != nil || conf.GetHostConfigSet()["release-world-cdn-server"] != nil {
-				t.Fatal("browser host creates a duplicate CDN store or unused RPC bridge")
+			hostConfigSet := distConf.GetHostConfigSet()
+			for _, id := range []string{"release-world", "release-world-fetch", "release-world-cdn-bucket"} {
+				if hostConfigSet[id] == nil {
+					t.Fatalf("browser distribution config missing %q", id)
+				}
+			}
+			if hostConfigSet["release-world-ops"] != nil {
+				t.Fatal("browser distribution requires the application operation catalogue")
+			}
+			if hostConfigSet["release-world-cdn-store"] != nil || hostConfigSet["release-world-cdn-server"] != nil {
+				t.Fatal("browser distribution creates a duplicate CDN store or unused RPC bridge")
 			}
 
 			// Verify the launcher platform uses the selected browser compiler.
@@ -332,20 +354,14 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 		t.Fatal("missing release-web-lazy-plugin-fixture build")
 	}
 
-	// Require the launcher to delegate published-state reads to its host.
-	launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
-	if launcherOverride == nil {
-		t.Fatal("missing launcher fixture manifest override")
+	// Decode the distribution's Release World configuration for the probe.
+	var distConf bldr_dist_compiler.Config
+	if err := distConf.UnmarshalJSON(build.GetManifestOverrides()["spacewave-browser"].GetConfig()); err != nil {
+		t.Fatalf("decode distribution fixture config: %v", err)
 	}
-	var launcherConf bldr_plugin_compiler_go.Config
-	if err := launcherConf.UnmarshalJSON(launcherOverride.GetConfig()); err != nil {
-		t.Fatalf("decode launcher fixture config: %v", err)
-	}
-
-	// Decode the host Release World configuration for the published-state probe.
-	hostConfig := launcherConf.GetHostConfigSet()["release-world"]
+	hostConfig := distConf.GetHostConfigSet()["release-world"]
 	if hostConfig == nil {
-		t.Fatal("launcher host config set missing release-world")
+		t.Fatal("distribution host config set missing release-world")
 	}
 	var releaseWorldConf cdn_world_controller.Config
 	if err := releaseWorldConf.UnmarshalJSON(hostConfig.GetConfig()); err != nil {

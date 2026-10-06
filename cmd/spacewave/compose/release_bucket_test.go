@@ -8,7 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
+	bldr_dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
@@ -27,12 +27,12 @@ func TestReleaseBucketsResolvePublishedAndCachedRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entry := result.Config.GetBuild()["release-web"].GetManifestOverrides()["spacewave-launcher"]
-	var launcher bldr_plugin_compiler_go.Config
-	if err := launcher.UnmarshalJSON(entry.GetConfig()); err != nil {
+	entry := result.Config.GetBuild()["release-web"].GetManifestOverrides()["spacewave-browser"]
+	var dist bldr_dist_compiler.Config
+	if err := dist.UnmarshalJSON(entry.GetConfig()); err != nil {
 		t.Fatal(err)
 	}
-	configs := launcher.GetHostConfigSet()
+	configs := dist.GetHostConfigSet()
 	var worldConf cdn_world_controller.Config
 	if err := worldConf.UnmarshalJSON(configs["release-world"].GetConfig()); err != nil {
 		t.Fatal(err)

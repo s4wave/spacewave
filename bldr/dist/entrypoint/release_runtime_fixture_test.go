@@ -21,7 +21,6 @@ import (
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
@@ -69,21 +68,10 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 		t.Fatalf("embedded manifests = %#v, want launcher and materializer on js", embeds)
 	}
 
-	// Verify the embedded launcher override and its release-world-fetch config.
-	launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
-	if launcherOverride == nil {
-		t.Fatal("missing launcher override")
-	}
-	var launcherConf bldr_plugin_compiler_go.Config
-	if err := launcherConf.UnmarshalJSON(launcherOverride.GetConfig()); err != nil {
-		t.Fatalf("verify embedded launcher config: %v", err)
-	}
-	if err := launcherConf.Validate(); err != nil {
-		t.Fatalf("validate embedded launcher config: %v", err)
-	}
-	embeddedFetch := launcherConf.GetHostConfigSet()["release-world-fetch"]
+	// Verify the distribution mounts the Release World FetchManifest resolver.
+	embeddedFetch := distConf.GetHostConfigSet()["release-world-fetch"]
 	if embeddedFetch == nil || embeddedFetch.GetId() != manifest_fetch_world.ConfigID {
-		t.Fatalf("launcher release-world-fetch config = %#v", embeddedFetch)
+		t.Fatalf("distribution release-world-fetch config = %#v", embeddedFetch)
 	}
 
 	// Exercise the production scheduler over isolated in-memory stores.
@@ -121,7 +109,7 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 		}
 	}
 
-	// Apply the verified launcher's FetchManifest controller through the normal
+	// Apply the distribution's FetchManifest controller through the normal
 	// config-set owner, substituting only the in-memory Release World engine.
 	fetchConf := &manifest_fetch_world.Config{}
 	if err := fetchConf.UnmarshalJSON(embeddedFetch.GetConfig()); err != nil {
@@ -140,15 +128,15 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	}
 	resolved, err := configset_proto.ConfigSetMap{"release-world-fetch": fetchEntry}.Resolve(ctx, tb.GetBus())
 	if err != nil {
-		t.Fatalf("resolve launcher Release World config: %v", err)
+		t.Fatalf("resolve distribution Release World config: %v", err)
 	}
 	_, fetchSetRef, err := tb.GetBus().AddDirective(configset.NewApplyConfigSet(resolved), nil)
 	if err != nil {
-		t.Fatalf("mount launcher Release World on plugin-host bus: %v", err)
+		t.Fatalf("mount distribution Release World on the dist bus: %v", err)
 	}
 	t.Cleanup(fetchSetRef.Release)
 
-	// Fetch the remote Core manifest through the launcher's controller.
+	// Fetch the remote Core manifest through the distribution's controller.
 	fetchValue, _, fetchRef, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
 		ctx,
 		tb.GetBus(),
@@ -160,7 +148,7 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("launcher Release World FetchManifest: %v", err)
+		t.Fatalf("distribution Release World FetchManifest: %v", err)
 	}
 	t.Cleanup(fetchRef.Release)
 	if len(fetchValue.GetManifestRefs()) != 1 || !fetchValue.GetManifestRefs()[0].EqualVT(coreRef) {

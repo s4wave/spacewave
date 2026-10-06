@@ -329,14 +329,13 @@ def spacewave_launcher_config(
 
 def browser_release_launcher_config(web_go_compiler=None):
     # The browser launcher worker never reads the Release World: js and goscript
-    # builds skip native release staging entirely. The page host mounts the sole
-    # authority and needs no block store rpc server for the worker.
-    conf = spacewave_launcher_config(
+    # builds skip native release staging entirely. The browser distribution
+    # mounts the sole authority and needs no block store rpc server for the
+    # worker.
+    return spacewave_launcher_config(
         web_go_compiler=web_go_compiler,
         include_release_world=False,
     )
-    conf["hostConfigSet"] = release_world_config_set(cache_block_store_id="dist")
-    return conf
 
 def e2e_release_wasm_launcher_config(web_go_compiler=None):
     return spacewave_launcher_config(
@@ -615,7 +614,13 @@ BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop", go_compiler=None, channel_key="stable"):
+def dist_release_config(
+        embed_manifests,
+        load_plugins,
+        entrypoint_role="desktop",
+        go_compiler=None,
+        channel_key="stable",
+        host_config_set=None):
     conf = dist_compiler_config(
         composePackage="./cmd/spacewave/compose",
         embedManifests=embed_manifests,
@@ -634,7 +639,21 @@ def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop"
         conf["goscriptDeferredFunctions"] = [
             "github.com/s4wave/spacewave/core/cdn/v86copy.CopyV86ImageFromCdnWithProgress",
         ]
+    if host_config_set:
+        conf["hostConfigSet"] = host_config_set
     return conf
+
+# The browser distribution mounts the Release World before its scheduler
+# starts, so the first startup selection sees the announced release instead of
+# booting the cached one and replacing it.
+def browser_dist_release_config(embed_manifests, load_plugins, go_compiler):
+    return dist_release_config(
+        embed_manifests,
+        load_plugins,
+        entrypoint_role="browser",
+        go_compiler=go_compiler,
+        host_config_set=release_world_config_set(cache_block_store_id="dist"),
+    )
 
 manifest("spacewave-dist",
     builder="bldr/dist/compiler",
@@ -752,10 +771,9 @@ build("release-web",
     manifestOverrides={
         "spacewave-launcher": browser_release_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
-        "spacewave-browser": dist_release_config(
+        "spacewave-browser": browser_dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
-            entrypoint_role="browser",
             go_compiler="GO_COMPILER_GOSCRIPT",
         ),
     },
@@ -766,10 +784,9 @@ build("release-web-lazy-plugin-fixture",
     manifestOverrides={
         "spacewave-launcher": browser_release_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
-        "spacewave-browser": dist_release_config(
+        "spacewave-browser": browser_dist_release_config(
             BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_EMBEDS,
             BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_LOAD_PLUGINS,
-            entrypoint_role="browser",
             go_compiler="GO_COMPILER_GOSCRIPT",
         ),
     },
@@ -835,10 +852,9 @@ build("release-web-tinygo",
     manifestOverrides={
         "spacewave-launcher": browser_release_launcher_config(web_go_compiler="GO_COMPILER_TINYGO"),
         "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
-        "spacewave-browser": dist_release_config(
+        "spacewave-browser": browser_dist_release_config(
             BROWSER_RELEASE_WASM_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
-            entrypoint_role="browser",
             go_compiler="GO_COMPILER_TINYGO",
         ),
     },
@@ -1018,11 +1034,12 @@ def apply_release_environment(
         web_go_compiler=web_go_compiler,
         include_release_world=native,
     )
-    launcher["hostConfigSet"] = release_world_config_set(
+    release_world = release_world_config_set(
         space_id=world_space_id, cdn_base_url=cdn_base_url, cache_block_store_id="dist")
     if native:
         launcher["configSet"].update(release_world_reader_config_set(
             space_id=world_space_id, cdn_base_url=cdn_base_url))
+        launcher["hostConfigSet"] = dict(release_world)
         launcher["hostConfigSet"].update(release_world_serve_config_set())
     manifest("spacewave-launcher", builder="bldr/plugin/compiler/go", rev=1, config=launcher)
 
@@ -1036,7 +1053,7 @@ def apply_release_environment(
                 "spacewave-browser": dist_release_config(
                     BROWSER_RELEASE_EMBED_MANIFESTS, BROWSER_RELEASE_LOAD_PLUGINS,
                     entrypoint_role="browser", go_compiler=web_go_compiler,
-                    channel_key=channel_key,
+                    channel_key=channel_key, host_config_set=release_world,
                 ),
             },
         )

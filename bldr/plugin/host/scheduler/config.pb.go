@@ -94,6 +94,12 @@ type Config struct {
 	// directives and plugin RPC lookups of every other plugin to the rest of the
 	// bus. Empty schedules every plugin not in ExternalPluginIds.
 	PluginIds []string `protobuf:"bytes,21,rep,name=plugin_ids,json=pluginIds,proto3" json:"pluginIds,omitempty"`
+	// AwaitFetchManifest holds each plugin's first manifest selection until the
+	// FetchManifest directive is idle and every manifest it announced is stored,
+	// so startup runs the announced release instead of replacing a cached one.
+	// Requires WatchFetchManifest and FetchManifest resolvers that mark idle,
+	// including while their source is unreachable.
+	AwaitFetchManifest bool `protobuf:"varint,22,opt,name=await_fetch_manifest,json=awaitFetchManifest,proto3" json:"awaitFetchManifest,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -249,6 +255,13 @@ func (x *Config) GetPluginIds() []string {
 	return nil
 }
 
+func (x *Config) GetAwaitFetchManifest() bool {
+	if x != nil {
+		return x.AwaitFetchManifest
+	}
+	return false
+}
+
 // PlatformSelectionPolicy restricts one plugin host platform by plugin ID.
 type PlatformSelectionPolicy struct {
 	unknownFields []byte
@@ -308,6 +321,7 @@ func (m *Config) CloneVT() *Config {
 	r.StartupWaitBudgetDur = m.StartupWaitBudgetDur
 	r.MaterializerPluginId = m.MaterializerPluginId
 	r.HostStorageId = m.HostStorageId
+	r.AwaitFetchManifest = m.AwaitFetchManifest
 	r.FetchBackoff = protobuf_go_lite.CloneVTValue(m.FetchBackoff)
 	r.ExecBackoff = protobuf_go_lite.CloneVTValue(m.ExecBackoff)
 	r.PlatformSelectionPolicies = protobuf_go_lite.CloneVTSlice(m.PlatformSelectionPolicies)
@@ -413,6 +427,9 @@ func (this *Config) EqualVT(that *Config) bool {
 	if !protobuf_go_lite.EqualSlice(this.PluginIds, that.PluginIds) {
 		return false
 	}
+	if this.AwaitFetchManifest != that.AwaitFetchManifest {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -423,6 +440,7 @@ func (this *Config) EqualMessageVT(thatMsg any) bool {
 	}
 	return this.EqualVT(that)
 }
+
 func (this *PlatformSelectionPolicy) EqualVT(that *PlatformSelectionPolicy) bool {
 	if this == that {
 		return true
@@ -568,6 +586,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginIds")
 		s.WriteStringArray(x.PluginIds)
 	}
+	if x.AwaitFetchManifest || s.HasField("awaitFetchManifest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("awaitFetchManifest")
+		s.WriteBool(x.AwaitFetchManifest)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -691,6 +714,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				return
 			}
 			x.PluginIds = s.ReadStringArray()
+		case "await_fetch_manifest", "awaitFetchManifest":
+			s.AddField("await_fetch_manifest")
+			x.AwaitFetchManifest = s.ReadBool()
 		}
 	})
 }
@@ -794,6 +820,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.AwaitFetchManifest {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AwaitFetchManifest)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
 	}
 	if len(m.PluginIds) > 0 {
 		for iNdEx := len(m.PluginIds) - 1; iNdEx >= 0; iNdEx-- {
@@ -1029,6 +1062,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(2, m.ExternalPluginIds)
 	n += protobuf_go_lite.SizeStringSlice(2, m.HostExportPluginIds)
 	n += protobuf_go_lite.SizeStringSlice(2, m.PluginIds)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.AwaitFetchManifest)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1161,12 +1195,17 @@ func (x *Config) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.AwaitFetchManifest != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "await_fetch_manifest")
+		protobuf_go_lite.TextWriteBool(&sb, x.AwaitFetchManifest)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Config) String() string {
 	return x.MarshalProtoText()
 }
+
 func (x *PlatformSelectionPolicy) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "PlatformSelectionPolicy")
@@ -1196,6 +1235,7 @@ func (x *PlatformSelectionPolicy) MarshalProtoText() string {
 func (x *PlatformSelectionPolicy) String() string {
 	return x.MarshalProtoText()
 }
+
 func (m *Config) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1438,6 +1478,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PluginIds = append(m.PluginIds, v)
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AwaitFetchManifest", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AwaitFetchManifest = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1460,6 +1510,7 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+
 func (m *PlatformSelectionPolicy) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0

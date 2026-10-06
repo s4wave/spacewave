@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -91,11 +92,11 @@ func TestLocalCDNDriveStartup(t *testing.T) {
 	starts := make(map[string]int)
 	for _, mark := range readBundledStartupMarks(t, page) {
 		if mark.Label == "worker.construct-start" {
-			starts[composedString(mark.Detail["workerId"])]++
+			starts[workerPlugin(composedString(mark.Detail["workerId"]))]++
 		}
 	}
 	for _, plugin := range []string{"spacewave-core", "spacewave-web", "spacewave-app"} {
-		if count := starts["plugin/"+plugin]; count != 1 {
+		if count := starts[plugin]; count != 1 {
 			t.Errorf("startup created %d workers for %s, want one: %v", count, plugin, starts)
 		}
 	}
@@ -127,4 +128,11 @@ func TestLocalCDNDriveStartup(t *testing.T) {
 	if distribution == 0 || root == 0 || ranges == 0 {
 		t.Error("startup did not exercise distribution, CDN root, and pack loading")
 	}
+}
+
+// workerPlugin returns the plugin ID of a plugin worker ID, which has the form
+// plugin/<id>//generation/<hash>.
+func workerPlugin(workerID string) string {
+	id, _, _ := strings.Cut(strings.TrimPrefix(workerID, "plugin/"), "//")
+	return id
 }

@@ -645,7 +645,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 			recordConsole("worker " + msg.Type() + ": " + msg.Text())
 			switch msg.Type() {
 			case "error":
-				if !ignoreBrowserError(msg.Text()) && !isExpectedReleaseWasmConsoleError(msg) {
+				if !ignoreBrowserError(msg.Text()) && !h.isExpectedConsoleError(msg) {
 					recordBrowserError("worker console error: " + msg.Text())
 				}
 			case "warning":
@@ -668,7 +668,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		recordConsole("page " + msg.Type() + ": " + msg.Text())
 		switch msg.Type() {
 		case "error":
-			if !ignoreBrowserError(msg.Text()) && !isExpectedReleaseWasmConsoleError(msg) {
+			if !ignoreBrowserError(msg.Text()) && !h.isExpectedConsoleError(msg) {
 				t.Logf("browser console error location: %+v", msg.Location())
 				recordBrowserError("console error: " + msg.Text())
 			}
@@ -698,7 +698,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func
 		url := resp.URL()
 		if !strings.HasPrefix(url, h.baseURL) ||
 			strings.HasSuffix(url, "/.vite/manifest.json") ||
-			isExpectedReleaseWasmHTTPError(url) {
+			h.isExpectedHTTPError(url) {
 			t.Logf("browser http warning: %d %s", resp.Status(), url)
 			return
 		}
@@ -784,19 +784,33 @@ func isRelevantReleaseWasmRequest(url string) bool {
 	return false
 }
 
-// isExpectedReleaseWasmHTTPError identifies endpoints intentionally absent from
-// the static release server. The app probes auth configuration even when the
-// release proof runs without a cloud auth service.
-func isExpectedReleaseWasmHTTPError(url string) bool {
-	return strings.HasSuffix(url, "/api/auth/config") ||
-		(os.Getenv(localCDNEnv) == "1" && url == cdn.DefaultBaseURL+"/"+cdn.ProvisionedSpaceID+"/root.packedmsg")
+// isExpectedHTTPError identifies endpoints intentionally absent from the static
+// release server. The app probes auth configuration even when the release proof
+// runs without a cloud auth service, and a local CDN fixture taken down by a
+// test fails every CDN request.
+func (h *harness) isExpectedHTTPError(url string) bool {
+	// The static origin never serves the auth probe.
+	if strings.HasSuffix(url, "/api/auth/config") {
+		return true
+	}
+
+	// The local CDN fixture omits the public catalog and may be taken down.
+	if os.Getenv(localCDNEnv) != "1" {
+		return false
+	}
+	if url == cdn.DefaultBaseURL+"/"+cdn.ProvisionedSpaceID+"/root.packedmsg" {
+		return true
+	}
+	server, ok := h.server.Handler.(*localCDNHandler)
+	return ok && server.cdnDown.Load() && strings.Contains(url, "/cdn/")
 }
 
-// isExpectedReleaseWasmConsoleError recognizes the browser's resource error for
-// the auth probe when the static origin is unavailable during an offline test.
-func isExpectedReleaseWasmConsoleError(msg playwright.ConsoleMessage) bool {
+// isExpectedConsoleError recognizes the browser's resource error for an
+// expected HTTP error, such as the auth probe when the static origin is
+// unavailable during an offline test.
+func (h *harness) isExpectedConsoleError(msg playwright.ConsoleMessage) bool {
 	location := msg.Location()
-	return location != nil && isExpectedReleaseWasmHTTPError(location.URL) &&
+	return location != nil && h.isExpectedHTTPError(location.URL) &&
 		strings.HasPrefix(msg.Text(), "Failed to load resource:")
 }
 

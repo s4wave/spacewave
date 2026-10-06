@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -13,6 +14,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/pkg/errors"
@@ -172,23 +174,21 @@ func BuildDistBus(
 		}
 	}
 
-	// run the config set
+	// Run the config set. The scheduler starts after its controllers attach.
+	var configSet configset.ConfigSet
 	if len(configSetProto.GetConfigs()) != 0 {
-		configSet, err := configSetProto.Resolve(ctx, b)
+		configSet, err = configSetProto.Resolve(ctx, b)
 		if err != nil {
 			rel()
 			return nil, err
 		}
-
-		if len(configSet) != 0 {
-			_, applyCsetRef, err := b.AddDirective(configset.NewApplyConfigSet(configSet), nil)
-			if err != nil {
-				rel()
-				return nil, err
-			}
-			rels.add(applyCsetRef.Release)
-		}
 	}
+	configSetAttached, releaseConfigSet, err := applyConfigSet(b, configSet)
+	if err != nil {
+		rel()
+		return nil, err
+	}
+	rels.add(releaseConfigSet)
 
 	// Run the pre-build hooks and retain their cleanup functions.
 	for _, hook := range preBuildHooks {
@@ -408,6 +408,15 @@ func BuildDistBus(
 		return nil, err
 	}
 
+	// The first manifest selection must see every resolver the config set
+	// provides, such as a Release World announcing a newer release.
+	select {
+	case <-ctx.Done():
+		rel()
+		return nil, context.Cause(ctx)
+	case <-configSetAttached:
+	}
+
 	// build the plugin scheduler
 	pluginSchedConf := newReleaseSchedulerConfig(
 		projectID,
@@ -484,6 +493,51 @@ func BuildDistBus(
 	return distBus, nil
 }
 
+// applyConfigSet applies configSet to b until release is called. The returned
+// channel closes once every controller in the set is constructed or has
+// failed, so the directive resolvers of the constructed controllers are
+// attached to b.
+func applyConfigSet(b bus.Bus, configSet configset.ConfigSet) (attached <-chan struct{}, release func(), err error) {
+	// An empty set has nothing to attach.
+	done := make(chan struct{})
+	if len(configSet) == 0 {
+		close(done)
+		return done, func() {}, nil
+	}
+
+	// Track the controllers that have not yet reached a final state.
+	var mtx sync.Mutex
+	pending := make(map[string]struct{}, len(configSet))
+	for id := range configSet {
+		pending[id] = struct{}{}
+	}
+
+	// Settle each controller on its first constructed or failed state.
+	settle := func(val directive.AttachedValue) {
+		// Ignore states still loading their controller.
+		st, ok := val.GetValue().(configset.ApplyConfigSetValue)
+		if !ok || st == nil || (st.GetController() == nil && st.GetError() == nil) {
+			return
+		}
+
+		// Close done when the last pending controller settles.
+		mtx.Lock()
+		defer mtx.Unlock()
+		if _, ok := pending[st.GetId()]; !ok {
+			return
+		}
+		delete(pending, st.GetId())
+		if len(pending) == 0 {
+			close(done)
+		}
+	}
+	_, ref, err := b.AddDirective(configset.NewApplyConfigSet(configSet), bus.NewCallbackHandler(settle, nil, nil))
+	if err != nil {
+		return nil, nil, err
+	}
+	return done, ref.Release, nil
+}
+
 // newReleaseSchedulerConfig copies remote manifests after startup for offline use.
 func newReleaseSchedulerConfig(
 	projectID,
@@ -511,6 +565,10 @@ func newReleaseSchedulerConfig(
 	pluginSchedConf.NoCopyBucketIds = []string{
 		bldr_dist.GetDistBucketID(projectID),
 	}
+	// Startup waits for the announced release, so a returning visitor boots
+	// the newest plugins once instead of booting the cached ones and replacing
+	// them. An unreachable Release World leaves the cached release selectable.
+	pluginSchedConf.AwaitFetchManifest = true
 	return pluginSchedConf
 }
 

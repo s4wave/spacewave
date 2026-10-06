@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -45,6 +46,32 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	) (bool, error) {
 		return r.reconcileManifests(ctx, le, handler, ws)
 	}))
+
+	// Report the directive idle while the World engine is unavailable, so a
+	// caller waiting for idle values does not block on an unreachable World.
+	// The lookup can go idle holding the engine, which ExecWaitValue offers to
+	// the value filter before the idle callback, under one lock.
+	var found bool
+	_, _, engineRef, err := bus.ExecWaitValue(
+		ctx,
+		r.c.bus,
+		world.NewLookupWorldEngine(r.c.conf.GetEngineId()),
+		func(isIdle bool, _ []error) (bool, error) {
+			if isIdle && !found {
+				handler.MarkIdle(true)
+			}
+			return true, nil
+		},
+		nil,
+		func(world.LookupWorldEngineValue) (bool, error) {
+			found = true
+			return true, nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+	defer engineRef.Release()
 
 	// execute the watch loop
 	return world_control.ExecuteBusWatchLoop(
