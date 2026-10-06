@@ -1,6 +1,6 @@
 import { defineConfig } from 'oxlint'
 import {
-  RECOMMENDED_RULES as reactDoctorRules,
+  RECOMMENDED_RULES,
   RULES as reactDoctorRuleInfo,
 } from 'oxlint-plugin-react-doctor'
 
@@ -61,6 +61,12 @@ const shadcnRules = {
   'shadcn/require-static-classes': 'error',
 } as const
 
+// reactDoctorRules is the React Doctor recommended preset with every severity
+// raised to error.
+const reactDoctorRules = Object.fromEntries(
+  Object.keys(RECOMMENDED_RULES).map((key) => [key, 'error' as const]),
+)
+
 // serverRenderRules assume every component renders on a server. Only the
 // static pages prerender, and their build and hydration tests cover that path.
 const serverRenderRules = Object.fromEntries(
@@ -104,7 +110,7 @@ export default defineConfig({
       },
     ],
     'preserve-caught-error': 'error',
-    'react/exhaustive-deps': 'warn',
+    'react/exhaustive-deps': 'error',
     'react/rules-of-hooks': 'error',
 
     // These React Compiler validations assume compiled components. The app
@@ -115,7 +121,7 @@ export default defineConfig({
     'react/set-state-in-effect': 'off',
 
     'typescript/ban-ts-comment': 'error',
-    'typescript/no-explicit-any': 'warn',
+    'typescript/no-explicit-any': 'error',
     'typescript/no-namespace': 'error',
     'typescript/no-require-imports': 'error',
     'typescript/no-unnecessary-type-constraint': 'error',
