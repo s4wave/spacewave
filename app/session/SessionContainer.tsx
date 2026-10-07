@@ -77,6 +77,7 @@ import { SetupWizard } from './SetupWizard.js'
 import { ProviderSetup } from './setup/ProviderSetup.js'
 import { LocalSessionSetup } from './setup/LocalSessionSetup.js'
 import { CommandLineSetupPage } from './settings/CommandLineSetupPage.js'
+import { PluginRepositoriesPage } from './settings/PluginRepositoriesPage.js'
 import { CliTerminalPage } from './settings/CliTerminalPage.js'
 import { TransferWizard } from './settings/TransferWizard.js'
 import { StorageHealthPage } from './storage/StorageHealthPage.js'
@@ -465,6 +466,9 @@ export function SessionContainer(props: SessionContainerProps) {
                       </Route>
                       <Route path="/settings/cli">
                         <CommandLineSetupPage />
+                      </Route>
+                      <Route path="/settings/plugins">
+                        <PluginRepositoriesPage />
                       </Route>
                       <Route path="/settings/transfer">
                         <TransferWizard />

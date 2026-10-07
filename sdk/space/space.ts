@@ -14,6 +14,8 @@ import {
   BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  FetchPluginRepositoryRequest,
+  FetchPluginRepositoryResponse,
   SetSpaceBackfillResponse,
   SetSpaceControlResponse,
   SetSpaceSequencerResponse,
@@ -117,6 +119,16 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<BuildSpacePluginResponse> {
     return this.service.BuildSpacePlugin(request, abortSignal)
+  }
+
+  // fetchPluginRepository queues a Forge Job on a registered device that clones
+  // a GitHub repository at depth one, or fetches its newest commit when the
+  // Space already holds it. The worktree stays on its pinned commit.
+  public async fetchPluginRepository(
+    request: FetchPluginRepositoryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<FetchPluginRepositoryResponse> {
+    return this.service.FetchPluginRepository(request, abortSignal)
   }
 
   /** openPluginFrontend retains live source on the selected native device. */

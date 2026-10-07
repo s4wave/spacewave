@@ -19,6 +19,7 @@ import {
   CreateSpaceRequest,
   CreateSpaceResponse,
   ConfirmPairingResponse,
+  EnsureDeveloperSpaceResponse,
   GetSessionInfoResponse,
   GetTransferInventoryResponse,
   GetTransferStatusResponse,
@@ -115,6 +116,14 @@ export class Session extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<CreateSpaceResponse> {
     return await this.service.CreateSpace(req, abortSignal)
+  }
+
+  // ensureDeveloperSpace returns the account's developer Space, creating it
+  // when the account has none.
+  public async ensureDeveloperSpace(
+    abortSignal?: AbortSignal,
+  ): Promise<EnsureDeveloperSpaceResponse> {
+    return await this.service.EnsureDeveloperSpace({}, abortSignal)
   }
 
   // watchResourcesList returns a stream of the full spaces list snapshots.

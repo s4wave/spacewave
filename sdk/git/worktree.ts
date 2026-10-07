@@ -12,6 +12,9 @@ import type {
   WatchStatusResponse,
 } from './worktree.pb.js'
 
+// GitWorktreeTypeID is the type identifier for git/worktree objects.
+export const GitWorktreeTypeID = 'git/worktree'
+
 // GitWorktreeHandle represents a handle to a git worktree resource.
 export class GitWorktreeHandle extends Resource {
   private service: GitWorktreeResourceServiceClient

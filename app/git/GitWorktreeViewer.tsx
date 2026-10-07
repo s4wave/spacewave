@@ -49,9 +49,6 @@ import { useGitBrowsingState } from './useGitBrowsingState.js'
 import { useGitFileEntries } from './useGitFileEntries.js'
 import { useGitNavigation } from './useGitNavigation.js'
 
-// GitWorktreeTypeID is the type identifier for git/worktree objects.
-export const GitWorktreeTypeID = 'git/worktree'
-
 type GitFileEntries = ReturnType<typeof useGitFileEntries>
 
 /**

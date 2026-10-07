@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import {
   LuCloud,
+  LuGitBranch,
   LuKeyboard,
   LuLogOut,
   LuMerge,
@@ -212,6 +213,14 @@ export function SessionActionsSection({
           title="Command Line"
           description="Connect the spacewave CLI to this session"
           onClick={() => navigateSession({ path: 'settings/cli' })}
+        />
+
+        <ActionCard
+          tone={neutralTone}
+          icon={<LuGitBranch className={neutralTone.icon} />}
+          title="Plugins"
+          description="Add a plugin from GitHub and check it for updates"
+          onClick={() => navigateSession({ path: 'settings/plugins' })}
         />
 
         {showTransfer && (
