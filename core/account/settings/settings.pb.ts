@@ -411,6 +411,14 @@ export interface AccountSettings {
    * @generated from field: repeated account.settings.BlockStorePlacement storage_releases = 13;
    */
   storageReleases?: BlockStorePlacement[]
+  /**
+   * DeveloperSpaceId names the account's developer Space, which holds the
+   * repositories the user adds and what is built from them. Empty until the
+   * first repository is added. Every device of the account uses this Space.
+   *
+   * @generated from field: string developer_space_id = 14;
+   */
+  developerSpaceId?: string
 }
 
 export const AccountSettings: MessageType<AccountSettings> =
@@ -498,6 +506,12 @@ export const AccountSettings: MessageType<AccountSettings> =
         kind: 'message',
         T: BlockStorePlacement,
         repeated: true,
+      },
+      {
+        no: 14,
+        name: 'developer_space_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
       },
     ] satisfies readonly PartialFieldInfo[],
   })
@@ -685,6 +699,28 @@ export const SetDefaultStorageBackendOp: MessageType<SetDefaultStorageBackendOp>
   })
 
 /**
+ * SetDeveloperSpaceOp records the account's developer Space.
+ *
+ * @generated from message account.settings.SetDeveloperSpaceOp
+ */
+export interface SetDeveloperSpaceOp {
+  /**
+   * SpaceId identifies the Space the account uses as its developer Space.
+   *
+   * @generated from field: string space_id = 1;
+   */
+  spaceId?: string
+}
+
+export const SetDeveloperSpaceOp: MessageType<SetDeveloperSpaceOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.SetDeveloperSpaceOp',
+    fields: [
+      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * AccountSettingsOp is an operation on the account settings SharedObject.
  * Stored as SOOperationInner.OpData.
  *
@@ -854,6 +890,16 @@ export interface AccountSettingsOp {
         value: BlockStorePlacement
         case: 'completeStorageRelease'
       }
+    | {
+        /**
+         * SetDeveloperSpace records the account's developer Space. The first
+         * operation to commit wins; later ones naming another Space are rejected.
+         *
+         * @generated from field: account.settings.SetDeveloperSpaceOp set_developer_space = 18;
+         */
+        value: SetDeveloperSpaceOp
+        case: 'setDeveloperSpace'
+      }
 }
 
 export const AccountSettingsOp: MessageType<AccountSettingsOp> =
@@ -977,6 +1023,13 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         name: 'complete_storage_release',
         kind: 'message',
         T: BlockStorePlacement,
+        oneof: 'op',
+      },
+      {
+        no: 18,
+        name: 'set_developer_space',
+        kind: 'message',
+        T: SetDeveloperSpaceOp,
         oneof: 'op',
       },
     ] satisfies readonly PartialFieldInfo[],

@@ -63,6 +63,9 @@ service SessionResourceService {
   rpc CreateLocalPairingOffer(CreateLocalPairingOfferRequest) returns (CreateLocalPairingOfferResponse);
   rpc AcceptLocalPairingOffer(AcceptLocalPairingOfferRequest) returns (AcceptLocalPairingOfferResponse);
   rpc AcceptLocalPairingAnswer(AcceptLocalPairingAnswerRequest) returns (AcceptLocalPairingAnswerResponse);
+  // EnsureDeveloperSpace returns the account's developer Space, creating and
+  // recording it when the account has none.
+  rpc EnsureDeveloperSpace(EnsureDeveloperSpaceRequest) returns (EnsureDeveloperSpaceResponse);
   // WatchStorageBackends streams the account's storage backends and the
   // Spaces placed on each.
   rpc WatchStorageBackends(WatchStorageBackendsRequest) returns (stream WatchStorageBackendsResponse);
@@ -1034,6 +1037,15 @@ message AcceptLocalPairingAnswerRequest {
 message AcceptLocalPairingAnswerResponse {
   // RemotePeerId is the base58 peer ID of the remote device.
   string remote_peer_id = 1;
+}
+
+// EnsureDeveloperSpaceRequest is the request for EnsureDeveloperSpace.
+message EnsureDeveloperSpaceRequest {}
+
+// EnsureDeveloperSpaceResponse is the response for EnsureDeveloperSpace.
+message EnsureDeveloperSpaceResponse {
+  // SharedObjectId identifies the account's developer Space.
+  string shared_object_id = 1;
 }
 
 // WatchStorageBackendsRequest is the request for WatchStorageBackends.

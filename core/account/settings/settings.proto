@@ -42,6 +42,10 @@ message AccountSettings {
   // StorageReleases are former placements whose objects remain in the
   // backend's bucket. A device deletes them, then completes the release.
   repeated BlockStorePlacement storage_releases = 13;
+  // DeveloperSpaceId names the account's developer Space, which holds the
+  // repositories the user adds and what is built from them. Empty until the
+  // first repository is added. Every device of the account uses this Space.
+  string developer_space_id = 14;
 }
 
 // StorageBackend is block storage the account's devices share.
@@ -170,7 +174,16 @@ message AccountSettingsOp {
     // CompleteStorageRelease records that the released block store's objects
     // are gone from the backend's bucket.
     BlockStorePlacement complete_storage_release = 17;
+    // SetDeveloperSpace records the account's developer Space. The first
+    // operation to commit wins; later ones naming another Space are rejected.
+    SetDeveloperSpaceOp set_developer_space = 18;
   }
+}
+
+// SetDeveloperSpaceOp records the account's developer Space.
+message SetDeveloperSpaceOp {
+  // SpaceId identifies the Space the account uses as its developer Space.
+  string space_id = 1;
 }
 
 // RemoveStorageBackendOp removes a storage backend by id.

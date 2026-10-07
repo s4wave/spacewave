@@ -3884,6 +3884,41 @@ export const AcceptLocalPairingAnswerResponse: MessageType<AcceptLocalPairingAns
   })
 
 /**
+ * EnsureDeveloperSpaceRequest is the request for EnsureDeveloperSpace.
+ *
+ * @generated from message s4wave.session.EnsureDeveloperSpaceRequest
+ */
+export interface EnsureDeveloperSpaceRequest {}
+
+export const EnsureDeveloperSpaceRequest: MessageType<EnsureDeveloperSpaceRequest> =
+  /* @__PURE__ */ createEmptyMessageType<EnsureDeveloperSpaceRequest>(
+    's4wave.session.EnsureDeveloperSpaceRequest',
+    true,
+  )
+
+/**
+ * EnsureDeveloperSpaceResponse is the response for EnsureDeveloperSpace.
+ *
+ * @generated from message s4wave.session.EnsureDeveloperSpaceResponse
+ */
+export interface EnsureDeveloperSpaceResponse {
+  /**
+   * SharedObjectId identifies the account's developer Space.
+   *
+   * @generated from field: string shared_object_id = 1;
+   */
+  sharedObjectId?: string
+}
+
+export const EnsureDeveloperSpaceResponse: MessageType<EnsureDeveloperSpaceResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.EnsureDeveloperSpaceResponse',
+    fields: [
+      { no: 1, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * WatchStorageBackendsRequest is the request for WatchStorageBackends.
  *
  * @generated from message s4wave.session.WatchStorageBackendsRequest

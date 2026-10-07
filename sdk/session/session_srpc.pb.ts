@@ -33,6 +33,8 @@ import {
   DeleteAccountResponse,
   DeleteSpaceRequest,
   DeleteSpaceResponse,
+  EnsureDeveloperSpaceRequest,
+  EnsureDeveloperSpaceResponse,
   GeneratePairingCodeRequest,
   GeneratePairingCodeResponse,
   GetSASEmojiRequest,
@@ -540,6 +542,18 @@ export const SessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * EnsureDeveloperSpace returns the account's developer Space, creating and
+     * recording it when the account has none.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.EnsureDeveloperSpace
+     */
+    EnsureDeveloperSpace: {
+      name: 'EnsureDeveloperSpace',
+      I: EnsureDeveloperSpaceRequest,
+      O: EnsureDeveloperSpaceResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * WatchStorageBackends streams the account's storage backends and the
      * Spaces placed on each.
      *
@@ -1010,6 +1024,17 @@ export interface SessionResourceService {
     request: AcceptLocalPairingAnswerRequest,
     abortSignal?: AbortSignal,
   ): Promise<AcceptLocalPairingAnswerResponse>
+
+  /**
+   * EnsureDeveloperSpace returns the account's developer Space, creating and
+   * recording it when the account has none.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.EnsureDeveloperSpace
+   */
+  EnsureDeveloperSpace(
+    request: EnsureDeveloperSpaceRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<EnsureDeveloperSpaceResponse>
 
   /**
    * WatchStorageBackends streams the account's storage backends and the
@@ -1519,6 +1544,18 @@ export interface SessionResourceServiceHandler {
   ): Promise<AcceptLocalPairingAnswerResponse>
 
   /**
+   * EnsureDeveloperSpace returns the account's developer Space, creating and
+   * recording it when the account has none.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.EnsureDeveloperSpace
+   */
+  EnsureDeveloperSpace(
+    request: EnsureDeveloperSpaceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<EnsureDeveloperSpaceResponse>
+
+  /**
    * WatchStorageBackends streams the account's storage backends and the
    * Spaces placed on each.
    *
@@ -1668,6 +1705,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.CreateLocalPairingOffer = this.CreateLocalPairingOffer.bind(this)
     this.AcceptLocalPairingOffer = this.AcceptLocalPairingOffer.bind(this)
     this.AcceptLocalPairingAnswer = this.AcceptLocalPairingAnswer.bind(this)
+    this.EnsureDeveloperSpace = this.EnsureDeveloperSpace.bind(this)
     this.WatchStorageBackends = this.WatchStorageBackends.bind(this)
     this.CheckStorageBackend = this.CheckStorageBackend.bind(this)
     this.AddStorageBackend = this.AddStorageBackend.bind(this)
@@ -2450,6 +2488,26 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return AcceptLocalPairingAnswerResponse.fromBinary(result)
+  }
+
+  /**
+   * EnsureDeveloperSpace returns the account's developer Space, creating and
+   * recording it when the account has none.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.EnsureDeveloperSpace
+   */
+  async EnsureDeveloperSpace(
+    request: EnsureDeveloperSpaceRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<EnsureDeveloperSpaceResponse> {
+    const requestMsg = EnsureDeveloperSpaceRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.EnsureDeveloperSpace.name,
+      EnsureDeveloperSpaceRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return EnsureDeveloperSpaceResponse.fromBinary(result)
   }
 
   /**

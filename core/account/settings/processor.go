@@ -124,9 +124,24 @@ func (s *AccountSettings) applyOpData(opData []byte) error {
 		return s.setBlockStorePlacement(body.SetBlockStorePlacement)
 	case *AccountSettingsOp_CompleteStorageRelease:
 		return s.completeStorageRelease(body.CompleteStorageRelease)
+	case *AccountSettingsOp_SetDeveloperSpace:
+		return s.setDeveloperSpace(body.SetDeveloperSpace.GetSpaceId())
 	default:
 		return errors.New("unknown op type")
 	}
+}
+
+// setDeveloperSpace records the developer Space. Devices race to create one,
+// so the first record wins and a different Space is rejected.
+func (s *AccountSettings) setDeveloperSpace(spaceID string) error {
+	if spaceID == "" {
+		return errors.New("space_id is required")
+	}
+	if current := s.GetDeveloperSpaceId(); current != "" && current != spaceID {
+		return ErrDeveloperSpaceSet
+	}
+	s.DeveloperSpaceId = spaceID
+	return nil
 }
 
 // addPairedDevice adds a paired device, replacing any entry with its peer ID.

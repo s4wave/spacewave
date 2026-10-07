@@ -383,18 +383,27 @@ func (r *SessionResource) addSharedObjectResource(
 
 // CreateSpace creates a new space within the ProviderAccount with the Session.
 func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.CreateSpaceRequest) (*s4wave_session.CreateSpaceResponse, error) {
+	soRef, soMeta, err := r.createSpace(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return r.mountSpaceResponse(ctx, soRef, soMeta)
+}
+
+// createSpace creates the Space SharedObject without mounting it.
+func (r *SessionResource) createSpace(ctx context.Context, req *s4wave_session.CreateSpaceRequest) (*sobject.SharedObjectRef, *sobject.SharedObjectMeta, error) {
 	// Build the requested Space metadata.
 	soId := ulid.NewULID()
 	soMeta, err := space.NewSharedObjectMeta(req.GetSpaceName())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Resolve the shared-object provider feature.
 	providerAcc := r.session.GetProviderAccount()
 	soFeature, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Resolve the principal receiving ownership.
@@ -408,19 +417,18 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 	// Place the Space's blocks before its first write reaches them.
 	placedID, err := r.placeNewSpaceBlockStore(ctx, soId, req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	// Create and mount the shared object.
+	// Create the shared object.
 	soRef, err := soFeature.CreateSharedObject(ctx, soId, soMeta, ownerType, ownerID)
 	if err != nil {
 		if placedID != "" {
 			r.releaseNewSpaceBlockStore(ctx, placedID)
 		}
-		return nil, err
+		return nil, nil, err
 	}
-
-	return r.mountSpaceResponse(ctx, soRef, soMeta)
+	return soRef, soMeta, nil
 }
 
 func (r *SessionResource) mountSpaceResponse(
