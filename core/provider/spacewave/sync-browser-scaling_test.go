@@ -13,6 +13,7 @@ import (
 
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
+	"github.com/s4wave/spacewave/db/packfile/writer"
 	volume_browser "github.com/s4wave/spacewave/db/volume/browser"
 	"github.com/sirupsen/logrus"
 )
@@ -95,9 +96,11 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 		}
 		marks = append(marks, block_store_writeback.Mark{Hash: ref.GetHash(), Size: int64(len(data))})
 	}
+	markStarted := time.Now()
 	if err := syncer.MarkDirty(ctx, marks); err != nil {
 		t.Fatal(err)
 	}
+	marked := time.Since(markStarted)
 
 	// Drain the queue, counting metadata visits.
 	metadata.visits.Store(0)
@@ -114,5 +117,5 @@ func testSyncBrowserDrainScaling(t *testing.T, count int) {
 	if uploads != (count+4095)/4096 {
 		t.Fatalf("paging changed pack count: %d", uploads)
 	}
-	t.Logf("blocks=%d visits=%d max-read=%d uploads=%d upload-bytes=%d elapsed=%s", count, metadata.visits.Load(), metadata.page.Load(), uploads, uploaded, time.Since(started))
+	t.Logf("backend=opfs blocks=%d pack-bytes=%d pack-blocks=%d mark=%s visits=%d max-read=%d uploads=%d upload-bytes=%d drain=%s", count, syncFlushMaxPackBytes, writer.DefaultMaxBlocksPerPack, marked, metadata.visits.Load(), metadata.page.Load(), uploads, uploaded, time.Since(started))
 }
