@@ -412,6 +412,14 @@ buildWorldEngine:
 		return err
 	}
 
+	// Apply the configured changelog setting to an existing World.
+	if !isReadOnlyInitHead(stateStore, initRef) {
+		if err := engine.SetChangelogDisabled(ctx, c.conf.GetDisableChangelog()); err != nil {
+			_ = engine.Close()
+			return err
+		}
+	}
+
 	// Retain the engine and its store reference across execution restarts.
 	le.WithField("world-seqno", seqno).Info("world engine ready")
 	var wengine world.Engine = engine

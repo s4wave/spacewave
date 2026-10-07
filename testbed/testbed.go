@@ -59,13 +59,15 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		}
 	}()
 
-	// Parse options controlling world verbosity and storage backends.
-	var worldVerbose bool
+	// Parse options controlling world verbosity, the changelog and storage backends.
+	var worldVerbose, enableChangelog bool
 	var storages []storage.Storage
 	for _, opt := range opts {
 		switch o := opt.(type) {
 		case *withWorldVerbose:
 			worldVerbose = o.verbose
+		case *withChangelog:
+			enableChangelog = true
 		case *withStorages:
 			storages = append([]storage.Storage(nil), o.storages...)
 		default:
@@ -108,7 +110,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		t.EngineObjectStoreID,
 		initRef,
 		nil,
-		false,
+		enableChangelog,
 	)
 	engConf.Verbose = worldVerbose
 

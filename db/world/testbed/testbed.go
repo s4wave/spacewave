@@ -54,12 +54,14 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		}
 	}()
 
-	// Apply the requested World engine logging options.
-	var worldVerbose bool
+	// Apply the requested World engine logging and changelog options.
+	var worldVerbose, enableChangelog bool
 	for _, opt := range opts {
 		switch o := opt.(type) {
 		case *withWorldVerbose:
 			worldVerbose = o.verbose
+		case *withChangelog:
+			enableChangelog = true
 		default:
 			return nil, errors.Errorf("unrecognized testbed option: %#v", o)
 		}
@@ -95,7 +97,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 		t.EngineObjectStoreID,
 		initRef,
 		nil,
-		false,
+		enableChangelog,
 	)
 	engConf.Verbose = worldVerbose
 

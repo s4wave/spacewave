@@ -12,6 +12,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
 	trace "github.com/s4wave/spacewave/db/traceutil"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -1045,6 +1046,36 @@ func (e *Engine) accessStorage(
 
 	// Expose the followed cursor only for the callback lifetime.
 	return cb(followed)
+}
+
+// SetChangelogDisabled turns the World changelog off or on, committing only
+// when the setting changes.
+//
+// Disabling drops the recorded history. Enabling starts the log at the current
+// seqno without history, so a change watcher reading across the switch sees
+// one unknown change set.
+func (e *Engine) SetChangelogDisabled(ctx context.Context, disable bool) error {
+	// Open a write transaction.
+	engTx, err := e.NewBlockEngineTransaction(ctx, true)
+	if err != nil {
+		return err
+	}
+	defer engTx.Discard()
+	if engTx.writeTx == nil {
+		return tx.ErrNotWrite
+	}
+
+	// Apply the setting and commit only a change.
+	unlock, err := engTx.writeTx.rmtx.Lock(ctx, true)
+	if err != nil {
+		return err
+	}
+	changed, err := engTx.writeTx.state.setChangelogDisabled(ctx, disable)
+	unlock()
+	if err != nil || !changed {
+		return err
+	}
+	return engTx.Commit(ctx)
 }
 
 // GetSeqno returns the current seqno of the world state.

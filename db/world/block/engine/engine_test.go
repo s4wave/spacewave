@@ -37,8 +37,7 @@ import (
 // changelog when enableChangelog is set.
 func newEngineTestbed(
 	t *testing.T,
-	enableChangelog bool,
-) (context.Context, *logrus.Entry, *testbed.Testbed, func() (*world_block_engine.Controller, directive.Reference)) {
+) (context.Context, *logrus.Entry, *testbed.Testbed, func(enableChangelog bool) (*world_block_engine.Controller, directive.Reference)) {
 	// Report failures at the caller and configure debug logging.
 	t.Helper()
 	ctx := t.Context()
@@ -76,15 +75,15 @@ func newEngineTestbed(
 		BucketId:      tb.BucketId,
 		TransformConf: stateTransformConf,
 	}
-	engineConf := world_block_engine.NewConfig(
-		"test-world-engine",
-		tb.Volume.GetID(), tb.BucketId,
-		objectStoreID,
-		initWorldRef,
-		stateTransformConf,
-		enableChangelog,
-	)
-	startEngine := func() (*world_block_engine.Controller, directive.Reference) {
+	startEngine := func(enableChangelog bool) (*world_block_engine.Controller, directive.Reference) {
+		engineConf := world_block_engine.NewConfig(
+			"test-world-engine",
+			tb.Volume.GetID(), tb.BucketId,
+			objectStoreID,
+			initWorldRef,
+			stateTransformConf,
+			enableChangelog,
+		)
 		worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -98,9 +97,9 @@ func newEngineTestbed(
 // the engine on the bus, & running some basic queries.
 func TestWorldEngineController(t *testing.T) {
 	// Start the engine with a changelog.
-	ctx, le, tb, startEngine := newEngineTestbed(t, true)
+	ctx, le, tb, startEngine := newEngineTestbed(t)
 	engineID := "test-world-engine"
-	worldCtrl, worldCtrlRef := startEngine()
+	worldCtrl, worldCtrlRef := startEngine(true)
 	defer worldCtrlRef.Release()
 
 	// Provide the mock object op handlers to the bus.
@@ -141,7 +140,7 @@ func TestWorldEngineController(t *testing.T) {
 
 	// Remount the World.
 	worldCtrlRef.Release()
-	worldCtrl, worldCtrlRef = startEngine()
+	worldCtrl, worldCtrlRef = startEngine(true)
 	defer worldCtrlRef.Release()
 	eng, err = worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
@@ -599,8 +598,8 @@ func readObjectsFound(ctx context.Context, t *testing.T, eng world.Engine, keys 
 // controller with the changelog disabled.
 func TestWorldEngineController_DisableChangelog(t *testing.T) {
 	// Start the engine without a changelog.
-	ctx, le, tb, startEngine := newEngineTestbed(t, false)
-	worldCtrl, worldCtrlRef := startEngine()
+	ctx, le, tb, startEngine := newEngineTestbed(t)
+	worldCtrl, worldCtrlRef := startEngine(false)
 	defer worldCtrlRef.Release()
 
 	// Open and discard a write transaction on the engine.
@@ -641,6 +640,79 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+// TestWorldEngineController_EnableChangelog tests reopening a World without a
+// changelog with the changelog enabled: the feed reports the history before
+// the switch as unknown and each later write precisely.
+func TestWorldEngineController_EnableChangelog(t *testing.T) {
+	// Start the engine testbed.
+	ctx, _, _, startEngine := newEngineTestbed(t)
+
+	// createObject commits one new object.
+	createObject := func(eng world.Engine, key string) {
+		// Open a write transaction.
+		tx, err := eng.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer tx.Discard()
+
+		// Create the object and commit.
+		obj, err := tx.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Write an object to a World without a changelog.
+	worldCtrl, worldCtrlRef := startEngine(false)
+	eng, err := worldCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	createObject(eng, "before")
+	worldCtrlRef.Release()
+
+	// Reopen the World with the changelog and write another object.
+	worldCtrl, worldCtrlRef = startEngine(true)
+	defer worldCtrlRef.Release()
+	eng, err = worldCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	switchSeqno, err := eng.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	createObject(eng, "after")
+
+	// firstChanges returns the first change set the feed reports after seqno.
+	errStop := errors.New("stop watch")
+	firstChanges := func(afterSeqno uint64) *world.ChangeSet {
+		var changes *world.ChangeSet
+		err := world.WatchChanges(ctx, eng, afterSeqno, func(_ uint64, cs *world.ChangeSet) error {
+			changes = cs
+			return errStop
+		})
+		if !errors.Is(err, errStop) {
+			t.Fatal(err)
+		}
+		return changes
+	}
+
+	// Check the feed across and after the switch.
+	if changes := firstChanges(switchSeqno - 1); !changes.Unknown {
+		t.Fatalf("expected unknown changes across the switch, got %v", changes)
+	}
+	changes := firstChanges(switchSeqno)
+	if changes.Unknown || len(changes.Keys) != 1 || changes.Keys[0] != "after" {
+		t.Fatalf("expected the write after the switch, got %v", changes)
 	}
 }
 

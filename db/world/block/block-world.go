@@ -8,8 +8,12 @@ import (
 )
 
 // NewWorld constructs a new empty world.
+//
+// The world starts with an empty changelog head so the root always encodes to
+// at least one byte: an all-zero World stores as an empty reference, which
+// reads as no World at all.
 func NewWorld(disableChangelog bool) *World {
-	return &World{LastChangeDisable: disableChangelog}
+	return &World{LastChange: &ChangeLogLL{}, LastChangeDisable: disableChangelog}
 }
 
 // NewWorldBlock constructs a new world state block.
