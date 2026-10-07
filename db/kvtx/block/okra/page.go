@@ -227,6 +227,12 @@ func (p *Page) GetSubBlocks() map[uint32]block.SubBlock {
 	return values
 }
 
+// SharesDecodedBlock marks decoded pages as shareable between read-only
+// transactions: readers never mutate a page, and writers build new pages.
+// FollowValue follows only existing inline Blobs, so traversal never creates
+// a field on a shared page.
+func (p *Page) SharesDecodedBlock() {}
+
 // GetSubBlockCtor returns the constructor for an inline Blob value.
 func (p *Page) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	index, ok := entryIndexFromValueRefID(id)
@@ -245,9 +251,10 @@ func (p *Page) ApplySubBlock(id uint32, next block.SubBlock) error {
 	return block.ApplySubBlock(&p.Entries[index].ValueBlob, next)
 }
 
-// _ is a type assertion
+// Verify the Page block contracts.
 var (
-	_ block.Block              = (*Page)(nil)
-	_ block.BlockWithRefs      = (*Page)(nil)
-	_ block.BlockWithSubBlocks = (*Page)(nil)
+	_ block.Block                 = (*Page)(nil)
+	_ block.BlockWithRefs         = (*Page)(nil)
+	_ block.BlockWithSubBlocks    = (*Page)(nil)
+	_ block.DecodedBlockShareable = (*Page)(nil)
 )

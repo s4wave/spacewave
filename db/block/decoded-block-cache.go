@@ -39,6 +39,16 @@ type DecodedBlockHeapSizer interface {
 	DecodedHeapSize() int
 }
 
+// DecodedBlockShareable marks a block type that reads and cursor traversal
+// never mutate in place. Only transaction writes change a decoded instance
+// (ApplyBlockRef, ApplySubBlock), and a read-only transaction rejects them, so
+// it shares the cached instance instead of cloning it. Writers build
+// replacement blocks.
+type DecodedBlockShareable interface {
+	// SharesDecodedBlock marks the type as shareable.
+	SharesDecodedBlock()
+}
+
 // decodedBlockCacheSizer reports a decoded block's size without marshaling it.
 type decodedBlockCacheSizer interface {
 	// SizeVT returns the block's encoded size.
@@ -246,11 +256,17 @@ func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 }
 
 // Lookup returns the cached decoded block for the key, recording a cache
-// hit or miss. The returned block is a clone safe for the caller to keep.
-func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFrontCache, key decodedBlockCacheKey) (Block, bool, error) {
+// hit or miss. The returned block is a clone safe for the caller to keep,
+// or with share the shared cached instance, which the caller must not mutate.
+func (c *DecodedBlockCache) Lookup(
+	ctx context.Context,
+	front *decodedBlockFrontCache,
+	key decodedBlockCacheKey,
+	share bool,
+) (Block, bool, error) {
 	// Reuse the decoded block retained in the read-operation cache.
 	if cached := front.lookup(key); cached != nil {
-		return cloneDecodedBlockHit(ctx, cached)
+		return decodedBlockHit(ctx, cached, share)
 	}
 
 	// Record a miss when the shared decoded-block pool is disabled.
@@ -275,13 +291,14 @@ func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFront
 		return nil, false, nil
 	}
 
-	// Retain the shared block in the read cache and clone it for the caller.
+	// Retain the shared block in the read cache and hand it to the caller.
 	front.store(key, cached.block)
-	return cloneDecodedBlockHit(ctx, cached.block)
+	return decodedBlockHit(ctx, cached.block, share)
 }
 
 // Store caches the decoded block under the key when the store token is
-// still current.
+// still current. With share the caller keeps blk unmutated, so the cache
+// retains blk itself instead of a clone.
 func (c *DecodedBlockCache) Store(
 	ctx context.Context,
 	front *decodedBlockFrontCache,
@@ -290,6 +307,7 @@ func (c *DecodedBlockCache) Store(
 	ref *BlockRef,
 	blk Block,
 	data []byte,
+	share bool,
 ) error {
 	// Require a block and a cache scope before retaining decoded content.
 	if blk == nil {
@@ -306,14 +324,20 @@ func (c *DecodedBlockCache) Store(
 		return nil
 	}
 
-	// Clone the decoded block so cache readers cannot mutate it.
-	cloned, ok, err := cloneDecodedBlock(blk)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		RecordDecodedBlockUncloneable(ctx)
-		return nil
+	// Clone the decoded block unless the caller shares it, so cache readers
+	// cannot mutate it.
+	cloned := blk
+	if !share {
+		var ok bool
+		var err error
+		cloned, ok, err = cloneDecodedBlock(blk)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			RecordDecodedBlockUncloneable(ctx)
+			return nil
+		}
 	}
 
 	// Reject cache writes whose read token predates an invalidation.
@@ -439,9 +463,16 @@ func (c *DecodedBlockCache) refEpoch(refKey string) *atomic.Uint64 {
 	return &c.refEpochs[h%decodedBlockCacheStripes]
 }
 
-// cloneDecodedBlockHit clones a cached block for the caller and records the
-// hit, or reports a miss when the block cannot be cloned.
-func cloneDecodedBlockHit(ctx context.Context, cached Block) (Block, bool, error) {
+// decodedBlockHit records the hit and returns the cached block itself with
+// share, or a clone otherwise. It reports a miss when the block cannot be
+// cloned.
+func decodedBlockHit(ctx context.Context, cached Block, share bool) (Block, bool, error) {
+	// Share the cached block with a caller that never mutates it.
+	if share {
+		RecordDecodedBlockCacheHit(ctx, false)
+		return cached, true, nil
+	}
+
 	// Clone the cached block and classify unavailable clone support.
 	cloned, ok, err := cloneDecodedBlock(cached)
 	if err != nil {
@@ -470,8 +501,8 @@ func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {
 }
 
 // lookupDecodedBlock looks the key up in the context's caches.
-func lookupDecodedBlock(ctx context.Context, key decodedBlockCacheKey) (Block, bool, error) {
-	return decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key)
+func lookupDecodedBlock(ctx context.Context, key decodedBlockCacheKey, share bool) (Block, bool, error) {
+	return decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key, share)
 }
 
 // decodedBlockCacheStoreTokenFromContext returns a store token bound to
@@ -488,8 +519,9 @@ func storeDecodedBlock(
 	ref *BlockRef,
 	blk Block,
 	data []byte,
+	share bool,
 ) error {
-	return decodedBlockCacheFromContext(ctx).Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, ref, blk, data)
+	return decodedBlockCacheFromContext(ctx).Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, ref, blk, data, share)
 }
 
 // decodedBlockCacheContextKey is the context key of the attached cache.

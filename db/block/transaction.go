@@ -56,6 +56,9 @@ type Transaction struct {
 	bufferedStoreSettings *BufferedStoreSettings
 	// decodedBlocks is borrowed from the owning object lifecycle.
 	decodedBlocks *DecodedBlockCache
+	// readOnly rejects writes, so cursors may share immutable decoded blocks
+	// with the decoded-block cache instead of cloning them.
+	readOnly atomic.Bool
 	// stagedStore buffers content-addressed sub-tree blocks until a write drains
 	// them before the root that references them.
 	stagedStore atomic.Pointer[BufferedStore]
@@ -196,6 +199,27 @@ func (t *Transaction) SetDecodedBlockCache(cache *DecodedBlockCache) {
 	t.mtx.Unlock()
 }
 
+// SetReadOnly marks the transaction read-only before its first read. Write and
+// WriteAtRoot then fail with tx.ErrNotWrite, and decoded blocks that implement
+// DecodedBlockShareable are shared with the decoded-block cache uncloned, so
+// callers must clone such a block before giving it to another transaction.
+// Detached transactions that share its blocks inherit the mark.
+func (t *Transaction) SetReadOnly() {
+	if t != nil {
+		t.readOnly.Store(true)
+	}
+}
+
+// sharesDecodedBlock reports whether blk may be a cached instance shared with
+// other readers of this transaction's decoded-block cache.
+func (t *Transaction) sharesDecodedBlock(blk any) bool {
+	if t == nil || !t.readOnly.Load() {
+		return false
+	}
+	_, ok := blk.(DecodedBlockShareable)
+	return ok
+}
+
 // SetBufferedStoreSettings overrides the BufferedStore settings used to wrap
 // the write store inside WriteAtRoot. Pass nil to reset to defaults. This must
 // be called before Write/WriteAtRoot begins committing for the override to
@@ -269,8 +293,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	ctx, task := trace.NewTask(ctx, "hydra/block/transaction/write-at-root")
 	defer task.End()
 
-	// Require a transaction before selecting the write root.
-	if t == nil {
+	// Require a writable transaction before selecting the write root.
+	if t == nil || t.readOnly.Load() {
 		return nil, nil, tx.ErrNotWrite
 	}
 
@@ -833,8 +857,10 @@ func walkMarshalAliasSubBlocks(v any, seen map[*AliasIdentityToken]struct{}, vis
 	}
 }
 
-// cloneDetached copies the transaction for use as a detached tx.
-func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
+// cloneDetached copies the transaction for use as a detached tx. A detached
+// tx that shares the source's decoded blocks stays read-only; one that owns
+// cloned blocks may write.
+func (t *Transaction) cloneDetached(nroot *handle, sharesBlocks bool) *Transaction {
 	// Detached transactions retain storage policy but own their cursor graph.
 	if t == nil {
 		return nil
@@ -847,6 +873,7 @@ func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
 		putOpts:       t.putOpts,
 		decodedBlocks: t.decodedBlocks,
 	}
+	nt.readOnly.Store(sharesBlocks && t.readOnly.Load())
 	nt.root.Node = nt.blockGraph.NewNode()
 	nt.blockGraph.AddNode(nt.root)
 	return nt

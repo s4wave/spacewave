@@ -77,9 +77,11 @@ func TestInlineValuesRetainExistingDataAndCursors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Require all expected values to read back from the published tree.
+	// Require all expected values to read back from the published tree. The
+	// reader is read-only, so adopting its inline cursor below must still write.
 	read := openOkraRoot(t, ctx, store, ref, false)
 	defer read.Discard()
+	read.bcs.GetTransaction().SetReadOnly()
 	for key, want := range values {
 		got, found, err := read.Get(ctx, []byte(key))
 		if err != nil || !found || !bytes.Equal(got, want) {

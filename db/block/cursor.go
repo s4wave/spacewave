@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"runtime/trace"
+
+	"github.com/s4wave/spacewave/db/tx"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated
@@ -160,7 +162,7 @@ func (c *Cursor) DetachTransaction() *Cursor {
 	nc.pos = c.pos.Clone()
 	nc.pos.blkPreWrite = nil
 	nc.pos.isSubBlock = false
-	nc.t = c.t.cloneDetached(nc.pos)
+	nc.t = c.t.cloneDetached(nc.pos, true)
 	return nc
 }
 
@@ -186,7 +188,7 @@ func (c *Cursor) DetachRecursive(detachTx, cloneBlocks, markDirty bool) *Cursor 
 	nc := &Cursor{store: c.store, pos: nroot, t: oldTx}
 	if detachTx && c.t != nil {
 		// detach the transaction
-		nc.t = c.t.cloneDetached(nroot)
+		nc.t = c.t.cloneDetached(nroot, !cloneBlocks)
 	}
 
 	// Copy the referenced positions into the detached graph.
@@ -479,10 +481,14 @@ func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
 		return ErrNilBlock
 	}
 
-	// Require a parent that accepts the child as a sub-block.
+	// Require a parent that accepts the child as a sub-block and is not
+	// shared with other readers.
 	parentBlkWithSubBlocks, ok := parent.pos.blk.(BlockWithSubBlocks)
 	if !ok {
 		return ErrNotBlockWithSubBlocks
+	}
+	if c.t.sharesDecodedBlock(parent.pos.blk) {
+		return tx.ErrNotWrite
 	}
 	subBlk, ok := c.pos.blk.(SubBlock)
 	if !ok {
@@ -674,12 +680,14 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		return nil, nil
 	}
 
-	// Identify the block cache entry using its concrete decoded type.
+	// Identify the block cache entry using its concrete decoded type. A
+	// read-only transaction shares immutable cached blocks without a clone.
 	ctx = c.decodedBlockCacheContext(ctx)
 	cacheKey, cacheable := decodedBlockCacheKeyFor(c.pos.ref, b, c.transformer())
 	if !cacheable {
 		RecordDecodedBlockUncacheable(ctx)
 	}
+	share := c.t.sharesDecodedBlock(b)
 
 	// Refresh the block cache and reuse a cached decoded block.
 	if cacheable {
@@ -692,7 +700,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		}
 
 		// Load the decoded block after refreshing its store state.
-		cached, ok, err := lookupDecodedBlock(ctx, cacheKey)
+		cached, ok, err := lookupDecodedBlock(ctx, cacheKey, share)
 		if err != nil {
 			return nil, err
 		}
@@ -725,7 +733,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 
 		// Cache the decoded block with its original stored bytes.
 		if cacheable {
-			if err := storeDecodedBlock(ctx, cacheKey, storeToken, c.pos.ref, b, storedDat); err != nil {
+			if err := storeDecodedBlock(ctx, cacheKey, storeToken, c.pos.ref, b, storedDat, share); err != nil {
 				return nil, err
 			}
 		}
@@ -1126,8 +1134,9 @@ func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) 
 			}
 			rstk.refHandles[nrh.id] = nrh
 
-			// note: sub-block is not updated here.
-			if !nextPos.isSubBlock {
+			// note: sub-block is not updated here. A read-only transaction
+			// never writes, and its blocks may be shared with other readers.
+			if !nextPos.isSubBlock && (targetCs.t == nil || !targetCs.t.readOnly.Load()) {
 				if rblk, ok := rstk.blk.(BlockWithRefs); ok {
 					// note: ignoring error here
 					_ = rblk.ApplyBlockRef(nrh.id, nextPos.ref)

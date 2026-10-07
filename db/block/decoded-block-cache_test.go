@@ -14,13 +14,13 @@ func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
 	// Invalidate the candidate token before submitting its block.
 	token := decodedBlocks.storeToken(key.ref)
 	decodedBlocks.InvalidateRef(ctx, ref)
-	if err := decodedBlocks.Store(ctx, nil, token, key, ref, blk, data); err != nil {
+	if err := decodedBlocks.Store(ctx, nil, token, key, ref, blk, data, false); err != nil {
 		t.Fatal(err.Error())
 	}
 	decodedBlocks.Wait()
 
 	// Verify the invalidated token cannot populate the cache.
-	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || ok {
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("invalidated store token lookup ok=%v err=%v, want miss", ok, err)
 	}
 }
@@ -33,21 +33,21 @@ func TestDecodedBlockCacheInvalidationMakesEntriesStale(t *testing.T) {
 
 	// Store the entry and verify reference invalidation removes its hit.
 	storeDecodedBlockCacheTestEntry(t, decodedBlocks, ref, key, blk, data)
-	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || !ok {
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || !ok {
 		t.Fatalf("stored lookup ok=%v err=%v, want hit", ok, err)
 	}
 	decodedBlocks.InvalidateRef(ctx, ref)
-	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || ok {
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("lookup after InvalidateRef ok=%v err=%v, want miss", ok, err)
 	}
 
 	// Restore the entry and verify whole-cache invalidation removes its hit.
 	storeDecodedBlockCacheTestEntry(t, decodedBlocks, ref, key, blk, data)
-	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || !ok {
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || !ok {
 		t.Fatalf("restored lookup ok=%v err=%v, want hit", ok, err)
 	}
 	decodedBlocks.InvalidateAll(ctx)
-	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key); err != nil || ok {
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("lookup after InvalidateAll ok=%v err=%v, want miss", ok, err)
 	}
 }
@@ -62,10 +62,10 @@ func TestDecodedBlockCacheScopesShareBudgetNotEntries(t *testing.T) {
 
 	// Verify cache scopes share their pool but keep entries isolated.
 	storeDecodedBlockCacheTestEntry(t, first, ref, key, blk, data)
-	if _, ok, err := first.Lookup(ctx, nil, key); err != nil || !ok {
+	if _, ok, err := first.Lookup(ctx, nil, key, false); err != nil || !ok {
 		t.Fatalf("owning scope lookup ok=%v err=%v, want hit", ok, err)
 	}
-	if _, ok, err := second.Lookup(ctx, nil, key); err != nil || ok {
+	if _, ok, err := second.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("other scope lookup ok=%v err=%v, want miss", ok, err)
 	}
 	if first.pool != second.pool {
@@ -74,7 +74,7 @@ func TestDecodedBlockCacheScopesShareBudgetNotEntries(t *testing.T) {
 
 	// Close the first scope and verify the second scope retains its pool.
 	first.Close()
-	if _, ok, err := first.Lookup(ctx, nil, key); err != nil || ok {
+	if _, ok, err := first.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("closed scope lookup ok=%v err=%v, want miss", ok, err)
 	}
 	if second.pool.cache == nil {
@@ -138,7 +138,7 @@ func storeDecodedBlockCacheTestEntry(
 ) {
 	t.Helper()
 	token := decodedBlocks.storeToken(key.ref)
-	if err := decodedBlocks.Store(context.Background(), nil, token, key, ref, blk, data); err != nil {
+	if err := decodedBlocks.Store(context.Background(), nil, token, key, ref, blk, data, false); err != nil {
 		t.Fatal(err.Error())
 	}
 	decodedBlocks.Wait()

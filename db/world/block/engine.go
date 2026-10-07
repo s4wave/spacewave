@@ -1334,8 +1334,10 @@ func (e *Engine) buildWorldStateForRoot(
 		bcs.SetBlock(rootBlock.CloneVT(), false)
 	}
 
-	// Build the state. A read-only state writes nothing.
+	// Build the state. A read-only state writes nothing, so its transaction
+	// shares immutable decoded blocks with other readers.
 	if readOnly {
+		btx.SetReadOnly()
 		btx = nil
 	}
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/new-world-state")
