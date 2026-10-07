@@ -218,13 +218,7 @@ func (m *Manifest) ApplyDelta(
 				}
 			}
 			for _, entry := range entries {
-				if entry.IsSuperseded() {
-					changed[entry.GetId()] = nil
-					if err := deletePack(ctx, tx, entry.GetId()); err != nil {
-						return err
-					}
-					continue
-				}
+				// Keep the accepted server descriptor ahead of stale local metadata.
 				previous, touched := changed[entry.GetId()]
 				if !touched {
 					previous = m.entries[entry.GetId()]
@@ -232,6 +226,24 @@ func (m *Manifest) ApplyDelta(
 				if entry.GetSequence() < previous.GetSequence() {
 					continue
 				}
+
+				// Remove an accepted tombstone together with its index and bloom.
+				if entry.IsSuperseded() {
+					changed[entry.GetId()] = nil
+					if err := deletePack(ctx, tx, entry.GetId()); err != nil {
+						return err
+					}
+					continue
+				}
+
+				// Evict the cached index when the accepted pack contents change.
+				if previous != nil && (previous.GetSizeBytes() != entry.GetSizeBytes() || previous.GetBlockCount() != entry.GetBlockCount()) {
+					if err := tx.Delete(ctx, indexCacheKey(entry.GetId())); err != nil {
+						return errors.Wrap(err, "deleting changed pack index")
+					}
+				}
+
+				// Encode the accepted descriptor without its separate bloom bytes.
 				storedEntry := entry.CloneVT()
 				storedEntry.BloomFilter = nil
 
@@ -291,57 +303,4 @@ func sortedEntries(entries map[string]*packfile.PackfileEntry) []*packfile.Packf
 		return strings.Compare(a.GetId(), b.GetId())
 	})
 	return out
-}
-
-// IndexCache is a kvtx-backed cache for raw kvfile index-tail bytes.
-type IndexCache struct {
-	store kvtx.Store
-}
-
-// NewIndexCache creates a new IndexCache backed by the given store.
-func NewIndexCache(store kvtx.Store) *IndexCache {
-	return &IndexCache{store: store}
-}
-
-// Get returns cached raw index-tail bytes for a packfile.
-func (c *IndexCache) Get(ctx context.Context, packID string) ([]byte, bool, error) {
-	// Read the cached tail in one transaction.
-	var data []byte
-	var found bool
-	err := kvtx.RunTransaction(ctx, false,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return c.store.NewTransaction(ctx, false)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			// Read the entry, copying it out of the transaction.
-			value, attemptFound, err := tx.Get(ctx, indexCacheKey(packID))
-			if err != nil {
-				return errors.Wrap(err, "get index cache entry")
-			}
-			data, found = nil, attemptFound
-			if attemptFound {
-				data = bytes.Clone(value)
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		return nil, false, errors.Wrap(err, "open index cache transaction")
-	}
-	return data, found, nil
-}
-
-// Set stores raw index-tail bytes for a packfile.
-func (c *IndexCache) Set(ctx context.Context, packID string, data []byte) error {
-	return kvtx.RunTransaction(ctx, true,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return c.store.NewTransaction(ctx, true)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			if err := tx.Set(ctx, indexCacheKey(packID), bytes.Clone(data)); err != nil {
-				return errors.Wrap(err, "set index cache entry")
-			}
-			return nil
-		},
-	)
 }
