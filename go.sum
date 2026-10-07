@@ -18,8 +18,8 @@ github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c h1:0+7o8KtE
 github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c/go.mod h1:uP4X3ycuVlQftt6tTDe6smymYXZ9hf/TtUScVRn4760=
 github.com/aperturerobotics/bldr-saucer v0.4.4 h1:kQvjAAQcdydvX2EYWipQW1vOBUe88F/27WaVU7mKRoE=
 github.com/aperturerobotics/bldr-saucer v0.4.4/go.mod h1:yH40259UVahR/9DU9c+Sg0+HGm5OtTWHV7CeEzneVho=
-github.com/aperturerobotics/cayley v0.15.1-0.20261007031117-63baa5ea6005 h1:Jb2Q/txf4JnIW7gJVTWk3X838nmFQ/+2Wwk899zTy+0=
-github.com/aperturerobotics/cayley v0.15.1-0.20261007031117-63baa5ea6005/go.mod h1:JhryVCD7kmbK43h9jijrjcpgxbJjlrDdIQ5fKHRkkBE=
+github.com/aperturerobotics/cayley v0.15.1-0.20261007032215-e2ce40d887f3 h1:rluhafzD2H+zmrzH4jfuRkQvXBT4dBGDnguDMskKavg=
+github.com/aperturerobotics/cayley v0.15.1-0.20261007032215-e2ce40d887f3/go.mod h1:JhryVCD7kmbK43h9jijrjcpgxbJjlrDdIQ5fKHRkkBE=
 github.com/aperturerobotics/circl v1.6.4-0.20260922203741-ec4e0985fb65 h1:W06v/eUgxsHtTUmRk90czbLTFTYBMX0HWBBv8KitzNY=
 github.com/aperturerobotics/circl v1.6.4-0.20260922203741-ec4e0985fb65/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
 github.com/aperturerobotics/cli v1.1.1-0.20261004095549-d4875ce31004 h1:zee1fApfACjtCQSpbb41uvfv+dOAntXsj53AQBh7u9c=
@@ -34,8 +34,8 @@ github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFf
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023/go.mod h1:FQBD9mZEmDiw7WGFKtyd5aMOhLTPnNIXmRscCji7WkM=
 github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34 h1:F8iJTYsJtJHB7e+/Mf72RLYwZB/1VXXC2ppxPlfipXo=
 github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34/go.mod h1:ArP9Q7MVDi8jMPR3ljopH5drxs/qen12Hv2L7qRcPb4=
-github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 h1:PEEf9o0+orSLs9Z4M/PixY6ZWvGDla+a9mKq0z/TGAE=
-github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
+github.com/aperturerobotics/fsnotify v1.9.1-0.20261007093243-45a75ed654f0 h1:f7jnREpDtR61FU/KDPMA6YhMLT4EZCBnl1b8a+/XUXE=
+github.com/aperturerobotics/fsnotify v1.9.1-0.20261007093243-45a75ed654f0/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2 h1:86K8ep4IumgTjJAKrr8YOp1O2eZNtS1Cy4p8nn8k0+U=
 github.com/aperturerobotics/go-brotli-decoder v1.2.2/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
 github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261003021338-72ab61d58aa6 h1:ssnqj2u9H724POrrtnYt7219iuNPMz4oxoUlDA9Q94E=
@@ -274,8 +274,8 @@ github.com/restic/chunker v0.5.0/go.mod h1:z0cH2BejpW636LXw0R/BGyv+Ey8+m9QGiOanD
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/s4wave/goscript v0.4.1-0.20261006181708-da03a96f88a7 h1:NzXC+fJAsfFsUazNobna2POEcDJ3G4JNDwwFuAI2v/4=
-github.com/s4wave/goscript v0.4.1-0.20261006181708-da03a96f88a7/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
+github.com/s4wave/goscript v0.4.1-0.20261007135254-bc5dd26f6551 h1:ePX5Ewpw0/Lg3qtn0vo5+w6lU2h+DfRARWh51qp+aw8=
+github.com/s4wave/goscript v0.4.1-0.20261007135254-bc5dd26f6551/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=

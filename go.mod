@@ -23,14 +23,14 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.15.1-0.20261007031117-63baa5ea6005 // master
+	github.com/aperturerobotics/cayley v0.15.1-0.20261007032215-e2ce40d887f3 // master
 	github.com/aperturerobotics/cli v1.1.1-0.20261004095549-d4875ce31004 // master
 	github.com/aperturerobotics/common v0.35.5-0.20261006081939-817dcebc778f // master
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261006090449-629971629b36 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260929192932-26bdf6cab5b3
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
-	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
+	github.com/aperturerobotics/fsnotify v1.9.1-0.20261007093243-45a75ed654f0 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
@@ -51,7 +51,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261005145446-43077f29f67b // main
-	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261006205508-d9fc61c3cab8 // main
+	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261007092635-5016e0f7f0c0 // main
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/goccy/go-json v0.11.2
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -75,7 +75,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.63.0
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.4.1-0.20261006181708-da03a96f88a7
+	github.com/s4wave/goscript v0.4.1-0.20261007135254-bc5dd26f6551
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
