@@ -15,6 +15,7 @@ import (
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
@@ -56,6 +57,7 @@ func BuiltInRegistry() (*Registry, error) {
 		NewSchemaHandler(spacewave_chat.ChatChannelTypeID, ClassificationRewrite, false, false, false, true, false, inspectChatChannel, rewriteChatChannel),
 		NewSchemaHandler(spacewave_chat.ChatMessageTypeID, ClassificationRewrite, true, false, false, false, false, inspectChatMessage, rewriteChatMessage),
 		NewSchemaHandler(s4wave_device.DeviceTypeID, ClassificationRewrite, true, false, false, false, false, inspectDevice, rewriteDevice),
+		NewSchemaHandler(s4wave_flowgraph.FlowgraphTypeID, ClassificationRewrite, true, false, false, true, true, inspectFlowgraph, rewriteFlowgraph),
 		NewSchemaRefusalHandler(s4wave_device.ComputersDashboardTypeID, ClassificationExternalRef, "device dashboard payload is external and not admitted for rewrite"),
 		NewSchemaHandler(s4wave_terminal.TerminalTypeID, ClassificationRewrite, true, false, false, false, false, inspectTerminal, rewriteTerminal),
 		NewSchemaHandler(s4wave_sshhost.SshHostTypeID, ClassificationRewrite, true, false, false, false, false, inspectSSHHost, rewriteSSHHost),

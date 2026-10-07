@@ -2,7 +2,9 @@ package space_migration
 
 import (
 	"context"
+	"maps"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -25,6 +27,7 @@ import (
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	s4wave_layout "github.com/s4wave/spacewave/sdk/layout"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 	s4wave_secret "github.com/s4wave/spacewave/sdk/secret"
@@ -135,6 +138,21 @@ func inspectDevice(ctx context.Context, object *ObjectDescriptor) (*Inspection, 
 	return inspectDevicePayload(device)
 }
 
+func inspectFlowgraph(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	// Decode the Flowgraph payload before collecting its references.
+	graph, err := world.LookupObjectBody[*s4wave_flowgraph.Flowgraph](ctx, object.World, object.ObjectKey, s4wave_flowgraph.NewFlowgraphBlock)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode Flowgraph payload")
+	}
+
+	// Collect the Step Target references and the placement destinations.
+	out := inspectFlowgraphTargets(graph)
+	for _, key := range flowgraphPlacementKeys(object) {
+		appendForgeObjectKey(out, key)
+	}
+	return out, nil
+}
+
 func inspectTerminal(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
 	terminal, err := world.LookupObjectBody[*s4wave_terminal.Terminal](ctx, object.World, object.ObjectKey, s4wave_terminal.NewTerminalBlock)
 	if err != nil {
@@ -157,6 +175,46 @@ func inspectChatMessage(ctx context.Context, object *ObjectDescriptor) (*Inspect
 		return nil, errors.Wrap(err, "decode chat message payload")
 	}
 	return inspectChatMessagePayload(message)
+}
+
+// inspectFlowgraphTargets collects the object keys and block stores that the
+// Targets of a Flowgraph's Steps reference.
+func inspectFlowgraphTargets(graph *s4wave_flowgraph.Flowgraph) *Inspection {
+	out := &Inspection{}
+	for _, id := range slices.Sorted(maps.Keys(graph.GetNodes())) {
+		target := graph.GetNodes()[id].GetStep().GetTarget()
+		for _, input := range target.GetInputs() {
+			appendForgeObjectKey(out, input.GetWorldObject().GetObjectKey())
+		}
+		inspectForgeValues(out, flowgraphTargetValues(target))
+	}
+	return out
+}
+
+// flowgraphTargetValues returns the in-line Values of a Target's inputs and outputs.
+func flowgraphTargetValues(target *forge_target.Target) []*forge_value.Value {
+	var values []*forge_value.Value
+	for _, input := range target.GetInputs() {
+		values = append(values, input.GetValue())
+	}
+	for _, output := range target.GetOutputs() {
+		values = append(values, output.GetValue())
+	}
+	return values
+}
+
+// flowgraphPlacementKeys returns the Device and actor object keys that a
+// Flowgraph's placement edges point at.
+func flowgraphPlacementKeys(object *ObjectDescriptor) []string {
+	var keys []string
+	for index := 0; index+3 < len(object.GraphReferences); index += 4 {
+		predicate := object.GraphReferences[index+1]
+		if predicate != s4wave_flowgraph.DevicePlacementPredicate && predicate != s4wave_flowgraph.ActorPlacementPredicate {
+			continue
+		}
+		keys = append(keys, strings.Trim(object.GraphReferences[index+2], "<>"))
+	}
+	return keys
 }
 
 func inspectCanvasState(ctx context.Context, object *ObjectDescriptor, state *s4wave_canvas.CanvasState) (*Inspection, error) {
@@ -737,6 +795,53 @@ func rewriteDevice(ctx context.Context, object *ObjectDescriptor, mapping *Ident
 		return nil, err
 	}
 	return &RewriteResult{Payload: data, References: inspection.References}, nil
+}
+
+func rewriteFlowgraph(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
+	// Decode and require the Flowgraph payload for rewriting.
+	graph, err := world.LookupObjectBody[*s4wave_flowgraph.Flowgraph](ctx, object.World, object.ObjectKey, s4wave_flowgraph.NewFlowgraphBlock)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode Flowgraph payload")
+	}
+	if graph == nil {
+		return nil, errors.Wrap(ErrPayloadSchemaRefused, "Flowgraph payload is missing")
+	}
+
+	// Remap the object keys and block stores in each Step Target.
+	for _, node := range graph.GetNodes() {
+		target := node.GetStep().GetTarget()
+		for _, input := range target.GetInputs() {
+			worldObject := input.GetWorldObject()
+			if worldObject.GetObjectKey() == "" {
+				continue
+			}
+			mapped, err := remapObjectKey(mapping, worldObject.GetObjectKey())
+			if err != nil {
+				return nil, err
+			}
+			worldObject.ObjectKey = mapped
+		}
+		if err := rewriteForgeValues(flowgraphTargetValues(target), mapping); err != nil {
+			return nil, err
+		}
+	}
+
+	// Serialize the rewritten Flowgraph payload.
+	data, err := graph.MarshalBlock()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal Flowgraph payload")
+	}
+
+	// Report the rewritten references, including the remapped placement destinations.
+	out := inspectFlowgraphTargets(graph)
+	for _, key := range flowgraphPlacementKeys(object) {
+		mapped, err := remapObjectKey(mapping, key)
+		if err != nil {
+			return nil, err
+		}
+		appendForgeObjectKey(out, mapped)
+	}
+	return &RewriteResult{Payload: data, References: out.References, GraphReferences: mappedGraphReferences(object, mapping)}, nil
 }
 
 func rewriteTerminal(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {

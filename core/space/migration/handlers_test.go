@@ -27,6 +27,7 @@ import (
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	s4wave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 	s4wave_secret "github.com/s4wave/spacewave/sdk/secret"
@@ -67,6 +68,7 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 		{"channel", s4wave_chat.ChatChannelTypeID, s4wave_chat.NewChatChannelBlock()},
 		{"message", s4wave_chat.ChatMessageTypeID, s4wave_chat.NewChatMessageBlock()},
 		{"device", s4wave_device.DeviceTypeID, s4wave_device.NewDeviceBlock()},
+		{"flowgraph", s4wave_flowgraph.FlowgraphTypeID, s4wave_flowgraph.NewFlowgraphBlock()},
 		{"terminal", s4wave_terminal.TerminalTypeID, s4wave_terminal.NewTerminalBlock()},
 		{"ssh-host", s4wave_sshhost.SshHostTypeID, s4wave_sshhost.NewSshHostBlock()},
 		{"secret", s4wave_secret.SecretTypeID, s4wave_secret.NewSecretBlock()},
@@ -258,6 +260,120 @@ func TestForgeHandlersOwnPopulatedIdentities(t *testing.T) {
 
 		// Verify the Forge rewrite reports the expected destination identities.
 		assertForgeReferences(t, fixture.typeID+" rewrite", result.References, fixture.after)
+	}
+}
+
+func TestFlowgraphHandlerRewritesTargetAndPlacementIdentities(t *testing.T) {
+	// Store a Flowgraph whose Step Target reads an object and an object snapshot.
+	ctx := context.Background()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	graph := &s4wave_flowgraph.Flowgraph{
+		Name: "graph",
+		Nodes: map[string]*s4wave_flowgraph.FlowgraphNode{
+			"step": {
+				TypeId: s4wave_flowgraph.StepNodeTypeID,
+				Step: &s4wave_flowgraph.FlowgraphStep{
+					Prompt: "unchanged",
+					Target: &forge_target.Target{
+						Inputs: []*forge_target.Input{
+							{
+								Name:        "object",
+								InputType:   forge_target.InputType_InputType_WORLD_OBJECT,
+								WorldObject: &forge_target.InputWorldObject{ObjectKey: "input-object"},
+							},
+							{
+								Name:      "snapshot",
+								InputType: forge_target.InputType_InputType_VALUE,
+								Value: &forge_value.Value{
+									ValueType: forge_value.ValueType_ValueType_WORLD_OBJECT_SNAPSHOT,
+									WorldObjectSnapshot: &forge_value.WorldObjectSnapshot{
+										Key: "snapshot-object", RootRef: &bucket.ObjectRef{BucketId: "source-store"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	setObjectBlock(t, ctx, tb.WorldState, "graph", s4wave_flowgraph.FlowgraphTypeID, graph)
+
+	// Describe the graph with placement edges on a Device and an actor.
+	object := &space_migration.ObjectDescriptor{
+		ObjectKey:  "graph",
+		ObjectType: s4wave_flowgraph.FlowgraphTypeID,
+		World:      tb.WorldState,
+		GraphReferences: []string{
+			"<graph>", s4wave_flowgraph.DevicePlacementPredicate, "<device>", `"tcp"`,
+			"<graph>", s4wave_flowgraph.ActorPlacementPredicate, "<actor>", `"step"`,
+		},
+	}
+	registry, err := space_migration.BuiltInRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := registry.Lookup(s4wave_flowgraph.FlowgraphTypeID)
+
+	// Verify the inspection reports the Target and placement identities.
+	inspection, err := handler.Inspect(ctx, object)
+	if err != nil {
+		t.Fatalf("Inspect(flowgraph): %v", err)
+	}
+	var objectKeys []space_migration.TypedReference
+	for _, reference := range inspection.References {
+		if reference.Kind != space_migration.ReferenceGraphIRI {
+			objectKeys = append(objectKeys, reference)
+		}
+	}
+	assertForgeReferences(t, "flowgraph inspect", objectKeys, []space_migration.TypedReference{
+		{Kind: space_migration.ReferenceObjectKey, Value: "input-object"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "snapshot-object"},
+		{Kind: space_migration.ReferenceBlockStore, Value: "source-store"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "device"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "actor"},
+	})
+
+	// Rewrite the graph with destination identities.
+	mapping := space_migration.NewIdentityMap()
+	mapping.BlockStoreIDs["source-store"] = "destination-store"
+	for _, key := range []string{"input-object", "snapshot-object", "device", "actor"} {
+		mapping.ObjectKeys[key] = key + "-destination"
+	}
+	result, err := handler.Rewrite(ctx, object, mapping)
+	if err != nil {
+		t.Fatalf("Rewrite(flowgraph): %v", err)
+	}
+
+	// Verify the rewrite reports the destination identities.
+	assertForgeReferences(t, "flowgraph rewrite", result.References, []space_migration.TypedReference{
+		{Kind: space_migration.ReferenceObjectKey, Value: "input-object-destination"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "snapshot-object-destination"},
+		{Kind: space_migration.ReferenceBlockStore, Value: "destination-store"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "device-destination"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "actor-destination"},
+	})
+
+	// Verify the payload carries the destination identities and keeps the rest.
+	var rewritten s4wave_flowgraph.Flowgraph
+	if err := rewritten.UnmarshalVT(result.Payload); err != nil {
+		t.Fatal(err)
+	}
+	step := rewritten.GetNodes()["step"].GetStep()
+	inputs := step.GetTarget().GetInputs()
+	if got := inputs[0].GetWorldObject().GetObjectKey(); got != "input-object-destination" {
+		t.Fatalf("rewritten input object key = %q", got)
+	}
+	snapshot := inputs[1].GetValue().GetWorldObjectSnapshot()
+	if snapshot.GetKey() != "snapshot-object-destination" || snapshot.GetRootRef().GetBucketId() != "destination-store" {
+		t.Fatalf("rewritten snapshot = %v", snapshot)
+	}
+	if rewritten.GetName() != "graph" || step.GetPrompt() != "unchanged" {
+		t.Fatalf("rewrite changed unreferenced fields: %v", &rewritten)
 	}
 }
 
