@@ -190,18 +190,25 @@ func (c *Controller) syncWatchPassStates(latestState *passState) {
 
 // syncWatchInputObjects starts/stop routines to watch the task input objects.
 func (c *Controller) syncWatchInputObjects(inputs []*forge_target.Input, watchAll bool) {
-	var watchInputWorldObjects []string
+	// Collect source objects whose changes require another input resolution.
+	watchInputWorldObjects := make([]string, 0, len(inputs))
 	for _, tgtInput := range inputs {
 		if !watchAll && !tgtInput.GetWatchChanges() {
 			continue
 		}
-		if tgtInput.GetInputType() == forge_target.InputType_InputType_WORLD_OBJECT {
-			tgtInputObjKey := tgtInput.GetWorldObject().GetObjectKey()
-			if tgtInputObjKey != "" {
-				watchInputWorldObjects = append(watchInputWorldObjects, tgtInputObjKey)
-			}
+		var objectKey string
+		switch tgtInput.GetInputType() {
+		case forge_target.InputType_InputType_WORLD_OBJECT:
+			objectKey = tgtInput.GetWorldObject().GetObjectKey()
+		case forge_target.InputType_InputType_TASK_OUTPUT:
+			objectKey = tgtInput.GetTaskOutput().GetTaskKey()
+		}
+		if objectKey != "" {
+			watchInputWorldObjects = append(watchInputWorldObjects, objectKey)
 		}
 	}
+
+	// Reconcile the input watchers on the Task controller's lifetime.
 	c.inputObjectWatcher.SyncKeys(watchInputWorldObjects, true)
 }
 

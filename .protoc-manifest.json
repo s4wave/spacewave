@@ -2738,7 +2738,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/target": {
-      "hash": "8de8d1a73e849518b50166924fa2442a0a0fb5382e0c9af31945e226011bcac4",
+      "hash": "101f0dfbd563b435e37121986fa046cea585cf01b88ff5caf5fde502ab42a211",
       "generatedFiles": [
         "forge/target/target.pb.go",
         "forge/target/target.pb.ts"

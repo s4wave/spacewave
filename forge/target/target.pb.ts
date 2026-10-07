@@ -51,6 +51,13 @@ export enum InputType {
    * @generated from enum value: InputType_WORLD_OBJECT = 4;
    */
   InputType_WORLD_OBJECT = 4,
+
+  /**
+   * InputType_TASK_OUTPUT reads a named output of a completed Task.
+   *
+   * @generated from enum value: InputType_TASK_OUTPUT = 5;
+   */
+  InputType_TASK_OUTPUT = 5,
 }
 
 export const InputType_Enum = /* @__PURE__ */ createEnumType(
@@ -165,6 +172,35 @@ export const InputWorldObject: MessageType<InputWorldObject> =
   })
 
 /**
+ * InputTaskOutput selects an output of another Task.
+ *
+ * @generated from message forge.target.InputTaskOutput
+ */
+export interface InputTaskOutput {
+  /**
+   * TaskKey identifies the source Task for this immutable Target configuration.
+   *
+   * @generated from field: string task_key = 1;
+   */
+  taskKey?: string
+  /**
+   * OutputName is the source Task's output name.
+   *
+   * @generated from field: string output_name = 2;
+   */
+  outputName?: string
+}
+
+export const InputTaskOutput: MessageType<InputTaskOutput> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'forge.target.InputTaskOutput',
+    fields: [
+      { no: 1, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'output_name', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * Input contains configuration for a Task target input.
  *
  * @generated from message forge.target.Input
@@ -217,6 +253,12 @@ export interface Input {
    * @generated from field: forge.target.InputWorldObject world_object = 6;
    */
   worldObject?: InputWorldObject
+  /**
+   * TaskOutput selects an output of a completed Task in the Forge Job world.
+   *
+   * @generated from field: forge.target.InputTaskOutput task_output = 8;
+   */
+  taskOutput?: InputTaskOutput
 }
 
 export const Input: MessageType<Input> = /* @__PURE__ */ createMessageType({
@@ -229,6 +271,7 @@ export const Input: MessageType<Input> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'value', kind: 'message', T: () => Value },
     { no: 5, name: 'world', kind: 'message', T: InputWorld },
     { no: 6, name: 'world_object', kind: 'message', T: InputWorldObject },
+    { no: 8, name: 'task_output', kind: 'message', T: InputTaskOutput },
   ] satisfies readonly PartialFieldInfo[],
 })
 

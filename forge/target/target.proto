@@ -40,6 +40,9 @@ message Input {
   // Can be used for change detection: re-run Target when object changes.
   // InputType_WORLD_OBJECT
   InputWorldObject world_object = 6;
+
+  // TaskOutput selects an output of a completed Task in the Forge Job world.
+  InputTaskOutput task_output = 8;
 }
 
 // InputType is the list of possible input types.
@@ -56,6 +59,16 @@ enum InputType {
   // InputType_WORLD_OBJECT passes a Value with the latest Object ref and a
   // world object handle attached to a WORLD input.
   InputType_WORLD_OBJECT = 4;
+  // InputType_TASK_OUTPUT reads a named output of a completed Task.
+  InputType_TASK_OUTPUT = 5;
+}
+
+// InputTaskOutput selects an output of another Task.
+message InputTaskOutput {
+  // TaskKey identifies the source Task for this immutable Target configuration.
+  string task_key = 1;
+  // OutputName is the source Task's output name.
+  string output_name = 2;
 }
 
 // InputWorld are args for the world input type.

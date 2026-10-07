@@ -53,6 +53,7 @@ type InputValueWorldObject interface {
 // InputValueToValue resolves an inline InputValue to a Value.
 // Returns nil, nil if the value is empty or nil.
 func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
+	// Accept absent values and validate the resolved input type.
 	if iv == nil {
 		return nil, nil
 	}
@@ -61,6 +62,7 @@ func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
 		return nil, err
 	}
 
+	// Convert value-bearing inputs through the inline value contract.
 	switch inputType {
 	case InputType_InputType_ALIAS:
 		// unable to resolve alias with a value
@@ -69,7 +71,7 @@ func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
 		return InlineValueToValue(iv)
 	case InputType_InputType_WORLD:
 		return nil, errors.Wrap(ErrUnexpectedInputValueType, inputType.String())
-	case InputType_InputType_WORLD_OBJECT:
+	case InputType_InputType_WORLD_OBJECT, InputType_InputType_TASK_OUTPUT:
 		return InlineValueToValue(iv)
 	case InputType_InputType_UNKNOWN:
 		return nil, nil
@@ -80,10 +82,12 @@ func InputValueToValue(iv InputValue) (*forge_value.Value, error) {
 
 // InputValueToWorld resolves an InputValue to a InputValueWorld.
 func InputValueToWorld(iv InputValue) (InputValueWorld, error) {
+	// Accept an absent or empty World input.
 	if iv == nil || iv.IsEmpty() {
 		return nil, nil
 	}
 
+	// Require the resolved input to carry a World handle.
 	vw, ok := iv.(InputValueWorld)
 	if !ok {
 		inputType := iv.GetInputType()
@@ -100,11 +104,13 @@ func InputValueToWorld(iv InputValue) (InputValueWorld, error) {
 // InputValueToWorldState resolves an InputValue to a WorldState.
 // Returns nil, nil if the value is empty or nil.
 func InputValueToWorldState(iv InputValue) (world.WorldState, error) {
+	// Resolve the World contract without discarding conversion errors.
 	vw, err := InputValueToWorld(iv)
 	if err != nil || vw == nil {
-		return nil, nil
+		return nil, err
 	}
 
+	// Validate the World input before returning its state.
 	if err := iv.Validate(); err != nil {
 		return nil, err
 	}
@@ -115,6 +121,12 @@ func InputValueToWorldState(iv InputValue) (world.WorldState, error) {
 // InputValueToWorldObject resolves an InputValue to a WorldObject.
 // Returns nil, nil if the value is empty or nil.
 func InputValueToWorldObject(iv InputValue) (InputValueWorldObject, error) {
+	// Accept an absent or empty object input.
+	if iv == nil || iv.IsEmpty() {
+		return nil, nil
+	}
+
+	// Require the resolved input to carry a World object handle.
 	wo, ok := iv.(InputValueWorldObject)
 	if !ok {
 		inputType := iv.GetInputType()
@@ -125,6 +137,7 @@ func InputValueToWorldObject(iv InputValue) (InputValueWorldObject, error) {
 		return nil, ErrUnexpectedInputValueType
 	}
 
+	// Validate the object input before exposing its handle.
 	if err := iv.Validate(); err != nil {
 		return nil, err
 	}
@@ -144,7 +157,7 @@ func InlineValueToValue(iv InputValue) (*forge_value.Value, error) {
 	// Require the inline value contract before reading its payload.
 	vw, ok := iv.(InputValueInline)
 	if !ok {
-		if vw.IsEmpty() {
+		if iv.IsEmpty() {
 			return nil, nil
 		}
 		inputType := iv.GetInputType()

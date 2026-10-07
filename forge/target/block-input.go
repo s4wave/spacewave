@@ -17,6 +17,7 @@ func (i *Input) IsNil() bool {
 
 // Validate validates the Input object.
 func (i *Input) Validate() error {
+	// Accept the empty input, or require a supported input type.
 	if i.GetInputType() == InputType_InputType_UNKNOWN {
 		// assume empty
 		return nil
@@ -25,6 +26,8 @@ func (i *Input) Validate() error {
 	if err := i.GetInputType().Validate(false); err != nil {
 		return err
 	}
+
+	// Validate the arguments belonging to the selected input type.
 	switch i.GetInputType() {
 	case InputType_InputType_VALUE:
 		if err := i.GetValue().Validate(true); err != nil {
@@ -36,6 +39,10 @@ func (i *Input) Validate() error {
 		}
 	case InputType_InputType_WORLD_OBJECT:
 		if err := i.GetWorldObject().Validate(); err != nil {
+			return err
+		}
+	case InputType_InputType_TASK_OUTPUT:
+		if err := i.GetTaskOutput().Validate(); err != nil {
 			return err
 		}
 	}

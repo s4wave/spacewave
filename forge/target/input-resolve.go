@@ -10,22 +10,22 @@ import (
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
-// ResolveInputMap resolves a ValueMap to an InputMap.
-// returns a function which can be used to release the values.
-// inputVals supplies aliased and scheduler-provided values. Other target inputs
-// resolve afresh; a retained value cannot satisfy a now-missing required source.
-// returns the list of unresolved inputs.
+// ResolveInputMap resolves Target inputs and returns their release function and
+// unresolved inputs. Input values supply aliases and scheduler-provided values;
+// other inputs resolve afresh so retained values cannot satisfy missing sources.
+// ResolveTaskOutput supplies the Task package's completed-output reader.
 func ResolveInputMap(
 	ctx context.Context,
 	b bus.Bus,
 	defWorld InputValueWorld,
 	tgt *Target,
 	inputVals forge_value.ValueMap,
+	resolveTaskOutput TaskOutputResolver,
 ) (im InputMap, unresolved []*Input, relAll func(), err error) {
 	// Reserve the resolved input map for the Target inputs.
 	im = make(InputMap, len(tgt.GetInputs()))
 
-	// add all values provided in the value map
+	// Seed aliases and scheduler values, removing stale dynamically resolved inputs.
 	for k, v := range inputVals {
 		im[k] = NewInputValueInline(v)
 	}
@@ -35,7 +35,7 @@ func ResolveInputMap(
 		}
 	}
 
-	// resolve all Input from the Target.
+	// Chain input resource releases in their acquisition order.
 	appendRel := func(rel func()) {
 		if rel != nil {
 			oldRel := relAll
@@ -48,7 +48,7 @@ func ResolveInputMap(
 		}
 	}
 
-	// may require multiple passes to resolve all inputs.
+	// Track Target input names resolved across dependent resolution passes.
 	tgtInputs := tgt.GetInputs()
 	resolved := make(map[string]struct{}, len(tgtInputs))
 
@@ -62,7 +62,7 @@ func ResolveInputMap(
 			if _, ok := resolved[inpName]; ok {
 				continue
 			}
-			inpVal, inpValRel, err := ResolveInput(ctx, b, inp, im, defWorld)
+			inpVal, inpValRel, err := ResolveInput(ctx, b, inp, im, defWorld, resolveTaskOutput)
 			if err != nil {
 				if relAll != nil {
 					relAll()
@@ -102,15 +102,16 @@ func ResolveInputMap(
 	return im, unresolved, relAll, nil
 }
 
-// ResolveInput resolves an input to the InputMap.
-// can return an optional release func (or nil)
-// can return nil, nil, nil if no value
+// ResolveInput resolves one input, with an optional resource release function.
+// Unavailable inputs return nil without error. ResolveTaskOutput supplies the
+// Task package's completed-output reader.
 func ResolveInput(
 	ctx context.Context,
 	b bus.Bus,
 	inp *Input,
 	im InputMap,
 	defWorld InputValueWorld,
+	resolveTaskOutput TaskOutputResolver,
 ) (InputValue, func(), error) {
 	switch inp.GetInputType() {
 	case InputType_InputType_ALIAS:
@@ -119,27 +120,21 @@ func ResolveInput(
 		return NewInputValueInline(inp.GetValue()), nil, nil
 	case InputType_InputType_WORLD:
 		return inp.GetWorld().ResolveValue(ctx, b)
+	case InputType_InputType_TASK_OUTPUT:
+		value, err := inp.GetTaskOutput().ResolveValue(ctx, inp.GetName(), defWorld, resolveTaskOutput)
+		return value, nil, err
 	case InputType_InputType_WORLD_OBJECT:
-		// get the world input first
+		// Select the explicit World input or the default Forge Job World.
 		inpWo := inp.GetWorldObject()
 		inpWorldID := inpWo.GetWorld()
 
-		var worldInp InputValueWorld
-		if inpWorldID == "" {
-			// use the default forge world as the world input
-			// may be nil
-			worldInp = defWorld
-		} else {
-			// lookup the world input
-			worldInpVal, worldInpValOk := im[inpWorldID]
-			if worldInpValOk && !worldInpVal.IsEmpty() {
-				// note: could check if !ok here, but instead:
-				// if the type doesn't match, treat it like an empty value.
-				worldInp, _ = worldInpVal.(InputValueWorld)
-			}
+		worldInp := defWorld
+		if inpWorldID != "" {
+			// A missing or mistyped World input resolves like an empty World.
+			worldInp, _ = im[inpWorldID].(InputValueWorld)
 		}
 
-		// resolve the world object
+		// Resolve the object against the selected World input.
 		return inpWo.ResolveValue(ctx, b, inp.GetName(), worldInp)
 	case InputType_InputType_UNKNOWN:
 		return nil, nil, nil

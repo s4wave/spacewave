@@ -14,6 +14,7 @@ import (
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	execution_transaction "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	forge_task "github.com/s4wave/spacewave/forge/task"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
 
@@ -275,6 +276,7 @@ func (c *Controller) processExec(
 		targetWorld,
 		tgt,
 		inputsValMap,
+		forge_task.ResolveOutput,
 	)
 	if err != nil {
 		return err
