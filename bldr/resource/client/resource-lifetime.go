@@ -205,7 +205,7 @@ func (l *resourceLifetime) getOrCreateClientLocked(resourceID uint32) (srpc.Clie
 	}, resourceID)
 
 	// Cache the ordered client wrapper for later calls.
-	client = &orderedResourceClient{lifetime: l, client: client}
+	client = &orderedResourceClient{lifetime: l, resourceID: resourceID, client: client}
 	l.srpcClients[resourceID] = client
 	return client, nil
 }
@@ -269,23 +269,44 @@ func (l *resourceLifetime) waitForControls(ctx context.Context) error {
 	}
 }
 
+// orderedResourceClient orders calls after prior lifecycle controls and
+// retires the resource's references when the server refuses its route.
 type orderedResourceClient struct {
+	// lifetime owns the references to resourceID.
 	lifetime *resourceLifetime
-	client   srpc.Client
+	// resourceID identifies the routed resource.
+	resourceID uint32
+	// client opens ResourceRpc routes to resourceID.
+	client srpc.Client
 }
 
+// ExecCall invokes a unary method after every queued lifecycle control.
 func (c *orderedResourceClient) ExecCall(ctx context.Context, service, method string, in, out srpc.Message) error {
 	if err := c.lifetime.waitForControls(ctx); err != nil {
 		return err
 	}
-	return c.client.ExecCall(ctx, service, method, in, out)
+	return c.retireRefused(c.client.ExecCall(ctx, service, method, in, out))
 }
 
+// NewStream opens a streaming method after every queued lifecycle control.
 func (c *orderedResourceClient) NewStream(ctx context.Context, service, method string, firstMsg srpc.Message) (srpc.Stream, error) {
 	if err := c.lifetime.waitForControls(ctx); err != nil {
 		return nil, err
 	}
-	return c.client.NewStream(ctx, service, method, firstMsg)
+	strm, err := c.client.NewStream(ctx, service, method, firstMsg)
+	return strm, c.retireRefused(err)
+}
+
+// retireRefused releases every local reference when the route acknowledgement
+// reports that the server no longer holds the resource. Handler errors reach
+// the caller as diagnostic text and leave the references alive.
+func (c *orderedResourceClient) retireRefused(err error) error {
+	if errors.Is(err, resource.ErrResourceNotFound) ||
+		errors.Is(err, resource.ErrInvalidResourceID) ||
+		errors.Is(err, resource.ErrResourceOrClientReleased) {
+		c.lifetime.releaseFromServer(c.resourceID)
+	}
+	return err
 }
 
 func resourceRPCCallContext(resourceCtx, callCtx context.Context) (context.Context, func()) {

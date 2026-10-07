@@ -627,6 +627,69 @@ describe('ResourceClient', () => {
     },
   )
 
+  it.each([
+    'client was released',
+    'resource not found',
+    'invalid resource id',
+    'resource or client was released',
+  ])(
+    'keeps ResourceRpc refs alive when a handler fails with %j',
+    async (message) => {
+      const service = buildUnusedService()
+      let calls = 0
+      service.ResourceRpc = async function* (request) {
+        const incoming = request[Symbol.asyncIterator]()
+        await readResourceRpcPacket(incoming)
+        yield { body: { case: 'ack' as const, value: {} } }
+        await readResourceRpcPacket(incoming)
+
+        const callData =
+          calls++ === 0
+            ? { error: message, complete: true }
+            : { data: new Uint8Array([7]), complete: true }
+        yield {
+          body: {
+            case: 'data' as const,
+            value: Packet.toBinary({
+              body: { case: 'callData', value: callData },
+            }),
+          },
+        }
+      }
+
+      const client = new Client(service, new AbortController().signal)
+      setInitializedResourceSession(client)
+      const onResourceReleased = vi.fn()
+      client.onResourceReleased(onResourceReleased)
+      const ref = client.createResourceReference(51)
+      const request = () =>
+        ref.client.request(
+          's4wave.space.SpaceResourceService',
+          'MountSpaceContents',
+          new Uint8Array(0),
+        )
+
+      await expect(request()).rejects.toThrow(message)
+      expect(ref.released).toBe(false)
+      expect(onResourceReleased).not.toHaveBeenCalled()
+      expect([...(await request())]).toEqual([7])
+    },
+  )
+
+  it('recognizes ResourceClientError from another bundle by its brand', () => {
+    const foreign = Object.assign(new Error('closed'), {
+      [Symbol.for('bldr.ResourceClientError')]: true,
+      code: 'CLIENT_DISPOSED',
+    })
+
+    expect(foreign instanceof ResourceClientError).toBe(true)
+    expect(new Error('closed') instanceof ResourceClientError).toBe(false)
+    expect(
+      new ResourceClientError('closed', 'CLIENT_DISPOSED') instanceof
+        ResourceClientError,
+    ).toBe(true)
+  })
+
   it('queues one adopt and one final release in FIFO order', async () => {
     const controls: ResourceClientRequest[] = []
     const service = buildUnusedService()

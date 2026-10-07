@@ -143,17 +143,27 @@ export type ResourceReleaseReason =
   | 'connection-lost' // Connection was lost
   | 'client-disposed' // Client was disposed/cancelled
 
-/**
- * Errors that can occur during client operations.
- */
+const clientErrorBrand = Symbol.for('bldr.ResourceClientError')
+
+/** ResourceClientError reports a client lifecycle failure across bundle boundaries. */
 export class ResourceClientError extends Error {
+  override readonly name = 'ResourceClientError'
+  readonly [clientErrorBrand] = true
+
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return (
+      value instanceof Error &&
+      clientErrorBrand in value &&
+      value[clientErrorBrand] === true
+    )
+  }
+
   constructor(
     message: string,
     public readonly code: ResourceClientErrorCode,
     public readonly cause?: Error,
   ) {
     super(message)
-    this.name = 'ResourceClientError'
   }
 }
 
