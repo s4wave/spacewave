@@ -46,6 +46,7 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	assertCommandFlags(t, forgeWorkerSetCmd, "state-path", "socket-path", "milli-cpu", "memory-bytes", "backend")
 	assertCommandFlags(t, forgeWorkerShowCmd, "state-path", "output")
 	assertCommandFlags(t, forgeWorkerClearCmd, "state-path", "socket-path")
+	assertCommandFlags(t, findTestSubcommand(t, deviceCmd, "show"), "state-path", "socket-path", "session-index", "space", "output")
 	assertCommandFlags(t, nodeTypeAddCmd, "state-path", "socket-path")
 	assertCommandFlags(t, nodeTypeRemoveCmd, "state-path", "socket-path")
 }
