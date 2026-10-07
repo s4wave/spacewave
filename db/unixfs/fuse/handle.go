@@ -89,11 +89,24 @@ func (h *Handle) Flush(ctx context.Context, req *fuse.FlushRequest) error {
 	return nil
 }
 
+// Poll answers ENOSYS so the kernel marks the connection no-poll and stops
+// sending FUSE_POLL. Without a poller, bazil.org/fuse answers every poll as
+// ready, so the kernel keeps asking, and a process polling a file on a mount
+// it serves itself waits on its own answer.
+func (h *Handle) Poll(
+	ctx context.Context,
+	req *fuse.PollRequest,
+	resp *fuse.PollResponse,
+) error {
+	return syscall.ENOSYS
+}
+
 // _ is a type assertion
 var (
 	_ fs.Handle = (*Handle)(nil)
 
 	_ fs.HandleFlusher      = (*Handle)(nil)
+	_ fs.HandlePoller       = (*Handle)(nil)
 	_ fs.HandleReadDirAller = (*Handle)(nil)
 	_ fs.HandleReader       = (*Handle)(nil)
 	_ fs.HandleWriter       = (*Handle)(nil)
