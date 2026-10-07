@@ -254,9 +254,17 @@ export interface FlowgraphStep {
    */
   skills?: FlowgraphSkill[]
   /**
-   * Target contains the execution definition for a code Step. It declares one
+   * Target contains the execution definition for the Step. It declares one
    * EXEC output per Step output port, named after the port, and its exec sets
    * exactly one of them. It may also set a spend output.
+   *
+   * A code Step's exec runs its code. An actor Step's exec is the runner
+   * controller for the actor's object type, configured with the Step's prompt
+   * and each output port's condition. The runner gives the actor the prompt,
+   * the conditions and the activation inputs, and sets the chosen port's
+   * output to a World object snapshot of the actor's conclusion, which records
+   * a confidence and a reason for every output port. A runner whose actor
+   * concludes nothing sets no port, so the run pauses with its inputs kept.
    *
    * @generated from field: forge.target.Target target = 3;
    */
