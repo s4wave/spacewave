@@ -18,8 +18,12 @@ import (
 // ErrInvalidSettings is returned if the settings are invalid.
 var ErrInvalidSettings = errors.New("settings cannot be nil")
 
-// SetSpaceSettings sets the space settings in a world.
-// Returns any error.
+// ErrChangelogUnsupported is returned when the settings enable a changelog in
+// a World that cannot keep one.
+var ErrChangelogUnsupported = errors.New("world cannot keep a changelog")
+
+// SetSpaceSettings sets the space settings in a world and applies their
+// changelog setting to it.
 func SetSpaceSettings(
 	ctx context.Context,
 	ws world.WorldState,
@@ -97,7 +101,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 		objKey = DefaultSpaceSettingsObjectKey
 	}
 
-	// check if exists if we need to prevent overwriting
+	// Refuse to replace existing settings unless the op overwrites them.
 	if !o.GetOverwrite() {
 		objectState, exists, err := worldHandle.GetObject(ctx, objKey)
 		world.ReleaseObjectState(objectState)
@@ -121,7 +125,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 		}
 	}
 
-	// write the settings to the object (creating it if it doesnt exist)
+	// Write the settings to the object, creating it when missing.
 	_, _, err = world.AccessWorldObject(
 		ctx,
 		worldHandle,
@@ -136,16 +140,42 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// set the object type
+	// Mark the object as SpaceSettings.
 	spaceSettingsTypeID := space_world.SpaceSettingsBlockType.GetBlockTypeID()
 	if err := world_types.SetObjectType(ctx, worldHandle, objKey, spaceSettingsTypeID); err != nil {
 		return false, err
 	}
 
-	return false, nil
+	// Apply the Space's changelog setting to the World in the same transaction.
+	if objKey != space_world.SpaceSettingsObjectKey {
+		return false, nil
+	}
+	return false, applySpaceChangelog(ctx, worldHandle, settings.GetChangelogEnabled())
+}
+
+// changelogWorld is a World whose changelog can be switched on or off.
+type changelogWorld interface {
+	// SetChangelogDisabled switches the changelog and reports a change.
+	SetChangelogDisabled(ctx context.Context, disable bool) (bool, error)
+}
+
+// applySpaceChangelog applies a Space's changelog setting to its World.
+// A World that keeps no changelog satisfies only a disabled setting.
+func applySpaceChangelog(ctx context.Context, ws world.WorldState, enabled bool) error {
+	cw, ok := ws.(changelogWorld)
+	if !ok {
+		if enabled {
+			return ErrChangelogUnsupported
+		}
+		return nil
+	}
+	_, err := cw.SetChangelogDisabled(ctx, !enabled)
+	return err
 }
 
 // ApplyWorldObjectOp applies the operation to a world object handle.
+// An object handle cannot reach the World changelog, so the stored
+// changelog setting is kept.
 func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -158,30 +188,33 @@ func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 		return false, ErrInvalidSettings
 	}
 
-	// write the settings to the object
+	// Write the settings to the object, keeping its changelog setting.
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
+		// Read the stored settings, which may be missing.
+		currentBlock, err := bcs.Unmarshal(ctx, space_world.NewSpaceSettingsBlock)
+		if err != nil {
+			return err
+		}
+		current, valid := currentBlock.(*space_world.SpaceSettings)
+		if currentBlock != nil && !valid {
+			return ErrInvalidSettings
+		}
+
+		// Build the replacement, merging keybindings when the op expects them.
+		next := settings.CloneVT()
 		if o.GetExpectedKeybindingOverrides() != nil {
-			currentBlock, err := bcs.Unmarshal(ctx, space_world.NewSpaceSettingsBlock)
-			if err != nil {
-				return err
-			}
-			current, valid := currentBlock.(*space_world.SpaceSettings)
-			if !valid {
-				return ErrInvalidSettings
-			}
-			settings, err = o.mergeKeybindingSettings(current, settings)
+			next, err = o.mergeKeybindingSettings(current, settings)
 			if err != nil {
 				return err
 			}
 		}
-		bcs.SetBlock(settings.CloneVT(), true)
+
+		// Keep the stored changelog setting and write the result.
+		next.ChangelogEnabled = current.GetChangelogEnabled()
+		bcs.SetBlock(next, true)
 		return nil
 	})
-	if err != nil {
-		return false, err
-	}
-
-	return false, nil
+	return false, err
 }
 
 func (o *SetSpaceSettingsOp) mergeKeybindingSettings(

@@ -41,6 +41,10 @@ message SpaceSettings {
   // PluginInstallations pins plugins to immutable World artifacts.
   // Plugins without an installation follow their configured application catalog.
   map<string, SpacePluginInstallation> plugin_installations = 4;
+  // ChangelogEnabled keeps a changelog of World changes for this Space.
+  // Writing the settings applies it to the World in the same transaction.
+  // Enabling starts history after that write; disabling drops it.
+  bool changelog_enabled = 5;
 }
 
 // SpacePluginInstallation retains explicit installation choices across reopen.

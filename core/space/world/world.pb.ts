@@ -176,6 +176,14 @@ export interface SpaceSettings {
    * @generated from field: map<string, space.world.SpacePluginInstallation> plugin_installations = 4;
    */
   pluginInstallations?: { [key: string]: SpacePluginInstallation }
+  /**
+   * ChangelogEnabled keeps a changelog of World changes for this Space.
+   * Writing the settings applies it to the World in the same transaction.
+   * Enabling starts history after that write; disabling drops it.
+   *
+   * @generated from field: bool changelog_enabled = 5;
+   */
+  changelogEnabled?: boolean
 }
 
 export const SpaceSettings: MessageType<SpaceSettings> =
@@ -203,5 +211,6 @@ export const SpaceSettings: MessageType<SpaceSettings> =
         K: ScalarType.STRING,
         V: { kind: 'message', T: SpacePluginInstallation },
       },
+      { no: 5, name: 'changelog_enabled', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
   })

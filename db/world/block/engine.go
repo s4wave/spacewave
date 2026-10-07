@@ -1070,7 +1070,7 @@ func (e *Engine) SetChangelogDisabled(ctx context.Context, disable bool) error {
 	if err != nil {
 		return err
 	}
-	changed, err := engTx.writeTx.state.setChangelogDisabled(ctx, disable)
+	changed, err := engTx.writeTx.state.SetChangelogDisabled(ctx, disable)
 	unlock()
 	if err != nil || !changed {
 		return err

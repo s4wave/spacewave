@@ -15,6 +15,7 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	s4wave_git_core "github.com/s4wave/spacewave/core/git"
 	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	git_block "github.com/s4wave/spacewave/db/git/block"
@@ -357,12 +358,22 @@ func newSpaceResolveCommand(statePath *string, sessionIdx *uint) *cli.Command {
 func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	return &cli.Command{
 		Name:      "settings",
-		Usage:     "show space settings",
+		Usage:     "show or change space settings",
 		ArgsUsage: "[space-id]",
-		Flags:     []cli.Flag{outputFlag()},
+		Flags: []cli.Flag{
+			outputFlag(),
+			&cli.StringFlag{
+				Name:  "changelog",
+				Usage: "keep a changelog of World changes: on or off",
+			},
+		},
 		Action: func(c *cli.Context) error {
-			// Take the command context.
+			// Take the command context and check a requested change.
 			ctx := c.Context
+			changelog := c.String("changelog")
+			if changelog != "" && changelog != "on" && changelog != "off" {
+				return errors.Errorf("--changelog must be on or off, got %q", changelog)
+			}
 
 			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
@@ -390,6 +401,15 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return err
 			}
 			defer spaceCleanup()
+
+			// Apply a requested changelog setting.
+			if changelog != "" {
+				if err := setSpaceChangelog(ctx, client, spaceSvc, changelog == "on"); err != nil {
+					return err
+				}
+				os.Stdout.WriteString("Changelog " + changelog + ".\n")
+				return nil
+			}
 
 			// Watch the Space state.
 			strm, err := spaceSvc.WatchSpaceState(ctx, &s4wave_space.WatchSpaceStateRequest{})
@@ -419,6 +439,43 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 		},
 	}
+}
+
+// setSpaceChangelog writes the Space settings with the changelog setting,
+// which switches the Space World's changelog in the same transaction.
+func setSpaceChangelog(
+	ctx context.Context,
+	client *sdkClient,
+	spaceSvc s4wave_space.SRPCSpaceResourceServiceClient,
+	enabled bool,
+) error {
+	// Open a write transaction on the Space World.
+	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+	if err != nil {
+		return err
+	}
+	defer engineCleanup()
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "new transaction")
+	}
+	defer tx.Discard()
+
+	// Rewrite the current settings with the changelog setting.
+	settings, err := space_world.LookupSpaceSettingsBody(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if settings == nil {
+		settings = &space_world.SpaceSettings{}
+	}
+	settings = settings.CloneVT()
+	settings.ChangelogEnabled = enabled
+	_, _, err = space_world_ops.SetSpaceSettings(ctx, tx, "", space_world.SpaceSettingsObjectKey, settings, true, time.Now())
+	if err != nil {
+		return errors.Wrap(err, "set space settings")
+	}
+	return errors.Wrap(tx.Commit(ctx), "commit transaction")
 }
 
 // newSpaceImportGitCommand builds the space import-git subcommand.
@@ -826,6 +883,9 @@ func printSpaceSettings(settings *space_world.SpaceSettings) {
 	var fields [][2]string
 	if idx := settings.GetIndexPath(); idx != "" {
 		fields = append(fields, [2]string{"Index Path", idx})
+	}
+	if settings.GetChangelogEnabled() {
+		fields = append(fields, [2]string{"Changelog", "on"})
 	}
 	if len(fields) > 0 {
 		writeFields(w, fields)

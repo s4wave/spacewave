@@ -1,7 +1,7 @@
 package space_sobject
 
 import (
-	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -13,6 +13,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -37,15 +38,105 @@ func TestNewSpaceWorldEngineConfigDisablesChangelog(t *testing.T) {
 }
 
 func TestMountSpaceBodyProvidesSpaceWorldOps(t *testing.T) {
-	// Build a background context for the test.
-	ctx := context.Background()
+	// Write test space settings through the world state.
+	ctx := t.Context()
+	ws := world.NewEngineWorldState(mountTestSpace(t), true)
+	settings := &space_world.SpaceSettings{
+		IndexPath: "/test",
+		PluginIds: []string{
+			"spacewave-test",
+		},
+	}
 
+	// Apply the settings operation.
+	if _, _, err := space_world_ops.SetSpaceSettings(ctx, ws, "", "", settings, true, time.Now()); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Look up the settings and assert the index path persisted.
+	gotSettings, objectState, err := space_world.LookupSpaceSettings(ctx, ws)
+	world.ReleaseObjectState(objectState)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if gotSettings.GetIndexPath() != "/test" {
+		t.Fatalf("unexpected index path: %q", gotSettings.GetIndexPath())
+	}
+}
+
+// TestSpaceWorldChangelogFollowsSettings checks that writing a Space's
+// settings switches its World changelog, which then records each change.
+func TestSpaceWorldChangelogFollowsSettings(t *testing.T) {
+	// Mount a new Space and open its World.
+	ctx := t.Context()
+	ws := world.NewEngineWorldState(mountTestSpace(t), true)
+
+	// setChangelog writes the Space settings with the changelog setting.
+	setChangelog := func(enabled bool) {
+		settings := &space_world.SpaceSettings{ChangelogEnabled: enabled}
+		if _, _, err := space_world_ops.SetSpaceSettings(ctx, ws, "", "", settings, true, time.Now()); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// createObject creates an empty object at key.
+	createObject := func(key string) {
+		obj, err := ws.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// changedKeys returns the keys of the recorded changes, oldest first.
+	changedKeys := func() []string {
+		// Read the changelog, newest first.
+		entries, err := world_block.ReadChangeLogEntries(ctx, ws.AccessWorldState, world_block.ChangeLogReadOptions{})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+
+		// Collect the changed keys, oldest first.
+		var keys []string
+		for _, entry := range slices.Backward(entries) {
+			for _, change := range entry.Changes {
+				keys = append(keys, change.GetKey())
+			}
+		}
+		return keys
+	}
+
+	// A new Space keeps no changelog.
+	createObject("before")
+	if keys := changedKeys(); len(keys) != 0 {
+		t.Fatalf("changelog before enabling: %q", keys)
+	}
+
+	// Enabling starts history after the settings write.
+	setChangelog(true)
+	createObject("after")
+	if keys := changedKeys(); !slices.Equal(keys, []string{"after"}) {
+		t.Fatalf("changelog after enabling: %q", keys)
+	}
+
+	// Disabling drops the history.
+	setChangelog(false)
+	createObject("disabled")
+	if keys := changedKeys(); len(keys) != 0 {
+		t.Fatalf("changelog after disabling: %q", keys)
+	}
+}
+
+// mountTestSpace mounts a new Space body on a testbed and returns its World
+// engine. The testbed is released when the test ends.
+func mountTestSpace(t *testing.T) world.Engine {
 	// Start the default testbed.
+	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer tb.Release()
+	t.Cleanup(tb.Release)
 
 	// Register the provider and space controllers. The space controller runs
 	// its own engine, so no engine factory is registered.
@@ -62,21 +153,21 @@ func TestMountSpaceBodyProvidesSpaceWorldOps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer provCtrlRef.Release()
+	t.Cleanup(provCtrlRef.Release)
 
 	// Load the space sobject controller.
 	_, spaceSobjectCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&Config{}), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer spaceSobjectCtrlRef.Release()
+	t.Cleanup(spaceSobjectCtrlRef.Release)
 
 	// Access the test provider account.
 	provAcc, provAccRef, err := provider.ExAccessProviderAccount(ctx, tb.Bus, providerID, "test-account", false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer provAccRef.Release()
+	t.Cleanup(provAccRef.Release)
 
 	// Fetch the shared-object feature from the provider account.
 	wsProv, err := sobject.GetSharedObjectProviderAccountFeature(ctx, provAcc)
@@ -99,30 +190,6 @@ func TestMountSpaceBodyProvidesSpaceWorldOps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer mountedRef.Release()
-
-	// Write test space settings through the world state.
-	spaceBody := mounted.GetSharedObjectBody()
-	ws := world.NewEngineWorldState(spaceBody.GetWorldEngine(), true)
-	settings := &space_world.SpaceSettings{
-		IndexPath: "/test",
-		PluginIds: []string{
-			"spacewave-test",
-		},
-	}
-
-	// Apply the settings operation.
-	if _, _, err := space_world_ops.SetSpaceSettings(ctx, ws, "", "", settings, true, time.Now()); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// Look up the settings and assert the index path persisted.
-	gotSettings, objectState, err := space_world.LookupSpaceSettings(ctx, ws)
-	world.ReleaseObjectState(objectState)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if gotSettings.GetIndexPath() != "/test" {
-		t.Fatalf("unexpected index path: %q", gotSettings.GetIndexPath())
-	}
+	t.Cleanup(mountedRef.Release)
+	return mounted.GetSharedObjectBody().GetWorldEngine()
 }

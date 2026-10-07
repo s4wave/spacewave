@@ -124,7 +124,9 @@ func (c *Controller) resolveMountSharedObjectBody(dir sobject.MountSharedObjectB
 }
 
 // newSpaceWorldEngineConfig builds the SharedObject world engine config for a
-// Space body. Spaces do not retain per-write world changelog entries.
+// Space body. A Space World starts without a changelog, matching the default
+// SpaceSettings. Writing SpaceSettings with changelog_enabled switches it on
+// in the same transaction, so every participant replays the same choice.
 func newSpaceWorldEngineConfig(mountRef *sobject.SharedObjectRef, conf *Config) *sobject_world_engine.Config {
 	return &sobject_world_engine.Config{
 		EngineId: space.SpaceEngineId(mountRef),

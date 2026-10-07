@@ -53,13 +53,15 @@ func (t *WorldState) updateSeqno(r *World) {
 	})
 }
 
-// setChangelogDisabled turns the changelog off or on and reports whether the
-// World changed. Expects rmtx to be locked and no pending changes.
+// SetChangelogDisabled turns the changelog off or on and reports whether the
+// World changed. Expects rmtx to be locked. An operation may call it on the
+// WorldState it is applied to, so every replay applies the same setting.
 //
+// Changes queued before the switch are recorded under the previous setting.
 // Disabling drops the recorded history. Enabling starts the log at the current
 // seqno without history, so a change watcher reading across the switch sees
 // one unknown change set.
-func (t *WorldState) setChangelogDisabled(ctx context.Context, disable bool) (bool, error) {
+func (t *WorldState) SetChangelogDisabled(ctx context.Context, disable bool) (bool, error) {
 	// Reject a read-only state.
 	if !t.write {
 		return false, tx.ErrNotWrite
@@ -72,6 +74,11 @@ func (t *WorldState) setChangelogDisabled(ctx context.Context, disable bool) (bo
 	}
 	if r.GetLastChangeDisable() == disable {
 		return false, nil
+	}
+
+	// Record the queued changes under the previous setting.
+	if err := t.flushWorldChanges(ctx, r); err != nil {
+		return false, err
 	}
 
 	// Keep only the seqno: its bare head entry marks the start of history.
