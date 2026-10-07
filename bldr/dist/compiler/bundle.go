@@ -165,6 +165,15 @@ func BuildDistBundle(
 	workSr.AddFactory(lookup_concurrent.NewFactory(workBus))
 	workSr.AddFactory(world_block_engine.NewFactory(workBus))
 
+	// Release returns before the loader finishes tearing down its controllers,
+	// so close the bus to wait for the working volume to close its store before
+	// the next build opens the same file.
+	defer func() {
+		if err := workBus.Close(); err != nil {
+			le.WithError(err).Warn("failed to close the build bus")
+		}
+	}()
+
 	// Select persistent scratch storage for the distribution's World.
 	workingDbDir := filepath.Join(workingPath, "dist-vol")
 	if err := os.MkdirAll(workingDbDir, 0o755); err != nil {
@@ -210,12 +219,17 @@ func BuildDistBundle(
 		return err
 	}
 
+	// The loader restarts a failed volume controller as a new instance, so the
+	// instance held here never becomes ready. Stop waiting when it leaves running.
+	volCtx, volCtxCancel := context.WithCancelCause(ctx)
+	defer volCtxCancel(nil)
+
 	// Run the working volume controller and resolve its volume.
 	workingVolCtrli, _, workingVolRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		workBus,
 		resolver.NewLoadControllerWithConfig(workingDbVolConf),
-		nil,
+		func() { volCtxCancel(errors.New("working volume controller stopped")) },
 	)
 	if err != nil {
 		return err
@@ -225,8 +239,11 @@ func BuildDistBundle(
 	if !ok {
 		return errors.New("unexpected type for volume controller")
 	}
-	workingVol, err := workingVolCtrl.GetVolume(ctx)
+	workingVol, err := workingVolCtrl.GetVolume(volCtx)
 	if err != nil {
+		if cause := context.Cause(volCtx); cause != nil {
+			return cause
+		}
 		return err
 	}
 
