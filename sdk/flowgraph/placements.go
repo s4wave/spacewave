@@ -2,7 +2,6 @@ package s4wave_flowgraph
 
 import (
 	"context"
-	"slices"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -35,18 +34,20 @@ func PlacementQuad(graphKey, nodeID string, placement *FlowgraphPlacement) (worl
 // ReadPlacements reads the placement edges of this graph, keyed by node ID.
 func ReadPlacements(ctx context.Context, ws world.WorldState, graphKey string) (map[string]*FlowgraphPlacement, error) {
 	// Query the two placement predicates without scanning other World objects.
-	filters := []world.GraphQuad{
-		world.NewGraphQuadWithKeys(graphKey, DevicePlacementPredicate, "", ""),
-		world.NewGraphQuadWithKeys(graphKey, ActorPlacementPredicate, "", ""),
-	}
-	sets, err := ws.LookupGraphQuadsBatch(ctx, filters, 0)
-	if err != nil {
-		return nil, err
+	// A Flowgraph has one edge per node, so the lookups take no limit; the
+	// batch lookup requires one over a remote World.
+	var edges []world.GraphQuad
+	for _, predicate := range []string{DevicePlacementPredicate, ActorPlacementPredicate} {
+		found, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(graphKey, predicate, "", ""), 0)
+		if err != nil {
+			return nil, err
+		}
+		edges = append(edges, found...)
 	}
 
 	// Decode each edge's destination and graph-local node identity.
 	placements := make(map[string]*FlowgraphPlacement)
-	for _, edge := range slices.Concat(sets...) {
+	for _, edge := range edges {
 		nodeID, placement, err := parsePlacementQuad(edge)
 		if err != nil {
 			return nil, err
