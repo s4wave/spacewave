@@ -45,21 +45,18 @@ function getPerformance(): Performance | undefined {
 // collector turns that count into a persisted validation failure.
 export const startupMarkBufferLimit = 4096
 
+// nextSequence returns the next mark sequence. __swStartupMarkSequence holds
+// the next unused sequence, shared with the inline shell and boot status.
 function nextSequence(): number {
-  if (globalThis.__swStartupMarkSequence !== undefined) {
-    const seeded = globalThis.__swStartupMarkSequence
-    globalThis.__swStartupMarkSequence = seeded + 1
-    nextStartupMarkSequence = seeded + 1
-    return seeded
-  }
   // The inline shell's first mark already used sequence 1, so continue
-  // after the last buffered mark instead of restarting at 1.
+  // after the last buffered mark when the global was never seeded.
   const lastBuffered = globalThis.__swStartupMarks?.at(-1)?.sequence
-  const seeded =
-    lastBuffered !== undefined ? lastBuffered + 1 : nextStartupMarkSequence
-  globalThis.__swStartupMarkSequence = seeded
-  nextStartupMarkSequence = seeded + 1
-  return seeded
+  const sequence =
+    globalThis.__swStartupMarkSequence ??
+    (lastBuffered !== undefined ? lastBuffered + 1 : nextStartupMarkSequence)
+  globalThis.__swStartupMarkSequence = sequence + 1
+  nextStartupMarkSequence = sequence + 1
+  return sequence
 }
 
 // markStartupBoundary records a performance mark for a startup boundary and
