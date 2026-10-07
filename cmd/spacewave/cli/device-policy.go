@@ -36,6 +36,7 @@ func newDevicePolicyCommand() *cli.Command {
 			newDevicePolicyEnableShellCommand(),
 			newDevicePolicyCheckoutRootCommand(),
 			newDevicePolicyForgeWorkerCommand(),
+			newDevicePolicyNodeTypeCommand(),
 		},
 	}
 }

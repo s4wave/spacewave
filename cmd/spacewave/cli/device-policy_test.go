@@ -33,6 +33,11 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	forgeWorkerShowCmd := findTestSubcommand(t, forgeWorkerCmd, "show")
 	forgeWorkerClearCmd := findTestSubcommand(t, forgeWorkerCmd, "clear")
 
+	// Locate the node-type subcommands.
+	nodeTypeCmd := findTestSubcommand(t, policyCmd, "node-type")
+	nodeTypeAddCmd := findTestSubcommand(t, nodeTypeCmd, "add")
+	nodeTypeRemoveCmd := findTestSubcommand(t, nodeTypeCmd, "remove")
+
 	// Check the flags of each located subcommand.
 	assertCommandFlags(t, approveCmd, "state-path", "socket-path", "session-index", "space", "ticket")
 	assertCommandFlags(t, enableShellCmd, "state-path", "socket-path", "disable")
@@ -41,6 +46,8 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	assertCommandFlags(t, forgeWorkerSetCmd, "state-path", "socket-path", "milli-cpu", "memory-bytes", "backend")
 	assertCommandFlags(t, forgeWorkerShowCmd, "state-path", "output")
 	assertCommandFlags(t, forgeWorkerClearCmd, "state-path", "socket-path")
+	assertCommandFlags(t, nodeTypeAddCmd, "state-path", "socket-path")
+	assertCommandFlags(t, nodeTypeRemoveCmd, "state-path", "socket-path")
 }
 
 func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testing.T) {
