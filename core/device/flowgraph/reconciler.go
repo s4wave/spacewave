@@ -86,7 +86,13 @@ func (r *Reconciler) Run(ctx context.Context) error {
 				return egCtx.Err()
 			case <-r.wake:
 			}
-			if err := r.reconcile(egCtx); err != nil && egCtx.Err() == nil {
+			err := r.reconcile(egCtx)
+			switch {
+			case err == nil || egCtx.Err() != nil:
+			case errors.Is(err, world.ErrObjectNotFound):
+				// The Device object arrives with a later World change.
+				r.le.WithError(err).Debug("device object not available for flowgraph nodes")
+			default:
 				r.le.WithError(err).Warn("failed to reconcile flowgraph nodes")
 			}
 		}
@@ -172,8 +178,17 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 
 // project writes the state of each reported node into the Device object,
 // replacing the Flowgraph node capabilities it carried and keeping every other
-// capability.
+// capability. It opens a write transaction only when the Device differs.
 func (r *Reconciler) project(ctx context.Context, reports []*nodeReport) error {
+	// Compare against the current Device first, since most wakes change nothing.
+	current, err := r.readDeviceState(ctx)
+	if err != nil {
+		return err
+	}
+	if slices.EqualFunc(r.nextCapabilities(current, reports), current.GetCapabilities(), (*s4wave_device.DeviceCapability).EqualVT) {
+		return nil
+	}
+
 	// Open the write transaction.
 	tx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -181,31 +196,14 @@ func (r *Reconciler) project(ctx context.Context, reports []*nodeReport) error {
 	}
 	defer tx.Discard()
 
-	// Load the Device object and require it to be this daemon's.
-	obj, found, err := tx.GetObject(ctx, r.deviceKey)
+	// Load the Device again, since it can change between the transactions.
+	obj, device, err := r.loadDevice(ctx, tx)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
-		return errors.Wrap(err, "get device object")
+		return err
 	}
-	if !found {
-		return world.ErrObjectNotFound
-	}
-	device, err := readDevice(ctx, obj)
-	if err != nil {
-		return errors.Wrap(err, "read device block")
-	}
-	if device.GetPeerId() != r.peerID {
-		return errors.New("device object peer_id does not match this daemon")
-	}
-
-	// Keep the other capabilities in place and put the nodes after them.
 	next := device.CloneVT()
-	next.Capabilities = slices.DeleteFunc(next.Capabilities, func(capability *s4wave_device.DeviceCapability) bool {
-		return capability.GetKind() == s4wave_device.DeviceCapabilityKindFlowgraphNode
-	})
-	for _, report := range reports {
-		next.Capabilities = append(next.Capabilities, report.capability(r.applier))
-	}
+	next.Capabilities = r.nextCapabilities(device, reports)
 	if slices.EqualFunc(next.Capabilities, device.Capabilities, (*s4wave_device.DeviceCapability).EqualVT) {
 		return nil
 	}
@@ -223,6 +221,51 @@ func (r *Reconciler) project(ctx context.Context, reports []*nodeReport) error {
 		return errors.Wrap(err, "write device block")
 	}
 	return errors.Wrap(tx.Commit(ctx), "commit")
+}
+
+// nextCapabilities returns the capabilities of device with its Flowgraph node
+// capabilities replaced by the reports. The other capabilities keep their place
+// and the nodes follow them.
+func (r *Reconciler) nextCapabilities(device *s4wave_device.Device, reports []*nodeReport) []*s4wave_device.DeviceCapability {
+	capabilities := slices.DeleteFunc(slices.Clone(device.GetCapabilities()), func(capability *s4wave_device.DeviceCapability) bool {
+		return capability.GetKind() == s4wave_device.DeviceCapabilityKindFlowgraphNode
+	})
+	for _, report := range reports {
+		capabilities = append(capabilities, report.capability(r.applier))
+	}
+	return capabilities
+}
+
+// readDeviceState reads this daemon's Device on a read transaction.
+func (r *Reconciler) readDeviceState(ctx context.Context) (*s4wave_device.Device, error) {
+	tx, err := r.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "new transaction")
+	}
+	defer tx.Discard()
+	obj, device, err := r.loadDevice(ctx, tx)
+	world.ReleaseObjectState(obj)
+	return device, err
+}
+
+// loadDevice loads this daemon's Device object from tx and requires it to be
+// this daemon's. The caller releases the returned object state.
+func (r *Reconciler) loadDevice(ctx context.Context, tx world.WorldState) (world.ObjectState, *s4wave_device.Device, error) {
+	obj, found, err := tx.GetObject(ctx, r.deviceKey)
+	if err != nil {
+		return obj, nil, errors.Wrap(err, "get device object")
+	}
+	if !found {
+		return obj, nil, world.ErrObjectNotFound
+	}
+	device, err := readDevice(ctx, obj)
+	if err != nil {
+		return obj, nil, errors.Wrap(err, "read device block")
+	}
+	if device.GetPeerId() != r.peerID {
+		return obj, nil, errors.New("device object peer_id does not match this daemon")
+	}
+	return obj, device, nil
 }
 
 // readPlaced reads the nodes placed on this Device from one World snapshot.
