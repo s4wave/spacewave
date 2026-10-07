@@ -331,8 +331,6 @@ func BuildDistBundle(
 
 	// Build the kvfile writer.
 	kvfileWriter := kvfile.NewWriter(embeddedVolumeWrite)
-	kvfileKvkey := store_kvkey.NewDefaultKVKey()
-	kvfileBlockPrefix := kvfileKvkey.GetBlockFullPrefix()
 
 	// Write the kvfile.
 	// NOTE: We don't use compression here since the content is already compressed / not compressible.
@@ -340,7 +338,7 @@ func BuildDistBundle(
 		ctx,
 		le,
 		kvfileWriter,
-		kvfileBlockPrefix,
+		store_kvkey.NewDefaultKVKey(),
 		embedBlockEngine,
 	)
 	if err != nil {

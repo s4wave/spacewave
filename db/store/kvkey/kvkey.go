@@ -2,9 +2,17 @@ package store_kvkey
 
 import (
 	"bytes"
-
-	b58 "github.com/mr-tron/base58/base58"
+	"strconv"
 )
+
+// FormatVersion is the version of the key layout KVKey builds.
+//
+// Version 0 keyed each block by the base58 text of its marshaled ref.
+// Version 1 keys each block by the marshaled ref bytes.
+const FormatVersion = 1
+
+// formatVersionKey names the key holding the store's format version.
+var formatVersionKey = []byte("format")
 
 // KVKey is the key/value key generator.
 type KVKey struct {
@@ -43,8 +51,27 @@ func (k *KVKey) GetBlockKey(refMarshalKey []byte) []byte {
 	return bytes.Join([][]byte{
 		k.conf.GetPrefix(),
 		k.conf.GetBlockPrefix(),
-		[]byte(b58.FastBase58Encoding(refMarshalKey)),
+		refMarshalKey,
 	}, nil)
+}
+
+// GetFormatVersionKey returns the key holding the store's format version.
+func (k *KVKey) GetFormatVersionKey() []byte {
+	return bytes.Join([][]byte{
+		k.conf.GetPrefix(),
+		formatVersionKey,
+	}, nil)
+}
+
+// MarshalFormatVersion encodes a format version as the value of the format
+// version key.
+func MarshalFormatVersion(version uint64) []byte {
+	return strconv.AppendUint(nil, version, 10)
+}
+
+// ParseFormatVersion decodes the value of the format version key.
+func ParseFormatVersion(data []byte) (uint64, error) {
+	return strconv.ParseUint(string(data), 10, 64)
 }
 
 // GetBucketConfigFullPrefix returns the prefix for all bucket configs.

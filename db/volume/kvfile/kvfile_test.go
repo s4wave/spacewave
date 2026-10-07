@@ -3,10 +3,11 @@ package volume_kvfile
 import (
 	"bytes"
 	"context"
-	io "io"
+	"io"
 	"testing"
 
 	"github.com/aperturerobotics/go-kvfile"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,14 +19,18 @@ func TestKvfile(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Prepare the ordered key and value records for the KVFile.
+	// Prepare the ordered key and value records for the KVFile, led by the
+	// format version every Volume store records.
 	var buf bytes.Buffer
+	kvKey := store_kvkey.NewDefaultKVKey()
 	keys := [][]byte{
+		kvKey.GetFormatVersionKey(),
 		[]byte("test-1"),
 		[]byte("test-2"),
 		[]byte("test-3"),
 	}
 	vals := [][]byte{
+		store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion),
 		[]byte("val-1"),
 		[]byte("val-2"),
 		[]byte("val-3"),
@@ -53,7 +58,7 @@ func TestKvfile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Verify that the encoded KVFile can initialize a read-only volume.
+	// Verify that the encoded KVFile opens as a read-only volume.
 	vol, err := NewKVFile(
 		ctx,
 		le,
@@ -66,10 +71,7 @@ func TestKvfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_ = vol
-	/*
-		if err := volume_test.CheckVolume(ctx, vol); err != nil {
-			t.Fatal(err.Error())
-		}
-	*/
+	if err := vol.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
 }

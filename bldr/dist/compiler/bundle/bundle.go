@@ -10,6 +10,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -21,13 +22,21 @@ import (
 // in the backing store does not affect the result.
 // The caller must finish writing the World before packing; accepted writes
 // are fenced before the archive reads blocks from their backing store.
+// The kvfile records the current format version, so a Volume opens it without
+// migrating.
 func BundleManifestsKvfile(
 	ctx context.Context,
 	le *logrus.Entry,
 	kvfileWriter *kvfile.Writer,
-	kvfileBlockPrefix []byte,
+	keys *store_kvkey.KVKey,
 	blkEng *world_block.Engine,
 ) error {
+	// Record the format version of the block keys.
+	version := store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)
+	if err := kvfileWriter.WriteValue(keys.GetFormatVersionKey(), bytes.NewReader(version)); err != nil {
+		return err
+	}
+
 	// Raw block traversal must see every accepted write, including deferred ones.
 	if _, err := blkEng.Sync(ctx); err != nil {
 		return err
@@ -52,14 +61,16 @@ func BundleManifestsKvfile(
 					return false, errors.Wrap(block.ErrNotFound, ent.Ref.MarshalString())
 				}
 
-				// Write each first-seen block under the kvfile block prefix.
-				key := ent.Ref.MarshalString()
-				if _, ok := seen[key]; ok {
+				// Write each first-seen block under its block key.
+				rm, err := ent.Ref.MarshalKey()
+				if err != nil {
+					return false, err
+				}
+				if _, ok := seen[string(rm)]; ok {
 					return true, nil
 				}
-				seen[key] = struct{}{}
-				outKey := append(bytes.Clone(kvfileBlockPrefix), key...)
-				return true, kvfileWriter.WriteValue(outKey, bytes.NewReader(ent.Data))
+				seen[string(rm)] = struct{}{}
+				return true, kvfileWriter.WriteValue(keys.GetBlockKey(rm), bytes.NewReader(ent.Data))
 			},
 			bls.GetBucket(),
 			bls.GetTransformer(),

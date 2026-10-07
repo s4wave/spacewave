@@ -148,7 +148,7 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 			ctx,
 			le,
 			kvfileWriter,
-			store_kvkey.NewDefaultKVKey().GetBlockFullPrefix(),
+			store_kvkey.NewDefaultKVKey(),
 			eng,
 		)
 		if err != nil {
@@ -210,8 +210,11 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer tx.Discard()
-		orphanKey := append(bytes.Clone(kvtxVol.GetKvKey().GetBlockFullPrefix()), []byte(orphanRef.MarshalString())...)
-		if err := tx.Set(ctx, orphanKey, orphan); err != nil {
+		orphanRm, err := orphanRef.MarshalKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Set(ctx, kvtxVol.GetKvKey().GetBlockKey(orphanRm), orphan); err != nil {
 			t.Fatal(err)
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -221,7 +224,7 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		// Repack after the unrelated history and expect identical bytes.
 		var repeated bytes.Buffer
 		repeatedWriter := kvfile.NewWriter(&repeated)
-		if err := dist_compiler_bundle.BundleManifestsKvfile(ctx, le, repeatedWriter, store_kvkey.NewDefaultKVKey().GetBlockFullPrefix(), eng); err != nil {
+		if err := dist_compiler_bundle.BundleManifestsKvfile(ctx, le, repeatedWriter, store_kvkey.NewDefaultKVKey(), eng); err != nil {
 			t.Fatal(err)
 		}
 		if err := repeatedWriter.Close(); err != nil {
@@ -241,8 +244,11 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer tx.Discard()
-		rootKey := append(bytes.Clone(kvtxVol.GetKvKey().GetBlockFullPrefix()), []byte(rootRefStr)...)
-		if err := tx.Delete(ctx, rootKey); err != nil {
+		rootRm, err := rootRef.MarshalKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Delete(ctx, kvtxVol.GetKvKey().GetBlockKey(rootRm)); err != nil {
 			t.Fatal(err)
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -259,7 +265,7 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 			ctx,
 			le,
 			kvfileWriter,
-			store_kvkey.NewDefaultKVKey().GetBlockFullPrefix(),
+			store_kvkey.NewDefaultKVKey(),
 			eng,
 		)
 		if !errors.Is(err, block.ErrNotFound) {

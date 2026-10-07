@@ -272,6 +272,11 @@ func initVolumeSkipGC(
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
+	// Bring the store to the current key layout before any read.
+	if err := upgradeFormat(ctx, v.kvtxStore, v.kvKey); err != nil {
+		return nil, err
+	}
+
 	// Load the stored identity.
 	peerPriv, err := v.LoadPeerPriv(ctx)
 	if err != nil {
