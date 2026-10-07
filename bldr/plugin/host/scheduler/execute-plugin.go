@@ -107,12 +107,12 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	trace.Log(ctx, "manifest-ref", pluginManifest.GetManifestRef().MarshalString())
 	trace.Log(ctx, "startup-fetch-kind", "demand-plugin-execute")
 
-	// Build a proxy volume over the host volume for the plugin.
+	// Build a proxy volume over the plugin's view of the host volume.
 	hostVol, err := t.c.hostVolumeCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
-	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, hostVol.vol, false)
+	proxyHostVol := volume_rpc_server.NewProxyVolume(ctx, t.c.newPluginVolume(hostVol.vol, pluginID), false)
 
 	// Wait for the World state handle.
 	ws, err := t.c.worldStateCtr.WaitValue(ctx, nil)

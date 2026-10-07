@@ -136,7 +136,7 @@ func sweepNode(ctx context.Context, cfg SweepConfig, node string) error {
 		if err := cfg.Target.DeleteBlock(ctx, node); err != nil {
 			return errors.Wrap(err, "delete block")
 		}
-	} else if _, ok := parseObjectIRI(node); ok {
+	} else if _, ok := ParseObjectIRI(node); ok {
 		if err := cfg.Target.DeleteObject(ctx, node); err != nil {
 			return errors.Wrap(err, "delete object")
 		}

@@ -167,7 +167,9 @@ export interface Config {
   noCopyBucketIds?: string[]
   /**
    * InstanceKey is the plugin instance that loads without an instance key
-   * resolve to. Empty retains the unscoped Dist behavior.
+   * resolve to. Empty retains the unscoped Dist behavior. A non-empty key also
+   * marks a Space's scheduler, which serves each plugin a view of the volume
+   * limited to its own Space and plugin.
    *
    * @generated from field: string instance_key = 14;
    */

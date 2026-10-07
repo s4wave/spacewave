@@ -66,7 +66,9 @@ type Config struct {
 	// full-DAG copy.
 	NoCopyBucketIds []string `protobuf:"bytes,13,rep,name=no_copy_bucket_ids,json=noCopyBucketIds,proto3" json:"noCopyBucketIds,omitempty"`
 	// InstanceKey is the plugin instance that loads without an instance key
-	// resolve to. Empty retains the unscoped Dist behavior.
+	// resolve to. Empty retains the unscoped Dist behavior. A non-empty key also
+	// marks a Space's scheduler, which serves each plugin a view of the volume
+	// limited to its own Space and plugin.
 	InstanceKey string `protobuf:"bytes,14,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 	// StartupWaitBudgetDur is the maximum wall-clock duration a plugin instance
 	// may take to complete initial capability registration before its startup
