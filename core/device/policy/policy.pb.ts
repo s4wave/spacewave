@@ -6,8 +6,6 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
-import type { DeviceCheckoutRootAccess } from '../../../sdk/device/device.pb.js'
-import { DeviceCheckoutRootAccess_Enum } from '../../../sdk/device/device.pb.js'
 
 /**
  * RemoteShellPolicy controls whether remote shell OPEN frames may start a PTY.
@@ -35,42 +33,6 @@ export const RemoteShellPolicy: MessageType<RemoteShellPolicy> =
     fields: [
       { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
- * CheckoutRootPolicy declares one local checkout root exposed by this Device.
- *
- * @generated from message s4wave.device.policy.CheckoutRootPolicy
- */
-export interface CheckoutRootPolicy {
-  /**
-   * Name is the stable checkout-root selector.
-   *
-   * @generated from field: string name = 1;
-   */
-  name?: string
-  /**
-   * LocalPath is the daemon-local filesystem path.
-   *
-   * @generated from field: string local_path = 2;
-   */
-  localPath?: string
-  /**
-   * Access is the read/write mode exposed by the Device.
-   *
-   * @generated from field: s4wave.device.DeviceCheckoutRootAccess access = 3;
-   */
-  access?: DeviceCheckoutRootAccess
-}
-
-export const CheckoutRootPolicy: MessageType<CheckoutRootPolicy> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.device.policy.CheckoutRootPolicy',
-    fields: [
-      { no: 1, name: 'name', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'local_path', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'access', kind: 'enum', T: DeviceCheckoutRootAccess_Enum },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -147,23 +109,17 @@ export interface DevicePolicy {
    */
   remoteShell?: RemoteShellPolicy
   /**
-   * CheckoutRoot declares locally available checkout roots.
-   *
-   * @generated from field: repeated s4wave.device.policy.CheckoutRootPolicy checkout_root = 3;
-   */
-  checkoutRoot?: CheckoutRootPolicy[]
-  /**
    * ForgeWorker declares the local Forge Worker capacity envelope. Absent
    * means this daemon exposes no Forge Worker execution capacity.
    *
-   * @generated from field: s4wave.device.policy.ForgeWorkerPolicy forge_worker = 4;
+   * @generated from field: s4wave.device.policy.ForgeWorkerPolicy forge_worker = 3;
    */
   forgeWorker?: ForgeWorkerPolicy
   /**
    * NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
    * A node whose type is absent from the list is rejected.
    *
-   * @generated from field: repeated string node_type_id = 5;
+   * @generated from field: repeated string node_type_id = 4;
    */
   nodeTypeId?: string[]
 }
@@ -174,16 +130,9 @@ export const DevicePolicy: MessageType<DevicePolicy> =
     fields: [
       { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'remote_shell', kind: 'message', T: RemoteShellPolicy },
+      { no: 3, name: 'forge_worker', kind: 'message', T: ForgeWorkerPolicy },
       {
-        no: 3,
-        name: 'checkout_root',
-        kind: 'message',
-        T: CheckoutRootPolicy,
-        repeated: true,
-      },
-      { no: 4, name: 'forge_worker', kind: 'message', T: ForgeWorkerPolicy },
-      {
-        no: 5,
+        no: 4,
         name: 'node_type_id',
         kind: 'scalar',
         T: ScalarType.STRING,

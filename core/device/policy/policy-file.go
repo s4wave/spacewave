@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
 const (
@@ -76,31 +75,6 @@ func Validate(policy *DevicePolicy) error {
 	// Treat a nil policy as valid.
 	if policy == nil {
 		return nil
-	}
-
-	// Reject checkout roots with missing, duplicate, or unqualified fields.
-	seen := make(map[string]struct{}, len(policy.GetCheckoutRoot()))
-	for _, root := range policy.GetCheckoutRoot() {
-		if root == nil {
-			continue
-		}
-		name := strings.TrimSpace(root.GetName())
-		if name == "" {
-			return errors.New("device policy checkout-root name is required")
-		}
-		if _, ok := seen[name]; ok {
-			return errors.Errorf("duplicate device policy checkout-root %q", name)
-		}
-		seen[name] = struct{}{}
-		if strings.TrimSpace(root.GetLocalPath()) == "" {
-			return errors.Errorf("device policy checkout-root %q local path is required", name)
-		}
-		switch root.GetAccess() {
-		case s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY,
-			s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE:
-		default:
-			return errors.Errorf("device policy checkout-root %q access is required", name)
-		}
 	}
 
 	// Reject node type IDs that are missing or duplicated.

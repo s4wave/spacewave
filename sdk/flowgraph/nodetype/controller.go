@@ -15,7 +15,7 @@ const ControllerID = "spacewave/flowgraph/nodetype"
 var Version = controller.MustParseVersion("0.0.1")
 
 // Controller resolves LookupFlowgraphNodeType for the node types core
-// provides: TCP Port and Local Port.
+// provides: TCP Port, Local Port and Checkout Root.
 type Controller struct {
 	// types contains the core node types by type ID.
 	types map[string]s4wave_flowgraph.FlowgraphNodeType
@@ -25,8 +25,9 @@ type Controller struct {
 func NewController() *Controller {
 	return &Controller{
 		types: map[string]s4wave_flowgraph.FlowgraphNodeType{
-			s4wave_flowgraph.TCPPortNodeTypeID:   tcpPort{},
-			s4wave_flowgraph.LocalPortNodeTypeID: localPort{},
+			s4wave_flowgraph.TCPPortNodeTypeID:      tcpPort{},
+			s4wave_flowgraph.LocalPortNodeTypeID:    localPort{},
+			s4wave_flowgraph.CheckoutRootNodeTypeID: checkoutRoot{},
 		},
 	}
 }
@@ -43,6 +44,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // HandleDirective resolves a LookupFlowgraphNodeType for a core node type.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Resolve only lookups for a core node type.
 	dir, ok := di.GetDirective().(s4wave_flowgraph.LookupFlowgraphNodeType)
 	if !ok {
 		return nil, nil

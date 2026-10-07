@@ -1,8 +1,6 @@
 syntax = "proto3";
 package s4wave.device.policy;
 
-import "github.com/s4wave/spacewave/sdk/device/device.proto";
-
 option go_package = "github.com/s4wave/spacewave/core/device/policy;device_policy";
 
 // DevicePolicy is the daemon-local policy that controls Device capabilities.
@@ -11,14 +9,12 @@ message DevicePolicy {
   uint64 revision = 1;
   // RemoteShell controls remote-shell OPEN authorization.
   RemoteShellPolicy remote_shell = 2;
-  // CheckoutRoot declares locally available checkout roots.
-  repeated CheckoutRootPolicy checkout_root = 3;
   // ForgeWorker declares the local Forge Worker capacity envelope. Absent
   // means this daemon exposes no Forge Worker execution capacity.
-  ForgeWorkerPolicy forge_worker = 4;
+  ForgeWorkerPolicy forge_worker = 3;
   // NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
   // A node whose type is absent from the list is rejected.
-  repeated string node_type_id = 5;
+  repeated string node_type_id = 4;
 }
 
 // ForgeWorkerPolicy declares the capacity envelope of the local Forge Worker.
@@ -39,14 +35,4 @@ message RemoteShellPolicy {
   bool enabled = 1;
   // Detail is an operator-visible policy note.
   string detail = 2;
-}
-
-// CheckoutRootPolicy declares one local checkout root exposed by this Device.
-message CheckoutRootPolicy {
-  // Name is the stable checkout-root selector.
-  string name = 1;
-  // LocalPath is the daemon-local filesystem path.
-  string local_path = 2;
-  // Access is the read/write mode exposed by the Device.
-  .s4wave.device.DeviceCheckoutRootAccess access = 3;
 }

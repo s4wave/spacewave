@@ -165,38 +165,58 @@ func (r *Reconciler) watchPolicy(ctx context.Context) error {
 // reconcile brings the running nodes and the Device object to the placed nodes
 // the policy allows.
 func (r *Reconciler) reconcile(ctx context.Context) error {
-	// Read the nodes placed on this Device.
-	placed, err := r.readPlaced(ctx)
+	// Compile the placed nodes, then run every accepted node's entries together.
+	entries, reports, err := r.compilePlaced(ctx)
 	if err != nil {
 		return err
-	}
-
-	// Look up the types of the allowed nodes.
-	allowed := make(map[string]struct{})
-	for _, typeID := range r.policy.Snapshot().GetNodeTypeId() {
-		allowed[typeID] = struct{}{}
-	}
-	wanted := make(map[string]struct{})
-	for _, node := range placed {
-		if _, ok := allowed[node.Node.GetTypeId()]; ok {
-			wanted[node.Node.GetTypeId()] = struct{}{}
-		}
-	}
-	if err := r.types.Hold(wanted); err != nil {
-		return err
-	}
-
-	// Compile each node, then run every accepted node's entries together.
-	entries := make(map[string]config.Config)
-	reports := make([]*nodeReport, len(placed))
-	for i, node := range placed {
-		reports[i] = r.compile(node, allowed, entries)
 	}
 	if err := r.applier.Apply(entries); err != nil {
 		return err
 	}
 	r.setHeld(len(entries) != 0)
 	return r.project(ctx, reports)
+}
+
+// compilePlaced compiles each node placed on this Device from one World
+// snapshot. It returns the entries of the accepted nodes by ConfigSet key and a
+// report for every node.
+func (r *Reconciler) compilePlaced(ctx context.Context) (map[string]config.Config, []*nodeReport, error) {
+	// Read the nodes placed on this Device.
+	tx, err := r.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "new transaction")
+	}
+	defer tx.Discard()
+	placed, err := readPlacedNodes(ctx, tx, r.deviceKey, r.peerID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Look up the types of the allowed nodes.
+	pass := &compilePass{
+		allowed: make(map[string]struct{}),
+		entries: make(map[string]config.Config),
+		claims:  make(map[string]string),
+	}
+	for _, typeID := range r.policy.Snapshot().GetNodeTypeId() {
+		pass.allowed[typeID] = struct{}{}
+	}
+	wanted := make(map[string]struct{})
+	for _, node := range placed {
+		if _, ok := pass.allowed[node.Node.GetTypeId()]; ok {
+			wanted[node.Node.GetTypeId()] = struct{}{}
+		}
+	}
+	if err := r.types.Hold(wanted); err != nil {
+		return nil, nil, err
+	}
+
+	// Compile each node in order.
+	reports := make([]*nodeReport, len(placed))
+	for i, node := range placed {
+		reports[i] = r.compile(ctx, tx, node, pass)
+	}
+	return pass.entries, reports, nil
 }
 
 // setHeld holds the daemon while held is true and releases it otherwise.
@@ -262,7 +282,7 @@ func (r *Reconciler) project(ctx context.Context, reports []*nodeReport) error {
 // and the nodes follow them.
 func (r *Reconciler) nextCapabilities(device *s4wave_device.Device, reports []*nodeReport) []*s4wave_device.DeviceCapability {
 	capabilities := slices.DeleteFunc(slices.Clone(device.GetCapabilities()), func(capability *s4wave_device.DeviceCapability) bool {
-		return capability.GetKind() == s4wave_device.DeviceCapabilityKindFlowgraphNode
+		return s4wave_flowgraph.IsNodeCapabilityID(capability.GetId())
 	})
 	for _, report := range reports {
 		capabilities = append(capabilities, report.capability(r.applier))
@@ -272,11 +292,14 @@ func (r *Reconciler) nextCapabilities(device *s4wave_device.Device, reports []*n
 
 // readDeviceState reads this daemon's Device on a read transaction.
 func (r *Reconciler) readDeviceState(ctx context.Context) (*s4wave_device.Device, error) {
+	// Read the Device inside a transaction that is discarded on return.
 	tx, err := r.engine.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
+
+	// Release the object state, since the caller needs only the Device.
 	obj, device, err := r.loadDevice(ctx, tx)
 	world.ReleaseObjectState(obj)
 	return device, err
@@ -285,6 +308,7 @@ func (r *Reconciler) readDeviceState(ctx context.Context) (*s4wave_device.Device
 // loadDevice loads this daemon's Device object from tx and requires it to be
 // this daemon's. The caller releases the returned object state.
 func (r *Reconciler) loadDevice(ctx context.Context, tx world.WorldState) (world.ObjectState, *s4wave_device.Device, error) {
+	// Find the Device object.
 	obj, found, err := tx.GetObject(ctx, r.deviceKey)
 	if err != nil {
 		return obj, nil, errors.Wrap(err, "get device object")
@@ -292,6 +316,8 @@ func (r *Reconciler) loadDevice(ctx context.Context, tx world.WorldState) (world
 	if !found {
 		return obj, nil, world.ErrObjectNotFound
 	}
+
+	// Read the Device and require it to belong to this daemon.
 	device, err := readDevice(ctx, obj)
 	if err != nil {
 		return obj, nil, errors.Wrap(err, "read device block")
@@ -302,28 +328,31 @@ func (r *Reconciler) loadDevice(ctx context.Context, tx world.WorldState) (world
 	return obj, device, nil
 }
 
-// readPlaced reads the nodes placed on this Device from one World snapshot.
-func (r *Reconciler) readPlaced(ctx context.Context) ([]*s4wave_flowgraph.PlacedFlowgraphNode, error) {
-	tx, err := r.engine.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "new transaction")
-	}
-	defer tx.Discard()
-	return readPlacedNodes(ctx, tx, r.deviceKey, r.peerID)
+// compilePass is the state shared by the nodes compiled in one reconcile.
+type compilePass struct {
+	// allowed contains the node type IDs the policy allows.
+	allowed map[string]struct{}
+	// entries contains the entries of the accepted nodes by ConfigSet key.
+	entries map[string]config.Config
+	// claims contains the Flowgraph key and node ID of the node that shows each
+	// capability kind and checkout root name, keyed by kind and name.
+	claims map[string]string
 }
 
-// compile compiles node into entries keyed by their ConfigSet key. It reports
-// the node rejected, and adds no entries, when its type is not allowed, its
-// compile fails, or it emits a config ID its type did not declare.
+// compile compiles node into the pass's entries, keyed by their ConfigSet key.
+// It reports the node rejected, and adds no entries, when its type is not
+// allowed, its compile fails, it emits a config ID its type did not declare, its
+// capability is refused, or an earlier node already shows the same capability.
 func (r *Reconciler) compile(
+	ctx context.Context,
+	ws world.WorldState,
 	node *s4wave_flowgraph.PlacedFlowgraphNode,
-	allowed map[string]struct{},
-	entries map[string]config.Config,
+	pass *compilePass,
 ) *nodeReport {
 	// Reject a node whose type the policy does not allow.
 	report := &nodeReport{node: node}
 	typeID := node.Node.GetTypeId()
-	if _, ok := allowed[typeID]; !ok {
+	if _, ok := pass.allowed[typeID]; !ok {
 		report.err = errors.Errorf("node type %q is not allowed by the Device policy", typeID)
 		return report
 	}
@@ -346,11 +375,27 @@ func (r *Reconciler) compile(
 		}
 	}
 
+	// Show the capability the node type supplies, once no earlier node shows it.
+	if source, ok := report.nodeType.(s4wave_flowgraph.FlowgraphNodeCapability); ok {
+		shown, err := source.GetCapability(ctx, ws, node)
+		if err != nil {
+			report.err = errors.Wrap(err, "get node capability")
+			return report
+		}
+		claim := shown.ClaimKey()
+		if kept, ok := pass.claims[claim]; ok {
+			report.err = errors.Errorf("%s is already provided by node %s", shown.GetLabel(), kept)
+			return report
+		}
+		pass.claims[claim] = node.FlowgraphKey + "/" + node.NodeID
+		report.shown = shown
+	}
+
 	// Name each entry for its Flowgraph, node and entry, so nodes of different
 	// Flowgraphs never collide.
 	for name, conf := range compiled {
 		key := node.FlowgraphKey + "/" + node.NodeID + "/" + name
-		entries[key] = conf
+		pass.entries[key] = conf
 		report.keys = append(report.keys, key)
 	}
 	slices.Sort(report.keys)

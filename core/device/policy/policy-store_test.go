@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
 func TestPolicyStoreMissingFileLoadsEmptySnapshot(t *testing.T) {
@@ -25,7 +23,7 @@ func TestPolicyStoreMissingFileLoadsEmptySnapshot(t *testing.T) {
 }
 
 func TestPolicyFileWriteReadRoundTripGeneratedJSON(t *testing.T) {
-	// Write and read a device policy containing shell and checkout settings.
+	// Write and read a device policy containing shell and node type settings.
 	stateRoot := t.TempDir()
 	want := &DevicePolicy{
 		Revision: 7,
@@ -33,11 +31,7 @@ func TestPolicyFileWriteReadRoundTripGeneratedJSON(t *testing.T) {
 			Enabled: true,
 			Detail:  "terminal enabled by local policy",
 		},
-		CheckoutRoot: []*CheckoutRootPolicy{{
-			Name:      "skiffos",
-			LocalPath: "/work/skiffos",
-			Access:    s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE,
-		}},
+		NodeTypeId: []string{"tcp-port"},
 	}
 	if err := WriteFile(stateRoot, want); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)

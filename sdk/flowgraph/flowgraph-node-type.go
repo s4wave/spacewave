@@ -1,6 +1,13 @@
 package s4wave_flowgraph
 
-import "github.com/aperturerobotics/controllerbus/config"
+import (
+	"context"
+	"strings"
+
+	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/s4wave/spacewave/db/world"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+)
 
 // FlowgraphNodeType is the behavior behind a node's type_id. A controller
 // supplies it by resolving LookupFlowgraphNodeType.
@@ -17,6 +24,18 @@ type FlowgraphNodeType interface {
 	Compile(node *PlacedFlowgraphNode) (map[string]config.Config, error)
 }
 
+// FlowgraphNodeCapability is implemented by a node type whose placed node shows
+// a Device capability of its own, in place of the default flowgraph-node
+// capability. A Device keeps the first node, in Flowgraph key and node ID order,
+// that shows each kind and checkout root name, and rejects the rest.
+type FlowgraphNodeCapability interface {
+	// GetCapability returns the capability the node shows: its kind, label,
+	// link, policy and checkout root. The Device sets the ID and the state. It
+	// returns an error to reject the node, such as when the object the link
+	// names is not in ws.
+	GetCapability(ctx context.Context, ws world.WorldState, node *PlacedFlowgraphNode) (*s4wave_device.DeviceCapability, error)
+}
+
 // PlacedFlowgraphNode is a node placed on a Device with the context its node
 // type compiles from.
 type PlacedFlowgraphNode struct {
@@ -30,6 +49,18 @@ type PlacedFlowgraphNode struct {
 	DevicePeerID string
 	// Connections contains the connections that end at the node.
 	Connections []*PlacedFlowgraphConnection
+}
+
+// CapabilityID returns the ID of the Device capability that shows the node.
+func (n *PlacedFlowgraphNode) CapabilityID() string {
+	return s4wave_device.DeviceCapabilityKindFlowgraphNode + "/" + n.FlowgraphKey + "/" + n.NodeID
+}
+
+// IsNodeCapabilityID reports whether a Device capability ID belongs to a
+// placed node. The Device's Flowgraph reconciler owns these capabilities, even
+// when a node type gives one another kind.
+func IsNodeCapabilityID(id string) bool {
+	return strings.HasPrefix(id, s4wave_device.DeviceCapabilityKindFlowgraphNode+"/")
 }
 
 // PlacedFlowgraphConnection is a connection that ends at a placed node.

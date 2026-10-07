@@ -23,9 +23,6 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	approveCmd := findTestSubcommand(t, deviceCmd, "approve")
 	policyCmd := findTestSubcommand(t, deviceCmd, "policy")
 	enableShellCmd := findTestSubcommand(t, policyCmd, "enable-shell")
-	checkoutRootCmd := findTestSubcommand(t, policyCmd, "checkout-root")
-	checkoutRootAddCmd := findTestSubcommand(t, checkoutRootCmd, "add")
-	checkoutRootRemoveCmd := findTestSubcommand(t, checkoutRootCmd, "remove")
 
 	// Locate the forge-worker subcommands.
 	forgeWorkerCmd := findTestSubcommand(t, policyCmd, "forge-worker")
@@ -41,8 +38,6 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	// Check the flags of each located subcommand.
 	assertCommandFlags(t, approveCmd, "state-path", "socket-path", "session-index", "space", "ticket")
 	assertCommandFlags(t, enableShellCmd, "state-path", "socket-path", "disable")
-	assertCommandFlags(t, checkoutRootAddCmd, "state-path", "socket-path", "write")
-	assertCommandFlags(t, checkoutRootRemoveCmd, "state-path", "socket-path")
 	assertCommandFlags(t, forgeWorkerSetCmd, "state-path", "socket-path", "milli-cpu", "memory-bytes", "backend")
 	assertCommandFlags(t, forgeWorkerShowCmd, "state-path", "output")
 	assertCommandFlags(t, forgeWorkerClearCmd, "state-path", "socket-path")
@@ -52,9 +47,16 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 }
 
 func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testing.T) {
-	// Seed the existing capabilities with an operator-owned entry.
-	existingLink := &s4wave_device.DeviceCapabilityLink{ObjectKey: "objects/skiffos", TypeId: "unixfs-root"}
+	// Seed the existing capabilities with an operator-owned entry and a
+	// Flowgraph node capability of the filesystem kind.
+	nodeCap := &s4wave_device.DeviceCapability{
+		Id:    s4wave_device.DeviceCapabilityKindFlowgraphNode + "/graph/skiffos",
+		Kind:  s4wave_device.DeviceCapabilityKindFilesystem,
+		Label: "skiffos checkout",
+		State: s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
+	}
 	existing := []*s4wave_device.DeviceCapability{
+		nodeCap,
 		{
 			Id:     "custom-capability",
 			Kind:   "custom",
@@ -76,65 +78,26 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 				GrantState:     s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED,
 			},
 		},
-		{
-			Id:     devicePolicyCheckoutRootIDPrefix + "skiffos",
-			Kind:   s4wave_device.DeviceCapabilityKindFilesystem,
-			Label:  "old checkout",
-			State:  s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE,
-			Detail: "mounted",
-			Link:   existingLink,
-			Policy: &s4wave_device.DeviceCapabilityPolicy{
-				LocalPolicyRef: "device-policy/12/checkout-root/skiffos",
-				GrantPolicyRef: "grant/skiffos",
-				LocalState:     s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
-				GrantState:     s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED,
-			},
-			CheckoutRoot: &s4wave_device.DeviceCheckoutRootCapability{
-				Name:          "skiffos",
-				DisplayPath:   "/old/skiffos",
-				SelectionRef:  "device-policy/12/checkout-root/skiffos",
-				Access:        s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY,
-				ReadAvailable: true,
-			},
-		},
-		{
-			Id:     devicePolicyCheckoutRootIDPrefix + "removed",
-			Kind:   s4wave_device.DeviceCapabilityKindFilesystem,
-			Label:  "removed checkout",
-			Policy: &s4wave_device.DeviceCapabilityPolicy{LocalPolicyRef: "device-policy/12/checkout-root/removed"},
-		},
 	}
 	policy := &device_policy.DevicePolicy{
 		Revision:    13,
 		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true, Detail: "terminal enabled"},
-		CheckoutRoot: []*device_policy.CheckoutRootPolicy{
-			{
-				Name:      "skiffos",
-				LocalPath: "/new/skiffos",
-				Access:    s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE,
-			},
-			{
-				Name:      "alpha",
-				LocalPath: "/work/alpha",
-				Access:    s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY,
-			},
-		},
 	}
 
 	// Project the policy onto the existing capabilities and index them.
 	got := computeDevicePolicyCapabilities(policy, existing)
 	byID := deviceCapabilitiesByID(got)
 
-	// Check the capability count and preserved non-policy entry.
-	if len(got) != 4 {
-		t.Fatalf("capability count = %d, want non-policy + remote shell + two policy roots", len(got))
+	// Check the capabilities keep their order with the node capability last.
+	if len(got) != 3 {
+		t.Fatalf("capability count = %d, want non-policy + remote shell + node", len(got))
 	}
-	if _, ok := byID[devicePolicyCheckoutRootIDPrefix+"removed"]; ok {
-		t.Fatal("removed policy checkout root was preserved")
+	if got[len(got)-1].GetId() != nodeCap.GetId() || !got[len(got)-1].EqualVT(nodeCap) {
+		t.Fatalf("last capability = %v, want preserved node capability %v", got[len(got)-1], nodeCap)
 	}
 	nonPolicy := byID["custom-capability"]
-	if nonPolicy == nil || !nonPolicy.EqualVT(existing[0]) {
-		t.Fatalf("non-policy capability = %v, want preserved %v", nonPolicy, existing[0])
+	if nonPolicy == nil || !nonPolicy.EqualVT(existing[1]) {
+		t.Fatalf("non-policy capability = %v, want preserved %v", nonPolicy, existing[1])
 	}
 
 	// Check the projected remote-shell capability.
@@ -156,62 +119,6 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 	}
 	if remoteShell.GetDetail() != "Space denied terminal" {
 		t.Fatalf("remote-shell detail = %q", remoteShell.GetDetail())
-	}
-
-	// Check the preserved skiffos checkout-root capability.
-	skiffos := byID[devicePolicyCheckoutRootIDPrefix+"skiffos"]
-	if skiffos == nil {
-		t.Fatal("skiffos checkout-root capability missing")
-	}
-	if skiffos.GetLink().GetObjectKey() != existingLink.GetObjectKey() || skiffos.GetLink().GetTypeId() != existingLink.GetTypeId() {
-		t.Fatalf("skiffos link = %v, want preserved %v", skiffos.GetLink(), existingLink)
-	}
-
-	// Check the skiffos policy references and availability.
-	if skiffos.GetPolicy().GetLocalPolicyRef() != "device-policy/13/checkout-root/skiffos" {
-		t.Fatalf("skiffos local policy ref = %q", skiffos.GetPolicy().GetLocalPolicyRef())
-	}
-	if skiffos.GetPolicy().GetGrantPolicyRef() != "grant/skiffos" {
-		t.Fatalf("skiffos grant policy ref = %q", skiffos.GetPolicy().GetGrantPolicyRef())
-	}
-	if skiffos.GetPolicy().GetGrantState() != s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED {
-		t.Fatalf("skiffos grant state = %s", skiffos.GetPolicy().GetGrantState())
-	}
-	if skiffos.GetState() != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE {
-		t.Fatalf("skiffos state = %s", skiffos.GetState())
-	}
-	if skiffos.GetCheckoutRoot().GetDisplayPath() != "/new/skiffos" {
-		t.Fatalf("skiffos display path = %q", skiffos.GetCheckoutRoot().GetDisplayPath())
-	}
-	if skiffos.GetCheckoutRoot().GetSelectionRef() != "device-policy/13/checkout-root/skiffos" {
-		t.Fatalf("skiffos selection ref = %q", skiffos.GetCheckoutRoot().GetSelectionRef())
-	}
-	if skiffos.GetCheckoutRoot().GetAccess() != s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE {
-		t.Fatalf("skiffos access = %s", skiffos.GetCheckoutRoot().GetAccess())
-	}
-	if !skiffos.GetCheckoutRoot().GetReadAvailable() || !skiffos.GetCheckoutRoot().GetWriteAvailable() {
-		t.Fatalf("skiffos availability read=%v write=%v", skiffos.GetCheckoutRoot().GetReadAvailable(), skiffos.GetCheckoutRoot().GetWriteAvailable())
-	}
-
-	// Check the alpha read-only checkout-root capability.
-	alpha := byID[devicePolicyCheckoutRootIDPrefix+"alpha"]
-	if alpha == nil {
-		t.Fatal("alpha checkout-root capability missing")
-	}
-	if alpha.GetPolicy().GetLocalPolicyRef() != "device-policy/13/checkout-root/alpha" {
-		t.Fatalf("alpha local policy ref = %q", alpha.GetPolicy().GetLocalPolicyRef())
-	}
-	if alpha.GetPolicy().GetGrantState() != s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED {
-		t.Fatalf("alpha grant state = %s", alpha.GetPolicy().GetGrantState())
-	}
-	if alpha.GetCheckoutRoot().GetSelectionRef() != "device-policy/13/checkout-root/alpha" {
-		t.Fatalf("alpha selection ref = %q", alpha.GetCheckoutRoot().GetSelectionRef())
-	}
-	if alpha.GetCheckoutRoot().GetAccess() != s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_ONLY {
-		t.Fatalf("alpha access = %s", alpha.GetCheckoutRoot().GetAccess())
-	}
-	if !alpha.GetCheckoutRoot().GetReadAvailable() || alpha.GetCheckoutRoot().GetWriteAvailable() {
-		t.Fatalf("alpha availability read=%v write=%v", alpha.GetCheckoutRoot().GetReadAvailable(), alpha.GetCheckoutRoot().GetWriteAvailable())
 	}
 }
 
@@ -363,68 +270,6 @@ func TestDevicePolicyEnableShellDisableWritesPolicyAndReloadsDaemon(t *testing.T
 	}
 	if policy.GetRemoteShell().GetDetail() != "terminal disabled by local policy" {
 		t.Fatalf("remote shell detail = %q", policy.GetRemoteShell().GetDetail())
-	}
-}
-
-func TestDevicePolicyCheckoutRootAddRemoveWritesPolicyAndReloadsDaemon(t *testing.T) {
-	// Seed the state path and stub the daemon connection.
-	clearStatePathEnv(t)
-	clearSocketPathEnv(t)
-	statePath := t.TempDir()
-	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{Revision: 20}); err != nil {
-		t.Fatalf("seed policy: %v", err)
-	}
-	checkoutPath := filepath.Join(t.TempDir(), "skiffos")
-	var reloads int
-	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
-		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
-		t.Fatal("autostart must not run after successful dial")
-		return nil
-	})
-	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
-		reloads++
-		return nil
-	})
-
-	// Run the checkout-root add command and verify the written policy.
-	if err := runDeviceCLI(t, "device", "policy", "checkout-root", "add", "--state-path", statePath, "--write", "skiffos", checkoutPath); err != nil {
-		t.Fatalf("device policy checkout-root add: %v", err)
-	}
-	policy, err := device_policy.ReadFile(statePath)
-	if err != nil {
-		t.Fatalf("read add policy: %v", err)
-	}
-	if policy.GetRevision() != 21 {
-		t.Fatalf("add revision = %d, want 21", policy.GetRevision())
-	}
-	if len(policy.GetCheckoutRoot()) != 1 {
-		t.Fatalf("checkout roots after add = %d, want 1", len(policy.GetCheckoutRoot()))
-	}
-	root := policy.GetCheckoutRoot()[0]
-	if root.GetName() != "skiffos" || root.GetLocalPath() != filepath.Clean(checkoutPath) {
-		t.Fatalf("checkout root = %v", root)
-	}
-	if root.GetAccess() != s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE {
-		t.Fatalf("checkout root access = %s", root.GetAccess())
-	}
-
-	// Run the checkout-root remove command and verify the written policy.
-	if err := runDeviceCLI(t, "device", "policy", "checkout-root", "remove", "--state-path", statePath, "skiffos"); err != nil {
-		t.Fatalf("device policy checkout-root remove: %v", err)
-	}
-	policy, err = device_policy.ReadFile(statePath)
-	if err != nil {
-		t.Fatalf("read remove policy: %v", err)
-	}
-	if policy.GetRevision() != 22 {
-		t.Fatalf("remove revision = %d, want 22", policy.GetRevision())
-	}
-	if len(policy.GetCheckoutRoot()) != 0 {
-		t.Fatalf("checkout roots after remove = %d, want 0", len(policy.GetCheckoutRoot()))
-	}
-	if reloads != 2 {
-		t.Fatalf("reloads = %d, want 2", reloads)
 	}
 }
 

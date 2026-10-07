@@ -16,6 +16,8 @@ const (
 	TCPPortNodeTypeID = "tcp-port"
 	// LocalPortNodeTypeID selects a Device's local stream listener.
 	LocalPortNodeTypeID = "local-port"
+	// CheckoutRootNodeTypeID selects a checkout root a Device advertises.
+	CheckoutRootNodeTypeID = "checkout-root"
 	// StepNodeTypeID selects a node that runs once per activation.
 	StepNodeTypeID = "step"
 )

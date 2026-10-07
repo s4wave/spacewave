@@ -166,7 +166,8 @@ message DeviceCheckoutRootCapability {
   string name = 1;
   // DisplayPath is a human-readable path or mount label.
   string display_path = 2;
-  // SelectionRef is the durable local policy selector for this root.
+  // SelectionRef is the durable selector for this root: the ID of the
+  // capability that advertises it.
   string selection_ref = 3;
   // Access is the read/write mode currently exposed by the Device policy.
   DeviceCheckoutRootAccess access = 4;

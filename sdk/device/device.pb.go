@@ -591,7 +591,8 @@ type DeviceCheckoutRootCapability struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// DisplayPath is a human-readable path or mount label.
 	DisplayPath string `protobuf:"bytes,2,opt,name=display_path,json=displayPath,proto3" json:"displayPath,omitempty"`
-	// SelectionRef is the durable local policy selector for this root.
+	// SelectionRef is the durable selector for this root: the ID of the
+	// capability that advertises it.
 	SelectionRef string `protobuf:"bytes,3,opt,name=selection_ref,json=selectionRef,proto3" json:"selectionRef,omitempty"`
 	// Access is the read/write mode currently exposed by the Device policy.
 	Access DeviceCheckoutRootAccess `protobuf:"varint,4,opt,name=access,proto3" json:"access,omitempty"`

@@ -12,6 +12,9 @@ type nodeReport struct {
 	// nodeType is the node's resolved type, or nil while the node is not
 	// allowed or no controller supplies the type.
 	nodeType s4wave_flowgraph.FlowgraphNodeType
+	// shown is the capability the node type shows for an accepted node, or nil
+	// to show the default flowgraph-node capability.
+	shown *s4wave_device.DeviceCapability
 	// keys contains the ConfigSet key of each entry the node compiled to.
 	keys []string
 	// err is why the daemon rejects the node.
@@ -21,21 +24,25 @@ type nodeReport struct {
 // capability returns the Device capability that shows the node's state, folded
 // from the state of its entries.
 func (n *nodeReport) capability(applier *configApplier) *s4wave_device.DeviceCapability {
-	// Label the capability with the node type's name, or its ID until the type
-	// resolves.
-	label := n.node.Node.GetTypeId()
-	if n.nodeType != nil {
-		label = n.nodeType.GetDisplayName()
+	// Show the capability the node type supplied, or the default one.
+	capability := n.shown.CloneVT()
+	if capability == nil {
+		// Label the default capability with the node type's name, or its ID
+		// until the type resolves.
+		label := n.node.Node.GetTypeId()
+		if n.nodeType != nil {
+			label = n.nodeType.GetDisplayName()
+		}
+		capability = &s4wave_device.DeviceCapability{
+			Kind:  s4wave_device.DeviceCapabilityKindFlowgraphNode,
+			Label: label + " " + n.node.NodeID,
+			Link: &s4wave_device.DeviceCapabilityLink{
+				ObjectKey: n.node.FlowgraphKey,
+				TypeId:    s4wave_flowgraph.FlowgraphTypeID,
+			},
+		}
 	}
-	capability := &s4wave_device.DeviceCapability{
-		Id:    s4wave_device.DeviceCapabilityKindFlowgraphNode + "/" + n.node.FlowgraphKey + "/" + n.node.NodeID,
-		Kind:  s4wave_device.DeviceCapabilityKindFlowgraphNode,
-		Label: label + " " + n.node.NodeID,
-		Link: &s4wave_device.DeviceCapabilityLink{
-			ObjectKey: n.node.FlowgraphKey,
-			TypeId:    s4wave_flowgraph.FlowgraphTypeID,
-		},
-	}
+	capability.Id = n.node.CapabilityID()
 	capability.State, capability.Detail = n.state(applier)
 	return capability
 }

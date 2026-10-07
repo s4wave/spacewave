@@ -18,13 +18,13 @@ import (
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	devicePolicyRemoteShellCapabilityID   = "remote-shell"
 	devicePolicyRemoteShellCapabilityKind = "remote-shell"
-	devicePolicyCheckoutRootIDPrefix      = "checkout-root-"
 	devicePolicyForgeWorkerCapabilityID   = "forge-worker"
 	devicePolicyRefPrefix                 = "device-policy/"
 )
@@ -228,7 +228,7 @@ func computeDevicePolicyCapabilities(
 	// stay last in their existing order.
 	existingByID := make(map[string]*s4wave_device.DeviceCapability, len(existing))
 	var nodes []*s4wave_device.DeviceCapability
-	out := make([]*s4wave_device.DeviceCapability, 0, len(existing)+len(policy.GetCheckoutRoot())+1)
+	out := make([]*s4wave_device.DeviceCapability, 0, len(existing)+2)
 	for _, cap := range existing {
 		if cap == nil {
 			continue
@@ -238,7 +238,7 @@ func computeDevicePolicyCapabilities(
 		switch {
 		case isDevicePolicyCapabilityID(id):
 			// The policy recomputes its own capabilities below.
-		case cap.GetKind() == s4wave_device.DeviceCapabilityKindFlowgraphNode:
+		case s4wave_flowgraph.IsNodeCapabilityID(id):
 			nodes = append(nodes, cap.CloneVT())
 		default:
 			out = append(out, cap.CloneVT())
@@ -246,13 +246,6 @@ func computeDevicePolicyCapabilities(
 	}
 	if policy.GetRemoteShell().GetEnabled() {
 		out = append(out, computeRemoteShellCapability(policy, existingByID[devicePolicyRemoteShellCapabilityID]))
-	}
-	for _, root := range policy.GetCheckoutRoot() {
-		if root == nil {
-			continue
-		}
-		id := devicePolicyCheckoutRootIDPrefix + strings.TrimSpace(root.GetName())
-		out = append(out, computeCheckoutRootCapability(policy, root, existingByID[id]))
 	}
 	if fw := policy.GetForgeWorker(); fw != nil {
 		out = append(out, computeForgeWorkerCapability(policy, fw, existingByID[devicePolicyForgeWorkerCapabilityID]))
@@ -296,37 +289,6 @@ func computeRemoteShellCapability(
 		Detail: detail,
 		Policy: computeDeviceCapabilityPolicy(policyRef(policy.GetRevision(), "remote-shell"), existing),
 	}
-}
-
-func computeCheckoutRootCapability(
-	policy *device_policy.DevicePolicy,
-	root *device_policy.CheckoutRootPolicy,
-	existing *s4wave_device.DeviceCapability,
-) *s4wave_device.DeviceCapability {
-	// Build the checkout-root capability, keeping an existing link.
-	name := strings.TrimSpace(root.GetName())
-	access := root.GetAccess()
-	state, detail := computeDevicePolicyCapabilityState("", existing)
-	cap := &s4wave_device.DeviceCapability{
-		Id:     devicePolicyCheckoutRootIDPrefix + name,
-		Kind:   s4wave_device.DeviceCapabilityKindFilesystem,
-		Label:  name + " checkout",
-		State:  state,
-		Detail: detail,
-		Policy: computeDeviceCapabilityPolicy(policyRef(policy.GetRevision(), "checkout-root/"+name), existing),
-		CheckoutRoot: &s4wave_device.DeviceCheckoutRootCapability{
-			Name:           name,
-			DisplayPath:    strings.TrimSpace(root.GetLocalPath()),
-			SelectionRef:   policyRef(policy.GetRevision(), "checkout-root/"+name),
-			Access:         access,
-			ReadAvailable:  true,
-			WriteAvailable: access == s4wave_device.DeviceCheckoutRootAccess_DEVICE_CHECKOUT_ROOT_ACCESS_READ_WRITE,
-		},
-	}
-	if existing.GetLink() != nil {
-		cap.Link = existing.GetLink().CloneVT()
-	}
-	return cap
 }
 
 func computeDeviceCapabilityPolicy(localRef string, existing *s4wave_device.DeviceCapability) *s4wave_device.DeviceCapabilityPolicy {
@@ -406,8 +368,7 @@ func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjec
 
 func isDevicePolicyCapabilityID(id string) bool {
 	return id == devicePolicyRemoteShellCapabilityID ||
-		id == devicePolicyForgeWorkerCapabilityID ||
-		strings.HasPrefix(id, devicePolicyCheckoutRootIDPrefix)
+		id == devicePolicyForgeWorkerCapabilityID
 }
 
 func policyRef(revision uint64, suffix string) string {

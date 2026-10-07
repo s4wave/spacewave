@@ -508,7 +508,8 @@ export interface DeviceCheckoutRootCapability {
    */
   displayPath?: string
   /**
-   * SelectionRef is the durable local policy selector for this root.
+   * SelectionRef is the durable selector for this root: the ID of the
+   * capability that advertises it.
    *
    * @generated from field: string selection_ref = 3;
    */

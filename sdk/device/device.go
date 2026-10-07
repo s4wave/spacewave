@@ -179,6 +179,13 @@ func DeviceCapabilityPolicyAllowsWrite(cap *DeviceCapability) bool {
 		policy.GetGrantState() == DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED
 }
 
+// ClaimKey returns the key under which a Device keeps one capability: its kind,
+// and for a checkout root its name. Selectors match the capability by this key,
+// so two capabilities with the same key cannot both be selected.
+func (c *DeviceCapability) ClaimKey() string {
+	return c.GetKind() + "/" + c.GetCheckoutRoot().GetName()
+}
+
 // HasSelectableCapabilityKind reports whether the Device exposes a selectable
 // capability of the requested kind.
 func (d *Device) HasSelectableCapabilityKind(kind string) bool {

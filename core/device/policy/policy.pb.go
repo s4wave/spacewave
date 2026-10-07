@@ -11,7 +11,6 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	device "github.com/s4wave/spacewave/sdk/device"
 )
 
 // DevicePolicy is the daemon-local policy that controls Device capabilities.
@@ -21,14 +20,12 @@ type DevicePolicy struct {
 	Revision uint64 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
 	// RemoteShell controls remote-shell OPEN authorization.
 	RemoteShell *RemoteShellPolicy `protobuf:"bytes,2,opt,name=remote_shell,json=remoteShell,proto3" json:"remoteShell,omitempty"`
-	// CheckoutRoot declares locally available checkout roots.
-	CheckoutRoot []*CheckoutRootPolicy `protobuf:"bytes,3,rep,name=checkout_root,json=checkoutRoot,proto3" json:"checkoutRoot,omitempty"`
 	// ForgeWorker declares the local Forge Worker capacity envelope. Absent
 	// means this daemon exposes no Forge Worker execution capacity.
-	ForgeWorker *ForgeWorkerPolicy `protobuf:"bytes,4,opt,name=forge_worker,json=forgeWorker,proto3" json:"forgeWorker,omitempty"`
+	ForgeWorker *ForgeWorkerPolicy `protobuf:"bytes,3,opt,name=forge_worker,json=forgeWorker,proto3" json:"forgeWorker,omitempty"`
 	// NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
 	// A node whose type is absent from the list is rejected.
-	NodeTypeId []string `protobuf:"bytes,5,rep,name=node_type_id,json=nodeTypeId,proto3" json:"nodeTypeId,omitempty"`
+	NodeTypeId []string `protobuf:"bytes,4,rep,name=node_type_id,json=nodeTypeId,proto3" json:"nodeTypeId,omitempty"`
 }
 
 func (x *DevicePolicy) Reset() {
@@ -47,13 +44,6 @@ func (x *DevicePolicy) GetRevision() uint64 {
 func (x *DevicePolicy) GetRemoteShell() *RemoteShellPolicy {
 	if x != nil {
 		return x.RemoteShell
-	}
-	return nil
-}
-
-func (x *DevicePolicy) GetCheckoutRoot() []*CheckoutRootPolicy {
-	if x != nil {
-		return x.CheckoutRoot
 	}
 	return nil
 }
@@ -148,44 +138,6 @@ func (x *RemoteShellPolicy) GetDetail() string {
 	return ""
 }
 
-// CheckoutRootPolicy declares one local checkout root exposed by this Device.
-type CheckoutRootPolicy struct {
-	unknownFields []byte
-	// Name is the stable checkout-root selector.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// LocalPath is the daemon-local filesystem path.
-	LocalPath string `protobuf:"bytes,2,opt,name=local_path,json=localPath,proto3" json:"localPath,omitempty"`
-	// Access is the read/write mode exposed by the Device.
-	Access device.DeviceCheckoutRootAccess `protobuf:"varint,3,opt,name=access,proto3" json:"access,omitempty"`
-}
-
-func (x *CheckoutRootPolicy) Reset() {
-	*x = CheckoutRootPolicy{}
-}
-
-func (*CheckoutRootPolicy) ProtoMessage() {}
-
-func (x *CheckoutRootPolicy) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *CheckoutRootPolicy) GetLocalPath() string {
-	if x != nil {
-		return x.LocalPath
-	}
-	return ""
-}
-
-func (x *CheckoutRootPolicy) GetAccess() device.DeviceCheckoutRootAccess {
-	if x != nil {
-		return x.Access
-	}
-	return device.DeviceCheckoutRootAccess(0)
-}
-
 func (m *DevicePolicy) CloneVT() *DevicePolicy {
 	if m == nil {
 		return (*DevicePolicy)(nil)
@@ -193,7 +145,6 @@ func (m *DevicePolicy) CloneVT() *DevicePolicy {
 	r := new(DevicePolicy)
 	r.Revision = m.Revision
 	r.RemoteShell = protobuf_go_lite.CloneVTValue(m.RemoteShell)
-	r.CheckoutRoot = protobuf_go_lite.CloneVTSlice(m.CheckoutRoot)
 	r.ForgeWorker = protobuf_go_lite.CloneVTValue(m.ForgeWorker)
 	r.NodeTypeId = protobuf_go_lite.CloneSlice(m.NodeTypeId)
 	if len(m.unknownFields) > 0 {
@@ -242,24 +193,6 @@ func (m *RemoteShellPolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *CheckoutRootPolicy) CloneVT() *CheckoutRootPolicy {
-	if m == nil {
-		return (*CheckoutRootPolicy)(nil)
-	}
-	r := new(CheckoutRootPolicy)
-	r.Name = m.Name
-	r.LocalPath = m.LocalPath
-	r.Access = m.Access
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *CheckoutRootPolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (this *DevicePolicy) EqualVT(that *DevicePolicy) bool {
 	if this == that {
 		return true
@@ -270,9 +203,6 @@ func (this *DevicePolicy) EqualVT(that *DevicePolicy) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.RemoteShell, that.RemoteShell) {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.CheckoutRoot, that.CheckoutRoot, func() *CheckoutRootPolicy { return &CheckoutRootPolicy{} }) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.ForgeWorker, that.ForgeWorker) {
@@ -344,32 +274,6 @@ func (this *RemoteShellPolicy) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *CheckoutRootPolicy) EqualVT(that *CheckoutRootPolicy) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Name != that.Name {
-		return false
-	}
-	if this.LocalPath != that.LocalPath {
-		return false
-	}
-	if this.Access != that.Access {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *CheckoutRootPolicy) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*CheckoutRootPolicy)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 // MarshalProtoJSON marshals the DevicePolicy message to JSON.
 func (x *DevicePolicy) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -387,17 +291,6 @@ func (x *DevicePolicy) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("remoteShell")
 		x.RemoteShell.MarshalProtoJSON(s.WithField("remoteShell"))
-	}
-	if len(x.CheckoutRoot) > 0 || s.HasField("checkoutRoot") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("checkoutRoot")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.CheckoutRoot {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("checkoutRoot"))
-		}
-		s.WriteArrayEnd()
 	}
 	if x.ForgeWorker != nil || s.HasField("forgeWorker") {
 		s.WriteMoreIf(&wroteField)
@@ -436,24 +329,6 @@ func (x *DevicePolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RemoteShell = &RemoteShellPolicy{}
 			x.RemoteShell.UnmarshalProtoJSON(s.WithField("remote_shell", true))
-		case "checkout_root", "checkoutRoot":
-			s.AddField("checkout_root")
-			if s.ReadNil() {
-				x.CheckoutRoot = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.CheckoutRoot = append(x.CheckoutRoot, nil)
-					return
-				}
-				v := &CheckoutRootPolicy{}
-				v.UnmarshalProtoJSON(s.WithField("checkout_root", false))
-				if s.Err() != nil {
-					return
-				}
-				x.CheckoutRoot = append(x.CheckoutRoot, v)
-			})
 		case "forge_worker", "forgeWorker":
 			if s.ReadNil() {
 				x.ForgeWorker = nil
@@ -597,64 +472,6 @@ func (x *RemoteShellPolicy) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the CheckoutRootPolicy message to JSON.
-func (x *CheckoutRootPolicy) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Name != "" || s.HasField("name") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("name")
-		s.WriteString(x.Name)
-	}
-	if x.LocalPath != "" || s.HasField("localPath") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("localPath")
-		s.WriteString(x.LocalPath)
-	}
-	if x.Access != 0 || s.HasField("access") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("access")
-		x.Access.MarshalProtoJSON(s)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the CheckoutRootPolicy to JSON.
-func (x *CheckoutRootPolicy) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the CheckoutRootPolicy message from JSON.
-func (x *CheckoutRootPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "name":
-			s.AddField("name")
-			x.Name = s.ReadString()
-		case "local_path", "localPath":
-			s.AddField("local_path")
-			x.LocalPath = s.ReadString()
-		case "access":
-			s.AddField("access")
-			x.Access.UnmarshalProtoJSON(s)
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the CheckoutRootPolicy from JSON.
-func (x *CheckoutRootPolicy) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 func (m *DevicePolicy) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -688,7 +505,7 @@ func (m *DevicePolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		for iNdEx := len(m.NodeTypeId) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.NodeTypeId[iNdEx])
 			i--
-			dAtA[i] = 0x2a
+			dAtA[i] = 0x22
 		}
 	}
 	if m.ForgeWorker != nil {
@@ -699,19 +516,7 @@ func (m *DevicePolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x22
-	}
-	if len(m.CheckoutRoot) > 0 {
-		for iNdEx := len(m.CheckoutRoot) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.CheckoutRoot[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x1a
-		}
+		dAtA[i] = 0x1a
 	}
 	if m.RemoteShell != nil {
 		size, err := m.RemoteShell.MarshalToSizedBufferVT(dAtA[:i])
@@ -827,53 +632,6 @@ func (m *RemoteShellPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *CheckoutRootPolicy) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *CheckoutRootPolicy) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *CheckoutRootPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.Access != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Access))
-		i--
-		dAtA[i] = 0x18
-	}
-	if len(m.LocalPath) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.LocalPath)
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Name) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *DevicePolicy) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -883,10 +641,6 @@ func (m *DevicePolicy) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Revision)
 	if m.RemoteShell != nil {
 		l = m.RemoteShell.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	for _, e := range m.CheckoutRoot {
-		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	if m.ForgeWorker != nil {
@@ -924,19 +678,6 @@ func (m *RemoteShellPolicy) SizeVT() (n int) {
 	return n
 }
 
-func (m *CheckoutRootPolicy) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Name)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LocalPath)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Access)
-	n += len(m.unknownFields)
-	return n
-}
-
 func (x *DevicePolicy) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DevicePolicy")
@@ -947,18 +688,6 @@ func (x *DevicePolicy) MarshalProtoText() string {
 	if x.RemoteShell != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "remote_shell")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RemoteShell)
-	}
-	if len(x.CheckoutRoot) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "checkout_root")
-		for i, v := range x.CheckoutRoot {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &CheckoutRootPolicy{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	if x.ForgeWorker != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "forge_worker")
@@ -1027,28 +756,6 @@ func (x *RemoteShellPolicy) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *CheckoutRootPolicy) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CheckoutRootPolicy")
-	if x.Name != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "name")
-		protobuf_go_lite.TextWriteString(&sb, x.Name)
-	}
-	if x.LocalPath != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "local_path")
-		protobuf_go_lite.TextWriteString(&sb, x.LocalPath)
-	}
-	if x.Access != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "access")
-		protobuf_go_lite.TextWriteStringer(&sb, device.DeviceCheckoutRootAccess(x.Access))
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *CheckoutRootPolicy) String() string {
-	return x.MarshalProtoText()
-}
-
 func (m *DevicePolicy) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1095,19 +802,6 @@ func (m *DevicePolicy) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CheckoutRoot", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.CheckoutRoot = append(m.CheckoutRoot, &CheckoutRootPolicy{})
-			if err := m.CheckoutRoot[len(m.CheckoutRoot)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ForgeWorker", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
@@ -1121,7 +815,7 @@ func (m *DevicePolicy) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 5:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NodeTypeId", wireType)
 			}
@@ -1275,80 +969,6 @@ func (m *RemoteShellPolicy) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Detail = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *CheckoutRootPolicy) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: CheckoutRootPolicy: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: CheckoutRootPolicy: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Name = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LocalPath", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.LocalPath = v
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Access", wireType)
-			}
-			m.Access = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Access = device.DeviceCheckoutRootAccess(_v)
-			if err != nil {
-				return err
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

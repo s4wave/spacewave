@@ -190,6 +190,61 @@ func TestReconciler(t *testing.T) {
 		return capabilityState(capabilities, "local-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
 	})
 
+	// Allow the Checkout Root and place three on this Device: one that
+	// advertises the skiffos root, one with a relative path, and one that
+	// repeats the skiffos name.
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
+		NodeTypeId: []string{s4wave_flowgraph.LocalPortNodeTypeID, s4wave_flowgraph.CheckoutRootNodeTypeID},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := policy.Reload(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Place the roots.
+	commit(t, ctx, engine, func(tx world.Tx) error {
+		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
+			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
+				"root-a":        checkoutRootNode("skiffos", "/srv/skiffos", "read-write"),
+				"root-b":        checkoutRootNode("skiffos", "/srv/other", "read-only"),
+				"root-relative": checkoutRootNode("relative", "srv/relative", "read-only"),
+			},
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
+				"root-a":        devicePlacement(testSelfKey),
+				"root-b":        devicePlacement(testSelfKey),
+				"root-relative": devicePlacement(testSelfKey),
+			},
+		})
+		return err
+	})
+
+	// Require the first root to show as available, and the others as rejected.
+	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilityState(capabilities, "root-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE &&
+			capabilityState(capabilities, "root-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
+			capabilityState(capabilities, "root-relative") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+	})
+	rootCap := capabilities[capabilityID("root-a")]
+	if rootCap.GetKind() != s4wave_device.DeviceCapabilityKindFilesystem {
+		t.Fatalf("checkout root capability kind = %q, want %q", rootCap.GetKind(), s4wave_device.DeviceCapabilityKindFilesystem)
+	}
+	if detail := capabilities[capabilityID("root-b")].GetDetail(); !strings.Contains(detail, testFlowgraphKey+"/root-a") {
+		t.Fatalf("duplicate root detail %q does not name the node that keeps the root", detail)
+	}
+
+	// Require the Device to select only the root that is available.
+	device := &s4wave_device.Device{}
+	for _, capability := range capabilities {
+		device.Capabilities = append(device.Capabilities, capability)
+	}
+	if root := device.FindSelectableCheckoutRoot("skiffos"); root.GetId() != capabilityID("root-a") {
+		t.Fatalf("selectable skiffos root = %v, want the capability of root-a", root)
+	}
+	if root := device.FindSelectableCheckoutRoot("relative"); root != nil {
+		t.Fatalf("selectable relative root = %v, want none", root)
+	}
+
 	// Stop the Reconciler and require it to release the daemon.
 	stop()
 	if err := <-runErr; err != nil {
@@ -245,6 +300,14 @@ func portNode(typeID, address string, direction s4wave_flowgraph.FlowgraphPortDi
 	}
 }
 
+// checkoutRootNode returns a Checkout Root node.
+func checkoutRootNode(name, path, access string) *s4wave_flowgraph.FlowgraphNode {
+	return &s4wave_flowgraph.FlowgraphNode{
+		TypeId:     s4wave_flowgraph.CheckoutRootNodeTypeID,
+		Parameters: map[string]string{"name": name, "path": path, "access": access},
+	}
+}
+
 // devicePlacement returns a placement on the Device at key.
 func devicePlacement(key string) *s4wave_flowgraph.FlowgraphPlacement {
 	return &s4wave_flowgraph.FlowgraphPlacement{
@@ -297,7 +360,7 @@ func waitCapabilities(
 
 		capabilities := make(map[string]*s4wave_device.DeviceCapability)
 		for _, capability := range device.GetCapabilities() {
-			if capability.GetKind() == s4wave_device.DeviceCapabilityKindFlowgraphNode {
+			if s4wave_flowgraph.IsNodeCapabilityID(capability.GetId()) {
 				capabilities[capability.GetId()] = capability
 			}
 		}
