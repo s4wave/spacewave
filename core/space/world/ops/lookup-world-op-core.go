@@ -16,10 +16,12 @@ import (
 	identity_world "github.com/s4wave/spacewave/identity/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
 )
 
+// lookupCoreWorldOp resolves operations shared by native and GoScript Spaces.
 func lookupCoreWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	return world.LookupOpSlice([]world.LookupOp{
 		unixfs_world.LookupFsOp,
@@ -39,6 +41,7 @@ func lookupCoreWorldOp(ctx context.Context, opTypeID string) (world.Operation, e
 		spacewave_chat.LookupSendChatMessageOp,
 		spacewave_chat.LookupUpdateChatReadPositionOp,
 		s4wave_device.LookupCreateComputersDashboardOp,
+		s4wave_flowgraph.LookupCreateFlowgraphOp,
 		s4wave_terminal.LookupCreateTerminalOp,
 		forge_world.LookupWorldOp,
 		forge_dashboard.LookupCreateForgeDashboardOp,

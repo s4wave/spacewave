@@ -1,0 +1,171 @@
+syntax = "proto3";
+package s4wave.flowgraph;
+
+import "github.com/s4wave/spacewave/forge/target/target.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/flowgraph;s4wave_flowgraph";
+
+// Flowgraph holds an authored composition of Device nodes and Steps.
+message Flowgraph {
+  // Name is the display name of this graph.
+  string name = 1;
+  // Nodes contains nodes keyed by their graph-local ID.
+  map<string, FlowgraphNode> nodes = 2;
+  // Connections contains connections keyed by their graph-local ID.
+  map<string, FlowgraphConnection> connections = 3;
+}
+
+// FlowgraphNode holds the authored settings and ports of one node.
+message FlowgraphNode {
+  // TypeId selects the node type supplied by a core or plugin controller.
+  string type_id = 1;
+  // Parameters contains named settings interpreted by the node type.
+  map<string, string> parameters = 2;
+  // Ports declares the node's inputs and outputs.
+  repeated FlowgraphPort ports = 3;
+  // Step holds instructions for a node that runs once per activation.
+  FlowgraphStep step = 4;
+}
+
+// FlowgraphPortDirection selects the end of a directed connection.
+enum FlowgraphPortDirection {
+  // FLOWGRAPH_PORT_DIRECTION_UNKNOWN is unset.
+  FLOWGRAPH_PORT_DIRECTION_UNKNOWN = 0;
+  // FLOWGRAPH_PORT_DIRECTION_INPUT accepts data or an activation.
+  FLOWGRAPH_PORT_DIRECTION_INPUT = 1;
+  // FLOWGRAPH_PORT_DIRECTION_OUTPUT supplies data or routes an activation.
+  FLOWGRAPH_PORT_DIRECTION_OUTPUT = 2;
+}
+
+// FlowgraphPort declares a node-local connection endpoint.
+message FlowgraphPort {
+  // Name is unique among this node's ports.
+  string name = 1;
+  // Direction selects input or output.
+  FlowgraphPortDirection direction = 2;
+  // TypeId is the data contract of the port, such as stream or activation.
+  string type_id = 3;
+  // Condition states when an activation takes this Step output.
+  string condition = 4;
+}
+
+// FlowgraphStep holds the instructions for an actor or code Step.
+message FlowgraphStep {
+  // Prompt contains the actor's instructions.
+  string prompt = 1;
+  // Skills lists the skills the actor may invoke.
+  repeated FlowgraphSkill skills = 2;
+  // Target contains the execution definition for a code Step.
+  .forge.target.Target target = 3;
+}
+
+// FlowgraphSkill declares an allowed skill invocation.
+message FlowgraphSkill {
+  // Name selects the skill.
+  string name = 1;
+  // Parameters contains the invocation's named settings.
+  map<string, string> parameters = 2;
+}
+
+// FlowgraphConnection connects an output to an input within the graph.
+message FlowgraphConnection {
+  // OutputNode is the graph-local ID of the supplying node.
+  string output_node = 1;
+  // OutputPort is the supplying node's output port name.
+  string output_port = 2;
+  // InputNode is the graph-local ID of the receiving node.
+  string input_node = 3;
+  // InputPort is the receiving node's input port name.
+  string input_port = 4;
+}
+
+// FlowgraphPlacementKind selects the component that runs a node.
+enum FlowgraphPlacementKind {
+  // FLOWGRAPH_PLACEMENT_KIND_UNKNOWN is unset.
+  FLOWGRAPH_PLACEMENT_KIND_UNKNOWN = 0;
+  // FLOWGRAPH_PLACEMENT_KIND_DEVICE places a standing node on a Device.
+  FLOWGRAPH_PLACEMENT_KIND_DEVICE = 1;
+  // FLOWGRAPH_PLACEMENT_KIND_ACTOR places a Step on an actor.
+  FLOWGRAPH_PLACEMENT_KIND_ACTOR = 2;
+}
+
+// FlowgraphPlacement is a command or readback of a placement graph edge.
+message FlowgraphPlacement {
+  // Kind selects the Device or actor placement predicate.
+  FlowgraphPlacementKind kind = 1;
+  // ObjectKey is the edge's destination, supplied to or read from the graph.
+  // This message is never stored in the Flowgraph body.
+  string object_key = 2;
+}
+
+// FlowgraphSnapshot reads authored state and its placement edges together.
+message FlowgraphSnapshot {
+  // State is the authored object body.
+  Flowgraph state = 1;
+  // Placements contains placement edges keyed by node ID.
+  map<string, FlowgraphPlacement> placements = 2;
+  // Revision is the object's revision observed by this read.
+  uint64 revision = 3;
+}
+
+// CreateFlowgraphOp creates one independently addressed Flowgraph.
+message CreateFlowgraphOp {
+  // ObjectKey is the new Flowgraph's identity, of the form flowgraph/<id>.
+  string object_key = 1;
+  // Name is the graph's display name.
+  string name = 2;
+}
+
+// FlowgraphResourceService reads and edits an authored graph.
+service FlowgraphResourceService {
+  // GetFlowgraph reads the current body and placement edges.
+  rpc GetFlowgraph(GetFlowgraphRequest) returns (GetFlowgraphResponse);
+  // UpdateFlowgraph applies one authored change atomically.
+  rpc UpdateFlowgraph(UpdateFlowgraphRequest) returns (UpdateFlowgraphResponse);
+  // WatchFlowgraph streams committed body and placement changes.
+  rpc WatchFlowgraph(WatchFlowgraphRequest) returns (stream WatchFlowgraphResponse);
+}
+
+// GetFlowgraphRequest reads the mounted graph.
+message GetFlowgraphRequest {
+}
+
+// GetFlowgraphResponse contains the current graph snapshot.
+message GetFlowgraphResponse {
+  // Snapshot is the graph at the observed revision.
+  FlowgraphSnapshot snapshot = 1;
+}
+
+// UpdateFlowgraphRequest edits nodes, connections, and placement edges.
+message UpdateFlowgraphRequest {
+  // Name replaces the display name when set.
+  optional string name = 1;
+  // SetNodes adds or replaces nodes by ID.
+  map<string, FlowgraphNode> set_nodes = 2;
+  // RemoveNodeIds removes nodes, their placements, and their connections.
+  repeated string remove_node_ids = 3;
+  // SetConnections adds or replaces connections by ID.
+  map<string, FlowgraphConnection> set_connections = 4;
+  // RemoveConnectionIds removes connections by ID.
+  repeated string remove_connection_ids = 5;
+  // SetPlacements adds or replaces placement edges by node ID.
+  map<string, FlowgraphPlacement> set_placements = 6;
+  // RemovePlacementNodeIds removes placement edges without deleting the nodes.
+  repeated string remove_placement_node_ids = 7;
+}
+
+// UpdateFlowgraphResponse contains the committed authored result.
+message UpdateFlowgraphResponse {
+  // Snapshot is the graph at this change's revision.
+  FlowgraphSnapshot snapshot = 1;
+}
+
+// WatchFlowgraphRequest watches the mounted graph.
+message WatchFlowgraphRequest {
+}
+
+// WatchFlowgraphResponse contains one committed graph snapshot.
+message WatchFlowgraphResponse {
+  // Snapshot is the graph at the observed revision.
+  FlowgraphSnapshot snapshot = 1;
+}

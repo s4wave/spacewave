@@ -17,6 +17,7 @@ import (
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
+	s4wave_flowgraph_world "github.com/s4wave/spacewave/sdk/flowgraph/world"
 	s4wave_forge_world "github.com/s4wave/spacewave/sdk/forge/world"
 	s4wave_git_world "github.com/s4wave/spacewave/sdk/git/world"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
@@ -40,6 +41,7 @@ var commonObjectTypes = map[string]objecttype.ObjectType{
 	s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,
 	s4wave_git_world.GitRepoTypeID:         s4wave_git_world.GitRepoType,
 	s4wave_canvas_world.CanvasTypeID:       s4wave_canvas_world.CanvasType,
+	s4wave_flowgraph_world.FlowgraphTypeID: s4wave_flowgraph_world.FlowgraphType,
 	s4wave_git_world.GitWorktreeTypeID:     s4wave_git_world.GitWorktreeType,
 	s4wave_kv_world.KvStoreTypeID:          s4wave_kv_world.KvStoreType,
 	forge_cluster.ClusterTypeID:            s4wave_forge_world.ClusterType,

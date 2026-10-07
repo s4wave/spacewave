@@ -16,6 +16,7 @@ import (
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_device_world "github.com/s4wave/spacewave/sdk/device/world"
+	s4wave_flowgraph_world "github.com/s4wave/spacewave/sdk/flowgraph/world"
 	s4wave_forge_world "github.com/s4wave/spacewave/sdk/forge/world"
 	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 	s4wave_org "github.com/s4wave/spacewave/sdk/org"
@@ -31,10 +32,12 @@ import (
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
+// commonObjectTypes exposes built-in types in TinyGo Spaces.
 var commonObjectTypes = map[string]objecttype.ObjectType{
 	s4wave_layout_world.ObjectLayoutTypeID: s4wave_layout_world.ObjectLayoutType,
 	s4wave_unixfs_world.UnixFSTypeID:       s4wave_unixfs_world.UnixFSType,
 	s4wave_canvas_world.CanvasTypeID:       s4wave_canvas_world.CanvasType,
+	s4wave_flowgraph_world.FlowgraphTypeID: s4wave_flowgraph_world.FlowgraphType,
 	forge_cluster.ClusterTypeID:            s4wave_forge_world.ClusterType,
 	forge_job.JobTypeID:                    s4wave_forge_world.JobType,
 	forge_task.TaskTypeID:                  s4wave_forge_world.TaskType,

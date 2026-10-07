@@ -43,6 +43,8 @@ import "embed"
 //go:embed sdk/debugdb/debugdb_srpc.pb.ts sdk/deploy/deploy.pb.ts
 //go:embed sdk/device/computers/create-computers-dashboard.ts sdk/device/device.pb.ts sdk/device/device.ts
 //go:embed sdk/device/device_srpc.pb.ts sdk/forge/dashboard/create-forge-dashboard.ts sdk/forge/execution.ts
+//go:embed sdk/flowgraph/flowgraph.ts sdk/flowgraph/index.ts sdk/flowgraph/*.pb.ts
+//go:embed forge/target/target.pb.ts forge/value/value.pb.ts
 //go:embed sdk/forge/dashboard/init-forge-quickstart.ts sdk/forge/watch.ts sdk/kv/index.ts sdk/kv/kv.ts sdk/layout/layout-host.ts
 //go:embed sdk/layout/layout.pb.ts sdk/layout/layout.ts sdk/layout/layout_srpc.pb.ts
 //go:embed sdk/layout/world/object-layout.ts sdk/layout/world/world.pb.ts
