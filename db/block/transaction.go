@@ -56,8 +56,7 @@ type Transaction struct {
 	bufferedStoreSettings *BufferedStoreSettings
 	// decodedBlocks is borrowed from the owning object lifecycle.
 	decodedBlocks *DecodedBlockCache
-	// readOnly rejects writes, so cursors may share immutable decoded blocks
-	// with the decoded-block cache instead of cloning them.
+	// readOnly rejects writes.
 	readOnly atomic.Bool
 	// stagedStore buffers content-addressed sub-tree blocks until a write drains
 	// them before the root that references them.
@@ -199,21 +198,21 @@ func (t *Transaction) SetDecodedBlockCache(cache *DecodedBlockCache) {
 	t.mtx.Unlock()
 }
 
-// SetReadOnly marks the transaction read-only before its first read. Write and
-// WriteAtRoot then fail with tx.ErrNotWrite, and decoded blocks that implement
-// DecodedBlockShareable are shared with the decoded-block cache uncloned, so
-// callers must clone such a block before giving it to another transaction.
-// Detached transactions that share its blocks inherit the mark.
+// SetReadOnly marks the transaction read-only. Write and WriteAtRoot then fail
+// with tx.ErrNotWrite, and sub-blocks of shared decoded blocks are followed
+// without a private copy. Detached transactions that share its blocks inherit
+// the mark.
 func (t *Transaction) SetReadOnly() {
 	if t != nil {
 		t.readOnly.Store(true)
 	}
 }
 
-// sharesDecodedBlock reports whether blk may be a cached instance shared with
-// other readers of this transaction's decoded-block cache.
+// sharesDecodedBlock reports whether the transaction takes blk from its
+// decoded-block cache without a clone. The cursor position records the shared
+// instance and copies it before changing it in place.
 func (t *Transaction) sharesDecodedBlock(blk any) bool {
-	if t == nil || !t.readOnly.Load() {
+	if t == nil {
 		return false
 	}
 	_, ok := blk.(DecodedBlockShareable)
@@ -554,6 +553,10 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			blkRef := bn.ref
 			if bn.blk != nil && !bn.moved {
 				blkRef = nil
+				if err := bn.ownBlock(); err != nil {
+					handleErr(err)
+					return
+				}
 				bnpw, bnpwOk := bn.blk.(BlockWithPreWriteHook)
 				if bnpwOk {
 					if err := bnpw.BlockPreWriteHook(); err != nil {
@@ -642,11 +645,16 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 			mtx.Lock()
 			defer mtx.Unlock()
 			for _, ref := range bn.parents {
+				// Copy a shared parent before applying the new reference.
+				if err := ref.src.ownBlock(); err != nil {
+					handleErr(err)
+					return
+				}
 				sblk := ref.src.blk
 				switch {
 				case !bn.isSubBlock:
 					if clearTree {
-						bn.blk = nil // retain root block only
+						bn.blk, bn.shared = nil, false // retain root block only
 					}
 					sblkWithRefs, _ := sblk.(BlockWithRefs)
 					if sblkWithRefs != nil {
@@ -738,7 +746,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	if clearTree && subRoot == nil {
 		_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/cleanup-unreachable")
 		for _, bn := range unreachableNodes {
-			bn.blk = nil
+			bn.blk, bn.shared = nil, false
 			bn.ref = nil
 			t.blockGraph.RemoveNode(bn.ID())
 		}

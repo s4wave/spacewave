@@ -5,8 +5,6 @@ import (
 	"context"
 	"errors"
 	"runtime/trace"
-
-	"github.com/s4wave/spacewave/db/tx"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated
@@ -261,6 +259,7 @@ func (c *Cursor) SetRefAtCursor(ref *BlockRef, clearBlock bool) {
 	if dirty {
 		if clearBlock {
 			c.pos.blk = nil
+			c.pos.shared = false
 			c.pos.blkPreWrite = nil
 		}
 		c.markDirty()
@@ -439,10 +438,23 @@ func (c *Cursor) followSubBlock(refID uint32) *Cursor {
 		return nil
 	}
 
+	// A writer may change the sub-block in place, so it gets a private copy
+	// of a sub-block inside a shared block.
+	shared := c.pos.shared
+	if shared && (c.t == nil || !c.t.readOnly.Load()) {
+		cloned, err := CloneBlock(sbBlk)
+		sbBlk, _ = cloned.(SubBlock)
+		if err != nil || sbBlk == nil {
+			return nil
+		}
+		shared = false
+	}
+
 	// Attach the loaded sub-block position to its parent cursor.
 	blkHandle := &handle{
 		isSubBlock: true,
 		blk:        sbBlk,
+		shared:     shared,
 	}
 	if c.t != nil {
 		blkHandle.Node = c.t.blockGraph.NewNode()
@@ -481,15 +493,15 @@ func (c *Cursor) SetAsSubBlock(refID uint32, parent *Cursor) error {
 		return ErrNilBlock
 	}
 
-	// Require a parent that accepts the child as a sub-block and is not
-	// shared with other readers.
-	parentBlkWithSubBlocks, ok := parent.pos.blk.(BlockWithSubBlocks)
-	if !ok {
+	// Require a parent that accepts the child as a sub-block, copying a
+	// shared parent before changing it.
+	if _, ok := parent.pos.blk.(BlockWithSubBlocks); !ok {
 		return ErrNotBlockWithSubBlocks
 	}
-	if c.t.sharesDecodedBlock(parent.pos.blk) {
-		return tx.ErrNotWrite
+	if err := parent.pos.ownBlock(); err != nil {
+		return err
 	}
+	parentBlkWithSubBlocks := parent.pos.blk.(BlockWithSubBlocks)
 	subBlk, ok := c.pos.blk.(SubBlock)
 	if !ok {
 		return ErrNotSubBlock
@@ -681,7 +693,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	}
 
 	// Identify the block cache entry using its concrete decoded type. A
-	// read-only transaction shares immutable cached blocks without a clone.
+	// shareable block comes from the cache without a clone.
 	ctx = c.decodedBlockCacheContext(ctx)
 	cacheKey, cacheable := decodedBlockCacheKeyFor(c.pos.ref, b, c.transformer())
 	if !cacheable {
@@ -705,7 +717,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 			return nil, err
 		}
 		if ok {
-			return c.setUnmarshaledBlock(cached)
+			return c.setUnmarshaledBlock(cached, share)
 		}
 	}
 
@@ -739,7 +751,7 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 		}
 	}
 
-	return c.setUnmarshaledBlock(b)
+	return c.setUnmarshaledBlock(b, share)
 }
 
 // readStore returns the read-scoped store from the context, falling back
@@ -787,8 +799,9 @@ func (c *Cursor) transformer() Transformer {
 }
 
 // setUnmarshaledBlock caches the unmarshaled block on the cursor
-// position, deduplicating concurrent unmarshal calls.
-func (c *Cursor) setUnmarshaledBlock(b Block) (Block, error) {
+// position, deduplicating concurrent unmarshal calls. shared marks b as a
+// decoded-block cache instance.
+func (c *Cursor) setUnmarshaledBlock(b Block, shared bool) (Block, error) {
 	// Retain one decoded block per position under the transaction lock.
 	var err error
 	if c.t != nil {
@@ -798,7 +811,7 @@ func (c *Cursor) setUnmarshaledBlock(b Block) (Block, error) {
 		// fixes race condition of two Unmarshal calls happen simultaneously.
 		b, err = CastToBlock(c.pos.blk)
 	} else {
-		c.pos.blk = b
+		c.pos.blk, c.pos.shared = b, shared
 	}
 	if c.t != nil {
 		c.t.mtx.Unlock()
@@ -868,7 +881,7 @@ func (c *Cursor) SetBlock(b any, dirty bool) {
 	}
 
 	// Replace the loaded block and invalidate its previous write hook.
-	c.pos.blk = b
+	c.pos.blk, c.pos.shared = b, false
 	c.pos.blkPreWrite = nil
 	if b == nil {
 		c.pos.ref = nil
@@ -1134,9 +1147,10 @@ func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) 
 			}
 			rstk.refHandles[nrh.id] = nrh
 
-			// note: sub-block is not updated here. A read-only transaction
-			// never writes, and its blocks may be shared with other readers.
-			if !nextPos.isSubBlock && (targetCs.t == nil || !targetCs.t.readOnly.Load()) {
+			// Sub-blocks are not updated here. A read-only transaction never
+			// writes, so it skips the update; a writer copies a shared block
+			// before changing it.
+			if !nextPos.isSubBlock && (targetCs.t == nil || !targetCs.t.readOnly.Load()) && rstk.ownBlock() == nil {
 				if rblk, ok := rstk.blk.(BlockWithRefs); ok {
 					// note: ignoring error here
 					_ = rblk.ApplyBlockRef(nrh.id, nextPos.ref)
@@ -1181,7 +1195,7 @@ func (c *Cursor) copyToRecursive(targetCs *Cursor, cloneBlocks, markDirty bool) 
 		// clone block or clear if unable
 		if cloneBlocks {
 			// Recover a copied sub-block from its already copied parent.
-			rstk.blk = nil
+			rstk.blk, rstk.shared = nil, false
 			if nstk.isSubBlock && len(rstk.parents) != 0 {
 				// attempt to re-get the already cloned sub-block
 				pref := rstk.parents[0]

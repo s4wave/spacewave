@@ -12,7 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/tx"
 )
 
-func TestReadOnlyTransactionsShareDecodedPages(t *testing.T) {
+func TestTransactionsShareDecodedPages(t *testing.T) {
 	// Publish a fixture tree deep enough to span several pages.
 	ctx := context.Background()
 	store := newOkraTestStore()
@@ -54,24 +54,27 @@ func TestReadOnlyTransactionsShareDecodedPages(t *testing.T) {
 		return counter.Snapshot(), nil
 	}
 
-	// writeKeys rewrites a slice of keys on the same cache and commits.
-	writeKeys := func(round int) error {
+	// writeKeys rewrites a slice of keys on the same cache and commits. A
+	// writer that changed a shared page in place would corrupt later reads of
+	// the fixture root.
+	writeKeys := func(round int) (block.ReadCounterSnapshot, error) {
 		// Open a writable Okra tree on the shared cache.
+		writeCtx, counter := block.WithReadCounter(ctx)
 		btx, cursor := block.NewTransaction(store, nil, rootRef, nil)
 		btx.SetDecodedBlockCache(cache)
-		okraTx, err := NewTx(ctx, cursor, btx, true, nil)
+		okraTx, err := NewTx(writeCtx, cursor, btx, true, nil)
 		if err != nil {
-			return err
+			return block.ReadCounterSnapshot{}, err
 		}
 
 		// Overwrite every 64th key, then publish the new tree.
 		for i := round; i < len(fixture.keys); i += 64 {
-			if err := okraTx.Set(ctx, fixture.keys[i], []byte("round-"+strconv.Itoa(round))); err != nil {
+			if err := okraTx.Set(writeCtx, fixture.keys[i], []byte("round-"+strconv.Itoa(round))); err != nil {
 				okraTx.Discard()
-				return err
+				return block.ReadCounterSnapshot{}, err
 			}
 		}
-		return okraTx.Commit(ctx)
+		return counter.Snapshot(), okraTx.Commit(writeCtx)
 	}
 
 	// Warm the cache with one read so later readers hit shared pages.
@@ -89,7 +92,8 @@ func TestReadOnlyTransactionsShareDecodedPages(t *testing.T) {
 			errs <- err
 		})
 		wg.Go(func() {
-			errs <- writeKeys(round)
+			_, err := writeKeys(round)
+			errs <- err
 		})
 	}
 	wg.Wait()
@@ -111,5 +115,82 @@ func TestReadOnlyTransactionsShareDecodedPages(t *testing.T) {
 	}
 	if snapshot.DecodedBlockCloneCount > 1 {
 		t.Fatalf("decoded-block clones = %d, want at most 1", snapshot.DecodedBlockCloneCount)
+	}
+
+	// Require a warm writer to take shared pages without cloning them.
+	snapshot, err = writeKeys(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.DecodedBlockCacheHitCount < 2 {
+		t.Fatalf("writer decoded-block cache hits = %d, want at least 2", snapshot.DecodedBlockCacheHitCount)
+	}
+	if snapshot.DecodedBlockCloneCount > 1 {
+		t.Fatalf("writer decoded-block clones = %d, want at most 1", snapshot.DecodedBlockCloneCount)
+	}
+
+	// Require the fixture root to read unchanged after every writer.
+	if _, err := readAll(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWriteCopiesSharedPage(t *testing.T) {
+	// Publish a fixture tree on one decoded-block cache scope.
+	ctx := context.Background()
+	store := newOkraTestStore()
+	fixture := newOkraFixture(t, ctx, store, 4096)
+	rootRef, _ := writeOkraFixture(t, ctx, store, fixture)
+	cache := block.NewDecodedBlockCache()
+	defer cache.Close()
+
+	// readFirst reads the first fixture key in a read-only transaction.
+	readFirst := func() error {
+		// Open a read-only Okra tree on the shared cache.
+		btx, cursor := block.NewTransaction(store, nil, rootRef, nil)
+		btx.SetDecodedBlockCache(cache)
+		btx.SetReadOnly()
+		okraTx, err := NewTx(ctx, cursor, nil, false, nil)
+		if err != nil {
+			return err
+		}
+		defer okraTx.Discard()
+
+		// Compare the value with the fixture.
+		value, found, err := okraTx.Get(ctx, fixture.keys[0])
+		if err != nil {
+			return err
+		}
+		if !found || !bytes.Equal(value, fixture.values[0]) {
+			return errors.New("fixture value mismatch")
+		}
+		return nil
+	}
+
+	// Warm the cache so the writer takes the shared leaf page.
+	if err := readFirst(); err != nil {
+		t.Fatal(err)
+	}
+	cache.Wait()
+
+	// Point the first value at another block through its cursor and write.
+	btx, cursor := block.NewTransaction(store, nil, rootRef, nil)
+	btx.SetDecodedBlockCache(cache)
+	okraTx, err := NewTx(ctx, cursor, btx, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	valueCursor, err := okraTx.GetCursorAtKey(ctx, fixture.keys[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	valueCursor.SetRefAtCursor(fixture.refs[1], true)
+	if _, _, err := btx.Write(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+
+	// Require the shared page to keep the fixture value.
+	if err := readFirst(); err != nil {
+		t.Fatal(err)
 	}
 }

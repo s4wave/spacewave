@@ -23,6 +23,9 @@ type handle struct {
 
 	// blk is the decoded block or sub-block pointer, when known.
 	blk any
+	// shared marks blk as a decoded-block cache instance that other
+	// transactions may hold. Call ownBlock before changing blk in place.
+	shared bool
 	// blkPreWrite transforms the decoded block before writing.
 	blkPreWrite func(b any) error
 }
@@ -42,8 +45,26 @@ func (h *handle) Clone() *handle {
 		dirty:       h.dirty,
 		moved:       h.moved,
 		blk:         h.blk,
+		shared:      h.shared,
 		blkPreWrite: h.blkPreWrite,
 	}
+}
+
+// ownBlock replaces a shared decoded block with a private clone, so the
+// position may change it in place.
+func (h *handle) ownBlock() error {
+	// A private block may already change in place.
+	if !h.shared {
+		return nil
+	}
+
+	// Replace the shared instance with its clone.
+	blk, err := CloneBlock(h.blk)
+	if err != nil {
+		return err
+	}
+	h.blk, h.shared = blk, false
+	return nil
 }
 
 // DOTID returns a DOT node ID.

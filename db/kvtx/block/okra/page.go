@@ -227,8 +227,8 @@ func (p *Page) GetSubBlocks() map[uint32]block.SubBlock {
 	return values
 }
 
-// SharesDecodedBlock marks decoded pages as shareable between read-only
-// transactions: readers never mutate a page, and writers build new pages.
+// SharesDecodedBlock marks decoded pages as shareable between transactions:
+// readers never mutate a page, and writers build new pages.
 // FollowValue follows only existing inline Blobs, so traversal never creates
 // a field on a shared page.
 func (p *Page) SharesDecodedBlock() {}

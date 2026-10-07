@@ -40,10 +40,10 @@ type DecodedBlockHeapSizer interface {
 }
 
 // DecodedBlockShareable marks a block type that reads and cursor traversal
-// never mutate in place. Only transaction writes change a decoded instance
-// (ApplyBlockRef, ApplySubBlock), and a read-only transaction rejects them, so
-// it shares the cached instance instead of cloning it. Writers build
-// replacement blocks.
+// never mutate in place. Transactions take the cached instance without a
+// clone. Only transaction writes change a decoded instance (ApplyBlockRef,
+// ApplySubBlock), and the cursor position copies a shared instance first.
+// Writers build replacement blocks instead of changing a loaded one.
 type DecodedBlockShareable interface {
 	// SharesDecodedBlock marks the type as shareable.
 	SharesDecodedBlock()
