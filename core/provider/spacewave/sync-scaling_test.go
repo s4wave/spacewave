@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
 	block_store_writeback "github.com/s4wave/spacewave/db/block/store/writeback"
 	"github.com/s4wave/spacewave/db/kvtx"
+	kvtx_prefixer "github.com/s4wave/spacewave/db/kvtx/prefixer"
 	"github.com/s4wave/spacewave/db/packfile/writer"
 	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/sirupsen/logrus"
@@ -102,5 +103,52 @@ func TestSyncDrainScaling(t *testing.T) {
 			}
 			t.Logf("backend=s4db blocks=%d pack-bytes=%d pack-blocks=%d mark=%s visits=%d max-read=%d allocated=%d mallocs=%d uploads=%d upload-bytes=%d drain=%s", count, syncFlushMaxPackBytes, writer.DefaultMaxBlocksPerPack, marked, metadata.visits.Load(), metadata.page.Load(), after.TotalAlloc-before.TotalAlloc, after.Mallocs-before.Mallocs, uploads, uploaded, elapsed)
 		})
+	}
+}
+
+// TestSyncDirtyPageAllocations holds one page scan's allocations, including the
+// backend iterator's, independent of the queue depth behind its cursor.
+func TestSyncDirtyPageAllocations(t *testing.T) {
+	// Allocate across repeated scans of the second page of a queue of pages.
+	allocated := func(pages int) uint64 {
+		ctx := t.Context()
+		backend, err := s4db.Open(filepath.Join(t.TempDir(), "queue.s4wave"), s4db.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if err := backend.Close(); err != nil {
+				t.Error(err)
+			}
+		})
+		syncer := &syncController{
+			store: kvtx_prefixer.NewPrefixer(backend, []byte("sync/")),
+			upper: newSyncTestBlockStore(),
+		}
+		total := pages * syncDirtyPageLimit
+		if err := syncer.MarkDirty(ctx, putQueueBlocks(t, syncer.upper, "", total)); err != nil {
+			t.Fatal(err)
+		}
+		scan := func() {
+			page, err := syncer.scanDirtyPage(ctx, syncDirtyPageLimit, uint64(total))
+			if err != nil || len(page) != syncDirtyPageLimit {
+				t.Fatalf("scan returned %d candidates: %v", len(page), err)
+			}
+		}
+		scan()
+		const scans = 8
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		for range scans {
+			scan()
+		}
+		runtime.ReadMemStats(&after)
+		return (after.TotalAlloc - before.TotalAlloc) / scans
+	}
+
+	shallow, deep := allocated(2), allocated(16)
+	t.Logf("page scan allocates %d bytes behind 2 pages and %d bytes behind 16 pages", shallow, deep)
+	if deep > shallow+shallow/4 {
+		t.Fatalf("page scan allocation grows with queue depth: %d bytes behind 2 pages, %d behind 16", shallow, deep)
 	}
 }

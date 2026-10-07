@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 )
@@ -17,6 +18,8 @@ type syncMeasuredTx struct {
 	write bool
 	// reads counts candidates examined in this read transaction.
 	reads int64
+	// closed records that the transaction has left the store's open count.
+	closed atomic.Bool
 }
 
 // visit counts a pending marker and the current acquisition window.
@@ -86,11 +89,23 @@ func (t *syncMeasuredTx) Commit(ctx context.Context) error {
 	if t.write && t.store.commitErr != nil {
 		return t.store.commitErr
 	}
-	return t.tx.Commit(ctx)
+	err := t.tx.Commit(ctx)
+	t.close()
+	return err
 }
 
 // Discard releases the underlying transaction.
-func (t *syncMeasuredTx) Discard() { t.tx.Discard() }
+func (t *syncMeasuredTx) Discard() {
+	t.tx.Discard()
+	t.close()
+}
+
+// close removes a read transaction from the store's open count once.
+func (t *syncMeasuredTx) close() {
+	if !t.write && t.closed.CompareAndSwap(false, true) {
+		t.store.reading.Add(-1)
+	}
+}
 
 // _ is a type assertion.
 var _ kvtx.Tx = (*syncMeasuredTx)(nil)

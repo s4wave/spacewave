@@ -1299,8 +1299,15 @@ func TestSyncControllerFlushCommitsPushedPacksBeforeFailure(t *testing.T) {
 	for _, pack := range push.committed() {
 		pushedBlocks += int(pack.req.GetBlockCount()) //nolint:gosec // test counts are small
 	}
-	if n, want := countSyncDirtyKeys(t, ctx, dirtyStore), blockCount-pushedBlocks; n != want {
+	want := blockCount - pushedBlocks
+	if n := countSyncDirtyKeys(t, ctx, dirtyStore); n != want {
 		t.Fatalf("dirty entries = %d, want %d unpushed blocks", n, want)
+	}
+
+	// The persisted summary counts the same blocks and keeps the first deadline.
+	state := readPersistedPending(t, dirtyStore)
+	if int(state.GetCount()) != want || state.GetSizeBytes() != int64(want*syncTestChunkBlockBytes) || state.GetPendingSinceNanos() == 0 {
+		t.Fatalf("persisted queue %v, want %d blocks of %d bytes", state, want, syncTestChunkBlockBytes)
 	}
 }
 

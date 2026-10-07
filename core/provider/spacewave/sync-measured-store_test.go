@@ -17,6 +17,8 @@ type syncMeasuredStore struct {
 	visits atomic.Int64
 	// page records the largest read transaction's candidate count.
 	page atomic.Int64
+	// reading counts read transactions that are still open.
+	reading atomic.Int64
 }
 
 // NewTransaction retains the backend's commit and discard behavior.
@@ -24,6 +26,9 @@ func (s *syncMeasuredStore) NewTransaction(ctx context.Context, write bool) (kvt
 	tx, err := s.store.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
+	}
+	if !write {
+		s.reading.Add(1)
 	}
 	return &syncMeasuredTx{tx: tx, store: s, write: write}, nil
 }
