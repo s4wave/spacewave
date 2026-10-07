@@ -174,8 +174,9 @@ message AccountSettingsOp {
     // CompleteStorageRelease records that the released block store's objects
     // are gone from the backend's bucket.
     BlockStorePlacement complete_storage_release = 17;
-    // SetDeveloperSpace records the account's developer Space. The first
-    // operation to commit wins; later ones naming another Space are rejected.
+    // SetDeveloperSpace records the account's developer Space. It replaces the
+    // recorded Space only when that Space is the one the operation names as
+    // previous; otherwise it is rejected.
     SetDeveloperSpaceOp set_developer_space = 18;
   }
 }
@@ -184,6 +185,11 @@ message AccountSettingsOp {
 message SetDeveloperSpaceOp {
   // SpaceId identifies the Space the account uses as its developer Space.
   string space_id = 1;
+  // PreviousSpaceId is the developer Space the writer observed before
+  // creating SpaceId, or empty when it observed none. The operation applies
+  // only while the account still records that Space, so devices that race to
+  // replace a missing Space converge on one.
+  string previous_space_id = 2;
 }
 
 // RemoveStorageBackendOp removes a storage backend by id.

@@ -21,7 +21,8 @@ type accountSettingsProvider interface {
 
 // EnsureDeveloperSpace returns the account's developer Space. The first call
 // on an account creates the Space and records it in the account settings, so
-// every device of the account finds the same one.
+// every device of the account finds the same one. When the recorded Space is
+// gone, it creates a replacement and records it in place of the missing one.
 func (r *SessionResource) EnsureDeveloperSpace(
 	ctx context.Context,
 	req *s4wave_session.EnsureDeveloperSpaceRequest,
@@ -51,11 +52,18 @@ func (r *SessionResource) EnsureDeveloperSpace(
 	if err != nil {
 		return nil, err
 	}
-	if id := settings.GetDeveloperSpaceId(); id != "" {
-		return &s4wave_session.EnsureDeveloperSpaceResponse{SharedObjectId: id}, nil
+	previousID := settings.GetDeveloperSpaceId()
+	if previousID != "" {
+		exists, err := spaceExists(ctx, soFeature, previousID)
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			return &s4wave_session.EnsureDeveloperSpaceResponse{SharedObjectId: previousID}, nil
+		}
 	}
 
-	// Create the Space and record it as the account's developer Space.
+	// Create the Space and record it in place of the one observed above.
 	soRef, _, err := r.createSpace(ctx, &s4wave_session.CreateSpaceRequest{SpaceName: developerSpaceName})
 	if err != nil {
 		return nil, err
@@ -63,7 +71,10 @@ func (r *SessionResource) EnsureDeveloperSpace(
 	spaceID := soRef.GetProviderResourceRef().GetId()
 	opData, err := (&account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_SetDeveloperSpace{
-			SetDeveloperSpace: &account_settings.SetDeveloperSpaceOp{SpaceId: spaceID},
+			SetDeveloperSpace: &account_settings.SetDeveloperSpaceOp{
+				SpaceId:         spaceID,
+				PreviousSpaceId: previousID,
+			},
 		},
 	}).MarshalVT()
 	if err != nil {
@@ -74,8 +85,9 @@ func (r *SessionResource) EnsureDeveloperSpace(
 		return &s4wave_session.EnsureDeveloperSpaceResponse{SharedObjectId: spaceID}, nil
 	}
 
-	// Another device recorded its Space first: use it and delete ours.
-	// Keep ours when settings cannot be read, since the write may have landed.
+	// Another device replaced the observed Space first: use its Space and
+	// delete ours. Keep ours when settings cannot be read, since the write may
+	// have landed.
 	settings, readErr := readAccountSettings(ctx, settingsSO)
 	if readErr != nil || settings.GetDeveloperSpaceId() == spaceID {
 		return nil, err
@@ -83,7 +95,7 @@ func (r *SessionResource) EnsureDeveloperSpace(
 	if delErr := soFeature.DeleteSharedObject(context.WithoutCancel(ctx), spaceID); delErr != nil {
 		r.le.WithError(delErr).Warn("unable to delete developer space that lost the race")
 	}
-	if winner := settings.GetDeveloperSpaceId(); winner != "" {
+	if winner := settings.GetDeveloperSpaceId(); winner != "" && winner != previousID {
 		return &s4wave_session.EnsureDeveloperSpaceResponse{SharedObjectId: winner}, nil
 	}
 	return nil, err
@@ -96,4 +108,15 @@ func readAccountSettings(ctx context.Context, so sobject.SharedObject) (*account
 		return nil, err
 	}
 	return account_settings.ReadSnapshot(ctx, snap)
+}
+
+// spaceExists reports whether the account lists the SharedObject id.
+func spaceExists(ctx context.Context, soFeature sobject.SharedObjectProvider, id string) (bool, error) {
+	soListCtr, release, err := soFeature.AccessSharedObjectList(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer release()
+	entry, err := lookupSharedObjectListEntry(ctx, soFeature, soListCtr, id)
+	return entry != nil, err
 }

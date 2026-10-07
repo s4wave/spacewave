@@ -710,6 +710,15 @@ export interface SetDeveloperSpaceOp {
    * @generated from field: string space_id = 1;
    */
   spaceId?: string
+  /**
+   * PreviousSpaceId is the developer Space the writer observed before
+   * creating SpaceId, or empty when it observed none. The operation applies
+   * only while the account still records that Space, so devices that race to
+   * replace a missing Space converge on one.
+   *
+   * @generated from field: string previous_space_id = 2;
+   */
+  previousSpaceId?: string
 }
 
 export const SetDeveloperSpaceOp: MessageType<SetDeveloperSpaceOp> =
@@ -717,6 +726,12 @@ export const SetDeveloperSpaceOp: MessageType<SetDeveloperSpaceOp> =
     typeName: 'account.settings.SetDeveloperSpaceOp',
     fields: [
       { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'previous_space_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -892,8 +907,9 @@ export interface AccountSettingsOp {
       }
     | {
         /**
-         * SetDeveloperSpace records the account's developer Space. The first
-         * operation to commit wins; later ones naming another Space are rejected.
+         * SetDeveloperSpace records the account's developer Space. It replaces the
+         * recorded Space only when that Space is the one the operation names as
+         * previous; otherwise it is rejected.
          *
          * @generated from field: account.settings.SetDeveloperSpaceOp set_developer_space = 18;
          */

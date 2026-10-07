@@ -4,7 +4,7 @@
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.18.0,starpc=v0.52.3-0.20261003013036-4cdf88642ec9,protobuf-es-lite=1.1.5,uv.lock=f93039a734b78cad927390c1d4319edc6e59880fcc2738acae9a060ed39fac8e",
   "packages": {
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "372386de9fc82a61955d85c3d754439fd8469fee9f88846bef96366f5855a76c",
+      "hash": "3cd0af401373473cd3b86c4398d763b9e516c4a38ba730332a1bcee5d46a741e",
       "generatedFiles": [
         "core/account/settings/settings_pb2.py",
         "core/account/settings/settings_pb2.pyi"
@@ -158,7 +158,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "5c8564f91ee497da2022b9279069af51a02749be29e6f64137e0b3d2a2bb9452",
+      "hash": "29026538a264b51cc1e9a2aee8fa574e061bf8faa8f21701de01bbb0e5953dd4",
       "generatedFiles": [
         "sdk/session/session_pb2.py",
         "sdk/session/session_pb2.pyi",

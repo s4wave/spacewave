@@ -240,6 +240,10 @@ class SessionResourceServiceClient:
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerResponse: ...
+    async def ensure_developer_space(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceResponse: ...
     def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
@@ -512,6 +516,10 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerResponse: ...
+    async def ensure_developer_space(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceResponse: ...
     def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,

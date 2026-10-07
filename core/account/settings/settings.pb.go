@@ -745,8 +745,9 @@ type AccountSettingsOp_CompleteStorageRelease struct {
 }
 
 type AccountSettingsOp_SetDeveloperSpace struct {
-	// SetDeveloperSpace records the account's developer Space. The first
-	// operation to commit wins; later ones naming another Space are rejected.
+	// SetDeveloperSpace records the account's developer Space. It replaces the
+	// recorded Space only when that Space is the one the operation names as
+	// previous; otherwise it is rejected.
 	SetDeveloperSpace *SetDeveloperSpaceOp `protobuf:"bytes,18,opt,name=set_developer_space,json=setDeveloperSpace,proto3,oneof"`
 }
 
@@ -791,6 +792,11 @@ type SetDeveloperSpaceOp struct {
 	unknownFields []byte
 	// SpaceId identifies the Space the account uses as its developer Space.
 	SpaceId string `protobuf:"bytes,1,opt,name=space_id,json=spaceId,proto3" json:"spaceId,omitempty"`
+	// PreviousSpaceId is the developer Space the writer observed before
+	// creating SpaceId, or empty when it observed none. The operation applies
+	// only while the account still records that Space, so devices that race to
+	// replace a missing Space converge on one.
+	PreviousSpaceId string `protobuf:"bytes,2,opt,name=previous_space_id,json=previousSpaceId,proto3" json:"previousSpaceId,omitempty"`
 }
 
 func (x *SetDeveloperSpaceOp) Reset() {
@@ -802,6 +808,13 @@ func (*SetDeveloperSpaceOp) ProtoMessage() {}
 func (x *SetDeveloperSpaceOp) GetSpaceId() string {
 	if x != nil {
 		return x.SpaceId
+	}
+	return ""
+}
+
+func (x *SetDeveloperSpaceOp) GetPreviousSpaceId() string {
+	if x != nil {
+		return x.PreviousSpaceId
 	}
 	return ""
 }
@@ -1375,6 +1388,7 @@ func (m *SetDeveloperSpaceOp) CloneVT() *SetDeveloperSpaceOp {
 	}
 	r := new(SetDeveloperSpaceOp)
 	r.SpaceId = m.SpaceId
+	r.PreviousSpaceId = m.PreviousSpaceId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -2099,6 +2113,9 @@ func (this *SetDeveloperSpaceOp) EqualVT(that *SetDeveloperSpaceOp) bool {
 		return false
 	}
 	if this.SpaceId != that.SpaceId {
+		return false
+	}
+	if this.PreviousSpaceId != that.PreviousSpaceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3353,6 +3370,11 @@ func (x *SetDeveloperSpaceOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("spaceId")
 		s.WriteString(x.SpaceId)
 	}
+	if x.PreviousSpaceId != "" || s.HasField("previousSpaceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("previousSpaceId")
+		s.WriteString(x.PreviousSpaceId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3373,6 +3395,9 @@ func (x *SetDeveloperSpaceOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "space_id", "spaceId":
 			s.AddField("space_id")
 			x.SpaceId = s.ReadString()
+		case "previous_space_id", "previousSpaceId":
+			s.AddField("previous_space_id")
+			x.PreviousSpaceId = s.ReadString()
 		}
 	})
 }
@@ -4760,6 +4785,11 @@ func (m *SetDeveloperSpaceOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PreviousSpaceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PreviousSpaceId)
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.SpaceId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceId)
 		i--
@@ -5498,6 +5528,7 @@ func (m *SetDeveloperSpaceOp) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PreviousSpaceId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6046,6 +6077,10 @@ func (x *SetDeveloperSpaceOp) MarshalProtoText() string {
 	if x.SpaceId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SpaceId)
+	}
+	if x.PreviousSpaceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "previous_space_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PreviousSpaceId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -7399,6 +7434,16 @@ func (m *SetDeveloperSpaceOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SpaceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PreviousSpaceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PreviousSpaceId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

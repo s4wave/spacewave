@@ -961,6 +961,16 @@ class AcceptLocalPairingAnswerResponse(_message.Message):
     remote_peer_id: str
     def __init__(self, remote_peer_id: _Optional[str] = ...) -> None: ...
 
+class EnsureDeveloperSpaceRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class EnsureDeveloperSpaceResponse(_message.Message):
+    __slots__ = ("shared_object_id",)
+    SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    shared_object_id: str
+    def __init__(self, shared_object_id: _Optional[str] = ...) -> None: ...
+
 class WatchStorageBackendsRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

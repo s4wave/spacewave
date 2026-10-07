@@ -125,20 +125,26 @@ func (s *AccountSettings) applyOpData(opData []byte) error {
 	case *AccountSettingsOp_CompleteStorageRelease:
 		return s.completeStorageRelease(body.CompleteStorageRelease)
 	case *AccountSettingsOp_SetDeveloperSpace:
-		return s.setDeveloperSpace(body.SetDeveloperSpace.GetSpaceId())
+		return s.setDeveloperSpace(body.SetDeveloperSpace)
 	default:
 		return errors.New("unknown op type")
 	}
 }
 
 // setDeveloperSpace records the developer Space. Devices race to create one,
-// so the first record wins and a different Space is rejected.
-func (s *AccountSettings) setDeveloperSpace(spaceID string) error {
+// so the operation replaces the recorded Space only when it names that Space
+// as previous: the first record of a race wins and later ones are rejected.
+func (s *AccountSettings) setDeveloperSpace(op *SetDeveloperSpaceOp) error {
+	spaceID := op.GetSpaceId()
 	if spaceID == "" {
 		return errors.New("space_id is required")
 	}
-	if current := s.GetDeveloperSpaceId(); current != "" && current != spaceID {
-		return ErrDeveloperSpaceSet
+	current := s.GetDeveloperSpaceId()
+	if current == spaceID {
+		return nil
+	}
+	if current != op.GetPreviousSpaceId() {
+		return ErrDeveloperSpaceChanged
 	}
 	s.DeveloperSpaceId = spaceID
 	return nil

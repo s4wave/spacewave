@@ -11,8 +11,9 @@ var (
 	ErrStorageBackendNotFound = errors.New("storage backend not found")
 	// ErrStorageBackendInUse matches a StorageBackendInUseError.
 	ErrStorageBackendInUse = errors.New("storage backend holds Spaces")
-	// ErrDeveloperSpaceSet is returned when the account already has a different developer Space.
-	ErrDeveloperSpaceSet = errors.New("developer space is already set")
+	// ErrDeveloperSpaceChanged is returned when the account records a different
+	// developer Space than the one the operation replaces.
+	ErrDeveloperSpaceChanged = errors.New("developer space changed")
 )
 
 // StorageBackendInUseError is returned when removing a backend that holds

@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -33,6 +34,7 @@ func TestBuildAccountSettingsSyncOps(t *testing.T) {
 			PeerId:     "kp-a",
 			AuthMethod: "passkey",
 		}},
+		DeveloperSpaceId: "space-a",
 	}
 	target := &account_settings.AccountSettings{
 		DisplayName: "Device B",
@@ -52,9 +54,102 @@ func TestBuildAccountSettingsSyncOps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ops) != 5 {
-		t.Fatalf("expected 5 sync ops, got %d", len(ops))
+	if len(ops) != 6 {
+		t.Fatalf("expected 6 sync ops, got %d", len(ops))
 	}
+}
+
+// TestSyncAccountSettingsDeveloperSpace checks that the settings sync carries
+// the developer Space to an account that has none and replaces a different one.
+func TestSyncAccountSettingsDeveloperSpace(t *testing.T) {
+	// Open two accounts on isolated stores to stand for the local and cloud
+	// settings.
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+	_, _, source, _, releaseSource := setupProviderAndSessionInternal(ctx, t)
+	defer releaseSource()
+	_, _, target, _, releaseTarget := setupProviderAndSessionInternal(ctx, t)
+	defer releaseTarget()
+	sourceSO := mountAccountSettingsForTest(ctx, t, source)
+	targetSO := mountAccountSettingsForTest(ctx, t, target)
+
+	// record writes SetDeveloperSpace into so and returns the settings it reads
+	// back.
+	record := func(so sobject.SharedObject, id, previous string) *account_settings.AccountSettings {
+		t.Helper()
+		opData, err := marshalAccountSettingsSyncOp(&account_settings.AccountSettingsOp{
+			Op: &account_settings.AccountSettingsOp_SetDeveloperSpace{
+				SetDeveloperSpace: &account_settings.SetDeveloperSpaceOp{SpaceId: id, PreviousSpaceId: previous},
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := sobject.WriteOperation(ctx, so, opData, account_settings.ProcessAccountSettingsOps); err != nil {
+			t.Fatal(err)
+		}
+		return readAccountSettingsForTest(ctx, t, so)
+	}
+
+	// An account without a developer Space receives the source's.
+	sourceSettings := record(sourceSO, "space-a", "")
+	targetSettings := readAccountSettingsForTest(ctx, t, targetSO)
+	if err := syncAccountSettingsState(ctx, sourceSettings, targetSettings, targetSO); err != nil {
+		t.Fatal(err)
+	}
+	if id := readAccountSettingsForTest(ctx, t, targetSO).GetDeveloperSpaceId(); id != "space-a" {
+		t.Fatalf("expected the target to record space-a, got %q", id)
+	}
+
+	// A target with a different Space takes the source's replacement.
+	sourceSettings = record(sourceSO, "space-b", "space-a")
+	targetSettings = readAccountSettingsForTest(ctx, t, targetSO)
+	if err := syncAccountSettingsState(ctx, sourceSettings, targetSettings, targetSO); err != nil {
+		t.Fatal(err)
+	}
+	if id := readAccountSettingsForTest(ctx, t, targetSO).GetDeveloperSpaceId(); id != "space-b" {
+		t.Fatalf("expected the target to record space-b, got %q", id)
+	}
+
+	// Syncing settled settings writes nothing.
+	targetSettings = readAccountSettingsForTest(ctx, t, targetSO)
+	ops, err := buildAccountSettingsSyncOps(sourceSettings, targetSettings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ops) != 0 {
+		t.Fatalf("expected no sync ops, got %d", len(ops))
+	}
+}
+
+// mountAccountSettingsForTest mounts the account's settings SharedObject for
+// the life of the test.
+func mountAccountSettingsForTest(ctx context.Context, t *testing.T, acc *ProviderAccount) sobject.SharedObject {
+	t.Helper()
+	ref, err := acc.GetAccountSettingsRef(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	so, release, err := acc.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(release)
+	return so
+}
+
+// readAccountSettingsForTest replays the settings of so.
+func readAccountSettingsForTest(ctx context.Context, t *testing.T, so sobject.SharedObject) *account_settings.AccountSettings {
+	t.Helper()
+	snap, err := so.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings, _, err := readAccountSettingsSyncState(ctx, snap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return settings
 }
 
 func TestAccountSettingsSyncTerminalError(t *testing.T) {

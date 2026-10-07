@@ -677,6 +677,23 @@ func buildAccountSettingsSyncOps(
 		ops = append(ops, opData)
 	}
 
+	// The settings never unset the developer Space, so a source without one
+	// leaves the target's alone.
+	if id := source.GetDeveloperSpaceId(); id != "" && id != target.GetDeveloperSpaceId() {
+		opData, err := marshalAccountSettingsSyncOp(&account_settings.AccountSettingsOp{
+			Op: &account_settings.AccountSettingsOp_SetDeveloperSpace{
+				SetDeveloperSpace: &account_settings.SetDeveloperSpaceOp{
+					SpaceId:         id,
+					PreviousSpaceId: target.GetDeveloperSpaceId(),
+				},
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		ops = append(ops, opData)
+	}
+
 	return ops, nil
 }
 

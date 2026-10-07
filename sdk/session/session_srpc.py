@@ -330,6 +330,13 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
         ),
         MethodDescriptor(
+            "EnsureDeveloperSpace",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
             "WatchStorageBackends",
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsResponse,
@@ -1342,6 +1349,27 @@ class SessionResourceServiceClient:
         finally:
             await call.aclose()
 
+    async def ensure_developer_space(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceResponse:
+        call = await self._client.open_call(
+            self._service,
+            "EnsureDeveloperSpace",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
     async def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
@@ -1745,6 +1773,10 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AcceptLocalPairingAnswerResponse: ...
+    async def ensure_developer_space(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceRequest,
+    ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceResponse: ...
     def watch_storage_backends(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchStorageBackendsRequest,
@@ -2332,6 +2364,17 @@ def register_session_resource_service(
     registry.register(
         service, "AcceptLocalPairingAnswer", accept_local_pairing_answer_handler
     )
+
+    async def ensure_developer_space_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.EnsureDeveloperSpaceRequest()
+        request.ParseFromString(first)
+        response = await implementation.ensure_developer_space(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "EnsureDeveloperSpace", ensure_developer_space_handler)
 
     async def watch_storage_backends_handler(call: Call) -> None:
         first = await call.receive()
