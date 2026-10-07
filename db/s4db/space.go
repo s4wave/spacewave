@@ -84,7 +84,6 @@ func (s *space) alloc(n uint64) run {
 	if !ok {
 		r = run{start: s.end, n: n}
 		s.end += n
-		s.unrelease(r)
 	}
 	return r
 }
@@ -134,19 +133,8 @@ func (s *space) take(r run) {
 		s.end = r.end()
 	}
 
-	// Find the free runs that overlap r.
-	var hits []run
-	s.free.Descend(r.end()-1, func(start, n uint64) bool {
-		if start+n <= r.start {
-			return false
-		}
-		hits = append(hits, run{start: start, n: n})
-		return true
-	})
-
-	// Cut r out of them and out of the runs awaiting punching.
-	s.unrelease(r)
-	for _, h := range hits {
+	// Cut r out of the free runs that overlap it.
+	for _, h := range s.overlaps(r) {
 		s.free.Delete(h.start)
 		if h.start < r.start {
 			s.free.Set(h.start, r.start-h.start)
@@ -157,23 +145,17 @@ func (s *space) take(r run) {
 	}
 }
 
-// unrelease drops r from the runs awaiting hole punching, since it is about
-// to hold data.
-func (s *space) unrelease(r run) {
-	out := make([]run, 0, len(s.released)+1)
-	for _, x := range s.released {
-		if x.end() <= r.start || x.start >= r.end() {
-			out = append(out, x)
-			continue
+// overlaps returns the free runs that overlap r, in descending order.
+func (s *space) overlaps(r run) []run {
+	var hits []run
+	s.free.Descend(r.end()-1, func(start, n uint64) bool {
+		if start+n <= r.start {
+			return false
 		}
-		if x.start < r.start {
-			out = append(out, run{start: x.start, n: r.start - x.start})
-		}
-		if x.end() > r.end() {
-			out = append(out, run{start: r.end(), n: x.end() - r.end()})
-		}
-	}
-	s.released = out
+		hits = append(hits, run{start: start, n: n})
+		return true
+	})
+	return hits
 }
 
 // addFree returns r to the free runs, merging neighbors and shrinking the
@@ -375,11 +357,19 @@ func (s *space) release(seq, ckpt uint64) {
 	s.pages = s.pages[i:]
 }
 
-// drain returns and clears the released runs.
+// drain returns the parts of the runs released since the last drain that
+// are still free, and clears them. A released page taken again holds data,
+// so only the free map decides what may be punched.
 func (s *space) drain() []run {
-	r := s.released
+	var out []run
+	for _, r := range s.released {
+		for _, h := range s.overlaps(r) {
+			start := max(h.start, r.start)
+			out = append(out, run{start: start, n: min(h.end(), r.end()) - start})
+		}
+	}
 	s.released = nil
-	return r
+	return out
 }
 
 // stats returns the live value bytes and the bytes value pages occupy.
