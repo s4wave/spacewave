@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/block"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -446,5 +447,70 @@ func TestReplayDetectsWrongCheckpoint(t *testing.T) {
 	lagging.adopt(1, afterA1, a2)
 	if lagging.replayer.mismatch != nil {
 		t.Fatalf("a member missing a covered operation reported %v", lagging.replayer.mismatch)
+	}
+}
+
+// replayTestPublisher returns empty head updates.
+type replayTestPublisher struct{}
+
+// LocalStateHead returns an empty head update.
+func (replayTestPublisher) LocalStateHead(string, []byte, []byte) *block.AtomicHeadUpdate {
+	return &block.AtomicHeadUpdate{}
+}
+
+// TestReplaySpanHoldsOnlyNewPositions checks that each save writes a span
+// block holding only the Worlds the positions since the previous save reached,
+// chained to the previous block, and that a new checkpoint starts a new chain.
+func TestReplaySpanHoldsOnlyNewPositions(t *testing.T) {
+	// A writes a chain of three operations.
+	privA, pidA := newReplayTestKey(t)
+	space := newReplayTestSpace(t, pidA)
+	a1 := space.sign("a1", privA, "object-1", &sobject.SOOperationLink{Nonce: 1})
+	a2 := space.sign("a2", privA, "object-2", &sobject.SOOperationLink{Nonce: 2, PrevOpHash: a1.Hash()})
+	a3 := space.sign("a3", privA, "object-3", &sobject.SOOperationLink{Nonce: 3, PrevOpHash: a2.Hash()})
+	member := space.member(pidA, false)
+	r := member.replayer
+
+	// save publishes the pending span and returns it with its root.
+	save := func() (*ReplaySpan, *block.BlockRef) {
+		// Collect the pending save, which must name one new span block.
+		t.Helper()
+		entries, roots, _, err := r.pendingSave(replayTestPublisher{}, nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if len(entries) != 1 || len(roots) != 1 || !roots[0].Ref.EqualsRef(entries[0].Ref) {
+			t.Fatalf("save wrote %d blocks and %d roots; want one span named", len(entries), len(roots))
+		}
+
+		// Decode it and record the save.
+		span := &ReplaySpan{}
+		if err := span.UnmarshalVT(entries[0].Data); err != nil {
+			t.Fatal(err.Error())
+		}
+		r.saved()
+		return span, entries[0].Ref
+	}
+
+	// The first save holds both Worlds and starts the chain.
+	member.deliver(a1, a2)
+	first, firstRef := save()
+	if len(first.GetWorlds()) != 2 || first.GetPrev() != nil {
+		t.Fatalf("first span holds %d Worlds after %v; want 2 starting the chain", len(first.GetWorlds()), first.GetPrev())
+	}
+
+	// The next save holds only the World after a3, after the first block.
+	member.deliver(a1, a2, a3)
+	second, _ := save()
+	want := r.positions[2].world
+	if len(second.GetWorlds()) != 1 || !second.GetWorlds()[0].EqualsRef(want) || !second.GetPrev().EqualsRef(firstRef) {
+		t.Fatalf("second span holds %d Worlds after %v; want the World after a3 after %v", len(second.GetWorlds()), second.GetPrev(), firstRef)
+	}
+
+	// A checkpoint after a2 starts a new chain holding only the World after a3.
+	member.adopt(1, r.positions[1].state, a2)
+	third, _ := save()
+	if len(third.GetWorlds()) != 1 || !third.GetWorlds()[0].EqualsRef(want) || third.GetPrev() != nil {
+		t.Fatalf("span after checkpoint holds %d Worlds after %v; want the World after a3 starting a chain", len(third.GetWorlds()), third.GetPrev())
 	}
 }

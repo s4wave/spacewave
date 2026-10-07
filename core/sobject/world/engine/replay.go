@@ -17,9 +17,9 @@ import (
 // which every replay starts from.
 const replayBaseRootName = "replay-base"
 
-// ReplaySpanRootName names the local root that holds the World after every
-// replayed operation above the checkpoint and the payloads of those
-// operations. A member replaying from the checkpoint reads each of them, while
+// ReplaySpanRootName names the local root that holds the chain of span blocks
+// reaching the World after every replayed operation above the checkpoint and
+// the payloads of those operations. A member replaying from the checkpoint reads each of them, while
 // the head may no longer reach an object root that an operation created and a
 // later operation replaced, and no World need reach a payload.
 const ReplaySpanRootName = "replay-span"
@@ -117,6 +117,16 @@ type replayer struct {
 	// missing is the block the last sync stopped at because no connected peer
 	// could serve it, or nil when that sync did not stop for that reason.
 	missing *block.BlockRef
+	// span is the saved span block, the head of a chain holding the Worlds and
+	// payloads of the first spanLen positions, or nil when no saved chain
+	// holds a prefix of positions.
+	span *block.BlockRef
+	// spanLen is the number of positions span holds.
+	spanLen int
+	// next and nextLen are the span the pending save names and the positions
+	// it holds. saved makes them span and spanLen.
+	next    *block.BlockRef
+	nextLen int
 }
 
 // newReplayer constructs a replayer for the World of so.
@@ -158,6 +168,7 @@ func (r *replayer) sync(ctx context.Context, snap sobject.SharedObjectStateSnaps
 		}
 		r.base, r.positions = base, r.positionsAbove(base)
 		r.changed, r.deferred = true, false
+		r.span, r.spanLen = nil, 0
 	}
 
 	// Replay the operation set from the shared prefix.
@@ -305,7 +316,7 @@ func (r *replayer) save(ctx context.Context) error {
 	if !r.changed || r.deferred {
 		return nil
 	}
-	_, cursor, err := r.encode(nil)
+	cursor, err := r.encodeCursor()
 	if err != nil {
 		return err
 	}
@@ -335,18 +346,27 @@ func (r *replayer) holdSpan(hold *rootHold) error {
 	if !r.changed || r.deferred {
 		return nil
 	}
-	span, _, err := r.encode(nil)
+	entry, span, err := r.encodeSpan(nil)
 	if err != nil {
 		return err
 	}
 
-	// Hold the span block, or release the name when no World or payload
-	// follows the checkpoint.
-	if span == nil {
+	// Hold the new span block, or release the name when no World or payload
+	// follows the checkpoint. A store without root ownership holds nothing,
+	// so the next save starts a new chain.
+	switch {
+	case entry != nil:
+		if err := hold.refBlock(ReplaySpanRootName, entry.Data, entry.Refs); err != nil {
+			return err
+		}
+	case span == nil:
 		hold.release(ReplaySpanRootName)
-		return nil
 	}
-	return hold.refBlock(ReplaySpanRootName, span.Data, span.Refs)
+	if hold.skip {
+		span = nil
+	}
+	r.pend(span)
+	return nil
 }
 
 // pendingSave returns the unsaved replay as parts of a publication: the span
@@ -359,40 +379,65 @@ func (r *replayer) pendingSave(publisher sobject.StatePublisher, payloads []*blo
 	if !r.changed && len(payloads) == 0 {
 		return nil, nil, nil, nil
 	}
-	span, cursor, err := r.encode(payloads)
+	entry, span, err := r.encodeSpan(payloads)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	r.pend(span)
 
-	// Name the span, or release the name when no World or payload follows
-	// the checkpoint.
+	// Name a new span block, or release the name when no World or payload
+	// follows the checkpoint. The name already holds an unchanged span.
 	var entries []*block.PutBatchEntry
-	root := block.NamedRoot{Name: ReplaySpanRootName}
-	if span != nil {
-		entries, root.Ref = []*block.PutBatchEntry{span}, span.Ref
+	var roots []block.NamedRoot
+	switch {
+	case entry != nil:
+		entries = []*block.PutBatchEntry{entry}
+		roots = []block.NamedRoot{{Name: ReplaySpanRootName, Ref: span}}
+	case span == nil:
+		roots = []block.NamedRoot{{Name: ReplaySpanRootName}}
 	}
 
 	// Write the cursor only when it changed.
 	var head *block.AtomicHeadUpdate
 	if r.changed {
+		cursor, err := r.encodeCursor()
+		if err != nil {
+			return nil, nil, nil, err
+		}
 		head = publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
 	}
-	return entries, []block.NamedRoot{root}, head, nil
+	return entries, roots, head, nil
 }
 
-// saved records that the replay is durable as it stands.
+// pend records span, holding every position, as the span the pending save
+// names.
+func (r *replayer) pend(span *block.BlockRef) {
+	r.next, r.nextLen = span, 0
+	if span != nil {
+		r.nextLen = len(r.positions)
+	}
+}
+
+// saved records that the replay is durable as it stands, with the span the
+// pending save named.
 func (r *replayer) saved() {
 	r.changed, r.deferred = false, false
+	r.span, r.spanLen = r.next, r.nextLen
+	r.next, r.nextLen = nil, 0
 }
 
-// encode returns the span block referencing the World after every position
-// and the payloads of every position followed by extra, or nil when there is
-// none, and the encoded cursor.
-func (r *replayer) encode(extra []*block.BlockRef) (*block.PutBatchEntry, []byte, error) {
-	// Collect each World once, in replay order. A rejected operation leaves
-	// the World of the position before it.
+// encodeSpan returns the span block holding the World after every position
+// and the payloads of every position followed by extra, with the span to name.
+// The block holds only the positions the saved span does not, and refers to
+// the saved span as Prev, so the chain holds every position. It returns no
+// block when the saved span holds everything, and no span when no World or
+// payload follows the checkpoint.
+func (r *replayer) encodeSpan(extra []*block.BlockRef) (*block.PutBatchEntry, *block.BlockRef, error) {
+	// Collect each World once, in replay order, after the saved span. A
+	// rejected operation leaves the World of the position before it.
+	prev, from := r.span, r.spanLen
 	var worlds, payloads []*block.BlockRef
-	for _, pos := range r.positions {
+	for _, pos := range r.positions[from:] {
 		payloads = append(payloads, pos.outcome.payloads...)
 		if pos.world.GetEmpty() || (len(worlds) != 0 && worlds[len(worlds)-1].EqualsRef(pos.world)) {
 			continue
@@ -400,22 +445,28 @@ func (r *replayer) encode(extra []*block.BlockRef) (*block.PutBatchEntry, []byte
 		worlds = append(worlds, pos.world)
 	}
 	payloads = append(payloads, extra...)
-
-	// Reference them from one span block.
-	var span *block.PutBatchEntry
-	if len(worlds) != 0 || len(payloads) != 0 {
-		data, err := (&ReplaySpan{Worlds: worlds, Payloads: payloads}).MarshalVT()
-		if err != nil {
-			return nil, nil, err
-		}
-		ref, err := block.BuildBlockRef(data, nil)
-		if err != nil {
-			return nil, nil, err
-		}
-		span = &block.PutBatchEntry{Ref: ref, Data: data, Refs: slices.Concat(worlds, payloads)}
+	if len(worlds) == 0 && len(payloads) == 0 {
+		return nil, prev, nil
 	}
 
-	// Encode the base, the outcomes and the World after them.
+	// Reference them and the saved span from one new block.
+	data, err := (&ReplaySpan{Worlds: worlds, Payloads: payloads, Prev: prev}).MarshalVT()
+	if err != nil {
+		return nil, nil, err
+	}
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	refs := slices.Concat(worlds, payloads)
+	if prev != nil {
+		refs = append(refs, prev)
+	}
+	return &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs}, ref, nil
+}
+
+// encodeCursor returns the encoded base, outcomes and World after them.
+func (r *replayer) encodeCursor() ([]byte, error) {
 	base, head, _ := r.head()
 	cursor := &ReplayCursor{
 		Base:     base,
@@ -432,11 +483,7 @@ func (r *replayer) encode(extra []*block.BlockRef) (*block.PutBatchEntry, []byte
 			Payloads: pos.outcome.payloads,
 		}
 	}
-	data, err := cursor.MarshalVT()
-	if err != nil {
-		return nil, nil, err
-	}
-	return span, data, nil
+	return cursor.MarshalVT()
 }
 
 // head returns the replay base and the World after the last replayed position,
@@ -488,6 +535,9 @@ func (r *replayer) replay(
 		r.changed = true
 	}
 	r.positions = r.positions[:n]
+	if n < r.spanLen {
+		r.span, r.spanLen = nil, 0
+	}
 
 	// Replay the rest of the order from the World after the shared prefix.
 	state = r.base

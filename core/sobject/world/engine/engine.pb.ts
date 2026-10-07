@@ -312,10 +312,12 @@ export const ReplayCursor: MessageType<ReplayCursor> =
   })
 
 /**
- * ReplaySpan is the block each member keeps as its one local named root for
- * the Worlds after the replayed operations above the checkpoint and the
- * payloads of those operations. Its outgoing refs are those Worlds and
- * payloads.
+ * ReplaySpan is one block of the chain each member keeps as its one local
+ * named root for the Worlds after the replayed operations above the
+ * checkpoint and the payloads of those operations. Each save appends a block
+ * holding only what the operations since the previous save added, so a save
+ * costs the new operations, not every operation above the checkpoint. Its
+ * outgoing refs are Prev, those Worlds and those payloads.
  *
  * @generated from message sobject.world.engine.ReplaySpan
  */
@@ -332,6 +334,13 @@ export interface ReplaySpan {
    * @generated from field: repeated block.BlockRef payloads = 2;
    */
   payloads?: BlockRef[]
+  /**
+   * Prev is the span block holding the earlier operations, or empty for the
+   * first block above the checkpoint.
+   *
+   * @generated from field: block.BlockRef prev = 3;
+   */
+  prev?: BlockRef
 }
 
 export const ReplaySpan: MessageType<ReplaySpan> =
@@ -352,6 +361,7 @@ export const ReplaySpan: MessageType<ReplaySpan> =
         T: () => BlockRef,
         repeated: true,
       },
+      { no: 3, name: 'prev', kind: 'message', T: () => BlockRef },
     ] satisfies readonly PartialFieldInfo[],
   })
 
