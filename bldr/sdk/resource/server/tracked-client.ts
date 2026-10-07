@@ -2,7 +2,11 @@ import '../../dispose-symbol.js'
 
 import type { Mux, Client as SRPCClient } from 'starpc'
 import type { ClientResourceRef, ReleasedResourceClient } from '../client.js'
-import type { ResourceClientResponse } from '../resource.pb.js'
+import {
+  ResourceFailureCode,
+  type ResourceClientResponse,
+} from '../resource.pb.js'
+import { ResourceFailureError } from '../rpc-stream.js'
 import type { AttachedResource } from './attached-resource.js'
 import type { TrackedResource } from './tracked-resource.js'
 
@@ -31,6 +35,14 @@ const releasedAttachedClient: ReleasedResourceClient = new Proxy(
     },
   },
 )
+
+// attachedResourceNotFound reports an attached resource absent from this client.
+function attachedResourceNotFound(id: number): ResourceFailureError {
+  return new ResourceFailureError({
+    code: ResourceFailureCode.RESOURCE_NOT_FOUND,
+    message: `attached resource ${id} not found`,
+  })
+}
 
 // createRawAttachedResourceRef builds a leaf ClientResourceRef backed by a
 // single attached resource's srpc.Client. It cannot create child refs.
@@ -197,7 +209,12 @@ class RemoteResourceClient {
     serviceID?: string,
     methodID?: string,
   ): number {
-    if (this.released) throw new Error('client was released')
+    if (this.released) {
+      throw new ResourceFailureError({
+        code: ResourceFailureCode.CLIENT_RELEASED,
+        message: 'client was released',
+      })
+    }
     const resourceID = this.nextResourceID()
     this.resources.set(resourceID, {
       mux,
@@ -238,21 +255,19 @@ class RemoteResourceClient {
   }
 
   getAttachedRef(id: number): ClientResourceRef {
-    if (!this.attachedResources.has(id)) {
-      throw new Error(`attached resource ${id} not found`)
-    }
+    if (!this.attachedResources.has(id)) throw attachedResourceNotFound(id)
     return createAttachedResourceRef(id, this)
   }
 
   getRawAttachedRef(id: number): ClientResourceRef {
     const attached = this.attachedResources.get(id)
-    if (!attached) throw new Error(`attached resource ${id} not found`)
+    if (!attached) throw attachedResourceNotFound(id)
     return createRawAttachedResourceRef(id, attached)
   }
 
   getRawAttachedClient(id: number): SRPCClient {
     const attached = this.attachedResources.get(id)
-    if (!attached) throw new Error(`attached resource ${id} not found`)
+    if (!attached) throw attachedResourceNotFound(id)
     return attached.client
   }
 

@@ -9,7 +9,7 @@ import type {
   ResourceClientResponse,
 } from './resource.pb.js'
 import type { ResourceService } from './resource_srpc.pb.js'
-import { Client } from './client.js'
+import { Client, ResourceClientError } from './client.js'
 
 function setInitializedResourceSession(client: Client): void {
   Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
@@ -221,7 +221,12 @@ describe('ResourceClient', () => {
         Reflect.set(client, 'attachSession', null)
         const pending = first.pending.get(1)
         first.pending.delete(1)
-        pending?.reject(new Error('attach session closed'))
+        pending?.reject(
+          new ResourceClientError(
+            'Resource attach session closed',
+            'ATTACH_SESSION_CLOSED',
+          ),
+        )
       })
     })
     second.outgoing.push.mockImplementation((pkt) => {

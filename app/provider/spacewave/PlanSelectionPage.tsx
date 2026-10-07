@@ -20,6 +20,7 @@ import {
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavigate, usePath } from '@s4wave/web/router/router.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { ResourceClientError } from '@aptre/bldr-sdk/resource/client.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
   SessionContext,
@@ -290,7 +291,10 @@ export function PlanSelectionPage({
           4000,
         )
       } catch (err) {
-        if (err instanceof Error && err.message.includes('released resource')) {
+        if (
+          err instanceof ResourceClientError &&
+          err.code === 'INVALID_RESOURCE'
+        ) {
           // Session resource was released during the async call; ignore.
           return
         }

@@ -2,13 +2,13 @@ import { useEffect, useEffectEvent, useRef } from 'react'
 import { useLatestRef } from '@aptre/bldr-react'
 import { createHandler } from 'starpc'
 import { newResourceMux } from '@aptre/bldr-sdk/resource/server/index.js'
-import { ResourceClientError } from '@aptre/bldr-sdk/resource/client.js'
 import {
   CommandSurface,
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
 
 import {
+  isCommandLifecycleError,
   useCommandContext,
   type SubItem,
   type SubItemsCallback,
@@ -166,10 +166,7 @@ export function useCommand(opts: UseCommandOpts): void {
         syncCommandState(registrationId, abort.signal)
       })
       .catch((err) => {
-        if (
-          !abort.signal.aborted &&
-          !isCommandRegistrationLifecycleError(err)
-        ) {
+        if (!abort.signal.aborted && !isCommandLifecycleError(err)) {
           console.error('RegisterCommand failed:', opts.commandId, err)
         }
       })
@@ -233,15 +230,4 @@ export function useCommand(opts: UseCommandOpts): void {
       abort.abort()
     }
   }, [service, opts.commandId, enabled])
-}
-
-function isCommandRegistrationLifecycleError(err: unknown): boolean {
-  if (err instanceof ResourceClientError && err.code === 'CONNECTION_FAILED') {
-    return true
-  }
-  if (!(err instanceof Error)) return false
-  return (
-    err.message.includes('client not found') ||
-    err.message.includes('resource or client was released')
-  )
 }

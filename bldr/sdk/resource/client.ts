@@ -162,6 +162,7 @@ export type ResourceClientErrorCode =
   | 'CLIENT_DISPOSED'
   | 'CONNECTION_FAILED'
   | 'INVALID_RESOURCE'
+  | 'ATTACH_SESSION_CLOSED'
 
 /**
  * Simple event emitter for resource lifecycle events.
@@ -598,8 +599,8 @@ export class Client {
     sess: AttachSession,
   ): boolean {
     return (
-      err instanceof Error &&
-      err.message === 'attach session closed' &&
+      err instanceof ResourceClientError &&
+      err.code === 'ATTACH_SESSION_CLOSED' &&
       this.attachSession !== sess
     )
   }
@@ -1295,7 +1296,12 @@ export class Client {
     current.controller.abort()
     current.outgoing.end()
     for (const [, pending] of current.pending) {
-      pending.reject(new Error('attach session closed'))
+      pending.reject(
+        new ResourceClientError(
+          'Resource attach session closed',
+          'ATTACH_SESSION_CLOSED',
+        ),
+      )
     }
     current.pending.clear()
     this.releaseAllAttachedResources(current)

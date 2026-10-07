@@ -277,7 +277,7 @@ class ResourceServer implements ResourceServiceHandler {
           value: {
             failure: {
               code: ResourceFailureCode.CLIENT_RELEASED,
-              message: 'client not found',
+              message: 'client was released',
             },
           },
         },

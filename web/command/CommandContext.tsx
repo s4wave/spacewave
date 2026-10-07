@@ -9,7 +9,12 @@ import {
 import { useWatchStateRpc } from '@aptre/bldr-react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useResourcesContext } from '@aptre/bldr-sdk/hooks/ResourcesContext.js'
-import type { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
+import {
+  ResourceClientError,
+  type Client as ResourceClient,
+} from '@aptre/bldr-sdk/resource/client.js'
+import { ResourceFailureCode } from '@aptre/bldr-sdk/resource/resource.pb.js'
+import { ResourceFailureError } from '@aptre/bldr-sdk/resource/rpc-stream.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { LookupMethod } from 'starpc'
 import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
@@ -78,7 +83,7 @@ const CommandContext = createContext<CommandContextValue | null>(null)
 
 const commandWatchRetryOpts = {
   errorCb(err: unknown) {
-    if (isCommandResourceLifecycleError(err)) return
+    if (isCommandLifecycleError(err)) return
     console.warn('Retry: retrying after error', { error: err })
   },
 }
@@ -278,7 +283,16 @@ export function useCommandService(): CommandRegistryResourceService | null {
   return useCommandContext().service
 }
 
-function isCommandResourceLifecycleError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false
-  return err.message.includes('resource or client was released')
+// isCommandLifecycleError reports whether err ended the command's Resource
+// client or route rather than the command itself.
+export function isCommandLifecycleError(err: unknown): boolean {
+  if (err instanceof ResourceClientError) {
+    return err.code === 'CONNECTION_FAILED'
+  }
+  if (!(err instanceof ResourceFailureError)) return false
+  const code = err.failure.code
+  return (
+    code === ResourceFailureCode.CLIENT_RELEASED ||
+    code === ResourceFailureCode.RESOURCE_OR_CLIENT_RELEASED
+  )
 }
