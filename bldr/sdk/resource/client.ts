@@ -143,6 +143,8 @@ export type ResourceReleaseReason =
   | 'connection-lost' // Connection was lost
   | 'client-disposed' // Client was disposed/cancelled
 
+// clientErrorBrand marks ResourceClientError instances from any bundle copy of
+// the SDK; the registered symbol is shared across bundles.
 const clientErrorBrand = Symbol.for('bldr.ResourceClientError')
 
 /** ResourceClientError reports a client lifecycle failure across bundle boundaries. */
@@ -150,6 +152,7 @@ export class ResourceClientError extends Error {
   override readonly name = 'ResourceClientError'
   readonly [clientErrorBrand] = true
 
+  /** [Symbol.hasInstance] accepts any error carrying the brand, so instanceof holds across bundles. */
   static [Symbol.hasInstance](value: unknown): boolean {
     return (
       value instanceof Error &&

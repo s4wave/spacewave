@@ -349,6 +349,7 @@ func (t *sobjectTracker) holdTerminalMountError(
 	ctx context.Context,
 	err error,
 ) error {
+	// Report the rejected mount through the provider account.
 	if t.a != nil {
 		t.a.reportClientError(
 			ctx,
@@ -359,12 +360,16 @@ func (t *sobjectTracker) holdTerminalMountError(
 			err.Error(),
 		)
 	}
+
+	// Choose the retry action for a provider block and contact-owner otherwise.
 	reason := sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_INITIAL_STATE_REJECTED
 	hint := sobject.SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_CONTACT_OWNER
 	if errors.Is(err, sobject.ErrResourceBlocked) {
 		reason = sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_RESOURCE_BLOCKED
 		hint = sobject.SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_RETRY
 	}
+
+	// Publish the closed health and fail waiters with it attached.
 	t.setHealth(
 		sobject.NewSharedObjectClosedHealth(
 			sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT,
@@ -374,6 +379,8 @@ func (t *sobjectTracker) holdTerminalMountError(
 		),
 	)
 	t.sobjectProm.SetResult(nil, sobject.NewSharedObjectHealthError(t.healthCtr.GetValue(), err))
+
+	// Hold the routine until its context ends so retry backoff does not remount.
 	<-ctx.Done()
 	return context.Canceled
 }
