@@ -1,17 +1,18 @@
 package electron
 
 import (
-	"context"
+	"runtime"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 )
 
+// TestFactoryCopiesPoliciesToElectronInit checks the platform-adjusted shell configuration.
 func TestFactoryCopiesPoliciesToElectronInit(t *testing.T) {
 
 	// Construct the controller from a fully populated config.
 	factory := NewFactory(nil)
-	ctrl, err := factory.Construct(context.Background(), &Config{
+	ctrl, err := factory.Construct(t.Context(), &Config{
 		ElectronPath:              "electron",
 		RendererPath:              "app.asar/index.mjs",
 		WebRuntimeId:              "runtime",
@@ -37,9 +38,17 @@ func TestFactoryCopiesPoliciesToElectronInit(t *testing.T) {
 	if got := init.GetQuitPolicy(); got != QuitPolicy_QUIT_POLICY_EXIT {
 		t.Fatalf("quit policy = %v, want %v", got, QuitPolicy_QUIT_POLICY_EXIT)
 	}
-	if got := init.GetDesktopPresencePolicy(); got != DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME {
-		t.Fatalf("desktop presence policy = %v, want %v", got, DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME)
+
+	// Darwin ties daemon-controlled shell demand to its window.
+	wantPresence := DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_TRAY_BACKGROUND
+	if runtime.GOOS == "darwin" {
+		wantPresence = DesktopPresencePolicy_DESKTOP_PRESENCE_POLICY_WINDOW_LIFETIME
 	}
+	if got := init.GetDesktopPresencePolicy(); got != wantPresence {
+		t.Fatalf("desktop presence policy = %v, want %v", got, wantPresence)
+	}
+
+	// Preserve both configured tray icon paths.
 	if got := init.GetTrayIconPath(); got != "/icons/tray.png" {
 		t.Fatalf("tray icon path = %q, want %q", got, "/icons/tray.png")
 	}
@@ -48,12 +57,17 @@ func TestFactoryCopiesPoliciesToElectronInit(t *testing.T) {
 	}
 }
 
+// TestEffectiveDesktopPresencePolicy checks the shell lifetime for each platform.
 func TestEffectiveDesktopPresencePolicy(t *testing.T) {
 	for _, tc := range []struct {
-		name       string
+		// name identifies the platform policy case.
+		name string
+		// configured is the requested shell lifetime.
 		configured DesktopPresencePolicy
-		goos       string
-		want       DesktopPresencePolicy
+		// goos selects the platform policy.
+		goos string
+		// want is the effective shell lifetime.
+		want DesktopPresencePolicy
 	}{
 		{
 			name:       "darwin overrides tray background",

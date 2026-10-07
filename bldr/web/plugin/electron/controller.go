@@ -2,6 +2,8 @@ package electron
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -136,8 +138,6 @@ func (r *Controller) Execute(ctx context.Context) error {
 		}
 
 		// Publish the terminal result only after the shell and private runtime are joined.
-
-		// Clear the runtime state and record the launch result.
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 
 			// Reset the runtime state and record the terminal launch error.
@@ -161,8 +161,6 @@ func (r *Controller) Execute(ctx context.Context) error {
 func (r *Controller) OpenOrFocusMainWindow(ctx context.Context, req *bldr_web_plugin.OpenOrFocusDesktopRequest) (uint64, error) {
 	// Join the current launch or signal the idle controller to start one.
 	var generation uint64
-
-	// Signal demand and take the new generation under the broadcast lock.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if !r.demand {
 			r.demand = true
@@ -309,7 +307,20 @@ func (r *Controller) runElectron(ctx context.Context) error {
 		}, ControllerID, Version)
 
 	// Run the private runtime until it, Electron, or the owning controller ends.
-	return r.executeRuntimeController(ctx, e, rc)
+	err = r.executeRuntimeController(ctx, e, rc)
+	if !errors.Is(err, srpc.ErrClosedBeforeCompletion) {
+		return err
+	}
+
+	// Electron closes IPC before its process exits during normal window shutdown.
+	// Use the process verdict, bounded so a broken pipe cannot retain a live shell.
+	exitCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	exitErr := e.Wait(exitCtx)
+	if exitErr == context.DeadlineExceeded {
+		return err
+	}
+	return exitErr
 }
 
 // executeRuntimeController detaches the private runtime after canceling its
