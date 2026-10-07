@@ -2,6 +2,7 @@ package forge_lib_docker
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"strings"
 
@@ -99,12 +100,29 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 			}
 		}
 	}()
+
+	// Create the host directory mounted at output_dir when outputs are declared.
+	var outputDir string
+	if len(c.conf.GetOutputs()) != 0 {
+		var outputRoot string
+		outputRoot, outputDir, err = createOutputDir()
+		if err != nil {
+			return errors.Wrap(err, "create output directory")
+		}
+		defer func() {
+			if err := os.RemoveAll(outputRoot); err != nil {
+				c.le.WithError(err).Warn("remove docker output directory")
+			}
+		}()
+	}
+
+	// Launch the container under the reserved runtime name.
 	dockerPath := c.dockerPath()
 	dockerEnv := BuildDockerEnv(c.conf)
 	var containerID string
 	if err := grant.Launch(ctx, func(name string) error {
-		// Create the container under the reserved runtime name and start it.
-		out, err := c.runner.Run(ctx, dockerPath, buildCreateArgs(c.conf, name), dockerEnv)
+		// Create the container with its output mount and start it.
+		out, err := c.runner.Run(ctx, dockerPath, buildCreateArgs(c.conf, name, outputDir), dockerEnv)
 		if err != nil {
 			return errors.Wrap(err, "docker create")
 		}
@@ -146,7 +164,7 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 		}
 	}
 
-	// Return the container exit status as the execution outcome.
+	// Fail on a nonzero exit status, then publish the declared outputs.
 	statusText := strings.TrimSpace(string(out))
 	status, err := strconv.Atoi(statusText)
 	if err != nil {
@@ -155,7 +173,7 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 	if status != 0 {
 		return errors.Errorf("docker container exited with status %d", status)
 	}
-	return nil
+	return c.storeOutputs(ctx, outputDir)
 }
 
 // dockerPath resolves the configured Docker CLI executable.

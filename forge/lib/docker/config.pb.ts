@@ -114,6 +114,21 @@ export interface Config {
    * @generated from field: uint64 memory_bytes = 10;
    */
   memoryBytes?: bigint
+  /**
+   * OutputDir is the container directory where the command writes outputs.
+   * Each file named after an entry in outputs becomes that output after a zero
+   * exit. Required when outputs is set.
+   *
+   * @generated from field: string output_dir = 11;
+   */
+  outputDir?: string
+  /**
+   * Outputs lists the output names the command may write to output_dir.
+   * A file absent after exit leaves its output unset.
+   *
+   * @generated from field: repeated string outputs = 12;
+   */
+  outputs?: string[]
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -152,5 +167,13 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     },
     { no: 9, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 10, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+    { no: 11, name: 'output_dir', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 12,
+      name: 'outputs',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
   ] satisfies readonly PartialFieldInfo[],
 })

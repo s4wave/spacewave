@@ -16,7 +16,8 @@ func BuildDockerEnv(conf *Config) []string {
 }
 
 // buildCreateArgs renders the docker create invocation for the config.
-func buildCreateArgs(conf *Config, runtimeName string) []string {
+// A nonempty outputDir is the host directory mounted at the config's output_dir.
+func buildCreateArgs(conf *Config, runtimeName, outputDir string) []string {
 	// Select the container creation command and reserved runtime name.
 	args := []string{"create"}
 	if runtimeName != "" {
@@ -39,6 +40,9 @@ func buildCreateArgs(conf *Config, runtimeName string) []string {
 	}
 	for _, mount := range conf.GetMounts() {
 		args = append(args, "--mount", buildMountArg(mount))
+	}
+	if outputDir != "" {
+		args = append(args, "--mount", buildMountArg(&Mount{HostPath: outputDir, ContainerPath: conf.GetOutputDir()}))
 	}
 
 	// Select the container image and command after its runtime options.

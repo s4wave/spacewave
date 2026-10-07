@@ -29,6 +29,13 @@ message Config {
   uint64 milli_cpu = 9;
   // MemoryBytes is the memory requested by this target in bytes.
   uint64 memory_bytes = 10;
+  // OutputDir is the container directory where the command writes outputs.
+  // Each file named after an entry in outputs becomes that output after a zero
+  // exit. Required when outputs is set.
+  string output_dir = 11;
+  // Outputs lists the output names the command may write to output_dir.
+  // A file absent after exit leaves its output unset.
+  repeated string outputs = 12;
 }
 
 // Mount configures one docker bind mount.

@@ -38,6 +38,34 @@ func (c *Config) Validate() error {
 			return errors.New("mount paths cannot contain comma")
 		}
 	}
+	return validateOutputs(c.GetOutputDir(), c.GetOutputs())
+}
+
+// validateOutputs requires an output directory for declared outputs, each a
+// distinct plain file name within it.
+func validateOutputs(dir string, outputs []string) error {
+	// Require a mountable directory whenever outputs are declared.
+	if len(outputs) == 0 {
+		return nil
+	}
+	if dir == "" {
+		return errors.New("output_dir must be set with outputs")
+	}
+	if strings.Contains(dir, ",") {
+		return errors.New("output_dir cannot contain comma")
+	}
+
+	// Require each output to name one distinct file in the directory.
+	seen := make(map[string]struct{}, len(outputs))
+	for _, name := range outputs {
+		if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\") {
+			return errors.Errorf("output name %q must be a plain file name", name)
+		}
+		if _, ok := seen[name]; ok {
+			return errors.Errorf("output name %q is duplicated", name)
+		}
+		seen[name] = struct{}{}
+	}
 	return nil
 }
 

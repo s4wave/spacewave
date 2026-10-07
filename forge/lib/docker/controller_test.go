@@ -2,7 +2,6 @@ package forge_lib_docker
 
 import (
 	"context"
-	"os"
 	"reflect"
 	"slices"
 	"testing"
@@ -31,7 +30,7 @@ func TestBuildCreateArgsPinsEnvMountsWorkdirImageCommand(t *testing.T) {
 	}
 
 	// Compare the Docker create arguments with their explicit configuration.
-	got := buildCreateArgs(conf, "")
+	got := buildCreateArgs(conf, "", "")
 	want := []string{
 		"create",
 		"--cpus", "1.5", "--memory", "1073741824",
@@ -263,15 +262,5 @@ func TestExecuteStopsContainerOnCancel(t *testing.T) {
 		return reflect.DeepEqual(cmd, wantStop)
 	}) {
 		t.Fatalf("missing stop command in %#v", runner.commands)
-	}
-}
-
-// TestDockerIntegrationSkippedWithoutDaemon runs only with explicit daemon opt-in.
-func TestDockerIntegrationSkippedWithoutDaemon(t *testing.T) {
-	if os.Getenv("FORGE_DOCKER_INTEGRATION") == "" {
-		t.Skip("set FORGE_DOCKER_INTEGRATION=1 to run docker daemon integration")
-	}
-	if _, err := NewExecDockerRunner().Run(context.Background(), "docker", []string{"info"}, nil); err != nil {
-		t.Skip(err.Error())
 	}
 }

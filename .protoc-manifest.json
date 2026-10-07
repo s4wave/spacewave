@@ -2658,7 +2658,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/lib/docker": {
-      "hash": "aeea86047356d1c0bedbca9c20ddbbb2639c62e4e539eb9e44a8ea6e326d1185",
+      "hash": "b21e6dbb1e63fb0e1c67052834cd60ba268d89d846839c75d9a29559dec896a3",
       "generatedFiles": [
         "forge/lib/docker/config.pb.go",
         "forge/lib/docker/config.pb.ts"
