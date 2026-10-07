@@ -30,6 +30,10 @@ const ControllerID = "hydra/volume/s4db"
 // Version is the version of the s4db volume implementation.
 var Version = controller.MustParseVersion("0.0.1")
 
+// ErrMigrateShared is returned when a Volume file needs a format migration
+// while another process has it open.
+var ErrMigrateShared = errors.New("volume format migration waits for other processes to close the file")
+
 // Volume is the s4db volume.
 type Volume = volume_kvtx.Volume
 
@@ -57,6 +61,20 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 	var store kvtx.Store = db
 	if conf.GetVerbose() {
 		store = kvtx_vlogger.NewVLogger(le, store)
+	}
+
+	// A migration rewrites keys that another process may still read in the
+	// old layout, so it waits until this process holds the file alone.
+	stale, err := volume_kvtx.NeedsFormatUpgrade(ctx, db, keys)
+	if err == nil && stale {
+		var shared bool
+		shared, err = db.Shared()
+		if err == nil && shared {
+			err = ErrMigrateShared
+		}
+	}
+	if err != nil {
+		return nil, errors.Join(err, db.Close())
 	}
 
 	// Build the Volume.

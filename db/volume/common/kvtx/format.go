@@ -59,6 +59,12 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	return tx.Commit(ctx)
 }
 
+// NeedsFormatUpgrade reports whether opening a Volume on store migrates it.
+func NeedsFormatUpgrade(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) (bool, error) {
+	version, err := readFormatVersion(ctx, store, keys)
+	return version != store_kvkey.FormatVersion, err
+}
+
 // readFormatVersion returns the store's format version, or 0 when unset.
 func readFormatVersion(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) (uint64, error) {
 	// Read the version key in a snapshot.
