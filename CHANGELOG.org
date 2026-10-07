@@ -1,7 +1,7 @@
 #+TITLE: Spacewave Changelog
 
 * v0.57.27
-<2026-10-06 Tue>
+<2026-10-07 Wed>
 
 Spacewave 0.57.27 moves all local storage to a new single-file database on
 desktop and to a new storage format in the browser, fixes lost file data in
@@ -27,6 +27,9 @@ shared Spaces, and makes devices reconnect more reliably.
   source, and `spacewave debug ref-repair` restores the block links that
   storage cleanup relies on.
 - Forge now names the plugin a waiting Execution needs.
+- A Git remote URL can name its session, as in
+  `spacewave:///u/2/so/<space>/-/<object-key>`, so a remote on a session other
+  than the first needs no `--session-index`.
 
 ** Fixes
 - Files written into a shared Space could lose their content on other
@@ -41,6 +44,14 @@ shared Spaces, and makes devices reconnect more reliably.
 - A returning browser visit after a release no longer starts Spacewave twice,
   and a single failed network request no longer makes it fall back to the
   cached release.
+- A browser out of storage now shows "Storage full" in the sync status, with
+  the number of Spaces it cannot store. Before, the copy of a newly linked
+  account retried silently and looked as if it was still copying.
+- A second browser tab could fail to load, because the first page looked
+  closed to the ServiceWorker. A page now registers with the ServiceWorker
+  only after it can show that it is open.
+- The command line now logs a warning when the connection to Spacewave Cloud
+  stops retrying, since cloud updates then stop until a restart.
 - A plugin that fails at start now waits longer between restarts, up to five
   minutes, instead of restarting about once a minute forever.
 - Plugins running in the QuickJS host can use `crypto.getRandomValues`, and
@@ -60,6 +71,13 @@ shared Spaces, and makes devices reconnect more reliably.
 - Buttons and form fields across the app have accessible labels and native
   semantics, and external links open without access to the app's window.
 - A long replay logs its progress every 30 seconds.
+- Saving a change to a large Space writes only the history added since the
+  last save, instead of rewriting a record of all of it each time.
+- s4db reads its index in key order and caches about 40% more of it in the
+  same memory, and rebuilding a large volume no longer takes time and memory
+  that grow with the square of its history.
+- Storage cleanup checks only removed links before it records a change, which
+  halves the index reads of copying a Space to a new device.
 
 * v0.57.26
 <2026-10-05 Mon>
