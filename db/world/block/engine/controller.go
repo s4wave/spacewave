@@ -47,6 +47,8 @@ type Controller struct {
 	executions map[*engineExecution]struct{}
 	// engineResources remain valid across Execute restarts until Close.
 	engineResources []engineResource
+	// decodedBlocks shares decoded blocks across every engine transaction until Close.
+	decodedBlocks *block.DecodedBlockCache
 
 	// sfs resolves block transformation steps.
 	sfs *block_transform.StepFactorySet
@@ -98,6 +100,8 @@ func NewController(
 		engineID:   conf.GetEngineId(),
 		closeDone:  make(chan struct{}),
 		executions: make(map[*engineExecution]struct{}),
+
+		decodedBlocks: block.NewDecodedBlockCache(),
 
 		sfs:       sfs,
 		stateXfrm: xfrm,
@@ -266,6 +270,7 @@ buildWorldEngine:
 		}
 		return err
 	}
+	cursor.SetDecodedBlockCache(c.decodedBlocks)
 	if err := validateReadOnlyInitHead(ctx, cursor, stateStore, initRef); err != nil {
 		c.engineCtr.SetValue(&engineResult{err: err})
 		le.WithError(err).Warn("read-only world engine init head is missing")
@@ -601,6 +606,7 @@ func (c *Controller) Close() error {
 			resource.storeRef.Release()
 		}
 	}
+	c.decodedBlocks.Close()
 
 	// Publish one cleanup result to concurrent Close callers.
 	c.mtx.Lock()

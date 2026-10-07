@@ -520,3 +520,90 @@ func (fakeCoordinator) WaitAcquireWriteLease(context.Context, coord.Scope) (coor
 
 // _ verifies the coordinator test adapter contract.
 var _ coord.Coordinator = fakeCoordinator{}
+
+// TestControllerSharesDecodedBlocksAcrossTransactions checks that a read
+// transaction reuses blocks decoded by an earlier transaction.
+func TestControllerSharesDecodedBlocksAcrossTransactions(t *testing.T) {
+	// Build storage for one durable World managed by the controller.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	// Construct the controller for one World in the testbed bucket.
+	const objectStoreID = "test-world-engine-decoded-blocks"
+	conf := NewConfig(
+		objectStoreID,
+		tb.Volume.GetID(),
+		tb.BucketId,
+		objectStoreID,
+		&bucket.ObjectRef{BucketId: tb.BucketId},
+		nil,
+		false,
+	)
+	ctrl, err := NewController(le, tb.Bus, conf, transform_all.BuildFactorySet())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() {
+		_ = ctrl.Close()
+	})
+
+	// Start the controller and wait for its World engine.
+	execCtx, execCancel := context.WithCancel(ctx)
+	t.Cleanup(execCancel)
+	go func() {
+		_ = ctrl.Execute(execCtx)
+	}()
+	getCtx, getCancel := context.WithTimeout(ctx, 2*time.Second)
+	t.Cleanup(getCancel)
+	eng, err := ctrl.GetWorldEngine(getCtx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Commit an object so reads decode the World root and object tree.
+	tx, err := eng.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	obj, err := tx.CreateObject(ctx, "object", nil)
+	if err != nil {
+		tx.Discard()
+		t.Fatal(err.Error())
+	}
+	world.ReleaseObjectState(obj)
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Read the object in a fresh transaction and count its decoded-block hits.
+	readObject := func() block.ReadCounterSnapshot {
+		// Open the read transaction under a fresh counter.
+		t.Helper()
+		readCtx, counter := block.WithReadCounter(ctx)
+		readTx, err := eng.NewTransaction(readCtx, false)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer readTx.Discard()
+
+		// Decode the object through the transaction.
+		obj, err := world.MustGetObject(readCtx, readTx, "object")
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		world.ReleaseObjectState(obj)
+		return counter.Snapshot()
+	}
+
+	// The second transaction must hit blocks the first one stored.
+	readObject()
+	ctrl.decodedBlocks.Wait()
+	if hits := readObject().DecodedBlockCacheHitCount; hits == 0 {
+		t.Fatal("second read transaction had no decoded-block cache hits")
+	}
+}
