@@ -218,6 +218,12 @@ func (d *DevtoolBus) executeWebWasm(
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
 
+	// Keep the connection bootstrap independent of editable startup sources.
+	bundledStartup := webStartupSrcPath
+	if frontendService != nil {
+		bundledStartup = ""
+	}
+
 	// Compile the web entrypoint.
 	le.Info("building web wasm entrypoint")
 	bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
@@ -231,7 +237,7 @@ func (d *DevtoolBus) executeWebWasm(
 		entrypointToRootPrefix+"entrypoint/runtime-wasm.mjs",
 		entrypointToRootPrefix+"sw.mjs",
 		entrypointToRootPrefix+"shw.mjs",
-		webStartupSrcPath,
+		bundledStartup,
 		"",
 		minifyEntrypoint,
 		!minifyEntrypoint,
@@ -459,7 +465,7 @@ func (d *DevtoolBus) executeWebWasm(
 
 		// Serve the frontend bootstrap for frontend-prefixed paths.
 		if frontendService != nil && strings.HasPrefix(req.URL.Path, "/bldr-dev/frontend-") {
-			frontendService.ServeBootstrap(rw, req, bundleResult.EntrypointPath)
+			frontendService.ServeBootstrap(rw, req, bundleResult.EntrypointPath, webStartupSrcPath)
 			return
 		}
 

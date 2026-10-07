@@ -15,6 +15,7 @@ interface FrontendHandlers {
 
 declare global {
   var __bldrFrontendEnabled: boolean | undefined
+  var __bldrFrontendStartup: string | undefined
   var __bldrFrontends: Map<string, FrontendResource> | undefined
 }
 
@@ -112,12 +113,14 @@ export class FrontendResource {
 
   /** resolve starts the compiler client before loading an admitted entrypoint. */
   public async resolve(entrypoint: string): Promise<string> {
+    // Validate the source against the current compiler attachment.
     const session = await this.getSession()
     if (!session.entrypoints?.includes(entrypoint)) {
       throw new Error(
         `Bldr frontend entrypoint is not configured: ${entrypoint}`,
       )
     }
+
     // Vite can replace dependencies while the first application graph loads.
     // Start its client independently so a failed import cannot strand a reload.
     const clientURL = session.routePrefix + '@vite/client'
@@ -161,6 +164,7 @@ export class FrontendResource {
 
   /** release cancels the stream and any delayed reconnect. */
   public release(): void {
+    // Cancel this attachment and remove its document-wide transport binding.
     const error = new Error('Bldr frontend attachment closed')
     this.abort.abort(error)
     this.rejectReady(error)

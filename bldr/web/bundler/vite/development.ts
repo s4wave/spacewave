@@ -62,7 +62,7 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** escapesRoot reports whether a relative path names the root or leaves it. */
+/** escapesRoot reports whether a relative path equals the root or leaves it. */
 function escapesRoot(root: string, path: string): boolean {
   const inside = relative(root, resolve(root, path))
   return (
@@ -128,6 +128,8 @@ export class DevelopmentEnvironment {
     process.env.BLDR_PROJECT_ROOT = root
     process.env.BLDR_DIST_ROOT = dist
     process.env.NODE_ENV = 'development'
+
+    // Discover the compiler and project configuration files.
     const distSource = existsSync(resolve(dist, 'bldr'))
       ? resolve(dist, 'bldr')
       : dist
@@ -146,13 +148,18 @@ export class DevelopmentEnvironment {
       { command: 'serve', mode: 'development' },
       ...configPaths,
     )
+
+    // Resolve the shared packages' immutable served entry names.
     const webPkgIDs = this.config.webPkgIds ?? []
     const servedNameMaps: Record<string, Map<string, string>> = {}
     for (const pkgID of webPkgIDs) {
       const pkgRoot = resolveNodeWebPkgRoot(pkgID, root)
       if (pkgRoot) servedNameMaps[pkgID] = readPackageServedNameMap(pkgRoot)
     }
-    const external = [...(this.config.externalPkgs ?? []), ...webPkgIDs]
+
+    // Preserve canonical imports and the project's source aliases.
+    const canonical = this.config.externalPkgs ?? []
+    const external = [...canonical, ...webPkgIDs]
     const isExternal = (source: string) =>
       external.some((pkg) => source === pkg || source.startsWith(pkg + '/'))
     const aliases = Array.isArray(config.resolve?.alias)
@@ -168,26 +175,35 @@ export class DevelopmentEnvironment {
       name: 'bldr-frontend',
       enforce: 'pre',
       async resolveId(source, importer) {
+        // Preserve the document's refresh runtime and shared package boundary.
         if (source === '/@react-refresh')
           return { id: refreshPath, external: true }
         if (!isExternal(source)) return null
-        if (isWebPkgModule(source)) return { id: source, external: true }
 
-        // External package aliases still own stylesheet and asset locations.
-        // Resolve those files normally, without remapping them to shared JS.
+        // Project-local shared UI uses the same graph as application sources.
+        // Canonical renderer packages always retain their import-map identity.
         const alias = aliases.find(({ find }) =>
           typeof find === 'string'
             ? source === find || source.startsWith(find + '/')
             : find.test(source),
         )
-        if (alias)
-          return this.resolve(
-            source.replace(alias.find, alias.replacement),
-            importer,
-            {
-              skipSelf: true,
-            },
-          )
+        if (alias) {
+          const target = source.replace(alias.find, alias.replacement)
+          const local = relative(root, target)
+          const editable =
+            isAbsolute(target) &&
+            local !== '..' &&
+            !local.startsWith('..' + sep) &&
+            !isAbsolute(local) &&
+            local.split(sep)[0] !== 'node_modules' &&
+            !canonical.some(
+              (pkg) => source === pkg || source.startsWith(pkg + '/'),
+            )
+          if (editable || !isWebPkgModule(source)) {
+            return this.resolve(target, importer, { skipSelf: true })
+          }
+        }
+        if (isWebPkgModule(source)) return { id: source, external: true }
         return null
       },
       transform(code, id) {
@@ -288,10 +304,14 @@ export class DevelopmentEnvironment {
       },
     })
     const server = this.server
+
+    // Configuration changes close this compiler so its supervisor can replace it.
     server.restart = async () => {
       await this.close()
       process.exit(0)
     }
+
+    // Serve Vite middleware through the compiler's private HTTP adapter.
     this.listener = createHTTPServer((request, response) => {
       server.middlewares(request, response, () => {
         response.writeHead(404)
@@ -299,6 +319,7 @@ export class DevelopmentEnvironment {
       })
     })
     const listener = this.listener
+
     // Bun can expire keep-alive while a completed write is still draining to
     // Bldr's RPC proxy. The compiler lifetime owns these private connections;
     // close() releases them explicitly after cancellation or replacement.
@@ -342,6 +363,7 @@ export class DevelopmentEnvironment {
     signal?.addEventListener('abort', abort, { once: true })
     if (signal?.aborted) abort()
 
+    // Forward the snapshot and updates until this subscription is released.
     try {
       yield Event.create({ session: this.session, sequence: this.sequence })
       this.clients.emit('connection')

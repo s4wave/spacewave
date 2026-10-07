@@ -12,6 +12,7 @@ import { initBootReportCollector } from '../boot/collector.js'
 import { initBrowserReleaseUpdates } from '../bldr/browser-release-update.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
 import { setAppPath } from './app-path.js'
+import { FrontendStartup } from './FrontendStartup.js'
 import {
   bindBrowserBootStatusToStartupMarks,
   writeBrowserBootStatus,
@@ -182,14 +183,18 @@ function InitialLoadingFrame() {
 // BLDR_STARTUP_JS is build-injected per bundle with the startup component
 // module specifier, so it is not known at author time.
 declare const BLDR_STARTUP_JS: string | undefined
-if (typeof BLDR_STARTUP_JS === 'string') {
+if (globalThis.__bldrFrontendStartup || typeof BLDR_STARTUP_JS === 'string') {
   const StartupComponent = React.lazy(
-    async () => (await import(BLDR_STARTUP_JS)) as StartupModule,
+    async () => (await import(BLDR_STARTUP_JS!)) as StartupModule,
   )
   const BldrWebStartupContainer: React.FC = () => (
     <WebViewErrorBoundary>
       <Suspense fallback={<InitialLoadingFrame />}>
-        <StartupComponent />
+        {globalThis.__bldrFrontendStartup ? (
+          <FrontendStartup fallback={<InitialLoadingFrame />} />
+        ) : (
+          <StartupComponent />
+        )}
       </Suspense>
     </WebViewErrorBoundary>
   )
@@ -199,6 +204,7 @@ if (typeof BLDR_STARTUP_JS === 'string') {
 }
 
 function resolveBootReady(label: string) {
+  // Publish readiness once and release the document's waiting bootstrap.
   markStartupBoundary(label, { source: 'browser' })
   const resolve = globalThis.__swReadyResolve
   if (!resolve) {
@@ -251,6 +257,7 @@ if (container && deferBoot) {
   let pendingBoot = false
   let bootedRootRendered = false
   const renderBootedRoot = () => {
+    // Admit one render for the latest deferred navigation.
     if (bootedRootRendered) {
       return
     }
@@ -258,6 +265,7 @@ if (container && deferBoot) {
     pendingBoot = false
     container.removeAttribute('data-prerendered')
 
+    // Reuse the prerendered root when it belongs to this container.
     if (
       globalThis.__swPrerenderRoot &&
       globalThis.__swPrerenderContainer === container
@@ -270,10 +278,12 @@ if (container && deferBoot) {
       return
     }
 
+    // Release a prerendered root that belongs to a different container.
     globalThis.__swPrerenderRoot?.unmount()
     globalThis.__swPrerenderRoot = undefined
     globalThis.__swPrerenderContainer = undefined
 
+    // Mount the document's runtime root after the connection becomes ready.
     if (!root) {
       root = createRoot(container)
     }
@@ -288,6 +298,7 @@ if (container && deferBoot) {
   })
 
   globalThis.__swBoot = (hash: string) => {
+    // Remember the requested route until the runtime can render it.
     markStartupBoundary('shell.boot-requested', { source: 'browser' })
     setBrowserBootStatus('app', 'Opening application...')
     setAppPath(hash)

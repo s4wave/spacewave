@@ -126,6 +126,15 @@ func (f *FrontendService) configure(cc *Config) error {
 		}
 	}
 
+	// The startup view joins the application graph after Bldr connects.
+	startup, err := cc.GetProjectConfig().GetStart().ParseWebStartupPath()
+	if err != nil {
+		return err
+	}
+	if startup != "" {
+		conf.Entrypoints = append(conf.Entrypoints, path.Clean(startup))
+	}
+
 	// Sort and deduplicate the collected entrypoints and excluded web packages.
 	slices.Sort(conf.Entrypoints)
 	conf.Entrypoints = slices.Compact(conf.Entrypoints)
@@ -323,7 +332,7 @@ func (f *FrontendService) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // ServeBootstrap establishes React Refresh before the canonical renderer loads.
 // Only compiler runtime code uses this route; application modules use Fetch.
-func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Request, entrypoint string) {
+func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Request, entrypoint, startup string) {
 	// Serve a passthrough boot module when the frontend is disabled.
 	if f.run.GetState() == nil {
 		rw.Header().Set("Content-Type", "text/javascript")
@@ -338,7 +347,7 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	// Await the ready environment and set the module response headers.
+	// Set the module response headers after the environment becomes ready.
 	rw.Header().Set("Content-Type", "text/javascript")
 	rw.Header().Set("Cache-Control", "no-store")
 	refreshPath := "/bldr-dev/frontend-refresh/" + env.result.GetSession().GetId() + ".mjs"
@@ -347,7 +356,11 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 	case "/bldr-dev/frontend-boot.mjs":
 		refresh := strconv.Quote(refreshPath)
 		entry := strconv.Quote("/" + strings.TrimPrefix(entrypoint, "/"))
-		_, _ = io.WriteString(rw, "import "+refresh+"; window.__bldrFrontendEnabled = true; await import("+entry+");\n")
+		startupPath := strconv.Quote(path.Clean(startup))
+		if startup == "" {
+			startupPath = `""`
+		}
+		_, _ = io.WriteString(rw, "import "+refresh+"; window.__bldrFrontendEnabled = true; window.__bldrFrontendStartup = "+startupPath+"; await import("+entry+");\n")
 	case refreshPath:
 		_, _ = io.WriteString(rw, env.result.GetRefreshRuntime())
 		if env.result.GetRefreshRuntime() == "" {
