@@ -15,14 +15,6 @@ const (
 	SpendOutputName = "spend"
 )
 
-// FlowgraphRunObjectKey builds an independently addressed run key.
-func FlowgraphRunObjectKey(id string) (string, error) {
-	if !validID(id) {
-		return "", errors.New("flowgraph run id must be a nonempty path segment")
-	}
-	return FlowgraphRunTypeID + "/" + id, nil
-}
-
 // NewFlowgraphRunBlock constructs the stored run state.
 func NewFlowgraphRunBlock() block.Block {
 	return &FlowgraphRun{}
