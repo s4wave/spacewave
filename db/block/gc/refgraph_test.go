@@ -192,7 +192,7 @@ func TestFilterRefChangesPreservesBatchAndGraphEdges(t *testing.T) {
 		{Subject: "graph", Object: "in-graph"},
 		{Subject: "absent", Object: "absent"},
 	}
-	_, got, err := rg.filterRefChanges(ctx, adds, removes)
+	got, err := rg.presentRemoves(ctx, adds, removes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +205,7 @@ func TestFilterRefChangesPreservesBatchAndGraphEdges(t *testing.T) {
 
 	// An absent edge whose node names collide with the predicate IRI adds no
 	// lookup entries; it must still be probed, not assumed to exist.
-	_, got, err = rg.filterRefChanges(ctx, nil, []RefEdge{
+	got, err = rg.presentRemoves(ctx, nil, []RefEdge{
 		{Subject: PredGCRef, Object: PredGCRef},
 	})
 	if err != nil {

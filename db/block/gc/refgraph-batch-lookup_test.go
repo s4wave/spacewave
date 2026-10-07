@@ -43,7 +43,7 @@ func TestRefBatchLookup(t *testing.T) {
 
 	// Filter mixed removals while counting read snapshots.
 	before := store.opens.Load()
-	_, got, err := rg.filterRefChanges(ctx, []RefEdge{added}, removes)
+	got, err := rg.presentRemoves(ctx, []RefEdge{added}, removes)
 	if err != nil || !slices.Equal(got, want) {
 		t.Fatalf("mixed removals: count=%d err=%v", len(got), err)
 	}
