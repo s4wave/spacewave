@@ -39,6 +39,12 @@ service SpaceResourceService {
   // device as a Forge Job. Progress and outputs use the Job and its Task.
   rpc BuildSpacePlugin(BuildSpacePluginRequest) returns (BuildSpacePluginResponse) {}
 
+  // FetchPluginRepository queues a Forge Job on a registered device that clones
+  // a public GitHub repository at depth one into this Space, or fetches its
+  // newest commit when the repository is already stored. The worktree stays on
+  // the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+  rpc FetchPluginRepository(FetchPluginRepositoryRequest) returns (FetchPluginRepositoryResponse) {}
+
   // OpenPluginFrontend retains a source-backed compiler on the selected device.
   // The returned Resource serves bldr.frontend.Frontend; release cancels the job.
   rpc OpenPluginFrontend(BuildSpacePluginRequest) returns (OpenPluginFrontendResponse) {}
@@ -104,6 +110,29 @@ message BuildSpacePluginResponse {
   string job_key = 1;
   // TaskKey identifies the Job's build Task.
   string task_key = 2;
+}
+
+// FetchPluginRepositoryRequest selects a GitHub repository and a device to fetch it.
+message FetchPluginRepositoryRequest {
+  // Repository is the GitHub owner/repo, or its https://github.com URL.
+  string repository = 1;
+  // DeviceKey identifies a Device with a selectable Forge worker capability.
+  string device_key = 2;
+  // ClusterKey is the Forge Cluster that receives the Job. It must contain the
+  // Device's Worker. If empty, the Worker must belong to one Cluster.
+  string cluster_key = 3;
+}
+
+// FetchPluginRepositoryResponse identifies the repository objects and the Job.
+message FetchPluginRepositoryResponse {
+  // RepoKey is the git repository object.
+  string repo_key = 1;
+  // WorktreeKey is the git worktree object pinned to the cloned commit.
+  string worktree_key = 2;
+  // JobKey identifies the Forge Job that clones or fetches the repository.
+  string job_key = 3;
+  // TaskKey identifies the Job's fetch Task.
+  string task_key = 4;
 }
 
 // OpenPluginFrontendResponse identifies the authoring attachment and its logs.

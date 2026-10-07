@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package forge_lib_git_clone
 
 import (
@@ -7,18 +9,13 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
 	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/bucket"
-	git_world "github.com/s4wave/spacewave/db/git/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/sirupsen/logrus"
 	git_urls "github.com/whilp/git-urls"
 	"golang.org/x/crypto/ssh"
-
-	"github.com/s4wave/spacewave/db/world"
 )
 
 // Version is the version of the controller implementation.
@@ -86,7 +83,7 @@ func (c *Controller) InitForgeExecController(
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// lookup the world engine
+	// Read the sender and timestamp, and require the World input.
 	sender := c.handle.GetPeerId()
 	ts := c.handle.GetTimestamp()
 	inWorld := c.inputVals[inputNameWorld]
@@ -100,95 +97,37 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "world")
 	}
 
-	// Read the configured repository object and retain it during cloning.
+	// Resolve the configured credentials, taking the SSH user from the URL.
 	ws := ipv.GetWorldState()
-	repoObjKey := c.conf.GetObjectKey()
-	alreadyExistsObj, alreadyExists, err := ws.GetObject(ctx, repoObjKey)
-	defer world.ReleaseObjectState(alreadyExistsObj)
+	cloneURL := c.conf.GetCloneOpts().GetUrl()
+	authMethod, err := c.conf.GetAuthOpts().ResolveAuth(ctx, c.bus)
+	if err != nil {
+		return err
+	}
+	if sshMethod, ok := authMethod.(*transport_ssh.PublicKeys); ok {
+		if signer := sshMethod.Signer; signer != nil {
+			authorizedKey := ssh.MarshalAuthorizedKey(signer.PublicKey())
+			c.le.Debugf("using public key for auth: %s", string(authorizedKey[:len(authorizedKey)-1]))
+		}
+		if sshMethod.User == "" {
+			uri, err := git_urls.Parse(cloneURL)
+			if err != nil {
+				return err
+			}
+			sshMethod.User = uri.User.Username()
+		}
+	}
+
+	// Clone the repository, or fetch its branch when the World holds it.
+	repoRef, err := c.conf.CloneOrFetch(ctx, c.le, ws, sender, ts, authMethod, os.Stderr)
 	if err != nil {
 		return err
 	}
 
-	// Bind checkout options to the repository object and execution timestamp.
-	cloneOpts := c.conf.GetCloneOpts()
-	worktreeOpts := c.conf.GetWorktreeOpts().CloneVT()
-	if worktreeOpts != nil {
-		worktreeOpts.RepoObjectKey = repoObjKey
-		worktreeOpts.Timestamp = ts
-	}
-
-	// Reuse the repository snapshot or clone it into the target World.
-	var repoRef *bucket.ObjectRef
-	var repoRev uint64
-	if alreadyExists {
-		// TODO: should we do a "git fetch" here and add/or add/update the remote?
-		// NOTE: in future we might configure a custom behavior here.
-		repoRef, repoRev, err = alreadyExistsObj.GetRootRef(ctx)
-		if err != nil {
-			return err
-		}
-		c.le.Infof("repo already exists at rev %d: %s", repoRev, repoObjKey)
-
-		if repoRev > 1 && !cloneOpts.GetDisableCheckout() && worktreeOpts.GetObjectKey() != "" {
-			c.le.Info("initializing worktree from existing repo")
-			_, err := worktreeOpts.ApplyWorldOp(ctx, c.le, ws, sender)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		cloneURL := cloneOpts.GetUrl()
-		authMethod, err := c.conf.GetAuthOpts().ResolveAuth(ctx, c.bus)
-		if err != nil {
-			return err
-		}
-		if sshMethod, ok := authMethod.(*transport_ssh.PublicKeys); ok {
-			if signer := sshMethod.Signer; signer != nil {
-				authorizedKey := ssh.MarshalAuthorizedKey(signer.PublicKey())
-				c.le.Debugf("using public key for auth: %s", string(authorizedKey[:len(authorizedKey)-1]))
-			}
-
-			// parse the user from the url
-			if sshMethod.User == "" {
-				uri, err := git_urls.Parse(cloneURL)
-				if err != nil {
-					return err
-				}
-				sshMethod.User = uri.User.Username()
-			}
-		}
-
-		// TODO: where to send progress?
-		var progress sideband.Progress = os.Stderr
-		c.le.Debugf(
-			"git: clone %q to object %q worktree %q",
-			cloneURL,
-			repoObjKey,
-			worktreeOpts.GetObjectKey(),
-		)
-		repoRef, err = git_world.GitClone(
-			ctx,
-			ws,
-			repoObjKey,
-			sender,
-			cloneOpts,
-			authMethod,
-			progress,
-			worktreeOpts,
-			ts,
-		)
-		if err != nil {
-			return err
-		}
-		// repoRev = 1
-	}
-
-	// set the output
+	// Publish the repository snapshot reference as the output.
 	outps := forge_value.ValueSlice{
-		// output: repo
 		forge_value.NewValueWithBucketRef(outputNameRepo, repoRef),
 	}
-
 	return c.handle.SetOutputs(ctx, outps, true)
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/go-git/go-git/v6/plumbing/protocol/packp/sideband"
 	"github.com/go-git/go-git/v6/storage/memory"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -18,7 +19,8 @@ import (
 var GitFetchOpId = "hydra/git/fetch"
 
 // GitFetch performs a git fetch operation against an existing repo in the world.
-// Fetches new objects from the remote into the existing world object repo.
+// Fetches new objects from the remote into the existing world object repo and
+// returns the repo's root reference after the fetch.
 // authMethod and progress can be empty.
 func GitFetch(
 	ctx context.Context,
@@ -27,7 +29,7 @@ func GitFetch(
 	fetchOpts *git_block.FetchOpts,
 	authMethod client.SSHAuth,
 	progress sideband.Progress,
-) error {
+) (*bucket.ObjectRef, error) {
 	// Build the remote fetch options with authentication and progress reporting.
 	fetchArgs := fetchOpts.BuildFetchOpts()
 	if authMethod != nil {
@@ -36,7 +38,7 @@ func GitFetch(
 	fetchArgs.Progress = progress
 
 	// Fetch remote objects into the World repository.
-	_, _, err := AccessWorldObjectRepo(
+	repoRef, _, err := AccessWorldObjectRepo(
 		ctx,
 		ws,
 		objKey,
@@ -52,7 +54,7 @@ func GitFetch(
 			return err
 		},
 	)
-	return err
+	return repoRef, err
 }
 
 // NewGitFetchOp constructs a new GitFetchOp.
@@ -100,7 +102,7 @@ func (o *GitFetchOp) ApplyWorldOp(
 	}
 
 	// Fetch remote objects into the existing repository.
-	err = GitFetch(ctx, worldHandle, objKey, o.GetFetchOpts(), nil, nil)
+	_, err = GitFetch(ctx, worldHandle, objKey, o.GetFetchOpts(), nil, nil)
 	return false, err
 }
 

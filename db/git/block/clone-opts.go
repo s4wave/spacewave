@@ -41,3 +41,16 @@ func (c *CloneOpts) BuildCloneOpts() *git.CloneOptions {
 		Tags:              tagMode,
 	}
 }
+
+// BuildFetchOpts returns the options that fetch the cloned branch again: the
+// same remote, depth and tag mode, with the remote's configured refspecs.
+// A depth-one clone thus fetches only the branch's newest commit.
+func (c *CloneOpts) BuildFetchOpts() *FetchOpts {
+	return &FetchOpts{
+		RemoteName: c.GetRemoteName(),
+		Depth:      c.GetDepth(),
+		TagMode:    c.GetTagMode(),
+		Insecure:   c.GetInsecure(),
+		CaBundle:   c.GetCaBundle(),
+	}
+}

@@ -286,6 +286,86 @@ export const BuildSpacePluginResponse: MessageType<BuildSpacePluginResponse> =
   })
 
 /**
+ * FetchPluginRepositoryRequest selects a GitHub repository and a device to fetch it.
+ *
+ * @generated from message s4wave.space.FetchPluginRepositoryRequest
+ */
+export interface FetchPluginRepositoryRequest {
+  /**
+   * Repository is the GitHub owner/repo, or its https://github.com URL.
+   *
+   * @generated from field: string repository = 1;
+   */
+  repository?: string
+  /**
+   * DeviceKey identifies a Device with a selectable Forge worker capability.
+   *
+   * @generated from field: string device_key = 2;
+   */
+  deviceKey?: string
+  /**
+   * ClusterKey is the Forge Cluster that receives the Job. It must contain the
+   * Device's Worker. If empty, the Worker must belong to one Cluster.
+   *
+   * @generated from field: string cluster_key = 3;
+   */
+  clusterKey?: string
+}
+
+export const FetchPluginRepositoryRequest: MessageType<FetchPluginRepositoryRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.FetchPluginRepositoryRequest',
+    fields: [
+      { no: 1, name: 'repository', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'device_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'cluster_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * FetchPluginRepositoryResponse identifies the repository objects and the Job.
+ *
+ * @generated from message s4wave.space.FetchPluginRepositoryResponse
+ */
+export interface FetchPluginRepositoryResponse {
+  /**
+   * RepoKey is the git repository object.
+   *
+   * @generated from field: string repo_key = 1;
+   */
+  repoKey?: string
+  /**
+   * WorktreeKey is the git worktree object pinned to the cloned commit.
+   *
+   * @generated from field: string worktree_key = 2;
+   */
+  worktreeKey?: string
+  /**
+   * JobKey identifies the Forge Job that clones or fetches the repository.
+   *
+   * @generated from field: string job_key = 3;
+   */
+  jobKey?: string
+  /**
+   * TaskKey identifies the Job's fetch Task.
+   *
+   * @generated from field: string task_key = 4;
+   */
+  taskKey?: string
+}
+
+export const FetchPluginRepositoryResponse: MessageType<FetchPluginRepositoryResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.FetchPluginRepositoryResponse',
+    fields: [
+      { no: 1, name: 'repo_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'worktree_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * OpenPluginFrontendResponse identifies the authoring attachment and its logs.
  *
  * @generated from message s4wave.space.OpenPluginFrontendResponse

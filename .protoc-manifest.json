@@ -2668,7 +2668,7 @@
       ]
     },
     "github.com/s4wave/spacewave/forge/lib/git/clone": {
-      "hash": "dacd57a37858e38b08cedfd2027e576a0b57cb25d68ab6da8c662e3bce5ca06e",
+      "hash": "60a3ffd8939eacaed45b851e014837341654c28fa6968144564b0ae193f8059b",
       "generatedFiles": [
         "forge/lib/git/clone/config.pb.go",
         "forge/lib/git/clone/config.pb.ts"
@@ -3900,7 +3900,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "e4c0c1b6d4ddb2523d77cd8b569eaada57ffc0dfb78b64a1a23be8da4791caab",
+      "hash": "31d41d015664de7524b4de1665225c7740bc8af07cd64a3d1a67de10719a7f81",
       "generatedFiles": [
         "sdk/space/space.pb.go",
         "sdk/space/space.pb.ts",

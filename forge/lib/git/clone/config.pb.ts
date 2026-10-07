@@ -14,7 +14,8 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
  * Config is the configuration for cloning Git repositories to a world.
- * If the target object already exists, skips the step.
+ * If the target object already exists, fetches the cloned branch again with
+ * the clone's remote, depth and tag mode, leaving the worktree on its commit.
  *
  * Inputs:
  *  - world: the target World engine or state.

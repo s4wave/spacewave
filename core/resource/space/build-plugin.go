@@ -55,7 +55,7 @@ func (r *SpaceResource) BuildSpacePlugin(ctx context.Context, req *s4wave_space.
 
 	// Select the Cluster and check the Worker can hold the capacity request.
 	workerKey := selection.placement.GetWorkerObjectKey()
-	clusterKey, err := selectPluginBuildCluster(ctx, tx, workerKey, req.GetClusterKey())
+	clusterKey, err := selectWorkerCluster(ctx, tx, workerKey, req.GetClusterKey())
 	if err != nil {
 		return nil, err
 	}
@@ -114,16 +114,55 @@ func (r *SpaceResource) BuildSpacePlugin(ctx context.Context, req *s4wave_space.
 	}, nil
 }
 
-// pluginBuildSelection is the authorized Device and pinned source of one build.
-type pluginBuildSelection struct {
-	// sender is the mounted Session that submitted the build.
+// devicePlacement is the mounted Session and the Device Worker that runs its Job.
+type devicePlacement struct {
+	// sender is the mounted Session that submitted the Job.
 	sender peer.ID
-	// device is the selected build Device.
+	// device is the selected Device.
 	device *s4wave_device.Device
 	// devicePeer is the Device's authenticated transport identity.
 	devicePeer peer.ID
-	// placement binds the build to the Device's Forge Worker.
+	// placement binds the Job to the Device's Forge Worker.
 	placement *forge_worker.Placement
+}
+
+// selectDevicePlacement binds a Job from the mounted Session to the Forge
+// Worker of the Device at deviceKey.
+func (r *SpaceResource) selectDevicePlacement(ctx context.Context, tx world.Tx, deviceKey string) (*devicePlacement, error) {
+	// Require the mounted Session as the sender.
+	if r.sessionPeerID == "" {
+		return nil, errors.New("forge jobs require a mounted session identity")
+	}
+	sender, err := confparse.ParsePeerID(r.sessionPeerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Select the Device with a linked Worker that the Session may place work on.
+	device, err := lookupDevice(ctx, tx, deviceKey)
+	if err != nil {
+		return nil, err
+	}
+	worker := device.FindSelectableForgeWorker()
+	if !device.IsSelectable() || worker == nil {
+		return nil, errors.New("device has no available Forge worker")
+	}
+
+	// Bind the Job to the Device's peer and linked Worker.
+	devicePeer, err := confparse.ParsePeerID(device.GetPeerId())
+	if err != nil {
+		return nil, err
+	}
+	placement := &forge_worker.Placement{WorkerObjectKey: worker.GetLink().GetObjectKey(), PeerId: devicePeer.String()}
+	if err := placement.ValidateLinked(ctx, tx); err != nil {
+		return nil, err
+	}
+	return &devicePlacement{sender: sender, device: device, devicePeer: devicePeer, placement: placement}, nil
+}
+
+// pluginBuildSelection is the authorized Device and pinned source of one build.
+type pluginBuildSelection struct {
+	devicePlacement
 	// source is the exact Space UnixFS snapshot to build.
 	source *forge_value.WorldObjectSnapshot
 	// configPath is the Bldr project configuration path inside source.
@@ -132,15 +171,6 @@ type pluginBuildSelection struct {
 
 // selectPluginBuild captures source and Device authority in one World transaction.
 func (r *SpaceResource) selectPluginBuild(ctx context.Context, tx world.Tx, req *s4wave_space.BuildSpacePluginRequest) (*pluginBuildSelection, error) {
-	// Require the mounted Session as the sender.
-	if r.sessionPeerID == "" {
-		return nil, errors.New("plugin builds require a mounted session identity")
-	}
-	sender, err := confparse.ParsePeerID(r.sessionPeerID)
-	if err != nil {
-		return nil, err
-	}
-
 	// Validate the plugin identity and the project configuration path.
 	if err := manifest.ValidateManifestID(req.GetManifestId(), false); err != nil {
 		return nil, err
@@ -153,23 +183,9 @@ func (r *SpaceResource) selectPluginBuild(ctx context.Context, tx world.Tx, req 
 		return nil, errors.New("config_path must be relative to the source tree")
 	}
 
-	// Select the Device with a linked Worker that the Session may place work on.
-	device, err := lookupBuildDevice(ctx, tx, req.GetDeviceKey())
+	// Place the build on the selected Device's Worker.
+	placement, err := r.selectDevicePlacement(ctx, tx, req.GetDeviceKey())
 	if err != nil {
-		return nil, err
-	}
-	worker := device.FindSelectableForgeWorker()
-	if !device.IsSelectable() || worker == nil {
-		return nil, errors.New("device has no available Forge worker")
-	}
-
-	// Bind the build to the Device's peer and linked Worker.
-	devicePeer, err := confparse.ParsePeerID(device.GetPeerId())
-	if err != nil {
-		return nil, err
-	}
-	placement := &forge_worker.Placement{WorkerObjectKey: worker.GetLink().GetObjectKey(), PeerId: devicePeer.String()}
-	if err := placement.ValidateLinked(ctx, tx); err != nil {
 		return nil, err
 	}
 
@@ -186,21 +202,18 @@ func (r *SpaceResource) selectPluginBuild(ctx context.Context, tx world.Tx, req 
 	if source.GetObjectType() != unixfs_world.FSNodeTypeID {
 		return nil, errors.New("plugin source must be a Space UnixFS directory")
 	}
-	return &pluginBuildSelection{
-		sender: sender, device: device, devicePeer: devicePeer,
-		placement: placement, source: source, configPath: configPath,
-	}, nil
+	return &pluginBuildSelection{devicePlacement: *placement, source: source, configPath: configPath}, nil
 }
 
-// lookupBuildDevice reads the registered Device at key.
-func lookupBuildDevice(ctx context.Context, tx world.WorldState, key string) (*s4wave_device.Device, error) {
+// lookupDevice reads the registered Device at key.
+func lookupDevice(ctx context.Context, tx world.WorldState, key string) (*s4wave_device.Device, error) {
 	// Require the object to be a Device.
 	deviceType, err := world_types.GetObjectType(ctx, tx, key)
 	if err != nil {
 		return nil, err
 	}
 	if deviceType != s4wave_device.DeviceTypeID {
-		return nil, errors.New("select a registered build device")
+		return nil, errors.New("select a registered device")
 	}
 
 	// Read the Device block.
@@ -228,10 +241,10 @@ func (s *pluginBuildSelection) buildPlatform(requested string) (string, error) {
 	return "", errors.Errorf("platform %q is neither js nor the device platform %q", requested, native)
 }
 
-// selectPluginBuildCluster finds the Cluster that will schedule the build Job.
+// selectWorkerCluster finds the Cluster that will schedule a Job on the Worker.
 // The Cluster must contain the Worker. If none is requested, the Worker must
 // belong to exactly one.
-func selectPluginBuildCluster(ctx context.Context, tx world.WorldState, workerKey, requested string) (string, error) {
+func selectWorkerCluster(ctx context.Context, tx world.WorldState, workerKey, requested string) (string, error) {
 	// List the Clusters that contain the Worker.
 	clusters, err := forge_cluster.ListWorkerClusters(ctx, tx, workerKey)
 	if err != nil {

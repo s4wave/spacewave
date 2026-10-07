@@ -15,6 +15,8 @@ import {
   BuildSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  FetchPluginRepositoryRequest,
+  FetchPluginRepositoryResponse,
   MountSpaceContentsRequest,
   MountSpaceContentsResponse,
   OpenPluginFrontendResponse,
@@ -175,6 +177,20 @@ export const SpaceResourceServiceDefinition = {
       name: 'BuildSpacePlugin',
       I: BuildSpacePluginRequest,
       O: BuildSpacePluginResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * FetchPluginRepository queues a Forge Job on a registered device that clones
+     * a public GitHub repository at depth one into this Space, or fetches its
+     * newest commit when the repository is already stored. The worktree stays on
+     * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
+     */
+    FetchPluginRepository: {
+      name: 'FetchPluginRepository',
+      I: FetchPluginRepositoryRequest,
+      O: FetchPluginRepositoryResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -375,6 +391,19 @@ export interface SpaceResourceService {
     request: BuildSpacePluginRequest,
     abortSignal?: AbortSignal,
   ): Promise<BuildSpacePluginResponse>
+
+  /**
+   * FetchPluginRepository queues a Forge Job on a registered device that clones
+   * a public GitHub repository at depth one into this Space, or fetches its
+   * newest commit when the repository is already stored. The worktree stays on
+   * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
+   */
+  FetchPluginRepository(
+    request: FetchPluginRepositoryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<FetchPluginRepositoryResponse>
 
   /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
@@ -579,6 +608,20 @@ export interface SpaceResourceServiceHandler {
   ): Promise<BuildSpacePluginResponse>
 
   /**
+   * FetchPluginRepository queues a Forge Job on a registered device that clones
+   * a public GitHub repository at depth one into this Space, or fetches its
+   * newest commit when the repository is already stored. The worktree stays on
+   * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
+   */
+  FetchPluginRepository(
+    request: FetchPluginRepositoryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<FetchPluginRepositoryResponse>
+
+  /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
    * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
    *
@@ -688,6 +731,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
     this.BuildSpacePlugin = this.BuildSpacePlugin.bind(this)
+    this.FetchPluginRepository = this.FetchPluginRepository.bind(this)
     this.OpenPluginFrontend = this.OpenPluginFrontend.bind(this)
     this.SetSpaceSequencer = this.SetSpaceSequencer.bind(this)
     this.SetSpaceControl = this.SetSpaceControl.bind(this)
@@ -905,6 +949,28 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return BuildSpacePluginResponse.fromBinary(result)
+  }
+
+  /**
+   * FetchPluginRepository queues a Forge Job on a registered device that clones
+   * a public GitHub repository at depth one into this Space, or fetches its
+   * newest commit when the repository is already stored. The worktree stays on
+   * the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
+   */
+  async FetchPluginRepository(
+    request: FetchPluginRepositoryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<FetchPluginRepositoryResponse> {
+    const requestMsg = FetchPluginRepositoryRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.FetchPluginRepository.name,
+      FetchPluginRepositoryRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return FetchPluginRepositoryResponse.fromBinary(result)
   }
 
   /**

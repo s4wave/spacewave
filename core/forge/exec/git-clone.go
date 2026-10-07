@@ -8,15 +8,12 @@ import (
 	"github.com/go-git/go-git/v6/plumbing/client"
 	transport_ssh "github.com/go-git/go-git/v6/plumbing/transport/ssh"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
-	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
+	forge_lib_git_clone "github.com/s4wave/spacewave/forge/lib/git/clone"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/sirupsen/logrus"
-
-	forge_lib_git_clone "github.com/s4wave/spacewave/forge/lib/git/clone"
 )
 
 // GitCloneConfigID is the config ID for the space-aware git clone handler.
@@ -30,77 +27,29 @@ const (
 
 // gitCloneHandler executes git clone operations using world state directly.
 type gitCloneHandler struct {
-	le     *logrus.Entry
-	ws     world.WorldState
+	// le is the logger.
+	le *logrus.Entry
+	// ws is the Space World that holds the repository.
+	ws world.WorldState
+	// handle supplies the sender and timestamp and receives the outputs.
 	handle forge_target.ExecControllerHandle
-	conf   *forge_lib_git_clone.Config
+	// conf is the validated clone configuration.
+	conf *forge_lib_git_clone.Config
 }
 
-// Execute runs the git clone handler.
+// Execute clones the repository, or fetches its branch when the World holds it.
 func (h *gitCloneHandler) Execute(ctx context.Context) error {
-	// Read the sender peer ID, timestamp, and target repo object key.
-	sender := h.handle.GetPeerId()
-	ts := h.handle.GetTimestamp()
-	repoObjKey := h.conf.GetObjectKey()
+	// Resolve auth without bus access.
+	authMethod, err := resolveAuthWithoutBus(h.conf.GetAuthOpts())
+	if err != nil {
+		return errors.Wrap(err, "resolve auth")
+	}
 
-	// Load the existing repo object, releasing its handle when done.
-	alreadyExistsObj, alreadyExists, err := h.ws.GetObject(ctx, repoObjKey)
-	defer world.ReleaseObjectState(alreadyExistsObj)
+	// Clone or fetch the repository in the Space World.
+	sender, ts := h.handle.GetPeerId(), h.handle.GetTimestamp()
+	repoRef, err := h.conf.CloneOrFetch(ctx, h.le, h.ws, sender, ts, authMethod, nil)
 	if err != nil {
 		return err
-	}
-
-	// Read the clone options and stamp the repo key and timestamp into the worktree options.
-	cloneOpts := h.conf.GetCloneOpts()
-	worktreeOpts := h.conf.GetWorktreeOpts().CloneVT()
-	if worktreeOpts != nil {
-		worktreeOpts.RepoObjectKey = repoObjKey
-		worktreeOpts.Timestamp = ts
-	}
-
-	// Reuse the existing repo revision or clone the repository into world state.
-	var repoRef *bucket.ObjectRef
-	if alreadyExists {
-		var repoRev uint64
-		repoRef, repoRev, err = alreadyExistsObj.GetRootRef(ctx)
-		if err != nil {
-			return err
-		}
-		h.le.Infof("repo already exists at rev %d: %s", repoRev, repoObjKey)
-
-		if repoRev > 1 && !cloneOpts.GetDisableCheckout() && worktreeOpts.GetObjectKey() != "" {
-			h.le.Info("initializing worktree from existing repo")
-			_, err := worktreeOpts.ApplyWorldOp(ctx, h.le, h.ws, sender)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		authMethod, err := resolveAuthWithoutBus(h.conf.GetAuthOpts())
-		if err != nil {
-			return errors.Wrap(err, "resolve auth")
-		}
-
-		h.le.Debugf(
-			"git: clone %q to object %q worktree %q",
-			cloneOpts.GetUrl(),
-			repoObjKey,
-			worktreeOpts.GetObjectKey(),
-		)
-		repoRef, err = git_world.GitClone(
-			ctx,
-			h.ws,
-			repoObjKey,
-			sender,
-			cloneOpts,
-			authMethod,
-			nil, // progress
-			worktreeOpts,
-			ts,
-		)
-		if err != nil {
-			return err
-		}
 	}
 
 	// Publish the repo snapshot reference as the handler output.
