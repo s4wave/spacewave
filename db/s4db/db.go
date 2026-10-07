@@ -337,10 +337,15 @@ func (db *DB) verify(r *record) bool {
 }
 
 // tailLoop applies records other processes append until the watcher stops.
-// A failed tail leaves the published state; the next change retries it.
+// It skips the wakes this handle's writer raises: while the writer lock is
+// held no other process writes, and taking the lock applied what they wrote
+// before. A failed tail leaves the published state; the next change retries
+// it.
 func (db *DB) tailLoop(ctx context.Context) error {
 	for db.watch.wait() {
-		_ = db.Refresh(ctx)
+		if !db.w.held.Load() {
+			_ = db.Refresh(ctx)
+		}
 	}
 	return nil
 }

@@ -43,6 +43,9 @@ type writer struct {
 	// the next commit.
 	ckptErr error
 
+	// held is set while this handle holds the writer lock. It is safe
+	// without the writer lock.
+	held atomic.Bool
 	// building is set while a background checkpoint runs. It and builds
 	// are safe without the writer lock.
 	building atomic.Bool
@@ -67,6 +70,7 @@ func (w *writer) lock(ctx context.Context) error {
 		return err
 	}
 	w.unlockMtx = release
+	w.held.Store(true)
 
 	// Apply what other processes wrote.
 	if err := w.catchUp(ctx); err != nil {
@@ -91,6 +95,7 @@ func (w *writer) tryLock() (bool, error) {
 		return false, err
 	}
 	w.unlockMtx = release
+	w.held.Store(true)
 	return true, nil
 }
 
@@ -106,6 +111,7 @@ func (w *writer) unlock(err error) {
 
 	// Release other processes and wake their watchers, then this handle's
 	// writers.
+	w.held.Store(false)
 	_ = w.db.s.unlock(lockWriter)
 	w.db.watch.notify()
 	release := w.unlockMtx
@@ -304,8 +310,9 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		return err
 	}
 
-	// Write the values, then the record. A tail of this handle that reads
-	// the record first publishes the same state.
+	// Write the values, then the record. A tail of this handle that began
+	// before the writer lock and reads the record first publishes the same
+	// state.
 	if err := w.writeValues(r, writes); err != nil {
 		return err
 	}
