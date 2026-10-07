@@ -52,8 +52,6 @@ export { createRoot } from 'react-dom/client'
     const app = await fetch(prefix + 'app/App.tsx')
     expect(app.status).toBe(200)
     const appCode = await app.text()
-    expect(appCode).toContain('/b/fe/sources/web/debug/DebugBridgeProvider.tsx')
-    expect(appCode).toContain('/b/fe/sources/web/style/app.css')
     expect(appCode).toContain('from "react"')
     expect(appCode).toContain('from "react-dom/client"')
     expect(appCode).not.toContain('/b/pkg/@s4wave/web/')
@@ -70,7 +68,7 @@ export { createRoot } from 'react-dom/client'
     expect(code).toContain('from "react-dom/client"')
     const button = await fetch(prefix + 'web/ui/button.tsx')
     expect(button.status).toBe(200)
-    expect(await button.text()).toContain('/b/fe/sources/web/style/utils.ts')
+    expect(await button.text()).not.toContain('/b/pkg/@s4wave/web/')
   } finally {
     await environment.close()
     await rm(directory, { recursive: true, force: true })

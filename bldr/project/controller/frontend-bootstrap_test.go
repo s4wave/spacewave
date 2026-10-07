@@ -36,7 +36,7 @@ func TestFrontendBootstrapAttachesStartup(t *testing.T) {
 		Session: &frontend.Session{Id: "first", RoutePrefix: "/b/fe/first/"},
 	}}, nil)
 	response := httptest.NewRecorder()
-	service.ServeBootstrap(response, httptest.NewRequest(http.MethodGet, "/bldr-dev/frontend-boot.mjs", nil), "entrypoint/entrypoint.mjs", "./app/startup.tsx")
+	service.ServeBootstrap(response, httptest.NewRequest(http.MethodGet, "/bldr-dev/frontend-boot.mjs", nil), "entrypoint/entrypoint.mjs", "app/startup.tsx")
 
 	// The refresh import precedes the immutable renderer and supplies a stable source path.
 	want := `import "/bldr-dev/frontend-refresh/first.mjs"; window.__bldrFrontendEnabled = true; window.__bldrFrontendStartup = "app/startup.tsx"; await import("/entrypoint/entrypoint.mjs");`

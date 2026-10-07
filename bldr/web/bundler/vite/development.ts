@@ -160,8 +160,9 @@ export class DevelopmentEnvironment {
     // Preserve canonical imports and the project's source aliases.
     const canonical = this.config.externalPkgs ?? []
     const external = [...canonical, ...webPkgIDs]
-    const isExternal = (source: string) =>
-      external.some((pkg) => source === pkg || source.startsWith(pkg + '/'))
+    const inPackages = (source: string, pkgs: string[]) =>
+      pkgs.some((pkg) => source === pkg || source.startsWith(pkg + '/'))
+    const isExternal = (source: string) => inPackages(source, external)
     const aliases = Array.isArray(config.resolve?.alias)
       ? config.resolve.alias
       : Object.entries(config.resolve?.alias ?? {}).map(
@@ -196,9 +197,7 @@ export class DevelopmentEnvironment {
             !local.startsWith('..' + sep) &&
             !isAbsolute(local) &&
             local.split(sep)[0] !== 'node_modules' &&
-            !canonical.some(
-              (pkg) => source === pkg || source.startsWith(pkg + '/'),
-            )
+            !inPackages(source, canonical)
           if (editable || !isWebPkgModule(source)) {
             return this.resolve(target, importer, { skipSelf: true })
           }

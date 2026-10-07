@@ -132,7 +132,7 @@ func (f *FrontendService) configure(cc *Config) error {
 		return err
 	}
 	if startup != "" {
-		conf.Entrypoints = append(conf.Entrypoints, path.Clean(startup))
+		conf.Entrypoints = append(conf.Entrypoints, startup)
 	}
 
 	// Sort and deduplicate the collected entrypoints and excluded web packages.
@@ -356,11 +356,11 @@ func (f *FrontendService) ServeBootstrap(rw http.ResponseWriter, req *http.Reque
 	case "/bldr-dev/frontend-boot.mjs":
 		refresh := strconv.Quote(refreshPath)
 		entry := strconv.Quote("/" + strings.TrimPrefix(entrypoint, "/"))
-		startupPath := strconv.Quote(path.Clean(startup))
-		if startup == "" {
-			startupPath = `""`
+		boot := "import " + refresh + "; window.__bldrFrontendEnabled = true;"
+		if startup != "" {
+			boot += " window.__bldrFrontendStartup = " + strconv.Quote(startup) + ";"
 		}
-		_, _ = io.WriteString(rw, "import "+refresh+"; window.__bldrFrontendEnabled = true; window.__bldrFrontendStartup = "+startupPath+"; await import("+entry+");\n")
+		_, _ = io.WriteString(rw, boot+" await import("+entry+");\n")
 	case refreshPath:
 		_, _ = io.WriteString(rw, env.result.GetRefreshRuntime())
 		if env.result.GetRefreshRuntime() == "" {
