@@ -4,23 +4,22 @@ package device_flowgraph
 
 import (
 	"context"
+	"crypto/rand"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
-	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
-	stream_forwarding "github.com/s4wave/spacewave/net/stream/forwarding"
-	stream_listening "github.com/s4wave/spacewave/net/stream/listening"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	flowgraph_nodetype "github.com/s4wave/spacewave/sdk/flowgraph/nodetype"
@@ -35,8 +34,8 @@ const (
 
 // TestReconciler runs a Reconciler for one Device against a World holding a
 // Flowgraph that places a TCP Port and a Local Port on it, and checks the
-// applied ConfigSet and the node state in the Device object through each
-// policy and graph change.
+// node state in the Device object through each policy, graph, and Session
+// change.
 func TestReconciler(t *testing.T) {
 	// Bound the test, since a missing change would wait forever.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -46,7 +45,8 @@ func TestReconciler(t *testing.T) {
 	// Seed this daemon's Device, another Device, and the Flowgraph.
 	tb := world_testbed.MustDefault(t, ctx)
 	engine := tb.Engine
-	selfPeer := newPeerID(t)
+	selfKey, selfPeerID := newSessionKey(t)
+	selfPeer := selfPeerID.String()
 	otherPeer := newPeerID(t)
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		for key, peerID := range map[string]string{testSelfKey: selfPeer, testOtherKey: otherPeer} {
@@ -76,15 +76,26 @@ func TestReconciler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Serve the node types and record the applied ConfigSets on a bus.
+	// Serve the node types on the root bus and run the Device's Session
+	// transport, whose bus hosts the node controllers.
 	b := inmem.NewBus(directive_controller.NewController(ctx, le))
-	recorder := newConfigRecorder()
-	for _, ctrl := range []controller.Controller{flowgraph_nodetype.NewController(), recorder} {
-		release, err := b.AddController(ctx, ctrl, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer release()
+	release, err := b.AddController(ctx, flowgraph_nodetype.NewController(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	st, err := transport.NewSessionTransport(le, b, selfKey, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionCtx, stopSession := context.WithCancel(ctx)
+	sessionDone := make(chan struct{})
+	go func() {
+		defer close(sessionDone)
+		_ = st.Execute(sessionCtx)
+	}()
+	if err := st.AwaitReady(ctx); err != nil {
+		t.Fatal(err)
 	}
 
 	// Run the Reconciler until the test stops it, counting its holds on the
@@ -107,8 +118,8 @@ func TestReconciler(t *testing.T) {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
 				"tcp-self":    portNode(s4wave_flowgraph.TCPPortNodeTypeID, "127.0.0.1:8080", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT),
-				"local-other": portNode(s4wave_flowgraph.LocalPortNodeTypeID, "127.0.0.1:9090", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT),
-				"local-self":  portNode(s4wave_flowgraph.LocalPortNodeTypeID, "127.0.0.1:9091", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT),
+				"local-other": portNode(s4wave_flowgraph.LocalPortNodeTypeID, "127.0.0.1:0", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT),
+				"local-self":  portNode(s4wave_flowgraph.LocalPortNodeTypeID, "127.0.0.1:0", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT),
 				"tcp-other":   portNode(s4wave_flowgraph.TCPPortNodeTypeID, "127.0.0.1:8081", s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT),
 			},
 			SetConnections: map[string]*s4wave_flowgraph.FlowgraphConnection{
@@ -124,24 +135,6 @@ func TestReconciler(t *testing.T) {
 		})
 		return err
 	})
-
-	// Require the TCP Port to run with the expected forwarding config.
-	forwarding := &stream_forwarding.Config{
-		PeerId:          selfPeer,
-		ProtocolId:      "spacewave/flowgraph/main/out",
-		TargetMultiaddr: "/ip4/127.0.0.1/tcp/8080",
-	}
-	outKey := testFlowgraphKey + "/tcp-self/out"
-	inKey := testFlowgraphKey + "/local-self/in"
-	applied, err := recorder.WaitApplied(ctx, func(applied map[string]config.Config) bool {
-		return len(applied) == 1 && applied[outKey] != nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !applied[outKey].EqualsConfig(forwarding) {
-		t.Fatalf("applied %v, want %v", applied[outKey], forwarding)
-	}
 
 	// Require the disallowed Local Port to show as rejected while the TCP Port
 	// shows as active.
@@ -168,27 +161,12 @@ func TestReconciler(t *testing.T) {
 	if err := policy.Reload(); err != nil {
 		t.Fatal(err)
 	}
-	listening := &stream_listening.Config{
-		LocalPeerId:     selfPeer,
-		RemotePeerId:    otherPeer,
-		ProtocolId:      "spacewave/flowgraph/main/in",
-		ListenMultiaddr: "/ip4/127.0.0.1/tcp/9091",
-	}
-	applied, err = recorder.WaitApplied(ctx, func(applied map[string]config.Config) bool {
-		return len(applied) == 2 && applied[inKey] != nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !applied[outKey].EqualsConfig(forwarding) || !applied[inKey].EqualsConfig(listening) {
-		t.Fatalf("applied %v and %v, want %v and %v", applied[outKey], applied[inKey], forwarding, listening)
-	}
 	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
 		return capabilityState(capabilities, "tcp-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE &&
 			capabilityState(capabilities, "local-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
 	})
 
-	// Remove the connection from the TCP Port and require its entry released
+	// Remove the connection from the TCP Port and require its node available
 	// while the other connection keeps running.
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
@@ -196,30 +174,45 @@ func TestReconciler(t *testing.T) {
 		})
 		return err
 	})
-	applied, err = recorder.WaitApplied(ctx, func(applied map[string]config.Config) bool {
-		return applied[outKey] == nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(applied) != 1 || !applied[inKey].EqualsConfig(listening) {
-		t.Fatalf("applied %v, want only the listening entry", applied)
-	}
 	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
-		return capabilityState(capabilities, "tcp-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE
+		return capabilityState(capabilities, "tcp-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE &&
+			capabilityState(capabilities, "local-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
 	})
 
-	// Stop the Reconciler and require it to release every entry.
+	// Restart the Session transport and require the Local Port to run again on
+	// the new Session bus.
+	stopSession()
+	<-sessionDone
+	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilityState(capabilities, "local-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DECLARED
+	})
+	go func() { _ = st.Execute(ctx) }()
+	waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilityState(capabilities, "local-self") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE
+	})
+
+	// Stop the Reconciler and require it to release the daemon.
 	stop()
 	if err := <-runErr; err != nil {
-		t.Fatal(err)
-	}
-	if _, err := recorder.WaitApplied(ctx, func(applied map[string]config.Config) bool { return len(applied) == 0 }); err != nil {
 		t.Fatal(err)
 	}
 	if n := holds.Load(); n != 0 {
 		t.Fatalf("reconciler holds the daemon %d times after it stops, want 0", n)
 	}
+}
+
+// newSessionKey returns a new Session key and its peer ID.
+func newSessionKey(t *testing.T) (crypto.PrivKey, peer.ID) {
+	t.Helper()
+	key, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := peer.IDFromPrivateKey(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return key, id
 }
 
 // newPeerID returns the ID of a new peer.

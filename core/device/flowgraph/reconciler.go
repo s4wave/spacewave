@@ -13,6 +13,7 @@ import (
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	"github.com/sirupsen/logrus"
@@ -22,12 +23,14 @@ import (
 // Reconciler runs the Flowgraph nodes placed on one Device. It watches the
 // World for placements and the DevicePolicy for the allowed node types,
 // compiles each allowed node through its node type, applies the compiled
-// entries as one ConfigSet, and writes each node's state into the Device
-// object. A node that fails shows as rejected with its error while the other
-// nodes keep running. The daemon is the only writer of the Device object.
+// entries as one ConfigSet on the Device Session's bus, and writes each node's
+// state into the Device object. A node that fails shows as rejected with its
+// error while the other nodes keep running. The daemon is the only writer of
+// the Device object.
 type Reconciler struct {
 	le *logrus.Entry
-	// b is the bus node types resolve on and the ConfigSet applies on.
+	// b is the root bus node types resolve on. The ConfigSet applies on the Device
+	// Session's bus, which the Session transport looked up on b publishes.
 	b bus.Bus
 	// engine is the World engine of the Space holding the Device.
 	engine world.Engine
@@ -84,6 +87,15 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	defer r.types.Release()
 	defer r.applier.Release()
 	defer r.setHeld(false)
+
+	// Follow the Device Session's transport, which hosts the node controllers.
+	sessionPeerID, err := peer.IDB58Decode(r.peerID)
+	if err != nil {
+		return errors.Wrap(err, "parse device peer id")
+	}
+	if err := r.applier.Watch(sessionPeerID); err != nil {
+		return err
+	}
 
 	// Watch the World and the policy, and reconcile after each change.
 	eg, egCtx := errgroup.WithContext(ctx)

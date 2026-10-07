@@ -7,18 +7,34 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
-// configApplier applies the entries of every placed node as one ConfigSet and
-// reports each entry's controller state.
+// configApplier applies the entries of every placed node as one ConfigSet on
+// the Device Session's bus and reports each entry's controller state. The
+// Device peer and its links live on that bus, so the node controllers must run
+// there to open and serve peer streams.
 //
-// Apply and Release run on the reconciler's loop goroutine. The directive
-// callbacks run on bus goroutines and share only the entry states.
+// Watch, Apply and Release run on the reconciler's loop goroutine. The
+// directive callbacks run on bus goroutines and share only the Session
+// transport and the entry states.
 type configApplier struct {
-	// b is the bus the ConfigSet applies on.
+	// b is the bus the Session transport is looked up on.
 	b bus.Bus
-	// notify wakes the reconciler when an entry's state changes.
+	// notify wakes the reconciler when the Session transport or an entry's state
+	// changes.
 	notify func()
+	// lookup releases the watch on the Session transport, or is nil before Watch.
+	lookup directive.Reference
+
+	// mtx guards session.
+	mtx sync.Mutex
+	// session is the running Session transport, or nil while none runs.
+	session *transport.SessionTransport
+	// sessionBus is the Session bus current is applied on, or nil while no
+	// Session runs. A restarted transport publishes a new bus.
+	sessionBus bus.Bus
 	// current is the applied ConfigSet, or nil while no entry is applied.
 	current *appliedConfigSet
 	// rev is the revision last assigned to an entry. A controller restarts
@@ -52,9 +68,48 @@ func newConfigApplier(b bus.Bus, notify func()) *configApplier {
 	return &configApplier{b: b, notify: notify}
 }
 
-// Apply makes entries, keyed by ConfigSet key, the applied ConfigSet. It does
-// nothing when the entries equal the applied ones.
+// Watch follows the running transport of the Session with peer ID id, and wakes
+// the reconciler as it starts, stops or restarts.
+func (a *configApplier) Watch(id peer.ID) error {
+	_, ref, err := bus.ExecOneOffWatchCb(
+		func(val directive.TypedAttachedValue[*transport.SessionTransport]) bool {
+			// Follow the lookup as the transport starts and stops.
+			a.mtx.Lock()
+			if val == nil {
+				a.session = nil
+			} else {
+				a.session = val.GetValue()
+			}
+			a.mtx.Unlock()
+			a.notify()
+			return true
+		},
+		a.b,
+		transport.NewLookupSessionTransport(id),
+	)
+	if err != nil {
+		return err
+	}
+	a.lookup = ref
+	return nil
+}
+
+// Apply makes entries, keyed by ConfigSet key, the applied ConfigSet on the
+// Session bus. It does nothing when the entries equal the applied ones. While
+// no Session runs the entries wait, and a Session bus that replaces the one
+// the ConfigSet runs on gets the entries applied again.
 func (a *configApplier) Apply(entries map[string]config.Config) error {
+	// Release the entries of a Session bus that stopped or was replaced.
+	sessionBus := a.currentBus()
+	if sessionBus != a.sessionBus {
+		a.current.release()
+		a.current = nil
+		a.sessionBus = sessionBus
+	}
+	if sessionBus == nil {
+		return nil
+	}
+
 	// Keep the revision of each unchanged entry and advance each changed one.
 	next := make(configset.ConfigSet, len(entries))
 	for key, conf := range entries {
@@ -103,7 +158,7 @@ func (a *configApplier) add(set configset.ConfigSet, previous *appliedConfigSet)
 		retirePrevious: sync.OnceFunc(previous.release),
 		states:         make(map[uint32]configset.State),
 	}
-	_, ref, err := a.b.AddDirective(
+	_, ref, err := a.sessionBus.AddDirective(
 		configset.NewApplyConfigSet(set),
 		bus.NewCallbackHandler(
 			func(av directive.AttachedValue) {
@@ -159,6 +214,18 @@ func (s *appliedConfigSet) release() {
 	s.ref.Release()
 }
 
+// currentBus returns the bus of the running Session transport, or nil while none
+// runs.
+func (a *configApplier) currentBus() bus.Bus {
+	a.mtx.Lock()
+	session := a.session
+	a.mtx.Unlock()
+	if session == nil {
+		return nil
+	}
+	return session.GetChildBus()
+}
+
 // State returns the state of the entry with the ConfigSet key, or nil while
 // the ConfigSet controller has not reported it.
 func (a *configApplier) State(key string) configset.State {
@@ -178,8 +245,12 @@ func (a *configApplier) State(key string) configset.State {
 	return nil
 }
 
-// Release releases the applied ConfigSet.
+// Release releases the Session watch and the applied ConfigSet.
 func (a *configApplier) Release() {
+	if a.lookup != nil {
+		a.lookup.Release()
+		a.lookup = nil
+	}
 	a.current.release()
 	a.current = nil
 }

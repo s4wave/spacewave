@@ -8,6 +8,8 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
+	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	cbc "github.com/aperturerobotics/controllerbus/core"
@@ -24,6 +26,8 @@ import (
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/s4wave/spacewave/net/signaling"
 	stream_api_accept "github.com/s4wave/spacewave/net/stream/api/accept"
+	stream_forwarding "github.com/s4wave/spacewave/net/stream/forwarding"
+	stream_listening "github.com/s4wave/spacewave/net/stream/listening"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	transport_webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
 	transport_websocket "github.com/s4wave/spacewave/net/transport/websocket"
@@ -409,17 +413,19 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		}
 		switch d := di.GetDirective().(type) {
 		case peer.GetPeer, link.EstablishLinkWithPeer, link_solicit.SolicitProtocol,
-			signaling.SignalPeer, signaling.HandleSignalPeer:
+			signaling.SignalPeer, signaling.HandleSignalPeer, configset.ApplyConfigSet:
 			return false, nil
 		case resolver.LoadControllerWithConfig:
 			switch d.GetLoadControllerConfig().(type) {
-			case *stream_api_accept.Config, *dex_solicit.Config, *link_solicit_controller.Config,
+			case *stream_api_accept.Config, *stream_forwarding.Config, *stream_listening.Config,
+				*dex_solicit.Config, *link_solicit_controller.Config,
 				*transport_webrtc.Config, *transport_websocket.Config:
 				return false, nil
 			}
 		case loader.ExecController:
 			switch d.GetExecControllerConfig().(type) {
-			case *stream_api_accept.Config, *dex_solicit.Config, *link_solicit_controller.Config,
+			case *stream_api_accept.Config, *stream_forwarding.Config, *stream_listening.Config,
+				*dex_solicit.Config, *link_solicit_controller.Config,
 				*transport_webrtc.Config, *transport_websocket.Config:
 				return false, nil
 			}
@@ -453,6 +459,21 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	sr.AddFactory(link_solicit_controller.NewFactory())
 	sr.AddFactory(dex_solicit.NewFactory(b))
 	sr.AddFactory(stream_api_accept.NewFactory(b))
+	sr.AddFactory(stream_forwarding.NewFactory(b))
+	sr.AddFactory(stream_listening.NewFactory(b))
+
+	// Run the ConfigSets applied on the session bus, such as the Flowgraph
+	// nodes placed on the session's Device.
+	t.setStartupStage("configset-controller")
+	configSetCtrl, err := configset_controller.NewController(le, b)
+	if err != nil {
+		return err
+	}
+	releaseConfigSet, err := b.AddController(ctx, configSetCtrl, nil)
+	if err != nil {
+		return err
+	}
+	defer releaseConfigSet()
 
 	// Start bilateral stream matching on the session bus.
 	t.setStartupStage("solicit-controller")

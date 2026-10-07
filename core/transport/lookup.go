@@ -25,6 +25,12 @@ type lookupSessionTransport struct {
 	peerID peer.ID
 }
 
+// NewLookupSessionTransport constructs a LookupSessionTransport for the
+// Session with peer ID id.
+func NewLookupSessionTransport(id peer.ID) LookupSessionTransport {
+	return &lookupSessionTransport{peerID: id}
+}
+
 // ResolveSessionTransport borrows the Session's running transport while
 // release is retained. It returns nil when no transport runs for the Session.
 // Removing a resolved transport calls invalidated; callers must end the work
@@ -32,7 +38,7 @@ type lookupSessionTransport struct {
 func ResolveSessionTransport(ctx context.Context, parent bus.Bus, id peer.ID, invalidated func()) (*SessionTransport, func(), error) {
 	// Wait for the transport, or report none once the lookup goes idle.
 	resolved, _, ref, err := bus.ExecWaitValue[*SessionTransport](ctx, parent,
-		&lookupSessionTransport{peerID: id}, bus.ReturnIfIdle(true), invalidated, nil)
+		NewLookupSessionTransport(id), bus.ReturnIfIdle(true), invalidated, nil)
 	if err != nil {
 		return nil, nil, err
 	}
