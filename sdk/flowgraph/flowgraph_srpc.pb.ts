@@ -5,6 +5,8 @@
 import {
   GetFlowgraphRequest,
   GetFlowgraphResponse,
+  ListFlowgraphChangesRequest,
+  ListFlowgraphChangesResponse,
   UpdateFlowgraphRequest,
   UpdateFlowgraphResponse,
   WatchFlowgraphRequest,
@@ -59,6 +61,17 @@ export const FlowgraphResourceServiceDefinition = {
       O: WatchFlowgraphResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * ListFlowgraphChanges reads the graph's revisions from the World changelog.
+     *
+     * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.ListFlowgraphChanges
+     */
+    ListFlowgraphChanges: {
+      name: 'ListFlowgraphChanges',
+      I: ListFlowgraphChangesRequest,
+      O: ListFlowgraphChangesResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -97,6 +110,16 @@ export interface FlowgraphResourceService {
     request: WatchFlowgraphRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchFlowgraphResponse>
+
+  /**
+   * ListFlowgraphChanges reads the graph's revisions from the World changelog.
+   *
+   * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.ListFlowgraphChanges
+   */
+  ListFlowgraphChanges(
+    request: ListFlowgraphChangesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListFlowgraphChangesResponse>
 }
 
 /**
@@ -137,6 +160,17 @@ export interface FlowgraphResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<WatchFlowgraphResponse>
+
+  /**
+   * ListFlowgraphChanges reads the graph's revisions from the World changelog.
+   *
+   * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.ListFlowgraphChanges
+   */
+  ListFlowgraphChanges(
+    request: ListFlowgraphChangesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListFlowgraphChangesResponse>
 }
 
 export const FlowgraphResourceServiceServiceName =
@@ -151,6 +185,7 @@ export class FlowgraphResourceServiceClient implements FlowgraphResourceService 
     this.GetFlowgraph = this.GetFlowgraph.bind(this)
     this.UpdateFlowgraph = this.UpdateFlowgraph.bind(this)
     this.WatchFlowgraph = this.WatchFlowgraph.bind(this)
+    this.ListFlowgraphChanges = this.ListFlowgraphChanges.bind(this)
   }
   /**
    * GetFlowgraph reads the current body and placement edges.
@@ -207,5 +242,24 @@ export class FlowgraphResourceServiceClient implements FlowgraphResourceService 
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchFlowgraphResponse)(result)
+  }
+
+  /**
+   * ListFlowgraphChanges reads the graph's revisions from the World changelog.
+   *
+   * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.ListFlowgraphChanges
+   */
+  async ListFlowgraphChanges(
+    request: ListFlowgraphChangesRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ListFlowgraphChangesResponse> {
+    const requestMsg = ListFlowgraphChangesRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      FlowgraphResourceServiceDefinition.methods.ListFlowgraphChanges.name,
+      ListFlowgraphChangesRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ListFlowgraphChangesResponse.fromBinary(result)
   }
 }

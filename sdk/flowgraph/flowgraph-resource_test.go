@@ -205,6 +205,17 @@ func TestFlowgraphResource(t *testing.T) {
 	if len(removed.GetSnapshot().GetState().GetConnections()) != 0 || len(removed.GetSnapshot().GetPlacements()) != 2 {
 		t.Fatal("node removal retained its connection or placement")
 	}
+
+	// Report no history in a World that keeps no changelog.
+	history, err := service.ListFlowgraphChanges(ctx, &flowgraph.ListFlowgraphChangesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !history.GetChangelogDisabled() || len(history.GetChanges()) != 0 {
+		t.Fatal("history without a changelog did not report it disabled")
+	}
+
+	// Leave the other Flowgraph untouched.
 	other := mountFlowgraph(t, client, invoker, "flowgraph/second")
 	otherRead, err := other.GetFlowgraph(ctx, &flowgraph.GetFlowgraphRequest{})
 	if err != nil {

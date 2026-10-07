@@ -2,6 +2,7 @@ package s4wave_flowgraph
 
 import (
 	"context"
+	"slices"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -45,27 +46,43 @@ func ReadPlacements(ctx context.Context, ws world.WorldState, graphKey string) (
 
 	// Decode each edge's destination and graph-local node identity.
 	placements := make(map[string]*FlowgraphPlacement)
-	for i, edges := range sets {
-		kind := FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE
-		if i == 1 {
-			kind = FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR
+	for _, edge := range slices.Concat(sets...) {
+		nodeID, placement, err := parsePlacementQuad(edge)
+		if err != nil {
+			return nil, err
 		}
-		for _, edge := range edges {
-			nodeID, err := strconv.Unquote(edge.GetLabel())
-			if err != nil {
-				return nil, err
-			}
-			key, err := world.GraphValueToKey(edge.GetObj())
-			if err != nil {
-				return nil, err
-			}
-			if _, exists := placements[nodeID]; exists {
-				return nil, errors.Errorf("node %q has multiple placements", nodeID)
-			}
-			placements[nodeID] = &FlowgraphPlacement{Kind: kind, ObjectKey: key}
+		if _, exists := placements[nodeID]; exists {
+			return nil, errors.Errorf("node %q has multiple placements", nodeID)
 		}
+		placements[nodeID] = placement
 	}
 	return placements, nil
+}
+
+// parsePlacementQuad decodes a placement edge into its node ID and placement.
+// It returns a nil placement for an edge with another predicate.
+func parsePlacementQuad(edge world.GraphQuad) (string, *FlowgraphPlacement, error) {
+	// Select the placement kind from the predicate.
+	var kind FlowgraphPlacementKind
+	switch edge.GetPredicate() {
+	case DevicePlacementPredicate:
+		kind = FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE
+	case ActorPlacementPredicate:
+		kind = FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR
+	default:
+		return "", nil, nil
+	}
+
+	// Decode the node ID label and the destination key.
+	nodeID, err := strconv.Unquote(edge.GetLabel())
+	if err != nil {
+		return "", nil, err
+	}
+	key, err := world.GraphValueToKey(edge.GetObj())
+	if err != nil {
+		return "", nil, err
+	}
+	return nodeID, &FlowgraphPlacement{Kind: kind, ObjectKey: key}, nil
 }
 
 // ValidatePlacement checks the destination without interpreting actor objects.

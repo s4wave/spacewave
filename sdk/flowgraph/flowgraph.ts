@@ -5,6 +5,7 @@ import type { IWorldState } from '../world/world-state.js'
 import {
   CreateFlowgraphOp,
   type FlowgraphSnapshot,
+  type ListFlowgraphChangesResponse,
   type UpdateFlowgraphRequest,
 } from './flowgraph.pb.js'
 import { FlowgraphResourceServiceClient } from './flowgraph_srpc.pb.js'
@@ -56,6 +57,17 @@ export class FlowgraphHandle extends Resource {
     if (!response.snapshot)
       throw new Error('Flowgraph edit returned no snapshot')
     return response.snapshot
+  }
+
+  /**
+   * listChanges reads up to limit revisions from the World changelog, newest
+   * first. A Space without the changelog reports changelogDisabled.
+   */
+  async listChanges(
+    limit = 0,
+    abortSignal?: AbortSignal,
+  ): Promise<ListFlowgraphChangesResponse> {
+    return this.service.ListFlowgraphChanges({ limit }, abortSignal)
   }
 
   /** watch pushes committed graph changes until canceled or released. */

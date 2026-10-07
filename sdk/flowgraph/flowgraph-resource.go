@@ -37,23 +37,30 @@ func (r *FlowgraphResource) GetMux() srpc.Mux {
 
 // GetFlowgraph reads the granted snapshot or a fresh committed graph.
 func (r *FlowgraphResource) GetFlowgraph(ctx context.Context, _ *GetFlowgraphRequest) (*GetFlowgraphResponse, error) {
-	// Preserve read-only snapshots without upgrading through the engine.
-	ws := r.ws
-	if !ws.GetReadOnly() && r.engine != nil {
-		read, err := r.engine.NewTransaction(ctx, false)
-		if err != nil {
-			return nil, err
-		}
-		defer read.Discard()
-		ws = read
-	}
-
 	// Read the body and placement edges through one granted state.
+	ws, release, err := r.readState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 	snapshot, err := ReadFlowgraph(ctx, ws, r.key)
 	if err != nil {
 		return nil, err
 	}
 	return &GetFlowgraphResponse{Snapshot: snapshot}, nil
+}
+
+// readState returns the granted read-only snapshot or a fresh committed read.
+// The caller calls release when the read completes.
+func (r *FlowgraphResource) readState(ctx context.Context) (world.WorldState, func(), error) {
+	if r.ws.GetReadOnly() || r.engine == nil {
+		return r.ws, func() {}, nil
+	}
+	read, err := r.engine.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	return read, read.Discard, nil
 }
 
 // UpdateFlowgraph commits one authored change and returns that change's snapshot.
@@ -77,6 +84,16 @@ func (r *FlowgraphResource) UpdateFlowgraph(ctx context.Context, request *Update
 		return nil, err
 	}
 	return &UpdateFlowgraphResponse{Snapshot: snapshot}, nil
+}
+
+// ListFlowgraphChanges reads the graph's revisions from the World changelog.
+func (r *FlowgraphResource) ListFlowgraphChanges(ctx context.Context, request *ListFlowgraphChangesRequest) (*ListFlowgraphChangesResponse, error) {
+	ws, release, err := r.readState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return ReadFlowgraphChanges(ctx, ws, r.key, request.GetLimit())
 }
 
 // WatchFlowgraph streams committed graph changes until the stream is canceled.

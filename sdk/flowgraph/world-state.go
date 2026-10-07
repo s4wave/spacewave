@@ -107,6 +107,7 @@ func UpdateFlowgraph(ctx context.Context, ws world.WorldState, key string, reque
 	}
 
 	// Remove replaced or deleted placement edges.
+	var placed bool
 	for id, placement := range previous.GetPlacements() {
 		if placement.EqualVT(next.Placements[id]) {
 			continue
@@ -118,6 +119,7 @@ func UpdateFlowgraph(ctx context.Context, ws world.WorldState, key string, reque
 		if err := ws.DeleteGraphQuad(ctx, edge); err != nil {
 			return nil, err
 		}
+		placed = true
 	}
 
 	// Add new placement edges in the same transaction as the authored body.
@@ -132,9 +134,12 @@ func UpdateFlowgraph(ctx context.Context, ws world.WorldState, key string, reque
 		if err := ws.SetGraphQuad(ctx, edge); err != nil {
 			return nil, err
 		}
+		placed = true
 	}
 
-	// Persist the complete body and read back its transaction-local revision.
+	// Write the object last, so its World change closes this edit in the
+	// changelog. A placement-only edit leaves the body as it was, so it marks
+	// the object with a revision change instead.
 	obj, found, err := ws.GetObject(ctx, key)
 	defer world.ReleaseObjectState(obj)
 	if err != nil {
@@ -143,13 +148,20 @@ func UpdateFlowgraph(ctx context.Context, ws world.WorldState, key string, reque
 	if !found {
 		return nil, world.ErrObjectNotFound
 	}
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
-		cursor.SetBlock(state, true)
-		return nil
-	})
+	switch {
+	case !state.EqualVT(previous.GetState()):
+		_, _, err = world.AccessObjectState(ctx, obj, true, func(cursor *block.Cursor) error {
+			cursor.SetBlock(state, true)
+			return nil
+		})
+	case placed:
+		_, err = obj.IncrementRev(ctx)
+	}
 	if err != nil {
 		return nil, err
 	}
+
+	// Read back the transaction-local revision.
 	_, next.Revision, err = obj.GetRootRef(ctx)
 	return next, err
 }

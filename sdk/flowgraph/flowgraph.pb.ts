@@ -643,3 +643,104 @@ export const WatchFlowgraphResponse: MessageType<WatchFlowgraphResponse> =
       { no: 1, name: 'snapshot', kind: 'message', T: FlowgraphSnapshot },
     ] satisfies readonly PartialFieldInfo[],
   })
+
+/**
+ * FlowgraphChange is one revision of a graph, read from the World changelog.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphChange
+ */
+export interface FlowgraphChange {
+  /**
+   * Seqno is the World changelog seqno that recorded the revision.
+   *
+   * @generated from field: uint64 seqno = 1;
+   */
+  seqno?: bigint
+  /**
+   * Created is set when the revision created the graph.
+   *
+   * @generated from field: bool created = 2;
+   */
+  created?: boolean
+  /**
+   * Edit is the change from the preceding revision, as an update request.
+   *
+   * @generated from field: s4wave.flowgraph.UpdateFlowgraphRequest edit = 3;
+   */
+  edit?: UpdateFlowgraphRequest
+}
+
+export const FlowgraphChange: MessageType<FlowgraphChange> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.FlowgraphChange',
+    fields: [
+      { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'created', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'edit', kind: 'message', T: UpdateFlowgraphRequest },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ListFlowgraphChangesRequest reads the mounted graph's history.
+ *
+ * @generated from message s4wave.flowgraph.ListFlowgraphChangesRequest
+ */
+export interface ListFlowgraphChangesRequest {
+  /**
+   * Limit bounds the number of changes returned; zero returns all retained.
+   *
+   * @generated from field: uint32 limit = 1;
+   */
+  limit?: number
+}
+
+export const ListFlowgraphChangesRequest: MessageType<ListFlowgraphChangesRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.ListFlowgraphChangesRequest',
+    fields: [
+      { no: 1, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ListFlowgraphChangesResponse contains the graph's retained revisions.
+ *
+ * @generated from message s4wave.flowgraph.ListFlowgraphChangesResponse
+ */
+export interface ListFlowgraphChangesResponse {
+  /**
+   * Changes contains the revisions, newest first.
+   *
+   * @generated from field: repeated s4wave.flowgraph.FlowgraphChange changes = 1;
+   */
+  changes?: FlowgraphChange[]
+  /**
+   * ChangelogDisabled is set when the World keeps no changelog, so the graph
+   * has no history.
+   *
+   * @generated from field: bool changelog_disabled = 2;
+   */
+  changelogDisabled?: boolean
+  /**
+   * Complete is set when changes reach back to the graph's creation.
+   *
+   * @generated from field: bool complete = 3;
+   */
+  complete?: boolean
+}
+
+export const ListFlowgraphChangesResponse: MessageType<ListFlowgraphChangesResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.ListFlowgraphChangesResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'changes',
+        kind: 'message',
+        T: FlowgraphChange,
+        repeated: true,
+      },
+      { no: 2, name: 'changelog_disabled', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })

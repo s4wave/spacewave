@@ -595,6 +595,103 @@ func (x *WatchFlowgraphResponse) GetSnapshot() *FlowgraphSnapshot {
 	return nil
 }
 
+// FlowgraphChange is one revision of a graph, read from the World changelog.
+type FlowgraphChange struct {
+	unknownFields []byte
+	// Seqno is the World changelog seqno that recorded the revision.
+	Seqno uint64 `protobuf:"varint,1,opt,name=seqno,proto3" json:"seqno,omitempty"`
+	// Created is set when the revision created the graph.
+	Created bool `protobuf:"varint,2,opt,name=created,proto3" json:"created,omitempty"`
+	// Edit is the change from the preceding revision, as an update request.
+	Edit *UpdateFlowgraphRequest `protobuf:"bytes,3,opt,name=edit,proto3" json:"edit,omitempty"`
+}
+
+func (x *FlowgraphChange) Reset() {
+	*x = FlowgraphChange{}
+}
+
+func (*FlowgraphChange) ProtoMessage() {}
+
+func (x *FlowgraphChange) GetSeqno() uint64 {
+	if x != nil {
+		return x.Seqno
+	}
+	return 0
+}
+
+func (x *FlowgraphChange) GetCreated() bool {
+	if x != nil {
+		return x.Created
+	}
+	return false
+}
+
+func (x *FlowgraphChange) GetEdit() *UpdateFlowgraphRequest {
+	if x != nil {
+		return x.Edit
+	}
+	return nil
+}
+
+// ListFlowgraphChangesRequest reads the mounted graph's history.
+type ListFlowgraphChangesRequest struct {
+	unknownFields []byte
+	// Limit bounds the number of changes returned; zero returns all retained.
+	Limit uint32 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+}
+
+func (x *ListFlowgraphChangesRequest) Reset() {
+	*x = ListFlowgraphChangesRequest{}
+}
+
+func (*ListFlowgraphChangesRequest) ProtoMessage() {}
+
+func (x *ListFlowgraphChangesRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// ListFlowgraphChangesResponse contains the graph's retained revisions.
+type ListFlowgraphChangesResponse struct {
+	unknownFields []byte
+	// Changes contains the revisions, newest first.
+	Changes []*FlowgraphChange `protobuf:"bytes,1,rep,name=changes,proto3" json:"changes,omitempty"`
+	// ChangelogDisabled is set when the World keeps no changelog, so the graph
+	// has no history.
+	ChangelogDisabled bool `protobuf:"varint,2,opt,name=changelog_disabled,json=changelogDisabled,proto3" json:"changelogDisabled,omitempty"`
+	// Complete is set when changes reach back to the graph's creation.
+	Complete bool `protobuf:"varint,3,opt,name=complete,proto3" json:"complete,omitempty"`
+}
+
+func (x *ListFlowgraphChangesResponse) Reset() {
+	*x = ListFlowgraphChangesResponse{}
+}
+
+func (*ListFlowgraphChangesResponse) ProtoMessage() {}
+
+func (x *ListFlowgraphChangesResponse) GetChanges() []*FlowgraphChange {
+	if x != nil {
+		return x.Changes
+	}
+	return nil
+}
+
+func (x *ListFlowgraphChangesResponse) GetChangelogDisabled() bool {
+	if x != nil {
+		return x.ChangelogDisabled
+	}
+	return false
+}
+
+func (x *ListFlowgraphChangesResponse) GetComplete() bool {
+	if x != nil {
+		return x.Complete
+	}
+	return false
+}
+
 type Flowgraph_NodesEntry struct {
 	unknownFields []byte
 	Key           string         `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -1065,6 +1162,58 @@ func (m *WatchFlowgraphResponse) CloneMessageVT() protobuf_go_lite.CloneMessage 
 	return m.CloneVT()
 }
 
+func (m *FlowgraphChange) CloneVT() *FlowgraphChange {
+	if m == nil {
+		return (*FlowgraphChange)(nil)
+	}
+	r := new(FlowgraphChange)
+	r.Seqno = m.Seqno
+	r.Created = m.Created
+	r.Edit = protobuf_go_lite.CloneVTValue(m.Edit)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphChange) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListFlowgraphChangesRequest) CloneVT() *ListFlowgraphChangesRequest {
+	if m == nil {
+		return (*ListFlowgraphChangesRequest)(nil)
+	}
+	r := new(ListFlowgraphChangesRequest)
+	r.Limit = m.Limit
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListFlowgraphChangesRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListFlowgraphChangesResponse) CloneVT() *ListFlowgraphChangesResponse {
+	if m == nil {
+		return (*ListFlowgraphChangesResponse)(nil)
+	}
+	r := new(ListFlowgraphChangesResponse)
+	r.ChangelogDisabled = m.ChangelogDisabled
+	r.Complete = m.Complete
+	r.Changes = protobuf_go_lite.CloneVTSlice(m.Changes)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListFlowgraphChangesResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *Flowgraph) EqualVT(that *Flowgraph) bool {
 	if this == that {
 		return true
@@ -1425,6 +1574,78 @@ func (this *WatchFlowgraphResponse) EqualVT(that *WatchFlowgraphResponse) bool {
 
 func (this *WatchFlowgraphResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchFlowgraphResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlowgraphChange) EqualVT(that *FlowgraphChange) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Seqno != that.Seqno {
+		return false
+	}
+	if this.Created != that.Created {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Edit, that.Edit) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphChange) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphChange)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListFlowgraphChangesRequest) EqualVT(that *ListFlowgraphChangesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Limit != that.Limit {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListFlowgraphChangesRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListFlowgraphChangesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListFlowgraphChangesResponse) EqualVT(that *ListFlowgraphChangesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Changes, that.Changes, func() *FlowgraphChange { return &FlowgraphChange{} }) {
+		return false
+	}
+	if this.ChangelogDisabled != that.ChangelogDisabled {
+		return false
+	}
+	if this.Complete != that.Complete {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListFlowgraphChangesResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListFlowgraphChangesResponse)
 	if !ok {
 		return false
 	}
@@ -2948,6 +3169,189 @@ func (x *WatchFlowgraphResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the FlowgraphChange message to JSON.
+func (x *FlowgraphChange) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Seqno != 0 || s.HasField("seqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("seqno")
+		s.WriteUint64(x.Seqno)
+	}
+	if x.Created || s.HasField("created") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("created")
+		s.WriteBool(x.Created)
+	}
+	if x.Edit != nil || s.HasField("edit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("edit")
+		x.Edit.MarshalProtoJSON(s.WithField("edit"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphChange to JSON.
+func (x *FlowgraphChange) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphChange message from JSON.
+func (x *FlowgraphChange) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "seqno":
+			s.AddField("seqno")
+			x.Seqno = s.ReadUint64()
+		case "created":
+			s.AddField("created")
+			x.Created = s.ReadBool()
+		case "edit":
+			if s.ReadNil() {
+				x.Edit = nil
+				return
+			}
+			x.Edit = &UpdateFlowgraphRequest{}
+			x.Edit.UnmarshalProtoJSON(s.WithField("edit", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphChange from JSON.
+func (x *FlowgraphChange) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListFlowgraphChangesRequest message to JSON.
+func (x *ListFlowgraphChangesRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Limit != 0 || s.HasField("limit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("limit")
+		s.WriteUint32(x.Limit)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListFlowgraphChangesRequest to JSON.
+func (x *ListFlowgraphChangesRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListFlowgraphChangesRequest message from JSON.
+func (x *ListFlowgraphChangesRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "limit":
+			s.AddField("limit")
+			x.Limit = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListFlowgraphChangesRequest from JSON.
+func (x *ListFlowgraphChangesRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListFlowgraphChangesResponse message to JSON.
+func (x *ListFlowgraphChangesResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Changes) > 0 || s.HasField("changes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("changes")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Changes {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("changes"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.ChangelogDisabled || s.HasField("changelogDisabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("changelogDisabled")
+		s.WriteBool(x.ChangelogDisabled)
+	}
+	if x.Complete || s.HasField("complete") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("complete")
+		s.WriteBool(x.Complete)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListFlowgraphChangesResponse to JSON.
+func (x *ListFlowgraphChangesResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListFlowgraphChangesResponse message from JSON.
+func (x *ListFlowgraphChangesResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "changes":
+			s.AddField("changes")
+			if s.ReadNil() {
+				x.Changes = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Changes = append(x.Changes, nil)
+					return
+				}
+				v := &FlowgraphChange{}
+				v.UnmarshalProtoJSON(s.WithField("changes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Changes = append(x.Changes, v)
+			})
+		case "changelog_disabled", "changelogDisabled":
+			s.AddField("changelog_disabled")
+			x.ChangelogDisabled = s.ReadBool()
+		case "complete":
+			s.AddField("complete")
+			x.Complete = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListFlowgraphChangesResponse from JSON.
+func (x *ListFlowgraphChangesResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Flowgraph) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3773,6 +4177,149 @@ func (m *WatchFlowgraphResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *FlowgraphChange) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphChange) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphChange) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Edit != nil {
+		size, err := m.Edit.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Created {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Created)
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Seqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Seqno))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListFlowgraphChangesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListFlowgraphChangesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListFlowgraphChangesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Limit != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Limit))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListFlowgraphChangesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListFlowgraphChangesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListFlowgraphChangesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Complete {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Complete)
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.ChangelogDisabled {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ChangelogDisabled)
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Changes) > 0 {
+		for iNdEx := len(m.Changes) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Changes[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Flowgraph) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4044,6 +4591,49 @@ func (m *WatchFlowgraphResponse) SizeVT() (n int) {
 		l = m.Snapshot.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlowgraphChange) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Seqno)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Created)
+	if m.Edit != nil {
+		l = m.Edit.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListFlowgraphChangesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Limit)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListFlowgraphChangesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Changes {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ChangelogDisabled)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Complete)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4603,6 +5193,72 @@ func (x *WatchFlowgraphResponse) MarshalProtoText() string {
 }
 
 func (x *WatchFlowgraphResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphChange) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphChange")
+	if x.Seqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.Seqno)
+	}
+	if x.Created != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "created")
+		protobuf_go_lite.TextWriteBool(&sb, x.Created)
+	}
+	if x.Edit != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "edit")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Edit)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphChange) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListFlowgraphChangesRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListFlowgraphChangesRequest")
+	if x.Limit != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "limit")
+		protobuf_go_lite.TextWriteUint(&sb, x.Limit)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListFlowgraphChangesRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListFlowgraphChangesResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListFlowgraphChangesResponse")
+	if len(x.Changes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "changes")
+		for i, v := range x.Changes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphChange{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.ChangelogDisabled != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "changelog_disabled")
+		protobuf_go_lite.TextWriteBool(&sb, x.ChangelogDisabled)
+	}
+	if x.Complete != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "complete")
+		protobuf_go_lite.TextWriteBool(&sb, x.Complete)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListFlowgraphChangesResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5921,6 +6577,211 @@ func (m *WatchFlowgraphResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlowgraphChange) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphChange: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphChange: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Seqno", wireType)
+			}
+			m.Seqno = 0
+			m.Seqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Created", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Created = bool(v)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Edit", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Edit == nil {
+				m.Edit = &UpdateFlowgraphRequest{}
+			}
+			if err := m.Edit.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListFlowgraphChangesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListFlowgraphChangesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListFlowgraphChangesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Limit", wireType)
+			}
+			m.Limit = 0
+			m.Limit, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListFlowgraphChangesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListFlowgraphChangesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListFlowgraphChangesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Changes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Changes = append(m.Changes, &FlowgraphChange{})
+			if err := m.Changes[len(m.Changes)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChangelogDisabled", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ChangelogDisabled = bool(v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Complete", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Complete = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

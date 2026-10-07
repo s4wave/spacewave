@@ -20,6 +20,8 @@ type SRPCFlowgraphResourceServiceClient interface {
 	UpdateFlowgraph(ctx context.Context, in *UpdateFlowgraphRequest) (*UpdateFlowgraphResponse, error)
 	// WatchFlowgraph streams committed body and placement changes.
 	WatchFlowgraph(ctx context.Context, in *WatchFlowgraphRequest) (SRPCFlowgraphResourceService_WatchFlowgraphClient, error)
+	// ListFlowgraphChanges reads the graph's revisions from the World changelog.
+	ListFlowgraphChanges(ctx context.Context, in *ListFlowgraphChangesRequest) (*ListFlowgraphChangesResponse, error)
 }
 
 type srpcFlowgraphResourceServiceClient struct {
@@ -91,6 +93,15 @@ func (x *srpcFlowgraphResourceService_WatchFlowgraphClient) RecvTo(m *WatchFlowg
 	return x.MsgRecv(m)
 }
 
+func (c *srpcFlowgraphResourceServiceClient) ListFlowgraphChanges(ctx context.Context, in *ListFlowgraphChangesRequest) (*ListFlowgraphChangesResponse, error) {
+	out := new(ListFlowgraphChangesResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ListFlowgraphChanges", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCFlowgraphResourceServiceServer interface {
 	// GetFlowgraph reads the current body and placement edges.
 	GetFlowgraph(context.Context, *GetFlowgraphRequest) (*GetFlowgraphResponse, error)
@@ -98,6 +109,8 @@ type SRPCFlowgraphResourceServiceServer interface {
 	UpdateFlowgraph(context.Context, *UpdateFlowgraphRequest) (*UpdateFlowgraphResponse, error)
 	// WatchFlowgraph streams committed body and placement changes.
 	WatchFlowgraph(*WatchFlowgraphRequest, SRPCFlowgraphResourceService_WatchFlowgraphStream) error
+	// ListFlowgraphChanges reads the graph's revisions from the World changelog.
+	ListFlowgraphChanges(context.Context, *ListFlowgraphChangesRequest) (*ListFlowgraphChangesResponse, error)
 }
 
 const SRPCFlowgraphResourceServiceServiceID = "s4wave.flowgraph.FlowgraphResourceService"
@@ -129,6 +142,7 @@ func (SRPCFlowgraphResourceServiceHandler) GetMethodIDs() []string {
 		"GetFlowgraph",
 		"UpdateFlowgraph",
 		"WatchFlowgraph",
+		"ListFlowgraphChanges",
 	}
 }
 
@@ -147,6 +161,8 @@ func (d *SRPCFlowgraphResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_UpdateFlowgraph(d.impl, strm)
 	case "WatchFlowgraph":
 		return true, d.InvokeMethod_WatchFlowgraph(d.impl, strm)
+	case "ListFlowgraphChanges":
+		return true, d.InvokeMethod_ListFlowgraphChanges(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -183,6 +199,18 @@ func (SRPCFlowgraphResourceServiceHandler) InvokeMethod_WatchFlowgraph(impl SRPC
 	}
 	serverStrm := &srpcFlowgraphResourceService_WatchFlowgraphStream{strm}
 	return impl.WatchFlowgraph(req, serverStrm)
+}
+
+func (SRPCFlowgraphResourceServiceHandler) InvokeMethod_ListFlowgraphChanges(impl SRPCFlowgraphResourceServiceServer, strm srpc.Stream) error {
+	req := new(ListFlowgraphChangesRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ListFlowgraphChanges(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 type SRPCFlowgraphResourceService_GetFlowgraphStream interface {
@@ -222,4 +250,12 @@ func (x *srpcFlowgraphResourceService_WatchFlowgraphStream) SendAndClose(m *Watc
 		}
 	}
 	return x.CloseSend()
+}
+
+type SRPCFlowgraphResourceService_ListFlowgraphChangesStream interface {
+	srpc.Stream
+}
+
+type srpcFlowgraphResourceService_ListFlowgraphChangesStream struct {
+	srpc.Stream
 }

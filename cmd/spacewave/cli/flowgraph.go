@@ -187,6 +187,7 @@ func newFlowgraphCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			buildFlowgraphNodeCommand(),
 			buildFlowgraphConnectCommand(),
 			buildFlowgraphDisconnectCommand(),
+			buildFlowgraphHistoryCommand(),
 		},
 	}
 }
@@ -481,6 +482,90 @@ func buildFlowgraphDisconnectCommand() *cli.Command {
 			return args.update(c, &flowgraph.UpdateFlowgraphRequest{RemoveConnectionIds: c.Args().Slice()})
 		},
 	}
+}
+
+// buildFlowgraphHistoryCommand builds the history subcommand.
+func buildFlowgraphHistoryCommand() *cli.Command {
+	args := &flowgraphArgs{}
+	return &cli.Command{
+		Name:  "history",
+		Usage: "list a Flowgraph's revisions from the Space changelog, oldest first",
+		Flags: args.BuildFlags(),
+		Action: func(c *cli.Context) error {
+			// Read the retained history through the Flowgraph Resource.
+			svc, _, cleanup, err := args.mountResource(c)
+			if err != nil {
+				return err
+			}
+			defer cleanup()
+			resp, err := svc.ListFlowgraphChanges(c.Context, &flowgraph.ListFlowgraphChangesRequest{})
+			if err != nil {
+				return errors.Wrap(err, "list flowgraph changes")
+			}
+
+			// Print documents in the requested format, newest first.
+			if args.output == "json" || args.output == "yaml" {
+				data, err := resp.MarshalJSON()
+				if err != nil {
+					return errors.Wrap(err, "marshal flowgraph changes")
+				}
+				return formatOutput(data, args.output)
+			}
+
+			// Explain a Space that keeps no history.
+			if resp.GetChangelogDisabled() {
+				os.Stdout.WriteString("This Space does not keep a changelog, so its Flowgraphs have no history.\nTurn it on with: spacewave space settings --changelog on\n")
+				return nil
+			}
+
+			// Print one row per revision, oldest first.
+			rows := [][]string{{"SEQNO", "CHANGE"}}
+			for _, change := range slices.Backward(resp.GetChanges()) {
+				rows = append(rows, []string{strconv.FormatUint(change.GetSeqno(), 10), describeChange(change)})
+			}
+			writeTable(os.Stdout, "", rows)
+			if !resp.GetComplete() {
+				os.Stdout.WriteString("Older revisions are no longer in the Space changelog.\n")
+			}
+			return nil
+		},
+	}
+}
+
+// describeChange summarizes one revision.
+func describeChange(change *flowgraph.FlowgraphChange) string {
+	// Name the creation, or list a rename.
+	edit := change.GetEdit()
+	var parts []string
+	switch {
+	case change.GetCreated():
+		parts = append(parts, "create "+strconv.Quote(edit.GetName()))
+	case edit.Name != nil:
+		parts = append(parts, "name "+strconv.Quote(edit.GetName()))
+	}
+
+	// List the node and connection edits.
+	parts = appendEdit(parts, "+node", slices.Sorted(maps.Keys(edit.GetSetNodes())))
+	parts = appendEdit(parts, "-node", edit.GetRemoveNodeIds())
+	parts = appendEdit(parts, "+connection", slices.Sorted(maps.Keys(edit.GetSetConnections())))
+	parts = appendEdit(parts, "-connection", edit.GetRemoveConnectionIds())
+
+	// List the placement edits with each destination.
+	var placed []string
+	for _, id := range slices.Sorted(maps.Keys(edit.GetSetPlacements())) {
+		placed = append(placed, id+"@"+edit.GetSetPlacements()[id].GetObjectKey())
+	}
+	parts = appendEdit(parts, "+placement", placed)
+	parts = appendEdit(parts, "-placement", edit.GetRemovePlacementNodeIds())
+	return strings.Join(parts, "; ")
+}
+
+// appendEdit appends "label id,id" when ids is not empty.
+func appendEdit(parts []string, label string, ids []string) []string {
+	if len(ids) == 0 {
+		return parts
+	}
+	return append(parts, label+" "+strings.Join(ids, ","))
 }
 
 // describePorts lists a node's ports as direction name:type.

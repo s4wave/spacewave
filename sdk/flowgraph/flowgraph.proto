@@ -124,6 +124,8 @@ service FlowgraphResourceService {
   rpc UpdateFlowgraph(UpdateFlowgraphRequest) returns (UpdateFlowgraphResponse);
   // WatchFlowgraph streams committed body and placement changes.
   rpc WatchFlowgraph(WatchFlowgraphRequest) returns (stream WatchFlowgraphResponse);
+  // ListFlowgraphChanges reads the graph's revisions from the World changelog.
+  rpc ListFlowgraphChanges(ListFlowgraphChangesRequest) returns (ListFlowgraphChangesResponse);
 }
 
 // GetFlowgraphRequest reads the mounted graph.
@@ -168,4 +170,31 @@ message WatchFlowgraphRequest {
 message WatchFlowgraphResponse {
   // Snapshot is the graph at the observed revision.
   FlowgraphSnapshot snapshot = 1;
+}
+
+// FlowgraphChange is one revision of a graph, read from the World changelog.
+message FlowgraphChange {
+  // Seqno is the World changelog seqno that recorded the revision.
+  uint64 seqno = 1;
+  // Created is set when the revision created the graph.
+  bool created = 2;
+  // Edit is the change from the preceding revision, as an update request.
+  UpdateFlowgraphRequest edit = 3;
+}
+
+// ListFlowgraphChangesRequest reads the mounted graph's history.
+message ListFlowgraphChangesRequest {
+  // Limit bounds the number of changes returned; zero returns all retained.
+  uint32 limit = 1;
+}
+
+// ListFlowgraphChangesResponse contains the graph's retained revisions.
+message ListFlowgraphChangesResponse {
+  // Changes contains the revisions, newest first.
+  repeated FlowgraphChange changes = 1;
+  // ChangelogDisabled is set when the World keeps no changelog, so the graph
+  // has no history.
+  bool changelog_disabled = 2;
+  // Complete is set when changes reach back to the graph's creation.
+  bool complete = 3;
 }
