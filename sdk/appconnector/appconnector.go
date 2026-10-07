@@ -71,11 +71,6 @@ func NewAppConnectorBlock() block.Block {
 	return &AppConnector{}
 }
 
-// UnmarshalAppConnector unmarshals an AppConnector from a cursor.
-func UnmarshalAppConnector(ctx context.Context, bcs *block.Cursor) (*AppConnector, error) {
-	return block.UnmarshalBlock[*AppConnector](ctx, bcs, NewAppConnectorBlock)
-}
-
 // MarshalBlock marshals the AppConnector to bytes.
 func (c *AppConnector) MarshalBlock() ([]byte, error) {
 	return c.MarshalVT()

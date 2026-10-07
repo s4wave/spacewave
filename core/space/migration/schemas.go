@@ -951,7 +951,7 @@ func rewriteAppConnector(ctx context.Context, object *ObjectDescriptor, mapping 
 }
 
 func rewriteAppSnapshot(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
-	// Carry the snapshot over unchanged: it references nothing.
+	// Decode and require the AppSnapshot payload for rewriting.
 	snapshot, err := world.LookupObjectBody[*s4wave_appconnector.AppSnapshot](ctx, object.World, object.ObjectKey, s4wave_appconnector.NewAppSnapshotBlock)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode AppSnapshot payload")
@@ -959,6 +959,8 @@ func rewriteAppSnapshot(ctx context.Context, object *ObjectDescriptor, mapping *
 	if snapshot == nil {
 		return nil, errors.Wrap(ErrPayloadSchemaRefused, "AppSnapshot payload is missing")
 	}
+
+	// Carry the snapshot over unchanged: it references nothing.
 	data, err := snapshot.MarshalBlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal AppSnapshot payload")

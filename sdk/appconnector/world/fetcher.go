@@ -4,7 +4,6 @@ package s4wave_appconnector_world
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -251,9 +250,9 @@ func (r *connectorResource) fetch(
 	result.status = uint32(resp.StatusCode)
 	switch {
 	case resp.StatusCode < 200 || resp.StatusCode > 299:
-		result.err = fmt.Errorf("unexpected status %d", resp.StatusCode)
+		result.err = errors.Errorf("unexpected status %d", resp.StatusCode)
 	case int64(len(body)) > limit:
-		result.err = fmt.Errorf("response exceeds %d bytes", limit)
+		result.err = errors.Errorf("response exceeds %d bytes", limit)
 	default:
 		result.contentType = resp.Header.Get("Content-Type")
 		result.body = body

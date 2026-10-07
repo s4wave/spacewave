@@ -134,11 +134,6 @@ func NewSSHPassphrasePayload(passphrase string, ts time.Time) *SecretPayload {
 	return newSecretPayload([]byte(passphrase), SSHTextCredentialContentType, ts)
 }
 
-// NewAPITokenPayload constructs an API token payload.
-func NewAPITokenPayload(token string, ts time.Time) *SecretPayload {
-	return newSecretPayload([]byte(token), APITokenContentType, ts)
-}
-
 // GetMux returns the srpc mux for this resource.
 func (r *SecretResource) GetMux() srpc.Mux {
 	return r.mux

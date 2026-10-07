@@ -2,7 +2,6 @@ package s4wave_appconnector
 
 import (
 	"context"
-	"slices"
 	"strings"
 	"time"
 
@@ -153,7 +152,7 @@ func (o *CreateAppConnectorOp) buildAppConnector() *AppConnector {
 	conn := &AppConnector{
 		Label:                strings.TrimSpace(o.GetLabel()),
 		BaseUrl:              strings.TrimSpace(o.GetBaseUrl()),
-		Reads:                cloneAppReads(o.GetReads()),
+		Reads:                o.GetReads(),
 		TokenSecretObjectKey: o.GetTokenSecretObjectKey(),
 		PollIntervalMs:       o.GetPollIntervalMs(),
 		MaxBodyBytes:         o.GetMaxBodyBytes(),
@@ -169,17 +168,6 @@ func (o *CreateAppConnectorOp) buildAppConnector() *AppConnector {
 		conn.MaxBodyBytes = DefaultMaxBodyBytes
 	}
 	return conn
-}
-
-// cloneAppReads copies the reads, dropping nil entries.
-func cloneAppReads(reads []*AppRead) []*AppRead {
-	out := make([]*AppRead, 0, len(reads))
-	for _, read := range reads {
-		if read != nil {
-			out = append(out, read.CloneVT())
-		}
-	}
-	return slices.Clip(out)
 }
 
 // validateTokenSecret checks the connector's token reference against redacted Secret metadata.
