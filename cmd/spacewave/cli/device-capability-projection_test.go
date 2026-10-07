@@ -2,6 +2,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -81,6 +82,29 @@ func TestComputeDevicePolicyCapabilitiesAuthorsAndRemovesForgeWorker(t *testing.
 	}
 	if _, ok := byID["custom-capability"]; !ok {
 		t.Fatal("non-policy capability must survive removal")
+	}
+}
+
+// TestComputeDevicePolicyCapabilitiesKeepsNodesLast pins the order the policy
+// projection and the Flowgraph reconciler share: node capabilities stay after
+// every other capability, so neither writer rewrites the other's order.
+func TestComputeDevicePolicyCapabilitiesKeepsNodesLast(t *testing.T) {
+	// Seed a node capability ahead of a custom one.
+	node := &s4wave_device.DeviceCapability{
+		Id:   s4wave_device.DeviceCapabilityKindFlowgraphNode + "/flowgraph/main/tcp",
+		Kind: s4wave_device.DeviceCapabilityKindFlowgraphNode,
+	}
+	existing := append([]*s4wave_device.DeviceCapability{node}, existingCaps()...)
+
+	// Require the node after the custom capability and the authored Forge Worker.
+	next := computeDevicePolicyCapabilities(declaredPolicy("worker/new"), existing)
+	var ids []string
+	for _, cap := range next {
+		ids = append(ids, cap.GetId())
+	}
+	want := []string{"custom-capability", devicePolicyForgeWorkerCapabilityID, node.GetId()}
+	if !slices.Equal(ids, want) {
+		t.Fatalf("capability order %v, want %v", ids, want)
 	}
 }
 

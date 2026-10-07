@@ -1070,7 +1070,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/device/policy": {
-      "hash": "565b8f4f429333b2e30177c8cf55b80c74a093a138a4fa9a199dde2ad77e29c4",
+      "hash": "03171aeafe40dd56fa5cc7460e9ae3a108cb2647a16e8b9c50ef03c835cd8de2",
       "generatedFiles": [
         "core/device/policy/policy.pb.go",
         "core/device/policy/policy.pb.ts"
@@ -3655,7 +3655,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/device": {
-      "hash": "96476b4e7dc443cb922b11aefea8ad72145740326afd7108f9d01d3250478ebb",
+      "hash": "982f0ea6f1bbf4569002dbb5daf3a3d0deefbc3c6036a3bbe8a150ab31a1b0cc",
       "generatedFiles": [
         "sdk/device/device.pb.go",
         "sdk/device/device.pb.ts",
