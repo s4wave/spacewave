@@ -18,14 +18,12 @@ type DevicePolicy struct {
 	unknownFields []byte
 	// Revision increments on every policy mutation.
 	Revision uint64 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
-	// RemoteShell controls remote-shell OPEN authorization.
-	RemoteShell *RemoteShellPolicy `protobuf:"bytes,2,opt,name=remote_shell,json=remoteShell,proto3" json:"remoteShell,omitempty"`
 	// ForgeWorker declares the local Forge Worker capacity envelope. Absent
 	// means this daemon exposes no Forge Worker execution capacity.
-	ForgeWorker *ForgeWorkerPolicy `protobuf:"bytes,3,opt,name=forge_worker,json=forgeWorker,proto3" json:"forgeWorker,omitempty"`
+	ForgeWorker *ForgeWorkerPolicy `protobuf:"bytes,2,opt,name=forge_worker,json=forgeWorker,proto3" json:"forgeWorker,omitempty"`
 	// NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
 	// A node whose type is absent from the list is rejected.
-	NodeTypeId []string `protobuf:"bytes,4,rep,name=node_type_id,json=nodeTypeId,proto3" json:"nodeTypeId,omitempty"`
+	NodeTypeId []string `protobuf:"bytes,3,rep,name=node_type_id,json=nodeTypeId,proto3" json:"nodeTypeId,omitempty"`
 }
 
 func (x *DevicePolicy) Reset() {
@@ -39,13 +37,6 @@ func (x *DevicePolicy) GetRevision() uint64 {
 		return x.Revision
 	}
 	return 0
-}
-
-func (x *DevicePolicy) GetRemoteShell() *RemoteShellPolicy {
-	if x != nil {
-		return x.RemoteShell
-	}
-	return nil
 }
 
 func (x *DevicePolicy) GetForgeWorker() *ForgeWorkerPolicy {
@@ -109,42 +100,12 @@ func (x *ForgeWorkerPolicy) GetBackends() []string {
 	return nil
 }
 
-// RemoteShellPolicy controls whether remote shell OPEN frames may start a PTY.
-type RemoteShellPolicy struct {
-	unknownFields []byte
-	// Enabled allows remote shell OPEN frames when true.
-	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	// Detail is an operator-visible policy note.
-	Detail string `protobuf:"bytes,2,opt,name=detail,proto3" json:"detail,omitempty"`
-}
-
-func (x *RemoteShellPolicy) Reset() {
-	*x = RemoteShellPolicy{}
-}
-
-func (*RemoteShellPolicy) ProtoMessage() {}
-
-func (x *RemoteShellPolicy) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *RemoteShellPolicy) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
 func (m *DevicePolicy) CloneVT() *DevicePolicy {
 	if m == nil {
 		return (*DevicePolicy)(nil)
 	}
 	r := new(DevicePolicy)
 	r.Revision = m.Revision
-	r.RemoteShell = protobuf_go_lite.CloneVTValue(m.RemoteShell)
 	r.ForgeWorker = protobuf_go_lite.CloneVTValue(m.ForgeWorker)
 	r.NodeTypeId = protobuf_go_lite.CloneSlice(m.NodeTypeId)
 	if len(m.unknownFields) > 0 {
@@ -176,23 +137,6 @@ func (m *ForgeWorkerPolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *RemoteShellPolicy) CloneVT() *RemoteShellPolicy {
-	if m == nil {
-		return (*RemoteShellPolicy)(nil)
-	}
-	r := new(RemoteShellPolicy)
-	r.Enabled = m.Enabled
-	r.Detail = m.Detail
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *RemoteShellPolicy) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (this *DevicePolicy) EqualVT(that *DevicePolicy) bool {
 	if this == that {
 		return true
@@ -200,9 +144,6 @@ func (this *DevicePolicy) EqualVT(that *DevicePolicy) bool {
 		return false
 	}
 	if this.Revision != that.Revision {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.RemoteShell, that.RemoteShell) {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.ForgeWorker, that.ForgeWorker) {
@@ -251,29 +192,6 @@ func (this *ForgeWorkerPolicy) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
-func (this *RemoteShellPolicy) EqualVT(that *RemoteShellPolicy) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Enabled != that.Enabled {
-		return false
-	}
-	if this.Detail != that.Detail {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *RemoteShellPolicy) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*RemoteShellPolicy)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
 // MarshalProtoJSON marshals the DevicePolicy message to JSON.
 func (x *DevicePolicy) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -286,11 +204,6 @@ func (x *DevicePolicy) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("revision")
 		s.WriteUint64(x.Revision)
-	}
-	if x.RemoteShell != nil || s.HasField("remoteShell") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("remoteShell")
-		x.RemoteShell.MarshalProtoJSON(s.WithField("remoteShell"))
 	}
 	if x.ForgeWorker != nil || s.HasField("forgeWorker") {
 		s.WriteMoreIf(&wroteField)
@@ -322,13 +235,6 @@ func (x *DevicePolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "revision":
 			s.AddField("revision")
 			x.Revision = s.ReadUint64()
-		case "remote_shell", "remoteShell":
-			if s.ReadNil() {
-				x.RemoteShell = nil
-				return
-			}
-			x.RemoteShell = &RemoteShellPolicy{}
-			x.RemoteShell.UnmarshalProtoJSON(s.WithField("remote_shell", true))
 		case "forge_worker", "forgeWorker":
 			if s.ReadNil() {
 				x.ForgeWorker = nil
@@ -422,56 +328,6 @@ func (x *ForgeWorkerPolicy) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the RemoteShellPolicy message to JSON.
-func (x *RemoteShellPolicy) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Enabled || s.HasField("enabled") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("enabled")
-		s.WriteBool(x.Enabled)
-	}
-	if x.Detail != "" || s.HasField("detail") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("detail")
-		s.WriteString(x.Detail)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the RemoteShellPolicy to JSON.
-func (x *RemoteShellPolicy) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the RemoteShellPolicy message from JSON.
-func (x *RemoteShellPolicy) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "enabled":
-			s.AddField("enabled")
-			x.Enabled = s.ReadBool()
-		case "detail":
-			s.AddField("detail")
-			x.Detail = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the RemoteShellPolicy from JSON.
-func (x *RemoteShellPolicy) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 func (m *DevicePolicy) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -505,21 +361,11 @@ func (m *DevicePolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		for iNdEx := len(m.NodeTypeId) - 1; iNdEx >= 0; iNdEx-- {
 			i = protobuf_go_lite.EncodeString(dAtA, i, m.NodeTypeId[iNdEx])
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x1a
 		}
 	}
 	if m.ForgeWorker != nil {
 		size, err := m.ForgeWorker.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if m.RemoteShell != nil {
-		size, err := m.RemoteShell.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -590,48 +436,6 @@ func (m *ForgeWorkerPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *RemoteShellPolicy) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *RemoteShellPolicy) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *RemoteShellPolicy) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.Detail) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Detail)
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.Enabled {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *DevicePolicy) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -639,10 +443,6 @@ func (m *DevicePolicy) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Revision)
-	if m.RemoteShell != nil {
-		l = m.RemoteShell.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	if m.ForgeWorker != nil {
 		l = m.ForgeWorker.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -666,28 +466,12 @@ func (m *ForgeWorkerPolicy) SizeVT() (n int) {
 	return n
 }
 
-func (m *RemoteShellPolicy) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Detail)
-	n += len(m.unknownFields)
-	return n
-}
-
 func (x *DevicePolicy) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DevicePolicy")
 	if x.Revision != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revision")
 		protobuf_go_lite.TextWriteUint(&sb, x.Revision)
-	}
-	if x.RemoteShell != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "remote_shell")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RemoteShell)
 	}
 	if x.ForgeWorker != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "forge_worker")
@@ -738,24 +522,6 @@ func (x *ForgeWorkerPolicy) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *RemoteShellPolicy) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RemoteShellPolicy")
-	if x.Enabled != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
-		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
-	}
-	if x.Detail != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "detail")
-		protobuf_go_lite.TextWriteString(&sb, x.Detail)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *RemoteShellPolicy) String() string {
-	return x.MarshalProtoText()
-}
-
 func (m *DevicePolicy) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -787,21 +553,6 @@ func (m *DevicePolicy) UnmarshalVT(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RemoteShell", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.RemoteShell == nil {
-				m.RemoteShell = &RemoteShellPolicy{}
-			}
-			if err := m.RemoteShell.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ForgeWorker", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
@@ -815,7 +566,7 @@ func (m *DevicePolicy) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NodeTypeId", wireType)
 			}
@@ -906,69 +657,6 @@ func (m *ForgeWorkerPolicy) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Backends = append(m.Backends, v)
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *RemoteShellPolicy) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: RemoteShellPolicy: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RemoteShellPolicy: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Enabled = bool(v)
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Detail = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

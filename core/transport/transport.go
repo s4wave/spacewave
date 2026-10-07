@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -70,6 +71,8 @@ type SessionTransport struct {
 	signingEnvPfx string
 	// bridgeFilter optionally excludes directives from the parent bridge.
 	bridgeFilter bus_bridge.FilterFn
+	// childFactories build the factories the creator adds to the child bus.
+	childFactories []ChildFactoryFunc
 	// cancel cancels the running Execute when the transport fails.
 	cancel context.CancelFunc
 	// phase is the lifecycle phase; bcast guards it together with err and
@@ -111,6 +114,17 @@ type LocalTransportFunc func(ctx context.Context, le *logrus.Entry, b bus.Bus, p
 func WithLocalTransport(start LocalTransportFunc) SessionTransportOption {
 	return func(t *SessionTransport) {
 		t.startLocalTransport = start
+	}
+}
+
+// ChildFactoryFunc builds a controller factory that resolves on the child bus b.
+type ChildFactoryFunc func(b bus.Bus) controller.Factory
+
+// WithChildFactories adds the factories the creator builds for the child bus,
+// so a controller that imports this package can still run on it.
+func WithChildFactories(factories ...ChildFactoryFunc) SessionTransportOption {
+	return func(t *SessionTransport) {
+		t.childFactories = append(t.childFactories, factories...)
 	}
 }
 
@@ -461,6 +475,9 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	sr.AddFactory(stream_api_accept.NewFactory(b))
 	sr.AddFactory(stream_forwarding.NewFactory(b))
 	sr.AddFactory(stream_listening.NewFactory(b))
+	for _, newFactory := range t.childFactories {
+		sr.AddFactory(newFactory(b))
+	}
 
 	// Run the ConfigSets applied on the session bus, such as the Flowgraph
 	// nodes placed on the session's Device.

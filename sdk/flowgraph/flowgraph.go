@@ -18,6 +18,8 @@ const (
 	LocalPortNodeTypeID = "local-port"
 	// CheckoutRootNodeTypeID selects a checkout root a Device advertises.
 	CheckoutRootNodeTypeID = "checkout-root"
+	// RemoteShellNodeTypeID selects the remote shell a Device serves.
+	RemoteShellNodeTypeID = "remote-shell"
 	// StepNodeTypeID selects a node that runs once per activation.
 	StepNodeTypeID = "step"
 )

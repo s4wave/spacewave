@@ -363,7 +363,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "3aeadd4f137b66467bf3b708384570a6a52e3886a54d08f1025d9201e977d718",
+      "hash": "7d01b39748251b6f963e60acf2050a015f5894e7751df438e8a9459072d1409e",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.go",
         "bldr/plugin/host/scheduler/config.pb.ts"
@@ -1070,7 +1070,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/device/policy": {
-      "hash": "f2acdd17160eea23777506b75175a2b9f12f7915a4ea0dde3a2f5f5163c8c56a",
+      "hash": "57f7d12bc475e0c4ec9ce4fd60407faf8d6da3214de01d3c8bb623e54a9c8c93",
       "generatedFiles": [
         "core/device/policy/policy.pb.go",
         "core/device/policy/policy.pb.ts"
@@ -1544,6 +1544,16 @@
       ],
       "protoFiles": [
         "core/sync/node/node.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/core/terminal/remoteshell": {
+      "hash": "2af8ec360ff34c95ff9612583eb7e644e049a1dea83321b34afb45470c337c18",
+      "generatedFiles": [
+        "core/terminal/remoteshell/remote-shell.pb.go",
+        "core/terminal/remoteshell/remote-shell.pb.ts"
+      ],
+      "protoFiles": [
+        "core/terminal/remoteshell/remote-shell.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/trace/service": {
@@ -2518,7 +2528,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/world/block": {
-      "hash": "71b98a63f686ad1d1f3ebc3c90268a917b8b0292b81c9f551b1477e6e97a1553",
+      "hash": "13601db78bf992f8b9318cbc503710c839ea28aaee7844106799266ebadb2451",
       "generatedFiles": [
         "db/world/block/nested-world.pb.go",
         "db/world/block/nested-world.pb.ts",
@@ -2695,6 +2705,16 @@
       ],
       "protoFiles": [
         "forge/lib/kvtx/config.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/forge/lib/util/presence": {
+      "hash": "f530d2e7bbabfad41d5f7de3fab48063c1401d2c9a521a05dde68589ad25627c",
+      "generatedFiles": [
+        "forge/lib/util/presence/config.pb.go",
+        "forge/lib/util/presence/config.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/lib/util/presence/config.proto"
       ]
     },
     "github.com/s4wave/spacewave/forge/lib/util/wait": {
@@ -4198,16 +4218,6 @@
       ],
       "protoFiles": [
         "web/object/object.proto"
-      ]
-    },
-    "github.com/s4wave/spacewave/forge/lib/util/presence": {
-      "hash": "f530d2e7bbabfad41d5f7de3fab48063c1401d2c9a521a05dde68589ad25627c",
-      "generatedFiles": [
-        "forge/lib/util/presence/config.pb.go",
-        "forge/lib/util/presence/config.pb.ts"
-      ],
-      "protoFiles": [
-        "forge/lib/util/presence/config.proto"
       ]
     }
   }

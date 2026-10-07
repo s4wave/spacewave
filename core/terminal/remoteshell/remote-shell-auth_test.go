@@ -6,10 +6,14 @@ import (
 	"context"
 	"crypto/rand"
 	"net"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -23,9 +27,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestRemoteShellRefusesPeerOutsideAccount checks that only a peer the local
-// Session transport authorizes reaches the device policy.
-func TestRemoteShellRefusesPeerOutsideAccount(t *testing.T) {
+// TestRemoteShellServesOnlyWithNode checks that a Session answers remote shell
+// streams only while its remote-shell controller runs, and then only for a peer
+// the Session transport authorizes.
+func TestRemoteShellServesOnlyWithNode(t *testing.T) {
+	// The admitted peer starts a PTY shell, which Windows does not offer.
+	if runtime.GOOS == "windows" {
+		t.Skip("no PTY shell")
+	}
+
 	// Start a testbed bus.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -35,7 +45,8 @@ func TestRemoteShellRefusesPeerOutsideAccount(t *testing.T) {
 	}
 	defer tb.Release()
 
-	// Run a Session transport that admits one account peer.
+	// Run a Session transport that admits one account peer and carries the
+	// remote shell factory on its child bus.
 	member, outsider := newTestPeerID(t), newTestPeerID(t)
 	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
@@ -53,6 +64,7 @@ func TestRemoteShellRefusesPeerOutsideAccount(t *testing.T) {
 			}
 			return nil
 		}),
+		transport.WithChildFactories(func(b bus.Bus) controller.Factory { return NewFactory(b) }),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -61,48 +73,77 @@ func TestRemoteShellRefusesPeerOutsideAccount(t *testing.T) {
 	if err := st.AwaitReady(ctx); err != nil {
 		t.Fatal(err)
 	}
+	childBus := st.GetChildBus()
 
-	// Serve each peer's stream through the handler the daemon registers.
-	handler := &deviceRemoteShellHandler{
-		le:        logrus.NewEntry(logrus.New()),
-		b:         tb.Bus,
-		authorize: authorizeAccountSessionPeer(tb.Bus),
-		policy: func(*s4wave_terminal.TerminalFrame) error {
-			return errors.New("policy reached")
-		},
-		starter: func(context.Context, *s4wave_terminal.TerminalFrame) (remoteShellProcess, error) {
-			return nil, errors.New("unexpected start")
-		},
+	// Without the node no handler answers the protocol.
+	handlers, _, ref, err := bus.ExecCollectValues[link.MountedStreamHandler](
+		ctx,
+		childBus,
+		link.NewHandleMountedStream(s4wave_terminal.RemoteShellProtocolID, st.GetPeerID(), member),
+		false,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
 	}
+	ref.Release()
+	if len(handlers) != 0 {
+		t.Fatalf("%d handlers resolved without the remote-shell node", len(handlers))
+	}
+
+	// The node's entry loads the controller on the Session bus.
+	_, loadRef, err := childBus.AddDirective(resolver.NewLoadControllerWithConfig(&Config{}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loadRef.Release()
 	for _, tc := range []struct {
 		name   string
 		remote peer.ID
-		want   string
+		want   s4wave_terminal.TerminalFrameKind
 	}{
-		{name: "outsider", remote: outsider, want: "remote shell refused"},
-		{name: "member", remote: member, want: "policy reached"},
+		{name: "outsider", remote: outsider, want: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR},
+		{name: "member", remote: member, want: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := openTestRemoteShell(ctx, t, handler, st.GetPeerID(), tc.remote)
-			if !strings.HasPrefix(got, tc.want) {
-				t.Fatalf("error = %q, want prefix %q", got, tc.want)
+			// Resolve the handler the Session bus offers this peer.
+			handlers, _, ref, err := bus.ExecCollectValues[link.MountedStreamHandler](
+				ctx,
+				childBus,
+				link.NewHandleMountedStream(s4wave_terminal.RemoteShellProtocolID, st.GetPeerID(), tc.remote),
+				true,
+				nil,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer ref.Release()
+
+			// Open a shell as the peer and check the answer.
+			got := openTestRemoteShell(ctx, t, handlers[0], st.GetPeerID(), tc.remote)
+			if got.GetKind() != tc.want {
+				t.Fatalf("response = %s %q, want kind %s", got.GetKind(), got.GetError(), tc.want)
+			}
+			if tc.want == s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR &&
+				!strings.HasPrefix(got.GetError(), "remote shell refused") {
+				t.Fatalf("error = %q", got.GetError())
 			}
 		})
 	}
 }
 
-// openTestRemoteShell sends OPEN from remote to local and returns the error
+// openTestRemoteShell sends OPEN from remote to local and returns the first
 // frame the handler answers with.
 func openTestRemoteShell(
 	ctx context.Context,
 	t *testing.T,
-	handler *deviceRemoteShellHandler,
+	handler link.MountedStreamHandler,
 	local, remote peer.ID,
-) string {
+) *s4wave_terminal.TerminalFrame {
 	// Hand the server end of a pipe to the handler.
 	t.Helper()
 	serverConn, clientConn := net.Pipe()
-	defer clientConn.Close()
+	t.Cleanup(func() { _ = clientConn.Close() })
 	ms := &testMountedStream{
 		conn:   serverConn,
 		remote: remote,
@@ -123,10 +164,7 @@ func openTestRemoteShell(
 	if err := client.RecvMsg(got); err != nil {
 		t.Fatal(err)
 	}
-	if got.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_ERROR {
-		t.Fatalf("response kind = %s", got.GetKind().String())
-	}
-	return got.GetError()
+	return got
 }
 
 // newTestPeerID returns a fresh peer identity.

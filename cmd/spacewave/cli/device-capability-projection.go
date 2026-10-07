@@ -23,10 +23,8 @@ import (
 )
 
 const (
-	devicePolicyRemoteShellCapabilityID   = "remote-shell"
-	devicePolicyRemoteShellCapabilityKind = "remote-shell"
-	devicePolicyForgeWorkerCapabilityID   = "forge-worker"
-	devicePolicyRefPrefix                 = "device-policy/"
+	devicePolicyForgeWorkerCapabilityID = "forge-worker"
+	devicePolicyRefPrefix               = "device-policy/"
 )
 
 // startDevicePolicyCapabilityProjection projects the local device policy into
@@ -244,9 +242,6 @@ func computeDevicePolicyCapabilities(
 			out = append(out, cap.CloneVT())
 		}
 	}
-	if policy.GetRemoteShell().GetEnabled() {
-		out = append(out, computeRemoteShellCapability(policy, existingByID[devicePolicyRemoteShellCapabilityID]))
-	}
 	if fw := policy.GetForgeWorker(); fw != nil {
 		out = append(out, computeForgeWorkerCapability(policy, fw, existingByID[devicePolicyForgeWorkerCapabilityID]))
 	}
@@ -273,21 +268,6 @@ func computeForgeWorkerCapability(
 			ObjectKey: fw.GetWorkerObjectKey(),
 			TypeId:    forge_worker.WorkerTypeID,
 		},
-	}
-}
-
-func computeRemoteShellCapability(
-	policy *device_policy.DevicePolicy,
-	existing *s4wave_device.DeviceCapability,
-) *s4wave_device.DeviceCapability {
-	state, detail := computeDevicePolicyCapabilityState(policy.GetRemoteShell().GetDetail(), existing)
-	return &s4wave_device.DeviceCapability{
-		Id:     devicePolicyRemoteShellCapabilityID,
-		Kind:   devicePolicyRemoteShellCapabilityKind,
-		Label:  "Remote Shell",
-		State:  state,
-		Detail: detail,
-		Policy: computeDeviceCapabilityPolicy(policyRef(policy.GetRevision(), "remote-shell"), existing),
 	}
 }
 
@@ -367,8 +347,7 @@ func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjec
 }
 
 func isDevicePolicyCapabilityID(id string) bool {
-	return id == devicePolicyRemoteShellCapabilityID ||
-		id == devicePolicyForgeWorkerCapabilityID
+	return id == devicePolicyForgeWorkerCapabilityID
 }
 
 func policyRef(revision uint64, suffix string) string {

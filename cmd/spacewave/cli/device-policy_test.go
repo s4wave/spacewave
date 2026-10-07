@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"net"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +21,6 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	deviceCmd := newDeviceCommand(nil)
 	approveCmd := findTestSubcommand(t, deviceCmd, "approve")
 	policyCmd := findTestSubcommand(t, deviceCmd, "policy")
-	enableShellCmd := findTestSubcommand(t, policyCmd, "enable-shell")
 
 	// Locate the forge-worker subcommands.
 	forgeWorkerCmd := findTestSubcommand(t, policyCmd, "forge-worker")
@@ -37,7 +35,6 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 
 	// Check the flags of each located subcommand.
 	assertCommandFlags(t, approveCmd, "state-path", "socket-path", "session-index", "space", "ticket")
-	assertCommandFlags(t, enableShellCmd, "state-path", "socket-path", "disable")
 	assertCommandFlags(t, forgeWorkerSetCmd, "state-path", "socket-path", "milli-cpu", "memory-bytes", "backend")
 	assertCommandFlags(t, forgeWorkerShowCmd, "state-path", "output")
 	assertCommandFlags(t, forgeWorkerClearCmd, "state-path", "socket-path")
@@ -66,14 +63,14 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 			Link:   &s4wave_device.DeviceCapabilityLink{ProtocolId: "spacewave/custom"},
 		},
 		{
-			Id:     devicePolicyRemoteShellCapabilityID,
-			Kind:   devicePolicyRemoteShellCapabilityKind,
-			Label:  "old shell label",
+			Id:     devicePolicyForgeWorkerCapabilityID,
+			Kind:   s4wave_device.DeviceCapabilityKindForgeWorker,
+			Label:  "old worker label",
 			State:  s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
-			Detail: "Space denied terminal",
+			Detail: "Space denied worker",
 			Policy: &s4wave_device.DeviceCapabilityPolicy{
-				LocalPolicyRef: "device-policy/12/remote-shell",
-				GrantPolicyRef: "grant/remote-shell",
+				LocalPolicyRef: "device-policy/12/forge-worker",
+				GrantPolicyRef: "grant/forge-worker",
 				LocalState:     s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
 				GrantState:     s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED,
 			},
@@ -81,7 +78,7 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 	}
 	policy := &device_policy.DevicePolicy{
 		Revision:    13,
-		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true, Detail: "terminal enabled"},
+		ForgeWorker: &device_policy.ForgeWorkerPolicy{WorkerObjectKey: "worker/1"},
 	}
 
 	// Project the policy onto the existing capabilities and index them.
@@ -90,7 +87,7 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 
 	// Check the capabilities keep their order with the node capability last.
 	if len(got) != 3 {
-		t.Fatalf("capability count = %d, want non-policy + remote shell + node", len(got))
+		t.Fatalf("capability count = %d, want non-policy + forge worker + node", len(got))
 	}
 	if got[len(got)-1].GetId() != nodeCap.GetId() || !got[len(got)-1].EqualVT(nodeCap) {
 		t.Fatalf("last capability = %v, want preserved node capability %v", got[len(got)-1], nodeCap)
@@ -100,25 +97,25 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 		t.Fatalf("non-policy capability = %v, want preserved %v", nonPolicy, existing[1])
 	}
 
-	// Check the projected remote-shell capability.
-	remoteShell := byID[devicePolicyRemoteShellCapabilityID]
-	if remoteShell == nil {
-		t.Fatal("remote-shell capability missing")
+	// Check the projected forge-worker capability.
+	forgeWorker := byID[devicePolicyForgeWorkerCapabilityID]
+	if forgeWorker == nil {
+		t.Fatal("forge-worker capability missing")
 	}
-	if remoteShell.GetPolicy().GetLocalPolicyRef() != "device-policy/13/remote-shell" {
-		t.Fatalf("remote-shell local policy ref = %q", remoteShell.GetPolicy().GetLocalPolicyRef())
+	if forgeWorker.GetPolicy().GetLocalPolicyRef() != "device-policy/13/forge-worker" {
+		t.Fatalf("forge-worker local policy ref = %q", forgeWorker.GetPolicy().GetLocalPolicyRef())
 	}
-	if remoteShell.GetPolicy().GetGrantPolicyRef() != "grant/remote-shell" {
-		t.Fatalf("remote-shell grant policy ref = %q", remoteShell.GetPolicy().GetGrantPolicyRef())
+	if forgeWorker.GetPolicy().GetGrantPolicyRef() != "grant/forge-worker" {
+		t.Fatalf("forge-worker grant policy ref = %q", forgeWorker.GetPolicy().GetGrantPolicyRef())
 	}
-	if remoteShell.GetPolicy().GetGrantState() != s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED {
-		t.Fatalf("remote-shell grant state = %s", remoteShell.GetPolicy().GetGrantState())
+	if forgeWorker.GetPolicy().GetGrantState() != s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED {
+		t.Fatalf("forge-worker grant state = %s", forgeWorker.GetPolicy().GetGrantState())
 	}
-	if remoteShell.GetState() != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED {
-		t.Fatalf("remote-shell state = %s", remoteShell.GetState())
+	if forgeWorker.GetState() != s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED {
+		t.Fatalf("forge-worker state = %s", forgeWorker.GetState())
 	}
-	if remoteShell.GetDetail() != "Space denied terminal" {
-		t.Fatalf("remote-shell detail = %q", remoteShell.GetDetail())
+	if forgeWorker.GetDetail() != "Space denied worker" {
+		t.Fatalf("forge-worker detail = %q", forgeWorker.GetDetail())
 	}
 }
 
@@ -150,7 +147,7 @@ func TestProjectDevicePolicyOntoDeviceUpdatesCapabilitiesAndTimestamp(t *testing
 	}
 	policy := &device_policy.DevicePolicy{
 		Revision:    2,
-		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true, Detail: "terminal enabled"},
+		ForgeWorker: &device_policy.ForgeWorkerPolicy{WorkerObjectKey: "worker/1"},
 	}
 
 	// Project the policy and check the updated device fields.
@@ -176,100 +173,8 @@ func TestProjectDevicePolicyOntoDeviceUpdatesCapabilitiesAndTimestamp(t *testing
 	if byID["operator-capability"] == nil || !byID["operator-capability"].EqualVT(existing.GetCapabilities()[0]) {
 		t.Fatalf("operator capability = %v, want preserved %v", byID["operator-capability"], existing.GetCapabilities()[0])
 	}
-	if byID[devicePolicyRemoteShellCapabilityID] == nil {
-		t.Fatal("remote-shell capability missing")
-	}
-}
-
-func TestDevicePolicyEnableShellCommandWritesPolicyAndReloadsDaemon(t *testing.T) {
-	// Seed the state path and stub the daemon connection.
-	clearStatePathEnv(t)
-	clearSocketPathEnv(t)
-	statePath := t.TempDir()
-	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{Revision: 4}); err != nil {
-		t.Fatalf("seed policy: %v", err)
-	}
-	var dialed string
-	var reloads int
-	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
-		dialed = sockPath
-		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
-		t.Fatal("autostart must not run after successful dial")
-		return nil
-	})
-	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
-		reloads++
-		return nil
-	})
-
-	// Run the enable-shell command and verify the written policy.
-	if err := runDeviceCLI(t, "device", "policy", "enable-shell", "--state-path", statePath); err != nil {
-		t.Fatalf("device policy enable-shell: %v", err)
-	}
-	if dialed != filepath.Join(statePath, socketName) {
-		t.Fatalf("dialed socket = %q, want state-path socket", dialed)
-	}
-	if reloads != 1 {
-		t.Fatalf("reloads = %d, want 1", reloads)
-	}
-	policy, err := device_policy.ReadFile(statePath)
-	if err != nil {
-		t.Fatalf("read policy: %v", err)
-	}
-	if policy.GetRevision() != 5 {
-		t.Fatalf("revision = %d, want 5", policy.GetRevision())
-	}
-	if !policy.GetRemoteShell().GetEnabled() {
-		t.Fatal("remote shell was not enabled")
-	}
-	if policy.GetRemoteShell().GetDetail() != "terminal enabled by local policy" {
-		t.Fatalf("remote shell detail = %q", policy.GetRemoteShell().GetDetail())
-	}
-}
-
-func TestDevicePolicyEnableShellDisableWritesPolicyAndReloadsDaemon(t *testing.T) {
-	// Seed the state path and stub the daemon connection.
-	clearStatePathEnv(t)
-	clearSocketPathEnv(t)
-	statePath := t.TempDir()
-	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{
-		Revision:    8,
-		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true, Detail: "terminal enabled by local policy"},
-	}); err != nil {
-		t.Fatalf("seed policy: %v", err)
-	}
-	var reloads int
-	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
-		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
-		t.Fatal("autostart must not run after successful dial")
-		return nil
-	})
-	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
-		reloads++
-		return nil
-	})
-
-	// Run the enable-shell --disable command and verify the written policy.
-	if err := runDeviceCLI(t, "device", "policy", "enable-shell", "--state-path", statePath, "--disable"); err != nil {
-		t.Fatalf("device policy enable-shell --disable: %v", err)
-	}
-	if reloads != 1 {
-		t.Fatalf("reloads = %d, want 1", reloads)
-	}
-	policy, err := device_policy.ReadFile(statePath)
-	if err != nil {
-		t.Fatalf("read policy: %v", err)
-	}
-	if policy.GetRevision() != 9 {
-		t.Fatalf("revision = %d, want 9", policy.GetRevision())
-	}
-	if policy.GetRemoteShell().GetEnabled() {
-		t.Fatal("remote shell remained enabled")
-	}
-	if policy.GetRemoteShell().GetDetail() != "terminal disabled by local policy" {
-		t.Fatalf("remote shell detail = %q", policy.GetRemoteShell().GetDetail())
+	if byID[devicePolicyForgeWorkerCapabilityID] == nil {
+		t.Fatal("forge-worker capability missing")
 	}
 }
 

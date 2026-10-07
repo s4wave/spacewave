@@ -26,12 +26,8 @@ func TestPolicyFileWriteReadRoundTripGeneratedJSON(t *testing.T) {
 	// Write and read a device policy containing shell and node type settings.
 	stateRoot := t.TempDir()
 	want := &DevicePolicy{
-		Revision: 7,
-		RemoteShell: &RemoteShellPolicy{
-			Enabled: true,
-			Detail:  "terminal enabled by local policy",
-		},
-		NodeTypeId: []string{"tcp-port"},
+		Revision:   7,
+		NodeTypeId: []string{"tcp-port", "remote-shell"},
 	}
 	if err := WriteFile(stateRoot, want); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
@@ -72,8 +68,8 @@ func TestPolicyStoreReloadBroadcastsNewSnapshot(t *testing.T) {
 
 	// Save and reload the next device-policy revision.
 	next := &DevicePolicy{
-		Revision:    2,
-		RemoteShell: &RemoteShellPolicy{Enabled: true},
+		Revision:   2,
+		NodeTypeId: []string{"remote-shell"},
 	}
 	if err := WriteFile(stateRoot, next); err != nil {
 		t.Fatalf("write next policy: %v", err)
@@ -102,8 +98,8 @@ func TestPolicyStoreWaitChangeReturnsCurrentWithoutPolling(t *testing.T) {
 	// Prepare a saved current policy for a canceled-context read.
 	stateRoot := t.TempDir()
 	want := &DevicePolicy{
-		Revision:    11,
-		RemoteShell: &RemoteShellPolicy{Enabled: true},
+		Revision:   11,
+		NodeTypeId: []string{"remote-shell"},
 	}
 	if err := WriteFile(stateRoot, want); err != nil {
 		t.Fatalf("write policy: %v", err)

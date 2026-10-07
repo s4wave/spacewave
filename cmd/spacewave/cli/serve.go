@@ -33,7 +33,6 @@ import (
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
-	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	flowgraph_nodetype "github.com/s4wave/spacewave/sdk/flowgraph/nodetype"
@@ -352,10 +351,6 @@ func runServeCommand(
 		return err
 	}
 	defer releaseFlowgraphNodeTypes()
-
-	// Serve remote shells under the Device policy.
-	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
-	defer releaseDeviceRemoteShell()
 
 	// Protect and bind the Resource socket before publishing daemon readiness.
 	explicitSocket := effectiveSocketPath(c, "") != ""

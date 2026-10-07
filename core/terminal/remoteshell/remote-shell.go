@@ -17,7 +17,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/creack/pty"
 	"github.com/pkg/errors"
-	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/stream"
@@ -26,17 +25,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// deviceRemoteShellControllerID identifies the remote shell controller.
-const deviceRemoteShellControllerID = "spacewave/device/remote-shell"
-
 // deviceRemoteShellFrameMaxBytes bounds one terminal frame on the stream.
 const deviceRemoteShellFrameMaxBytes = 4 * 1024 * 1024
 
 // deviceRemoteShellControllerVersion is the remote shell controller version.
 var deviceRemoteShellControllerVersion = controller.MustParseVersion("0.0.1")
-
-// remoteShellPolicy refuses an OPEN request the device policy does not permit.
-type remoteShellPolicy func(*s4wave_terminal.TerminalFrame) error
 
 // remoteShellAuthorizer refuses a remote peer that may not open a shell. It
 // returns the stream the session uses, also on refusal, so the refusal can be
@@ -67,30 +60,15 @@ type remoteShellOpenResult struct {
 	err error
 }
 
-// StartHandler registers the daemon-side remote-shell stream handler. Only an
-// active session of the local Session's account may open a shell.
-func StartHandler(ctx context.Context, le *logrus.Entry, b bus.Bus, policyStore *device_policy.PolicyStore) func() {
-	// Require a controller bus before registering the remote shell handler.
-	if b == nil {
-		return func() {}
-	}
-
-	// Configure the remote shell controller with device policy and PTY startup.
-	ctrl := &deviceRemoteShellController{
-		le:        le.WithField("controller", deviceRemoteShellControllerID),
+// newController constructs the remote shell controller on the Session bus b.
+// Only an active session of the local Session's account may open a shell.
+func newController(le *logrus.Entry, b bus.Bus) *deviceRemoteShellController {
+	return &deviceRemoteShellController{
+		le:        le,
 		b:         b,
 		authorize: authorizeAccountSessionPeer(b),
-		policy:    resolveRemoteShellPolicy(policyStore),
 		starter:   startPtyRemoteShell,
 	}
-
-	// Attach the remote shell controller for the supplied context lifetime.
-	release, err := b.AddController(ctx, ctrl, nil)
-	if err != nil {
-		le.WithError(err).Warn("device remote-shell handler unavailable")
-		return func() {}
-	}
-	return release
 }
 
 // deviceRemoteShellController resolves remote shell stream handlers.
@@ -101,8 +79,6 @@ type deviceRemoteShellController struct {
 	b bus.Bus
 	// authorize admits the remote peer before the session starts.
 	authorize remoteShellAuthorizer
-	// policy admits the OPEN request.
-	policy remoteShellPolicy
 	// starter starts the shell process.
 	starter remoteShellStarter
 }
@@ -110,7 +86,7 @@ type deviceRemoteShellController struct {
 // GetControllerInfo returns the controller info.
 func (c *deviceRemoteShellController) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
-		deviceRemoteShellControllerID,
+		ControllerID,
 		deviceRemoteShellControllerVersion,
 		"device remote shell controller",
 	)
@@ -134,7 +110,6 @@ func (c *deviceRemoteShellController) HandleDirective(ctx context.Context, di di
 		le:        c.le,
 		b:         c.b,
 		authorize: c.authorize,
-		policy:    c.policy,
 		starter:   c.starter,
 	}})), nil
 }
@@ -152,8 +127,6 @@ type deviceRemoteShellHandler struct {
 	b bus.Bus
 	// authorize admits the remote peer before the session starts.
 	authorize remoteShellAuthorizer
-	// policy admits the OPEN request.
-	policy remoteShellPolicy
 	// starter starts the shell process.
 	starter remoteShellStarter
 }
@@ -185,35 +158,28 @@ func (h *deviceRemoteShellHandler) HandleMountedStream(ctx context.Context, ms l
 		defer elRef.Release()
 
 		// Run the terminal protocol until the shell or stream ends.
-		if err := runRemoteShellSession(ctx, h.le, session, h.policy, h.starter); err != nil && ctx.Err() == nil {
+		if err := runRemoteShellSession(ctx, h.le, session, h.starter); err != nil && ctx.Err() == nil {
 			h.le.WithError(err).Warn("remote shell session stopped")
 		}
 	}()
 	return nil
 }
 
-// runRemoteShellSession admits the OPEN request and runs the shell over session.
+// runRemoteShellSession starts the shell an OPEN request describes and runs it
+// over session.
 func runRemoteShellSession(
 	ctx context.Context,
 	le *logrus.Entry,
 	session *stream_packet.Session,
-	policy remoteShellPolicy,
 	starter remoteShellStarter,
 ) error {
-	// Receive the terminal opening request before evaluating device policy.
+	// Receive the terminal opening request.
 	openFrame, err := receiveRemoteShellOpenFrame(ctx, session)
 	if err != nil {
 		return errors.Wrap(err, "receive terminal open frame")
 	}
 	if openFrame.GetKind() != s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OPEN {
 		return sendTerminalError(session, "expected terminal OPEN frame")
-	}
-
-	// Require device policy to permit the requested remote shell.
-	if policy != nil {
-		if err := policy(openFrame); err != nil {
-			return sendTerminalError(session, err.Error())
-		}
 	}
 
 	// Require a process starter for the remote shell request.
@@ -412,22 +378,6 @@ func authorizeAccountSessionPeer(b bus.Bus) remoteShellAuthorizer {
 			return ms.GetStream(), errors.New("no session transport for the local peer")
 		}
 		return st.AdmitStream(ctx, ms)
-	}
-}
-
-// resolveRemoteShellPolicy admits OPEN requests while the device policy enables
-// the remote shell.
-func resolveRemoteShellPolicy(store *device_policy.PolicyStore) remoteShellPolicy {
-	return func(openFrame *s4wave_terminal.TerminalFrame) error {
-		policy := store.Snapshot()
-		if !policy.GetRemoteShell().GetEnabled() {
-			detail := policy.GetRemoteShell().GetDetail()
-			if detail == "" {
-				detail = "terminal disabled by local policy"
-			}
-			return errors.New(detail)
-		}
-		return nil
 	}
 }
 

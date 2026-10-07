@@ -56,6 +56,8 @@ import (
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
 	optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
+	"github.com/s4wave/spacewave/core/transport"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"
@@ -202,9 +204,9 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_space.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{provider_local.NewFactory(b)}
+	return []controller.Factory{provider_local.NewFactory(b, sessionTransportOptions()...)}
 }, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{provider_spacewave.NewFactory(b)}
+	return []controller.Factory{provider_spacewave.NewFactory(b, sessionTransportOptions()...)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{saucer.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
@@ -264,6 +266,15 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{world_block_engine.NewFactory(b)}
 }}
+
+// sessionTransportOptions are the options every Session's transport takes.
+// They add the controllers that import core/transport, such as the remote shell,
+// to the factories of each Session's child bus.
+func sessionTransportOptions() []transport.SessionTransportOption {
+	return []transport.SessionTransportOption{transport.WithChildFactories(
+		func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
+	)}
+}
 
 // configSets are the configuration sets to apply on startup.
 var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFuncFromFS(configSetFS, "configset.bin")}

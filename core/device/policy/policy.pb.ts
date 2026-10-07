@@ -8,35 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
- * RemoteShellPolicy controls whether remote shell OPEN frames may start a PTY.
- *
- * @generated from message s4wave.device.policy.RemoteShellPolicy
- */
-export interface RemoteShellPolicy {
-  /**
-   * Enabled allows remote shell OPEN frames when true.
-   *
-   * @generated from field: bool enabled = 1;
-   */
-  enabled?: boolean
-  /**
-   * Detail is an operator-visible policy note.
-   *
-   * @generated from field: string detail = 2;
-   */
-  detail?: string
-}
-
-export const RemoteShellPolicy: MessageType<RemoteShellPolicy> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.device.policy.RemoteShellPolicy',
-    fields: [
-      { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
-      { no: 2, name: 'detail', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
  * ForgeWorkerPolicy declares the capacity envelope of the local Forge Worker.
  *
  * @generated from message s4wave.device.policy.ForgeWorkerPolicy
@@ -103,23 +74,17 @@ export interface DevicePolicy {
    */
   revision?: bigint
   /**
-   * RemoteShell controls remote-shell OPEN authorization.
-   *
-   * @generated from field: s4wave.device.policy.RemoteShellPolicy remote_shell = 2;
-   */
-  remoteShell?: RemoteShellPolicy
-  /**
    * ForgeWorker declares the local Forge Worker capacity envelope. Absent
    * means this daemon exposes no Forge Worker execution capacity.
    *
-   * @generated from field: s4wave.device.policy.ForgeWorkerPolicy forge_worker = 3;
+   * @generated from field: s4wave.device.policy.ForgeWorkerPolicy forge_worker = 2;
    */
   forgeWorker?: ForgeWorkerPolicy
   /**
    * NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
    * A node whose type is absent from the list is rejected.
    *
-   * @generated from field: repeated string node_type_id = 4;
+   * @generated from field: repeated string node_type_id = 3;
    */
   nodeTypeId?: string[]
 }
@@ -129,10 +94,9 @@ export const DevicePolicy: MessageType<DevicePolicy> =
     typeName: 's4wave.device.policy.DevicePolicy',
     fields: [
       { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 2, name: 'remote_shell', kind: 'message', T: RemoteShellPolicy },
-      { no: 3, name: 'forge_worker', kind: 'message', T: ForgeWorkerPolicy },
+      { no: 2, name: 'forge_worker', kind: 'message', T: ForgeWorkerPolicy },
       {
-        no: 4,
+        no: 3,
         name: 'node_type_id',
         kind: 'scalar',
         T: ScalarType.STRING,

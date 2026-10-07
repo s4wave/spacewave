@@ -7,14 +7,12 @@ option go_package = "github.com/s4wave/spacewave/core/device/policy;device_polic
 message DevicePolicy {
   // Revision increments on every policy mutation.
   uint64 revision = 1;
-  // RemoteShell controls remote-shell OPEN authorization.
-  RemoteShellPolicy remote_shell = 2;
   // ForgeWorker declares the local Forge Worker capacity envelope. Absent
   // means this daemon exposes no Forge Worker execution capacity.
-  ForgeWorkerPolicy forge_worker = 3;
+  ForgeWorkerPolicy forge_worker = 2;
   // NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
   // A node whose type is absent from the list is rejected.
-  repeated string node_type_id = 4;
+  repeated string node_type_id = 3;
 }
 
 // ForgeWorkerPolicy declares the capacity envelope of the local Forge Worker.
@@ -27,12 +25,4 @@ message ForgeWorkerPolicy {
   uint64 memory_bytes = 3;
   // Backends lists the runtime backends the Worker supports.
   repeated string backends = 4;
-}
-
-// RemoteShellPolicy controls whether remote shell OPEN frames may start a PTY.
-message RemoteShellPolicy {
-  // Enabled allows remote shell OPEN frames when true.
-  bool enabled = 1;
-  // Detail is an operator-visible policy note.
-  string detail = 2;
 }

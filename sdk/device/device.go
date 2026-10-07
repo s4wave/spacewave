@@ -18,6 +18,8 @@ const (
 	DeviceCapabilityKindForgeWorker = "forge-worker"
 	// DeviceCapabilityKindFlowgraphNode identifies a Flowgraph node placed on a Device.
 	DeviceCapabilityKindFlowgraphNode = "flowgraph-node"
+	// DeviceCapabilityKindRemoteShell identifies the remote shell a Device serves.
+	DeviceCapabilityKindRemoteShell = "remote-shell"
 	// DeviceCapabilityKindTerminal identifies terminal access exposed by a Device.
 	DeviceCapabilityKindTerminal = "terminal"
 )

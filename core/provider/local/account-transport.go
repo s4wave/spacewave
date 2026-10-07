@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -235,17 +236,14 @@ func (a *ProviderAccount) startSessionTransportLocked(
 	}
 
 	// Build the session transport.
-	st, err := transport.NewSessionTransport(
-		a.le,
-		a.t.p.b,
-		sessionKey,
-		signalingURL,
-		signingEnvPrefix,
+	options := slices.Clone(a.t.p.transportOptions)
+	options = append(options,
 		transport.WithStartupRetry(),
 		transport.WithPeerAuthorizer(a.authorizeAccountSession),
 		transport.WithPeerAuthorizationWatch(a.watchAccountSessions),
 		a.t.p.localNetwork,
 	)
+	st, err := transport.NewSessionTransport(a.le, a.t.p.b, sessionKey, signalingURL, signingEnvPrefix, options...)
 	if err != nil {
 		return nil, errors.Wrap(err, "create session transport")
 	}

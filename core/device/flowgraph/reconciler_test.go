@@ -9,9 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
+	"github.com/aperturerobotics/controllerbus/controller"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -83,7 +86,14 @@ func TestReconciler(t *testing.T) {
 	defer release()
 
 	// Run the Device's Session transport, whose bus hosts the node controllers.
-	st, err := transport.NewSessionTransport(le, b, selfKey, "", "")
+	st, err := transport.NewSessionTransport(
+		le,
+		b,
+		selfKey,
+		"",
+		"",
+		transport.WithChildFactories(func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) }),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,6 +269,36 @@ func TestReconciler(t *testing.T) {
 	})
 	if _, ok := capabilities[capabilityID("root-a")]; ok {
 		t.Fatal("removed checkout root node still has a capability")
+	}
+
+	// Allow the Remote Shell and place two: the Device runs one shell.
+	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
+		NodeTypeId: []string{s4wave_flowgraph.LocalPortNodeTypeID, s4wave_flowgraph.CheckoutRootNodeTypeID, s4wave_flowgraph.RemoteShellNodeTypeID},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := policy.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	commit(t, ctx, engine, func(tx world.Tx) error {
+		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
+			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
+				"shell-a": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
+				"shell-b": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
+			},
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
+				"shell-a": devicePlacement(testSelfKey),
+				"shell-b": devicePlacement(testSelfKey),
+			},
+		})
+		return err
+	})
+	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilityState(capabilities, "shell-a") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE &&
+			capabilityState(capabilities, "shell-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+	})
+	if kind := capabilities[capabilityID("shell-a")].GetKind(); kind != s4wave_device.DeviceCapabilityKindRemoteShell {
+		t.Fatalf("remote shell capability kind = %q, want %q", kind, s4wave_device.DeviceCapabilityKindRemoteShell)
 	}
 
 	// Stop the Reconciler and require it to release the daemon.

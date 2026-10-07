@@ -42,6 +42,8 @@ type Provider struct {
 
 	// localNetwork connects native sessions within this provider lifetime.
 	localNetwork transport.SessionTransportOption
+	// transportOptions configure each Session before its transport starts.
+	transportOptions []transport.SessionTransportOption
 
 	// accountRc is the keyed refcount for accounts.
 	accountRc *keyed.KeyedRefCount[string, *providerAccountTracker]
@@ -89,6 +91,7 @@ func NewProvider(
 	info *provider.ProviderInfo,
 	peer peer.Peer,
 	handler provider.ProviderHandler,
+	transportOptions ...transport.SessionTransportOption,
 ) *Provider {
 	// Register the gzip and block-encryption transform factories.
 	sfs := block_transform.NewStepFactorySet()
@@ -107,6 +110,7 @@ func NewProvider(
 		handler:            handler,
 		sfs:                sfs,
 		localNetwork:       newLocalSessionNetwork(),
+		transportOptions:   slices.Clone(transportOptions),
 	}
 	p.linkedCloudAccountLoader = defaultLinkedCloudAccountLoader
 	p.accountRc = keyed.NewKeyedRefCountWithLogger(

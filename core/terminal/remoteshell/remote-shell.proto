@@ -1,0 +1,9 @@
+syntax = "proto3";
+package s4wave.terminal.remoteshell;
+
+option go_package = "github.com/s4wave/spacewave/core/terminal/remoteshell;remoteshell";
+
+// Config configures the remote shell controller. The controller serves the
+// remote shell protocol on the Session bus that loads it, so it takes no
+// fields.
+message Config {}

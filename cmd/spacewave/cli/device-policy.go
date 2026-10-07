@@ -8,12 +8,6 @@ import (
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 )
 
-// devicePolicyEnableShellArgs selects the daemon and the remote-shell setting.
-type devicePolicyEnableShellArgs struct {
-	statePath string
-	disable   bool
-}
-
 // devicePolicyReloadDaemon asks the daemon to reload its policy file.
 var devicePolicyReloadDaemon = requestDevicePolicyReload
 
@@ -23,51 +17,10 @@ func newDevicePolicyCommand() *cli.Command {
 		Name:  "policy",
 		Usage: "manage daemon-local Device policy",
 		Subcommands: []*cli.Command{
-			newDevicePolicyEnableShellCommand(),
 			newDevicePolicyForgeWorkerCommand(),
 			newDevicePolicyNodeTypeCommand(),
 		},
 	}
-}
-
-// newDevicePolicyEnableShellCommand builds the enable-shell subcommand.
-func newDevicePolicyEnableShellCommand() *cli.Command {
-	args := &devicePolicyEnableShellArgs{}
-	return &cli.Command{
-		Name:   "enable-shell",
-		Usage:  "enable the daemon-local remote shell policy",
-		Flags:  args.BuildFlags(),
-		Action: args.Run,
-	}
-}
-
-// BuildFlags returns flags for remote-shell policy mutation.
-func (a *devicePolicyEnableShellArgs) BuildFlags() []cli.Flag {
-	return append(
-		daemonClientFlags(&a.statePath),
-		&cli.BoolFlag{
-			Name:        "disable",
-			Usage:       "disable remote shell instead of enabling it",
-			Destination: &a.disable,
-		},
-	)
-}
-
-// Run updates the remote-shell policy and signals the daemon.
-func (a *devicePolicyEnableShellArgs) Run(c *cli.Context) error {
-	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
-		// Enable or disable the remote shell policy.
-		if policy.RemoteShell == nil {
-			policy.RemoteShell = &device_policy.RemoteShellPolicy{}
-		}
-		policy.RemoteShell.Enabled = !a.disable
-		if a.disable {
-			policy.RemoteShell.Detail = "terminal disabled by local policy"
-			return nil
-		}
-		policy.RemoteShell.Detail = "terminal enabled by local policy"
-		return nil
-	})
 }
 
 // runDevicePolicyMutation applies mutate to the policy file and reloads the

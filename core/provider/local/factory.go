@@ -2,12 +2,14 @@ package provider_local
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_controller "github.com/s4wave/spacewave/core/provider/controller"
+	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
@@ -16,11 +18,13 @@ import (
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
+	// transportOptions configure each Session's independently owned transports.
+	transportOptions []transport.SessionTransportOption
 }
 
 // NewFactory builds the factory.
-func NewFactory(bus bus.Bus) *Factory {
-	return &Factory{bus: bus}
+func NewFactory(bus bus.Bus, transportOptions ...transport.SessionTransportOption) *Factory {
+	return &Factory{bus: bus, transportOptions: slices.Clone(transportOptions)}
 }
 
 // GetConfigID returns the configuration ID for the controller.
@@ -84,6 +88,7 @@ func (t *Factory) Construct(
 				info,
 				peer,
 				handler,
+				t.transportOptions...,
 			), nil
 		},
 	), nil
