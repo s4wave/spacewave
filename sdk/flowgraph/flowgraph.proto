@@ -1,6 +1,7 @@
 syntax = "proto3";
 package s4wave.flowgraph;
 
+import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/forge/target/target.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/flowgraph;s4wave_flowgraph";
@@ -55,8 +56,21 @@ message FlowgraphStep {
   string prompt = 1;
   // Skills lists the skills the actor may invoke.
   repeated FlowgraphSkill skills = 2;
-  // Target contains the execution definition for a code Step.
+  // Target contains the execution definition for a code Step. It declares one
+  // EXEC output per Step output port, named after the port, and its exec sets
+  // exactly one of them. It may also set a spend output.
   .forge.target.Target target = 3;
+  // Bound limits this Step's activations within one run.
+  FlowgraphBound bound = 4;
+}
+
+// FlowgraphBound limits the visits and the reported spend of a Step in a run.
+// A run that would exceed a limit pauses at the Step. Zero is unlimited.
+message FlowgraphBound {
+  // MaxVisits is the number of activations the Step may have.
+  uint32 max_visits = 1;
+  // MaxSpend is the total spend the Step's activations may report.
+  uint64 max_spend = 2;
 }
 
 // FlowgraphSkill declares an allowed skill invocation.
@@ -197,4 +211,77 @@ message ListFlowgraphChangesResponse {
   bool changelog_disabled = 2;
   // Complete is set when changes reach back to the graph's creation.
   bool complete = 3;
+}
+
+// FlowgraphRunState is the lifecycle state of a run.
+enum FlowgraphRunState {
+  // FLOWGRAPH_RUN_STATE_UNKNOWN is unset.
+  FLOWGRAPH_RUN_STATE_UNKNOWN = 0;
+  // FLOWGRAPH_RUN_STATE_RUNNING starts each Step whose inputs have arrived.
+  FLOWGRAPH_RUN_STATE_RUNNING = 1;
+  // FLOWGRAPH_RUN_STATE_PAUSED starts no Step until its owner resumes it.
+  FLOWGRAPH_RUN_STATE_PAUSED = 2;
+  // FLOWGRAPH_RUN_STATE_COMPLETE has no activation running or waiting.
+  FLOWGRAPH_RUN_STATE_COMPLETE = 3;
+}
+
+// FlowgraphRun is the state of one run of a Flowgraph's Steps on a Forge Job.
+// The run, not the Job, says whether the run is done: the Job reads COMPLETE
+// whenever no activation is running.
+message FlowgraphRun {
+  // FlowgraphKey is the Flowgraph this run executes.
+  string flowgraph_key = 1;
+  // FlowgraphRevision is the Flowgraph revision the run executes.
+  uint64 flowgraph_revision = 2;
+  // GraphRef is the Flowgraph body at flowgraph_revision.
+  .block.BlockRef graph_ref = 3;
+  // JobKey is the Forge Job holding one Task per activation.
+  string job_key = 4;
+  // State is the run's lifecycle state.
+  FlowgraphRunState state = 5;
+  // Activations lists every Step activation in start order.
+  repeated FlowgraphActivation activations = 6;
+  // Arrivals holds outputs delivered to Step inputs and not yet consumed.
+  repeated FlowgraphArrival arrivals = 7;
+  // Visits counts activations and reported spend by Step node ID.
+  map<string, FlowgraphVisits> visits = 8;
+  // PausedNode is the Step the run paused at.
+  string paused_node = 9;
+  // PauseReason says why the run paused.
+  string pause_reason = 10;
+}
+
+// FlowgraphActivation is one activation of a Step, run as one Forge Task.
+message FlowgraphActivation {
+  // NodeId is the activated Step.
+  string node_id = 1;
+  // TaskKey is the activation's Task in the run's Job.
+  string task_key = 2;
+  // Inputs are the arrivals the activation consumed, kept so a failed
+  // activation can run again with the same context.
+  repeated FlowgraphArrival inputs = 3;
+  // Done is set once the run has routed the activation's outcome.
+  bool done = 4;
+  // Output is the Step output port the activation chose.
+  string output = 5;
+}
+
+// FlowgraphArrival is an output delivered to a Step's input port.
+message FlowgraphArrival {
+  // NodeId is the receiving Step.
+  string node_id = 1;
+  // Port is the receiving input port, or empty for a run's start.
+  string port = 2;
+  // TaskKey is the Task whose output arrived, or empty for a run's start.
+  string task_key = 3;
+  // OutputName is the arriving output of that Task.
+  string output_name = 4;
+}
+
+// FlowgraphVisits counts one Step's activations in a run.
+message FlowgraphVisits {
+  // Count is the number of activations started.
+  uint32 count = 1;
+  // Spend is the total spend the completed activations reported.
+  uint64 spend = 2;
 }

@@ -11,6 +11,7 @@ import {
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Target } from '../../forge/target/target.pb.js'
+import { BlockRef } from '../../db/block/block.pb.js'
 
 /**
  * FlowgraphPortDirection selects the end of a directed connection.
@@ -78,6 +79,47 @@ export const FlowgraphPlacementKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.flowgraph.FlowgraphPlacementKind',
   FlowgraphPlacementKind,
   'FLOWGRAPH_PLACEMENT_KIND_',
+)
+
+/**
+ * FlowgraphRunState is the lifecycle state of a run.
+ *
+ * @generated from enum s4wave.flowgraph.FlowgraphRunState
+ */
+export enum FlowgraphRunState {
+  /**
+   * FLOWGRAPH_RUN_STATE_UNKNOWN is unset.
+   *
+   * @generated from enum value: FLOWGRAPH_RUN_STATE_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * FLOWGRAPH_RUN_STATE_RUNNING starts each Step whose inputs have arrived.
+   *
+   * @generated from enum value: FLOWGRAPH_RUN_STATE_RUNNING = 1;
+   */
+  RUNNING = 1,
+
+  /**
+   * FLOWGRAPH_RUN_STATE_PAUSED starts no Step until its owner resumes it.
+   *
+   * @generated from enum value: FLOWGRAPH_RUN_STATE_PAUSED = 2;
+   */
+  PAUSED = 2,
+
+  /**
+   * FLOWGRAPH_RUN_STATE_COMPLETE has no activation running or waiting.
+   *
+   * @generated from enum value: FLOWGRAPH_RUN_STATE_COMPLETE = 3;
+   */
+  COMPLETE = 3,
+}
+
+export const FlowgraphRunState_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.flowgraph.FlowgraphRunState',
+  FlowgraphRunState,
+  'FLOWGRAPH_RUN_STATE_',
 )
 
 /**
@@ -164,6 +206,36 @@ export const FlowgraphSkill: MessageType<FlowgraphSkill> =
   })
 
 /**
+ * FlowgraphBound limits the visits and the reported spend of a Step in a run.
+ * A run that would exceed a limit pauses at the Step. Zero is unlimited.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphBound
+ */
+export interface FlowgraphBound {
+  /**
+   * MaxVisits is the number of activations the Step may have.
+   *
+   * @generated from field: uint32 max_visits = 1;
+   */
+  maxVisits?: number
+  /**
+   * MaxSpend is the total spend the Step's activations may report.
+   *
+   * @generated from field: uint64 max_spend = 2;
+   */
+  maxSpend?: bigint
+}
+
+export const FlowgraphBound: MessageType<FlowgraphBound> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.FlowgraphBound',
+    fields: [
+      { no: 1, name: 'max_visits', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'max_spend', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * FlowgraphStep holds the instructions for an actor or code Step.
  *
  * @generated from message s4wave.flowgraph.FlowgraphStep
@@ -182,11 +254,19 @@ export interface FlowgraphStep {
    */
   skills?: FlowgraphSkill[]
   /**
-   * Target contains the execution definition for a code Step.
+   * Target contains the execution definition for a code Step. It declares one
+   * EXEC output per Step output port, named after the port, and its exec sets
+   * exactly one of them. It may also set a spend output.
    *
    * @generated from field: forge.target.Target target = 3;
    */
   target?: Target
+  /**
+   * Bound limits this Step's activations within one run.
+   *
+   * @generated from field: s4wave.flowgraph.FlowgraphBound bound = 4;
+   */
+  bound?: FlowgraphBound
 }
 
 export const FlowgraphStep: MessageType<FlowgraphStep> =
@@ -202,6 +282,7 @@ export const FlowgraphStep: MessageType<FlowgraphStep> =
         repeated: true,
       },
       { no: 3, name: 'target', kind: 'message', T: () => Target },
+      { no: 4, name: 'bound', kind: 'message', T: FlowgraphBound },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -742,5 +823,244 @@ export const ListFlowgraphChangesResponse: MessageType<ListFlowgraphChangesRespo
       },
       { no: 2, name: 'changelog_disabled', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'complete', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * FlowgraphArrival is an output delivered to a Step's input port.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphArrival
+ */
+export interface FlowgraphArrival {
+  /**
+   * NodeId is the receiving Step.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId?: string
+  /**
+   * Port is the receiving input port, or empty for a run's start.
+   *
+   * @generated from field: string port = 2;
+   */
+  port?: string
+  /**
+   * TaskKey is the Task whose output arrived, or empty for a run's start.
+   *
+   * @generated from field: string task_key = 3;
+   */
+  taskKey?: string
+  /**
+   * OutputName is the arriving output of that Task.
+   *
+   * @generated from field: string output_name = 4;
+   */
+  outputName?: string
+}
+
+export const FlowgraphArrival: MessageType<FlowgraphArrival> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.FlowgraphArrival',
+    fields: [
+      { no: 1, name: 'node_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'port', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'output_name', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * FlowgraphActivation is one activation of a Step, run as one Forge Task.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphActivation
+ */
+export interface FlowgraphActivation {
+  /**
+   * NodeId is the activated Step.
+   *
+   * @generated from field: string node_id = 1;
+   */
+  nodeId?: string
+  /**
+   * TaskKey is the activation's Task in the run's Job.
+   *
+   * @generated from field: string task_key = 2;
+   */
+  taskKey?: string
+  /**
+   * Inputs are the arrivals the activation consumed, kept so a failed
+   * activation can run again with the same context.
+   *
+   * @generated from field: repeated s4wave.flowgraph.FlowgraphArrival inputs = 3;
+   */
+  inputs?: FlowgraphArrival[]
+  /**
+   * Done is set once the run has routed the activation's outcome.
+   *
+   * @generated from field: bool done = 4;
+   */
+  done?: boolean
+  /**
+   * Output is the Step output port the activation chose.
+   *
+   * @generated from field: string output = 5;
+   */
+  output?: string
+}
+
+export const FlowgraphActivation: MessageType<FlowgraphActivation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.FlowgraphActivation',
+    fields: [
+      { no: 1, name: 'node_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'inputs',
+        kind: 'message',
+        T: FlowgraphArrival,
+        repeated: true,
+      },
+      { no: 4, name: 'done', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'output', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * FlowgraphVisits counts one Step's activations in a run.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphVisits
+ */
+export interface FlowgraphVisits {
+  /**
+   * Count is the number of activations started.
+   *
+   * @generated from field: uint32 count = 1;
+   */
+  count?: number
+  /**
+   * Spend is the total spend the completed activations reported.
+   *
+   * @generated from field: uint64 spend = 2;
+   */
+  spend?: bigint
+}
+
+export const FlowgraphVisits: MessageType<FlowgraphVisits> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.FlowgraphVisits',
+    fields: [
+      { no: 1, name: 'count', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'spend', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * FlowgraphRun is the state of one run of a Flowgraph's Steps on a Forge Job.
+ * The run, not the Job, says whether the run is done: the Job reads COMPLETE
+ * whenever no activation is running.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphRun
+ */
+export interface FlowgraphRun {
+  /**
+   * FlowgraphKey is the Flowgraph this run executes.
+   *
+   * @generated from field: string flowgraph_key = 1;
+   */
+  flowgraphKey?: string
+  /**
+   * FlowgraphRevision is the Flowgraph revision the run executes.
+   *
+   * @generated from field: uint64 flowgraph_revision = 2;
+   */
+  flowgraphRevision?: bigint
+  /**
+   * GraphRef is the Flowgraph body at flowgraph_revision.
+   *
+   * @generated from field: block.BlockRef graph_ref = 3;
+   */
+  graphRef?: BlockRef
+  /**
+   * JobKey is the Forge Job holding one Task per activation.
+   *
+   * @generated from field: string job_key = 4;
+   */
+  jobKey?: string
+  /**
+   * State is the run's lifecycle state.
+   *
+   * @generated from field: s4wave.flowgraph.FlowgraphRunState state = 5;
+   */
+  state?: FlowgraphRunState
+  /**
+   * Activations lists every Step activation in start order.
+   *
+   * @generated from field: repeated s4wave.flowgraph.FlowgraphActivation activations = 6;
+   */
+  activations?: FlowgraphActivation[]
+  /**
+   * Arrivals holds outputs delivered to Step inputs and not yet consumed.
+   *
+   * @generated from field: repeated s4wave.flowgraph.FlowgraphArrival arrivals = 7;
+   */
+  arrivals?: FlowgraphArrival[]
+  /**
+   * Visits counts activations and reported spend by Step node ID.
+   *
+   * @generated from field: map<string, s4wave.flowgraph.FlowgraphVisits> visits = 8;
+   */
+  visits?: { [key: string]: FlowgraphVisits }
+  /**
+   * PausedNode is the Step the run paused at.
+   *
+   * @generated from field: string paused_node = 9;
+   */
+  pausedNode?: string
+  /**
+   * PauseReason says why the run paused.
+   *
+   * @generated from field: string pause_reason = 10;
+   */
+  pauseReason?: string
+}
+
+export const FlowgraphRun: MessageType<FlowgraphRun> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.flowgraph.FlowgraphRun',
+    fields: [
+      { no: 1, name: 'flowgraph_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'flowgraph_revision',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 3, name: 'graph_ref', kind: 'message', T: () => BlockRef },
+      { no: 4, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'state', kind: 'enum', T: FlowgraphRunState_Enum },
+      {
+        no: 6,
+        name: 'activations',
+        kind: 'message',
+        T: FlowgraphActivation,
+        repeated: true,
+      },
+      {
+        no: 7,
+        name: 'arrivals',
+        kind: 'message',
+        T: FlowgraphArrival,
+        repeated: true,
+      },
+      {
+        no: 8,
+        name: 'visits',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: FlowgraphVisits },
+      },
+      { no: 9, name: 'paused_node', kind: 'scalar', T: ScalarType.STRING },
+      { no: 10, name: 'pause_reason', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })

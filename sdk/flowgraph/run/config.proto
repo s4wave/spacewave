@@ -1,0 +1,12 @@
+syntax = "proto3";
+package s4wave.flowgraph.run;
+
+option go_package = "github.com/s4wave/spacewave/sdk/flowgraph/run;flowgraph_run";
+
+// Config configures the controller that drives one Flowgraph run.
+message Config {
+  // EngineId is the World engine holding the run.
+  string engine_id = 1;
+  // ObjectKey is the run object to drive. The controller waits for it to exist.
+  string object_key = 2;
+}

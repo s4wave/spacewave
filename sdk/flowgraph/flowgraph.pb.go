@@ -13,6 +13,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	block "github.com/s4wave/spacewave/db/block"
 	target "github.com/s4wave/spacewave/forge/target"
 )
 
@@ -90,6 +91,50 @@ func (x FlowgraphPlacementKind) Enum() *FlowgraphPlacementKind {
 
 func (x FlowgraphPlacementKind) String() string {
 	name, valid := FlowgraphPlacementKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// FlowgraphRunState is the lifecycle state of a run.
+type FlowgraphRunState int32
+
+const (
+	// FLOWGRAPH_RUN_STATE_UNKNOWN is unset.
+	FlowgraphRunState_FLOWGRAPH_RUN_STATE_UNKNOWN FlowgraphRunState = 0
+	// FLOWGRAPH_RUN_STATE_RUNNING starts each Step whose inputs have arrived.
+	FlowgraphRunState_FLOWGRAPH_RUN_STATE_RUNNING FlowgraphRunState = 1
+	// FLOWGRAPH_RUN_STATE_PAUSED starts no Step until its owner resumes it.
+	FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED FlowgraphRunState = 2
+	// FLOWGRAPH_RUN_STATE_COMPLETE has no activation running or waiting.
+	FlowgraphRunState_FLOWGRAPH_RUN_STATE_COMPLETE FlowgraphRunState = 3
+)
+
+// Enum value maps for FlowgraphRunState.
+var (
+	FlowgraphRunState_name = map[int32]string{
+		0: "FLOWGRAPH_RUN_STATE_UNKNOWN",
+		1: "FLOWGRAPH_RUN_STATE_RUNNING",
+		2: "FLOWGRAPH_RUN_STATE_PAUSED",
+		3: "FLOWGRAPH_RUN_STATE_COMPLETE",
+	}
+	FlowgraphRunState_value = map[string]int32{
+		"FLOWGRAPH_RUN_STATE_UNKNOWN":  0,
+		"FLOWGRAPH_RUN_STATE_RUNNING":  1,
+		"FLOWGRAPH_RUN_STATE_PAUSED":   2,
+		"FLOWGRAPH_RUN_STATE_COMPLETE": 3,
+	}
+)
+
+func (x FlowgraphRunState) Enum() *FlowgraphRunState {
+	p := new(FlowgraphRunState)
+	*p = x
+	return p
+}
+
+func (x FlowgraphRunState) String() string {
+	name, valid := FlowgraphRunState_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -235,8 +280,12 @@ type FlowgraphStep struct {
 	Prompt string `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
 	// Skills lists the skills the actor may invoke.
 	Skills []*FlowgraphSkill `protobuf:"bytes,2,rep,name=skills,proto3" json:"skills,omitempty"`
-	// Target contains the execution definition for a code Step.
+	// Target contains the execution definition for a code Step. It declares one
+	// EXEC output per Step output port, named after the port, and its exec sets
+	// exactly one of them. It may also set a spend output.
 	Target *target.Target `protobuf:"bytes,3,opt,name=target,proto3" json:"target,omitempty"`
+	// Bound limits this Step's activations within one run.
+	Bound *FlowgraphBound `protobuf:"bytes,4,opt,name=bound,proto3" json:"bound,omitempty"`
 }
 
 func (x *FlowgraphStep) Reset() {
@@ -264,6 +313,43 @@ func (x *FlowgraphStep) GetTarget() *target.Target {
 		return x.Target
 	}
 	return nil
+}
+
+func (x *FlowgraphStep) GetBound() *FlowgraphBound {
+	if x != nil {
+		return x.Bound
+	}
+	return nil
+}
+
+// FlowgraphBound limits the visits and the reported spend of a Step in a run.
+// A run that would exceed a limit pauses at the Step. Zero is unlimited.
+type FlowgraphBound struct {
+	unknownFields []byte
+	// MaxVisits is the number of activations the Step may have.
+	MaxVisits uint32 `protobuf:"varint,1,opt,name=max_visits,json=maxVisits,proto3" json:"maxVisits,omitempty"`
+	// MaxSpend is the total spend the Step's activations may report.
+	MaxSpend uint64 `protobuf:"varint,2,opt,name=max_spend,json=maxSpend,proto3" json:"maxSpend,omitempty"`
+}
+
+func (x *FlowgraphBound) Reset() {
+	*x = FlowgraphBound{}
+}
+
+func (*FlowgraphBound) ProtoMessage() {}
+
+func (x *FlowgraphBound) GetMaxVisits() uint32 {
+	if x != nil {
+		return x.MaxVisits
+	}
+	return 0
+}
+
+func (x *FlowgraphBound) GetMaxSpend() uint64 {
+	if x != nil {
+		return x.MaxSpend
+	}
+	return 0
 }
 
 // FlowgraphSkill declares an allowed skill invocation.
@@ -692,6 +778,242 @@ func (x *ListFlowgraphChangesResponse) GetComplete() bool {
 	return false
 }
 
+// FlowgraphRun is the state of one run of a Flowgraph's Steps on a Forge Job.
+// The run, not the Job, says whether the run is done: the Job reads COMPLETE
+// whenever no activation is running.
+type FlowgraphRun struct {
+	unknownFields []byte
+	// FlowgraphKey is the Flowgraph this run executes.
+	FlowgraphKey string `protobuf:"bytes,1,opt,name=flowgraph_key,json=flowgraphKey,proto3" json:"flowgraphKey,omitempty"`
+	// FlowgraphRevision is the Flowgraph revision the run executes.
+	FlowgraphRevision uint64 `protobuf:"varint,2,opt,name=flowgraph_revision,json=flowgraphRevision,proto3" json:"flowgraphRevision,omitempty"`
+	// GraphRef is the Flowgraph body at flowgraph_revision.
+	GraphRef *block.BlockRef `protobuf:"bytes,3,opt,name=graph_ref,json=graphRef,proto3" json:"graphRef,omitempty"`
+	// JobKey is the Forge Job holding one Task per activation.
+	JobKey string `protobuf:"bytes,4,opt,name=job_key,json=jobKey,proto3" json:"jobKey,omitempty"`
+	// State is the run's lifecycle state.
+	State FlowgraphRunState `protobuf:"varint,5,opt,name=state,proto3" json:"state,omitempty"`
+	// Activations lists every Step activation in start order.
+	Activations []*FlowgraphActivation `protobuf:"bytes,6,rep,name=activations,proto3" json:"activations,omitempty"`
+	// Arrivals holds outputs delivered to Step inputs and not yet consumed.
+	Arrivals []*FlowgraphArrival `protobuf:"bytes,7,rep,name=arrivals,proto3" json:"arrivals,omitempty"`
+	// Visits counts activations and reported spend by Step node ID.
+	Visits map[string]*FlowgraphVisits `protobuf:"bytes,8,rep,name=visits,proto3" json:"visits,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// PausedNode is the Step the run paused at.
+	PausedNode string `protobuf:"bytes,9,opt,name=paused_node,json=pausedNode,proto3" json:"pausedNode,omitempty"`
+	// PauseReason says why the run paused.
+	PauseReason string `protobuf:"bytes,10,opt,name=pause_reason,json=pauseReason,proto3" json:"pauseReason,omitempty"`
+}
+
+func (x *FlowgraphRun) Reset() {
+	*x = FlowgraphRun{}
+}
+
+func (*FlowgraphRun) ProtoMessage() {}
+
+func (x *FlowgraphRun) GetFlowgraphKey() string {
+	if x != nil {
+		return x.FlowgraphKey
+	}
+	return ""
+}
+
+func (x *FlowgraphRun) GetFlowgraphRevision() uint64 {
+	if x != nil {
+		return x.FlowgraphRevision
+	}
+	return 0
+}
+
+func (x *FlowgraphRun) GetGraphRef() *block.BlockRef {
+	if x != nil {
+		return x.GraphRef
+	}
+	return nil
+}
+
+func (x *FlowgraphRun) GetJobKey() string {
+	if x != nil {
+		return x.JobKey
+	}
+	return ""
+}
+
+func (x *FlowgraphRun) GetState() FlowgraphRunState {
+	if x != nil {
+		return x.State
+	}
+	return FlowgraphRunState_FLOWGRAPH_RUN_STATE_UNKNOWN
+}
+
+func (x *FlowgraphRun) GetActivations() []*FlowgraphActivation {
+	if x != nil {
+		return x.Activations
+	}
+	return nil
+}
+
+func (x *FlowgraphRun) GetArrivals() []*FlowgraphArrival {
+	if x != nil {
+		return x.Arrivals
+	}
+	return nil
+}
+
+func (x *FlowgraphRun) GetVisits() map[string]*FlowgraphVisits {
+	if x != nil {
+		return x.Visits
+	}
+	return nil
+}
+
+func (x *FlowgraphRun) GetPausedNode() string {
+	if x != nil {
+		return x.PausedNode
+	}
+	return ""
+}
+
+func (x *FlowgraphRun) GetPauseReason() string {
+	if x != nil {
+		return x.PauseReason
+	}
+	return ""
+}
+
+// FlowgraphActivation is one activation of a Step, run as one Forge Task.
+type FlowgraphActivation struct {
+	unknownFields []byte
+	// NodeId is the activated Step.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"nodeId,omitempty"`
+	// TaskKey is the activation's Task in the run's Job.
+	TaskKey string `protobuf:"bytes,2,opt,name=task_key,json=taskKey,proto3" json:"taskKey,omitempty"`
+	// Inputs are the arrivals the activation consumed, kept so a failed
+	// activation can run again with the same context.
+	Inputs []*FlowgraphArrival `protobuf:"bytes,3,rep,name=inputs,proto3" json:"inputs,omitempty"`
+	// Done is set once the run has routed the activation's outcome.
+	Done bool `protobuf:"varint,4,opt,name=done,proto3" json:"done,omitempty"`
+	// Output is the Step output port the activation chose.
+	Output string `protobuf:"bytes,5,opt,name=output,proto3" json:"output,omitempty"`
+}
+
+func (x *FlowgraphActivation) Reset() {
+	*x = FlowgraphActivation{}
+}
+
+func (*FlowgraphActivation) ProtoMessage() {}
+
+func (x *FlowgraphActivation) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *FlowgraphActivation) GetTaskKey() string {
+	if x != nil {
+		return x.TaskKey
+	}
+	return ""
+}
+
+func (x *FlowgraphActivation) GetInputs() []*FlowgraphArrival {
+	if x != nil {
+		return x.Inputs
+	}
+	return nil
+}
+
+func (x *FlowgraphActivation) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
+func (x *FlowgraphActivation) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
+// FlowgraphArrival is an output delivered to a Step's input port.
+type FlowgraphArrival struct {
+	unknownFields []byte
+	// NodeId is the receiving Step.
+	NodeId string `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"nodeId,omitempty"`
+	// Port is the receiving input port, or empty for a run's start.
+	Port string `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
+	// TaskKey is the Task whose output arrived, or empty for a run's start.
+	TaskKey string `protobuf:"bytes,3,opt,name=task_key,json=taskKey,proto3" json:"taskKey,omitempty"`
+	// OutputName is the arriving output of that Task.
+	OutputName string `protobuf:"bytes,4,opt,name=output_name,json=outputName,proto3" json:"outputName,omitempty"`
+}
+
+func (x *FlowgraphArrival) Reset() {
+	*x = FlowgraphArrival{}
+}
+
+func (*FlowgraphArrival) ProtoMessage() {}
+
+func (x *FlowgraphArrival) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *FlowgraphArrival) GetPort() string {
+	if x != nil {
+		return x.Port
+	}
+	return ""
+}
+
+func (x *FlowgraphArrival) GetTaskKey() string {
+	if x != nil {
+		return x.TaskKey
+	}
+	return ""
+}
+
+func (x *FlowgraphArrival) GetOutputName() string {
+	if x != nil {
+		return x.OutputName
+	}
+	return ""
+}
+
+// FlowgraphVisits counts one Step's activations in a run.
+type FlowgraphVisits struct {
+	unknownFields []byte
+	// Count is the number of activations started.
+	Count uint32 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	// Spend is the total spend the completed activations reported.
+	Spend uint64 `protobuf:"varint,2,opt,name=spend,proto3" json:"spend,omitempty"`
+}
+
+func (x *FlowgraphVisits) Reset() {
+	*x = FlowgraphVisits{}
+}
+
+func (*FlowgraphVisits) ProtoMessage() {}
+
+func (x *FlowgraphVisits) GetCount() uint32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *FlowgraphVisits) GetSpend() uint64 {
+	if x != nil {
+		return x.Spend
+	}
+	return 0
+}
+
 type Flowgraph_NodesEntry struct {
 	unknownFields []byte
 	Key           string         `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
@@ -900,6 +1222,32 @@ func (x *UpdateFlowgraphRequest_SetPlacementsEntry) GetValue() *FlowgraphPlaceme
 	return nil
 }
 
+type FlowgraphRun_VisitsEntry struct {
+	unknownFields []byte
+	Key           string           `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *FlowgraphVisits `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *FlowgraphRun_VisitsEntry) Reset() {
+	*x = FlowgraphRun_VisitsEntry{}
+}
+
+func (*FlowgraphRun_VisitsEntry) ProtoMessage() {}
+
+func (x *FlowgraphRun_VisitsEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *FlowgraphRun_VisitsEntry) GetValue() *FlowgraphVisits {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
 func (m *Flowgraph) CloneVT() *Flowgraph {
 	if m == nil {
 		return (*Flowgraph)(nil)
@@ -964,6 +1312,7 @@ func (m *FlowgraphStep) CloneVT() *FlowgraphStep {
 	r.Prompt = m.Prompt
 	r.Skills = protobuf_go_lite.CloneVTSlice(m.Skills)
 	r.Target = protobuf_go_lite.CloneVTValue(m.Target)
+	r.Bound = protobuf_go_lite.CloneVTValue(m.Bound)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -971,6 +1320,23 @@ func (m *FlowgraphStep) CloneVT() *FlowgraphStep {
 }
 
 func (m *FlowgraphStep) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlowgraphBound) CloneVT() *FlowgraphBound {
+	if m == nil {
+		return (*FlowgraphBound)(nil)
+	}
+	r := new(FlowgraphBound)
+	r.MaxVisits = m.MaxVisits
+	r.MaxSpend = m.MaxSpend
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphBound) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1214,6 +1580,87 @@ func (m *ListFlowgraphChangesResponse) CloneMessageVT() protobuf_go_lite.CloneMe
 	return m.CloneVT()
 }
 
+func (m *FlowgraphRun) CloneVT() *FlowgraphRun {
+	if m == nil {
+		return (*FlowgraphRun)(nil)
+	}
+	r := new(FlowgraphRun)
+	r.FlowgraphKey = m.FlowgraphKey
+	r.FlowgraphRevision = m.FlowgraphRevision
+	r.JobKey = m.JobKey
+	r.State = m.State
+	r.PausedNode = m.PausedNode
+	r.PauseReason = m.PauseReason
+	r.GraphRef = protobuf_go_lite.CloneVTValue(m.GraphRef)
+	r.Activations = protobuf_go_lite.CloneVTSlice(m.Activations)
+	r.Arrivals = protobuf_go_lite.CloneVTSlice(m.Arrivals)
+	r.Visits = protobuf_go_lite.CloneVTMap(m.Visits)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphRun) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlowgraphActivation) CloneVT() *FlowgraphActivation {
+	if m == nil {
+		return (*FlowgraphActivation)(nil)
+	}
+	r := new(FlowgraphActivation)
+	r.NodeId = m.NodeId
+	r.TaskKey = m.TaskKey
+	r.Done = m.Done
+	r.Output = m.Output
+	r.Inputs = protobuf_go_lite.CloneVTSlice(m.Inputs)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphActivation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlowgraphArrival) CloneVT() *FlowgraphArrival {
+	if m == nil {
+		return (*FlowgraphArrival)(nil)
+	}
+	r := new(FlowgraphArrival)
+	r.NodeId = m.NodeId
+	r.Port = m.Port
+	r.TaskKey = m.TaskKey
+	r.OutputName = m.OutputName
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphArrival) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlowgraphVisits) CloneVT() *FlowgraphVisits {
+	if m == nil {
+		return (*FlowgraphVisits)(nil)
+	}
+	r := new(FlowgraphVisits)
+	r.Count = m.Count
+	r.Spend = m.Spend
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphVisits) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (this *Flowgraph) EqualVT(that *Flowgraph) bool {
 	if this == that {
 		return true
@@ -1313,11 +1760,37 @@ func (this *FlowgraphStep) EqualVT(that *FlowgraphStep) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Target, that.Target) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Bound, that.Bound) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *FlowgraphStep) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*FlowgraphStep)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlowgraphBound) EqualVT(that *FlowgraphBound) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.MaxVisits != that.MaxVisits {
+		return false
+	}
+	if this.MaxSpend != that.MaxSpend {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphBound) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphBound)
 	if !ok {
 		return false
 	}
@@ -1652,6 +2125,137 @@ func (this *ListFlowgraphChangesResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *FlowgraphRun) EqualVT(that *FlowgraphRun) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.FlowgraphKey != that.FlowgraphKey {
+		return false
+	}
+	if this.FlowgraphRevision != that.FlowgraphRevision {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.GraphRef, that.GraphRef) {
+		return false
+	}
+	if this.JobKey != that.JobKey {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Activations, that.Activations, func() *FlowgraphActivation { return &FlowgraphActivation{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Arrivals, that.Arrivals, func() *FlowgraphArrival { return &FlowgraphArrival{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTMapImplicit(this.Visits, that.Visits, func() *FlowgraphVisits { return &FlowgraphVisits{} }) {
+		return false
+	}
+	if this.PausedNode != that.PausedNode {
+		return false
+	}
+	if this.PauseReason != that.PauseReason {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphRun) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphRun)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlowgraphActivation) EqualVT(that *FlowgraphActivation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.NodeId != that.NodeId {
+		return false
+	}
+	if this.TaskKey != that.TaskKey {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Inputs, that.Inputs, func() *FlowgraphArrival { return &FlowgraphArrival{} }) {
+		return false
+	}
+	if this.Done != that.Done {
+		return false
+	}
+	if this.Output != that.Output {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphActivation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphActivation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlowgraphArrival) EqualVT(that *FlowgraphArrival) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.NodeId != that.NodeId {
+		return false
+	}
+	if this.Port != that.Port {
+		return false
+	}
+	if this.TaskKey != that.TaskKey {
+		return false
+	}
+	if this.OutputName != that.OutputName {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphArrival) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphArrival)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FlowgraphVisits) EqualVT(that *FlowgraphVisits) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Count != that.Count {
+		return false
+	}
+	if this.Spend != that.Spend {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphVisits) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphVisits)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the FlowgraphPortDirection to JSON.
 func (x FlowgraphPortDirection) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), FlowgraphPortDirection_name)
@@ -1729,6 +2333,46 @@ func (x *FlowgraphPlacementKind) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the FlowgraphPlacementKind from JSON.
 func (x *FlowgraphPlacementKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphRunState to JSON.
+func (x FlowgraphRunState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), FlowgraphRunState_name)
+}
+
+// MarshalText marshals the FlowgraphRunState to text.
+func (x FlowgraphRunState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), FlowgraphRunState_name)), nil
+}
+
+// MarshalJSON marshals the FlowgraphRunState to JSON.
+func (x FlowgraphRunState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphRunState from JSON.
+func (x *FlowgraphRunState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(FlowgraphRunState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read FlowgraphRunState enum: %v", err)
+		return
+	}
+	*x = FlowgraphRunState(v)
+}
+
+// UnmarshalText unmarshals the FlowgraphRunState from text.
+func (x *FlowgraphRunState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), FlowgraphRunState_value)
+	if err != nil {
+		return err
+	}
+	*x = FlowgraphRunState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the FlowgraphRunState from JSON.
+func (x *FlowgraphRunState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2183,6 +2827,11 @@ func (x *FlowgraphStep) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("target")
 		x.Target.MarshalProtoJSON(s.WithField("target"))
 	}
+	if x.Bound != nil || s.HasField("bound") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bound")
+		x.Bound.MarshalProtoJSON(s.WithField("bound"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2228,12 +2877,69 @@ func (x *FlowgraphStep) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Target = &target.Target{}
 			x.Target.UnmarshalProtoJSON(s.WithField("target", true))
+		case "bound":
+			if s.ReadNil() {
+				x.Bound = nil
+				return
+			}
+			x.Bound = &FlowgraphBound{}
+			x.Bound.UnmarshalProtoJSON(s.WithField("bound", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the FlowgraphStep from JSON.
 func (x *FlowgraphStep) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphBound message to JSON.
+func (x *FlowgraphBound) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.MaxVisits != 0 || s.HasField("maxVisits") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("maxVisits")
+		s.WriteUint32(x.MaxVisits)
+	}
+	if x.MaxSpend != 0 || s.HasField("maxSpend") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("maxSpend")
+		s.WriteUint64(x.MaxSpend)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphBound to JSON.
+func (x *FlowgraphBound) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphBound message from JSON.
+func (x *FlowgraphBound) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "max_visits", "maxVisits":
+			s.AddField("max_visits")
+			x.MaxVisits = s.ReadUint32()
+		case "max_spend", "maxSpend":
+			s.AddField("max_spend")
+			x.MaxSpend = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphBound from JSON.
+func (x *FlowgraphBound) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3352,6 +4058,448 @@ func (x *ListFlowgraphChangesResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the FlowgraphRun_VisitsEntry message to JSON.
+func (x *FlowgraphRun_VisitsEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != nil || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		x.Value.MarshalProtoJSON(s.WithField("value"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphRun_VisitsEntry to JSON.
+func (x *FlowgraphRun_VisitsEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphRun_VisitsEntry message from JSON.
+func (x *FlowgraphRun_VisitsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			if s.ReadNil() {
+				x.Value = nil
+				return
+			}
+			x.Value = &FlowgraphVisits{}
+			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphRun_VisitsEntry from JSON.
+func (x *FlowgraphRun_VisitsEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphRun message to JSON.
+func (x *FlowgraphRun) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.FlowgraphKey != "" || s.HasField("flowgraphKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("flowgraphKey")
+		s.WriteString(x.FlowgraphKey)
+	}
+	if x.FlowgraphRevision != 0 || s.HasField("flowgraphRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("flowgraphRevision")
+		s.WriteUint64(x.FlowgraphRevision)
+	}
+	if x.GraphRef != nil || s.HasField("graphRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("graphRef")
+		x.GraphRef.MarshalProtoJSON(s.WithField("graphRef"))
+	}
+	if x.JobKey != "" || s.HasField("jobKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("jobKey")
+		s.WriteString(x.JobKey)
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if len(x.Activations) > 0 || s.HasField("activations") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("activations")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Activations {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("activations"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.Arrivals) > 0 || s.HasField("arrivals") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("arrivals")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Arrivals {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("arrivals"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Visits != nil || s.HasField("visits") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("visits")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for _, k := range slices.Sorted(maps.Keys(x.Visits)) {
+			v := x.Visits[k]
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			v.MarshalProtoJSON(s.WithField("visits"))
+		}
+		s.WriteObjectEnd()
+	}
+	if x.PausedNode != "" || s.HasField("pausedNode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pausedNode")
+		s.WriteString(x.PausedNode)
+	}
+	if x.PauseReason != "" || s.HasField("pauseReason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("pauseReason")
+		s.WriteString(x.PauseReason)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphRun to JSON.
+func (x *FlowgraphRun) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphRun message from JSON.
+func (x *FlowgraphRun) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "flowgraph_key", "flowgraphKey":
+			s.AddField("flowgraph_key")
+			x.FlowgraphKey = s.ReadString()
+		case "flowgraph_revision", "flowgraphRevision":
+			s.AddField("flowgraph_revision")
+			x.FlowgraphRevision = s.ReadUint64()
+		case "graph_ref", "graphRef":
+			if s.ReadNil() {
+				x.GraphRef = nil
+				return
+			}
+			x.GraphRef = &block.BlockRef{}
+			x.GraphRef.UnmarshalProtoJSON(s.WithField("graph_ref", true))
+		case "job_key", "jobKey":
+			s.AddField("job_key")
+			x.JobKey = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "activations":
+			s.AddField("activations")
+			if s.ReadNil() {
+				x.Activations = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Activations = append(x.Activations, nil)
+					return
+				}
+				v := &FlowgraphActivation{}
+				v.UnmarshalProtoJSON(s.WithField("activations", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Activations = append(x.Activations, v)
+			})
+		case "arrivals":
+			s.AddField("arrivals")
+			if s.ReadNil() {
+				x.Arrivals = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Arrivals = append(x.Arrivals, nil)
+					return
+				}
+				v := &FlowgraphArrival{}
+				v.UnmarshalProtoJSON(s.WithField("arrivals", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Arrivals = append(x.Arrivals, v)
+			})
+		case "visits":
+			s.AddField("visits")
+			if s.ReadNil() {
+				x.Visits = nil
+				return
+			}
+			x.Visits = make(map[string]*FlowgraphVisits)
+			s.ReadStringMap(func(key string) {
+				var v FlowgraphVisits
+				v.UnmarshalProtoJSON(s)
+				x.Visits[key] = &v
+			})
+		case "paused_node", "pausedNode":
+			s.AddField("paused_node")
+			x.PausedNode = s.ReadString()
+		case "pause_reason", "pauseReason":
+			s.AddField("pause_reason")
+			x.PauseReason = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphRun from JSON.
+func (x *FlowgraphRun) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphActivation message to JSON.
+func (x *FlowgraphActivation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.NodeId != "" || s.HasField("nodeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nodeId")
+		s.WriteString(x.NodeId)
+	}
+	if x.TaskKey != "" || s.HasField("taskKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("taskKey")
+		s.WriteString(x.TaskKey)
+	}
+	if len(x.Inputs) > 0 || s.HasField("inputs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inputs")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Inputs {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("inputs"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.Done || s.HasField("done") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("done")
+		s.WriteBool(x.Done)
+	}
+	if x.Output != "" || s.HasField("output") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("output")
+		s.WriteString(x.Output)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphActivation to JSON.
+func (x *FlowgraphActivation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphActivation message from JSON.
+func (x *FlowgraphActivation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "node_id", "nodeId":
+			s.AddField("node_id")
+			x.NodeId = s.ReadString()
+		case "task_key", "taskKey":
+			s.AddField("task_key")
+			x.TaskKey = s.ReadString()
+		case "inputs":
+			s.AddField("inputs")
+			if s.ReadNil() {
+				x.Inputs = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Inputs = append(x.Inputs, nil)
+					return
+				}
+				v := &FlowgraphArrival{}
+				v.UnmarshalProtoJSON(s.WithField("inputs", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Inputs = append(x.Inputs, v)
+			})
+		case "done":
+			s.AddField("done")
+			x.Done = s.ReadBool()
+		case "output":
+			s.AddField("output")
+			x.Output = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphActivation from JSON.
+func (x *FlowgraphActivation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphArrival message to JSON.
+func (x *FlowgraphArrival) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.NodeId != "" || s.HasField("nodeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nodeId")
+		s.WriteString(x.NodeId)
+	}
+	if x.Port != "" || s.HasField("port") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("port")
+		s.WriteString(x.Port)
+	}
+	if x.TaskKey != "" || s.HasField("taskKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("taskKey")
+		s.WriteString(x.TaskKey)
+	}
+	if x.OutputName != "" || s.HasField("outputName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outputName")
+		s.WriteString(x.OutputName)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphArrival to JSON.
+func (x *FlowgraphArrival) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphArrival message from JSON.
+func (x *FlowgraphArrival) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "node_id", "nodeId":
+			s.AddField("node_id")
+			x.NodeId = s.ReadString()
+		case "port":
+			s.AddField("port")
+			x.Port = s.ReadString()
+		case "task_key", "taskKey":
+			s.AddField("task_key")
+			x.TaskKey = s.ReadString()
+		case "output_name", "outputName":
+			s.AddField("output_name")
+			x.OutputName = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphArrival from JSON.
+func (x *FlowgraphArrival) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FlowgraphVisits message to JSON.
+func (x *FlowgraphVisits) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Count != 0 || s.HasField("count") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("count")
+		s.WriteUint32(x.Count)
+	}
+	if x.Spend != 0 || s.HasField("spend") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spend")
+		s.WriteUint64(x.Spend)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphVisits to JSON.
+func (x *FlowgraphVisits) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphVisits message from JSON.
+func (x *FlowgraphVisits) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "count":
+			s.AddField("count")
+			x.Count = s.ReadUint32()
+		case "spend":
+			s.AddField("spend")
+			x.Spend = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphVisits from JSON.
+func (x *FlowgraphVisits) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Flowgraph) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3584,6 +4732,16 @@ func (m *FlowgraphStep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Bound != nil {
+		size, err := m.Bound.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.Target != nil {
 		size, err := m.Target.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -3610,6 +4768,48 @@ func (m *FlowgraphStep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Prompt)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FlowgraphBound) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphBound) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphBound) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.MaxSpend != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MaxSpend))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.MaxVisits != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MaxVisits))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -4320,6 +5520,280 @@ func (m *ListFlowgraphChangesResponse) MarshalToSizedBufferVT(dAtA []byte) (int,
 	return len(dAtA) - i, nil
 }
 
+func (m *FlowgraphRun) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphRun) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphRun) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PauseReason) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PauseReason)
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.PausedNode) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PausedNode)
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.Visits) > 0 {
+		for k := range m.Visits {
+			v := m.Visits[k]
+			baseI := i
+			size, err := v.MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.Arrivals) > 0 {
+		for iNdEx := len(m.Arrivals) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Arrivals[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.Activations) > 0 {
+		for iNdEx := len(m.Activations) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Activations[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.JobKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.JobKey)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.GraphRef != nil {
+		size, err := m.GraphRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.FlowgraphRevision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FlowgraphRevision))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.FlowgraphKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.FlowgraphKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FlowgraphActivation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphActivation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphActivation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Output) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Output)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Done {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Done)
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Inputs) > 0 {
+		for iNdEx := len(m.Inputs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Inputs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.TaskKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TaskKey)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.NodeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NodeId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FlowgraphArrival) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphArrival) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphArrival) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.OutputName) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OutputName)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.TaskKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TaskKey)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Port) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Port)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.NodeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NodeId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FlowgraphVisits) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphVisits) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphVisits) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Spend != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Spend))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Count != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Count))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Flowgraph) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4405,6 +5879,22 @@ func (m *FlowgraphStep) SizeVT() (n int) {
 		l = m.Target.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Bound != nil {
+		l = m.Bound.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlowgraphBound) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxVisits)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxSpend)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4638,11 +6128,97 @@ func (m *ListFlowgraphChangesResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *FlowgraphRun) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.FlowgraphKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.FlowgraphRevision)
+	if m.GraphRef != nil {
+		l = m.GraphRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.JobKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	for _, e := range m.Activations {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Arrivals {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for k, v := range m.Visits {
+		_ = k
+		_ = v
+		l = 0
+		if v != nil {
+			l = v.SizeVT()
+		}
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeMessage(1, l)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PausedNode)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PauseReason)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlowgraphActivation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NodeId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TaskKey)
+	for _, e := range m.Inputs {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Done)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Output)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlowgraphArrival) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NodeId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Port)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TaskKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OutputName)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlowgraphVisits) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Count)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Spend)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x FlowgraphPortDirection) MarshalProtoText() string {
 	return x.String()
 }
 
 func (x FlowgraphPlacementKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x FlowgraphRunState) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -4834,10 +6410,32 @@ func (x *FlowgraphStep) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Target)
 	}
+	if x.Bound != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bound")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Bound)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *FlowgraphStep) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphBound) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphBound")
+	if x.MaxVisits != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max_visits")
+		protobuf_go_lite.TextWriteUint(&sb, x.MaxVisits)
+	}
+	if x.MaxSpend != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max_spend")
+		protobuf_go_lite.TextWriteUint(&sb, x.MaxSpend)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphBound) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5262,6 +6860,183 @@ func (x *ListFlowgraphChangesResponse) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *FlowgraphRun_VisitsEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "VisitsEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphRun_VisitsEntry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphRun) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphRun")
+	if x.FlowgraphKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "flowgraph_key")
+		protobuf_go_lite.TextWriteString(&sb, x.FlowgraphKey)
+	}
+	if x.FlowgraphRevision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "flowgraph_revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.FlowgraphRevision)
+	}
+	if x.GraphRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "graph_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.GraphRef)
+	}
+	if x.JobKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "job_key")
+		protobuf_go_lite.TextWriteString(&sb, x.JobKey)
+	}
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, FlowgraphRunState(x.State))
+	}
+	if len(x.Activations) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "activations")
+		for i, v := range x.Activations {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphActivation{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Arrivals) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "arrivals")
+		for i, v := range x.Arrivals {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphArrival{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Visits) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "visits")
+		for _, k := range slices.Sorted(maps.Keys(x.Visits)) {
+			v := x.Visits[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphVisits{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.PausedNode != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "paused_node")
+		protobuf_go_lite.TextWriteString(&sb, x.PausedNode)
+	}
+	if x.PauseReason != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pause_reason")
+		protobuf_go_lite.TextWriteString(&sb, x.PauseReason)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphRun) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphActivation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphActivation")
+	if x.NodeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "node_id")
+		protobuf_go_lite.TextWriteString(&sb, x.NodeId)
+	}
+	if x.TaskKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "task_key")
+		protobuf_go_lite.TextWriteString(&sb, x.TaskKey)
+	}
+	if len(x.Inputs) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "inputs")
+		for i, v := range x.Inputs {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphArrival{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Done != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "done")
+		protobuf_go_lite.TextWriteBool(&sb, x.Done)
+	}
+	if x.Output != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "output")
+		protobuf_go_lite.TextWriteString(&sb, x.Output)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphActivation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphArrival) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphArrival")
+	if x.NodeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "node_id")
+		protobuf_go_lite.TextWriteString(&sb, x.NodeId)
+	}
+	if x.Port != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "port")
+		protobuf_go_lite.TextWriteString(&sb, x.Port)
+	}
+	if x.TaskKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "task_key")
+		protobuf_go_lite.TextWriteString(&sb, x.TaskKey)
+	}
+	if x.OutputName != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "output_name")
+		protobuf_go_lite.TextWriteString(&sb, x.OutputName)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphArrival) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FlowgraphVisits) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphVisits")
+	if x.Count != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "count")
+		protobuf_go_lite.TextWriteUint(&sb, x.Count)
+	}
+	if x.Spend != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "spend")
+		protobuf_go_lite.TextWriteUint(&sb, x.Spend)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphVisits) String() string {
+	return x.MarshalProtoText()
+}
+
 func (m *Flowgraph) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -5674,6 +7449,82 @@ func (m *FlowgraphStep) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bound", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Bound == nil {
+				m.Bound = &FlowgraphBound{}
+			}
+			if err := m.Bound.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlowgraphBound) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphBound: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphBound: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxVisits", wireType)
+			}
+			m.MaxVisits = 0
+			m.MaxVisits, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxSpend", wireType)
+			}
+			m.MaxSpend = 0
+			m.MaxSpend, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6782,6 +8633,437 @@ func (m *ListFlowgraphChangesResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Complete = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlowgraphRun) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphRun: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphRun: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FlowgraphKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.FlowgraphKey = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FlowgraphRevision", wireType)
+			}
+			m.FlowgraphRevision = 0
+			m.FlowgraphRevision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GraphRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.GraphRef == nil {
+				m.GraphRef = &block.BlockRef{}
+			}
+			if err := m.GraphRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JobKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.JobKey = v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = FlowgraphRunState(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Activations", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Activations = append(m.Activations, &FlowgraphActivation{})
+			if err := m.Activations[len(m.Activations)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Arrivals", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Arrivals = append(m.Arrivals, &FlowgraphArrival{})
+			if err := m.Arrivals[len(m.Arrivals)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Visits", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.Visits == nil {
+				m.Visits = make(map[string]*FlowgraphVisits)
+			}
+			var mapkey string
+			var mapvalue *FlowgraphVisits
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					msgStartmapvalue, postmsgIndexmapvalue, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					mapvalue = &FlowgraphVisits{}
+					if err := mapvalue.UnmarshalVT(dAtA[msgStartmapvalue:postmsgIndexmapvalue]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.Visits[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PausedNode", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PausedNode = v
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PauseReason", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PauseReason = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlowgraphActivation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphActivation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphActivation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NodeId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TaskKey = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Inputs", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Inputs = append(m.Inputs, &FlowgraphArrival{})
+			if err := m.Inputs[len(m.Inputs)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Done", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Done = bool(v)
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Output", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Output = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlowgraphArrival) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphArrival: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphArrival: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NodeId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Port = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TaskKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TaskKey = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutputName", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OutputName = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FlowgraphVisits) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphVisits: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphVisits: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Count", wireType)
+			}
+			m.Count = 0
+			m.Count, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Spend", wireType)
+			}
+			m.Spend = 0
+			m.Spend, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

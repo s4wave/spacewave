@@ -21,6 +21,9 @@ func (n *FlowgraphNode) Validate() error {
 		if _, exists := seen[port.GetName()]; exists {
 			return errors.Errorf("duplicate port %q", port.GetName())
 		}
+		if n.GetStep() != nil && port.GetName() == SpendOutputName {
+			return errors.Errorf("step port name %q is reserved", SpendOutputName)
+		}
 		seen[port.GetName()] = struct{}{}
 		switch port.GetDirection() {
 		case FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_INPUT:
