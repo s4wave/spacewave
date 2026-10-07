@@ -14,13 +14,15 @@ import (
 func newSpaceRosterCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	return &cli.Command{
 		Name:      "roster",
-		Usage:     "drop writers from the space's trimming roster",
+		Usage:     "set the writers dropped from the space's trimming roster",
 		ArgsUsage: "<space-id> [peer-id...]",
 		Description: "The space trims only the history every writer on its " +
 			"roster has built on, so a writer that stopped syncing holds the " +
-			"history back. This drops exactly the listed writers; without peer " +
-			"IDs it returns every dropped writer to the roster. A dropped writer " +
-			"returns on its own once it catches up. Only an owner can change it.",
+			"history back. The listed writers become the whole dropped set: " +
+			"list every writer that should stay dropped, since a dropped writer " +
+			"left out returns to the roster. Without peer IDs it returns every " +
+			"dropped writer. A dropped writer returns on its own once it catches " +
+			"up. Only an owner can change it.",
 		Action: func(c *cli.Context) error {
 			// Take the space and the writers to drop.
 			args := c.Args().Slice()
