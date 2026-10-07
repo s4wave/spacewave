@@ -125,6 +125,8 @@ When calling `volume.ExBuildObjectStoreAPI`, pass `vol.GetID()` from the mounted
 
 World object keys have the form `<stable-type-root>/<self-contained-id>`. Use the object's own opaque or natural identity. Cross-object relationships belong in graph edges, with a key-valued field only when a consumer needs that direct reference. Parent-scoped keys may describe bounded owned children. Each key builder has a parser that understands its own grammar. Durable key changes require migration; an authorized rename uses `RenameObject(descendants=true)` and updates graph quads containing the key.
 
+No World object type is a singleton. A user may create as many objects of any type as they want, so never derive a well-known key per Space, per user, or per parent and never assume a type has one instance. A consumer finds the objects that apply to it by following graph edges, such as an edge from a session to the policy object governing it, and an object with no edges affects nothing.
+
 Block-backed state forms a block DAG under its World object. Create a separate World object for independent identity, permissions, lifecycle, or graph relationships. Block DAG comments specify key encoding and value type.
 
 - Proto imports use Go module paths from `go.mod`.
