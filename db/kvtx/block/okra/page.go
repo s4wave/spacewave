@@ -136,8 +136,13 @@ func (p *Page) MarshalBlock() ([]byte, error) {
 }
 
 // UnmarshalBlock unmarshals the block to the object.
+// The page is validated here, so a page served from the decoded-block cache
+// was validated once when it was decoded.
 func (p *Page) UnmarshalBlock(data []byte) error {
-	return p.UnmarshalVT(data)
+	if err := p.UnmarshalVT(data); err != nil {
+		return err
+	}
+	return p.Validate()
 }
 
 // ApplyBlockRef applies a ref change with a field id.

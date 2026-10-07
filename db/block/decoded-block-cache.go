@@ -20,11 +20,13 @@ const (
 
 // DecodedBlockCacheable identifies a block type for decoded-block caching.
 type DecodedBlockCacheable interface {
+	// DecodedBlockCacheTypeKey returns the block type's cache identity.
 	DecodedBlockCacheTypeKey() string
 }
 
 // DecodedBlockCacheTransformer identifies a transform boundary for decoded-block caching.
 type DecodedBlockCacheTransformer interface {
+	// DecodedBlockCacheTransformKey returns the transform's cache identity.
 	DecodedBlockCacheTransformKey() string
 }
 
@@ -33,11 +35,13 @@ type DecodedBlockCacheTransformer interface {
 // block types whose decoded form is much larger than their encoding, such as
 // pages of many small messages.
 type DecodedBlockHeapSizer interface {
+	// DecodedHeapSize returns the heap bytes the decoded block retains.
 	DecodedHeapSize() int
 }
 
 // decodedBlockCacheSizer reports a decoded block's size without marshaling it.
 type decodedBlockCacheSizer interface {
+	// SizeVT returns the block's encoded size.
 	SizeVT() int
 }
 
@@ -386,10 +390,34 @@ func (c *DecodedBlockCache) epochs(refKey string) decodedBlockCacheEpochs {
 	}
 }
 
-// cacheKey returns the pool key for key in this scope.
+// cacheKey returns the pool key for key in this scope: the scope, then the
+// reference, block type, transform, and trust identities, each length-prefixed
+// so no part can be confused with a neighbor. Every lookup builds one, so it
+// allocates once.
 func (c *DecodedBlockCache) cacheKey(key decodedBlockCacheKey) string {
-	return c.scope + key.String()
+	// Reserve the scope plus each part with its longest decimal length prefix.
+	parts := [...]string{key.ref, key.blockType, key.transform, key.trust}
+	size := len(c.scope)
+	for _, part := range parts {
+		size += len(part) + decodedBlockCacheKeyPrefixLen
+	}
+
+	// Encode the scope and the length-prefixed parts.
+	var b strings.Builder
+	b.Grow(size)
+	b.WriteString(c.scope)
+	var prefix [decodedBlockCacheKeyPrefixLen]byte
+	for _, part := range parts {
+		b.Write(strconv.AppendInt(prefix[:0], int64(len(part)), 10))
+		b.WriteByte(':')
+		b.WriteString(part)
+	}
+	return b.String()
 }
+
+// decodedBlockCacheKeyPrefixLen bounds one part's length prefix: the decimal
+// digits of an int64 and the separator.
+const decodedBlockCacheKeyPrefixLen = 20
 
 // storeToken captures the current epochs for refKey.
 func (c *DecodedBlockCache) storeToken(refKey string) decodedBlockCacheStoreToken {
@@ -579,25 +607,6 @@ func decodedBlockCacheTransformKey(xfrm Transformer) (string, bool) {
 		return "", false
 	}
 	return key, true
-}
-
-// String encodes the key as length-prefixed parts, so no part can be confused
-// with a neighbor.
-func (k decodedBlockCacheKey) String() string {
-	// Prepare length-prefixed encoding for the decoded-cache key parts.
-	var b strings.Builder
-	writePart := func(part string) {
-		b.WriteString(strconv.Itoa(len(part)))
-		b.WriteByte(':')
-		b.WriteString(part)
-	}
-
-	// Encode the reference, block type, transform, and trust identities.
-	writePart(k.ref)
-	writePart(k.blockType)
-	writePart(k.transform)
-	writePart(k.trust)
-	return b.String()
 }
 
 // cloneDecodedBlock deep-clones a block, returning false when the block

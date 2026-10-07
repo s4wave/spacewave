@@ -9,21 +9,14 @@ import (
 	"github.com/s4wave/spacewave/db/block/blob"
 )
 
+// loadPage returns the validated Okra page stored at cursor.
 func loadPage(ctx context.Context, cursor *block.Cursor) (*Page, error) {
-	// Decode the Okra page stored at the supplied cursor.
 	page, err := block.UnmarshalBlock[*Page](ctx, cursor, NewPageBlock)
 	if err != nil {
 		return nil, err
 	}
-
-	// Require a decoded page before validating its metadata.
 	if page == nil {
 		return nil, block.ErrNotFound
-	}
-
-	// Validate the decoded Okra page before returning it.
-	if err := page.Validate(); err != nil {
-		return nil, err
 	}
 	return page, nil
 }
