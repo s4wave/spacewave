@@ -24,6 +24,8 @@ import {
   SpaceSequencer,
   SpaceSharingState,
   SpaceState,
+  ValidatePluginRepositoryRequest,
+  ValidatePluginRepositoryResponse,
   WatchSpaceBackfillRequest,
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
@@ -129,6 +131,16 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<FetchPluginRepositoryResponse> {
     return this.service.FetchPluginRepository(request, abortSignal)
+  }
+
+  // validatePluginRepository evaluates a fetched repository's checked-out
+  // commit without running its code, and returns the plugins it declares, its
+  // pinned dependencies, and the reason for each refusal.
+  public async validatePluginRepository(
+    request: ValidatePluginRepositoryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ValidatePluginRepositoryResponse> {
+    return this.service.ValidatePluginRepository(request, abortSignal)
   }
 
   /** openPluginFrontend retains live source on the selected native device. */

@@ -3,16 +3,21 @@ package resource_space
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strings"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	bldr_project_validate "github.com/s4wave/spacewave/bldr/project/validate"
 	space_exec "github.com/s4wave/spacewave/core/forge/exec"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
+	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_iofs "github.com/s4wave/spacewave/db/unixfs/iofs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_job "github.com/s4wave/spacewave/forge/job"
 	forge_lib_git_clone "github.com/s4wave/spacewave/forge/lib/git/clone"
@@ -127,4 +132,106 @@ func (r *SpaceResource) FetchPluginRepository(ctx context.Context, req *s4wave_s
 		JobKey:  jobKey,
 		TaskKey: forge_job.NewJobTaskKey(jobKey, pluginRepositoryTaskName),
 	}, nil
+}
+
+// ValidatePluginRepository validates the commit a fetched plugin repository
+// has checked out. It reads the Space World only; no repository code runs.
+func (r *SpaceResource) ValidatePluginRepository(ctx context.Context, req *s4wave_space.ValidatePluginRepositoryRequest) (*s4wave_space.ValidatePluginRepositoryResponse, error) {
+	// Name the repository objects from the GitHub repository.
+	name, err := parseGitHubRepository(req.GetRepository())
+	if err != nil {
+		return nil, err
+	}
+	repoKey := pluginRepositoryKeyPrefix + name
+
+	// Validate the checked-out commit in one read transaction.
+	tx, err := r.space.GetWorldEngine().NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	commit, validation, err := r.validatePluginRepository(ctx, tx, repoKey)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_space.ValidatePluginRepositoryResponse{
+		Commit:     commit,
+		SourceKey:  repoKey + "/workdir",
+		Validation: validation,
+	}, nil
+}
+
+// checkPluginRepositoryBuild admits a build of a plugin repository's workdir
+// only at the commit the caller reviewed, when its validation refuses nothing
+// and declares the requested plugin. The build reads the same World state.
+func (r *SpaceResource) checkPluginRepositoryBuild(ctx context.Context, ws world.WorldState, req *s4wave_space.BuildSpacePluginRequest) error {
+	// Require a repository's workdir built from its bldr.star.
+	repoKey, ok := strings.CutSuffix(req.GetSourceKey(), "/workdir")
+	name := strings.TrimPrefix(repoKey, pluginRepositoryKeyPrefix)
+	if parsed, err := parseGitHubRepository(name); !ok || err != nil || parsed != name {
+		return errors.New("a plugin repository builds from its workdir")
+	}
+	if req.GetConfigPath() != "" {
+		return errors.New("a plugin repository builds from its bldr.star")
+	}
+
+	// Validate the checked-out commit and match it to the review.
+	commit, validation, err := r.validatePluginRepository(ctx, ws, repoKey)
+	if err != nil {
+		return err
+	}
+	if commit != req.GetCommit() {
+		return errors.Errorf("the plugin repository is at commit %s; review it before building", commit)
+	}
+	if refusals := validation.GetRefusals(); len(refusals) != 0 {
+		return errors.New("the plugin repository is refused: " + refusals[0].GetReason())
+	}
+	if !slices.ContainsFunc(validation.GetPlugins(), func(p *bldr_project_validate.Plugin) bool {
+		return p.GetManifestId() == req.GetManifestId()
+	}) {
+		return errors.Errorf("the plugin repository does not declare plugin %q", req.GetManifestId())
+	}
+	return nil
+}
+
+// validatePluginRepository validates the workdir of the repository at repoKey
+// and returns the commit its worktree has checked out.
+func (r *SpaceResource) validatePluginRepository(ctx context.Context, ws world.WorldState, repoKey string) (string, *bldr_project_validate.Validation, error) {
+	// Read the commit the worktree has checked out.
+	worktreeKey := repoKey + "/worktree"
+	objectType, err := world_types.GetObjectType(ctx, ws, worktreeKey)
+	if err != nil {
+		return "", nil, err
+	}
+	if objectType != git_world.GitWorktreeTypeID {
+		return "", nil, errors.New("fetch the plugin repository first")
+	}
+	head, err := git_world.LookupWorktreeHead(ctx, ws, worktreeKey, repoKey)
+	if err != nil {
+		return "", nil, err
+	}
+	if head == nil {
+		return "", nil, errors.New("the plugin repository has no commit checked out")
+	}
+
+	// Open the workdir as a read-only file system.
+	workdirKey := repoKey + "/workdir"
+	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, workdirKey)
+	if err != nil {
+		return "", nil, err
+	}
+	cursor := unixfs_world.NewFSCursorWithContext(ctx, r.le, ws, workdirKey, fsType, nil, false)
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		cursor.Release()
+		return "", nil, err
+	}
+	defer handle.Release()
+
+	// Validate the project in the workdir.
+	validation, err := bldr_project_validate.Validate(ctx, unixfs_iofs.NewFS(ctx, handle))
+	if err != nil {
+		return "", nil, err
+	}
+	return head.Hash().String(), validation, nil
 }

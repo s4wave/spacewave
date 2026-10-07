@@ -2,72 +2,22 @@
 // @generated from file github.com/s4wave/spacewave/sdk/space/space.proto (package s4wave.space, syntax proto3)
 /* eslint-disable */
 
-import {
-  AccessWorldRequest,
-  AccessWorldResponse,
-  AddSpacePluginRequest,
-  AddSpacePluginResponse,
-  ApproveSpaceChangeRequest,
-  ApproveSpaceChangeResponse,
-  BindAttachedRpcServiceRequest,
-  BindAttachedRpcServiceResponse,
-  BuildSpacePluginRequest,
-  BuildSpacePluginResponse,
-  CreateSecretRequest,
-  CreateSecretResponse,
-  FetchPluginRepositoryRequest,
-  FetchPluginRepositoryResponse,
-  MountSpaceContentsRequest,
-  MountSpaceContentsResponse,
-  OpenPluginFrontendResponse,
-  ReadSecretPayloadRequest,
-  ReadSecretPayloadResponse,
-  RemoveSpacePluginRequest,
-  RemoveSpacePluginResponse,
-  SetProcessBindingRequest,
-  SetProcessBindingResponse,
-  SetSpaceBackfillRequest,
-  SetSpaceBackfillResponse,
-  SetSpaceControlRequest,
-  SetSpaceControlResponse,
-  SetSpaceRosterRequest,
-  SetSpaceRosterResponse,
-  SetSpaceSequencerRequest,
-  SetSpaceSequencerResponse,
-  SpaceBackfillState,
-  SpaceContentsState,
-  SpaceSharingState,
-  SpaceState,
-  WatchProcessBindingsRequest,
-  WatchProcessBindingsResponse,
-  WatchSpaceBackfillRequest,
-  WatchSpaceContentsStateRequest,
-  WatchSpaceSharingStateRequest,
-  WatchSpaceStateRequest,
-  WriteSecretPayloadRequest,
-  WriteSecretPayloadResponse,
-} from './space.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
-import { DeployManifestsMessage } from '../deploy/deploy.pb.js'
-import {
-  buildDecodeMessageTransform,
-  buildEncodeMessageTransform,
-  MessageStream,
-  ProtoRpc,
-  ServerContext,
-} from 'starpc'
+import { AccessWorldRequest, AccessWorldResponse, AddSpacePluginRequest, AddSpacePluginResponse, ApproveSpaceChangeRequest, ApproveSpaceChangeResponse, BindAttachedRpcServiceRequest, BindAttachedRpcServiceResponse, BuildSpacePluginRequest, BuildSpacePluginResponse, CreateSecretRequest, CreateSecretResponse, FetchPluginRepositoryRequest, FetchPluginRepositoryResponse, MountSpaceContentsRequest, MountSpaceContentsResponse, OpenPluginFrontendResponse, ReadSecretPayloadRequest, ReadSecretPayloadResponse, RemoveSpacePluginRequest, RemoveSpacePluginResponse, SetProcessBindingRequest, SetProcessBindingResponse, SetSpaceBackfillRequest, SetSpaceBackfillResponse, SetSpaceControlRequest, SetSpaceControlResponse, SetSpaceRosterRequest, SetSpaceRosterResponse, SetSpaceSequencerRequest, SetSpaceSequencerResponse, SpaceBackfillState, SpaceContentsState, SpaceSharingState, SpaceState, ValidatePluginRepositoryRequest, ValidatePluginRepositoryResponse, WatchProcessBindingsRequest, WatchProcessBindingsResponse, WatchSpaceBackfillRequest, WatchSpaceContentsStateRequest, WatchSpaceSharingStateRequest, WatchSpaceStateRequest, WriteSecretPayloadRequest, WriteSecretPayloadResponse } from "./space.pb.js";
+import { MethodKind } from "@aptre/protobuf-es-lite";
+import { DeployManifestsMessage } from "../deploy/deploy.pb.js";
+import { buildDecodeMessageTransform, buildEncodeMessageTransform, MessageStream, ProtoRpc, ServerContext } from "starpc";
 
 /**
  * @generated from service s4wave.space.SpaceResourceService
  */
 export const SpaceResourceServiceDefinition = {
-  typeName: 's4wave.space.SpaceResourceService',
+  typeName: "s4wave.space.SpaceResourceService",
   methods: {
     /**
      * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
      */
     WatchSpaceState: {
-      name: 'WatchSpaceState',
+      name: "WatchSpaceState",
       I: WatchSpaceStateRequest,
       O: SpaceState,
       kind: MethodKind.ServerStreaming,
@@ -79,7 +29,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
      */
     WatchProcessBindings: {
-      name: 'WatchProcessBindings',
+      name: "WatchProcessBindings",
       I: WatchProcessBindingsRequest,
       O: WatchProcessBindingsResponse,
       kind: MethodKind.ServerStreaming,
@@ -88,7 +38,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceSharingState
      */
     WatchSpaceSharingState: {
-      name: 'WatchSpaceSharingState',
+      name: "WatchSpaceSharingState",
       I: WatchSpaceSharingStateRequest,
       O: SpaceSharingState,
       kind: MethodKind.ServerStreaming,
@@ -97,7 +47,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.AccessWorld
      */
     AccessWorld: {
-      name: 'AccessWorld',
+      name: "AccessWorld",
       I: AccessWorldRequest,
       O: AccessWorldResponse,
       kind: MethodKind.Unary,
@@ -106,7 +56,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.MountSpaceContents
      */
     MountSpaceContents: {
-      name: 'MountSpaceContents',
+      name: "MountSpaceContents",
       I: MountSpaceContentsRequest,
       O: MountSpaceContentsResponse,
       kind: MethodKind.Unary,
@@ -115,7 +65,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
      */
     CreateSecret: {
-      name: 'CreateSecret',
+      name: "CreateSecret",
       I: CreateSecretRequest,
       O: CreateSecretResponse,
       kind: MethodKind.Unary,
@@ -124,7 +74,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
      */
     ReadSecretPayload: {
-      name: 'ReadSecretPayload',
+      name: "ReadSecretPayload",
       I: ReadSecretPayloadRequest,
       O: ReadSecretPayloadResponse,
       kind: MethodKind.Unary,
@@ -135,7 +85,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
      */
     WriteSecretPayload: {
-      name: 'WriteSecretPayload',
+      name: "WriteSecretPayload",
       I: WriteSecretPayloadRequest,
       O: WriteSecretPayloadResponse,
       kind: MethodKind.Unary,
@@ -144,7 +94,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
      */
     DeployManifests: {
-      name: 'DeployManifests',
+      name: "DeployManifests",
       I: DeployManifestsMessage,
       O: DeployManifestsMessage,
       kind: MethodKind.BiDiStreaming,
@@ -153,7 +103,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.AddSpacePlugin
      */
     AddSpacePlugin: {
-      name: 'AddSpacePlugin',
+      name: "AddSpacePlugin",
       I: AddSpacePluginRequest,
       O: AddSpacePluginResponse,
       kind: MethodKind.Unary,
@@ -162,7 +112,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.RemoveSpacePlugin
      */
     RemoveSpacePlugin: {
-      name: 'RemoveSpacePlugin',
+      name: "RemoveSpacePlugin",
       I: RemoveSpacePluginRequest,
       O: RemoveSpacePluginResponse,
       kind: MethodKind.Unary,
@@ -174,7 +124,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
      */
     BuildSpacePlugin: {
-      name: 'BuildSpacePlugin',
+      name: "BuildSpacePlugin",
       I: BuildSpacePluginRequest,
       O: BuildSpacePluginResponse,
       kind: MethodKind.Unary,
@@ -188,9 +138,22 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
      */
     FetchPluginRepository: {
-      name: 'FetchPluginRepository',
+      name: "FetchPluginRepository",
       I: FetchPluginRepositoryRequest,
       O: FetchPluginRepositoryResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ValidatePluginRepository checks the commit a fetched plugin repository
+     * has checked out, before any of its code runs. Building the repository
+     * requires the same commit and an empty list of refusals.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.ValidatePluginRepository
+     */
+    ValidatePluginRepository: {
+      name: "ValidatePluginRepository",
+      I: ValidatePluginRepositoryRequest,
+      O: ValidatePluginRepositoryResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -200,7 +163,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
      */
     OpenPluginFrontend: {
-      name: 'OpenPluginFrontend',
+      name: "OpenPluginFrontend",
       I: BuildSpacePluginRequest,
       O: OpenPluginFrontendResponse,
       kind: MethodKind.Unary,
@@ -212,7 +175,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
      */
     SetSpaceSequencer: {
-      name: 'SetSpaceSequencer',
+      name: "SetSpaceSequencer",
       I: SetSpaceSequencerRequest,
       O: SetSpaceSequencerResponse,
       kind: MethodKind.Unary,
@@ -225,7 +188,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
      */
     SetSpaceControl: {
-      name: 'SetSpaceControl',
+      name: "SetSpaceControl",
       I: SetSpaceControlRequest,
       O: SetSpaceControlResponse,
       kind: MethodKind.Unary,
@@ -239,7 +202,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
      */
     SetSpaceBackfill: {
-      name: 'SetSpaceBackfill',
+      name: "SetSpaceBackfill",
       I: SetSpaceBackfillRequest,
       O: SetSpaceBackfillResponse,
       kind: MethodKind.Unary,
@@ -250,7 +213,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
      */
     WatchSpaceBackfill: {
-      name: 'WatchSpaceBackfill',
+      name: "WatchSpaceBackfill",
       I: WatchSpaceBackfillRequest,
       O: SpaceBackfillState,
       kind: MethodKind.ServerStreaming,
@@ -264,7 +227,7 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
      */
     SetSpaceRoster: {
-      name: 'SetSpaceRoster',
+      name: "SetSpaceRoster",
       I: SetSpaceRosterRequest,
       O: SetSpaceRosterResponse,
       kind: MethodKind.Unary,
@@ -276,13 +239,13 @@ export const SpaceResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
      */
     ApproveSpaceChange: {
-      name: 'ApproveSpaceChange',
+      name: "ApproveSpaceChange",
       I: ApproveSpaceChangeRequest,
       O: ApproveSpaceChangeResponse,
       kind: MethodKind.Unary,
     },
-  },
-} as const
+  }
+} as const;
 
 /**
  * @generated from service s4wave.space.SpaceResourceService
@@ -291,10 +254,7 @@ export interface SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
    */
-  WatchSpaceState(
-    request: WatchSpaceStateRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceState>
+  WatchSpaceState(request: WatchSpaceStateRequest, abortSignal?: AbortSignal): MessageStream<SpaceState>;
 
   /**
    * WatchProcessBindings streams local process binding decisions without
@@ -302,84 +262,54 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
    */
-  WatchProcessBindings(
-    request: WatchProcessBindingsRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<WatchProcessBindingsResponse>
+  WatchProcessBindings(request: WatchProcessBindingsRequest, abortSignal?: AbortSignal): MessageStream<WatchProcessBindingsResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceSharingState
    */
-  WatchSpaceSharingState(
-    request: WatchSpaceSharingStateRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceSharingState>
+  WatchSpaceSharingState(request: WatchSpaceSharingStateRequest, abortSignal?: AbortSignal): MessageStream<SpaceSharingState>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AccessWorld
    */
-  AccessWorld(
-    request: AccessWorldRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<AccessWorldResponse>
+  AccessWorld(request: AccessWorldRequest, abortSignal?: AbortSignal): Promise<AccessWorldResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.MountSpaceContents
    */
-  MountSpaceContents(
-    request: MountSpaceContentsRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<MountSpaceContentsResponse>
+  MountSpaceContents(request: MountSpaceContentsRequest, abortSignal?: AbortSignal): Promise<MountSpaceContentsResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
    */
-  CreateSecret(
-    request: CreateSecretRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<CreateSecretResponse>
+  CreateSecret(request: CreateSecretRequest, abortSignal?: AbortSignal): Promise<CreateSecretResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
    */
-  ReadSecretPayload(
-    request: ReadSecretPayloadRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ReadSecretPayloadResponse>
+  ReadSecretPayload(request: ReadSecretPayloadRequest, abortSignal?: AbortSignal): Promise<ReadSecretPayloadResponse>;
 
   /**
    * WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
    */
-  WriteSecretPayload(
-    request: WriteSecretPayloadRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<WriteSecretPayloadResponse>
+  WriteSecretPayload(request: WriteSecretPayloadRequest, abortSignal?: AbortSignal): Promise<WriteSecretPayloadResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
-  DeployManifests(
-    request: MessageStream<DeployManifestsMessage>,
-    abortSignal?: AbortSignal,
-  ): MessageStream<DeployManifestsMessage>
+  DeployManifests(request: MessageStream<DeployManifestsMessage>, abortSignal?: AbortSignal): MessageStream<DeployManifestsMessage>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AddSpacePlugin
    */
-  AddSpacePlugin(
-    request: AddSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<AddSpacePluginResponse>
+  AddSpacePlugin(request: AddSpacePluginRequest, abortSignal?: AbortSignal): Promise<AddSpacePluginResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.RemoveSpacePlugin
    */
-  RemoveSpacePlugin(
-    request: RemoveSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<RemoveSpacePluginResponse>
+  RemoveSpacePlugin(request: RemoveSpacePluginRequest, abortSignal?: AbortSignal): Promise<RemoveSpacePluginResponse>;
 
   /**
    * BuildSpacePlugin pins the source and queues a native build on a registered
@@ -387,10 +317,7 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
    */
-  BuildSpacePlugin(
-    request: BuildSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<BuildSpacePluginResponse>
+  BuildSpacePlugin(request: BuildSpacePluginRequest, abortSignal?: AbortSignal): Promise<BuildSpacePluginResponse>;
 
   /**
    * FetchPluginRepository queues a Forge Job on a registered device that clones
@@ -400,10 +327,16 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
    */
-  FetchPluginRepository(
-    request: FetchPluginRepositoryRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<FetchPluginRepositoryResponse>
+  FetchPluginRepository(request: FetchPluginRepositoryRequest, abortSignal?: AbortSignal): Promise<FetchPluginRepositoryResponse>;
+
+  /**
+   * ValidatePluginRepository checks the commit a fetched plugin repository
+   * has checked out, before any of its code runs. Building the repository
+   * requires the same commit and an empty list of refusals.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ValidatePluginRepository
+   */
+  ValidatePluginRepository(request: ValidatePluginRepositoryRequest, abortSignal?: AbortSignal): Promise<ValidatePluginRepositoryResponse>;
 
   /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
@@ -411,10 +344,7 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
    */
-  OpenPluginFrontend(
-    request: BuildSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<OpenPluginFrontendResponse>
+  OpenPluginFrontend(request: BuildSpacePluginRequest, abortSignal?: AbortSignal): Promise<OpenPluginFrontendResponse>;
 
   /**
    * SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
@@ -422,10 +352,7 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
    */
-  SetSpaceSequencer(
-    request: SetSpaceSequencerRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceSequencerResponse>
+  SetSpaceSequencer(request: SetSpaceSequencerRequest, abortSignal?: AbortSignal): Promise<SetSpaceSequencerResponse>;
 
   /**
    * SetSpaceControl chooses who controls the Space: an owner hands control to
@@ -434,10 +361,7 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
    */
-  SetSpaceControl(
-    request: SetSpaceControlRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceControlResponse>
+  SetSpaceControl(request: SetSpaceControlRequest, abortSignal?: AbortSignal): Promise<SetSpaceControlResponse>;
 
   /**
    * SetSpaceBackfill chooses whether this device copies the whole World into
@@ -447,20 +371,14 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
    */
-  SetSpaceBackfill(
-    request: SetSpaceBackfillRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceBackfillResponse>
+  SetSpaceBackfill(request: SetSpaceBackfillRequest, abortSignal?: AbortSignal): Promise<SetSpaceBackfillResponse>;
 
   /**
    * WatchSpaceBackfill watches this device's backfill choice.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
    */
-  WatchSpaceBackfill(
-    request: WatchSpaceBackfillRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceBackfillState>
+  WatchSpaceBackfill(request: WatchSpaceBackfillRequest, abortSignal?: AbortSignal): MessageStream<SpaceBackfillState>;
 
   /**
    * SetSpaceRoster drops, as an owner, exactly the listed writers from the
@@ -470,10 +388,7 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
    */
-  SetSpaceRoster(
-    request: SetSpaceRosterRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceRosterResponse>
+  SetSpaceRoster(request: SetSpaceRosterRequest, abortSignal?: AbortSignal): Promise<SetSpaceRosterResponse>;
 
   /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
@@ -481,10 +396,7 @@ export interface SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
    */
-  ApproveSpaceChange(
-    request: ApproveSpaceChangeRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ApproveSpaceChangeResponse>
+  ApproveSpaceChange(request: ApproveSpaceChangeRequest, abortSignal?: AbortSignal): Promise<ApproveSpaceChangeResponse>;
 }
 
 /**
@@ -494,11 +406,7 @@ export interface SpaceResourceServiceHandler {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
    */
-  WatchSpaceState(
-    request: WatchSpaceStateRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): MessageStream<SpaceState>
+  WatchSpaceState(request: WatchSpaceStateRequest, abortSignal: AbortSignal, context: ServerContext): MessageStream<SpaceState>;
 
   /**
    * WatchProcessBindings streams local process binding decisions without
@@ -506,94 +414,54 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
    */
-  WatchProcessBindings(
-    request: WatchProcessBindingsRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): MessageStream<WatchProcessBindingsResponse>
+  WatchProcessBindings(request: WatchProcessBindingsRequest, abortSignal: AbortSignal, context: ServerContext): MessageStream<WatchProcessBindingsResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceSharingState
    */
-  WatchSpaceSharingState(
-    request: WatchSpaceSharingStateRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): MessageStream<SpaceSharingState>
+  WatchSpaceSharingState(request: WatchSpaceSharingStateRequest, abortSignal: AbortSignal, context: ServerContext): MessageStream<SpaceSharingState>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AccessWorld
    */
-  AccessWorld(
-    request: AccessWorldRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<AccessWorldResponse>
+  AccessWorld(request: AccessWorldRequest, abortSignal: AbortSignal, context: ServerContext): Promise<AccessWorldResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.MountSpaceContents
    */
-  MountSpaceContents(
-    request: MountSpaceContentsRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<MountSpaceContentsResponse>
+  MountSpaceContents(request: MountSpaceContentsRequest, abortSignal: AbortSignal, context: ServerContext): Promise<MountSpaceContentsResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
    */
-  CreateSecret(
-    request: CreateSecretRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<CreateSecretResponse>
+  CreateSecret(request: CreateSecretRequest, abortSignal: AbortSignal, context: ServerContext): Promise<CreateSecretResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
    */
-  ReadSecretPayload(
-    request: ReadSecretPayloadRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<ReadSecretPayloadResponse>
+  ReadSecretPayload(request: ReadSecretPayloadRequest, abortSignal: AbortSignal, context: ServerContext): Promise<ReadSecretPayloadResponse>;
 
   /**
    * WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
    */
-  WriteSecretPayload(
-    request: WriteSecretPayloadRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<WriteSecretPayloadResponse>
+  WriteSecretPayload(request: WriteSecretPayloadRequest, abortSignal: AbortSignal, context: ServerContext): Promise<WriteSecretPayloadResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
-  DeployManifests(
-    request: MessageStream<DeployManifestsMessage>,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): MessageStream<DeployManifestsMessage>
+  DeployManifests(request: MessageStream<DeployManifestsMessage>, abortSignal: AbortSignal, context: ServerContext): MessageStream<DeployManifestsMessage>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AddSpacePlugin
    */
-  AddSpacePlugin(
-    request: AddSpacePluginRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<AddSpacePluginResponse>
+  AddSpacePlugin(request: AddSpacePluginRequest, abortSignal: AbortSignal, context: ServerContext): Promise<AddSpacePluginResponse>;
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.RemoveSpacePlugin
    */
-  RemoveSpacePlugin(
-    request: RemoveSpacePluginRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<RemoveSpacePluginResponse>
+  RemoveSpacePlugin(request: RemoveSpacePluginRequest, abortSignal: AbortSignal, context: ServerContext): Promise<RemoveSpacePluginResponse>;
 
   /**
    * BuildSpacePlugin pins the source and queues a native build on a registered
@@ -601,11 +469,7 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
    */
-  BuildSpacePlugin(
-    request: BuildSpacePluginRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<BuildSpacePluginResponse>
+  BuildSpacePlugin(request: BuildSpacePluginRequest, abortSignal: AbortSignal, context: ServerContext): Promise<BuildSpacePluginResponse>;
 
   /**
    * FetchPluginRepository queues a Forge Job on a registered device that clones
@@ -615,11 +479,16 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
    */
-  FetchPluginRepository(
-    request: FetchPluginRepositoryRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<FetchPluginRepositoryResponse>
+  FetchPluginRepository(request: FetchPluginRepositoryRequest, abortSignal: AbortSignal, context: ServerContext): Promise<FetchPluginRepositoryResponse>;
+
+  /**
+   * ValidatePluginRepository checks the commit a fetched plugin repository
+   * has checked out, before any of its code runs. Building the repository
+   * requires the same commit and an empty list of refusals.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ValidatePluginRepository
+   */
+  ValidatePluginRepository(request: ValidatePluginRepositoryRequest, abortSignal: AbortSignal, context: ServerContext): Promise<ValidatePluginRepositoryResponse>;
 
   /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
@@ -627,11 +496,7 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
    */
-  OpenPluginFrontend(
-    request: BuildSpacePluginRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<OpenPluginFrontendResponse>
+  OpenPluginFrontend(request: BuildSpacePluginRequest, abortSignal: AbortSignal, context: ServerContext): Promise<OpenPluginFrontendResponse>;
 
   /**
    * SetSpaceSequencer chooses, as an owner, who orders the Space's edits. The
@@ -639,11 +504,7 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
    */
-  SetSpaceSequencer(
-    request: SetSpaceSequencerRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<SetSpaceSequencerResponse>
+  SetSpaceSequencer(request: SetSpaceSequencerRequest, abortSignal: AbortSignal, context: ServerContext): Promise<SetSpaceSequencerResponse>;
 
   /**
    * SetSpaceControl chooses who controls the Space: an owner hands control to
@@ -652,11 +513,7 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
    */
-  SetSpaceControl(
-    request: SetSpaceControlRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<SetSpaceControlResponse>
+  SetSpaceControl(request: SetSpaceControlRequest, abortSignal: AbortSignal, context: ServerContext): Promise<SetSpaceControlResponse>;
 
   /**
    * SetSpaceBackfill chooses whether this device copies the whole World into
@@ -666,22 +523,14 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
    */
-  SetSpaceBackfill(
-    request: SetSpaceBackfillRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<SetSpaceBackfillResponse>
+  SetSpaceBackfill(request: SetSpaceBackfillRequest, abortSignal: AbortSignal, context: ServerContext): Promise<SetSpaceBackfillResponse>;
 
   /**
    * WatchSpaceBackfill watches this device's backfill choice.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
    */
-  WatchSpaceBackfill(
-    request: WatchSpaceBackfillRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): MessageStream<SpaceBackfillState>
+  WatchSpaceBackfill(request: WatchSpaceBackfillRequest, abortSignal: AbortSignal, context: ServerContext): MessageStream<SpaceBackfillState>;
 
   /**
    * SetSpaceRoster drops, as an owner, exactly the listed writers from the
@@ -691,11 +540,7 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
    */
-  SetSpaceRoster(
-    request: SetSpaceRosterRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<SetSpaceRosterResponse>
+  SetSpaceRoster(request: SetSpaceRosterRequest, abortSignal: AbortSignal, context: ServerContext): Promise<SetSpaceRosterResponse>;
 
   /**
    * ApproveSpaceChange agrees, as a voter, to a change another voter asked the
@@ -703,15 +548,10 @@ export interface SpaceResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
    */
-  ApproveSpaceChange(
-    request: ApproveSpaceChangeRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<ApproveSpaceChangeResponse>
+  ApproveSpaceChange(request: ApproveSpaceChangeRequest, abortSignal: AbortSignal, context: ServerContext): Promise<ApproveSpaceChangeResponse>;
 }
 
-export const SpaceResourceServiceServiceName =
-  SpaceResourceServiceDefinition.typeName
+export const SpaceResourceServiceServiceName = SpaceResourceServiceDefinition.typeName
 
 export class SpaceResourceServiceClient implements SpaceResourceService {
   private readonly rpc: ProtoRpc
@@ -732,6 +572,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
     this.BuildSpacePlugin = this.BuildSpacePlugin.bind(this)
     this.FetchPluginRepository = this.FetchPluginRepository.bind(this)
+    this.ValidatePluginRepository = this.ValidatePluginRepository.bind(this)
     this.OpenPluginFrontend = this.OpenPluginFrontend.bind(this)
     this.SetSpaceSequencer = this.SetSpaceSequencer.bind(this)
     this.SetSpaceControl = this.SetSpaceControl.bind(this)
@@ -743,10 +584,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
    */
-  WatchSpaceState(
-    request: WatchSpaceStateRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceState> {
+  WatchSpaceState(request: WatchSpaceStateRequest, abortSignal?: AbortSignal): MessageStream<SpaceState> {
     const requestMsg = WatchSpaceStateRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
@@ -763,10 +601,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WatchProcessBindings
    */
-  WatchProcessBindings(
-    request: WatchProcessBindingsRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<WatchProcessBindingsResponse> {
+  WatchProcessBindings(request: WatchProcessBindingsRequest, abortSignal?: AbortSignal): MessageStream<WatchProcessBindingsResponse> {
     const requestMsg = WatchProcessBindingsRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
@@ -780,10 +615,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceSharingState
    */
-  WatchSpaceSharingState(
-    request: WatchSpaceSharingStateRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceSharingState> {
+  WatchSpaceSharingState(request: WatchSpaceSharingStateRequest, abortSignal?: AbortSignal): MessageStream<SpaceSharingState> {
     const requestMsg = WatchSpaceSharingStateRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
@@ -797,10 +629,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AccessWorld
    */
-  async AccessWorld(
-    request: AccessWorldRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<AccessWorldResponse> {
+  async AccessWorld(request: AccessWorldRequest, abortSignal?: AbortSignal): Promise<AccessWorldResponse> {
     const requestMsg = AccessWorldRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -814,10 +643,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.MountSpaceContents
    */
-  async MountSpaceContents(
-    request: MountSpaceContentsRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<MountSpaceContentsResponse> {
+  async MountSpaceContents(request: MountSpaceContentsRequest, abortSignal?: AbortSignal): Promise<MountSpaceContentsResponse> {
     const requestMsg = MountSpaceContentsRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -831,10 +657,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
    */
-  async CreateSecret(
-    request: CreateSecretRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<CreateSecretResponse> {
+  async CreateSecret(request: CreateSecretRequest, abortSignal?: AbortSignal): Promise<CreateSecretResponse> {
     const requestMsg = CreateSecretRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -848,10 +671,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
    */
-  async ReadSecretPayload(
-    request: ReadSecretPayloadRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ReadSecretPayloadResponse> {
+  async ReadSecretPayload(request: ReadSecretPayloadRequest, abortSignal?: AbortSignal): Promise<ReadSecretPayloadResponse> {
     const requestMsg = ReadSecretPayloadRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -867,10 +687,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
    */
-  async WriteSecretPayload(
-    request: WriteSecretPayloadRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<WriteSecretPayloadResponse> {
+  async WriteSecretPayload(request: WriteSecretPayloadRequest, abortSignal?: AbortSignal): Promise<WriteSecretPayloadResponse> {
     const requestMsg = WriteSecretPayloadRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -884,10 +701,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
-  DeployManifests(
-    request: MessageStream<DeployManifestsMessage>,
-    abortSignal?: AbortSignal,
-  ): MessageStream<DeployManifestsMessage> {
+  DeployManifests(request: MessageStream<DeployManifestsMessage>, abortSignal?: AbortSignal): MessageStream<DeployManifestsMessage> {
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       SpaceResourceServiceDefinition.methods.DeployManifests.name,
@@ -900,10 +714,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AddSpacePlugin
    */
-  async AddSpacePlugin(
-    request: AddSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<AddSpacePluginResponse> {
+  async AddSpacePlugin(request: AddSpacePluginRequest, abortSignal?: AbortSignal): Promise<AddSpacePluginResponse> {
     const requestMsg = AddSpacePluginRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -917,10 +728,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.RemoveSpacePlugin
    */
-  async RemoveSpacePlugin(
-    request: RemoveSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<RemoveSpacePluginResponse> {
+  async RemoveSpacePlugin(request: RemoveSpacePluginRequest, abortSignal?: AbortSignal): Promise<RemoveSpacePluginResponse> {
     const requestMsg = RemoveSpacePluginRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -937,10 +745,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.BuildSpacePlugin
    */
-  async BuildSpacePlugin(
-    request: BuildSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<BuildSpacePluginResponse> {
+  async BuildSpacePlugin(request: BuildSpacePluginRequest, abortSignal?: AbortSignal): Promise<BuildSpacePluginResponse> {
     const requestMsg = BuildSpacePluginRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -959,10 +764,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.FetchPluginRepository
    */
-  async FetchPluginRepository(
-    request: FetchPluginRepositoryRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<FetchPluginRepositoryResponse> {
+  async FetchPluginRepository(request: FetchPluginRepositoryRequest, abortSignal?: AbortSignal): Promise<FetchPluginRepositoryResponse> {
     const requestMsg = FetchPluginRepositoryRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -974,15 +776,30 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   }
 
   /**
+   * ValidatePluginRepository checks the commit a fetched plugin repository
+   * has checked out, before any of its code runs. Building the repository
+   * requires the same commit and an empty list of refusals.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.ValidatePluginRepository
+   */
+  async ValidatePluginRepository(request: ValidatePluginRepositoryRequest, abortSignal?: AbortSignal): Promise<ValidatePluginRepositoryResponse> {
+    const requestMsg = ValidatePluginRepositoryRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.ValidatePluginRepository.name,
+      ValidatePluginRepositoryRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ValidatePluginRepositoryResponse.fromBinary(result)
+  }
+
+  /**
    * OpenPluginFrontend retains a source-backed compiler on the selected device.
    * The returned Resource serves bldr.frontend.Frontend; release cancels the job.
    *
    * @generated from rpc s4wave.space.SpaceResourceService.OpenPluginFrontend
    */
-  async OpenPluginFrontend(
-    request: BuildSpacePluginRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<OpenPluginFrontendResponse> {
+  async OpenPluginFrontend(request: BuildSpacePluginRequest, abortSignal?: AbortSignal): Promise<OpenPluginFrontendResponse> {
     const requestMsg = BuildSpacePluginRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -999,10 +816,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceSequencer
    */
-  async SetSpaceSequencer(
-    request: SetSpaceSequencerRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceSequencerResponse> {
+  async SetSpaceSequencer(request: SetSpaceSequencerRequest, abortSignal?: AbortSignal): Promise<SetSpaceSequencerResponse> {
     const requestMsg = SetSpaceSequencerRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1020,10 +834,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceControl
    */
-  async SetSpaceControl(
-    request: SetSpaceControlRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceControlResponse> {
+  async SetSpaceControl(request: SetSpaceControlRequest, abortSignal?: AbortSignal): Promise<SetSpaceControlResponse> {
     const requestMsg = SetSpaceControlRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1042,10 +853,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceBackfill
    */
-  async SetSpaceBackfill(
-    request: SetSpaceBackfillRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceBackfillResponse> {
+  async SetSpaceBackfill(request: SetSpaceBackfillRequest, abortSignal?: AbortSignal): Promise<SetSpaceBackfillResponse> {
     const requestMsg = SetSpaceBackfillRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1061,10 +869,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceBackfill
    */
-  WatchSpaceBackfill(
-    request: WatchSpaceBackfillRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceBackfillState> {
+  WatchSpaceBackfill(request: WatchSpaceBackfillRequest, abortSignal?: AbortSignal): MessageStream<SpaceBackfillState> {
     const requestMsg = WatchSpaceBackfillRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
@@ -1083,10 +888,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.SetSpaceRoster
    */
-  async SetSpaceRoster(
-    request: SetSpaceRosterRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetSpaceRosterResponse> {
+  async SetSpaceRoster(request: SetSpaceRosterRequest, abortSignal?: AbortSignal): Promise<SetSpaceRosterResponse> {
     const requestMsg = SetSpaceRosterRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1103,10 +905,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
    *
    * @generated from rpc s4wave.space.SpaceResourceService.ApproveSpaceChange
    */
-  async ApproveSpaceChange(
-    request: ApproveSpaceChangeRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ApproveSpaceChangeResponse> {
+  async ApproveSpaceChange(request: ApproveSpaceChangeRequest, abortSignal?: AbortSignal): Promise<ApproveSpaceChangeResponse> {
     const requestMsg = ApproveSpaceChangeRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1121,13 +920,13 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
  * @generated from service s4wave.space.SpaceContentsResourceService
  */
 export const SpaceContentsResourceServiceDefinition = {
-  typeName: 's4wave.space.SpaceContentsResourceService',
+  typeName: "s4wave.space.SpaceContentsResourceService",
   methods: {
     /**
      * @generated from rpc s4wave.space.SpaceContentsResourceService.WatchState
      */
     WatchState: {
-      name: 'WatchState',
+      name: "WatchState",
       I: WatchSpaceContentsStateRequest,
       O: SpaceContentsState,
       kind: MethodKind.ServerStreaming,
@@ -1136,7 +935,7 @@ export const SpaceContentsResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceContentsResourceService.SetProcessBinding
      */
     SetProcessBinding: {
-      name: 'SetProcessBinding',
+      name: "SetProcessBinding",
       I: SetProcessBindingRequest,
       O: SetProcessBindingResponse,
       kind: MethodKind.Unary,
@@ -1148,13 +947,13 @@ export const SpaceContentsResourceServiceDefinition = {
      * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
      */
     BindAttachedRpcService: {
-      name: 'BindAttachedRpcService',
+      name: "BindAttachedRpcService",
       I: BindAttachedRpcServiceRequest,
       O: BindAttachedRpcServiceResponse,
       kind: MethodKind.ServerStreaming,
     },
-  },
-} as const
+  }
+} as const;
 
 /**
  * @generated from service s4wave.space.SpaceContentsResourceService
@@ -1163,18 +962,12 @@ export interface SpaceContentsResourceService {
   /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.WatchState
    */
-  WatchState(
-    request: WatchSpaceContentsStateRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceContentsState>
+  WatchState(request: WatchSpaceContentsStateRequest, abortSignal?: AbortSignal): MessageStream<SpaceContentsState>;
 
   /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.SetProcessBinding
    */
-  SetProcessBinding(
-    request: SetProcessBindingRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetProcessBindingResponse>
+  SetProcessBinding(request: SetProcessBindingRequest, abortSignal?: AbortSignal): Promise<SetProcessBindingResponse>;
 
   /**
    * BindAttachedRpcService publishes a caller-attached Resource under one
@@ -1182,10 +975,7 @@ export interface SpaceContentsResourceService {
    *
    * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
    */
-  BindAttachedRpcService(
-    request: BindAttachedRpcServiceRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<BindAttachedRpcServiceResponse>
+  BindAttachedRpcService(request: BindAttachedRpcServiceRequest, abortSignal?: AbortSignal): MessageStream<BindAttachedRpcServiceResponse>;
 }
 
 /**
@@ -1195,20 +985,12 @@ export interface SpaceContentsResourceServiceHandler {
   /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.WatchState
    */
-  WatchState(
-    request: WatchSpaceContentsStateRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): MessageStream<SpaceContentsState>
+  WatchState(request: WatchSpaceContentsStateRequest, abortSignal: AbortSignal, context: ServerContext): MessageStream<SpaceContentsState>;
 
   /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.SetProcessBinding
    */
-  SetProcessBinding(
-    request: SetProcessBindingRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<SetProcessBindingResponse>
+  SetProcessBinding(request: SetProcessBindingRequest, abortSignal: AbortSignal, context: ServerContext): Promise<SetProcessBindingResponse>;
 
   /**
    * BindAttachedRpcService publishes a caller-attached Resource under one
@@ -1216,15 +998,10 @@ export interface SpaceContentsResourceServiceHandler {
    *
    * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
    */
-  BindAttachedRpcService(
-    request: BindAttachedRpcServiceRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): MessageStream<BindAttachedRpcServiceResponse>
+  BindAttachedRpcService(request: BindAttachedRpcServiceRequest, abortSignal: AbortSignal, context: ServerContext): MessageStream<BindAttachedRpcServiceResponse>;
 }
 
-export const SpaceContentsResourceServiceServiceName =
-  SpaceContentsResourceServiceDefinition.typeName
+export const SpaceContentsResourceServiceServiceName = SpaceContentsResourceServiceDefinition.typeName
 
 export class SpaceContentsResourceServiceClient implements SpaceContentsResourceService {
   private readonly rpc: ProtoRpc
@@ -1239,10 +1016,7 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
   /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.WatchState
    */
-  WatchState(
-    request: WatchSpaceContentsStateRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<SpaceContentsState> {
+  WatchState(request: WatchSpaceContentsStateRequest, abortSignal?: AbortSignal): MessageStream<SpaceContentsState> {
     const requestMsg = WatchSpaceContentsStateRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
@@ -1256,10 +1030,7 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
   /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.SetProcessBinding
    */
-  async SetProcessBinding(
-    request: SetProcessBindingRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetProcessBindingResponse> {
+  async SetProcessBinding(request: SetProcessBindingRequest, abortSignal?: AbortSignal): Promise<SetProcessBindingResponse> {
     const requestMsg = SetProcessBindingRequest.create(request)
     const result = await this.rpc.request(
       this.service,
@@ -1276,15 +1047,11 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
    *
    * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
    */
-  BindAttachedRpcService(
-    request: BindAttachedRpcServiceRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<BindAttachedRpcServiceResponse> {
+  BindAttachedRpcService(request: BindAttachedRpcServiceRequest, abortSignal?: AbortSignal): MessageStream<BindAttachedRpcServiceResponse> {
     const requestMsg = BindAttachedRpcServiceRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
-      SpaceContentsResourceServiceDefinition.methods.BindAttachedRpcService
-        .name,
+      SpaceContentsResourceServiceDefinition.methods.BindAttachedRpcService.name,
       BindAttachedRpcServiceRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )

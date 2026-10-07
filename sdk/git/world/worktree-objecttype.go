@@ -2,13 +2,10 @@ package s4wave_git_world
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	"github.com/s4wave/spacewave/db/world"
 	resource_git "github.com/s4wave/spacewave/sdk/git/resource"
@@ -58,30 +55,13 @@ func GitWorktreeFactory(
 	snap.RepoObjectKey = repoObjKey
 
 	// Read the checked-out branch from the worktree's HEAD ref store.
-	_, _, err = git_world.AccessWorldObjectWorktree(
-		ctx, ws, objectKey, false, nil,
-		func(bcs *block.Cursor, wt *git_world.Worktree) error {
-			// Follow HEAD to capture the checked-out branch when one exists.
-			hrs, err := wt.FollowHeadRefStore(bcs)
-			if err != nil {
-				return err
-			}
-			headRef, err := hrs.GetReference(plumbing.HEAD)
-			if err != nil {
-				if stderrors.Is(err, plumbing.ErrReferenceNotFound) {
-					return nil
-				}
-				return err
-			}
-			if headRef != nil && headRef.Hash() != plumbing.ZeroHash {
-				snap.CheckedOutRef = headRef.Name().Short()
-				snap.HeadCommitHash = headRef.Hash().String()
-			}
-			return nil
-		},
-	)
+	headRef, err := git_world.LookupWorktreeHead(ctx, ws, objectKey, repoObjKey)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "access worktree")
+	}
+	if headRef != nil {
+		snap.CheckedOutRef = headRef.Name().Short()
+		snap.HeadCommitHash = headRef.Hash().String()
 	}
 
 	// Record whether the worktree has a linked working directory.

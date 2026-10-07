@@ -442,6 +442,16 @@
         "bldr/project/controller/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/project/validate": {
+      "hash": "6ebd87b2136585bdefc24c69ad7749dffd86016654293b07c7b8434731bea612",
+      "generatedFiles": [
+        "bldr/project/validate/validate.pb.go",
+        "bldr/project/validate/validate.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/project/validate/validate.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/project/watcher": {
       "hash": "068f997dabfd4317dd98359f20b312a934c36ab7af1bbf191a876d69c9f8f6fa",
       "generatedFiles": [
@@ -3900,7 +3910,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "483eec8102acfe7b2b1678e6146417e38a0e429065c9164457d5848a9a9f0469",
+      "hash": "41f7b0e637baec9a67718014626c550272ae26925060c6178e2ab1a6af460aaf",
       "generatedFiles": [
         "sdk/space/space.pb.go",
         "sdk/space/space.pb.ts",

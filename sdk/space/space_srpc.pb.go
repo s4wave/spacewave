@@ -45,6 +45,10 @@ type SRPCSpaceResourceServiceClient interface {
 	// newest commit when the repository is already stored. The worktree stays on
 	// the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
 	FetchPluginRepository(ctx context.Context, in *FetchPluginRepositoryRequest) (*FetchPluginRepositoryResponse, error)
+	// ValidatePluginRepository checks the commit a fetched plugin repository
+	// has checked out, before any of its code runs. Building the repository
+	// requires the same commit and an empty list of refusals.
+	ValidatePluginRepository(ctx context.Context, in *ValidatePluginRepositoryRequest) (*ValidatePluginRepositoryResponse, error)
 	// OpenPluginFrontend retains a source-backed compiler on the selected device.
 	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
 	OpenPluginFrontend(ctx context.Context, in *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
@@ -309,6 +313,15 @@ func (c *srpcSpaceResourceServiceClient) FetchPluginRepository(ctx context.Conte
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) ValidatePluginRepository(ctx context.Context, in *ValidatePluginRepositoryRequest) (*ValidatePluginRepositoryResponse, error) {
+	out := new(ValidatePluginRepositoryResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ValidatePluginRepository", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpaceResourceServiceClient) OpenPluginFrontend(ctx context.Context, in *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error) {
 	out := new(OpenPluginFrontendResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "OpenPluginFrontend", in, out)
@@ -427,6 +440,10 @@ type SRPCSpaceResourceServiceServer interface {
 	// newest commit when the repository is already stored. The worktree stays on
 	// the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
 	FetchPluginRepository(context.Context, *FetchPluginRepositoryRequest) (*FetchPluginRepositoryResponse, error)
+	// ValidatePluginRepository checks the commit a fetched plugin repository
+	// has checked out, before any of its code runs. Building the repository
+	// requires the same commit and an empty list of refusals.
+	ValidatePluginRepository(context.Context, *ValidatePluginRepositoryRequest) (*ValidatePluginRepositoryResponse, error)
 	// OpenPluginFrontend retains a source-backed compiler on the selected device.
 	// The returned Resource serves bldr.frontend.Frontend; release cancels the job.
 	OpenPluginFrontend(context.Context, *BuildSpacePluginRequest) (*OpenPluginFrontendResponse, error)
@@ -493,6 +510,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"RemoveSpacePlugin",
 		"BuildSpacePlugin",
 		"FetchPluginRepository",
+		"ValidatePluginRepository",
 		"OpenPluginFrontend",
 		"SetSpaceSequencer",
 		"SetSpaceControl",
@@ -538,6 +556,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_BuildSpacePlugin(d.impl, strm)
 	case "FetchPluginRepository":
 		return true, d.InvokeMethod_FetchPluginRepository(d.impl, strm)
+	case "ValidatePluginRepository":
+		return true, d.InvokeMethod_ValidatePluginRepository(d.impl, strm)
 	case "OpenPluginFrontend":
 		return true, d.InvokeMethod_OpenPluginFrontend(d.impl, strm)
 	case "SetSpaceSequencer":
@@ -691,6 +711,18 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_FetchPluginRepository(impl S
 		return err
 	}
 	out, err := impl.FetchPluginRepository(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_ValidatePluginRepository(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(ValidatePluginRepositoryRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ValidatePluginRepository(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -953,6 +985,14 @@ type SRPCSpaceResourceService_FetchPluginRepositoryStream interface {
 }
 
 type srpcSpaceResourceService_FetchPluginRepositoryStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_ValidatePluginRepositoryStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_ValidatePluginRepositoryStream struct {
 	srpc.Stream
 }
 

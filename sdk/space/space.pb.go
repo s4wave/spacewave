@@ -13,6 +13,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	validate "github.com/s4wave/spacewave/bldr/project/validate"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	world "github.com/s4wave/spacewave/core/space/world"
 	transform "github.com/s4wave/spacewave/db/block/transform"
@@ -183,6 +184,7 @@ type BuildSpacePluginRequest struct {
 	// ManifestId selects the plugin manifest in the project.
 	ManifestId string `protobuf:"bytes,3,opt,name=manifest_id,json=manifestId,proto3" json:"manifestId,omitempty"`
 	// ConfigPath is relative to the source directory; empty selects bldr.yaml.
+	// A plugin repository source must leave it empty.
 	ConfigPath string `protobuf:"bytes,4,opt,name=config_path,json=configPath,proto3" json:"configPath,omitempty"`
 	// ClusterKey is the Forge Cluster that receives the build Job. It must
 	// contain the Device's Worker. If empty, the Worker must belong to one Cluster.
@@ -198,6 +200,10 @@ type BuildSpacePluginRequest struct {
 	// MemoryBytes is the memory the build requests from the Worker in bytes.
 	// Ignored by OpenPluginFrontend.
 	MemoryBytes uint64 `protobuf:"varint,8,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
+	// Commit is the reviewed commit of a plugin repository source. The build is
+	// refused unless the repository's worktree still has it checked out and it
+	// passes validation. Required for a plugin repository source.
+	Commit string `protobuf:"bytes,9,opt,name=commit,proto3" json:"commit,omitempty"`
 }
 
 func (x *BuildSpacePluginRequest) Reset() {
@@ -260,6 +266,13 @@ func (x *BuildSpacePluginRequest) GetMemoryBytes() uint64 {
 		return x.MemoryBytes
 	}
 	return 0
+}
+
+func (x *BuildSpacePluginRequest) GetCommit() string {
+	if x != nil {
+		return x.Commit
+	}
+	return ""
 }
 
 // BuildSpacePluginResponse identifies the durable queued build.
@@ -357,6 +370,64 @@ func (x *FetchPluginRepositoryResponse) GetTaskKey() string {
 		return x.TaskKey
 	}
 	return ""
+}
+
+// ValidatePluginRepositoryRequest selects a fetched plugin repository.
+type ValidatePluginRepositoryRequest struct {
+	unknownFields []byte
+	// Repository is the GitHub owner/repo, or its https://github.com URL.
+	Repository string `protobuf:"bytes,1,opt,name=repository,proto3" json:"repository,omitempty"`
+}
+
+func (x *ValidatePluginRepositoryRequest) Reset() {
+	*x = ValidatePluginRepositoryRequest{}
+}
+
+func (*ValidatePluginRepositoryRequest) ProtoMessage() {}
+
+func (x *ValidatePluginRepositoryRequest) GetRepository() string {
+	if x != nil {
+		return x.Repository
+	}
+	return ""
+}
+
+// ValidatePluginRepositoryResponse is the validation of the checked-out commit.
+type ValidatePluginRepositoryResponse struct {
+	unknownFields []byte
+	// Commit is the commit the repository's worktree has checked out.
+	Commit string `protobuf:"bytes,1,opt,name=commit,proto3" json:"commit,omitempty"`
+	// SourceKey is the repository's UnixFS directory to build.
+	SourceKey string `protobuf:"bytes,2,opt,name=source_key,json=sourceKey,proto3" json:"sourceKey,omitempty"`
+	// Validation is what the repository declares and why it may not build.
+	Validation *validate.Validation `protobuf:"bytes,3,opt,name=validation,proto3" json:"validation,omitempty"`
+}
+
+func (x *ValidatePluginRepositoryResponse) Reset() {
+	*x = ValidatePluginRepositoryResponse{}
+}
+
+func (*ValidatePluginRepositoryResponse) ProtoMessage() {}
+
+func (x *ValidatePluginRepositoryResponse) GetCommit() string {
+	if x != nil {
+		return x.Commit
+	}
+	return ""
+}
+
+func (x *ValidatePluginRepositoryResponse) GetSourceKey() string {
+	if x != nil {
+		return x.SourceKey
+	}
+	return ""
+}
+
+func (x *ValidatePluginRepositoryResponse) GetValidation() *validate.Validation {
+	if x != nil {
+		return x.Validation
+	}
+	return nil
 }
 
 // OpenPluginFrontendResponse identifies the authoring attachment and its logs.
@@ -1788,6 +1859,7 @@ func (m *BuildSpacePluginRequest) CloneVT() *BuildSpacePluginRequest {
 	r.PlatformId = m.PlatformId
 	r.MilliCpu = m.MilliCpu
 	r.MemoryBytes = m.MemoryBytes
+	r.Commit = m.Commit
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1847,6 +1919,40 @@ func (m *FetchPluginRepositoryResponse) CloneVT() *FetchPluginRepositoryResponse
 }
 
 func (m *FetchPluginRepositoryResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ValidatePluginRepositoryRequest) CloneVT() *ValidatePluginRepositoryRequest {
+	if m == nil {
+		return (*ValidatePluginRepositoryRequest)(nil)
+	}
+	r := new(ValidatePluginRepositoryRequest)
+	r.Repository = m.Repository
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ValidatePluginRepositoryRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ValidatePluginRepositoryResponse) CloneVT() *ValidatePluginRepositoryResponse {
+	if m == nil {
+		return (*ValidatePluginRepositoryResponse)(nil)
+	}
+	r := new(ValidatePluginRepositoryResponse)
+	r.Commit = m.Commit
+	r.SourceKey = m.SourceKey
+	r.Validation = protobuf_go_lite.CloneVTValue(m.Validation)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ValidatePluginRepositoryResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2655,6 +2761,9 @@ func (this *BuildSpacePluginRequest) EqualVT(that *BuildSpacePluginRequest) bool
 	if this.MemoryBytes != that.MemoryBytes {
 		return false
 	}
+	if this.Commit != that.Commit {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2732,6 +2841,52 @@ func (this *FetchPluginRepositoryResponse) EqualVT(that *FetchPluginRepositoryRe
 
 func (this *FetchPluginRepositoryResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*FetchPluginRepositoryResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ValidatePluginRepositoryRequest) EqualVT(that *ValidatePluginRepositoryRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Repository != that.Repository {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ValidatePluginRepositoryRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ValidatePluginRepositoryRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ValidatePluginRepositoryResponse) EqualVT(that *ValidatePluginRepositoryResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Commit != that.Commit {
+		return false
+	}
+	if this.SourceKey != that.SourceKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Validation, that.Validation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ValidatePluginRepositoryResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ValidatePluginRepositoryResponse)
 	if !ok {
 		return false
 	}
@@ -3971,6 +4126,11 @@ func (x *BuildSpacePluginRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("memoryBytes")
 		s.WriteUint64(x.MemoryBytes)
 	}
+	if x.Commit != "" || s.HasField("commit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("commit")
+		s.WriteString(x.Commit)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -4012,6 +4172,9 @@ func (x *BuildSpacePluginRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "memory_bytes", "memoryBytes":
 			s.AddField("memory_bytes")
 			x.MemoryBytes = s.ReadUint64()
+		case "commit":
+			s.AddField("commit")
+			x.Commit = s.ReadString()
 		}
 	})
 }
@@ -4176,6 +4339,110 @@ func (x *FetchPluginRepositoryResponse) UnmarshalProtoJSON(s *json.UnmarshalStat
 
 // UnmarshalJSON unmarshals the FetchPluginRepositoryResponse from JSON.
 func (x *FetchPluginRepositoryResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ValidatePluginRepositoryRequest message to JSON.
+func (x *ValidatePluginRepositoryRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Repository != "" || s.HasField("repository") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("repository")
+		s.WriteString(x.Repository)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ValidatePluginRepositoryRequest to JSON.
+func (x *ValidatePluginRepositoryRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ValidatePluginRepositoryRequest message from JSON.
+func (x *ValidatePluginRepositoryRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "repository":
+			s.AddField("repository")
+			x.Repository = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ValidatePluginRepositoryRequest from JSON.
+func (x *ValidatePluginRepositoryRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ValidatePluginRepositoryResponse message to JSON.
+func (x *ValidatePluginRepositoryResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Commit != "" || s.HasField("commit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("commit")
+		s.WriteString(x.Commit)
+	}
+	if x.SourceKey != "" || s.HasField("sourceKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceKey")
+		s.WriteString(x.SourceKey)
+	}
+	if x.Validation != nil || s.HasField("validation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("validation")
+		x.Validation.MarshalProtoJSON(s.WithField("validation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ValidatePluginRepositoryResponse to JSON.
+func (x *ValidatePluginRepositoryResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ValidatePluginRepositoryResponse message from JSON.
+func (x *ValidatePluginRepositoryResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "commit":
+			s.AddField("commit")
+			x.Commit = s.ReadString()
+		case "source_key", "sourceKey":
+			s.AddField("source_key")
+			x.SourceKey = s.ReadString()
+		case "validation":
+			if s.ReadNil() {
+				x.Validation = nil
+				return
+			}
+			x.Validation = &validate.Validation{}
+			x.Validation.UnmarshalProtoJSON(s.WithField("validation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ValidatePluginRepositoryResponse from JSON.
+func (x *ValidatePluginRepositoryResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6771,6 +7038,11 @@ func (m *BuildSpacePluginRequest) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Commit) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Commit)
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.MemoryBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MemoryBytes))
 		i--
@@ -6939,6 +7211,95 @@ func (m *FetchPluginRepositoryResponse) MarshalToSizedBufferVT(dAtA []byte) (int
 	}
 	if len(m.JobKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.JobKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ValidatePluginRepositoryRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ValidatePluginRepositoryRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ValidatePluginRepositoryRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Repository) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Repository)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ValidatePluginRepositoryResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ValidatePluginRepositoryResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ValidatePluginRepositoryResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Validation != nil {
+		size, err := m.Validation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SourceKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SourceKey)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Commit) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Commit)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -9026,6 +9387,7 @@ func (m *BuildSpacePluginRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PlatformId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MilliCpu)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MemoryBytes)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Commit)
 	n += len(m.unknownFields)
 	return n
 }
@@ -9063,6 +9425,33 @@ func (m *FetchPluginRepositoryResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.JobKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TaskKey)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ValidatePluginRepositoryRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Repository)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ValidatePluginRepositoryResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Commit)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SourceKey)
+	if m.Validation != nil {
+		l = m.Validation.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -9715,6 +10104,10 @@ func (x *BuildSpacePluginRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "memory_bytes")
 		protobuf_go_lite.TextWriteUint(&sb, x.MemoryBytes)
 	}
+	if x.Commit != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "commit")
+		protobuf_go_lite.TextWriteString(&sb, x.Commit)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -9777,6 +10170,42 @@ func (x *FetchPluginRepositoryResponse) MarshalProtoText() string {
 }
 
 func (x *FetchPluginRepositoryResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ValidatePluginRepositoryRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ValidatePluginRepositoryRequest")
+	if x.Repository != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "repository")
+		protobuf_go_lite.TextWriteString(&sb, x.Repository)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ValidatePluginRepositoryRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ValidatePluginRepositoryResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ValidatePluginRepositoryResponse")
+	if x.Commit != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "commit")
+		protobuf_go_lite.TextWriteString(&sb, x.Commit)
+	}
+	if x.SourceKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_key")
+		protobuf_go_lite.TextWriteString(&sb, x.SourceKey)
+	}
+	if x.Validation != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "validation")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Validation)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ValidatePluginRepositoryResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -10840,6 +11269,16 @@ func (m *BuildSpacePluginRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Commit", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Commit = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -11039,6 +11478,137 @@ func (m *FetchPluginRepositoryResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TaskKey = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ValidatePluginRepositoryRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidatePluginRepositoryRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidatePluginRepositoryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Repository", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Repository = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ValidatePluginRepositoryResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidatePluginRepositoryResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidatePluginRepositoryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Commit", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Commit = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SourceKey = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Validation", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Validation == nil {
+				m.Validation = &validate.Validation{}
+			}
+			if err := m.Validation.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

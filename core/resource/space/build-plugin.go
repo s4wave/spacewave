@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"slices"
+	"strings"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -181,6 +182,13 @@ func (r *SpaceResource) selectPluginBuild(ctx context.Context, tx world.Tx, req 
 	}
 	if !fs.ValidPath(configPath) {
 		return nil, errors.New("config_path must be relative to the source tree")
+	}
+
+	// Build a plugin repository only at its reviewed, valid commit.
+	if strings.HasPrefix(req.GetSourceKey(), pluginRepositoryKeyPrefix) {
+		if err := r.checkPluginRepositoryBuild(ctx, tx, req); err != nil {
+			return nil, err
+		}
 	}
 
 	// Place the build on the selected Device's Worker.

@@ -1,6 +1,7 @@
 syntax = "proto3";
 package s4wave.space;
 
+import "github.com/s4wave/spacewave/bldr/project/validate/validate.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/core/space/world/world.proto";
 import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
@@ -45,6 +46,11 @@ service SpaceResourceService {
   // the commit it checked out; the fetch moves only refs/remotes/origin/HEAD.
   rpc FetchPluginRepository(FetchPluginRepositoryRequest) returns (FetchPluginRepositoryResponse) {}
 
+  // ValidatePluginRepository checks the commit a fetched plugin repository
+  // has checked out, before any of its code runs. Building the repository
+  // requires the same commit and an empty list of refusals.
+  rpc ValidatePluginRepository(ValidatePluginRepositoryRequest) returns (ValidatePluginRepositoryResponse) {}
+
   // OpenPluginFrontend retains a source-backed compiler on the selected device.
   // The returned Resource serves bldr.frontend.Frontend; release cancels the job.
   rpc OpenPluginFrontend(BuildSpacePluginRequest) returns (OpenPluginFrontendResponse) {}
@@ -87,6 +93,7 @@ message BuildSpacePluginRequest {
   // ManifestId selects the plugin manifest in the project.
   string manifest_id = 3;
   // ConfigPath is relative to the source directory; empty selects bldr.yaml.
+  // A plugin repository source must leave it empty.
   string config_path = 4;
   // ClusterKey is the Forge Cluster that receives the build Job. It must
   // contain the Device's Worker. If empty, the Worker must belong to one Cluster.
@@ -102,6 +109,10 @@ message BuildSpacePluginRequest {
   // MemoryBytes is the memory the build requests from the Worker in bytes.
   // Ignored by OpenPluginFrontend.
   uint64 memory_bytes = 8;
+  // Commit is the reviewed commit of a plugin repository source. The build is
+  // refused unless the repository's worktree still has it checked out and it
+  // passes validation. Required for a plugin repository source.
+  string commit = 9;
 }
 
 // BuildSpacePluginResponse identifies the durable queued build.
@@ -129,6 +140,22 @@ message FetchPluginRepositoryResponse {
   string job_key = 1;
   // TaskKey identifies the Job's fetch Task.
   string task_key = 2;
+}
+
+// ValidatePluginRepositoryRequest selects a fetched plugin repository.
+message ValidatePluginRepositoryRequest {
+  // Repository is the GitHub owner/repo, or its https://github.com URL.
+  string repository = 1;
+}
+
+// ValidatePluginRepositoryResponse is the validation of the checked-out commit.
+message ValidatePluginRepositoryResponse {
+  // Commit is the commit the repository's worktree has checked out.
+  string commit = 1;
+  // SourceKey is the repository's UnixFS directory to build.
+  string source_key = 2;
+  // Validation is what the repository declares and why it may not build.
+  .bldr.project.validate.Validation validation = 3;
 }
 
 // OpenPluginFrontendResponse identifies the authoring attachment and its logs.
