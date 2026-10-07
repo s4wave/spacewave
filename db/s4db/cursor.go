@@ -26,19 +26,19 @@ func (c *cursor) valid() bool {
 		return false
 	}
 	f := c.path[len(c.path)-1]
-	return f.i >= 0 && f.i < len(f.n.keys)
+	return f.i >= 0 && f.i < f.n.count()
 }
 
 // key returns the current key.
 func (c *cursor) key() []byte {
 	f := c.path[len(c.path)-1]
-	return f.n.keys[f.i]
+	return f.n.key(f.i)
 }
 
 // value returns the current value.
 func (c *cursor) value() value {
 	f := c.path[len(c.path)-1]
-	return f.n.vals[f.i]
+	return f.n.val(f.i)
 }
 
 // descend pushes pages from page down to a leaf, taking the first child of
@@ -56,13 +56,13 @@ func (c *cursor) descend(page uint64, key []byte, first bool) {
 		case key != nil && !n.leaf:
 			i = n.childIndex(key)
 		case !first:
-			i = len(n.keys) - 1
+			i = n.count() - 1
 		}
 		c.path = append(c.path, frame{n: n, i: i})
 		if n.leaf {
 			return
 		}
-		page = n.kids[i]
+		page = n.kid(i)
 	}
 }
 
@@ -85,7 +85,7 @@ func (c *cursor) seek(key []byte, reverse bool) {
 	f := &c.path[len(c.path)-1]
 	i, found := f.n.search(key)
 	f.i = i
-	if !reverse && i == len(f.n.keys) {
+	if !reverse && i == f.n.count() {
 		f.i--
 		c.step(false)
 	}
@@ -107,7 +107,7 @@ func (c *cursor) step(reverse bool) {
 	}
 	f := &c.path[len(c.path)-1]
 	f.i += d
-	if f.i >= 0 && f.i < len(f.n.keys) {
+	if f.i >= 0 && f.i < f.n.count() {
 		return
 	}
 
@@ -116,8 +116,8 @@ func (c *cursor) step(reverse bool) {
 		c.path = c.path[:len(c.path)-1]
 		p := &c.path[len(c.path)-1]
 		p.i += d
-		if p.i >= 0 && p.i < len(p.n.kids) {
-			c.descend(p.n.kids[p.i], nil, !reverse)
+		if p.i >= 0 && p.i < p.n.count() {
+			c.descend(p.n.kid(p.i), nil, !reverse)
 			return
 		}
 	}

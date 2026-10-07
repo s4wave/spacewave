@@ -161,8 +161,10 @@ func checkSpace(t *testing.T, db *DB) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, c := range n.kids {
-			walk(c)
+		if !n.leaf {
+			for i := range n.count() {
+				walk(n.kid(i))
+			}
 		}
 	}
 	if st.root != 0 {

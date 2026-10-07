@@ -59,7 +59,7 @@ func (p *pager) child(n *node, i int) (*node, error) {
 	if c := n.inner[i].Load(); c != nil {
 		return c, nil
 	}
-	c, err := p.node(n.kids[i])
+	c, err := p.node(n.kid(i))
 	if err == nil && !c.leaf {
 		n.inner[i].Store(c)
 	}
@@ -85,7 +85,7 @@ func (p *pager) get(root uint64, key []byte) (value, bool, error) {
 	if !ok {
 		return value{}, false, nil
 	}
-	return n.vals[i], true, nil
+	return n.val(i), true, nil
 }
 
 // readValue returns a stored value, checking packed bytes against their
@@ -124,7 +124,9 @@ func (p *pager) warm(ctx context.Context, root uint64, budget int) error {
 		for _, n := range nodes {
 			budget -= n.cost
 			if !n.leaf {
-				next = append(next, n.kids...)
+				for i := range n.count() {
+					next = append(next, n.kid(i))
+				}
 			}
 		}
 		level = next

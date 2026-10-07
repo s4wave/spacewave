@@ -22,27 +22,24 @@ type change struct {
 type child struct {
 	// low is the lowest key the child covers.
 	low []byte
-	// page is an existing page, when n is nil.
+	// page is an existing page, when d is nil.
 	page uint64
-	// n is a new page.
-	n *node
+	// d is a new page.
+	d *draft
 }
 
-// builder rewrites the pages a checkpoint changes. New pages hold their
-// children as nodes until pages are assigned.
+// builder rewrites the pages a checkpoint changes. New pages are drafts
+// holding their new children until place assigns pages.
 type builder struct {
 	// p reads existing pages.
 	p *pager
 	// freed lists the replaced pages.
 	freed []uint64
-	// sub holds the new children of each new inner page, nil where the
-	// child is an existing page.
-	sub map[*node][]*node
 }
 
 // newBuilder returns a builder reading existing pages from p.
 func newBuilder(p *pager) *builder {
-	return &builder{p: p, sub: make(map[*node][]*node)}
+	return &builder{p: p}
 }
 
 // build applies sorted changes to the tree at root and returns the new root,
@@ -51,7 +48,7 @@ func (b *builder) build(root uint64, changes []change) (*child, error) {
 	// Rewrite the changed leaves and the pages above them.
 	var kids []child
 	if root == 0 {
-		kids = b.packLeaves(mergeLeaf(nil, nil, changes))
+		kids = packLeaves(mergeLeaf(nil, changes))
 	} else {
 		var err error
 		if kids, err = b.apply(root, nil, changes); err != nil {
@@ -61,7 +58,7 @@ func (b *builder) build(root uint64, changes []change) (*child, error) {
 
 	// Stack inner pages until one root remains.
 	for len(kids) > 1 {
-		kids = b.packInner(kids)
+		kids = packInner(kids)
 	}
 	if len(kids) == 0 {
 		return nil, nil
@@ -69,12 +66,12 @@ func (b *builder) build(root uint64, changes []change) (*child, error) {
 
 	// Drop new inner roots with a single child.
 	top := kids[0]
-	for top.n != nil && !top.n.leaf && len(top.n.kids) == 1 {
-		if s := b.sub[top.n][0]; s != nil {
-			top = child{n: s}
+	for top.d != nil && !top.d.leaf && len(top.d.keys) == 1 {
+		if s := top.d.sub[0]; s != nil {
+			top = child{d: s}
 			continue
 		}
-		top = child{page: top.n.kids[0]}
+		top = child{page: top.d.kids[0]}
 	}
 	return &top, nil
 }
@@ -91,7 +88,7 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 
 	// A leaf merges its changes directly.
 	if n.leaf {
-		kids := b.packLeaves(mergeLeaf(n.keys, n.vals, changes))
+		kids := packLeaves(mergeLeaf(n, changes))
 		if len(kids) != 0 && low != nil {
 			kids[0].low = low
 		}
@@ -106,27 +103,28 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 	var leavesLow []byte
 	inRun := false
 	flush := func() {
-		if packed := b.packLeaves(leaves); len(packed) != 0 {
+		if packed := packLeaves(leaves); len(packed) != 0 {
 			packed[0].low = leavesLow
 			kids = append(kids, packed...)
 		}
 		leaves, inRun = nil, false
 	}
-	for i, k := range n.keys {
+	for i := range n.count() {
 		// Keep a child without changes.
+		k, page := n.key(i), n.kid(i)
 		j := len(changes)
-		if i+1 < len(n.keys) {
-			j, _ = slices.BinarySearchFunc(changes, n.keys[i+1], func(c change, k []byte) int { return bytes.Compare(c.key, k) })
+		if i+1 < n.count() {
+			j, _ = slices.BinarySearchFunc(changes, n.key(i+1), func(c change, k []byte) int { return bytes.Compare(c.key, k) })
 		}
 		if j == 0 {
 			flush()
-			kids = append(kids, child{low: k, page: n.kids[i]})
+			kids = append(kids, child{low: k, page: page})
 			continue
 		}
 
 		// Add a changed leaf's entries to the run, or rewrite an inner
 		// child.
-		c, err := b.p.node(n.kids[i])
+		c, err := b.p.node(page)
 		if err != nil {
 			return nil, err
 		}
@@ -134,11 +132,11 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 			if !inRun {
 				leavesLow, inRun = k, true
 			}
-			b.freed = append(b.freed, n.kids[i])
-			leaves = append(leaves, mergeLeaf(c.keys, c.vals, changes[:j])...)
+			b.freed = append(b.freed, page)
+			leaves = append(leaves, mergeLeaf(c, changes[:j])...)
 		} else {
 			flush()
-			sub, err := b.apply(n.kids[i], k, changes[:j])
+			sub, err := b.apply(page, k, changes[:j])
 			if err != nil {
 				return nil, err
 			}
@@ -153,7 +151,7 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 	if err != nil {
 		return nil, err
 	}
-	out := b.packInner(kids)
+	out := packInner(kids)
 	if len(out) != 0 && low != nil {
 		out[0].low = low
 	}
@@ -167,7 +165,7 @@ func (b *builder) apply(page uint64, low []byte, changes []change) ([]child, err
 func (b *builder) rebalance(kids []child) ([]child, error) {
 	for i := 0; i < len(kids); i++ {
 		// Skip existing and well filled children.
-		if kids[i].n == nil || kids[i].n.fill() >= pageRoom/2 {
+		if kids[i].d == nil || kids[i].d.fill() >= pageRoom/2 {
 			continue
 		}
 
@@ -201,23 +199,27 @@ func (b *builder) rebalance(kids []child) ([]child, error) {
 	return kids, nil
 }
 
-// load returns the node of c, reading an existing page.
-func (b *builder) load(c child) (*node, error) {
-	if c.n != nil {
-		return c.n, nil
+// fill returns the bytes the entries of c occupy.
+func (b *builder) fill(c child) (int, error) {
+	if c.d != nil {
+		return c.d.fill(), nil
 	}
-	return b.p.node(c.page)
+	n, err := b.p.node(c.page)
+	if err != nil {
+		return 0, err
+	}
+	return n.fill(), nil
 }
 
 // fits reports whether the entries of two children fit in one page.
 func (b *builder) fits(l, r child) (bool, error) {
 	total := 0
 	for _, c := range []child{l, r} {
-		n, err := b.load(c)
+		n, err := b.fill(c)
 		if err != nil {
 			return false, err
 		}
-		total += n.fill()
+		total += n
 	}
 	return total <= pageRoom, nil
 }
@@ -225,65 +227,71 @@ func (b *builder) fits(l, r child) (bool, error) {
 // merge repacks the entries of two adjacent children of one level into new
 // pages, replacing any existing page among them.
 func (b *builder) merge(l, r child) ([]child, error) {
-	// Load existing pages, which the new ones replace.
+	// Draft existing pages, which the new ones replace.
 	pair := []child{l, r}
-	var nodes [2]*node
+	var drafts [2]*draft
 	for i, c := range pair {
-		n, err := b.load(c)
+		drafts[i] = c.d
+		if c.d != nil {
+			continue
+		}
+		n, err := b.p.node(c.page)
 		if err != nil {
 			return nil, err
 		}
-		if c.n == nil {
-			b.freed = append(b.freed, c.page)
-		}
-		nodes[i] = n
+		b.freed = append(b.freed, c.page)
+		drafts[i] = draftOf(n)
 	}
 
 	// Leaves repack their entries.
 	var out []child
-	if nodes[0].leaf {
+	if drafts[0].leaf {
 		var entries []change
-		for _, n := range nodes {
-			for j, k := range n.keys {
-				entries = append(entries, change{key: k, val: n.vals[j]})
+		for _, d := range drafts {
+			for j, k := range d.keys {
+				entries = append(entries, change{key: k, val: d.vals[j]})
 			}
 		}
-		out = b.packLeaves(entries)
+		out = packLeaves(entries)
 		out[0].low = l.low
 		return out, nil
 	}
 
 	// Inner pages repack their children.
 	var kids []child
-	for i, n := range nodes {
-		subs := b.sub[n]
-		for j, k := range n.keys {
-			c := child{low: k, page: n.kids[j]}
+	for i, d := range drafts {
+		for j, k := range d.keys {
+			c := child{low: k, page: d.kids[j], d: d.sub[j]}
 			if j == 0 {
 				c.low = pair[i].low
-			}
-			if subs != nil {
-				c.n = subs[j]
 			}
 			kids = append(kids, c)
 		}
 	}
-	out = b.packInner(kids)
+	out = packInner(kids)
 	out[0].low = l.low
 	return out, nil
 }
 
-// mergeLeaf merges sorted changes into sorted leaf entries.
-func mergeLeaf(keys [][]byte, vals []value, changes []change) []change {
+// mergeLeaf merges sorted changes into the entries of leaf n, which may be
+// nil for an empty tree.
+func mergeLeaf(n *node, changes []change) []change {
 	// Interleave existing entries with the changes, which win on equal keys.
-	out := make([]change, 0, len(keys)+len(changes))
+	count := 0
+	if n != nil {
+		count = n.count()
+	}
+	out := make([]change, 0, count+len(changes))
 	i := 0
 	for _, c := range changes {
-		for i < len(keys) && bytes.Compare(keys[i], c.key) < 0 {
-			out = append(out, change{key: keys[i], val: vals[i]})
-			i++
+		for ; i < count; i++ {
+			k := n.key(i)
+			if bytes.Compare(k, c.key) >= 0 {
+				break
+			}
+			out = append(out, change{key: k, val: n.val(i)})
 		}
-		if i < len(keys) && bytes.Equal(keys[i], c.key) {
+		if i < count && bytes.Equal(n.key(i), c.key) {
 			i++
 		}
 		if !c.del {
@@ -292,8 +300,8 @@ func mergeLeaf(keys [][]byte, vals []value, changes []change) []change {
 	}
 
 	// Keep the entries after the last change.
-	for ; i < len(keys); i++ {
-		out = append(out, change{key: keys[i], val: vals[i]})
+	for ; i < count; i++ {
+		out = append(out, change{key: n.key(i), val: n.val(i)})
 	}
 	return out
 }
@@ -326,7 +334,7 @@ func split(sizes []int) []int {
 }
 
 // packLeaves packs entries into new leaf pages.
-func (b *builder) packLeaves(entries []change) []child {
+func packLeaves(entries []change) []child {
 	// Measure the entries.
 	sizes := make([]int, len(entries))
 	for i, e := range entries {
@@ -337,19 +345,19 @@ func (b *builder) packLeaves(entries []change) []child {
 	var kids []child
 	start := 0
 	for _, end := range split(sizes) {
-		n := &node{leaf: true}
+		d := &draft{leaf: true, keys: make([][]byte, 0, end-start), vals: make([]value, 0, end-start)}
 		for _, e := range entries[start:end] {
-			n.keys = append(n.keys, e.key)
-			n.vals = append(n.vals, e.val)
+			d.keys = append(d.keys, e.key)
+			d.vals = append(d.vals, e.val)
 		}
-		kids = append(kids, child{low: n.keys[0], n: n})
+		kids = append(kids, child{low: d.keys[0], d: d})
 		start = end
 	}
 	return kids
 }
 
 // packInner packs children into new inner pages.
-func (b *builder) packInner(kids []child) []child {
+func packInner(kids []child) []child {
 	// Measure the entries.
 	sizes := make([]int, len(kids))
 	for i, k := range kids {
@@ -360,15 +368,13 @@ func (b *builder) packInner(kids []child) []child {
 	var out []child
 	start := 0
 	for _, end := range split(sizes) {
-		n := &node{}
-		subs := make([]*node, 0, end-start)
+		d := &draft{keys: make([][]byte, 0, end-start), kids: make([]uint64, 0, end-start), sub: make([]*draft, 0, end-start)}
 		for _, k := range kids[start:end] {
-			n.keys = append(n.keys, k.low)
-			n.kids = append(n.kids, k.page)
-			subs = append(subs, k.n)
+			d.keys = append(d.keys, k.low)
+			d.kids = append(d.kids, k.page)
+			d.sub = append(d.sub, k.d)
 		}
-		b.sub[n] = subs
-		out = append(out, child{low: n.keys[0], n: n})
+		out = append(out, child{low: d.keys[0], d: d})
 		start = end
 	}
 	return out
@@ -376,52 +382,52 @@ func (b *builder) packInner(kids []child) []child {
 
 // place assigns consecutive pages from first to the new pages reachable from
 // top, children first, passes their encodings to write in batches, and
-// returns the nodes in page order; the last is the root.
-func (b *builder) place(top *child, first uint64, write func(buf []byte, page uint64) error) ([]*node, error) {
+// returns the decoded pages in page order; the last is the root.
+func place(top *child, first uint64, write func(buf []byte, page uint64) error) ([]*node, error) {
 	// Number the new pages in post order.
-	if top.n == nil {
+	if top == nil || top.d == nil {
 		return nil, nil
 	}
-	pages := make(map[*node]uint64)
-	var order []*node
-	var visit func(n *node)
-	visit = func(n *node) {
-		for _, s := range b.sub[n] {
+	pages := make(map[*draft]uint64)
+	var order []*draft
+	var visit func(d *draft)
+	visit = func(d *draft) {
+		for _, s := range d.sub {
 			if s != nil {
 				visit(s)
 			}
 		}
-		pages[n] = first + uint64(len(order))
-		order = append(order, n)
+		pages[d] = first + uint64(len(order))
+		order = append(order, d)
 	}
-	visit(top.n)
+	visit(top.d)
 
 	// Resolve new children to their pages, encode, and write a batch of
 	// pages at a time. Each returned node is decoded from its own page, so a
 	// cached node never holds the buffers of the pages it replaced.
 	buf := make([]byte, 0, placeBatch*pageSize)
 	at := first
-	placed := make(map[*node]*node, len(order))
+	placed := make(map[*draft]*node, len(order))
 	out := make([]*node, len(order))
-	for i, n := range order {
-		for j, s := range b.sub[n] {
+	for i, d := range order {
+		for j, s := range d.sub {
 			if s != nil {
-				n.kids[j] = pages[s]
+				d.kids[j] = pages[s]
 			}
 		}
-		buf = n.encode(buf)
+		buf = d.encode(buf)
 
 		// Decode the page and link its new inner children.
-		d, err := decodeNode(bytes.Clone(buf[len(buf)-pageSize:]))
+		n, err := decodeNode(bytes.Clone(buf[len(buf)-pageSize:]))
 		if err != nil {
 			return nil, err
 		}
-		for j, s := range b.sub[n] {
+		for j, s := range d.sub {
 			if s != nil && !s.leaf {
-				d.inner[j].Store(placed[s])
+				n.inner[j].Store(placed[s])
 			}
 		}
-		placed[n], out[i] = d, d
+		placed[d], out[i] = n, n
 
 		// Write a full batch.
 		if len(buf) == cap(buf) {
@@ -443,19 +449,19 @@ func (b *builder) place(top *child, first uint64, write func(buf []byte, page ui
 }
 
 // reachable counts the new pages reachable from top.
-func (b *builder) reachable(top *child) int {
-	if top == nil || top.n == nil {
+func reachable(top *child) int {
+	if top == nil || top.d == nil {
 		return 0
 	}
-	var count func(n *node) int
-	count = func(n *node) int {
+	var count func(d *draft) int
+	count = func(d *draft) int {
 		c := 1
-		for _, s := range b.sub[n] {
+		for _, s := range d.sub {
 			if s != nil {
 				c += count(s)
 			}
 		}
 		return c
 	}
-	return count(top.n)
+	return count(top.d)
 }

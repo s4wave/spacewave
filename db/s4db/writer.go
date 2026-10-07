@@ -596,7 +596,7 @@ func buildTree(p *pager, st *state) (*tree, error) {
 // the writer lock.
 func (w *writer) reserve(t *tree) {
 	t.sp = w.sp
-	if n := t.b.reachable(t.top); n != 0 {
+	if n := reachable(t.top); n != 0 {
 		t.pages = w.sp.alloc(uint64(n)) // #nosec G115 -- counts are not negative.
 		w.sp.reserved = append(w.sp.reserved, t.pages)
 	}
@@ -608,7 +608,7 @@ func (w *writer) writeTree(t *tree) error {
 	if t.pages.n == 0 {
 		return nil
 	}
-	nodes, err := t.b.place(t.top, t.pages.start, func(buf []byte, page uint64) error {
+	nodes, err := place(t.top, t.pages.start, func(buf []byte, page uint64) error {
 		_, err := w.db.s.WriteAt(buf, pageOff(page))
 		return err
 	})

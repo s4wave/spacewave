@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"cmp"
 	"encoding/binary"
-	"slices"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -31,29 +30,27 @@ const (
 )
 
 // Decoded entry costs in memory on a 64-bit platform, beyond the page bytes
-// the node keeps. A slice header is 24 bytes and a value 48.
+// the node keeps.
 const (
-	// leafEntryCost is a key slice, its head, and its value.
-	leafEntryCost = 24 + 8 + 48
-	// innerEntryCost is a key slice, its head, its child page, and its
-	// child link.
-	innerEntryCost = 24 + 8 + 8 + 8
+	// leafEntryCost is an entry offset and its head.
+	leafEntryCost = 2 + 8
+	// innerEntryCost is an entry offset, its head, and its child link.
+	innerEntryCost = 2 + 8 + 8
 )
 
-// node is a decoded tree page.
+// node is a decoded tree page. It keeps the page with the offset and head of
+// each entry, and reads keys, values, and child pages from the page when
+// asked, so a cached page holds no pointer per entry.
 type node struct {
 	// leaf is set for leaf pages.
 	leaf bool
-	// keys holds the leaf keys, or the low key of each child of an inner
-	// page. The first inner key is empty.
-	keys [][]byte
+	// page is the encoded page.
+	page []byte
+	// offs holds the offset of each entry in page.
+	offs []uint16
 	// heads holds the head of each key, so a search compares within one
 	// array and reads a key only on a tie.
 	heads []uint64
-	// vals holds the leaf values.
-	vals []value
-	// kids holds the child pages of an inner page.
-	kids []uint64
 	// inner holds the decoded children of an inner page that are themselves
 	// inner pages, filled as reads descend. A child page is freed only with
 	// every page that references it, so a link never outlives its target.
@@ -73,17 +70,49 @@ func head(key []byte) uint64 {
 	return binary.BigEndian.Uint64(b[:])
 }
 
+// count returns the number of entries.
+func (n *node) count() int {
+	return len(n.offs)
+}
+
+// entry returns a decoder at entry i. Decoding checked every entry, so
+// reading one again cannot fail.
+func (n *node) entry(i int) decoder {
+	return decoder{b: n.page[n.offs[i] : pageSize-4]}
+}
+
+// key returns the key of entry i, a leaf key or the low key of a child.
+// The first inner key is empty.
+func (n *node) key(i int) []byte {
+	d := n.entry(i)
+	return d.bytes()
+}
+
+// val returns the value of leaf entry i.
+func (n *node) val(i int) value {
+	d := n.entry(i)
+	d.bytes()
+	return d.value(d.kind())
+}
+
+// kid returns the child page of inner entry i.
+func (n *node) kid(i int) uint64 {
+	d := n.entry(i)
+	d.bytes()
+	return d.u64()
+}
+
 // search returns the position of the first key at or after key and whether
 // it equals key.
 func (n *node) search(key []byte) (int, bool) {
 	// Bisect on heads, comparing whole keys on equal heads.
 	h := head(key)
-	lo, hi := 0, len(n.keys)
+	lo, hi := 0, len(n.heads)
 	for lo < hi {
 		m := int(uint(lo+hi) >> 1)
 		c := cmp.Compare(n.heads[m], h)
 		if c == 0 {
-			c = bytes.Compare(n.keys[m], key)
+			c = bytes.Compare(n.key(m), key)
 		}
 		if c < 0 {
 			lo = m + 1
@@ -91,7 +120,7 @@ func (n *node) search(key []byte) (int, bool) {
 		}
 		hi = m
 	}
-	return lo, lo < len(n.keys) && bytes.Equal(n.keys[lo], key)
+	return lo, lo < len(n.heads) && n.heads[lo] == h && bytes.Equal(n.key(lo), key)
 }
 
 // childIndex returns the child of inner page n covering key.
@@ -105,15 +134,18 @@ func (n *node) childIndex(key []byte) int {
 
 // fill returns the bytes the entries of n occupy.
 func (n *node) fill() int {
-	total := 0
-	for i, k := range n.keys {
-		if n.leaf {
-			total += leafEntrySize(k, n.vals[i])
-			continue
-		}
-		total += innerEntrySize(k)
+	// The entries run from the header to the end of the last one.
+	if len(n.offs) == 0 {
+		return 0
 	}
-	return total
+	d := n.entry(len(n.offs) - 1)
+	d.bytes()
+	if n.leaf {
+		d.value(d.kind())
+	} else {
+		d.u64()
+	}
+	return pageSize - 4 - len(d.b) - pageHeader
 }
 
 // leafEntrySize returns the encoded length of a leaf entry.
@@ -126,38 +158,7 @@ func innerEntrySize(key []byte) int {
 	return uvarintLen(uint64(len(key))) + len(key) + 8
 }
 
-// encode appends the page holding n to dst.
-func (n *node) encode(dst []byte) []byte {
-	// Write the kind and count.
-	start := len(dst)
-	b := slices.Grow(dst, pageSize)[:start+pageHeader]
-	b[start] = pageInner
-	if n.leaf {
-		b[start] = pageLeaf
-	}
-	binary.LittleEndian.PutUint16(b[start+1:], uint16(len(n.keys))) // #nosec G115 -- a page holds under 1<<16 entries.
-
-	// Write each key with its value or child page.
-	for i, k := range n.keys {
-		b = binary.AppendUvarint(b, uint64(len(k)))
-		b = append(b, k...)
-		if n.leaf {
-			b = n.vals[i].append(b)
-			continue
-		}
-		b = binary.LittleEndian.AppendUint64(b, n.kids[i])
-	}
-
-	// Pad the page and seal it.
-	end := len(b)
-	b = b[:start+pageSize]
-	clear(b[end:])
-	page := b[start:]
-	binary.LittleEndian.PutUint32(page[pageSize-4:], checksum(page[:pageSize-4]))
-	return b
-}
-
-// decodeNode reads a page, keeping references into b.
+// decodeNode reads a page, keeping b.
 func decodeNode(b []byte) (*node, error) {
 	// Check the page checksum and kind.
 	if checksum(b[:pageSize-4]) != binary.LittleEndian.Uint32(b[pageSize-4:]) {
@@ -169,26 +170,25 @@ func decodeNode(b []byte) (*node, error) {
 
 	// Size the node for its kind and count.
 	count := int(binary.LittleEndian.Uint16(b[1:]))
-	n := &node{leaf: b[0] == pageLeaf, keys: make([][]byte, count), heads: make([]uint64, count)}
+	n := &node{leaf: b[0] == pageLeaf, page: b, offs: make([]uint16, count), heads: make([]uint64, count)}
 	d := decoder{b: b[pageHeader : pageSize-4]}
 	if n.leaf {
-		n.vals = make([]value, count)
 		n.cost = pageSize + count*leafEntryCost
 	} else {
-		n.kids = make([]uint64, count)
 		n.inner = make([]atomic.Pointer[node], count)
 		n.cost = pageSize + count*innerEntryCost
 	}
 
-	// Read each key with its value or child page.
+	// Find each entry and the head of its key, checking that its value or
+	// child page is whole.
 	for i := range count {
-		n.keys[i] = d.bytes()
-		n.heads[i] = head(n.keys[i])
+		n.offs[i] = uint16(pageSize - 4 - len(d.b)) // #nosec G115 -- offsets fall within a page.
+		n.heads[i] = head(d.bytes())
 		if n.leaf {
-			n.vals[i] = d.value(d.kind())
+			d.value(d.kind())
 			continue
 		}
-		n.kids[i] = d.u64()
+		d.u64()
 	}
 	return n, d.err
 }

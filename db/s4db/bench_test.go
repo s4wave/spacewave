@@ -61,34 +61,47 @@ func fill(b *testing.B, n int, opts Options) (*DB, [][]byte, time.Duration) {
 }
 
 // BenchmarkGet measures point reads, each in its own read transaction, from
-// parallel goroutines.
+// parallel goroutines, with the index cached and with a cache too small for
+// it, where most reads decode a page.
 func BenchmarkGet(b *testing.B) {
-	// Load and warm the database.
-	db, keys := loadBench(b)
-	defer db.Close()
-	ctx := context.Background()
-	get := func(k []byte) {
-		tx, err := db.NewTransaction(ctx, false)
-		if err != nil {
-			b.Fatal(err)
-		}
-		if _, ok, err := tx.Get(ctx, k); err != nil || !ok {
-			b.Fatal("missing key", err)
-		}
-		tx.Discard()
+	runs := []struct {
+		name string
+		opts Options
+	}{
+		{"cached", Options{}},
+		{"misses", Options{CacheBytes: 2 << 20}},
 	}
-	for _, k := range keys {
-		get(k)
-	}
+	for _, run := range runs {
+		b.Run(run.name, func(b *testing.B) {
+			// Load and warm the database.
+			db, keys, _ := fill(b, benchKeys, run.opts)
+			defer db.Close()
+			ctx := context.Background()
+			get := func(k []byte) {
+				tx, err := db.NewTransaction(ctx, false)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if _, ok, err := tx.Get(ctx, k); err != nil || !ok {
+					b.Fatal("missing key", err)
+				}
+				tx.Discard()
+			}
+			for _, k := range keys {
+				get(k)
+			}
 
-	// Read random keys.
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		rng := rand.New(rand.NewPCG(rand.Uint64(), 0))
-		for pb.Next() {
-			get(keys[rng.IntN(len(keys))])
-		}
-	})
+			// Read random keys.
+			b.ReportAllocs()
+			b.ResetTimer()
+			b.RunParallel(func(pb *testing.PB) {
+				rng := rand.New(rand.NewPCG(rand.Uint64(), 0))
+				for pb.Next() {
+					get(keys[rng.IntN(len(keys))])
+				}
+			})
+		})
+	}
 }
 
 // BenchmarkFill measures ordered commits of 128 small values.
