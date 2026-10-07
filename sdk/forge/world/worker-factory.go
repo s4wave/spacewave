@@ -20,6 +20,7 @@ import (
 	cluster_controller "github.com/s4wave/spacewave/forge/cluster/controller"
 	exec_controller "github.com/s4wave/spacewave/forge/execution/controller"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
+	forge_lib_util_presence "github.com/s4wave/spacewave/forge/lib/util/presence"
 	pass_controller "github.com/s4wave/spacewave/forge/pass/controller"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	task_controller "github.com/s4wave/spacewave/forge/task/controller"
@@ -125,14 +126,19 @@ type forgeWorkerResource struct {
 // workerRuntime is the Worker's capacity and Docker admission contract.
 type workerRuntime interface {
 	forge_lib_docker.Admission
+	// ApplyPolicy claims capacity under the Device policy, or drains it when the policy removes capacity.
 	ApplyPolicy(context.Context, string, *device_policy.ForgeWorkerPolicy) error
+	// Renew extends the Worker's owner claim.
 	Renew(context.Context) error
+	// Close drains the Worker's remaining runtimes on a clean exit.
 	Close(context.Context) error
 }
 
 // workerPolicyStream receives current and changed daemon policy snapshots.
 type workerPolicyStream interface {
+	// Recv returns the next policy snapshot and its Device key.
 	Recv() (*device_policy.DevicePolicy, string, error)
+	// Close ends the watch.
 	Close()
 }
 
@@ -248,6 +254,7 @@ func (r *forgeWorkerResource) Execute(
 		pass_controller.NewFactory(r.b),
 		exec_controller.NewFactory(r.b),
 		forge_lib_docker.NewFactory(r.b, r.admission),
+		forge_lib_util_presence.NewFactory(r.b),
 	}
 	sr := static.NewResolver(append(forgeFactories, bridgeFactories...)...)
 	resolverCtrl := resolver_ctrl.NewController(le, r.b, sr)

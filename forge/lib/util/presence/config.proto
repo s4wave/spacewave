@@ -1,0 +1,16 @@
+syntax = "proto3";
+package forge.lib.util.presence;
+
+// Config checks whether a path exists on the Worker's host.
+//
+// Outputs:
+//  - {present_output}: a blob holding the path, set when the path exists.
+//  - {absent_output}: a blob holding the path, set when it does not.
+message Config {
+  // Path is the absolute host path to check. It follows symbolic links.
+  string path = 1;
+  // PresentOutput names the output set when the path exists.
+  string present_output = 2;
+  // AbsentOutput names the output set when the path does not exist.
+  string absent_output = 3;
+}

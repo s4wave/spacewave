@@ -4157,6 +4157,16 @@
       "protoFiles": [
         "web/object/object.proto"
       ]
+    },
+    "github.com/s4wave/spacewave/forge/lib/util/presence": {
+      "hash": "f530d2e7bbabfad41d5f7de3fab48063c1401d2c9a521a05dde68589ad25627c",
+      "generatedFiles": [
+        "forge/lib/util/presence/config.pb.go",
+        "forge/lib/util/presence/config.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/lib/util/presence/config.proto"
+      ]
     }
   }
 }
