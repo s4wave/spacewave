@@ -30,6 +30,7 @@ const mockUseResourceValue = vi.hoisted(() => vi.fn())
 const mockSessionUseContext = vi.hoisted(() => vi.fn())
 const mockOrgListUseContextSafe = vi.hoisted(() => vi.fn())
 const mockRepairSharedObject = vi.hoisted(() => vi.fn())
+const mockSessionInfo = vi.hoisted(() => ({ providerId: '', accountId: '' }))
 const mockReinitializeSharedObject = vi.hoisted(() => vi.fn())
 const mockSelfEnrollmentStart = vi.hoisted(() => vi.fn())
 const mockConsumeQuickstartSharedObjectHandoff = vi.hoisted(() => vi.fn())
@@ -137,7 +138,7 @@ vi.mock('@s4wave/web/hooks/useMountAccount.js', () => ({
 }))
 
 vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
-  useSessionInfo: () => ({ providerId: '', accountId: '' }),
+  useSessionInfo: () => mockSessionInfo,
 }))
 
 vi.mock('./dashboard/AccountDashboardStateContext.js', () => ({
@@ -220,6 +221,33 @@ function setResourceMocks(sharedObject: unknown, body: unknown) {
   })
 }
 
+// setOwnerWithRejectedState opens a rejected org Space as its owner.
+function setOwnerWithRejectedState() {
+  mockUseParentPaths.mockReturnValue(['/u/1/org/org-1'])
+  mockOrgListUseContextSafe.mockReturnValue({
+    loading: false,
+    organizations: [
+      {
+        id: 'org-1',
+        role: 'org:owner',
+        spaceIds: [SPACE_ID],
+      },
+    ],
+  })
+  setWatchMocks(
+    { spacesList: [buildSpaceListEntry('shared')] },
+    {
+      health: {
+        status: SharedObjectHealthStatus.CLOSED,
+        layer: SharedObjectHealthLayer.SHARED_OBJECT,
+        commonReason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
+        remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
+        error: 'root signature validation failed',
+      },
+    },
+  )
+}
+
 describe('SessionSharedObjectContainer', () => {
   beforeEach(() => {
     mockUseParams.mockReset()
@@ -239,7 +267,9 @@ describe('SessionSharedObjectContainer', () => {
     mockMarkQuickstartSharedObjectHandoffAwaitingResourcesList.mockReset()
     mockClearQuickstartSharedObjectHandoffAwaitingResourcesList.mockReset()
     mockReleaseQuickstartSharedObjectHandoff.mockReset()
-    mockRepairSharedObject.mockResolvedValue(undefined)
+    mockRepairSharedObject.mockResolvedValue({})
+    mockSessionInfo.providerId = ''
+    mockSessionInfo.accountId = ''
     mockReinitializeSharedObject.mockResolvedValue(undefined)
     mockSelfEnrollmentStart.mockResolvedValue(undefined)
     mockConsumeQuickstartSharedObjectHandoff.mockReturnValue(null)
@@ -816,29 +846,7 @@ describe('SessionSharedObjectContainer', () => {
   })
 
   it('enables repair actions for org owners on broken shared objects', () => {
-    mockUseParentPaths.mockReturnValue(['/u/1/org/org-1'])
-    mockOrgListUseContextSafe.mockReturnValue({
-      loading: false,
-      organizations: [
-        {
-          id: 'org-1',
-          role: 'org:owner',
-          spaceIds: [SPACE_ID],
-        },
-      ],
-    })
-    setWatchMocks(
-      { spacesList: [buildSpaceListEntry('shared')] },
-      {
-        health: {
-          status: SharedObjectHealthStatus.CLOSED,
-          layer: SharedObjectHealthLayer.SHARED_OBJECT,
-          commonReason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
-          remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-          error: 'root signature validation failed',
-        },
-      },
-    )
+    setOwnerWithRejectedState()
 
     render(<SessionSharedObjectContainer />)
 
@@ -853,29 +861,7 @@ describe('SessionSharedObjectContainer', () => {
   })
 
   it('distinguishes repair from destructive reinitialize confirmation flow', async () => {
-    mockUseParentPaths.mockReturnValue(['/u/1/org/org-1'])
-    mockOrgListUseContextSafe.mockReturnValue({
-      loading: false,
-      organizations: [
-        {
-          id: 'org-1',
-          role: 'org:owner',
-          spaceIds: [SPACE_ID],
-        },
-      ],
-    })
-    setWatchMocks(
-      { spacesList: [buildSpaceListEntry('shared')] },
-      {
-        health: {
-          status: SharedObjectHealthStatus.CLOSED,
-          layer: SharedObjectHealthLayer.SHARED_OBJECT,
-          commonReason: SharedObjectHealthCommonReason.INITIAL_STATE_REJECTED,
-          remediationHint: SharedObjectHealthRemediationHint.CONTACT_OWNER,
-          error: 'root signature validation failed',
-        },
-      },
-    )
+    setOwnerWithRejectedState()
 
     render(<SessionSharedObjectContainer />)
 
@@ -914,6 +900,81 @@ describe('SessionSharedObjectContainer', () => {
       )
       expect(mockReinitializeSharedObject).toHaveBeenCalledWith(SPACE_ID)
     })
+  })
+
+  it('shows the takedown screen only for typed blocked health', () => {
+    setResourceMocks(
+      {
+        value: null,
+        loading: false,
+        error: new SharedObjectHealthError({
+          status: SharedObjectHealthStatus.CLOSED,
+          layer: SharedObjectHealthLayer.SHARED_OBJECT,
+          commonReason: SharedObjectHealthCommonReason.RESOURCE_BLOCKED,
+          remediationHint: SharedObjectHealthRemediationHint.RETRY,
+          error: 'access withdrawn',
+        }),
+        retry: vi.fn(),
+      },
+      { value: null, loading: false, error: null, retry: vi.fn() },
+    )
+    render(<SessionSharedObjectContainer />)
+    expect(screen.getByText('Content Unavailable')).toBeTruthy()
+    cleanup()
+
+    setResourceMocks(
+      {
+        value: null,
+        loading: false,
+        error: new Error('403 dmca_blocked: resource is blocked'),
+        retry: vi.fn(),
+      },
+      { value: null, loading: false, error: null, retry: vi.fn() },
+    )
+    render(<SessionSharedObjectContainer />)
+    expect(screen.queryByText('Content Unavailable')).toBeNull()
+    expect(screen.getByText('Closed - Shared Object')).toBeTruthy()
+  })
+
+  it('opens credential repair from a typed repair response', async () => {
+    setOwnerWithRejectedState()
+    mockSessionInfo.providerId = 'spacewave'
+    mockSessionInfo.accountId = 'account-1'
+    mockRepairSharedObject
+      .mockResolvedValueOnce({ credentialRequired: true })
+      .mockResolvedValueOnce({})
+
+    render(<SessionSharedObjectContainer />)
+    fireEvent.click(screen.getByRole('button', { name: 'Repair' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm repair' }))
+    await waitFor(() => {
+      expect(screen.getByText('Unlock shared object recovery')).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue repair' }))
+    await waitFor(() => {
+      expect(mockRepairSharedObject).toHaveBeenCalledTimes(2)
+      expect(screen.queryByText('Unlock shared object recovery')).toBeNull()
+    })
+  })
+
+  it('reports untyped repair errors without opening credential repair', async () => {
+    setOwnerWithRejectedState()
+    mockSessionInfo.providerId = 'spacewave'
+    mockSessionInfo.accountId = 'account-1'
+    mockRepairSharedObject.mockRejectedValueOnce(
+      new Error('shared object recovery requires entity credentials'),
+    )
+
+    render(<SessionSharedObjectContainer />)
+    fireEvent.click(screen.getByRole('button', { name: 'Repair' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm repair' }))
+    await waitFor(() => {
+      expect(document.body.textContent).toContain(
+        'shared object recovery requires entity credentials',
+      )
+    })
+    expect(screen.queryByText('Unlock shared object recovery')).toBeNull()
   })
 
   it('opens access-time step-up for a pending self-enrollment Space and retries after unlock', async () => {

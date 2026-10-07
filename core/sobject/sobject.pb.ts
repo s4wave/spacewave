@@ -148,6 +148,13 @@ export enum SharedObjectHealthCommonReason {
    * @generated from enum value: SHARED_OBJECT_HEALTH_COMMON_REASON_BODY_CONFIG_DECODE_FAILED = 6;
    */
   BODY_CONFIG_DECODE_FAILED = 6,
+
+  /**
+   * SHARED_OBJECT_HEALTH_COMMON_REASON_RESOURCE_BLOCKED indicates the provider blocked access, such as for a DMCA takedown, until a manual retry.
+   *
+   * @generated from enum value: SHARED_OBJECT_HEALTH_COMMON_REASON_RESOURCE_BLOCKED = 7;
+   */
+  RESOURCE_BLOCKED = 7,
 }
 
 export const SharedObjectHealthCommonReason_Enum =

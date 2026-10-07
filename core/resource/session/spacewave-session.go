@@ -1919,7 +1919,11 @@ func (r *SpacewaveSessionResource) RepairSharedObject(
 	if sharedObjectID == "" {
 		return nil, errors.New("shared object id is required")
 	}
-	if err := r.swAcc.RepairSharedObject(ctx, sharedObjectID); err != nil {
+	err := r.swAcc.RepairSharedObject(ctx, sharedObjectID)
+	if errors.Is(err, sobject.ErrSharedObjectRecoveryCredentialRequired) {
+		return &s4wave_provider_spacewave.RepairSharedObjectResponse{CredentialRequired: true}, nil
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &s4wave_provider_spacewave.RepairSharedObjectResponse{}, nil

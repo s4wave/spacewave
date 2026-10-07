@@ -1645,7 +1645,11 @@ message RepairSharedObjectRequest {
 }
 
 // RepairSharedObjectResponse is the response for RepairSharedObject.
-message RepairSharedObjectResponse {}
+message RepairSharedObjectResponse {
+  // CredentialRequired is set when repair needs an unlocked entity key and
+  // nothing was repaired.
+  bool credential_required = 1;
+}
 
 // PublicOriginLink is an owner-paid S3-compatible bucket and the HTTPS base
 // URL that serves it anonymously, linked as a public Space's pack origin. It is

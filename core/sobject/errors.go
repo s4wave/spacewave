@@ -77,6 +77,10 @@ var (
 	// ErrSharedObjectRecoveryCredentialRequired is returned if recovery needs entity credentials.
 	ErrSharedObjectRecoveryCredentialRequired = errors.New("shared object recovery requires entity credentials")
 
+	// ErrResourceBlocked is matched by provider errors that block access to a
+	// shared object until the user retries after the block is lifted.
+	ErrResourceBlocked = errors.New("shared object resource is blocked")
+
 	// ErrSharedObjectRecoveryEntityMismatch is returned if recovery material does not match the current entity.
 	ErrSharedObjectRecoveryEntityMismatch = errors.New("shared object recovery entity mismatch")
 )

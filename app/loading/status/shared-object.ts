@@ -107,6 +107,12 @@ function summariseClosed(health: SharedObjectHealth): HealthSummary {
         detail:
           'The shared object state failed verification. The owner needs to repair or republish it.',
       }
+    case SharedObjectHealthCommonReason.RESOURCE_BLOCKED:
+      return {
+        state: 'error',
+        title: 'Content unavailable',
+        detail: 'The provider blocked access to this shared object.',
+      }
     case SharedObjectHealthCommonReason.BLOCK_NOT_FOUND:
       return {
         state: 'error',

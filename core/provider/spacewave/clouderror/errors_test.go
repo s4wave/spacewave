@@ -6,8 +6,34 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/sobject"
 )
+
+// TestBlockedErrorBuildsTypedHealth checks that a blocked cloud code, not its
+// wording, selects the blocked health and its retry action.
+func TestBlockedErrorBuildsTypedHealth(t *testing.T) {
+	layer := sobject.SharedObjectHealthLayer_SHARED_OBJECT_HEALTH_LAYER_SHARED_OBJECT
+	blocked := errors.Wrap(&Error{StatusCode: http.StatusForbidden, Code: "dmca_blocked", Message: "access withdrawn"}, "mount")
+	health := sobject.BuildSharedObjectHealthFromError(layer, blocked)
+	if health.GetCommonReason() != sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_RESOURCE_BLOCKED ||
+		health.GetRemediationHint() != sobject.SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_RETRY {
+		t.Fatalf("blocked health = %v", health)
+	}
+
+	// The former trigger text without the code stays unknown with no action.
+	for _, err := range []error{
+		errors.New("403 dmca_blocked: resource is blocked"),
+		&Error{StatusCode: http.StatusForbidden, Code: "forbidden", Message: "resource is blocked"},
+	} {
+		health := sobject.BuildSharedObjectHealthFromError(layer, err)
+		if health.GetCommonReason() != sobject.SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_UNKNOWN ||
+			health.GetRemediationHint() != sobject.SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_NONE {
+			t.Fatalf("health for %q = %v", err, health)
+		}
+	}
+}
 
 func TestRetryAfterSecondsSaturates(t *testing.T) {
 	delay := time.Duration(math.MaxUint32)*time.Second + time.Nanosecond

@@ -10,6 +10,7 @@ import (
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/sobject"
 )
 
 // Error is a structured error from the Spacewave cloud API.
@@ -33,6 +34,12 @@ func (e *Error) Error() string {
 		msg += " [retry_after=" + strconv.FormatUint(uint64(e.RetryAfterSeconds), 10) + "]"
 	}
 	return msg
+}
+
+// Is reports a blocked code as sobject.ErrResourceBlocked, so consumers that
+// cannot import this package still decide on the block by type.
+func (e *Error) Is(target error) bool {
+	return target == sobject.ErrResourceBlocked && blockedCodes[e.Code]
 }
 
 // unauthCodes are error codes indicating the session key is stale but the

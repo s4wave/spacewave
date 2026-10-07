@@ -135,22 +135,9 @@ interface SharedObjectMutationPermission {
 
 type SharedObjectRemediationAction = 'repair' | 'reinitialize' | null
 
-// isResourceBlockedError checks if an error indicates a DMCA-blocked resource.
-function isResourceBlockedError(err: Error | null | undefined): boolean {
-  if (!err) return false
-  const msg = err.message || ''
-  return msg.includes('resource is blocked') || msg.includes('dmca_blocked')
-}
-
-function isSharedObjectRecoveryCredentialError(
-  err: Error | null | undefined,
-): boolean {
-  return (
-    err?.message
-      ?.toLowerCase()
-      .includes('shared object recovery requires entity credentials') ?? false
-  )
-}
+// credentialRequiredMessage reports a repair that needs an unlocked entity key.
+const credentialRequiredMessage =
+  'Shared object recovery requires entity credentials'
 
 function getHealthSummary(health: SharedObjectHealth): {
   badge: string
@@ -203,6 +190,14 @@ function getHealthSummary(health: SharedObjectHealth): {
       description:
         'The shared object state failed verification, so Alpha closed the mount instead of retrying indefinitely.',
       hint: 'The owner needs to repair or republish the shared object state.',
+    }
+  }
+  if (health.commonReason === SharedObjectHealthCommonReason.RESOURCE_BLOCKED) {
+    return {
+      badge: 'Closed',
+      title: 'Content unavailable',
+      description: 'The provider blocked access to this shared object.',
+      hint: 'Retry after the block is lifted.',
     }
   }
   if (health.commonReason === SharedObjectHealthCommonReason.BLOCK_NOT_FOUND) {
@@ -1018,23 +1013,21 @@ function useSharedObjectRemediation(
       setMutationError('')
       try {
         if (kind === 'repair') {
-          await sessionValue.spacewave.repairSharedObject(sharedObjectId)
+          const resp =
+            await sessionValue.spacewave.repairSharedObject(sharedObjectId)
+          if (resp.credentialRequired) {
+            if (providerId === 'spacewave' && !!accountId) {
+              setCredentialRepairOpen(true)
+            } else {
+              setMutationError(credentialRequiredMessage)
+            }
+            return
+          }
         } else if (kind === 'reinitialize') {
           await sessionValue.spacewave.reinitializeSharedObject(sharedObjectId)
         }
         onRetry()
       } catch (err) {
-        if (
-          kind === 'repair' &&
-          providerId === 'spacewave' &&
-          !!accountId &&
-          isSharedObjectRecoveryCredentialError(
-            err instanceof Error ? err : undefined,
-          )
-        ) {
-          setCredentialRepairOpen(true)
-          return
-        }
         setMutationError(err instanceof Error ? err.message : 'Action failed')
       } finally {
         setMutationPending(false)
@@ -1057,7 +1050,11 @@ function useSharedObjectRemediation(
     setMutationPending(true)
     setMutationError('')
     try {
-      await sessionValue.spacewave.repairSharedObject(sharedObjectId)
+      const resp =
+        await sessionValue.spacewave.repairSharedObject(sharedObjectId)
+      if (resp.credentialRequired) {
+        throw new Error(credentialRequiredMessage)
+      }
       setCredentialRepairOpen(false)
       onRetry()
     } catch (err) {
@@ -1328,11 +1325,6 @@ export function SessionSharedObjectContainer() {
   const resourceError =
     sharedObjectResource.error ?? sharedObjectBodyResource.error
 
-  const isBlocked = useMemo(
-    () => isResourceBlockedError(resourceError),
-    [resourceError],
-  )
-
   const activeHealth = useMemo(() => {
     return getSharedObjectRouteHealth({
       mounted: !!sharedObjectResource.value,
@@ -1348,6 +1340,10 @@ export function SessionSharedObjectContainer() {
     sharedObjectResource.error,
     sharedObjectResource.value,
   ])
+
+  const isBlocked =
+    activeHealth?.commonReason ===
+    SharedObjectHealthCommonReason.RESOURCE_BLOCKED
 
   if (resourceError && isStorageQuotaError(resourceError)) {
     queueMicrotask(() =>

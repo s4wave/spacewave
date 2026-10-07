@@ -60,6 +60,9 @@ func BuildSharedObjectHealthFromError(
 	case errors.Is(err, ErrSharedObjectNotFound):
 		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_NOT_FOUND
 		hint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_CONTACT_OWNER
+	case errors.Is(err, ErrResourceBlocked):
+		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_RESOURCE_BLOCKED
+		hint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_RETRY
 	case errors.Is(err, ErrNotParticipant) || errors.Is(err, ErrCannotDecode):
 		reason = SharedObjectHealthCommonReason_SHARED_OBJECT_HEALTH_COMMON_REASON_ACCESS_REVOKED
 		hint = SharedObjectHealthRemediationHint_SHARED_OBJECT_HEALTH_REMEDIATION_HINT_REQUEST_ACCESS

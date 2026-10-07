@@ -326,7 +326,11 @@ function useRecoveryAction(session: Session | null, sharedObjectId: string) {
       setError('')
       try {
         if (kind === 'repair') {
-          await session.spacewave.repairSharedObject(sharedObjectId)
+          const resp =
+            await session.spacewave.repairSharedObject(sharedObjectId)
+          if (resp.credentialRequired) {
+            setError('Shared object recovery requires entity credentials')
+          }
         } else {
           await session.spacewave.reinitializeSharedObject(sharedObjectId)
         }

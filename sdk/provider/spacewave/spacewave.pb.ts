@@ -6221,13 +6221,28 @@ export const RepairSharedObjectRequest: MessageType<RepairSharedObjectRequest> =
  *
  * @generated from message s4wave.provider.spacewave.RepairSharedObjectResponse
  */
-export interface RepairSharedObjectResponse {}
+export interface RepairSharedObjectResponse {
+  /**
+   * CredentialRequired is set when repair needs an unlocked entity key and
+   * nothing was repaired.
+   *
+   * @generated from field: bool credential_required = 1;
+   */
+  credentialRequired?: boolean
+}
 
 export const RepairSharedObjectResponse: MessageType<RepairSharedObjectResponse> =
-  /* @__PURE__ */ createEmptyMessageType<RepairSharedObjectResponse>(
-    's4wave.provider.spacewave.RepairSharedObjectResponse',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.RepairSharedObjectResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'credential_required',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
 
 /**
  * PublicOriginLink is an owner-paid S3-compatible bucket and the HTTPS base
