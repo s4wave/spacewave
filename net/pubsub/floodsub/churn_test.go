@@ -17,42 +17,100 @@ import (
 
 // TestPublishDuringPendingReconciliation measures the router's publication path.
 func TestPublishDuringPendingReconciliation(t *testing.T) {
-	// Create the FloodSub router for publication during subscription churn.
-	m := newTestFloodSub(t)
+	synctest.Test(t, func(t *testing.T) {
+		// Register a receiver whose queues are observed without a peer writer.
+		m := newTestFloodSub(t)
+		tpl := pubsub.PeerLinkTuple{PeerID: peer.ID("receiver"), LinkID: 1}
+		receiver := &streamHandler{
+			tpl: tpl, le: m.le, ctx: t.Context(),
+			packetCh: make(chan *Packet, 1), subWake: make(chan struct{}, 1),
+		}
+		m.peers[tpl] = receiver
+		m.peerChannels["topic"] = map[pubsub.PeerLinkTuple]struct{}{tpl: {}}
+		key, _, err := crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// A synchronous wake proves Execute accepted churn before the publication.
-	m.wakeCh = make(chan struct{})
+		// Start the router and settle its initial reconciliation.
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		done := make(chan error, 1)
+		go func() { done <- m.Execute(ctx) }()
+		synctest.Wait()
 
-	// Register a subscribed receiver to observe forwarded publications.
-	tpl := pubsub.PeerLinkTuple{PeerID: peer.ID("receiver"), LinkID: 1}
-	receiver := &streamHandler{tpl: tpl, le: m.le, ctx: t.Context(), packetCh: make(chan *Packet, 1)}
-	m.peers[tpl] = receiver
-	m.peerChannels["topic"] = map[pubsub.PeerLinkTuple]struct{}{tpl: {}}
+		// Retain a channel while repeatedly adding and releasing transient refs.
+		retained, err := m.AddSubscription(ctx, key, "churn")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer retained.Release()
+		for range 100 {
+			sub, err := m.AddSubscription(ctx, key, "transient")
+			if err != nil {
+				t.Fatal(err)
+			}
+			sub.Release()
+		}
+		synctest.Wait()
 
-	// Run the router until test cleanup cancels and joins it.
-	ctx, cancel := context.WithCancel(t.Context())
-	done := make(chan error, 1)
-	go func() { done <- m.Execute(ctx) }()
-	t.Cleanup(func() { cancel(); <-done })
+		// Forward a publication without advancing the pending deadline.
+		started := time.Now()
+		m.publishCh <- &publishChMsg{msg: &peer.SignedMsg{}, channelID: "topic"}
+		synctest.Wait()
+		select {
+		case <-receiver.packetCh:
+			if elapsed := time.Since(started); elapsed != 0 {
+				t.Fatalf("publication waited for reconciliation: %s", elapsed)
+			}
+		default:
+			t.Fatal("pending reconciliation suspended publication")
+		}
+		if packet := receiver.takeSubscriptions(); packet != nil {
+			t.Fatal("subscription broadcast preceded the coalescing deadline")
+		}
 
-	// Require the router to accept subscription churn before publication.
-	select {
-	case m.wakeCh <- struct{}{}:
-	case <-time.After(time.Second):
-		t.Fatal("router did not accept subscription churn")
-	}
+		// Require one final subscription state at the known coalescing deadline.
+		time.Sleep(100 * time.Millisecond)
+		synctest.Wait()
+		packet := receiver.takeSubscriptions()
+		if len(packet.GetSubscriptions()) != 1 || packet.GetSubscriptions()[0].GetChannelId() != "churn" || !packet.GetSubscriptions()[0].GetSubscribe() {
+			t.Fatalf("unexpected coalesced broadcast: %v", packet)
+		}
 
-	// Publish to the subscribed receiver while reconciliation is pending.
-	started := time.Now()
-	m.publishCh <- &publishChMsg{msg: &peer.SignedMsg{}, channelID: "topic"}
+		// Release the retained channel and settle the unsubscribe deadline.
+		retained.Release()
+		synctest.Wait()
+		time.Sleep(100 * time.Millisecond)
+		synctest.Wait()
+		packet = receiver.takeSubscriptions()
+		if len(packet.GetSubscriptions()) != 1 || packet.GetSubscriptions()[0].GetSubscribe() {
+			t.Fatalf("unexpected unsubscribe broadcast: %v", packet)
+		}
 
-	// Require the publication to reach the receiver before the deadline.
-	select {
-	case <-receiver.packetCh:
-		t.Logf("publication during churn: %s", time.Since(started))
-	case <-time.After(time.Second):
-		t.Fatal("pending reconciliation suspended publication")
-	}
+		// Quiet topology emits no further subscription packets.
+		time.Sleep(time.Second)
+		synctest.Wait()
+		if packet := receiver.takeSubscriptions(); packet != nil {
+			t.Fatal("quiet topology emitted another subscription broadcast")
+		}
+
+		// Cancel with a newly pending subscription deadline and join immediately.
+		pending, err := m.AddSubscription(ctx, key, "pending")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer pending.Release()
+		synctest.Wait()
+		started = time.Now()
+		cancel()
+		if err := <-done; !errors.Is(err, context.Canceled) {
+			t.Fatalf("unexpected shutdown: %v", err)
+		}
+		if elapsed := time.Since(started); elapsed != 0 {
+			t.Fatalf("shutdown waited for pending reconciliation: %s", elapsed)
+		}
+	})
 }
 
 // TestMessageExpiryAndCancellation checks deduplication and cleanup at its known
