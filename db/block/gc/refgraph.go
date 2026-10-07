@@ -43,32 +43,11 @@ type RefGraph struct {
 const (
 	// refGraphApplySliceLimit bounds preparation and application together.
 	refGraphApplySliceLimit = 4096
-	// Commit each bounded ownership slice without subdividing it into extra
+	// refGraphApplyBatchLimit commits each bounded slice without extra
 	// fsyncs. Additions precede removals within and across commits.
 	// Each slice releases writeMu.
 	refGraphApplyBatchLimit = refGraphApplySliceLimit
 )
-
-// refBatchError reports a failed ownership transition together with the
-// uncommitted suffix that the caller must retain for a later attempt.
-// The slices are always expressed in the original add-before-remove order.
-type refBatchError struct {
-	err     error
-	adds    []RefEdge
-	removes []RefEdge
-}
-
-func (e *refBatchError) Error() string {
-	return e.err.Error()
-}
-
-func (e *refBatchError) Unwrap() error {
-	return e.err
-}
-
-func (e *refBatchError) RefBatchRemainder() ([]RefEdge, []RefEdge) {
-	return e.adds, e.removes
-}
 
 // NewRefGraph constructs a RefGraph backed by the given kvtx store.
 // prefix is prepended to all keys (e.g., "gc/" for space context).
@@ -94,9 +73,12 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 // nodes[1]->nodes[2], etc. At least 2 nodes required. Idempotent
 // (Cayley ignore_duplicate).
 func RegisterEntityChain(ctx context.Context, rg RefGraphOps, nodes ...string) error {
+	// Require enough nodes to define a chain.
 	if len(nodes) < 2 {
 		return errors.New("RegisterEntityChain requires at least 2 nodes")
 	}
+
+	// Register every adjacent pair in chain order.
 	for i := 0; i < len(nodes)-1; i++ {
 		if err := rg.AddRef(ctx, nodes[i], nodes[i+1]); err != nil {
 			return err
@@ -156,6 +138,7 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 	return rg.applyRefBatch(ctx, adds, removes, true, true)
 }
 
+// applyRefBatch commits bounded add-before-remove slices with optional orphan marks.
 func (rg *RefGraph) applyRefBatch(
 	ctx context.Context,
 	adds, removes []RefEdge,
@@ -262,6 +245,7 @@ func (rg *RefGraph) applyRefBatch(
 	return nil
 }
 
+// refBatchSliceCounts fills one ownership slice with additions before removals.
 func refBatchSliceCounts(adds, removes []RefEdge) (int, int) {
 	// Fill the bounded RefGraph slice with additions before removals.
 	addCount := min(len(adds), refGraphApplySliceLimit)
@@ -275,10 +259,12 @@ func refBatchSliceCounts(adds, removes []RefEdge) (int, int) {
 	return addCount, removeCount
 }
 
+// cloneRefEdges returns an independent copy of an ownership change list.
 func cloneRefEdges(edges []RefEdge) []RefEdge {
 	return slices.Clone(edges)
 }
 
+// appendRefEdges copies two ownership change lists into one.
 func appendRefEdges(first, second []RefEdge) []RefEdge {
 	// Reuse a copy of the populated edge list when its counterpart is empty.
 	if len(first) == 0 {
@@ -295,6 +281,7 @@ func appendRefEdges(first, second []RefEdge) []RefEdge {
 	return out
 }
 
+// applyRefBatchSliceLocked commits a prepared slice and returns its uncommitted suffix.
 func (rg *RefGraph) applyRefBatchSliceLocked(
 	ctx context.Context,
 	adds, removes []RefEdge,
@@ -320,6 +307,7 @@ func (rg *RefGraph) applyRefBatchSliceLocked(
 	return nil, nil, nil
 }
 
+// applyRefBatchChunk applies one atomic add-before-remove graph transaction.
 func (rg *RefGraph) applyRefBatchChunk(ctx context.Context, adds, removes []RefEdge) error {
 	// Trace the durable transaction for this RefGraph chunk.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch/apply-transaction")
@@ -338,6 +326,7 @@ func (rg *RefGraph) applyRefBatchChunk(ctx context.Context, adds, removes []RefE
 	return rg.handle.ApplyDeltas(ctx, deltas, graph.IgnoreOpts{IgnoreDup: true, IgnoreMissing: true})
 }
 
+// prepareRefBatch filters idempotent changes and derives orphan markers.
 func (rg *RefGraph) prepareRefBatch(
 	ctx context.Context,
 	adds, removes []RefEdge,
@@ -351,6 +340,7 @@ func (rg *RefGraph) prepareRefBatch(
 	return rg.prepareOrphanMarks(ctx, adds, removes, markOrphaned)
 }
 
+// prepareOrphanMarks stages targets whose final owner is removed by this batch.
 func (rg *RefGraph) prepareOrphanMarks(
 	ctx context.Context,
 	adds, removes []RefEdge,
@@ -465,9 +455,12 @@ func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, e
 // hasRefs resolves node IDs in one batch and reads exact edge postings under
 // one storage transaction. A stale snapshot retries the complete lookup.
 func (rg *RefGraph) hasRefs(ctx context.Context, edges []RefEdge) ([]bool, error) {
+	// Leave an empty lookup to the caller's cancellation state.
 	if len(edges) == 0 {
 		return nil, ctx.Err()
 	}
+
+	// Retry all edge reads together when the storage snapshot becomes stale.
 	var found []bool
 	err := kvtx.RunOperation(ctx, func(ctx context.Context) error {
 		var err error
@@ -522,78 +515,98 @@ func (rg *RefGraph) hasRefsAttempt(ctx context.Context, edges []RefEdge) ([]bool
 	}
 	defer tx.Discard()
 
-	// Read the exact posting for each edge with resolved endpoints.
+	return hasRefsInTransaction(ctx, tx, predID, ids, edges)
+}
+
+// hasRefsInTransaction batches postings and their newest live primitive checks.
+// Every read uses the same snapshot; results retain the caller's edge order.
+func hasRefsInTransaction(ctx context.Context, tx kvtx.Tx, predID uint64, ids map[string]uint64, edges []RefEdge) ([]bool, error) {
+	// Collect exact posting keys for edges whose endpoints exist.
+	found := make([]bool, len(edges))
+	keys := make([][]byte, 0, len(edges))
+	indexes := make([]int, 0, len(edges))
 	for i, edge := range edges {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
 		objectID, subjectID := ids[edge.Object], ids[edge.Subject]
 		if objectID == 0 || subjectID == 0 {
 			continue
 		}
-		found[i], err = hasRefInTransaction(ctx, tx, predID, objectID, subjectID)
-		if err != nil {
+		keys = append(keys, cayley_flat.KeyEscape(cayley_kv.DefaultQuadIndexes[1].Key(
+			[]uint64{objectID, predID, subjectID},
+		)))
+		indexes = append(indexes, i)
+	}
+
+	// Read each exact posting once through the backend's batch operation.
+	postings, present, err := kvtx.GetBatch(ctx, tx, keys)
+	if err != nil {
+		return nil, errors.Wrap(err, "read exact ref edge indexes")
+	}
+	quadIDs := make([][]uint64, len(keys))
+	for i, posting := range postings {
+		if !present[i] {
+			continue
+		}
+		for len(posting) != 0 {
+			quadID, n := binary.Uvarint(posting)
+			if n <= 0 {
+				return nil, errors.New("decode exact ref edge index")
+			}
+			quadIDs[i] = append(quadIDs[i], quadID)
+			posting = posting[n:]
+		}
+	}
+
+	// Validate newest primitives together, probing older entries only for edges
+	// whose newest primitive is deleted or does not match the exact edge.
+	logKeys := make([][]byte, 0, len(keys))
+	positions := make([]int, 0, len(keys))
+	for {
+		// Collect one unresolved primitive per edge for this read batch.
+		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-	}
-	return found, nil
-}
-
-// hasRefInTransaction checks the complete posting key and validates its primitive.
-func hasRefInTransaction(ctx context.Context, tx kvtx.Tx, predID, objectID, subjectID uint64) (bool, error) {
-	// Read the complete object-predicate-subject posting for the GC edge.
-	indexKey := cayley_flat.KeyEscape(cayley_kv.DefaultQuadIndexes[1].Key(
-		[]uint64{objectID, predID, subjectID},
-	))
-	postings, found, err := tx.Get(ctx, indexKey)
-	if err != nil {
-		return false, errors.Wrap(err, "read exact ref edge index")
-	}
-	if !found {
-		return false, nil
-	}
-
-	// Decode the posting into primitive IDs for live-edge validation.
-	quadIDs := make([]uint64, 0, 1)
-	for len(postings) != 0 {
-		quadID, n := binary.Uvarint(postings)
-		if n <= 0 {
-			return false, errors.New("decode exact ref edge index")
+		logKeys, positions = logKeys[:0], positions[:0]
+		for i, pending := range quadIDs {
+			if found[indexes[i]] || len(pending) == 0 {
+				continue
+			}
+			quadID := pending[len(pending)-1]
+			logKeys = append(logKeys, cayley_flat.KeyEscape(cayley_hkv.Key{
+				[]byte("l"), []byte(strconv.FormatUint(quadID, 10)),
+			}))
+			positions = append(positions, i)
 		}
-		quadIDs = append(quadIDs, quadID)
-		postings = postings[n:]
-	}
+		if len(logKeys) == 0 {
+			return found, nil
+		}
 
-	// Check the newest matching primitive before older postings.
-	for _, quadID := range slices.Backward(quadIDs) {
-
-		// Read and validate the durable primitive referenced by the exact edge posting.
-		logKey := cayley_flat.KeyEscape(cayley_hkv.Key{
-			[]byte("l"),
-			[]byte(strconv.FormatUint(quadID, 10)),
-		})
-		data, found, err := tx.Get(ctx, logKey)
+		// Read the selected primitives in one backend batch.
+		data, present, err := kvtx.GetBatch(ctx, tx, logKeys)
 		if err != nil {
-			return false, errors.Wrap(err, "read exact ref edge primitive")
+			return nil, errors.Wrap(err, "read exact ref edge primitives")
 		}
-		if !found {
-			return false, errors.Errorf("exact ref edge primitive %d is missing", quadID)
-		}
-		var prim cayley_proto.Primitive
-		if err := prim.UnmarshalVT(data); err != nil {
-			return false, errors.Wrap(err, "decode exact ref edge primitive")
-		}
-		if !prim.Deleted &&
-			prim.Object == objectID &&
-			prim.Predicate == predID &&
-			prim.Subject == subjectID &&
-			prim.Label == 0 {
-			return true, nil
+		for j, i := range positions {
+			// Require the indexed primitive and check its exact endpoints.
+			pending := quadIDs[i]
+			quadID := pending[len(pending)-1]
+			quadIDs[i] = pending[:len(pending)-1]
+			if !present[j] {
+				return nil, errors.Errorf("exact ref edge primitive %d is missing", quadID)
+			}
+			var prim cayley_proto.Primitive
+			if err := prim.UnmarshalVT(data[j]); err != nil {
+				return nil, errors.Wrap(err, "decode exact ref edge primitive")
+			}
+			edge := edges[indexes[i]]
+			found[indexes[i]] = !prim.Deleted &&
+				prim.Object == ids[edge.Object] &&
+				prim.Predicate == predID &&
+				prim.Subject == ids[edge.Subject] && prim.Label == 0
 		}
 	}
-	return false, nil
 }
 
+// hasRefGeneric tests exact edge membership through the graph traversal API.
 func (rg *RefGraph) hasRefGeneric(ctx context.Context, subject, object string) (bool, error) {
 	var found bool
 	err := iterateFilteredNodeRefs(ctx, rg.handle, quad.Quad{
@@ -680,6 +693,7 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 	return found, errors.Wrap(err, "iterate incoming candidates")
 }
 
+// resolveIRIRefKeys resolves present IRIs to comparable graph reference keys.
 func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[any]struct{}, error) {
 	// Allocate the excluded-owner set and its graph lookup values.
 	excludedSet := make(map[any]struct{}, len(iris))
@@ -701,9 +715,10 @@ func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[a
 		resolved []graph.Ref
 		err      error
 	)
-	if bq, ok := rg.handle.QuadStore.(refs.BatchNamer); ok {
-		resolved, err = bq.RefsOf(taskCtx, toResolve)
-	} else {
+	switch qs := rg.handle.QuadStore.(type) {
+	case refs.BatchNamer:
+		resolved, err = qs.RefsOf(taskCtx, toResolve)
+	default:
 		resolved = make([]graph.Ref, len(toResolve))
 		for i, node := range toResolve {
 			resolved[i], err = rg.handle.ValueOf(taskCtx, node)
@@ -779,9 +794,11 @@ func (rg *RefGraph) GetOutgoingRefs(ctx context.Context, node string) ([]string,
 
 // GetIncomingRefs returns all sources that have gc/ref edges pointing to the given node.
 func (rg *RefGraph) GetIncomingRefs(ctx context.Context, node string) ([]string, error) {
+	// Trace the incoming-edge lookup.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/get-incoming-refs")
 	defer task.End()
 
+	// Traverse the incoming index when the graph exposes exact postings.
 	if qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore); ok {
 		ids, err := resolveIRIRefIDs(ctx, qs, []string{PredGCRef, node})
 		if err != nil {
@@ -812,6 +829,7 @@ func (rg *RefGraph) GetIncomingRefs(ctx context.Context, node string) ([]string,
 		return resolveNodeIRIs(ctx, rg.handle, nodeRefs)
 	}
 
+	// Fall back to the graph's filtered traversal for other stores.
 	return collectFilteredNodeIRIs(ctx, rg.handle, quad.Quad{
 		Predicate: quad.IRI(PredGCRef),
 		Object:    quad.IRI(node),
@@ -875,6 +893,7 @@ func buildQuadFilters(gq quad.Quad) shape.Quads {
 	return q
 }
 
+// hasIncomingRefsExcludingFast stops at the first indexed, live, unexcluded owner.
 func (rg *RefGraph) hasIncomingRefsExcludingFast(
 	ctx context.Context,
 	node string,
@@ -923,6 +942,7 @@ func (rg *RefGraph) hasIncomingRefsExcludingFast(
 	return found, true, errors.Wrap(err, "iterate incoming object index")
 }
 
+// resolveIRIRefIDs resolves present IRIs to numeric graph node IDs.
 func resolveIRIRefIDs(
 	ctx context.Context,
 	qs *cayley_kv.QuadStore,
@@ -949,6 +969,7 @@ func resolveIRIRefIDs(
 	return ids, nil
 }
 
+// iterateIncomingIndexRefs visits indexed sources and their live-edge checks.
 func iterateIncomingIndexRefs(
 	ctx context.Context,
 	qs *cayley_kv.QuadStore,
@@ -1018,6 +1039,7 @@ func collectFilteredNodeIRIs(
 	gq quad.Quad,
 	dir quad.Direction,
 ) ([]string, error) {
+	// Collect matching graph references before resolving their node values.
 	var nodeRefs []graph.Ref
 	if err := iterateFilteredNodeRefs(ctx, h, gq, dir, func(ref graph.Ref) error {
 		nodeRefs = append(nodeRefs, ref)
@@ -1025,12 +1047,15 @@ func collectFilteredNodeIRIs(
 	}); err != nil {
 		return nil, err
 	}
+
+	// Resolve only the references collected by this traversal.
 	if len(nodeRefs) == 0 {
 		return nil, nil
 	}
 	return resolveNodeIRIs(ctx, h, nodeRefs)
 }
 
+// resolveNodeIRIs resolves graph references to IRI strings in traversal order.
 func resolveNodeIRIs(ctx context.Context, h *cayley.Handle, nodeRefs []graph.Ref) ([]string, error) {
 	// Resolve the collected graph nodes to IRI strings.
 	vals, err := graph.ValuesOf(ctx, h, nodeRefs)
