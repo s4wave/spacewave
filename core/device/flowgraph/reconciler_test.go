@@ -245,6 +245,22 @@ func TestReconciler(t *testing.T) {
 		t.Fatalf("selectable relative root = %v, want none", root)
 	}
 
+	// Remove the node that keeps the skiffos root and require its capability to
+	// leave the Device, even though it is a filesystem one, and the repeated
+	// root to take over.
+	commit(t, ctx, engine, func(tx world.Tx) error {
+		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
+			RemoveNodeIds: []string{"root-a"},
+		})
+		return err
+	})
+	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
+		return capabilityState(capabilities, "root-b") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE
+	})
+	if _, ok := capabilities[capabilityID("root-a")]; ok {
+		t.Fatal("removed checkout root node still has a capability")
+	}
+
 	// Stop the Reconciler and require it to release the daemon.
 	stop()
 	if err := <-runErr; err != nil {
