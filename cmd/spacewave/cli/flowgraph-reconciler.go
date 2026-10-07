@@ -26,6 +26,7 @@ func startFlowgraphReconciler(
 	b bus.Bus,
 	invoker srpc.Invoker,
 	store *device_policy.PolicyStore,
+	idleTracker *daemonIdleTracker,
 ) {
 	// Skip a daemon that runs without the services the reconciler reads.
 	if b == nil || invoker == nil || store == nil {
@@ -47,7 +48,10 @@ func startFlowgraphReconciler(
 		mount := func(ctx context.Context, record *deviceSetupRecord) (world.Engine, func(), error) {
 			return mountDeviceWorld(ctx, client, record)
 		}
-		if err := runFlowgraphReconciler(ctx, le, statePath, b, mount, store); err != nil && ctx.Err() == nil {
+		// Keep the daemon alive while a node runs, since nodes serve with no
+		// client attached.
+		hold := func() func() { return idleTracker.serviceAttached("Flowgraph nodes") }
+		if err := runFlowgraphReconciler(ctx, le, statePath, b, mount, store, hold); err != nil && ctx.Err() == nil {
 			le.WithError(err).Warn("flowgraph reconciler stopped")
 		}
 	}()
@@ -64,6 +68,7 @@ func runFlowgraphReconciler(
 	b bus.Bus,
 	mount func(context.Context, *deviceSetupRecord) (world.Engine, func(), error),
 	store *device_policy.PolicyStore,
+	hold func() func(),
 ) error {
 	// Find the Device this daemon set up.
 	record, err := waitDeviceSetupReady(ctx, le, statePath)
@@ -82,7 +87,7 @@ func runFlowgraphReconciler(
 	defer release()
 
 	// Reconcile until the daemon stops.
-	return device_flowgraph.NewReconciler(le, b, engine, store, record.DeviceObjectKey, record.PeerID).Run(ctx)
+	return device_flowgraph.NewReconciler(le, b, engine, store, record.DeviceObjectKey, record.PeerID, hold).Run(ctx)
 }
 
 // waitDeviceSetupReady returns the setup record once the Device setup is

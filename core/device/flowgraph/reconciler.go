@@ -37,6 +37,12 @@ type Reconciler struct {
 	deviceKey string
 	// peerID is the peer ID of this daemon's Device.
 	peerID string
+	// hold keeps the daemon alive and returns its release. The Reconciler
+	// holds while it runs at least one node, since a node serves with no
+	// client attached.
+	hold func() func()
+	// release releases the hold, or is nil while no node runs.
+	release func()
 
 	// wake holds a pending reconcile. Every watched source sets it.
 	wake chan struct{}
@@ -47,13 +53,15 @@ type Reconciler struct {
 }
 
 // NewReconciler constructs a Reconciler for the Device at deviceKey with the
-// given peer ID.
+// given peer ID. It calls hold while a node runs and calls the release it
+// returns once none do.
 func NewReconciler(
 	le *logrus.Entry,
 	b bus.Bus,
 	engine world.Engine,
 	policy *device_policy.PolicyStore,
 	deviceKey, peerID string,
+	hold func() func(),
 ) *Reconciler {
 	r := &Reconciler{
 		le:        le,
@@ -62,6 +70,7 @@ func NewReconciler(
 		policy:    policy,
 		deviceKey: deviceKey,
 		peerID:    peerID,
+		hold:      hold,
 		wake:      make(chan struct{}, 1),
 	}
 	r.types = newNodeTypes(b, r.notify)
@@ -71,9 +80,10 @@ func NewReconciler(
 
 // Run reconciles until ctx ends, then releases every node's configs.
 func (r *Reconciler) Run(ctx context.Context) error {
-	// Release the lookups and the configs on every exit.
+	// Release the lookups, the configs, and the hold on every exit.
 	defer r.types.Release()
 	defer r.applier.Release()
+	defer r.setHeld(false)
 
 	// Watch the World and the policy, and reconcile after each change.
 	eg, egCtx := errgroup.WithContext(ctx)
@@ -173,7 +183,19 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	if err := r.applier.Apply(entries); err != nil {
 		return err
 	}
+	r.setHeld(len(entries) != 0)
 	return r.project(ctx, reports)
+}
+
+// setHeld holds the daemon while held is true and releases it otherwise.
+func (r *Reconciler) setHeld(held bool) {
+	switch {
+	case held && r.release == nil:
+		r.release = r.hold()
+	case !held && r.release != nil:
+		r.release()
+		r.release = nil
+	}
 }
 
 // project writes the state of each reported node into the Device object,

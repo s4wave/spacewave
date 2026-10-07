@@ -5,6 +5,7 @@ package device_flowgraph
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -86,11 +87,17 @@ func TestReconciler(t *testing.T) {
 		defer release()
 	}
 
-	// Run the Reconciler until the test stops it.
+	// Run the Reconciler until the test stops it, counting its holds on the
+	// daemon.
+	var holds atomic.Int32
+	hold := func() func() {
+		holds.Add(1)
+		return func() { holds.Add(-1) }
+	}
 	runCtx, stop := context.WithCancel(ctx)
 	runErr := make(chan error, 1)
 	go func() {
-		runErr <- NewReconciler(le, b, engine, policy, testSelfKey, selfPeer).Run(runCtx)
+		runErr <- NewReconciler(le, b, engine, policy, testSelfKey, selfPeer, hold).Run(runCtx)
 	}()
 
 	// Place a TCP Port and a Local Port on this Device. Each connects to a node
@@ -147,6 +154,9 @@ func TestReconciler(t *testing.T) {
 	}
 	if len(capabilities) != 2 {
 		t.Fatalf("device holds %d node capabilities, want only the nodes placed on it", len(capabilities))
+	}
+	if n := holds.Load(); n != 1 {
+		t.Fatalf("reconciler holds the daemon %d times while a node runs, want 1", n)
 	}
 
 	// Allow the Local Port and require both ends to run.
@@ -206,6 +216,9 @@ func TestReconciler(t *testing.T) {
 	}
 	if _, err := recorder.WaitApplied(ctx, func(applied map[string]config.Config) bool { return len(applied) == 0 }); err != nil {
 		t.Fatal(err)
+	}
+	if n := holds.Load(); n != 0 {
+		t.Fatalf("reconciler holds the daemon %d times after it stops, want 0", n)
 	}
 }
 

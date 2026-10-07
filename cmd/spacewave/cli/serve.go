@@ -346,13 +346,12 @@ func runServeCommand(
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
 
-	// Serve the core Flowgraph node types and run the nodes placed here.
+	// Serve the core Flowgraph node types.
 	releaseFlowgraphNodeTypes, err := cliBus.GetBus().AddController(serveCtx, flowgraph_nodetype.NewController(), nil)
 	if err != nil {
 		return err
 	}
 	defer releaseFlowgraphNodeTypes()
-	startFlowgraphReconciler(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
 
 	// Serve remote shells under the Device policy.
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
@@ -381,6 +380,7 @@ func runServeCommand(
 	// count as public clients.
 	startWebListenerKeepalive(serveCtx, le, invoker, idleTracker)
 	startSyncKeepalive(serveCtx, le, invoker, idleTracker)
+	startFlowgraphReconciler(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy, idleTracker)
 
 	// Retain desktop demand independently of the connection that opens it.
 	mux := srpc.NewMux(invoker)
