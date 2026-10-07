@@ -27,7 +27,8 @@ import (
 // A block that no connected peer holds, or holds only without its refs, is not
 // a failure: the copy logs it once and waits for a new state, or for a peer
 // session to start on exchange that may hold the block. exchange is nil when
-// the bucket has no DEX controller.
+// the bucket has no DEX controller. Any other failure is published as the
+// object's copy error before the routine retries.
 func (a *ProviderAccount) runAccountReplicaCopy(
 	ctx context.Context,
 	b bus.Bus,
@@ -35,7 +36,15 @@ func (a *ProviderAccount) runAccountReplicaCopy(
 	engineID string,
 	state *p2pSyncState,
 	exchange *dex_solicit.Controller,
-) error {
+) (rerr error) {
+	// Publish a failure, such as exhausted storage, where the sync status
+	// reads it.
+	defer func() {
+		if rerr != nil && ctx.Err() == nil {
+			state.publishCopyError(so.GetSharedObjectID(), rerr)
+		}
+	}()
+
 	// Open the copy's local progress store, the object state stream and the
 	// replay that follows it.
 	local, release, err := so.AccessLocalStateStore(ctx, "account-replica-copy", nil)
@@ -282,6 +291,24 @@ func (s *p2pSyncState) publishCopyProgress(progress *AccountReplicaCopyState) {
 			s.copyProgress = make(map[string]*AccountReplicaCopyState)
 		}
 		s.copyProgress[progress.GetObjectId()] = progress.CloneVT()
+		bcast()
+	})
+}
+
+// publishCopyError records err on the object's latest copy progress. A
+// complete copy stays complete: its blocks are durable.
+func (s *p2pSyncState) publishCopyError(objectID string, err error) {
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		// Mark the latest progress failed and wake the status watchers.
+		progress := s.copyProgress[objectID].CloneVT()
+		if progress == nil {
+			progress = &AccountReplicaCopyState{ObjectId: objectID}
+		}
+		progress.Error = err.Error()
+		if s.copyProgress == nil {
+			s.copyProgress = make(map[string]*AccountReplicaCopyState)
+		}
+		s.copyProgress[objectID] = progress
 		bcast()
 	})
 }

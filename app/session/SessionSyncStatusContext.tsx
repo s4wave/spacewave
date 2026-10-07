@@ -9,6 +9,7 @@ import {
   type WatchSyncStatusResponse,
 } from '@s4wave/sdk/session/session.pb.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
+import { isStorageQuotaError } from '@s4wave/app/session/storage/storage-error.js'
 
 export type SessionSyncVisualState = 'loading' | 'synced' | 'active' | 'error'
 
@@ -142,16 +143,25 @@ export function buildSessionSyncStatusView(
     snapshot?.transportState ?? SyncTransportState.SyncTransportState_UNKNOWN
   const p2p = snapshot?.p2pState ?? SyncP2PState.SyncP2PState_UNKNOWN
   const lastError = snapshot?.lastError ?? ''
-  const visualState = syncVisualState(snapshot, state, direction, lastError)
   const local =
     !!snapshot?.localAccount ||
     transport === SyncTransportState.SyncTransportState_UNAVAILABLE
   const copies = snapshot?.localCopies ?? []
   const incomplete = copies.filter((copy) => !copy.complete).length
+  const storageFull = copies.filter(
+    (copy) => !copy.complete && isStorageQuotaError(copy.error ?? ''),
+  ).length
   const paused = incomplete > 0 && !snapshot?.activePeerCount
+  const visualState =
+    storageFull > 0
+      ? 'error'
+      : syncVisualState(snapshot, state, direction, lastError)
   let summaryLabel = syncSummaryLabel(visualState, direction, local)
   let detailLabel = syncDetailLabel(visualState, direction, local, lastError)
-  if (local && copies.length && !lastError) {
+  if (storageFull > 0) {
+    summaryLabel = 'Storage full'
+    detailLabel = `This browser is out of storage, so ${storageFull} ${storageFull === 1 ? 'Space' : 'Spaces'} cannot be stored on this device. Free up space to continue.`
+  } else if (local && copies.length && !lastError) {
     summaryLabel = incomplete
       ? paused
         ? 'Copy paused'
@@ -206,9 +216,11 @@ export function buildSessionSyncStatusView(
       name: copy.displayName || 'Space',
       status: copy.complete
         ? 'Available offline'
-        : copy.error || paused
-          ? 'Waiting to resume'
-          : 'Copying',
+        : isStorageQuotaError(copy.error ?? '')
+          ? 'Storage full'
+          : copy.error || paused
+            ? 'Waiting to resume'
+            : 'Copying',
       detail: `${formatBytes(copy.bytes)} stored · ${formatCount(copy.blocks)} blocks`,
       error: copy.error ?? '',
     })),

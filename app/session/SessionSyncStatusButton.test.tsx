@@ -101,6 +101,25 @@ describe('SessionSyncStatusButton', () => {
       spinning: false,
     },
     {
+      name: 'local copy out of browser storage',
+      view: view({
+        localAccount: true,
+        activePeerCount: 1,
+        localCopies: [
+          {
+            sharedObjectId: 'drive',
+            displayName: 'My Drive',
+            complete: false,
+            error:
+              'seg-1: getFileHandle: QuotaExceededError: The operation failed because it would cause the application to exceed its storage quota.',
+          },
+        ],
+      }),
+      label: 'Storage full',
+      detail:
+        'This browser is out of storage, so 1 Space cannot be stored on this device. Free up space to continue.',
+    },
+    {
       name: 'idle cloud',
       view: view({
         state: SyncStatusState.SyncStatusState_SYNCED,

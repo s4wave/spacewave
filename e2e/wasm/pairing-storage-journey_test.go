@@ -3,14 +3,15 @@
 package wasm
 
 import (
-	"strings"
 	"testing"
 
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
 // TestPairingStorageQuotaJourney uses Chromium's real origin quota to reject
-// enrollment writes after approval, without publishing a successful attachment.
+// the paired account's Space copy and requires the account's sync status to
+// report the full storage. The attachment itself may fit in storage Chromium
+// already granted the origin.
 func TestPairingStorageQuotaJourney(t *testing.T) {
 	// Open two Chromium sessions and start pairing from Drive.
 	h := harness(t)
@@ -40,20 +41,17 @@ func TestPairingStorageQuotaJourney(t *testing.T) {
 	}
 	defer cdp.Send("Storage.overrideQuotaForOrigin", map[string]any{"origin": origin})
 
-	// Confirm pairing and require a quota failure.
+	// Confirm pairing, open the account, and require the copy to report
+	// full storage.
 	confirmPairingPages(t, a.Page(), b.Page())
-	if err := b.Page().GetByRole("heading", playwright.PageGetByRoleOptions{Name: "Pairing failed", Exact: new(true)}).WaitFor(); err != nil {
+	open := b.Page().GetByRole("button", playwright.PageGetByRoleOptions{Name: "Open account", Exact: new(true)})
+	if err := open.Click(); err != nil {
+		body, _ := b.Page().Locator("body").InnerText()
+		t.Fatalf("open paired account: %v; page: %s", err, body)
+	}
+	status := b.Page().GetByRole("button", playwright.PageGetByRoleOptions{Name: "Session sync status: Storage full", Exact: new(true)})
+	if err := status.WaitFor(); err != nil {
 		body, _ := b.Page().Locator("body").InnerText()
 		t.Fatalf("storage failure: %v; page: %s", err, body)
-	}
-	body, err := b.Page().Locator("body").InnerText()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(strings.ToLower(body), "quota") && !strings.Contains(strings.ToLower(body), "storage") {
-		t.Fatalf("pairing failure did not identify storage: %s", body)
-	}
-	if strings.Contains(body, "Account connected") {
-		t.Fatal("storage failure claimed successful account attachment")
 	}
 }
