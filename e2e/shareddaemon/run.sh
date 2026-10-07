@@ -14,5 +14,10 @@ trap 'kill "$xvfb" 2>/dev/null || true; wait "$xvfb" 2>/dev/null || true; rm -rf
 read -r display <"$runtime/display"
 export DISPLAY=:$display
 
-go test -p="${GO_TEST_JOBS:-2}" -timeout=110s ./cmd/spacewave/cli \
-  -run '^TestSharedDaemonElectron$' -count=1 -v "$@"
+# Each test gets its own two-minute budget; report every failure.
+status=0
+for name in TestSharedDaemonElectron TestSharedDaemonElectronQuit TestSharedDaemonElectronTray; do
+  go test -p="${GO_TEST_JOBS:-2}" -timeout=110s ./cmd/spacewave/cli \
+    -run "^${name}\$" -count=1 -v "$@" || status=1
+done
+exit "$status"
