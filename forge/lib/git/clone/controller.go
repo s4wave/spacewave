@@ -1,5 +1,3 @@
-//go:build !tinygo
-
 package forge_lib_git_clone
 
 import (

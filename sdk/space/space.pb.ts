@@ -323,33 +323,21 @@ export const FetchPluginRepositoryRequest: MessageType<FetchPluginRepositoryRequ
   })
 
 /**
- * FetchPluginRepositoryResponse identifies the repository objects and the Job.
+ * FetchPluginRepositoryResponse identifies the Job that fetches the repository.
  *
  * @generated from message s4wave.space.FetchPluginRepositoryResponse
  */
 export interface FetchPluginRepositoryResponse {
   /**
-   * RepoKey is the git repository object.
-   *
-   * @generated from field: string repo_key = 1;
-   */
-  repoKey?: string
-  /**
-   * WorktreeKey is the git worktree object pinned to the cloned commit.
-   *
-   * @generated from field: string worktree_key = 2;
-   */
-  worktreeKey?: string
-  /**
    * JobKey identifies the Forge Job that clones or fetches the repository.
    *
-   * @generated from field: string job_key = 3;
+   * @generated from field: string job_key = 1;
    */
   jobKey?: string
   /**
    * TaskKey identifies the Job's fetch Task.
    *
-   * @generated from field: string task_key = 4;
+   * @generated from field: string task_key = 2;
    */
   taskKey?: string
 }
@@ -358,10 +346,8 @@ export const FetchPluginRepositoryResponse: MessageType<FetchPluginRepositoryRes
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.space.FetchPluginRepositoryResponse',
     fields: [
-      { no: 1, name: 'repo_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'worktree_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 1, name: 'job_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'task_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

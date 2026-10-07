@@ -330,17 +330,13 @@ func (x *FetchPluginRepositoryRequest) GetClusterKey() string {
 	return ""
 }
 
-// FetchPluginRepositoryResponse identifies the repository objects and the Job.
+// FetchPluginRepositoryResponse identifies the Job that fetches the repository.
 type FetchPluginRepositoryResponse struct {
 	unknownFields []byte
-	// RepoKey is the git repository object.
-	RepoKey string `protobuf:"bytes,1,opt,name=repo_key,json=repoKey,proto3" json:"repoKey,omitempty"`
-	// WorktreeKey is the git worktree object pinned to the cloned commit.
-	WorktreeKey string `protobuf:"bytes,2,opt,name=worktree_key,json=worktreeKey,proto3" json:"worktreeKey,omitempty"`
 	// JobKey identifies the Forge Job that clones or fetches the repository.
-	JobKey string `protobuf:"bytes,3,opt,name=job_key,json=jobKey,proto3" json:"jobKey,omitempty"`
+	JobKey string `protobuf:"bytes,1,opt,name=job_key,json=jobKey,proto3" json:"jobKey,omitempty"`
 	// TaskKey identifies the Job's fetch Task.
-	TaskKey string `protobuf:"bytes,4,opt,name=task_key,json=taskKey,proto3" json:"taskKey,omitempty"`
+	TaskKey string `protobuf:"bytes,2,opt,name=task_key,json=taskKey,proto3" json:"taskKey,omitempty"`
 }
 
 func (x *FetchPluginRepositoryResponse) Reset() {
@@ -348,20 +344,6 @@ func (x *FetchPluginRepositoryResponse) Reset() {
 }
 
 func (*FetchPluginRepositoryResponse) ProtoMessage() {}
-
-func (x *FetchPluginRepositoryResponse) GetRepoKey() string {
-	if x != nil {
-		return x.RepoKey
-	}
-	return ""
-}
-
-func (x *FetchPluginRepositoryResponse) GetWorktreeKey() string {
-	if x != nil {
-		return x.WorktreeKey
-	}
-	return ""
-}
 
 func (x *FetchPluginRepositoryResponse) GetJobKey() string {
 	if x != nil {
@@ -1856,8 +1838,6 @@ func (m *FetchPluginRepositoryResponse) CloneVT() *FetchPluginRepositoryResponse
 		return (*FetchPluginRepositoryResponse)(nil)
 	}
 	r := new(FetchPluginRepositoryResponse)
-	r.RepoKey = m.RepoKey
-	r.WorktreeKey = m.WorktreeKey
 	r.JobKey = m.JobKey
 	r.TaskKey = m.TaskKey
 	if len(m.unknownFields) > 0 {
@@ -2739,12 +2719,6 @@ func (this *FetchPluginRepositoryResponse) EqualVT(that *FetchPluginRepositoryRe
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if this.RepoKey != that.RepoKey {
-		return false
-	}
-	if this.WorktreeKey != that.WorktreeKey {
 		return false
 	}
 	if this.JobKey != that.JobKey {
@@ -4163,16 +4137,6 @@ func (x *FetchPluginRepositoryResponse) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.RepoKey != "" || s.HasField("repoKey") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("repoKey")
-		s.WriteString(x.RepoKey)
-	}
-	if x.WorktreeKey != "" || s.HasField("worktreeKey") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("worktreeKey")
-		s.WriteString(x.WorktreeKey)
-	}
 	if x.JobKey != "" || s.HasField("jobKey") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("jobKey")
@@ -4200,12 +4164,6 @@ func (x *FetchPluginRepositoryResponse) UnmarshalProtoJSON(s *json.UnmarshalStat
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "repo_key", "repoKey":
-			s.AddField("repo_key")
-			x.RepoKey = s.ReadString()
-		case "worktree_key", "worktreeKey":
-			s.AddField("worktree_key")
-			x.WorktreeKey = s.ReadString()
 		case "job_key", "jobKey":
 			s.AddField("job_key")
 			x.JobKey = s.ReadString()
@@ -6977,20 +6935,10 @@ func (m *FetchPluginRepositoryResponse) MarshalToSizedBufferVT(dAtA []byte) (int
 	if len(m.TaskKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.TaskKey)
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x12
 	}
 	if len(m.JobKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.JobKey)
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.WorktreeKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.WorktreeKey)
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.RepoKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.RepoKey)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -9113,8 +9061,6 @@ func (m *FetchPluginRepositoryResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RepoKey)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WorktreeKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.JobKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TaskKey)
 	n += len(m.unknownFields)
@@ -9819,14 +9765,6 @@ func (x *FetchPluginRepositoryRequest) String() string {
 func (x *FetchPluginRepositoryResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FetchPluginRepositoryResponse")
-	if x.RepoKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "repo_key")
-		protobuf_go_lite.TextWriteString(&sb, x.RepoKey)
-	}
-	if x.WorktreeKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "worktree_key")
-		protobuf_go_lite.TextWriteString(&sb, x.WorktreeKey)
-	}
 	if x.JobKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "job_key")
 		protobuf_go_lite.TextWriteString(&sb, x.JobKey)
@@ -11083,26 +11021,6 @@ func (m *FetchPluginRepositoryResponse) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RepoKey", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.RepoKey = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WorktreeKey", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.WorktreeKey = v
-		case 3:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field JobKey", wireType)
 			}
 			var v string
@@ -11111,7 +11029,7 @@ func (m *FetchPluginRepositoryResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.JobKey = v
-		case 4:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TaskKey", wireType)
 			}

@@ -124,9 +124,7 @@ func (r *SpaceResource) FetchPluginRepository(ctx context.Context, req *s4wave_s
 		return nil, err
 	}
 	return &s4wave_space.FetchPluginRepositoryResponse{
-		RepoKey:     repoKey,
-		WorktreeKey: worktreeKey,
-		JobKey:      jobKey,
-		TaskKey:     forge_job.NewJobTaskKey(jobKey, pluginRepositoryTaskName),
+		JobKey:  jobKey,
+		TaskKey: forge_job.NewJobTaskKey(jobKey, pluginRepositoryTaskName),
 	}, nil
 }

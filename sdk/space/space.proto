@@ -123,16 +123,12 @@ message FetchPluginRepositoryRequest {
   string cluster_key = 3;
 }
 
-// FetchPluginRepositoryResponse identifies the repository objects and the Job.
+// FetchPluginRepositoryResponse identifies the Job that fetches the repository.
 message FetchPluginRepositoryResponse {
-  // RepoKey is the git repository object.
-  string repo_key = 1;
-  // WorktreeKey is the git worktree object pinned to the cloned commit.
-  string worktree_key = 2;
   // JobKey identifies the Forge Job that clones or fetches the repository.
-  string job_key = 3;
+  string job_key = 1;
   // TaskKey identifies the Job's fetch Task.
-  string task_key = 4;
+  string task_key = 2;
 }
 
 // OpenPluginFrontendResponse identifies the authoring attachment and its logs.

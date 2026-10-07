@@ -54,9 +54,6 @@ func TestQueuePluginRepositoryFetch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if response.GetRepoKey() != "plugin-repos/s4wave/spreadsheet" || response.GetWorktreeKey() != "plugin-repos/s4wave/spreadsheet/worktree" {
-		t.Fatalf("unexpected repository keys: %v", response)
-	}
 
 	// The Job runs on the selected Worker and belongs to its Cluster.
 	job, err := forge_job.LookupJobBody(ctx, tb.WorldState, response.GetJobKey())
@@ -85,7 +82,7 @@ func TestQueuePluginRepositoryFetch(t *testing.T) {
 		t.Fatal(err)
 	}
 	clone := config.GetCloneOpts()
-	if config.GetObjectKey() != response.GetRepoKey() || config.GetWorktreeOpts().GetObjectKey() != response.GetWorktreeKey() ||
+	if config.GetObjectKey() != "plugin-repos/s4wave/spreadsheet" || config.GetWorktreeOpts().GetObjectKey() != "plugin-repos/s4wave/spreadsheet/worktree" ||
 		clone.GetUrl() != "https://github.com/s4wave/spreadsheet.git" || clone.GetDepth() != 1 || !clone.GetSingleBranch() ||
 		clone.GetTagMode() != git_block.TagMode_TagMode_NONE {
 		t.Fatalf("queued task config is not a depth-one clone: %v", &config)
