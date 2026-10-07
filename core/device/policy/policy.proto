@@ -16,6 +16,9 @@ message DevicePolicy {
   // ForgeWorker declares the local Forge Worker capacity envelope. Absent
   // means this daemon exposes no Forge Worker execution capacity.
   ForgeWorkerPolicy forge_worker = 4;
+  // NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
+  // A node whose type is absent from the list is rejected.
+  repeated string node_type_id = 5;
 }
 
 // ForgeWorkerPolicy declares the capacity envelope of the local Forge Worker.

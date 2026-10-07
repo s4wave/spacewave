@@ -159,6 +159,13 @@ export interface DevicePolicy {
    * @generated from field: s4wave.device.policy.ForgeWorkerPolicy forge_worker = 4;
    */
   forgeWorker?: ForgeWorkerPolicy
+  /**
+   * NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
+   * A node whose type is absent from the list is rejected.
+   *
+   * @generated from field: repeated string node_type_id = 5;
+   */
+  nodeTypeId?: string[]
 }
 
 export const DevicePolicy: MessageType<DevicePolicy> =
@@ -175,5 +182,12 @@ export const DevicePolicy: MessageType<DevicePolicy> =
         repeated: true,
       },
       { no: 4, name: 'forge_worker', kind: 'message', T: ForgeWorkerPolicy },
+      {
+        no: 5,
+        name: 'node_type_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })

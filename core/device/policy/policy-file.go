@@ -103,6 +103,18 @@ func Validate(policy *DevicePolicy) error {
 		}
 	}
 
+	// Reject node type IDs that are missing or duplicated.
+	seenTypes := make(map[string]struct{}, len(policy.GetNodeTypeId()))
+	for _, typeID := range policy.GetNodeTypeId() {
+		if strings.TrimSpace(typeID) == "" {
+			return errors.New("device policy node type id is required")
+		}
+		if _, ok := seenTypes[typeID]; ok {
+			return errors.Errorf("duplicate device policy node type %q", typeID)
+		}
+		seenTypes[typeID] = struct{}{}
+	}
+
 	// Require the forge-worker's object key and resource limits.
 	if fw := policy.GetForgeWorker(); fw != nil {
 		if strings.TrimSpace(fw.GetWorkerObjectKey()) == "" {
