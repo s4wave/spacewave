@@ -317,7 +317,7 @@ func (r *Controller) runElectron(ctx context.Context) error {
 	exitCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	exitErr := e.Wait(exitCtx)
-	if exitErr == context.DeadlineExceeded {
+	if errors.Is(exitErr, context.DeadlineExceeded) {
 		return err
 	}
 	return exitErr

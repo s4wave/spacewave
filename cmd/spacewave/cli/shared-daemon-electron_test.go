@@ -43,7 +43,15 @@ import (
 // TestSharedDaemonElectron checks both core routes through an actual Electron
 // window, preload bridge, dedicated Worker, and retained Unix-socket client.
 // The distribution fixture loads the core through production plugin RPC while
-// keeping the core implementation in-process.
+// keeping the core implementation in-process; it does not select a packaged
+// distribution or plugin artifact.
+//
+// The test is opt-in. Build the app with
+// "go run ./e2e/shareddaemon/prepare <dir>" after "go mod vendor", set
+// SPACEWAVE_SHARED_DESKTOP_FIXTURE to that directory and
+// SPACEWAVE_SHARED_DESKTOP_ELECTRON to an Electron executable, then run it on a
+// display with e2e/shareddaemon/run.sh. Set SPACEWAVE_SHARED_DESKTOP_DEBUG to
+// log the daemon and Electron.
 func TestSharedDaemonElectron(t *testing.T) {
 	// Require prepared shell artifacts when this opt-in integration check runs.
 	appDir := os.Getenv("SPACEWAVE_SHARED_DESKTOP_FIXTURE")
