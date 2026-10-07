@@ -16,7 +16,7 @@ export DISPLAY=:$display
 
 # Each test gets its own two-minute budget; report every failure.
 status=0
-for name in TestSharedDaemonElectron TestSharedDaemonElectronQuit TestSharedDaemonElectronTray; do
+for name in TestSharedDaemonElectron TestSharedDaemonElectronQuit TestSharedDaemonElectronTray TestSharedDaemonElectronRoots; do
   go test -p="${GO_TEST_JOBS:-2}" -timeout=110s ./cmd/spacewave/cli \
     -run "^${name}\$" -count=1 -v "$@" || status=1
 done
