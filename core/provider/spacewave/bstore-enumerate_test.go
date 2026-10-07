@@ -19,11 +19,13 @@ import (
 
 // enumerateTestPack packs datas and returns the pack bytes and its hashes.
 func enumerateTestPack(t *testing.T, datas ...string) ([]byte, []string) {
+	// Pack each payload and retain its hash for the expected enumeration.
 	t.Helper()
 	var buf bytes.Buffer
-	var keys []string
+	keys := make([]string, 0, len(datas))
 	idx := 0
 	_, err := writer.PackBlocks(&buf, func() (*hash.Hash, *block.StoredBlock, error) {
+		// Stop at the end, otherwise hash and emit the next block.
 		if idx >= len(datas) {
 			return nil, nil, nil
 		}
@@ -76,17 +78,16 @@ func TestEnumerateBlockRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Serve the pull. The routes are exact paths of HandlerFunc values, which
-	// the goscript ServeMux matches and serves as async handlers.
+	// Serve the pull.
 	mux := http.NewServeMux()
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
-	mux.Handle("/api/bstore/bstore-1/sync/pull", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET /api/bstore/{id}/sync/pull", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(pullData)
 	}))
 
 	// Grant a read URL for each requested pack.
-	mux.Handle("/api/bstore/bstore-1/read", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /api/bstore/{id}/read", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Decode the requested packs.
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -119,14 +120,21 @@ func TestEnumerateBlockRefs(t *testing.T) {
 	// Serve granted range reads, recording each pack opened.
 	var mtx sync.Mutex
 	var opened []string
-	for id, data := range packs {
-		mux.Handle("/pack/"+id, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			mtx.Lock()
-			opened = append(opened, id)
-			mtx.Unlock()
-			http.ServeContent(w, r, id, time.Time{}, bytes.NewReader(data))
-		}))
-	}
+	mux.Handle("GET /pack/{id}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Find the requested pack.
+		id := r.PathValue("id")
+		data, ok := packs[id]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		// Record and serve the range read.
+		mtx.Lock()
+		opened = append(opened, id)
+		mtx.Unlock()
+		http.ServeContent(w, r, id, time.Time{}, bytes.NewReader(data))
+	}))
 
 	// Enumerate the block store.
 	acc := NewTestProviderAccount(t, srv.URL)

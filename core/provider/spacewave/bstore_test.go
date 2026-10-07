@@ -632,10 +632,8 @@ func TestPackReadGrants(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	// Grant reads of /pack?grant=<n> for the nth grant. The routes are exact
-	// paths of HandlerFunc values, which the goscript ServeMux matches and
-	// serves as async handlers.
-	mux.Handle("/api/bstore/"+resourceID+"/read", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Grant reads of /pack/<n> for the nth grant.
+	mux.Handle("POST /api/bstore/{id}/read", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Require the session signature.
 		if r.Header.Get("X-Signature") == "" {
 			t.Fatal("grant request is not signed")
@@ -645,7 +643,7 @@ func TestPackReadGrants(t *testing.T) {
 		grants++
 		resp := &packfile.ReadResponse{Grants: []*packfile.ReadGrant{{
 			PackId:    packID,
-			Url:       srv.URL + "/pack?grant=" + strconv.Itoa(grants),
+			Url:       srv.URL + "/pack/" + strconv.Itoa(grants),
 			ExpiresAt: timestamppb.New(time.Now().Add(10 * time.Minute)),
 		}}}
 		data, err := resp.MarshalVT()
@@ -656,14 +654,14 @@ func TestPackReadGrants(t *testing.T) {
 	}))
 
 	// Serve ranges of the latest grant, refusing one read when asked.
-	mux.Handle("/pack", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET /pack/{n}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Refuse a read with session credentials, a stale grant or a
 		// requested refusal.
 		reads++
 		if r.Header.Get("X-Signature") != "" {
 			t.Fatal("range read carries the session signature")
 		}
-		if r.URL.Query().Get("grant") != strconv.Itoa(grants) {
+		if r.PathValue("n") != strconv.Itoa(grants) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
