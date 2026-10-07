@@ -119,6 +119,13 @@ manifest("acme-native", builder="bldr/plugin/compiler/go", config={"goPkgs": [".
 		kind:   RefusalKind_REFUSAL_KIND_GO_PLUGIN,
 		reason: `Plugin "acme-native" is a Go plugin`,
 	}, {
+		name: "state directory",
+		edit: func(files fstest.MapFS) {
+			files[".bldr/bun/1.3.0/bun"] = &fstest.MapFile{Data: []byte("#!/bin/sh\n")}
+		},
+		kind:   RefusalKind_REFUSAL_KIND_CONFIG,
+		reason: ".bldr",
+	}, {
 		name: "vite config file",
 		edit: func(files fstest.MapFS) {
 			files["vite.config.ts"] = &fstest.MapFile{Data: []byte("export default {}\n")}

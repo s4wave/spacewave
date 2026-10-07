@@ -65,7 +65,7 @@ func (v *Validation) refuse(kind RefusalKind, reason string) {
 	v.Refusals = append(v.Refusals, &Refusal{Kind: kind, Reason: reason})
 }
 
-// checkRootFiles refuses root files the build would read beyond bldr.star.
+// checkRootFiles refuses root entries the build would read or run beyond bldr.star.
 func (v *Validation) checkRootFiles(fsys fs.FS) error {
 	// List the project root.
 	entries, err := fs.ReadDir(fsys, ".")
@@ -73,11 +73,14 @@ func (v *Validation) checkRootFiles(fsys fs.FS) error {
 		return errors.Wrap(err, "read project root")
 	}
 
-	// Refuse a YAML project config and build tool configs that run code.
+	// Refuse a YAML project config, a state directory and build tool configs that run code.
 	for _, entry := range entries {
 		name := entry.Name()
 		if name == "bldr.yaml" {
 			v.refuse(RefusalKind_REFUSAL_KIND_CONFIG, "The repository has a bldr.yaml, which the build would read in addition to bldr.star.")
+		}
+		if name == ".bldr" {
+			v.refuse(RefusalKind_REFUSAL_KIND_CONFIG, "The repository has a .bldr, which the build uses as its state directory and would run code from.")
 		}
 		for _, prefix := range buildConfigPrefixes {
 			if strings.HasPrefix(name, prefix) {
