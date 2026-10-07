@@ -209,8 +209,8 @@ func (h *SQLHandler) ApplyWorldObjectOp(
 		return nil, errors.Errorf("sql plugin: attached object key %q does not match request key %q", objectKey, req.GetObjectKey())
 	}
 
-	// Wrap the attached resource as an ObjectState for the operation.
-	os, err := sdk_world_engine.NewSDKObjectState(client, ref, objectKey)
+	// Wrap the mutable object attached by the admitted write operation.
+	os, err := sdk_world_engine.NewSDKObjectState(client, ref, objectKey, false)
 	if err != nil {
 		ref.Release()
 		return nil, err

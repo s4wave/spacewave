@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
@@ -17,18 +18,25 @@ import (
 // SDKWorldState implements world.WorldState over SRPC by delegating to
 // WorldStateResourceService calls on a remote resource.
 type SDKWorldState struct {
-	client   ResourceClient
-	ref      resource_client.ResourceRef
-	service  s4wave_world.SRPCWorldStateResourceServiceClient
+	// client creates references to resources returned by the service.
+	client ResourceClient
+	// ref retains the remote World state.
+	ref resource_client.ResourceRef
+	// service accesses the remote World state.
+	service s4wave_world.SRPCWorldStateResourceServiceClient
+	// readOnly is the transaction mode reported by the server.
 	readOnly bool
 }
 
 // NewSDKWorldState creates a new SDKWorldState wrapping a resource reference.
 func NewSDKWorldState(client ResourceClient, ref resource_client.ResourceRef, readOnly bool) (*SDKWorldState, error) {
+	// Acquire the remote World state client.
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the resource and its transaction mode.
 	return &SDKWorldState{
 		client:   client,
 		ref:      ref,
@@ -63,6 +71,22 @@ func (ws *SDKWorldState) Sync(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	return resp.GetFenced(), nil
+}
+
+// StageWorldState opens a remote stage on the World state.
+// Releasing it releases the stage resource.
+func (ws *SDKWorldState) StageWorldState(ctx context.Context) (world.WorldStage, error) {
+	// Preserve the read-only error identity before contacting the server.
+	if ws.GetReadOnly() {
+		return nil, tx.ErrNotWrite
+	}
+
+	// Open a remote staging scope for this writable World state.
+	resp, err := ws.service.StageWorldState(ctx, &s4wave_world.StageWorldStateRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return newSDKStage(ws.client, resp.GetResourceId())
 }
 
 // WaitSeqno waits for the world state sequence number to reach or exceed the specified value.
@@ -123,6 +147,11 @@ func (ws *SDKWorldState) OpenNestedWorld(ctx context.Context, key string) (*SDKW
 // CreateObject creates an object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	// Preserve the read-only error identity before contacting the server.
+	if ws.GetReadOnly() {
+		return nil, tx.ErrNotWrite
+	}
+
 	// Create the remote World object with its initial root reference.
 	resp, err := ws.service.CreateObject(ctx, &s4wave_world.CreateObjectRequest{
 		ObjectKey: key,
@@ -134,7 +163,7 @@ func (ws *SDKWorldState) CreateObject(ctx context.Context, key string, rootRef *
 
 	// Wrap the created object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
-	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey)
+	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey, ws.GetReadOnly())
 	if err != nil {
 		objRef.Release()
 		return nil, err
@@ -158,7 +187,7 @@ func (ws *SDKWorldState) GetObject(ctx context.Context, key string) (world.Objec
 
 	// Wrap the found object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
-	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey)
+	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey, ws.GetReadOnly())
 	if err != nil {
 		objRef.Release()
 		return nil, false, err
@@ -217,6 +246,11 @@ func (ws *SDKWorldState) ListObjects(
 
 // RenameObject renames an object key and updates associated graph quads.
 func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
+	// Preserve the read-only error identity before contacting the server.
+	if ws.GetReadOnly() {
+		return nil, tx.ErrNotWrite
+	}
+
 	// Rename the remote World object and its associated graph quads.
 	resp, err := ws.service.RenameObject(ctx, &s4wave_world.RenameObjectRequest{
 		OldObjectKey: oldKey,
@@ -229,7 +263,7 @@ func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string
 
 	// Wrap the renamed object resource and release it if construction fails.
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
-	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey)
+	obj, err := NewSDKObjectState(ws.client, objRef, resp.ObjectKey, ws.GetReadOnly())
 	if err != nil {
 		objRef.Release()
 		return nil, err
@@ -240,6 +274,12 @@ func (ws *SDKWorldState) RenameObject(ctx context.Context, oldKey, newKey string
 // DeleteObject deletes an object and associated graph quads by ID.
 // Returns false, nil if not found.
 func (ws *SDKWorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
+	// Preserve the read-only error identity before contacting the server.
+	if ws.GetReadOnly() {
+		return false, tx.ErrNotWrite
+	}
+
+	// Delete the remote object and return whether it existed.
 	resp, err := ws.service.DeleteObject(ctx, &s4wave_world.DeleteObjectRequest{ObjectKey: key})
 	if err != nil {
 		return false, err
@@ -249,11 +289,22 @@ func (ws *SDKWorldState) DeleteObject(ctx context.Context, key string) (bool, er
 
 // AccessCayleyGraph rejects local Cayley handle access for remote worlds.
 func (ws *SDKWorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
+	// Preserve the read-only error identity for requested writes.
+	if write && ws.GetReadOnly() {
+		return tx.ErrNotWrite
+	}
+
+	// Remote Worlds cannot expose a local Cayley handle.
 	return ErrRemoteCayleyGraphUnsupported
 }
 
 // SetGraphQuad sets a quad in the graph store.
 func (ws *SDKWorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	// Preserve the read-only error identity before contacting the server.
+	if ws.GetReadOnly() {
+		return tx.ErrNotWrite
+	}
+
 	// Encode the World graph quad for the resource service.
 	protoQuad := &quad.Quad{
 		Subject:   q.GetSubject(),
@@ -269,6 +320,11 @@ func (ws *SDKWorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) er
 
 // DeleteGraphQuad deletes a quad from the graph store.
 func (ws *SDKWorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	// Preserve the read-only error identity before contacting the server.
+	if ws.GetReadOnly() {
+		return tx.ErrNotWrite
+	}
+
 	// Encode the World graph quad for the resource service.
 	protoQuad := &quad.Quad{
 		Subject:   q.GetSubject(),
@@ -504,6 +560,12 @@ func (ws *SDKWorldState) QueryGraphPath(ctx context.Context, query *world.GraphP
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
 func (ws *SDKWorldState) DeleteGraphObject(ctx context.Context, value string) error {
+	// Preserve the read-only error identity before contacting the server.
+	if ws.GetReadOnly() {
+		return tx.ErrNotWrite
+	}
+
+	// Delete the remote object's graph quads.
 	_, err := ws.service.DeleteGraphObject(ctx, &s4wave_world.DeleteGraphObjectRequest{ObjectKey: value})
 	return err
 }
@@ -512,6 +574,11 @@ func (ws *SDKWorldState) DeleteGraphObject(ctx context.Context, value string) er
 // The handling of the operation is operation-type specific.
 // Returns seqno, sysErr, err.
 func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, sender peer.ID) (uint64, bool, error) {
+	// Preserve the read-only error identity before encoding or sending the operation.
+	if ws.GetReadOnly() {
+		return 0, false, tx.ErrNotWrite
+	}
+
 	// Encode the World operation for the resource service.
 	opData, err := op.MarshalBlock()
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
@@ -15,24 +16,39 @@ import (
 // SDKObjectState implements world.ObjectState over SRPC by delegating to
 // ObjectStateResourceService calls on a remote resource.
 type SDKObjectState struct {
-	client    ResourceClient
-	ref       resource_client.ResourceRef
-	service   s4wave_world.SRPCObjectStateResourceServiceClient
+	// client creates references to resources returned by the service.
+	client ResourceClient
+	// ref retains the remote object state.
+	ref resource_client.ResourceRef
+	// service accesses the remote object state.
+	service s4wave_world.SRPCObjectStateResourceServiceClient
+	// objectKey identifies the object addressed by this handle.
 	objectKey string
+	// readOnly is the containing World state's transaction mode.
+	readOnly bool
 }
 
-// NewSDKObjectState creates a new SDKObjectState wrapping a resource reference.
-func NewSDKObjectState(client ResourceClient, ref resource_client.ResourceRef, objectKey string) (*SDKObjectState, error) {
+// NewSDKObjectState wraps an object resource with its containing World's read-only mode.
+func NewSDKObjectState(client ResourceClient, ref resource_client.ResourceRef, objectKey string, readOnly bool) (*SDKObjectState, error) {
+	// Acquire the remote object state client.
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the resource, object key, and transaction mode.
 	return &SDKObjectState{
 		client:    client,
 		ref:       ref,
 		service:   s4wave_world.NewSRPCObjectStateResourceServiceClient(srpcClient),
 		objectKey: objectKey,
+		readOnly:  readOnly,
 	}, nil
+}
+
+// GetReadOnly returns whether the containing World state is read-only.
+func (os *SDKObjectState) GetReadOnly() bool {
+	return os.readOnly
 }
 
 // Release releases the underlying resource reference.
@@ -58,6 +74,12 @@ func (os *SDKObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, ui
 // Increments the revision of the object if changed.
 // Returns revision just after the change was applied.
 func (os *SDKObjectState) SetRootRef(ctx context.Context, rootRef *bucket.ObjectRef) (uint64, error) {
+	// Preserve the read-only error identity before contacting the server.
+	if os.GetReadOnly() {
+		return 0, tx.ErrNotWrite
+	}
+
+	// Change the remote object root and return its revision.
 	resp, err := os.service.SetRootRef(ctx, &s4wave_world.SetRootRefRequest{RootRef: rootRef})
 	if err != nil {
 		return 0, err
@@ -77,6 +99,11 @@ func (os *SDKObjectState) AccessWorldState(ctx context.Context, ref *bucket.Obje
 // ApplyObjectOp applies a batch operation at the object level.
 // Returns rev, sysErr, err.
 func (os *SDKObjectState) ApplyObjectOp(ctx context.Context, op world.Operation, sender peer.ID) (uint64, bool, error) {
+	// Preserve the read-only error identity before encoding or sending the operation.
+	if os.GetReadOnly() {
+		return 0, false, tx.ErrNotWrite
+	}
+
 	// Encode the object operation for the resource service.
 	opData, err := op.MarshalBlock()
 	if err != nil {
@@ -101,6 +128,12 @@ func (os *SDKObjectState) ApplyObjectOp(ctx context.Context, op world.Operation,
 // IncrementRev increments the revision of the object.
 // Returns revision just after the change was applied.
 func (os *SDKObjectState) IncrementRev(ctx context.Context) (uint64, error) {
+	// Preserve the read-only error identity before contacting the server.
+	if os.GetReadOnly() {
+		return 0, tx.ErrNotWrite
+	}
+
+	// Increment the remote object revision.
 	resp, err := os.service.IncrementRev(ctx, &s4wave_world.IncrementRevRequest{})
 	if err != nil {
 		return 0, err
@@ -123,4 +156,5 @@ func (os *SDKObjectState) WaitRev(ctx context.Context, rev uint64, ignoreNotFoun
 	return resp.Rev, nil
 }
 
+// _ is a type assertion.
 var _ world.ObjectState = (*SDKObjectState)(nil)

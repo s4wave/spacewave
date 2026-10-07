@@ -22,24 +22,17 @@ func (e *SDKEngine) StageWorldState(ctx context.Context) (world.WorldStage, erro
 	return newSDKStage(e.client, resp.GetResourceId())
 }
 
-// StageWorldState opens a remote stage on the World state. Releasing it
-// releases the stage resource.
-func (ws *SDKWorldState) StageWorldState(ctx context.Context) (world.WorldStage, error) {
-	resp, err := ws.service.StageWorldState(ctx, &s4wave_world.StageWorldStateRequest{})
-	if err != nil {
-		return nil, err
-	}
-	return newSDKStage(ws.client, resp.GetResourceId())
-}
-
 // newSDKStage wraps a stage resource, releasing it if construction fails.
 func newSDKStage(client ResourceClient, resourceID uint32) (*sdkStage, error) {
+	// Acquire the remote stage resource and its client.
 	ref := client.CreateResourceReference(resourceID)
 	srpcClient, err := ref.GetClient()
 	if err != nil {
 		ref.Release()
 		return nil, err
 	}
+
+	// Retain the stage client for storage access.
 	return &sdkStage{
 		client:  client,
 		ref:     ref,
@@ -49,8 +42,11 @@ func newSDKStage(client ResourceClient, resourceID uint32) (*sdkStage, error) {
 
 // sdkStage implements world.WorldStage over a remote stage resource.
 type sdkStage struct {
-	client  ResourceClient
-	ref     resource_client.ResourceRef
+	// client creates references to resources returned by the stage.
+	client ResourceClient
+	// ref retains the remote stage.
+	ref resource_client.ResourceRef
+	// service accesses the remote stage.
 	service s4wave_world.SRPCWorldStageResourceServiceClient
 }
 
@@ -92,5 +88,5 @@ func (s *sdkStage) Release() {
 	s.ref.Release()
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ world.WorldStage = (*sdkStage)(nil)
