@@ -1,0 +1,72 @@
+syntax = "proto3";
+package bldr.project.validate;
+
+import "github.com/s4wave/spacewave/bldr/plugin/compiler/js/compiler.proto";
+
+// Validation is the result of checking an untrusted Bldr project before any
+// of its code runs. The project may build only when refusals is empty.
+message Validation {
+  // Plugins are the JavaScript plugins the project declares, by manifest id.
+  repeated Plugin plugins = 1;
+  // Dependencies are the npm packages bun.lock pins, by name.
+  repeated Dependency dependencies = 2;
+  // Refusals are the reasons the project may not build.
+  repeated Refusal refusals = 3;
+}
+
+// Plugin is one JavaScript plugin manifest declared in bldr.star.
+message Plugin {
+  // ManifestId is the plugin's manifest id.
+  string manifest_id = 1;
+  // Description is the manifest's description.
+  string description = 2;
+  // Modules are the plugin's JavaScript modules.
+  repeated Module modules = 3;
+}
+
+// Module is one JavaScript module of a plugin.
+message Module {
+  // Kind is where the module runs.
+  .bldr.plugin.compiler.js.JsModuleKind kind = 1;
+  // Path is the module source file relative to the project root.
+  string path = 2;
+}
+
+// Dependency is one npm package pinned by bun.lock.
+message Dependency {
+  // Name is the package name.
+  string name = 1;
+  // Version is the locked version.
+  string version = 2;
+  // Direct is set when package.json names the package.
+  bool direct = 3;
+}
+
+// RefusalKind is the rule a refused project breaks.
+enum RefusalKind {
+  // REFUSAL_KIND_UNKNOWN is the zero value.
+  REFUSAL_KIND_UNKNOWN = 0;
+  // REFUSAL_KIND_CONFIG is project configuration the build would read but the
+  // validation cannot show or does not allow.
+  REFUSAL_KIND_CONFIG = 1;
+  // REFUSAL_KIND_GO_PLUGIN is a manifest built by a builder other than the
+  // JavaScript plugin compiler.
+  REFUSAL_KIND_GO_PLUGIN = 2;
+  // REFUSAL_KIND_VITE_CONFIG is a Vite or PostCSS configuration, which runs
+  // project code in the build.
+  REFUSAL_KIND_VITE_CONFIG = 3;
+  // REFUSAL_KIND_LIFECYCLE_SCRIPT is a package script or trusted dependency
+  // that would run during install.
+  REFUSAL_KIND_LIFECYCLE_SCRIPT = 4;
+  // REFUSAL_KIND_UNPINNED_DEPENDENCY is a dependency bun.lock does not pin by
+  // its content hash.
+  REFUSAL_KIND_UNPINNED_DEPENDENCY = 5;
+}
+
+// Refusal is one reason a project may not build.
+message Refusal {
+  // Kind is the rule the project breaks.
+  RefusalKind kind = 1;
+  // Reason explains the refusal to the person reviewing the project.
+  string reason = 2;
+}

@@ -3,6 +3,8 @@
 package bldr_project_starlark
 
 import (
+	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -26,10 +28,8 @@ type evaluator struct {
 	config      *bldr_project.ProjectConfig
 	loadedFiles []string
 
-	// projectDir is the directory containing the root .star file.
-	projectDir string
-	// vendorDir is the vendor/ directory for @go/ imports.
-	vendorDir string
+	// fsys is the project file system every load reads from.
+	fsys fs.FS
 	// moduleCache caches loaded modules by resolved path.
 	moduleCache map[string]*moduleEntry
 }
@@ -41,27 +41,49 @@ type moduleEntry struct {
 }
 
 // Evaluate evaluates a .star file and returns the resulting ProjectConfig.
-// The path is the filesystem path to the .star file.
+// The path is the filesystem path to the .star file. Loads resolve within the
+// directory containing it, and LoadedFiles holds absolute paths.
 func Evaluate(path string) (*Result, error) {
-	// Read the root Starlark project source.
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "read starlark file")
-	}
-
-	// Resolve the root Starlark file and its project directory.
+	// Confine every read to the directory containing the root file.
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve starlark file path")
 	}
-	projectDir := filepath.Dir(absPath)
+	root, err := os.OpenRoot(filepath.Dir(absPath))
+	if err != nil {
+		return nil, errors.Wrap(err, "open project directory")
+	}
+	defer root.Close()
+
+	// Evaluate the project and map its loaded files back to the host.
+	result, err := EvaluateFS(context.Background(), root.FS(), filepath.Base(absPath))
+	if err != nil {
+		return nil, err
+	}
+	for i, name := range result.LoadedFiles {
+		result.LoadedFiles[i] = filepath.Join(root.Name(), filepath.FromSlash(name))
+	}
+	return result, nil
+}
+
+// EvaluateFS evaluates the .star file name within fsys.
+//
+// Relative loads resolve within fsys and @go/ loads within its vendor
+// directory, so evaluation reads only fsys and has no other effect.
+// LoadedFiles holds slash paths relative to the root of fsys. Cancelling ctx
+// stops the evaluation.
+func EvaluateFS(ctx context.Context, fsys fs.FS, name string) (*Result, error) {
+	// Read the root Starlark project source.
+	data, err := fs.ReadFile(fsys, name)
+	if err != nil {
+		return nil, errors.Wrap(err, "read starlark file")
+	}
 
 	// Create the project evaluator and its module cache.
 	eval := &evaluator{
 		config:      &bldr_project.ProjectConfig{},
-		loadedFiles: []string{absPath},
-		projectDir:  projectDir,
-		vendorDir:   filepath.Join(projectDir, "vendor"),
+		loadedFiles: []string{name},
+		fsys:        fsys,
 		moduleCache: make(map[string]*moduleEntry),
 	}
 
@@ -93,6 +115,10 @@ func Evaluate(path string) (*Result, error) {
 		Name: "bldr",
 		Load: eval.load,
 	}
+	stop := context.AfterFunc(ctx, func() {
+		thread.Cancel(context.Cause(ctx).Error())
+	})
+	defer stop()
 
 	// Enable the supported Starlark syntax for the project source.
 	opts := &syntax.FileOptions{
@@ -107,7 +133,7 @@ func Evaluate(path string) (*Result, error) {
 	thread.SetLocal("predeclared", predeclared)
 
 	// Evaluate the project source and retain its configuration changes.
-	_, err = starlark.ExecFileOptions(opts, thread, absPath, data, predeclared)
+	_, err = starlark.ExecFileOptions(opts, thread, name, data, predeclared)
 	if err != nil {
 		return nil, errors.Wrap(err, "evaluate starlark file")
 	}

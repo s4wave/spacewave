@@ -271,7 +271,7 @@ project(id="test")
 	if err == nil {
 		t.Fatal("expected load symlink outside project root to fail")
 	}
-	if !strings.Contains(err.Error(), "path escapes project root") {
+	if !strings.Contains(err.Error(), "escapes") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
