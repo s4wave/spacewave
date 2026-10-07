@@ -6,9 +6,13 @@ import {
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 
-import { State } from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
+import {
+  State,
+  type Task,
+} from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
 import { watchTask } from '@s4wave/sdk/forge/task.js'
 import { Space } from '@s4wave/sdk/space/space.js'
+import type { ValidatePluginRepositoryResponse } from '@s4wave/sdk/space/space.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useWorldQuery } from '@s4wave/web/hooks/useWorldQuery.js'
@@ -20,31 +24,39 @@ import {
   readPluginRepositories,
   type PluginRepository,
 } from './plugin-repositories.js'
+import { PluginRepositorySheet } from './PluginRepositorySheet.js'
+
+// A build asks its Worker for this much capacity: one core and 2 GiB.
+const BUILD_MILLI_CPU = 1000n
+const BUILD_MEMORY_BYTES = 2n << 30n
 
 /**
  * PluginRepositoriesPage adds GitHub repositories to the account's developer
- * Space and checks them for newer commits. Each fetch runs as a Forge Job on a
- * Device of that Space; the list re-reads its commits on each World revision.
+ * Space, checks them for newer commits, and builds a reviewed commit. Each
+ * fetch and build runs as a Forge Job on a Device of that Space; the list
+ * re-reads its commits on each World revision.
  */
 export function PluginRepositoriesPage() {
   // Read the developer Space's Devices and repositories on each revision.
   const navigate = useNavigate()
-  const id = useId()
   const { spaceResource, worldResource } = useDeveloperSpace()
   const inventory = useWorldQuery(worldResource, readPluginRepositories, [])
   const devices = inventory.value?.devices ?? []
   const repositories = inventory.value?.repositories ?? []
 
-  // Fetch on the chosen Device, or the only one.
-  const [repository, setRepository] = useState('')
+  // Fetch and build on the chosen Device, or the only one.
   const [deviceKey, setDeviceKey] = useState('')
   const device = deviceKey || (devices[0] ?? '')
-  const { busy, message, fetchRepository } = usePluginRepositoryFetch(
+  const jobs = usePluginRepositoryJobs(
     spaceResource.value,
     worldResource,
     device,
   )
-  const canFetch = spaceResource.value != null && device !== '' && !busy
+  const canFetch = spaceResource.value != null && device !== '' && !jobs.busy
+
+  // Review a repository's checked-out commit before building it.
+  const review = usePluginRepositoryReview(spaceResource.value)
+  const message = review.error || jobs.message
   const loadError = spaceResource.error ?? inventory.error
 
   return (
@@ -85,37 +97,15 @@ export function PluginRepositoriesPage() {
             <DeviceSelect
               devices={devices}
               value={device}
-              disabled={busy}
+              disabled={jobs.busy}
               onChange={setDeviceKey}
             />
           )}
-          <form
-            className="space-y-1"
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (canFetch) void fetchRepository(repository.trim())
-            }}
-          >
-            <label htmlFor={`${id}-repository`} className="text-xs">
-              Add from GitHub
-            </label>
-            <div className="flex gap-2">
-              <Input
-                id={`${id}-repository`}
-                value={repository}
-                onChange={(event) => setRepository(event.target.value)}
-                placeholder="owner/repo"
-                disabled={busy}
-              />
-              <Button
-                type="submit"
-                size="sm"
-                disabled={!canFetch || repository.trim() === ''}
-              >
-                Add
-              </Button>
-            </div>
-          </form>
+          <AddRepositoryForm
+            disabled={!canFetch}
+            busy={jobs.busy}
+            onAdd={(repository) => void jobs.fetchRepository(repository)}
+          />
           {message && (
             <p role="status" className="text-foreground-alt text-xs">
               {message}
@@ -127,14 +117,22 @@ export function PluginRepositoriesPage() {
                 <PluginRepositoryRow
                   key={repo.name}
                   repository={repo}
-                  disabled={!canFetch}
-                  onCheck={() => void fetchRepository(repo.name)}
+                  disabled={!canFetch || review.pending}
+                  onCheck={() => void jobs.fetchRepository(repo.name)}
+                  onReview={() => void review.open(repo.name)}
                 />
               ))}
             </ul>
           )}
         </div>
       </div>
+      <ReviewSheet
+        review={review}
+        repositories={repositories}
+        device={device}
+        busy={!canFetch}
+        onBuild={(reviewed) => void jobs.buildRepository(reviewed)}
+      />
     </div>
   )
 }
@@ -165,79 +163,256 @@ function useDeveloperSpace() {
   return { spaceResource, worldResource }
 }
 
-// SubmittedFetch is the fetch Job whose Task the page watches.
-interface SubmittedFetch {
-  repository: string
-  taskKey: string
+/**
+ * ReviewSheet opens the review sheet for the reviewed repository and marks the
+ * review stale once the repository's pinned commit moves.
+ */
+function ReviewSheet({
+  review,
+  repositories,
+  device,
+  busy,
+  onBuild,
+}: {
+  review: ReturnType<typeof usePluginRepositoryReview>
+  repositories: PluginRepository[]
+  device: string
+  busy: boolean
+  onBuild: (review: Review) => void
+}) {
+  const reviewed = review.value
+  if (!reviewed) return null
+  const pinned = repositories.find((repo) => repo.name === reviewed.repository)
+
+  return (
+    <PluginRepositorySheet
+      repository={reviewed.repository}
+      review={reviewed.response}
+      device={device}
+      stale={pinned?.pinnedCommit !== reviewed.response.commit}
+      busy={busy}
+      onConfirm={() => {
+        onBuild(reviewed)
+        review.close()
+      }}
+      onClose={review.close}
+    />
+  )
 }
 
-/**
- * usePluginRepositoryFetch queues a clone, or a fetch of the newest commit
- * when the Space has the repository, and watches its Task until it completes.
- */
-function usePluginRepositoryFetch(
-  space: Space | null | undefined,
-  worldResource: Resource<IWorldState>,
-  deviceKey: string,
-) {
-  // Watch the submitted fetch's Task until it completes.
-  const [submitted, setSubmitted] = useState<SubmittedFetch | null>(null)
+// Review is a repository's validated checked-out commit.
+interface Review {
+  repository: string
+  response: ValidatePluginRepositoryResponse
+}
+
+/** usePluginRepositoryReview validates a repository for the review sheet. */
+function usePluginRepositoryReview(space: Space | null | undefined) {
+  const [value, setValue] = useState<Review | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const status = useStreamingResource(
-    worldResource,
-    async function* (world, signal) {
-      if (submitted) yield* watchTask(world, submitted.taskKey, signal)
-    },
-    [submitted],
-  )
-  const task = status.loading ? undefined : status.value
-  const fetching =
-    submitted != null && task?.taskState !== State.TaskState_COMPLETE
 
-  // Queue the Job; the Task watch above reports its progress.
-  const fetchRepository = useCallback(
+  // Validate the checked-out commit and open the sheet with the result.
+  const open = useCallback(
     async (repository: string) => {
       if (!space) return
       setPending(true)
       setError('')
       try {
-        const response = await space.fetchPluginRepository({
-          repository,
-          deviceKey,
-        })
-        setSubmitted({ repository, taskKey: response.taskKey ?? '' })
+        const response = await space.validatePluginRepository({ repository })
+        setValue({ repository, response })
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : String(cause))
       } finally {
         setPending(false)
       }
     },
-    [space, deviceKey],
+    [space],
+  )
+  const close = useCallback(() => setValue(null), [])
+
+  return { value, pending, error, open, close }
+}
+
+// Submitted is the queued Jobs' Tasks the page watches, in order.
+interface Submitted {
+  action: 'fetch' | 'build'
+  repository: string
+  taskKeys: string[]
+}
+
+// WatchedTask is the newest state of one submitted Task.
+interface WatchedTask {
+  task: Task
+  last: boolean
+}
+
+/**
+ * usePluginRepositoryJobs queues a clone, a fetch of the newest commit, or the
+ * builds of a reviewed commit, and watches their Tasks until they complete.
+ */
+function usePluginRepositoryJobs(
+  space: Space | null | undefined,
+  worldResource: Resource<IWorldState>,
+  deviceKey: string,
+) {
+  // Watch the submitted Tasks in order until one fails or all complete.
+  const [submitted, setSubmitted] = useState<Submitted | null>(null)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  const status = useStreamingResource(
+    worldResource,
+    async function* (world, signal) {
+      if (submitted) yield* watchTasks(world, submitted.taskKeys, signal)
+    },
+    [submitted],
+  )
+  const watched = status.loading ? undefined : status.value
+  const complete = watched?.task.taskState === State.TaskState_COMPLETE
+  const failError = complete ? watched?.task.result?.failError : undefined
+  const running =
+    submitted != null && !(complete && (watched?.last || failError))
+
+  // Queue Jobs through submit; the Task watch above reports their progress.
+  const submit = useCallback(
+    async (
+      action: Submitted['action'],
+      repository: string,
+      queue: (space: Space) => Promise<string[]>,
+    ) => {
+      if (!space) return
+      setPending(true)
+      setError('')
+      try {
+        setSubmitted({ action, repository, taskKeys: await queue(space) })
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : String(cause))
+      } finally {
+        setPending(false)
+      }
+    },
+    [space],
+  )
+
+  // Fetch the repository's newest commit, or clone it on first add.
+  const fetchRepository = useCallback(
+    (repository: string) =>
+      submit('fetch', repository, async (space) => {
+        const response = await space.fetchPluginRepository({
+          repository,
+          deviceKey,
+        })
+        return [response.taskKey ?? '']
+      }),
+    [submit, deviceKey],
+  )
+
+  // Build each plugin of the reviewed commit.
+  const buildRepository = useCallback(
+    ({ repository, response }: Review) =>
+      submit('build', repository, (space) =>
+        Promise.all(
+          (response.validation?.plugins ?? []).map(async (plugin) => {
+            const build = await space.buildSpacePlugin({
+              sourceKey: response.sourceKey,
+              commit: response.commit,
+              manifestId: plugin.manifestId,
+              deviceKey,
+              milliCpu: BUILD_MILLI_CPU,
+              memoryBytes: BUILD_MEMORY_BYTES,
+            })
+            return build.taskKey ?? ''
+          }),
+        ),
+      ),
+    [submit, deviceKey],
   )
 
   return {
-    busy: pending || fetching,
-    message: error || fetchMessage(submitted, fetching, task?.result),
+    busy: pending || running,
+    message:
+      error || jobMessage(submitted, running, failError, complete && !running),
     fetchRepository,
+    buildRepository,
   }
 }
 
-/** fetchMessage describes the submitted fetch's progress or result. */
-function fetchMessage(
-  submitted: SubmittedFetch | null,
-  fetching: boolean,
-  result: { success?: boolean; failError?: string } | undefined,
+/** watchTasks follows each Task to completion and stops at a failure. */
+async function* watchTasks(
+  world: IWorldState,
+  taskKeys: string[],
+  signal: AbortSignal,
+): AsyncGenerator<WatchedTask> {
+  for (const [index, key] of taskKeys.entries()) {
+    const last = index === taskKeys.length - 1
+    let task: Task | undefined
+    for await (task of watchTask(world, key, signal)) yield { task, last }
+    if (task?.result?.failError) return
+  }
+}
+
+/** jobMessage describes the submitted Jobs' progress or result. */
+function jobMessage(
+  submitted: Submitted | null,
+  running: boolean,
+  failError: string | undefined,
+  succeeded: boolean,
 ): string {
-  // Prefer progress over a stale result while the Task runs.
+  // Prefer progress over a stale result while a Task runs.
   if (!submitted) return ''
-  if (fetching) return `Fetching ${submitted.repository} on your device.`
-  if (result?.failError) return result.failError
-  if (result?.success) return `Fetched ${submitted.repository}.`
+  const { action, repository } = submitted
+  if (running) {
+    const verb = action === 'fetch' ? 'Fetching' : 'Building'
+    return `${verb} ${repository} on your device.`
+  }
+  if (failError) return failError
+  if (succeeded)
+    return `${action === 'fetch' ? 'Fetched' : 'Built'} ${repository}.`
   return ''
 }
 
-/** DeviceSelect picks the Device that runs the fetch. */
+/** AddRepositoryForm takes the owner/repo of a repository to add. */
+function AddRepositoryForm({
+  disabled,
+  busy,
+  onAdd,
+}: {
+  disabled: boolean
+  busy: boolean
+  onAdd: (repository: string) => void
+}) {
+  const id = useId()
+  const [repository, setRepository] = useState('')
+  const trimmed = repository.trim()
+
+  return (
+    <form
+      className="space-y-1"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (!disabled && trimmed !== '') onAdd(trimmed)
+      }}
+    >
+      <label htmlFor={id} className="text-xs">
+        Add from GitHub
+      </label>
+      <div className="flex gap-2">
+        <Input
+          id={id}
+          value={repository}
+          onChange={(event) => setRepository(event.target.value)}
+          placeholder="owner/repo"
+          disabled={busy}
+        />
+        <Button type="submit" size="sm" disabled={disabled || trimmed === ''}>
+          Add
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+/** DeviceSelect picks the Device that runs fetches and builds. */
 function DeviceSelect({
   devices,
   value,
@@ -278,15 +453,20 @@ function shortCommit(hash: string): string {
   return hash.slice(0, 7)
 }
 
-/** PluginRepositoryRow shows one repository's pinned and fetched commits. */
+/**
+ * PluginRepositoryRow shows one repository's pinned and fetched commits, and
+ * offers a review of the pinned commit before it builds.
+ */
 function PluginRepositoryRow({
   repository,
   disabled,
   onCheck,
+  onReview,
 }: {
   repository: PluginRepository
   disabled: boolean
   onCheck: () => void
+  onReview: () => void
 }) {
   const { name, pinnedCommit, fetchedCommit } = repository
   const update = fetchedCommit !== '' && fetchedCommit !== pinnedCommit
@@ -305,6 +485,9 @@ function PluginRepositoryRow({
       </div>
       <Button size="sm" variant="ghost" disabled={disabled} onClick={onCheck}>
         Check for updates
+      </Button>
+      <Button size="sm" variant="ghost" disabled={disabled} onClick={onReview}>
+        Review
       </Button>
     </li>
   )

@@ -6,24 +6,27 @@ import { State } from '@go/github.com/s4wave/spacewave/forge/task/task.pb.js'
 import type { PluginRepositoryInventory } from './plugin-repositories.js'
 
 const mocks = vi.hoisted(() => ({
-  fetchPluginRepository: vi.fn(),
+  space: {
+    fetchPluginRepository: vi.fn(),
+    validatePluginRepository: vi.fn(),
+    buildSpacePlugin: vi.fn(),
+  },
   inventory: undefined as PluginRepositoryInventory | undefined,
-  task: undefined as
-    | { taskState?: number; result?: { success?: boolean } }
+  watched: undefined as
+    | {
+        task: { taskState?: number; result?: { success?: boolean } }
+        last: boolean
+      }
     | undefined,
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
-  useResource: () => ({
-    value: { fetchPluginRepository: mocks.fetchPluginRepository },
-    loading: false,
-    error: null,
-  }),
+  useResource: () => ({ value: mocks.space, loading: false, error: null }),
 }))
 
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   useStreamingResource: () => ({
-    value: mocks.task,
+    value: mocks.watched,
     loading: false,
     error: null,
   }),
@@ -52,10 +55,13 @@ const newer = 'bbbbbbb2222222222222222222222222222222222'
 
 describe('PluginRepositoriesPage', () => {
   beforeEach(() => {
-    mocks.fetchPluginRepository.mockReset()
-    mocks.fetchPluginRepository.mockResolvedValue({ taskKey: 'fetch/task' })
+    for (const mock of Object.values(mocks.space)) mock.mockReset()
+    mocks.space.fetchPluginRepository.mockResolvedValue({
+      taskKey: 'fetch/task',
+    })
+    mocks.space.buildSpacePlugin.mockResolvedValue({ taskKey: 'build/task' })
     mocks.inventory = { devices: ['devices/laptop'], repositories: [] }
-    mocks.task = undefined
+    mocks.watched = undefined
   })
   afterEach(cleanup)
 
@@ -88,15 +94,15 @@ describe('PluginRepositoriesPage', () => {
     expect(
       await screen.findByText('Fetching s4wave/spreadsheet on your device.'),
     ).toBeDefined()
-    expect(mocks.fetchPluginRepository).toHaveBeenCalledWith({
+    expect(mocks.space.fetchPluginRepository).toHaveBeenCalledWith({
       repository: 's4wave/spreadsheet',
       deviceKey: 'devices/laptop',
     })
 
     // The completed Task replaces the progress line.
-    mocks.task = {
-      taskState: State.TaskState_COMPLETE,
-      result: { success: true },
+    mocks.watched = {
+      task: { taskState: State.TaskState_COMPLETE, result: { success: true } },
+      last: true,
     }
     rerender(<PluginRepositoriesPage />)
     expect(screen.getByText('Fetched s4wave/spreadsheet.')).toBeDefined()
@@ -121,9 +127,46 @@ describe('PluginRepositoriesPage', () => {
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Check for updates' })[1],
     )
-    expect(mocks.fetchPluginRepository).toHaveBeenCalledWith({
+    expect(mocks.space.fetchPluginRepository).toHaveBeenCalledWith({
       repository: 's4wave/stale',
       deviceKey: 'devices/laptop',
+    })
+  })
+
+  it('reviews the pinned commit and builds it on confirm', async () => {
+    // Render one repository whose pinned commit validates.
+    mocks.inventory = {
+      devices: ['devices/laptop'],
+      repositories: [
+        { name: 's4wave/colors', pinnedCommit: pinned, fetchedCommit: pinned },
+      ],
+    }
+    mocks.space.validatePluginRepository.mockResolvedValue({
+      commit: pinned,
+      sourceKey: 'plugin-repos/s4wave/colors/workdir',
+      validation: { plugins: [{ manifestId: 'colors' }] },
+    })
+    render(<PluginRepositoriesPage />)
+
+    // Reviewing validates the repository and opens the sheet.
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }))
+    expect(await screen.findByText('Review s4wave/colors')).toBeDefined()
+    expect(mocks.space.validatePluginRepository).toHaveBeenCalledWith({
+      repository: 's4wave/colors',
+    })
+
+    // Confirming builds the reviewed commit on the Device.
+    fireEvent.click(screen.getByRole('button', { name: 'Build' }))
+    expect(
+      await screen.findByText('Building s4wave/colors on your device.'),
+    ).toBeDefined()
+    expect(mocks.space.buildSpacePlugin).toHaveBeenCalledWith({
+      sourceKey: 'plugin-repos/s4wave/colors/workdir',
+      commit: pinned,
+      manifestId: 'colors',
+      deviceKey: 'devices/laptop',
+      milliCpu: 1000n,
+      memoryBytes: 2n << 30n,
     })
   })
 })
