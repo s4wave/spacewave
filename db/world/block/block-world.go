@@ -23,7 +23,7 @@ func (w *World) DecodedBlockCacheTypeKey() string {
 }
 
 // UnmarshalWorld unmarshals a world block from a cursor.
-// If empty, returns nil, nil
+// Returns nil, nil if the cursor is empty.
 func UnmarshalWorld(ctx context.Context, bcs *block.Cursor) (*World, error) {
 	return block.UnmarshalBlock[*World](ctx, bcs, NewWorldBlock)
 }
@@ -38,6 +38,30 @@ func (w *World) MarshalBlock() ([]byte, error) {
 // This is the final step of decoding, after transformations.
 func (w *World) UnmarshalBlock(data []byte) error {
 	return w.UnmarshalVT(data)
+}
+
+// ApplyBlockRef applies a ref change with a field id.
+// The reference may be nil if the child block is nil.
+func (w *World) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
+	if id == 7 {
+		w.PrevChanges = ptr
+	}
+	return nil
+}
+
+// GetBlockRefs returns all block references by ID.
+// Values may be nil. Pending references in a cursor are not included.
+func (w *World) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	return map[uint32]*block.BlockRef{7: w.GetPrevChanges()}, nil
+}
+
+// GetBlockRefCtor returns the constructor for the block at the ref id.
+// Return nil to indicate invalid ref ID or unknown.
+func (w *World) GetBlockRefCtor(id uint32) block.Ctor {
+	if id == 7 {
+		return NewChangeLogLLBlock
+	}
+	return nil
 }
 
 // ApplySubBlock applies a sub-block change with a field id.
@@ -103,5 +127,6 @@ func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 var (
 	_ block.Block                 = (*World)(nil)
 	_ block.DecodedBlockCacheable = (*World)(nil)
+	_ block.BlockWithRefs         = (*World)(nil)
 	_ block.BlockWithSubBlocks    = (*World)(nil)
 )

@@ -207,13 +207,14 @@ export const WorldChangeLL: MessageType<WorldChangeLL> =
 export interface ChangeLogLL {
   /**
    * Seqno is the world sequence number after this changeset is applied.
+   * An entry without a change batch marks where the history starts.
    *
    * @generated from field: uint64 seqno = 1;
    */
   seqno?: bigint
   /**
-   * PrevRef is the reference to the previous change.
-   * If seqno <= 1, this must be empty.
+   * PrevRef is the reference to the previous change in the segment.
+   * Empty on the first entry of a segment.
    *
    * @generated from field: block.BlockRef prev_ref = 2;
    */
@@ -262,8 +263,8 @@ export const ChangeLogLL: MessageType<ChangeLogLL> =
 
 /**
  * World contains a key/value Object store, and a graph database with quads
- * <subject, predicate, object, value>. Optionally a 2D changelog is used for
- * efficient change detection without needing to download every change.
+ * <subject, predicate, object, value>. Optionally a bounded 2D changelog
+ * records recent changes for change detection without downloading every change.
  *
  * @generated from message world.block.World
  */
@@ -285,7 +286,7 @@ export interface World {
    */
   graphKeyValue?: KeyValueStore
   /**
-   * LastChange is the current head of the changelog linked list.
+   * LastChange is the head of the current changelog segment.
    * If seqno == 0, this field is empty.
    *
    * @generated from field: world.block.ChangeLogLL last_change = 3;
@@ -299,6 +300,14 @@ export interface World {
    * @generated from field: bool last_change_disable = 4;
    */
   lastChangeDisable?: boolean
+  /**
+   * PrevChanges is the head of the previous changelog segment.
+   * Each segment holds ChangeLogSegmentLen entries. Starting a new segment
+   * replaces this field, so the World retains between one and two segments.
+   *
+   * @generated from field: block.BlockRef prev_changes = 7;
+   */
+  prevChanges?: BlockRef
 }
 
 export const World: MessageType<World> = /* @__PURE__ */ createMessageType({
@@ -313,6 +322,7 @@ export const World: MessageType<World> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'graph_key_value', kind: 'message', T: () => KeyValueStore },
     { no: 3, name: 'last_change', kind: 'message', T: ChangeLogLL },
     { no: 4, name: 'last_change_disable', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 7, name: 'prev_changes', kind: 'message', T: () => BlockRef },
   ] satisfies readonly PartialFieldInfo[],
 })
 

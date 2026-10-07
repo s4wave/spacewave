@@ -12,8 +12,14 @@ const (
 	minChangeLogLLBloomCapacity = 64
 	maxChangeLogLLBloomCapacity = 500000
 
+	// HeadChangeCountLimit is the most changes stored inline in an entry.
 	HeadChangeCountLimit = 5
+	// NodeChangeCountLimit is the most changes in one linked-list node.
 	NodeChangeCountLimit = 2048
+
+	// ChangeLogSegmentLen is the number of entries in a changelog segment.
+	// The entry with seqno%ChangeLogSegmentLen == 1 starts a new segment.
+	ChangeLogSegmentLen = 1024
 )
 
 // NewChangeLogLLBlock constructs a new ChangeLogLL block.
@@ -26,24 +32,25 @@ func NewChangeLogLLSubBlockCtor(r **ChangeLogLL) block.SubBlockCtor {
 	return block.NewSubBlockCtor(r, func() *ChangeLogLL { return &ChangeLogLL{} })
 }
 
-// UnmarshalChangeLogLL unmarshals a world change ll from a cursor.
-// If empty, returns nil, nil
+// UnmarshalChangeLogLL unmarshals a changelog entry from a cursor.
+// Returns nil, nil if the cursor is empty.
 func UnmarshalChangeLogLL(ctx context.Context, bcs *block.Cursor) (*ChangeLogLL, error) {
 	return block.UnmarshalBlock[*ChangeLogLL](ctx, bcs, NewChangeLogLLBlock)
 }
 
-// AppendChangeLogLL appends world changes to the ChangeLogLL, respecting the
-// given limits for most recent (HEAD) and linked-list node change counts.
-// nextBcs should point to the location to write the HEAD WorldChangeLL.
-// prevBcs should point to the previous *WorldChangeLL.
-// prevBcs can be nil to indicate a brand-new linked list.
-// if prevBcs is a sub-block, it will be detached before it is referenced
-// prevBcs and nextBcs can be the same block cursor, if both are sub-block
-// all world changes must have the same change type
-// Returns the latest HEAD block and sets it into nextBcs.
+// AppendChangeLogLL appends world changes as the changelog entry at seqno,
+// respecting HeadChangeCountLimit and NodeChangeCountLimit.
+//
+// nextBcs is where the new entry is written. prevBcs is the previous entry in
+// the segment, or nil to start a new segment. A sub-block prevBcs is detached
+// before it is referenced, so prevBcs and nextBcs may be the same cursor. All
+// changes must have the same change type.
+//
+// Returns the new entry, which is also set into nextBcs.
 func AppendChangeLogLL(
 	ctx context.Context,
 	storeKeyCount uint64,
+	seqno uint64,
 	nextBcs *block.Cursor,
 	prevBcs *block.Cursor,
 	worldChangesBcs []*block.Cursor,
@@ -53,20 +60,9 @@ func AppendChangeLogLL(
 		return nil, world.ErrEmptyChange
 	}
 
-	// Load the previous changelog node when one was given.
-	var prevChangeLogLL *ChangeLogLL
-	var err error
-	if prevBcs != nil {
-		if prevBcs.IsSubBlock() {
-			// cannot blockref to a sub-block
-			// detach prevBcs, maintaining refs
-			prevBcs = prevBcs.Detach(true)
-		}
-		// unmarshal previous block
-		prevChangeLogLL, err = UnmarshalChangeLogLL(ctx, prevBcs)
-		if err != nil {
-			return nil, err
-		}
+	// Detach a sub-block previous entry, which a block ref cannot target.
+	if prevBcs != nil && prevBcs.IsSubBlock() {
+		prevBcs = prevBcs.Detach(true)
 	}
 
 	// Start the next changelog node from the first change and link the previous node.
@@ -75,13 +71,13 @@ func AppendChangeLogLL(
 		return nil, err
 	}
 	cll := &ChangeLogLL{
-		Seqno: prevChangeLogLL.GetSeqno() + 1,
+		Seqno: seqno,
 		// all in the changelog node must be of same type
 		ChangeType: firstChange.GetChangeType(),
 	}
 	nextBcs.ClearAllRefs()
 	nextBcs.SetBlock(cll, true)
-	if !prevChangeLogLL.IsEmpty() {
+	if prevBcs != nil {
 		nextBcs.SetRef(2, prevBcs)
 	}
 
@@ -196,8 +192,7 @@ func (w *ChangeLogLL) ApplyBlockRef(id uint32, ptr *block.BlockRef) error {
 }
 
 // GetBlockRefs returns all block references by ID.
-// May return nil, and values may also be nil.
-// Note: this does not include pending references (in a cursor)
+// Values may be nil. Pending references in a cursor are not included.
 func (w *ChangeLogLL) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
 	m := make(map[uint32]*block.BlockRef, 4)
 	m[2] = w.GetPrevRef()

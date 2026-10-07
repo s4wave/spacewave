@@ -18,14 +18,6 @@ type ChangeLogReadOptions struct {
 	AfterSeqno uint64
 }
 
-// ChangeLogEntry is one linked-list entry plus its expanded change batch.
-type ChangeLogEntry struct {
-	Seqno      uint64
-	ChangeType WorldChangeType
-	TotalSize  uint32
-	Changes    []*WorldChange
-}
-
 // ReadChangeLogEntries reads recent changelog entries from a World storage accessor.
 func ReadChangeLogEntries(
 	ctx context.Context,
@@ -42,7 +34,9 @@ func ReadChangeLogEntries(
 	return entries, err
 }
 
-// ReadChangeLogEntriesFromCursor reads recent changelog entries from a cursor at the World root.
+// ReadChangeLogEntriesFromCursor reads recent changelog entries from a cursor
+// at the World root, newest first. It walks the current segment, then the
+// previous one, and stops at the limit, the cursor, or the oldest retained entry.
 func ReadChangeLogEntriesFromCursor(
 	ctx context.Context,
 	rootBcs *block.Cursor,
@@ -57,11 +51,9 @@ func ReadChangeLogEntriesFromCursor(
 	// Walk changelog nodes and collect entries until the limit or cursor.
 	entryBcs := rootBcs.FollowSubBlock(3)
 	entry := worldRoot.GetLastChange()
+	prevSegment := worldRoot.GetPrevChanges()
 	entries := make([]*ChangeLogEntry, 0)
-	for entry != nil && entry.GetSeqno() != 0 {
-		if opts.AfterSeqno != 0 && entry.GetSeqno() <= opts.AfterSeqno {
-			break
-		}
+	for entry.GetSeqno() > opts.AfterSeqno {
 		changes, err := readWorldChangeBatch(ctx, entryBcs.FollowSubBlock(3), entry.GetChangeBatch())
 		if err != nil {
 			return nil, err
@@ -75,10 +67,17 @@ func ReadChangeLogEntriesFromCursor(
 		if opts.Limit != 0 && uint64(len(entries)) >= opts.Limit {
 			break
 		}
-		if entry.GetPrevRef().GetEmpty() {
-			break
+
+		// Step to the previous entry, crossing into the previous segment once.
+		switch {
+		case !entry.GetPrevRef().GetEmpty():
+			entryBcs = entryBcs.FollowRef(2, entry.GetPrevRef())
+		case !prevSegment.GetEmpty():
+			entryBcs = rootBcs.FollowRef(7, prevSegment)
+			prevSegment = nil
+		default:
+			return entries, nil
 		}
-		entryBcs = entryBcs.FollowRef(2, entry.GetPrevRef())
 		entry, err = UnmarshalChangeLogLL(ctx, entryBcs)
 		if err != nil {
 			return nil, err

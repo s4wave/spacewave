@@ -69,32 +69,26 @@ func (t *WorldState) flushWorldChanges(ctx context.Context, w *World) error {
 	queue := t.pendingChanges
 	t.pendingChanges = nil
 
-	// Advance a disabled changelog, or follow the last-change block.
+	// Advance a disabled changelog's seqno without recording entries.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/world-state/flush-world-changes/get-root")
 	r, err := t.GetRoot(taskCtx)
 	subtask.End()
 	if err != nil {
 		return err
 	}
-	if r.LastChange == nil {
-		r.LastChange = &ChangeLogLL{}
-	}
-	lastChangeBcs := t.bcs.FollowSubBlock(3)
 	if r.GetLastChangeDisable() {
+		if r.LastChange == nil {
+			r.LastChange = &ChangeLogLL{}
+		}
 		r.LastChange.Seqno += uint64(len(queue))
-		lastChangeBcs.SetBlock(r.LastChange, true)
+		t.bcs.FollowSubBlock(3).SetBlock(r.LastChange, true)
 		return nil
 	}
 
 	// Walk the pending change queue.
 	i := 0
 	for i < len(queue) {
-		chi := queue[i]
-		if chi == nil {
-			continue
-		}
-
-		chiWc, err := UnmarshalWorldChange(ctx, chi)
+		chiWc, err := UnmarshalWorldChange(ctx, queue[i])
 		if err != nil {
 			return err
 		}
@@ -150,9 +144,22 @@ func (t *WorldState) appendChangelogEntry(ctx context.Context, w *World, changes
 		return nil, err
 	}
 
+	// Seal the segment when this entry starts a new one. The World keeps the
+	// sealed head as the previous segment and drops the segment before it.
+	lastChange := w.GetLastChange()
+	seqno := lastChange.GetSeqno() + 1
+	prevBcs := lastChangeBcs
+	switch {
+	case lastChange.IsEmpty():
+		prevBcs = nil
+	case seqno%ChangeLogSegmentLen == 1:
+		t.bcs.SetRef(7, lastChangeBcs.Detach(true))
+		prevBcs = nil
+	}
+
 	// Append the changelog node and store it as the last change.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/append-changelog-entry/append-change-log")
-	lc, err := AppendChangeLogLL(taskCtx, objSize, lastChangeBcs, lastChangeBcs, changesBcs)
+	lc, err := AppendChangeLogLL(taskCtx, objSize, seqno, lastChangeBcs, prevBcs, changesBcs)
 	subtask.End()
 	if err != nil {
 		return nil, err
