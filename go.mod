@@ -26,7 +26,7 @@ require (
 	github.com/aperturerobotics/cayley v0.15.1-0.20261007032215-e2ce40d887f3 // master
 	github.com/aperturerobotics/cli v1.1.1-0.20261004095549-d4875ce31004 // master
 	github.com/aperturerobotics/common v0.35.5-0.20261006081939-817dcebc778f // master
-	github.com/aperturerobotics/controllerbus v0.53.6-0.20261006090449-629971629b36 // master
+	github.com/aperturerobotics/controllerbus v0.53.6-0.20261007184646-7a3ab3aea145 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260929192932-26bdf6cab5b3
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
