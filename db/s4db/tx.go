@@ -3,6 +3,7 @@ package s4db
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/tidwall/btree"
@@ -85,31 +86,68 @@ func (t *Tx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
 	return data, true, nil
 }
 
+// GetBatch reads keys in index order and returns owned values in caller order.
+// Ordering keeps each leaf hot until every requested key in it has been read.
+func (t *Tx) GetBatch(ctx context.Context, keys [][]byte) ([][]byte, []bool, error) {
+	// Validate the batch and retain the caller's result positions.
+	order := make([]int, len(keys))
+	for i, key := range keys {
+		if len(key) == 0 {
+			return nil, nil, kvtx.ErrEmptyKey
+		}
+		order[i] = i
+	}
+	slices.SortFunc(order, func(i, j int) int { return bytes.Compare(keys[i], keys[j]) })
+
+	// Read adjacent index keys together without changing the caller's slices.
+	values := make([][]byte, len(keys))
+	found := make([]bool, len(keys))
+	for _, i := range order {
+		if err := ctx.Err(); err != nil {
+			return nil, nil, err
+		}
+		var err error
+		values[i], found[i], err = t.Get(ctx, keys[i])
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return values, found, nil
+}
+
 // Exists reports whether key is present.
 func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
+	// Require an active transaction and a nonempty key.
 	switch {
 	case t.done:
 		return false, kvtx.ErrDiscarded
 	case len(key) == 0:
 		return false, kvtx.ErrEmptyKey
 	}
+
+	// Let a buffered change decide presence before reading the snapshot.
 	if t.changes != nil {
 		if c, ok := t.changes.Get(tentry{key: key}); ok {
 			return !c.del, nil
 		}
 	}
+
+	// Test presence in the pinned snapshot.
 	_, found, err := t.db.lookup(t.st, key)
 	return found, err
 }
 
 // Set buffers a write of key.
 func (t *Tx) Set(ctx context.Context, key, value []byte) error {
+	// Validate the transaction, key, and value before retaining the write.
 	if err := t.writable(key); err != nil {
 		return err
 	}
 	if int64(len(value)) > MaxValueSize {
 		return ErrValueTooLarge
 	}
+
+	// Retain independent bytes until the transaction commits or discards.
 	t.changes.Set(tentry{key: bytes.Clone(key), data: bytes.Clone(value)})
 	return nil
 }
@@ -140,8 +178,11 @@ func (t *Tx) writable(key []byte) error {
 
 // ScanPrefix calls cb with each key and value under prefix in key order.
 func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
+	// Hold an iterator over the snapshot and buffered changes.
 	it := t.Iterate(ctx, prefix, true, false)
 	defer it.Close()
+
+	// Deliver the prefix's key and value pairs in index order.
 	for it.Next() {
 		v, err := it.Value()
 		if err != nil {
@@ -156,8 +197,11 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 
 // ScanPrefixKeys calls cb with each key under prefix in key order.
 func (t *Tx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	// Hold an iterator over the snapshot and buffered changes.
 	it := t.Iterate(ctx, prefix, true, false)
 	defer it.Close()
+
+	// Deliver the prefix's keys in index order.
 	for it.Next() {
 		if err := cb(it.Key()); err != nil {
 			return err
@@ -230,9 +274,12 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 
 // Discard ends the transaction without writing.
 func (t *Tx) Discard() {
+	// Leave an already finished transaction alone.
 	if t.done {
 		return
 	}
+
+	// Release the snapshot and any writer lock without publishing changes.
 	t.done = true
 	t.db.release(t.st, t.stripe)
 	if t.changes != nil {
@@ -241,4 +288,7 @@ func (t *Tx) Discard() {
 }
 
 // _ is a type assertion
-var _ kvtx.OrderedCommitTx = (*Tx)(nil)
+var (
+	_ kvtx.OrderedCommitTx = (*Tx)(nil)
+	_ kvtx.BatchTxOps      = (*Tx)(nil)
+)
