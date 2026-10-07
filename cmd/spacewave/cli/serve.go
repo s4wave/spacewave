@@ -36,6 +36,7 @@ import (
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	flowgraph_nodetype "github.com/s4wave/spacewave/sdk/flowgraph/nodetype"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
 
@@ -315,6 +316,8 @@ func runServeCommand(
 		}
 		defer hostRef.Release()
 	}
+
+	// Give the host root the policy the daemon enforces.
 	nativeHostRoot.SetDevicePolicySource(&devicePolicyHostSource{store: devicePolicy, statePath: resolved})
 	if nativeCore {
 		// Native core reaches the same host Resource service on its local bus.
@@ -337,9 +340,21 @@ func runServeCommand(
 		}
 		defer releaseHost()
 	}
+
+	// Project the daemon's Device state into the Space.
 	startLocalSessionKeeper(serveCtx, le, resolved, invoker)
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
+
+	// Serve the core Flowgraph node types and run the nodes placed here.
+	releaseFlowgraphNodeTypes, err := cliBus.GetBus().AddController(serveCtx, flowgraph_nodetype.NewController(), nil)
+	if err != nil {
+		return err
+	}
+	defer releaseFlowgraphNodeTypes()
+	startFlowgraphReconciler(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
+
+	// Serve remote shells under the Device policy.
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
 

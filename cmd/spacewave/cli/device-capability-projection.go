@@ -106,34 +106,17 @@ func projectDevicePolicyWhenReadable(
 	client *sdkClient,
 	policy *device_policy.DevicePolicy,
 ) error {
-	// Resolve the Device this daemon set up.
+	// Resolve the Device this daemon set up and hold its Space and World engine
+	// across every attempt.
 	record, ok, err := deviceLauncherProjectionTarget(statePath)
 	if err != nil || !ok {
 		return err
 	}
-	spaceID, err := decodeDeviceResourceID(record.ResourceID)
+	engine, release, err := mountDeviceWorld(ctx, client, record)
 	if err != nil {
 		return err
 	}
-
-	// Mount the session that owns the Space.
-	sess, err := client.mountSession(ctx, record.SessionIndex)
-	if err != nil {
-		return err
-	}
-	defer sess.Release()
-
-	// Hold the Space and its World engine across every attempt.
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		return err
-	}
-	defer spaceCleanup()
-	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
-	if err != nil {
-		return err
-	}
-	defer engineCleanup()
+	defer release()
 
 	// Retry after each World change until the projection commits.
 	for {
@@ -241,7 +224,10 @@ func computeDevicePolicyCapabilities(
 	existing []*s4wave_device.DeviceCapability,
 ) []*s4wave_device.DeviceCapability {
 	// Build capabilities from the policy, keeping existing capability state.
+	// Flowgraph node capabilities belong to the Flowgraph reconciler, so they
+	// stay last in their existing order.
 	existingByID := make(map[string]*s4wave_device.DeviceCapability, len(existing))
+	var nodes []*s4wave_device.DeviceCapability
 	out := make([]*s4wave_device.DeviceCapability, 0, len(existing)+len(policy.GetCheckoutRoot())+1)
 	for _, cap := range existing {
 		if cap == nil {
@@ -249,10 +235,14 @@ func computeDevicePolicyCapabilities(
 		}
 		id := strings.TrimSpace(cap.GetId())
 		existingByID[id] = cap
-		if isDevicePolicyCapabilityID(id) {
-			continue
+		switch {
+		case isDevicePolicyCapabilityID(id):
+			// The policy recomputes its own capabilities below.
+		case cap.GetKind() == s4wave_device.DeviceCapabilityKindFlowgraphNode:
+			nodes = append(nodes, cap.CloneVT())
+		default:
+			out = append(out, cap.CloneVT())
 		}
-		out = append(out, cap.CloneVT())
 	}
 	if policy.GetRemoteShell().GetEnabled() {
 		out = append(out, computeRemoteShellCapability(policy, existingByID[devicePolicyRemoteShellCapabilityID]))
@@ -267,7 +257,7 @@ func computeDevicePolicyCapabilities(
 	if fw := policy.GetForgeWorker(); fw != nil {
 		out = append(out, computeForgeWorkerCapability(policy, fw, existingByID[devicePolicyForgeWorkerCapabilityID]))
 	}
-	return out
+	return append(out, nodes...)
 }
 
 // computeForgeWorkerCapability authors or refreshes the forge-worker

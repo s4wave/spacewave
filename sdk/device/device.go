@@ -16,6 +16,8 @@ const (
 	DeviceCapabilityKindFilesystem = "filesystem"
 	// DeviceCapabilityKindForgeWorker identifies Forge Worker execution exposed by a Device.
 	DeviceCapabilityKindForgeWorker = "forge-worker"
+	// DeviceCapabilityKindFlowgraphNode identifies a Flowgraph node placed on a Device.
+	DeviceCapabilityKindFlowgraphNode = "flowgraph-node"
 	// DeviceCapabilityKindTerminal identifies terminal access exposed by a Device.
 	DeviceCapabilityKindTerminal = "terminal"
 )

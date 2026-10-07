@@ -63,6 +63,9 @@ enum DeviceCapabilityState {
   DEVICE_CAPABILITY_STATE_AVAILABLE = 4;
   // DEVICE_CAPABILITY_STATE_ACTIVE means the capability currently has active work.
   DEVICE_CAPABILITY_STATE_ACTIVE = 5;
+  // DEVICE_CAPABILITY_STATE_REJECTED means the daemon declined or failed to run the
+  // capability; Detail carries the reason.
+  DEVICE_CAPABILITY_STATE_REJECTED = 6;
 }
 
 // DeviceCapabilityLocalState is the daemon-local allowlist state.

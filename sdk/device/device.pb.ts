@@ -210,6 +210,14 @@ export enum DeviceCapabilityState {
    * @generated from enum value: DEVICE_CAPABILITY_STATE_ACTIVE = 5;
    */
   ACTIVE = 5,
+
+  /**
+   * DEVICE_CAPABILITY_STATE_REJECTED means the daemon declined or failed to run the
+   * capability; Detail carries the reason.
+   *
+   * @generated from enum value: DEVICE_CAPABILITY_STATE_REJECTED = 6;
+   */
+  REJECTED = 6,
 }
 
 export const DeviceCapabilityState_Enum = /* @__PURE__ */ createEnumType(

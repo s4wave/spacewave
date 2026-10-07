@@ -262,6 +262,8 @@ function formatCapabilityState(state?: DeviceCapabilityState): string {
       return 'Available'
     case DeviceCapabilityState.ACTIVE:
       return 'Active'
+    case DeviceCapabilityState.REJECTED:
+      return 'Rejected'
     default:
       return 'Unknown'
   }
