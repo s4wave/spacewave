@@ -4,7 +4,6 @@ package device_flowgraph
 
 import (
 	"context"
-	"crypto/rand"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -13,11 +12,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
-	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -45,8 +44,7 @@ func TestReconciler(t *testing.T) {
 	// Seed this daemon's Device, another Device, and the Flowgraph.
 	tb := world_testbed.MustDefault(t, ctx)
 	engine := tb.Engine
-	selfKey, selfPeerID := newSessionKey(t)
-	selfPeer := selfPeerID.String()
+	selfKey, selfPeer := newSessionPeer(t)
 	otherPeer := newPeerID(t)
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		for key, peerID := range map[string]string{testSelfKey: selfPeer, testOtherKey: otherPeer} {
@@ -76,14 +74,15 @@ func TestReconciler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Serve the node types on the root bus and run the Device's Session
-	// transport, whose bus hosts the node controllers.
+	// Serve the node types on the root bus.
 	b := inmem.NewBus(directive_controller.NewController(ctx, le))
 	release, err := b.AddController(ctx, flowgraph_nodetype.NewController(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer release()
+
+	// Run the Device's Session transport, whose bus hosts the node controllers.
 	st, err := transport.NewSessionTransport(le, b, selfKey, "", "")
 	if err != nil {
 		t.Fatal(err)
@@ -201,28 +200,21 @@ func TestReconciler(t *testing.T) {
 	}
 }
 
-// newSessionKey returns a new Session key and its peer ID.
-func newSessionKey(t *testing.T) (crypto.PrivKey, peer.ID) {
+// newSessionPeer returns the private key and ID of a new peer.
+func newSessionPeer(t *testing.T) (crypto.PrivKey, string) {
 	t.Helper()
-	key, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	p, key, _, err := peer.NewPeerWithGenerateED25519()
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := peer.IDFromPrivateKey(key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return key, id
+	return key, p.GetPeerID().String()
 }
 
 // newPeerID returns the ID of a new peer.
 func newPeerID(t *testing.T) string {
 	t.Helper()
-	p, _, _, err := peer.NewPeerWithGenerateED25519()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return p.GetPeerID().String()
+	_, id := newSessionPeer(t)
+	return id
 }
 
 // commit applies fn in one committed write transaction.

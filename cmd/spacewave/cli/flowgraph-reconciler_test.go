@@ -103,7 +103,9 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 		return engine, func() {}, nil
 	}
 	runErr := make(chan error, 1)
-	go func() { runErr <- runFlowgraphReconciler(runCtx, le, statePath, b, mount, store, func() func() { return func() {} }) }()
+	go func() {
+		runErr <- runFlowgraphReconciler(runCtx, le, statePath, b, mount, store, func() func() { return func() {} })
+	}()
 
 	// Complete the setup and require the node to show on the Device.
 	if err := writeDeviceSetupRecord(statePath, &deviceSetupRecord{

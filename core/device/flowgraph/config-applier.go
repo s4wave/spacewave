@@ -217,9 +217,12 @@ func (s *appliedConfigSet) release() {
 // currentBus returns the bus of the running Session transport, or nil while none
 // runs.
 func (a *configApplier) currentBus() bus.Bus {
+	// Read the Session transport the watch last reported.
 	a.mtx.Lock()
 	session := a.session
 	a.mtx.Unlock()
+
+	// Report no bus while no transport runs.
 	if session == nil {
 		return nil
 	}

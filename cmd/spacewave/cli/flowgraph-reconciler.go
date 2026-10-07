@@ -45,9 +45,11 @@ func startFlowgraphReconciler(
 		}
 		defer client.close()
 
+		// Mount the Space holding the Device.
 		mount := func(ctx context.Context, record *deviceSetupRecord) (world.Engine, func(), error) {
 			return mountDeviceWorld(ctx, client, record)
 		}
+
 		// Keep the daemon alive while a node runs, since nodes serve with no
 		// client attached.
 		hold := func() func() { return idleTracker.serviceAttached("Flowgraph nodes") }
