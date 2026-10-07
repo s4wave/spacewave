@@ -10,6 +10,8 @@ import (
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
+	s4wave_appconnector_world "github.com/s4wave/spacewave/sdk/appconnector/world"
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
@@ -61,6 +63,8 @@ func BuiltInRegistry() (*Registry, error) {
 		NewSchemaRefusalHandler(s4wave_device.ComputersDashboardTypeID, ClassificationExternalRef, "device dashboard payload is external and not admitted for rewrite"),
 		NewSchemaHandler(s4wave_terminal.TerminalTypeID, ClassificationRewrite, true, false, false, false, false, inspectTerminal, rewriteTerminal),
 		NewSchemaHandler(s4wave_sshhost.SshHostTypeID, ClassificationRewrite, true, false, false, false, false, inspectSSHHost, rewriteSSHHost),
+		NewSchemaHandler(s4wave_appconnector.AppConnectorTypeID, ClassificationRewrite, true, false, false, false, false, inspectAppConnector, rewriteAppConnector),
+		NewSchemaHandler(s4wave_appconnector.AppSnapshotTypeID, ClassificationRewrite, false, false, false, false, false, inspectAppSnapshot, rewriteAppSnapshot),
 		NewSchemaRefusalHandler(s4wave_vm.VmV86TypeID, ClassificationNonMigratable, "V86 runtime state is non-migratable"),
 		NewSchemaRefusalHandler(s4wave_vm.V86ImageTypeID, ClassificationExternalRef, "V86 image payload is external and not admitted for rewrite"),
 		NewSchemaRefusalHandler(s4wave_org.OrganizationTypeID, ClassificationNonMigratable, "organization state is non-migratable"),
@@ -83,6 +87,7 @@ var (
 	_ = s4wave_device_world.DeviceType
 	_ = s4wave_terminal_world.TerminalType
 	_ = s4wave_sshhost_world.SshHostType
+	_ = s4wave_appconnector_world.AppConnectorType
 	_ = s4wave_vm_world.VmV86Type
 	_ = spacewave_chat_world.ChatChannelType
 )

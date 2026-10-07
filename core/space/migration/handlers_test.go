@@ -23,6 +23,7 @@ import (
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	s4wave_chat "github.com/s4wave/spacewave/sdk/chat"
@@ -71,6 +72,8 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 		{"flowgraph", s4wave_flowgraph.FlowgraphTypeID, s4wave_flowgraph.NewFlowgraphBlock()},
 		{"terminal", s4wave_terminal.TerminalTypeID, s4wave_terminal.NewTerminalBlock()},
 		{"ssh-host", s4wave_sshhost.SshHostTypeID, s4wave_sshhost.NewSshHostBlock()},
+		{"app-connector", s4wave_appconnector.AppConnectorTypeID, s4wave_appconnector.NewAppConnectorBlock()},
+		{"app-snapshot", s4wave_appconnector.AppSnapshotTypeID, s4wave_appconnector.NewAppSnapshotBlock()},
 		{"secret", s4wave_secret.SecretTypeID, s4wave_secret.NewSecretBlock()},
 	}
 	for _, fixture := range fixtures {

@@ -24,6 +24,7 @@ import (
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	"github.com/s4wave/spacewave/identity"
 	identity_world "github.com/s4wave/spacewave/identity/world"
+	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
 	s4wave_apt "github.com/s4wave/spacewave/sdk/apt"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_chat "github.com/s4wave/spacewave/sdk/chat"
@@ -64,6 +65,8 @@ var applicationBlockTypes = map[string]blocktype.BlockType{
 	s4wave_device.DeviceTypeID:               blocktype.NewBlockType(s4wave_device.DeviceTypeID, s4wave_device.NewDeviceBlock),
 	s4wave_device.ComputersDashboardTypeID:   blocktype.NewBlockType(s4wave_device.ComputersDashboardTypeID, func() *s4wave_device.ComputersDashboard { return &s4wave_device.ComputersDashboard{} }),
 	s4wave_org.OrganizationTypeID:            blocktype.NewBlockType(s4wave_org.OrganizationTypeID, s4wave_org.NewOrgStateBlock),
+	s4wave_appconnector.AppConnectorTypeID:   blocktype.NewBlockType(s4wave_appconnector.AppConnectorTypeID, s4wave_appconnector.NewAppConnectorBlock),
+	s4wave_appconnector.AppSnapshotTypeID:    blocktype.NewBlockType(s4wave_appconnector.AppSnapshotTypeID, s4wave_appconnector.NewAppSnapshotBlock),
 	s4wave_secret.SecretTypeID:               blocktype.NewBlockType(s4wave_secret.SecretTypeID, s4wave_secret.NewSecretBlock),
 	s4wave_sshhost.SshHostTypeID:             blocktype.NewBlockType(s4wave_sshhost.SshHostTypeID, s4wave_sshhost.NewSshHostBlock),
 	s4wave_terminal.TerminalTypeID:           blocktype.NewBlockType(s4wave_terminal.TerminalTypeID, s4wave_terminal.NewTerminalBlock),

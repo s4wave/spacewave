@@ -12,6 +12,8 @@ import (
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
+	s4wave_appconnector_world "github.com/s4wave/spacewave/sdk/appconnector/world"
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
@@ -57,6 +59,8 @@ var commonObjectTypes = map[string]objecttype.ObjectType{
 	s4wave_device.ComputersDashboardTypeID: s4wave_device_world.ComputersDashboardType,
 	s4wave_terminal.TerminalTypeID:         s4wave_terminal_world.TerminalType,
 	s4wave_sshhost.SshHostTypeID:           s4wave_sshhost_world.SshHostType,
+	s4wave_appconnector.AppConnectorTypeID: s4wave_appconnector_world.AppConnectorType,
+	s4wave_appconnector.AppSnapshotTypeID:  s4wave_appconnector_world.AppSnapshotType,
 	s4wave_vm.VmV86TypeID:                  s4wave_vm_world.VmV86Type,
 	s4wave_vm.V86ImageTypeID:               s4wave_vm_world.V86ImageType,
 }

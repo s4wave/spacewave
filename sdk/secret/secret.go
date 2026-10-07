@@ -41,6 +41,11 @@ const (
 	SecretKindSSHPassword = "ssh_password" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// SecretKindSSHPassphrase is the kind for SSH private-key passphrases.
 	SecretKindSSHPassphrase = "ssh_passphrase" // #nosec G101 -- this identifies a secret kind, not a credential value.
+	// SecretKindAPIToken is the kind for bearer tokens that an AppConnector
+	// presents to an application's admin API.
+	SecretKindAPIToken = "api_token" // #nosec G101 -- this identifies a secret kind, not a credential value.
+	// APITokenContentType is the content type for API token payloads.
+	APITokenContentType = "text/plain; charset=utf-8" // #nosec G101 -- this is a MIME content type, not a credential value.
 	// SSHPrivateKeyContentType is the content type for SSH private-key payloads.
 	SSHPrivateKeyContentType = "application/x-pem-file"
 	// SSHTextCredentialContentType is the content type for text SSH credentials.
@@ -127,6 +132,11 @@ func NewSSHPasswordPayload(password string, ts time.Time) *SecretPayload {
 // NewSSHPassphrasePayload constructs an SSH private-key passphrase payload.
 func NewSSHPassphrasePayload(passphrase string, ts time.Time) *SecretPayload {
 	return newSecretPayload([]byte(passphrase), SSHTextCredentialContentType, ts)
+}
+
+// NewAPITokenPayload constructs an API token payload.
+func NewAPITokenPayload(token string, ts time.Time) *SecretPayload {
+	return newSecretPayload([]byte(token), APITokenContentType, ts)
 }
 
 // GetMux returns the srpc mux for this resource.

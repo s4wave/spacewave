@@ -1,0 +1,85 @@
+syntax = "proto3";
+package s4wave.appconnector;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/appconnector;s4wave_appconnector";
+
+// AppRead names one GET request the connector makes against its application.
+message AppRead {
+  // Name identifies the read in the snapshot and is unique within a connector.
+  string name = 1;
+  // Path is the request path and query, appended to the connector base URL.
+  string path = 2;
+}
+
+// AppConnector is the Space's authorized connection to one application's
+// admin API. The fetcher process of the device that approved its ProcessBinding
+// polls the reads and writes the result to the connector's AppSnapshot.
+message AppConnector {
+  // Label is the operator-visible connector label.
+  string label = 1;
+  // BaseUrl is the application origin, such as https://admin.example.com.
+  string base_url = 2;
+  // Reads are the requests made on every poll.
+  repeated AppRead reads = 3;
+  // TokenSecretObjectKey points at an API token Secret. The Secret object key is
+  // external identity for the fetcher's reader grant check, not a graph
+  // relationship.
+  string token_secret_object_key = 4;
+  // PollIntervalMs is the time between polls in milliseconds.
+  uint32 poll_interval_ms = 5;
+  // MaxBodyBytes is the largest response body the snapshot retains. A larger
+  // response is an error, never a truncated body.
+  uint32 max_body_bytes = 6;
+  // CreatedAt is when this connector was created.
+  .google.protobuf.Timestamp created_at = 7;
+  // UpdatedAt is when this connector was last updated.
+  .google.protobuf.Timestamp updated_at = 8;
+}
+
+// AppReadSnapshot is the last state of one named read.
+message AppReadSnapshot {
+  // Name is the AppRead name.
+  string name = 1;
+  // Status is the HTTP status of the last good body.
+  uint32 status = 2;
+  // ContentType is the content type of the last good body.
+  string content_type = 3;
+  // Body is the opaque last good response body.
+  bytes body = 4;
+  // FetchedAt is when the last good body was fetched.
+  .google.protobuf.Timestamp fetched_at = 5;
+  // Error is the error of the last failed attempt, empty after a success.
+  string error = 6;
+  // ErrorAt is when the last failed attempt happened.
+  .google.protobuf.Timestamp error_at = 7;
+}
+
+// AppSnapshot is the retained result of an AppConnector's reads. Only the
+// fetcher writes it.
+message AppSnapshot {
+  // Reads holds one entry per connector read, in connector order.
+  repeated AppReadSnapshot reads = 1;
+}
+
+// CreateAppConnectorOp creates an AppConnector and its AppSnapshot.
+message CreateAppConnectorOp {
+  // ObjectKey is the key to create the connector at. The snapshot lives at
+  // ObjectKey + "/snapshot".
+  string object_key = 1;
+  // Label is the operator-visible connector label.
+  string label = 2;
+  // BaseUrl is the application origin.
+  string base_url = 3;
+  // Reads are the requests made on every poll.
+  repeated AppRead reads = 4;
+  // TokenSecretObjectKey points at an API token Secret.
+  string token_secret_object_key = 5;
+  // PollIntervalMs is the time between polls. Zero selects the default.
+  uint32 poll_interval_ms = 6;
+  // MaxBodyBytes is the largest retained response body. Zero selects the default.
+  uint32 max_body_bytes = 7;
+  // Timestamp is the creation timestamp.
+  .google.protobuf.Timestamp timestamp = 8;
+}

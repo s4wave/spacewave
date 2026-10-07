@@ -12,6 +12,7 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	forge_world "github.com/s4wave/spacewave/forge/world"
+	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
@@ -39,6 +40,7 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		space_world_ops.LookupCanvasRemoveEdgeOp,
 		s4wave_kv_world.LookupKvSetRootOp,
 		s4wave_device.LookupCreateComputersDashboardOp,
+		s4wave_appconnector.LookupCreateAppConnectorOp,
 		s4wave_flowgraph.LookupCreateFlowgraphOp,
 		s4wave_sshhost.LookupCreateSshHostOp,
 		s4wave_terminal.LookupCreateTerminalOp,

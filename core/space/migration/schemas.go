@@ -24,6 +24,7 @@ import (
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -167,6 +168,22 @@ func inspectSSHHost(ctx context.Context, object *ObjectDescriptor) (*Inspection,
 		return nil, errors.Wrap(err, "decode SSH Host payload")
 	}
 	return inspectSSHHostPayload(host)
+}
+
+func inspectAppConnector(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	conn, err := world.LookupObjectBody[*s4wave_appconnector.AppConnector](ctx, object.World, object.ObjectKey, s4wave_appconnector.NewAppConnectorBlock)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode AppConnector payload")
+	}
+	return inspectAppConnectorPayload(conn)
+}
+
+func inspectAppSnapshot(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	// A snapshot holds fetched bodies and references nothing; require a decodable payload.
+	if _, err := world.LookupObjectBody[*s4wave_appconnector.AppSnapshot](ctx, object.World, object.ObjectKey, s4wave_appconnector.NewAppSnapshotBlock); err != nil {
+		return nil, errors.Wrap(err, "decode AppSnapshot payload")
+	}
+	return &Inspection{}, nil
 }
 
 func inspectChatMessage(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
@@ -364,6 +381,23 @@ func inspectTerminalPayload(terminal *s4wave_terminal.Terminal) (*Inspection, er
 	// Disclose the Terminal device peer as an external reference.
 	if terminal.GetDevicePeerId() != "" {
 		out.References = append(out.References, TypedReference{Kind: ReferenceExternal, Value: terminal.GetDevicePeerId()})
+	}
+	return out, nil
+}
+
+func inspectAppConnectorPayload(conn *s4wave_appconnector.AppConnector) (*Inspection, error) {
+	// Start an AppConnector inspection when the payload exists.
+	out := &Inspection{}
+	if conn == nil {
+		return out, nil
+	}
+
+	// Disclose the application origin and reference the token Secret.
+	if baseURL := conn.GetBaseUrl(); baseURL != "" {
+		out.References = append(out.References, TypedReference{Kind: ReferenceExternal, Value: baseURL})
+	}
+	if key := conn.GetTokenSecretObjectKey(); key != "" {
+		out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: key})
 	}
 	return out, nil
 }
@@ -882,6 +916,54 @@ func rewriteTerminal(ctx context.Context, object *ObjectDescriptor, mapping *Ide
 		return nil, err
 	}
 	return &RewriteResult{Payload: data, References: inspection.References}, nil
+}
+
+func rewriteAppConnector(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
+	// Decode and require the AppConnector payload for rewriting.
+	conn, err := world.LookupObjectBody[*s4wave_appconnector.AppConnector](ctx, object.World, object.ObjectKey, s4wave_appconnector.NewAppConnectorBlock)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode AppConnector payload")
+	}
+	if conn == nil {
+		return nil, errors.Wrap(ErrPayloadSchemaRefused, "AppConnector payload is missing")
+	}
+
+	// Remap the token Secret object key.
+	if conn.TokenSecretObjectKey != "" {
+		conn.TokenSecretObjectKey, err = remapObjectKey(mapping, conn.TokenSecretObjectKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Serialize the rewritten AppConnector payload.
+	data, err := conn.MarshalBlock()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal AppConnector payload")
+	}
+
+	// Inspect the rewritten AppConnector references.
+	inspection, err := inspectAppConnectorPayload(conn)
+	if err != nil {
+		return nil, err
+	}
+	return &RewriteResult{Payload: data, References: inspection.References}, nil
+}
+
+func rewriteAppSnapshot(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
+	// Carry the snapshot over unchanged: it references nothing.
+	snapshot, err := world.LookupObjectBody[*s4wave_appconnector.AppSnapshot](ctx, object.World, object.ObjectKey, s4wave_appconnector.NewAppSnapshotBlock)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode AppSnapshot payload")
+	}
+	if snapshot == nil {
+		return nil, errors.Wrap(ErrPayloadSchemaRefused, "AppSnapshot payload is missing")
+	}
+	data, err := snapshot.MarshalBlock()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal AppSnapshot payload")
+	}
+	return &RewriteResult{Payload: data}, nil
 }
 
 func rewriteSSHHost(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {

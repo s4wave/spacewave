@@ -10,6 +10,10 @@ export const SecretTypeID = 'spacewave/secret'
 // SecretKindMatrixAccessToken is the kind for Matrix access tokens.
 export const SecretKindMatrixAccessToken = 'matrix_access_token'
 
+// SecretKindAPIToken is the kind for bearer tokens that an AppConnector
+// presents to an application's admin API.
+export const SecretKindAPIToken = 'api_token'
+
 // SecretKindSSHPrivateKey is the kind for SSH private-key credentials.
 export const SecretKindSSHPrivateKey = 'ssh_private_key'
 

@@ -18,6 +18,7 @@ import (
 	forge_task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	identity_world "github.com/s4wave/spacewave/identity/world"
+	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
@@ -137,6 +138,15 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	}
 	if _, ok := op.(*s4wave_sshhost.CreateSshHostOp); !ok {
 		t.Fatalf("expected CreateSshHostOp, got %T", op)
+	}
+
+	// Resolve and type-check the app connector operation.
+	op, err = lookupOp(context.Background(), s4wave_appconnector.CreateAppConnectorOpId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := op.(*s4wave_appconnector.CreateAppConnectorOp); !ok {
+		t.Fatalf("expected CreateAppConnectorOp, got %T", op)
 	}
 
 	// Resolve and type-check the key-value root operation.
