@@ -17,10 +17,13 @@ func (o *UpdateChatReadPositionOp) AuthenticatedOperation() {}
 // GetOperationTypeId identifies the receipt operation for World replay.
 func (o *UpdateChatReadPositionOp) GetOperationTypeId() string { return UpdateChatReadPositionOpID }
 
-// Validate requires a channel and valid receipt timestamp.
+// Validate requires a channel, a valid author and a valid receipt timestamp.
 func (o *UpdateChatReadPositionOp) Validate() error {
 	if o.GetObjectKey() == "" {
 		return world.ErrEmptyObjectKey
+	}
+	if err := validateAuthor(o.GetAuthor()); err != nil {
+		return err
 	}
 	return o.GetTimestamp().Validate(false)
 }
@@ -40,7 +43,7 @@ func (o *UpdateChatReadPositionOp) ApplyWorldOp(ctx context.Context, _ *logrus.E
 	if err != nil {
 		return false, err
 	}
-	return false, resource.applyReadPosition(ctx, ws, o.GetNextIndex(), o.ThreadRootKey, o.GetTimestamp())
+	return false, resource.applyReadPosition(ctx, ws, o.GetAuthor(), o.GetNextIndex(), o.ThreadRootKey, o.GetTimestamp())
 }
 
 // ApplyWorldObjectOp rejects object-only replay for channel receipts.

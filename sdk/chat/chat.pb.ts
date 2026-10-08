@@ -457,6 +457,13 @@ export interface UpdateChatReadPositionOp {
    * @generated from field: optional string thread_root_key = 4;
    */
   threadRootKey?: string
+  /**
+   * Author selects the position of the agent or tool reading for the accepted
+   * person, as in UpdateReadPositionRequest.
+   *
+   * @generated from field: string author = 5;
+   */
+  author?: string
 }
 
 export const UpdateChatReadPositionOp: MessageType<UpdateChatReadPositionOp> =
@@ -473,5 +480,6 @@ export const UpdateChatReadPositionOp: MessageType<UpdateChatReadPositionOp> =
         T: ScalarType.STRING,
         opt: true,
       },
+      { no: 5, name: 'author', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })

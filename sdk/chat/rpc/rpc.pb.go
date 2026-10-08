@@ -616,7 +616,9 @@ func (*GetReadPositionsRequest) ProtoMessage() {}
 // GetReadPositionsResponse reports the canonical read positions for this channel.
 type GetReadPositionsResponse struct {
 	unknownFields []byte
-	// Positions maps accepted person identities to their monotonic read positions.
+	// Positions maps each accepted person, and each author reading for one, to its
+	// monotonic read position. The key is the person ID, followed by "." and the
+	// author when there is one.
 	Positions map[string]*state.ChatReadPosition `protobuf:"bytes,1,rep,name=positions,proto3" json:"positions,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -641,6 +643,10 @@ type UpdateReadPositionRequest struct {
 	// ThreadRootKey limits the position to one timeline when present: a thread
 	// root message key selects that thread, and the empty key the main timeline.
 	ThreadRootKey *string `protobuf:"bytes,2,opt,name=thread_root_key,json=threadRootKey,proto3,oneof" json:"threadRootKey,omitempty"`
+	// Author names the agent or tool reading for the authenticated person. It
+	// selects that author's own position, so an author never moves the person's.
+	// It must be a DNS label or empty.
+	Author string `protobuf:"bytes,3,opt,name=author,proto3" json:"author,omitempty"`
 }
 
 func (x *UpdateReadPositionRequest) Reset() {
@@ -659,6 +665,13 @@ func (x *UpdateReadPositionRequest) GetNextIndex() uint64 {
 func (x *UpdateReadPositionRequest) GetThreadRootKey() string {
 	if x != nil && x.ThreadRootKey != nil {
 		return *x.ThreadRootKey
+	}
+	return ""
+}
+
+func (x *UpdateReadPositionRequest) GetAuthor() string {
+	if x != nil {
+		return x.Author
 	}
 	return ""
 }
@@ -1030,6 +1043,7 @@ func (m *UpdateReadPositionRequest) CloneVT() *UpdateReadPositionRequest {
 	}
 	r := new(UpdateReadPositionRequest)
 	r.NextIndex = m.NextIndex
+	r.Author = m.Author
 	r.ThreadRootKey = protobuf_go_lite.ClonePtr(m.ThreadRootKey)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1508,6 +1522,9 @@ func (this *UpdateReadPositionRequest) EqualVT(that *UpdateReadPositionRequest) 
 		return false
 	}
 	if !protobuf_go_lite.EqualPtr(this.ThreadRootKey, that.ThreadRootKey) {
+		return false
+	}
+	if this.Author != that.Author {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2723,6 +2740,11 @@ func (x *UpdateReadPositionRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("threadRootKey")
 		s.WriteString(*x.ThreadRootKey)
 	}
+	if x.Author != "" || s.HasField("author") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("author")
+		s.WriteString(x.Author)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2751,6 +2773,9 @@ func (x *UpdateReadPositionRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			t := s.ReadString()
 			x.ThreadRootKey = &t
+		case "author":
+			s.AddField("author")
+			x.Author = s.ReadString()
 		}
 	})
 }
@@ -3714,6 +3739,11 @@ func (m *UpdateReadPositionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Author) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Author)
+		i--
+		dAtA[i] = 0x1a
+	}
 	if m.ThreadRootKey != nil {
 		i = protobuf_go_lite.EncodeString(dAtA, i, *m.ThreadRootKey)
 		i--
@@ -4044,6 +4074,7 @@ func (m *UpdateReadPositionRequest) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextIndex)
 	n += protobuf_go_lite.SizeStringPtr(1, m.ThreadRootKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Author)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4493,6 +4524,10 @@ func (x *UpdateReadPositionRequest) MarshalProtoText() string {
 	if x.ThreadRootKey != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "thread_root_key")
 		protobuf_go_lite.TextWriteString(&sb, *x.ThreadRootKey)
+	}
+	if x.Author != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "author")
+		protobuf_go_lite.TextWriteString(&sb, x.Author)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5857,6 +5892,16 @@ func (m *UpdateReadPositionRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ThreadRootKey = &v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Author", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Author = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

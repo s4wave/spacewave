@@ -200,7 +200,9 @@ message GetReadPositionsRequest {
 
 // GetReadPositionsResponse reports the canonical read positions for this channel.
 message GetReadPositionsResponse {
-  // Positions maps accepted person identities to their monotonic read positions.
+  // Positions maps each accepted person, and each author reading for one, to its
+  // monotonic read position. The key is the person ID, followed by "." and the
+  // author when there is one.
   map<string, .spacewave.chat.ChatReadPosition> positions = 1;
 }
 
@@ -211,6 +213,10 @@ message UpdateReadPositionRequest {
   // ThreadRootKey limits the position to one timeline when present: a thread
   // root message key selects that thread, and the empty key the main timeline.
   optional string thread_root_key = 2;
+  // Author names the agent or tool reading for the authenticated person. It
+  // selects that author's own position, so an author never moves the person's.
+  // It must be a DNS label or empty.
+  string author = 3;
 }
 
 // UpdateReadPositionResponse reports the retained position, including unchanged retries.

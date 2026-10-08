@@ -657,7 +657,9 @@ export const GetReadPositionsRequest: MessageType<GetReadPositionsRequest> =
  */
 export interface GetReadPositionsResponse {
   /**
-   * Positions maps accepted person identities to their monotonic read positions.
+   * Positions maps each accepted person, and each author reading for one, to its
+   * monotonic read position. The key is the person ID, followed by "." and the
+   * author when there is one.
    *
    * @generated from field: map<string, spacewave.chat.ChatReadPosition> positions = 1;
    */
@@ -697,6 +699,14 @@ export interface UpdateReadPositionRequest {
    * @generated from field: optional string thread_root_key = 2;
    */
   threadRootKey?: string
+  /**
+   * Author names the agent or tool reading for the authenticated person. It
+   * selects that author's own position, so an author never moves the person's.
+   * It must be a DNS label or empty.
+   *
+   * @generated from field: string author = 3;
+   */
+  author?: string
 }
 
 export const UpdateReadPositionRequest: MessageType<UpdateReadPositionRequest> =
@@ -711,6 +721,7 @@ export const UpdateReadPositionRequest: MessageType<UpdateReadPositionRequest> =
         T: ScalarType.STRING,
         opt: true,
       },
+      { no: 3, name: 'author', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

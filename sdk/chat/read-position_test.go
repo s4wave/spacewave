@@ -151,3 +151,43 @@ func TestThreadReadPositions(t *testing.T) {
 		t.Fatal("timeline receipt behind the channel position was retained")
 	}
 }
+
+// TestAuthorReadPositions gives each author its own position beside its person's.
+func TestAuthorReadPositions(t *testing.T) {
+	// Build a channel with two messages and one participant.
+	ctx := t.Context()
+	tb := world_testbed.MustDefault(t, ctx)
+	ws := world.NewEngineWorldState(tb.Engine, true)
+	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	alice := newChatResourceForPerson(t, ws, tb.Engine, GeneralChannelKey, "alice-device", "alice")
+	for _, text := range []string{"first", "second"} {
+		if _, err := alice.SendMessage(ctx, &chat_rpc.SendMessageRequest{Text: text}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Read as an author and then as the person, which keeps its own position.
+	if _, err := alice.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 2, Author: "deadlock"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := alice.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 1}); err != nil {
+		t.Fatal(err)
+	}
+	response, err := alice.GetReadPositions(ctx, &chat_rpc.GetReadPositionsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	positions := response.GetPositions()
+	person, author := positions["alice"], positions["alice.deadlock"]
+	if len(positions) != 2 || person.GetNextIndex() != 1 || person.GetAuthor() != "" {
+		t.Fatalf("author moved the person's position: %v", positions)
+	}
+	if author.GetNextIndex() != 2 || author.GetAuthor() != "deadlock" {
+		t.Fatalf("author lost its own position: %v", positions)
+	}
+
+	// Reject an author that is not a DNS label.
+	if _, err := alice.UpdateReadPosition(ctx, &chat_rpc.UpdateReadPositionRequest{NextIndex: 1, Author: "Dead.Lock"}); err == nil {
+		t.Fatal("accepted an author that is not a DNS label")
+	}
+}

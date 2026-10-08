@@ -440,6 +440,9 @@ type UpdateChatReadPositionOp struct {
 	// ThreadRootKey limits the receipt to one timeline when present, as in
 	// UpdateReadPositionRequest.
 	ThreadRootKey *string `protobuf:"bytes,4,opt,name=thread_root_key,json=threadRootKey,proto3,oneof" json:"threadRootKey,omitempty"`
+	// Author selects the position of the agent or tool reading for the accepted
+	// person, as in UpdateReadPositionRequest.
+	Author string `protobuf:"bytes,5,opt,name=author,proto3" json:"author,omitempty"`
 }
 
 func (x *UpdateChatReadPositionOp) Reset() {
@@ -472,6 +475,13 @@ func (x *UpdateChatReadPositionOp) GetTimestamp() *timestamppb.Timestamp {
 func (x *UpdateChatReadPositionOp) GetThreadRootKey() string {
 	if x != nil && x.ThreadRootKey != nil {
 		return *x.ThreadRootKey
+	}
+	return ""
+}
+
+func (x *UpdateChatReadPositionOp) GetAuthor() string {
+	if x != nil {
+		return x.Author
 	}
 	return ""
 }
@@ -650,6 +660,7 @@ func (m *UpdateChatReadPositionOp) CloneVT() *UpdateChatReadPositionOp {
 	r := new(UpdateChatReadPositionOp)
 	r.ObjectKey = m.ObjectKey
 	r.NextIndex = m.NextIndex
+	r.Author = m.Author
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
 	r.ThreadRootKey = protobuf_go_lite.ClonePtr(m.ThreadRootKey)
 	if len(m.unknownFields) > 0 {
@@ -905,6 +916,9 @@ func (this *UpdateChatReadPositionOp) EqualVT(that *UpdateChatReadPositionOp) bo
 		return false
 	}
 	if !protobuf_go_lite.EqualPtr(this.ThreadRootKey, that.ThreadRootKey) {
+		return false
+	}
+	if this.Author != that.Author {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1601,6 +1615,11 @@ func (x *UpdateChatReadPositionOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("threadRootKey")
 		s.WriteString(*x.ThreadRootKey)
 	}
+	if x.Author != "" || s.HasField("author") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("author")
+		s.WriteString(x.Author)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1639,6 +1658,9 @@ func (x *UpdateChatReadPositionOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			t := s.ReadString()
 			x.ThreadRootKey = &t
+		case "author":
+			s.AddField("author")
+			x.Author = s.ReadString()
 		}
 	})
 }
@@ -2140,6 +2162,11 @@ func (m *UpdateChatReadPositionOp) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Author) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Author)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.ThreadRootKey != nil {
 		i = protobuf_go_lite.EncodeString(dAtA, i, *m.ThreadRootKey)
 		i--
@@ -2320,6 +2347,7 @@ func (m *UpdateChatReadPositionOp) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringPtr(1, m.ThreadRootKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Author)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2597,6 +2625,10 @@ func (x *UpdateChatReadPositionOp) MarshalProtoText() string {
 	if x.ThreadRootKey != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "thread_root_key")
 		protobuf_go_lite.TextWriteString(&sb, *x.ThreadRootKey)
+	}
+	if x.Author != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "author")
+		protobuf_go_lite.TextWriteString(&sb, x.Author)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3401,6 +3433,16 @@ func (m *UpdateChatReadPositionOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ThreadRootKey = &v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Author", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Author = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

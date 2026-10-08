@@ -128,4 +128,7 @@ message UpdateChatReadPositionOp {
   // ThreadRootKey limits the receipt to one timeline when present, as in
   // UpdateReadPositionRequest.
   optional string thread_root_key = 4;
+  // Author selects the position of the agent or tool reading for the accepted
+  // person, as in UpdateReadPositionRequest.
+  string author = 5;
 }

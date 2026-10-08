@@ -452,10 +452,8 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	if err != nil {
 		return nil, err
 	}
-	if author := req.GetAuthor(); author != "" {
-		if err := labels.ValidateDNSLabel(author); err != nil {
-			return nil, errors.Wrap(err, "chat author")
-		}
+	if err := validateAuthor(req.GetAuthor()); err != nil {
+		return nil, err
 	}
 	if req.ExpectedStateMessageKey != nil && content.GetStateChange() == nil {
 		return nil, errors.New("chat state write condition requires a state change")
@@ -746,6 +744,7 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 	if r.engine == nil || r.localPeerID == "" || r.personID == "" {
 		return nil, ErrChatAuthorIdentityRequired
 	}
+	key := readPositionKey(r.personID, req.GetAuthor())
 
 	// Read the current position inside the write transaction.
 	tx, err := r.engine.NewTransaction(ctx, true)
@@ -762,7 +761,7 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 	}
 
 	// A receipt that does not advance its timeline returns the retained position.
-	prior := channel.GetReadPositions()[r.personID]
+	prior := channel.GetReadPositions()[key]
 	if req.GetNextIndex() <= readPositionIndex(prior, req.ThreadRootKey) {
 		position := prior.CloneVT()
 		if position == nil {
@@ -772,7 +771,7 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 	}
 
 	// Apply the advance as a replayable operation and return the committed position.
-	op := &UpdateChatReadPositionOp{ObjectKey: r.objectKey, NextIndex: req.GetNextIndex(), Timestamp: timestamppb.Now(), ThreadRootKey: req.ThreadRootKey}
+	op := &UpdateChatReadPositionOp{ObjectKey: r.objectKey, NextIndex: req.GetNextIndex(), Timestamp: timestamppb.Now(), ThreadRootKey: req.ThreadRootKey, Author: req.GetAuthor()}
 	ctx = world.WithOperationPerson(ctx, r.personID)
 	if _, _, err := tx.ApplyWorldOp(ctx, op, r.device); err != nil {
 		return nil, err
@@ -781,17 +780,36 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 	if err != nil {
 		return nil, err
 	}
-	position := channel.GetReadPositions()[r.personID].CloneVT()
+	position := channel.GetReadPositions()[key].CloneVT()
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return &spacewave_chat_rpc.UpdateReadPositionResponse{Position: position}, nil
 }
 
-// applyReadPosition advances one accepted person's receipt in the replay transaction.
+// readPositionKey returns the key of the position a person holds, or an author
+// holds for the person. The author is a DNS label, so it never contains the dot.
+func readPositionKey(personID, author string) string {
+	if author == "" {
+		return personID
+	}
+	return personID + "." + author
+}
+
+// validateAuthor requires an author to be empty or a DNS label, since a Matrix
+// gateway joins it to a username with a dot.
+func validateAuthor(author string) error {
+	if author == "" {
+		return nil
+	}
+	return errors.Wrap(labels.ValidateDNSLabel(author), "chat author")
+}
+
+// applyReadPosition advances the receipt of one accepted person, or of an
+// author reading for the person, in the replay transaction.
 // A nil threadRootKey advances the whole-channel position and drops the timeline
 // positions it subsumes; otherwise only that timeline advances.
-func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldState, nextIndex uint64, threadRootKey *string, timestamp *timestamppb.Timestamp) error {
+func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldState, author string, nextIndex uint64, threadRootKey *string, timestamp *timestamppb.Timestamp) error {
 	// Validate the receipt against the channel history and thread root.
 	channel, err := world.LookupObjectBody[*ChatChannel](ctx, tx, r.objectKey, NewChatChannelBlock)
 	if err != nil {
@@ -808,7 +826,8 @@ func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldStat
 			return errors.Wrap(err, "resolve thread root")
 		}
 	}
-	prior := channel.GetReadPositions()[r.personID]
+	key := readPositionKey(r.personID, author)
+	prior := channel.GetReadPositions()[key]
 	if nextIndex <= readPositionIndex(prior, threadRootKey) {
 		return nil
 	}
@@ -816,7 +835,7 @@ func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldStat
 	// Advance the selected position, keeping only timeline positions ahead of the channel position.
 	position := prior.CloneVT()
 	if position == nil {
-		position = &chat_state.ChatReadPosition{}
+		position = &chat_state.ChatReadPosition{Author: author}
 	}
 	if threadRootKey == nil {
 		position.NextIndex = nextIndex
@@ -833,7 +852,7 @@ func (r *ChatResource) applyReadPosition(ctx context.Context, tx world.WorldStat
 	if channel.ReadPositions == nil {
 		channel.ReadPositions = make(map[string]*chat_state.ChatReadPosition)
 	}
-	channel.ReadPositions[r.personID] = position
+	channel.ReadPositions[key] = position
 	object, found, err := tx.GetObject(ctx, r.objectKey)
 	defer world.ReleaseObjectState(object)
 	if err != nil {

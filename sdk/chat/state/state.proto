@@ -16,6 +16,10 @@ message ChatReadPosition {
   // a thread. Each advances independently of NextIndex, which covers every
   // timeline.
   map<string, ChatThreadReadPosition> thread_positions = 3;
+  // Author is the agent or tool that holds this position for its person, empty
+  // when the person holds it. A person and each of its authors hold separate
+  // positions, keyed by the person ID followed by "." and the author.
+  string author = 4;
 }
 
 // ChatThreadReadPosition is a person's monotonic position within one timeline.

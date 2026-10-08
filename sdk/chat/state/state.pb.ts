@@ -64,6 +64,14 @@ export interface ChatReadPosition {
    * @generated from field: map<string, spacewave.chat.ChatThreadReadPosition> thread_positions = 3;
    */
   threadPositions?: { [key: string]: ChatThreadReadPosition }
+  /**
+   * Author is the agent or tool that holds this position for its person, empty
+   * when the person holds it. A person and each of its authors hold separate
+   * positions, keyed by the person ID followed by "." and the author.
+   *
+   * @generated from field: string author = 4;
+   */
+  author?: string
 }
 
 export const ChatReadPosition: MessageType<ChatReadPosition> =
@@ -79,5 +87,6 @@ export const ChatReadPosition: MessageType<ChatReadPosition> =
         K: ScalarType.STRING,
         V: { kind: 'message', T: ChatThreadReadPosition },
       },
+      { no: 4, name: 'author', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
