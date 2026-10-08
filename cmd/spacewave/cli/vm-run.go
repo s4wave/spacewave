@@ -217,6 +217,7 @@ type serialEscapeReader struct {
 	pending []byte
 }
 
+// Read filters console escapes from the source stream.
 func (e *serialEscapeReader) Read(p []byte) (int, error) {
 	// Read stdin, treating Ctrl-A x as quit.
 	if len(e.pending) != 0 {

@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	forge_target "github.com/s4wave/spacewave/forge/target"
 	flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
@@ -188,6 +189,7 @@ func newFlowgraphCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			buildFlowgraphConnectCommand(),
 			buildFlowgraphDisconnectCommand(),
 			buildFlowgraphHistoryCommand(),
+			buildFlowgraphRunCommand(),
 		},
 	}
 }
@@ -311,6 +313,12 @@ type flowgraphNodeSetArgs struct {
 	skills  cli.StringSlice
 	device  string
 	actor   string
+	// targetFile holds a Target in generated protobuf JSON format.
+	targetFile string
+	// maxVisits bounds this Step's activations.
+	maxVisits uint
+	// maxSpend bounds this Step's reported spend.
+	maxSpend uint64
 }
 
 // BuildFlags returns the node set flags.
@@ -334,6 +342,9 @@ func (a *flowgraphNodeSetArgs) BuildFlags() []cli.Flag {
 		&cli.StringSliceFlag{Name: "skill", Usage: "Step skill name (repeatable)", Destination: &a.skills},
 		&cli.StringFlag{Name: "device", Usage: "place the node on this Device object key", Destination: &a.device},
 		&cli.StringFlag{Name: "actor", Usage: "place the Step on this actor object key", Destination: &a.actor},
+		&cli.StringFlag{Name: "target-file", Usage: "Step Target file in protobuf JSON format", Destination: &a.targetFile},
+		&cli.UintFlag{Name: "max-visits", Usage: "Step visit bound (zero is unlimited)", Destination: &a.maxVisits},
+		&cli.Uint64Flag{Name: "max-spend", Usage: "Step spend bound (zero is unlimited)", Destination: &a.maxSpend},
 	)
 }
 
@@ -400,9 +411,29 @@ func (a *flowgraphNodeSetArgs) buildNode() (*flowgraph.FlowgraphNode, error) {
 	// Attach the Step instructions to a Step node.
 	if a.typeID == flowgraph.StepNodeTypeID {
 		node.Step = &flowgraph.FlowgraphStep{Prompt: a.prompt}
+		if a.maxVisits > uint(^uint32(0)) {
+			return nil, errors.New("--max-visits exceeds uint32")
+		}
+		node.Step.Bound = &flowgraph.FlowgraphBound{MaxVisits: uint32(a.maxVisits), MaxSpend: a.maxSpend}
 		for _, skill := range a.skills.Value() {
 			node.Step.Skills = append(node.Step.Skills, &flowgraph.FlowgraphSkill{Name: skill})
 		}
+	}
+
+	// Decode the execution definition without rebuilding its controller config.
+	if a.targetFile != "" {
+		if node.GetStep() == nil {
+			return nil, errors.New("--target-file requires --type step")
+		}
+		data, err := os.ReadFile(a.targetFile)
+		if err != nil {
+			return nil, errors.Wrap(err, "read Step Target")
+		}
+		target := &forge_target.Target{}
+		if err := target.UnmarshalJSON(data); err != nil {
+			return nil, errors.Wrap(err, "decode Step Target")
+		}
+		node.Step.Target = target
 	}
 	return node, nil
 }

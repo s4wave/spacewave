@@ -30,13 +30,17 @@ const (
 )
 
 type authSessionHandle interface {
+	// Release relinquishes the mounted session.
 	Release()
+	// GetSessionInfo reads the mounted session identity.
 	GetSessionInfo(context.Context) (*s4wave_session.GetSessionInfoResponse, error)
+	// GetSession returns the mounted session capability.
 	GetSession() *s4wave_session.Session
 }
 
 // credentialAccount lists the account's entity keypairs and their lock state.
 type credentialAccount interface {
+	// WatchEntityKeypairs streams keypair identities and lock states.
 	WatchEntityKeypairs(
 		context.Context,
 		*s4wave_account.WatchEntityKeypairsRequest,
@@ -45,6 +49,7 @@ type credentialAccount interface {
 
 type authAccountService interface {
 	credentialAccount
+	// WatchAuthMethods streams the account authentication methods.
 	WatchAuthMethods(
 		context.Context,
 		*s4wave_account.WatchAuthMethodsRequest,
@@ -53,10 +58,12 @@ type authAccountService interface {
 
 type authThresholdAccountService interface {
 	credentialAccount
+	// WatchAccountInfo streams the account security settings.
 	WatchAccountInfo(
 		context.Context,
 		*s4wave_account.WatchAccountInfoRequest,
 	) (s4wave_account.SRPCAccountResourceService_WatchAccountInfoClient, error)
+	// SetSecurityLevel changes the account security threshold.
 	SetSecurityLevel(
 		context.Context,
 		*s4wave_account.SetSecurityLevelRequest,
@@ -68,14 +75,17 @@ type mountedAuthSession struct {
 	session *s4wave_session.Session
 }
 
+// Release relinquishes the mounted session.
 func (s *mountedAuthSession) Release() {
 	s.session.Release()
 }
 
+// GetSessionInfo reads the mounted session identity.
 func (s *mountedAuthSession) GetSessionInfo(ctx context.Context) (*s4wave_session.GetSessionInfoResponse, error) {
 	return s.session.GetSessionInfo(ctx)
 }
 
+// GetSession returns the mounted session capability.
 func (s *mountedAuthSession) GetSession() *s4wave_session.Session {
 	return s.session
 }
@@ -1297,10 +1307,14 @@ func runAuthThresholdSet(c *cli.Context, statePath string, sessionIdx uint32, au
 }
 
 type authMethodOutput struct {
-	PeerID         string
-	Label          string
+	// PeerID identifies the authentication peer.
+	PeerID string
+	// Label names the authentication method.
+	Label string
+	// SecondaryLabel describes the method identity.
 	SecondaryLabel string
-	Provider       string
+	// Provider identifies the authentication provider.
+	Provider string
 }
 
 func isLocalAuthSession(info *s4wave_session.GetSessionInfoResponse) bool {

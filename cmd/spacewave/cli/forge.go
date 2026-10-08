@@ -263,6 +263,8 @@ func buildForgeShowExecutionCommand(statePath *string, sessionIdx *uint, spaceID
 			if err != nil {
 				return err
 			}
+
+			// Borrow the Space and its World engine.
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err

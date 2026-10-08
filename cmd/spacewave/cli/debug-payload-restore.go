@@ -458,10 +458,13 @@ func readReplayCursors(ctx context.Context, db *s4db.DB, spaceID string) ([]spac
 	// Decode each cursor key of the selected Spaces.
 	var cursors []spaceReplayCursor
 	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
+		// Select cursor keys belonging to the requested Space.
 		id, ok := parseReplayCursorKey(k)
 		if !ok || (spaceID != "" && id != spaceID) {
 			return nil
 		}
+
+		// Decode and retain the selected replay cursor.
 		cursor := &sobject_world_engine.ReplayCursor{}
 		if err := cursor.UnmarshalVT(v); err != nil {
 			return errors.Wrapf(err, "decode replay cursor of space %s", id)
