@@ -189,15 +189,10 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		return nil, errors.New("invite ID mismatch")
 	}
 
-	// Check target_peer_id constraint if set.
-	if targetPeer := result.Invite.GetTargetPeerId(); targetPeer != "" {
-		if responderPeerID.String() != targetPeer {
-			return nil, errors.New("invite is targeted to a different peer")
-		}
-	}
-
-	// Validate the invite is still usable (not revoked, not expired, not maxed).
-	if err := sobject.ValidateInviteUsable(result.Invite); err != nil {
+	// Validate the responder may redeem the invite: it is the named peer of a
+	// targeted invite, or the invite is untargeted, and it is not revoked,
+	// expired or maxed.
+	if err := sobject.ValidateInviteRedeemable(result.Invite, responderPeerID.String()); err != nil {
 		return nil, errors.Wrap(err, "invite not usable")
 	}
 
@@ -234,13 +229,16 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		}
 	}
 
-	// Enrollment succeeded. Increment invite uses.
-	inviteMutator := result.InviteMutator
-	if inviteMutator == nil {
-		inviteMutator = result.Host
-	}
-	if err := inviteMutator.IncrementInviteUses(ctx, result.OwnerPrivKey, result.Invite.GetInviteId()); err != nil {
-		return nil, errors.Wrap(err, "increment invite uses")
+	// Enrollment succeeded. Increment invite uses, unless the named peer of a
+	// targeted invite is redeeming it again.
+	if sobject.InviteCountsUse(result.Invite) {
+		inviteMutator := result.InviteMutator
+		if inviteMutator == nil {
+			inviteMutator = result.Host
+		}
+		if err := inviteMutator.IncrementInviteUses(ctx, result.OwnerPrivKey, result.Invite.GetInviteId()); err != nil {
+			return nil, errors.Wrap(err, "increment invite uses")
+		}
 	}
 
 	// Transfer the configuration after every acceptance mutation has completed.

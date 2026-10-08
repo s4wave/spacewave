@@ -203,16 +203,50 @@ func (s *SOHost) IncrementInviteUses(
 }
 
 // ValidateInviteUsable checks whether an invite is currently usable.
-// Returns nil if the invite can accept another use.
+// Returns nil if the invite can accept another use, which is also what
+// makes it open to a new peer.
 func ValidateInviteUsable(inv *SOInvite) error {
+	if err := validateInviteLive(inv); err != nil {
+		return err
+	}
+	if inv.GetMaxUses() != 0 && inv.GetUses() >= inv.GetMaxUses() {
+		return errors.New("invite has reached max uses")
+	}
+	return nil
+}
+
+// ValidateInviteRedeemable checks whether peerID may redeem an invite now.
+//
+// A targeted invite admits only the peer it names, so that peer may redeem it
+// again after its use is counted; refusing the repeat protects no other peer.
+// An untargeted invite keeps its max_uses limit. Revocation and expiry apply
+// to every invite.
+func ValidateInviteRedeemable(inv *SOInvite, peerID string) error {
+	target := inv.GetTargetPeerId()
+	if target == "" {
+		return ValidateInviteUsable(inv)
+	}
+	if peerID != target {
+		return errors.New("invite is targeted to a different peer")
+	}
+	return validateInviteLive(inv)
+}
+
+// InviteCountsUse reports whether a redemption of inv consumes a use.
+//
+// A targeted invite counts only its first redemption, so the named peer
+// can redeem it again without exhausting its max_uses.
+func InviteCountsUse(inv *SOInvite) bool {
+	return inv.GetTargetPeerId() == "" || inv.GetUses() == 0
+}
+
+// validateInviteLive checks that an invite is neither revoked nor expired.
+func validateInviteLive(inv *SOInvite) error {
 	if inv.GetRevoked() {
 		return errors.New("invite is revoked")
 	}
 	if exp := inv.GetExpiresAt(); exp != nil && time.Now().After(exp.AsTime()) {
 		return errors.New("invite has expired")
-	}
-	if inv.GetMaxUses() != 0 && inv.GetUses() >= inv.GetMaxUses() {
-		return errors.New("invite has reached max uses")
 	}
 	return nil
 }

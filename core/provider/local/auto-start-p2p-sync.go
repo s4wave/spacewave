@@ -93,8 +93,10 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 				}
 			}
 			for _, invite := range state.GetInvites() {
+				// A live targeted invite stays active for its named peer even after
+				// its use is counted, since that peer may redeem it again.
 				target := invite.GetTargetPeerId()
-				active := sobject.ValidateInviteUsable(invite) == nil ||
+				active := sobject.ValidateInviteRedeemable(invite, target) == nil ||
 					(target != "" && epoch.FindGrant(target) != nil)
 				if active {
 					shared = true

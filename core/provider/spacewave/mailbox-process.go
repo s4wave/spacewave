@@ -305,7 +305,7 @@ func (a *ProviderAccount) acceptMailboxEntry(
 	if err != nil {
 		return err
 	}
-	if grant != nil {
+	if grant != nil && sobject.InviteCountsUse(invite) {
 		if err := swSO.IncrementInviteUses(ctx, swSO.privKey, invite.GetInviteId()); err != nil {
 			return errors.Wrap(err, "increment invite uses")
 		}
@@ -407,11 +407,8 @@ func validateMailboxEntryForAccept(
 	}
 
 	// Check that the invite still admits this responder.
-	if err := sobject.ValidateInviteUsable(invite); err != nil {
+	if err := sobject.ValidateInviteRedeemable(invite, responderPeerID.String()); err != nil {
 		return nil, "", nil, &invalidMailboxEntryError{err: err}
-	}
-	if targetPeerID := invite.GetTargetPeerId(); targetPeerID != "" && targetPeerID != responderPeerID.String() {
-		return nil, "", nil, &invalidMailboxEntryError{err: errors.New("invite is targeted to a different peer")}
 	}
 	if err := validateTargetedMailboxProof(entry, invite, state, soID, ownerAccountID); err != nil {
 		return nil, "", nil, &invalidMailboxEntryError{err: err}

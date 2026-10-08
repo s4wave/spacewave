@@ -278,3 +278,101 @@ func TestIncrementInviteUsesExpired(t *testing.T) {
 		t.Fatal("expected error for expired invite")
 	}
 }
+
+// TestValidateInviteRedeemable limits repeat redemption to a targeted invite's named peer.
+func TestValidateInviteRedeemable(t *testing.T) {
+	past := timestamppb.New(time.Now().Add(-time.Hour))
+	tests := []struct {
+		name    string
+		invite  *SOInvite
+		peerID  string
+		wantErr bool
+	}{
+		{
+			name:   "targeted peer redeems an unused invite",
+			invite: &SOInvite{TargetPeerId: "named", MaxUses: 1},
+			peerID: "named",
+		},
+		{
+			name:   "targeted peer redeems a used invite again",
+			invite: &SOInvite{TargetPeerId: "named", MaxUses: 1, Uses: 1},
+			peerID: "named",
+		},
+		{
+			name:    "other peer is refused a targeted invite",
+			invite:  &SOInvite{TargetPeerId: "named", MaxUses: 1},
+			peerID:  "other",
+			wantErr: true,
+		},
+		{
+			name:    "other peer is refused a used targeted invite",
+			invite:  &SOInvite{TargetPeerId: "named", MaxUses: 1, Uses: 1},
+			peerID:  "other",
+			wantErr: true,
+		},
+		{
+			name:   "untargeted invite admits anyone while unused",
+			invite: &SOInvite{MaxUses: 1},
+			peerID: "other",
+		},
+		{
+			name:    "untargeted invite is refused after its use",
+			invite:  &SOInvite{MaxUses: 1, Uses: 1},
+			peerID:  "other",
+			wantErr: true,
+		},
+		{
+			name:    "revoked targeted invite is refused to its peer",
+			invite:  &SOInvite{TargetPeerId: "named", Revoked: true},
+			peerID:  "named",
+			wantErr: true,
+		},
+		{
+			name:    "expired targeted invite is refused to its peer",
+			invite:  &SOInvite{TargetPeerId: "named", ExpiresAt: past},
+			peerID:  "named",
+			wantErr: true,
+		},
+		{
+			name:    "revoked untargeted invite is refused",
+			invite:  &SOInvite{Revoked: true},
+			peerID:  "other",
+			wantErr: true,
+		},
+		{
+			name:    "expired untargeted invite is refused",
+			invite:  &SOInvite{ExpiresAt: past},
+			peerID:  "other",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateInviteRedeemable(tt.invite, tt.peerID)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ValidateInviteRedeemable() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestValidateInviteUsableTargetedUsed keeps a used targeted invite closed to new peers.
+func TestValidateInviteUsableTargetedUsed(t *testing.T) {
+	inv := &SOInvite{TargetPeerId: "named", MaxUses: 1, Uses: 1}
+	if err := ValidateInviteUsable(inv); err == nil {
+		t.Fatal("expected a used targeted invite to be unusable")
+	}
+}
+
+// TestInviteCountsUse counts a targeted invite's first redemption only.
+func TestInviteCountsUse(t *testing.T) {
+	if !InviteCountsUse(&SOInvite{TargetPeerId: "named"}) {
+		t.Fatal("expected the first targeted redemption to count")
+	}
+	if InviteCountsUse(&SOInvite{TargetPeerId: "named", Uses: 1}) {
+		t.Fatal("expected a repeat targeted redemption not to count")
+	}
+	if !InviteCountsUse(&SOInvite{Uses: 1}) {
+		t.Fatal("expected every untargeted redemption to count")
+	}
+}
