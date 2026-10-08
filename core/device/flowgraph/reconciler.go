@@ -85,12 +85,15 @@ func NewReconciler(
 	return r
 }
 
-// Run reconciles until ctx ends, then releases every node's configs.
+// Run reconciles until ctx ends, then releases every node's configs and
+// withdraws the Forge Worker declaration.
 func (r *Reconciler) Run(ctx context.Context) error {
-	// Release the lookups, the configs, and the hold on every exit.
+	// Release the lookups, the configs, the hold, and the declaration on every
+	// exit, so the plugin drains the Worker with the nodes.
 	defer r.types.Release()
 	defer r.applier.Release()
 	defer r.setHeld(false)
+	defer r.forgeWorker.Set(r.deviceKey, nil)
 
 	// Follow the Device Session's transport, which hosts the node controllers.
 	sessionPeerID, err := peer.IDB58Decode(r.peerID)

@@ -2,6 +2,7 @@ package flowgraph_nodetype
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -117,7 +118,8 @@ func forgeWorkerDeclaration(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_devic
 		return nil, errors.Errorf("parameter %q must be a positive integer", forgeWorkerMemoryBytesParameter)
 	}
 
-	// Require at least one runtime backend, each named once.
+	// Require at least one runtime backend, each named once. Sort them so the
+	// order the node lists them in does not change the declaration.
 	var backends []string
 	for backend := range strings.SplitSeq(params[forgeWorkerBackendsParameter], ",") {
 		backend = strings.TrimSpace(backend)
@@ -131,6 +133,7 @@ func forgeWorkerDeclaration(node *s4wave_flowgraph.FlowgraphNode) (*s4wave_devic
 		}
 		backends = append(backends, backend)
 	}
+	slices.Sort(backends)
 	return &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: workerObjectKey,
 		MilliCpu:        milliCPU,

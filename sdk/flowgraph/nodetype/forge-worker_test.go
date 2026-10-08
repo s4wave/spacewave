@@ -80,7 +80,7 @@ func TestForgeWorkerCapability(t *testing.T) {
 		"worker":       " worker/in ",
 		"milli_cpu":    "2000",
 		"memory_bytes": "4294967296",
-		"backends":     "docker, fuse",
+		"backends":     "fuse, docker",
 	}
 	node := forgeWorkerNode(devicePeerID, valid)
 	got, err := forgeWorker{}.GetCapability(ctx, tb.WorldState, node)
