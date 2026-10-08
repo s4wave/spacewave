@@ -10,7 +10,6 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
@@ -144,13 +143,14 @@ func (a *flowgraphRunArgs) read(c *cli.Context, key string) error {
 	defer release()
 
 	// Emit each committed run snapshot, waiting on the World's revision watch.
+	ws := world.NewEngineWorldState(engine, false)
 	for {
-		run, rev, err := readFlowgraphRun(c.Context, world.NewEngineWorldState(engine, false), key)
+		run, rev, err := flowgraph.ReadFlowgraphRun(c.Context, ws, key)
 		if err != nil {
 			return err
 		}
 		if a.action == "tasks" {
-			return a.writeTasks(c.Context, world.NewEngineWorldState(engine, false), run)
+			return a.writeTasks(c.Context, ws, run)
 		}
 		data, err := run.MarshalJSON()
 		if err != nil {
@@ -186,35 +186,6 @@ func (a *flowgraphRunArgs) writeTasks(ctx context.Context, ws world.WorldState, 
 		}
 	}
 	return nil
-}
-
-// readFlowgraphRun reads one run and its revision through a World capability.
-func readFlowgraphRun(ctx context.Context, ws world.WorldState, key string) (*flowgraph.FlowgraphRun, uint64, error) {
-	// Acquire the object and release it after decoding.
-	obj, found, err := ws.GetObject(ctx, key)
-	defer world.ReleaseObjectState(obj)
-	if err != nil {
-		return nil, 0, err
-	}
-	if !found {
-		return nil, 0, world.ErrObjectNotFound
-	}
-
-	// Decode the generated run body at the observed revision.
-	ref, rev, err := obj.GetRootRef(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
-	var run *flowgraph.FlowgraphRun
-	_, err = world.AccessObject(ctx, obj.AccessWorldState, ref, func(cursor *block.Cursor) error {
-		var err error
-		run, err = flowgraph.UnmarshalFlowgraphRun(ctx, cursor)
-		return err
-	})
-	if err == nil && run == nil {
-		err = errors.New("Flowgraph run object is empty")
-	}
-	return run, rev, err
 }
 
 // buildFlowgraphRunCommand builds commands for the durable run and its binding.

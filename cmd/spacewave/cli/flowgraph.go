@@ -414,7 +414,9 @@ func (a *flowgraphNodeSetArgs) buildNode() (*flowgraph.FlowgraphNode, error) {
 		if a.maxVisits > uint(^uint32(0)) {
 			return nil, errors.New("--max-visits exceeds uint32")
 		}
-		node.Step.Bound = &flowgraph.FlowgraphBound{MaxVisits: uint32(a.maxVisits), MaxSpend: a.maxSpend}
+		if a.maxVisits != 0 || a.maxSpend != 0 {
+			node.Step.Bound = &flowgraph.FlowgraphBound{MaxVisits: uint32(a.maxVisits), MaxSpend: a.maxSpend}
+		}
 		for _, skill := range a.skills.Value() {
 			node.Step.Skills = append(node.Step.Skills, &flowgraph.FlowgraphSkill{Name: skill})
 		}

@@ -41,6 +41,35 @@ func ReadFlowgraph(ctx context.Context, ws world.WorldState, key string) (*Flowg
 	return &FlowgraphSnapshot{State: state, Placements: placements, Revision: revision}, nil
 }
 
+// ReadFlowgraphRun reads a run's body and the object revision it was read at.
+func ReadFlowgraphRun(ctx context.Context, ws world.WorldState, key string) (*FlowgraphRun, uint64, error) {
+	// Retain the object while decoding the body of one root reference.
+	obj, found, err := ws.GetObject(ctx, key)
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !found {
+		return nil, 0, world.ErrObjectNotFound
+	}
+
+	// Decode the run at the same revision the reference reports.
+	ref, rev, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var run *FlowgraphRun
+	_, err = world.AccessObject(ctx, obj.AccessWorldState, ref, func(cursor *block.Cursor) error {
+		var err error
+		run, err = UnmarshalFlowgraphRun(ctx, cursor)
+		return err
+	})
+	if err == nil && run == nil {
+		err = errors.New("flowgraph run object is empty")
+	}
+	return run, rev, err
+}
+
 // UpdateFlowgraph changes the body and placement graph in the caller's transaction.
 // The caller commits on success or discards the transaction on error.
 func UpdateFlowgraph(ctx context.Context, ws world.WorldState, key string, request *UpdateFlowgraphRequest) (*FlowgraphSnapshot, error) {
