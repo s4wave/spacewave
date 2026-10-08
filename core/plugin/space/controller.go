@@ -97,7 +97,8 @@ var processRetryBackoff = &backoff.Backoff{
 type Controller struct {
 	*bus.BusController[*Config]
 
-	// bcast guards resolvers and pluginIDs.
+	// bcast guards resolvers, pluginIDs, bindingsStale, boundKeys, and
+	// processConfigs.
 	bcast broadcast.Broadcast
 	// resolverBcast fires when the resolver set changes.
 	resolverBcast broadcast.Broadcast
@@ -116,6 +117,12 @@ type Controller struct {
 	pluginIDs []string
 	// loadedPlugins tracks demanded plugin startup readiness.
 	loadedPlugins loadedplugins.State
+	// bindingsStale reports that the process bindings may have changed since
+	// the last reconcile read them. Protected by bcast.
+	bindingsStale bool
+	// boundKeys is the object keys of the process bindings the last reconcile
+	// kept. Protected by bcast.
+	boundKeys []string
 	// processConfigs tracks the current enabled process configuration by object key.
 	processConfigs map[string]processConfig
 	// processes tracks active process routines by object key.
@@ -124,9 +131,11 @@ type Controller struct {
 	watchLoop *world_control.WatchLoop
 }
 
-// NotifyChanged wakes the watch loop to reconcile external state changes.
+// NotifyChanged wakes the watch loop to reconcile external state changes, and
+// rereads the process bindings.
 func (c *Controller) NotifyChanged() {
 	var watchLoop *world_control.WatchLoop
+	c.markBindingsStale()
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		watchLoop = c.watchLoop
 	})
@@ -220,6 +229,7 @@ func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
 				demanded:        factoryConf.demanded,
 				bindingsChanged: factoryConf.bindingsChanged,
 				resolvers:       make(map[*resolverEntry]struct{}),
+				bindingsStale:   true,
 				processConfigs:  make(map[string]processConfig),
 			}
 			c.processes = keyed.NewKeyedWithLogger(
@@ -580,11 +590,57 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	}
 }
 
-// reconcileProcesses reads process bindings from the platform-account
-// ObjectStore and starts/stops processes based on their binding state. A
-// binding whose World object no longer exists is deleted, and its process
-// stops.
+// markBindingsStale makes the next reconcileProcesses reread the bindings.
+func (c *Controller) markBindingsStale() {
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		c.bindingsStale = true
+	})
+}
+
+// reconcileProcesses starts and stops processes to match the Space's process
+// bindings. Every World change reaches it, but its inputs are the binding
+// store, which signals NotifyChanged, and the existence of the bound objects,
+// so it rereads the bindings only when one of those changed.
 func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState) {
+	if !c.processInputsChanged(ctx, ws) {
+		return
+	}
+
+	// Reread on the next World change when the bindings were not settled.
+	if !c.syncProcesses(ctx, ws) {
+		c.markBindingsStale()
+	}
+}
+
+// processInputsChanged reports whether the process bindings were notified as
+// changed or a bound object no longer exists in the World.
+func (c *Controller) processInputsChanged(ctx context.Context, ws world.WorldState) bool {
+	// Take the notification before reading, so a later one is not lost.
+	var stale bool
+	var keys []string
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		stale, keys = c.bindingsStale, c.boundKeys
+		c.bindingsStale = false
+	})
+	if stale {
+		return true
+	}
+
+	// A deleted object orphans its binding.
+	refs, err := world.GetObjectRootRefsBatch(ctx, ws, keys)
+	if err != nil {
+		return true
+	}
+	return slices.ContainsFunc(refs, func(ref *world.ObjectRootRef) bool {
+		return !ref.Exists
+	})
+}
+
+// syncProcesses reads process bindings from the platform-account ObjectStore
+// and starts/stops processes based on their binding state. A binding whose
+// World object no longer exists is deleted, and its process stops. It returns
+// false when the bindings could not be read.
+func (c *Controller) syncProcesses(ctx context.Context, ws world.WorldState) bool {
 	// Resolve the binding store's volume and object store ids.
 	le := c.GetLogger()
 	conf := c.GetConfig()
@@ -609,14 +665,14 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	if err != nil {
 		warnOnErrorUnlessCanceled(ctx, le, err, "failed to get object store for process bindings")
 		c.reconcileProcessConfigs(le, nil)
-		return
+		return false
 	}
 	if handle == nil || ref == nil {
 		if ctx.Err() == nil {
 			le.Warn("process binding object store unavailable")
 		}
 		c.reconcileProcessConfigs(le, nil)
-		return
+		return false
 	}
 	defer ref.Release()
 
@@ -626,17 +682,20 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	bindings, err := process_binding.ListProcessBindings(ctx, store, spaceID)
 	if err != nil {
 		warnOnErrorUnlessCanceled(ctx, le, err, "failed to list process bindings")
-		return
+		return false
 	}
 	bindings, err = c.deleteOrphanedBindings(ctx, le, ws, store, spaceID, bindings)
 	if err != nil {
 		warnOnErrorUnlessCanceled(ctx, le, err, "failed to delete process bindings of deleted objects")
-		return
+		return false
 	}
 
-	// Build set of desired enabled bindings keyed by objectKey.
+	// Build set of desired enabled bindings keyed by objectKey, and remember
+	// the bound objects.
+	boundKeys := make([]string, len(bindings))
 	desired := make(map[string]processConfig, len(bindings))
-	for _, b := range bindings {
+	for i, b := range bindings {
+		boundKeys[i] = b.GetObjectKey()
 		if b.GetState() == s4wave_process.ProcessBindingState_ProcessBindingState_APPROVED {
 			desired[b.GetObjectKey()] = processConfig{
 				typeID: b.GetTypeId(),
@@ -646,7 +705,11 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	}
 
 	// Reconcile the process routines with the desired bindings.
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		c.boundKeys = boundKeys
+	})
 	c.reconcileProcessConfigs(le, desired)
+	return true
 }
 
 // deleteOrphanedBindings deletes the bindings whose World object no longer
