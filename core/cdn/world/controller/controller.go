@@ -3,7 +3,6 @@ package cdn_world_controller
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -25,9 +24,6 @@ const ControllerID = "spacewave/cdn/world"
 
 // Version is the version of the world implementation.
 var Version = controller.MustParseVersion("0.0.1")
-
-// missingHeadRetryDelay bounds retries while a CDN Space has no published head.
-const missingHeadRetryDelay = time.Second
 
 // unreachableAfterFailures is the number of consecutive failed pointer fetches
 // after which a mounting Space is reported unreachable.
@@ -215,29 +211,30 @@ func (c *Controller) mount(ctx context.Context) error {
 
 	// Wait for a readable head, then publish one engine until cancellation.
 	for {
+		previous := store.Pointer()
 		engine, err := cdn_sharedobject.NewWorldEngine(ctx, c.le, c.b, so)
-		if err != nil {
-			if !shouldRetryMissingPublishedHead() || !isMissingPublishedHead(err) {
-				return err
-			}
-			c.le.WithError(err).Debug("CDN world engine waiting for published head")
-			c.ctr.SetValue(&mountState{err: err})
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-time.After(missingHeadRetryDelay):
-				continue
-			}
+		if err == nil {
+			c.engine = engine
+			c.ctr.SetValue(&mountState{engine: engine.Engine})
+			c.le.Info("CDN world engine ready")
+			<-ctx.Done()
+			c.refresh.ClearContext()
+			engine.Release()
+			c.engine = nil
+			c.ctr.SetValue(nil)
+			return nil
 		}
-		c.engine = engine
-		c.ctr.SetValue(&mountState{engine: engine.Engine})
-		c.le.Info("CDN world engine ready")
-		<-ctx.Done()
-		c.refresh.ClearContext()
-		engine.Release()
-		c.engine = nil
-		c.ctr.SetValue(nil)
-		return nil
+		if !isMissingPublishedHead(err) {
+			return err
+		}
+		c.le.WithError(err).Debug("CDN world engine waiting for published head")
+		c.ctr.SetValue(&mountState{err: err})
+
+		// Observe the store revision captured before the build, including a
+		// publication that arrived while the engine was reading its head.
+		if _, err := store.WaitPointer(ctx, previous); err != nil {
+			return nil
+		}
 	}
 }
 

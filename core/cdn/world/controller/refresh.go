@@ -17,15 +17,24 @@ func (c *Controller) InvokeMethod(serviceID, methodID string, stream srpc.Stream
 	return handler.InvokeMethod(serviceID, methodID, stream)
 }
 
-// Refresh queues a fetch after initial readiness. The controller retains the
-// current engine on fetch failure and retries within its own lifetime.
+// Refresh queues a fetch after the mount is running, including while the
+// mounted head is still missing. The controller retains the current engine on
+// fetch failure and retries within its own lifetime.
 func (c *Controller) Refresh(ctx context.Context, req *RefreshRequest) (*RefreshResponse, error) {
+	// Ignore invalidations for another Space.
 	if req.GetSpaceId() != "" && req.GetSpaceId() != c.conf.GetSpaceId() {
 		return &RefreshResponse{}, nil
 	}
-	if _, err := c.GetWorldEngine(ctx); err != nil {
+
+	// Wait for the mount to serve a head or watch for its first publication.
+	_, err := c.ctr.WaitValueWithValidator(ctx, func(state *mountState) (bool, error) {
+		return state != nil && (state.engine != nil || isMissingPublishedHead(state.err)), nil
+	}, nil)
+	if err != nil {
 		return nil, err
 	}
+
+	// Fetch the pointer through the mount's existing refresh routine.
 	c.refresh.RestartRoutine()
 	return &RefreshResponse{Accepted: true}, nil
 }
