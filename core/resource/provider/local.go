@@ -18,9 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// localSpaceLinkNetworkTimeout bounds contact with the approving peer.
-const localSpaceLinkNetworkTimeout = 10 * time.Second
-
 // LocalProviderResource retains Device Sessions until its Resource is released.
 type LocalProviderResource struct {
 	// ProviderResource serves common provider operations.
@@ -241,14 +238,13 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	}
 
 	// Redeem only once; retries reuse the account's existing grant and transport.
-	networkCtx, networkCancel := context.WithTimeout(ctx, localSpaceLinkNetworkTimeout)
-	defer networkCancel()
+	// The approving peer decides how long the join takes, so ctx alone bounds it.
 	if !localAccountHasSharedObject(localAcc, invite.GetSharedObjectId()) {
-		if _, err := localAcc.JoinViaInvite(networkCtx, sessionKey, invite, ""); err != nil {
+		if _, err := localAcc.JoinViaInvite(ctx, sessionKey, invite, ""); err != nil {
 			return nil, errors.Wrap(err, "join space via invite")
 		}
 	} else {
-		if err := localAcc.EnsureConfiguredSessionTransport(networkCtx, sessionKey); err != nil {
+		if err := localAcc.EnsureConfiguredSessionTransport(ctx, sessionKey); err != nil {
 			return nil, errors.Wrap(err, "start session transport")
 		}
 		if !localAcc.IsP2PSyncRunning() {
@@ -263,7 +259,7 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	if err != nil {
 		return nil, errors.Wrap(err, "parse invite owner peer id")
 	}
-	if err := localAcc.RetainP2PPeer(networkCtx, ownerPeerID); err != nil {
+	if err := localAcc.RetainP2PPeer(ctx, ownerPeerID); err != nil {
 		return nil, errors.Wrap(err, "retain invite owner link")
 	}
 	if err := s.retainDeviceSession(ctx, sessRef); err != nil {

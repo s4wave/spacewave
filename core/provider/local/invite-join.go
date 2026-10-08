@@ -25,11 +25,17 @@ var ErrDirectInviteOwnerMustBeOnline = errors.New("space owner must be online to
 // JoinViaInvite executes the full invite join flow.
 //
 //  1. Ensures a session transport is running (starts one if needed)
-//  2. Opens an SRPC stream to the owner and sends AcceptInviteRequest
-//  3. Receives the SOGrant from the owner, or returns early when the owner
+//  2. Holds a link to the owner until the join returns
+//  3. Opens an SRPC stream to the owner and sends AcceptInviteRequest
+//  4. Receives the SOGrant from the owner, or returns early when the owner
 //     queued the redemption for approval
-//  4. Mounts the shared object with the grant
-//  5. Starts P2P sync so SolicitSync delivers state
+//  5. Mounts the shared object with the grant
+//  6. Starts P2P sync so SolicitSync delivers state
+//
+// Only the wait for the owner's link is bounded. The owner consumes the
+// invite when it answers, so the handshake and the local install that follows
+// run until the owner replies or ctx ends, and the install is not canceled
+// once the grant arrived.
 //
 // The inviteMsg is the out-of-band SOInviteMessage from the owner.
 // sessionKey is the invitee's session private key.
@@ -46,18 +52,19 @@ func (a *ProviderAccount) JoinViaInvite(
 		return nil, err
 	}
 
-	// Wait for the owner to be reachable on the session transport.
+	// Hold the owner's link for the whole join. Releasing it at once leaves
+	// the link to the hold-open timer, which closes it under a slow owner.
 	childBus := st.GetChildBus()
-	joinCtx, joinCancel := context.WithTimeout(ctx, directInviteOwnerWaitTimeout)
-	defer joinCancel()
-	if err := a.waitDirectInviteOwnerOnline(
-		joinCtx,
+	relLink, err := a.holdDirectInviteOwnerLink(
+		ctx,
 		childBus,
 		st.GetPeerID(),
 		ownerPeerID.String(),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
+	defer relLink()
 
 	// Read the storage peer key, which joins alongside the session.
 	volumePeer, err := a.vol.GetPeer(ctx, true)
@@ -70,10 +77,9 @@ func (a *ProviderAccount) JoinViaInvite(
 	}
 
 	// Execute the invite handshake over SRPC while the verified owner remains
-	// reachable. A signaling or link failure must not hold the enrollment RPC
-	// forever.
+	// reachable. A link failure closes the stream and ends the call.
 	result, err := sobject_invite.JoinViaInvite(
-		joinCtx,
+		ctx,
 		childBus,
 		st.GetPeerID(),
 		sessionKey,
@@ -87,13 +93,14 @@ func (a *ProviderAccount) JoinViaInvite(
 		return result, nil
 	}
 
-	// Mount the shared object and apply the grant.
-	if err := a.mountInvitedSO(ctx, result, ownerPeerID); err != nil {
+	// Install the grant even if ctx ends now: the invite is already consumed and
+	// only this install lets a retry resume from the listed shared object.
+	if err := a.mountInvitedSO(context.WithoutCancel(ctx), result, ownerPeerID); err != nil {
 		return nil, errors.Wrap(err, "mount invited shared object")
 	}
 
-	// The bounded join context ends with this call. P2P sync belongs to the
-	// account and stops with the account, not with the enrollment request.
+	// P2P sync belongs to the account and stops with the account, not with the
+	// enrollment request.
 	if err := a.StartPersistentP2PSync(ctx, st); err != nil {
 		a.le.WithError(err).Warn("failed to start P2P sync after invite join")
 	} else {
@@ -122,21 +129,21 @@ func (a *ProviderAccount) WithdrawJoinRequest(
 		return err
 	}
 
-	// Wait for the owner to be reachable on the session transport.
-	withdrawCtx, withdrawCancel := context.WithTimeout(ctx, directInviteOwnerWaitTimeout)
-	defer withdrawCancel()
-	if err := a.waitDirectInviteOwnerOnline(
-		withdrawCtx,
+	// Hold the owner's link until the owner answers.
+	relLink, err := a.holdDirectInviteOwnerLink(
+		ctx,
 		st.GetChildBus(),
 		st.GetPeerID(),
 		ownerPeerID.String(),
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
+	defer relLink()
 
 	// Withdraw the request on the owner's host.
 	return sobject_invite.WithdrawJoinRequest(
-		withdrawCtx,
+		ctx,
 		st.GetChildBus(),
 		st.GetPeerID(),
 		ownerPeerID,
@@ -193,39 +200,41 @@ func (a *ProviderAccount) reachInviteOwner(
 	return st, ownerPeerID, nil
 }
 
-// waitDirectInviteOwnerOnline establishes a link to the owner, returning
-// ErrDirectInviteOwnerMustBeOnline when the owner is unreachable.
-func (a *ProviderAccount) waitDirectInviteOwnerOnline(
+// holdDirectInviteOwnerLink establishes a link to the owner and holds it until
+// the returned release is called. It returns ErrDirectInviteOwnerMustBeOnline
+// when the owner is not reachable within directInviteOwnerWaitTimeout.
+func (a *ProviderAccount) holdDirectInviteOwnerLink(
 	ctx context.Context,
 	childBus bus.Bus,
 	localPeerID peer.ID,
 	ownerPeerIDStr string,
-) error {
+) (func(), error) {
+	// Parse the owner the invite names.
 	if ownerPeerIDStr == "" {
-		return errors.New("invite owner peer id is required")
+		return nil, errors.New("invite owner peer id is required")
 	}
 	ownerPeerID, err := peer.IDB58Decode(ownerPeerIDStr)
 	if err != nil {
-		return errors.Wrap(err, "parse invite owner peer id")
+		return nil, errors.Wrap(err, "parse invite owner peer id")
 	}
 
+	// Wait for the link, then keep its reference for the caller.
 	waitCtx, waitCancel := context.WithTimeout(ctx, directInviteOwnerWaitTimeout)
 	defer waitCancel()
-
 	_, rel, err := link.EstablishLinkWithPeerEx(waitCtx, childBus, localPeerID, ownerPeerID, true)
-	if rel != nil {
-		rel()
-	}
 	if err == nil {
-		return nil
+		if rel == nil {
+			rel = func() {}
+		}
+		return rel, nil
 	}
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return nil, ctx.Err()
 	}
 	a.le.WithError(err).
 		WithField("owner-peer-id", ownerPeerIDStr).
 		Debug("direct invite owner not reachable")
-	return ErrDirectInviteOwnerMustBeOnline
+	return nil, ErrDirectInviteOwnerMustBeOnline
 }
 
 // mountInvitedSO mounts a shared object after receiving an invite grant.
