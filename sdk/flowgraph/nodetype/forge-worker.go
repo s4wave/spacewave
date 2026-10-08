@@ -175,6 +175,7 @@ func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjec
 // peer the plugin signs for. A Worker linked to other peers cannot take work
 // from its Cluster on this Device.
 func verifyForgeWorkerPeer(ctx context.Context, ws world.WorldState, workerObjectKey, devicePeerID string) error {
+	// Read the keypairs the Worker acts as.
 	keypairs, _, err := forge_worker.CollectWorkerKeypairs(ctx, ws, workerObjectKey)
 	if err != nil {
 		return errors.Wrapf(err, "collect keypairs for Forge Worker %q", workerObjectKey)

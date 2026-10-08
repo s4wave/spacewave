@@ -43,6 +43,8 @@ func TestForgeWorkerCapability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Make a keypair for a peer other than the Device's.
 	_, _, foreignPubKey, err := peer.NewPeerWithGenerateED25519()
 	if err != nil {
 		t.Fatal(err)
@@ -51,6 +53,8 @@ func TestForgeWorkerCapability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the Cluster and the Workers, and assign three of them to it.
 	sender := devicePeer.GetPeerID()
 	if _, _, err := forge_cluster.CreateCluster(ctx, tb.WorldState, "cluster/main", "cluster", sender, sender); err != nil {
 		t.Fatal(err)

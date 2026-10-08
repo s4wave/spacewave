@@ -41,6 +41,8 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	peerID := p.GetPeerID().String()
+
+	// Create the Device object.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -57,6 +59,8 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 	if err := world_types.SetObjectType(ctx, tx, deviceKey, s4wave_device.DeviceTypeID); err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the Flowgraph and place the TCP Port node on the Device.
 	if _, _, err := tx.ApplyWorldOp(ctx, &s4wave_flowgraph.CreateFlowgraphOp{ObjectKey: flowgraphKey, Name: "main"}, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -77,6 +81,8 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	// Commit the seed.
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
