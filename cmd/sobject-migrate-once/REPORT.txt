@@ -1,0 +1,146 @@
+One-time local SharedObject repair: completed on the test copy only.
+
+Binary: /Users/cjs/company/.tmp/sobject-migrate-once
+Source: /Users/cjs/wt/spacewave-migrate/cmd/sobject-migrate-once/
+Test state: /Users/cjs/.spacewave.migrate-test
+No live state or backup state was accessed. No server was started.
+All files in this source directory are untracked; nothing was staged or committed.
+
+The initial copied spacewave.sock.ready marker correctly caused refusal. After
+confirming that the copy's runtime coordination lease was free, only that copy's
+ready marker was removed. The tool itself never removes a ready marker.
+
+All 12 eligible local objects now pass SOState.Validate, root signature and
+consensus verification, VerifyConfigChain, and current-config/history-head equality.
+The write pass reopens each changed physical store and verifies the exact prepared
+state, sole genesis entry, matching checkpoint, and absent local queue record.
+The subsequent dry run proposes zero repairs.
+
+Sentinel byte encoding:
+SHA256(
+  UTF8("spacewave/sobject/migrated-head") || 0x00 ||
+  uint32_big_endian(byte_length(soID)) || UTF8(soID) ||
+  uint32_big_endian(byte_length(peerID)) || UTF8(peerID) ||
+  uint64_big_endian(nonce)
+)
+peerID is the stored base58 text, not decoded multihash bytes. SO IDs are retained
+verbatim, including the seven existing secret-prefixed IDs. Nonce order and values,
+encrypted Inner, InnerSeqno, key grants, participants, invites, and application
+records are preserved. Pending host operations, rejections, unsigned queue heads,
+and the participant's LocalSOState queue are cleared.
+
+Inventory, relative to the test-state directory:
+
+p_local_01m343naxwrsfbj4c9bagcj82x.s4wave
+Provider local; account 01m343naxwrsfbj4c9bagcj82x.
+Every row has a locally available OWNER key and validator key; every row migrated.
+
+SO ID                                 Space catalog name
+01m343nazfj883btwy6ab90req              none
+01m343ntwgy8gads1c0p80mcn8              none
+01m36x54h1hekxad5jmes7jbch              requested Space #1 (name omitted here)
+01m3adgns55menbnr9rcd03mvb              aperture
+01m3d41v1rts1njwxdfye0nqca              hyperline
+secret-01m35ahswj9ta01r0xydcts8b1       none
+secret-01m36sdhcr2bzbhk92ph8psb47       none
+secret-01m36y6n5t094n6dyt0dech5gh       none
+secret-01m3d682b563yephw7238fs92x       none
+secret-01m3dr2g450agkftaa88qbjfeh       none
+secret-01m3h4pg51agwf1xrhdp4ast41       none
+secret-01m3vkfbv3xt02zpdw6vd6er0a       none
+
+Every local row before migration:
+  before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash"
+  before_chain="genesis entry is bound to another shared object"
+Every local row after reopening:
+  state=valid chain=valid checkpoint=valid local_queue=empty
+Every local row in the subsequent dry run:
+  before_state="valid" before_chain="valid" action=already-valid
+
+p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave
+  SO 01m3y0fd58yt8eth6hw491vxgv; provider spacewave;
+  account 01m3xd7r2nsg7r5acnn1mp7w6v; Space name unavailable in the stored cache.
+  Matching owner and validator keys are locally available, but Cloud is authoritative.
+  Out of scope, byte-identical. State and chain retain the two failures above.
+
+p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave
+  SO 01m3y0fd58yt8eth6hw491vxgv; provider spacewave;
+  account 01m3xqaf37g4jxm80dr52ms6yt; Space name unavailable in the stored cache.
+  Matching owner and validator keys are locally available, but Cloud is authoritative.
+  Out of scope, byte-identical. State and chain retain the two failures above.
+
+dist_spacewave.s4wave and state.s4wave
+  SO 01kqjmfxd44r7ggrq78efad3d2; provider cdn; no Space name persisted.
+  Identified through each store's cdn/<SO ID>/pack-index namespace.
+  No stored host snapshot or full signed config chain: validator-key availability
+  and root validation cannot be established from these index-only records.
+  Both stores and sidecars remain byte-identical and out of scope.
+
+cli.s4wave, runtime-lease.s4wave,
+cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave,
+cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave
+  No persisted provider SO host or cache records found; all byte-identical.
+
+Persistent evidence:
+  dry-before.txt: proposed repairs and complete per-store inventory.
+  migration-run.txt: actual write pass, including all 12 reopened readbacks.
+  dry-after.txt: all 12 local objects valid, zero eligible repairs.
+  verification.json: excluded-file SHA-256 equality and copy metadata checks.
+Catalog names are omitted from command transcripts; the inventory above retains
+the permitted names and identifies requested Space #1 by its SO ID.
+
+Checks run from /Users/cjs/wt/spacewave-migrate:
+
+gofmt -w cmd/sobject-migrate-once/*.go
+  PASS. Local formatting only; no Go compilation on this Mac.
+
+GOWORK=off /Users/cjs/company/src/thumper-go.sh test -timeout=100s ./cmd/sobject-migrate-once
+  Final PASS on Linux: ok in 0.010s.
+  An earlier run failed because the test fixture used an empty transform config;
+  the fixture was corrected, and subsequent runs passed. The first compile-only
+  run reported [no test files] before tests were added.
+  Tests cover real signed key-grant preservation, root/nonce/config preservation,
+  unauthorized signer refusal, exact sentinel framing, real bbolt transactions,
+  byte-identical inspection of database and sidecars, unchanged unrelated records,
+  ready-marker refusal, and other-process runtime/database lock refusal.
+
+THUMPER_GO_BIN=env /Users/cjs/company/src/thumper-go.sh CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o /home/steam/sobject-migrate-once ./cmd/sobject-migrate-once
+  PASS. Darwin arm64 binary cross-compiled on thumper.
+
+rsync steam@thumper:/home/steam/sobject-migrate-once /Users/cjs/company/.tmp/sobject-migrate-once
+  PASS. Binary copied to the assigned path.
+
+/Users/cjs/company/.tmp/sobject-migrate-once --state-path /Users/cjs/.spacewave.migrate-test
+  Initial expected refusal (exit 1) while the copied ready marker existed.
+  After removing only that free-lease copy marker: PASS (exit 0), 12 proposed repairs.
+  After migration: PASS (exit 0), all 12 local objects valid, zero repairs.
+
+/Users/cjs/company/.tmp/sobject-migrate-once --state-path /Users/cjs/.spacewave.migrate-test --dry-run=false
+  PASS (exit 0), 12 independent SO transactions and all 12 reopened readbacks valid.
+
+python3 cmd/sobject-migrate-once/verify-copy.py
+  PASS. All 24 excluded database/sidecar files have identical before/after SHA-256.
+  A further dry run changes no database or sidecar size, mtime, or file inventory.
+  Only p_local_01m343naxwrsfbj4c9bagcj82x.s4wave and its -lock sidecar changed.
+
+gofmt -l cmd/sobject-migrate-once/*.go
+  PASS: no output.
+
+git status --short
+  Only ?? cmd/sobject-migrate-once/; tracked files unchanged and index untouched.
+
+Recipe agreement and remaining limits:
+  The owner recipe matches master's code; no unresolved recipe or product decision.
+  The physical history uses hash-keyed entries and an applied-config checkpoint;
+  both are replaced in the same transaction as host state and local queue removal.
+  The program requires an existing runtime-lease.s4wave-lock-coord. It holds the
+  same nonblocking byte-range lease as serve and refuses any ready marker or live
+  database holder. Sidecar-free inspection avoids bbolt's ordinary read-only
+  reader-slot writes. This is a one-time tool for this native bbolt state layout.
+  Cloud state remains invalid and requires its own authorized repair. No Cloud
+  calls were made. CDN root/config verification requires evidence absent locally.
+  /Users/cjs/company/bin/spacewave.new was absent. Serve/UI smoke testing remains
+  unperformed. Once a current binary exists, the directing engineer can explicitly
+  run /Users/cjs/company/bin/spacewave.new --state-path /Users/cjs/.spacewave.migrate-test serve
+  and inspect startup plus both requested Spaces. That connects with the copy's
+  account identity, so this worker did not run it.

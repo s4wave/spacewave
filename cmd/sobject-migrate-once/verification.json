@@ -1,0 +1,281 @@
+{
+  "before_metadata": {
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave": [
+      267370496,
+      1790493709109747445
+    ],
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock": [
+      8192,
+      1790493702469525387
+    ],
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock-coord": [
+      0,
+      1790493642316700670
+    ],
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave": [
+      268009472,
+      1790493027791562189
+    ],
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock": [
+      8192,
+      1790493064922021595
+    ],
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock-coord": [
+      0,
+      1790493025872028671
+    ],
+    "cli.s4wave": [
+      262144,
+      1790588018868309872
+    ],
+    "cli.s4wave-lock": [
+      8192,
+      1790588018868321705
+    ],
+    "cli.s4wave-lock-coord": [
+      0,
+      1790059659410112012
+    ],
+    "dist_spacewave.s4wave": [
+      1641332736,
+      1790644032745440819
+    ],
+    "dist_spacewave.s4wave-lock": [
+      8192,
+      1790644032749879381
+    ],
+    "dist_spacewave.s4wave-lock-coord": [
+      0,
+      1790504355679721365
+    ],
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave": [
+      16633167872,
+      1790982809941819980
+    ],
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave-lock": [
+      8192,
+      1790982809941834314
+    ],
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave-lock-coord": [
+      0,
+      1790065683401018712
+    ],
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave": [
+      1048576,
+      1790935581972140975
+    ],
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock": [
+      8192,
+      1790939121871394063
+    ],
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock-coord": [
+      0,
+      1790923798458052766
+    ],
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave": [
+      1048576,
+      1790935454174085811
+    ],
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock": [
+      8192,
+      1790939121824871496
+    ],
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock-coord": [
+      0,
+      1790925173226801411
+    ],
+    "runtime-lease.s4wave": [
+      131072,
+      1790283965872056364
+    ],
+    "runtime-lease.s4wave-lock": [
+      8192,
+      1790915716739541496
+    ],
+    "runtime-lease.s4wave-lock-coord": [
+      0,
+      1790059659397098695
+    ],
+    "state.s4wave": [
+      883277824,
+      1790982814667477889
+    ],
+    "state.s4wave-lock": [
+      8192,
+      1790982814674026637
+    ],
+    "state.s4wave-lock-coord": [
+      0,
+      1790588023184416597
+    ]
+  },
+  "excluded_sha256_before": {
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave": "dd2cb86527c473b0314bf57c3a088d9e9477f65c4c825f0c16bc8f225874c570",
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock": "d3708db2d79d1406970ac8e60d61ec7bc0fa1e897ef03a4780a196acaf7ac398",
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave": "16324e2ac7e79ad1eb5f84d458d85193e44e9c77b0d2d4bdb85f3aaf7fd79a70",
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock": "cd1ceefe4213dcbf0f29706d6678fcd2e5ec834b5afd18489cfad1177f8fab06",
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cli.s4wave": "4262dfbbf0e33c47404c0b9dfecc6bc9359a59d012b00cbe2140537d9f4c70d8",
+    "cli.s4wave-lock": "3bce10ec9ce8ba6aa11d9423a94fc09747a51992f916d7d3c43b0ca9a6c424c0",
+    "cli.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dist_spacewave.s4wave": "ad84c5eca07aaa8ef3a8ccf1b000cd61eb67ffdc973dddac52af12907b428054",
+    "dist_spacewave.s4wave-lock": "5eb6c8e7853f39e0513efc8474599a00fdedbff1e452c9e97b9277ea86eabf40",
+    "dist_spacewave.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave": "a73baa4f179e269fea09d830286f3a2f614cd9bcae0b4203b97f6f9313983b5d",
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock": "408248895927a1447c64a02d1181083977cf0e7de504b31acd8f88c2768d460a",
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave": "280696e0cfaa561f2181b0e158742bffb9dc0abaea73ed9be10fd1d8f147912a",
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock": "36dcbc6dd652f940d768f57cc7345f00981c50c39c648933b9063e5a66bb268a",
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtime-lease.s4wave": "4aac50df060b9e6849ebfbe1dcfc14c149c60fefc1a96406e569fafaa1360e63",
+    "runtime-lease.s4wave-lock": "1f1e7574abf9316a83b1689dccefc4beb767ced5c587ed4acb4e2b372cd1a74e",
+    "runtime-lease.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "state.s4wave": "074b60a538eaee360fa6fa774500290bebe965f5c91a1a98ea795024a1284c6e",
+    "state.s4wave-lock": "5d2100dced7bef29bb5e1b172bc983012910b4cc8336eba3daf0ee04e4c93e3e",
+    "state.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "after_metadata": {
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave": [
+      267370496,
+      1790493709109747445
+    ],
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock": [
+      8192,
+      1790493702469525387
+    ],
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock-coord": [
+      0,
+      1790493642316700670
+    ],
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave": [
+      268009472,
+      1790493027791562189
+    ],
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock": [
+      8192,
+      1790493064922021595
+    ],
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock-coord": [
+      0,
+      1790493025872028671
+    ],
+    "cli.s4wave": [
+      262144,
+      1790588018868309872
+    ],
+    "cli.s4wave-lock": [
+      8192,
+      1790588018868321705
+    ],
+    "cli.s4wave-lock-coord": [
+      0,
+      1790059659410112012
+    ],
+    "dist_spacewave.s4wave": [
+      1641332736,
+      1790644032745440819
+    ],
+    "dist_spacewave.s4wave-lock": [
+      8192,
+      1790644032749879381
+    ],
+    "dist_spacewave.s4wave-lock-coord": [
+      0,
+      1790504355679721365
+    ],
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave": [
+      16633167872,
+      1790984017153078449
+    ],
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave-lock": [
+      8192,
+      1790984017157120764
+    ],
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave-lock-coord": [
+      0,
+      1790065683401018712
+    ],
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave": [
+      1048576,
+      1790935581972140975
+    ],
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock": [
+      8192,
+      1790939121871394063
+    ],
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock-coord": [
+      0,
+      1790923798458052766
+    ],
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave": [
+      1048576,
+      1790935454174085811
+    ],
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock": [
+      8192,
+      1790939121824871496
+    ],
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock-coord": [
+      0,
+      1790925173226801411
+    ],
+    "runtime-lease.s4wave": [
+      131072,
+      1790283965872056364
+    ],
+    "runtime-lease.s4wave-lock": [
+      8192,
+      1790915716739541496
+    ],
+    "runtime-lease.s4wave-lock-coord": [
+      0,
+      1790059659397098695
+    ],
+    "state.s4wave": [
+      883277824,
+      1790982814667477889
+    ],
+    "state.s4wave-lock": [
+      8192,
+      1790982814674026637
+    ],
+    "state.s4wave-lock-coord": [
+      0,
+      1790588023184416597
+    ]
+  },
+  "changed_files": [
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave",
+    "p_local_01m343naxwrsfbj4c9bagcj82x.s4wave-lock"
+  ],
+  "excluded_sha256_after": {
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave": "dd2cb86527c473b0314bf57c3a088d9e9477f65c4c825f0c16bc8f225874c570",
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock": "d3708db2d79d1406970ac8e60d61ec7bc0fa1e897ef03a4780a196acaf7ac398",
+    "cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave": "16324e2ac7e79ad1eb5f84d458d85193e44e9c77b0d2d4bdb85f3aaf7fd79a70",
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock": "cd1ceefe4213dcbf0f29706d6678fcd2e5ec834b5afd18489cfad1177f8fab06",
+    "cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cli.s4wave": "4262dfbbf0e33c47404c0b9dfecc6bc9359a59d012b00cbe2140537d9f4c70d8",
+    "cli.s4wave-lock": "3bce10ec9ce8ba6aa11d9423a94fc09747a51992f916d7d3c43b0ca9a6c424c0",
+    "cli.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dist_spacewave.s4wave": "ad84c5eca07aaa8ef3a8ccf1b000cd61eb67ffdc973dddac52af12907b428054",
+    "dist_spacewave.s4wave-lock": "5eb6c8e7853f39e0513efc8474599a00fdedbff1e452c9e97b9277ea86eabf40",
+    "dist_spacewave.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave": "a73baa4f179e269fea09d830286f3a2f614cd9bcae0b4203b97f6f9313983b5d",
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock": "408248895927a1447c64a02d1181083977cf0e7de504b31acd8f88c2768d460a",
+    "p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave": "280696e0cfaa561f2181b0e158742bffb9dc0abaea73ed9be10fd1d8f147912a",
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock": "36dcbc6dd652f940d768f57cc7345f00981c50c39c648933b9063e5a66bb268a",
+    "p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtime-lease.s4wave": "4aac50df060b9e6849ebfbe1dcfc14c149c60fefc1a96406e569fafaa1360e63",
+    "runtime-lease.s4wave-lock": "1f1e7574abf9316a83b1689dccefc4beb767ced5c587ed4acb4e2b372cd1a74e",
+    "runtime-lease.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "state.s4wave": "074b60a538eaee360fa6fa774500290bebe965f5c91a1a98ea795024a1284c6e",
+    "state.s4wave-lock": "5d2100dced7bef29bb5e1b172bc983012910b4cc8336eba3daf0ee04e4c93e3e",
+    "state.s4wave-lock-coord": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "excluded_files_unchanged": true,
+  "dry_run_metadata_unchanged": true,
+  "local_objects_valid": 12
+}

@@ -1,0 +1,56 @@
+state=/Users/cjs/.spacewave.migrate-test dry_run=false stores=9
+sentinel=SHA256(UTF8(spacewave/sobject/migrated-head) || 00 || BE32(len(soID)) || UTF8(soID) || BE32(len(peerID)) || UTF8(peerID) || BE64(nonce))
+store=/Users/cjs/.spacewave.migrate-test/cdn-admin/worlds/01kpra7f8xbwpw3yzys0b66wd5/world.s4wave objects=0 object_stores=[]
+store=/Users/cjs/.spacewave.migrate-test/cdn-admin/worlds/01m3gtnfn6v8vqjrtqyz3hq6bb/world.s4wave objects=0 object_stores=[]
+store=/Users/cjs/.spacewave.migrate-test/cli.s4wave objects=0 object_stores=[]
+store=/Users/cjs/.spacewave.migrate-test/dist_spacewave.s4wave objects=1 object_stores=["cdn/01kqjmfxd44r7ggrq78efad3d2/pack-index"]
+  so=01kqjmfxd44r7ggrq78efad3d2 provider=cdn account= space="" owner_local=false validator_local=false before_state="no stored host snapshot" before_chain="no stored full chain"
+    action=out-of-scope after_state=unchanged after_chain=unchanged
+store=/Users/cjs/.spacewave.migrate-test/p_local_01m343naxwrsfbj4c9bagcj82x.s4wave objects=12 object_stores=["p/local/01m343naxwrsfbj4c9bagcj82x/sess" "p/local/01m343naxwrsfbj4c9bagcj82x/so"]
+  so=01m343nazfj883btwy6ab90req provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=01m343ntwgy8gads1c0p80mcn8 provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=01m36x54h1hekxad5jmes7jbch provider=local account=01m343naxwrsfbj4c9bagcj82x space="<catalog name omitted>" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=01m3adgns55menbnr9rcd03mvb provider=local account=01m343naxwrsfbj4c9bagcj82x space="<catalog name omitted>" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=01m3d41v1rts1njwxdfye0nqca provider=local account=01m343naxwrsfbj4c9bagcj82x space="<catalog name omitted>" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=secret-01m35ahswj9ta01r0xydcts8b1 provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=secret-01m36sdhcr2bzbhk92ph8psb47 provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=secret-01m36y6n5t094n6dyt0dech5gh provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=secret-01m3d682b563yephw7238fs92x provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=secret-01m3dr2g450agkftaa88qbjfeh provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=secret-01m3h4pg51agwf1xrhdp4ast41 provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+  so=secret-01m3vkfbv3xt02zpdw6vd6er0a provider=local account=01m343naxwrsfbj4c9bagcj82x space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=migrate after_state=valid after_chain=valid inner=preserved seqno=preserved grants=preserved
+store=/Users/cjs/.spacewave.migrate-test/p_spacewave_01m3xd7r2nsg7r5acnn1mp7w6v_vol.s4wave objects=1 object_stores=["p/spacewave/01m3xd7r2nsg7r5acnn1mp7w6v/account-state" "p/spacewave/01m3xd7r2nsg7r5acnn1mp7w6v/bstore" "p/spacewave/01m3xd7r2nsg7r5acnn1mp7w6v/sess"]
+  so=01m3y0fd58yt8eth6hw491vxgv provider=spacewave account=01m3xd7r2nsg7r5acnn1mp7w6v space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=out-of-scope after_state=unchanged after_chain=unchanged
+store=/Users/cjs/.spacewave.migrate-test/p_spacewave_01m3xqaf37g4jxm80dr52ms6yt_vol.s4wave objects=1 object_stores=["p/spacewave/01m3xqaf37g4jxm80dr52ms6yt/account-state" "p/spacewave/01m3xqaf37g4jxm80dr52ms6yt/bstore" "p/spacewave/01m3xqaf37g4jxm80dr52ms6yt/sess"]
+  so=01m3y0fd58yt8eth6hw491vxgv provider=spacewave account=01m3xqaf37g4jxm80dr52ms6yt space="" owner_local=true validator_local=true before_state="invalid root: account_nonces[0]: account op_hash must be a 32-byte hash" before_chain="genesis entry is bound to another shared object"
+    action=out-of-scope after_state=unchanged after_chain=unchanged
+store=/Users/cjs/.spacewave.migrate-test/runtime-lease.s4wave objects=0 object_stores=[]
+store=/Users/cjs/.spacewave.migrate-test/state.s4wave objects=1 object_stores=["cdn/01kqjmfxd44r7ggrq78efad3d2/pack-index"]
+  so=01kqjmfxd44r7ggrq78efad3d2 provider=cdn account= space="" owner_local=false validator_local=false before_state="no stored host snapshot" before_chain="no stored full chain"
+    action=out-of-scope after_state=unchanged after_chain=unchanged
+  reopened so=01m343nazfj883btwy6ab90req state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=01m343ntwgy8gads1c0p80mcn8 state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=01m36x54h1hekxad5jmes7jbch state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=01m3adgns55menbnr9rcd03mvb state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=01m3d41v1rts1njwxdfye0nqca state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=secret-01m35ahswj9ta01r0xydcts8b1 state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=secret-01m36sdhcr2bzbhk92ph8psb47 state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=secret-01m36y6n5t094n6dyt0dech5gh state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=secret-01m3d682b563yephw7238fs92x state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=secret-01m3dr2g450agkftaa88qbjfeh state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=secret-01m3h4pg51agwf1xrhdp4ast41 state=valid chain=valid checkpoint=valid local_queue=empty
+  reopened so=secret-01m3vkfbv3xt02zpdw6vd6er0a state=valid chain=valid checkpoint=valid local_queue=empty
+complete eligible_repairs=12 dry_run=false
