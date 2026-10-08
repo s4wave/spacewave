@@ -54,6 +54,10 @@ message ChatMessage {
   // ReplacesKey is the state message this state change replaced as current state.
   // Empty for the first event of a state identity and for non-state messages.
   string replaces_key = 8;
+  // Author names the agent or tool that sent the message for its person.
+  // It attributes the message and grants nothing: the peer is still the
+  // authority. Empty when the person sent it. Validated as a DNS label.
+  string author = 9;
 }
 
 // ChatMessagePage stores a bounded page of channel message keys.

@@ -18,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/labels"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 	chat_state "github.com/s4wave/spacewave/sdk/chat/state"
 )
@@ -451,6 +452,11 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	if err != nil {
 		return nil, err
 	}
+	if author := req.GetAuthor(); author != "" {
+		if err := labels.ValidateDNSLabel(author); err != nil {
+			return nil, errors.Wrap(err, "chat author")
+		}
+	}
 	if req.ExpectedStateMessageKey != nil && content.GetStateChange() == nil {
 		return nil, errors.New("chat state write condition requires a state change")
 	}
@@ -469,7 +475,7 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		if prior != nil {
 			personID := prior.GetPersonId()
 			// A redacted body no longer matches its retry; the accepted identity still does.
-			if prior.GetSenderPeerId() != r.localPeerID || personID != r.personID || !req.GetReuseAcceptedTransaction() && prior.GetRedactedByKey() == "" && (!prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey()) {
+			if prior.GetSenderPeerId() != r.localPeerID || personID != r.personID || prior.GetAuthor() != req.GetAuthor() || !req.GetReuseAcceptedTransaction() && prior.GetRedactedByKey() == "" && (!prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey()) {
 				return nil, errors.New("chat send transaction conflicts with its accepted message")
 			}
 			return &spacewave_chat_rpc.SendMessageResponse{MessageKey: msgKey}, nil
@@ -545,6 +551,7 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 	msg := &ChatMessage{
 		SenderPeerId: r.localPeerID,
 		PersonId:     r.personID,
+		Author:       req.GetAuthor(),
 		Content:      content,
 		CreatedAt:    timestamp.CloneVT(),
 		ReplyToKey:   req.GetReplyToKey(),
@@ -1063,6 +1070,7 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 		ObjectKey:     key,
 		SenderPeerId:  msg.GetSenderPeerId(),
 		PersonId:      personID,
+		Author:        msg.GetAuthor(),
 		Text:          text,
 		Content:       msg.GetContent().CloneVT(),
 		CreatedAt:     msg.GetCreatedAt().CloneVT(),

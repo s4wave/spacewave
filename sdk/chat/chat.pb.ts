@@ -166,6 +166,14 @@ export interface ChatMessage {
    * @generated from field: string replaces_key = 8;
    */
   replacesKey?: string
+  /**
+   * Author names the agent or tool that sent the message for its person.
+   * It attributes the message and grants nothing: the peer is still the
+   * authority. Empty when the person sent it. Validated as a DNS label.
+   *
+   * @generated from field: string author = 9;
+   */
+  author?: string
 }
 
 export const ChatMessage: MessageType<ChatMessage> =
@@ -180,6 +188,7 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 6, name: 'person_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 7, name: 'redacted_by_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 8, name: 'replaces_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'author', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

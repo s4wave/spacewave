@@ -93,6 +93,13 @@ export interface ChatMessageInfo {
    * @generated from field: string replaces_key = 10;
    */
   replacesKey?: string
+  /**
+   * Author is the agent or tool that sent the message for its person, empty
+   * when the person sent it.
+   *
+   * @generated from field: string author = 11;
+   */
+  author?: string
 }
 
 export const ChatMessageInfo: MessageType<ChatMessageInfo> =
@@ -109,6 +116,7 @@ export const ChatMessageInfo: MessageType<ChatMessageInfo> =
       { no: 8, name: 'person_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 9, name: 'redacted_by_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 10, name: 'replaces_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 11, name: 'author', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
@@ -572,6 +580,13 @@ export interface SendMessageRequest {
    * @generated from field: bool reuse_accepted_transaction = 6;
    */
   reuseAcceptedTransaction?: boolean
+  /**
+   * Author names the agent or tool sending for the authenticated person. It
+   * must be a DNS label or empty, and a retry must repeat it.
+   *
+   * @generated from field: string author = 7;
+   */
+  author?: string
 }
 
 export const SendMessageRequest: MessageType<SendMessageRequest> =
@@ -595,6 +610,7 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
         kind: 'scalar',
         T: ScalarType.BOOL,
       },
+      { no: 7, name: 'author', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 
