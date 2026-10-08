@@ -37,7 +37,6 @@ func getStatusMountSessionTimeout() (time.Duration, error) {
 	return dur, nil
 }
 
-// WatchRecoveryStatus reads the first recovery status update.
 func (s *nativeSession) WatchRecoveryStatus(ctx context.Context) (*s4wave_status.RecoveryStatus, error) {
 	// Resolve the status resource client for the mounted session.
 	client, err := s.GetResourceRef().GetClient()

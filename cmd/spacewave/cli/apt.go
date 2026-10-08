@@ -22,7 +22,6 @@ type aptImportDebArgs struct {
 	spaceID    string
 }
 
-// BuildFlags returns daemon, session and Space selectors.
 func (a *aptImportDebArgs) BuildFlags() []cli.Flag {
 	return append(clientFlags(&a.statePath, &a.sessionIdx), &cli.StringFlag{
 		Name:        "space",
@@ -33,7 +32,6 @@ func (a *aptImportDebArgs) BuildFlags() []cli.Flag {
 	})
 }
 
-// Run imports a Debian package into an Apt repository.
 func (a *aptImportDebArgs) Run(c *cli.Context) error {
 	// Require a repository key, package key, and deb path.
 	if c.NArg() != 3 {
