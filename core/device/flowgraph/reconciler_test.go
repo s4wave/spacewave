@@ -401,10 +401,22 @@ func TestReconciler(t *testing.T) {
 	})
 	expectDeclaration(t, ctx, forgeWorker, nil)
 
-	// Stop the Reconciler and require it to release the daemon.
+	// Place a Forge Worker again, stop the Reconciler, and require it to
+	// withdraw the declaration and release the daemon.
+	commit(t, ctx, engine, func(tx world.Tx) error {
+		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
+			SetNodes:      map[string]*s4wave_flowgraph.FlowgraphNode{"fw-a": forgeWorkerNode("worker/a")},
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"fw-a": devicePlacement(testSelfKey)},
+		})
+		return err
+	})
+	expectDeclaration(t, ctx, forgeWorker, forgeWorkerDeclaration("worker/a"))
 	stop()
 	if err := <-runErr; err != nil {
 		t.Fatal(err)
+	}
+	if data, _, _, err := forgeWorker.WaitForgeWorker(ctx, 0); err != nil || len(data) != 0 {
+		t.Fatalf("stopped Reconciler left declaration %x, error %v", data, err)
 	}
 	if n := holds.Load(); n != 0 {
 		t.Fatalf("reconciler holds the daemon %d times after it stops, want 0", n)
