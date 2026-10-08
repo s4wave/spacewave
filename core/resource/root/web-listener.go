@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
 	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
@@ -760,12 +761,7 @@ func quoteWebListenerScriptString(value string) string {
 func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// Redirect bound package modules before relative imports choose their base URL.
 	if pkgPath, ok := strings.CutPrefix(req.URL.Path, bldr_plugin.PluginWebPkgHttpPrefix); ok && l.webPkgBasePath != "" {
-		target := l.webPkgBasePath + pkgPath
-		if req.URL.RawQuery != "" {
-			target += "?" + req.URL.RawQuery
-		}
-		rw.Header().Set("Cache-Control", "no-store")
-		http.Redirect(rw, req, target, http.StatusTemporaryRedirect)
+		web_pkg_http.RedirectToPinnedBase(rw, req, l.webPkgBasePath, pkgPath)
 		return
 	}
 

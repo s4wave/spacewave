@@ -3,7 +3,6 @@ package web_pkg_http
 import (
 	"context"
 	"net/http"
-	"net/url"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
@@ -71,16 +70,7 @@ func (s *Server) ServeWebModuleHTTP(pkgPath string, rw http.ResponseWriter, req 
 		return
 	}
 	if basePath := info.GetAssetBasePath(); basePath != "" {
-		target, err := url.JoinPath(basePath, webPkgPath)
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if req.URL.RawQuery != "" {
-			target += "?" + req.URL.RawQuery
-		}
-		rw.Header().Set("Cache-Control", "no-store")
-		http.Redirect(rw, req, target, http.StatusTemporaryRedirect)
+		RedirectToPinnedBase(rw, req, basePath, webPkgPath)
 		return
 	}
 
