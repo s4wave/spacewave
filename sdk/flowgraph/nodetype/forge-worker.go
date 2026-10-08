@@ -58,8 +58,8 @@ func (forgeWorker) Compile(node *s4wave_flowgraph.PlacedFlowgraphNode) (map[stri
 }
 
 // GetCapability returns the forge-worker capability that carries the declared
-// capacity. It rejects a Worker that is not in the World or cannot receive work
-// from a Cluster.
+// capacity. It rejects a Worker that is not in the World, cannot receive work
+// from a Cluster, or has no keypair for the Device's peer.
 func (forgeWorker) GetCapability(
 	ctx context.Context,
 	ws world.WorldState,
@@ -71,8 +71,12 @@ func (forgeWorker) GetCapability(
 		return nil, err
 	}
 
-	// Require the Worker to exist in a Cluster before the plugin hosts it.
+	// Require the Worker to exist in a Cluster and to act as this Device's peer
+	// before the plugin hosts it.
 	if err := verifyForgeWorkerLink(ctx, ws, declaration.GetWorkerObjectKey()); err != nil {
+		return nil, err
+	}
+	if err := verifyForgeWorkerPeer(ctx, ws, declaration.GetWorkerObjectKey(), node.DevicePeerID); err != nil {
 		return nil, err
 	}
 	return &s4wave_device.DeviceCapability{
@@ -162,6 +166,33 @@ func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjec
 		}
 	}
 	return nil
+}
+
+// verifyForgeWorkerPeer proves the Worker's keypairs include devicePeerID, the
+// peer the plugin signs for. A Worker linked to other peers cannot take work
+// from its Cluster on this Device.
+func verifyForgeWorkerPeer(ctx context.Context, ws world.WorldState, workerObjectKey, devicePeerID string) error {
+	keypairs, _, err := forge_worker.CollectWorkerKeypairs(ctx, ws, workerObjectKey)
+	if err != nil {
+		return errors.Wrapf(err, "collect keypairs for Forge Worker %q", workerObjectKey)
+	}
+
+	// Match one keypair against the Device's peer, keeping the others to report.
+	var workerPeerIDs []string
+	for _, keypair := range keypairs {
+		peerID, err := keypair.ParsePeerID()
+		if err != nil {
+			continue
+		}
+		if peerID.String() == devicePeerID {
+			return nil
+		}
+		workerPeerIDs = append(workerPeerIDs, peerID.String())
+	}
+	if len(workerPeerIDs) == 0 {
+		return errors.Errorf("Forge Worker %q has no usable keypair", workerObjectKey)
+	}
+	return errors.Errorf("Forge Worker %q peers %q do not include Device peer %q", workerObjectKey, workerPeerIDs, devicePeerID)
 }
 
 // _ is a type assertion

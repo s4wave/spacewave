@@ -4,6 +4,7 @@ package device_flowgraph
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -22,6 +23,7 @@ import (
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -304,8 +306,9 @@ func TestReconciler(t *testing.T) {
 		t.Fatalf("remote shell capability kind = %q, want %q", kind, s4wave_device.DeviceCapabilityKindRemoteShell)
 	}
 
-	// Allow the Forge Worker and create three Workers: two in a Cluster and one
-	// outside any.
+	// Allow the Forge Worker and create four Workers acting as this Device: two
+	// in a Cluster and one outside any, plus one in the Cluster that acts as
+	// another peer.
 	if err := device_policy.WriteFile(stateRoot, &device_policy.DevicePolicy{
 		NodeTypeId: []string{s4wave_flowgraph.ForgeWorkerNodeTypeID},
 	}); err != nil {
@@ -314,26 +317,42 @@ func TestReconciler(t *testing.T) {
 	if err := policy.Reload(); err != nil {
 		t.Fatal(err)
 	}
-	createWorkers(t, ctx, engine, "cluster/main", "worker/a", "worker/b")
-	createWorkers(t, ctx, engine, "", "worker/orphan")
+	foreignKey, _ := newSessionPeer(t)
+	createWorkers(t, ctx, engine, "cluster/main", map[string]crypto.PubKey{
+		"worker/a":       selfKey.GetPublic(),
+		"worker/b":       selfKey.GetPublic(),
+		"worker/foreign": foreignKey.GetPublic(),
+	})
+	createWorkers(t, ctx, engine, "", map[string]crypto.PubKey{"worker/orphan": selfKey.GetPublic()})
 
-	// Place a Forge Worker for the Worker outside a Cluster and require it
-	// rejected with the Cluster error and no declaration for the plugin.
+	// Place a Forge Worker for the Worker outside a Cluster and one for the
+	// Worker of another peer. Require both rejected with their rule and no
+	// declaration for the plugin.
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
-			SetNodes:      map[string]*s4wave_flowgraph.FlowgraphNode{"fw-orphan": forgeWorkerNode("worker/orphan")},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"fw-orphan": devicePlacement(testSelfKey)},
+			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{
+				"fw-orphan":  forgeWorkerNode("worker/orphan"),
+				"fw-foreign": forgeWorkerNode("worker/foreign"),
+			},
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
+				"fw-orphan":  devicePlacement(testSelfKey),
+				"fw-foreign": devicePlacement(testSelfKey),
+			},
 		})
 		return err
 	})
 	capabilities = waitCapabilities(t, ctx, engine, func(capabilities map[string]*s4wave_device.DeviceCapability) bool {
-		return capabilityState(capabilities, "fw-orphan") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
+		return capabilityState(capabilities, "fw-orphan") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED &&
+			capabilityState(capabilities, "fw-foreign") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_REJECTED
 	})
 	if detail := capabilities[capabilityID("fw-orphan")].GetDetail(); !strings.Contains(detail, "not assigned to a Cluster") {
 		t.Fatalf("orphan Forge Worker detail %q does not state the Cluster rule", detail)
 	}
+	if detail := capabilities[capabilityID("fw-foreign")].GetDetail(); !strings.Contains(detail, "do not include Device peer "+strconv.Quote(selfPeer)) {
+		t.Fatalf("foreign Forge Worker detail %q does not state the peer rule", detail)
+	}
 	if data, _, _, err := forgeWorker.WaitForgeWorker(ctx, 0); err != nil || len(data) != 0 {
-		t.Fatalf("orphan Forge Worker reached the plugin: declaration %x, error %v", data, err)
+		t.Fatalf("rejected Forge Worker reached the plugin: declaration %x, error %v", data, err)
 	}
 
 	// Place two Forge Workers for Workers in the Cluster and require the first
@@ -468,10 +487,10 @@ func forgeWorkerDeclaration(workerKey string) *s4wave_device.ForgeWorkerDeclarat
 	}
 }
 
-// createWorkers creates a Worker at each key and assigns it to the Cluster at
-// clusterKey, which it creates first. An empty clusterKey leaves the Workers
-// outside every Cluster.
-func createWorkers(t *testing.T, ctx context.Context, engine world.Engine, clusterKey string, workerKeys ...string) {
+// createWorkers creates a Worker at each key of workerPubs that acts as the
+// peer of its public key, and assigns it to the Cluster at clusterKey, which it
+// creates first. An empty clusterKey leaves the Workers outside every Cluster.
+func createWorkers(t *testing.T, ctx context.Context, engine world.Engine, clusterKey string, workerPubs map[string]crypto.PubKey) {
 	// Report failures at the caller.
 	t.Helper()
 
@@ -489,8 +508,12 @@ func createWorkers(t *testing.T, ctx context.Context, engine world.Engine, clust
 				return err
 			}
 		}
-		for _, workerKey := range workerKeys {
-			if _, _, err := tx.ApplyWorldOp(ctx, forge_worker.NewWorkerCreateOp(workerKey, "worker", nil), sender); err != nil {
+		for workerKey, workerPub := range workerPubs {
+			keypair, err := identity.NewKeypair(workerPub, "", nil)
+			if err != nil {
+				return err
+			}
+			if _, _, err := tx.ApplyWorldOp(ctx, forge_worker.NewWorkerCreateOp(workerKey, "worker", []*identity.Keypair{keypair}), sender); err != nil {
 				return err
 			}
 			if clusterKey == "" {
