@@ -9,10 +9,23 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	process_binding "github.com/s4wave/spacewave/core/plugin/process"
+	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
+	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
 	provider "github.com/s4wave/spacewave/core/provider"
+	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	session "github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/core/space"
+	db_testbed "github.com/s4wave/spacewave/db/testbed"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
+	"github.com/s4wave/spacewave/db/world"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
+	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,10 +70,10 @@ func (s *testBindingStream) RecvTo(resp *s4wave_space.WatchProcessBindingsRespon
 // Close ends the test binding stream.
 func (s *testBindingStream) Close() error { return nil }
 
-// TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd checks
+// TestRetainApprovedProcessRuntimeReleasesOnDisableAndSessionEnd checks
 // that the keeper's reference follows approved, disabled, and deleted bindings
 // through the Session lifetime.
-func TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd(t *testing.T) {
+func TestRetainApprovedProcessRuntimeReleasesOnDisableAndSessionEnd(t *testing.T) {
 	// Create the cancelable context, binding stream, and Space stub.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -74,7 +87,7 @@ func TestRetainApprovedForgeWorkerRuntimeReleasesOnDisableAndSessionEnd(t *testi
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		retainApprovedForgeWorkerRuntime(ctx, logrus.NewEntry(logrus.New()), "space/test", space, func() (func(), error) {
+		retainApprovedProcessRuntime(ctx, logrus.NewEntry(logrus.New()), "space/test", space, func() (func(), error) {
 			events <- "mounted"
 			return func() { events <- "released" }, nil
 		})
@@ -199,7 +212,7 @@ func TestReconcileLocalSpaceWatchesRetriesFailedContentsMount(t *testing.T) {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			retainApprovedForgeWorkerRuntime(watchCtx, logrus.NewEntry(logrus.New()), spaceID,
+			retainApprovedProcessRuntime(watchCtx, logrus.NewEntry(logrus.New()), spaceID,
 				&testBindingSpace{stream: stream}, func() (func(), error) {
 					if fail {
 						return nil, errors.New("contents unavailable")
@@ -361,5 +374,144 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 	}
 	if ready.SetupState != deviceSetupStateSessionReady || ready.DeviceObjectKey != "devices/key" || ready.FailureReason != "" {
 		t.Fatalf("projected Device record = %+v", ready)
+	}
+}
+
+// keeperTestSpaceBody presents the test World under one stable Space identity.
+type keeperTestSpaceBody struct {
+	// engine is the mounted Space World.
+	engine world.Engine
+	// engineID names that World to the Space runtime.
+	engineID string
+	// ref identifies the mounted Space.
+	ref *sobject.SharedObjectRef
+}
+
+// GetWorldEngine returns the mounted Space World.
+func (b *keeperTestSpaceBody) GetWorldEngine() world.Engine { return b.engine }
+
+// GetWorldEngineID returns the mounted World address.
+func (b *keeperTestSpaceBody) GetWorldEngineID() string { return b.engineID }
+
+// GetWorldEngineBucketID returns no forwarded bucket for this local World.
+func (b *keeperTestSpaceBody) GetWorldEngineBucketID() string { return "" }
+
+// GetSharedObjectRef returns the Space identity.
+func (b *keeperTestSpaceBody) GetSharedObjectRef() *sobject.SharedObjectRef { return b.ref }
+
+// GetSharedObject returns no remote SharedObject for this local fixture.
+func (b *keeperTestSpaceBody) GetSharedObject() sobject.SharedObject { return nil }
+
+// TestRetainApprovedProcessRuntimeKeepsFlowgraphRunAfterCommandRelease
+// approves a Flowgraph run through a command's contents mount and releases the
+// mount. The keeper follows the Space's real binding watch and keeps the shared
+// Space runtime running the approved run until the keeper ends.
+func TestRetainApprovedProcessRuntimeKeepsFlowgraphRunAfterCommandRelease(t *testing.T) {
+	// Mount the test volume under the plugin volume ID holding process decisions.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	tb, err := testbed.WithTestbedOptions(ctx, []db_testbed.Option{
+		db_testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
+			VolumeConfig: &volume_controller.Config{VolumeIdAlias: []string{bldr_plugin.PluginVolumeID}},
+		}),
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	// Serve the Space resource whose binding watch the keeper follows.
+	ref := &sobject.SharedObjectRef{ProviderResourceRef: &provider.ProviderResourceRef{
+		ProviderId: "local", ProviderAccountId: "test", Id: "keeper-flowgraph",
+	}}
+	spaceID := space.SpaceEngineId(ref)
+	registry := process_binding.NewBindingRegistry()
+	spaceResource := resource_space.NewSpaceResourceWithSessionPeerID(
+		tb.Logger, tb.Bus, &keeperTestSpaceBody{engine: tb.Engine, engineID: tb.EngineID, ref: ref}, tb.Volume.GetPeerID().String(),
+	)
+	spaceResource.SetBindingRegistry(registry)
+	client := s4wave_space.NewSRPCSpaceResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(spaceResource.GetMux()))),
+	)
+
+	// Mount the shared Space runtime as a contents mount does.
+	conf := &plugin_space_runtime.Config{Space: &plugin_space.Config{
+		SpaceId: spaceID, VolumeId: tb.EngineVolumeID,
+		ObjectStoreId: process_binding.DefaultObjectStoreID,
+		EngineId:      tb.EngineID, SessionPeerId: tb.Volume.GetPeerID().String(),
+	}}
+	mount := func() (*plugin_space_runtime.Controller, *resource_space.SpaceContentsResource, error) {
+		// Reference the shared runtime and serve contents on its binding registry.
+		runtime, runtimeRef, err := plugin_space_runtime.StartControllerWithConfig(ctx, tb.Bus, conf)
+		if err != nil {
+			return nil, nil, err
+		}
+		runtime.SetBindingRegistry(registry)
+		contents := resource_space.NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, spaceID, tb.EngineID, runtime, runtimeRef)
+		return runtime, contents, nil
+	}
+
+	// Run the keeper, reporting when it retains the runtime.
+	retained := make(chan struct{})
+	keeperCtx, cancelKeeper := context.WithCancel(ctx)
+	keeperDone := make(chan struct{})
+	go func() {
+		defer close(keeperDone)
+		retainApprovedProcessRuntime(keeperCtx, tb.Logger, spaceID, client, func() (func(), error) {
+			_, contents, err := mount()
+			if err != nil {
+				return nil, err
+			}
+			close(retained)
+			return contents.Release, nil
+		})
+	}()
+
+	// Create the Flowgraph run and mount its runtime for a command.
+	obj, err := tb.WorldState.CreateObject(ctx, "flowgraph-run/test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	world.ReleaseObjectState(obj)
+	runtime, command, err := mount()
+	if err != nil {
+		t.Fatal(err)
+	}
+	gen, waitGen, err := runtime.GetGeneration()
+	for gen == nil && err == nil {
+		<-waitGen
+		gen, waitGen, err = runtime.GetGeneration()
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Approve the Flowgraph run through the command's contents mount.
+	if _, err := command.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
+		ObjectKey: "flowgraph-run/test", TypeId: s4wave_flowgraph.FlowgraphRunTypeID, Approved: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The keeper retains the runtime, so releasing the command keeps it running.
+	select {
+	case <-retained:
+	case <-ctx.Done():
+		t.Fatal("keeper did not retain the approved Flowgraph run's runtime")
+	}
+	command.Release()
+	select {
+	case <-gen.Done():
+		t.Fatal("command mount release stopped the retained runtime")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	// Ending the keeper releases the last runtime reference.
+	cancelKeeper()
+	<-keeperDone
+	select {
+	case <-gen.Done():
+	case <-ctx.Done():
+		t.Fatal("keeper exit retained the runtime")
 	}
 }

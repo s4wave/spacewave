@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	core_session "github.com/s4wave/spacewave/core/session"
-	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
@@ -179,8 +178,8 @@ func reconcileLocalSessionMounts(
 }
 
 // watchLocalSessionBindings follows the Spaces of a retained local Session.
-// A Space watch owns its contents reference only while a Forge Worker binding
-// is approved, independently of every command's temporary contents mount.
+// A Space watch owns its contents reference only while a process binding is
+// approved, independently of every command's temporary contents mount.
 func watchLocalSessionBindings(ctx context.Context, le *logrus.Entry, client *sdkClient, session *s4wave_session.Session) {
 	// Watch the session's resource list for Space bindings.
 	stream, err := session.WatchResourcesList(ctx)
@@ -257,8 +256,8 @@ func reconcileLocalSpaceWatches(spaces map[string]*keeperSpaceWatch, ids []strin
 	}
 }
 
-// watchLocalSpaceBindings retains the shared runtime while any Forge Worker
-// process binding in this Space is approved for the mounted Session.
+// watchLocalSpaceBindings retains the shared runtime while any process binding
+// in this Space is approved for the mounted Session.
 func watchLocalSpaceBindings(ctx context.Context, le *logrus.Entry, client *sdkClient, session *s4wave_session.Session, spaceID string) {
 	space, releaseSpace, err := client.mountSpace(ctx, session, spaceID)
 	if err != nil {
@@ -268,15 +267,17 @@ func watchLocalSpaceBindings(ctx context.Context, le *logrus.Entry, client *sdkC
 		return
 	}
 	defer releaseSpace()
-	retainApprovedForgeWorkerRuntime(ctx, le, spaceID, space, func() (func(), error) {
+	retainApprovedProcessRuntime(ctx, le, spaceID, space, func() (func(), error) {
 		_, release, err := client.mountSpaceContents(ctx, space)
 		return release, err
 	})
 }
 
-// retainApprovedForgeWorkerRuntime follows local binding decisions and holds
-// one shared runtime reference exactly while a Forge Worker is approved.
-func retainApprovedForgeWorkerRuntime(
+// retainApprovedProcessRuntime follows local binding decisions and holds one
+// shared runtime reference exactly while any process binding is approved. The
+// Space runtime runs every approved process, so each approval needs the runtime
+// mounted after the command that approved it releases its own mount.
+func retainApprovedProcessRuntime(
 	ctx context.Context,
 	le *logrus.Entry,
 	spaceID string,
@@ -310,7 +311,7 @@ func retainApprovedForgeWorkerRuntime(
 		}
 		approved := false
 		for _, binding := range resp.GetProcessBindings() {
-			if binding.GetTypeId() == forge_worker.WorkerTypeID && binding.GetApproved() {
+			if binding.GetApproved() {
 				approved = true
 				break
 			}
@@ -318,7 +319,7 @@ func retainApprovedForgeWorkerRuntime(
 		if approved && releaseContents == nil {
 			release, err := mountContents()
 			if err != nil {
-				le.WithError(err).WithField("space-id", spaceID).Warn("local session keeper could not retain Forge Worker runtime")
+				le.WithError(err).WithField("space-id", spaceID).Warn("local session keeper could not retain Space runtime")
 				return
 			}
 			releaseContents = release
