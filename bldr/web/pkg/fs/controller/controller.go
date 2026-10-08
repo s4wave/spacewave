@@ -45,6 +45,12 @@ func NewController(
 // NewWebPkgGetter constructs a new web pkg getter function.
 func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool) web_pkg_controller.WebPkgGetter {
 	return func(ctx context.Context, webPkgID string, released func()) (web_pkg.LookupWebPkgValue, func(), error) {
+		// Pin module URLs to the manifest when the filesystem serves an immutable one.
+		assetBasePath, err := pinnedAssetBasePath(unixFsID, unixFsPrefix, webPkgID)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		// Resolve the UnixFS directive that supplies the package filesystem.
 		val, valRef, err := unixfs_access.ExAccessUnixFS(ctx, b, unixFsID, returnIfIdle, released)
 		if err != nil {
@@ -81,22 +87,7 @@ func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool
 		}
 
 		// Load the Web package and release filesystem references if it is absent.
-		basePath := ""
-		if artifactID, ok := strings.CutPrefix(unixFsID, bldr_plugin.PluginAssetsFsIdPrefix); ok {
-			_, root, parseErr := bldr_plugin.ParsePluginArtifactID(artifactID, false)
-			if parseErr != nil {
-				if childHandle != nil {
-					childHandle.Release()
-				}
-				fsHandleRel()
-				valRef.Release()
-				return nil, nil, parseErr
-			}
-			if root != "" {
-				basePath = bldr_plugin.PluginAssetsHttpPrefix + artifactID + "/" + strings.Trim(unixFsPrefix, "/") + "/" + webPkgID + "/"
-			}
-		}
-		pkg, pkgRel, err := web_pkg_fs.GetWebPkgWithAssetBasePath(ctx, ifs, webPkgID, basePath)
+		pkg, pkgRel, err := web_pkg_fs.GetWebPkg(ctx, ifs, webPkgID, assetBasePath)
 		if err != nil || pkg == nil {
 			if childHandle != nil {
 				childHandle.Release()
@@ -115,4 +106,21 @@ func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool
 			valRef.Release()
 		}, nil
 	}
+}
+
+// pinnedAssetBasePath returns the immutable URL prefix that serves webPkgID, or
+// empty when unixFsID is not a manifest-bound plugin assets filesystem.
+func pinnedAssetBasePath(unixFsID, unixFsPrefix, webPkgID string) (string, error) {
+	// Only plugin assets filesystems have an immutable URL.
+	artifactID, ok := strings.CutPrefix(unixFsID, bldr_plugin.PluginAssetsFsIdPrefix)
+	if !ok {
+		return "", nil
+	}
+
+	// An unpinned plugin binding serves its files directly.
+	_, manifestRoot, err := bldr_plugin.ParsePluginArtifactID(artifactID, false)
+	if err != nil || manifestRoot == "" {
+		return "", err
+	}
+	return bldr_plugin.PluginAssetsHttpPrefix + artifactID + "/" + strings.Trim(unixFsPrefix, "/") + "/" + webPkgID + "/", nil
 }

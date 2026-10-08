@@ -12,13 +12,10 @@ import (
 )
 
 // GetWebPkg wraps ifs in a WebPkgGetter for the package identified by webPkgID.
-// It returns nil, nil, nil when webPkgID does not exist.
-func GetWebPkg(ctx context.Context, ifs fs.FS, webPkgID string) (web_pkg.LookupWebPkgValue, func(), error) {
-	return GetWebPkgWithAssetBasePath(ctx, ifs, webPkgID, "")
-}
-
-// GetWebPkgWithAssetBasePath exposes a package whose modules load from an immutable URL.
-func GetWebPkgWithAssetBasePath(ctx context.Context, ifs fs.FS, webPkgID, assetBasePath string) (web_pkg.LookupWebPkgValue, func(), error) {
+// A non-empty assetBasePath is the immutable URL prefix that serves the package
+// files; module requests redirect there. It returns nil, nil, nil when
+// webPkgID does not exist.
+func GetWebPkg(ctx context.Context, ifs fs.FS, webPkgID, assetBasePath string) (web_pkg.LookupWebPkgValue, func(), error) {
 	// Find the package directory and treat a missing package as an empty result.
 	fi, err := fs.Stat(ifs, webPkgID)
 	if err != nil {
