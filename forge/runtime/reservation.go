@@ -17,9 +17,9 @@ import (
 
 const reservationObjectKeyPrefix = "forge/runtime/reservation/"
 
-// BuildReservationObjectKey builds the deterministic object key for the one
-// reservation of an Execution attempt. A retry after release is a new attempt
-// with a new Execution object key.
+// BuildReservationObjectKey builds the deterministic object key for the
+// reservation of an Execution attempt. A resumed attempt reuses the key at the
+// next reservation generation.
 func BuildReservationObjectKey(executionObjectKey string) string {
 	hash := sha256.Sum256([]byte(executionObjectKey))
 	return reservationObjectKeyPrefix + hex.EncodeToString(hash[:12])

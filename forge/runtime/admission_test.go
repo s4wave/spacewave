@@ -199,10 +199,25 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 		t.Fatalf("capacity not credited: %+v", capacity)
 	}
 
-	// A retry after release is a new attempt with a new Execution key; the
-	// released attempt rejects reuse.
-	if _, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest); !errors.Is(err, ErrReservationTerminal) {
-		t.Fatalf("expected terminal reservation error, got %v", err)
+	// The resumed Execution reserves the next generation and debits again.
+	resumed, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resumed.Generation != res.Generation+1 || resumed.State != ReservationStateReserved {
+		t.Fatalf("expected next reserved generation: %+v", resumed)
+	}
+	capacity, err = LookupWorkerCapacityEngine(ctx, eng, "worker/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if capacity.MilliCPUReserved != testRequest.MilliCPU || capacity.MemoryBytesReserved != testRequest.MemoryBytes {
+		t.Fatalf("resumed reservation not debited: %+v", capacity)
+	}
+
+	// The old generation is fenced from the resumed reservation.
+	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), res.Generation); !errors.Is(err, ErrStaleGeneration) {
+		t.Fatalf("expected stale generation, got %v", err)
 	}
 }
 

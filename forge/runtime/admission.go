@@ -26,15 +26,6 @@ type WorkerClaimRef struct {
 	ClaimID string
 }
 
-// OwnedWorkerCapacity pairs an owned capacity record with the Forge Worker
-// object key it describes, so scans can name workers for reclaim.
-type OwnedWorkerCapacity struct {
-	// WorkerObjectKey is the Forge Worker object key of the record.
-	WorkerObjectKey string
-	// Capacity is the owned capacity record.
-	Capacity *WorkerCapacity
-}
-
 // ReservationState describes whether capacity remains held and whether the
 // runtime outcome is known.
 type ReservationState uint8
@@ -86,95 +77,6 @@ const (
 	OutcomeTerminal
 )
 
-// ResourceRequest declares the host capacity and backend required by one execution attempt.
-type ResourceRequest struct {
-	// MilliCPU is the requested CPU in milli-cores.
-	MilliCPU uint64
-	// MemoryBytes is the requested memory in bytes.
-	MemoryBytes uint64
-	// Backend names the runtime backend required by the attempt.
-	Backend string
-}
-
-// Validate validates the request.
-func (r ResourceRequest) Validate() error {
-	switch {
-	case r.MilliCPU == 0:
-		return errors.New("milli_cpu must be set")
-	case r.MemoryBytes == 0:
-		return errors.New("memory_bytes must be set")
-	case r.Backend == "":
-		return errors.New("backend must be set")
-	}
-	return nil
-}
-
-// BackendRuntimeIdentity identifies one backend runtime instance for one
-// reservation generation. The identity is stable across Worker restarts so
-// reconcile can resume observation without another launch.
-type BackendRuntimeIdentity struct {
-	// Backend names the runtime backend that owns the runtime.
-	Backend string
-	// ID is the backend-scoped runtime identifier, for example a container id.
-	ID string
-	// StopCommand is the runtime CLI executable used to stop this instance.
-	StopCommand string
-	// StopEnv is its complete subprocess environment, retained across restarts.
-	StopEnv []string
-	// StopTimeoutSeconds is the Docker stop grace period for this instance.
-	StopTimeoutSeconds uint32
-}
-
-// IsZero reports whether the identity is unset.
-func (i BackendRuntimeIdentity) IsZero() bool {
-	return i.Backend == "" && i.ID == ""
-}
-
-// CleanupReceipt records the terminal cleanup facts for one reservation generation.
-type CleanupReceipt struct {
-	// ReservationObjectKey is the released reservation object key.
-	ReservationObjectKey string
-	// ExecutionObjectKey is the owning Execution object key.
-	ExecutionObjectKey string
-	// RuntimeIdentity is the stopped runtime identity, empty when no runtime launched.
-	RuntimeIdentity string
-	// Generation is the fenced generation the receipt applies to.
-	Generation uint64
-	// RuntimeStopped records that the backend runtime was confirmed stopped,
-	// or that no runtime ever launched. It stays false while a stop is pending;
-	// the receipt never fabricates this fact.
-	RuntimeStopped bool
-	// CapacityReleased records that reserved capacity was credited back exactly once.
-	CapacityReleased bool
-	// Reason records why the reservation released: "stopped" or "expired".
-	Reason string
-}
-
-// Complete reports whether every cleanup fact is recorded.
-func (r *CleanupReceipt) Complete() bool {
-	return r != nil && r.RuntimeStopped && r.CapacityReleased
-}
-
-// Validate validates the receipt.
-func (r *CleanupReceipt) Validate() error {
-	if r == nil {
-		return errors.New("cleanup receipt cannot be nil")
-	}
-	switch {
-	case r.ReservationObjectKey == "":
-		return errors.New("reservation_object_key cannot be empty")
-	case r.ExecutionObjectKey == "":
-		return errors.New("execution_object_key cannot be empty")
-	case r.Generation == 0:
-		return errors.New("generation must be set")
-	case r.Reason == "":
-		return errors.New("reason must be set")
-	case r.CapacityReleased != r.RuntimeStopped:
-		return errors.New("receipt must be partial (nothing released, stop unknown) or complete (stop confirmed and capacity credited)")
-	}
-	return nil
-}
-
 // Errors returned by runtime admission.
 var (
 	// ErrReservationNotFound is returned when a reservation object key is unknown.
@@ -188,15 +90,14 @@ var (
 	ErrCapacityExhausted = errors.New("worker capacity exhausted")
 	// ErrBackendUnsupported is returned when a worker does not declare the backend.
 	ErrBackendUnsupported = errors.New("backend unsupported by worker")
-	// ErrReservationTerminal is returned when an idempotent retry hits a
-	// released reservation; a retry after release is a new attempt with a new
-	// Execution object key.
+	// ErrReservationTerminal is returned when a lease renewal hits a released
+	// reservation.
 	ErrReservationTerminal = errors.New("reservation already released")
 	// ErrRequestMismatch is returned when an existing reservation conflicts with the request.
 	ErrRequestMismatch = errors.New("reservation request mismatch")
 	// ErrReservationExpired is returned when an idempotent retry hits a live
 	// reservation whose lease already expired but is not swept yet. Run the
-	// expiry sweep; the retry then requires a new attempt.
+	// expiry sweep; the retry then reserves the next generation.
 	ErrReservationExpired = errors.New("reservation lease expired")
 	// ErrCapacityOwned is returned when a different Device holds the live
 	// owner claim on a capacity record.
@@ -223,7 +124,8 @@ const (
 type RuntimeAdmission interface {
 	// Reserve atomically debits Worker capacity for one Execution attempt.
 	// Reserve is idempotent per Execution object key while the reservation is
-	// live; a released reservation requires a new attempt.
+	// live. After release it reserves the next generation for the resumed
+	// attempt, fencing calls from the released runtime.
 	Reserve(ctx context.Context, workerObjectKey, executionObjectKey string, request ResourceRequest) (*Reservation, error)
 	// LookupReservation loads one persisted reservation. Reconcile after a
 	// restart reads the same object and resumes observation without relaunch.

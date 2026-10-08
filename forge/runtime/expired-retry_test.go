@@ -47,15 +47,23 @@ func TestReserveRejectsExpiredUnsweptIdempotentReturn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The sweep releases once; the attempt stays terminal for its key.
+	// The sweep releases once.
 	receipts, err := admission.ExpireLeases(ctx, selfRef, now.Add(2*time.Minute))
 	if err != nil || len(receipts) != 1 {
 		t.Fatalf("expected one expiry receipt: %+v err=%v", receipts, err)
 	}
 
-	// Reject reuse of the released Execution reservation.
-	if _, err := admission.Reserve(ctx, "worker/a", "exec/late", testRequest); !errors.Is(err, ErrReservationTerminal) {
-		t.Fatalf("expected terminal error after sweep, got %v", err)
+	// The swept Execution resumes with the next reservation generation.
+	swept, err := admission.LookupReservation(ctx, BuildReservationObjectKey("exec/late"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resumed, err := admission.Reserve(ctx, "worker/a", "exec/late", testRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resumed.Generation != swept.Generation+1 {
+		t.Fatalf("resumed generation = %d, want %d", resumed.Generation, swept.Generation+1)
 	}
 }
 

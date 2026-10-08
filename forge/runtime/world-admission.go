@@ -583,6 +583,8 @@ func (a *WorldRuntimeAdmission) ReserveForClaim(
 }
 
 // reserve creates and debits one reservation under the Worker mutation lock.
+// It returns a live reservation for the Execution idempotently and replaces a
+// released one with the next generation.
 func (a *WorldRuntimeAdmission) reserve(
 	ctx context.Context,
 	workerObjectKey, executionObjectKey string,
@@ -611,12 +613,9 @@ func (a *WorldRuntimeAdmission) reserve(
 		if err != nil && !errors.Is(err, ErrReservationNotFound) {
 			return err
 		}
-		if existing != nil {
+		if existing != nil && !existing.State.Terminal() {
 			// Reuse a live matching reservation only after proving its debit.
 			switch {
-			case existing.State.Terminal():
-				// A retry after release is a new attempt with a new Execution key.
-				return ErrReservationTerminal
 			case existing.LeaseExpired(a.now()):
 				return ErrReservationExpired
 			case existing.WorkerObjectKey != workerObjectKey || existing.Request != request:
@@ -671,7 +670,9 @@ func (a *WorldRuntimeAdmission) reserve(
 			return errors.Wrapf(ErrCapacityExhausted, "worker %s", workerObjectKey)
 		}
 
-		// Create the leased reservation and debit the Worker atomically.
+		// Build the leased reservation. A released reservation means the
+		// Execution resumes after its runtime stopped, so the next generation
+		// fences calls from the old runtime.
 		now := a.now().UTC()
 		res := &Reservation{
 			WorkerObjectKey:    workerObjectKey,
@@ -681,10 +682,17 @@ func (a *WorldRuntimeAdmission) reserve(
 			LeaseExpiresAt:     timestamp.New(now.Add(a.lease)),
 			State:              ReservationStateReserved,
 		}
+		persist := func() error { return persistNewReservation(ctx, ws, res) }
+		if existing != nil {
+			res.Generation = existing.Generation + 1
+			persist = func() error { return persistReservation(ctx, ws, resKey, res) }
+		}
 		if err := res.Validate(); err != nil {
 			return err
 		}
-		if err := persistNewReservation(ctx, ws, res); err != nil {
+
+		// Persist the reservation and debit the Worker atomically.
+		if err := persist(); err != nil {
 			return err
 		}
 		if err := debitCapacity(ctx, ws, workerObjectKey, request); err != nil {
