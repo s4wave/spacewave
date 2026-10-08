@@ -233,7 +233,10 @@ func (c *Controller) mount(ctx context.Context) error {
 		// Observe the store revision captured before the build, including a
 		// publication that arrived while the engine was reading its head.
 		if _, err := store.WaitPointer(ctx, previous); err != nil {
-			return nil
+			if ctx.Err() != nil {
+				return nil
+			}
+			return err
 		}
 	}
 }
