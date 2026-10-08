@@ -2,7 +2,6 @@ package plugin_host_scheduler
 
 import (
 	"context"
-	"errors"
 	"slices"
 	"strings"
 	"sync"
@@ -124,10 +123,12 @@ func (s *pluginHostSet) toPlatformIDsMap() map[string]bldr_plugin_host.PluginHos
 		return nil
 	}
 
-	// Map each platform id to its host.
+	// Map each platform id to the first host that serves it.
 	hostMap := make(map[string]bldr_plugin_host.PluginHost)
 	for _, h := range s.pluginHosts {
-		hostMap[h.GetPlatformId()] = h
+		if _, ok := hostMap[h.GetPlatformId()]; !ok {
+			hostMap[h.GetPlatformId()] = h
+		}
 	}
 	return hostMap
 }
@@ -336,30 +337,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 		// true: wait for directive to be idle before emitting initial set of values.
 		true,
 		func(resErr []error, vals []bldr_plugin_host.PluginHost) error {
-			// Report resolver errors without dropping the host set.
-			if len(resErr) != 0 {
-				c.le.WithField("resolver-errs", resErr).Warn("one or more plugin hosts are erroring")
-			}
-
-			// check and warn if there are any duplicate platform ids (not currently handled well)
-			var ids []string
-			for _, pluginHost := range vals {
-				ids = append(ids, pluginHost.GetPlatformId())
-			}
-			slices.Sort(ids)
-			originalLen := len(ids)
-			ids = slices.Compact(ids)
-
-			// update the host set
-			c.le.WithField("plugin-hosts", ids).Infof("scheduling with %d plugin host(s)", len(ids))
-			hostSet := &pluginHostSet{pluginHosts: slices.Clone(vals), err: errors.Join(resErr...)}
-			c.pluginHostsCtr.SetValue(hostSet)
-
-			// Warn if we have multiple plugin hosts with the same platform ID
-			if originalLen > len(ids) {
-				c.le.WithField("plugin-hosts", ids).Warn("detected multiple plugin hosts with the same platform id")
-			}
-
+			c.publishHosts(resErr, vals)
 			return nil
 		},
 		func(err error) {
