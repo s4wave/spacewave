@@ -29,7 +29,7 @@ import (
 
 // TestRemoteShellServesOnlyWithNode checks that a Session answers remote shell
 // streams only while its remote-shell controller runs, and then only for a peer
-// the Session transport authorizes.
+// the Session transport authorizes. Removing the controller stops new opens.
 func TestRemoteShellServesOnlyWithNode(t *testing.T) {
 	// The admitted peer starts a PTY shell, which Windows does not offer.
 	if runtime.GOOS == "windows" {
@@ -97,6 +97,20 @@ func TestRemoteShellServesOnlyWithNode(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer loadRef.Release()
+
+	// Watch a handler the controller offers, to learn when it stops serving.
+	removed := make(chan struct{})
+	_, _, watchRef, err := bus.ExecCollectValues[link.MountedStreamHandler](
+		ctx,
+		childBus,
+		link.NewHandleMountedStream(s4wave_terminal.RemoteShellProtocolID, st.GetPeerID(), member),
+		true,
+		func() { close(removed) },
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer watchRef.Release()
 	for _, tc := range []struct {
 		name   string
 		remote peer.ID
@@ -129,6 +143,28 @@ func TestRemoteShellServesOnlyWithNode(t *testing.T) {
 				t.Fatalf("error = %q", got.GetError())
 			}
 		})
+	}
+
+	// Removing the node stops the controller, and a new open finds no handler.
+	loadRef.Release()
+	select {
+	case <-removed:
+	case <-ctx.Done():
+		t.Fatal("handler still offered after the remote-shell node was removed")
+	}
+	handlers, _, ref, err = bus.ExecCollectValues[link.MountedStreamHandler](
+		ctx,
+		childBus,
+		link.NewHandleMountedStream(s4wave_terminal.RemoteShellProtocolID, st.GetPeerID(), member),
+		false,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref.Release()
+	if len(handlers) != 0 {
+		t.Fatalf("%d handlers resolved after the remote-shell node was removed", len(handlers))
 	}
 }
 
