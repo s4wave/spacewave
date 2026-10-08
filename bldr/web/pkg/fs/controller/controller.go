@@ -3,10 +3,12 @@ package web_pkg_fs_controller
 import (
 	"context"
 	"io/fs"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_controller "github.com/s4wave/spacewave/bldr/web/pkg/controller"
 	web_pkg_fs "github.com/s4wave/spacewave/bldr/web/pkg/fs"
@@ -79,7 +81,22 @@ func NewWebPkgGetter(b bus.Bus, unixFsID, unixFsPrefix string, returnIfIdle bool
 		}
 
 		// Load the Web package and release filesystem references if it is absent.
-		pkg, pkgRel, err := web_pkg_fs.GetWebPkg(ctx, ifs, webPkgID)
+		basePath := ""
+		if artifactID, ok := strings.CutPrefix(unixFsID, bldr_plugin.PluginAssetsFsIdPrefix); ok {
+			_, root, parseErr := bldr_plugin.ParsePluginArtifactID(artifactID, false)
+			if parseErr != nil {
+				if childHandle != nil {
+					childHandle.Release()
+				}
+				fsHandleRel()
+				valRef.Release()
+				return nil, nil, parseErr
+			}
+			if root != "" {
+				basePath = bldr_plugin.PluginAssetsHttpPrefix + artifactID + "/" + strings.Trim(unixFsPrefix, "/") + "/" + webPkgID + "/"
+			}
+		}
+		pkg, pkgRel, err := web_pkg_fs.GetWebPkgWithAssetBasePath(ctx, ifs, webPkgID, basePath)
 		if err != nil || pkg == nil {
 			if childHandle != nil {
 				childHandle.Release()

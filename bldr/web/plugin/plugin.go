@@ -67,8 +67,8 @@ func (m *HandleWebViewViaHandlersRequest) Validate() error {
 
 // Validate validates the HandleWebPkgsViaPluginAssetsRequest configuration.
 func (m *HandleWebPkgsViaPluginAssetsRequest) Validate() error {
-	// Validate plugin ID
-	if err := bldr_plugin.ValidatePluginID(m.GetHandlePluginId(), false); err != nil {
+	// Validate the plugin's immutable file binding.
+	if _, _, err := bldr_plugin.ParsePluginArtifactID(m.GetHandlePluginId(), false); err != nil {
 		return errors.Wrap(err, "handle_plugin_id")
 	}
 

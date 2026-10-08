@@ -6,6 +6,9 @@ message WebPkgInfo {
   // Id is the web package identifier.
   // Usually matches the npm package name.
   string id = 1;
+  // AssetBasePath is the immutable plugin asset URL prefix, ending in a slash.
+  // Empty serves files directly, as for development and bundled runtime packages.
+  string asset_base_path = 2;
 }
 
 // WebPkgRef contains information about references to a web pkg.

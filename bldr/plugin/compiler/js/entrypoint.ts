@@ -498,7 +498,12 @@ function loadWebPlugin(
           try {
             // Frontend entrypoint imports can reference /b/pkg assets, so the
             // web plugin must serve this plugin's web packages first.
-            await loadWebPkgs(ourPluginID, client, signal, setupReady)
+            await loadWebPkgs(
+              pinnedPluginArtifactID(backendAPI, ourPluginID),
+              client,
+              signal,
+              setupReady,
+            )
             await loadFrontendEntrypoints(
               backendAPI,
               ourPluginID,

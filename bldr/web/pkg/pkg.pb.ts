@@ -20,6 +20,13 @@ export interface WebPkgInfo {
    * @generated from field: string id = 1;
    */
   id?: string
+  /**
+   * AssetBasePath is the immutable plugin asset URL prefix, ending in a slash.
+   * Empty serves files directly, as for development and bundled runtime packages.
+   *
+   * @generated from field: string asset_base_path = 2;
+   */
+  assetBasePath?: string
 }
 
 export const WebPkgInfo: MessageType<WebPkgInfo> =
@@ -27,6 +34,7 @@ export const WebPkgInfo: MessageType<WebPkgInfo> =
     typeName: 'web.pkg.WebPkgInfo',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'asset_base_path', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
   })
 

@@ -184,6 +184,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		}
 
 		// Serve the dist and assets filesystems while the plugin runs.
+		t.beginInitialCapabilityRegistration()
 		t.distAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(distFS))
 		defer t.distAccess.SetBlocked()
 		t.assetsAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(assetsFS))
@@ -221,6 +222,9 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		}
 
 		// Served files stay mounted until the selection changes.
+		t.updatePluginLoadState(func(state bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+			return state.WithManifestRoot(manifestRoot)
+		})
 		if args.serveAssets {
 			<-ctx.Done()
 			return context.Canceled
@@ -249,9 +253,6 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			return err
 		}
 		defer hostRootRef.Release()
-
-		// Begin the initial capability registration window.
-		t.beginInitialCapabilityRegistration()
 
 		// Build the mux for handling incoming RPCs from the plugin.
 		hostMux, relHostMux := t.c.buildPluginMux(
@@ -335,7 +336,7 @@ func (t *pluginInstance) updateRpcClient(client srpc.Client) {
 		if client == nil && registrationState == bldr_plugin.InitialCapabilityRegistrationComplete {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationFailed
 		}
-		next := bldr_plugin.NewPluginLoadState(client, registrationState)
+		next := bldr_plugin.NewPluginLoadState(client, registrationState).WithManifestRoot(current.GetManifestRoot())
 		if current.GetStartupBudgetExhausted() {
 			next = next.WithStartupBudgetExhausted()
 		}
@@ -360,7 +361,7 @@ func (t *pluginInstance) finishInitialCapabilityRegistration(complete bool) {
 		if complete {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationComplete
 		}
-		next := bldr_plugin.NewPluginLoadState(current.GetRpcClient(), registrationState)
+		next := bldr_plugin.NewPluginLoadState(current.GetRpcClient(), registrationState).WithManifestRoot(current.GetManifestRoot())
 		if current.GetStartupBudgetExhausted() {
 			next = next.WithStartupBudgetExhausted()
 		}

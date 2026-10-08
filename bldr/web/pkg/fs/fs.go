@@ -14,6 +14,11 @@ import (
 // GetWebPkg wraps ifs in a WebPkgGetter for the package identified by webPkgID.
 // It returns nil, nil, nil when webPkgID does not exist.
 func GetWebPkg(ctx context.Context, ifs fs.FS, webPkgID string) (web_pkg.LookupWebPkgValue, func(), error) {
+	return GetWebPkgWithAssetBasePath(ctx, ifs, webPkgID, "")
+}
+
+// GetWebPkgWithAssetBasePath exposes a package whose modules load from an immutable URL.
+func GetWebPkgWithAssetBasePath(ctx context.Context, ifs fs.FS, webPkgID, assetBasePath string) (web_pkg.LookupWebPkgValue, func(), error) {
 	// Find the package directory and treat a missing package as an empty result.
 	fi, err := fs.Stat(ifs, webPkgID)
 	if err != nil {
@@ -48,7 +53,7 @@ func GetWebPkg(ctx context.Context, ifs fs.FS, webPkgID string) (web_pkg.LookupW
 
 	// Build the static web package from the releasable filesystem handle.
 	spkg, err := web_pkg_static.NewStaticWebPkg(
-		&web_pkg.WebPkgInfo{Id: webPkgID},
+		&web_pkg.WebPkgInfo{Id: webPkgID, AssetBasePath: assetBasePath},
 		fsHandle.Clone,
 	)
 	if err != nil {

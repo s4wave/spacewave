@@ -77,5 +77,5 @@ type PluginHostScheduler interface {
 
 	// AddAssetsPluginReference retains a plugin whose files the caller serves
 	// to a browser, mounting a browser manifest when no host can run it.
-	AddAssetsPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func())
+	AddAssetsPluginReference(pluginID, instanceKey, manifestRoot string) (bldr_plugin.RunningPluginRef, func())
 }

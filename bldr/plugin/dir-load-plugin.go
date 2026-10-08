@@ -84,6 +84,12 @@ func NewLoadPluginAssets(pluginID string) LoadPlugin {
 	return &loadPlugin{pluginID: pluginID, serveAssets: true}
 }
 
+// NewLoadPluginAssetsAtManifest mounts an exact browser manifest without running it.
+// The directive publishes its manifest root once the files are available.
+func NewLoadPluginAssetsAtManifest(pluginID, manifestRoot string) LoadPlugin {
+	return &loadPlugin{pluginID: pluginID, manifestRoot: manifestRoot, serveAssets: true}
+}
+
 // ExLoadPlugin executes the LoadPlugin directive.
 //
 // if returnIfIdle=true and the directive becomes idle, returns nil, nil, nil

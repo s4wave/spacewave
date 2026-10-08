@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	web_pkg_fs_controller "github.com/s4wave/spacewave/bldr/web/pkg/fs/controller"
 	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
@@ -51,15 +50,8 @@ const webAppPluginID = "spacewave-app"
 // build excludes and imports from /b/pkg/.
 const webPkgPluginID = "spacewave-web"
 
-// webPkgIDs are the web packages the app imports from webPkgPluginID.
-var webPkgIDs = []string{"@s4wave/web", "sonner"}
-
 // BoundPluginIDs are the plugins whose browser files a bound listener serves.
 var BoundPluginIDs = []string{webAppPluginID, webPkgPluginID}
-
-// webAppFrontendPath is the root of the app plugin's frontend build. A bound
-// listener's shell loads the app entry from its Vite manifest.
-const webAppFrontendPath = "/b/pa/" + webAppPluginID + "/v/b/fe/"
 
 // AccessWebListener creates or reuses a localhost web listener.
 func (s *CoreRootServer) AccessWebListener(
@@ -273,6 +265,10 @@ type webListener struct {
 	le              *logrus.Entry
 	b               bus.Bus
 	bldrHTTP        *web_runtime_http.Handler
+	// appFrontendPath pins the app files to the listener's first manifest.
+	appFrontendPath string
+	// webPkgBasePath pins package modules to the listener's web manifest.
+	webPkgBasePath string
 	// resources serves the bound Resource service, or is nil when unbound.
 	resources *srpc.HTTPServer
 	// releaseAssets releases the bound plugin files and their web packages.
@@ -371,7 +367,7 @@ func newWebListener(
 		capabilities:    make(map[string]time.Time),
 	}
 	if spec.spaceID != "" && b != nil {
-		listener.releaseAssets, err = holdBoundAssets(serveCtx, le, b)
+		listener.appFrontendPath, listener.webPkgBasePath, listener.releaseAssets, err = holdBoundAssets(ctx, b)
 		if err != nil {
 			cancel()
 			_ = lis.Close()
@@ -436,7 +432,7 @@ func (l *webListener) Close() {
 
 // holdBoundAssets mounts the files of BoundPluginIDs without running them and
 // serves the web packages that a running webPkgPluginID would register.
-func holdBoundAssets(ctx context.Context, le *logrus.Entry, b bus.Bus) (func(), error) {
+func holdBoundAssets(ctx context.Context, b bus.Bus) (string, string, func(), error) {
 	// Mount each plugin's browser files.
 	var refs []directive.Reference
 	release := func() {
@@ -444,34 +440,27 @@ func holdBoundAssets(ctx context.Context, le *logrus.Entry, b bus.Bus) (func(), 
 			ref.Release()
 		}
 	}
+	artifacts := make(map[string]string, len(BoundPluginIDs))
 	for _, pluginID := range BoundPluginIDs {
-		_, ref, err := b.AddDirective(bldr_plugin.NewLoadPluginAssets(pluginID), nil)
+		root, _, ref, err := bus.ExecWaitValue[string](ctx, b, bldr_plugin.NewLoadPluginAssets(pluginID), nil, nil, nil)
 		if err != nil {
 			release()
-			return nil, err
+			return "", "", nil, err
 		}
-		refs = append(refs, ref)
+		_, _, pinnedRef, err := bus.ExecWaitValue[string](ctx, b, bldr_plugin.NewLoadPluginAssetsAtManifest(pluginID, root), nil, nil, nil)
+		ref.Release()
+		if err != nil {
+			release()
+			return "", "", nil, err
+		}
+		refs = append(refs, pinnedRef)
+		artifacts[pluginID] = bldr_plugin.PluginArtifactID(pluginID, root)
 	}
 
-	// Resolve the web packages from the mounted assets.
-	ctrl, err := web_pkg_fs_controller.NewController(le, b, &web_pkg_fs_controller.Config{
-		UnixfsId:     bldr_plugin.PluginAssetsFsId(webPkgPluginID),
-		UnixfsPrefix: bldr_plugin.PluginAssetsWebPkgsDir,
-		WebPkgIdList: webPkgIDs,
-	})
-	if err != nil {
-		release()
-		return nil, err
-	}
-	releaseCtrl, err := b.AddController(ctx, ctrl, nil)
-	if err != nil {
-		release()
-		return nil, err
-	}
-	return func() {
-		releaseCtrl()
-		release()
-	}, nil
+	// Keep both immutable URL prefixes with the listener's asset demand.
+	return bldr_plugin.PluginAssetsHttpPrefix + artifacts[webAppPluginID] + "/v/b/fe/",
+		bldr_plugin.PluginAssetsHttpPrefix + artifacts[webPkgPluginID] + "/" + bldr_plugin.PluginAssetsWebPkgsDir + "/",
+		release, nil
 }
 
 // ServeHTTP serves the boot shell and bootstrap exchange to anyone, and every
@@ -631,7 +620,7 @@ func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	// Render and serve the local bootstrap shell.
-	shell, err := renderWebListenerBootShell(metadata, l.spec)
+	shell, err := renderWebListenerBootShell(metadata, l.spec, l.appFrontendPath)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -697,12 +686,12 @@ func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBoo
 // listener starts the released WASM runtime. A bound listener skips it: the
 // shell loads the native app entry and renders it over the listener's
 // Resource websocket, opening the bound Space when no route is given.
-func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec) ([]byte, error) {
+func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec, appFrontendPath string) ([]byte, error) {
 	start := "await import('/boot.mjs');"
 	if spec.spaceID != "" {
 		route := "/u/" + strconv.FormatUint(uint64(spec.sessionIdx), 10) + "/so/" + url.PathEscape(spec.spaceID)
 		start = `if (!location.hash) history.replaceState(null, '', '#' + ` + quoteWebListenerScriptString(route) + `);
-const appBase = ` + quoteWebListenerScriptString(webAppFrontendPath) + `;
+const appBase = ` + quoteWebListenerScriptString(appFrontendPath) + `;
 const manifestResp = await fetch(appBase + '.vite/manifest.json');
 if (!manifestResp.ok) {
   setBootstrapFailure('Spacewave app manifest failed: ' + manifestResp.status);
@@ -769,6 +758,17 @@ func quoteWebListenerScriptString(value string) string {
 }
 
 func (l *webListener) serveNativeRuntimeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Redirect bound package modules before relative imports choose their base URL.
+	if pkgPath, ok := strings.CutPrefix(req.URL.Path, bldr_plugin.PluginWebPkgHttpPrefix); ok && l.webPkgBasePath != "" {
+		target := l.webPkgBasePath + pkgPath
+		if req.URL.RawQuery != "" {
+			target += "?" + req.URL.RawQuery
+		}
+		rw.Header().Set("Cache-Control", "no-store")
+		http.Redirect(rw, req, target, http.StatusTemporaryRedirect)
+		return
+	}
+
 	// Serve the Bldr frontend, package, and plugin file routes from the bus.
 	if l.b == nil {
 		http.Error(rw, "spacewave: native runtime unavailable", http.StatusNotFound)

@@ -32,12 +32,12 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 	var ref bldr_plugin.RunningPluginRef
 	var relRef func()
 	switch {
+	case r.dir.LoadPluginServeAssets():
+		ref, relRef = r.c.AddAssetsPluginReference(pluginID, r.instanceKey, manifestRoot)
 	case len(r.dir.LoadPluginManifests()) != 0:
 		ref, relRef = r.c.AddSelectedPluginReference(pluginID, r.instanceKey, r.dir.LoadPluginManifests()...)
 	case manifestRoot != "":
 		ref, relRef = r.c.AddPinnedPluginReference(pluginID, r.instanceKey, manifestRoot)
-	case r.dir.LoadPluginServeAssets():
-		ref, relRef = r.c.AddAssetsPluginReference(pluginID, r.instanceKey)
 	default:
 		ref, relRef = r.c.AddPluginReference(pluginID, r.instanceKey)
 	}
@@ -54,6 +54,11 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			return err
 		}
 		current = next
+		if r.dir.LoadPluginServeAssets() && next.GetManifestRoot() != "" {
+			_, _ = handler.AddValue(next.GetManifestRoot())
+			handler.MarkIdle(true)
+			continue
+		}
 		if running := next.GetRunningPlugin(); running != nil {
 			_, _ = handler.AddValue(running)
 			handler.MarkIdle(true)

@@ -709,7 +709,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/pkg": {
-      "hash": "b86c32fb4388d21b81181fbebfbef06a90a4914f20de73e10f41b03b233f4ffe",
+      "hash": "c4b4e619466fa18da6849da6cc08a64b43316ed9f3d2e65175ddb77f5f08f6db",
       "generatedFiles": [
         "bldr/web/pkg/pkg.pb.go",
         "bldr/web/pkg/pkg.pb.ts"

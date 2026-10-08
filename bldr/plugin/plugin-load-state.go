@@ -5,6 +5,8 @@ import "github.com/aperturerobotics/starpc/srpc"
 // PluginLoadState atomically projects the plugin RPC client, initial
 // capability-registration state, and startup wait budget state.
 type PluginLoadState struct {
+	// manifestRoot identifies the immutable files mounted by this execution.
+	manifestRoot string
 	// plugin carries the live RPC connection, including during registration.
 	plugin RunningPlugin
 	// registrationState describes the current execution's startup result.
@@ -45,6 +47,17 @@ func (s PluginLoadState) GetRpcClient() srpc.Client {
 	return s.plugin.GetRpcClient()
 }
 
+// GetManifestRoot returns the mounted manifest root, or empty before files are ready.
+func (s PluginLoadState) GetManifestRoot() string {
+	return s.manifestRoot
+}
+
+// WithManifestRoot records the immutable files served by this execution.
+func (s PluginLoadState) WithManifestRoot(root string) PluginLoadState {
+	s.manifestRoot = root
+	return s
+}
+
 // GetInitialCapabilityRegistrationState returns the startup registration state.
 func (s PluginLoadState) GetInitialCapabilityRegistrationState() InitialCapabilityRegistrationState {
 	return s.registrationState
@@ -65,6 +78,8 @@ func (s PluginLoadState) GetStartupBudgetExhausted() bool {
 
 // WithStartupError marks execution as failed and preserves its terminal cause.
 func (s PluginLoadState) WithStartupError(err error) PluginLoadState {
+	// Withdraw the failed execution and retain its cause.
+	s.manifestRoot = ""
 	s.plugin = nil
 	s.registrationState = InitialCapabilityRegistrationFailed
 	s.startupError = err

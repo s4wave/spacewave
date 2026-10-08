@@ -159,14 +159,14 @@ func TestRenderBoundBootShell(t *testing.T) {
 	// Render the shell for a listener bound to session 2 and one Space.
 	metadata := &webListenerReleaseBootMetadata{importMapScript: `<script type="importmap">{}</script>`}
 	spec := &webListenSpec{spaceID: "space/1", sessionIdx: 2}
-	shell, err := renderWebListenerBootShell(metadata, spec)
+	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Load the native app over the Resource websocket, not the WASM runtime.
 	text := string(shell)
-	for _, want := range []string{`"/u/2/so/space%2F1"`, `"/b/pa/spacewave-app/v/b/fe/"`, `renderBoundApp(`, `"/_spacewave/resource"`} {
+	for _, want := range []string{`"/u/2/so/space%2F1"`, `"/b/pa/spacewave-app/manifest/root/v/b/fe/"`, `renderBoundApp(`, `"/_spacewave/resource"`} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("bound boot shell missing %s: %s", want, text)
 		}

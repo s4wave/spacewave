@@ -464,8 +464,8 @@ func (c *Controller) AddSelectedPluginReference(pluginID, instanceKey string, se
 // AddAssetsPluginReference retains a plugin whose files the caller serves to a
 // browser. While any such reference exists, the binding mounts the files of a
 // browser manifest when no host can run the plugin.
-func (c *Controller) AddAssetsPluginReference(pluginID, instanceKey string) (bldr_plugin.RunningPluginRef, func()) {
-	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey})
+func (c *Controller) AddAssetsPluginReference(pluginID, instanceKey, manifestRoot string) (bldr_plugin.RunningPluginRef, func()) {
+	ref, plg, _ := c.pluginInstances.AddKeyRef(pluginReference{pluginID: pluginID, instanceKey: instanceKey, manifestRoot: manifestRoot})
 	releaseAssets := plg.addAssetsDemand()
 	plg.start.SetValue(true)
 	return plg, sync.OnceFunc(func() {
