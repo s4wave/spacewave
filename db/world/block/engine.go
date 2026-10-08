@@ -299,19 +299,24 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 	defer task.End()
 
 	// Join the admission watermark outside the publication guard: completion
-	// needs that guard to install the durable head. Later submissions need not
-	// complete for this fence.
+	// needs that guard to install the durable head, and a submitter needs it
+	// to retire its writer before it starts the completion that returns its
+	// staged borrow. Admission takes that borrow and advances the watermark
+	// under the guard together, so an unchanged watermark under the guard
+	// proves no borrow is outstanding when the store fence starts.
 	locked := e.bcast.Lock()
-	submitted := e.submitted
-	locked.Unlock()
-	if submitted != nil {
+	for submitted := e.submitted; submitted != nil; submitted = e.submitted {
+		locked.Unlock()
 		if err := submitted.Wait(ctx); err != nil {
 			return false, err
+		}
+		locked = e.bcast.Lock()
+		if e.submitted == submitted {
+			break
 		}
 	}
 
 	// Hold the published root stable across the backing-store fence.
-	locked = e.bcast.Lock()
 	defer locked.Unlock()
 	if e.closed {
 		return false, ErrEngineClosed
@@ -319,8 +324,8 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 
 	// Transactions write into the engine-retained overlay before they are
 	// submitted. Fence those bytes as durable preparation as well, without
-	// changing a head. Completed borrows are returned before their completion
-	// goroutine needs bcast, so this cannot block publication.
+	// changing a head. The watermark wait above left no publication borrow
+	// outstanding, so this fence waits on no goroutine that needs bcast.
 	store := e.writeBlockStore
 	if e.stagedStore != nil {
 		store = e.stagedStore
