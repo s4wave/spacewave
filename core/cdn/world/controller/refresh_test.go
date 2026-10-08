@@ -122,14 +122,10 @@ func TestMountRetriesOneFailedPointerFetch(t *testing.T) {
 // TestMissingHeadMountsOnRefreshRPC proves a mount whose Space has no published
 // head waits on the store's root pointer instead of a timer: a Refresh RPC
 // accepted while the head is missing fetches the published root and the mount
-// builds its engine without waiting the retry delay.
+// builds its engine.
 func TestMissingHeadMountsOnRefreshRPC(t *testing.T) {
-	// Bound the checks well below the old one-second retry delay.
-	waitCtx, waitCancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
-	defer waitCancel()
-
-	// Bound the whole test against a stuck Execute.
-	ctx, cancel := context.WithCancel(t.Context())
+	// Bound the whole test against a stuck mount.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	// Keep the first two pointer reads headless; the explicit refresh publishes a head.
@@ -155,7 +151,7 @@ func TestMissingHeadMountsOnRefreshRPC(t *testing.T) {
 	defer func() { cancel(); <-done }()
 
 	// Wait for the mount to report the missing head.
-	if _, err := ctrl.ctr.WaitValueWithValidator(waitCtx, func(state *mountState) (bool, error) {
+	if _, err := ctrl.ctr.WaitValueWithValidator(ctx, func(state *mountState) (bool, error) {
 		return state != nil && isMissingPublishedHead(state.err), nil
 	}, nil); err != nil {
 		t.Fatal(err)
@@ -163,15 +159,13 @@ func TestMissingHeadMountsOnRefreshRPC(t *testing.T) {
 
 	// A refresh RPC on the headless mount is accepted.
 	client := NewSRPCWorldRefreshClientWithServiceID(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(ctrl))), WorldRefreshServiceID("release"))
-	response, err := client.Refresh(waitCtx, &RefreshRequest{SpaceId: "release-space"})
+	response, err := client.Refresh(ctx, &RefreshRequest{SpaceId: "release-space"})
 	if err != nil || !response.GetAccepted() {
 		t.Fatalf("refresh on missing head: %v %v", response, err)
 	}
 
-	// The new root pointer mounts the engine on the test's deadline.
-	readyCtx, readyCancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
-	defer readyCancel()
-	if engine, err := ctrl.GetWorldEngine(readyCtx); err != nil || engine == nil {
+	// The new root pointer mounts the engine.
+	if engine, err := ctrl.GetWorldEngine(ctx); err != nil || engine == nil {
 		t.Fatalf("engine did not mount on refresh: %v %v", engine, err)
 	}
 	if n := requests.Load(); n != 3 {

@@ -185,11 +185,12 @@ func (c *Controller) mount(ctx context.Context) error {
 		return err
 	}
 
-	// The refresh routine owns pointer fetches, including the first one, so
-	// mounting fetches the pointer once. While the CDN is unreachable the
-	// routine retries and the store stays mounted, so cached blocks remain
-	// readable. Lookups learn the Space is unreachable only after a retry also
-	// fails, so one dropped request does not start the cached release.
+	// The refresh routine owns pointer fetches, including the first one. While
+	// the CDN is unreachable the routine retries and the store stays mounted,
+	// so cached blocks remain readable. Lookups learn the Space is unreachable
+	// only after a retry also fails, so one dropped request does not start the
+	// cached release. A Space with no published head costs one more request,
+	// the engine build's own read, and then waits for a Refresh.
 	c.refreshed.SetValue(nil)
 	c.refresh.SetRoutine(so.RefreshSnapshot)
 	c.refresh.SetContext(ctx, false)

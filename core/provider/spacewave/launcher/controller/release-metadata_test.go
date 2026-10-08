@@ -570,8 +570,12 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 	}
 }
 
-func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
-	ctx := t.Context()
+// TestReleaseMetadataRoutineRefreshesThenWaitsForReleaseWorld proves a routine
+// that starts before the release World mounts asks the mount to fetch its root
+// and resolves the release once the mount publishes its engine.
+func TestReleaseMetadataRoutineRefreshesThenWaitsForReleaseWorld(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
 	manifestRef := writeReleaseDesktopArtifactTestBlock(t, ctx, ws, "release/manifests/native", nativeEntrypointManifestID, nativeTestPlatformID(), 1, "binary")
@@ -597,12 +601,24 @@ func TestReleaseMetadataRoutineRetriesUntilReleaseWorldMounted(t *testing.T) {
 
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
+	refresher := &releaseWorldRefreshTestController{refreshed: make(chan struct{}, 1)}
+	relRefresh, err := b.AddController(ctx, refresher, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer relRefresh()
 	stagingDir := t.TempDir()
 	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
 	ctrl.releaseMetadataRoutine.SetContext(ctx, true)
 	defer ctrl.releaseMetadataRoutine.ClearContext()
 
-	waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR)
+	// With no World mounted the routine asks the mount for a root fetch and
+	// waits instead of failing into its retry backoff.
+	select {
+	case <-refresher.refreshed:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1058,6 +1074,8 @@ func waitForUpdatePhase(
 // releaseWorldRefreshTestController counts refreshes of the release World.
 type releaseWorldRefreshTestController struct {
 	calls atomic.Int32
+	// refreshed, when set, receives a signal for each refresh without blocking.
+	refreshed chan struct{}
 }
 
 func (c *releaseWorldRefreshTestController) GetControllerInfo() *controller.Info {
@@ -1086,6 +1104,10 @@ func (c *releaseWorldRefreshTestController) InvokeMethod(serviceID, methodID str
 
 func (c *releaseWorldRefreshTestController) Refresh(context.Context, *cdn_world_controller.RefreshRequest) (*cdn_world_controller.RefreshResponse, error) {
 	c.calls.Add(1)
+	select {
+	case c.refreshed <- struct{}{}:
+	default:
+	}
 	return &cdn_world_controller.RefreshResponse{Accepted: true}, nil
 }
 

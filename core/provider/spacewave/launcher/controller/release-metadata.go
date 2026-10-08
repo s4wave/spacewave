@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -115,12 +116,9 @@ func (c *Controller) resolveReleaseMetadata(
 	ctx context.Context,
 	channelKey string,
 ) (*spacewave_release.ReleaseMetadata, error) {
-	eng, _, ref, err := world.ExLookupWorldEngine(ctx, c.bus, true, releaseWorldEngineID, nil)
+	eng, ref, err := c.lookupReleaseWorld(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "lookup release world")
-	}
-	if eng == nil || ref == nil {
-		return nil, errors.New("release world not mounted")
+		return nil, err
 	}
 	defer ref.Release()
 	metadata, headRef, err := readReleaseMetadataSnapshot(ctx, c.le, eng, channelKey)
@@ -129,6 +127,34 @@ func (c *Controller) resolveReleaseMetadata(
 	}
 	c.setReleaseWorldHeadRef(headRef)
 	return metadata, err
+}
+
+// lookupReleaseWorld returns the mounted release World. A Space with no
+// published head mounts no engine until a root fetch finds one, and the mount
+// fetches only when asked, so the lookup queues one fetch and then waits for
+// the mount to publish its engine. The next announcement restarts the calling
+// routine, which cancels the wait and queues the next fetch.
+func (c *Controller) lookupReleaseWorld(ctx context.Context) (world.LookupWorldEngineValue, directive.Reference, error) {
+	eng, _, ref, err := world.ExLookupWorldEngine(ctx, c.bus, true, releaseWorldEngineID, nil)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "lookup release world")
+	}
+	if eng != nil && ref != nil {
+		return eng, ref, nil
+	}
+	if ref != nil {
+		ref.Release()
+	}
+
+	// Ask the mount to read the root pointer, then wait for its engine.
+	if err := c.refreshReleaseWorld(ctx); err != nil {
+		return nil, nil, err
+	}
+	eng, _, ref, err = world.ExLookupWorldEngine(ctx, c.bus, false, releaseWorldEngineID, nil)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "wait for release world")
+	}
+	return eng, ref, nil
 }
 
 // refreshReleaseWorld queues a root fetch on the mounted release World. A
