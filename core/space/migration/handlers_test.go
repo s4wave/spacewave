@@ -70,6 +70,7 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 		{"message", s4wave_chat.ChatMessageTypeID, s4wave_chat.NewChatMessageBlock()},
 		{"device", s4wave_device.DeviceTypeID, s4wave_device.NewDeviceBlock()},
 		{"flowgraph", s4wave_flowgraph.FlowgraphTypeID, s4wave_flowgraph.NewFlowgraphBlock()},
+		{"flowgraph-run", s4wave_flowgraph.FlowgraphRunTypeID, s4wave_flowgraph.NewFlowgraphRunBlock()},
 		{"terminal", s4wave_terminal.TerminalTypeID, s4wave_terminal.NewTerminalBlock()},
 		{"ssh-host", s4wave_sshhost.SshHostTypeID, s4wave_sshhost.NewSshHostBlock()},
 		{"app-connector", s4wave_appconnector.AppConnectorTypeID, s4wave_appconnector.NewAppConnectorBlock()},
@@ -377,6 +378,84 @@ func TestFlowgraphHandlerRewritesTargetAndPlacementIdentities(t *testing.T) {
 	}
 	if rewritten.GetName() != "graph" || step.GetPrompt() != "unchanged" {
 		t.Fatalf("rewrite changed unreferenced fields: %v", &rewritten)
+	}
+}
+
+func TestFlowgraphRunHandlerRewritesFlowgraphJobAndTaskKeys(t *testing.T) {
+	// Store a run that references its Flowgraph, Job, and Tasks.
+	ctx := context.Background()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	run := &s4wave_flowgraph.FlowgraphRun{
+		FlowgraphKey:      "graph",
+		FlowgraphRevision: 7,
+		JobKey:            "run/job",
+		State:             s4wave_flowgraph.FlowgraphRunState_FLOWGRAPH_RUN_STATE_PAUSED,
+		PausedNode:        "step",
+		PauseReason:       "unchanged",
+		Activations: []*s4wave_flowgraph.FlowgraphActivation{{
+			NodeId:  "step",
+			TaskKey: "run/job/task-1",
+			Inputs:  []*s4wave_flowgraph.FlowgraphArrival{{NodeId: "step", Port: "in", TaskKey: "run/job/task-0", OutputName: "out"}},
+		}},
+		Arrivals: []*s4wave_flowgraph.FlowgraphArrival{
+			{NodeId: "next", Port: "in", TaskKey: "run/job/task-1", OutputName: "out"},
+			{NodeId: "step"},
+		},
+		Visits: map[string]*s4wave_flowgraph.FlowgraphVisits{"step": {Count: 1, Spend: 3}},
+	}
+	setObjectBlock(t, ctx, tb.WorldState, "run", s4wave_flowgraph.FlowgraphRunTypeID, run)
+	object := &space_migration.ObjectDescriptor{ObjectKey: "run", ObjectType: s4wave_flowgraph.FlowgraphRunTypeID, World: tb.WorldState}
+	registry, err := space_migration.BuiltInRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := registry.Lookup(s4wave_flowgraph.FlowgraphRunTypeID)
+
+	// Verify the inspection reports each distinct key once.
+	inspection, err := handler.Inspect(ctx, object)
+	if err != nil {
+		t.Fatalf("Inspect(flowgraph run): %v", err)
+	}
+	assertForgeReferences(t, "flowgraph run inspect", inspection.References, []space_migration.TypedReference{
+		{Kind: space_migration.ReferenceObjectKey, Value: "graph"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "run/job"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "run/job/task-1"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "run/job/task-0"},
+	})
+
+	// Rewrite the run with destination keys.
+	mapping := space_migration.NewIdentityMap()
+	for _, key := range []string{"graph", "run/job", "run/job/task-0", "run/job/task-1"} {
+		mapping.ObjectKeys[key] = key + "-destination"
+	}
+	result, err := handler.Rewrite(ctx, object, mapping)
+	if err != nil {
+		t.Fatalf("Rewrite(flowgraph run): %v", err)
+	}
+	assertForgeReferences(t, "flowgraph run rewrite", result.References, []space_migration.TypedReference{
+		{Kind: space_migration.ReferenceObjectKey, Value: "graph-destination"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "run/job-destination"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "run/job/task-1-destination"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "run/job/task-0-destination"},
+	})
+
+	// Verify the payload carries the destination keys and keeps the rest.
+	var rewritten s4wave_flowgraph.FlowgraphRun
+	if err := rewritten.UnmarshalVT(result.Payload); err != nil {
+		t.Fatal(err)
+	}
+	want := run.CloneVT()
+	want.FlowgraphKey = "graph-destination"
+	want.JobKey = "run/job-destination"
+	want.Activations[0].TaskKey = "run/job/task-1-destination"
+	want.Activations[0].Inputs[0].TaskKey = "run/job/task-0-destination"
+	want.Arrivals[0].TaskKey = "run/job/task-1-destination"
+	if !rewritten.EqualVT(want) {
+		t.Fatalf("rewritten run = %v, want %v", &rewritten, want)
 	}
 }
 

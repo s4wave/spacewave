@@ -154,6 +154,10 @@ func inspectFlowgraph(ctx context.Context, object *ObjectDescriptor) (*Inspectio
 	return out, nil
 }
 
+func inspectFlowgraphRun(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	return inspectForgePayload[*s4wave_flowgraph.FlowgraphRun](ctx, object, s4wave_flowgraph.NewFlowgraphRunBlock, "Flowgraph run", inspectFlowgraphRunFields)
+}
+
 func inspectTerminal(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
 	terminal, err := world.LookupObjectBody[*s4wave_terminal.Terminal](ctx, object.World, object.ObjectKey, s4wave_terminal.NewTerminalBlock)
 	if err != nil {
@@ -218,6 +222,49 @@ func flowgraphTargetValues(target *forge_target.Target) []*forge_value.Value {
 		values = append(values, output.GetValue())
 	}
 	return values
+}
+
+// flowgraphRunKeyFields returns the object keys a run holds: its Flowgraph, its
+// Job, and the Task of each activation, activation input, and arrival. The
+// pinned graph is a child block of the run and moves with the block migration,
+// not with the run payload.
+func flowgraphRunKeyFields(run *s4wave_flowgraph.FlowgraphRun) []*string {
+	fields := []*string{&run.FlowgraphKey, &run.JobKey}
+	for _, activation := range run.GetActivations() {
+		fields = append(fields, &activation.TaskKey)
+		for _, input := range activation.GetInputs() {
+			fields = append(fields, &input.TaskKey)
+		}
+	}
+	for _, arrival := range run.GetArrivals() {
+		fields = append(fields, &arrival.TaskKey)
+	}
+	return fields
+}
+
+// inspectFlowgraphRunFields collects each distinct object key of a run.
+func inspectFlowgraphRunFields(run *s4wave_flowgraph.FlowgraphRun, out *Inspection) error {
+	seen := make(map[string]struct{})
+	for _, field := range flowgraphRunKeyFields(run) {
+		if _, ok := seen[*field]; ok {
+			continue
+		}
+		seen[*field] = struct{}{}
+		appendForgeObjectKey(out, *field)
+	}
+	return nil
+}
+
+// rewriteFlowgraphRunFields remaps each object key of a run in place.
+func rewriteFlowgraphRunFields(run *s4wave_flowgraph.FlowgraphRun, mapping *IdentityMap) error {
+	for _, field := range flowgraphRunKeyFields(run) {
+		mapped, err := remapObjectKey(mapping, *field)
+		if err != nil {
+			return err
+		}
+		*field = mapped
+	}
+	return nil
 }
 
 // flowgraphPlacementKeys returns the Device and actor object keys that a
@@ -876,6 +923,10 @@ func rewriteFlowgraph(ctx context.Context, object *ObjectDescriptor, mapping *Id
 		appendForgeObjectKey(out, mapped)
 	}
 	return &RewriteResult{Payload: data, References: out.References, GraphReferences: mappedGraphReferences(object, mapping)}, nil
+}
+
+func rewriteFlowgraphRun(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
+	return rewriteForgePayload[*s4wave_flowgraph.FlowgraphRun](ctx, object, mapping, s4wave_flowgraph.NewFlowgraphRunBlock, "Flowgraph run", rewriteFlowgraphRunFields, inspectFlowgraphRunFields)
 }
 
 func rewriteTerminal(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
