@@ -14,7 +14,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	space_exec "github.com/s4wave/spacewave/core/forge/exec"
 	"github.com/s4wave/spacewave/db/world"
 	cluster_controller "github.com/s4wave/spacewave/forge/cluster/controller"
@@ -28,6 +27,7 @@ import (
 	worker_controller "github.com/s4wave/spacewave/forge/worker/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	"github.com/sirupsen/logrus"
@@ -68,14 +68,16 @@ func forgeWorkerFactory(
 	// Construct the linked Worker resource and its execution service.
 	engineID := objecttype.EngineIDFromContext(ctx)
 	resource := &forgeWorkerResource{
-		objectKey:       objectKey,
-		ws:              ws,
-		b:               b,
-		le:              le,
-		peerID:          sessionPeerID,
-		engineID:        engineID,
-		admission:       NewWorkerAdmission(engine, objectKey, sessionPeerID, rand.Text(), forge_lib_docker.NewStopper(forge_lib_docker.NewExecDockerRunner())),
-		openPolicyWatch: func(ctx context.Context, b bus.Bus) (workerPolicyStream, error) { return openWorkerPolicyWatch(ctx, b) },
+		objectKey: objectKey,
+		ws:        ws,
+		b:         b,
+		le:        le,
+		peerID:    sessionPeerID,
+		engineID:  engineID,
+		admission: NewWorkerAdmission(engine, objectKey, sessionPeerID, rand.Text(), forge_lib_docker.NewStopper(forge_lib_docker.NewExecDockerRunner())),
+		openDeclarationWatch: func(ctx context.Context, b bus.Bus) (workerDeclarationStream, error) {
+			return openWorkerDeclarationWatch(ctx, b)
+		},
 	}
 	mux := resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_process.SRPCRegisterPersistentExecutionService(mux, resource)
@@ -117,8 +119,8 @@ type forgeWorkerResource struct {
 	engineID string
 	// admission owns this Worker's sole capacity claim and Docker lifecycle.
 	admission workerRuntime
-	// openPolicyWatch connects the Worker to daemon-owned policy.
-	openPolicyWatch func(context.Context, bus.Bus) (workerPolicyStream, error)
+	// openDeclarationWatch connects the Worker to the daemon-owned declaration.
+	openDeclarationWatch func(context.Context, bus.Bus) (workerDeclarationStream, error)
 	// renewTick supplies a controlled renewal clock in tests.
 	renewTick <-chan time.Time
 }
@@ -126,18 +128,19 @@ type forgeWorkerResource struct {
 // workerRuntime is the Worker's capacity and Docker admission contract.
 type workerRuntime interface {
 	forge_lib_docker.Admission
-	// ApplyPolicy claims capacity under the Device policy, or drains it when the policy removes capacity.
-	ApplyPolicy(context.Context, string, *device_policy.ForgeWorkerPolicy) error
+	// ApplyDeclaration claims the declared capacity, or drains it when the declaration is nil.
+	ApplyDeclaration(context.Context, string, *s4wave_device.ForgeWorkerDeclaration) error
 	// Renew extends the Worker's owner claim.
 	Renew(context.Context) error
 	// Close drains the Worker's remaining runtimes on a clean exit.
 	Close(context.Context) error
 }
 
-// workerPolicyStream receives current and changed daemon policy snapshots.
-type workerPolicyStream interface {
-	// Recv returns the next policy snapshot and its Device key.
-	Recv() (*device_policy.DevicePolicy, string, error)
+// workerDeclarationStream receives current and changed Forge Worker declarations.
+type workerDeclarationStream interface {
+	// Recv returns the next declaration and its Device key. The declaration is
+	// nil while the Device declares no Worker.
+	Recv() (*s4wave_device.ForgeWorkerDeclaration, string, error)
 	// Close ends the watch.
 	Close()
 }
@@ -151,12 +154,12 @@ func (r *forgeWorkerResource) Execute(
 	req *s4wave_process.ExecuteRequest,
 	stream s4wave_process.SRPCPersistentExecutionService_ExecuteStream,
 ) error {
-	// Open the daemon policy watch for this Worker execution.
+	// Open the daemon declaration watch for this Worker execution.
 	ctx := stream.Context()
 	le := r.le.WithField("worker", r.objectKey)
-	watch, err := r.openPolicyWatch(ctx, r.b)
+	watch, err := r.openDeclarationWatch(ctx, r.b)
 	if err != nil {
-		return errors.Wrap(err, "watch device policy")
+		return errors.Wrap(err, "watch forge worker declaration")
 	}
 	var watchDone <-chan struct{}
 	defer func() {
@@ -166,10 +169,10 @@ func (r *forgeWorkerResource) Execute(
 		}
 	}()
 
-	// Read the initial enrolled Device policy before starting Worker work.
-	policy, deviceKey, err := watch.Recv()
+	// Read the initial declaration and enrolled Device before starting Worker work.
+	declaration, deviceKey, err := watch.Recv()
 	if err != nil {
-		return errors.Wrap(err, "initial device policy")
+		return errors.Wrap(err, "initial forge worker declaration")
 	}
 
 	// Keep the owner claim renewing through the bounded Docker stop and
@@ -204,8 +207,8 @@ func (r *forgeWorkerResource) Execute(
 		<-renewDone
 	}()
 
-	// Apply the initial Worker policy and retain cleanup custody on exit.
-	if err := r.admission.ApplyPolicy(ctx, deviceKey, policy.GetForgeWorker()); err != nil {
+	// Apply the initial declaration and retain cleanup custody on exit.
+	if err := r.admission.ApplyDeclaration(ctx, deviceKey, declaration); err != nil {
 		if !errors.Is(err, ErrWorkerStopPending) {
 			return errors.Wrap(err, "observe worker capacity")
 		}
@@ -279,21 +282,21 @@ func (r *forgeWorkerResource) Execute(
 	}
 	defer workerRelease()
 
-	// Read policy updates on the stream while the owner lease deadline drives renewal.
-	type policyUpdate struct {
-		policy    *device_policy.DevicePolicy
-		deviceKey string
-		err       error
+	// Read declaration updates on the stream while the owner lease deadline drives renewal.
+	type declarationUpdate struct {
+		declaration *s4wave_device.ForgeWorkerDeclaration
+		deviceKey   string
+		err         error
 	}
-	updates := make(chan policyUpdate, 1)
+	updates := make(chan declarationUpdate, 1)
 	done := make(chan struct{})
 	watchDone = done
 	go func() {
 		defer close(done)
 		for {
-			policy, deviceKey, err := watch.Recv()
+			declaration, deviceKey, err := watch.Recv()
 			select {
-			case updates <- policyUpdate{policy: policy, deviceKey: deviceKey, err: err}:
+			case updates <- declarationUpdate{declaration: declaration, deviceKey: deviceKey, err: err}:
 			case <-ctx.Done():
 				return
 			}
@@ -313,9 +316,9 @@ func (r *forgeWorkerResource) Execute(
 			return errors.Wrap(exitErr, "forge worker controller")
 		case update := <-updates:
 			if update.err != nil {
-				return errors.Wrap(update.err, "watch device policy")
+				return errors.Wrap(update.err, "watch forge worker declaration")
 			}
-			if err := r.admission.ApplyPolicy(ctx, update.deviceKey, update.policy.GetForgeWorker()); err != nil {
+			if err := r.admission.ApplyDeclaration(ctx, update.deviceKey, update.declaration); err != nil {
 				if !errors.Is(err, ErrWorkerStopPending) {
 					return err
 				}

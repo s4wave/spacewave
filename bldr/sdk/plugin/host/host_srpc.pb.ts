@@ -17,8 +17,8 @@ import {
   CompleteInitialCapabilityRegistrationResponse,
   GetPluginInfoRequest,
   GetPluginInfoResponse,
-  WatchDevicePolicyRequest,
-  WatchDevicePolicyResponse,
+  WatchForgeWorkerRequest,
+  WatchForgeWorkerResponse,
 } from './host.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
@@ -114,14 +114,14 @@ export const PluginHostResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+     * WatchForgeWorker streams the Device's Forge Worker declaration to a plugin.
      *
-     * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+     * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchForgeWorker
      */
-    WatchDevicePolicy: {
-      name: 'WatchDevicePolicy',
-      I: WatchDevicePolicyRequest,
-      O: WatchDevicePolicyResponse,
+    WatchForgeWorker: {
+      name: 'WatchForgeWorker',
+      I: WatchForgeWorkerRequest,
+      O: WatchForgeWorkerResponse,
       kind: MethodKind.ServerStreaming,
     },
   },
@@ -204,14 +204,14 @@ export interface PluginHostResourceService {
   ): Promise<CompleteInitialCapabilityRegistrationResponse>
 
   /**
-   * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+   * WatchForgeWorker streams the Device's Forge Worker declaration to a plugin.
    *
-   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchForgeWorker
    */
-  WatchDevicePolicy(
-    request: WatchDevicePolicyRequest,
+  WatchForgeWorker(
+    request: WatchForgeWorkerRequest,
     abortSignal?: AbortSignal,
-  ): MessageStream<WatchDevicePolicyResponse>
+  ): MessageStream<WatchForgeWorkerResponse>
 }
 
 /**
@@ -298,15 +298,15 @@ export interface PluginHostResourceServiceHandler {
   ): Promise<CompleteInitialCapabilityRegistrationResponse>
 
   /**
-   * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+   * WatchForgeWorker streams the Device's Forge Worker declaration to a plugin.
    *
-   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchForgeWorker
    */
-  WatchDevicePolicy(
-    request: WatchDevicePolicyRequest,
+  WatchForgeWorker(
+    request: WatchForgeWorkerRequest,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): MessageStream<WatchDevicePolicyResponse>
+  ): MessageStream<WatchForgeWorkerResponse>
 }
 
 export const PluginHostResourceServiceServiceName =
@@ -326,7 +326,7 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
     this.GetPluginInfo = this.GetPluginInfo.bind(this)
     this.CompleteInitialCapabilityRegistration =
       this.CompleteInitialCapabilityRegistration.bind(this)
-    this.WatchDevicePolicy = this.WatchDevicePolicy.bind(this)
+    this.WatchForgeWorker = this.WatchForgeWorker.bind(this)
   }
   /**
    * AccessAssetsFS returns a resource ID for the plugin's assets filesystem.
@@ -464,21 +464,21 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
   }
 
   /**
-   * WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
+   * WatchForgeWorker streams the Device's Forge Worker declaration to a plugin.
    *
-   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchDevicePolicy
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.WatchForgeWorker
    */
-  WatchDevicePolicy(
-    request: WatchDevicePolicyRequest,
+  WatchForgeWorker(
+    request: WatchForgeWorkerRequest,
     abortSignal?: AbortSignal,
-  ): MessageStream<WatchDevicePolicyResponse> {
-    const requestMsg = WatchDevicePolicyRequest.create(request)
+  ): MessageStream<WatchForgeWorkerResponse> {
+    const requestMsg = WatchForgeWorkerRequest.create(request)
     const result = this.rpc.serverStreamingRequest(
       this.service,
-      PluginHostResourceServiceDefinition.methods.WatchDevicePolicy.name,
-      WatchDevicePolicyRequest.toBinary(requestMsg),
+      PluginHostResourceServiceDefinition.methods.WatchForgeWorker.name,
+      WatchForgeWorkerRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return buildDecodeMessageTransform(WatchDevicePolicyResponse)(result)
+    return buildDecodeMessageTransform(WatchForgeWorkerResponse)(result)
   }
 }

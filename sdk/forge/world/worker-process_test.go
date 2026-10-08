@@ -37,12 +37,12 @@ func TestForgeWorkerProcessSteadyStatus(t *testing.T) {
 			t.Fatal(err)
 		}
 		resource := &forgeWorkerResource{
-			objectKey:       "worker/steady-stream",
-			b:               workerBus,
-			le:              le,
-			peerID:          workerPeer.GetPeerID(),
-			admission:       testWorkerRuntime{},
-			openPolicyWatch: openTestWorkerPolicyWatch,
+			objectKey:            "worker/steady-stream",
+			b:                    workerBus,
+			le:                   le,
+			peerID:               workerPeer.GetPeerID(),
+			admission:            testWorkerRuntime{},
+			openDeclarationWatch: openTestWorkerDeclarationWatch,
 		}
 
 		// Start the persistent process over the production SRPC pipe.
@@ -130,14 +130,14 @@ func TestForgeWorkerProcessStream(t *testing.T) {
 				workerBus = &workerExitBus{Bus: tb.Bus, exitErr: test.exitErr}
 			}
 			resource := &forgeWorkerResource{
-				objectKey:       "worker/process-stream",
-				ws:              tb.WorldState,
-				b:               workerBus,
-				le:              tb.Logger,
-				peerID:          tb.Volume.GetPeerID(),
-				engineID:        tb.EngineID,
-				admission:       testWorkerRuntime{},
-				openPolicyWatch: openTestWorkerPolicyWatch,
+				objectKey:            "worker/process-stream",
+				ws:                   tb.WorldState,
+				b:                    workerBus,
+				le:                   tb.Logger,
+				peerID:               tb.Volume.GetPeerID(),
+				engineID:             tb.EngineID,
+				admission:            testWorkerRuntime{},
+				openDeclarationWatch: openTestWorkerDeclarationWatch,
 			}
 
 			// Start the persistent process over the production SRPC pipe.

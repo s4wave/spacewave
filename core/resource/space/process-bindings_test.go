@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
-	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	device_flowgraph "github.com/s4wave/spacewave/core/device/flowgraph"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	plugin_space_runtime "github.com/s4wave/spacewave/core/plugin/space/runtime"
@@ -20,38 +20,22 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// bindingTestPolicy supplies a stable daemon policy to the real Worker.
-type bindingTestPolicy struct {
-	// data is the encoded Device policy revision.
-	data []byte
-}
-
-// WaitDevicePolicy returns the current revision, then awaits cancellation.
-func (p *bindingTestPolicy) WaitDevicePolicy(ctx context.Context, last []byte) ([]byte, string, uint64, error) {
-	if len(last) == 0 {
-		return p.data, "devices/self", 1, nil
-	}
-	<-ctx.Done()
-	return nil, "", 0, ctx.Err()
-}
-
-// addBindingTestWorkerPolicyHost publishes the native host Root with a bound
-// policy source on the daemon bus, as the native daemon does.
-func addBindingTestWorkerPolicyHost(t *testing.T, ctx context.Context, tb *testbed.Testbed, workerKey string) {
-	// Bind one policy revision to a fresh host Root.
+// addBindingTestForgeWorkerHost publishes the native host Root with a bound
+// Forge Worker source on the daemon bus, as the native daemon does.
+func addBindingTestForgeWorkerHost(t *testing.T, ctx context.Context, tb *testbed.Testbed, workerKey string) {
+	// Bind one declaration to a fresh host Root.
 	t.Helper()
-	policy, err := (&device_policy.DevicePolicy{Revision: 1, ForgeWorker: &device_policy.ForgeWorkerPolicy{
+	watch := device_flowgraph.NewForgeWorkerWatch()
+	watch.Set("devices/self", &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: workerKey, MilliCpu: 1000, MemoryBytes: 1 << 30, Backends: []string{"docker"},
-	}}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
+	})
 	hostRoot := plugin_host_root.NewRoot()
-	hostRoot.SetDevicePolicySource(&bindingTestPolicy{data: policy})
+	hostRoot.SetForgeWorkerSource(watch)
 
 	// Resolve native host Root lookups with that Root.
 	platformID := (&bldr_platform.NativePlatform{}).GetPlatformID()

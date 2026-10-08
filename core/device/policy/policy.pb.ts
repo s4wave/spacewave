@@ -8,60 +8,6 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
- * ForgeWorkerPolicy declares the capacity envelope of the local Forge Worker.
- *
- * @generated from message s4wave.device.policy.ForgeWorkerPolicy
- */
-export interface ForgeWorkerPolicy {
-  /**
-   * WorkerObjectKey is the Forge Worker object key this daemon hosts.
-   *
-   * @generated from field: string worker_object_key = 1;
-   */
-  workerObjectKey?: string
-  /**
-   * MilliCpu is the declared total CPU in milli-cores.
-   *
-   * @generated from field: uint64 milli_cpu = 2;
-   */
-  milliCpu?: bigint
-  /**
-   * MemoryBytes is the declared total memory in bytes.
-   *
-   * @generated from field: uint64 memory_bytes = 3;
-   */
-  memoryBytes?: bigint
-  /**
-   * Backends lists the runtime backends the Worker supports.
-   *
-   * @generated from field: repeated string backends = 4;
-   */
-  backends?: string[]
-}
-
-export const ForgeWorkerPolicy: MessageType<ForgeWorkerPolicy> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.device.policy.ForgeWorkerPolicy',
-    fields: [
-      {
-        no: 1,
-        name: 'worker_object_key',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-      },
-      { no: 2, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 3, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
-      {
-        no: 4,
-        name: 'backends',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        repeated: true,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-  })
-
-/**
  * DevicePolicy is the daemon-local policy that controls Device capabilities.
  *
  * @generated from message s4wave.device.policy.DevicePolicy
@@ -74,17 +20,10 @@ export interface DevicePolicy {
    */
   revision?: bigint
   /**
-   * ForgeWorker declares the local Forge Worker capacity envelope. Absent
-   * means this daemon exposes no Forge Worker execution capacity.
-   *
-   * @generated from field: s4wave.device.policy.ForgeWorkerPolicy forge_worker = 2;
-   */
-  forgeWorker?: ForgeWorkerPolicy
-  /**
    * NodeTypeId is the allow list of Flowgraph node type IDs this Device runs.
    * A node whose type is absent from the list is rejected.
    *
-   * @generated from field: repeated string node_type_id = 3;
+   * @generated from field: repeated string node_type_id = 2;
    */
   nodeTypeId?: string[]
 }
@@ -94,9 +33,8 @@ export const DevicePolicy: MessageType<DevicePolicy> =
     typeName: 's4wave.device.policy.DevicePolicy',
     fields: [
       { no: 1, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 2, name: 'forge_worker', kind: 'message', T: ForgeWorkerPolicy },
       {
-        no: 3,
+        no: 2,
         name: 'node_type_id',
         kind: 'scalar',
         T: ScalarType.STRING,

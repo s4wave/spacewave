@@ -435,6 +435,8 @@ type DeviceCapability struct {
 	Policy *DeviceCapabilityPolicy `protobuf:"bytes,7,opt,name=policy,proto3" json:"policy,omitempty"`
 	// CheckoutRoot records named checkout-root metadata for filesystem capabilities.
 	CheckoutRoot *DeviceCheckoutRootCapability `protobuf:"bytes,8,opt,name=checkout_root,json=checkoutRoot,proto3" json:"checkoutRoot,omitempty"`
+	// WorkerDeclaration records the declared capacity for forge-worker capabilities.
+	WorkerDeclaration *ForgeWorkerDeclaration `protobuf:"bytes,9,opt,name=worker_declaration,json=workerDeclaration,proto3" json:"workerDeclaration,omitempty"`
 }
 
 func (x *DeviceCapability) Reset() {
@@ -495,6 +497,13 @@ func (x *DeviceCapability) GetPolicy() *DeviceCapabilityPolicy {
 func (x *DeviceCapability) GetCheckoutRoot() *DeviceCheckoutRootCapability {
 	if x != nil {
 		return x.CheckoutRoot
+	}
+	return nil
+}
+
+func (x *DeviceCapability) GetWorkerDeclaration() *ForgeWorkerDeclaration {
+	if x != nil {
+		return x.WorkerDeclaration
 	}
 	return nil
 }
@@ -648,6 +657,54 @@ func (x *DeviceCheckoutRootCapability) GetWriteAvailable() bool {
 		return x.WriteAvailable
 	}
 	return false
+}
+
+// ForgeWorkerDeclaration is the capacity envelope a Device declares for the
+// Forge Worker it hosts. A forge-worker Flowgraph node supplies it.
+type ForgeWorkerDeclaration struct {
+	unknownFields []byte
+	// WorkerObjectKey is the Forge Worker object key this Device hosts.
+	WorkerObjectKey string `protobuf:"bytes,1,opt,name=worker_object_key,json=workerObjectKey,proto3" json:"workerObjectKey,omitempty"`
+	// MilliCpu is the declared total CPU in milli-cores.
+	MilliCpu uint64 `protobuf:"varint,2,opt,name=milli_cpu,json=milliCpu,proto3" json:"milliCpu,omitempty"`
+	// MemoryBytes is the declared total memory in bytes.
+	MemoryBytes uint64 `protobuf:"varint,3,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memoryBytes,omitempty"`
+	// Backends lists the runtime backends the Worker supports.
+	Backends []string `protobuf:"bytes,4,rep,name=backends,proto3" json:"backends,omitempty"`
+}
+
+func (x *ForgeWorkerDeclaration) Reset() {
+	*x = ForgeWorkerDeclaration{}
+}
+
+func (*ForgeWorkerDeclaration) ProtoMessage() {}
+
+func (x *ForgeWorkerDeclaration) GetWorkerObjectKey() string {
+	if x != nil {
+		return x.WorkerObjectKey
+	}
+	return ""
+}
+
+func (x *ForgeWorkerDeclaration) GetMilliCpu() uint64 {
+	if x != nil {
+		return x.MilliCpu
+	}
+	return 0
+}
+
+func (x *ForgeWorkerDeclaration) GetMemoryBytes() uint64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+func (x *ForgeWorkerDeclaration) GetBackends() []string {
+	if x != nil {
+		return x.Backends
+	}
+	return nil
 }
 
 // Device is the world-block state for a Spacewave-managed Device object.
@@ -1105,6 +1162,7 @@ func (m *DeviceCapability) CloneVT() *DeviceCapability {
 	r.Link = protobuf_go_lite.CloneVTValue(m.Link)
 	r.Policy = protobuf_go_lite.CloneVTValue(m.Policy)
 	r.CheckoutRoot = protobuf_go_lite.CloneVTValue(m.CheckoutRoot)
+	r.WorkerDeclaration = protobuf_go_lite.CloneVTValue(m.WorkerDeclaration)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1170,6 +1228,25 @@ func (m *DeviceCheckoutRootCapability) CloneVT() *DeviceCheckoutRootCapability {
 }
 
 func (m *DeviceCheckoutRootCapability) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ForgeWorkerDeclaration) CloneVT() *ForgeWorkerDeclaration {
+	if m == nil {
+		return (*ForgeWorkerDeclaration)(nil)
+	}
+	r := new(ForgeWorkerDeclaration)
+	r.WorkerObjectKey = m.WorkerObjectKey
+	r.MilliCpu = m.MilliCpu
+	r.MemoryBytes = m.MemoryBytes
+	r.Backends = protobuf_go_lite.CloneSlice(m.Backends)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ForgeWorkerDeclaration) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1424,6 +1501,9 @@ func (this *DeviceCapability) EqualVT(that *DeviceCapability) bool {
 	if !protobuf_go_lite.IsEqualVT(this.CheckoutRoot, that.CheckoutRoot) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.WorkerDeclaration, that.WorkerDeclaration) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1519,6 +1599,35 @@ func (this *DeviceCheckoutRootCapability) EqualVT(that *DeviceCheckoutRootCapabi
 
 func (this *DeviceCheckoutRootCapability) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*DeviceCheckoutRootCapability)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ForgeWorkerDeclaration) EqualVT(that *ForgeWorkerDeclaration) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.WorkerObjectKey != that.WorkerObjectKey {
+		return false
+	}
+	if this.MilliCpu != that.MilliCpu {
+		return false
+	}
+	if this.MemoryBytes != that.MemoryBytes {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Backends, that.Backends) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ForgeWorkerDeclaration) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ForgeWorkerDeclaration)
 	if !ok {
 		return false
 	}
@@ -2228,6 +2337,11 @@ func (x *DeviceCapability) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("checkoutRoot")
 		x.CheckoutRoot.MarshalProtoJSON(s.WithField("checkoutRoot"))
 	}
+	if x.WorkerDeclaration != nil || s.HasField("workerDeclaration") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("workerDeclaration")
+		x.WorkerDeclaration.MarshalProtoJSON(s.WithField("workerDeclaration"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2281,6 +2395,13 @@ func (x *DeviceCapability) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.CheckoutRoot = &DeviceCheckoutRootCapability{}
 			x.CheckoutRoot.UnmarshalProtoJSON(s.WithField("checkout_root", true))
+		case "worker_declaration", "workerDeclaration":
+			if s.ReadNil() {
+				x.WorkerDeclaration = nil
+				return
+			}
+			x.WorkerDeclaration = &ForgeWorkerDeclaration{}
+			x.WorkerDeclaration.UnmarshalProtoJSON(s.WithField("worker_declaration", true))
 		}
 	})
 }
@@ -2493,6 +2614,76 @@ func (x *DeviceCheckoutRootCapability) UnmarshalProtoJSON(s *json.UnmarshalState
 
 // UnmarshalJSON unmarshals the DeviceCheckoutRootCapability from JSON.
 func (x *DeviceCheckoutRootCapability) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ForgeWorkerDeclaration message to JSON.
+func (x *ForgeWorkerDeclaration) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.WorkerObjectKey != "" || s.HasField("workerObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("workerObjectKey")
+		s.WriteString(x.WorkerObjectKey)
+	}
+	if x.MilliCpu != 0 || s.HasField("milliCpu") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("milliCpu")
+		s.WriteUint64(x.MilliCpu)
+	}
+	if x.MemoryBytes != 0 || s.HasField("memoryBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("memoryBytes")
+		s.WriteUint64(x.MemoryBytes)
+	}
+	if len(x.Backends) > 0 || s.HasField("backends") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("backends")
+		s.WriteStringArray(x.Backends)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ForgeWorkerDeclaration to JSON.
+func (x *ForgeWorkerDeclaration) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ForgeWorkerDeclaration message from JSON.
+func (x *ForgeWorkerDeclaration) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "worker_object_key", "workerObjectKey":
+			s.AddField("worker_object_key")
+			x.WorkerObjectKey = s.ReadString()
+		case "milli_cpu", "milliCpu":
+			s.AddField("milli_cpu")
+			x.MilliCpu = s.ReadUint64()
+		case "memory_bytes", "memoryBytes":
+			s.AddField("memory_bytes")
+			x.MemoryBytes = s.ReadUint64()
+		case "backends":
+			s.AddField("backends")
+			if s.ReadNil() {
+				x.Backends = nil
+				return
+			}
+			x.Backends = s.ReadStringArray()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ForgeWorkerDeclaration from JSON.
+func (x *ForgeWorkerDeclaration) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3280,6 +3471,16 @@ func (m *DeviceCapability) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.WorkerDeclaration != nil {
+		size, err := m.WorkerDeclaration.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.CheckoutRoot != nil {
 		size, err := m.CheckoutRoot.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -3493,6 +3694,60 @@ func (m *DeviceCheckoutRootCapability) MarshalToSizedBufferVT(dAtA []byte) (int,
 	}
 	if len(m.Name) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Name)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ForgeWorkerDeclaration) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ForgeWorkerDeclaration) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ForgeWorkerDeclaration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Backends) > 0 {
+		for iNdEx := len(m.Backends) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Backends[iNdEx])
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.MemoryBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MemoryBytes))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.MilliCpu != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MilliCpu))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.WorkerObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.WorkerObjectKey)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -4073,6 +4328,10 @@ func (m *DeviceCapability) SizeVT() (n int) {
 		l = m.CheckoutRoot.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.WorkerDeclaration != nil {
+		l = m.WorkerDeclaration.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4116,6 +4375,20 @@ func (m *DeviceCheckoutRootCapability) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Access)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReadAvailable)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.WriteAvailable)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ForgeWorkerDeclaration) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.WorkerObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MilliCpu)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MemoryBytes)
+	n += protobuf_go_lite.SizeStringSlice(1, m.Backends)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4387,6 +4660,10 @@ func (x *DeviceCapability) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkout_root")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CheckoutRoot)
 	}
+	if x.WorkerDeclaration != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "worker_declaration")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.WorkerDeclaration)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -4473,6 +4750,36 @@ func (x *DeviceCheckoutRootCapability) MarshalProtoText() string {
 }
 
 func (x *DeviceCheckoutRootCapability) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ForgeWorkerDeclaration) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ForgeWorkerDeclaration")
+	if x.WorkerObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "worker_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.WorkerObjectKey)
+	}
+	if x.MilliCpu != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "milli_cpu")
+		protobuf_go_lite.TextWriteUint(&sb, x.MilliCpu)
+	}
+	if x.MemoryBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "memory_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.MemoryBytes)
+	}
+	if len(x.Backends) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "backends")
+		for i, v := range x.Backends {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ForgeWorkerDeclaration) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4986,6 +5293,21 @@ func (m *DeviceCapability) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerDeclaration", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.WorkerDeclaration == nil {
+				m.WorkerDeclaration = &ForgeWorkerDeclaration{}
+			}
+			if err := m.WorkerDeclaration.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -5248,6 +5570,87 @@ func (m *DeviceCheckoutRootCapability) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.WriteAvailable = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ForgeWorkerDeclaration) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ForgeWorkerDeclaration: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ForgeWorkerDeclaration: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorkerObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WorkerObjectKey = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MilliCpu", wireType)
+			}
+			m.MilliCpu = 0
+			m.MilliCpu, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MemoryBytes", wireType)
+			}
+			m.MemoryBytes = 0
+			m.MemoryBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Backends", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Backends = append(m.Backends, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

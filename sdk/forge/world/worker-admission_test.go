@@ -10,7 +10,6 @@ import (
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
-	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
@@ -20,6 +19,7 @@ import (
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	"github.com/sirupsen/logrus"
 )
 
@@ -83,7 +83,7 @@ func newWorkerAdmissionTestbed(t *testing.T) (*WorkerAdmission, *admissionStoppe
 	// Claim the declared Docker Worker with a recording stopper.
 	stopper := &admissionStopper{}
 	admission := NewWorkerAdmission(wtb.Engine, "worker/a", wtb.Volume.GetPeerID(), "claim-1", stopper)
-	if err := admission.ApplyPolicy(ctx, "devices/self", &device_policy.ForgeWorkerPolicy{
+	if err := admission.ApplyDeclaration(ctx, "devices/self", &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
 	}); err != nil {
 		t.Fatal(err)
@@ -191,9 +191,9 @@ func TestWorkerAdmissionReleaseStopsAndCredits(t *testing.T) {
 	}
 }
 
-// TestWorkerAdmissionPolicyRemovalDrainsRunningRuntime proves policy removal
+// TestWorkerAdmissionDeclarationRemovalDrainsRunningRuntime proves declaration removal
 // stops a persisted runtime and deletes the drained capacity record.
-func TestWorkerAdmissionPolicyRemovalDrainsRunningRuntime(t *testing.T) {
+func TestWorkerAdmissionDeclarationRemovalDrainsRunningRuntime(t *testing.T) {
 	// Reserve and launch a runtime on the declared Docker Worker.
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
@@ -205,14 +205,14 @@ func TestWorkerAdmissionPolicyRemovalDrainsRunningRuntime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Remove the Worker policy to drain the runtime.
-	if err := admission.ApplyPolicy(ctx, "devices/self", nil); err != nil {
+	// Remove the Worker declaration to drain the runtime.
+	if err := admission.ApplyDeclaration(ctx, "devices/self", nil); err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify policy removal stopped the runtime and removed capacity.
+	// Verify declaration removal stopped the runtime and removed capacity.
 	if len(stopper.stopped) != 1 {
-		t.Fatalf("policy drain stopped %d runtimes, want 1", len(stopper.stopped))
+		t.Fatalf("declaration drain stopped %d runtimes, want 1", len(stopper.stopped))
 	}
 	if _, err := admission.admission.LookupWorkerCapacityAdmission(ctx, "worker/a"); !errors.Is(err, forge_runtime.ErrWorkerNotObserved) {
 		t.Fatalf("drained capacity retained: %v", err)
@@ -239,10 +239,10 @@ func TestWorkerAdmissionPendingStopRetainsClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Remove policy while the Docker stop reports an error.
+	// Remove declaration while the Docker stop reports an error.
 	stopper.failOnce = true
-	if err := admission.ApplyPolicy(ctx, "devices/self", nil); !errors.Is(err, ErrWorkerStopPending) {
-		t.Fatalf("unconfirmed policy drain = %v, want pending stop", err)
+	if err := admission.ApplyDeclaration(ctx, "devices/self", nil); !errors.Is(err, ErrWorkerStopPending) {
+		t.Fatalf("unconfirmed declaration drain = %v, want pending stop", err)
 	}
 
 	// Read the capacity retained by the unconfirmed stop.
@@ -311,10 +311,10 @@ func TestWorkerAdmissionUnconfirmedStopRetainsClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Remove Worker policy while runtime stop remains unconfirmed.
+	// Remove Worker declaration while runtime stop remains unconfirmed.
 	stopper.unconfirmedStops = 2
-	if err := admission.ApplyPolicy(ctx, "devices/self", nil); !errors.Is(err, ErrWorkerStopPending) {
-		t.Fatalf("unconfirmed policy drain = %v", err)
+	if err := admission.ApplyDeclaration(ctx, "devices/self", nil); !errors.Is(err, ErrWorkerStopPending) {
+		t.Fatalf("unconfirmed declaration drain = %v", err)
 	}
 
 	// Renew the Worker claim to finish the pending stop.
@@ -331,9 +331,9 @@ func TestWorkerAdmissionUnconfirmedStopRetainsClaim(t *testing.T) {
 	}
 }
 
-// TestWorkerAdmissionPolicyReductionStopsAndCredits proves a smaller envelope
+// TestWorkerAdmissionDeclarationReductionStopsAndCredits proves a smaller envelope
 // stops an active Docker runtime before reopening admission.
-func TestWorkerAdmissionPolicyReductionStopsAndCredits(t *testing.T) {
+func TestWorkerAdmissionDeclarationReductionStopsAndCredits(t *testing.T) {
 	// Reserve and launch a runtime under the original Worker capacity.
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
@@ -346,27 +346,27 @@ func TestWorkerAdmissionPolicyReductionStopsAndCredits(t *testing.T) {
 	}
 
 	// Reduce the declared Worker capacity below the active reservation.
-	if err := admission.ApplyPolicy(ctx, "devices/self", &device_policy.ForgeWorkerPolicy{
+	if err := admission.ApplyDeclaration(ctx, "devices/self", &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: "worker/a", MilliCpu: 200, MemoryBytes: 1 << 20, Backends: []string{"docker"},
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	// Read the Worker capacity after policy reduction.
+	// Read the Worker capacity after declaration reduction.
 	capacity, err := admission.admission.LookupWorkerCapacityAdmission(ctx, "worker/a")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify the smaller policy stopped the runtime and reopened admission.
+	// Verify the smaller declaration stopped the runtime and reopened admission.
 	if capacity.MilliCPUReserved != 0 || capacity.OwnerState != forge_runtime.CapacityOwnerStateActive {
-		t.Fatalf("lowered policy retained debit or drain: %+v", capacity)
+		t.Fatalf("lowered declaration retained debit or drain: %+v", capacity)
 	}
 	if len(stopper.stopped) != 1 {
-		t.Fatalf("lowered policy stopped %d runtimes, want 1", len(stopper.stopped))
+		t.Fatalf("lowered declaration stopped %d runtimes, want 1", len(stopper.stopped))
 	}
 
-	// Verify renewal and release complete after policy reduction.
+	// Verify renewal and release complete after declaration reduction.
 	if err := admission.Renew(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -378,7 +378,7 @@ func TestWorkerAdmissionPolicyReductionStopsAndCredits(t *testing.T) {
 // TestWorkerAdmissionBackendRemovalStopsAndCredits proves a fitting envelope
 // cannot preserve Docker custody after removing its backend capability.
 func TestWorkerAdmissionBackendRemovalStopsAndCredits(t *testing.T) {
-	// Reserve and launch a Docker runtime under the original policy.
+	// Reserve and launch a Docker runtime under the original declaration.
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
 	ctx := t.Context()
 	grant, err := reserveDocker(t, admission, ctx, "exec/backend-removal", &forge_lib_docker.Config{Image: "img", MilliCpu: 500, MemoryBytes: 1 << 20})
@@ -390,7 +390,7 @@ func TestWorkerAdmissionBackendRemovalStopsAndCredits(t *testing.T) {
 	}
 
 	// Replace Docker with the native Worker backend.
-	if err := admission.ApplyPolicy(ctx, "devices/self", &device_policy.ForgeWorkerPolicy{
+	if err := admission.ApplyDeclaration(ctx, "devices/self", &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"native"},
 	}); err != nil {
 		t.Fatal(err)
@@ -435,10 +435,10 @@ func TestWorkerAdmissionBackendRemovalWaitsForStop(t *testing.T) {
 
 	// Remove Docker while runtime stop remains unconfirmed.
 	stopper.unconfirmedStops = 2
-	policy := &device_policy.ForgeWorkerPolicy{
+	declaration := &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"native"},
 	}
-	if err := admission.ApplyPolicy(ctx, "devices/self", policy); !errors.Is(err, ErrWorkerStopPending) {
+	if err := admission.ApplyDeclaration(ctx, "devices/self", declaration); !errors.Is(err, ErrWorkerStopPending) {
 		t.Fatalf("unconfirmed Docker stop = %v, want pending", err)
 	}
 
@@ -466,7 +466,7 @@ func TestWorkerAdmissionBackendRemovalWaitsForStop(t *testing.T) {
 
 	// Verify confirmed cleanup reopens capacity without the Docker debit.
 	if capacity.OwnerState != forge_runtime.CapacityOwnerStateActive || capacity.MilliCPUReserved != 0 {
-		t.Fatalf("confirmed stop did not reopen policy: %+v", capacity)
+		t.Fatalf("confirmed stop did not reopen declaration: %+v", capacity)
 	}
 
 	// Release the terminal Docker reservation.
@@ -476,7 +476,7 @@ func TestWorkerAdmissionBackendRemovalWaitsForStop(t *testing.T) {
 }
 
 // TestWorkerAdmissionBlockedLaunchRenewsAndDrains proves renewal can run while
-// Docker create is blocked and policy removal cannot leave a late container.
+// Docker create is blocked and declaration removal cannot leave a late container.
 func TestWorkerAdmissionBlockedLaunchRenewsAndDrains(t *testing.T) {
 	// Reserve the active and late Docker launches with a bounded context.
 	admission, stopper, _ := newWorkerAdmissionTestbed(t)
@@ -544,7 +544,7 @@ func TestWorkerAdmissionBlockedLaunchRenewsAndDrains(t *testing.T) {
 		t.Fatalf("reservation lease was not renewed during create: %v", res.LeaseExpiresAt.AsTime())
 	}
 
-	// Remove policy while create is blocked. Drain must wait for the callback
+	// Remove declaration while create is blocked. Drain must wait for the callback
 	// and then stop its named runtime before releasing the capacity record.
 	drainDone := make(chan error, 1)
 	drainEntered := make(chan struct{})
@@ -553,32 +553,32 @@ func TestWorkerAdmissionBlockedLaunchRenewsAndDrains(t *testing.T) {
 	admission.mtx.Unlock()
 	go func() {
 		close(drainEntered)
-		drainDone <- admission.ApplyPolicy(ctx, "devices/self", nil)
+		drainDone <- admission.ApplyDeclaration(ctx, "devices/self", nil)
 	}()
 	<-drainEntered
 
-	// Wait for policy removal to fence Worker admission.
+	// Wait for declaration removal to fence Worker admission.
 	select {
 	case <-fenced:
 	case <-ctx.Done():
-		t.Fatal("policy removal did not fence admission")
+		t.Fatal("declaration removal did not fence admission")
 	}
 
-	// Verify policy drain remains blocked on Docker creation.
+	// Verify declaration drain remains blocked on Docker creation.
 	select {
 	case err := <-drainDone:
-		t.Fatalf("policy drain passed blocked create: %v", err)
+		t.Fatalf("declaration drain passed blocked create: %v", err)
 	default:
 	}
 
-	// Inspect Worker admission while policy drain is pending.
+	// Inspect Worker admission while declaration drain is pending.
 	admission.mtx.Lock()
 	active := admission.active
 	admission.mtx.Unlock()
 
-	// Verify the pending policy drain fenced new reservations.
+	// Verify the pending declaration drain fenced new reservations.
 	if active {
-		t.Fatal("policy removal did not fence admission during blocked create")
+		t.Fatal("declaration removal did not fence admission during blocked create")
 	}
 
 	// Renew the pending drain while Docker creation remains blocked.
@@ -709,7 +709,7 @@ func TestWorkerAdmissionReclaimStopsPreviousRuntime(t *testing.T) {
 
 	// Reclaim the Worker capacity with a replacement execution.
 	replacement := NewWorkerAdmission(eng, "worker/a", admission.peerID, "claim-2", stopper)
-	if err := replacement.ApplyPolicy(ctx, "devices/self", &device_policy.ForgeWorkerPolicy{
+	if err := replacement.ApplyDeclaration(ctx, "devices/self", &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
 	}); err != nil {
 		t.Fatal(err)

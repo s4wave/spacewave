@@ -17,7 +17,6 @@ func newDevicePolicyCommand() *cli.Command {
 		Name:  "policy",
 		Usage: "manage daemon-local Device policy",
 		Subcommands: []*cli.Command{
-			newDevicePolicyForgeWorkerCommand(),
 			newDevicePolicyNodeTypeCommand(),
 		},
 	}
@@ -29,17 +28,6 @@ func runDevicePolicyMutation(
 	c *cli.Context,
 	statePath string,
 	mutate func(*device_policy.DevicePolicy) error,
-) error {
-	return runDevicePolicyMutationValidated(c, statePath, mutate, nil)
-}
-
-// runDevicePolicyMutationValidated applies mutate to the policy file, checks the
-// result with validate when it is not nil, and reloads the daemon.
-func runDevicePolicyMutationValidated(
-	c *cli.Context,
-	statePath string,
-	mutate func(*device_policy.DevicePolicy) error,
-	validate func(*sdkClient, string, *device_policy.DevicePolicy) error,
 ) error {
 	// Connect to the daemon for the policy mutation.
 	ctx := c.Context
@@ -53,18 +41,13 @@ func runDevicePolicyMutationValidated(
 	}
 	defer client.close()
 
-	// Mutate, validate, and write the policy, then reload the daemon.
+	// Mutate and write the policy, then reload the daemon.
 	policy, err := device_policy.ReadFile(resolvedStatePath)
 	if err != nil {
 		return err
 	}
 	if err := mutate(policy); err != nil {
 		return err
-	}
-	if validate != nil {
-		if err := validate(client, resolvedStatePath, policy); err != nil {
-			return err
-		}
 	}
 	policy.Revision++
 	if err := device_policy.WriteFile(resolvedStatePath, policy); err != nil {

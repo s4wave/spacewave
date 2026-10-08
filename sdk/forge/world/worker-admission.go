@@ -10,12 +10,12 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
 
 // ErrWorkerStopPending reports a durable pending stop whose owner claim must
@@ -35,7 +35,7 @@ type WorkerAdmission struct {
 	// claimID identifies this Worker execution lifetime.
 	claimID string
 
-	// launchMtx serializes Docker launch with policy drain and close.
+	// launchMtx serializes Docker launch with declaration drain and close.
 	launchMtx sync.Mutex
 	// mtx guards the claim and admission fence without covering Docker create.
 	mtx sync.Mutex
@@ -45,10 +45,10 @@ type WorkerAdmission struct {
 	epoch uint64
 	// active permits new Docker reservations.
 	active bool
-	// changed closes when active admission is fenced for a policy transition.
+	// changed closes when active admission is fenced for a declaration transition.
 	changed chan struct{}
-	// policy is the last declaration to restore after pending stops finish.
-	policy *device_policy.ForgeWorkerPolicy
+	// declaration is the last declaration to restore after pending stops finish.
+	declaration *s4wave_device.ForgeWorkerDeclaration
 }
 
 // NewWorkerAdmission constructs one Worker admission with a Docker stopper.
@@ -63,9 +63,10 @@ func NewWorkerAdmission(eng world.Engine, workerKey string, peerID peer.ID, clai
 	}
 }
 
-// ApplyPolicy claims and observes this Worker or drains it when policy removes capacity.
-func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, declared *device_policy.ForgeWorkerPolicy) error {
-	// Fence new Worker reservations before changing the policy.
+// ApplyDeclaration claims and observes this Worker or drains it when the
+// declaration is nil or names another Worker.
+func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string, declared *s4wave_device.ForgeWorkerDeclaration) error {
+	// Fence new Worker reservations before changing the declaration.
 	w.mtx.Lock()
 	if w.active {
 		w.active = false
@@ -74,7 +75,7 @@ func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, dec
 	}
 	w.mtx.Unlock()
 
-	// Serialize the policy transition with Docker launches and claim changes.
+	// Serialize the declaration transition with Docker launches and claim changes.
 	w.launchMtx.Lock()
 	defer w.launchMtx.Unlock()
 	w.mtx.Lock()
@@ -91,12 +92,12 @@ func (w *WorkerAdmission) ApplyPolicy(ctx context.Context, deviceKey string, dec
 		return errors.New("enrolled Device identity is required for Worker capacity")
 	}
 
-	// Retain the Worker claim reference and requested policy.
+	// Retain the Worker claim reference and requested declaration.
 	firstClaim := w.epoch == 0
 	w.ref = forge_runtime.WorkerClaimRef{DeviceObjectKey: deviceKey, ClaimID: w.claimID}
-	w.policy = nil
+	w.declaration = nil
 	if declared != nil {
-		w.policy = declared.CloneVT()
+		w.declaration = declared.CloneVT()
 	}
 
 	// Reclaim the durable record before either observing or draining it.
@@ -234,8 +235,8 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 		return errors.Wrap(ErrWorkerStopPending, err.Error())
 	}
 
-	// Complete drain when the Worker policy is absent or retargeted.
-	if w.policy == nil || w.policy.GetWorkerObjectKey() != w.workerKey {
+	// Complete drain when the declaration is absent or retargeted.
+	if w.declaration == nil || w.declaration.GetWorkerObjectKey() != w.workerKey {
 		ref, epoch := w.ref, w.epoch
 		w.mtx.Unlock()
 		err := w.drain(stopCtx, ref, epoch)
@@ -252,9 +253,9 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 		return errors.Wrap(ErrWorkerStopPending, err.Error())
 	}
 
-	// Observe the retained Worker policy and reopen active admission.
+	// Observe the retained declaration and reopen active admission.
 	capacity, err = w.admission.ObserveWorker(ctx, w.workerKey, w.ref, w.epoch,
-		w.policy.GetMilliCpu(), w.policy.GetMemoryBytes(), w.policy.GetBackends())
+		w.declaration.GetMilliCpu(), w.declaration.GetMemoryBytes(), w.declaration.GetBackends())
 	if err != nil {
 		return err
 	}

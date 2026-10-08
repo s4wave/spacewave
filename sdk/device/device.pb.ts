@@ -548,6 +548,61 @@ export const DeviceCheckoutRootCapability: MessageType<DeviceCheckoutRootCapabil
   })
 
 /**
+ * ForgeWorkerDeclaration is the capacity envelope a Device declares for the
+ * Forge Worker it hosts. A forge-worker Flowgraph node supplies it.
+ *
+ * @generated from message s4wave.device.ForgeWorkerDeclaration
+ */
+export interface ForgeWorkerDeclaration {
+  /**
+   * WorkerObjectKey is the Forge Worker object key this Device hosts.
+   *
+   * @generated from field: string worker_object_key = 1;
+   */
+  workerObjectKey?: string
+  /**
+   * MilliCpu is the declared total CPU in milli-cores.
+   *
+   * @generated from field: uint64 milli_cpu = 2;
+   */
+  milliCpu?: bigint
+  /**
+   * MemoryBytes is the declared total memory in bytes.
+   *
+   * @generated from field: uint64 memory_bytes = 3;
+   */
+  memoryBytes?: bigint
+  /**
+   * Backends lists the runtime backends the Worker supports.
+   *
+   * @generated from field: repeated string backends = 4;
+   */
+  backends?: string[]
+}
+
+export const ForgeWorkerDeclaration: MessageType<ForgeWorkerDeclaration> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.device.ForgeWorkerDeclaration',
+    fields: [
+      {
+        no: 1,
+        name: 'worker_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'backends',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
  * DeviceCapability is a declared capability summary, not the capability owner.
  *
  * @generated from message s4wave.device.DeviceCapability
@@ -601,6 +656,12 @@ export interface DeviceCapability {
    * @generated from field: s4wave.device.DeviceCheckoutRootCapability checkout_root = 8;
    */
   checkoutRoot?: DeviceCheckoutRootCapability
+  /**
+   * WorkerDeclaration records the declared capacity for forge-worker capabilities.
+   *
+   * @generated from field: s4wave.device.ForgeWorkerDeclaration worker_declaration = 9;
+   */
+  workerDeclaration?: ForgeWorkerDeclaration
 }
 
 export const DeviceCapability: MessageType<DeviceCapability> =
@@ -619,6 +680,12 @@ export const DeviceCapability: MessageType<DeviceCapability> =
         name: 'checkout_root',
         kind: 'message',
         T: DeviceCheckoutRootCapability,
+      },
+      {
+        no: 9,
+        name: 'worker_declaration',
+        kind: 'message',
+        T: ForgeWorkerDeclaration,
       },
     ] satisfies readonly PartialFieldInfo[],
   })

@@ -28,6 +28,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/core/daemon"
+	device_flowgraph "github.com/s4wave/spacewave/core/device/flowgraph"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
@@ -316,8 +317,9 @@ func runServeCommand(
 		defer hostRef.Release()
 	}
 
-	// Give the host root the policy the daemon enforces.
-	nativeHostRoot.SetDevicePolicySource(&devicePolicyHostSource{store: devicePolicy, statePath: resolved})
+	// Give the host root the Forge Worker declaration the Reconciler accepts.
+	forgeWorker := device_flowgraph.NewForgeWorkerWatch()
+	nativeHostRoot.SetForgeWorkerSource(forgeWorker)
 	if nativeCore {
 		// Native core reaches the same host Resource service on its local bus.
 		pluginRoot := plugin_host_resource.NewPluginHostRoot(
@@ -375,7 +377,7 @@ func runServeCommand(
 	// count as public clients.
 	startWebListenerKeepalive(serveCtx, le, invoker, idleTracker)
 	startSyncKeepalive(serveCtx, le, invoker, idleTracker)
-	startFlowgraphReconciler(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy, idleTracker)
+	startFlowgraphReconciler(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy, forgeWorker, idleTracker)
 
 	// Retain desktop demand independently of the connection that opens it.
 	mux := srpc.NewMux(invoker)

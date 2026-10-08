@@ -529,7 +529,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host": {
-      "hash": "d697df53d7743e4e0ae4acba780af5c8a3ec1a67e7297085572143e796905b9c",
+      "hash": "8d88a39fae26e13bc38dd2f05dd04b6474cf6f1dce9e54e3d5922970fbc0538b",
       "generatedFiles": [
         "bldr/sdk/plugin/host/host.pb.go",
         "bldr/sdk/plugin/host/host.pb.ts",
@@ -1070,7 +1070,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/device/policy": {
-      "hash": "57f7d12bc475e0c4ec9ce4fd60407faf8d6da3214de01d3c8bb623e54a9c8c93",
+      "hash": "d3573b71d8a6aad462850de07e68f863a0055dbed54c1c98be61c04d82bbe4e2",
       "generatedFiles": [
         "core/device/policy/policy.pb.go",
         "core/device/policy/policy.pb.ts"
@@ -3675,7 +3675,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/device": {
-      "hash": "4d373b95e8c0b728eb9311599246e5bf37dbd545372411957c79497c5bbd9996",
+      "hash": "b49a384f3abd2fbdb1143ad4dda69e62c2dcee12290698354200b596942ab5ed",
       "generatedFiles": [
         "sdk/device/device.pb.go",
         "sdk/device/device.pb.ts",

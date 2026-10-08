@@ -11,30 +11,30 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 /**
- * WatchDevicePolicyRequest subscribes to the local daemon policy.
+ * WatchForgeWorkerRequest subscribes to the local Device's Forge Worker declaration.
  *
- * @generated from message bldr.plugin.host.WatchDevicePolicyRequest
+ * @generated from message bldr.plugin.host.WatchForgeWorkerRequest
  */
-export interface WatchDevicePolicyRequest {}
+export interface WatchForgeWorkerRequest {}
 
-export const WatchDevicePolicyRequest: MessageType<WatchDevicePolicyRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchDevicePolicyRequest>(
-    'bldr.plugin.host.WatchDevicePolicyRequest',
+export const WatchForgeWorkerRequest: MessageType<WatchForgeWorkerRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchForgeWorkerRequest>(
+    'bldr.plugin.host.WatchForgeWorkerRequest',
     true,
   )
 
 /**
- * WatchDevicePolicyResponse carries one complete policy revision and its Device identity.
+ * WatchForgeWorkerResponse carries one complete declaration revision and its Device identity.
  *
- * @generated from message bldr.plugin.host.WatchDevicePolicyResponse
+ * @generated from message bldr.plugin.host.WatchForgeWorkerResponse
  */
-export interface WatchDevicePolicyResponse {
+export interface WatchForgeWorkerResponse {
   /**
-   * Policy is the binary s4wave.device.policy.DevicePolicy message.
+   * Declaration is the binary s4wave.device.ForgeWorkerDeclaration message.
    *
-   * @generated from field: bytes policy = 1;
+   * @generated from field: bytes declaration = 1;
    */
-  policy?: Uint8Array
+  declaration?: Uint8Array
   /**
    * DeviceObjectKey identifies the enrolled Device that owns Worker capacity.
    *
@@ -42,18 +42,18 @@ export interface WatchDevicePolicyResponse {
    */
   deviceObjectKey?: string
   /**
-   * Revision identifies the policy mutation that produced this snapshot.
+   * Revision identifies the declaration change that produced this snapshot.
    *
    * @generated from field: uint64 revision = 3;
    */
   revision?: bigint
 }
 
-export const WatchDevicePolicyResponse: MessageType<WatchDevicePolicyResponse> =
+export const WatchForgeWorkerResponse: MessageType<WatchForgeWorkerResponse> =
   /* @__PURE__ */ createMessageType({
-    typeName: 'bldr.plugin.host.WatchDevicePolicyResponse',
+    typeName: 'bldr.plugin.host.WatchForgeWorkerResponse',
     fields: [
-      { no: 1, name: 'policy', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 1, name: 'declaration', kind: 'scalar', T: ScalarType.BYTES },
       {
         no: 2,
         name: 'device_object_key',

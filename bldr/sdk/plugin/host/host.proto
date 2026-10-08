@@ -20,21 +20,21 @@ service PluginHostResourceService {
   // CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
   rpc CompleteInitialCapabilityRegistration(CompleteInitialCapabilityRegistrationRequest)
     returns (CompleteInitialCapabilityRegistrationResponse);
-  // WatchDevicePolicy streams daemon-owned policy snapshots to a plugin.
-  rpc WatchDevicePolicy(WatchDevicePolicyRequest) returns (stream WatchDevicePolicyResponse);
+  // WatchForgeWorker streams the Device's Forge Worker declaration to a plugin.
+  rpc WatchForgeWorker(WatchForgeWorkerRequest) returns (stream WatchForgeWorkerResponse);
 }
 
-// WatchDevicePolicyRequest subscribes to the local daemon policy.
-message WatchDevicePolicyRequest {
+// WatchForgeWorkerRequest subscribes to the local Device's Forge Worker declaration.
+message WatchForgeWorkerRequest {
 }
 
-// WatchDevicePolicyResponse carries one complete policy revision and its Device identity.
-message WatchDevicePolicyResponse {
-  // Policy is the binary s4wave.device.policy.DevicePolicy message.
-  bytes policy = 1;
+// WatchForgeWorkerResponse carries one complete declaration revision and its Device identity.
+message WatchForgeWorkerResponse {
+  // Declaration is the binary s4wave.device.ForgeWorkerDeclaration message.
+  bytes declaration = 1;
   // DeviceObjectKey identifies the enrolled Device that owns Worker capacity.
   string device_object_key = 2;
-  // Revision identifies the policy mutation that produced this snapshot.
+  // Revision identifies the declaration change that produced this snapshot.
   uint64 revision = 3;
 }
 

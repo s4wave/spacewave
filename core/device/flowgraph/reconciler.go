@@ -36,6 +36,8 @@ type Reconciler struct {
 	engine world.Engine
 	// policy supplies the allowed node types.
 	policy *device_policy.PolicyStore
+	// forgeWorker receives the declaration of the accepted forge-worker node.
+	forgeWorker *ForgeWorkerWatch
 	// deviceKey is the object key of this daemon's Device.
 	deviceKey string
 	// peerID is the peer ID of this daemon's Device.
@@ -63,18 +65,20 @@ func NewReconciler(
 	b bus.Bus,
 	engine world.Engine,
 	policy *device_policy.PolicyStore,
+	forgeWorker *ForgeWorkerWatch,
 	deviceKey, peerID string,
 	hold func() func(),
 ) *Reconciler {
 	r := &Reconciler{
-		le:        le,
-		b:         b,
-		engine:    engine,
-		policy:    policy,
-		deviceKey: deviceKey,
-		peerID:    peerID,
-		hold:      hold,
-		wake:      make(chan struct{}, 1),
+		le:          le,
+		b:           b,
+		engine:      engine,
+		policy:      policy,
+		forgeWorker: forgeWorker,
+		deviceKey:   deviceKey,
+		peerID:      peerID,
+		hold:        hold,
+		wake:        make(chan struct{}, 1),
 	}
 	r.types = newNodeTypes(b, r.notify)
 	r.applier = newConfigApplier(b, r.notify)
@@ -174,6 +178,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		return err
 	}
 	r.setHeld(len(entries) != 0)
+	r.forgeWorker.Set(r.deviceKey, acceptedForgeWorker(reports))
 	return r.project(ctx, reports)
 }
 
@@ -217,6 +222,19 @@ func (r *Reconciler) compilePlaced(ctx context.Context) (map[string]config.Confi
 		reports[i] = r.compile(ctx, tx, node, pass)
 	}
 	return pass.entries, reports, nil
+}
+
+// acceptedForgeWorker returns the declaration of the accepted forge-worker node,
+// or nil when no such node is accepted. Only an accepted node has a shown
+// capability, and a Device keeps one Forge Worker, so at most one report
+// carries a declaration.
+func acceptedForgeWorker(reports []*nodeReport) *s4wave_device.ForgeWorkerDeclaration {
+	for _, report := range reports {
+		if declaration := report.shown.GetWorkerDeclaration(); declaration != nil {
+			return declaration
+		}
+	}
+	return nil
 }
 
 // setHeld holds the daemon while held is true and releases it otherwise.

@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
+	device_flowgraph "github.com/s4wave/spacewave/core/device/flowgraph"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -104,7 +105,7 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 	}
 	runErr := make(chan error, 1)
 	go func() {
-		runErr <- runFlowgraphReconciler(runCtx, le, statePath, b, mount, store, func() func() { return func() {} })
+		runErr <- runFlowgraphReconciler(runCtx, le, statePath, b, mount, store, device_flowgraph.NewForgeWorkerWatch(), func() func() { return func() {} })
 	}()
 
 	// Complete the setup and require the node to show on the Device.

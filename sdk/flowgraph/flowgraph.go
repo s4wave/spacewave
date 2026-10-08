@@ -20,6 +20,8 @@ const (
 	CheckoutRootNodeTypeID = "checkout-root"
 	// RemoteShellNodeTypeID selects the remote shell a Device serves.
 	RemoteShellNodeTypeID = "remote-shell"
+	// ForgeWorkerNodeTypeID selects the Forge Worker a Device hosts.
+	ForgeWorkerNodeTypeID = "forge-worker"
 	// StepNodeTypeID selects a node that runs once per activation.
 	StepNodeTypeID = "step"
 )

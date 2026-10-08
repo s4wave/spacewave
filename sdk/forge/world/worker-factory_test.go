@@ -15,7 +15,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/world"
 	forge_lib_docker "github.com/s4wave/spacewave/forge/lib/docker"
 	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
@@ -25,6 +24,7 @@ import (
 	forge_world "github.com/s4wave/spacewave/forge/world"
 	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	"github.com/sirupsen/logrus"
 )
@@ -112,12 +112,12 @@ func TestForgeWorkerExecuteReturnsWorkerControllerError(t *testing.T) {
 	workerBus := &workerExitBus{Bus: baseBus, exitErr: controllerErr}
 	stream := &forgeWorkerExecuteStream{ctx: ctx}
 	resource := &forgeWorkerResource{
-		objectKey:       "worker/test",
-		b:               workerBus,
-		le:              le,
-		peerID:          workerPeer.GetPeerID(),
-		admission:       testWorkerRuntime{},
-		openPolicyWatch: openTestWorkerPolicyWatch,
+		objectKey:            "worker/test",
+		b:                    workerBus,
+		le:                   le,
+		peerID:               workerPeer.GetPeerID(),
+		admission:            testWorkerRuntime{},
+		openDeclarationWatch: openTestWorkerDeclarationWatch,
 	}
 
 	// Run the Worker execution until its controller exits.
@@ -149,7 +149,7 @@ func TestForgeWorkerExecuteReturnsCleanControllerExit(t *testing.T) {
 	resource := &forgeWorkerResource{
 		objectKey: "worker/test", b: &workerExitBus{Bus: baseBus}, le: le,
 		peerID: workerPeer.GetPeerID(), admission: testWorkerRuntime{},
-		openPolicyWatch: openTestWorkerPolicyWatch,
+		openDeclarationWatch: openTestWorkerDeclarationWatch,
 	}
 
 	// Verify execution accepts the clean controller exit.
@@ -158,9 +158,9 @@ func TestForgeWorkerExecuteReturnsCleanControllerExit(t *testing.T) {
 	}
 }
 
-// TestForgeWorkerPolicyRemovalReachesAdmission checks that the Worker's
-// enrolled initial snapshot and later policy removal both reach admission.
-func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
+// TestForgeWorkerDeclarationRemovalReachesAdmission checks that the Worker's
+// enrolled initial declaration and its later removal both reach admission.
+func TestForgeWorkerDeclarationRemovalReachesAdmission(t *testing.T) {
 	// Create a cancellable Worker execution and local peer.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -170,16 +170,16 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Connect a policy stream to the observing Worker admission.
+	// Connect a declaration stream to the observing Worker admission.
 	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
 	workerBus := &workerExitBus{Bus: baseBus, started: make(chan struct{}), released: make(chan struct{})}
-	updates := make(chan *device_policy.DevicePolicy, 1)
-	applied := make(chan *device_policy.ForgeWorkerPolicy, 2)
-	stream := &changingWorkerPolicyStream{ctx: ctx, updates: updates}
+	updates := make(chan *s4wave_device.ForgeWorkerDeclaration, 1)
+	applied := make(chan *s4wave_device.ForgeWorkerDeclaration, 2)
+	stream := &changingWorkerDeclarationStream{ctx: ctx, updates: updates}
 	resource := &forgeWorkerResource{
 		objectKey: "worker/test", b: workerBus, le: le, peerID: workerPeer.GetPeerID(),
-		admission:       &observingWorkerRuntime{applied: applied, pendingOnRemoval: true},
-		openPolicyWatch: func(context.Context, bus.Bus) (workerPolicyStream, error) { return stream, nil },
+		admission:            &observingWorkerRuntime{applied: applied, pendingOnRemoval: true},
+		openDeclarationWatch: func(context.Context, bus.Bus) (workerDeclarationStream, error) { return stream, nil },
 	}
 
 	// Start the Worker execution and wait for its controller.
@@ -191,25 +191,25 @@ func TestForgeWorkerPolicyRemovalReachesAdmission(t *testing.T) {
 		t.Fatal("Worker controller did not start")
 	}
 
-	// Verify the enrolled initial policy reaches Worker admission.
+	// Verify the enrolled initial declaration reaches Worker admission.
 	select {
 	case got := <-applied:
 		if got.GetWorkerObjectKey() != "worker/test" {
-			t.Fatalf("initial policy = %+v", got)
+			t.Fatalf("initial declaration = %+v", got)
 		}
 	case <-time.After(time.Second):
-		t.Fatal("initial policy did not reach admission")
+		t.Fatal("initial declaration did not reach admission")
 	}
 
-	// Remove Worker policy and verify admission receives the removal.
-	updates <- &device_policy.DevicePolicy{}
+	// Remove the declaration and verify admission receives the removal.
+	updates <- nil
 	select {
 	case got := <-applied:
 		if got != nil {
-			t.Fatalf("removed policy = %+v", got)
+			t.Fatalf("removed declaration = %+v", got)
 		}
 	case <-time.After(time.Second):
-		t.Fatal("policy removal did not reach admission")
+		t.Fatal("declaration removal did not reach admission")
 	}
 
 	// Cancel the Worker execution and verify its terminal result.
@@ -255,22 +255,22 @@ func TestForgeWorkerCancellationRenewsThroughStop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Build the Worker controller bus and initial Docker policy.
+	// Build the Worker controller bus and initial Docker declaration.
 	baseBus := inmem.NewBus(directive_controller.NewController(ctx, le))
 	workerBus := &workerExitBus{Bus: baseBus, started: make(chan struct{}), released: make(chan struct{})}
-	policy := &device_policy.DevicePolicy{ForgeWorker: &device_policy.ForgeWorkerPolicy{
+	declaration := &s4wave_device.ForgeWorkerDeclaration{
 		WorkerObjectKey: "worker/a", MilliCpu: 2000, MemoryBytes: 2 << 30, Backends: []string{"docker"},
-	}}
-	watch := &changingWorkerPolicyStream{ctx: ctx, initialPolicy: policy}
+	}
+	watch := &changingWorkerDeclarationStream{ctx: ctx, initialDeclaration: declaration}
 	renewed := make(chan struct{}, 1)
 	renewTick := make(chan time.Time)
 
 	// Connect Worker admission to the controlled renewal clock.
 	resource := &forgeWorkerResource{
 		objectKey: "worker/a", b: workerBus, le: le, peerID: workerPeer.GetPeerID(),
-		admission:       &notifyingWorkerRuntime{WorkerAdmission: admission, stopEntered: stopper.entered, renewed: renewed},
-		openPolicyWatch: func(context.Context, bus.Bus) (workerPolicyStream, error) { return watch, nil },
-		renewTick:       renewTick,
+		admission:            &notifyingWorkerRuntime{WorkerAdmission: admission, stopEntered: stopper.entered, renewed: renewed},
+		openDeclarationWatch: func(context.Context, bus.Bus) (workerDeclarationStream, error) { return watch, nil },
+		renewTick:            renewTick,
 	}
 
 	// Start the Worker execution and wait for its controller.
@@ -357,64 +357,65 @@ func (r *notifyingWorkerRuntime) Renew(ctx context.Context) error {
 	return err
 }
 
-// observingWorkerRuntime records the policies presented to admission.
+// observingWorkerRuntime records the declarations presented to admission.
 type observingWorkerRuntime struct {
-	// applied receives each delivered policy.
-	applied chan *device_policy.ForgeWorkerPolicy
+	// applied receives each delivered declaration.
+	applied chan *s4wave_device.ForgeWorkerDeclaration
 	// pendingOnRemoval makes removal report retained stop custody.
 	pendingOnRemoval bool
 }
 
-// Reserve rejects Docker work outside this policy delivery test.
+// Reserve rejects Docker work outside this declaration delivery test.
 func (*observingWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
 	return nil, stderrors.New("unexpected Docker reservation")
 }
 
-// ApplyPolicy records the current Worker declaration or its removal.
-func (r *observingWorkerRuntime) ApplyPolicy(_ context.Context, key string, policy *device_policy.ForgeWorkerPolicy) error {
+// ApplyDeclaration records the current Worker declaration or its removal.
+func (r *observingWorkerRuntime) ApplyDeclaration(_ context.Context, key string, declaration *s4wave_device.ForgeWorkerDeclaration) error {
 	if key != "devices/self" {
 		return stderrors.New("Worker lost enrolled Device identity")
 	}
-	r.applied <- policy
-	if policy == nil && r.pendingOnRemoval {
+	r.applied <- declaration
+	if declaration == nil && r.pendingOnRemoval {
 		return ErrWorkerStopPending
 	}
 	return nil
 }
 
-// Renew has no lease effect in this policy delivery test.
+// Renew has no lease effect in this declaration delivery test.
 func (*observingWorkerRuntime) Renew(context.Context) error { return nil }
 
-// Close has no World state to drain in this policy delivery test.
+// Close has no World state to drain in this declaration delivery test.
 func (*observingWorkerRuntime) Close(context.Context) error { return nil }
 
-// changingWorkerPolicyStream supplies an enrolled initial snapshot and changes.
-type changingWorkerPolicyStream struct {
-	ctx           context.Context
-	updates       <-chan *device_policy.DevicePolicy
-	initial       bool
-	initialPolicy *device_policy.DevicePolicy
+// changingWorkerDeclarationStream supplies an enrolled initial declaration and
+// changes.
+type changingWorkerDeclarationStream struct {
+	ctx                context.Context
+	updates            <-chan *s4wave_device.ForgeWorkerDeclaration
+	initial            bool
+	initialDeclaration *s4wave_device.ForgeWorkerDeclaration
 }
 
-// Recv returns the current policy before waiting for an update.
-func (s *changingWorkerPolicyStream) Recv() (*device_policy.DevicePolicy, string, error) {
+// Recv returns the current declaration before waiting for an update.
+func (s *changingWorkerDeclarationStream) Recv() (*s4wave_device.ForgeWorkerDeclaration, string, error) {
 	if !s.initial {
 		s.initial = true
-		if s.initialPolicy != nil {
-			return s.initialPolicy, "devices/self", nil
+		if s.initialDeclaration != nil {
+			return s.initialDeclaration, "devices/self", nil
 		}
-		return &device_policy.DevicePolicy{ForgeWorker: &device_policy.ForgeWorkerPolicy{WorkerObjectKey: "worker/test"}}, "devices/self", nil
+		return &s4wave_device.ForgeWorkerDeclaration{WorkerObjectKey: "worker/test"}, "devices/self", nil
 	}
 	select {
 	case <-s.ctx.Done():
 		return nil, "", s.ctx.Err()
-	case policy := <-s.updates:
-		return policy, "devices/self", nil
+	case declaration := <-s.updates:
+		return declaration, "devices/self", nil
 	}
 }
 
 // Close leaves cancellation to the owning execution context.
-func (*changingWorkerPolicyStream) Close() {}
+func (*changingWorkerDeclarationStream) Close() {}
 
 type workerExitBus struct {
 	bus.Bus
@@ -477,7 +478,7 @@ func TestForgeWorkerSteadyStatusAndCancellation(t *testing.T) {
 		base := inmem.NewBus(directive_controller.NewController(ctx, le))
 		workerBus := &workerExitBus{Bus: base, started: make(chan struct{}), released: make(chan struct{})}
 		stream := &forgeWorkerExecuteStream{ctx: ctx}
-		resource := &forgeWorkerResource{objectKey: "worker/test", b: workerBus, le: le, peerID: workerPeer.GetPeerID(), admission: testWorkerRuntime{}, openPolicyWatch: openTestWorkerPolicyWatch}
+		resource := &forgeWorkerResource{objectKey: "worker/test", b: workerBus, le: le, peerID: workerPeer.GetPeerID(), admission: testWorkerRuntime{}, openDeclarationWatch: openTestWorkerDeclarationWatch}
 
 		// Start the Worker execution and wait for its controller.
 		done := make(chan error, 1)
@@ -508,8 +509,8 @@ func (testWorkerRuntime) Reserve(context.Context, string, *forge_lib_docker.Conf
 	return nil, stderrors.New("unexpected Docker reservation")
 }
 
-// ApplyPolicy accepts the test stream's initial empty declaration.
-func (testWorkerRuntime) ApplyPolicy(context.Context, string, *device_policy.ForgeWorkerPolicy) error {
+// ApplyDeclaration accepts the test stream's initial empty declaration.
+func (testWorkerRuntime) ApplyDeclaration(context.Context, string, *s4wave_device.ForgeWorkerDeclaration) error {
 	return nil
 }
 
@@ -519,28 +520,28 @@ func (testWorkerRuntime) Renew(context.Context) error { return nil }
 // Close keeps lifecycle tests isolated from World admission.
 func (testWorkerRuntime) Close(context.Context) error { return nil }
 
-// testWorkerPolicyStream emits current policy then waits for closure.
-type testWorkerPolicyStream struct {
+// testWorkerDeclarationStream emits no declaration then waits for closure.
+type testWorkerDeclarationStream struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	initial bool
 }
 
-// openTestWorkerPolicyWatch opens an isolated in-memory policy stream.
-func openTestWorkerPolicyWatch(context.Context, bus.Bus) (workerPolicyStream, error) {
+// openTestWorkerDeclarationWatch opens an isolated in-memory declaration stream.
+func openTestWorkerDeclarationWatch(context.Context, bus.Bus) (workerDeclarationStream, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &testWorkerPolicyStream{ctx: ctx, cancel: cancel}, nil
+	return &testWorkerDeclarationStream{ctx: ctx, cancel: cancel}, nil
 }
 
-// Recv emits one snapshot and then follows stream cancellation.
-func (s *testWorkerPolicyStream) Recv() (*device_policy.DevicePolicy, string, error) {
+// Recv emits one empty declaration and then follows stream cancellation.
+func (s *testWorkerDeclarationStream) Recv() (*s4wave_device.ForgeWorkerDeclaration, string, error) {
 	if !s.initial {
 		s.initial = true
-		return &device_policy.DevicePolicy{}, "", nil
+		return nil, "", nil
 	}
 	<-s.ctx.Done()
 	return nil, "", s.ctx.Err()
 }
 
 // Close cancels the test stream's pending receive.
-func (s *testWorkerPolicyStream) Close() { s.cancel() }
+func (s *testWorkerDeclarationStream) Close() { s.cancel() }

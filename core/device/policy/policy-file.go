@@ -88,35 +88,5 @@ func Validate(policy *DevicePolicy) error {
 		}
 		seenTypes[typeID] = struct{}{}
 	}
-
-	// Require the forge-worker's object key and resource limits.
-	if fw := policy.GetForgeWorker(); fw != nil {
-		if strings.TrimSpace(fw.GetWorkerObjectKey()) == "" {
-			return errors.New("device policy forge-worker worker object key is required")
-		}
-		if fw.GetMilliCpu() == 0 {
-			return errors.New("device policy forge-worker milli_cpu must be set")
-		}
-		if fw.GetMemoryBytes() == 0 {
-			return errors.New("device policy forge-worker memory_bytes must be set")
-		}
-		if len(fw.GetBackends()) == 0 {
-			return errors.New("device policy forge-worker backends must not be empty")
-		}
-		// Reject empty, whitespace-containing, or duplicate backends.
-		seenBackends := make(map[string]struct{}, len(fw.GetBackends()))
-		for _, backend := range fw.GetBackends() {
-			if strings.TrimSpace(backend) == "" {
-				return errors.New("device policy forge-worker backend must not be empty")
-			}
-			if strings.ContainsAny(backend, ", \t\r\n") {
-				return errors.Errorf("device policy forge-worker backend %q cannot contain comma or whitespace", backend)
-			}
-			if _, ok := seenBackends[backend]; ok {
-				return errors.Errorf("duplicate device policy forge-worker backend %q", backend)
-			}
-			seenBackends[backend] = struct{}{}
-		}
-	}
 	return nil
 }

@@ -227,35 +227,36 @@ func (r *PluginHostRoot) GetPluginInfo(
 	}, nil
 }
 
-// WatchDevicePolicy forwards the current daemon policy and every subsequent revision.
-func (r *PluginHostRoot) WatchDevicePolicy(
-	_ *sdk_plugin_host.WatchDevicePolicyRequest,
-	stream sdk_plugin_host.SRPCPluginHostResourceService_WatchDevicePolicyStream,
+// WatchForgeWorker forwards the current Forge Worker declaration and every
+// subsequent revision.
+func (r *PluginHostRoot) WatchForgeWorker(
+	_ *sdk_plugin_host.WatchForgeWorkerRequest,
+	stream sdk_plugin_host.SRPCPluginHostResourceService_WatchForgeWorkerStream,
 ) error {
-	// Only the core plugin may watch the device policy.
+	// Only the core plugin may watch the Forge Worker declaration.
 	if r.pluginID != "spacewave-core" {
-		return errors.New("Device policy watch is restricted to the core plugin")
+		return errors.New("Forge Worker watch is restricted to the core plugin")
 	}
 
-	// Wait for the daemon's device policy source.
-	source, err := r.hostRoot.WaitDevicePolicySource(stream.Context())
+	// Wait for the daemon's Forge Worker source.
+	source, err := r.hostRoot.WaitForgeWorkerSource(stream.Context())
 	if err != nil {
 		return err
 	}
 
-	// Stream every policy revision to the caller.
-	var last []byte
+	// Stream every revision to the caller.
+	var last uint64
 	for {
-		policy, deviceKey, revision, err := source.WaitDevicePolicy(stream.Context(), last)
+		declaration, deviceKey, revision, err := source.WaitForgeWorker(stream.Context(), last)
 		if err != nil {
 			return err
 		}
-		if err := stream.Send(&sdk_plugin_host.WatchDevicePolicyResponse{
-			Policy: policy, DeviceObjectKey: deviceKey, Revision: revision,
+		if err := stream.Send(&sdk_plugin_host.WatchForgeWorkerResponse{
+			Declaration: declaration, DeviceObjectKey: deviceKey, Revision: revision,
 		}); err != nil {
 			return err
 		}
-		last = policy
+		last = revision
 	}
 }
 

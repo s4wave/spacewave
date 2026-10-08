@@ -4,7 +4,6 @@ package spacewave_cli
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,17 +14,15 @@ import (
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
-	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
-	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	devicePolicyForgeWorkerCapabilityID = "forge-worker"
-	devicePolicyRefPrefix               = "device-policy/"
-)
+// devicePolicyRefPrefix is the local policy ref prefix of the capabilities the
+// policy projection wrote earlier. The projection owns every capability that
+// carries it and drops them.
+const devicePolicyRefPrefix = "device-policy/"
 
 // startDevicePolicyCapabilityProjection projects the local device policy into
 // the Device object of the setup Space for the life of ctx.
@@ -145,21 +142,12 @@ func projectDevicePolicyCapabilities(
 	policy *device_policy.DevicePolicy,
 	now time.Time,
 ) error {
-	// Open the write transaction that verifies and writes together.
+	// Open the write transaction.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
-
-	// Verify the declared Worker object inside the same transaction that
-	// writes the Device block, so verification and the capability write
-	// commit or abort together.
-	if fw := policy.GetForgeWorker(); fw != nil {
-		if err := verifyForgeWorkerLink(ctx, tx, fw.GetWorkerObjectKey()); err != nil {
-			return err
-		}
-	}
 
 	// Read the Device object of this daemon.
 	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
@@ -197,7 +185,7 @@ func projectDevicePolicyCapabilities(
 
 func projectDevicePolicyOntoDevice(
 	existing *s4wave_device.Device,
-	policy *device_policy.DevicePolicy,
+	_ *device_policy.DevicePolicy,
 	now time.Time,
 ) (*s4wave_device.Device, bool, error) {
 	// Copy policy capabilities onto the Device when they changed.
@@ -205,7 +193,7 @@ func projectDevicePolicyOntoDevice(
 		return nil, false, errors.New("device state is required")
 	}
 	next := existing.CloneVT()
-	nextCaps := computeDevicePolicyCapabilities(policy, existing.GetCapabilities())
+	nextCaps := computeDevicePolicyCapabilities(existing.GetCapabilities())
 	if sameDeviceCapabilities(nextCaps, existing.GetCapabilities()) {
 		return next, false, nil
 	}
@@ -217,93 +205,27 @@ func projectDevicePolicyOntoDevice(
 	return next, true, nil
 }
 
-func computeDevicePolicyCapabilities(
-	policy *device_policy.DevicePolicy,
-	existing []*s4wave_device.DeviceCapability,
-) []*s4wave_device.DeviceCapability {
-	// Build capabilities from the policy, keeping existing capability state.
-	// Flowgraph node capabilities belong to the Flowgraph reconciler, so they
-	// stay last in their existing order.
-	existingByID := make(map[string]*s4wave_device.DeviceCapability, len(existing))
+func computeDevicePolicyCapabilities(existing []*s4wave_device.DeviceCapability) []*s4wave_device.DeviceCapability {
+	// Drop the capabilities the policy wrote earlier. Flowgraph node
+	// capabilities belong to the Flowgraph reconciler, so they stay last in
+	// their existing order.
 	var nodes []*s4wave_device.DeviceCapability
-	out := make([]*s4wave_device.DeviceCapability, 0, len(existing)+2)
+	out := make([]*s4wave_device.DeviceCapability, 0, len(existing))
 	for _, cap := range existing {
 		if cap == nil {
 			continue
 		}
 		id := strings.TrimSpace(cap.GetId())
-		existingByID[id] = cap
 		switch {
-		case isDevicePolicyCapability(id, cap):
-			// The policy recomputes its own capabilities below, which drops the
-			// ones it wrote for a setting the policy no longer has.
+		case isDevicePolicyCapability(cap):
+			// The policy writes no capabilities now, so drop the ones it wrote earlier.
 		case s4wave_flowgraph.IsNodeCapabilityID(id):
 			nodes = append(nodes, cap.CloneVT())
 		default:
 			out = append(out, cap.CloneVT())
 		}
 	}
-	if fw := policy.GetForgeWorker(); fw != nil {
-		out = append(out, computeForgeWorkerCapability(policy, fw, existingByID[devicePolicyForgeWorkerCapabilityID]))
-	}
 	return append(out, nodes...)
-}
-
-// computeForgeWorkerCapability authors or refreshes the forge-worker
-// capability from the declared capacity envelope. The link always carries the
-// policy-declared Worker object key and its forge/worker type id.
-func computeForgeWorkerCapability(
-	policy *device_policy.DevicePolicy,
-	fw *device_policy.ForgeWorkerPolicy,
-	existing *s4wave_device.DeviceCapability,
-) *s4wave_device.DeviceCapability {
-	state, detail := computeDevicePolicyCapabilityState("", existing)
-	return &s4wave_device.DeviceCapability{
-		Id:     devicePolicyForgeWorkerCapabilityID,
-		Kind:   s4wave_device.DeviceCapabilityKindForgeWorker,
-		Label:  "Forge Worker",
-		State:  state,
-		Detail: detail,
-		Policy: computeDeviceCapabilityPolicy(policyRef(policy.GetRevision(), "forge-worker"), existing),
-		Link: &s4wave_device.DeviceCapabilityLink{
-			ObjectKey: fw.GetWorkerObjectKey(),
-			TypeId:    forge_worker.WorkerTypeID,
-		},
-	}
-}
-
-func computeDeviceCapabilityPolicy(localRef string, existing *s4wave_device.DeviceCapability) *s4wave_device.DeviceCapabilityPolicy {
-	// Copy grant fields from the existing capability policy.
-	policy := &s4wave_device.DeviceCapabilityPolicy{
-		LocalPolicyRef: localRef,
-		LocalState:     s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
-		GrantState:     s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_ALLOWED,
-	}
-	if existing == nil || existing.GetPolicy() == nil {
-		return policy
-	}
-	existingPolicy := existing.GetPolicy()
-	policy.GrantPolicyRef = existingPolicy.GetGrantPolicyRef()
-	if existingPolicy.GetGrantState() != s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_UNKNOWN {
-		policy.GrantState = existingPolicy.GetGrantState()
-	}
-	return policy
-}
-
-func computeDevicePolicyCapabilityState(
-	detail string,
-	existing *s4wave_device.DeviceCapability,
-) (s4wave_device.DeviceCapabilityState, string) {
-	if existing != nil && existing.GetPolicy().GetGrantState() == s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED {
-		if existing.GetDetail() != "" {
-			return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED, existing.GetDetail()
-		}
-		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED, "blocked by Space grant"
-	}
-	if existing != nil && existing.GetState() == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE {
-		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, detail
-	}
-	return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE, detail
 }
 
 func sameDeviceCapabilities(a, b []*s4wave_device.DeviceCapability) bool {
@@ -318,43 +240,8 @@ func sameDeviceCapabilities(a, b []*s4wave_device.DeviceCapability) bool {
 	return true
 }
 
-// verifyForgeWorkerLink proves the declared Worker object exists and carries
-// the forge/worker type quad. It runs inside the caller's transaction.
-func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjectKey string) error {
-	// Check the worker type and require it to belong to a Cluster.
-	{
-		_, objectState, err := forge_worker.LookupWorker(ctx, ws, workerObjectKey)
-		world.ReleaseObjectState(objectState)
-		if err != nil {
-			return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)
-		}
-	}
-	if err := forge_worker.CheckWorkerType(ctx, ws, workerObjectKey); err != nil {
-		return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)
-	}
-	clusterKeys, err := forge_cluster.ListWorkerClusters(ctx, ws, workerObjectKey)
-	if err != nil {
-		return errors.Wrapf(err, "list clusters for Forge Worker %q", workerObjectKey)
-	}
-	if len(clusterKeys) == 0 {
-		return errors.Errorf("Forge Worker %q is not assigned to a Cluster", workerObjectKey)
-	}
-	for _, clusterKey := range clusterKeys {
-		if err := forge_cluster.CheckClusterType(ctx, ws, clusterKey); err != nil {
-			return errors.Wrapf(err, "verify Cluster %q for Forge Worker %q", clusterKey, workerObjectKey)
-		}
-	}
-	return nil
-}
-
 // isDevicePolicyCapability reports whether the policy projection owns the
-// capability with the given ID: the forge-worker capability, and any capability
-// it wrote earlier, which carries a local policy ref of its prefix.
-func isDevicePolicyCapability(id string, capability *s4wave_device.DeviceCapability) bool {
-	return id == devicePolicyForgeWorkerCapabilityID ||
-		strings.HasPrefix(capability.GetPolicy().GetLocalPolicyRef(), devicePolicyRefPrefix)
-}
-
-func policyRef(revision uint64, suffix string) string {
-	return devicePolicyRefPrefix + strconv.FormatUint(revision, 10) + "/" + suffix
+// capability: it carries a local policy ref of the policy prefix.
+func isDevicePolicyCapability(capability *s4wave_device.DeviceCapability) bool {
+	return strings.HasPrefix(capability.GetPolicy().GetLocalPolicyRef(), devicePolicyRefPrefix)
 }

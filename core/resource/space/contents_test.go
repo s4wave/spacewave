@@ -597,7 +597,7 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 	})
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-	addBindingTestWorkerPolicyHost(t, ctx, tb, workerKey)
+	addBindingTestForgeWorkerHost(t, ctx, tb, workerKey)
 
 	// Verify no task has a pass before approval.
 	for _, linkedTaskKey := range taskKeys {
@@ -707,7 +707,7 @@ func TestSpaceContentsResource_SetProcessBindingStartsForgeWorker(t *testing.T) 
 	resource := newTestSpaceContentsResource(t, tb.Logger, tb.Bus, tb.Engine, conf)
 	resource.volumeID = tb.EngineVolumeID
 	resource.storeID = "platform-account"
-	addBindingTestWorkerPolicyHost(t, ctx, tb, "session-worker")
+	addBindingTestForgeWorkerHost(t, ctx, tb, "session-worker")
 
 	// Wait for the desired plugin to request its missing manifest.
 	select {

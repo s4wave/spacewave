@@ -136,6 +136,8 @@ message DeviceCapability {
   DeviceCapabilityPolicy policy = 7;
   // CheckoutRoot records named checkout-root metadata for filesystem capabilities.
   DeviceCheckoutRootCapability checkout_root = 8;
+  // WorkerDeclaration records the declared capacity for forge-worker capabilities.
+  ForgeWorkerDeclaration worker_declaration = 9;
 }
 
 // DeviceCapabilityLink points at the capability execution owner.
@@ -175,6 +177,19 @@ message DeviceCheckoutRootCapability {
   bool read_available = 5;
   // WriteAvailable reports whether the linked filesystem owner may accept writes after approval.
   bool write_available = 6;
+}
+
+// ForgeWorkerDeclaration is the capacity envelope a Device declares for the
+// Forge Worker it hosts. A forge-worker Flowgraph node supplies it.
+message ForgeWorkerDeclaration {
+  // WorkerObjectKey is the Forge Worker object key this Device hosts.
+  string worker_object_key = 1;
+  // MilliCpu is the declared total CPU in milli-cores.
+  uint64 milli_cpu = 2;
+  // MemoryBytes is the declared total memory in bytes.
+  uint64 memory_bytes = 3;
+  // Backends lists the runtime backends the Worker supports.
+  repeated string backends = 4;
 }
 
 // Device is the world-block state for a Spacewave-managed Device object.

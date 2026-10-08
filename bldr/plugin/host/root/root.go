@@ -20,27 +20,31 @@ type Root struct {
 	structuredLogs *plugin_host_logs.Hub
 	// mux routes resource access to the owned services.
 	mux srpc.Invoker
-	// policyBcast guards the daemon policy source and wakes waiting plugin streams.
-	policyBcast broadcast.Broadcast
-	// policySource forwards the daemon's current policy and changes.
-	policySource DevicePolicySource
+	// forgeWorkerBcast guards the Forge Worker source and wakes waiting plugin
+	// streams.
+	forgeWorkerBcast broadcast.Broadcast
+	// forgeWorkerSource forwards the daemon's Forge Worker declaration and its
+	// changes.
+	forgeWorkerSource ForgeWorkerSource
 }
 
-// SetDevicePolicySource binds the daemon's policy watch to this host lifetime.
-func (r *Root) SetDevicePolicySource(source DevicePolicySource) {
-	r.policyBcast.HoldLock(func(wake func(), _ func() <-chan struct{}) {
-		r.policySource = source
+// SetForgeWorkerSource binds the daemon's Forge Worker watch to this host
+// lifetime.
+func (r *Root) SetForgeWorkerSource(source ForgeWorkerSource) {
+	r.forgeWorkerBcast.HoldLock(func(wake func(), _ func() <-chan struct{}) {
+		r.forgeWorkerSource = source
 		wake()
 	})
 }
 
-// WaitDevicePolicySource waits for the daemon to bind its read-only policy source.
-func (r *Root) WaitDevicePolicySource(ctx context.Context) (DevicePolicySource, error) {
+// WaitForgeWorkerSource waits for the daemon to bind its read-only Forge Worker
+// source.
+func (r *Root) WaitForgeWorkerSource(ctx context.Context) (ForgeWorkerSource, error) {
 	for {
-		var source DevicePolicySource
+		var source ForgeWorkerSource
 		var waitCh <-chan struct{}
-		r.policyBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			source = r.policySource
+		r.forgeWorkerBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			source = r.forgeWorkerSource
 			waitCh = getWaitCh()
 		})
 		if source != nil {
