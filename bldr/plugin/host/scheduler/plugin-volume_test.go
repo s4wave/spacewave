@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
@@ -17,6 +18,8 @@ import (
 	rpc_object "github.com/s4wave/spacewave/db/object/rpc"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/volume"
+	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
@@ -230,5 +233,81 @@ func TestPluginVolumePrefixIsUnambiguous(t *testing.T) {
 			t.Fatalf("prefix %q repeats", prefix)
 		}
 		prefixes = append(prefixes, prefix)
+	}
+}
+
+// TestHostCollectsSpacePluginVolume checks the host volume's collector sweeps
+// the unreferenced blocks of a Space plugin's view, and only those.
+func TestHostCollectsSpacePluginVolume(t *testing.T) {
+	// Build a host volume whose own controller sweeps every 20ms.
+	ctx := t.Context()
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()), testbed.WithVolumeConfig(&volume_kvtxinmem.Config{
+		VolumeConfig: &volume_controller.Config{GcIntervalDur: "20ms"},
+	}))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+	hostVol := tb.Volume
+	hostGraph := hostVol.GetRefGraph()
+
+	// The host roots a block of its own.
+	hostRef, _, err := hostVol.PutBlock(ctx, []byte("host"), &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := hostGraph.AddRef(ctx, block_gc.NodeGCRoot, block_gc.BlockIRI(hostRef)); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Two plugins of one Space each store a block under an object the host roots.
+	space := &Controller{conf: &Config{InstanceKey: "space-a"}}
+	refs := make(map[string]*block.BlockRef)
+	graphs := make(map[string]block_gc.RefGraphOps)
+	for _, pluginID := range []string{"kept", "dropped"} {
+		view := space.newPluginVolume(hostVol, pluginID)
+		ref, _, err := view.PutBlock(ctx, []byte(pluginID), &block.PutOpts{})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		graph := view.GetRefGraph()
+		if err := graph.AddObjectRoot(ctx, "head", ref); err != nil {
+			t.Fatal(err.Error())
+		}
+		object := block_gc.ObjectIRI(pluginVolumePrefix("space-a", pluginID) + "head")
+		if err := hostGraph.AddRef(ctx, block_gc.NodeGCRoot, object); err != nil {
+			t.Fatal(err.Error())
+		}
+		refs[pluginID] = ref
+		graphs[pluginID] = graph
+	}
+
+	// One plugin drops its object root through its view.
+	dropped := block_gc.RefEdge{Subject: block_gc.ObjectIRI("head"), Object: block_gc.BlockIRI(refs["dropped"])}
+	if err := graphs["dropped"].ApplyRefBatch(ctx, nil, []block_gc.RefEdge{dropped}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// The host's collector sweeps the dropped block.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		exists, err := hostVol.GetBlockExists(ctx, refs["dropped"])
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !exists {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("host did not sweep the dropped plugin block")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// The other plugin's block and the host's block remain.
+	for name, ref := range map[string]*block.BlockRef{"kept": refs["kept"], "host": hostRef} {
+		if exists, err := hostVol.GetBlockExists(ctx, ref); err != nil || !exists {
+			t.Fatalf("%s block after the sweep: %v, %v", name, exists, err)
+		}
 	}
 }

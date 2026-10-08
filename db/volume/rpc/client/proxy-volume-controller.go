@@ -34,6 +34,21 @@ type ProxyVolumeController struct {
 	refGraphClient rpc_gc.SRPCRefGraphClient
 }
 
+// newProxyVolumeConfig returns the volume controller config of a proxy volume.
+//
+// The proxy volume does not collect garbage: the controller of the served
+// volume owns collection. It sees every owner's references, which a scoped view
+// of the volume hides, and sweeps through the volume's own block store.
+func newProxyVolumeConfig(volumeIDAlias []string) *volume_controller.Config {
+	return &volume_controller.Config{
+		VolumeIdAlias: volumeIDAlias,
+
+		DisableEventBlockRm: true,
+		DisablePeer:         true,
+		GcIntervalDur:       "0",
+	}
+}
+
 // NewProxyVolumeController constructs a new ProxyVolumeController.
 func NewProxyVolumeController(
 	b bus.Bus,
@@ -49,12 +64,7 @@ func NewProxyVolumeController(
 	return &ProxyVolumeController{
 		Controller: volume_controller.NewController(
 			le,
-			&volume_controller.Config{
-				VolumeIdAlias: volumeIDAlias,
-
-				DisableEventBlockRm: true,
-				DisablePeer:         true,
-			},
+			newProxyVolumeConfig(volumeIDAlias),
 			b,
 			controller.NewInfo(
 				ControllerID+"-volume-controller",
