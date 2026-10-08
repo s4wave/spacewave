@@ -239,6 +239,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 				// for the next caller to resolve.
 				// otherwise lock rmtx and release this + all children
 				if ctx.Err() != nil {
+					releaseCreated()
 					return
 				}
 				if rel, relErr := i.rmtx.Lock(ctx, true); relErr == nil {
