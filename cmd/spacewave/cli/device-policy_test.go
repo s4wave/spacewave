@@ -75,6 +75,16 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 				GrantState:     s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED,
 			},
 		},
+		{
+			Id:    "remote-shell",
+			Kind:  "remote-shell",
+			Label: "Remote Shell",
+			State: s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
+			Policy: &s4wave_device.DeviceCapabilityPolicy{
+				LocalPolicyRef: "device-policy/12/remote-shell",
+				LocalState:     s4wave_device.DeviceCapabilityLocalState_DEVICE_CAPABILITY_LOCAL_STATE_ENABLED,
+			},
+		},
 	}
 	policy := &device_policy.DevicePolicy{
 		Revision:    13,
@@ -95,6 +105,11 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 	nonPolicy := byID["custom-capability"]
 	if nonPolicy == nil || !nonPolicy.EqualVT(existing[1]) {
 		t.Fatalf("non-policy capability = %v, want preserved %v", nonPolicy, existing[1])
+	}
+
+	// Check the capability the policy wrote for a setting it no longer has is gone.
+	if retired := byID["remote-shell"]; retired != nil {
+		t.Fatalf("retired remote-shell capability = %v, want dropped", retired)
 	}
 
 	// Check the projected forge-worker capability.

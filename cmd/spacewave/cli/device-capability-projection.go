@@ -234,8 +234,9 @@ func computeDevicePolicyCapabilities(
 		id := strings.TrimSpace(cap.GetId())
 		existingByID[id] = cap
 		switch {
-		case isDevicePolicyCapabilityID(id):
-			// The policy recomputes its own capabilities below.
+		case isDevicePolicyCapability(id, cap):
+			// The policy recomputes its own capabilities below, which drops the
+			// ones it wrote for a setting the policy no longer has.
 		case s4wave_flowgraph.IsNodeCapabilityID(id):
 			nodes = append(nodes, cap.CloneVT())
 		default:
@@ -346,8 +347,12 @@ func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjec
 	return nil
 }
 
-func isDevicePolicyCapabilityID(id string) bool {
-	return id == devicePolicyForgeWorkerCapabilityID
+// isDevicePolicyCapability reports whether the policy projection owns the
+// capability with the given ID: the forge-worker capability, and any capability
+// it wrote earlier, which carries a local policy ref of its prefix.
+func isDevicePolicyCapability(id string, capability *s4wave_device.DeviceCapability) bool {
+	return id == devicePolicyForgeWorkerCapabilityID ||
+		strings.HasPrefix(capability.GetPolicy().GetLocalPolicyRef(), devicePolicyRefPrefix)
 }
 
 func policyRef(revision uint64, suffix string) string {
