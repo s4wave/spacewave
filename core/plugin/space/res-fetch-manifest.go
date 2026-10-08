@@ -23,9 +23,36 @@ type resolverEntry struct {
 	handler directive.ResolverHandler
 	// emitted is the previously emitted value for diffing.
 	emitted *manifest.FetchManifestValue
+	// seen is the inputs the entry last resolved against, or nil before its
+	// first resolve.
+	seen *resolverInputs
 }
 
-// processResolvers processes all active FetchManifest resolvers against the current world state.
+// resolverInputs is what resolving one entry reads: whether SpaceSettings lists
+// its manifest ID, and the manifests reachable from the search roots with the
+// roots of their objects.
+type resolverInputs struct {
+	// listed reports that SpaceSettings lists the manifest ID.
+	listed bool
+	// manifests is the reachable manifest objects, sorted by key. It is empty
+	// when the manifest ID is not listed.
+	manifests []*world.ObjectRootRef
+}
+
+// equal reports whether resolving against i gives the result of resolving
+// against other.
+func (i *resolverInputs) equal(other *resolverInputs) bool {
+	return i.listed == other.listed && slices.EqualFunc(i.manifests, other.manifests, func(a, b *world.ObjectRootRef) bool {
+		return a.ObjectKey == b.ObjectKey && a.Exists == b.Exists && a.RootRef.EqualVT(b.RootRef)
+	})
+}
+
+// processResolvers processes all active FetchManifest resolvers against the
+// current world state. Every World change reaches it, but an entry resolves
+// again only when its inputs changed: its manifest ID entering or leaving the
+// SpaceSettings plugin list, or a change to the manifests reachable from the
+// manifest stores. It reads the inputs from the same World state it resolves
+// from, so a change after the read starts another pass.
 func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) {
 	// Trace the resolver processing task.
 	ctx, task := trace.NewTask(ctx, "core/plugin-space/fetch-manifest/process-resolvers")
@@ -42,9 +69,7 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 		ids = c.pluginIDs
 	})
 
-	// Log the resolver and plugin counts.
-	le := c.GetLogger()
-	le.WithField("entries", len(entries)).WithField("plugin-ids", ids).Debug("processResolvers called")
+	// Trace the resolver and plugin counts.
 	trace.Logf(ctx, "resolver-count", "%d", len(entries))
 	trace.Log(ctx, "plugin-ids", strings.Join(ids, ","))
 
@@ -53,24 +78,48 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 		return
 	}
 
-	// Read the controller config for the manifest search roots.
-	conf := c.GetConfig()
+	// Read the manifests once for the entries whose manifest ID is listed.
+	le := c.GetLogger()
+	var objKeys []string
+	var manifestRoots []*world.ObjectRootRef
+	var rootsErr error
+	if slices.ContainsFunc(entries, func(e *resolverEntry) bool {
+		return slices.Contains(ids, e.dir.GetManifestId())
+	}) {
+		objKeys, manifestRoots, rootsErr = c.readManifestRoots(ctx, ws)
+		if rootsErr != nil {
+			warnOnErrorUnlessCanceled(ctx, le, rootsErr, "failed to list manifests")
+			trace.Log(ctx, "result", "list-manifests-error")
+		}
+	}
 
-	// Resolve each entry against the current World state.
+	// Resolve each entry whose inputs changed.
 	for _, entry := range entries {
-		// Trace one resolver entry and skip a canceled one.
-		entryCtx, entryTask := trace.NewTask(ctx, "core/plugin-space/fetch-manifest/resolve")
 		if entry.ctx.Err() != nil {
-			entryTask.End()
 			continue
 		}
 
+		// Skip an entry that already resolved against these inputs. An entry
+		// that could not read its inputs resolves on the next World change.
 		mid := entry.dir.GetManifestId()
+		inputs := &resolverInputs{listed: slices.Contains(ids, mid)}
+		if inputs.listed {
+			if rootsErr != nil {
+				continue
+			}
+			inputs.manifests = manifestRoots
+		}
+		if entry.seen != nil && entry.seen.equal(inputs) {
+			continue
+		}
+
+		// Trace one resolver entry.
+		entryCtx, entryTask := trace.NewTask(ctx, "core/plugin-space/fetch-manifest/resolve")
 		trace.Log(entryCtx, "manifest-id", mid)
 		trace.Log(entryCtx, "platform-ids", strings.Join(entry.dir.GetPlatformIds(), ","))
 
 		// Skip manifests not in the current plugin list.
-		if !slices.Contains(ids, mid) {
+		if !inputs.listed {
 			le.WithField("manifest-id", mid).Debug("manifest not in plugin list, skipping")
 			trace.Log(entryCtx, "result", "skipped-plugin-id")
 			if entry.emitted != nil {
@@ -78,25 +127,11 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 				entry.emitted = nil
 			}
 			entry.handler.MarkIdle(true)
+			entry.seen = inputs
 			entryTask.End()
 			continue
 		}
 
-		// Search from the configured objects, or from every manifest store.
-		// Collection follows <manifest> edges out of these objects, and
-		// deploys link each Manifest from its store, so the stores are the
-		// roots.
-		objKeys := conf.GetObjectKeys()
-		if len(objKeys) == 0 {
-			var listErr error
-			objKeys, listErr = world_types.ListObjectsWithType(entryCtx, ws, bldr_manifest_world.ManifestStoreTypeID)
-			if listErr != nil {
-				warnOnErrorUnlessCanceled(entryCtx, le, listErr, "failed to list manifest stores")
-				trace.Log(entryCtx, "result", "list-objects-error")
-				entryTask.End()
-				continue
-			}
-		}
 		le.WithField("manifest-id", mid).WithField("obj-keys", objKeys).Debug("searching for manifests")
 		trace.Log(entryCtx, "object-keys", strings.Join(objKeys, ","))
 
@@ -144,7 +179,33 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			le.WithField("manifest-id", mid).Debugf("resolved %d manifest(s)", len(manifests))
 		}
 		entry.handler.MarkIdle(true)
+		entry.seen = inputs
 		trace.Log(entryCtx, "result", "resolved")
 		entryTask.End()
 	}
+}
+
+// readManifestRoots lists the manifest search roots and the manifests reachable
+// from them with their object roots. It searches from the configured objects,
+// or from every manifest store. Collection follows <manifest> edges out of
+// these objects, and deploys link each Manifest from its store, so the stores
+// are the roots.
+func (c *Controller) readManifestRoots(ctx context.Context, ws world.WorldState) ([]string, []*world.ObjectRootRef, error) {
+	objKeys := c.GetConfig().GetObjectKeys()
+	if len(objKeys) == 0 {
+		var err error
+		objKeys, err = world_types.ListObjectsWithType(ctx, ws, bldr_manifest_world.ManifestStoreTypeID)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	manifestKeys, err := bldr_manifest_world.ListManifests(ctx, ws, objKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+	roots, err := world.GetObjectRootRefsBatch(ctx, ws, manifestKeys)
+	if err != nil {
+		return nil, nil, err
+	}
+	return objKeys, roots, nil
 }
