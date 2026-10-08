@@ -14,6 +14,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/link"
@@ -35,32 +36,37 @@ type terminalConnectResult struct {
 
 // TerminalResource implements the TerminalResourceService SRPC interface.
 type TerminalResource struct {
-	b      bus.Bus
-	ws     world.WorldState
-	engine world.Engine
-	objKey string
-	state  *Terminal
-	bcast  broadcast.Broadcast
-	mux    srpc.Mux
+	b           bus.Bus
+	ws          world.WorldState
+	engine      world.Engine
+	objKey      string
+	sessionPeer peer.ID
+	state       *Terminal
+	bcast       broadcast.Broadcast
+	mux         srpc.Mux
 }
 
 // NewTerminalResource creates a new TerminalResource.
+// sessionPeer is the viewer's Session peer. A Device terminal opens its shell
+// stream on that Session's transport bus, where the Device's link resolves.
 func NewTerminalResource(
 	b bus.Bus,
 	ws world.WorldState,
 	engine world.Engine,
 	objKey string,
+	sessionPeer peer.ID,
 	state *Terminal,
 ) *TerminalResource {
 	if state == nil {
 		state = &Terminal{}
 	}
 	r := &TerminalResource{
-		b:      b,
-		ws:     ws,
-		engine: engine,
-		objKey: objKey,
-		state:  state,
+		b:           b,
+		ws:          ws,
+		engine:      engine,
+		objKey:      objKey,
+		sessionPeer: sessionPeer,
+		state:       state,
 	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterTerminalResourceService(mux, r)
@@ -131,10 +137,27 @@ func (r *TerminalResource) connectDeviceTerminal(
 		return err
 	}
 
-	// Open the remote shell stream and release it when the terminal ends.
+	// Resolve the viewer's Session bus and open the remote shell stream on it,
+	// then release both when the terminal ends.
+	sessionTransport, releaseSession, err := transport.ResolveSessionTransport(ctx, r.b, r.sessionPeer, func() {
+		cancel()
+	})
+	if err != nil {
+		state, status, errMessage := terminalConnectOpenFailureState(ctx, err, "failed to connect")
+		_ = r.updateState(context.Background(), state, status, errMessage)
+		return errors.Wrap(err, "resolve terminal session transport")
+	}
+	defer releaseSession()
+	if sessionTransport == nil {
+		return r.failTerminalConnect("no session transport for the viewer's session")
+	}
+	sessionBus := sessionTransport.GetChildBus()
+	if sessionBus == nil {
+		return r.failTerminalConnect("session transport stopped")
+	}
 	ms, release, err := link.OpenStreamWithPeerEx(
 		ctx,
-		r.b,
+		sessionBus,
 		RemoteShellProtocolID,
 		"",
 		remotePeer,
@@ -181,6 +204,12 @@ func (r *TerminalResource) connectDeviceTerminal(
 		return r.updateState(context.Background(), result.finalState, result.status, result.errorMessage)
 	}
 	return nil
+}
+
+// failTerminalConnect publishes the failure state with errMessage.
+func (r *TerminalResource) failTerminalConnect(errMessage string) error {
+	_ = r.updateState(context.Background(), TerminalSessionState_TERMINAL_SESSION_STATE_FAILED, "failed to connect", errMessage)
+	return stderrors.New(errMessage)
 }
 
 func terminalConnectOpenFailureState(ctx context.Context, err error, status string) (TerminalSessionState, string, string) {

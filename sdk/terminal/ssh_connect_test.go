@@ -128,7 +128,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 			defer cancelStream()
 			strm := newBlockingTerminalConnectStream(streamCtx)
 			strm.sendDelay = 10 * time.Millisecond
-			err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", state).
+			err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", "", state).
 				ConnectTerminal(strm)
 			strm.closeRecv()
 			if err != nil {
@@ -242,7 +242,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 	strm := newBlockingTerminalConnectStream(streamCtx)
 	accepted := true
 	strm.hostKeyTrustResponse = &accepted
-	err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", state).
+	err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", "", state).
 		ConnectTerminal(strm)
 	strm.closeRecv()
 	if err != nil {
@@ -372,7 +372,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 	strm := newBlockingTerminalConnectStream(streamCtx)
 	accepted := false
 	strm.hostKeyTrustResponse = &accepted
-	err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", state).
+	err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", "", state).
 		ConnectTerminal(strm)
 	strm.closeRecv()
 	if err == nil {

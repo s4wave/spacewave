@@ -53,7 +53,7 @@ func terminalFactory(
 	}
 
 	// Expose the Terminal Resource through its RPC mux.
-	resource := s4wave_terminal.NewTerminalResource(b, ws, engine, objectKey, state)
+	resource := s4wave_terminal.NewTerminalResource(b, ws, engine, objectKey, objecttype.SessionPeerIDFromContext(ctx), state)
 
 	return resource.GetMux(), func() {}, nil
 }

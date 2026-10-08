@@ -268,7 +268,7 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 	errCh := make(chan terminalConnectResult, 1)
 	var clientClosed atomic.Bool
 	clientClosed.Store(true)
-	go NewTerminalResource(nil, tb.WorldState, tb.Engine, objectKey, state).forwardRemoteFrames(
+	go NewTerminalResource(nil, tb.WorldState, tb.Engine, objectKey, "", state).forwardRemoteFrames(
 		ctx,
 		strm,
 		frameSession,
