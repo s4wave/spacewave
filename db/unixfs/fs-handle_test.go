@@ -124,6 +124,52 @@ func (c *fakeCursor) setOps(ops FSCursorOps) {
 // Release records that the cursor was released.
 func (c *fakeCursor) Release() { c.released.Store(true) }
 
+// interruptedCursor cancels the first resolution that reaches it, as the
+// kernel does when it interrupts a FUSE request.
+type interruptedCursor struct {
+	fakeCursor
+	interrupt context.CancelFunc
+}
+
+// CheckReleased reports whether the cursor was released.
+func (c *interruptedCursor) CheckReleased() bool { return c.released.Load() }
+
+// GetProxyCursor cancels the first caller, then reports no redirection.
+func (c *interruptedCursor) GetProxyCursor(ctx context.Context) (FSCursor, error) {
+	if c.interrupt != nil {
+		c.interrupt()
+		c.interrupt = nil
+		return nil, context.Canceled
+	}
+	return nil, nil
+}
+
+// TestAccessInodeSurvivesCanceledResolution tests that a caller canceled while
+// the root inode resolves leaves the inode resolvable for the next caller. The
+// root has no parent to rebuild its cursor, and a client such as the Go
+// runtime retries an interrupted call forever.
+func TestAccessInodeSurvivesCanceledResolution(t *testing.T) {
+	// Open a root handle whose first resolution cancels its caller.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cursor := &interruptedCursor{fakeCursor: fakeCursor{ops: &fakeOps{}}, interrupt: cancel}
+	h, err := NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Release()
+
+	// The canceled caller sees the cancellation.
+	if err := h.i().accessInode(ctx, nil); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected the canceled caller to fail with context.Canceled, got %v", err)
+	}
+
+	// The next caller resolves the inode.
+	if err := h.i().accessInode(context.Background(), nil); err != nil {
+		t.Fatalf("inode stayed unresolvable after a canceled resolution: %v", err)
+	}
+}
+
 // TestRenameResolvesReleasedDestOps tests that Rename re-resolves the
 // destination operations when they report released, instead of proceeding
 // with the released object.

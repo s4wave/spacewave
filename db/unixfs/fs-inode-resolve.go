@@ -193,6 +193,15 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 	i.fsCursors = cursorStack
 	cursorStack = slices.Clone(cursorStack)
 
+	// Track the cursors this attempt creates. The inode keeps the ones it
+	// started with, and a root inode cannot rebuild them.
+	var created []FSCursor
+	releaseCreated := func() {
+		for _, v := range slices.Backward(created) {
+			v.Release()
+		}
+	}
+
 	// unlock rmtx
 	rel()
 
@@ -216,6 +225,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 
 					// append the cursor
 					cursorStack = append(cursorStack, iCursor)
+					created = append(created, iCursor)
 					return nil
 				})
 			} else {
@@ -225,7 +235,12 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 			}
 			if err != nil {
 				// error fetching parent cursors.
-				// lock rmtx and release this + all children
+				// a canceled caller learns nothing about the inode: leave it
+				// for the next caller to resolve.
+				// otherwise lock rmtx and release this + all children
+				if ctx.Err() != nil {
+					return
+				}
 				if rel, relErr := i.rmtx.Lock(ctx, true); relErr == nil {
 					i.releaseWithChildrenLocked(err)
 					i.fsWait = nil
@@ -255,6 +270,7 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 			}
 			if pcursor != nil {
 				cursorStack = append(cursorStack, pcursor)
+				created = append(created, pcursor)
 				continue
 			}
 
@@ -292,14 +308,20 @@ func (i *fsInode) resolveOpsRoutineLocked(ctx context.Context, fsWait chan struc
 		fsOps = nil
 	}
 
+	// A caller canceled mid-resolution learns nothing about the inode: release
+	// the cursors this attempt created and leave it for the next caller to
+	// resolve. Publishing the cancellation would fail every later access.
+	if err != nil && ctx.Err() != nil {
+		releaseCreated()
+		return
+	}
+
 	// err is set if anything failed.
 	rel, relErr := i.rmtx.Lock(ctx, true)
 	if relErr != nil {
 		// context canceled
 		// make sure we don't leak cursors
-		for _, v := range slices.Backward(cursorStack) {
-			v.Release()
-		}
+		releaseCreated()
 		return
 	}
 	defer rel()
