@@ -154,6 +154,33 @@ func TestExecuteRunsCreateStartWait(t *testing.T) {
 	}
 }
 
+// TestExecuteReservesAgainWhenDrainFencesLaunch keeps a drain that races the
+// launch from failing the Execution: the voided reservation is released and
+// the controller reserves again.
+func TestExecuteReservesAgainWhenDrainFencesLaunch(t *testing.T) {
+	// Fence the first launch as a drain would.
+	runner := &recordingRunner{
+		outputs: map[string][]byte{
+			"create": []byte("container-123\n"),
+			"start":  []byte("container-123\n"),
+			"wait":   []byte("0\n"),
+			"logs":   nil,
+		},
+	}
+	admission := &recordingAdmission{name: "test-runtime", drainedLaunches: 1}
+	ctrl := NewController(nil, nil, &Config{Image: "img", MilliCpu: 1000, MemoryBytes: 1 << 20}, admission)
+	ctrl.runner = runner
+	ctrl.handle = &recordingExecHandle{}
+
+	// The Execution completes under the second reservation.
+	if err := ctrl.Execute(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if admission.reserves != 2 || admission.releases != 2 {
+		t.Fatalf("reserves=%d releases=%d, want 2 and 2", admission.reserves, admission.releases)
+	}
+}
+
 // TestExecuteRetainsOutputOnFailure verifies failed command output survives in
 // the Execution log along with its nonzero result.
 func TestExecuteRetainsOutputOnFailure(t *testing.T) {

@@ -45,7 +45,7 @@ type WorkerAdmission struct {
 	epoch uint64
 	// active permits new Docker reservations.
 	active bool
-	// changed closes when active admission is fenced for a declaration transition.
+	// changed closes and is replaced whenever active changes.
 	changed chan struct{}
 	// declaration is the last declaration to restore after pending stops finish.
 	declaration *s4wave_device.ForgeWorkerDeclaration
@@ -68,11 +68,7 @@ func NewWorkerAdmission(eng world.Engine, workerKey string, peerID peer.ID, clai
 func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string, declared *s4wave_device.ForgeWorkerDeclaration) error {
 	// Fence new Worker reservations before changing the declaration.
 	w.mtx.Lock()
-	if w.active {
-		w.active = false
-		close(w.changed)
-		w.changed = make(chan struct{})
-	}
+	w.setActive(false)
 	w.mtx.Unlock()
 
 	// Serialize the declaration transition with Docker launches and claim changes.
@@ -179,7 +175,7 @@ func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string
 	if err != nil {
 		return err
 	}
-	w.active = capacity.OwnerState == forge_runtime.CapacityOwnerStateActive
+	w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerStateActive)
 	if !w.active {
 		ref, epoch := w.ref, w.epoch
 		w.mtx.Unlock()
@@ -192,7 +188,7 @@ func (w *WorkerAdmission) ApplyDeclaration(ctx context.Context, deviceKey string
 		if err != nil {
 			return err
 		}
-		w.active = capacity.OwnerState == forge_runtime.CapacityOwnerStateActive
+		w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerStateActive)
 		if !w.active {
 			return ErrWorkerStopPending
 		}
@@ -259,7 +255,7 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	w.active = capacity.OwnerState == forge_runtime.CapacityOwnerStateActive
+	w.setActive(capacity.OwnerState == forge_runtime.CapacityOwnerStateActive)
 	if !w.active {
 		return ErrWorkerStopPending
 	}
@@ -271,7 +267,7 @@ func (w *WorkerAdmission) Renew(ctx context.Context) error {
 func (w *WorkerAdmission) Close(ctx context.Context) error {
 	// Fence new Worker reservations on execution exit.
 	w.mtx.Lock()
-	w.active = false
+	w.setActive(false)
 	w.mtx.Unlock()
 
 	// Wait for Docker launches before inspecting the remaining Worker claim.
@@ -314,7 +310,21 @@ func (w *WorkerAdmission) drain(ctx context.Context, ref forge_runtime.WorkerCla
 	return w.admission.CompleteDrainCapacity(ctx, w.workerKey, ref, epoch)
 }
 
+// setActive changes whether new Docker reservations are admitted and wakes the
+// reservations waiting for admission. The caller holds mtx.
+func (w *WorkerAdmission) setActive(active bool) {
+	if w.active == active {
+		return
+	}
+	w.active = active
+	close(w.changed)
+	w.changed = make(chan struct{})
+}
+
 // Reserve debits the Docker target's explicit request under the current claim.
+// While the Worker is draining or undeclared it holds the reservation until
+// admission reopens, so the Execution waits instead of failing. It returns
+// only when the debit is made, the context ends, or the request fails.
 func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf *forge_lib_docker.Config) (forge_lib_docker.Reservation, error) {
 	// Read Execution placement from a scoped World transaction.
 	tx, err := w.engine.NewTransaction(ctx, false)
@@ -334,12 +344,21 @@ func (w *WorkerAdmission) Reserve(ctx context.Context, executionKey string, conf
 		return nil, errors.Errorf("execution %s is placed on Worker %s peer %s", executionKey, placement.GetWorkerObjectKey(), placement.GetPeerId())
 	}
 
-	// Reserve Docker capacity under the active Worker claim.
+	// Wait for the Worker to admit work.
 	w.mtx.Lock()
-	defer w.mtx.Unlock()
-	if !w.active {
-		return nil, forge_runtime.ErrCapacityDraining
+	for !w.active {
+		changed := w.changed
+		w.mtx.Unlock()
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-changed:
+		}
+		w.mtx.Lock()
 	}
+	defer w.mtx.Unlock()
+
+	// Reserve Docker capacity under the active Worker claim.
 	request := forge_runtime.ResourceRequest{MilliCPU: conf.GetMilliCpu(), MemoryBytes: conf.GetMemoryBytes(), Backend: "docker"}
 	res, err := w.admission.ReserveForClaim(ctx, w.workerKey, executionKey, request, w.ref, w.epoch)
 	if err != nil {

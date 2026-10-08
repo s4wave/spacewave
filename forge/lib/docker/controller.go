@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
+	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	"github.com/sirupsen/logrus"
 )
@@ -86,10 +87,43 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 		return errors.New("docker runtime admission unavailable")
 	}
 
-	// Debit and activate a deterministic runtime name before Docker can create it.
-	grant, err := c.admission.Reserve(ctx, c.handle.GetExecutionObjectKey(), c.conf)
-	if err != nil {
-		return errors.Wrap(err, "reserve docker capacity")
+	// Create the host directory mounted at output_dir when outputs are declared.
+	var outputDir string
+	if len(c.conf.GetOutputs()) != 0 {
+		outputRoot, dir, err := createOutputDir()
+		if err != nil {
+			return errors.Wrap(err, "create output directory")
+		}
+		outputDir = dir
+		defer func() {
+			if err := os.RemoveAll(outputRoot); err != nil {
+				c.le.WithError(err).Warn("remove docker output directory")
+			}
+		}()
+	}
+
+	// Debit a deterministic runtime name and launch the container under it.
+	// Reserve waits while the Worker admits no work. A drain that fences the
+	// launch voids the debit, so release it and reserve again.
+	dockerPath := c.dockerPath()
+	dockerEnv := BuildDockerEnv(c.conf)
+	var (
+		grant       Reservation
+		containerID string
+		err         error
+	)
+	for {
+		grant, err = c.admission.Reserve(ctx, c.handle.GetExecutionObjectKey(), c.conf)
+		if err != nil {
+			return errors.Wrap(err, "reserve docker capacity")
+		}
+		containerID, err = c.launch(ctx, grant, dockerPath, dockerEnv, outputDir)
+		if !errors.Is(err, forge_runtime.ErrCapacityDraining) {
+			break
+		}
+		if err := grant.Release(context.WithoutCancel(ctx)); err != nil {
+			return errors.Wrap(err, "release docker capacity")
+		}
 	}
 	defer func() {
 		if err := grant.Release(context.WithoutCancel(ctx)); err != nil {
@@ -100,39 +134,7 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 			}
 		}
 	}()
-
-	// Create the host directory mounted at output_dir when outputs are declared.
-	var outputDir string
-	if len(c.conf.GetOutputs()) != 0 {
-		var outputRoot string
-		outputRoot, outputDir, err = createOutputDir()
-		if err != nil {
-			return errors.Wrap(err, "create output directory")
-		}
-		defer func() {
-			if err := os.RemoveAll(outputRoot); err != nil {
-				c.le.WithError(err).Warn("remove docker output directory")
-			}
-		}()
-	}
-
-	// Launch the container under the reserved runtime name.
-	dockerPath := c.dockerPath()
-	dockerEnv := BuildDockerEnv(c.conf)
-	var containerID string
-	if err := grant.Launch(ctx, func(name string) error {
-		// Create the container with its output mount and start it.
-		out, err := c.runner.Run(ctx, dockerPath, buildCreateArgs(c.conf, name, outputDir), dockerEnv)
-		if err != nil {
-			return errors.Wrap(err, "docker create")
-		}
-		containerID = strings.TrimSpace(string(out))
-		if containerID == "" {
-			return errors.New("docker create returned empty container id")
-		}
-		_, err = c.runner.Run(ctx, dockerPath, []string{"start", containerID}, dockerEnv)
-		return errors.Wrap(err, "docker start")
-	}); err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -174,6 +176,25 @@ func (c *Controller) Execute(ctx context.Context) (retErr error) {
 		return errors.Errorf("docker container exited with status %d", status)
 	}
 	return c.storeOutputs(ctx, outputDir)
+}
+
+// launch creates and starts the container under the reservation's runtime name.
+func (c *Controller) launch(ctx context.Context, grant Reservation, dockerPath string, dockerEnv []string, outputDir string) (string, error) {
+	var containerID string
+	err := grant.Launch(ctx, func(name string) error {
+		// Create the container with its output mount and start it.
+		out, err := c.runner.Run(ctx, dockerPath, buildCreateArgs(c.conf, name, outputDir), dockerEnv)
+		if err != nil {
+			return errors.Wrap(err, "docker create")
+		}
+		containerID = strings.TrimSpace(string(out))
+		if containerID == "" {
+			return errors.New("docker create returned empty container id")
+		}
+		_, err = c.runner.Run(ctx, dockerPath, []string{"start", containerID}, dockerEnv)
+		return errors.Wrap(err, "docker start")
+	})
+	return containerID, err
 }
 
 // dockerPath resolves the configured Docker CLI executable.
