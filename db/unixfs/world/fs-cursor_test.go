@@ -4,7 +4,35 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/s4wave/spacewave/db/world"
 )
+
+// failingWorldState fails every object lookup with err.
+type failingWorldState struct {
+	world.WorldState
+	err error
+}
+
+// GetObject reports the lookup failure.
+func (w failingWorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	return nil, false, w.err
+}
+
+// TestGetProxyCursorReportsLookupError checks that a failed object lookup
+// returns its own error, so a canceled lookup is not taken for a missing
+// object.
+func TestGetProxyCursorReportsLookupError(t *testing.T) {
+	// Look up an object through a World that is canceled.
+	ws := failingWorldState{err: context.Canceled}
+	cursor := NewFSCursor(nil, ws, "test/lookup-error", FSType_FSType_FS_NODE, nil, false)
+	t.Cleanup(cursor.Release)
+
+	// The cursor reports the cancellation.
+	if _, err := cursor.GetProxyCursor(context.Background()); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+}
 
 // TestNewFSCursorWithWriterConfirmsObservedRevision checks that a successful
 // writer operation remains fenced on the cursor's observed object revision.
