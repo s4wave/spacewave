@@ -1,6 +1,7 @@
 package device_policy
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -38,5 +39,36 @@ func TestNodeTypeAllowList(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Fatalf("%s: expected %q error, got %v", name, tc.want, err)
 		}
+	}
+}
+
+// TestReadFileIgnoresUnknownFields checks that only the allow list affects policy.
+func TestReadFileIgnoresUnknownFields(t *testing.T) {
+	for _, field := range []string{
+		"forge_worker", "forgeWorker",
+		"remote_shell", "remoteShell",
+		"checkout_root", "checkoutRoot",
+	} {
+		t.Run(field, func(t *testing.T) {
+			// Write a valid policy with an unknown capability field.
+			stateRoot := t.TempDir()
+			want := &DevicePolicy{Revision: 1, NodeTypeId: []string{"forge-worker"}}
+			if err := WriteFile(stateRoot, want); err != nil {
+				t.Fatal(err)
+			}
+			data := `{"revision":"1","nodeTypeId":["forge-worker"],"` + field + `":{"enabled":true}}`
+			if err := os.WriteFile(FilePath(stateRoot), []byte(data), 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			// Read only the declared fields through the production file API.
+			got, err := ReadFile(stateRoot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !got.EqualVT(want) {
+				t.Fatalf("policy = %+v, want %+v", got, want)
+			}
+		})
 	}
 }

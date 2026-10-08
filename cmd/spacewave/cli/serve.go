@@ -345,7 +345,6 @@ func runServeCommand(
 	// Project the daemon's Device state into the Space.
 	startLocalSessionKeeper(serveCtx, le, resolved, invoker)
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
-	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
 
 	// Serve the core Flowgraph node types.
 	releaseFlowgraphNodeTypes, err := cliBus.GetBus().AddController(serveCtx, flowgraph_nodetype.NewController(), nil)

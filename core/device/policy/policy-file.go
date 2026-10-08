@@ -20,7 +20,7 @@ func FilePath(stateRoot string) string {
 	return filepath.Join(stateRoot, StateDir, StateFile)
 }
 
-// ReadFile reads the Device policy file under stateRoot.
+// ReadFile reads the Device policy file under stateRoot, ignoring unknown JSON fields.
 func ReadFile(stateRoot string) (*DevicePolicy, error) {
 	// Read the policy file, treating a missing file as an empty policy.
 	data, err := os.ReadFile(FilePath(stateRoot))
@@ -72,11 +72,6 @@ func WriteFile(stateRoot string, policy *DevicePolicy) error {
 
 // Validate checks the persisted Device policy shape.
 func Validate(policy *DevicePolicy) error {
-	// Treat a nil policy as valid.
-	if policy == nil {
-		return nil
-	}
-
 	// Reject node type IDs that are missing or duplicated.
 	seenTypes := make(map[string]struct{}, len(policy.GetNodeTypeId()))
 	for _, typeID := range policy.GetNodeTypeId() {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,10 +25,10 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
+	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	web_plugin_controller "github.com/s4wave/spacewave/bldr/web/plugin/controller"
 	"github.com/s4wave/spacewave/bldr/web/plugin/electron"
-	desktop_runtime "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
@@ -387,7 +388,7 @@ func (d *sharedElectronDaemon) requestQuit(t *testing.T) {
 		ref.Release()
 		t.Fatalf("connect desktop runtime: %v", err)
 	}
-	rootRef := resources.AccessRootResource()
+	rootRef := resources.AccessRootResource() //nolint:lostresource // The WaitGroup.Go callback retains and releases rootRef after Quit returns.
 	root, err := rootRef.GetClient()
 	if err != nil {
 		rootRef.Release()
@@ -574,8 +575,8 @@ func (c *sharedElectronCLI) requireName(t *testing.T, name string) {
 
 // close releases the CLI's watch, Resources, and connection once.
 func (c *sharedElectronCLI) close() {
-	for i := len(c.closers) - 1; i >= 0; i-- {
-		c.closers[i]()
+	for _, v := range slices.Backward(c.closers) {
+		v()
 	}
 	c.closers = nil
 }

@@ -299,8 +299,7 @@ func (r *Reconciler) project(ctx context.Context, reports []*nodeReport) error {
 }
 
 // nextCapabilities returns the capabilities of device with its Flowgraph node
-// capabilities replaced by the reports. The other capabilities keep their place
-// and the nodes follow them.
+// capabilities replaced by the reports.
 func (r *Reconciler) nextCapabilities(device *s4wave_device.Device, reports []*nodeReport) []*s4wave_device.DeviceCapability {
 	capabilities := slices.DeleteFunc(slices.Clone(device.GetCapabilities()), func(capability *s4wave_device.DeviceCapability) bool {
 		return s4wave_flowgraph.IsNodeCapabilityID(capability.GetId())

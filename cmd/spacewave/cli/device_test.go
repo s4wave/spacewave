@@ -392,7 +392,7 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 			},
 		}, nil
 	})
-	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord, onBlocked func(error)) (string, error) {
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, record *deviceSetupRecord, onBlocked func(error)) (string, error) {
 		upsertRecord = record
 		return "devices/build-host", nil
 	})
@@ -549,7 +549,6 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	withDeviceObjectUpsertStub(t, func(
 		ctx context.Context,
 		client *sdkClient,
-		statePath string,
 		record *deviceSetupRecord,
 		onBlocked func(error),
 	) (string, error) {
@@ -600,7 +599,6 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	withDeviceObjectUpsertStub(t, func(
 		ctx context.Context,
 		client *sdkClient,
-		statePath string,
 		record *deviceSetupRecord,
 		onBlocked func(error),
 	) (string, error) {
@@ -667,7 +665,7 @@ func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing
 			SessionListEntry: &core_session.SessionListEntry{SessionIndex: 9},
 		}, nil
 	})
-	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, statePath string, record *deviceSetupRecord, onBlocked func(error)) (string, error) {
+	withDeviceObjectUpsertStub(t, func(ctx context.Context, client *sdkClient, record *deviceSetupRecord, onBlocked func(error)) (string, error) {
 		return "", errors.New("world write rejected")
 	})
 
@@ -991,9 +989,10 @@ func withDeviceMountSessionStub(
 	deviceMountLinkedSession = mount
 }
 
+// withDeviceObjectUpsertStub replaces the Device World writer for this test.
 func withDeviceObjectUpsertStub(
 	t *testing.T,
-	upsert func(context.Context, *sdkClient, string, *deviceSetupRecord, func(error)) (string, error),
+	upsert func(context.Context, *sdkClient, *deviceSetupRecord, func(error)) (string, error),
 ) {
 	t.Helper()
 
@@ -1185,7 +1184,7 @@ func TestOpenLocalDeviceSessionPersistsActivationBeforeProjection(t *testing.T) 
 	t.Cleanup(func() { deviceMountLocalSession = oldMount })
 
 	// Stub the Device object upsert to fail.
-	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, string, *deviceSetupRecord, func(error)) (string, error) {
+	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, *deviceSetupRecord, func(error)) (string, error) {
 		return "", errors.New("base World root is stale")
 	})
 	got, err := openLocalDeviceSession(context.Background(), nil, statePath, record)
@@ -1221,7 +1220,7 @@ func TestOpenLocalDeviceSessionProjectsReadyDevice(t *testing.T) {
 
 	// Record the setup state the Device object is projected with.
 	var projected string
-	withDeviceObjectUpsertStub(t, func(_ context.Context, _ *sdkClient, _ string, current *deviceSetupRecord, _ func(error)) (string, error) {
+	withDeviceObjectUpsertStub(t, func(_ context.Context, _ *sdkClient, current *deviceSetupRecord, _ func(error)) (string, error) {
 		projected = current.SetupState
 		return "devices/key", nil
 	})

@@ -322,7 +322,7 @@ func TestReconcileDeviceEnrollmentRestoresAndReleasesLocalSession(t *testing.T) 
 	// Stub the projection, which must wait for the World.
 	var projected string
 	waits := false
-	withDeviceObjectUpsertStub(t, func(_ context.Context, _ *sdkClient, _ string, current *deviceSetupRecord, onBlocked func(error)) (string, error) {
+	withDeviceObjectUpsertStub(t, func(_ context.Context, _ *sdkClient, current *deviceSetupRecord, onBlocked func(error)) (string, error) {
 		projected, waits = current.SetupState, onBlocked != nil
 		return "devices/key", nil
 	})

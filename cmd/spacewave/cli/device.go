@@ -23,7 +23,6 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
-	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	core_session "github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
@@ -859,7 +858,7 @@ func openDeviceSession(
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionIndex = entry.GetSessionIndex()
 	updated.SessionPeerID = pid.String()
-	objectKey, err := deviceUpsertObject(ctx, client, statePath, &updated, nil)
+	objectKey, err := deviceUpsertObject(ctx, client, &updated, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "create or update device object")
 	}
@@ -913,7 +912,7 @@ func projectDeviceEnrollment(
 	ready := *record
 	ready.SetupState = deviceSetupStateSessionReady
 	ready.FailureReason = ""
-	objectKey, err := deviceUpsertObject(ctx, client, statePath, &ready, onBlocked)
+	objectKey, err := deviceUpsertObject(ctx, client, &ready, onBlocked)
 
 	// Keep a newer enrollment that replaced this record while projecting.
 	current, readErr := readDeviceSetupRecord(statePath)
@@ -1060,10 +1059,10 @@ func mountLocalDeviceSession(
 	return &updated, nil
 }
 
+// upsertLinkedDeviceObject writes the setup record into its linked Space World.
 func upsertLinkedDeviceObject(
 	ctx context.Context,
 	client *sdkClient,
-	statePath string,
 	record *deviceSetupRecord,
 	onBlocked func(error),
 ) (string, error) {
@@ -1100,14 +1099,8 @@ func upsertLinkedDeviceObject(
 	}
 	defer engineCleanup()
 
-	// Read the device policy.
-	policy, err := device_policy.ReadFile(statePath)
-	if err != nil {
-		return "", err
-	}
-
 	// Upsert the Device object.
-	return upsertLinkedDeviceObjectInWorld(ctx, engine, record, policy, time.Now(), onBlocked)
+	return upsertLinkedDeviceObjectInWorld(ctx, engine, record, time.Now(), onBlocked)
 }
 
 // upsertLinkedDeviceObjectInWorld replays the Device projection from a fresh
@@ -1119,7 +1112,6 @@ func upsertLinkedDeviceObjectInWorld(
 	ctx context.Context,
 	engine world.Engine,
 	record *deviceSetupRecord,
-	policy *device_policy.DevicePolicy,
 	now time.Time,
 	onBlocked func(error),
 ) (string, error) {
@@ -1133,7 +1125,7 @@ func upsertLinkedDeviceObjectInWorld(
 		}
 
 		// Reopen the complete read/merge/write transaction after a stale base.
-		err = upsertLinkedDeviceObjectAttempt(ctx, engine, objectKey, record, policy, now)
+		err = upsertLinkedDeviceObjectAttempt(ctx, engine, objectKey, record, now)
 		if err == nil {
 			return objectKey, nil
 		}
@@ -1166,7 +1158,6 @@ func upsertLinkedDeviceObjectAttempt(
 	engine world.Engine,
 	objectKey string,
 	record *deviceSetupRecord,
-	policy *device_policy.DevicePolicy,
 	now time.Time,
 ) error {
 	// Open a write transaction on the World engine.
@@ -1192,11 +1183,6 @@ func upsertLinkedDeviceObjectAttempt(
 			return errors.New("existing device object peer_id does not match setup state")
 		}
 		mergeDeviceObjectState(next, existing)
-		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
-		if err != nil {
-			return err
-		}
-		next = projected
 		_, _, err = world.AccessObjectState(ctx, existingState, true, func(bcs *block.Cursor) error {
 			bcs.SetBlock(next, true)
 			return nil
@@ -1205,11 +1191,6 @@ func upsertLinkedDeviceObjectAttempt(
 			return err
 		}
 	} else {
-		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
-		if err != nil {
-			return err
-		}
-		next = projected
 		var createdObject world.ObjectState
 		createdObject, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
 			bcs.ClearAllRefs()
