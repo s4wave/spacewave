@@ -868,7 +868,10 @@ func (e *Engine) currentRootSeqnoLocked(ctx context.Context) (uint64, bool, erro
 	return seqno, true, err
 }
 
-// ForkBlockTransaction forks the transaction at the current state.
+// ForkBlockTransaction forks the transaction at the current state. The caller
+// of a write fork serializes writers, so the fork's reads report
+// block.ErrUnavailable for a block no connected peer holds instead of waiting
+// for a peer to connect.
 func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, error) {
 	// Trace the fork.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction")
@@ -891,7 +894,10 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	var buffered *block.BufferedStore
 	store := block.StoreOps(nil)
 	if write && e.writeCoordinator == nil {
-		buffered = block.NewBufferedStoreWithSettings(ctx, e.writeBlockStore, &block.BufferedStoreSettings{RecordWrites: true})
+		buffered = block.NewBufferedStoreWithSettings(ctx, e.writeBlockStore, &block.BufferedStoreSettings{
+			RecordWrites:    true,
+			WithoutPeerWait: true,
+		})
 		store = buffered
 	}
 

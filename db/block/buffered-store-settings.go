@@ -23,6 +23,10 @@ type BufferedStoreSettings struct {
 	// recorded blocks, and ReleaseUnreached releases the recorded blocks a
 	// final root does not reach.
 	RecordWrites bool
+	// WithoutPeerWait makes reads of the inner store report ErrUnavailable
+	// for a block no connected peer can serve, instead of waiting for a peer
+	// to connect. Set it when the reader holds a lock others wait on.
+	WithoutPeerWait bool
 }
 
 // DefaultBufferedStoreSettings returns the default buffered store settings.

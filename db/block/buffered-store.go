@@ -67,6 +67,10 @@ type BufferedStore struct {
 	// written maps the ref key of each block written to inner to its outgoing
 	// refs. Nil unless the store records writes.
 	written map[string]*writtenBlock
+
+	// withoutPeerWait makes inner reads report ErrUnavailable instead of
+	// waiting for a peer to connect.
+	withoutPeerWait bool
 }
 
 // writtenBlock is a block the store wrote to its inner store.
@@ -95,6 +99,7 @@ func NewBufferedStoreWithSettings(
 		maxPendingMetadataBytes: settings.MaxPendingMetadataBytes,
 		maxPendingBlocks:        settings.MaxPendingEntries,
 		drainBatchEntries:       settings.DrainBatchEntries,
+		withoutPeerWait:         settings.WithoutPeerWait,
 	}
 	if settings.RecordWrites {
 		s.written = make(map[string]*writtenBlock)
@@ -354,7 +359,7 @@ func (s *BufferedStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bo
 		}
 		return bytes.Clone(pending.data), true, nil
 	}
-	return s.inner.GetBlock(ctx, ref)
+	return s.inner.GetBlock(s.innerReadContext(ctx), ref)
 }
 
 // GetStoredBlock gets a block and its references, preferring pending writes.
@@ -373,7 +378,15 @@ func (s *BufferedStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*Sto
 			RefsKnown: true,
 		}, nil
 	}
-	return s.inner.GetStoredBlock(ctx, ref)
+	return s.inner.GetStoredBlock(s.innerReadContext(ctx), ref)
+}
+
+// innerReadContext returns the context for a read of the inner store.
+func (s *BufferedStore) innerReadContext(ctx context.Context) context.Context {
+	if s.withoutPeerWait {
+		ctx, _ = WithoutPeerWait(ctx)
+	}
+	return ctx
 }
 
 // GetBlockExists checks if a block exists.
