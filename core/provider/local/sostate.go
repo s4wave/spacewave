@@ -32,7 +32,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 ) {
 	// Keep each mounted state and its write lock under one reference-counted entry.
 	type soStateEntry struct {
-		// stateProm completes after loading the persisted state.
+		// stateProm completes after loading the persisted state, once
+		// stateCtr holds it.
 		stateProm *promise.PromiseContainer[*sobject.SOState]
 		// stateCtr publishes only committed state snapshots.
 		stateCtr *ccontainer.CContainer[*sobject.SOState]
@@ -81,8 +82,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				}
 
 				// Publish the validated initial state to waiters and watches.
-				ent.stateProm.SetResult(val, nil)
 				ent.stateCtr.SetValue(val)
+				ent.stateProm.SetResult(val, nil)
 				return nil
 			}, ent
 		},
@@ -188,8 +189,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				}
 
 				// Make the committed snapshot visible only after the transaction succeeds.
-				ent.stateProm.SetResult(state, nil)
 				ent.stateCtr.SetValue(state)
+				ent.stateProm.SetResult(state, nil)
 				return nil
 			},
 			func() {
