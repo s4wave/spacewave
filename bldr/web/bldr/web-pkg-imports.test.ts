@@ -32,4 +32,27 @@ describe('shared package imports', () => {
       '/entrypoint/pkgs/react/index.mjs',
     )
   })
+
+  test('maps each prefix once per document', () => {
+    // Bind a package, then bind it again with a new neighbor.
+    const target = document.implementation.createHTMLDocument()
+    bindWebPkgImports(
+      { react: '/b/pa/spacewave-app/manifest/root/react/' },
+      target,
+    )
+    bindWebPkgImports(
+      {
+        react: '/b/pa/spacewave-app/manifest/other/react/',
+        sonner: '/b/pa/spacewave-app/manifest/root/sonner/',
+      },
+      target,
+    )
+
+    // Verify only the new prefix is mapped by the second call.
+    const scripts = target.querySelectorAll('script[type="importmap"]')
+    expect(scripts).toHaveLength(2)
+    expect(JSON.parse(scripts[1]!.textContent!).imports).toEqual({
+      'bldr-web-pkg/sonner/': '/b/pa/spacewave-app/manifest/root/sonner/',
+    })
+  })
 })

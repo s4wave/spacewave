@@ -275,9 +275,15 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // Write manifest.json to the output
     mergedConfig.build.manifest = true
 
-    // Set the base path (public path for assets)
+    // Set the base path (public path for assets). Built asset URLs are relative
+    // to the file that references them, so a pinned module loads the assets of
+    // its own release.
     if (publicPath != null) {
       mergedConfig.base = publicPath
+      mergedConfig.experimental = {
+        renderBuiltUrl: () => ({ relative: true }),
+        ...mergedConfig.experimental,
+      }
     }
 
     // Set the cache dir

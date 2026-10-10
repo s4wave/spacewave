@@ -22,6 +22,7 @@ import (
 	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 	web_view_handler_controller "github.com/s4wave/spacewave/bldr/web/view/handler/controller"
 	web_view_server "github.com/s4wave/spacewave/bldr/web/view/server"
+	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
@@ -355,15 +356,15 @@ func (c *Controller) HandleWebViewViaHandlers(
 
 // bindHandlerAssets resolves the shared package prefixes the handlers leave
 // empty and mounts the immutable plugin files their URLs select. A document
-// loads those files after this call returns, and the plugin host runs a pinned
-// manifest only while a reference holds it, so the caller keeps the returned
-// release until the handlers detach.
+// loads those files after this call returns, and the plugin host mounts a
+// pinned manifest only while an open filesystem handle holds its files, so the
+// caller keeps the returned release until the handlers detach.
 func (c *Controller) bindHandlerAssets(ctx context.Context, handlers *web_view_handler.WebViewHandlersConfig) (func(), error) {
 	// Retain every lookup and mount until the caller releases them.
-	var refs []directive.Reference
+	var releases []func()
 	release := func() {
-		for _, ref := range refs {
-			ref.Release()
+		for _, release := range releases {
+			release()
 		}
 	}
 
@@ -378,7 +379,7 @@ func (c *Controller) bindHandlerAssets(ctx context.Context, handlers *web_view_h
 					release()
 					return nil, err
 				}
-				refs = append(refs, ref)
+				releases = append(releases, ref.Release)
 				info, err := pkg.GetInfo(ctx)
 				if err != nil {
 					release()
@@ -411,20 +412,23 @@ func (c *Controller) bindHandlerAssets(ctx context.Context, handlers *web_view_h
 			continue
 		}
 		held[artifactID] = struct{}{}
-		pluginID, manifestRoot, err := bldr_plugin.ParsePluginArtifactID(artifactID, false)
-		if err != nil {
-			release()
-			return nil, err
-		}
-		if manifestRoot == "" {
+		if !strings.Contains(artifactID, "/manifest/") {
 			continue
 		}
-		_, _, ref, err := bus.ExecWaitValue[string](ctx, c.bus, bldr_plugin.NewLoadPluginAssetsAtManifest(pluginID, manifestRoot), nil, nil, nil)
+		access := unixfs_access.NewAccessUnixFSViaBusFunc(c.bus, bldr_plugin.PluginAssetsFsId(artifactID), false)
+		files, releaseFiles, err := access(ctx, nil)
 		if err != nil {
 			release()
 			return nil, err
 		}
-		refs = append(refs, ref)
+		releases = append(releases, releaseFiles)
+
+		// The filesystem client opens its event stream on first use, and the
+		// plugin host keeps the files mounted while that stream is open.
+		if _, err := files.GetNodeType(ctx); err != nil {
+			release()
+			return nil, err
+		}
 	}
 	return release, nil
 }
