@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	"github.com/s4wave/spacewave/bldr/util/logfile"
 )
 
 // BoundedCommand is the argument that makes the executable run RunBounded. The
@@ -44,13 +45,14 @@ func EvaluateFSBounded(ctx context.Context, fsys fs.FS, name string, memoryBytes
 		return nil, errors.New("a bounded evaluation cannot start another")
 	}
 
-	// Run the executable as the child command, killed when ctx ends.
+	// Run the executable as the child command, killed when ctx ends. The child
+	// writes no log file: this process keeps its stderr.
 	exe, err := os.Executable()
 	if err != nil {
 		return nil, errors.Wrap(err, "find the executable")
 	}
 	cmd := exec.CommandContext(ctx, exe, BoundedCommand)
-	cmd.Env = append(os.Environ(), boundedChildEnv+"=1")
+	cmd.Env = append(os.Environ(), boundedChildEnv+"=1", logfile.AutoDefaultEnvVar+"=none")
 	stderr := &headWriter{limit: childStderrLimit}
 	cmd.Stderr = stderr
 
