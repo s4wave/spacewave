@@ -17,6 +17,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
+	"github.com/sirupsen/logrus"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 )
 
 // TestSOSyncExecuteRearmsRecoverableFailuresOnly verifies that a transient
@@ -42,6 +44,11 @@ func TestSOSyncExecuteRearmsRecoverableFailuresOnly(t *testing.T) {
 		{
 			name:       "history recovery",
 			streamErr:  sobject.ErrConfigHistoryUnavailable,
+			admissions: 1,
+		},
+		{
+			name:       "state too large",
+			streamErr:  sobject.ErrStateTooLarge,
 			admissions: 1,
 		},
 	}
@@ -189,5 +196,49 @@ func TestSyncRetryBackoffIsCapped(t *testing.T) {
 		if got := backoff.NextBackOff(); got != expected {
 			t.Fatalf("delay %d: expected %s, got %s", i, expected, got)
 		}
+	}
+}
+
+// TestLogStreamResultReportsEachFailureChange verifies that a peer's blocked
+// synchronization reaches the warn log once, however often the peer retries,
+// and that recovery reaches the info log.
+func TestLogStreamResultReportsEachFailureChange(t *testing.T) {
+	// Capture the info and warn log of a syncer.
+	log, hook := logtest.NewNullLogger()
+	log.SetLevel(logrus.InfoLevel)
+	le := logrus.NewEntry(log)
+	syncer := NewSOSync(le, nil, "test-object", "", nil, nil, nil)
+
+	// A terminal failure warns on its first stream and stays quiet after.
+	blocked := errors.Wrap(sobject.ErrStateTooLarge, "12582912 bytes")
+	for range 3 {
+		syncer.logStreamResult(le, "peer-a", blocked)
+	}
+	if got := hook.AllEntries(); len(got) != 1 || got[0].Level != logrus.WarnLevel {
+		t.Fatalf("repeated terminal failure logged %v; want one warning", got)
+	}
+
+	// Another peer is tracked on its own.
+	hook.Reset()
+	syncer.logStreamResult(le, "peer-b", blocked)
+	if got := hook.AllEntries(); len(got) != 1 || got[0].Level != logrus.WarnLevel {
+		t.Fatalf("second peer logged %v; want one warning", got)
+	}
+
+	// A clean stream reports recovery once, and a later failure warns again.
+	hook.Reset()
+	syncer.logStreamResult(le, "peer-a", nil)
+	syncer.logStreamResult(le, "peer-a", nil)
+	syncer.logStreamResult(le, "peer-a", blocked)
+	got := hook.AllEntries()
+	if len(got) != 2 || got[0].Level != logrus.InfoLevel || got[1].Level != logrus.WarnLevel {
+		t.Fatalf("recovery and relapse logged %v; want info, warning", got)
+	}
+
+	// A recoverable failure that changes is reported at info.
+	hook.Reset()
+	syncer.logStreamResult(le, "peer-a", errors.New("EOF"))
+	if got := hook.AllEntries(); len(got) != 1 || got[0].Level != logrus.InfoLevel {
+		t.Fatalf("recoverable failure logged %v; want one info", got)
 	}
 }

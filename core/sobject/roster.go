@@ -49,12 +49,16 @@ func SetSORoster(ctx context.Context, host *SOHost, dropped []string, signer cry
 	return true, nil
 }
 
-// RestoreRoster returns each dropped device to the trimming roster once it
-// has built on the local peer's latest operation, while the local peer is the
-// checkpointer. A dropped writer acknowledges like a roster member, so a
-// device that returns and only reads still answers the checkpointer. It
-// watches the state and returns when ctx ends or a change fails.
-func RestoreRoster(ctx context.Context, so SharedObject, host RosterHost) error {
+// MaintainRoster keeps the trimming roster current while the local peer is the
+// checkpointer. It returns each dropped device to the roster once it has built
+// on the local peer's latest operation. A dropped writer acknowledges like a
+// roster member, so a device that returns and only reads still answers the
+// checkpointer. Once the operations above the checkpoint reach RosterDropBytes
+// it drops the members that have not built on the local peer's latest
+// operation, so a device that stays offline cannot hold the state past what a
+// peer can sync. It watches the state and returns when ctx ends or a change
+// fails.
+func MaintainRoster(ctx context.Context, so SharedObject, host RosterHost) error {
 	// Watch the state as the local peer.
 	ctr, rel, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
@@ -63,7 +67,7 @@ func RestoreRoster(ctx context.Context, so SharedObject, host RosterHost) error 
 	defer rel()
 	peerID := so.GetPeerID().String()
 
-	// Restore the caught-up devices of each state.
+	// Adjust the roster of each state.
 	var snap SharedObjectStateSnapshot
 	for {
 		// Wait for the next state.
@@ -81,7 +85,7 @@ func RestoreRoster(ctx context.Context, so SharedObject, host RosterHost) error 
 		if err != nil {
 			return err
 		}
-		if cfg.IsGroupControl() || cfg.Checkpointer() != peerID || len(cfg.GetRosterDroppedPeerIds()) == 0 {
+		if cfg.IsGroupControl() || cfg.Checkpointer() != peerID {
 			continue
 		}
 		set, err := snap.GetOperationSet(ctx)
@@ -89,16 +93,34 @@ func RestoreRoster(ctx context.Context, so SharedObject, host RosterHost) error 
 			return err
 		}
 
-		// Keep dropping the devices that have not caught up.
-		dropped := cfg.GetRosterDroppedPeerIds()
-		keep := slices.DeleteFunc(slices.Clone(dropped), func(device string) bool {
-			return set.BuiltOnLatest(device, peerID)
-		})
-		if len(keep) == len(dropped) {
+		next := nextRosterDropped(cfg, set, peerID)
+		if slices.Equal(next, cfg.GetRosterDroppedPeerIds()) {
 			continue
 		}
-		if _, err := host.SetRosterDropped(ctx, keep); err != nil {
+		if _, err := host.SetRosterDropped(ctx, next); err != nil {
 			return err
 		}
 	}
+}
+
+// nextRosterDropped returns the writers the checkpointer should drop from the
+// trimming roster, in peer ID order: the dropped writers that have not built
+// on its latest operation, plus, once the operations reach RosterDropBytes,
+// the roster members that have not.
+func nextRosterDropped(cfg *SharedObjectConfig, set *SOOperationSet, checkpointer string) []string {
+	// Keep the dropped writers that have not caught up.
+	next := slices.DeleteFunc(slices.Clone(cfg.GetRosterDroppedPeerIds()), func(device string) bool {
+		return set.BuiltOnLatest(device, checkpointer)
+	})
+
+	// Drop the lagging members of an operation set that outgrew the budget.
+	if set.Size() >= RosterDropBytes {
+		for _, member := range cfg.TrimRoster() {
+			if member != checkpointer && !set.BuiltOnLatest(member, checkpointer) {
+				next = append(next, member)
+			}
+		}
+		slices.Sort(next)
+	}
+	return next
 }

@@ -2,6 +2,7 @@ package sobject_sync
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -24,8 +25,9 @@ import (
 const SyncProtocolID = protocol.ID("alpha/so-sync/2")
 
 const (
-	// maxMessageSize is the max message size for SO sync messages.
-	maxMessageSize = 10 * 1024 * 1024
+	// maxMessageSize is the max message size for SO sync messages. A snapshot
+	// carries one whole state.
+	maxMessageSize = sobject.MaxSyncStateSize
 	// syncRetryInitialInterval is the first delay after a recoverable stream
 	// failure.
 	syncRetryInitialInterval = 250 * time.Millisecond
@@ -61,6 +63,8 @@ type SOSync struct {
 	peerAdmission func(peer.ID, bool)
 	// peerRecovery reports trusted recovery requirements independently of admission.
 	peerRecovery func(peer.ID, bool)
+	// failures remembers the last logged stream failure of each peer.
+	failures syncFailures
 }
 
 // solicitationGeneration owns the workers admitted by one solicitation
@@ -209,7 +213,37 @@ func (s *SOSync) runSolicitationGeneration(ctx context.Context) (bool, error) {
 func isTerminalSyncError(err error) bool {
 	return errors.Is(err, ErrAccessDenied) ||
 		errors.Is(err, sobject.ErrParticipantRevoked) ||
-		errors.Is(err, sobject.ErrConfigHistoryUnavailable)
+		errors.Is(err, sobject.ErrConfigHistoryUnavailable) ||
+		errors.Is(err, sobject.ErrStateTooLarge)
+}
+
+// syncFailures remembers the last stream failure logged for each peer, so a
+// failure that repeats on every retry is logged once.
+type syncFailures struct {
+	// mtx guards last.
+	mtx sync.Mutex
+	// last maps a peer to the text of its last logged failure.
+	last map[peer.ID]string
+}
+
+// record notes the outcome of a stream with remoteID and reports whether it
+// changed the peer's logged state. A nil err clears the failure.
+func (f *syncFailures) record(remoteID peer.ID, err error) bool {
+	// Compare with the peer's last failure.
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	prev, failing := f.last[remoteID]
+	if err == nil {
+		delete(f.last, remoteID)
+		return failing
+	}
+
+	// Remember the new failure.
+	if f.last == nil {
+		f.last = make(map[peer.ID]string)
+	}
+	f.last[remoteID] = err.Error()
+	return !failing || prev != err.Error()
 }
 
 // startWorker admits one worker before starting it so shutdown cannot miss it.
@@ -319,10 +353,30 @@ func (s *SOSync) handleSolicitedStream(
 		ms.GetLink().GetLocalPeer(),
 		ms.GetPeerID(),
 	)
-	if err != nil && ctx.Err() == nil {
-		le.WithError(err).Debug("shared object synchronization ended")
+	if ctx.Err() == nil {
+		s.logStreamResult(le, ms.GetPeerID(), err)
 	}
 	return err
+}
+
+// logStreamResult logs the end of a stream with remoteID. A change in the
+// peer's failure reaches the info or warn log once; a failure that repeats on
+// every retry stays at debug.
+func (s *SOSync) logStreamResult(le *logrus.Entry, remoteID peer.ID, err error) {
+	if !s.failures.record(remoteID, err) {
+		if err != nil {
+			le.WithError(err).Debug("shared object synchronization ended")
+		}
+		return
+	}
+	switch {
+	case err == nil:
+		le.Info("shared object synchronization recovered")
+	case isTerminalSyncError(err):
+		le.WithError(err).Warn("shared object synchronization is blocked")
+	default:
+		le.WithError(err).Info("shared object synchronization ended")
+	}
 }
 
 // runStream owns authentication, authorization watches, data exchange and stream cleanup.

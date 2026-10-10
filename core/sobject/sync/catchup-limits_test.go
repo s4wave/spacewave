@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/peer"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
 
@@ -249,5 +250,47 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 		}
 	case <-ctx.Done():
 		t.Fatal("recovery delivery did not finish the stream")
+	}
+}
+
+// TestOversizedStateEndsStreamAsTooLarge holds a state larger than one frame
+// and checks that the stream ends with ErrStateTooLarge before any head is
+// sent, without asking the peer to recover its configuration history.
+func TestOversizedStateEndsStreamAsTooLarge(t *testing.T) {
+	// Hold a state larger than one frame on both sides.
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	const soID = "oversized-state"
+	owner, reader := mustKeyPair(t), mustKeyPair(t)
+	initial := authenticationState(t, soID, owner, reader)
+	initial.Ops = []*sobject.SOOperation{{Inner: make([]byte, maxMessageSize)}}
+	local := newAuthenticationPeer(t, soID, owner, initial)
+	remote := newAuthenticationPeer(t, soID, reader, initial)
+
+	// Watch for a recovery request.
+	var recovery []peer.ID
+	local.SetPeerRecoveryObserver(func(id peer.ID, _ bool) { recovery = append(recovery, id) })
+	left, right := net.Pipe()
+	t.Cleanup(func() { left.Close(); right.Close() })
+
+	// The stream authenticates, then ends where the head would be sent.
+	done := make(chan error, 1)
+	go func() { done <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
+	if _, err := remote.authenticate(ctx, stream_packet.NewSession(right, 64*1024), "transport-b", "transport-a"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if !errors.Is(err, sobject.ErrStateTooLarge) || errors.Is(err, sobject.ErrConfigHistoryUnavailable) {
+			t.Fatalf("oversized state result = %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("oversized state did not end the stream")
+	}
+	if len(recovery) != 0 {
+		t.Fatalf("oversized state asked %v to recover", recovery)
+	}
+	if !isTerminalSyncError(sobject.ErrStateTooLarge) {
+		t.Fatal("an oversized state is not terminal")
 	}
 }

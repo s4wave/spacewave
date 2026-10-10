@@ -162,6 +162,7 @@ func unappliedConfigChanges(head []byte, changes []*SOConfigChange) ([]*SOConfig
 
 // ReadConfigEntry returns the retained transition that produced an exact head.
 func (s *SOHost) ReadConfigEntry(ctx context.Context, head []byte) (*SOConfigChange, error) {
+	// Read the entry the head names.
 	if s.syncFuncs.Entry == nil || len(head) == 0 {
 		return nil, ErrConfigHistoryUnavailable
 	}
@@ -202,7 +203,7 @@ func (s *SOHost) ImportPeerSnapshot(
 	validateAccess func(context.Context, *SOState) error,
 ) error {
 	// Bound untrusted work before acquiring the provider's write lock.
-	if candidate.SizeVT() > 10*1024*1024 || len(changes) > MaxConfigSuffixEntries {
+	if candidate.SizeVT() > MaxSyncStateSize || len(changes) > MaxConfigSuffixEntries {
 		return ErrConfigHistoryUnavailable
 	}
 	var historyBytes int

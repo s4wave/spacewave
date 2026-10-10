@@ -3,6 +3,7 @@ package sobject
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -104,7 +105,7 @@ func TestRosterDropAndReturn(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	restored := make(chan []string, 1)
-	err = RestoreRoster(ctx, so, rosterFunc(func(_ context.Context, dropped []string) (bool, error) {
+	err = MaintainRoster(ctx, so, rosterFunc(func(_ context.Context, dropped []string) (bool, error) {
 		restored <- dropped
 		cancel()
 		return true, nil
@@ -114,5 +115,97 @@ func TestRosterDropAndReturn(t *testing.T) {
 	}
 	if dropped := <-restored; len(dropped) != 0 {
 		t.Fatalf("restorer kept %v dropped", dropped)
+	}
+}
+
+// TestNextRosterDropped checks that the checkpointer drops the members that
+// lag behind it only once the operations outgrow RosterDropBytes, never drops
+// itself or a member that built on its latest edit, and keeps a dropped device
+// until it builds on that edit.
+func TestNextRosterDropped(t *testing.T) {
+	// Owner A and writers B and C. B answers A's first edit; C is offline.
+	peers := createMockPeers(t, 3)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers)
+	ids := []string{peers[0].GetPeerID().String(), peers[1].GetPeerID().String(), peers[2].GetPeerID().String()}
+
+	// Nothing drops below the budget.
+	writeTestOp(t, state, keys[0], "a1")
+	writeTestOp(t, state, keys[1], "")
+	cfg := state.GetConfig()
+	set := mustOperationSet(t, state)
+	if got := nextRosterDropped(cfg, set, ids[0]); len(got) != 0 {
+		t.Fatalf("dropped %v below the budget", got)
+	}
+
+	// Edits past the budget drop C, which has built on nothing, and keep B.
+	edit := strings.Repeat("x", MaxInnerDataSize/2)
+	for set.Size() < RosterDropBytes {
+		writeTestOp(t, state, keys[0], edit)
+		set = mustOperationSet(t, state)
+	}
+	writeTestOp(t, state, keys[1], "")
+	set = mustOperationSet(t, state)
+	got := nextRosterDropped(cfg, set, ids[0])
+	if !slices.Equal(got, ids[2:]) {
+		t.Fatalf("dropped %v past the budget; want C", got)
+	}
+
+	// Without C, all but B's last acknowledgment is stable, so A can trim it.
+	trimming := cfg.CloneVT()
+	trimming.RosterDroppedPeerIds = got
+	if stable := set.StablePoint(trimming.TrimRoster()); len(stable) != len(set.Order())-1 {
+		t.Fatalf("stable point holds %d of %d operations", len(stable), len(set.Order()))
+	}
+
+	// B leaves the budget's edits unanswered, so it is dropped with C.
+	writeTestOp(t, state, keys[0], edit)
+	set = mustOperationSet(t, state)
+	if got := nextRosterDropped(cfg, set, ids[0]); !slices.Equal(got, slices.Sorted(slices.Values(ids[1:]))) {
+		t.Fatalf("dropped %v; want B and C", got)
+	}
+
+	// A dropped C stays dropped until it builds on A's latest edit.
+	dropped := cfg.CloneVT()
+	dropped.RosterDroppedPeerIds = ids[2:]
+	if got := nextRosterDropped(dropped, set, ids[0]); !slices.Contains(got, ids[2]) {
+		t.Fatalf("restored C before it built on A's latest edit: %v", got)
+	}
+	writeTestOp(t, state, keys[2], "")
+	set = mustOperationSet(t, state)
+	if got := nextRosterDropped(dropped, set, ids[0]); slices.Contains(got, ids[2]) {
+		t.Fatalf("kept C dropped after it built on A's latest edit: %v", got)
+	}
+}
+
+// TestMaintainRosterDropsOfflineDevice checks that the checkpointer, watching
+// a state that outgrew RosterDropBytes, drops the device that never built on
+// its edits.
+func TestMaintainRosterDropsOfflineDevice(t *testing.T) {
+	// Owner A writes past the budget while writer B is offline.
+	peers := createMockPeers(t, 2)
+	keys := mustPrivKeys(t, peers)
+	state, _ := newTestSOState(t, peers)
+	edit := strings.Repeat("x", MaxInnerDataSize/2)
+	for mustOperationSet(t, state).Size() < RosterDropBytes {
+		writeTestOp(t, state, keys[0], edit)
+	}
+	so := &ackTestObject{t: t, priv: keys[0], state: state, ctr: ccontainer.NewCContainer[SharedObjectStateSnapshot](nil)}
+	so.publish()
+
+	// The checkpointer drops B.
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	dropped := make(chan []string, 1)
+	err := MaintainRoster(ctx, so, rosterFunc(func(_ context.Context, ids []string) (bool, error) {
+		dropped <- ids
+		cancel()
+		return true, nil
+	}))
+	if err != context.Canceled {
+		t.Fatalf("maintainer ended with %v", err)
+	}
+	if got := <-dropped; !slices.Equal(got, []string{peers[1].GetPeerID().String()}) {
+		t.Fatalf("maintainer dropped %v; want B", got)
 	}
 }

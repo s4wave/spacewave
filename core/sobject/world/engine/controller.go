@@ -139,11 +139,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer soStateCtrRel()
 
-	// Acknowledge the edits this device holds and restore returning devices
-	// to the trimming roster while the shared object is mounted. A device
-	// whose replay stalls on a missing block still acknowledges, so the
-	// checkpointer can checkpoint past the stall and the device can resume
-	// from that checkpoint.
+	// Acknowledge the edits this device holds and keep the trimming roster
+	// while the shared object is mounted. A device whose replay stalls on a
+	// missing block still acknowledges, so the checkpointer can checkpoint
+	// past the stall and the device can resume from that checkpoint.
 	go func() {
 		if err := sobject.Acknowledge(rctx, so, c.acknowledger(so)); err != nil && rctx.Err() == nil {
 			le.WithError(err).Warn("stopped acknowledging edits")
@@ -151,8 +150,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}()
 	if roster, ok := so.(sobject.RosterHost); ok {
 		go func() {
-			if err := sobject.RestoreRoster(rctx, so, roster); err != nil && rctx.Err() == nil {
-				le.WithError(err).Warn("stopped restoring returning devices")
+			if err := sobject.MaintainRoster(rctx, so, roster); err != nil && rctx.Err() == nil {
+				le.WithError(err).Warn("stopped maintaining the trimming roster")
 			}
 		}()
 	}

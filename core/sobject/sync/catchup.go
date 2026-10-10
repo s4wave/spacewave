@@ -605,8 +605,8 @@ func syncStateHash(state *sobject.SOState) ([]byte, error) {
 	// Strip local capabilities and hash the remaining state.
 	state = state.CloneVT()
 	state.Invites = nil
-	if state.SizeVT() > maxMessageSize {
-		return nil, sobject.ErrConfigHistoryUnavailable
+	if size := state.SizeVT(); size > maxMessageSize {
+		return nil, errors.Wrapf(sobject.ErrStateTooLarge, "%d bytes", size)
 	}
 	data, err := state.MarshalVT()
 	if err != nil {

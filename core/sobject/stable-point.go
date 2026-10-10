@@ -17,6 +17,22 @@ const AcknowledgmentLag = 64
 // for before it signs a checkpoint below them.
 const MinCheckpointOperations = 32
 
+// RosterDropBytes is the encoded size of the operations above the checkpoint
+// at which the checkpointer drops the roster members that lag behind it. It is
+// a quarter of MaxSyncStateSize, which leaves room for the checkpoint and the
+// edits that arrive while the checkpoint is built.
+const RosterDropBytes = MaxSyncStateSize / 4
+
+// Size returns the encoded size in bytes of the operations the set holds above
+// the checkpoint.
+func (s *SOOperationSet) Size() int {
+	var size int
+	for _, inner := range s.ops {
+		size += inner.SizeVT()
+	}
+	return size
+}
+
 // StablePoint returns the stable prefix of Order. While the sequence is open
 // it is the sequenced prefix: the sequencer places every later operation after
 // it. Otherwise it is the longest prefix whose operations every member of

@@ -62,6 +62,10 @@ var (
 	// ErrMaxSizeExceeded is returned if a size limit is exceeded.
 	ErrMaxSizeExceeded = errors.New("maximum size exceeded")
 
+	// ErrStateTooLarge is returned if the state is larger than one sync frame
+	// carries. The checkpointer shrinks it by trimming the operation set.
+	ErrStateTooLarge = errors.New("shared object state exceeds the sync frame")
+
 	// ErrMaxCountExceeded is returned if a count limit is exceeded.
 	ErrMaxCountExceeded = errors.New("maximum count exceeded")
 

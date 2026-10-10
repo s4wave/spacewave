@@ -27,4 +27,8 @@ const (
 
 	// MaxStateDataSize is the maximum size in bytes for state data.
 	MaxStateDataSize = 10 * 1024 * 1024 // 10 MB
+
+	// MaxSyncStateSize is the largest encoded state, in bytes, that one sync
+	// frame carries. A peer can neither send nor import a larger state.
+	MaxSyncStateSize = 10 * 1024 * 1024 // 10 MB
 )
