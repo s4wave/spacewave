@@ -921,7 +921,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/web/view": {
-      "hash": "636f8bb44374bccc1bd655762c043e8c716499d14de005a40e08bf279ab505d9",
+      "hash": "eecd83233ff0533860eef13360ccf0e7a44c61fda86b9179a9ba1b4e80120e82",
       "generatedFiles": [
         "bldr/web/view/view.pb.go",
         "bldr/web/view/view.pb.ts",
@@ -1669,7 +1669,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/rpc": {
-      "hash": "daaa46184b5f48a8b99a27e502fc0e240bb9541acfc8002ac2e153a8d2a653b9",
+      "hash": "29feefdb559a5d7e8292a8ee5296f61d963bca67404a6024ec18ffdebf483b4a",
       "generatedFiles": [
         "db/block/rpc/block.pb.go",
         "db/block/rpc/block.pb.ts",

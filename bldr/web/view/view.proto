@@ -65,6 +65,11 @@ message SetRenderModeRequest {
   // FrontendBinding selects a live project entrypoint instead of ScriptPath.
   // The WebDocument resolves the current session before importing the module.
   .bldr.frontend.Binding frontend_binding = 5;
+
+  // WebPkgPaths binds shared package IDs to their asset URL prefixes before
+  // importing the renderer. The web plugin resolves empty prefixes from the
+  // package provider; the document retains each binding for its lifetime.
+  map<string, string> web_pkg_paths = 6;
 }
 
 // SetRenderModeResponse is the response to the SetRenderMode request.

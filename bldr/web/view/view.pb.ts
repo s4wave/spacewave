@@ -100,6 +100,14 @@ export interface SetRenderModeRequest {
    * @generated from field: bldr.frontend.Binding frontend_binding = 5;
    */
   frontendBinding?: Binding
+  /**
+   * WebPkgPaths binds shared package IDs to their asset URL prefixes before
+   * importing the renderer. The web plugin resolves empty prefixes from the
+   * package provider; the document retains each binding for its lifetime.
+   *
+   * @generated from field: map<string, string> web_pkg_paths = 6;
+   */
+  webPkgPaths?: { [key: string]: string }
 }
 
 export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
@@ -111,6 +119,13 @@ export const SetRenderModeRequest: MessageType<SetRenderModeRequest> =
       { no: 3, name: 'props', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'refresh', kind: 'scalar', T: ScalarType.BOOL },
       { no: 5, name: 'frontend_binding', kind: 'message', T: () => Binding },
+      {
+        no: 6,
+        name: 'web_pkg_paths',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 
