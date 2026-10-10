@@ -220,6 +220,7 @@ func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volum
 	defer it.Close()
 
 	// Read graph membership and untracked block sizes in bounded batches.
+	var scanned uint64
 	for {
 		// Decode only the refs in the next batch's keys, never block types.
 		batch := make([]refRepairStoredBlock, 0, refRepairBatch)
@@ -244,13 +245,20 @@ func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volum
 		for i := range batch {
 			eg.Go(func() error {
 				// An edge in either direction establishes the node's presence.
+				// HasIncomingRefs stops at the first owner, which settles most
+				// blocks; it skips the unreferenced edge, so the full incoming
+				// list is read only for blocks with no owner and no children.
 				iri := block_gc.BlockIRI(batch[i].ref)
-				incoming, err := r.rg.GetIncomingRefs(egCtx, iri)
-				if err != nil || len(incoming) != 0 {
+				owned, err := r.rg.HasIncomingRefs(egCtx, iri)
+				if err != nil || owned {
 					return err
 				}
 				outgoing, err := r.rg.GetOutgoingRefs(egCtx, iri)
 				if err != nil || len(outgoing) != 0 {
+					return err
+				}
+				incoming, err := r.rg.GetIncomingRefs(egCtx, iri)
+				if err != nil || len(incoming) != 0 {
 					return err
 				}
 
@@ -281,6 +289,13 @@ func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volum
 			if len(r.res.untrackedSample) < refRepairSample {
 				r.res.untrackedSample = append(r.res.untrackedSample, blk)
 			}
+		}
+
+		// Log progress each time the scan crosses another progress interval.
+		prev := scanned
+		scanned += uint64(len(batch))
+		if scanned/refRepairProgress != prev/refRepairProgress {
+			r.le.Infof("scanned %d stored blocks, %d untracked", scanned, r.res.untracked)
 		}
 	}
 }
