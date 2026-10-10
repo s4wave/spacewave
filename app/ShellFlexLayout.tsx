@@ -24,6 +24,7 @@ import {
 import { LuExternalLink, LuPlus, LuX } from 'react-icons/lu'
 
 import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
+import { usePhoneShell } from '@s4wave/web/hooks/usePhoneShell.js'
 import { BASE_MODEL } from '@s4wave/web/layout/layout.js'
 import {
   useAppEnvironment,
@@ -85,23 +86,6 @@ function isTabNode(node: { getType(): string } | undefined): node is TabNode {
 // collapses to the logo. Mirrors the page-width `narrow` breakpoint (640px),
 // re-based onto the overlay's container instead of the viewport.
 const MENU_COLLAPSE_WIDTH = 640
-
-// Keep this query aligned with the phone shell rules in web/style/app.css.
-const PHONE_SHELL_QUERY =
-  '(max-width: 640px) and (pointer: coarse), (max-height: 470px) and (hover: none) and (pointer: coarse)'
-
-function subscribePhoneShell(listener: () => void) {
-  const media = window.matchMedia(PHONE_SHELL_QUERY)
-  media.addEventListener('change', listener)
-  return () => media.removeEventListener('change', listener)
-}
-
-function getPhoneShell() {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia(PHONE_SHELL_QUERY).matches
-  )
-}
 
 // findTopLeftStrip returns the top-left tab strip element in the shell layout,
 // which is the container the menu-bar overlay sits over. Nested FlexLayouts
@@ -330,11 +314,7 @@ function ShellTabStripInner({
     return getAppPath().startsWith('/g/')
   }, [getAppPath])
   const routePath = useSyncExternalStore(subscribe, getAppPath, getAppPath)
-  const isPhoneShell = useSyncExternalStore(
-    subscribePhoneShell,
-    getPhoneShell,
-    () => false,
-  )
+  const isPhoneShell = usePhoneShell()
 
   // Initialize model from storage or default, and perform URL sync during
   // initialization. This avoids calling setState in the sync effect. A grid

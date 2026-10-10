@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 
+import { usePhoneShell } from '@s4wave/web/hooks/usePhoneShell.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   DropdownMenu,
@@ -294,6 +295,7 @@ function BottomBarContextMenuActionItem({
 // Extracted from SessionFrame for reuse in standalone ObjectViewer contexts.
 export function ViewerFrame(props: ViewerFrameProps) {
   const items = useBottomBarItems()
+  const phoneShell = usePhoneShell()
   const openMenu = useBottomBarOpenMenu() ?? ''
   const setOpenMenu = useBottomBarSetOpenMenu() ?? (() => {})
   const [contextMenuState, setContextMenuState] =
@@ -326,24 +328,33 @@ export function ViewerFrame(props: ViewerFrameProps) {
     [items],
   )
 
+  // A phone has room for the last breadcrumb only: the rest open from the
+  // collapsed menu.
+  const headCount = phoneShell ? 0 : 1
   const left =
-    leftItems.length > 3 ? (
+    leftItems.length > (phoneShell ? 1 : 3) ? (
       (() => {
-        const first = leftItems[0]
+        const head = leftItems.slice(0, headCount)
         const last = leftItems[leftItems.length - 1]
-        const middle = leftItems.slice(1, -1)
+        const middle = leftItems.slice(headCount, -1)
         const beforeLast = middle[middle.length - 1]
 
         return (
           <>
-            <BottomBarButtonSlot
-              item={first}
-              openMenu={openMenu}
-              setOpenMenu={setOpenMenu}
-              openContextMenu={openContextMenu}
-              contextMenuOpen={contextMenuState?.itemId === first.id}
-            />
-            <BottomBarBreadcrumbSeparator onClick={first.onBreadcrumbClick} />
+            {head.map((item) => (
+              <React.Fragment key={item.id}>
+                <BottomBarButtonSlot
+                  item={item}
+                  openMenu={openMenu}
+                  setOpenMenu={setOpenMenu}
+                  openContextMenu={openContextMenu}
+                  contextMenuOpen={contextMenuState?.itemId === item.id}
+                />
+                <BottomBarBreadcrumbSeparator
+                  onClick={item.onBreadcrumbClick}
+                />
+              </React.Fragment>
+            ))}
             <CollapsedBottomBarItems
               items={middle}
               openMenu={openMenu}

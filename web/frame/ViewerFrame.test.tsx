@@ -27,6 +27,7 @@ function button(label: string) {
 describe('ViewerFrame', () => {
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
     vi.useRealTimers()
   })
 
@@ -53,6 +54,36 @@ describe('ViewerFrame', () => {
     expect(screen.getByText('Middle')).toBeTruthy()
     expect(screen.getByText('Last')).toBeTruthy()
     expect(screen.queryByLabelText('Open hidden bottom bar items')).toBeNull()
+  })
+
+  it('keeps only the last left bottom-bar item visible in the phone shell', async () => {
+    const user = userEvent.setup()
+    const setOpenMenu = vi.fn()
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+
+    render(
+      <BottomBarRoot openMenu="" setOpenMenu={setOpenMenu}>
+        <BottomBarLevel id="first" menuLabel="First" button={button('First')}>
+          <BottomBarLevel id="last" menuLabel="Last" button={button('Last')}>
+            <ViewerFrame>
+              <div>Content</div>
+            </ViewerFrame>
+          </BottomBarLevel>
+        </BottomBarLevel>
+      </BottomBarRoot>,
+    )
+
+    expect(screen.getByText('Last')).toBeTruthy()
+    expect(screen.queryByText('First')).toBeNull()
+
+    await user.click(screen.getByLabelText('Open hidden bottom bar items'))
+    await user.click(screen.getByText('First'))
+    expect(setOpenMenu).toHaveBeenCalledWith('first')
   })
 
   it('collapses two or more intermediate left bottom-bar items into a menu', async () => {

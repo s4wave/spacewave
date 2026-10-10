@@ -2996,17 +2996,33 @@ body,
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  .viewer-bottom-bar > div {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .viewer-bottom-bar > div::-webkit-scrollbar {
-    display: none;
-  }
-
   .viewer-bottom-bar > div:last-of-type {
     max-width: 55%;
+  }
+
+  .viewer-bottom-bar > div:first-of-type > :last-child {
+    flex-shrink: 1;
+  }
+
+  [data-slot='dropdown-menu-item'] {
+    min-height: 44px;
+  }
+
+  [data-slot='command-input-wrapper'],
+  [data-slot='command-input'] {
+    height: 44px;
+  }
+
+  .tree-row-indent {
+    min-height: 44px;
+  }
+
+  .tree-row-indent button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .viewer-bottom-bar [role='button'],
