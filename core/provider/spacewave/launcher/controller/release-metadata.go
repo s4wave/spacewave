@@ -24,6 +24,7 @@ import (
 	spacewave_release "github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -890,6 +891,11 @@ func selectReleaseManifestRefByID(
 }
 
 // checkoutReleaseManifest materializes manifest contents through UnixFS.
+//
+// The release authorization signs the Manifest root, not the selecting
+// ManifestRef metadata, so the Manifest's own metadata must match the selection
+// before any content is written. Otherwise an authorized root could be
+// relabeled as another entrypoint or platform.
 func checkoutReleaseManifest(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -898,6 +904,24 @@ func checkoutReleaseManifest(
 	distPath string,
 	assetsPath string,
 ) (*bldr_manifest.Manifest, error) {
+	// Reject a root whose Manifest is not the selected entrypoint.
+	err := bldr_manifest_world.AccessManifest(
+		ctx,
+		le,
+		ws.AccessWorldState,
+		manifestRef.GetManifestRef(),
+		func(_ context.Context, _ *bucket_lookup.Cursor, _ *block.Cursor, manifest *bldr_manifest.Manifest, _, _ *unixfs.FSHandle) error {
+			if !manifest.GetMeta().EqualVT(manifestRef.GetMeta()) {
+				return errors.New("release manifest metadata does not match its selection")
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Materialize the verified manifest.
 	return bldr_manifest_world.CheckoutManifest(
 		ctx,
 		le.WithField("manifest-id", manifestRef.GetMeta().GetManifestId()),

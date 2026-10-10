@@ -240,6 +240,44 @@ func TestCheckoutReleaseManifestStagesDist(t *testing.T) {
 	}
 }
 
+// TestCheckoutReleaseManifestRejectsRelabeledRoot guards the selection of an authorized root under another identity.
+func TestCheckoutReleaseManifestRejectsRelabeledRoot(t *testing.T) {
+	// Publish an authorized executable that the selection relabels.
+	ctx := context.Background()
+	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
+	manifestRef := writeReleaseManifestTestBlockWithBinary(
+		t,
+		ctx,
+		ws,
+		"release/manifests/cli",
+		cliEntrypointManifestID,
+		nativeTestPlatformID(),
+		1,
+		"cli",
+	)
+	manifestRef.Meta.ManifestId = nativeEntrypointManifestID
+	if err := manifestRef.VerifyReleaseAuthorization(releaseAuthorizationTestPins(t)); err != nil {
+		t.Fatalf("relabeled root lost its authorization: %v", err)
+	}
+
+	// The checkout must refuse the root before writing any file.
+	out := t.TempDir()
+	_, err := checkoutReleaseManifest(
+		ctx,
+		logrus.NewEntry(logrus.New()),
+		ws,
+		manifestRef,
+		filepath.Join(out, "dist"),
+		filepath.Join(out, "assets"),
+	)
+	if err == nil || !strings.Contains(err.Error(), "does not match its selection") {
+		t.Fatalf("relabeled root error = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(out, "dist")); !os.IsNotExist(err) {
+		t.Fatalf("relabeled root reached the staging filesystem: %v", err)
+	}
+}
+
 func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	// Publish both executable roots for the native release.
 	ctx := context.Background()

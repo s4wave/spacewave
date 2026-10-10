@@ -191,8 +191,7 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 			_ = handler.ClearValues()
 		}
 		le.Debugf("fetched %v manifest(s) from world", len(manifests))
-	}
-	if len(manifestRefs) != 0 {
+	} else {
 		nextValue := &manifest.FetchManifestValue{ManifestRefs: manifestRefs}
 		if r.emittedValue == nil || !nextValue.EqualVT(r.emittedValue) {
 			r.emittedValue = nextValue
