@@ -261,7 +261,7 @@ export function AddStorageDialog({
           </div>
 
           <details>
-            <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs">
+            <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
               Name and key prefix
             </summary>
             <div className="mt-2 grid grid-cols-2 gap-3">

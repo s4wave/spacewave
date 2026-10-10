@@ -140,11 +140,12 @@ export function SessionDetailsHeader({
   )
 }
 
-// PeerIdBadge shows the shortened peer id with a copy button on header hover.
+// PeerIdBadge shows the shortened peer id with a copy button on header hover,
+// and always on a touch screen, which has no hover.
 function PeerIdBadge({ peerId }: { peerId: string }): ReactNode {
   return (
     <span
-      className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-xs font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex"
+      className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-xs font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex [@media(pointer:coarse)]:opacity-100"
       title={peerId}
     >
       <span className="truncate">{formatMiddleEllipsis(peerId)}</span>
@@ -152,7 +153,7 @@ function PeerIdBadge({ peerId }: { peerId: string }): ReactNode {
         text={peerId}
         label="Copy session ID"
         variant="toolbar"
-        className="size-5"
+        className="size-5 [@media(pointer:coarse)]:size-11"
       />
     </span>
   )

@@ -1,25 +1,21 @@
-import React, {
-  useRef,
-  useEffect,
-  useState,
-  useMemo,
-  useCallback,
-  useEffectEvent,
-} from 'react'
+import React, { useMemo } from 'react'
+import { LuCheck } from 'react-icons/lu'
+
 import type { ObjectViewerComponent } from './object.js'
-import { cn } from '@s4wave/web/style/utils.js'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@s4wave/web/ui/DropdownMenu.js'
 
 // CategoryGroup represents a group of components under a category label.
 interface CategoryGroup {
   category: string | null
   items: ObjectViewerComponent[]
 }
-
-// DropdownEntry represents either a category header or a selectable item.
-type DropdownEntry =
-  | { kind: 'header'; category: string }
-  | { kind: 'separator'; category: string | null }
-  | { kind: 'item'; component: ObjectViewerComponent; index: number }
 
 interface ComponentSelectorProps {
   open: boolean
@@ -31,7 +27,32 @@ interface ComponentSelectorProps {
   children: React.ReactNode
 }
 
-/** ComponentSelector displays and switches the available object viewer components. */
+// groupComponents lists the uncategorized components first, then each category
+// in the order it first appears.
+function groupComponents(components: ObjectViewerComponent[]): CategoryGroup[] {
+  const ungrouped: ObjectViewerComponent[] = []
+  const categories = new Map<string, ObjectViewerComponent[]>()
+  for (const comp of components) {
+    if (!comp.category) {
+      ungrouped.push(comp)
+      continue
+    }
+    const items = categories.get(comp.category)
+    if (items) items.push(comp)
+    else categories.set(comp.category, [comp])
+  }
+
+  const groups: CategoryGroup[] = []
+  if (ungrouped.length > 0) groups.push({ category: null, items: ungrouped })
+  for (const [category, items] of categories) groups.push({ category, items })
+  return groups
+}
+
+/**
+ * ComponentSelector displays and switches the available object viewer
+ * components. The menu renders in a portal, so a clipping ancestor such as the
+ * bottom bar cannot cut it off.
+ */
 export function ComponentSelector({
   open,
   placement = 'above',
@@ -41,219 +62,51 @@ export function ComponentSelector({
   onSelectComponent,
   children,
 }: ComponentSelectorProps) {
-  const triggerRef = useRef<HTMLDivElement>(null)
-  const [focusedIndex, setFocusedIndex] = useState(0)
-
-  // Build category groups and the flat dropdown entry list.
-  const { entries, selectableIndices } = useMemo(() => {
-    const ungrouped: ObjectViewerComponent[] = []
-    const categoryMap = new Map<string, ObjectViewerComponent[]>()
-    const categoryOrder: string[] = []
-
-    for (const comp of components) {
-      if (!comp.category) {
-        ungrouped.push(comp)
-      } else {
-        const existing = categoryMap.get(comp.category)
-        if (existing) {
-          existing.push(comp)
-        } else {
-          categoryMap.set(comp.category, [comp])
-          categoryOrder.push(comp.category)
-        }
-      }
-    }
-
-    const groups: CategoryGroup[] = []
-    if (ungrouped.length > 0) {
-      groups.push({ category: null, items: ungrouped })
-    }
-    for (const cat of categoryOrder) {
-      const items = categoryMap.get(cat)
-      if (items) {
-        groups.push({ category: cat, items })
-      }
-    }
-
-    // Build flat entry list for rendering and keyboard navigation.
-    const entries: DropdownEntry[] = []
-    const selectableIndices: number[] = []
-    let itemIndex = 0
-
-    for (let gi = 0; gi < groups.length; gi++) {
-      const group = groups[gi]
-      // Add separator between groups (not before the first).
-      if (gi > 0) {
-        entries.push({ kind: 'separator', category: group.category })
-      }
-      // Add category header if named.
-      if (group.category) {
-        entries.push({ kind: 'header', category: group.category })
-      }
-      for (const comp of group.items) {
-        const entryIdx = entries.length
-        entries.push({ kind: 'item', component: comp, index: itemIndex })
-        selectableIndices.push(entryIdx)
-        itemIndex++
-      }
-    }
-
-    return { entries, selectableIndices }
-  }, [components])
-
-  // Map focusedIndex (among selectable items) to entries index.
-  const focusedEntryIndex = selectableIndices[focusedIndex] ?? -1
-
-  const handleSelect = useCallback(
-    (comp: ObjectViewerComponent) => {
-      onSelectComponent(comp)
-      onOpenChange(false)
-    },
-    [onSelectComponent, onOpenChange],
-  )
-  const closeSelector = useEffectEvent(() => {
-    onOpenChange(false)
-  })
-  const selectComponent = useEffectEvent((comp: ObjectViewerComponent) => {
-    handleSelect(comp)
-  })
-
-  useEffect(() => {
-    if (!open) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        triggerRef.current &&
-        !triggerRef.current.contains(event.target as Node)
-      ) {
-        closeSelector()
-      }
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeSelector()
-        return
-      }
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        setFocusedIndex((prev) => (prev + 1) % selectableIndices.length)
-        return
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        setFocusedIndex((prev) =>
-          prev === 0 ? selectableIndices.length - 1 : prev - 1,
-        )
-        return
-      }
-
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault()
-        const entryIdx = selectableIndices[focusedIndex]
-        if (entryIdx !== undefined) {
-          const entry = entries[entryIdx]
-          if (entry.kind === 'item') {
-            selectComponent(entry.component)
-          }
-        }
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [open, focusedIndex, entries, selectableIndices])
+  const groups = useMemo(() => groupComponents(components), [components])
 
   return (
-    <div className="relative" ref={triggerRef}>
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="flex cursor-pointer items-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
-        onClick={() => {
-          onOpenChange(!open)
-        }}
-      >
-        {children}
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          className={cn(
-            'absolute z-50',
-            placement === 'below'
-              ? 'top-full left-0 mt-1'
-              : 'right-0 bottom-full mb-1',
-            'border-border bg-background-card min-w-50 rounded-md border p-1 shadow-md',
-          )}
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          // The selector may sit inside another button, which it must not activate.
+          onClick={(event) => event.stopPropagation()}
+          className="flex max-w-full min-w-0 cursor-pointer items-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
-          <div className="text-foreground px-2 py-1.5 text-sm font-semibold">
-            Available Components
-          </div>
-          {entries.map((entry, idx) => {
-            if (entry.kind === 'separator') {
+          {children}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side={placement === 'below' ? 'bottom' : 'top'}
+        align={placement === 'below' ? 'start' : 'end'}
+        className="min-w-50"
+      >
+        <DropdownMenuLabel>Available Components</DropdownMenuLabel>
+        {groups.map((group, index) => (
+          <React.Fragment key={group.category ?? 'ungrouped'}>
+            {index > 0 && <DropdownMenuSeparator />}
+            {group.category && (
+              <DropdownMenuLabel>{group.category}</DropdownMenuLabel>
+            )}
+            {group.items.map((comp) => {
+              const selected =
+                selectedComponent?.componentID === comp.componentID
               return (
-                <div
-                  key={`sep-${entry.category ?? 'ungrouped'}`}
-                  className="bg-border mx-1 my-1 h-px"
-                />
-              )
-            }
-            if (entry.kind === 'header') {
-              return (
-                <div
-                  key={`hdr-${entry.category}`}
-                  className="text-muted-foreground micro-ten px-2 py-1 font-medium tracking-wider uppercase"
+                <DropdownMenuItem
+                  key={comp.componentID}
+                  variant={selected ? 'selected' : 'default'}
+                  onSelect={() => onSelectComponent(comp)}
                 >
-                  {entry.category}
-                </div>
+                  <span>{comp.name}</span>
+                  {selected && (
+                    <LuCheck className="text-brand ml-auto size-3.5" />
+                  )}
+                </DropdownMenuItem>
               )
-            }
-            const isSelected =
-              selectedComponent?.componentID === entry.component.componentID
-            const isFocused = focusedEntryIndex === idx
-            return (
-              <div
-                role="menuitem"
-                tabIndex={-1}
-                key={entry.component.componentID}
-                className={cn(
-                  'text-foreground-alt relative flex cursor-pointer items-center rounded px-2 py-1.5 text-sm outline-none select-none [@media(pointer:coarse)]:min-h-11',
-                  'hover:bg-muted hover:text-foreground',
-                  isFocused && 'bg-muted/50',
-                  isSelected && 'bg-muted/70 text-foreground',
-                )}
-                onClick={() => handleSelect(entry.component)}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return
-                  event.preventDefault()
-                  handleSelect(entry.component)
-                }}
-                onMouseEnter={() => {
-                  const selectIdx = selectableIndices.indexOf(idx)
-                  if (selectIdx >= 0) {
-                    setFocusedIndex(selectIdx)
-                  }
-                }}
-              >
-                <span>{entry.component.name}</span>
-                {isSelected && (
-                  <span className="text-brand ml-auto text-xs">✓</span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
+            })}
+          </React.Fragment>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

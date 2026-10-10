@@ -310,7 +310,7 @@ function CredentialRows({ refs }: { refs?: SshHostCredentialRefs }) {
     <div className="space-y-2">
       <div className="text-foreground text-sm font-medium">{summary}</div>
       <details className="text-xs">
-        <summary className="text-foreground-alt/70 cursor-pointer">
+        <summary className="text-foreground-alt/70 cursor-pointer [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
           Technical credential details
         </summary>
         <div className="text-foreground-alt/60 mt-2 space-y-1 font-mono text-xs">

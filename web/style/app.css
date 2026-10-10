@@ -2085,6 +2085,12 @@ body,
   @apply border-brand/50 bg-brand/10 -translate-y-[1px];
 }
 
+@media (pointer: coarse) {
+  .hero-button {
+    min-height: 2.75rem;
+  }
+}
+
 /* Button Glow on Hover */
 .glow-on-hover {
   &::before {

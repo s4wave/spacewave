@@ -90,7 +90,7 @@ function DriveGettingStartedHeader(props: UnixFSBrowserDirectoryHeaderProps) {
   return (
     <section
       data-testid="drive-welcome"
-      className="border-foreground/8 bg-background/30 border-b p-3"
+      className="border-foreground/8 bg-background/30 very-short:max-h-1/2 very-short:overflow-y-auto border-b p-3"
     >
       <div className="flex flex-col gap-3">
         <div className="flex items-start gap-3">

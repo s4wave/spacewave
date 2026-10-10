@@ -61,7 +61,7 @@ export function StorageCheckResult({
 
           {check.detail && (
             <details className="mt-2">
-              <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs">
+              <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
                 Details
               </summary>
               <p className="text-foreground-alt/60 mt-1 text-xs break-words">

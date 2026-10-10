@@ -110,8 +110,7 @@ describe('PanelHeader', () => {
     await user.click(screen.getByRole('button', { name: 'Properties' }))
 
     const menu = screen.getByRole('menu')
-    expect(menu.className).toContain('top-full')
-    expect(menu.className).toContain('left-0')
+    expect(menu.getAttribute('data-side')).toBe('bottom')
     expect(screen.getByRole('menuitem', { name: 'Raw Data' })).toBeTruthy()
   })
 

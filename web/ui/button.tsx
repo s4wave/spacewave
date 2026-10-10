@@ -5,7 +5,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@s4wave/web/style/utils.js'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [@media(pointer:coarse)]:min-h-11',
   {
     variants: {
       variant: {
@@ -54,7 +54,7 @@ const buttonVariants = cva(
         default: 'h-9 px-4 py-2',
         sm: 'h-8 rounded-md px-3 text-xs',
         lg: 'h-10 rounded-md px-8',
-        icon: 'h-9 w-9',
+        icon: 'h-9 w-9 [@media(pointer:coarse)]:min-w-11',
         xs: 'h-6 gap-1 px-2 text-xs',
         toolbar: 'h-7 gap-1 text-xs',
         toolbarSm: 'h-7 px-2 text-xs',
@@ -62,8 +62,8 @@ const buttonVariants = cva(
         brandWide: 'h-7 gap-1.5 px-3 text-xs',
         toolbarText: 'h-7 text-xs',
         compact8: 'h-8 px-2 text-xs',
-        iconSm: 'h-8 w-8',
-        iconXs: 'h-6 w-6 p-0',
+        iconSm: 'h-8 w-8 [@media(pointer:coarse)]:min-w-11',
+        iconXs: 'h-6 w-6 p-0 [@media(pointer:coarse)]:min-w-11',
         row: 'h-auto gap-3 rounded-lg border p-3',
         finderRow: 'h-auto rounded-lg px-3 py-2.5',
         commandRow: 'h-auto px-2.5 py-2',

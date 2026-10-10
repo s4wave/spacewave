@@ -12,7 +12,8 @@ interface CornerTextProps {
   show: boolean
 }
 
-// CornerText renders corner text for the landing page.
+// CornerText renders corner text for the landing page. A touch screen hides it:
+// the page footer carries the same links at touch size.
 // Desktop: uses fixed positioning via portal (for window chrome integration)
 // Browser: uses fixed positioning to stay in viewport corners
 export function CornerText({ show }: CornerTextProps) {
@@ -21,7 +22,7 @@ export function CornerText({ show }: CornerTextProps) {
   const buildInfo = useAppBuildInfo()
   const showTabHint = isStatic || isDesktop
   const baseClasses =
-    'text-foreground-alt pointer-events-none z-50 micro-ten transition-opacity duration-300 select-none narrow:hidden'
+    'text-foreground-alt pointer-events-none z-50 micro-ten transition-opacity duration-300 select-none narrow:hidden [@media(pointer:coarse)]:hidden'
   const opacityClass = show ? 'opacity-30' : 'opacity-0'
 
   // Desktop offsets account for window chrome: left hint clears the macOS

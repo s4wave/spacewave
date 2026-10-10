@@ -156,7 +156,7 @@ export function StorageHealth({
         />
         {health.providerSupported && (
           <details className="border-foreground/6 mt-3 border-t pt-3">
-            <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium">
+            <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
               Technical details
             </summary>
             <p className="text-foreground-alt/60 mt-2 text-xs leading-relaxed">
@@ -180,7 +180,7 @@ export function StorageHealth({
           tone={health.sync.error ? 'warning' : 'neutral'}
         />
         <details className="border-foreground/6 mt-3 border-t pt-3">
-          <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium">
+          <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
             Technical details
           </summary>
           <div className="text-foreground-alt/60 mt-2 space-y-1 text-xs leading-relaxed">

@@ -260,3 +260,22 @@
   @apply bg-background-secondary text-text-primary text-ui rounded-menu-button;
   padding: 0.25rem 0.5rem;
 }
+
+/* A touch screen gets full-size tabs, close buttons and toolbar buttons in
+ * every layout. The shell layout sets its own phone sizes in app.css. */
+@media (pointer: coarse) {
+  .flexlayout__tabset_tabbar_inner {
+    height: 44px;
+  }
+
+  .flexlayout__tab_button {
+    height: 44px;
+    max-width: 12rem;
+  }
+
+  .flexlayout__tab_button_trailing,
+  .flexlayout__tab_toolbar_button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

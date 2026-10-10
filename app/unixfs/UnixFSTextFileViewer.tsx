@@ -210,7 +210,7 @@ export function UnixFSTextFileViewer({
           disabled={saving}
           onChange={(event) => setDraft(event.target.value)}
           spellCheck={false}
-          className="bg-background text-foreground min-h-64 min-w-0 flex-1 resize-none p-4 font-mono text-xs focus-visible:outline-none max-sm:text-base max-sm:leading-6"
+          className="bg-background text-foreground min-h-0 min-w-0 flex-1 resize-none p-4 font-mono text-xs focus-visible:outline-none pointer-coarse:text-base pointer-coarse:leading-6"
         />
       )}
     </div>

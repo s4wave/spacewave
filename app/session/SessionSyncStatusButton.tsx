@@ -155,7 +155,9 @@ function SessionSyncStatusPopover({
               </div>
               {copy.error && (
                 <details className="text-foreground-alt/60 mt-1 text-xs">
-                  <summary className="cursor-pointer">Copy details</summary>
+                  <summary className="cursor-pointer [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
+                    Copy details
+                  </summary>
                   <p className="mt-1 break-words">{copy.error}</p>
                 </details>
               )}
@@ -166,7 +168,7 @@ function SessionSyncStatusPopover({
 
       {!status.local && (
         <details className="border-foreground/8 space-y-1.5 border-t pt-2">
-          <summary className="text-foreground-alt/50 cursor-pointer text-xs">
+          <summary className="text-foreground-alt/50 cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
             Storage diagnostics
           </summary>
           <SyncRow label="Ranges" value={status.packRangeLabel} />
@@ -178,7 +180,7 @@ function SessionSyncStatusPopover({
 
       {status.peers.length > 0 && (
         <details className="border-foreground/8 space-y-2 border-t pt-2">
-          <summary className="text-foreground-alt/50 cursor-pointer text-xs">
+          <summary className="text-foreground-alt/50 cursor-pointer text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
             Linked Sessions
           </summary>
           {status.peers.map((peer) => (

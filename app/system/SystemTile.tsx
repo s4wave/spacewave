@@ -45,7 +45,7 @@ export function SystemTile({
           ref={buttonRef}
           type="button"
           onClick={onOpen}
-          className="text-metadata font-semibold tracking-wider uppercase outline-none after:absolute after:inset-0 after:rounded-lg"
+          className="text-metadata font-semibold tracking-wider uppercase outline-none after:absolute after:inset-0 after:rounded-lg [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 [@media(pointer:coarse)]:text-left"
         >
           {title}
           <span className="sr-only">, {toneLabel[tone]}. Open inspector.</span>

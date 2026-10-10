@@ -57,7 +57,7 @@ function WizardHeader({
   onCancel,
 }: Pick<WizardShellProps, 'title' | 'onCancel'>) {
   return (
-    <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
+    <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between border-b px-4">
       <h2 className="text-foreground flex min-w-0 items-center text-sm font-semibold tracking-tight select-none">
         {title}
       </h2>
@@ -215,7 +215,8 @@ function WizardFooter({
 }
 
 // WizardShell renders the shared wizard layout: header, step indicator,
-// content slot, name input, and button grid.
+// content slot, name input, and button grid. The content scrolls between the
+// header and the buttons, so a short window keeps the buttons in reach.
 export function WizardShell({
   title,
   step,
@@ -233,16 +234,16 @@ export function WizardShell({
       : `Step ${step + 1}`
 
   return (
-    <div className="flex h-full w-full items-start justify-center overflow-auto px-4 py-10">
+    <div className="very-short:py-2 flex h-full w-full items-start justify-center px-4 py-10">
       <div
         className={cn(
-          'border-foreground/6 bg-background-card/30 flex w-full flex-col overflow-hidden rounded-xl border backdrop-blur-sm',
+          'border-foreground/6 bg-background-card/30 flex max-h-full w-full flex-col overflow-hidden rounded-xl border backdrop-blur-sm',
           width === 'wide' ? 'max-w-2xl' : 'max-w-lg',
         )}
       >
         <WizardHeader title={title} onCancel={onCancel} />
 
-        <div className="flex-1 px-4 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           <div className="space-y-3">
             <div className="text-foreground-alt/50 flex items-center gap-2 select-none">
               <span className="micro-text font-medium tracking-widest uppercase">

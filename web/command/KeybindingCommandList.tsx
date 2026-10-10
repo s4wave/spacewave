@@ -77,7 +77,7 @@ export function KeybindingCommandList() {
           </div>
         </div>
         <details className="group">
-          <summary className="text-foreground-alt hover:text-foreground flex cursor-pointer list-none items-center gap-2 text-xs">
+          <summary className="text-foreground-alt hover:text-foreground flex cursor-pointer list-none items-center gap-2 text-xs [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
             <LuSettings2 className="size-3.5" />
             Discovery settings
             <LuChevronDown className="ml-auto size-3 transition-transform group-open:rotate-180" />

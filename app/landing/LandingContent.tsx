@@ -125,7 +125,7 @@ function CtaButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-landing-control shadow-landing-button flex cursor-pointer items-center gap-2 border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5',
+        'rounded-landing-control shadow-landing-button flex cursor-pointer items-center gap-2 border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5 [@media(pointer:coarse)]:min-h-11',
         variant === 'primary'
           ? 'border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15'
           : 'border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8',
@@ -440,7 +440,7 @@ const HeroSection: React.FC = () => {
 
         <a
           href={blogHref}
-          className="border-brand/30 text-brand hover:border-brand/50 shadow-landing-button mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
+          className="border-brand/30 text-brand hover:border-brand/50 shadow-landing-button mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center"
         >
           <PiRocketLaunchDuotone className="mr-2 inline-block size-4 -translate-y-0.5" />
           Announcing open beta
@@ -1258,7 +1258,7 @@ function ForDevelopersSection() {
         </CtaButton>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 rounded-landing-control shadow-landing-button flex cursor-pointer items-center gap-2 border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5"
+          className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 rounded-landing-control shadow-landing-button flex cursor-pointer items-center gap-2 border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5 [@media(pointer:coarse)]:min-h-11"
         >
           <LuGithub className="size-4" />
           <span>Browse Source</span>
@@ -1425,7 +1425,7 @@ const OpenSourceSection: React.FC = () => {
         </div>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="group hover:border-brand/40 hover:bg-brand/8 border-foreground/15 bg-background/50 text-foreground rounded-landing-control shadow-landing-button flex cursor-pointer items-center border px-6 py-2 text-sm font-medium no-underline transition duration-300"
+          className="group hover:border-brand/40 hover:bg-brand/8 border-foreground/15 bg-background/50 text-foreground rounded-landing-control shadow-landing-button flex cursor-pointer items-center border px-6 py-2 text-sm font-medium no-underline transition duration-300 [@media(pointer:coarse)]:min-h-11"
         >
           <LuGithub className="mr-2 size-4 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>

@@ -122,14 +122,8 @@ export function DisplayNameCard({
               <div className="flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors"
-                  onDoubleClick={editor.start}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      editor.start()
-                    }
-                  }}
+                  className="text-foreground hover:text-foreground-alt min-w-0 flex-1 cursor-text text-left text-xs transition-colors [@media(pointer:coarse)]:min-h-11"
+                  onClick={editor.start}
                 >
                   {currentDisplayName || 'Unnamed account'}
                 </button>

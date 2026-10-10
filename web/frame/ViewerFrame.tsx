@@ -329,8 +329,10 @@ export function ViewerFrame(props: ViewerFrameProps) {
   )
 
   // A phone has room for the last breadcrumb only: the rest open from the
-  // collapsed menu.
+  // collapsed menu. That breadcrumb gives up label width before a control
+  // inside it, such as the viewer selector, is cut off.
   const headCount = phoneShell ? 0 : 1
+  const lastClassName = phoneShell ? 'min-w-0 shrink' : undefined
   const left =
     leftItems.length > (phoneShell ? 1 : 3) ? (
       (() => {
@@ -371,6 +373,7 @@ export function ViewerFrame(props: ViewerFrameProps) {
               setOpenMenu={setOpenMenu}
               openContextMenu={openContextMenu}
               contextMenuOpen={contextMenuState?.itemId === last.id}
+              className={lastClassName}
             />
           </>
         )
@@ -391,6 +394,9 @@ export function ViewerFrame(props: ViewerFrameProps) {
                 setOpenMenu={setOpenMenu}
                 openContextMenu={openContextMenu}
                 contextMenuOpen={contextMenuState?.itemId === item.id}
+                className={
+                  index === leftItems.length - 1 ? lastClassName : undefined
+                }
               />
             </React.Fragment>
           )

@@ -947,7 +947,7 @@ function SshHostKeyTrustCard({
 }) {
   return (
     <details className={sshCardClassName}>
-      <summary className="text-foreground flex cursor-pointer items-center justify-between text-xs font-medium select-none">
+      <summary className="text-foreground flex cursor-pointer items-center justify-between text-xs font-medium select-none [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:py-3.5">
         <span>Host-key trust (advanced)</span>
         <span className="text-foreground-alt/60 text-xs">optional</span>
       </summary>
