@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 )
 
 // lifecycleScripts are the package.json scripts a package manager runs during
@@ -22,8 +23,12 @@ var dependencyFields = []string{"dependencies", "devDependencies", "optionalDepe
 // dependencies not pinned by hash, and records the locked dependencies.
 func (v *Validation) checkPackage(fsys fs.FS) error {
 	// A project without package.json installs nothing.
-	data, err := fs.ReadFile(fsys, "package.json")
+	data, err := bldr_project_starlark.ReadFile(fsys, "package.json")
 	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if errors.Is(err, bldr_project_starlark.ErrFileTooLarge) {
+		v.refuse(RefusalKind_REFUSAL_KIND_CONFIG, "package.json is too large to check.")
 		return nil
 	}
 	if err != nil {
@@ -59,11 +64,15 @@ func (v *Validation) checkPackage(fsys fs.FS) error {
 	}
 
 	// Require bun.lock whenever there is anything to install.
-	lock, err := fs.ReadFile(fsys, "bun.lock")
+	lock, err := bldr_project_starlark.ReadFile(fsys, "bun.lock")
 	if errors.Is(err, fs.ErrNotExist) {
 		if len(direct) != 0 {
 			v.refuse(RefusalKind_REFUSAL_KIND_UNPINNED_DEPENDENCY, "package.json has dependencies but no bun.lock pins them.")
 		}
+		return nil
+	}
+	if errors.Is(err, bldr_project_starlark.ErrFileTooLarge) {
+		v.refuse(RefusalKind_REFUSAL_KIND_UNPINNED_DEPENDENCY, "bun.lock is too large to check.")
 		return nil
 	}
 	if err != nil {

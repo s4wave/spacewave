@@ -34,7 +34,7 @@ func (e *evaluator) load(thread *starlark.Thread, module string) (starlark.Strin
 	}
 
 	// Read and execute the module.
-	data, err := fs.ReadFile(e.fsys, resolved)
+	data, err := e.readFile(resolved)
 	if err != nil {
 		return nil, errors.Wrapf(err, "load %q", module)
 	}

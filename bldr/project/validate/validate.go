@@ -24,6 +24,10 @@ const projectFile = "bldr.star"
 // evaluateTimeout bounds the Starlark evaluation of an untrusted project.
 const evaluateTimeout = 10 * time.Second
 
+// evaluateMemory bounds the memory the Starlark evaluation of an untrusted
+// project can use.
+const evaluateMemory = 256 << 20
+
 // buildConfigPrefixes name root files that Vite or PostCSS load and run as
 // code during the build.
 var buildConfigPrefixes = []string{"vite.config.", "postcss.config.", ".postcssrc"}
@@ -102,10 +106,10 @@ func (v *Validation) checkProject(ctx context.Context, fsys fs.FS) error {
 		return errors.Wrap(err, "stat "+projectFile)
 	}
 
-	// Evaluate the project within fsys under a deadline.
+	// Evaluate the project within fsys under a deadline and a memory limit.
 	evalCtx, cancel := context.WithTimeout(ctx, evaluateTimeout)
 	defer cancel()
-	result, err := bldr_project_starlark.EvaluateFS(evalCtx, fsys, projectFile)
+	result, err := bldr_project_starlark.EvaluateFSBounded(evalCtx, fsys, projectFile, evaluateMemory)
 	if err != nil {
 		if ctx.Err() != nil {
 			return context.Cause(ctx)

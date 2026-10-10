@@ -9,6 +9,8 @@ import (
 	"testing"
 	"testing/fstest"
 	"time"
+
+	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 )
 
 // jsProject is a bldr.star declaring one JavaScript plugin.
@@ -185,6 +187,28 @@ manifest("acme-native", builder="bldr/plugin/compiler/go", config={"goPkgs": [".
 		kind:   RefusalKind_REFUSAL_KIND_CONFIG,
 		reason: `names module "../backend.ts" outside the repository`,
 	}, {
+		name: "oversized package.json",
+		edit: func(files fstest.MapFS) {
+			files["package.json"] = &fstest.MapFile{Data: make([]byte, bldr_project_starlark.MaxFileSize+1)}
+		},
+		kind:   RefusalKind_REFUSAL_KIND_CONFIG,
+		reason: "package.json is too large",
+	}, {
+		name: "oversized lockfile",
+		edit: func(files fstest.MapFS) {
+			files["bun.lock"] = &fstest.MapFile{Data: make([]byte, bldr_project_starlark.MaxFileSize+1)}
+		},
+		kind:   RefusalKind_REFUSAL_KIND_UNPINNED_DEPENDENCY,
+		reason: "bun.lock is too large",
+	}, {
+		name: "oversized module",
+		edit: func(files fstest.MapFS) {
+			files["big.star"] = &fstest.MapFile{Data: make([]byte, bldr_project_starlark.MaxFileSize+1)}
+			files["bldr.star"] = &fstest.MapFile{Data: []byte(`load("big.star", "VALUE")` + jsProject)}
+		},
+		kind:   RefusalKind_REFUSAL_KIND_CONFIG,
+		reason: "file is too large",
+	}, {
 		name: "remote",
 		edit: func(files fstest.MapFS) {
 			files["bldr.star"] = &fstest.MapFile{Data: []byte(jsProject + `
@@ -228,5 +252,31 @@ func TestValidateStopsEndlessEvaluation(t *testing.T) {
 	// Require the context's error.
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected the deadline error, got %v", err)
+	}
+}
+
+// TestValidateRefusesMemoryExhaustion refuses a bldr.star that doubles a string
+// until memory runs out, and keeps validating after it.
+func TestValidateRefusesMemoryExhaustion(t *testing.T) {
+	// Validate a project that doubles a 1 MiB string 32 times.
+	files := acceptedFiles()
+	files["bldr.star"] = &fstest.MapFile{Data: []byte("text = 'x' * 1048576\nfor _ in range(32):\n    text = text + text\n")}
+	v, err := Validate(context.Background(), files)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Require a refusal that names the memory.
+	if len(v.GetRefusals()) != 1 || !strings.Contains(v.GetRefusals()[0].GetReason(), "memory") {
+		t.Fatalf("expected one refusal for memory, got %v", v.GetRefusals())
+	}
+
+	// Validate the accepted repository in the same process.
+	v, err = Validate(context.Background(), acceptedFiles())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v.GetRefusals()) != 0 {
+		t.Fatalf("unexpected refusals: %v", v.GetRefusals())
 	}
 }

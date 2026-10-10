@@ -58,6 +58,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 		newDebugCommand(getBus),
 		newBifrostCommand(),
 		newHydraCommand(),
+		newEvalBldrStarCommand(),
 
 		// Tier 4: plumbing
 		newAccountCommand(getBus),

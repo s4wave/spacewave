@@ -28,8 +28,8 @@ type evaluator struct {
 	config      *bldr_project.ProjectConfig
 	loadedFiles []string
 
-	// fsys is the project file system every load reads from.
-	fsys fs.FS
+	// readFile reads a slash path in the project, for the root file and every load.
+	readFile func(name string) ([]byte, error)
 	// moduleCache caches loaded modules by resolved path.
 	moduleCache map[string]*moduleEntry
 }
@@ -71,10 +71,17 @@ func Evaluate(path string) (*Result, error) {
 // Relative loads resolve within fsys and @go/ loads within its vendor
 // directory, so evaluation reads only fsys and has no other effect.
 // LoadedFiles holds slash paths relative to the root of fsys. Cancelling ctx
-// stops the evaluation.
+// stops the evaluation. The evaluation runs in this process with no memory
+// limit; use EvaluateFSBounded for a project that is not trusted.
 func EvaluateFS(ctx context.Context, fsys fs.FS, name string) (*Result, error) {
+	return evaluate(ctx, func(name string) ([]byte, error) { return fs.ReadFile(fsys, name) }, name)
+}
+
+// evaluate evaluates the .star file name, reading it and every load with
+// readFile.
+func evaluate(ctx context.Context, readFile func(name string) ([]byte, error), name string) (*Result, error) {
 	// Read the root Starlark project source.
-	data, err := fs.ReadFile(fsys, name)
+	data, err := readFile(name)
 	if err != nil {
 		return nil, errors.Wrap(err, "read starlark file")
 	}
@@ -83,7 +90,7 @@ func EvaluateFS(ctx context.Context, fsys fs.FS, name string) (*Result, error) {
 	eval := &evaluator{
 		config:      &bldr_project.ProjectConfig{},
 		loadedFiles: []string{name},
-		fsys:        fsys,
+		readFile:    readFile,
 		moduleCache: make(map[string]*moduleEntry),
 	}
 
