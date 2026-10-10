@@ -378,14 +378,16 @@ manifest("web",
     },
 )
 
-# spacewave-launcher is the minimal browser launcher plugin. It carries just
-# enough to fetch a DistConfig, mount the public release world from the CDN, and
-# resolve plugin manifests from it; browser release still embeds the full
-# startup app closure below so first startup does not depend on that fetch plane.
+# spacewave-launcher is the minimal launcher plugin. It carries just enough to
+# fetch a DistConfig; browser release still embeds the full startup app closure
+# below so first startup does not depend on that fetch plane. This development
+# manifest mounts no Release World: its host config set needs the product CDN
+# factories, which only the dist host composes, so the development bus cannot
+# apply it. Release builds redeclare the launcher with the Release World.
 manifest("spacewave-launcher",
     builder="bldr/plugin/compiler/go",
     rev=1,
-    config=spacewave_launcher_config(),
+    config=spacewave_launcher_config(include_release_world=False),
 )
 
 # spacewave-loader spawns the cross-platform loading-UI helper during plugin
@@ -950,7 +952,9 @@ RELEASE_HOSTS = [
     ("desktop-windows-amd64", "desktop/windows/amd64"),
 ]
 
-def define_release_build(host_key, platform_id, channel_key="stable"):
+def define_release_build(host_key, platform_id, channel_key="stable", launcher=None):
+    if launcher == None:
+        launcher = spacewave_launcher_config()
     desktop_embed_manifests = [
         {"manifestId": "spacewave-launcher",
          "platformId": platform_id},
@@ -959,6 +963,7 @@ def define_release_build(host_key, platform_id, channel_key="stable"):
         manifests=DESKTOP_RELEASE_MANIFESTS,
         platform_ids=[platform_id],
         manifestOverrides={
+            "spacewave-launcher": launcher,
             "spacewave-dist": dist_release_config(
                 desktop_embed_manifests,
                 DESKTOP_RELEASE_LOAD_PLUGINS,
@@ -975,7 +980,9 @@ for host_key, platform_id in RELEASE_HOSTS:
 # `spacewave-cli` dist entrypoint for the matching host. The terminal path
 # loads the same release-world product plugin surface as desktop, but omits the
 # native helper-window loader so CLI startup owns progress and failure output.
-def define_release_cli_build(host_key, platform_id, channel_key="stable"):
+def define_release_cli_build(host_key, platform_id, channel_key="stable", launcher=None):
+    if launcher == None:
+        launcher = spacewave_launcher_config()
     cli_host_key = host_key.replace("desktop-", "")
     cli_embed_manifests = [
         {"manifestId": "spacewave-launcher",
@@ -985,6 +992,7 @@ def define_release_cli_build(host_key, platform_id, channel_key="stable"):
         manifests=CLI_RELEASE_MANIFESTS,
         platform_ids=[platform_id],
         manifestOverrides={
+            "spacewave-launcher": launcher,
             "spacewave-cli": dist_release_config(
                 cli_embed_manifests,
                 CLI_RELEASE_LOAD_PLUGINS,
@@ -1048,8 +1056,8 @@ def apply_release_environment(
 
     if native:
         for host_key, platform_id in RELEASE_HOSTS:
-            define_release_build(host_key, platform_id, channel_key=channel_key)
-            define_release_cli_build(host_key, platform_id, channel_key=channel_key)
+            define_release_build(host_key, platform_id, channel_key=channel_key, launcher=launcher)
+            define_release_cli_build(host_key, platform_id, channel_key=channel_key, launcher=launcher)
     if not native:
         build("release-web", manifests=BROWSER_RELEASE_MANIFESTS, targets=["browser"],
             manifestOverrides={

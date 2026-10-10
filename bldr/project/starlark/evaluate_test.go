@@ -322,6 +322,14 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			manifestID: "spacewave-launcher",
 			platformID: host.platformID,
 		}})
+		launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
+		if launcherOverride == nil {
+			t.Fatalf("%s override for spacewave-launcher not found", releaseName)
+		}
+		releaseLauncher := mustGoPluginConfig(t, launcherOverride.GetConfig())
+		if releaseLauncher.GetHostConfigSet()["release-world-fetch"] == nil {
+			t.Fatalf("%s launcher host config set omits release-world-fetch", releaseName)
+		}
 
 		pluginReleaseName := "plugin-release-" + host.name
 		pluginRelease := result.Config.GetBuild()[pluginReleaseName]
@@ -358,8 +366,9 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if launcherConf.GetConfigSet()["release-world-fetch"] != nil {
 		t.Fatal("spacewave-launcher plugin config set mounts release-world-fetch")
 	}
-	if launcherConf.GetHostConfigSet()["release-world-fetch"] == nil {
-		t.Fatal("spacewave-launcher host config set omits release-world-fetch")
+	// Only the dist host composes the Release World factories.
+	if launcherConf.GetHostConfigSet()["release-world-fetch"] != nil {
+		t.Fatal("development spacewave-launcher host config set mounts release-world-fetch")
 	}
 	for _, want := range []string{
 		`"distPeerIds":["12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"]`,
