@@ -1747,13 +1747,19 @@ function addPluginAssetFetchResultHeader(
   })
 }
 
+function isRedirectStatus(status: number): boolean {
+  return status >= 300 && status < 400
+}
+
 async function normalizeRuntimeFetchResponse(
   source: BrowserFetchSource,
   request: Request,
   response: Response,
   abortSignal?: AbortSignal,
 ): Promise<Response> {
-  if (response.ok) {
+  // A redirect to a manifest-pinned path answers the request; the browser
+  // follows it, so it is not a runtime failure.
+  if (response.ok || isRedirectStatus(response.status)) {
     return addPluginAssetFetchResultHeader(response, source, 'live')
   }
   if (!isRuntimeFetchSource(source)) {

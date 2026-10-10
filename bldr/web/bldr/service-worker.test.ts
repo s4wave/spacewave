@@ -1314,6 +1314,25 @@ describe('service worker fetch release cache routing', () => {
     )
   })
 
+  it('passes a runtime redirect to a pinned path through to the browser', async () => {
+    const pinned = '/b/pa/spacewave-core/manifest/root/bldr-web-pkgs/index.mjs'
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(null, { status: 307, headers: { Location: pinned } }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pkg/sonner/dist/index.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('Location')).toBe(pinned)
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBeNull()
+  })
+
   it('returns a typed generation-closed response for closed plugin asset generations', async () => {
     vi.mocked(proxyFetch).mockResolvedValue(
       new Response('WebRuntimeClientInstance is closed', { status: 500 }),
