@@ -408,6 +408,43 @@ describe('useObjectViewer context menu targets', () => {
   })
 })
 
+describe('useObjectViewer bottom bar button', () => {
+  it('keeps the viewer selector out of the item button', () => {
+    h.worldSetup.visibleComponents = [
+      component('canvas.viewer', 'Canvas'),
+      component('debug.viewer', 'Debug'),
+    ]
+    const { result } = renderHook(() =>
+      useObjectViewer({
+        objectInfo: {
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'visible-doc',
+              objectType: 'canvas',
+            },
+          },
+        },
+        worldState: emptyWorldState,
+      }),
+    )
+    const onClick = vi.fn()
+
+    const { container } = render(result.current.buttonRender(true, onClick, ''))
+
+    const buttons = Array.from(container.querySelectorAll('button'))
+    expect(buttons).toHaveLength(2)
+    for (const button of buttons) {
+      expect(button.parentElement?.closest('button')).toBeNull()
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Canvas' }))
+    expect(onClick).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'visible-doc' }))
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('useObjectViewer document title', () => {
   it('publishes live object and selected viewer context', async () => {
     h.worldSetup.visibleComponents = [

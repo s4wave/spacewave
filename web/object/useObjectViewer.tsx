@@ -340,51 +340,19 @@ function useExportCommand(objectExportUrl: string | undefined) {
   })
 }
 
-// BarComponentLabel renders the selected viewer component, or the type when no
-// viewer is selected, beside the object key in the bottom bar.
-function BarComponentLabel({
-  selectedComponent,
-  typeID,
-  visibleComponents,
-  selectorOpen,
-  onSelectorOpenChange,
-  onSelectComponent,
-}: {
-  selectedComponent: ObjectViewerComponent | undefined
-  typeID: string | undefined
-  visibleComponents: ObjectViewerComponent[]
-  selectorOpen: boolean
-  onSelectorOpenChange: (open: boolean) => void
-  onSelectComponent: (component: ObjectViewerComponent) => void
-}) {
-  let label = null
-  if (typeID) label = `Type: ${typeID}`
-  if (selectedComponent) label = selectedComponent.name
-  if (label === null) return null
-
-  const text = (
-    <div className="text-muted-foreground truncate text-xs">{label}</div>
-  )
-
-  return (
-    <>
-      <div className="bg-border mx-2 h-3 w-px" />
-      {selectedComponent && visibleComponents.length > 1 ? (
-        <ComponentSelector
-          open={selectorOpen}
-          onOpenChange={onSelectorOpenChange}
-          components={visibleComponents}
-          selectedComponent={selectedComponent}
-          onSelectComponent={onSelectComponent}
-        >
-          {text}
-        </ComponentSelector>
-      ) : (
-        text
-      )}
-    </>
-  )
+// barComponentLabel names the selected viewer component, or the type when no
+// viewer is selected, for the bottom bar. It is null when there is nothing to
+// name.
+function barComponentLabel(
+  selectedComponent: ObjectViewerComponent | undefined,
+  typeID: string | undefined,
+): string | null {
+  if (selectedComponent) return selectedComponent.name
+  if (typeID) return `Type: ${typeID}`
+  return null
 }
+
+const barLabelDivider = <div className="bg-border mx-2 h-3 w-px" />
 
 interface ViewerButtonOptions {
   barId: string
@@ -429,25 +397,48 @@ function useViewerButton({
   )
 
   const buttonRender = useCallback(
-    (selected: boolean, onClick: () => void, className?: string) => (
-      <BottomBarItem
-        selected={selected}
-        onClick={onClick}
-        className={className}
-      >
-        <div className="flex-shrink flex-grow truncate">{displayKey}</div>
-        {(selected || isLastItem) && (
-          <BarComponentLabel
-            selectedComponent={selectedComponent}
-            typeID={typeID}
-            visibleComponents={visibleComponents}
-            selectorOpen={selectorOpen}
-            onSelectorOpenChange={setSelectorOpen}
-            onSelectComponent={onSelectComponent}
-          />
-        )}
-      </BottomBarItem>
-    ),
+    (selected: boolean, onClick: () => void, className?: string) => {
+      const label =
+        selected || isLastItem
+          ? barComponentLabel(selectedComponent, typeID)
+          : null
+      const text = (
+        <div className="text-muted-foreground truncate text-xs">{label}</div>
+      )
+      // The selector is a button, so it sits beside the item's button.
+      const selector =
+        label !== null && selectedComponent && visibleComponents.length > 1 ? (
+          <div className="flex min-w-0 items-center">
+            {barLabelDivider}
+            <ComponentSelector
+              open={selectorOpen}
+              onOpenChange={setSelectorOpen}
+              components={visibleComponents}
+              selectedComponent={selectedComponent}
+              onSelectComponent={onSelectComponent}
+            >
+              {text}
+            </ComponentSelector>
+          </div>
+        ) : undefined
+
+      return (
+        <BottomBarItem
+          selected={selected}
+          onClick={onClick}
+          className={className}
+          trailing={selector}
+        >
+          <div className="flex-shrink flex-grow truncate">{displayKey}</div>
+          {label !== null && !selector && (
+            <>
+              {barLabelDivider}
+              {text}
+            </>
+          )}
+        </BottomBarItem>
+      )
+    },
     [
       displayKey,
       isLastItem,

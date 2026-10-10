@@ -69,8 +69,6 @@ export function ComponentSelector({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          // The selector may sit inside another button, which it must not activate.
-          onClick={(event) => event.stopPropagation()}
           className="flex max-w-full min-w-0 cursor-pointer items-center [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
         >
           {children}

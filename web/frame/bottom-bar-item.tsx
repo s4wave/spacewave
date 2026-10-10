@@ -24,6 +24,9 @@ export interface IBottomBarItemProps extends DOMAttributes<HTMLButtonElement> {
   selected?: boolean
   disabled?: boolean
   children?: React.ReactNode
+  // trailing is a control beside the button, such as a menu trigger. It shares
+  // the item's look but is not nested in the button, which cannot hold one.
+  trailing?: React.ReactNode
   className?: string
   style?: CSSProperties
   onClick?: () => void
@@ -37,6 +40,7 @@ const longPressMoveTolerancePx = 8
 
 export function BottomBarItem({
   children,
+  trailing,
   style,
   onClick,
   onSecondaryActivate,
@@ -200,7 +204,16 @@ export function BottomBarItem({
     cancelLongPress()
   }
 
-  return (
+  const itemClassName = cn(
+    'glow-on-hover text-bar-item-text hover:text-bar-item-text-hover relative flex h-full shrink-0 flex-row items-center justify-start overflow-hidden whitespace-pre select-none [&>svg]:h-3 [&>svg]:w-3 [&>svg:not(:only-child)]:mr-1',
+    trailing ? 'pr-1.25' : 'px-1.25',
+    disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+    selected &&
+      'bg-bar-item-selected text-bar-item-selected-text text-shadow-bar-item-selected border-t-primary border-t',
+    className,
+  )
+
+  const button = (
     <button
       ref={ref}
       type="button"
@@ -217,18 +230,25 @@ export function BottomBarItem({
       aria-haspopup={onSecondaryActivate ? 'menu' : undefined}
       aria-expanded={onSecondaryActivate ? !!contextMenuOpen : undefined}
       {...rest}
-      className={cn(
-        `glow-on-hover text-bar-item-text hover:text-bar-item-text-hover relative flex h-full shrink-0 flex-row items-center justify-start overflow-hidden px-1.25 whitespace-pre select-none [&>svg]:h-3 [&>svg]:w-3 [&>svg:not(:only-child)]:mr-1`,
-        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-        selected &&
-          'bg-bar-item-selected text-bar-item-selected-text text-shadow-bar-item-selected border-t-primary border-t',
-        className,
-      )}
-      style={{
-        ...style,
-      }}
+      className={
+        trailing
+          ? cn(
+              'flex h-full min-w-0 flex-row items-center pl-1.25 whitespace-pre',
+              disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+            )
+          : itemClassName
+      }
+      style={trailing ? undefined : style}
     >
       {children}
     </button>
+  )
+  if (!trailing) return button
+
+  return (
+    <div className={itemClassName} style={style}>
+      {button}
+      {trailing}
+    </div>
   )
 }
