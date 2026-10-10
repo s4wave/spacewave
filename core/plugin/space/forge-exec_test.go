@@ -31,9 +31,10 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// Test plugin identifiers.
 const (
-	spacePluginID   = "unlisted-plugin"
+	// spacePluginID identifies the manifest required by the test Execution.
+	spacePluginID = "unlisted-plugin"
+	// spacePlatformID selects the test manifest platform.
 	spacePlatformID = "test/platform"
 )
 
@@ -74,6 +75,8 @@ func (h *manifestPluginHost) HandleDirective(
 	if !ok || load.LoadPluginID() != spacePluginID {
 		return nil, nil
 	}
+
+	// Publish the running plugin once its manifest becomes available.
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
 		// Follow the plugin manifest until the load ends.
 		fetch, fetchRef, err := h.b.AddDirective(
@@ -113,6 +116,8 @@ func newPluginExecClient(t *testing.T, tb *testbed.Testbed, service space_exec.S
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Register the service the plugin bus exposes to remote callers.
 	execMux := srpc.NewMux()
 	if err := space_exec.SRPCRegisterPluginExecService(execMux, service); err != nil {
 		t.Fatal(err)
@@ -154,9 +159,12 @@ func waitExecution(
 	var found *forge_execution.Execution
 	loop := world_control.NewWatchLoop(tb.Logger, execKey, world_control.NewWaitForStateHandler(
 		func(ctx context.Context, _ world.WorldState, obj world.ObjectState, rootCs *block.Cursor, _ uint64) (bool, error) {
+			// Keep watching until the Execution has a readable state.
 			if obj == nil {
 				return true, nil
 			}
+
+			// Stop at the first Execution revision accepted by the caller.
 			exec, err := forge_execution.UnmarshalExecution(ctx, rootCs)
 			if err != nil {
 				return false, err
@@ -175,13 +183,14 @@ func waitExecution(
 }
 
 // TestPluginExecWaitsForUnlistedSpacePlugin runs an Execution through the Space
-// plugin controller for a plugin the Space does not list. The Execution names the
+// plugin controller for a plugin the Space does not list. The Execution reports the
 // plugin it waits for, and listing the plugin lets the same Execution complete.
 func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
+	// Bound the Execution and plugin demand waits.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
-	// Store the plugin manifest in the Space, without listing the plugin.
+	// Start the Space and register its Execution controller factories.
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -194,6 +203,8 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 	for _, factory := range space_exec.BridgeFactories(registry) {
 		tb.StaticResolver.AddFactory(factory)
 	}
+
+	// Store the plugin manifest in the Space, without listing the plugin.
 	const storeKey = "test/plugin-manifests"
 	if _, err := bldr_manifest_world.CreateManifestStore(ctx, tb.WorldState, storeKey); err != nil {
 		t.Fatal(err)
@@ -212,6 +223,8 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer releaseHost()
+
+	// Resolve the Space plugin controller against the same manifest store.
 	tb.StaticResolver.AddFactory(NewFactory(tb.Bus))
 	spaceCtrl, _, spaceRef, err := StartControllerWithConfig(ctx, tb.Bus, &Config{
 		SpaceId:       "space-test",
@@ -239,6 +252,8 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
+
+	// Run the Execution against the Space World.
 	controllerConf := execution_controller.NewConfig(tb.EngineID, execKey, peerID, &forge_target.InputWorld{EngineId: tb.EngineID})
 	_, ctrlRef, err := execution_controller.StartControllerWithConfig(ctx, tb.Bus, controllerConf)
 	if err != nil {
@@ -246,15 +261,25 @@ func TestPluginExecWaitsForUnlistedSpacePlugin(t *testing.T) {
 	}
 	defer ctrlRef.Release()
 
-	// The Execution names the plugin, and the Space reports it as requested.
+	// Wait for the Execution to report the plugin it needs.
 	waiting := waitExecution(ctx, t, tb, execKey, func(e *forge_execution.Execution) bool {
 		return e.GetWaitingPluginId() != ""
 	})
 	if got := waiting.GetWaitingPluginId(); got != spacePluginID {
 		t.Fatalf("waiting plugin = %q, want %q", got, spacePluginID)
 	}
-	if requested, _ := spaceCtrl.GetRequestedPluginIDsAndWaitCh(); !slices.Contains(requested, spacePluginID) {
-		t.Fatalf("requested plugins = %v, want %q", requested, spacePluginID)
+
+	// The manifest resolver publishes its demand after the Execution status.
+	for {
+		requested, waitCh := spaceCtrl.GetRequestedPluginIDsAndWaitCh()
+		if slices.Contains(requested, spacePluginID) {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("requested plugins = %v, want %q: %v", requested, spacePluginID, ctx.Err())
+		case <-waitCh:
+		}
 	}
 
 	// Listing the plugin lets the same Execution run to completion.
@@ -320,12 +345,15 @@ func createSpacePluginManifest(ctx context.Context, t *testing.T, tb *testbed.Te
 	// Write the manifest block and point the reference at it.
 	var manifestRef *bldr_manifest.ManifestRef
 	if err := stage.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		// Commit the manifest block through the staging transaction.
 		transaction, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		blocks.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
 		rootRef, _, err := transaction.Write(ctx, true)
 		if err != nil {
 			return err
 		}
+
+		// Return a reference to the committed manifest.
 		objectRef := cursor.GetRef().CloneVT()
 		objectRef.RootRef = rootRef
 		manifestRef = bldr_manifest.NewManifestRef(meta, objectRef)
