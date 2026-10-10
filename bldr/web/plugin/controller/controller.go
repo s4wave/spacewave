@@ -3,6 +3,7 @@ package bldr_web_plugin_controller
 import (
 	"context"
 	"path"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -12,11 +13,13 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_forward_rpc_service "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
 	plugin_handle_web_view "github.com/s4wave/spacewave/bldr/plugin/handle-web-view"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	web_pkg_fs_controller "github.com/s4wave/spacewave/bldr/web/pkg/fs/controller"
 	web_pkg_rpc "github.com/s4wave/spacewave/bldr/web/pkg/rpc"
 	web_pkg_rpc_client "github.com/s4wave/spacewave/bldr/web/pkg/rpc/client"
 	bldr_web_plugin "github.com/s4wave/spacewave/bldr/web/plugin"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
+	web_view_handler "github.com/s4wave/spacewave/bldr/web/view/handler"
 	web_view_handler_controller "github.com/s4wave/spacewave/bldr/web/view/handler/controller"
 	web_view_server "github.com/s4wave/spacewave/bldr/web/view/server"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -324,8 +327,16 @@ func (c *Controller) HandleWebViewViaHandlers(
 	c.le.WithField("handlers", len(req.GetConfig().GetHandlers())).
 		Debug("handling web view handlers request")
 
+	// Bind the handlers' URLs to files that stay mounted while they are attached.
+	handlers := req.GetConfig().CloneVT()
+	releaseAssets, err := c.bindHandlerAssets(strm.Context(), handlers)
+	if err != nil {
+		return err
+	}
+	defer releaseAssets()
+
 	// Add a new WebViewHandlers controller.
-	conf := &web_view_handler_controller.Config{Handlers: req.GetConfig()}
+	conf := &web_view_handler_controller.Config{Handlers: handlers}
 	ctrl, err := web_view_handler_controller.NewControllerWithConfig(c.le, conf)
 	if err != nil {
 		return err
@@ -340,6 +351,82 @@ func (c *Controller) HandleWebViewViaHandlers(
 		})
 	}
 	return c.addControllerSendReadyAndWait(strm.Context(), ctrl, sendReady)
+}
+
+// bindHandlerAssets resolves the shared package prefixes the handlers leave
+// empty and mounts the immutable plugin files their URLs select. A document
+// loads those files after this call returns, and the plugin host runs a pinned
+// manifest only while a reference holds it, so the caller keeps the returned
+// release until the handlers detach.
+func (c *Controller) bindHandlerAssets(ctx context.Context, handlers *web_view_handler.WebViewHandlersConfig) (func(), error) {
+	// Retain every lookup and mount until the caller releases them.
+	var refs []directive.Reference
+	release := func() {
+		for _, ref := range refs {
+			ref.Release()
+		}
+	}
+
+	// Collect each URL a handler publishes, resolving package prefixes first.
+	var urls []string
+	for _, handler := range handlers.GetHandlers() {
+		render := handler.GetSetRenderMode()
+		for id, basePath := range render.GetWebPkgPaths() {
+			if basePath == "" {
+				pkg, _, ref, err := web_pkg.ExLookupWebPkg(ctx, c.bus, false, id)
+				if err != nil {
+					release()
+					return nil, err
+				}
+				refs = append(refs, ref)
+				info, err := pkg.GetInfo(ctx)
+				if err != nil {
+					release()
+					return nil, err
+				}
+				basePath = info.GetAssetBasePath()
+				render.WebPkgPaths[id] = basePath
+			}
+			urls = append(urls, basePath)
+		}
+		urls = append(urls, render.GetScriptPath())
+		for _, link := range handler.GetSetHtmlLinks().GetSetLinks() {
+			urls = append(urls, link.GetHref())
+		}
+	}
+
+	// Mount each pinned manifest once.
+	held := make(map[string]struct{})
+	for _, url := range urls {
+		pluginPath, ok := strings.CutPrefix(url, bldr_plugin.PluginAssetsHttpPrefix)
+		if !ok {
+			continue
+		}
+		artifactID, _, err := bldr_plugin.ParseHTTPPathPluginArtifact(pluginPath)
+		if err != nil {
+			release()
+			return nil, err
+		}
+		if _, ok := held[artifactID]; ok {
+			continue
+		}
+		held[artifactID] = struct{}{}
+		pluginID, manifestRoot, err := bldr_plugin.ParsePluginArtifactID(artifactID, false)
+		if err != nil {
+			release()
+			return nil, err
+		}
+		if manifestRoot == "" {
+			continue
+		}
+		_, _, ref, err := bus.ExecWaitValue[string](ctx, c.bus, bldr_plugin.NewLoadPluginAssetsAtManifest(pluginID, manifestRoot), nil, nil, nil)
+		if err != nil {
+			release()
+			return nil, err
+		}
+		refs = append(refs, ref)
+	}
+	return release, nil
 }
 
 // HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.

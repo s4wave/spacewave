@@ -355,6 +355,18 @@ async function loadFrontendEntrypoints(
         setRenderModeRequestBin,
       )
 
+      // Bind this plugin's packages to the same manifest as its renderer.
+      // The web plugin resolves packages supplied by other plugins.
+      for (const id of __BLDR_HANDLE_WEB_PKGS__?.webPkgIdList ?? []) {
+        if (id in (setRenderModeRequest.webPkgPaths ?? {})) {
+          setRenderModeRequest.webPkgPaths![id] =
+            backendAPI.utils.pluginAssetHttpPath(
+              pinnedPluginArtifactID(backendAPI, ourPluginID),
+              `${__BLDR_HANDLE_WEB_PKGS__!.webPkgsPath}/${id}/`,
+            )
+        }
+      }
+
       // Override the script path to be /b/pa/{plugin-id}/manifest/{root}/...
       if (
         setRenderModeRequest.scriptPath &&

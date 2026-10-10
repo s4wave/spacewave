@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
 	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
@@ -621,7 +622,7 @@ func (l *webListener) serveBootShell(rw http.ResponseWriter, req *http.Request) 
 	}
 
 	// Render and serve the local bootstrap shell.
-	shell, err := renderWebListenerBootShell(metadata, l.spec, l.appFrontendPath)
+	shell, err := renderWebListenerBootShell(metadata, l.spec, l.appFrontendPath, l.webPkgBasePath)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -687,7 +688,17 @@ func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBoo
 // listener starts the released WASM runtime. A bound listener skips it: the
 // shell loads the native app entry and renders it over the listener's
 // Resource websocket, opening the bound Space when no route is given.
-func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec, appFrontendPath string) ([]byte, error) {
+func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec, appFrontendPath, webPkgBasePath string) ([]byte, error) {
+	// Bind emitted package imports before the app loads any module.
+	importMapScript := metadata.importMapScript
+	if webPkgBasePath != "" {
+		imports := web_entrypoint_index.ImportMap{Imports: map[string]string{
+			"bldr-web-pkg/": webPkgBasePath,
+		}}
+		importMapScript += "\n<script type=\"importmap\">" + imports.String() + "</script>"
+	}
+
+	// Start the bound native app or the unbound browser runtime.
 	start := "await import('/boot.mjs');"
 	if spec.spaceID != "" {
 		route := "/u/" + strconv.FormatUint(uint64(spec.sessionIdx), 10) + "/so/" + url.PathEscape(spec.spaceID)
@@ -720,7 +731,7 @@ app.renderBoundApp(document.getElementById('bldr-root'), ` + quoteWebListenerScr
 	return []byte(`<!doctype html>
 <meta charset="utf-8">
 <title>Spacewave</title>
-` + metadata.importMapScript + `
+` + importMapScript + `
 <div id="bldr-root" role="main"></div>
 <script type="module">
 function setBootstrapFailure(message) {

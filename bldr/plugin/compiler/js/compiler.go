@@ -46,7 +46,7 @@ import (
 // ControllerID is the compiler controller ID.
 const ControllerID = ConfigID
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -164,7 +164,7 @@ type PreBuildHook func(
 // AddPreBuildHook adds a callback that is called just after constructing the
 // plugin working dir. The hook declares no provenance, so it keeps the compiler
 // always-building.
-// NOTE: may be removed in future
+// NOTE: may be removed in future.
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 	c.AddPreBuildHookWithProvenance(hook, nil)
 }
@@ -509,11 +509,23 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	// Filter out excluded web package references (another plugin provides these).
+	// Record every renderer dependency before separating package providers.
 	excludedIDs := bldr_web_bundler.ExcludedWebPkgIDs(webPkgs)
-	allWebPkgRefs = allWebPkgRefs.FilterExcluded(excludedIDs)
+	frontendWebPkgPaths := make(map[string]string, len(allWebPkgRefs)+len(excludedIDs))
+	for _, id := range allWebPkgRefs.ToWebPkgIDList() {
+		frontendWebPkgPaths[id] = ""
+	}
+	for id := range excludedIDs {
+		frontendWebPkgPaths[id] = ""
+	}
+	for _, entrypoint := range frontendEntrypoints {
+		if render := entrypoint.GetSetRenderMode(); render != nil {
+			render.WebPkgPaths = frontendWebPkgPaths
+		}
+	}
 
-	// Sort collected web package references
+	// Keep only packages this plugin supplies, ordered for deterministic output.
+	allWebPkgRefs = allWebPkgRefs.FilterExcluded(excludedIDs)
 	web_pkg.SortWebPkgRefs(allWebPkgRefs)
 
 	// Record the pinned dist dependency inputs used by the direct owner.
@@ -856,6 +868,7 @@ func CreateEntrypointsFromViteOutputs(
 	return backendEntrypoints, frontendEntrypoints, nil
 }
 
+// ValidateFrontendEntrypointAssetClosure verifies that renderer assets exist in the manifest.
 func ValidateFrontendEntrypointAssetClosure(
 	assetsDir string,
 	frontendEntrypoints []*FrontendEntrypoint,

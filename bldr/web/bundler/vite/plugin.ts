@@ -167,9 +167,12 @@ function buildServedNameMap(imports: string[]): Map<string, string> {
   return map
 }
 
-// webPkgURL returns the served URL for a web-package file.
+// webPkgURL returns a mapped package specifier or a direct entrypoint URL.
 function webPkgURL(basePath: string, pkg: string, subPath: string): string {
-  return `${basePath}/${pkg}/${subPath}`
+  // URL-prefix maps cannot remap non-special schemes such as Electron's app:.
+  // Bare package prefixes resolve through the document's pinned import map.
+  const prefix = basePath === '/b/pkg' ? 'bldr-web-pkg' : basePath
+  return `${prefix}/${pkg}/${subPath}`
 }
 
 // lookupDeclaredServedURL returns the served URL for importId derived from the
@@ -350,7 +353,7 @@ export function createWebPkgRemapPlugin(
       }
     },
 
-    // resolveId resolves sibling web pkg imports to /b/pkg/ URLs.
+    // resolveId resolves sibling web pkg imports through the document import map.
     // Uses Vite's resolver to find the actual file path, then computes
     // the relative path within the package and remaps .js -> .mjs.
     async resolveId(
@@ -475,7 +478,7 @@ export function createWebPkgRemapPlugin(
     // renderChunk rewrites external web pkg import specifiers in the
     // output code. This handles the case where rolldownOptions.external
     // marks the import as external (preserving the original specifier)
-    // but we need /b/pkg/ URLs with .mjs extensions.
+    // but shared packages need mapped specifiers with .mjs extensions.
     //
     // NOTE: This hook only rewrites specifiers. It does NOT track imports
     // for entry point discovery. Entry points are configured explicitly

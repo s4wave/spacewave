@@ -61,16 +61,18 @@ describe('createWebPkgRemapPlugin', () => {
     expect(result).toContain('"react"')
     expect(result).toContain('"react-dom"')
     expect(result).toContain('"react/jsx-dev-runtime"')
-    expect(result).toContain('"/b/pkg/@aptre/protobuf-es-lite/index.mjs"')
-    expect(result).toContain('"/b/pkg/@aptre/protobuf-es-lite/message.mjs"')
-    expect(result).toContain('"/b/pkg/@s4wave/web/sdk/app.mjs"')
-    expect(result).toContain('"/b/pkg/sonner/index.mjs"')
+    expect(result).toContain('"bldr-web-pkg/@aptre/protobuf-es-lite/index.mjs"')
+    expect(result).toContain(
+      '"bldr-web-pkg/@aptre/protobuf-es-lite/message.mjs"',
+    )
+    expect(result).toContain('"bldr-web-pkg/@s4wave/web/sdk/app.mjs"')
+    expect(result).toContain('"bldr-web-pkg/sonner/index.mjs"')
     expect(result).not.toMatch(
       /\b(?:from|import)\s*\(?\s*["']@aptre\/protobuf-es-lite(?:\/[^"']*)?["']/,
     )
-    expect(result).not.toContain('"/b/pkg/react/')
-    expect(result).not.toContain('"/b/pkg/react-dom/')
-    expect(result).not.toContain('"/b/pkg/@aptre/bldr/')
+    expect(result).not.toContain('"bldr-web-pkg/react/')
+    expect(result).not.toContain('"bldr-web-pkg/react-dom/')
+    expect(result).not.toContain('"bldr-web-pkg/@aptre/bldr/')
   })
 
   it('uses the configured web package base path for rendered sibling web packages', () => {
@@ -108,9 +110,9 @@ describe('createWebPkgRemapPlugin', () => {
     )
     expect(result).toContain('"/entrypoint/pkgs/@s4wave/web/sdk/app.mjs"')
     expect(result).toContain('"/entrypoint/pkgs/sonner/index.mjs"')
-    expect(result).not.toContain('"/b/pkg/@aptre/protobuf-es-lite/')
-    expect(result).not.toContain('"/b/pkg/@s4wave/web/')
-    expect(result).not.toContain('"/b/pkg/sonner/')
+    expect(result).not.toContain('"bldr-web-pkg/@aptre/protobuf-es-lite/')
+    expect(result).not.toContain('"bldr-web-pkg/@s4wave/web/')
+    expect(result).not.toContain('"bldr-web-pkg/sonner/')
   })
 
   it('normalizes repeated slashes in the configured web package base path', () => {
@@ -163,10 +165,14 @@ describe('createWebPkgRemapPlugin', () => {
       {} as never,
       {} as never,
     )
-    expect(rendered).toContain('"/b/pkg/@aptre/protobuf-es-lite/index.mjs"')
-    expect(rendered).toContain('"/b/pkg/@aptre/protobuf-es-lite/message.mjs"')
     expect(rendered).toContain(
-      '"/b/pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs"',
+      '"bldr-web-pkg/@aptre/protobuf-es-lite/index.mjs"',
+    )
+    expect(rendered).toContain(
+      '"bldr-web-pkg/@aptre/protobuf-es-lite/message.mjs"',
+    )
+    expect(rendered).toContain(
+      '"bldr-web-pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs"',
     )
     expect(rendered).not.toContain('/dist/')
     expect(rendered).not.toContain('.pb.mjs')
@@ -190,7 +196,7 @@ describe('createWebPkgRemapPlugin', () => {
       { isEntry: false },
     )
     expect(resolved).toEqual({
-      id: '/b/pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs',
+      id: 'bldr-web-pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs',
       external: true,
     })
   })
@@ -253,7 +259,7 @@ describe('createWebPkgRemapPlugin', () => {
       expect(rendered).toContain(
         '"/entrypoint/pkgs/@aptre/protobuf-es-lite/dist/index.mjs"',
       )
-      expect(rendered).not.toContain('"/b/pkg/@aptre/protobuf-es-lite/')
+      expect(rendered).not.toContain('"bldr-web-pkg/@aptre/protobuf-es-lite/')
 
       const resolveId = plugin.resolveId
       if (typeof resolveId !== 'function') {
@@ -333,8 +339,10 @@ describe('createWebPkgRemapPlugin', () => {
         {} as never,
       )
 
-      expect(rendered).toContain('"/b/pkg/non-index-root/build/foo.module.mjs"')
-      expect(rendered).not.toContain('"/b/pkg/non-index-root/index.mjs"')
+      expect(rendered).toContain(
+        '"bldr-web-pkg/non-index-root/build/foo.module.mjs"',
+      )
+      expect(rendered).not.toContain('"bldr-web-pkg/non-index-root/index.mjs"')
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -364,10 +372,10 @@ describe('createWebPkgRemapPlugin', () => {
       const maps = { shiki: readPackageServedNameMap(pkgRoot) }
       const resolve = (id: string) =>
         resolveWebPkgImportURL(id, ['shiki'], '/b/pkg', maps)
-      expect(resolve('shiki')).toBe('/b/pkg/shiki/dist/index.mjs')
-      expect(resolve('shiki/langs')).toBe('/b/pkg/shiki/dist/langs.mjs')
+      expect(resolve('shiki')).toBe('bldr-web-pkg/shiki/dist/index.mjs')
+      expect(resolve('shiki/langs')).toBe('bldr-web-pkg/shiki/dist/langs.mjs')
       expect(resolve('shiki/dist/langs.mjs')).toBe(
-        '/b/pkg/shiki/dist/langs.mjs',
+        'bldr-web-pkg/shiki/dist/langs.mjs',
       )
       expect(resolve('other')).toBeNull()
 
@@ -380,7 +388,9 @@ describe('createWebPkgRemapPlugin', () => {
           ['shiki'],
           maps,
         ),
-      ).toBe('import { bundledLanguages } from "/b/pkg/shiki/dist/langs.mjs"')
+      ).toBe(
+        'import { bundledLanguages } from "bldr-web-pkg/shiki/dist/langs.mjs"',
+      )
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -424,7 +434,7 @@ describe('createWebPkgRemapPlugin', () => {
       { isEntry: false },
     )
 
-    expect(result).toEqual({ id: '/b/pkg/pkg/index.mjs', external: true })
+    expect(result).toEqual({ id: 'bldr-web-pkg/pkg/index.mjs', external: true })
   })
 })
 
@@ -474,7 +484,7 @@ describe('createExternalRequirePlugin', () => {
         .flatMap((result) => result.output)
         .map((chunk) => (chunk.type === 'chunk' ? chunk.code : ''))
         .join('\n')
-      expect(code).toMatch(/from ["']\/b\/pkg\/react\/index\.mjs["']/)
+      expect(code).toMatch(/from ["']bldr-web-pkg\/react\/index\.mjs["']/)
       expect(code).not.toMatch(/require\(["']react["']\)/)
     } finally {
       fs.rmSync(root, { recursive: true, force: true })

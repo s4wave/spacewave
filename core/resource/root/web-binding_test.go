@@ -155,18 +155,25 @@ func TestWebListenerBoundResourceService(t *testing.T) {
 	}
 }
 
+// TestRenderBoundBootShell checks native app and package release bindings.
 func TestRenderBoundBootShell(t *testing.T) {
 	// Render the shell for a listener bound to session 2 and one Space.
 	metadata := &webListenerReleaseBootMetadata{importMapScript: `<script type="importmap">{}</script>`}
 	spec := &webListenSpec{spaceID: "space/1", sessionIdx: 2}
-	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/")
+	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/", "/b/pa/spacewave-web/manifest/web-root/pkgs/")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Load the native app over the Resource websocket, not the WASM runtime.
 	text := string(shell)
-	for _, want := range []string{`"/u/2/so/space%2F1"`, `"/b/pa/spacewave-app/manifest/root/v/b/fe/"`, `renderBoundApp(`, `"/_spacewave/resource"`} {
+	for _, want := range []string{
+		`"/u/2/so/space%2F1"`,
+		`"/b/pa/spacewave-app/manifest/root/v/b/fe/"`,
+		`"bldr-web-pkg/":"/b/pa/spacewave-web/manifest/web-root/pkgs/"`,
+		`renderBoundApp(`,
+		`"/_spacewave/resource"`,
+	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("bound boot shell missing %s: %s", want, text)
 		}
