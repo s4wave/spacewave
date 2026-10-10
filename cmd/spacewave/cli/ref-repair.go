@@ -428,7 +428,6 @@ func (r *refRepair) walk(ctx context.Context, root refRepairNode) error {
 // read reads, decodes and extracts the refs of one block, with the edges the
 // graph holds for it. It touches no repair state, so reads run concurrently.
 func (r *refRepair) read(ctx context.Context, n refRepairNode) (refRepairRead, error) {
-	// Associate this read with its graph node before checking stored bytes.
 	rd := refRepairRead{node: n, iri: block_gc.BlockIRI(n.ref)}
 
 	// Check only the presence of a block whose type holds no refs.
