@@ -10,7 +10,6 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -125,7 +124,7 @@ func TestForgeWorkerProcessStream(t *testing.T) {
 
 			// Use the real Worker for cancellation and supply terminal exits
 			// through the existing controller callback testbed.
-			var workerBus bus.Bus = tb.Bus
+			workerBus := tb.Bus
 			if !test.cancel {
 				workerBus = &workerExitBus{Bus: tb.Bus, exitErr: test.exitErr}
 			}
