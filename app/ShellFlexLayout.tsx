@@ -211,9 +211,12 @@ function saveModelToStorage(model: IJsonModel, storage: Storage): void {
   }
 }
 
-// syncTabsStateToModel keeps the single-tabset FlexLayout model aligned with
-// the shell tab state, including state-only tab additions and selections.
-
+// syncTabsStateToModel keeps the FlexLayout model aligned with the shell tab
+// state, including state-only tab additions and selections. A tab missing from
+// the model joins the active tabset, which a grid names differently from
+// shell-tabset. Adding to a missing tabset does nothing, which leaves the
+// committed-tab callback to add the tab alone: its intermediate model, with
+// the tab present but unselected, then reads as a user selecting the old tab.
 function syncTabsStateToModel(
   model: Model,
   tabs: ShellTab[],
@@ -236,10 +239,11 @@ function syncTabsStateToModel(
   })
 
   const tabIds = new Set(tabs.map((t) => t.id))
+  const tabsetId = getActiveTabsetId(model) ?? 'shell-tabset'
 
   for (const tab of tabs) {
     if (!modelTabIds.has(tab.id)) {
-      addShellModelTab(model, 'shell-tabset', tab, 'shell-content')
+      addShellModelTab(model, tabsetId, tab, 'shell-content')
     }
     const node = model.getNodeById(tab.id)
     if (node && node.getType() === 'tab') {
