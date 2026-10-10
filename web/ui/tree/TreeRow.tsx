@@ -195,10 +195,17 @@ function useTreeRowHandlers<T>(
     )
   }, [])
 
+  // The focused row claims DOM focus only from the page body or from within
+  // its tree, so rows that mount late never pull focus out of a dialog input.
   const handleRef = useCallback(
     (el: HTMLDivElement | null) => {
       if (isFocused && el && document.activeElement !== el) {
         requestAnimationFrame(() => {
+          const active = document.activeElement
+          const tree = el.closest('[role="tree"]')
+          if (active && active !== document.body && !tree?.contains(active)) {
+            return
+          }
           el.focus({ preventScroll: true })
           el.scrollIntoView({ block: 'nearest' })
         })

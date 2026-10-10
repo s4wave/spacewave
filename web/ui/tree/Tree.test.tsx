@@ -65,6 +65,20 @@ describe('Tree', () => {
     expect(screen.getByText('Sibling')).toBeTruthy()
   })
 
+  it('should not pull focus out of an input elsewhere on the page', async () => {
+    render(<input aria-label="Name" />)
+    const input = screen.getByLabelText('Name')
+    input.focus()
+
+    render(<TestTree nodes={mockNodes} />)
+    await waitFor(() => {
+      expect(screen.getByText('Root')).toBeTruthy()
+    })
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+
+    expect(document.activeElement).toBe(input)
+  })
+
   it('should show placeholder when no nodes', () => {
     render(<TestTree nodes={[]} placeholder="No items available" />)
     expect(screen.getByText('No items available')).toBeTruthy()
