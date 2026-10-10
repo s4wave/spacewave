@@ -57,7 +57,8 @@ type Controller struct {
 	bucketHandles *keyed.KeyedRefCount[string, *bucketHandleTracker]
 
 	// constructionFailures counts consecutive failed volume constructions
-	// across controllerbus restarts of this same controller instance.
+	// that the loader must restart. An open that can be waited out is retried
+	// on this instance and is not counted.
 	constructionFailures int
 
 	// terminalMtx guards terminalErr and terminalDone.
@@ -110,34 +111,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	volCtx, volCtxCancel := context.WithCancel(ctx)
 	defer volCtxCancel()
 
-	// Construct the volume.
-	_, task := trace.NewTask(ctx, "hydra/volume/controller/construct")
-	v, err := c.ctor(volCtx, c.le)
-	task.End()
-	if err != nil {
-		if volume.IsPermanent(err) {
-			// The volume cannot be constructed in this environment (for example,
-			// the browser denied OPFS root for this profile). Retrying cannot
-			// succeed, so record the condition, surface one actionable
-			// diagnostic, and return nil to stop the controllerbus restart loop
-			// instead of looping the same denial forever.
-			c.le.WithError(err).Error("volume unavailable: permanent storage error, not retrying")
-			c.setTerminal(err)
-			return nil
-		}
-		c.constructionFailures++
-		if c.constructionFailures >= maxConstructionAttempts {
-			err = volume.Permanent(fmt.Errorf(
-				"volume construction failed %d times consecutively: %w",
-				c.constructionFailures, err,
-			))
-			c.le.WithError(err).Error("volume unavailable: retry cap exceeded, not restarting")
-			c.setTerminal(err)
-			return nil
-		}
+	// Construct the volume on this controller, waiting out an open that can clear.
+	v, err := c.constructVolume(volCtx)
+	if v == nil {
 		return err
 	}
-	c.constructionFailures = 0
 	defer v.Close()
 
 	// Prepare readiness diagnostics and the volume execution error channel.
@@ -296,6 +274,65 @@ func (c *Controller) HandleDirective(
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() *controller.Info {
 	return c.controllerInfo
+}
+
+// volumeConstructionWaiter is a transient construction error that clears when Wait returns.
+type volumeConstructionWaiter interface {
+	error
+
+	// Wait blocks until the failure can be retried, or ctx ends.
+	Wait(context.Context) error
+}
+
+// constructVolume builds the controlled volume.
+//
+// An open that fails because this process still holds the database waits for
+// that claim to clear and tries again on this controller. GetVolume is already
+// waiting on this instance; returning the error would make the loader publish
+// readiness on a replacement controller. A permanent failure, or a transient
+// failure that is not waitable and exceeds the retry cap, is recorded for
+// GetVolume and returned as a nil error so the loader does not restart.
+func (c *Controller) constructVolume(ctx context.Context) (volume.Volume, error) {
+	for {
+		// Construct once and keep a successful volume.
+		_, task := trace.NewTask(ctx, "hydra/volume/controller/construct")
+		v, err := c.ctor(ctx, c.le)
+		task.End()
+		if err == nil {
+			c.constructionFailures = 0
+			return v, nil
+		}
+
+		// Stop when the volume cannot be constructed in this environment.
+		if volume.IsPermanent(err) {
+			c.le.WithError(err).Error("volume unavailable: permanent storage error, not retrying")
+			c.setTerminal(err)
+			return nil, nil
+		}
+
+		// Retry on this controller when the open failure will clear.
+		var waiter volumeConstructionWaiter
+		if errors.As(err, &waiter) {
+			c.le.WithError(err).Warn("volume open waits for the conflicting claim to clear")
+			if err := waiter.Wait(ctx); err != nil {
+				return nil, err
+			}
+			continue
+		}
+
+		// Return a non-waitable transient failure until the retry cap.
+		c.constructionFailures++
+		if c.constructionFailures >= maxConstructionAttempts {
+			err = volume.Permanent(fmt.Errorf(
+				"volume construction failed %d times consecutively: %w",
+				c.constructionFailures, err,
+			))
+			c.le.WithError(err).Error("volume unavailable: retry cap exceeded, not restarting")
+			c.setTerminal(err)
+			return nil, nil
+		}
+		return nil, err
+	}
 }
 
 // setTerminal records a permanent construction failure and wakes GetVolume

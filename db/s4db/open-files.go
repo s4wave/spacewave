@@ -3,8 +3,10 @@
 package s4db
 
 import (
+	"context"
 	"os"
-	"sync"
+
+	"github.com/aperturerobotics/util/broadcast"
 )
 
 // fileID identifies a file independent of its path.
@@ -20,8 +22,8 @@ type fileID struct {
 // second handle neither conflicts with the first nor keeps its locks when
 // the first closes.
 type fileRegistry struct {
-	// mtx guards ids.
-	mtx sync.Mutex
+	// bcast guards ids and wakes waiters when a claim is released.
+	bcast broadcast.Broadcast
 	// ids holds the open files.
 	ids map[fileID]struct{}
 }
@@ -39,18 +41,35 @@ func (r *fileRegistry) claim(f *os.File) (fileID, error) {
 	}
 
 	// Register it unless already open.
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-	if _, ok := r.ids[id]; ok {
-		return fileID{}, ErrOpenInProcess
+	var held bool
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if _, ok := r.ids[id]; ok {
+			held = true
+			return
+		}
+		r.ids[id] = struct{}{}
+	})
+	if held {
+		return fileID{}, &openInProcessError{id: id}
 	}
-	r.ids[id] = struct{}{}
 	return id, nil
 }
 
-// release unregisters a file claim registered.
+// release unregisters a file claim and wakes openers waiting for it.
 func (r *fileRegistry) release(id fileID) {
-	r.mtx.Lock()
-	delete(r.ids, id)
-	r.mtx.Unlock()
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		delete(r.ids, id)
+		broadcast()
+	})
+}
+
+// waitRelease blocks until id is no longer claimed, or ctx ends.
+func (r *fileRegistry) waitRelease(ctx context.Context, id fileID) error {
+	return r.bcast.Wait(ctx, func(_ func(), getWaitCh func() <-chan struct{}) (bool, error) {
+		if _, held := r.ids[id]; !held {
+			return true, nil
+		}
+		_ = getWaitCh()
+		return false, nil
+	})
 }
