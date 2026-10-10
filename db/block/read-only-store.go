@@ -35,8 +35,8 @@ func (s *ReadOnlyStore) PutBlock(context.Context, []byte, *PutOpts) (*BlockRef, 
 }
 
 // PutBlockBatch rejects the writes.
-func (s *ReadOnlyStore) PutBlockBatch(context.Context, []*PutBatchEntry) error {
-	return tx.ErrNotWrite
+func (s *ReadOnlyStore) PutBlockBatch(context.Context, []*PutBatchEntry) ([]bool, error) {
+	return nil, tx.ErrNotWrite
 }
 
 // RmBlock rejects the delete.

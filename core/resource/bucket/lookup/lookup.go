@@ -119,7 +119,7 @@ func (r *BucketLookupCursorResource) PutBlockBatch(ctx context.Context, req *s4w
 			Tombstone: entry.GetTombstone(),
 		}
 	}
-	if err := r.cursor.PutBlockBatch(ctx, entries); err != nil {
+	if _, err := r.cursor.PutBlockBatch(ctx, entries); err != nil {
 		return nil, err
 	}
 	return &s4wave_bucket_lookup.PutBlockBatchResponse{}, nil

@@ -29,13 +29,16 @@ func newGraphTestStore() *graphTestStore {
 	}
 }
 
-func (s *graphTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for _, entry := range entries {
-		if _, _, err := s.PutBlock(ctx, entry.Data, &block.PutOpts{ForceBlockRef: entry.Ref, Refs: entry.Refs}); err != nil {
-			return err
+func (s *graphTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
+		_, exists, err := s.PutBlock(ctx, entry.Data, &block.PutOpts{ForceBlockRef: entry.Ref, Refs: entry.Refs})
+		if err != nil {
+			return nil, err
 		}
+		existed[i] = exists
 	}
-	return nil
+	return existed, nil
 }
 
 func (s *graphTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {

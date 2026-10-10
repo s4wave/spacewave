@@ -108,8 +108,8 @@ func (o *publicationOverlay) PutBlock(context.Context, []byte, *block.PutOpts) (
 }
 
 // PutBlockBatch rejects mutation through a validation overlay.
-func (o *publicationOverlay) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
-	return errPublicationReadOnly
+func (o *publicationOverlay) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, errPublicationReadOnly
 }
 
 // RmBlock rejects mutation through a validation overlay.

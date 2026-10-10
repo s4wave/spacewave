@@ -44,19 +44,20 @@ func (b *untrackedCopyBucket) PutBlock(ctx context.Context, data []byte, opts *b
 }
 
 // PutBlockBatch writes the batch and copies each block.
-func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := b.BucketOps.PutBlockBatch(ctx, entries); err != nil {
-		return err
+func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := b.BucketOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
 	for _, e := range entries {
 		if e.Tombstone {
 			continue
 		}
 		if _, _, err := b.vol.PutBlock(ctx, e.Data, &block.PutOpts{ForceBlockRef: e.Ref}); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return existed, nil
 }
 
 // TestDebugRefRepair checks that the repair counts the edges a volume without

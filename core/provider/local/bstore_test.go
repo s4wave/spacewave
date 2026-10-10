@@ -39,7 +39,7 @@ func newBatchForwardTestStore() *batchForwardTestStore {
 	}
 }
 
-func (s *batchForwardTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *batchForwardTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.putBlockBatchHits++
 	return s.Store.PutBlockBatch(ctx, entries)
 }
@@ -353,7 +353,7 @@ func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 	}
 
 	// Require PutBlockBatch to reach the inner store.
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: batchRef, Data: batchData}}); err != nil {
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: batchRef, Data: batchData}}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
 	if inner.putBlockBatchHits != 1 {
@@ -472,7 +472,7 @@ func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
 	decodedBlocks.Wait()
 
 	// Tombstone the block and require the cache to miss it.
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
 		t.Fatal(err.Error())
 	}
 	if data, found, err := store.GetBlock(ctx, ref); err != nil || found {

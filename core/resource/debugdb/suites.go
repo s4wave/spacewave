@@ -135,7 +135,7 @@ func (s *suiteRunner) runEnginePutBatch(store block.StoreOps) *s4wave_debugdb.Be
 		}
 		runtime.Gosched()
 		m.Start()
-		err := store.PutBlockBatch(s.ctx, entries)
+		_, err := store.PutBlockBatch(s.ctx, entries)
 		if err == nil {
 			_, err = store.Sync(s.ctx)
 		}

@@ -17,8 +17,8 @@ type failingStore struct {
 }
 
 // PutBlockBatch always fails.
-func (f *failingStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
-	return errors.New("bucket unreachable")
+func (f *failingStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, errors.New("bucket unreachable")
 }
 
 func newInmemBlockStore() block.StoreOps {

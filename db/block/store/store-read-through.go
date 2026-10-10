@@ -109,8 +109,8 @@ func (*StoreReadThrough) PutBlock(context.Context, []byte, *block.PutOpts) (*blo
 }
 
 // PutBlockBatch is unsupported because this store is read-only.
-func (*StoreReadThrough) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
-	return ErrReadOnly
+func (*StoreReadThrough) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, ErrReadOnly
 }
 
 // RmBlock is unsupported because this store is read-only.

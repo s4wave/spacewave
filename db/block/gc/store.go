@@ -40,6 +40,12 @@ type WALAppender interface {
 // When parentIRI is set, new blocks are tracked under parentIRI
 // instead of the "unreferenced" staging node. This allows
 // bucket-level ownership of blocks.
+//
+// Only a block's first write records its outgoing edges: the inner store
+// reports whether each written block already existed, and an existing block
+// keeps the edges recorded then. A Volume with a ref graph therefore needs every
+// stored block to have its edges; blocks written without tracking must be
+// repaired offline, since the store keeps block bytes without their refs.
 type GCStoreOps struct {
 	store      block.StoreOps
 	refGraph   RefGraphOps
@@ -53,6 +59,7 @@ type GCStoreOps struct {
 	mu                sync.Mutex
 	pendingReleases   map[string]struct{} // latest parent releases, canceled by a later put
 	pendingUnref      []string            // block IRIs needing parent/unreferenced -> block edges
+	pendingUnstage    []string            // existing block IRIs leaving unreferenced for the parent
 	pendingCandidates []string            // cache-filled block IRIs needing unreferenced -> block edges
 	pendingRefs       []pendingRef        // source -> target block ref edges
 	pendingUnunref    []string            // block IRIs to remove from unreferenced
@@ -181,7 +188,8 @@ func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 
 // PutBlock puts a block into the store and buffers a gc/ref edge for later
 // flush. A parent owns every non-empty block it writes. Without a parent, only
-// new blocks are staged under unreferenced.
+// new blocks are staged under unreferenced. Only a new block records its
+// outgoing edges.
 func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Trace the put and its ownership buffering as one task.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block")
@@ -214,27 +222,22 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 		return finish(ref, existed)
 	}
 
-	// A cache fill records its outgoing refs and changes no ownership. A new
-	// copy is a garbage candidate until a retained root reaches it.
+	// A cache fill changes no ownership. A new copy is a garbage candidate
+	// until a retained root reaches it, and records its outgoing refs.
 	if putOpts.GetCacheFill() {
-		g.mu.Lock()
 		if !existed {
+			g.mu.Lock()
 			g.pendingCandidates = append(g.pendingCandidates, BlockIRI(ref))
+			g.bufferRefEdgesLocked(ref, putOpts.GetRefs(), false)
+			g.mu.Unlock()
 		}
-		g.bufferRefEdgesLocked(ref, putOpts.GetRefs(), false)
-		g.mu.Unlock()
 		return finish(ref, existed)
 	}
 
 	// The writer's owner takes the block and adopts the blocks it references.
 	_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
 	g.mu.Lock()
-	if g.parentIRI != "" || !existed {
-		iri := BlockIRI(ref)
-		g.pendingUnref = append(g.pendingUnref, iri)
-		delete(g.pendingReleases, iri)
-	}
-	g.bufferRefEdgesLocked(ref, putOpts.GetRefs(), true)
+	g.bufferPutLocked(ref, putOpts.GetRefs(), existed)
 	g.mu.Unlock()
 	subtask.End()
 	return finish(ref, existed)
@@ -242,12 +245,15 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch writes a batch of blocks through the inner store and buffers
 // GC ref edges for all non-tombstone blocks. The inner store decides whether
-// the batch flows through a native path or an internal fallback.
+// the batch flows through a native path or an internal fallback, and reports
+// which blocks it already held.
 //
 // Tombstone entries release parent ownership through GCStoreOps.RmBlock.
-// The collector owns outgoing edges and physical deletion. Existing entries
-// skip unreferenced staging; a configured parent owns every block it writes.
-func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+// The collector owns outgoing edges and physical deletion. Only new blocks
+// record their outgoing edges; a configured parent owns every block it writes.
+// Returns the inner store's existence result for every entry, false for
+// tombstones.
+func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Trace the batch and its ownership buffering as one task.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch")
 	defer task.End()
@@ -265,62 +271,36 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		}
 	}
 
-	// Staging an existing block under unreferenced could revive a block that
-	// already has real parents, so a parentless batch checks existence first.
-	var existing []bool
-	if g.parentIRI == "" && len(puts) != 0 {
-		checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
-		refs := make([]*block.BlockRef, len(puts))
-		for i, entry := range puts {
-			if entry.Ref == nil || entry.Ref.GetEmpty() {
-				continue
-			}
-			refs[i] = entry.Ref
-		}
-		exists, err := g.store.GetBlockExistsBatch(checkCtx, refs)
-		if err != nil {
-			checkTask.End()
-			return err
-		}
-		existing = exists
-		checkTask.End()
-	}
-
 	// Write the batch to the inner store.
 	writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block-batch")
-	if err := g.store.PutBlockBatch(writeCtx, puts); err != nil {
-		writeTask.End()
-		return err
-	}
+	putExisted, err := g.store.PutBlockBatch(writeCtx, puts)
 	writeTask.End()
+	if err != nil {
+		return nil, err
+	}
 
 	// Buffer releases for tombstones and ownership for each written block.
 	_, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/buffer-pending-unref")
+	defer subtask.End()
+	existed := make([]bool, len(entries))
 	g.mu.Lock()
+	defer g.mu.Unlock()
 	putIndex := 0
-	for _, entry := range entries {
+	for i, entry := range entries {
 		if entry.Tombstone {
 			if g.parentIRI != "" && entry.Ref != nil && !entry.Ref.GetEmpty() {
 				g.bufferReleaseLocked(BlockIRI(entry.Ref))
 			}
 			continue
 		}
-		i := putIndex
+		existed[i] = putExisted[putIndex]
 		putIndex++
 		if entry.Ref == nil || entry.Ref.GetEmpty() {
 			continue
 		}
-		if g.parentIRI != "" || !existing[i] {
-			iri := BlockIRI(entry.Ref)
-			g.pendingUnref = append(g.pendingUnref, iri)
-			delete(g.pendingReleases, iri)
-		}
-		g.bufferRefEdgesLocked(entry.Ref, entry.Refs, true)
+		g.bufferPutLocked(entry.Ref, entry.Refs, existed[i])
 	}
-	g.mu.Unlock()
-	subtask.End()
-
-	return nil
+	return existed, nil
 }
 
 // GetBlock gets a block with the given reference.
@@ -363,6 +343,26 @@ func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	g.bufferReleaseLocked(iri)
 	g.mu.Unlock()
 	return nil
+}
+
+// bufferPutLocked buffers the ownership edges of one written block. A new block
+// takes its owner and records the edges it holds, adopting the blocks it
+// references. An existing block recorded its edges at its first write, so a
+// parent only takes it again and clears its staging edge, and an unparented
+// store leaves it as it is.
+func (g *GCStoreOps) bufferPutLocked(ref *block.BlockRef, targets []*block.BlockRef, existed bool) {
+	iri := BlockIRI(ref)
+	if !existed {
+		g.pendingUnref = append(g.pendingUnref, iri)
+		delete(g.pendingReleases, iri)
+		g.bufferRefEdgesLocked(ref, targets, true)
+		return
+	}
+	if g.parentIRI != "" {
+		g.pendingUnref = append(g.pendingUnref, iri)
+		g.pendingUnstage = append(g.pendingUnstage, iri)
+		delete(g.pendingReleases, iri)
+	}
 }
 
 func (g *GCStoreOps) bufferReleaseLocked(iri string) {
@@ -473,9 +473,11 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 
 	// Take the buffered ownership changes.
 	g.mu.Lock()
-	unrefs, candidates, refs := g.pendingUnref, g.pendingCandidates, g.pendingRefs
+	unrefs, unstages := g.pendingUnref, g.pendingUnstage
+	candidates, refs := g.pendingCandidates, g.pendingRefs
 	ununrefs, releases := g.pendingUnunref, g.pendingReleases
-	g.pendingUnref, g.pendingCandidates, g.pendingRefs = nil, nil, nil
+	g.pendingUnref, g.pendingUnstage = nil, nil
+	g.pendingCandidates, g.pendingRefs = nil, nil
 	g.pendingUnunref, g.pendingReleases = nil, nil
 	g.mu.Unlock()
 
@@ -491,9 +493,10 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	trace.Logf(
 		ctx,
 		"hydra/block-gc/store/flush-pending/pending",
-		"path=%s unrefs=%d refs=%d ununrefs=%d releases=%d",
+		"path=%s unrefs=%d unstages=%d refs=%d ununrefs=%d releases=%d",
 		path,
 		len(unrefs),
+		len(unstages),
 		len(refs),
 		len(ununrefs),
 		len(releases),
@@ -505,13 +508,15 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		parent = NodeUnreferenced
 	}
 
-	// Parent-backed writes remove their staging edge in the same batch as the
-	// parent edge. RefGraph treats removal of a missing edge as a no-op.
+	// A parent takes an existing block in the same batch that removes its
+	// staging edge. RefGraph treats removal of a missing edge as a no-op.
 	adds := make([]RefEdge, 0, len(unrefs)+len(candidates)+len(refs)+len(releases))
-	removes := make([]RefEdge, 0, len(ununrefs)+len(unrefs)+len(releases))
+	removes := make([]RefEdge, 0, len(ununrefs)+len(unstages)+len(releases))
 	for _, iri := range unrefs {
 		adds = append(adds, RefEdge{Subject: parent, Object: iri})
-		if _, released := releases[iri]; g.parentIRI != "" && !released {
+	}
+	for _, iri := range unstages {
+		if _, released := releases[iri]; !released {
 			removes = append(removes, RefEdge{Subject: NodeUnreferenced, Object: iri})
 		}
 	}

@@ -94,10 +94,10 @@ func testCopyObjectLargerThanBuffer(t *testing.T, batchExistence bool) {
 }
 
 // PutBlockBatch records each batch before passing it to storage.
-func (d *copyDestination) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (d *copyDestination) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	d.batchSizes = append(d.batchSizes, len(entries))
 	if d.batchErr != nil {
-		return d.batchErr
+		return nil, d.batchErr
 	}
 	return d.inner.PutBlockBatch(ctx, entries)
 }

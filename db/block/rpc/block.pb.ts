@@ -238,6 +238,13 @@ export interface PutBlockBatchResponse {
    * @generated from field: string error = 1;
    */
   error?: string
+  /**
+   * Existed reports, for each request entry in order, whether the block was
+   * already stored before the write. A tombstone entry reports false.
+   *
+   * @generated from field: repeated bool existed = 2;
+   */
+  existed?: boolean[]
 }
 
 export const PutBlockBatchResponse: MessageType<PutBlockBatchResponse> =
@@ -245,6 +252,13 @@ export const PutBlockBatchResponse: MessageType<PutBlockBatchResponse> =
     typeName: 'block.rpc.PutBlockBatchResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'existed',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

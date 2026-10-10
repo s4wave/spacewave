@@ -65,7 +65,7 @@ func TestCursorResourceEncodedBlocks(t *testing.T) {
 		}
 		entries[i] = &block.PutBatchEntry{Ref: blockRef, Data: encoded, Refs: []*block.BlockRef{ref}}
 	}
-	if err := raw.PutBlockBatch(ctx, entries); err != nil {
+	if _, err := raw.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err)
 	}
 	if fenced, err := raw.Sync(ctx); err != nil || !fenced {

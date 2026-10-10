@@ -65,7 +65,7 @@ func TestCursorStagingCoversDirectAndTransactionStorePaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := raw.PutBlockBatch(ctx, batch.Entries); err != nil {
+	if _, err := raw.PutBlockBatch(ctx, batch.Entries); err != nil {
 		batch.Complete(err)
 		t.Fatal(err)
 	}

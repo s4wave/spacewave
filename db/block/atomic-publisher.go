@@ -29,5 +29,6 @@ type AtomicBlockPreparer interface {
 	// PrepareOwnedBlock durably prepares one oversized body with bucket ownership.
 	PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *PutOpts) (*BlockRef, bool, error)
 	// PrepareOwnedBlockBatch durably prepares a batch with bucket ownership.
-	PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*PutBatchEntry) error
+	// Returns whether each block was stored before the write, like PutBlockBatch.
+	PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*PutBatchEntry) ([]bool, error)
 }

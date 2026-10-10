@@ -94,7 +94,7 @@ func (t t2Target) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts
 }
 
 // PutBlockBatch writes a batch in one round trip.
-func (t t2Target) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (t t2Target) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return t2Ops{StoreOps: t.Target, relay: t.relay}.PutBlockBatch(ctx, entries)
 }
 
@@ -184,13 +184,13 @@ func (o t2Ops) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (
 }
 
 // PutBlockBatch writes a batch in one round trip.
-func (o t2Ops) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (o t2Ops) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	var n int
 	for _, e := range entries {
 		n += len(e.Data)
 	}
 	if err := o.relay.hop(ctx, n, 0); err != nil {
-		return err
+		return nil, err
 	}
 	return o.StoreOps.PutBlockBatch(ctx, entries)
 }

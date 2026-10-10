@@ -240,7 +240,7 @@ func (c *graphCopy) complete(ctx context.Context, node *graphCopyNode) error {
 	for len(stack) != 0 {
 		node := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
-		err := c.dst.PutBlockBatch(ctx, []*PutBatchEntry{{
+		_, err := c.dst.PutBlockBatch(ctx, []*PutBatchEntry{{
 			Ref:  node.ref,
 			Data: node.data,
 			Refs: node.refs,

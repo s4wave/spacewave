@@ -77,8 +77,11 @@ func (s *BlockStore) PutBlockBatch(
 
 	// Report the store's batch result through the service response.
 	resp := &block_rpc.PutBlockBatchResponse{}
-	if err := s.store.PutBlockBatch(ctx, entries); err != nil {
+	existed, err := s.store.PutBlockBatch(ctx, entries)
+	if err != nil {
 		resp.Error = err.Error()
+	} else {
+		resp.Existed = existed
 	}
 	return resp, nil
 }

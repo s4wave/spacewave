@@ -268,7 +268,7 @@ func (r *Replay) Seed(ctx context.Context, t Target) error {
 		for i, b := range chunk {
 			entries[i] = &block.PutBatchEntry{Ref: b.ref, Data: b.data}
 		}
-		if err := t.PutBlockBatch(ctx, entries); err != nil {
+		if _, err := t.PutBlockBatch(ctx, entries); err != nil {
 			return errors.Wrap(err, "seed blocks")
 		}
 	}
@@ -322,7 +322,7 @@ func Fill(ctx context.Context, t Target, n, size int) error {
 			}
 			entries[i] = &block.PutBatchEntry{Ref: ref, Data: data}
 		}
-		if err := t.PutBlockBatch(ctx, entries); err != nil {
+		if _, err := t.PutBlockBatch(ctx, entries); err != nil {
 			return errors.Wrap(err, "fill blocks")
 		}
 	}
@@ -595,7 +595,10 @@ func (run *replayRun) flushBatch(ctx context.Context) error {
 		return nil
 	}
 	run.batch = nil
-	return run.timed(OpPutBatch, func() error { return run.target.PutBlockBatch(ctx, batch.entries) })
+	return run.timed(OpPutBatch, func() error {
+		_, err := run.target.PutBlockBatch(ctx, batch.entries)
+		return err
+	})
 }
 
 // flushExists checks the open existence batch once it holds every reference.

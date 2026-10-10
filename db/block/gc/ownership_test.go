@@ -89,7 +89,7 @@ func TestGCStoreOpsDeduplicatedBlockRetainsBucketOwner(t *testing.T) {
 
 					// Write the encoded block as a batch entry.
 					entry := &block.PutBatchEntry{Ref: ref, Data: data}
-					if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
+					if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 						t.Fatalf("put block batch: %v", err)
 					}
 					return ref

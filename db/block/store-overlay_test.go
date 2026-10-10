@@ -80,7 +80,7 @@ func (s *overlayBatchTestStore) RmBlock(ctx context.Context, ref *block.BlockRef
 	return s.StoreOps.RmBlock(ctx, ref)
 }
 
-func (s *overlayBatchTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *overlayBatchTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.batchCalls++
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
@@ -106,7 +106,7 @@ func TestStoreOverlayPutBlockBatchForwards(t *testing.T) {
 	entries := []*block.PutBatchEntry{{Ref: ref, Data: data}}
 
 	// Write the block batch through the overlay.
-	if err := overlay.PutBlockBatch(ctx, entries); err != nil {
+	if _, err := overlay.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err.Error())
 	}
 

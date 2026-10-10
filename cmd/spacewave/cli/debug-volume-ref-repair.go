@@ -119,7 +119,8 @@ func newDebugRefRepairCommand() *cli.Command {
 		ArgsUsage: "<volume-file>",
 		Description: "Walks the Worlds each Space's replay cursor retains, decoding each block by its type, " +
 			"and adds every edge from a block to its refs that the ref graph lacks, plus a bucket edge to each root " +
-			"nothing holds and a GC root edge to each Space bucket. It never removes an edge. Blocks written while GC tracking was off carry no edges. " +
+			"nothing holds and a GC root edge to each Space bucket. It never removes an edge. Blocks written while GC tracking was off carry no edges, " +
+			"and a tracked write records a block's edges only when the block is new, so run this before tracked writers store those blocks again. " +
 			"Run it only on a stopped volume, with --dry-run first.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

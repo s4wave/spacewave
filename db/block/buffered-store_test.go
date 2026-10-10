@@ -89,11 +89,11 @@ func (s *syncOrderStore) Sync(ctx context.Context) (bool, error) {
 	return s.countStore.Sync(ctx)
 }
 
-func (s *syncOrderStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+func (s *syncOrderStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	s.appendEvent("put-start")
-	err := s.countStore.PutBlockBatch(ctx, entries)
+	existed, err := s.countStore.PutBlockBatch(ctx, entries)
 	s.appendEvent("put-done")
-	return err
+	return existed, err
 }
 
 func (s *countStore) GetHashType() hash.HashType {
@@ -137,7 +137,7 @@ func (s *countStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts) (
 	return ref, exists, nil
 }
 
-func (s *countStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+func (s *countStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	// Record the test batch and capture its gate and failure settings.
 	s.mtx.Lock()
 	s.batchCalls++
@@ -158,33 +158,35 @@ func (s *countStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry
 	if release != nil {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		case <-release:
 		}
 	}
 	if failPut != nil {
-		return failPut
+		return nil, failPut
 	}
 
 	// Apply batch tombstones and new blocks under the store lock.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	for _, entry := range entries {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
 		key, err := marshalRefKey(entry.Ref)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if entry.Tombstone {
 			delete(s.blocks, key)
 			continue
 		}
 		if _, exists := s.blocks[key]; exists {
+			existed[i] = true
 			continue
 		}
 		s.blocks[key] = bytes.Clone(entry.Data)
 		s.recordRefTargetsLocked(entry.Ref, entry.Refs)
 	}
-	return nil
+	return existed, nil
 }
 
 func (s *countStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
@@ -802,7 +804,7 @@ func TestBufferedStoreUsesBatchPut(t *testing.T) {
 	store := NewBufferedStore(ctx, inner)
 
 	// Queue two blocks without serial existence probes.
-	if err := store.PutBlockBatch(ctx, []*PutBatchEntry{
+	if _, err := store.PutBlockBatch(ctx, []*PutBatchEntry{
 		{Data: []byte("a")},
 		{Data: []byte("b")},
 	}); err != nil {

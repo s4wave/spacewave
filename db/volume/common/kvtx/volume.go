@@ -414,14 +414,15 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 }
 
 // PutBlockBatch forwards batched writes to the embedded store when supported.
-func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := v.Store.PutBlockBatch(ctx, entries); err != nil {
-		return err
+func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := v.Store.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
 	if len(entries) != 0 {
 		v.broadcastStorageStatsChanged()
 	}
-	return nil
+	return existed, nil
 }
 
 // PutBlock forwards block writes to the embedded store.

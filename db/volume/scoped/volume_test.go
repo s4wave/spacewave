@@ -117,7 +117,7 @@ func TestBlockStoreRefusesDeletion(t *testing.T) {
 	if err := view.RmBlock(ctx, ref); !errors.Is(err, volume_scoped.ErrRefused) {
 		t.Fatalf("RmBlock: %v", err)
 	}
-	err = view.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
+	_, err = view.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
 	if !errors.Is(err, volume_scoped.ErrRefused) {
 		t.Fatalf("tombstone batch: %v", err)
 	}

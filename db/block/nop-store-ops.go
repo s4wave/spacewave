@@ -33,11 +33,12 @@ func (NopStoreOps) PutBlock(context.Context, []byte, *PutOpts) (*BlockRef, bool,
 }
 
 // PutBlockBatch loops calling PutBlock or RmBlock per entry.
-func (n NopStoreOps) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
-	for _, entry := range entries {
+func (n NopStoreOps) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
 		if entry.Tombstone {
 			if err := n.RmBlock(ctx, entry.Ref); err != nil {
-				return err
+				return nil, err
 			}
 			continue
 		}
@@ -45,14 +46,16 @@ func (n NopStoreOps) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry
 		if entry.Ref != nil {
 			ref = entry.Ref.Clone()
 		}
-		if _, _, err := n.PutBlock(ctx, entry.Data, &PutOpts{
+		_, entryExisted, err := n.PutBlock(ctx, entry.Data, &PutOpts{
 			ForceBlockRef: ref,
 			Refs:          entry.Refs,
-		}); err != nil {
-			return err
+		})
+		if err != nil {
+			return nil, err
 		}
+		existed[i] = entryExisted
 	}
-	return nil
+	return existed, nil
 }
 
 // GetBlock returns a missing block.

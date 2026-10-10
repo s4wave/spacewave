@@ -136,14 +136,17 @@ func (w *writebackStore) PutBlock(ctx context.Context, data []byte, opts *block.
 }
 
 // PutBlockBatch records each entry through PutBlock.
-func (w *writebackStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for _, entry := range entries {
+func (w *writebackStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
 		opts := &block.PutOpts{ForceBlockRef: entry.Ref, Refs: entry.Refs}
-		if _, _, err := w.PutBlock(ctx, entry.Data, opts); err != nil {
-			return err
+		_, exists, err := w.PutBlock(ctx, entry.Data, opts)
+		if err != nil {
+			return nil, err
 		}
+		existed[i] = exists
 	}
-	return nil
+	return existed, nil
 }
 
 // putRefs returns the refs recorded for each written block, by hash.

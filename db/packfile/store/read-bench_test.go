@@ -95,14 +95,15 @@ func (s *countingStore) PutBlock(ctx context.Context, data []byte, opts *block.P
 	return ref, existed, err
 }
 
-func (s *countingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := s.StoreOps.PutBlockBatch(ctx, entries); err != nil {
-		return err
+func (s *countingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := s.StoreOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
 	for _, entry := range entries {
 		s.count(entry.Ref)
 	}
-	return nil
+	return existed, nil
 }
 
 func (s *countingStore) count(ref *block.BlockRef) {

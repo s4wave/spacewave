@@ -237,11 +237,11 @@ func (s *SuppliedBlockStore) PutBlock(_ context.Context, _ []byte, _ *block.PutO
 }
 
 // PutBlockBatch is not supported: the supplying owner writes this Space.
-func (s *SuppliedBlockStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) error {
+func (s *SuppliedBlockStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	if len(entries) == 0 {
-		return nil
+		return nil, nil
 	}
-	return block_store.ErrReadOnly
+	return nil, block_store.ErrReadOnly
 }
 
 // RmBlock is not supported: the supplying owner writes this Space.

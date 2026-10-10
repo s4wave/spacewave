@@ -55,7 +55,7 @@ func BenchmarkGCStoreOpsDeduplicatedParentBatch(b *testing.B) {
 	}
 
 	// Seed the volume and create the parent-owned block store.
-	if err := vol.PutBlockBatch(ctx, entries); err != nil {
+	if _, err := vol.PutBlockBatch(ctx, entries); err != nil {
 		b.Fatal(err)
 	}
 	store := block_gc.NewGCStoreOpsWithParent(
@@ -68,7 +68,7 @@ func BenchmarkGCStoreOpsDeduplicatedParentBatch(b *testing.B) {
 	b.ResetTimer()
 	for range b.N {
 		// Write the existing blocks through parent reference tracking.
-		if err := store.PutBlockBatch(ctx, entries); err != nil {
+		if _, err := store.PutBlockBatch(ctx, entries); err != nil {
 			b.Fatal(err)
 		}
 

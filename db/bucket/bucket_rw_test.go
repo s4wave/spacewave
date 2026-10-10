@@ -49,7 +49,7 @@ func (s *bucketRWTestStore) RmBlock(ctx context.Context, ref *block.BlockRef) er
 	return s.StoreOps.RmBlock(ctx, ref)
 }
 
-func (s *bucketRWTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *bucketRWTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Count the batch call and its entries before forwarding the write.
 	s.mtx.Lock()
 	s.batchCalls++
@@ -103,7 +103,7 @@ func TestBucketRWForwardsBlockStoreExtensions(t *testing.T) {
 	}
 
 	// Write a block batch through the combined bucket.
-	if err := b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
+	if _, err := b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
 	}
 

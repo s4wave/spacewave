@@ -63,7 +63,7 @@ func (b *bucketRW) PutBlock(ctx context.Context, data []byte, opts *block.PutOpt
 }
 
 // PutBlockBatch forwards batched writes to the inner StoreOps.
-func (b *bucketRW) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (b *bucketRW) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return b.store.PutBlockBatch(ctx, entries)
 }
 

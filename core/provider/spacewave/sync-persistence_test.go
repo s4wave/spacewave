@@ -41,7 +41,8 @@ func TestDirtyTrackingRetriesPersistedBlocks(t *testing.T) {
 			})
 			put := func() error {
 				if batch {
-					return store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: payload}})
+					_, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: payload}})
+					return err
 				}
 				_, _, err := store.PutBlock(ctx, payload, &block.PutOpts{ForceBlockRef: ref})
 				return err

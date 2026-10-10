@@ -292,7 +292,7 @@ func copyObjectToBucket(
 				if len(ent.Data) > maxPendingBytes {
 					batchTarget = target
 				}
-				err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data, Refs: refs}})
+				_, err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data, Refs: refs}})
 			}
 			if err != nil && err != context.Canceled {
 				err = errors.Wrapf(err, "write ref %s", ent.Ref.MarshalString())

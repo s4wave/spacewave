@@ -272,7 +272,7 @@ func (s *wrapperForwardTestStore) PutBlock(ctx context.Context, data []byte, opt
 	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *wrapperForwardTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *wrapperForwardTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.putBlockBatchHits++
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
@@ -296,7 +296,8 @@ func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 		t.Fatalf("BuildBlockRef failed: %v", err)
 	}
 
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("batch")}}); err != nil {
+	// Write a batch through the wrapper.
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("batch")}}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
 	if inner.putBlockBatchHits != 1 {
@@ -401,7 +402,8 @@ func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
 	}
 	decodedBlocks.Wait()
 
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
+	// Tombstone the block through the wrapper.
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {
 		t.Fatal(err.Error())
 	}
 	tx, cursor = block.NewTransaction(store, nil, ref, nil)
@@ -463,7 +465,8 @@ func TestDirtyTrackingStoreForwardsBatch(t *testing.T) {
 		t.Fatalf("BuildBlockRef failed: %v", err)
 	}
 
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	// Write two blocks in one batch.
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: ref1, Data: []byte("hello")},
 		{Ref: ref2, Data: []byte("world")},
 	}); err != nil {
@@ -513,7 +516,8 @@ func TestDirtyTrackingStoreBatchRepairsExistingBlocks(t *testing.T) {
 		t.Fatalf("BuildBlockRef fresh failed: %v", err)
 	}
 
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	// Write an existing and a fresh block in one batch.
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: existing, Data: []byte("existing")},
 		{Ref: fresh, Data: []byte("fresh")},
 	}); err != nil {

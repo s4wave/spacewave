@@ -18,7 +18,7 @@ type batchCountStore struct {
 }
 
 // PutBlockBatch counts the batch and forwards it.
-func (s *batchCountStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *batchCountStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.batches++
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }

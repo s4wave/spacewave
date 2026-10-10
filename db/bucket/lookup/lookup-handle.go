@@ -105,12 +105,13 @@ func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 }
 
 // PutBlockBatch loops calling PutBlock or RmBlock per entry.
-func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Apply each batch entry as either a tombstone removal or a block write.
-	for _, entry := range entries {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
 		if entry.Tombstone {
 			if err := l.RmBlock(ctx, entry.Ref); err != nil {
-				return err
+				return nil, err
 			}
 			continue
 		}
@@ -118,14 +119,16 @@ func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		if entry.Ref != nil {
 			ref = entry.Ref.Clone()
 		}
-		if _, _, err := l.PutBlock(ctx, entry.Data, &block.PutOpts{
+		_, entryExisted, err := l.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: ref,
 			Refs:          block.CloneBlockRefs(entry.Refs),
-		}); err != nil {
-			return err
+		})
+		if err != nil {
+			return nil, err
 		}
+		existed[i] = entryExisted
 	}
-	return nil
+	return existed, nil
 }
 
 // GetBlock gets a block with a cid reference.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -56,13 +57,41 @@ func TestBlockStoreBatchBounds(t *testing.T) {
 	}}
 
 	// Send the batch through the remote block store adapter.
-	if err := NewBlockStore(client, 0, false).PutBlockBatch(t.Context(), entries); err != nil {
+	if _, err := NewBlockStore(client, 0, false).PutBlockBatch(t.Context(), entries); err != nil {
 		t.Fatal(err)
 	}
 
 	// Require every entry to arrive across multiple bounded requests.
 	if seen != len(entries) || requests < 2 {
 		t.Fatalf("sent %d entries in %d requests", seen, requests)
+	}
+}
+
+// TestBlockStoreBatchReportsExistence checks that per-entry existence survives
+// splitting a batch across remote requests, in entry order.
+func TestBlockStoreBatchReportsExistence(t *testing.T) {
+	// Build entries that each fill a request, so they travel separately.
+	var entries []*block.PutBatchEntry
+	existing := make(map[string]bool)
+	want := []bool{false, true, true, false}
+	for i, stored := range want {
+		data := bytes.Repeat([]byte{byte(i)}, 3<<20)
+		ref, err := block.BuildBlockRef(data, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: data})
+		existing[string(data)] = stored
+	}
+
+	// The adapter returns the remote answers in entry order.
+	client := &testBlockStoreClient{existing: existing}
+	got, err := NewBlockStore(client, 0, false).PutBlockBatch(t.Context(), entries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("existed = %v, want %v", got, want)
 	}
 }
 
@@ -102,7 +131,7 @@ func TestBlockStoreBatchStops(t *testing.T) {
 
 			// Submit two entries that require separate remote requests.
 			entry := &block.PutBatchEntry{Data: make([]byte, 3<<20)}
-			err := NewBlockStore(client, 0, false).PutBlockBatch(ctx, []*block.PutBatchEntry{entry, entry})
+			_, err := NewBlockStore(client, 0, false).PutBlockBatch(ctx, []*block.PutBatchEntry{entry, entry})
 
 			// Require the selected failure and no request after the first.
 			if !errors.Is(err, want) || calls != 1 {

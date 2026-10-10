@@ -99,13 +99,15 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 
 // PrepareOwnedBlockBatch is used by bounded staging's ordinary capacity drains.
 // It cannot expose a gap between persisting bytes and rescuing their ownership.
-func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*block.PutBatchEntry) error {
+func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, entries []*block.PutBatchEntry) (existed []bool, err error) {
 	if len(entries) == 0 && v.SupportsAtomicPublication() {
-		return nil
+		return nil, nil
 	}
-	return v.prepareOwned(ctx, bucketOwner(bucketID), claimBucket, func(store block.StoreOps) error {
-		return store.PutBlockBatch(ctx, entries)
+	err = v.prepareOwned(ctx, bucketOwner(bucketID), claimBucket, func(store block.StoreOps) error {
+		existed, err = store.PutBlockBatch(ctx, entries)
+		return err
 	})
+	return existed, err
 }
 
 // bucketOwner returns the graph node of a bucket, or empty for no bucket.

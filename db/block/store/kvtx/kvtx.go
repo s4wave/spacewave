@@ -138,8 +138,10 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 
 // PutBlockBatch writes all entries in one lower kvtx transaction, starting
 // another where the store reports the transaction full. Blocks are
-// independent, so a batch split across transactions is safe.
-func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+// independent, so a batch split across transactions is safe. Reports whether
+// each block was stored before the write, from the same Exists read the write
+// makes.
+func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Trace the batch.
 	ctx, task := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch")
 	defer task.End()
@@ -149,14 +151,16 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 	for _, entry := range entries {
 		op, err := k.preparePutBlockBatchOp(entry)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		ops = append(ops, op)
 	}
 
 	// Write the ops, committing each transaction once it is full.
-	for len(ops) != 0 {
+	existed := make([]bool, 0, len(ops))
+	for remaining := ops; len(remaining) != 0; {
 		var written int
+		var attempt []bool
 		err := kvtx.RunTransaction(ctx, true,
 			func(ctx context.Context) (kvtx.Tx, error) {
 				taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/new-transaction")
@@ -165,26 +169,28 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 				return tx, err
 			},
 			func(ctx context.Context, tx kvtx.Tx) error {
-				written = 0
-				for _, op := range ops {
-					err := applyPutBlockBatchOp(ctx, tx, op)
+				written, attempt = 0, attempt[:0]
+				for _, op := range remaining {
+					opExisted, err := applyPutBlockBatchOp(ctx, tx, op)
 					if errors.Is(err, kvtx.ErrTxTooBig) && written != 0 {
 						return nil
 					}
 					if err != nil {
 						return err
 					}
+					attempt = append(attempt, opExisted)
 					written++
 				}
 				return nil
 			},
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		ops = ops[written:]
+		existed = append(existed, attempt...)
+		remaining = remaining[written:]
 	}
-	return nil
+	return existed, nil
 }
 
 // GetBlock looks up a block in the store.
@@ -270,8 +276,9 @@ func (r *readOperation) PutBlock(context.Context, []byte, *block.PutOpts) (*bloc
 	return nil, false, ErrReadOperationReadOnly
 }
 
-func (r *readOperation) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
-	return ErrReadOperationReadOnly
+// PutBlockBatch rejects writes: a read operation is read-only.
+func (r *readOperation) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, ErrReadOperationReadOnly
 }
 
 func (r *readOperation) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
@@ -465,15 +472,16 @@ type putBlockBatchOp struct {
 }
 
 // applyPutBlockBatchOp writes one prepared op unless its block is stored.
-func applyPutBlockBatchOp(ctx context.Context, tx kvtx.Tx, op putBlockBatchOp) error {
+// Returns whether the block was stored before the write; a tombstone is false.
+func applyPutBlockBatchOp(ctx context.Context, tx kvtx.Tx, op putBlockBatchOp) (bool, error) {
 	if op.tombstone {
-		return tx.Delete(ctx, op.key)
+		return false, tx.Delete(ctx, op.key)
 	}
 	exists, err := tx.Exists(ctx, op.key)
 	if err != nil || exists {
-		return err
+		return exists, err
 	}
-	return tx.Set(ctx, op.key, op.data)
+	return false, tx.Set(ctx, op.key, op.data)
 }
 
 // preparePutBlockBatchOp marshals one batch entry into its stored form.

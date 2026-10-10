@@ -125,7 +125,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 				return err
 			}
 			gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, bucket, block_gc.BucketFlushTask())
-			if err := gc.PutBlockBatch(ctx, entries); err != nil {
+			if _, err := gc.PutBlockBatch(ctx, entries); err != nil {
 				return err
 			}
 			if err := gc.FlushPending(ctx); err != nil {

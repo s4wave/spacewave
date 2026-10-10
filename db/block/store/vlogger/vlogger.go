@@ -75,7 +75,7 @@ func (s *VLoggerStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 }
 
 // PutBlockBatch writes a batch of block operations.
-func (s *VLoggerStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) (err error) {
+func (s *VLoggerStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) (_ []bool, err error) {
 	t1 := time.Now()
 	defer func() {
 		s.le.Debugf(

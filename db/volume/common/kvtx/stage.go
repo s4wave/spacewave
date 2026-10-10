@@ -68,13 +68,15 @@ func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []by
 }
 
 // PrepareStagedBlockBatch writes a batch owned by an open stage.
-func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entries []*block.PutBatchEntry) error {
+func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entries []*block.PutBatchEntry) (existed []bool, err error) {
 	if len(entries) == 0 {
-		return nil
+		return nil, nil
 	}
-	return v.prepareOwned(ctx, stage, claimStage, func(store block.StoreOps) error {
-		return store.PutBlockBatch(ctx, entries)
+	err = v.prepareOwned(ctx, stage, claimStage, func(store block.StoreOps) error {
+		existed, err = store.PutBlockBatch(ctx, entries)
+		return err
 	})
+	return existed, err
 }
 
 // claimStage requires the stage to still hang under its process owner. A

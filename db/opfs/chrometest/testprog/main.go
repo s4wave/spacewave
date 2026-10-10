@@ -1866,36 +1866,21 @@ func (d *probeDirtyTrackingStore) PutBlock(ctx context.Context, data []byte, opt
 }
 
 // PutBlockBatch writes the batch and records each previously absent live block.
-func (d *probeDirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	// Find which live entries already exist.
-	var refs []*block.BlockRef
-	var valid []int
+func (d *probeDirtyTrackingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Write the batch, then mark the previously absent live blocks dirty.
+	existed, err := d.store.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
 	for i, entry := range entries {
-		if entry == nil || entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() {
+		if entry == nil || entry.Tombstone || entry.Ref == nil || entry.Ref.GetEmpty() || existed[i] {
 			continue
 		}
-		valid = append(valid, i)
-		refs = append(refs, entry.Ref)
-	}
-	exists, err := d.store.GetBlockExistsBatch(ctx, refs)
-	if err != nil || len(exists) != len(refs) {
-		exists = nil
-	}
-
-	// Write the batch, then mark the new blocks dirty.
-	if err := d.store.PutBlockBatch(ctx, entries); err != nil {
-		return err
-	}
-	for j, i := range valid {
-		if exists != nil && exists[j] {
-			continue
-		}
-		entry := entries[i]
 		if err := d.markDirty(ctx, entry.Ref.GetHash(), int64(len(entry.Data))); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return existed, nil
 }
 
 // GetBlock reads content from the underlying store.

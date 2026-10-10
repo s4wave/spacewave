@@ -135,13 +135,13 @@ func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 }
 
 // PutBlockBatch forwards batched writes to the inner store.
-func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Hold publication retention while a batch deletes any block.
 	for _, entry := range entries {
 		if entry != nil && entry.Tombstone {
 			release, err := b.retention.invalidate(ctx)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			defer release()
 			break
@@ -152,11 +152,12 @@ func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	// invalidate on both sides so in-flight decoded stores cannot cross the
 	// mutation boundary.
 	b.invalidateBatchTombstones(ctx, entries)
-	if err := b.store.PutBlockBatch(ctx, entries); err != nil {
-		return err
+	existed, err := b.store.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
 	b.invalidateBatchTombstones(ctx, entries)
-	return nil
+	return existed, nil
 }
 
 // GetBlock forwards to the inner store.

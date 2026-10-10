@@ -43,7 +43,7 @@ func (s *kvtxBlockTestStore) RmBlock(ctx context.Context, ref *block.BlockRef) e
 	return s.StoreOps.RmBlock(ctx, ref)
 }
 
-func (s *kvtxBlockTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *kvtxBlockTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.batchCalls++
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
@@ -74,7 +74,7 @@ func TestKVTxForwardsBlockStoreExtensions(t *testing.T) {
 	}
 
 	// Write a block batch through the KVTx wrapper.
-	if err := k.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
+	if _, err := k.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: []byte("hello")}}); err != nil {
 		t.Fatal(err.Error())
 	}
 

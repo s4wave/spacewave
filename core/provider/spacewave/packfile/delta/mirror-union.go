@@ -54,11 +54,11 @@ func (m *MirrorUnion) PutBlock(ctx context.Context, data []byte, opts *block.Put
 }
 
 // PutBlockBatch rejects batched writes against the mirror.
-func (m *MirrorUnion) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) error {
+func (m *MirrorUnion) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	if len(entries) == 0 {
-		return nil
+		return nil, nil
 	}
-	return block_store.ErrReadOnly
+	return nil, block_store.ErrReadOnly
 }
 
 // GetBlock returns the first hit across the union of packs.

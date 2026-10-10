@@ -42,8 +42,8 @@ func (*Store) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef
 }
 
 // PutBlockBatch is unsupported because the DEX view is read-only.
-func (*Store) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
-	return block_store.ErrReadOnly
+func (*Store) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, block_store.ErrReadOnly
 }
 
 // RmBlock is unsupported because the DEX view is read-only.

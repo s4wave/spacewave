@@ -521,11 +521,11 @@ func (s *streamStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.
 }
 
 // PutBlockBatch is not used on the source side.
-func (s *streamStoreOps) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) error {
+func (s *streamStoreOps) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	if len(entries) == 0 {
-		return nil
+		return nil, nil
 	}
-	return block_store.ErrReadOnly
+	return nil, block_store.ErrReadOnly
 }
 
 // StatBlock returns metadata about a block without reading its data.

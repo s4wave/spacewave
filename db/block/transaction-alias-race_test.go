@@ -267,19 +267,22 @@ func (aliasRaceStore) PutBlock(_ context.Context, _ []byte, opts *PutOpts) (*Blo
 	return opts.GetForceBlockRef().Clone(), false, nil
 }
 
-func (s aliasRaceStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
-	for _, entry := range entries {
+func (s aliasRaceStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
 		if entry.Tombstone {
 			continue
 		}
-		if _, _, err := s.PutBlock(ctx, entry.Data, &PutOpts{
+		_, exists, err := s.PutBlock(ctx, entry.Data, &PutOpts{
 			ForceBlockRef: entry.Ref,
 			Refs:          entry.Refs,
-		}); err != nil {
-			return err
+		})
+		if err != nil {
+			return nil, err
 		}
+		existed[i] = exists
 	}
-	return nil
+	return existed, nil
 }
 
 // _ is a type assertion

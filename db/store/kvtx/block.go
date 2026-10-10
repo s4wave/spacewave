@@ -78,7 +78,7 @@ func (k *KVTx) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 }
 
 // PutBlockBatch forwards batched writes to the underlying block store when supported.
-func (k *KVTx) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (k *KVTx) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return k.blk.PutBlockBatch(ctx, entries)
 }
 

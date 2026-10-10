@@ -29,7 +29,10 @@ type StoreOps interface {
 	PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error)
 	// PutBlockBatch writes a batch of block operations.
 	// Implementations without native batching fall back internally.
-	PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error
+	// Returns one result per entry, in order: whether the block was already
+	// stored before the write, like the second return value of PutBlock.
+	// A tombstone entry reports false.
+	PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error)
 	// GetBlock gets a block with the given reference.
 	// The ref should not be modified or retained by GetBlock.
 	// Returns data, found, error.

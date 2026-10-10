@@ -514,7 +514,7 @@ func (s *stagingCountStore) PutBlock(ctx context.Context, data []byte, opts *blo
 	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *stagingCountStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *stagingCountStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Record the batch publication and its size under the store lock.
 	s.mu.Lock()
 	s.batchCalls++

@@ -64,7 +64,7 @@ func TestBucketRemovalPreservesSharedBlock(t *testing.T) {
 				t.Helper()
 				var err error
 				if batch {
-					err = handle.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
+					_, err = handle.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
 				} else {
 					err = handle.RmBlock(ctx, ref)
 				}

@@ -325,11 +325,13 @@ func containsBlockRefs(have, want []*BlockRef) bool {
 
 // PutBlockBatch buffers verified entries without per-block existence probes.
 // Pending entries deduplicate locally; durable duplicates resolve during drain.
-func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
-	for _, entry := range entries {
+// A block is reported as existing only when a pending entry already holds it.
+func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
 		if entry.Tombstone {
 			if err := s.RmBlock(ctx, entry.Ref); err != nil {
-				return err
+				return nil, err
 			}
 			continue
 		}
@@ -337,14 +339,16 @@ func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEn
 		if entry.Ref != nil {
 			ref = entry.Ref.Clone()
 		}
-		if _, _, err := s.putBlock(ctx, entry.Data, &PutOpts{
+		_, pendingExisted, err := s.putBlock(ctx, entry.Data, &PutOpts{
 			ForceBlockRef: ref,
 			Refs:          CloneBlockRefs(entry.Refs),
-		}, false); err != nil {
-			return err
+		}, false)
+		if err != nil {
+			return nil, err
 		}
+		existed[i] = pendingExisted
 	}
-	return nil
+	return existed, nil
 }
 
 // GetBlock gets a block by reference.
@@ -818,7 +822,7 @@ func (s *BufferedStore) writeBatch(ctx context.Context, entries []*PutBatchEntry
 
 	// Write the block batch while tracing the inner store operation.
 	batchCtx, batchTask := trace.NewTask(ctx, "hydra/block/buffered-store/write-batch/put-block-batch")
-	err := s.inner.PutBlockBatch(batchCtx, entries)
+	_, err := s.inner.PutBlockBatch(batchCtx, entries)
 	batchTask.End()
 	return err
 }

@@ -40,7 +40,7 @@ func TestBlockDeletionInvalidatesPublicationProofs(t *testing.T) {
 
 			// Delete the block through the batch or single-block entry point.
 			if batch {
-				err = store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
+				_, err = store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
 			} else {
 				err = store.RmBlock(ctx, ref)
 			}

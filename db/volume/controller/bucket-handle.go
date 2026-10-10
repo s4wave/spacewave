@@ -296,20 +296,20 @@ func (b *bucketHandle) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 // lower-layer operation. Routes through GCStoreOps.PutBlockBatch when GC
 // tracking is enabled, otherwise falls back to per-entry volume PutBlock.
 // FlushPending is called once for the entire batch.
-func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Trace the complete bucket batch write.
 	ctx, task := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch")
 	defer task.End()
 
 	// Reject writes on a failed or missing bucket and honor read scopes.
 	if b.err != nil {
-		return b.err
+		return nil, b.err
 	}
 	if b.bucketConf == nil {
-		return bucket.ErrBucketNotFound
+		return nil, bucket.ErrBucketNotFound
 	}
 	if len(entries) == 0 {
-		return nil
+		return nil, nil
 	}
 	if b.readOps != nil {
 		return b.readOps.PutBlockBatch(ctx, entries)
@@ -326,30 +326,28 @@ func (b *bucketHandle) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		if b.gcOps != nil {
 			owner = b.GetID()
 		}
-		err := prepare.PrepareOwnedBlockBatch(ctx, owner, entries)
+		existed, err := prepare.PrepareOwnedBlockBatch(ctx, owner, entries)
 		if !errors.Is(err, block.ErrAtomicPublicationUnsupported) {
-			return err
+			return existed, err
 		}
 	}
 
-	// Write the batch through GC tracking or the volume directly.
-	if b.gcOps != nil {
-		if err := b.gcOps.PutBlockBatch(ctx, entries); err != nil {
-			return err
-		}
-		flushCtx, flushTask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch/gc-flush-pending")
-		if err := b.gcOps.FlushPending(flushCtx); err != nil {
-			flushTask.End()
-			return err
-		}
-		flushTask.End()
-	} else {
-		if err := b.v.PutBlockBatch(ctx, entries); err != nil {
-			return err
-		}
+	// Write the batch through the volume directly when GC is not tracking.
+	if b.gcOps == nil {
+		return b.v.PutBlockBatch(ctx, entries)
 	}
 
-	return nil
+	// Write the batch through GC tracking, then flush its edges.
+	existed, err := b.gcOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+	flushCtx, flushTask := trace.NewTask(ctx, "hydra/volume/bucket-handle/put-block-batch/gc-flush-pending")
+	defer flushTask.End()
+	if err := b.gcOps.FlushPending(flushCtx); err != nil {
+		return nil, err
+	}
+	return existed, nil
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -494,7 +492,8 @@ func (b *bucketHandle) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return b.readOps.RmBlock(ctx, ref)
 	}
 
-	return b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
+	_, err := b.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}})
+	return err
 }
 
 // Sync makes bucket-level GC writes durable, then fences the volume.

@@ -119,7 +119,7 @@ func (s *wrapperBatchTestStore) RmBlock(ctx context.Context, ref *block.BlockRef
 	return s.StoreOps.RmBlock(ctx, ref)
 }
 
-func (s *wrapperBatchTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *wrapperBatchTestStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.batchCalls++
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
@@ -147,7 +147,7 @@ func TestStoreForwardsNativeOperations(t *testing.T) {
 	ref := mustBuildBlockRef(t, data)
 
 	// Verify that batch insertion reaches the native batch operation.
-	if err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}}); err != nil {
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}}); err != nil {
 		t.Fatal(err.Error())
 	}
 	if inner.batchCalls != 1 || inner.putCalls != 0 {

@@ -615,10 +615,10 @@ func (s *recordingBucketOps) PutBlock(ctx context.Context, data []byte, opts *bl
 	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *recordingBucketOps) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) error {
+func (s *recordingBucketOps) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.putBatchCalls++
 	s.putBatchEntries = entries
-	return nil
+	return make([]bool, len(entries)), nil
 }
 
 func (s *recordingBucketOps) GetBlockExistsBatch(_ context.Context, refs []*block.BlockRef) ([]bool, error) {

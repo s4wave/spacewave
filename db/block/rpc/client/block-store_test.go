@@ -16,6 +16,8 @@ type testBlockStoreClient struct {
 	featureCalls int
 	batchEntries []*block_rpc.PutBlockBatchEntry
 	batchHook    func(context.Context, *block_rpc.PutBlockBatchRequest) error
+	// existing holds the data of blocks the remote store already has.
+	existing map[string]bool
 }
 
 func (c *testBlockStoreClient) SRPCClient() srpc.Client {
@@ -54,7 +56,11 @@ func (c *testBlockStoreClient) PutBlockBatch(
 			return nil, err
 		}
 	}
-	return &block_rpc.PutBlockBatchResponse{}, nil
+	resp := &block_rpc.PutBlockBatchResponse{Existed: make([]bool, len(req.GetEntries()))}
+	for i, entry := range req.GetEntries() {
+		resp.Existed[i] = c.existing[string(entry.GetData())]
+	}
+	return resp, nil
 }
 
 func (c *testBlockStoreClient) GetBlock(
@@ -143,7 +149,7 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	outRef := &block.BlockRef{}
 
 	// Send one batch entry carrying the ref and payload through the store.
-	if err := store.PutBlockBatch(context.Background(), []*block.PutBatchEntry{{
+	if _, err := store.PutBlockBatch(context.Background(), []*block.PutBatchEntry{{
 		Ref:  ref,
 		Data: []byte("hello"),
 		Refs: []*block.BlockRef{outRef},

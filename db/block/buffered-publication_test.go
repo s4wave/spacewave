@@ -58,11 +58,11 @@ func TestBufferedPublicationRetainsReadabilityAndRetries(t *testing.T) {
 	}
 
 	// Persist and complete both publications before checking accounting.
-	if err := inner.PutBlockBatch(ctx, retry.Entries); err != nil {
+	if _, err := inner.PutBlockBatch(ctx, retry.Entries); err != nil {
 		t.Fatal(err)
 	}
 	retry.Complete(nil)
-	if err := inner.PutBlockBatch(ctx, second.Entries); err != nil {
+	if _, err := inner.PutBlockBatch(ctx, second.Entries); err != nil {
 		t.Fatal(err)
 	}
 	second.Complete(nil)
@@ -104,7 +104,7 @@ func TestBufferedPublicationCapacityAndSyncWaitForDurability(t *testing.T) {
 	}
 
 	// Persist the publication and verify capacity becomes available.
-	if err := inner.PutBlockBatch(t.Context(), b.Entries); err != nil {
+	if _, err := inner.PutBlockBatch(t.Context(), b.Entries); err != nil {
 		t.Fatal(err)
 	}
 	b.Complete(nil)
@@ -136,7 +136,7 @@ func TestBufferedPublicationOrdersReplacementAfterBorrow(t *testing.T) {
 	}
 
 	// Persist the borrowed put and verify removal completes.
-	if err := inner.PutBlockBatch(t.Context(), b.Entries); err != nil {
+	if _, err := inner.PutBlockBatch(t.Context(), b.Entries); err != nil {
 		t.Fatal(err)
 	}
 	b.Complete(nil)
@@ -251,7 +251,7 @@ func TestBufferedPublicationMetadataCapacityRetainsBorrow(t *testing.T) {
 	}
 
 	// Persist the publication and verify its metadata charge is released.
-	if err := inner.PutBlockBatch(t.Context(), b.Entries); err != nil {
+	if _, err := inner.PutBlockBatch(t.Context(), b.Entries); err != nil {
 		t.Fatal(err)
 	}
 	b.Complete(nil)

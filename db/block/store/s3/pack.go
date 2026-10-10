@@ -167,7 +167,7 @@ func (s *PackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 
 	// Write the block and its references through the batch packfile path.
 	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: opts.GetRefs()}
-	if err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
+	if _, err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 		return nil, false, err
 	}
 	return ref, false, nil
@@ -176,8 +176,9 @@ func (s *PackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 // PutBlockBatch writes the batch as one packfile and its entry.
 //
 // The batch must fit one packfile: at most writer.DefaultMaxBlocksPerPack
-// blocks and writer.DefaultMaxPackBytes bytes. Tombstones are rejected.
-func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEntry) error {
+// blocks and writer.DefaultMaxPackBytes bytes. Tombstones are rejected. Every
+// block is written again, so none is reported as existing.
+func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEntry) ([]bool, error) {
 	// Write the batch as one immutable packfile.
 	i := 0
 	entry, err := s.writePack(ctx, func() (*hash.Hash, *block.StoredBlock, error) {
@@ -193,7 +194,7 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 		return entry.Ref.GetHash(), &block.StoredBlock{Data: entry.Data, Refs: entry.Refs, RefsKnown: true}, nil
 	})
 	if err != nil || entry == nil {
-		return err
+		return nil, err
 	}
 
 	// Publish the new packfile entry and wake compaction watchers.
@@ -202,7 +203,7 @@ func (s *PackStore) PutBlockBatch(ctx context.Context, batch []*block.PutBatchEn
 		s.writes++
 		broadcast()
 	})
-	return nil
+	return make([]bool, len(batch)), nil
 }
 
 // writePack writes the blocks next yields as one packfile, then its entry.

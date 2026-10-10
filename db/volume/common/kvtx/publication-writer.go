@@ -397,7 +397,7 @@ func (w *publicationWriter) apply(
 	// Write untracked entries directly.
 	p := req.publication
 	if !p.TrackGC {
-		if err := blocks.PutBlockBatch(ctx, p.Entries); err != nil {
+		if _, err := blocks.PutBlockBatch(ctx, p.Entries); err != nil {
 			return err
 		}
 		return w.setHeads(ctx, tx, p, replacements)
@@ -409,7 +409,7 @@ func (w *publicationWriter) apply(
 		return err
 	}
 	gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
-	if err := gc.PutBlockBatch(ctx, p.Entries); err != nil {
+	if _, err := gc.PutBlockBatch(ctx, p.Entries); err != nil {
 		return err
 	}
 	if err := gc.FlushPending(ctx); err != nil {

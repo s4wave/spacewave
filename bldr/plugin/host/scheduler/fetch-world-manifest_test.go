@@ -4733,7 +4733,7 @@ func (s *countingBlockStore) PutBlock(
 	return s.store.PutBlock(ctx, data, opts)
 }
 
-func (s *countingBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *countingBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return s.store.PutBlockBatch(ctx, entries)
 }
 

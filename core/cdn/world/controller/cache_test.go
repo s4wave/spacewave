@@ -59,12 +59,13 @@ func (s *notifyingBlockStore) PutBlock(ctx context.Context, data []byte, opts *b
 }
 
 // PutBlockBatch writes entries and signals one put.
-func (s *notifyingBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := s.StoreOps.PutBlockBatch(ctx, entries); err != nil {
-		return err
+func (s *notifyingBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := s.StoreOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
 	s.signalPut()
-	return nil
+	return existed, nil
 }
 
 // signalPut records a put without blocking when one is already pending.

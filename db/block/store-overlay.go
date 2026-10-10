@@ -317,13 +317,27 @@ func (o *StoreOverlay) PutBlock(ctx context.Context, data []byte, opts *PutOpts)
 }
 
 // PutBlockBatch writes a batch of blocks using the same target-store policy as
-// PutBlock.
-func (o *StoreOverlay) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
-	cacheMode := func(s1, s2 StoreOps) error {
-		if err := s1.PutBlockBatch(ctx, entries); err != nil {
-			return err
+// PutBlock. A block written to both stores is reported as existing only when
+// both stores held it.
+func (o *StoreOverlay) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
+	cacheMode := func(s1, s2 StoreOps) ([]bool, error) {
+		// Write the batch to the first store.
+		existed, err := s1.PutBlockBatch(ctx, entries)
+		if err != nil {
+			return nil, err
 		}
-		return s2.PutBlockBatch(ctx, entries)
+
+		// Write it to the second store.
+		secondExisted, err := s2.PutBlockBatch(ctx, entries)
+		if err != nil {
+			return nil, err
+		}
+
+		// Report a block as existing only when both stores held it.
+		for i := range existed {
+			existed[i] = existed[i] && secondExisted[i]
+		}
+		return existed, nil
 	}
 
 	switch o.mode {

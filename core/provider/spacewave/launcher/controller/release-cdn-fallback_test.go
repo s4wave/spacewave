@@ -343,10 +343,10 @@ func (s *releaseCDNFallbackWritebackStore) PutBlock(
 func (s *releaseCDNFallbackWritebackStore) PutBlockBatch(
 	ctx context.Context,
 	entries []*block.PutBatchEntry,
-) error {
-	err := s.StoreOps.PutBlockBatch(ctx, entries)
+) ([]bool, error) {
+	existed, err := s.StoreOps.PutBlockBatch(ctx, entries)
 	s.notifyPut(err)
-	return err
+	return existed, err
 }
 
 func (s *releaseCDNFallbackWritebackStore) notifyPut(err error) {

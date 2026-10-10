@@ -234,11 +234,11 @@ func (s *CdnBlockStore) PutBlock(_ context.Context, _ []byte, _ *block.PutOpts) 
 }
 
 // PutBlockBatch is not supported on an anonymous CDN block store.
-func (s *CdnBlockStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) error {
+func (s *CdnBlockStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	if len(entries) == 0 {
-		return nil
+		return nil, nil
 	}
-	return block_store.ErrReadOnly
+	return nil, block_store.ErrReadOnly
 }
 
 // RmBlock is not supported on an anonymous CDN block store.

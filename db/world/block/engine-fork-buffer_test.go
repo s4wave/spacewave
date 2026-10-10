@@ -20,7 +20,7 @@ type forkBufferRecordingStore struct {
 	syncCalls    int
 }
 
-func (s *forkBufferRecordingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *forkBufferRecordingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Record the batch and delegate it to the store.
 	s.mu.Lock()
 	s.batchCalls++

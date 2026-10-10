@@ -74,7 +74,7 @@ func (v *VolumeBlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) err
 }
 
 // PutBlockBatch forwards batched writes to the wrapped block store when supported.
-func (v *VolumeBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (v *VolumeBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return v.store.PutBlockBatch(ctx, entries)
 }
 

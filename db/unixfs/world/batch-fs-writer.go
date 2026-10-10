@@ -336,7 +336,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) (rerr error) {
 		// Stage the blobs on every attempt: a replay runs on a new transaction.
 		if blobs != nil && len(blobs.Entries) != 0 {
 			btx := bcs.GetTransaction()
-			if err := btx.StageWrites(ctx, btx.GetStoreOps()).PutBlockBatch(ctx, blobs.Entries); err != nil {
+			if _, err := btx.StageWrites(ctx, btx.GetStoreOps()).PutBlockBatch(ctx, blobs.Entries); err != nil {
 				return err
 			}
 		}

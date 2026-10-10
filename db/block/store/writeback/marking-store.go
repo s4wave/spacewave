@@ -60,11 +60,12 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 // PutBlockBatch marks every successful non-tombstone write in one call.
 // A failed marker returns an error; repeating the batch repairs the markers.
-func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := m.store.PutBlockBatch(ctx, entries); err != nil {
-		return err
+func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := m.store.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
-	return m.markEntries(ctx, entries)
+	return existed, m.markEntries(ctx, entries)
 }
 
 // markEntries marks every non-tombstone entry of a written batch in one call

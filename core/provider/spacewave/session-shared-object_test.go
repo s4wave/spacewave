@@ -51,8 +51,8 @@ func (s *sessionLookupTestLower) PutBlock(ctx context.Context, data []byte, opts
 	return ref, true, nil
 }
 
-func (s *sessionLookupTestLower) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
-	return block_store.ErrReadOnly
+func (s *sessionLookupTestLower) PutBlockBatch(context.Context, []*block.PutBatchEntry) ([]bool, error) {
+	return nil, block_store.ErrReadOnly
 }
 
 func (s *sessionLookupTestLower) RmBlock(context.Context, *block.BlockRef) error {

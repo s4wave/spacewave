@@ -44,50 +44,50 @@ func (s *Store) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) 
 	}
 
 	// Add the payload unless the block is already stored.
-	added, err := s.add(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}})
+	existed, err := s.add(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}})
 	if err != nil {
 		return ref, false, err
 	}
 	if opts.GetSync() {
 		_, err = s.Sync(ctx)
 	}
-	return ref, added == 0, err
+	return ref, existed[0], err
 }
 
 // PutBlockBatch verifies every entry, then adds the new payloads and the
-// tombstones as removes.
-func (s *Store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+// tombstones as removes. Reports whether each block was stored before the write.
+func (s *Store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	for _, entry := range entries {
 		if entry == nil {
-			return block.ErrEmptyBlockRef
+			return nil, block.ErrEmptyBlockRef
 		}
 		if err := entry.Ref.Validate(false); err != nil {
-			return err
+			return nil, err
 		}
 		if entry.Tombstone {
 			continue
 		}
 		if len(entry.Data) == 0 {
-			return block.ErrEmptyBlock
+			return nil, block.ErrEmptyBlock
 		}
 		if err := entry.Ref.VerifyData(entry.Data, false); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	_, err := s.add(ctx, entries)
-	return err
+	return s.add(ctx, entries)
 }
 
 // add adds a pending write for each entry not yet stored and a pending remove
-// for each tombstone. It returns the number of writes added.
-func (s *Store) add(ctx context.Context, entries []*block.PutBatchEntry) (int, error) {
+// for each tombstone. It returns whether each entry's block was stored before
+// the call, false for a tombstone.
+func (s *Store) add(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Resolve keys and find the stored blocks in one call.
 	keys := make([][]byte, len(entries))
 	var puts [][]byte
 	for i, entry := range entries {
 		key, err := blockKey(entry.Ref)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		keys[i] = key
 		if !entry.Tombstone {
@@ -99,14 +99,14 @@ func (s *Store) add(ctx context.Context, entries []*block.PutBatchEntry) (int, e
 		var err error
 		stored, err = s.records.Has(ctx, puts)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 	}
 
 	// Record the writes and removes.
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	var added int
+	existed := make([]bool, len(entries))
 	for i, entry := range entries {
 		key := string(keys[i])
 		if entry.Tombstone {
@@ -117,12 +117,12 @@ func (s *Store) add(ctx context.Context, entries []*block.PutBatchEntry) (int, e
 		stored = stored[1:]
 		p := s.pending[key]
 		if (p != nil && p.data != nil) || (p == nil && wasStored) {
+			existed[i] = true
 			continue
 		}
 		s.pending[key] = &pendingBlock{data: entry.Data}
-		added++
 	}
-	return added, nil
+	return existed, nil
 }
 
 // lookup returns the pending entries of refs and, for the rest, whether they

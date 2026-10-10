@@ -271,7 +271,7 @@ func putPack(t *testing.T, bucket *fakeBucket, store *PackStore, names ...string
 
 	// Write them and find the new packfile.
 	before := bucket.keys()
-	if err := store.PutBlockBatch(t.Context(), batch); err != nil {
+	if _, err := store.PutBlockBatch(t.Context(), batch); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range bucket.keys() {

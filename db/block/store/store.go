@@ -76,7 +76,7 @@ func (s *store) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) 
 }
 
 // PutBlockBatch forwards batched writes to the inner StoreOps.
-func (s *store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return s.ops.PutBlockBatch(ctx, entries)
 }
 

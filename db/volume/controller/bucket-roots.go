@@ -21,8 +21,9 @@ type bucketRootVolume interface {
 	OpenStage(context.Context) (string, func(), error)
 	// PrepareStagedBlock writes a block the stage owns.
 	PrepareStagedBlock(context.Context, string, []byte, *block.PutOpts) (*block.BlockRef, bool, error)
-	// PrepareStagedBlockBatch writes a batch of blocks the stage owns.
-	PrepareStagedBlockBatch(context.Context, string, []*block.PutBatchEntry) error
+	// PrepareStagedBlockBatch writes a batch of blocks the stage owns and reports
+	// which of them were stored before.
+	PrepareStagedBlockBatch(context.Context, string, []*block.PutBatchEntry) ([]bool, error)
 	// ReleaseBucketRoots drops a bucket's staging edges to roots.
 	ReleaseBucketRoots(context.Context, string, []*block.BlockRef) error
 	// ReleaseStageRoots drops a stage's edges to roots.

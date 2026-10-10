@@ -11,6 +11,10 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
+// ErrBatchExistenceMismatch is returned when a batch response reports a
+// different number of existence results than the request held entries.
+var ErrBatchExistenceMismatch = errors.New("put block batch: existence results do not match entries")
+
 // BlockStore implements a BlockStore backed by a BlockStore service.
 type BlockStore struct {
 	// client carries the remote store operations.
@@ -101,10 +105,10 @@ func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch preserves operation order across bounded remote requests.
 // A failed request stops submission; earlier requests may have committed.
-func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Reject read-only clients before building the remote batch request.
 	if v.readOnly {
-		return block_store.ErrReadOnly
+		return nil, block_store.ErrReadOnly
 	}
 
 	// Prepare the bounded request buffer and its submission closure.
@@ -112,6 +116,7 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	const batchBytes = 4 << 20
 	req := &block_rpc.PutBlockBatchRequest{}
 	size := 0
+	existed := make([]bool, 0, len(entries))
 	flush := func() error {
 		// Skip empty requests and stop canceled batch writes.
 		if len(req.Entries) == 0 {
@@ -129,8 +134,12 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		if errStr := resp.GetError(); errStr != "" {
 			return errors.New(errStr)
 		}
+		if len(resp.GetExisted()) != len(req.Entries) {
+			return ErrBatchExistenceMismatch
+		}
 
-		// Clear the committed request before accumulating the next batch.
+		// Keep the committed results and clear the request before the next batch.
+		existed = append(existed, resp.GetExisted()...)
 		req = &block_rpc.PutBlockBatchRequest{}
 		size = 0
 
@@ -141,7 +150,7 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	for _, entry := range entries {
 		// Stop building the next remote entry when the batch is canceled.
 		if err := ctx.Err(); err != nil {
-			return err
+			return nil, err
 		}
 
 		// Preserve the block data, outgoing references, and tombstone on the wire.
@@ -157,7 +166,7 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		entrySize := wireEntry.SizeVT() + 10
 		if size+entrySize > batchBytes {
 			if err := flush(); err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -166,7 +175,11 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		size += entrySize
 	}
 
-	return flush()
+	// Submit the final partial request.
+	if err := flush(); err != nil {
+		return nil, err
+	}
+	return existed, nil
 }
 
 // GetBlock gets a block with a cid reference.

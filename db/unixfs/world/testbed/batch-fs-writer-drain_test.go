@@ -29,7 +29,7 @@ type batchCountBucket struct {
 }
 
 // PutBlockBatch counts the batch and forwards it.
-func (b *batchCountBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (b *batchCountBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	b.mu.Lock()
 	b.batches++
 	b.mu.Unlock()

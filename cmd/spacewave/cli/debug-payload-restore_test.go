@@ -89,7 +89,7 @@ func newRestoreFixture(t *testing.T, preset ...[]byte) *restoreFixture {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := vol.PrepareOwnedBlockBatch(ctx, restoreTestBucket, entries); err != nil {
+		if _, err := vol.PrepareOwnedBlockBatch(ctx, restoreTestBucket, entries); err != nil {
 			t.Fatal(err)
 		}
 	}

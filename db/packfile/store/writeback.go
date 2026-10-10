@@ -108,7 +108,7 @@ func (e *PackReader) writeback(ctx context.Context, target block.StoreOps, block
 	// Persist the verified blocks in one target-store batch.
 	var err error
 	if len(entries) != 0 {
-		err = target.PutBlockBatch(ctx, entries)
+		_, err = target.PutBlockBatch(ctx, entries)
 	}
 
 	// Publish writeback counters and release failed block reservations.

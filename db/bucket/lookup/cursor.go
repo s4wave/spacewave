@@ -626,7 +626,7 @@ func (c *Cursor) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 }
 
 // PutBlockBatch writes a batch into the store, applying any configured transforms.
-func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	if c.xfrm == nil {
 		return c.GetBlockStore().PutBlockBatch(ctx, entries)
 	}
@@ -639,7 +639,7 @@ func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 		}
 		data, err := c.xfrm.EncodeBlock(bytes.Clone(entry.Data))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		transformed[i] = &block.PutBatchEntry{
 			Ref:       entry.Ref,

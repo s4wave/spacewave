@@ -126,7 +126,8 @@ func TestPublicationCollectorUsesAtomicSweep(t *testing.T) {
 
 	// Rescue the block during collection and verify atomic sweeping retains it.
 	store := &rescueSweepStore{Volume: v, rescue: func() error {
-		return v.PrepareOwnedBlockBatch(t.Context(), p.BucketID, p.Entries)
+		_, err := v.PrepareOwnedBlockBatch(t.Context(), p.BucketID, p.Entries)
+		return err
 	}}
 	stats, err := block_gc.NewCollector(v.GetRefGraph(), store, nil).Collect(t.Context())
 	if err != nil || stats.NodesSwept != 0 || stats.AtomicSweepCount == 0 {
@@ -275,7 +276,7 @@ func TestPublicationPreparationAtomicAndOversized(t *testing.T) {
 	raw.mu.Unlock()
 
 	// Attempt the failing batch and clear the injected fault.
-	err = v.PrepareOwnedBlockBatch(t.Context(), failed.BucketID, failed.Entries)
+	_, err = v.PrepareOwnedBlockBatch(t.Context(), failed.BucketID, failed.Entries)
 	raw.mu.Lock()
 	raw.errorCommit = nil
 	raw.mu.Unlock()

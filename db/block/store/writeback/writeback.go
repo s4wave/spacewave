@@ -322,7 +322,7 @@ func (s *Store) uploadBatch(ctx context.Context, remote block.StoreOps, batch []
 		}
 	}
 	if len(entries) != 0 {
-		if err := remote.PutBlockBatch(ctx, entries); err != nil {
+		if _, err := remote.PutBlockBatch(ctx, entries); err != nil {
 			return errors.Wrap(err, "upload blocks")
 		}
 	}

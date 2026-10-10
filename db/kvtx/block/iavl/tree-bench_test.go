@@ -111,11 +111,11 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 	return ref, found, err
 }
 
-func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Write the block batch and count its entries and outgoing references.
-	err := s.inner.PutBlockBatch(ctx, entries)
+	existed, err := s.inner.PutBlockBatch(ctx, entries)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	s.putBatchCalls.Add(1)
 	s.putBatchEntries.Add(int64(len(entries)))
@@ -128,7 +128,7 @@ func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.Pu
 		s.putBytes.Add(int64(len(entry.Data)))
 		s.putRefs.Add(int64(len(entry.Refs)))
 	}
-	return nil
+	return existed, nil
 }
 
 func (s *benchBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
@@ -679,9 +679,13 @@ func TestIAVLBenchGCStoreCounts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify commit batches existence checks and flushes GC additions.
-	if tree.store.existsBatchCalls.Load() == 0 {
-		t.Fatal("expected GC commit to check existing blocks in a batch")
+	// Verify commit writes one batch, learning existence from it, and flushes
+	// GC additions.
+	if tree.store.putBatchCalls.Load() == 0 {
+		t.Fatal("expected GC commit to write blocks in a batch")
+	}
+	if tree.store.existsBatchCalls.Load() != 0 {
+		t.Fatal("expected GC commit to skip the separate existence check")
 	}
 	if refGraph.addRefs.Load() == 0 {
 		t.Fatal("expected GC commit to flush ref graph additions")

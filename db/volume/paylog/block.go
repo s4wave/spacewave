@@ -48,51 +48,52 @@ func (s *Store) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) 
 	}
 
 	// Append the payload unless the block is already stored.
-	written, err := s.append(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}})
+	existed, err := s.append(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}})
 	if err != nil {
 		return ref, false, err
 	}
 	if opts.GetSync() {
 		_, err = s.Sync(ctx)
 	}
-	return ref, written == 0, err
+	return ref, existed[0], err
 }
 
 // PutBlockBatch verifies every entry, then appends the new payloads in one
-// device call and records the tombstones as removes.
-func (s *Store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+// device call and records the tombstones as removes. Reports whether each block
+// was stored before the write.
+func (s *Store) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	for _, entry := range entries {
 		if entry == nil {
-			return block.ErrEmptyBlockRef
+			return nil, block.ErrEmptyBlockRef
 		}
 		if err := entry.Ref.Validate(false); err != nil {
-			return err
+			return nil, err
 		}
 		if entry.Tombstone {
 			continue
 		}
 		if len(entry.Data) == 0 {
-			return block.ErrEmptyBlock
+			return nil, block.ErrEmptyBlock
 		}
 		if err := entry.Ref.VerifyData(entry.Data, false); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	_, err := s.append(ctx, entries)
-	return err
+	return s.append(ctx, entries)
 }
 
 // append writes the payloads of entries not yet stored in one device call and
 // adds their pending locations, and adds a pending remove for each tombstone.
-// It returns the number of payloads written.
-func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int, error) {
+// It returns whether each entry's block was stored before the call, false for
+// a tombstone.
+func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Resolve keys and find the stored blocks in one index view.
 	keys := make([]string, len(entries))
 	stored := make([]bool, len(entries))
 	for i, entry := range entries {
 		key, err := blockKey(entry.Ref)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		keys[i] = key
 	}
@@ -110,7 +111,7 @@ func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int
 		return nil
 	})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// Lay out the new payloads and issue them before recording them.
@@ -118,6 +119,7 @@ func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int
 	defer s.mtx.Unlock()
 	var writes []device.Write
 	added := make(map[string]*pendingBlock)
+	existed := make([]bool, len(entries))
 	for i, entry := range entries {
 		key := keys[i]
 		if entry.Tombstone {
@@ -129,6 +131,7 @@ func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int
 			p = s.pending[key]
 		}
 		if (p != nil && p.loc != nil) || (p == nil && stored[i]) {
+			existed[i] = true
 			continue
 		}
 		loc := s.place(int64(len(entry.Data)))
@@ -137,11 +140,11 @@ func (s *Store) append(ctx context.Context, entries []*block.PutBatchEntry) (int
 	}
 	if len(writes) != 0 {
 		if err := s.dev.Write(ctx, writes, false); err != nil {
-			return 0, err
+			return nil, err
 		}
 	}
 	maps.Copy(s.pending, added)
-	return len(writes), nil
+	return existed, nil
 }
 
 // locate returns the locations of refs, nil for an absent block. It reads

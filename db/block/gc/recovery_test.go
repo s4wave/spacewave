@@ -92,7 +92,7 @@ func TestReleasePreservesSharedBlockDependencies(t *testing.T) {
 			// Release the first owner through the selected path.
 			var err error
 			if batch {
-				err = env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{{Ref: parent, Tombstone: true}})
+				_, err = env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{{Ref: parent, Tombstone: true}})
 			} else {
 				err = env.gcStore.RmBlock(env.ctx, parent)
 			}
@@ -222,7 +222,7 @@ func TestBatchPreservesLastOwnershipOperation(t *testing.T) {
 			}
 
 			// Write the ordered ownership operations as one batch.
-			if err := env.gcStore.PutBlockBatch(env.ctx, entries); err != nil {
+			if _, err := env.gcStore.PutBlockBatch(env.ctx, entries); err != nil {
 				t.Fatal(err)
 			}
 
@@ -346,7 +346,7 @@ func TestPutThenReleaseRetainsExistingStagingMark(t *testing.T) {
 
 	// Put and release the already-staged block through a parent store.
 	owner := NewGCStoreOpsWithParent(env.rawStore, env.refGraph, "owner")
-	if err := owner.PutBlockBatch(env.ctx, []*block.PutBatchEntry{
+	if _, err := owner.PutBlockBatch(env.ctx, []*block.PutBatchEntry{
 		{Ref: ref, Data: data}, {Ref: ref, Tombstone: true},
 	}); err != nil {
 		t.Fatal(err)

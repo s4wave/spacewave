@@ -21,9 +21,9 @@ func (s *testStore) GetSupportedFeatures() block.StoreFeature {
 	return s.features
 }
 
-func (s *testStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) error {
+func (s *testStore) PutBlockBatch(_ context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.batchEntries = entries
-	return nil
+	return make([]bool, len(entries)), nil
 }
 
 func (s *testStore) Sync(context.Context) (bool, error) {

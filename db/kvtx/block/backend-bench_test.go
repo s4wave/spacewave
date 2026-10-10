@@ -66,20 +66,11 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 	return ref, found, err
 }
 
-func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	// Probe which entries already exist, since batches do not report it.
-	refs := make([]*block.BlockRef, len(entries))
-	for i, entry := range entries {
-		refs[i] = entry.Ref
-	}
-	existed, err := s.inner.GetBlockExistsBatch(ctx, refs)
+func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Store the batch, which reports which entries already existed.
+	existed, err := s.inner.PutBlockBatch(ctx, entries)
 	if err != nil {
-		return err
-	}
-
-	// Store the batch.
-	if err := s.inner.PutBlockBatch(ctx, entries); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Count the stored entries and the ones that were new.
@@ -97,7 +88,7 @@ func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.Pu
 			s.putNewBlocks.Add(1)
 		}
 	}
-	return nil
+	return existed, nil
 }
 
 func (s *benchBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {

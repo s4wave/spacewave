@@ -67,7 +67,7 @@ func (b *mockBucket) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 }
 
 // PutBlockBatch forwards to the inner store.
-func (b *mockBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (b *mockBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	return b.store.PutBlockBatch(ctx, entries)
 }
 

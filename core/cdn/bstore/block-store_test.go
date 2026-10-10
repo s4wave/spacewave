@@ -1092,15 +1092,16 @@ func (w *writebackReadStore) PutBlock(ctx context.Context, data []byte, opts *bl
 }
 
 // PutBlockBatch writes entries and signals one put.
-func (w *writebackReadStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := w.StoreOps.PutBlockBatch(ctx, entries); err != nil {
-		return err
+func (w *writebackReadStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := w.StoreOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
 	select {
 	case w.putCh <- struct{}{}:
 	default:
 	}
-	return nil
+	return existed, nil
 }
 
 func (w *writebackReadStore) waitPut(ctx context.Context) error {

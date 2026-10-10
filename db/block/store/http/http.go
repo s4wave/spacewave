@@ -169,11 +169,12 @@ func (b *HTTPBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 }
 
 // PutBlockBatch loops calling PutBlock or RmBlock per entry.
-func (b *HTTPBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	for _, entry := range entries {
+func (b *HTTPBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed := make([]bool, len(entries))
+	for i, entry := range entries {
 		if entry.Tombstone {
 			if err := b.RmBlock(ctx, entry.Ref); err != nil {
-				return err
+				return nil, err
 			}
 			continue
 		}
@@ -181,14 +182,16 @@ func (b *HTTPBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 		if entry.Ref != nil {
 			ref = entry.Ref.Clone()
 		}
-		if _, _, err := b.PutBlock(ctx, entry.Data, &block.PutOpts{
+		_, entryExisted, err := b.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: ref,
 			Refs:          block.CloneBlockRefs(entry.Refs),
-		}); err != nil {
-			return err
+		})
+		if err != nil {
+			return nil, err
 		}
+		existed[i] = entryExisted
 	}
-	return nil
+	return existed, nil
 }
 
 // GetBlock looks up a block in the store.

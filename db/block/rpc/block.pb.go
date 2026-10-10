@@ -216,6 +216,9 @@ type PutBlockBatchResponse struct {
 	unknownFields []byte
 	// Error is any error adding blocks to the store.
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// Existed reports, for each request entry in order, whether the block was
+	// already stored before the write. A tombstone entry reports false.
+	Existed []bool `protobuf:"varint,2,rep,packed,name=existed,proto3" json:"existed,omitempty"`
 }
 
 func (x *PutBlockBatchResponse) Reset() {
@@ -223,6 +226,13 @@ func (x *PutBlockBatchResponse) Reset() {
 }
 
 func (*PutBlockBatchResponse) ProtoMessage() {}
+
+func (x *PutBlockBatchResponse) GetExisted() []bool {
+	if x != nil {
+		return x.Existed
+	}
+	return nil
+}
 
 func (x *PutBlockBatchResponse) GetError() string {
 	if x != nil {
@@ -701,6 +711,7 @@ func (m *PutBlockBatchResponse) CloneVT() *PutBlockBatchResponse {
 	}
 	r := new(PutBlockBatchResponse)
 	r.Error = m.Error
+	r.Existed = protobuf_go_lite.CloneSlice(m.Existed)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1092,6 +1103,9 @@ func (this *PutBlockBatchResponse) EqualVT(that *PutBlockBatchResponse) bool {
 		return false
 	}
 	if this.Error != that.Error {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Existed, that.Existed) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1802,6 +1816,11 @@ func (x *PutBlockBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("error")
 		s.WriteString(x.Error)
 	}
+	if len(x.Existed) > 0 || s.HasField("existed") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("existed")
+		s.WriteBoolArray(x.Existed)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1822,6 +1841,13 @@ func (x *PutBlockBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error":
 			s.AddField("error")
 			x.Error = s.ReadString()
+		case "existed":
+			s.AddField("existed")
+			if s.ReadNil() {
+				x.Existed = nil
+				return
+			}
+			x.Existed = s.ReadBoolArray()
 		}
 	})
 }
@@ -2851,6 +2877,14 @@ func (m *PutBlockBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Existed) > 0 {
+		for iNdEx := len(m.Existed) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeBool(dAtA, i, m.Existed[iNdEx])
+		}
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(len(m.Existed)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.Error) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
 		i--
@@ -3509,6 +3543,7 @@ func (m *PutBlockBatchResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += protobuf_go_lite.SizeBoolPacked(1, m.Existed)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3826,6 +3861,14 @@ func (x *PutBlockBatchResponse) MarshalProtoText() string {
 	if x.Error != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
 		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	}
+	if len(x.Existed) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "existed")
+		for i, v := range x.Existed {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteBool(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4575,6 +4618,36 @@ func (m *PutBlockBatchResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Error = v
+		case 2:
+			if wireType == 0 {
+				var v bool
+				v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				m.Existed = append(m.Existed, bool(v))
+			} else if wireType == 2 {
+				packedStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				iNdEx = packedStart
+				var elementCount int
+				elementCount = protobuf_go_lite.PackedFixedElementCount(dAtA[iNdEx:postIndex], 1)
+				if elementCount != 0 && len(m.Existed) == 0 {
+					m.Existed = make([]bool, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v bool
+					v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+					m.Existed = append(m.Existed, bool(v))
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Existed", wireType)
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

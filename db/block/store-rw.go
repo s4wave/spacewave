@@ -114,7 +114,7 @@ func (b *StoreRW) RmBlock(ctx context.Context, ref *BlockRef) error {
 }
 
 // PutBlockBatch forwards to the write handle if it supports batched writes.
-func (b *StoreRW) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) error {
+func (b *StoreRW) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry) ([]bool, error) {
 	return b.writeHandle.PutBlockBatch(ctx, entries)
 }
 

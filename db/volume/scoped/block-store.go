@@ -45,11 +45,11 @@ func (b *blockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch puts a batch of blocks into the underlying store. It refuses a
 // batch that tombstones a block.
-func (b *blockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (b *blockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Refuse deletions before any entry is written.
 	for _, entry := range entries {
 		if entry.Tombstone {
-			return errors.Wrap(ErrRefused, "tombstone block")
+			return nil, errors.Wrap(ErrRefused, "tombstone block")
 		}
 	}
 

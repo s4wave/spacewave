@@ -217,7 +217,7 @@ func restorePayload(ctx context.Context, le *logrus.Entry, path, spaceID, bucket
 		return ref, len(entries), 0, nil
 	}
 	le.Infof("restoring %d of %d blocks of %s into bucket %s", len(missing), len(entries), ref.MarshalString(), rv.bucketID)
-	if err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, missing); err != nil {
+	if _, err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, missing); err != nil {
 		return nil, 0, 0, errors.Wrap(err, "write blocks")
 	}
 	return ref, len(entries), len(missing), nil
@@ -277,7 +277,7 @@ func restoreSourceTree(ctx context.Context, le *logrus.Entry, path, spaceID, buc
 		if dryRun || len(pending) == 0 {
 			return nil
 		}
-		if err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, pending); err != nil {
+		if _, err := rv.vol.PrepareOwnedBlockBatch(ctx, rv.bucketID, pending); err != nil {
 			return errors.Wrap(err, "write blocks")
 		}
 		pending, pendingBytes = nil, 0
@@ -562,16 +562,17 @@ func (s *recordStore) PutBlock(ctx context.Context, data []byte, opts *block.Put
 }
 
 // PutBlockBatch writes and records a batch of blocks.
-func (s *recordStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	if err := s.StoreOps.PutBlockBatch(ctx, entries); err != nil {
-		return err
+func (s *recordStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := s.StoreOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
 	for _, e := range entries {
 		if !e.Tombstone {
 			s.record(e)
 		}
 	}
-	return nil
+	return existed, nil
 }
 
 // record keeps a copy of e unless its block is already recorded.

@@ -104,9 +104,9 @@ func (s *metricCountingStore) PutBlock(ctx context.Context, data []byte, opts *b
 	return ref, existed, err
 }
 
-func (s *metricCountingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *metricCountingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Write the block batch through the counting store.
-	err := s.StoreOps.PutBlockBatch(ctx, entries)
+	existed, err := s.StoreOps.PutBlockBatch(ctx, entries)
 
 	// Record successful batch writes while holding the metric lock.
 	s.mtx.Lock()
@@ -120,7 +120,7 @@ func (s *metricCountingStore) PutBlockBatch(ctx context.Context, entries []*bloc
 			}
 		}
 	}
-	return err
+	return existed, err
 }
 
 func (s *metricCountingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {

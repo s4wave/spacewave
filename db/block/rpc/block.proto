@@ -98,6 +98,9 @@ message PutBlockBatchRequest {
 message PutBlockBatchResponse {
   // Error is any error adding blocks to the store.
   string error = 1;
+  // Existed reports, for each request entry in order, whether the block was
+  // already stored before the write. A tombstone entry reports false.
+  repeated bool existed = 2;
 }
 
 // GetBlockRequest requests to get a block from the store.

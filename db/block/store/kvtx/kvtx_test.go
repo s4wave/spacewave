@@ -3,6 +3,7 @@ package block_store_kvtx
 import (
 	"bytes"
 	"context"
+	"slices"
 	"sync/atomic"
 	"testing"
 
@@ -79,11 +80,15 @@ func TestPutBlockBatchUsesSingleWriteTransaction(t *testing.T) {
 
 	// Write both blocks in one batch.
 	store.reset()
-	if err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	existed, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: firstRef, Data: firstData},
 		{Ref: secondRef, Data: secondData},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !slices.Equal(existed, []bool{false, false}) {
+		t.Fatalf("first batch existed = %v, want both new", existed)
 	}
 
 	// Verify the batch commits both blocks in one transaction.
@@ -105,11 +110,15 @@ func TestPutBlockBatchUsesSingleWriteTransaction(t *testing.T) {
 
 	// Write the same batch again after resetting transaction counts.
 	store.reset()
-	if err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	existed, err = blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: firstRef, Data: firstData},
 		{Ref: secondRef, Data: secondData},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !slices.Equal(existed, []bool{true, true}) {
+		t.Fatalf("repeated batch existed = %v, want both existing", existed)
 	}
 
 	// Verify the repeated batch commits without rewriting block keys.
@@ -139,7 +148,7 @@ func TestPutBlockBatchTombstoneUsesSameWriteTransaction(t *testing.T) {
 	newRef := mustBuildBlockRef(t, newData)
 
 	// Store the original blocks before applying the tombstone.
-	if err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	if _, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: oldRef, Data: oldData},
 		{Ref: keepRef, Data: keepData},
 	}); err != nil {
@@ -148,7 +157,7 @@ func TestPutBlockBatchTombstoneUsesSameWriteTransaction(t *testing.T) {
 
 	// Write a batch that deletes the old block and stores the new block.
 	store.reset()
-	if err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	if _, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: oldRef, Tombstone: true},
 		{Ref: newRef, Data: newData},
 	}); err != nil {
@@ -191,7 +200,7 @@ func TestPutBlockBatchValidationErrorsDoNotCommitPartialBatch(t *testing.T) {
 	wrongRef := mustBuildBlockRef(t, []byte("different batch block"))
 
 	// Write a batch containing a mismatched block reference.
-	err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	_, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: goodRef, Data: goodData},
 		{Ref: wrongRef, Data: []byte("bad batch block")},
 	})
@@ -215,7 +224,7 @@ func TestPutBlockBatchValidationErrorsDoNotCommitPartialBatch(t *testing.T) {
 
 	// Write a batch containing empty block data.
 	store.reset()
-	err = blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	_, err = blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: goodRef, Data: goodData},
 		{Data: []byte{}},
 	})
@@ -253,7 +262,7 @@ func TestGetBlockExistsBatchUsesSingleReadTransaction(t *testing.T) {
 	missingRef := mustBuildBlockRef(t, missingData)
 
 	// Store the blocks that the presence batch should find.
-	if err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	if _, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: firstRef, Data: firstData},
 		{Ref: secondRef, Data: secondData},
 	}); err != nil {
@@ -305,7 +314,7 @@ func TestPutBlockBatchRetriesWholeLogicalOperation(t *testing.T) {
 		secondRef := mustBuildBlockRef(t, secondData)
 
 		// Write both blocks through the optional commit fault injector.
-		if err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+		if _, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 			{Ref: firstRef, Data: firstData},
 			{Ref: secondRef, Data: secondData},
 		}); err != nil {

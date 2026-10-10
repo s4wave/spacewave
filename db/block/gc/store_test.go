@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"slices"
@@ -756,7 +757,7 @@ func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
 			var ref *block.BlockRef
 			if tc.batch {
 				entry := buildBatchEntry(t, "parent-dedup-batch")
-				if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
+				if _, err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
 					t.Fatal(err.Error())
 				}
 				ref = entry.Ref
@@ -788,7 +789,7 @@ func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
 			parentStore := NewGCStoreOpsWithParent(env.rawStore, env.refGraph, parent)
 			if tc.batch {
 				entry := buildBatchEntry(t, "parent-dedup-batch")
-				if err := parentStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
+				if _, err := parentStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
 					t.Fatal(err.Error())
 				}
 			} else {
@@ -996,7 +997,7 @@ func TestGCStoreOps_PutBlockBatch_DuplicateNoNewUnrefEdge(t *testing.T) {
 
 	// Re-write the same block via batch path.
 	entry := buildBatchEntry(t, "batch-dup")
-	if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
+	if _, err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
 		t.Fatal(err.Error())
 	}
 	env.flush(t)
@@ -1023,7 +1024,7 @@ func TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge(t *testing.T) {
 	// Write two new blocks through the batch path.
 	e1 := buildBatchEntry(t, "batch-new-a")
 	e2 := buildBatchEntry(t, "batch-new-b")
-	if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{e1, e2}); err != nil {
+	if _, err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{e1, e2}); err != nil {
 		t.Fatal(err.Error())
 	}
 	env.flush(t)
@@ -1037,6 +1038,137 @@ func TestGCStoreOps_PutBlockBatch_NewBlockAddsUnrefEdge(t *testing.T) {
 	// Verify both new blocks are staged.
 	if len(nodes) != 2 {
 		t.Fatalf("expected 2 unreferenced nodes from batch, got %d", len(nodes))
+	}
+}
+
+// buildTreeEntry creates a batch entry for data that references children.
+func buildTreeEntry(t *testing.T, data string, children ...*block.PutBatchEntry) *block.PutBatchEntry {
+	t.Helper()
+
+	// Build the entry's ref from its bytes.
+	ref, err := block.BuildBlockRef([]byte(data), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Point the entry at its children.
+	entry := &block.PutBatchEntry{Ref: ref, Data: []byte(data)}
+	for _, child := range children {
+		entry.Refs = append(entry.Refs, child.Ref)
+	}
+	return entry
+}
+
+// sortedEdges returns edges ordered by subject and object.
+func sortedEdges(edges []RefEdge) []RefEdge {
+	sorted := slices.Clone(edges)
+	slices.SortFunc(sorted, func(a, b RefEdge) int {
+		return cmp.Or(cmp.Compare(a.Subject, b.Subject), cmp.Compare(a.Object, b.Object))
+	})
+	return sorted
+}
+
+// TestGCStoreOps_ParentIRI_PutBlockBatchExistingTreeBuffersOwnerOnly tests that
+// writing a stored tree again buffers one owner edge and one staging removal per
+// block, and no child edges.
+func TestGCStoreOps_ParentIRI_PutBlockBatchExistingTreeBuffersOwnerOnly(t *testing.T) {
+	// Build a three-block chain.
+	ctx := context.Background()
+	leaf := buildTreeEntry(t, "tree-leaf")
+	mid := buildTreeEntry(t, "tree-mid", leaf)
+	root := buildTreeEntry(t, "tree-root", mid)
+	tree := []*block.PutBatchEntry{leaf, mid, root}
+
+	// Write the chain once and flush its edges.
+	parent := BucketIRI("tree-bucket")
+	refGraph := &recordingRefGraph{}
+	rawStore := block_store_kvtx.NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store_kvtx_inmem.NewStore(), 0, false)
+	gcStore := NewGCStoreOpsWithParent(rawStore, refGraph, parent)
+	existed, err := gcStore.PutBlockBatch(ctx, tree)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if slices.Contains(existed, true) {
+		t.Fatalf("first write reported existing blocks: %v", existed)
+	}
+
+	// A new tree records its owner edges and its child edges.
+	if err := gcStore.FlushPending(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(refGraph.adds) != 5 {
+		t.Fatalf("first write adds = %v, want 3 owner and 2 child edges", refGraph.adds)
+	}
+
+	// Write the same chain again.
+	existed, err = gcStore.PutBlockBatch(ctx, tree)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if slices.Contains(existed, false) {
+		t.Fatalf("second write reported new blocks: %v", existed)
+	}
+	if err := gcStore.FlushPending(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Each block gets its owner edge and loses its staging edge, and nothing else.
+	var wantAdds, wantRemoves []RefEdge
+	for _, entry := range tree {
+		iri := BlockIRI(entry.Ref)
+		wantAdds = append(wantAdds, RefEdge{Subject: parent, Object: iri})
+		wantRemoves = append(wantRemoves, RefEdge{Subject: NodeUnreferenced, Object: iri})
+	}
+	if !slices.Equal(sortedEdges(refGraph.adds), sortedEdges(wantAdds)) {
+		t.Fatalf("adds = %v, want %v", refGraph.adds, wantAdds)
+	}
+	if !slices.Equal(sortedEdges(refGraph.removes), sortedEdges(wantRemoves)) {
+		t.Fatalf("removes = %v, want %v", refGraph.removes, wantRemoves)
+	}
+}
+
+// TestGCStoreOps_ParentIRI_SweepKeepsMixedNewAndReputWrites tests that a sweep
+// keeps every reachable block after a batch that mixes new blocks with blocks
+// stored earlier, once the bucket releases its direct edges to the children.
+func TestGCStoreOps_ParentIRI_SweepKeepsMixedNewAndReputWrites(t *testing.T) {
+	// Root the bucket.
+	parent := BucketIRI("mixed-bucket")
+	env := newGCTestEnvWithParent(t, parent)
+	if err := env.refGraph.AddRef(env.ctx, NodeGCRoot, parent); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Build a chain and a sibling root sharing its leaf, and write the chain.
+	leaf := buildTreeEntry(t, "mixed-leaf")
+	mid := buildTreeEntry(t, "mixed-mid", leaf)
+	root := buildTreeEntry(t, "mixed-root", mid)
+	sibling := buildTreeEntry(t, "mixed-sibling", leaf)
+	if _, err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{leaf, mid, root}); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.flush(t)
+
+	// The second batch re-puts the chain and adds the sibling.
+	if _, err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{leaf, mid, root, sibling}); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.flush(t)
+
+	// Release every direct edge except the two roots.
+	for _, entry := range []*block.PutBatchEntry{leaf, mid} {
+		if err := env.refGraph.RemoveRef(env.ctx, parent, BlockIRI(entry.Ref)); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// The sweep keeps all four blocks: the chain through its recorded edges.
+	if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, entry := range []*block.PutBatchEntry{leaf, mid, root, sibling} {
+		if !env.blockExists(t, entry.Ref) {
+			t.Fatalf("reachable block %q was swept", entry.Data)
+		}
 	}
 }
 
@@ -1230,12 +1362,13 @@ type flushingStore struct {
 	*GCStoreOps
 }
 
-func (s flushingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s flushingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Write the batch, then deliver its ownership changes.
-	if err := s.GCStoreOps.PutBlockBatch(ctx, entries); err != nil {
-		return err
+	existed, err := s.GCStoreOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
 	}
-	return s.FlushPending(ctx)
+	return existed, s.FlushPending(ctx)
 }
 
 // TestGCStoreOps_ParentIRI_CacheFillTakesNoOwnership tests that a cache fill

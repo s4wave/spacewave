@@ -230,7 +230,7 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 			return entry == nil
 		})
 		if len(entries) != 0 {
-			if err := local.PutBlockBatch(ctx, entries); err != nil {
+			if _, err := local.PutBlockBatch(ctx, entries); err != nil {
 				return errors.Wrap(err, "store fetched blocks")
 			}
 		}

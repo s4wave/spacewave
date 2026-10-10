@@ -37,7 +37,7 @@ func (s *countingBatchStore) PutBlock(ctx context.Context, data []byte, opts *bl
 	return s.StoreOps.PutBlock(ctx, data, opts)
 }
 
-func (s *countingBatchStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+func (s *countingBatchStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	s.putBatchCalls++
 	return s.StoreOps.PutBlockBatch(ctx, entries)
 }
@@ -99,7 +99,7 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 	}
 
 	// Write both blocks through the wrapped volume store.
-	if err := wrapped.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	if _, err := wrapped.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: ref1, Data: []byte("hello")},
 		{Ref: ref2, Data: []byte("world")},
 	}); err != nil {
@@ -178,7 +178,7 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 	}
 
 	// Write both blocks through the GC store.
-	if err := gcOps.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	if _, err := gcOps.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: ref1, Data: []byte("hello")},
 		{Ref: ref2, Data: []byte("world")},
 	}); err != nil {

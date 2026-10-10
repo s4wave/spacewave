@@ -298,7 +298,7 @@ func (e *Engine) persistLegacyPublication(ctx context.Context, p *enginePublicat
 	}
 	if err == nil {
 		// Write the batch, sync the store, and mark the root complete.
-		err = e.writeBlockStore.PutBlockBatch(ctx, p.batch.Entries)
+		_, err = e.writeBlockStore.PutBlockBatch(ctx, p.batch.Entries)
 	}
 	if err == nil {
 		_, err = e.writeBlockStore.Sync(ctx)
