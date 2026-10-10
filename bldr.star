@@ -22,10 +22,12 @@ CORE_GO_PKGS = [
 ]
 
 # COMPOSED_GO_PKGS are host controllers that ./cmd/spacewave/compose constructs
-# with the process-shared listener brokers.
+# with the process-shared listener brokers and Session child factories.
 COMPOSED_GO_PKGS = [
     "./core/resource/root/controller",
     "./core/resource/listener",
+    "./core/provider/local",
+    "./core/provider/spacewave",
 ]
 
 # core_go_pkgs lists the spacewave-core plugin's Go packages: CORE_GO_PKGS and

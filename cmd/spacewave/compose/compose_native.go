@@ -9,12 +9,16 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	"github.com/s4wave/spacewave/bldr/entrypoint/compose"
 	spacewave_cli "github.com/s4wave/spacewave/cmd/spacewave/cli"
+	provider_local "github.com/s4wave/spacewave/core/provider/local"
+	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
 	"github.com/s4wave/spacewave/core/resource/desktop/statusprojector"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
+	"github.com/s4wave/spacewave/core/transport"
 )
 
 // composeNative adds the native host controllers and CLI commands.
@@ -27,6 +31,17 @@ func composeNative(composition *compose.Composition) {
 	yield := yield_policy.NewBroker()
 	status := resource_listener.NewStatusBroker()
 	composition.NativeAction = openDesktop
+
+	// Every provider installs the remote shell factory on each Session's bus.
+	transportOptions := []transport.SessionTransportOption{transport.WithChildFactories(
+		func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
+	)}
+	composition.Factories = append(composition.Factories, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{
+			provider_local.NewFactory(b, transportOptions...),
+			provider_spacewave.NewFactory(b, transportOptions...),
+		}
+	})
 
 	// Share the brokers with the controllers that serve and project the
 	// resource listener.
