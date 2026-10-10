@@ -36,11 +36,11 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
-    "rolldown": "1.2.12",
+    "rolldown": "1.2.13",
     "sonner": "^2.0.7",
     "starpc": "0.52.2",
     "ulid": "^3.0.2",
-    "vite": "8.3.3",
+    "vite": "8.3.4",
     "workbox-window": "^7.4.1",
     "ws": "^8.20.0",
     "zod": "4.6.5"
