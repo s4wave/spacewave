@@ -24,6 +24,8 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	platform := nativeTestPlatformID()
 	ws := buildReleaseMetadataTestWorld(t, ctx, "alpha", platform)
 	manifest := writeReleaseDesktopArtifactTestBlock(t, ctx, ws, "release/manifests/orbit", "orbit-desktop", platform, 2, "desktop payload")
+
+	// Publish the desktop-only channel selection.
 	metadata := testReleaseMetadata("alpha", platform, manifest.GetManifestRef().GetRootRef())
 	metadata.ProjectId = "orbit"
 	metadata.BrowserShell = nil
@@ -40,6 +42,8 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(release)
+
+	// Stage with the fixture release authority and an obsolete companion sidecar.
 	dir := t.TempDir()
 	sidecar := filepath.Join(dir, managedCLIReleaseSidecarFilename)
 	if err := os.WriteFile(sidecar, []byte("obsolete cli"), 0o644); err != nil {
@@ -47,6 +51,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	}
 	ctrl := &Controller{
 		le:              le,
+		distPeerIDs:     releaseAuthorizationTestPins(t),
 		bus:             b,
 		conf:            &Config{ProjectId: "orbit", EntrypointManifestId: "orbit-desktop", DisableCliUpdate: true},
 		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](&spacewave_launcher.LauncherInfo{}),
@@ -65,6 +70,8 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	if isDarwinDesktopPlatform(platform) {
 		appExecutable = filepath.Join(appExecutable, "Contents", "MacOS", "spacewave")
 	}
+
+	// Verify the installed-app payload and withdrawal of CLI discovery.
 	dat, err := os.ReadFile(appExecutable)
 	if err != nil {
 		t.Fatal(err)

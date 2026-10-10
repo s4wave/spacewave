@@ -116,6 +116,7 @@ func (c *Controller) resolveReleaseMetadata(
 	ctx context.Context,
 	channelKey string,
 ) (*spacewave_release.ReleaseMetadata, error) {
+	// Read metadata and its head from one mounted World snapshot.
 	eng, ref, err := c.lookupReleaseWorld(ctx)
 	if err != nil {
 		return nil, err
@@ -135,6 +136,7 @@ func (c *Controller) resolveReleaseMetadata(
 // the mount to publish its engine. The next announcement restarts the calling
 // routine, which cancels the wait and queues the next fetch.
 func (c *Controller) lookupReleaseWorld(ctx context.Context) (world.LookupWorldEngineValue, directive.Reference, error) {
+	// Use an already mounted engine before requesting a root fetch.
 	eng, _, ref, err := world.ExLookupWorldEngine(ctx, c.bus, true, releaseWorldEngineID, nil)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "lookup release world")
@@ -160,6 +162,7 @@ func (c *Controller) lookupReleaseWorld(ctx context.Context) (world.LookupWorldE
 // refreshReleaseWorld queues a root fetch on the mounted release World. A
 // World mounted without a refresh service has nothing to refresh.
 func (c *Controller) refreshReleaseWorld(ctx context.Context) error {
+	// Call the owning mount refresh service without opening another CDN path.
 	serviceID := cdn_world_controller.WorldRefreshServiceID(releaseWorldEngineID)
 	invokers, _, ref, err := bifrost_rpc.ExLookupRpcService(ctx, c.bus, serviceID, "", false, nil)
 	if err != nil || ref == nil {
@@ -188,6 +191,16 @@ func (c *Controller) stageReleaseManifestUpdate(
 		return errors.New("release metadata missing configured CLI entrypoint for platform " + platformID)
 	}
 
+	// Authenticate every selected root before creating staging directories.
+	if err := manifestRef.VerifyReleaseAuthorization(c.distPeerIDs); err != nil {
+		return errors.Wrap(err, "native entrypoint")
+	}
+	if cliManifestRef != nil {
+		if err := cliManifestRef.VerifyReleaseAuthorization(c.distPeerIDs); err != nil {
+			return errors.Wrap(err, "CLI entrypoint")
+		}
+	}
+
 	// Publish selection and allocate the version-specific staging roots.
 	c.setSelectedEntrypointManifestRef(manifestRef)
 	c.setSelectedCLIManifestRef(cliManifestRef, "")
@@ -211,6 +224,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 	}
 	c.setUpdateDownloading(metadata.GetVersion())
 
+	// Hold the release World while materializing the selected artifacts.
 	eng, _, ref, err := world.ExLookupWorldEngine(ctx, c.bus, true, releaseWorldEngineID, nil)
 	if err != nil {
 		return errors.Wrap(err, "lookup release world")
@@ -221,6 +235,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 	var stagedPath string
 	var cliStagedPath string
 	err = world.ExecTransaction(ctx, eng, false, func(ctx context.Context, wtx world.WorldState) error {
+		// Materialize the desktop entrypoint within this release transaction.
 		manifest, err := checkoutReleaseManifest(ctx, c.le, wtx, manifestRef, distPath, assetsPath)
 		if err != nil {
 			return err
@@ -266,6 +281,7 @@ func (c *Controller) stageReleaseManifestUpdate(
 	if err := c.stageDaemonUpdate(metadata.GetVersion(), manifestRef.GetMeta().GetManifestId(), stageRoot, distPath, stagedPath, cliStagedPath); err != nil {
 		return err
 	}
+
 	// The daemon cannot identify Electron's installed app. Its executable
 	// bytes must never suppress the separately selected desktop artifact.
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
@@ -355,6 +371,7 @@ func (c *Controller) setReleaseWorldHeadRef(ref string) {
 // setSelectedEntrypointManifestRef replaces desktop selection diagnostics.
 func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.ManifestRef) {
 	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		// Withdraw the previous desktop selection before exposing another.
 		next.SelectedEntrypointManifestId = ""
 		next.SelectedEntrypointPlatformId = ""
 		next.SelectedEntrypointManifestRev = 0
@@ -362,6 +379,8 @@ func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.Manifes
 		if ref == nil {
 			return
 		}
+
+		// Record the selected desktop manifest identity.
 		next.SelectedEntrypointManifestId = ref.GetMeta().GetManifestId()
 		next.SelectedEntrypointPlatformId = ref.GetMeta().GetPlatformId()
 		next.SelectedEntrypointManifestRev = ref.GetMeta().GetRev()
@@ -372,6 +391,7 @@ func (c *Controller) setSelectedEntrypointManifestRef(ref *bldr_manifest.Manifes
 // setSelectedCLIManifestRef replaces companion CLI selection diagnostics.
 func (c *Controller) setSelectedCLIManifestRef(ref *bldr_manifest.ManifestRef, stagedPath string) {
 	c.updateFetchStatus(func(next *spacewave_launcher.FetchStatus) {
+		// Withdraw the previous companion selection before exposing another.
 		next.SelectedCliManifestId = ""
 		next.SelectedCliPlatformId = ""
 		next.SelectedCliManifestRev = 0
@@ -380,6 +400,8 @@ func (c *Controller) setSelectedCLIManifestRef(ref *bldr_manifest.ManifestRef, s
 		if ref == nil {
 			return
 		}
+
+		// Record the selected companion manifest identity and staged path.
 		next.SelectedCliManifestId = ref.GetMeta().GetManifestId()
 		next.SelectedCliPlatformId = ref.GetMeta().GetPlatformId()
 		next.SelectedCliManifestRev = ref.GetMeta().GetRev()
@@ -390,6 +412,7 @@ func (c *Controller) setSelectedCLIManifestRef(ref *bldr_manifest.ManifestRef, s
 
 // stagedManifestEntrypointPath resolves a slash-relative entrypoint within its checkout.
 func stagedManifestEntrypointPath(distPath string, entrypoint string) (string, error) {
+	// Reject absolute or escaping entrypoint paths.
 	clean := path.Clean(entrypoint)
 	if clean == "." || clean == ".." || path.IsAbs(clean) || strings.HasPrefix(clean, "../") || strings.Contains(clean, "\\") {
 		return "", errors.New("manifest entrypoint must be a local relative path")
@@ -409,6 +432,7 @@ func stagedManifestEntrypointPath(distPath string, entrypoint string) (string, e
 
 // releaseVersionStagingRoot confines a release version to one staging directory.
 func releaseVersionStagingRoot(stagingDir string, version string) (string, error) {
+	// Require a release version to be exactly one local path segment.
 	clean := path.Clean(version)
 	if clean == "." || clean == ".." || clean != version || path.IsAbs(clean) ||
 		strings.Contains(clean, "/") || strings.Contains(version, "\\") {
@@ -425,6 +449,7 @@ func releaseVersionStagingRoot(stagingDir string, version string) (string, error
 
 // prepareReleaseStagingRoot creates staging directories without following existing symlinks.
 func prepareReleaseStagingRoot(stagingDir string, stageRoot string, checkoutRoots ...string) error {
+	// Create the version directory only when existing paths are safe.
 	if err := os.MkdirAll(stagingDir, 0o755); err != nil {
 		return errors.Wrap(err, "create update staging dir")
 	}
@@ -452,6 +477,7 @@ func prepareReleaseStagingRoot(stagingDir string, stageRoot string, checkoutRoot
 
 // verifyStagedExecutable requires a regular executable inside its checkout.
 func verifyStagedExecutable(stageRoot string, distPath string, stagedPath string) error {
+	// Validate checkout directories and the complete executable path.
 	if err := requireDirectoryNotSymlink(stageRoot, "release staging root"); err != nil {
 		_ = os.RemoveAll(stageRoot)
 		return err
@@ -540,6 +566,7 @@ func validateDirectoryNotSymlink(info os.FileInfo, label string) error {
 
 // verifyNoSymlinkPath rejects symlinks in a staged path's parent chain.
 func verifyNoSymlinkPath(rootPath string, filePath string) error {
+	// Confine the staged path before traversing its parent chain.
 	rel, err := filepath.Rel(rootPath, filePath)
 	if err != nil {
 		return err
@@ -572,6 +599,7 @@ func verifyNoSymlinkPath(rootPath string, filePath string) error {
 
 // clearManagedCLIReleaseSidecar withdraws the previously selected companion executable.
 func (c *Controller) clearManagedCLIReleaseSidecar() error {
+	// Resolve the launcher-owned discovery directory.
 	stagingDir, err := c.resolveStagingDir()
 	if err != nil {
 		return err
@@ -592,6 +620,7 @@ func (c *Controller) writeManagedCLIReleaseSidecar(
 	ref *bldr_manifest.ManifestRef,
 	binaryPath string,
 ) error {
+	// Create the directory containing the managed companion discovery file.
 	if err := os.MkdirAll(stagingDir, 0o755); err != nil {
 		return errors.Wrap(err, "create managed cli release sidecar dir")
 	}
@@ -615,6 +644,7 @@ func marshalManagedCLIReleaseSidecar(
 	ref *bldr_manifest.ManifestRef,
 	binaryPath string,
 ) string {
+	// Prepare JSON escaping for string values.
 	meta := ref.GetMeta()
 	var arena fastjson.Arena
 	marshalString := func(value string) string {
@@ -622,26 +652,16 @@ func marshalManagedCLIReleaseSidecar(
 	}
 
 	// Escape string values while retaining the existing discovery schema.
-	var b strings.Builder
-	b.WriteString("{\n")
-	b.WriteString("  \"binary_path\": ")
-	b.WriteString(marshalString(binaryPath))
-	b.WriteString(",\n  \"project_id\": ")
-	b.WriteString(marshalString(metadata.GetProjectId()))
-	b.WriteString(",\n  \"entrypoint_role\": ")
-	b.WriteString(marshalString("cli"))
-	b.WriteString(",\n  \"channel_key\": ")
-	b.WriteString(marshalString(metadata.GetChannelKey()))
-	b.WriteString(",\n  \"manifest_id\": ")
-	b.WriteString(marshalString(meta.GetManifestId()))
-	b.WriteString(",\n  \"manifest_rev\": ")
-	b.WriteString(strconv.FormatUint(meta.GetRev(), 10))
-	b.WriteString(",\n  \"platform_id\": ")
-	b.WriteString(marshalString(meta.GetPlatformId()))
-	b.WriteString(",\n  \"manifest_ref\": ")
-	b.WriteString(marshalString(ref.GetManifestRef().MarshalString()))
-	b.WriteString("\n}\n")
-	return b.String()
+	return "{\n" + strings.Join([]string{
+		`  "binary_path": ` + marshalString(binaryPath),
+		`  "project_id": ` + marshalString(metadata.GetProjectId()),
+		`  "entrypoint_role": ` + marshalString("cli"),
+		`  "channel_key": ` + marshalString(metadata.GetChannelKey()),
+		`  "manifest_id": ` + marshalString(meta.GetManifestId()),
+		`  "manifest_rev": ` + strconv.FormatUint(meta.GetRev(), 10),
+		`  "platform_id": ` + marshalString(meta.GetPlatformId()),
+		`  "manifest_ref": ` + marshalString(ref.GetManifestRef().MarshalString()),
+	}, ",\n") + "\n}\n"
 }
 
 // verifyStagedReleaseEntrypoint enforces the installed platform executable shape.
@@ -651,6 +671,7 @@ func (c *Controller) verifyStagedReleaseEntrypoint(
 	stageRoot string,
 	stagedPath string,
 ) error {
+	// Read the staged entrypoint shape before platform signature checks.
 	stagedInfo, err := os.Stat(stagedPath)
 	if err != nil {
 		return errors.Wrap(err, "stat staged release entrypoint")
@@ -685,9 +706,11 @@ func readReleaseMetadataSnapshot(
 	eng world.Engine,
 	channelKey string,
 ) (*spacewave_release.ReleaseMetadata, string, error) {
+	// Capture the World root and metadata in one read scope.
 	var metadata *spacewave_release.ReleaseMetadata
 	var headRef string
 	err := eng.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		// Build a read-only World state from this exact root.
 		headRef = root.GetRef().MarshalString()
 		ws, err := world_block.BuildWorldStateFromCursor(
 			ctx,
@@ -716,6 +739,7 @@ func readSelectedReleaseMetadata(
 	ws world.WorldState,
 	channelKey string,
 ) (*spacewave_release.ReleaseMetadata, error) {
+	// Require an explicit channel before resolving release metadata.
 	if channelKey == "" {
 		return nil, errors.New("release channel key is empty")
 	}
@@ -772,6 +796,7 @@ func readReleaseMetadataBlock[T block.Block](
 	objKey string,
 	ctor func() block.Block,
 ) (T, error) {
+	// Hold the typed metadata object through its read scope.
 	obj, err := world.MustGetObject(ctx, ws, objKey)
 	defer world.ReleaseObjectState(obj)
 	var zero T
@@ -782,6 +807,7 @@ func readReleaseMetadataBlock[T block.Block](
 	// Decode through the existing object read scope.
 	var out T
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		// Decode and require the requested metadata block type.
 		blk, err := block.UnmarshalBlock[block.Block](ctx, bcs, ctor)
 		if err != nil {
 			return err
@@ -822,6 +848,7 @@ func selectReleaseManifestRefByID(
 	manifestID string,
 	roleName string,
 ) (*bldr_manifest.ManifestRef, error) {
+	// Collect the unique configured entrypoint for this platform.
 	var selected *bldr_manifest.ManifestRef
 	var nonEntrypoint []string
 	for _, ref := range metadata.GetManifestRefs() {

@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -27,10 +28,15 @@ import (
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	"github.com/s4wave/spacewave/bldr/testbed"
+	launcher_controller "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
+	"github.com/s4wave/spacewave/db/block"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -88,6 +94,36 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	t.Cleanup(tb.Release)
 	tb.GetStaticResolver().AddFactory(manifest_fetch_world.NewFactory(tb.GetBus()))
 
+	// Expose the launcher's resolved pins through the embedded-plugin RPC seam.
+	releaseKey, _, err := crypto.GenerateEd25519Key(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	releasePeer, err := peer.IDFromPrivateKey(releaseKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	launcher := launcher_controller.NewController(le, tb.GetBus(), &launcher_controller.Config{}, []peer.ID{releasePeer}, nil)
+	t.Cleanup(func() { _ = launcher.Close() })
+
+	// Register the real authority server without executing launcher persistence.
+	mux := srpc.NewMux()
+	if err := bldr_manifest.SRPCRegisterReleaseAuthority(mux, launcher_controller.NewReleaseAuthorityServer(launcher)); err != nil {
+		t.Fatal(err)
+	}
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+	releaseAuthority, err := tb.GetBus().AddHandler(directive.NewFuncHandler(func(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+		dir, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
+		if !ok || dir.LoadPluginID() != "spacewave-launcher" {
+			return nil, nil
+		}
+		return directive.R(directive.NewValueResolver([]bldr_plugin.RunningPlugin{bldr_plugin.NewRunningPlugin(client)}), nil)
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseAuthority)
+
 	// Publish executable refs in separate buckets that require later copying.
 	const releaseObjectKey = "spacewave/release/manifests"
 	if _, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, tb.GetWorldEngine(), releaseObjectKey); err != nil {
@@ -96,15 +132,17 @@ func TestBrowserBootstrapMountsWorldAndColdStartsRemoteCore(t *testing.T) {
 	coreRef := buildRemoteManifest(t, ctx, tb, le, "spacewave-release", "spacewave-core")
 	transientRef := buildRemoteManifest(t, ctx, tb, le, "transient-release-provider", "transient-plugin")
 	for _, ref := range []*bldr_manifest.ManifestRef{coreRef, transientRef} {
+		if err := ref.SignReleaseAuthorization(releaseKey); err != nil {
+			t.Fatal(err)
+		}
 		manifestKey := bldr_manifest.NewManifestKey(releaseObjectKey, ref.GetMeta())
-		if err := bldr_manifest_world.ExStoreManifestOp(
-			ctx,
-			tb.GetWorldState(),
-			tb.GetVolume().GetPeerID(),
-			manifestKey,
-			[]string{releaseObjectKey},
-			ref,
-		); err != nil {
+		if _, _, err := world.AccessWorldObject(ctx, tb.GetWorldState(), manifestKey, true, func(cursor *block.Cursor) error {
+			cursor.SetBlock(ref, true)
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := tb.GetWorldState().SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(releaseObjectKey, manifestKey, ref.GetMeta().GetManifestId())); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -234,6 +234,7 @@ def release_world_config_set(
         configs["release-world-fetch"] = config_entry("bldr/manifest/fetch/world", 1, {
             "engineId": RELEASE_WORLD_ENGINE_ID,
             "objectKeys": ["spacewave/release/manifests"],
+            "releaseAuthorityPluginId": "spacewave-launcher",
         })
     return configs
 

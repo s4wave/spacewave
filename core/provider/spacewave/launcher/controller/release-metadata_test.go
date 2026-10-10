@@ -40,9 +40,11 @@ import (
 )
 
 func TestReadSelectedReleaseMetadata(t *testing.T) {
+	// Build the native channel metadata fixture.
 	ctx := context.Background()
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
 
+	// Resolve the selected channel and its platform support.
 	metadata, err := readSelectedReleaseMetadata(ctx, ws, "stable")
 	if err != nil {
 		t.Fatalf("readSelectedReleaseMetadata() error = %v", err)
@@ -59,6 +61,7 @@ func TestReadSelectedReleaseMetadata(t *testing.T) {
 // selection visible while refresh clears and stages a later release. The app
 // target still follows that later release independently.
 func TestDaemonApplyingSelectionSurvivesReleaseRefresh(t *testing.T) {
+	// Seed independently accepted daemon and desktop selections.
 	accepted := &spacewave_launcher.UpdateState{
 		Phase:              spacewave_launcher.UpdatePhase_UPDATE_PHASE_APPLYING,
 		Version:            "0.1.0",
@@ -105,9 +108,11 @@ func TestDaemonApplyingSelectionSurvivesReleaseRefresh(t *testing.T) {
 }
 
 func TestReadSelectedReleaseMetadataErrors(t *testing.T) {
+	// Build a channel that supports no native desktop.
 	ctx := context.Background()
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "desktop/other/arch")
 
+	// Require explicit channel selection and platform support.
 	if _, err := readSelectedReleaseMetadata(ctx, ws, "beta"); err == nil {
 		t.Fatal("expected missing channel error")
 	}
@@ -121,6 +126,7 @@ func TestReadSelectedReleaseMetadataErrors(t *testing.T) {
 }
 
 func TestSelectReleaseManifestRefRequiresNativeEntrypointIdentity(t *testing.T) {
+	// Build a native selection with an unrelated plugin.
 	platformID := nativeTestPlatformID()
 	valid := testManifestRef(nativeEntrypointManifestID, platformID, 1)
 	selected, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
@@ -136,18 +142,21 @@ func TestSelectReleaseManifestRefRequiresNativeEntrypointIdentity(t *testing.T) 
 		t.Fatal("selector did not return the native entrypoint ref")
 	}
 
+	// Reject a missing or ambiguous native entrypoint.
 	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
 		ManifestRefs: []*bldr_manifest.ManifestRef{testManifestRef("spacewave-plugin", platformID, 1)},
 	}, platformID); err == nil || !strings.Contains(err.Error(), "non-entrypoint native manifests") {
 		t.Fatalf("wrong-identity error = %v", err)
 	}
 
+	// Reject duplicate native candidates.
 	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
 		ManifestRefs: []*bldr_manifest.ManifestRef{valid, testManifestRef(nativeEntrypointManifestID, platformID, 2)},
 	}, platformID); err == nil || !strings.Contains(err.Error(), "duplicate native entrypoint manifest") {
 		t.Fatalf("duplicate error = %v", err)
 	}
 
+	// Reject a native candidate for another platform.
 	if _, err := selectReleaseManifestRef(&spacewave_release.ReleaseMetadata{
 		ManifestRefs: []*bldr_manifest.ManifestRef{testManifestRef(nativeEntrypointManifestID, "desktop/other/arch", 1)},
 	}, platformID); err == nil || !strings.Contains(err.Error(), "missing native entrypoint manifest") {
@@ -196,6 +205,7 @@ func TestSelectReleaseManifestsRequiresCLIEntrypointIdentity(t *testing.T) {
 }
 
 func TestCheckoutReleaseManifestStagesDist(t *testing.T) {
+	// Build a filesystem-backed native release.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
@@ -203,6 +213,8 @@ func TestCheckoutReleaseManifestStagesDist(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(src, "spacewave"), []byte("binary"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
+	// Checkout the manifest through the real release World.
 	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
 	out := t.TempDir()
 	manifest, err := checkoutReleaseManifest(
@@ -229,6 +241,7 @@ func TestCheckoutReleaseManifestStagesDist(t *testing.T) {
 }
 
 func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
+	// Publish both executable roots for the native release.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
@@ -243,6 +256,8 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 		2,
 		"cli",
 	)
+
+	// Publish the selected channel metadata.
 	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef, cliManifestRef}
 	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("stable"), metadata)
@@ -253,6 +268,7 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 		}},
 	})
 
+	// Mount the fixture World on the launcher bus.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -261,10 +277,12 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 	defer rel()
 
+	// Stage under an isolated launcher directory.
 	stagingDir := t.TempDir()
 	ctrl := &Controller{
-		le:  le,
-		bus: b,
+		le:          le,
+		bus:         b,
+		distPeerIDs: releaseAuthorizationTestPins(t),
 		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](
 			&spacewave_launcher.LauncherInfo{
 				DistConfig: &spacewave_launcher.DistConfig{
@@ -278,6 +296,7 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	}
 	ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig())
 
+	// Require a staged desktop target for the selected manifest.
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
 	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatalf("phase = %v error=%q", state.GetPhase(), state.GetErrorMessage())
@@ -292,6 +311,8 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if state.GetStagedPath() != wantStagedPath {
 		t.Fatalf("staged path = %q", state.GetStagedPath())
 	}
+
+	// Read the staged installed-app executable.
 	appExecutable := state.GetStagedPath()
 	if runtime.GOOS == "darwin" {
 		appExecutable = filepath.Join(appExecutable, "Contents", "MacOS", "spacewave")
@@ -303,9 +324,13 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if runtime.GOOS != "darwin" && string(got) != "binary" {
 		t.Fatalf("staged binary = %q", string(got))
 	}
+
+	// Require staged resolution diagnostics.
 	if outcome := ctrl.launcherInfoCtr.GetValue().GetFetchStatus().GetReleaseMetadataOutcome(); outcome != spacewave_launcher.ReleaseMetadataOutcome_RELEASE_METADATA_OUTCOME_STAGED {
 		t.Fatalf("release metadata outcome = %v, want staged", outcome)
 	}
+
+	// Check the selected desktop manifest identity.
 	fetchStatus := ctrl.launcherInfoCtr.GetValue().GetFetchStatus()
 	if fetchStatus.SelectedEntrypointManifestId != nativeEntrypointManifestID {
 		t.Fatalf("selected entrypoint id = %q", fetchStatus.SelectedEntrypointManifestId)
@@ -319,6 +344,8 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if fetchStatus.SelectedEntrypointManifestRef == "" {
 		t.Fatal("selected entrypoint ref is empty")
 	}
+
+	// Check the selected companion manifest identity.
 	if fetchStatus.SelectedCliManifestId != cliEntrypointManifestID {
 		t.Fatalf("selected CLI entrypoint id = %q", fetchStatus.SelectedCliManifestId)
 	}
@@ -334,6 +361,8 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if fetchStatus.SelectedCliBinaryPath != filepath.Join(stagingDir, "0.1.0", "cli-dist", "spacewave") {
 		t.Fatalf("selected CLI binary path = %q", fetchStatus.SelectedCliBinaryPath)
 	}
+
+	// Read the companion discovery record.
 	sidecar, err := os.ReadFile(filepath.Join(stagingDir, managedCLIReleaseSidecarFilename))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -348,6 +377,8 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if !strings.Contains(sidecarText, `"binary_path": `) {
 		t.Fatalf("sidecar missing binary path: %s", sidecarText)
 	}
+
+	// Verify the staged companion payload and daemon target.
 	cliBinary, err := os.ReadFile(fetchStatus.SelectedCliBinaryPath)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -359,6 +390,8 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if daemonState.GetTarget() != desktop_update.UpdateTarget_UPDATE_TARGET_DAEMON || daemonState.GetArtifactManifestId() != cliEntrypointManifestID || daemonState.GetStagedPath() != fetchStatus.SelectedCliBinaryPath {
 		t.Fatalf("daemon artifact selection = %#v", daemonState)
 	}
+
+	// Require the daemon digest to match its staged executable.
 	digest, err := stagedExecutableSHA256(fetchStatus.SelectedCliBinaryPath)
 	if err != nil {
 		t.Fatal(err)
@@ -387,6 +420,8 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED {
 		t.Fatal("matching daemon bytes hid the app update")
 	}
+
+	// Matching installed-app bytes must still expose the desktop update.
 	if err := os.WriteFile(installedCLI, got, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -443,10 +478,14 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 	if err := ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig()); err != nil {
 		t.Fatal(err)
 	}
+
+	// Require the daemon selection to name the app bundle executable.
 	bundleState := ctrl.launcherInfoCtr.GetValue().GetDaemonUpdateState()
 	if bundleState.GetArtifactManifestId() != nativeEntrypointManifestID || bundleState.GetStagedPath() != appExecutable {
 		t.Fatalf("bundle daemon selection = %#v", bundleState)
 	}
+
+	// Suppress a daemon update once the installed bundle matches.
 	if err := os.WriteFile(installedExecutable, got, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -459,10 +498,12 @@ func TestRefreshReleaseMetadataStatusStagesWithoutR2Media(t *testing.T) {
 }
 
 func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testing.T) {
+	// Build the channel metadata and release World.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
 
+	// Mount the fixture World through the launcher bus.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -471,6 +512,7 @@ func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testi
 	}
 	defer rel()
 
+	// Seed stale release selection diagnostics.
 	ctrl := &Controller{
 		le:  le,
 		bus: b,
@@ -485,6 +527,8 @@ func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testi
 		),
 		stagingDirFunc: func() (string, error) { return t.TempDir(), nil },
 	}
+
+	// Refresh a missing channel and require stale diagnostics to clear.
 	err = ctrl.refreshReleaseMetadataStatus(ctx, &spacewave_launcher.DistConfig{
 		ProjectId:  "spacewave",
 		Rev:        1,
@@ -509,6 +553,7 @@ func TestRefreshReleaseMetadataStatusClearsStaleReleaseWorldHeadOnError(t *testi
 }
 
 func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
+	// Publish a directory where the executable should be.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
@@ -519,6 +564,8 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(src, "spacewave", "binary"), []byte("binary"), 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Publish the independent companion executable.
 	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
 	cliManifestRef := writeReleaseManifestTestBlockWithBinary(
 		t,
@@ -540,6 +587,7 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 		}},
 	})
 
+	// Mount the fixture World through the launcher bus.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -548,8 +596,9 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 	}
 	defer rel()
 
+	// Refresh the malformed installed-app candidate.
 	stagingDir := t.TempDir()
-	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, stagingDir)
 	err = ctrl.refreshReleaseMetadataStatus(ctx, ctrl.launcherInfoCtr.GetValue().GetDistConfig())
 	if err == nil {
 		t.Fatal("expected directory entrypoint error")
@@ -561,6 +610,8 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 	if !strings.Contains(err.Error(), want) {
 		t.Fatalf("error = %q", err.Error())
 	}
+
+	// Require an error state and remove the rejected checkout.
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
 	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR {
 		t.Fatalf("phase = %v, want ERROR", state.GetPhase())
@@ -574,10 +625,13 @@ func TestRefreshReleaseMetadataStatusRejectsDirectoryEntrypoint(t *testing.T) {
 // that starts before the release World mounts asks the mount to fetch its root
 // and resolves the release once the mount publishes its engine.
 func TestReleaseMetadataRoutineRefreshesThenWaitsForReleaseWorld(t *testing.T) {
+	// Build a bounded release metadata scenario.
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
+
+	// Publish both executable roots and selected metadata.
 	manifestRef := writeReleaseDesktopArtifactTestBlock(t, ctx, ws, "release/manifests/native", nativeEntrypointManifestID, nativeTestPlatformID(), 1, "binary")
 	cliManifestRef := writeReleaseManifestTestBlockWithBinary(
 		t,
@@ -599,6 +653,7 @@ func TestReleaseMetadataRoutineRefreshesThenWaitsForReleaseWorld(t *testing.T) {
 		}},
 	})
 
+	// Mount the refresh service before the World appears.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	refresher := &releaseWorldRefreshTestController{refreshed: make(chan struct{}, 1)}
@@ -607,8 +662,10 @@ func TestReleaseMetadataRoutineRefreshesThenWaitsForReleaseWorld(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer relRefresh()
+
+	// Start metadata resolution with no mounted World.
 	stagingDir := t.TempDir()
-	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, stagingDir)
 	ctrl.releaseMetadataRoutine.SetContext(ctx, true)
 	defer ctrl.releaseMetadataRoutine.ClearContext()
 
@@ -625,6 +682,7 @@ func TestReleaseMetadataRoutineRefreshesThenWaitsForReleaseWorld(t *testing.T) {
 	}
 	defer rel()
 
+	// Require the mounted World to produce a staged desktop.
 	state := waitForUpdatePhase(t, ctrl, spacewave_launcher.UpdatePhase_UPDATE_PHASE_STAGED)
 	wantStagedPath := filepath.Join(stagingDir, "0.1.0", "dist", "spacewave")
 	if runtime.GOOS == "darwin" {
@@ -636,10 +694,12 @@ func TestReleaseMetadataRoutineRefreshesThenWaitsForReleaseWorld(t *testing.T) {
 }
 
 func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
+	// Build metadata behind the incoming selector revision.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
 
+	// Mount the World and its refresh service.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -647,6 +707,8 @@ func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer rel()
+
+	// Count refresh requests sent to the owning mount.
 	refresher := &releaseWorldRefreshTestController{}
 	relRefresh, err := b.AddController(ctx, refresher, nil)
 	if err != nil {
@@ -655,7 +717,7 @@ func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
 	defer relRefresh()
 
 	// The pushed selector names revision 2 while the mounted World holds 1.
-	ctrl := newReleaseMetadataRoutineTestController(le, b, t.TempDir())
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, t.TempDir())
 	ctrl.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
 		DistConfig: &spacewave_launcher.DistConfig{ProjectId: "spacewave", Rev: 2, ChannelKey: "stable"},
 	})
@@ -675,10 +737,12 @@ func TestRefreshReleaseMetadataStatusRefreshesLaggingWorld(t *testing.T) {
 }
 
 func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.T) {
+	// Build metadata that lacks the native platform.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "js")
 
+	// Mount the fixture World through the launcher bus.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -687,7 +751,8 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 	}
 	defer rel()
 
-	ctrl := newReleaseMetadataRoutineTestController(le, b, t.TempDir())
+	// Seed a previous error and refresh the incompatible release.
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, t.TempDir())
 	ctrl.launcherInfoCtr.SetValue(&spacewave_launcher.LauncherInfo{
 		DistConfig: ctrl.launcherInfoCtr.GetValue().GetDistConfig(),
 		UpdateState: &spacewave_launcher.UpdateState{
@@ -703,6 +768,8 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 	if !strings.Contains(err.Error(), want) {
 		t.Fatalf("error = %q, want %q", err.Error(), want)
 	}
+
+	// Require the current error and diagnostics to identify the missing entrypoint.
 	state := ctrl.launcherInfoCtr.GetValue().GetUpdateState()
 	if state.GetPhase() != spacewave_launcher.UpdatePhase_UPDATE_PHASE_ERROR {
 		t.Fatalf("phase = %v, want ERROR", state.GetPhase())
@@ -716,6 +783,7 @@ func TestRefreshReleaseMetadataStatusErrorsWhenNativeManifestMissing(t *testing.
 }
 
 func TestRefreshReleaseMetadataStatusErrorsWhenCLIManifestMissing(t *testing.T) {
+	// Build a release that omits its required companion.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", nativeTestPlatformID())
@@ -724,6 +792,8 @@ func TestRefreshReleaseMetadataStatusErrorsWhenCLIManifestMissing(t *testing.T) 
 		t.Fatal(err.Error())
 	}
 	manifestRef := writeReleaseManifestTestBlock(t, ctx, ws, "release/manifests/native", src)
+
+	// Publish only the native entrypoint in channel metadata.
 	metadata := testReleaseMetadata("stable", nativeTestPlatformID(), manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef}
 	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("stable"), metadata)
@@ -734,6 +804,7 @@ func TestRefreshReleaseMetadataStatusErrorsWhenCLIManifestMissing(t *testing.T) 
 		}},
 	})
 
+	// Mount the fixture World through the launcher bus.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -742,7 +813,8 @@ func TestRefreshReleaseMetadataStatusErrorsWhenCLIManifestMissing(t *testing.T) 
 	}
 	defer rel()
 
-	ctrl := newReleaseMetadataRoutineTestController(le, b, t.TempDir())
+	// Refresh the release and require the missing companion error.
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, t.TempDir())
 	err = ctrl.refreshCurrentReleaseMetadataStatus(ctx)
 	if err == nil {
 		t.Fatal("expected missing CLI manifest error")
@@ -757,6 +829,7 @@ func TestRefreshReleaseMetadataStatusErrorsWhenCLIManifestMissing(t *testing.T) 
 }
 
 func TestStageReleaseManifestUpdateRejectsRawDarwinPayloadWithOutsideDaemon(t *testing.T) {
+	// Build a raw Darwin executable outside an app bundle.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	ws := buildReleaseMetadataTestWorld(t, ctx, "stable", "desktop/darwin/arm64")
@@ -785,6 +858,7 @@ func TestStageReleaseManifestUpdateRejectsRawDarwinPayloadWithOutsideDaemon(t *t
 		"cli",
 	)
 
+	// Mount the fixture World through the launcher bus.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -793,13 +867,16 @@ func TestStageReleaseManifestUpdateRejectsRawDarwinPayloadWithOutsideDaemon(t *t
 	}
 	defer rel()
 
+	// Stage the release with a daemon outside the installed app.
 	stagingDir := t.TempDir()
-	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, stagingDir)
 	ctrl.currentExecutableBundleFunc = func() (string, bool, string, error) {
 		return filepath.Join(t.TempDir(), "daemon-bin", "spacewave"), false, "", nil
 	}
 	metadata := testReleaseMetadata("stable", "desktop/darwin/arm64", manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef, cliManifestRef}
+
+	// Reject the raw payload and remove its staging directory.
 	err = ctrl.stageReleaseManifestUpdate(ctx, metadata, "desktop/darwin/arm64", manifestRef, cliManifestRef)
 	if err == nil {
 		t.Fatal("expected raw Darwin installed-app payload error")
@@ -813,9 +890,11 @@ func TestStageReleaseManifestUpdateRejectsRawDarwinPayloadWithOutsideDaemon(t *t
 }
 
 func TestStageReleaseManifestUpdateRejectsPathLikeVersion(t *testing.T) {
+	// Prepare a release with an escaping version path.
 	ctx, ctrl, metadata, manifestRef, cliManifestRef, stagingDir := buildReleaseMetadataStageUpdateFixture(t, nativeTestPlatformID())
 	metadata.Version = "../escape"
 
+	// Reject the version before creating a directory outside staging.
 	err := ctrl.stageReleaseManifestUpdate(ctx, metadata, nativeTestPlatformID(), manifestRef, cliManifestRef)
 	if err == nil {
 		t.Fatal("expected path-like release version error")
@@ -829,6 +908,7 @@ func TestStageReleaseManifestUpdateRejectsPathLikeVersion(t *testing.T) {
 }
 
 func TestStageReleaseManifestUpdateRejectsSymlinkedStagingRoot(t *testing.T) {
+	// Prepare an existing version directory symlink.
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation requires elevated privileges on some Windows hosts")
 	}
@@ -838,6 +918,7 @@ func TestStageReleaseManifestUpdateRejectsSymlinkedStagingRoot(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Reject the linked staging root without writing to its target.
 	err := ctrl.stageReleaseManifestUpdate(ctx, metadata, nativeTestPlatformID(), manifestRef, cliManifestRef)
 	if err == nil {
 		t.Fatal("expected symlinked release staging root error")
@@ -851,6 +932,7 @@ func TestStageReleaseManifestUpdateRejectsSymlinkedStagingRoot(t *testing.T) {
 }
 
 func TestStageReleaseManifestUpdateRejectsSymlinkedCheckoutRoot(t *testing.T) {
+	// Prepare a linked companion checkout directory.
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation requires elevated privileges on some Windows hosts")
 	}
@@ -864,6 +946,7 @@ func TestStageReleaseManifestUpdateRejectsSymlinkedCheckoutRoot(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Reject the checkout symlink without writing to its target.
 	err := ctrl.stageReleaseManifestUpdate(ctx, metadata, nativeTestPlatformID(), manifestRef, cliManifestRef)
 	if err == nil {
 		t.Fatal("expected symlinked cli checkout root error")
@@ -877,6 +960,7 @@ func TestStageReleaseManifestUpdateRejectsSymlinkedCheckoutRoot(t *testing.T) {
 }
 
 func TestStagedManifestEntrypointPathRejectsEscapes(t *testing.T) {
+	// Require local entrypoint paths inside the checkout.
 	distPath := filepath.Join(t.TempDir(), "dist")
 	if _, err := stagedManifestEntrypointPath(distPath, "../spacewave"); err == nil {
 		t.Fatal("expected parent escape error")
@@ -897,6 +981,7 @@ func TestStagedManifestEntrypointPathRejectsEscapes(t *testing.T) {
 }
 
 func TestVerifyStagedExecutableRejectsSymlink(t *testing.T) {
+	// Prepare a final executable path that is a symlink.
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation requires elevated privileges on some Windows hosts")
 	}
@@ -909,10 +994,14 @@ func TestVerifyStagedExecutableRejectsSymlink(t *testing.T) {
 	if err := os.WriteFile(outside, []byte("outside"), 0o755); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Link the staged entrypoint to a file outside the checkout.
 	stagedPath := filepath.Join(cliDistPath, "spacewave")
 	if err := os.Symlink(outside, stagedPath); err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Reject the linked executable and remove the checkout.
 	err := verifyStagedExecutable(stageRoot, cliDistPath, stagedPath)
 	if err == nil {
 		t.Fatal("expected symlink entrypoint error")
@@ -931,6 +1020,7 @@ func buildReleaseMetadataTestWorld(
 	channelKey string,
 	platformID string,
 ) world.WorldState {
+	// Build an isolated block-backed release World.
 	t.Helper()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
@@ -943,6 +1033,8 @@ func buildReleaseMetadataTestWorld(
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(ocs.Release)
+
+	// Construct the World engine and register its cleanup.
 	eng, err := world_block.NewEngine(ctx, le, ocs, nil, nil, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -952,6 +1044,8 @@ func buildReleaseMetadataTestWorld(
 			t.Fatal(err.Error())
 		}
 	})
+
+	// Publish the initial release channel directory.
 	ws := world.NewEngineWorldState(eng, true)
 	ref := testBlockRef()
 	metadata := testReleaseMetadata(channelKey, platformID, ref)
@@ -967,13 +1061,17 @@ func buildReleaseMetadataTestWorld(
 }
 
 func newReleaseMetadataRoutineTestController(
+	t *testing.T,
 	le *logrus.Entry,
 	b *inmem.Bus,
 	stagingDir string,
 ) *Controller {
+	// Construct a launcher with the fixture release pins.
+	t.Helper()
 	ctrl := &Controller{
-		le:  le,
-		bus: b,
+		le:          le,
+		bus:         b,
+		distPeerIDs: releaseAuthorizationTestPins(t),
 		launcherInfoCtr: ccontainer.NewCContainer[*spacewave_launcher.LauncherInfo](
 			&spacewave_launcher.LauncherInfo{
 				DistConfig: &spacewave_launcher.DistConfig{
@@ -985,6 +1083,8 @@ func newReleaseMetadataRoutineTestController(
 		),
 		stagingDirFunc: func() (string, error) { return stagingDir, nil },
 	}
+
+	// Configure the release routine retry lifetime.
 	ctrl.releaseMetadataRoutine = routine.NewRoutineContainer(
 		routine.WithRetry(&backoff.Backoff{
 			BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
@@ -1009,6 +1109,7 @@ func buildReleaseMetadataStageUpdateFixture(
 	*bldr_manifest.ManifestRef,
 	string,
 ) {
+	// Build native and companion executable roots.
 	t.Helper()
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -1027,6 +1128,8 @@ func buildReleaseMetadataStageUpdateFixture(
 		platformID,
 		1,
 	)
+
+	// Build the required companion manifest.
 	cliManifestRef := writeReleaseManifestTestBlockWithBinary(
 		t,
 		ctx,
@@ -1037,6 +1140,8 @@ func buildReleaseMetadataStageUpdateFixture(
 		2,
 		"cli",
 	)
+
+	// Mount the release fixture and construct its launcher.
 	dc := cdc.NewController(ctx, le)
 	b := inmem.NewBus(dc)
 	rel, err := b.AddController(ctx, &releaseWorldLookupTestController{ws: ws}, nil)
@@ -1044,8 +1149,10 @@ func buildReleaseMetadataStageUpdateFixture(
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(rel)
+
+	// Allocate staging and return the signed selection set.
 	stagingDir := t.TempDir()
-	ctrl := newReleaseMetadataRoutineTestController(le, b, stagingDir)
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, stagingDir)
 	metadata := testReleaseMetadata("stable", platformID, manifestRef.GetManifestRef().GetRootRef())
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifestRef, cliManifestRef}
 	return ctx, ctrl, metadata, manifestRef, cliManifestRef, stagingDir
@@ -1239,6 +1346,7 @@ func writeReleaseDesktopArtifactTestBlock(
 	rev uint64,
 	contents string,
 ) *bldr_manifest.ManifestRef {
+	// Build the platform installed-app directory shape.
 	t.Helper()
 	src := t.TempDir()
 	entrypoint := "spacewave"
@@ -1280,6 +1388,7 @@ func writeReleaseManifestTestBlockWithEntrypointMeta(
 	rev uint64,
 	entrypoint string,
 ) *bldr_manifest.ManifestRef {
+	// Write the complete executable manifest and file roots.
 	t.Helper()
 	meta := &bldr_manifest.ManifestMeta{
 		ManifestId: manifestID,
@@ -1294,7 +1403,13 @@ func writeReleaseManifestTestBlockWithEntrypointMeta(
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	return bldr_manifest.NewManifestRef(meta, objRef)
+
+	// Fixtures use the same release authority as their launcher.
+	ref := bldr_manifest.NewManifestRef(meta, objRef)
+	if err := ref.SignReleaseAuthorization(releaseAuthorizationTestKey(t)); err != nil {
+		t.Fatal(err)
+	}
+	return ref
 }
 
 func writeReleaseMetadataTestBlock(

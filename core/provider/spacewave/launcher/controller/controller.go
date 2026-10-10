@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/routine"
+	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/net/peer"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -76,6 +77,7 @@ func NewController(
 	distPeerIDs []peer.ID,
 	endpoints []*HttpEndpoint,
 ) *Controller {
+	// Initialize the launcher and its immutable resolved distribution pins.
 	ctrl := &Controller{
 		le:   le,
 		bus:  bus,
@@ -86,6 +88,8 @@ func NewController(
 	}
 	ctrl.endps = endpoints
 	ctrl.distPeerIDs = distPeerIDs
+
+	// Configure the endpoint fetch lifetime and backoff.
 	fetcherBackoffConf := conf.GetEndpointsBackoff()
 	if fetcherBackoffConf.GetEmpty() {
 		fetcherBackoffConf = defaultFetcherBackoffConf()
@@ -100,16 +104,21 @@ func NewController(
 		routine.WithExitCb(ctrl.confFetcherExited),
 	)
 	ctrl.confFetcherRoutine.SetRoutine(ctrl.fetchDistConfig)
+
+	// Resolve and stage metadata on the launcher release routine.
 	ctrl.releaseMetadataRoutine = routine.NewRoutineContainer(
 		routine.WithExitLogger(le.WithField("routine", "launcher-release-metadata")),
 		routine.WithBackoff(fetcherBackoffConf.Construct()),
 	)
 	ctrl.releaseMetadataRoutine.SetRoutine(ctrl.refreshCurrentReleaseMetadataStatus)
+
+	// Apply accepted distribution configs and expose launcher RPC services.
 	ctrl.configSetRoutine = routine.NewRoutineContainer(
 		routine.WithExitLogger(le.WithField("routine", "launcher-config-set")),
 	)
 	ctrl.configSetRoutine.SetRoutine(ctrl.applyDistConfigSet)
 	_ = spacewave_launcher.SRPCRegisterLauncher(ctrl.mux, NewLauncherServer(ctrl))
+	_ = manifest.SRPCRegisterReleaseAuthority(ctrl.mux, NewReleaseAuthorityServer(ctrl))
 	return ctrl
 }
 
@@ -125,6 +134,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Execute executes the controller.
 // Returning nil ends execution.
 func (c *Controller) Execute(ctx context.Context) (rerr error) {
+	// Announce launcher startup before reading persisted configuration.
 	c.le.Info("launcher starting")
 
 	// load the built-in app dist config
@@ -162,6 +172,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 			c.le.WithField("path", localDistConfPath).Info("loaded package dist config")
 		}
 	}
+
+	// Authenticate stored or package-provided distribution configuration.
 	if len(distConfDat) != 0 {
 		var distConfSigner peer.ID
 		distConf, distConfMsg, distConfSigner, err = c.parseDistConf(distConfDat)
@@ -181,6 +193,8 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 			}
 		}
 	}
+
+	// Select the newest valid persisted or embedded configuration.
 	distConfRev := uint64(0)
 	if distConf != nil {
 		distConfRev = distConf.GetRev()
@@ -228,6 +242,9 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := di.GetDirective().(type) {
 	case bifrost_rpc.LookupRpcService:
+		if d.LookupRpcServiceID() == manifest.SRPCReleaseAuthorityServiceID {
+			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c.mux), nil)
+		}
 		if d.LookupRpcServiceID() == spacewave_launcher.SRPCLauncherServiceID {
 			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c.mux), nil)
 		}
@@ -237,6 +254,7 @@ func (c *Controller) HandleDirective(
 			return nil, nil
 		}
 		return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+			// Recheck the selected project and acknowledge the request.
 			c.RecheckDistConfig()
 			_, accepted := handler.AddValue(spacewave_launcher.RecheckDistConfigValue(true))
 			if !accepted {
@@ -309,6 +327,7 @@ func (c *Controller) updateFetchStatus(update func(*spacewave_launcher.FetchStat
 // revision. An invalid body, including a config for another channel, returns
 // an error.
 func (c *Controller) PushDistConf(ctx context.Context, body []byte) (*spacewave_launcher.DistConfig, bool, uint64, error) {
+	// Read the current revision before authenticating a pushed configuration.
 	currLauncherInfo, err := c.launcherInfoCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, false, 0, err
@@ -345,11 +364,13 @@ func (c *Controller) adoptDistConf(
 	msg string,
 	source spacewave_launcher.DistConfigSource,
 ) bool {
+	// Serialize adoption and persistence across concurrent configuration updates.
 	c.adoptMtx.Lock()
 	defer c.adoptMtx.Unlock()
 
 	// Select the config only if it is newer.
 	_, adopted, _ := c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		// Publish only a strictly newer accepted configuration.
 		if info.GetDistConfig().GetRev() >= conf.GetRev() {
 			return false, nil
 		}
@@ -383,6 +404,7 @@ func (c *Controller) modifyLauncherInfo(
 	cb func(info *spacewave_launcher.LauncherInfo) (commit bool, cbErr error),
 ) (nextVal *spacewave_launcher.LauncherInfo, changed bool, rerr error) {
 	_ = c.launcherInfoCtr.SwapValue(func(val *spacewave_launcher.LauncherInfo) *spacewave_launcher.LauncherInfo {
+		// Edit a private copy and keep the old value on rejection or no change.
 		modifyVal := val.CloneVT()
 		if modifyVal == nil {
 			modifyVal = &spacewave_launcher.LauncherInfo{}
@@ -423,6 +445,7 @@ func (c *Controller) RecheckReleaseMetadata() {
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
+	// Stop pending refetch work under the launcher lock.
 	c.mtx.Lock()
 	if c.confFetcherRefetch != nil {
 		_ = c.confFetcherRefetch.Stop()

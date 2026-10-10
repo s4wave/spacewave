@@ -62,7 +62,7 @@ func TestReleaseMetadataRoutineWakesMountOnEmptySpace(t *testing.T) {
 	defer relMount()
 
 	// Start the launcher's routine; it asks the empty mount to fetch.
-	ctrl := newReleaseMetadataRoutineTestController(le, b, t.TempDir())
+	ctrl := newReleaseMetadataRoutineTestController(t, le, b, t.TempDir())
 	ctrl.releaseMetadataRoutine.SetContext(ctx, true)
 	defer ctrl.releaseMetadataRoutine.ClearContext()
 	select {
@@ -86,6 +86,7 @@ func TestReleaseMetadataRoutineWakesMountOnEmptySpace(t *testing.T) {
 // encodeTestRootPointer returns the root pointer of spaceID whose plain World
 // has an empty head.
 func encodeTestRootPointer(t *testing.T, spaceID string) []byte {
+	// Encode an empty World checkpoint and its CDN root pointer.
 	t.Helper()
 	state, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
 	if err != nil {

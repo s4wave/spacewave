@@ -6,29 +6,64 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
+	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/util/confparse"
 	"github.com/sirupsen/logrus"
 )
 
 // fetchManifestResolver resolves FetchManifest with the controller optionally watching for changes.
 type fetchManifestResolver struct {
-	// c is the controller
+	// c supplies the World and release authority configuration.
 	c *Controller
-	// dir is the FetchManifest directive
+	// dir selects the requested Manifest metadata.
 	dir manifest.FetchManifest
 	// emittedValue is the previously emitted value, if any.
 	emittedValue *manifest.FetchManifestValue
+	// releasePeers holds the launcher's resolved pins for this RPC lifetime.
+	releasePeers []peer.ID
 }
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Local and embedded Worlds use their existing resolution path.
+	if r.c.conf.GetReleaseAuthorityPluginId() == "" {
+		return r.resolveWorld(ctx, handler)
+	}
+
+	// Hold the embedded launcher's client while resolving executable manifests.
+	return plugin.ExPluginLoadAccessClient(ctx, r.c.bus, r.c.conf.GetReleaseAuthorityPluginId(), func(ctx context.Context, client srpc.Client) error {
+		// Inherit the launcher's resolved pins instead of configuring another key.
+		response, err := manifest.NewSRPCReleaseAuthorityClient(client).GetReleasePeerIds(ctx, &manifest.GetReleasePeerIdsRequest{})
+		if err != nil {
+			return errors.Wrap(err, "release authorization: resolve launcher pins")
+		}
+		peers, err := confparse.ParsePeerIDs(response.GetPeerIds(), false)
+		if err != nil {
+			return errors.Wrap(err, "release authorization: launcher pins")
+		}
+		if len(peers) == 0 {
+			return errors.New("release authorization: missing launcher release peer pins")
+		}
+		r.releasePeers = peers
+		return r.resolveWorld(ctx, handler)
+	})
+}
+
+// resolveWorld watches the mounted World for authorized executable selections.
+func (r *fetchManifestResolver) resolveWorld(ctx context.Context, handler directive.ResolverHandler) error {
 	// Register the resolver and clear any previously emitted values.
 	r.c.addResolver(r)
 	defer r.c.removeResolver(r)
+	r.emittedValue = nil
 	_ = handler.ClearValues()
 
 	// Watch the world state and re-check the manifests list when it changes.
@@ -44,7 +79,14 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 		rootCs *block.Cursor,
 		rev uint64,
 	) (bool, error) {
-		return r.reconcileManifests(ctx, le, handler, ws)
+		// Authorization failures withdraw old values and terminate with the rejection.
+		wait, err := r.reconcileManifests(ctx, le, handler, ws)
+		if err != nil && r.c.conf.GetReleaseAuthorityPluginId() != "" {
+			r.emittedValue = nil
+			_ = handler.ClearValues()
+			return false, err
+		}
+		return wait, err
 	}))
 
 	// Report the directive idle while the World engine is unavailable, so a
@@ -73,7 +115,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 	}
 	defer engineRef.Release()
 
-	// execute the watch loop
+	// Resolve the mounted World's snapshots for this directive lifetime.
 	return world_control.ExecuteBusWatchLoop(
 		ctx,
 		r.c.bus,
@@ -117,6 +159,26 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 			Meta:        m.Manifest.Meta,
 			ManifestRef: m.ManifestRef,
 		}
+		if r.c.conf.GetReleaseAuthorityPluginId() != "" {
+			// Direct Manifest objects have no independent authorization envelope.
+			objType, err := world_types.GetObjectType(ctx, ws, m.ManifestKey)
+			if err != nil {
+				return true, errors.Wrap(err, "release authorization: read manifest type")
+			}
+			if objType == bldr_manifest_world.ManifestTypeID {
+				return true, errors.Errorf("manifest %s: release authorization: missing authorization", m.ManifestKey)
+			}
+
+			// Read authorization beside the selected root.
+			candidate, _, err := bldr_manifest_world.LookupManifestRef(ctx, ws, m.ManifestKey)
+			if err != nil {
+				return true, errors.Wrap(err, "release authorization: read manifest reference")
+			}
+			manifestRefs[i].ReleaseAuthorization = candidate.GetReleaseAuthorization().CloneVT()
+			if err := manifestRefs[i].VerifyReleaseAuthorization(r.releasePeers); err != nil {
+				return true, errors.Wrapf(err, "manifest %s", m.ManifestKey)
+			}
+		}
 	}
 
 	// A cache miss is absence of a value, not a successful zero-ref
@@ -129,7 +191,8 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 			_ = handler.ClearValues()
 		}
 		le.Debugf("fetched %v manifest(s) from world", len(manifests))
-	} else {
+	}
+	if len(manifestRefs) != 0 {
 		nextValue := &manifest.FetchManifestValue{ManifestRefs: manifestRefs}
 		if r.emittedValue == nil || !nextValue.EqualVT(r.emittedValue) {
 			r.emittedValue = nextValue
