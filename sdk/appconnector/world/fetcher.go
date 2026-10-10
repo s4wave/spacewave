@@ -5,6 +5,7 @@ package s4wave_appconnector_world
 import (
 	"context"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -81,7 +82,7 @@ type connectorResource struct {
 
 // readResult is the outcome of one read in a fetch cycle.
 type readResult struct {
-	// read names the read.
+	// read identifies the configured API read.
 	read *s4wave_appconnector.AppRead
 	// status is the HTTP status code of a response that arrived.
 	status uint32
@@ -240,6 +241,13 @@ func (r *connectorResource) fetch(
 	}
 	defer resp.Body.Close()
 
+	// Keep the response status within the snapshot's uint32 field.
+	if resp.StatusCode < 0 || resp.StatusCode > math.MaxUint32 {
+		result.err = errors.Errorf("invalid response status %d", resp.StatusCode)
+		return result
+	}
+	result.status = uint32(resp.StatusCode)
+
 	// Read one byte past the limit to tell an oversized body from one that fits.
 	limit := int64(conn.GetMaxBodyBytes())
 	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
@@ -247,7 +255,6 @@ func (r *connectorResource) fetch(
 		result.err = errors.Wrap(err, "read response")
 		return result
 	}
-	result.status = uint32(resp.StatusCode)
 	switch {
 	case resp.StatusCode < 200 || resp.StatusCode > 299:
 		result.err = errors.Errorf("unexpected status %d", resp.StatusCode)
