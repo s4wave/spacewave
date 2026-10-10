@@ -142,7 +142,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/manifest": {
-      "hash": "3cd66580c4c887802517a703f0bf073568627f393b369c6df397d34b6463bd9f",
+      "hash": "4b94ef827db75b8180fb06339b1909e49df345357c0b155a83bce57761abe6a4",
       "generatedFiles": [
         "bldr/manifest/manifest.pb.go",
         "bldr/manifest/manifest.pb.ts",
@@ -204,7 +204,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world": {
-      "hash": "6b51e7a4eb440bea4696fafec50a136fec9fb85d4bd63798b21a9b25c8553651",
+      "hash": "63e77f28f9b41df0764d1d5630549e85635c9f81c311d69dd7811b563595c07b",
       "generatedFiles": [
         "bldr/manifest/fetch/world/config.pb.go",
         "bldr/manifest/fetch/world/config.pb.ts"

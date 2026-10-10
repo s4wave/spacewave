@@ -3,6 +3,7 @@ package bldr.manifest;
 
 import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/net/peer/peer.proto";
 import "google/protobuf/timestamp.proto";
 
 // ManifestMeta is basic metadata about a manifest.
@@ -51,6 +52,33 @@ message ManifestRef {
   ManifestMeta meta = 1;
   // ManifestRef is the reference to the manifest.
   .bucket.ObjectRef manifest_ref = 2;
+  // ReleaseAuthorization is a purpose-bound SignedMsg of ReleaseAuthorization.
+  // The release peer signs the exact Manifest root independently of its location.
+  .peer.SignedMsg release_authorization = 3;
+}
+
+// ReleaseAuthorization permits execution of one immutable Manifest root.
+// The root covers the Manifest metadata, dependencies, and executable file roots.
+message ReleaseAuthorization {
+  // ManifestRoot is the exact content-addressed Manifest block being authorized.
+  .block.BlockRef manifest_root = 1;
+}
+
+// ReleaseAuthority supplies the launcher's resolved release signer pins.
+// A resolver calls the embedded launcher, whose identity is configured by the app.
+service ReleaseAuthority {
+  // GetReleasePeerIds returns the same peers used to verify distribution configs.
+  rpc GetReleasePeerIds(GetReleasePeerIdsRequest) returns (GetReleasePeerIdsResponse) {}
+}
+
+// GetReleasePeerIdsRequest requests the launcher's resolved signer pins.
+message GetReleasePeerIdsRequest {
+}
+
+// GetReleasePeerIdsResponse contains the immutable pins of this launcher instance.
+message GetReleasePeerIdsResponse {
+  // PeerIds contains the base58-encoded release signer peer IDs.
+  repeated string peer_ids = 1;
 }
 
 // ManifestBundle contains the metadata for a bundle of Manifest.

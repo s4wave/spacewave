@@ -2,7 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/bldr/manifest/manifest.proto (package bldr.manifest, syntax proto3)
 /* eslint-disable */
 
-import { FetchManifestRequest, FetchManifestResponse } from './manifest.pb.js'
+import {
+  FetchManifestRequest,
+  FetchManifestResponse,
+  GetReleasePeerIdsRequest,
+  GetReleasePeerIdsResponse,
+} from './manifest.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
@@ -11,6 +16,95 @@ import {
   ServerContext,
 } from 'starpc'
 
+/**
+ * ReleaseAuthority supplies the launcher's resolved release signer pins.
+ * A resolver calls the embedded launcher, whose identity is configured by the app.
+ *
+ * @generated from service bldr.manifest.ReleaseAuthority
+ */
+export const ReleaseAuthorityDefinition = {
+  typeName: 'bldr.manifest.ReleaseAuthority',
+  methods: {
+    /**
+     * GetReleasePeerIds returns the same peers used to verify distribution configs.
+     *
+     * @generated from rpc bldr.manifest.ReleaseAuthority.GetReleasePeerIds
+     */
+    GetReleasePeerIds: {
+      name: 'GetReleasePeerIds',
+      I: GetReleasePeerIdsRequest,
+      O: GetReleasePeerIdsResponse,
+      kind: MethodKind.Unary,
+    },
+  },
+} as const
+
+/**
+ * ReleaseAuthority supplies the launcher's resolved release signer pins.
+ * A resolver calls the embedded launcher, whose identity is configured by the app.
+ *
+ * @generated from service bldr.manifest.ReleaseAuthority
+ */
+export interface ReleaseAuthority {
+  /**
+   * GetReleasePeerIds returns the same peers used to verify distribution configs.
+   *
+   * @generated from rpc bldr.manifest.ReleaseAuthority.GetReleasePeerIds
+   */
+  GetReleasePeerIds(
+    request: GetReleasePeerIdsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetReleasePeerIdsResponse>
+}
+
+/**
+ * ReleaseAuthority supplies the launcher's resolved release signer pins.
+ * A resolver calls the embedded launcher, whose identity is configured by the app.
+ *
+ * @generated from service bldr.manifest.ReleaseAuthority
+ */
+export interface ReleaseAuthorityHandler {
+  /**
+   * GetReleasePeerIds returns the same peers used to verify distribution configs.
+   *
+   * @generated from rpc bldr.manifest.ReleaseAuthority.GetReleasePeerIds
+   */
+  GetReleasePeerIds(
+    request: GetReleasePeerIdsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetReleasePeerIdsResponse>
+}
+
+export const ReleaseAuthorityServiceName = ReleaseAuthorityDefinition.typeName
+
+export class ReleaseAuthorityClient implements ReleaseAuthority {
+  private readonly rpc: ProtoRpc
+  private readonly service: string
+  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
+    this.service = opts?.service || ReleaseAuthorityServiceName
+    this.rpc = rpc
+    this.GetReleasePeerIds = this.GetReleasePeerIds.bind(this)
+  }
+  /**
+   * GetReleasePeerIds returns the same peers used to verify distribution configs.
+   *
+   * @generated from rpc bldr.manifest.ReleaseAuthority.GetReleasePeerIds
+   */
+  async GetReleasePeerIds(
+    request: GetReleasePeerIdsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetReleasePeerIdsResponse> {
+    const requestMsg = GetReleasePeerIdsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ReleaseAuthorityDefinition.methods.GetReleasePeerIds.name,
+      GetReleasePeerIdsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetReleasePeerIdsResponse.fromBinary(result)
+  }
+}
 /**
  * ManifestFetch is a service that fetches manifests by metadata.
  *

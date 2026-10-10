@@ -3,11 +3,15 @@
 /* eslint-disable */
 
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { BlockRef } from '@go/github.com/s4wave/spacewave/db/block/block.pb.js'
 import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
+import { SignedMsg } from '@go/github.com/s4wave/spacewave/net/peer/peer.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 /**
@@ -151,6 +155,13 @@ export interface ManifestRef {
    * @generated from field: bucket.ObjectRef manifest_ref = 2;
    */
   manifestRef?: ObjectRef
+  /**
+   * ReleaseAuthorization is a purpose-bound SignedMsg of ReleaseAuthorization.
+   * The release peer signs the exact Manifest root independently of its location.
+   *
+   * @generated from field: peer.SignedMsg release_authorization = 3;
+   */
+  releaseAuthorization?: SignedMsg
 }
 
 export const ManifestRef: MessageType<ManifestRef> =
@@ -159,6 +170,76 @@ export const ManifestRef: MessageType<ManifestRef> =
     fields: [
       { no: 1, name: 'meta', kind: 'message', T: ManifestMeta },
       { no: 2, name: 'manifest_ref', kind: 'message', T: () => ObjectRef },
+      {
+        no: 3,
+        name: 'release_authorization',
+        kind: 'message',
+        T: () => SignedMsg,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * ReleaseAuthorization permits execution of one immutable Manifest root.
+ * The root covers the Manifest metadata, dependencies, and executable file roots.
+ *
+ * @generated from message bldr.manifest.ReleaseAuthorization
+ */
+export interface ReleaseAuthorization {
+  /**
+   * ManifestRoot is the exact content-addressed Manifest block being authorized.
+   *
+   * @generated from field: block.BlockRef manifest_root = 1;
+   */
+  manifestRoot?: BlockRef
+}
+
+export const ReleaseAuthorization: MessageType<ReleaseAuthorization> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.ReleaseAuthorization',
+    fields: [
+      { no: 1, name: 'manifest_root', kind: 'message', T: () => BlockRef },
+    ] satisfies readonly PartialFieldInfo[],
+  })
+
+/**
+ * GetReleasePeerIdsRequest requests the launcher's resolved signer pins.
+ *
+ * @generated from message bldr.manifest.GetReleasePeerIdsRequest
+ */
+export interface GetReleasePeerIdsRequest {}
+
+export const GetReleasePeerIdsRequest: MessageType<GetReleasePeerIdsRequest> =
+  /* @__PURE__ */ createEmptyMessageType<GetReleasePeerIdsRequest>(
+    'bldr.manifest.GetReleasePeerIdsRequest',
+    true,
+  )
+
+/**
+ * GetReleasePeerIdsResponse contains the immutable pins of this launcher instance.
+ *
+ * @generated from message bldr.manifest.GetReleasePeerIdsResponse
+ */
+export interface GetReleasePeerIdsResponse {
+  /**
+   * PeerIds contains the base58-encoded release signer peer IDs.
+   *
+   * @generated from field: repeated string peer_ids = 1;
+   */
+  peerIds?: string[]
+}
+
+export const GetReleasePeerIdsResponse: MessageType<GetReleasePeerIdsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.GetReleasePeerIdsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
   })
 

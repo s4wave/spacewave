@@ -41,6 +41,14 @@ export interface Config {
    * @generated from field: bool disable_watch = 4;
    */
   disableWatch?: boolean
+  /**
+   * ReleaseAuthorityPluginId selects the embedded launcher supplying release pins.
+   * When set, every selected root requires that launcher's release authorization.
+   * Local development and binary-embedded Worlds leave this empty.
+   *
+   * @generated from field: string release_authority_plugin_id = 5;
+   */
+  releaseAuthorityPluginId?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -61,5 +69,11 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
     { no: 4, name: 'disable_watch', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 5,
+      name: 'release_authority_plugin_id',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] satisfies readonly PartialFieldInfo[],
 })
