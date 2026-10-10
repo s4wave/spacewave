@@ -87,7 +87,7 @@ An idle `FetchManifest` readback can come before the manifest arrives. Trace the
 
 Bldr shares `webPkgs` through `/b/pkg/...`. Another plugin must supply a package marked `exclude: true`.
 
-`DistSources` embeds the TypeScript that browser, Electron and downstream Bldr builds import. When you add an imported source path, update the matching `dist.go` with the path and its transitive imports, as exact files or narrow extension globs. Downstream imports stay within the `web/` surface. Go dependencies arrive through `vendor/`; the embedded `deps_only` stubs only resolve proto packages. The repository-root `dist.go` covers root `web/` paths, because `bldr/dist.go` can embed only paths under `bldr/`.
+`DistSources` embeds the TypeScript that browser, Electron and downstream Bldr builds import. When you add, rename or delete an imported source path, update the matching `dist.go` with the path and its transitive imports, as exact files or narrow extension globs, and run `go test ./web/ ./bldr/`: a stale embed breaks the Go build, and `TestDistSourcesAreClosed` catches a missing import. Downstream imports stay within the `web/` surface. Go dependencies arrive through `vendor/`; the embedded `deps_only` stubs only resolve proto packages. The repository-root `dist.go` covers root `web/` paths, because `bldr/dist.go` can embed only paths under `bldr/`.
 
 `bldr/util/gocompiler` implements platform signing and reads its environment variables; without credentials, signing does nothing. `bldr/util/logfile` implements `--log-file`, `BLDR_LOG_FILE`, the console and file levels, the default log locations and retention.
 
