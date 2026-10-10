@@ -37,7 +37,10 @@ type Controller struct {
 	// BusController provides the configured controller and bus lifetime.
 	*bus.BusController[*Config]
 
-	// mtx serializes Session storage and guards lifetimes and the cached store.
+	// writeMtx serializes the read-modify-write transactions on the registry.
+	// Readers do not take it. Acquire it before mtx when holding both.
+	writeMtx sync.Mutex
+	// mtx guards the fields below. It is never held across storage or bus calls.
 	mtx sync.Mutex
 	// bcast announces changes to the registered Sessions.
 	bcast broadcast.Broadcast
@@ -49,6 +52,8 @@ type Controller struct {
 	objStore object.ObjectStore
 	// objStoreRel releases the cached store directive, guarded by mtx.
 	objStoreRel func()
+	// closed is set by Close so a late store build releases itself, guarded by mtx.
+	closed bool
 	// lifetimes holds mounted Session stop functions, guarded by mtx.
 	lifetimes map[*sessionLifetime]struct{}
 }
@@ -60,6 +65,9 @@ type sessionLifetime struct {
 	// stop cancels the mounted lifetime and waits for all its resources to release.
 	stop func(context.Context) error
 }
+
+// errClosed is returned by storage operations on a closed Controller.
+var errClosed = errors.New("session controller closed")
 
 // sessionListPrefix is the key prefix for items in the session list.
 var sessionListPrefix = []byte("s/")
@@ -124,6 +132,7 @@ func (c *Controller) Close() error {
 	// Detach the cached object store before releasing its directive reference.
 	c.mtx.Lock()
 	objStoreRel := c.objStoreRel
+	c.closed = true
 	c.objStore = nil
 	c.objStoreRel = nil
 	c.mtx.Unlock()
@@ -143,12 +152,8 @@ func (c *Controller) GetSessionBroadcast() *broadcast.Broadcast {
 // GetSessionByIdx looks up the given session index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.SessionListEntry, error) {
-	// Serialize access to the session list.
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
 	// Open the sessions object store.
-	objStore, err := c.buildObjectStoreLocked(ctx)
+	objStore, err := c.getObjectStore(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -184,15 +189,13 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 
 // ListSessions lists the sessions in storage.
 func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEntry, error) {
-	// Trace the storage lookup and serialize access to the session list.
+	// Trace the storage lookup.
 	ctx, task := trace.NewTask(ctx, "hydra/session/list-sessions")
 	defer task.End()
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
 
 	// Open the sessions object store before starting its scan trace.
 	_, waitStoreTask := trace.NewTask(ctx, "hydra/session/list-sessions/wait-object-store")
-	objStore, err := c.buildObjectStoreLocked(ctx)
+	objStore, err := c.getObjectStore(ctx)
 	waitStoreTask.End()
 	if err != nil {
 		return nil, err
@@ -251,12 +254,12 @@ func sessionMetaKey(idx uint32) []byte {
 // RegisterSession registers a session ref in storage or returns the existing matching entry.
 // If metadata is non-nil, it is written to the session controller ObjectStore.
 func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) (*session.SessionListEntry, error) {
-	// Serialize access to the session list.
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+	// Serialize registry writes.
+	c.writeMtx.Lock()
+	defer c.writeMtx.Unlock()
 
 	// Open the sessions object store.
-	objStore, err := c.buildObjectStoreLocked(ctx)
+	objStore, err := c.getObjectStore(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -361,12 +364,8 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 // GetSessionMetadata returns the metadata for a session by index.
 // Returns nil, nil if not found.
 func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*session.SessionMetadata, error) {
-	// Serialize access to the session list.
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
 	// Open the sessions object store.
-	objStore, err := c.buildObjectStoreLocked(ctx)
+	objStore, err := c.getObjectStore(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -403,12 +402,12 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 // UpdateSessionMetadata updates the metadata for a session by ref.
 // Does nothing if no session entry matches the ref.
 func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) error {
-	// Serialize access to the session list.
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+	// Serialize registry writes.
+	c.writeMtx.Lock()
+	defer c.writeMtx.Unlock()
 
 	// Open the sessions object store.
-	objStore, err := c.buildObjectStoreLocked(ctx)
+	objStore, err := c.getObjectStore(ctx)
 	if err != nil {
 		return err
 	}
@@ -491,20 +490,19 @@ func (c *Controller) TrackSession(ref *session.SessionRef, stop func(context.Con
 // Returns nil if neither a registration nor a mounted lifetime exists.
 func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef) error {
 	// Commit the registry deletion before stopping the matching mounted lifetimes.
+	if err := c.deleteSessionRecords(ctx, ref); err != nil {
+		return err
+	}
+
+	// Collect the matching mounted lifetimes.
+	var lifetimes []*sessionLifetime
 	c.mtx.Lock()
-	err := c.deleteSessionLocked(ctx, ref)
-	lifetimes := make([]*sessionLifetime, 0, len(c.lifetimes))
-	if err == nil {
-		for lifetime := range c.lifetimes {
-			if lifetime.ref.EqualVT(ref) {
-				lifetimes = append(lifetimes, lifetime)
-			}
+	for lifetime := range c.lifetimes {
+		if lifetime.ref.EqualVT(ref) {
+			lifetimes = append(lifetimes, lifetime)
 		}
 	}
 	c.mtx.Unlock()
-	if err != nil {
-		return err
-	}
 
 	// Stop outside the registry lock because trackers release registry references.
 	var stopErrs []error
@@ -516,10 +514,14 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 	return errors.Join(stopErrs...)
 }
 
-// deleteSessionLocked deletes Session records with mtx held.
-func (c *Controller) deleteSessionLocked(ctx context.Context, ref *session.SessionRef) error {
+// deleteSessionRecords deletes the Session records from the registry.
+func (c *Controller) deleteSessionRecords(ctx context.Context, ref *session.SessionRef) error {
+	// Serialize registry writes.
+	c.writeMtx.Lock()
+	defer c.writeMtx.Unlock()
+
 	// Open the sessions object store.
-	objStore, err := c.buildObjectStoreLocked(ctx)
+	objStore, err := c.getObjectStore(ctx)
 	if err != nil {
 		return err
 	}
@@ -587,12 +589,16 @@ func (c *Controller) deleteSessionLocked(ctx context.Context, ref *session.Sessi
 	return nil
 }
 
-// buildObjectStoreLocked builds or returns the cached sessions object store.
-// c.mtx must be held by the caller.
-func (c *Controller) buildObjectStoreLocked(ctx context.Context) (object.ObjectStore, error) {
+// getObjectStore returns the cached sessions object store, building it first
+// when needed. The build runs without c.mtx so a slow volume blocks only its
+// own caller. Concurrent builds keep the first store and release the others.
+func (c *Controller) getObjectStore(ctx context.Context) (object.ObjectStore, error) {
 	// Reuse the cached sessions store when it is already attached.
-	if c.objStore != nil {
-		return c.objStore, nil
+	c.mtx.Lock()
+	store := c.objStore
+	c.mtx.Unlock()
+	if store != nil {
+		return store, nil
 	}
 
 	// Open the object store for the session list.
@@ -609,9 +615,24 @@ func (c *Controller) buildObjectStoreLocked(ctx context.Context) (object.ObjectS
 	}
 
 	// Cache the store and retain its directive reference for controller lifetime.
-	c.objStore = objStoreHandle.GetObjectStore()
-	c.objStoreRel = diRef.Release
-	return c.objStore, nil
+	c.mtx.Lock()
+	closed := c.closed
+	if !closed && c.objStore == nil {
+		c.objStore = objStoreHandle.GetObjectStore()
+		c.objStoreRel = diRef.Release
+		diRef = nil
+	}
+	store = c.objStore
+	c.mtx.Unlock()
+
+	// Release a build that lost the race or finished after Close.
+	if diRef != nil {
+		diRef.Release()
+	}
+	if closed {
+		return nil, errClosed
+	}
+	return store, nil
 }
 
 // _ is a type assertion

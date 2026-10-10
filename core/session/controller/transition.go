@@ -23,10 +23,10 @@ func (c *Controller) TransitionSession(ctx context.Context, source, destination 
 		return nil
 	}
 
-	// Lock the Session registry and open its object store for the transition.
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	store, err := c.buildObjectStoreLocked(ctx)
+	// Serialize registry writes and open the object store for the transition.
+	c.writeMtx.Lock()
+	defer c.writeMtx.Unlock()
+	store, err := c.getObjectStore(ctx)
 	if err != nil {
 		return err
 	}
