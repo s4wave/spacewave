@@ -28,13 +28,10 @@ func TestAccountReplicaMesh(t *testing.T) {
 	var originals []*ProviderAccount
 	var sessions []*Session
 	for range 3 {
-		_, _, account, sess, release := setupProviderAndSessionInternal(ctx, t)
+		_, _, account, sess, release := setupProviderAndSessionInternal(ctx, t, func(p *Provider) {
+			p.localNetwork = transport.WithInprocNetwork(network)
+		})
 		defer release()
-		if err := account.EnsureConfiguredSessionTransport(ctx, sess.GetPrivKey()); err != nil {
-			t.Fatal(err)
-		}
-		account.StopSessionTransport()
-		account.t.p.localNetwork = transport.WithInprocNetwork(network)
 		if err := account.EnsureConfiguredSessionTransport(ctx, sess.GetPrivKey()); err != nil {
 			t.Fatal(err)
 		}

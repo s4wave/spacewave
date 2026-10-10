@@ -37,10 +37,10 @@ func TestAccountReplicaCopyRate(t *testing.T) {
 	var accounts []*ProviderAccount
 	var sessions []*Session
 	for range 2 {
-		_, _, account, sess, release := setupProviderAndSessionInternal(ctx, t)
+		_, _, account, sess, release := setupProviderAndSessionInternal(ctx, t, func(p *Provider) {
+			p.localNetwork = transport.WithInprocNetwork(network)
+		})
 		defer release()
-		account.StopSessionTransport()
-		account.t.p.localNetwork = transport.WithInprocNetwork(network)
 		if err := account.EnsureConfiguredSessionTransport(ctx, sess.GetPrivKey()); err != nil {
 			t.Fatal(err)
 		}

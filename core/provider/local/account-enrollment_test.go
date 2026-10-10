@@ -149,25 +149,25 @@ func TestAccountPairingExchange(t *testing.T) {
 			name = "enroll"
 		}
 		t.Run(name, func(t *testing.T) {
-			// Open isolated source and receiver providers.
+			// Bound the exchange.
 			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 			defer cancel()
-			_, _, source, sourceSession, releaseSource := setupProviderAndSessionInternal(ctx, t)
+
+			// Open isolated source and receiver providers on one authenticated
+			// packet network. The network is set before each Session mounts and
+			// starts its transport; provider stores stay isolated.
+			network := inproc.NewNetwork()
+			shareNetwork := func(p *Provider) { p.localNetwork = transport.WithInprocNetwork(network) }
+			_, _, source, sourceSession, releaseSource := setupProviderAndSessionInternal(ctx, t, shareNetwork)
 			defer releaseSource()
-			tb, _, receiver, receivingSession, releaseReceiver := setupProviderAndSessionInternal(ctx, t)
+			tb, _, receiver, receivingSession, releaseReceiver := setupProviderAndSessionInternal(ctx, t, shareNetwork)
 			defer releaseReceiver()
 
-			// Share only the authenticated packet network; provider stores stay isolated.
-			network := inproc.NewNetwork()
+			// Wait for both Session transports to run.
 			for _, endpoint := range []struct {
 				account *ProviderAccount
 				session *Session
 			}{{source, sourceSession}, {receiver, receivingSession}} {
-				if err := endpoint.account.EnsureConfiguredSessionTransport(ctx, endpoint.session.GetPrivKey()); err != nil {
-					t.Fatal(err)
-				}
-				endpoint.account.StopSessionTransport()
-				endpoint.account.t.p.localNetwork = transport.WithInprocNetwork(network)
 				if err := endpoint.account.EnsureConfiguredSessionTransport(ctx, endpoint.session.GetPrivKey()); err != nil {
 					t.Fatal(err)
 				}
