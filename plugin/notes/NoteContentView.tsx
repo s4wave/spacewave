@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { Component, useMemo, type ErrorInfo, type ReactNode } from 'react'
+import { LuCode, LuPenLine } from 'react-icons/lu'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -9,7 +10,6 @@ import {
   useUnixFSHandleTextContent,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { cn } from '@s4wave/web/style/utils.js'
-import { LuCode, LuPenLine } from 'react-icons/lu'
 
 import FrontmatterDisplay from './FrontmatterDisplay.js'
 import LexicalEditor from './LexicalEditor.js'
@@ -234,8 +234,55 @@ interface NoteFileViewProps extends Omit<NoteContentViewProps, 'sourceRef'> {
   filePath: string
 }
 
-// NoteFileView displays one note file. Its write state belongs to that file,
-// so NoteContentView mounts it keyed by file path.
+interface NoteErrorBoundaryProps {
+  noteName: string
+  children: ReactNode
+}
+
+/** NoteErrorBoundary contains note parsing and editor failures within one file view. */
+class NoteErrorBoundary extends Component<
+  NoteErrorBoundaryProps,
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  /** getDerivedStateFromError replaces only the selected note's content. */
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  /** componentDidCatch keeps parser details in the developer console. */
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Failed to open note', this.props.noteName, error, info)
+  }
+
+  /** render leaves notebook navigation available after a note fails. */
+  render() {
+    if (!this.state.failed) {
+      return this.props.children
+    }
+    return (
+      <div className="flex h-full flex-col" data-testid="notes-content-view">
+        <div className="border-border truncate border-b px-3 py-1.5 text-xs font-medium">
+          {stripNoteFileExtension(
+            this.props.noteName.split('/').pop() ?? this.props.noteName,
+          )}
+        </div>
+        <div
+          className="text-destructive flex h-full items-center justify-center p-4 text-xs"
+          role="alert"
+        >
+          Could not open this note. Select another note.
+        </div>
+      </div>
+    )
+  }
+}
+
+/**
+ * NoteFileView displays one note file. Its write state belongs to that file,
+ * so NoteContentView keys its boundary by object key and file path.
+ */
 function NoteFileView({
   worldState,
   objectKey,
@@ -247,8 +294,10 @@ function NoteFileView({
   onFilterStatus,
   onContentSaved,
 }: NoteFileViewProps) {
+  // Resolve the format for the selected file.
   const noteFormat = getNoteFileFormat(noteName) ?? 'markdown'
 
+  // Read the selected file and attach its write state.
   const rootHandle = useUnixFSRootHandle(worldState, objectKey)
   const fileHandle = useUnixFSHandle(rootHandle, filePath)
   const textResource = useUnixFSHandleTextContent(fileHandle)
@@ -261,6 +310,7 @@ function NoteFileView({
     onContentSaved,
   })
 
+  // Keep an empty selection separate from file loading.
   if (!noteName) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
@@ -269,6 +319,7 @@ function NoteFileView({
     )
   }
 
+  // Show the selected file's pending read.
   if (textResource.loading) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
@@ -277,6 +328,7 @@ function NoteFileView({
     )
   }
 
+  // Keep a failed read retryable through its resource.
   if (textResource.error) {
     return (
       <NoteReadError error={textResource.error} onRetry={textResource.retry} />
@@ -323,12 +375,16 @@ function NoteContentView({ sourceRef, ...props }: NoteContentViewProps) {
     : props.noteName
 
   return (
-    <NoteFileView
-      key={filePath}
-      objectKey={parsed.objectKey}
-      filePath={filePath}
-      {...props}
-    />
+    <NoteErrorBoundary
+      key={`${parsed.objectKey}:${filePath}`}
+      noteName={props.noteName}
+    >
+      <NoteFileView
+        objectKey={parsed.objectKey}
+        filePath={filePath}
+        {...props}
+      />
+    </NoteErrorBoundary>
   )
 }
 

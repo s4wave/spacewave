@@ -1,3 +1,112 @@
+diff --git a/dist/parse/index.js b/dist/parse/index.js
+index 94d672196578b2923bd6c4467639823f5a763ac5..723244435909affbfc2765fb859117f06aea0432 100644
+--- a/dist/parse/index.js
++++ b/dist/parse/index.js
+@@ -92,58 +92,60 @@ export function parser(lexer, options) {
+             ? handlerStack[handlerStack.length - 1]
+             : undefined;
+     }
++    // advance runs handler transitions without retaining a frame per token.
+     function advance() {
+-        if (!handler() && lexer.now >= end) {
+-            return finish();
+-        }
+-        // prevent infinit loop
+-        if (maxStaleIterations === 0) {
+-            throw new Error(`it's stuck. \n${context.state}`);
+-        }
+-        let nothingMatches = true;
+-        for (const { test: _test, action } of handler().rules) {
+-            const token = lexer.peek();
+-            const predicates = Array.isArray(_test) ? _test : [_test];
+-            if (!predicates.some((p) => test(token, p)))
+-                continue;
+-            nothingMatches = false;
+-            if (typeof action !== 'function') {
+-                handlerStack.push(action);
+-                return advance();
++        transitions: for (;;) {
++            // Finish once every handler has consumed its input.
++            if (!handler() && lexer.now >= end) {
++                return finish();
+             }
+-            const control = action(token, context);
+-            if (typeof control === 'object') {
+-                handlerStack.push(control);
+-                return advance();
++            if (maxStaleIterations === 0) {
++                throw new Error(`it's stuck. \n${context.state}`);
+             }
+-            if (control === 'break') {
+-                handlerStack.pop();
+-                // if (handlerStack.length === 0) {
+-                //   throw new Error('can not pop the root handler')
+-                // }
+-                // return the offset if the block is finished
+-                if (lexer.peek() && context.parent.type === 'document') {
+-                    return lexer.peek().position.start.offset;
++
++            // Dispatch the current token and retain the handler stack explicitly.
++            let nothingMatches = true;
++            for (const { test: _test, action } of handler().rules) {
++                const token = lexer.peek();
++                const predicates = Array.isArray(_test) ? _test : [_test];
++                if (!predicates.some((p) => test(token, p)))
++                    continue;
++                nothingMatches = false;
++                if (typeof action !== 'function') {
++                    handlerStack.push(action);
++                    continue transitions;
++                }
++                const control = action(token, context);
++                if (typeof control === 'object') {
++                    handlerStack.push(control);
++                    continue transitions;
+                 }
+-                return advance();
++                if (control === 'break') {
++                    handlerStack.pop();
++                    if (lexer.peek() && context.parent.type === 'document') {
++                        return lexer.peek().position.start.offset;
++                    }
++                    continue transitions;
++                }
++                if (control === 'next') {
++                    continue;
++                }
++                break;
+             }
+-            if (control === 'next') {
++            if (nothingMatches) {
++                handlerStack.pop();
+                 continue;
+             }
+-            break;
+-        }
+-        if (nothingMatches) {
+-            handlerStack.pop();
+-            return advance();
+-        }
+-        if (lexer.save() === lexerLocation) {
+-            maxStaleIterations -= 1;
+-        }
+-        else {
+-            lexerLocation = lexer.save();
+-            maxStaleIterations = 10;
++
++            // Detect handlers that repeatedly leave the lexer at the same token.
++            if (lexer.save() === lexerLocation) {
++                maxStaleIterations -= 1;
++            }
++            else {
++                lexerLocation = lexer.save();
++                maxStaleIterations = 10;
++            }
+         }
+-        return advance();
+     }
+     function finish() {
+         context.exitTo('document');
 diff --git a/dist/timestamp.js b/dist/timestamp.js
 index e83c85f3265dc5a10023e308f218700d9f142d9f..196a1e87851208eb8255456da0b12485d55f1cbf 100644
 --- a/dist/timestamp.js
@@ -18,3 +127,53 @@ index e83c85f3265dc5a10023e308f218700d9f142d9f..196a1e87851208eb8255456da0b12485
              };
          }
          // opening closing does not match
+diff --git a/dist/tokenize/inline/index.d.ts b/dist/tokenize/inline/index.d.ts
+index 201bda9a2a37e972b46bfc3347482bd7e58240da..92a0a65b378e0486d2d17c693938f25790b6917d 100644
+--- a/dist/tokenize/inline/index.d.ts
++++ b/dist/tokenize/inline/index.d.ts
+@@ -1,6 +1,6 @@
+ import type { Reader } from 'text-kit';
+ import type { Token } from '../../types.js';
+ import type { Tokenizer } from '../index.js';
+-export declare const tokenize: (reader: Reader, tokenizers?: Tokenizer[], { ignoring }?: {
+-    ignoring: string[];
++export declare const tokenize: (reader: Reader, tokenizers?: Tokenizer[], { multiline }?: {
++    multiline?: boolean;
+ }) => Token[];
+diff --git a/dist/tokenize/inline/index.js b/dist/tokenize/inline/index.js
+index 5a9517a783d531c48e8c67bc5f81ddc81350fca3..e6655f2566184627f1d07cea3ce414f44634aecd 100644
+--- a/dist/tokenize/inline/index.js
++++ b/dist/tokenize/inline/index.js
+@@ -8,7 +8,7 @@ const ALL = [
+     tokenizeMath,
+     tokenizeText()
+ ];
+-export const tokenize = (reader, tokenizers = ALL, { ignoring } = { ignoring: [] }) => {
++export const tokenize = (reader, tokenizers = ALL, { multiline = false } = {}) => {
+     const { now, eat, jump, substring, getChar, toPoint } = reader;
+     const _tokens = [];
+     let cursor = now().offset;
+@@ -30,6 +30,10 @@ export const tokenize = (reader, tokenizers = ALL, { ignoring } = { ignoring: []
+     main: while (getChar()) {
+         const newline = eat('newline');
+         if (newline) {
++            if (multiline) {
++                // Wrapped link descriptions remain inline through their closing bracket.
++                continue;
++            }
+             push({
+                 type: 'newline',
+                 position: newline.position
+diff --git a/dist/tokenize/inline/link.js b/dist/tokenize/inline/link.js
+index 194efb126a3ab1b307c12c933ebadbbd734fe588..dc32a64263ece4cb48b4aa958cae05af99372ab2 100644
+--- a/dist/tokenize/inline/link.js
++++ b/dist/tokenize/inline/link.js
+@@ -45,7 +45,7 @@ const tokenizeLink = (reader) => {
+         eat(); // descOpening
+         const desc = tokenize(reader.read({ end: descClosing }), [
+             tokenizeText(now())
+-        ]);
++        ], { multiline: true });
+         tokens.push(...desc);
+     }
+     jump(linkClosing);
