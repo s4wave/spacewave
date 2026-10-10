@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -253,44 +254,127 @@ func TestCatchupRecoveryFencesTrailingSnapshot(t *testing.T) {
 	}
 }
 
-// TestOversizedStateEndsStreamAsTooLarge holds a state larger than one frame
-// and checks that the stream ends with ErrStateTooLarge before any head is
-// sent, without asking the peer to recover its configuration history.
-func TestOversizedStateEndsStreamAsTooLarge(t *testing.T) {
-	// Hold a state larger than one frame on both sides.
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+// TestOversizedReceiverAdoptsTrimmedPeer holds a receiver whose state is larger
+// than one frame and checks that it still catches up from a peer that is ahead
+// in configuration and has trimmed to a newer checkpoint.
+func TestOversizedReceiverAdoptsTrimmedPeer(t *testing.T) {
+	// Bound the test and create the keys.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	const soID = "oversized-state"
+	const soID = "oversized-receiver"
 	owner, reader := mustKeyPair(t), mustKeyPair(t)
+
+	// Both sides hold more operations than one frame carries.
 	initial := authenticationState(t, soID, owner, reader)
-	initial.Ops = []*sobject.SOOperation{{Inner: make([]byte, maxMessageSize)}}
+	for range 21 {
+		writeSyncOp(t, soID, initial, owner, strings.Repeat("x", 512<<10))
+	}
+	if initial.SizeVT() <= maxMessageSize {
+		t.Fatalf("state is %d bytes, want more than %d", initial.SizeVT(), maxMessageSize)
+	}
 	local := newAuthenticationPeer(t, soID, owner, initial)
 	remote := newAuthenticationPeer(t, soID, reader, initial)
 
-	// Watch for a recovery request.
-	var recovery []peer.ID
-	local.SetPeerRecoveryObserver(func(id peer.ID, _ bool) { recovery = append(recovery, id) })
-	left, right := net.Pipe()
-	t.Cleanup(func() { left.Close(); right.Close() })
-
-	// The stream authenticates, then ends where the head would be sent.
-	done := make(chan error, 1)
-	go func() { done <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
-	if _, err := remote.authenticate(ctx, stream_packet.NewSession(right, 64*1024), "transport-b", "transport-a"); err != nil {
+	// The owner changes the configuration.
+	current, err := local.soHost.GetHostState(ctx)
+	if err != nil {
 		t.Fatal(err)
 	}
+	change, err := sobject.BuildSOConfigChange(soID, current.Config, current.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := local.soHost.ApplyConfigChange(ctx, change, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// The owner trims to a new checkpoint.
+	if err := local.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
+		advanceSnapshotCheckpoint(t, soID, state, owner)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	target, err := local.soHost.GetHostState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Watch the receiver's state.
+	states, release, err := remote.soHost.GetSOStateCtr(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	// The receiver adopts the trimmed state instead of ending the stream.
+	left, right := net.Pipe()
+	t.Cleanup(func() { left.Close(); right.Close() })
+	localDone, remoteDone := make(chan error, 1), make(chan error, 1)
+	go func() { localDone <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
+	go func() { remoteDone <- remote.runStream(ctx, gateLogger(), right, "transport-b", "transport-a") }()
+	accepted, err := states.WaitValueWithValidator(ctx, func(state *sobject.SOState) (bool, error) {
+		return state.GetCheckpoint().EqualVT(target.GetCheckpoint()), nil
+	}, remoteDone)
+	if err != nil {
+		t.Fatalf("oversized receiver did not adopt the trimmed peer: %v", err)
+	}
+	if accepted.GetConfig().GetConfigChainSeqno() != target.GetConfig().GetConfigChainSeqno() || accepted.SizeVT() > maxMessageSize {
+		t.Fatalf("accepted %d bytes at config seqno %d", accepted.SizeVT(), accepted.GetConfig().GetConfigChainSeqno())
+	}
+}
+
+// TestOversizedSnapshotEndsStreamAsTooLarge asks a sender whose state is larger
+// than one frame for a snapshot. The sender cannot serve it, so it ends the
+// stream with ErrStateTooLarge and tells the requester to recover.
+func TestOversizedSnapshotEndsStreamAsTooLarge(t *testing.T) {
+	// Bound the test and create the keys.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	const soID = "oversized-snapshot"
+	owner, reader := mustKeyPair(t), mustKeyPair(t)
+
+	// The sender holds a configuration change and more operations than a frame.
+	initial := authenticationState(t, soID, owner, reader)
+	big := initial.CloneVT()
+	for range 21 {
+		writeSyncOp(t, soID, big, owner, strings.Repeat("x", 512<<10))
+	}
+	local := newAuthenticationPeer(t, soID, owner, big)
+	remote := newAuthenticationPeer(t, soID, reader, initial)
+	change, err := sobject.BuildSOConfigChange(soID, big.Config, big.Config, sobject.SOConfigChangeType_SO_CONFIG_CHANGE_TYPE_ADD_INVITE, owner, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := local.soHost.ApplyConfigChange(ctx, change, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// Watch for the requester being told to recover.
+	recovery := make(chan peer.ID, 1)
+	remote.SetPeerRecoveryObserver(func(id peer.ID, required bool) {
+		if required {
+			recovery <- id
+		}
+	})
+	left, right := net.Pipe()
+	t.Cleanup(func() { left.Close(); right.Close() })
+	localDone, remoteDone := make(chan error, 1), make(chan error, 1)
+	go func() { localDone <- local.runStream(ctx, gateLogger(), left, "transport-a", "transport-b") }()
+	go func() { remoteDone <- remote.runStream(ctx, gateLogger(), right, "transport-b", "transport-a") }()
+
+	// The sender ends the stream as too large.
 	select {
-	case err := <-done:
-		if !errors.Is(err, sobject.ErrStateTooLarge) || errors.Is(err, sobject.ErrConfigHistoryUnavailable) {
-			t.Fatalf("oversized state result = %v", err)
+	case err := <-localDone:
+		if !errors.Is(err, sobject.ErrStateTooLarge) || !isTerminalSyncError(err) {
+			t.Fatalf("oversized snapshot result = %v", err)
 		}
 	case <-ctx.Done():
-		t.Fatal("oversized state did not end the stream")
+		t.Fatal("oversized snapshot did not end the stream")
 	}
-	if len(recovery) != 0 {
-		t.Fatalf("oversized state asked %v to recover", recovery)
-	}
-	if !isTerminalSyncError(sobject.ErrStateTooLarge) {
-		t.Fatal("an oversized state is not terminal")
+	select {
+	case <-recovery:
+	case <-ctx.Done():
+		t.Fatal("requester was not told to recover")
 	}
 }

@@ -260,7 +260,7 @@ func (x *syncExchange) advance(
 			return x.sync.drainDenial(ctx, incoming, x.remoteID, err)
 		}
 		if x.inFlight.GetRecoveryRequired() != nil {
-			return sobject.ErrConfigHistoryUnavailable
+			return x.terminal
 		}
 		x.inFlight = nil
 	case received := <-incoming:
@@ -377,6 +377,9 @@ func (x *syncExchange) receive(ctx context.Context, le *logrus.Entry, current *s
 		requestCancel()
 		if err != nil {
 			x.terminal = sobject.ErrConfigHistoryUnavailable
+			if errors.Is(err, sobject.ErrStateTooLarge) {
+				x.terminal = err
+			}
 			x.control = &SOSyncMessage{Body: &SOSyncMessage_RecoveryRequired{RecoveryRequired: &SOSyncRecoveryRequired{Revision: x.revision}}}
 		}
 	case *SOSyncMessage_HistoryPage:
@@ -495,8 +498,8 @@ func (s *SOSync) prepareResponse(ctx context.Context, state *sobject.SOState, re
 
 	// Serialize the snapshot and reject one that exceeds the frame budget.
 	snapshot := &SOSyncSnapshot{SoState: data, Revision: request.GetRevision(), BaseHash: bytes.Clone(request.GetBaseHash())}
-	if (&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}).SizeVT() > maxMessageSize {
-		return nil, sobject.ErrConfigHistoryUnavailable
+	if size := (&SOSyncMessage{Body: &SOSyncMessage_Snapshot{Snapshot: snapshot}}).SizeVT(); size > maxMessageSize {
+		return nil, errors.Wrapf(sobject.ErrStateTooLarge, "%d bytes", size)
 	}
 
 	// Return the response with its page cursor.
@@ -602,12 +605,10 @@ func syncStateHash(state *sobject.SOState) ([]byte, error) {
 		return nil, sobject.ErrConfigHistoryUnavailable
 	}
 
-	// Strip local capabilities and hash the remaining state.
+	// Strip local capabilities and hash the remaining state. The digest never
+	// travels with the state, so a state larger than one frame still has one.
 	state = state.CloneVT()
 	state.Invites = nil
-	if size := state.SizeVT(); size > maxMessageSize {
-		return nil, errors.Wrapf(sobject.ErrStateTooLarge, "%d bytes", size)
-	}
 	data, err := state.MarshalVT()
 	if err != nil {
 		return nil, err
