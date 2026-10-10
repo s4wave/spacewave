@@ -42,7 +42,7 @@ func (a *debugRefRepairArgs) BuildFlags() []cli.Flag {
 
 // Run repairs the stopped volume and prints the counts.
 func (a *debugRefRepairArgs) Run(c *cli.Context) error {
-	// Repair the volume named by the argument.
+	// Repair the volume at the argument's path.
 	if c.NArg() != 1 {
 		return errors.New("expected one volume file argument")
 	}
@@ -53,10 +53,17 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 		return err
 	}
 
-	// Print the counts, with each kind of untyped ref.
+	// Print the repair findings and the volume-wide inventory.
+	writeFields(os.Stdout, refRepairFields(path, a.dryRun, res))
+	return nil
+}
+
+// refRepairFields formats the repair findings in the command's field table.
+func refRepairFields(path string, dryRun bool, res refRepairResult) [][2]string {
+	// Keep graph repairs separate from the volume-wide inventory.
 	fields := [][2]string{
 		{"Volume", path},
-		{"Dry run", strconv.FormatBool(a.dryRun)},
+		{"Dry run", strconv.FormatBool(dryRun)},
 		{"Spaces", strconv.Itoa(res.spaces)},
 		{"Blocks walked", strconv.FormatUint(res.blocks, 10)},
 		{"Blocks absent", strconv.FormatUint(res.absent, 10)},
@@ -66,12 +73,28 @@ func (a *debugRefRepairArgs) Run(c *cli.Context) error {
 		{"Unrooted buckets", strconv.Itoa(res.rooted)},
 		{"Unowned roots", strconv.FormatUint(res.owned, 10)},
 		{"Edges added", strconv.FormatUint(res.written, 10)},
+		{"Plugin prefix groups", strconv.Itoa(len(res.pluginStores))},
+		{"Untracked blocks", strconv.FormatUint(res.untracked, 10)},
+		{"Untracked bytes", strconv.FormatUint(res.untrackedBytes, 10)},
 	}
+
+	// List private-state prefix groups and a bounded sample of untracked blocks.
+	for _, prefix := range slices.Sorted(maps.Keys(res.pluginStores)) {
+		unit := " keys"
+		if res.pluginStores[prefix] == 1 {
+			unit = " key"
+		}
+		fields = append(fields, [2]string{"Plugin prefix group", prefix + " (" + strconv.FormatUint(res.pluginStores[prefix], 10) + unit + ")"})
+	}
+	for _, blk := range res.untrackedSample {
+		fields = append(fields, [2]string{"Untracked sample", blk.ref.MarshalString() + " (" + strconv.FormatUint(blk.size, 10) + " bytes)"})
+	}
+
+	// Retain the typed walk's reasons for stopping at an untyped ref.
 	for _, reason := range slices.Sorted(maps.Keys(res.untyped)) {
 		fields = append(fields, [2]string{"Untyped: " + reason, strconv.FormatUint(res.untyped[reason], 10)})
 	}
-	writeFields(os.Stdout, fields)
-	return nil
+	return fields
 }
 
 // repairVolumeRefs walks the Spaces of the stopped volume at path, all of them
@@ -93,7 +116,7 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 		return refRepairResult{}, errors.New("no replay cursor found for the selected Spaces")
 	}
 
-	// Walk each Space, then write the missing edges unless this is a dry run.
+	// Walk each Space and release the typed snapshots.
 	rr := newRefRepair(le, vol)
 	defer rr.closeTypes()
 	for _, sc := range cursors {
@@ -102,6 +125,16 @@ func repairVolumeRefs(ctx context.Context, le *logrus.Entry, path, spaceID strin
 		}
 	}
 	rr.closeTypes()
+
+	// Measure the whole volume before applying any of the planned repairs.
+	if err := rr.measurePluginStores(ctx, vol); err != nil {
+		return refRepairResult{}, errors.Wrap(err, "count plugin object-store prefix groups")
+	}
+	if err := rr.measureUntracked(ctx, vol); err != nil {
+		return refRepairResult{}, errors.Wrap(err, "measure untracked blocks")
+	}
+
+	// Write the missing edges unless this is a dry run.
 	if !dryRun {
 		if err := rr.apply(ctx); err != nil {
 			return refRepairResult{}, err
@@ -121,6 +154,8 @@ func newDebugRefRepairCommand() *cli.Command {
 			"and adds every edge from a block to its refs that the ref graph lacks, plus a bucket edge to each root " +
 			"nothing holds and a GC root edge to each Space bucket. It never removes an edge. Blocks written while GC tracking was off carry no edges, " +
 			"and a tracked write records a block's edges only when the block is new, so run this before tracked writers store those blocks again. " +
+			"Also counts plugin object-store keys by volume prefix and measures all stored blocks with neither incoming nor outgoing ref graph edges, including staging. " +
+			"These counts cover the whole volume even with --space, and describe the graph before repair. The scan does not decode untracked blocks. " +
 			"Run it only on a stopped volume, with --dry-run first.",
 		Flags:  args.BuildFlags(),
 		Action: args.Run,

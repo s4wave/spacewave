@@ -3,11 +3,13 @@
 package spacewave_cli
 
 import (
+	"bytes"
 	"context"
 	"maps"
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
@@ -41,6 +43,8 @@ const (
 	refRepairReaders = 16
 	// refRepairProgress is the number of blocks walked between progress logs.
 	refRepairProgress = 100_000
+	// refRepairSample limits the untracked blocks printed in the report.
+	refRepairSample = 10
 )
 
 // refRepairNode is a block the ref repair walks, with what decodes it.
@@ -80,6 +84,14 @@ type refRepairRead struct {
 	have []string
 }
 
+// refRepairStoredBlock describes an untracked block without decoding its type.
+type refRepairStoredBlock struct {
+	// ref addresses the stored block.
+	ref *block.BlockRef
+	// size is the number of stored bytes.
+	size uint64
+}
+
 // refRepairResult counts what one ref repair found and wrote.
 type refRepairResult struct {
 	// spaces is the number of Spaces walked.
@@ -104,6 +116,16 @@ type refRepairResult struct {
 	// untyped counts the refs whose type the walk cannot name, by reason.
 	// Their edges are recorded; the blocks below them are not walked.
 	untyped map[string]uint64
+	// pluginStores counts object-store keys by plugin-volume/<instance>/<plugin>/ prefix.
+	// The prefix groups stores whose boundaries are not encoded in their keys.
+	pluginStores map[string]uint64
+	// untracked counts stored blocks with neither incoming nor outgoing ref
+	// graph edges, including staging edges.
+	untracked uint64
+	// untrackedBytes is the total stored bytes of untracked blocks.
+	untrackedBytes uint64
+	// untrackedSample holds up to refRepairSample untracked blocks in key order.
+	untrackedSample []refRepairStoredBlock
 }
 
 // refRepair walks the World graphs the Spaces of a stopped volume retain,
@@ -154,6 +176,112 @@ func newRefRepair(le *logrus.Entry, vol *volume_s4db.Volume) *refRepair {
 		types:   make(map[string]string),
 		xfrms:   make(map[string]block.Transformer),
 		res:     refRepairResult{untyped: make(map[string]uint64)},
+	}
+}
+
+// measurePluginStores counts object-store keys under each plugin's volume prefix.
+// It reads only keys; the values are root pointers whose trees are not measured.
+func (r *refRepair) measurePluginStores(ctx context.Context, vol *volume_s4db.Volume) error {
+	// Scan the plugin object-store namespace in one read transaction.
+	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	prefix := vol.GetKvKey().GetObjectStorePrefixByID("plugin-volume")
+	r.res.pluginStores = make(map[string]uint64)
+
+	// Group by the escaped instance and plugin components, not store boundaries.
+	return tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+		// Count only keys with both escaped plugin-volume components.
+		instance, rest, ok := strings.Cut(string(key[len(prefix):]), "/")
+		if !ok {
+			return nil
+		}
+		plugin, _, ok := strings.Cut(rest, "/")
+		if ok {
+			r.res.pluginStores["plugin-volume/"+instance+"/"+plugin+"/"]++
+		}
+		return nil
+	})
+}
+
+// measureUntracked scans every stored block, including blocks outside the typed
+// walk, and measures blocks with no incoming or outgoing graph edges.
+func (r *refRepair) measureUntracked(ctx context.Context, vol *volume_s4db.Volume) error {
+	// Iterate block keys without loading their values into the scan transaction.
+	tx, err := vol.GetKvtxStore().NewTransaction(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer tx.Discard()
+	prefix := vol.GetKvKey().GetBlockFullPrefix()
+	it := tx.Iterate(ctx, prefix, true, false)
+	defer it.Close()
+
+	// Read graph membership and untracked block sizes in bounded batches.
+	for {
+		// Decode only the refs in the next batch's keys, never block types.
+		batch := make([]refRepairStoredBlock, 0, refRepairBatch)
+		for len(batch) < refRepairBatch && it.Next() {
+			ref := &block.BlockRef{}
+			if err := ref.UnmarshalVT(bytes.Clone(it.Key()[len(prefix):])); err != nil {
+				return errors.Wrap(err, "decode stored block key")
+			}
+			batch = append(batch, refRepairStoredBlock{ref: ref})
+		}
+		if err := it.Err(); err != nil {
+			return err
+		}
+		if len(batch) == 0 {
+			return nil
+		}
+
+		// Include staging owners when checking whether a block has a graph node.
+		untracked := make([]bool, len(batch))
+		eg, egCtx := errgroup.WithContext(ctx)
+		eg.SetLimit(refRepairReaders)
+		for i := range batch {
+			eg.Go(func() error {
+				// An edge in either direction establishes the node's presence.
+				iri := block_gc.BlockIRI(batch[i].ref)
+				incoming, err := r.rg.GetIncomingRefs(egCtx, iri)
+				if err != nil || len(incoming) != 0 {
+					return err
+				}
+				outgoing, err := r.rg.GetOutgoingRefs(egCtx, iri)
+				if err != nil || len(outgoing) != 0 {
+					return err
+				}
+
+				// Measure raw stored bytes only for blocks outside the graph.
+				data, found, err := r.store.GetBlock(egCtx, batch[i].ref)
+				if err != nil {
+					return err
+				}
+				if !found {
+					return errors.Errorf("stored block %s disappeared during scan", batch[i].ref.MarshalString())
+				}
+				batch[i].size = uint64(len(data))
+				untracked[i] = true
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			return err
+		}
+
+		// Count the completed reads and retain a small sample in key order.
+		for i, blk := range batch {
+			if !untracked[i] {
+				continue
+			}
+			r.res.untracked++
+			r.res.untrackedBytes += blk.size
+			if len(r.res.untrackedSample) < refRepairSample {
+				r.res.untrackedSample = append(r.res.untrackedSample, blk)
+			}
+		}
 	}
 }
 
@@ -300,6 +428,7 @@ func (r *refRepair) walk(ctx context.Context, root refRepairNode) error {
 // read reads, decodes and extracts the refs of one block, with the edges the
 // graph holds for it. It touches no repair state, so reads run concurrently.
 func (r *refRepair) read(ctx context.Context, n refRepairNode) (refRepairRead, error) {
+	// Associate this read with its graph node before checking stored bytes.
 	rd := refRepairRead{node: n, iri: block_gc.BlockIRI(n.ref)}
 
 	// Check only the presence of a block whose type holds no refs.
