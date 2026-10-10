@@ -5,6 +5,8 @@ const root = document.createElement('div')
 interface EditorUpdate {
   editorState: object
   prevEditorState: object
+  dirtyElements: Map<string, boolean>
+  dirtyLeaves: Set<string>
 }
 let updateListeners: Array<(update: EditorUpdate) => void> = []
 const registerUpdateListener = vi.fn(
@@ -19,24 +21,31 @@ const registerUpdateListener = vi.fn(
 )
 
 // Simulates a keystroke: every editor state change reaches the plugin through
-// registerUpdateListener with distinct editor state objects.
-function fireEditorUpdate() {
-  const prevEditorState = {}
-  const editorState = {}
+// registerUpdateListener with distinct editor state objects. A selection-only
+// update, such as focusing the editor, marks no node dirty.
+function fireEditorUpdate({ selectionOnly = false } = {}) {
+  const update = {
+    editorState: {},
+    prevEditorState: {},
+    dirtyElements: new Map(selectionOnly ? [] : [['1', true]]),
+    dirtyLeaves: new Set(selectionOnly ? [] : ['2']),
+  }
   for (const listener of updateListeners) {
-    listener({ editorState, prevEditorState })
+    listener(update)
   }
 }
 
-vi.mock('@lexical/react/LexicalComposerContext', () => ({
-  useLexicalComposerContext: () => [
-    {
-      getEditorState: () => ({ read: (callback: () => void) => callback() }),
-      getRootElement: () => root,
-      registerUpdateListener,
-    },
-  ],
-}))
+// The mocked composer returns one editor for every render, as Lexical does.
+vi.mock('@lexical/react/LexicalComposerContext', () => {
+  const editor = {
+    getEditorState: () => ({ read: (callback: () => void) => callback() }),
+    read: (callback: () => string) => callback(),
+    getRootElement: () => root,
+    registerUpdateListener: (listener: (update: EditorUpdate) => void) =>
+      registerUpdateListener(listener),
+  }
+  return { useLexicalComposerContext: () => [editor] }
+})
 
 import SavePlugin from './SavePlugin.js'
 
@@ -45,6 +54,29 @@ describe('SavePlugin', () => {
     cleanup()
     updateListeners = []
     vi.clearAllMocks()
+  })
+
+  it('writes nothing for a note that is only opened, focused, and blurred', async () => {
+    const onSave = vi.fn()
+    const onDraftChange = vi.fn()
+
+    // The export normalizes the source text the note was loaded from.
+    render(
+      <SavePlugin
+        savedContent="original"
+        exportString={() => 'normalized'}
+        onSave={onSave}
+        onDraftChange={onDraftChange}
+        debounceMs={0}
+      />,
+    )
+
+    fireEditorUpdate({ selectionOnly: true })
+    fireEvent.blur(root)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(onSave).not.toHaveBeenCalled()
+    expect(onDraftChange).not.toHaveBeenCalled()
   })
 
   it('accepts an export only after the save resolves', async () => {
@@ -56,14 +88,17 @@ describe('SavePlugin', () => {
         }),
     )
 
+    let exported = 'original'
     render(
       <SavePlugin
         savedContent="original"
-        exportString={() => 'draft'}
+        exportString={() => exported}
         onSave={onSave}
       />,
     )
 
+    exported = 'draft'
+    fireEditorUpdate()
     fireEvent.blur(root)
     fireEvent.blur(root)
     expect(onSave).toHaveBeenCalledOnce()
@@ -99,7 +134,7 @@ describe('SavePlugin', () => {
   })
 
   it('suppresses automatic re-save of edited drafts until the retry clears the failure', async () => {
-    let exported = 'first'
+    let exported = 'original'
     const onDraftChange = vi.fn()
     const onSave = vi
       .fn<(content: string) => Promise<void>>()
@@ -114,6 +149,8 @@ describe('SavePlugin', () => {
       />,
     )
 
+    exported = 'first'
+    fireEditorUpdate()
     fireEvent.blur(root)
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce())
     // The rejected body stays the published draft instead of vanishing.
@@ -149,7 +186,7 @@ describe('SavePlugin', () => {
     expect(onSave).toHaveBeenNthCalledWith(2, 'third')
   })
   it('publishes the newest draft at edit time while a save is in flight', async () => {
-    let exported = 'A'
+    let exported = 'original'
     let resolveSave: (() => void) | undefined
     const onDraftChange = vi.fn()
     const onSave = vi.fn(
@@ -169,6 +206,8 @@ describe('SavePlugin', () => {
     )
 
     // The write of A goes out and stays in flight.
+    exported = 'A'
+    fireEditorUpdate()
     fireEvent.blur(root)
     expect(onSave).toHaveBeenCalledWith('A')
     await waitFor(() => expect(onDraftChange).toHaveBeenCalledWith('A'))
@@ -192,7 +231,7 @@ describe('SavePlugin', () => {
   })
 
   it('submits Y after pending X rejects without suppressing Y', async () => {
-    let exported = 'X'
+    let exported = 'original'
     let rejectX: ((error: Error) => void) | undefined
     const onSave = vi
       .fn<(content: string) => Promise<void>>()
@@ -212,6 +251,8 @@ describe('SavePlugin', () => {
       />,
     )
 
+    exported = 'X'
+    fireEditorUpdate()
     fireEvent.blur(root)
     expect(onSave).toHaveBeenCalledWith('X')
     exported = 'Y'

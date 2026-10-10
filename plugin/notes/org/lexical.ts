@@ -25,9 +25,12 @@ import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
+  $getState,
   $isElementNode,
   $isParagraphNode,
   $isTextNode,
+  $setState,
+  createState,
   type ElementNode,
   type LexicalNode,
 } from 'lexical'
@@ -54,6 +57,18 @@ import {
   type OrgNode,
 } from './org.js'
 
+// orgSourceState holds the Org text a top-level node was imported from.
+const orgSourceState = createState('orgSource', {
+  parse: (value) => (typeof value === 'string' ? value : ''),
+})
+
+// orgExportedState holds what the node exported to when it was imported. A node
+// that still exports to this text is untouched, so its source is emitted
+// instead of the normalized export.
+const orgExportedState = createState('orgExported', {
+  parse: (value) => (typeof value === 'string' ? value : ''),
+})
+
 export function $convertFromOrgString(org: string, node?: ElementNode): void {
   const target = node ?? $getRoot()
   target.clear()
@@ -79,53 +94,51 @@ function appendOrgSegment(
   parent: ElementNode,
   segment: OrgBridgeSegment,
 ): void {
+  const node = createOrgSegmentNode(segment)
+  if (!$isOrgPassthroughNode(node)) {
+    $setState(node, orgSourceState, segment.source)
+    $setState(node, orgExportedState, emitOrgNode(node))
+  }
+  parent.append(node)
+}
+
+function createOrgSegmentNode(segment: OrgBridgeSegment): LexicalNode {
   if (segment.kind === 'passthrough') {
-    parent.append($createOrgPassthroughNode(segment.source))
-    return
+    return $createOrgPassthroughNode(segment.source)
   }
 
   switch (segment.modeledKind) {
     case 'headline': {
       const heading = readOrgHeading(segment.node)
       if (!heading) {
-        parent.append($createOrgPassthroughNode(segment.source))
-        return
+        return $createOrgPassthroughNode(segment.source)
       }
       const headingNode = $createHeadingNode(headingTagFromLevel(heading.level))
       headingNode.append($createTextNode(heading.text))
-      parent.append(headingNode)
-      return
+      return headingNode
     }
     case 'paragraph': {
       const paragraph = $createParagraphNode()
       appendOrgInlineChildren(paragraph, segment.node.children)
-      parent.append(paragraph)
-      return
+      return paragraph
     }
-    case 'block': {
-      appendOrgBlock(parent, segment)
-      return
-    }
-    case 'table': {
-      appendOrgTable(parent, segment)
-      return
-    }
-    case 'list': {
-      appendOrgList(parent, segment)
-      return
-    }
+    case 'block':
+      return createOrgBlockNode(segment)
+    case 'table':
+      return createOrgTableNode(segment)
+    case 'list':
+      return createOrgListNode(segment)
   }
 }
 
-function appendOrgBlock(parent: ElementNode, segment: OrgBridgeSegment): void {
+function createOrgBlockNode(segment: OrgBridgeSegment): LexicalNode {
   if (segment.kind !== 'modeled') {
-    return
+    return $createOrgPassthroughNode(segment.source)
   }
 
   const block = readOrgBlock(segment.node)
   if (!block) {
-    parent.append($createOrgPassthroughNode(segment.source))
-    return
+    return $createOrgPassthroughNode(segment.source)
   }
 
   if (block.name === 'quote') {
@@ -133,8 +146,7 @@ function appendOrgBlock(parent: ElementNode, segment: OrgBridgeSegment): void {
     if (block.value.length > 0) {
       quote.append($createTextNode(block.value))
     }
-    parent.append(quote)
-    return
+    return quote
   }
 
   const code = $createCodeNode(
@@ -143,18 +155,17 @@ function appendOrgBlock(parent: ElementNode, segment: OrgBridgeSegment): void {
   if (block.value.length > 0) {
     code.append($createTextNode(block.value))
   }
-  parent.append(code)
+  return code
 }
 
-function appendOrgTable(parent: ElementNode, segment: OrgBridgeSegment): void {
+function createOrgTableNode(segment: OrgBridgeSegment): LexicalNode {
   if (segment.kind !== 'modeled') {
-    return
+    return $createOrgPassthroughNode(segment.source)
   }
 
   const table = readOrgTable(segment.node)
   if (!table) {
-    parent.append($createOrgPassthroughNode(segment.source))
-    return
+    return $createOrgPassthroughNode(segment.source)
   }
 
   const tableNode = $createTableNode()
@@ -171,18 +182,17 @@ function appendOrgTable(parent: ElementNode, segment: OrgBridgeSegment): void {
     }
     tableNode.append(rowNode)
   }
-  parent.append(tableNode)
+  return tableNode
 }
 
-function appendOrgList(parent: ElementNode, segment: OrgBridgeSegment): void {
+function createOrgListNode(segment: OrgBridgeSegment): LexicalNode {
   if (segment.kind !== 'modeled') {
-    return
+    return $createOrgPassthroughNode(segment.source)
   }
 
   const list = readOrgList(segment.node)
   if (!list) {
-    parent.append($createOrgPassthroughNode(segment.source))
-    return
+    return $createOrgPassthroughNode(segment.source)
   }
 
   const listNode = $createListNode(list.ordered ? 'number' : 'bullet')
@@ -193,7 +203,7 @@ function appendOrgList(parent: ElementNode, segment: OrgBridgeSegment): void {
     }
     listNode.append(itemNode)
   }
-  parent.append(listNode)
+  return listNode
 }
 
 function appendOrgInlineChildren(
@@ -222,6 +232,13 @@ function appendOrgInlineChildren(
 }
 
 function exportOrgNode(node: LexicalNode): string {
+  const text = emitOrgNode(node)
+  return text === $getState(node, orgExportedState)
+    ? $getState(node, orgSourceState)
+    : text
+}
+
+function emitOrgNode(node: LexicalNode): string {
   if ($isOrgPassthroughNode(node)) {
     return node.getSource()
   }

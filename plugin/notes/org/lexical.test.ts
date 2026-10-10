@@ -3,7 +3,12 @@ import { LinkNode } from '@lexical/link'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { HeadingNode, QuoteNode, $isHeadingNode } from '@lexical/rich-text'
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table'
-import { $createTextNode, $getRoot, createEditor } from 'lexical'
+import {
+  $createTextNode,
+  $getRoot,
+  $isParagraphNode,
+  createEditor,
+} from 'lexical'
 import { describe, expect, it } from 'vitest'
 
 import { OrgPassthroughNode } from '../editor/OrgPassthroughNode.js'
@@ -80,6 +85,40 @@ const value = 1
     expect(output).toContain('#+begin_src ts\nconst value = 1\n#+end_src\n')
     expect(output).toContain('| Name | Value |\n')
     expect(output).toContain('- first\n- second\n')
+  })
+
+  it('exports an untouched note byte for byte, including text the emitter would normalize', () => {
+    const source = `#+TITLE: Wrapped
+
+A paragraph that wraps
+across two lines.
+
+- term :: description
+- other :: more
+
+* Heading
+Body line one
+body line two
+`
+
+    expect(convertOrg(source)).toBe(source)
+  })
+
+  it('rewrites only the edited block', () => {
+    const source = `First paragraph wraps
+across two lines.
+
+Second paragraph wraps
+across two lines.
+`
+
+    const output = convertOrg(source, () => {
+      const [first] = $getRoot().getChildren().filter($isParagraphNode)
+      first.clear()
+      first.append($createTextNode('Edited'))
+    })
+
+    expect(output).toBe('Edited\n\nSecond paragraph wraps\nacross two lines.\n')
   })
 })
 
