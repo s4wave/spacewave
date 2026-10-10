@@ -5,7 +5,6 @@ package resource_root
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 )
@@ -13,17 +12,24 @@ import (
 // WatchListenerYieldPrompts streams the set of pending takeover
 // prompts surfaced by the desktop resource listener's yield broker.
 // The UI subscribes to this stream, renders a modal for the first
-// prompt, and resolves via RespondToListenerYieldPrompt.
+// prompt, and resolves via RespondToListenerYieldPrompt. A runtime without a
+// resource listener sends one empty prompt set.
 func (s *CoreRootServer) WatchListenerYieldPrompts(
 	_ *s4wave_root.WatchListenerYieldPromptsRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchListenerYieldPromptsStream,
 ) error {
-	// Watch the listener broker and send changed takeover prompts.
+	// Resolve the listener broker or send an empty prompt set.
+	ctx := strm.Context()
 	broker := s.getYieldBroker()
 	if broker == nil {
-		return errors.New("listener yield broker is not available")
+		if err := strm.Send(&s4wave_root.WatchListenerYieldPromptsResponse{}); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		return nil
 	}
-	ctx := strm.Context()
+
+	// Watch the broker and send changed takeover prompts.
 	var sentIDs []string
 	for {
 		snapshot, waitCh := broker.SnapshotPrompts()
@@ -71,17 +77,23 @@ func (s *CoreRootServer) RespondToListenerYieldPrompt(
 
 // WatchRuntimeHandoff streams the current runtime handoff state so
 // the UI can render the "Runtime handed off" banner and the Reclaim
-// action.
+// action. A runtime without a resource listener sends one inactive state.
 func (s *CoreRootServer) WatchRuntimeHandoff(
 	_ *s4wave_root.WatchRuntimeHandoffRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchRuntimeHandoffStream,
 ) error {
-	// Watch the listener broker and send changed runtime handoff state.
+	// Resolve the listener broker or send the inactive handoff state.
+	ctx := strm.Context()
 	broker := s.getYieldBroker()
 	if broker == nil {
-		return errors.New("listener yield broker is not available")
+		if err := strm.Send(&s4wave_root.WatchRuntimeHandoffResponse{State: &s4wave_root.RuntimeHandoffState{}}); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		return nil
 	}
-	ctx := strm.Context()
+
+	// Watch the broker and send changed runtime handoff state.
 	var prev s4wave_root.RuntimeHandoffState
 	first := true
 	for {

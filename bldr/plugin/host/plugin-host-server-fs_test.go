@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -65,15 +66,18 @@ func TestPluginFilesCanceledWithExecution(t *testing.T) {
 	failure := errors.New("module startup failed")
 	done := make(chan error, 1)
 	released := make(chan struct{})
+	started := make(chan struct{})
 	go func() {
-		_, release, err := tracker.accessFiles(lifetime, "missing-files")(ctx, func() { close(released) })
+		access := tracker.accessFiles(lifetime, "missing-files")
+		_, release, err := access(&startedContext{Context: ctx, started: started}, func() { close(released) })
 		if release != nil {
 			release()
 		}
 		done <- err
 	}()
 
-	// The lookup must fail with the lifetime's cause.
+	// The lookup must fail with the lifetime's cause once it is bound.
+	<-started
 	fail(failure)
 	select {
 	case err := <-done:
@@ -90,4 +94,17 @@ func TestPluginFilesCanceledWithExecution(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("cursor release was not reported")
 	}
+}
+
+// startedContext closes started when the lookup first observes its context.
+type startedContext struct {
+	context.Context
+
+	started chan struct{}
+	once    sync.Once
+}
+
+func (c *startedContext) Done() <-chan struct{} {
+	c.once.Do(func() { close(c.started) })
+	return c.Context.Done()
 }

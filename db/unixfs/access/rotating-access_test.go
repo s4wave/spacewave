@@ -220,3 +220,55 @@ func newTestRotatingAccessRoot(ctx context.Context, body []byte) (*unixfs.FSHand
 	}
 	return rootRef, nil
 }
+
+func TestFSCursorRetriesRotatedAccess(t *testing.T) {
+	// Create a rotating provider and signal when the cursor blocks on it.
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	rotating := unixfs_access.NewRotatingAccess()
+	started := make(chan struct{})
+	var startedOnce sync.Once
+	cursor := unixfs_access.NewFSCursor(func(ctx context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+		startedOnce.Do(func() { close(started) })
+		return rotating.AccessUnixFS(ctx, released)
+	})
+
+	// Resolve the cursor while the provider is blocked.
+	handle, err := unixfs.NewFSHandle(cursor)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer handle.Release()
+	errCh := make(chan error, 1)
+	go func() {
+		fileHandle, _, err := handle.LookupPath(ctx, "/asset.txt")
+		if err == nil {
+			fileHandle.Release()
+		}
+		errCh <- err
+	}()
+	select {
+	case <-started:
+	case <-ctx.Done():
+		t.Fatalf("access did not start: %v", ctx.Err())
+	}
+
+	// Rotate to a second blocked provider, then publish the UnixFS root.
+	rotating.SetBlocked()
+	root, err := newTestRotatingAccessRoot(ctx, []byte("rotated generation"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer root.Release()
+	rotating.SetCurrent(unixfs_access.NewAccessUnixFSFunc(root))
+
+	// Verify the pending lookup resolves against the published root.
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	case <-ctx.Done():
+		t.Fatalf("lookup did not complete after provider rotation: %v", ctx.Err())
+	}
+}

@@ -16,8 +16,12 @@ type Factory struct {
 	admission Admission
 }
 
-// NewFactory binds Docker execution to one Worker's admission.
-func NewFactory(bus bus.Bus, admission Admission) *Factory {
+// NewWorkerFactory binds Docker execution to one Worker's admission.
+//
+// The name differs from NewFactory on purpose: Bldr bundles every package that
+// declares NewFactory as a bus-level factory, but this one is registered only by
+// the Worker that owns the admission.
+func NewWorkerFactory(bus bus.Bus, admission Admission) *Factory {
 	return &Factory{bus: bus, admission: admission}
 }
 

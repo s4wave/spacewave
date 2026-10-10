@@ -256,7 +256,7 @@ func (r *forgeWorkerResource) Execute(
 		task_controller.NewFactory(r.b),
 		pass_controller.NewFactory(r.b),
 		exec_controller.NewFactory(r.b),
-		forge_lib_docker.NewFactory(r.b, r.admission),
+		forge_lib_docker.NewWorkerFactory(r.b, r.admission),
 		forge_lib_util_presence.NewFactory(r.b),
 	}
 	sr := static.NewResolver(append(forgeFactories, bridgeFactories...)...)

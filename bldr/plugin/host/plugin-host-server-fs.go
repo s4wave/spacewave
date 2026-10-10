@@ -133,9 +133,16 @@ func (t *pluginHostServerFsTracker) execute(rctx context.Context) (rerr error) {
 // accessFiles binds filesystem acquisition to the tracked execution without waiting
 // for registration. Worker startup can fetch its modules before it reports ready;
 // failed loading cancels a blocked read and invalidates acquired cursors.
+//
+// A caller that retries a released acquisition fails once the execution ended.
 func (t *pluginHostServerFsTracker) accessFiles(lifetime context.Context, id string) unixfs_access.AccessUnixFSFunc {
 	access := unixfs_access.NewAccessUnixFSViaBusFunc(t.s.b, id, false)
 	return func(caller context.Context, released func()) (*unixfs.FSHandle, func(), error) {
+		// Fail without retry once the tracked execution ended.
+		if lifetime.Err() != nil {
+			return nil, nil, context.Cause(lifetime)
+		}
+
 		// Bind the acquisition to the tracked execution lifetime.
 		ctx, cancel := context.WithCancelCause(caller)
 		stop := context.AfterFunc(lifetime, func() {

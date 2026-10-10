@@ -298,7 +298,7 @@ func TestForgeWorkerWithdrawalDrainsAndHoldsNewJobs(t *testing.T) {
 	// Run the Worker with a declaration the test can withdraw.
 	h := newWorkerHarness(t)
 	admission := h.newAdmission("claim-1")
-	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewFactory(h.tb.Bus, admission))
+	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))
 	updates := make(chan *s4wave_device.ForgeWorkerDeclaration, 1)
 	stopWorker := h.startWorker(admission, updates)
 	defer func() {
@@ -358,7 +358,7 @@ func TestForgeWorkerRestartResumesRunningJob(t *testing.T) {
 	h := newWorkerHarness(t)
 	admission := &restartedAdmission{}
 	admission.current.Store(h.newAdmission("claim-1"))
-	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewFactory(h.tb.Bus, admission))
+	h.tb.StaticResolver.AddFactory(forge_lib_docker.NewWorkerFactory(h.tb.Bus, admission))
 	stopWorker := h.startWorker(admission.current.Load(), nil)
 	gate := newDockerGate(t)
 	h.submit(t, "job/restart", gate)
