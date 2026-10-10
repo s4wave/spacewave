@@ -140,10 +140,15 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 		return true, err
 	case err := <-clientDone:
 		if err != nil {
+			// The remote may have completed before the failed write. Close the
+			// stream to end the read loop, and keep a clean remote result.
+			_ = rpcStream.Close()
+			if <-serverDone == nil {
+				return true, nil
+			}
 			return true, err
 		}
-		err = <-serverDone
-		return true, err
+		return true, <-serverDone
 	}
 }
 

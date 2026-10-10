@@ -16,20 +16,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// newAccessTestBus serves an Echoer through the access service and returns a
-// client bus whose access client controller reaches it through svcFn.
-func newAccessTestBus(
+// newAccessTestServer serves an Echoer through the access service and returns
+// an access client connected to it.
+func newAccessTestServer(
 	ctx context.Context,
 	t *testing.T,
-	svcFn func(SRPCAccessRpcServiceClient) AccessClientFunc,
-) (*logrus.Entry, bus.Bus) {
-	// Log both buses at debug level.
-	t.Helper()
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	le := logrus.NewEntry(log)
-
+	le *logrus.Entry,
+) SRPCAccessRpcServiceClient {
 	// Serve the access service on the server bus.
+	t.Helper()
 	serverBus, _, err := core.NewCoreBus(ctx, le.WithField("test-bus", "server"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -59,17 +54,32 @@ func newAccessTestBus(
 		t.Fatal(err)
 	}
 	t.Cleanup(invokerRel)
+	return NewSRPCAccessRpcServiceClient(srpc.NewClient(srpc.NewServerPipe(server)))
+}
+
+// newAccessTestBus serves an Echoer through the access service and returns a
+// client bus whose access client controller reaches it through svcFn.
+func newAccessTestBus(
+	ctx context.Context,
+	t *testing.T,
+	svcFn func(SRPCAccessRpcServiceClient) AccessClientFunc,
+) (*logrus.Entry, bus.Bus) {
+	// Log both buses at debug level.
+	t.Helper()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
 
 	// Reach the server bus from the client bus through the access client.
+	client := newAccessTestServer(ctx, t, le)
 	clientBus, _, err := core.NewCoreBus(ctx, le.WithField("test-bus", "client"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := srpc.NewClient(srpc.NewServerPipe(server))
 	clientCtrl := NewClientController(
 		le,
 		controller.NewInfo("bifrost/rpc/access/client", controller.MustParseVersion("0.0.1"), ""),
-		svcFn(NewSRPCAccessRpcServiceClient(client)),
+		svcFn(client),
 		nil,
 		nil,
 		false,
