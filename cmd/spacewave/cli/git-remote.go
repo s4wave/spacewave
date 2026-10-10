@@ -43,8 +43,10 @@ func buildGitRemoteInstallCommand() *cli.Command {
 			"  git push space master\n\n" +
 			"To use a session other than the first, name it in the address:\n\n" +
 			"  git remote add space spacewave:///u/<n>/so/<space>/-/<object-key>\n\n" +
-			"The first push creates the Git repository object. Rerunning install\n" +
-			"rewrites the helper for the current binary and daemon flags.",
+			"The first push creates the Git repository object. Install also sets\n" +
+			"protocol.spacewave.allow in your global Git config, so submodules may\n" +
+			"clone spacewave:// URLs. Rerunning install rewrites the helper for the\n" +
+			"current binary and daemon flags.",
 		Flags: []cli.Flag{
 			statePathFlag(&statePath),
 			socketPathFlag(),
@@ -80,6 +82,11 @@ func buildGitRemoteInstallCommand() *cli.Command {
 			path := filepath.Join(dir, gitRemoteHelperName)
 			if err := os.WriteFile(path, []byte(script), 0o755); err != nil { //nolint:gosec // Git must execute the helper.
 				return errors.Wrap(err, "write the remote helper")
+			}
+
+			// Git refuses unknown transports in submodules unless allowed.
+			if _, err := gitOutput(c.Context, "config", "--global", "protocol.spacewave.allow", "always"); err != nil {
+				return errors.Wrap(err, "allow spacewave:// in submodules")
 			}
 			os.Stdout.WriteString("installed " + path + "\n")
 			return nil
