@@ -36,16 +36,14 @@ type ProxyVolumeController struct {
 
 // newProxyVolumeConfig returns the volume controller config of a proxy volume.
 //
-// The proxy volume does not collect garbage: the controller of the served
-// volume owns collection. It sees every owner's references, which a scoped view
-// of the volume hides, and sweeps through the volume's own block store.
+// Bucket handles of the proxy volume track references in the served volume's
+// ref graph. The proxy volume never collects: see ProxyVolume.DelegatesGC.
 func newProxyVolumeConfig(volumeIDAlias []string) *volume_controller.Config {
 	return &volume_controller.Config{
 		VolumeIdAlias: volumeIDAlias,
 
 		DisableEventBlockRm: true,
 		DisablePeer:         true,
-		GcIntervalDur:       "0",
 	}
 }
 

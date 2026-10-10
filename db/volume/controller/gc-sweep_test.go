@@ -152,6 +152,64 @@ func TestRunGCSweepUsesManagerHooks(t *testing.T) {
 	}
 }
 
+// delegatingVolume is a volume that views storage collected elsewhere.
+type delegatingVolume struct {
+	*common_kvtx.Volume
+}
+
+// DelegatesGC marks the volume as a view of collected storage.
+func (delegatingVolume) DelegatesGC() {}
+
+// TestRunGCSweepSkipsDelegatingVolume checks a controller whose volume views
+// storage collected elsewhere returns without collecting.
+func TestRunGCSweepSkipsDelegatingVolume(t *testing.T) {
+	// Create an in-memory volume that would otherwise start a collection manager.
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	vol, err := common_kvtx.NewVolume(
+		ctx,
+		"test-volume",
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		nil,
+		false,
+		false,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vol.Close()
+	replayed := false
+	vol.SetGCManagerHooks(block_gc.ManagerHooks{
+		Graph: stubCollectorGraph{},
+		ReplayWAL: func(context.Context, block_gc.CollectorGraph) (int, error) {
+			replayed = true
+			return 0, nil
+		},
+		AcquireSTW: func() (func(), error) {
+			return func() {}, nil
+		},
+	})
+
+	// Publish the delegating volume and run collection with a short interval.
+	c := &Controller{
+		le:     le,
+		config: &Config{GcIntervalDur: "1ms"},
+		volume: ccontainer.NewCContainer[*volumeCtxPair](nil),
+	}
+	c.volume.SetValue(&volumeCtxPair{vol: delegatingVolume{vol}, ctx: ctx})
+
+	// The sweep ends at once without starting the manager.
+	if err := c.runGCSweep(ctx); err != nil {
+		t.Fatalf("runGCSweep error = %v, want nil", err)
+	}
+	if replayed {
+		t.Fatal("delegating volume started a collection manager")
+	}
+}
+
 // _ is a type assertion
 var (
 	_ interface {

@@ -15,7 +15,10 @@ import (
 // in and loses it on the way out, and nodes of other owners stay hidden. Block
 // nodes are shared by content address: a plugin may add edges from a block, and
 // may not remove them, since that could make another owner's data collectable.
-// The permanent roots belong to the volume's collector.
+// The permanent roots belong to the volume's collector, with two exceptions
+// that GC tracking of the view's buckets needs: the view may root its own
+// bucket nodes, and may mark or unmark a block as unreferenced, a staging mark
+// that retains nothing.
 type refGraph struct {
 	// inner is the ref graph of the underlying volume.
 	inner block_gc.RefGraphOps
@@ -206,8 +209,24 @@ func (g *refGraph) scopeOwner(node string) (string, error) {
 }
 
 // scopeEdge maps an edge of the view to its edge in the volume. A removal must
-// start at an object or bucket node of the view.
+// start at an object or bucket node of the view, or at the unreferenced node.
 func (g *refGraph) scopeEdge(edge block_gc.RefEdge, add bool) (block_gc.RefEdge, error) {
+	// Map a staging mark, which names a block, and a bucket root, which names a
+	// bucket of the view.
+	switch {
+	case edge.Subject == block_gc.NodeUnreferenced:
+		if _, ok := block_gc.ParseBlockIRI(edge.Object); !ok {
+			return block_gc.RefEdge{}, errors.Wrapf(ErrRefused, "unreferenced mark of %q", edge.Object)
+		}
+		return edge, nil
+	case edge.Subject == block_gc.NodeGCRoot && add:
+		id, ok := block_gc.ParseBucketIRI(edge.Object)
+		if !ok {
+			return block_gc.RefEdge{}, errors.Wrapf(ErrRefused, "gcroot edge to %q", edge.Object)
+		}
+		return block_gc.RefEdge{Subject: edge.Subject, Object: block_gc.BucketIRI(g.prefix + id)}, nil
+	}
+
 	// Map the subject, which may only be an owner when removing.
 	var scoped block_gc.RefEdge
 	var err error
@@ -273,7 +292,11 @@ func (g *refGraph) unscopeNodes(nodes []string) []string {
 func (g *refGraph) unscopeEdges(edges []block_gc.RefEdge) []block_gc.RefEdge {
 	unscoped := make([]block_gc.RefEdge, 0, len(edges))
 	for _, edge := range edges {
-		subject, subjectOK := g.unscopeNode(edge.Subject)
+		// A permanent root stays as it is: the view named it as it is.
+		subject, subjectOK := edge.Subject, true
+		if edge.Subject != block_gc.NodeUnreferenced && edge.Subject != block_gc.NodeGCRoot {
+			subject, subjectOK = g.unscopeNode(edge.Subject)
+		}
 		object, objectOK := g.unscopeNode(edge.Object)
 		if subjectOK && objectOK {
 			unscoped = append(unscoped, block_gc.RefEdge{Subject: subject, Object: object})

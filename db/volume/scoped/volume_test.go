@@ -187,13 +187,75 @@ func TestRefGraphHidesOtherOwners(t *testing.T) {
 	// Refuse a batch whose later edge is outside the view, committing none of it.
 	err = rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
 		{Subject: block_gc.ObjectIRI("second"), Object: blockIRI},
-		{Subject: block_gc.NodeUnreferenced, Object: blockIRI},
+		{Subject: block_gc.NodeGCRoot, Object: blockIRI},
 	}, nil)
 	if !errors.Is(err, volume_scoped.ErrRefused) {
 		t.Fatalf("batch with a permanent root: %v", err)
 	}
 	if targets, err := rg.GetOutgoingRefs(ctx, block_gc.ObjectIRI("second")); err != nil || len(targets) != 0 {
 		t.Fatalf("refused batch committed: %v, %v", targets, err)
+	}
+}
+
+// TestRefGraphTracksOwnBuckets checks the view roots its own buckets and marks
+// blocks unreferenced, the edges GC tracking of a bucket writes, and cannot
+// root anything else.
+func TestRefGraphTracksOwnBuckets(t *testing.T) {
+	// Build a view and a block it stores.
+	ctx := t.Context()
+	tb, err := testbed.NewTestbed(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+	view := volume_scoped.NewVolume(tb.Volume, viewPrefix)
+	ref, _, err := view.PutBlock(ctx, []byte("tracked"), &block.PutOpts{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	blockIRI := block_gc.BlockIRI(ref)
+
+	// Root a bucket of the view, own the block, and stage it, as GC tracking does.
+	rg := view.GetRefGraph()
+	bucketIRI := block_gc.BucketIRI("own")
+	err = rg.ApplyRefBatch(ctx, []block_gc.RefEdge{
+		{Subject: block_gc.NodeGCRoot, Object: bucketIRI},
+		{Subject: bucketIRI, Object: blockIRI},
+		{Subject: block_gc.NodeUnreferenced, Object: blockIRI},
+	}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// The host holds the bucket under the prefix, rooted.
+	hostGraph := tb.Volume.GetRefGraph()
+	hostBucketIRI := block_gc.BucketIRI(viewPrefix + "own")
+	if roots, err := hostGraph.GetOutgoingRefs(ctx, block_gc.NodeGCRoot); err != nil || !slices.Contains(roots, hostBucketIRI) {
+		t.Fatalf("host roots lack the view's bucket: %v, %v", roots, err)
+	}
+	if owned, err := hostGraph.GetOutgoingRefs(ctx, hostBucketIRI); err != nil || !slices.Equal(owned, []string{blockIRI}) {
+		t.Fatalf("host bucket edges: %v, %v", owned, err)
+	}
+
+	// Unstage the block.
+	err = rg.ApplyRefBatch(ctx, nil, []block_gc.RefEdge{{Subject: block_gc.NodeUnreferenced, Object: blockIRI}})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if staged, err := hostGraph.GetOutgoingRefs(ctx, block_gc.NodeUnreferenced); err != nil || slices.Contains(staged, blockIRI) {
+		t.Fatalf("host staging after the removal: %v, %v", staged, err)
+	}
+
+	// Refuse a root that is not a bucket, an unreferenced mark of an owner, and
+	// the removal of a root.
+	if err := rg.AddRef(ctx, block_gc.NodeGCRoot, block_gc.ObjectIRI("key")); !errors.Is(err, volume_scoped.ErrRefused) {
+		t.Fatalf("gcroot edge to an object: %v", err)
+	}
+	if err := rg.AddRef(ctx, block_gc.NodeUnreferenced, bucketIRI); !errors.Is(err, volume_scoped.ErrRefused) {
+		t.Fatalf("unreferenced mark of a bucket: %v", err)
+	}
+	if err := rg.RemoveRef(ctx, block_gc.NodeGCRoot, bucketIRI); !errors.Is(err, volume_scoped.ErrRefused) {
+		t.Fatalf("gcroot edge removal: %v", err)
 	}
 }
 

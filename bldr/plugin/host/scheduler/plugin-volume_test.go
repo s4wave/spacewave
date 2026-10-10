@@ -27,26 +27,39 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// servePluginVolume serves the volume a plugin of the scheduler receives and
-// returns the plugin's client for it. Each call serves a new proxy volume, as
-// each start of the plugin does.
-func servePluginVolume(
+// servePluginClient serves the volume a plugin of the scheduler receives and
+// returns the plugin's RPC client for it. Each call serves a new proxy volume,
+// as each start of the plugin does.
+func servePluginClient(
 	ctx context.Context,
-	t *testing.T,
+	t testing.TB,
 	c *Controller,
 	hostVol volume.Volume,
 	pluginID string,
-) *volume_rpc_client.ProxyVolume {
-	// Serve the plugin's volume over RPC, as the plugin's mux does.
+) srpc.Client {
 	t.Helper()
+
+	// Serve the plugin's volume on a mux, as the plugin's mux does.
 	proxyVol := volume_rpc_server.NewProxyVolume(ctx, c.newPluginVolume(hostVol, pluginID), false)
 	mux := srpc.NewMux()
 	if err := volume_rpc_server.RegisterProxyVolume(mux, proxyVol); err != nil {
 		t.Fatal(err.Error())
 	}
-	rpcClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))
+}
 
+// servePluginVolume serves the volume a plugin of the scheduler receives and
+// returns the plugin's client for it.
+func servePluginVolume(
+	ctx context.Context,
+	t testing.TB,
+	c *Controller,
+	hostVol volume.Volume,
+	pluginID string,
+) *volume_rpc_client.ProxyVolume {
 	// Build the plugin's client from the served volume's info.
+	t.Helper()
+	rpcClient := servePluginClient(ctx, t, c, hostVol, pluginID)
 	volClient := volume_rpc.NewSRPCProxyVolumeClient(rpcClient)
 	info, err := volClient.GetVolumeInfo(ctx, &volume_rpc.GetVolumeInfoRequest{})
 	if err != nil {

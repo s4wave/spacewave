@@ -8,6 +8,15 @@ import (
 	volume "github.com/s4wave/spacewave/db/volume"
 )
 
+// gcDelegator is implemented by a volume that views another controller's
+// storage. That controller sees every owner's references and sweeps through the
+// storage's own block store, so this controller tracks references and never
+// collects.
+type gcDelegator interface {
+	// DelegatesGC marks the volume as a view of collected storage.
+	DelegatesGC()
+}
+
 // runGCSweep runs the periodic GC sweep goroutine.
 // It waits for the volume to become ready, then prefers the WAL-backed
 // concurrent GC manager when the volume provides the required hooks.
@@ -28,6 +37,12 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	vol, err := c.GetVolume(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Leave collection to the controller of the storage a view reads.
+	if _, ok := vol.(gcDelegator); ok {
+		c.le.Debug("volume delegates gc, sweep disabled")
+		return nil
 	}
 
 	// Use the concurrent collector when the volume supplies its required hooks.

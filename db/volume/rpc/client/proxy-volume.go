@@ -91,6 +91,10 @@ func (v *ProxyVolume) GetStorageStats(ctx context.Context) (*volume.StorageStats
 	return resp.GetStorageStats(), nil
 }
 
+// DelegatesGC marks the volume as a view of storage collected by the controller
+// of the served volume.
+func (v *ProxyVolume) DelegatesGC() {}
+
 // GetRefGraph returns the volume's GC reference graph.
 func (v *ProxyVolume) GetRefGraph() block_gc.RefGraphOps {
 	if v.refGraph == nil {
@@ -132,7 +136,7 @@ func (v *ProxyVolume) GetPeer(ctx context.Context, withPriv bool) (peer.Peer, er
 
 // LoadPeerPriv attempts to load the volume private key.
 // May return nil if there is no key stored.
-// May return ErrPrivKeyUnavailable
+// May return ErrPrivKeyUnavailable.
 func (v *ProxyVolume) LoadPeerPriv(ctx context.Context) (crypto.PrivKey, error) {
 	p, err := v.GetPeer(ctx, true)
 	if err != nil {
