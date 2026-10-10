@@ -50,7 +50,8 @@ import (
 //go:embed web/bundler/vite/development.ts web/bundler/vite/development-client.ts
 //go:embed frontend/*.ts
 //go:embed web/bundler/vite/vite-base.config.ts web/bundler/vite/go-ts-resolver.ts
-//go:embed plugin/compiler/js/entrypoint.ts
+//go:embed plugin/compiler/js/compiler.pb.ts plugin/compiler/js/entrypoint.ts
+//go:embed project/validate/validate.pb.ts
 //go:embed resource/resource.pb.ts resource/resource_srpc.pb.ts
 //go:embed resource/state/state.pb.ts resource/state/state_srpc.pb.ts
 //go:embed sdk/*.ts sdk/impl/*.ts
