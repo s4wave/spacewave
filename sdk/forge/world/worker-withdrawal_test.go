@@ -104,14 +104,22 @@ func newDockerGate(t *testing.T) *dockerGate {
 	return g
 }
 
-// waitStarted blocks until the container is running its wait.
+// waitStarted blocks until the container is running its wait. Darwin does not
+// poll FIFOs, so a timer bounds the read instead of a read deadline.
 func (g *dockerGate) waitStarted(t *testing.T) {
 	t.Helper()
-	if err := g.started.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := g.started.Read(make([]byte, 1)); err != nil {
-		t.Fatalf("container did not start: %v", err)
+	read := make(chan error, 1)
+	go func() {
+		_, err := g.started.Read(make([]byte, 1))
+		read <- err
+	}()
+	select {
+	case err := <-read:
+		if err != nil {
+			t.Fatalf("container did not start: %v", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("container did not start within 30s")
 	}
 }
 
