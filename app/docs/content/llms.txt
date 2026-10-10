@@ -90,8 +90,14 @@ until grep -q emoji .tmp/spacewave-pair.log; do sleep 1; done
 ```
 
 Avoid `tail -f` piped into `grep`, which keeps waiting after the match. Tell
-the person the emoji right away, end your turn if you need their reply, and
-then wait for the command to exit. The person has ten minutes to approve.
+the person the emoji right away in a message, but do not end your turn: keep
+waiting for the command to exit, since the person approves in the app and does
+not need to reply to you. End the turn at the emoji only if your harness cannot
+show a message while a command runs, and then continue when the person tells
+you they approved. The person has ten minutes to approve.
+
+Write the log where the project keeps scratch files. In a read-only project,
+use the system temporary directory.
 
 If the command reports that the code expired or pairing was rejected, ask the
 person for a new prompt from the Connect an agent button. Codes last ten
