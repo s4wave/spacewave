@@ -29,6 +29,18 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+)
+
+const (
+	// refRepairBatch is the number of blocks taken from the top of the walk's
+	// stack and read together.
+	refRepairBatch = 64
+	// refRepairReaders bounds the concurrent block and ref graph reads. The
+	// reads are random preads, so a few in flight hide the disk latency.
+	refRepairReaders = 16
+	// refRepairProgress is the number of blocks walked between progress logs.
+	refRepairProgress = 100_000
 )
 
 // refRepairNode is a block the ref repair walks, with what decodes it.
@@ -46,6 +58,28 @@ type refRepairNode struct {
 	values block.Ctor
 }
 
+// refRepairRead is what reading one block found. The reads of a batch run
+// concurrently; the walk then applies each read in stack order.
+type refRepairRead struct {
+	// node is the block read.
+	node refRepairNode
+	// iri is the block's ref graph node.
+	iri string
+	// found is false when the volume lacks the block.
+	found bool
+	// leaf is true when the block's type holds no refs, so it was not read.
+	leaf bool
+	// blk is the decoded block, nil for a leaf or an undecodable block.
+	blk any
+	// decodeErr is why the block did not decode.
+	decodeErr error
+	// refs are the refs a write records for the block.
+	refs []*block.BlockRef
+	// have are the edges the graph holds for the block, read when refs is not
+	// empty.
+	have []string
+}
+
 // refRepairResult counts what one ref repair found and wrote.
 type refRepairResult struct {
 	// spaces is the number of Spaces walked.
@@ -55,6 +89,7 @@ type refRepairResult struct {
 	// absent is the number of referenced blocks the volume lacks.
 	absent uint64
 	// undecodable is the number of blocks that failed to decode as their type.
+	// A block whose type holds no refs is only checked for presence.
 	undecodable uint64
 	// lacking is the number of blocks missing at least one outgoing edge.
 	lacking uint64
@@ -215,71 +250,125 @@ func (r *refRepair) worldNode(world *bucket.ObjectRef, ref *block.BlockRef) (ref
 }
 
 // walk visits the blocks below root depth first, so the objects of one World
-// resolve their types in one snapshot.
+// resolve their types in one snapshot. It reads a batch from the top of the
+// stack concurrently, then plans edges and queues children in stack order.
 func (r *refRepair) walk(ctx context.Context, root refRepairNode) error {
 	stack := []refRepairNode{root}
 	for len(stack) != 0 {
-		// Stop when the repair is canceled.
-		if err := ctx.Err(); err != nil {
+		// Take the unvisited blocks of the next batch from the top of the stack.
+		var batch []refRepairNode
+		for len(stack) != 0 && len(batch) != refRepairBatch {
+			n := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			iri := block_gc.BlockIRI(n.ref)
+			if iri == "" {
+				continue
+			}
+			if _, ok := r.visited[iri]; ok {
+				continue
+			}
+			r.visited[iri] = struct{}{}
+			batch = append(batch, n)
+		}
+
+		// Read the batch concurrently.
+		reads := make([]refRepairRead, len(batch))
+		eg, egCtx := errgroup.WithContext(ctx)
+		eg.SetLimit(refRepairReaders)
+		for i, n := range batch {
+			eg.Go(func() (err error) {
+				reads[i], err = r.read(egCtx, n)
+				return err
+			})
+		}
+		if err := eg.Wait(); err != nil {
 			return err
 		}
 
-		// Visit the next block and queue its children.
-		n := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		children, err := r.visit(ctx, n)
-		if err != nil {
-			return err
+		// Apply each read and queue its children.
+		for i := range reads {
+			children, err := r.visit(ctx, &reads[i])
+			if err != nil {
+				return err
+			}
+			stack = append(stack, children...)
 		}
-		stack = append(stack, children...)
 	}
 	return nil
 }
 
-// visit decodes one block, plans the edges the graph lacks for it, and returns
-// its children.
-func (r *refRepair) visit(ctx context.Context, n refRepairNode) ([]refRepairNode, error) {
-	// Skip an empty ref and a block already walked.
-	iri := block_gc.BlockIRI(n.ref)
-	if iri == "" {
-		return nil, nil
-	}
-	if _, ok := r.visited[iri]; ok {
-		return nil, nil
-	}
-	r.visited[iri] = struct{}{}
+// read reads, decodes and extracts the refs of one block, with the edges the
+// graph holds for it. It touches no repair state, so reads run concurrently.
+func (r *refRepair) read(ctx context.Context, n refRepairNode) (refRepairRead, error) {
+	rd := refRepairRead{node: n, iri: block_gc.BlockIRI(n.ref)}
 
-	// Read the stored bytes, counting a block the volume lacks.
-	data, found, err := r.store.GetBlock(ctx, n.ref)
-	if err != nil {
-		return nil, err
+	// Check only the presence of a block whose type holds no refs.
+	if n.ctor != nil && !holdsRefs(n.ctor()) {
+		var err error
+		rd.leaf = true
+		rd.found, err = r.store.GetBlockExists(ctx, n.ref)
+		return rd, err
 	}
-	if !found {
+
+	// Read and decode the stored bytes.
+	data, found, err := r.store.GetBlock(ctx, n.ref)
+	if err != nil || !found {
+		return rd, err
+	}
+	rd.found = true
+	rd.blk, rd.decodeErr = decodeRefRepairNode(n, data)
+	if rd.decodeErr != nil {
+		rd.blk = nil
+		return rd, nil
+	}
+
+	// Extract the refs a write records and read the edges the graph holds.
+	rd.refs, err = block.ExtractBlockRefs(rd.blk)
+	if err != nil {
+		return rd, err
+	}
+	if span, ok := rd.blk.(*sobject_world_engine.ReplaySpan); ok {
+		rd.refs = slices.Concat(span.GetWorlds(), span.GetPayloads())
+	}
+	if len(rd.refs) != 0 {
+		rd.have, err = r.rg.GetOutgoingRefs(ctx, rd.iri)
+	}
+	return rd, err
+}
+
+// holdsRefs reports whether a block of blk's type can reference other blocks.
+func holdsRefs(blk any) bool {
+	switch blk.(type) {
+	case block.BlockWithRefs, block.BlockWithSubBlocks:
+		return true
+	}
+	return false
+}
+
+// visit counts one read, plans the edges the graph lacks for the block, and
+// returns its children.
+func (r *refRepair) visit(ctx context.Context, rd *refRepairRead) ([]refRepairNode, error) {
+	// Count a block the volume lacks, a leaf, and an undecodable block.
+	if !rd.found {
 		r.res.absent++
 		return nil, nil
 	}
 	r.res.blocks++
-
-	// Decode the block by its type.
-	blk, err := decodeRefRepairNode(n, data)
-	if err != nil {
-		r.le.WithError(err).Warnf("cannot decode %s", n.ref.MarshalString())
+	if r.res.blocks%refRepairProgress == 0 {
+		r.le.Infof("walked %d blocks", r.res.blocks)
+	}
+	if rd.leaf {
+		return nil, nil
+	}
+	if rd.decodeErr != nil {
+		r.le.WithError(rd.decodeErr).Warnf("cannot decode %s", rd.node.ref.MarshalString())
 		r.res.undecodable++
 		return nil, nil
 	}
 
 	// Plan the edges a write records for the block, then return its children.
-	refs, err := block.ExtractBlockRefs(blk)
-	if err != nil {
-		return nil, err
-	}
-	if span, ok := blk.(*sobject_world_engine.ReplaySpan); ok {
-		refs = slices.Concat(span.GetWorlds(), span.GetPayloads())
-	}
-	if err := r.recordEdges(ctx, iri, refs); err != nil {
-		return nil, err
-	}
-	return r.children(ctx, blk, n, n.values)
+	r.recordEdges(rd.iri, rd.refs, rd.have)
+	return r.children(ctx, rd.blk, rd.node, rd.node.values)
 }
 
 // decodeRefRepairNode decodes the stored bytes of n by its type.
@@ -302,19 +391,9 @@ func decodeRefRepairNode(n refRepairNode, data []byte) (any, error) {
 	return blk, blk.UnmarshalBlock(data)
 }
 
-// recordEdges plans each edge from the block at iri to refs that the graph
-// lacks.
-func (r *refRepair) recordEdges(ctx context.Context, iri string, refs []*block.BlockRef) error {
-	// Read the edges the graph holds for the block.
-	if len(refs) == 0 {
-		return nil
-	}
-	have, err := r.rg.GetOutgoingRefs(ctx, iri)
-	if err != nil {
-		return err
-	}
-
-	// Plan each edge it lacks once.
+// recordEdges plans each edge from the block at iri to refs that have, the
+// edges the graph holds for it, lacks.
+func (r *refRepair) recordEdges(iri string, refs []*block.BlockRef, have []string) {
 	var missing uint64
 	for _, ref := range refs {
 		child := block_gc.BlockIRI(ref)
@@ -329,7 +408,6 @@ func (r *refRepair) recordEdges(ctx context.Context, iri string, refs []*block.B
 		r.res.lacking++
 		r.res.edges += missing
 	}
-	return nil
 }
 
 // children returns the blocks blk references, each with the constructor and
