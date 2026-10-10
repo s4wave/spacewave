@@ -149,6 +149,7 @@ func outputFlag() cli.Flag {
 	return &cli.StringFlag{
 		Name:    "output",
 		Aliases: []string{"o"},
+		EnvVars: []string{"SPACEWAVE_OUTPUT"},
 		Usage:   "output format (text/json/yaml)",
 		Value:   "text",
 	}
