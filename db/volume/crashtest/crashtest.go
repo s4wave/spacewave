@@ -88,8 +88,10 @@ type Target interface {
 // Run runs each workload on a new device from newDevice, crashes it at every
 // mutating device call, applies a power loss, and checks that the target open
 // reopens holds an allowed state and keeps working. blocks is which commits of
-// the target publish its pending blocks.
+// the target publish its pending blocks. It first checks the existence results
+// of the target's batch puts.
 func Run[D Device](t *testing.T, blocks Blocks, newDevice func() D, open func(ctx context.Context, d D) (Target, error)) {
+	checkBatchExistence(t, newDevice(), open)
 	for seed := range uint64(seeds) {
 		// Count the device calls of the uncrashed workload.
 		d := newDevice()
@@ -112,6 +114,47 @@ func Run[D Device](t *testing.T, blocks Blocks, newDevice func() D, open func(ct
 		}
 		t.Logf("seed %d: %d crash points", seed, calls)
 	}
+}
+
+// checkBatchExistence checks that PutBlockBatch reports a block as existing
+// only when it was stored before the write: a duplicate in the same batch
+// exists, a removed block does not, and a tombstone reports false.
+func checkBatchExistence[D Device](t *testing.T, d D, open func(ctx context.Context, d D) (Target, error)) {
+	// Build two blocks and a batch that writes the first twice.
+	ctx := t.Context()
+	s, err := open(ctx, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	entry := func(data string) *block.PutBatchEntry {
+		ref, err := block.BuildBlockRef([]byte(data), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &block.PutBatchEntry{Ref: ref, Data: []byte(data)}
+	}
+	first, second := entry("existence-first"), entry("existence-second")
+	remove := &block.PutBatchEntry{Ref: first.Ref, Tombstone: true}
+	put := func(want []bool, entries ...*block.PutBatchEntry) {
+		t.Helper()
+		got, err := s.PutBlockBatch(ctx, entries)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("existed = %v, want %v", got, want)
+		}
+	}
+
+	// A new block is absent, and its duplicate in the same batch is present.
+	put([]bool{false, false, true}, first, second, first)
+	put([]bool{true, true}, first, second)
+
+	// A removed block is absent again, in a later batch and in the same batch.
+	put([]bool{false}, remove)
+	put([]bool{false, true}, first, second)
+	put([]bool{false, false}, remove, first)
 }
 
 // checkCrash runs the workload of seed on d, crashes after n mutating calls,

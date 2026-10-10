@@ -260,18 +260,23 @@ type readOperation struct {
 	closed bool
 }
 
+// GetHashType returns the hash type of the parent store.
 func (r *readOperation) GetHashType() hash.HashType {
 	return r.parent.GetHashType()
 }
 
+// GetSupportedFeatures returns the features of the parent store.
 func (r *readOperation) GetSupportedFeatures() block.StoreFeature {
 	return r.parent.GetSupportedFeatures()
 }
 
+// BeginReadOperation returns the operation itself: it already holds one
+// read transaction.
 func (r *readOperation) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
 	return r, func() {}, nil
 }
 
+// PutBlock rejects writes: a read operation is read-only.
 func (r *readOperation) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, ErrReadOperationReadOnly
 }
@@ -281,6 +286,7 @@ func (r *readOperation) PutBlockBatch(context.Context, []*block.PutBatchEntry) (
 	return nil, ErrReadOperationReadOnly
 }
 
+// GetBlock reads the block in the operation's read transaction.
 func (r *readOperation) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -296,6 +302,7 @@ func (r *readOperation) GetStoredBlock(ctx context.Context, ref *block.BlockRef)
 	return block.GetBlockWithoutRefs(ctx, r, ref)
 }
 
+// GetBlockExists checks the block in the operation's read transaction.
 func (r *readOperation) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -305,6 +312,7 @@ func (r *readOperation) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 	return r.parent.getBlockExists(ctx, r.tx, ref)
 }
 
+// GetBlockExistsBatch checks the blocks in the operation's read transaction.
 func (r *readOperation) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -314,6 +322,7 @@ func (r *readOperation) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 	return r.parent.getBlockExistsBatch(ctx, r.tx, refs)
 }
 
+// StatBlock stats the block in the operation's read transaction.
 func (r *readOperation) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
@@ -323,10 +332,12 @@ func (r *readOperation) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 	return r.parent.statBlock(ctx, r.tx, ref)
 }
 
+// RmBlock rejects removals: a read operation is read-only.
 func (r *readOperation) RmBlock(context.Context, *block.BlockRef) error {
 	return ErrReadOperationReadOnly
 }
 
+// Sync does nothing: a read operation has no writes to flush.
 func (r *readOperation) Sync(context.Context) (bool, error) {
 	return true, nil
 }

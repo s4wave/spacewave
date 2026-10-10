@@ -2,6 +2,7 @@ package block_rpc_client
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 
@@ -18,6 +19,8 @@ type testBlockStoreClient struct {
 	batchHook    func(context.Context, *block_rpc.PutBlockBatchRequest) error
 	// existing holds the data of blocks the remote store already has.
 	existing map[string]bool
+	// shortExisted drops the last existence result from each response.
+	shortExisted bool
 }
 
 func (c *testBlockStoreClient) SRPCClient() srpc.Client {
@@ -56,9 +59,14 @@ func (c *testBlockStoreClient) PutBlockBatch(
 			return nil, err
 		}
 	}
+
+	// Answer from the existing set, one result per entry.
 	resp := &block_rpc.PutBlockBatchResponse{Existed: make([]bool, len(req.GetEntries()))}
 	for i, entry := range req.GetEntries() {
 		resp.Existed[i] = c.existing[string(entry.GetData())]
+	}
+	if c.shortExisted {
+		resp.Existed = resp.Existed[:len(resp.Existed)-1]
 	}
 	return resp, nil
 }
@@ -165,6 +173,21 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	// Assert the block refs were forwarded verbatim through the batch request.
 	if got := client.batchEntries[0].GetRefs(); len(got) != 1 || got[0] != outRef {
 		t.Fatalf("expected refs to forward through batch request")
+	}
+}
+
+func TestBlockStorePutBlockBatchRejectsWrongExistenceLength(t *testing.T) {
+	// Build a store whose remote answers with one result too few.
+	client := &testBlockStoreClient{shortExisted: true}
+	store := NewBlockStore(client, 0, false)
+
+	// Send two entries and expect the mismatch instead of a short result.
+	_, err := store.PutBlockBatch(context.Background(), []*block.PutBatchEntry{
+		{Ref: &block.BlockRef{}, Data: []byte("one")},
+		{Ref: &block.BlockRef{}, Data: []byte("two")},
+	})
+	if !errors.Is(err, ErrBatchExistenceMismatch) {
+		t.Fatalf("err = %v, want %v", err, ErrBatchExistenceMismatch)
 	}
 }
 

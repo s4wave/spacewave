@@ -157,11 +157,15 @@ func TestPutBlockBatchTombstoneUsesSameWriteTransaction(t *testing.T) {
 
 	// Write a batch that deletes the old block and stores the new block.
 	store.reset()
-	if _, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+	existed, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: oldRef, Tombstone: true},
 		{Ref: newRef, Data: newData},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !slices.Equal(existed, []bool{false, false}) {
+		t.Fatalf("mixed batch existed = %v, want both false", existed)
 	}
 
 	// Verify the mixed batch commits its write and deletion once.
@@ -187,6 +191,35 @@ func TestPutBlockBatchTombstoneUsesSameWriteTransaction(t *testing.T) {
 	}
 	if found, err := blocks.GetBlockExists(ctx, newRef); err != nil || !found {
 		t.Fatalf("new ref found=%v err=%v, want present", found, err)
+	}
+}
+
+func TestPutBlockBatchExistenceTracksEarlierEntries(t *testing.T) {
+	// Create a store with one block removed and one never written.
+	ctx := context.Background()
+	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), newCountingStore(), 0, false)
+	removedData := []byte("removed batch block")
+	freshData := []byte("fresh batch block")
+	removedRef := mustBuildBlockRef(t, removedData)
+	freshRef := mustBuildBlockRef(t, freshData)
+	if _, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: removedRef, Data: removedData}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: removedRef, Tombstone: true}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// A removed block is absent, and a duplicate in the same batch exists.
+	existed, err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+		{Ref: removedRef, Data: removedData},
+		{Ref: freshRef, Data: freshData},
+		{Ref: freshRef, Data: freshData},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []bool{false, false, true}; !slices.Equal(existed, want) {
+		t.Fatalf("existed = %v, want %v", existed, want)
 	}
 }
 
