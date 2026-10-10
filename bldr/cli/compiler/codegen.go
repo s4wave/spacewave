@@ -32,7 +32,8 @@ const composeAlias = "project_compose"
 // FormatCliEntrypoint formats the generated CLI entrypoint code.
 //
 // When composePackage is set, the generated main calls its Compose function
-// once and appends the returned factories and commands to the discovered ones.
+// once. Its configured factories register before discovered defaults, so the
+// static resolver retains the configured factory at an equal version.
 func FormatCliEntrypoint(
 	appName string,
 	projectID string,
@@ -76,7 +77,6 @@ func FormatCliEntrypoint(
 	}
 	slices.Sort(importPkgs)
 
-	// build single parenthesized import declaration
 	// Build one parenthesized import declaration from the sorted paths.
 	var importSpecs []gast.Spec
 	for _, pkg := range importPkgs {
@@ -123,7 +123,6 @@ func FormatCliEntrypoint(
 		},
 	})
 
-	// build factory func lit elements
 	// Collect the discovered factories and sort them by import alias.
 	factories := make([]FactoryImport, 0, len(factoryImports))
 	for _, fi := range factoryImports {
@@ -295,7 +294,7 @@ func commentGroup(lines ...string) *gast.CommentGroup {
 }
 
 // mainDecl builds the main entrypoint. With a compose package it calls
-// Compose once and appends its factories, commands and root flags.
+// Compose once and registers its factories before discovered defaults.
 func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
 	// Start from the plain factories and cliCommands sources.
 	factoriesSrc, commandsSrc, flagsSrc := "factories", "cliCommands", "nil"
@@ -309,7 +308,7 @@ func mainDecl(appName, projectID string, composed bool) (gast.Decl, error) {
 				Sel: gast.NewIdent("Compose"),
 			}}},
 		})
-		factoriesSrc = "append(factories, composition.Factories...)"
+		factoriesSrc = "append(composition.Factories, factories...)"
 		commandsSrc = "append(cliCommands, composition.Commands...)"
 		flagsSrc = "composition.Flags"
 	}

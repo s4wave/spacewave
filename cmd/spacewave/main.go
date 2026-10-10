@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
 	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_dist_compiler "github.com/s4wave/spacewave/bldr/dist/compiler"
@@ -20,6 +19,7 @@ import (
 	bldr_plugin_forward_rpc_service "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service"
 	bldr_plugin_handle_web_view "github.com/s4wave/spacewave/bldr/plugin/handle-web-view"
 	plugin_host_configset "github.com/s4wave/spacewave/bldr/plugin/host/configset"
+	plugin_host_export "github.com/s4wave/spacewave/bldr/plugin/host/export"
 	plugin_host_process "github.com/s4wave/spacewave/bldr/plugin/host/process"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
@@ -47,8 +47,6 @@ import (
 	bldr_web_view_observer "github.com/s4wave/spacewave/bldr/web/view/observer"
 	project_compose "github.com/s4wave/spacewave/cmd/spacewave/compose"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
-	provider_local "github.com/s4wave/spacewave/core/provider/local"
-	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	space_http_download "github.com/s4wave/spacewave/core/space/http/download"
@@ -56,14 +54,11 @@ import (
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
 	optypes "github.com/s4wave/spacewave/core/space/world/optypes"
-	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
-	"github.com/s4wave/spacewave/core/transport"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"
 	block_store_rpc_server "github.com/s4wave/spacewave/db/block/store/rpc/server"
 	block_store_rpc_server_bucket "github.com/s4wave/spacewave/db/block/store/rpc/server/bucket"
-	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	bucket_setup "github.com/s4wave/spacewave/db/bucket/setup"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
@@ -81,6 +76,7 @@ import (
 	execution_controller "github.com/s4wave/spacewave/forge/execution/controller"
 	forge_lib_git_clone "github.com/s4wave/spacewave/forge/lib/git/clone"
 	forge_lib_kvtx "github.com/s4wave/spacewave/forge/lib/kvtx"
+	forge_lib_util_presence "github.com/s4wave/spacewave/forge/lib/util/presence"
 	pass_controller "github.com/s4wave/spacewave/forge/pass/controller"
 	task_controller "github.com/s4wave/spacewave/forge/task/controller"
 	worker_controller "github.com/s4wave/spacewave/forge/worker/controller"
@@ -89,10 +85,14 @@ import (
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	signaling_rpc_client "github.com/s4wave/spacewave/net/signaling/rpc/client"
 	stream_api_accept "github.com/s4wave/spacewave/net/stream/api/accept"
+	stream_forwarding "github.com/s4wave/spacewave/net/stream/forwarding"
+	stream_listening "github.com/s4wave/spacewave/net/stream/listening"
 	stream_srpc_server_lookup "github.com/s4wave/spacewave/net/stream/srpc/server/lookup"
 	inproc "github.com/s4wave/spacewave/net/transport/inproc"
+	udp "github.com/s4wave/spacewave/net/transport/udp"
 	webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
 	websocket "github.com/s4wave/spacewave/net/transport/websocket"
+	flowgraph_run "github.com/s4wave/spacewave/sdk/flowgraph/run"
 )
 
 // configSetFS contains the embedded configset.
@@ -102,8 +102,6 @@ var configSetFS embed.FS
 
 // factories are the factories included in the binary.
 var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{auth_method_password.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{bldr_cli_compiler.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{bldr_dist_compiler.NewFactory(b)}
@@ -156,8 +154,6 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{block_store_rpc_server_bucket.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{block_store_s3.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{bucket_setup.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{cluster_controller.NewFactory(b)}
@@ -168,9 +164,13 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{execution_controller.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{flowgraph_run.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{forge_lib_git_clone.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{forge_lib_kvtx.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{forge_lib_util_presence.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{inproc.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
@@ -196,6 +196,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_host_configset.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{plugin_host_export.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_host_process.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_host_scheduler.NewFactory(b)}
@@ -203,10 +205,6 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{plugin_host_wazero_quickjs.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{plugin_space.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{provider_local.NewFactory(b, sessionTransportOptions()...)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{provider_spacewave.NewFactory(b, sessionTransportOptions()...)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{saucer.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
@@ -228,9 +226,15 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{stream_api_accept.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{stream_forwarding.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{stream_listening.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{stream_srpc_server_lookup.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{task_controller.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{udp.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{unixfs_access_http.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
@@ -238,9 +242,9 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{volume_rpc_client.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{volume_s4db.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{volume_rpc_server.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{volume_s4db.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{volume_sqlite.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
@@ -267,15 +271,6 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{world_block_engine.NewFactory(b)}
 }}
 
-// sessionTransportOptions are the options every Session's transport takes.
-// They add the controllers that import core/transport, such as the remote shell,
-// to the factories of each Session's child bus.
-func sessionTransportOptions() []transport.SessionTransportOption {
-	return []transport.SessionTransportOption{transport.WithChildFactories(
-		func(b bus.Bus) controller.Factory { return terminal_remoteshell.NewFactory(b) },
-	)}
-}
-
 // configSets are the configuration sets to apply on startup.
 var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFuncFromFS(configSetFS, "configset.bin")}
 
@@ -285,5 +280,5 @@ var cliCommands = []cli_entrypoint.BuildCommandsFunc{}
 // main is the main entrypoint.
 func main() {
 	composition := project_compose.Compose()
-	cli_entrypoint.Main("spacewave", "spacewave", append(factories, composition.Factories...), configSets, append(cliCommands, composition.Commands...), composition.Flags)
+	cli_entrypoint.Main("spacewave", "spacewave", append(composition.Factories, factories...), configSets, append(cliCommands, composition.Commands...), composition.Flags)
 }

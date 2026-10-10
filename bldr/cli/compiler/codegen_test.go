@@ -171,7 +171,7 @@ var cliCommands = []cli_entrypoint.BuildCommandsFunc{example_cli.NewCliCommands}
 // main is the main entrypoint.
 func main() {
 	composition := project_compose.Compose()
-	cli_entrypoint.Main("my-app", "my-app", append(factories, composition.Factories...), configSets, append(cliCommands, composition.Commands...), composition.Flags)
+	cli_entrypoint.Main("my-app", "my-app", append(composition.Factories, factories...), configSets, append(cliCommands, composition.Commands...), composition.Flags)
 }
 `
 
