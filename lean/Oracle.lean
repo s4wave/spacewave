@@ -105,10 +105,9 @@ def respond (req : Json) : Except String Json := do
     return json% {ok: $(result.isSome), response: $result}
   | "syncStateHash" =>
     let state ← req.getObjValAs? State "state"
-    let bytes ← req.getObjValAs? Nat "bytes"
     let encoded ← req.getObjValAs? (Option String) "encoded"
     let digest ← req.getObjValAs? String "digest"
-    let result := Sync.syncStateHash state (fun _ => bytes) (fun _ => encoded) (fun _ => digest)
+    let result := Sync.syncStateHash state (fun _ => encoded) (fun _ => digest)
     return json% {ok: $(result.isSome), digest: $result}
   | "syncResponseObsolete" =>
     let result := Sync.responseObsolete (← req.getObjValAs? (Option State) "current")

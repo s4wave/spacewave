@@ -6,6 +6,8 @@ import Spacewave.SObject.Sync.Auth
 
 Mirrors paging, response preparation, acceptance and the serialized writer in
 `core/sobject/sync/catchup.go`.
+The digest size contract matches Go revision `f27844e847a0`: only transmitted
+snapshot frames have a size limit; held state can still produce a digest.
 `appendPage` preserves partial receive-buffer mutations on failure; `nextMessage`
 preserves the consumed response prefix even when hashing a later entry fails.
 Neither paging operation has access to held host state. `acceptResponse` alone
@@ -435,11 +437,10 @@ def prepareResponse (state : State) (request : Request) (history : Option (List 
     if frameBytes snapshot > 10 * 1024 * 1024 then none
     else some ⟨request.revision, request.base, changes, some snapshot⟩
 
-/-- syncStateHash hashes the same stripped state, after requiring a checkpoint and bounded encoding. -/
-def syncStateHash (state : State) (bytes : State → Nat) (encode : State → Option String)
+/-- syncStateHash hashes stripped state of any size after requiring a checkpoint. -/
+def syncStateHash (state : State) (encode : State → Option String)
     (digest : String → String) : Option String := do
   if state.config.hash == "" then none
-  else if bytes (wireState state) > 10 * 1024 * 1024 then none
   else return digest (← encode (wireState state))
 
 /--
@@ -644,8 +645,8 @@ theorem wireState_local (state : State) (invites : List String) :
 
 /-- With the same primitive serializer, local capability changes cannot alter the advertised digest. -/
 theorem syncStateHash_local (state : State) (invites : List String)
-    (bytes : State → Nat) (encode : State → Option String) (digest : String → String) :
-    syncStateHash {state with invites} bytes encode digest = syncStateHash state bytes encode digest := rfl
+    (encode : State → Option String) (digest : String → String) :
+    syncStateHash {state with invites} encode digest = syncStateHash state encode digest := rfl
 
 /-- Preparation discloses the same bytes independently of local capabilities. -/
 theorem prepareResponse_local (state : State) (invites : List String)
@@ -1148,7 +1149,7 @@ structure ExchangeResult where
 
 /-- exchangeDigest uses the actual stripped current-state serialization primitives. -/
 def exchangeDigest (current : State) (input : ExchangePrimitives) : Option String :=
-  syncStateHash current (fun _ => input.stateBytes) (fun _ => input.encoded) (fun _ => input.digest)
+  syncStateHash current (fun _ => input.encoded) (fun _ => input.digest)
 
 /-- prepareOutgoing mirrors the priority pump and exact partial mutations on failure. -/
 def prepareOutgoing (before : Exchange) (current : Option State) (input : ExchangePrimitives) : ExchangeResult := Id.run do
@@ -1419,7 +1420,7 @@ def advanceExchange (before : Exchange) (localID remote : String) (input : LoopI
       return {exchange := {ok := false, state := state, admission :=
         if input.drainAuthorization == some false && input.reception.admissionObserver then some false else none}}
     if state.inFlight.any (fun message => message.kind == 10 && message.recoveryPresent) then
-      return {exchange := {ok := false, state := state}}
+      return {exchange := {ok := !state.terminal, state := state}}
     return {exchange := {ok := true, state := {state with inFlight := none}}}
   | 5 =>
     if !input.eventOK then
