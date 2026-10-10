@@ -190,7 +190,7 @@ export default { server: { watch: { ignored: [] } }, plugins: [react(), { name: 
     expect(source).toContain('releaseProvider')
     expect(source).not.toMatch(/\busing provider\b/)
     expect(source).toContain('from "react"')
-    expect(source).toContain('/b/pkg/@s4wave/web/sync/app-hooks.mjs')
+    expect(source).toContain('"bldr-web-pkg/@s4wave/web/sync/app-hooks.mjs"')
     expect(source).toContain('/sdk/hooks/useResource.tsx')
     expect(source).toContain('/b/fe/test/@react-refresh')
     const css = await fetch(privateURL + '/b/fe/test/app.css')
