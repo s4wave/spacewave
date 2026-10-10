@@ -37,8 +37,8 @@ import "embed"
 //go:embed frame/bottom-bar-context.tsx frame/bottom-bar-item.tsx frame/bottom-bar-level.tsx
 //go:embed frame/bottom-bar-root.tsx frame/bottom-icon-props.tsx frame/breadcrumb-separator.tsx frame/frame.tsx
 //go:embed hooks/useAccessTypedHandle.ts hooks/useContainerDensity.ts hooks/useDynamicRegistrations.ts
-//go:embed hooks/useEmailManagement.ts hooks/useMobile.ts hooks/useMountAccount.ts
-//go:embed hooks/useObjectTypeMetadata.ts hooks/usePromise.tsx hooks/useRootResource.tsx hooks/useSessionInfo.ts
+//go:embed hooks/useEmailManagement.ts hooks/useMountAccount.ts
+//go:embed hooks/useObjectTypeMetadata.ts hooks/usePhoneShell.ts hooks/usePromise.tsx hooks/useRootResource.tsx hooks/useSessionInfo.ts
 //go:embed hooks/useTypedObjectState.ts hooks/useUnixFSHandle.tsx hooks/useViewerRegistry.tsx
 //go:embed hooks/useWorldQuery.ts images/AppLogo.tsx
 //go:embed images/spacewave-icon.png launcher/UpdateNotifier.tsx layout/BaseLayout.tsx
