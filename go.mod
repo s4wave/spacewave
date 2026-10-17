@@ -21,7 +21,7 @@ require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
-	github.com/Microsoft/go-winio v0.6.2
+	github.com/Microsoft/go-winio v0.6.4
 	github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20261012101428-93d30ba80a9a
@@ -35,8 +35,8 @@ require (
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
-	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261015001203-22f94e89fe8f
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261015001203-22f94e89fe8f
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261015001702-f8b5196211d2
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261015001702-f8b5196211d2
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260910142736-349504d079da
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
@@ -46,7 +46,7 @@ require (
 	github.com/cloudflare/circl v1.6.5
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/ristretto/v2 v2.4.2
-	github.com/dolthub/go-mysql-server v0.20.1-0.20261006010651-b4c268189ee8
+	github.com/dolthub/go-mysql-server v0.20.1-0.20261016230655-239e0ad6b2f9
 	github.com/dolthub/vitess v0.0.0-20261014211039-3e903c0f05d3
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
@@ -60,7 +60,7 @@ require (
 	github.com/hack-pad/safejs v0.1.1
 	github.com/jezek/xgb v1.3.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/klauspost/compress v1.20.2-0.20261004115517-d189b4c2eb01
+	github.com/klauspost/compress v1.20.3
 	github.com/libp2p/go-yamux/v5 v5.1.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-isatty v0.0.24
@@ -73,11 +73,11 @@ require (
 	github.com/pion/logging v0.2.4
 	github.com/pion/sdp/v3 v3.0.20
 	github.com/pion/transport/v5 v5.1.1
-	github.com/pion/webrtc/v4 v4.2.22
+	github.com/pion/webrtc/v4 v4.2.24
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.63.0
+	github.com/quic-go/quic-go v0.64.0
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.4.6-0.20261017091313-61833a19ace0
+	github.com/s4wave/goscript v0.4.6-0.20261017130136-9ac8c400012f
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
@@ -89,9 +89,9 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/whilp/git-urls v1.0.0
 	github.com/zeebo/blake3 v0.2.4
-	go.starlark.net v0.0.0-20261005163335-bcb1a1a55bf9
+	go.starlark.net v0.0.0-20261016124120-4811d7e34ea3
 	golang.org/x/crypto v0.58.0
-	golang.org/x/exp v0.0.0-20261005173118-76772065c9b0
+	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	golang.org/x/mod v0.42.0 // latest
 	golang.org/x/sync v0.24.0
 	golang.org/x/sys v0.49.0
