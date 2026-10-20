@@ -44,8 +44,12 @@ func (s *NodeSet) Has(node string) bool {
 
 // Add inserts node and reports whether it was absent.
 func (s *NodeSet) Add(node string) bool {
+	return s.addHash(s.hash(node))
+}
+
+// addHash inserts the node of hash h and reports whether it was absent.
+func (s *NodeSet) addHash(h [2]uint64) bool {
 	// Find the node's slot, or the empty slot it would take.
-	h := s.hash(node)
 	i, found := s.find(h)
 	if found {
 		return false

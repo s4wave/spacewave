@@ -27,6 +27,8 @@ type pager struct {
 	// reads counts the index pages node read from the file, each a cache
 	// miss.
 	reads atomic.Int64
+	// valueReads counts the packed values readValue read from the file.
+	valueReads atomic.Int64
 }
 
 // node returns a decoded index page.
@@ -178,6 +180,7 @@ func (p *pager) readValue(v value) ([]byte, error) {
 	}
 
 	// Read and check packed bytes.
+	p.valueReads.Add(1)
 	b := make([]byte, v.ref.n)
 	if _, err := p.r.ReadAt(b, fileOff(v.ref.off)); err != nil {
 		return nil, err

@@ -129,9 +129,10 @@ func walkTx(ctx context.Context, tx kvtx.Tx, reached *NodeSet, stack []string, u
 			if node == NodeUnreferenced {
 				continue
 			}
-			keys = append(keys, graphKey(kindForward, node))
 			if isBlockNode(node) {
 				keys = append(keys, graphKey(kindChildren, node))
+			} else {
+				keys = append(keys, graphKey(kindForward, node))
 			}
 		}
 		stack = stack[:len(stack)-len(chunk)]

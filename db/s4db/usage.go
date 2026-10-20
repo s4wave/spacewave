@@ -32,6 +32,8 @@ type Usage struct {
 	// is a cache miss, so its rate against CacheBytes shows whether the
 	// cache holds the working set.
 	PageReads int64
+	// ValueReads counts the packed values read from the file since open.
+	ValueReads int64
 }
 
 // Usage reports how the file's pages are used as of the latest commit. It
@@ -52,5 +54,6 @@ func (db *DB) Usage(ctx context.Context) (Usage, error) {
 	// Read the cache counters, which need no lock.
 	u.CacheBytes = int64(db.p.cache.size())
 	u.PageReads = db.p.reads.Load()
+	u.ValueReads = db.p.valueReads.Load()
 	return u, nil
 }
