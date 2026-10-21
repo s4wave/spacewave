@@ -200,6 +200,13 @@ func TestMarkReads(t *testing.T) {
 	var m0, m1 runtime.MemStats
 	runtime.ReadMemStats(&m0)
 
+	// Churn when asked: rewrite 64 KiB values outside the graph at the given
+	// rate, noting the most freed space a snapshot keeps pending.
+	churn := markReadsEnv(t, "SPACEWAVE_GC_MARK_CHURN", 0)
+	stop := make(chan struct{})
+	churned := make(chan int64)
+	go markReadsChurn(t, db, churn, stop, churned)
+
 	// Mark with the chosen mode.
 	start := time.Now()
 	var mark *BlockMark
@@ -213,13 +220,20 @@ func TestMarkReads(t *testing.T) {
 			t.Logf("pass %d: expanded %d, behind %d, page reads %d", pass, expanded, behind, u.PageReads-last)
 			last = u.PageReads
 		}
-		mark, passes, err = g.MarkBlocksScan(ctx)
+		perTx := markReadsEnv(t, "SPACEWAVE_GC_MARK_PER_TX", 0)
+		mark, passes, err = g.markScan(ctx, perTx, nil)
 	default:
 		mark, err = g.MarkBlocks(ctx)
 	}
 	elapsed := time.Since(start)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Stop the churn and report its peak.
+	close(stop)
+	if peak := <-churned; churn != 0 {
+		t.Logf("churn %d writes/s: peak pending %d MiB", churn, peak>>20)
 	}
 
 	// Read the counters after the mark.
@@ -246,4 +260,46 @@ func TestMarkReads(t *testing.T) {
 		mark.Live.Len(), len(mark.Unreached), mark.Unknown, elapsed.Round(time.Millisecond),
 		after.PageReads-before.PageReads, after.ValueReads-before.ValueReads,
 		m1.Mallocs-m0.Mallocs, (m1.TotalAlloc-m0.TotalAlloc)>>20)
+}
+
+// markReadsChurn rewrites a 64 KiB value outside the graph rate times a
+// second until stop closes, then sends the most pending bytes it saw.
+func markReadsChurn(t *testing.T, db *s4db.DB, rate int, stop <-chan struct{}, peak chan<- int64) {
+	// Idle when not asked to churn.
+	var most int64
+	defer func() { peak <- most }()
+	if rate == 0 {
+		<-stop
+		return
+	}
+
+	// Rewrite one of 64 keys each tick and sample the pending space.
+	ctx := context.Background()
+	value := make([]byte, 64<<10)
+	tick := time.NewTicker(time.Second / time.Duration(rate))
+	defer tick.Stop()
+	for i := 0; ; i++ {
+		select {
+		case <-stop:
+			return
+		case <-tick.C:
+		}
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		value[0] = byte(i)
+		if err := tx.Set(ctx, []byte("zchurn/"+strconv.Itoa(i%64)), value); err != nil {
+			t.Error(err)
+			return
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Error(err)
+			return
+		}
+		if u, err := db.Usage(ctx); err == nil {
+			most = max(most, u.PendingBytes)
+		}
+	}
 }
