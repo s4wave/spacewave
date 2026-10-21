@@ -11,8 +11,13 @@ const nodeSetMinBits = 10
 // probability about n²/2¹²⁹, and no one can choose nodes that collide without
 // the seeds. A collision would make Add report a new node as present.
 type NodeSet struct {
-	// seeds key the two halves of each node's hash.
+	// seeds key the two halves of the hash of each node that is not a
+	// block.
 	seeds [2]maphash.Seed
+	// blockSeeds key the two halves of the hash of each block's encoding.
+	// Separate seeds keep a block and another node from sharing a hash by
+	// spelling.
+	blockSeeds [2]maphash.Seed
 	// slots is an open-addressed table of 1<<bits hashes, in which the zero
 	// hash marks an empty slot.
 	slots [][2]uint64
@@ -25,9 +30,10 @@ type NodeSet struct {
 // NewNodeSet returns an empty set.
 func NewNodeSet() *NodeSet {
 	return &NodeSet{
-		seeds: [2]maphash.Seed{maphash.MakeSeed(), maphash.MakeSeed()},
-		slots: make([][2]uint64, 1<<nodeSetMinBits),
-		bits:  nodeSetMinBits,
+		seeds:      [2]maphash.Seed{maphash.MakeSeed(), maphash.MakeSeed()},
+		blockSeeds: [2]maphash.Seed{maphash.MakeSeed(), maphash.MakeSeed()},
+		slots:      make([][2]uint64, 1<<nodeSetMinBits),
+		bits:       nodeSetMinBits,
 	}
 }
 
@@ -67,6 +73,17 @@ func (s *NodeSet) addHash(h [2]uint64) bool {
 // hash returns the 128-bit hash of node. The zero hash is reserved for empty
 // slots, so it is moved to another value.
 func (s *NodeSet) hash(node string) [2]uint64 {
+	// Hash a block by its encoding.
+	if isBlockNode(node) {
+		enc := node[len(prefixBlock):]
+		h := [2]uint64{maphash.String(s.blockSeeds[0], enc), maphash.String(s.blockSeeds[1], enc)}
+		if h == ([2]uint64{}) {
+			h[1] = 1
+		}
+		return h
+	}
+
+	// Hash any other node by its IRI.
 	h := [2]uint64{maphash.String(s.seeds[0], node), maphash.String(s.seeds[1], node)}
 	if h == ([2]uint64{}) {
 		h[1] = 1

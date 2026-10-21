@@ -50,11 +50,7 @@ func (g *RefGraph) MarkBlocks(ctx context.Context) (*BlockMark, error) {
 		}
 
 		// Walk the owned blocks, noting those of unknown references.
-		err = walkTx(ctx, tx, live, stack, func(block string) {
-			if mark.Unknown++; len(mark.UnknownSample) < unknownSample {
-				mark.UnknownSample = append(mark.UnknownSample, block)
-			}
-		})
+		err = walkTx(ctx, tx, live, stack, mark.noteUnknown)
 		if err != nil {
 			return err
 		}
@@ -72,6 +68,13 @@ func (g *RefGraph) MarkBlocks(ctx context.Context) (*BlockMark, error) {
 		return nil, err
 	}
 	return mark, nil
+}
+
+// noteUnknown counts a reached block without a child list and samples it.
+func (m *BlockMark) noteUnknown(block string) {
+	if m.Unknown++; len(m.UnknownSample) < unknownSample {
+		m.UnknownSample = append(m.UnknownSample, block)
+	}
 }
 
 // seedMarkTx calls seed with the graph root, each registered root, and both
@@ -216,7 +219,8 @@ func (g *RefGraph) EndBlockPass(ctx context.Context) error {
 // RescueAdopted consumes the adopt log, adding each block it names and every
 // node reachable from one to mark.Live, and returns the number of nodes added.
 // A sweep runs it first in each transaction that removes blocks, so no block
-// a committed write adopted is removed.
+// a committed write adopted is removed. A rescued block without a child list
+// counts in mark.Unknown, and the sweep must then remove nothing more.
 func (g *RefGraph) RescueAdopted(ctx context.Context, mark *BlockMark) (int, error) {
 	var rescued int
 	err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
@@ -237,7 +241,7 @@ func (g *RefGraph) RescueAdopted(ctx context.Context, mark *BlockMark) (int, err
 				stack = append(stack, block)
 			}
 		}
-		err = walkTx(ctx, tx, mark.Live, stack, nil)
+		err = walkTx(ctx, tx, mark.Live, stack, mark.noteUnknown)
 		rescued = mark.Live.Len() - before
 		return err
 	})

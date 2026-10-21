@@ -282,6 +282,14 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 			}
 			stats.RescuedNodes += rescued
 
+			// A rescued block of unknown references may name any unreached
+			// block, so report it and stop sweeping.
+			if mark.Unknown != 0 {
+				stats.UnknownBlocks, stats.UnknownSample = mark.Unknown, mark.UnknownSample
+				nodes = nil
+				return nil
+			}
+
 			// Sweep chunks until the budget runs out or a writer waits.
 			txStart := time.Now()
 			for len(nodes) != 0 {
