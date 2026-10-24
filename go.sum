@@ -14,8 +14,8 @@ github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFI
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 h1:3U7v3ba/ZxaGkbvM//GWvZV7WM2gy3vRgagPFAm0NCk=
 github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017/go.mod h1:lNSJTKECIUFAnfeSqy01kXYTYe1BHubW7198jNX3nEw=
-github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c h1:0+7o8KtEZYmVKiOl42wHeoQNG5Az3GOR3nB8WjCkq9A=
-github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c/go.mod h1:uP4X3ycuVlQftt6tTDe6smymYXZ9hf/TtUScVRn4760=
+github.com/aperturerobotics/bbolt v0.0.0-20261024221644-3def6903e63a h1:aYUeQfr2ttWIQt6nQsIWWRJIsPhasaRBT7u0517nRN8=
+github.com/aperturerobotics/bbolt v0.0.0-20261024221644-3def6903e63a/go.mod h1:VL6V11Ng8RqywELkyPk8gbwwZIlO/ODtQEAEsXwlj0s=
 github.com/aperturerobotics/bldr-saucer v0.4.4 h1:kQvjAAQcdydvX2EYWipQW1vOBUe88F/27WaVU7mKRoE=
 github.com/aperturerobotics/bldr-saucer v0.4.4/go.mod h1:yH40259UVahR/9DU9c+Sg0+HGm5OtTWHV7CeEzneVho=
 github.com/aperturerobotics/cayley v0.15.1-0.20261021230328-e1c6a005d6ac h1:ApnD4l+sqVtVixBK4kDc/O94LJGUfyY1G+KyQ9ntNg4=
@@ -36,8 +36,6 @@ github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34 h1:F8i
 github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34/go.mod h1:ArP9Q7MVDi8jMPR3ljopH5drxs/qen12Hv2L7qRcPb4=
 github.com/aperturerobotics/fsnotify v1.9.1-0.20261007093243-45a75ed654f0 h1:f7jnREpDtR61FU/KDPMA6YhMLT4EZCBnl1b8a+/XUXE=
 github.com/aperturerobotics/fsnotify v1.9.1-0.20261007093243-45a75ed654f0/go.mod h1:exy/yzvowYqAyWyO3wBTDGumPaU6ZY6GbhzwJWL7G/o=
-github.com/aperturerobotics/go-brotli-decoder v1.2.2 h1:86K8ep4IumgTjJAKrr8YOp1O2eZNtS1Cy4p8nn8k0+U=
-github.com/aperturerobotics/go-brotli-decoder v1.2.2/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
 github.com/aperturerobotics/go-brotli-decoder v1.3.0 h1:jj1kW5QUyvxbZaNkZT70cI9fMSyxy5GtPKfyk4343zI=
 github.com/aperturerobotics/go-brotli-decoder v1.3.0/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
 github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20261003021338-72ab61d58aa6 h1:ssnqj2u9H724POrrtnYt7219iuNPMz4oxoUlDA9Q94E=
@@ -300,8 +298,8 @@ github.com/restic/chunker v0.5.0/go.mod h1:z0cH2BejpW636LXw0R/BGyv+Ey8+m9QGiOanD
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.16.0 h1:O9DK+vNMDVGLr2BeZqmpLeMjiMNkuXfcqntWbZV6S5g=
 github.com/rogpeppe/go-internal v1.16.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
-github.com/s4wave/goscript v0.5.4 h1:k9JBYPvIR2XuzTD91PbyelhILzZjTGcS7+hhNK2dB5k=
-github.com/s4wave/goscript v0.5.4/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
+github.com/s4wave/goscript v0.5.5 h1:6xiLh8x9VVfvEsYY71k/sH9X7eAwBuOWkkjCenM3tvk=
+github.com/s4wave/goscript v0.5.5/go.mod h1:g2psiTXAhkiM7vtr8YEgkq/xUlYHLSghruODJL8VpAU=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=

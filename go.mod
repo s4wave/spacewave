@@ -23,7 +23,7 @@ require (
 	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
 	github.com/Microsoft/go-winio v0.6.4
-	github.com/aperturerobotics/bbolt v0.0.0-20261006081945-09141165d72c // master
+	github.com/aperturerobotics/bbolt v0.0.0-20261024221644-3def6903e63a // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20261021230328-e1c6a005d6ac
 	github.com/aperturerobotics/cli v1.1.1-0.20261008170756-47089de94fb3 // master
@@ -82,7 +82,7 @@ require (
 	github.com/prometheus/prometheus v0.315.1
 	github.com/quic-go/quic-go v0.64.1
 	github.com/restic/chunker v0.5.0
-	github.com/s4wave/goscript v0.5.4
+	github.com/s4wave/goscript v0.5.5
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
