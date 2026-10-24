@@ -494,7 +494,6 @@ func TestPlacedStoreEviction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs.placement.reads.enabled.Store(true)
 	p.place(ctx, t, &account_settings.BlockStoreCache{
 		SettleSeconds:     3600,
 		MaxPendingBytes:   1,

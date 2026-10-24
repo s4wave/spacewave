@@ -439,7 +439,13 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	wb.SetPolicy(uploadPolicy(placed.GetCache()))
+
+	// Track the store's placement, which places new writes, refills evicted
+	// blocks and reclaims backend storage.
+	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate}
+	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
+	placement.backend.Store(backend)
+	placement.setPolicy(placed.GetCache())
 
 	// Upload the recorded writes to the current backend until the store
 	// unmounts.
@@ -454,12 +460,6 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	upload.SetContext(ctx, true)
 	defer t.swapRemote(nil)
 	defer upload.ClearContext()
-
-	// Track the store's placement, which places new writes, refills evicted
-	// blocks and reclaims backend storage.
-	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate}
-	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
-	placement.backend.Store(backend)
 
 	// Read the local store first, then the backend's bucket, then peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
@@ -522,7 +522,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		wb.SetPolicy(uploadPolicy(placed.GetCache()))
+		placement.setPolicy(placed.GetCache())
 		if next.EqualVT(backend) {
 			continue
 		}
