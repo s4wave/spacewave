@@ -674,7 +674,10 @@ func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBoo
 // secret for the capability cookie and then starts the app. An unbound
 // listener starts the released WASM runtime. A bound listener skips it: the
 // shell loads the native app entry and renders it over the listener's
-// Resource websocket, opening the bound Space when no route is given.
+// Resource websocket, opening the bound Space when no route is given. It first
+// unregisters any service worker on the origin, such as one an unbound listener
+// on the same port left behind, which would answer the app's asset requests
+// with 503 for a WASM runtime that is not running.
 func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec, appFrontendPath, webPkgBasePath string) ([]byte, error) {
 	// Bind emitted package imports before the app loads any module.
 	importMapScript := metadata.importMapScript
@@ -690,6 +693,14 @@ func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *
 	if spec.spaceID != "" {
 		route := "/u/" + strconv.FormatUint(uint64(spec.sessionIdx), 10) + "/so/" + url.PathEscape(spec.spaceID)
 		start = `if (!location.hash) history.replaceState(null, '', '#' + ` + quoteWebListenerScriptString(route) + `);
+if (navigator.serviceWorker) {
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+  if (navigator.serviceWorker.controller) {
+    location.reload();
+    await new Promise(() => {});
+  }
+}
 const appBase = ` + quoteWebListenerScriptString(appFrontendPath) + `;
 const manifestResp = await fetch(appBase + '.vite/manifest.json');
 if (!manifestResp.ok) {
