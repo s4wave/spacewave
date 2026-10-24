@@ -169,20 +169,7 @@ func (r *webListenerRegistry) access(
 	rootMux srpc.Invoker,
 	spec *webListenSpec,
 ) (*webListener, bool, error) {
-	// Register explicit-port listeners without reuse.
-	if spec.port != 0 {
-		listener, err := newWebListener(ctx, r.le, b, rootMux, spec)
-		if err != nil {
-			return nil, false, err
-		}
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.listeners["explicit:"+listener.id] = listener
-			broadcast()
-		})
-		return listener, false, nil
-	}
-
-	// Reuse the existing listener for this ephemeral-port address and binding.
+	// Reuse the existing listener for this address and binding.
 	key := spec.reuseKey()
 	var existing *webListener
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -878,10 +865,14 @@ type webListenSpec struct {
 	sessionIdx uint32
 }
 
-// reuseKey identifies the ephemeral-port listeners a request may reuse: the
-// same host and the same binding.
+// reuseKey identifies the listeners a request may reuse: the same host, port
+// and binding. A request for port 0 reuses any listener this registry chose a
+// port for, and a request for an explicit port reuses the listener on it.
 func (s *webListenSpec) reuseKey() string {
 	key := strings.ToLower(strings.Trim(s.host, "[]"))
+	if s.port != 0 {
+		key += ":" + strconv.FormatUint(uint64(s.port), 10)
+	}
 	if s.spaceID != "" {
 		key += "/" + strconv.FormatUint(uint64(s.sessionIdx), 10) + "/" + s.spaceID
 	}

@@ -348,7 +348,7 @@ func TestWebListenerRegistryDoesNotReuseExplicitPort(t *testing.T) {
 	}
 }
 
-func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
+func TestWebListenerRegistryReusesExplicitPort(t *testing.T) {
 	// Find an available TCP port for the explicit listener fixture.
 	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
 	probe, err := net.Listen("tcp", "127.0.0.1:0")
@@ -368,6 +368,15 @@ func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
 	defer listener.Close()
 	if reused {
 		t.Fatal("explicit listener should not be reused")
+	}
+
+	// Verify a second request for the port reuses the listener.
+	again, reused, err := reg.access(t.Context(), nil, nil, testWebListenSpec(t, "/ip4/127.0.0.1/tcp/"+strconv.Itoa(port)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reused || again != listener {
+		t.Fatalf("explicit port should reuse its listener, reused=%v", reused)
 	}
 
 	// Verify the registry retains the explicit background listener.
