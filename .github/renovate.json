@@ -29,6 +29,11 @@
       "matchManagers": ["pep621"],
       "matchPackageNames": ["python"],
       "allowedVersions": ">=3.11,<3.12"
+    },
+    {
+      "description": "patches/orga@4.7.1.patch parses wrapped Org links and large documents; port it before leaving orga 4.",
+      "matchPackageNames": ["orga"],
+      "allowedVersions": "<5"
     }
   ]
 }

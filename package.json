@@ -333,7 +333,7 @@
     "it-pipe": "^3.0.1",
     "lexical": "^0.52.0",
     "markdown-to-jsx": "^9.10.2",
-    "orga": "5.0.0",
+    "orga": "4.7.1",
     "pako": "3.0.2",
     "qrcode": "^1.5.4",
     "quickjs-wasi-reactor": "0.14.0",

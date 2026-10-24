@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "47e49f36290d5df136a043476cbc5e7f98a27562502f0a81d664f8753d40a0b1",
+  "protocFlagsHash": "b5f7c87919a73157c296d8d4595340b098ad9dab5ee36d84f3adfad490f138ee",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.19.1-0.20261018054529-f60c4d2691ea,starpc=v0.52.3,protobuf-es-lite=1.2.4",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -148,7 +148,8 @@
         "bldr/manifest/manifest.pb.ts",
         "bldr/manifest/manifest_srpc.pb.go",
         "bldr/manifest/manifest_srpc.pb.ts",
-        "bldr/manifest/manifest_typeid.pb.go"
+        "bldr/manifest/manifest_typeid.pb.go",
+        "bldr/manifest/manifest_typeid.pb.ts"
       ],
       "protoFiles": [
         "bldr/manifest/manifest.proto"
@@ -169,7 +170,8 @@
       "generatedFiles": [
         "bldr/manifest/builder/builder.pb.go",
         "bldr/manifest/builder/builder.pb.ts",
-        "bldr/manifest/builder/builder_typeid.pb.go"
+        "bldr/manifest/builder/builder_typeid.pb.go",
+        "bldr/manifest/builder/builder_typeid.pb.ts"
       ],
       "protoFiles": [
         "bldr/manifest/builder/builder.proto"
@@ -245,7 +247,8 @@
       "generatedFiles": [
         "bldr/manifest/world/world.pb.go",
         "bldr/manifest/world/world.pb.ts",
-        "bldr/manifest/world/world_typeid.pb.go"
+        "bldr/manifest/world/world_typeid.pb.go",
+        "bldr/manifest/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "bldr/manifest/world/world.proto"
@@ -1015,7 +1018,8 @@
       "generatedFiles": [
         "core/bstore/world/world.pb.go",
         "core/bstore/world/world.pb.ts",
-        "core/bstore/world/world_typeid.pb.go"
+        "core/bstore/world/world_typeid.pb.go",
+        "core/bstore/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "core/bstore/world/world.proto"
@@ -1098,7 +1102,8 @@
       "generatedFiles": [
         "core/forge/dashboard/dashboard.pb.go",
         "core/forge/dashboard/dashboard.pb.ts",
-        "core/forge/dashboard/dashboard_typeid.pb.go"
+        "core/forge/dashboard/dashboard_typeid.pb.go",
+        "core/forge/dashboard/dashboard_typeid.pb.ts"
       ],
       "protoFiles": [
         "core/forge/dashboard/dashboard.proto"
@@ -1121,7 +1126,8 @@
       "generatedFiles": [
         "core/forge/job/job.pb.go",
         "core/forge/job/job.pb.ts",
-        "core/forge/job/job_typeid.pb.go"
+        "core/forge/job/job_typeid.pb.go",
+        "core/forge/job/job_typeid.pb.ts"
       ],
       "protoFiles": [
         "core/forge/job/job.proto"
@@ -1132,7 +1138,8 @@
       "generatedFiles": [
         "core/forge/task/task.pb.go",
         "core/forge/task/task.pb.ts",
-        "core/forge/task/task_typeid.pb.go"
+        "core/forge/task/task_typeid.pb.go",
+        "core/forge/task/task_typeid.pb.ts"
       ],
       "protoFiles": [
         "core/forge/task/task.proto"
@@ -1143,7 +1150,8 @@
       "generatedFiles": [
         "core/git/git.pb.go",
         "core/git/git.pb.ts",
-        "core/git/git_typeid.pb.go"
+        "core/git/git_typeid.pb.go",
+        "core/git/git_typeid.pb.ts"
       ],
       "protoFiles": [
         "core/git/git.proto"
@@ -1529,7 +1537,8 @@
       "generatedFiles": [
         "core/space/world/world.pb.go",
         "core/space/world/world.pb.ts",
-        "core/space/world/world_typeid.pb.go"
+        "core/space/world/world_typeid.pb.go",
+        "core/space/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "core/space/world/world.proto"
@@ -1550,7 +1559,8 @@
       "generatedFiles": [
         "core/space/world/ops/ops.pb.go",
         "core/space/world/ops/ops.pb.ts",
-        "core/space/world/ops/ops_typeid.pb.go"
+        "core/space/world/ops/ops_typeid.pb.go",
+        "core/space/world/ops/ops_typeid.pb.ts"
       ],
       "protoFiles": [
         "core/space/world/ops/ops.proto"
@@ -2068,7 +2078,8 @@
       "generatedFiles": [
         "db/git/block/git.pb.go",
         "db/git/block/git.pb.ts",
-        "db/git/block/git_typeid.pb.go"
+        "db/git/block/git_typeid.pb.go",
+        "db/git/block/git_typeid.pb.ts"
       ],
       "protoFiles": [
         "db/git/block/git.proto"
@@ -2079,7 +2090,8 @@
       "generatedFiles": [
         "db/git/world/git.pb.go",
         "db/git/world/git.pb.ts",
-        "db/git/world/git_typeid.pb.go"
+        "db/git/world/git_typeid.pb.go",
+        "db/git/world/git_typeid.pb.ts"
       ],
       "protoFiles": [
         "db/git/world/git.proto"
@@ -2090,7 +2102,8 @@
       "generatedFiles": [
         "db/kvtx/block/kvtx.pb.go",
         "db/kvtx/block/kvtx.pb.ts",
-        "db/kvtx/block/kvtx_typeid.pb.go"
+        "db/kvtx/block/kvtx_typeid.pb.go",
+        "db/kvtx/block/kvtx_typeid.pb.ts"
       ],
       "protoFiles": [
         "db/kvtx/block/kvtx.proto"
@@ -2299,7 +2312,8 @@
       "generatedFiles": [
         "db/unixfs/block/fstree.pb.go",
         "db/unixfs/block/fstree.pb.ts",
-        "db/unixfs/block/fstree_typeid.pb.go"
+        "db/unixfs/block/fstree_typeid.pb.go",
+        "db/unixfs/block/fstree_typeid.pb.ts"
       ],
       "protoFiles": [
         "db/unixfs/block/fstree.proto"
@@ -2374,7 +2388,8 @@
       "generatedFiles": [
         "db/unixfs/world/unixfs.pb.go",
         "db/unixfs/world/unixfs.pb.ts",
-        "db/unixfs/world/unixfs_typeid.pb.go"
+        "db/unixfs/world/unixfs_typeid.pb.go",
+        "db/unixfs/world/unixfs_typeid.pb.ts"
       ],
       "protoFiles": [
         "db/unixfs/world/unixfs.proto"
@@ -2395,7 +2410,8 @@
       "generatedFiles": [
         "db/unixfs/world/e2e/init_unixfs_demo.pb.go",
         "db/unixfs/world/e2e/init_unixfs_demo.pb.ts",
-        "db/unixfs/world/e2e/init_unixfs_demo_typeid.pb.go"
+        "db/unixfs/world/e2e/init_unixfs_demo_typeid.pb.go",
+        "db/unixfs/world/e2e/init_unixfs_demo_typeid.pb.ts"
       ],
       "protoFiles": [
         "db/unixfs/world/e2e/init_unixfs_demo.proto"
@@ -2591,7 +2607,8 @@
       "generatedFiles": [
         "db/world/mock/mock.pb.go",
         "db/world/mock/mock.pb.ts",
-        "db/world/mock/mock_typeid.pb.go"
+        "db/world/mock/mock_typeid.pb.go",
+        "db/world/mock/mock_typeid.pb.ts"
       ],
       "protoFiles": [
         "db/world/mock/mock.proto"
@@ -2617,7 +2634,8 @@
       "generatedFiles": [
         "forge/cluster/cluster.pb.go",
         "forge/cluster/cluster.pb.ts",
-        "forge/cluster/cluster_typeid.pb.go"
+        "forge/cluster/cluster_typeid.pb.go",
+        "forge/cluster/cluster_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/cluster/cluster.proto"
@@ -2638,7 +2656,8 @@
       "generatedFiles": [
         "forge/cluster/tx/tx.pb.go",
         "forge/cluster/tx/tx.pb.ts",
-        "forge/cluster/tx/tx_typeid.pb.go"
+        "forge/cluster/tx/tx_typeid.pb.go",
+        "forge/cluster/tx/tx_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/cluster/tx/tx.proto"
@@ -2671,7 +2690,8 @@
       "generatedFiles": [
         "forge/execution/execution.pb.go",
         "forge/execution/execution.pb.ts",
-        "forge/execution/execution_typeid.pb.go"
+        "forge/execution/execution_typeid.pb.go",
+        "forge/execution/execution_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/execution/execution.proto"
@@ -2692,7 +2712,8 @@
       "generatedFiles": [
         "forge/execution/tx/tx.pb.go",
         "forge/execution/tx/tx.pb.ts",
-        "forge/execution/tx/tx_typeid.pb.go"
+        "forge/execution/tx/tx_typeid.pb.go",
+        "forge/execution/tx/tx_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/execution/tx/tx.proto"
@@ -2703,7 +2724,8 @@
       "generatedFiles": [
         "forge/job/job.pb.go",
         "forge/job/job.pb.ts",
-        "forge/job/job_typeid.pb.go"
+        "forge/job/job_typeid.pb.go",
+        "forge/job/job_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/job/job.proto"
@@ -2774,7 +2796,8 @@
       "generatedFiles": [
         "forge/pass/pass.pb.go",
         "forge/pass/pass.pb.ts",
-        "forge/pass/pass_typeid.pb.go"
+        "forge/pass/pass_typeid.pb.go",
+        "forge/pass/pass_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/pass/pass.proto"
@@ -2795,7 +2818,8 @@
       "generatedFiles": [
         "forge/pass/tx/tx.pb.go",
         "forge/pass/tx/tx.pb.ts",
-        "forge/pass/tx/tx_typeid.pb.go"
+        "forge/pass/tx/tx_typeid.pb.go",
+        "forge/pass/tx/tx_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/pass/tx/tx.proto"
@@ -2816,7 +2840,8 @@
       "generatedFiles": [
         "forge/task/task.pb.go",
         "forge/task/task.pb.ts",
-        "forge/task/task_typeid.pb.go"
+        "forge/task/task_typeid.pb.go",
+        "forge/task/task_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/task/task.proto"
@@ -2837,7 +2862,8 @@
       "generatedFiles": [
         "forge/task/tx/tx.pb.go",
         "forge/task/tx/tx.pb.ts",
-        "forge/task/tx/tx_typeid.pb.go"
+        "forge/task/tx/tx_typeid.pb.go",
+        "forge/task/tx/tx_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/task/tx/tx.proto"
@@ -2858,7 +2884,8 @@
       "generatedFiles": [
         "forge/worker/worker.pb.go",
         "forge/worker/worker.pb.ts",
-        "forge/worker/worker_typeid.pb.go"
+        "forge/worker/worker_typeid.pb.go",
+        "forge/worker/worker_typeid.pb.ts"
       ],
       "protoFiles": [
         "forge/worker/worker.proto"
@@ -2879,7 +2906,8 @@
       "generatedFiles": [
         "identity/identity.pb.go",
         "identity/identity.pb.ts",
-        "identity/identity_typeid.pb.go"
+        "identity/identity_typeid.pb.go",
+        "identity/identity_typeid.pb.ts"
       ],
       "protoFiles": [
         "identity/identity.proto"
@@ -2942,7 +2970,8 @@
       "generatedFiles": [
         "identity/world/world.pb.go",
         "identity/world/world.pb.ts",
-        "identity/world/world_typeid.pb.go"
+        "identity/world/world_typeid.pb.go",
+        "identity/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "identity/world/world.proto"
@@ -3546,7 +3575,8 @@
       "generatedFiles": [
         "sdk/appconnector/appconnector.pb.go",
         "sdk/appconnector/appconnector.pb.ts",
-        "sdk/appconnector/appconnector_typeid.pb.go"
+        "sdk/appconnector/appconnector_typeid.pb.go",
+        "sdk/appconnector/appconnector_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/appconnector/appconnector.proto"
@@ -3557,7 +3587,8 @@
       "generatedFiles": [
         "sdk/apt/repository.pb.go",
         "sdk/apt/repository.pb.ts",
-        "sdk/apt/repository_typeid.pb.go"
+        "sdk/apt/repository_typeid.pb.go",
+        "sdk/apt/repository_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/apt/repository.proto"
@@ -3608,7 +3639,8 @@
         "sdk/canvas/canvas_srpc.pb.ts",
         "sdk/canvas/storage.pb.go",
         "sdk/canvas/storage.pb.ts",
-        "sdk/canvas/storage_typeid.pb.go"
+        "sdk/canvas/storage_typeid.pb.go",
+        "sdk/canvas/storage_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/canvas/canvas.proto",
@@ -3632,7 +3664,8 @@
       "generatedFiles": [
         "sdk/chat/chat.pb.go",
         "sdk/chat/chat.pb.ts",
-        "sdk/chat/chat_typeid.pb.go"
+        "sdk/chat/chat_typeid.pb.go",
+        "sdk/chat/chat_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/chat/chat.proto"
@@ -3757,7 +3790,8 @@
         "sdk/device/device.pb.ts",
         "sdk/device/device_srpc.pb.go",
         "sdk/device/device_srpc.pb.ts",
-        "sdk/device/device_typeid.pb.go"
+        "sdk/device/device_typeid.pb.go",
+        "sdk/device/device_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/device/device.proto"
@@ -3780,7 +3814,8 @@
         "sdk/flowgraph/flowgraph.pb.ts",
         "sdk/flowgraph/flowgraph_srpc.pb.go",
         "sdk/flowgraph/flowgraph_srpc.pb.ts",
-        "sdk/flowgraph/flowgraph_typeid.pb.go"
+        "sdk/flowgraph/flowgraph_typeid.pb.go",
+        "sdk/flowgraph/flowgraph_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/flowgraph/flowgraph.proto"
@@ -3845,7 +3880,8 @@
       "generatedFiles": [
         "sdk/kv/world/world.pb.go",
         "sdk/kv/world/world.pb.ts",
-        "sdk/kv/world/world_typeid.pb.go"
+        "sdk/kv/world/world_typeid.pb.go",
+        "sdk/kv/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/kv/world/world.proto"
@@ -3868,7 +3904,8 @@
       "generatedFiles": [
         "sdk/layout/world/world.pb.go",
         "sdk/layout/world/world.pb.ts",
-        "sdk/layout/world/world_typeid.pb.go"
+        "sdk/layout/world/world_typeid.pb.go",
+        "sdk/layout/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/layout/world/world.proto"
@@ -3893,7 +3930,8 @@
         "sdk/org/org.pb.ts",
         "sdk/org/org_srpc.pb.go",
         "sdk/org/org_srpc.pb.ts",
-        "sdk/org/org_typeid.pb.go"
+        "sdk/org/org_typeid.pb.go",
+        "sdk/org/org_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/org/org.proto"
@@ -3933,7 +3971,8 @@
         "sdk/prom/prom.pb.ts",
         "sdk/prom/prom_srpc.pb.go",
         "sdk/prom/prom_srpc.pb.ts",
-        "sdk/prom/prom_typeid.pb.go"
+        "sdk/prom/prom_typeid.pb.go",
+        "sdk/prom/prom_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/prom/prom.proto"
@@ -4069,7 +4108,8 @@
         "sdk/sql/query/query.pb.ts",
         "sdk/sql/query/query_srpc.pb.go",
         "sdk/sql/query/query_srpc.pb.ts",
-        "sdk/sql/query/query_typeid.pb.go"
+        "sdk/sql/query/query_typeid.pb.go",
+        "sdk/sql/query/query_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/query/query.proto"
@@ -4082,7 +4122,8 @@
         "sdk/sql/query-result/query-result.pb.ts",
         "sdk/sql/query-result/query-result_srpc.pb.go",
         "sdk/sql/query-result/query-result_srpc.pb.ts",
-        "sdk/sql/query-result/query-result_typeid.pb.go"
+        "sdk/sql/query-result/query-result_typeid.pb.go",
+        "sdk/sql/query-result/query-result_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/query-result/query-result.proto"
@@ -4093,7 +4134,8 @@
       "generatedFiles": [
         "sdk/sql/query-result/world/world.pb.go",
         "sdk/sql/query-result/world/world.pb.ts",
-        "sdk/sql/query-result/world/world_typeid.pb.go"
+        "sdk/sql/query-result/world/world_typeid.pb.go",
+        "sdk/sql/query-result/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/query-result/world/world.proto"
@@ -4104,7 +4146,8 @@
       "generatedFiles": [
         "sdk/sql/query/world/world.pb.go",
         "sdk/sql/query/world/world.pb.ts",
-        "sdk/sql/query/world/world_typeid.pb.go"
+        "sdk/sql/query/world/world_typeid.pb.go",
+        "sdk/sql/query/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/query/world/world.proto"
@@ -4117,7 +4160,8 @@
         "sdk/sql/schema/schema.pb.ts",
         "sdk/sql/schema/schema_srpc.pb.go",
         "sdk/sql/schema/schema_srpc.pb.ts",
-        "sdk/sql/schema/schema_typeid.pb.go"
+        "sdk/sql/schema/schema_typeid.pb.go",
+        "sdk/sql/schema/schema_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/schema/schema.proto"
@@ -4128,7 +4172,8 @@
       "generatedFiles": [
         "sdk/sql/schema/world/world.pb.go",
         "sdk/sql/schema/world/world.pb.ts",
-        "sdk/sql/schema/world/world_typeid.pb.go"
+        "sdk/sql/schema/world/world_typeid.pb.go",
+        "sdk/sql/schema/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/schema/world/world.proto"
@@ -4141,7 +4186,8 @@
         "sdk/sql/table-view/table-view.pb.ts",
         "sdk/sql/table-view/table-view_srpc.pb.go",
         "sdk/sql/table-view/table-view_srpc.pb.ts",
-        "sdk/sql/table-view/table-view_typeid.pb.go"
+        "sdk/sql/table-view/table-view_typeid.pb.go",
+        "sdk/sql/table-view/table-view_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/table-view/table-view.proto"
@@ -4152,7 +4198,8 @@
       "generatedFiles": [
         "sdk/sql/table-view/world/world.pb.go",
         "sdk/sql/table-view/world/world.pb.ts",
-        "sdk/sql/table-view/world/world_typeid.pb.go"
+        "sdk/sql/table-view/world/world_typeid.pb.go",
+        "sdk/sql/table-view/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/table-view/world/world.proto"
@@ -4165,7 +4212,8 @@
         "sdk/sql/workbench/workbench.pb.ts",
         "sdk/sql/workbench/workbench_srpc.pb.go",
         "sdk/sql/workbench/workbench_srpc.pb.ts",
-        "sdk/sql/workbench/workbench_typeid.pb.go"
+        "sdk/sql/workbench/workbench_typeid.pb.go",
+        "sdk/sql/workbench/workbench_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/workbench/workbench.proto"
@@ -4176,7 +4224,8 @@
       "generatedFiles": [
         "sdk/sql/workbench/world/world.pb.go",
         "sdk/sql/workbench/world/world.pb.ts",
-        "sdk/sql/workbench/world/world_typeid.pb.go"
+        "sdk/sql/workbench/world/world_typeid.pb.go",
+        "sdk/sql/workbench/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/workbench/world/world.proto"
@@ -4187,7 +4236,8 @@
       "generatedFiles": [
         "sdk/sql/world/world.pb.go",
         "sdk/sql/world/world.pb.ts",
-        "sdk/sql/world/world_typeid.pb.go"
+        "sdk/sql/world/world_typeid.pb.go",
+        "sdk/sql/world/world_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sql/world/world.proto"
@@ -4200,7 +4250,8 @@
         "sdk/sshhost/sshhost.pb.ts",
         "sdk/sshhost/sshhost_srpc.pb.go",
         "sdk/sshhost/sshhost_srpc.pb.ts",
-        "sdk/sshhost/sshhost_typeid.pb.go"
+        "sdk/sshhost/sshhost_typeid.pb.go",
+        "sdk/sshhost/sshhost_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/sshhost/sshhost.proto"
@@ -4237,7 +4288,8 @@
         "sdk/terminal/terminal.pb.ts",
         "sdk/terminal/terminal_srpc.pb.go",
         "sdk/terminal/terminal_srpc.pb.ts",
-        "sdk/terminal/terminal_typeid.pb.go"
+        "sdk/terminal/terminal_typeid.pb.go",
+        "sdk/terminal/terminal_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/terminal/terminal.proto"
@@ -4303,11 +4355,13 @@
         "sdk/vm/v86_srpc.pb.go",
         "sdk/vm/v86_srpc.pb.ts",
         "sdk/vm/v86_typeid.pb.go",
+        "sdk/vm/v86_typeid.pb.ts",
         "sdk/vm/wasivm.pb.go",
         "sdk/vm/wasivm.pb.ts",
         "sdk/vm/wasivm_srpc.pb.go",
         "sdk/vm/wasivm_srpc.pb.ts",
-        "sdk/vm/wasivm_typeid.pb.go"
+        "sdk/vm/wasivm_typeid.pb.go",
+        "sdk/vm/wasivm_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/vm/v86-wizard.proto",
@@ -4334,7 +4388,8 @@
         "sdk/world/wizard/wizard.pb.ts",
         "sdk/world/wizard/wizard_srpc.pb.go",
         "sdk/world/wizard/wizard_srpc.pb.ts",
-        "sdk/world/wizard/wizard_typeid.pb.go"
+        "sdk/world/wizard/wizard_typeid.pb.go",
+        "sdk/world/wizard/wizard_typeid.pb.ts"
       ],
       "protoFiles": [
         "sdk/world/wizard/wizard.proto"
