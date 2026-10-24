@@ -27,20 +27,20 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20261021230328-e1c6a005d6ac
 	github.com/aperturerobotics/cli v1.1.1-0.20261008170756-47089de94fb3 // master
-	github.com/aperturerobotics/common v0.36.4
+	github.com/aperturerobotics/common v0.36.5
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261023070010-9a6346344996 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260929192932-26bdf6cab5b3
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
+	github.com/aperturerobotics/fastjson v0.1.2-0.20261024220211-b654d1d5b5aa
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20261007093243-45a75ed654f0 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.3.0
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
-	github.com/aperturerobotics/go-prometheus-client-lite v1.23.3-0.20261024024324-52bb15d6f314
-	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261015001702-f8b5196211d2
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261015001702-f8b5196211d2
-	github.com/aperturerobotics/go-websocket v1.8.15-0.20260910142736-349504d079da
-	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
+	github.com/aperturerobotics/go-prometheus-client-lite v1.23.3-0.20261024041454-92147463582b
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261024222814-5b9806d17e81
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261024222814-5b9806d17e81
+	github.com/aperturerobotics/go-websocket v1.8.15-0.20261024221652-c1205734f50c
+	github.com/aperturerobotics/go-winjob v0.0.0-20261024222822-b7a5589690d2
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf-go-lite v0.19.1-0.20261024022728-f0dcc8ef200f // master
 	github.com/aperturerobotics/starpc v0.52.4-0.20261021005057-f60467d0da35 // master
@@ -49,7 +49,7 @@ require (
 	github.com/cockroachdb/apd/v3 v3.2.3
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/ristretto/v2 v2.4.2
-	github.com/dolthub/go-mysql-server v0.20.1-0.20261021193703-f4a05913b71f
+	github.com/dolthub/go-mysql-server v0.20.1-0.20261024000501-c22d4b6df50c
 	github.com/dolthub/vitess v0.0.0-20261014211039-3e903c0f05d3
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
@@ -78,7 +78,7 @@ require (
 	github.com/pion/transport/v5 v5.1.1
 	github.com/pion/webrtc/v4 v4.2.25
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/common v0.70.1
+	github.com/prometheus/common v0.72.1
 	github.com/prometheus/prometheus v0.315.1
 	github.com/quic-go/quic-go v0.64.1
 	github.com/restic/chunker v0.5.0
@@ -161,7 +161,7 @@ require (
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
-	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
