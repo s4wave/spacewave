@@ -470,21 +470,29 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 
 // MergeKeyEpochs drops the held grants of peers that can no longer read, then
 // adds the grants in epochs that the state lacks, checking each against the
-// held config. A held grant for a recipient is kept unless its signer has left
+// held config. Incoming grants for peers that can no longer read are ignored:
+// a peer that has not yet applied a removal still sends them. A held grant for a recipient is kept unless its signer has left
 // and epochs carries a replacement. Epochs with one number carry one key: only
 // the cloud server admits a new epoch, and a host applies it after the server
 // accepts it, so merging concurrent config branches never meets two keys.
 func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) error {
 	// Drop the grants of removed readers.
 	cfg := s.GetConfig()
+	readers := make(map[string]struct{}, len(cfg.GetParticipants()))
+	for _, p := range cfg.GetParticipants() {
+		if CanReadState(p.GetRole()) {
+			readers[p.GetPeerId()] = struct{}{}
+		}
+	}
+	removed := func(grant *SOGrant) bool {
+		_, ok := readers[grant.GetPeerId()]
+		return !ok
+	}
 	for _, epoch := range s.GetKeyEpochs() {
-		epoch.Grants = slices.DeleteFunc(epoch.Grants, func(grant *SOGrant) bool {
-			return !slices.ContainsFunc(cfg.GetParticipants(), func(p *SOParticipantConfig) bool {
-				return p.GetPeerId() == grant.GetPeerId() && CanReadState(p.GetRole())
-			})
-		})
+		epoch.Grants = slices.DeleteFunc(epoch.Grants, removed)
 	}
 
+	// Merge each incoming epoch into the held one.
 	for _, epoch := range epochs {
 		// Start from the held epoch, or a new one.
 		merged := s.GetKeyEpoch(epoch.GetEpoch()).CloneVT()
@@ -495,6 +503,9 @@ func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) er
 		// Add or replace each authorized grant.
 		changed := false
 		for _, grant := range epoch.GetGrants() {
+			if removed(grant) {
+				continue
+			}
 			i := slices.IndexFunc(merged.GetGrants(), func(g *SOGrant) bool {
 				return g.GetPeerId() == grant.GetPeerId()
 			})
