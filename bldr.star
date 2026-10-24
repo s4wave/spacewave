@@ -944,6 +944,12 @@ build("release-web-e2e-goscript",
     },
 )
 build("cli-plugin",  manifests=["spacewave-cli-plugin"], targets=["browser"])
+# The app frontend builds alone for import into a CLI daemon's plugin store,
+# where it serves a Space bound with spacewave web --space.
+build("cli-web",
+    manifests=["spacewave-app", "spacewave-web"],
+    platform_ids=["js"],
+)
 # Targeted build for the materializer plugin: the build CLI selects whole build
 # targets, so a single-manifest target is the only way to compile one plugin.
 build("materializer", manifests=["bldr-materializer"], targets=["browser"])
