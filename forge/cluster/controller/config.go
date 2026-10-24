@@ -21,7 +21,7 @@ func NewConfig(engineID, objectKey string, peerID peer.ID) *Config {
 }
 
 // Validate validates the configuration.
-// This is a cursory validation to see if the values "look correct."
+// This is a cursory validation to see if the values "look correct".
 func (c *Config) Validate() error {
 	// Require a peer identity for the Cluster controller.
 	if len(c.GetPeerId()) == 0 {

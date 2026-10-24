@@ -145,14 +145,18 @@ func (jt *jobTracker) processState(
 		}
 	}
 
-	// Retain task watches after completion so input changes or explicit retries
-	// make the Job running again. The Task controller owns input resolution.
+	// Reopen a completed Job before tracking its new Tasks: a Task tracker
+	// assigns only Tasks of a running Job, and the Job's new revision brings
+	// this tracker back to start them.
 	jt.c.le.Debugf("found %d pending tasks: %v", len(pendingTasks), pendingTasks)
-	jt.taskTrackers.SyncKeys(taskKeys, true)
 	if jobState == forge_job.State_JobState_COMPLETE && len(pendingTasks) != 0 {
 		_, _, err = forge_cluster.StartJob(ctx, ws, clusterKey, jobKey, jt.c.peerID)
 		return true, err
 	}
+
+	// Retain task watches after completion so input changes or explicit retries
+	// make the Job running again. The Task controller owns input resolution.
+	jt.taskTrackers.SyncKeys(taskKeys, true)
 
 	// Reconcile changed results without admitting a writer for completed replays.
 	// The operation rechecks current tasks after writer admission.
