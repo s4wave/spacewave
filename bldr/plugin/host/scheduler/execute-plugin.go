@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -14,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
@@ -165,10 +167,11 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	) error {
 		// Retain executable identity even when startup bypasses the catalog store.
 		// Exact replay needs the reference, without requiring an eager DAG copy.
+		// A World this peer only reads retains nothing.
 		if t.manifestRoot == "" && (t.c.conf.GetDisableStoreManifest() || args.installation != nil) {
 			ref := bldr_manifest.NewManifestRef(manifest.GetMeta(), pluginManifest.GetManifestRef())
 			if err := manifest_world.ExStoreManifestOp(ctx, ws, t.c.peerID,
-				bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef()), []string{t.c.objKey}, ref); err != nil {
+				bldr_manifest.NewManifestArtifactKey(ref.GetManifestRef()), []string{t.c.objKey}, ref); err != nil && !errors.Is(err, tx.ErrNotWrite) {
 				return err
 			}
 		}

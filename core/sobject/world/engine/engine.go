@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
@@ -291,7 +292,10 @@ func wrapReleaseWithTask(release func(), task *trace.Task) func() {
 // lock until Commit installs their World or Discard. A write forks from the
 // World of the writes admitted before it, whose receipts may be pending. A
 // write fails with the replay's error when an operation's block is not
-// available, and holds no lock. Always call Discard when done.
+// available, and holds no lock. A participant whose role cannot write
+// operations, such as a reader, gets tx.ErrNotWrite instead of a write, since
+// every replay would reject the operation it commits. Always call Discard when
+// done.
 func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	// Read snapshots depend on the block engine until Discard. Write candidates
 	// own independent forks and end with the controller's lifetime instead.
@@ -417,8 +421,10 @@ func (e *soEngine) WatchChanges(ctx context.Context, afterSeqno uint64, touches 
 // A write replays even when this device follows the leader, since its own
 // replay places it after every operation the set holds. Replay reads only
 // local blocks, so when it stops at a block a peer must serve, lockReplayed
-// releases the lock, fetches that block and tries again. On success the
-// caller holds the lock and releases it with the returned function.
+// releases the lock, fetches that block and tries again. It fails with
+// tx.ErrNotWrite when the current config does not let this participant write
+// operations. On success the caller holds the lock and releases it with the
+// returned function.
 func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock) (func(), error) {
 	for {
 		// Take the writer lock, tracing the hold until the write releases it.
@@ -434,6 +440,9 @@ func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock) (func()
 
 		// Replay and install the World of the current operation set.
 		snapshot, err := e.admittedState(ctx)
+		if err == nil {
+			err = checkWritesOps(ctx, snapshot)
+		}
 		if err == nil {
 			_, err = e.install(ctx, snapshot, nil, false)
 		}
@@ -453,6 +462,19 @@ func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock) (func()
 			return nil, errors.Wrap(block.ErrNotFound, missing.MarshalString())
 		}
 	}
+}
+
+// checkWritesOps returns tx.ErrNotWrite when the config of snap does not let
+// this participant write operations.
+func checkWritesOps(ctx context.Context, snap sobject.SharedObjectStateSnapshot) error {
+	participant, err := snap.GetParticipantConfig(ctx)
+	if err != nil {
+		return err
+	}
+	if !sobject.CanWriteOps(participant.GetRole()) {
+		return tx.ErrNotWrite
+	}
+	return nil
 }
 
 // advance replays snap, installs the World after its last placed operation

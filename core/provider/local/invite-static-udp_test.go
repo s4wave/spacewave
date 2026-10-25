@@ -4,29 +4,38 @@ package provider_local_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/db/tx"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
 // TestJoinViaInviteStaticUDP joins a Space whose owner is reachable only at a
-// static UDP address without replicating it, relinks from the recorded address after a restart, and
-// stops dialing the owner after leaving.
+// static UDP address without replicating it, refuses the reader's writes to its
+// World, relinks from the recorded address after a restart, and stops dialing
+// the owner after leaving.
 func TestJoinViaInviteStaticUDP(t *testing.T) {
-	// Run the owner and the reader on separate testbeds, so UDP is the only
-	// path between them.
+	// Bound the run.
 	skipFullP2PSyncUnderGoScript(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	_, _, owner, ownerSession, releaseOwner := setupProviderAndSession(ctx, t)
+
+	// Run the owner and the reader on separate testbeds, so UDP is the only
+	// path between them, each with a World engine.
+	ownerTb, _, owner, ownerSession, releaseOwner := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseOwner)
-	_, _, reader, readerSession, releaseReader := setupProviderAndSession(ctx, t)
+	ownerTb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(ownerTb.Bus))
+	readerTb, _, reader, readerSession, releaseReader := setupProviderAndSession(ctx, t)
 	t.Cleanup(releaseReader)
+	readerTb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(readerTb.Bus))
 
 	// The owner creates the Space it invites the reader's Session to.
 	ref, err := owner.CreateSharedObject(ctx, "static-udp", &sobject.SharedObjectMeta{BodyType: "space"}, "", "")
@@ -38,6 +47,12 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseObject)
+
+	// The owner initializes its World with one object.
+	ownerWorld := &offlineMember{t: t, name: "owner", tb: ownerTb, account: owner, object: object.(*provider_local.SharedObject), ref: ref}
+	ownerWorld.start(ctx)
+	t.Cleanup(ownerWorld.stop)
+	ownerWorld.create(ctx, "owner-object")
 
 	// Sign the invitation and start the owner's invitation service.
 	host := object.(sobject.InviteHost)
@@ -70,11 +85,15 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Find the listed object and the owner address it records.
 	ownerID := ownerSession.GetPeerId().String()
 	var recorded string
+	var joinedRef *sobject.SharedObjectRef
 	for _, entry := range reader.GetSOListCtr().GetValue().GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == joined.SharedObjectID {
 			recorded = entry.GetUdpPeerAddrs()[ownerID]
+			joinedRef = entry.GetRef()
 			if provider_local.ReplicatesSpace(entry) {
 				t.Fatal("reader replicates the joined Space")
 			}
@@ -98,6 +117,17 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 		}
 	}
 	waitOnline(1)
+
+	// The reader's World engine refuses a write transaction, since every
+	// replay would reject the operation it commits.
+	eng, engRef, err := world.StartEngine(ctx, readerTb.Bus, sobject_world_engine.NewConfig("static-udp-world", joinedRef), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := eng.NewTransaction(ctx, true); !errors.Is(err, tx.ErrNotWrite) {
+		t.Fatalf("reader opened a write transaction: %v", err)
+	}
+	engRef.Release()
 
 	// A new transport and sync generation link from the recorded address alone.
 	reader.StopP2PSync()

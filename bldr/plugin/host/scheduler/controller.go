@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/pkg/errors"
 	frontend "github.com/s4wave/spacewave/bldr/frontend"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -23,6 +24,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	web_view_server "github.com/s4wave/spacewave/bldr/web/view/server"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 	unixfs_rpc_server "github.com/s4wave/spacewave/db/unixfs/rpc/server"
@@ -237,8 +239,13 @@ func (c *Controller) ensureManifestStore(ctx context.Context) error {
 		c.manifestStoreInit = make(chan struct{})
 		c.manifestStoreMtx.Unlock()
 
+		// A World this peer only reads keeps the store its writers made, and
+		// a missing store reads as empty.
 		engine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
 		_, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, engine, c.objKey)
+		if errors.Is(err, tx.ErrNotWrite) {
+			err = nil
+		}
 
 		c.manifestStoreMtx.Lock()
 		if err == nil {
