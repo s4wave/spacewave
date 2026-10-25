@@ -33,6 +33,9 @@ type LocalSessionOnboardingUpdate =
 export interface LocalSessionOnboardingContextValue {
   onboarding: LocalSessionOnboardingState
   loading: boolean
+  // available is true once the onboarding state has been read from the
+  // session. A bound web listener denies state access, so it stays false there.
+  available: boolean
   metadataLoaded: boolean
   providerChoiceComplete: boolean
   isComplete: boolean
@@ -71,6 +74,7 @@ export function useSessionOnboardingState(
   const {
     value: onboarding,
     loading,
+    available,
     setValue: setBackendOnboarding,
   } = useBackendStateAtomValue<LocalSessionOnboardingState>(
     setupNs.stateAtomAccessor ?? nullStateAtomAccessor,
@@ -131,6 +135,7 @@ export function useSessionOnboardingState(
     () => ({
       onboarding,
       loading,
+      available,
       metadataLoaded,
       providerChoiceComplete,
       isComplete,
@@ -143,6 +148,7 @@ export function useSessionOnboardingState(
     [
       onboarding,
       loading,
+      available,
       metadataLoaded,
       providerChoiceComplete,
       isComplete,

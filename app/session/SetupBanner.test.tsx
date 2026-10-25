@@ -36,6 +36,7 @@ describe('SetupBanner', () => {
         lockComplete: false,
       },
       loading: false,
+      available: true,
       metadataLoaded: true,
       providerChoiceComplete: false,
       isComplete: false,
@@ -71,6 +72,7 @@ describe('SetupBanner', () => {
         lockComplete: false,
       },
       loading: false,
+      available: true,
       metadataLoaded: true,
       providerChoiceComplete: true,
       isComplete: false,
@@ -100,6 +102,7 @@ describe('SetupBanner', () => {
         lockComplete: false,
       },
       loading: false,
+      available: true,
       metadataLoaded: true,
       providerChoiceComplete: true,
       isComplete: false,
@@ -123,6 +126,7 @@ describe('SetupBanner', () => {
         lockComplete: false,
       },
       loading: false,
+      available: true,
       metadataLoaded: true,
       providerChoiceComplete: true,
       isComplete: false,
@@ -146,7 +150,30 @@ describe('SetupBanner', () => {
         lockComplete: false,
       },
       loading: false,
+      available: true,
       metadataLoaded: false,
+      providerChoiceComplete: false,
+      isComplete: false,
+      dismiss: mockDismiss,
+    })
+
+    render(<SetupBanner />)
+
+    expect(screen.queryByText('Finish setting up your account')).toBeNull()
+  })
+
+  it('stays hidden when the onboarding state cannot be read', () => {
+    mockUseLocalSessionOnboardingContext.mockReturnValue({
+      onboarding: {
+        dismissed: false,
+        dismissedAt: null,
+        providerChoiceComplete: false,
+        backupComplete: false,
+        lockComplete: false,
+      },
+      loading: false,
+      available: false,
+      metadataLoaded: true,
       providerChoiceComplete: false,
       isComplete: false,
       dismiss: mockDismiss,

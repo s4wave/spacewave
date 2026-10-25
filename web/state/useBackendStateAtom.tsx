@@ -24,6 +24,10 @@ export type StateAtomAccessor = Resource<AccessStateAtomFn | null>
 export type BackendStateAtomValue<T> = {
   value: T
   loading: boolean
+  // available is true once the backend atom has been read. It stays false
+  // while loading and when the accessor yields no atom, such as when the
+  // runtime denies state access; value is then the default.
+  available: boolean
   setValue: (update: T | ((prev: T) => T)) => void
 }
 
@@ -143,6 +147,7 @@ export function useBackendStateAtomValue<T>(
   return {
     value,
     loading,
+    available: !!stateAtom && watchedState != null,
     setValue,
   }
 }

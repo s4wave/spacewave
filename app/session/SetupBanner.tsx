@@ -9,7 +9,9 @@ import {
 import { useSessionStorageStats } from '@s4wave/app/session/SessionStorageStatsContext.js'
 import { useLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 
-// SetupBanner renders a persistent inline banner while local session onboarding is incomplete.
+// SetupBanner renders a persistent inline banner while local session onboarding
+// is incomplete. It stays hidden when the onboarding state cannot be read, as on
+// a bound web listener, where setup is not available.
 export function SetupBanner() {
   const navigate = useNavigate()
   const parentPaths = useParentPaths()
@@ -21,7 +23,7 @@ export function SetupBanner() {
   const onSetupPage = path.startsWith(`${basePath}/setup`)
 
   const visible = useMemo(() => {
-    if (onboarding.loading) return false
+    if (!onboarding.available) return false
     if (!onboarding.metadataLoaded) return false
     if (storage.loading) return false
     if (!storage.setupBannerEligible) return false
