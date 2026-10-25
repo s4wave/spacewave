@@ -1,6 +1,7 @@
 package s4db
 
 import (
+	"bytes"
 	"context"
 	"math"
 	"math/rand/v2"
@@ -527,21 +528,28 @@ func (db *DB) minPin() (pin, error) {
 	}
 
 	// Lower the local pin by every other slot whose process holds its lock.
+	// A slot no process ever wrote is empty and skipped.
+	var empty [slotSize]byte
 	for i := range slots {
-		if i == db.slot {
-			continue
-		}
-		sp, ok := decodePin(b[i*slotSize:])
-		if !ok {
+		rec := b[i*slotSize : (i+1)*slotSize]
+		if i == db.slot || bytes.Equal(rec, empty[:]) {
 			continue
 		}
 		live, err := db.s.held(lockSlot + int64(i))
 		if err != nil {
 			return pin{}, err
 		}
-		if live {
-			p = p.lower(sp)
+		if !live {
+			continue
 		}
+
+		// A live slot that fails its checksum was read while its owner
+		// rewrote it, so it pins everything.
+		sp, ok := decodePin(rec)
+		if !ok {
+			sp = pin{}
+		}
+		p = p.lower(sp)
 	}
 	return p, nil
 }
