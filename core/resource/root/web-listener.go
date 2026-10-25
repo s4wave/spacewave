@@ -27,6 +27,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
+	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	web_pkg_http "github.com/s4wave/spacewave/bldr/web/pkg/http"
 	web_runtime_http "github.com/s4wave/spacewave/bldr/web/runtime/http"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
@@ -37,8 +38,6 @@ import (
 const defaultWebListenMultiaddr = "/ip4/127.0.0.1/tcp/0"
 
 const webCapabilityCookie = "spacewave_local_cap"
-
-const webCapabilityTTL = 10 * time.Minute
 
 const webListenerReadHeaderTimeout = 5 * time.Second
 
@@ -269,9 +268,13 @@ type webListener struct {
 	cancel context.CancelFunc
 	closed atomic.Bool
 
-	bcast         broadcast.Broadcast
-	bootstrapKeys map[string]time.Time
-	capabilities  map[string]time.Time
+	bcast broadcast.Broadcast
+	// bootstrapKeys and capabilities stay valid for the listener's life. The
+	// listener serves only its local host, and the URL carrying a bootstrap
+	// secret goes only to the user who opened it, so a reloaded or reopened
+	// URL keeps working instead of expiring mid-session.
+	bootstrapKeys map[string]struct{}
+	capabilities  map[string]struct{}
 }
 
 // newWebListener starts a web listener for spec. rootMux is the Root resource
@@ -352,8 +355,8 @@ func newWebListener(
 		resources:       resources,
 		listener:        lis,
 		cancel:          cancel,
-		bootstrapKeys:   make(map[string]time.Time),
-		capabilities:    make(map[string]time.Time),
+		bootstrapKeys:   make(map[string]struct{}),
+		capabilities:    make(map[string]struct{}),
 	}
 	if spec.spaceID != "" && b != nil {
 		listener.appFrontendPath, listener.webPkgBasePath, listener.releaseAssets, err = holdBoundAssets(ctx, b)
@@ -503,22 +506,14 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	// Exchange the unexpired bootstrap secret for a retained capability.
+	// Exchange a known bootstrap secret for a retained capability.
 	var ok bool
-	now := time.Now()
-	expires := now.Add(webCapabilityTTL)
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		// Consume the bootstrap secret and register its capability if valid.
-		l.pruneExpiredKeys(now)
-		bootstrapExpires, found := l.bootstrapKeys[secret]
-		ok = found && now.Before(bootstrapExpires)
-		if found {
-			delete(l.bootstrapKeys, secret)
-		}
+		_, ok = l.bootstrapKeys[secret]
 		if !ok {
 			return
 		}
-		l.capabilities[token] = expires
+		l.capabilities[token] = struct{}{}
 		broadcast()
 	})
 	if !ok {
@@ -527,14 +522,14 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 	}
 
 	// Return the capability cookie and token to the bootstrap client. The
-	// listener serves plain HTTP on a local host only, so the cookie is not
-	// Secure: WebKit drops Secure cookies on HTTP loopback even though it
-	// treats loopback as a secure context.
+	// cookie lasts the browser session; the listener holds the capability for
+	// its own life. The listener serves plain HTTP on a local host only, so the
+	// cookie is not Secure: WebKit drops Secure cookies on HTTP loopback even
+	// though it treats loopback as a secure context.
 	http.SetCookie(rw, &http.Cookie{ //nolint:gosec // plain HTTP on a local host; see above.
 		Name:     webCapabilityCookie,
 		Value:    token,
 		Path:     "/",
-		MaxAge:   int(webCapabilityTTL.Seconds()),
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	})
@@ -543,48 +538,27 @@ func (l *webListener) exchangeBootstrap(rw http.ResponseWriter, req *http.Reques
 }
 
 func (l *webListener) issueBootstrapSecret() (string, error) {
-	// Generate and retain an expiring bootstrap secret for this listener.
+	// Generate and retain a bootstrap secret for this listener.
 	secret, err := newWebSecret()
 	if err != nil {
 		return "", err
 	}
-	now := time.Now()
-	expires := now.Add(webCapabilityTTL)
 	l.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		l.pruneExpiredKeys(now)
-		l.bootstrapKeys[secret] = expires
+		l.bootstrapKeys[secret] = struct{}{}
 		broadcast()
 	})
 	return secret, nil
 }
 
-func (l *webListener) pruneExpiredKeys(now time.Time) {
-	for key, expires := range l.bootstrapKeys {
-		if !now.Before(expires) {
-			delete(l.bootstrapKeys, key)
-		}
-	}
-	for key, expires := range l.capabilities {
-		if !now.Before(expires) {
-			delete(l.capabilities, key)
-		}
-	}
-}
-
 func (l *webListener) isAuthorized(req *http.Request) bool {
-	// Validate the request capability against the listener expiration record.
+	// Validate the request capability against the listener's capabilities.
 	cookie, err := req.Cookie(webCapabilityCookie)
 	if err != nil || cookie.Value == "" {
 		return false
 	}
 	var ok bool
-	now := time.Now()
 	l.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		expires, found := l.capabilities[cookie.Value]
-		ok = found && now.Before(expires)
-		if found && !ok {
-			delete(l.capabilities, cookie.Value)
-		}
+		_, ok = l.capabilities[cookie.Value]
 	})
 	return ok
 }
@@ -679,13 +653,15 @@ func webListenerReleaseBootMetadataFromHTML(html string) (*webListenerReleaseBoo
 // on the same port left behind, which would answer the app's asset requests
 // with 503 for a WASM runtime that is not running.
 func renderWebListenerBootShell(metadata *webListenerReleaseBootMetadata, spec *webListenSpec, appFrontendPath, webPkgBasePath string) ([]byte, error) {
-	// Bind emitted package imports before the app loads any module.
+	// Bind package imports before the app loads any module. A bound app comes
+	// from the daemon's own build, which can import shared package modules the
+	// release lacks, so its map points every shared and emitted package at the
+	// pinned web packages instead of the release entrypoint.
 	importMapScript := metadata.importMapScript
 	if webPkgBasePath != "" {
-		imports := web_entrypoint_index.ImportMap{Imports: map[string]string{
-			"bldr-web-pkg/": webPkgBasePath,
-		}}
-		importMapScript += "\n<script type=\"importmap\">" + imports.String() + "</script>"
+		imports := web_pkg_external.BldrDistImportMap(webPkgBasePath)
+		imports["bldr-web-pkg/"] = webPkgBasePath
+		importMapScript = "<script type=\"importmap\">" + web_entrypoint_index.ImportMap{Imports: imports}.String() + "</script>"
 	}
 
 	// Start the bound native app or the unbound browser runtime.

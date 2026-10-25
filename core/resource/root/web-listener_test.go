@@ -149,15 +149,15 @@ func TestWebListenerServesDisplayBootShellBeforeCapability(t *testing.T) {
 	}
 }
 
-func TestWebListenerBootstrapSetsSingleUseCapability(t *testing.T) {
-	// Start a web listener for the single-use bootstrap exchange.
+func TestWebListenerBootstrapSetsCapability(t *testing.T) {
+	// Start a web listener for the bootstrap exchange.
 	listener, err := newWebListener(t.Context(), logrus.NewEntry(logrus.New()), nil, nil, testWebListenSpec(t, ""))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer listener.Close()
 
-	// Exchange the bootstrap secret and verify its bounded capability cookie.
+	// Exchange the bootstrap secret and verify its session capability cookie.
 	secret, err := listener.issueBootstrapSecret()
 	if err != nil {
 		t.Fatal(err)
@@ -171,18 +171,26 @@ func TestWebListenerBootstrapSetsSingleUseCapability(t *testing.T) {
 	if resp.StatusCode != http.StatusOK || cookie == nil {
 		t.Fatalf("bootstrap response = %d cookie=%v, want 200 with capability cookie", resp.StatusCode, cookie)
 	}
-	if !cookie.HttpOnly || cookie.MaxAge <= 0 {
-		t.Fatalf("capability cookie should be http-only and bounded: %#v", cookie)
+	if !cookie.HttpOnly || cookie.MaxAge != 0 {
+		t.Fatalf("capability cookie should be http-only and last the session: %#v", cookie)
 	}
 
-	// Verify a consumed bootstrap secret cannot be exchanged again.
+	// Verify the secret stays valid for a reopened URL, and an unknown one fails.
 	resp, err = exchangeWebBootstrapWithSecret(listener, secret)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("second bootstrap status = %d, want 200", resp.StatusCode)
+	}
+	resp, err = exchangeWebBootstrapWithSecret(listener, "unknown")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("second bootstrap status = %d, want 401", resp.StatusCode)
+		t.Fatalf("unknown bootstrap status = %d, want 401", resp.StatusCode)
 	}
 }
 

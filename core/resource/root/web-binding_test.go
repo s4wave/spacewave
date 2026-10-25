@@ -158,7 +158,7 @@ func TestWebListenerBoundResourceService(t *testing.T) {
 // TestRenderBoundBootShell checks native app and package release bindings.
 func TestRenderBoundBootShell(t *testing.T) {
 	// Render the shell for a listener bound to session 2 and one Space.
-	metadata := &webListenerReleaseBootMetadata{importMapScript: `<script type="importmap">{}</script>`}
+	metadata := &webListenerReleaseBootMetadata{importMapScript: `<script type="importmap">{"imports":{"react":"/entrypoint/release/pkgs/react/index.mjs"}}</script>`}
 	spec := &webListenSpec{spaceID: "space/1", sessionIdx: 2}
 	shell, err := renderWebListenerBootShell(metadata, spec, "/b/pa/spacewave-app/manifest/root/v/b/fe/", "/b/pa/spacewave-web/manifest/web-root/pkgs/")
 	if err != nil {
@@ -171,6 +171,11 @@ func TestRenderBoundBootShell(t *testing.T) {
 		`"/u/2/so/space%2F1"`,
 		`"/b/pa/spacewave-app/manifest/root/v/b/fe/"`,
 		`"bldr-web-pkg/":"/b/pa/spacewave-web/manifest/web-root/pkgs/"`,
+		`"react":"/b/pa/spacewave-web/manifest/web-root/pkgs/react/index.mjs"`,
+		`"react/jsx-runtime":"/b/pa/spacewave-web/manifest/web-root/pkgs/react/jsx-runtime.mjs"`,
+		`"@aptre/bldr-sdk/hooks/useSharedResource.js":"/b/pa/spacewave-web/manifest/web-root/pkgs/@aptre/bldr-sdk/hooks/useSharedResource.mjs"`,
+		`"@aptre/bldr-sdk/resource/resource.pb.js":"/b/pa/spacewave-web/manifest/web-root/pkgs/@aptre/bldr-sdk/resource/resource.pb.mjs"`,
+		`"@aptre/protobuf-es-lite/google/protobuf/timestamp":"/b/pa/spacewave-web/manifest/web-root/pkgs/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs"`,
 		`renderBoundApp(`,
 		`"/_spacewave/resource"`,
 	} {
@@ -180,6 +185,9 @@ func TestRenderBoundBootShell(t *testing.T) {
 	}
 	if strings.Contains(text, "/boot.mjs") {
 		t.Fatalf("bound boot shell should not start the WASM runtime: %s", text)
+	}
+	if strings.Contains(text, "/entrypoint/release/") {
+		t.Fatalf("bound boot shell should not import the release packages: %s", text)
 	}
 }
 

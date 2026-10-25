@@ -1,7 +1,9 @@
 package web_pkg_external
 
 import (
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/s4wave/spacewave/bldr/distpath"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
@@ -137,4 +139,49 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/@aptre/protobuf-es-lite/dist"),
 		Imports:    BldrDistWebPkgImports["@aptre/protobuf-es-lite"],
 	}}
+}
+
+// knownEntryExts are the extensions a compiled JavaScript entry drops from its
+// served name, including ".pb" for proto modules addressed by export subpath.
+var knownEntryExts = map[string]bool{
+	".js": true, ".cjs": true, ".mjs": true, ".ts": true,
+	".tsx": true, ".jsx": true, ".pb": true, ".css": true,
+}
+
+// servedEntryName returns the served "[name].mjs" base for a package import
+// path and whether it is a TypeScript source, as servedEntryName in
+// bldr/web/bundler/vite/web-pkg-naming.ts does. A TypeScript source drops only
+// its own extension; a compiled JavaScript entry drops every known extension.
+func servedEntryName(importPath string) (string, bool) {
+	name := strings.TrimPrefix(importPath, "./")
+	if ext := path.Ext(name); ext == ".ts" || ext == ".tsx" {
+		return strings.TrimSuffix(name, ext), true
+	}
+	for ext := path.Ext(name); knownEntryExts[ext]; ext = path.Ext(name) {
+		name = strings.TrimSuffix(name, ext)
+	}
+	return name, false
+}
+
+// BldrDistImportMap maps the import specifier of every BldrExternal entry to
+// its served module under base, the URL prefix holding the web pkg roots. The
+// root index maps the bare package id, a TypeScript entry its emitted ".js"
+// path, and a compiled entry its export subpath, as buildWebPkgImportSpecifier
+// does for the browser entrypoint's map.
+func BldrDistImportMap(base string) map[string]string {
+	imports := make(map[string]string)
+	for pkgID, entries := range BldrDistWebPkgImports {
+		for _, entry := range entries {
+			name, typescript := servedEntryName(entry)
+			specifier := pkgID + "/" + name
+			switch {
+			case name == "index":
+				specifier = pkgID
+			case typescript:
+				specifier += ".js"
+			}
+			imports[specifier] = base + pkgID + "/" + name + ".mjs"
+		}
+	}
+	return imports
 }
