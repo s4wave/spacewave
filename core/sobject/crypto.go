@@ -173,6 +173,12 @@ func (g *SOGrant) ValidateSignature(sharedObjectID string, cfg *SharedObjectConf
 	if err != nil {
 		return err
 	}
+	return g.validateSigner(signer, cfg)
+}
+
+// validateSigner checks that signer, which Verify authenticated, is an owner
+// of cfg, a voter under its group control, or the grant's reading recipient.
+func (g *SOGrant) validateSigner(signer string, cfg *SharedObjectConfig) error {
 	for _, p := range cfg.GetParticipants() {
 		if p.GetPeerId() != signer {
 			continue

@@ -470,11 +470,13 @@ func (s *SOState) AdoptCheckpoint(sharedObjectID string, next *SOCheckpoint) err
 
 // MergeKeyEpochs drops the held grants of peers that can no longer read, then
 // adds the grants in epochs that the state lacks, checking each against the
-// held config. Incoming grants for peers that can no longer read are ignored:
-// a peer that has not yet applied a removal still sends them. A held grant for a recipient is kept unless its signer has left
-// and epochs carries a replacement. Epochs with one number carry one key: only
-// the cloud server admits a new epoch, and a host applies it after the server
-// accepts it, so merging concurrent config branches never meets two keys.
+// held config. It fails on a grant whose signature is not authentic, and
+// ignores an authentic grant the held config does not authorize: a held grant
+// is kept unless its signer has left and epochs carries a replacement, so a
+// peer still sends grants whose signer or recipient a removal has dropped.
+// Epochs with one number carry one key: only the cloud server admits a new
+// epoch, and a host applies it after the server accepts it, so merging
+// concurrent config branches never meets two keys.
 func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) error {
 	// Drop the grants of removed readers.
 	cfg := s.GetConfig()
@@ -512,11 +514,12 @@ func (s *SOState) MergeKeyEpochs(sharedObjectID string, epochs []*SOKeyEpoch) er
 			if i != -1 && merged.GetGrants()[i].ValidateSignature(sharedObjectID, cfg) == nil {
 				continue
 			}
-			if err := grant.ValidateSignature(sharedObjectID, cfg); err != nil {
-				if i != -1 {
-					continue
-				}
+			signer, err := grant.Verify(sharedObjectID)
+			if err != nil {
 				return errors.Wrapf(err, "key epoch %d grant", epoch.GetEpoch())
+			}
+			if grant.validateSigner(signer, cfg) != nil {
+				continue
 			}
 			if i != -1 {
 				merged.Grants[i] = grant.CloneVT()
