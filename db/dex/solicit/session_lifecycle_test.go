@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/dex"
@@ -26,8 +27,15 @@ func TestControllerSamePeerSessionsSurviveEachOther(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	// Register a session with the peer over its first link.
+	// Run the controller on a bus so an ended session can renew its offer.
 	c := newTestDexSolicitController()
+	b, _, err := core.NewCoreBus(ctx, c.le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.b = b
+
+	// Register a session with the peer over its first link.
 	remote := peer.ID("peer-a")
 	firstMS, firstRemote, firstCleanup := newTestDexMountedStreamPair(remote)
 	defer firstCleanup()
@@ -56,6 +64,19 @@ func TestControllerSamePeerSessionsSurviveEachOther(t *testing.T) {
 	waitTestDexCondition(t, "no session", func() bool {
 		return getTestDexSession(c, remote) == nil
 	})
+
+	// The link outlives the last session, so the side with the lower peer ID
+	// offers the protocol to that peer again.
+	waitTestDexCondition(t, "renewed offer", func() bool {
+		for _, di := range b.GetDirectives() {
+			dir, ok := di.GetDirective().(link_solicit.SolicitProtocol)
+			if ok && dir.SolicitProtocolPeerID() == remote {
+				return true
+			}
+		}
+		return false
+	})
+	c.releaseRenewals()
 }
 
 func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
@@ -766,6 +787,7 @@ func newTestDexSolicitController() *Controller {
 		le:       logrus.NewEntry(logger),
 		cc:       &Config{MaxForwardHops: 1},
 		sessions: make(map[string][]*peerSession),
+		renewals: make(map[string]directive.Reference),
 		settled:  true,
 	}
 }

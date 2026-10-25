@@ -14,6 +14,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/dex"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/sirupsen/logrus"
 )
@@ -61,6 +62,9 @@ type Controller struct {
 	// them start in different orders, so a new session never closes an older
 	// one: each ends when its own stream does.
 	sessions map[string][]*peerSession
+	// renewals holds the offer made again to each peer whose last session
+	// ended while the controller ran, keyed by peer ID, guarded by bcast.
+	renewals map[string]directive.Reference
 	// sessionStarts counts the peer sessions started, guarded by bcast.
 	sessionStarts uint64
 	// settled reports that the solicitation has delivered a session for every
@@ -77,9 +81,9 @@ func (c *Controller) GetTransferSnapshot() (TransferSnapshot, <-chan struct{}) {
 	var wait <-chan struct{}
 	c.bcast.HoldLock(func(_ func(), getWait func() <-chan struct{}) {
 		result = c.transfer
-		for id, peer := range c.peerTransfers {
-			_, peer.Connected = c.sessions[id]
-			result.Peers = append(result.Peers, peer)
+		for id, pt := range c.peerTransfers {
+			_, pt.Connected = c.sessions[id]
+			result.Peers = append(result.Peers, pt)
 		}
 		for id := range c.sessions {
 			if _, exists := c.peerTransfers[id]; !exists {
@@ -130,11 +134,11 @@ func (c *Controller) recordTransfer(peerID string, uploaded, downloaded int) {
 		if c.peerTransfers == nil {
 			c.peerTransfers = make(map[string]PeerTransferSnapshot)
 		}
-		peer := c.peerTransfers[peerID]
-		peer.PeerID = peerID
-		peer.UploadedBytes += uint64(uploaded)     //nolint:gosec // negative callback values are normalized above.
-		peer.DownloadedBytes += uint64(downloaded) //nolint:gosec // negative callback values are normalized above.
-		c.peerTransfers[peerID] = peer
+		pt := c.peerTransfers[peerID]
+		pt.PeerID = peerID
+		pt.UploadedBytes += uint64(uploaded)     //nolint:gosec // negative callback values are normalized above.
+		pt.DownloadedBytes += uint64(downloaded) //nolint:gosec // negative callback values are normalized above.
+		c.peerTransfers[peerID] = pt
 		changed()
 	})
 }
@@ -153,12 +157,13 @@ func NewControllerWithRequestAuthorizer(le *logrus.Entry, b bus.Bus, cc *Config,
 		cc:               cc,
 		authorizeRequest: authorizeRequest,
 		sessions:         make(map[string][]*peerSession),
+		renewals:         make(map[string]directive.Reference),
 	}, nil
 }
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Resolve the local peer identity.
+	// Resolve the remote peer filter.
 	c.le.Debug("dex solicit controller running")
 	peerID, err := c.cc.ParsePeerID()
 	if err != nil {
@@ -166,27 +171,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// Publish the solicitation protocol for the configured logical store.
-	solicitCtx := solicitationContext(c.cc)
-	dir := link_solicit.NewSolicitProtocol(
-		DexProtocolID,
-		solicitCtx,
-		peerID,
-		c.cc.GetTransportId(),
-	)
-	di, solicitRef, err := c.b.AddDirective(
-		ctx,
-		dir,
-		directive.NewTypedCallbackHandler[link_solicit.SolicitMountedStream](
-			func(v directive.TypedAttachedValue[link_solicit.SolicitMountedStream]) {
-				c.handleSolicitedStream(ctx, v.GetValue())
-			},
-			nil, nil, nil,
-		),
-	)
+	di, solicitRef, err := c.addSolicitation(ctx, peerID)
 	if err != nil {
 		return errors.Wrap(err, "add solicit protocol directive")
 	}
 	defer solicitRef.Release()
+	defer c.releaseRenewals()
 
 	// Track settlement. Idle callbacks follow the value callbacks queued
 	// before them, so an idle solicitation has registered its sessions. Once
@@ -202,6 +192,27 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return ctx.Err()
 }
 
+// addSolicitation offers the DEX protocol to remotePeer, or to every peer when
+// it is empty, and starts a peer session on each stream it matches.
+func (c *Controller) addSolicitation(ctx context.Context, remotePeer peer.ID) (directive.Instance, directive.Reference, error) {
+	dir := link_solicit.NewSolicitProtocol(
+		DexProtocolID,
+		solicitationContext(c.cc),
+		remotePeer,
+		c.cc.GetTransportId(),
+	)
+	return c.b.AddDirective(
+		ctx,
+		dir,
+		directive.NewTypedCallbackHandler[link_solicit.SolicitMountedStream](
+			func(v directive.TypedAttachedValue[link_solicit.SolicitMountedStream]) {
+				c.handleSolicitedStream(ctx, v.GetValue())
+			},
+			nil, nil, nil,
+		),
+	)
+}
+
 // handleSolicitedStream processes a new solicited stream from a DEX peer.
 func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit.SolicitMountedStream) {
 	// Accept the solicited stream and identify the remote peer.
@@ -211,14 +222,17 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 	}
 
 	// Identify the accepted stream in peer session logs.
+	ml := ms.GetLink()
 	remotePeer := ms.GetPeerID().String()
 	le := c.le.WithField("remote-peer", remotePeer)
 
 	// Construct the session with cleanup bound to its identity.
 	var sess *peerSession
 	sess = newPeerSession(c, le, ms, func() {
-		c.removeSession(remotePeer, sess)
 		le.Debug("dex peer session ended")
+		if c.removeSession(remotePeer, sess) && ml.GetLocalPeer() < ml.GetRemotePeer() {
+			c.renewSolicitation(ctx, ml.GetRemotePeer())
+		}
 	})
 
 	// Make it the newest session with this peer.
@@ -233,6 +247,50 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 	sess.start(ctx)
 }
 
+// renewSolicitation offers the protocol to remotePeer again after its last
+// session ended. The solicit controller opens one stream for each pair of
+// offers on a link, so a link that outlives its session carries no other
+// stream until one side makes a new offer. Only the peer with the lower ID
+// renews, so one stream replaces the session.
+func (c *Controller) renewSolicitation(ctx context.Context, remotePeer peer.ID) {
+	// Skip the renewal once the controller stops.
+	if ctx.Err() != nil {
+		return
+	}
+
+	// Offer the protocol to remotePeer under a new incarnation.
+	_, ref, err := c.addSolicitation(ctx, remotePeer)
+	if err != nil {
+		c.le.WithError(err).Warn("dex solicitation renewal failed")
+		return
+	}
+
+	// Replace the previous renewal for remotePeer. The released offer leaves
+	// its accepted streams running.
+	var prev directive.Reference
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		prev = c.renewals[remotePeer.String()]
+		c.renewals[remotePeer.String()] = ref
+	})
+	if prev != nil {
+		prev.Release()
+	}
+}
+
+// releaseRenewals releases every renewed offer when the controller stops.
+func (c *Controller) releaseRenewals() {
+	var refs []directive.Reference
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for id, ref := range c.renewals {
+			refs = append(refs, ref)
+			delete(c.renewals, id)
+		}
+	})
+	for _, ref := range refs {
+		ref.Release()
+	}
+}
+
 // setSettled records whether the solicitation has settled.
 func (c *Controller) setSettled(settled bool) {
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -244,19 +302,23 @@ func (c *Controller) setSettled(settled bool) {
 }
 
 // removeSession removes an ended session with remotePeer, so requests fall
-// back to the newest session that remains.
-func (c *Controller) removeSession(remotePeer string, sess *peerSession) {
+// back to the newest session that remains. It reports whether it removed the
+// last session with remotePeer.
+func (c *Controller) removeSession(remotePeer string, sess *peerSession) bool {
+	var last bool
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		peerSessions := slices.DeleteFunc(c.sessions[remotePeer], func(s *peerSession) bool {
 			return s == sess
 		})
 		if len(peerSessions) == 0 {
 			delete(c.sessions, remotePeer)
+			last = true
 		} else {
 			c.sessions[remotePeer] = peerSessions
 		}
 		broadcast()
 	})
+	return last
 }
 
 // forwardToPeers forwards a block request to other connected peers,
