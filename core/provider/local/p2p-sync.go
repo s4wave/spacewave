@@ -796,7 +796,7 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		if state.hasSO(soID) {
 			continue
 		}
-		if err := a.startSOSync(syncCtx, childBus, ref, entry.GetMeta().GetBodyType(), soID, state); err != nil {
+		if err := a.startSOSync(syncCtx, childBus, ref, ReplicatesSpace(entry), soID, state); err != nil {
 			if syncCtx.Err() != nil {
 				return syncCtx.Err()
 			}
@@ -1036,12 +1036,20 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 	})
 }
 
+// ReplicatesSpace reports whether the account copies the Space in entry whole
+// to its replica. A Space joined by invitation stays lazy: it fetches only the
+// blocks a reader asks for.
+func ReplicatesSpace(entry *sobject.SharedObjectListEntry) bool {
+	return entry.GetMeta().GetBodyType() == space.SpaceBodyType && entry.GetSource() != "shared"
+}
+
 // startSOSync mounts the shared object and starts an SOSync instance for it.
+// replicate also copies the object's blocks to the account replica.
 func (a *ProviderAccount) startSOSync(
 	ctx context.Context,
 	childBus bus.Bus,
 	ref *sobject.SharedObjectRef,
-	bodyType string,
+	replicate bool,
 	soID string,
 	state *p2pSyncState,
 ) (retErr error) {
@@ -1121,8 +1129,8 @@ func (a *ProviderAccount) startSOSync(
 	hostingRoutine.SetRoutine(func(ctx context.Context) error { return a.watchSOHosting(ctx, soID, localSO) })
 	objectSync := &accountObjectSync{sync: syncRoutine, hosting: hostingRoutine, cancel: cancel, release: relSO}
 
-	// Copy a Space to the account replica alongside its sync.
-	if bodyType == space.SpaceBodyType {
+	// Copy a Space the account replicates alongside its sync.
+	if replicate {
 		objectSync.copy = routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-copy"), routine.WithRetry(providerBackoff))
 		provRef := ref.GetProviderResourceRef()
 		exchange := state.getExchange(BlockStoreBucketID(provRef.GetProviderId(), provRef.GetProviderAccountId(), ref.GetBlockStoreId()))

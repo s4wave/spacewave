@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
+	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
 // TestJoinViaInviteStaticUDP joins a Space whose owner is reachable only at a
-// static UDP address, relinks from the recorded address after a restart, and
+// static UDP address without replicating it, relinks from the recorded address after a restart, and
 // stops dialing the owner after leaving.
 func TestJoinViaInviteStaticUDP(t *testing.T) {
 	// Run the owner and the reader on separate testbeds, so UDP is the only
@@ -62,7 +63,7 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 	}
 
 	// The reader joins over the owner's address and records it on the listed
-	// object.
+	// object, which stays lazy: the account fetches only the blocks it reads.
 	t.Cleanup(reader.StopSessionTransport)
 	t.Cleanup(reader.StopP2PSync)
 	joined, err := reader.JoinViaInvite(ctx, readerSession.GetPrivKey(), invite, addr.String())
@@ -74,6 +75,9 @@ func TestJoinViaInviteStaticUDP(t *testing.T) {
 	for _, entry := range reader.GetSOListCtr().GetValue().GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == joined.SharedObjectID {
 			recorded = entry.GetUdpPeerAddrs()[ownerID]
+			if provider_local.ReplicatesSpace(entry) {
+				t.Fatal("reader replicates the joined Space")
+			}
 		}
 	}
 	if recorded != addr.String() {

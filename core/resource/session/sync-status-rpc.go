@@ -126,14 +126,14 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 	resp := syncStatusFromLocalState(pairingSnapshot, transportRunning, p2pRunning)
 	resp.LocalAccount = true
 
-	// List Space copies from the inventory while P2P sync is running.
+	// List the Spaces the account replicates while P2P sync is running.
 	progress, copyCh := acc.GetAccountCopyProgress()
 	var inventory *sobject.SharedObjectList
 	if p2pRunning {
 		inventory = acc.GetSOListCtr().GetValue()
 	}
 	for _, entry := range inventory.GetSharedObjects() {
-		if entry.GetMeta().GetBodyType() != "space" {
+		if !provider_local.ReplicatesSpace(entry) {
 			continue
 		}
 		item := &s4wave_session.SyncLocalCopyStatus{
