@@ -163,6 +163,17 @@ describe('SessionSyncStatusButton', () => {
       detail: 'Downloading from cloud.',
     },
     {
+      name: 'local download from peers',
+      view: view({
+        state: SyncStatusState.SyncStatusState_ACTIVE,
+        direction: SyncActivityDirection.SyncActivityDirection_DOWNLOAD,
+        downloadBytesPerSecond: 4096n,
+        localAccount: true,
+      }),
+      label: 'Downloading updates',
+      detail: 'Downloading from peers.',
+    },
+    {
       name: 'mixed activity',
       view: view({
         state: SyncStatusState.SyncStatusState_ACTIVE,

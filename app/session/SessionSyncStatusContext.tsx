@@ -360,7 +360,7 @@ function syncDetailLabel(
     return lastError || 'The sync watcher reported an error.'
   }
   if (state === 'active') {
-    return activeDirectionDetail(direction)
+    return activeDirectionDetail(direction, local)
   }
   if (local) {
     return 'Local session ready.'
@@ -383,12 +383,18 @@ function activeDirectionLabel(direction: SyncActivityDirection): string {
   return 'Sync active'
 }
 
-function activeDirectionDetail(direction: SyncActivityDirection): string {
+// activeDirectionDetail names where the transfer goes: a local session has no
+// cloud, so it moves blocks only with linked peers.
+function activeDirectionDetail(
+  direction: SyncActivityDirection,
+  local: boolean,
+): string {
+  const remote = local ? 'peers' : 'cloud'
   if (direction === SyncActivityDirection.SyncActivityDirection_UPLOAD) {
-    return 'Uploading to cloud.'
+    return `Uploading to ${remote}.`
   }
   if (direction === SyncActivityDirection.SyncActivityDirection_DOWNLOAD) {
-    return 'Downloading from cloud.'
+    return `Downloading from ${remote}.`
   }
   if (
     direction === SyncActivityDirection.SyncActivityDirection_UPLOAD_DOWNLOAD
