@@ -15,6 +15,8 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/sobject"
 	space "github.com/s4wave/spacewave/core/space"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	"github.com/sirupsen/logrus"
@@ -237,5 +239,36 @@ func TestWebBindingNarrowsSpacesList(t *testing.T) {
 	}
 	if len(handler.spaces) != 2 || handler.spaces[1].GetEntry().GetRef().GetProviderResourceRef().GetId() != "other" {
 		t.Fatalf("handler list changed: %v", handler.spaces)
+	}
+}
+
+// TestWebBindingObjectMethods admits the prom and Device reads their viewers
+// need and keeps their edits denied.
+func TestWebBindingObjectMethods(t *testing.T) {
+	query, dash := s4wave_prom.SRPCPromQueryResourceServiceServiceID, s4wave_prom.SRPCPromDashboardResourceServiceServiceID
+	device := s4wave_device.SRPCDeviceResourceServiceServiceID
+	for _, key := range []string{
+		webMethod(query, "Query"),
+		webMethod(query, "LabelNames"),
+		webMethod(query, "LabelValues"),
+		webMethod(query, "WatchTargets"),
+		webMethod(dash, "WatchDashboard"),
+		webMethod(device, "WatchDeviceState"),
+	} {
+		if _, ok := webBindingMethods[key]; !ok {
+			t.Errorf("%s is denied, want admitted", key)
+		}
+	}
+	for _, key := range []string{
+		webMethod(dash, "PutPanel"),
+		webMethod(dash, "RemovePanel"),
+		webMethod(dash, "MovePanel"),
+		webMethod(dash, "CreateTarget"),
+		webMethod(device, "ReportDeviceStatus"),
+		webMethod(device, "AccessCheckoutRoot"),
+	} {
+		if _, ok := webBindingMethods[key]; ok {
+			t.Errorf("%s is admitted, want denied", key)
+		}
 	}
 }

@@ -8,7 +8,9 @@ import (
 	space "github.com/s4wave/spacewave/core/space"
 	s4wave_command_registry "github.com/s4wave/spacewave/sdk/command/registry"
 	s4wave_configtype_registry "github.com/s4wave/spacewave/sdk/configtype/registry"
+	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
+	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
@@ -131,6 +133,18 @@ var webBindingMethods = map[string]webBindingCheck{
 	webMethod(s4wave_world.SRPCObjectStateResourceServiceServiceID, "WaitRev"):               nil,
 	webMethod(s4wave_world.SRPCTypedObjectResourceServiceServiceID, "AccessTypedObject"):     nil,
 	webMethod(s4wave_world.SRPCTypedObjectResourceServiceServiceID, "WatchTypedObject"):      nil,
+
+	// A Device object of the bound Space streams its state; status reports
+	// and checkout stay denied.
+	webMethod(s4wave_device.SRPCDeviceResourceServiceServiceID, "WatchDeviceState"): nil,
+
+	// Prom objects of the bound Space answer queries and stream Dashboards;
+	// their panel and target edits stay denied.
+	webMethod(s4wave_prom.SRPCPromQueryResourceServiceServiceID, "Query"):              nil,
+	webMethod(s4wave_prom.SRPCPromQueryResourceServiceServiceID, "LabelNames"):         nil,
+	webMethod(s4wave_prom.SRPCPromQueryResourceServiceServiceID, "LabelValues"):        nil,
+	webMethod(s4wave_prom.SRPCPromQueryResourceServiceServiceID, "WatchTargets"):       nil,
+	webMethod(s4wave_prom.SRPCPromDashboardResourceServiceServiceID, "WatchDashboard"): nil,
 }
 
 // webBindingResponses narrows the responses of admitted methods that describe
