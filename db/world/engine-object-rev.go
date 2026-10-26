@@ -56,8 +56,10 @@ func WaitObjectRev(ctx context.Context, ws WorldState, key string, rev uint64, i
 // WaitObjectChange waits until an object differs from the root a reader saw in
 // seen: a later revision, its deletion, or, for an object seen missing, its
 // creation. A view reads seen with GetObjectRootRefsBatch before it reads the
-// objects, so a change after the read ends the wait. With no objects it waits
-// until ctx ends.
+// objects, so a change after the read ends the wait. An object deleted and
+// created again at its seen revision before the wait begins is not a change to
+// the wait; a caller that waits long after its read compares the roots first.
+// With no objects it waits until ctx ends.
 func WaitObjectChange(ctx context.Context, ws WorldState, seen ...*ObjectRootRef) error {
 	// Wait on one object directly.
 	if len(seen) == 1 {

@@ -287,6 +287,13 @@ func (c *Controller) wait(ctx context.Context, ws world.WorldState, src *source,
 		cancel()
 	}()
 
+	// Return at once when an object changed since readWorld. An object deleted
+	// and created again in between can be back at its seen revision, which the
+	// wait below would not see as a change.
+	if changed, err := rootsChanged(ctx, ws, seen); err != nil || changed {
+		return err
+	}
+
 	// Wait for an object to change.
 	err := world.WaitObjectChange(waitCtx, ws, seen...)
 	if ctx.Err() != nil {
@@ -310,3 +317,22 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var _ controller.Controller = (*Controller)(nil)
+
+// rootsChanged reports whether any object's root differs from seen.
+func rootsChanged(ctx context.Context, ws world.WorldState, seen []*world.ObjectRootRef) (bool, error) {
+	// Read the current roots and compare each one.
+	keys := make([]string, len(seen))
+	for i, ref := range seen {
+		keys[i] = ref.ObjectKey
+	}
+	curr, err := world.GetObjectRootRefsBatch(ctx, ws, keys)
+	if err != nil {
+		return false, err
+	}
+	for i, ref := range seen {
+		if curr[i].Exists != ref.Exists || curr[i].Rev != ref.Rev || !curr[i].RootRef.EqualVT(ref.RootRef) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
