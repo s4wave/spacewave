@@ -77,6 +77,10 @@ func TestWatch(t *testing.T) {
 	if a.GetState() != s4wave_alarm.AlarmState_ALARM_STATE_CLEAR || a.GetTitle() != "Forge down" || a.GetError() != "" {
 		t.Fatalf("first alarm: %v", a)
 	}
+	found, err := e.tb.WorldState.LookupGraphQuads(e.ctx, world.NewGraphQuadWithKeys(alarmKey, s4wave_alarm.ReadsPredicate, sourceKey, ""), 0)
+	if err != nil || len(found) != 1 {
+		t.Fatalf("alarm reads edge to the source: %v %v", found, err)
+	}
 
 	// An instance going down holds the Alarm, then fires it once the hold
 	// time passes with no further commit.

@@ -22,6 +22,8 @@ import { EmptyState } from '@s4wave/web/ui/EmptyState.js'
 import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
+import { AlarmStrip } from '@s4wave/app/alarm/AlarmStrip.js'
+
 import { PromPanel } from './PromPanel.js'
 import { PromPanelEditor } from './PromPanelEditor.js'
 import { PromTargetForm } from './PromTargetForm.js'
@@ -35,10 +37,34 @@ import {
 
 export { DashboardTypeID }
 
-// PromDashboardViewer shows a prom/dashboard object. The plugin that answers
-// its queries runs only on desktop Devices, so the viewer first follows
-// whether the plugin serves the object here.
-export function PromDashboardViewer({
+// PromDashboardViewer shows a prom/dashboard object under its Alarm strip.
+// The plugin that answers its queries runs only on desktop Devices, so the
+// viewer follows whether the plugin serves the object here; the strip reads
+// the World and shows everywhere.
+export function PromDashboardViewer(props: ObjectViewerComponentProps) {
+  const objectKey = getObjectKey(props.objectInfo)
+  const container = SpaceContainerContext.useContextSafe()
+  const openAlarm = useCallback(
+    (key: string) => container?.navigateToObjects([key]),
+    [container],
+  )
+  return (
+    <div className="flex h-full w-full flex-col">
+      <AlarmStrip
+        worldState={props.worldState}
+        dashboardKey={objectKey}
+        onOpen={openAlarm}
+      />
+      <div className="min-h-0 flex-1">
+        <DashboardHandle {...props} />
+      </div>
+    </div>
+  )
+}
+
+// DashboardHandle follows whether the metrics plugin serves the Dashboard
+// here and shows it when it does.
+function DashboardHandle({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {

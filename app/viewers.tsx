@@ -232,6 +232,18 @@ const productObjectViewers: ObjectViewerComponent[] = [
     ),
   },
   {
+    componentID: 'spacewave.alarm',
+    typeID: 'alarm',
+    name: 'Alarm',
+    category: 'Data',
+    requiresObjectState: false,
+    component: lazy(() =>
+      import('@s4wave/app/alarm/AlarmViewer.js').then((module) => ({
+        default: module.AlarmViewer,
+      })),
+    ),
+  },
+  {
     componentID: 'spacewave.sql.db',
     typeID: 'sql/db',
     name: 'SQL Database',

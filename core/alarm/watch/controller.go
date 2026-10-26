@@ -4,6 +4,7 @@ package core_alarm_watch
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -45,6 +46,10 @@ type Controller struct {
 	now func() time.Time
 	// engine is the World engine holding the Alarm.
 	engine *world.BusEngine
+	// linked is set once the Alarm's reads edges match reads.
+	linked bool
+	// reads are the keys the Alarm's reads edges point at.
+	reads []string
 }
 
 // NewController constructs an Alarm watch controller.
@@ -115,7 +120,7 @@ func (c *Controller) evaluate(ctx context.Context, src *source) ([]*world.Object
 
 	// Store the Alarm the result implies, or the failure.
 	cond := &s4wave_alarm.Condition{Firing: result.GetFiring(), Summary: result.GetSummary(), Options: result.GetOptions()}
-	next, err := c.store(ctx, cond, evalErr, now)
+	next, err := c.store(ctx, cond, evalErr, c.existingReads(seen), now)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
@@ -175,6 +180,19 @@ func (c *Controller) readWorld(ctx context.Context) (*alarm_watch.WatchInput, *s
 	return in, fn, seen, nil
 }
 
+// existingReads returns the sorted keys of the source and the read objects
+// that exist in seen, which readWorld returned.
+func (c *Controller) existingReads(seen []*world.ObjectRootRef) []string {
+	var reads []string
+	for _, ref := range seen[1:] {
+		if ref.Exists && !slices.Contains(reads, ref.ObjectKey) {
+			reads = append(reads, ref.ObjectKey)
+		}
+	}
+	slices.Sort(reads)
+	return reads
+}
+
 // query fills in the result of each query at now.
 func (c *Controller) query(ctx context.Context, src *source, in *alarm_watch.WatchInput, now time.Time) error {
 	// Open the source when the watch has queries.
@@ -201,10 +219,13 @@ func (c *Controller) query(ctx context.Context, src *source, in *alarm_watch.Wat
 }
 
 // store writes the Alarm that cond implies at now, or records evalErr on the
-// current Alarm, and returns the Alarm. It writes nothing when the Alarm would
-// not change. The read and the write share a transaction, so an
-// acknowledgement written meanwhile is kept.
-func (c *Controller) store(ctx context.Context, cond *s4wave_alarm.Condition, evalErr error, now time.Time) (*s4wave_alarm.Alarm, error) {
+// current Alarm, and returns the Alarm. It points the Alarm's reads edges at
+// reads. It writes nothing when neither would change. The read and the write
+// share a transaction, so an acknowledgement written meanwhile is kept.
+func (c *Controller) store(ctx context.Context, cond *s4wave_alarm.Condition, evalErr error, reads []string, now time.Time) (*s4wave_alarm.Alarm, error) {
+	// Relink when the edges were never written or reads changed, then read,
+	// advance and write the Alarm in one transaction.
+	relink := !c.linked || !slices.Equal(reads, c.reads)
 	var next *s4wave_alarm.Alarm
 	err := world.ExecTransaction(ctx, c.engine, true, func(ctx context.Context, tx world.WorldState) error {
 		// Read the current Alarm.
@@ -226,11 +247,21 @@ func (c *Controller) store(ctx context.Context, cond *s4wave_alarm.Condition, ev
 		next.Title = c.conf.GetTitle()
 
 		// Write it only when it differs.
-		if cur != nil && next.EqualVT(cur) {
+		if cur == nil || !next.EqualVT(cur) {
+			if err := s4wave_alarm.WriteAlarm(ctx, tx, c.conf.GetAlarmKey(), next); err != nil {
+				return err
+			}
+		}
+
+		// Point its reads edges at what the watch reads.
+		if !relink {
 			return nil
 		}
-		return s4wave_alarm.WriteAlarm(ctx, tx, c.conf.GetAlarmKey(), next)
+		return s4wave_alarm.SetReads(ctx, tx, c.conf.GetAlarmKey(), reads)
 	})
+	if err == nil && relink {
+		c.linked, c.reads = true, reads
+	}
 	return next, err
 }
 

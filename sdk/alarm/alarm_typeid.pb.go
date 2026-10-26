@@ -15,7 +15,16 @@ func (*Alarm) TypeID() string {
 	return AlarmTypeID
 }
 
+// AcknowledgeAlarmOpTypeID is the type ID of AcknowledgeAlarmOp.
+const AcknowledgeAlarmOpTypeID = "alarm/acknowledge"
+
+// TypeID returns the type ID of AcknowledgeAlarmOp.
+func (*AcknowledgeAlarmOp) TypeID() string {
+	return AcknowledgeAlarmOpTypeID
+}
+
 // AlarmTypes lists the typed messages of alarm.proto.
 var AlarmTypes = []typeid.Type{
 	{ID: AlarmTypeID, New: func() any { return new(Alarm) }},
+	{ID: AcknowledgeAlarmOpTypeID, New: func() any { return new(AcknowledgeAlarmOp) }},
 }

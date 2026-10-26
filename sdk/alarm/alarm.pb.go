@@ -211,6 +211,36 @@ func (x *Alarm) GetError() string {
 	return ""
 }
 
+// AcknowledgeAlarmOp acknowledges a firing Alarm as the person who submits it.
+type AcknowledgeAlarmOp struct {
+	unknownFields []byte
+	// ObjectKey is the Alarm to acknowledge.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// TimeMs is when the person acknowledged it, in Unix milliseconds, chosen
+	// when the operation is submitted so every replay records the same time.
+	TimeMs int64 `protobuf:"varint,2,opt,name=time_ms,json=timeMs,proto3" json:"timeMs,omitempty"`
+}
+
+func (x *AcknowledgeAlarmOp) Reset() {
+	*x = AcknowledgeAlarmOp{}
+}
+
+func (*AcknowledgeAlarmOp) ProtoMessage() {}
+
+func (x *AcknowledgeAlarmOp) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *AcknowledgeAlarmOp) GetTimeMs() int64 {
+	if x != nil {
+		return x.TimeMs
+	}
+	return 0
+}
+
 func (m *AlarmOption) CloneVT() *AlarmOption {
 	if m == nil {
 		return (*AlarmOption)(nil)
@@ -252,6 +282,23 @@ func (m *Alarm) CloneVT() *Alarm {
 }
 
 func (m *Alarm) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcknowledgeAlarmOp) CloneVT() *AcknowledgeAlarmOp {
+	if m == nil {
+		return (*AcknowledgeAlarmOp)(nil)
+	}
+	r := new(AcknowledgeAlarmOp)
+	r.ObjectKey = m.ObjectKey
+	r.TimeMs = m.TimeMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcknowledgeAlarmOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -325,6 +372,29 @@ func (this *Alarm) EqualVT(that *Alarm) bool {
 
 func (this *Alarm) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Alarm)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcknowledgeAlarmOp) EqualVT(that *AcknowledgeAlarmOp) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.TimeMs != that.TimeMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcknowledgeAlarmOp) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcknowledgeAlarmOp)
 	if !ok {
 		return false
 	}
@@ -572,6 +642,56 @@ func (x *Alarm) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the AcknowledgeAlarmOp message to JSON.
+func (x *AcknowledgeAlarmOp) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.TimeMs != 0 || s.HasField("timeMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timeMs")
+		s.WriteInt64(x.TimeMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcknowledgeAlarmOp to JSON.
+func (x *AcknowledgeAlarmOp) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcknowledgeAlarmOp message from JSON.
+func (x *AcknowledgeAlarmOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "time_ms", "timeMs":
+			s.AddField("time_ms")
+			x.TimeMs = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcknowledgeAlarmOp from JSON.
+func (x *AcknowledgeAlarmOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *AlarmOption) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -713,6 +833,48 @@ func (m *Alarm) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *AcknowledgeAlarmOp) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcknowledgeAlarmOp) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcknowledgeAlarmOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.TimeMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TimeMs))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AlarmOption) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -746,6 +908,18 @@ func (m *Alarm) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AcknowledgedBy)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClearedMs)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcknowledgeAlarmOp) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.TimeMs)
 	n += len(m.unknownFields)
 	return n
 }
@@ -835,6 +1009,24 @@ func (x *Alarm) MarshalProtoText() string {
 }
 
 func (x *Alarm) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcknowledgeAlarmOp) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AcknowledgeAlarmOp")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.TimeMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "time_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.TimeMs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AcknowledgeAlarmOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1040,6 +1232,68 @@ func (m *Alarm) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Error = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcknowledgeAlarmOp) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcknowledgeAlarmOp: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcknowledgeAlarmOp: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TimeMs", wireType)
+			}
+			m.TimeMs = 0
+			m.TimeMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

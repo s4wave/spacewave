@@ -19,6 +19,7 @@ import (
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	"github.com/s4wave/spacewave/identity"
+	s4wave_alarm "github.com/s4wave/spacewave/sdk/alarm"
 	s4wave_appconnector "github.com/s4wave/spacewave/sdk/appconnector"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
@@ -36,6 +37,7 @@ import (
 var schema = world.NewSchema(
 	space_world_ops.Types,
 	s4wave_kv_world.WorldTypes,
+	s4wave_alarm.AlarmTypes,
 	s4wave_appconnector.AppconnectorTypes,
 	s4wave_sshhost.SshhostTypes,
 	s4wave_wizard.WizardTypes,

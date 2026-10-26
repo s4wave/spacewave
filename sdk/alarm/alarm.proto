@@ -59,3 +59,14 @@ message Alarm {
   // Alarm keeps its state while its watch fails.
   string error = 11;
 }
+
+// AcknowledgeAlarmOp acknowledges a firing Alarm as the person who submits it.
+message AcknowledgeAlarmOp {
+  option (typeid.id) = "alarm/acknowledge";
+
+  // ObjectKey is the Alarm to acknowledge.
+  string object_key = 1;
+  // TimeMs is when the person acknowledged it, in Unix milliseconds, chosen
+  // when the operation is submitted so every replay records the same time.
+  int64 time_ms = 2;
+}

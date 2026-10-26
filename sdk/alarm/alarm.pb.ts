@@ -144,3 +144,29 @@ export const Alarm: MessageType<Alarm> =
     [10, 'cleared_ms', 3],
     [11, 'error', 9],
   ])
+
+/**
+ * AcknowledgeAlarmOp acknowledges a firing Alarm as the person who submits it.
+ *
+ * @generated from message s4wave.alarm.AcknowledgeAlarmOp
+ */
+export interface AcknowledgeAlarmOp {
+  /**
+   * ObjectKey is the Alarm to acknowledge.
+   */
+  objectKey?: string
+  /**
+   * TimeMs is when the person acknowledged it, in Unix milliseconds, chosen
+   * when the operation is submitted so every replay records the same time.
+   */
+  timeMs?: bigint
+}
+
+export const AcknowledgeAlarmOp: MessageType<AcknowledgeAlarmOp> =
+  /* @__PURE__ */ createMessageType<AcknowledgeAlarmOp>(
+    's4wave.alarm.AcknowledgeAlarmOp',
+    () => [
+      [1, 'object_key', 9],
+      [2, 'time_ms', 3],
+    ],
+  )

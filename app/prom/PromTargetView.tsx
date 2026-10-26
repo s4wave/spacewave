@@ -182,14 +182,15 @@ function StateBadge({ state }: { state: TargetState }) {
   }
   return (
     <span
-      className={cn(
-        'rounded px-1.5 py-px text-metadata font-medium',
+      // text-metadata stays outside cn, which reads it as a color.
+      className={`text-metadata ${cn(
+        'rounded px-1.5 py-px font-medium',
         state.state === 'up' && 'bg-success/15 text-success',
         state.state === 'down' && 'bg-destructive/15 text-destructive',
         state.state === 'stale' && 'bg-warning/15 text-warning',
         (state.state === 'unapproved' || state.state === 'waiting') &&
           'bg-foreground/8 text-foreground-alt',
-      )}
+      )}`}
     >
       {labels[state.state]}
     </span>

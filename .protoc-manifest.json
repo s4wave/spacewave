@@ -3581,7 +3581,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/alarm": {
-      "hash": "526d8ad479b304a248f27185f162bfd6837b63501bf175464579171a9b78538e",
+      "hash": "528f67a041c7b9acaedc734ff8fea71dbc98ac0487460bd23646c00655c2520b",
       "generatedFiles": [
         "sdk/alarm/alarm.pb.go",
         "sdk/alarm/alarm.pb.ts",
