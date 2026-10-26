@@ -30,6 +30,12 @@ type storageMaintainer interface {
 // before the collector backs off after passes that find little.
 const markIntervals = 15
 
+// quietIntervals is the number of collection intervals after the volume opens
+// before a block pass may start. A process that just opened serves its first
+// readers from a cold store, and a pass due during the restart would read the
+// whole graph beside them.
+const quietIntervals = 5
+
 // slowSweepTx is the sweep transaction time past which a pass warns. A sweep
 // transaction holds the writer every World commit waits on, and its budget
 // keeps it near 50 ms.
@@ -72,7 +78,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	// reads the whole graph, so it runs markIntervals intervals after the
 	// last one ended, or up to 8x that after passes that find little. The
 	// schedule resumes from the volume, so a pass a restart cut short or
-	// postponed runs at the first collection.
+	// postponed runs once the quiet start is over.
 	collector := block_gc.NewCollector(rg, vol, nil)
 	next, err := readGcSchedule(ctx, vol)
 	if err != nil {
@@ -80,6 +86,9 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 			return ctx.Err()
 		}
 		c.le.WithError(err).Warn("gc schedule unreadable, scheduling the block pass from now")
+	}
+	if quiet := time.Now().Add(quietIntervals * interval); !next.IsZero() && next.Before(quiet) {
+		next = quiet
 	}
 	collector.SetMarkInterval(markIntervals*interval, next)
 	c.le.WithField("interval", interval.String()).Debug("gc sweep routine started")

@@ -145,7 +145,8 @@ func newTestController(vol volume.Volume, ctx context.Context) *Controller {
 }
 
 // TestRunGCSweepResumesSchedule checks that a block pass a restart left
-// overdue runs at the first collection and saves the next one to the volume.
+// overdue waits out the quiet start, then runs before a full mark interval and
+// saves the next one to the volume.
 func TestRunGCSweepResumesSchedule(t *testing.T) {
 	// Save a schedule an hour overdue, as a restart mid-pass leaves it.
 	ctx, cancel := context.WithCancel(t.Context())
@@ -182,6 +183,11 @@ func TestRunGCSweepResumesSchedule(t *testing.T) {
 	}
 	cancel()
 	<-done
+
+	// The pass waited out the quiet start.
+	if ran := time.Since(start); ran < quietIntervals*interval {
+		t.Fatalf("block pass ran %v after open, want at least %v", ran, quietIntervals*interval)
+	}
 
 	// The saved pass is due within the longest gap after the pass.
 	if limit := time.Now().Add(8 * markIntervals * interval); next.After(limit) {
