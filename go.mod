@@ -37,8 +37,8 @@ require (
 	github.com/aperturerobotics/go-kvfile v0.10.1-0.20261024231416-0a1dc13010cd // master
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
 	github.com/aperturerobotics/go-prometheus-client-lite v1.23.3-0.20261024041454-92147463582b
-	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261024222814-5b9806d17e81
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261024222814-5b9806d17e81
+	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261026103803-2730c79cc47e
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261026103803-2730c79cc47e
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20261024221652-c1205734f50c
 	github.com/aperturerobotics/go-winjob v0.0.0-20261024222822-b7a5589690d2
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest

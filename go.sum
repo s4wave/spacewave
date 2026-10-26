@@ -54,10 +54,10 @@ github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20261003014807-d46d22154f
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20261003014807-d46d22154f35/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f h1:UszdpmKBfQd0LdOZjypeRGrHz2tcPpmKpw6SV3DYyN0=
 github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
-github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261024222814-5b9806d17e81 h1:AE3lbxamOvGn7FKy+vef1VAwvmIU7rlpyS9muK0X7IM=
-github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261024222814-5b9806d17e81/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
-github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261024222814-5b9806d17e81 h1:VNHooFKqayz5R0R0iFgvZSIlwzYcdJTdbQZWmQOAuUs=
-github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261024222814-5b9806d17e81/go.mod h1:TXXX6Zb0ptnyEdzSW45+rb2/A4yNwMQ+h7GNd/NGcjc=
+github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261026103803-2730c79cc47e h1:aF4MlfoVnSA1yZNeRZRkhaQafMtAgGiCSpm3oG/cGNY=
+github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.2-0.20261026103803-2730c79cc47e/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261026103803-2730c79cc47e h1:nt/DeI2VSWwWxQBwOtJVDnmlGZUrsOdEPrHoGttwDJk=
+github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20261026103803-2730c79cc47e/go.mod h1:VvkKY0t7PItY//OEWikR4lThBhQXjy7/Nk4mKRHXLsc=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20261024221652-c1205734f50c h1:SLl7l6xDG1X0TOBCZZlDNZrWemhFZ/ZHoAQwTB812zg=
 github.com/aperturerobotics/go-websocket v1.8.15-0.20261024221652-c1205734f50c/go.mod h1:9KnSGuqxSXbdB/Oi0I6vvfPLkclfJwMGAQaDDGVgGow=
 github.com/aperturerobotics/go-winjob v0.0.0-20261024222822-b7a5589690d2 h1:BdhepEr6T5w6KrvDCJXWRXIkt66Ld1dHxGV4RTdovR8=
