@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
+	alarm_watch "github.com/s4wave/spacewave/sdk/alarm/watch"
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 )
 
@@ -15,8 +16,8 @@ const ControllerID = "spacewave/flowgraph/nodetype"
 var Version = controller.MustParseVersion("0.0.1")
 
 // Controller resolves LookupFlowgraphNodeType for the node types core
-// provides: TCP Port, Local Port, Checkout Root, Remote Shell, Forge Worker and
-// Event Source.
+// provides: TCP Port, Local Port, Checkout Root, Remote Shell, Forge Worker,
+// Event Source and Alarm Watch.
 type Controller struct {
 	// types contains the core node types by type ID.
 	types map[string]s4wave_flowgraph.FlowgraphNodeType
@@ -32,6 +33,7 @@ func NewController() *Controller {
 			s4wave_flowgraph.RemoteShellNodeTypeID:  remoteShell{},
 			s4wave_flowgraph.ForgeWorkerNodeTypeID:  forgeWorker{},
 			s4wave_flowgraph.EventSourceNodeTypeID:  eventSource{},
+			alarm_watch.NodeTypeID:                  alarm_watch.NodeType{},
 		},
 	}
 }

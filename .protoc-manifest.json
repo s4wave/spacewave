@@ -3580,6 +3580,28 @@
         "sdk/account/account.proto"
       ]
     },
+    "github.com/s4wave/spacewave/sdk/alarm": {
+      "hash": "526d8ad479b304a248f27185f162bfd6837b63501bf175464579171a9b78538e",
+      "generatedFiles": [
+        "sdk/alarm/alarm.pb.go",
+        "sdk/alarm/alarm.pb.ts",
+        "sdk/alarm/alarm_typeid.pb.go",
+        "sdk/alarm/alarm_typeid.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/alarm/alarm.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/sdk/alarm/watch": {
+      "hash": "693712f112a73cf242eb5d60d1eeae6383881fd2502b212d19d0af399136d57e",
+      "generatedFiles": [
+        "sdk/alarm/watch/watch.pb.go",
+        "sdk/alarm/watch/watch.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/alarm/watch/watch.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/sdk/appconnector": {
       "hash": "96f8c8e5cdfcf87e24379a2e66d3716e63d014d7fe8ced26d86e32fb46e5efdd",
       "generatedFiles": [

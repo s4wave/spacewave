@@ -46,6 +46,7 @@ import (
 	web_view_handler_server "github.com/s4wave/spacewave/bldr/web/view/handler/server"
 	bldr_web_view_observer "github.com/s4wave/spacewave/bldr/web/view/observer"
 	project_compose "github.com/s4wave/spacewave/cmd/spacewave/compose"
+	core_alarm_watch "github.com/s4wave/spacewave/core/alarm/watch"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
@@ -158,6 +159,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{bucket_setup.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{cluster_controller.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{core_alarm_watch.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{dex_solicit.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

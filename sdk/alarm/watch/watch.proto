@@ -1,0 +1,71 @@
+syntax = "proto3";
+package s4wave.alarm.watch;
+
+import "github.com/s4wave/spacewave/sdk/alarm/alarm.proto";
+import "github.com/s4wave/spacewave/sdk/prom/prom.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/alarm/watch;alarm_watch";
+
+// Config configures the controller that keeps one Alarm in step with a
+// PureFunction's view of its inputs.
+message Config {
+  // EngineId is the World engine holding the Alarm and the inputs.
+  string engine_id = 1;
+  // AlarmKey is the Alarm the watch writes. The watch creates it when missing.
+  string alarm_key = 2;
+  // FunctionKey is the function/pure object that decides the Alarm. It takes
+  // a WatchInput and returns a WatchResult.
+  string function_key = 3;
+  // HoldMs is how long the function must report firing before the Alarm fires.
+  int64 hold_ms = 4;
+  // Title is the title the watch gives the Alarm.
+  string title = 5;
+  // SourceKey is the object whose resource answers the queries, such as a
+  // prom/dashboard or a prom/target. It is empty for a watch with no queries.
+  string source_key = 6;
+  // Queries are the named PromQL queries the function reads.
+  repeated Query queries = 7;
+  // ObjectKeys are the World objects the function reads.
+  repeated string object_keys = 8;
+}
+
+// Query is one named PromQL query.
+message Query {
+  // Name is the query's key in WatchInput.queries.
+  string name = 1;
+  // Expr is the PromQL expression, evaluated at the watch's time.
+  string expr = 2;
+}
+
+// WatchInput is the input the watch passes its function.
+message WatchInput {
+  // TimeMs is the evaluation time in Unix milliseconds. The function has no
+  // clock of its own.
+  int64 time_ms = 1;
+  // Queries holds the result of each query by name.
+  map<string, s4wave.prom.QueryResponse> queries = 2;
+  // Objects holds each World object the watch reads by key.
+  map<string, ObjectInput> objects = 3;
+}
+
+// ObjectInput describes one World object the watch reads.
+message ObjectInput {
+  // Key is the object key.
+  string key = 1;
+  // Exists is set when the object exists.
+  bool exists = 2;
+  // TypeId is the object's type, empty when it is missing or untyped.
+  string type_id = 3;
+  // Rev is the object's revision.
+  uint64 rev = 4;
+}
+
+// WatchResult is the function's verdict.
+message WatchResult {
+  // Firing is set while the condition holds.
+  bool firing = 1;
+  // Summary describes the condition.
+  string summary = 2;
+  // Options are the actions that would change the condition.
+  repeated s4wave.alarm.AlarmOption options = 3;
+}

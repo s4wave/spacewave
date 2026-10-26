@@ -1,0 +1,61 @@
+syntax = "proto3";
+package s4wave.alarm;
+
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/alarm;s4wave_alarm";
+
+// AlarmState is where an Alarm stands in its life.
+enum AlarmState {
+  // ALARM_STATE_CLEAR is an Alarm whose condition does not hold.
+  ALARM_STATE_CLEAR = 0;
+  // ALARM_STATE_HOLDING is an Alarm whose condition holds but has not held
+  // for the hold time yet.
+  ALARM_STATE_HOLDING = 1;
+  // ALARM_STATE_FIRING is an Alarm whose condition has held for the hold time.
+  ALARM_STATE_FIRING = 2;
+  // ALARM_STATE_ACKNOWLEDGED is a firing Alarm someone acknowledged. It keeps
+  // sounding until the condition clears.
+  ALARM_STATE_ACKNOWLEDGED = 3;
+}
+
+// AlarmOption is an action that would change the condition an Alarm flags.
+message AlarmOption {
+  // Label names the action.
+  string label = 1;
+  // Description says what the action changes.
+  string description = 2;
+  // Recommended marks the option the watch recommends.
+  bool recommended = 3;
+}
+
+// Alarm is the root of an alarm object: a condition that holds, flagged until
+// it clears. Its watch is its only writer, except for acknowledging it.
+message Alarm {
+  option (typeid.id) = "alarm";
+
+  // Title names the condition the Alarm flags.
+  string title = 1;
+  // State is where the Alarm stands.
+  AlarmState state = 2;
+  // Summary describes the condition as the watch last found it.
+  string summary = 3;
+  // Options are the actions that would change the condition.
+  repeated AlarmOption options = 4;
+  // HoldMs is how long the condition must hold before the Alarm fires.
+  int64 hold_ms = 5;
+  // SinceMs is when the condition began to hold, in Unix milliseconds, or
+  // zero while the Alarm is clear.
+  int64 since_ms = 6;
+  // FiredMs is when the Alarm fired, or zero while it has not.
+  int64 fired_ms = 7;
+  // AcknowledgedMs is when someone acknowledged the Alarm, or zero.
+  int64 acknowledged_ms = 8;
+  // AcknowledgedBy names who acknowledged the Alarm.
+  string acknowledged_by = 9;
+  // ClearedMs is when the condition last cleared, or zero before it has.
+  int64 cleared_ms = 10;
+  // Error is why the watch could not evaluate the condition, or empty. The
+  // Alarm keeps its state while its watch fails.
+  string error = 11;
+}
