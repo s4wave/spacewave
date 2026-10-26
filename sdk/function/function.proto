@@ -1,0 +1,39 @@
+syntax = "proto3";
+package s4wave.function;
+
+import "github.com/aperturerobotics/common/typeid/typeid.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/function;s4wave_function";
+
+// Budget bounds the resources of one PureFunction run. A run past either
+// bound fails.
+message Budget {
+  // MemoryLimitBytes caps the JavaScript heap of a run. Zero uses 32 MiB.
+  uint32 memory_limit_bytes = 1;
+  // InterruptChecks caps the interrupt checks of a run. QuickJS checks once
+  // every 10,000 bytecode branches and calls, so a run gets about that many
+  // operations per check, counted the same on a Go daemon and in a browser.
+  // Zero uses 1,000.
+  uint32 interrupt_checks = 2;
+}
+
+// PureFunction is the root of a function/pure object: a TypeScript module
+// whose default export turns one protobuf message into another. It runs with
+// no SDK, network or clock of its own, so the same input gives the same
+// output wherever it runs.
+message PureFunction {
+  option (typeid.id) = "function/pure";
+
+  // Source is the TypeScript source as written.
+  string source = 1;
+  // Module is the ES module compiled from Source, which a runner evaluates.
+  string module = 2;
+  // InputType is the full name of the input message, such as
+  // s4wave.prom.QueryResponse. The function reads it in protobuf JSON form.
+  string input_type = 3;
+  // OutputType is the full name of the output message. The function returns
+  // it in protobuf JSON form.
+  string output_type = 4;
+  // Budget bounds each run.
+  Budget budget = 5;
+}

@@ -3858,6 +3858,18 @@
         "sdk/flowgraph/run/delivery.proto"
       ]
     },
+    "github.com/s4wave/spacewave/sdk/function": {
+      "hash": "778d54b6dfd4169ccdce6b2c9d37bdd9ebb9972d97abeee0e0ec785dfc48bf69",
+      "generatedFiles": [
+        "sdk/function/function.pb.go",
+        "sdk/function/function.pb.ts",
+        "sdk/function/function_typeid.pb.go",
+        "sdk/function/function_typeid.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/function/function.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/sdk/git": {
       "hash": "b9933af8f863cb71fc9c844f9e462d98f8c4002692a67a44818ddcb7744f855b",
       "generatedFiles": [

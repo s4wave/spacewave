@@ -1,0 +1,36 @@
+{
+  "inputType": "s4wave.prom.QueryResponse",
+  "outputType": "s4wave.prom.LabelSet",
+  "source": "// downInstances lists the instances whose up sample is 0, with the time and\n// a random nonce the runner fixes, so every host gives the same labels.\n// Protobuf JSON omits a zero value, so a missing value is 0.\ninterface Label {\n  name?: string\n  value?: string\n}\n\ninterface QueryResponse {\n  series?: { labels?: { labels?: Label[] }; samples?: { value?: number }[] }[]\n}\n\nexport default function downInstances(input: QueryResponse) {\n  const down = (input.series ?? [])\n    .filter((s) => ((s.samples ?? []).at(-1)?.value ?? 0) === 0)\n    .map((s) => s.labels?.labels?.find((l) => l.name === 'instance')?.value ?? '')\n    .sort()\n  return {\n    labels: [\n      { name: 'checked_at', value: new Date().toISOString() },\n      { name: 'down', value: down.join(',') },\n      { name: 'nonce', value: Math.random().toFixed(9) },\n    ],\n  }\n}\n",
+  "module": "// function.ts\nfunction downInstances(input) {\n  const down = (input.series ?? []).filter((s) => ((s.samples ?? []).at(-1)?.value ?? 0) === 0).map((s) => s.labels?.labels?.find((l) => l.name === \"instance\")?.value ?? \"\").sort();\n  return {\n    labels: [\n      { name: \"checked_at\", value: (/* @__PURE__ */ new Date()).toISOString() },\n      { name: \"down\", value: down.join(\",\") },\n      { name: \"nonce\", value: Math.random().toFixed(9) }\n    ]\n  };\n}\nexport {\n  downInstances as default\n};\n",
+  "input": {
+    "resultType": "RESULT_TYPE_VECTOR",
+    "series": [
+      {
+        "labels": {
+          "labels": [
+            { "name": "instance", "value": "thumper:9100" },
+            { "name": "job", "value": "node" }
+          ]
+        },
+        "samples": [{ "timeMs": "1793000000000", "value": 1 }]
+      },
+      {
+        "labels": {
+          "labels": [
+            { "name": "instance", "value": "forge-ü:9100" },
+            { "name": "job", "value": "node" }
+          ]
+        },
+        "samples": [{ "timeMs": "1793000000000", "value": 0 }]
+      }
+    ]
+  },
+  "output": {
+    "labels": [
+      { "name": "checked_at", "value": "1970-01-01T00:00:00.000Z" },
+      { "name": "down", "value": "forge-ü:9100" },
+      { "name": "nonce", "value": "0.358889980" }
+    ]
+  }
+}

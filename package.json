@@ -146,6 +146,7 @@
     "test:release:web": "bun run test:go:e2e:release-wasm",
     "test:release:web:startup": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true E2E_RELEASE_WASM_BROWSER=chromium go test -count=1 -timeout=20m -v ./e2e/releasewasm -run '^TestLocalCDNDriveStartup$'",
     "test:release:web:reopen": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true go test -count=1 -timeout=20m -v ./e2e/releasewasm -run '^TestLocalCDNCanvasReopen$'",
+    "test:function:browsers": "vitest --config=sdk/function/run/vitest.browsers.config.ts --run",
     "test:browser:nobackend": "vitest --config=vitest.browser.config.ts --run",
     "test:browser:nobackend:watch": "vitest --config=vitest.browser.config.ts",
     "test:browser:nobackend:ui": "cross-env BROWSER_TEST_UI=1 vitest --config=vitest.browser.config.ts --ui",
