@@ -76,6 +76,42 @@ func CreatePureFunction(ctx context.Context, ws world.WorldState, key string, fn
 	return world_types.SetObjectType(ctx, ws, key, PureFunctionTypeID)
 }
 
+// SetPureFunction stores fn at key, creating the function/pure object when it
+// is missing. An existing function is changed in place, so the edges that
+// reach it remain.
+func SetPureFunction(ctx context.Context, ws world.WorldState, key string, fn *PureFunction) error {
+	// Check the function before it is stored.
+	if err := fn.Validate(); err != nil {
+		return err
+	}
+
+	// Create the object when it is missing.
+	obj, found, err := ws.GetObject(ctx, key)
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return errors.Wrapf(err, "look up function %q", key)
+	}
+	if !found {
+		return CreatePureFunction(ctx, ws, key, fn)
+	}
+
+	// Refuse an object of another type.
+	typeID, err := world_types.GetObjectType(ctx, ws, key)
+	if err != nil {
+		return errors.Wrapf(err, "read the type of %q", key)
+	}
+	if typeID != PureFunctionTypeID {
+		return errors.Errorf("%q is a %q object, not a %s", key, typeID, PureFunctionTypeID)
+	}
+
+	// Replace the function in the object's root block.
+	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(fn, true)
+		return nil
+	})
+	return errors.Wrapf(err, "set function %q", key)
+}
+
 // ReadPureFunction reads the PureFunction key.
 func ReadPureFunction(ctx context.Context, ws world.WorldState, key string) (*PureFunction, error) {
 	// Look up the function's object.

@@ -54,6 +54,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_poli
 		newCanvasCommand(getBus),
 		newFlowgraphCommand(getBus),
 		newPromCommand(getBus),
+		newFunctionCommand(getBus),
 		newAptCommand(getBus),
 		newForgeCommand(getBus),
 		newVmCommand(getBus),
