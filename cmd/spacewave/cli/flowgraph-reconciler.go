@@ -47,7 +47,7 @@ func startFlowgraphReconciler(
 		defer client.close()
 
 		// Mount the Space holding the Device.
-		mount := func(ctx context.Context, record *deviceSetupRecord) (world.Engine, func(), error) {
+		mount := func(ctx context.Context, record *deviceSetupRecord) (world.Engine, string, func(), error) {
 			return mountDeviceWorld(ctx, client, record)
 		}
 
@@ -69,7 +69,7 @@ func runFlowgraphReconciler(
 	le *logrus.Entry,
 	statePath string,
 	b bus.Bus,
-	mount func(context.Context, *deviceSetupRecord) (world.Engine, func(), error),
+	mount func(context.Context, *deviceSetupRecord) (world.Engine, string, func(), error),
 	store *device_policy.PolicyStore,
 	forgeWorker *device_flowgraph.ForgeWorkerWatch,
 	hold func() func(),
@@ -84,14 +84,14 @@ func runFlowgraphReconciler(
 	}
 
 	// Mount the Space's World.
-	engine, release, err := mount(ctx, record)
+	engine, engineID, release, err := mount(ctx, record)
 	if err != nil {
 		return err
 	}
 	defer release()
 
 	// Reconcile until the daemon stops.
-	return device_flowgraph.NewReconciler(le, b, engine, store, forgeWorker, record.DeviceObjectKey, record.PeerID, hold).Run(ctx)
+	return device_flowgraph.NewReconciler(le, b, engine, engineID, store, forgeWorker, record.DeviceObjectKey, record.PeerID, hold).Run(ctx)
 }
 
 // waitDeviceSetupReady returns the setup record once the Device setup is
@@ -135,33 +135,42 @@ func waitDeviceSetupReady(ctx context.Context, le *logrus.Entry, statePath strin
 }
 
 // mountDeviceWorld mounts the World of the Space that holds the Device of
-// record. Call release when done with the engine.
-func mountDeviceWorld(ctx context.Context, client *sdkClient, record *deviceSetupRecord) (world.Engine, func(), error) {
+// record, and returns the ID of its engine. Call release when done with the
+// engine.
+func mountDeviceWorld(ctx context.Context, client *sdkClient, record *deviceSetupRecord) (world.Engine, string, func(), error) {
 	// Decode the Space the Device object lives in.
 	spaceID, err := decodeDeviceResourceID(record.ResourceID)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 
 	// Mount the session that owns the Space, then the Space and its World.
 	sess, err := client.mountSession(ctx, record.SessionIndex)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
 		sess.Release()
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
 		spaceCleanup()
 		sess.Release()
-		return nil, nil, err
+		return nil, "", nil, err
 	}
-	return engine, func() {
+	release := func() {
 		engineCleanup()
 		spaceCleanup()
 		sess.Release()
-	}, nil
+	}
+
+	// Read the ID the World engine has on the daemon's bus.
+	info, err := engine.GetEngineInfo(ctx)
+	if err != nil {
+		release()
+		return nil, "", nil, errors.Wrap(err, "get world engine info")
+	}
+	return engine, info.GetEngineInfo().GetEngineId(), release, nil
 }

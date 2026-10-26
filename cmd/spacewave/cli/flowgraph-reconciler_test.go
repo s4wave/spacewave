@@ -106,8 +106,8 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 	// Start the reconciler while the Device is not set up.
 	runCtx, stop := context.WithCancel(ctx)
 	defer stop()
-	mount := func(context.Context, *deviceSetupRecord) (world.Engine, func(), error) {
-		return engine, func() {}, nil
+	mount := func(context.Context, *deviceSetupRecord) (world.Engine, string, func(), error) {
+		return engine, tb.EngineID, func() {}, nil
 	}
 	runErr := make(chan error, 1)
 	go func() {

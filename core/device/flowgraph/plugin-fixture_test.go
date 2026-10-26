@@ -111,7 +111,7 @@ func TestPluginNodeFixture(t *testing.T) {
 
 	// Reconcile the Device against the standing node type lookup.
 	result := make(chan error, 1)
-	r := NewReconciler(le, b, tb.Engine, policy, NewForgeWorkerWatch(), testSelfKey, peerID, func() func() { return func() {} })
+	r := NewReconciler(le, b, tb.Engine, tb.EngineID, policy, NewForgeWorkerWatch(), testSelfKey, peerID, func() func() { return func() {} })
 	go func() { result <- r.Run(ctx) }()
 	defer func() {
 		cancel()

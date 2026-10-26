@@ -122,7 +122,7 @@ func TestReconciler(t *testing.T) {
 	runCtx, stop := context.WithCancel(ctx)
 	runErr := make(chan error, 1)
 	go func() {
-		runErr <- NewReconciler(le, b, engine, policy, forgeWorker, testSelfKey, selfPeer, hold).Run(runCtx)
+		runErr <- NewReconciler(le, b, engine, tb.EngineID, policy, forgeWorker, testSelfKey, selfPeer, hold).Run(runCtx)
 	}()
 
 	// Place a TCP Port and a Local Port on this Device. Each connects to a node

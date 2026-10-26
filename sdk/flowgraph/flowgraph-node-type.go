@@ -47,6 +47,9 @@ type PlacedFlowgraphNode struct {
 	Node *FlowgraphNode
 	// DevicePeerID is the peer ID of the Device running the node.
 	DevicePeerID string
+	// EngineID is the ID of the World engine holding the Flowgraph, which a
+	// compiled controller looks up on the bus.
+	EngineID string
 	// Connections contains the connections that end at the node.
 	Connections []*PlacedFlowgraphConnection
 }

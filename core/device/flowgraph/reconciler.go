@@ -35,6 +35,8 @@ type Reconciler struct {
 	b bus.Bus
 	// engine is the World engine of the Space holding the Device.
 	engine world.Engine
+	// engineID is the ID of engine on the bus.
+	engineID string
 	// policy supplies the allowed node types.
 	policy *device_policy.PolicyStore
 	// forgeWorker receives the declaration of the accepted forge-worker node.
@@ -61,12 +63,13 @@ type Reconciler struct {
 }
 
 // NewReconciler constructs a Reconciler for the Device at deviceKey with the
-// given peer ID. It calls hold while a node runs and calls the release it
-// returns once none do.
+// given peer ID. engineID is the ID of engine on the bus. It calls hold while
+// a node runs and calls the release it returns once none do.
 func NewReconciler(
 	le *logrus.Entry,
 	b bus.Bus,
 	engine world.Engine,
+	engineID string,
 	policy *device_policy.PolicyStore,
 	forgeWorker *ForgeWorkerWatch,
 	deviceKey, peerID string,
@@ -76,6 +79,7 @@ func NewReconciler(
 		le:          le,
 		b:           b,
 		engine:      engine,
+		engineID:    engineID,
 		policy:      policy,
 		forgeWorker: forgeWorker,
 		deviceKey:   deviceKey,
@@ -237,7 +241,7 @@ func (r *Reconciler) compilePlaced(ctx context.Context, reads *world.ReadSet) (m
 	}
 	defer tx.Discard()
 	ws := reads.Track(tx)
-	placed, err := readPlacedNodes(ctx, ws, r.deviceKey, r.peerID)
+	placed, err := readPlacedNodes(ctx, ws, r.engineID, r.deviceKey, r.peerID)
 	if err != nil {
 		return nil, nil, err
 	}
