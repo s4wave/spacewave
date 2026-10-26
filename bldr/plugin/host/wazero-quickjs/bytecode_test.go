@@ -11,6 +11,7 @@ import (
 	"testing/fstest"
 
 	quickjs "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs"
+	bldr_util_qjsbytecode "github.com/s4wave/spacewave/bldr/util/qjsbytecode"
 	"github.com/sirupsen/logrus"
 	"github.com/tetratelabs/wazero"
 )
@@ -22,7 +23,8 @@ func TestBytecodeCache(t *testing.T) {
 	// Build the cache and a dist with a module that imports a chunk.
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
-	cache := &bytecodeCache{dir: t.TempDir()}
+	cacheDir := t.TempDir()
+	cache := newBytecodeCache(cacheDir)
 	dist := fstest.MapFS{
 		"main.mjs":       {Data: []byte("import { answer } from './chunks/lib.mjs';\nprint(answer);\n")},
 		"chunks/lib.mjs": {Data: []byte("export const answer = 6 * 7;\n")},
@@ -66,8 +68,8 @@ func TestBytecodeCache(t *testing.T) {
 	}
 
 	// Each module has one cache entry, and a stale entry is removed.
-	pluginDir := filepath.Join(cache.dir, "test-plugin")
-	stale := filepath.Join(pluginDir, "stale"+bytecodeExt)
+	pluginDir := filepath.Join(cacheDir, "test-plugin")
+	stale := filepath.Join(pluginDir, "stale"+bldr_util_qjsbytecode.Ext)
 	if err := os.WriteFile(stale, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}

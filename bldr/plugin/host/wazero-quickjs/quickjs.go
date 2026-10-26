@@ -103,7 +103,7 @@ func NewWazeroQuickJsHost(b bus.Bus, le *logrus.Entry, cacheDir string) (*Wazero
 	}
 	if cacheDir != "" {
 		h.wazeroCacheDir = filepath.Join(cacheDir, "wazero")
-		h.bytecode = &bytecodeCache{dir: filepath.Join(cacheDir, "bytecode")}
+		h.bytecode = newBytecodeCache(filepath.Join(cacheDir, "bytecode"))
 	}
 	h.quickjsVmRc = refcount.NewRefCount(nil, false, nil, nil, h.resolveQuickjsVm)
 	return h, nil
