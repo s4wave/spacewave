@@ -9,7 +9,6 @@ import (
 	http_server "github.com/s4wave/spacewave/db/block/store/http/server"
 	block_store_kvfile_http "github.com/s4wave/spacewave/db/block/store/kvfile/http"
 	block_store_redis "github.com/s4wave/spacewave/db/block/store/redis"
-	block_store_ristretto "github.com/s4wave/spacewave/db/block/store/ristretto"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	block_store_s3_lookup "github.com/s4wave/spacewave/db/block/store/s3/lookup"
 	"github.com/s4wave/spacewave/db/core"
@@ -55,6 +54,5 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 	sr.AddFactory(block_store_http.NewFactory(b))
 	sr.AddFactory(block_store_s3.NewFactory(b))
 	sr.AddFactory(block_store_s3_lookup.NewFactory(b))
-	sr.AddFactory(block_store_ristretto.NewFactory(b))
 	sr.AddFactory(block_store_redis.NewFactory(b))
 }

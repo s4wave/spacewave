@@ -1800,16 +1800,6 @@
         "db/block/store/redis/redis.proto"
       ]
     },
-    "github.com/s4wave/spacewave/db/block/store/ristretto": {
-      "hash": "9c7d28b381f093af518646f29a8b250a49e28612ee6ea8d79e6c7c9390aa7ff1",
-      "generatedFiles": [
-        "db/block/store/ristretto/ristretto.pb.go",
-        "db/block/store/ristretto/ristretto.pb.ts"
-      ],
-      "protoFiles": [
-        "db/block/store/ristretto/ristretto.proto"
-      ]
-    },
     "github.com/s4wave/spacewave/db/block/store/rpc": {
       "hash": "b77e689b3f3b74a70f3213317ecbf4cdf1667fd4dd1b834d686c8f1ac2bdd409",
       "generatedFiles": [
@@ -2295,16 +2285,6 @@
       ],
       "protoFiles": [
         "db/store/kvtx/redis/redis.proto"
-      ]
-    },
-    "github.com/s4wave/spacewave/db/store/kvtx/ristretto": {
-      "hash": "cd854b4980ed6f8e82cf12b1713c259be778dffb9f701e25d02346d5b9539be1",
-      "generatedFiles": [
-        "db/store/kvtx/ristretto/ristretto.pb.go",
-        "db/store/kvtx/ristretto/ristretto.pb.ts"
-      ],
-      "protoFiles": [
-        "db/store/kvtx/ristretto/ristretto.proto"
       ]
     },
     "github.com/s4wave/spacewave/db/unixfs/access/http": {

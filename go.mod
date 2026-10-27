@@ -6,7 +6,6 @@ tool github.com/s4wave/goscript/cmd/goscript
 
 replace (
 	github.com/cloudflare/circl => github.com/aperturerobotics/circl v1.6.4-0.20261026102657-7415ab3046b7
-	github.com/dgraph-io/ristretto/v2 => github.com/aperturerobotics/ristretto/v2 v2.0.0-20260922205806-ef08161157dc // main
 	github.com/dolthub/go-mysql-server => github.com/aperturerobotics/go-mysql-server v0.20.1-0.20261024013424-a1751f2da19d
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.1-0.20260922211658-605a6e457746
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20261024012120-fd4d1ea7517a // aperture
@@ -48,7 +47,6 @@ require (
 	github.com/cloudflare/circl v1.6.5
 	github.com/cockroachdb/apd/v3 v3.2.3
 	github.com/creack/pty v1.1.24
-	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/dolthub/go-mysql-server v0.20.1-0.20261024000501-c22d4b6df50c
 	github.com/dolthub/vitess v0.0.0-20261014211039-3e903c0f05d3
 	github.com/dustin/go-humanize v1.1.0

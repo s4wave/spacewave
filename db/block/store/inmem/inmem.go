@@ -8,11 +8,11 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 )
 
-// InmemBlock is a block store on top of a Ristretto cache.
+// InmemBlock is a block store on top of an in-memory key-value store.
 // Stores blocks at {objectPrefix}/{block ref}
 type InmemBlock = block_store_kvtx.KVTxBlock
 
-// NewInmemBlock builds a new block store on top of a Ristretto cache.
+// NewInmemBlock builds a new block store on top of an in-memory key-value store.
 //
 // forceHashType can be 0 to use the default hash type.
 // hashGet hashes Get requests for integrity, use if the storage is unreliable or untrusted.
