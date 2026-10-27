@@ -250,12 +250,7 @@ func TestWatchChangesFilter(t *testing.T) {
 
 	// Wait for both subscriptions so each commit reaches them live.
 	for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(time.Millisecond) {
-		locked := e.bcast.Lock()
-		n := 0
-		if e.changeWatch != nil {
-			n = e.changeWatch.subs.Len()
-		}
-		locked.Unlock()
+		n := len(e.indexedSubscribers())
 		if n == 2 {
 			break
 		}
