@@ -244,7 +244,7 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 //
 // A pass that sweeps everything it marked promotes its mark, as
 // RefGraph.PromoteYoung describes, from the young log position it read before
-// the pass opened, and lets minor passes run.
+// the pass opened, and lets minor passes run, also after a restart.
 func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGraphOps, stats *block_gc.Stats) error {
 	return v.runBlockPass(ctx, graph, false, func(actual *transactionRefGraph) error {
 		// Report the mark from the opening of the pass. Read the young log
@@ -266,11 +266,7 @@ func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGra
 				return err
 			}
 			v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_PROMOTE)
-			if err := v.promoteYoung(ctx, mark, bound); err != nil {
-				return err
-			}
-			v.youngReady = true
-			return nil
+			return v.promoteYoung(ctx, mark, bound)
 		})
 	})
 }
@@ -278,8 +274,9 @@ func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGra
 // SweepYoungBlocks runs one minor pass as a block pass whose mark covers only
 // the young blocks, as RefGraph.MarkYoung describes, and sweeps the young
 // blocks it did not reach as SweepUnreachedBlocks does. It does nothing until
-// a block pass in this process promoted its mark. A minor pass that sweeps
-// everything it marked promotes its mark too.
+// the graph's young log is complete: a store born empty, or one a block pass
+// promoted in full, in this process or before a restart. A minor pass that
+// sweeps everything it marked promotes its mark too.
 func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOps, stats *block_gc.Stats) error {
 	return v.runBlockPass(ctx, graph, true, func(actual *transactionRefGraph) error {
 		// Report the mark from the opening of the pass.
@@ -311,8 +308,8 @@ func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOp
 }
 
 // runBlockPass runs fn as the Volume's one block pass, after checking that
-// graph is the Volume's own. A minor pass returns without running fn until a
-// block pass promoted its mark.
+// graph is the Volume's own. A minor pass returns without running fn while the
+// young log is not complete.
 func (v *Volume) runBlockPass(ctx context.Context, graph block_gc.RefGraphOps, minor bool, fn func(*transactionRefGraph) error) error {
 	// Require the Volume transaction domain and run one pass at a time.
 	actual, ok := v.refGraph.(*transactionRefGraph)
@@ -326,7 +323,13 @@ func (v *Volume) runBlockPass(ctx context.Context, graph block_gc.RefGraphOps, m
 	}
 	defer release()
 	if minor && !v.youngReady {
-		return nil
+		err := actual.read(ctx, func(rg *block_gc.RefGraph) (err error) {
+			v.youngReady, err = rg.YoungReady(ctx)
+			return err
+		})
+		if err != nil || !v.youngReady {
+			return err
+		}
 	}
 	return fn(actual)
 }
@@ -346,8 +349,13 @@ func (v *Volume) inBlockPass(ctx context.Context, actual *transactionRefGraph, f
 
 // promoteYoung promotes mark from bound in budgeted transactions, as
 // RefGraph.PromoteYoung describes, each yielding the writer after its budget
-// or to a waiting writer.
+// or to a waiting writer. The young log is not complete until the last
+// transaction commits. A cancelled context does not stop it: a promotion cut
+// short leaves the store not minor-ready until the next full block pass, so
+// it runs until it finishes or the Volume closes.
 func (v *Volume) promoteYoung(ctx context.Context, mark *block_gc.BlockMark, bound uint64) error {
+	v.youngReady = false
+	ctx = context.WithoutCancel(ctx)
 	for {
 		var done bool
 		err := v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) (err error) {
@@ -357,6 +365,7 @@ func (v *Volume) promoteYoung(ctx context.Context, mark *block_gc.BlockMark, bou
 			return err
 		})
 		if err != nil || done {
+			v.youngReady = done && err == nil
 			return err
 		}
 	}

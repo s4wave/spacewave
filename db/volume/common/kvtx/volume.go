@@ -104,10 +104,9 @@ type Volume struct {
 	// blockPassMu runs one block pass at a time, since a pass consumes the
 	// adopt log that the graph keeps while one is open.
 	blockPassMu csync.Mutex
-	// youngReady reports that a block pass in this process swept everything
-	// it marked and promoted its mark, so minor passes may run. It is not
-	// stored: a build without the young log may write before a restart.
-	// Guarded by blockPassMu.
+	// youngReady caches that the graph's young log is complete, as
+	// block_gc.RefGraph.YoungReady reports, so minor passes may run. A
+	// promotion clears it while it runs. Guarded by blockPassMu.
 	youngReady bool
 	// healthBcast guards health and wakes its watchers when it changes.
 	healthBcast broadcast.Broadcast
