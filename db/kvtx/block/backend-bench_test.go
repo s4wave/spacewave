@@ -27,6 +27,7 @@ type benchBlockStore struct {
 	putBytes         atomic.Int64
 	putRefs          atomic.Int64
 	putNewBlocks     atomic.Int64
+	putNewBytes      atomic.Int64
 	putBatchCalls    atomic.Int64
 	putBatchEntries  atomic.Int64
 	putBatchMax      atomic.Int64
@@ -58,6 +59,7 @@ func (s *benchBlockStore) PutBlock(ctx context.Context, data []byte, opts *block
 		s.putBytes.Add(int64(len(data)))
 		if !found {
 			s.putNewBlocks.Add(1)
+			s.putNewBytes.Add(int64(len(data)))
 		}
 		if opts != nil {
 			s.putRefs.Add(int64(len(opts.Refs)))
@@ -86,6 +88,7 @@ func (s *benchBlockStore) PutBlockBatch(ctx context.Context, entries []*block.Pu
 		s.putRefs.Add(int64(len(entry.Refs)))
 		if !existed[i] {
 			s.putNewBlocks.Add(1)
+			s.putNewBytes.Add(int64(len(entry.Data)))
 		}
 	}
 	return existed, nil
@@ -170,6 +173,7 @@ func (s *benchBlockStore) resetCounts() {
 	s.putBytes.Store(0)
 	s.putRefs.Store(0)
 	s.putNewBlocks.Store(0)
+	s.putNewBytes.Store(0)
 	s.putBatchCalls.Store(0)
 	s.putBatchEntries.Store(0)
 	s.putBatchMax.Store(0)
@@ -199,6 +203,7 @@ func (s *benchBlockStore) reportMetrics(b *testing.B, ops int64) {
 	b.ReportMetric(float64(s.putBytes.Load())/denom, "put-bytes/op")
 	b.ReportMetric(float64(s.putRefs.Load())/denom, "put-refs/op")
 	b.ReportMetric(float64(s.putNewBlocks.Load())/denom, "put-new-blocks/op")
+	b.ReportMetric(float64(s.putNewBytes.Load())/denom, "put-new-bytes/op")
 	b.ReportMetric(float64(s.putBatchCalls.Load())/denom, "put-batches/op")
 	b.ReportMetric(float64(s.putBatchEntries.Load())/denom, "put-batch-entries/op")
 	b.ReportMetric(float64(s.putBatchMax.Load()), "put-batch-max")
@@ -833,6 +838,54 @@ func BenchmarkKVTXBackendAdvancingCommit(b *testing.B) {
 			}
 		}
 	}
+}
+
+// BenchmarkKVTXBackendWorldShapedCommit commits a few small updates to keys
+// spread over a large tree per iteration and advances the root, as a World
+// commit updates a few objects among many. The new blocks and bytes per
+// commit are the garbage the commit leaves for collection once a later commit
+// supersedes them.
+func BenchmarkKVTXBackendWorldShapedCommit(b *testing.B) {
+	for _, size := range []int{65536, 1048576} {
+		for _, updates := range []int{1, 4, 10} {
+			for _, impl := range benchKVImpls() {
+				b.Run(benchKVName(impl, "updates_"+strconv.Itoa(updates), size), func(b *testing.B) {
+					// Build the starting tree and clear its build counts.
+					ctx := context.Background()
+					tree := buildBenchKVTree(b, impl, makeBenchKeys(size, benchKeySequential), false, false)
+					tree.store.resetCounts()
+
+					// Update keys spread over the tree, one commit per
+					// iteration, advancing the root.
+					b.ReportAllocs()
+					b.ResetTimer()
+					for i := range b.N {
+						btx, tx := newBenchKVWriteTx(b, ctx, tree)
+						for j := range updates {
+							n := i*updates + j
+							key := tree.keys[int(uint64(n+1)*0x9e3779b185ebca87>>1)%size]
+							if err := tx.Set(ctx, key, benchWorldValue(n+size)); err != nil {
+								tx.Discard()
+								b.Fatal(err)
+							}
+						}
+						tree.rootRef = commitBenchKVTx(b, ctx, btx, tx)
+					}
+
+					// Report the store traffic and the final tree shape.
+					b.StopTimer()
+					tree.store.reportMetrics(b, int64(b.N))
+					reportBenchKVRoot(b, ctx, tree)
+				})
+			}
+		}
+	}
+}
+
+// benchWorldValue returns a value the size of a World object index entry: an
+// object root reference with its revision.
+func benchWorldValue(i int) []byte {
+	return append(benchValue(i), benchValue(i*11)...)
 }
 
 func benchKVImpls() []KVImplType {
