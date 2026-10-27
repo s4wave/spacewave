@@ -51,10 +51,11 @@ func TestReachable(t *testing.T) {
 	addRef(block("candidate"), block("candidate-leaf"))
 
 	// Walk the graph and check each node's membership and the count.
-	reached, err := rg.Reachable(ctx)
+	mark, err := rg.Reachable(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+	reached := mark.Live
 	for _, node := range []string{
 		NodeGCRoot, "bucket", block("left"), block("right"), block("leaf"),
 		"object", block("chain-0"), block("chain-" + strconv.Itoa(chain-1)),

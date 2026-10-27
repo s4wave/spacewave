@@ -685,8 +685,10 @@ func checkLegacyRefGraph(t *testing.T, store db_kvtx.Store) {
 // TestCopyReachable copies a store whose graph root reaches blocks a and b
 // through a bucket, with b also left in the unreferenced queue, and whose
 // registered root owns block f, while c sits only in the queue, d has no graph
-// record and e belongs to a bucket nothing reaches. The copy keeps a, b, f,
-// their records and the key outside the graph, and drops the rest.
+// record and e belongs to a bucket nothing reaches. f has no child list, so
+// the copy refuses the source before writing anything until unknown blocks
+// are allowed. The copy then keeps a, b, f, their records and the key outside
+// the graph, and drops the rest.
 func TestCopyReachable(t *testing.T) {
 	t.Run("inmem", func(t *testing.T) {
 		testCopyReachable(t, store_kvtx_inmem.NewStore(), store_kvtx_inmem.NewStore())
@@ -763,9 +765,18 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 		t.Fatal(err)
 	}
 
-	// Copy the reachable part.
+	// The copy refuses the unknown block f and writes nothing.
+	if err := CopyReachable(ctx, src, dst, keys, CopyReachableOptions{}, nil); err == nil {
+		t.Fatal("reachable copy past an unknown block succeeded")
+	}
+	if err := requireEmptyStore(ctx, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	// Copy the reachable part, allowing it.
 	var last CopyProgress
-	if err := CopyReachable(ctx, src, dst, keys, func(p CopyProgress) { last = p }); err != nil {
+	opts := CopyReachableOptions{AllowUnknown: true, CountUnowned: true}
+	if err := CopyReachable(ctx, src, dst, keys, opts, func(p CopyProgress) { last = p }); err != nil {
 		t.Fatal(err)
 	}
 
@@ -774,7 +785,7 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 	// record: the copy keeps the reachable edges and lists and the root's
 	// record, and drops c's list, the unreachable bucket's edge and the young
 	// log the writes appended.
-	want := CopyProgress{Keys: 13, DroppedBlocks: 3, UnownedBlocks: 1, DroppedRecords: 5}
+	want := CopyProgress{Keys: 13, UnknownBlocks: 1, DroppedBlocks: 3, UnownedBlocks: 1, DroppedRecords: 5}
 	last.Bytes, last.DroppedBytes = 0, 0
 	if last != want {
 		t.Fatalf("progress %+v, want %+v", last, want)
@@ -820,7 +831,7 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 	// A store at an earlier format is refused.
 	old := store_kvtx_inmem.NewStore()
 	writeLegacyStore(t, old, keys)
-	if err := CopyReachable(ctx, old, store_kvtx_inmem.NewStore(), keys, nil); err == nil {
+	if err := CopyReachable(ctx, old, store_kvtx_inmem.NewStore(), keys, opts, nil); err == nil {
 		t.Fatal("reachable copy of a version 2 store succeeded")
 	}
 }

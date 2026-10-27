@@ -12,16 +12,20 @@ import (
 // reachChunk bounds the nodes whose forward records one prefetch loads.
 const reachChunk = 4096
 
-// Reachable returns every node reachable by forward edges and child lists from
-// the graph root and the registered roots, the roots included: the nodes the
-// mark phase of a complete collection keeps. The unreferenced queue marks
-// candidates and owns nothing, so neither it nor its edges are included. The
-// walk reads one snapshot, popping chunks of nodes from a stack and loading the
-// index pages of each chunk's records together in key order, so a cold store
-// costs a batch of reads per chunk instead of one read per node, and the work
-// list stays small however wide the graph is.
-func (g *RefGraph) Reachable(ctx context.Context) (*NodeSet, error) {
+// Reachable marks every node reachable by forward edges and child lists from
+// the graph root and the registered roots, the roots included, in the mark's
+// Live: the nodes the mark phase of a complete collection keeps. The
+// unreferenced queue marks candidates and owns nothing, so neither it nor its
+// edges are included. A reached block without a child list counts in the
+// mark's Unknown, as in MarkBlocks: the blocks it names are not reached, so a
+// caller that keeps only Live must refuse a mark with any. The walk reads one
+// snapshot, popping chunks of nodes from a stack and loading the index pages
+// of each chunk's records together in key order, so a cold store costs a
+// batch of reads per chunk instead of one read per node, and the work list
+// stays small however wide the graph is.
+func (g *RefGraph) Reachable(ctx context.Context) (*BlockMark, error) {
 	reached := NewNodeSet()
+	mark := &BlockMark{Live: reached}
 	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
 		// Seed the stack with the graph root and the registered roots.
 		reached.Add(NodeGCRoot)
@@ -38,13 +42,13 @@ func (g *RefGraph) Reachable(ctx context.Context) (*NodeSet, error) {
 		}
 
 		// Walk from them.
-		_, err = walkTx(ctx, tx, reached, stack, nil, nil, nil)
+		_, err = walkTx(ctx, tx, reached, stack, nil, mark.noteUnknown, nil)
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return reached, nil
+	return mark, nil
 }
 
 // RecordSubject returns the node whose liveness decides whether a complete

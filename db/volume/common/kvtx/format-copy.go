@@ -21,14 +21,19 @@ type CopyProgress struct {
 	// Edges is the number of Cayley log edges and version 3 graph records
 	// converted.
 	Edges uint64
+	// UnknownBlocks is the number of blocks without a child list that a
+	// reachable copy's walk reached. The blocks they name are not reached.
+	UnknownBlocks uint64
 	// DroppedBlocks is the number of blocks a reachable copy left out.
 	DroppedBlocks uint64
 	// UnownedBlocks is the number of dropped blocks no graph record owned,
-	// which a running collector would never have deleted.
+	// which a running collector would never have deleted. A reachable copy
+	// counts them only with CopyReachableOptions.CountUnowned.
 	UnownedBlocks uint64
 	// DroppedRecords is the number of graph records a reachable copy left out.
 	DroppedRecords uint64
-	// DroppedBytes is the size of the keys and values left out.
+	// DroppedBytes is the size of the keys left out. Their values are not
+	// read.
 	DroppedBytes uint64
 }
 
@@ -51,7 +56,17 @@ func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey
 	if version == 0 || version > store_kvkey.FormatVersion {
 		return fmt.Errorf("copy needs store format version 1 to %d, found %d", store_kvkey.FormatVersion, version)
 	}
-	return copyStore(ctx, src, dst, keys, version, false, progress)
+	return copyStore(ctx, src, dst, keys, version, nil, progress)
+}
+
+// CopyReachableOptions adjusts a CopyReachable.
+type CopyReachableOptions struct {
+	// AllowUnknown copies a source whose walk reaches blocks without a child
+	// list. The blocks they name are dropped, though they may be live.
+	AllowUnknown bool
+	// CountUnowned counts the dropped blocks no graph record owns, at one
+	// index lookup per dropped block.
+	CountUnowned bool
 }
 
 // CopyReachable writes the Volume store src into the empty store dst like
@@ -62,8 +77,14 @@ func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey
 // src must be at format version 3 or later: the walk reads edge records and
 // child lists, so the records of an older store would be missed and their
 // blocks dropped. A dropped block no graph record tracked or owned is counted
-// in UnownedBlocks, since a running collector would never have deleted it.
-func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(CopyProgress)) error {
+// in UnownedBlocks with opts.CountUnowned, since a running collector would
+// never have deleted it.
+//
+// It refuses, before writing anything, a source whose walk reaches a block
+// without a child list, unless opts.AllowUnknown is set: the blocks such a
+// block names are not reached and may be live, which is why a sweep waits
+// for unknown blocks.
+func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, opts CopyReachableOptions, progress func(CopyProgress)) error {
 	// Require a source whose graph the walk reads.
 	version, err := readFormatVersion(ctx, src, keys)
 	if err != nil {
@@ -72,18 +93,18 @@ func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.K
 	if version < 3 || version > store_kvkey.FormatVersion {
 		return fmt.Errorf("reachable copy needs store format version 3 to %d, found %d; copy it to the current format first", store_kvkey.FormatVersion, version)
 	}
-	return copyStore(ctx, src, dst, keys, version, true, progress)
+	return copyStore(ctx, src, dst, keys, version, &opts, progress)
 }
 
 // copyStore copies src, at format version, into the empty store dst and
-// records the format version last. With reachable, it first marks the nodes
-// reachable from the graph root and copies only what they keep.
+// records the format version last. With reachable set, it first marks the
+// nodes reachable from the graph root and copies only what they keep.
 func copyStore(
 	ctx context.Context,
 	src, dst kvtx.Store,
 	keys *store_kvkey.KVKey,
 	version uint64,
-	reachable bool,
+	reachable *CopyReachableOptions,
 	progress func(CopyProgress),
 ) error {
 	// Refuse a destination that already holds keys.
@@ -100,12 +121,22 @@ func copyStore(
 
 	// Mark the reachable nodes in the same snapshot.
 	w := &copyWriter{store: dst, progress: progress, convert: version < 4}
-	if reachable {
+	if reachable != nil {
 		w.graph = openRefGraph(kvtx.NewTxStore(stx))
 		w.blockPrefix = keys.GetBlockFullPrefix()
-		w.live, err = w.graph.Reachable(ctx)
+		w.countUnowned = reachable.CountUnowned
+		mark, err := w.graph.Reachable(ctx)
 		if err != nil {
 			return fmt.Errorf("mark reachable nodes: %w", err)
+		}
+		w.live = mark.Live
+		w.counts.UnknownBlocks = uint64(mark.Unknown) //nolint:gosec // counts are never negative.
+		w.report()
+		if mark.Unknown != 0 && !reachable.AllowUnknown {
+			return fmt.Errorf(
+				"%d reached blocks have no child list, so the blocks they name may be live and would be dropped; sample %v named by %v",
+				mark.Unknown, mark.UnknownSample, mark.UnknownNamers,
+			)
 		}
 	}
 
@@ -164,6 +195,8 @@ type copyWriter struct {
 	// graph reads the source's reference graph in the copy's snapshot during
 	// a reachable copy.
 	graph *block_gc.RefGraph
+	// countUnowned counts the dropped blocks no graph record owns.
+	countUnowned bool
 	// convert moves the edges of a graph older than child lists into them.
 	convert bool
 	// adds are the converted edges of the batch being filled.
@@ -195,10 +228,6 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 			continue
 		}
 		if !bytes.Equal(key, versionKey) {
-			value, err := it.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
 			key = bytes.Clone(key)
 			if record, ok := bytes.CutPrefix(key, legacyRefGraphPrefix); ok {
 				current, err := block_gc.LegacyRecordKey(record)
@@ -214,11 +243,18 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 			if err != nil {
 				return err
 			}
+			// Read the value only of a kept key: a store may read values
+			// lazily, and most of a reachable copy's dropped bytes are
+			// values.
 			if keep {
+				value, err := it.ValueCopy(nil)
+				if err != nil {
+					return err
+				}
 				batch = append(batch, keyValue{key: key, value: value})
 				size += len(key) + len(value)
 			} else {
-				w.counts.DroppedBytes += uint64(len(key) + len(value)) //nolint:gosec // lengths are never negative.
+				w.counts.DroppedBytes += uint64(len(key)) //nolint:gosec // lengths are never negative.
 			}
 		}
 		if size+w.addBytes >= migrateBatchBytes {
@@ -272,8 +308,11 @@ func (w *copyWriter) keep(ctx context.Context, key []byte) (bool, error) {
 	}
 
 	// Count a dropped block that no record names as an object, not even the
-	// unreferenced queue.
+	// unreferenced queue, when asked.
 	w.counts.DroppedBlocks++
+	if !w.countUnowned {
+		return false, nil
+	}
 	owners, err := w.graph.GetIncomingRefs(ctx, node)
 	if err != nil {
 		return false, err
