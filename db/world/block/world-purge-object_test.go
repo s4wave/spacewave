@@ -12,6 +12,7 @@ import (
 // TestPurgeObjectWithoutRecord purges an object whose record block the store
 // lacks, which DeleteObject cannot read, and checks its quads go with it.
 func TestPurgeObjectWithoutRecord(t *testing.T) {
+	// Open a testbed with an empty World.
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
@@ -24,6 +25,8 @@ func TestPurgeObjectWithoutRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(base.Release)
+
+	// Open the Engine on it.
 	engine, err := NewEngine(ctx, le, base, world_mock.LookupMockOp, nil, false)
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +71,11 @@ func TestPurgeObjectWithoutRecord(t *testing.T) {
 	if err := tb.Volume.RmBlock(ctx, bcs.GetRef()); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := writer.GetObject(ctx, "host/attempts/1"); err == nil {
+
+	// Reading the object now fails.
+	obj, _, err := writer.GetObject(ctx, "host/attempts/1")
+	world.ReleaseObjectState(obj)
+	if err == nil {
 		t.Fatal("reading the removed record succeeded")
 	}
 
@@ -91,6 +98,8 @@ func TestPurgeObjectWithoutRecord(t *testing.T) {
 	if afterSeqno <= seqno {
 		t.Errorf("seqno = %d, want above %d", afterSeqno, seqno)
 	}
+
+	// Neither the object nor a quad naming it remains.
 	reader, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)

@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -57,6 +59,61 @@ func TestWatchIndexedReadSetGrows(t *testing.T) {
 	expectIndexedWait(t, ctx, result, headSeqno(t, ctx, e))
 }
 
+// TestWatchIndexWriteNotBlocked checks that a World write commits while the
+// change index is busy naming a subscriber, and that the subscribers waiting
+// on the index still see the write once it frees.
+func TestWatchIndexWriteNotBlocked(t *testing.T) {
+	// Open an Engine with one object.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	e := newRetirementTestEngine(t, ctx)
+	ws := world.NewEngineWorldState(e, true)
+	createWatchTestObject(t, ctx, ws, "busy/base")
+
+	// Wait on an object a view reads before it exists.
+	reads := world.NewReadSet()
+	tracked := reads.Track(world.NewEngineWorldState(e, false))
+	readWatchTestObject(t, ctx, tracked, "busy/next")
+	before := headSeqno(t, ctx, e)
+	indexed := startIndexedWait(ctx, e, reads, before)
+	waitIndexedSubscriber(t, ctx, e)
+
+	// Hold the index as a subscriber naming a large interest would, and
+	// subscribe a second view, which waits for the index.
+	locked := e.bcast.Lock()
+	w := e.changeWatch
+	locked.Unlock()
+	w.indexMtx.Lock()
+	joining := startIndexedWait(ctx, e, reads, before)
+
+	// Create the object the views read while the index is held.
+	written := make(chan error, 1)
+	go func() {
+		obj, _, err := world.CreateWorldObject(ctx, ws, "busy/next", func(cursor *block.Cursor) error {
+			cursor.SetBlock(block_mock.NewExample("next"), true)
+			return nil
+		})
+		world.ReleaseObjectState(obj)
+		written <- err
+	}()
+	select {
+	case err := <-written:
+		if err != nil {
+			w.indexMtx.Unlock()
+			t.Fatal(err)
+		}
+	case <-time.After(10 * time.Second):
+		w.indexMtx.Unlock()
+		t.Fatal("a World write waited for the change index")
+	}
+
+	// Both views see the write once the index frees.
+	w.indexMtx.Unlock()
+	after := headSeqno(t, ctx, e)
+	expectIndexedWait(t, ctx, indexed, after)
+	expectIndexedWait(t, ctx, joining, after)
+}
+
 // indexedWait is the result of a ReadSet wait.
 type indexedWait struct {
 	seqno uint64
@@ -101,13 +158,8 @@ func readWatchTestObject(t *testing.T, ctx context.Context, ws world.WorldState,
 func waitIndexedSubscriber(t *testing.T, ctx context.Context, e *Engine) *changeSubscriber {
 	t.Helper()
 	for {
-		// Return the lone subscriber once it joins.
-		locked := e.bcast.Lock()
-		var subs []*changeSubscriber
-		if e.changeWatch != nil {
-			subs = slices.Collect(e.changeWatch.subs.All())
-		}
-		locked.Unlock()
+		// Return the lone subscriber once it is indexed.
+		subs := e.indexedSubscribers()
 		if len(subs) == 1 {
 			return subs[0]
 		}
@@ -134,13 +186,35 @@ func waitIndexedName(t *testing.T, ctx context.Context, e *Engine, key string) {
 	}
 }
 
+// indexedSubscribers returns the subscribers the change watch has indexed.
+func (e *Engine) indexedSubscribers() []*changeSubscriber {
+	// Find the running change watch.
+	locked := e.bcast.Lock()
+	w := e.changeWatch
+	locked.Unlock()
+	if w == nil {
+		return nil
+	}
+
+	// Read its index under the index lock.
+	w.indexMtx.Lock()
+	defer w.indexMtx.Unlock()
+	return slices.Collect(w.index.All())
+}
+
 // indexCandidates returns the subscribers the change watch would test on
 // changes.
 func (e *Engine) indexCandidates(changes *world.ChangeSet) []*changeSubscriber {
+	// Find the running change watch.
 	locked := e.bcast.Lock()
-	defer locked.Unlock()
-	if e.changeWatch == nil {
+	w := e.changeWatch
+	locked.Unlock()
+	if w == nil {
 		return nil
 	}
-	return e.changeWatch.subs.Candidates(changes)
+
+	// Read its index under the index lock.
+	w.indexMtx.Lock()
+	defer w.indexMtx.Unlock()
+	return w.index.Candidates(changes)
 }

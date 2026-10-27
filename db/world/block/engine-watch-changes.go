@@ -74,7 +74,8 @@ func (e *Engine) WatchIndexedChanges(
 	interest *world.ChangeInterest,
 	cb func(seqno uint64, changes *world.ChangeSet) error,
 ) error {
-	// Subscribe to the change watch.
+	// Subscribe to the change watch, which keeps it running until the
+	// subscriber leaves.
 	sub := &changeSubscriber{interest: interest, wake: make(chan struct{}, 1)}
 	locked := e.bcast.Lock()
 	w, err := e.startChangeWatchLocked()
@@ -82,11 +83,33 @@ func (e *Engine) WatchIndexedChanges(
 		locked.Unlock()
 		return err
 	}
-	w.subs.Add(sub, interest)
+	w.subs[sub] = struct{}{}
+	locked.Unlock()
+	defer func() {
+		// Leave the index first, under its own lock.
+		w.indexMtx.Lock()
+		w.index.Remove(sub)
+		w.indexMtx.Unlock()
+
+		// Then leave the watch, which may let it go idle.
+		locked := e.bcast.Lock()
+		delete(w.subs, sub)
+		w.checkIdleLocked()
+		locked.Unlock()
+	}()
+
+	// Index the subscriber by its interest's names outside the publication
+	// lock, so World writes never wait behind the naming. It indexes before it
+	// reads the base below, so the watch hands it every span it records past
+	// that base.
+	w.indexMtx.Lock()
+	w.index.Add(sub, interest)
+	w.indexMtx.Unlock()
 
 	// Copy the recorded spans when the change watch starts past afterSeqno and
 	// recorded every span since the head at afterSeqno. A reconnect wave
 	// subscribes thousands of watchers at once, so the merge runs unlocked.
+	locked = e.bcast.Lock()
 	caughtUp := afterSeqno >= w.baseSeqno
 	var spans []changeSpan
 	if base := e.watchedHeadLocked(afterSeqno); !caughtUp && base != nil {
@@ -94,12 +117,6 @@ func (e *Engine) WatchIndexedChanges(
 	}
 	baseSeqno := w.baseSeqno
 	locked.Unlock()
-	defer func() {
-		locked := e.bcast.Lock()
-		w.subs.Remove(sub)
-		w.checkIdleLocked()
-		locked.Unlock()
-	}()
 
 	// Merge the recorded spans, or compare the head at afterSeqno with the
 	// published head. The first wake checks whether the watch already ended.
