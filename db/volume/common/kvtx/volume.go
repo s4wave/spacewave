@@ -110,10 +110,6 @@ type Volume struct {
 	// block_gc.RefGraph.YoungReady reports, so minor passes may run. A
 	// promotion clears it while it runs. Guarded by blockPassMu.
 	youngReady bool
-	// youngFull records that a minor pass found the young log past the bound
-	// a minor pass marks, so minor passes wait until a block pass promotes.
-	// Guarded by blockPassMu.
-	youngFull bool
 	// healthBcast guards health and wakes its watchers when it changes.
 	healthBcast broadcast.Broadcast
 	// health is the collection phase and the measured sizes of the volume.

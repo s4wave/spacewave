@@ -301,8 +301,8 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 	awaitLimit = 100 * time.Millisecond
 	t.Cleanup(func() { awaitLimit = saved })
 
-	// Publish a parent that names a block stored without a child list, and
-	// release a block so the minor pass has one to sweep.
+	// Publish a parent, and release a block so the minor pass has one to
+	// sweep.
 	v, _ := newPublicationTestVolume(t)
 	ctx := t.Context()
 	rg := v.GetRefGraph()
@@ -315,6 +315,8 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 		t.Fatal(err)
 	}
 	orphanPublication(t, v, released)
+
+	// Store a block without a child list and name it from the parent.
 	unknown, _ := holeEntries(t)
 	if _, _, err := v.PutBlock(ctx, unknown.Data, &block.PutOpts{ForceBlockRef: unknown.Ref}); err != nil {
 		t.Fatal(err)
@@ -323,6 +325,8 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 	if err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{edge}, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	// Run a minor pass and return its stats.
 	minorPass := func() block_gc.Stats {
 		t.Helper()
 		var stats block_gc.Stats
@@ -332,13 +336,15 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 		return stats
 	}
 
-	// The first minor pass stops on the unknown block and sweeps nothing.
-	if stats := minorPass(); stats.MinorPasses != 1 || stats.UnknownBlocks != 1 || stats.BlocksSwept != 0 {
+	// The first minor pass stops on the unknown block, sweeps nothing and
+	// reports the stop.
+	if stats := minorPass(); stats.MinorPasses != 1 || stats.UnknownBlocks != 1 || stats.BlocksSwept != 0 || stats.MinorStopped == "" {
 		t.Fatalf("first minor pass stats=%+v", stats)
 	}
 
-	// Later minor passes do not run, and the store records it.
-	if stats := minorPass(); stats.MinorPasses != 0 {
+	// Later minor passes do not run or report the stop again, and the store
+	// records it.
+	if stats := minorPass(); stats.MinorPasses != 0 || stats.MinorStopped != "" {
 		t.Fatalf("minor pass after a stop ran: stats=%+v", stats)
 	}
 	var ready bool
@@ -350,8 +356,7 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 		t.Fatalf("young ready after a stop: ready=%v err=%v", ready, err)
 	}
 
-	// Give the block its list; a major pass sweeps and promotes, and minor
-	// passes run again.
+	// Give the block its list.
 	gs := block_gc.NewGCStoreOps(v, rg)
 	if _, _, err := gs.PutBlock(ctx, unknown.Data, &block.PutOpts{ForceBlockRef: unknown.Ref, RefsKnown: true}); err != nil {
 		t.Fatal(err)
@@ -359,6 +364,8 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 	if err := gs.FlushPending(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// A major pass sweeps and promotes, and minor passes run again.
 	var stats block_gc.Stats
 	if err := v.SweepUnreachedBlocks(ctx, rg, &stats); err != nil {
 		t.Fatal(err)
