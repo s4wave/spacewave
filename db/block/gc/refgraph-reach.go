@@ -52,14 +52,15 @@ func (g *RefGraph) Reachable(ctx context.Context) (*NodeSet, error) {
 // direction, the block of a child list, or the node of a node or root record.
 // The records of a block pass and of the young log name no node, so it
 // returns an empty subject for them, which no collection keeps: a collection
-// that keeps only reachable records leaves every block it keeps old.
+// that keeps only reachable records leaves every block it keeps old, and its
+// copy is not minor-ready until a block pass promotes.
 func RecordSubject(key []byte) (string, error) {
 	// Split the kind byte from the nodes.
 	if len(key) == 0 {
 		return "", fmt.Errorf("decode empty reference graph record")
 	}
 	kind, rest := key[0], key[1:]
-	if kind == kindPass || kind == kindAdopt || kind == kindYoung || kind == kindYoungHead {
+	if kind == kindPass || kind == kindAdopt || kind == kindYoung || kind == kindYoungHead || kind == kindYoungReady {
 		return "", nil
 	}
 

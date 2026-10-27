@@ -15,7 +15,10 @@ import (
 // instead of its base58 IRI.
 // Version 4 keeps the edges from each block in one child list record instead
 // of a record per direction for each edge.
-const FormatVersion = 4
+// Version 5 keys are those of version 4. Every build that opens it logs the
+// blocks each graph write creates or changes in the young log, so a record
+// that the log is complete survives restarts.
+const FormatVersion = 5
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

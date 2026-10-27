@@ -12,6 +12,52 @@ import (
 // youngKey is the one record of the young log's range.
 var youngKey = []byte{kindYoungHead}
 
+// youngReadyKey is the record that reports the young log complete.
+var youngReadyKey = []byte{kindYoungReady}
+
+// YoungReady reports whether the young log is complete, so minor passes may
+// run: an old block names only old blocks, and every later edge from one is in
+// a record, as PromoteYoung describes. The record survives restarts. Only a
+// store format whose every build logs young records may keep it, so a build
+// without the log never opens a store that has it.
+func (g *RefGraph) YoungReady(ctx context.Context) (bool, error) {
+	var ready bool
+	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) (err error) {
+		ready, err = tx.Exists(ctx, youngReadyKey)
+		return err
+	})
+	return ready, err
+}
+
+// ClaimYoungReady marks the young log complete when the graph tracks no block,
+// and reports whether it is complete. With no child list there is no old
+// block, and every list written later is logged, so a store born empty is
+// minor-ready from birth. The caller must run it only where every later write
+// logs young records.
+func (g *RefGraph) ClaimYoungReady(ctx context.Context) (bool, error) {
+	var ready bool
+	err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		// Keep a claim already made.
+		found, err := tx.Exists(ctx, youngReadyKey)
+		if err != nil || found {
+			ready = found
+			return err
+		}
+
+		// Claim only a graph without child lists.
+		it := tx.Iterate(ctx, []byte{kindChildren}, false, false)
+		tracked := it.Next()
+		err = it.Err()
+		it.Close()
+		if err != nil || tracked {
+			return err
+		}
+		ready = true
+		return tx.Set(ctx, youngReadyKey, nil)
+	})
+	return ready, err
+}
+
 // youngRange is the young log: records lo up to hi.
 type youngRange struct {
 	// lo is the first record no pass promoted.
@@ -139,8 +185,8 @@ func (g *RefGraph) YoungPosition(ctx context.Context) (uint64, error) {
 // did not reach. A block pass must be open: the sweep's rescue keeps the
 // blocks writes adopt after the snapshot, and grows the young scope with the
 // records written since, so its walks descend into blocks created during the
-// pass. The caller runs it only after a major pass promoted its mark in the
-// same process: a build without the young log may have written in between.
+// pass. The caller runs it only while YoungReady reports the young log
+// complete.
 func (g *RefGraph) MarkYoung(ctx context.Context) (*BlockMark, error) {
 	var mark *BlockMark
 	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
@@ -320,8 +366,14 @@ func growYoungTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark) error {
 // record it is in: its list may have changed after the walk read it. After
 // promotion, an old block names only old blocks, and every later edge from
 // one is in a record. stop, when set, ends the transaction between records;
-// the next call continues. Each step is safe on its own, so a promotion cut
-// short leaves only blocks young that a later pass promotes.
+// the next call continues.
+//
+// A promotion cut short is not safe for a minor pass: a block of a deleted
+// record is old while a block it names, created in a later record, may still
+// be young, and no record lists the edge. So the first call withdraws the
+// YoungReady record and the call that finishes writes it again: a promotion
+// cut short by a crash or an error leaves the store not minor-ready until a
+// later block pass promotes in full.
 func (g *RefGraph) PromoteYoung(ctx context.Context, mark *BlockMark, bound uint64, stop func() bool) (bool, error) {
 	var done bool
 	err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
@@ -332,6 +384,9 @@ func (g *RefGraph) PromoteYoung(ctx context.Context, mark *BlockMark, bound uint
 		}
 		if mark.promoteEnd == 0 {
 			mark.promoteEnd, mark.promoteNext = max(head.hi, 1), bound
+			if err := tx.Delete(ctx, youngReadyKey); err != nil {
+				return err
+			}
 		}
 
 		// Delete the records before bound. Each transaction takes at least
@@ -379,7 +434,7 @@ func (g *RefGraph) PromoteYoung(ctx context.Context, mark *BlockMark, bound uint
 			}
 		}
 		done = true
-		return nil
+		return tx.Set(ctx, youngReadyKey, nil)
 	})
 	return done, err
 }

@@ -23,6 +23,7 @@ var formatMigrations = [store_kvkey.FormatVersion]formatMigration{
 	1: migrateCayleyRefGraph,
 	2: thenChildLists(migrateLegacyRefGraph),
 	3: migrateChildLists,
+	4: migrateYoungLog,
 }
 
 // migrateBatchBytes bounds the keys and values one migration commit moves.
@@ -53,15 +54,27 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	if err := formatMigrations[version](ctx, store, keys); err != nil {
 		return fmt.Errorf("migrate store format version %d to %d: %w", version, store_kvkey.FormatVersion, err)
 	}
+	// A graph that tracks no block yet is minor-ready from birth, as
+	// block_gc.RefGraph.ClaimYoungReady describes.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+	if _, err := openRefGraph(kvtx.NewTxStore(tx)).ClaimYoungReady(ctx); err != nil {
+		return err
+	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// migrateYoungLog upgrades a store of format version 4, whose keys are those
+// of version 5. A build of version 4 may not have logged young records, so
+// the store stays not minor-ready until a block pass promotes.
+func migrateYoungLog(context.Context, kvtx.Store, *store_kvkey.KVKey) error {
+	return nil
 }
 
 // NeedsFormatUpgrade reports whether opening a Volume on store migrates it. A

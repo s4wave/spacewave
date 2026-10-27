@@ -40,6 +40,9 @@ const (
 	kindPass byte = 'p'
 	// kindRoot keys the registered roots.
 	kindRoot byte = 'r'
+	// kindYoungReady is the one record that reports the young log complete,
+	// as YoungReady describes.
+	kindYoungReady byte = 'm'
 	// kindYoung keys a record of the young log by a big-endian sequence.
 	// Its value lists the blocks whose child lists one write created or
 	// changed.
