@@ -72,6 +72,20 @@ type BlockMark struct {
 	// promoteNext is the next record after the bound PromoteYoung rewrites,
 	// and promoteEnd the record it stops before, zero until it starts.
 	promoteNext, promoteEnd uint64
+
+	// settled holds the blocks SettleAbsent settled as holes. The pass
+	// reached them but never walked a list of theirs, so PromoteYoung keeps
+	// one a write stored since young.
+	settled *NodeSet
+	// settledNamers lists the namers of the blocks settled since the last
+	// LogSettled.
+	settledNamers []string
+}
+
+// walked reports whether the pass reached block and walked its list as last
+// read: it reached it and did not settle it as a hole.
+func (m *BlockMark) walked(block string) bool {
+	return m.Live.Has(block) && (m.settled == nil || !m.settled.Has(block))
 }
 
 // YoungBound returns the first young log record a MarkYoung snapshot did not
@@ -119,6 +133,12 @@ func (m *BlockMark) noteUnknown(b namedNode) {
 // all its unknown blocks. The caller checks presence in the transaction that
 // sweeps, so no write stores the block in between; a block stored later logs
 // the blocks it adopts, as any write after the mark does.
+//
+// A settled hole stays named by its parent while the store lacks it, and a
+// later write that stores it creates its list as a young block that the
+// parent, possibly old, names through no record. The caller logs the namers
+// with LogSettled in the same transaction, so minor passes reach the hole
+// from them.
 func (m *BlockMark) SettleAbsent(stored func(node string) (bool, error)) (int, error) {
 	// Leave a mark that could not list its unknown blocks.
 	if m.Unknown == 0 || !m.Awaitable() {
@@ -128,6 +148,7 @@ func (m *BlockMark) SettleAbsent(stored func(node string) (bool, error)) (int, e
 	// Keep the blocks an owner or a write adopted, and those the store
 	// holds.
 	kept := make([]namedNode, 0, len(m.awaiting))
+	var absent []namedNode
 	for _, b := range m.awaiting {
 		found := !isBlockNode(b.namer)
 		if !found {
@@ -138,13 +159,23 @@ func (m *BlockMark) SettleAbsent(stored func(node string) (bool, error)) (int, e
 		}
 		if found {
 			kept = append(kept, b)
+		} else {
+			absent = append(absent, b)
 		}
 	}
 
-	// Uncount the absent blocks and sample the rest afresh.
-	settled := len(m.awaiting) - len(kept)
+	// Uncount the absent blocks, note them with their namers, and sample
+	// the rest afresh.
+	settled := len(absent)
 	if settled == 0 {
 		return 0, nil
+	}
+	if m.settled == nil {
+		m.settled = NewNodeSet()
+	}
+	for _, b := range absent {
+		m.settled.Add(b.node)
+		m.settledNamers = append(m.settledNamers, b.namer)
 	}
 	m.Unknown -= settled
 	m.awaiting = kept

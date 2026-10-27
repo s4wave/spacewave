@@ -156,6 +156,36 @@ func logYoungTx(ctx context.Context, tx kvtx.TxOps, r youngRecord) error {
 	return writeYoungTx(ctx, tx, head)
 }
 
+// LogSettled appends the namers of the holes mark settled since the last call
+// to the young log as changed blocks. The caller runs it in the transaction
+// that settled them, before any write can store a hole.
+//
+// A settled hole has no list, so no record says its namer names it. Once a
+// pass promotes, the namer is old, and a write that later stores the hole,
+// such as a read-through fill or a copy's backfill, creates its list as a
+// young block no young parent or owner may name. The changed record makes
+// each MarkYoung seed the namer's children, so a minor pass reaches the
+// stored hole and walks it. A record before a pass's bound goes at its
+// promotion, but that pass reaches the namer again: it walks the hole if a
+// write stored it, or settles it again and logs a new record after the bound.
+func (g *RefGraph) LogSettled(ctx context.Context, mark *BlockMark) error {
+	// Log nothing when no hole was settled since the last call.
+	if len(mark.settledNamers) == 0 {
+		return nil
+	}
+	namers := slices.Clone(mark.settledNamers)
+	slices.Sort(namers)
+	namers = slices.Compact(namers)
+	err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		return logYoungTx(ctx, tx, youngRecord{changed: namers})
+	})
+	if err != nil {
+		return err
+	}
+	mark.settledNamers = nil
+	return nil
+}
+
 // YoungPosition returns the sequence of the next young log record. A major
 // block pass reads it before BeginBlockPass and hands it to PromoteYoung after
 // it sweeps everything it marked, so every record before it lists only blocks
@@ -361,8 +391,10 @@ func growYoungTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark) error {
 // marked, in one write transaction, and reports whether it finished. It
 // deletes the young log records before bound, whose created blocks the mark
 // saw, so each is now reached and old or swept. It then removes from the
-// records written since bound the created blocks the mark reached, whose
-// lists the pass walked, so they are old too. A changed block stays in each
+// records written since bound the created blocks the mark reached and walked,
+// so they are old too. A block the pass settled as a hole and a write stored
+// since stays young: the pass never walked its list, and LogSettled lists its
+// namer as changed, so minor passes walk it. A changed block stays in each
 // record it is in: its list may have changed after the walk read it. After
 // promotion, an old block names only old blocks, and every later edge from
 // one is in a record. stop, when set, ends the transaction between records;
@@ -421,7 +453,7 @@ func (g *RefGraph) PromoteYoung(ctx context.Context, mark *BlockMark, bound uint
 				}
 				continue
 			}
-			kept := slices.DeleteFunc(slices.Clone(r.created), mark.Live.Has)
+			kept := slices.DeleteFunc(slices.Clone(r.created), mark.walked)
 			switch {
 			case len(kept) == len(r.created):
 			case len(kept) == 0 && len(r.changed) == 0:

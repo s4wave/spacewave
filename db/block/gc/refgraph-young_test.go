@@ -86,3 +86,82 @@ func TestPromoteYoungCutShortNotReady(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestPromoteKeepsSettledHoleYoung checks that a block a pass settled as a
+// hole, and that a write stored after the pass's last rescue and before the
+// promotion, stays young, and that a minor mark reaches it and the block it names from
+// the namer the settling logged. The pass reached the hole but never walked a
+// list of its, so promoting it would leave an old block naming a young block
+// through no record.
+func TestPromoteKeepsSettledHoleYoung(t *testing.T) {
+	// A graph born empty holds an owned parent whose list names a hole.
+	ctx := context.Background()
+	rg := NewRefGraph(store_kvtx_inmem.NewStore())
+	t.Cleanup(func() { rg.Close() })
+	if ready, err := rg.ClaimYoungReady(ctx); err != nil || !ready {
+		t.Fatalf("claim on an empty graph: ready=%v err=%v", ready, err)
+	}
+	owner := BucketIRI("owner")
+	parent, hole := BlockIRI(testBlockRef(t, "hole-parent")), BlockIRI(testBlockRef(t, "hole"))
+	child := BlockIRI(testBlockRef(t, "hole-child"))
+	apply := func(edges ...RefEdge) {
+		t.Helper()
+		if err := rg.ApplyRefBatch(ctx, edges, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	apply(RefEdge{Subject: owner, Object: parent}, RefEdge{Subject: parent, Object: hole})
+
+	// A pass marks the hole unknown and settles it.
+	bound, err := rg.YoungPosition(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rg.BeginBlockPass(ctx); err != nil {
+		t.Fatal(err)
+	}
+	mark, err := rg.MarkBlocks(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mark.Unknown != 1 {
+		t.Fatalf("unknown=%d", mark.Unknown)
+	}
+	absent := func(string) (bool, error) { return false, nil }
+	if settled, err := mark.SettleAbsent(absent); err != nil || settled != 1 {
+		t.Fatalf("settle: settled=%d err=%v", settled, err)
+	}
+	if err := rg.LogSettled(ctx, mark); err != nil {
+		t.Fatal(err)
+	}
+
+	// A write with no owner stores the hole and its child after the last
+	// rescue and before the promotion.
+	apply(RefEdge{Subject: NodeUnreferenced, Object: child})
+	apply(RefEdge{Subject: NodeUnreferenced, Object: hole}, RefEdge{Subject: hole, Object: child})
+	if err := rg.EndBlockPass(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for done := false; !done; {
+		if done, err = rg.PromoteYoung(ctx, mark, bound, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// A minor mark reaches the hole and its child.
+	if err := rg.BeginBlockPass(ctx); err != nil {
+		t.Fatal(err)
+	}
+	young, err := rg.MarkYoung(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range []string{hole, child} {
+		if !young.Live.Has(b) || slices.Contains(young.Unreached, b) {
+			t.Fatalf("minor mark leaves %q unreached: unreached=%v", b, young.Unreached)
+		}
+	}
+	if err := rg.EndBlockPass(ctx); err != nil {
+		t.Fatal(err)
+	}
+}

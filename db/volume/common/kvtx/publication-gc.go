@@ -474,6 +474,9 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 				stats.AbsentBlocks += settled
 				stats.UnknownBlocks, stats.UnknownSample, stats.UnknownNamers = mark.Unknown, mark.UnknownSample, mark.UnknownNamers
 			}
+			if err := rg.LogSettled(ctx, mark); err != nil {
+				return err
+			}
 			if mark.Unknown != 0 {
 				if !mark.Awaitable() {
 					stats.UnknownBlocks, stats.UnknownSample, stats.UnknownNamers = mark.Unknown, mark.UnknownSample, mark.UnknownNamers
