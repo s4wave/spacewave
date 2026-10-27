@@ -395,6 +395,48 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	return true, nil
 }
 
+// PurgeObject removes the object entry at key and every graph quad naming it,
+// without reading the object's record or root, so an object whose blocks the
+// store lacks can still be removed. The deletion change keeps no reference to
+// the record. Returns false, nil if not found.
+func (t *WorldState) PurgeObject(ctx context.Context, key string) (bool, error) {
+	// Require an active writer before removing the object.
+	if !t.write {
+		return false, tx.ErrNotWrite
+	}
+	if t.discarded.Load() {
+		return false, tx.ErrDiscarded
+	}
+
+	// Find the entry in the object tree; this reads tree nodes only.
+	ot := t.objTree
+	k := []byte(objectKeyPrefix + key)
+	exists, err := ot.Exists(ctx, k)
+	if err != nil || !exists {
+		return false, err
+	}
+
+	// Remove the entry first, so revising the quads' endpoints skips the
+	// purged object instead of reading its record.
+	if err := ot.Delete(ctx, k); err != nil {
+		return false, err
+	}
+	t.forgetObject(key)
+	if err := t.DeleteGraphObject(ctx, key); err != nil {
+		return true, err
+	}
+
+	// Record the deletion without a reference to the record.
+	_, err = t.queueWorldChange(ctx, &WorldChange{
+		Key:        key,
+		ChangeType: WorldChangeType_WorldChange_OBJECT_DELETE,
+	})
+	return true, err
+}
+
+// _ is a type assertion.
+var _ world.ObjectPurger = (*WorldState)(nil)
+
 // renameGraphObject rewrites each complete incident quad exactly once.
 func (t *WorldState) renameGraphObject(ctx context.Context, oldKey, newKey string) error {
 	// Capture both endpoint directions before changing any indexed relationship.

@@ -88,6 +88,18 @@ func (t *Tx) DeleteObject(ctx context.Context, key string) (bool, error) {
 	return t.state.DeleteObject(ctx, key)
 }
 
+// PurgeObject removes the object entry and its graph quads without reading
+// the object's record. Returns false, nil if not found.
+func (t *Tx) PurgeObject(ctx context.Context, key string) (bool, error) {
+	unlock, err := t.rmtx.Lock(ctx, true)
+	if err != nil {
+		return false, err
+	}
+	defer unlock()
+
+	return t.state.PurgeObject(ctx, key)
+}
+
 // HasObject reports whether an object exists at key. It takes the write lock
 // because a miss may populate the underlying state's transaction-local object
 // memo, which the single-threaded state does not guard on its own.

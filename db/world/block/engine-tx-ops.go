@@ -146,6 +146,18 @@ func (e *EngineTx) DeleteObject(ctx context.Context, key string) (bool, error) {
 	return deleted, err
 }
 
+// PurgeObject removes the object entry and its graph quads without reading
+// the object's record. Returns false, nil if not found.
+func (e *EngineTx) PurgeObject(ctx context.Context, key string) (bool, error) {
+	var purged bool
+	err := e.performOp(ctx, func(tx *Tx) error {
+		var nerr error
+		purged, nerr = tx.PurgeObject(ctx, key)
+		return nerr
+	})
+	return purged, err
+}
+
 // RenameObject renames an object key and updates associated graph quads.
 func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
 	var obj world.ObjectState

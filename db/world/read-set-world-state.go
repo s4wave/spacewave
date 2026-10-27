@@ -85,6 +85,13 @@ func (s *readSetWorldState) DeleteObject(ctx context.Context, key string) (bool,
 	return s.WorldState.DeleteObject(ctx, key)
 }
 
+// PurgeObject records the object key and purges it through the wrapped state.
+func (s *readSetWorldState) PurgeObject(ctx context.Context, key string) (bool, error) {
+	s.reads.addKeys(key)
+	s.reads.markGraph()
+	return PurgeObject(ctx, s.WorldState, key)
+}
+
 // GetObjectRootRefsBatch records the requested keys and reads their roots
 // through the wrapped state's batcher when it has one.
 func (s *readSetWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*ObjectRootRef, error) {
