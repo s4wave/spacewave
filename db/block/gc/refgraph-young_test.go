@@ -2,6 +2,7 @@ package block_gc
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"testing"
 
@@ -163,5 +164,55 @@ func TestPromoteKeepsSettledHoleYoung(t *testing.T) {
 	}
 	if err := rg.EndBlockPass(ctx); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestMarkYoungStopsAtFullLog checks that a minor mark stops before reading
+// owners once the young log lists more than maxYoungBlocks blocks, and marks
+// a log at the bound.
+func TestMarkYoungStopsAtFullLog(t *testing.T) {
+	// Open a graph born empty, so its young log is complete.
+	ctx := context.Background()
+	rg := NewRefGraph(store_kvtx_inmem.NewStore())
+	t.Cleanup(func() { rg.Close() })
+	if ready, err := rg.ClaimYoungReady(ctx); err != nil || !ready {
+		t.Fatalf("claim on an empty graph: ready=%v err=%v", ready, err)
+	}
+
+	// Log three young blocks under one owner.
+	owner := BucketIRI("owner")
+	parent := BlockIRI(testBlockRef(t, "full-parent"))
+	child := BlockIRI(testBlockRef(t, "full-child"))
+	leaf := BlockIRI(testBlockRef(t, "full-leaf"))
+	edges := []RefEdge{{Subject: owner, Object: parent}, {Subject: parent, Object: child}, {Subject: child, Object: leaf}}
+	if err := rg.ApplyRefBatch(ctx, edges, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// Count the blocks the log lists.
+	young, err := rg.MarkYoung(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed := young.YoungBlocks
+	if listed == 0 {
+		t.Fatal("no young blocks logged")
+	}
+
+	// A bound below the log stops the mark; a bound at it marks.
+	defer func(n int) { maxYoungBlocks = n }(maxYoungBlocks)
+	maxYoungBlocks = listed - 1
+	if _, err := rg.MarkYoung(ctx); !errors.Is(err, ErrYoungLogFull) {
+		t.Fatalf("mark past the bound: err=%v", err)
+	}
+	maxYoungBlocks = listed
+	young, err = rg.MarkYoung(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range []string{parent, child, leaf} {
+		if !young.Live.Has(b) {
+			t.Fatalf("block %q not reached", b)
+		}
 	}
 }

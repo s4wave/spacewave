@@ -15,6 +15,16 @@ var youngKey = []byte{kindYoungHead}
 // youngReadyKey is the record that reports the young log complete.
 var youngReadyKey = []byte{kindYoungReady}
 
+// maxYoungBlocks bounds the young blocks a minor pass marks. A healthy store
+// promotes every minute or so and logs tens of thousands of young blocks
+// between passes; a log past this bound means passes have stopped promoting,
+// and a minor pass over it would cost as much as a block pass. Tests lower it.
+var maxYoungBlocks = 1 << 20
+
+// ErrYoungLogFull reports a young log that lists more blocks than a minor
+// pass marks. Only a block pass that promotes shrinks it.
+var ErrYoungLogFull = errors.New("young log lists more blocks than a minor pass marks")
+
 // YoungReady reports whether the young log is complete, so minor passes may
 // run: an old block names only old blocks, and every later edge from one is in
 // a record, as PromoteYoung describes. The record survives restarts. Only a
@@ -225,19 +235,24 @@ func (g *RefGraph) YoungPosition(ctx context.Context) (uint64, error) {
 // records written since, so its walks descend into blocks created during the
 // pass. The caller runs it only while YoungReady reports the young log
 // complete.
+//
+// The log shrinks only when a pass promotes, so while every pass stops on
+// unknown blocks it grows, and each minor pass would read more than the last.
+// MarkYoung stops with ErrYoungLogFull once the log lists more than
+// maxYoungBlocks blocks, before reading their owners, and leaves them to block
+// passes.
 func (g *RefGraph) MarkYoung(ctx context.Context) (*BlockMark, error) {
 	var mark *BlockMark
 	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
-		// Load the young blocks, seeding those with an owner, and list the
-		// changed blocks.
+		// Load the young log, listing each young block once, and stop when
+		// it lists more than a minor pass marks.
 		head, err := readYoungTx(ctx, tx)
 		if err != nil {
 			return err
 		}
 		mark = &BlockMark{Live: NewNodeSet(), young: NewNodeSet(), youngSeen: head.hi, youngBound: head.hi}
 		live, young := mark.Live, mark.young
-		var stack []namedNode
-		var changed []string
+		var records []youngRecord
 		for seq := head.lo; seq < head.hi; seq++ {
 			r, found, err := readYoungRecordTx(ctx, tx, seq)
 			if err != nil {
@@ -246,8 +261,19 @@ func (g *RefGraph) MarkYoung(ctx context.Context) (*BlockMark, error) {
 			if !found {
 				continue
 			}
-			created := slices.DeleteFunc(r.created, func(block string) bool { return !young.Add(block) })
-			owned, err := ownedBlocksTx(ctx, tx, created)
+			r.created = slices.DeleteFunc(r.created, func(block string) bool { return !young.Add(block) })
+			if young.Len() > maxYoungBlocks {
+				return ErrYoungLogFull
+			}
+			records = append(records, r)
+		}
+		mark.YoungBlocks = young.Len()
+
+		// Seed the young blocks with an owner, and list the changed blocks.
+		var stack []namedNode
+		var changed []string
+		for _, r := range records {
+			owned, err := ownedBlocksTx(ctx, tx, r.created)
 			if err != nil {
 				return err
 			}
@@ -258,7 +284,6 @@ func (g *RefGraph) MarkYoung(ctx context.Context) (*BlockMark, error) {
 			}
 			changed = append(changed, r.changed...)
 		}
-		mark.YoungBlocks = young.Len()
 
 		// Seed the young roots.
 		roots := graphKey(kindRoot)
@@ -297,17 +322,9 @@ func (g *RefGraph) MarkYoung(ctx context.Context) (*BlockMark, error) {
 		}
 
 		// List the tracked young blocks the walk did not reach.
-		listed := NewNodeSet()
-		for seq := head.lo; seq < head.hi; seq++ {
-			r, found, err := readYoungRecordTx(ctx, tx, seq)
-			if err != nil {
-				return err
-			}
-			if !found {
-				continue
-			}
+		for _, r := range records {
 			for _, block := range r.created {
-				if live.Has(block) || !listed.Add(block) {
+				if live.Has(block) {
 					continue
 				}
 				tracked, err := tx.Exists(ctx, graphKey(kindChildren, block))
