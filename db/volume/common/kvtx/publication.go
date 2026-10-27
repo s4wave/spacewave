@@ -73,6 +73,9 @@ type PublicationStats struct {
 	PhysicalCommits uint64
 	// Rejected counts completed publications whose result failed.
 	Rejected uint64
+	// CommittedBytes is the admission cost of the publications that
+	// committed.
+	CommittedBytes uint64
 	// Pending is the number of publications currently queued.
 	Pending int
 	// PendingBytes is the computed admission cost of queued publications.

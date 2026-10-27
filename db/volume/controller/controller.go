@@ -212,6 +212,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 	publishTask.End()
 	c.bucketHandles.SetContext(ctx, true)
 
+	// Report the health of a volume this controller collects while it runs.
+	if _, delegates := v.(gcDelegator); !delegates {
+		if hw, ok := v.(volume.HealthWatcher); ok {
+			defer volume.RegisterHealth(hw)()
+		}
+	}
+
 	// Run GC within the same joined volume lifetime.
 	routines.Go(func() error {
 		if err := c.runGCSweep(volCtx); err != nil {

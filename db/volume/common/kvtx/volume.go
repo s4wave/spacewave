@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
@@ -107,6 +108,19 @@ type Volume struct {
 	// stored: a build without the young log may write before a restart.
 	// Guarded by blockPassMu.
 	youngReady bool
+	// healthBcast guards health and wakes its watchers when it changes.
+	healthBcast broadcast.Broadcast
+	// health is the collection phase and the measured sizes of the volume.
+	health healthState
+	// healthSizes measures the storage's sizes, may be nil.
+	healthSizes HealthSizesFn
+	// healthWake asks the size measurement to run soon, after a collection
+	// may have freed space.
+	healthWake chan struct{}
+	// healthCancel stops the size measurement, may be nil.
+	healthCancel context.CancelFunc
+	// healthDone closes when the size measurement has stopped.
+	healthDone chan struct{}
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
@@ -143,6 +157,7 @@ func NewVolume(
 		kvKey:     kvkey,
 		statsFn:   statsFn,
 		closeFn:   closeFn,
+		health:    healthState{phase: volume.VolumeGCPhase_VOLUME_GC_PHASE_IDLE, phaseStart: time.Now()},
 	}
 	if domain, ok := store.(BlockDomain); ok {
 		v.Store = store_kvtx.NewKVTxWithBlockStore(kvkey, store, domain.GetBlockStore(), conf)
@@ -468,6 +483,9 @@ func (v *Volume) EndDeferFlush(ctx context.Context) error {
 // Maintenance lets a BlockDomain reclaim the space of removed blocks. Any
 // other store reclaims it as it deletes their records.
 func (v *Volume) Maintenance(ctx context.Context) error {
+	// Report the maintenance, then measure the space it reclaimed.
+	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MAINTENANCE)()
+	defer v.wakeHealthSizes()
 	if domain, ok := v.kvtxStore.(BlockDomain); ok {
 		return domain.Maintenance(ctx)
 	}
@@ -512,7 +530,12 @@ func (v *Volume) Close() error {
 	v.directClosed = true
 	v.directMu.Unlock()
 
-	// Drain Volume publications and close the reference graph and backing store.
+	// Stop measuring sizes, then drain Volume publications and close the
+	// reference graph and backing store.
+	if v.healthCancel != nil {
+		v.healthCancel()
+		<-v.healthDone
+	}
 	if v.publications != nil {
 		v.publications.close()
 	}

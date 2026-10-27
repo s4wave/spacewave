@@ -2,7 +2,8 @@
 //
 // Instrumentation registers its collectors with the default registry of
 // go-prometheus-client-lite. Gather adds the Go runtime collectors on first
-// use, so every Spacewave process reports its memory, goroutines and GC.
+// use, so every Spacewave process reports its memory, goroutines and GC, and
+// the health of each volume it collects as spacewave_volume_* metrics.
 package metrics
 
 import (

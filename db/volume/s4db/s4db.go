@@ -94,8 +94,12 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 		return nil, errors.Join(err, db.Close())
 	}
 
-	// Coordinate writers across processes through the database file.
+	// Coordinate writers across processes through the database file, and
+	// measure the file and its disk for the volume's health.
 	vol.Coordinator = coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(vol.GetID()))
+	vol.SetHealthSizes(func(ctx context.Context) (uint64, uint64, uint64, error) {
+		return healthSizes(ctx, db, path)
+	})
 	return vol, nil
 }
 
@@ -134,4 +138,21 @@ func storageStats(ctx context.Context, db *s4db.DB, path string) (*volume.Storag
 		return nil, err
 	}
 	return &volume.StorageStats{TotalBytes: uint64(fi.Size()), BlockCount: count}, nil //nolint:gosec
+}
+
+// healthSizes measures the file's length and live values through db and the
+// space free on its disk.
+func healthSizes(ctx context.Context, db *s4db.DB, path string) (fileBytes, liveValueBytes, freeBytes uint64, err error) {
+	// Read the file's usage as of the latest commit.
+	u, err := db.Usage(ctx)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	// Measure the free disk.
+	freeBytes, err = freeDiskBytes(path)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	return uint64(u.FileBytes), uint64(u.ValueBytes), freeBytes, nil //nolint:gosec
 }

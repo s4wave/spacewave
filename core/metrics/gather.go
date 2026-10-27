@@ -9,9 +9,13 @@ import (
 	"github.com/aperturerobotics/go-prometheus-client-lite/prometheus"
 )
 
-// registerRuntime registers the Go runtime and build info collectors once.
+// registerRuntime registers the Go runtime, build info and volume health
+// collectors once.
 var registerRuntime = sync.OnceValue(func() error {
 	if err := prometheus.Register(prometheus.NewGoCollector()); err != nil {
+		return err
+	}
+	if err := prometheus.Register(volumeCollector{}); err != nil {
 		return err
 	}
 	return prometheus.Register(prometheus.NewBuildInfoCollector())

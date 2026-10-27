@@ -370,6 +370,8 @@ func (w *publicationWriter) run() {
 			for i, r := range group {
 				if results[i] != nil {
 					w.stats.Rejected++
+				} else {
+					w.stats.CommittedBytes += uint64(r.bytes) // #nosec G115 -- an admission cost is not negative.
 				}
 				w.stats.Completed++
 				w.stats.Pending--

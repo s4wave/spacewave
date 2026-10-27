@@ -1,0 +1,62 @@
+syntax = "proto3";
+package volume;
+
+import "google/protobuf/timestamp.proto";
+
+// VolumeGCPhase is the step of block collection a volume is in.
+enum VolumeGCPhase {
+  // VOLUME_GC_PHASE_UNKNOWN is unset.
+  VOLUME_GC_PHASE_UNKNOWN = 0;
+  // VOLUME_GC_PHASE_IDLE runs no collection.
+  VOLUME_GC_PHASE_IDLE = 1;
+  // VOLUME_GC_PHASE_NODES sweeps the nodes that lost their last reference.
+  VOLUME_GC_PHASE_NODES = 2;
+  // VOLUME_GC_PHASE_MARK marks the blocks the roots reach.
+  VOLUME_GC_PHASE_MARK = 3;
+  // VOLUME_GC_PHASE_SWEEP removes the blocks the mark did not reach.
+  VOLUME_GC_PHASE_SWEEP = 4;
+  // VOLUME_GC_PHASE_PROMOTE records a complete mark, so minor passes can mark
+  // only the blocks written after it.
+  VOLUME_GC_PHASE_PROMOTE = 5;
+  // VOLUME_GC_PHASE_MAINTENANCE lets the storage reclaim the space of swept
+  // blocks.
+  VOLUME_GC_PHASE_MAINTENANCE = 6;
+}
+
+// VolumeWriteState is whether a volume admits new writes.
+enum VolumeWriteState {
+  // VOLUME_WRITE_STATE_UNKNOWN is unset.
+  VOLUME_WRITE_STATE_UNKNOWN = 0;
+  // VOLUME_WRITE_STATE_WRITABLE admits writes.
+  VOLUME_WRITE_STATE_WRITABLE = 1;
+  // VOLUME_WRITE_STATE_RESERVE refuses new writes while reads, collection and
+  // deletes continue, because free disk is below the reserve.
+  VOLUME_WRITE_STATE_RESERVE = 2;
+}
+
+// VolumeHealth is the observed state of a volume's storage and collection.
+message VolumeHealth {
+  // VolumeId is the volume ID.
+  string volume_id = 1;
+  // GcPhase is the collection step the volume is in.
+  VolumeGCPhase gc_phase = 2;
+  // GcPhaseStart is when the volume entered GcPhase.
+  .google.protobuf.Timestamp gc_phase_start = 3;
+  // FileBytes is the length of the storage files.
+  uint64 file_bytes = 4;
+  // LiveValueBytes is the length of the live values the storage holds.
+  uint64 live_value_bytes = 5;
+  // FreeDiskBytes is the space free to this process on the storage's file
+  // system. Zero when the storage cannot tell, which SizesKnown reports.
+  uint64 free_disk_bytes = 6;
+  // SizesKnown reports that the storage measured the sizes above.
+  bool sizes_known = 7;
+  // SizesAt is when the storage last measured the sizes.
+  .google.protobuf.Timestamp sizes_at = 8;
+  // PublicationPending is the number of publications queued for the writer.
+  uint32 publication_pending = 9;
+  // PublicationPendingBytes is the admission cost of the queued publications.
+  uint64 publication_pending_bytes = 10;
+  // WriteState is whether the volume admits new writes.
+  VolumeWriteState write_state = 11;
+}

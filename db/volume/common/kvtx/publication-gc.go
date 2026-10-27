@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 )
 
 // withDirectAtomic joins direct preparation and sweep calls on Close and uses
@@ -184,6 +185,10 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 		return nil, block_gc.ErrAtomicSweepUnsupported
 	}
 
+	// Report the node sweep, then measure the space it may have freed.
+	defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_NODES)()
+	defer v.wakeHealthSizes()
+
 	// Sweep the candidates in budgeted transactions. Each consumes chunks from
 	// the front of nodes.
 	var swept []string
@@ -234,8 +239,10 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 // the pass opened, and lets minor passes run.
 func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGraphOps, stats *block_gc.Stats) error {
 	return v.runBlockPass(ctx, graph, false, func(actual *transactionRefGraph) error {
-		// Read the young log position before the pass opens: every block a
-		// record before it lists was written before the mark began.
+		// Report the mark from the opening of the pass. Read the young log
+		// position before the pass opens: every block a record before it
+		// lists was written before the mark began.
+		defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
 		var bound uint64
 		err := actual.read(ctx, func(rg *block_gc.RefGraph) (err error) {
 			bound, err = rg.YoungPosition(ctx)
@@ -250,6 +257,7 @@ func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGra
 			if err != nil || !complete {
 				return err
 			}
+			v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_PROMOTE)
 			if err := v.promoteYoung(ctx, mark, bound); err != nil {
 				return err
 			}
@@ -266,6 +274,8 @@ func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGra
 // everything it marked promotes its mark too.
 func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOps, stats *block_gc.Stats) error {
 	return v.runBlockPass(ctx, graph, true, func(actual *transactionRefGraph) error {
+		// Report the mark from the opening of the pass.
+		defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
 		return v.inBlockPass(ctx, actual, func() error {
 			// Mark the young blocks in one read transaction.
 			start := time.Now()
@@ -281,10 +291,12 @@ func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOp
 			stats.RecordYoungMark(mark)
 
 			// Sweep the unreached, then promote.
+			v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_SWEEP)
 			complete, err := v.sweepUnreached(ctx, mark, stats)
 			if err != nil || !complete {
 				return err
 			}
+			v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_PROMOTE)
 			return v.promoteYoung(ctx, mark, mark.YoungBound())
 		})
 	})
@@ -364,6 +376,10 @@ func (v *Volume) sweepBlockPass(ctx context.Context, actual *transactionRefGraph
 	if !mark.Awaitable() {
 		return mark, false, nil
 	}
+
+	// Sweep what the mark did not reach, then measure the space it freed.
+	v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_SWEEP)
+	defer v.wakeHealthSizes()
 	complete, err := v.sweepUnreached(ctx, mark, stats)
 	return mark, complete, err
 }

@@ -2438,13 +2438,16 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume": {
-      "hash": "8afe95688f59467578e48a6fad63847c6a8f0b570194a6cc3de6b0125b674d74",
+      "hash": "ca7282680cdbd1ecc6d4b1470e8ef1907a9396ee9ec399dd6db74a426d4c6343",
       "generatedFiles": [
         "db/volume/volume.pb.go",
-        "db/volume/volume.pb.ts"
+        "db/volume/volume.pb.ts",
+        "db/volume/health.pb.go",
+        "db/volume/health.pb.ts"
       ],
       "protoFiles": [
-        "db/volume/volume.proto"
+        "db/volume/volume.proto",
+        "db/volume/health.proto"
       ]
     },
     "github.com/s4wave/spacewave/db/volume/block": {
