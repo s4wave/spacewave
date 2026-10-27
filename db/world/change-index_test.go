@@ -62,9 +62,9 @@ func TestChangeIndexSharedOnce(t *testing.T) {
 		x.Add(name, interest)
 	}
 
-	// The set's names are indexed once, for all three watchers.
-	if len(x.shared) != 1 || len(x.sets.keys) != 2 {
-		t.Fatalf("index names %d shared sets by %d keys, want 1 by 2", len(x.shared), len(x.sets.keys))
+	// The set and the one it joined are indexed once, for all three watchers.
+	if len(x.held) != 2 || len(x.sets.keys) != 2 {
+		t.Fatalf("index holds %d sets by %d keys, want 2 by 2", len(x.held), len(x.sets.keys))
 	}
 	cases := []struct {
 		changes *ChangeSet
@@ -91,12 +91,59 @@ func TestChangeIndexSharedOnce(t *testing.T) {
 	expectEmptyIndex(t, x)
 }
 
+// TestChangeIndexJoinedOnce checks that watchers holding their own sets built
+// from one large set index that set's reads once, that a change to it reaches
+// each of them through their sets, and that it stays indexed while either a
+// watcher or a set that joined it holds it.
+func TestChangeIndexJoinedOnce(t *testing.T) {
+	// Each watcher holds its own set joining the same part.
+	part := NewReadSet()
+	part.addKeys("part/1", "part/2")
+	x := NewChangeIndex[string]()
+	for _, name := range []string{"a", "b"} {
+		merged := NewReadSet()
+		merged.addKeys("merged/" + name)
+		merged.join(part)
+		x.Add(name, &ChangeInterest{shared: []*ReadSet{merged}})
+	}
+
+	// A third holds the part directly.
+	x.Add("c", &ChangeInterest{shared: []*ReadSet{part}})
+
+	// The part's reads are indexed once, beside each merged set's own.
+	if len(x.held) != 3 || len(x.sets.keys) != 4 {
+		t.Fatalf("index holds %d sets by %d keys, want 3 by 4", len(x.held), len(x.sets.keys))
+	}
+	cases := []struct {
+		changes *ChangeSet
+		want    []string
+	}{
+		{&ChangeSet{Keys: []string{"part/2"}}, []string{"a", "b", "c"}},
+		{&ChangeSet{Keys: []string{"merged/a"}}, []string{"a"}},
+		{&ChangeSet{Keys: []string{"other"}}, nil},
+	}
+	for i, c := range cases {
+		if got := slices.Sorted(slices.Values(x.Candidates(c.changes))); !slices.Equal(got, c.want) {
+			t.Errorf("case %d: candidates %q, want %q", i, got, c.want)
+		}
+	}
+
+	// The part stays while a merged set or a watcher holds it.
+	x.Remove("c")
+	x.Remove("a")
+	if got := x.Candidates(&ChangeSet{Keys: []string{"part/1"}}); !slices.Equal(got, []string{"b"}) {
+		t.Fatalf("candidates after two left: %q, want [b]", got)
+	}
+	x.Remove("b")
+	expectEmptyIndex(t, x)
+}
+
 // expectEmptyIndex checks that x holds no watcher, set or name.
 func expectEmptyIndex[T comparable](t *testing.T, x *ChangeIndex[T]) {
 	t.Helper()
-	for _, n := range []int{x.Len(), len(x.shared), len(x.watchers.keys), len(x.watchers.terms), len(x.watchers.all), len(x.sets.keys), len(x.sets.terms), len(x.sets.all)} {
+	for _, n := range []int{x.Len(), len(x.held), len(x.watchers.keys), len(x.watchers.terms), len(x.watchers.all), len(x.sets.keys), len(x.sets.terms), len(x.sets.all)} {
 		if n != 0 {
-			t.Fatalf("index not empty after removal: %d watchers, %d shared sets, names %d %d %d, set names %d %d %d", x.Len(), len(x.shared), len(x.watchers.keys), len(x.watchers.terms), len(x.watchers.all), len(x.sets.keys), len(x.sets.terms), len(x.sets.all))
+			t.Fatalf("index not empty after removal: %d watchers, %d held sets, names %d %d %d, set names %d %d %d", x.Len(), len(x.held), len(x.watchers.keys), len(x.watchers.terms), len(x.watchers.all), len(x.sets.keys), len(x.sets.terms), len(x.sets.all))
 		}
 	}
 }
@@ -130,6 +177,13 @@ func TestChangeIndexSound(t *testing.T) {
 		sets[i] = randomReadSet(rng, pick, maybe)
 		for range rng.IntN(3) {
 			shared[i] = append(shared[i], pool[rng.IntN(len(pool))])
+		}
+		if rng.IntN(2) == 0 {
+			merged := randomReadSet(rng, pick, maybe)
+			for range rng.IntN(4) {
+				merged.join(pool[rng.IntN(len(pool))])
+			}
+			shared[i] = append(shared[i], merged)
 		}
 		interest := readSetInterest(sets[i])
 		interest.shared = append(interest.shared, shared[i]...)
@@ -214,6 +268,43 @@ func BenchmarkChangeIndexSharedWake(b *testing.B) {
 	for b.Loop() {
 		x.Remove(v)
 		x.Add(v, own[v].waitInterest(nil, []*ReadSet{shared}))
+		v = (v + 1) % len(own)
+	}
+}
+
+// BenchmarkChangeIndexMergedWake measures one view's wake when each of 1000
+// views holds its own set joining the same 100 parts of 200 keys each, as a
+// view built from a cache of shared parts does.
+func BenchmarkChangeIndexMergedWake(b *testing.B) {
+	// Build the parts the views share.
+	parts := make([]*ReadSet, 100)
+	for p := range parts {
+		parts[p] = NewReadSet()
+		for i := range 200 {
+			parts[p].addKeys("part/" + strconv.Itoa(p) + "/" + strconv.Itoa(i))
+		}
+	}
+
+	// Give each view its own set joining every part.
+	own := make([]*ReadSet, 1000)
+	merged := make([]*ReadSet, len(own))
+	x := NewChangeIndex[int]()
+	for v := range own {
+		own[v] = NewReadSet()
+		own[v].addKeys("own/" + strconv.Itoa(v))
+		merged[v] = NewReadSet()
+		for _, part := range parts {
+			merged[v].join(part)
+		}
+		x.Add(v, own[v].waitInterest(nil, []*ReadSet{merged[v]}))
+	}
+
+	// Wake one view after another.
+	b.ReportAllocs()
+	v := 0
+	for b.Loop() {
+		x.Remove(v)
+		x.Add(v, own[v].waitInterest(nil, []*ReadSet{merged[v]}))
 		v = (v + 1) % len(own)
 	}
 }

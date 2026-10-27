@@ -215,24 +215,6 @@ func (r *ReadSet) nameReads(interest *ChangeInterest) []*ReadSet {
 	return r.joined
 }
 
-// nameJoinedReads adds the names of r's reads and of the reads of every set r
-// joined, directly or through another joined set, to names, naming each set
-// once. It stops once names needs every change.
-func (r *ReadSet) nameJoinedReads(names *ChangeInterest) {
-	// Walk the joined sets depth first.
-	seen := make(map[*ReadSet]struct{})
-	pending := []*ReadSet{r}
-	for len(pending) != 0 && !names.all {
-		set := pending[len(pending)-1]
-		pending = pending[:len(pending)-1]
-		if _, ok := seen[set]; ok {
-			continue
-		}
-		seen[set] = struct{}{}
-		pending = append(pending, set.nameReads(names)...)
-	}
-}
-
 // touchesKey checks a changed object key. The caller holds mtx.
 func (r *ReadSet) touchesKey(key string) bool {
 	// Match the key itself and the iterated prefixes.

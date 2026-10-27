@@ -243,11 +243,14 @@ func TestReadSetJoin(t *testing.T) {
 		t.Error("change to an unread key touched the outer set")
 	}
 
-	// The outer set's names cover every joined read, without copying them.
-	names := &ChangeInterest{}
-	outer.nameJoinedReads(names)
-	if got := slices.Sorted(slices.Values(names.keys)); !slices.Equal(got, []string{"inner", "middle"}) {
-		t.Fatalf("joined names %q, want [inner middle]", got)
+	// A change index holding the outer set names every joined read, without
+	// the outer set copying them.
+	x := NewChangeIndex[string]()
+	x.Add("outer", &ChangeInterest{shared: []*ReadSet{outer}})
+	for _, key := range []string{"inner", "middle"} {
+		if got := x.Candidates(&ChangeSet{Keys: []string{key}}); !slices.Equal(got, []string{"outer"}) {
+			t.Fatalf("change to %q names %q, want [outer]", key, got)
+		}
 	}
 	if len(outer.keys) != 0 {
 		t.Fatalf("outer set copied %d keys", len(outer.keys))
