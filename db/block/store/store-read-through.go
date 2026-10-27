@@ -204,12 +204,24 @@ func (s *StoreReadThrough) readLower(ctx context.Context, primary, lower block.S
 		return nil, err
 	}
 	if s.fill != nil && primary != nil && stored.RefsKnown {
-		if err := s.fill(ctx, primary, ref, stored); err != nil {
-			return nil, err
+		// Fill in the background so the read does not wait on the primary's
+		// writer, which a standby's backfill can hold for seconds. A fill that
+		// finds the pool full is skipped; the next read fills it again.
+		select {
+		case fillSlots <- struct{}{}:
+			fillCtx := context.WithoutCancel(ctx)
+			go func() {
+				defer func() { <-fillSlots }()
+				_ = s.fill(fillCtx, primary, ref, stored)
+			}()
+		default:
 		}
 	}
 	return stored, nil
 }
+
+// fillSlots bounds the background fills of every read-through store.
+var fillSlots = make(chan struct{}, 256)
 
 // GetBlockExists checks the primary source, then the current lower source.
 // It asks each source for existence rather than reading the block, so a lower
