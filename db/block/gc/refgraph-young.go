@@ -29,6 +29,14 @@ func (g *RefGraph) YoungReady(ctx context.Context) (bool, error) {
 	return ready, err
 }
 
+// WithdrawYoungReady deletes the YoungReady record, so minor passes stop
+// until a block pass promotes in full and writes it again.
+func (g *RefGraph) WithdrawYoungReady(ctx context.Context) error {
+	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Delete(ctx, youngReadyKey)
+	})
+}
+
 // ClaimYoungReady marks the young log complete when the graph tracks no block,
 // and reports whether it is complete. With no child list there is no old
 // block, and every list written later is logged, so a store born empty is

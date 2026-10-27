@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
@@ -289,4 +290,85 @@ func TestMajorPassSettlesWithNothingUnreached(t *testing.T) {
 		t.Fatalf("minor pass did not run: stats=%+v", minor)
 	}
 	assertPublishedBlock(t, v, parent, true)
+}
+
+// TestMinorPassStopsOnUnknown checks that a minor pass that stops on a block
+// without a child list withdraws the young log's readiness, so later minor
+// passes do not run, also after a reopen, until a major pass promotes.
+func TestMinorPassStopsOnUnknown(t *testing.T) {
+	// Give up waiting for the list quickly.
+	saved := awaitLimit
+	awaitLimit = 100 * time.Millisecond
+	t.Cleanup(func() { awaitLimit = saved })
+
+	// Publish a parent that names a block stored without a child list, and
+	// release a block so the minor pass has one to sweep.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	rg := v.GetRefGraph()
+	parent := publicationFor(t, "parent", "", "one")
+	if err := v.PublishAtomic(ctx, parent); err != nil {
+		t.Fatal(err)
+	}
+	released := publicationFor(t, "released", "", "one")
+	if err := v.PublishAtomic(ctx, released); err != nil {
+		t.Fatal(err)
+	}
+	orphanPublication(t, v, released)
+	unknown, _ := holeEntries(t)
+	if _, _, err := v.PutBlock(ctx, unknown.Data, &block.PutOpts{ForceBlockRef: unknown.Ref}); err != nil {
+		t.Fatal(err)
+	}
+	edge := block_gc.RefEdge{Subject: block_gc.BlockIRI(parent.Entries[0].Ref), Object: block_gc.BlockIRI(unknown.Ref)}
+	if err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{edge}, nil); err != nil {
+		t.Fatal(err)
+	}
+	minorPass := func() block_gc.Stats {
+		t.Helper()
+		var stats block_gc.Stats
+		if err := v.SweepYoungBlocks(ctx, rg, &stats); err != nil {
+			t.Fatal(err)
+		}
+		return stats
+	}
+
+	// The first minor pass stops on the unknown block and sweeps nothing.
+	if stats := minorPass(); stats.MinorPasses != 1 || stats.UnknownBlocks != 1 || stats.BlocksSwept != 0 {
+		t.Fatalf("first minor pass stats=%+v", stats)
+	}
+
+	// Later minor passes do not run, and the store records it.
+	if stats := minorPass(); stats.MinorPasses != 0 {
+		t.Fatalf("minor pass after a stop ran: stats=%+v", stats)
+	}
+	var ready bool
+	err := v.refGraph.(*transactionRefGraph).read(ctx, func(g *block_gc.RefGraph) (err error) {
+		ready, err = g.YoungReady(ctx)
+		return err
+	})
+	if err != nil || ready {
+		t.Fatalf("young ready after a stop: ready=%v err=%v", ready, err)
+	}
+
+	// Give the block its list; a major pass sweeps and promotes, and minor
+	// passes run again.
+	gs := block_gc.NewGCStoreOps(v, rg)
+	if _, _, err := gs.PutBlock(ctx, unknown.Data, &block.PutOpts{ForceBlockRef: unknown.Ref, RefsKnown: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := gs.FlushPending(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var stats block_gc.Stats
+	if err := v.SweepUnreachedBlocks(ctx, rg, &stats); err != nil {
+		t.Fatal(err)
+	}
+	if stats.UnknownBlocks != 0 || stats.BlocksSwept != 1 {
+		t.Fatalf("major pass stats=%+v", stats)
+	}
+	if stats := minorPass(); stats.MinorPasses != 1 {
+		t.Fatalf("minor pass after promotion did not run: stats=%+v", stats)
+	}
+	assertPublishedBlock(t, v, parent, true)
+	assertPublishedBlock(t, v, released, false)
 }

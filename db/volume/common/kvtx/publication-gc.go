@@ -178,7 +178,7 @@ const sweepChunkTime = sweepBudget / 4
 // blocks. A write commits a block's list in its staging flush, after the
 // edge that adopted it, so a list arrives within a flush or two; a block
 // still without one after the limit was stored untracked.
-const awaitLimit = 2 * time.Minute
+var awaitLimit = 2 * time.Minute
 
 // SweepUnreferenced treats candidate snapshots as hints, not deletion authority.
 // Current owners, outgoing edges, orphan markers, and physical deletion of each
@@ -301,8 +301,11 @@ func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOp
 			// Sweep the unreached, then promote.
 			v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_SWEEP)
 			complete, err := v.sweepUnreached(ctx, mark, stats)
-			if err != nil || !complete {
+			if err != nil {
 				return err
+			}
+			if !complete {
+				return v.withdrawYoungReady(ctx)
 			}
 			v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_PROMOTE)
 			return v.promoteYoung(ctx, mark, mark.YoungBound())
@@ -372,6 +375,17 @@ func (v *Volume) promoteYoung(ctx context.Context, mark *block_gc.BlockMark, bou
 			return err
 		}
 	}
+}
+
+// withdrawYoungReady stops minor passes after one stopped on blocks of
+// unknown references, until a block pass promotes in full. Such a pass cannot
+// promote, so the young log only grows and every later minor pass marks more
+// and sweeps nothing; on a large store each costs as much as a block pass.
+func (v *Volume) withdrawYoungReady(ctx context.Context) error {
+	v.youngReady = false
+	return v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
+		return rg.WithdrawYoungReady(ctx)
+	})
 }
 
 // sweepBlockPass marks the blocks of an open pass and sweeps the unreached,
