@@ -57,7 +57,9 @@ func TestGCStoreOps_ParentIRI_ReputWithoutRefsKeepsChildren(t *testing.T) {
 
 // TestGCStoreOps_ParentIRI_TakenUntrackedBlockReadsUnknown tests that a block
 // stored without tracking and then taken by a parent without declared
-// references reads with unknown references, not as a leaf a copy would record.
+// references reads with unknown references, not as a leaf a copy would record,
+// and that a take declaring its references known records them, a leaf's
+// empty list included.
 func TestGCStoreOps_ParentIRI_TakenUntrackedBlockReadsUnknown(t *testing.T) {
 	// An untracked writer stores a directory and its child.
 	env := newGCTestEnvWithParent(t, BucketIRI("taken-bucket"))
@@ -83,5 +85,27 @@ func TestGCStoreOps_ParentIRI_TakenUntrackedBlockReadsUnknown(t *testing.T) {
 	}
 	if stored.RefsKnown {
 		t.Fatalf("taken untracked block reads as known with refs %v", stored.Refs)
+	}
+
+	// The bucket takes both again, declaring their references known.
+	known := []*block.PutBatchEntry{
+		{Ref: leaf.Ref, Data: leaf.Data, RefsKnown: true},
+		{Ref: dir.Ref, Data: dir.Data, Refs: dir.Refs, RefsKnown: true},
+	}
+	if _, err := env.gcStore.PutBlockBatch(env.ctx, known); err != nil {
+		t.Fatal(err.Error())
+	}
+	env.flush(t)
+
+	// Each reads as known: the leaf with no references, the directory with
+	// its child.
+	for _, entry := range []*block.PutBatchEntry{leaf, dir} {
+		stored, err := env.gcStore.GetStoredBlock(env.ctx, entry.Ref)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !stored.GetRefsKnown() || len(stored.Refs) != len(entry.Refs) {
+			t.Fatalf("block %q reads known=%v refs=%v after a known take", entry.Data, stored.GetRefsKnown(), stored.Refs)
+		}
 	}
 }

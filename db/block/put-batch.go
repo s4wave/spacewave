@@ -8,6 +8,8 @@ type PutBatchEntry struct {
 	Data []byte
 	// Refs are outgoing block references recorded with this write.
 	Refs []*BlockRef
+	// RefsKnown declares Refs complete, as PutOpts.RefsKnown does.
+	RefsKnown bool
 	// Tombstone marks the block ref as deleted.
 	Tombstone bool
 }

@@ -57,5 +57,5 @@ func (b *StoredBlock) GetRefsKnown() bool {
 // Refs are empty when they are unknown, so the caller decides whether a
 // block without known refs may be written.
 func (b *StoredBlock) PutOpts(ref *BlockRef) *PutOpts {
-	return &PutOpts{ForceBlockRef: ref.Clone(), Refs: b.Refs}
+	return &PutOpts{ForceBlockRef: ref.Clone(), Refs: b.Refs, RefsKnown: b.RefsKnown}
 }

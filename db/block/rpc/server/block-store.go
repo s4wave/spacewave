@@ -70,6 +70,7 @@ func (s *BlockStore) PutBlockBatch(
 			Ref:       entry.GetRef(),
 			Data:      entry.GetData(),
 			Refs:      entry.GetRefs(),
+			RefsKnown: entry.GetRefsKnown(),
 			Tombstone: entry.GetTombstone(),
 		})
 	}

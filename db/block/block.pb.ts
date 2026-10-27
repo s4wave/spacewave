@@ -286,6 +286,13 @@ export interface PutOpts {
    * copy then lives only while a retained root reaches it.
    */
   cacheFill?: boolean
+  /**
+   * RefsKnown declares refs complete: the writer decoded the block and refs
+   * lists every block it references, so empty refs mean a leaf. A GC-aware
+   * store then records the child list of a block it already held without one.
+   * Unset, refs may be partial, and an existing block keeps its list.
+   */
+  refsKnown?: boolean
 }
 
 export const PutOpts: MessageType<PutOpts> =
@@ -295,4 +302,5 @@ export const PutOpts: MessageType<PutOpts> =
     [3, 'refs', 11, 1, BlockRef.codec],
     [4, 'sync', 8],
     [5, 'cache_fill', 8],
+    [6, 'refs_known', 8],
   ])

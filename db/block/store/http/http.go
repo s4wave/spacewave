@@ -185,6 +185,7 @@ func (b *HTTPBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 		_, entryExisted, err := b.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: ref,
 			Refs:          block.CloneBlockRefs(entry.Refs),
+			RefsKnown:     entry.RefsKnown,
 		})
 		if err != nil {
 			return nil, err

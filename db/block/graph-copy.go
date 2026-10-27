@@ -268,9 +268,10 @@ func (c *graphCopy) complete(ctx context.Context, node *graphCopyNode) error {
 		node := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		_, err := c.dst.PutBlockBatch(ctx, []*PutBatchEntry{{
-			Ref:  node.ref,
-			Data: node.data,
-			Refs: node.refs,
+			Ref:       node.ref,
+			Data:      node.data,
+			Refs:      node.refs,
+			RefsKnown: true,
 		}})
 		if err != nil {
 			return errors.Wrap(err, node.ref.MarshalString())

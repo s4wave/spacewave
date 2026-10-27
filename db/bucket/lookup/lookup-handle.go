@@ -122,6 +122,7 @@ func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 		_, entryExisted, err := l.PutBlock(ctx, entry.Data, &block.PutOpts{
 			ForceBlockRef: ref,
 			Refs:          block.CloneBlockRefs(entry.Refs),
+			RefsKnown:     entry.RefsKnown,
 		})
 		if err != nil {
 			return nil, err

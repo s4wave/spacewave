@@ -53,17 +53,17 @@ type GCStoreOps struct {
 	deferFlush atomic.Int64
 
 	// flushMu preserves delivery order and joins overlapping flushes.
-	flushMu           csync.Mutex
-	mu                sync.Mutex
-	pendingReleases   map[string]struct{} // latest parent releases, canceled by a later put
-	pendingUnref      []string            // block IRIs needing parent/unreferenced -> block edges
-	pendingTakes      []string            // existing block IRIs needing only the parent -> block edge
-	pendingCandidates []string            // cache-filled block IRIs needing unreferenced -> block edges
-	pendingReputs     []pendingReput      // existing blocks written with refs, checked for lost edges
-	pendingRefs       []pendingRef        // source -> target block ref edges
-	pendingUnunref    []string            // block IRIs to remove from unreferenced
-	pendingAdds       []RefEdge           // normalized add edges left by a failed direct flush
-	pendingRemoves    []RefEdge           // normalized remove edges left by a failed direct flush
+	flushMu         csync.Mutex
+	mu              sync.Mutex
+	pendingReleases map[string]struct{} // latest parent releases, canceled by a later put
+	pendingUnref    []string            // block IRIs needing parent/unreferenced -> block edges
+	pendingTakes    []string            // existing block IRIs needing only the parent -> block edge
+	pendingStaged   []string            // block IRIs needing only the unreferenced -> block edge that makes their child list
+	pendingReputs   []pendingReput      // existing blocks written with refs, checked for lost edges
+	pendingRefs     []pendingRef        // source -> target block ref edges
+	pendingUnunref  []string            // block IRIs to remove from unreferenced
+	pendingAdds     []RefEdge           // normalized add edges left by a failed direct flush
+	pendingRemoves  []RefEdge           // normalized remove edges left by a failed direct flush
 }
 
 const (
@@ -163,8 +163,8 @@ func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 
 // PutBlock puts a block into the store and buffers a gc/ref edge for later
 // flush. A parent owns every non-empty block it writes. Without a parent, only
-// new blocks are staged under unreferenced. Only a new block records its
-// outgoing edges.
+// new blocks are staged under unreferenced. A new block records its outgoing
+// edges, and so does an existing one whose writer declares its refs known.
 func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Trace the put and its ownership buffering as one task.
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block")
@@ -195,11 +195,12 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	}
 
 	// A cache fill changes no ownership. A new copy is a garbage candidate
-	// until a retained root reaches it, and records its outgoing refs.
+	// until a retained root reaches it, and records its outgoing refs, as
+	// does an existing copy whose refs are known.
 	if putOpts.GetCacheFill() {
-		if !existed {
+		if !existed || putOpts.GetRefsKnown() {
 			g.mu.Lock()
-			g.pendingCandidates = append(g.pendingCandidates, BlockIRI(ref))
+			g.pendingStaged = append(g.pendingStaged, BlockIRI(ref))
 			g.bufferRefEdgesLocked(ref, putOpts.GetRefs(), false)
 			g.mu.Unlock()
 		}
@@ -209,7 +210,7 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	// The writer's owner takes the block and adopts the blocks it references.
 	_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
 	g.mu.Lock()
-	g.bufferPutLocked(ref, putOpts.GetRefs(), existed)
+	g.bufferPutLocked(ref, putOpts.GetRefs(), putOpts.GetRefsKnown(), existed)
 	g.mu.Unlock()
 	subtask.End()
 	return finish(ref, existed)
@@ -265,7 +266,7 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		if entry.Ref == nil || entry.Ref.GetEmpty() {
 			continue
 		}
-		g.bufferPutLocked(entry.Ref, entry.Refs, existed[i])
+		g.bufferPutLocked(entry.Ref, entry.Refs, entry.RefsKnown, existed[i])
 	}
 	return existed, nil
 }
@@ -315,13 +316,16 @@ func (g *GCStoreOps) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 // bufferPutLocked buffers the ownership edges of one written block. A new block
 // takes its owner and records the edges it holds, adopting the blocks it
 // references. An existing block recorded its edges at its first write unless it
-// was stored without tracking, so FlushPending checks that it has them. A
-// parent takes it again, clears its staging edge and adopts the blocks it
-// references, so a rewritten tree leaves the parent holding only its top. The
-// take adds no staging edge: that edge would give a block stored without
-// tracking an empty child list, declaring it a leaf whatever it references. An
-// unparented store leaves it as it is.
-func (g *GCStoreOps) bufferPutLocked(ref *block.BlockRef, targets []*block.BlockRef, existed bool) {
+// was stored without tracking. With refsKnown the writer vouches for targets,
+// so the block records them and its child list, which makes a leaf stored
+// without tracking a known leaf; otherwise targets may be partial, and
+// FlushPending only checks that the block has edges. A parent takes it again,
+// clears its staging edge and adopts the blocks it references, so a rewritten
+// tree leaves the parent holding only its top. A take without refsKnown adds
+// no staging edge: that edge would give a block stored without tracking an
+// empty child list, declaring it a leaf whatever it references. An unparented
+// store leaves its ownership as it is.
+func (g *GCStoreOps) bufferPutLocked(ref *block.BlockRef, targets []*block.BlockRef, refsKnown, existed bool) {
 	// Take a new block and the edges it holds.
 	iri := BlockIRI(ref)
 	if !existed {
@@ -331,8 +335,13 @@ func (g *GCStoreOps) bufferPutLocked(ref *block.BlockRef, targets []*block.Block
 		return
 	}
 
-	// Check that an existing block holds its edges.
-	if len(targets) != 0 {
+	// Record the child list of an existing block whose refs are known, or
+	// check that one written with partial refs holds its edges.
+	switch {
+	case refsKnown:
+		g.pendingStaged = append(g.pendingStaged, iri)
+		g.bufferRefEdgesLocked(ref, targets, false)
+	case len(targets) != 0:
 		g.pendingReputs = append(g.pendingReputs, pendingReput{ref: ref, targets: targets})
 	}
 	if g.parentIRI == "" {
@@ -463,15 +472,15 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	// Take the buffered ownership changes.
 	g.mu.Lock()
 	unrefs, takes := g.pendingUnref, g.pendingTakes
-	candidates, refs := g.pendingCandidates, g.pendingRefs
+	staged, refs := g.pendingStaged, g.pendingRefs
 	ununrefs, releases := g.pendingUnunref, g.pendingReleases
 	g.pendingUnref, g.pendingTakes = nil, nil
-	g.pendingCandidates, g.pendingRefs = nil, nil
+	g.pendingStaged, g.pendingRefs = nil, nil
 	g.pendingUnunref, g.pendingReleases = nil, nil
 	g.mu.Unlock()
 
 	// Record the pending counts, or stop when nothing is buffered.
-	if len(unrefs) == 0 && len(takes) == 0 && len(candidates) == 0 && len(refs) == 0 &&
+	if len(unrefs) == 0 && len(takes) == 0 && len(staged) == 0 && len(refs) == 0 &&
 		len(ununrefs) == 0 && len(releases) == 0 {
 		return nil
 	}
@@ -495,9 +504,10 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	// The staging edge of each new block records that its references are
 	// known, giving a leaf its empty child list. A parent taking an existing
 	// block only adds its owner edge: the block's list came from its first
-	// write or comes from recordLostEdges, and a block stored without tracking
-	// keeps no list, so the mark stops at it rather than sweep what it names.
-	adds := make([]RefEdge, 0, 2*len(unrefs)+len(takes)+len(candidates)+len(refs)+len(releases))
+	// write, comes from recordLostEdges, or is staged below when its writer
+	// knew its refs. A block stored without tracking otherwise keeps no list,
+	// so the mark stops at it rather than sweep what it names.
+	adds := make([]RefEdge, 0, 2*len(unrefs)+len(takes)+len(staged)+len(refs)+len(releases))
 	removes := make([]RefEdge, 0, len(ununrefs)+len(releases))
 	for _, iri := range unrefs {
 		adds = append(adds, RefEdge{Subject: parent, Object: iri})
@@ -509,8 +519,9 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		adds = append(adds, RefEdge{Subject: parent, Object: iri})
 	}
 
-	// Stage cache-fill candidates and record the buffered ref edges.
-	for _, iri := range candidates {
+	// Stage the blocks whose child lists are known and record the buffered ref
+	// edges.
+	for _, iri := range staged {
 		adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: iri})
 	}
 	for _, r := range refs {

@@ -127,5 +127,5 @@ func PutBlock(ctx context.Context, bk StoreOps, b Block) (*BlockRef, bool, error
 	if err != nil {
 		return nil, false, err
 	}
-	return bk.PutBlock(ctx, dat, &PutOpts{Refs: refs})
+	return bk.PutBlock(ctx, dat, &PutOpts{Refs: refs, RefsKnown: true})
 }

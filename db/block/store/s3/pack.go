@@ -166,7 +166,7 @@ func (s *PackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	}
 
 	// Write the block and its references through the batch packfile path.
-	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: opts.GetRefs()}
+	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: opts.GetRefsKnown()}
 	if _, err := s.PutBlockBatch(ctx, []*block.PutBatchEntry{entry}); err != nil {
 		return nil, false, err
 	}

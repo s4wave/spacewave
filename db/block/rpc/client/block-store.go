@@ -158,6 +158,7 @@ func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 			Ref:       entry.Ref,
 			Data:      entry.Data,
 			Refs:      entry.Refs,
+			RefsKnown: entry.RefsKnown,
 			Tombstone: entry.Tombstone,
 		}
 

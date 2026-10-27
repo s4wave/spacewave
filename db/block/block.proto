@@ -64,6 +64,11 @@ message PutOpts {
   // staged as a garbage candidate, and an existing block keeps its edges. The
   // copy then lives only while a retained root reaches it.
   bool cache_fill = 5;
+  // RefsKnown declares refs complete: the writer decoded the block and refs
+  // lists every block it references, so empty refs mean a leaf. A GC-aware
+  // store then records the child list of a block it already held without one.
+  // Unset, refs may be partial, and an existing block keeps its list.
+  bool refs_known = 6;
 }
 
 // StoreFeature is a bitmask of native block store capabilities.

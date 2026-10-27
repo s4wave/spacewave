@@ -539,6 +539,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 							handleErr(err)
 							return
 						}
+						putOpts.RefsKnown = true
 
 						// Store content without a redundant existence probe.
 						put := func() {

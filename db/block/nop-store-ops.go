@@ -49,6 +49,7 @@ func (n NopStoreOps) PutBlockBatch(ctx context.Context, entries []*PutBatchEntry
 		_, entryExisted, err := n.PutBlock(ctx, entry.Data, &PutOpts{
 			ForceBlockRef: ref,
 			Refs:          entry.Refs,
+			RefsKnown:     entry.RefsKnown,
 		})
 		if err != nil {
 			return nil, err

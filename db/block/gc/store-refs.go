@@ -75,7 +75,7 @@ func (g *GCStoreOps) hasBufferedBlockEdges(node string) bool {
 	// Check staging and ownership buffered by block writes.
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if slices.Contains(g.pendingUnref, node) || slices.Contains(g.pendingCandidates, node) {
+	if slices.Contains(g.pendingUnref, node) || slices.Contains(g.pendingStaged, node) {
 		return true
 	}
 

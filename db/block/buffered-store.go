@@ -15,10 +15,18 @@ type pendingBlock struct {
 	ref           *BlockRef
 	data          []byte
 	refs          []*BlockRef
+	refsKnown     bool
 	tombstone     bool
 	queued        bool
 	borrowed      bool
 	metadataBytes int
+}
+
+// covers reports whether the queued block already carries refs, and carries
+// them as known when the write declares them known, so writing it again would
+// change nothing.
+func (p *pendingBlock) covers(refs []*BlockRef, refsKnown bool) bool {
+	return containsBlockRefs(p.refs, refs) && (p.refsKnown || !refsKnown)
 }
 
 type drainBatch struct {
@@ -186,7 +194,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 	if drainErr != nil {
 		return nil, false, drainErr
 	}
-	if existingPending != nil && !existingPending.tombstone && containsBlockRefs(existingPending.refs, opts.GetRefs()) {
+	if existingPending != nil && !existingPending.tombstone && existingPending.covers(opts.GetRefs(), opts.GetRefsKnown()) {
 		return finish(ref, true)
 	}
 
@@ -232,6 +240,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 		ref:           ref.Clone(),
 		data:          bytes.Clone(data),
 		refs:          CloneBlockRefs(opts.GetRefs()),
+		refsKnown:     opts.GetRefsKnown(),
 		metadataBytes: metadataBytes,
 	}
 	for {
@@ -255,7 +264,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 			// Merge dependencies into an existing block or enqueue a new block.
 			if p := s.pending[key]; p != nil && !p.tombstone {
 				alreadyExists = true
-				if containsBlockRefs(p.refs, pendingClone.refs) {
+				if p.covers(pendingClone.refs, pendingClone.refsKnown) {
 					done = true
 					return
 				}
@@ -264,6 +273,7 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 				// sets of dependencies without mutating a borrowed entry.
 				merged := *pendingClone
 				merged.refs = CloneBlockRefs(p.refs)
+				merged.refsKnown = p.refsKnown || pendingClone.refsKnown
 				for _, child := range pendingClone.refs {
 					if !containsBlockRefs(merged.refs, []*BlockRef{child}) {
 						merged.refs = append(merged.refs, child.Clone())
@@ -342,6 +352,7 @@ func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEn
 		_, pendingExisted, err := s.putBlock(ctx, entry.Data, &PutOpts{
 			ForceBlockRef: ref,
 			Refs:          CloneBlockRefs(entry.Refs),
+			RefsKnown:     entry.RefsKnown,
 		}, false)
 		if err != nil {
 			return nil, err
@@ -772,6 +783,7 @@ func (s *BufferedStore) takeDrainBatchLocked(maxEntries int) *drainBatch {
 			Ref:       pending.ref,
 			Data:      pending.data,
 			Refs:      pending.refs,
+			RefsKnown: pending.refsKnown,
 			Tombstone: pending.tombstone,
 		})
 	}

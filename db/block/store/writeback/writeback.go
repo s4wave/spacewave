@@ -414,7 +414,7 @@ func (s *Store) uploadBatch(ctx context.Context, remote block.StoreOps, batch []
 		if !stored.RefsKnown {
 			return errors.Wrapf(block.ErrRefsUnknown, "upload block %s", pending.ref.MarshalString())
 		}
-		entries = append(entries, &block.PutBatchEntry{Ref: pending.ref, Data: stored.Data, Refs: stored.Refs})
+		entries = append(entries, &block.PutBatchEntry{Ref: pending.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
 	}
 	if len(entries) != 0 {
 		if _, err := remote.PutBlockBatch(ctx, entries); err != nil {

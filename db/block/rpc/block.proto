@@ -86,6 +86,8 @@ message PutBlockBatchEntry {
   repeated .block.BlockRef refs = 3;
   // Tombstone marks the block ref as deleted.
   bool tombstone = 4;
+  // RefsKnown declares refs complete, as block.PutOpts.refs_known does.
+  bool refs_known = 5;
 }
 
 // PutBlockBatchRequest requests to put blocks into the store as a batch.

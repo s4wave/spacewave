@@ -645,6 +645,7 @@ func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 			Ref:       entry.Ref,
 			Data:      data,
 			Refs:      entry.Refs,
+			RefsKnown: entry.RefsKnown,
 			Tombstone: entry.Tombstone,
 		}
 	}
