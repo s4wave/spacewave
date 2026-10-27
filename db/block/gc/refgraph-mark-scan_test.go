@@ -136,3 +136,54 @@ func testMarkScanAcrossWrites(t *testing.T, rnd *rand.Rand) {
 		}
 	}
 }
+
+// TestMarkScanUnknownAcrossOwnerWrite checks that a scan mark counts a reached
+// block without a child list however late an owner adopts a block with a list.
+// The settle step after the scans reads the owner edges again and must not
+// count a block the edge adopted after the seeds, which the adopt log covers,
+// against the unknown ones: an uncounted list would cancel the hole, and a
+// sweep would take the mark as complete.
+func TestMarkScanUnknownAcrossOwnerWrite(t *testing.T) {
+	for at := range 12 {
+		t.Run(strconv.Itoa(at), func(t *testing.T) {
+			// Root an owner of a block whose list names a hole.
+			ctx := context.Background()
+			rg := NewRefGraph(store_kvtx_inmem.NewStore())
+			t.Cleanup(func() { rg.Close() })
+			parent := BlockIRI(testBlockRef(t, "scan-parent"))
+			hole := BlockIRI(testBlockRef(t, "scan-hole"))
+			late := BlockIRI(testBlockRef(t, "scan-late"))
+			err := rg.ApplyRefBatch(ctx, []RefEdge{
+				{Subject: NodeGCRoot, Object: "bucket:a"},
+				{Subject: NodeUnreferenced, Object: parent},
+				{Subject: "bucket:a", Object: parent},
+				{Subject: parent, Object: hole},
+			}, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Adopt a block with a list from the owner between the
+			// transactions, at a different point in each run.
+			var calls int
+			between := func() error {
+				if calls++; calls != at+1 {
+					return nil
+				}
+				return rg.ApplyRefBatch(ctx, []RefEdge{
+					{Subject: NodeUnreferenced, Object: late},
+					{Subject: "bucket:a", Object: late},
+				}, nil)
+			}
+			mark, err := rg.markScan(ctx, markLimit{records: 1}, between)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// The hole is the one unknown block, and the mark lists it.
+			if mark.Unknown != 1 || !mark.Awaitable() {
+				t.Fatalf("unknown %d with %d listed, want the hole alone", mark.Unknown, len(mark.awaiting))
+			}
+		})
+	}
+}

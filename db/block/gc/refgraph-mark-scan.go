@@ -364,15 +364,18 @@ func settleTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark, expanded *NodeSe
 }
 
 // findUnknown lists up to settleLimit of the live blocks a scan mark left
-// unexpanded, each with its namer. Only the records that made them live name
+// unexpanded, each with its namer, and no block the mark did not reach. Only the records that made them live name
 // them, so it scans the roots, the edges from text nodes and the expanded
 // lists, within limit like the mark, and stops once the list is full.
 func (g *RefGraph) findUnknown(ctx context.Context, mark *BlockMark, expanded *NodeSet, limit markLimit, between func() error) ([]unknownBlock, error) {
-	// Note each unexpanded block once.
+	// Note each unexpanded live block once. An edge a write added after the
+	// seeds or the scans can name a block the mark never made live; the
+	// adopt log covers it, and noting it would expand a list liveBlocks does
+	// not count, so the mark would count too few unknown blocks.
 	var found []unknownBlock
 	noted := NewNodeSet()
 	note := func(enc []byte, namer string) error {
-		if len(enc) == 0 || enc[0] == textNode || expanded.hasBlock(enc) || !noted.addBlock(enc) {
+		if len(enc) == 0 || enc[0] == textNode || !mark.Live.hasBlock(enc) || expanded.hasBlock(enc) || !noted.addBlock(enc) {
 			return nil
 		}
 		found = append(found, unknownBlock{enc: slices.Clone(enc), namer: namer})
