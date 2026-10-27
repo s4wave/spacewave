@@ -110,6 +110,52 @@ func (m *BlockMark) noteUnknown(b namedNode) {
 	m.await(b)
 }
 
+// SettleAbsent stops counting each listed unknown block that a parent block's
+// list named and that stored reports absent from the block store, and reports
+// how many it settled. Such a block is a hole, as a copy that found no source
+// for it leaves: it names nothing a reader can reach through it, so the mark
+// treats it as a leaf. A block an owner or a write adopted stays unknown,
+// since its write may still be storing it. It settles only a mark that lists
+// all its unknown blocks. The caller checks presence in the transaction that
+// sweeps, so no write stores the block in between; a block stored later logs
+// the blocks it adopts, as any write after the mark does.
+func (m *BlockMark) SettleAbsent(stored func(node string) (bool, error)) (int, error) {
+	// Leave a mark that could not list its unknown blocks.
+	if m.Unknown == 0 || !m.Awaitable() {
+		return 0, nil
+	}
+
+	// Keep the blocks an owner or a write adopted, and those the store
+	// holds.
+	kept := make([]namedNode, 0, len(m.awaiting))
+	for _, b := range m.awaiting {
+		found := !isBlockNode(b.namer)
+		if !found {
+			var err error
+			if found, err = stored(b.node); err != nil {
+				return 0, err
+			}
+		}
+		if found {
+			kept = append(kept, b)
+		}
+	}
+
+	// Uncount the absent blocks and sample the rest afresh.
+	settled := len(m.awaiting) - len(kept)
+	if settled == 0 {
+		return 0, nil
+	}
+	m.Unknown -= settled
+	m.awaiting = kept
+	m.UnknownSample, m.UnknownNamers = nil, nil
+	for _, b := range kept[:min(len(kept), unknownSample)] {
+		m.UnknownSample = append(m.UnknownSample, b.node)
+		m.UnknownNamers = append(m.UnknownNamers, b.namer)
+	}
+	return settled, nil
+}
+
 // takeAwaiting returns the listed unknown blocks for a walk to read again and
 // stops counting them, sampling afresh when every unknown block is listed.
 func (m *BlockMark) takeAwaiting() []namedNode {

@@ -160,6 +160,46 @@ func TestPublicationSweepUnknownBlocks(t *testing.T) {
 	}
 }
 
+// TestPublicationSweepPastAbsentBlock checks that a block pass sweeps past a
+// block a parent's list names that has no list and that the store does not
+// hold, such as a hole a copy recorded, since it names nothing a reader can
+// reach.
+func TestPublicationSweepPastAbsentBlock(t *testing.T) {
+	// Publish a block and release it, and publish a parent.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	p := publicationFor(t, "absent", "", "one")
+	if err := v.PublishAtomic(ctx, p); err != nil {
+		t.Fatal(err)
+	}
+	orphanPublication(t, v, p)
+	parent := publicationFor(t, "parent", "", "two")
+	if err := v.PublishAtomic(ctx, parent); err != nil {
+		t.Fatal(err)
+	}
+
+	// The parent's list names a block the store never held, which a mark
+	// counts as unknown.
+	hole := block_gc.BlockIRI(publicationFor(t, "hole", "", "three").Entries[0].Ref)
+	rg := v.refGraph.(*transactionRefGraph)
+	edge := block_gc.RefEdge{Subject: block_gc.BlockIRI(parent.Entries[0].Ref), Object: hole}
+	if err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{edge}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if mark := markBlocks(t, v); mark.Unknown != 1 {
+		t.Fatalf("unknown=%d", mark.Unknown)
+	}
+
+	// The pass settles the hole, sweeps the released block and keeps the
+	// parent.
+	stats, err := block_gc.NewCollector(rg, v, nil).Collect(ctx)
+	if err != nil || stats.BlocksSwept != 1 || stats.AbsentBlocks != 1 || stats.UnknownBlocks != 0 {
+		t.Fatalf("stats=%+v err=%v", stats, err)
+	}
+	assertPublishedBlock(t, v, p, false)
+	assertPublishedBlock(t, v, parent, true)
+}
+
 // TestPublicationSweepBatchMarksReleasedChildren checks that one sweep batch
 // marks each child it leaves without an owner, leaves a child another owner
 // keeps unmarked, leaves no marker on the nodes it removes, and drops the

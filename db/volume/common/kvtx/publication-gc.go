@@ -455,9 +455,25 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 				return nil
 			}
 
-			// A block of unknown references may name any unreached block.
-			// Wait for a later commit to add the lists of the blocks the
-			// mark listed, or stop when it could not list them all.
+			// A block of unknown references may name any unreached block,
+			// unless the store does not hold it: a copy's hole names
+			// nothing a reader can reach. Wait for a later commit to add
+			// the lists of the blocks the mark listed, or stop when it
+			// could not list them all.
+			settled, err := mark.SettleAbsent(func(node string) (bool, error) {
+				ref, ok := block_gc.ParseBlockIRI(node)
+				if !ok {
+					return true, nil
+				}
+				return blocks.GetBlockExists(ctx, ref)
+			})
+			if err != nil {
+				return err
+			}
+			if settled != 0 {
+				stats.AbsentBlocks += settled
+				stats.UnknownBlocks, stats.UnknownSample, stats.UnknownNamers = mark.Unknown, mark.UnknownSample, mark.UnknownNamers
+			}
 			if mark.Unknown != 0 {
 				if !mark.Awaitable() {
 					stats.UnknownBlocks, stats.UnknownSample, stats.UnknownNamers = mark.Unknown, mark.UnknownSample, mark.UnknownNamers

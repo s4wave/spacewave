@@ -75,6 +75,9 @@ type Stats struct {
 	// UnknownNamers lists the node that made each sampled block live, empty
 	// for a walk.
 	UnknownNamers []string
+	// AbsentBlocks is the number of reached blocks without a child list that
+	// sweeps treated as leaves because the store does not hold them.
+	AbsentBlocks int
 	// RescuedNodes is the number of nodes sweeps rescued from the adopt log.
 	RescuedNodes int
 	// BlocksSwept is the number of blocks block passes removed.
