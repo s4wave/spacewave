@@ -353,6 +353,7 @@ func (w *publicationWriter) run() {
 		// Resolve the physical group before releasing its admission budget,
 		// and drop it from the read set as its receipts resolve.
 		group, results, committed := w.applyGroup(first)
+		var written int
 		w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			// Count the physical commit.
 			if committed {
@@ -366,12 +367,13 @@ func (w *publicationWriter) run() {
 			}
 			w.failDependentsLocked()
 
-			// Account for each request and resolve its receipt.
+			// Account for each request and resolve its receipt, summing the
+			// bytes that committed.
 			for i, r := range group {
 				if results[i] != nil {
 					w.stats.Rejected++
 				} else {
-					w.stats.CommittedBytes += uint64(r.bytes) // #nosec G115 -- an admission cost is not negative.
+					written += r.bytes
 				}
 				w.stats.Completed++
 				w.stats.Pending--
@@ -384,9 +386,11 @@ func (w *publicationWriter) run() {
 			broadcast()
 		})
 
-		// Notify volume observers only after successful physical publication.
+		// Notify volume observers only after successful physical publication,
+		// and count its bytes toward the next size measurement.
 		if committed {
 			w.volume.broadcastStorageStatsChanged()
+			w.volume.noteWritten(uint64(written)) // #nosec G115 -- an admission cost is not negative.
 		}
 	}
 }

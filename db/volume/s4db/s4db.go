@@ -94,11 +94,13 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 		return nil, errors.Join(err, db.Close())
 	}
 
-	// Coordinate writers across processes through the database file, and
-	// measure the file and its disk for the volume's health.
+	// Coordinate writers across processes through the database file, measure
+	// the file and its disk for the volume's health, and release what
+	// collection frees while the volume refuses writes at its reserve.
 	vol.Coordinator = coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(vol.GetID()))
-	vol.SetHealthSizes(func(ctx context.Context) (uint64, uint64, uint64, error) {
-		return healthSizes(ctx, db, path)
+	vol.SetReserveRelease(db.Release)
+	vol.SetHealthSizes(func(ctx context.Context) (volume_kvtx.HealthSizes, error) {
+		return healthSizes(ctx, db, path, conf.GetReserveBytes())
 	})
 	return vol, nil
 }
@@ -141,18 +143,30 @@ func storageStats(ctx context.Context, db *s4db.DB, path string) (*volume.Storag
 }
 
 // healthSizes measures the file's length and live values through db and the
-// space free on its disk.
-func healthSizes(ctx context.Context, db *s4db.DB, path string) (fileBytes, liveValueBytes, freeBytes uint64, err error) {
-	// Read the file's usage as of the latest commit.
-	u, err := db.Usage(ctx)
+// space free on its disk, and chooses the disk reserve: reserveBytes when
+// positive, none when negative, and otherwise the disk one collection needs
+// before it frees any.
+func healthSizes(ctx context.Context, db *s4db.DB, path string, reserveBytes int64) (volume_kvtx.HealthSizes, error) {
+	// Read the file's sizes as of the latest commit.
+	sz, err := db.Sizes(ctx)
 	if err != nil {
-		return 0, 0, 0, err
+		return volume_kvtx.HealthSizes{}, err
 	}
 
 	// Measure the free disk.
-	freeBytes, err = freeDiskBytes(path)
+	freeBytes, err := freeDiskBytes(path)
 	if err != nil {
-		return 0, 0, 0, err
+		return volume_kvtx.HealthSizes{}, err
 	}
-	return uint64(u.FileBytes), uint64(u.ValueBytes), freeBytes, nil //nolint:gosec
+
+	// Choose the reserve.
+	if reserveBytes == 0 {
+		reserveBytes = sz.CollectBytes
+	}
+	return volume_kvtx.HealthSizes{
+		FileBytes:      uint64(sz.FileBytes),  //nolint:gosec
+		LiveValueBytes: uint64(sz.ValueBytes), //nolint:gosec
+		FreeDiskBytes:  freeBytes,
+		ReserveBytes:   uint64(max(reserveBytes, 0)), //nolint:gosec
+	}, nil
 }

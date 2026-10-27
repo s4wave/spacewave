@@ -130,6 +130,11 @@ export interface VolumeHealth {
    * WriteState is whether the volume admits new writes.
    */
   writeState?: VolumeWriteState;
+  /**
+   * ReserveBytes is the free disk below which the volume refuses new writes,
+   * as of SizesAt. Zero when the volume keeps no reserve.
+   */
+  reserveBytes?: bigint;
 }
 
 export const VolumeHealth: MessageType<VolumeHealth> = /* @__PURE__ */ createMessageType<VolumeHealth>("volume.VolumeHealth", () => [
@@ -144,5 +149,6 @@ export const VolumeHealth: MessageType<VolumeHealth> = /* @__PURE__ */ createMes
   [9, "publication_pending", 13],
   [10, "publication_pending_bytes", 4],
   [11, "write_state", 14, 0, VolumeWriteState_Enum],
+  [12, "reserve_bytes", 4],
 ]);
 

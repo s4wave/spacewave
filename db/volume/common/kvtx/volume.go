@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -121,6 +122,17 @@ type Volume struct {
 	healthCancel context.CancelFunc
 	// healthDone closes when the size measurement has stopped.
 	healthDone chan struct{}
+	// reserved mirrors health.reserve for the new-data entry points, which
+	// read it without healthBcast.
+	reserved atomic.Bool
+	// writtenBytes counts the new data the volume admitted or committed, for
+	// the size measurement.
+	writtenBytes atomic.Uint64
+	// reserveRelease returns freed space without a commit, may be nil.
+	reserveRelease func(context.Context) error
+	// healthDueAt is the writtenBytes at which the next size measurement is
+	// due, zero before the first.
+	healthDueAt atomic.Uint64
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.
@@ -348,7 +360,12 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 }
 
 // PutBlockBatch forwards batched writes to the embedded store when supported.
+// It returns volume.ErrReserve while the volume is in the reserve state.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Refuse new data below the disk reserve, then write the batch.
+	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
+		return nil, err
+	}
 	existed, err := v.Store.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -359,8 +376,14 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	return existed, nil
 }
 
-// PutBlock forwards block writes to the embedded store.
+// PutBlock forwards block writes to the embedded store. It returns
+// volume.ErrReserve while the volume is in the reserve state.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Refuse new data below the disk reserve.
+	if err := v.checkReserve(ctx, len(data)); err != nil {
+		return nil, false, err
+	}
+
 	// Write the block while retaining the requested Volume durability barrier.
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	ref, exists, err := v.Store.PutBlock(ctx, data, putOpts)

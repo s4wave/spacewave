@@ -117,7 +117,7 @@ func (v *Volume) releasedStagesLocked(removes []block_gc.RefEdge) ([]string, []b
 // released.
 func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
 	putOpts, _ := block.PutOptsWithoutSync(opts)
-	err = v.prepareOwned(ctx, stage, v.claimStage, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, stage, len(data), v.claimStage, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
 	})
@@ -129,7 +129,7 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 	if len(entries) == 0 {
 		return nil, nil
 	}
-	err = v.prepareOwned(ctx, stage, v.claimStage, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, stage, batchBytes(entries), v.claimStage, func(store block.StoreOps) error {
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err
 	})

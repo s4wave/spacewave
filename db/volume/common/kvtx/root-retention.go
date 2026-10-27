@@ -216,11 +216,20 @@ func (v *Volume) forgetSweptProofs(nodes []string) {
 // SetBucketRoots writes entries owned by a bucket and replaces its named
 // roots in one physical transaction, so a root may hold a block entries
 // writes. Ownership changes share the transaction with sweep eligibility and
-// existence checks.
+// existence checks. Entries return volume.ErrReserve while the volume is in
+// the reserve state; moving roots alone writes no new data and continues.
 func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	// Require atomic publication and refuse new data below the disk reserve.
 	if !v.SupportsAtomicPublication() {
 		return block.ErrAtomicPublicationUnsupported
 	}
+	if len(entries) != 0 {
+		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
+			return err
+		}
+	}
+
+	// Write the entries and move the roots in one transaction.
 	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 		// Write the entries under the bucket's ownership.
 		if len(entries) != 0 {

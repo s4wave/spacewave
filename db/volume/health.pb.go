@@ -139,6 +139,9 @@ type VolumeHealth struct {
 	PublicationPendingBytes uint64 `protobuf:"varint,10,opt,name=publication_pending_bytes,json=publicationPendingBytes,proto3" json:"publicationPendingBytes,omitempty"`
 	// WriteState is whether the volume admits new writes.
 	WriteState VolumeWriteState `protobuf:"varint,11,opt,name=write_state,json=writeState,proto3" json:"writeState,omitempty"`
+	// ReserveBytes is the free disk below which the volume refuses new writes,
+	// as of SizesAt. Zero when the volume keeps no reserve.
+	ReserveBytes uint64 `protobuf:"varint,12,opt,name=reserve_bytes,json=reserveBytes,proto3" json:"reserveBytes,omitempty"`
 }
 
 func (x *VolumeHealth) Reset() {
@@ -224,6 +227,13 @@ func (x *VolumeHealth) GetWriteState() VolumeWriteState {
 	return VolumeWriteState_VOLUME_WRITE_STATE_UNKNOWN
 }
 
+func (x *VolumeHealth) GetReserveBytes() uint64 {
+	if x != nil {
+		return x.ReserveBytes
+	}
+	return 0
+}
+
 func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	if m == nil {
 		return (*VolumeHealth)(nil)
@@ -238,6 +248,7 @@ func (m *VolumeHealth) CloneVT() *VolumeHealth {
 	r.PublicationPending = m.PublicationPending
 	r.PublicationPendingBytes = m.PublicationPendingBytes
 	r.WriteState = m.WriteState
+	r.ReserveBytes = m.ReserveBytes
 	r.GcPhaseStart = protobuf_go_lite.CloneVTValue(m.GcPhaseStart)
 	r.SizesAt = protobuf_go_lite.CloneVTValue(m.SizesAt)
 	if len(m.unknownFields) > 0 {
@@ -287,6 +298,9 @@ func (this *VolumeHealth) EqualVT(that *VolumeHealth) bool {
 		return false
 	}
 	if this.WriteState != that.WriteState {
+		return false
+	}
+	if this.ReserveBytes != that.ReserveBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -443,6 +457,11 @@ func (x *VolumeHealth) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("writeState")
 		x.WriteState.MarshalProtoJSON(s)
 	}
+	if x.ReserveBytes != 0 || s.HasField("reserveBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reserveBytes")
+		s.WriteUint64(x.ReserveBytes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -501,6 +520,9 @@ func (x *VolumeHealth) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "write_state", "writeState":
 			s.AddField("write_state")
 			x.WriteState.UnmarshalProtoJSON(s)
+		case "reserve_bytes", "reserveBytes":
+			s.AddField("reserve_bytes")
+			x.ReserveBytes = s.ReadUint64()
 		}
 	})
 }
@@ -538,6 +560,11 @@ func (m *VolumeHealth) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ReserveBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReserveBytes))
+		i--
+		dAtA[i] = 0x60
 	}
 	if m.WriteState != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WriteState))
@@ -630,6 +657,7 @@ func (m *VolumeHealth) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PublicationPending)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.PublicationPendingBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WriteState)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReserveBytes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -686,6 +714,10 @@ func (x *VolumeHealth) MarshalProtoText() string {
 	if x.WriteState != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "write_state")
 		protobuf_go_lite.TextWriteStringer(&sb, VolumeWriteState(x.WriteState))
+	}
+	if x.ReserveBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reserve_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.ReserveBytes)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -827,6 +859,15 @@ func (m *VolumeHealth) UnmarshalVT(dAtA []byte) error {
 			var _v uint64
 			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			m.WriteState = VolumeWriteState(_v)
+			if err != nil {
+				return err
+			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReserveBytes", wireType)
+			}
+			m.ReserveBytes = 0
+			m.ReserveBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

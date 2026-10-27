@@ -82,7 +82,7 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 // An empty bucketID writes the block without ownership.
 func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
 	putOpts, _ := block.PutOptsWithoutSync(opts)
-	err = v.prepareOwned(ctx, bucketOwner(bucketID), claimBucket, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, bucketOwner(bucketID), len(data), claimBucket, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
 	})
@@ -95,7 +95,7 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 	if len(entries) == 0 && v.SupportsAtomicPublication() {
 		return nil, nil
 	}
-	err = v.prepareOwned(ctx, bucketOwner(bucketID), claimBucket, func(store block.StoreOps) error {
+	err = v.prepareOwned(ctx, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err
 	})
@@ -117,16 +117,24 @@ func claimBucket(ctx context.Context, rg *block_gc.RefGraph, bucket string) erro
 
 // prepareOwned writes blocks and their ownership by owner in one physical
 // transaction. claim checks or roots the owner first. An empty owner writes the
-// blocks without ownership.
+// blocks without ownership. size is the length of the data put writes. It
+// returns volume.ErrReserve while the volume is in the reserve state.
 func (v *Volume) prepareOwned(
 	ctx context.Context,
 	owner string,
+	size int,
 	claim func(context.Context, *block_gc.RefGraph, string) error,
 	put func(block.StoreOps) error,
 ) error {
+	// Require atomic publication and refuse new data below the disk reserve.
 	if !v.SupportsAtomicPublication() {
 		return block.ErrAtomicPublicationUnsupported
 	}
+	if err := v.checkReserve(ctx, size); err != nil {
+		return err
+	}
+
+	// Write the blocks and their ownership in one transaction.
 	return v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 		// Write unowned blocks directly in the shared transaction.
 		if owner == "" {

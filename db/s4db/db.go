@@ -662,11 +662,20 @@ func (db *DB) WaitSeq(ctx context.Context, seq uint64) error {
 // Compact moves every value out of sparse pages and the file's tail,
 // checkpoints, and releases freed space.
 func (db *DB) Compact(ctx context.Context) error {
-	// Take the writer lock while no background checkpoint runs. A build's
-	// snapshot pins the space the compaction frees, and the build needs the
-	// writer lock to finish, so compacting during it releases nothing and
-	// leaves the log high in the file. Only commits start builds, and they
-	// need the writer lock.
+	if err := db.lockIdle(ctx); err != nil {
+		return err
+	}
+	err := db.w.compact(ctx)
+	db.w.unlock(err)
+	return err
+}
+
+// lockIdle takes the writer lock while no background checkpoint runs. A
+// build's snapshot pins the space a compaction or release frees, and the build
+// needs the writer lock to finish, so working during it releases nothing and
+// leaves the log high in the file. Only commits start builds, and they need
+// the writer lock.
+func (db *DB) lockIdle(ctx context.Context) error {
 	for {
 		if err := db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
 			return !db.w.building.Load(), nil
@@ -677,13 +686,10 @@ func (db *DB) Compact(ctx context.Context) error {
 			return err
 		}
 		if !db.w.building.Load() {
-			break
+			return nil
 		}
 		db.w.unlock(nil)
 	}
-	err := db.w.compact(ctx)
-	db.w.unlock(err)
-	return err
 }
 
 // Sync makes every earlier commit durable.

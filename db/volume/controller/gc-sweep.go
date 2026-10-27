@@ -97,13 +97,28 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	// most one interval at a time, then a due block pass, which sweeps all it
 	// marked however long that takes. A collection that stops with candidates
 	// left continues at once.
+	// A volume entering its disk reserve starts a block pass at once, since
+	// only collection frees the space its writes wait on.
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
+	hw, _ := vol.(volume.HealthWatcher)
+	reserve := &reserveWatch{hw: hw}
 	for {
-		// Wait for the next collection deadline or volume cancellation.
+		// Pull the block pass in when the volume entered the reserve.
+		entered, healthCh := reserve.entered()
+		if entered {
+			c.le.Warn("volume below its disk reserve, collecting now")
+			collector.SetMarkInterval(markIntervals*interval, time.Now())
+			timer.Reset(0)
+		}
+
+		// Wait for the next collection deadline, a health change or volume
+		// cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-healthCh:
+			continue
 		case <-timer.C:
 		}
 

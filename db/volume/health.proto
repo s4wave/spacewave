@@ -59,4 +59,7 @@ message VolumeHealth {
   uint64 publication_pending_bytes = 10;
   // WriteState is whether the volume admits new writes.
   VolumeWriteState write_state = 11;
+  // ReserveBytes is the free disk below which the volume refuses new writes,
+  // as of SizesAt. Zero when the volume keeps no reserve.
+  uint64 reserve_bytes = 12;
 }

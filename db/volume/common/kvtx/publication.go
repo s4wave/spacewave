@@ -27,9 +27,13 @@ func (v *Volume) SupportsAtomicPublication() bool {
 // SubmitAtomic admits an atomic publication and returns its completion receipt.
 // Admission is not durability: await the receipt for the durable result.
 func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
-	// Require the Volume atomic publication domain.
+	// Require the Volume atomic publication domain, and refuse new data below
+	// the disk reserve before the publication takes a queue slot.
 	if !v.SupportsAtomicPublication() {
 		return nil, block.ErrAtomicPublicationUnsupported
+	}
+	if err := v.checkReserve(ctx, 0); err != nil {
+		return nil, err
 	}
 
 	// Reserve a reader pin for a published named root.
@@ -73,9 +77,6 @@ type PublicationStats struct {
 	PhysicalCommits uint64
 	// Rejected counts completed publications whose result failed.
 	Rejected uint64
-	// CommittedBytes is the admission cost of the publications that
-	// committed.
-	CommittedBytes uint64
 	// Pending is the number of publications currently queued.
 	Pending int
 	// PendingBytes is the computed admission cost of queued publications.

@@ -60,6 +60,11 @@ var (
 		"Whether the volume refuses new writes because free disk is below its reserve.",
 		[]string{volumeLabel}, nil,
 	)
+	volumeReserveBytesDesc = prometheus.NewDesc(
+		"spacewave_volume_reserve_bytes",
+		"Free disk below which the volume refuses new writes, as last measured; zero for no reserve.",
+		[]string{volumeLabel}, nil,
+	)
 )
 
 // volumeCollector reports the health of each volume the process collects.
@@ -71,6 +76,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeGCPhaseDesc, volumeGCPhaseSecondsDesc, volumeFileBytesDesc,
 		volumeLiveValueBytesDesc, volumeFreeDiskBytesDesc, volumeSizesAgeSecondsDesc,
 		volumePublicationPendingDesc, volumePublicationPendingBytesDesc, volumeWriteReserveDesc,
+		volumeReserveBytesDesc,
 	} {
 		ch <- d
 	}
@@ -106,6 +112,7 @@ func collectVolume(ch chan<- prometheus.Metric, h *volume.VolumeHealth, now time
 	ch <- prometheus.MustNewConstMetric(volumeFileBytesDesc, prometheus.GaugeValue, float64(h.GetFileBytes()), id)
 	ch <- prometheus.MustNewConstMetric(volumeLiveValueBytesDesc, prometheus.GaugeValue, float64(h.GetLiveValueBytes()), id)
 	ch <- prometheus.MustNewConstMetric(volumeFreeDiskBytesDesc, prometheus.GaugeValue, float64(h.GetFreeDiskBytes()), id)
+	ch <- prometheus.MustNewConstMetric(volumeReserveBytesDesc, prometheus.GaugeValue, float64(h.GetReserveBytes()), id)
 	ch <- prometheus.MustNewConstMetric(volumeSizesAgeSecondsDesc, prometheus.GaugeValue, now.Sub(h.GetSizesAt().AsTime()).Seconds(), id)
 }
 

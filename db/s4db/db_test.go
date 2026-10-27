@@ -641,8 +641,8 @@ func TestScanPrefixLens(t *testing.T) {
 	}
 }
 
-// TestUsage checks that Usage counts live values and that the page classes
-// fit in the file.
+// TestUsage checks that Usage counts live values, that the page classes fit
+// in the file, and that Sizes agrees with it and bounds a collection.
 func TestUsage(t *testing.T) {
 	// Store values too large for the index.
 	ctx := context.Background()
@@ -671,6 +671,19 @@ func TestUsage(t *testing.T) {
 	}
 	if sum := u.FreeBytes + u.ValuePageBytes + u.IndexBytes + u.LogBytes + u.PendingBytes; sum > u.FileBytes {
 		t.Fatalf("usage %+v sums to %d past the file", u, sum)
+	}
+
+	// Sizes reports the same file and live value lengths, and a collection
+	// cost of the index, the waiting log and the slack.
+	sz, err := db.Sizes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sz.FileBytes != u.FileBytes || sz.ValueBytes != u.ValueBytes {
+		t.Fatalf("Sizes = %+v, want %d, %d", sz, u.FileBytes, u.ValueBytes)
+	}
+	if want := u.IndexBytes + 4*(64<<20) + collectSlackBytes; sz.CollectBytes != want {
+		t.Fatalf("CollectBytes = %d, want %d", sz.CollectBytes, want)
 	}
 }
 

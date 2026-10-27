@@ -36,4 +36,8 @@ message Config {
   // holds its writer lock from open to close, so checkpoints write without
   // waiting for writers. Set it only when no other process opens the file.
   bool single_process = 10;
+  // ReserveBytes is the free disk below which the volume refuses new writes
+  // while reads, collection and deletes continue. Zero selects the disk one
+  // collection needs before it frees any; a negative value keeps no reserve.
+  int64 reserve_bytes = 11;
 }
