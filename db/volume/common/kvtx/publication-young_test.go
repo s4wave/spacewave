@@ -254,3 +254,39 @@ func TestMinorPassKeepsFilledHole(t *testing.T) {
 		})
 	}
 }
+
+// TestMajorPassSettlesWithNothingUnreached checks that a major pass whose mark
+// reaches a hole and leaves nothing unreached settles the hole and promotes,
+// so minor passes run.
+func TestMajorPassSettlesWithNothingUnreached(t *testing.T) {
+	// Publish a parent whose list names a block the store does not hold.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	rg := v.GetRefGraph()
+	parent := publicationFor(t, "parent", "", "one")
+	if err := v.PublishAtomic(ctx, parent); err != nil {
+		t.Fatal(err)
+	}
+	hole, _ := holeEntries(t)
+	edge := block_gc.RefEdge{Subject: block_gc.BlockIRI(parent.Entries[0].Ref), Object: block_gc.BlockIRI(hole.Ref)}
+	if err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{edge}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// A major pass settles the hole and promotes, and a minor pass runs.
+	var stats block_gc.Stats
+	if err := v.SweepUnreachedBlocks(ctx, rg, &stats); err != nil {
+		t.Fatal(err)
+	}
+	if stats.AbsentBlocks != 1 || stats.UnknownBlocks != 0 || stats.BlocksSwept != 0 {
+		t.Fatalf("major pass stats=%+v", stats)
+	}
+	var minor block_gc.Stats
+	if err := v.SweepYoungBlocks(ctx, rg, &minor); err != nil {
+		t.Fatal(err)
+	}
+	if minor.MinorPasses != 1 {
+		t.Fatalf("minor pass did not run: stats=%+v", minor)
+	}
+	assertPublishedBlock(t, v, parent, true)
+}

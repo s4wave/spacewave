@@ -407,8 +407,11 @@ func (v *Volume) sweepBlockPass(ctx context.Context, actual *transactionRefGraph
 // Each transaction yields the writer after its budget or to a waiting writer,
 // and the next continues the same list. While a reached block has no child
 // list, it sweeps nothing and waits for the next commit, up to awaitLimit,
-// then reports the blocks still unknown and stops. It reports whether it
-// swept every unreached block and every block the mark reached has a list.
+// then reports the blocks still unknown and stops. A mark with unknown blocks
+// and nothing unreached gets one transaction to settle the holes, so a pass
+// with nothing to sweep can still promote, and does not wait. It reports
+// whether it swept every unreached block and every block the mark reached has
+// a list.
 func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, stats *block_gc.Stats) (bool, error) {
 	// Time the sweep, starting from the default chunk size.
 	nodes := mark.Unreached
@@ -421,7 +424,8 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 			deadline.Stop()
 		}
 	}()
-	for len(nodes) != 0 {
+	settleOnly := len(nodes) == 0 && mark.Unknown != 0 && mark.Awaitable()
+	for len(nodes) != 0 || settleOnly {
 		// Walk the blocks writes adopted since the last transaction in
 		// short reads first, leaving the rescue under the writer only what
 		// arrived since.
@@ -437,6 +441,7 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 		var commit <-chan struct{}
 		var held time.Time
 		var rescue time.Duration
+		var rescuedAll bool
 		err = v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 			// Rescue the blocks adopted since the last transaction. A rescue
 			// the budget or a waiting writer stopped leaves the rest for the
@@ -454,6 +459,7 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 			if !done {
 				return nil
 			}
+			rescuedAll = true
 
 			// A block of unknown references may name any unreached block,
 			// unless the store does not hold it: a copy's hole names
@@ -520,6 +526,14 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 		stats.BlocksSwept += len(batch)
 		stats.RemoveNodeRefsCount += len(batch)
 		stats.RemoveBlockCount += len(batch)
+		if settleOnly {
+			// Stop once a transaction rescued everything and settled; a
+			// rescue the budget stopped tries again.
+			if rescuedAll {
+				break
+			}
+			continue
+		}
 		if commit == nil {
 			continue
 		}
