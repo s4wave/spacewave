@@ -78,4 +78,12 @@ func TestCollector_ScheduleMark(t *testing.T) {
 	if gap := time.Until(c.nextMark); gap > time.Minute || gap < time.Minute-time.Second {
 		t.Fatalf("expected the base interval after a reset, got %v", gap)
 	}
+
+	// A pass that blocks of unknown references stopped backs off, however
+	// much it left unreached, as solid's passes did on October 27.
+	stopped := &Stats{LiveNodes: 9_064_682, UnreachedBlocks: 3_381_500, UnknownBlocks: 30_727}
+	c.scheduleMark(stopped, nil)
+	if c.markBackoff != 1 {
+		t.Fatalf("expected a stopped pass to back off, got %d", c.markBackoff)
+	}
 }

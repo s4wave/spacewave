@@ -580,6 +580,9 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 			return false, nil
 		}
 	}
+
+	// Report the blocks still unknown, none when later commits listed them.
+	stats.UnknownBlocks, stats.UnknownSample, stats.UnknownNamers = mark.Unknown, mark.UnknownSample, mark.UnknownNamers
 	return mark.Unknown == 0, nil
 }
 

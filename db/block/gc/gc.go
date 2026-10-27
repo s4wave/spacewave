@@ -140,13 +140,15 @@ func (c *Collector) NextMark() time.Time {
 	return c.nextMark
 }
 
-// scheduleMark backs the mark interval off after a sparse pass, resets it
-// after a productive one, keeps it after a failed one, and counts the next
-// gap from now.
+// scheduleMark backs the mark interval off after a pass that freed little: a
+// sparse one, or one that blocks of unknown references stopped, which sweeps
+// nothing and would mark the whole store again for nothing until their lists
+// arrive. It resets the interval after a productive pass, keeps it after a
+// failed one, and counts the next gap from now.
 func (c *Collector) scheduleMark(stats *Stats, err error) {
 	switch {
 	case err != nil:
-	case stats.UnreachedBlocks*sparseMarkDivisor < stats.LiveNodes:
+	case stats.UnknownBlocks != 0 || stats.UnreachedBlocks*sparseMarkDivisor < stats.LiveNodes:
 		c.markBackoff = min(c.markBackoff+1, maxMarkBackoff)
 	default:
 		c.markBackoff = 0

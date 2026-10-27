@@ -143,7 +143,7 @@ func TestPublicationSweepUnknownBlocks(t *testing.T) {
 			{Subject: parent, Object: child},
 		}, nil)
 	}()
-	stats = block_gc.Stats{}
+	stats = block_gc.Stats{UnknownBlocks: 1}
 	if _, err := v.sweepUnreached(ctx, mark, &stats); err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,8 @@ func TestPublicationSweepUnknownBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The rescue after the flush reaches the block through the parent.
+	// The rescue after the flush reaches the block through the parent, and
+	// the sweep reports no block unknown, whatever the mark counted.
 	if stats.BlocksSwept != 0 || stats.UnknownBlocks != 0 || mark.Unknown != 0 || !mark.Live.Has(child) {
 		t.Fatalf("stats=%+v unknown=%d child live=%v", stats, mark.Unknown, mark.Live.Has(child))
 	}
