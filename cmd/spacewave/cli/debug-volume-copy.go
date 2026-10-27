@@ -12,6 +12,7 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/dustin/go-humanize"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
@@ -22,8 +23,9 @@ const copyReportInterval = 10 * time.Second
 
 // newDebugVolumeCopyCommand builds the offline volume copy command.
 func newDebugVolumeCopyCommand() *cli.Command {
-	// Bind the reachable flag.
+	// Bind the flags.
 	var reachable bool
+	var opts volume_kvtx.CopyReachableOptions
 	return &cli.Command{
 		Name:      "volume-copy",
 		Usage:     "copy a stopped volume file into a new file at the current store format",
@@ -34,27 +36,43 @@ func newDebugVolumeCopyCommand() *cli.Command {
 			"The source is left unchanged. Replace the source with the new file only after checking it. " +
 			"With --reachable, the source must be at store format 3 or later, and the copy keeps only the blocks " +
 			"and graph records reachable from the graph root, as a complete collection would. Check its count of " +
-			"unowned blocks before using it: the running collector never deletes those.",
+			"unowned blocks before using it, counted with --count-unowned: the running collector never deletes those. " +
+			"A reachable copy refuses a source whose walk reaches a block without a child list, since the blocks it " +
+			"names may be live and would be dropped, unless --allow-unknown is set.",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:        "reachable",
 				Usage:       "copy only the blocks and graph records reachable from the graph root",
 				Destination: &reachable,
 			},
+			&cli.BoolFlag{
+				Name:        "allow-unknown",
+				Usage:       "with --reachable, copy even when the walk reaches blocks without a child list, dropping the blocks they name",
+				Destination: &opts.AllowUnknown,
+			},
+			&cli.BoolFlag{
+				Name:        "count-unowned",
+				Usage:       "with --reachable, count the dropped blocks no graph record owns, at one index lookup each",
+				Destination: &opts.CountUnowned,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			if c.NArg() != 2 {
 				return errors.New("expected the volume file and the new file")
 			}
-			return copyVolumeFile(c.Context, c.Args().Get(0), c.Args().Get(1), reachable, os.Stderr)
+			var reach *volume_kvtx.CopyReachableOptions
+			if reachable {
+				reach = &opts
+			}
+			return copyVolumeFile(c.Context, c.Args().Get(0), c.Args().Get(1), reach, os.Stderr)
 		},
 	}
 }
 
 // copyVolumeFile copies the stopped volume at src into the new file dst,
-// only its reachable part with reachable, writing progress lines to w. It
-// removes dst when the copy fails.
-func copyVolumeFile(ctx context.Context, src, dst string, reachable bool, w io.Writer) (err error) {
+// only its reachable part when reachable is set, writing progress lines to w.
+// It removes dst when the copy fails.
+func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, w io.Writer) (err error) {
 	// Open the source, refusing a missing file, which the open would create,
 	// and a file a daemon has open.
 	if _, err := os.Stat(src); err != nil {
@@ -104,8 +122,10 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable bool, w io.W
 
 	// Copy every key, or only the reachable part.
 	copyStore := volume_kvtx.CopyStore
-	if reachable {
-		copyStore = volume_kvtx.CopyReachable
+	if reachable != nil {
+		copyStore = func(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(volume_kvtx.CopyProgress)) error {
+			return volume_kvtx.CopyReachable(ctx, src, dst, keys, *reachable, progress)
+		}
 	}
 	if err := copyStore(ctx, sdb, ddb, store_kvkey.NewDefaultKVKey(), report); err != nil {
 		return err
@@ -118,11 +138,14 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable bool, w io.W
 // dropped.
 func formatCopyProgress(p volume_kvtx.CopyProgress) string {
 	line := fmt.Sprintf("%d keys, %s, %d graph edges", p.Keys, humanize.IBytes(p.Bytes), p.Edges)
+	if p.UnknownBlocks != 0 {
+		line = fmt.Sprintf("%s; %d reached blocks without a child list", line, p.UnknownBlocks)
+	}
 	if p.DroppedBytes == 0 {
 		return line
 	}
 	return fmt.Sprintf(
-		"%s; dropped %d blocks (%d unowned), %d graph records, %s",
+		"%s; dropped %d blocks (%d unowned), %d graph records, %s of keys",
 		line, p.DroppedBlocks, p.UnownedBlocks, p.DroppedRecords, humanize.IBytes(p.DroppedBytes),
 	)
 }
