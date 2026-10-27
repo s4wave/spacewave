@@ -454,11 +454,13 @@ func TestPlacedStoreEviction(t *testing.T) {
 		t.Fatalf("held = %v, want only the child on disk", held)
 	}
 
-	// Read the root back: it refills the disk and stages no candidate.
+	// Read the root back: it refills the disk in the background and stages
+	// no candidate.
 	data, found, err := bs.GetBlock(ctx, p.rootRef)
 	if err != nil || !found || !bytes.Equal(data, p.blocks[p.rootRef]) {
 		t.Fatalf("read evicted root = %q/%v/%v", data, found, err)
 	}
+	bs = p.waitUpload(ctx, t, func(status UploadStatus) bool { return status.Refills == 1 })
 	if found, err := vol.GetBlockExists(ctx, p.rootRef); err != nil || !found {
 		t.Fatalf("refilled root on disk = %v/%v", found, err)
 	}
@@ -489,6 +491,7 @@ func TestPlacedStoreEviction(t *testing.T) {
 	if _, found, err := bs.GetBlock(ctx, p.rootRef); err != nil || !found {
 		t.Fatalf("refill root = %v/%v", found, err)
 	}
+	bs = p.waitUpload(ctx, t, func(status UploadStatus) bool { return status.Refills == 2 })
 	rootSize, childSize := int64(len(p.blocks[p.rootRef])), int64(len(p.blocks[p.childRef]))
 	release, err := bs.placement.evictGate.Lock(ctx)
 	if err != nil {

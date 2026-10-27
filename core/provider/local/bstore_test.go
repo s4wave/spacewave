@@ -24,8 +24,9 @@ import (
 type batchForwardTestStore struct {
 	block_store.Store
 	putBlockBatchHits int
-	putBlockHits      int
-	existsBatchHits   int
+	// putBlockHits is atomic: a read-through fill writes in the background.
+	putBlockHits    atomic.Int32
+	existsBatchHits int
 }
 
 func newBatchForwardTestStore() *batchForwardTestStore {
@@ -46,7 +47,7 @@ func (s *batchForwardTestStore) PutBlockBatch(ctx context.Context, entries []*bl
 }
 
 func (s *batchForwardTestStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
-	s.putBlockHits++
+	s.putBlockHits.Add(1)
 	return s.Store.PutBlock(ctx, data, opts)
 }
 
@@ -277,7 +278,8 @@ func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 		readStore: block_store.NewStore("local-store", readOps),
 	}
 
-	// Require the first miss to fetch and store the block.
+	// Require the first miss to fetch the block and fill it in the
+	// background.
 	got, found, err := store.GetBlock(ctx, ref)
 	if err != nil || !found || string(got) != string(data) {
 		t.Fatalf("local DEX fallback = %q/%v/%v", got, found, err)
@@ -285,8 +287,12 @@ func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 	if dexStore.requests.Load() != 1 {
 		t.Fatalf("local DEX requests = %d, want 1", dexStore.requests.Load())
 	}
-	if local.putBlockHits != 1 {
-		t.Fatalf("local cache writes = %d, want 1", local.putBlockHits)
+	deadline := time.Now().Add(5 * time.Second)
+	for local.putBlockHits.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if hits := local.putBlockHits.Load(); hits != 1 {
+		t.Fatalf("local cache writes = %d, want 1", hits)
 	}
 
 	// Require the second read to hit locally without another DEX request.
@@ -366,8 +372,8 @@ func TestBlockStoreForwardsNativeOperations(t *testing.T) {
 	if _, _, err := store.PutBlock(ctx, []byte("hello"), nil); err != nil {
 		t.Fatalf("PutBlock failed: %v", err)
 	}
-	if inner.putBlockHits != 1 {
-		t.Fatalf("expected 1 PutBlock call, got %d", inner.putBlockHits)
+	if hits := inner.putBlockHits.Load(); hits != 1 {
+		t.Fatalf("expected 1 PutBlock call, got %d", hits)
 	}
 
 	// Require GetBlockExistsBatch to reach the inner store.

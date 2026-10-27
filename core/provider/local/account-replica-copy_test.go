@@ -48,8 +48,8 @@ func TestAccountReplicaCopyRetainsCompletedSubtrees(t *testing.T) {
 		if i == 0 && progress.GetBlocks() == 0 {
 			t.Fatal("copy did not visit the source graph")
 		}
-		if local.putBlockHits != 0 || (i == 0 && (local.putBlockBatchHits == 0 || uint64(local.putBlockBatchHits) >= progress.GetBlocks())) {
-			t.Fatalf("copy of %d blocks used %d individual and %d batched writes", progress.GetBlocks(), local.putBlockHits, local.putBlockBatchHits)
+		if local.putBlockHits.Load() != 0 || (i == 0 && (local.putBlockBatchHits == 0 || uint64(local.putBlockBatchHits) >= progress.GetBlocks())) {
+			t.Fatalf("copy of %d blocks used %d individual and %d batched writes", progress.GetBlocks(), local.putBlockHits.Load(), local.putBlockBatchHits)
 		}
 		if i == 1 && (progress.GetBlocks() != 0 || local.putBlockBatchHits != 0) {
 			t.Fatal("completed immutable graph was copied again")
