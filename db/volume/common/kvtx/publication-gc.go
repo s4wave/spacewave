@@ -279,9 +279,9 @@ func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGra
 // blocks it did not reach as SweepUnreachedBlocks does. It does nothing until
 // the graph's young log is complete: a store born empty, or one a block pass
 // promoted in full, in this process or before a restart. A minor pass that
-// sweeps everything it marked promotes its mark too. It sweeps nothing and
-// sets stats.YoungLogFull when the young log is past the bound MarkYoung
-// marks, and later minor passes return at once until a block pass promotes.
+// sweeps everything it marked promotes its mark too. One that cannot promote,
+// because the young log is past the bound MarkYoung marks or a block it
+// reached has no child list, stops minor passes until a block pass promotes.
 func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOps, stats *block_gc.Stats) error {
 	return v.runBlockPass(ctx, graph, true, func(actual *transactionRefGraph) error {
 		// Report the mark from the opening of the pass.
@@ -296,8 +296,7 @@ func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOp
 			})
 			stats.MarkDuration += time.Since(start)
 			if errors.Is(err, block_gc.ErrYoungLogFull) {
-				v.youngFull, stats.YoungLogFull = true, true
-				return nil
+				return v.withdrawYoungReady(ctx, stats, "young log full")
 			}
 			if err != nil {
 				return err
@@ -311,7 +310,7 @@ func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOp
 				return err
 			}
 			if !complete {
-				return v.withdrawYoungReady(ctx)
+				return v.withdrawYoungReady(ctx, stats, "blocks of unknown references")
 			}
 			v.setGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_PROMOTE)
 			return v.promoteYoung(ctx, mark, mark.YoungBound())
@@ -321,7 +320,7 @@ func (v *Volume) SweepYoungBlocks(ctx context.Context, graph block_gc.RefGraphOp
 
 // runBlockPass runs fn as the Volume's one block pass, after checking that
 // graph is the Volume's own. A minor pass returns without running fn while the
-// young log is not complete or is full.
+// young log is not complete.
 func (v *Volume) runBlockPass(ctx context.Context, graph block_gc.RefGraphOps, minor bool, fn func(*transactionRefGraph) error) error {
 	// Require the Volume transaction domain and run one pass at a time.
 	actual, ok := v.refGraph.(*transactionRefGraph)
@@ -335,10 +334,7 @@ func (v *Volume) runBlockPass(ctx context.Context, graph block_gc.RefGraphOps, m
 	}
 	defer release()
 
-	// Skip a minor pass until the young log is complete and under its bound.
-	if minor && v.youngFull {
-		return nil
-	}
+	// Skip a minor pass until the young log is complete.
 	if minor && !v.youngReady {
 		err := actual.read(ctx, func(rg *block_gc.RefGraph) (err error) {
 			v.youngReady, err = rg.YoungReady(ctx)
@@ -385,18 +381,19 @@ func (v *Volume) promoteYoung(ctx context.Context, mark *block_gc.BlockMark, bou
 		})
 		if err != nil || done {
 			v.youngReady = done && err == nil
-			v.youngFull = v.youngFull && !v.youngReady
 			return err
 		}
 	}
 }
 
-// withdrawYoungReady stops minor passes after one stopped on blocks of
-// unknown references, until a block pass promotes in full. Such a pass cannot
-// promote, so the young log only grows and every later minor pass marks more
-// and sweeps nothing; on a large store each costs as much as a block pass.
-func (v *Volume) withdrawYoungReady(ctx context.Context) error {
-	v.youngReady = false
+// withdrawYoungReady stops minor passes until a block pass promotes in full,
+// after a minor pass that cannot promote, and records why in stats. Without a
+// promotion the young log only grows, and every later minor pass would mark
+// more and sweep nothing; on a large store each costs as much as a block pass.
+// The stop is stored, so it holds across restarts.
+func (v *Volume) withdrawYoungReady(ctx context.Context, stats *block_gc.Stats, reason string) error {
+	// Stop minor passes in this process and in the store.
+	v.youngReady, stats.MinorStopped = false, reason
 	return v.withDirectAtomic(ctx, func(_ block.StoreOps, rg *block_gc.RefGraph) error {
 		return rg.WithdrawYoungReady(ctx)
 	})

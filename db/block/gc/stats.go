@@ -42,9 +42,9 @@ type Stats struct {
 	MinorPasses int
 	// YoungBlocks is the number of young blocks the last minor pass marked.
 	YoungBlocks int
-	// YoungLogFull reports a minor pass skipped because the young log listed
-	// more blocks than a minor pass marks.
-	YoungLogFull bool
+	// MinorStopped says why a minor pass stopped minor passes until a block
+	// pass promotes in full, or is empty.
+	MinorStopped string
 	// MarkDuration is time spent marking blocks.
 	MarkDuration time.Duration
 	// MarkScans is the number of child list scans the last mark made, zero
