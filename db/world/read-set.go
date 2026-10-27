@@ -15,7 +15,8 @@ var errReadsTouched = errors.New("reads touched")
 
 // ReadSet records what a view read from the World, so a ChangeSet can be
 // checked against it. Reads it cannot describe precisely mark it conservative,
-// and any change touches it. A ReadSet can track several WorldStates at once.
+// and any change touches it. A ReadSet can track several WorldStates at once,
+// and join finished sets by reference, whose reads become its own.
 type ReadSet struct {
 	// mtx guards the fields below.
 	mtx sync.Mutex
@@ -31,6 +32,9 @@ type ReadSet struct {
 	graph bool
 	// all is set when the World was read beyond objects and the graph.
 	all bool
+	// joined are the finished sets whose reads this set holds by reference.
+	// Appended to only, so a copy of the slice stays valid unlocked.
+	joined []*ReadSet
 	// memoChanges and memoTouched cache Touched for the last ChangeSet it
 	// checked, so views sharing this set test each change window once. Any
 	// recorded read clears memoChanges.
@@ -55,19 +59,32 @@ func (r *ReadSet) Track(ws WorldState) WorldState {
 	return &readSetWorldState{WorldState: ws, reads: r}
 }
 
-// Touched checks whether a ChangeSet may change what was read.
+// Touched checks whether a ChangeSet may change what was read, by this set
+// or a set it joined.
 func (r *ReadSet) Touched(changes *ChangeSet) bool {
-	// Hold the reads while comparing.
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
 	// A ChangeSet is immutable once delivered, so its answer holds until a read
 	// is recorded.
+	r.mtx.Lock()
 	if changes == r.memoChanges {
-		return r.memoTouched
+		touched := r.memoTouched
+		r.mtx.Unlock()
+		return touched
 	}
 	touched := r.touchedLocked(changes)
-	r.memoChanges, r.memoTouched = changes, touched
+	joined, added := r.joined, r.added
+	r.mtx.Unlock()
+
+	// Check the joined sets unlocked, each through its own memo.
+	if !touched {
+		touched = slices.ContainsFunc(joined, func(set *ReadSet) bool { return set.Touched(changes) })
+	}
+
+	// Keep the answer unless a read was recorded meanwhile.
+	r.mtx.Lock()
+	if r.added == added {
+		r.memoChanges, r.memoTouched = changes, touched
+	}
+	r.mtx.Unlock()
 	return touched
 }
 
@@ -127,12 +144,8 @@ func (r *ReadSet) waitChange(ctx context.Context, w WorldWaitSeqno, afterSeqno u
 		added := r.added
 		r.mtx.Unlock()
 
-		// Name the reads and the shared sets for the change feed's index.
-		interest := &ChangeInterest{filter: touches}
-		r.nameReads(interest)
-		for _, set := range shared {
-			set.nameReads(interest)
-		}
+		// Name the reads for the change feed's index.
+		interest := r.waitInterest(touches, shared)
 
 		// Wait in the change feed for the first touching change since
 		// afterSeqno.
@@ -165,17 +178,27 @@ func (r *ReadSet) waitChange(ctx context.Context, w WorldWaitSeqno, afterSeqno u
 	}
 }
 
-// nameReads adds the object keys and quad fields the reads may be touched
-// through to interest, or marks it as needing every change when a read has no
-// such name: an iterated prefix, a graph read beyond quad lookups, a read
-// beyond objects and the graph, or a quad lookup naming no field.
-func (r *ReadSet) nameReads(interest *ChangeInterest) {
+// waitInterest names the reads for a change feed's index, and passes the
+// joined and shared sets by reference, for the feed to name each once.
+func (r *ReadSet) waitInterest(touches ChangeFilter, shared []*ReadSet) *ChangeInterest {
+	interest := &ChangeInterest{filter: touches}
+	interest.shared = slices.Concat(r.nameReads(interest), shared)
+	return interest
+}
+
+// nameReads adds the object keys and quad fields the set's own reads may be
+// touched through to interest, or marks it as needing every change when a read
+// has no such name: an iterated prefix, a graph read beyond quad lookups, a
+// read beyond objects and the graph, or a quad lookup naming no field. It
+// returns the sets r joined, whose reads it does not name; the caller must not
+// append to the returned slice.
+func (r *ReadSet) nameReads(interest *ChangeInterest) []*ReadSet {
 	// Hold the reads while naming them.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	if r.all || r.graph || len(r.prefixes) != 0 {
 		interest.all = true
-		return
+		return r.joined
 	}
 
 	// Name the read keys, the pattern endpoints, and a field of each pattern.
@@ -185,9 +208,28 @@ func (r *ReadSet) nameReads(interest *ChangeInterest) {
 		term, ok := p.term()
 		if !ok {
 			interest.all = true
-			return
+			return r.joined
 		}
 		interest.terms = append(interest.terms, term)
+	}
+	return r.joined
+}
+
+// nameJoinedReads adds the names of r's reads and of the reads of every set r
+// joined, directly or through another joined set, to names, naming each set
+// once. It stops once names needs every change.
+func (r *ReadSet) nameJoinedReads(names *ChangeInterest) {
+	// Walk the joined sets depth first.
+	seen := make(map[*ReadSet]struct{})
+	pending := []*ReadSet{r}
+	for len(pending) != 0 && !names.all {
+		set := pending[len(pending)-1]
+		pending = pending[:len(pending)-1]
+		if _, ok := seen[set]; ok {
+			continue
+		}
+		seen[set] = struct{}{}
+		pending = append(pending, set.nameReads(names)...)
 	}
 }
 
@@ -264,29 +306,21 @@ func (r *ReadSet) markAll() {
 	r.mtx.Unlock()
 }
 
-// addReadSet records every read other recorded.
-func (r *ReadSet) addReadSet(other *ReadSet) {
-	// Copy other's reads without holding both locks.
-	other.mtx.Lock()
-	keys := maps.Clone(other.keys)
-	prefixes := slices.Clone(other.prefixes)
-	patterns := slices.Clone(other.patterns)
-	endpoints := maps.Clone(other.endpoints)
-	graph, all := other.graph, other.all
-	other.mtx.Unlock()
-
-	// Join the object and graph reads to r's.
+// join records every read of other, a finished set, by reference: a change
+// that touches other touches r. Copying the reads instead would cost each
+// set built from a large one all of its keys. Joining r itself, or a set r
+// already joined directly, does nothing.
+func (r *ReadSet) join(other *ReadSet) {
+	// Skip r itself and a set r already joined.
 	r.mtx.Lock()
-	maps.Copy(r.keys, keys)
-	r.prefixes = append(r.prefixes, prefixes...)
-	r.patterns = append(r.patterns, patterns...)
-	maps.Copy(r.endpoints, endpoints)
+	defer r.mtx.Unlock()
+	if other == r || slices.Contains(r.joined, other) {
+		return
+	}
 
-	// Keep the conservative marks and wake the waits.
-	r.graph = r.graph || graph
-	r.all = r.all || all
+	// Join the set and wake the waits.
+	r.joined = append(r.joined, other)
 	r.signalLocked()
-	r.mtx.Unlock()
 }
 
 // signalLocked wakes the waits checking the reads and drops the cached Touched

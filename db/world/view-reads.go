@@ -78,14 +78,14 @@ func AddViewReads(ctx context.Context, set *ReadSet, rerunAt time.Time) {
 // ReadTrackingEngine with the returned context, and AddViewReads and RerunAt
 // calls made with it, record into set and the child's deadline instead of the
 // running evaluation; nothing reaches the parent until the caller passes the
-// finished set to AddViewReads. finish folds the sets the child added into set
-// and returns its earliest rerun time, or zero; call it once, after every read
-// made with the context. It works outside a view too.
+// finished set to AddViewReads. finish joins the sets the child added to set
+// by reference and returns its earliest rerun time, or zero; call it once,
+// after every read made with the context. It works outside a view too.
 func WithViewReads(ctx context.Context, set *ReadSet) (child context.Context, finish func() time.Time) {
 	reads := &viewReads{reads: set}
 	return context.WithValue(ctx, viewReadsKey{}, reads), func() time.Time {
 		for _, shared := range reads.getShared() {
-			set.addReadSet(shared)
+			set.join(shared)
 		}
 		return reads.getDeadline()
 	}

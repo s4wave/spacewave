@@ -2,6 +2,7 @@ package world
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -213,5 +214,42 @@ func TestReadSetTouchedMemo(t *testing.T) {
 	set.addKeys("a")
 	if !set.Touched(changes) {
 		t.Fatal("cached answer survived a recorded read")
+	}
+}
+
+// TestReadSetJoin checks that a set holds the reads of the finished sets it
+// joined, directly or through another joined set, and that joining itself or a
+// set twice changes nothing.
+func TestReadSetJoin(t *testing.T) {
+	// Join a set that joined another.
+	inner, middle, outer := NewReadSet(), NewReadSet(), NewReadSet()
+	inner.addKeys("inner")
+	middle.addKeys("middle")
+	middle.join(inner)
+	outer.join(middle)
+	outer.join(middle)
+	outer.join(outer)
+	if len(outer.joined) != 1 {
+		t.Fatalf("outer joined %d sets, want 1", len(outer.joined))
+	}
+
+	// A change to a read at any depth touches the outer set.
+	for _, key := range []string{"inner", "middle"} {
+		if !outer.Touched(&ChangeSet{Keys: []string{key}}) {
+			t.Errorf("change to %q did not touch the outer set", key)
+		}
+	}
+	if outer.Touched(&ChangeSet{Keys: []string{"other"}}) {
+		t.Error("change to an unread key touched the outer set")
+	}
+
+	// The outer set's names cover every joined read, without copying them.
+	names := &ChangeInterest{}
+	outer.nameJoinedReads(names)
+	if got := slices.Sorted(slices.Values(names.keys)); !slices.Equal(got, []string{"inner", "middle"}) {
+		t.Fatalf("joined names %q, want [inner middle]", got)
+	}
+	if len(outer.keys) != 0 {
+		t.Fatalf("outer set copied %d keys", len(outer.keys))
 	}
 }

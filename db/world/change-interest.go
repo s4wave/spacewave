@@ -15,6 +15,10 @@ type ChangeInterest struct {
 	terms []quadTerm
 	// all is set when the filter may accept a change naming none of them.
 	all bool
+	// shared are finished read sets whose changes the filter may accept. A
+	// change feed names each set once for all the watchers sharing it, so a
+	// watcher costs one entry per set, not one per key the set read.
+	shared []*ReadSet
 }
 
 // quadField names one field of a graph quad.
