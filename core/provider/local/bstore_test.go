@@ -432,7 +432,6 @@ func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	// Remove the block and require the cache to miss it.
 	if err := store.RmBlock(ctx, ref); err != nil {
@@ -471,7 +470,6 @@ func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	// Tombstone the block and require the cache to miss it.
 	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {

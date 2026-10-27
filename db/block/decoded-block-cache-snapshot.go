@@ -4,7 +4,7 @@ package block
 type DecodedBlockCacheSnapshot struct {
 	// MaxCost is the configured shared-cache budget.
 	MaxCost int64
-	// RemainingCost is the current unused budget reported by Ristretto.
+	// RemainingCost is the current unused budget of the pool.
 	RemainingCost int64
 	// RetainedCost is the current retained cost estimate.
 	RetainedCost int64
@@ -12,14 +12,14 @@ type DecodedBlockCacheSnapshot struct {
 	Hits uint64
 	// Misses is the number of shared-cache misses.
 	Misses uint64
-	// Stores is the number of keys admitted by Ristretto.
+	// Stores is the number of stores into the pool.
 	Stores uint64
-	// Rejections is the number of set calls dropped or rejected by Ristretto.
+	// Rejections is the number of stores refused for exceeding a shard budget.
 	Rejections uint64
-	// Evictions is the number of keys evicted by Ristretto.
+	// Evictions is the number of entries evicted.
 	Evictions uint64
-	// CostAdded is the sum of costs admitted by Ristretto.
-	CostAdded uint64
-	// CostEvicted is the sum of costs evicted by Ristretto.
-	CostEvicted uint64
+	// CostAdded is the sum of costs stored.
+	CostAdded int64
+	// CostEvicted is the sum of costs evicted.
+	CostEvicted int64
 }

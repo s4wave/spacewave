@@ -158,7 +158,6 @@ func TestDecodedBlockCacheReusesProductionTransformedReads(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	first.(*block_mock.Example).Msg = "mutated"
-	decodedBlocks.Wait()
 
 	// Read the transformed block again and verify the cache returns an independent clone.
 	secondCtx, secondCounter := block.WithReadCounter(ctx)
@@ -243,7 +242,6 @@ func TestDecodedBlockCacheRejectsTransformedRefVerificationMismatch(t *testing.T
 		if got := blk.(*block_mock.Example).GetMsg(); got != "transformed-poison" {
 			t.Fatalf("decoded message = %q, want transformed-poison", got)
 		}
-		decodedBlocks.Wait()
 	}
 
 	// Verify failed reference verification prevented both reads from entering the cache.
@@ -286,7 +284,6 @@ func TestDecodedBlockCacheSeparatesProductionTransformConfigs(t *testing.T) {
 	if _, err := firstCursor.Unmarshal(firstCtx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	// Read with a different s2 configuration and verify the saved message.
 	secondCtx, secondCounter := block.WithReadCounter(ctx)

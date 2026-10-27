@@ -140,7 +140,6 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 		t.Fatal(err.Error())
 	}
 	defer first.Release()
-	decodedBlocks.Wait()
 
 	// Build the second engine over the same head.
 	secondCtx, secondCounter := block.WithReadCounter(ctx)

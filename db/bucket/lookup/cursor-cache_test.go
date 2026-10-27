@@ -52,7 +52,6 @@ func TestCursorUnmarshalBorrowsLifecycleDecodedCache(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	first.(*block_mock.Example).Msg = "mutated"
-	decodedBlocks.Wait()
 
 	// Clone the cursor while retaining the shared lifecycle cache.
 	secondCursor := cursor.Clone()
@@ -216,7 +215,6 @@ func TestCursorUnmarshalBorrowsTransformAwareLifecycleDecodedCache(t *testing.T)
 		t.Fatal(err.Error())
 	}
 	first.(*block_mock.Example).Msg = "mutated"
-	decodedBlocks.Wait()
 
 	// Clone the transformed cursor while retaining its lifecycle cache.
 	secondCursor := cursor.Clone()
@@ -295,7 +293,6 @@ func TestBuildTransactionBorrowsLifecycleDecodedCache(t *testing.T) {
 	if got := first.(*block_mock.Example).GetMsg(); got != "transaction-cache" {
 		t.Fatalf("first decoded message = %q, want transaction-cache", got)
 	}
-	decodedBlocks.Wait()
 
 	// Read the same example through a second block transaction.
 	secondCtx, secondCounter := block.WithReadCounter(ctx)
@@ -482,11 +479,6 @@ func runRepeatedUnmarshalWorkload(
 			// Verify the workload read decoded the expected example.
 			if got := blk.(*block_mock.Example).GetMsg(); got != "workload" {
 				t.Fatalf("decoded message = %q, want workload", got)
-			}
-
-			// Wait for publication of this operation's decoded cache entry.
-			if decodedBlocks != nil {
-				decodedBlocks.Wait()
 			}
 
 			// Accumulate block reads and decoding work for the workload.

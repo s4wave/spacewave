@@ -194,7 +194,6 @@ func TestDecodedBlockCacheRejectsRefVerificationMismatch(t *testing.T) {
 		if got := blk.(*block_mock.Example).GetMsg(); got != "poison" {
 			t.Fatalf("decoded message = %q, want poison", got)
 		}
-		decodedBlocks.Wait()
 	}
 
 	// Verify reference mismatches bypass shared cache retention.
@@ -269,7 +268,6 @@ func TestDecodedBlockCacheSeparatesTypeKeys(t *testing.T) {
 	if _, err := first.Unmarshal(opCtx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	// Decode the same reference as the alternate block type.
 	_, second := block.NewTransaction(store, nil, ref, nil)
@@ -323,7 +321,6 @@ func TestDecodedBlockCacheRejectsEntriesOverBudget(t *testing.T) {
 		if got := blk.(*block_mock.Example).GetMsg(); got != "over-budget" {
 			t.Fatalf("decoded message = %q, want over-budget", got)
 		}
-		decodedBlocks.Wait()
 	}
 
 	// Verify over-budget entries preserve reads and remain within the cache budget.
@@ -378,7 +375,6 @@ func TestDecodedBlockCacheUsesDecodedEntryCostAboveRawBytes(t *testing.T) {
 		if got := blk.(*block_mock.Example).GetMsg(); got != "decoded-cost" {
 			t.Fatalf("decoded message = %q, want decoded-cost", got)
 		}
-		decodedBlocks.Wait()
 	}
 
 	// Verify decoded entry cost prevents retaining the block.
@@ -457,7 +453,6 @@ func TestDecodedBlockCacheInvalidateRefRemovesSharedEntries(t *testing.T) {
 	if _, err := first.Unmarshal(opCtx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	// Remove the stored block and invalidate its shared cache entry.
 	if err := store.RmBlock(ctx, ref); err != nil {

@@ -120,7 +120,6 @@ func TestUnmarshalWithBlockTypeReusesResourceDecodedCache(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	assertExampleResponse(t, resp.GetData(), "typed resource")
-	decodedBlocks.Wait()
 
 	// Read the typed bucket block again through the decoded cache.
 	resp, err = resource.Unmarshal(opCtx, &s4wave_bucket_lookup.UnmarshalRequest{BlockType: exampleBlockTypeID})
@@ -198,7 +197,6 @@ func TestBuildTransactionResourceCursorBorrowsDecodedCache(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	assertExampleResponse(t, first.GetData(), "transaction resource")
-	decodedBlocks.Wait()
 
 	// Build another transaction cursor and read the cached example.
 	buildResp, err = resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
@@ -300,7 +298,6 @@ func TestBuildTransactionResourceCursorBorrowsTransformedDecodedCache(t *testing
 		t.Fatal(err.Error())
 	}
 	assertExampleResponse(t, first.GetData(), "transformed transaction resource")
-	decodedBlocks.Wait()
 
 	// Build another transaction cursor and read the cached transformed example.
 	buildResp, err = resource.BuildTransaction(resourceCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})

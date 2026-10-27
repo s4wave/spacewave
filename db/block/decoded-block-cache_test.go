@@ -9,7 +9,7 @@ func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
 	// Create a decoded cache and candidate entry for invalidation.
 	ctx := context.Background()
 	decodedBlocks := newTestDecodedBlockCache(t)
-	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "removed before admission")
+	ref, key, blk, data := newDecodedBlockCacheTestEntry(t, "removed before store")
 
 	// Invalidate the candidate token before submitting its block.
 	token := decodedBlocks.storeToken(key.ref)
@@ -17,7 +17,6 @@ func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
 	if err := decodedBlocks.Store(ctx, nil, token, key, blk, len(data), false); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	// Verify the invalidated token cannot populate the cache.
 	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
@@ -72,13 +71,14 @@ func TestDecodedBlockCacheScopesShareBudgetNotEntries(t *testing.T) {
 		t.Fatal("NewDecodedBlockCache scopes use different pools")
 	}
 
-	// Close the first scope and verify the second scope retains its pool.
+	// Close the first scope and verify the second scope retains its entries.
+	storeDecodedBlockCacheTestEntry(t, second, key, blk, data)
 	first.Close()
 	if _, ok, err := first.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("closed scope lookup ok=%v err=%v, want miss", ok, err)
 	}
-	if second.pool.cache == nil {
-		t.Fatal("closing a scope closed the shared pool")
+	if _, ok, err := second.Lookup(ctx, nil, key, false); err != nil || !ok {
+		t.Fatalf("closing a scope cleared the shared pool: ok=%v err=%v", ok, err)
 	}
 }
 
@@ -97,7 +97,7 @@ func newTestDecodedBlockCache(t *testing.T) *DecodedBlockCache {
 // newDecodedBlockCacheTestEntry builds a block holding contents with its ref
 // and cache key.
 func newDecodedBlockCacheTestEntry(
-	t *testing.T,
+	t testing.TB,
 	contents string,
 ) (*BlockRef, decodedBlockCacheKey, *decodedBlockCacheTestBlock, []byte) {
 	// Create the decoded-cache test block, serialized bytes, and reference.
@@ -126,10 +126,9 @@ func newDecodedBlockCacheTestEntry(
 	return ref, key, blk, data
 }
 
-// storeDecodedBlockCacheTestEntry stores blk with a current token and waits
-// for the pool to admit it.
+// storeDecodedBlockCacheTestEntry stores blk with a current token.
 func storeDecodedBlockCacheTestEntry(
-	t *testing.T,
+	t testing.TB,
 	decodedBlocks *DecodedBlockCache,
 	key decodedBlockCacheKey,
 	blk *decodedBlockCacheTestBlock,
@@ -140,7 +139,6 @@ func storeDecodedBlockCacheTestEntry(
 	if err := decodedBlocks.Store(context.Background(), nil, token, key, blk, len(data), false); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 }
 
 type decodedBlockCacheTestBlock struct {

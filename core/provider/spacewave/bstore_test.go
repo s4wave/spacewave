@@ -170,7 +170,6 @@ func TestPublicReadRemoteRefreshInvalidatesDecodedCache(t *testing.T) {
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	if err := inner.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
@@ -367,7 +366,6 @@ func TestBlockStoreRmBlockInvalidatesDecodedBlockCache(t *testing.T) {
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	if err := store.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
@@ -400,7 +398,6 @@ func TestBlockStoreBatchTombstoneInvalidatesDecodedBlockCache(t *testing.T) {
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
-	decodedBlocks.Wait()
 
 	// Tombstone the block through the wrapper.
 	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Tombstone: true}}); err != nil {

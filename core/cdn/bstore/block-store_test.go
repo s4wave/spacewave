@@ -441,7 +441,6 @@ func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err)
 	}
-	bs.GetDecodedBlockCache().Wait()
 
 	// Invalidate the removed CDN pointer before decoding the example again.
 	srv.pointer = nil
@@ -761,7 +760,6 @@ func TestCdnBlockStorePointerTTLRefreshClearsDecodedBlockCache(t *testing.T) {
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err)
 	}
-	bs.GetDecodedBlockCache().Wait()
 
 	// Expire the CDN pointer and remove the example from the server.
 	time.Sleep(time.Millisecond)

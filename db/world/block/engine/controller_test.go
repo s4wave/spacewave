@@ -602,7 +602,6 @@ func TestControllerSharesDecodedBlocksAcrossTransactions(t *testing.T) {
 
 	// The second transaction must hit blocks the first one stored.
 	readObject()
-	ctrl.decodedBlocks.Wait()
 	if hits := readObject().DecodedBlockCacheHitCount; hits == 0 {
 		t.Fatal("second read transaction had no decoded-block cache hits")
 	}

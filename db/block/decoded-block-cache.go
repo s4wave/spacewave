@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/dgraph-io/ristretto/v2"
 	"github.com/pkg/errors"
 )
 
@@ -64,24 +63,14 @@ type decodedBlockCacheSizer interface {
 	SizeVT() int
 }
 
-// decodedBlockCacheEntryOverheadCost charges Ristretto's per-entry map and
-// admission bookkeeping.
+// decodedBlockCacheEntryOverheadCost charges the pool's per-entry map slot and
+// queue links.
 const decodedBlockCacheEntryOverheadCost int64 = 256
 
 // decodedBlockCacheStripes is the number of ref invalidation epochs per
 // scope. InvalidateRef advances the stripe its ref hashes to, so other refs in
 // that stripe miss once; the fixed array bounds invalidation state.
 const decodedBlockCacheStripes = 4096
-
-// decodedBlockPool is a Ristretto cache and cost budget shared by scopes.
-type decodedBlockPool struct {
-	// cache holds decoded entries; nil when caching is disabled.
-	cache *ristretto.Cache[string, decodedBlockCacheEntry]
-	// maxCost is the configured budget.
-	maxCost atomic.Int64
-	// nextScope allocates scope key prefixes.
-	nextScope atomic.Uint64
-}
 
 // sharedDecodedBlockPool is the process-wide pool behind NewDecodedBlockCache.
 // It lives for the process, so one budget bounds every block store.
@@ -97,37 +86,23 @@ var sharedDecodedBlockPool = sync.OnceValue(func() *decodedBlockPool {
 func newDecodedBlockPool(opts DecodedBlockCacheOptions) (*decodedBlockPool, error) {
 	// Normalize the decoded-cache budget and preserve disabled pools.
 	opts = opts.normalize()
-	pool := &decodedBlockPool{}
-	pool.maxCost.Store(opts.MaxCost)
 	if opts.Disabled {
+		pool := &decodedBlockPool{}
+		pool.maxCost.Store(opts.MaxCost)
 		return pool, nil
 	}
-
-	// Construct the shared cache with the configured cost limits.
-	cache, err := ristretto.NewCache(&ristretto.Config[string, decodedBlockCacheEntry]{
-		NumCounters: opts.NumCounters,
-		MaxCost:     opts.MaxCost,
-		BufferItems: opts.BufferItems,
-		Metrics:     true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Attach the configured cache to its decoded-block pool.
-	pool.cache = cache
-	return pool, nil
+	return newDecodedBlockPoolShards(opts.MaxCost), nil
 }
 
 // DecodedBlockCache is one owner's scope in a decoded-block pool. Keys carry
 // the scope prefix, so owners never see each other's blocks. Each entry
 // records the invalidation epochs current when it was stored; Lookup treats an
 // entry with an outdated epoch as a miss, and stale entries age out of the
-// pool through Ristretto.
+// pool's queues.
 type DecodedBlockCache struct {
 	// pool holds the entries and budget.
 	pool *decodedBlockPool
-	// ownsPool is set when Close must close pool.
+	// ownsPool is set when Close must clear pool.
 	ownsPool bool
 	// scope prefixes every key of this owner.
 	scope string
@@ -172,14 +147,13 @@ type decodedBlockCacheStoreToken struct {
 // SetSharedDecodedBlockCacheMaxCost sets the budget of the process-wide pool
 // behind NewDecodedBlockCache. The default suits a desktop; a server with
 // memory to spare can hold a larger working set. Lowering the budget evicts
-// entries as the cache admits new ones. A non-positive budget is ignored.
+// entries from each shard at its next store. A non-positive budget is ignored.
 func SetSharedDecodedBlockCacheMaxCost(maxCost int64) {
 	pool := sharedDecodedBlockPool()
-	if maxCost <= 0 || pool.cache == nil {
+	if maxCost <= 0 || pool.shards == nil {
 		return
 	}
 	pool.maxCost.Store(maxCost)
-	pool.cache.UpdateMaxCost(maxCost)
 }
 
 // NewDecodedBlockCache constructs a scope in the process-wide pool.
@@ -226,22 +200,14 @@ func (c *DecodedBlockCache) MaxCost() int64 {
 	return c.pool.maxCost.Load()
 }
 
-// Wait blocks until buffered pool writes have reached Ristretto.
-func (c *DecodedBlockCache) Wait() {
-	if c == nil || c.pool.cache == nil {
-		return
-	}
-	c.pool.cache.Wait()
-}
-
 // Close ends the scope. Its entries in a shared pool become stale and age out.
 func (c *DecodedBlockCache) Close() {
 	if c == nil || c.closed.Swap(true) {
 		return
 	}
 	c.clearEpoch.Add(1)
-	if c.ownsPool && c.pool.cache != nil {
-		c.pool.cache.Close()
+	if c.ownsPool && c.pool.shards != nil {
+		c.pool.clear()
 	}
 }
 
@@ -253,29 +219,20 @@ func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 		return DecodedBlockCacheSnapshot{}
 	}
 
-	// Capture the pool budget before reading enabled cache metrics.
-	snapshot := DecodedBlockCacheSnapshot{MaxCost: c.MaxCost()}
-	if c.pool.cache == nil {
-		return snapshot
+	// Capture the pool budget, its retained cost and its event counters.
+	st := c.pool.stats()
+	return DecodedBlockCacheSnapshot{
+		MaxCost:       c.MaxCost(),
+		RemainingCost: c.MaxCost() - st.retained,
+		RetainedCost:  st.retained,
+		Hits:          st.hits,
+		Misses:        st.misses,
+		Stores:        st.stores,
+		Rejections:    st.rejections,
+		Evictions:     st.evictions,
+		CostAdded:     st.costAdded,
+		CostEvicted:   st.costEvicted,
 	}
-
-	// Capture the cache cost and locate its metrics counters.
-	snapshot.RemainingCost = c.pool.cache.RemainingCost()
-	snapshot.RetainedCost = snapshot.MaxCost - snapshot.RemainingCost
-	metrics := c.pool.cache.Metrics
-	if metrics == nil {
-		return snapshot
-	}
-
-	// Capture the pool hit, store, rejection, and eviction counters.
-	snapshot.Hits = metrics.Hits()
-	snapshot.Misses = metrics.Misses()
-	snapshot.Stores = metrics.KeysAdded() + metrics.KeysUpdated()
-	snapshot.Rejections = metrics.SetsDropped() + metrics.SetsRejected()
-	snapshot.Evictions = metrics.KeysEvicted()
-	snapshot.CostAdded = metrics.CostAdded()
-	snapshot.CostEvicted = metrics.CostEvicted()
-	return snapshot
 }
 
 // Lookup returns the cached decoded block for the key, recording a cache
@@ -302,9 +259,9 @@ func (c *DecodedBlockCache) Lookup(
 
 	// Look up the shared entry and reject stale invalidation epochs.
 	cacheKey := c.cacheKey(key)
-	cached, ok := c.pool.cache.Get(cacheKey)
+	cached, ok := c.pool.get(cacheKey)
 	if ok && cached.epochs != c.epochs(key.ref) {
-		c.pool.cache.Del(cacheKey)
+		c.pool.del(cacheKey)
 		ok = false
 	}
 
@@ -372,7 +329,7 @@ func (c *DecodedBlockCache) Store(
 		return nil
 	}
 
-	// Compute the shared entry cost before cache admission.
+	// Compute the shared entry cost before storing it.
 	cacheKey := c.cacheKey(key)
 	cost, ok := decodedBlockCacheCost(cacheKey, blk, size)
 	if !ok {
@@ -382,7 +339,7 @@ func (c *DecodedBlockCache) Store(
 
 	// An invalidation after the epoch read leaves this entry stale, and
 	// Lookup then treats it as a miss.
-	accepted := c.pool.cache.Set(cacheKey, decodedBlockCacheEntry{
+	accepted := c.pool.put(cacheKey, decodedBlockCacheEntry{
 		block:  cloned,
 		epochs: epochs,
 	}, cost)
@@ -420,7 +377,7 @@ func (c *DecodedBlockCache) InvalidateAll(ctx context.Context) {
 
 // enabled reports whether the scope can read and write its pool.
 func (c *DecodedBlockCache) enabled() bool {
-	return c != nil && c.pool.cache != nil && !c.closed.Load()
+	return c != nil && c.pool.shards != nil && !c.closed.Load()
 }
 
 // epochs returns the current invalidation epochs for refKey.
@@ -565,7 +522,7 @@ func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCa
 }
 
 // decodedBlockCacheCost computes the cost of a cached entry: its pool key, the
-// heap its decoded block retains, and a fixed charge for Ristretto's
+// heap its decoded block retains, and a fixed charge for the pool's
 // bookkeeping. A block without DecodedBlockHeapSizer is charged its stored
 // size plus its encoded decoded size as a heap estimate. It returns false when
 // the block size is unknown.

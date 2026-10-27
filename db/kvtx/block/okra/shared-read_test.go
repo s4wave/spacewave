@@ -81,7 +81,6 @@ func TestTransactionsShareDecodedPages(t *testing.T) {
 	if _, err := readAll(); err != nil {
 		t.Fatal(err)
 	}
-	cache.Wait()
 
 	// Run concurrent readers beside writers that decode the same pages.
 	var wg sync.WaitGroup
@@ -171,7 +170,6 @@ func TestWriteCopiesSharedPage(t *testing.T) {
 	if err := readFirst(); err != nil {
 		t.Fatal(err)
 	}
-	cache.Wait()
 
 	// Point the first value at another block through its cursor and write.
 	btx, cursor := block.NewTransaction(store, nil, rootRef, nil)
