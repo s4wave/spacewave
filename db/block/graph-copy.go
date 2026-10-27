@@ -12,7 +12,7 @@ import (
 // trip, so the copy runs at most this many blocks per round trip: about
 // 13,600 blocks a second at a 4.7 ms ping. More reads raise that ceiling and
 // the source's lookup load with it.
-const DefaultGraphCopyReads = 64
+const DefaultGraphCopyReads = 512
 
 // GraphCopyOptions configures CopyGraph.
 type GraphCopyOptions struct {
