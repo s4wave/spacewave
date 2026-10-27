@@ -873,6 +873,49 @@ export const WriteSecretPayloadResponse: MessageType<WriteSecretPayloadResponse>
   )
 
 /**
+ * AddSecretParticipantRequest grants a peer access to an existing Secret.
+ *
+ * @generated from message s4wave.space.AddSecretParticipantRequest
+ */
+export interface AddSecretParticipantRequest {
+  /**
+   * ObjectKey identifies the parent Secret.
+   */
+  objectKey?: string
+  /**
+   * PeerId is the peer to grant, such as a Device's peer.
+   */
+  peerId?: string
+  /**
+   * ParticipantRole grants read or write access. UNKNOWN defaults to READER.
+   */
+  participantRole?: SOParticipantRole
+}
+
+export const AddSecretParticipantRequest: MessageType<AddSecretParticipantRequest> =
+  /* @__PURE__ */ createMessageType<AddSecretParticipantRequest>(
+    's4wave.space.AddSecretParticipantRequest',
+    () => [
+      [1, 'object_key', 9],
+      [2, 'peer_id', 9],
+      [3, 'participant_role', 14, 0, SOParticipantRole_Enum],
+    ],
+  )
+
+/**
+ * AddSecretParticipantResponse confirms the grant.
+ *
+ * @generated from message s4wave.space.AddSecretParticipantResponse
+ */
+export interface AddSecretParticipantResponse {}
+
+export const AddSecretParticipantResponse: MessageType<AddSecretParticipantResponse> =
+  /* @__PURE__ */ createMessageType<AddSecretParticipantResponse>(
+    's4wave.space.AddSecretParticipantResponse',
+    () => [],
+  )
+
+/**
  * ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
  *
  * @generated from message s4wave.space.ReadSecretPayloadRequest

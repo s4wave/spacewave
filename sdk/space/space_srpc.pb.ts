@@ -5,6 +5,8 @@
 import {
   AccessWorldRequest,
   AccessWorldResponse,
+  AddSecretParticipantRequest,
+  AddSecretParticipantResponse,
   AddSpacePluginRequest,
   AddSpacePluginResponse,
   ApproveSpaceChangeRequest,
@@ -142,6 +144,18 @@ export const SpaceResourceServiceDefinition = {
       name: 'WriteSecretPayload',
       I: WriteSecretPayloadRequest,
       O: WriteSecretPayloadResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * AddSecretParticipant grants a peer read or write access to an existing
+     * Secret's payload, signed by the mounted session.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.AddSecretParticipant
+     */
+    AddSecretParticipant: {
+      name: 'AddSecretParticipant',
+      I: AddSecretParticipantRequest,
+      O: AddSecretParticipantResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -388,6 +402,17 @@ export interface SpaceResourceService {
   ): Promise<WriteSecretPayloadResponse>
 
   /**
+   * AddSecretParticipant grants a peer read or write access to an existing
+   * Secret's payload, signed by the mounted session.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.AddSecretParticipant
+   */
+  AddSecretParticipant(
+    request: AddSecretParticipantRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AddSecretParticipantResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
   DeployManifests(
@@ -623,6 +648,18 @@ export interface SpaceResourceServiceHandler {
   ): Promise<WriteSecretPayloadResponse>
 
   /**
+   * AddSecretParticipant grants a peer read or write access to an existing
+   * Secret's payload, signed by the mounted session.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.AddSecretParticipant
+   */
+  AddSecretParticipant(
+    request: AddSecretParticipantRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddSecretParticipantResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
   DeployManifests(
@@ -807,6 +844,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.CreateSecret = this.CreateSecret.bind(this)
     this.ReadSecretPayload = this.ReadSecretPayload.bind(this)
     this.WriteSecretPayload = this.WriteSecretPayload.bind(this)
+    this.AddSecretParticipant = this.AddSecretParticipant.bind(this)
     this.DeployManifests = this.DeployManifests.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.ImportSpacePlugin = this.ImportSpacePlugin.bind(this)
@@ -961,6 +999,26 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return WriteSecretPayloadResponse.fromBinary(result)
+  }
+
+  /**
+   * AddSecretParticipant grants a peer read or write access to an existing
+   * Secret's payload, signed by the mounted session.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.AddSecretParticipant
+   */
+  async AddSecretParticipant(
+    request: AddSecretParticipantRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AddSecretParticipantResponse> {
+    const requestMsg = AddSecretParticipantRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.AddSecretParticipant.name,
+      AddSecretParticipantRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AddSecretParticipantResponse.fromBinary(result)
   }
 
   /**

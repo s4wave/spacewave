@@ -309,3 +309,51 @@ func TestSpaceResourceWritesSecretWithoutChangingGrants(t *testing.T) {
 		t.Fatalf("reader write: %v", err)
 	}
 }
+
+// TestSpaceResourceAddSecretParticipantGrantsPeer covers granting a second
+// peer, such as a Device, on an existing Secret.
+func TestSpaceResourceAddSecretParticipantGrantsPeer(t *testing.T) {
+	// Mount a provider-backed Space and create a Secret for the Session.
+	ctx := t.Context()
+	_, resource, release := setupSecretSpaceResourceTest(ctx, t)
+	defer release()
+	if _, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{ObjectKey: "secrets/device", Kind: s4wave_secret.SecretKindProviderCredential, Value: []byte("old")}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Grant a new peer writer access through the Space resource.
+	_, pub, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	device, err := peer.IDFromPublicKey(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_WRITER}); err != nil {
+		t.Fatalf("AddSecretParticipant: %v", err)
+	}
+
+	// The granted peer reads and replaces the payload.
+	resource.sessionPeerID = device.String()
+	if _, err := resource.WriteSecretPayload(ctx, &s4wave_space.WriteSecretPayloadRequest{ObjectKey: "secrets/device", ExpectedKind: s4wave_secret.SecretKindProviderCredential, Value: []byte("new")}); err != nil {
+		t.Fatalf("WriteSecretPayload: %v", err)
+	}
+	read, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{ObjectKey: "secrets/device", ExpectedKind: s4wave_secret.SecretKindProviderCredential})
+	if err != nil {
+		t.Fatalf("ReadSecretPayload: %v", err)
+	}
+	if got := string(read.GetPayload().GetValue()); got != "new" {
+		t.Fatalf("payload mismatch: %q", got)
+	}
+
+	// A second grant to the same peer reports that its role is unchanged.
+	if _, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_READER}); err == nil {
+		t.Fatal("expected a repeated grant to be reported")
+	}
+
+	// An owner role is not grantable here.
+	if _, err := resource.AddSecretParticipant(ctx, &s4wave_space.AddSecretParticipantRequest{ObjectKey: "secrets/device", PeerId: device.String(), ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_OWNER}); err == nil {
+		t.Fatal("expected owner grant to be rejected")
+	}
+}

@@ -29,6 +29,9 @@ service SpaceResourceService {
   rpc ReadSecretPayload(ReadSecretPayloadRequest) returns (ReadSecretPayloadResponse) {}
   // WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
   rpc WriteSecretPayload(WriteSecretPayloadRequest) returns (WriteSecretPayloadResponse) {}
+  // AddSecretParticipant grants a peer read or write access to an existing
+  // Secret's payload, signed by the mounted session.
+  rpc AddSecretParticipant(AddSecretParticipantRequest) returns (AddSecretParticipantResponse) {}
 
   rpc DeployManifests(stream .s4wave.deploy.DeployManifestsMessage) returns (stream .s4wave.deploy.DeployManifestsMessage) {}
 
@@ -380,6 +383,20 @@ message WriteSecretPayloadRequest {
 
 // WriteSecretPayloadResponse acknowledges durable nested payload storage.
 message WriteSecretPayloadResponse {
+}
+
+// AddSecretParticipantRequest grants a peer access to an existing Secret.
+message AddSecretParticipantRequest {
+  // ObjectKey identifies the parent Secret.
+  string object_key = 1;
+  // PeerId is the peer to grant, such as a Device's peer.
+  string peer_id = 2;
+  // ParticipantRole grants read or write access. UNKNOWN defaults to READER.
+  .sobject.SOParticipantRole participant_role = 3;
+}
+
+// AddSecretParticipantResponse confirms the grant.
+message AddSecretParticipantResponse {
 }
 
 // ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.

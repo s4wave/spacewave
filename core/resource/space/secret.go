@@ -176,3 +176,52 @@ func (r *SpaceResource) WriteSecretPayload(ctx context.Context, req *s4wave_spac
 	}
 	return &s4wave_space.WriteSecretPayloadResponse{}, nil
 }
+
+// AddSecretParticipant grants a peer access to an existing Secret, signed by
+// the mounted session.
+func (r *SpaceResource) AddSecretParticipant(ctx context.Context, req *s4wave_space.AddSecretParticipantRequest) (*s4wave_space.AddSecretParticipantResponse, error) {
+	// Validate the Secret identity, target peer, and role.
+	if req.GetObjectKey() == "" {
+		return nil, errors.New("object_key cannot be empty")
+	}
+	peerID, err := peer.IDB58Decode(req.GetPeerId())
+	if err != nil {
+		return nil, errors.Wrap(err, "parse peer id")
+	}
+	pub, err := peerID.ExtractPublicKey()
+	if err != nil {
+		return nil, errors.Wrap(err, "extract peer public key")
+	}
+	role := req.GetParticipantRole()
+	if role == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
+		role = sobject.SOParticipantRole_SOParticipantRole_READER
+	}
+	if role != sobject.SOParticipantRole_SOParticipantRole_READER && role != sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		return nil, errors.New("Secret participant role must be reader or writer")
+	}
+
+	// Read the existing Secret identity from the parent World.
+	tx, err := r.space.GetWorldEngine().NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	if err := world_types.CheckObjectType(ctx, tx, req.GetObjectKey(), s4wave_secret.SecretTypeID); err != nil {
+		return nil, err
+	}
+	secret, err := world.LookupObjectBody[s4wave_secret.Secret](ctx, tx, req.GetObjectKey())
+	if err != nil {
+		return nil, err
+	}
+
+	// Grant the peer on the Secret's nested SharedObject. A peer that is
+	// already a participant keeps its role, so report it instead of success.
+	grant, err := s4wave_secret.AddSecretParticipant(ctx, r.b, secret, peerID.String(), pub, role, "")
+	if err != nil {
+		return nil, errors.Wrap(err, "grant peer")
+	}
+	if grant == nil {
+		return nil, errors.New("peer is already a Secret participant; its role is unchanged")
+	}
+	return &s4wave_space.AddSecretParticipantResponse{}, nil
+}
