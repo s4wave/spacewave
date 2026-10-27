@@ -75,6 +75,8 @@ type Volume struct {
 	// directClosed records that Close joined direct transactions, guarded by
 	// directMu.
 	directClosed bool
+	// fills groups concurrent cache fills into shared transactions.
+	fills fillQueue
 	// closeErr stores the error from Close.
 	closeErr error
 	// rootPinMu guards reader pin counts, stages and their volume lease. Direct

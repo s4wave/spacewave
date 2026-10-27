@@ -82,6 +82,9 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 // An empty bucketID writes the block without ownership.
 func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
 	putOpts, _ := block.PutOptsWithoutSync(opts)
+	if putOpts.GetCacheFill() {
+		return v.prepareCacheFill(ctx, bucketOwner(bucketID), data, putOpts)
+	}
 	err = v.prepareOwned(ctx, bucketOwner(bucketID), len(data), claimBucket, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
