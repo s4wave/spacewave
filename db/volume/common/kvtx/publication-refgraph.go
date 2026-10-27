@@ -115,6 +115,12 @@ func (g *transactionRefGraph) MarkBlocks(ctx context.Context) (mark *block_gc.Bl
 	return
 }
 
+// TraceOwners finds the owned path to each block, as RefGraph.TraceOwners
+// describes, reading each level in its own transaction.
+func (g *transactionRefGraph) TraceOwners(ctx context.Context, blocks []string, maxDepth int) ([]block_gc.OwnerTrace, error) {
+	return openRefGraph(&directReadStore{volume: g.volume}).TraceOwners(ctx, blocks, maxDepth)
+}
+
 // MarkBlocksScan marks the graph's blocks by scanning child lists in short
 // read transactions, as RefGraph.MarkBlocksScan describes. Each transaction
 // joins the Volume's direct operations on its own, so neither a snapshot nor

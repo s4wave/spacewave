@@ -36,6 +36,16 @@ const markIntervals = 15
 // whole graph beside them.
 const quietIntervals = 5
 
+// ownerTracer is implemented by a reference graph that can trace what owns a
+// block, as RefGraph.TraceOwners describes.
+type ownerTracer interface {
+	// TraceOwners finds the owned path to each block.
+	TraceOwners(ctx context.Context, blocks []string, maxDepth int) ([]block_gc.OwnerTrace, error)
+}
+
+// traceDepth bounds the levels a trace of unknown blocks walks up.
+const traceDepth = 64
+
 // slowSweepTx is the sweep transaction time past which a pass warns. A sweep
 // transaction holds the writer every World commit waits on, and its budget
 // keeps it near 50 ms.
@@ -101,6 +111,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	// only collection frees the space its writes wait on.
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
+	var traced bool
 	hw, _ := vol.(volume.HealthWatcher)
 	reserve := &reserveWatch{hw: hw}
 	for {
@@ -184,6 +195,13 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 				WithField("named-by", block_gc.FormatIRIs(stats.UnknownNamers)).
 				WithField("blocks-swept", stats.BlocksSwept).
 				Warn("gc block pass reached blocks of unknown references and stopped sweeping")
+
+			// Trace what owns the sample once per process: each level of a
+			// trace scans every child list.
+			if tracer, ok := rg.(ownerTracer); ok && !traced && len(stats.UnknownSample) != 0 {
+				traced = true
+				go c.traceUnknown(ctx, tracer, stats.UnknownSample)
+			}
 		}
 		// Save the next block pass so a restart resumes the schedule.
 		if stats.BlockPasses != 0 {
@@ -255,4 +273,31 @@ func writeGcSchedule(ctx context.Context, vol volume.Volume, next time.Time) err
 	}, func(ctx context.Context, tx kvtx.Tx) error {
 		return tx.Set(ctx, gcScheduleKey, data)
 	})
+}
+
+// traceUnknown logs the owner and path that keep each sampled block of unknown
+// references live.
+func (c *Controller) traceUnknown(ctx context.Context, tracer ownerTracer, sample []string) {
+	start := time.Now()
+	traces, err := tracer.TraceOwners(ctx, sample, traceDepth)
+	if err != nil {
+		if ctx.Err() == nil {
+			c.le.WithError(err).Warn("gc trace of unknown blocks failed")
+		}
+		return
+	}
+	for _, trace := range traces {
+		le := c.le.
+			WithField("block", trace.Block).
+			WithField("owner", trace.Owner).
+			WithField("depth", len(trace.Path)).
+			WithField("dur", time.Since(start).String())
+		if len(trace.Path) != 0 {
+			le = le.WithField("top", trace.Path[0])
+		}
+		if len(trace.Path) > 1 {
+			le = le.WithField("namer", trace.Path[len(trace.Path)-2])
+		}
+		le.Warn("gc traced a block of unknown references")
+	}
 }
