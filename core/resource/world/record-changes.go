@@ -59,7 +59,8 @@ func (r *WorldStateResource) CompareObjectRecords(ctx context.Context, req *sdk_
 				return nil
 			})
 		})
-		if err != nil && !errors.Is(err, block.ErrNotFound) {
+		// A block not available here leaves the change unknown, so the caller rescans.
+		if err != nil && !block.IsNotAvailable(err) {
 			return nil, err
 		}
 	}

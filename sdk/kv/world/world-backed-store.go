@@ -191,7 +191,7 @@ func (s *WorldBackedStore) prefixChanged(ctx context.Context, before, after *buc
 			return err
 		})
 	})
-	if errors.Is(err, block.ErrNotFound) {
+	if block.IsNotAvailable(err) {
 		return true, nil
 	}
 	return changed, err

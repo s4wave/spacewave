@@ -183,3 +183,31 @@ func TestPlanCompactionSkipsTrash(t *testing.T) {
 		t.Fatalf("planned %d inputs with a trash pack", len(inputs))
 	}
 }
+
+// reclaimUnavailableStore is a cache that cannot serve any block now.
+type reclaimUnavailableStore struct {
+	block.StoreOps
+}
+
+// GetStoredBlock reports every block unavailable.
+func (reclaimUnavailableStore) GetStoredBlock(context.Context, *block.BlockRef) (*block.StoredBlock, error) {
+	return nil, block.ErrUnavailable
+}
+
+// TestReclaimReadStoreFallsBackOnUnavailable proves a block the cache cannot
+// serve now is read from the cloud, as a block the cache lacks is.
+func TestReclaimReadStoreFallsBackOnUnavailable(t *testing.T) {
+	// The cloud holds the block the cache cannot serve.
+	ref, err := block.BuildBlockRef([]byte("reclaim"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cloud := &sessionLookupTestLower{blocks: map[string][]byte{ref.MarshalString(): []byte("reclaim")}}
+	store := &reclaimReadStore{StoreOps: reclaimUnavailableStore{}, cloud: cloud}
+
+	// The read falls back to the cloud.
+	stored, err := store.GetStoredBlock(t.Context(), ref)
+	if err != nil || stored == nil || string(stored.Data) != "reclaim" {
+		t.Fatalf("reclaim read = %v, %v; want the cloud's block", stored, err)
+	}
+}

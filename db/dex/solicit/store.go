@@ -13,9 +13,11 @@ import (
 // Reads wait for the solicitation to settle and for at least one peer session,
 // then fan out to the controller's peer sessions. A read under a context from
 // block.WithoutPeerWait does not wait: with no peer connected it records the
-// block and reports block.ErrUnavailable. Existence checks do not wait for a
-// peer. When the controller knows the block's holders, a block is missing only
-// when each holder answered that it lacks it, and unavailable otherwise.
+// block and reports block.ErrUnavailable. When the controller knows the
+// block's holders, a read reports a block missing only when each holder
+// answered that it lacks it, and unavailable otherwise. Existence checks are
+// hints: they neither wait for a peer nor fail for a holder that is offline,
+// and report what the connected peers answered.
 type Store struct {
 	controller *Controller
 }
@@ -78,15 +80,16 @@ func (s *Store) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block
 	}, nil
 }
 
-// fetch requests a block from the settled peer sessions, first waiting for a
-// peer session when wantPeer is set and ctx allows waiting. Returns nil when
-// every holder answered that it does not have the block, and an error when
-// the exchange failed or a holder was not there to ask.
-func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (*DexMessage, error) {
-	// Settle the peer sessions, waiting for one only when ctx allows it.
+// fetch requests a block from the settled peer sessions. A read first waits
+// for a peer session when ctx allows waiting, and returns nil only when every
+// holder answered that it does not have the block, and an error when the
+// exchange failed or a holder was not there to ask. A probe, for an existence
+// check, asks the connected peers and returns nil when none had the block.
+func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, read bool) (*DexMessage, error) {
+	// Settle the peer sessions, waiting for one only for a read ctx allows to wait.
 	peerWait := block.GetPeerWait(ctx)
-	skipWait := wantPeer && peerWait != nil
-	sessions, err := s.controller.waitSessions(ctx, nil, wantPeer && !skipWait)
+	skipWait := read && peerWait != nil
+	sessions, err := s.controller.waitSessions(ctx, nil, read && !skipWait)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +99,7 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (
 	}
 
 	// Ask the settled peer sessions for the block.
-	found, err := s.controller.askPeers(ctx, sessions, ref, s.controller.cc.GetMaxForwardHops(), nil, true)
+	found, err := s.controller.askPeers(ctx, sessions, ref, s.controller.cc.GetMaxForwardHops(), nil, read)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +115,9 @@ func (s *Store) fetch(ctx context.Context, ref *block.BlockRef, wantPeer bool) (
 }
 
 // GetBlockExists checks whether any connected peer has the block. It does not
-// wait for a peer to connect.
+// wait for a peer to connect, and a holder that is offline does not fail it:
+// a false answer means the block is not available here now, and a caller that
+// must know it is gone reads it.
 func (s *Store) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	found, err := s.fetch(ctx, ref, false)
 	return found != nil, err

@@ -203,7 +203,7 @@ type reclaimReadStore struct {
 // GetStoredBlock reads ref from the cache, then from the cloud.
 func (r *reclaimReadStore) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	stored, err := r.StoreOps.GetStoredBlock(ctx, ref)
-	if stored != nil || err != nil && !errors.Is(err, block.ErrNotFound) {
+	if stored != nil || err != nil && !block.IsNotAvailable(err) {
 		return stored, err
 	}
 	return r.cloud.GetStoredBlock(ctx, ref)

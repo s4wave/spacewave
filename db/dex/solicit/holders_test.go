@@ -60,6 +60,25 @@ func TestStoreHoldersOfflineIsUnavailable(t *testing.T) {
 	}
 }
 
+// TestStoreHoldersExistsIgnoresOffline proves an existence check takes the
+// connected peers' answer, so a holder that is offline does not fail it.
+func TestStoreHoldersExistsIgnoresOffline(t *testing.T) {
+	// Connect one of two holders, which lacks the block.
+	ctx := t.Context()
+	c := newTestDexSolicitController()
+	c.SetHolders([]peer.ID{"holder-a", "holder-c"})
+	answer := answerTestDexMiss(addTestDexSession(t, ctx, c, "holder-a"))
+
+	// The check reports the block absent without naming the offline holder.
+	found, err := NewStore(c).GetBlockExists(ctx, testDexBlockRef(t, "probe-offline"))
+	if err != nil || found {
+		t.Fatalf("exists = %v, %v; want false", found, err)
+	}
+	if err := recvTestDexValue(t, answer, "holder answer"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestStoreHoldersFailedIsUnavailable proves a holder whose request failed
 // leaves the read unavailable, naming the holder and carrying the failure.
 func TestStoreHoldersFailedIsUnavailable(t *testing.T) {
