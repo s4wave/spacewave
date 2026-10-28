@@ -1,6 +1,8 @@
 package kvtx
 
 import (
+	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -594,4 +596,195 @@ func TestMinorPassKeepsFilledHoleARevivedParentNames(t *testing.T) {
 			minorPass("after fill")
 		})
 	}
+}
+
+// TestMinorPassKeepsFilledHoleARevivalInALaterChunkNames checks that a major
+// pass whose sweep spans several transactions logs the old parent that a
+// write revives after the first transaction commits, and that minor passes
+// keep the hole it names once filled. In one case the same write names the
+// hole from a new parent, so the next rescue reaches both; in the other an
+// earlier write named the hole, and the first transaction settled it with no
+// namer before the old parent's list was read.
+func TestMinorPassKeepsFilledHoleARevivalInALaterChunkNames(t *testing.T) {
+	for _, settledFirst := range []bool{false, true} {
+		for _, w := range holeWriters {
+			name := fmt.Sprintf("settled-first=%v/%s", settledFirst, w.name)
+			t.Run(name, func(t *testing.T) {
+				testRevivalInALaterChunk(t, w, settledFirst)
+			})
+		}
+	}
+}
+
+// testRevivalInALaterChunk runs one case of
+// TestMinorPassKeepsFilledHoleARevivalInALaterChunkNames.
+func testRevivalInALaterChunk(t *testing.T, w holeWriter, settledFirst bool) {
+	// Release two blocks for the sweep's first chunks.
+	v, raw := newPublicationTestVolume(t)
+	ctx := t.Context()
+	rg := v.GetRefGraph()
+	var fillers []*block.AtomicPublication
+	for i := range 2 {
+		p := publicationFor(t, fmt.Sprintf("filler-%d", i), "", "one")
+		if err := v.PublishAtomic(ctx, p); err != nil {
+			t.Fatal(err)
+		}
+		orphanPublication(t, v, p)
+		fillers = append(fillers, p)
+	}
+
+	// Store an unreached old parent whose list names a hole.
+	hole, child := holeEntries(t)
+	old := publicationFor(t, "old-parent", "", "three").Entries[0]
+	old.Refs, old.RefsKnown = []*block.BlockRef{hole.Ref}, true
+	gs := block_gc.NewGCStoreOps(v, rg)
+	opts := &block.PutOpts{ForceBlockRef: old.Ref, Refs: old.Refs, CacheFill: true, RefsKnown: true}
+	if _, _, err := gs.PutBlock(ctx, old.Data, opts); err != nil {
+		t.Fatal(err)
+	}
+	if err := gs.FlushPending(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Name the edges of the revival: the root to the old parent, and a new
+	// parent to the hole.
+	oldNode := block_gc.BlockIRI(old.Ref)
+	revive := block_gc.RefEdge{Subject: block_gc.NodeGCRoot, Object: oldNode}
+	newParent := publicationFor(t, "new-parent", "", "four").Entries[0]
+	adopt := block_gc.RefEdge{Subject: block_gc.BlockIRI(newParent.Ref), Object: block_gc.BlockIRI(hole.Ref)}
+
+	// Run a major pass whose sweep commits one block per transaction.
+	var stats block_gc.Stats
+	err := v.runBlockPass(ctx, rg, false, func(actual *transactionRefGraph) error {
+		// Take the promote bound before the pass begins.
+		var bound uint64
+		err := actual.read(ctx, func(rg *block_gc.RefGraph) (err error) {
+			bound, err = rg.YoungPosition(ctx)
+			return err
+		})
+		if err != nil {
+			return err
+		}
+
+		// Run the pass body while the pass is open.
+		return v.inBlockPass(ctx, actual, func() error {
+			// Mark, and sweep the old parent last.
+			mark, err := actual.MarkBlocksScan(ctx)
+			if err != nil {
+				return err
+			}
+			at := slices.Index(mark.Unreached, oldNode)
+			if at < 0 || len(mark.Unreached) != 3 {
+				t.Fatalf("unreached %d blocks, old parent at %d", len(mark.Unreached), at)
+			}
+			mark.Unreached = append(slices.Delete(mark.Unreached, at, at+1), oldNode)
+
+			// Name the hole before the sweep when it settles first.
+			if settledFirst {
+				if err := rg.ApplyRefBatch(ctx, []block_gc.RefEdge{adopt}, nil); err != nil {
+					return err
+				}
+			}
+
+			// Make every sweep transaction yield after one block, and hold
+			// the first at the gate.
+			raw.mu.Lock()
+			raw.writersWaiting = true
+			raw.mu.Unlock()
+			first := raw.arm(t)
+
+			// Sweep in the background.
+			type result struct {
+				complete bool
+				err      error
+			}
+			done := make(chan result, 1)
+			go func() {
+				complete, err := v.sweepUnreached(ctx, mark, &stats)
+				done <- result{complete, err}
+			}()
+
+			// Let the first transaction commit, and hold the second.
+			<-first.started
+			second := raw.arm(t)
+			first.unblock()
+			<-second.started
+
+			// The first transaction swept one released block and left the
+			// old parent.
+			var swept int
+			for _, p := range fillers {
+				if _, found, err := v.GetBlock(ctx, p.Entries[0].Ref); err != nil {
+					return err
+				} else if !found {
+					swept++
+				}
+			}
+			if _, found, err := v.GetBlock(ctx, old.Ref); err != nil || !found || swept != 1 {
+				t.Fatalf("after the first transaction: swept %d, old parent found=%v err=%v", swept, found, err)
+			}
+
+			// Revive the old parent while the second waits, naming the hole
+			// from the new parent in the same write unless it settled first.
+			edges := []block_gc.RefEdge{revive}
+			if !settledFirst {
+				edges = append(edges, adopt)
+			}
+			if err := rg.ApplyRefBatch(ctx, edges, nil); err != nil {
+				return err
+			}
+			second.unblock()
+
+			// The sweep finishes and the pass promotes.
+			r := <-done
+			if r.err != nil || !r.complete {
+				t.Fatalf("complete=%v err=%v stats=%+v", r.complete, r.err, stats)
+			}
+			raw.mu.Lock()
+			raw.writersWaiting = false
+			raw.mu.Unlock()
+			return v.promoteYoung(ctx, mark, bound)
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The pass settled the hole and swept both released blocks.
+	if stats.AbsentBlocks != 1 || stats.UnknownBlocks != 0 || stats.BlocksSwept != 2 {
+		t.Fatalf("major pass stats=%+v", stats)
+	}
+	for _, p := range fillers {
+		assertPublishedBlock(t, v, p, false)
+	}
+
+	// Minor passes run before and after a write stores the hole.
+	minorPass := func(step string) {
+		// Run one minor pass.
+		t.Helper()
+		var minor block_gc.Stats
+		if err := v.SweepYoungBlocks(ctx, rg, &minor); err != nil {
+			t.Fatal(err)
+		}
+		if minor.MinorPasses != 1 {
+			t.Fatalf("%s: minor pass did not run: stats=%+v", step, minor)
+		}
+
+		// The old parent stays, and the hole and its child survive once
+		// stored.
+		if _, found, err := v.GetBlock(ctx, old.Ref); err != nil || !found {
+			t.Fatalf("%s: live old parent swept: found=%v err=%v", step, found, err)
+		}
+		for _, e := range []*block.PutBatchEntry{hole, child} {
+			if _, found, err := v.GetBlock(ctx, e.Ref); err != nil {
+				t.Fatal(err)
+			} else if !found && step != "before fill" {
+				t.Fatalf("%s: block a live parent names swept: stats=%+v", step, minor)
+			}
+		}
+	}
+	minorPass("before fill")
+	w.write(t, v, rg, child, hole)
+	minorPass("after fill")
+	minorPass("after fill")
 }
