@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -230,8 +231,9 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 		ungrantedPriv,
 		ungrantedPeerID,
 	).WithConfigHistory(ih.GetSOHost().ReadConfigEntry)
-	if _, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, ungrantedSnap); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
-		t.Fatalf("expected ungranted access denied, got %v", err)
+	if _, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, ungrantedSnap); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) ||
+		!strings.Contains(err.Error(), "fold the payload: ") {
+		t.Fatalf("expected ungranted access denied with the fold failure, got %v", err)
 	}
 
 	// Remove the granted peer.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
@@ -305,7 +306,7 @@ func TestSpaceResourceWritesSecretWithoutChangingGrants(t *testing.T) {
 	}
 	resource.sessionPeerID = reader.String()
 	_, err = resource.WriteSecretPayload(ctx, &s4wave_space.WriteSecretPayloadRequest{ObjectKey: "secrets/rotation", Value: []byte("forbidden")})
-	if !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
+	if !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) || !strings.Contains(err.Error(), "is not a writer") {
 		t.Fatalf("reader write: %v", err)
 	}
 }

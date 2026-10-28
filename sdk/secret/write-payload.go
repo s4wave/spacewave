@@ -33,7 +33,7 @@ func WriteSecretPayloadForPeer(ctx context.Context, b bus.Bus, secret *Secret, e
 	defer ref.Release()
 	host, ok := so.(sobject.InviteHost)
 	if !ok {
-		return ErrPayloadAccessDenied
+		return accessDenied("the nested object holds no participant state")
 	}
 	state, err := host.GetSOHost().GetHostState(ctx)
 	if err != nil {
@@ -49,7 +49,7 @@ func WriteSecretPayloadForPeer(ctx context.Context, b bus.Bus, secret *Secret, e
 		}
 	}
 	if !permitted {
-		return ErrPayloadAccessDenied
+		return accessDenied("peer " + writerPeerID + " is not a writer")
 	}
 
 	// Preserve the nested object and its grants while publishing the replacement.

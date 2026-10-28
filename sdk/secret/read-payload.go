@@ -168,7 +168,7 @@ func (r *SecretResource) ReadPayload(ctx context.Context, req *ReadPayloadReques
 	}
 	if secret.GetKind() != entry.challenge.GetSecretKind() ||
 		secret.GetNestedSharedObjectId() != entry.challenge.GetNestedSharedObjectId() {
-		return nil, ErrPayloadAccessDenied
+		return nil, accessDenied("the Secret changed since the read began")
 	}
 	if err := r.checkReaderGrant(ctx, secret, entry.challenge.GetReaderPeerId()); err != nil {
 		return nil, err
@@ -216,7 +216,7 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 	// Read the object's host state.
 	ih, ok := so.(sobject.InviteHost)
 	if !ok {
-		return ErrPayloadAccessDenied
+		return accessDenied("the nested object holds no participant state")
 	}
 	state, err := ih.GetSOHost().GetHostState(ctx)
 	if err != nil {
@@ -224,7 +224,7 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 	}
 	cfg := state.GetConfig()
 	if cfg == nil {
-		return ErrPayloadAccessDenied
+		return accessDenied("the nested object has no config")
 	}
 
 	// The reader holds a readable role.
@@ -236,7 +236,7 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 		}
 	}
 	if !readable {
-		return ErrPayloadAccessDenied
+		return accessDenied("peer " + readerPeerID + " is not a reader")
 	}
 
 	// The reader holds a validly signed grant in the current key epoch.
@@ -245,9 +245,9 @@ func (r *SecretResource) checkReaderGrant(ctx context.Context, secret *Secret, r
 			continue
 		}
 		if err := grant.ValidateSignature(so.GetSharedObjectID(), cfg); err != nil {
-			return ErrPayloadAccessDenied
+			return accessDeniedBy("peer "+readerPeerID+"'s grant is invalid", err)
 		}
 		return nil
 	}
-	return ErrPayloadAccessDenied
+	return accessDenied("peer " + readerPeerID + " has no grant in the current key epoch")
 }

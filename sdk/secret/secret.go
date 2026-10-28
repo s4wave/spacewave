@@ -204,11 +204,11 @@ func ReadSecretPayload(ctx context.Context, b bus.Bus, secret *Secret) (*SecretP
 func ReadSecretPayloadFromSnapshot(ctx context.Context, snap sobject.SharedObjectStateSnapshot) (*SecretPayload, error) {
 	// Fold the operations over the checkpoint and decode the payload.
 	if snap == nil {
-		return nil, ErrPayloadAccessDenied
+		return nil, accessDenied("no shared object state")
 	}
 	folded, err := sobject.Fold(ctx, snap, replaceSecretPayload)
 	if err != nil {
-		return nil, ErrPayloadAccessDenied
+		return nil, accessDeniedBy("fold the payload", err)
 	}
 	payload := &SecretPayload{}
 	if data := folded.StateData; len(data) != 0 {

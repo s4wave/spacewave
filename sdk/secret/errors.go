@@ -1,6 +1,9 @@
 package s4wave_secret
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	// ErrMissingSecretRef is returned when a Secret has no nested SharedObject ref.
@@ -14,3 +17,13 @@ var (
 	// ErrReadChallengeExpired is returned when a payload read challenge expired.
 	ErrReadChallengeExpired = errors.New("secret: read challenge expired")
 )
+
+// accessDenied returns ErrPayloadAccessDenied with the reason access failed.
+func accessDenied(reason string) error {
+	return fmt.Errorf("%w: %s", ErrPayloadAccessDenied, reason)
+}
+
+// accessDeniedBy returns ErrPayloadAccessDenied with the failed step and its cause.
+func accessDeniedBy(step string, cause error) error {
+	return fmt.Errorf("%w: %s: %w", ErrPayloadAccessDenied, step, cause)
+}
