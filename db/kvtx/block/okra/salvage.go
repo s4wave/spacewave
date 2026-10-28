@@ -11,7 +11,8 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
-// SalvageHole is a page of the tree that could not be read.
+// SalvageHole is a page of the tree that could not be read: not found, or
+// unavailable when no peer was connected to serve it.
 type SalvageHole struct {
 	// Ref is the missing page.
 	Ref *block.BlockRef
@@ -36,10 +37,12 @@ var errSalvageStop = errors.New("salvage walk stopped")
 const salvageConcurrency = 32
 
 // Salvage walks the leaf entries in [low, high) in key order. It calls entry
-// for each readable leaf entry and hole for each page that reads as not
-// found, then continues past it. Either callback may be nil, and either may
-// return false to stop the walk. Any read error other than not found stops
-// the walk. An empty low or high leaves that side unbounded.
+// for each readable leaf entry and hole for each page that reads as not found
+// or unavailable, then continues past it. Either callback may be nil, and
+// either may return false to stop the walk. Any other read error stops the
+// walk. An empty low or high leaves that side unbounded. A caller that must
+// not wait for peers to serve pages it lacks reads under
+// block.WithoutPeerWait, which reports those pages unavailable.
 //
 // Nothing is retained between callbacks: the walk holds only the pages on
 // the path to the current one, so it runs in memory bounded by the tree's
@@ -59,7 +62,7 @@ func (t *Tx) Salvage(
 	s := &salvage{low: low, high: high, entry: entry, hole: hole}
 	page, cursor, err := t.getRootPage(ctx)
 	if err != nil {
-		if !errors.Is(err, block.ErrNotFound) {
+		if !isSalvageHole(err) {
 			return err
 		}
 		s.emitHole(SalvageHole{
@@ -99,6 +102,12 @@ type salvage struct {
 	// entry and hole receive the walk's results; nil ignores them.
 	entry func(BuildEntry) bool
 	hole  func(SalvageHole) bool
+}
+
+// isSalvageHole reports whether a page read error makes the page a hole: the
+// page is not found, or no peer is connected to serve it.
+func isSalvageHole(err error) bool {
+	return errors.Is(err, block.ErrNotFound) || errors.Is(err, block.ErrUnavailable)
 }
 
 // emitHole passes a hole to the consumer, reporting whether to continue.
@@ -191,7 +200,7 @@ func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pa
 			return err
 		}
 		if child.err != nil {
-			if !errors.Is(child.err, block.ErrNotFound) {
+			if !isSalvageHole(child.err) {
 				return child.err
 			}
 			ent := entries[child.index]
