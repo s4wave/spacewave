@@ -362,8 +362,8 @@ func (t *WorldState) ApplyWorldOp(
 	ctx, subCtxCancel := context.WithCancel(rctx)
 	defer subCtxCancel()
 
-	// Apply the world operation.
-	sysErr, err := op.ApplyWorldOp(ctx, t.le, t, opSender)
+	// Apply the world operation, recording its reads for a tracked caller.
+	sysErr, err := op.ApplyWorldOp(ctx, t.le, world.TrackOperationReads(ctx, t), opSender)
 	if err != nil {
 		return 0, sysErr, err
 	}

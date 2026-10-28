@@ -9,6 +9,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // readStubWorldState answers the reads ReadSet tracks with empty results.
@@ -39,6 +40,12 @@ func (readStubWorldState) BuildStorageCursor(context.Context) (*bucket_lookup.Cu
 // AccessWorldState calls cb without a cursor.
 func (readStubWorldState) AccessWorldState(_ context.Context, _ *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
 	return cb(nil)
+}
+
+// ApplyWorldOp runs nothing, as a World state that does not track an
+// operation's reads.
+func (readStubWorldState) ApplyWorldOp(context.Context, Operation, peer.ID) (uint64, bool, error) {
+	return 0, false, nil
 }
 
 // countingBodyBatcher counts native object body batch reads.
@@ -161,6 +168,18 @@ func TestReadSetTouchedStrict(t *testing.T) {
 		if got := c.reads.TouchedStrict(c.changes); got != c.touchedStrict {
 			t.Errorf("%s: touched strict = %v, want %v", c.name, got, c.touchedStrict)
 		}
+	}
+}
+
+// TestReadSetUntrackedOperation checks that an operation run by a World state
+// that does not track its reads reads the whole World.
+func TestReadSetUntrackedOperation(t *testing.T) {
+	reads := NewReadSet()
+	if _, _, err := reads.Track(readStubWorldState{}).ApplyWorldOp(t.Context(), nil, ""); err != nil {
+		t.Fatal(err)
+	}
+	if !reads.TouchedStrict(&ChangeSet{Keys: []string{"other"}}) {
+		t.Error("an untracked operation left a precise read set")
 	}
 }
 

@@ -2,6 +2,7 @@ package world
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -41,14 +42,49 @@ func (s *readSetWorldState) StageWorldState(ctx context.Context) (WorldStage, er
 	return s.WorldState.StageWorldState(ctx)
 }
 
-// ApplyWorldOp records an operation, whose reads are not visible here.
+// ApplyWorldOp records the reads the operation makes. The World state that runs
+// it passes its handle through TrackOperationReads; when none does, the
+// operation may have read anything, and the whole World is read.
 func (s *readSetWorldState) ApplyWorldOp(
 	ctx context.Context,
 	op Operation,
 	opSender peer.ID,
 ) (uint64, bool, error) {
-	s.reads.markAll()
-	return s.WorldState.ApplyWorldOp(ctx, op, opSender)
+	// Carry the reads to the World state that runs the operation.
+	carried := &operationReads{reads: s.reads}
+	opCtx := context.WithValue(ctx, operationReadsKey{}, carried)
+	seqno, sysErr, err := s.WorldState.ApplyWorldOp(opCtx, op, opSender)
+
+	// An operation run without tracking hides its reads.
+	if !carried.tracked.Load() {
+		s.reads.markAll()
+	}
+	return seqno, sysErr, err
+}
+
+// operationReads carries a ReadSet to the World state that runs an operation.
+type operationReads struct {
+	// reads records the operation's reads.
+	reads *ReadSet
+	// tracked is set once a World state ran the operation through reads.
+	tracked atomic.Bool
+}
+
+// operationReadsKey identifies the operationReads a context carries.
+type operationReadsKey struct{}
+
+// TrackOperationReads returns the handle to run an operation against: ws
+// recording its reads in the ReadSet ctx carries from a tracked ApplyWorldOp,
+// or ws itself when ctx carries none. A World state that calls an Operation's
+// ApplyWorldOp passes its own handle through it, so a write's read set holds
+// the operation's reads rather than the whole World.
+func TrackOperationReads(ctx context.Context, ws WorldState) WorldState {
+	carried, _ := ctx.Value(operationReadsKey{}).(*operationReads)
+	if carried == nil {
+		return ws
+	}
+	carried.tracked.Store(true)
+	return carried.reads.Track(ws)
 }
 
 // GetObject records the object key.
