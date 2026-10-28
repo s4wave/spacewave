@@ -1,6 +1,9 @@
 package block
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	// ErrBlockStoreUnavailable is returned when Fetch is called against a nil block store.
@@ -86,4 +89,10 @@ func NewPublicationDependencyError(cause error) error {
 // that refers to it.
 func IsNotAvailable(err error) bool {
 	return errors.Is(err, ErrNotFound) || errors.Is(err, ErrUnavailable)
+}
+
+// NotFoundError returns ErrNotFound naming ref, so a log of the failure says
+// which block is missing. errors.Is still matches ErrNotFound.
+func NotFoundError(ref *BlockRef) error {
+	return fmt.Errorf("%w: %s", ErrNotFound, ref.MarshalString())
 }

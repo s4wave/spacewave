@@ -613,7 +613,7 @@ func (c *Cursor) fetch(ctx context.Context, verify bool) ([]byte, int, bool, err
 	}
 	if err != nil || !found {
 		if err == nil {
-			err = ErrNotFound
+			err = NotFoundError(c.pos.ref)
 		}
 		return nil, 0, false, err
 	}

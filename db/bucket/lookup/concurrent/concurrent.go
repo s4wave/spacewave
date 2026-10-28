@@ -632,7 +632,7 @@ func (c *LookupController) lookupWithDirective(reqCtx context.Context, ref *bloc
 		func(val dex.LookupBlockFromNetworkValue) (bool, error) {
 			// if IgnoreNotFound is set in the lookup controller: prevents
 			// resolving the directive with a not-found result.
-			if err := val.GetError(); err != nil && err != block.ErrNotFound {
+			if err := val.GetError(); err != nil && !errors.Is(err, block.ErrNotFound) {
 				return true, err
 			}
 
