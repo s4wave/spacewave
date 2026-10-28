@@ -38,6 +38,9 @@ type soEngineWriteTx struct {
 	batch *block.PendingBatch
 	// clock times the stages of the write.
 	clock *commitClock
+	// ahead is set when the write released the writer lock after its fork
+	// and takes it again in Commit. Dive experiment.
+	ahead bool
 	// reads records what the write read, through the tracked transaction
 	// NewTransaction returns.
 	reads *world.ReadSet
@@ -108,6 +111,17 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// A write that ran ahead takes the writer lock again, installing the
+	// World of every operation admitted since its fork.
+	if t.ahead {
+		unlock, err := t.eng.lockReplayed(ctx, nil)
+		t.clock.end(stageRelockWait)
+		if err != nil {
+			return err
+		}
+		t.unlockWriteMtx = unlock
 	}
 
 	// The World bucket owns the candidate root until a publication transfers

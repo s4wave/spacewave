@@ -6,6 +6,7 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -360,4 +361,76 @@ func BenchmarkDiveWriteBatch(b *testing.B) {
 			totals.reportPer(b, batch)
 		})
 	}
+}
+
+// BenchmarkDiveConcurrentWriters runs link writes from several writers at
+// once and reports throughput and the mean writer lock hold. DIVE_RUN_AHEAD=1
+// runs optimistic writes ahead of the lock; DIVE_READ_DELAY_US adds a sleep
+// to each callback, standing in for a cold block read.
+func BenchmarkDiveConcurrentWriters(b *testing.B) {
+	objects := diveObjects(b)
+	link := diveWriteOps(objects)[0]
+	delay := time.Duration(diveEnvInt(b, "DIVE_READ_DELAY_US", 0)) * time.Microsecond
+	for _, writers := range []int{1, 4, 16} {
+		b.Run("writers-"+strconv.Itoa(writers), func(b *testing.B) {
+			// Seed a World and mark every write optimistic.
+			de := startDiveEngine(b, objects)
+			defer de.release()
+			var totals stageTotals
+			ctx := sobject_world_engine.WithCommitObserver(context.Background(), totals.observe)
+			ctx = world.WithOptimisticWrite(ctx)
+
+			// Split b.N writes across the writers.
+			var next atomic.Int64
+			var wg sync.WaitGroup
+			errs := make(chan error, writers)
+			b.ResetTimer()
+			for range writers {
+				wg.Go(func() {
+					pprof.Do(ctx, pprof.Labels("dive", "write"), func(ctx context.Context) {
+						for {
+							i := int(next.Add(1)) - 1
+							if i >= b.N {
+								return
+							}
+							if err := de.write(ctx, func(ws world.WorldState) error {
+								if delay != 0 {
+									time.Sleep(delay)
+								}
+								return link.fn(ctx, ws, i)
+							}); err != nil {
+								errs <- err
+								return
+							}
+						}
+					})
+				})
+			}
+			wg.Wait()
+			b.StopTimer()
+
+			// Report the first failure, the throughput and the stage means.
+			select {
+			case err := <-errs:
+				b.Fatal(err)
+			default:
+			}
+			b.ReportMetric(float64(b.N)/b.Elapsed().Seconds(), "writes/s")
+			totals.report(b)
+		})
+	}
+}
+
+// diveEnvInt reads an integer environment variable, or def when it is unset.
+func diveEnvInt(tb testing.TB, key string, def int) int {
+	// Parse the variable when it is set.
+	s := testingEnv(key)
+	if s == "" {
+		return def
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return n
 }

@@ -2,6 +2,7 @@ package sobject_world_engine
 
 import (
 	"context"
+	"os"
 	"slices"
 	"sync/atomic"
 
@@ -361,6 +362,16 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	fork := &replayFork{base: base, index: index, start: head, state: head}
 	clock.end(stageForkReplay)
 	wtx := newSoEngineWriteTx(ttx, btx, e, fork, unlockWriteMtx, clock)
+
+	// Dive experiment: an optimistic write releases the lock now and runs its
+	// callback and block commit ahead of it. Commit takes the lock again and
+	// replay adopts the candidate or applies the recorded batch.
+	if world.OptimisticWrite(ctx) && diveRunAhead {
+		unlockWriteMtx()
+		wtx.unlockWriteMtx = func() {}
+		wtx.ahead = true
+		clock.ahead = true
+	}
 	return world.TrackTx(wtx, wtx.reads), nil
 }
 
@@ -825,3 +836,7 @@ var (
 	_ Engine                     = (*soEngine)(nil)
 	_ world.IndexedChangeWatcher = (*soEngine)(nil)
 )
+
+// diveRunAhead lets optimistic writes run ahead of the writer lock. Dive
+// experiment: DIVE_RUN_AHEAD=1.
+var diveRunAhead = os.Getenv("DIVE_RUN_AHEAD") == "1"

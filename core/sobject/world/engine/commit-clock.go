@@ -29,6 +29,9 @@ const (
 	stageWorldStateCommit
 	// stageBlockCommit commits the candidate World blocks.
 	stageBlockCommit
+	// stageRelockWait waits for the writer lock again after a write that ran
+	// ahead of it. Dive experiment.
+	stageRelockWait
 	// stagePublicationAdmission prepares the operation and waits until the
 	// SharedObject admits it. A SharedObject that does not publish writes its
 	// state here, so its receipt wait stays at zero.
@@ -50,6 +53,7 @@ var commitStageNames = [commitStageCount]string{
 	stageCallback:             "callback",
 	stageWorldStateCommit:     "world-state-commit",
 	stageBlockCommit:          "block-commit",
+	stageRelockWait:           "relock-wait",
 	stagePublicationAdmission: "publication-admission",
 	stageAdvance:              "advance",
 	stageReceiptWait:          "receipt-wait",
@@ -68,6 +72,9 @@ type commitClock struct {
 	stages [commitStageCount]time.Duration
 	// observer receives the stage times when the write commits, or is nil.
 	observer CommitObserver
+	// ahead is set when the write ran its callback and block commit before
+	// taking the writer lock, so those stages are not part of the hold.
+	ahead bool
 }
 
 // newCommitClock starts the clock at the writer lock wait. The write reports
@@ -111,6 +118,9 @@ func (c *commitClock) finish(le *logrus.Entry, reads world.ReadScope) {
 	// Sum the hold over the stages from the end of the lock wait to advance.
 	var hold time.Duration
 	for stage := stageLockWait + 1; stage <= stageAdvance; stage++ {
+		if c.ahead && stage >= stageCallback && stage <= stageRelockWait {
+			continue
+		}
 		hold += c.stages[stage]
 	}
 
