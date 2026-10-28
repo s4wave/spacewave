@@ -2,6 +2,8 @@ package block
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -201,15 +203,35 @@ func TestDecodedBlockCacheKeyExactLength(t *testing.T) {
 	}
 }
 
-func TestDecodedBlockCacheOffPoolServesNothing(t *testing.T) {
-	// Store an entry, then turn the pool off.
+// TestDisableSharedDecodedBlockCache checks that the shared pool serves
+// nothing once a process turns it off, neither an entry stored before nor one
+// stored after. Turning the pool off lasts for the process, so the test runs
+// in a child process of the test binary.
+func TestDisableSharedDecodedBlockCache(t *testing.T) {
+	// Rerun this test in a child process, and check that it ran and passed.
+	const childEnv = "SPACEWAVE_TEST_DISABLE_SHARED_DECODED_BLOCK_CACHE"
+	if os.Getenv(childEnv) == "" {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestDisableSharedDecodedBlockCache$", "-test.v")
+		cmd.Env = append(os.Environ(), childEnv+"=1")
+		out, err := cmd.CombinedOutput()
+		if err != nil || !strings.Contains(string(out), "--- PASS: TestDisableSharedDecodedBlockCache") {
+			t.Fatalf("child process err=%v output:\n%s", err, out)
+		}
+		return
+	}
+
+	// Store an entry in a scope of the shared pool, which serves it.
 	ctx := context.Background()
-	decodedBlocks := newTestDecodedBlockCache(t)
+	decodedBlocks := NewDecodedBlockCache()
+	t.Cleanup(decodedBlocks.Close)
 	_, key, blk, data := newDecodedBlockCacheTestEntry(t, "cached before off")
 	storeDecodedBlockCacheTestEntry(t, decodedBlocks, key, blk, data)
-	decodedBlocks.pool.off.Store(true)
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || !ok {
+		t.Fatalf("lookup before off ok=%v err=%v, want hit", ok, err)
+	}
 
-	// Verify the stored entry and a new store both miss.
+	// Turn the pool off: the stored entry and a new store both miss.
+	DisableSharedDecodedBlockCache()
 	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
 		t.Fatalf("lookup after off ok=%v err=%v, want miss", ok, err)
 	}
