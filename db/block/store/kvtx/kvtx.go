@@ -172,7 +172,7 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 	// Report the tombstones as removals once the batch returns, committed or
 	// partly committed.
 	if k.durable {
-		defer invalidateTombstones(entries)
+		defer block.InvalidateRemovedTombstones(entries)
 	}
 
 	// Prepare every entry before writing any.
@@ -541,15 +541,6 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		block.InvalidateRemovedBlock(ref)
 	}
 	return err
-}
-
-// invalidateTombstones reports each tombstone entry as a removal.
-func invalidateTombstones(entries []*block.PutBatchEntry) {
-	for _, entry := range entries {
-		if entry != nil && entry.Tombstone {
-			block.InvalidateRemovedBlock(entry.Ref)
-		}
-	}
 }
 
 // Sync reports always-durable: KVTxBlock writes commit synchronously.

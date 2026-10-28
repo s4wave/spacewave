@@ -61,9 +61,22 @@ func InvalidateRemovedBlock(ref *BlockRef) {
 	invalidateRemovedRefKey(refKey)
 }
 
+// InvalidateRemovedTombstones records each tombstone entry of a batch a
+// durable store applied as a removal, as InvalidateRemovedBlock does.
+func InvalidateRemovedTombstones(entries []*PutBatchEntry) {
+	for _, entry := range entries {
+		if entry != nil && entry.Tombstone {
+			InvalidateRemovedBlock(entry.Ref)
+		}
+	}
+}
+
 // InvalidateAllRemovedBlocks records that a durable store removed every block
 // it held, such as when its volume is deleted. Every entry in the pool
-// becomes a miss.
+// becomes a miss, in every scope: an entry records the scope that read it,
+// not the store that served it, so the pool cannot tell which entries the
+// removed store backed. Deleting a store is rare, and the cost is one miss per
+// entry.
 func InvalidateAllRemovedBlocks() {
 	raiseRemovalGeneration(&decodedBlockRemovals.cleared, decodedBlockRemovals.gen.Add(1))
 }

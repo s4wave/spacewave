@@ -74,7 +74,7 @@ func (r publicationReader) PutBlock(ctx context.Context, data []byte, opts *bloc
 // PutBlockBatch writes a batch of blocks to the store, reporting its
 // tombstones as removals.
 func (r publicationReader) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	defer invalidateTombstones(entries)
+	defer block.InvalidateRemovedTombstones(entries)
 	return r.store.PutBlockBatch(ctx, entries)
 }
 

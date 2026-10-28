@@ -133,15 +133,6 @@ func (r *removalRecorder) take() []*block.BlockRef {
 	return removed
 }
 
-// invalidateTombstones reports each tombstone entry as a removal.
-func invalidateTombstones(entries []*block.PutBatchEntry) {
-	for _, entry := range entries {
-		if entry != nil && entry.Tombstone {
-			block.InvalidateRemovedBlock(entry.Ref)
-		}
-	}
-}
-
 // wrote reports whether the transaction changed a record or a block.
 func (p *physicalTx) wrote() bool {
 	btx, ok := p.tx.(BlockTx)
