@@ -28,15 +28,22 @@ import (
 // decodedBlockRemovalStripes is the number of removal generations. A removal
 // invalidates every entry whose ref hashes to its stripe, so the table is
 // large enough that a sweep of many blocks leaves most entries current. It is
-// one process-wide array of 512 KiB.
+// one process-wide table of 512 KiB, allocated at the first removal: a process
+// that never removes a block, such as a browser worker that only reads, never
+// pays for it, and a GoScript build would otherwise build each slot as an
+// object at package load.
 const decodedBlockRemovalStripes = 1 << 16
+
+// decodedBlockRemovalTable holds the generation of the latest removal hashing
+// to each stripe.
+type decodedBlockRemovalTable [decodedBlockRemovalStripes]atomic.Uint64
 
 // decodedBlockRemovals is the process-wide removal state.
 var decodedBlockRemovals struct {
 	// gen advances on every removal.
 	gen atomic.Uint64
-	// stripes hold the generation of the latest removal hashing to each.
-	stripes [decodedBlockRemovalStripes]atomic.Uint64
+	// stripes is nil until the first removal of a single block.
+	stripes atomic.Pointer[decodedBlockRemovalTable]
 	// cleared holds the generation of the latest removal of a whole store.
 	cleared atomic.Uint64
 }
@@ -82,10 +89,22 @@ func InvalidateAllRemovedBlocks() {
 }
 
 // invalidateRemovedRefKey advances the removal generation and raises refKey's
-// stripe to it.
+// stripe to it. The table exists before the stripe rises, so a reader that
+// finds no table has no stripe removal to miss.
 func invalidateRemovedRefKey(refKey string) {
+	stripes := decodedBlockRemovalStripesTable()
 	gen := decodedBlockRemovals.gen.Add(1)
-	raiseRemovalGeneration(&decodedBlockRemovals.stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes], gen)
+	raiseRemovalGeneration(&stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes], gen)
+}
+
+// decodedBlockRemovalStripesTable returns the stripe table, allocating it on
+// first use.
+func decodedBlockRemovalStripesTable() *decodedBlockRemovalTable {
+	if stripes := decodedBlockRemovals.stripes.Load(); stripes != nil {
+		return stripes
+	}
+	decodedBlockRemovals.stripes.CompareAndSwap(nil, new(decodedBlockRemovalTable))
+	return decodedBlockRemovals.stripes.Load()
 }
 
 // raiseRemovalGeneration raises slot to gen unless it already holds a later
@@ -102,8 +121,11 @@ func raiseRemovalGeneration(slot *atomic.Uint64, gen uint64) {
 // removedSince reports whether a removal of refKey's stripe or of a whole
 // store happened after generation gen.
 func removedSince(refKey string, gen uint64) bool {
-	return decodedBlockRemovals.cleared.Load() > gen ||
-		decodedBlockRemovals.stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes].Load() > gen
+	if decodedBlockRemovals.cleared.Load() > gen {
+		return true
+	}
+	stripes := decodedBlockRemovals.stripes.Load()
+	return stripes != nil && stripes[decodedBlockRefHash(refKey)%decodedBlockRemovalStripes].Load() > gen
 }
 
 // decodedBlockRefHash hashes a ref key with unseeded FNV-1a. Ref keys encode
