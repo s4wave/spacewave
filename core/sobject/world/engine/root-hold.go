@@ -2,6 +2,7 @@ package sobject_world_engine
 
 import (
 	"context"
+	fmt "fmt"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -48,7 +49,7 @@ func (h *rootHold) world(ctx context.Context, name string, root *block.BlockRef)
 		return err
 	}
 	if stored == nil {
-		return block.ErrNotFound
+		return fmt.Errorf("replay hold root %s: %w", name, block.NotFoundError(root))
 	}
 	if !stored.RefsKnown {
 		return errors.Wrap(block.ErrRefsUnknown, root.MarshalString())

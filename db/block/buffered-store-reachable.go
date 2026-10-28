@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	fmt "fmt"
 	"slices"
 )
 
@@ -93,7 +94,7 @@ func (s *BufferedStore) keepReachable(ctx context.Context, roots []*BlockRef) er
 				continue
 			}
 			if pending.tombstone {
-				err = ErrNotFound
+				err = fmt.Errorf("pending tombstone under the committed root: %w", NotFoundError(ref))
 				return
 			}
 			// Emit children immediately before their parent. Keeping a DAG

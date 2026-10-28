@@ -2,6 +2,7 @@ package sobject_world_engine
 
 import (
 	"context"
+	fmt "fmt"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -133,7 +134,7 @@ func storeRootBlock(ctx context.Context, so sobject.SharedObject, root *block.Bl
 		return false, err
 	}
 	if stored == nil {
-		return false, block.ErrNotFound
+		return false, fmt.Errorf("retained World root: %w", block.NotFoundError(root))
 	}
 	if !stored.RefsKnown {
 		return false, errors.Wrap(block.ErrRefsUnknown, root.MarshalString())

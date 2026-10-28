@@ -3,6 +3,7 @@ package kvtx
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"slices"
 	"strings"
 	"sync"
@@ -114,7 +115,7 @@ func (v *Volume) recordRootProofs(ctx context.Context, roots []*block.BlockRef) 
 				return err
 			}
 			if !found {
-				return block.ErrNotFound
+				return fmt.Errorf("root proof: %w", block.NotFoundError(root))
 			}
 		}
 
@@ -283,7 +284,7 @@ func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefG
 			return err
 		}
 		if !found {
-			return block.ErrNotFound
+			return fmt.Errorf("named root %s of bucket %s: %w", name, bucketID, block.NotFoundError(ref))
 		}
 		// Named roots belong to the bucket so normal account/Space deletion
 		// also releases them. Reader pins have an independent lifetime.
@@ -415,7 +416,7 @@ func (v *Volume) pinRoot(ctx context.Context, ref *block.BlockRef, prepared bool
 				return err
 			}
 			if !found {
-				return block.ErrNotFound
+				return fmt.Errorf("reader root pin: %w", block.NotFoundError(ref))
 			}
 
 			// Retain the reader root under the process lease in the same transaction.

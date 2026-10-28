@@ -192,7 +192,7 @@ func (c *graphCopy) readBlock(ctx context.Context, node *graphCopyNode) graphCop
 	// Read the block and require the refs a post-order write carries.
 	stored, err := c.src.GetStoredBlock(ctx, node.ref)
 	if err == nil && stored == nil {
-		err = ErrNotFound
+		err = NotFoundError(node.ref)
 	}
 	if err == nil && !stored.RefsKnown {
 		err = ErrRefsUnknown

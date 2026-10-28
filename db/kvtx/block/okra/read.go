@@ -3,6 +3,7 @@ package kvtx_block_okra
 import (
 	"bytes"
 	"context"
+	fmt "fmt"
 	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -16,7 +17,7 @@ func loadPage(ctx context.Context, cursor *block.Cursor) (*Page, error) {
 		return nil, err
 	}
 	if page == nil {
-		return nil, block.ErrNotFound
+		return nil, fmt.Errorf("okra page: %w", block.NotFoundError(cursor.GetRef()))
 	}
 	return page, nil
 }

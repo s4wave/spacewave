@@ -3,6 +3,7 @@ package world_block
 import (
 	"bytes"
 	"context"
+	fmt "fmt"
 	"slices"
 
 	"github.com/aperturerobotics/cayley/graph"
@@ -167,7 +168,7 @@ func ChangedObjectKeysIn(ctx context.Context, before, after *block.Cursor, keys 
 			return nil, err
 		}
 		if w == nil {
-			return nil, block.ErrNotFound
+			return nil, fmt.Errorf("changed keys World root: %w", block.NotFoundError(bcs.GetRef()))
 		}
 	}
 

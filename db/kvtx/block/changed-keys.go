@@ -3,6 +3,7 @@ package kvtx_block
 import (
 	"bytes"
 	"context"
+	fmt "fmt"
 	"slices"
 	"sort"
 
@@ -279,7 +280,7 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 			return err
 		}
 		if node == nil {
-			return block.ErrNotFound
+			return fmt.Errorf("iavl frontier node: %w", block.NotFoundError(n.cursor.GetRef()))
 		}
 		if err := node.Validate(); err != nil {
 			return err
@@ -307,7 +308,7 @@ func (n *diffTreeNode) load(ctx context.Context) error {
 		return err
 	}
 	if page == nil {
-		return block.ErrNotFound
+		return fmt.Errorf("okra frontier page: %w", block.NotFoundError(n.cursor.GetRef()))
 	}
 
 	// Expose Okra leaf values or child references in stack order. A child

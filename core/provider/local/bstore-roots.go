@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	fmt "fmt"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -31,7 +32,7 @@ func (b *BlockStore) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), 
 			return nil, err
 		}
 		if stored == nil {
-			return nil, block.ErrNotFound
+			return nil, fmt.Errorf("local provider root pin: %w", block.NotFoundError(ref))
 		}
 		if !stored.RefsKnown {
 			return nil, errors.Wrap(block.ErrRefsUnknown, ref.MarshalString())

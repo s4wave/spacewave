@@ -86,7 +86,7 @@ type graphWalkRead struct {
 func readWalkBlock(ctx context.Context, src StoreOps, ref *BlockRef) graphWalkRead {
 	stored, err := src.GetStoredBlock(ctx, ref)
 	if err == nil && stored == nil {
-		err = ErrNotFound
+		err = NotFoundError(ref)
 	}
 	if err == nil && !stored.RefsKnown {
 		err = ErrRefsUnknown
