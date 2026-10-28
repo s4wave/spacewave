@@ -22,7 +22,7 @@ func NewInmemBlock(
 	forceHashType hash.HashType,
 	hashGet bool,
 ) *InmemBlock {
-	return block_store_kvtx.NewKVTxBlock(kvk, st, forceHashType, hashGet)
+	return block_store_kvtx.NewDurableKVTxBlock(kvk, st, forceHashType, hashGet)
 }
 
 // _ is a type assertion

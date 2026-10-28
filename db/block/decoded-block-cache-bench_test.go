@@ -37,7 +37,7 @@ func BenchmarkDecodedBlockCacheCommitParallel(b *testing.B) {
 			if i%16 == 0 {
 				key := keys[i]
 				key.ref = "fresh " + strconv.Itoa(rand.Int())
-				_ = cache.Store(ctx, nil, cache.storeToken(key.ref), key, blk, len(data), true)
+				_ = cache.Store(ctx, nil, cache.storeToken(key.ref), key, blk, len(data), DurableReadGeneration(), true)
 			} else {
 				_, _, _ = cache.Lookup(ctx, nil, keys[i], true)
 			}

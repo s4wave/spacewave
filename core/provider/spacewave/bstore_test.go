@@ -130,6 +130,7 @@ func TestPublicReadRemoteRefreshUsesAnonymousCdnManifest(t *testing.T) {
 }
 
 func TestPublicReadRemoteRefreshInvalidatesDecodedCache(t *testing.T) {
+	// Serve a CDN root pointer for the public read remote to refresh from.
 	ctx := context.Background()
 	ptr := &alpha_cdn.CdnRootPointer{
 		SpaceId: "space-1",
@@ -151,11 +152,14 @@ func TestPublicReadRemoteRefreshInvalidatesDecodedCache(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	// Share one decoded cache between the store and the remote.
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	defer decodedBlocks.Close()
+
+	// Store a block in a provider store sharing that cache.
 	inner := newWrapperForwardTestStore("test", 0)
 	store := &BlockStore{
 		store:         inner,
@@ -165,30 +169,39 @@ func TestPublicReadRemoteRefreshInvalidatesDecodedCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Read it once to fill the decoded cache.
 	tx, cursor := block.NewTransaction(store, nil, ref, nil)
 	tx.SetDecodedBlockCache(decodedBlocks)
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if err := inner.RmBlock(ctx, ref); err != nil {
-		t.Fatal(err.Error())
-	}
+	// A second read before the refresh is served from the decoded cache.
+	hits := inner.getBlockHits
 	tx, cursor = block.NewTransaction(store, nil, ref, nil)
 	tx.SetDecodedBlockCache(decodedBlocks)
 	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
-		t.Fatalf("expected stale decoded cache hit before refresh, got %v", err)
+		t.Fatal(err.Error())
+	}
+	if inner.getBlockHits != hits {
+		t.Fatalf("store reads before refresh = %d, want %d", inner.getBlockHits, hits)
 	}
 
+	// Refresh the remote, which clears the shared decoded cache.
 	remote := newPublicReadRemote(srv.Client(), srv.URL, "space-1", nil, decodedBlocks)
 	if err := remote.Refresh(ctx); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 
+	// The refresh drops the cached entry, so the next read reaches the store.
 	tx, cursor = block.NewTransaction(store, nil, ref, nil)
 	tx.SetDecodedBlockCache(decodedBlocks)
-	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); !errors.Is(err, block.ErrNotFound) {
-		t.Fatalf("Unmarshal after public-read refresh error = %v, want %v", err, block.ErrNotFound)
+	if _, err := cursor.Unmarshal(ctx, block_mock.NewExampleBlock); err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.getBlockHits != hits+1 {
+		t.Fatalf("store reads after refresh = %d, want %d", inner.getBlockHits, hits+1)
 	}
 }
 

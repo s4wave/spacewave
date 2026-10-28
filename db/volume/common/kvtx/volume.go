@@ -372,7 +372,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
 		return nil, err
 	}
-	existed, err := v.Store.PutBlockBatch(ctx, entries)
+	existed, err := v.reader().PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
 	}
@@ -448,9 +448,10 @@ func (v *Volume) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Blo
 	return v.reader().StatBlock(ctx, ref)
 }
 
-// RmBlock forwards block deletion to the embedded store.
+// RmBlock forwards block deletion to the embedded store and reports the
+// removal to the decoded-block cache.
 func (v *Volume) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	if err := v.Store.RmBlock(ctx, ref); err != nil {
+	if err := v.reader().RmBlock(ctx, ref); err != nil {
 		return err
 	}
 	v.broadcastStorageStatsChanged()
@@ -587,12 +588,14 @@ func (v *Volume) Close() error {
 	return v.closeErr
 }
 
-// Delete closes the volume and removes the backing store.
+// Delete closes the volume and removes the backing store, then reports the
+// removal of every block to the decoded-block cache.
 func (v *Volume) Delete() error {
 	if err := v.Close(); err != nil {
 		return err
 	}
 	if v.deleteFn != nil {
+		defer block.InvalidateAllRemovedBlocks()
 		if err := v.deleteFn(); err != nil {
 			return err
 		}

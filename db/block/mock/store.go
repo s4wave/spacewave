@@ -12,7 +12,7 @@ import (
 //
 // hashType is the hash type to use, 0 for default.
 func NewMockStore(hashType hash.HashType) block.StoreOps {
-	return block_store_kvtx.NewKVTxBlock(
+	return block_store_kvtx.NewDurableKVTxBlock(
 		store_kvkey.NewDefaultKVKey(),
 		store_kvtx_inmem.NewStore(),
 		hashType,

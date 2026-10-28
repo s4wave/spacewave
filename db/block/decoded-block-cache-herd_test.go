@@ -55,7 +55,7 @@ func testNewHotPage(t *testing.T, oldPages int) {
 					}
 					stores.Add(1)
 					token := cache.storeToken(key.ref)
-					_ = cache.Store(ctx, nil, token, key, blk, len(data), true)
+					_ = cache.Store(ctx, nil, token, key, blk, len(data), DurableReadGeneration(), true)
 					runtime.Gosched()
 				}
 				missed.Add(1)

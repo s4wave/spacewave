@@ -42,7 +42,7 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 	if err != nil {
 		return err
 	}
-	defer p.tx.Discard()
+	defer p.discard()
 
 	// Apply the direct operation.
 	if fn != nil {

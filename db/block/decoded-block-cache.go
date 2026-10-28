@@ -130,10 +130,12 @@ type decodedBlockCacheEpochs struct {
 	clear uint64
 }
 
-// decodedBlockCacheEntry is a cached block and the epochs it was stored under.
+// decodedBlockCacheEntry is a cached block, the epochs it was stored under,
+// and the removal generation of the durable read that admitted it.
 type decodedBlockCacheEntry struct {
-	block  Block
-	epochs decodedBlockCacheEpochs
+	block      Block
+	epochs     decodedBlockCacheEpochs
+	durableGen uint64
 }
 
 // decodedBlockCacheStoreToken captures the epochs at the start of a read so a
@@ -265,10 +267,11 @@ func (c *DecodedBlockCache) Lookup(
 		return nil, false, nil
 	}
 
-	// Look up the shared entry and reject stale invalidation epochs.
+	// Look up the shared entry and reject stale invalidation epochs and
+	// entries a durable store removed after admitting them.
 	cacheKey := c.cacheKey(key)
 	cached, ok := c.pool.get(cacheKey)
-	if ok && cached.epochs != c.epochs(key.ref) {
+	if ok && (cached.epochs != c.epochs(key.ref) || removedSince(key.ref, cached.durableGen)) {
 		c.pool.del(cacheKey)
 		ok = false
 	}
@@ -286,8 +289,9 @@ func (c *DecodedBlockCache) Lookup(
 
 // Store caches the decoded block under the key when the store token is
 // still current. blk must decode stored bytes of length size that the caller
-// verified against the block ref. With share the caller keeps blk unmutated,
-// so the cache retains blk itself instead of a clone.
+// verified against the block ref, and that a durable store served from a
+// snapshot opened at removal generation durableGen. With share the caller
+// keeps blk unmutated, so the cache retains blk itself instead of a clone.
 func (c *DecodedBlockCache) Store(
 	ctx context.Context,
 	front *decodedBlockFrontCache,
@@ -295,6 +299,7 @@ func (c *DecodedBlockCache) Store(
 	key decodedBlockCacheKey,
 	blk Block,
 	size int,
+	durableGen uint64,
 	share bool,
 ) error {
 	// Require a block and a cache scope before retaining decoded content.
@@ -331,9 +336,10 @@ func (c *DecodedBlockCache) Store(
 		}
 	}
 
-	// Retain the cloned block in the read-operation cache.
+	// Retain the cloned block in the read-operation cache, and keep a block a
+	// durable store removed since the read out of the shared pool.
 	front.store(key, cloned)
-	if !c.enabled() {
+	if !c.enabled() || removedSince(key.ref, durableGen) {
 		return nil
 	}
 
@@ -345,11 +351,12 @@ func (c *DecodedBlockCache) Store(
 		return nil
 	}
 
-	// An invalidation after the epoch read leaves this entry stale, and
-	// Lookup then treats it as a miss.
+	// An invalidation or removal after the checks above leaves this entry
+	// stale, and Lookup then treats it as a miss.
 	accepted := c.pool.put(cacheKey, decodedBlockCacheEntry{
-		block:  cloned,
-		epochs: epochs,
+		block:      cloned,
+		epochs:     epochs,
+		durableGen: durableGen,
 	}, cost)
 	recordDecodedBlockCacheStore(ctx, accepted, cost)
 	if !accepted {
@@ -440,15 +447,8 @@ func (c *DecodedBlockCache) storeToken(refKey string) decodedBlockCacheStoreToke
 }
 
 // refEpoch returns the invalidation epoch of the stripe refKey hashes to.
-// Ref keys encode content hashes, so unseeded FNV-1a spreads them evenly; a
-// collision only invalidates more entries than needed.
 func (c *DecodedBlockCache) refEpoch(refKey string) *atomic.Uint64 {
-	h := uint64(14695981039346656037)
-	for i := range len(refKey) {
-		h ^= uint64(refKey[i])
-		h *= 1099511628211
-	}
-	return &c.refEpochs[h%decodedBlockCacheStripes]
+	return &c.refEpochs[decodedBlockRefHash(refKey)%decodedBlockCacheStripes]
 }
 
 // decodedBlockHit records the hit and returns the cached block itself with
@@ -499,9 +499,9 @@ func decodedBlockCacheStoreTokenFromContext(ctx context.Context, refKey string) 
 	return decodedBlockCacheFromContext(ctx).storeToken(refKey)
 }
 
-// storeDecodedBlock stores the block in the context's caches. Without
-// durable the block came from staged content, so only the read operation's
-// front cache keeps it and the shared pool never sees it.
+// storeDecodedBlock stores the block in the context's caches. The read mark
+// admits it to the shared pool only when a durable store served it; otherwise
+// only the read operation's front cache keeps it.
 func storeDecodedBlock(
 	ctx context.Context,
 	key decodedBlockCacheKey,
@@ -509,13 +509,14 @@ func storeDecodedBlock(
 	blk Block,
 	size int,
 	share bool,
-	durable bool,
+	mark *blockReadMark,
 ) error {
 	var cache *DecodedBlockCache
+	durableGen, durable := mark.admission()
 	if durable {
 		cache = decodedBlockCacheFromContext(ctx)
 	}
-	return cache.Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, blk, size, share)
+	return cache.Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, blk, size, durableGen, share)
 }
 
 // decodedBlockCacheContextKey is the context key of the attached cache.

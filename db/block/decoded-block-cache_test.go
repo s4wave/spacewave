@@ -15,7 +15,7 @@ func TestDecodedBlockCacheInvalidatedStoreTokenSkipsStore(t *testing.T) {
 	// Invalidate the candidate token before submitting its block.
 	token := decodedBlocks.storeToken(key.ref)
 	decodedBlocks.InvalidateRef(ctx, ref)
-	if err := decodedBlocks.Store(ctx, nil, token, key, blk, len(data), false); err != nil {
+	if err := decodedBlocks.Store(ctx, nil, token, key, blk, len(data), DurableReadGeneration(), false); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -137,7 +137,7 @@ func storeDecodedBlockCacheTestEntry(
 ) {
 	t.Helper()
 	token := decodedBlocks.storeToken(key.ref)
-	if err := decodedBlocks.Store(context.Background(), nil, token, key, blk, len(data), false); err != nil {
+	if err := decodedBlocks.Store(context.Background(), nil, token, key, blk, len(data), DurableReadGeneration(), false); err != nil {
 		t.Fatal(err.Error())
 	}
 }

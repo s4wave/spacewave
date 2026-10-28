@@ -418,7 +418,7 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 	if err != nil {
 		return group, []error{err}, false
 	}
-	defer p.tx.Discard()
+	defer p.discard()
 	tx, blocks, rg := p.tx, p.blocks, p.rg
 
 	// Preflight each request against prior accepted changes in this physical group.
