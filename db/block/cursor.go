@@ -721,7 +721,12 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 
 	// returns nil, false, nil if reference was empty.
 	// returns nil, false, ErrNotFound if reference was not found.
-	dat, stored, datFound, err := c.fetch(ctx, cacheable)
+	// The mark records whether a store served staged content.
+	fetchCtx, staged := ctx, (*stagedReadMark)(nil)
+	if cacheable {
+		fetchCtx, staged = withStagedReadMark(ctx)
+	}
+	dat, stored, datFound, err := c.fetch(fetchCtx, cacheable)
 	if err != nil {
 		return nil, err
 	}
@@ -739,13 +744,16 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 			}
 		}
 
-		// Cache the decoded block of verified stored bytes.
+		// Cache the decoded block of verified stored bytes. Only bytes a
+		// durable store served enter the pool shared across transactions;
+		// staged bytes may never be published, so they stay in this read
+		// operation's front cache.
 		switch {
 		case !cacheable:
 		case stored == 0:
 			RecordDecodedBlockUncacheable(ctx)
 		default:
-			if err := storeDecodedBlock(ctx, cacheKey, storeToken, b, stored, share); err != nil {
+			if err := storeDecodedBlock(ctx, cacheKey, storeToken, b, stored, share, !staged.read()); err != nil {
 				return nil, err
 			}
 		}

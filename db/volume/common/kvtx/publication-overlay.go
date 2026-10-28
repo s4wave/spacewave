@@ -27,8 +27,11 @@ func (o *publicationOverlay) BeginReadOperation(context.Context) (block.StoreOps
 	return o, func() {}, nil
 }
 
-// GetBlock reads an entry from the overlay before the inner store.
+// GetBlock reads an entry from the overlay before the inner store. Every
+// read is staged: the entries and the group transaction under them are not
+// durable until the group commits, and the commit can still fail.
 func (o *publicationOverlay) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	block.MarkStagedRead(ctx)
 	key, err := ref.MarshalKey()
 	if err != nil {
 		return nil, false, err

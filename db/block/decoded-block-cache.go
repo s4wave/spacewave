@@ -499,7 +499,9 @@ func decodedBlockCacheStoreTokenFromContext(ctx context.Context, refKey string) 
 	return decodedBlockCacheFromContext(ctx).storeToken(refKey)
 }
 
-// storeDecodedBlock stores the block in the context's caches.
+// storeDecodedBlock stores the block in the context's caches. Without
+// durable the block came from staged content, so only the read operation's
+// front cache keeps it and the shared pool never sees it.
 func storeDecodedBlock(
 	ctx context.Context,
 	key decodedBlockCacheKey,
@@ -507,8 +509,13 @@ func storeDecodedBlock(
 	blk Block,
 	size int,
 	share bool,
+	durable bool,
 ) error {
-	return decodedBlockCacheFromContext(ctx).Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, blk, size, share)
+	var cache *DecodedBlockCache
+	if durable {
+		cache = decodedBlockCacheFromContext(ctx)
+	}
+	return cache.Store(ctx, decodedBlockFrontCacheFromContext(ctx), token, key, blk, size, share)
 }
 
 // decodedBlockCacheContextKey is the context key of the attached cache.

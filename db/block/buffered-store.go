@@ -364,7 +364,7 @@ func (s *BufferedStore) PutBlockBatch(ctx context.Context, entries []*PutBatchEn
 
 // GetBlock gets a block by reference.
 func (s *BufferedStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bool, error) {
-	pending, err := s.getPending(ref)
+	pending, written, err := s.getStaged(ref)
 	if err != nil {
 		return nil, false, err
 	}
@@ -372,21 +372,29 @@ func (s *BufferedStore) GetBlock(ctx context.Context, ref *BlockRef) ([]byte, bo
 		if pending.tombstone {
 			return nil, false, nil
 		}
+		MarkStagedRead(ctx)
 		return bytes.Clone(pending.data), true, nil
+	}
+	if written {
+		MarkStagedRead(ctx)
 	}
 	return s.inner.GetBlock(s.innerReadContext(ctx), ref)
 }
 
 // GetStoredBlock gets a block and its references, preferring pending writes.
 func (s *BufferedStore) GetStoredBlock(ctx context.Context, ref *BlockRef) (*StoredBlock, error) {
-	pending, err := s.getPending(ref)
+	pending, written, err := s.getStaged(ref)
 	if err != nil {
 		return nil, err
+	}
+	if written {
+		MarkStagedRead(ctx)
 	}
 	if pending != nil {
 		if pending.tombstone {
 			return nil, nil
 		}
+		MarkStagedRead(ctx)
 		return &StoredBlock{
 			Data:      bytes.Clone(pending.data),
 			Refs:      CloneBlockRefs(pending.refs),
@@ -862,6 +870,28 @@ func (s *BufferedStore) getPending(ref *BlockRef) (*pendingBlock, error) {
 		pending = s.pending[key]
 	})
 	return pending, nil
+}
+
+// getStaged returns the pending block for ref, and whether this store wrote
+// ref to its inner store. Both are content this store's writer has not
+// published: a drained block is stored but may still be released unreached.
+func (s *BufferedStore) getStaged(ref *BlockRef) (*pendingBlock, bool, error) {
+	// Encode the reference for a pending block lookup.
+	key, err := marshalRefKey(ref)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Read pending content and the write record under the state lock.
+	var pending *pendingBlock
+	var written bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		pending = s.pending[key]
+		if pending == nil && s.written != nil {
+			_, written = s.written[key]
+		}
+	})
+	return pending, written, nil
 }
 
 // putPendingLocked queues or replaces a pending block. Caller must hold
