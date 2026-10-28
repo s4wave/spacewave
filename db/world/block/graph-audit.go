@@ -74,7 +74,7 @@ type GraphLogAudit struct {
 	// for missing node values, and ObjectHoles the object tree's missing
 	// pages.
 	ObjectKeys  int
-	ObjectHoles int
+	ObjectHoles []kvtx_block_okra.SalvageHole
 }
 
 // GraphMissingQuad is a live quad with no log record.
@@ -433,8 +433,8 @@ func (a *graphAudit) matchObjectKeys(ctx context.Context, t *WorldState) error {
 		err := objTree.Salvage(ctx, prefix, past, func(entry kvtx_block_okra.BuildEntry) bool {
 			match(entry.Key)
 			return true
-		}, func(kvtx_block_okra.SalvageHole) bool {
-			a.report.ObjectHoles++
+		}, func(hole kvtx_block_okra.SalvageHole) bool {
+			a.report.ObjectHoles = append(a.report.ObjectHoles, hole)
 			return true
 		})
 		return errors.Wrap(err, "walk object tree")
