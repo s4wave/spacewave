@@ -204,3 +204,192 @@ func TestStoreReadThroughAbsentLowerIsUnavailable(t *testing.T) {
 		t.Fatalf("recorded %v, want %v", peerWait.GetRef(), ref)
 	}
 }
+
+// answerTestStore answers every read with one scripted answer and counts the
+// reads it served.
+type answerTestStore struct {
+	block.StoreOps
+
+	// answer is the scripted answer: errAnswerHit, errAnswerMiss, or another error.
+	answer error
+	// reads counts the reads the store answered.
+	reads int
+}
+
+// errAnswerHit and errAnswerMiss script a hit and a plain miss.
+var (
+	errAnswerHit  = errors.New("hit")
+	errAnswerMiss = errors.New("miss")
+)
+
+func (s *answerTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	stored, err := s.GetStoredBlock(ctx, ref)
+	if stored == nil {
+		return nil, false, err
+	}
+	return stored.Data, true, err
+}
+
+func (s *answerTestStore) GetStoredBlock(_ context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
+	// Count the read, then give the scripted answer.
+	s.reads++
+	switch s.answer {
+	case errAnswerHit:
+		return &block.StoredBlock{Data: []byte("held")}, nil
+	case errAnswerMiss:
+		return nil, nil
+	}
+	return nil, s.answer
+}
+
+func (s *answerTestStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+	stored, err := s.GetStoredBlock(ctx, ref)
+	return stored != nil, err
+}
+
+func (s *answerTestStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	// Answer every ref alike, failing the whole batch on an error.
+	out := make([]bool, len(refs))
+	for i, ref := range refs {
+		found, err := s.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = found
+	}
+	return out, nil
+}
+
+// TestStoreReadThroughCombinesSources tests that a read takes a hit from
+// either source, that a source that failed or could not answer does not keep
+// the read from the other, and that a read neither source served reports a
+// failure first, then an unavailable source, and a miss only when both sources
+// said they lack the block.
+func TestStoreReadThroughCombinesSources(t *testing.T) {
+	// Script each source's answer and the outcome of the read.
+	unavailable := func(ref *block.BlockRef) error {
+		return &block.UnavailableError{Ref: ref, Holders: []string{"peer"}}
+	}
+	failed := errors.New("backend down")
+	cases := []struct {
+		name           string
+		primary, lower func(*block.BlockRef) error
+		want           string
+	}{
+		{"primary hit", answerWith(errAnswerHit), answerWith(errAnswerMiss), "hit"},
+		{"unavailable primary, lower hit", unavailable, answerWith(errAnswerHit), "hit"},
+		{"failed primary, lower hit", answerWith(failed), answerWith(errAnswerHit), "hit"},
+		{"not found primary, lower hit", answerWith(block.ErrNotFound), answerWith(errAnswerHit), "hit"},
+		{"both miss", answerWith(errAnswerMiss), answerWith(errAnswerMiss), "miss"},
+		{"not found primary, lower miss", answerWith(block.ErrNotFound), answerWith(errAnswerMiss), "miss"},
+		{"unavailable primary, lower miss", unavailable, answerWith(errAnswerMiss), "unavailable"},
+		{"primary miss, unavailable lower", answerWith(errAnswerMiss), unavailable, "unavailable"},
+		{"not found primary, unavailable lower", answerWith(block.ErrNotFound), unavailable, "unavailable"},
+		{"failed primary, unavailable lower", answerWith(failed), unavailable, "failed"},
+		{"unavailable primary, failed lower", unavailable, answerWith(failed), "failed"},
+	}
+
+	// Run every case through every read, with and without a fill.
+	for _, tc := range cases {
+		for _, fill := range []block_store.Fill{nil, block_store.CacheFill} {
+			for _, read := range combineTestReads {
+				t.Run(tc.name+"/"+read.name, func(t *testing.T) {
+					// Build the sources and read a block through them.
+					ref, err := block.BuildBlockRef([]byte(tc.name), nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					primary := &answerTestStore{StoreOps: newReadThroughTestBlockStore(), answer: tc.primary(ref)}
+					lower := &answerTestStore{StoreOps: newReadThroughTestBlockStore(), answer: tc.lower(ref)}
+					store := block_store.NewStoreReadThrough(
+						func() block.StoreOps { return primary },
+						func() block.StoreOps { return lower },
+						fill,
+					)
+					found, err := read.read(t.Context(), store, ref)
+
+					// Require the outcome, and no lower read after a primary hit.
+					if got := combineTestOutcome(found, err); got != tc.want {
+						t.Fatalf("read = found %v, %v (%s); want %s", found, err, got, tc.want)
+					}
+					if tc.want == "hit" && primary.answer == errAnswerHit && lower.reads != 0 {
+						t.Fatalf("lower read %d times after a primary hit", lower.reads)
+					}
+				})
+			}
+		}
+	}
+}
+
+// TestStoreReadThroughEndedReadStops tests that a read whose context ended
+// returns the primary's answer without asking the lower source.
+func TestStoreReadThroughEndedReadStops(t *testing.T) {
+	// End the read, and have the primary report it.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	ref, err := block.BuildBlockRef([]byte("ended"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	primary := &answerTestStore{StoreOps: newReadThroughTestBlockStore(), answer: context.Canceled}
+	lower := &answerTestStore{StoreOps: newReadThroughTestBlockStore(), answer: errAnswerHit}
+	store := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return primary },
+		func() block.StoreOps { return lower },
+		block_store.CacheFill,
+	)
+
+	// Every read stops with the primary's answer.
+	for _, read := range combineTestReads {
+		if found, err := read.read(ctx, store, ref); found || !errors.Is(err, context.Canceled) {
+			t.Fatalf("%s = found %v, %v; want canceled", read.name, found, err)
+		}
+	}
+	if lower.reads != 0 {
+		t.Fatalf("lower read %d times after the read ended", lower.reads)
+	}
+}
+
+// answerWith returns a script giving ans for any ref.
+func answerWith(ans error) func(*block.BlockRef) error {
+	return func(*block.BlockRef) error { return ans }
+}
+
+// combineTestReads are the reads that combine the sources' answers, each
+// reporting whether it found the block.
+var combineTestReads = []struct {
+	name string
+	read func(context.Context, *block_store.StoreReadThrough, *block.BlockRef) (bool, error)
+}{
+	{"GetBlock", func(ctx context.Context, s *block_store.StoreReadThrough, ref *block.BlockRef) (bool, error) {
+		_, found, err := s.GetBlock(ctx, ref)
+		return found, err
+	}},
+	{"GetStoredBlock", func(ctx context.Context, s *block_store.StoreReadThrough, ref *block.BlockRef) (bool, error) {
+		stored, err := s.GetStoredBlock(ctx, ref)
+		return stored != nil, err
+	}},
+	{"GetBlockExists", func(ctx context.Context, s *block_store.StoreReadThrough, ref *block.BlockRef) (bool, error) {
+		return s.GetBlockExists(ctx, ref)
+	}},
+	{"GetBlockExistsBatch", func(ctx context.Context, s *block_store.StoreReadThrough, ref *block.BlockRef) (bool, error) {
+		found, err := s.GetBlockExistsBatch(ctx, []*block.BlockRef{ref})
+		return len(found) == 1 && found[0], err
+	}},
+}
+
+// combineTestOutcome classifies a read's result as a hit, a miss, an
+// unavailable block, or a failure.
+func combineTestOutcome(found bool, err error) string {
+	switch {
+	case found && err == nil:
+		return "hit"
+	case found:
+		return "hit with an error"
+	case errors.Is(err, block.ErrUnavailable) && !errors.Is(err, block.ErrNotFound):
+		return "unavailable"
+	case err == nil || errors.Is(err, block.ErrNotFound) && !errors.Is(err, block.ErrUnavailable):
+		return "miss"
+	}
+	return "failed"
+}

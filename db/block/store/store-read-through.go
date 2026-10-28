@@ -2,8 +2,10 @@ package block_store
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"slices"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -29,6 +31,11 @@ func CacheFill(ctx context.Context, primary block.StoreOps, ref *block.BlockRef,
 
 // StoreReadThrough reads from a primary source, then an optional lower source.
 // With a fill, lower hits are written to primary in the background.
+//
+// A read combines the sources' answers: a hit from either source serves it, a
+// source that failed or could not answer does not keep the read from the next
+// source, and a read neither source served reports the failures, or a miss when
+// each source said it lacks the block. A read whose context ended stops at once.
 //
 // StoreReadThrough is separate from block.StoreOverlay because StoreOverlay
 // readback is asynchronous.
@@ -140,30 +147,45 @@ func (*StoreReadThrough) Sync(context.Context) (bool, error) { return true, nil 
 // fill, a lower hit with known refs is inserted into primary in the
 // background with its refs. A lower hit with unknown refs is served without the fill.
 func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	// Serve the block from the primary store when it is available there.
+	// Serve the block from the primary store when it is there.
+	var misses readMisses
 	primary := s.source(s.primary)
 	if primary != nil {
 		data, found, err := primary.GetBlock(ctx, ref)
-		if err != nil || found {
-			return data, found, err
+		if found {
+			return data, true, err
+		}
+		if !misses.add(ctx, err) {
+			return nil, false, err
 		}
 	}
 
-	// Resolve the lower store and serve directly without a fill.
+	// Read the lower store, with its refs when a fill can take the block.
 	lower := s.source(s.lower)
-	if lower == nil {
-		return nil, false, s.lowerUnavailable(ctx, ref)
-	}
-	if s.fill == nil || primary == nil {
-		return lower.GetBlock(ctx, ref)
+	var err error
+	switch {
+	case lower == nil:
+		err = s.lowerUnavailable(ctx, ref)
+	case s.fill == nil || primary == nil:
+		var data []byte
+		var found bool
+		data, found, err = lower.GetBlock(ctx, ref)
+		if found {
+			return data, true, err
+		}
+	default:
+		var stored *block.StoredBlock
+		stored, err = s.readLower(ctx, primary, lower, ref)
+		if stored != nil {
+			return stored.Data, true, nil
+		}
 	}
 
-	// Read the lower block and fill the primary store when its refs are known.
-	stored, err := s.readLower(ctx, primary, lower, ref)
-	if err != nil || stored == nil {
+	// Report what kept both sources from serving the block.
+	if !misses.add(ctx, err) {
 		return nil, false, err
 	}
-	return stored.Data, true, nil
+	return nil, false, misses.err()
 }
 
 // GetStoredBlock reads the block and its refs from the primary source, then
@@ -172,20 +194,85 @@ func (s *StoreReadThrough) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 // background with its refs.
 func (s *StoreReadThrough) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Serve the stored block and its refs from the primary store when present.
+	var misses readMisses
 	primary := s.source(s.primary)
 	if primary != nil {
 		stored, err := primary.GetStoredBlock(ctx, ref)
-		if err != nil || stored != nil {
+		if stored != nil {
 			return stored, err
+		}
+		if !misses.add(ctx, err) {
+			return nil, err
 		}
 	}
 
-	// Resolve the lower store for the stored block lookup.
+	// Read the stored block from the lower store.
 	lower := s.source(s.lower)
+	var err error
 	if lower == nil {
-		return nil, s.lowerUnavailable(ctx, ref)
+		err = s.lowerUnavailable(ctx, ref)
+	} else {
+		var stored *block.StoredBlock
+		stored, err = s.readLower(ctx, primary, lower, ref)
+		if stored != nil {
+			return stored, nil
+		}
 	}
-	return s.readLower(ctx, primary, lower, ref)
+
+	// Report what kept both sources from serving the block.
+	if !misses.add(ctx, err) {
+		return nil, err
+	}
+	return nil, misses.err()
+}
+
+// readMisses collects the answers of the sources that did not serve a read.
+type readMisses struct {
+	// miss is the last miss a source reported as an error.
+	miss error
+	// unavailable holds the answers of sources that could not answer yet.
+	unavailable []error
+	// failed holds the failures of sources that could not answer at all.
+	failed []error
+}
+
+// add records a source's answer to a read it did not serve. It reports false
+// when the read's context ended, and the read stops with err.
+func (m *readMisses) add(ctx context.Context, err error) bool {
+	switch {
+	case err == nil:
+	case ctx.Err() != nil:
+		return false
+	case errors.Is(err, block.ErrUnavailable):
+		m.unavailable = append(m.unavailable, err)
+	case errors.Is(err, block.ErrNotFound):
+		m.miss = err
+	default:
+		m.failed = append(m.failed, err)
+	}
+	return true
+}
+
+// err returns the outcome of a read no source served: a failure first, so a
+// caller never retries a broken source as a block not here yet, then the
+// unavailable answers, then the miss, which is nil unless a source reported
+// it as an error.
+func (m *readMisses) err() error {
+	switch {
+	case len(m.failed) != 0:
+		return joinReadErrs(m.failed)
+	case len(m.unavailable) != 0:
+		return joinReadErrs(m.unavailable)
+	}
+	return m.miss
+}
+
+// joinReadErrs returns the one error of errs as is, or joins several.
+func joinReadErrs(errs []error) error {
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	return errors.Join(errs...)
 }
 
 // lowerUnavailable returns the outcome of a primary miss while the lower
@@ -198,7 +285,7 @@ func (s *StoreReadThrough) lowerUnavailable(ctx context.Context, ref *block.Bloc
 		return nil
 	}
 	peerWait.Skip(ref)
-	return errors.Wrapf(block.ErrUnavailable, "lower store unavailable for block %s", ref.MarshalString())
+	return fmt.Errorf("%w: lower store unavailable for block %s", block.ErrUnavailable, ref.MarshalString())
 }
 
 // source resolves an optional store source.
@@ -242,41 +329,53 @@ var fillSlots = make(chan struct{}, 256)
 // source can answer without waiting to serve data, and nothing is written back.
 func (s *StoreReadThrough) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	// Report a block the primary store holds.
+	var misses readMisses
 	primary := s.source(s.primary)
 	if primary != nil {
 		found, err := primary.GetBlockExists(ctx, ref)
-		if err != nil || found {
-			return found, err
+		if found {
+			return true, err
+		}
+		if !misses.add(ctx, err) {
+			return false, err
 		}
 	}
 
-	// Ask the lower store about a primary miss.
+	// Ask the lower store about a block the primary store did not report.
 	lower := s.source(s.lower)
 	if lower == nil {
-		return false, nil
+		return false, misses.err()
 	}
-	return lower.GetBlockExists(ctx, ref)
+	found, err := lower.GetBlockExists(ctx, ref)
+	if found {
+		return true, err
+	}
+	if !misses.add(ctx, err) {
+		return false, err
+	}
+	return false, misses.err()
 }
 
 // GetBlockExistsBatch checks the primary source for every ref, then asks the
-// current lower source about the primary misses.
+// current lower source about the refs the primary source did not report. It
+// fails only when a source failed and a ref stayed unreported.
 func (s *StoreReadThrough) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	// Check the primary store for every ref.
+	var misses readMisses
 	out := make([]bool, len(refs))
 	primary := s.source(s.primary)
 	if primary != nil {
 		found, err := primary.GetBlockExistsBatch(ctx, refs)
-		if err != nil {
+		if !misses.add(ctx, err) {
 			return nil, err
 		}
-		copy(out, found)
+		if err == nil {
+			copy(out, found)
+		}
 	}
 
-	// Collect the primary misses.
+	// Collect the refs the primary store did not report.
 	lower := s.source(s.lower)
-	if lower == nil {
-		return out, nil
-	}
 	var missIdx []int
 	var missRefs []*block.BlockRef
 	for i, found := range out {
@@ -285,17 +384,21 @@ func (s *StoreReadThrough) GetBlockExistsBatch(ctx context.Context, refs []*bloc
 			missRefs = append(missRefs, refs[i])
 		}
 	}
-	if len(missRefs) == 0 {
-		return out, nil
+
+	// Ask the lower store about them.
+	if lower != nil && len(missRefs) != 0 {
+		found, err := lower.GetBlockExistsBatch(ctx, missRefs)
+		if !misses.add(ctx, err) {
+			return nil, err
+		}
+		for j, i := range missIdx {
+			out[i] = err == nil && found[j]
+		}
 	}
 
-	// Ask the lower store about the misses.
-	found, err := lower.GetBlockExistsBatch(ctx, missRefs)
-	if err != nil {
+	// Fail when a source failed and left a ref unreported.
+	if err := misses.err(); err != nil && slices.Contains(out, false) {
 		return nil, err
-	}
-	for j, i := range missIdx {
-		out[i] = found[j]
 	}
 	return out, nil
 }
