@@ -1,6 +1,9 @@
 package block
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 var (
 	// ErrBlockStoreUnavailable is returned when Fetch is called against a nil block store.
@@ -78,6 +81,49 @@ func (e *publicationDependencyError) Unwrap() []error {
 // with ErrPublicationDependency. Use it to reject a dependent publication.
 func NewPublicationDependencyError(cause error) error {
 	return &publicationDependencyError{cause: cause}
+}
+
+// UnavailableError reports a read that no source served while a holder of the
+// block did not answer, so a later read may find it. It matches ErrUnavailable
+// and the failure that kept a holder from answering.
+type UnavailableError struct {
+	// Ref is the block that was read.
+	Ref *BlockRef
+	// Holders names the holders that did not answer, sorted.
+	Holders []string
+	// Cause is the first failed request, or nil when the holders that did not
+	// answer were never asked.
+	Cause error
+}
+
+// Error names the block, the holders that did not answer, and the cause.
+func (e *UnavailableError) Error() string {
+	// Name the block and the holders that did not answer.
+	var b strings.Builder
+	b.WriteString(ErrUnavailable.Error())
+	if e.Ref != nil {
+		b.WriteString(" ")
+		b.WriteString(e.Ref.MarshalString())
+	}
+	if len(e.Holders) != 0 {
+		b.WriteString(": no answer from ")
+		b.WriteString(strings.Join(e.Holders, ", "))
+	}
+
+	// Append the failure that kept a holder from answering.
+	if e.Cause != nil {
+		b.WriteString(": ")
+		b.WriteString(e.Cause.Error())
+	}
+	return b.String()
+}
+
+// Unwrap returns ErrUnavailable and the cause, when there is one.
+func (e *UnavailableError) Unwrap() []error {
+	if e.Cause == nil {
+		return []error{ErrUnavailable}
+	}
+	return []error{ErrUnavailable, e.Cause}
 }
 
 // IsNotAvailable reports whether err means a block is not available here now:

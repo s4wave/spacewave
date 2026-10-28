@@ -70,6 +70,12 @@ type Controller struct {
 	// settled reports that the solicitation has delivered a session for every
 	// peer it matched, guarded by bcast.
 	settled bool
+	// holders holds the peers that may hold the blocks, keyed by peer ID, or
+	// nil when they are unknown, guarded by bcast. See SetHolders.
+	holders map[string]struct{}
+	// links counts the links each holder proved its identity over, keyed by
+	// transport peer ID and then holder peer ID, guarded by bcast.
+	links map[string]map[string]int
 	// transfer counts block payloads that actually crossed a peer stream.
 	transfer      TransferSnapshot
 	peerTransfers map[string]PeerTransferSnapshot
@@ -322,24 +328,36 @@ func (c *Controller) removeSession(remotePeer string, sess *peerSession) bool {
 }
 
 // forwardToPeers forwards a block request to other connected peers,
-// excluding the session that originated the request. It returns what
-// peerBlockFanout.run returns.
+// excluding the session that originated the request. It returns what the
+// connected peers answered, not the holders' verdict: the origin, which it
+// does not ask, answers for itself.
 func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, hops uint32, exclude *peerSession) (*DexMessage, error) {
 	sessions, err := c.waitSessions(ctx, exclude, false)
 	if err != nil {
 		return nil, err
 	}
-	return c.askPeers(ctx, sessions, ref, hops, exclude)
+	return c.askPeers(ctx, sessions, ref, hops, exclude, false)
 }
 
-// askPeers runs a block fanout over sessions. A peer that replaces its link
-// closes the session a request went out on while its new session comes up, so
-// a fanout that failed on a closed session waits up to sessionReplaceWait for
-// open sessions and asks again, at most maxSessionRetries times. Only a
-// session close is retried: a miss, a peer error or ctx ending returns at once.
-func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref *block.BlockRef, hops uint32, exclude *peerSession) (*DexMessage, error) {
-	found, err := peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
-	for attempt := 0; attempt < maxSessionRetries && errors.Is(err, errSessionClosed) && ctx.Err() == nil; attempt++ {
+// askPeers runs a block fanout over sessions and returns the holders' verdict
+// when holders is set, or what the asked peers answered otherwise. A peer that
+// replaces its link closes the session a request went out on while its new
+// session comes up, so a fanout left without an answer by a closed session
+// waits up to sessionReplaceWait for open sessions and asks again, at most
+// maxSessionRetries times. A miss, a peer error or ctx ending returns at once.
+func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref *block.BlockRef, hops uint32, exclude *peerSession, holders bool) (*DexMessage, error) {
+	// Classify the answers by the holders or by the asked peers.
+	judge := func(answers fanoutAnswers) (*DexMessage, error) {
+		if holders {
+			return c.verdict(ref, answers)
+		}
+		return answers.result(ref)
+	}
+
+	// Ask again while a closed session left the read without an answer.
+	answers := peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
+	found, err := judge(answers)
+	for attempt := 0; attempt < maxSessionRetries && err != nil && answers.closed && ctx.Err() == nil; attempt++ {
 		waitCtx, waitCancel := context.WithTimeout(ctx, sessionReplaceWait)
 		next, waitErr := c.waitSessions(waitCtx, exclude, true)
 		waitCancel()
@@ -347,7 +365,8 @@ func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref 
 			return nil, err
 		}
 		c.le.WithField("ref", ref.String()).WithField("attempt", attempt+1).Debug("dex block request retried after session close")
-		found, err = peerBlockFanout{sessions: next, ref: ref, hops: hops}.run(ctx)
+		answers = peerBlockFanout{sessions: next, ref: ref, hops: hops}.run(ctx)
+		found, err = judge(answers)
 	}
 	return found, err
 }
@@ -357,9 +376,10 @@ func (c *Controller) askPeers(ctx context.Context, sessions []*peerSession, ref 
 // solicitation is still negotiating with may hold the block, so a read must
 // not report a miss before then.
 //
-// When wantPeer is set it also waits until at least one such session exists.
-// The solicitation settles while no link is up, and a miss that no peer was
-// asked about is not a miss: a read waits for a peer to connect instead.
+// When wantPeer is set it also waits until at least one such session exists,
+// unless the holders are known to be none. The solicitation settles while no
+// link is up, and a miss that no peer was asked about is not a miss: a read
+// waits for a peer to connect instead.
 func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession, wantPeer bool) ([]*peerSession, error) {
 	var sessions []*peerSession
 	err := c.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
@@ -380,7 +400,7 @@ func (c *Controller) waitSessions(ctx context.Context, exclude *peerSession, wan
 				}
 			}
 		}
-		return !wantPeer || len(sessions) != 0, nil
+		return !wantPeer || len(sessions) != 0 || c.holdersNone(), nil
 	})
 	return sessions, err
 }
@@ -424,7 +444,7 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 	if err != nil {
 		return err
 	}
-	found, err := r.c.askPeers(ctx, sessions, r.ref, r.c.cc.GetMaxForwardHops(), nil)
+	found, err := r.c.askPeers(ctx, sessions, r.ref, r.c.cc.GetMaxForwardHops(), nil, true)
 
 	// Emit the result, including a miss or a failed exchange.
 	switch {
@@ -449,21 +469,47 @@ type peerBlockFanout struct {
 
 // fanoutResult is one peer's answer to a fanout request.
 type fanoutResult struct {
-	resp *DexMessage
-	err  error
+	remote string
+	resp   *DexMessage
+	err    error
+}
+
+// fanoutAnswers is what the sessions of one fanout answered.
+type fanoutAnswers struct {
+	// found is the first verified response, or nil when no peer served the block.
+	found *DexMessage
+	// missed lists the remote peers that answered that they lack the block.
+	missed []string
+	// err is the first failed request, or nil when every request was answered.
+	err error
+	// closed reports that a request failed because its session closed.
+	closed bool
+}
+
+// result returns what the asked peers answered: the block, an error wrapping
+// block.ErrUnavailable when no peer served it and a request failed, so a
+// dropped link or a timeout is never mistaken for a missing block, and nil
+// when every asked peer answered that it lacks the block.
+func (a fanoutAnswers) result(ref *block.BlockRef) (*DexMessage, error) {
+	if a.found != nil {
+		return a.found, nil
+	}
+	if a.err != nil {
+		return nil, fmt.Errorf("%w: no peer served block %s: %w", block.ErrUnavailable, ref.MarshalString(), a.err)
+	}
+	return nil, nil
 }
 
 // run requests the block from every session and waits until each answers,
 // its session closes, or ctx ends. It returns the first verified response and
 // cancels the other requests, which tells their peers to stop serving them.
-// It returns nil and no error only when every peer answered that it does not
-// have the block. When no peer had the block and a request failed, it returns
-// an error wrapping block.ErrUnavailable, so a dropped link or a timeout is
-// never mistaken for a missing block.
-func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
+// Without a response it returns which peers answered a miss and which
+// requests failed.
+func (f peerBlockFanout) run(ctx context.Context) fanoutAnswers {
 	// Scope the peer requests to this fanout.
+	var answers fanoutAnswers
 	if len(f.sessions) == 0 {
-		return nil, nil
+		return answers
 	}
 	reqCtx, reqCancel := context.WithCancel(ctx)
 	defer reqCancel()
@@ -476,28 +522,27 @@ func (f peerBlockFanout) run(ctx context.Context) (*DexMessage, error) {
 			if err != nil {
 				sess.le.WithError(err).Debug("dex block request failed")
 			}
-			results <- fanoutResult{resp: resp, err: err}
+			results <- fanoutResult{remote: sess.ms.GetPeerID().String(), resp: resp, err: err}
 		}()
 	}
 
-	// Return the first successful peer response, remembering the first
-	// failure.
-	var firstErr error
+	// Return the first successful peer response, recording the misses and
+	// the first failure.
 	for range f.sessions {
 		res := <-results
-		if res.resp != nil {
-			return res.resp, nil
-		}
-		if firstErr == nil {
-			firstErr = res.err
+		switch {
+		case res.resp != nil:
+			return fanoutAnswers{found: res.resp}
+		case res.err == nil:
+			answers.missed = append(answers.missed, res.remote)
+		default:
+			answers.closed = answers.closed || errors.Is(res.err, errSessionClosed)
+			if answers.err == nil {
+				answers.err = res.err
+			}
 		}
 	}
-
-	// Report a failed exchange, or a miss every peer confirmed.
-	if firstErr != nil {
-		return nil, fmt.Errorf("%w: no peer served block %s: %w", block.ErrUnavailable, f.ref.MarshalString(), firstErr)
-	}
-	return nil, nil
+	return answers
 }
 
 // GetControllerInfo returns information about the controller.

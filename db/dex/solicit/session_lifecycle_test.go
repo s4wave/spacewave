@@ -227,7 +227,7 @@ func TestPeerBlockFanoutCancelsLosersAfterFirstSuccess(t *testing.T) {
 	}()
 
 	// Verify the first successful fanout response cancels the slow request.
-	found, err := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx)
+	found, err := peerBlockFanout{sessions: []*peerSession{slow, fast}, ref: ref}.run(ctx).result(ref)
 	if err != nil || found == nil {
 		t.Fatalf("fanout did not return first successful response: %v", err)
 	}
@@ -272,7 +272,7 @@ func TestPeerBlockFanoutDeadlineClearsPendingRequests(t *testing.T) {
 
 	// Verify the caller deadline ends fanout with an error rather than a miss,
 	// and clears its pending request.
-	found, err := peerBlockFanout{sessions: []*peerSession{slow}, ref: ref}.run(ctx)
+	found, err := peerBlockFanout{sessions: []*peerSession{slow}, ref: ref}.run(ctx).result(ref)
 	if found != nil {
 		t.Fatalf("fanout returned data after caller deadline: %q", found.GetData())
 	}
