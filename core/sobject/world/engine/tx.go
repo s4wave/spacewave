@@ -3,6 +3,7 @@ package sobject_world_engine
 import (
 	"context"
 	"errors"
+	fmt "fmt"
 	"slices"
 
 	"github.com/s4wave/spacewave/core/sobject"
@@ -82,7 +83,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		task.End()
 		t.clock.end(stageWorldStateCommit)
 		if err != nil {
-			return err
+			return fmt.Errorf("world state commit: %w", err)
 		}
 	}
 
@@ -102,7 +103,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		task.End()
 		t.clock.end(stageBlockCommit)
 		if err != nil {
-			return err
+			return fmt.Errorf("world block commit: %w", err)
 		}
 	}
 
@@ -116,7 +117,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	publisher, publishes := t.eng.so.(sobject.StatePublisher)
 	if !publishes {
 		if err := t.writeBlocks(ctx); err != nil {
-			return err
+			return fmt.Errorf("world block store write: %w", err)
 		}
 	}
 
@@ -153,7 +154,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	next.HeadRef.BucketId = ""
 	t.fork.state = next
 	if err := t.eng.c.retainPublicationWorld(ctx, t.eng.so, next.GetHeadRef()); err != nil {
-		return err
+		return fmt.Errorf("retain published World: %w", err)
 	}
 
 	// Every member replays the operation from the checkpoint and reads its
@@ -176,11 +177,14 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// Wait for the publication outside the writer lock. Its failure is the
 	// write's result, since queueOperation may report only what followed it.
 	t.unlockWriteMtx()
+	if err != nil {
+		err = fmt.Errorf("queue World operation: %w", err)
+	}
 	if t.receipt == nil {
 		return err
 	}
 	if rerr := t.waitReceipt(ctx); rerr != nil {
-		return rerr
+		return fmt.Errorf("world publication receipt: %w", rerr)
 	}
 	return err
 }

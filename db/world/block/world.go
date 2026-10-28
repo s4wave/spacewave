@@ -2,6 +2,7 @@ package world_block
 
 import (
 	"context"
+	fmt "fmt"
 	"sync/atomic"
 
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -563,15 +564,18 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	err = t.flushGraphWrites(taskCtx)
 	subtask.End()
 	if err != nil {
-		return err
+		return fmt.Errorf("graph write flush: %w", err)
 	}
 
 	// Record the pending changes in the World root.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/flush-world-changes")
 	err = t.flushWorldChanges(taskCtx, w)
 	subtask.End()
-	if err != nil || t.btx == nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("world change log: %w", err)
+	}
+	if t.btx == nil {
+		return nil
 	}
 
 	// Write the dirty blocks and release the tree data. Write batches the
@@ -580,14 +584,17 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	_, bcs, err := t.btx.Write(taskCtx, true)
 	subtask.End()
 	if err != nil {
-		return err
+		return fmt.Errorf("world block write: %w", err)
 	}
 
 	// Rebuild the state on the written root.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/set-block-transaction")
 	err = t.setBlockTransaction(taskCtx, t.btx, bcs)
 	subtask.End()
-	return err
+	if err != nil {
+		return fmt.Errorf("world state rebuild: %w", err)
+	}
+	return nil
 }
 
 // buildObjectTree builds the object tree handle.
