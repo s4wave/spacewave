@@ -330,3 +330,85 @@ func (e *soEngine) ReplayWorlds(ctx context.Context) ([]*block.BlockRef, error) 
 
 // _ is a type assertion
 var _ ReplayWorldsEngine = (*soEngine)(nil)
+
+// ReplayFromEngine is a World engine that can replay its operations again
+// from one of the Worlds its replay passed through.
+type ReplayFromEngine interface {
+	// ReplayFrom replays every operation after the World at root again, and
+	// installs the World the replay reaches. Without apply it only reports.
+	ReplayFrom(ctx context.Context, root *block.BlockRef, apply bool) (*ReplayFromReport, error)
+}
+
+// ReplayFromReport reports a ReplayFrom.
+type ReplayFromReport struct {
+	// Kept is the number of replayed operations before the World at root.
+	Kept int
+	// Replayed is the number of operations replayed again after it.
+	Replayed int
+	// Head is the World root installed by an applied replay.
+	Head *block.BlockRef
+}
+
+// ReplayFrom replays every operation after the World at root again, which
+// must be the replay base or the World after a replayed operation, and
+// installs the World the replay reaches. Replay writes every page the
+// operations change again, so this repairs a World whose later pages are
+// missing, as long as the World at root has none missing. When the replay
+// fails, the replay keeps its former positions and nothing is installed.
+func (e *soEngine) ReplayFrom(ctx context.Context, root *block.BlockRef, apply bool) (*ReplayFromReport, error) {
+	unlockWriteMtx, err := e.c.lockSettled(ctx, "replay-from")
+	if err != nil {
+		return nil, err
+	}
+	defer unlockWriteMtx()
+
+	// Find the newest position whose World is root.
+	r := e.replay
+	kept := -1
+	for i := len(r.positions) - 1; i >= 0; i-- {
+		if r.positions[i].state.GetHeadRef().GetRootRef().EqualsRef(root) {
+			kept = i + 1
+			break
+		}
+	}
+	if kept < 0 && r.base.GetHeadRef().GetRootRef().EqualsRef(root) {
+		kept = 0
+	}
+	if kept < 0 {
+		return nil, errors.Errorf("World %s is not the replay base or the World after a replayed operation", root.MarshalString())
+	}
+	report := &ReplayFromReport{Kept: kept, Replayed: len(r.positions) - kept}
+	if !apply {
+		return report, nil
+	}
+
+	// Drop the positions after root, keeping them to restore on failure.
+	positions, changed, deferred, span, spanLen := r.positions, r.changed, r.deferred, r.span, r.spanLen
+	restore := func() {
+		r.positions, r.changed, r.deferred, r.span, r.spanLen = positions, changed, deferred, span, spanLen
+	}
+	r.positions = slices.Clone(positions[:kept])
+	r.changed, r.deferred = true, false
+	if kept < r.spanLen {
+		r.span, r.spanLen = nil, 0
+	}
+
+	// Replay to the current operation set, then install the World.
+	snap, err := e.admittedState(ctx)
+	if err != nil {
+		restore()
+		return report, err
+	}
+	if _, _, err := e.reach(ctx, snap, nil, false); err != nil {
+		restore()
+		return report, errors.Wrap(err, "replay")
+	}
+	if _, err := e.install(ctx, snap, nil, false); err != nil {
+		return report, errors.Wrap(err, "install replayed World")
+	}
+	report.Head = e.bengine.GetRootRef().GetRootRef().Clone()
+	return report, nil
+}
+
+// _ is a type assertion
+var _ ReplayFromEngine = (*soEngine)(nil)

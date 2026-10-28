@@ -122,19 +122,11 @@ func (t *WorldState) readGraphRange(
 	copyValues bool,
 ) ([]kvtx_block_okra.BuildEntry, error) {
 	// Open the older World in a read transaction over the same store.
-	_, bcs := block.NewTransaction(t.store, t.btx.GetTransformer(), root, nil)
-	if _, err := block.UnmarshalBlock[World](ctx, bcs); err != nil {
-		return nil, errors.Wrap(err, "load World root")
-	}
-	gtx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
+	tree, err := t.openGraphTreeAt(ctx, root)
 	if err != nil {
-		return nil, errors.Wrap(err, "open graph tree")
+		return nil, err
 	}
-	defer gtx.Discard()
-	tree, ok := gtx.(*kvtx_block_okra.Tx)
-	if !ok {
-		return nil, errors.Errorf("graph tree is %T, not an okra tree", gtx)
-	}
+	defer tree.Discard()
 
 	// Read the range, which must have no missing page.
 	var entries []kvtx_block_okra.BuildEntry
@@ -156,6 +148,40 @@ func (t *WorldState) readGraphRange(
 		return entries, nil
 	}
 	return into.CopyEntries(ctx, tree, entries)
+}
+
+// GraphTreeHolesAt walks the whole graph tree of the World at root and reports
+// its readable keys and missing pages, writing nothing.
+func (t *WorldState) GraphTreeHolesAt(ctx context.Context, root *block.BlockRef) (*GraphRepair, error) {
+	tree, err := t.openGraphTreeAt(ctx, root)
+	if err != nil {
+		return nil, err
+	}
+	defer tree.Discard()
+	keys, holes, err := tree.SalvageHoles(ctx, nil, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "walk graph tree")
+	}
+	return &GraphRepair{Keys: int(keys), Holes: holes, Fills: make([]GraphHoleFill, len(holes))}, nil
+}
+
+// openGraphTreeAt opens the graph tree of the World at root read-only, over
+// the store of this World. Discard the returned tree when done.
+func (t *WorldState) openGraphTreeAt(ctx context.Context, root *block.BlockRef) (*kvtx_block_okra.Tx, error) {
+	_, bcs := block.NewTransaction(t.store, t.btx.GetTransformer(), root, nil)
+	if _, err := block.UnmarshalBlock[World](ctx, bcs); err != nil {
+		return nil, errors.Wrap(err, "load World root")
+	}
+	gtx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
+	if err != nil {
+		return nil, errors.Wrap(err, "open graph tree")
+	}
+	tree, ok := gtx.(*kvtx_block_okra.Tx)
+	if !ok {
+		gtx.Discard()
+		return nil, errors.Errorf("graph tree is %T, not an okra tree", gtx)
+	}
+	return tree, nil
 }
 
 // ReindexGraphTree repairs a graph tree whose missing pages all hold quad
