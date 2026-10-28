@@ -179,6 +179,11 @@ export interface S3Location {
    * published prices of the service the endpoint names.
    */
   pricing?: Pricing
+  /**
+   * KeepPacks stops compaction and reclaim on the bucket, so its block stores
+   * only ever add packfiles and never rewrite or delete one.
+   */
+  keepPacks?: boolean
 }
 
 export const S3Location: MessageType<S3Location> =
@@ -191,6 +196,7 @@ export const S3Location: MessageType<S3Location> =
       [4, 'object_prefix', 9],
       [5, 'disable_ssl', 8],
       [6, 'pricing', 11, 0, Pricing.codec],
+      [7, 'keep_packs', 8],
     ],
   )
 

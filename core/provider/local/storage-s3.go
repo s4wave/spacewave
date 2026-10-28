@@ -39,7 +39,10 @@ func buildS3BlockStore(
 	if err != nil {
 		return nil, err
 	}
-	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.BlockStorePrefix(blockStoreID), location.GetPricing()), nil
+	return block_store_s3.NewPackStore(le, client, location.GetBucket(), location.BlockStorePrefix(blockStoreID), &block_store_s3.PackStoreOptions{
+		Pricing:   location.GetPricing(),
+		KeepPacks: location.GetKeepPacks(),
+	}), nil
 }
 
 // deleteS3BlockStore deletes the block store's objects from the location's

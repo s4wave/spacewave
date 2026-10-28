@@ -71,6 +71,11 @@ func (s *PackStore) runCompaction(ctx context.Context) error {
 // holds, so concurrent passes on several devices lose no block. A merge that
 // finds an input gone lists the entries and chooses again.
 func (s *PackStore) compact(ctx context.Context) error {
+	// A store that keeps its packs merges none.
+	if s.keepPacks {
+		return nil
+	}
+
 	// Acquire the compaction mutex so only one merge runs at a time.
 	release, err := s.compactMtx.Lock(ctx)
 	if err != nil {

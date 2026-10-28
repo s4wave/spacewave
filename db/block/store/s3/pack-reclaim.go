@@ -49,11 +49,18 @@ const (
 // Returns the time the next pass comes due if the store is not written again,
 // or zero when none will. A caller that asks again at that time runs the last
 // pass a Space needs after it goes idle.
+//
+// A store that keeps its packs runs no pass and calls neither fence nor live.
 func (s *PackStore) Reclaim(
 	ctx context.Context,
 	fence func(context.Context) error,
 	live func(context.Context, []*block.BlockRef) ([]bool, error),
 ) (time.Time, error) {
+	// A store that keeps its packs never drops a block.
+	if s.keepPacks {
+		return time.Time{}, nil
+	}
+
 	// Exclude compaction for the pass.
 	release, err := s.compactMtx.Lock(ctx)
 	if err != nil {

@@ -81,6 +81,9 @@ message S3Location {
   // Pricing overrides the price list storage reclaim uses. Empty uses the
   // published prices of the service the endpoint names.
   .block.store.s3.Pricing pricing = 6;
+  // KeepPacks stops compaction and reclaim on the bucket, so its block stores
+  // only ever add packfiles and never rewrite or delete one.
+  bool keep_packs = 7;
 }
 
 // BlockStorePlacement places one block store on a storage backend.

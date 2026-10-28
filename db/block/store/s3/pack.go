@@ -57,7 +57,8 @@ var ErrPackImmutable = errors.New("bucket packfiles do not remove blocks")
 //
 // After each write a background routine merges small packfiles, as
 // compact describes. Reclaim drops dead blocks when that saves money on the
-// service's price list.
+// service's price list. A store that keeps its packs does neither, so no
+// packfile it lists is ever rewritten or deleted.
 type PackStore struct {
 	// le is the logger.
 	le *logrus.Entry
@@ -69,6 +70,8 @@ type PackStore struct {
 	prefix string
 	// pricing is the price list of the service holding the bucket.
 	pricing *Pricing
+	// keepPacks stops compaction and reclaim.
+	keepPacks bool
 	// packs reads blocks from the known packfiles.
 	packs *packfile_store.PackfileStore
 	// compactor runs compact after writes.
@@ -108,21 +111,35 @@ var compactBackoff = &backoff.Backoff{
 	},
 }
 
-// NewPackStore builds a packfile block store on the bucket. pricing is the
-// price list of the service holding the bucket; nil uses PricingForEndpoint.
+// PackStoreOptions configures a PackStore.
+type PackStoreOptions struct {
+	// Pricing is the price list of the service holding the bucket; nil uses
+	// PricingForEndpoint.
+	Pricing *Pricing
+	// KeepPacks stops compaction and reclaim, so the store only ever adds
+	// packfiles.
+	KeepPacks bool
+}
+
+// NewPackStore builds a packfile block store on the bucket. opts may be nil.
 // Close stops its compaction routine.
-func NewPackStore(le *logrus.Entry, client *Client, bucket, prefix string, pricing *Pricing) *PackStore {
+func NewPackStore(le *logrus.Entry, client *Client, bucket, prefix string, opts *PackStoreOptions) *PackStore {
 	// Price the bucket's service from its endpoint unless overridden.
+	if opts == nil {
+		opts = &PackStoreOptions{}
+	}
+	pricing := opts.Pricing
 	if pricing == nil {
 		pricing = PricingForEndpoint(client.endpoint)
 	}
 	s := &PackStore{
-		le:      le,
-		client:  client,
-		bucket:  bucket,
-		prefix:  prefix,
-		pricing: pricing,
-		entries: make(map[string]*packfile.PackfileEntry),
+		le:        le,
+		client:    client,
+		bucket:    bucket,
+		prefix:    prefix,
+		pricing:   pricing,
+		keepPacks: opts.KeepPacks,
+		entries:   make(map[string]*packfile.PackfileEntry),
 		compactor: routine.NewRoutineContainerWithLogger(
 			le.WithField("routine", "pack-compaction"),
 			routine.WithRetry(compactBackoff),
