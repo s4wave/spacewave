@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -44,37 +45,73 @@ func (t *Tx) Salvage(ctx context.Context, low, high []byte) ([]BuildEntry, []Sal
 		if !errors.Is(err, block.ErrNotFound) {
 			return nil, nil, err
 		}
-		s.holes = append(s.holes, SalvageHole{
+		return nil, []SalvageHole{{
 			Ref:  t.root.GetRootPageRef().Clone(),
 			Keys: t.root.GetSize(),
 			Err:  err,
-		})
-		return nil, s.holes, nil
+		}}, nil
 	}
 
 	// Walk the whole key space from the root page.
-	if err := s.walk(ctx, page, cursor, nil, nil); err != nil {
-		return nil, nil, err
+	s.sem = make(chan struct{}, salvageConcurrency)
+	res := s.walk(ctx, page, cursor, nil, nil)
+	if res.err != nil {
+		return nil, nil, res.err
 	}
-	return s.entries, s.holes, nil
+	return res.entries, res.holes, nil
 }
 
-// salvage collects a Salvage walk.
+// salvageConcurrency bounds the pages a Salvage walk loads at once.
+const salvageConcurrency = 32
+
+// salvage holds the bounds and load slots of a Salvage walk.
 type salvage struct {
 	// low and high bound the keys to collect; empty is unbounded.
 	low, high []byte
+	// sem holds a slot for each child page loading on its own goroutine.
+	sem chan struct{}
+}
+
+// salvageResult is what a walk below one page collected.
+type salvageResult struct {
 	// entries are the readable leaf entries in key order.
 	entries []BuildEntry
-	// holes are the pages that read as not found.
+	// holes are the pages that read as not found, in key order.
 	holes []SalvageHole
+	// err stops the walk.
+	err error
 }
 
 // walk collects the entries below page, whose keys lie in [pageLow, pageHigh).
-func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pageLow, pageHigh []byte) error {
+// Child pages load in parallel while load slots are free and inline
+// otherwise, and their results join in key order.
+func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pageLow, pageHigh []byte) salvageResult {
+	var out salvageResult
 	entries := page.GetEntries()
+
+	// Collect the readable leaf keys in range.
+	if page.GetLevel() == 0 {
+		for _, ent := range entries {
+			if ent.GetAnchor() || !s.contains(ent.GetKey()) {
+				continue
+			}
+			out.entries = append(out.entries, BuildEntry{
+				Key:         slices.Clone(ent.GetKey()),
+				ValueRef:    ent.GetValueRef().Clone(),
+				ValueIsBlob: ent.GetValueIsBlob(),
+				ValueBlob:   ent.GetValueBlob().CloneVT(),
+			})
+		}
+		return out
+	}
+
+	// Walk each child in range, recording a missing child as a hole.
+	children := make([]salvageResult, len(entries))
+	var wg sync.WaitGroup
 	for i, ent := range entries {
 		if err := ctx.Err(); err != nil {
-			return err
+			children[i].err = err
+			break
 		}
 
 		// Bound the keys of this entry by its key and the next entry's key.
@@ -90,42 +127,49 @@ func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pa
 			continue
 		}
 
-		// Collect a readable leaf key in range.
-		if page.GetLevel() == 0 {
-			if ent.GetAnchor() || !s.contains(ent.GetKey()) {
-				continue
-			}
-			s.entries = append(s.entries, BuildEntry{
-				Key:         slices.Clone(ent.GetKey()),
-				ValueRef:    ent.GetValueRef().Clone(),
-				ValueIsBlob: ent.GetValueIsBlob(),
-				ValueBlob:   ent.GetValueBlob().CloneVT(),
-			})
-			continue
-		}
-
-		// Descend into the child page, recording it as a hole when missing.
 		childCursor := page.FollowChild(cursor, i)
-		child, err := loadPage(ctx, childCursor)
-		if err != nil {
-			if !errors.Is(err, block.ErrNotFound) {
-				return err
+		visit := func() {
+			child, err := loadPage(ctx, childCursor)
+			if err != nil {
+				if !errors.Is(err, block.ErrNotFound) {
+					children[i].err = err
+					return
+				}
+				children[i].holes = []SalvageHole{{
+					Ref:   ent.GetChildRef().Clone(),
+					Level: page.GetLevel() - 1,
+					Low:   slices.Clone(entLow),
+					High:  slices.Clone(entHigh),
+					Keys:  ent.GetSize(),
+					Err:   err,
+				}}
+				return
 			}
-			s.holes = append(s.holes, SalvageHole{
-				Ref:   ent.GetChildRef().Clone(),
-				Level: page.GetLevel() - 1,
-				Low:   slices.Clone(entLow),
-				High:  slices.Clone(entHigh),
-				Keys:  ent.GetSize(),
-				Err:   err,
-			})
-			continue
+			children[i] = s.walk(ctx, child, childCursor, entLow, entHigh)
 		}
-		if err := s.walk(ctx, child, childCursor, entLow, entHigh); err != nil {
-			return err
+		select {
+		case s.sem <- struct{}{}:
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer func() { <-s.sem }()
+				visit()
+			}()
+		default:
+			visit()
 		}
 	}
-	return nil
+	wg.Wait()
+
+	// Join the children in key order.
+	for _, child := range children {
+		if child.err != nil {
+			return salvageResult{err: child.err}
+		}
+		out.entries = append(out.entries, child.entries...)
+		out.holes = append(out.holes, child.holes...)
+	}
+	return out
 }
 
 // contains reports whether key lies in [s.low, s.high).

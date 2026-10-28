@@ -71,7 +71,7 @@ func (t *WorldState) RepairGraphTree(
 	for i, hole := range holes {
 		fill := &report.Fills[i]
 		for _, root := range fillRoots {
-			got, err := t.readGraphRange(ctx, tree, root, hole.Low, hole.High)
+			got, err := t.readGraphRange(ctx, tree, root, hole.Low, hole.High, apply)
 			if err != nil {
 				fill.Tried = append(fill.Tried, root.MarshalString()+": "+err.Error())
 				continue
@@ -109,14 +109,16 @@ func (t *WorldState) RepairGraphTree(
 }
 
 // readGraphRange returns the keys in [low, high) of the graph tree of the
-// World at root, failing when any page in the range is missing. Values kept in
-// their own blocks are written again through into, so the keys stay readable
-// in into without the older World's blocks.
+// World at root, failing when any page in the range is missing. With copyValues set,
+// values kept in their own blocks are written again through into, so the keys
+// stay readable in into without the older World's blocks; without it nothing
+// is written, which a read-only transaction requires.
 func (t *WorldState) readGraphRange(
 	ctx context.Context,
 	into *kvtx_block_okra.Tx,
 	root *block.BlockRef,
 	low, high []byte,
+	copyValues bool,
 ) ([]kvtx_block_okra.BuildEntry, error) {
 	// Open the older World in a read transaction over the same store.
 	_, bcs := block.NewTransaction(t.store, t.btx.GetTransformer(), root, nil)
@@ -140,6 +142,9 @@ func (t *WorldState) readGraphRange(
 	}
 	if len(holes) != 0 {
 		return nil, errors.Errorf("%d pages missing in range, first %s", len(holes), holes[0].Ref.MarshalString())
+	}
+	if !copyValues {
+		return entries, nil
 	}
 	return into.CopyEntries(ctx, tree, entries)
 }
