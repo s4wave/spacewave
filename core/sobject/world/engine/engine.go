@@ -357,10 +357,11 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 		}
 	}
 
-	// Return the txn wrapper.
+	// Return the txn wrapper, recording what the write reads.
 	fork := &replayFork{base: base, index: index, start: head, state: head}
 	clock.end(stageForkReplay)
-	return newSoEngineWriteTx(ttx, btx, e, fork, unlockWriteMtx, clock), nil
+	wtx := newSoEngineWriteTx(ttx, btx, e, fork, unlockWriteMtx, clock)
+	return world.TrackTx(wtx, wtx.reads), nil
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.

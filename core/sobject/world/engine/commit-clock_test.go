@@ -10,10 +10,37 @@ import (
 
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 	logtest "github.com/sirupsen/logrus/hooks/test"
 )
+
+// TestWorldCommitLogsWholeWorldReads checks that a slow write that read the
+// root World state reports a whole-World read set.
+func TestWorldCommitLogsWholeWorldReads(t *testing.T) {
+	// Capture the warnings, then read the root World state in a write.
+	w := startLocalWorld(t, t.TempDir(), nil)
+	hook := logtest.NewLocal(w.le.Logger)
+	defer sobject_world_engine.SetSlowCommitThreshold(0)()
+	tx := w.newWrite(t, "reads/0")
+	if err := tx.AccessWorldState(t.Context(), nil, func(*bucket_lookup.Cursor) error { return nil }); err != nil {
+		tx.Discard()
+		t.Fatal(err)
+	}
+	if err := tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	// The warning names the whole World as read.
+	entry := hook.LastEntry()
+	if entry == nil || entry.Message != "slow World commit" {
+		t.Fatalf("last entry is %v, want the slow World commit warning", entry)
+	}
+	if reads := entry.Data["reads"]; reads != "world" {
+		t.Fatalf("reads field is %v, want world", reads)
+	}
+}
 
 // TestWorldCommitLogsStageTimes lowers the slow threshold to zero and checks
 // that a World write logs one warning that names every stage with its
@@ -25,7 +52,7 @@ func TestWorldCommitLogsStageTimes(t *testing.T) {
 	defer sobject_world_engine.SetSlowCommitThreshold(0)()
 	w.create(t, "stages/0")
 
-	// One warning lists every stage with its duration, in stage order.
+	// One warning is logged.
 	var slow []*logrus.Entry
 	for _, entry := range hook.AllEntries() {
 		if entry.Message == "slow World commit" {
@@ -35,6 +62,9 @@ func TestWorldCommitLogsStageTimes(t *testing.T) {
 	if len(slow) != 1 {
 		t.Fatalf("got %d slow World commit warnings, want 1", len(slow))
 	}
+
+	// It carries the elapsed time, the hold and every stage with its duration,
+	// in stage order.
 	elapsed, ok := slow[0].Data["elapsed"].(time.Duration)
 	if !ok {
 		t.Fatalf("warning lacks the elapsed duration: %v", slow[0].Data)
@@ -50,6 +80,11 @@ func TestWorldCommitLogsStageTimes(t *testing.T) {
 	fields := strings.Fields(fmt.Sprint(slow[0].Data["stages"]))
 	if len(fields) != len(names) {
 		t.Fatalf("stages field has %d entries, want %d: %v", len(fields), len(names), fields)
+	}
+
+	// A write that named its object read only keys.
+	if reads := slow[0].Data["reads"]; reads != "keys" {
+		t.Fatalf("reads field is %v, want keys for a write that named its object", reads)
 	}
 
 	// The stage durations add up to no more than the elapsed time of the

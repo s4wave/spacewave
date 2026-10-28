@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -93,9 +94,10 @@ func (c *commitClock) end(stage commitStage) {
 
 // finish reports the stage times of the write to its observer as Commit ends and
 // logs them when the write took longer than slowCommitThreshold. The stages
-// field lists them in stage order, and the hold field is the writer lock hold:
-// every stage after the lock wait up to the end of advance.
-func (c *commitClock) finish(le *logrus.Entry) {
+// field lists them in stage order, the hold field is the writer lock hold:
+// every stage after the lock wait up to the end of advance, and the reads field
+// is the scope of what the write read.
+func (c *commitClock) finish(le *logrus.Entry, reads world.ReadScope) {
 	// Skip the work when nothing reads the times.
 	if c == nil {
 		return
@@ -136,5 +138,6 @@ func (c *commitClock) finish(le *logrus.Entry) {
 		"elapsed": elapsed,
 		"hold":    hold,
 		"stages":  stages.String(),
+		"reads":   reads.String(),
 	}).Warn("slow World commit")
 }

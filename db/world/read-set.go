@@ -44,6 +44,32 @@ type ReadSet struct {
 	added chan struct{}
 }
 
+// ReadScope says how precisely a ReadSet describes its reads.
+type ReadScope int
+
+const (
+	// ReadScopeKeys reads are object keys, key prefixes and quad lookups.
+	ReadScopeKeys ReadScope = iota
+	// ReadScopeGraph includes a graph read beyond quad lookups, which every
+	// changed quad touches.
+	ReadScopeGraph
+	// ReadScopeWorld includes a read beyond objects and the graph, which every
+	// change touches.
+	ReadScopeWorld
+)
+
+// readScopeNames are the log names of the scopes.
+var readScopeNames = [...]string{
+	ReadScopeKeys:  "keys",
+	ReadScopeGraph: "graph",
+	ReadScopeWorld: "world",
+}
+
+// String returns the scope's log name.
+func (s ReadScope) String() string {
+	return readScopeNames[s]
+}
+
 // NewReadSet constructs an empty ReadSet.
 func NewReadSet() *ReadSet {
 	return &ReadSet{
@@ -86,6 +112,28 @@ func (r *ReadSet) Touched(changes *ChangeSet) bool {
 	}
 	r.mtx.Unlock()
 	return touched
+}
+
+// Scope returns the widest scope of the reads of this set and the sets it
+// joined.
+func (r *ReadSet) Scope() ReadScope {
+	// Read this set's own scope.
+	r.mtx.Lock()
+	scope := ReadScopeKeys
+	switch {
+	case r.all:
+		scope = ReadScopeWorld
+	case r.graph:
+		scope = ReadScopeGraph
+	}
+	joined := r.joined
+	r.mtx.Unlock()
+
+	// Widen it by the joined sets.
+	for _, set := range joined {
+		scope = max(scope, set.Scope())
+	}
+	return scope
 }
 
 // TouchedStrict checks whether a ChangeSet may change what a write read, by

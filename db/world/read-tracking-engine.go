@@ -35,10 +35,7 @@ func (e *ReadTrackingEngine) NewTransaction(ctx context.Context, write bool) (Tx
 	if reads == nil {
 		return t, nil
 	}
-	return &readTrackingTx{
-		readSetWorldState: &readSetWorldState{WorldState: t, reads: reads.reads},
-		tx:                t,
-	}, nil
+	return TrackTx(t, reads.reads), nil
 }
 
 // OperationAuthor returns the underlying engine's signing device and person.

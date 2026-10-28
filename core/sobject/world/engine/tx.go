@@ -38,6 +38,9 @@ type soEngineWriteTx struct {
 	batch *block.PendingBatch
 	// clock times the stages of the write.
 	clock *commitClock
+	// reads records what the write read, through the tracked transaction
+	// NewTransaction returns.
+	reads *world.ReadSet
 }
 
 // newSoEngineWriteTx constructs a new shared object engine tx.
@@ -56,6 +59,7 @@ func newSoEngineWriteTx(
 		fork:           fork,
 		unlockWriteMtx: unlockWriteMtx,
 		clock:          clock,
+		reads:          world.NewReadSet(),
 	}
 }
 
@@ -72,7 +76,7 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/commit")
 	defer task.End()
 	defer t.Discard()
-	defer t.clock.finish(t.eng.c.le)
+	defer t.clock.finish(t.eng.c.le, t.reads.Scope())
 	t.clock.end(stageCallback)
 
 	// Close the operation buffer before publishing its candidate blocks.

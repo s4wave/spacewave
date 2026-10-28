@@ -2,6 +2,15 @@ package world
 
 import "context"
 
+// TrackTx returns tx recording the reads made through it in reads. Commit and
+// Discard end tx.
+func TrackTx(tx Tx, reads *ReadSet) Tx {
+	return &readTrackingTx{
+		readSetWorldState: &readSetWorldState{WorldState: tx, reads: reads},
+		tx:                tx,
+	}
+}
+
 // readTrackingTx reads through a tracked state and ends the original transaction.
 type readTrackingTx struct {
 	// readSetWorldState records reads and preserves its tracked batch methods.
