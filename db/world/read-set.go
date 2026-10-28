@@ -88,6 +88,25 @@ func (r *ReadSet) Touched(changes *ChangeSet) bool {
 	return touched
 }
 
+// TouchedStrict checks whether a ChangeSet may change what a write read, by
+// this set or a set it joined. It is Touched, except that a changed quad also
+// touches each object it names: setting or deleting a quad revises those
+// objects, and a write that read an object's revision depends on it, though a
+// view of the object's body does not.
+func (r *ReadSet) TouchedStrict(changes *ChangeSet) bool {
+	// Apply the view rule first.
+	if r.Touched(changes) {
+		return true
+	}
+
+	// Match the objects the changed quads revised against the object reads.
+	r.mtx.Lock()
+	revised := slices.ContainsFunc(changes.Quads, r.revisesLocked)
+	joined := r.joined
+	r.mtx.Unlock()
+	return revised || slices.ContainsFunc(joined, func(set *ReadSet) bool { return set.TouchedStrict(changes) })
+}
+
 // touchedLocked checks changes against the reads. The caller holds mtx.
 func (r *ReadSet) touchedLocked(changes *ChangeSet) bool {
 	// Unknown and conservative reads match every non-empty change.
@@ -218,13 +237,8 @@ func (r *ReadSet) nameReads(interest *ChangeInterest) []*ReadSet {
 // touchesKey checks a changed object key. The caller holds mtx.
 func (r *ReadSet) touchesKey(key string) bool {
 	// Match the key itself and the iterated prefixes.
-	if _, ok := r.keys[key]; ok {
+	if r.readsObjectLocked(key) {
 		return true
-	}
-	for _, prefix := range r.prefixes {
-		if strings.HasPrefix(key, prefix) {
-			return true
-		}
 	}
 
 	// Match a graph read naming the key as a subject or object.
@@ -233,6 +247,26 @@ func (r *ReadSet) touchesKey(key string) bool {
 	}
 	_, ok := r.endpoints[key]
 	return ok
+}
+
+// revisesLocked checks whether a changed quad revised an object that was read
+// by key or under an iterated prefix. The caller holds mtx.
+func (r *ReadSet) revisesLocked(q GraphQuad) bool {
+	for _, value := range [2]string{q.GetSubject(), q.GetObj()} {
+		if key, err := GraphValueToKey(value); err == nil && key != "" && r.readsObjectLocked(key) {
+			return true
+		}
+	}
+	return false
+}
+
+// readsObjectLocked checks whether an object was read by its key or under an
+// iterated prefix. The caller holds mtx.
+func (r *ReadSet) readsObjectLocked(key string) bool {
+	if _, ok := r.keys[key]; ok {
+		return true
+	}
+	return slices.ContainsFunc(r.prefixes, func(prefix string) bool { return strings.HasPrefix(key, prefix) })
 }
 
 // addKeys records object key reads.

@@ -117,6 +117,53 @@ func TestReadSetTouched(t *testing.T) {
 	}
 }
 
+// TestReadSetTouchedStrict checks that a changed quad touches a write that read
+// an object it names, by key or under a prefix, while a view of the object is
+// touched only through its graph reads.
+func TestReadSetTouchedStrict(t *testing.T) {
+	// Read key a and iterate prefix dir/.
+	ctx := t.Context()
+	reads := NewReadSet()
+	ws := reads.Track(readStubWorldState{})
+	obj, _, err := ws.GetObject(ctx, "a")
+	ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ws.IterateObjects(ctx, "dir/", false)
+
+	// A finished set that read key j, joined by another.
+	inner, outer := NewReadSet(), NewReadSet()
+	inner.addKeys("j")
+	outer.join(inner)
+
+	// Compare each ChangeSet against the reads under both rules.
+	cases := []struct {
+		name          string
+		reads         *ReadSet
+		changes       *ChangeSet
+		touched       bool
+		touchedStrict bool
+	}{
+		{"read key", reads, &ChangeSet{Keys: []string{"a"}}, true, true},
+		{"subject read", reads, &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<a>", `"p"`, "<b>", "")}}, false, true},
+		{"object under prefix", reads, &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<b>", `"p"`, "<dir/x>", "")}}, false, true},
+		{"unread endpoints", reads, &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<b>", `"p"`, "<c>", "")}}, false, false},
+		{"literal object", reads, &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<b>", `"p"`, `"a"`, "")}}, false, false},
+		{"joined read", outer, &ChangeSet{Quads: []GraphQuad{NewGraphQuad("<b>", `"p"`, "<j>", "")}}, false, true},
+		{"empty", reads, &ChangeSet{}, false, false},
+		{"unknown", reads, NewUnknownChangeSet(), true, true},
+	}
+	for _, c := range cases {
+		if got := c.reads.Touched(c.changes); got != c.touched {
+			t.Errorf("%s: touched = %v, want %v", c.name, got, c.touched)
+		}
+		if got := c.reads.TouchedStrict(c.changes); got != c.touchedStrict {
+			t.Errorf("%s: touched strict = %v, want %v", c.name, got, c.touchedStrict)
+		}
+	}
+}
+
 // TestReadSetStorageReads checks that only a read of the root World state
 // touches every change. Blocks named by a ref never change.
 func TestReadSetStorageReads(t *testing.T) {

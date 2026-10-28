@@ -80,6 +80,60 @@ func TestWatchChanges(t *testing.T) {
 	checkQuads(t, changes.Quads, linked, unlinked)
 }
 
+// TestWatchChangesQuadRevisionTouchesWrite checks that a quad set on an object
+// a write read, which revises the object without listing its key, touches the
+// write's reads under the strict rule but not a view's.
+func TestWatchChangesQuadRevisionTouchesWrite(t *testing.T) {
+	// Create the object to read and the one to link it from.
+	ctx := t.Context()
+	e := newRetirementTestEngine(t, ctx)
+	ws := world.NewEngineWorldState(e, true)
+	createWatchTestObject(t, ctx, ws, "rev/read")
+	createWatchTestObject(t, ctx, ws, "rev/other")
+	after := headSeqno(t, ctx, e)
+
+	// Read its revision through a tracked World state.
+	reads := world.NewReadSet()
+	obj, err := world.MustGetObject(ctx, reads.Track(ws), "rev/read")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, rev, err := obj.GetRootRef(ctx)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Link the other object to it, which moves its revision.
+	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("rev/other", "<p>", "rev/read", "")); err != nil {
+		t.Fatal(err)
+	}
+	obj, err = world.MustGetObject(ctx, ws, "rev/read")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, next, err := obj.GetRootRef(ctx)
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next == rev {
+		t.Fatalf("revision stayed at %d after the quad", rev)
+	}
+
+	// The change lists the quad alone; only the strict rule matches the read.
+	_, changes := readChangeWindow(t, ctx, e, after)
+	if slices.Contains(changes.Keys, "rev/read") {
+		t.Fatalf("changed keys %q list the object revised by its quad", changes.Keys)
+	}
+	if reads.Touched(changes) {
+		t.Error("the quad touched the reads under the view rule")
+	}
+	if !reads.TouchedStrict(changes) {
+		t.Error("the quad missed the revision read under the strict rule")
+	}
+}
+
 // TestWatchChangesImportedRoot checks that a head installed from outside the
 // Engine, as a SharedObject replay or a snapshot import installs it, yields a
 // precise ChangeSet.
