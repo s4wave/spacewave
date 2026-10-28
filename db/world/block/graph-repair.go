@@ -5,10 +5,14 @@ import (
 	"context"
 	"slices"
 
+	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
+	"github.com/aperturerobotics/cayley/kv/flat"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
+	hidalgo "github.com/s4wave/spacewave/db/kvtx/hidalgo"
 )
 
 // GraphRepair reports a repair of the World's graph tree.
@@ -138,4 +142,102 @@ func (t *WorldState) readGraphRange(
 		return nil, errors.Errorf("%d pages missing in range, first %s", len(holes), holes[0].Ref.MarshalString())
 	}
 	return into.CopyEntries(ctx, tree, entries)
+}
+
+// ReindexGraphTree repairs a graph tree whose missing pages all hold quad
+// postings: it drops the missing ranges, then rebuilds every posting index
+// from the primitive log, which keeps node values, reference counts, graph
+// size and primitive IDs. It refuses when a missing page could hold anything
+// but postings, since those cannot be rebuilt from the rest of the graph.
+// Without apply it only reports.
+func (t *WorldState) ReindexGraphTree(ctx context.Context, apply bool) (*GraphRepair, error) {
+	// Apply held graph writes so the walk sees the current tree.
+	if err := t.flushGraphWrites(ctx); err != nil {
+		return nil, errors.Wrap(err, "graph write flush")
+	}
+	tree, ok := t.graphTree.(*kvtx_block_okra.Tx)
+	if !ok {
+		return nil, errors.Errorf("graph tree is %T, not an okra tree", t.graphTree)
+	}
+	qs, ok := t.graphHd.QuadStore.(*cayley_kv.QuadStore)
+	if !ok {
+		return nil, errors.Errorf("graph store is %T, not a kv quad store", t.graphHd.QuadStore)
+	}
+	layout := qs.Layout()
+
+	// Collect every readable key and the missing pages.
+	entries, holes, err := tree.Salvage(ctx, nil, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "walk graph tree")
+	}
+	report := &GraphRepair{Keys: len(entries), Holes: holes, Fills: make([]GraphHoleFill, len(holes))}
+
+	// Require each missing range to lie inside one posting bucket.
+	for i, hole := range holes {
+		if bucket := postingBucketOf(layout, hole.Low, hole.High); bucket == "" {
+			report.Fills[i].Tried = append(report.Fills[i].Tried, "range is not inside one posting bucket")
+		} else {
+			report.Fills[i].Tried = append(report.Fills[i].Tried, "postings of index "+bucket+", rebuilt from the log")
+		}
+	}
+	if !apply {
+		return report, nil
+	}
+	for i, hole := range holes {
+		if postingBucketOf(layout, hole.Low, hole.High) == "" {
+			return report, errors.Errorf("missing page %s may hold more than postings", holes[i].Ref.MarshalString())
+		}
+	}
+
+	// Drop the missing ranges, then rebuild the postings from the log
+	// through the same store stack the graph handle uses.
+	if err := tree.ReplaceAllEntries(ctx, entries); err != nil {
+		return report, errors.Wrap(err, "replace graph tree")
+	}
+	var store kvtx.TxOps = tree
+	if t.graphOps != nil {
+		store = t.graphOps
+	}
+	rebuilder, err := cayley_kv.NewIndexRebuilder(flat.Upgrade(hidalgo.NewKV(kvtx.NewTxStore(store))), layout)
+	if err != nil {
+		return report, err
+	}
+	if _, err := rebuilder.Rebuild(ctx); err != nil {
+		return report, errors.Wrap(err, "rebuild graph indexes")
+	}
+	if err := t.flushGraphWrites(ctx); err != nil {
+		return report, errors.Wrap(err, "graph write flush")
+	}
+	report.Applied = true
+	return report, nil
+}
+
+// postingBucketOf returns the posting bucket of layout whose flat keys hold
+// all of [low, high), or empty when there is none.
+func postingBucketOf(layout []cayley_kv.QuadIndex, low, high []byte) string {
+	if len(low) == 0 || len(high) == 0 {
+		return ""
+	}
+	for _, index := range layout {
+		name := postingBucketName(index)
+		first := []byte(name + "/")
+		past := []byte(name + "0")
+		if bytes.Compare(low, first) >= 0 && bytes.Compare(high, past) <= 0 {
+			return name
+		}
+	}
+	return ""
+}
+
+// postingBucketName returns the name of the posting bucket of index, as the
+// kv quad store names it: the prefix byte of each direction.
+func postingBucketName(index cayley_kv.QuadIndex) string {
+	buf := make([]byte, len(index.Dirs))
+	for i, d := range index.Dirs {
+		buf[i] = d.Prefix()
+		if buf[i] == 0 {
+			buf[i] = '0'
+		}
+	}
+	return string(buf)
 }
