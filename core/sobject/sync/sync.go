@@ -67,8 +67,9 @@ type SOSync struct {
 	peerAdmission func(peer.ID, bool)
 	// peerRecovery reports trusted recovery requirements independently of admission.
 	peerRecovery func(peer.ID, bool)
-	// peerConnection reports each authenticated stream's start and end.
-	peerConnection func(peer.ID, bool, error)
+	// peerConnection reports each authenticated stream's participant,
+	// transport peer, start and end.
+	peerConnection func(peer.ID, peer.ID, bool, error)
 	// failures remembers the last logged stream failure of each peer.
 	failures syncFailures
 	// digest memoizes the digest of the latest watched state for every stream.
@@ -135,9 +136,11 @@ func (s *SOSync) SetPeerRecoveryObserver(observer func(peer.ID, bool)) {
 
 // SetPeerConnectionObserver configures stream observation before Execute
 // starts. The observer sees connected once a participant authenticates, then
-// not connected with the error that ended the stream. It must return promptly;
-// calls can come from concurrent peer streams.
-func (s *SOSync) SetPeerConnectionObserver(observer func(remoteID peer.ID, connected bool, err error)) {
+// not connected with the error that ended the stream; each connected call is
+// paired with one later call that is not. remoteTransport is the transport
+// peer of the link the participant proved its identity over. It must return
+// promptly; calls can come from concurrent peer streams.
+func (s *SOSync) SetPeerConnectionObserver(observer func(remoteID, remoteTransport peer.ID, connected bool, err error)) {
 	s.peerConnection = observer
 }
 
@@ -434,8 +437,8 @@ func (s *SOSync) runStream(
 
 	// Report the authenticated stream until it ends.
 	if s.peerConnection != nil {
-		s.peerConnection(remoteID, true, nil)
-		defer func() { s.peerConnection(remoteID, false, rerr) }()
+		s.peerConnection(remoteID, remoteTransport, true, nil)
+		defer func() { s.peerConnection(remoteID, remoteTransport, false, rerr) }()
 	}
 	if err := strm.SetDeadline(time.Time{}); err != nil {
 		return err

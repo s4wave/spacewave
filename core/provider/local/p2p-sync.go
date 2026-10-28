@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	sharedobject_dexaccess "github.com/s4wave/spacewave/core/sobject/dexaccess"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	sobject_sync "github.com/s4wave/spacewave/core/sobject/sync"
 	"github.com/s4wave/spacewave/core/space"
@@ -796,7 +797,7 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		if state.hasSO(soID) {
 			continue
 		}
-		if err := a.startSOSync(syncCtx, childBus, ref, ReplicatesSpace(entry), soID, state); err != nil {
+		if err := a.startSOSync(syncCtx, childBus, ref, ReplicatesSpace(entry), soID, sessionTransport.GetPeerID(), state); err != nil {
 			if syncCtx.Err() != nil {
 				return syncCtx.Err()
 			}
@@ -990,13 +991,7 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		syncRoutines = make([]*routine.RoutineContainer, 0, len(state.soSync))
 		for _, syncRoutine := range state.soSync {
-			syncRoutines = append(syncRoutines, syncRoutine.sync)
-			if syncRoutine.copy != nil {
-				syncRoutines = append(syncRoutines, syncRoutine.copy)
-			}
-			if syncRoutine.hosting != nil {
-				syncRoutines = append(syncRoutines, syncRoutine.hosting)
-			}
+			syncRoutines = append(syncRoutines, syncRoutine.workers()...)
 		}
 		if state.replicaSync != nil {
 			syncRoutines = append(syncRoutines, state.replicaSync)
@@ -1043,14 +1038,17 @@ func ReplicatesSpace(entry *sobject.SharedObjectListEntry) bool {
 	return entry.GetMeta().GetBodyType() == space.SpaceBodyType && entry.GetSource() != "shared"
 }
 
-// startSOSync mounts the shared object and starts an SOSync instance for it.
-// replicate also copies the object's blocks to the account replica.
+// startSOSync mounts the shared object and starts an SOSync instance for it,
+// keeping the holders of its bucket's block exchange current. replicate also
+// copies the object's blocks to the account replica. localTransport is this
+// device's session transport peer.
 func (a *ProviderAccount) startSOSync(
 	ctx context.Context,
 	childBus bus.Bus,
 	ref *sobject.SharedObjectRef,
 	replicate bool,
 	soID string,
+	localTransport peer.ID,
 	state *p2pSyncState,
 ) (retErr error) {
 	// Cancel every routine of this object when startup fails.
@@ -1069,6 +1067,8 @@ func (a *ProviderAccount) startSOSync(
 		return err
 	}
 	localSO := so.(*SharedObject)
+	provRef := ref.GetProviderResourceRef()
+	exchange := state.getExchange(BlockStoreBucketID(provRef.GetProviderId(), provRef.GetProviderAccountId(), ref.GetBlockStoreId()))
 
 	// Validate inbound snapshots against the local storage identity that holds
 	// the Space grant. The session transport peer routes the stream but is not
@@ -1106,10 +1106,13 @@ func (a *ProviderAccount) startSOSync(
 			return health.WithSyncPeerRecovery(remoteID.String(), required)
 		})
 	})
-	soSync.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
+	soSync.SetPeerConnectionObserver(func(remoteID, remoteTransport peer.ID, connected bool, err error) {
 		localSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
 			return health.WithSyncPeerConnection(remoteID.String(), connected, err, time.Now())
 		})
+		if exchange != nil {
+			exchange.LinkHolder(remoteTransport, remoteID, connected)
+		}
 	})
 
 	// Retain the mount for this generation while allowing an explicit invite to
@@ -1129,11 +1132,17 @@ func (a *ProviderAccount) startSOSync(
 	hostingRoutine.SetRoutine(func(ctx context.Context) error { return a.watchSOHosting(ctx, soID, localSO) })
 	objectSync := &accountObjectSync{sync: syncRoutine, hosting: hostingRoutine, cancel: cancel, release: relSO}
 
+	// Keep the exchange's holders at the object's other readers.
+	if exchange != nil {
+		objectSync.holders = routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-dex-holders"), routine.WithRetry(providerBackoff))
+		objectSync.holders.SetRoutine(func(ctx context.Context) error {
+			return sharedobject_dexaccess.WatchHolders(ctx, localSO.soHost, exchange, localSO.GetPeerID(), localTransport)
+		})
+	}
+
 	// Copy a Space the account replicates alongside its sync.
 	if replicate {
 		objectSync.copy = routine.NewRoutineContainerWithLogger(a.le.WithField("routine", "account-copy"), routine.WithRetry(providerBackoff))
-		provRef := ref.GetProviderResourceRef()
-		exchange := state.getExchange(BlockStoreBucketID(provRef.GetProviderId(), provRef.GetProviderAccountId(), ref.GetBlockStoreId()))
 		objectSync.copy.SetRoutine(func(ctx context.Context) error {
 			return a.runAccountReplicaCopy(ctx, so, state, exchange)
 		})
@@ -1151,11 +1160,9 @@ func (a *ProviderAccount) startSOSync(
 	state.addRelease(cancel)
 
 	// Start every routine registered for the object.
-	syncRoutine.SetContext(ctx, false)
-	if objectSync.copy != nil {
-		objectSync.copy.SetContext(ctx, false)
+	for _, worker := range objectSync.workers() {
+		worker.SetContext(ctx, false)
 	}
-	objectSync.hosting.SetContext(ctx, false)
 	return nil
 }
 

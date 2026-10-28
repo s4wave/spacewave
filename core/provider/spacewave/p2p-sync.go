@@ -318,7 +318,7 @@ func (a *ProviderAccount) runP2PSpace(ctx context.Context, childBus bus.Bus, sta
 			return health.WithSyncPeerRecovery(remoteID.String(), required)
 		})
 	})
-	syncer.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
+	syncer.SetPeerConnectionObserver(func(remoteID, _ peer.ID, connected bool, err error) {
 		swSO.tkr.healthCtr.SwapValue(func(health *sobject.SharedObjectHealth) *sobject.SharedObjectHealth {
 			return health.WithSyncPeerConnection(remoteID.String(), connected, err, time.Now())
 		})

@@ -12,9 +12,10 @@ import (
 
 // peerConnectionEvent is one call of the peer connection observer.
 type peerConnectionEvent struct {
-	remoteID  peer.ID
-	connected bool
-	err       error
+	remoteID        peer.ID
+	remoteTransport peer.ID
+	connected       bool
+	err             error
 }
 
 // TestPeerConnectionReportsStreamGap cuts the link between two devices holding
@@ -31,8 +32,8 @@ func TestPeerConnectionReportsStreamGap(t *testing.T) {
 	local := newAuthenticationPeer(t, soID, owner, initial)
 	remote := newAuthenticationPeer(t, soID, reader, initial)
 	events := make(chan peerConnectionEvent, 4)
-	local.SetPeerConnectionObserver(func(remoteID peer.ID, connected bool, err error) {
-		events <- peerConnectionEvent{remoteID, connected, err}
+	local.SetPeerConnectionObserver(func(remoteID, remoteTransport peer.ID, connected bool, err error) {
+		events <- peerConnectionEvent{remoteID, remoteTransport, connected, err}
 	})
 	states, release, err := remote.soHost.GetSOStateCtr(ctx, nil)
 	if err != nil {
@@ -55,8 +56,8 @@ func TestPeerConnectionReportsStreamGap(t *testing.T) {
 		t.Helper()
 		select {
 		case event := <-events:
-			if event.remoteID != remote.localObjectPeerID {
-				t.Fatalf("observed peer %s, want %s", event.remoteID, remote.localObjectPeerID)
+			if event.remoteID != remote.localObjectPeerID || event.remoteTransport != "transport-b" {
+				t.Fatalf("observed peer %s over %s, want %s over transport-b", event.remoteID, event.remoteTransport, remote.localObjectPeerID)
 			}
 			return event
 		case <-ctx.Done():
