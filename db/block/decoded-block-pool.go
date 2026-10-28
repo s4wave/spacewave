@@ -44,6 +44,8 @@ type decodedBlockPool struct {
 	maxCost atomic.Int64
 	// nextScope allocates scope key prefixes.
 	nextScope atomic.Uint64
+	// off bypasses the shards from then on, as a disabled pool does.
+	off atomic.Bool
 }
 
 // decodedBlockShard is one lock's share of a pool.
