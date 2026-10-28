@@ -168,7 +168,9 @@ func (t *WorldState) GraphTreeHolesAt(ctx context.Context, root *block.BlockRef)
 // openGraphTreeAt opens the graph tree of the World at root read-only, over
 // the store of this World. Discard the returned tree when done.
 func (t *WorldState) openGraphTreeAt(ctx context.Context, root *block.BlockRef) (*kvtx_block_okra.Tx, error) {
-	_, bcs := block.NewTransaction(t.store, t.btx.GetTransformer(), root, nil)
+	// A read-only state has no block transaction of its own, so take the
+	// bucket's transformer from the cursor's transaction.
+	_, bcs := block.NewTransaction(t.store, t.bcs.GetTransaction().GetTransformer(), root, nil)
 	if _, err := block.UnmarshalBlock[World](ctx, bcs); err != nil {
 		return nil, errors.Wrap(err, "load World root")
 	}
