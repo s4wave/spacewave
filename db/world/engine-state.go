@@ -302,7 +302,8 @@ func retryWorldOp(err error) bool {
 
 // performOp replays a complete operation in a fresh transaction after either a
 // coordinated head change or an invalid storage snapshot. Each failed attempt
-// is discarded before the next transaction opens.
+// is discarded before the next transaction opens, and a replay drops
+// WithOptimisticWrite so it conflicts at most once.
 func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx Tx) error) error {
 	if !e.write && write {
 		return tx.ErrNotWrite
@@ -317,6 +318,7 @@ func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx
 		if !retryWorldOp(err) {
 			return err
 		}
+		ctx = WithoutOptimisticWrite(ctx)
 	}
 	return err
 }

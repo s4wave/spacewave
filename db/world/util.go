@@ -11,8 +11,10 @@ import (
 // ExecTransaction runs cb in a transaction and commits it when write is set
 // and cb succeeds. When another writer moves the World head or the storage
 // snapshot becomes invalid, it replays cb in a fresh transaction, up to
-// maxEngineWorldStateTries more times. cb must be safe to replay: it must
-// create or reset its per-attempt state and perform no external effects.
+// maxEngineWorldStateTries more times. A replay drops WithOptimisticWrite, so
+// it holds the writer lock and conflicts at most once. cb must be safe to
+// replay: it must create or reset its per-attempt state and perform no
+// external effects.
 func ExecTransaction(
 	ctx context.Context,
 	eng Engine,
@@ -29,6 +31,7 @@ func ExecTransaction(
 		if !retryWorldOp(err) {
 			return err
 		}
+		ctx = WithoutOptimisticWrite(ctx)
 	}
 	return err
 }

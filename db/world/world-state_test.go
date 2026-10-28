@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -508,6 +509,38 @@ func TestExecTransactionReplaysStaleCommit(t *testing.T) {
 	}
 }
 
+// TestRerunsDropOptimisticWrite checks that ExecTransaction and an engine
+// World state operation rerun a write that asked for an optimistic write
+// without the request, so the rerun holds the writer lock.
+func TestRerunsDropOptimisticWrite(t *testing.T) {
+	// Fail the first commit of each as stale.
+	ctx := world.WithOptimisticWrite(context.Background())
+	execEng := &staleRetryEngine{objects: make(map[string]*bucket.ObjectRef), staleCommit: 1}
+	opEng := &staleRetryEngine{objects: make(map[string]*bucket.ObjectRef), staleCommit: 1}
+
+	// Create an object through each rerun loop.
+	err := world.ExecTransaction(ctx, execEng, true, func(ctx context.Context, ws world.WorldState) error {
+		obj, err := ws.CreateObject(ctx, "exec", &bucket.ObjectRef{BucketId: "bucket"})
+		world.ReleaseObjectState(obj)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj, err := world.NewEngineWorldState(opEng, true).CreateObject(ctx, "op", &bucket.ObjectRef{BucketId: "bucket"})
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The first attempt asked and the rerun did not.
+	for name, eng := range map[string]*staleRetryEngine{"ExecTransaction": execEng, "CreateObject": opEng} {
+		if !slices.Equal(eng.optimistic, []bool{true, false}) {
+			t.Fatalf("%s attempts asked for optimistic writes %v, want [true false]", name, eng.optimistic)
+		}
+	}
+}
+
 type releaseCountingWorldState struct {
 	world.WorldState
 	releases int
@@ -604,6 +637,9 @@ type staleRetryEngine struct {
 	staleCreate int
 	staleCommit int
 	objects     map[string]*bucket.ObjectRef
+	// optimistic records whether each transaction's ctx asked for an
+	// optimistic write.
+	optimistic []bool
 }
 
 func (e *staleRetryEngine) OperationAuthor(context.Context) (peer.ID, string, error) {
@@ -611,6 +647,7 @@ func (e *staleRetryEngine) OperationAuthor(context.Context) (peer.ID, string, er
 }
 
 func (e *staleRetryEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	e.optimistic = append(e.optimistic, world.OptimisticWrite(ctx))
 	if e.staleNewTx > 0 {
 		e.staleNewTx--
 		return nil, coord.ErrStaleGeneration
