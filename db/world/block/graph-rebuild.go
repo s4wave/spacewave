@@ -170,6 +170,9 @@ type rebuildNode struct {
 type rebuildQuad struct {
 	id   uint64
 	dirs [4]uint64
+	// recovered is set for a quad rebuilt from the audit or supplied, clear
+	// for one read from the log.
+	recovered bool
 }
 
 // graphKV is a rebuilt entry.
@@ -315,7 +318,7 @@ func (b *graphRebuilder) add(ctx context.Context, p *cayley_proto.Primitive, rec
 		b.isNode.set(p.ID)
 		return nil
 	}
-	b.quads = append(b.quads, rebuildQuad{id: p.ID, dirs: [4]uint64{p.Subject, p.Predicate, p.Object, p.Label}})
+	b.quads = append(b.quads, rebuildQuad{id: p.ID, dirs: [4]uint64{p.Subject, p.Predicate, p.Object, p.Label}, recovered: recovered})
 	return nil
 }
 
@@ -351,7 +354,11 @@ func (b *graphRebuilder) resolve() {
 			}
 		}
 		if lost != 0 {
-			b.drop(q.id, false, "names node "+strconv.FormatUint(lost, 10)+", which has no record")
+			source := "readable"
+			if q.recovered {
+				source = "recovered"
+			}
+			b.drop(q.id, false, source+" quad names node "+strconv.FormatUint(lost, 10)+", which has no record")
 			continue
 		}
 		for _, id := range q.dirs {
@@ -522,8 +529,9 @@ func (b *graphRebuilder) merge(ctx context.Context, out func(kvtx_block_okra.Bui
 	isRegenerated := func(key []byte) bool {
 		return regenerated[flatBucket(key, "")] || bytes.Equal(key, sizeKey)
 	}
-	example := func(c *GraphBucketCheck, kind string, key []byte) {
-		if len(c.Examples) < graphCheckExamples*3 {
+	// Keep the first examples of each kind, given the kind's count so far.
+	example := func(c *GraphBucketCheck, kind string, n int, key []byte) {
+		if n <= graphCheckExamples {
 			c.Examples = append(c.Examples, kind+" "+strconv.Quote(string(key)))
 		}
 	}
@@ -542,7 +550,7 @@ func (b *graphRebuilder) merge(ctx context.Context, out func(kvtx_block_okra.Bui
 	added := func(kv graphKV) (bool, error) {
 		c := check(flatBucket(kv.key, ""))
 		c.Added++
-		example(c, "added", kv.key)
+		example(c, "added", c.Added, kv.key)
 		return emit(kv)
 	}
 
@@ -573,7 +581,7 @@ func (b *graphRebuilder) merge(ctx context.Context, out func(kvtx_block_okra.Bui
 				if b.dropped.has(id) {
 					c := check(bucket)
 					c.Removed++
-					example(c, "removed", entry.Key)
+					example(c, "removed", c.Removed, entry.Key)
 					return true
 				}
 			}
@@ -588,7 +596,7 @@ func (b *graphRebuilder) merge(ctx context.Context, out func(kvtx_block_okra.Bui
 		c := check(bucket)
 		if !same {
 			c.Removed++
-			example(c, "removed", entry.Key)
+			example(c, "removed", c.Removed, entry.Key)
 			return true
 		}
 		value, found, err := b.entryValue(ctx, entry)
@@ -600,7 +608,7 @@ func (b *graphRebuilder) merge(ctx context.Context, out func(kvtx_block_okra.Bui
 			c.Same++
 		} else {
 			c.Changed++
-			example(c, "changed", entry.Key)
+			example(c, "changed", c.Changed, entry.Key)
 		}
 		ok, err := emit(gen)
 		if err != nil || !ok {
