@@ -265,9 +265,9 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 		batch.Complete(err)
 		return nil, err
 	}
-	heads := []*block.AtomicHeadUpdate{head}
+	heads := []*block.AtomicHeadUpdate{countedHead(head, kindState)}
 	if cursor != nil {
-		heads = append(heads, cursor)
+		heads = append(heads, countedHead(cursor, kindReplay))
 	}
 
 	// Submit them, writing the blocks alone when the store declines.
@@ -289,6 +289,7 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 		return nil, err
 	}
 	t.clock.end(stagePublicationAdmission)
+	countPublication(batch.Entries, t.fork.payloads, saveEntries)
 
 	// The publication holds the candidate under the accepted World root and
 	// carries the replay save once its receipt succeeds.

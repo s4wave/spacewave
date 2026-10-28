@@ -162,7 +162,9 @@ func (e *soEngine) queueStableCheckpoint(ctx context.Context, snap sobject.Share
 	}
 
 	// Replace any checkpoint the routine has not taken and wake it.
-	e.stableNext.Store(ckpt)
+	if e.stableNext.Swap(ckpt) != nil {
+		countCheckpoint(outcomeSuperseded)
+	}
 	select {
 	case e.stableWake <- struct{}{}:
 	default:
@@ -184,6 +186,7 @@ func (e *soEngine) executeStableCheckpoints() {
 			continue
 		}
 		if err := e.adoptStable(e.lifetime, ckpt); err != nil && e.lifetime.Err() == nil {
+			countCheckpoint(outcomeFailed)
 			e.c.le.WithError(err).Warn("failed to checkpoint the stable point")
 		}
 	}
@@ -199,6 +202,7 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 	// Only the checkpointer signs, and only from a host it can sign through.
 	host, ok := e.so.(sobject.StateHost)
 	if !ok {
+		skipCheckpoint(skipNotHost)
 		return nil, nil
 	}
 	cfg, err := snap.GetConfig(ctx)
@@ -209,10 +213,12 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 		if e.control != nil {
 			e.control.Wake()
 		}
+		skipCheckpoint(skipGroupControl)
 		return nil, nil
 	}
 	self := e.so.GetPeerID().String()
 	if cfg.Checkpointer() != self {
+		skipCheckpoint(skipNotCheckpointer)
 		return nil, nil
 	}
 
@@ -223,6 +229,7 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 		return nil, err
 	}
 	if own.Departing(self) {
+		skipCheckpoint(skipDeparting)
 		return nil, nil
 	}
 
@@ -230,6 +237,7 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 	// the state directly, and the update after the last receipt settles
 	// checkpoints again.
 	if e.pending() {
+		skipCheckpoint(skipReceiptPending)
 		return nil, nil
 	}
 
@@ -242,12 +250,14 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 	}
 	prefix := set.StablePoint(cfg.TrimRoster())
 	if len(prefix) < minStable {
+		skipCheckpoint(skipFewStable)
 		return nil, nil
 	}
 
 	// Encode the World after the stable prefix.
 	world := e.replay.stateAfter(prefix)
 	if world == nil {
+		skipCheckpoint(skipNoWorld)
 		return nil, nil
 	}
 	data, err := world.MarshalVT()
@@ -264,8 +274,12 @@ func (e *soEngine) adoptStable(ctx context.Context, ckpt *stableCheckpoint) erro
 	err := ckpt.host.GetSOHost().UpdateSOState(ctx, func(state *sobject.SOState) error {
 		return e.adoptStableCheckpoint(ctx, ckpt.host, state, ckpt.prefix, ckpt.data)
 	})
-	if errors.Is(err, errStableCheckpointStale) {
+	switch {
+	case errors.Is(err, errStableCheckpointStale):
+		countCheckpoint(outcomeStale)
 		return nil
+	case err == nil:
+		countCheckpoint(outcomeWritten)
 	}
 	return err
 }
