@@ -260,6 +260,13 @@ func (t *Tx) ReplaceAllEntries(ctx context.Context, entries iter.Seq2[BuildEntry
 	return t.replaceAll(ctx, entries)
 }
 
+// ValueEntry returns the leaf entry of key holding value, stored the way this
+// tree stores new values: inline when small enough, otherwise in a blob
+// written into the transaction's staged writes.
+func (t *Tx) ValueEntry(ctx context.Context, key, value []byte) (BuildEntry, error) {
+	return t.buildValueEntry(ctx, key, value)
+}
+
 // CopyEntries returns entries read from the tree from, with each value that
 // lives in its own block written again into this tree's staged writes, so the
 // entries stay readable here without the blocks of from. Inline values are
