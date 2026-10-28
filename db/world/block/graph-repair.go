@@ -25,6 +25,8 @@ type GraphRepair struct {
 	Fills []GraphHoleFill
 	// Applied is set when the rebuilt tree replaced the graph tree.
 	Applied bool
+	// Seqno is the World's sequence number, set by GraphTreeHolesAt.
+	Seqno uint64
 }
 
 // GraphHoleFill is what an older World held in the key range of one hole.
@@ -122,7 +124,7 @@ func (t *WorldState) readGraphRange(
 	copyValues bool,
 ) ([]kvtx_block_okra.BuildEntry, error) {
 	// Open the older World in a read transaction over the same store.
-	tree, err := t.openGraphTreeAt(ctx, root)
+	tree, _, err := t.openGraphTreeAt(ctx, root)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +155,7 @@ func (t *WorldState) readGraphRange(
 // GraphTreeHolesAt walks the whole graph tree of the World at root and reports
 // its readable keys and missing pages, writing nothing.
 func (t *WorldState) GraphTreeHolesAt(ctx context.Context, root *block.BlockRef) (*GraphRepair, error) {
-	tree, err := t.openGraphTreeAt(ctx, root)
+	tree, seqno, err := t.openGraphTreeAt(ctx, root)
 	if err != nil {
 		return nil, err
 	}
@@ -162,28 +164,30 @@ func (t *WorldState) GraphTreeHolesAt(ctx context.Context, root *block.BlockRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "walk graph tree")
 	}
-	return &GraphRepair{Keys: int(keys), Holes: holes, Fills: make([]GraphHoleFill, len(holes))}, nil
+	return &GraphRepair{Keys: int(keys), Holes: holes, Fills: make([]GraphHoleFill, len(holes)), Seqno: seqno}, nil
 }
 
 // openGraphTreeAt opens the graph tree of the World at root read-only, over
-// the store of this World. Discard the returned tree when done.
-func (t *WorldState) openGraphTreeAt(ctx context.Context, root *block.BlockRef) (*kvtx_block_okra.Tx, error) {
+// the store of this World, and returns it with the World's sequence number.
+// Discard the returned tree when done.
+func (t *WorldState) openGraphTreeAt(ctx context.Context, root *block.BlockRef) (*kvtx_block_okra.Tx, uint64, error) {
 	// A read-only state has no block transaction of its own, so take the
 	// bucket's transformer from the cursor's transaction.
 	_, bcs := block.NewTransaction(t.store, t.bcs.GetTransaction().GetTransformer(), root, nil)
-	if _, err := block.UnmarshalBlock[World](ctx, bcs); err != nil {
-		return nil, errors.Wrap(err, "load World root")
+	w, err := block.UnmarshalBlock[World](ctx, bcs)
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "load World root")
 	}
 	gtx, err := kvtx_block.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
 	if err != nil {
-		return nil, errors.Wrap(err, "open graph tree")
+		return nil, 0, errors.Wrap(err, "open graph tree")
 	}
 	tree, ok := gtx.(*kvtx_block_okra.Tx)
 	if !ok {
 		gtx.Discard()
-		return nil, errors.Errorf("graph tree is %T, not an okra tree", gtx)
+		return nil, 0, errors.Errorf("graph tree is %T, not an okra tree", gtx)
 	}
-	return tree, nil
+	return tree, w.GetLastChange().GetSeqno(), nil
 }
 
 // ReindexGraphTree repairs a graph tree whose missing pages all hold quad
