@@ -3,6 +3,7 @@ package kvtx_block_okra
 import (
 	"bytes"
 	"context"
+	"iter"
 	"slices"
 	"sync"
 
@@ -28,148 +29,185 @@ type SalvageHole struct {
 	Err error
 }
 
-// Salvage returns, in key order, every leaf entry the tree holds in
-// [low, high) that it can read, and the pages it could not read. An empty low
-// or high leaves that side unbounded. A page that reads as not found is a
-// hole and the walk continues past it; any other error stops the walk.
-func (t *Tx) Salvage(ctx context.Context, low, high []byte) ([]BuildEntry, []SalvageHole, error) {
+// errSalvageStop ends a Salvage walk when its consumer stops early.
+var errSalvageStop = errors.New("salvage walk stopped")
+
+// salvageConcurrency bounds the child pages one page loads at once.
+const salvageConcurrency = 32
+
+// Salvage walks the leaf entries in [low, high) in key order. It calls entry
+// for each readable leaf entry and hole for each page that reads as not
+// found, then continues past it. Either callback may be nil, and either may
+// return false to stop the walk. Any read error other than not found stops
+// the walk. An empty low or high leaves that side unbounded.
+//
+// Nothing is retained between callbacks: the walk holds only the pages on
+// the path to the current one, so it runs in memory bounded by the tree's
+// height. The children of each page load in parallel.
+func (t *Tx) Salvage(
+	ctx context.Context,
+	low, high []byte,
+	entry func(BuildEntry) bool,
+	hole func(SalvageHole) bool,
+) error {
 	// An empty tree holds nothing.
 	if t.root.GetSize() == 0 {
-		return nil, nil, nil
+		return nil
 	}
 
 	// Load the root page, which is itself a hole when it is missing.
-	s := &salvage{low: low, high: high}
+	s := &salvage{low: low, high: high, entry: entry, hole: hole}
 	page, cursor, err := t.getRootPage(ctx)
 	if err != nil {
 		if !errors.Is(err, block.ErrNotFound) {
-			return nil, nil, err
+			return err
 		}
-		return nil, []SalvageHole{{
+		s.emitHole(SalvageHole{
 			Ref:  t.root.GetRootPageRef().Clone(),
 			Keys: t.root.GetSize(),
 			Err:  err,
-		}}, nil
+		})
+		return nil
 	}
 
 	// Walk the whole key space from the root page.
-	s.sem = make(chan struct{}, salvageConcurrency)
-	res := s.walk(ctx, page, cursor, nil, nil)
-	if res.err != nil {
-		return nil, nil, res.err
+	if err := s.walk(ctx, page, cursor, nil, nil); err != nil && err != errSalvageStop {
+		return err
 	}
-	return res.entries, res.holes, nil
+	return nil
 }
 
-// salvageConcurrency bounds the pages a Salvage walk loads at once.
-const salvageConcurrency = 32
+// SalvageHoles returns the pages in [low, high) that read as not found and
+// the number of readable leaf keys, retaining no entries.
+func (t *Tx) SalvageHoles(ctx context.Context, low, high []byte) (uint64, []SalvageHole, error) {
+	var keys uint64
+	var holes []SalvageHole
+	err := t.Salvage(ctx, low, high, func(BuildEntry) bool {
+		keys++
+		return true
+	}, func(h SalvageHole) bool {
+		holes = append(holes, h)
+		return true
+	})
+	return keys, holes, err
+}
 
-// salvage holds the bounds and load slots of a Salvage walk.
+// salvage is one Salvage walk.
 type salvage struct {
 	// low and high bound the keys to collect; empty is unbounded.
 	low, high []byte
-	// sem holds a slot for each child page loading on its own goroutine.
-	sem chan struct{}
+	// entry and hole receive the walk's results; nil ignores them.
+	entry func(BuildEntry) bool
+	hole  func(SalvageHole) bool
 }
 
-// salvageResult is what a walk below one page collected.
-type salvageResult struct {
-	// entries are the readable leaf entries in key order.
-	entries []BuildEntry
-	// holes are the pages that read as not found, in key order.
-	holes []SalvageHole
-	// err stops the walk.
+// emitHole passes a hole to the consumer, reporting whether to continue.
+func (s *salvage) emitHole(h SalvageHole) bool {
+	return s.hole == nil || s.hole(h)
+}
+
+// salvageChild is a child page loaded for a walk.
+type salvageChild struct {
+	// index is the entry of the parent page that links the child.
+	index int
+	// low and high bound the child's keys.
+	low, high []byte
+	// page and cursor are the loaded child, nil when err is set.
+	page   *Page
+	cursor *block.Cursor
+	// err is the load error.
 	err error
 }
 
-// walk collects the entries below page, whose keys lie in [pageLow, pageHigh).
-// Child pages load in parallel while load slots are free and inline
-// otherwise, and their results join in key order.
-func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pageLow, pageHigh []byte) salvageResult {
-	var out salvageResult
+// walk passes on the entries below page, whose keys lie in
+// [pageLow, pageHigh), in key order.
+func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pageLow, pageHigh []byte) error {
 	entries := page.GetEntries()
 
-	// Collect the readable leaf keys in range.
+	// Pass on the readable leaf keys in range.
 	if page.GetLevel() == 0 {
 		for _, ent := range entries {
 			if ent.GetAnchor() || !s.contains(ent.GetKey()) {
 				continue
 			}
-			out.entries = append(out.entries, BuildEntry{
+			if s.entry == nil {
+				continue
+			}
+			if !s.entry(BuildEntry{
 				Key:         slices.Clone(ent.GetKey()),
 				ValueRef:    ent.GetValueRef().Clone(),
 				ValueIsBlob: ent.GetValueIsBlob(),
 				ValueBlob:   ent.GetValueBlob().CloneVT(),
-			})
+			}) {
+				return errSalvageStop
+			}
 		}
-		return out
+		return nil
 	}
 
-	// Walk each child in range, recording a missing child as a hole.
-	children := make([]salvageResult, len(entries))
-	var wg sync.WaitGroup
+	// Collect the children in range, bounding each one's keys by its entry
+	// key and the next entry's key.
+	var children []salvageChild
 	for i, ent := range entries {
-		if err := ctx.Err(); err != nil {
-			children[i].err = err
-			break
-		}
-
-		// Bound the keys of this entry by its key and the next entry's key.
-		entLow := pageLow
+		low := pageLow
 		if !ent.GetAnchor() {
-			entLow = ent.GetKey()
+			low = ent.GetKey()
 		}
-		entHigh := pageHigh
+		high := pageHigh
 		if i+1 < len(entries) {
-			entHigh = entries[i+1].GetKey()
+			high = entries[i+1].GetKey()
 		}
-		if !s.overlaps(entLow, entHigh) {
-			continue
+		if s.overlaps(low, high) {
+			children = append(children, salvageChild{index: i, low: low, high: high})
 		}
+	}
 
-		childCursor := page.FollowChild(cursor, i)
-		visit := func() {
-			child, err := loadPage(ctx, childCursor)
-			if err != nil {
-				if !errors.Is(err, block.ErrNotFound) {
-					children[i].err = err
-					return
-				}
-				children[i].holes = []SalvageHole{{
-					Ref:   ent.GetChildRef().Clone(),
-					Level: page.GetLevel() - 1,
-					Low:   slices.Clone(entLow),
-					High:  slices.Clone(entHigh),
-					Keys:  ent.GetSize(),
-					Err:   err,
-				}}
-				return
-			}
-			children[i] = s.walk(ctx, child, childCursor, entLow, entHigh)
-		}
-		select {
-		case s.sem <- struct{}{}:
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer func() { <-s.sem }()
-				visit()
-			}()
-		default:
-			visit()
-		}
+	// Load the children in parallel.
+	sem := make(chan struct{}, salvageConcurrency)
+	var wg sync.WaitGroup
+	for i := range children {
+		child := &children[i]
+		child.cursor = page.FollowChild(cursor, child.index)
+		sem <- struct{}{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			child.page, child.err = loadPage(ctx, child.cursor)
+		}()
 	}
 	wg.Wait()
 
-	// Join the children in key order.
-	for _, child := range children {
-		if child.err != nil {
-			return salvageResult{err: child.err}
+	// Walk the children in key order, passing on a missing one as a hole.
+	for i := range children {
+		child := &children[i]
+		if err := ctx.Err(); err != nil {
+			return err
 		}
-		out.entries = append(out.entries, child.entries...)
-		out.holes = append(out.holes, child.holes...)
+		if child.err != nil {
+			if !errors.Is(child.err, block.ErrNotFound) {
+				return child.err
+			}
+			ent := entries[child.index]
+			if !s.emitHole(SalvageHole{
+				Ref:   ent.GetChildRef().Clone(),
+				Level: page.GetLevel() - 1,
+				Low:   slices.Clone(child.low),
+				High:  slices.Clone(child.high),
+				Keys:  ent.GetSize(),
+				Err:   child.err,
+			}) {
+				return errSalvageStop
+			}
+			continue
+		}
+		err := s.walk(ctx, child.page, child.cursor, child.low, child.high)
+		child.page, child.cursor = nil, nil
+		if err != nil {
+			return err
+		}
 	}
-	return out
+	return nil
 }
 
 // contains reports whether key lies in [s.low, s.high).
@@ -192,14 +230,8 @@ func (s *salvage) overlaps(low, high []byte) bool {
 // ReplaceAllEntries builds one tree from sorted leaf entries, keeping each
 // entry's value as it is stored, and replaces all keys with it. Discard the
 // transaction on error.
-func (t *Tx) ReplaceAllEntries(ctx context.Context, entries []BuildEntry) error {
-	return t.replaceAll(ctx, func(yield func(BuildEntry, error) bool) {
-		for _, entry := range entries {
-			if !yield(entry, nil) {
-				return
-			}
-		}
-	})
+func (t *Tx) ReplaceAllEntries(ctx context.Context, entries iter.Seq2[BuildEntry, error]) error {
+	return t.replaceAll(ctx, entries)
 }
 
 // CopyEntries returns entries read from the tree from, with each value that

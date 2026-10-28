@@ -3,7 +3,7 @@ package world_block
 import (
 	"bytes"
 	"context"
-	"slices"
+	"iter"
 
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
 	"github.com/aperturerobotics/cayley/kv/flat"
@@ -60,12 +60,12 @@ func (t *WorldState) RepairGraphTree(
 		return nil, errors.Errorf("graph tree is %T, not an okra tree", t.graphTree)
 	}
 
-	// Collect every readable key and the missing pages.
-	entries, holes, err := tree.Salvage(ctx, nil, nil)
+	// Count the readable keys and find the missing pages.
+	keys, holes, err := tree.SalvageHoles(ctx, nil, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "walk graph tree")
 	}
-	report := &GraphRepair{Keys: len(entries), Holes: holes, Fills: make([]GraphHoleFill, len(holes))}
+	report := &GraphRepair{Keys: int(keys), Holes: holes, Fills: make([]GraphHoleFill, len(holes))}
 
 	// Fill each hole from the first older World that reads its whole range.
 	for i, hole := range holes {
@@ -91,15 +91,16 @@ func (t *WorldState) RepairGraphTree(
 		}
 	}
 
-	// Merge the fills into the readable keys and replace the tree.
-	for _, fill := range report.Fills {
-		entries = append(entries, fill.entries...)
-	}
-	slices.SortFunc(entries, func(a, b kvtx_block_okra.BuildEntry) int {
-		return bytes.Compare(a.Key, b.Key)
-	})
-	entries = slices.CompactFunc(entries, func(a, b kvtx_block_okra.BuildEntry) bool {
-		return bytes.Equal(a.Key, b.Key)
+	// Rebuild the tree from the readable keys, with each hole's fill in its
+	// place. The walk meets the holes in the order it reported them.
+	next := 0
+	entries := salvageEntries(ctx, tree, func(hole kvtx_block_okra.SalvageHole) ([]kvtx_block_okra.BuildEntry, error) {
+		if next >= len(holes) || !hole.Ref.EqualsRef(holes[next].Ref) {
+			return nil, errors.Errorf("graph tree changed during repair at missing page %s", hole.Ref.MarshalString())
+		}
+		fill := report.Fills[next]
+		next++
+		return fill.entries, nil
 	})
 	if err := tree.ReplaceAllEntries(ctx, entries); err != nil {
 		return report, errors.Wrap(err, "replace graph tree")
@@ -136,12 +137,20 @@ func (t *WorldState) readGraphRange(
 	}
 
 	// Read the range, which must have no missing page.
-	entries, holes, err := tree.Salvage(ctx, low, high)
+	var entries []kvtx_block_okra.BuildEntry
+	var missing *block.BlockRef
+	err = tree.Salvage(ctx, low, high, func(entry kvtx_block_okra.BuildEntry) bool {
+		entries = append(entries, entry)
+		return true
+	}, func(hole kvtx_block_okra.SalvageHole) bool {
+		missing = hole.Ref
+		return false
+	})
 	if err != nil {
 		return nil, err
 	}
-	if len(holes) != 0 {
-		return nil, errors.Errorf("%d pages missing in range, first %s", len(holes), holes[0].Ref.MarshalString())
+	if missing != nil {
+		return nil, errors.Errorf("page %s missing in range", missing.MarshalString())
 	}
 	if !copyValues {
 		return entries, nil
@@ -170,12 +179,12 @@ func (t *WorldState) ReindexGraphTree(ctx context.Context, apply bool) (*GraphRe
 	}
 	layout := qs.Layout()
 
-	// Collect every readable key and the missing pages.
-	entries, holes, err := tree.Salvage(ctx, nil, nil)
+	// Count the readable keys and find the missing pages.
+	keys, holes, err := tree.SalvageHoles(ctx, nil, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "walk graph tree")
 	}
-	report := &GraphRepair{Keys: len(entries), Holes: holes, Fills: make([]GraphHoleFill, len(holes))}
+	report := &GraphRepair{Keys: int(keys), Holes: holes, Fills: make([]GraphHoleFill, len(holes))}
 
 	// Require each missing range to lie inside one posting bucket.
 	for i, hole := range holes {
@@ -196,6 +205,7 @@ func (t *WorldState) ReindexGraphTree(ctx context.Context, apply bool) (*GraphRe
 
 	// Drop the missing ranges, then rebuild the postings from the log
 	// through the same store stack the graph handle uses.
+	entries := salvageEntries(ctx, tree, nil)
 	if err := tree.ReplaceAllEntries(ctx, entries); err != nil {
 		return report, errors.Wrap(err, "replace graph tree")
 	}
@@ -215,6 +225,45 @@ func (t *WorldState) ReindexGraphTree(ctx context.Context, apply bool) (*GraphRe
 	}
 	report.Applied = true
 	return report, nil
+}
+
+// salvageEntries streams the readable entries of tree in key order, with the
+// entries fill returns for each missing page in its place. A nil fill drops
+// the missing pages.
+func salvageEntries(
+	ctx context.Context,
+	tree *kvtx_block_okra.Tx,
+	fill func(kvtx_block_okra.SalvageHole) ([]kvtx_block_okra.BuildEntry, error),
+) iter.Seq2[kvtx_block_okra.BuildEntry, error] {
+	return func(yield func(kvtx_block_okra.BuildEntry, error) bool) {
+		stopped := false
+		var fillErr error
+		err := tree.Salvage(ctx, nil, nil, func(entry kvtx_block_okra.BuildEntry) bool {
+			stopped = !yield(entry, nil)
+			return !stopped
+		}, func(hole kvtx_block_okra.SalvageHole) bool {
+			if fill == nil {
+				return true
+			}
+			var entries []kvtx_block_okra.BuildEntry
+			entries, fillErr = fill(hole)
+			if fillErr != nil {
+				return false
+			}
+			for _, entry := range entries {
+				if stopped = !yield(entry, nil); stopped {
+					return false
+				}
+			}
+			return true
+		})
+		if err == nil {
+			err = fillErr
+		}
+		if err != nil && !stopped {
+			yield(kvtx_block_okra.BuildEntry{}, err)
+		}
+	}
 }
 
 // postingBucketOf returns the posting bucket of layout whose flat keys hold
