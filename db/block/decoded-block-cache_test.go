@@ -200,3 +200,21 @@ func TestDecodedBlockCacheKeyExactLength(t *testing.T) {
 		t.Fatalf("building a cache key allocates %v times, want 1", allocs)
 	}
 }
+
+func TestDecodedBlockCacheOffPoolServesNothing(t *testing.T) {
+	// Store an entry, then turn the pool off.
+	ctx := context.Background()
+	decodedBlocks := newTestDecodedBlockCache(t)
+	_, key, blk, data := newDecodedBlockCacheTestEntry(t, "cached before off")
+	storeDecodedBlockCacheTestEntry(t, decodedBlocks, key, blk, data)
+	decodedBlocks.pool.off.Store(true)
+
+	// Verify the stored entry and a new store both miss.
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
+		t.Fatalf("lookup after off ok=%v err=%v, want miss", ok, err)
+	}
+	storeDecodedBlockCacheTestEntry(t, decodedBlocks, key, blk, data)
+	if _, ok, err := decodedBlocks.Lookup(ctx, nil, key, false); err != nil || ok {
+		t.Fatalf("lookup of a store after off ok=%v err=%v, want miss", ok, err)
+	}
+}

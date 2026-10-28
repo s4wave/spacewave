@@ -156,6 +156,14 @@ func SetSharedDecodedBlockCacheMaxCost(maxCost int64) {
 	pool.maxCost.Store(maxCost)
 }
 
+// DisableSharedDecodedBlockCache stops the process-wide pool behind
+// NewDecodedBlockCache from serving or retaining blocks, so every read
+// decodes what the store returns. A read operation still reuses the blocks it
+// decoded itself.
+func DisableSharedDecodedBlockCache() {
+	sharedDecodedBlockPool().off.Store(true)
+}
+
 // NewDecodedBlockCache constructs a scope in the process-wide pool.
 func NewDecodedBlockCache() *DecodedBlockCache {
 	return newDecodedBlockCacheScope(sharedDecodedBlockPool(), false)
@@ -377,7 +385,7 @@ func (c *DecodedBlockCache) InvalidateAll(ctx context.Context) {
 
 // enabled reports whether the scope can read and write its pool.
 func (c *DecodedBlockCache) enabled() bool {
-	return c != nil && c.pool.shards != nil && !c.closed.Load()
+	return c != nil && c.pool.shards != nil && !c.pool.off.Load() && !c.closed.Load()
 }
 
 // epochs returns the current invalidation epochs for refKey.
