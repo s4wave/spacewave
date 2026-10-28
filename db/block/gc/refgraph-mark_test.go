@@ -368,3 +368,39 @@ func countKeys(t *testing.T, store kvtx.Store, prefix []byte) int {
 	}
 	return n
 }
+
+// TestNameLaterLogsSettledHoleParent checks that a parent a walk finds naming
+// a block the adopt log reached with no namer becomes its namer: settling
+// logs it, and once the block is settled the next LogSettled logs it.
+func TestNameLaterLogsSettledHoleParent(t *testing.T) {
+	// Name blocks for an adopted hole, a parent, a later parent and an owner.
+	ref := func(s string) string { return BlockIRI(testBlockRef(t, s)) }
+	hole, settled, parent, later := ref("hole"), ref("settled"), ref("parent"), ref("later")
+
+	// The adopt log reached both blocks with no namer.
+	mark := &BlockMark{Live: NewNodeSet()}
+	adoptedStack(mark, []string{hole, settled})
+
+	// An owner's record names nothing; a parent's list names the hole.
+	mark.nameLater(hole, NodeGCRoot)
+	mark.nameLater(hole, parent)
+	mark.nameLater(hole, later)
+	if got := mark.laterNamers[hole]; got != parent {
+		t.Fatalf("hole namer %q, want %q", got, parent)
+	}
+
+	// Settling the hole logs its later parent.
+	mark.noteUnknown(namedNode{node: hole})
+	n, err := mark.settleAbsent(func(nodes []string) ([]bool, error) { return make([]bool, len(nodes)), nil })
+	if err != nil || n != 1 || !slices.Equal(mark.settledNamers, []string{parent}) {
+		t.Fatalf("settled=%d err=%v namers=%v", n, err, mark.settledNamers)
+	}
+
+	// A block already settled with no namer logs the parent found after.
+	mark.settledNamers = nil
+	mark.settled.Add(settled)
+	mark.nameLater(settled, later)
+	if !slices.Equal(mark.settledNamers, []string{later}) {
+		t.Fatalf("namers after settle=%v", mark.settledNamers)
+	}
+}

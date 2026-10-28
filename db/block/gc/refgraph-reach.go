@@ -42,7 +42,7 @@ func (g *RefGraph) Reachable(ctx context.Context) (*BlockMark, error) {
 		}
 
 		// Walk from them.
-		_, err = walkTx(ctx, tx, reached, stack, nil, nil, mark.noteUnknown, nil)
+		_, err = walkTx(ctx, tx, reached, stack, nil, nil, mark.noteUnknown, nil, nil)
 		return err
 	})
 	if err != nil {

@@ -320,7 +320,7 @@ func (g *RefGraph) MarkYoung(ctx context.Context) (*BlockMark, error) {
 		}
 
 		// Walk the young blocks from the seeds.
-		if _, err := walkTx(ctx, tx, live, stack, young, nil, mark.noteUnknown, nil); err != nil {
+		if _, err := walkTx(ctx, tx, live, stack, young, nil, mark.noteUnknown, nil, nil); err != nil {
 			return err
 		}
 

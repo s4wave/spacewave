@@ -484,3 +484,114 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 	assertPublishedBlock(t, v, parent, true)
 	assertPublishedBlock(t, v, released, false)
 }
+
+// TestMinorPassKeepsFilledHoleARevivedParentNames checks that minor passes
+// keep a filled hole whose only live namer is an old parent a write revived
+// during the major pass that settled it. The same write adopts the hole
+// through a new parent, so the catch-up reaches the hole with no namer before
+// it walks the revived parent's list, and the new parent is swept later.
+func TestMinorPassKeepsFilledHoleARevivedParentNames(t *testing.T) {
+	for _, w := range holeWriters {
+		t.Run(w.name, func(t *testing.T) {
+			// Pick a hole and an old parent whose list names it.
+			v, _ := newPublicationTestVolume(t)
+			ctx := t.Context()
+			rg := v.GetRefGraph()
+			hole, child := holeEntries(t)
+			old := publicationFor(t, "old-parent", "", "three").Entries[0]
+			old.Refs, old.RefsKnown = []*block.BlockRef{hole.Ref}, true
+
+			// Store the old parent as an unreached cache fill.
+			gs := block_gc.NewGCStoreOps(v, rg)
+			opts := &block.PutOpts{ForceBlockRef: old.Ref, Refs: old.Refs, CacheFill: true, RefsKnown: true}
+			if _, _, err := gs.PutBlock(ctx, old.Data, opts); err != nil {
+				t.Fatal(err)
+			}
+			if err := gs.FlushPending(ctx); err != nil {
+				t.Fatal(err)
+			}
+
+			// A major pass in which one write revives the old parent and
+			// names the hole from a new parent, then settles and promotes.
+			newParent := publicationFor(t, "new-parent", "", "four").Entries[0]
+			var stats block_gc.Stats
+			err := v.runBlockPass(ctx, rg, false, func(actual *transactionRefGraph) error {
+				// Take the promote bound before the pass begins.
+				var bound uint64
+				err := actual.read(ctx, func(rg *block_gc.RefGraph) (err error) {
+					bound, err = rg.YoungPosition(ctx)
+					return err
+				})
+				if err != nil {
+					return err
+				}
+
+				// Run the pass body while the pass is open.
+				return v.inBlockPass(ctx, actual, func() error {
+					// Mark the blocks the roots reach.
+					mark, err := actual.MarkBlocksScan(ctx)
+					if err != nil {
+						return err
+					}
+
+					// One write revives the old parent and names the hole
+					// from a new parent.
+					edges := []block_gc.RefEdge{
+						{Subject: block_gc.NodeGCRoot, Object: block_gc.BlockIRI(old.Ref)},
+						{Subject: block_gc.BlockIRI(newParent.Ref), Object: block_gc.BlockIRI(hole.Ref)},
+					}
+					if err := rg.ApplyRefBatch(ctx, edges, nil); err != nil {
+						return err
+					}
+
+					// Sweep, which settles the hole, and promote.
+					complete, err := v.sweepUnreached(ctx, mark, &stats)
+					if err != nil || !complete {
+						t.Fatalf("complete=%v err=%v stats=%+v", complete, err, stats)
+					}
+					return v.promoteYoung(ctx, mark, bound)
+				})
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// The pass settled the hole, so it promoted.
+			if stats.AbsentBlocks != 1 || stats.UnknownBlocks != 0 {
+				t.Fatalf("major pass stats=%+v", stats)
+			}
+
+			// Minor passes run before and after a write stores the hole.
+			// The new parent is unreached and goes; the old parent stays
+			// live through the root and names the hole.
+			minorPass := func(step string) {
+				// Run one minor pass.
+				t.Helper()
+				var minor block_gc.Stats
+				if err := v.SweepYoungBlocks(ctx, rg, &minor); err != nil {
+					t.Fatal(err)
+				}
+				if minor.MinorPasses != 1 {
+					t.Fatalf("%s: minor pass did not run: stats=%+v", step, minor)
+				}
+
+				// The old parent stays, and the hole and its child survive
+				// once stored.
+				if _, found, err := v.GetBlock(ctx, old.Ref); err != nil || !found {
+					t.Fatalf("%s: live old parent swept: found=%v err=%v", step, found, err)
+				}
+				for _, e := range []*block.PutBatchEntry{hole, child} {
+					if _, found, err := v.GetBlock(ctx, e.Ref); err != nil {
+						t.Fatal(err)
+					} else if !found && step != "before fill" {
+						t.Fatalf("%s: block a live parent names swept: stats=%+v", step, minor)
+					}
+				}
+			}
+			minorPass("before fill")
+			w.write(t, v, rg, child, hole)
+			minorPass("after fill")
+			minorPass("after fill")
+		})
+	}
+}

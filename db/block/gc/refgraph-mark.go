@@ -94,6 +94,16 @@ type BlockMark struct {
 	// settledNamers lists the namers of the blocks settled since the last
 	// LogSettled.
 	settledNamers []string
+	// unnamed holds the blocks a catch-up or rescue reached from the adopt
+	// log, which names no parent, and laterNamers the first parent block
+	// whose list a walk read naming each one after. A write can revive an
+	// old parent that names a hole in the same record that adopts the hole
+	// through a new parent, so the walk reaches the hole before it reads
+	// the old parent's list. The old parent is the namer LogSettled must
+	// log: the pass promotes it old, and the new parent may go before a
+	// write stores the hole.
+	unnamed     *NodeSet
+	laterNamers map[string]string
 }
 
 // walked reports whether the pass reached block and walked its list as last
@@ -160,11 +170,12 @@ type BlocksStored func(ctx context.Context, nodes []string) ([]bool, error)
 // later write that stores it creates its list as a young block that the
 // parent, possibly old, names through no record. The caller logs the namers
 // with LogSettled in the same transaction, so minor passes reach the hole
-// from them. A hole a write adopted during the pass has no namer to log and
-// needs none: the write that adopted it logged the parent list it changed in
-// the young log, after the position the pass promotes to. A lazy replica's
-// cache fill of a parent whose children it did not fetch adopts such holes
-// during every pass.
+// from them. A hole a write adopted during the pass is reached from the adopt
+// log with no namer. The write that adopted it logged the parent list it
+// changed in the young log, after the position the pass promotes to, but an
+// old parent the pass walks later may name it too: nameLater records that
+// parent, and LogSettled logs it. A lazy replica's cache fill of a parent
+// whose children it did not fetch adopts such holes during every pass.
 func (m *BlockMark) SettleAbsent(stored func(node string) (bool, error)) (int, error) {
 	// Leave a mark that could not list its unknown blocks.
 	if m.Unknown == 0 || !m.Awaitable() {
@@ -190,6 +201,14 @@ func (m *BlockMark) SettleAbsent(stored func(node string) (bool, error)) (int, e
 // named and that stored reports absent, as SettleAbsent describes, and
 // reports how many it settled. It leaves the count to the caller.
 func (m *BlockMark) settleAbsent(stored func(nodes []string) ([]bool, error)) (int, error) {
+	// Name the blocks the adopt log reached by the parent a later walk
+	// found, if any.
+	for i, b := range m.awaiting {
+		if b.namer == "" {
+			m.awaiting[i].namer = m.laterNamers[b.node]
+		}
+	}
+
 	// Ask the store about the blocks parent blocks named or writes adopted.
 	// A block an owner named stays unknown.
 	var named []string
@@ -253,6 +272,30 @@ func settleable(namer string) bool {
 	return namer == "" || isBlockNode(namer)
 }
 
+// nameLater records parent as the namer of a block the adopt log reached with
+// no namer, when a walk reads parent's list naming the block after. A block
+// already settled as a hole gets parent logged as its namer by the next
+// LogSettled, which the sweep runs in each transaction before it removes or
+// promotes anything.
+func (m *BlockMark) nameLater(node, parent string) {
+	// Keep the first parent block that names an unnamed block.
+	if m.unnamed == nil || !isBlockNode(parent) || !m.unnamed.Has(node) {
+		return
+	}
+	if _, ok := m.laterNamers[node]; ok {
+		return
+	}
+	if m.laterNamers == nil {
+		m.laterNamers = make(map[string]string)
+	}
+	m.laterNamers[node] = parent
+
+	// Log the parent of a block already settled.
+	if m.settled != nil && m.settled.Has(node) {
+		m.settledNamers = append(m.settledNamers, parent)
+	}
+}
+
 // takeAwaiting returns the listed unknown blocks for a walk to read again and
 // stops counting them, sampling afresh when every unknown block is listed.
 func (m *BlockMark) takeAwaiting() []namedNode {
@@ -293,7 +336,7 @@ func (g *RefGraph) MarkBlocks(ctx context.Context) (*BlockMark, error) {
 		}
 
 		// Walk the owned blocks, noting those of unknown references.
-		if _, err := walkTx(ctx, tx, live, stack, nil, nil, mark.noteUnknown, nil); err != nil {
+		if _, err := walkTx(ctx, tx, live, stack, nil, nil, mark.noteUnknown, nil, nil); err != nil {
 			return err
 		}
 
@@ -363,11 +406,19 @@ func seedMarkTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark, seed func(node
 // small however wide the graph is. stop, when set, is checked after each
 // chunk; once it reports true, the walk returns the nodes it reached but did
 // not walk. Otherwise it walks until the stack is empty and returns nil.
-func walkTx(ctx context.Context, tx kvtx.Tx, reached *NodeSet, stack []namedNode, scope, unread *NodeSet, untracked func(namedNode), stop func() bool) ([]namedNode, error) {
+// revisit, when set, is called with each node a record names that reached
+// already held, and the node whose record named it.
+func walkTx(ctx context.Context, tx kvtx.Tx, reached *NodeSet, stack []namedNode, scope, unread *NodeSet, untracked func(namedNode), revisit func(node, namer string), stop func() bool) ([]namedNode, error) {
 	// Stack each node on its first visit, with the node that reached it,
 	// unless its list needs no read.
 	visit := func(node, namer string) {
-		if reached.Add(node) && (unread == nil || !unread.Has(node)) {
+		if !reached.Add(node) {
+			if revisit != nil {
+				revisit(node, namer)
+			}
+			return
+		}
+		if unread == nil || !unread.Has(node) {
 			stack = append(stack, namedNode{node, namer})
 		}
 	}
@@ -660,7 +711,7 @@ func catchUpTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark, end uint64, bud
 func walkFrontierTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark, blocks []string, stop func() bool) (bool, error) {
 	// Walk the frontier and the new blocks, keeping what the stop left.
 	stack := append(mark.frontier, adoptedStack(mark, blocks)...)
-	left, err := walkTx(ctx, tx, mark.Live, stack, mark.young, mark.created, mark.noteUnknown, stop)
+	left, err := walkTx(ctx, tx, mark.Live, stack, mark.young, mark.created, mark.noteUnknown, mark.nameLater, stop)
 	if err != nil {
 		return false, err
 	}
@@ -669,11 +720,16 @@ func walkFrontierTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark, blocks []s
 }
 
 // adoptedStack adds the blocks to mark.Live and returns those it added whose
-// lists need a read, for a walk from them.
+// lists need a read, for a walk from them. It notes those it returns as
+// unnamed, for nameLater.
 func adoptedStack(mark *BlockMark, blocks []string) []namedNode {
 	var stack []namedNode
 	for _, block := range blocks {
 		if mark.Live.Add(block) && (mark.created == nil || !mark.created.Has(block)) {
+			if mark.unnamed == nil {
+				mark.unnamed = NewNodeSet()
+			}
+			mark.unnamed.Add(block)
 			stack = append(stack, namedNode{node: block})
 		}
 	}
