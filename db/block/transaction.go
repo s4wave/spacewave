@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"os"
 	"runtime"
 	"slices"
 	"sync"
@@ -421,7 +422,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// A single reachable node has no parallel work. Run its encode and put on
 	// the caller; larger graphs use the existing bounded worker queues.
 	var encodeQueue, writeQueue *conc.ConcurrentQueue
-	if len(reachable) > 1 {
+	if len(reachable) > 1 && !diveSerialEncode {
 		encodeQueue = conc.NewConcurrentQueue(maxEncodeConcurrency)
 		writeQueue = conc.NewConcurrentQueue(maxWriteConcurrency)
 	}
@@ -891,3 +892,7 @@ func (t *Transaction) cloneDetached(nroot *handle, sharesBlocks bool) *Transacti
 	nt.readOnly.Store(sharesBlocks && t.readOnly.Load())
 	return nt
 }
+
+// diveSerialEncode encodes every dirty node on the caller in topological
+// order, without the worker queues. Dive experiment: DIVE_SERIAL_ENCODE=1.
+var diveSerialEncode = os.Getenv("DIVE_SERIAL_ENCODE") == "1"
