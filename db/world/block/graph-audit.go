@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/cayley/quad/pquads"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 )
@@ -53,6 +54,10 @@ type GraphLogAudit struct {
 	// InlineValues and FetchedValues count the log values read from the page
 	// and from their own block.
 	InlineValues, FetchedValues int
+	// ValueHoles are the keys whose value lives in its own block and that
+	// block reads as not found or unavailable, by bucket. The key is
+	// readable, its value is lost.
+	ValueHoles map[string][]string
 
 	// MissingQuads are the live quads the postings list without a log record.
 	MissingQuads []*GraphMissingQuad
@@ -130,7 +135,7 @@ func (t *WorldState) AuditGraphLog(ctx context.Context) (*GraphLogAudit, error) 
 	a := &graphAudit{
 		tree:     tree,
 		postings: postings,
-		report:   &GraphLogAudit{HoleBuckets: make(map[string][2]uint64), Size: -1, Horizon: -1},
+		report:   &GraphLogAudit{HoleBuckets: make(map[string][2]uint64), ValueHoles: make(map[string][]string), Size: -1, Horizon: -1},
 		missingQ: make(map[uint64]*GraphMissingQuad),
 	}
 	if err := a.walkGraph(ctx); err != nil {
@@ -175,6 +180,9 @@ func (a *graphAudit) walkGraph(ctx context.Context) error {
 	err := a.tree.Salvage(ctx, nil, nil, func(entry kvtx_block_okra.BuildEntry) bool {
 		a.report.Keys++
 		walkErr = a.entry(ctx, entry)
+		if errors.Is(walkErr, errValueHole) {
+			walkErr = nil
+		}
 		return walkErr == nil
 	}, func(hole kvtx_block_okra.SalvageHole) bool {
 		a.hole(hole)
@@ -226,14 +234,19 @@ func (a *graphAudit) value(ctx context.Context, entry kvtx_block_okra.BuildEntry
 	}
 	a.report.FetchedValues++
 	value, found, err := a.tree.Get(ctx, entry.Key)
-	if err != nil {
+	if err != nil && !errors.Is(err, block.ErrNotFound) && !errors.Is(err, block.ErrUnavailable) {
 		return nil, errors.Wrapf(err, "read value of %q", entry.Key)
 	}
-	if !found {
-		return nil, errors.Errorf("value of %q not found", entry.Key)
+	if err != nil || !found {
+		bucket := flatBucket(entry.Key, "")
+		a.report.ValueHoles[bucket] = append(a.report.ValueHoles[bucket], string(entry.Key))
+		return nil, errValueHole
 	}
 	return value, nil
 }
+
+// errValueHole skips a key whose value block is missing.
+var errValueHole = errors.New("value block missing")
 
 // logRecord reads one live primitive.
 func (a *graphAudit) logRecord(ctx context.Context, entry kvtx_block_okra.BuildEntry) error {
