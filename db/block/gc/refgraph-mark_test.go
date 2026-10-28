@@ -371,9 +371,11 @@ func countKeys(t *testing.T, store kvtx.Store, prefix []byte) int {
 
 // TestNameLaterLogsSettledHoleParent checks that a parent a walk finds naming
 // a block the adopt log reached with no namer becomes its namer: settling
-// logs it, and once the block is settled the next LogSettled logs it.
+// logs it, and once the block is settled the next LogSettled logs it. A
+// block settled with no namer keeps the blocks writes created during the
+// pass young until a walk names it.
 func TestNameLaterLogsSettledHoleParent(t *testing.T) {
-	// Name blocks for an adopted hole, a parent, a later parent and an owner.
+	// Name blocks for two adopted holes, a parent and a later parent.
 	ref := func(s string) string { return BlockIRI(testBlockRef(t, s)) }
 	hole, settled, parent, later := ref("hole"), ref("settled"), ref("parent"), ref("later")
 
@@ -396,11 +398,22 @@ func TestNameLaterLogsSettledHoleParent(t *testing.T) {
 		t.Fatalf("settled=%d err=%v namers=%v", n, err, mark.settledNamers)
 	}
 
-	// A block already settled with no namer logs the parent found after.
+	// A block that settles with no namer keeps a block a write created
+	// during the pass from promotion.
+	created := ref("created")
+	mark.Live.Add(created)
+	mark.created = NewNodeSet()
+	mark.created.Add(created)
 	mark.settledNamers = nil
-	mark.settled.Add(settled)
+	mark.noteUnknown(namedNode{node: settled})
+	n, err = mark.settleAbsent(func(nodes []string) ([]bool, error) { return make([]bool, len(nodes)), nil })
+	if err != nil || n != 1 || len(mark.settledNamers) != 0 || mark.walked(created) {
+		t.Fatalf("settled=%d err=%v namers=%v created walked=%v", n, err, mark.settledNamers, mark.walked(created))
+	}
+
+	// The parent found after is logged, and the created block promotes.
 	mark.nameLater(settled, later)
-	if !slices.Equal(mark.settledNamers, []string{later}) {
-		t.Fatalf("namers after settle=%v", mark.settledNamers)
+	if !slices.Equal(mark.settledNamers, []string{later}) || !mark.walked(created) {
+		t.Fatalf("namers after settle=%v created walked=%v", mark.settledNamers, mark.walked(created))
 	}
 }

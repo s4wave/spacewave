@@ -104,12 +104,22 @@ type BlockMark struct {
 	// write stores the hole.
 	unnamed     *NodeSet
 	laterNamers map[string]string
+	// namelessHoles counts the holes settled with no namer that no walk
+	// named since. Such a hole's parent may be a block a write created during
+	// the pass, whose list the walk skipped, so PromoteYoung keeps the
+	// created blocks young while any is left.
+	namelessHoles int
 }
 
 // walked reports whether the pass reached block and walked its list as last
-// read: it reached it and did not settle it as a hole.
+// read: it reached it and did not settle it as a hole. While a hole settled
+// with no namer, a block whose list the walk skipped as created does not
+// count: it may be the hole's only live parent, so it stays young, and minor
+// passes reach the hole through it once a write stores the hole.
 func (m *BlockMark) walked(block string) bool {
-	return m.Live.Has(block) && (m.settled == nil || !m.settled.Has(block))
+	return m.Live.Has(block) &&
+		(m.settled == nil || !m.settled.Has(block)) &&
+		(m.namelessHoles == 0 || m.created == nil || !m.created.Has(block))
 }
 
 // YoungBound returns the first young log record a MarkYoung snapshot did not
@@ -254,6 +264,8 @@ func (m *BlockMark) settleAbsent(stored func(nodes []string) ([]bool, error)) (i
 		m.settled.Add(b.node)
 		if b.namer != "" {
 			m.settledNamers = append(m.settledNamers, b.namer)
+		} else {
+			m.namelessHoles++
 		}
 	}
 	m.awaiting = kept
@@ -290,9 +302,10 @@ func (m *BlockMark) nameLater(node, parent string) {
 	}
 	m.laterNamers[node] = parent
 
-	// Log the parent of a block already settled.
+	// Log the parent of a block already settled, which named it no parent.
 	if m.settled != nil && m.settled.Has(node) {
 		m.settledNamers = append(m.settledNamers, parent)
+		m.namelessHoles--
 	}
 }
 

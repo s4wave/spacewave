@@ -449,11 +449,14 @@ func trackCreatedTx(ctx context.Context, tx kvtx.Tx, mark *BlockMark) error {
 // records written since bound the created blocks the mark reached and walked,
 // so they are old too. A block the pass settled as a hole and a write stored
 // since stays young: the pass never walked its list, and LogSettled lists its
-// namer as changed, so minor passes walk it. A changed block stays in each
-// record it is in: its list may have changed after the walk read it. After
-// promotion, an old block names only old blocks, and every later edge from
-// one is in a record. stop, when set, ends the transaction between records;
-// the next call continues.
+// namer as changed, so minor passes walk it. When a hole settled with no
+// namer, a block a write created after the pass opened stays young too: the
+// walk skipped its list, so it may be the hole's only live parent, and minor
+// passes reach the hole through it. The next block pass reads its list and
+// promotes it. A changed block stays in each record it is in: its list may
+// have changed after the walk read it. After promotion, an old block names
+// only old blocks, and every later edge from one is in a record. stop, when
+// set, ends the transaction between records; the next call continues.
 //
 // A promotion cut short is not safe for a minor pass: a block of a deleted
 // record is old while a block it names, created in a later record, may still
