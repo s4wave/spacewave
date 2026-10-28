@@ -165,8 +165,10 @@ func telemetryStore(t *testing.T, account *ProviderAccount, id string) SyncTelem
 }
 
 func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
+	// Run beside the package's other tests.
 	t.Parallel()
 
+	// Name a block held by the cache, one held by DEX and one held by the Cloud.
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	refCache, err := block.BuildBlockRef([]byte("cache"), nil)
@@ -182,6 +184,7 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Give each session its own DEX source holding the direct block.
 	direct1 := &sessionLookupTestLower{
 		blocks:    map[string][]byte{refDirect.MarshalString(): []byte("session-one")},
 		refsKnown: true,
@@ -191,6 +194,8 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		refsKnown: true,
 	}
 
+	// Give session one a cache with the cached block and a Cloud with the
+	// fallback block, and session two empty ones.
 	cache1 := &sessionLookupTestLower{
 		blocks:   map[string][]byte{refCache.MarshalString(): []byte("cached-one")},
 		writable: true,
@@ -200,6 +205,8 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 	}
 	cache2 := &sessionLookupTestLower{blocks: map[string][]byte{}, writable: true}
 	cloud2 := &sessionLookupTestLower{blocks: map[string][]byte{}}
+
+	// Build each session's production store on one account.
 	account := &ProviderAccount{}
 	store1, err := newProductionSessionStore(account, "session-one", direct1, cache1, cloud1)
 	if err != nil {
@@ -210,6 +217,7 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// A cache hit asks neither DEX nor the Cloud.
 	data, found, err := store1.GetBlock(ctx, refCache)
 	if err != nil || !found || string(data) != "cached-one" {
 		t.Fatalf("local cache read = %q/%v/%v", data, found, err)
@@ -218,13 +226,17 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("local cache hit touched DEX/Cloud: %d/%d", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
+	// A DEX hit fills the cache in the background.
 	data, found, err = store1.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-one" {
 		t.Fatalf("session one direct read = %q/%v/%v", data, found, err)
 	}
+	waitSessionLookupPuts(t, cache1, 1)
 	if direct1.getCalls.Load() != 1 || cloud1.getCalls.Load() != 0 || cache1.putCalls.Load() != 1 {
 		t.Fatalf("direct hit calls = dex %d/cloud %d/cache puts %d, want 1/0/1", direct1.getCalls.Load(), cloud1.getCalls.Load(), cache1.putCalls.Load())
 	}
+
+	// The filled block is read from the cache.
 	data, found, err = store1.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-one" {
 		t.Fatalf("session one cached direct read = %q/%v/%v", data, found, err)
@@ -233,6 +245,7 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("cached direct read touched DEX/Cloud: %d/%d", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
+	// A DEX miss falls back to the Cloud once.
 	data, found, err = store1.GetBlock(ctx, refFallback)
 	if err != nil || !found || string(data) != "cloud-one" {
 		t.Fatalf("Cloud fallback read = %q/%v/%v", data, found, err)
@@ -241,10 +254,14 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("fallback calls = dex %d/cloud %d, want 2/1", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
+	// Session two reads its own DEX source, then its own cache.
 	data, found, err = store2.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-two" {
 		t.Fatalf("session two direct read = %q/%v/%v", data, found, err)
 	}
+	waitSessionLookupPuts(t, cache2, 1)
+
+	// The filled block is read from session two's cache.
 	data, found, err = store2.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-two" {
 		t.Fatalf("session two cached direct read = %q/%v/%v", data, found, err)
@@ -253,14 +270,25 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("session two cache routing = dex %d/cloud %d, want 1/0", direct2.getCalls.Load(), cloud2.getCalls.Load())
 	}
 
+	// Each session counts its own hits.
 	one := telemetryStore(t, account, "session-one")
 	if one.DirectHitCount != 1 || one.CloudHitCount != 1 || one.CacheHitCount != 2 {
 		t.Fatalf("session one telemetry = %+v, want direct=1 cloud=1 cache=2", one)
 	}
-
 	two := telemetryStore(t, account, "session-two")
 	if two.DirectHitCount != 1 || two.CloudHitCount != 0 || two.CacheHitCount != 1 {
 		t.Fatalf("session two telemetry = %+v, want direct=1 cloud=0 cache=1", two)
+	}
+}
+
+// waitSessionLookupPuts waits for the background fill of a read-through hit to
+// put want blocks into cache.
+func waitSessionLookupPuts(t *testing.T, cache *sessionLookupTestLower, want int32) {
+	// Poll the put count until it reaches want or the deadline passes.
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for cache.putCalls.Load() < want && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
 	}
 }
 
