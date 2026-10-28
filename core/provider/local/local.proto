@@ -3,6 +3,7 @@ package provider.local;
 
 import "github.com/s4wave/spacewave/core/pairing/pairing.proto";
 import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/net/peer/peer.proto";
 
 // AccountReplicaService serves checkpoints to authenticated account Sessions.
 service AccountReplicaService {
@@ -16,6 +17,32 @@ message AccountReplicaObjectRequest {
   string settings_id = 1;
   // ObjectId selects a live entry in that account's catalog.
   string object_id = 2;
+}
+
+// ParticipantObjectService serves checkpoints of held objects to their
+// participants in other accounts.
+service ParticipantObjectService {
+  // FetchParticipantObject authorizes the calling Session as a participant of
+  // the object, adds its storage identity, and exports a checkpoint.
+  rpc FetchParticipantObject(ParticipantObjectRequest) returns (.pairing.SharedObject);
+}
+
+// ParticipantObjectRequest selects an object the calling Session participates in.
+message ParticipantObjectRequest {
+  // ObjectId identifies the SharedObject.
+  string object_id = 1;
+  // StorageProof is the requesting volume's storage key signature over the
+  // ParticipantObjectBinding of object_id and the calling Session peer.
+  .peer.Signature storage_proof = 2;
+}
+
+// ParticipantObjectBinding binds a storage identity to the Session it joins
+// an object with.
+message ParticipantObjectBinding {
+  // ObjectId identifies the SharedObject.
+  string object_id = 1;
+  // SessionPeerId is the Session peer the storage identity joins with.
+  string session_peer_id = 2;
 }
 
 // Config configures the local space provider controller.

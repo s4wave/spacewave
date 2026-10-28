@@ -135,10 +135,14 @@ func (r *SpaceResource) ReadSecretPayload(
 	if err != nil {
 		return nil, err
 	}
+	bound, err := r.bindSecret(ctx, secret)
+	if err != nil {
+		return nil, err
+	}
 	payload, err := s4wave_secret.ReadSecretPayloadForPeer(
 		ctx,
 		r.b,
-		secret,
+		bound,
 		req.GetExpectedKind(),
 		r.sessionPeerID,
 	)
@@ -171,7 +175,11 @@ func (r *SpaceResource) WriteSecretPayload(ctx context.Context, req *s4wave_spac
 	}
 
 	// Delegate payload authority and persistence to the Secret component.
-	if err := s4wave_secret.WriteSecretPayloadForPeer(ctx, r.b, secret, req.GetExpectedKind(), r.sessionPeerID, req.GetContentType(), req.GetValue()); err != nil {
+	bound, err := r.bindSecret(ctx, secret)
+	if err != nil {
+		return nil, err
+	}
+	if err := s4wave_secret.WriteSecretPayloadForPeer(ctx, r.b, bound, req.GetExpectedKind(), r.sessionPeerID, req.GetContentType(), req.GetValue()); err != nil {
 		return nil, err
 	}
 	return &s4wave_space.WriteSecretPayloadResponse{}, nil
@@ -216,7 +224,11 @@ func (r *SpaceResource) AddSecretParticipant(ctx context.Context, req *s4wave_sp
 
 	// Grant the peer on the Secret's nested SharedObject. A peer that is
 	// already a participant keeps its role, so report it instead of success.
-	grant, err := s4wave_secret.AddSecretParticipant(ctx, r.b, secret, peerID.String(), pub, role, "")
+	bound, err := r.bindSecret(ctx, secret)
+	if err != nil {
+		return nil, err
+	}
+	grant, err := s4wave_secret.AddSecretParticipant(ctx, r.b, bound, peerID.String(), pub, role, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "grant peer")
 	}
@@ -224,4 +236,40 @@ func (r *SpaceResource) AddSecretParticipant(ctx context.Context, req *s4wave_sp
 		return nil, errors.New("peer is already a Secret participant; its role is unchanged")
 	}
 	return &s4wave_space.AddSecretParticipantResponse{}, nil
+}
+
+// bindSecret returns secret with its nested ref in the account that holds the
+// Space. A Secret another account created names that account, which this
+// Session's provider does not hold, so the account enrolls into the nested
+// object through the Space first. A ref from another provider is unchanged.
+func (r *SpaceResource) bindSecret(ctx context.Context, secret *s4wave_secret.Secret) (*s4wave_secret.Secret, error) {
+	// Keep a ref that already names the Space's account.
+	spaceRef := r.space.GetSharedObjectRef().GetProviderResourceRef()
+	nestedRef := secret.GetRef().GetProviderResourceRef()
+	if spaceRef == nil || nestedRef == nil || nestedRef.GetProviderId() != spaceRef.GetProviderId() || nestedRef.GetProviderAccountId() == spaceRef.GetProviderAccountId() {
+		return secret, nil
+	}
+
+	// Acquire the provider account that holds the Space.
+	provAcc, relProvAcc, err := provider.ExAccessProviderAccount(ctx, r.b, spaceRef.GetProviderId(), spaceRef.GetProviderAccountId(), false, nil)
+	if err != nil {
+		return nil, err
+	}
+	if provAcc == nil {
+		return nil, errors.Errorf("provider account %s/%s not found", spaceRef.GetProviderId(), spaceRef.GetProviderAccountId())
+	}
+	defer relProvAcc.Release()
+	enroller, ok := provAcc.(sobject.ParticipantObjectEnroller)
+	if !ok {
+		return secret, nil
+	}
+
+	// Enroll into the nested object and read it under this account.
+	ref, err := enroller.EnrollParticipantObject(ctx, nestedRef.GetId(), s4wave_secret.NewSharedObjectMeta(), spaceRef.GetId())
+	if err != nil {
+		return nil, errors.Wrap(err, "enroll in the Secret")
+	}
+	bound := secret.CloneVT()
+	bound.Ref = ref
+	return bound, nil
 }

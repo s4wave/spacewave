@@ -58,10 +58,12 @@ func (a *ProviderAccount) FetchObject(ctx context.Context, request *AccountRepli
 	return a.enrollAccountMemberObject(ctx, entry.GetEntry(), member)
 }
 
-// startAccountReplicaSync attaches service and reconciliation to the captured P2P
-// generation bus. Its ordinary stop path joins reconciliation before releasing mounts.
+// startAccountReplicaSync attaches the replica, migration and participant
+// object services and reconciliation to the captured P2P generation bus. Its
+// ordinary stop path joins reconciliation before releasing mounts.
 func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
-	// Attach the replica and migration services to the transport's bus.
+	// Attach the replica, migration and participant object services to the
+	// transport's bus.
 	transport := state.sessionTransport
 	server, err := stream_srpc_server.NewServer(
 		state.childBus, a.le,
@@ -69,8 +71,9 @@ func (a *ProviderAccount) startAccountReplicaSync(state *p2pSyncState) error {
 		[]stream_srpc_server.RegisterFn{
 			func(mux srpc.Mux) error { return SRPCRegisterAccountReplicaService(mux, a) },
 			func(mux srpc.Mux) error { return provider_migration.SRPCRegisterAccountMigrationService(mux, a) },
+			func(mux srpc.Mux) error { return SRPCRegisterParticipantObjectService(mux, a) },
 		},
-		[]protocol.ID{accountReplicaProtocol, provider_migration.RecoveryProtocol}, []string{transport.GetPeerID().String()}, false,
+		[]protocol.ID{accountReplicaProtocol, provider_migration.RecoveryProtocol, participantObjectProtocol}, []string{transport.GetPeerID().String()}, false,
 	)
 	if err != nil {
 		return err

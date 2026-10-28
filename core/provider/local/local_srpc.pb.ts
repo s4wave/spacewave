@@ -2,7 +2,10 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/local/local.proto (package provider.local, syntax proto3)
 /* eslint-disable */
 
-import { AccountReplicaObjectRequest } from './local.pb.js'
+import {
+  AccountReplicaObjectRequest,
+  ParticipantObjectRequest,
+} from './local.pb.js'
 import { SharedObject } from '../../pairing/pairing.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc, ServerContext } from 'starpc'
@@ -89,6 +92,100 @@ export class AccountReplicaServiceClient implements AccountReplicaService {
       this.service,
       AccountReplicaServiceDefinition.methods.FetchObject.name,
       AccountReplicaObjectRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SharedObject.fromBinary(result)
+  }
+}
+/**
+ * ParticipantObjectService serves checkpoints of held objects to their
+ * participants in other accounts.
+ *
+ * @generated from service provider.local.ParticipantObjectService
+ */
+export const ParticipantObjectServiceDefinition = {
+  typeName: 'provider.local.ParticipantObjectService',
+  methods: {
+    /**
+     * FetchParticipantObject authorizes the calling Session as a participant of
+     * the object, adds its storage identity, and exports a checkpoint.
+     *
+     * @generated from rpc provider.local.ParticipantObjectService.FetchParticipantObject
+     */
+    FetchParticipantObject: {
+      name: 'FetchParticipantObject',
+      I: ParticipantObjectRequest,
+      O: SharedObject,
+      kind: MethodKind.Unary,
+    },
+  },
+} as const
+
+/**
+ * ParticipantObjectService serves checkpoints of held objects to their
+ * participants in other accounts.
+ *
+ * @generated from service provider.local.ParticipantObjectService
+ */
+export interface ParticipantObjectService {
+  /**
+   * FetchParticipantObject authorizes the calling Session as a participant of
+   * the object, adds its storage identity, and exports a checkpoint.
+   *
+   * @generated from rpc provider.local.ParticipantObjectService.FetchParticipantObject
+   */
+  FetchParticipantObject(
+    request: ParticipantObjectRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SharedObject>
+}
+
+/**
+ * ParticipantObjectService serves checkpoints of held objects to their
+ * participants in other accounts.
+ *
+ * @generated from service provider.local.ParticipantObjectService
+ */
+export interface ParticipantObjectServiceHandler {
+  /**
+   * FetchParticipantObject authorizes the calling Session as a participant of
+   * the object, adds its storage identity, and exports a checkpoint.
+   *
+   * @generated from rpc provider.local.ParticipantObjectService.FetchParticipantObject
+   */
+  FetchParticipantObject(
+    request: ParticipantObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SharedObject>
+}
+
+export const ParticipantObjectServiceServiceName =
+  ParticipantObjectServiceDefinition.typeName
+
+export class ParticipantObjectServiceClient implements ParticipantObjectService {
+  private readonly rpc: ProtoRpc
+  private readonly service: string
+  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
+    this.service = opts?.service || ParticipantObjectServiceServiceName
+    this.rpc = rpc
+    this.FetchParticipantObject = this.FetchParticipantObject.bind(this)
+  }
+  /**
+   * FetchParticipantObject authorizes the calling Session as a participant of
+   * the object, adds its storage identity, and exports a checkpoint.
+   *
+   * @generated from rpc provider.local.ParticipantObjectService.FetchParticipantObject
+   */
+  async FetchParticipantObject(
+    request: ParticipantObjectRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SharedObject> {
+    const requestMsg = ParticipantObjectRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ParticipantObjectServiceDefinition.methods.FetchParticipantObject.name,
+      ParticipantObjectRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
     return SharedObject.fromBinary(result)

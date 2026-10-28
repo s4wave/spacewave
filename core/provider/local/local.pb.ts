@@ -4,6 +4,7 @@
 
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { Signature } from '../../../net/peer/peer.pb.js'
 import { ObjectRef } from '../../../db/bucket/bucket.pb.js'
 
 /**
@@ -28,6 +29,58 @@ export const AccountReplicaObjectRequest: MessageType<AccountReplicaObjectReques
     () => [
       [1, 'settings_id', 9],
       [2, 'object_id', 9],
+    ],
+  )
+
+/**
+ * ParticipantObjectRequest selects an object the calling Session participates in.
+ *
+ * @generated from message provider.local.ParticipantObjectRequest
+ */
+export interface ParticipantObjectRequest {
+  /**
+   * ObjectId identifies the SharedObject.
+   */
+  objectId?: string
+  /**
+   * StorageProof is the requesting volume's storage key signature over the
+   * ParticipantObjectBinding of object_id and the calling Session peer.
+   */
+  storageProof?: Signature
+}
+
+export const ParticipantObjectRequest: MessageType<ParticipantObjectRequest> =
+  /* @__PURE__ */ createMessageType<ParticipantObjectRequest>(
+    'provider.local.ParticipantObjectRequest',
+    () => [
+      [1, 'object_id', 9],
+      [2, 'storage_proof', 11, 0, Signature.codec],
+    ],
+  )
+
+/**
+ * ParticipantObjectBinding binds a storage identity to the Session it joins
+ * an object with.
+ *
+ * @generated from message provider.local.ParticipantObjectBinding
+ */
+export interface ParticipantObjectBinding {
+  /**
+   * ObjectId identifies the SharedObject.
+   */
+  objectId?: string
+  /**
+   * SessionPeerId is the Session peer the storage identity joins with.
+   */
+  sessionPeerId?: string
+}
+
+export const ParticipantObjectBinding: MessageType<ParticipantObjectBinding> =
+  /* @__PURE__ */ createMessageType<ParticipantObjectBinding>(
+    'provider.local.ParticipantObjectBinding',
+    () => [
+      [1, 'object_id', 9],
+      [2, 'session_peer_id', 9],
     ],
   )
 

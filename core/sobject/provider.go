@@ -61,6 +61,16 @@ func GetSharedObjectProviderAccountFeature(ctx context.Context, provAcc provider
 	)
 }
 
+// ParticipantObjectEnroller is an optional ProviderAccount feature that enrolls
+// the account into an object another account created and holds.
+type ParticipantObjectEnroller interface {
+	// EnrollParticipantObject returns this account's ref to the object id.
+	// When the account does not hold the object yet, it fetches a checkpoint
+	// from a linked peer that holds it and installs it with meta. The object
+	// must have been created by a writer of via, an object this account holds.
+	EnrollParticipantObject(ctx context.Context, id string, meta *SharedObjectMeta, via string) (*SharedObjectRef, error)
+}
+
 // GetSharedObjectHealthProvider returns the optional SharedObjectHealthProvider for a ProviderAccount.
 func GetSharedObjectHealthProvider(
 	provAcc provider.ProviderAccount,
