@@ -179,6 +179,12 @@ func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pa
 	wg.Wait()
 
 	// Walk the children in key order, passing on a missing one as a hole.
+	// The parent cursor keeps each child it followed, with its decoded page,
+	// until the transaction ends. Below a clean parent every child is a plain
+	// load the page entry can follow again, so drop each one once walked, or
+	// a walk of the whole tree holds every page it read. A dirty parent may
+	// hold children that are not stored yet, so keep those.
+	release := !cursor.IsDirty()
 	for i := range children {
 		child := &children[i]
 		if err := ctx.Err(); err != nil {
@@ -189,25 +195,36 @@ func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pa
 				return child.err
 			}
 			ent := entries[child.index]
-			if !s.emitHole(SalvageHole{
+			hole := SalvageHole{
 				Ref:   ent.GetChildRef().Clone(),
 				Level: page.GetLevel() - 1,
 				Low:   slices.Clone(child.low),
 				High:  slices.Clone(child.high),
 				Keys:  ent.GetSize(),
 				Err:   child.err,
-			}) {
+			}
+			s.release(cursor, child, release)
+			if !s.emitHole(hole) {
 				return errSalvageStop
 			}
 			continue
 		}
 		err := s.walk(ctx, child.page, child.cursor, child.low, child.high)
-		child.page, child.cursor = nil, nil
+		s.release(cursor, child, release)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// release drops a walked child from the walk and, with detach set, from its
+// parent cursor, so its decoded page can be collected.
+func (s *salvage) release(parent *block.Cursor, child *salvageChild, detach bool) {
+	if detach {
+		parent.ClearRef(entryChildRefID(child.index))
+	}
+	child.page, child.cursor = nil, nil
 }
 
 // contains reports whether key lies in [s.low, s.high).
