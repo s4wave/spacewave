@@ -2,6 +2,7 @@ package sobject_world_engine
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/aperturerobotics/util/backoff"
@@ -289,3 +290,43 @@ func (e *soEngine) GetHead(ctx context.Context) (*block.BlockRef, uint64, error)
 
 // _ is a type assertion
 var _ BackfillEngine = (*soEngine)(nil)
+
+// ReplayWorldsEngine lists the World roots this device still names.
+type ReplayWorldsEngine interface {
+	// ReplayWorlds returns, newest first and each once, the World after each
+	// replayed operation, the replay base, and the retained roots. A repair
+	// reads an older copy of a damaged part of the World from them.
+	ReplayWorlds(ctx context.Context) ([]*block.BlockRef, error)
+}
+
+// ReplayWorlds returns the World roots of the replay and the retained roots,
+// newest first.
+func (e *soEngine) ReplayWorlds(ctx context.Context) ([]*block.BlockRef, error) {
+	// Read them under the writer lock, which guards the replay.
+	unlockWriteMtx, err := e.c.lockSettled(ctx, "replay-worlds")
+	if err != nil {
+		return nil, err
+	}
+	defer unlockWriteMtx()
+
+	// Collect each position's World from the newest, then the base and the
+	// retained roots.
+	var roots []*block.BlockRef
+	add := func(ref *block.BlockRef) {
+		if ref.GetEmpty() || slices.ContainsFunc(roots, ref.EqualsRef) {
+			return
+		}
+		roots = append(roots, ref.Clone())
+	}
+	for i := len(e.replay.positions) - 1; i >= 0; i-- {
+		add(e.replay.positions[i].state.GetHeadRef().GetRootRef())
+	}
+	add(e.replay.base.GetHeadRef().GetRootRef())
+	for _, root := range e.retainedRoots {
+		add(root.GetRootRef())
+	}
+	return roots, nil
+}
+
+// _ is a type assertion
+var _ ReplayWorldsEngine = (*soEngine)(nil)
