@@ -227,6 +227,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
 			return err
 		}
+		v.noteBatchRefs(putRoots, entries)
 	}
 
 	// Write the entries and move the roots in one transaction.

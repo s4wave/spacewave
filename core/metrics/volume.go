@@ -75,6 +75,16 @@ var (
 		"Length of the blocks the volume stored that it did not hold, by write path, since it opened.",
 		[]string{volumeLabel, "path"}, nil,
 	)
+	volumePutRefsUnknownBlocksDesc = prometheus.NewDesc(
+		"spacewave_volume_put_refs_unknown_blocks_total",
+		"Blocks the volume stored that it did not hold and whose writer did not declare their references, by write path, since it opened.",
+		[]string{volumeLabel, "path"}, nil,
+	)
+	volumePutRefsUnknownCallsDesc = prometheus.NewDesc(
+		"spacewave_volume_put_refs_unknown_calls_total",
+		"Blocks put without declared references, held or not, by write path and the code that put them, since the volume opened.",
+		[]string{volumeLabel, "path", "caller"}, nil,
+	)
 	volumeValueWrittenBytesDesc = prometheus.NewDesc(
 		"spacewave_volume_value_written_bytes_total",
 		"Length of the values the volume's storage stored outside its index, by key family, since it opened.",
@@ -97,6 +107,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeLiveValueBytesDesc, volumeFreeDiskBytesDesc, volumeSizesAgeSecondsDesc,
 		volumePublicationPendingDesc, volumePublicationPendingBytesDesc, volumeWriteReserveDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc,
+		volumePutRefsUnknownBlocksDesc, volumePutRefsUnknownCallsDesc,
 		volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
 	} {
 		ch <- d
@@ -122,6 +133,12 @@ func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
 	for _, p := range f.Puts {
 		ch <- prometheus.MustNewConstMetric(volumePutBlocksDesc, prometheus.CounterValue, float64(p.Blocks), id, p.Path)
 		ch <- prometheus.MustNewConstMetric(volumePutBytesDesc, prometheus.CounterValue, float64(p.Bytes), id, p.Path)
+		ch <- prometheus.MustNewConstMetric(volumePutRefsUnknownBlocksDesc, prometheus.CounterValue, float64(p.RefsUnknown), id, p.Path)
+	}
+
+	// Report the code that put blocks without their references.
+	for _, c := range f.UnknownCallers {
+		ch <- prometheus.MustNewConstMetric(volumePutRefsUnknownCallsDesc, prometheus.CounterValue, float64(c.Puts), id, c.Path, c.Caller)
 	}
 
 	// Report the stored values of each key family.

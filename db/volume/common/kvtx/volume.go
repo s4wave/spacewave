@@ -136,6 +136,9 @@ type Volume struct {
 	healthDueAt atomic.Uint64
 	// puts counts the new blocks of each write path, for the flows.
 	puts [numPutPaths]putCount
+	// unknownCallers counts the puts without references by write path and
+	// caller, for the flows.
+	unknownCallers unknownCallers
 	// valueFlows reports the values the storage wrote and freed by key
 	// family, may be nil.
 	valueFlows func() []volume.ValueFlow
@@ -372,6 +375,7 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
 		return nil, err
 	}
+	v.noteBatchRefs(putDirect, entries)
 	existed, err := v.Store.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -393,6 +397,7 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 
 	// Write the block while retaining the requested Volume durability barrier.
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
+	v.notePutRefs(putDirect, putOpts)
 	ref, exists, err := v.Store.PutBlock(ctx, data, putOpts)
 	if err != nil {
 		return nil, exists, err
@@ -401,7 +406,7 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 	// Count the block and wake Volume statistics watchers when it adds
 	// stored data.
 	if ref != nil && !exists {
-		v.countPut(putDirect, len(data), false)
+		v.countPut(putDirect, len(data), false, putOpts.GetRefsKnown())
 		v.broadcastStorageStatsChanged()
 	}
 

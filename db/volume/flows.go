@@ -14,6 +14,21 @@ type PutFlow struct {
 	Blocks uint64
 	// Bytes is their total length.
 	Bytes uint64
+	// RefsUnknown is the number of those blocks stored without their
+	// references, which the collector cannot trace through.
+	RefsUnknown uint64
+}
+
+// UnknownCaller counts the blocks one caller put through one write path
+// without their references, since the volume opened.
+type UnknownCaller struct {
+	// Path names the write path, such as "fill".
+	Path string
+	// Caller names the code that made the puts: its innermost frames outside
+	// the volume and the block collector, innermost first.
+	Caller string
+	// Puts is the number of blocks put, whether the volume held them or not.
+	Puts uint64
 }
 
 // ValueFlow counts the values the volume's storage stored outside its index
@@ -34,6 +49,9 @@ type VolumeFlows struct {
 	VolumeID string
 	// Puts are the new blocks of each write path.
 	Puts []PutFlow
+	// UnknownCallers are the callers that put blocks without their
+	// references, by write path.
+	UnknownCallers []UnknownCaller
 	// Values are the values of each key family, empty when the storage does
 	// not count them.
 	Values []ValueFlow

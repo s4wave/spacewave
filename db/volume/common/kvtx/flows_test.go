@@ -56,14 +56,14 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Each path reports exactly its own blocks.
+	// Each path reports exactly its own blocks, none with declared references.
 	want := []volume.PutFlow{
-		{Path: "direct", Blocks: 1, Bytes: uint64(len(direct))},
-		{Path: "publication", Blocks: 1, Bytes: uint64(len(p.Entries[0].Data))},
-		{Path: "owned", Blocks: 1, Bytes: uint64(len(owned))},
-		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill))},
-		{Path: "staged", Blocks: 2, Bytes: uint64(staged)},
-		{Path: "roots", Blocks: 1, Bytes: uint64(len(rootData))},
+		{Path: "direct", Blocks: 1, Bytes: uint64(len(direct)), RefsUnknown: 1},
+		{Path: "publication", Blocks: 1, Bytes: uint64(len(p.Entries[0].Data)), RefsUnknown: 1},
+		{Path: "owned", Blocks: 1, Bytes: uint64(len(owned)), RefsUnknown: 1},
+		{Path: "fill", Blocks: 1, Bytes: uint64(len(fill)), RefsUnknown: 1},
+		{Path: "staged", Blocks: 2, Bytes: uint64(staged), RefsUnknown: 2},
+		{Path: "roots", Blocks: 1, Bytes: uint64(len(rootData)), RefsUnknown: 1},
 	}
 	flows := v.GetFlows()
 	if flows.VolumeID != v.GetID() || len(flows.Puts) != len(want) {
@@ -73,5 +73,38 @@ func TestFlowsCountNewBlocksByPath(t *testing.T) {
 		if flows.Puts[i] != w {
 			t.Fatalf("path %d = %+v; want %+v", i, flows.Puts[i], w)
 		}
+	}
+}
+
+// TestFlowsNameCallersOfPutsWithoutRefs proves the flows count only the puts
+// whose writer did not declare references, and name the code that made them.
+func TestFlowsNameCallersOfPutsWithoutRefs(t *testing.T) {
+	// Put one block with declared references, and two without, one of them
+	// twice.
+	v, _ := newPublicationTestVolume(t)
+	ctx := t.Context()
+	if _, _, err := v.PutBlock(ctx, []byte("known"), &block.PutOpts{RefsKnown: true}); err != nil {
+		t.Fatal(err)
+	}
+	for _, data := range []string{"unknown one", "unknown two", "unknown two"} {
+		if _, _, err := v.PutBlock(ctx, []byte(data), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// The direct path stored three blocks, two without references.
+	flows := v.GetFlows()
+	if got := flows.Puts[putDirect]; got.Blocks != 3 || got.RefsUnknown != 2 {
+		t.Fatalf("direct flow = %+v; want 3 blocks, 2 without references", got)
+	}
+
+	// One caller made all three puts without references. The volume's own
+	// frames, this test's among them, are skipped, so the test runner is named.
+	if len(flows.UnknownCallers) != 1 {
+		t.Fatalf("callers = %+v; want one", flows.UnknownCallers)
+	}
+	c := flows.UnknownCallers[0]
+	if c.Path != "direct" || c.Puts != 3 || c.Caller != "testing.tRunner" {
+		t.Fatalf("caller = %+v; want the test runner's three direct puts", c)
 	}
 }

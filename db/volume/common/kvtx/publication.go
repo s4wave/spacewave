@@ -35,6 +35,9 @@ func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (
 	if err := v.checkReserve(ctx, 0); err != nil {
 		return nil, err
 	}
+	if p != nil {
+		v.noteBatchRefs(putPublication, p.Entries)
+	}
 
 	// Reserve a reader pin for a published named root.
 	var owner string
