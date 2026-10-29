@@ -28,10 +28,11 @@ func newDebugVolumeCopyCommand() *cli.Command {
 	var opts volume_kvtx.CopyReachableOptions
 	return &cli.Command{
 		Name:      "volume-copy",
-		Usage:     "copy a stopped volume file into a new file at the current store format",
+		Usage:     "copy a stopped volume file into a new file at the current store and file formats",
 		ArgsUsage: "<volume-file> <new-file>",
 		Description: "Copies every key of a stopped s4db volume into a new file, converting a Cayley reference graph " +
-			"to edge records on the way, so the source is never rewritten in place. The new file is written in key order " +
+			"to edge records on the way, so the source is never rewritten in place. It reads a source in the previous s4db " +
+			"value format and writes the new file in the current one. The new file is written in key order " +
 			"with compaction off and records the format version last; a copy that stops early lacks it and should be deleted. " +
 			"The source is left unchanged. Replace the source with the new file only after checking it. " +
 			"With --reachable, the source must be at store format 3 or later, and the copy keeps only the blocks " +
@@ -73,12 +74,9 @@ func newDebugVolumeCopyCommand() *cli.Command {
 // only its reachable part when reachable is set, writing progress lines to w.
 // It removes dst when the copy fails.
 func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, w io.Writer) (err error) {
-	// Open the source, refusing a missing file, which the open would create,
-	// and a file a daemon has open.
-	if _, err := os.Stat(src); err != nil {
-		return err
-	}
-	sdb, err := s4db.Open(src, s4db.Options{})
+	// Open the source read-only, which also reads the previous value format,
+	// refusing a file a daemon has open.
+	sdb, err := s4db.Open(src, s4db.Options{ReadOnly: true})
 	if err != nil {
 		return err
 	}

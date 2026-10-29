@@ -14,10 +14,16 @@ type osFile struct {
 	id fileID
 }
 
-// Open opens or creates the database at path.
+// Open opens or creates the database at path. A read-only open creates
+// nothing.
 func Open(path string, opts Options) (*DB, error) {
-	// Open the file once per process.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600) // #nosec G703 -- the caller chooses the path.
+	// Open the file once per process. Even a read-only handle opens it for
+	// writing, to lock and write its reader slot.
+	flag := os.O_RDWR | os.O_CREATE
+	if opts.ReadOnly {
+		flag = os.O_RDWR
+	}
+	f, err := os.OpenFile(path, flag, 0o600) // #nosec G703 -- the caller chooses the path.
 	if err != nil {
 		return nil, err
 	}

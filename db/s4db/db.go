@@ -125,7 +125,7 @@ func open(s storage, opts Options) (*DB, error) {
 	db.tailer.SetContext(context.Background(), false)
 	db.warmer.SetRoutine(db.warm)
 	db.warmer.SetContext(context.Background(), false)
-	if db.opts.RelocateBudget > 0 {
+	if db.opts.RelocateBudget > 0 && !db.opts.ReadOnly {
 		db.cleaner.SetRoutine((&cleaner{db: db}).run)
 		db.cleaner.SetContext(context.Background(), false)
 	}
@@ -136,24 +136,31 @@ func open(s storage, opts Options) (*DB, error) {
 func (db *DB) load() error {
 	// Create the file under the writer lock so concurrent openers agree. A
 	// single-process handle keeps the lock until the file closes.
-	if _, err := db.s.lock(lockWriter, true); err != nil {
-		return err
-	}
-	err := db.w.create()
-	if uerr := db.unlockFile(); err == nil {
-		err = uerr
-	}
-	if err != nil {
-		return err
+	if !db.opts.ReadOnly {
+		if _, err := db.s.lock(lockWriter, true); err != nil {
+			return err
+		}
+		err := db.w.create()
+		if uerr := db.unlockFile(); err == nil {
+			err = uerr
+		}
+		if err != nil {
+			return err
+		}
 	}
 
-	// Read the header.
+	// Read the header. A file of the previous value format opens only to
+	// be read.
 	page := make([]byte, pageSize)
 	if _, err := db.s.ReadAt(page, headerPage*pageSize); err != nil {
 		return err
 	}
+	var err error
 	if db.hdr, err = decodeHeader(page); err != nil {
 		return err
+	}
+	if db.hdr.values == valuesPacked && !db.opts.ReadOnly {
+		return errors.Wrap(ErrUnsupported, "the previous value format opens only read-only, to copy it")
 	}
 
 	// Take a free slot, pin everything until the state is loaded, and
@@ -180,7 +187,7 @@ func (db *DB) load() error {
 	if err != nil {
 		return err
 	}
-	if torn {
+	if torn && !db.opts.ReadOnly {
 		if st, err = db.cutTorn(st); err != nil {
 			return err
 		}
@@ -273,7 +280,7 @@ func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
 	}
 	var recs []read
 	var durable uint64
-	lr := newLogReader(db.s, next.pos, next.end, next.seq, next.crc)
+	lr := newLogReader(db.s, db.hdr.recordHeader(), next.pos, next.end, next.seq, next.crc)
 	for {
 		r, ok := lr.next()
 		if !ok {
@@ -666,6 +673,9 @@ func (db *DB) WaitSeq(ctx context.Context, seq uint64) error {
 // checkpoints, and releases freed space.
 func (db *DB) Compact(ctx context.Context) error {
 	// Clean, then checkpoint and release what the moves freed.
+	if db.opts.ReadOnly {
+		return ErrReadOnly
+	}
 	if err := (&cleaner{db: db, sync: true}).clean(ctx); err != nil {
 		return err
 	}

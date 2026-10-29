@@ -12,6 +12,8 @@ const logWindow = 64 << 10
 type logReader struct {
 	// r reads the database file.
 	r io.ReaderAt
+	// hdr is the length of a record header.
+	hdr int
 	// pos is the offset of the next record.
 	pos uint64
 	// end is the end of the chunk holding pos.
@@ -27,16 +29,17 @@ type logReader struct {
 }
 
 // newLogReader returns a reader of the records after seq, whose checksum is
-// crc, starting at pos in the chunk ending at end.
-func newLogReader(r io.ReaderAt, pos, end, seq uint64, crc uint32) *logReader {
-	return &logReader{r: r, pos: pos, end: end, seq: seq + 1, crc: crc}
+// crc, starting at pos in the chunk ending at end, with record headers of
+// hdr bytes.
+func newLogReader(r io.ReaderAt, hdr int, pos, end, seq uint64, crc uint32) *logReader {
+	return &logReader{r: r, hdr: hdr, pos: pos, end: end, seq: seq + 1, crc: crc}
 }
 
 // next returns the next record, following links, or false at the end of the
 // valid log.
 func (l *logReader) next() (*record, bool) {
 	// Decode the record at pos.
-	r, ok := decodeRecord(l.window(), l.seq, l.crc)
+	r, ok := decodeRecord(l.window(), l.hdr, l.seq, l.crc)
 	if !ok {
 		return nil, false
 	}
@@ -55,7 +58,7 @@ func (l *logReader) next() (*record, bool) {
 // logWindow bytes.
 func (l *logReader) window() []byte {
 	// Serve a record that the buffer already holds whole.
-	if l.pos >= l.off && l.pos+recordHeader <= l.off+uint64(len(l.buf)) {
+	if l.pos >= l.off && l.pos+uint64(l.hdr) <= l.off+uint64(len(l.buf)) { // #nosec G115 -- a header length is not negative.
 		b := l.buf[l.pos-l.off:]
 		n := uint64(binary.LittleEndian.Uint32(b))
 		if n <= uint64(len(b)) || l.off+uint64(len(l.buf)) >= l.end {
@@ -66,7 +69,7 @@ func (l *logReader) window() []byte {
 	// Read the next header, stopping at the end of the log without filling
 	// a window: a reader at the end, the usual case, reads only the header.
 	var hdr [recordHeader]byte
-	if _, err := l.r.ReadAt(hdr[:], fileOff(l.pos)); err != nil {
+	if _, err := l.r.ReadAt(hdr[:l.hdr], fileOff(l.pos)); err != nil {
 		return nil
 	}
 	if binary.LittleEndian.Uint64(hdr[8:]) != l.seq {

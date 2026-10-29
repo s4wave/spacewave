@@ -67,16 +67,16 @@ func newLink(seq uint64, next run) *record {
 	return &record{seq: seq, kind: kindLink, next: next}
 }
 
-// decodeRecord reads the record at the start of b, reporting false when b
-// holds no complete valid record with sequence seq following the record
-// with checksum prev.
-func decodeRecord(b []byte, seq uint64, prev uint32) (*record, bool) {
+// decodeRecord reads the record at the start of b, whose header is hdr
+// bytes, reporting false when b holds no complete valid record with
+// sequence seq following the record with checksum prev.
+func decodeRecord(b []byte, hdr int, seq uint64, prev uint32) (*record, bool) {
 	// Check that a whole record with the expected sequence is present.
-	if len(b) < recordHeader {
+	if len(b) < hdr {
 		return nil, false
 	}
 	n := int(binary.LittleEndian.Uint32(b))
-	if n < recordHeader || n > len(b) || binary.LittleEndian.Uint64(b[8:]) != seq {
+	if n < hdr || n > len(b) || binary.LittleEndian.Uint64(b[8:]) != seq {
 		return nil, false
 	}
 	crc := chain(prev, b[8:n])
@@ -86,7 +86,7 @@ func decodeRecord(b []byte, seq uint64, prev uint32) (*record, bool) {
 
 	// A link holds only the next chunk.
 	r := &record{seq: seq, kind: b[16], size: n, crc: crc}
-	d := decoder{b: b[recordHeader:n]}
+	d := decoder{b: b[hdr:n]}
 	if r.kind == kindLink {
 		r.next = run{start: d.u64(), n: d.u64()}
 		return r, d.err == nil

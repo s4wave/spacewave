@@ -64,12 +64,20 @@ func decodeHeader(b []byte) (*header, error) {
 		h.rocompat&^rocompatKnown != 0 ||
 		h.checksum != checksumCRC32C ||
 		h.index != indexLogTree ||
-		h.values != valuesChunked ||
+		(h.values != valuesChunked && h.values != valuesPacked) ||
 		h.inlineMax > maxInline
 	if unsupported {
 		return nil, ErrUnsupported
 	}
 	return h, nil
+}
+
+// recordHeader returns the length of a record header in the file.
+func (h *header) recordHeader() int {
+	if h.values == valuesPacked {
+		return recordHeader - 4
+	}
+	return recordHeader
 }
 
 // encode writes h into a page.

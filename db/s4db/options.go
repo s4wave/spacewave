@@ -29,6 +29,13 @@ type Options struct {
 	// writers wait until this handle closes. It also starts no watcher
 	// goroutine outside the database's own lifetime.
 	SingleProcess bool
+	// ReadOnly opens an existing file without changing its contents: write
+	// transactions and every operation that takes the writer lock return
+	// ErrReadOnly, the cleaner stays off, and a log torn by a crash is read
+	// up to the tear without cutting it. The handle still writes its reader
+	// slot, so another process's writer keeps the space it reads. It is the
+	// only way to open a file of the previous value format, to copy it.
+	ReadOnly bool
 	// Families are key prefixes whose values Flows counts apart. A key
 	// counts under the first family it starts with.
 	Families [][]byte

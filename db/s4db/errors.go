@@ -24,6 +24,8 @@ var (
 	ErrValueTooLarge = errors.New("value exceeds the maximum value size")
 	// ErrTxTooLarge is returned when a commit record would exceed 4 GiB.
 	ErrTxTooLarge = errors.New("transaction exceeds the maximum commit size")
+	// ErrReadOnly is returned for a write to a database opened read-only.
+	ErrReadOnly = errors.New("database is open read-only")
 	// ErrClosed is returned when the database is closed.
 	ErrClosed = errors.New("database is closed")
 )

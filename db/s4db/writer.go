@@ -81,6 +81,11 @@ type writer struct {
 // other processes appended. Waiting for another process cannot be
 // canceled; ctx bounds the wait for this handle's writers.
 func (w *writer) lock(ctx context.Context) error {
+	// A read-only handle never writes.
+	if w.db.opts.ReadOnly {
+		return ErrReadOnly
+	}
+
 	// Exclude this handle's writers, then other processes, counted as
 	// waiting until both are held.
 	w.waiting.Add(1)
@@ -109,6 +114,11 @@ func (w *writer) lock(ctx context.Context) error {
 // tryLock takes the writer lock when no writer holds it, without catching
 // up.
 func (w *writer) tryLock() (bool, error) {
+	// A read-only handle never writes.
+	if w.db.opts.ReadOnly {
+		return false, nil
+	}
+
 	// Exclude this handle's writers, then other processes, without
 	// waiting.
 	release, ok := w.mtx.TryLock()
@@ -235,7 +245,7 @@ func (w *writer) replaySpace(st *state) error {
 
 	// Replay the space changes of the records after it. The log resumes
 	// after the tree's checkpoint, which may precede the space's.
-	lr := newLogReader(s, st.sb.logPos, st.sb.logEnd, st.sb.seq, st.sb.logCrc)
+	lr := newLogReader(s, recordHeader, st.sb.logPos, st.sb.logEnd, st.sb.seq, st.sb.logCrc)
 	for lr.seq <= st.seq {
 		r, ok := lr.next()
 		if !ok {

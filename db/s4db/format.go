@@ -66,6 +66,10 @@ const (
 	// indexLogTree is a logical commit log over a copy-on-write B+tree
 	// written once per checkpoint.
 	indexLogTree = 1
+	// valuesPacked packs each commit's large values into page-allocated
+	// extents with per-page live accounting. Its records have no salt. A
+	// file in it opens only read-only.
+	valuesPacked = 1
 	// valuesChunked appends large values, each after a header naming its
 	// key, to whole value chunks with per-chunk live accounting.
 	valuesChunked = 2
