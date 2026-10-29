@@ -46,9 +46,13 @@ const slotSize = 32
 // slots is the number of processes that may open the file at once.
 const slots = pageSize / slotSize
 
-// extentPages is the size of a value extent or log chunk when free space
-// allows: 1 MiB, large enough that packed writes reach full device speed.
-const extentPages = 256
+// chunkPages is the pages in a chunk, the unit every allocation takes whole
+// except index pages: 1 MiB, large enough that packed writes reach full
+// device speed. The first chunk starts at page zero and holds the fixed pages.
+const chunkPages = 256
+
+// chunkSize is the bytes in a chunk.
+const chunkSize = chunkPages * pageSize
 
 // magic opens the header.
 var magic = [8]byte{'S', '4', 'W', 'A', 'V', 'E', 'D', 'B'}
@@ -62,9 +66,9 @@ const (
 	// indexLogTree is a logical commit log over a copy-on-write B+tree
 	// written once per checkpoint.
 	indexLogTree = 1
-	// valuesPacked packs each commit's large values into page-allocated
-	// extents with per-page live accounting.
-	valuesPacked = 1
+	// valuesChunked appends large values, each after a header naming its
+	// key, to whole value chunks with per-chunk live accounting.
+	valuesChunked = 2
 )
 
 // Feature flags follow the ext4 scheme. An unknown compat flag is ignored, an

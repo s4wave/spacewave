@@ -16,11 +16,11 @@ import (
 // three-level tree partway through, while the build reads ahead, and checks
 // that the build returns the error.
 func TestBuildReadAheadFailure(t *testing.T) {
-	// Open a file without the background compactor.
+	// Open a file without the background cleaner.
 	ctx := context.Background()
 	db := openTest(t, filepath.Join(t.TempDir(), "ahead.s4wave"), Options{SingleProcess: true})
 	defer db.Close()
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
+	if wait, _ := db.cleaner.SetRoutine(nil); wait != nil {
 		<-wait
 	}
 
@@ -79,8 +79,8 @@ func TestBuildReadAheadFailure(t *testing.T) {
 	done := make(chan error, 1)
 	go func() {
 		tree := db.w.newTree(db.cur.Load())
-		tree.b.out.reserve = func(n uint64) (run, error) {
-			return run{}, errors.New("reserved")
+		tree.b.out.reserve = func(n uint64) ([]run, error) {
+			return nil, errors.New("reserved")
 		}
 		done <- tree.build()
 	}()

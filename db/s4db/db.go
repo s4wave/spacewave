@@ -48,9 +48,8 @@ type DB struct {
 	tailer *routine.RoutineContainer
 	// warmer reads the tree into the cache after open.
 	warmer *routine.RoutineContainer
-	// compactor moves values toward the start of the file in the
-	// background.
-	compactor *routine.RoutineContainer
+	// cleaner evacuates sparse chunks in the background.
+	cleaner *routine.RoutineContainer
 
 	// cur is the published state. Read transactions acquire it without a
 	// lock.
@@ -100,14 +99,14 @@ func open(s storage, opts Options) (*DB, error) {
 	// Build the database on s with its cache, flusher, and writer.
 	opts = opts.withDefaults()
 	db := &DB{
-		s:         s,
-		opts:      opts,
-		p:         &pager{r: s, cache: newCache(opts.CacheBytes)},
-		tailer:    routine.NewRoutineContainer(),
-		warmer:    routine.NewRoutineContainer(),
-		compactor: routine.NewRoutineContainer(),
-		leases:    make(map[int64]struct{}),
-		flows:     make([]flowCount, len(opts.Families)+1),
+		s:       s,
+		opts:    opts,
+		p:       &pager{r: s, cache: newCache(opts.CacheBytes)},
+		tailer:  routine.NewRoutineContainer(),
+		warmer:  routine.NewRoutineContainer(),
+		cleaner: routine.NewRoutineContainer(),
+		leases:  make(map[int64]struct{}),
+		flows:   make([]flowCount, len(opts.Families)+1),
 	}
 	db.flush = newFlusher(s, &db.cur)
 	db.w = &writer{db: db}
@@ -126,10 +125,6 @@ func open(s storage, opts Options) (*DB, error) {
 	db.tailer.SetContext(context.Background(), false)
 	db.warmer.SetRoutine(db.warm)
 	db.warmer.SetContext(context.Background(), false)
-	if opts.RelocateBudget > 0 {
-		db.compactor.SetRoutine((&compactor{db: db}).run)
-		db.compactor.SetContext(context.Background(), false)
-	}
 	return db, nil
 }
 
@@ -719,9 +714,9 @@ func (db *DB) Close() error {
 	// Let this handle's write transactions finish their commits.
 	db.drainWriters()
 
-	// Stop the warm-up and compaction so their snapshots do not hold
+	// Stop the warm-up and the cleaner so their snapshots do not hold
 	// space, and drop a running background checkpoint at its next page.
-	for _, rc := range []*routine.RoutineContainer{db.warmer, db.compactor} {
+	for _, rc := range []*routine.RoutineContainer{db.warmer, db.cleaner} {
 		if wait, _ := rc.SetRoutine(nil); wait != nil {
 			<-wait
 		}

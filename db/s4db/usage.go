@@ -2,20 +2,24 @@ package s4db
 
 import "context"
 
-// Usage describes how the file's pages are used and how the index cache
+// Usage describes how the file's chunks are used and how the index cache
 // serves them.
 type Usage struct {
 	// FileBytes is the file length.
 	FileBytes int64
-	// FreeBytes is the length of the free runs. They are punched in batches,
-	// so they take little disk.
+	// FreeBytes is the length of the free chunks. They are punched in
+	// batches, so they take little disk.
 	FreeBytes int64
 	// ValueBytes is the total length of the live values stored outside the
 	// index.
 	ValueBytes int64
-	// ValuePageBytes is the length of the pages holding live values. The
-	// difference from ValueBytes is the dead space inside them.
-	ValuePageBytes int64
+	// ValueChunkBytes is the length of the value chunks. The difference from
+	// ValueBytes is the dead space the cleaner reclaims.
+	ValueChunkBytes int64
+	// IndexChunkBytes is the length of the index chunks. The difference from
+	// IndexBytes is the unused pages checkpoints fill next and the space
+	// records.
+	IndexChunkBytes int64
 	// IndexKeys is the number of keys in the checkpoint's index.
 	IndexKeys int64
 	// IndexBytes is the length of the checkpoint's index pages.
@@ -34,7 +38,7 @@ type Usage struct {
 	PageReads int64
 }
 
-// Usage reports how the file's pages are used as of the latest commit. It
+// Usage reports how the file's chunks are used as of the latest commit. It
 // takes the writer lock.
 func (db *DB) Usage(ctx context.Context) (Usage, error) {
 	// Hold the writer lock so the space is current and stable.

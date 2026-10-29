@@ -35,7 +35,7 @@ func TestCheckpointSavesSpaceCopy(t *testing.T) {
 			}
 
 			// Commit between the checkpoint's writer lock holds, then keep
-			// committing while it encodes. With outgrow add runs to the copy
+			// committing while it encodes. With outgrow add chunks to the copy
 			// past the file end.
 			var before, during uint64
 			var hookErr, bgErr error
@@ -46,9 +46,8 @@ func TestCheckpointSavesSpaceCopy(t *testing.T) {
 				saved = true
 				before = db.cur.Load().seq
 				if sp := tr.save.sp; outgrow {
-					for i := range uint64(4096) {
-						sp.free.Set(sp.end+1<<20+2*i, 1)
-					}
+					sp.table = append(sp.table, make([]chunk, 1<<15)...)
+					sp.table = append(sp.table, chunk{kind: chunkLog})
 				}
 				for range 3 {
 					if _, err := commitRandom(r, db, m, 2000); err != nil {

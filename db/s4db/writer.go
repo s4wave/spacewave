@@ -1,9 +1,7 @@
 package s4db
 
 import (
-	"bytes"
 	"context"
-	"math"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -11,10 +9,6 @@ import (
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 )
-
-// compactBatch bounds the value bytes Compact holds in memory and commits
-// at once.
-const compactBatch = 64 << 20
 
 // writer appends commits, checkpoints, and moves values for one handle. Its
 // fields belong to the holder of the writer lock.
@@ -38,8 +32,6 @@ type writer struct {
 	spGen uint64
 	// fileEnd is the file length in pages.
 	fileEnd uint64
-	// relocKey is where the next compaction pass resumes.
-	relocKey []byte
 	// ckptErr is the error of the last background checkpoint, reported by
 	// the next commit.
 	ckptErr error
@@ -78,10 +70,6 @@ type writer struct {
 	// spaceLen is the length of the last space record before padding, which
 	// sizes the next one, or zero before the first.
 	spaceLen int
-	// saveLive is the live counts array of the last space copy a checkpoint
-	// encoded, reused by the next copy. A copy being encoded holds it, so a
-	// checkpoint that starts meanwhile allocates its own.
-	saveLive []uint16
 }
 
 // lock takes the writer lock and brings the writer up to date with records
@@ -179,8 +167,8 @@ func (w *writer) create() error {
 
 	// Allocate the first log chunk and save the space.
 	sp := newSpace()
-	chunk := sp.alloc(extentPages)
-	sp.chunks = []run{chunk}
+	chunk := sp.takeChunks(1, chunkLog)
+	sp.log = []run{chunk}
 	ref, err := w.writeSpace(sp)
 	if err != nil {
 		return err
@@ -188,7 +176,7 @@ func (w *writer) create() error {
 
 	// Point the first superblock at the empty log and flush.
 	sb := superblock{gen: 1, space: ref, logPos: chunk.start * pageSize, logEnd: chunk.end() * pageSize}
-	if err := s.truncate(pageOff(sp.end)); err != nil {
+	if err := s.truncate(pageOff(sp.end())); err != nil {
 		return err
 	}
 	if _, err := s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
@@ -236,10 +224,12 @@ func (w *writer) replaySpace(st *state) error {
 		return err
 	}
 
-	// Replay the space changes of the records after it, indexing the
-	// pending runs so each claim finds the runs it overlaps. The log resumes
+	// Free the saved reservations, which wait at tag zero, and anything else
+	// the saved marks already cover.
+	sp.release(sp.marks.seq, sp.marks.ckpt)
+
+	// Replay the space changes of the records after it. The log resumes
 	// after the tree's checkpoint, which may precede the space's.
-	sp.indexPending()
 	lr := newLogReader(s, st.sb.logPos, st.sb.logEnd, st.sb.seq, st.sb.logCrc)
 	for lr.seq <= st.seq {
 		r, ok := lr.next()
@@ -250,8 +240,7 @@ func (w *writer) replaySpace(st *state) error {
 			continue
 		}
 		if r.kind == kindLink {
-			sp.claim(r.next)
-			sp.chunks = append(sp.chunks, r.next)
+			sp.claimLog(r.next)
 			continue
 		}
 
@@ -260,7 +249,7 @@ func (w *writer) replaySpace(st *state) error {
 		sp.release(r.released.seq, r.released.ckpt)
 		for _, o := range r.ops {
 			if o.val.isRef {
-				sp.useValue(o.val.ref.off, int(o.val.ref.n))
+				sp.replayValue(o.val.ref.off, int(o.val.ref.n), r.seq)
 			}
 		}
 		for _, fr := range r.frees {
@@ -270,7 +259,6 @@ func (w *writer) replaySpace(st *state) error {
 
 	// Adopt the space. Its writer punched what it released, except a last
 	// batch a crash cut short, whose pages stay allocated until reused.
-	sp.pendingAt = nil
 	sp.drain()
 	size, err := s.size()
 	if err != nil {
@@ -357,8 +345,8 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 	var link []byte
 	linkPos := pos
 	if pos+bound > end {
-		chunk := sp.alloc(max(extentPages, pagesFor(size)))
-		sp.chunks = append(sp.chunks, chunk)
+		chunk := sp.takeChunks(chunksFor(pagesFor(size)), chunkLog)
+		sp.log = append(sp.log, chunk)
 		l := newLink(seq, chunk)
 		link = l.encode(prev)
 		seq, prev = seq+1, l.crc
@@ -369,9 +357,10 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 
 	// Place values, then free replaced ones and release what no snapshot
 	// reads.
-	for _, wr := range writes {
+	for i := range writes {
+		wr := &writes[i]
 		ref := &r.ops[wr.op].val.ref
-		ref.off = sp.placeValue(len(wr.data), seq)
+		wr.entry, ref.off = sp.placeValue(len(r.ops[wr.op].key), len(wr.data), seq)
 	}
 	for _, fr := range r.frees {
 		sp.freeValue(fr.off, int(fr.n), seq)
@@ -446,7 +435,8 @@ func (w *writer) writeRecord(link []byte, linkPos uint64, rec []byte, pos uint64
 	return err
 }
 
-// writeValues writes placed values, joining adjacent ones into one write.
+// writeValues writes placed values, each after its header, joining adjacent
+// entries into one write.
 func (w *writer) writeValues(r *record, writes []valueWrite) error {
 	// Collect adjacent values in buf, starting at at.
 	var buf []byte
@@ -460,17 +450,17 @@ func (w *writer) writeValues(r *record, writes []valueWrite) error {
 		return err
 	}
 
-	// Write each run when the next value is not adjacent.
+	// Write each run when the next entry is not adjacent.
 	for _, wr := range writes {
-		off := r.ops[wr.op].val.ref.off
-		if len(buf) != 0 && at+uint64(len(buf)) != off {
+		if len(buf) != 0 && at+uint64(len(buf)) != wr.entry {
 			if err := flush(); err != nil {
 				return err
 			}
 		}
 		if len(buf) == 0 {
-			at = off
+			at = wr.entry
 		}
+		buf = appendValueHeader(buf, r.ops[wr.op].key, wr.data)
 		buf = append(buf, wr.data...)
 	}
 	return flush()
@@ -522,13 +512,9 @@ func (w *writer) punch() error {
 // punchNow deallocates released runs under the writer lock and shrinks the
 // file to the space end.
 func (w *writer) punchNow() error {
-	// Deallocate released runs below the end.
-	db, sp := w.db, w.sp
-	for _, r := range sp.drain() {
-		if r.start >= sp.end {
-			continue
-		}
-		r.n = min(r.n, sp.end-r.start)
+	// Deallocate released chunks below the end.
+	db := w.db
+	for _, r := range w.sp.drain() {
 		db.p.cache.drop(r)
 		if err := db.s.punch(pageOff(r.start), pageOff(r.n)); err != nil {
 			return err
@@ -537,28 +523,22 @@ func (w *writer) punchNow() error {
 	return w.truncate()
 }
 
-// startPunch takes the released runs out of the free runs and punches them
-// in the background, unless a punch already runs, which leaves them queued
-// for the next. The space lists the runs as reserved, so allocation skips
-// them and a saved space frees them. Only a single-process handle punches
-// in the background: another process could allocate the runs from the space
-// it reads from the file. The caller holds the writer lock.
+// startPunch holds the released chunks out of allocation and punches them in
+// the background, unless a punch already runs, which leaves them queued for
+// the next. A saved space records held chunks as free. Only a single-process
+// handle punches in the background: another process could allocate the
+// chunks from the space it reads from the file. The caller holds the writer
+// lock.
 func (w *writer) startPunch() {
-	// Take the released runs below the end.
+	// Hold the released chunks below the end.
 	if !w.punching.CompareAndSwap(false, true) {
 		return
 	}
 	db, sp := w.db, w.sp
-	var runs []run
-	for _, r := range sp.drain() {
-		if r.start >= sp.end {
-			continue
-		}
-		r.n = min(r.n, sp.end-r.start)
+	runs := sp.drain()
+	for _, r := range runs {
 		db.p.cache.drop(r)
-		sp.take(r)
-		sp.reserved = append(sp.reserved, r)
-		runs = append(runs, r)
+		sp.hold(r)
 	}
 	if len(runs) == 0 {
 		w.punching.Store(false)
@@ -570,7 +550,7 @@ func (w *writer) startPunch() {
 	go w.runPunch(sp, runs)
 }
 
-// runPunch punches runs taken from sp, then returns them to its free runs
+// runPunch punches runs held in sp, then returns them to its free chunks
 // under the writer lock. A space reloaded meanwhile already holds them free,
 // and Close stops the punch, queuing the rest for its own.
 func (w *writer) runPunch(sp *space, runs []run) {
@@ -585,18 +565,14 @@ func (w *writer) runPunch(sp *space, runs []run) {
 		done++
 	}
 
-	// Return the runs, queuing those left unpunched.
+	// Return the chunks, queuing those left unpunched.
 	if lerr := w.lock(context.Background()); lerr != nil {
 		w.punching.Store(false)
 		return
 	}
 	if w.sp == sp {
-		sp.reserved = dropRuns(sp.reserved, runs)
-		for _, r := range runs[:done] {
-			sp.returnFree(r)
-		}
-		for _, r := range runs[done:] {
-			sp.addFree(r)
+		for i, r := range runs {
+			sp.unhold(r, i < done)
 		}
 	}
 
@@ -639,14 +615,14 @@ func (w *writer) punchRun(sp *space, r run) error {
 
 // truncate shrinks the file to the space end.
 func (w *writer) truncate() error {
-	db, sp := w.db, w.sp
-	if sp.end < w.fileEnd {
-		db.p.cache.drop(run{start: sp.end, n: w.fileEnd - sp.end})
-		if err := db.s.truncate(pageOff(sp.end)); err != nil {
+	db, end := w.db, w.sp.end()
+	if end < w.fileEnd {
+		db.p.cache.drop(run{start: end, n: w.fileEnd - end})
+		if err := db.s.truncate(pageOff(end)); err != nil {
 			return err
 		}
 	}
-	w.fileEnd = sp.end
+	w.fileEnd = end
 	return nil
 }
 
@@ -662,7 +638,7 @@ func (w *writer) checkpoint(ctx context.Context) error {
 	// Build and write the tree, reserving its pages as it goes, and save
 	// it.
 	t := w.newTree(st)
-	t.b.out.reserve = func(n uint64) (run, error) {
+	t.b.out.reserve = func(n uint64) ([]run, error) {
 		return w.reserve(t, n)
 	}
 	if err := t.build(); err != nil {
@@ -775,9 +751,9 @@ func (w *writer) runCheckpoint(st *state, stripe int) {
 	ctx := context.Background()
 	t := w.newTree(st)
 	out := t.b.out
-	out.reserve = func(n uint64) (run, error) {
+	out.reserve = func(n uint64) ([]run, error) {
 		if err := w.lock(ctx); err != nil {
-			return run{}, err
+			return nil, err
 		}
 		r, err := w.reserve(t, n)
 		w.unlock(nil)
@@ -912,9 +888,6 @@ type spaceSave struct {
 	sp *space
 	// enc is the copy's encoding.
 	enc []byte
-	// live is the copy's live counts array, which saveTree hands back to
-	// the writer for the next copy once the encode is done with it.
-	live []uint16
 }
 
 // errDropped reports a tree abandoned while it built: either its space was
@@ -961,28 +934,20 @@ func (t *tree) evict() {
 	}
 }
 
-// reserve takes up to n pages from the space for t's new pages. The caller
-// holds the writer lock.
-func (w *writer) reserve(t *tree, n uint64) (run, error) {
+// reserve takes up to n index pages from the space for t's new pages. The
+// caller holds the writer lock.
+func (w *writer) reserve(t *tree, n uint64) ([]run, error) {
 	// Keep the reservations in one space.
 	sp := w.sp
 	if t.sp == nil {
 		t.sp = sp
 	}
 	if t.sp != sp || w.closing.Load() {
-		return run{}, errDropped
+		return nil, errDropped
 	}
-
-	// Take n pages from the lowest free run holding them, else the largest
-	// free run, else from the file end. A checkpoint rewrites much of the
-	// index, so asking for a write batch would put each one at the file end
-	// once values have cut the free space into shorter runs.
-	r, ok := sp.fit(1, n)
-	if !ok {
-		r = sp.alloc(n)
-	}
-	sp.reserved = append(sp.reserved, r)
-	return r, nil
+	rs := sp.takePages(n)
+	sp.reserved = append(sp.reserved, rs...)
+	return rs, nil
 }
 
 // carryOver collects the overlay entries that follow t's state, so
@@ -1024,9 +989,9 @@ func (t *tree) fold(changed []*record) {
 // prepareTree begins saving t under the writer lock. It drops a tree whose
 // space was reloaded or whose checkpoint another replaced, freeing its pages
 // at once and evicting them from the cache: no reader has seen them.
-// Otherwise it closes the open value extent, takes pages for the space
-// record, and copies the space into t.save, so encodeSpace can encode it
-// without the lock. Taking the pages first lets the copy name them in use.
+// Otherwise it takes pages for the space record and copies the space into
+// t.save, so encodeSpace can encode it without the lock. Taking the pages
+// first lets the copy name them in use.
 func (w *writer) prepareTree(t *tree) error {
 	// Drop a tree that can no longer be saved.
 	db, sp, st := w.db, w.sp, t.st
@@ -1039,32 +1004,30 @@ func (w *writer) prepareTree(t *tree) error {
 		sp.reserved = dropRuns(sp.reserved, t.b.out.runs)
 		t.evict()
 		for _, r := range t.b.out.runs {
-			sp.addFree(r)
+			sp.freeRun(r)
 		}
 		return nil
 	}
-	if !slices.ContainsFunc(sp.chunks, func(c run) bool { return c.end()*pageSize == st.end }) {
+	if !slices.ContainsFunc(sp.log, func(c run) bool { return c.end()*pageSize == st.end }) {
 		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
 	}
 
-	// Close the open value extent and take pages for the record, sized from
-	// the last record with room for the space to grow.
-	sp.closeOpen(cur.seq)
+	// Take pages for the record, sized from the last record with room for
+	// the space to grow.
 	est := w.spaceLen
 	if est == 0 {
 		est = int(cur.sb.space.n)
 	}
-	rec := sp.alloc(pagesFor(est+est/8) + 1)
+	rec := sp.takeRecord(pagesFor(est+est/8) + 1)
 
 	// Reserve the record's pages until saveTree, so a space another
 	// checkpoint saves meanwhile frees them on reopen. Copy the space for
-	// encodeSpace, lending it the last copy's live counts. The copy saves
-	// the pages as its own record, so it does not reserve them.
+	// encodeSpace. The copy saves the pages as its own record, so it does
+	// not reserve them.
 	sp.reserved = append(sp.reserved, rec)
-	cp := sp.clone(w.saveLive)
+	cp := sp.clone()
 	cp.reserved = dropRuns(cp.reserved, []run{rec})
-	w.saveLive = nil
-	t.save = &spaceSave{rec: rec, from: sp, seq: cur.seq, old: cur.sb.space, sp: cp, live: cp.live}
+	t.save = &spaceSave{rec: rec, from: sp, seq: cur.seq, old: cur.sb.space, sp: cp}
 	return nil
 }
 
@@ -1090,20 +1053,22 @@ func (s *space) retire(t *tree, old extentRef) error {
 	// End the reservation and return the unused pages.
 	out, st := t.b.out, t.st
 	s.reserved = dropRuns(s.reserved, out.runs)
-	s.addFree(out.unused())
+	for _, r := range out.unused() {
+		s.freeRun(r)
+	}
 
 	// Queue the replaced pages, the old space record, and the old log
 	// chunks.
 	s.freePages(t.b.freed, st.seq)
 	s.pend(&s.pages, pending{run: run{start: old.off / pageSize, n: pagesFor(int(old.n))}, tag: st.seq})
-	keep := slices.IndexFunc(s.chunks, func(c run) bool { return c.end()*pageSize == st.end })
+	keep := slices.IndexFunc(s.log, func(c run) bool { return c.end()*pageSize == st.end })
 	if keep < 0 {
 		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
 	}
-	for _, c := range s.chunks[:keep] {
+	for _, c := range s.log[:keep] {
 		s.pend(&s.pages, pending{run: c, tag: st.seq})
 	}
-	s.chunks = s.chunks[keep:]
+	s.log = s.log[keep:]
 	return nil
 }
 
@@ -1114,13 +1079,12 @@ func (s *space) retire(t *tree, old extentRef) error {
 // commit. A tree whose space was reloaded or whose checkpoint another
 // replaced since prepareTree is dropped. The caller holds the writer lock.
 func (w *writer) saveTree(ctx context.Context, t *tree) error {
-	// Take back the copy's live counts, and drop a tree that can no longer
-	// be saved, as prepareTree does, also returning the record's pages. A
-	// space reloaded since prepareTree holds neither the record's pages nor
-	// the tree's. Otherwise the record's pages leave the reservations.
+	// Drop a tree that can no longer be saved, as prepareTree does, also
+	// returning the record's pages. A space reloaded since prepareTree holds
+	// neither the record's pages nor the tree's. Otherwise the record's
+	// pages leave the reservations.
 	db, sp, b, st, sv := w.db, w.sp, t.b, t.st, t.save
 	cur := db.cur.Load()
-	w.saveLive = sv.live
 	if sv.from != sp {
 		t.evict()
 		return nil
@@ -1131,9 +1095,9 @@ func (w *writer) saveTree(ctx context.Context, t *tree) error {
 		sp.reserved = dropRuns(sp.reserved, out.runs)
 		t.evict()
 		for _, r := range out.runs {
-			sp.addFree(r)
+			sp.freeRun(r)
 		}
-		sp.addFree(sv.rec)
+		sp.freeRun(sv.rec)
 		return nil
 	}
 
@@ -1157,8 +1121,7 @@ func (w *writer) saveTree(ctx context.Context, t *tree) error {
 		ref, err = w.writeSpaceRecord(sv.rec, sv.enc)
 		w.spaceLen = len(sv.enc)
 	} else {
-		sp.addFree(sv.rec)
-		sp.closeOpen(cur.seq)
+		sp.freeRun(sv.rec)
 		ref, err = w.writeSpace(sp)
 		spaceSeq, w.spaceLen = cur.seq, int(ref.n)
 	}
@@ -1237,65 +1200,7 @@ func (w *writer) writeSpaceRecord(r run, b []byte) (extentRef, error) {
 	return extentRef{off: r.start * pageSize, n: uint32(len(b)), crc: checksum(b)}, nil // #nosec G115 -- the space record is far below 4 GiB.
 }
 
-// relocate moves up to budget value bytes out of sparse pages, and out of
-// the file's last quarter when free space below would take them, reading at
-// most visits entries from where the last pass stopped. The caller holds
-// the writer lock.
-func (w *writer) relocate(ctx context.Context, budget int64, visits int) error {
-	// Start the walk at the saved key.
-	db, sp := w.db, w.sp
-	st := db.cur.Load()
-	it := newIterator(db.p, st, nil, nil, false)
-	it.tree.scan = true
-	if w.relocKey != nil {
-		_ = it.Seek(w.relocKey)
-	} else {
-		it.Next()
-	}
-
-	// Collect values in sparse pages or in the last quarter of the file.
-	tail := sp.end * 3 / 4
-	var moves []tentry
-	var moved int64
-	for ; it.Valid() && moved < budget && visits > 0; it.Next() {
-		visits--
-		v := it.cur.val
-		if !v.isRef {
-			continue
-		}
-		p := v.ref.off / pageSize
-		sparse := sp.live[p] < pageSize/2
-		if !sparse && (p < tail || !sp.lower(int(v.ref.n), p)) {
-			continue
-		}
-		data, err := db.p.readValue(v)
-		if err != nil {
-			return err
-		}
-		moves = append(moves, tentry{key: bytes.Clone(it.Key()), data: data})
-		moved += int64(len(data))
-	}
-	if err := it.Err(); err != nil {
-		return err
-	}
-
-	// Save where the next walk resumes.
-	w.relocKey = nil
-	if it.Valid() {
-		w.relocKey = bytes.Clone(it.Key())
-	}
-	if len(moves) == 0 {
-		return nil
-	}
-
-	// Rewrite the values: placement prefers the lowest free pages.
-	sp.closeOpen(st.seq)
-	return w.commit(ctx, st, moves, true, true)
-}
-
-// afterCommit runs checkpoint work. Values leave sparse pages in the
-// background compactor, outside writers' commits. The caller holds the
-// writer lock.
+// afterCommit runs checkpoint work. The caller holds the writer lock.
 func (w *writer) afterCommit(ctx context.Context) error {
 	// Report a failed background checkpoint, and start one when the
 	// overlay or the log after the last one has grown enough. Rewrites of
@@ -1312,20 +1217,11 @@ func (w *writer) afterCommit(ctx context.Context) error {
 	return nil
 }
 
-// compact moves every value out of sparse pages and the file's tail,
-// checkpoints, and releases freed space. The caller holds the writer lock.
+// compact checkpoints, releases freed space, and moves the log into the
+// lowest free chunk, twice: the second round frees the log chunk the first
+// left. The caller holds the writer lock.
 func (w *writer) compact(ctx context.Context) error {
-	// Each round moves values in one full pass of bounded batches,
-	// checkpoints to free the replaced pages, and moves the log into the
-	// space they leave. The second round fills the space the first
-	// released and frees the old log chunk.
 	for range 2 {
-		w.relocKey = nil
-		for first := true; first || w.relocKey != nil; first = false {
-			if err := w.relocate(ctx, compactBatch, math.MaxInt); err != nil {
-				return err
-			}
-		}
 		if err := w.checkpointDurable(ctx); err != nil {
 			return err
 		}
@@ -1339,25 +1235,20 @@ func (w *writer) compact(ctx context.Context) error {
 	return nil
 }
 
-// moveLog continues the log in the lowest free run below its current chunk,
-// so the next checkpoint frees the chunk and the file can shrink. The caller
+// moveLog continues the log in the lowest free chunk below its current one,
+// so the next checkpoint frees that chunk and the file can shrink. The caller
 // holds the writer lock.
 func (w *writer) moveLog(ctx context.Context) error {
-	// Take the lowest free chunk, keeping the log where it is when the chunk
-	// lies above it.
+	// Keep the log where it is when no free chunk lies below it.
 	db, sp := w.db, w.sp
 	st := db.cur.Load()
-	chunk, ok := sp.fit(extentPages, extentPages)
-	if !ok {
-		return nil
-	}
-	if chunk.start*pageSize > st.pos {
-		sp.addFree(chunk)
+	if c, ok := sp.lowestFree(1); !ok || c*chunkSize > st.pos {
 		return nil
 	}
 
 	// Link the log to the chunk.
-	sp.chunks = append(sp.chunks, chunk)
+	chunk := sp.takeChunks(1, chunkLog)
+	sp.log = append(sp.log, chunk)
 	link := newLink(st.seq+1, chunk)
 	if _, err := db.s.WriteAt(link.encode(st.crc), fileOff(st.pos)); err != nil {
 		return err

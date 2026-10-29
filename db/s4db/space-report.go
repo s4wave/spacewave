@@ -2,32 +2,34 @@ package s4db
 
 import (
 	"context"
-	"math/bits"
-	"slices"
 )
 
-// SpaceReport details where a file's free space lies and what holds it, to
-// explain a file longer than the data it holds.
+// SpaceReport details what the file's chunks hold and what keeps freed space
+// allocated, to explain a file longer than the data it holds.
 type SpaceReport struct {
-	// FreeRuns groups the free runs by length, shortest first.
-	FreeRuns []FreeRunClass
-	// LargestFreeBytes is the length of the longest free run.
-	LargestFreeBytes int64
-	// ValueEndBytes is the end of the highest page holding a live value.
-	// Compaction can shorten the file toward it.
+	// Chunks counts the chunks of each kind.
+	Chunks ChunkCounts
+	// ValueFill groups the value chunks by the share of their bytes live
+	// values hold, in tenths: ValueFill[i] counts the chunks at least i and
+	// under i+1 tenths full, and ValueFill[10] the full ones. The cleaner
+	// evacuates the emptiest.
+	ValueFill [11]int64
+	// IndexFill groups the index chunks by the share of their pages in use,
+	// as ValueFill does.
+	IndexFill [11]int64
+	// ValueEndBytes is the end of the highest chunk holding a live value or
+	// index page. Cleaning can shorten the file toward it.
 	ValueEndBytes int64
-	// CompactGoalBytes is the end background compaction is moving the file
-	// toward, or zero.
-	CompactGoalBytes int64
-	// PendingValueRuns counts the freed value runs a snapshot may still read.
+	// PendingValueRuns counts the freed value chunk runs a snapshot may still
+	// read.
 	PendingValueRuns int
 	// PendingPageRuns counts the freed index pages and log chunks a snapshot
 	// may still read.
 	PendingPageRuns int
-	// ReservedBytes is the length of the runs this process's checkpoint is
+	// ReservedBytes is the length of the pages this process's checkpoint is
 	// writing into.
 	ReservedBytes int64
-	// UnpunchedBytes is the length of the runs freed since the last hole
+	// UnpunchedBytes is the length of the chunks freed since the last hole
 	// punch.
 	UnpunchedBytes int64
 	// Slots lists the reader slots holding a pin.
@@ -35,35 +37,9 @@ type SpaceReport struct {
 	// DiskBytes is the space the file system allocates to the file, or -1
 	// when it cannot tell.
 	DiskBytes int64
-	// FreeDiskBytes is the part of DiskBytes inside free runs, which holes
+	// FreeDiskBytes is the part of DiskBytes inside free chunks, which holes
 	// were not punched for, or -1 when it cannot tell.
 	FreeDiskBytes int64
-}
-
-// FreeRunClass counts the free runs of one length class.
-type FreeRunClass struct {
-	// MinBytes is the shortest run of the class. The longest is just under
-	// twice it.
-	MinBytes int64
-	// Runs counts the runs.
-	Runs int64
-	// Bytes is the total length of the runs.
-	Bytes int64
-}
-
-// SlotPin is the oldest state a reader slot's snapshots read.
-type SlotPin struct {
-	// Slot is the slot index.
-	Slot int
-	// Seq is the oldest commit the snapshots read.
-	Seq uint64
-	// Ckpt is the oldest checkpoint the snapshots read.
-	Ckpt uint64
-	// Live reports whether an open handle holds the slot. A pin in a slot
-	// no handle holds keeps nothing allocated.
-	Live bool
-	// Own reports whether the slot is this handle's.
-	Own bool
 }
 
 // allocator is a storage that can report the bytes it allocates.
@@ -82,14 +58,9 @@ func (db *DB) SpaceReport(ctx context.Context) (SpaceReport, error) {
 	}
 	sp := db.w.sp
 
-	// Copy the free runs and the counts of what holds space back.
-	var frees []run
-	sp.free.Scan(func(start, n uint64) bool {
-		frees = append(frees, run{start: start, n: n})
-		return true
-	})
+	// Count the chunks by kind and fill, collecting the free ones, then
+	// release the lock.
 	r := SpaceReport{
-		CompactGoalBytes: pageOff(sp.goal),
 		PendingValueRuns: len(sp.values),
 		PendingPageRuns:  len(sp.pages),
 		UnpunchedBytes:   pageOff(sp.releasedPages),
@@ -97,31 +68,29 @@ func (db *DB) SpaceReport(ctx context.Context) (SpaceReport, error) {
 	for _, rr := range sp.reserved {
 		r.ReservedBytes += pageOff(rr.n)
 	}
-
-	// Find the end of the highest live value page, then release the lock.
-	for i, v := range slices.Backward(sp.live) {
-		if v != 0 {
-			r.ValueEndBytes = pageOff(uint64(i) + 1) // #nosec G115 -- slice indexes are not negative.
-			break
+	var frees []run
+	for c, e := range sp.table {
+		at := chunkRun(uint64(c), 1) // #nosec G115 -- slice indexes are not negative.
+		switch e.kind {
+		case chunkFree, chunkHeld:
+			r.Chunks.Free++
+			frees = append(frees, at)
+			continue
+		case chunkLog:
+			r.Chunks.Log++
+		case chunkIndex:
+			r.Chunks.Index++
+			r.IndexFill[e.live*10/chunkPages]++
+		case chunkValue, chunkTail:
+			r.Chunks.Value++
+			r.ValueFill[e.live*10/chunkSize]++
+		}
+		if e.live != 0 {
+			r.ValueEndBytes = pageOff(at.end())
 		}
 	}
-	end := pageOff(sp.end)
+	end := pageOff(sp.end())
 	db.w.unlock(nil)
-
-	// Group the free runs by the power of two below their length.
-	var classes [64]FreeRunClass
-	for _, fr := range frees {
-		k := bits.Len64(fr.n) - 1
-		classes[k].Runs++
-		classes[k].Bytes += pageOff(fr.n)
-		r.LargestFreeBytes = max(r.LargestFreeBytes, pageOff(fr.n))
-	}
-	for k, c := range classes {
-		if c.Runs != 0 {
-			c.MinBytes = pageOff(1 << k)
-			r.FreeRuns = append(r.FreeRuns, c)
-		}
-	}
 
 	// Read the slots and whether a handle holds each.
 	b := make([]byte, pageSize)
@@ -146,7 +115,7 @@ func (db *DB) SpaceReport(ctx context.Context) (SpaceReport, error) {
 	}
 
 	// Ask the file system what it allocates, in the whole file and inside
-	// the free runs.
+	// the free chunks.
 	r.DiskBytes, r.FreeDiskBytes = -1, -1
 	if a, ok := db.s.(allocator); ok {
 		if n, ok := a.allocated(0, end); ok {

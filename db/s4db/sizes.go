@@ -31,7 +31,7 @@ func (db *DB) Sizes(ctx context.Context) (Sizes, error) {
 	if err := db.w.lock(ctx); err != nil {
 		return Sizes{}, err
 	}
-	s := Sizes{FileBytes: pageOff(db.w.sp.end), ValueBytes: db.w.sp.liveBytes}
+	s := Sizes{FileBytes: pageOff(db.w.sp.end()), ValueBytes: db.w.sp.liveBytes}
 	treePages := db.cur.Load().sb.treePages
 	db.w.unlock(nil)
 

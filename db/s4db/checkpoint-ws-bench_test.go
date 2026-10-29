@@ -236,7 +236,7 @@ func BenchmarkCheckpointWorkingSet(b *testing.B) {
 		b.StartTimer()
 		start = time.Now()
 		tree := db.w.newTree(db.cur.Load())
-		tree.b.out.reserve = func(n uint64) (run, error) {
+		tree.b.out.reserve = func(n uint64) ([]run, error) {
 			return db.w.reserve(tree, n)
 		}
 		if err := tree.build(); err != nil {

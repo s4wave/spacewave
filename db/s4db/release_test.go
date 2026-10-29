@@ -11,11 +11,11 @@ import (
 // that Release returns their runs, which no later commit releases, to the
 // file system.
 func TestReleaseAfterLastDelete(t *testing.T) {
-	// Open without the background compactor, which releases on its own.
+	// Open without the background cleaner, which releases on its own.
 	ctx := context.Background()
 	db := openTest(t, filepath.Join(t.TempDir(), "release.s4wave"), Options{})
 	defer db.Close()
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
+	if wait, _ := db.cleaner.SetRoutine(nil); wait != nil {
 		<-wait
 	}
 

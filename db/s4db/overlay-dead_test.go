@@ -14,11 +14,11 @@ import (
 // scans hide the tree keys the overlay deletes, and show a buffered write
 // over such a delete.
 func TestScanHidesOverlayDeletes(t *testing.T) {
-	// Open a file without the background compactor.
+	// Open a file without the background cleaner.
 	ctx := context.Background()
 	db := openTest(t, filepath.Join(t.TempDir(), "dead.s4wave"), Options{SingleProcess: true})
 	defer db.Close()
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
+	if wait, _ := db.cleaner.SetRoutine(nil); wait != nil {
 		<-wait
 	}
 

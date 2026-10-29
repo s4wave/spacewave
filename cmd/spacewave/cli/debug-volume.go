@@ -121,8 +121,6 @@ func runDebugVolumeUsage(
 	if err != nil {
 		return errors.Wrap(err, "read page usage")
 	}
-	otherBytes := usage.FileBytes - usage.FreeBytes - usage.ValuePageBytes -
-		usage.IndexBytes - usage.LogBytes - usage.PendingBytes
 	space, err := db.SpaceReport(ctx)
 	if err != nil {
 		return errors.Wrap(err, "read free space")
@@ -189,13 +187,13 @@ func runDebugVolumeUsage(
 		ms.WriteObjectStart()
 		var morePage bool
 		writeJSONInt64Field(ms, &morePage, "freeBytes", usage.FreeBytes)
-		writeJSONInt64Field(ms, &morePage, "valuePageBytes", usage.ValuePageBytes)
+		writeJSONInt64Field(ms, &morePage, "valueChunkBytes", usage.ValueChunkBytes)
 		writeJSONInt64Field(ms, &morePage, "liveValueBytes", usage.ValueBytes)
 		writeJSONInt64Field(ms, &morePage, "indexKeys", usage.IndexKeys)
 		writeJSONInt64Field(ms, &morePage, "indexBytes", usage.IndexBytes)
+		writeJSONInt64Field(ms, &morePage, "indexChunkBytes", usage.IndexChunkBytes)
 		writeJSONInt64Field(ms, &morePage, "logBytes", usage.LogBytes)
 		writeJSONInt64Field(ms, &morePage, "pendingBytes", usage.PendingBytes)
-		writeJSONInt64Field(ms, &morePage, "otherBytes", otherBytes)
 		ms.WriteObjectEnd()
 		ms.WriteMoreIf(&more)
 		ms.WriteObjectField("space")
@@ -227,21 +225,19 @@ func runDebugVolumeUsage(
 		{"Key Bytes", humanize.IBytes(total.keyBytes)},
 		{"Value Bytes", humanize.IBytes(total.valueBytes)},
 		{"Disk", volumeDiskBytes(space.DiskBytes)},
-		{"Free Pages", ibytes(usage.FreeBytes)},
+		{"Free Chunks", ibytes(usage.FreeBytes)},
 		{"Free on Disk", volumeDiskBytes(space.FreeDiskBytes)},
-		{"Largest Free Run", ibytes(space.LargestFreeBytes)},
-		{"Values End", ibytes(space.ValueEndBytes)},
-		{"Compact Goal", volumeCompactGoal(space.CompactGoalBytes)},
-		{"Value Pages", ibytes(usage.ValuePageBytes)},
+		{"Data End", ibytes(space.ValueEndBytes)},
+		{"Value Chunks", ibytes(usage.ValueChunkBytes)},
 		{"Live Values", ibytes(usage.ValueBytes)},
 		{"Index Keys", strconv.FormatInt(usage.IndexKeys, 10)},
+		{"Index Chunks", ibytes(usage.IndexChunkBytes)},
 		{"Index Pages", ibytes(usage.IndexBytes)},
-		{"Log", ibytes(usage.LogBytes)},
+		{"Log Chunks", ibytes(usage.LogBytes)},
 		{"Pending", ibytes(usage.PendingBytes) + " (" + strconv.Itoa(space.PendingValueRuns) +
 			" value runs, " + strconv.Itoa(space.PendingPageRuns) + " page runs)"},
 		{"Unpunched", ibytes(space.UnpunchedBytes)},
 		{"Reserved", ibytes(space.ReservedBytes)},
-		{"Other", ibytes(otherBytes)},
 	})
 	os.Stdout.WriteString("\n")
 	writeVolumeSpaceTables(&space)
@@ -265,9 +261,7 @@ func writeVolumeSpaceJSON(ms *protojson.MarshalState, space *s4db.SpaceReport) {
 	var more bool
 	writeJSONInt64Field(ms, &more, "diskBytes", space.DiskBytes)
 	writeJSONInt64Field(ms, &more, "freeDiskBytes", space.FreeDiskBytes)
-	writeJSONInt64Field(ms, &more, "largestFreeBytes", space.LargestFreeBytes)
 	writeJSONInt64Field(ms, &more, "valueEndBytes", space.ValueEndBytes)
-	writeJSONInt64Field(ms, &more, "compactGoalBytes", space.CompactGoalBytes)
 
 	// Write what holds freed space back.
 	writeJSONInt64Field(ms, &more, "pendingValueRuns", int64(space.PendingValueRuns))
@@ -275,21 +269,35 @@ func writeVolumeSpaceJSON(ms *protojson.MarshalState, space *s4db.SpaceReport) {
 	writeJSONInt64Field(ms, &more, "unpunchedBytes", space.UnpunchedBytes)
 	writeJSONInt64Field(ms, &more, "reservedBytes", space.ReservedBytes)
 
-	// Write the free run classes.
+	// Write the chunk counts.
 	ms.WriteMoreIf(&more)
-	ms.WriteObjectField("freeRuns")
-	ms.WriteArrayStart()
-	var moreRun bool
-	for _, c := range space.FreeRuns {
-		ms.WriteMoreIf(&moreRun)
-		ms.WriteObjectStart()
-		var moreField bool
-		writeJSONInt64Field(ms, &moreField, "minBytes", c.MinBytes)
-		writeJSONInt64Field(ms, &moreField, "runs", c.Runs)
-		writeJSONInt64Field(ms, &moreField, "bytes", c.Bytes)
-		ms.WriteObjectEnd()
+	ms.WriteObjectField("chunks")
+	ms.WriteObjectStart()
+	var moreChunk bool
+	c := space.Chunks
+	for _, f := range []struct {
+		name string
+		n    int64
+	}{{"free", c.Free}, {"log", c.Log}, {"index", c.Index}, {"value", c.Value}} {
+		writeJSONInt64Field(ms, &moreChunk, f.name, f.n)
 	}
-	ms.WriteArrayEnd()
+	ms.WriteObjectEnd()
+
+	// Write how full the value and index chunks are.
+	for _, f := range []struct {
+		name string
+		fill *[11]int64
+	}{{"valueFill", &space.ValueFill}, {"indexFill", &space.IndexFill}} {
+		ms.WriteMoreIf(&more)
+		ms.WriteObjectField(f.name)
+		ms.WriteArrayStart()
+		var moreFill bool
+		for _, n := range f.fill {
+			ms.WriteMoreIf(&moreFill)
+			ms.WriteInt64(n)
+		}
+		ms.WriteArrayEnd()
+	}
 
 	// Write the reader slots.
 	ms.WriteMoreIf(&more)
@@ -311,15 +319,28 @@ func writeVolumeSpaceJSON(ms *protojson.MarshalState, space *s4db.SpaceReport) {
 	ms.WriteObjectEnd()
 }
 
-// writeVolumeSpaceTables prints the free run classes and the reader slots.
+// writeVolumeSpaceTables prints the chunks by kind and fill, and the reader
+// slots.
 func writeVolumeSpaceTables(space *s4db.SpaceReport) {
-	// Print the free runs by length.
-	rows := [][]string{{"FREE RUN LENGTH", "RUNS", "BYTES"}}
-	for _, c := range space.FreeRuns {
+	// Print the chunks of each kind, then the value and index chunks by the
+	// tenth of them in use.
+	c := space.Chunks
+	writeFields(os.Stdout, [][2]string{
+		{"Chunks", strconv.FormatInt(c.Free+c.Log+c.Index+c.Value, 10) + " (" +
+			strconv.FormatInt(c.Value, 10) + " value, " + strconv.FormatInt(c.Index, 10) + " index, " +
+			strconv.FormatInt(c.Log, 10) + " log, " + strconv.FormatInt(c.Free, 10) + " free)"},
+	})
+	os.Stdout.WriteString("\n")
+	rows := [][]string{{"FILL", "VALUE CHUNKS", "INDEX CHUNKS"}}
+	for i := range space.ValueFill {
+		fill := strconv.Itoa(10*i) + "% to " + strconv.Itoa(10*i+10) + "%"
+		if i == len(space.ValueFill)-1 {
+			fill = "full"
+		}
 		rows = append(rows, []string{
-			ibytes(c.MinBytes) + " to " + ibytes(2*c.MinBytes),
-			strconv.FormatInt(c.Runs, 10),
-			ibytes(c.Bytes),
+			fill,
+			strconv.FormatInt(space.ValueFill[i], 10),
+			strconv.FormatInt(space.IndexFill[i], 10),
 		})
 	}
 	writeTable(os.Stdout, "", rows)
@@ -350,14 +371,6 @@ func writeVolumeSpaceTables(space *s4db.SpaceReport) {
 func volumeDiskBytes(n int64) string {
 	if n < 0 {
 		return "unknown"
-	}
-	return ibytes(n)
-}
-
-// volumeCompactGoal formats the end compaction is moving toward.
-func volumeCompactGoal(n int64) string {
-	if n == 0 {
-		return "none"
 	}
 	return ibytes(n)
 }

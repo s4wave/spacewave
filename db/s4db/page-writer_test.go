@@ -11,7 +11,7 @@ func TestPageWriterCachesInnerPages(t *testing.T) {
 	c.put(10, &node{leaf: true, cost: pageSize})
 	w := &pageWriter{
 		cache:   c,
-		reserve: func(uint64) (run, error) { return run{start: 10, n: 4}, nil },
+		reserve: func(uint64) ([]run, error) { return []run{{start: 10, n: 4}}, nil },
 		write:   func([]byte, uint64) error { return nil },
 	}
 

@@ -31,7 +31,7 @@ func newHeader(inlineMax int) *header {
 		version:   1,
 		checksum:  checksumCRC32C,
 		index:     indexLogTree,
-		values:    valuesPacked,
+		values:    valuesChunked,
 		inlineMax: uint32(inlineMax), // #nosec G115 -- Options bounds it by maxInline.
 	}
 }
@@ -64,7 +64,7 @@ func decodeHeader(b []byte) (*header, error) {
 		h.rocompat&^rocompatKnown != 0 ||
 		h.checksum != checksumCRC32C ||
 		h.index != indexLogTree ||
-		h.values != valuesPacked ||
+		h.values != valuesChunked ||
 		h.inlineMax > maxInline
 	if unsupported {
 		return nil, ErrUnsupported

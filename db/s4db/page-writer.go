@@ -8,8 +8,8 @@ import (
 const placeBatch = 256
 
 // reserveBatch is the number of pages a checkpoint reserves at once. Each
-// reservation takes the writer lock, and the unused tail of the last one
-// returns to the free runs when the tree is saved or dropped.
+// reservation takes the writer lock, and the pages it leaves unused return to
+// their index chunks when the tree is saved or dropped.
 const reserveBatch = 4096
 
 // pageWriter numbers a checkpoint's new pages in the order it receives them
@@ -20,15 +20,19 @@ const reserveBatch = 4096
 // rewrites more leaves than the cache holds, and copies of them would evict
 // the pages readers use.
 type pageWriter struct {
-	// reserve returns a run of at least one and at most n unused pages.
-	reserve func(n uint64) (run, error)
+	// reserve returns runs of at least one and at most n unused pages in
+	// all.
+	reserve func(n uint64) ([]run, error)
 	// write writes encoded pages from page.
 	write func(buf []byte, page uint64) error
 	// cache receives the decoded pages.
 	cache *cache
 	// runs lists the reserved runs in order.
 	runs []run
-	// next is the next unused page of the last run.
+	// filling counts the runs pages were added to; the last of them is the
+	// one being filled.
+	filling int
+	// next is the next unused page of the run being filled.
 	next uint64
 	// buf holds the encoded pages not yet written, from page at.
 	buf []byte
@@ -40,20 +44,27 @@ type pageWriter struct {
 
 // add writes d to the next page and returns the page.
 func (w *pageWriter) add(d *draft) (uint64, error) {
-	// Reserve more pages when the last run is used up.
-	if l := len(w.runs); l == 0 || w.next == w.runs[l-1].end() {
+	// Move to the next run when the one being filled is used up,
+	// reserving more pages when none is left.
+	if w.filling == 0 || w.next == w.runs[w.filling-1].end() {
 		if err := w.flush(); err != nil {
 			return 0, err
 		}
-		r, err := w.reserve(reserveBatch)
-		if err != nil {
-			return 0, err
-		}
+		if w.filling == len(w.runs) {
+			rs, err := w.reserve(reserveBatch)
+			if err != nil {
+				return 0, err
+			}
 
-		// Drop what the cache holds for the reused pages, since new
-		// leaves do not replace it.
-		w.cache.drop(r)
-		w.runs = append(w.runs, r)
+			// Drop what the cache holds for the reused pages, since
+			// new leaves do not replace it.
+			for _, r := range rs {
+				w.cache.drop(r)
+			}
+			w.runs = append(w.runs, rs...)
+		}
+		r := w.runs[w.filling]
+		w.filling++
 		w.next, w.at = r.start, r.start
 	}
 	page := w.next
@@ -94,10 +105,12 @@ func (w *pageWriter) flush() error {
 }
 
 // unused returns the reserved pages no page was added to.
-func (w *pageWriter) unused() run {
-	l := len(w.runs)
-	if l == 0 {
-		return run{}
+func (w *pageWriter) unused() []run {
+	var out []run
+	if w.filling != 0 {
+		if r := (run{start: w.next, n: w.runs[w.filling-1].end() - w.next}); r.n != 0 {
+			out = append(out, r)
+		}
 	}
-	return run{start: w.next, n: w.runs[l-1].end() - w.next}
+	return append(out, w.runs[w.filling:]...)
 }

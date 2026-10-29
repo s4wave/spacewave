@@ -372,7 +372,7 @@ func BenchmarkChurnSpace(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		used := u.ValuePageBytes + u.IndexBytes + u.LogBytes + u.PendingBytes
+		used := u.ValueChunkBytes + u.IndexChunkBytes + u.LogBytes
 		b.ReportMetric(float64(u.FileBytes)/(1<<20), "file-MiB")
 		b.ReportMetric(float64(used)/(1<<20), "used-MiB")
 		b.ReportMetric(float64(u.FileBytes)/float64(used), "file/used")
@@ -446,7 +446,7 @@ func BenchmarkSweepSpace(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			used := u.ValuePageBytes + u.IndexBytes + u.LogBytes + u.PendingBytes
+			used := u.ValueChunkBytes + u.IndexChunkBytes + u.LogBytes
 			b.ReportMetric(float64(u.FileBytes)/(1<<20), name+"-file-MiB")
 			b.ReportMetric(float64(u.FileBytes)/float64(used), name+"-file/used")
 		}

@@ -70,39 +70,3 @@ func TestFlowsByFamily(t *testing.T) {
 		t.Fatalf("flows balance to %d, live value bytes %d", live, sizes.ValueBytes)
 	}
 }
-
-// TestFlowsSkipMoves checks that compaction's moves, which free what they
-// write, count in no flow.
-func TestFlowsSkipMoves(t *testing.T) {
-	// Leave the second generation of keys past free space, without the
-	// background compactor.
-	ctx := context.Background()
-	opts := Options{RelocateBudget: -1, Families: [][]byte{[]byte("g0/"), []byte("g1/")}}
-	db := openTest(t, filepath.Join(t.TempDir(), "moves.s4wave"), opts)
-	defer db.Close()
-	fillSlack(t, ctx, db)
-	gen := int64(512 * 5000)
-	want := []Flow{{Written: gen, Freed: gen}, {Written: gen}, {}}
-	if got := db.Flows(); !slices.Equal(got, want) {
-		t.Fatalf("flows %v, want %v", got, want)
-	}
-
-	// Compaction moves the values down the file and counts none of them.
-	before, err := db.Sizes(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Compact(ctx); err != nil {
-		t.Fatal(err)
-	}
-	after, err := db.Sizes(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if after.FileBytes >= before.FileBytes {
-		t.Fatalf("compaction left the file at %d bytes from %d", after.FileBytes, before.FileBytes)
-	}
-	if got := db.Flows(); !slices.Equal(got, want) {
-		t.Fatalf("flows after compaction %v, want %v", got, want)
-	}
-}

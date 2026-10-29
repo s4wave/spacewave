@@ -3,10 +3,10 @@ package s4db
 import (
 	"cmp"
 	"encoding/binary"
-	"iter"
-	"math"
+	"math/bits"
 	"slices"
 
+	"github.com/pkg/errors"
 	"github.com/tidwall/btree"
 )
 
@@ -27,493 +27,520 @@ func (r run) end() uint64 {
 // still read it.
 type pending struct {
 	run
-	// tag is the commit sequence that freed a value run, or the checkpoint
-	// that freed a page run.
+	// tag is the commit sequence that freed a value chunk, or the checkpoint
+	// that freed index pages or a log chunk.
 	tag uint64
 }
 
-// extent is the value extent taking packed values, as file offsets.
+// Chunk kinds. The file is a sequence of chunks, and each chunk below the
+// end is in exactly one of these states.
+const (
+	// chunkFree holds nothing. A free chunk below the end has been or will
+	// be punched; the last chunk is never free.
+	chunkFree = iota
+	// chunkHeld is free but kept out of allocation while a background punch
+	// deallocates it. A saved space records it as free.
+	chunkHeld
+	// chunkLog holds log records.
+	chunkLog
+	// chunkIndex holds index pages and space records, a page at a time.
+	chunkIndex
+	// chunkValue holds values, each after its header, appended from the
+	// chunk's start.
+	chunkValue
+	// chunkTail continues a value that starts in an earlier chunk.
+	chunkTail
+)
+
+// pageMap marks the used pages of an index chunk.
+type pageMap [chunkPages / 64]uint64
+
+// count returns the used pages.
+func (m *pageMap) count() uint32 {
+	n := 0
+	for _, w := range m {
+		n += bits.OnesCount64(w)
+	}
+	return uint32(n) // #nosec G115 -- at most chunkPages.
+}
+
+// set marks pages [lo, hi) of the chunk used or unused and returns the change
+// in used pages.
+func (m *pageMap) set(lo, hi uint64, used bool) int {
+	d := 0
+	for p := lo; p < hi; p++ {
+		w, bit := &m[p/64], uint64(1)<<(p%64)
+		if (*w&bit != 0) == used {
+			continue
+		}
+		*w ^= bit
+		d++
+	}
+	if !used {
+		d = -d
+	}
+	return d
+}
+
+// span returns the first run of at least least unused pages, at most want
+// long, reporting false when none is that long.
+func (m *pageMap) span(least, want uint64) (lo, hi uint64, ok bool) {
+	for p := uint64(0); p < chunkPages; {
+		// Skip used pages.
+		if m[p/64]&(1<<(p%64)) != 0 {
+			p++
+			continue
+		}
+
+		// Measure the unused run from p.
+		q := p
+		for q < chunkPages && q-p < want && m[q/64]&(1<<(q%64)) == 0 {
+			q++
+		}
+		if q-p >= least {
+			return p, q, true
+		}
+		p = q
+	}
+	return 0, 0, false
+}
+
+// chunk is a chunk's entry in the chunk table.
+type chunk struct {
+	// kind is the chunk's state.
+	kind uint8
+	// live counts the live value bytes of a value or tail chunk, or the used
+	// pages of an index chunk.
+	live uint32
+	// seq is the last commit that placed a value in a value or tail chunk,
+	// which dates its contents for cleaning.
+	seq uint64
+	// used marks the used pages of an index chunk.
+	used pageMap
+}
+
+// fullness orders the index chunks that have unused pages, fullest first.
+type fullness struct {
+	// used is the chunk's used pages.
+	used uint32
+	// chunk is the chunk number.
+	chunk uint64
+}
+
+// lessFullness orders fuller chunks first, then lower ones.
+func lessFullness(a, b fullness) bool {
+	if a.used != b.used {
+		return a.used > b.used
+	}
+	return a.chunk < b.chunk
+}
+
+// extent is the open value chunk, as file offsets.
 type extent struct {
-	// start is the first byte.
+	// start is the chunk's first byte.
 	start uint64
-	// cursor is where the next value goes.
+	// cursor is where the next value's header goes.
 	cursor uint64
-	// end is the byte after the extent, or zero when none is open.
+	// end is the byte after the chunk, or zero when none is open.
 	end uint64
 }
 
-// space tracks which pages of the file are in use. The writer owns it.
+// space is the chunk table: what each chunk of the file holds. The writer
+// owns it, and a saved space plus the log records after it rebuild it in
+// every process.
 //
-// Value pages are shared by packed values, so each page counts its live
-// bytes and becomes free when the count reaches zero. Index pages and log
-// chunks are freed whole.
+// Invariants:
+//   - Every allocation takes whole chunks, except index pages, which fill the
+//     unused pages of index chunks. So free space is whole chunks, and a free
+//     chunk is never cut into shorter runs.
+//   - A chunk is free only when nothing the current state or any snapshot
+//     reads lies in it: a value or log chunk frees when its pending run is
+//     released, an index chunk when its last used page is released or its
+//     last reservation returns unused.
+//   - free holds exactly the free chunks below the end, and partial exactly
+//     the index chunks with unused pages. The last chunk is never free: the
+//     end falls past free chunks as they free.
+//   - A value chunk is written only at the open chunk's cursor, so its
+//     entries run from its start without gaps, and bytes below the cursor
+//     never change while the chunk is in use.
+//   - A value or tail chunk's live is the sum of the bytes in it of the
+//     values live keys refer to, and an index chunk's live counts its used
+//     pages. A value or tail chunk with no live bytes is pending, and the
+//     open chunk closes when its last live byte is freed.
+//   - The table decodeSpace and replay derive from the file equals the
+//     writer's, except for reservations, which no saved tree names, so a
+//     reloaded space frees them.
 type space struct {
-	// free maps the first page of each free run to its length.
-	free *btree.Map[uint64, uint64]
-	// sizes holds the free runs ordered by length, then start, so a fit
-	// visits only the runs long enough to hold it.
-	sizes *btree.BTreeG[run]
-	// below holds the free runs starting below cut, ordered like sizes, so
-	// a fit finds the longest run below the goal without passing the many
-	// longer runs compaction frees past it.
-	below *btree.BTreeG[run]
-	// cut is the page below which below holds every free run. moveCut
-	// moves it toward goal.
-	cut uint64
-	// end is the file length in pages.
-	end uint64
-	// freeCount counts the pages of the free runs.
-	freeCount uint64
-	// goal is the end background compaction is moving the file toward, or
-	// zero. While set, an allocation no free run holds whole takes a run
-	// below it before one past it.
-	goal uint64
-	// live holds the live bytes of each value page, indexed by page. It
-	// grows to the highest page that has held a value; pages past its end
-	// hold none. A page holds at most pageSize bytes, so two bytes count it.
-	live []uint16
-	// livePages counts the pages holding live bytes.
-	livePages int64
+	// table holds an entry for each chunk below the end.
+	table []chunk
+	// free holds the free chunk numbers.
+	free *btree.BTreeG[uint64]
+	// partial holds the index chunks with unused pages, fullest first.
+	partial *btree.BTreeG[fullness]
 	// liveBytes is the total live value bytes.
 	liveBytes int64
-	// values holds freed value runs in tag order.
+	// values holds pending value and tail chunks in tag order.
 	values []pending
-	// pages holds freed index pages and log chunks in tag order.
+	// pages holds pending index pages and log chunks in tag order.
 	pages []pending
-	// chunks lists the log chunks in log order.
-	chunks []run
-	// open is the extent taking packed values.
+	// log lists the log chunks in log order.
+	log []run
+	// open is the value chunk taking new values.
 	open extent
-	// released collects runs freed since the caller last drained it, for
+	// released collects chunks freed since the caller last drained it, for
 	// hole punching.
 	released []run
 	// releasedPages counts the pages of released.
 	releasedPages uint64
-	// marks are the highest release marks applied: value runs through
+	// marks are the highest release marks applied: value chunks through
 	// marks.seq and page runs through marks.ckpt are free.
 	marks pin
-	// reserved lists the runs checkpoints are writing new pages into.
+	// reserved lists the index pages checkpoints are writing new pages into.
 	reserved []run
-	// pendingAt indexes the runs of values and pages by first page while
-	// replay runs, so a claim finds the runs it overlaps without scanning
-	// both queues. It is nil outside replay, and replay drops it if two
-	// pending runs ever overlap, falling back to the scan.
-	pendingAt *btree.Map[uint64, pendingRef]
 }
 
-// pendingRef is a pending run as pendingAt holds it.
-type pendingRef struct {
-	// n is the page count.
-	n uint64
-	// tag is the run's tag in its queue.
-	tag uint64
-	// page reports whether the run is in pages rather than values.
-	page bool
-}
-
-// newSpace returns the space of a new file.
+// newSpace returns the space of a new file: the first chunk, an index chunk
+// whose first pages hold the header, the slots, and the superblocks.
 func newSpace() *space {
-	return &space{
-		free:  new(btree.Map[uint64, uint64]),
-		sizes: btree.NewBTreeGOptions(lessRunSize, btree.Options{NoLocks: true}),
-		below: btree.NewBTreeGOptions(lessRunSize, btree.Options{NoLocks: true}),
-		end:   firstPage,
+	// Start with the first chunk, holding the fixed pages.
+	s := &space{
+		free:    btree.NewBTreeGOptions(func(a, b uint64) bool { return a < b }, btree.Options{NoLocks: true}),
+		partial: btree.NewBTreeGOptions(lessFullness, btree.Options{NoLocks: true}),
 	}
+	s.table = []chunk{{kind: chunkIndex}}
+	s.partial.Set(fullness{chunk: 0})
+	s.markPages(run{n: firstPage}, true)
+	return s
 }
 
-// lessRunSize orders runs by length, then start.
-func lessRunSize(a, b run) bool {
-	if a.n != b.n {
-		return a.n < b.n
-	}
-	return a.start < b.start
+// end returns the file length in pages.
+func (s *space) end() uint64 {
+	return uint64(len(s.table)) * chunkPages
 }
 
-// setFree adds r to the free runs.
-func (s *space) setFree(r run) {
-	s.free.Set(r.start, r.n)
-	s.sizes.Set(r)
-	if r.start < s.cut {
-		s.below.Set(r)
-	}
-	s.freeCount += r.n
+// chunkRun returns the pages of n chunks from chunk c.
+func chunkRun(c, n uint64) run {
+	return run{start: c * chunkPages, n: n * chunkPages}
 }
 
-// deleteFree removes r from the free runs.
-func (s *space) deleteFree(r run) {
-	s.free.Delete(r.start)
-	s.sizes.Delete(r)
-	if r.start < s.cut {
-		s.below.Delete(r)
-	}
-	s.freeCount -= r.n
+// chunksFor returns the chunks that hold n pages.
+func chunksFor(pages uint64) uint64 {
+	return (pages + chunkPages - 1) / chunkPages
 }
 
-// alloc returns n consecutive pages from the lowest free run that holds
-// them, extending the file when none does.
-func (s *space) alloc(n uint64) run {
-	r, ok := s.fit(n, n)
+// lowestFree returns the first of the lowest n consecutive free chunks.
+func (s *space) lowestFree(n uint64) (uint64, bool) {
+	// One chunk is the lowest free one.
+	if n == 1 {
+		return s.free.Min()
+	}
+
+	// Else find the lowest run of n.
+	var start, length uint64
+	found := false
+	s.free.Scan(func(c uint64) bool {
+		if length == 0 || c != start+length {
+			start, length = c, 0
+		}
+		length++
+		found = length == n
+		return !found
+	})
+	return start, found
+}
+
+// takeChunks takes n consecutive chunks for kind: the lowest free ones that
+// hold them, else past the end.
+func (s *space) takeChunks(n uint64, kind uint8) run {
+	start, ok := s.lowestFree(n)
 	if !ok {
-		r = run{start: s.end, n: n}
-		s.end += n
+		start = uint64(len(s.table))
 	}
+	for c := start; c < start+n; c++ {
+		s.setKind(c, kind)
+	}
+	return chunkRun(start, n)
+}
+
+// setKind makes chunk c an empty chunk of kind, taking it out of the free or
+// partial chunks and growing the table to cover it.
+func (s *space) setKind(c uint64, kind uint8) {
+	// Grow the table, freeing the chunks between the end and c.
+	for uint64(len(s.table)) <= c {
+		if n := uint64(len(s.table)); n < c {
+			s.free.Set(n)
+		}
+		s.table = append(s.table, chunk{})
+	}
+
+	// Leave the old state and enter the new one.
+	e := &s.table[c]
+	switch e.kind {
+	case chunkFree:
+		s.free.Delete(c)
+	case chunkIndex:
+		s.partial.Delete(fullness{used: e.live, chunk: c})
+	}
+	*e = chunk{kind: kind}
+	if kind == chunkIndex {
+		s.partial.Set(fullness{chunk: c})
+	}
+}
+
+// freeChunk makes chunk c free, queuing it for hole punching when punch is
+// set, and lowers the end past the free chunks that end the file.
+func (s *space) freeChunk(c uint64, punch bool) {
+	// Leave the old state.
+	e := &s.table[c]
+	if e.kind == chunkIndex {
+		s.partial.Delete(fullness{used: e.live, chunk: c})
+	}
+	*e = chunk{}
+
+	// Lower the end, or queue the chunk.
+	if c+1 == uint64(len(s.table)) {
+		s.table = s.table[:c]
+		for l := len(s.table); l > 0 && s.table[l-1].kind == chunkFree; l-- {
+			s.free.Delete(uint64(l - 1))
+			s.table = s.table[:l-1]
+		}
+		return
+	}
+	s.free.Set(c)
+	if punch {
+		s.released = append(s.released, chunkRun(c, 1))
+		s.releasedPages += chunkPages
+	}
+}
+
+// markPages marks the pages of r, which lie in index chunks, used or unused,
+// freeing an index chunk whose last page goes unused.
+func (s *space) markPages(r run, used bool) {
+	for p := r.start; p < r.end(); {
+		// Change the pages of r in this chunk.
+		c := p / chunkPages
+		hi := min(r.end(), (c+1)*chunkPages)
+		e := &s.table[c]
+		old := e.live
+		e.live = uint32(int(e.live) + e.used.set(p%chunkPages, hi-c*chunkPages, used)) // #nosec G115 -- at most chunkPages.
+		p = hi
+
+		// Reorder the chunk, or free it.
+		if e.live == old {
+			continue
+		}
+		s.partial.Delete(fullness{used: old, chunk: c})
+		switch {
+		case e.live == 0:
+			s.freeChunk(c, true)
+		case e.live < chunkPages:
+			s.partial.Set(fullness{used: e.live, chunk: c})
+		}
+	}
+}
+
+// takePages takes up to want index pages, at least one, as runs: the unused
+// pages of the fullest index chunks first, so sparse ones drain, then a new
+// index chunk.
+func (s *space) takePages(want uint64) []run {
+	var out []run
+	for want > 0 {
+		// Take the first unused run of the fullest chunk with room.
+		f, ok := s.partial.Min()
+		if !ok {
+			s.takeChunks(1, chunkIndex)
+			continue
+		}
+		lo, hi, _ := s.table[f.chunk].used.span(1, want)
+		r := run{start: f.chunk*chunkPages + lo, n: hi - lo}
+		s.markPages(r, true)
+		out = append(out, r)
+		want -= r.n
+
+		// Stop at a new chunk's end rather than open another.
+		if f.used == 0 && want != 0 && s.partial.Len() == 0 {
+			break
+		}
+	}
+	return out
+}
+
+// takeRecord takes n consecutive index pages for a space record: an unused
+// run of an index chunk, fullest first, else new index chunks.
+func (s *space) takeRecord(n uint64) run {
+	// Find a run in a chunk with room.
+	var r run
+	found := false
+	if n <= chunkPages {
+		s.partial.Scan(func(f fullness) bool {
+			lo, hi, ok := s.table[f.chunk].used.span(n, n)
+			if ok {
+				r, found = run{start: f.chunk*chunkPages + lo, n: hi - lo}, true
+			}
+			return !found
+		})
+	}
+
+	// Else take new chunks.
+	if !found {
+		r = run{start: s.takeChunks(chunksFor(n), chunkIndex).start, n: n}
+	}
+	s.markPages(r, true)
 	return r
 }
 
-// fit takes want pages from the lowest free run that holds them, or else the
-// largest free run of at least least pages.
-func (s *space) fit(least, want uint64) (run, bool) {
-	r, ok := s.choose(least, want)
-	if ok {
-		s.take(r)
+// freeRun returns r to free space now: the pages of index chunks go unused,
+// and log, value, and tail chunks under it free whole.
+func (s *space) freeRun(r run) {
+	for p := r.start; p < r.end(); {
+		c := p / chunkPages
+		hi := min(r.end(), (c+1)*chunkPages)
+		switch s.table[c].kind {
+		case chunkIndex:
+			s.markPages(run{start: p, n: hi - p}, false)
+		case chunkLog, chunkValue, chunkTail:
+			s.freeChunk(c, true)
+		}
+		p = hi
 	}
-	return r, ok
 }
 
-// choose returns the run fit would take without taking it. It visits only
-// the free runs of want pages or more, which a fragmented file has few of,
-// and never the many short runs.
-func (s *space) choose(least, want uint64) (run, bool) {
-	// Take want pages from the lowest run that holds them.
-	var best run
-	found := false
-	s.sizes.Ascend(run{n: want}, func(r run) bool {
-		if !found || r.start < best.start {
-			best, found = run{start: r.start, n: want}, true
-		}
-		return true
-	})
-	if found && (s.goal == 0 || best.start < s.goal) {
-		return best, true
+// hold takes the free chunks of r out of allocation for a background punch.
+func (s *space) hold(r run) {
+	for c := r.start / chunkPages; c < r.end()/chunkPages; c++ {
+		s.free.Delete(c)
+		s.table[c].kind = chunkHeld
 	}
-
-	// Else take the longest run below the goal, when it holds least, before
-	// a run past it.
-	if r, ok := s.longestBelow(least); ok {
-		return run{start: r.start, n: min(r.n, want)}, true
-	}
-	if found {
-		return best, true
-	}
-	longest, ok := s.sizes.Max()
-	if !ok || longest.n < least {
-		return run{}, false
-	}
-
-	// Else take the lowest of the longest runs.
-	s.sizes.Ascend(run{n: longest.n}, func(r run) bool {
-		longest = r
-		return false
-	})
-	return longest, true
 }
 
-// goalVisits bounds the runs longestBelow passes over past the goal.
-const goalVisits = 1024
-
-// longestBelow returns the longest free run of at least least pages that
-// starts below the goal. below holds runs past the goal only while the cut
-// lowers toward it, so the search passes over at most goalVisits of them.
-func (s *space) longestBelow(least uint64) (run, bool) {
-	// Without a goal, any run will do.
-	if s.goal == 0 {
-		return run{}, false
-	}
-
-	// Descend from the longest run below the cut to the first below the
-	// goal.
-	var found run
-	ok, visits := false, goalVisits
-	s.below.Descend(run{n: math.MaxUint64}, func(r run) bool {
-		if r.n < least {
-			return false
-		}
-		if r.start < s.goal {
-			found, ok = r, true
-			return false
-		}
-		visits--
-		return visits > 0
-	})
-	return found, ok
-}
-
-// cutRuns bounds the free runs one moveCut passes.
-const cutRuns = 4096
-
-// moveCut moves the cut toward the goal over at most cutRuns free runs, so
-// setting a goal never holds the writer for a pass over every run. Until the
-// cut reaches the goal, fits miss the runs between them.
-func (s *space) moveCut() {
-	// Raise the cut, adding the runs it passes.
-	n := 0
-	if s.goal > s.cut {
-		next := s.goal
-		s.free.Ascend(s.cut, func(start, length uint64) bool {
-			// Stop at the goal, or at the run past the bound.
-			if start >= s.goal {
-				return false
-			}
-			if n == cutRuns {
-				next = start
-				return false
-			}
-
-			// Index the run below the new cut.
-			s.below.Set(run{start: start, n: length})
-			n++
-			return true
-		})
-		s.cut = next
-		return
-	}
-
-	// Lower it toward a goal, removing the runs it passes.
-	if s.goal == 0 || s.goal == s.cut {
-		return
-	}
-	next := s.goal
-	s.free.Descend(s.cut-1, func(start, length uint64) bool {
-		// Stop at the goal, or at the run past the bound.
-		if start < s.goal {
-			return false
-		}
-		if n == cutRuns {
-			next = start + 1
-			return false
-		}
-
-		// Drop the run the new cut leaves above.
-		s.below.Delete(run{start: start, n: length})
-		n++
-		return true
-	})
-	s.cut = next
-}
-
-// lower reports whether a value of n bytes placed in a new extent would
-// start below page p.
-func (s *space) lower(n int, p uint64) bool {
-	need := pagesFor(n)
-	r, ok := s.choose(need, max(need, extentPages))
-	return ok && r.start < p
-}
-
-// take removes r from the free runs, extending the file to cover it.
-func (s *space) take(r run) {
-	// Grow the file to cover r, freeing any gap before it.
-	if r.end() > s.end {
-		if r.start > s.end {
-			s.addFree(run{start: s.end, n: r.start - s.end})
-		}
-		s.end = r.end()
-	}
-
-	// Cut r out of the free runs that overlap it.
-	for _, h := range s.overlaps(r) {
-		s.deleteFree(h)
-		if h.start < r.start {
-			s.setFree(run{start: h.start, n: r.start - h.start})
-		}
-		if h.end() > r.end() {
-			s.setFree(run{start: r.end(), n: h.end() - r.end()})
+// unhold returns the held chunks of r to the free chunks, queuing them for
+// the next punch unless punched.
+func (s *space) unhold(r run, punched bool) {
+	for c := r.start / chunkPages; c < r.end()/chunkPages; c++ {
+		if c < uint64(len(s.table)) && s.table[c].kind == chunkHeld {
+			s.freeChunk(c, !punched)
 		}
 	}
 }
 
-// overlaps returns the free runs that overlap r, in descending order.
-func (s *space) overlaps(r run) []run {
-	var hits []run
-	s.free.Descend(r.end()-1, func(start, n uint64) bool {
-		if start+n <= r.start {
-			return false
+// placeValue assigns file space to a value of n bytes stored under a key of
+// k bytes, after its header, at the open chunk's cursor. It opens a new value
+// chunk when the entry does not fit, and gives an entry longer than a chunk
+// its own run of chunks. It returns the offsets of the header and the value.
+func (s *space) placeValue(k, n int, tag uint64) (entry, off uint64) {
+	// Place the header and value together.
+	size := uint64(valueHeaderLen(k, n) + n) // #nosec G115 -- lengths are not negative.
+	switch {
+	case size > chunkSize:
+		// A long entry takes whole chunks of its own.
+		r := s.takeChunks(chunksFor(pagesFor(int(size))), chunkValue) // #nosec G115 -- bounded by MaxValueSize.
+		for c := r.start/chunkPages + 1; c < r.end()/chunkPages; c++ {
+			s.table[c].kind = chunkTail
 		}
-		hits = append(hits, run{start: start, n: n})
-		return true
-	})
-	return hits
-}
-
-// addFree returns r to the free runs, merging neighbors and shrinking the
-// file when r reaches its end.
-func (s *space) addFree(r run) {
-	// Queue r for hole punching.
-	if r.n == 0 {
-		return
-	}
-	s.released = append(s.released, r)
-	s.releasedPages += r.n
-	s.returnFree(r)
-}
-
-// returnFree adds r to the free runs without queuing it for hole punching,
-// merging neighbors and shrinking the file when r reaches its end.
-func (s *space) returnFree(r run) {
-	// Merge with the free runs on either side.
-	if prev, ok := s.before(r.start); ok && prev.end() == r.start {
-		s.deleteFree(prev)
-		r = run{start: prev.start, n: prev.n + r.n}
-	}
-	if n, ok := s.free.Get(r.end()); ok {
-		s.deleteFree(run{start: r.end(), n: n})
-		r.n += n
-	}
-
-	// Shrink the file when the run reaches its end.
-	if r.end() == s.end {
-		s.end = r.start
-		return
-	}
-	s.setFree(r)
-}
-
-// before returns the free run starting below page.
-func (s *space) before(page uint64) (run, bool) {
-	// No run lies below the first page.
-	if page == 0 {
-		return run{}, false
-	}
-
-	// Take the first run descending from the page before.
-	var r run
-	ok := false
-	s.free.Descend(page-1, func(start, n uint64) bool {
-		r, ok = run{start: start, n: n}, true
-		return false
-	})
-	return r, ok
-}
-
-// placeValue assigns file space to a value of n bytes from the open extent,
-// opening a new extent when it does not fit.
-func (s *space) placeValue(n int, tag uint64) uint64 {
-	// Open a new extent at the lowest free run that fits.
-	size := uint64(n) // #nosec G115 -- value lengths are not negative.
-	if s.open.cursor+size > s.open.end {
-		s.closeOpen(tag)
-		need := pagesFor(n)
-		r, ok := s.fit(need, max(need, extentPages))
-		if !ok {
-			r = s.alloc(max(need, extentPages))
+		entry = r.start * pageSize
+	default:
+		// Else append at the open chunk's cursor, opening the lowest free
+		// chunk when it does not fit.
+		if s.open.cursor+size > s.open.end {
+			r := s.takeChunks(1, chunkValue)
+			s.open = extent{start: r.start * pageSize, cursor: r.start * pageSize, end: r.end() * pageSize}
 		}
-		s.open = extent{start: r.start * pageSize, cursor: r.start * pageSize, end: r.end() * pageSize}
+		entry = s.open.cursor
+		s.open.cursor += size
 	}
-
-	// Place the value at the cursor.
-	off := s.open.cursor
-	s.open.cursor += size
-	s.useValue(off, n)
-	return off
+	off = entry + size - uint64(n) // #nosec G115 -- lengths are not negative.
+	s.addLive(off, n, tag)
+	return entry, off
 }
 
-// closeOpen frees the unwritten tail of the open extent. Its last written
-// page is freed at tag when no live value remains in it.
-func (s *space) closeOpen(tag uint64) {
-	// Nothing is open.
-	if s.open.end == 0 {
-		return
+// replayValue takes the space for a value of n bytes at off that replay found
+// in commit tag, as placeValue did for the writer: a value spanning chunks in
+// chunks of its own, else at the open chunk's cursor, opening the value's
+// chunk when it is not open.
+func (s *space) replayValue(off uint64, n int, tag uint64) {
+	first, last := off/chunkSize, (off+uint64(n)-1)/chunkSize // #nosec G115 -- lengths are not negative.
+	switch {
+	case first != last:
+		s.claim(first, chunkValue)
+		for c := first + 1; c <= last; c++ {
+			s.claim(c, chunkTail)
+		}
+	case !s.inOpen(first):
+		s.claim(first, chunkValue)
+		s.open = extent{start: first * chunkSize, end: (first + 1) * chunkSize}
+		fallthrough
+	default:
+		s.open.cursor = max(s.open.cursor, off+uint64(n)) // #nosec G115 -- lengths are not negative.
 	}
-
-	// Pend the partly written last page when empty, free the unwritten
-	// pages, and close.
-	first := (s.open.cursor + pageSize - 1) / pageSize
-	if p := s.open.cursor / pageSize; p < first && s.liveAt(p) == 0 {
-		s.pend(&s.values, pending{start: p, n: 1, tag: tag})
-	}
-	s.addFree(run{start: first, n: s.open.end/pageSize - first})
-	s.open = extent{}
+	s.addLive(off, n, tag)
 }
 
-// spans calls fn with each page under n bytes at off and the bytes it
+// claim makes chunk c an empty chunk of kind for a use replay found in the
+// log. The writer never reuses a pending chunk, so a chunk the saved space
+// holds as pending left the queues before the use, through a release the
+// writer made without a record.
+func (s *space) claim(c uint64, kind uint8) {
+	if c < uint64(len(s.table)) && s.table[c].kind != chunkFree {
+		r := chunkRun(c, 1)
+		s.values = cut(s.values, r)
+		s.pages = cut(s.pages, r)
+	}
+	s.setKind(c, kind)
+}
+
+// claimLog takes the log chunks of r for a link replay found in the log.
+func (s *space) claimLog(r run) {
+	for c := r.start / chunkPages; c < r.end()/chunkPages; c++ {
+		s.claim(c, chunkLog)
+	}
+	s.log = append(s.log, r)
+}
+
+// chunkSpans calls fn with each chunk under n bytes at off and the bytes it
 // holds.
-func spans(off uint64, n int, fn func(page uint64, bytes uint16)) {
-	end := off + uint64(n) // #nosec G115 -- value lengths are not negative.
-	for p := off / pageSize; p*pageSize < end; p++ {
-		lo, hi := max(off, p*pageSize), min(end, (p+1)*pageSize)
-		fn(p, uint16(hi-lo)) // #nosec G115 -- at most one page.
+func chunkSpans(off uint64, n int, fn func(c uint64, b uint32)) {
+	end := off + uint64(n) // #nosec G115 -- lengths are not negative.
+	for c := off / chunkSize; c*chunkSize < end; c++ {
+		lo, hi := max(off, c*chunkSize), min(end, (c+1)*chunkSize)
+		fn(c, uint32(hi-lo)) // #nosec G115 -- at most one chunk.
 	}
 }
 
-// useValue counts n live bytes at off. Replay calls it for values on pages
-// the saved state holds as free or pending.
-func (s *space) useValue(off uint64, n int) {
-	spans(off, n, func(p uint64, b uint16) {
-		if s.liveAt(p) == 0 {
-			if !s.inOpen(p) {
-				s.claim(run{start: p, n: 1})
-			}
-			if p >= uint64(len(s.live)) {
-				s.live = append(s.live, make([]uint16, p+1-uint64(len(s.live)))...)
-			}
-			s.livePages++
-		}
-		s.live[p] += b
+// addLive counts n live bytes at off, placed by commit tag.
+func (s *space) addLive(off uint64, n int, tag uint64) {
+	chunkSpans(off, n, func(c uint64, b uint32) {
+		e := &s.table[c]
+		e.live += b
+		e.seq = tag
 	})
 	s.liveBytes += int64(n)
 }
 
-// liveAt returns the live bytes of page p.
-func (s *space) liveAt(p uint64) uint16 {
-	if p < uint64(len(s.live)) {
-		return s.live[p]
-	}
-	return 0
-}
-
-// claim takes r for a use replay found in the log. The writer never uses a
-// pending page, so a used page left the queues before the use: through a
-// release the writer made without a record, or, for a page of the writer's
-// open extent that replay pended when its values were freed, never.
-func (s *space) claim(r run) {
-	// Without the replay index, scan both queues.
-	if s.pendingAt == nil {
-		s.values = cut(s.values, r)
-		s.pages = cut(s.pages, r)
-		s.take(r)
-		return
-	}
-
-	// Find the pending runs r overlaps, which end after its start. The
-	// indexed runs do not overlap, so the first run that ends before it ends
-	// the search.
-	if r.n == 0 {
-		s.take(r)
-		return
-	}
-	var hits []uint64
-	s.pendingAt.Descend(r.end()-1, func(start uint64, x pendingRef) bool {
-		if start+x.n <= r.start {
-			return false
+// freeValue drops n live bytes at off, freed by commit tag. A chunk left
+// without live bytes is pending, and closes if it is open, so an emptied
+// file can shrink.
+func (s *space) freeValue(off uint64, n int, tag uint64) {
+	chunkSpans(off, n, func(c uint64, b uint32) {
+		// Take the bytes from the chunk; an emptied chunk closes and waits.
+		e := &s.table[c]
+		e.live -= b
+		if e.live != 0 {
+			return
 		}
-		hits = append(hits, start)
-		return true
+		if s.inOpen(c) {
+			s.open = extent{}
+		}
+		s.pend(&s.values, pending{run: chunkRun(c, 1), tag: tag})
 	})
-
-	// Cut each from its queue and the index.
-	for _, start := range hits {
-		x, _ := s.pendingAt.Delete(start)
-		q := &s.values
-		if x.page {
-			q = &s.pages
-		}
-		i := findPending(*q, start, x.tag)
-		if i < 0 {
-			s.pendingAt = nil
-			s.values = cut(s.values, r)
-			s.pages = cut(s.pages, r)
-			break
-		}
-		var parts []pending
-		*q, parts = cutAt(*q, i, r)
-		for _, part := range parts {
-			s.pendingAt.Set(part.start, pendingRef{n: part.n, tag: part.tag, page: x.page})
-		}
-	}
-	s.take(r)
+	s.liveBytes -= int64(n)
 }
 
-// cut removes the pages of r from the runs in q in place, keeping tag
-// order. It scans q, so replay uses the pendingAt index instead.
+// inOpen reports whether chunk c is the open value chunk.
+func (s *space) inOpen(c uint64) bool {
+	return s.open.end != 0 && c == s.open.start/chunkSize
+}
+
+// cut removes the pages of r from the runs in q in place, keeping tag order.
 func cut(q []pending, r run) []pending {
 	for i := 0; i < len(q); i++ {
 		x := q[i]
@@ -532,8 +559,8 @@ func cut(q []pending, r run) []pending {
 // allocates only to split a run.
 func cutAt(q []pending, i int, r run) ([]pending, []pending) {
 	x := q[i]
-	head := pending{start: x.start, n: r.start - x.start, tag: x.tag}
-	tail := pending{start: r.end(), n: x.end() - r.end(), tag: x.tag}
+	head := pending{run: run{start: x.start, n: r.start - x.start}, tag: x.tag}
+	tail := pending{run: run{start: r.end(), n: x.end() - r.end()}, tag: x.tag}
 	switch {
 	case x.start < r.start && x.end() > r.end():
 		q[i] = head
@@ -550,97 +577,20 @@ func cutAt(q []pending, i int, r run) ([]pending, []pending) {
 	}
 }
 
-// findPending returns the index in q of the run starting at start with tag.
-// The queues are in tag order, so it searches the runs of tag first.
-func findPending(q []pending, start, tag uint64) int {
-	// Search the runs of tag.
-	i, _ := slices.BinarySearchFunc(q, tag, func(p pending, tag uint64) int { return cmp.Compare(p.tag, tag) })
-	for ; i < len(q) && q[i].tag == tag; i++ {
-		if q[i].start == start {
-			return i
-		}
-	}
-
-	// Fall back to a scan if the order was ever broken.
-	return slices.IndexFunc(q, func(p pending) bool { return p.start == start })
-}
-
-// indexPending builds pendingAt from the queues for a replay.
-func (s *space) indexPending() {
-	s.pendingAt = new(btree.Map[uint64, pendingRef])
-	for _, p := range s.values {
-		s.indexRun(p, false, false)
-	}
-	for _, p := range s.pages {
-		s.indexRun(p, true, false)
-	}
-}
-
-// indexRun adds a run of the pages queue or the values queue to pendingAt.
-// grown reports that it lengthens the indexed run at its start. A run that
-// overlaps another drops the index, so claims scan the queues as before.
-func (s *space) indexRun(p pending, page, grown bool) {
-	// Find the run before p's end other than the one p grows.
-	if s.pendingAt == nil {
-		return
-	}
-	overlap := p.n == 0
-	s.pendingAt.Descend(p.end()-1, func(start uint64, x pendingRef) bool {
-		if grown && start == p.start {
-			return true
-		}
-		overlap = overlap || start+x.n > p.start
-		return false
-	})
-
-	// Index p, or give up on the index.
-	if overlap {
-		s.pendingAt = nil
-		return
-	}
-	s.pendingAt.Set(p.start, pendingRef{n: p.n, tag: p.tag, page: page})
-}
-
-// freeValue drops n live bytes at off, freed by commit tag.
-func (s *space) freeValue(off uint64, n int, tag uint64) {
-	spans(off, n, func(p uint64, b uint16) {
-		s.live[p] -= b
-		if s.live[p] != 0 {
-			return
-		}
-		s.livePages--
-		if !s.inOpen(p) || (p+1)*pageSize <= s.open.cursor {
-			s.pend(&s.values, pending{start: p, n: 1, tag: tag})
-		}
-	})
-	s.liveBytes -= int64(n)
-}
-
-// inOpen reports whether page lies in the open extent.
-func (s *space) inOpen(p uint64) bool {
-	return p*pageSize >= s.open.start && p*pageSize < s.open.end
-}
-
 // pend queues a freed run, merging it with the previous run of the same tag.
 func (s *space) pend(q *[]pending, p pending) {
-	// Merge with the previous run, or append.
-	grown := false
 	if l := len(*q); l != 0 && (*q)[l-1].tag == p.tag && (*q)[l-1].end() == p.start {
 		(*q)[l-1].n += p.n
-		p, grown = (*q)[l-1], true
-	} else {
-		*q = append(*q, p)
+		return
 	}
-
-	// Keep the replay index current.
-	s.indexRun(p, q == &s.pages, grown)
+	*q = append(*q, p)
 }
 
 // freePages queues index pages freed by checkpoint tag.
 func (s *space) freePages(pages []uint64, tag uint64) {
 	slices.Sort(pages)
 	for _, p := range pages {
-		s.pend(&s.pages, pending{start: p, n: 1, tag: tag})
+		s.pend(&s.pages, pending{run: run{start: p, n: 1}, tag: tag})
 	}
 }
 
@@ -650,83 +600,66 @@ func (s *space) due(seq, ckpt uint64) bool {
 		(len(s.pages) != 0 && s.pages[0].tag <= ckpt)
 }
 
-// release frees value runs with tags through seq and page runs with tags
+// release frees value chunks with tags through seq and page runs with tags
 // through ckpt, and raises the marks.
 func (s *space) release(seq, ckpt uint64) {
-	// Free value runs through seq.
+	// Free value chunks through seq.
 	s.marks = pin{seq: max(s.marks.seq, seq), ckpt: max(s.marks.ckpt, ckpt)}
 	i := 0
 	for ; i < len(s.values) && s.values[i].tag <= seq; i++ {
-		s.releasePending(s.values[i].run)
+		s.freeRun(s.values[i].run)
 	}
 	s.values = s.values[i:]
 
 	// Free page runs through ckpt.
 	i = 0
 	for ; i < len(s.pages) && s.pages[i].tag <= ckpt; i++ {
-		s.releasePending(s.pages[i].run)
+		s.freeRun(s.pages[i].run)
 	}
 	s.pages = s.pages[i:]
 }
 
-// releasePending frees a run leaving a queue.
-func (s *space) releasePending(r run) {
-	if s.pendingAt != nil {
-		s.pendingAt.Delete(r.start)
-	}
-	s.addFree(r)
-}
-
-// drain returns the parts of the runs released since the last drain that
-// are still free, merged into as few runs as the free map allows, and clears
-// them. A released page taken again holds data, so only the free map decides
-// what may be punched.
+// drain returns the chunks freed since the last drain that are still free
+// below the end, merged into runs, and clears them. A freed chunk taken
+// again holds data, so only the table decides what may be punched.
 func (s *space) drain() []run {
-	// Merge released runs that touch or overlap, in place.
+	// Order the freed chunks.
 	slices.SortFunc(s.released, func(a, b run) int { return cmp.Compare(a.start, b.start) })
-	merged := s.released[:0]
+	var out []run
 	for _, r := range s.released {
-		if last := len(merged) - 1; last >= 0 && r.start <= merged[last].end() {
-			merged[last].n = max(merged[last].end(), r.end()) - merged[last].start
+		// Keep each chunk still free, joining it to the run before.
+		c := r.start / chunkPages
+		if c >= uint64(len(s.table)) || s.table[c].kind != chunkFree {
 			continue
 		}
-		merged = append(merged, r)
+		if l := len(out) - 1; l >= 0 && out[l].end() >= r.start {
+			out[l].n = max(out[l].end(), r.end()) - out[l].start
+			continue
+		}
+		out = append(out, r)
 	}
 	s.released, s.releasedPages = nil, 0
-
-	// Clip each merged run to the free runs it overlaps.
-	var out []run
-	for _, r := range merged {
-		for _, h := range s.overlaps(r) {
-			start := max(h.start, r.start)
-			out = append(out, run{start: start, n: min(h.end(), r.end()) - start})
-		}
-	}
 	return out
 }
 
-// stats returns the live value bytes and the bytes value pages occupy.
-func (s *space) stats() (live, held int64) {
-	return s.liveBytes, s.livePages * pageSize
-}
-
-// usage returns the page use the space tracks. The caller fills in the
-// index pages, which the checkpoint counts.
+// usage returns the use of the file's chunks. The caller fills in the index
+// pages and keys, which the checkpoint counts.
 func (s *space) usage() Usage {
 	// Count the file and the live values.
-	u := Usage{
-		FileBytes:      pageOff(s.end),
-		ValueBytes:     s.liveBytes,
-		ValuePageBytes: s.livePages * pageSize,
-	}
+	u := Usage{FileBytes: pageOff(s.end()), ValueBytes: s.liveBytes}
 
-	// Sum the free runs, the log chunks, and the runs snapshots still hold.
-	s.free.Scan(func(_, n uint64) bool {
-		u.FreeBytes += pageOff(n)
-		return true
-	})
-	for _, c := range s.chunks {
-		u.LogBytes += pageOff(c.n)
+	// Sum the chunks by kind, and the runs snapshots still hold.
+	for _, e := range s.table {
+		switch e.kind {
+		case chunkFree, chunkHeld:
+			u.FreeBytes += chunkSize
+		case chunkLog:
+			u.LogBytes += chunkSize
+		case chunkIndex:
+			u.IndexChunkBytes += chunkSize
+		case chunkValue, chunkTail:
+			u.ValueChunkBytes += chunkSize
+		}
 	}
 	for _, p := range slices.Concat(s.values, s.pages) {
 		u.PendingBytes += pageOff(p.n)
@@ -734,54 +667,56 @@ func (s *space) usage() Usage {
 	return u
 }
 
-// clone returns a copy of s to change and encode apart from s, holding its
-// live counts in live's array. The copy's btrees share nodes with s's until
-// either changes them, so each may change without the other's lock.
-func (s *space) clone(live []uint16) *space {
-	// Copy the fields, then give the copy its own trees, counts, and queues.
+// clone returns a copy of s to change and encode apart from s. The copy's
+// btrees share nodes with s's until either changes them.
+func (s *space) clone() *space {
+	// Copy every container; the copy has released nothing yet.
 	c := *s
-	c.free, c.sizes, c.below = s.free.Copy(), s.sizes.Copy(), s.below.Copy()
-	c.live = append(live[:0], s.live...)
+	c.table = slices.Clone(s.table)
+	c.free, c.partial = s.free.Copy(), s.partial.Copy()
 	c.values, c.pages = slices.Clone(s.values), slices.Clone(s.pages)
-	c.chunks, c.reserved = slices.Clone(s.chunks), slices.Clone(s.reserved)
-	c.released, c.releasedPages, c.pendingAt = nil, 0, nil
+	c.log, c.reserved = slices.Clone(s.log), slices.Clone(s.reserved)
+	c.released, c.releasedPages = nil, 0
 	return &c
 }
 
-// encode writes the space with the open extent closed.
+// encode writes the space.
 func (s *space) encode() []byte {
-	// Size the buffer for the runs: page numbers and lengths fit the varint
-	// of the file end, live byte counts two bytes, and tags any length.
-	var nlive int
-	for range s.liveRuns() {
-		nlive++
-	}
-	pw := len(binary.AppendUvarint(nil, s.end))
+	// Size the buffer: a kind byte for each chunk, a page map for each index
+	// chunk, and varints for the rest.
 	queued := len(s.values) + len(s.pages) + len(s.reserved)
-	b := make([]byte, 0, 8*binary.MaxVarintLen64+2*pw*(s.free.Len()+len(s.chunks))+(2*pw+2)*nlive+(binary.MaxVarintLen64+2*pw)*queued)
+	b := make([]byte, 0, 8*binary.MaxVarintLen64+len(s.table)*(1+2*binary.MaxVarintLen64)+s.partial.Len()*len(pageMap{})*8+3*binary.MaxVarintLen64*(queued+len(s.log)))
 
-	// Write the release marks, the file end, and the free runs.
+	// Write the release marks and the table. A held chunk is free to any
+	// space that reads it.
 	u := func(v uint64) { b = binary.AppendUvarint(b, v) }
 	u(s.marks.seq)
 	u(s.marks.ckpt)
-	u(s.end)
-	u(uint64(s.free.Len())) // #nosec G115 -- lengths are not negative.
-	s.free.Scan(func(start, n uint64) bool {
-		u(start)
-		u(n)
-		return true
-	})
+	u(uint64(len(s.table)))
+	for _, e := range s.table {
+		kind := e.kind
+		if kind == chunkHeld {
+			kind = chunkFree
+		}
+		b = append(b, kind)
+		switch kind {
+		case chunkIndex:
+			for _, w := range e.used {
+				b = binary.LittleEndian.AppendUint64(b, w)
+			}
+		case chunkValue, chunkTail:
+			u(e.seq)
+			u(uint64(e.live))
+		}
+	}
 
-	// Write the live value pages as runs of consecutive pages with equal
-	// live bytes, each starting at its gap from the previous run. Packed
-	// extents hold mostly full pages, so a filled file needs few runs.
-	u(uint64(nlive)) // #nosec G115 -- counts are not negative.
-	var prev uint64
-	for r := range s.liveRuns() {
-		u(r.start - prev)
-		u(r.n)
-		u(uint64(r.bytes))
-		prev = r.end()
+	// Write the open chunk, as its number plus one, and its cursor.
+	if s.open.end == 0 {
+		u(0)
+		u(0)
+	} else {
+		u(s.open.start/chunkSize + 1)
+		u(s.open.cursor - s.open.start)
 	}
 
 	// Write the runs awaiting release and the log chunks. No saved tree
@@ -803,29 +738,28 @@ func (s *space) encode() []byte {
 			u(p.n)
 		}
 	}
-	u(uint64(len(s.chunks)))
-	for _, c := range s.chunks {
+	u(uint64(len(s.log)))
+	for _, c := range s.log {
 		u(c.start)
 		u(c.n)
 	}
 	return b
 }
 
-// allocRecord allocates the pages of the space's own record and returns
-// them with the encoding, padded to fill them. The saved space marks its
-// pages in use, and taking them can lengthen the encoding past them, so
-// allocation repeats with more pages until it fits. Each retry asks for more
-// pages than the last, so it ends. Freeing the record returns its pages
-// whole, and decoding ignores the padding.
+// allocRecord takes the pages of the space's own record and returns them with
+// the encoding, padded to fill them. The saved space marks its pages used, and
+// taking them can lengthen the encoding past them, so it takes more pages
+// until the encoding fits. Each retry asks for more pages than the last, so it
+// ends. Decoding ignores the padding.
 func (s *space) allocRecord() (run, []byte) {
-	// Allocate until the encoding fits.
+	// Take pages until the encoding fits.
 	need := pagesFor(len(s.encode()))
-	r := s.alloc(need)
+	r := s.takeRecord(need)
 	b := s.encode()
 	for pagesFor(len(b)) > need {
-		s.addFree(r)
+		s.freeRun(r)
 		need = pagesFor(len(b))
-		r = s.alloc(need)
+		r = s.takeRecord(need)
 		b = s.encode()
 	}
 
@@ -833,78 +767,69 @@ func (s *space) allocRecord() (run, []byte) {
 	return r, append(b, make([]byte, pageOff(need)-int64(len(b)))...)
 }
 
-// liveRun is a run of value pages that each hold bytes live bytes.
-type liveRun struct {
-	run
-	// bytes is the live bytes of each page.
-	bytes uint16
-}
-
-// liveRuns yields the live value pages as runs in page order.
-func (s *space) liveRuns() iter.Seq[liveRun] {
-	return func(yield func(liveRun) bool) {
-		// Grow the current run while pages continue it, yielding it when
-		// one does not.
-		var cur liveRun
-		for i, b := range s.live {
-			if b == 0 {
-				continue
-			}
-			p := uint64(i) // #nosec G115 -- slice indexes are not negative.
-			if cur.n != 0 && cur.end() == p && cur.bytes == b {
-				cur.n++
-				continue
-			}
-			if cur.n != 0 && !yield(cur) {
-				return
-			}
-			cur = liveRun{run: run{start: p, n: 1}, bytes: b}
-		}
-
-		// Yield the last run.
-		if cur.n != 0 {
-			yield(cur)
-		}
-	}
-}
-
 // decodeSpace reads an encoded space.
 func decodeSpace(b []byte) (*space, error) {
-	// Read the release marks, the file end, and the free runs.
+	// Read the release marks and the table.
 	s := newSpace()
 	d := decoder{b: b}
 	s.marks = pin{seq: d.uvarint(), ckpt: d.uvarint()}
-	s.end = d.uvarint()
-	for range d.count() {
-		s.setFree(run{start: d.uvarint(), n: d.uvarint()})
+	n := d.count()
+	if n == 0 || d.err != nil {
+		return nil, errors.Wrap(ErrCorrupt, "space has no chunks")
 	}
 
-	// Read the live value page runs. A run may not reach past the file end.
-	s.live = make([]uint16, s.end)
-	var prev uint64
-	for range d.count() {
-		r := run{start: prev + d.uvarint(), n: d.uvarint()}
-		bytes := d.uvarint()
-		if r.end() > s.end || r.end() < r.start || bytes == 0 || bytes > pageSize {
-			return nil, ErrCorrupt
+	// Rebuild each chunk and the partial set from its kind.
+	s.table = make([]chunk, n)
+	s.partial.Clear()
+	for c := range s.table {
+		e := &s.table[c]
+		e.kind = d.kind()
+		switch e.kind {
+		case chunkFree:
+			s.free.Set(uint64(c)) // #nosec G115 -- slice indexes are not negative.
+		case chunkLog:
+		case chunkIndex:
+			for i := range e.used {
+				e.used[i] = d.u64()
+			}
+			e.live = e.used.count()
+			if e.live < chunkPages {
+				s.partial.Set(fullness{used: e.live, chunk: uint64(c)}) // #nosec G115 -- slice indexes are not negative.
+			}
+		case chunkValue, chunkTail:
+			e.seq = d.uvarint()
+			live := d.uvarint()
+			if live > chunkSize {
+				return nil, errors.Wrap(ErrCorrupt, "chunk holds more than its length")
+			}
+			e.live = uint32(live)
+			s.liveBytes += int64(live) // #nosec G115 -- at most chunkSize.
+		default:
+			return nil, errors.Wrapf(ErrCorrupt, "unknown chunk kind %d", e.kind)
 		}
-		for p := r.start; p < r.end(); p++ {
-			s.live[p] = uint16(bytes) // #nosec G115 -- checked against pageSize above.
+	}
+	if s.table[0].kind != chunkIndex || s.table[0].used[0]&(1<<firstPage-1) != 1<<firstPage-1 {
+		return nil, errors.Wrap(ErrCorrupt, "first chunk does not hold the fixed pages")
+	}
+
+	// Read the open chunk.
+	if c, at := d.uvarint(), d.uvarint(); c != 0 {
+		if c > uint64(len(s.table)) || s.table[c-1].kind != chunkValue || at > chunkSize {
+			return nil, errors.Wrap(ErrCorrupt, "open chunk is not a value chunk")
 		}
-		s.livePages += int64(r.n) // #nosec G115 -- runs end within the file.
-		s.liveBytes += pageOff(r.n) / pageSize * int64(bytes)
-		prev = r.end()
+		start := (c - 1) * chunkSize
+		s.open = extent{start: start, cursor: start + at, end: start + chunkSize}
 	}
 
 	// Read the runs awaiting release and the log chunks.
 	for _, q := range []*[]pending{&s.values, &s.pages} {
 		for range d.count() {
 			tag := d.uvarint()
-			*q = append(*q, pending{tag: tag, start: d.uvarint(), n: d.uvarint()})
+			*q = append(*q, pending{tag: tag, run: run{start: d.uvarint(), n: d.uvarint()}})
 		}
 	}
 	for range d.count() {
-		s.chunks = append(s.chunks, run{start: d.uvarint(), n: d.uvarint()})
+		s.log = append(s.log, run{start: d.uvarint(), n: d.uvarint()})
 	}
 	return s, d.err
 }

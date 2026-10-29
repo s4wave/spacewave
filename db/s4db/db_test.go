@@ -84,7 +84,7 @@ func TestModel(t *testing.T) {
 	}
 	clear(m)
 
-	// The emptied file shrinks to a few pages.
+	// The emptied file shrinks to the fixed chunk and the log chunk.
 	if err := db.Compact(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestModel(t *testing.T) {
 	}
 	used, size := usage(t, path)
 	t.Logf("empty file: %d bytes long, %d allocated", size, used)
-	if used > 256<<10 || size > 2<<20 {
+	if size > 2*chunkSize || used > size {
 		t.Fatalf("empty database is %d bytes long with %d allocated", size, used)
 	}
 }
@@ -277,10 +277,6 @@ const probeEnv = "S4DB_TEST_PROBE"
 // TestSingleProcessHoldsWriterLock when the test binary is started as one,
 // and else the tests.
 func TestMain(m *testing.M) {
-	// Compact in the background as soon as a few pages are free, in the
-	// tests and their children, so the tests run beside it.
-	compactMinSlack = 8
-
 	// Choose the child the environment names, if any.
 	run := runChild
 	path := os.Getenv(childEnv)
@@ -659,7 +655,8 @@ func TestUsage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The live values and their pages are counted, and every class fits.
+	// The live values and their chunks are counted, and the chunks of each
+	// kind make up the file.
 	u, err := db.Usage(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -667,11 +664,11 @@ func TestUsage(t *testing.T) {
 	if u.ValueBytes != 300000 {
 		t.Fatalf("ValueBytes = %d, want 300000", u.ValueBytes)
 	}
-	if u.ValuePageBytes < u.ValueBytes || u.LogBytes == 0 {
-		t.Fatalf("usage %+v lacks value pages or log", u)
+	if u.ValueChunkBytes < u.ValueBytes || u.LogBytes == 0 || u.IndexChunkBytes < u.IndexBytes {
+		t.Fatalf("usage %+v lacks value chunks, index chunks, or log", u)
 	}
-	if sum := u.FreeBytes + u.ValuePageBytes + u.IndexBytes + u.LogBytes + u.PendingBytes; sum > u.FileBytes {
-		t.Fatalf("usage %+v sums to %d past the file", u, sum)
+	if sum := u.FreeBytes + u.ValueChunkBytes + u.IndexChunkBytes + u.LogBytes; sum != u.FileBytes {
+		t.Fatalf("usage %+v sums to %d, not the file", u, sum)
 	}
 
 	// Sizes reports the same file and live value lengths, and a collection
@@ -692,11 +689,11 @@ func TestUsage(t *testing.T) {
 // checkpoint already holds, and checks that a snapshot of that state still
 // reads every key once freed space is released and punched.
 func TestCheckpointNothingToFold(t *testing.T) {
-	// Fill a file, without the background compactor, and checkpoint it.
+	// Fill a file, without the background cleaner, and checkpoint it.
 	ctx := context.Background()
 	db := openTest(t, filepath.Join(t.TempDir(), "fold.s4wave"), Options{SingleProcess: true})
 	defer db.Close()
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
+	if wait, _ := db.cleaner.SetRoutine(nil); wait != nil {
 		<-wait
 	}
 	r := rand.New(rand.NewPCG(5, 6))
@@ -773,11 +770,11 @@ func TestCheckpointNothingToFold(t *testing.T) {
 // replacement: recovery checks the values of records no later record marks
 // durable, and the first record's value is gone.
 func TestReopenAfterReleasedReplace(t *testing.T) {
-	// Commit a value and replace it, without the background compactor.
+	// Commit a value and replace it, without the background cleaner.
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "replace.s4wave")
 	db := openTest(t, path, Options{SingleProcess: true})
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
+	if wait, _ := db.cleaner.SetRoutine(nil); wait != nil {
 		<-wait
 	}
 	key, want := []byte("k"), bytes.Repeat([]byte{2}, 20000)
@@ -820,7 +817,7 @@ func TestCompactDuringBuild(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "build.s4wave")
 	db := openTest(t, path, Options{})
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
+	if wait, _ := db.cleaner.SetRoutine(nil); wait != nil {
 		<-wait
 	}
 	val := bytes.Repeat([]byte{1}, 500)
@@ -866,83 +863,9 @@ func TestCompactDuringBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The emptied file shrinks to a few pages.
+	// The emptied file shrinks to the fixed chunk and the log chunk.
 	used, size := usage(t, path)
-	if used > 256<<10 || size > 2<<20 {
+	if size > 2*chunkSize || used > size {
 		t.Fatalf("empty database is %d bytes long with %d allocated", size, used)
-	}
-}
-
-// TestCommitLeavesSparsePages checks that commits leave values in sparse
-// pages where they are, to the background compactor, so a writer's commit
-// does not move other keys' values while holding the writer lock.
-func TestCommitLeavesSparsePages(t *testing.T) {
-	// Fill pages with four values each, with the compactor stopped.
-	ctx := context.Background()
-	db := openTest(t, filepath.Join(t.TempDir(), "sparse.s4wave"), Options{})
-	if wait, _ := db.compactor.SetRoutine(nil); wait != nil {
-		<-wait
-	}
-	val := bytes.Repeat([]byte{1}, 1000)
-	commit := func(fn func(tx *Tx) error) {
-		tx, err := db.NewTransaction(ctx, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := fn(tx.(*Tx)); err != nil {
-			t.Fatal(err)
-		}
-		if err := tx.Commit(ctx); err != nil {
-			t.Fatal(err)
-		}
-	}
-	commit(func(tx *Tx) error {
-		for i := range 4000 {
-			if err := tx.Set(ctx, fmt.Appendf(nil, "k%05d", i), val); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-
-	// Note where every fourth value lies.
-	offs := func() map[int]uint64 {
-		m := map[int]uint64{}
-		for i := 0; i < 4000; i += 4 {
-			v, found, err := db.lookup(db.cur.Load(), fmt.Appendf(nil, "k%05d", i))
-			if err != nil || !found {
-				t.Fatalf("k%05d: found %v, %v", i, found, err)
-			}
-			m[i] = v.ref.off
-		}
-		return m
-	}
-	before := offs()
-
-	// Delete the other values, leaving every page sparse, and commit more
-	// keys.
-	commit(func(tx *Tx) error {
-		for i := range 4000 {
-			if i%4 == 0 {
-				continue
-			}
-			if err := tx.Delete(ctx, fmt.Appendf(nil, "k%05d", i)); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	for i := range 20 {
-		commit(func(tx *Tx) error {
-			return tx.Set(ctx, fmt.Appendf(nil, "n%05d", i), val)
-		})
-	}
-
-	// Check that every kept value stayed in its sparse page.
-	if after := offs(); !maps.Equal(before, after) {
-		t.Fatal("a commit moved values out of sparse pages")
-	}
-	if live, held := db.w.sp.stats(); held-live < held/2 {
-		t.Fatalf("%d live bytes in %d held, want sparse pages", live, held)
 	}
 }

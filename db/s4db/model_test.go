@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"maps"
 	"math/rand/v2"
 	"path/filepath"
 	"slices"
@@ -112,10 +111,12 @@ func commitRandom(r *rand.Rand, db *DB, m model, keys int) (bool, error) {
 	return true, tx.Commit(ctx)
 }
 
-// checkSpace fails when two uses claim one page: a live value, a tree
-// page, a log chunk, or the saved space against each other or against a
-// free or pending run. It also fails when a page below the end is none of
-// these, reserved, or in the open extent, which leaks it.
+// checkSpace fails when the chunk table disagrees with the file: two uses
+// claim one page, a use lies in a free or pending run or a chunk of another
+// kind, a chunk's live count differs from the values and pages in it, a
+// value's header does not name its key, or a chunk below the end is used by
+// nothing, which leaks it. It also fails when the space rebuilt from the
+// file differs from the writer's.
 func checkSpace(t *testing.T, db *DB) {
 	// Hold the writer lock so the space is stable.
 	t.Helper()
@@ -125,53 +126,45 @@ func checkSpace(t *testing.T, db *DB) {
 	defer db.w.unlock(nil)
 	sp, st := db.w.sp, db.cur.Load()
 	owner := make(map[uint64]string)
-	claim := func(p uint64, who string, shared bool) {
-		if prev, ok := owner[p]; ok && (!shared || prev != who) {
+	claim := func(p uint64, who string) {
+		if prev, ok := owner[p]; ok {
 			t.Fatalf("page %d claimed by %s and %s", p, prev, who)
 		}
 		owner[p] = who
 	}
 
-	// Claim the pages under every stored value, counting their live bytes.
-	live := make(map[uint64]uint16)
+	// Count the live bytes of every stored value by chunk, and check that
+	// its header precedes it.
+	live := make(map[uint64]uint32)
 	it := newIterator(db.p, st, nil, nil, false)
 	for it.Next() {
-		if v := it.cur.val; v.isRef {
-			spans(v.ref.off, int(v.ref.n), func(p uint64, b uint16) {
-				claim(p, "value", true)
-				live[p] += b
-			})
+		v := it.cur.val
+		if !v.isRef {
+			continue
+		}
+		chunkSpans(v.ref.off, int(v.ref.n), func(c uint64, b uint32) {
+			if k := sp.table[c].kind; k != chunkValue && k != chunkTail {
+				t.Fatalf("value of %q in chunk %d of kind %d", it.Key(), c, k)
+			}
+			live[c] += b
+		})
+		want := appendValueHeader(nil, it.Key(), make([]byte, v.ref.n))
+		got := make([]byte, len(want))
+		if _, err := db.s.ReadAt(got, fileOff(v.ref.off-uint64(len(want)))); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("value of %q has header %x, want %x", it.Key(), got, want)
 		}
 	}
-
-	// The space counts the same live bytes.
-	counted := make(map[uint64]uint16)
-	for p, b := range sp.live {
-		if b != 0 {
-			counted[uint64(p)] = b
-		}
-	}
-	if !maps.Equal(live, counted) || sp.livePages != int64(len(counted)) {
-		for p, b := range live {
-			if counted[p] != b {
-				t.Errorf("value page %d holds %d live bytes, space counts %d", p, b, counted[p])
-			}
-		}
-		for p, b := range counted {
-			if _, ok := live[p]; !ok {
-				t.Errorf("space counts %d live bytes on page %d, which holds none", b, p)
-			}
-		}
-		if sp.livePages != int64(len(counted)) {
-			t.Errorf("space counts %d live pages, %d hold live bytes", sp.livePages, len(counted))
-		}
-		t.FailNow()
+	if err := it.Err(); err != nil {
+		t.Fatal(err)
 	}
 
 	// Claim the tree, the log chunks, and the saved space.
 	var walk func(p uint64)
 	walk = func(p uint64) {
-		claim(p, "tree", false)
+		claim(p, "tree")
 		n, err := db.p.node(p)
 		if err != nil {
 			t.Fatal(err)
@@ -185,59 +178,150 @@ func checkSpace(t *testing.T, db *DB) {
 	if st.root != 0 {
 		walk(st.root)
 	}
-	for _, c := range sp.chunks {
+	for _, c := range sp.log {
 		for _, p := range pageRange(c.start, c.n) {
-			claim(p, "log", false)
+			claim(p, "log")
 		}
 	}
 	for _, p := range pageRange(st.sb.space.off/pageSize, pagesFor(int(st.sb.space.n))) {
-		claim(p, "space", false)
+		claim(p, "space")
 	}
 
-	// No claimed page may be free, pending, or past the end.
+	// No claimed page may be pending or in a chunk not holding it.
+	pend := make(map[uint64]bool)
+	for _, x := range slices.Concat(sp.values, sp.pages) {
+		for _, p := range pageRange(x.start, x.n) {
+			pend[p] = true
+		}
+	}
 	for p, who := range owner {
-		if p >= sp.end {
-			t.Fatalf("%s page %d past the end %d", who, p, sp.end)
+		c := p / chunkPages
+		if c >= uint64(len(sp.table)) {
+			t.Fatalf("%s page %d past the end %d", who, p, sp.end())
 		}
-		if r, ok := sp.before(p + 1); ok && p < r.end() {
-			t.Fatalf("%s page %d in free run %+v", who, p, r)
+		if pend[p] {
+			t.Fatalf("%s page %d awaits release", who, p)
 		}
-		for _, x := range slices.Concat(sp.values, sp.pages) {
-			if p >= x.start && p < x.end() {
-				t.Fatalf("%s page %d awaits release in %+v", who, p, x)
+		e := &sp.table[c]
+		switch {
+		case who == "log" && e.kind != chunkLog:
+			t.Fatalf("log page %d in chunk of kind %d", p, e.kind)
+		case who != "log" && (e.kind != chunkIndex || e.used[p%chunkPages/64]&(1<<(p%64)) == 0):
+			t.Fatalf("%s page %d not used in its chunk of kind %d", who, p, e.kind)
+		}
+	}
+	for _, r := range sp.reserved {
+		for _, p := range pageRange(r.start, r.n) {
+			claim(p, "reserved")
+		}
+	}
+
+	// The file ends in a chunk that holds something.
+	if l := len(sp.table); l == 0 || sp.table[l-1].kind == chunkFree || sp.table[l-1].kind == chunkHeld {
+		t.Fatalf("last of %d chunks is free", l)
+	}
+
+	// An index chunk counts its used pages, and each holds something.
+	checkIndex := func(c uint64, e chunk) {
+		if e.live != e.used.count() {
+			t.Fatalf("index chunk %d counts %d used pages, maps %d", c, e.live, e.used.count())
+		}
+		for i := range uint64(chunkPages) {
+			p := c*chunkPages + i
+			if _, ok := owner[p]; e.used[i/64]&(1<<(i%64)) != 0 && !ok && !pend[p] && p >= firstPage {
+				t.Fatalf("index page %d used by nothing", p)
 			}
 		}
 	}
 
-	// Mark the pages free, awaiting release, or reserved.
-	held := make([]bool, sp.end)
-	mark := func(r run) {
-		for p := r.start; p < r.end() && p < sp.end; p++ {
-			held[p] = true
+	// A value chunk counts its live bytes, which add up to the space's, and
+	// holds some or awaits release.
+	var liveBytes int64
+	checkValue := func(c uint64, e chunk) {
+		liveBytes += int64(e.live)
+		if e.live != live[c] {
+			t.Fatalf("value chunk %d counts %d live bytes, holds %d", c, e.live, live[c])
 		}
-	}
-	sp.free.Scan(func(start, n uint64) bool {
-		mark(run{start: start, n: n})
-		return true
-	})
-	for _, x := range slices.Concat(sp.values, sp.pages) {
-		mark(x.run)
-	}
-	for _, r := range sp.reserved {
-		mark(r)
+		if e.live == 0 && !pend[c*chunkPages] {
+			t.Fatalf("value chunk %d holds nothing and awaits no release", c)
+		}
 	}
 
-	// Every other page past the superblocks is claimed or in the open
-	// extent.
-	var leaked []uint64
-	for p := uint64(firstPage); p < sp.end; p++ {
-		if _, ok := owner[p]; !ok && !held[p] && !sp.inOpen(p) {
-			leaked = append(leaked, p)
+	// Each chunk counts what it holds and holds something, and the free and
+	// partial sets list exactly the free chunks and the index chunks with
+	// room.
+	var free, partial []uint64
+	for c, e := range sp.table {
+		c := uint64(c)
+		switch e.kind {
+		case chunkFree:
+			free = append(free, c)
+		case chunkIndex:
+			checkIndex(c, e)
+			if e.live < chunkPages {
+				partial = append(partial, c)
+			}
+		case chunkValue, chunkTail:
+			checkValue(c, e)
 		}
 	}
-	if len(leaked) != 0 {
-		t.Fatalf("pages %v are neither used, free, pending, nor reserved", leaked)
+	if liveBytes != sp.liveBytes {
+		t.Fatalf("space counts %d live bytes, chunks hold %d", sp.liveBytes, liveBytes)
 	}
+	var gotFree, gotPartial []uint64
+	sp.free.Scan(func(c uint64) bool { gotFree = append(gotFree, c); return true })
+	sp.partial.Scan(func(f fullness) bool { gotPartial = append(gotPartial, f.chunk); return true })
+	slices.Sort(gotPartial)
+	if !slices.Equal(free, gotFree) || !slices.Equal(partial, gotPartial) {
+		t.Fatalf("free %v partial %v, table has free %v partial %v", gotFree, gotPartial, free, partial)
+	}
+
+	// The space rebuilt from the file, caught up with the releases the
+	// writer made without a record, equals the writer's without its
+	// reservations.
+	rw := &writer{db: db}
+	if err := rw.replaySpace(st); err != nil {
+		t.Fatal(err)
+	}
+	got, want := rw.sp, sp.clone()
+	got.release(want.marks.seq, want.marks.ckpt)
+	for _, r := range want.reserved {
+		want.freeRun(r)
+	}
+	for c := range want.table {
+		if want.table[c].kind == chunkHeld {
+			want.table[c].kind = chunkFree
+		}
+	}
+	if d := diffSpace(got, want); d != "" {
+		t.Fatalf("space rebuilt from the file differs from the writer's: %s", d)
+	}
+}
+
+// diffSpace describes the first difference between the saved state of a and
+// b, or returns empty when they agree.
+func diffSpace(a, b *space) string {
+	if len(a.table) != len(b.table) {
+		return fmt.Sprintf("%d chunks, want %d", len(a.table), len(b.table))
+	}
+	for c := range a.table {
+		if a.table[c] != b.table[c] {
+			return fmt.Sprintf("chunk %d is %+v, want %+v", c, a.table[c], b.table[c])
+		}
+	}
+	switch {
+	case a.open != b.open:
+		return fmt.Sprintf("open %+v, want %+v", a.open, b.open)
+	case !slices.Equal(a.values, b.values):
+		return fmt.Sprintf("values %v, want %v", a.values, b.values)
+	case !slices.Equal(a.pages, b.pages):
+		return fmt.Sprintf("pages %v, want %v", a.pages, b.pages)
+	case !slices.Equal(a.log, b.log):
+		return fmt.Sprintf("log %v, want %v", a.log, b.log)
+	case a.liveBytes != b.liveBytes:
+		return fmt.Sprintf("%d live bytes, want %d", a.liveBytes, b.liveBytes)
+	}
+	return ""
 }
 
 // TestDeepTreeGets reads every key after each commit to a tree whose long

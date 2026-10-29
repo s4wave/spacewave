@@ -37,7 +37,7 @@ func TestCommitDoesNotWaitForPunch(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "punch.s4wave")
 	db := openTest(t, path, Options{SingleProcess: true})
-	for _, rc := range []*routine.RoutineContainer{db.warmer, db.compactor} {
+	for _, rc := range []*routine.RoutineContainer{db.warmer, db.cleaner} {
 		if wait, _ := rc.SetRoutine(nil); wait != nil {
 			<-wait
 		}
