@@ -59,6 +59,111 @@ func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey
 	return copyStore(ctx, src, dst, keys, version, nil, progress)
 }
 
+// VerifyCopy checks that dst, written by CopyStore from src, holds exactly
+// src's keys and values and the current format version. A source at format
+// version 4 or later is copied verbatim apart from its version, so the two
+// are walked in key order in one snapshot each and compared; an older source
+// has its graph converted and is refused. progress, when set, is called after
+// each migrateBatchBytes compared.
+func VerifyCopy(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(CopyProgress)) error {
+	// Require a source copied verbatim.
+	version, err := readFormatVersion(ctx, src, keys)
+	if err != nil {
+		return err
+	}
+	if version < 4 || version > store_kvkey.FormatVersion {
+		return fmt.Errorf("verify needs a source at store format version 4 to %d, found %d", store_kvkey.FormatVersion, version)
+	}
+
+	// Require a copy that recorded the current version last.
+	version, err = readFormatVersion(ctx, dst, keys)
+	if err != nil {
+		return err
+	}
+	if version != store_kvkey.FormatVersion {
+		return fmt.Errorf("the copy is at store format version %d, not %d; it is incomplete", version, store_kvkey.FormatVersion)
+	}
+
+	// Walk a snapshot of each store in key order.
+	var its [2]kvtx.Iterator
+	for i, store := range []kvtx.Store{src, dst} {
+		tx, err := store.NewTransaction(ctx, false)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		its[i] = tx.Iterate(ctx, nil, true, false)
+		defer its[i].Close()
+		if err := its[i].Seek(nil); err != nil {
+			return err
+		}
+	}
+	sit, dit := its[0], its[1]
+
+	// Compare each pair of entries, skipping the format version.
+	versionKey := keys.GetFormatVersionKey()
+	var counts CopyProgress
+	var reported uint64
+	for {
+		for _, it := range its {
+			if it.Valid() && bytes.Equal(it.Key(), versionKey) {
+				it.Next()
+			}
+		}
+		if err := errors.Join(sit.Err(), dit.Err()); err != nil {
+			return err
+		}
+		if !sit.Valid() && !dit.Valid() {
+			break
+		}
+		size, err := compareEntry(sit, dit)
+		if err != nil {
+			return err
+		}
+
+		// Count the entry and move both walks on.
+		counts.Keys++
+		counts.Bytes += uint64(size) //nolint:gosec // sizes are never negative.
+		if progress != nil && counts.Bytes-reported >= migrateBatchBytes {
+			reported = counts.Bytes
+			progress(counts)
+		}
+		sit.Next()
+		dit.Next()
+	}
+	if progress != nil {
+		progress(counts)
+	}
+	return nil
+}
+
+// compareEntry returns the size of the key and value at sit, over a source,
+// or an error unless dit, over its copy, holds the same. An iterator past its
+// end sorts after every key; at least one of them must be valid.
+func compareEntry(sit, dit kvtx.Iterator) (int, error) {
+	// Compare the keys.
+	switch {
+	case !dit.Valid() || sit.Valid() && bytes.Compare(sit.Key(), dit.Key()) < 0:
+		return 0, fmt.Errorf("the copy lacks key %q", sit.Key())
+	case !sit.Valid() || bytes.Compare(sit.Key(), dit.Key()) > 0:
+		return 0, fmt.Errorf("the copy has the extra key %q", dit.Key())
+	}
+
+	// Compare the values.
+	sv, err := sit.Value()
+	if err != nil {
+		return 0, err
+	}
+	dv, err := dit.Value()
+	if err != nil {
+		return 0, err
+	}
+	if !bytes.Equal(sv, dv) {
+		return 0, fmt.Errorf("the copy differs in the value of key %q", sit.Key())
+	}
+	return len(sit.Key()) + len(sv), nil
+}
+
 // CopyReachableOptions adjusts a CopyReachable.
 type CopyReachableOptions struct {
 	// AllowUnknown copies a source whose walk reaches blocks without a child

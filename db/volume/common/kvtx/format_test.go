@@ -404,6 +404,34 @@ type copyCase struct {
 var copyCases = map[string]copyCase{
 	"cayley": {version: 1, write: writeCayleyStore, check: checkConvertedRefGraph, keys: 1, edges: 3},
 	"legacy": {version: 2, write: writeLegacyStore, check: checkLegacyRefGraph, keys: 6, edges: 3},
+	"current": {
+		version: store_kvkey.FormatVersion,
+		write: func(t *testing.T, store db_kvtx.Store, keys *store_kvkey.KVKey) {
+			setKeys(t, store, map[string]string{string(keys.GetFormatVersionKey()): string(store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)), "a": "1"})
+		},
+		check: func(*testing.T, db_kvtx.Store) {},
+		keys:  2,
+	},
+}
+
+// setKeys sets each key of kvs in store in one commit.
+func setKeys(t *testing.T, store db_kvtx.Store, kvs map[string]string) {
+	// Write the keys in one transaction.
+	t.Helper()
+	ctx := context.Background()
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	for key, value := range kvs {
+		if err := tx.Set(ctx, []byte(key), []byte(value)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestCopyStore copies a store of each earlier format and expects its other
@@ -436,16 +464,7 @@ func testCopyStore(t *testing.T, c copyCase, src, dst db_kvtx.Store) {
 	ctx := context.Background()
 	keys := store_kvkey.NewDefaultKVKey()
 	c.write(t, src, keys)
-	tx, err := src.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Set(ctx, []byte("other"), []byte("value")); err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
+	setKeys(t, src, map[string]string{"other": "value"})
 
 	// Copy it.
 	var last CopyProgress
@@ -481,6 +500,24 @@ func testCopyStore(t *testing.T, c copyCase, src, dst db_kvtx.Store) {
 	// A second copy refuses the filled destination.
 	if err := CopyStore(ctx, src, dst, keys, nil); err == nil {
 		t.Fatal("copy into a non-empty store succeeded")
+	}
+
+	// Verify refuses a converted graph, and otherwise passes the copy and
+	// fails it once a value changes or a key is added.
+	if c.version < 4 {
+		if err := VerifyCopy(ctx, src, dst, keys, nil); err == nil {
+			t.Fatal("verify of a converted copy succeeded")
+		}
+		return
+	}
+	if err := VerifyCopy(ctx, src, dst, keys, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, kvs := range []map[string]string{{"other": "changed"}, {"other": "value", "zz": "extra"}} {
+		setKeys(t, dst, kvs)
+		if err := VerifyCopy(ctx, src, dst, keys, nil); err == nil {
+			t.Fatalf("verify passed a copy changed by %v", kvs)
+		}
 	}
 }
 

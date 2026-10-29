@@ -24,7 +24,7 @@ const copyReportInterval = 10 * time.Second
 // newDebugVolumeCopyCommand builds the offline volume copy command.
 func newDebugVolumeCopyCommand() *cli.Command {
 	// Bind the flags.
-	var reachable bool
+	var reachable, verify bool
 	var opts volume_kvtx.CopyReachableOptions
 	return &cli.Command{
 		Name:      "volume-copy",
@@ -39,12 +39,19 @@ func newDebugVolumeCopyCommand() *cli.Command {
 			"and graph records reachable from the graph root, as a complete collection would. Check its count of " +
 			"unowned blocks before using it, counted with --count-unowned: the running collector never deletes those. " +
 			"A reachable copy refuses a source whose walk reaches a block without a child list, since the blocks it " +
-			"names may be live and would be dropped, unless --allow-unknown is set.",
+			"names may be live and would be dropped, unless --allow-unknown is set. " +
+			"With --verify, the new file is reopened after the copy and compared with the source key by key; " +
+			"a new file that fails the check is kept for inspection.",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:        "reachable",
 				Usage:       "copy only the blocks and graph records reachable from the graph root",
 				Destination: &reachable,
+			},
+			&cli.BoolFlag{
+				Name:        "verify",
+				Usage:       "reopen the new file and compare every key and value with the source",
+				Destination: &verify,
 			},
 			&cli.BoolFlag{
 				Name:        "allow-unknown",
@@ -58,14 +65,22 @@ func newDebugVolumeCopyCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			// Check the arguments, then copy and verify.
 			if c.NArg() != 2 {
 				return errors.New("expected the volume file and the new file")
+			}
+			if reachable && verify {
+				return errors.New("--verify compares a whole copy, so it cannot check a --reachable one")
 			}
 			var reach *volume_kvtx.CopyReachableOptions
 			if reachable {
 				reach = &opts
 			}
-			return copyVolumeFile(c.Context, c.Args().Get(0), c.Args().Get(1), reach, os.Stderr)
+			src, dst := c.Args().Get(0), c.Args().Get(1)
+			if err := copyVolumeFile(c.Context, src, dst, reach, os.Stderr); err != nil || !verify {
+				return err
+			}
+			return verifyVolumeFile(c.Context, src, dst, os.Stderr)
 		},
 	}
 }
@@ -105,20 +120,10 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 		}
 	}()
 
-	// Copy, reporting progress at most once per interval.
-	start := time.Now()
-	var last time.Time
-	var counts volume_kvtx.CopyProgress
-	report := func(p volume_kvtx.CopyProgress) {
-		counts = p
-		if time.Since(last) < copyReportInterval {
-			return
-		}
-		last = time.Now()
-		fmt.Fprintf(w, "%s: %s\n", time.Since(start).Round(time.Second), formatCopyProgress(p))
-	}
-
 	// Copy every key, or only the reachable part.
+	start := time.Now()
+	var counts volume_kvtx.CopyProgress
+	report := newCopyReporter(w, start, &counts)
 	copyStore := volume_kvtx.CopyStore
 	if reachable != nil {
 		copyStore = func(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(volume_kvtx.CopyProgress)) error {
@@ -130,6 +135,46 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 	}
 	fmt.Fprintf(w, "copied %s to %s in %s: %s\n", src, dst, time.Since(start).Round(time.Second), formatCopyProgress(counts))
 	return nil
+}
+
+// verifyVolumeFile reopens the stopped volume at src and its copy at dst
+// read-only and compares them key by key, writing progress lines to w. It
+// leaves dst in place when they differ.
+func verifyVolumeFile(ctx context.Context, src, dst string, w io.Writer) error {
+	// Open both files read-only.
+	sdb, err := s4db.Open(src, s4db.Options{ReadOnly: true})
+	if err != nil {
+		return err
+	}
+	defer sdb.Close()
+	ddb, err := s4db.Open(dst, s4db.Options{ReadOnly: true})
+	if err != nil {
+		return err
+	}
+	defer ddb.Close()
+
+	// Compare, reporting progress at most once per interval.
+	start := time.Now()
+	var counts volume_kvtx.CopyProgress
+	if err := volume_kvtx.VerifyCopy(ctx, sdb, ddb, store_kvkey.NewDefaultKVKey(), newCopyReporter(w, start, &counts)); err != nil {
+		return fmt.Errorf("verify %s against %s, which is kept: %w", dst, src, err)
+	}
+	fmt.Fprintf(w, "verified %s against %s in %s: %s\n", dst, src, time.Since(start).Round(time.Second), formatCopyProgress(counts))
+	return nil
+}
+
+// newCopyReporter returns a progress callback that stores each report in
+// counts and writes a line to w at most once per copyReportInterval.
+func newCopyReporter(w io.Writer, start time.Time, counts *volume_kvtx.CopyProgress) func(volume_kvtx.CopyProgress) {
+	var last time.Time
+	return func(p volume_kvtx.CopyProgress) {
+		*counts = p
+		if time.Since(last) < copyReportInterval {
+			return
+		}
+		last = time.Now()
+		fmt.Fprintf(w, "%s: %s\n", time.Since(start).Round(time.Second), formatCopyProgress(p))
+	}
 }
 
 // formatCopyProgress describes the work of a copy, with what a reachable copy
