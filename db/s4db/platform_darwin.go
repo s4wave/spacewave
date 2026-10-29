@@ -42,3 +42,9 @@ func (f *osFile) flushBarrier() (bool, error) {
 func (f *osFile) punch(off, n int64) error {
 	return unix.FcntlFstore(f.Fd(), unix.F_PUNCHHOLE, &unix.Fstore_t{Offset: off, Length: n})
 }
+
+// lowerThreadPriority puts the calling thread in the background band, which
+// throttles its CPU and disk use while other work runs.
+func lowerThreadPriority() error {
+	return unix.Setpriority(unix.PRIO_DARWIN_THREAD, 0, unix.PRIO_DARWIN_BG)
+}

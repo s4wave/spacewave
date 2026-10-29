@@ -885,9 +885,9 @@ func decodeSpace(b []byte) (*space, error) {
 	return s, d.err
 }
 
-// victim returns the chunk the cleaner should empty next with its live
-// bytes, or its used pages for an index chunk, or false when the file holds
-// too little slack to clean: free chunks, dead bytes in closed value chunks
+// victim returns the chunk the cleaner should empty next and whether the
+// slack is urgent, past half the live bytes, or false when the file holds too
+// little slack to clean: free chunks, dead bytes in closed value chunks
 // and unused pages in index chunks together at most an eighth of the live
 // bytes, or less than least. While a free chunk lies below the highest value
 // or index chunk, that chunk goes first, open or not, so the end can fall;
@@ -899,7 +899,7 @@ func decodeSpace(b []byte) (*space, error) {
 // or an index chunk past the first while the index chunks' unused pages add
 // up to a whole chunk, so the others can take its pages; and that stuck does
 // not hold at its current stamp. seq is the latest commit.
-func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64, uint32, bool) {
+func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64, bool, bool) {
 	// Count the index chunks' unused pages.
 	var spare uint64
 	s.partial.Scan(func(f fullness) bool {
@@ -940,17 +940,18 @@ func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64
 
 	// Clean only past the slack bound: the highest chunk first while a
 	// free chunk lies below it, else the best scored.
-	bound := max(s.liveBytes/8, least)
-	if !haveTop || dead+int64(s.free.Len())*chunkSize <= bound {
-		return 0, 0, false
+	slack, bound := dead+int64(s.free.Len())*chunkSize, max(s.liveBytes/8, least)
+	if !haveTop || slack <= bound {
+		return 0, false, false
 	}
+	urgent := slack > max(s.liveBytes/2, least)
 	if free, ok := s.free.Min(); ok && free < top {
-		return top, s.table[top].live, true
+		return top, urgent, true
 	}
 	if !found || dead <= bound || bestScore == 0 {
-		return 0, 0, false
+		return 0, false, false
 	}
-	return best, s.table[best].live, true
+	return best, urgent, true
 }
 
 // stamp dates what chunk e holds, so the cleaner retries a chunk it passed

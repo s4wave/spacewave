@@ -104,3 +104,18 @@ func (f *osFile) punch(off, n int64) error {
 	zd := zeroData{offset: off, beyond: off + n}
 	return windows.DeviceIoControl(h, windows.FSCTL_SET_ZERO_DATA, (*byte)(unsafe.Pointer(&zd)), uint32(unsafe.Sizeof(zd)), nil, 0, &done, nil)
 }
+
+// setThreadPriority is SetThreadPriority, which x/sys/windows leaves out.
+var setThreadPriority = windows.NewLazySystemDLL("kernel32.dll").NewProc("SetThreadPriority")
+
+// threadModeBackgroundBegin is THREAD_MODE_BACKGROUND_BEGIN.
+const threadModeBackgroundBegin = 0x00010000
+
+// lowerThreadPriority puts the calling thread in background mode, which
+// lowers its CPU, disk and memory priority.
+func lowerThreadPriority() error {
+	if ok, _, err := setThreadPriority.Call(uintptr(windows.CurrentThread()), threadModeBackgroundBegin); ok == 0 {
+		return err
+	}
+	return nil
+}

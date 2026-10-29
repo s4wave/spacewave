@@ -302,10 +302,14 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 		return true
 	})
 
+	// Mark the commit running, so the cleaner waits for a quiet spell after
+	// it.
+	defer db.endWrite()
+	defer db.w.fg.begin()()
+
 	// Write them, then run checkpoint and compaction work with the snapshot
 	// released, release the writer lock, and wait for a checkpoint the
 	// writes outpaced.
-	defer db.endWrite()
 	err := db.w.commit(ctx, t.st, changes, ordered, false)
 	db.release(t.st, t.stripe)
 	if err == nil {

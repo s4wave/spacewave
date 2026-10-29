@@ -273,10 +273,20 @@ const childKeys = 400
 // TestSingleProcessHoldsWriterLock probes.
 const probeEnv = "S4DB_TEST_PROBE"
 
-// TestMain runs the child of TestTwoProcesses or of
-// TestSingleProcessHoldsWriterLock when the test binary is started as one,
-// and else the tests.
+// burnEnv makes the test binary a child that keeps one core busy, for
+// BenchmarkCommitBesideCleaner.
+const burnEnv = "S4DB_TEST_BURN"
+
+// TestMain runs the child of TestTwoProcesses, of
+// TestSingleProcessHoldsWriterLock or of BenchmarkCommitBesideCleaner when
+// the test binary is started as one, and else the tests.
 func TestMain(m *testing.M) {
+	// Spin until killed as a burner.
+	if os.Getenv(burnEnv) != "" {
+		for { //nolint:staticcheck // A burner spins on purpose.
+		}
+	}
+
 	// Choose the child the environment names, if any.
 	run := runChild
 	path := os.Getenv(childEnv)

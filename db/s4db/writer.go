@@ -44,6 +44,9 @@ type writer struct {
 	// waiting counts this handle's writers waiting for the writer lock. It
 	// is safe without the writer lock.
 	waiting atomic.Int32
+	// fg tracks this handle's foreground commits for the cleaner. It is
+	// safe without the writer lock.
+	fg quiet
 	// building is set while a background checkpoint runs. It and builds
 	// are safe without the writer lock.
 	building atomic.Bool
@@ -403,8 +406,11 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 	// Order an ordered commit's writes before the next commit's. A failure
 	// leaves the state unpublished; erasing the header at linkPos ends the
 	// log before the record, so a later issue of its writes cannot make it
-	// readable.
-	if ordered {
+	// readable. The cleaner's moves skip the barrier, which would hold the
+	// writer lock for milliseconds: until a flush covers a move, recovery
+	// checks its values and ends the log before it if a crash lost them,
+	// and the chunks it empties stay unreleased.
+	if ordered && !moves {
 		if err := db.s.flushOrdered(); err != nil {
 			_, _ = db.s.WriteAt(make([]byte, recordHeader), fileOff(linkPos))
 			return err

@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// cleanShare is the most of the writer lock's time the cleaner takes: after
-// holding it for d, the cleaner waits at least d*(cleanShare-1).
+// cleanShare is the most of the writer lock's time the urgent cleaner takes:
+// after holding it for d, it waits at least d*(cleanShare-1).
 const cleanShare = 10
 
 // cleanBusy is how long the cleaner waits when a writer holds or wants the
@@ -58,6 +58,10 @@ type cleaner struct {
 	db *DB
 	// moves are the victim's live values left to commit.
 	moves []move
+	// urgent is set when the slack passed the urgent bound as the moves'
+	// victim was chosen: the moves skip the quiet gate and read at normal
+	// priority, taking at most cleanShare of the writer lock.
+	urgent bool
 	// moved is the last commit of the cleaner's moves.
 	moved uint64
 	// rest is the wait after the last look that found nothing to clean.
@@ -75,6 +79,30 @@ type cleaner struct {
 	rounds int
 	// settled is the last move Compact's cleaner freed the space of.
 	settled uint64
+	// idle reads victims for the background cleaner; nil reads them on the
+	// cleaner's goroutine.
+	idle *idleThread
+}
+
+// scan is what the cleaner reads of a victim chunk without a lock: a value
+// chunk's entries or an index chunk's tree pages.
+type scan struct {
+	// entries are a value chunk's entries from its start.
+	entries []chunkEntry
+	// pages are an index chunk's tree pages among its used pages.
+	pages []*node
+}
+
+// chunkEntry is a value entry read from a value chunk.
+type chunkEntry struct {
+	// key is the entry's key.
+	key []byte
+	// data is the entry's value bytes.
+	data []byte
+	// off is the file offset of data.
+	off uint64
+	// crc is the checksum of data.
+	crc uint32
 }
 
 // move is a live value the cleaner moves.
@@ -90,6 +118,7 @@ type move struct {
 // run cleans until ctx ends. A failed step drops its victim and backs off;
 // the writer rebuilds the space the next time it takes the lock.
 func (c *cleaner) run(ctx context.Context) error {
+	c.idle = newIdleThread(ctx)
 	backoff := cleanIdle
 	for {
 		// Take a step, then wait as it asks, longer after a failure.
@@ -117,7 +146,14 @@ func (c *cleaner) run(ctx context.Context) error {
 
 // step chooses and reads a victim when none is pending, else commits the
 // next batch of its moves, and returns how long to wait before the next.
+// The background cleaner steps only in a quiet spell after the foreground
+// commits, unless the last victim was urgent.
 func (c *cleaner) step(ctx context.Context) (time.Duration, error) {
+	if !c.sync && !c.urgent {
+		if wait := c.db.w.fg.wait(); wait > 0 {
+			return wait, nil
+		}
+	}
 	if len(c.moves) != 0 {
 		return c.commit(ctx)
 	}
@@ -143,12 +179,13 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 	if wait {
 		return c.await(ctx)
 	}
+	urgent := false
 	if !ok {
 		least := cleanMinSlack
 		if c.sync {
 			least = 0
 		}
-		victim, _, ok = w.sp.victim(db.cur.Load().seq, least, c.stuck)
+		victim, urgent, ok = w.sp.victim(db.cur.Load().seq, least, c.stuck)
 	}
 
 	// Pin the state that holds the victim, keeping new index pages out of
@@ -179,13 +216,7 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 		return c.rest, nil
 	}
 	c.rest = 0
-	var moves []move
-	var err error
-	if e.kind == chunkIndex {
-		moves, err = c.readIndex(st, victim, &e.used)
-	} else {
-		moves, err = c.read(st, victim, e.live)
-	}
+	moves, err := c.read(ctx, st, victim, &e, urgent)
 	db.release(st, stripe)
 	if err != nil {
 		return 0, err
@@ -199,7 +230,7 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 	if e.kind == chunkValue && moved < int(e.live) {
 		c.pass(victim, e.stamp())
 	}
-	c.moves = moves
+	c.moves, c.urgent = moves, urgent
 	return 0, nil
 }
 
@@ -265,33 +296,82 @@ func (c *cleaner) pass(chunk, stamp uint64) {
 	c.stuck[chunk] = stamp
 }
 
-// readIndex reads index chunk chunk on the snapshot st and returns, for each
-// page used marks that holds a tree page, one value under it that st still
-// holds: the smallest in a leaf, or in the leftmost leaf under an inner
-// page. Moving it dirties the path through the page, so the next checkpoint
-// writes that path elsewhere. Other pages, such as a space record's, free
-// with the next checkpoint, so when the chunk holds no tree page it returns
-// one value from the tree's leftmost leaf, whose move brings that
-// checkpoint.
-func (c *cleaner) readIndex(st *state, chunk uint64, used *pageMap) ([]move, error) {
-	// Read the chunk.
-	db := c.db
-	buf := make([]byte, chunkSize)
-	if _, err := db.s.ReadAt(buf, fileOff(chunk*chunkSize)); err != nil && !errors.Is(err, io.EOF) {
+// read reads victim chunk e on the snapshot st and returns the moves that
+// empty it. It scans the chunk on the idle thread, unless the slack is urgent
+// or the cleaner has none, and looks the keys up on the caller's goroutine,
+// since a lookup takes the cache's locks.
+func (c *cleaner) read(ctx context.Context, st *state, victim uint64, e *chunk, urgent bool) ([]move, error) {
+	// Scan the chunk.
+	var sc scan
+	var err error
+	scanChunk := func() { sc, err = c.scan(victim, e) }
+	if c.idle == nil || urgent {
+		scanChunk()
+	} else if derr := c.idle.do(ctx, scanChunk); derr != nil {
+		return nil, derr
+	}
+	if err != nil {
 		return nil, err
 	}
 
-	// Take a value under each used tree page.
+	// Take the moves.
+	if e.kind == chunkIndex {
+		return c.readIndex(st, sc.pages)
+	}
+	return c.readValues(st, sc.entries, e.live)
+}
+
+// scan reads chunk e at victim and parses it: a value chunk into its entries
+// from its start, each with its checksum, and an index chunk into the tree
+// pages among its used pages. The entries end at a zero length or an entry
+// that overruns the chunk. Scan takes no lock.
+func (c *cleaner) scan(victim uint64, e *chunk) (scan, error) {
+	// Read the chunk.
+	buf := make([]byte, chunkSize)
+	base := victim * chunkSize
+	if _, err := c.db.s.ReadAt(buf, fileOff(base)); err != nil && !errors.Is(err, io.EOF) {
+		return scan{}, err
+	}
+
+	// Decode the used tree pages of an index chunk.
+	var sc scan
+	if e.kind == chunkIndex {
+		for p := range uint64(chunkPages) {
+			if e.used[p/64]&(1<<(p%64)) == 0 {
+				continue
+			}
+			if n, err := decodeNode(buf[p*pageSize : (p+1)*pageSize]); err == nil {
+				sc.pages = append(sc.pages, n)
+			}
+		}
+		return sc, nil
+	}
+
+	// Walk a value chunk's entries.
+	for p := 0; ; {
+		key, data, next := valueEntry(buf, p)
+		if next == 0 {
+			return sc, nil
+		}
+		p = next
+		off := base + uint64(p-len(data)) // #nosec G115 -- p is within the chunk.
+		sc.entries = append(sc.entries, chunkEntry{key: key, data: data, off: off, crc: checksum(data)})
+	}
+}
+
+// readIndex returns, for each tree page of an index chunk, one value under it
+// that st still holds: the smallest in a leaf, or in the leftmost leaf under
+// an inner page. Moving it dirties the path through the page, so the next
+// checkpoint writes that path elsewhere. Other pages, such as a space
+// record's, free with the next checkpoint, so when the chunk holds no tree
+// page it returns one value from the tree's leftmost leaf, whose move brings
+// that checkpoint.
+func (c *cleaner) readIndex(st *state, pages []*node) ([]move, error) {
+	// Take a value under each tree page.
+	db := c.db
 	var moves []move
 	seen := make(map[string]bool)
-	for p := range uint64(chunkPages) {
-		if used[p/64]&(1<<(p%64)) == 0 {
-			continue
-		}
-		n, err := decodeNode(buf[p*pageSize : (p+1)*pageSize])
-		if err != nil {
-			continue
-		}
+	for _, n := range pages {
 		m, ok, err := c.under(st, n, seen)
 		if err != nil {
 			return nil, err
@@ -362,43 +442,30 @@ func smallest(n *node) int {
 	return best
 }
 
-// read reads value chunk chunk on the snapshot st and returns the values in
-// it st still refers to, up to live bytes of them. Entries run from
-// the chunk's start; the walk ends at a zero length, an entry that overruns
-// the chunk, or once it has found the live bytes, so bytes past the last
-// entry, which a reused chunk may still hold, are never trusted. A value
-// whose bytes fail its checksum stays where it is, so the move never gives
-// damaged bytes a new checksum.
-func (c *cleaner) read(st *state, chunk uint64, live uint32) ([]move, error) {
-	// Read the chunk.
-	db := c.db
-	buf := make([]byte, chunkSize)
-	base := chunk * chunkSize
-	if _, err := db.s.ReadAt(buf, fileOff(base)); err != nil && !errors.Is(err, io.EOF) {
-		return nil, err
-	}
-
-	// Walk its entries, keeping the values the snapshot refers to.
+// readValues returns the entries of a value chunk that st still refers
+// to, up to live bytes of them. The walk ends once it has found the live
+// bytes, so bytes past the last entry, which a reused chunk may still hold,
+// are never trusted. A value whose bytes fail its checksum stays where it
+// is, so the move never gives damaged bytes a new checksum.
+func (c *cleaner) readValues(st *state, entries []chunkEntry, live uint32) ([]move, error) {
 	var moves []move
 	var found uint32
-	for p := 0; found < live; {
-		key, data, next := valueEntry(buf, p)
-		if next == 0 {
+	for _, en := range entries {
+		if found >= live {
 			break
 		}
-		p = next
-		v, ok, err := db.lookup(st, key)
+		v, ok, err := c.db.lookup(st, en.key)
 		if err != nil {
 			return nil, err
 		}
-		if !ok || !v.isRef || v.ref.off != base+uint64(p-len(data)) || int(v.ref.n) != len(data) { // #nosec G115 -- p is within the chunk.
+		if !ok || !v.isRef || v.ref.off != en.off || int(v.ref.n) != len(en.data) {
 			continue
 		}
 		found += v.ref.n
-		if checksum(data) != v.ref.crc {
+		if en.crc != v.ref.crc {
 			continue
 		}
-		moves = append(moves, move{key: bytes.Clone(key), val: v, data: data})
+		moves = append(moves, move{key: bytes.Clone(en.key), val: v, data: en.data})
 	}
 	return moves, nil
 }
@@ -425,17 +492,37 @@ func valueEntry(b []byte, p int) (key, data []byte, next int) {
 }
 
 // commit moves the next batch of the victim's values under the writer lock,
-// keeping those whose key holds the reference the read saw, and returns
-// the wait that keeps the cleaner within its lock share and its rate.
-func (c *cleaner) commit(ctx context.Context) (wait time.Duration, err error) {
+// keeping those whose key holds the reference the read saw, and returns the
+// wait that keeps the cleaner within its rate and, when urgent, its lock
+// share. The moves ride the next flush: flushing them here would make a
+// foreground commit that arrives meanwhile wait for two flushes.
+func (c *cleaner) commit(ctx context.Context) (time.Duration, error) {
 	// Take the writer lock only when idle.
 	db, w := c.db, c.db.w
 	if held, err := c.lock(ctx); !held {
 		return cleanBusy, err
 	}
 	start := time.Now()
-	defer func() { w.unlock(err) }()
+	moved, err := c.commitBatch(ctx)
+	held := time.Since(start)
+	w.unlock(err)
+	if err != nil {
+		return 0, err
+	}
 
+	// Keep the bytes within the rate, and the urgent cleaner's lock time a
+	// share of the writer's.
+	wait := time.Duration(moved) * time.Second / time.Duration(db.opts.RelocateBudget)
+	if c.urgent {
+		wait = max(wait, held*(cleanShare-1))
+	}
+	return wait, nil
+}
+
+// commitBatch commits the next batch of moves whose keys still hold the
+// values read, and returns the bytes it moved. The caller holds the writer
+// lock.
+func (c *cleaner) commitBatch(ctx context.Context) (int, error) {
 	// Take a batch.
 	n, size := 0, 0
 	for n < len(c.moves) && (n == 0 || size+len(c.moves[n].data) <= cleanBatch) {
@@ -446,6 +533,7 @@ func (c *cleaner) commit(ctx context.Context) (wait time.Duration, err error) {
 	c.moves = c.moves[n:]
 
 	// Keep the values still current, and move them.
+	db := c.db
 	st := db.cur.Load()
 	var changes []tentry
 	moved := 0
@@ -459,18 +547,17 @@ func (c *cleaner) commit(ctx context.Context) (wait time.Duration, err error) {
 			moved += len(m.data)
 		}
 	}
-	if len(changes) != 0 {
-		slices.SortFunc(changes, func(a, b tentry) int { return bytes.Compare(a.key, b.key) })
-		if err := w.commit(ctx, st, changes, true, true); err != nil {
-			return 0, err
-		}
-		c.moved = db.cur.Load().seq
-	}
 
-	// Wait so the cleaner's lock time stays a share of the writer's, and its
-	// bytes within the rate.
-	d := time.Since(start)
-	return max(d*(cleanShare-1), time.Duration(moved)*time.Second/time.Duration(db.opts.RelocateBudget)), nil
+	// Commit them in key order.
+	if len(changes) == 0 {
+		return 0, nil
+	}
+	slices.SortFunc(changes, func(a, b tentry) int { return bytes.Compare(a.key, b.key) })
+	if err := db.w.commit(ctx, st, changes, true, true); err != nil {
+		return 0, err
+	}
+	c.moved = db.cur.Load().seq
+	return moved, nil
 }
 
 // release frees the chunks no snapshot reads, so the chunks earlier moves

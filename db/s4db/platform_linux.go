@@ -38,3 +38,30 @@ func (f *osFile) flushBarrier() (bool, error) {
 func (f *osFile) punch(off, n int64) error {
 	return unix.Fallocate(int(f.Fd()), unix.FALLOC_FL_PUNCH_HOLE|unix.FALLOC_FL_KEEP_SIZE, off, n)
 }
+
+// ioprio_set's arguments, which x/sys/unix leaves undefined.
+const (
+	// ioprioWhoProcess names a thread by its id.
+	ioprioWhoProcess = 1
+	// ioprioIdle is the idle disk class, IOPRIO_CLASS_IDLE, shifted into
+	// place.
+	ioprioIdle = 3 << 13
+)
+
+// lowerThreadPriority moves the calling thread to the idle CPU policy and
+// the idle disk class, so it runs only when nothing else wants the CPU or
+// the disk. The disk class applies on schedulers that honor it, such as BFQ.
+func lowerThreadPriority() error {
+	// Take the idle CPU policy.
+	attr := unix.SchedAttr{Size: unix.SizeofSchedAttr, Policy: unix.SCHED_IDLE}
+	if err := unix.SchedSetAttr(0, &attr, 0); err != nil {
+		return err
+	}
+
+	// Take the idle disk class.
+	_, _, errno := unix.Syscall(unix.SYS_IOPRIO_SET, ioprioWhoProcess, uintptr(unix.Gettid()), ioprioIdle)
+	if errno != 0 {
+		return errno
+	}
+	return nil
+}
