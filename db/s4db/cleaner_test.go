@@ -17,8 +17,9 @@ import (
 // random order, and keeps taking writes. Compact empties the sparse value
 // chunks, so the value chunks end within an eighth of the live bytes and the
 // file shrinks; the moves count in no flow; the space matches the file and
-// the values read back after reopening; and the background cleaner shrinks
-// the value chunks again by itself.
+// the values read back after reopening; the background cleaner shrinks the
+// value chunks again by itself; and Compact gathers a thinned index spread
+// over many chunks into a few.
 func TestCleaner(t *testing.T) {
 	// Open without the background cleaner.
 	ctx := context.Background()
@@ -26,26 +27,27 @@ func TestCleaner(t *testing.T) {
 	opts := Options{RelocateBudget: -1, CheckpointMin: 256 << 10, CheckpointMax: 1 << 20, Families: [][]byte{[]byte("k/")}}
 	db := openTest(t, path, opts)
 
-	// write sets or deletes keys, and usage reads the file's use.
+	// write sets keys of the form name to values from val, or deletes them
+	// when val is nil, 64 to a commit; usage reads the file's use.
 	r := rand.New(rand.NewPCG(3, 4))
 	m := make(model)
-	write := func(keys []int, del bool) {
-		// Set or delete the keys, 32 to a commit.
+	write := func(name string, keys []int, val func() []byte) {
 		t.Helper()
 		for len(keys) != 0 {
+			// Set or delete the next keys.
 			tx, err := db.NewTransaction(ctx, true)
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, k := range keys[:min(32, len(keys))] {
-				key := fmt.Sprintf("k/%05d", k)
-				if del {
+			for _, k := range keys[:min(64, len(keys))] {
+				key := fmt.Sprintf(name, k)
+				if val == nil {
 					err = tx.Delete(ctx, []byte(key))
 					delete(m, key)
 				} else {
-					val := bytes.Repeat([]byte{byte(r.Uint32())}, 2<<10+r.IntN(28<<10))
-					err = tx.Set(ctx, []byte(key), val)
-					m[key] = val
+					v := val()
+					err = tx.Set(ctx, []byte(key), v)
+					m[key] = v
 				}
 				if err != nil {
 					t.Fatal(err)
@@ -54,8 +56,14 @@ func TestCleaner(t *testing.T) {
 			if err := tx.Commit(ctx); err != nil {
 				t.Fatal(err)
 			}
-			keys = keys[min(32, len(keys)):]
+			keys = keys[min(64, len(keys)):]
 		}
+	}
+	large := func() []byte {
+		return bytes.Repeat([]byte{byte(r.Uint32())}, 2<<10+r.IntN(28<<10))
+	}
+	small := func() []byte {
+		return fmt.Appendf(nil, "%064d", r.Uint64())
 	}
 	usage := func() Usage {
 		t.Helper()
@@ -73,10 +81,10 @@ func TestCleaner(t *testing.T) {
 	}
 
 	// Fill 2,000 keys, delete 40% in another order, and rewrite a fifth.
-	write(r.Perm(2000), false)
+	write("k/%05d", r.Perm(2000), large)
 	keys := r.Perm(2000)
-	write(keys[:800], true)
-	write(keys[800:1200], false)
+	write("k/%05d", keys[:800], nil)
+	write("k/%05d", keys[800:1200], large)
 	before := usage()
 	if tight(before) {
 		t.Fatalf("value chunks already tight before cleaning: %+v", before)
@@ -113,7 +121,7 @@ func TestCleaner(t *testing.T) {
 
 	// After another round of deletes, with rewrites going on, the cleaner
 	// tightens the value chunks alone.
-	write(keys[1200:1700], true)
+	write("k/%05d", keys[1200:1700], nil)
 	rewrite := keys[1700:]
 	for deadline := time.Now().Add(20 * time.Second); len(rewrite) != 0 || !tight(usage()); time.Sleep(20 * time.Millisecond) {
 		// Keep writing while the cleaner runs.
@@ -121,8 +129,24 @@ func TestCleaner(t *testing.T) {
 			t.Fatalf("background cleaner left %+v", usage())
 		}
 		n := min(32, len(rewrite))
-		write(rewrite[:n], false)
+		write("k/%05d", rewrite[:n], large)
 		rewrite = rewrite[n:]
+	}
+	checkSpace(t, db)
+	m.check(t, db)
+
+	// An index spread over many chunks and then thinned leaves its pages
+	// scattered; Compact gathers them into a few chunks and the file
+	// shrinks.
+	write("k/i%06d", r.Perm(40000), small)
+	write("k/i%06d", r.Perm(40000)[:34000], nil)
+	if err := db.Compact(ctx); err != nil {
+		t.Fatal(err)
+	}
+	idx := usage()
+	t.Logf("index %+v", idx)
+	if idx.IndexChunkBytes > idx.IndexBytes+idx.IndexBytes/8+2*chunkSize {
+		t.Fatalf("compact left index chunks %d for %d of pages", idx.IndexChunkBytes, idx.IndexBytes)
 	}
 	checkSpace(t, db)
 	m.check(t, db)

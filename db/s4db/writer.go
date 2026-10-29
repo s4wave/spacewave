@@ -1031,6 +1031,15 @@ func (w *writer) prepareTree(t *tree) error {
 		return errors.Wrap(ErrCorrupt, "log chunk not in the space")
 	}
 
+	// Return the pages the build reserved but left unused, so the record
+	// can take them rather than a new chunk at the end.
+	out := t.b.out
+	sp.reserved = dropRuns(sp.reserved, out.runs)
+	for _, r := range out.trim() {
+		sp.freeRun(r)
+	}
+	sp.reserved = append(sp.reserved, out.runs...)
+
 	// Take pages for the record, sized from the last record with room for
 	// the space to grow.
 	est := w.spaceLen

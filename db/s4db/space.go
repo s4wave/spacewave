@@ -209,6 +209,10 @@ type space struct {
 	marks pin
 	// reserved lists the index pages checkpoints are writing new pages into.
 	reserved []run
+	// evac is the index chunk the cleaner empties, which index pages and
+	// space records do not take, or zero for none: the first chunk holds the
+	// fixed pages and is never emptied. A reloaded space forgets it.
+	evac uint64
 }
 
 // newSpace returns the space of a new file: the first chunk, an index chunk
@@ -307,6 +311,9 @@ func (s *space) freeChunk(c uint64, punch bool) {
 	if e.kind == chunkIndex {
 		s.partial.Delete(fullness{used: e.live, chunk: c})
 	}
+	if c == s.evac {
+		s.evac = 0
+	}
 	*e = chunk{}
 
 	// Lower the end, or queue the chunk.
@@ -358,7 +365,7 @@ func (s *space) takePages(want uint64) []run {
 	var out []run
 	for want > 0 {
 		// Take the first unused run of the fullest chunk with room.
-		f, ok := s.partial.Min()
+		f, ok := s.fullest()
 		if !ok {
 			s.takeChunks(1, chunkIndex)
 			continue
@@ -370,11 +377,23 @@ func (s *space) takePages(want uint64) []run {
 		want -= r.n
 
 		// Stop at a new chunk's end rather than open another.
-		if f.used == 0 && want != 0 && s.partial.Len() == 0 {
+		if _, more := s.fullest(); f.used == 0 && want != 0 && !more {
 			break
 		}
 	}
 	return out
+}
+
+// fullest returns the fullest index chunk with unused pages, passing over the
+// chunk the cleaner empties.
+func (s *space) fullest() (fullness, bool) {
+	var out fullness
+	found := false
+	s.partial.Scan(func(f fullness) bool {
+		out, found = f, f.chunk == 0 || f.chunk != s.evac
+		return !found
+	})
+	return out, found
 }
 
 // takeRecord takes n consecutive index pages for a space record: an unused
@@ -386,7 +405,7 @@ func (s *space) takeRecord(n uint64) run {
 	if n <= chunkPages {
 		s.partial.Scan(func(f fullness) bool {
 			lo, hi, ok := s.table[f.chunk].used.span(n, n)
-			if ok {
+			if ok && (f.chunk == 0 || f.chunk != s.evac) {
 				r, found = run{start: f.chunk*chunkPages + lo, n: hi - lo}, true
 			}
 			return !found
@@ -866,18 +885,28 @@ func decodeSpace(b []byte) (*space, error) {
 	return s, d.err
 }
 
-// victim returns the value chunk the cleaner should empty next and its live
-// bytes, or false when the file holds too little slack to clean: free chunks
-// and dead bytes in closed value chunks together at most an eighth of the
-// live bytes, or less than least. While a free chunk lies below the highest
-// value chunk, that chunk goes first, open or not, so the end can fall;
-// emptying an open chunk closes it. Otherwise the closed chunk with the best
+// victim returns the chunk the cleaner should empty next with its live
+// bytes, or its used pages for an index chunk, or false when the file holds
+// too little slack to clean: free chunks, dead bytes in closed value chunks
+// and unused pages in index chunks together at most an eighth of the live
+// bytes, or less than least. While a free chunk lies below the highest value
+// or index chunk, that chunk goes first, open or not, so the end can fall;
+// emptying an open chunk closes it. Otherwise the chunk with the best
 // cost-benefit (1-u)*age/(1+u) goes, where u is its live share and age the
-// commits since it last took a value, once the dead bytes alone pass the
-// bound. A victim is a value chunk with live bytes that does not start a long
-// value and that stuck does not hold at its current seq. seq is the latest
-// commit.
+// commits since a value chunk last took a value, or one for an index chunk,
+// whose pages carry no date; once the dead bytes alone pass the bound. A
+// victim is a value chunk with live bytes that does not start a long value,
+// or an index chunk past the first while the index chunks' unused pages add
+// up to a whole chunk, so the others can take its pages; and that stuck does
+// not hold at its current stamp. seq is the latest commit.
 func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64, uint32, bool) {
+	// Count the index chunks' unused pages.
+	var spare uint64
+	s.partial.Scan(func(f fullness) bool {
+		spare += chunkPages - uint64(f.used)
+		return true
+	})
+
 	// Sum the slack and find the highest chunk and the best scored one.
 	var dead int64
 	var top, best uint64
@@ -886,19 +915,24 @@ func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64
 	for c := range s.table {
 		e := &s.table[c]
 		cu := uint64(c) // #nosec G115 -- slice indexes are not negative.
-		if e.kind != chunkValue || e.live == 0 || (c+1 < len(s.table) && s.table[c+1].kind == chunkTail) {
+		var u, age float64
+		switch {
+		case e.kind == chunkIndex && c != 0 && spare >= chunkPages:
+			u, age = float64(e.live)/chunkPages, 1
+		case e.kind == chunkValue && e.live != 0 && (c+1 == len(s.table) || s.table[c+1].kind != chunkTail):
+			u, age = float64(e.live)/chunkSize, float64(seq-min(seq, e.seq)+1)
+		default:
 			continue
 		}
-		if at, ok := stuck[cu]; ok && at == e.seq {
+		if at, ok := stuck[cu]; ok && at == e.stamp() {
 			continue
 		}
 		top, haveTop = cu, true
 		if s.openStream(cu) >= 0 {
 			continue
 		}
-		dead += int64(chunkSize - e.live)
-		u := float64(e.live) / chunkSize
-		score := (1 - u) * float64(seq-min(seq, e.seq)+1) / (1 + u)
+		dead += int64((1 - u) * chunkSize)
+		score := (1 - u) * age / (1 + u)
 		if !found || score > bestScore {
 			best, bestScore, found = cu, score, true
 		}
@@ -917,4 +951,14 @@ func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64
 		return 0, 0, false
 	}
 	return best, s.table[best].live, true
+}
+
+// stamp dates what chunk e holds, so the cleaner retries a chunk it passed
+// over once that changes: the last commit that placed a value in a value
+// chunk, or the used pages of an index chunk.
+func (e *chunk) stamp() uint64 {
+	if e.kind == chunkIndex {
+		return uint64(e.live)
+	}
+	return e.seq
 }

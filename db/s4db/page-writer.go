@@ -114,3 +114,14 @@ func (w *pageWriter) unused() []run {
 	}
 	return append(out, w.runs[w.filling:]...)
 }
+
+// trim ends the reservation at the last page added, once the build is done,
+// and returns the reserved pages no page was added to.
+func (w *pageWriter) trim() []run {
+	out := w.unused()
+	w.runs = w.runs[:w.filling]
+	if w.filling != 0 {
+		w.runs[w.filling-1].n = w.next - w.runs[w.filling-1].start
+	}
+	return out
+}

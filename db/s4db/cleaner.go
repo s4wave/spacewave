@@ -29,15 +29,23 @@ const cleanRestMax = time.Minute
 // cleanBatch bounds the value bytes one cleaner commit moves.
 const cleanBatch = 256 << 10
 
+// evacRounds bounds the rounds of moves the cleaner makes to empty one index
+// chunk. A round moves a value under each page the chunk still holds, and a
+// checkpoint then writes those pages elsewhere; pages a checkpoint was
+// writing meanwhile need another round.
+const evacRounds = 3
+
 // cleanMinSlack is the least slack, in bytes, worth cleaning. Tests lower it
 // so the cleaner runs on small files.
 var cleanMinSlack int64 = 4 << 20
 
-// cleaner empties value chunks in the background: it moves a victim chunk's
+// cleaner empties chunks in the background: it moves a victim value chunk's
 // live values into the moved stream, so the chunk frees at release and the
-// file shrinks as free chunks reach its end. It reads the victim on a
-// snapshot without the writer lock, and takes the lock only for short
-// commits while no writer holds or wants it.
+// file shrinks as free chunks reach its end. It empties an index chunk by
+// keeping new pages out of it and moving a value under each of its pages, so
+// the next checkpoint rewrites the paths to them elsewhere and releases the
+// pages. It reads the victim on a snapshot without the writer lock, and
+// takes the lock only for short commits while no writer holds or wants it.
 //
 // The snapshot is held from the victim's choice through its read, and no
 // longer, so it delays no release across the paced commits. A chunk with live
@@ -61,6 +69,10 @@ type cleaner struct {
 	// sync makes the cleaner wait for the writer lock and clean small files
 	// too, for Compact.
 	sync bool
+	// evac is the index chunk the cleaner empties, or zero for none.
+	evac uint64
+	// rounds counts the rounds of moves made to empty evac.
+	rounds int
 }
 
 // move is a live value the cleaner moves.
@@ -124,17 +136,30 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 		return 0, err
 	}
 
-	// Pick the victim and pin the state that holds it.
-	least := cleanMinSlack
-	if c.sync {
-		least = 0
+	// Go on emptying an index chunk, or pick a victim.
+	victim, ok, wait, err := c.continueEvac(ctx)
+	if err != nil || wait {
+		w.unlock(err)
+		return cleanIdle, err
 	}
-	chunk, live, ok := w.sp.victim(db.cur.Load().seq, least, c.stuck)
-	var placed uint64
+	if !ok {
+		least := cleanMinSlack
+		if c.sync {
+			least = 0
+		}
+		victim, _, ok = w.sp.victim(db.cur.Load().seq, least, c.stuck)
+	}
+
+	// Pin the state that holds the victim, keeping new index pages out of
+	// an index chunk.
+	var e chunk
 	var st *state
 	var stripe int
 	if ok {
-		placed = w.sp.table[chunk].seq
+		e = w.sp.table[victim]
+		if e.kind == chunkIndex && c.evac != victim {
+			c.evac, c.rounds, w.sp.evac = victim, 0, victim
+		}
 		st, stripe = db.acquire()
 	} else if _, logged, _ := db.flush.marks(); logged < c.moved && !c.sync {
 		// A commit's frees release only under a later durable mark, so
@@ -149,25 +174,175 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 		return c.rest, nil
 	}
 	c.rest = 0
-	moves, err := c.read(st, chunk, live)
+	var moves []move
+	if e.kind == chunkIndex {
+		moves, err = c.readIndex(st, victim, &e.used)
+	} else {
+		moves, err = c.read(st, victim, e.live)
+	}
 	db.release(st, stripe)
 	if err != nil {
 		return 0, err
 	}
 
-	// Pass over a chunk holding values the cleaner cannot move.
+	// Pass over a value chunk holding values the cleaner cannot move.
 	moved := 0
 	for _, m := range moves {
 		moved += len(m.data)
 	}
-	if moved < int(live) {
-		if c.stuck == nil {
-			c.stuck = make(map[uint64]uint64)
-		}
-		c.stuck[chunk] = placed
+	if e.kind == chunkValue && moved < int(e.live) {
+		c.pass(victim, e.stamp())
 	}
 	c.moves = moves
 	return 0, nil
+}
+
+// continueEvac reports whether the index chunk being emptied takes another
+// round of moves, or whether to wait for the checkpoint that rewrites the
+// pages the last round dirtied; Compact checkpoints at once instead. A chunk
+// still holding pages after evacRounds is passed over until its pages
+// change. The caller holds the writer lock.
+func (c *cleaner) continueEvac(ctx context.Context) (chunk uint64, again, wait bool, err error) {
+	// Drop the chunk once it is free.
+	w := c.db.w
+	sp := w.sp
+	if c.evac == 0 {
+		return 0, false, false, nil
+	}
+	if c.evac >= uint64(len(sp.table)) || sp.table[c.evac].kind != chunkIndex {
+		c.evac = 0
+		return 0, false, false, nil
+	}
+	sp.evac = c.evac
+
+	// Wait for a durable checkpoint after the last moves, which frees what
+	// they dirtied at the next release.
+	if _, _, ckpt := c.db.flush.marks(); ckpt < c.moved {
+		if !c.sync {
+			w.startCheckpoint()
+			return 0, false, true, nil
+		}
+		if err := w.checkpointDurable(ctx); err != nil {
+			return 0, false, false, err
+		}
+		if err := w.releaseNow(ctx); err != nil {
+			return 0, false, false, err
+		}
+		return c.continueEvac(ctx)
+	}
+
+	// Move again, or give up on the chunk.
+	if c.rounds++; c.rounds > evacRounds {
+		c.pass(c.evac, sp.table[c.evac].stamp())
+		c.evac, sp.evac = 0, 0
+		return 0, false, false, nil
+	}
+	return c.evac, true, false, nil
+}
+
+// pass passes over chunk until its stamp changes from stamp.
+func (c *cleaner) pass(chunk, stamp uint64) {
+	if c.stuck == nil {
+		c.stuck = make(map[uint64]uint64)
+	}
+	c.stuck[chunk] = stamp
+}
+
+// readIndex reads index chunk chunk on the snapshot st and returns, for each
+// page used marks that holds a tree page, one value under it that st still
+// holds: the smallest in a leaf, or in the leftmost leaf under an inner
+// page. Moving it dirties the path through the page, so the next checkpoint
+// writes that path elsewhere. Other pages, such as a space record's, free
+// with the next checkpoint, so when the chunk holds no tree page it returns
+// one value from the tree's leftmost leaf, whose move brings that
+// checkpoint.
+func (c *cleaner) readIndex(st *state, chunk uint64, used *pageMap) ([]move, error) {
+	// Read the chunk.
+	db := c.db
+	buf := make([]byte, chunkSize)
+	if _, err := db.s.ReadAt(buf, fileOff(chunk*chunkSize)); err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+
+	// Take a value under each used tree page.
+	var moves []move
+	seen := make(map[string]bool)
+	for p := range uint64(chunkPages) {
+		if used[p/64]&(1<<(p%64)) == 0 {
+			continue
+		}
+		n, err := decodeNode(buf[p*pageSize : (p+1)*pageSize])
+		if err != nil {
+			continue
+		}
+		m, ok, err := c.under(st, n, seen)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			moves = append(moves, m)
+		}
+	}
+
+	// Bring a checkpoint for a chunk of other pages.
+	if len(moves) != 0 || st.root == 0 {
+		return moves, nil
+	}
+	n, err := db.p.node(st.root)
+	if err != nil {
+		return nil, err
+	}
+	m, ok, err := c.under(st, n, seen)
+	if err != nil || !ok {
+		return nil, err
+	}
+	return []move{m}, nil
+}
+
+// under returns the move of the smallest value in the leftmost leaf under
+// tree page n, if st still holds it and its key is not in seen, which it
+// joins.
+func (c *cleaner) under(st *state, n *node, seen map[string]bool) (move, bool, error) {
+	// Find the leftmost leaf and its smallest value. A page a checkpoint
+	// still holds keeps its kids, so the walk reads only used pages.
+	db := c.db
+	var err error
+	for !n.leaf && n.count() != 0 {
+		if n, err = db.p.node(n.kid(0)); err != nil {
+			return move{}, false, nil
+		}
+	}
+	if n.count() == 0 {
+		return move{}, false, nil
+	}
+	i := smallest(n)
+	key := n.key(i)
+	if seen[string(key)] {
+		return move{}, false, nil
+	}
+	seen[string(key)] = true
+
+	// Keep it while st holds it and its bytes read back whole.
+	v, ok, err := db.lookup(st, key)
+	if err != nil || !ok || !sameValue(v, n.val(i)) {
+		return move{}, false, err
+	}
+	data, err := db.p.readValue(v)
+	if err != nil {
+		return move{}, false, nil
+	}
+	return move{key: bytes.Clone(key), val: v, data: bytes.Clone(data)}, true, nil
+}
+
+// smallest returns the entry of leaf n with the smallest value.
+func smallest(n *node) int {
+	best, size := 0, -1
+	for i := range n.count() {
+		if s := n.val(i).size(); size < 0 || s < size {
+			best, size = i, s
+		}
+	}
+	return best
 }
 
 // read reads value chunk chunk on the snapshot st and returns the values in
