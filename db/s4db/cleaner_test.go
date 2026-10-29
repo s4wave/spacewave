@@ -6,11 +6,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"path/filepath"
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/db/volume/device"
 )
 
 // TestCleaner walks the cleaner through a file that fills, loses values in
@@ -27,43 +30,13 @@ func TestCleaner(t *testing.T) {
 	opts := Options{RelocateBudget: -1, CheckpointMin: 256 << 10, CheckpointMax: 1 << 20, Families: [][]byte{[]byte("k/")}}
 	db := openTest(t, path, opts)
 
-	// write sets keys of the form name to values from val, or deletes them
-	// when val is nil, 64 to a commit; usage reads the file's use.
+	// write sets or deletes keys, and usage reads the file's use.
 	r := rand.New(rand.NewPCG(3, 4))
 	m := make(model)
+	large, small := largeValues(r), smallValues(r, 64)
 	write := func(name string, keys []int, val func() []byte) {
 		t.Helper()
-		for len(keys) != 0 {
-			// Set or delete the next keys.
-			tx, err := db.NewTransaction(ctx, true)
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, k := range keys[:min(64, len(keys))] {
-				key := fmt.Sprintf(name, k)
-				if val == nil {
-					err = tx.Delete(ctx, []byte(key))
-					delete(m, key)
-				} else {
-					v := val()
-					err = tx.Set(ctx, []byte(key), v)
-					m[key] = v
-				}
-				if err != nil {
-					t.Fatal(err)
-				}
-			}
-			if err := tx.Commit(ctx); err != nil {
-				t.Fatal(err)
-			}
-			keys = keys[min(64, len(keys)):]
-		}
-	}
-	large := func() []byte {
-		return bytes.Repeat([]byte{byte(r.Uint32())}, 2<<10+r.IntN(28<<10))
-	}
-	small := func() []byte {
-		return fmt.Appendf(nil, "%064d", r.Uint64())
+		setKeys(t, db, m, name, keys, val)
 	}
 	usage := func() Usage {
 		t.Helper()
@@ -150,4 +123,116 @@ func TestCleaner(t *testing.T) {
 	}
 	checkSpace(t, db)
 	m.check(t, db)
+}
+
+// setKeys sets the keys of the form name numbered keys in db and m to values
+// from val, or deletes them when val is nil, 64 to a durable commit.
+func setKeys(t *testing.T, db *DB, m model, name string, keys []int, val func() []byte) {
+	t.Helper()
+	ctx := context.Background()
+	for len(keys) != 0 {
+		// Set or delete the next keys.
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, k := range keys[:min(64, len(keys))] {
+			key := fmt.Sprintf(name, k)
+			if val == nil {
+				err = tx.Delete(ctx, []byte(key))
+				delete(m, key)
+			} else {
+				v := val()
+				err = tx.Set(ctx, []byte(key), v)
+				m[key] = v
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Fatal(err)
+		}
+		keys = keys[min(64, len(keys)):]
+	}
+}
+
+// largeValues returns values of 2 to 30 KiB, stored in value chunks.
+func largeValues(r *rand.Rand) func() []byte {
+	return func() []byte {
+		return bytes.Repeat([]byte{byte(r.Uint32())}, 2<<10+r.IntN(28<<10))
+	}
+}
+
+// smallValues returns values of n bytes, at most InlineMax, stored in the
+// index.
+func smallValues(r *rand.Rand, n int) func() []byte {
+	return func() []byte {
+		return bytes.Repeat([]byte{byte(r.Uint32())}, n)
+	}
+}
+
+// TestCleanerCrash crashes the device at each call of a Compact that empties
+// value and index chunks, loses power, and checks that recovery keeps every
+// value, which Compact does not change, and a consistent space that later
+// commits and a reopen keep.
+func TestCleanerCrash(t *testing.T) {
+	ctx := context.Background()
+	opts := Options{RelocateBudget: -1, CheckpointMin: 64 << 10, CheckpointMax: 256 << 10}
+	for k := 0; ; k++ {
+		// Fill a file with value and index chunks to empty, every commit
+		// durable.
+		r := rand.New(rand.NewPCG(5, 6))
+		mem := device.NewMemory()
+		db := openDevice(t, mem, opts)
+		m := make(model)
+		setKeys(t, db, m, "k/%05d", r.Perm(400), largeValues(r))
+		setKeys(t, db, m, "k/i%05d", r.Perm(12000), smallValues(r, 400))
+		setKeys(t, db, m, "k/%05d", r.Perm(400)[:240], nil)
+		setKeys(t, db, m, "k/i%05d", r.Perm(12000)[:10000], nil)
+		before, err := db.Usage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Crash at Compact's call k, until Compact makes fewer.
+		calls := mem.Calls()
+		mem.CrashAfter(k)
+		err = db.Compact(ctx)
+		if err == nil {
+			// Uncrashed, Compact leaves the file tight.
+			after, err := db.Usage(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("compact finished at k %d in %d calls: %+v to %+v", k, mem.Calls()-calls, before, after)
+			if after.FreeBytes != 0 || after.FileBytes >= before.FileBytes || after.ValueChunkBytes > after.ValueBytes+after.ValueBytes/8+2*chunkSize {
+				t.Fatalf("compact left %+v from %+v", after, before)
+			}
+		}
+		_ = db.Close()
+		mem.PowerLoss(r)
+
+		// Recovery keeps every value, and later commits use its space.
+		db = openDevice(t, mem, opts)
+		if got := contents(t, db); !maps.EqualFunc(got, m, bytes.Equal) {
+			t.Fatalf("crash at call %d: recovered %d keys, want %d", k, len(got), len(m))
+		}
+		checkSpace(t, db)
+		for range 20 {
+			randomCommit(t, r, db, m, 2000)
+		}
+		checkSpace(t, db)
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+		db = openDevice(t, mem, opts)
+		m.check(t, db)
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err == nil {
+			return
+		}
+	}
 }

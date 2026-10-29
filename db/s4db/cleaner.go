@@ -73,6 +73,8 @@ type cleaner struct {
 	evac uint64
 	// rounds counts the rounds of moves made to empty evac.
 	rounds int
+	// settled is the last move Compact's cleaner freed the space of.
+	settled uint64
 }
 
 // move is a live value the cleaner moves.
@@ -137,10 +139,9 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 	}
 
 	// Go on emptying an index chunk, or pick a victim.
-	victim, ok, wait, err := c.continueEvac(ctx)
-	if err != nil || wait {
-		w.unlock(err)
-		return cleanIdle, err
+	victim, ok, wait := c.continueEvac()
+	if wait {
+		return c.await(ctx)
 	}
 	if !ok {
 		least := cleanMinSlack
@@ -161,6 +162,10 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 			c.evac, c.rounds, w.sp.evac = victim, 0, victim
 		}
 		st, stripe = db.acquire()
+	} else if c.sync && c.settled < c.moved {
+		// Free what the moves emptied and look again: the chunks at the
+		// end can now move down into it.
+		return c.await(ctx)
 	} else if _, logged, _ := db.flush.marks(); logged < c.moved && !c.sync {
 		// A commit's frees release only under a later durable mark, so
 		// once the moves end a checkpoint marks the last of them.
@@ -175,6 +180,7 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 	}
 	c.rest = 0
 	var moves []move
+	var err error
 	if e.kind == chunkIndex {
 		moves, err = c.readIndex(st, victim, &e.used)
 	} else {
@@ -198,46 +204,57 @@ func (c *cleaner) choose(ctx context.Context) (time.Duration, error) {
 }
 
 // continueEvac reports whether the index chunk being emptied takes another
-// round of moves, or whether to wait for the checkpoint that rewrites the
-// pages the last round dirtied; Compact checkpoints at once instead. A chunk
-// still holding pages after evacRounds is passed over until its pages
-// change. The caller holds the writer lock.
-func (c *cleaner) continueEvac(ctx context.Context) (chunk uint64, again, wait bool, err error) {
+// round of moves, or whether to await the checkpoint that rewrites the pages
+// the last round dirtied. A chunk still holding pages after evacRounds is
+// passed over until its pages change. The caller holds the writer lock.
+func (c *cleaner) continueEvac() (chunk uint64, again, wait bool) {
 	// Drop the chunk once it is free.
-	w := c.db.w
-	sp := w.sp
+	sp := c.db.w.sp
 	if c.evac == 0 {
-		return 0, false, false, nil
+		return 0, false, false
 	}
 	if c.evac >= uint64(len(sp.table)) || sp.table[c.evac].kind != chunkIndex {
 		c.evac = 0
-		return 0, false, false, nil
+		return 0, false, false
 	}
 	sp.evac = c.evac
 
-	// Wait for a durable checkpoint after the last moves, which frees what
-	// they dirtied at the next release.
-	if _, _, ckpt := c.db.flush.marks(); ckpt < c.moved {
-		if !c.sync {
-			w.startCheckpoint()
-			return 0, false, true, nil
-		}
-		if err := w.checkpointDurable(ctx); err != nil {
-			return 0, false, false, err
-		}
-		if err := w.releaseNow(ctx); err != nil {
-			return 0, false, false, err
-		}
-		return c.continueEvac(ctx)
+	// Wait for the checkpoint after the last moves.
+	if _, _, ckpt := c.db.flush.marks(); ckpt < c.moved || c.sync && c.settled < c.moved {
+		return 0, false, true
 	}
 
 	// Move again, or give up on the chunk.
 	if c.rounds++; c.rounds > evacRounds {
 		c.pass(c.evac, sp.table[c.evac].stamp())
 		c.evac, sp.evac = 0, 0
-		return 0, false, false, nil
+		return 0, false, false
 	}
-	return c.evac, true, false, nil
+	return c.evac, true, false
+}
+
+// await gives up the writer lock until a checkpoint follows the last moves.
+// The background cleaner starts one and rests. Compact's cleaner waits for
+// any background build, whose snapshot keeps the moved chunks from freeing,
+// then checkpoints and releases until what the moves freed is free.
+func (c *cleaner) await(ctx context.Context) (time.Duration, error) {
+	// Start a checkpoint in the background.
+	db, w := c.db, c.db.w
+	if !c.sync {
+		w.startCheckpoint()
+		w.unlock(nil)
+		return cleanIdle, nil
+	}
+
+	// Settle at once for Compact.
+	w.unlock(nil)
+	if err := db.lockIdle(ctx); err != nil {
+		return 0, err
+	}
+	c.settled = c.moved
+	err := w.compact(ctx)
+	w.unlock(err)
+	return 0, err
 }
 
 // pass passes over chunk until its stamp changes from stamp.
