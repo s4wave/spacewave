@@ -59,12 +59,15 @@ type Iterator struct {
 	cur mentry
 	// err is the first error.
 	err error
+	// ahead reads the tree's stored values ahead of a scan.
+	ahead valueAhead
 }
 
 // newIterator returns an unpositioned iterator over st and changes.
 func newIterator(p *pager, st *state, changes *btree.BTreeG[tentry], prefix []byte, reverse bool) *Iterator {
 	// Buffered changes come first.
 	it := &Iterator{p: p, st: st, prefix: prefix, reverse: reverse, tree: &pageIter{cursor{p: p, root: st.root}}}
+	it.ahead = valueAhead{p: p, prefix: prefix, reverse: reverse}
 	if changes != nil {
 		it.layers = append(it.layers, &treeIter[tentry]{
 			it:    changes.Iter(),
@@ -114,7 +117,10 @@ func (it *Iterator) Value() ([]byte, error) {
 	if it.cur.buffered {
 		return it.cur.data, nil
 	}
-	return it.p.readValue(it.cur.val)
+	if !it.cur.val.isRef {
+		return it.cur.val.inline, nil
+	}
+	return it.ahead.take(&it.tree.cursor, it.key, it.cur.val)
 }
 
 // ValueLen returns the length of the current value from the index, without
@@ -168,6 +174,7 @@ func (it *Iterator) Seek(k []byte) error {
 		return it.err
 	}
 	it.started = true
+	it.ahead.reset()
 	if k == nil && len(it.prefix) != 0 {
 		k = it.prefix
 		if it.reverse {
@@ -262,6 +269,7 @@ func (it *Iterator) front() layer {
 
 // Close releases the iterator.
 func (it *Iterator) Close() {
+	it.ahead.close()
 	it.ok = false
 	if it.err == nil {
 		it.err = kvtx.ErrDiscarded
