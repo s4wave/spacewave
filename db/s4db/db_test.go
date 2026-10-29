@@ -303,7 +303,37 @@ func processKey(who string, i int) []byte {
 // processValue returns the value of key i, large enough on some keys to be
 // stored out of the index.
 func processValue(i int) []byte {
-	return bytes.Repeat([]byte{byte(i)}, []int{16, 900, 5000}[i%3])
+	return bytes.Repeat([]byte{byte(i)}, []int{16, 900, 20000}[i%3])
+}
+
+// processDeleted reports whether TestTwoProcesses deletes key i once
+// written.
+func processDeleted(i int) bool {
+	return i%5 < 3
+}
+
+// deleteKeys deletes the keys named for who that processDeleted names,
+// eight to a durable commit.
+func deleteKeys(ctx context.Context, db *DB, who string) error {
+	for i := 0; i < childKeys; i += 8 {
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		for j := i; j < i+8; j++ {
+			if !processDeleted(j) {
+				continue
+			}
+			if err := tx.Delete(ctx, processKey(who, j)); err != nil {
+				tx.Discard()
+				return err
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // writeKeys commits childKeys keys named for who, alternating ordered and
@@ -336,15 +366,21 @@ func writeKeys(ctx context.Context, db *DB, who string) error {
 // commit it saw.
 func runChild(path string) error {
 	// Open the file the parent holds open, checkpointing often so the
-	// parent's background checkpoints race this process's writes.
+	// parent's background checkpoints race this process's writes, and
+	// cleaning any slack.
+	cleanMinSlack = 0
 	db, err := Open(path, Options{CheckpointMin: 8 << 10, CheckpointMax: 16 << 10})
 	if err != nil {
 		return err
 	}
 
-	// Write the keys and report the last commit.
+	// Write the keys, delete most, and report the last commit.
 	ctx := context.Background()
 	if err := writeKeys(ctx, db, "child"); err != nil {
+		_ = db.Close()
+		return err
+	}
+	if err := deleteKeys(ctx, db, "child"); err != nil {
 		_ = db.Close()
 		return err
 	}
@@ -457,13 +493,17 @@ func TestSingleProcessWriters(t *testing.T) {
 	m.check(t, db)
 }
 
-// TestTwoProcesses writes one file from two processes at once and checks
-// that each commit lands, the space stays consistent, the parent sees the
-// child's commits through the change watcher, and the file holds them all
-// once both close.
+// TestTwoProcesses writes and then thins one file from two processes at
+// once, each running the background cleaner, and checks that each commit
+// lands, the space stays consistent, the parent sees the child's commits
+// through the change watcher, Compact tightens the value chunks both wrote,
+// and the file holds the remaining keys once both close.
 func TestTwoProcesses(t *testing.T) {
-	// Open the file.
+	// Open the file, cleaning any slack.
 	ctx := context.Background()
+	least := cleanMinSlack
+	cleanMinSlack = 0
+	defer func() { cleanMinSlack = least }()
 	opts := Options{CheckpointMin: 32 << 10, CheckpointMax: 64 << 10}
 	path := filepath.Join(t.TempDir(), "two.s4wave")
 	db := openTest(t, path, opts)
@@ -477,8 +517,11 @@ func TestTwoProcesses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write the parent's keys while the child writes its own.
+	// Write and thin the parent's keys while the child does its own.
 	if err := writeKeys(ctx, db, "parent"); err != nil {
+		t.Fatal(err)
+	}
+	if err := deleteKeys(ctx, db, "parent"); err != nil {
 		t.Fatal(err)
 	}
 	if err := cmd.Wait(); err != nil {
@@ -497,8 +540,24 @@ func TestTwoProcesses(t *testing.T) {
 	m := make(model)
 	for i := range childKeys {
 		for _, who := range []string{"child", "parent"} {
-			m[string(processKey(who, i))] = processValue(i)
+			if !processDeleted(i) {
+				m[string(processKey(who, i))] = processValue(i)
+			}
 		}
+	}
+	m.check(t, db)
+	checkSpace(t, db)
+
+	// Compact moves the values both processes left into few chunks.
+	if err := db.Compact(ctx); err != nil {
+		t.Fatal(err)
+	}
+	u, err := db.Usage(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.ValueChunkBytes > u.ValueBytes+u.ValueBytes/8+2*chunkSize {
+		t.Fatalf("compact left %+v", u)
 	}
 	m.check(t, db)
 	checkSpace(t, db)

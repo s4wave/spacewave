@@ -5,11 +5,14 @@ package s4db
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
+	"hash/fnv"
 	"maps"
 	"math/rand/v2"
 	"path/filepath"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -235,4 +238,217 @@ func TestCleanerCrash(t *testing.T) {
 			return
 		}
 	}
+}
+
+// TestCleanerRace runs the background cleaner, with no least slack, over a
+// file left sparse by deletes, while two writers set and delete their own
+// keys and four readers read random keys four times in one snapshot, 100 ms
+// apart, across dozens of commits. Every value names its key and checks itself, so a reader that gets a value
+// from a chunk freed and reused under its snapshot fails. Once the writers
+// stop, the cleaner tightens the value chunks, and the values read back after
+// a reopen.
+func TestCleanerRace(t *testing.T) {
+	// Open with the background cleaner.
+	ctx := context.Background()
+	least := cleanMinSlack
+	cleanMinSlack = 0
+	defer func() { cleanMinSlack = least }()
+	path := filepath.Join(t.TempDir(), "race.s4wave")
+	opts := Options{RelocateBudget: 64 << 20, CheckpointMin: 256 << 10, CheckpointMax: 1 << 20}
+	db := openTest(t, path, opts)
+
+	// value returns a value for key that a reader can check alone: the key,
+	// the writer's sequence, and 2 to 30 KiB of a byte drawn from both.
+	const writers, keys = 2, 1000
+	value := func(key string, seq uint64) []byte {
+		v := binary.BigEndian.AppendUint64([]byte(key), seq)
+		return append(v, bytes.Repeat([]byte{filler(key, seq)}, 2<<10+int(seq*7919%(28<<10)))...)
+	}
+	check := func(key string, v []byte) error {
+		if len(v) < len(key)+8 || string(v[:len(key)]) != key {
+			return fmt.Errorf("%s: value names another key", key)
+		}
+		seq := binary.BigEndian.Uint64(v[len(key):])
+		if !bytes.Equal(v, value(key, seq)) {
+			return fmt.Errorf("%s: value of sequence %d is damaged", key, seq)
+		}
+		return nil
+	}
+
+	// apply commits the sets and deletes, nil values, in next and records
+	// them in m.
+	apply := func(m, next model) error {
+		// Commit the changes.
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		for key, v := range next {
+			if v == nil {
+				err = tx.Delete(ctx, []byte(key))
+			} else {
+				err = tx.Set(ctx, []byte(key), v)
+			}
+			if err != nil {
+				return err
+			}
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+
+		// Record them once committed.
+		for key, v := range next {
+			if v == nil {
+				delete(m, key)
+			} else {
+				m[key] = v
+			}
+		}
+		return nil
+	}
+
+	// Fill each writer's keys and delete 60% of them, so most value chunks
+	// are sparse when the writers and readers start.
+	models := make([]model, writers)
+	for w := range writers {
+		models[w] = make(model)
+		r := rand.New(rand.NewPCG(7, uint64(w)))
+		for _, del := range []bool{false, true} {
+			order := r.Perm(keys)
+			if del {
+				order = order[:keys*6/10]
+			}
+			for len(order) != 0 {
+				next := make(model)
+				for _, k := range order[:min(64, len(order))] {
+					key := fmt.Sprintf("k/w%d/%05d", w, k)
+					next[key] = nil
+					if !del {
+						next[key] = value(key, 0)
+					}
+				}
+				if err := apply(models[w], next); err != nil {
+					t.Fatal(err)
+				}
+				order = order[min(64, len(order)):]
+			}
+		}
+	}
+
+	// Writers set and delete their own keys until stop closes.
+	stop, done := make(chan struct{}), make(chan struct{})
+	var wg sync.WaitGroup
+	for w := range writers {
+		wg.Go(func() {
+			r := rand.New(rand.NewPCG(9, uint64(w)))
+			for seq := uint64(1); ; seq++ {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				next := make(model)
+				for range 16 {
+					key := fmt.Sprintf("k/w%d/%05d", w, r.IntN(keys))
+					next[key] = nil
+					if r.IntN(5) >= 2 {
+						next[key] = value(key, seq)
+					}
+				}
+				if err := apply(models[w], next); err != nil {
+					t.Error(err)
+					return
+				}
+			}
+		})
+	}
+
+	// Readers read random keys twice in one snapshot until done closes.
+	var rg sync.WaitGroup
+	for i := range 4 {
+		rg.Go(func() {
+			r := rand.New(rand.NewPCG(8, uint64(i)))
+			for {
+				select {
+				case <-done:
+					return
+				default:
+				}
+				tx, err := db.NewTransaction(ctx, false)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				read := make(map[string][]byte)
+				names := make([]string, 32)
+				for i := range names {
+					names[i] = fmt.Sprintf("k/w%d/%05d", r.IntN(writers), r.IntN(keys))
+				}
+				for range 4 {
+					for _, key := range names {
+						v, ok, err := tx.Get(ctx, []byte(key))
+						if err == nil && ok {
+							err = check(key, v)
+						}
+						if was, seen := read[key]; err == nil && seen && !bytes.Equal(was, v) {
+							err = fmt.Errorf("%s: snapshot changed", key)
+						}
+						if err != nil {
+							t.Error(err)
+							tx.Discard()
+							return
+						}
+						read[key] = v
+					}
+					time.Sleep(100 * time.Millisecond)
+				}
+				tx.Discard()
+			}
+		})
+	}
+
+	// Write for four seconds, then let the cleaner tighten the value chunks
+	// while the readers go on.
+	time.Sleep(4 * time.Second)
+	close(stop)
+	wg.Wait()
+	for deadline := time.Now().Add(20 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		u, err := db.Usage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if u.ValueChunkBytes <= u.ValueBytes+u.ValueBytes/8+2*chunkSize {
+			t.Logf("tight: %+v", u)
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("background cleaner left %+v", u)
+		}
+	}
+	close(done)
+	rg.Wait()
+
+	// The space matches the file, and every value reads back after a
+	// reopen.
+	m := make(model)
+	for _, w := range models {
+		maps.Copy(m, w)
+	}
+	checkSpace(t, db)
+	m.check(t, db)
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db = openTest(t, path, opts)
+	defer db.Close()
+	m.check(t, db)
+}
+
+// filler returns the filler byte of key's value at seq.
+func filler(key string, seq uint64) byte {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return byte(h.Sum32() + uint32(seq))
 }
