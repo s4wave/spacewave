@@ -128,7 +128,7 @@ func (st *state) apply(rs ...*record) {
 	for _, r := range rs {
 		st.seq, st.crc = r.seq, r.crc
 		st.logBytes += int64(r.size)
-		if r.kind != kindCommit {
+		if r.kind == kindLink {
 			continue
 		}
 		st.count += r.delta

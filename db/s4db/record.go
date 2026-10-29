@@ -10,13 +10,18 @@ const (
 	kindCommit = 1
 	// kindLink continues the log in another chunk.
 	kindLink = 2
+	// kindMove is a commit of the values the cleaner moved, placed in the
+	// moved stream. It encodes as a commit does.
+	kindMove = 3
 )
 
-// recordHeader is the length, checksum, sequence, and kind of a record. The
-// checksum covers everything after itself and continues from the previous
-// record's, so a record left behind by an earlier log at the same place
-// fails it.
-const recordHeader = 4 + 4 + 8 + 1
+// recordHeader is the length, checksum, sequence, kind, and salt of a
+// record. The checksum covers everything after itself and continues from
+// the previous record's. Each writer handle draws its own salt, so a log a
+// new handle writes over a torn tail differs from the old one at its first
+// record even when the records repeat, and an old record left behind past
+// it fails the chain.
+const recordHeader = 4 + 4 + 8 + 1 + 4
 
 // linkSize is the length of a link record.
 const linkSize = recordHeader + 16
@@ -112,15 +117,15 @@ func decodeRecord(b []byte, seq uint64, prev uint32) (*record, bool) {
 	return r, d.err == nil
 }
 
-// encode returns the encoding of r following the record with checksum
-// prev, and sets r.crc.
-func (r *record) encode(prev uint32) []byte {
+// encode returns the encoding of r with salt following the record with
+// checksum prev, and sets r.crc.
+func (r *record) encode(prev, salt uint32) []byte {
 	// A link holds only the next chunk.
 	if r.kind == kindLink {
 		b := make([]byte, recordHeader, linkSize)
 		b = binary.LittleEndian.AppendUint64(b, r.next.start)
 		b = binary.LittleEndian.AppendUint64(b, r.next.n)
-		return r.seal(b, prev)
+		return r.seal(b, prev, salt)
 	}
 
 	// Write the commit's bookkeeping.
@@ -148,7 +153,7 @@ func (r *record) encode(prev uint32) []byte {
 		b = binary.AppendUvarint(b, f.off)
 		b = binary.AppendUvarint(b, uint64(f.n))
 	}
-	return r.seal(b, prev)
+	return r.seal(b, prev, salt)
 }
 
 // own copies the keys and inline values of a decoded record out of the
@@ -186,14 +191,15 @@ func (r *record) bound() int {
 	return n + 2*binary.MaxVarintLen64*len(r.frees)
 }
 
-// seal fills in the record header of b following the record with checksum
-// prev.
-func (r *record) seal(b []byte, prev uint32) []byte {
-	// Write the length, sequence, and kind, then the checksum over all
-	// after it.
+// seal fills in the record header of b with salt following the record with
+// checksum prev.
+func (r *record) seal(b []byte, prev, salt uint32) []byte {
+	// Write the length, sequence, kind, and salt, then the checksum over
+	// all after it.
 	binary.LittleEndian.PutUint32(b[0:], uint32(len(b))) // #nosec G115 -- commit bounds records by maxRecord.
 	binary.LittleEndian.PutUint64(b[8:], r.seq)
 	b[16] = r.kind
+	binary.LittleEndian.PutUint32(b[17:], salt)
 	r.crc = chain(prev, b[8:])
 	binary.LittleEndian.PutUint32(b[4:], r.crc)
 	r.size = len(b)

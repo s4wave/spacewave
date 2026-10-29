@@ -109,7 +109,7 @@ func open(s storage, opts Options) (*DB, error) {
 		flows:   make([]flowCount, len(opts.Families)+1),
 	}
 	db.flush = newFlusher(s, &db.cur)
-	db.w = &writer{db: db}
+	db.w = &writer{db: db, salt: rand.Uint32()} // #nosec G404 -- tells logs apart; no secret.
 
 	// Recover the state, releasing everything on failure.
 	if err := db.load(); err != nil {
@@ -120,11 +120,15 @@ func open(s storage, opts Options) (*DB, error) {
 		return nil, err
 	}
 
-	// Follow other processes' commits and warm the cache.
+	// Follow other processes' commits, warm the cache, and clean.
 	db.tailer.SetRoutine(db.tailLoop)
 	db.tailer.SetContext(context.Background(), false)
 	db.warmer.SetRoutine(db.warm)
 	db.warmer.SetContext(context.Background(), false)
+	if db.opts.RelocateBudget > 0 {
+		db.cleaner.SetRoutine((&cleaner{db: db}).run)
+		db.cleaner.SetContext(context.Background(), false)
+	}
 	return db, nil
 }
 
@@ -658,9 +662,13 @@ func (db *DB) WaitSeq(ctx context.Context, seq uint64) error {
 	})
 }
 
-// Compact moves every value out of sparse pages and the file's tail,
+// Compact moves the live values out of the chunks worth cleaning,
 // checkpoints, and releases freed space.
 func (db *DB) Compact(ctx context.Context) error {
+	// Clean, then checkpoint and release what the moves freed.
+	if err := (&cleaner{db: db, sync: true}).clean(ctx); err != nil {
+		return err
+	}
 	if err := db.lockIdle(ctx); err != nil {
 		return err
 	}

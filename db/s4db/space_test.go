@@ -42,20 +42,20 @@ func TestSpaceChunks(t *testing.T) {
 	const n = 300 << 10
 	var entries, offs []uint64
 	for i := range 4 {
-		e, off := sp.placeValue(3, n, uint64(i+1))
+		e, off := sp.placeValue(3, n, uint64(i+1), streamNew)
 		entries, offs = append(entries, e), append(offs, off)
 	}
 	h := uint64(valueHeaderLen(3, n)) // #nosec G115 -- small.
 	if entries[0] != 2*chunkSize || offs[0] != entries[0]+h || entries[1] != offs[0]+n || entries[3] != 3*chunkSize {
 		t.Fatalf("entries %v offsets %v", entries, offs)
 	}
-	if sp.table[2].live != 3*n || sp.table[2].seq != 3 || !sp.inOpen(3) {
+	if sp.table[2].live != 3*n || sp.table[2].seq != 3 || !sp.open[streamNew].holds(3) {
 		t.Fatalf("chunk 2 %+v, open %+v", sp.table[2], sp.open)
 	}
 
 	// A long value takes chunks of its own and leaves the open chunk.
-	long, longOff := sp.placeValue(3, 2*chunkSize, 5)
-	if long != 4*chunkSize || sp.table[4].kind != chunkValue || sp.table[5].kind != chunkTail || sp.table[6].kind != chunkTail || !sp.inOpen(3) {
+	long, longOff := sp.placeValue(3, 2*chunkSize, 5, streamNew)
+	if long != 4*chunkSize || sp.table[4].kind != chunkValue || sp.table[5].kind != chunkTail || sp.table[6].kind != chunkTail || !sp.open[streamNew].holds(3) {
 		t.Fatalf("long value at %d, table %v", long, kinds(sp))
 	}
 
@@ -107,12 +107,12 @@ func TestSpaceChunks(t *testing.T) {
 	re := newSpace()
 	re.claimLog(chunkRun(1, 1))
 	for i, off := range offs {
-		re.replayValue(off, n, uint64(i+1))
+		re.replayValue(off, n, uint64(i+1), streamNew)
 	}
 	sp2 := newSpace()
 	sp2.log = []run{sp2.takeChunks(1, chunkLog)}
 	for i := range 4 {
-		sp2.placeValue(3, n, uint64(i+1))
+		sp2.placeValue(3, n, uint64(i+1), streamNew)
 	}
 	if d := diffSpace(re, sp2); d != "" {
 		t.Fatalf("replayed space differs: %s", d)

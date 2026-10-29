@@ -135,7 +135,19 @@ func lessFullness(a, b fullness) bool {
 	return a.chunk < b.chunk
 }
 
-// extent is the open value chunk, as file offsets.
+// Value streams. New values and the values the cleaner moves fill separate
+// open chunks: moved values are old and cold, so chunks of them stay full
+// and need cleaning least.
+const (
+	// streamNew takes the values commits write.
+	streamNew = iota
+	// streamMoved takes the values the cleaner moves.
+	streamMoved
+	// streams is the number of streams.
+	streams
+)
+
+// extent is a stream's open value chunk, as file offsets.
 type extent struct {
 	// start is the chunk's first byte.
 	start uint64
@@ -160,12 +172,12 @@ type extent struct {
 //   - free holds exactly the free chunks below the end, and partial exactly
 //     the index chunks with unused pages. The last chunk is never free: the
 //     end falls past free chunks as they free.
-//   - A value chunk is written only at the open chunk's cursor, so its
-//     entries run from its start without gaps, and bytes below the cursor
-//     never change while the chunk is in use.
+//   - A value chunk is written only at its stream's open chunk's cursor, so
+//     its entries run from its start without gaps, and bytes below the
+//     cursor never change while the chunk is in use.
 //   - A value or tail chunk's live is the sum of the bytes in it of the
 //     values live keys refer to, and an index chunk's live counts its used
-//     pages. A value or tail chunk with no live bytes is pending, and the
+//     pages. A value or tail chunk with no live bytes is pending, and an
 //     open chunk closes when its last live byte is freed.
 //   - The table decodeSpace and replay derive from the file equals the
 //     writer's, except for reservations, which no saved tree names, so a
@@ -185,8 +197,8 @@ type space struct {
 	pages []pending
 	// log lists the log chunks in log order.
 	log []run
-	// open is the value chunk taking new values.
-	open extent
+	// open is each stream's value chunk taking its values.
+	open [streams]extent
 	// released collects chunks freed since the caller last drained it, for
 	// hole punching.
 	released []run
@@ -424,10 +436,11 @@ func (s *space) unhold(r run, punched bool) {
 }
 
 // placeValue assigns file space to a value of n bytes stored under a key of
-// k bytes, after its header, at the open chunk's cursor. It opens a new value
-// chunk when the entry does not fit, and gives an entry longer than a chunk
-// its own run of chunks. It returns the offsets of the header and the value.
-func (s *space) placeValue(k, n int, tag uint64) (entry, off uint64) {
+// k bytes, after its header, at the cursor of stream's open chunk. It opens a
+// new value chunk when the entry does not fit, and gives an entry longer than
+// a chunk its own run of chunks. It returns the offsets of the header and the
+// value.
+func (s *space) placeValue(k, n int, tag uint64, stream int) (entry, off uint64) {
 	// Place the header and value together.
 	size := uint64(valueHeaderLen(k, n) + n) // #nosec G115 -- lengths are not negative.
 	switch {
@@ -441,12 +454,13 @@ func (s *space) placeValue(k, n int, tag uint64) (entry, off uint64) {
 	default:
 		// Else append at the open chunk's cursor, opening the lowest free
 		// chunk when it does not fit.
-		if s.open.cursor+size > s.open.end {
+		x := &s.open[stream]
+		if x.cursor+size > x.end {
 			r := s.takeChunks(1, chunkValue)
-			s.open = extent{start: r.start * pageSize, cursor: r.start * pageSize, end: r.end() * pageSize}
+			*x = extent{start: r.start * pageSize, cursor: r.start * pageSize, end: r.end() * pageSize}
 		}
-		entry = s.open.cursor
-		s.open.cursor += size
+		entry = x.cursor
+		x.cursor += size
 	}
 	off = entry + size - uint64(n) // #nosec G115 -- lengths are not negative.
 	s.addLive(off, n, tag)
@@ -455,22 +469,23 @@ func (s *space) placeValue(k, n int, tag uint64) (entry, off uint64) {
 
 // replayValue takes the space for a value of n bytes at off that replay found
 // in commit tag, as placeValue did for the writer: a value spanning chunks in
-// chunks of its own, else at the open chunk's cursor, opening the value's
-// chunk when it is not open.
-func (s *space) replayValue(off uint64, n int, tag uint64) {
+// chunks of its own, else at the cursor of stream's open chunk, opening the
+// value's chunk when it is not open.
+func (s *space) replayValue(off uint64, n int, tag uint64, stream int) {
 	first, last := off/chunkSize, (off+uint64(n)-1)/chunkSize // #nosec G115 -- lengths are not negative.
+	x := &s.open[stream]
 	switch {
 	case first != last:
 		s.claim(first, chunkValue)
 		for c := first + 1; c <= last; c++ {
 			s.claim(c, chunkTail)
 		}
-	case !s.inOpen(first):
+	case !x.holds(first):
 		s.claim(first, chunkValue)
-		s.open = extent{start: first * chunkSize, end: (first + 1) * chunkSize}
+		*x = extent{start: first * chunkSize, end: (first + 1) * chunkSize}
 		fallthrough
 	default:
-		s.open.cursor = max(s.open.cursor, off+uint64(n)) // #nosec G115 -- lengths are not negative.
+		x.cursor = max(x.cursor, off+uint64(n)) // #nosec G115 -- lengths are not negative.
 	}
 	s.addLive(off, n, tag)
 }
@@ -527,17 +542,27 @@ func (s *space) freeValue(off uint64, n int, tag uint64) {
 		if e.live != 0 {
 			return
 		}
-		if s.inOpen(c) {
-			s.open = extent{}
+		if i := s.openStream(c); i >= 0 {
+			s.open[i] = extent{}
 		}
 		s.pend(&s.values, pending{run: chunkRun(c, 1), tag: tag})
 	})
 	s.liveBytes -= int64(n)
 }
 
-// inOpen reports whether chunk c is the open value chunk.
-func (s *space) inOpen(c uint64) bool {
-	return s.open.end != 0 && c == s.open.start/chunkSize
+// holds reports whether x is open on chunk c.
+func (x extent) holds(c uint64) bool {
+	return x.end != 0 && c == x.start/chunkSize
+}
+
+// openStream returns the stream whose open chunk is c, or -1.
+func (s *space) openStream(c uint64) int {
+	for i, x := range s.open {
+		if x.holds(c) {
+			return i
+		}
+	}
+	return -1
 }
 
 // cut removes the pages of r from the runs in q in place, keeping tag order.
@@ -685,7 +710,7 @@ func (s *space) encode() []byte {
 	// Size the buffer: a kind byte for each chunk, a page map for each index
 	// chunk, and varints for the rest.
 	queued := len(s.values) + len(s.pages) + len(s.reserved)
-	b := make([]byte, 0, 8*binary.MaxVarintLen64+len(s.table)*(1+2*binary.MaxVarintLen64)+s.partial.Len()*len(pageMap{})*8+3*binary.MaxVarintLen64*(queued+len(s.log)))
+	b := make([]byte, 0, (6+2*streams)*binary.MaxVarintLen64+len(s.table)*(1+2*binary.MaxVarintLen64)+s.partial.Len()*len(pageMap{})*8+3*binary.MaxVarintLen64*(queued+len(s.log)))
 
 	// Write the release marks and the table. A held chunk is free to any
 	// space that reads it.
@@ -710,13 +735,16 @@ func (s *space) encode() []byte {
 		}
 	}
 
-	// Write the open chunk, as its number plus one, and its cursor.
-	if s.open.end == 0 {
-		u(0)
-		u(0)
-	} else {
-		u(s.open.start/chunkSize + 1)
-		u(s.open.cursor - s.open.start)
+	// Write each stream's open chunk, as its number plus one, and its
+	// cursor.
+	for _, x := range s.open {
+		if x.end == 0 {
+			u(0)
+			u(0)
+			continue
+		}
+		u(x.start/chunkSize + 1)
+		u(x.cursor - x.start)
 	}
 
 	// Write the runs awaiting release and the log chunks. No saved tree
@@ -812,13 +840,17 @@ func decodeSpace(b []byte) (*space, error) {
 		return nil, errors.Wrap(ErrCorrupt, "first chunk does not hold the fixed pages")
 	}
 
-	// Read the open chunk.
-	if c, at := d.uvarint(), d.uvarint(); c != 0 {
-		if c > uint64(len(s.table)) || s.table[c-1].kind != chunkValue || at > chunkSize {
-			return nil, errors.Wrap(ErrCorrupt, "open chunk is not a value chunk")
+	// Read each stream's open chunk.
+	for i := range s.open {
+		c, at := d.uvarint(), d.uvarint()
+		if c == 0 {
+			continue
+		}
+		if c > uint64(len(s.table)) || s.table[c-1].kind != chunkValue || at > chunkSize || s.openStream(c-1) >= 0 {
+			return nil, errors.Wrap(ErrCorrupt, "open chunk is not a value chunk of its own")
 		}
 		start := (c - 1) * chunkSize
-		s.open = extent{start: start, cursor: start + at, end: start + chunkSize}
+		s.open[i] = extent{start: start, cursor: start + at, end: start + chunkSize}
 	}
 
 	// Read the runs awaiting release and the log chunks.
@@ -832,4 +864,57 @@ func decodeSpace(b []byte) (*space, error) {
 		s.log = append(s.log, run{start: d.uvarint(), n: d.uvarint()})
 	}
 	return s, d.err
+}
+
+// victim returns the value chunk the cleaner should empty next and its live
+// bytes, or false when the file holds too little slack to clean: free chunks
+// and dead bytes in closed value chunks together at most an eighth of the
+// live bytes, or less than least. While a free chunk lies below the highest
+// value chunk, that chunk goes first, open or not, so the end can fall;
+// emptying an open chunk closes it. Otherwise the closed chunk with the best
+// cost-benefit (1-u)*age/(1+u) goes, where u is its live share and age the
+// commits since it last took a value, once the dead bytes alone pass the
+// bound. A victim is a value chunk with live bytes that does not start a long
+// value and that stuck does not hold at its current seq. seq is the latest
+// commit.
+func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64, uint32, bool) {
+	// Sum the slack and find the highest chunk and the best scored one.
+	var dead int64
+	var top, best uint64
+	var bestScore float64
+	haveTop, found := false, false
+	for c := range s.table {
+		e := &s.table[c]
+		cu := uint64(c) // #nosec G115 -- slice indexes are not negative.
+		if e.kind != chunkValue || e.live == 0 || (c+1 < len(s.table) && s.table[c+1].kind == chunkTail) {
+			continue
+		}
+		if at, ok := stuck[cu]; ok && at == e.seq {
+			continue
+		}
+		top, haveTop = cu, true
+		if s.openStream(cu) >= 0 {
+			continue
+		}
+		dead += int64(chunkSize - e.live)
+		u := float64(e.live) / chunkSize
+		score := (1 - u) * float64(seq-min(seq, e.seq)+1) / (1 + u)
+		if !found || score > bestScore {
+			best, bestScore, found = cu, score, true
+		}
+	}
+
+	// Clean only past the slack bound: the highest chunk first while a
+	// free chunk lies below it, else the best scored.
+	bound := max(s.liveBytes/8, least)
+	if !haveTop || dead+int64(s.free.Len())*chunkSize <= bound {
+		return 0, 0, false
+	}
+	if free, ok := s.free.Min(); ok && free < top {
+		return top, s.table[top].live, true
+	}
+	if !found || dead <= bound || bestScore == 0 {
+		return 0, 0, false
+	}
+	return best, s.table[best].live, true
 }

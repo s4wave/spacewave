@@ -18,7 +18,7 @@ type Options struct {
 	// A commit waits for the running checkpoint while the overlay exceeds
 	// twice this or the log four times. Zero selects 64 MiB.
 	CheckpointMax int64
-	// RelocateBudget is the bytes the background cleaner moves in one pass.
+	// RelocateBudget is the bytes a second the background cleaner moves.
 	// Negative turns the cleaner off, and zero selects 4 MiB.
 	RelocateBudget int64
 	// SingleProcess skips watching the file for other processes' commits

@@ -15,6 +15,8 @@ import (
 type writer struct {
 	// db is the database.
 	db *DB
+	// salt goes in every record this handle writes; see recordHeader.
+	salt uint32
 	// mtx excludes this handle's other writers.
 	mtx csync.Mutex
 	// unlockMtx releases mtx while the writer lock is held.
@@ -247,9 +249,13 @@ func (w *writer) replaySpace(st *state) error {
 		// Release first: the writer placed this record's values after
 		// every release its marks cover.
 		sp.release(r.released.seq, r.released.ckpt)
+		stream := streamNew
+		if r.kind == kindMove {
+			stream = streamMoved
+		}
 		for _, o := range r.ops {
 			if o.val.isRef {
-				sp.replayValue(o.val.ref.off, int(o.val.ref.n), r.seq)
+				sp.replayValue(o.val.ref.off, int(o.val.ref.n), r.seq, stream)
 			}
 		}
 		for _, fr := range r.frees {
@@ -271,8 +277,9 @@ func (w *writer) replaySpace(st *state) error {
 }
 
 // commit appends a commit record for changes on base, writes its values,
-// and publishes the new state. moves reports that changes are compaction's
-// moves, which the flows do not count. The caller holds the writer lock.
+// and publishes the new state. moves reports that changes are the cleaner's
+// moves, which go in the moved stream and which the flows do not count. The
+// caller holds the writer lock.
 func (w *writer) commit(ctx context.Context, base *state, changes []tentry, ordered, moves bool) error {
 	// Load the index paths of the changes the overlay does not answer
 	// together, so a cold commit reads one round per tree level instead of
@@ -291,9 +298,12 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 	// Resolve each change against the base state: frees, count, value
 	// placement, and the flow of its family.
 	r := &record{kind: kindCommit}
+	stream := streamNew
 	var writes []valueWrite
 	var flows []Flow
-	if !moves {
+	if moves {
+		r.kind, stream = kindMove, streamMoved
+	} else {
 		flows = make([]Flow, len(db.flows))
 	}
 	for _, c := range changes {
@@ -348,7 +358,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		chunk := sp.takeChunks(chunksFor(pagesFor(size)), chunkLog)
 		sp.log = append(sp.log, chunk)
 		l := newLink(seq, chunk)
-		link = l.encode(prev)
+		link = l.encode(prev, w.salt)
 		seq, prev = seq+1, l.crc
 		pos, end = chunk.start*pageSize, chunk.end()*pageSize
 	}
@@ -356,11 +366,20 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 	w.db.ownSeq.Store(seq)
 
 	// Place values, then free replaced ones and release what no snapshot
-	// reads.
+	// reads. A move never places a value in the chunk it frees one from, so
+	// a move out of the moved stream's open chunk closes it first; replay
+	// follows, since the record's values open another chunk.
+	if moves {
+		for _, fr := range r.frees {
+			if sp.open[streamMoved].holds(fr.off / chunkSize) {
+				sp.open[streamMoved] = extent{}
+			}
+		}
+	}
 	for i := range writes {
 		wr := &writes[i]
 		ref := &r.ops[wr.op].val.ref
-		wr.entry, ref.off = sp.placeValue(len(r.ops[wr.op].key), len(wr.data), seq)
+		wr.entry, ref.off = sp.placeValue(len(r.ops[wr.op].key), len(wr.data), seq, stream)
 	}
 	for _, fr := range r.frees {
 		sp.freeValue(fr.off, int(fr.n), seq)
@@ -376,7 +395,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 		return err
 	}
 	r.durable, _, _ = db.flush.marks()
-	rec := r.encode(prev)
+	rec := r.encode(prev, w.salt)
 	if err := w.writeRecord(link, linkPos, rec, pos); err != nil {
 		return err
 	}
@@ -1250,7 +1269,7 @@ func (w *writer) moveLog(ctx context.Context) error {
 	chunk := sp.takeChunks(1, chunkLog)
 	sp.log = append(sp.log, chunk)
 	link := newLink(st.seq+1, chunk)
-	if _, err := db.s.WriteAt(link.encode(st.crc), fileOff(st.pos)); err != nil {
+	if _, err := db.s.WriteAt(link.encode(st.crc, w.salt), fileOff(st.pos)); err != nil {
 		return err
 	}
 	if err := db.s.flushOrdered(); err != nil {
