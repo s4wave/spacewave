@@ -231,6 +231,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 	}
 
 	// Write the entries and move the roots in one transaction.
+	v.noteUnknownRefsBatch(putRoots, entries)
 	var existed []bool
 	err := v.withDirectAtomic(ctx, func(blocks block.StoreOps, rg *block_gc.RefGraph) error {
 		// Write the entries under the bucket's ownership.

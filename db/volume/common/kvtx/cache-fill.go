@@ -150,7 +150,7 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 	// Count the blocks they stored.
 	if err == nil {
 		for _, fill := range fills {
-			v.countPut(putFill, len(fill.data), fill.existed)
+			v.countPut(putFill, len(fill.data), fill.existed, fill.opts.GetRefsKnown())
 		}
 	}
 	return err

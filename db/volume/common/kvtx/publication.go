@@ -36,6 +36,11 @@ func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (
 		return nil, err
 	}
 
+	// Log the first writer publishing a block without its references.
+	if p != nil {
+		v.noteUnknownRefsBatch(putPublication, p.Entries)
+	}
+
 	// Reserve a reader pin for a published named root.
 	var owner string
 	var release func()

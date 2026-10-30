@@ -1,11 +1,15 @@
 package kvtx
 
 import (
+	"runtime"
+	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/sirupsen/logrus"
 )
 
 // putPath names a path that writes blocks into the volume, for its flows.
@@ -37,6 +41,11 @@ var putPathNames = [numPutPaths]string{"direct", "publication", "owned", "fill",
 type putCount struct {
 	// blocks and bytes are the flow's blocks and their length.
 	blocks, bytes atomic.Uint64
+	// unknown counts the flow's blocks stored without their references.
+	unknown atomic.Uint64
+	// callerLogged records that the first caller putting a block without its
+	// references was logged.
+	callerLogged atomic.Bool
 }
 
 // ValueFamily is a key prefix of the volume's storage and the name its flows
@@ -59,6 +68,13 @@ func ValueFamilies(keys *store_kvkey.KVKey) []ValueFamily {
 	}
 }
 
+// SetLogger sets the logger that reports the first caller of each write path
+// putting a block without its references. It is called once, before the
+// volume is used; without it nothing is logged.
+func (v *Volume) SetLogger(le *logrus.Entry) {
+	v.le = le
+}
+
 // SetValueFlows sets fn to report the values the volume's storage wrote and
 // freed, by key family. It is called once, before the volume is used.
 func (v *Volume) SetValueFlows(fn func() []volume.ValueFlow) {
@@ -73,9 +89,10 @@ func (v *Volume) GetFlows() *volume.VolumeFlows {
 	for path := range numPutPaths {
 		c := &v.puts[path]
 		flows.Puts = append(flows.Puts, volume.PutFlow{
-			Path:   putPathNames[path],
-			Blocks: c.blocks.Load(),
-			Bytes:  c.bytes.Load(),
+			Path:    putPathNames[path],
+			Blocks:  c.blocks.Load(),
+			Bytes:   c.bytes.Load(),
+			Unknown: c.unknown.Load(),
 		})
 	}
 
@@ -87,31 +104,96 @@ func (v *Volume) GetFlows() *volume.VolumeFlows {
 }
 
 // countPut counts a block of n bytes that path stored, unless the volume held
-// it already.
-func (v *Volume) countPut(path putPath, n int, existed bool) {
-	if !existed {
-		v.puts[path].blocks.Add(1)
-		v.puts[path].bytes.Add(uint64(n)) // #nosec G115 -- lengths are not negative.
+// it already, and whether its writer declared its references.
+func (v *Volume) countPut(path putPath, n int, existed, refsKnown bool) {
+	if existed {
+		return
+	}
+	v.puts[path].blocks.Add(1)
+	v.puts[path].bytes.Add(uint64(n)) // #nosec G115 -- lengths are not negative.
+	if !refsKnown && n != 0 {
+		v.puts[path].unknown.Add(1)
 	}
 }
 
 // countPutBatch counts the entries path stored that the volume did not hold,
-// as existed reports them. A tombstone stores no block.
+// as existed reports them, and those stored without their references. A
+// tombstone stores no block.
 func (v *Volume) countPutBatch(path putPath, entries []*block.PutBatchEntry, existed []bool) {
 	// Sum the new blocks.
-	var blocks, bytes uint64
+	var blocks, bytes, unknown uint64
 	for i, e := range entries {
 		if e.Tombstone || (i < len(existed) && existed[i]) {
 			continue
 		}
 		blocks++
 		bytes += uint64(len(e.Data))
+		if !e.RefsKnown && len(e.Data) != 0 {
+			unknown++
+		}
 	}
 
 	// Count them.
 	if blocks != 0 {
 		v.puts[path].blocks.Add(blocks)
 		v.puts[path].bytes.Add(bytes)
+	}
+	if unknown != 0 {
+		v.puts[path].unknown.Add(unknown)
+	}
+}
+
+// noteUnknownRefs logs the caller of the first put on path of a block without
+// its references, once per path for the life of the volume. It runs on the
+// caller's goroutine, before the put, so the stack names the writer; the put
+// may still find the block stored.
+func (v *Volume) noteUnknownRefs(path putPath, data []byte, opts *block.PutOpts) {
+	if len(data) != 0 && !opts.GetRefsKnown() {
+		v.logUnknownRefsCaller(path)
+	}
+}
+
+// noteUnknownRefsBatch logs the caller of the first batch on path holding a
+// block without its references, as noteUnknownRefs does.
+func (v *Volume) noteUnknownRefsBatch(path putPath, entries []*block.PutBatchEntry) {
+	for _, e := range entries {
+		if !e.Tombstone && !e.RefsKnown && len(e.Data) != 0 {
+			v.logUnknownRefsCaller(path)
+			return
+		}
+	}
+}
+
+// logUnknownRefsCaller logs the stack of the caller of a put on path without
+// references, unless one was logged already.
+func (v *Volume) logUnknownRefsCaller(path putPath) {
+	if v.le == nil || !v.puts[path].callerLogged.CompareAndSwap(false, true) {
+		return
+	}
+	v.le.WithField("path", putPathNames[path]).
+		WithField("caller", callerStack(3)).
+		Warn("block put without references")
+}
+
+// callerStack formats the stack above skip frames, innermost first, as
+// "function file:line" separated by " < ".
+func callerStack(skip int) string {
+	var pcs [24]uintptr
+	frames := runtime.CallersFrames(pcs[:runtime.Callers(skip+1, pcs[:])])
+	var b strings.Builder
+	for {
+		f, more := frames.Next()
+		if b.Len() != 0 {
+			b.WriteString(" < ")
+		}
+		b.WriteString(f.Function)
+		b.WriteByte(' ')
+		b.WriteString(f.File)
+		b.WriteByte(':')
+		b.WriteString(strconv.Itoa(f.Line))
+		if !more {
+			return b.String()
+		}
 	}
 }
 

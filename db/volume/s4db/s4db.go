@@ -103,11 +103,12 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 		return nil, errors.Join(err, db.Close())
 	}
 
-	// Coordinate writers across processes through the database file, measure
-	// the file and its disk for the volume's health, report the values each
-	// key family wrote and freed, and release what collection frees while
-	// the volume refuses writes at its reserve.
+	// Coordinate writers across processes through the database file, log
+	// puts without references, measure the file and its disk for the volume's
+	// health, report the values each key family wrote and freed, and release
+	// what collection frees while the volume refuses writes at its reserve.
 	vol.Coordinator = coord_s4db.NewCoordinator(db, coord_inmem.ForVolume(vol.GetID()))
+	vol.SetLogger(le)
 	vol.SetReserveRelease(db.Release)
 	vol.SetValueFlows(func() []volume.ValueFlow {
 		return valueFlows(families, db.Flows())

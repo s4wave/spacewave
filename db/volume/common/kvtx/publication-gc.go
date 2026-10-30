@@ -84,8 +84,10 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 	// Send a cache fill to the fill writer, which counts it.
 	putOpts, _ := block.PutOptsWithoutSync(opts)
 	if putOpts.GetCacheFill() {
+		v.noteUnknownRefs(putFill, data, putOpts)
 		return v.prepareCacheFill(ctx, bucketOwner(bucketID), data, putOpts)
 	}
+	v.noteUnknownRefs(putOwned, data, putOpts)
 
 	// Write the block under the bucket's ownership and count it.
 	err = v.prepareOwned(ctx, bucketOwner(bucketID), len(data), claimBucket, func(store block.StoreOps) error {
@@ -93,7 +95,7 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 		return err
 	})
 	if err == nil {
-		v.countPut(putOwned, len(data), existed)
+		v.countPut(putOwned, len(data), existed, putOpts.GetRefsKnown())
 	}
 	return ref, existed, err
 }
@@ -107,6 +109,7 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 	}
 
 	// Write the entries under the bucket's ownership and count them.
+	v.noteUnknownRefsBatch(putOwned, entries)
 	err = v.prepareOwned(ctx, bucketOwner(bucketID), batchBytes(entries), claimBucket, func(store block.StoreOps) error {
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err

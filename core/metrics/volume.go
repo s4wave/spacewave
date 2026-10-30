@@ -75,6 +75,11 @@ var (
 		"Length of the blocks the volume stored that it did not hold, by write path, since it opened.",
 		[]string{volumeLabel, "path"}, nil,
 	)
+	volumePutUnknownRefsBlocksDesc = prometheus.NewDesc(
+		"spacewave_volume_put_unknown_refs_blocks_total",
+		"Blocks the volume stored that it did not hold without their references, by write path, since it opened.",
+		[]string{volumeLabel, "path"}, nil,
+	)
 	volumeValueWrittenBytesDesc = prometheus.NewDesc(
 		"spacewave_volume_value_written_bytes_total",
 		"Length of the values the volume's storage stored outside its index, by key family, since it opened.",
@@ -97,7 +102,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeLiveValueBytesDesc, volumeFreeDiskBytesDesc, volumeSizesAgeSecondsDesc,
 		volumePublicationPendingDesc, volumePublicationPendingBytesDesc, volumeWriteReserveDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc,
-		volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
+		volumePutUnknownRefsBlocksDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
 	} {
 		ch <- d
 	}
@@ -117,11 +122,12 @@ func (volumeCollector) Collect(ch chan<- prometheus.Metric) {
 
 // collectFlows sends the counters of the data one volume wrote.
 func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
-	// Report the new blocks of each write path.
+	// Report the new blocks of each write path, and those without references.
 	id := f.VolumeID
 	for _, p := range f.Puts {
 		ch <- prometheus.MustNewConstMetric(volumePutBlocksDesc, prometheus.CounterValue, float64(p.Blocks), id, p.Path)
 		ch <- prometheus.MustNewConstMetric(volumePutBytesDesc, prometheus.CounterValue, float64(p.Bytes), id, p.Path)
+		ch <- prometheus.MustNewConstMetric(volumePutUnknownRefsBlocksDesc, prometheus.CounterValue, float64(p.Unknown), id, p.Path)
 	}
 
 	// Report the stored values of each key family.

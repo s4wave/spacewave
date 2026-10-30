@@ -14,6 +14,8 @@ type PutFlow struct {
 	Blocks uint64
 	// Bytes is their total length.
 	Bytes uint64
+	// Unknown is the number of those blocks stored without their references.
+	Unknown uint64
 }
 
 // ValueFlow counts the values the volume's storage stored outside its index

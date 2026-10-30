@@ -116,26 +116,36 @@ func (v *Volume) releasedStagesLocked(removes []block_gc.RefEdge) ([]string, []b
 // stage's ownership edge. It returns block.ErrStageReleased after the stage is
 // released.
 func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []byte, opts *block.PutOpts) (ref *block.BlockRef, existed bool, err error) {
+	// Note a block without references, then write it under the stage.
 	putOpts, _ := block.PutOptsWithoutSync(opts)
+	v.noteUnknownRefs(putStaged, data, putOpts)
 	err = v.prepareOwned(ctx, stage, len(data), v.claimStage, func(store block.StoreOps) error {
 		ref, existed, err = store.PutBlock(ctx, data, putOpts)
 		return err
 	})
+
+	// Count the block it stored.
 	if err == nil {
-		v.countPut(putStaged, len(data), existed)
+		v.countPut(putStaged, len(data), existed, putOpts.GetRefsKnown())
 	}
 	return ref, existed, err
 }
 
 // PrepareStagedBlockBatch writes a batch owned by an open stage.
 func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entries []*block.PutBatchEntry) (existed []bool, err error) {
+	// An empty batch writes nothing.
 	if len(entries) == 0 {
 		return nil, nil
 	}
+
+	// Note blocks without references, then write the batch under the stage.
+	v.noteUnknownRefsBatch(putStaged, entries)
 	err = v.prepareOwned(ctx, stage, batchBytes(entries), v.claimStage, func(store block.StoreOps) error {
 		existed, err = store.PutBlockBatch(ctx, entries)
 		return err
 	})
+
+	// Count the blocks it stored.
 	if err == nil {
 		v.countPutBatch(putStaged, entries, existed)
 	}
