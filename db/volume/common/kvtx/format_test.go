@@ -482,8 +482,8 @@ func testCopyStore(t *testing.T, c copyCase, src, dst db_kvtx.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rtx.Discard()
 	value, found, err := rtx.Get(ctx, []byte("other"))
+	rtx.Discard()
 	if err != nil || !found || string(value) != "value" {
 		t.Fatalf("other key: found %v value %q err %v", found, value, err)
 	}

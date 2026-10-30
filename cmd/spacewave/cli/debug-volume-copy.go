@@ -77,7 +77,7 @@ func newDebugVolumeCopyCommand() *cli.Command {
 				reach = &opts
 			}
 			src, dst := c.Args().Get(0), c.Args().Get(1)
-			if err := copyVolumeFile(c.Context, src, dst, reach, os.Stderr); err != nil || !verify {
+			if err := copyVolumeFile(c.Context, src, dst, reach, verify, os.Stderr); err != nil || !verify {
 				return err
 			}
 			return verifyVolumeFile(c.Context, src, dst, os.Stderr)
@@ -87,8 +87,9 @@ func newDebugVolumeCopyCommand() *cli.Command {
 
 // copyVolumeFile copies the stopped volume at src into the new file dst,
 // only its reachable part when reachable is set, writing progress lines to w.
-// It removes dst when the copy fails.
-func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, w io.Writer) (err error) {
+// With verify, it first checks that a copy of src can be verified. It removes
+// dst when the copy fails.
+func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx.CopyReachableOptions, verify bool, w io.Writer) (err error) {
 	// Open the source read-only, which also reads the previous value format,
 	// refusing a file a daemon has open.
 	sdb, err := s4db.Open(src, s4db.Options{ReadOnly: true})
@@ -102,6 +103,11 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 	}
 	if shared {
 		return fmt.Errorf("%s is open in another process; stop the daemon first", src)
+	}
+	if verify {
+		if err := volume_kvtx.CheckVerifiable(ctx, sdb, store_kvkey.NewDefaultKVKey()); err != nil {
+			return fmt.Errorf("%w; copy it without --verify", err)
+		}
 	}
 
 	// Create the destination, which must not exist. Its keys arrive in order

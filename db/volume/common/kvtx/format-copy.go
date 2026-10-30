@@ -59,6 +59,20 @@ func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey
 	return copyStore(ctx, src, dst, keys, version, nil, progress)
 }
 
+// CheckVerifiable returns an error unless VerifyCopy can check a copy of
+// src: CopyStore copies a store at format version 4 or later verbatim, but
+// converts the graph of an older one.
+func CheckVerifiable(ctx context.Context, src kvtx.Store, keys *store_kvkey.KVKey) error {
+	version, err := readFormatVersion(ctx, src, keys)
+	if err != nil {
+		return err
+	}
+	if version < 4 || version > store_kvkey.FormatVersion {
+		return fmt.Errorf("verify needs a source at store format version 4 to %d, found %d", store_kvkey.FormatVersion, version)
+	}
+	return nil
+}
+
 // VerifyCopy checks that dst, written by CopyStore from src, holds exactly
 // src's keys and values and the current format version. A source at format
 // version 4 or later is copied verbatim apart from its version, so the two
@@ -67,16 +81,12 @@ func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey
 // each migrateBatchBytes compared.
 func VerifyCopy(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(CopyProgress)) error {
 	// Require a source copied verbatim.
-	version, err := readFormatVersion(ctx, src, keys)
-	if err != nil {
+	if err := CheckVerifiable(ctx, src, keys); err != nil {
 		return err
-	}
-	if version < 4 || version > store_kvkey.FormatVersion {
-		return fmt.Errorf("verify needs a source at store format version 4 to %d, found %d", store_kvkey.FormatVersion, version)
 	}
 
 	// Require a copy that recorded the current version last.
-	version, err = readFormatVersion(ctx, dst, keys)
+	version, err := readFormatVersion(ctx, dst, keys)
 	if err != nil {
 		return err
 	}
