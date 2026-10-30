@@ -231,6 +231,12 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 				go c.traceUnknown(ctx, tracer, stats.UnknownSample)
 			}
 		}
+		if stats.CountHeld != 0 {
+			c.le.
+				WithField("blocks", stats.CountHeld).
+				WithField("sample", block_gc.FormatIRIs(stats.CountHeldSample)).
+				Warn("gc kept unreached blocks the counts hold")
+		}
 		// Save the next block pass so a restart resumes the schedule.
 		if stats.BlockPasses != 0 {
 			if err := writeGcSchedule(ctx, vol, collector.NextMark()); err != nil && ctx.Err() == nil {

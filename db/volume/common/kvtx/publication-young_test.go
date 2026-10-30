@@ -143,9 +143,27 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Release and sweep it: the counts stay complete.
+	// Release it, and make the counts hold its blocks: a minor pass keeps
+	// them and reports the disagreement.
 	orphanPublication(t, v, third)
-	sweepYoung(v)
+	zero := setZeroCounts(t, store, nil)
+	var held block_gc.Stats
+	if err := v.SweepYoungBlocks(ctx, v.GetRefGraph(), &held); err != nil {
+		t.Fatal(err)
+	}
+	if held.CountHeld != len(zero) || len(zero) == 0 {
+		t.Fatalf("minor pass kept %d blocks the counts hold, want %d", held.CountHeld, len(zero))
+	}
+	if _, found, err := v.GetBlock(ctx, third.Entries[0].Ref); err != nil || !found {
+		t.Fatalf("block the counts hold: found=%v err=%v", found, err)
+	}
+
+	// Restore the counts. The minor pass promoted the kept blocks, so a
+	// block pass sweeps them, and the counts stay complete.
+	setZeroCounts(t, store, zero)
+	if err := v.SweepUnreachedBlocks(ctx, v.GetRefGraph(), &held); err != nil {
+		t.Fatal(err)
+	}
 	assertPublishedBlock(t, v, third, false)
 	assertPublishedBlock(t, v, live, true)
 	wantCounts(complete)
@@ -179,6 +197,46 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 	if err != nil || state.Phase != block_gc.CountsDoubt {
 		t.Fatalf("count state after the audit = %+v, %v", state, err)
 	}
+}
+
+// setZeroCounts sets each zero count record in store to one, and returns the
+// records it replaced; given those records, it writes them back instead.
+func setZeroCounts(t *testing.T, store store_kvtx.Store, restore map[string][]byte) map[string][]byte {
+	// Find the zero count records.
+	t.Helper()
+	ctx := t.Context()
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+	zero := restore
+	if zero == nil {
+		zero = make(map[string][]byte)
+		err := tx.ScanPrefix(ctx, append(slices.Clone(refGraphPrefix), 'k'), func(key, value []byte) error {
+			if value[0] == 0 {
+				zero[string(key)] = slices.Clone(value)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Write each record as one, or as it was.
+	for key, value := range zero {
+		if restore == nil {
+			value = []byte{1}
+		}
+		if err := tx.Set(ctx, []byte(key), value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	return zero
 }
 
 // holeWriter stores a block and the child it names, child first, as one

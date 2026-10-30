@@ -85,6 +85,27 @@ type Stats struct {
 	RescuedNodes int
 	// BlocksSwept is the number of blocks block passes removed.
 	BlocksSwept int
+	// CountHeld is the number of blocks the mark did not reach that the
+	// sweep kept because their count is above zero: the mark and the counts
+	// disagree.
+	CountHeld int
+	// CountHeldSample lists some of those blocks.
+	CountHeldSample []string
+}
+
+// countHeldSample bounds Stats.CountHeldSample.
+const countHeldSample = 8
+
+// RecordCountHeld records blocks a sweep kept because their count is above
+// zero.
+func (s *Stats) RecordCountHeld(blocks []string) {
+	s.CountHeld += len(blocks)
+	for _, block := range blocks {
+		if len(s.CountHeldSample) == countHeldSample {
+			return
+		}
+		s.CountHeldSample = append(s.CountHeldSample, block)
+	}
 }
 
 // RecordMark records a block pass's mark.

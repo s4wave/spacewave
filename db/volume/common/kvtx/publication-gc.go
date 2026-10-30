@@ -583,12 +583,13 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 			for len(window) != 0 {
 				chunkStart := time.Now()
 				chunk := window[:min(len(window), size)]
-				removed, done, err := sweepBlockChunk(ctx, blocks, rg, mark.Live, chunk, v.writersWaiting)
+				removed, held, done, err := sweepBlockChunk(ctx, blocks, rg, mark.Live, chunk, v.writersWaiting)
 				window, nodes = window[done:], nodes[done:]
 				stats.AtomicSweepCount += done
 				if err != nil {
 					return err
 				}
+				stats.RecordCountHeld(held)
 				batch = append(batch, removed...)
 				size = nextChunkSize(size, time.Since(chunkStart), sweepChunkSize)
 				if yield() {
@@ -651,33 +652,45 @@ func (v *Volume) prefetchNodeRefs(ctx context.Context, nodes []string) error {
 }
 
 // sweepBlockChunk removes the chunk's blocks that the mark and the rescues
-// did not reach, with their records, and returns them and how many of the
-// chunk's nodes it looked at. It stops before the next node once yield
+// did not reach and the counts do not hold, with their records. It returns
+// them, the unreached blocks it kept because their count is above zero, and
+// how many of the chunk's nodes it looked at. A kept block counts as swept
+// for the pass's promotion, so a minor pass leaves it to the next block pass.
+// It stops before the next node once yield
 // reports a waiting writer, after at least one: a node's reads under the
 // writer can take a second on a cold store, so a whole chunk held a
 // checkpoint's page reservations, and every write behind it, for seconds.
-func sweepBlockChunk(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, live *block_gc.NodeSet, chunk []string, yield func() bool) ([]string, int, error) {
-	var swept []string
+func sweepBlockChunk(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, live *block_gc.NodeSet, chunk []string, yield func() bool) (swept, held []string, done int, err error) {
 	for i, node := range chunk {
 		// Let a waiting writer in.
 		if i != 0 && yield() {
-			return swept, i, nil
+			return swept, held, i, nil
 		}
 
-		// Remove an unreached block with its records.
+		// Keep an unreached block the counts hold.
 		ref, ok := block_gc.ParseBlockIRI(node)
 		if !ok || live.Has(node) {
 			continue
 		}
+		counted, err := rg.CountHolds(ctx, node)
+		if err != nil {
+			return nil, nil, i, err
+		}
+		if counted {
+			held = append(held, node)
+			continue
+		}
+
+		// Remove it with its records.
 		if _, err := rg.RemoveNodeRefs(ctx, node, true); err != nil {
-			return nil, i, err
+			return nil, nil, i, err
 		}
 		if err := blocks.RmBlock(ctx, ref); err != nil {
-			return nil, i, err
+			return nil, nil, i, err
 		}
 		swept = append(swept, node)
 	}
-	return swept, len(chunk), nil
+	return swept, held, len(chunk), nil
 }
 
 // nextCommit returns a channel that closes at the next change of the Volume's
