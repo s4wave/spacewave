@@ -2,6 +2,7 @@ package kvtx
 
 import (
 	"fmt"
+	"io"
 	"slices"
 	"testing"
 	"time"
@@ -148,6 +149,36 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 	assertPublishedBlock(t, v, third, false)
 	assertPublishedBlock(t, v, live, true)
 	wantCounts(complete)
+
+	// The audit agrees with the counts.
+	audit, err := v.AuditCounts(ctx, 0, 1)
+	if err != nil || audit.MismatchCount != 0 || audit.Blocks == 0 {
+		t.Fatalf("count audit = %+v, %v", audit, err)
+	}
+
+	// Lose a count record.
+	tx, err = store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lost []byte
+	err = tx.ScanPrefixKeys(ctx, append(slices.Clone(refGraphPrefix), 'k'), func(key []byte) error {
+		lost = slices.Clone(key)
+		return io.EOF
+	})
+	if err != io.EOF || tx.Delete(ctx, lost) != nil || tx.Commit(ctx) != nil {
+		t.Fatalf("delete a count record: %v", err)
+	}
+
+	// The audit finds it and puts the counts in doubt.
+	audit, err = v.AuditCounts(ctx, 0, 1)
+	if err != nil || audit.MismatchCount == 0 {
+		t.Fatalf("count audit after a lost record = %+v, %v", audit, err)
+	}
+	state, err := openRefGraph(store).GetCountState(ctx)
+	if err != nil || state.Phase != block_gc.CountsDoubt {
+		t.Fatalf("count state after the audit = %+v, %v", state, err)
+	}
 }
 
 // holeWriter stores a block and the child it names, child first, as one

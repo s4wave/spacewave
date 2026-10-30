@@ -1,7 +1,6 @@
 package block_gc
 
 import (
-	"encoding/binary"
 	"slices"
 	"strconv"
 	"strings"
@@ -116,6 +115,23 @@ func TestBlockCounts(t *testing.T) {
 	// Lose a count record, then release a holder of it: the counts go into
 	// doubt, the write commits, and nothing is counted after.
 	deleteRecord(t, rg, graphKey(kindCount, leaf))
+
+	// The audit names the block left without a count, for its list and its
+	// holders, and stops at its bound.
+	audit, err := rg.AuditCounts(ctx, 0, 1, 1<<20)
+	if err != nil || audit.MismatchCount != 2 {
+		t.Fatalf("audit after a lost count = %+v, %v", audit, err)
+	}
+	for _, mismatch := range audit.Mismatches {
+		if mismatch.Block != leaf {
+			t.Fatalf("audit mismatch %v, want the leaf", mismatch)
+		}
+	}
+	if _, err := rg.AuditCounts(ctx, 0, 1, 1); err != ErrCountAuditFull {
+		t.Fatalf("audit past its bound = %v, want ErrCountAuditFull", err)
+	}
+
+	// Release a holder of the block.
 	if err := rg.RemoveRef(ctx, "bucket/b", parent); err != nil {
 		t.Fatal(err)
 	}
@@ -168,108 +184,29 @@ func deleteRecord(t *testing.T, rg *RefGraph, key []byte) {
 	}
 }
 
-// auditCounts rebuilds the counts from the child lists and owner edges and
-// checks them against the stored count records and free queue. While a build
-// walks, it rebuilds them from the records before the build's cursor.
+// auditCounts audits the counts whole and in three shares, and fails on any
+// mismatch or on shares that do not add up to the whole.
 func auditCounts(t *testing.T, rg *RefGraph) {
-	// Read every record, and the cursor of a walking build.
+	// Audit the whole store.
 	t.Helper()
-	records := snapshotRefGraphRecords(t, rg.store)
-	var cursor string
-	if state := records[string(countsKey)]; len(state) != 0 && state[0] == countsWalking {
-		cursor = string(state[1:])
+	whole, err := rg.AuditCounts(t.Context(), 0, 1, 1<<20)
+	if err != nil {
+		t.Fatal(err)
 	}
-	counted := func(key string) bool { return cursor == "" || key < cursor }
-
-	// Decode the count records and free queue entries.
-	counts := make(map[string]countRecord)
-	queued := make(map[uint64]string)
-	for key, value := range records {
-		switch key[0] {
-		case kindCount:
-			block, _, err := readNode([]byte(key[1:]))
-			if err != nil {
-				t.Fatal(err)
-			}
-			rec, err := decodeCountRecord(value)
-			if err != nil {
-				t.Fatal(err)
-			}
-			counts[block] = rec
-		case kindFree:
-			block, _, err := readNode(value[8:])
-			if err != nil {
-				t.Fatal(err)
-			}
-			queued[binary.BigEndian.Uint64([]byte(key[1:]))] = block
-		}
+	if whole.MismatchCount != 0 {
+		t.Fatalf("count audit found %d mismatches: %v", whole.MismatchCount, whole.Mismatches)
 	}
 
-	// Rebuild each block's count from the owner edges of nodes that are not
-	// blocks and the lists of the blocks that hold.
-	want := make(map[string]uint64)
-	for key := range records {
-		if key[0] != kindIncoming || !counted(key) {
-			continue
+	// Audit it in shares, which must cover the same blocks.
+	var blocks int
+	for share := range uint32(3) {
+		audit, err := rg.AuditCounts(t.Context(), share, 3, 1<<20)
+		if err != nil || audit.MismatchCount != 0 {
+			t.Fatalf("count audit of share %d = %+v, %v", share, audit, err)
 		}
-		object, rest, err := readNode([]byte(key[1:]))
-		if err != nil {
-			t.Fatal(err)
-		}
-		subject, _, err := readNode(rest)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if isBlockNode(object) && subject != NodeUnreferenced {
-			want[object]++
-		}
+		blocks += audit.Blocks
 	}
-	for key, value := range records {
-		if key[0] != kindChildren || !counted(key) {
-			continue
-		}
-		block, _, err := readNode([]byte(key[1:]))
-		if err != nil {
-			t.Fatal(err)
-		}
-		rec, ok := counts[block]
-		if !ok {
-			t.Fatalf("child list of %s has no count", FormatIRI(block))
-		}
-		if rec.count == 0 && !rec.holds {
-			continue
-		}
-		children, err := decodeChildren(value)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, child := range children {
-			want[child]++
-		}
-	}
-
-	// Compare, and check each zero count has its one queue entry.
-	for block, rec := range counts {
-		if rec.count != want[block] {
-			t.Fatalf("count of %s = %d, want %d", FormatIRI(block), rec.count, want[block])
-		}
-		if rec.count == 0 && queued[rec.seq] != block {
-			t.Fatalf("zero count of %s has no queue entry %d", FormatIRI(block), rec.seq)
-		}
-		delete(want, block)
-	}
-	for block, n := range want {
-		if n != 0 {
-			t.Fatalf("%s has %d holders and no count", FormatIRI(block), n)
-		}
-	}
-	var zero int
-	for _, rec := range counts {
-		if rec.count == 0 {
-			zero++
-		}
-	}
-	if zero != len(queued) {
-		t.Fatalf("free queue has %d entries for %d zero counts", len(queued), zero)
+	if blocks != whole.Blocks {
+		t.Fatalf("count audit shares compared %d blocks, want %d", blocks, whole.Blocks)
 	}
 }

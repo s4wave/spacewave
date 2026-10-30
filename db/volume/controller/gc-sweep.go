@@ -2,6 +2,7 @@ package volume_controller
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -32,6 +33,17 @@ type countBuilder interface {
 	// BuildCounts builds for up to budget and returns the counts' state.
 	BuildCounts(ctx context.Context, budget time.Duration) (block_gc.CountState, error)
 }
+
+// countAuditor is implemented by a volume that audits its reference counts
+// against its reference graph, a share of the blocks at a time.
+type countAuditor interface {
+	// AuditCounts audits share of shares of the blocks.
+	AuditCounts(ctx context.Context, share, shares uint32) (block_gc.CountAudit, error)
+}
+
+// countAuditPeriod is the time over which the count audit covers every share
+// of the blocks once.
+const countAuditPeriod = 24 * time.Hour
 
 // markIntervals is the number of collection intervals between block passes,
 // before the collector backs off after passes that find little.
@@ -121,6 +133,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	defer timer.Stop()
 	var traced bool
 	builder, building := vol.(countBuilder)
+	audits := newAuditSchedule(vol, time.Now().Add(quietIntervals*interval))
 	hw, _ := vol.(volume.HealthWatcher)
 	reserve := &reserveWatch{hw: hw}
 	for {
@@ -253,12 +266,83 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 				c.le.WithField("phase", state.Phase).Debug("block counts built")
 			}
 		}
+		// Audit the next share of the counts when one is due.
+		if !building && audits.due(time.Now()) {
+			if err := c.auditCounts(ctx, audits); err != nil {
+				return err
+			}
+		}
 		if more {
 			timer.Reset(0)
 		} else {
 			timer.Reset(interval)
 		}
 	}
+}
+
+// auditSchedule paces a volume's count audit: one share of the blocks at a
+// time, every share once per countAuditPeriod. It starts at share zero of
+// one, doubles the shares when one is too large to audit, and stops when the
+// volume keeps no counts or they are in doubt. It lives in memory, so a
+// restart starts again from one share.
+type auditSchedule struct {
+	// auditor is the volume, or nil when it keeps no counts.
+	auditor countAuditor
+	// share is the next share to audit.
+	share uint32
+	// shares is the number of shares.
+	shares uint32
+	// next is when the next share is due.
+	next time.Time
+}
+
+// newAuditSchedule returns the audit schedule of vol, first due at first.
+func newAuditSchedule(vol volume.Volume, first time.Time) *auditSchedule {
+	auditor, _ := vol.(countAuditor)
+	return &auditSchedule{auditor: auditor, shares: 1, next: first}
+}
+
+// due reports whether an audit is due at now.
+func (s *auditSchedule) due(now time.Time) bool {
+	return s.auditor != nil && !now.Before(s.next)
+}
+
+// auditCounts audits the schedule's next share and logs what it found. A share
+// too large to audit doubles the shares, and the next interval audits the
+// first of them. It returns only the context's error.
+func (c *Controller) auditCounts(ctx context.Context, s *auditSchedule) error {
+	// Audit the share.
+	audit, err := s.auditor.AuditCounts(ctx, s.share, s.shares)
+	switch {
+	case err != nil && ctx.Err() != nil:
+		return ctx.Err()
+	case errors.Is(err, block_gc.ErrCountAuditFull):
+		s.share, s.shares = 0, s.shares*2
+		c.le.WithField("shares", s.shares).Debug("count audit split into more shares")
+		return nil
+	case err != nil:
+		c.le.WithError(err).Warn("count audit failed")
+	case audit.State.Phase != block_gc.CountsComplete && !audit.State.Building():
+		s.auditor = nil
+		c.le.WithField("phase", audit.State.Phase).Debug("count audit stopped: no counts kept")
+		return nil
+	case audit.MismatchCount != 0:
+		c.le.WithField("share", s.share).
+			WithField("shares", s.shares).
+			WithField("mismatches", audit.MismatchCount).
+			WithField("first", audit.Mismatches[0].String()).
+			Error("count audit found mismatches; block counts in doubt")
+	default:
+		c.le.WithField("share", s.share).
+			WithField("shares", s.shares).
+			WithField("blocks", audit.Blocks).
+			Debug("count audit passed")
+	}
+
+	// Move to the next share.
+	s.share = (s.share + 1) % s.shares
+	s.next = time.Now().Add(countAuditPeriod / time.Duration(s.shares))
+	return nil
 }
 
 // gcScheduleStoreID names the volume object store holding the GC schedule.
