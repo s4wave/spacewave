@@ -16,6 +16,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
@@ -295,13 +296,14 @@ func wrapReleaseWithTask(release func(), task *trace.Task) func() {
 
 // NewTransaction opens a read snapshot or a serialized write candidate.
 // Writes replay the current operation set before forking and hold the writer
-// lock until Commit installs their World or Discard. A write forks from the
-// World of the writes admitted before it, whose receipts may be pending. A
-// write fails with the replay's error when an operation's block is not
-// available, and holds no lock. A participant whose role cannot write
-// operations, such as a reader, gets tx.ErrNotWrite instead of a write, since
-// every replay would reject the operation it commits. Always call Discard when
-// done.
+// lock until Commit installs their World or Discard. A write whose ctx carries
+// world.WithOptimisticWrite releases the lock once it forks, and its Commit
+// takes it again to check its reads. A write forks from the World of the
+// writes admitted before it, whose receipts may be pending. A write fails with
+// the replay's error when an operation's block is not available, and holds no
+// lock. A participant whose role cannot write operations, such as a reader,
+// gets tx.ErrNotWrite instead of a write, since every replay would reject the
+// operation it commits. Always call Discard when done.
 func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
 	// Read snapshots depend on the block engine until Discard. Write candidates
 	// own independent forks and end with the controller's lifetime instead.
@@ -324,7 +326,7 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	// Serialize the write fork with other writes and replay.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/new-transaction")
 	defer task.End()
-	unlockWriteMtx, err := e.lockReplayed(ctx, clock)
+	unlockWriteMtx, err := e.lockReplayed(ctx, clock, stageLockWait)
 	if err != nil {
 		return nil, err
 	}
@@ -357,9 +359,16 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 		}
 	}
 
-	// Return the txn wrapper, recording what the write reads.
+	// Release the writer from an optimistic write. The fork holds its head
+	// until Discard.
 	fork := &replayFork{base: base, index: index, start: head, state: head}
 	clock.end(stageForkReplay)
+	if world.OptimisticWrite(ctx) {
+		unlockWriteMtx()
+		clock.optimistic = true
+	}
+
+	// Return the txn wrapper, recording what the write reads.
 	wtx := newSoEngineWriteTx(ttx, btx, e, fork, unlockWriteMtx, clock)
 	return world.TrackTx(wtx, wtx.reads), nil
 }
@@ -436,9 +445,10 @@ func (e *soEngine) WatchIndexedChanges(ctx context.Context, afterSeqno uint64, i
 // local blocks, so when it stops at a block a peer must serve, lockReplayed
 // releases the lock, fetches that block and tries again. It fails with
 // tx.ErrNotWrite when the current config does not let this participant write
-// operations. On success the caller holds the lock and releases it with the
-// returned function.
-func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock) (func(), error) {
+// operations. clock, when set, ends wait once the lock is taken. On success the
+// caller holds the lock and releases it with the returned function, which
+// releases it once however often it is called.
+func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock, wait commitStage) (func(), error) {
 	for {
 		// Take the writer lock, tracing the hold until the write releases it.
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/new-transaction/lock-write-mtx")
@@ -447,7 +457,7 @@ func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock) (func()
 		if err != nil {
 			return nil, err
 		}
-		clock.end(stageLockWait)
+		clock.end(wait)
 		_, holdWriteMtxTask := trace.NewTask(ctx, "alpha/so-engine/write-tx/hold-write-mtx")
 		unlockWriteMtx = wrapReleaseWithTask(unlockWriteMtx, holdWriteMtxTask)
 
@@ -476,6 +486,46 @@ func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock) (func()
 		}
 	}
 }
+
+// checkReads returns an error wrapping coord.ErrStaleGeneration when a write
+// that forked at fork read something the World installed since changed. Any
+// change touches a read of the whole World. The fork's write holds its head, so
+// the comparison reads both Worlds. The caller holds the writer lock and
+// installed the current operation set.
+func (e *soEngine) checkReads(ctx context.Context, fork *replayFork, reads *world.ReadSet) error {
+	// A write on the installed World read nothing that changed.
+	_, head, index := e.replay.head()
+	if fork.follows(e.replay, index) {
+		return nil
+	}
+	if reads.Scope() == world.ReadScopeWorld {
+		return errors.Wrap(coord.ErrStaleGeneration, "optimistic write read the whole World")
+	}
+
+	// List the changes since the fork and check the reads against them.
+	var changes *world.ChangeSet
+	err := e.bengine.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+		// Diff the World at the fork against the installed World.
+		_, before := root.BuildTransactionAtRef(nil, fork.start.GetHeadRef().GetRootRef())
+		_, after := root.BuildTransactionAtRef(nil, head.GetHeadRef().GetRootRef())
+		var err error
+		changes, err = world_block.WorldChanges(ctx, before, after, conflictDiffLimit)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	// Fail the write when a change touched anything it read.
+	if reads.TouchedStrict(changes) {
+		return errors.Wrap(coord.ErrStaleGeneration, "a write since the fork changed what the optimistic write read")
+	}
+	return nil
+}
+
+// conflictDiffLimit bounds the changed keys checkReads lists. A larger change
+// conflicts with every optimistic write that forked before it.
+const conflictDiffLimit = 4096
 
 // checkWritesOps returns tx.ErrNotWrite when the config of snap does not let
 // this participant write operations, or when it is an owner handing over: it

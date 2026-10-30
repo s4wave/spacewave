@@ -71,7 +71,8 @@ func TestWorldCommitLogsStageTimes(t *testing.T) {
 	}
 	names := []string{
 		"lock-wait", "fork-replay", "callback", "world-state-commit",
-		"block-commit", "publication-admission", "advance", "receipt-wait",
+		"block-commit", "commit-lock-wait", "validate",
+		"publication-admission", "advance", "receipt-wait",
 	}
 	hold, ok := slow[0].Data["hold"].(time.Duration)
 	if !ok {
@@ -147,7 +148,8 @@ func TestWorldCommitReportsObserver(t *testing.T) {
 	times := got[0]
 	names := []string{
 		"lock-wait", "fork-replay", "callback", "world-state-commit",
-		"block-commit", "publication-admission", "advance", "receipt-wait",
+		"block-commit", "commit-lock-wait", "validate",
+		"publication-admission", "advance", "receipt-wait",
 	}
 	if len(times.Stages) != len(names) {
 		t.Fatalf("got %d stages, want %d", len(times.Stages), len(names))

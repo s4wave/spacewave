@@ -15,7 +15,8 @@ import (
 )
 
 // soEngineWriteTx holds the writer lock until its operation is placed or
-// discarded.
+// discarded. An optimistic write holds it only while it forks and from the
+// check of its reads at Commit until its operation is placed.
 type soEngineWriteTx struct {
 	// WorldState records the operations applied to the fork.
 	*world_block_tx.WorldState
@@ -25,7 +26,9 @@ type soEngineWriteTx struct {
 	eng *soEngine
 	// fork is the replay position the write forked from.
 	fork *replayFork
-	// unlockWriteMtx releases the writer lock once, including repeated Discard calls.
+	// unlockWriteMtx releases the writer lock once, including repeated Discard
+	// calls. An optimistic write released it after its fork and replaces it at
+	// Commit.
 	unlockWriteMtx func()
 	// candidateRoot is the committed candidate World root whose staging
 	// ownership Discard releases once the installed World holds it.
@@ -70,7 +73,11 @@ func newSoEngineWriteTx(
 // the accepted World in one physical transaction: Commit releases the writer
 // lock once the publication admits the write and the engine installs its
 // World, so the next write forks from it, then waits for the receipt and
-// returns its error. A write is acknowledged only after its receipt.
+// returns its error. A write is acknowledged only after its receipt. An
+// optimistic write takes the writer lock after committing its candidate blocks
+// and fails with an error wrapping coord.ErrStaleGeneration when a write
+// installed since its fork changed what it read; when nothing it read changed,
+// replay applies its operation to the installed World.
 func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// Keep candidate cleanup and writer release bound to every return path.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/commit")
@@ -166,6 +173,13 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	// before Discard releases the blocks the candidate does not reach.
 	t.fork.payloads = t.TakePayloadRefs()
 
+	// Take the writer back for an optimistic write and check its reads.
+	if t.clock.optimistic {
+		if err := t.relock(ctx); err != nil {
+			return err
+		}
+	}
+
 	// Add the operation and install the World after it.
 	taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/queue-operation")
 	defer task.End()
@@ -186,6 +200,23 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 	if rerr := t.waitReceipt(ctx); rerr != nil {
 		return rerr
 	}
+	return err
+}
+
+// relock takes the writer lock for an optimistic write, installs the World
+// after the current operation set and checks the write's reads against the
+// changes since its fork. Discard releases the lock.
+func (t *soEngineWriteTx) relock(ctx context.Context) error {
+	// Take the lock and replay.
+	unlock, err := t.eng.lockReplayed(ctx, t.clock, stageCommitLockWait)
+	if err != nil {
+		return err
+	}
+	t.unlockWriteMtx = unlock
+
+	// Check the reads.
+	err = t.eng.checkReads(ctx, t.fork, t.reads)
+	t.clock.end(stageValidate)
 	return err
 }
 

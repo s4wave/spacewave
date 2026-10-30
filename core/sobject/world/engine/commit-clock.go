@@ -22,13 +22,19 @@ const (
 	stageLockWait commitStage = iota
 	// stageForkReplay replays the operation set and forks the candidate.
 	stageForkReplay
-	// stageCallback is the time the caller holds the writer between opening
-	// the write and calling Commit.
+	// stageCallback is the time between opening the write and calling Commit,
+	// during which the caller holds the writer unless the write is optimistic.
 	stageCallback
 	// stageWorldStateCommit closes the operation buffer.
 	stageWorldStateCommit
 	// stageBlockCommit commits the candidate World blocks.
 	stageBlockCommit
+	// stageCommitLockWait is the wait of an optimistic write for the writer
+	// lock at Commit.
+	stageCommitLockWait
+	// stageValidate replays the operation set for an optimistic write and
+	// checks its reads against the changes since its fork.
+	stageValidate
 	// stagePublicationAdmission prepares the operation and waits until the
 	// SharedObject admits it. A SharedObject that does not publish writes its
 	// state here, so its receipt wait stays at zero.
@@ -50,6 +56,8 @@ var commitStageNames = [commitStageCount]string{
 	stageCallback:             "callback",
 	stageWorldStateCommit:     "world-state-commit",
 	stageBlockCommit:          "block-commit",
+	stageCommitLockWait:       "commit-lock-wait",
+	stageValidate:             "validate",
 	stagePublicationAdmission: "publication-admission",
 	stageAdvance:              "advance",
 	stageReceiptWait:          "receipt-wait",
@@ -68,6 +76,9 @@ type commitClock struct {
 	stages [commitStageCount]time.Duration
 	// observer receives the stage times when the write commits, or is nil.
 	observer CommitObserver
+	// optimistic is set when the write released the writer lock after its
+	// fork, so its callback and candidate commit are not held.
+	optimistic bool
 }
 
 // newCommitClock starts the clock at the writer lock wait. The write reports
@@ -92,11 +103,24 @@ func (c *commitClock) end(stage commitStage) {
 	c.open = stage + 1
 }
 
+// held reports whether the write holds the writer lock during stage.
+func (c *commitClock) held(stage commitStage) bool {
+	switch stage {
+	case stageLockWait, stageCommitLockWait, stageReceiptWait:
+		return false
+	case stageCallback, stageWorldStateCommit, stageBlockCommit:
+		return !c.optimistic
+	default:
+		return true
+	}
+}
+
 // finish reports the stage times of the write to its observer as Commit ends and
 // logs them when the write took longer than slowCommitThreshold. The stages
-// field lists them in stage order, the hold field is the writer lock hold:
-// every stage after the lock wait up to the end of advance, and the reads field
-// is the scope of what the write read.
+// field lists them in stage order, the hold field is the writer lock hold: the
+// stages that ran under the lock, the optimistic field says whether the
+// callback ran without it, and the reads field is the scope of what the write
+// read.
 func (c *commitClock) finish(le *logrus.Entry, reads world.ReadScope) {
 	// Skip the work when nothing reads the times.
 	if c == nil {
@@ -108,15 +132,17 @@ func (c *commitClock) finish(le *logrus.Entry, reads world.ReadScope) {
 		return
 	}
 
-	// Sum the hold over the stages from the end of the lock wait to advance.
+	// Sum the hold over the stages that ran under the lock.
 	var hold time.Duration
-	for stage := stageLockWait + 1; stage <= stageAdvance; stage++ {
-		hold += c.stages[stage]
+	for stage := range commitStageCount {
+		if c.held(stage) {
+			hold += c.stages[stage]
+		}
 	}
 
 	// Report every stage to the observer.
 	if c.observer != nil {
-		times := CommitTimes{Elapsed: elapsed, Hold: hold, Stages: make([]CommitStageTime, commitStageCount)}
+		times := CommitTimes{Elapsed: elapsed, Hold: hold, Optimistic: c.optimistic, Stages: make([]CommitStageTime, commitStageCount)}
 		for stage, name := range commitStageNames {
 			times.Stages[stage] = CommitStageTime{Name: name, Duration: c.stages[stage]}
 		}
@@ -135,9 +161,10 @@ func (c *commitClock) finish(le *logrus.Entry, reads world.ReadScope) {
 		stages.WriteString(name + "=" + c.stages[stage].String())
 	}
 	le.WithFields(logrus.Fields{
-		"elapsed": elapsed,
-		"hold":    hold,
-		"stages":  stages.String(),
-		"reads":   reads.String(),
+		"elapsed":    elapsed,
+		"hold":       hold,
+		"stages":     stages.String(),
+		"optimistic": c.optimistic,
+		"reads":      reads.String(),
 	}).Warn("slow World commit")
 }
