@@ -676,6 +676,9 @@ func (db *DB) Compact(ctx context.Context) error {
 	if db.opts.ReadOnly {
 		return ErrReadOnly
 	}
+	if err := db.closeOpen(ctx); err != nil {
+		return err
+	}
 	if err := (&cleaner{db: db, sync: true}).clean(ctx); err != nil {
 		return err
 	}
@@ -685,6 +688,19 @@ func (db *DB) Compact(ctx context.Context) error {
 	err := db.w.compact(ctx)
 	db.w.unlock(err)
 	return err
+}
+
+// closeOpen closes every open value chunk, so the clean counts the room
+// left in them as slack and empties them like any other chunk. Closing needs
+// no record: a replay that keeps such a chunk open places values only after
+// its last one.
+func (db *DB) closeOpen(ctx context.Context) error {
+	if err := db.w.lock(ctx); err != nil {
+		return err
+	}
+	db.w.sp.open = [streams][openChunks]extent{}
+	db.w.unlock(nil)
+	return nil
 }
 
 // lockIdle takes the writer lock while no background checkpoint runs. A

@@ -8,7 +8,8 @@ import (
 // TestSpaceChunks walks the chunk table through its allocations and frees:
 // whole chunks come from the lowest free ones, index pages fill the fullest
 // index chunk, a chunk freed at the end shortens the file, values append to
-// the open chunk with their headers, a long value takes its own chunks, an
+// the open chunk they fit best with their headers, a long value takes its
+// own chunks, an
 // emptied chunk frees only on release, drain skips chunks taken again, and
 // the encoding and replay rebuild the same table.
 func TestSpaceChunks(t *testing.T) {
@@ -37,8 +38,8 @@ func TestSpaceChunks(t *testing.T) {
 		t.Fatalf("end %d with %d free chunks after the last chunk freed", sp.end(), sp.free.Len())
 	}
 
-	// Values append to the open chunk after their headers until one does
-	// not fit, which opens the next chunk.
+	// Values append to an open chunk after their headers until one does
+	// not fit, which opens the next chunk and leaves the first open.
 	const n = 300 << 10
 	var entries, offs []uint64
 	for i := range 4 {
@@ -49,13 +50,13 @@ func TestSpaceChunks(t *testing.T) {
 	if entries[0] != 2*chunkSize || offs[0] != entries[0]+h || entries[1] != offs[0]+n || entries[3] != 3*chunkSize {
 		t.Fatalf("entries %v offsets %v", entries, offs)
 	}
-	if sp.table[2].live != 3*n || sp.table[2].seq != 3 || !sp.open[streamNew].holds(3) {
+	if sp.table[2].live != 3*n || sp.table[2].seq != 3 || sp.openExtent(2) == nil || sp.openExtent(3) == nil {
 		t.Fatalf("chunk 2 %+v, open %+v", sp.table[2], sp.open)
 	}
 
 	// A long value takes chunks of its own and leaves the open chunk.
 	long, longOff := sp.placeValue(3, 2*chunkSize, 5, streamNew)
-	if long != 4*chunkSize || sp.table[4].kind != chunkValue || sp.table[5].kind != chunkTail || sp.table[6].kind != chunkTail || !sp.open[streamNew].holds(3) {
+	if long != 4*chunkSize || sp.table[4].kind != chunkValue || sp.table[5].kind != chunkTail || sp.table[6].kind != chunkTail || sp.openExtent(3) == nil {
 		t.Fatalf("long value at %d, table %v", long, kinds(sp))
 	}
 
@@ -103,16 +104,25 @@ func TestSpaceChunks(t *testing.T) {
 		t.Fatalf("record %+v not in use in the decoded space", r)
 	}
 
+	// A short value fills the room the long ones left in the first chunk,
+	// and a value fitting no open chunk opens one in place of the fullest.
+	sp2 := newSpace()
+	sp2.log = []run{sp2.takeChunks(1, chunkLog)}
+	sizes := []int{n, n, n, n, 100 << 10, n, n, n, n, n, n, n, n, n}
+	offs = offs[:0]
+	for i, size := range sizes {
+		_, off := sp2.placeValue(3, size, uint64(i+1), streamNew)
+		offs = append(offs, off)
+	}
+	if offs[4]/chunkSize != 2 || sp2.openExtent(2) != nil || sp2.openExtent(6) == nil {
+		t.Fatalf("short value at chunk %d, open %+v", offs[4]/chunkSize, sp2.open)
+	}
+
 	// Replaying the placements on the same start rebuilds the same table.
 	re := newSpace()
 	re.claimLog(chunkRun(1, 1))
 	for i, off := range offs {
-		re.replayValue(off, n, uint64(i+1), streamNew)
-	}
-	sp2 := newSpace()
-	sp2.log = []run{sp2.takeChunks(1, chunkLog)}
-	for i := range 4 {
-		sp2.placeValue(3, n, uint64(i+1), streamNew)
+		re.replayValue(off, sizes[i], uint64(i+1), streamNew)
 	}
 	if d := diffSpace(re, sp2); d != "" {
 		t.Fatalf("replayed space differs: %s", d)

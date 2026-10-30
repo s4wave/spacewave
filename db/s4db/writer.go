@@ -265,6 +265,7 @@ func (w *writer) replaySpace(st *state) error {
 		stream := streamNew
 		if r.kind == kindMove {
 			stream = streamMoved
+			sp.closeOpen(stream, r.frees)
 		}
 		for _, o := range r.ops {
 			if o.val.isRef {
@@ -380,14 +381,10 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, orde
 
 	// Place values, then free replaced ones and release what no snapshot
 	// reads. A move never places a value in the chunk it frees one from, so
-	// a move out of the moved stream's open chunk closes it first; replay
-	// follows, since the record's values open another chunk.
+	// the moved stream's open chunks holding a freed value close first, as
+	// replay does.
 	if moves {
-		for _, fr := range r.frees {
-			if sp.open[streamMoved].holds(fr.off / chunkSize) {
-				sp.open[streamMoved] = extent{}
-			}
-		}
+		sp.closeOpen(streamMoved, r.frees)
 	}
 	for i := range writes {
 		wr := &writes[i]

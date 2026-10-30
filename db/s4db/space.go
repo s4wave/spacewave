@@ -147,7 +147,12 @@ const (
 	streams
 )
 
-// extent is a stream's open value chunk, as file offsets.
+// openChunks is the number of value chunks each stream keeps open. A value
+// goes to the open chunk it fits best, so the room a long value leaves at a
+// chunk's end takes the short values after it.
+const openChunks = 4
+
+// extent is an open value chunk, as file offsets.
 type extent struct {
 	// start is the chunk's first byte.
 	start uint64
@@ -197,8 +202,8 @@ type space struct {
 	pages []pending
 	// log lists the log chunks in log order.
 	log []run
-	// open is each stream's value chunk taking its values.
-	open [streams]extent
+	// open is each stream's value chunks taking its values.
+	open [streams][openChunks]extent
 	// released collects chunks freed since the caller last drained it, for
 	// hole punching.
 	released []run
@@ -455,9 +460,10 @@ func (s *space) unhold(r run, punched bool) {
 }
 
 // placeValue assigns file space to a value of n bytes stored under a key of
-// k bytes, after its header, at the cursor of stream's open chunk. It opens a
-// new value chunk when the entry does not fit, and gives an entry longer than
-// a chunk its own run of chunks. It returns the offsets of the header and the
+// k bytes, after its header, at the cursor of the open chunk of stream it fits
+// best. When it fits none, it opens the lowest free chunk in place of the one
+// with the least room. An entry longer than a chunk takes its own run of
+// chunks. It returns the offsets of the header and the
 // value.
 func (s *space) placeValue(k, n int, tag uint64, stream int) (entry, off uint64) {
 	// Place the header and value together.
@@ -471,12 +477,18 @@ func (s *space) placeValue(k, n int, tag uint64, stream int) (entry, off uint64)
 		}
 		entry = r.start * pageSize
 	default:
-		// Else append at the open chunk's cursor, opening the lowest free
-		// chunk when it does not fit.
-		x := &s.open[stream]
-		if x.cursor+size > x.end {
-			r := s.takeChunks(1, chunkValue)
-			*x = extent{start: r.start * pageSize, cursor: r.start * pageSize, end: r.end() * pageSize}
+		// Else append at the cursor of the open chunk with the least room
+		// that fits, opening a chunk when none fits.
+		var x *extent
+		for i := range s.open[stream] {
+			o := &s.open[stream][i]
+			if o.room() >= size && (x == nil || o.room() < x.room()) {
+				x = o
+			}
+		}
+		if x == nil {
+			c := s.takeChunks(1, chunkValue).start / chunkPages
+			x = s.reopen(stream, c)
 		}
 		entry = x.cursor
 		x.cursor += size
@@ -488,25 +500,55 @@ func (s *space) placeValue(k, n int, tag uint64, stream int) (entry, off uint64)
 
 // replayValue takes the space for a value of n bytes at off that replay found
 // in commit tag, as placeValue did for the writer: a value spanning chunks in
-// chunks of its own, else at the cursor of stream's open chunk, opening the
-// value's chunk when it is not open.
+// chunks of its own, else at the cursor of the open chunk of stream holding
+// it. A value in a chunk not open opened it in place of the open chunk with
+// the least room, as the replayed cursors still show.
 func (s *space) replayValue(off uint64, n int, tag uint64, stream int) {
+	// A long value has chunks of its own.
 	first, last := off/chunkSize, (off+uint64(n)-1)/chunkSize // #nosec G115 -- lengths are not negative.
-	x := &s.open[stream]
-	switch {
-	case first != last:
+	if first != last {
 		s.claim(first, chunkValue)
 		for c := first + 1; c <= last; c++ {
 			s.claim(c, chunkTail)
 		}
-	case !x.holds(first):
-		s.claim(first, chunkValue)
-		*x = extent{start: first * chunkSize, end: (first + 1) * chunkSize}
-		fallthrough
-	default:
-		x.cursor = max(x.cursor, off+uint64(n)) // #nosec G115 -- lengths are not negative.
+		s.addLive(off, n, tag)
+		return
 	}
+
+	// Else it advances its open chunk's cursor.
+	x := s.openExtent(first)
+	if x == nil {
+		s.claim(first, chunkValue)
+		x = s.reopen(stream, first)
+	}
+	x.cursor = max(x.cursor, off+uint64(n)) // #nosec G115 -- lengths are not negative.
 	s.addLive(off, n, tag)
+}
+
+// reopen opens chunk c for stream in place of its open chunk with the least
+// room, and returns it.
+func (s *space) reopen(stream int, c uint64) *extent {
+	x := &s.open[stream][0]
+	for i := range s.open[stream] {
+		if o := &s.open[stream][i]; o.room() < x.room() {
+			x = o
+		}
+	}
+	*x = extent{start: c * chunkSize, cursor: c * chunkSize, end: (c + 1) * chunkSize}
+	return x
+}
+
+// closeOpen closes the open chunks of stream holding a value of frees, so a
+// move never places a value in the chunk it frees one from. The writer and
+// replay both call it before placing a move's values.
+func (s *space) closeOpen(stream int, frees []extentRef) {
+	for _, fr := range frees {
+		for i := range s.open[stream] {
+			if s.open[stream][i].holds(fr.off / chunkSize) {
+				s.open[stream][i] = extent{}
+			}
+		}
+	}
 }
 
 // claim makes chunk c an empty chunk of kind for a use replay found in the
@@ -561,8 +603,8 @@ func (s *space) freeValue(off uint64, n int, tag uint64) {
 		if e.live != 0 {
 			return
 		}
-		if i := s.openStream(c); i >= 0 {
-			s.open[i] = extent{}
+		if x := s.openExtent(c); x != nil {
+			*x = extent{}
 		}
 		s.pend(&s.values, pending{run: chunkRun(c, 1), tag: tag})
 	})
@@ -574,14 +616,21 @@ func (x extent) holds(c uint64) bool {
 	return x.end != 0 && c == x.start/chunkSize
 }
 
-// openStream returns the stream whose open chunk is c, or -1.
-func (s *space) openStream(c uint64) int {
-	for i, x := range s.open {
-		if x.holds(c) {
-			return i
+// room is the bytes left in x, zero when none is open.
+func (x extent) room() uint64 {
+	return x.end - x.cursor
+}
+
+// openExtent returns the open chunk c, or nil.
+func (s *space) openExtent(c uint64) *extent {
+	for i := range s.open {
+		for j := range s.open[i] {
+			if s.open[i][j].holds(c) {
+				return &s.open[i][j]
+			}
 		}
 	}
-	return -1
+	return nil
 }
 
 // cut removes the pages of r from the runs in q in place, keeping tag order.
@@ -754,16 +803,18 @@ func (s *space) encode() []byte {
 		}
 	}
 
-	// Write each stream's open chunk, as its number plus one, and its
-	// cursor.
-	for _, x := range s.open {
-		if x.end == 0 {
-			u(0)
-			u(0)
-			continue
+	// Write each stream's open chunks, as their numbers plus one, and
+	// their cursors.
+	for _, open := range s.open {
+		for _, x := range open {
+			if x.end == 0 {
+				u(0)
+				u(0)
+				continue
+			}
+			u(x.start/chunkSize + 1)
+			u(x.cursor - x.start)
 		}
-		u(x.start/chunkSize + 1)
-		u(x.cursor - x.start)
 	}
 
 	// Write the runs awaiting release and the log chunks. No saved tree
@@ -859,17 +910,19 @@ func decodeSpace(b []byte) (*space, error) {
 		return nil, errors.Wrap(ErrCorrupt, "first chunk does not hold the fixed pages")
 	}
 
-	// Read each stream's open chunk.
+	// Read each stream's open chunks.
 	for i := range s.open {
-		c, at := d.uvarint(), d.uvarint()
-		if c == 0 {
-			continue
+		for j := range s.open[i] {
+			c, at := d.uvarint(), d.uvarint()
+			if c == 0 {
+				continue
+			}
+			if c > uint64(len(s.table)) || s.table[c-1].kind != chunkValue || at > chunkSize || s.openExtent(c-1) != nil {
+				return nil, errors.Wrap(ErrCorrupt, "open chunk is not a value chunk of its own")
+			}
+			start := (c - 1) * chunkSize
+			s.open[i][j] = extent{start: start, cursor: start + at, end: start + chunkSize}
 		}
-		if c > uint64(len(s.table)) || s.table[c-1].kind != chunkValue || at > chunkSize || s.openStream(c-1) >= 0 {
-			return nil, errors.Wrap(ErrCorrupt, "open chunk is not a value chunk of its own")
-		}
-		start := (c - 1) * chunkSize
-		s.open[i] = extent{start: start, cursor: start + at, end: start + chunkSize}
 	}
 
 	// Read the runs awaiting release and the log chunks.
@@ -897,8 +950,8 @@ func decodeSpace(b []byte) (*space, error) {
 // whose pages carry no date; once the dead bytes alone pass the bound. A
 // victim is a value chunk with live bytes that does not start a long value,
 // or an index chunk past the first while the index chunks' unused pages add
-// up to a whole chunk, so the others can take its pages; and that stuck does
-// not hold at its current stamp. seq is the latest commit.
+// up to a whole chunk or a chunk is free, so others can take its pages; and
+// that stuck does not hold at its current stamp. seq is the latest commit.
 func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64, bool, bool) {
 	// Count the index chunks' unused pages.
 	var spare uint64
@@ -917,7 +970,7 @@ func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64
 		cu := uint64(c) // #nosec G115 -- slice indexes are not negative.
 		var u, age float64
 		switch {
-		case e.kind == chunkIndex && c != 0 && spare >= chunkPages:
+		case e.kind == chunkIndex && c != 0 && (spare >= chunkPages || s.free.Len() != 0):
 			u, age = float64(e.live)/chunkPages, 1
 		case e.kind == chunkValue && e.live != 0 && (c+1 == len(s.table) || s.table[c+1].kind != chunkTail):
 			u, age = float64(e.live)/chunkSize, float64(seq-min(seq, e.seq)+1)
@@ -928,7 +981,7 @@ func (s *space) victim(seq uint64, least int64, stuck map[uint64]uint64) (uint64
 			continue
 		}
 		top, haveTop = cu, true
-		if s.openStream(cu) >= 0 {
+		if s.openExtent(cu) != nil {
 			continue
 		}
 		dead += int64((1 - u) * chunkSize)
