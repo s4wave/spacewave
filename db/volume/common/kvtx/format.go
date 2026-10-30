@@ -24,6 +24,7 @@ var formatMigrations = [store_kvkey.FormatVersion]formatMigration{
 	2: thenChildLists(migrateLegacyRefGraph),
 	3: migrateChildLists,
 	4: migrateYoungLog,
+	5: migrateCounts,
 }
 
 // migrateBatchBytes bounds the keys and values one migration commit moves.
@@ -54,14 +55,22 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	if err := formatMigrations[version](ctx, store, keys); err != nil {
 		return fmt.Errorf("migrate store format version %d to %d: %w", version, store_kvkey.FormatVersion, err)
 	}
-	// A graph that tracks no block yet is minor-ready from birth, as
-	// block_gc.RefGraph.ClaimYoungReady describes.
+
+	// A graph that tracks no block yet is minor-ready and counted from
+	// birth, as block_gc.RefGraph.ClaimYoungReady and ClaimCountsComplete
+	// describe.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
-	if _, err := openRefGraph(kvtx.NewTxStore(tx)).ClaimYoungReady(ctx); err != nil {
+
+	// Claim what an empty graph allows, then record the version.
+	rg := openRefGraph(kvtx.NewTxStore(tx))
+	if _, err := rg.ClaimYoungReady(ctx); err != nil {
+		return err
+	}
+	if _, err := rg.ClaimCountsComplete(ctx); err != nil {
 		return err
 	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
@@ -71,9 +80,17 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 }
 
 // migrateYoungLog upgrades a store of format version 4, whose keys are those
-// of version 5. A build of version 4 may not have logged young records, so
-// the store stays not minor-ready until a block pass promotes.
+// of version 6. A build of version 4 may not have logged young records, so
+// the store stays not minor-ready until a block pass promotes, and uncounted
+// as migrateCounts describes.
 func migrateYoungLog(context.Context, kvtx.Store, *store_kvkey.KVKey) error {
+	return nil
+}
+
+// migrateCounts upgrades a store of format version 5, whose keys are those of
+// version 6. A build of version 5 kept no counts, so the counts of a store
+// that tracks blocks stay incomplete until they are built from its lists.
+func migrateCounts(context.Context, kvtx.Store, *store_kvkey.KVKey) error {
 	return nil
 }
 

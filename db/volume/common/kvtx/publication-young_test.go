@@ -18,6 +18,7 @@ import (
 // upgraded from a format whose builds may not log young records, and that a
 // minor pass sweeps only released blocks.
 func TestYoungReadySurvivesReopen(t *testing.T) {
+	// Open Volumes over one store, with helpers for each check.
 	ctx := t.Context()
 	store := store_kvtx_inmem.NewStore()
 	keys := store_kvkey.NewDefaultKVKey()
@@ -42,9 +43,20 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	wantCounts := func(want block_gc.CountState) {
+		t.Helper()
+		state, err := openRefGraph(store).GetCountState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state != want {
+			t.Fatalf("count state = %+v, want %+v", state, want)
+		}
+	}
 
-	// A store born empty is minor-ready: a minor pass sweeps a released
-	// block and keeps a published one.
+	// A store born empty is minor-ready and counted: a minor pass sweeps a
+	// released block and keeps a published one, and the counts survive the
+	// publications, the release and the sweep.
 	v := open()
 	live := publicationFor(t, "live", "", "one")
 	if err := v.PublishAtomic(ctx, live); err != nil {
@@ -54,20 +66,26 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 	if err := v.PublishAtomic(ctx, first); err != nil {
 		t.Fatal(err)
 	}
+
+	// Release one and sweep it.
 	orphanPublication(t, v, first)
 	sweepYoung(v)
 	assertPublishedBlock(t, v, first, false)
 	assertPublishedBlock(t, v, live, true)
+	wantCounts(block_gc.CountState{Complete: true})
 	closeVolume(v)
 
 	// Stand in for a store of format version 4 with blocks: drop the ready
-	// record, 'm' in the reference graph, and rewind the version.
+	// and counts records, 'm' and 's' in the reference graph, and rewind the
+	// version.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := tx.Delete(ctx, append(append([]byte(nil), refGraphPrefix...), 'm')); err != nil {
-		t.Fatal(err)
+	for _, kind := range []byte{'m', 's'} {
+		if err := tx.Delete(ctx, append(append([]byte(nil), refGraphPrefix...), kind)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(4)); err != nil {
 		t.Fatal(err)
@@ -76,8 +94,10 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The upgraded store is not minor-ready: a minor pass sweeps nothing.
+	// The upgraded store is not minor-ready, nor counted: a minor pass
+	// sweeps nothing.
 	v = open()
+	wantCounts(block_gc.CountState{})
 	second := publicationFor(t, "second", "", "one")
 	if err := v.PublishAtomic(ctx, second); err != nil {
 		t.Fatal(err)

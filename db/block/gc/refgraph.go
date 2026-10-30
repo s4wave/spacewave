@@ -67,7 +67,9 @@ const (
 // runs, each write also logs the blocks it adopts, as MarkBlocks describes.
 // Each write also logs the blocks whose child lists it creates or changes in
 // the young log, so a minor pass can sweep the blocks written since the last
-// pass without reading the rest, as MarkYoung describes.
+// pass without reading the rest, as MarkYoung describes. Once its counts are
+// complete, each write also keeps every block's count of holders and the free
+// queue of blocks at zero, as refgraph-counts.go describes.
 type RefGraph struct {
 	// store holds the graph records.
 	store kvtx.Store
@@ -135,6 +137,21 @@ func (g *RefGraph) transaction(ctx context.Context, write bool, body func(contex
 	}, body)
 }
 
+// update runs a write transaction whose body counts its changes, and writes
+// the netted counts when the body ends.
+func (g *RefGraph) update(ctx context.Context, body func(context.Context, kvtx.Tx, *counter) error) error {
+	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		c, err := openCounter(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if err := body(ctx, tx, c); err != nil {
+			return err
+		}
+		return c.flush(ctx, tx)
+	})
+}
+
 // RegisterEntityChain registers a chain of gc/ref edges between nodes.
 // Each adjacent pair gets an AddRef call: nodes[0]->nodes[1],
 // nodes[1]->nodes[2], etc. At least 2 nodes required. Idempotent.
@@ -155,15 +172,15 @@ func RegisterEntityChain(ctx context.Context, rg RefGraphOps, nodes ...string) e
 
 // AddRef adds one edge as a batch of one addition. Idempotent.
 func (g *RefGraph) AddRef(ctx context.Context, subject, object string) error {
-	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		return g.applyRefBatchTx(ctx, tx, []RefEdge{{Subject: subject, Object: object}}, nil)
+	return g.update(ctx, func(ctx context.Context, tx kvtx.Tx, c *counter) error {
+		return g.applyRefBatchTx(ctx, tx, c, []RefEdge{{Subject: subject, Object: object}}, nil)
 	})
 }
 
 // RemoveRef removes an exact edge without creating an orphan mark.
 func (g *RefGraph) RemoveRef(ctx context.Context, subject, object string) error {
-	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		_, err := g.removeRefTx(ctx, tx, subject, object)
+	return g.update(ctx, func(ctx context.Context, tx kvtx.Tx, c *counter) error {
+		_, err := g.removeRefTx(ctx, tx, c, subject, object)
 		return err
 	})
 }
@@ -210,8 +227,8 @@ func (g *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) e
 		}
 
 		// Commit the slice, reporting the uncommitted suffix after the first.
-		err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-			return g.applyRefBatchTx(ctx, tx, adds[startAdds:addIndex], removes[startRemoves:removeIndex])
+		err := g.update(ctx, func(ctx context.Context, tx kvtx.Tx, c *counter) error {
+			return g.applyRefBatchTx(ctx, tx, c, adds[startAdds:addIndex], removes[startRemoves:removeIndex])
 		})
 		if err != nil {
 			if !committed {
@@ -231,12 +248,13 @@ func (g *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) e
 // applyRefBatchTx applies one transaction slice in ownership order, marking
 // each object that is not a block and loses its last owner as unreferenced,
 // logs the blocks it adds edges to while a block pass runs, and logs the
-// blocks whose child lists it creates or changes in the young log.
-func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, removes []RefEdge) error {
+// blocks whose child lists it creates or changes in the young log. It counts
+// its changes in c.
+func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, c *counter, adds, removes []RefEdge) error {
 	// Prefetch every record the checks below read. A store that reads many
 	// keys together then answers each check from its cache instead of
 	// reading it in turn while the transaction holds the writer.
-	if err := prefetchRefBatchTx(ctx, tx, adds, removes); err != nil {
+	if err := prefetchRefBatchTx(ctx, tx, c, adds, removes); err != nil {
 		return err
 	}
 
@@ -256,21 +274,29 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 			children[parent] = list
 			continue
 		}
-		if err := addRefTx(ctx, tx, edge.Subject, edge.Object); err != nil {
+		added, err := addRefTx(ctx, tx, edge.Subject, edge.Object)
+		if err != nil {
 			return err
+		}
+		if added {
+			c.ownerAdded(edge.Object)
 		}
 	}
 	var young youngRecord
 	for _, parent := range slices.Sorted(maps.Keys(children)) {
-		created, changed, err := addChildrenTx(ctx, tx, parent, children[parent])
+		added, created, err := addChildrenTx(ctx, tx, parent, children[parent])
 		if err != nil {
 			return err
 		}
 		switch {
 		case created:
 			young.created = append(young.created, parent)
-		case changed:
+			c.listCreated(parent, added)
+		case len(added) != 0:
 			young.changed = append(young.changed, parent)
+			if err := c.childrenChanged(ctx, tx, parent, added, 1); err != nil {
+				return err
+			}
 		}
 	}
 	if err := logAdoptedTx(ctx, tx, adopted); err != nil {
@@ -285,7 +311,7 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 	var released []string
 	unstaged := make(map[string]struct{})
 	for _, edge := range removes {
-		existed, err := g.removeRefTx(ctx, tx, edge.Subject, edge.Object)
+		existed, err := g.removeRefTx(ctx, tx, c, edge.Subject, edge.Object)
 		switch {
 		case err != nil:
 			return err
@@ -308,7 +334,7 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 			return err
 		}
 		if !owned {
-			if err := addRefTx(ctx, tx, NodeUnreferenced, object); err != nil {
+			if _, err := addRefTx(ctx, tx, NodeUnreferenced, object); err != nil {
 				return err
 			}
 		}
@@ -316,9 +342,10 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 	return nil
 }
 
-// prefetchRefBatchTx prefetches the record that holds each edge and the first
-// incoming record position of each removed object that is not a block.
-func prefetchRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, removes []RefEdge) error {
+// prefetchRefBatchTx prefetches the record that holds each edge, the first
+// incoming record position of each removed object that is not a block, and
+// the count records the batch may change.
+func prefetchRefBatchTx(ctx context.Context, tx kvtx.Tx, c *counter, adds, removes []RefEdge) error {
 	// List the records the batch checks.
 	keys := make([][]byte, 0, len(adds)+2*len(removes))
 	for _, edge := range adds {
@@ -330,6 +357,7 @@ func prefetchRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, removes []RefEdge
 			keys = append(keys, graphKey(kindIncoming, edge.Object))
 		}
 	}
+	keys = append(keys, c.prefetchKeys(adds, removes)...)
 
 	// Prefetch them together.
 	return kvtx.Prefetch(ctx, tx, keys)
@@ -345,31 +373,36 @@ func edgeKey(edge RefEdge) []byte {
 }
 
 // addRefTx adds both directions of an edge that is not a child edge unless
-// the exact forward edge already exists.
-func addRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) error {
+// the exact forward edge already exists, and reports whether it added them.
+func addRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) (bool, error) {
 	// Skip the edge when its exact forward record already exists.
 	forward := graphKey(kindForward, subject, object)
 	exists, err := tx.Exists(ctx, forward)
 	if err != nil || exists {
-		return err
+		return false, err
 	}
 
 	// Write the two edge directions.
 	if err := tx.Set(ctx, forward, nil); err != nil {
-		return err
+		return false, err
 	}
-	return tx.Set(ctx, graphKey(kindIncoming, object, subject), nil)
+	return true, tx.Set(ctx, graphKey(kindIncoming, object, subject), nil)
 }
 
-// removeRefTx removes an exact edge and reports whether it existed. A child
-// edge leaves its block's list, and a staging edge stays with the list.
-func (g *RefGraph) removeRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) (bool, error) {
+// removeRefTx removes an exact edge, counting it in c, and reports whether it
+// existed. A child edge leaves its block's list, and a staging edge stays with
+// the list.
+func (g *RefGraph) removeRefTx(ctx context.Context, tx kvtx.Tx, c *counter, subject, object string) (bool, error) {
 	// Remove a child from its block's list.
 	if parent, child, ok := childEdge(RefEdge{Subject: subject, Object: object}); ok {
 		if child == "" {
 			return false, nil
 		}
-		return removeChildTx(ctx, tx, parent, child)
+		removed, err := removeChildTx(ctx, tx, parent, child)
+		if err != nil || !removed {
+			return removed, err
+		}
+		return true, c.childrenChanged(ctx, tx, parent, []string{child}, -1)
 	}
 
 	// Check the forward record, then delete both directions.
@@ -384,6 +417,7 @@ func (g *RefGraph) removeRefTx(ctx context.Context, tx kvtx.Tx, subject, object 
 	if err := tx.Delete(ctx, graphKey(kindIncoming, object, subject)); err != nil {
 		return false, err
 	}
+	c.ownerRemoved(object)
 	return true, nil
 }
 
@@ -414,12 +448,15 @@ func (g *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned
 	// Drop a block's child list.
 	var children []string
 	if isBlockNode(node) {
-		err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-			// Read the list, then delete it.
+		err := g.update(ctx, func(ctx context.Context, tx kvtx.Tx, c *counter) error {
+			// Read the list, then delete it and release its children.
 			var found bool
 			var err error
 			children, found, err = readChildrenTx(ctx, tx, node)
 			if err != nil || !found {
+				return err
+			}
+			if err := c.listDropped(ctx, tx, node, children); err != nil {
 				return err
 			}
 			return tx.Delete(ctx, graphKey(kindChildren, node))
@@ -436,16 +473,16 @@ func (g *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned
 	}
 	for offset := 0; offset < len(targets); offset += maxBatchEdges {
 		chunk := targets[offset:min(offset+maxBatchEdges, len(targets))]
-		err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		err := g.update(ctx, func(ctx context.Context, tx kvtx.Tx, c *counter) error {
 			if markOrphaned {
 				removes := make([]RefEdge, 0, len(chunk))
 				for _, target := range chunk {
 					removes = append(removes, RefEdge{Subject: node, Object: target})
 				}
-				return g.applyRefBatchTx(ctx, tx, nil, removes)
+				return g.applyRefBatchTx(ctx, tx, c, nil, removes)
 			}
 			for _, target := range chunk {
-				if _, err := g.removeRefTx(ctx, tx, node, target); err != nil {
+				if _, err := g.removeRefTx(ctx, tx, c, node, target); err != nil {
 					return err
 				}
 			}
@@ -616,13 +653,18 @@ func (g *RefGraph) PrefetchPutBatch(ctx context.Context, parent string, entries 
 	}
 
 	// Load the records of the owner's root edge and of every batch edge, with
-	// the block pass and young log head the flush's logs read.
+	// the block pass, young log head, counts and free queue head the flush
+	// reads.
 	adds = append(adds, RefEdge{Subject: NodeGCRoot, Object: parent})
 	return g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
-		if err := kvtx.Prefetch(ctx, tx, [][]byte{passKey, youngKey}); err != nil {
+		if err := kvtx.Prefetch(ctx, tx, [][]byte{passKey, youngKey, countsKey, freeHeadKey}); err != nil {
 			return err
 		}
-		return prefetchRefBatchTx(ctx, tx, adds, removes)
+		c, err := openCounter(ctx, tx)
+		if err != nil {
+			return err
+		}
+		return prefetchRefBatchTx(ctx, tx, c, adds, removes)
 	})
 }
 

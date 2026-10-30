@@ -54,17 +54,19 @@ func (g *RefGraph) Reachable(ctx context.Context) (*BlockMark, error) {
 // RecordSubject returns the node whose liveness decides whether a complete
 // collection keeps the graph record key: the subject of an edge in either
 // direction, the block of a child list, or the node of a node or root record.
-// The records of a block pass and of the young log name no node, so it
-// returns an empty subject for them, which no collection keeps: a collection
-// that keeps only reachable records leaves every block it keeps old, and its
-// copy is not minor-ready until a block pass promotes.
+// The records of a block pass, the young log, the counts and the free queue
+// name no live node, so it returns an empty subject for them, which no
+// collection keeps: a collection that keeps only reachable records leaves
+// every block it keeps old and uncounted, and its copy is not minor-ready
+// until a block pass promotes, nor counted until its counts are built.
 func RecordSubject(key []byte) (string, error) {
 	// Split the kind byte from the nodes.
 	if len(key) == 0 {
 		return "", fmt.Errorf("decode empty reference graph record")
 	}
 	kind, rest := key[0], key[1:]
-	if kind == kindPass || kind == kindAdopt || kind == kindYoung || kind == kindYoungHead || kind == kindYoungReady {
+	switch kind {
+	case kindPass, kindAdopt, kindYoung, kindYoungHead, kindYoungReady, kindCount, kindCounts, kindFree, kindFreeHead:
 		return "", nil
 	}
 

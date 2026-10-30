@@ -18,7 +18,10 @@ import (
 // Version 5 keys are those of version 4. Every build that opens it logs the
 // blocks each graph write creates or changes in the young log, so a record
 // that the log is complete survives restarts.
-const FormatVersion = 5
+// Version 6 keys are those of version 5. Every build that opens it keeps the
+// block counts and free queue in the reference graph, so a record that the
+// counts are complete survives restarts.
+const FormatVersion = 6
 
 // formatVersionKey names the key holding the store's format version.
 var formatVersionKey = []byte("format")

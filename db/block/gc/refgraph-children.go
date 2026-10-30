@@ -69,21 +69,29 @@ func encodeChildren(children []string) []byte {
 }
 
 // addChildrenTx adds children to the child list of block, creating the list
-// when it is missing, and reports whether it created the list or changed an
-// existing one. The list is written only when it changes.
-func addChildrenTx(ctx context.Context, tx kvtx.TxOps, block string, children []string) (created, changed bool, err error) {
-	// Merge the children into the stored list.
+// when it is missing, and returns the children the list did not hold and
+// whether it created the list. The list is written only when it changes.
+func addChildrenTx(ctx context.Context, tx kvtx.TxOps, block string, children []string) (added []string, created bool, err error) {
+	// Find the children the stored list does not hold.
 	stored, found, err := readChildrenTx(ctx, tx, block)
 	if err != nil {
-		return false, false, err
+		return nil, false, err
 	}
-	merged := append(slices.Clone(stored), children...)
+	for _, child := range children {
+		if _, held := slices.BinarySearch(stored, child); !held {
+			added = append(added, child)
+		}
+	}
+	slices.Sort(added)
+	added = slices.Compact(added)
+	if found && len(added) == 0 {
+		return nil, false, nil
+	}
+
+	// Write the merged list.
+	merged := append(slices.Clone(stored), added...)
 	slices.Sort(merged)
-	merged = slices.Compact(merged)
-	if found && len(merged) == len(stored) {
-		return false, false, nil
-	}
-	return !found, found, tx.Set(ctx, graphKey(kindChildren, block), encodeChildren(merged))
+	return added, !found, tx.Set(ctx, graphKey(kindChildren, block), encodeChildren(merged))
 }
 
 // removeChildTx removes child from the child list of block and reports whether

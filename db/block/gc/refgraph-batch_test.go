@@ -93,7 +93,7 @@ func TestRejectedTransactionLeavesNeitherHalfEdge(t *testing.T) {
 			return graph.store.NewTransaction(ctx, true)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
-			if err := graph.applyRefBatchTx(ctx, tx, []RefEdge{edge}, nil); err != nil {
+			if err := graph.applyRefBatchTx(ctx, tx, &counter{}, []RefEdge{edge}, nil); err != nil {
 				return err
 			}
 			return rejected
