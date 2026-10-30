@@ -540,6 +540,13 @@ func (w *publicationWriter) preflight(
 		}
 	}
 
+	// Refuse a new block without its references here, so the refusal fails
+	// this request rather than the group.
+	if err := requireRefsKnown(ctx, blocks, p.Entries); err != nil {
+		w.volume.countRefused(putPublication, err)
+		return err
+	}
+
 	// Overlay the verified entries on the group's prior writes.
 	prepared := newPublicationOverlay(blocks, req.entries)
 

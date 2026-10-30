@@ -29,24 +29,24 @@ func TestDebugVolumeRepair(t *testing.T) {
 	}
 
 	// Publish a root with a child, and leak a superseded root beside it.
-	child, _, err := vol.PrepareOwnedBlock(ctx, "space", []byte("child"), nil)
+	child, _, err := vol.PrepareOwnedBlock(ctx, "space", []byte("child"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, _, err := vol.PrepareOwnedBlock(ctx, "space", []byte("root"), &block.PutOpts{Refs: []*block.BlockRef{child}})
+	root, _, err := vol.PrepareOwnedBlock(ctx, "space", []byte("root"), &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := vol.SetBucketRoots(ctx, "space", nil, []block.NamedRoot{{Name: "world", Ref: root}}); err != nil {
 		t.Fatal(err)
 	}
-	leaked, _, err := vol.PrepareOwnedBlock(ctx, "space", []byte("superseded root"), nil)
+	leaked, _, err := vol.PrepareOwnedBlock(ctx, "space", []byte("superseded root"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Own a block directly in a bucket without named roots.
-	direct, _, err := vol.PrepareOwnedBlock(ctx, "plain", []byte("direct"), nil)
+	direct, _, err := vol.PrepareOwnedBlock(ctx, "plain", []byte("direct"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -355,7 +355,7 @@ func runBoltBlockVisibilityRole(t *testing.T, role string) {
 	case "writer":
 		for i := range iterations {
 			data := boltVisibilityData(id, i)
-			ref, _, err := vol.PutBlock(ctx, data, nil)
+			ref, _, err := vol.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 			if err != nil {
 				t.Fatal(err)
 			}

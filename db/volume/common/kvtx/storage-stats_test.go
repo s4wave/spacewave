@@ -69,7 +69,7 @@ func TestStorageStatsSnapshotWakesOnDirectBlockMutations(t *testing.T) {
 	}
 
 	// Write a new block and verify the statistics subscription wakes.
-	ref, exists, err := vol.PutBlock(context.Background(), []byte("hello"), nil)
+	ref, exists, err := vol.PutBlock(context.Background(), []byte("hello"), leafOpts())
 	if err != nil {
 		t.Fatalf("PutBlock() error = %v", err)
 	}

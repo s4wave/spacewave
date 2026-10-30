@@ -267,8 +267,17 @@ func copyObjectToBucket(
 				return false, nil
 			}
 
-			// Retain child block references for destination staging cleanup.
-			refs, err := block.ExtractBlockRefs(ent.Blk)
+			// Copy each block with its references. A decoded block, or a leaf
+			// type the walk did not decode, names them; a block without a
+			// constructor takes the refs its source stored, or the copy fails
+			// rather than store a block that hides its children. Retain them
+			// for destination staging cleanup.
+			var refs []*block.BlockRef
+			if ent.Ctor != nil || ent.Blk != nil {
+				refs, err = block.ExtractBlockRefs(ent.Blk)
+			} else {
+				refs, err = ent.BlockRefs(ctx, readBkt)
+			}
 			if err != nil {
 				return false, err
 			}
@@ -292,7 +301,7 @@ func copyObjectToBucket(
 				if len(ent.Data) > maxPendingBytes {
 					batchTarget = target
 				}
-				_, err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data, Refs: refs, RefsKnown: ent.Blk != nil}})
+				_, err = batchTarget.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ent.Ref, Data: ent.Data, Refs: refs, RefsKnown: true}})
 			}
 			if err != nil && err != context.Canceled {
 				err = errors.Wrapf(err, "write ref %s", ent.Ref.MarshalString())

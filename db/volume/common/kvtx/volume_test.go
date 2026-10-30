@@ -118,8 +118,8 @@ func TestVolumeForwardsBatchPut(t *testing.T) {
 
 	// Write both blocks through the Volume batch interface.
 	if _, err := vol.PutBlockBatch(ctx, []*block.PutBatchEntry{
-		{Ref: ref1, Data: []byte("hello")},
-		{Ref: ref2, Data: []byte("world")},
+		{Ref: ref1, Data: []byte("hello"), RefsKnown: true},
+		{Ref: ref2, Data: []byte("world"), RefsKnown: true},
 	}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}

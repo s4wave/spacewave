@@ -194,7 +194,7 @@ func publicationFor(t *testing.T, id, base, next string) *block.AtomicPublicatio
 		t.Fatal(err)
 	}
 	return &block.AtomicPublication{
-		Entries: []*block.PutBatchEntry{{Ref: ref, Data: data}}, BucketID: "owner", TrackGC: true,
+		Entries: []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}, BucketID: "owner", TrackGC: true,
 		Heads: []*block.AtomicHeadUpdate{{ObjectStoreID: id, Key: []byte("head"), Replace: func(_ context.Context, current []byte, found bool) ([]byte, error) {
 			if (base != "") != found || !bytes.Equal(current, []byte(base)) {
 				return nil, coord.ErrStaleGeneration
@@ -202,6 +202,11 @@ func publicationFor(t *testing.T, id, base, next string) *block.AtomicPublicatio
 			return []byte(next), nil
 		}}},
 	}
+}
+
+// leafOpts returns put options declaring a block with no children.
+func leafOpts() *block.PutOpts {
+	return &block.PutOpts{RefsKnown: true}
 }
 
 func submitPublication(t *testing.T, v *Volume, p *block.AtomicPublication) *block.PublicationReceipt {
@@ -304,7 +309,7 @@ func TestPublicationGroupAtomicBlocksOwnershipAndHead(t *testing.T) {
 
 		// Verify validation cannot mutate the publication store.
 		got[0] = '!'
-		if _, _, err := store.PutBlock(ctx, []byte("forbidden"), nil); !errors.Is(err, errPublicationReadOnly) {
+		if _, _, err := store.PutBlock(ctx, []byte("forbidden"), &block.PutOpts{RefsKnown: true}); !errors.Is(err, errPublicationReadOnly) {
 			return errors.New("validation allowed mutation")
 		}
 		return nil

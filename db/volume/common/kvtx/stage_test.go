@@ -20,11 +20,11 @@ func stageBuild(t *testing.T, v *Volume, name string) (string, func(), *block.Bl
 	}
 
 	// Write the child, then the root that adopts it.
-	child, _, err := v.PrepareStagedBlock(ctx, stage, []byte(name+" child"), nil)
+	child, _, err := v.PrepareStagedBlock(ctx, stage, []byte(name+" child"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, _, err := v.PrepareStagedBlock(ctx, stage, []byte(name+" root"), &block.PutOpts{Refs: []*block.BlockRef{child}})
+	root, _, err := v.PrepareStagedBlock(ctx, stage, []byte(name+" root"), &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestStageOwnsAndReleasesUnadoptedBuild(t *testing.T) {
 	collectBlocks(t, v, false, root, child)
 
 	// A released stage cannot own new writes.
-	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("late"), nil); !errors.Is(err, block.ErrStageReleased) {
+	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("late"), &block.PutOpts{RefsKnown: true}); !errors.Is(err, block.ErrStageReleased) {
 		t.Fatalf("write after release: %v", err)
 	}
 }
@@ -109,7 +109,7 @@ func TestStageWithoutWritesLeavesNoEdges(t *testing.T) {
 	}
 
 	// The released stage cannot own new writes.
-	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("late"), nil); !errors.Is(err, block.ErrStageReleased) {
+	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("late"), &block.PutOpts{RefsKnown: true}); !errors.Is(err, block.ErrStageReleased) {
 		t.Fatalf("write after release: %v", err)
 	}
 }
@@ -119,7 +119,7 @@ func TestStageReleaseKeepsAdoptedBuild(t *testing.T) {
 	v, _ := newPublicationTestVolume(t)
 	ctx := t.Context()
 	_, release, root, child := stageBuild(t, v, "adopted")
-	parent, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{root}})
+	parent, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{root}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,13 +138,13 @@ func TestStageReleaseRootsKeepsStageOpen(t *testing.T) {
 	ctx := t.Context()
 	stage, release, superseded, supersededChild := stageBuild(t, v, "superseded")
 	defer release()
-	adopted, _, err := v.PrepareStagedBlock(ctx, stage, []byte("adopted root"), nil)
+	adopted, _, err := v.PrepareStagedBlock(ctx, stage, []byte("adopted root"), leafOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Adopt the second root from a named bucket root.
-	parent, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{adopted}})
+	parent, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{adopted}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestStageReleaseRootsKeepsStageOpen(t *testing.T) {
 	collectBlocks(t, v, false, superseded, supersededChild)
 
 	// The stage still owns new writes.
-	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("next build"), nil); err != nil {
+	if _, _, err := v.PrepareStagedBlock(ctx, stage, []byte("next build"), leafOpts()); err != nil {
 		t.Fatal(err)
 	}
 }

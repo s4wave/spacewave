@@ -36,11 +36,28 @@ type PrepareTestbedFunc func(t *testbed.Testbed, bc *bucket.Config) ([]config.Co
 // PrepareBucketConfigFunc prepares the bucket configuration.
 type PrepareBucketConfigFunc func(bc *bucket.Config) error
 
-// TestMultiNodeDEX tests a multi-node data exchange.
+// Retention is what the reading node's Volume keeps of a block it read from a
+// peer.
+type Retention int
+
+const (
+	// RetainAny accepts either outcome, for exchanges that race to answer.
+	RetainAny Retention = iota
+	// RetainStored requires the block stored, as an exchange that carries the
+	// block's references writes it back.
+	RetainStored
+	// RetainNone requires the block not stored, as an exchange without the
+	// block's references serves it and stores nothing.
+	RetainNone
+)
+
+// TestMultiNodeDEX tests a multi-node data exchange whose reading node keeps
+// what retain requires of the block it read.
 func TestMultiNodeDEX(
 	t *testing.T,
 	prepareBcCb PrepareBucketConfigFunc,
 	prepareTestbedCb PrepareTestbedFunc,
+	retain Retention,
 ) {
 	// Bound the three-node exchange and its cleanup lifetime.
 	ctx, ctxCancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -241,12 +258,12 @@ func TestMultiNodeDEX(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		dataXferRef, _, err = rootCursor.PutBlock(ctx, dataXfer, nil)
+		dataXferRef, _, err = rootCursor.PutBlock(ctx, dataXfer, &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			rootCursor.Release()
 			t.Fatal(err.Error())
 		}
-		untouchedRef, _, err = rootCursor.PutBlock(ctx, dataUntouched, nil)
+		untouchedRef, _, err = rootCursor.PutBlock(ctx, dataUntouched, &block.PutOpts{RefsKnown: true})
 		rootCursor.Release()
 		if err != nil {
 			t.Fatal(err.Error())
@@ -287,7 +304,7 @@ func TestMultiNodeDEX(
 		rootCursor.Release()
 	}
 
-	// Confirm replication through the destination Volume's bucket API.
+	// Confirm what the destination Volume kept through its bucket API.
 	t.Log("data replicated successfully, checking")
 	{
 		targetVolID := testbeds[2].Volume.GetID()
@@ -301,11 +318,15 @@ func TestMultiNodeDEX(
 			avRel.Release()
 			t.Fatal(err.Error())
 		}
-		if !datOk {
+		_ = dat // encrypted here
+		if retain == RetainStored && !datOk {
 			avRel.Release()
 			t.Fatal("volume lookup on node 3 returned ok=false")
 		}
-		_ = dat // encrypted here
+		if retain == RetainNone && datOk {
+			avRel.Release()
+			t.Fatal("node 3 stored a block it read without its references")
+		}
 		untouchedOK, err := bav.GetBucket().GetBlockExists(ctx, untouchedRef)
 		if err != nil {
 			avRel.Release()

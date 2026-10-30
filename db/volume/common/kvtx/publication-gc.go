@@ -95,8 +95,9 @@ func (v *Volume) PrepareOwnedBlock(ctx context.Context, bucketID string, data []
 		return err
 	})
 	if err == nil {
-		v.countPut(putOwned, len(data), existed, putOpts.GetRefsKnown())
+		v.countPut(putOwned, len(data), existed)
 	}
+	v.countRefused(putOwned, err)
 	return ref, existed, err
 }
 
@@ -117,6 +118,7 @@ func (v *Volume) PrepareOwnedBlockBatch(ctx context.Context, bucketID string, en
 	if err == nil {
 		v.countPutBatch(putOwned, entries, existed)
 	}
+	v.countRefused(putOwned, err)
 	return existed, err
 }
 

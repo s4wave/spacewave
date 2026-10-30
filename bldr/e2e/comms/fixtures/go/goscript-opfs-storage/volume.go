@@ -73,7 +73,7 @@ func writeVolume(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	if _, _, err := vol.PutBlock(ctx, []byte(volumeBlock), nil); err != nil {
+	if _, _, err := vol.PutBlock(ctx, []byte(volumeBlock), &block.PutOpts{RefsKnown: true}); err != nil {
 		return err
 	}
 	if _, err := vol.Sync(ctx); err != nil {

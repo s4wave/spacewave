@@ -105,7 +105,7 @@ func TestBlockStoreRefusesDeletion(t *testing.T) {
 	}
 	defer tb.Release()
 	view := volume_scoped.NewVolume(tb.Volume, viewPrefix)
-	ref, _, err := view.PutBlock(ctx, []byte("data"), &block.PutOpts{})
+	ref, _, err := view.PutBlock(ctx, []byte("data"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -137,7 +137,7 @@ func TestRefGraphHidesOtherOwners(t *testing.T) {
 	}
 	defer tb.Release()
 	view := volume_scoped.NewVolume(tb.Volume, viewPrefix)
-	ref, _, err := view.PutBlock(ctx, []byte("rooted"), &block.PutOpts{})
+	ref, _, err := view.PutBlock(ctx, []byte("rooted"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -209,7 +209,7 @@ func TestRefGraphTracksOwnBuckets(t *testing.T) {
 	}
 	defer tb.Release()
 	view := volume_scoped.NewVolume(tb.Volume, viewPrefix)
-	ref, _, err := view.PutBlock(ctx, []byte("tracked"), &block.PutOpts{})
+	ref, _, err := view.PutBlock(ctx, []byte("tracked"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

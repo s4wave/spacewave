@@ -5,6 +5,8 @@ import (
 	"context"
 	"testing"
 
+	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -44,7 +46,7 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 	}
 	defer serverBktRef.Release()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3, RefsKnown: true}
 	sampleBlockRef, _, err := serverBkt.GetBucket().PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -165,9 +167,10 @@ func TestBlockStoreRPCLookup(t *testing.T) {
 		t.Fatal("expected to write back block to bucket but did not")
 	}
 
-	// Serve untracked bytes over the same RPC route without caching a false leaf.
+	// Serve bytes stored below the volume without their references over the
+	// same RPC route, without caching a false leaf.
 	untrackedData := []byte("untracked block")
-	untrackedRef, _, err := serverTb.Volume.PutBlock(ctx, untrackedData, nil)
+	untrackedRef, _, err := serverTb.Volume.(*volume_kvtx.Volume).Store.PutBlock(ctx, untrackedData, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

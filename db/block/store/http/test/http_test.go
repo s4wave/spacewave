@@ -47,7 +47,7 @@ func TestBlockStoreHTTPEndToEnd(t *testing.T) {
 	// Write a referenced sample block into the server bucket.
 	serverStore := serverBkt.GetBucket()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3, RefsKnown: true}
 	sampleBlockRef, _, err := serverStore.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())

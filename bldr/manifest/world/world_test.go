@@ -2388,7 +2388,7 @@ func writeTestTransformConfRef(
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	transformConfRef, _, err := oc.PutBlock(ctx, transformConfData, nil)
+	transformConfRef, _, err := oc.PutBlock(ctx, transformConfData, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

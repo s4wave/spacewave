@@ -79,7 +79,7 @@ func testBucketReadOperationUsesOneSnapshot(t *testing.T, withGC bool) {
 	}
 
 	// Store one block to read back through the scope.
-	ref, _, err := vol.PutBlock(t.Context(), []byte("snapshot contents"), nil)
+	ref, _, err := vol.PutBlock(t.Context(), []byte("snapshot contents"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func testBucketReadOperationUsesOneSnapshot(t *testing.T, withGC bool) {
 	if err != nil || !found || string(data) != "snapshot contents" {
 		t.Fatalf("nested read returned %q, found=%v, err=%v", data, found, err)
 	}
-	if _, _, err := nested.PutBlock(t.Context(), []byte("forbidden write"), &block.PutOpts{}); err == nil {
+	if _, _, err := nested.PutBlock(t.Context(), []byte("forbidden write"), &block.PutOpts{RefsKnown: true}); err == nil {
 		t.Fatal("read scope accepted a write")
 	}
 	releaseNested()

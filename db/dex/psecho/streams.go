@@ -128,41 +128,27 @@ func (c *Controller) runIncomingStream(ctx context.Context, key sessionKey) erro
 			return nil
 		}
 
-		// Check if we want this block.
+		// Refuse bytes that do not match their ref.
+		if err := ref.VerifyData(data, true); err != nil {
+			le.WithError(err).Warn("received block does not match its ref")
+			continue
+		}
+
+		// Hand the block to the lookups waiting for it, which removes it from
+		// the want list. It is not stored, as Resolve describes.
 		var wanted bool
-		c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			_, wanted = c.wantRefs[ref.MarshalString()]
+		c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+			w := c.wants[ref.MarshalString()]
+			if w != nil && w.data == nil {
+				w.data, wanted = data, true
+				bcast()
+			}
 		})
 		if !wanted {
 			_ = sess.SendCancel(reqID)
 			continue
 		}
-
-		// Store the block.
-		lk, rel, lerr := c.getBucketLookup(ctx)
-		if lerr != nil || lk == nil {
-			le.WithError(lerr).Warn("failed to get bucket lookup")
-			continue
-		}
-		_, _, perr := lk.PutBlock(ctx, data, &block.PutOpts{
-			HashType:      ref.GetHash().GetHashType(),
-			ForceBlockRef: ref.Clone(),
-		})
-		rel()
-		if perr != nil {
-			le.WithError(perr).Warn("failed to store block")
-			continue
-		}
-
-		// Record the block successfully stored from the remote peer.
-		le.WithField("ref", ref.MarshalString()).Debug("stored block from peer")
-
-		// Remove from wantlist and broadcast.
-		refStr := ref.MarshalString()
-		c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-			delete(c.wantRefs, refStr)
-			bcast()
-		})
+		le.WithField("ref", ref.MarshalString()).Debug("received block from peer")
 	}
 }
 

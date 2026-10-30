@@ -25,7 +25,10 @@ export async function setObjectBlockData(
   // Write bytes using the object's existing bucket and transform configuration.
   const current = await objectState.getRootRef(signal)
   using cursor = await objectState.accessWorldState(current.rootRef, signal)
-  const written = await cursor.putBlock({ data }, signal)
+  const written = await cursor.putBlock(
+    { data, opts: { refsKnown: true } },
+    signal,
+  )
 
   // Publish the reference only after the block is available in storage.
   await objectState.setRootRef(
@@ -46,7 +49,7 @@ export async function createObjectWithBlockData(
   using cursor = await stage.buildStorageCursor(signal)
   const [current, written] = await Promise.all([
     cursor.getRef(signal),
-    cursor.putBlock({ data }, signal),
+    cursor.putBlock({ data, opts: { refsKnown: true } }, signal),
   ])
 
   // The created object handle is local to this call; the World owns its root.

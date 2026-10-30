@@ -33,5 +33,6 @@ func TestCoexistenceDEX(t *testing.T) {
 				},
 			}, nil
 		},
+		ee.RetainAny,
 	)
 }

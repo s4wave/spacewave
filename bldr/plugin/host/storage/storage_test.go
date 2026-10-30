@@ -123,7 +123,7 @@ func TestSelectedHostStorage(t *testing.T) {
 		}
 		volumes = append(volumes, vol)
 	}
-	ref, _, err := volumes[1].PutBlock(ctx, []byte("left-only"), &block.PutOpts{Sync: true})
+	ref, _, err := volumes[1].PutBlock(ctx, []byte("left-only"), &block.PutOpts{Sync: true, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

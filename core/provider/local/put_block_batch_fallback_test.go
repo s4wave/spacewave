@@ -98,8 +98,8 @@ func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 
 	// Write both blocks through the wrapped volume store.
 	if _, err := wrapped.PutBlockBatch(ctx, []*block.PutBatchEntry{
-		{Ref: ref1, Data: []byte("hello")},
-		{Ref: ref2, Data: []byte("world")},
+		{Ref: ref1, Data: []byte("hello"), RefsKnown: true},
+		{Ref: ref2, Data: []byte("world"), RefsKnown: true},
 	}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}
@@ -175,8 +175,8 @@ func TestGCStoreOpsPreservesWrappedLowerBatchPath(t *testing.T) {
 
 	// Write both blocks through the GC store.
 	if _, err := gcOps.PutBlockBatch(ctx, []*block.PutBatchEntry{
-		{Ref: ref1, Data: []byte("hello")},
-		{Ref: ref2, Data: []byte("world")},
+		{Ref: ref1, Data: []byte("hello"), RefsKnown: true},
+		{Ref: ref2, Data: []byte("world"), RefsKnown: true},
 	}); err != nil {
 		t.Fatalf("PutBlockBatch failed: %v", err)
 	}

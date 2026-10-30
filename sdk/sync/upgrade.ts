@@ -191,7 +191,10 @@ export async function executeAppUpgrade<S extends Schema>(
           collections: Object.keys(app.schema.collections).sort(),
         }
         const [block, storage] = await Promise.all([
-          cursor.putBlock({ data: encodeJSON(binding) }, signal),
+          cursor.putBlock(
+            { data: encodeJSON(binding), opts: { refsKnown: true } },
+            signal,
+          ),
           cursor.getRef(signal),
         ])
         await object!.setRootRef({ ...storage.ref, rootRef: block.ref }, signal)

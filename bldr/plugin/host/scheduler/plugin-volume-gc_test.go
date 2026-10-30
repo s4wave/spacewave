@@ -152,15 +152,15 @@ func TestPluginBucketTracksGCInHostGraph(t *testing.T) {
 			// an unrelated block.
 			c := &Controller{conf: &Config{InstanceKey: tt.instanceKey}}
 			plugin, _ := servePluginBucket(ctx, t, c, tb, "plugin", "world")
-			child, _, err := plugin.PutBlock(ctx, []byte("child"), nil)
+			child, _, err := plugin.PutBlock(ctx, []byte("child"), &block.PutOpts{RefsKnown: true})
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			parent, _, err := plugin.PutBlock(ctx, []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{child}})
+			parent, _, err := plugin.PutBlock(ctx, []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true})
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			dropped, _, err := plugin.PutBlock(ctx, []byte("dropped"), nil)
+			dropped, _, err := plugin.PutBlock(ctx, []byte("dropped"), &block.PutOpts{RefsKnown: true})
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -237,12 +237,12 @@ func TestPluginBucketPutBlockRPCCount(t *testing.T) {
 	counter.take()
 
 	// A write through the bucket handle with a child edge.
-	child, _, err := plugin.PutBlock(ctx, []byte("child"), nil)
+	child, _, err := plugin.PutBlock(ctx, []byte("child"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	counter.take()
-	if _, _, err := plugin.PutBlock(ctx, []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{child}}); err != nil {
+	if _, _, err := plugin.PutBlock(ctx, []byte("parent"), &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true}); err != nil {
 		t.Fatal(err.Error())
 	}
 	got := counter.take()
@@ -280,13 +280,13 @@ func BenchmarkPluginBucketPutBlock(b *testing.B) {
 			}
 
 			// Write the child the parents reference.
-			child, _, err := store.PutBlock(ctx, []byte("child"), nil)
+			child, _, err := store.PutBlock(ctx, []byte("child"), &block.PutOpts{RefsKnown: true})
 			if err != nil {
 				b.Fatal(err.Error())
 			}
 
 			// Write a new parent of the child per iteration.
-			opts := &block.PutOpts{Refs: []*block.BlockRef{child}}
+			opts := &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true}
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				data := []byte("parent-" + strconv.Itoa(i))

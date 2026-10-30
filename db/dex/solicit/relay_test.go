@@ -80,12 +80,13 @@ func testThreeNodeRelay(t *testing.T, hops uint32, wantFound bool) {
 		t.Fatal(err)
 	}
 	t.Cleanup(writerBucketRef.Release)
-	child, _, err := writerBucket.GetBucket().PutBlock(ctx, []byte("writer-only child"), nil)
+	child, _, err := writerBucket.GetBucket().PutBlock(ctx, []byte("writer-only child"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ref, _, err := writerBucket.GetBucket().PutBlock(ctx, data, &block.PutOpts{
-		Refs: []*block.BlockRef{child},
+		Refs:      []*block.BlockRef{child},
+		RefsKnown: true,
 	})
 	if err != nil {
 		t.Fatal(err)

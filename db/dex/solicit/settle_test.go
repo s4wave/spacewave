@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/transport/inproc"
@@ -41,7 +42,7 @@ func TestStoreReadWaitsForSolicitation(t *testing.T) {
 	}
 	t.Cleanup(writerBucketRef.Release)
 	data := []byte("writer block")
-	ref, _, err := writerBucket.GetBucket().PutBlock(ctx, data, nil)
+	ref, _, err := writerBucket.GetBucket().PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

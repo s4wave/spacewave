@@ -52,11 +52,11 @@ func TestBucketRemovalPreservesSharedBlock(t *testing.T) {
 
 			// Both owners retain one physical content-addressed block.
 			data := []byte("shared payload")
-			ref, _, err := a.PutBlock(ctx, data, nil)
+			ref, _, err := a.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 			if err != nil {
 				t.Fatal(err)
 			}
-			other, existed, err := b.PutBlock(ctx, data, nil)
+			other, existed, err := b.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 			if err != nil || !existed || !ref.EqualVT(other) {
 				t.Fatalf("deduplicated put: existed=%t err=%v", existed, err)
 			}

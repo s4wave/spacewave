@@ -223,7 +223,7 @@ func TestSchedulersServeScopedVolumes(t *testing.T) {
 	if _, ok := view.(*volume_scoped.Volume); !ok {
 		t.Fatalf("Space plugin volume is not scoped: %T", view)
 	}
-	ref, _, err := view.PutBlock(ctx, []byte("data"), &block.PutOpts{})
+	ref, _, err := view.PutBlock(ctx, []byte("data"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -268,7 +268,7 @@ func TestHostCollectsSpacePluginVolume(t *testing.T) {
 	// list, and a collection sweeps nothing past a block of unknown references,
 	// so each block is tracked as a bucket write tracks it: staged as
 	// unreferenced, which records its list.
-	hostRef, _, err := hostVol.PutBlock(ctx, []byte("host"), &block.PutOpts{})
+	hostRef, _, err := hostVol.PutBlock(ctx, []byte("host"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -285,7 +285,7 @@ func TestHostCollectsSpacePluginVolume(t *testing.T) {
 	graphs := make(map[string]block_gc.RefGraphOps)
 	for _, pluginID := range []string{"kept", "dropped"} {
 		view := space.newPluginVolume(hostVol, pluginID)
-		ref, _, err := view.PutBlock(ctx, []byte(pluginID), &block.PutOpts{})
+		ref, _, err := view.PutBlock(ctx, []byte(pluginID), &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			t.Fatal(err.Error())
 		}

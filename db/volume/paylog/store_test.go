@@ -82,7 +82,7 @@ func testStore(t *testing.T, e engine) {
 	s := openStore(t, e, d)
 
 	// A block put outside a transaction is published by the next commit.
-	kept, _, err := s.PutBlock(ctx, []byte("kept"), nil)
+	kept, _, err := s.PutBlock(ctx, []byte("kept"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func testStore(t *testing.T, e engine) {
 		}
 		return ok
 	}
-	doomed, _, err := s.PutBlock(ctx, []byte("doomed"), &block.PutOpts{Sync: true})
+	doomed, _, err := s.PutBlock(ctx, []byte("doomed"), &block.PutOpts{Sync: true, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func testStore(t *testing.T, e engine) {
 			t.Fatal(err)
 		}
 		blocks := tx.(*Tx).GetBlockStore()
-		owned, _, err = blocks.PutBlock(ctx, []byte("owned"), nil)
+		owned, _, err = blocks.PutBlock(ctx, []byte("owned"), &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -145,7 +145,7 @@ func testStore(t *testing.T, e engine) {
 	}
 
 	// A removed block is gone after Sync, and a duplicate put stores nothing.
-	gone, _, err := s.PutBlock(ctx, []byte("gone"), &block.PutOpts{Sync: true})
+	gone, _, err := s.PutBlock(ctx, []byte("gone"), &block.PutOpts{Sync: true, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func testStore(t *testing.T, e engine) {
 	if _, err := s.Sync(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, existed, err := s.PutBlock(ctx, []byte("kept"), nil); err != nil || !existed {
+	if _, existed, err := s.PutBlock(ctx, []byte("kept"), &block.PutOpts{RefsKnown: true}); err != nil || !existed {
 		t.Fatalf("duplicate put: existed %v, err %v", existed, err)
 	}
 

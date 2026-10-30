@@ -93,7 +93,7 @@ func (r *BenchmarkRunner) Run(ctx context.Context) {
 		data := make([]byte, 4096)
 		data[0] = byte(i)
 		runtime.Gosched()
-		ref, _, err := gcStore.PutBlock(ctx, data, nil)
+		ref, _, err := gcStore.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			break
 		}

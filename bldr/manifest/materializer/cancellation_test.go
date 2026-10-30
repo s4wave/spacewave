@@ -10,6 +10,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	block "github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -78,7 +79,7 @@ func buildTestDirManifest(
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		nodeRef, _, err := srcCursor.PutBlock(ctx, nodeData, nil)
+		nodeRef, _, err := srcCursor.PutBlock(ctx, nodeData, &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -90,14 +91,10 @@ func buildTestDirManifest(
 	}
 
 	// Store the root directory node referencing all children.
-	rootData, err := (&unixfs_block.FSNode{
+	rootRef, _, err := block.PutBlock(ctx, srcCursor, &unixfs_block.FSNode{
 		NodeType:       unixfs_block.NodeType_NodeType_DIRECTORY,
 		DirectoryEntry: dirents,
-	}).MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	rootRef, _, err := srcCursor.PutBlock(ctx, rootData, nil)
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -113,11 +110,7 @@ func buildTestDirManifest(
 		Entrypoint: "entrypoint",
 		DistFsRef:  rootRef,
 	}
-	manifestData, err := srcManifest.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	manifestRef, _, err := srcCursor.PutBlock(ctx, manifestData, nil)
+	manifestRef, _, err := block.PutBlock(ctx, srcCursor, srcManifest)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

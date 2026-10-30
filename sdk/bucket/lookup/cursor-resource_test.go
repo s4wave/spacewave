@@ -21,7 +21,7 @@ func TestCursorResourceEncodedBlocks(t *testing.T) {
 	cursor, tb := newResourceCursor(t)
 	ctx := t.Context()
 	data := bytes.Repeat([]byte("compressed and encrypted block "), 40000)
-	ref, _, err := cursor.PutBlock(ctx, data, nil)
+	ref, _, err := cursor.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestCursorResourceEncodedBlocks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		entries[i] = &block.PutBatchEntry{Ref: blockRef, Data: encoded, Refs: []*block.BlockRef{ref}}
+		entries[i] = &block.PutBatchEntry{Ref: blockRef, Data: encoded, Refs: []*block.BlockRef{ref}, RefsKnown: true}
 	}
 	if _, err := raw.PutBlockBatch(ctx, entries); err != nil {
 		t.Fatal(err)

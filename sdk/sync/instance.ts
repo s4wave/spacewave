@@ -193,7 +193,10 @@ export async function executeAppOperation<S extends Schema>(
     } else {
       using stage = await state.stageWorldState(signal)
       using cursor = await stage.buildStorageCursor(signal)
-      const block = await cursor.putBlock({ data: encodeJSON(binding) }, signal)
+      const block = await cursor.putBlock(
+        { data: encodeJSON(binding), opts: { refsKnown: true } },
+        signal,
+      )
       const storage = await cursor.getRef(signal)
       const object = await state.createObject(
         request.objectKey,

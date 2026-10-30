@@ -628,7 +628,7 @@ func runVolumeRuntimeWrite(ctx context.Context, c *config) error {
 		return err
 	}
 	defer vol.Close()
-	ref, _, err := vol.PutBlock(ctx, volumeBlockValue(), nil)
+	ref, _, err := vol.PutBlock(ctx, volumeBlockValue(), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		return errors.Wrap(err, "put volume block")
 	}

@@ -808,7 +808,7 @@ func TestPublicationPreparationAtomicAndOversized(t *testing.T) {
 	raw.mu.Unlock()
 
 	// Prepare the oversized block outside the publication queue.
-	ref, existed, err := v.PrepareOwnedBlock(t.Context(), "large", data, nil)
+	ref, existed, err := v.PrepareOwnedBlock(t.Context(), "large", data, leafOpts())
 	if err != nil || existed {
 		t.Fatalf("prepare: %v %v", existed, err)
 	}
@@ -822,7 +822,7 @@ func TestPublicationPreparationAtomicAndOversized(t *testing.T) {
 	}
 
 	// Verify preparation stores owned bytes without publishing a head.
-	p := &block.AtomicPublication{BucketID: "large", Entries: []*block.PutBatchEntry{{Ref: ref, Data: data}}}
+	p := &block.AtomicPublication{BucketID: "large", Entries: []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}}
 	assertPublishedBlock(t, v, p, true)
 	assertHead(t, v, "large", "")
 	if stats := v.GetPublicationStats(); stats.Accepted != 0 {
@@ -830,7 +830,7 @@ func TestPublicationPreparationAtomicAndOversized(t *testing.T) {
 	}
 
 	// Verify preparing the same bytes reports the existing block.
-	_, existed, err = v.PrepareOwnedBlock(t.Context(), "large", data, nil)
+	_, existed, err = v.PrepareOwnedBlock(t.Context(), "large", data, leafOpts())
 	if err != nil || !existed {
 		t.Fatalf("duplicate preparation: %v %v", existed, err)
 	}
@@ -868,7 +868,7 @@ func TestPublicationDirectCloseAndGraphScope(t *testing.T) {
 	if err := v.Close(); err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = v.PrepareOwnedBlock(t.Context(), "closed", []byte("data"), nil)
+	_, _, err = v.PrepareOwnedBlock(t.Context(), "closed", []byte("data"), leafOpts())
 	if !errors.Is(err, block.ErrPublicationClosed) {
 		t.Fatal("preparation admitted after close", err)
 	}
@@ -922,7 +922,7 @@ func TestPublicationCloseJoinsDirectPreparation(t *testing.T) {
 	gate := raw.arm(t)
 	putDone := make(chan error, 1)
 	go func() {
-		_, _, err := v.PrepareOwnedBlock(t.Context(), "direct", []byte("pending construction"), nil)
+		_, _, err := v.PrepareOwnedBlock(t.Context(), "direct", []byte("pending construction"), leafOpts())
 		putDone <- err
 	}()
 

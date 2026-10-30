@@ -20,6 +20,7 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 	_ directive.Instance,
 	dir dex.LookupBlockFromNetwork,
 ) ([]directive.Resolver, error) {
+	// Resolve a lookup that names a block.
 	ref := dir.LookupBlockFromNetworkRef()
 	if ref.GetEmpty() {
 		return nil, nil
@@ -27,59 +28,49 @@ func (c *Controller) resolveLookupBlockFromNetwork(
 	return directive.Resolvers(&lookupResolver{c: c, ref: ref}), nil
 }
 
-// Resolve resolves the values, emitting them to the handler.
+// Resolve asks peers for the block and emits it once one sends it. The block
+// is served and not stored: a peer sends no references, and a stored block
+// without them would hide its children from the collector.
 func (r *lookupResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Join the want for the block, adding it to the want list if new, and
+	// leave it on return; the last waiter removes it.
 	refStr := r.ref.MarshalString()
-
-	// Add to wantlist.
 	r.c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		r.c.wantRefs[refStr] = r.ref
+		w := r.c.wants[refStr]
+		if w == nil {
+			w = &want{ref: r.ref}
+			r.c.wants[refStr] = w
+		}
+		w.waiters++
 		bcast()
+	})
+	defer r.c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		w := r.c.wants[refStr]
+		w.waiters--
+		if w.waiters == 0 {
+			delete(r.c.wants, refStr)
+			bcast()
+		}
 	})
 
 	// Trigger immediate publish.
 	r.c.publishNow.Store(1)
 
-	// Wait for block to arrive.
+	// Wait for a peer to send the block.
 	for {
 		var ch <-chan struct{}
-		var found bool
+		var data []byte
 		r.c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
-			_, found = r.c.wantRefs[refStr]
+			data = r.c.wants[refStr].data
 		})
-
-		// Block was removed from wantlist: it was received.
-		if !found {
-			// Look up the data from the local bucket.
-			lk, rel, err := r.c.getBucketLookup(ctx)
-			if err != nil {
-				return err
-			}
-			if lk == nil {
-				handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
-				return nil
-			}
-			data, ok, err := lk.LookupBlock(ctx, r.ref, WithLocalOnly())
-			rel()
-			if err != nil {
-				return err
-			}
-			if !ok {
-				handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
-				return nil
-			}
+		if data != nil {
 			handler.AddValue(dex.NewLookupBlockFromNetworkValue(data, nil))
 			return nil
 		}
 
 		select {
 		case <-ctx.Done():
-			// Remove from wantlist on cancel.
-			r.c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-				delete(r.c.wantRefs, refStr)
-				bcast()
-			})
 			return ctx.Err()
 		case <-ch:
 		}

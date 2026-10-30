@@ -44,7 +44,7 @@ func TestBlockStoreBucketRPCServer(t *testing.T) {
 	// Create a block to lookup.
 	serverVol := serverTb.Volume
 	sampleBlockBody := []byte("testing block store rpc server")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3, RefsKnown: true}
 	sampleBlockRef, _, err := serverVol.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())

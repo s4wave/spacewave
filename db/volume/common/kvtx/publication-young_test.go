@@ -423,9 +423,10 @@ func TestMinorPassStopsOnUnknown(t *testing.T) {
 	}
 	orphanPublication(t, v, released)
 
-	// Store a block without a child list and name it from the parent.
+	// Store a block below the graph, without its list, and name it from the
+	// parent.
 	unknown, _ := holeEntries(t)
-	if _, _, err := v.PutBlock(ctx, unknown.Data, &block.PutOpts{ForceBlockRef: unknown.Ref}); err != nil {
+	if _, _, err := v.Store.PutBlock(ctx, unknown.Data, &block.PutOpts{ForceBlockRef: unknown.Ref}); err != nil {
 		t.Fatal(err)
 	}
 	edge := block_gc.RefEdge{Subject: block_gc.BlockIRI(parent.Entries[0].Ref), Object: block_gc.BlockIRI(unknown.Ref)}

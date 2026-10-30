@@ -43,7 +43,7 @@ func buildTestEnv(t *testing.T) (*testbed.Testbed, *bucket_lookup.Cursor) {
 // writeValue writes raw bytes to the block store and returns the BlockRef.
 func writeValue(t *testing.T, store block.StoreOps, val []byte) *block.BlockRef {
 	t.Helper()
-	ref, _, err := store.PutBlock(context.Background(), val, nil)
+	ref, _, err := store.PutBlock(context.Background(), val, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

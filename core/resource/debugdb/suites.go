@@ -86,7 +86,7 @@ func (s *suiteRunner) runEnginePutSingle(store block.StoreOps) (*s4wave_debugdb.
 		data := engineBenchmarkBlock('s', id)
 		runtime.Gosched()
 		m.Start()
-		ref, _, err := store.PutBlock(s.ctx, data, nil)
+		ref, _, err := store.PutBlock(s.ctx, data, &block.PutOpts{RefsKnown: true})
 		if err == nil {
 			_, err = store.Sync(s.ctx)
 		}
@@ -208,7 +208,7 @@ func (s *suiteRunner) runBlockStorePut(store block.StoreOps) *s4wave_debugdb.Ben
 		data := make([]byte, 4096)
 		runtime.Gosched()
 		m.Start()
-		_, _, err := store.PutBlock(s.ctx, data, nil)
+		_, _, err := store.PutBlock(s.ctx, data, &block.PutOpts{RefsKnown: true})
 		m.Stop()
 		if err != nil {
 			break
@@ -270,7 +270,7 @@ func (s *suiteRunner) runGCFlush(store *block_gc.GCStoreOps) *s4wave_debugdb.Ben
 		for range 10 {
 			data := make([]byte, 4096)
 			runtime.Gosched()
-			if _, _, err := store.PutBlock(s.ctx, data, nil); err != nil {
+			if _, _, err := store.PutBlock(s.ctx, data, &block.PutOpts{RefsKnown: true}); err != nil {
 				break
 			}
 		}

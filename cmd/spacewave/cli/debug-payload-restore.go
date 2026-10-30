@@ -557,7 +557,7 @@ func (s *recordStore) PutBlock(ctx context.Context, data []byte, opts *block.Put
 	if err != nil {
 		return nil, false, err
 	}
-	s.record(&block.PutBatchEntry{Ref: ref, Data: data})
+	s.record(&block.PutBatchEntry{Ref: ref, Data: data, Refs: opts.GetRefs(), RefsKnown: opts.GetRefsKnown()})
 	return ref, existed, nil
 }
 
@@ -588,8 +588,9 @@ func (s *recordStore) record(e *block.PutBatchEntry) {
 	// Copy the block, which the caller may reuse.
 	s.seen[key] = struct{}{}
 	s.entries = append(s.entries, &block.PutBatchEntry{
-		Ref:  e.Ref.Clone(),
-		Data: bytes.Clone(e.Data),
-		Refs: e.Refs,
+		Ref:       e.Ref.Clone(),
+		Data:      bytes.Clone(e.Data),
+		Refs:      e.Refs,
+		RefsKnown: e.RefsKnown,
 	})
 }

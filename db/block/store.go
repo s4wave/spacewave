@@ -116,8 +116,11 @@ type BlockStat struct {
 	Size int64
 }
 
-// PutBlock marshals b and puts it into bk with the refs it holds.
-func PutBlock(ctx context.Context, bk StoreOps, b Block) (*BlockRef, bool, error) {
+// PutBlock marshals b and puts it into bk with the refs it holds. Any store,
+// cursor or transaction that writes blocks can be bk.
+func PutBlock(ctx context.Context, bk interface {
+	PutBlock(ctx context.Context, data []byte, opts *PutOpts) (*BlockRef, bool, error)
+}, b Block) (*BlockRef, bool, error) {
 	// Marshal the block with its outgoing references for storage.
 	dat, err := b.MarshalVT()
 	if err != nil {

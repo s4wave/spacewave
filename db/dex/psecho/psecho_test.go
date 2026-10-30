@@ -23,5 +23,6 @@ func TestPsechoE2E_DEX(t *testing.T) {
 				},
 			}, nil
 		},
+		ee.RetainNone,
 	)
 }

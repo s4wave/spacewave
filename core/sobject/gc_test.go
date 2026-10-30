@@ -543,7 +543,7 @@ func TestStorageLifecycleGC_LargerBlocks(t *testing.T) {
 		for j := range data {
 			data[j] = byte(i*37 + j%251)
 		}
-		ref, _, putErr := blockStore.PutBlock(ctx, data, nil)
+		ref, _, putErr := blockStore.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 		if putErr != nil {
 			t.Fatal(putErr.Error())
 		}

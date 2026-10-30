@@ -83,7 +83,7 @@ func publish(t *testing.T, v *volume_kvtx.Volume, id string) *block.BlockRef {
 
 	// Publish the block and its ownership in one commit.
 	p := &block.AtomicPublication{
-		Entries:  []*block.PutBatchEntry{{Ref: ref, Data: data}},
+		Entries:  []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}},
 		BucketID: "owner",
 		TrackGC:  true,
 		Heads:    []*block.AtomicHeadUpdate{head},

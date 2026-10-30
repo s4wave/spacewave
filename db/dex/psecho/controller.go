@@ -2,7 +2,6 @@ package psecho
 
 import (
 	"context"
-	"maps"
 	"sync/atomic"
 	"time"
 
@@ -33,8 +32,33 @@ const syncProtocolID = protocol.ID("hydra/dex/psecho/sync")
 
 // sessionKey identifies a keyed routine for stream management.
 type sessionKey struct {
+	// PeerID is the remote peer.
 	PeerID peer.ID
-	Nonce  uint64
+	// Nonce distinguishes the peer's sessions.
+	Nonce uint64
+}
+
+// want is a block this node asks its peers for.
+type want struct {
+	ref *block.BlockRef
+	// waiters counts the lookups waiting for the block; the last to leave
+	// removes the want.
+	waiters int
+	// data is the block once a peer sent it, which leaves the published want
+	// list.
+	data []byte
+}
+
+// wantListLocked returns the refs of the wants no peer has sent yet. The
+// caller holds bcast.
+func (c *Controller) wantListLocked() map[string]*block.BlockRef {
+	refs := make(map[string]*block.BlockRef, len(c.wants))
+	for refStr, w := range c.wants {
+		if w.data == nil {
+			refs[refStr] = w.ref
+		}
+	}
+	return refs
 }
 
 // remotePeerState tracks what a remote peer wants and what to send.
@@ -52,7 +76,7 @@ type Controller struct {
 
 	bcast broadcast.Broadcast
 	// All below guarded by bcast.
-	wantRefs    map[string]*block.BlockRef
+	wants       map[string]*want
 	remotePeers map[peer.ID]*remotePeerState
 	incoming    map[sessionKey]link.MountedStream
 	nextNonce   uint64
@@ -73,7 +97,7 @@ func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error)
 		le:          le,
 		b:           b,
 		cc:          cc,
-		wantRefs:    make(map[string]*block.BlockRef),
+		wants:       make(map[string]*want),
 		remotePeers: make(map[peer.ID]*remotePeerState),
 		incoming:    make(map[sessionKey]link.MountedStream),
 	}
@@ -152,8 +176,7 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 		var refs map[string]*block.BlockRef
 		c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			ch = getWaitCh()
-			refs = make(map[string]*block.BlockRef, len(c.wantRefs))
-			maps.Copy(refs, c.wantRefs)
+			refs = c.wantListLocked()
 		})
 
 		// Wait for a publish trigger or debounce interval.
@@ -176,8 +199,7 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 			// Re-snapshot after waiting.
 			c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 				ch = getWaitCh()
-				refs = make(map[string]*block.BlockRef, len(c.wantRefs))
-				maps.Copy(refs, c.wantRefs)
+				refs = c.wantListLocked()
 			})
 		}
 

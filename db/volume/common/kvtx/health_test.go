@@ -132,7 +132,7 @@ func TestHealthDirectWrites(t *testing.T) {
 	before := calls.Load()
 
 	// A 3 MiB block through PutBlock is measured on a following poll.
-	if _, _, err := v.PutBlock(ctx, make([]byte, 3<<20), nil); err != nil {
+	if _, _, err := v.PutBlock(ctx, make([]byte, 3<<20), leafOpts()); err != nil {
 		t.Fatal(err)
 	}
 	waitHealth(t, v, func(h *volume.VolumeHealth) bool {

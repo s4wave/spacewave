@@ -370,13 +370,19 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 }
 
 // PutBlockBatch forwards batched writes to the embedded store when supported.
-// It returns volume.ErrReserve while the volume is in the reserve state.
+// It returns volume.ErrReserve while the volume is in the reserve state, and
+// block.ErrRefsUnknown for a new block written without its references.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
-	// Refuse new data below the disk reserve, then write the batch.
+	// Refuse new data below the disk reserve, and new blocks without their
+	// references, then write the batch.
 	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
 		return nil, err
 	}
 	v.noteUnknownRefsBatch(putDirect, entries)
+	if err := requireRefsKnown(ctx, v.reader(), entries); err != nil {
+		v.countRefused(putDirect, err)
+		return nil, err
+	}
 	existed, err := v.reader().PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -389,16 +395,22 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 }
 
 // PutBlock forwards block writes to the embedded store. It returns
-// volume.ErrReserve while the volume is in the reserve state.
+// volume.ErrReserve while the volume is in the reserve state, and
+// block.ErrRefsUnknown for a new block written without its references.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Refuse new data below the disk reserve.
 	if err := v.checkReserve(ctx, len(data)); err != nil {
 		return nil, false, err
 	}
 
-	// Write the block while retaining the requested Volume durability barrier.
+	// Refuse a new block without its references, then write the block while
+	// retaining the requested Volume durability barrier.
 	putOpts, syncRequested := block.PutOptsWithoutSync(opts)
 	v.noteUnknownRefs(putDirect, data, putOpts)
+	if err := requireRefKnown(ctx, v.reader(), data, putOpts); err != nil {
+		v.countRefused(putDirect, err)
+		return nil, false, err
+	}
 	ref, exists, err := v.Store.PutBlock(ctx, data, putOpts)
 	if err != nil {
 		return nil, exists, err
@@ -407,7 +419,7 @@ func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts)
 	// Count the block and wake Volume statistics watchers when it adds
 	// stored data.
 	if ref != nil && !exists {
-		v.countPut(putDirect, len(data), false, putOpts.GetRefsKnown())
+		v.countPut(putDirect, len(data), false)
 		v.broadcastStorageStatsChanged()
 	}
 

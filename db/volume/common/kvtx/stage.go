@@ -124,10 +124,11 @@ func (v *Volume) PrepareStagedBlock(ctx context.Context, stage string, data []by
 		return err
 	})
 
-	// Count the block it stored.
+	// Count the block it stored, or the refusal.
 	if err == nil {
-		v.countPut(putStaged, len(data), existed, putOpts.GetRefsKnown())
+		v.countPut(putStaged, len(data), existed)
 	}
+	v.countRefused(putStaged, err)
 	return ref, existed, err
 }
 
@@ -145,10 +146,11 @@ func (v *Volume) PrepareStagedBlockBatch(ctx context.Context, stage string, entr
 		return err
 	})
 
-	// Count the blocks it stored.
+	// Count the blocks it stored, or the refusal.
 	if err == nil {
 		v.countPutBatch(putStaged, entries, existed)
 	}
+	v.countRefused(putStaged, err)
 	return existed, err
 }
 

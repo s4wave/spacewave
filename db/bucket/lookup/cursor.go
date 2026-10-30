@@ -255,6 +255,7 @@ func WriteTransformConf(
 	putOpts *block.PutOpts,
 	transformConf *block_transform.Config,
 ) (*block.BlockRef, bool, error) {
+	// Encode the config.
 	dat, err := MarshalTransformConf(transformConf)
 	if err != nil {
 		return nil, false, err
@@ -265,11 +266,18 @@ func WriteTransformConf(
 			return nil, false, err
 		}
 	}
-	return bk.PutBlock(ctx, dat, putOpts)
+
+	// The config names no blocks.
+	opts := putOpts.CloneVT()
+	if opts == nil {
+		opts = &block.PutOpts{}
+	}
+	opts.RefsKnown = true
+	return bk.PutBlock(ctx, dat, opts)
 }
 
-// FetchTransformConf fetches a transform config.
-// returns nil if block not found
+// FetchTransformConf fetches a transform config, or returns nil when the
+// block is not found.
 func FetchTransformConf(
 	ctx context.Context,
 	bk block.StoreOps,
@@ -310,8 +318,8 @@ func (c *Cursor) CloneWithLocalOnlyReads() *Cursor {
 	return nc
 }
 
-// BuildTransaction builds a block transaction at the cursor location.
-// putOpts is optional
+// BuildTransaction builds a block transaction at the cursor location, with
+// optional putOpts.
 func (c *Cursor) BuildTransaction(putOpts *block.PutOpts) (*block.Transaction, *block.Cursor) {
 	return c.BuildTransactionWithStore(putOpts, nil)
 }

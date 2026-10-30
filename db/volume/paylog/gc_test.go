@@ -144,7 +144,7 @@ func putBlocks(t *testing.T, s *Store, payloads ...string) []*block.BlockRef {
 	t.Helper()
 	refs := make([]*block.BlockRef, len(payloads))
 	for i, p := range payloads {
-		ref, _, err := s.PutBlock(t.Context(), []byte(p), nil)
+		ref, _, err := s.PutBlock(t.Context(), []byte(p), &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			t.Fatal(err)
 		}

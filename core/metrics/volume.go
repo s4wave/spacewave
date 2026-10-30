@@ -75,9 +75,9 @@ var (
 		"Length of the blocks the volume stored that it did not hold, by write path, since it opened.",
 		[]string{volumeLabel, "path"}, nil,
 	)
-	volumePutUnknownRefsBlocksDesc = prometheus.NewDesc(
-		"spacewave_volume_put_unknown_refs_blocks_total",
-		"Blocks the volume stored that it did not hold without their references, by write path, since it opened.",
+	volumePutRefusedDesc = prometheus.NewDesc(
+		"spacewave_volume_put_refused_total",
+		"Puts the volume refused for a new block written without its references, by write path, since it opened.",
 		[]string{volumeLabel, "path"}, nil,
 	)
 	volumeValueWrittenBytesDesc = prometheus.NewDesc(
@@ -102,7 +102,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeLiveValueBytesDesc, volumeFreeDiskBytesDesc, volumeSizesAgeSecondsDesc,
 		volumePublicationPendingDesc, volumePublicationPendingBytesDesc, volumeWriteReserveDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc,
-		volumePutUnknownRefsBlocksDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
+		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
 	} {
 		ch <- d
 	}
@@ -122,12 +122,12 @@ func (volumeCollector) Collect(ch chan<- prometheus.Metric) {
 
 // collectFlows sends the counters of the data one volume wrote.
 func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
-	// Report the new blocks of each write path, and those without references.
+	// Report the new blocks of each write path, and the puts it refused.
 	id := f.VolumeID
 	for _, p := range f.Puts {
 		ch <- prometheus.MustNewConstMetric(volumePutBlocksDesc, prometheus.CounterValue, float64(p.Blocks), id, p.Path)
 		ch <- prometheus.MustNewConstMetric(volumePutBytesDesc, prometheus.CounterValue, float64(p.Bytes), id, p.Path)
-		ch <- prometheus.MustNewConstMetric(volumePutUnknownRefsBlocksDesc, prometheus.CounterValue, float64(p.Unknown), id, p.Path)
+		ch <- prometheus.MustNewConstMetric(volumePutRefusedDesc, prometheus.CounterValue, float64(p.Refused), id, p.Path)
 	}
 
 	// Report the stored values of each key family.

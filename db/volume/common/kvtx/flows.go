@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"errors"
 	"runtime"
 	"strconv"
 	"strings"
@@ -41,8 +42,9 @@ var putPathNames = [numPutPaths]string{"direct", "publication", "owned", "fill",
 type putCount struct {
 	// blocks and bytes are the flow's blocks and their length.
 	blocks, bytes atomic.Uint64
-	// unknown counts the flow's blocks stored without their references.
-	unknown atomic.Uint64
+	// refused counts the path's puts refused for a new block without its
+	// references.
+	refused atomic.Uint64
 	// callerLogged records that the first caller putting a block without its
 	// references was logged.
 	callerLogged atomic.Bool
@@ -82,7 +84,7 @@ func (v *Volume) SetValueFlows(fn func() []volume.ValueFlow) {
 }
 
 // GetFlows returns the blocks each write path stored that the volume did not
-// hold, and the values its storage wrote and freed, since the volume opened.
+// hold, the puts it refused, and the values its storage wrote and freed, since the volume opened.
 func (v *Volume) GetFlows() *volume.VolumeFlows {
 	// Report each write path.
 	flows := &volume.VolumeFlows{VolumeID: v.GetID()}
@@ -92,7 +94,7 @@ func (v *Volume) GetFlows() *volume.VolumeFlows {
 			Path:    putPathNames[path],
 			Blocks:  c.blocks.Load(),
 			Bytes:   c.bytes.Load(),
-			Unknown: c.unknown.Load(),
+			Refused: c.refused.Load(),
 		})
 	}
 
@@ -104,33 +106,26 @@ func (v *Volume) GetFlows() *volume.VolumeFlows {
 }
 
 // countPut counts a block of n bytes that path stored, unless the volume held
-// it already, and whether its writer declared its references.
-func (v *Volume) countPut(path putPath, n int, existed, refsKnown bool) {
+// it already.
+func (v *Volume) countPut(path putPath, n int, existed bool) {
 	if existed {
 		return
 	}
 	v.puts[path].blocks.Add(1)
 	v.puts[path].bytes.Add(uint64(n)) // #nosec G115 -- lengths are not negative.
-	if !refsKnown && n != 0 {
-		v.puts[path].unknown.Add(1)
-	}
 }
 
 // countPutBatch counts the entries path stored that the volume did not hold,
-// as existed reports them, and those stored without their references. A
-// tombstone stores no block.
+// as existed reports them. A tombstone stores no block.
 func (v *Volume) countPutBatch(path putPath, entries []*block.PutBatchEntry, existed []bool) {
 	// Sum the new blocks.
-	var blocks, bytes, unknown uint64
+	var blocks, bytes uint64
 	for i, e := range entries {
 		if e.Tombstone || (i < len(existed) && existed[i]) {
 			continue
 		}
 		blocks++
 		bytes += uint64(len(e.Data))
-		if !e.RefsKnown && len(e.Data) != 0 {
-			unknown++
-		}
 	}
 
 	// Count them.
@@ -138,15 +133,20 @@ func (v *Volume) countPutBatch(path putPath, entries []*block.PutBatchEntry, exi
 		v.puts[path].blocks.Add(blocks)
 		v.puts[path].bytes.Add(bytes)
 	}
-	if unknown != 0 {
-		v.puts[path].unknown.Add(unknown)
+}
+
+// countRefused counts a put on path that err refused for a new block without
+// its references.
+func (v *Volume) countRefused(path putPath, err error) {
+	if errors.Is(err, block.ErrRefsUnknown) {
+		v.puts[path].refused.Add(1)
 	}
 }
 
 // noteUnknownRefs logs the caller of the first put on path of a block without
 // its references, once per path for the life of the volume. It runs on the
 // caller's goroutine, before the put, so the stack names the writer; the put
-// may still find the block stored.
+// may still find the block stored, which passes, or refuse it.
 func (v *Volume) noteUnknownRefs(path putPath, data []byte, opts *block.PutOpts) {
 	if len(data) != 0 && !opts.GetRefsKnown() {
 		v.logUnknownRefsCaller(path)

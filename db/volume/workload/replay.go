@@ -213,7 +213,7 @@ func (r *Replay) Seed(ctx context.Context, t Target) error {
 	for chunk := range slices.Chunk(r.seedBlocks, seedBatch) {
 		entries := make([]*block.PutBatchEntry, len(chunk))
 		for i, b := range chunk {
-			entries[i] = &block.PutBatchEntry{Ref: b.ref, Data: b.data}
+			entries[i] = &block.PutBatchEntry{Ref: b.ref, Data: b.data, RefsKnown: true}
 		}
 		if _, err := t.PutBlockBatch(ctx, entries); err != nil {
 			return errors.Wrap(err, "seed blocks")
@@ -267,7 +267,7 @@ func Fill(ctx context.Context, t Target, n, size int) error {
 			if err != nil {
 				return err
 			}
-			entries[i] = &block.PutBatchEntry{Ref: ref, Data: data}
+			entries[i] = &block.PutBatchEntry{Ref: ref, Data: data, RefsKnown: true}
 		}
 		if _, err := t.PutBlockBatch(ctx, entries); err != nil {
 			return errors.Wrap(err, "fill blocks")
@@ -464,7 +464,7 @@ func (run *replayRun) applyBlock(ctx context.Context, rec Record) error {
 		return run.flushBatch(ctx)
 	case OpPut, OpTombstone:
 		if rec.ID != 0 && run.batch != nil && run.batch.id == rec.ID {
-			entry := &block.PutBatchEntry{Ref: b.ref, Tombstone: rec.Op == OpTombstone}
+			entry := &block.PutBatchEntry{Ref: b.ref, Tombstone: rec.Op == OpTombstone, RefsKnown: true}
 			if !entry.Tombstone {
 				entry.Data = b.data
 				run.result.BlockBytes += int64(len(b.data))
@@ -474,7 +474,7 @@ func (run *replayRun) applyBlock(ctx context.Context, rec Record) error {
 		}
 		run.result.BlockBytes += int64(len(b.data))
 		return run.timed(OpPut, func() error {
-			_, _, err := run.target.PutBlock(ctx, b.data, nil)
+			_, _, err := run.target.PutBlock(ctx, b.data, &block.PutOpts{RefsKnown: true})
 			return err
 		})
 	case OpRm:

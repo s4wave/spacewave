@@ -796,7 +796,7 @@ func testDexBlockRef(t *testing.T, data string) *block.BlockRef {
 	t.Helper()
 	ref, err := block.BuildBlockRef(
 		[]byte(data),
-		&block.PutOpts{HashType: hash.HashType_HashType_SHA256},
+		&block.PutOpts{HashType: hash.HashType_HashType_SHA256, RefsKnown: true},
 	)
 	if err != nil {
 		t.Fatal(err)

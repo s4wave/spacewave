@@ -67,7 +67,7 @@ func TestReopen(t *testing.T) {
 	// Store a block and close.
 	id := vol.GetID()
 	data := writerBlock("reopen", 0)
-	ref, _, err := vol.PutBlock(ctx, data, nil)
+	ref, _, err := vol.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func writeBlocks(t *testing.T, path, n string) {
 
 	// Put the blocks, each durable on return.
 	for i := range writerBlocks {
-		if _, _, err := vol.PutBlock(ctx, writerBlock(n, i), nil); err != nil {
+		if _, _, err := vol.PutBlock(ctx, writerBlock(n, i), &block.PutOpts{RefsKnown: true}); err != nil {
 			t.Fatal(err)
 		}
 	}

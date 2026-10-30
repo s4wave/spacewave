@@ -78,7 +78,7 @@ func RunDemoCayley(
 	// Store a sample block and retain its bucket reference.
 	le.Info("lookup returned, storing block")
 	blockData := fmt.Sprintf("hello world: %s", time.Now().String())
-	ev, _, err := lk.PutBlock(ctx, []byte(blockData), nil)
+	ev, _, err := lk.PutBlock(ctx, []byte(blockData), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		return err
 	}

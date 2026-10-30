@@ -30,7 +30,7 @@ func TestWorldVolumeReadScopeKeepsBackingStore(t *testing.T) {
 
 	// Store a block through the nested volume before opening its read scope.
 	data := []byte("read through the nested volume and its parent World")
-	ref, _, err := vol.PutBlock(ctx, data, nil)
+	ref, _, err := vol.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

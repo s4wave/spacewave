@@ -111,7 +111,7 @@ func TestDEXRequesterRole(t *testing.T) {
 			t.Cleanup(cancel)
 			peers := newDEXRolePeers(t, ctx)
 			data := []byte("retained blocks need a current requester role")
-			ref, _, err := peers.objects[0].GetBlockStore().PutBlock(ctx, data, nil)
+			ref, _, err := peers.objects[0].GetBlockStore().PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -159,7 +159,7 @@ func TestDEXDepartedOwnerServesSuccessor(t *testing.T) {
 	peers := newDEXRolePeers(t, ctx)
 	owner, successor := peers.objects[0], peers.objects[1]
 	data := []byte("successor backfill from a departed owner")
-	ref, _, err := owner.GetBlockStore().PutBlock(ctx, data, &block.PutOpts{Refs: []*block.BlockRef{}})
+	ref, _, err := owner.GetBlockStore().PutBlock(ctx, data, &block.PutOpts{Refs: []*block.BlockRef{}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +197,7 @@ func TestDEXDepartedOwnerServesSuccessor(t *testing.T) {
 	}
 
 	// The old owner cannot use the reverse direction to read successor blocks.
-	successorRef, _, err := successor.GetBlockStore().PutBlock(ctx, []byte("successor-only block"), nil)
+	successorRef, _, err := successor.GetBlockStore().PutBlock(ctx, []byte("successor-only block"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -125,7 +125,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dirRef, _, err := srcCursor.PutBlock(ctx, nodeData, nil)
+	dirRef, _, err := srcCursor.PutBlock(ctx, nodeData, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

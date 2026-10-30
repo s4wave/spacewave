@@ -62,7 +62,7 @@ func (b *untrackedCopyBucket) PutBlockBatch(ctx context.Context, entries []*bloc
 		if e.Tombstone {
 			continue
 		}
-		if _, _, err := b.vol.PutBlock(ctx, e.Data, &block.PutOpts{ForceBlockRef: e.Ref}); err != nil {
+		if _, _, err := b.vol.Store.PutBlock(ctx, e.Data, &block.PutOpts{ForceBlockRef: e.Ref}); err != nil {
 			return nil, err
 		}
 	}
@@ -162,7 +162,7 @@ func TestDebugRefRepair(t *testing.T) {
 	// Store raw blocks outside the typed walk. A shorter hash puts the
 	// untracked block first in the scan's bounded sample.
 	orphanData := []byte("outside the ref graph")
-	orphan, _, err := vol.PutBlock(ctx, orphanData, &block.PutOpts{HashType: hash.HashType_HashType_SHA1})
+	orphan, _, err := vol.Store.PutBlock(ctx, orphanData, &block.PutOpts{HashType: hash.HashType_HashType_SHA1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,12 +172,12 @@ func TestDebugRefRepair(t *testing.T) {
 	trackedData := [][]byte{[]byte("outgoing only"), []byte("staging only")}
 	tracked := make([]*block.BlockRef, len(trackedData))
 	for i, data := range trackedData {
-		tracked[i], _, err = vol.PutBlock(ctx, data, nil)
+		tracked[i], _, err = vol.Store.PutBlock(ctx, data, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	listed, _, err := vol.PutBlock(ctx, []byte("listed only"), nil)
+	listed, _, err := vol.Store.PutBlock(ctx, []byte("listed only"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

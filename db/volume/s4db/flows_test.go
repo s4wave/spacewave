@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/block"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +24,7 @@ func TestValueFlowsByFamily(t *testing.T) {
 	}
 	defer vol.Close()
 	data := bytes.Repeat([]byte("flows "), 1024)
-	if _, _, err := vol.PutBlock(ctx, data, nil); err != nil {
+	if _, _, err := vol.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true}); err != nil {
 		t.Fatal(err)
 	}
 

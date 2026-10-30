@@ -51,11 +51,7 @@ func TestMaterializeManifestMissingChildBlock(t *testing.T) {
 		Entrypoint: "entrypoint",
 		DistFsRef:  missingRef,
 	}
-	nodeData, err := srcManifest.MarshalVT()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	manifestRef, _, err := srcCursor.PutBlock(ctx, nodeData, nil)
+	manifestRef, _, err := block.PutBlock(ctx, srcCursor, srcManifest)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -147,11 +147,12 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 		return nil
 	})
 
-	// Count the blocks they stored.
+	// Count the blocks they stored, or the refusal.
 	if err == nil {
 		for _, fill := range fills {
-			v.countPut(putFill, len(fill.data), fill.existed, fill.opts.GetRefsKnown())
+			v.countPut(putFill, len(fill.data), fill.existed)
 		}
 	}
+	v.countRefused(putFill, err)
 	return err
 }

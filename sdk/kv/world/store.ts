@@ -32,6 +32,7 @@ export async function openWorldKvStore(
         data: KeyValueStore.toBinary({
           implType: KVImplType.KV_IMPL_TYPE_IAVL,
         }),
+        opts: { refsKnown: true },
       },
       signal,
     )

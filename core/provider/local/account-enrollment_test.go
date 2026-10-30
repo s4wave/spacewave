@@ -494,7 +494,7 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 	if err != nil {
 		t.Fatal(err)
 	}
-	leaf, _, err := store.PutBlock(ctx, data, nil)
+	leaf, _, err := store.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

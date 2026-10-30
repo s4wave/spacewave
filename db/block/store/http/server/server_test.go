@@ -40,7 +40,7 @@ func TestBlockStoreHTTPServer(t *testing.T) {
 	// Create a block to lookup.
 	vol := tb.Volume
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3, RefsKnown: true}
 	sampleBlockRef, _, err := vol.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -188,7 +188,7 @@ func TestBlockStoreHTTPServer_ReadOnly(t *testing.T) {
 
 	// Create a sample block
 	sampleBlockBody := []byte("No, I'm just reading. Yep. Machiavelli, pretty simple book yeah.")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_SHA256}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_SHA256, RefsKnown: true}
 	sampleBlockRef, err := block.BuildBlockRef(sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -262,7 +262,7 @@ func TestBlockStoreHTTPServer_Controller(t *testing.T) {
 
 	// Create a sample block
 	sampleBlockBody := []byte("No, I'm just reading. Yep. Machiavelli, pretty simple book yeah.")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_SHA256}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_SHA256, RefsKnown: true}
 	sampleBlockRef, err := block.BuildBlockRef(sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -321,7 +321,7 @@ func TestBlockStoreHTTPAsFallback(t *testing.T) {
 	// Store a sample block in the fallback server bucket.
 	serverStore := serverBkt.GetBucket()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3, RefsKnown: true}
 	sampleBlockRef, _, err := serverStore.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())

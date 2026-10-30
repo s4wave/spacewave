@@ -58,7 +58,7 @@ func TestEngineTxReleasesUnreachedWrites(t *testing.T) {
 		defer c.Release()
 
 		// Write the stray block and the object root.
-		stray, _, err := c.GetBlockStore().PutBlock(ctx, []byte("stray "+key), nil)
+		stray, _, err := c.GetBlockStore().PutBlock(ctx, []byte("stray "+key), &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			t.Fatal(err)
 		}

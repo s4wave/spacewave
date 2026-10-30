@@ -443,7 +443,7 @@ func syncSteps(ctx context.Context, s volume, i int, rep *reliabilityReport) err
 // step puts step i's block and commits i as the head with its reference.
 func step(ctx context.Context, s volume, i int) error {
 	// Put the block.
-	ref, _, err := s.PutBlock(ctx, payload(i), nil)
+	ref, _, err := s.PutBlock(ctx, payload(i), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		return errors.Wrapf(err, "put block %d", i)
 	}

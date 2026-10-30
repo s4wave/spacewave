@@ -166,12 +166,12 @@ func setupPlacedStore(ctx context.Context, t *testing.T) *placedStoreTest {
 	// Write a root referencing a child and reference the root from the
 	// store's bucket node, as the World engine does.
 	child := []byte("child block")
-	childRef, _, err := bs.placement.local.PutBlock(ctx, child, nil)
+	childRef, _, err := bs.placement.local.PutBlock(ctx, child, &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	root := []byte("root block")
-	rootRef, _, err := bs.placement.local.PutBlock(ctx, root, &block.PutOpts{Refs: []*block.BlockRef{childRef}})
+	rootRef, _, err := bs.placement.local.PutBlock(ctx, root, &block.PutOpts{Refs: []*block.BlockRef{childRef}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +316,7 @@ func TestPlacedStoreSettleAndLiveness(t *testing.T) {
 	})
 
 	// Write a block and drop it before it settles.
-	garbage, _, err := bs.PutBlock(ctx, []byte("settling garbage"), nil)
+	garbage, _, err := bs.PutBlock(ctx, []byte("settling garbage"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +371,7 @@ func TestPlacedStoreSettleAndLiveness(t *testing.T) {
 	bs = p.waitUpload(ctx, t, func(status UploadStatus) bool {
 		return status.Policy.MaxPendingBytes == 1
 	})
-	if _, _, err := bs.PutBlock(ctx, []byte("capped block"), nil); err != nil {
+	if _, _, err := bs.PutBlock(ctx, []byte("capped block"), &block.PutOpts{RefsKnown: true}); err != nil {
 		t.Fatal(err)
 	}
 	p.waitUpload(ctx, t, func(status UploadStatus) bool {
@@ -433,7 +433,7 @@ func TestPlacedStoreEviction(t *testing.T) {
 	bs := p.waitUpload(ctx, t, func(status UploadStatus) bool {
 		return status.Policy.Settle == time.Hour && status.Pending == 0
 	})
-	if _, _, err := bs.PutBlock(ctx, p.blocks[p.childRef], nil); err != nil {
+	if _, _, err := bs.PutBlock(ctx, p.blocks[p.childRef], &block.PutOpts{RefsKnown: true}); err != nil {
 		t.Fatal(err)
 	}
 

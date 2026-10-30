@@ -45,7 +45,7 @@ func TestBlockStoreHTTPLookup(t *testing.T) {
 	// Store the sample block for the HTTP lookup.
 	serverStore := serverBkt.GetBucket()
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3, RefsKnown: true}
 	sampleBlockRef, _, err := serverStore.PutBlock(ctx, sampleBlockBody, samplePutOpts)
 	if err != nil {
 		t.Fatal(err.Error())

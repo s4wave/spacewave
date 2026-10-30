@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/testbed"
 	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/sirupsen/logrus"
@@ -21,7 +22,7 @@ func TestReleaseClosesVolume(t *testing.T) {
 	}
 
 	// Save a block to verify the volume works before testbed release.
-	ref, _, err := tb.Volume.PutBlock(ctx, []byte("testbed release"), nil)
+	ref, _, err := tb.Volume.PutBlock(ctx, []byte("testbed release"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

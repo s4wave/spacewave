@@ -24,7 +24,7 @@ func TestAll(ctx context.Context, client block.StoreOps, putDelay time.Duration)
 
 	// Build a known BLAKE3 reference for new-block writes and lookups.
 	sampleBlockBody := []byte("How hard are these tests? What exactly was in that phonebook of a contract I signed?")
-	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3}
+	samplePutOpts := &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3, RefsKnown: true}
 	sampleBlockRef, err := block.BuildBlockRef(sampleBlockBody, samplePutOpts)
 	if err != nil {
 		return err

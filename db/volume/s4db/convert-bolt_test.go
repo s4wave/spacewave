@@ -31,7 +31,7 @@ func TestConvertBolt(t *testing.T) {
 	id := bolt.GetPeerID()
 	refs := make([]*block.BlockRef, 10)
 	for i := range refs {
-		refs[i], _, err = bolt.PutBlock(ctx, writerBlock("bolt", i), nil)
+		refs[i], _, err = bolt.PutBlock(ctx, writerBlock("bolt", i), &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -41,7 +41,7 @@ func TestVolumeRestart(t *testing.T) {
 	// Start the volume, record its peer id, and write one synced block.
 	vol, stop := startTestVolume(ctx, t, b, st)
 	peerID := vol.GetPeerID()
-	ref, _, err := vol.PutBlock(ctx, []byte("kept"), &block.PutOpts{Sync: true})
+	ref, _, err := vol.PutBlock(ctx, []byte("kept"), &block.PutOpts{Sync: true, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

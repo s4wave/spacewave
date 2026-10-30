@@ -370,7 +370,7 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 	}
 	var blockRefs []string
 	for _, data := range testData {
-		ref, _, err := srcBS.PutBlock(ctx, data, nil)
+		ref, _, err := srcBS.PutBlock(ctx, data, &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			srcBSRel()
 			t.Fatal(err)

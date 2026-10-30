@@ -39,7 +39,7 @@ type physicalTx struct {
 	// store wraps tx and records whether a record changed.
 	store *kvtx.TxStore
 	// blocks serves the blocks in tx and records the blocks tx removes.
-	blocks *removalRecorder
+	blocks *txBlocks
 	// rg is the reference graph in tx.
 	rg *block_gc.RefGraph
 }
@@ -64,7 +64,7 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 	} else {
 		blocks = block_store_kvtx.NewKVTxBlock(v.kvKey, p.store, v.GetHashType(), v.atomicHashGet)
 	}
-	p.blocks = &removalRecorder{StoreOps: blocks}
+	p.blocks = &txBlocks{StoreOps: blocks}
 	return p, nil
 }
 
@@ -79,10 +79,11 @@ func (p *physicalTx) discard() {
 	}
 }
 
-// removalRecorder serves a physical transaction's blocks and records each
+// txBlocks serves a physical transaction's blocks. It refuses to store a block
+// without its references, as requireRefsKnown describes, and records each
 // block the transaction removes: the sweeps, the block passes, the deferred
 // edits and the publication tombstones all remove through it.
-type removalRecorder struct {
+type txBlocks struct {
 	block.StoreOps
 	// mtx guards removed.
 	mtx sync.Mutex
@@ -91,13 +92,25 @@ type removalRecorder struct {
 }
 
 // RmBlock records and removes the block.
-func (r *removalRecorder) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+func (r *txBlocks) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	r.record(ref)
 	return r.StoreOps.RmBlock(ctx, ref)
 }
 
-// PutBlockBatch records the batch's tombstones and writes the batch.
-func (r *removalRecorder) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+// PutBlock refuses a new block without its references and writes the block.
+func (r *txBlocks) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	if err := requireRefKnown(ctx, r.StoreOps, data, opts); err != nil {
+		return nil, false, err
+	}
+	return r.StoreOps.PutBlock(ctx, data, opts)
+}
+
+// PutBlockBatch refuses a batch holding a new block without its references,
+// then records the batch's tombstones and writes the batch.
+func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	if err := requireRefsKnown(ctx, r.StoreOps, entries); err != nil {
+		return nil, err
+	}
 	for _, entry := range entries {
 		if entry != nil && entry.Tombstone {
 			r.record(entry.Ref)
@@ -107,24 +120,24 @@ func (r *removalRecorder) PutBlockBatch(ctx context.Context, entries []*block.Pu
 }
 
 // BeginDeferFlush forwards the GC defer-flush scope to the inner store.
-func (r *removalRecorder) BeginDeferFlush() {
+func (r *txBlocks) BeginDeferFlush() {
 	block.BeginDeferFlush(r.StoreOps)
 }
 
 // EndDeferFlush forwards the GC defer-flush scope to the inner store.
-func (r *removalRecorder) EndDeferFlush(ctx context.Context) error {
+func (r *txBlocks) EndDeferFlush(ctx context.Context) error {
 	return block.EndDeferFlush(ctx, r.StoreOps)
 }
 
 // record appends ref to the removed blocks.
-func (r *removalRecorder) record(ref *block.BlockRef) {
+func (r *txBlocks) record(ref *block.BlockRef) {
 	r.mtx.Lock()
 	r.removed = append(r.removed, ref)
 	r.mtx.Unlock()
 }
 
 // take returns and clears the removed blocks.
-func (r *removalRecorder) take() []*block.BlockRef {
+func (r *txBlocks) take() []*block.BlockRef {
 	// Swap the list out under the lock.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()

@@ -259,10 +259,11 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 		return nil
 	})
 
-	// Count the blocks the committed entries stored.
+	// Count the blocks the committed entries stored, or the refusal.
 	if err == nil {
 		v.countPutBatch(putRoots, entries, existed)
 	}
+	v.countRefused(putRoots, err)
 	return err
 }
 

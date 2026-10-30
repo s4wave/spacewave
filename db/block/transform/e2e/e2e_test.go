@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -64,7 +65,7 @@ func TestEncodeDecode(t *testing.T) {
 		defer rootCursor.Release()
 
 		// Store the test payload in the configured bucket.
-		dataXferRef, _, err := rootCursor.PutBlock(tb.Context, dataXfer, nil)
+		dataXferRef, _, err := rootCursor.PutBlock(tb.Context, dataXfer, &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			t.Fatal(err.Error())
 		}

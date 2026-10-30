@@ -24,11 +24,11 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 	// Prepare a retained root with a shared child block.
 	v, _ := newPublicationTestVolume(t)
 	ctx := t.Context()
-	child, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("shared child"), nil)
+	child, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("shared child"), leafOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("root"), &block.PutOpts{Refs: []*block.BlockRef{child}})
+	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("root"), &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestRootRetentionOwnersReadersAndAbandonedPins(t *testing.T) {
 
 	// Simulate process exit: the lease goes away while its persistent owner
 	// remains. The next sweep must distinguish it from a live reader.
-	root, _, err = v.PrepareOwnedBlock(ctx, "bucket", []byte("abandoned root"), nil)
+	root, _, err = v.PrepareOwnedBlock(ctx, "bucket", []byte("abandoned root"), leafOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,7 @@ func TestRootRetentionFollowsBucketDeletion(t *testing.T) {
 	// Prepare and retain a named root under the bucket.
 	v, _ := newPublicationTestVolume(t)
 	ctx := t.Context()
-	root, _, err := v.PrepareOwnedBlock(ctx, "deleted-bucket", []byte("retained root"), nil)
+	root, _, err := v.PrepareOwnedBlock(ctx, "deleted-bucket", []byte("retained root"), leafOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestRootRetentionConcurrentPins(t *testing.T) {
 	ctx := t.Context()
 	var roots []*block.BlockRef
 	for _, data := range []string{"first root", "second root"} {
-		root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), nil)
+		root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), leafOpts())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -272,7 +272,7 @@ func TestReleaseBucketRootsKeepsReferencedRoots(t *testing.T) {
 	ctx := t.Context()
 	prepare := func(data string, refs ...*block.BlockRef) *block.BlockRef {
 		t.Helper()
-		ref, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), &block.PutOpts{Refs: refs})
+		ref, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), &block.PutOpts{Refs: refs, RefsKnown: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -313,7 +313,7 @@ func TestRootRetentionDefersEditsToNextCommit(t *testing.T) {
 	// Prepare and pin a root, then note the physical commit count.
 	v, raw := newPublicationTestVolume(t)
 	ctx := t.Context()
-	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("deferred root"), nil)
+	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("deferred root"), leafOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +336,7 @@ func TestRootRetentionDefersEditsToNextCommit(t *testing.T) {
 	if found, err := rootComplete(ctx, v, root); err != nil || !found {
 		t.Fatalf("pending root proof found=%v err=%v", found, err)
 	}
-	if _, existed, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("deferred root"), nil); err != nil || !existed {
+	if _, existed, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("deferred root"), leafOpts()); err != nil || !existed {
 		t.Fatalf("repeated preparation existed=%v err=%v", existed, err)
 	}
 	if n := commits() - before; n != 0 {
@@ -344,7 +344,7 @@ func TestRootRetentionDefersEditsToNextCommit(t *testing.T) {
 	}
 
 	// Prepare another block and verify its commit carries both edits.
-	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("next write"), nil); err != nil {
+	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("next write"), leafOpts()); err != nil {
 		t.Fatal(err)
 	}
 	if n := commits() - before; n != 1 {
@@ -367,7 +367,7 @@ func TestRootRetentionSweepDropsPendingProof(t *testing.T) {
 	// Orphan a prepared root, then mark it complete.
 	v, _ := newPublicationTestVolume(t)
 	ctx := t.Context()
-	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("swept root"), nil)
+	root, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("swept root"), leafOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -400,7 +400,7 @@ func TestHoldStageCompleteRootsKeepsProvedGraph(t *testing.T) {
 	ctx := t.Context()
 	prepare := func(data string, refs ...*block.BlockRef) *block.BlockRef {
 		t.Helper()
-		ref, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), &block.PutOpts{Refs: refs})
+		ref, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte(data), &block.PutOpts{Refs: refs, RefsKnown: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -460,7 +460,7 @@ func TestSetBucketRootsHoldsWrittenEntries(t *testing.T) {
 	// Prepare a child the bucket stages.
 	v, _ := newPublicationTestVolume(t)
 	ctx := t.Context()
-	child, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("child"), nil)
+	child, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("child"), leafOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -471,7 +471,7 @@ func TestSetBucketRootsHoldsWrittenEntries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries := []*block.PutBatchEntry{{Ref: root, Data: data, Refs: []*block.BlockRef{child}}}
+	entries := []*block.PutBatchEntry{{Ref: root, Data: data, Refs: []*block.BlockRef{child}, RefsKnown: true}}
 	roots := []block.NamedRoot{{Name: "head", Ref: root}, {Name: "span", Ref: root}}
 	if err := v.SetBucketRoots(ctx, "bucket", entries, roots); err != nil {
 		t.Fatal(err)
@@ -507,7 +507,7 @@ func prepareProofRoots(t *testing.T, v *Volume, n int) []*block.BlockRef {
 	t.Helper()
 	roots := make([]*block.BlockRef, n)
 	for i := range roots {
-		root, _, err := v.PrepareOwnedBlock(t.Context(), "bucket", []byte("proof root "+strconv.Itoa(i)), nil)
+		root, _, err := v.PrepareOwnedBlock(t.Context(), "bucket", []byte("proof root "+strconv.Itoa(i)), leafOpts())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -532,7 +532,7 @@ func TestRootRetentionCommitCarriesBoundedProofs(t *testing.T) {
 	}
 
 	// Commit one unrelated write and verify it carried exactly one batch.
-	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("next write"), nil); err != nil {
+	if _, _, err := v.PrepareOwnedBlock(ctx, "bucket", []byte("next write"), leafOpts()); err != nil {
 		t.Fatal(err)
 	}
 	if n := v.pendingRootProofs(); n != len(roots)-rootProofCarryLimit {

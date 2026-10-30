@@ -625,7 +625,7 @@ func TestEngineSessionStagedConstructionWithoutPublishingHead(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer cursor.Release()
-	ref, _, err := cursor.PutBlock(t.Context(), []byte("staged construction awaiting a later transaction"), nil)
+	ref, _, err := cursor.PutBlock(t.Context(), []byte("staged construction awaiting a later transaction"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -650,7 +650,7 @@ func TestEngineSessionPublishesOnlyCommittedReachableBlocks(t *testing.T) {
 	f := newSessionFixture(t)
 	discarded := sessionWriter(t, f)
 	discardedCursor, discardedObj := sessionObject(t, discarded, "discarded")
-	discardedStray, _, err := discardedCursor.GetBlockStore().PutBlock(t.Context(), []byte("stray discarded"), nil)
+	discardedStray, _, err := discardedCursor.GetBlockStore().PutBlock(t.Context(), []byte("stray discarded"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -659,7 +659,7 @@ func TestEngineSessionPublishesOnlyCommittedReachableBlocks(t *testing.T) {
 	// Write an object and a stray block on the next writer and commit it.
 	committed := sessionWriter(t, f)
 	committedCursor, committedObj := sessionObject(t, committed, "committed")
-	committedStray, _, err := committedCursor.GetBlockStore().PutBlock(t.Context(), []byte("stray committed"), nil)
+	committedStray, _, err := committedCursor.GetBlockStore().PutBlock(t.Context(), []byte("stray committed"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

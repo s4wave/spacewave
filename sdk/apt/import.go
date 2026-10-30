@@ -11,6 +11,7 @@ import (
 
 // DebPackageBlockWriter stores raw .deb package bytes.
 type DebPackageBlockWriter interface {
+	// PutBlock stores one block.
 	PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error)
 }
 
@@ -23,7 +24,7 @@ func StoreDebPackageBlock(ctx context.Context, store DebPackageBlockWriter, deb 
 	if len(deb) == 0 {
 		return nil, errors.New("deb data is required")
 	}
-	ref, _, err := store.PutBlock(ctx, deb, &block.PutOpts{Sync: true})
+	ref, _, err := store.PutBlock(ctx, deb, &block.PutOpts{Sync: true, RefsKnown: true})
 	if err != nil {
 		return nil, errors.Wrap(err, "store deb package")
 	}

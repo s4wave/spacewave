@@ -112,7 +112,7 @@ func TestAccessObjectStateReclaimsReplayedBuild(t *testing.T) {
 	outRef, _, err := world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 		// Write this attempt's stray block.
 		store, _ := bcs.GetBlockStore()
-		stray, _, err := store.PutBlock(ctx, []byte("stray "+strconv.Itoa(len(strays))), nil)
+		stray, _, err := store.PutBlock(ctx, []byte("stray "+strconv.Itoa(len(strays))), &block.PutOpts{RefsKnown: true})
 		if err != nil {
 			return err
 		}

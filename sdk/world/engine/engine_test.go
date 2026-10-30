@@ -367,7 +367,7 @@ func TestSDKEngine_StorageCursorWrites(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer cursor.Release()
-	if _, _, err := cursor.PutBlock(ctx, []byte("cursor-data"), &block.PutOpts{}); err == nil {
+	if _, _, err := cursor.PutBlock(ctx, []byte("cursor-data"), &block.PutOpts{RefsKnown: true}); err == nil {
 		t.Fatal("expected the engine cursor to reject a write")
 	}
 
@@ -384,7 +384,7 @@ func TestSDKEngine_StorageCursorWrites(t *testing.T) {
 	defer stagedCursor.Release()
 
 	// Write a block and read it back.
-	ref, _, err := stagedCursor.PutBlock(ctx, []byte("cursor-data"), &block.PutOpts{})
+	ref, _, err := stagedCursor.PutBlock(ctx, []byte("cursor-data"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

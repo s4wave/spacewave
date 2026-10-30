@@ -195,11 +195,11 @@ func newAuthorizedRequest(t *testing.T, ctx context.Context) (*peerSession, *str
 	t.Cleanup(bucketRef.Release)
 
 	// Store a leaf and child refs that a rejected response must not disclose.
-	child, _, err := bucketAPI.GetBucket().PutBlock(ctx, []byte("child"), nil)
+	child, _, err := bucketAPI.GetBucket().PutBlock(ctx, []byte("child"), &block.PutOpts{RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref, _, err := bucketAPI.GetBucket().PutBlock(ctx, []byte("authorized block"), &block.PutOpts{Refs: []*block.BlockRef{child}})
+	ref, _, err := bucketAPI.GetBucket().PutBlock(ctx, []byte("authorized block"), &block.PutOpts{Refs: []*block.BlockRef{child}, RefsKnown: true})
 	if err != nil {
 		t.Fatal(err)
 	}

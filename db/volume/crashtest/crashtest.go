@@ -250,7 +250,7 @@ func runWorkload(ctx context.Context, s Target, blocks Blocks, seed uint64) ([]s
 			i := rng.IntN(blockSpace)
 			putPending = putPending || !live.blocks[i]
 			nextLive.blocks[i] = true
-			_, _, err = s.PutBlock(ctx, blockData(i), nil)
+			_, _, err = s.PutBlock(ctx, blockData(i), &block.PutOpts{RefsKnown: true})
 			commit = blocks.writeCommit()
 		case 3:
 			i := rng.IntN(blockSpace)
