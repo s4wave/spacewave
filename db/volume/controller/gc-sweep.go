@@ -26,6 +26,13 @@ type storageMaintainer interface {
 	Maintenance(ctx context.Context) error
 }
 
+// countBuilder is implemented by a volume that builds the reference counts of
+// a store that tracked blocks before it kept them.
+type countBuilder interface {
+	// BuildCounts builds for up to budget and returns the counts' state.
+	BuildCounts(ctx context.Context, budget time.Duration) (block_gc.CountState, error)
+}
+
 // markIntervals is the number of collection intervals between block passes,
 // before the collector backs off after passes that find little.
 const markIntervals = 15
@@ -113,6 +120,7 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 	timer := time.NewTimer(interval)
 	defer timer.Stop()
 	var traced bool
+	builder, building := vol.(countBuilder)
 	hw, _ := vol.(volume.HealthWatcher)
 	reserve := &reserveWatch{hw: hw}
 	for {
@@ -224,7 +232,28 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 				}
 			}
 		}
-		if stats.More {
+		// Build the counts of a store that lacks them for at most one
+		// interval, continuing at once while more remains, until the build
+		// ends.
+		more := stats.More
+		if building {
+			state, err := builder.BuildCounts(ctx, interval)
+			switch {
+			case err != nil && ctx.Err() != nil:
+				return ctx.Err()
+			case err != nil:
+				c.le.WithError(err).Warn("count build failed")
+			case state.Building():
+				more = true
+			case state.Phase == block_gc.CountsDoubt:
+				building = false
+				c.le.WithField("reason", state.Doubt).Warn("block counts in doubt")
+			default:
+				building = false
+				c.le.WithField("phase", state.Phase).Debug("block counts built")
+			}
+		}
+		if more {
 			timer.Reset(0)
 		} else {
 			timer.Reset(interval)

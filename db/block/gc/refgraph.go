@@ -279,7 +279,7 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, c *counter, 
 			return err
 		}
 		if added {
-			c.ownerAdded(edge.Object)
+			c.ownerAdded(edge.Subject, edge.Object)
 		}
 	}
 	var young youngRecord
@@ -417,7 +417,7 @@ func (g *RefGraph) removeRefTx(ctx context.Context, tx kvtx.Tx, c *counter, subj
 	if err := tx.Delete(ctx, graphKey(kindIncoming, object, subject)); err != nil {
 		return false, err
 	}
-	c.ownerRemoved(object)
+	c.ownerRemoved(subject, object)
 	return true, nil
 }
 

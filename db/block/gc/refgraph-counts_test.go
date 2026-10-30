@@ -17,9 +17,9 @@ func TestBlockCounts(t *testing.T) {
 	// Open a graph whose counts are complete from birth.
 	ctx := t.Context()
 	rg := newTestRefGraph(t)
-	complete, err := rg.ClaimCountsComplete(ctx)
-	if err != nil || !complete {
-		t.Fatalf("claim counts complete = %v, %v", complete, err)
+	state, err := rg.StartCounts(ctx)
+	if err != nil || state.Phase != CountsComplete {
+		t.Fatalf("start counts = %+v, %v", state, err)
 	}
 	node := func(name string) string { return BlockIRI(testBlockRef(t, name)) }
 
@@ -119,11 +119,11 @@ func TestBlockCounts(t *testing.T) {
 	if err := rg.RemoveRef(ctx, "bucket/b", parent); err != nil {
 		t.Fatal(err)
 	}
-	state, err := rg.GetCountState(ctx)
+	state, err = rg.GetCountState(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state.Complete || !strings.Contains(state.Doubt, "has no count") {
+	if state.Phase != CountsDoubt || !strings.Contains(state.Doubt, "has no count") {
 		t.Fatalf("count state = %+v, want doubt", state)
 	}
 	if owners, err := rg.GetIncomingRefs(ctx, parent); err != nil || slices.Contains(owners, "bucket/b") {
@@ -169,11 +169,17 @@ func deleteRecord(t *testing.T, rg *RefGraph, key []byte) {
 }
 
 // auditCounts rebuilds the counts from the child lists and owner edges and
-// checks them against the stored count records and free queue.
+// checks them against the stored count records and free queue. While a build
+// walks, it rebuilds them from the records before the build's cursor.
 func auditCounts(t *testing.T, rg *RefGraph) {
-	// Read every record.
+	// Read every record, and the cursor of a walking build.
 	t.Helper()
 	records := snapshotRefGraphRecords(t, rg.store)
+	var cursor string
+	if state := records[string(countsKey)]; len(state) != 0 && state[0] == countsWalking {
+		cursor = string(state[1:])
+	}
+	counted := func(key string) bool { return cursor == "" || key < cursor }
 
 	// Decode the count records and free queue entries.
 	counts := make(map[string]countRecord)
@@ -203,7 +209,7 @@ func auditCounts(t *testing.T, rg *RefGraph) {
 	// blocks and the lists of the blocks that hold.
 	want := make(map[string]uint64)
 	for key := range records {
-		if key[0] != kindIncoming {
+		if key[0] != kindIncoming || !counted(key) {
 			continue
 		}
 		object, rest, err := readNode([]byte(key[1:]))
@@ -219,7 +225,7 @@ func auditCounts(t *testing.T, rg *RefGraph) {
 		}
 	}
 	for key, value := range records {
-		if key[0] != kindChildren {
+		if key[0] != kindChildren || !counted(key) {
 			continue
 		}
 		block, _, err := readNode([]byte(key[1:]))

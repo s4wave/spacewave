@@ -251,7 +251,7 @@ func (v *Volume) SweepUnreferenced(ctx context.Context, graph block_gc.RefGraphO
 					return err
 				}
 				batch = append(batch, removed...)
-				size = nextChunkSize(size, time.Since(chunkStart))
+				size = nextChunkSize(size, time.Since(chunkStart), sweepChunkSize)
 				if yield() {
 					break
 				}
@@ -590,7 +590,7 @@ func (v *Volume) sweepUnreached(ctx context.Context, mark *block_gc.BlockMark, s
 					return err
 				}
 				batch = append(batch, removed...)
-				size = nextChunkSize(size, time.Since(chunkStart))
+				size = nextChunkSize(size, time.Since(chunkStart), sweepChunkSize)
 				if yield() {
 					break
 				}
@@ -698,15 +698,15 @@ func (v *Volume) writersWaiting() bool {
 	return ok && q.WritersWaiting()
 }
 
-// nextChunkSize sizes the chunk after one of size candidates that took took:
-// half as large when it overran sweepChunkTime, and twice as large, up to
-// sweepChunkSize, when it took under half of it.
-func nextChunkSize(size int, took time.Duration) int {
+// nextChunkSize sizes the chunk after one of size items that took took: half
+// as large when it overran sweepChunkTime, and twice as large, up to limit,
+// when it took under half of it.
+func nextChunkSize(size int, took time.Duration, limit int) int {
 	switch {
 	case took > sweepChunkTime:
 		return max(size/2, 1)
 	case took < sweepChunkTime/2:
-		return min(size*2, sweepChunkSize)
+		return min(size*2, limit)
 	}
 	return size
 }

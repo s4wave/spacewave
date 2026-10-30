@@ -72,18 +72,30 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 	sweepYoung(v)
 	assertPublishedBlock(t, v, first, false)
 	assertPublishedBlock(t, v, live, true)
-	wantCounts(block_gc.CountState{Complete: true})
+	complete := block_gc.CountState{Phase: block_gc.CountsComplete}
+	wantCounts(complete)
 	closeVolume(v)
 
 	// Stand in for a store of format version 4 with blocks: drop the ready
-	// and counts records, 'm' and 's' in the reference graph, and rewind the
-	// version.
+	// record and the counts, kinds 'm', 's', 'k', 'q' and 'h' in the reference
+	// graph, and rewind the version.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, kind := range []byte{'m', 's'} {
-		if err := tx.Delete(ctx, append(append([]byte(nil), refGraphPrefix...), kind)); err != nil {
+	var counts [][]byte
+	for _, kind := range []byte{'m', 's', 'k', 'q', 'h'} {
+		prefix := append(slices.Clone(refGraphPrefix), kind)
+		err := tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+			counts = append(counts, slices.Clone(key))
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, key := range counts {
+		if err := tx.Delete(ctx, key); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -94,13 +106,16 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The upgraded store is not minor-ready, nor counted: a minor pass
-	// sweeps nothing.
+	// The upgraded store is not minor-ready, and builds its counts beside a
+	// publication: a minor pass sweeps nothing.
 	v = open()
-	wantCounts(block_gc.CountState{})
+	wantCounts(block_gc.CountState{Phase: block_gc.CountsWalking})
 	second := publicationFor(t, "second", "", "one")
 	if err := v.PublishAtomic(ctx, second); err != nil {
 		t.Fatal(err)
+	}
+	if state, err := v.BuildCounts(ctx, time.Minute); err != nil || state != complete {
+		t.Fatalf("build counts = %+v, %v", state, err)
 	}
 	orphanPublication(t, v, second)
 	sweepYoung(v)
@@ -126,10 +141,13 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 	if err := v.PublishAtomic(ctx, third); err != nil {
 		t.Fatal(err)
 	}
+
+	// Release and sweep it: the counts stay complete.
 	orphanPublication(t, v, third)
 	sweepYoung(v)
 	assertPublishedBlock(t, v, third, false)
 	assertPublishedBlock(t, v, live, true)
+	wantCounts(complete)
 }
 
 // holeWriter stores a block and the child it names, child first, as one

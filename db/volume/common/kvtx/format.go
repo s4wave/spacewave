@@ -57,20 +57,20 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	}
 
 	// A graph that tracks no block yet is minor-ready and counted from
-	// birth, as block_gc.RefGraph.ClaimYoungReady and ClaimCountsComplete
-	// describe.
+	// birth, and any other starts building its counts, as
+	// block_gc.RefGraph.ClaimYoungReady and StartCounts describe.
 	tx, err := store.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
 
-	// Claim what an empty graph allows, then record the version.
+	// Claim what the graph allows, then record the version.
 	rg := openRefGraph(kvtx.NewTxStore(tx))
 	if _, err := rg.ClaimYoungReady(ctx); err != nil {
 		return err
 	}
-	if _, err := rg.ClaimCountsComplete(ctx); err != nil {
+	if _, err := rg.StartCounts(ctx); err != nil {
 		return err
 	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
@@ -81,15 +81,15 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 
 // migrateYoungLog upgrades a store of format version 4, whose keys are those
 // of version 6. A build of version 4 may not have logged young records, so
-// the store stays not minor-ready until a block pass promotes, and uncounted
-// as migrateCounts describes.
+// the store stays not minor-ready until a block pass promotes, and builds its
+// counts as migrateCounts describes.
 func migrateYoungLog(context.Context, kvtx.Store, *store_kvkey.KVKey) error {
 	return nil
 }
 
 // migrateCounts upgrades a store of format version 5, whose keys are those of
-// version 6. A build of version 5 kept no counts, so the counts of a store
-// that tracks blocks stay incomplete until they are built from its lists.
+// version 6. A build of version 5 kept no counts, so a store that tracks
+// blocks builds them from its lists and owner edges after it opens.
 func migrateCounts(context.Context, kvtx.Store, *store_kvkey.KVKey) error {
 	return nil
 }

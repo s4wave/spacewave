@@ -148,13 +148,17 @@ func copyStore(
 		return err
 	}
 
-	// Record the version in a durable commit that also makes the ordered
-	// commits durable.
+	// Start the counts, which a reachable copy drops and an older source
+	// lacks, and record the version in a durable commit that also makes the
+	// ordered commits durable. The Volume builds the counts once it opens.
 	tx, err := dst.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+	if _, err := openRefGraph(kvtx.NewTxStore(tx)).StartCounts(ctx); err != nil {
+		return err
+	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"maps"
@@ -33,6 +34,11 @@ import (
 // explain, such as a holder leaving a block with no count, puts the counts in
 // doubt: the counts record keeps the reason, and nothing is counted again
 // until a rebuild. Doubt never fails the write.
+//
+// A store that tracked blocks before it kept counts builds them, as
+// refgraph-count-build.go describes. While the build walks the graph, writes
+// count only the holders whose records sort before its cursor: the build
+// counts the rest when it reaches them.
 const (
 	// kindCount keys the count record of a block by the block.
 	kindCount byte = 'k'
@@ -45,13 +51,21 @@ const (
 	kindFreeHead byte = 'h'
 )
 
-// countsComplete begins the counts record of complete counts. A counts
-// record beginning with any other byte holds the reason the counts are in
-// doubt.
-const countsComplete byte = 1
-
-// countsDoubt begins the counts record of counts in doubt.
-const countsDoubt byte = 0
+// The first byte of the counts record names the counts' phase.
+const (
+	// countsDoubt begins the record of counts in doubt, followed by the
+	// reason.
+	countsDoubt byte = 0
+	// countsComplete is the record of complete counts.
+	countsComplete byte = 1
+	// countsWalking begins the record of a build that walks the child lists
+	// and owner edges, followed by the key of the next record to count.
+	countsWalking byte = 2
+	// countsChecking begins the record of a build that checks the blocks
+	// with a count and no child list, followed by the key of the next count
+	// record to check.
+	countsChecking byte = 3
+)
 
 // countCascadeBase is the number of child lists one write transaction may
 // read to release children, beside countCascadePerList for each list it
@@ -68,12 +82,50 @@ var (
 	freeHeadKey = []byte{kindFreeHead}
 )
 
+// CountPhase is the phase of a store's counts.
+type CountPhase int
+
+const (
+	// CountsAbsent is a store whose counts never started.
+	CountsAbsent CountPhase = iota
+	// CountsWalking is a build counting the child lists and owner edges.
+	CountsWalking
+	// CountsChecking is a build checking that no counted block is stored
+	// without a child list.
+	CountsChecking
+	// CountsComplete is a store whose every write keeps the counts.
+	CountsComplete
+	// CountsDoubt is a store whose counts stopped; Doubt says why.
+	CountsDoubt
+)
+
 // CountState reports the store's counts.
 type CountState struct {
-	// Complete reports that every write keeps the counts.
-	Complete bool
-	// Doubt is the reason the counts stopped, empty when they never started.
+	// Phase is the counts' phase.
+	Phase CountPhase
+	// Doubt is the reason the counts stopped, in CountsDoubt.
 	Doubt string
+}
+
+// Building reports whether the counts are being built.
+func (s CountState) Building() bool {
+	return s.Phase == CountsWalking || s.Phase == CountsChecking
+}
+
+// decodeCountState decodes the counts record.
+func decodeCountState(value []byte, found bool) CountState {
+	if !found || len(value) == 0 {
+		return CountState{}
+	}
+	switch value[0] {
+	case countsComplete:
+		return CountState{Phase: CountsComplete}
+	case countsWalking:
+		return CountState{Phase: CountsWalking}
+	case countsChecking:
+		return CountState{Phase: CountsChecking}
+	}
+	return CountState{Phase: CountsDoubt, Doubt: string(value[1:])}
 }
 
 // countRecord is the stored count of a block.
@@ -133,8 +185,15 @@ func freeKey(seq uint64) []byte {
 // counter collects one write transaction's count changes, netted per block,
 // and writes them when the transaction's body ends.
 type counter struct {
-	// on reports that the counts are complete and changes are kept.
+	// on reports that the counts are complete or being built, and changes
+	// are kept.
 	on bool
+	// phase is the first byte of the counts record while on.
+	phase byte
+	// cursor is the key of the next record a build counts or checks. While
+	// the build walks, only holders whose records sort before it are
+	// counted.
+	cursor []byte
 	// doubt is the reason the counts went into doubt in this transaction.
 	doubt string
 	// delta is the net change per block.
@@ -146,13 +205,29 @@ type counter struct {
 }
 
 // openCounter returns the counter of a write transaction, which counts only
-// when the counts record says complete.
+// when the counts record says complete or building.
 func openCounter(ctx context.Context, tx kvtx.TxOps) (*counter, error) {
+	// Read the counts record; without one nothing is counted.
 	value, found, err := tx.Get(ctx, countsKey)
-	if err != nil {
-		return nil, err
+	if err != nil || !found || len(value) == 0 {
+		return &counter{}, err
 	}
-	return &counter{on: found && len(value) != 0 && value[0] == countsComplete}, nil
+
+	// Count while complete or building.
+	c := &counter{phase: value[0], cursor: bytes.Clone(value[1:])}
+	c.on = c.phase == countsComplete || c.phase == countsWalking || c.phase == countsChecking
+	return c, nil
+}
+
+// counted reports whether the holder whose record is the graphKey of kind and
+// nodes is counted: always, unless a build walks and has not reached it.
+func (c *counter) counted(kind byte, nodes ...string) bool {
+	return c.phase != countsWalking || bytes.Compare(graphKey(kind, nodes...), c.cursor) < 0
+}
+
+// listCounted reports whether block's child list is counted.
+func (c *counter) listCounted(block string) bool {
+	return c.counted(kindChildren, block)
 }
 
 // add changes the net count of block by n.
@@ -171,15 +246,15 @@ func (c *counter) distrust(reason string) {
 }
 
 // ownerAdded counts a new owner edge from a node that is not a block.
-func (c *counter) ownerAdded(object string) {
-	if c.on && isBlockNode(object) {
+func (c *counter) ownerAdded(subject, object string) {
+	if c.on && isBlockNode(object) && c.counted(kindIncoming, object, subject) {
 		c.add(object, 1)
 	}
 }
 
 // ownerRemoved counts a removed owner edge from a node that is not a block.
-func (c *counter) ownerRemoved(object string) {
-	if c.on && isBlockNode(object) {
+func (c *counter) ownerRemoved(subject, object string) {
+	if c.on && isBlockNode(object) && c.counted(kindIncoming, object, subject) {
 		c.add(object, -1)
 	}
 }
@@ -187,7 +262,7 @@ func (c *counter) ownerRemoved(object string) {
 // listCreated counts the children of a block's new child list, which the
 // block holds from its first write.
 func (c *counter) listCreated(block string, children []string) {
-	if !c.on {
+	if !c.on || !c.listCounted(block) {
 		return
 	}
 	if c.created == nil {
@@ -202,8 +277,8 @@ func (c *counter) listCreated(block string, children []string) {
 // childrenChanged counts children added to, or removed from, the existing
 // list of parent by n each, when parent holds its children.
 func (c *counter) childrenChanged(ctx context.Context, tx kvtx.TxOps, parent string, children []string, n int64) error {
-	// Count only the changes of a parent that holds.
-	if !c.on || len(children) == 0 {
+	// Count only the changes of a counted parent that holds.
+	if !c.on || len(children) == 0 || !c.listCounted(parent) {
 		return nil
 	}
 	holds, err := c.holds(ctx, tx, parent)
@@ -217,7 +292,8 @@ func (c *counter) childrenChanged(ctx context.Context, tx kvtx.TxOps, parent str
 }
 
 // listDropped counts the deletion of a block's child list: the block releases
-// the children it held, and its count record goes when its count is zero.
+// the children it held, if its list was counted, and its count record goes
+// when its count is zero.
 func (c *counter) listDropped(ctx context.Context, tx kvtx.TxOps, block string, children []string) error {
 	if err := c.childrenChanged(ctx, tx, block, children, -1); err != nil || !c.on {
 		return err
@@ -284,7 +360,9 @@ func (c *counter) prefetchKeys(adds, removes []RefEdge) [][]byte {
 // joins the free queue and, within the cascade budget, releases its children,
 // whose changes the next round writes; past the budget it keeps holding them.
 // A block that leaves zero leaves the queue, and holds its children again if
-// it had released them.
+// it had released them. A block whose list the build has not counted neither
+// releases nor holds: it is queued without holding, and holds once the build
+// counts its list.
 func (c *counter) flush(ctx context.Context, tx kvtx.TxOps) error {
 	// Record a doubt, or stop when not counting.
 	if !c.on {
@@ -394,7 +472,7 @@ func (f *countFlush) apply(ctx context.Context, tx kvtx.TxOps, block string, d i
 			if err := tx.Delete(ctx, freeKey(rec.seq)); err != nil {
 				return err
 			}
-			if !rec.holds && !created {
+			if !rec.holds && !created && c.listCounted(block) {
 				if err := f.cascade(ctx, tx, block, 1, next); err != nil {
 					return err
 				}
@@ -422,7 +500,7 @@ func (f *countFlush) apply(ctx context.Context, tx kvtx.TxOps, block string, d i
 		return err
 	}
 	rec = countRecord{seq: seq, holds: created}
-	if found {
+	if found && c.listCounted(block) {
 		rec.holds = true
 		if f.budget > 0 {
 			f.budget--
@@ -469,57 +547,4 @@ func (f *countFlush) enqueue(ctx context.Context, tx kvtx.TxOps, block string) (
 	value := binary.BigEndian.AppendUint64(nil, uint64(f.now.UnixNano())) //nolint:gosec // the clock is after 1970.
 	value = appendNode(value, block)
 	return seq, tx.Set(ctx, freeKey(seq), value)
-}
-
-// ClaimCountsComplete marks the counts complete when the graph tracks no
-// block and no owner edge names one, so that every block's count starts at
-// its first write, and reports whether the counts are complete.
-func (g *RefGraph) ClaimCountsComplete(ctx context.Context) (bool, error) {
-	var complete bool
-	err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		// Keep a state already recorded.
-		value, found, err := tx.Get(ctx, countsKey)
-		if err != nil || found {
-			complete = found && len(value) != 0 && value[0] == countsComplete
-			return err
-		}
-
-		// Claim only a graph without child lists or owner edges to blocks.
-		// An incoming record of a block object begins with its hash type,
-		// which sorts after a text node's zero byte.
-		for _, prefix := range [][]byte{{kindChildren}, {kindIncoming, textNode + 1}} {
-			it := tx.Iterate(ctx, prefix[:1], false, false)
-			if err := it.Seek(prefix); err != nil {
-				it.Close()
-				return err
-			}
-			tracked := it.Valid()
-			err := it.Err()
-			it.Close()
-			if err != nil || tracked {
-				return err
-			}
-		}
-		complete = true
-		return tx.Set(ctx, countsKey, []byte{countsComplete})
-	})
-	return complete, err
-}
-
-// GetCountState reads the state of the counts.
-func (g *RefGraph) GetCountState(ctx context.Context) (CountState, error) {
-	var state CountState
-	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
-		// Decode the counts record; an absent one never started.
-		value, found, err := tx.Get(ctx, countsKey)
-		if err != nil || !found || len(value) == 0 {
-			return err
-		}
-		state = CountState{Complete: value[0] == countsComplete}
-		if !state.Complete {
-			state.Doubt = string(value[1:])
-		}
-		return nil
-	})
-	return state, err
 }
