@@ -117,6 +117,7 @@ func (r *BucketLookupCursorResource) PutBlockBatch(ctx context.Context, req *s4w
 			Data:      entry.GetData(),
 			Refs:      entry.GetRefs(),
 			Tombstone: entry.GetTombstone(),
+			RefsKnown: entry.GetRefsKnown(),
 		}
 	}
 	if _, err := r.cursor.PutBlockBatch(ctx, entries); err != nil {

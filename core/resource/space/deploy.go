@@ -417,7 +417,7 @@ func copyBlockWithTransform(
 		}
 
 		// Write raw data to dest and require content identity.
-		if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs}); err != nil {
+		if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}); err != nil {
 			return errors.Wrapf(err, "put block: %s", refStr)
 		}
 	}

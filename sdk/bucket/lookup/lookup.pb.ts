@@ -261,6 +261,10 @@ export interface PutBlockBatchEntry {
    * Tombstone marks the block ref as deleted.
    */
   tombstone?: boolean
+  /**
+   * RefsKnown declares refs complete, as block.PutOpts.refs_known does.
+   */
+  refsKnown?: boolean
 }
 
 export const PutBlockBatchEntry: MessageType<PutBlockBatchEntry> =
@@ -271,6 +275,7 @@ export const PutBlockBatchEntry: MessageType<PutBlockBatchEntry> =
       [2, 'data', 12],
       [3, 'refs', 11, 1, BlockRef.codec],
       [4, 'tombstone', 8],
+      [5, 'refs_known', 8],
     ],
   )
 

@@ -575,7 +575,7 @@ func (r *replayer) encodeSpan(extra []*block.BlockRef) (*block.PutBatchEntry, *b
 	if prev != nil {
 		refs = append(refs, prev)
 	}
-	return &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs}, ref, nil
+	return &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true}, ref, nil
 }
 
 // encodeCursor returns the encoded base, outcomes and World after them. Each

@@ -201,10 +201,11 @@ func (a *chunkAppender) put(chk *pendingChunk) error {
 		return chk.err
 	}
 
-	// Stage the chunk as a content block and count it as written.
+	// Stage the chunk as a content block, a leaf, and count it as written.
 	opts := a.tx.GetPutOpts().CloneVT()
 	opts.ForceBlockRef = nil
 	opts.Refs = nil
+	opts.RefsKnown = true
 	staged := a.tx.StageWrites(a.ctx, a.tx.GetStoreOps())
 	block.RecordWrite(a.ctx, len(chk.data))
 	ref, _, err := staged.PutBlock(a.ctx, chk.data, opts)

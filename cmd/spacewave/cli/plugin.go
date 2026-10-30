@@ -289,7 +289,7 @@ func copyManifestBlock(
 		if err != nil {
 			return errors.Wrapf(err, "get block refs: %s", refStr)
 		}
-		putOpts := &block.PutOpts{ForceBlockRef: ref, Refs: refs}
+		putOpts := &block.PutOpts{ForceBlockRef: ref, Refs: refs, RefsKnown: blk != nil}
 		if _, _, err := dest.PutBlock(ctx, data, putOpts); err != nil {
 			return errors.Wrapf(err, "put block: %s", refStr)
 		}

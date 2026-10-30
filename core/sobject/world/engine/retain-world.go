@@ -141,7 +141,7 @@ func storeRootBlock(ctx context.Context, so sobject.SharedObject, root *block.Bl
 	}
 
 	// Write it again, noting whether it was still stored.
-	entry := &block.PutBatchEntry{Ref: root, Data: stored.Data, Refs: stored.Refs}
+	entry := &block.PutBatchEntry{Ref: root, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}
 	existed, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{entry})
 	if err != nil {
 		return false, err

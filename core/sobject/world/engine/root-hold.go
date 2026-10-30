@@ -54,7 +54,7 @@ func (h *rootHold) world(ctx context.Context, name string, root *block.BlockRef)
 	if !stored.RefsKnown {
 		return errors.Wrap(block.ErrRefsUnknown, root.MarshalString())
 	}
-	h.entries = append(h.entries, &block.PutBatchEntry{Ref: root, Data: stored.Data, Refs: stored.Refs})
+	h.entries = append(h.entries, &block.PutBatchEntry{Ref: root, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
 	h.roots = append(h.roots, block.NamedRoot{Name: name, Ref: root})
 	return nil
 }
@@ -72,7 +72,7 @@ func (h *rootHold) refBlock(name string, data []byte, refs []*block.BlockRef) er
 	if err != nil {
 		return err
 	}
-	h.entries = append(h.entries, &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs})
+	h.entries = append(h.entries, &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true})
 	h.roots = append(h.roots, block.NamedRoot{Name: name, Ref: ref})
 	return nil
 }

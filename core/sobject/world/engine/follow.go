@@ -154,6 +154,6 @@ func PublishedGraph(
 	if err != nil {
 		return nil, nil, err
 	}
-	entry = &block.PutBatchEntry{Ref: root, Data: data, Refs: slices.Concat(worlds, payloads)}
+	entry = &block.PutBatchEntry{Ref: root, Data: data, Refs: slices.Concat(worlds, payloads), RefsKnown: true}
 	return entry, root, nil
 }

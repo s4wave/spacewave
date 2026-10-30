@@ -240,7 +240,7 @@ func (a *ProviderAccount) fetchPlacedBlocks(
 					if !stored.RefsKnown {
 						return errors.Wrapf(block.ErrRefsUnknown, "fetch block %s", ref.MarshalString())
 					}
-					entries[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs}
+					entries[i] = &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}
 				}
 				return nil
 			})
