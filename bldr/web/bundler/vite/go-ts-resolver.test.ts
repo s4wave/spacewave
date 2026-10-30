@@ -191,6 +191,62 @@ describe('goTsResolver', () => {
     }
   })
 
+  it('resolves package imports of module cache sources from the project', async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), 'go-ts-modcache-source-'))
+    const modCache = await mkdtemp(join(tmpdir(), 'go-ts-modcache-'))
+    const prevModCache = process.env.GOMODCACHE
+    process.env.GOMODCACHE = modCache
+    try {
+      await writeFile(
+        join(sourceRoot, 'go.mod'),
+        'module github.com/example/app\n\ngo 1.26\n\nrequire github.com/example/dep v1.0.0\n',
+      )
+      const pkgDir = join(sourceRoot, 'node_modules', 'example-pkg')
+      await mkdir(pkgDir, { recursive: true })
+      await writeFile(
+        join(pkgDir, 'package.json'),
+        JSON.stringify({
+          name: 'example-pkg',
+          type: 'module',
+          exports: { './enum': './enum.js' },
+        }),
+      )
+      await writeFile(join(pkgDir, 'enum.js'), 'export const kind = 1')
+      const depDir = join(modCache, 'github.com/example/dep@v1.0.0/exec')
+      await mkdir(depDir, { recursive: true })
+      await writeFile(
+        join(depDir, 'exec.pb.ts'),
+        "export { kind } from 'example-pkg/enum'",
+      )
+      const entry = join(sourceRoot, 'entry.ts')
+      await writeFile(
+        entry,
+        [
+          "import { kind } from '@go/github.com/example/dep/exec/exec.pb.js'",
+          'export const value = kind',
+        ].join('\n'),
+      )
+
+      await expect(
+        build({
+          configFile: false,
+          root: sourceRoot,
+          logLevel: 'silent',
+          plugins: [goTsResolver(sourceRoot)],
+          build: {
+            write: false,
+            rollupOptions: { input: entry },
+          },
+        }),
+      ).resolves.toBeTruthy()
+    } finally {
+      if (prevModCache === undefined) delete process.env.GOMODCACHE
+      else process.env.GOMODCACHE = prevModCache
+      await rm(sourceRoot, { recursive: true, force: true })
+      await rm(modCache, { recursive: true, force: true })
+    }
+  })
+
   it('prefers app root vendor and falls back to the Bldr dist vendor tree', async () => {
     const sourceRoot = await mkdtemp(join(tmpdir(), 'go-ts-source-'))
     const distRoot = await mkdtemp(join(tmpdir(), 'go-ts-dist-'))

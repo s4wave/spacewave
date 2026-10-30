@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { delimiter, dirname, isAbsolute, join, resolve } from 'node:path'
+import { delimiter, dirname, isAbsolute, join, resolve, sep } from 'node:path'
 
 // GoModulePin is one module's selected version or local replacement directory.
 interface GoModulePin {
@@ -17,6 +17,11 @@ function goModCacheDir(): string {
     delimiter,
   )[0]
   return join(gopath, 'pkg', 'mod')
+}
+
+// isGoModuleCachePath reports whether path lies inside the Go module cache.
+export function isGoModuleCachePath(path: string): boolean {
+  return resolve(path).startsWith(resolve(goModCacheDir()) + sep)
 }
 
 // encodeModulePath escapes uppercase letters the way the module cache does.

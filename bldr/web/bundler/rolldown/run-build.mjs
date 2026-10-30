@@ -13,14 +13,14 @@ import {
   normalize,
   relative,
   resolve as resolve2,
-  sep
+  sep as sep2
 } from "path";
 import { pathToFileURL } from "url";
 
 // bldr/web/bundler/go-module-cache.ts
 import { readFileSync } from "fs";
 import { homedir } from "os";
-import { delimiter, dirname, isAbsolute, join, resolve } from "path";
+import { delimiter, dirname, isAbsolute, join, resolve, sep } from "path";
 var pinsByMod = new Map;
 function goModCacheDir() {
   if (process.env.GOMODCACHE)
@@ -260,7 +260,7 @@ async function runBuild(request, dependencyRoot) {
       normalizedPath = normalize(filePath);
     }
     const dependencyRelative = relative(dependencyModulesRoot, normalizedPath);
-    if (dependencyRelative === "" || !isAbsolute2(dependencyRelative) && dependencyRelative !== ".." && !dependencyRelative.startsWith(`..${sep}`)) {
+    if (dependencyRelative === "" || !isAbsolute2(dependencyRelative) && dependencyRelative !== ".." && !dependencyRelative.startsWith(`..${sep2}`)) {
       return;
     }
     inputs.add(normalizedPath);
@@ -393,7 +393,7 @@ async function runBuild(request, dependencyRoot) {
       return null;
     }
     const targetPath = normalize(join2(dirname2(importer), source));
-    const rel = relative(goScriptRoot, targetPath).split(sep).join("/");
+    const rel = relative(goScriptRoot, targetPath).split(sep2).join("/");
     if (rel === "" || rel.startsWith("..") || isAbsolute2(rel))
       return null;
     if (!sharedGoScriptRel(rel) || !existingTypeScriptSibling(targetPath))
@@ -425,7 +425,7 @@ async function runBuild(request, dependencyRoot) {
   }
   const loadedIds = [
     /^\0virtual:/,
-    ...[...sourceOverrides.keys(), ...entryInjects.keys()].map((filePath) => exactPattern(filePath.split(sep).join("/")))
+    ...[...sourceOverrides.keys(), ...entryInjects.keys()].map((filePath) => exactPattern(filePath.split(sep2).join("/")))
   ];
   if (goscript)
     loadedIds.push(exactPattern(NODE_EVENTS_ID));
@@ -730,10 +730,10 @@ async function collectOutputs(outputRoot, outputs, entrypoints) {
 function normalizeOutputPath(outputRoot, outputPath) {
   const absolute = resolve2(outputRoot, outputPath);
   const relativePath = normalize(relative(outputRoot, absolute));
-  if (relativePath === ".." || relativePath.startsWith(`..${sep}`) || isAbsolute2(relativePath)) {
+  if (relativePath === ".." || relativePath.startsWith(`..${sep2}`) || isAbsolute2(relativePath)) {
     throw new Error(`Rolldown emitted output outside output root: ${outputPath}`);
   }
-  return relativePath.split(sep).join("/");
+  return relativePath.split(sep2).join("/");
 }
 function entrypointForFacade(facade, entrypoints) {
   if (!facade)

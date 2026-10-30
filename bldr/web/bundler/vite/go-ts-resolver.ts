@@ -3,7 +3,10 @@ import { access } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
 import { type Alias, type Plugin } from 'vite'
 
-import { resolveGoModuleCachePath } from '../go-module-cache.js'
+import {
+  isGoModuleCachePath,
+  resolveGoModuleCachePath,
+} from '../go-module-cache.js'
 
 // readLocalModuleSync reads the module path from projectRoot/go.mod so the
 // @go/<module>/... alias can resolve to local source instead of vendor.
@@ -135,6 +138,18 @@ function resolveSourcePaths(
   return [resolve(dirname(importer), source)]
 }
 
+// isPackageImport reports whether source names an npm package rather than a
+// file, a virtual module or an @go/ or vendor/ path.
+function isPackageImport(source: string): boolean {
+  return (
+    !source.startsWith('.') &&
+    !source.startsWith('\0') &&
+    !source.startsWith('@go/') &&
+    !source.startsWith('vendor/') &&
+    !isAbsolute(source)
+  )
+}
+
 // buildGoAliases builds Vite aliases for monorepo-local @go imports that do
 // not go through the generated .js-to-.ts resolver. Vendored @go imports are
 // resolved by goTsResolver so external apps can fall back to the Bldr dist
@@ -178,6 +193,18 @@ export function goTsResolver(
       moduleCache.clear()
     },
     async resolveId(source, importer) {
+      // A source file in the Go module cache has no node_modules above it, so
+      // resolve its package imports as the project root would.
+      if (
+        importer &&
+        isPackageImport(source) &&
+        isGoModuleCachePath(importer)
+      ) {
+        return this.resolve(source, resolve(projectRoot, 'package.json'), {
+          skipSelf: true,
+        })
+      }
+
       // Handle only .js imports that may map to source .ts files.
       if (!source.endsWith('.js')) {
         return null
