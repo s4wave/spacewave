@@ -785,6 +785,9 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 	// record: the copy keeps the reachable edges and lists and the root's
 	// record, and drops c's list, the unreachable bucket's edge and the young
 	// log the writes appended.
+	if ready, err := openRefGraph(dst).YoungReady(ctx); err != nil || ready {
+		t.Fatalf("copy past an unknown block: ready=%v err=%v", ready, err)
+	}
 	want := CopyProgress{Keys: 13, UnknownBlocks: 1, DroppedBlocks: 3, UnownedBlocks: 1, DroppedRecords: 5}
 	last.Bytes, last.DroppedBytes = 0, 0
 	if last != want {

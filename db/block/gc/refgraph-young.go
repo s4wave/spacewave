@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -56,6 +57,22 @@ func (g *RefGraph) ClaimYoungReady(ctx context.Context) (bool, error) {
 		return tx.Set(ctx, youngReadyKey, nil)
 	})
 	return ready, err
+}
+
+// ClaimCopyYoungReady marks the young log of a copy complete. reached is the
+// Reachable mark of the source, and the copy holds only the graph records of
+// its Live nodes and no young log, so every block the copy tracks is old. A
+// mark without unknown blocks reached a list for every block it reached, so
+// an old block names only old blocks. A mark with unknown blocks is refused:
+// a block without a list that an old block names is young once a write
+// records its list, and no record lists the edge.
+func (g *RefGraph) ClaimCopyYoungReady(ctx context.Context, reached *BlockMark) error {
+	if reached.Unknown != 0 {
+		return fmt.Errorf("claim young log complete: %d reached blocks have no child list", reached.Unknown)
+	}
+	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, youngReadyKey, nil)
+	})
 }
 
 // youngRange is the young log: records lo up to hi.

@@ -56,8 +56,8 @@ func (g *RefGraph) Reachable(ctx context.Context) (*BlockMark, error) {
 // direction, the block of a child list, or the node of a node or root record.
 // The records of a block pass and of the young log name no node, so it
 // returns an empty subject for them, which no collection keeps: a collection
-// that keeps only reachable records leaves every block it keeps old, and its
-// copy is not minor-ready until a block pass promotes.
+// that keeps only reachable records leaves every block it keeps old, and
+// claims its copy minor-ready itself, as ClaimCopyYoungReady describes.
 func RecordSubject(key []byte) (string, error) {
 	// Split the kind byte from the nodes.
 	if len(key) == 0 {

@@ -83,7 +83,8 @@ type CopyReachableOptions struct {
 // It refuses, before writing anything, a source whose walk reaches a block
 // without a child list, unless opts.AllowUnknown is set: the blocks such a
 // block names are not reached and may be live, which is why a sweep waits
-// for unknown blocks.
+// for unknown blocks. A copy whose walk reached none drops the young log and
+// records it complete, so minor passes run on the copy from the start.
 func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, opts CopyReachableOptions, progress func(CopyProgress)) error {
 	// Require a source whose graph the walk reads.
 	version, err := readFormatVersion(ctx, src, keys)
@@ -121,11 +122,12 @@ func copyStore(
 
 	// Mark the reachable nodes in the same snapshot.
 	w := &copyWriter{store: dst, progress: progress, convert: version < 4}
+	var mark *block_gc.BlockMark
 	if reachable != nil {
 		w.graph = openRefGraph(kvtx.NewTxStore(stx))
 		w.blockPrefix = keys.GetBlockFullPrefix()
 		w.countUnowned = reachable.CountUnowned
-		mark, err := w.graph.Reachable(ctx)
+		mark, err = w.graph.Reachable(ctx)
 		if err != nil {
 			return fmt.Errorf("mark reachable nodes: %w", err)
 		}
@@ -155,6 +157,11 @@ func copyStore(
 		return err
 	}
 	defer tx.Discard()
+	if mark != nil && mark.Unknown == 0 {
+		if err := openRefGraph(kvtx.NewTxStore(tx)).ClaimCopyYoungReady(ctx, mark); err != nil {
+			return err
+		}
+	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
 		return err
 	}

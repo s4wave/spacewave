@@ -107,3 +107,81 @@ func TestYoungReadySurvivesReopen(t *testing.T) {
 	assertPublishedBlock(t, v, third, false)
 	assertPublishedBlock(t, v, live, true)
 }
+
+// TestCopyReachableYoungReady checks that a reachable copy of a store that is
+// not minor-ready, whose walk reaches no block without a child list, is
+// minor-ready, keeps the published block and head, and runs a minor pass that
+// sweeps a released block and keeps the live one.
+func TestCopyReachableYoungReady(t *testing.T) {
+	// Publish a block in a source, then withdraw its ready record.
+	ctx := t.Context()
+	keys := store_kvkey.NewDefaultKVKey()
+	src, dst := store_kvtx_inmem.NewStore(), store_kvtx_inmem.NewStore()
+	v, err := NewVolume(ctx, "test/young-src", keys, src, &store_kvtx.Config{}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	live := publicationFor(t, "live", "", "one")
+	if err := v.PublishAtomic(ctx, live); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Withdraw the ready record of the source.
+	tx, err := src.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Delete(ctx, append(append([]byte(nil), refGraphPrefix...), 'm')); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Check the source is not minor-ready.
+	if ready, err := openRefGraph(src).YoungReady(ctx); err != nil || ready {
+		t.Fatalf("source ready=%v err=%v", ready, err)
+	}
+
+	// The copy is minor-ready.
+	var last CopyProgress
+	if err := CopyReachable(ctx, src, dst, keys, CopyReachableOptions{}, func(p CopyProgress) { last = p }); err != nil {
+		t.Fatal(err)
+	}
+	if last.UnknownBlocks != 0 {
+		t.Fatalf("copy progress %+v", last)
+	}
+	if ready, err := openRefGraph(dst).YoungReady(ctx); err != nil || !ready {
+		t.Fatalf("copy ready=%v err=%v", ready, err)
+	}
+
+	// A Volume on the copy keeps the published block and head, and a minor
+	// pass sweeps a released block and keeps the live one.
+	v, err = NewVolume(ctx, "test/young-dst", keys, dst, &store_kvtx.Config{}, false, false, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := v.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	assertPublishedBlock(t, v, live, true)
+	assertHead(t, v, "live", "one")
+
+	// Release a second publication and sweep it in a minor pass.
+	released := publicationFor(t, "released", "", "one")
+	if err := v.PublishAtomic(ctx, released); err != nil {
+		t.Fatal(err)
+	}
+	orphanPublication(t, v, released)
+	var stats block_gc.Stats
+	if err := v.SweepYoungBlocks(ctx, v.GetRefGraph(), &stats); err != nil {
+		t.Fatal(err)
+	}
+	assertPublishedBlock(t, v, released, false)
+	assertPublishedBlock(t, v, live, true)
+}
