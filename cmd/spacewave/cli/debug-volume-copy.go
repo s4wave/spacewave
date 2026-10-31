@@ -91,12 +91,11 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 		return fmt.Errorf("%s is open in another process; stop the daemon first", src)
 	}
 
-	// Create the destination, which must not exist. Its keys arrive in order
-	// and never move, so compaction has nothing to do.
+	// Create the destination, which must not exist.
 	if _, err := os.Stat(dst); !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("%s already exists", dst)
 	}
-	ddb, err := s4db.Open(dst, s4db.Options{RelocateBudget: -1})
+	ddb, err := s4db.Open(dst, s4db.Options{})
 	if err != nil {
 		return err
 	}

@@ -50,9 +50,10 @@ type VolumeFlows struct {
 	// DeadlistLivePages is the number of pages those records listed as dead
 	// that the mark reached.
 	DeadlistLivePages uint64
-	// BuildWait is the time background commits waited for the storage's
-	// checkpoint build, zero when the storage does not count it.
-	BuildWait time.Duration
+	// BackgroundWaitMax is the longest a commit waited for the storage's
+	// writer while a background step held it, zero when the storage does not
+	// count it.
+	BackgroundWaitMax time.Duration
 }
 
 // FlowReporter is implemented by a volume that counts the data it writes.

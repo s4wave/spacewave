@@ -23,19 +23,10 @@ message Config {
   .volume.controller.Config volume_config = 6;
   // StoreConfig is the store configuration for kvtx.
   .store.kvtx.Config store_config = 7;
-  // CacheBytes bounds the memory of decoded index pages. Zero selects the
-  // s4db default. A cache that holds the index spares a checkpoint and a
-  // lookup their page reads.
+  // CacheBytes is the s4db memory budget: a quarter bounds the memtable and
+  // the rest caches run blocks, index partitions and filters. Zero selects
+  // the s4db default.
   int64 cache_bytes = 8;
-  // CheckpointMaxBytes is the overlay size that always starts a checkpoint.
-  // Zero selects the s4db default. A larger overlay folds more commits into
-  // each rewrite of the index pages they touch, at the cost of overlay memory
-  // and log replay at open.
-  int64 checkpoint_max_bytes = 9;
-  // SingleProcess skips watching the file for other processes' commits and
-  // holds its writer lock from open to close, so checkpoints write without
-  // waiting for writers. Set it only when no other process opens the file.
-  bool single_process = 10;
   // ReserveBytes is the free disk below which the volume refuses new writes
   // while reads, collection and deletes continue. Zero selects the disk one
   // collection needs before it frees any; a negative value keeps no reserve.

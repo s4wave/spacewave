@@ -2,12 +2,11 @@
 // @generated from file github.com/s4wave/spacewave/db/volume/s4db/s4db.proto (package volume.s4db, syntax proto3)
 /* eslint-disable */
 
-import { Config as Config$1 } from "../../store/kvkey/kvkey.pb.js";
-import { Config as Config$2 } from "../controller/controller.pb.js";
-import { Config as Config$3 } from "../../store/kvtx/kvtx.pb.js";
-import type { MessageType } from "@aptre/protobuf-es-lite/message";
-import { createMessageType } from "@aptre/protobuf-es-lite/message";
-
+import { Config as Config$1 } from '../../store/kvkey/kvkey.pb.js'
+import { Config as Config$2 } from '../controller/controller.pb.js'
+import { Config as Config$3 } from '../../store/kvtx/kvtx.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 
 /**
  * Config is the s4db volume controller config.
@@ -18,71 +17,56 @@ export interface Config {
   /**
    * Path is the database file, created when absent.
    */
-  path?: string;
+  path?: string
   /**
    * KvKeyOpts are key/value key constants.
    */
-  kvKeyOpts?: Config$1;
+  kvKeyOpts?: Config$1
   /**
    * NoGenerateKey disables generating a peer private key when the volume has
    * none.
    */
-  noGenerateKey?: boolean;
+  noGenerateKey?: boolean
   /**
    * NoWriteKey disables writing a generated peer private key to storage, so
    * the peer identity is ephemeral until a key is stored.
    */
-  noWriteKey?: boolean;
+  noWriteKey?: boolean
   /**
    * Verbose enables verbose logging.
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * VolumeConfig is the volume controller config.
    */
-  volumeConfig?: Config$2;
+  volumeConfig?: Config$2
   /**
    * StoreConfig is the store configuration for kvtx.
    */
-  storeConfig?: Config$3;
+  storeConfig?: Config$3
   /**
-   * CacheBytes bounds the memory of decoded index pages. Zero selects the
-   * s4db default. A cache that holds the index spares a checkpoint and a
-   * lookup their page reads.
+   * CacheBytes is the s4db memory budget: a quarter bounds the memtable and
+   * the rest caches run blocks, index partitions and filters. Zero selects
+   * the s4db default.
    */
-  cacheBytes?: bigint;
-  /**
-   * CheckpointMaxBytes is the overlay size that always starts a checkpoint.
-   * Zero selects the s4db default. A larger overlay folds more commits into
-   * each rewrite of the index pages they touch, at the cost of overlay memory
-   * and log replay at open.
-   */
-  checkpointMaxBytes?: bigint;
-  /**
-   * SingleProcess skips watching the file for other processes' commits and
-   * holds its writer lock from open to close, so checkpoints write without
-   * waiting for writers. Set it only when no other process opens the file.
-   */
-  singleProcess?: boolean;
+  cacheBytes?: bigint
   /**
    * ReserveBytes is the free disk below which the volume refuses new writes
    * while reads, collection and deletes continue. Zero selects the disk one
    * collection needs before it frees any; a negative value keeps no reserve.
    */
-  reserveBytes?: bigint;
+  reserveBytes?: bigint
 }
 
-export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType<Config>("volume.s4db.Config", () => [
-  [1, "path", 9],
-  [2, "kv_key_opts", 11, 0, Config$1.codec],
-  [3, "no_generate_key", 8],
-  [4, "no_write_key", 8],
-  [5, "verbose", 8],
-  [6, "volume_config", 11, 0, Config$2.codec],
-  [7, "store_config", 11, 0, Config$3.codec],
-  [8, "cache_bytes", 3],
-  [9, "checkpoint_max_bytes", 3],
-  [10, "single_process", 8],
-  [11, "reserve_bytes", 3],
-]);
-
+export const Config: MessageType<Config> =
+  /* @__PURE__ */ createMessageType<Config>('volume.s4db.Config', () => [
+    [1, 'path', 9],
+    [2, 'kv_key_opts', 11, 0, Config$1.codec],
+    [3, 'no_generate_key', 8],
+    [4, 'no_write_key', 8],
+    [5, 'verbose', 8],
+    [6, 'volume_config', 11, 0, Config$2.codec],
+    [7, 'store_config', 11, 0, Config$3.codec],
+    [8, 'cache_bytes', 3],
+    [11, 'reserve_bytes', 3],
+  ])

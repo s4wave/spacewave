@@ -130,8 +130,6 @@ type Volume struct {
 	// writtenBytes counts the new data the volume admitted or committed, for
 	// the size measurement.
 	writtenBytes atomic.Uint64
-	// reserveRelease returns freed space without a commit, may be nil.
-	reserveRelease func(context.Context) error
 	// healthDueAt is the writtenBytes at which the next size measurement is
 	// due, zero before the first.
 	healthDueAt atomic.Uint64

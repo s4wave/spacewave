@@ -167,12 +167,12 @@ func TestMarkReadsBuild(t *testing.T) {
 	}
 
 	// Report the graph.
-	u, err := db.Usage(ctx)
+	st, err := db.Stats(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("built %d live blocks, %d garbage, a chain of %d, %d child edges in %s; %d keys, index %d MiB",
-		blocks, garbage, chain, edges, time.Since(start).Round(time.Millisecond), u.IndexKeys, u.IndexBytes>>20)
+	t.Logf("built %d live blocks, %d garbage, a chain of %d, %d child edges in %s; %d keys, %d run chunks",
+		blocks, garbage, chain, edges, time.Since(start).Round(time.Millisecond), st.KeyCount, st.Chunks.Run)
 }
 
 // TestMarkReads marks the built graph once and reports its costs.
@@ -189,24 +189,6 @@ func TestMarkReads(t *testing.T) {
 	}
 	defer db.Close()
 	ctx := context.Background()
-
-	// Let the warm-up at open finish, so its reads are not counted.
-	before, err := db.Usage(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for {
-		time.Sleep(time.Second)
-		u, err := db.Usage(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if u.PageReads == before.PageReads {
-			break
-		}
-		before = u
-	}
-	t.Logf("warm: %d page reads, cache %d MiB", before.PageReads, before.CacheBytes>>20)
 
 	// Settle the heap and note its counters.
 	g := NewRefGraph(db)
@@ -244,10 +226,6 @@ func TestMarkReads(t *testing.T) {
 
 	// Read the counters after the mark.
 	runtime.ReadMemStats(&m1)
-	after, err := db.Usage(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
 	t.Logf("mode %q scans %d longest read %s", mode, mark.Scans, mark.LongestRead)
 
 	// Check the result against the walk when asked.
@@ -262,9 +240,8 @@ func TestMarkReads(t *testing.T) {
 	}
 
 	// Report the costs.
-	t.Logf("mark: live %d unreached %d unknown %d in %s; page reads %d; %d allocs, %d MiB allocated",
+	t.Logf("mark: live %d unreached %d unknown %d in %s; %d allocs, %d MiB allocated",
 		mark.Live.Len(), len(mark.Unreached), mark.Unknown, elapsed.Round(time.Millisecond),
-		after.PageReads-before.PageReads,
 		m1.Mallocs-m0.Mallocs, (m1.TotalAlloc-m0.TotalAlloc)>>20)
 }
 
@@ -304,8 +281,8 @@ func markReadsChurn(t *testing.T, db *s4db.DB, rate int, stop <-chan struct{}, p
 			t.Error(err)
 			return
 		}
-		if u, err := db.Usage(ctx); err == nil {
-			most = max(most, u.PendingBytes)
+		if st, err := db.Stats(ctx); err == nil {
+			most = max(most, st.PendingBytes)
 		}
 	}
 }

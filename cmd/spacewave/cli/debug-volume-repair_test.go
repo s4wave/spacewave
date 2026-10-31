@@ -58,15 +58,15 @@ func TestDebugVolumeRepair(t *testing.T) {
 	}
 
 	// The repair refuses the volume while it is open.
-	if err := runDebugVolumeRepair(ctx, path, true, "json"); err == nil {
+	if err := runDebugVolumeRepair(ctx, path, "json"); err == nil {
 		t.Fatal("repair ran on an open volume")
 	}
 	if err := vol.Close(); err != nil {
 		t.Fatal(err)
 	}
 
-	// Repair and compact the stopped volume.
-	if err := runDebugVolumeRepair(ctx, path, true, "json"); err != nil {
+	// Repair the stopped volume.
+	if err := runDebugVolumeRepair(ctx, path, "json"); err != nil {
 		t.Fatal(err)
 	}
 

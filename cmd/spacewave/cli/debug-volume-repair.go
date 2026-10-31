@@ -40,43 +40,34 @@ type volumeRepairResult struct {
 	proofKeysDeleted uint64
 	// bytesBefore is the file size before the repair.
 	bytesBefore uint64
-	// bytesAfter is the file size after the repair and any compaction.
+	// bytesAfter is the file size after the repair.
 	bytesAfter uint64
 }
 
 // newDebugVolumeRepairCommand builds the offline volume repair.
 func newDebugVolumeRepairCommand() *cli.Command {
-	// Bind the compaction flag.
-	var compact bool
 	return &cli.Command{
 		Name:      "volume-repair",
-		Usage:     "release blocks leaked into bucket ownership and optionally compact the volume",
+		Usage:     "release blocks leaked into bucket ownership",
 		ArgsUsage: "<volume-file>",
 		Description: "Rewrites a stopped s4db volume in place. A bucket that owns named roots " +
 			"retains its blocks through them, so its direct block edges are left over from " +
 			"interrupted or superseded writes: the repair removes them, sweeps every block no " +
 			"longer owned, and deletes the local completion proofs the volume graph replaced. " +
-			"With --compact it then moves the remaining values out of sparse pages and " +
-			"returns the freed space to the filesystem. " +
+			"The database returns the freed space to the filesystem in the background once " +
+			"the volume runs again. " +
 			"Stop the daemon and keep a copy (cp -c clones it on APFS) before running it.",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:        "compact",
-				Usage:       "compact the repaired volume to return freed space to the filesystem",
-				Destination: &compact,
-			},
-		},
 		Action: func(c *cli.Context) error {
 			if c.NArg() != 1 {
 				return errors.New("expected one volume file argument")
 			}
-			return runDebugVolumeRepair(c.Context, c.Args().First(), compact, c.String("output"))
+			return runDebugVolumeRepair(c.Context, c.Args().First(), c.String("output"))
 		},
 	}
 }
 
 // runDebugVolumeRepair repairs a stopped volume file and prints what changed.
-func runDebugVolumeRepair(ctx context.Context, path string, compact bool, outputFormat string) error {
+func runDebugVolumeRepair(ctx context.Context, path string, outputFormat string) error {
 	// Record the file size before any change.
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -84,9 +75,9 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 	}
 	res := &volumeRepairResult{bytesBefore: uint64(fi.Size())} //nolint:gosec // Stat sizes are never negative.
 
-	// Release the leaked history and its proofs, and compact when asked.
+	// Release the leaked history and its proofs.
 	le := logrus.NewEntry(logrus.New())
-	if err := repairVolume(ctx, le, path, compact, res); err != nil {
+	if err := repairVolume(ctx, le, path, res); err != nil {
 		return err
 	}
 	fi, err = os.Stat(path)
@@ -125,9 +116,8 @@ func runDebugVolumeRepair(ctx context.Context, path string, compact bool, output
 }
 
 // repairVolume opens the stopped volume, releases its leaked bucket edges,
-// sweeps the blocks they held, deletes the obsolete local proofs and, with
-// compact, compacts the file.
-func repairVolume(ctx context.Context, le *logrus.Entry, path string, compact bool, res *volumeRepairResult) error {
+// sweeps the blocks they held and deletes the obsolete local proofs.
+func repairVolume(ctx context.Context, le *logrus.Entry, path string, res *volumeRepairResult) error {
 	// Open the stopped volume.
 	vol, err := openStoppedVolume(ctx, le, path)
 	if err != nil {
@@ -170,15 +160,8 @@ func repairVolume(ctx context.Context, le *logrus.Entry, path string, compact bo
 	}
 
 	// Delete the local proofs the volume graph replaced.
-	db := volume_s4db.GetDB(vol)
-	res.proofKeysDeleted, err = deleteLocalProofKeys(ctx, le, db)
-	if err != nil || !compact {
-		return err
-	}
-
-	// Release the space the sweep freed.
-	le.Info("compacting volume")
-	return db.Compact(ctx)
+	res.proofKeysDeleted, err = deleteLocalProofKeys(ctx, le, volume_s4db.GetDB(vol))
+	return err
 }
 
 // releaseBucketBlockEdges removes each direct bucket block edge of the buckets

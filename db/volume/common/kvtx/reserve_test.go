@@ -68,33 +68,6 @@ func TestReserve(t *testing.T) {
 	}
 }
 
-// TestReserveRelease checks that a volume in the reserve state releases the
-// space collection freed on its own polls, with no write to commit, and
-// becomes writable once the release frees the disk.
-func TestReserveRelease(t *testing.T) {
-	// Start below a 100 MiB reserve, with a release that frees the disk.
-	v, _ := newPublicationTestVolume(t)
-	ctx := t.Context()
-	const reserve = 100 << 20
-	var free atomic.Uint64
-	free.Store(reserve / 2)
-	v.SetReserveRelease(func(context.Context) error {
-		free.Store(2 * reserve)
-		return nil
-	})
-	v.SetHealthSizes(func(context.Context) (HealthSizes, error) {
-		return HealthSizes{FreeDiskBytes: free.Load(), ReserveBytes: reserve}, nil
-	})
-
-	// The volume enters the reserve, releases on its next poll and writes
-	// again.
-	waitWriteState(t, v, volume.VolumeWriteState_VOLUME_WRITE_STATE_RESERVE)
-	waitWriteState(t, v, volume.VolumeWriteState_VOLUME_WRITE_STATE_WRITABLE)
-	if err := v.PublishAtomic(ctx, publicationFor(t, "release", "", "one")); err != nil {
-		t.Fatalf("publish after the release: %v", err)
-	}
-}
-
 // TestInReserve checks the reserve state's entry, margin and exit, and that
 // a volume with no reserve is always writable.
 func TestInReserve(t *testing.T) {
