@@ -15,10 +15,6 @@ const partitionBlocks = 256
 // footerMagic ends a run footer.
 var footerMagic = [4]byte{'S', '4', 'R', 'N'}
 
-// bgDirtyMax is the most a background job writes between pushes of its bytes
-// to the drive.
-const bgDirtyMax = 8 << 20
-
 // runBuilder writes one run into reserved chunks: data blocks, then an index
 // partition and a filter partition per partitionBlocks blocks, then the
 // footer. No block straddles two chunks, so the chunks need not be adjacent.
