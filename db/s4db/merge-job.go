@@ -51,17 +51,20 @@ func (m *manifest) overlapping(level uint8, lo, hi []byte) []runMeta {
 // into level 1 when it holds more than level0Trigger runs; otherwise the
 // level furthest over its target gives its run with the least overlap below.
 // A run holding the file's top chunk goes first when free chunks sit below
-// it, so the end can fall.
+// it, so the end can fall. Level 0 runs overlap and are read newest first,
+// so one of them never moves down alone: a level 0 run at the top takes the
+// whole level with it.
 func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 	// Prefer the run at the top of a file with free chunks below.
 	sizes := m.levelBytes()
-	if top, ok := m.topRun(); ok {
+	top, hasTop := m.topRun()
+	if hasTop && top.level != 0 {
 		over := m.overlapping(top.level+1, top.smallest, top.largest)
 		return mergePick{inputs: append([]runMeta{top}, over...), level: top.level + 1, bottom: len(sizes) <= int(top.level)+2}, true
 	}
 
 	// Level 0 as a whole.
-	if m.level0() > level0Trigger {
+	if m.level0() > level0Trigger || hasTop {
 		var inputs []runMeta
 		var lo, hi []byte
 		for _, r := range m.runsNewestFirst() {
@@ -158,37 +161,27 @@ func (j *mergeJob) run(ctx context.Context) error {
 	}
 	need := chunksFor(inBytes) + 1
 	mneed := chunksFor(uint64(len(st.m.table.entries))*chunkEntrySize*5/4) + 1 // #nosec G115 -- a count.
-	var reserved []uint64
-	err := db.w.locked(ctx, func() error {
-		// Allocate the chunks from a copy of the table and record them.
-		next := db.cur.Load().m.table.clone()
-		first := next.alloc(need+mneed, chunkReserved, db.id)
-		for c := first; c < first+need+mneed; c++ {
-			reserved = append(reserved, c)
-		}
-		_, err := db.w.appendRecord(ctx, &record{kind: kindReserve, chunks: reserved})
-		return err
-	})
+	reserved, err := db.w.reserve(ctx, need+mneed)
 	if err != nil {
 		return err
 	}
 	runChunks, mchunks := reserved[:need], reserved[need:]
 
-	// Merge the inputs into output runs off the lock, on the idle thread.
+	// Merge the inputs into output runs off the lock, on the idle thread,
+	// reserving more chunks when the outputs outgrow the estimate.
 	more := func() (uint64, error) {
-		var c uint64
-		err := db.w.locked(ctx, func() error {
-			c = db.cur.Load().m.table.clone().alloc(1, chunkReserved, db.id)
-			_, err := db.w.appendRecord(ctx, &record{kind: kindReserve, chunks: []uint64{c}})
-			return err
-		})
-		return c, err
+		c, err := db.w.reserve(ctx, 1)
+		if err != nil {
+			return 0, err
+		}
+		reserved = append(reserved, c[0])
+		return c[0], nil
 	}
 	var outputs []runMeta
-	var used int
+	var unused []uint64
 	var mergeErr error
 	if err := db.sched.idle.do(ctx, func() {
-		outputs, used, mergeErr = j.merge(pick, runChunks, more)
+		outputs, unused, mergeErr = j.merge(pick, runChunks, more)
 	}); err != nil {
 		mergeErr = err
 	}
@@ -209,7 +202,6 @@ func (j *mergeJob) run(ctx context.Context) error {
 		removed[i] = r.id
 	}
 	var next *state
-	var sb superblock
 	err = db.w.locked(ctx, func() error {
 		// Name the outputs by the record and append it.
 		seq := db.cur.Load().seq + 1
@@ -219,17 +211,7 @@ func (j *mergeJob) run(ctx context.Context) error {
 		}
 		var err error
 		next, err = db.w.appendRecord(ctx, &record{kind: kindMerge, removed: removed, runs: outputs, mchunks: mchunks})
-		if err != nil {
-			return err
-		}
-
-		// Describe the superblock; the memtable positions stay the flush's.
-		db.superMtx.Lock()
-		sb = db.super
-		db.superMtx.Unlock()
-		sb.version, sb.seq = next.m.version, next.seq
-		sb.logPos, sb.logEnd, sb.logCrc, sb.logWriter = next.pos, next.end, next.crc, next.writer
-		return nil
+		return err
 	})
 	if err != nil {
 		return j.abandon(ctx, reserved, err)
@@ -237,27 +219,22 @@ func (j *mergeJob) run(ctx context.Context) error {
 
 	// Write the manifest and superblock, forget the inputs, free the unused
 	// reservation, and release.
-	if err := (&flushJob{db: db}).publishManifest(next.m, mchunks, sb); err != nil {
+	if err := db.publishManifest(next, mchunks); err != nil {
 		return err
 	}
 	for _, id := range removed {
 		db.forgetRun(id)
 	}
-	if unused := runChunks[used:]; len(unused) != 0 {
-		if err := db.w.locked(ctx, func() error {
-			_, err := db.w.appendRecord(ctx, &record{kind: kindFree, chunks: unused})
-			return err
-		}); err != nil {
-			return err
-		}
+	if err := db.w.free(ctx, unused); err != nil {
+		return err
 	}
 	return db.sched.releaseStep(ctx)
 }
 
 // merge reads the inputs through a merge of their layers, newest first, and
-// writes output runs of runTarget into chunks, returning the runs and how
-// many chunks they used.
-func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, error)) ([]runMeta, int, error) {
+// writes output runs of runTarget into chunks, taking more when they run
+// out, returning the runs and the chunks left unused.
+func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, error)) ([]runMeta, []uint64, error) {
 	// Open a layer per input, newest first.
 	layers := make([]layer, 0, len(pick.inputs))
 	for _, r := range pick.inputs {
@@ -267,9 +244,9 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 		l.seek(nil, false)
 	}
 
-	// Write entries in order into runs of runTarget each.
+	// Write entries in order into runs of runTarget each; each run takes the
+	// chunks the one before it left.
 	var outputs []runMeta
-	used := 0
 	var rb *runBuilder
 	for {
 		// Find the smallest key and the newest layer holding it.
@@ -293,7 +270,7 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 			}
 		}
 		if err := j.checkLayers(layers); err != nil {
-			return nil, 0, err
+			return nil, nil, err
 		}
 
 		// Drop a tombstone at the bottom; write the rest.
@@ -301,18 +278,18 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 			continue
 		}
 		if rb == nil {
-			rb = newRunBuilder(j.db.s, chunks[used:], more)
+			rb = newRunBuilder(j.db.s, chunks, more)
 		}
 		if err := rb.add(key, ent.val); err != nil {
-			return nil, 0, err
+			return nil, nil, err
 		}
 		if rb.written+int64(len(rb.buf)) >= runTarget {
 			meta, err := rb.finish()
 			if err != nil {
-				return nil, 0, err
+				return nil, nil, err
 			}
 			outputs = append(outputs, meta)
-			used += len(meta.chunks)
+			chunks = rb.unused()
 			j.db.written.Add(rb.written)
 			rb = nil
 		}
@@ -322,13 +299,13 @@ func (j *mergeJob) merge(pick mergePick, chunks []uint64, more func() (uint64, e
 	if rb != nil && rb.count != 0 {
 		meta, err := rb.finish()
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, err
 		}
 		outputs = append(outputs, meta)
-		used += len(meta.chunks)
+		chunks = rb.unused()
 		j.db.written.Add(rb.written)
 	}
-	return outputs, used, nil
+	return outputs, chunks, nil
 }
 
 // checkLayers returns the first error a run layer hit.
@@ -343,9 +320,6 @@ func (j *mergeJob) checkLayers(layers []layer) error {
 
 // abandon frees a failed job's reservation and returns its error.
 func (j *mergeJob) abandon(ctx context.Context, reserved []uint64, cause error) error {
-	_ = j.db.w.locked(ctx, func() error {
-		_, err := j.db.w.appendRecord(ctx, &record{kind: kindFree, chunks: reserved})
-		return err
-	})
+	_ = j.db.w.free(ctx, reserved)
 	return cause
 }

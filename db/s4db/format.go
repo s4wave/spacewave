@@ -40,6 +40,9 @@ const (
 	lockMerge = lockFlush + 1
 	// lockClean is held by the process running the cleaner.
 	lockClean = lockMerge + 1
+	// lockSuper is held while a process writes a superblock, so generations
+	// stay ordered across processes.
+	lockSuper = lockClean + 1
 	// lockLease is the first of leaseLocks lease locks, one per name hash.
 	lockLease = 1 << 41
 	// leaseLocks is the number of lease lock bytes.

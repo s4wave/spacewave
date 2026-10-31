@@ -63,12 +63,15 @@ func (c *cleaner) due(m *manifest) (urgent, ok bool) {
 }
 
 // topVictim returns the value chunk holding the file's last chunk when free
-// chunks sit below it.
+// chunks sit below it and a scan has not found it stuck.
 func (c *cleaner) topVictim(m *manifest) (uint64, bool) {
 	// The last chunk must be a closed value chunk with a free chunk below.
 	t := m.table
 	end := t.end()
 	if end <= firstChunk || t.entries[end-1].kind != chunkValue || end-1 == m.hot || end-1 == m.cold {
+		return 0, false
+	}
+	if seq, stuck := c.stuck[end-1]; stuck && seq == t.entries[end-1].seq {
 		return 0, false
 	}
 	for ch := uint64(firstChunk); ch < end-1; ch++ {
@@ -153,9 +156,10 @@ func (c *cleaner) step(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if len(live) == 0 && len(entries) != 0 && e.live != 0 {
+	if len(live) == 0 && e.live != 0 {
 		// The table says live bytes remain but no entry parses as live: the
-		// chunk is damaged or still being written; pass over it for now.
+		// chunk holds part of a value larger than a chunk, is damaged, or is
+		// still being written; pass over it until a commit writes it again.
 		c.remember(victim, e.seq)
 		return nil
 	}

@@ -18,7 +18,7 @@ type flushJob struct {
 // holds lockFlush.
 func (j *flushJob) run(ctx context.Context) error {
 	// Take the snapshot: the memtable through its seq is the input, and its
-	// log position is the superblock's memPos.
+	// log point is where the superblock replays the memtable from.
 	db := j.db
 	st, stripe := db.acquire()
 	defer db.release(st, stripe)
@@ -29,17 +29,7 @@ func (j *flushJob) run(ctx context.Context) error {
 	// Reserve the run's chunks and the manifest's.
 	need := chunksFor(uint64(st.mem.bytes)) + 1                                // #nosec G115 -- bytes are not negative.
 	mneed := chunksFor(uint64(len(st.m.table.entries))*chunkEntrySize*5/4) + 1 // #nosec G115 -- a count.
-	var reserved []uint64
-	err := db.w.locked(ctx, func() error {
-		// Allocate the chunks from a copy of the table and record them.
-		next := db.cur.Load().m.table.clone()
-		first := next.alloc(need+mneed, chunkReserved, db.id)
-		for c := first; c < first+need+mneed; c++ {
-			reserved = append(reserved, c)
-		}
-		_, err := db.w.appendRecord(ctx, &record{kind: kindReserve, chunks: reserved})
-		return err
-	})
+	reserved, err := db.w.reserve(ctx, need+mneed)
 	if err != nil {
 		return err
 	}
@@ -48,13 +38,12 @@ func (j *flushJob) run(ctx context.Context) error {
 	// Build the run off the lock, reserving more chunks when it outgrows the
 	// estimate, then flush it durably through the shared flusher.
 	rb := newRunBuilder(db.s, runChunks, func() (uint64, error) {
-		var c uint64
-		err := db.w.locked(ctx, func() error {
-			c = db.cur.Load().m.table.clone().alloc(1, chunkReserved, db.id)
-			_, err := db.w.appendRecord(ctx, &record{kind: kindReserve, chunks: []uint64{c}})
-			return err
-		})
-		return c, err
+		c, err := db.w.reserve(ctx, 1)
+		if err != nil {
+			return 0, err
+		}
+		reserved = append(reserved, c[0])
+		return c[0], nil
 	})
 	var buildErr error
 	if err := db.sched.idle.do(ctx, func() {
@@ -81,29 +70,16 @@ func (j *flushJob) run(ctx context.Context) error {
 		return j.abandon(ctx, reserved, err)
 	}
 
-	// Append the flush record under the lock and keep the derived manifest.
+	// Append the flush record under the lock and keep the derived state.
 	var next *state
-	var sb superblock
 	err = db.w.locked(ctx, func() error {
-		// Name the run by its record and append the flush record.
+		// Name the run by its record and append the record.
 		meta.id = (db.cur.Load().seq + 1) * 16
 		meta.level = 0
-		r := &record{kind: kindFlush, through: st.seq, runs: []runMeta{meta}, mchunks: mchunks}
+		r := &record{kind: kindFlush, through: st.seq, replay: st.point(), runs: []runMeta{meta}, mchunks: mchunks}
 		var err error
 		next, err = db.w.appendRecord(ctx, r)
-		if err != nil {
-			return err
-		}
-
-		// Describe the superblock the manifest write will publish.
-		sb = superblock{
-			version: next.m.version,
-			seq:     next.seq,
-			logPos:  next.pos, logEnd: next.end, logCrc: next.crc, logWriter: next.writer,
-			through: st.seq,
-			memPos:  st.pos, memEnd: st.end, memCrc: st.crc, memWriter: st.writer,
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return j.abandon(ctx, reserved, err)
@@ -111,29 +87,35 @@ func (j *flushJob) run(ctx context.Context) error {
 
 	// Write the manifest and the superblock off the lock, then release what
 	// the flush made pending.
-	if err := j.publishManifest(next.m, mchunks, sb); err != nil {
+	if err := db.publishManifest(next, mchunks); err != nil {
 		return err
 	}
-	if unused := rb.unused(); len(unused) != 0 {
-		if err := db.w.locked(ctx, func() error {
-			_, err := db.w.appendRecord(ctx, &record{kind: kindFree, chunks: unused})
-			return err
-		}); err != nil {
-			return err
-		}
+	if err := db.w.free(ctx, rb.unused()); err != nil {
+		return err
 	}
 	return db.sched.releaseStep(ctx)
 }
 
-// publishManifest writes m into mchunks and flushes it, then writes and
-// flushes the superblock sb pointing at it.
-func (j *flushJob) publishManifest(m *manifest, mchunks []uint64, sb superblock) error {
+// abandon frees a failed job's reservation and returns its error.
+func (j *flushJob) abandon(ctx context.Context, reserved []uint64, cause error) error {
+	_ = j.db.w.free(ctx, reserved)
+	return cause
+}
+
+// publishManifest writes next's manifest into mchunks and flushes it, then
+// writes the superblock describing next pointing at it, and marks the states
+// the flush covered durable.
+func (db *DB) publishManifest(next *state, mchunks []uint64) error {
 	// The manifest must fit its reserved chunks, which are consecutive.
-	db := j.db
-	mb := m.encode()
+	mb := next.m.encode()
 	if uint64(len(mb)) > uint64(len(mchunks))*chunkSize {
 		return errors.New("manifest exceeds its reserved chunks")
 	}
+
+	// Write the manifest and flush it. The flush covers the state published
+	// before it, whose records were all written by then; a commit published
+	// after the flush began flushes itself.
+	covered := db.cur.Load()
 	off := chunkStart(mchunks[0])
 	if _, err := db.s.WriteAt(mb, fileOff(off)); err != nil {
 		return err
@@ -144,23 +126,11 @@ func (j *flushJob) publishManifest(m *manifest, mchunks []uint64, sb superblock)
 	}
 
 	// Write the superblock after the manifest is durable.
-	db.superMtx.Lock()
-	defer db.superMtx.Unlock()
-	sb.gen = db.super.gen + 1
+	sb := next.superblock()
 	sb.manifest = ref{off: off, n: uint32(len(mb)), crc: checksum(mb)} // #nosec G115 -- a manifest is far below 4 GiB.
 	if err := db.writeSuper(sb); err != nil {
 		return err
 	}
-	db.super = sb
-	db.flush.setDurable(db.cur.Load())
+	db.flush.setDurable(covered)
 	return nil
-}
-
-// abandon frees a failed job's reservation and returns its error.
-func (j *flushJob) abandon(ctx context.Context, reserved []uint64, cause error) error {
-	_ = j.db.w.locked(ctx, func() error {
-		_, err := j.db.w.appendRecord(ctx, &record{kind: kindFree, chunks: reserved})
-		return err
-	})
-	return cause
 }

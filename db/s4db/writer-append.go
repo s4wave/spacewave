@@ -68,3 +68,29 @@ func (w *writer) locked(ctx context.Context, fn func() error) error {
 	w.unlock()
 	return err
 }
+
+// reserve allocates n consecutive free chunks for a job of this handle and
+// appends the reserve record naming them, returning them.
+func (w *writer) reserve(ctx context.Context, n uint64) ([]uint64, error) {
+	chunks := make([]uint64, n)
+	err := w.locked(ctx, func() error {
+		first := w.db.cur.Load().m.table.clone().alloc(n, chunkReserved, w.db.id)
+		for i := range chunks {
+			chunks[i] = first + uint64(i) // #nosec G115 -- a chunk count.
+		}
+		_, err := w.appendRecord(ctx, &record{kind: kindReserve, chunks: chunks})
+		return err
+	})
+	return chunks, err
+}
+
+// free appends the free record for chunks, when there are any.
+func (w *writer) free(ctx context.Context, chunks []uint64) error {
+	if len(chunks) == 0 {
+		return nil
+	}
+	return w.locked(ctx, func() error {
+		_, err := w.appendRecord(ctx, &record{kind: kindFree, chunks: chunks})
+		return err
+	})
+}

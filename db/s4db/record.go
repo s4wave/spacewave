@@ -73,8 +73,11 @@ type record struct {
 	mchunks []uint64
 	// removed are the run ids a merge record removes.
 	removed []uint64
-	// through is the last commit a flush record's run holds.
+	// through is the last commit a flush record's run holds, and replay
+	// locates the first record after it, where the superblock the flush
+	// publishes rebuilds the memtable from.
 	through uint64
+	replay  logPoint
 
 	// size is the encoded length.
 	size int
@@ -125,6 +128,7 @@ func decodeRecord(b []byte, seq uint64, prev uint32, prevWriter uint64) (*record
 		r.chunks = d.chunkList()
 	case kindFlush:
 		r.through = d.uvarint()
+		r.replay = logPoint{pos: d.uvarint(), end: d.uvarint(), crc: d.u32(), writer: d.uvarint()}
 		r.runs = d.runList()
 		r.mchunks = d.chunkList()
 	case kindMerge:
@@ -195,6 +199,10 @@ func (r *record) encode(prev uint32) []byte {
 		b = appendChunkList(b, r.chunks)
 	case kindFlush:
 		b = binary.AppendUvarint(b, r.through)
+		b = binary.AppendUvarint(b, r.replay.pos)
+		b = binary.AppendUvarint(b, r.replay.end)
+		b = binary.LittleEndian.AppendUint32(b, r.replay.crc)
+		b = binary.AppendUvarint(b, r.replay.writer)
 		b = appendRunList(b, r.runs)
 		b = appendChunkList(b, r.mchunks)
 	case kindMerge:
