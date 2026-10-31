@@ -10,9 +10,10 @@ func (f *osFile) flushDurable() error {
 	return err
 }
 
-// writeback flushes durably: fsync would leave the pages in the drive's
-// cache, where a commit's F_FULLFSYNC would still find them.
-func (f *osFile) writeback() error {
+// writeback flushes the whole file durably: darwin has no call that writes a
+// range, and fsync would leave the pages in the drive's cache, where a
+// commit's F_FULLFSYNC would still find them.
+func (f *osFile) writeback([]uint64) error {
 	return f.flushDurable()
 }
 

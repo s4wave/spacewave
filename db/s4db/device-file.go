@@ -46,9 +46,9 @@ func (f deviceFile) flushDurable() error {
 	return f.Sync()
 }
 
-// writeback sends the collected writes without a flush, so a job's bytes
+// writeback sends all the collected writes without a flush, so a job's bytes
 // leave memory and a commit's flush finds few of them ahead of it.
-func (f deviceFile) writeback() error {
+func (f deviceFile) writeback([]uint64) error {
 	return f.Issue()
 }
 

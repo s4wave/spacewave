@@ -17,11 +17,12 @@ type storage interface {
 	truncate(n int64) error
 	// flushDurable makes earlier writes durable on the drive.
 	flushDurable() error
-	// writeback writes the file's dirty pages to the drive and waits for
-	// them. A background job calls it every bgDirtyMax from its idle
-	// thread, so its bytes leave at the idle priority and a commit's durable
-	// flush never finds more than bgDirtyMax of them ahead of it.
-	writeback() error
+	// writeback writes chunks' dirty pages to the drive and waits for them.
+	// A background job calls it every bgDirtyMax from its idle thread with
+	// the chunks it wrote, so its bytes leave at the idle priority and a
+	// commit's durable flush never finds more than bgDirtyMax of them ahead
+	// of it. A platform with no call for a range writes the whole file.
+	writeback(chunks []uint64) error
 	// lock takes a write lock on the byte at off, waiting for other holders
 	// when wait is set. Without wait it reports false when another holder
 	// has it.

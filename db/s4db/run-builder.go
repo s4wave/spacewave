@@ -33,10 +33,10 @@ type runBuilder struct {
 	used int
 	// buf holds the current chunk's bytes.
 	buf []byte
-	// written counts the bytes written to the file, and dirty those since
-	// the last push to the drive.
+	// written counts the bytes written to the file, and pushed the chunks
+	// pushed to the drive.
 	written int64
-	dirty   int64
+	pushed  int
 
 	// bb builds the current data block, and blockFirst is its first key.
 	bb         blockBuilder
@@ -194,25 +194,25 @@ func (rb *runBuilder) flushChunk() error {
 
 	// Advance, pushing to the drive every bgDirtyMax.
 	rb.written += int64(len(rb.buf))
-	rb.dirty += int64(len(rb.buf))
 	rb.used++
 	rb.buf = rb.buf[:0]
 	return rb.push(bgDirtyMax)
 }
 
-// push writes the run's bytes back to the drive once at least atLeast of
-// them wait.
+// push writes the chunks written since the last push back to the drive once
+// they hold at least atLeast bytes.
 func (rb *runBuilder) push(atLeast int64) error {
-	if rb.dirty < atLeast {
+	if int64(rb.used-rb.pushed)*chunkSize < atLeast {
 		return nil
 	}
-	rb.dirty = 0
-	return rb.s.writeback()
+	chunks := rb.chunks[rb.pushed:rb.used]
+	rb.pushed = rb.used
+	return rb.s.writeback(chunks)
 }
 
 // finish writes the last block, partition and the footer, flushes the last
-// chunk, pushes the rest of the run to the drive, and returns the run's description for the record, with id and level
-// filled by the caller.
+// chunk, pushes the rest of the run to the drive, and returns the run's
+// description for the record, with id and level filled by the caller.
 func (rb *runBuilder) finish() (runMeta, error) {
 	// Close what is open.
 	if err := rb.closeBlock(); err != nil {
