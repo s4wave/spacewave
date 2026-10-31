@@ -65,9 +65,8 @@ type DB struct {
 	runs runs
 	// budget is the file's memtable budget, from its header.
 	budget int64
-	// super is the newest superblock this handle read or wrote; the jobs
-	// derive the next from it. It belongs to the holder of the job that
-	// writes superblocks, serialized by superMtx.
+	// super is the newest superblock this handle read at open or made
+	// durable; the release step trusts its seq. superMtx serializes it.
 	super    superblock
 	superMtx sync.Mutex
 	// sched runs the background jobs.
@@ -246,32 +245,34 @@ func (db *DB) Shared() (bool, error) {
 	return false, nil
 }
 
-// readSuper returns the newer valid superblock whose manifest reads, with
-// that manifest. A newer superblock whose manifest is torn, because a crash
-// came between the two writes, yields to the older one.
-func (db *DB) readSuper() (superblock, *manifest, error) {
-	// Read both superblocks, newer first.
+// readSupers returns the valid superblocks the file holds, newer first.
+func (db *DB) readSupers() ([]superblock, error) {
+	// Read both pages and keep the valid ones.
 	b := make([]byte, 2*pageSize)
 	if _, err := db.s.ReadAt(b, superPage*pageSize); err != nil {
-		return superblock{}, nil, err
+		return nil, err
 	}
-	a, aok := decodeSuperblock(b)
-	c, cok := decodeSuperblock(b[pageSize:])
 	var order []superblock
-	for _, sb := range []struct {
-		sb superblock
-		ok bool
-	}{{a, aok}, {c, cok}} {
-		if sb.ok {
-			order = append(order, sb.sb)
+	for _, page := range [][]byte{b[:pageSize], b[pageSize:]} {
+		if sb, ok := decodeSuperblock(page); ok {
+			order = append(order, sb)
 		}
 	}
 	if len(order) == 2 && order[1].gen > order[0].gen {
 		order[0], order[1] = order[1], order[0]
 	}
+	return order, nil
+}
 
-	// Take the first whose manifest reads.
-	var err error
+// readSuper returns the newer valid superblock whose manifest reads, with
+// that manifest. A newer superblock whose manifest is torn, because a crash
+// came between the two writes, yields to the older one.
+func (db *DB) readSuper() (superblock, *manifest, error) {
+	// Take the newest whose manifest reads.
+	order, err := db.readSupers()
+	if err != nil {
+		return superblock{}, nil, err
+	}
 	for _, sb := range order {
 		var m *manifest
 		if m, err = db.readManifest(sb); err == nil {
@@ -296,12 +297,44 @@ func (db *DB) readManifest(sb superblock) (*manifest, error) {
 	return decodeManifest(b)
 }
 
-// writeSuper writes sb into the next superblock page and flushes it.
+// writeSuper writes sb as the file's next superblock generation and flushes
+// it, under lockSuper so processes publishing at once keep the generations
+// ordered. The generation comes from the file, since another process may have
+// published since this one read it; when the file already holds a superblock
+// at or past sb.seq, sb is older than it and is not written. db.super keeps
+// the newest superblock this handle made durable.
 func (db *DB) writeSuper(sb superblock) error {
+	// Serialize with the other publishers and this handle's readers of
+	// db.super.
+	if _, err := db.s.lock(lockSuper, true); err != nil {
+		return err
+	}
+	defer func() { _ = db.s.unlock(lockSuper) }()
+	db.superMtx.Lock()
+	defer db.superMtx.Unlock()
+
+	// Follow the newest generation in the file, unless it is already past sb.
+	order, err := db.readSupers()
+	if err != nil {
+		return err
+	}
+	sb.gen = 1
+	if len(order) != 0 {
+		if order[0].seq >= sb.seq {
+			return nil
+		}
+		sb.gen = order[0].gen + 1
+	}
+
+	// Write and flush it.
 	if _, err := db.s.WriteAt(sb.encode(), sb.page()*pageSize); err != nil {
 		return err
 	}
-	return db.s.flushDurable()
+	if err := db.s.flushDurable(); err != nil {
+		return err
+	}
+	db.super = sb
+	return nil
 }
 
 // tail returns st advanced to the end of the valid log, or st itself when
