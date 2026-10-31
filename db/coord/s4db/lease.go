@@ -38,17 +38,12 @@ func (l *lease) Err() error {
 	return l.inner.Err()
 }
 
-// Refresh applies the commits other processes wrote and returns the inner root
-// at the resulting commit sequence.
+// Refresh returns the inner root at the current commit sequence. Taking the
+// database lease tailed the other processes' commits, so the sequence is the
+// newest.
 func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
-	// Check that the lease is held and read the root.
 	snapshot, err := l.inner.Refresh(ctx)
 	if err != nil {
-		return nil, err
-	}
-
-	// Apply the other processes' commits before reading the sequence.
-	if err := l.db.Refresh(ctx); err != nil {
 		return nil, err
 	}
 	snapshot.Generation = l.db.Seq()
