@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 )
 
@@ -206,9 +207,10 @@ func TestBulkOverlay(t *testing.T) {
 	defer db.Close()
 
 	// Commit batches of keys interleaved across streams, each batch about
-	// one CheckpointMax.
+	// one CheckpointMax, as background writes, which wait at CommitWaitMax.
 	const streams, perStream, rounds = 64, 32, 200
 	limit := 4 * opts.CheckpointMax
+	ctx = kvtx.WithBackgroundCommitContext(ctx)
 	for i := range rounds {
 		tx, err := db.NewTransaction(ctx, true)
 		if err != nil {

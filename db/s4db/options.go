@@ -17,9 +17,11 @@ type Options struct {
 	// the limit also starts one, so rewrites of the same keys stay bounded.
 	// Zero selects 64 MiB.
 	CheckpointMax int64
-	// CommitWaitMax is the overlay memory past which a commit waits for
-	// the running checkpoint; a log after the checkpoint of twice it also
-	// holds commits. Zero selects twice CheckpointMax. A larger bound keeps
+	// CommitWaitMax is the overlay memory past which a background commit,
+	// marked by kvtx.WithBackgroundCommitContext, waits for the running
+	// checkpoint; a log after the checkpoint of twice it also holds them.
+	// Other commits wait only past four times these bounds. Zero selects
+	// twice CheckpointMax. A larger bound keeps
 	// commits flowing through a slow build, such as the first after open on
 	// a cold index, at the cost of memory and log replay at open.
 	CommitWaitMax int64

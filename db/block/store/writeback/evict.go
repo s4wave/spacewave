@@ -185,8 +185,10 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 func (s *Store) Refill(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
 	// Commit ordered: the remote holds the block, so a crash that loses the
 	// refill loses nothing, and a refill per read must not each wait on a
-	// flush to the drive that other writes share.
-	ctx = kvtx.WithOrderedCommitContext(ctx)
+	// flush to the drive that other writes share. A refill runs after the
+	// read it fills, so it commits as a background write, which the local
+	// store holds back first when writes outpace its maintenance.
+	ctx = kvtx.WithBackgroundCommitContext(kvtx.WithOrderedCommitContext(ctx))
 
 	// Write the value below the ownership layer.
 	if _, _, err := s.values.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
@@ -241,7 +243,10 @@ func (s *Store) Evict(
 	// Commit the pass ordered: it drops only values the remote holds, so a
 	// crash that loses its commits leaves values the next pass drops again,
 	// and its writes must not each wait on a flush that other writes share.
-	ctx = kvtx.WithOrderedCommitContext(ctx)
+	// It commits as a background write, which the local store holds back
+	// first when writes outpace its maintenance; the pass holds no lock a
+	// write waits on.
+	ctx = kvtx.WithBackgroundCommitContext(kvtx.WithOrderedCommitContext(ctx))
 
 	// Serialize the pass with other passes.
 	var result EvictResult

@@ -8,12 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// TestSmallCommitSkipsBuildWait holds a background checkpoint while a bulk
-// commit pushes the overlay past its bound, and checks that a small commit
-// returns while the bulk commit waits for the build.
-func TestSmallCommitSkipsBuildWait(t *testing.T) {
+// TestForegroundCommitSkipsBuildWait holds a background checkpoint while a
+// background commit pushes the overlay past its bound, and checks that another
+// commit returns while the background commit waits for the build.
+func TestForegroundCommitSkipsBuildWait(t *testing.T) {
 	// Open a file with small checkpoints whose builds wait for the gate.
 	ctx := context.Background()
 	opts := Options{CheckpointMin: 16 << 10, CheckpointMax: 64 << 10}
@@ -34,11 +36,12 @@ func TestSmallCommitSkipsBuildWait(t *testing.T) {
 		}
 	}()
 
-	// Commit a bulk batch over twice CheckpointMax, which starts the build
-	// and waits for it.
+	// Commit a background batch over twice CheckpointMax, which starts the
+	// build and waits for it.
 	bulk := make(chan error, 1)
 	go func() {
-		// Write 800 keys of 100 bytes in one transaction.
+		// Write 800 keys of 100 bytes in one background transaction.
+		ctx := kvtx.WithBackgroundCommitContext(ctx)
 		tx, err := db.NewTransaction(ctx, true)
 		if err != nil {
 			bulk <- err
@@ -60,13 +63,14 @@ func TestSmallCommitSkipsBuildWait(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("the build did not start")
 	}
-	if got, limit := db.cur.Load().overlayBytes, 2*opts.CheckpointMax; got <= limit || got > smallLimit*limit {
-		t.Fatalf("overlay holds %d bytes, want over %d and at most %d", got, limit, smallLimit*limit)
+	if got, limit := db.cur.Load().overlayBytes, 2*opts.CheckpointMax; got <= limit || got > foregroundLimit*limit {
+		t.Fatalf("overlay holds %d bytes, want over %d and at most %d", got, limit, foregroundLimit*limit)
 	}
 
-	// A small commit returns while the build holds.
+	// A foreground commit of as many bytes returns while the build holds.
 	small := make(chan error, 1)
 	go func() {
+		// Write the small key and 800 more in one transaction.
 		tx, err := db.NewTransaction(ctx, true)
 		if err != nil {
 			small <- err
@@ -76,6 +80,13 @@ func TestSmallCommitSkipsBuildWait(t *testing.T) {
 			small <- err
 			return
 		}
+		val := make([]byte, 100)
+		for i := range 800 {
+			if err := tx.Set(ctx, fmt.Appendf(nil, "fore/%06d", i), val); err != nil {
+				small <- err
+				return
+			}
+		}
 		small <- tx.Commit(ctx)
 	}()
 	select {
@@ -84,7 +95,7 @@ func TestSmallCommitSkipsBuildWait(t *testing.T) {
 			t.Fatal(err)
 		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("small commit waited for the build")
+		t.Fatal("foreground commit waited for the build")
 	}
 
 	// The bulk commit still waits, and returns once the build ends.
@@ -115,7 +126,7 @@ func TestSmallCommitSkipsBuildWait(t *testing.T) {
 		t.Fatalf("checkpoints %d of %d bytes in %v", stats.Checkpoints, stats.CheckpointBytes, stats.CheckpointTime)
 	}
 
-	// The small commit's key reads back.
+	// The foreground commit's key reads back.
 	rtx, err := db.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
@@ -127,8 +138,8 @@ func TestSmallCommitSkipsBuildWait(t *testing.T) {
 }
 
 // TestCommitWaitMaxRaisesBound holds a background checkpoint and checks that
-// a bulk commit past twice CheckpointMax returns while a larger CommitWaitMax
-// still covers the overlay.
+// a background commit past twice CheckpointMax returns while a larger
+// CommitWaitMax still covers the overlay.
 func TestCommitWaitMaxRaisesBound(t *testing.T) {
 	// Open a file with small checkpoints, a large commit wait bound, and
 	// builds that wait for the gate.
@@ -146,7 +157,9 @@ func TestCommitWaitMaxRaisesBound(t *testing.T) {
 		<-gate
 	}
 
-	// Commit a bulk batch over twice CheckpointMax while the build holds.
+	// Commit a background batch over twice CheckpointMax while the build
+	// holds.
+	ctx = kvtx.WithBackgroundCommitContext(ctx)
 	tx, err := db.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err)
@@ -179,5 +192,73 @@ func TestCommitWaitMaxRaisesBound(t *testing.T) {
 	}
 	if stats := db.Stats(); stats.BuildWaits != 0 {
 		t.Fatalf("build waits %d, want 0", stats.BuildWaits)
+	}
+}
+
+// TestForegroundCommitWaitsPastItsBound holds a background checkpoint and
+// checks that a foreground commit still waits for it once the overlay passes
+// foregroundLimit times CommitWaitMax, which bounds memory and replay.
+func TestForegroundCommitWaitsPastItsBound(t *testing.T) {
+	// Open a file with small checkpoints whose builds wait for the gate.
+	ctx := context.Background()
+	opts := Options{CheckpointMin: 16 << 10, CheckpointMax: 64 << 10}
+	db := openTest(t, filepath.Join(t.TempDir(), "wait.s4wave"), opts)
+	defer db.Close()
+	started, gate := make(chan struct{}, 1), make(chan struct{})
+	db.w.beforeBuild = func() {
+		select {
+		case started <- struct{}{}:
+		default:
+		}
+		<-gate
+	}
+	released := false
+	defer func() {
+		if !released {
+			close(gate)
+		}
+	}()
+
+	// Commit past foregroundLimit times the bound of twice CheckpointMax.
+	done := make(chan error, 1)
+	go func() {
+		// Write 8000 keys of 100 bytes in one transaction.
+		tx, err := db.NewTransaction(ctx, true)
+		if err != nil {
+			done <- err
+			return
+		}
+		val := make([]byte, 100)
+		for i := range 8000 {
+			if err := tx.Set(ctx, fmt.Appendf(nil, "fore/%06d", i), val); err != nil {
+				done <- err
+				return
+			}
+		}
+		done <- tx.Commit(ctx)
+	}()
+
+	// It waits while the build holds and returns once it ends.
+	select {
+	case <-started:
+	case err := <-done:
+		t.Fatalf("commit returned %v before the build started", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the build did not start")
+	}
+	select {
+	case err := <-done:
+		t.Fatalf("commit past the foreground bound returned %v while the build held", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	released = true
+	close(gate)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("commit did not return after the build")
 	}
 }

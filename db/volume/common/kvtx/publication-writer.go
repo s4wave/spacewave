@@ -482,12 +482,15 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 		edits, err = w.volume.applyDeferred(first.ctx, blocks, rg)
 	}
 
-	// Publish all accepted requests together, or discard the entire physical group.
+	// Publish all accepted requests together, or discard the entire physical
+	// group. The group carries the other requests too, so it never waits as
+	// the first request's background commit would.
 	if err == nil && accepted != 0 {
+		commitCtx := kvtx.WithoutBackgroundCommitContext(first.ctx)
 		if ordered && w.volume.ordered != nil {
-			err = kvtx.CommitOrdered(first.ctx, tx)
+			err = kvtx.CommitOrdered(commitCtx, tx)
 		} else {
-			err = tx.Commit(first.ctx)
+			err = tx.Commit(commitCtx)
 		}
 		committed = err == nil
 	}

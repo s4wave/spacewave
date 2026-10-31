@@ -286,14 +286,12 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 		return nil
 	}
 
-	// Collect the changes in key order, counting the bytes they write.
+	// Collect the changes in key order.
 	t.done = true
 	db := t.db
 	changes := make([]tentry, 0, t.changes.Len())
-	var wrote int64
 	t.changes.Scan(func(c tentry) bool {
 		changes = append(changes, c)
-		wrote += int64(len(c.key) + len(c.data))
 		return true
 	})
 
@@ -309,7 +307,7 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	seq := db.cur.Load().seq
 	db.w.unlock(err)
 	if err == nil {
-		err = db.w.waitBuild(ctx, wrote)
+		err = db.w.waitBuild(ctx)
 	}
 	if err != nil || ordered {
 		return err

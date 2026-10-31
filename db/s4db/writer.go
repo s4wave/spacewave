@@ -11,6 +11,7 @@ import (
 
 	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // compactBatch bounds the value bytes Compact holds in memory and commits
@@ -734,26 +735,24 @@ func (w *writer) endBuild() {
 	})
 }
 
-// smallCommit is the most a commit can write and still wait only at
-// smallLimit times the bounds waitBuild holds bulk commits to.
-const smallCommit = 64 << 10
-
-// smallLimit multiplies the bounds for small commits, so a commit of a few
-// keys does not wait out a slow build that bulk commits outpaced, while a
-// stream of small commits still holds bounded memory and replay.
-const smallLimit = 2
+// foregroundLimit multiplies the bounds waitBuild holds background commits to
+// for every other commit, so a request's commit does not wait out a slow
+// build that the background writers outpaced, while the overlay still holds
+// bounded memory and replay.
+const foregroundLimit = 4
 
 // waitBuild waits while a background checkpoint runs and the published
-// overlay exceeds CommitWaitMax, or the log after the checkpoint twice it, so a writer that outpaces checkpoints holds bounded memory and
-// replay. A commit that wrote fewer than smallCommit bytes waits only past
-// smallLimit times those bounds. The caller does not hold the writer lock,
-// which the build needs.
-func (w *writer) waitBuild(ctx context.Context, wrote int64) error {
+// overlay exceeds CommitWaitMax, or the log after the checkpoint twice it, so
+// a writer that outpaces checkpoints holds bounded memory and replay. Only a
+// background commit, whose ctx carries kvtx.WithBackgroundCommitContext, waits
+// at those bounds; any other waits only past foregroundLimit times them. The
+// caller does not hold the writer lock, which the build needs.
+func (w *writer) waitBuild(ctx context.Context) error {
 	// Return at once while the state is within bounds.
 	db := w.db
 	limit := db.opts.CommitWaitMax
-	if wrote < smallCommit {
-		limit *= smallLimit
+	if !kvtx.IsBackgroundCommitContext(ctx) {
+		limit *= foregroundLimit
 	}
 	within := func() bool {
 		st := db.cur.Load()
