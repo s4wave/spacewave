@@ -20,6 +20,7 @@ import (
 	"context"
 	"math"
 	"math/rand/v2"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -83,7 +84,8 @@ type DB struct {
 	// waiters when a state is published or the database closes. It is held
 	// only for memory work.
 	bcast broadcast.Broadcast
-	// retired holds earlier states that snapshots may still read.
+	// retired holds the replaced states that snapshots still read; publish
+	// drops the rest.
 	retired []*state
 	// leases holds the lock bytes of this handle's leases and lease waits.
 	leases map[int64]struct{}
@@ -453,10 +455,12 @@ func (db *DB) publish(ctx context.Context, st *state) error {
 		return nil
 	}
 
-	// Replace the state, keeping the old one until its snapshots end.
+	// Replace the state, keeping the replaced states that snapshots still
+	// read. A snapshot that starts after the store takes st, so a replaced
+	// state no snapshot reads now never gains one.
 	st.refs = new(refCount)
 	db.cur.Store(st)
-	db.retired = append(db.retired, cur)
+	db.retired = slices.DeleteFunc(append(db.retired, cur), func(s *state) bool { return !s.refs.held() })
 	l.Broadcast()
 	l.Unlock()
 	if !db.shared.Load() {

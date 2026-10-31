@@ -11,9 +11,10 @@
 \* zero pin, loads the newest commit, and writes its local pin. Its snapshots
 \* acquire the published state, count it, and check that it is still
 \* published (acquire). Its tail publishes newer commits and retires the
-\* replaced state. updatePin, which publish and release call one at a time
-\* under pinMtx, computes the local pin (the published state and every
-\* retired state still counted), then writes it.
+\* replaced state, forgetting the retired states no snapshot counts.
+\* updatePin, which publish and release call one at a time under pinMtx,
+\* computes the local pin (the published state and every retired state still
+\* counted), then writes it.
 \*
 \* Callers found from source (master db/s4db at aa2254798, carried over):
 \* NewTransaction(read) and Tx.Discard (Take, Count, Check, Done); load
@@ -94,11 +95,12 @@ PinLoaded ==
   /\ slot' = cur /\ bpc' = "open"
   /\ UNCHANGED <<aseq, pend, released, seen, cur, retired, refs, upc, upin, rpc, rs>>
 
-\* The tail publishes the newest commit and retires the state it replaced.
+\* The tail publishes the newest commit and retires the state it replaced,
+\* keeping only the retired states still counted.
 Publish ==
   /\ bpc = "open" /\ cur < aseq
   /\ cur' = aseq
-  /\ retired' = retired \cup {cur}
+  /\ retired' = {s \in retired \cup {cur} : refs[s] > 0}
   /\ UNCHANGED <<aseq, pend, released, seen, slot, bpc, refs, upc, upin, rpc, rs>>
 
 \* localPin: the published state and each retired state still counted; the

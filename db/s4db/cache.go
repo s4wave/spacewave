@@ -105,10 +105,12 @@ func (c *blockCache) put(k cacheKey, data []byte) {
 }
 
 // evictSmall takes the oldest small item: promoted to main when it was read,
-// else dropped and remembered in the ghost set.
+// else dropped and remembered in the ghost set. The queue's vacated slot is
+// cleared, so the backing array does not keep a dropped block's bytes.
 func (c *blockCache) evictSmall() {
 	// Take the oldest.
 	it := c.small[0]
+	c.small[0] = nil
 	c.small = c.small[1:]
 	c.smallBytes -= int64(len(it.data))
 
@@ -128,6 +130,7 @@ func (c *blockCache) evictSmall() {
 func (c *blockCache) evictMain() {
 	// Take the oldest, reinserting it when it was read.
 	it := c.main[0]
+	c.main[0] = nil
 	c.main = c.main[1:]
 	if it.hits > 0 {
 		it.hits--
