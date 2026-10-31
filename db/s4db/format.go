@@ -34,9 +34,11 @@ const (
 	lockWriter = 1 << 40
 	// lockSlot is the first reader slot lock; slot i locks lockSlot+i.
 	lockSlot = lockWriter + 1
-	// lockFlush is held by the process running the flush job; the merge and
-	// clean jobs take the bytes after it.
+	// lockFlush is held by the process running the flush job.
 	lockFlush = lockSlot + slots
+	// lockMerge is held by the process running the merge job; the cleaner
+	// takes the byte after it.
+	lockMerge = lockFlush + 1
 	// lockLease is the first of leaseLocks lease locks, one per name hash.
 	lockLease = 1 << 41
 	// leaseLocks is the number of lease lock bytes.
@@ -67,6 +69,9 @@ const runTarget = 64 * chunkSize
 
 // levelRatio is how many times larger each level is than the one above.
 const levelRatio = 10
+
+// level0Trigger is the number of level 0 runs that starts a merge.
+const level0Trigger = 4
 
 // level0Stall is the number of level 0 runs past which background writers
 // wait.
