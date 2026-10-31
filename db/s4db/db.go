@@ -741,7 +741,7 @@ func (db *DB) closingMark() {
 	// Take the lock only when it is free; another process's writer is
 	// writing marks of its own.
 	ctx := context.Background()
-	ok, err := db.w.tryLock()
+	ok, err := db.w.tryLock(ctx)
 	if err != nil || !ok {
 		return
 	}
