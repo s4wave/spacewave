@@ -220,8 +220,8 @@ func (st *state) flush(r *record, budget int64, table bool) {
 	st.logChunks = slices.Delete(st.logChunks, 0, i)
 }
 
-// addRuns adds a flush or merge record's runs and manifest chunks, and
-// makes the previous manifest's chunks pending.
+// addRuns adds a flush or merge record's runs and manifest chunks, keeping
+// the runs in lookup order, and makes the previous manifest's chunks pending.
 func (st *state) addRuns(r *record) {
 	// Add the runs.
 	m := st.m
@@ -232,6 +232,7 @@ func (st *state) addRuns(r *record) {
 			*m.table.at(c) = chunkEntry{kind: chunkRun, owner: r.runs[i].id}
 		}
 	}
+	slices.SortFunc(m.runs, lookupOrder)
 
 	// Replace the manifest's chunks.
 	for c := range m.table.entries {

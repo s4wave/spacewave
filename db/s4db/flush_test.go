@@ -71,18 +71,19 @@ func TestFlush(t *testing.T) {
 // TestRunBuilderRoundTrip writes keys through the builder into a file and
 // reads them back through a reader: present keys, absent keys, and a scan.
 func TestRunBuilderRoundTrip(t *testing.T) {
-	// Open a fresh file and a builder over four chunks of it.
+	// Open a fresh file and a builder over eight chunks of it.
 	ctx := context.Background()
 	db := openTest(t, filepath.Join(t.TempDir(), "run.s4wave"), Options{})
 	defer db.Close()
-	chunks := []uint64{10, 11, 12, 13}
+	chunks := []uint64{10, 11, 12, 13, 14, 15, 16, 17}
 	rb := newRunBuilder(db.s, chunks, func() (uint64, error) { return 0, fmt.Errorf("out of chunks") })
 
-	// Build a run of many small keys.
+	// Build a run of keys whose values fill more than one partition.
 	const n = 20000
+	val := func(i int) string { return fmt.Sprintf("v%0255d", i) }
 	for i := range n {
 		k := fmt.Appendf(nil, "key/%08d", i*2)
-		if err := rb.add(k, value{kind: valueInline, inline: fmt.Appendf(nil, "v%d", i)}); err != nil {
+		if err := rb.add(k, value{kind: valueInline, inline: []byte(val(i))}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -91,8 +92,8 @@ func TestRunBuilderRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	meta.id = 16
-	if meta.count != n || len(meta.chunks) == 0 {
-		t.Fatalf("meta %+v", meta)
+	if meta.count != n || len(meta.chunks) == 0 || len(rb.parts) < 2 {
+		t.Fatalf("meta %+v in %d partitions", meta, len(rb.parts))
 	}
 
 	// Read even keys back and miss odd ones.
@@ -106,7 +107,7 @@ func TestRunBuilderRoundTrip(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if ok != (i%2 == 0) || (ok && string(v.inline) != fmt.Sprintf("v%d", i/2)) {
+		if ok != (i%2 == 0) || (ok && string(v.inline) != val(i/2)) {
 			t.Fatalf("key %d: found %v value %q", i, ok, v.inline)
 		}
 	}
@@ -131,6 +132,18 @@ func TestRunBuilderRoundTrip(t *testing.T) {
 			t.Fatalf("reverse entry %d is %q (%v)", i, it.key(), it.err)
 		}
 		it.step(true)
+	}
+
+	// Seek between keys, forward to the next and backward to the previous.
+	for i := 1; i < 2*n-2; i += 2*1009 + 2 {
+		it.seek(fmt.Appendf(nil, "key/%08d", i), false)
+		if !it.valid() || string(it.key()) != fmt.Sprintf("key/%08d", i+1) {
+			t.Fatalf("seek %d forward is %q (%v)", i, it.key(), it.err)
+		}
+		it.seek(fmt.Appendf(nil, "key/%08d", i), true)
+		if !it.valid() || string(it.key()) != fmt.Sprintf("key/%08d", i-1) {
+			t.Fatalf("seek %d backward is %q (%v)", i, it.key(), it.err)
+		}
 	}
 	_ = ctx
 }

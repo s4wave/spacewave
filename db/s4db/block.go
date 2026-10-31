@@ -8,38 +8,66 @@ import (
 )
 
 // A data block holds entries in key order with shared-prefix compression:
-// uvarint(shared) uvarint(unshared) uvarint(len(value)) keySuffix value, a
-// restart point every restartInterval entries where shared is zero, then a
-// trailer of restart offsets, their count and a CRC-32C. A value is a kind
-// byte and its payload: inline bytes, a reference or nothing for a tombstone.
+// uvarint(shared) uvarint(unshared) keySuffix value, a restart point every
+// restartInterval entries where shared is zero, then a trailer of restart
+// offsets. A value is a kind byte and its payload: inline bytes, a reference
+// or nothing for a tombstone. The reference that locates a block carries its
+// CRC-32C, which readChecked checks when the block leaves the file.
 
-// dataBlock is a decoded data block: the bytes with the restart points
-// parsed.
+// offsets is a trailer of little-endian uint32 offsets read in place, as data
+// blocks and index partitions end: the offsets, then their count.
+type offsets []byte
+
+// appendOffsets appends the trailer of offs to b.
+func appendOffsets(b []byte, offs []uint32) []byte {
+	for _, o := range offs {
+		b = binary.LittleEndian.AppendUint32(b, o)
+	}
+	return binary.LittleEndian.AppendUint32(b, uint32(len(offs))) // #nosec G115 -- a block holds few offsets.
+}
+
+// cutOffsets splits b into the bytes before its trailer and the trailer's
+// offsets, reporting false when the trailer does not fit in b.
+func cutOffsets(b []byte) ([]byte, offsets, bool) {
+	// Read the count and check the offsets fit before it.
+	if len(b) < 4 {
+		return nil, nil, false
+	}
+	n := uint64(binary.LittleEndian.Uint32(b[len(b)-4:]))
+	if 4*n > uint64(len(b)-4) { // #nosec G115 -- len(b) is at least 4.
+		return nil, nil, false
+	}
+	end := len(b) - 4 - int(4*n) // #nosec G115 -- bounded by len(b).
+	return b[:end], offsets(b[end : len(b)-4]), true
+}
+
+// len returns the number of offsets.
+func (o offsets) len() int {
+	return len(o) / 4
+}
+
+// at returns offset i.
+func (o offsets) at(i int) int {
+	return int(binary.LittleEndian.Uint32(o[4*i:]))
+}
+
+// dataBlock is a data block read in place: its entries and the trailer of
+// restart points.
 type dataBlock struct {
 	// data holds the entries, up to the trailer.
 	data []byte
 	// restarts holds the offset of each restart point.
-	restarts []uint32
+	restarts offsets
 }
 
-// decodeBlock checks and parses a block.
-func decodeBlock(b []byte) (*dataBlock, error) {
-	// Check the checksum and the restart count.
-	if len(b) < 8 || checksum(b[:len(b)-4]) != binary.LittleEndian.Uint32(b[len(b)-4:]) {
-		return nil, errors.Wrap(ErrCorrupt, "block checksum mismatch")
+// decodeBlock parses the block b in place; b must not change while the block
+// is in use.
+func decodeBlock(b []byte) (dataBlock, error) {
+	data, restarts, ok := cutOffsets(b)
+	if !ok || restarts.len() == 0 {
+		return dataBlock{}, errors.Wrap(ErrCorrupt, "block restart count")
 	}
-	n := int(binary.LittleEndian.Uint32(b[len(b)-8:]))
-	end := len(b) - 8 - 4*n
-	if n <= 0 || end < 0 {
-		return nil, errors.Wrap(ErrCorrupt, "block restart count")
-	}
-
-	// Parse the restart offsets.
-	blk := &dataBlock{data: b[:end], restarts: make([]uint32, n)}
-	for i := range blk.restarts {
-		blk.restarts[i] = binary.LittleEndian.Uint32(b[end+4*i:])
-	}
-	return blk, nil
+	return dataBlock{data: data, restarts: restarts}, nil
 }
 
 // blockEntry is one entry decoded from a block.
@@ -56,6 +84,9 @@ type blockEntry struct {
 // before it; prev is that entry's key.
 func (blk *dataBlock) entryAt(off int, prev []byte) (blockEntry, bool) {
 	// Read the lengths and check them against the input.
+	if off > len(blk.data) {
+		return blockEntry{}, false
+	}
 	d := decoder{b: blk.data[off:]}
 	shared, unshared := d.uvarint(), d.uvarint()
 	if d.err != nil || shared > uint64(len(prev)) || unshared > uint64(len(d.b)) {
@@ -78,10 +109,10 @@ func (blk *dataBlock) entryAt(off int, prev []byte) (blockEntry, bool) {
 // exists.
 func (blk *dataBlock) seek(key []byte) (blockEntry, bool) {
 	// Bisect the restart points to the last one at or before key.
-	lo, hi := 0, len(blk.restarts)
+	lo, hi := 0, blk.restarts.len()
 	for lo+1 < hi {
 		m := int(uint(lo+hi) >> 1)
-		e, ok := blk.entryAt(int(blk.restarts[m]), nil)
+		e, ok := blk.entryAt(blk.restarts.at(m), nil)
 		if !ok {
 			return blockEntry{}, false
 		}
@@ -93,7 +124,7 @@ func (blk *dataBlock) seek(key []byte) (blockEntry, bool) {
 	}
 
 	// Walk forward from it.
-	off := int(blk.restarts[lo])
+	off := blk.restarts.at(lo)
 	var prev []byte
 	for off < len(blk.data) {
 		e, ok := blk.entryAt(off, prev)
@@ -147,18 +178,13 @@ func (bb *blockBuilder) add(key []byte, v value) {
 
 // size returns the block's encoded length so far, trailer included.
 func (bb *blockBuilder) size() int {
-	return len(bb.buf) + 4*len(bb.restarts) + 8
+	return len(bb.buf) + 4*len(bb.restarts) + 4
 }
 
 // finish returns the encoded block and resets the builder.
 func (bb *blockBuilder) finish() []byte {
-	// Append the trailer: restarts, their count, the checksum.
-	b := bb.buf
-	for _, r := range bb.restarts {
-		b = binary.LittleEndian.AppendUint32(b, r)
-	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(bb.restarts))) // #nosec G115 -- a block holds few restarts.
-	b = binary.LittleEndian.AppendUint32(b, checksum(b))
+	// Append the trailer of restart offsets.
+	b := appendOffsets(bb.buf, bb.restarts)
 
 	// Reset for the next block.
 	*bb = blockBuilder{buf: make([]byte, 0, blockSize+blockSize/8), last: bb.last[:0]}

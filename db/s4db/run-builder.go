@@ -118,18 +118,19 @@ func (rb *runBuilder) closeBlock() error {
 
 // closePartition writes the current partition's index and filter.
 func (rb *runBuilder) closePartition() error {
-	// Encode and place the fences.
+	// Encode and place the fences, then the trailer of their offsets.
 	if len(rb.fences) == 0 {
 		return nil
 	}
 	ib := make([]byte, 0, 64*len(rb.fences))
-	ib = binary.AppendUvarint(ib, uint64(len(rb.fences)))
-	for _, f := range rb.fences {
+	offs := make([]uint32, len(rb.fences))
+	for i, f := range rb.fences {
+		offs[i] = uint32(len(ib)) // #nosec G115 -- a partition is far below 4 GiB.
 		ib = binary.AppendUvarint(ib, uint64(len(f.key)))
 		ib = append(ib, f.key...)
 		ib = appendRef(ib, f.at)
 	}
-	indexAt, err := rb.place(ib)
+	indexAt, err := rb.place(appendOffsets(ib, offs))
 	if err != nil {
 		return err
 	}
@@ -283,16 +284,56 @@ func decodeRunFooter(b []byte) (*runFooter, error) {
 	return f, nil
 }
 
-// decodeFences reads an index partition.
-func decodeFences(b []byte) ([]fence, error) {
-	// Read each fence's key and location.
-	d := decoder{b: b}
-	fs := make([]fence, d.count())
-	for i := range fs {
-		fs[i] = fence{key: d.bytes(), at: d.decodeRef()}
+// fenceIndex is an index partition read in place: a fence per data block in
+// key order, each uvarint(len(key)) key and its location, then a trailer of
+// their offsets, so a lookup bisects the fences without decoding them all.
+type fenceIndex struct {
+	// data holds the fences, and offs the offset of each.
+	data []byte
+	offs offsets
+}
+
+// decodeFenceIndex parses the index partition b in place; b must not change
+// while the index is in use.
+func decodeFenceIndex(b []byte) (fenceIndex, error) {
+	data, offs, ok := cutOffsets(b)
+	if !ok || offs.len() == 0 {
+		return fenceIndex{}, errors.Wrap(ErrCorrupt, "index partition trailer")
 	}
+	return fenceIndex{data: data, offs: offs}, nil
+}
+
+// len returns the number of fences.
+func (x fenceIndex) len() int {
+	return x.offs.len()
+}
+
+// at decodes fence i.
+func (x fenceIndex) at(i int) (fence, error) {
+	d := decoder{b: x.data[min(x.offs.at(i), len(x.data)):]}
+	f := fence{key: d.bytes(), at: d.decodeRef()}
 	if d.err != nil {
-		return nil, errors.Wrap(ErrCorrupt, "index partition truncated")
+		return fence{}, errors.Wrap(ErrCorrupt, "index partition truncated")
 	}
-	return fs, nil
+	return f, nil
+}
+
+// floor returns the index of the last fence at or below key, or -1 when key
+// is below the first.
+func (x fenceIndex) floor(key []byte) (int, error) {
+	// Bisect for the first fence above key.
+	lo, hi := 0, x.len()
+	for lo < hi {
+		m := int(uint(lo+hi) >> 1)
+		f, err := x.at(m)
+		if err != nil {
+			return 0, err
+		}
+		if bytes.Compare(f.key, key) > 0 {
+			hi = m
+		} else {
+			lo = m + 1
+		}
+	}
+	return lo - 1, nil
 }

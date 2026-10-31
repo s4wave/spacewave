@@ -2,7 +2,7 @@ package s4db
 
 import (
 	"bytes"
-	"slices"
+	"cmp"
 	"sort"
 	"sync"
 
@@ -108,13 +108,13 @@ func (rr *runReader) partitionFor(key []byte) int {
 	return i - 1
 }
 
-// fences returns the decoded index partition i.
-func (rr *runReader) fences(i int, cache bool) ([]fence, error) {
+// index returns index partition i, read in place.
+func (rr *runReader) index(i int, cache bool) (fenceIndex, error) {
 	b, err := rr.block(rr.footer.parts[i].index, cache)
 	if err != nil {
-		return nil, err
+		return fenceIndex{}, err
 	}
-	return decodeFences(b)
+	return decodeFenceIndex(b)
 }
 
 // get returns the value of key in the run.
@@ -136,17 +136,21 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 	}
 
 	// Find the block by its fence.
-	fences, err := rr.fences(i, true)
+	x, err := rr.index(i, true)
 	if err != nil {
 		return value{}, false, err
 	}
-	j := sort.Search(len(fences), func(j int) bool { return bytes.Compare(fences[j].key, key) > 0 }) - 1
-	if j < 0 {
-		return value{}, false, nil
+	j, err := x.floor(key)
+	if err != nil || j < 0 {
+		return value{}, false, err
+	}
+	f, err := x.at(j)
+	if err != nil {
+		return value{}, false, err
 	}
 
 	// Search the block.
-	bb, err := rr.block(fences[j].at, true)
+	bb, err := rr.block(f.at, true)
 	if err != nil {
 		return value{}, false, err
 	}
@@ -164,7 +168,7 @@ func (rr *runReader) get(key []byte) (value, bool, error) {
 // lookupRuns returns the value of key in the newest run of st that holds it.
 // A tombstone found first hides the key.
 func (db *DB) lookupRuns(st *state, key []byte) (value, bool, error) {
-	for _, m := range st.m.runsNewestFirst() {
+	for _, m := range st.m.runs {
 		rr, err := db.reader(m)
 		if err != nil {
 			return value{}, false, err
@@ -191,26 +195,16 @@ func (m *manifest) level0() int {
 	return n
 }
 
-// runsNewestFirst returns the runs in lookup order: level 0 newest first,
-// then each lower level, whose runs do not overlap.
-func (m *manifest) runsNewestFirst() []runMeta {
-	rs := slices.Clone(m.runs)
-	slices.SortStableFunc(rs, func(a, b runMeta) int {
-		if a.level != b.level {
-			return int(a.level) - int(b.level)
-		}
-		if a.level == 0 {
-			if a.id > b.id {
-				return -1
-			}
-			if a.id < b.id {
-				return 1
-			}
-			return 0
-		}
-		return bytes.Compare(a.smallest, b.smallest)
-	})
-	return rs
+// lookupOrder orders runs as a lookup reads them: level 0 newest first, then
+// each lower level in key order, whose runs do not overlap.
+func lookupOrder(a, b runMeta) int {
+	if a.level != b.level {
+		return int(a.level) - int(b.level)
+	}
+	if a.level == 0 {
+		return cmp.Compare(b.id, a.id)
+	}
+	return bytes.Compare(a.smallest, b.smallest)
 }
 
 // runLayers returns one merge layer per run of st that may hold keys under
@@ -218,7 +212,7 @@ func (m *manifest) runsNewestFirst() []runMeta {
 func (db *DB) runLayers(st *state, prefix []byte) []layer {
 	var layers []layer
 	end := prefixEnd(prefix)
-	for _, m := range st.m.runsNewestFirst() {
+	for _, m := range st.m.runs {
 		if bytes.Compare(m.largest, prefix) < 0 || (end != nil && bytes.Compare(m.smallest, end) >= 0) {
 			continue
 		}
@@ -235,11 +229,12 @@ type runIter struct {
 	meta runMeta
 	// rr is the run's reader, set on first use.
 	rr *runReader
-	// part is the current partition and fences its fences.
-	part   int
-	fences []fence
-	// blk is the current block's index among fences, and entries its decoded
-	// entries.
+	// part is the current partition and index its index partition, empty
+	// before the first.
+	part  int
+	index fenceIndex
+	// blk is the current block's index among the fences, and entries its
+	// decoded entries.
 	blk     int
 	entries []blockEntry
 	// i indexes the current entry in entries; -1 before the first.
@@ -259,23 +254,35 @@ func (it *runIter) open() bool {
 	return it.err == nil
 }
 
+// loadIndex loads the index partition of partition p.
+func (it *runIter) loadIndex(p int) bool {
+	// Keep the loaded index, else read the partition's.
+	if it.index.len() != 0 && it.part == p {
+		return true
+	}
+	x, err := it.rr.index(p, false)
+	if err != nil {
+		it.err = err
+		return false
+	}
+	it.part, it.index = p, x
+	return true
+}
+
 // loadBlock decodes block j of partition p into entries.
 func (it *runIter) loadBlock(p, j int) bool {
-	// Load the partition's fences when the partition changed.
-	if it.fences == nil || it.part != p {
-		fs, err := it.rr.fences(p, false)
-		if err != nil {
-			it.err = err
-			return false
-		}
-		it.part, it.fences = p, fs
+	// Find the block's fence in the partition's index.
+	if !it.loadIndex(p) || j < 0 || j >= it.index.len() {
+		return false
 	}
-	if j < 0 || j >= len(it.fences) {
+	f, err := it.index.at(j)
+	if err != nil {
+		it.err = err
 		return false
 	}
 
 	// Read the block.
-	b, err := it.rr.block(it.fences[j].at, false)
+	b, err := it.rr.block(f.at, false)
 	if err != nil {
 		it.err = err
 		return false
@@ -334,17 +341,22 @@ func (it *runIter) seek(k []byte, reverse bool) {
 	switch {
 	case k == nil && reverse:
 		p = len(f.parts) - 1
-		if !it.loadBlock(p, 0) {
+		if !it.loadIndex(p) {
 			return
 		}
-		j = len(it.fences) - 1
+		j = it.index.len() - 1
 	case k == nil:
 	default:
 		p = max(it.rr.partitionFor(k), 0)
-		if !it.loadBlock(p, 0) {
+		if !it.loadIndex(p) {
 			return
 		}
-		j = max(sort.Search(len(it.fences), func(j int) bool { return bytes.Compare(it.fences[j].key, k) > 0 })-1, 0)
+		fj, err := it.index.floor(k)
+		if err != nil {
+			it.err = err
+			return
+		}
+		j = max(fj, 0)
 	}
 	if !it.loadBlock(p, j) {
 		return
@@ -413,7 +425,7 @@ func (it *runIter) step(reverse bool) {
 
 // nextBlock loads the block after the current one.
 func (it *runIter) nextBlock() bool {
-	if it.blk+1 < len(it.fences) {
+	if it.blk+1 < it.index.len() {
 		return it.loadBlock(it.part, it.blk+1)
 	}
 	if it.part+1 < len(it.rr.footer.parts) {
@@ -428,10 +440,10 @@ func (it *runIter) prevBlock() bool {
 		return it.loadBlock(it.part, it.blk-1)
 	}
 	if it.part > 0 {
-		if !it.loadBlock(it.part-1, 0) {
+		if !it.loadIndex(it.part - 1) {
 			return false
 		}
-		return it.loadBlock(it.part-1, len(it.fences)-1)
+		return it.loadBlock(it.part, it.index.len()-1)
 	}
 	return false
 }
