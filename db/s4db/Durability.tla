@@ -12,7 +12,8 @@
 \* once and flushed later. A flush of the memtable writes a run that holds the
 \* commits through some seq, flushes, appends a flush record, then writes the
 \* superblock pointing after that record; the log before the superblock's
-\* position is released only once the superblock is durable.
+\* replay position, the position after the seq the run holds and not the
+\* flush record's own, is released only once the superblock is durable.
 \*
 \* The only ordering primitive is the durable flush: a crash keeps every write
 \* before the last flush and any subset of the writes after it, each torn or
