@@ -16,6 +16,7 @@ import (
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 )
 
 // copyReportInterval is the least time between progress lines.
@@ -79,6 +80,12 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 		return err
 	}
 	sdb, err := s4db.Open(src, s4db.Options{})
+	if errors.Is(err, s4db.ErrPreviousFormat) {
+		if reachable != nil {
+			return fmt.Errorf("%s is in the previous format: copy it without --reachable first, then copy that file with --reachable", src)
+		}
+		return copyPreviousFormat(ctx, src, dst, w)
+	}
 	if err != nil {
 		return err
 	}
@@ -130,6 +137,36 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 		return err
 	}
 	fmt.Fprintf(w, "copied %s to %s in %s: %s\n", src, dst, time.Since(start).Round(time.Second), formatCopyProgress(counts))
+	return nil
+}
+
+// copyPreviousFormat copies the stopped previous-format volume at src into
+// the new file dst through the conversion's reader and builder, writing
+// progress lines to w. The copy holds every key of the source and no graph
+// conversion, which the Volume runs when it opens the copy.
+func copyPreviousFormat(ctx context.Context, src, dst string, w io.Writer) error {
+	// Create the destination, which must not exist, and report progress at
+	// most once per interval.
+	if _, err := os.Stat(dst); !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("%s already exists", dst)
+	}
+	start := time.Now()
+	var last time.Time
+	var keys, bytes int64
+	progress := func(k, b int64) {
+		keys, bytes = k, b
+		if time.Since(last) < copyReportInterval {
+			return
+		}
+		last = time.Now()
+		fmt.Fprintf(w, "%s: %d keys, %s\n", time.Since(start).Round(time.Second), keys, humanize.IBytes(uint64(bytes))) // #nosec G115 -- bytes are not negative.
+	}
+
+	// Copy and verify.
+	if err := volume_s4db.CopyPreviousFormat(ctx, src, dst, progress); err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "copied %s to %s in %s: %d keys, %s; the source is in the previous format and is unchanged\n", src, dst, time.Since(start).Round(time.Second), keys, humanize.IBytes(uint64(bytes))) // #nosec G115 -- bytes are not negative.
 	return nil
 }
 
