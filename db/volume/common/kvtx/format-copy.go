@@ -56,7 +56,28 @@ func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey
 	if version == 0 || version > store_kvkey.FormatVersion {
 		return fmt.Errorf("copy needs store format version 1 to %d, found %d", store_kvkey.FormatVersion, version)
 	}
-	return copyStore(ctx, src, dst, keys, version, nil, progress)
+	return copyStore(ctx, src, dst, keys, version, nil, nil, progress)
+}
+
+// DropBlocks reports which of refs a copy leaves out, in the order of refs.
+type DropBlocks func(ctx context.Context, refs []*block.BlockRef) ([]bool, error)
+
+// dropCheckBlocks bounds the blocks one DropBlocks call checks.
+const dropCheckBlocks = 1000
+
+// CopyStoreDropping copies src into dst like CopyStore, leaving out the blocks
+// drop reports. Every key outside the blocks is copied verbatim. drop sees the
+// blocks in key order, up to dropCheckBlocks at a time, and a dropped block's
+// value is never read.
+func CopyStoreDropping(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, drop DropBlocks, progress func(CopyProgress)) error {
+	version, err := readFormatVersion(ctx, src, keys)
+	if err != nil {
+		return err
+	}
+	if version == 0 || version > store_kvkey.FormatVersion {
+		return fmt.Errorf("copy needs store format version 1 to %d, found %d", store_kvkey.FormatVersion, version)
+	}
+	return copyStore(ctx, src, dst, keys, version, nil, drop, progress)
 }
 
 // CopyReachableOptions adjusts a CopyReachable.
@@ -93,7 +114,7 @@ func CopyReachable(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.K
 	if version < 3 || version > store_kvkey.FormatVersion {
 		return fmt.Errorf("reachable copy needs store format version 3 to %d, found %d; copy it to the current format first", store_kvkey.FormatVersion, version)
 	}
-	return copyStore(ctx, src, dst, keys, version, &opts, progress)
+	return copyStore(ctx, src, dst, keys, version, &opts, nil, progress)
 }
 
 // copyStore copies src, at format version, into the empty store dst and
@@ -105,6 +126,7 @@ func copyStore(
 	keys *store_kvkey.KVKey,
 	version uint64,
 	reachable *CopyReachableOptions,
+	drop DropBlocks,
 	progress func(CopyProgress),
 ) error {
 	// Refuse a destination that already holds keys.
@@ -120,7 +142,10 @@ func copyStore(
 	defer stx.Discard()
 
 	// Mark the reachable nodes in the same snapshot.
-	w := &copyWriter{store: dst, progress: progress, convert: version < 4}
+	w := &copyWriter{store: dst, progress: progress, convert: version < 4, drop: drop}
+	if drop != nil {
+		w.blockPrefix = keys.GetBlockFullPrefix()
+	}
 	if reachable != nil {
 		w.graph = openRefGraph(kvtx.NewTxStore(stx))
 		w.blockPrefix = keys.GetBlockFullPrefix()
@@ -190,13 +215,18 @@ type copyWriter struct {
 	// live holds the reachable nodes of a reachable copy; nil copies every
 	// key.
 	live *block_gc.NodeSet
-	// blockPrefix is the prefix of the block keys a reachable copy filters.
+	// blockPrefix is the prefix of the block keys a reachable or dropping
+	// copy filters.
 	blockPrefix []byte
 	// graph reads the source's reference graph in the copy's snapshot during
 	// a reachable copy.
 	graph *block_gc.RefGraph
 	// countUnowned counts the dropped blocks no graph record owns.
 	countUnowned bool
+	// drop reports the blocks a dropping copy leaves out; nil keeps them.
+	drop DropBlocks
+	// held are the block keys awaiting a drop check, in key order.
+	held [][]byte
 	// convert moves the edges of a graph older than child lists into them.
 	convert bool
 	// adds are the converted edges of the batch being filled.
@@ -243,17 +273,32 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 			if err != nil {
 				return err
 			}
+			// Hold a block for the drop check, writing the held blocks
+			// before any later key so the destination fills in key order.
+			held := keep && w.drop != nil && bytes.HasPrefix(key, w.blockPrefix)
+			if held {
+				w.held = append(w.held, key)
+				if len(w.held) == dropCheckBlocks {
+					batch, size, err = w.checkHeld(ctx, stx, batch, size)
+				}
+			} else if keep {
+				batch, size, err = w.checkHeld(ctx, stx, batch, size)
+			}
+			if err != nil {
+				return err
+			}
+
 			// Read the value only of a kept key: a store may read values
 			// lazily, and most of a reachable copy's dropped bytes are
 			// values.
-			if keep {
+			if keep && !held {
 				value, err := it.ValueCopy(nil)
 				if err != nil {
 					return err
 				}
 				batch = append(batch, keyValue{key: key, value: value})
 				size += len(key) + len(value)
-			} else {
+			} else if !keep {
 				w.counts.DroppedBytes += uint64(len(key)) //nolint:gosec // lengths are never negative.
 			}
 		}
@@ -268,7 +313,52 @@ func (w *copyWriter) copyKeys(ctx context.Context, stx kvtx.Tx, versionKey []byt
 	if err := it.Err(); err != nil {
 		return err
 	}
+	batch, size, err := w.checkHeld(ctx, stx, batch, size)
+	if err != nil {
+		return err
+	}
 	return w.commitKeys(ctx, batch, size)
+}
+
+// checkHeld asks drop which held blocks the copy leaves out, and appends the
+// rest to batch with their values read from stx.
+func (w *copyWriter) checkHeld(ctx context.Context, stx kvtx.Tx, batch []keyValue, size int) ([]keyValue, int, error) {
+	if len(w.held) == 0 {
+		return batch, size, nil
+	}
+	refs := make([]*block.BlockRef, len(w.held))
+	for i, key := range w.held {
+		refs[i] = &block.BlockRef{}
+		if err := refs[i].UnmarshalVT(key[len(w.blockPrefix):]); err != nil {
+			return nil, 0, fmt.Errorf("decode block key %q: %w", key, err)
+		}
+	}
+	dropped, err := w.drop(ctx, refs)
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(dropped) != len(refs) {
+		return nil, 0, fmt.Errorf("drop check answered %d of %d blocks", len(dropped), len(refs))
+	}
+	for i, key := range w.held {
+		if dropped[i] {
+			w.counts.DroppedBlocks++
+			w.counts.DroppedBytes += uint64(len(key)) //nolint:gosec // lengths are never negative.
+			continue
+		}
+		value, found, err := stx.Get(ctx, key)
+		if err != nil {
+			return nil, 0, err
+		}
+		if !found {
+			return nil, 0, fmt.Errorf("block key %q left the snapshot", key)
+		}
+		value = bytes.Clone(value)
+		batch = append(batch, keyValue{key: key, value: value})
+		size += len(key) + len(value)
+	}
+	w.held = w.held[:0]
+	return batch, size, nil
 }
 
 // keep reports whether the copy writes key, counting a dropped key. A

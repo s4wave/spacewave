@@ -835,3 +835,110 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 		t.Fatal("reachable copy of a version 2 store succeeded")
 	}
 }
+
+// TestCopyStoreDropping copies a current store, leaving out the blocks the
+// drop check reports, and expects the other blocks and keys verbatim.
+func TestCopyStoreDropping(t *testing.T) {
+	t.Run("inmem", func(t *testing.T) {
+		testCopyStoreDropping(t, store_kvtx_inmem.NewStore(), store_kvtx_inmem.NewStore())
+	})
+	t.Run("s4db", func(t *testing.T) {
+		dir := t.TempDir()
+		var dbs [2]*s4db.DB
+		for i, name := range []string{"src.s4db", "dst.s4db"} {
+			db, err := s4db.Open(filepath.Join(dir, name), s4db.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = db.Close() })
+			dbs[i] = db
+		}
+		testCopyStoreDropping(t, dbs[0], dbs[1])
+	})
+}
+
+// testCopyStoreDropping runs TestCopyStoreDropping on one pair of stores.
+func testCopyStoreDropping(t *testing.T, src, dst db_kvtx.Store) {
+	// Write blocks a to e, of which b and d are dropped, around keys outside
+	// the blocks, at the current format.
+	ctx := context.Background()
+	keys := store_kvkey.NewDefaultKVKey()
+	blockKeys := make(map[string][]byte)
+	tx, err := src.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"a", "b", "c", "d", "e"} {
+		h, err := hash.Sum(hash.HashType_HashType_SHA256, []byte(name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		rm, err := block.NewBlockRef(h).MarshalKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		blockKeys[name] = keys.GetBlockKey(rm)
+		if err := tx.Set(ctx, blockKeys[name], []byte("value "+name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, key := range []string{"\x00first", "other", "\xffzz"} {
+		if err := tx.Set(ctx, []byte(key), []byte("value")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	dropped := map[string]bool{"b": true, "d": true}
+	dropHashes := make(map[string]bool)
+	for name := range dropped {
+		h, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte(name))
+		dropHashes[h.MarshalString()] = true
+	}
+
+	// Copy it, dropping b and d.
+	var checked int
+	drop := func(_ context.Context, refs []*block.BlockRef) ([]bool, error) {
+		checked += len(refs)
+		out := make([]bool, len(refs))
+		for i, ref := range refs {
+			out[i] = dropHashes[ref.GetHash().MarshalString()]
+		}
+		return out, nil
+	}
+	var last CopyProgress
+	if err := CopyStoreDropping(ctx, src, dst, keys, drop, func(p CopyProgress) { last = p }); err != nil {
+		t.Fatal(err)
+	}
+	if checked != 5 || last.Keys != 6 || last.DroppedBlocks != 2 {
+		t.Fatalf("checked %d blocks, progress %+v; want 5 checked, 6 keys and 2 dropped blocks", checked, last)
+	}
+
+	// The destination holds the kept blocks and other keys, and the version.
+	rtx, err := dst.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rtx.Discard()
+	for name, key := range blockKeys {
+		value, found, err := rtx.Get(ctx, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if found == dropped[name] || (found && string(value) != "value "+name) {
+			t.Fatalf("block %s: found %v value %q, dropped %v", name, found, value, dropped[name])
+		}
+	}
+	for _, key := range []string{"\x00first", "other", "\xffzz"} {
+		if value, found, err := rtx.Get(ctx, []byte(key)); err != nil || !found || string(value) != "value" {
+			t.Fatalf("key %q: found %v value %q err %v", key, found, value, err)
+		}
+	}
+	if version, err := readFormatVersion(ctx, dst, keys); err != nil || version != store_kvkey.FormatVersion {
+		t.Fatalf("format version %d err %v", version, err)
+	}
+}
