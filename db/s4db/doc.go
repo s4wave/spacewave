@@ -1,13 +1,8 @@
 // Package s4db is a single-file embedded key-value engine.
 //
-// Every commit appends one record to a log inside the file. Each process
-// keeps the records since the last checkpoint in an in-memory overlay above a
-// copy-on-write B+tree, which a checkpoint rewrites once for many commits.
-// Values above a size threshold live outside the tree, packed into extents
-// whose pages are punched out of the file as soon as no snapshot reads them.
-//
-// Any number of processes may open the file. Each holds a reader slot that
-// publishes the oldest state its snapshots read, and tails the log when the
-// file changes. A write transaction holds the writer lock, so commits from
-// all processes form one sequence.
+// This is a stub while the engine is rewritten. It declares the surface the
+// rest of the module builds against: the kvtx.Store contract with ordered,
+// atomic and writer-queue commits, the commit sequence and its watch, named
+// leases across processes, and the size reports the Volume and the CLI read.
+// Every operation returns ErrUnimplemented.
 package s4db
