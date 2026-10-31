@@ -84,6 +84,8 @@ type sample struct {
 	// runs are the runs per level and reserved the reserved chunks.
 	runs     []int
 	reserved int64
+	// fileBytes is the file's size, which falls when a release truncates it.
+	fileBytes int64
 }
 
 // commit is one measured commit.
@@ -236,7 +238,7 @@ func (a *BenchArgs) sampleStats(ctx context.Context, db *s4db.DB, start time.Tim
 		st, err := db.Stats(ctx)
 		if err == nil {
 			at := time.Since(start)
-			out = append(out, sample{at: at, runs: st.Runs, reserved: st.Chunks.Reserved})
+			out = append(out, sample{at: at, runs: st.Runs, reserved: st.Chunks.Reserved, fileBytes: st.FileBytes})
 			if a.Progress > 0 && at-printed >= a.Progress {
 				printed = at
 				a.printProgress(at, prog, st)
