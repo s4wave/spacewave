@@ -67,11 +67,17 @@ func (s *scheduler) run() {
 		})
 
 		// Flush when the memtable or the log since the last flush passed the
-		// budget.
+		// budget, and merge when a level is over its target.
 		if st.mem.bytes > s.db.budget || st.logBytes > 4*s.db.budget {
 			s.flush()
 			quietAt = time.Now()
 			continue
+		}
+		if _, ok := (&mergeJob{db: s.db}).pick(st.m); ok {
+			if s.merge() {
+				quietAt = time.Now()
+				continue
+			}
 		}
 
 		// Mark a quiet file whose pending chunks wait.
@@ -106,6 +112,18 @@ func (s *scheduler) flush() {
 
 	// Run the job; a failure leaves the state for the next trigger.
 	_ = (&flushJob{db: s.db}).run(s.ctx)
+}
+
+// merge runs one merge when no other process is merging, reporting whether
+// it ran.
+func (s *scheduler) merge() bool {
+	// Take the merge lock without waiting.
+	ok, err := s.db.s.lock(lockMerge, false)
+	if err != nil || !ok {
+		return false
+	}
+	defer func() { _ = s.db.s.unlock(lockMerge) }()
+	return (&mergeJob{db: s.db}).run(s.ctx) == nil
 }
 
 // hasPending reports whether the table holds pending or reserved chunks.
