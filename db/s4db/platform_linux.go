@@ -9,6 +9,13 @@ func (f *osFile) flushDurable() error {
 	return unix.Fdatasync(int(f.Fd()))
 }
 
+// bgDirtyMax is the most a background job writes between pushes of its bytes
+// to the drive: one chunk, since a push names its chunks and costs no drive
+// cache flush. A commit's durable flush waits behind the push in flight, and
+// under a merge forge's SATA drive took idle-class writes at about 90 MB/s, so
+// a push of 8 MiB held a commit's flush for up to 93 ms.
+const bgDirtyMax = chunkSize
+
 // writeback writes the chunks' dirty pages and waits for them, without the
 // drive cache flush and metadata write of Fdatasync. It names the chunks
 // rather than the whole file, which would also take a commit's log pages and
