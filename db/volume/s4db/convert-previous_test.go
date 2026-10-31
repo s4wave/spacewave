@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/db/s4db"
 	"github.com/s4wave/spacewave/db/s4db/s4dbv1"
 	"github.com/sirupsen/logrus"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 )
 
 // previousFixtures holds the files the previous engine wrote.
@@ -129,7 +130,7 @@ func checkConverted(t *testing.T, path string, want []previousRow) {
 
 // verifiedButNotInstalled runs the conversion through the marker and stops
 // before the install, as a crash there would, returning the new file's
-// identity.
+// details.
 func verifiedButNotInstalled(t *testing.T, path string) os.FileInfo {
 	// Build and verify.
 	ctx := context.Background()
@@ -142,7 +143,7 @@ func verifiedButNotInstalled(t *testing.T, path string) os.FileInfo {
 		t.Fatal(err)
 	}
 
-	// Identify the new file.
+	// Describe the new file.
 	fi, err := os.Stat(path + convertingSuffix)
 	if err != nil {
 		t.Fatal(err)
@@ -194,17 +195,20 @@ func TestConvertPrevious(t *testing.T) {
 
 	// A verified file with its marker is installed, not rebuilt.
 	t.Run("verified not installed", func(t *testing.T) {
-		// Convert from the marker state and check the file was kept.
+		// Convert from the marker state, logging, and check nothing was
+		// rebuilt.
 		path := previousVolume(t, "mixed.s4db")
-		built := verifiedButNotInstalled(t, path)
-		if err := convertPrevious(ctx, le, path); err != nil {
+		verifiedButNotInstalled(t, path)
+		logger, hook := logtest.NewNullLogger()
+		if err := convertPrevious(ctx, logrus.NewEntry(logger), path); err != nil {
 			t.Fatal(err)
 		}
-		checkConverted(t, path, want)
-		fi, err := os.Stat(path)
-		if err != nil || !os.SameFile(built, fi) {
-			t.Fatalf("installed file is not the verified one: %v", err)
+		for _, e := range hook.AllEntries() {
+			if e.Message == "converting volume to the current database format" {
+				t.Fatal("rebuilt the verified file")
+			}
 		}
+		checkConverted(t, path, want)
 	})
 
 	// The link made and the rename not: the link is kept.
@@ -293,9 +297,13 @@ func TestConvertPrevious(t *testing.T) {
 			t.Fatal(err)
 		}
 		checkConverted(t, dst, want)
-		if _, err := s4dbv1.Open(path); err != nil {
+
+		// The source still opens in the previous format.
+		r, err := s4dbv1.Open(path)
+		if err != nil {
 			t.Fatalf("source: %v", err)
 		}
+		r.Close()
 	})
 }
 
