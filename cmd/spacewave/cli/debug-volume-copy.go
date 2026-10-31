@@ -32,8 +32,10 @@ func newDebugVolumeCopyCommand() *cli.Command {
 		Usage:     "copy a stopped volume file into a new file at the current store format",
 		ArgsUsage: "<volume-file> <new-file>",
 		Description: "Copies every key of a stopped s4db volume into a new file, converting a Cayley reference graph " +
-			"to edge records on the way, so the source is never rewritten in place. The new file is written in key order " +
-			"with compaction off and records the format version last; a copy that stops early lacks it and should be deleted. " +
+			"to edge records on the way, so the source is never rewritten in place. The new file records the format " +
+			"version last; a copy that stops early lacks it and should be deleted. A source in the previous database " +
+			"format is converted to the current one instead: every pair is read back from the new file before the copy " +
+			"succeeds, and the graph is left for the Volume to convert when it opens the copy. " +
 			"The source is left unchanged. Replace the source with the new file only after checking it. " +
 			"With --reachable, the source must be at store format 3 or later, and the copy keeps only the blocks " +
 			"and graph records reachable from the graph root, as a complete collection would. Check its count of " +
