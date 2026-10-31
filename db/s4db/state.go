@@ -1,5 +1,7 @@
 package s4db
 
+import "slices"
+
 // state is one immutable view of the database: a manifest version and the
 // memtable at a record. Snapshots acquire the published state without a lock.
 type state struct {
@@ -12,6 +14,14 @@ type state struct {
 	// flushed is the last commit the runs hold; memtable entries at or below
 	// it were dropped.
 	flushed uint64
+	// replay locates the first record after flushed, where an open rebuilds
+	// the memtable from; the superblock a job publishes carries it.
+	replay logPoint
+	// logChunks are the chunks holding the records after flushed, in log
+	// order, ending with the chunk holding pos. A flush makes the chunks
+	// before the one holding its replay point pending; the rest stay, since
+	// the superblock it produces replays them.
+	logChunks []uint64
 	// inSuper is the last record whose effect on the manifest the superblock
 	// already holds, so replaying it changes only the memtable.
 	inSuper uint64
@@ -34,32 +44,67 @@ type state struct {
 	refs *refCount
 }
 
+// logPoint locates a record boundary: the offset of the next record, the end
+// of the chunk holding it, and the checksum and writer identity of the record
+// before it, which the next record continues.
+type logPoint struct {
+	// pos is the offset of the next record.
+	pos uint64
+	// end is the end of the log chunk holding pos.
+	end uint64
+	// crc is the checksum of the record before pos.
+	crc uint32
+	// writer is the writer identity of the record before pos.
+	writer uint64
+}
+
 // newState returns the state of superblock sb over manifest m, positioned
 // to replay the memtable from the first record after sb.through, its
 // memtable sized for budget bytes. Records through sb.seq apply to the
 // memtable alone, since the manifest holds their effect on the table.
 func newState(sb superblock, m *manifest, budget int64) *state {
+	replay := logPoint{pos: sb.memPos, end: sb.memEnd, crc: sb.memCrc, writer: sb.memWriter}
 	return &state{
-		seq:     sb.through,
-		m:       m,
-		mem:     newMemtable(budget),
-		flushed: sb.through,
-		inSuper: sb.seq,
-		pos:     sb.memPos,
-		end:     sb.memEnd,
-		crc:     sb.memCrc,
-		writer:  sb.memWriter,
-		logged:  sb.through,
+		seq:       sb.through,
+		m:         m,
+		mem:       newMemtable(budget),
+		flushed:   sb.through,
+		replay:    replay,
+		logChunks: []uint64{chunkOf(sb.memPos)},
+		inSuper:   sb.seq,
+		pos:       sb.memPos,
+		end:       sb.memEnd,
+		crc:       sb.memCrc,
+		writer:    sb.memWriter,
+		logged:    sb.through,
 	}
 }
 
-// derive returns a copy of st the caller may change: its manifest and
-// memtable are copied, its snapshot count is fresh.
+// point returns the log point after record seq.
+func (st *state) point() logPoint {
+	return logPoint{pos: st.pos, end: st.end, crc: st.crc, writer: st.writer}
+}
+
+// superblock returns the superblock describing st, without its generation
+// and manifest location, which the publisher fills.
+func (st *state) superblock() superblock {
+	return superblock{
+		version: st.m.version,
+		seq:     st.seq,
+		logPos:  st.pos, logEnd: st.end, logCrc: st.crc, logWriter: st.writer,
+		through: st.flushed,
+		memPos:  st.replay.pos, memEnd: st.replay.end, memCrc: st.replay.crc, memWriter: st.replay.writer,
+	}
+}
+
+// derive returns a copy of st the caller may change: its manifest, memtable
+// and log chunks are copied, its snapshot count is fresh.
 func (st *state) derive() *state {
 	// Copy the view and give it its own manifest and memtable.
 	next := *st
 	next.m = st.m.clone()
 	next.mem = st.mem.copy()
+	next.logChunks = slices.Clone(st.logChunks)
 	next.refs = nil
 	return &next
 }
@@ -78,9 +123,11 @@ func (st *state) apply(r *record, budget int64) {
 	if r.seq <= st.inSuper {
 		switch r.kind {
 		case kindLink:
-			st.pos, st.end = chunkStart(r.next), chunkStart(r.next+r.span)
+			st.link(r)
 		case kindCommit:
 			st.applyCommit(r, false)
+		case kindFlush:
+			st.flush(r, budget, false)
 		}
 		return
 	}
@@ -92,7 +139,7 @@ func (st *state) apply(r *record, budget int64) {
 		for c := r.next; c < r.next+r.span; c++ {
 			*m.table.at(c) = chunkEntry{kind: chunkLog}
 		}
-		st.pos, st.end = chunkStart(r.next), chunkStart(r.next+r.span)
+		st.link(r)
 	case kindCommit:
 		st.applyCommit(r, true)
 	case kindReserve:
@@ -102,17 +149,10 @@ func (st *state) apply(r *record, budget int64) {
 			*m.table.at(c) = chunkEntry{kind: chunkReserved, owner: r.writer}
 		}
 	case kindFlush:
-		// The run holds the memtable through r.through; the log before this
-		// record's chunk and the old manifest are pending.
+		// The run holds the memtable through r.through; the old manifest and
+		// the log chunks before the replay point are pending.
 		st.addRuns(r)
-		st.flushed = r.through
-		st.logBytes = 0
-		st.mem = st.mem.dropThrough(r.through, budget)
-		for c := uint64(firstChunk); c < chunkOf(st.pos); c++ {
-			if e := m.table.at(c); e.kind == chunkLog {
-				*e = chunkEntry{kind: chunkPending, owner: chunkLog, seq: r.seq}
-			}
-		}
+		st.flush(r, budget, true)
 	case kindMerge:
 		// The outputs replace the inputs, whose chunks are pending.
 		for _, id := range r.removed {
@@ -142,6 +182,42 @@ func (st *state) apply(r *record, budget int64) {
 			m.table.entries = m.table.entries[:r.next]
 		}
 	}
+}
+
+// link moves the position to the chunks a link record continues in and
+// adds them to the log chunks.
+func (st *state) link(r *record) {
+	for c := r.next; c < r.next+r.span; c++ {
+		st.logChunks = append(st.logChunks, c)
+	}
+	st.pos, st.end = chunkStart(r.next), chunkStart(r.next+r.span)
+}
+
+// flush drops the memtable through a flush record's commit and moves the
+// replay point to the record's. The log chunks before the one holding the
+// replay point leave the log; with table set they become pending from this
+// record, since the superblock it produces no longer replays them.
+func (st *state) flush(r *record, budget int64, table bool) {
+	// Drop the flushed entries and move the replay point.
+	st.flushed = r.through
+	st.replay = r.replay
+	st.logBytes = 0
+	st.mem = st.mem.dropThrough(r.through, budget)
+
+	// Cut the log chunks before the replay point's chunk. The chunk is in
+	// the chain, since the record's snapshot was taken at or after the
+	// previous replay point; a chain that lacks it keeps every chunk.
+	keep := chunkOf(r.replay.pos)
+	i := slices.Index(st.logChunks, keep)
+	if i < 0 {
+		return
+	}
+	for _, c := range st.logChunks[:i] {
+		if e := st.m.table.at(c); table && e.kind == chunkLog {
+			*e = chunkEntry{kind: chunkPending, owner: chunkLog, seq: r.seq}
+		}
+	}
+	st.logChunks = slices.Delete(st.logChunks, 0, i)
 }
 
 // addRuns adds a flush or merge record's runs and manifest chunks, and
