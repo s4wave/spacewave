@@ -175,7 +175,7 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	// the copy's table, which the record's replay reproduces.
 	db := w.db
 	next := base.derive()
-	r := &record{kind: kindCommit, writer: db.id, prevWriter: base.writer, hot: next.m.hot}
+	r := &record{kind: kindCommit, writer: db.id, prevWriter: base.writer, hot: next.m.hot, cold: next.m.cold}
 	var writes []valueWrite
 	var flows []Flow
 	if !moves {
@@ -191,6 +191,9 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 			return err
 		}
 		if c.del && !found {
+			continue
+		}
+		if moves && (!found || !old.isRef() || old.ref.off != c.expect) {
 			continue
 		}
 		userBytes += int64(len(c.key) + len(c.data))
@@ -211,10 +214,13 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 		}
 		v := value{kind: valueInline, inline: c.data}
 		if len(c.data) > inlineMax {
-			v, writes = w.place(next.m, r, c.key, c.data, writes)
+			v, writes = w.place(next.m, r, c.key, c.data, writes, moves)
 			if flows != nil {
 				flows[db.family(c.key)].Written += int64(len(c.data))
 			}
+		}
+		if moves {
+			v.kind = valueMoved
 		}
 		r.ops = append(r.ops, op{key: c.key, val: v})
 	}
@@ -223,6 +229,9 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	}
 	if r.hot == base.m.hot {
 		r.hot = 0
+	}
+	if r.cold == base.m.cold {
+		r.cold = 0
 	}
 
 	// Find where the record goes.
@@ -277,10 +286,10 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 }
 
 // place assigns data, stored under key, a position in the open hot value
-// chunk of m, taking a new hot chunk when it does not fit and a run of
-// chunks when it exceeds one. It records the write and returns the
-// reference.
-func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueWrite) (value, []valueWrite) {
+// chunk of m, or the cold chunk for a cleaner's move, taking a new chunk when
+// it does not fit and a run of chunks when it exceeds one. It records the
+// write and returns the reference.
+func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueWrite, cold bool) (value, []valueWrite) {
 	// Build the entry.
 	hdr := valueEntryHeaderLen(len(key), len(data))
 	entry := make([]byte, 0, hdr+len(data))
@@ -289,17 +298,21 @@ func (w *writer) place(m *manifest, r *record, key, data []byte, writes []valueW
 	n := uint64(len(entry))
 
 	// Choose where it goes: its own chunks when longer than one, else the
-	// hot chunk, replaced when the entry does not fit.
+	// open chunk, replaced when the entry does not fit.
 	var off uint64
+	open := &r.hot
+	if cold {
+		open = &r.cold
+	}
 	switch {
 	case n > chunkSize:
 		off = chunkStart(m.table.alloc(chunksFor(n), chunkValue, 0))
 	default:
-		if r.hot == 0 || uint64(m.table.at(r.hot).used)+n > chunkSize {
-			r.hot = m.table.alloc(1, chunkValue, 0)
+		if *open == 0 || uint64(m.table.at(*open).used)+n > chunkSize {
+			*open = m.table.alloc(1, chunkValue, 0)
 		}
-		e := m.table.at(r.hot)
-		off = chunkStart(r.hot) + uint64(e.used)
+		e := m.table.at(*open)
+		off = chunkStart(*open) + uint64(e.used)
 		e.used += uint32(n) // #nosec G115 -- n fits a chunk.
 	}
 

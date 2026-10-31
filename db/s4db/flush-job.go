@@ -57,12 +57,18 @@ func (j *flushJob) run(ctx context.Context) error {
 		return c, err
 	})
 	var buildErr error
-	db.sched.idle.do(ctx, func() {
+	if err := db.sched.idle.do(ctx, func() {
 		st.mem.tree.Scan(func(e mentry) bool {
 			buildErr = rb.add(e.key, e.val)
 			return buildErr == nil
 		})
-	})
+	}); err != nil {
+		buildErr = err
+	}
+
+	// From here the job finishes its records even when Close cancelled it,
+	// so no reservation outlives a clean close.
+	ctx = context.WithoutCancel(ctx)
 	if buildErr != nil {
 		return j.abandon(ctx, reserved, buildErr)
 	}

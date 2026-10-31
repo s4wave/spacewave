@@ -60,11 +60,9 @@ func TestFlush(t *testing.T) {
 		t.Fatalf("reopened contents differ: %d keys, want %d", len(got), len(m))
 	}
 
-	// Pending chunks were freed and the file holds runs.
-	s, err := db.Stats(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Once the background jobs settle, the file holds runs and nothing stays
+	// reserved.
+	s := waitSettled(t, db)
 	if s.Chunks.Run == 0 || s.Chunks.Reserved != 0 {
 		t.Fatalf("chunks %+v", s.Chunks)
 	}
