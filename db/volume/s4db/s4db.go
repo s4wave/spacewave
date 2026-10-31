@@ -62,10 +62,19 @@ func NewVolume(ctx context.Context, le *logrus.Entry, conf *Config) (*Volume, er
 	for i, f := range families {
 		prefixes[i] = f.Prefix
 	}
-	db, err := s4db.Open(path, s4db.Options{
+	opts := s4db.Options{
 		CacheBytes: int(conf.GetCacheBytes()),
 		Families:   prefixes,
-	})
+	}
+
+	// Open it, converting a file the previous engine wrote in place first.
+	db, err := s4db.Open(path, opts)
+	if errors.Is(err, s4db.ErrPreviousFormat) {
+		if err := convertPrevious(ctx, le, path); err != nil {
+			return nil, err
+		}
+		db, err = s4db.Open(path, opts)
+	}
 	if err != nil {
 		return nil, err
 	}
