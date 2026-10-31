@@ -212,10 +212,6 @@ func (s *sizedS4db) BuildVolumeConfig(id string, baseVolCtrlConf *volume_control
 		if s.conf.CacheBytes > 0 {
 			volumeConf.CacheBytes = s.conf.CacheBytes
 		}
-		if s.conf.CheckpointMaxBytes > 0 {
-			volumeConf.CheckpointMaxBytes = s.conf.CheckpointMaxBytes
-		}
-		volumeConf.SingleProcess = true
 	}
 	return conf, err
 }

@@ -80,9 +80,9 @@ var (
 		"Length of the values the volume's storage stored outside its index, by key family, since it opened.",
 		[]string{volumeLabel, "family"}, nil,
 	)
-	volumeBuildWaitSecondsDesc = prometheus.NewDesc(
-		"spacewave_volume_build_wait_seconds_total",
-		"Time the volume's background commits waited for its storage's checkpoint build, since it opened; user commits never wait.",
+	volumeBackgroundWaitMaxSecondsDesc = prometheus.NewDesc(
+		"spacewave_volume_background_wait_max_seconds",
+		"Longest a commit waited for the volume's storage writer while a background step held it, since the volume opened.",
 		[]string{volumeLabel}, nil,
 	)
 	volumeValueFreedBytesDesc = prometheus.NewDesc(
@@ -103,7 +103,7 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeWriteReserveDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
 		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
-		volumeBuildWaitSecondsDesc,
+		volumeBackgroundWaitMaxSecondsDesc,
 	} {
 		ch <- d
 	}
@@ -139,8 +139,8 @@ func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
 		ch <- prometheus.MustNewConstMetric(volumeValueFreedBytesDesc, prometheus.CounterValue, float64(v.Freed), id, v.Family)
 	}
 
-	// Report the background commits' wait for a checkpoint.
-	ch <- prometheus.MustNewConstMetric(volumeBuildWaitSecondsDesc, prometheus.CounterValue, f.BuildWait.Seconds(), id)
+	// Report the longest wait behind a background step.
+	ch <- prometheus.MustNewConstMetric(volumeBackgroundWaitMaxSecondsDesc, prometheus.GaugeValue, f.BackgroundWaitMax.Seconds(), id)
 }
 
 // collectVolume sends the metrics of one volume's health.

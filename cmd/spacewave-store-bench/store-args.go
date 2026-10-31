@@ -25,8 +25,7 @@ func (a *StoreArgs) BuildFlags() []cli.Flag {
 		&cli.StringFlag{Name: "account", Usage: "local provider account that holds the World", Destination: &a.Store.AccountID, Value: "store-bench"},
 		&cli.StringFlag{Name: "shared-object", Usage: "the World's SharedObject in the account", Destination: &a.Store.SharedObjectID, Value: "store-bench-world"},
 		&cli.StringFlag{Name: "engine-id", Usage: "World engine ID", Destination: &a.Store.EngineID, Value: "store-bench"},
-		&cli.Int64Flag{Name: "cache-bytes", Usage: "index page cache of each s4db volume; zero keeps the server's", Destination: &a.Store.CacheBytes},
-		&cli.Int64Flag{Name: "checkpoint-max-bytes", Usage: "overlay size that starts an s4db checkpoint; zero keeps the server's", Destination: &a.Store.CheckpointMaxBytes},
+		&cli.Int64Flag{Name: "cache-bytes", Usage: "memory budget of each s4db volume; zero keeps the server's", Destination: &a.Store.CacheBytes},
 		&cli.Int64Flag{Name: "block-cache-bytes", Usage: "decoded block cache budget; zero keeps the default", Destination: &a.Store.BlockCacheBytes},
 		&cli.BoolFlag{Name: "verbose", Usage: "log at debug level", Destination: &a.Verbose},
 	}
