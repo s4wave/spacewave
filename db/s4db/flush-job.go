@@ -35,8 +35,9 @@ func (j *flushJob) run(ctx context.Context) error {
 	}
 	runChunks, mchunks := reserved[:need], reserved[need:]
 
-	// Build the run off the lock, reserving more chunks when it outgrows the
-	// estimate, then flush it durably through the shared flusher.
+	// Build and finish the run off the lock, on the idle thread, reserving
+	// more chunks when it outgrows the estimate, then flush it durably
+	// through the shared flusher.
 	rb := newRunBuilder(db.s, runChunks, func() (uint64, error) {
 		c, err := db.w.reserve(ctx, 1)
 		if err != nil {
@@ -45,12 +46,16 @@ func (j *flushJob) run(ctx context.Context) error {
 		reserved = append(reserved, c[0])
 		return c[0], nil
 	})
+	var meta runMeta
 	var buildErr error
 	if err := db.sched.idle.do(ctx, func() {
 		st.mem.tree.Scan(func(e mentry) bool {
 			buildErr = rb.add(e.key, e.val)
 			return buildErr == nil
 		})
+		if buildErr == nil {
+			meta, buildErr = rb.finish()
+		}
 	}); err != nil {
 		buildErr = err
 	}
@@ -60,10 +65,6 @@ func (j *flushJob) run(ctx context.Context) error {
 	ctx = context.WithoutCancel(ctx)
 	if buildErr != nil {
 		return j.abandon(ctx, reserved, buildErr)
-	}
-	meta, err := rb.finish()
-	if err != nil {
-		return j.abandon(ctx, reserved, err)
 	}
 	db.written.Add(rb.written)
 	if err := db.flush.syncThrough(ctx, db.cur.Load().seq); err != nil {
