@@ -10,12 +10,16 @@ import (
 // r's kind and body are set, and its identities, mark and sequence are
 // filled here. A link precedes it when the record does not fit the chunk.
 func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
-	// Fill the record's identities and mark on a copy of the state.
+	// Fill the record's identities and mark on a copy of the state. A commit
+	// here is a mark, which keeps the open chunks.
 	db := w.db
 	base := db.cur.Load()
 	next := base.derive()
 	r.writer, r.prevWriter = db.id, base.writer
 	r.durable, _ = db.flush.marks()
+	if r.kind == kindCommit {
+		r.hot, r.cold = base.m.hot, base.m.cold
+	}
 
 	// Place the record after the published state.
 	seq := base.seq + 1

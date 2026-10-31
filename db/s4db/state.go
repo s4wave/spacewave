@@ -165,9 +165,16 @@ func (st *state) apply(r *record, budget int64) {
 		m.removeRuns(r.removed)
 		st.addRuns(r)
 	case kindSealed:
-		// The value chunks are pending from this record.
+		// The value chunks are pending from this record, and an open one
+		// closes.
 		for _, c := range r.chunks {
 			*m.table.at(c) = chunkEntry{kind: chunkPending, owner: chunkValue, seq: r.seq}
+			if c == m.hot {
+				m.hot = 0
+			}
+			if c == m.cold {
+				m.cold = 0
+			}
 		}
 	case kindFree:
 		// The chunks are free: the writer established that no slot pins a
@@ -252,12 +259,7 @@ func (st *state) applyCommit(r *record, table bool) {
 	m := st.m
 	if table {
 		m.count += r.delta
-		if r.hot != 0 {
-			m.hot = r.hot
-		}
-		if r.cold != 0 {
-			m.cold = r.cold
-		}
+		m.hot, m.cold = r.hot, r.cold
 	}
 
 	// Record each change in the memtable and its value bytes in the table.

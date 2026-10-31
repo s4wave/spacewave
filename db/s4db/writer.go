@@ -174,6 +174,19 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	next := base.derive()
 	r := &record{kind: kindCommit, writer: db.id, prevWriter: base.writer, hot: next.m.hot, cold: next.m.cold}
 	var writes []valueWrite
+
+	// A move out of an open chunk closes it, so no later value lands in the
+	// chunk the cleaner is emptying.
+	if moves {
+		for _, c := range changes {
+			switch chunkOf(c.expect) {
+			case r.hot:
+				r.hot = 0
+			case r.cold:
+				r.cold = 0
+			}
+		}
+	}
 	var flows []Flow
 	if !moves {
 		flows = make([]Flow, len(db.flows))
@@ -223,12 +236,6 @@ func (w *writer) commit(ctx context.Context, base *state, changes []tentry, move
 	}
 	if len(r.ops) == 0 {
 		return nil
-	}
-	if r.hot == base.m.hot {
-		r.hot = 0
-	}
-	if r.cold == base.m.cold {
-		r.cold = 0
 	}
 
 	// Find where the record goes.

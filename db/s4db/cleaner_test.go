@@ -73,7 +73,10 @@ func TestCleaner(t *testing.T) {
 	}
 	flowsBefore, _ := db.Stats(ctx)
 
-	// Wait for the cleaner to bring the slack within an eighth of live.
+	// Wait for the cleaner to bring the slack within an eighth of live and
+	// the file end below its length before the deletes. The chunks a move
+	// frees stay pending until a quiet spell's mark, so the end falls after
+	// the slack does.
 	deadline := time.Now().Add(60 * time.Second)
 	var s Stats
 	for {
@@ -81,29 +84,37 @@ func TestCleaner(t *testing.T) {
 		if s, err = db.Stats(ctx); err != nil {
 			t.Fatal(err)
 		}
-		if s.DeadBytes+s.FreeBytes <= s.LiveBytes/cleanSlackDiv+chunkSize {
+		if s.DeadBytes+s.FreeBytes <= s.LiveBytes/cleanSlackDiv+chunkSize && s.FileBytes < before.FileBytes {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("slack stayed at dead %d free %d for live %d (file %d, before %d)", s.DeadBytes, s.FreeBytes, s.LiveBytes, s.FileBytes, before.FileBytes)
+			t.Fatalf("slack stayed at dead %d free %d pending %d for live %d (file %d, before %d)", s.DeadBytes, s.FreeBytes, s.PendingBytes, s.LiveBytes, s.FileBytes, before.FileBytes)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	m.check(t, db)
-	if s.FileBytes >= before.FileBytes {
-		t.Fatalf("file did not shrink: %d, before %d", s.FileBytes, before.FileBytes)
-	}
 	if s.Families[0] != flowsBefore.Families[0] {
 		t.Fatalf("moves changed the flows: %+v, before %+v", s.Families[0], flowsBefore.Families[0])
 	}
 
-	// Reopen and check again.
+	// Reopen and check again: replay restores the open chunks the cleaner
+	// left, each a value chunk.
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
+	closed := db.cur.Load().m
 	db = openTest(t, path, opts)
 	defer db.Close()
 	m.check(t, db)
+	opened := db.cur.Load().m
+	if opened.hot != closed.hot || opened.cold != closed.cold {
+		t.Fatalf("replay opened hot %d cold %d, closed with hot %d cold %d", opened.hot, opened.cold, closed.hot, closed.cold)
+	}
+	for _, c := range []uint64{opened.hot, opened.cold} {
+		if c != 0 && opened.table.at(c).kind != chunkValue {
+			t.Fatalf("open chunk %d is %v, not a value chunk", c, opened.table.at(c).kind)
+		}
+	}
 }
 
 // raceKeys is the number of keys each race writer churns.
