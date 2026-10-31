@@ -36,9 +36,10 @@ const (
 	lockSlot = lockWriter + 1
 	// lockFlush is held by the process running the flush job.
 	lockFlush = lockSlot + slots
-	// lockMerge is held by the process running the merge job; the cleaner
-	// takes the byte after it.
+	// lockMerge is held by the process running the merge job.
 	lockMerge = lockFlush + 1
+	// lockClean is held by the process running the cleaner.
+	lockClean = lockMerge + 1
 	// lockLease is the first of leaseLocks lease locks, one per name hash.
 	lockLease = 1 << 41
 	// leaseLocks is the number of lease lock bytes.
@@ -74,7 +75,8 @@ const levelRatio = 10
 const level0Trigger = 4
 
 // level0Stall is the number of level 0 runs past which background writers
-// wait.
+// wait and the merger skips the quiet gate, so a steady commit stream cannot
+// grow level 0 without bound.
 const level0Stall = 12
 
 // magic opens the header.

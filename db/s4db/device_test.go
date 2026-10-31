@@ -95,3 +95,63 @@ func TestDevicePowerLoss(t *testing.T) {
 		}
 	}
 }
+
+// TestDeviceChurn overwrites a small key set for long enough that flushes,
+// merges and cleaner steps all run, crashes at a random device call, and
+// checks that recovery lands on an allowed state and the file keeps working.
+func TestDeviceChurn(t *testing.T) {
+	// A small budget and a key set the memtable cannot hold keep every
+	// background job busy.
+	opts := Options{CacheBytes: 4 << 20, memtable: 32 << 10}
+	seeds := uint64(8)
+	if testing.Short() {
+		seeds = 2
+	}
+	for seed := range seeds {
+		// Churn, arming the crash late in the history.
+		r := rand.New(rand.NewPCG(seed, 11))
+		mem := device.NewMemory()
+		db := openDevice(t, mem, opts)
+		m := make(model)
+		allowed := []model{maps.Clone(m)}
+		arm := 300 + r.IntN(600)
+		for i := 0; ; i++ {
+			if i == arm {
+				mem.CrashAfter(r.IntN(48))
+			}
+			durable, err := commitRandom(r, db, m, 3000)
+			if durable && err == nil {
+				allowed = allowed[:0]
+			}
+			allowed = append(allowed, maps.Clone(m))
+			if err != nil {
+				break
+			}
+		}
+		_ = db.Close()
+		mem.PowerLoss(r)
+
+		// Recover to an allowed state, keep going, and reopen cleanly.
+		db = openDevice(t, mem, opts)
+		got := contents(t, db)
+		i := len(allowed) - 1
+		for i >= 0 && !maps.EqualFunc(got, allowed[i], bytes.Equal) {
+			i--
+		}
+		if i < 0 {
+			t.Fatalf("seed %d: recovered %d keys, matching none of %d allowed states", seed, len(got), len(allowed))
+		}
+		for range 50 {
+			randomCommit(t, r, db, got, 3000)
+		}
+		got.check(t, db)
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+		db = openDevice(t, mem, opts)
+		got.check(t, db)
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

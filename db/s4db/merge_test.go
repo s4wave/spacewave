@@ -57,13 +57,31 @@ func TestMerge(t *testing.T) {
 		t.Fatalf("reopened contents differ: %d keys, want %d", len(got), len(m))
 	}
 
-	// The inputs' chunks were released: nothing stays reserved, and pending
-	// chunks are few.
-	s, err := db.Stats(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Once the background jobs settle, the inputs' chunks were released:
+	// nothing stays reserved.
+	s := waitSettled(t, db)
 	if s.Chunks.Reserved != 0 || len(s.Runs) < 2 {
 		t.Fatalf("chunks %+v runs %v", s.Chunks, s.Runs)
+	}
+}
+
+// waitSettled waits until no merge is due and no chunk is reserved, and
+// returns the stats then, or fails after a while.
+func waitSettled(t *testing.T, db *DB) Stats {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		s, err := db.Stats(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, due := (&mergeJob{db: db}).pick(db.cur.Load().m)
+		if !due && s.Chunks.Reserved == 0 {
+			return s
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("background work did not settle: %+v", s.Chunks)
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }

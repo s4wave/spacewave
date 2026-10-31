@@ -27,8 +27,8 @@ type state struct {
 	// superblock's seq when higher. Recovery checks the values of no record
 	// through it, so value chunks freed at or below it may be reused.
 	logged uint64
-	// logBytes counts the log bytes after the superblock this handle applied,
-	// which an open would replay.
+	// logBytes counts the log bytes since the last flush record this handle
+	// applied, which an open would replay into the memtable.
 	logBytes int64
 	// refs counts the snapshots reading the state; publish sets it.
 	refs *refCount
@@ -106,6 +106,7 @@ func (st *state) apply(r *record, budget int64) {
 		// record's chunk and the old manifest are pending.
 		st.addRuns(r)
 		st.flushed = r.through
+		st.logBytes = 0
 		st.mem = st.mem.dropThrough(r.through, budget)
 		for c := uint64(firstChunk); c < chunkOf(st.pos); c++ {
 			if e := m.table.at(c); e.kind == chunkLog {

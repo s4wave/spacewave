@@ -187,9 +187,15 @@ func (j *mergeJob) run(ctx context.Context) error {
 	var outputs []runMeta
 	var used int
 	var mergeErr error
-	db.sched.idle.do(ctx, func() {
+	if err := db.sched.idle.do(ctx, func() {
 		outputs, used, mergeErr = j.merge(pick, runChunks, more)
-	})
+	}); err != nil {
+		mergeErr = err
+	}
+
+	// From here the job finishes its records even when Close cancelled it,
+	// so no reservation outlives a clean close.
+	ctx = context.WithoutCancel(ctx)
 	if mergeErr != nil {
 		return j.abandon(ctx, reserved, mergeErr)
 	}

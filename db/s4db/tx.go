@@ -17,6 +17,10 @@ type tentry struct {
 	data []byte
 	// del deletes the key.
 	del bool
+	// expect is the offset of the value a cleaner's move replaces; the move
+	// applies only while the key still holds it. Zero for a transaction's
+	// own changes.
+	expect uint64
 }
 
 // lessTentry orders changes by key.
@@ -281,6 +285,9 @@ func (t *Tx) commit(ctx context.Context, ordered bool) error {
 	// Write them against the published state, which the writer lock keeps
 	// current, then release the snapshot and the lock.
 	defer db.endWrite()
+	if db.sched != nil {
+		defer db.sched.fg.begin()()
+	}
 	err := db.w.commit(ctx, db.cur.Load(), changes, false)
 	db.release(t.st, t.stripe)
 	seq := db.cur.Load().seq
