@@ -15,6 +15,10 @@ const partitionBlocks = 256
 // footerMagic ends a run footer.
 var footerMagic = [4]byte{'S', '4', 'R', 'N'}
 
+// bgDirtyMax is the most a background job writes between pushes of its bytes
+// to the drive.
+const bgDirtyMax = 8 << 20
+
 // runBuilder writes one run into reserved chunks: data blocks, then an index
 // partition and a filter partition per partitionBlocks blocks, then the
 // footer. No block straddles two chunks, so the chunks need not be adjacent.
@@ -29,8 +33,10 @@ type runBuilder struct {
 	used int
 	// buf holds the current chunk's bytes.
 	buf []byte
-	// written counts the bytes written to the file.
+	// written counts the bytes written to the file, and dirty those since
+	// the last push to the drive.
 	written int64
+	dirty   int64
 
 	// bb builds the current data block, and blockFirst is its first key.
 	bb         blockBuilder
@@ -175,23 +181,37 @@ func (rb *runBuilder) place(b []byte) (ref, error) {
 	return ref{off: off, n: uint32(len(b)), crc: checksum(b)}, nil // #nosec G115 -- a block fits a chunk.
 }
 
-// flushChunk writes the current chunk buffer and moves to the next chunk.
+// flushChunk writes the current chunk buffer and moves to the next chunk,
+// pushing the run's bytes to the drive every bgDirtyMax.
 func (rb *runBuilder) flushChunk() error {
-	// Write the buffer at its chunk and advance.
+	// Write the buffer at its chunk.
 	if len(rb.buf) == 0 {
 		return nil
 	}
 	if _, err := rb.s.WriteAt(rb.buf, fileOff(chunkStart(rb.chunks[rb.used]))); err != nil {
 		return err
 	}
+
+	// Advance, pushing to the drive every bgDirtyMax.
 	rb.written += int64(len(rb.buf))
+	rb.dirty += int64(len(rb.buf))
 	rb.used++
 	rb.buf = rb.buf[:0]
-	return nil
+	return rb.push(bgDirtyMax)
+}
+
+// push writes the run's bytes back to the drive once at least atLeast of
+// them wait.
+func (rb *runBuilder) push(atLeast int64) error {
+	if rb.dirty < atLeast {
+		return nil
+	}
+	rb.dirty = 0
+	return rb.s.writeback()
 }
 
 // finish writes the last block, partition and the footer, flushes the last
-// chunk, and returns the run's description for the record, with id and level
+// chunk, pushes the rest of the run to the drive, and returns the run's description for the record, with id and level
 // filled by the caller.
 func (rb *runBuilder) finish() (runMeta, error) {
 	// Close what is open.
@@ -220,12 +240,15 @@ func (rb *runBuilder) finish() (runMeta, error) {
 	}
 	fb = append(fb, footerMagic[:]...)
 
-	// Place it and flush the last chunk.
+	// Place it, flush the last chunk, and push the rest.
 	footerAt, err := rb.place(fb)
 	if err != nil {
 		return runMeta{}, err
 	}
 	if err := rb.flushChunk(); err != nil {
+		return runMeta{}, err
+	}
+	if err := rb.push(1); err != nil {
 		return runMeta{}, err
 	}
 	return runMeta{

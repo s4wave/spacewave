@@ -9,6 +9,12 @@ func (f *osFile) flushDurable() error {
 	return unix.Fdatasync(int(f.Fd()))
 }
 
+// writeback writes the file's dirty pages and waits for them, without the
+// drive cache flush and metadata write of Fdatasync.
+func (f *osFile) writeback() error {
+	return unix.SyncFileRange(int(f.Fd()), 0, 0, unix.SYNC_FILE_RANGE_WAIT_BEFORE|unix.SYNC_FILE_RANGE_WRITE|unix.SYNC_FILE_RANGE_WAIT_AFTER)
+}
+
 // ioprio_set's arguments, which x/sys/unix leaves undefined.
 const (
 	// ioprioWhoProcess names a thread by its id.
