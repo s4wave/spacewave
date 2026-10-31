@@ -9,10 +9,24 @@ func (f *osFile) flushDurable() error {
 	return unix.Fdatasync(int(f.Fd()))
 }
 
-// writeback writes the file's dirty pages and waits for them, without the
-// drive cache flush and metadata write of Fdatasync.
-func (f *osFile) writeback() error {
-	return unix.SyncFileRange(int(f.Fd()), 0, 0, unix.SYNC_FILE_RANGE_WAIT_BEFORE|unix.SYNC_FILE_RANGE_WRITE|unix.SYNC_FILE_RANGE_WAIT_AFTER)
+// writeback writes the chunks' dirty pages and waits for them, without the
+// drive cache flush and metadata write of Fdatasync. It names the chunks
+// rather than the whole file, which would also take a commit's log pages and
+// send them at the idle thread's priority while the commit waits for them.
+func (f *osFile) writeback(chunks []uint64) error {
+	// Write each span of adjacent chunks as one range.
+	const flags = unix.SYNC_FILE_RANGE_WAIT_BEFORE | unix.SYNC_FILE_RANGE_WRITE | unix.SYNC_FILE_RANGE_WAIT_AFTER
+	for i := 0; i < len(chunks); {
+		j := i + 1
+		for j < len(chunks) && chunks[j] == chunks[j-1]+1 {
+			j++
+		}
+		if err := unix.SyncFileRange(int(f.Fd()), fileOff(chunkStart(chunks[i])), int64(j-i)*chunkSize, flags); err != nil {
+			return err
+		}
+		i = j
+	}
+	return nil
 }
 
 // ioprio_set's arguments, which x/sys/unix leaves undefined.
