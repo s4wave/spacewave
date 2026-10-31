@@ -96,6 +96,15 @@ func (s *scheduler) run() {
 			}
 		}
 
+		// Shrink a file whose tail is free, a release step at a time in a
+		// quiet spell; each job's release step also takes one.
+		if s.fg.wait() <= 0 && st.m.table.trimEnd(1) != st.m.table.end() {
+			if s.releaseStep(s.ctx) == nil {
+				quietAt = time.Now()
+				continue
+			}
+		}
+
 		// Mark a quiet file whose pending chunks wait.
 		if time.Since(quietAt) >= quietMark && s.hasPending(st) {
 			_ = s.markStep(s.ctx)

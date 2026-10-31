@@ -70,6 +70,23 @@ func (t *chunkTable) end() uint64 {
 	return uint64(len(t.entries))
 }
 
+// trimEnd returns the end the table may shrink to by dropping at most n
+// trailing free chunks, never below the three chunks a new file starts with.
+func (t *chunkTable) trimEnd(n uint64) uint64 {
+	// Find the lowest end this call may reach.
+	end := t.end()
+	low := uint64(firstChunk + 2)
+	if end > low+n {
+		low = end - n
+	}
+
+	// Drop free chunks down to it.
+	for end > low && t.entries[end-1].kind == chunkFree {
+		end--
+	}
+	return end
+}
+
 // at returns the entry of chunk c, adding free entries up to it.
 func (t *chunkTable) at(c uint64) *chunkEntry {
 	for uint64(len(t.entries)) <= c {
