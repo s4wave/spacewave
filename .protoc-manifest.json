@@ -2546,7 +2546,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/volume/s4db": {
-      "hash": "5e1c71a56b81ef35a77697de6a3659384cfd705ed46a4817630d187a208e86e1",
+      "hash": "49a913c784b4a0c6ed9a7ba52bba9d3e9f9290bf8d1789a9b506ba590dbbbef1",
       "generatedFiles": [
         "db/volume/s4db/s4db.pb.go",
         "db/volume/s4db/s4db.pb.ts"

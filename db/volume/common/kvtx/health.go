@@ -65,15 +65,6 @@ func (v *Volume) SetHealthSizes(fn HealthSizesFn) {
 	go v.runHealthSizes(ctx)
 }
 
-// SetReserveRelease sets fn to return the space the volume's deletes freed to
-// the file system without a commit. A store frees what a commit deleted at a
-// later commit, and a volume in the reserve state refuses the writes that
-// would commit, so while in that state each poll calls fn before it measures.
-// It is called once, before SetHealthSizes starts the polls.
-func (v *Volume) SetReserveRelease(fn func(context.Context) error) {
-	v.reserveRelease = fn
-}
-
 // GetHealthSnapshotWithWait returns the volume's health and a channel that
 // closes when its collection phase or measured sizes change. The publication
 // occupancy is read with the snapshot; its changes alone do not close the
@@ -154,14 +145,8 @@ func (v *Volume) runHealthSizes(ctx context.Context) {
 	due := true
 	for {
 		// Measure when due or in the reserve state, counting the writes from
-		// before the measurement toward the next. In the reserve state, first
-		// return what collection freed, which a failure leaves for the next
-		// poll.
-		reserved := v.reserved.Load()
-		if due || reserved || time.Since(measuredAt) >= healthMaxAge {
-			if reserved && v.reserveRelease != nil {
-				_ = v.reserveRelease(ctx)
-			}
+		// before the measurement toward the next.
+		if due || v.reserved.Load() || time.Since(measuredAt) >= healthMaxAge {
 			written := v.writtenBytes.Load()
 			if sizes, ok := v.measureHealthSizes(ctx); ok {
 				measuredAt = time.Now()
