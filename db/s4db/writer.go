@@ -66,9 +66,10 @@ func (w *writer) lock(ctx context.Context) error {
 	return nil
 }
 
-// tryLock takes the writer lock when no writer holds it, without catching
-// up.
-func (w *writer) tryLock() (bool, error) {
+// tryLock takes the writer lock when no writer holds it, and brings the
+// handle up to date as lock does: a record appended from a stale state would
+// overwrite another process's records.
+func (w *writer) tryLock(ctx context.Context) (bool, error) {
 	// Exclude this handle's writers, then other processes, without
 	// waiting.
 	release, ok := w.mtx.TryLock()
@@ -82,6 +83,12 @@ func (w *writer) tryLock() (bool, error) {
 	}
 	w.unlockMtx = release
 	w.held.Store(true)
+
+	// Apply what other processes wrote.
+	if err := w.db.refresh(ctx); err != nil {
+		w.unlock()
+		return false, err
+	}
 	return true, nil
 }
 
