@@ -46,6 +46,12 @@ func (f deviceFile) flushDurable() error {
 	return f.Sync()
 }
 
+// writeback sends the collected writes without a flush, so a job's bytes
+// leave memory and a commit's flush finds few of them ahead of it.
+func (f deviceFile) writeback() error {
+	return f.Issue()
+}
+
 // lock takes the uncontended lock at off.
 func (deviceFile) lock(_ int64, _ bool) (bool, error) {
 	return true, nil

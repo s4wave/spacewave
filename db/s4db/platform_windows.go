@@ -23,6 +23,12 @@ func (f *osFile) flushDurable() error {
 	return windows.FlushFileBuffers(windows.Handle(f.Fd()))
 }
 
+// writeback flushes durably: FlushFileBuffers is the one call that writes a
+// file's pages.
+func (f *osFile) writeback() error {
+	return f.flushDurable()
+}
+
 // setThreadPriority is SetThreadPriority, which x/sys/windows leaves out.
 var setThreadPriority = windows.NewLazySystemDLL("kernel32.dll").NewProc("SetThreadPriority")
 
