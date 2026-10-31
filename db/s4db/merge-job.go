@@ -47,13 +47,16 @@ func (m *manifest) overlapping(level uint8, lo, hi []byte) []runMeta {
 	return out
 }
 
-// pick chooses the next merge of m, or reports none. Level 0 merges whole
-// into level 1 when it holds more than level0Trigger runs; otherwise the
-// level furthest over its target gives its run with the least overlap below.
-// A run holding the file's top chunk goes first when free chunks sit below
-// it, so the end can fall. Level 0 runs overlap and are read newest first,
-// so one of them never moves down alone: a level 0 run at the top takes the
-// whole level with it.
+// pick chooses the next merge of m, or reports none. The level furthest over
+// its target merges, as in Pebble: level 0 scores its runs against
+// level0Trigger and merges whole into level 1, and each lower level scores its
+// bytes against its target and gives its run with the least overlap below.
+// Scoring level 0 against the others matters under a steady commit stream,
+// which keeps level 0 over its trigger: given priority, level 0 would merge
+// into an ever larger level 1 that never moved down. A run holding the file's
+// top chunk goes first when free chunks sit below it, so the end can fall.
+// Level 0 runs overlap and are read newest first, so one of them never moves
+// down alone: a level 0 run at the top takes the whole level with it.
 func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 	// Prefer the run at the top of a file with free chunks below.
 	sizes := m.levelBytes()
@@ -63,36 +66,23 @@ func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 		return mergePick{inputs: append([]runMeta{top}, over...), level: top.level + 1, bottom: len(sizes) <= int(top.level)+2}, true
 	}
 
-	// Level 0 as a whole.
-	if m.level0() > level0Trigger || hasTop {
-		var inputs []runMeta
-		var lo, hi []byte
-		for _, r := range m.runs {
-			if r.level != 0 {
-				break
-			}
-			inputs = append(inputs, r)
-			if lo == nil || bytes.Compare(r.smallest, lo) < 0 {
-				lo = r.smallest
-			}
-			if hi == nil || bytes.Compare(r.largest, hi) > 0 {
-				hi = r.largest
-			}
-		}
-		inputs = append(inputs, m.overlapping(1, lo, hi)...)
-		return mergePick{inputs: inputs, level: 1, bottom: len(sizes) <= 2}, true
-	}
-
-	// The level furthest over its target, by ratio.
-	target := int64(runTarget)
+	// Find the level furthest over its target; a level 0 run at the top
+	// takes level 0.
 	bestLevel, bestRatio := -1, 1.0
-	for level := 1; level < len(sizes); level++ {
+	if n := m.level0(); n > level0Trigger {
+		bestLevel, bestRatio = 0, float64(n)/level0Trigger
+	}
+	target := int64(runTarget)
+	for level := 1; level < len(sizes) && !hasTop; level++ {
 		target *= levelRatio
 		if ratio := float64(sizes[level]) / float64(target); ratio > bestRatio {
 			bestLevel, bestRatio = level, ratio
 		}
 	}
-	if bestLevel < 0 {
+	switch {
+	case hasTop || bestLevel == 0:
+		return m.pickLevel0(len(sizes) <= 2), true
+	case bestLevel < 0:
 		return mergePick{}, false
 	}
 
@@ -114,6 +104,30 @@ func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 		}
 	}
 	return mergePick{inputs: append([]runMeta{best}, bestBelow...), level: best.level + 1, bottom: len(sizes) <= bestLevel+2}, true
+}
+
+// pickLevel0 returns the merge of all of level 0 and the level 1 runs it
+// overlaps into level 1; bottom reports that no level below 1 holds keys.
+func (m *manifest) pickLevel0(bottom bool) mergePick {
+	// Take level 0, which leads the runs, and the key range it covers.
+	var inputs []runMeta
+	var lo, hi []byte
+	for _, r := range m.runs {
+		if r.level != 0 {
+			break
+		}
+		inputs = append(inputs, r)
+		if lo == nil || bytes.Compare(r.smallest, lo) < 0 {
+			lo = r.smallest
+		}
+		if hi == nil || bytes.Compare(r.largest, hi) > 0 {
+			hi = r.largest
+		}
+	}
+
+	// Add the level 1 runs in that range.
+	inputs = append(inputs, m.overlapping(1, lo, hi)...)
+	return mergePick{inputs: inputs, level: 1, bottom: bottom}
 }
 
 // topRun returns the run holding the file's last chunk when free chunks sit
