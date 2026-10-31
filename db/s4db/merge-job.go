@@ -67,7 +67,7 @@ func (j *mergeJob) pick(m *manifest) (mergePick, bool) {
 	if m.level0() > level0Trigger || hasTop {
 		var inputs []runMeta
 		var lo, hi []byte
-		for _, r := range m.runsNewestFirst() {
+		for _, r := range m.runs {
 			if r.level != 0 {
 				break
 			}
