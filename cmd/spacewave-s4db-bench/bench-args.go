@@ -5,9 +5,15 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"math/rand/v2"
+	"net/http"
+	_ "net/http/pprof" // #nosec G108 -- served only on the --pprof address.
+	"os"
+	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -44,6 +50,11 @@ type BenchArgs struct {
 	Seed uint64
 	// ReportPath is where the JSON report goes; empty prints it.
 	ReportPath string
+	// Progress is the interval between progress lines on stderr; zero
+	// prints none.
+	Progress time.Duration
+	// Pprof is the address serving the Go profiles; empty serves none.
+	Pprof string
 }
 
 // BuildFlags binds the flags.
@@ -61,6 +72,8 @@ func (a *BenchArgs) BuildFlags() []cli.Flag {
 		&cli.DurationFlag{Name: "sample", Usage: "stats sample interval", Destination: &a.Sample, Value: 100 * time.Millisecond},
 		&cli.Uint64Flag{Name: "seed", Usage: "seeds the key draws", Destination: &a.Seed, Value: 1},
 		&cli.StringFlag{Name: "report", Usage: "write the JSON report here instead of printing it", Destination: &a.ReportPath},
+		&cli.DurationFlag{Name: "progress", Usage: "interval between progress lines on stderr, zero for none", Destination: &a.Progress, Value: 30 * time.Second},
+		&cli.StringFlag{Name: "pprof", Usage: "serve the Go profiles on this address, such as localhost:6060", Destination: &a.Pprof},
 	}
 }
 
@@ -79,10 +92,23 @@ type commit struct {
 	at, dur time.Duration
 }
 
+// progress counts the committed work for the progress lines.
+type progress struct {
+	// keys is the keys committed, and commits the commits.
+	keys, commits atomic.Int64
+}
+
 // Run opens the file, drives the writes and prints the report.
 func (a *BenchArgs) Run(c *cli.Context) error {
-	// Open the file.
+	// Serve the profiles when asked.
 	ctx := c.Context
+	if a.Pprof != "" {
+		srv := &http.Server{Addr: a.Pprof, ReadHeaderTimeout: 10 * time.Second}
+		go func() { _ = srv.ListenAndServe() }()
+		defer srv.Close()
+	}
+
+	// Open the file.
 	db, err := s4db.Open(a.Path, s4db.Options{CacheBytes: a.CacheBytes})
 	if err != nil {
 		return err
@@ -92,15 +118,16 @@ func (a *BenchArgs) Run(c *cli.Context) error {
 	// Sample stats while the writers run.
 	start := time.Now()
 	sctx, stopSampler := context.WithCancel(ctx)
+	var prog progress
 	var samples []sample
 	sampled := make(chan struct{})
 	go func() {
 		defer close(sampled)
-		samples = a.sampleStats(sctx, db, start)
+		samples = a.sampleStats(sctx, db, start, &prog)
 	}()
 
 	// Run the writers, then stop the sampler.
-	commits, err := a.write(ctx, db, start)
+	commits, err := a.write(ctx, db, start, &prog)
 	stopSampler()
 	<-sampled
 	if err != nil {
@@ -126,7 +153,7 @@ func (a *BenchArgs) Run(c *cli.Context) error {
 
 // write runs the writers until Ops keys are written and returns every
 // commit's timing.
-func (a *BenchArgs) write(ctx context.Context, db *s4db.DB, start time.Time) ([]commit, error) {
+func (a *BenchArgs) write(ctx context.Context, db *s4db.DB, start time.Time, prog *progress) ([]commit, error) {
 	// Give each writer its share of the batches and collect their commits.
 	batches := (a.Ops + a.Batch - 1) / a.Batch
 	var mtx sync.Mutex
@@ -140,7 +167,7 @@ func (a *BenchArgs) write(ctx context.Context, db *s4db.DB, start time.Time) ([]
 		go func() {
 			// Write this writer's batches and merge its commits in.
 			defer wg.Done()
-			own, err := a.writer(ctx, db, start, uint64(w), batches) // #nosec G115 -- a small count.
+			own, err := a.writer(ctx, db, start, uint64(w), batches, prog) // #nosec G115 -- a small count.
 			mtx.Lock()
 			defer mtx.Unlock()
 			all = append(all, own...)
@@ -157,7 +184,7 @@ func (a *BenchArgs) write(ctx context.Context, db *s4db.DB, start time.Time) ([]
 }
 
 // writer commits the batches numbered w, w+Writers, ... below batches.
-func (a *BenchArgs) writer(ctx context.Context, db *s4db.DB, start time.Time, w uint64, batches int) ([]commit, error) {
+func (a *BenchArgs) writer(ctx context.Context, db *s4db.DB, start time.Time, w uint64, batches int, prog *progress) ([]commit, error) {
 	// Draw keys from the writer's own stream.
 	rng := rand.New(rand.NewPCG(a.Seed, w)) // #nosec G404 -- a benchmark's key draws.
 	small := make([]byte, a.ValueBytes)
@@ -190,19 +217,30 @@ func (a *BenchArgs) writer(ctx context.Context, db *s4db.DB, start time.Time, w 
 		}
 		end := time.Now()
 		out = append(out, commit{at: end.Sub(start), dur: end.Sub(began)})
+		prog.keys.Add(int64(a.Batch))
+		prog.commits.Add(1)
 	}
 	return out, nil
 }
 
-// sampleStats reads Stats every Sample until ctx ends.
-func (a *BenchArgs) sampleStats(ctx context.Context, db *s4db.DB, start time.Time) []sample {
+// sampleStats reads Stats every Sample until ctx ends, printing a progress
+// line every Progress.
+func (a *BenchArgs) sampleStats(ctx context.Context, db *s4db.DB, start time.Time, prog *progress) []sample {
+	// Read a sample each tick until ctx ends.
 	var out []sample
+	var printed time.Duration
 	tick := time.NewTicker(a.Sample)
 	defer tick.Stop()
 	for {
+		// Keep the sample, and print a line when one is due.
 		st, err := db.Stats(ctx)
 		if err == nil {
-			out = append(out, sample{at: time.Since(start), runs: st.Runs, reserved: st.Chunks.Reserved})
+			at := time.Since(start)
+			out = append(out, sample{at: at, runs: st.Runs, reserved: st.Chunks.Reserved})
+			if a.Progress > 0 && at-printed >= a.Progress {
+				printed = at
+				a.printProgress(at, prog, st)
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -210,4 +248,15 @@ func (a *BenchArgs) sampleStats(ctx context.Context, db *s4db.DB, start time.Tim
 		case <-tick.C:
 		}
 	}
+}
+
+// printProgress writes one progress line: the work committed, the engine's
+// shape, and the Go heap.
+func (a *BenchArgs) printProgress(at time.Duration, prog *progress, st s4db.Stats) {
+	// Read the heap and print the line.
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	fmt.Fprintf(os.Stderr, "%s keys=%d/%d commits=%d runs=%v memtable=%d file=%d free=%d pending=%d reserved=%d heap=%d sys=%d gc=%d\n",
+		at.Truncate(time.Second), prog.keys.Load(), a.Ops, prog.commits.Load(), st.Runs, st.MemtableBytes,
+		st.FileBytes, st.FreeBytes, st.PendingBytes, st.Chunks.Reserved, ms.HeapInuse, ms.Sys, ms.NumGC)
 }
