@@ -81,6 +81,10 @@ func Open(conf *Config) (*sql.DB, error) {
 	mc.ReadTimeout = 2 * time.Minute
 	mc.WriteTimeout = 2 * time.Minute
 	mc.MaxAllowedPacket = 0
+
+	// Send each query's arguments inline, so a read is one round trip
+	// instead of a prepare, an execute and a close.
+	mc.InterpolateParams = true
 	if conf.TLS {
 		mc.TLSConfig = "true"
 	}

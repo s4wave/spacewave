@@ -176,3 +176,42 @@ func TestCheck(t *testing.T) {
 		t.Fatalf("wrong password: %v %s", result.GetOutcome(), result.GetDetail())
 	}
 }
+
+// TestReadSkipsPrepare checks that a block read sends its arguments inline,
+// one round trip without a server-side prepared statement, and that binary
+// data and keys survive the inline encoding.
+func TestReadSkipsPrepare(t *testing.T) {
+	// Write a block holding every byte value.
+	ctx := context.Background()
+	store := openTestStore(t, testConfig(t), "store-inline")
+	data := make([]byte, 256)
+	for i := range data {
+		data[i] = byte(i)
+	}
+	ref, _ := block.BuildBlockRef(data, nil)
+	if _, err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data, RefsKnown: true}}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Count the server's prepared statements across ten reads.
+	prepares := func() int64 {
+		var name string
+		var count int64
+		if err := store.db.QueryRowContext(ctx, "SHOW GLOBAL STATUS LIKE 'Com_stmt_prepare'").Scan(&name, &count); err != nil {
+			t.Fatal(err)
+		}
+		return count
+	}
+	before := prepares()
+	for range 10 {
+		got, found, err := store.GetBlock(ctx, ref)
+		if err != nil || !found || !bytes.Equal(got, data) {
+			t.Fatalf("read back %d bytes, found=%v err=%v", len(got), found, err)
+		}
+	}
+
+	// The reads prepared nothing.
+	if after := prepares(); after != before {
+		t.Fatalf("ten reads prepared %d statements, want 0", after-before)
+	}
+}
