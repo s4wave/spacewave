@@ -157,7 +157,7 @@ func (s *scheduler) merge() bool {
 }
 
 // clean runs one cleaner step when no other process is cleaning, reporting
-// whether it ran.
+// whether it cleaned a victim.
 func (s *scheduler) clean() bool {
 	// Take the clean lock without waiting.
 	ok, err := s.db.s.lock(lockClean, false)
@@ -165,7 +165,8 @@ func (s *scheduler) clean() bool {
 		return false
 	}
 	defer func() { _ = s.db.s.unlock(lockClean) }()
-	return s.cleaner.step(s.ctx) == nil
+	ran, err := s.cleaner.step(s.ctx)
+	return ran && err == nil
 }
 
 // hasPending reports whether the table holds pending or reserved chunks.
