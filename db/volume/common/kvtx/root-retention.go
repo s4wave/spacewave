@@ -269,6 +269,9 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 			if existed, err = gc.PutBlockBatch(ctx, entries); err != nil {
 				return err
 			}
+			if err := v.addExistedHolds(ctx, blocks, rg, entries, existed); err != nil {
+				return err
+			}
 			if err := gc.FlushPending(ctx); err != nil {
 				return err
 			}
@@ -276,7 +279,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 
 		// Move each named root.
 		for _, root := range roots {
-			if err := setBucketRoot(ctx, blocks, rg, bucketID, root.Name, root.Ref); err != nil {
+			if err := v.setBucketRoot(ctx, blocks, rg, bucketID, root.Name, root.Ref); err != nil {
 				return err
 			}
 		}
@@ -292,7 +295,7 @@ func (v *Volume) SetBucketRoots(ctx context.Context, bucketID string, entries []
 }
 
 // setBucketRoot requires a shared physical transaction for bytes and graph.
-func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, bucketID, name string, ref *block.BlockRef) error {
+func (v *Volume) setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, bucketID, name string, ref *block.BlockRef) error {
 	// Read the root the owner node holds now.
 	owner := RootOwnerIRI(bucketID, name)
 	bucket := block_gc.BucketIRI(bucketID)
@@ -330,7 +333,150 @@ func setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefG
 			removes = append(removes, block_gc.RefEdge{Subject: owner, Object: previous})
 		}
 	}
-	return rg.ApplyRefBatch(ctx, adds, removes)
+	if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
+		return err
+	}
+
+	// Count the held pages of a deadlist record the first time it is named.
+	if !v.holdCounts || ref.GetEmpty() || !strings.HasPrefix(name, block.DeadlistRootPrefix) || slices.Contains(old, next) {
+		return nil
+	}
+	return addDeadlistHolds(ctx, blocks, rg, ref)
+}
+
+// addDeadlistHolds adds one shared count to each page the deadlist record at
+// ref lists as held. Naming the record is the holder's save, so the count
+// lands in the transaction that makes the new holders durable, exactly once
+// per record: renaming it due, or naming it again, adds nothing.
+func addDeadlistHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, ref *block.BlockRef) error {
+	// Read the record from the transaction that stores it.
+	_, dead, err := block.ReadDeadlist(ctx, blocks, ref)
+	if err != nil {
+		return fmt.Errorf("count held pages of deadlist record: %w", err)
+	}
+
+	// Count each held page.
+	held := make([]string, len(dead.Held))
+	for i, page := range dead.Held {
+		held[i] = block_gc.BlockIRI(page)
+	}
+	return rg.AddHolds(ctx, held)
+}
+
+// addExistedHolds adds the shared counts a put batch gives the pages it found
+// stored. Each found page gains one holder per new page of the batch that
+// names it, and one when no unmarked page of the batch names it: its parent
+// is a root or a page stored outside the batch. A found page whose parent the
+// batch also found gains nothing, since the stored parent already named it.
+//
+// A writer marks Counted each entry it can prove the store held before its
+// interval began, such as a page of the old tree written back. Such an entry
+// gains no count, and it never stands in for the parent of a found entry: a
+// found child of a marked entry counts on its own, which can only over-count.
+//
+// A marked entry the put finds absent was freed after the writer's proof, so
+// the put stores it afresh and its edges to its children are new: no record
+// counts them, because its writer saw it stored. It counts as a new page of
+// the batch, and each other stored child gains one count too, unless the
+// batch wrote the child afresh, probing the children outside the batch. The
+// writer marks only pages its kept World holds, and the collector frees no
+// page a named World reaches, so this path should be unreachable; revivedPuts
+// counts each entry it takes, and any is an error in that proof.
+//
+// It adds nothing on a Volume configured to keep no counts.
+//
+// Every over-count leaks and never frees: a parent and child split across two
+// batches each count, and a payload or span block gains a count no record
+// takes, which the sweep deletes with the block.
+func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, entries []*block.PutBatchEntry, existed []bool) error {
+	// A Volume that keeps no counts skips the graph reads and writes.
+	if !v.holdCounts {
+		return nil
+	}
+
+	// Note which entries the batch found and which it stored afresh, setting
+	// aside marked entries. A page listed twice finds its own first copy, so
+	// its first entry decides.
+	found := make(map[string]bool, len(entries))
+	kept := make(map[string]bool)
+	var listed, revived []*block.PutBatchEntry
+	for i, e := range entries {
+		if e.Tombstone {
+			continue
+		}
+		key := block_gc.BlockIRI(e.Ref)
+		if _, ok := found[key]; ok || kept[key] {
+			continue
+		}
+		switch {
+		case e.Counted && existed[i]:
+			kept[key] = true
+		case e.Counted:
+			found[key] = false
+			listed = append(listed, e)
+			revived = append(revived, e)
+		default:
+			found[key] = existed[i]
+			listed = append(listed, e)
+		}
+	}
+
+	// Count each found entry once per new parent, or once with no parent in
+	// the batch.
+	parents := make(map[string]int, len(listed))
+	var holds []string
+	for _, e := range listed {
+		named := make(map[string]struct{}, len(e.Refs))
+		for _, child := range e.Refs {
+			key := block_gc.BlockIRI(child)
+			if _, dup := named[key]; dup || !found[key] {
+				continue
+			}
+			named[key] = struct{}{}
+			parents[key]++
+			if !found[block_gc.BlockIRI(e.Ref)] {
+				holds = append(holds, key)
+			}
+		}
+	}
+	for key, isFound := range found {
+		if isFound && parents[key] == 0 {
+			holds = append(holds, key)
+		}
+	}
+
+	// Count the other stored children of each revived entry: marked entries
+	// at once, and children outside the batch after a probe.
+	v.revivedPuts.Add(uint64(len(revived)))
+	var probe []*block.BlockRef
+	for _, e := range revived {
+		named := make(map[string]struct{}, len(e.Refs))
+		for _, child := range e.Refs {
+			key := block_gc.BlockIRI(child)
+			if _, dup := named[key]; dup {
+				continue
+			}
+			named[key] = struct{}{}
+			switch _, listed := found[key]; {
+			case kept[key]:
+				holds = append(holds, key)
+			case !listed:
+				probe = append(probe, child)
+			}
+		}
+	}
+	if len(probe) != 0 {
+		stored, err := blocks.GetBlockExistsBatch(ctx, probe)
+		if err != nil {
+			return err
+		}
+		for i, ok := range stored {
+			if ok {
+				holds = append(holds, block_gc.BlockIRI(probe[i]))
+			}
+		}
+	}
+	return rg.AddHolds(ctx, holds)
 }
 
 // ReleaseBucketRoots drops the bucket's staging edges to roots in one

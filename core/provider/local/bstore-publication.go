@@ -7,9 +7,10 @@ import (
 )
 
 // publisher returns the atomic publisher of the account's own storage, or nil
-// when that storage cannot publish atomically.
+// when that storage cannot publish atomically. A store whose SQL backend is
+// primary publishes its heads there, after its SQL publisher drains the blocks.
 func (b *BlockStore) publisher() block.AtomicPublisher {
-	if b.placement == nil {
+	if b.placement == nil || (b.placement.sqlPrimary && b.placement.sqlPublish == nil) {
 		return nil
 	}
 	p, ok := b.placement.local.(block.AtomicPublisher)
@@ -38,11 +39,15 @@ func (b *BlockStore) AtomicPublicationVolumeID() string {
 // SubmitAtomic admits a publication to the account's own storage. It returns
 // block.ErrAtomicPublicationUnsupported while writes queue for upload; a
 // storage backend chosen after admission backfills the published blocks.
+// A store whose SQL backend is primary admits it to its SQL publisher.
 func (b *BlockStore) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
 	// Leave writes queued for upload to the marking store.
 	publisher := b.publisher()
 	if publisher == nil {
 		return nil, block.ErrAtomicPublicationUnsupported
+	}
+	if b.placement.sqlPrimary {
+		return b.placement.sqlPublish.submit(ctx, p)
 	}
 	if status, _ := b.placement.wb.GetStatus(); status.Enabled {
 		return nil, block.ErrAtomicPublicationUnsupported

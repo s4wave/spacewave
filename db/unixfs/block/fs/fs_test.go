@@ -62,7 +62,7 @@ func TestFS(t *testing.T) {
 		oc.SetReplacementLog(log)
 		check := func(t *testing.T, name string) {
 			to := oc.GetRef().GetRootRef()
-			if err := block_mock.CheckReplacements(ctx, oc.GetBucket(), rootRef, to, log.Take(to)); err != nil {
+			if err := block_mock.CheckReplacements(ctx, oc.GetBucket(), rootRef, to, log.Take(to).Net(nil)); err != nil {
 				t.Fatalf("%s: %v", name, err)
 			}
 			rootRef = to

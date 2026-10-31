@@ -21,6 +21,11 @@ func (s *proofCountingStore) SupportsRootRetention() bool {
 	return block.SupportsRootRetention(s.Store)
 }
 
+// KeepsHoldCounts reports whether the underlying store keeps shared counts.
+func (s *proofCountingStore) KeepsHoldCounts() bool {
+	return block.KeepsHoldCounts(s.Store)
+}
+
 // SetRetainedRoots forwards durable root ownership to the underlying store.
 func (s *proofCountingStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
 	return block.SetRetainedRoots(ctx, s.Store, entries, roots)

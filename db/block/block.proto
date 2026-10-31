@@ -172,5 +172,12 @@ message Deadlist {
   // Parts are further Deadlist blocks with the rest of the refs, set only on
   // the first block.
   repeated BlockRef parts = 7;
+  // Held are live stored pages that may have gained a holder. Naming the
+  // record adds one shared count to each.
+  repeated BlockRef held = 8;
+  // Existed are live pages whose edge from the new tree was counted already:
+  // a put found them stored, or only pages that existed name them. The old
+  // root is among them when an existing page still names it.
+  repeated BlockRef existed = 9;
 }
 

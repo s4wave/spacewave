@@ -383,6 +383,13 @@ type Deadlist struct {
 	// Parts are further Deadlist blocks with the rest of the refs, set only on
 	// the first block.
 	Parts []*BlockRef `protobuf:"bytes,7,rep,name=parts,proto3" json:"parts,omitempty"`
+	// Held are live stored pages that may have gained a holder. Naming the
+	// record adds one shared count to each.
+	Held []*BlockRef `protobuf:"bytes,8,rep,name=held,proto3" json:"held,omitempty"`
+	// Existed are live pages whose edge from the new tree was counted already:
+	// a put found them stored, or only pages that existed name them. The old
+	// root is among them when an existing page still names it.
+	Existed []*BlockRef `protobuf:"bytes,9,rep,name=existed,proto3" json:"existed,omitempty"`
 }
 
 func (x *Deadlist) Reset() {
@@ -436,6 +443,20 @@ func (x *Deadlist) GetKept() []*BlockRef {
 func (x *Deadlist) GetParts() []*BlockRef {
 	if x != nil {
 		return x.Parts
+	}
+	return nil
+}
+
+func (x *Deadlist) GetHeld() []*BlockRef {
+	if x != nil {
+		return x.Held
+	}
+	return nil
+}
+
+func (x *Deadlist) GetExisted() []*BlockRef {
+	if x != nil {
+		return x.Existed
 	}
 	return nil
 }
@@ -540,6 +561,8 @@ func (m *Deadlist) CloneVT() *Deadlist {
 	r.Removed = protobuf_go_lite.CloneVTSlice(m.Removed)
 	r.Kept = protobuf_go_lite.CloneVTSlice(m.Kept)
 	r.Parts = protobuf_go_lite.CloneVTSlice(m.Parts)
+	r.Held = protobuf_go_lite.CloneVTSlice(m.Held)
+	r.Existed = protobuf_go_lite.CloneVTSlice(m.Existed)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -699,6 +722,12 @@ func (this *Deadlist) EqualVT(that *Deadlist) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Parts, that.Parts, func() *BlockRef { return &BlockRef{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Held, that.Held, func() *BlockRef { return &BlockRef{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Existed, that.Existed, func() *BlockRef { return &BlockRef{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1385,6 +1414,30 @@ func (m *Deadlist) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Existed) > 0 {
+		for iNdEx := len(m.Existed) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Existed[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if len(m.Held) > 0 {
+		for iNdEx := len(m.Held) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Held[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
 	if len(m.Parts) > 0 {
 		for iNdEx := len(m.Parts) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.Parts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -1570,6 +1623,14 @@ func (m *Deadlist) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	for _, e := range m.Parts {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Held {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.Existed {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
@@ -1765,6 +1826,30 @@ func (x *Deadlist) MarshalProtoText() string {
 	if len(x.Parts) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "parts")
 		for i, v := range x.Parts {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Held) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "held")
+		for i, v := range x.Held {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockRef{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.Existed) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "existed")
+		for i, v := range x.Existed {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			if v == nil {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, &BlockRef{})
@@ -2255,6 +2340,32 @@ func (m *Deadlist) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Parts = append(m.Parts, &BlockRef{})
 			if err := m.Parts[len(m.Parts)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Held", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Held = append(m.Held, &BlockRef{})
+			if err := m.Held[len(m.Held)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Existed", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Existed = append(m.Existed, &BlockRef{})
+			if err := m.Existed[len(m.Existed)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

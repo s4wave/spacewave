@@ -27,9 +27,19 @@ type Status struct {
 	// EvictedBytes is the size of the values eviction dropped since the store
 	// opened.
 	EvictedBytes int64
+	// Uploaded is the number of blocks uploaded since the store opened.
+	Uploaded int64
+	// UploadedBytes is the size of the blocks uploaded since the store
+	// opened.
+	UploadedBytes int64
+	// UploadReads is the bound on the local reads an upload keeps in flight,
+	// which falls while the disk is loaded.
+	UploadReads int
 	// Refills is the number of evicted blocks read back from the remote since
 	// the store opened. Each one was a read that waited on the remote.
 	Refills int64
+	// Copy reports the latest copy of the stored blocks to a remote.
+	Copy CopyStatus
 }
 
 // ResidentBytes is the size of the store's blocks the local store holds: the

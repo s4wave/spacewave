@@ -61,8 +61,34 @@ message StorageBackend {
   // S3 locates the S3-compatible bucket that holds the blocks.
   S3Location s3 = 3;
   // Credential is the redacted Secret whose payload holds the access keys.
-  // The payload value is a block_store_s3.Credentials message.
+  // The payload value is a block_store_s3.Credentials message. For an SQL
+  // backend its access_key_id is the database user and its
+  // secret_access_key the password.
   .s4wave.secret.Secret credential = 4;
+  // Sql locates the SQL database that holds the blocks instead of a bucket.
+  // A backend sets exactly one of S3 and Sql.
+  SqlLocation sql = 5;
+}
+
+// SqlLocation locates a MySQL-compatible database that holds blocks. It only
+// ever adds rows: the database never deletes or rewrites a block, so a grant
+// of SELECT and INSERT alone suffices.
+message SqlLocation {
+  // Host is the database host.
+  string host = 1;
+  // Port is the database port, zero for 3306.
+  uint32 port = 2;
+  // Database is the database name.
+  string database = 3;
+  // TablePrefix precedes the name of the blocks table, TablePrefix +
+  // "blocks", whose rows are keyed by block store id and block hash.
+  string table_prefix = 4;
+  // Tls connects with TLS.
+  bool tls = 5;
+  // TlsCertSha256 is the hex SHA-256 of the server's certificate. Set, TLS
+  // trusts exactly that certificate in place of a CA and the host name, as
+  // for a server with a self-signed certificate.
+  string tls_cert_sha256 = 6;
 }
 
 // S3Location locates an S3-compatible bucket and the key space it uses.
@@ -115,6 +141,17 @@ message BlockStoreCache {
   // Blocks awaiting upload past it upload before they settle. Zero, or a value
   // above the high mark, uses nine tenths of the high mark.
   uint64 resident_low_bytes = 4;
+  // SkipBackfill uploads only the blocks written once the store is placed.
+  // The blocks stored before stay on the local disk alone, and eviction never
+  // drops them, until a placement without it queues them for upload.
+  bool skip_backfill = 5;
+  // MaxUploadReads bounds the local reads the upload keeps in flight. The
+  // upload lowers its bound while local reads slow, yielding the disk to the
+  // store's own reads. Zero uses 32.
+  uint32 max_upload_reads = 6;
+  // UploadReadSlowMillis is the least local read time the upload counts as
+  // the disk being loaded. Zero uses 5.
+  uint32 upload_read_slow_millis = 7;
 }
 
 // AccountSession is an approved account replica, distinct from a managed Device.

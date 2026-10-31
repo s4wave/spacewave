@@ -307,10 +307,12 @@ func WithDeferredDurability() EngineOption {
 }
 
 // TransitionSink receives a World commit's transition: the root it started
-// from, the root it made, and what died between them, or nil when the commit
-// forfeited its record. It is called with the World state's commit lock held,
-// once per commit, in commit order for one state.
-type TransitionSink func(from, to *block.BlockRef, dead *block.Replacements)
+// from, the root it made, and what its writes did to the stored pages between
+// them, or nil when the commit forfeited its record. Netting the step needs
+// the found pages its puts report, so the sink joins steps along the chain it
+// names and nets them once. It is called with the World state's commit lock
+// held, once per commit, in commit order for one state.
+type TransitionSink func(from, to *block.BlockRef, step *block.ReplacementStep)
 
 // WithTransitions makes each writable World state record the pages its commits
 // replace and hand each commit's transition to sink.

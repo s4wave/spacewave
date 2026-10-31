@@ -45,11 +45,21 @@ type VolumeFlows struct {
 	// not count them.
 	Values []ValueFlow
 	// DeadlistsChecked is the number of due deadlist records the collector
-	// checked against its mark.
+	// applied in shadow after its mark.
 	DeadlistsChecked uint64
-	// DeadlistLivePages is the number of pages those records listed as dead
-	// that the mark reached.
+	// DeadlistLivePages is the number of pages those records would free that
+	// the mark reached; any is a deadlist error.
 	DeadlistLivePages uint64
+	// DeadlistLeakedPages is the number of pages those records kept alive
+	// that the mark did not reach, which freeing by the records would leak.
+	DeadlistLeakedPages uint64
+	// DeadlistCountUnderflows is the number of shared count changes those
+	// records made that would take a count below zero; any is an error.
+	DeadlistCountUnderflows uint64
+	// RevivedPuts is the number of entries marked as already counted that a
+	// put found absent and stored afresh; any is an error in the writer's
+	// proof that its kept World holds them.
+	RevivedPuts uint64
 	// BackgroundWaitMax is the longest a commit waited on the storage's
 	// background work, such as a background step holding its writer, zero
 	// when the storage does not count it.

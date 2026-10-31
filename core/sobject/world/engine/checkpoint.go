@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -162,19 +163,29 @@ type stableCheckpoint struct {
 // adopts it. It returns the receipt that resolves once the store holds it, or
 // nil when it already does. ok is false when the World is not readable. The
 // receipt is only waited on. The caller holds the writer lock.
+//
+// The interval since the last named World waits for the publication's puts
+// before its deadlist record is encoded. A page of the tree that interval
+// began at, written back to its old ref, is put counted: the store already
+// counts its holders.
 func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, height uint64) (*block.PublicationReceipt, bool, error) {
-	// Compose what died since the last named World. Without the page view
+	// Join the interval since the last named World. Without the page view
 	// every World is stored.
 	r := e.replay
 	if r.pages != nil && !r.readable(n) {
 		return nil, false, nil
 	}
 	root := world.GetHeadRef().GetRootRef()
-	if err := r.composeDeaths(root); err != nil {
-		return nil, false, err
-	}
+	net := r.composeDeaths(root)
 	if r.pages == nil {
 		return nil, true, nil
+	}
+
+	// Seal the interval with the naming publication's puts, or none when it
+	// is not submitted.
+	var named *worldPut
+	if net != nil {
+		defer func() { net.seal(named) }()
 	}
 
 	// A World a save carried is named once that save lands.
@@ -194,9 +205,20 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 		return nil, false, err
 	}
 
+	// Read the seqno of the World writers fork from, which the admission
+	// records, before submitting, so a submitted publication is admitted.
+	seqno, err := e.admitted.GetSeqno(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+
 	// Publish it after the admitted publications, splitting the kept pages
-	// from the save first: a receipt may store and drop them meanwhile.
+	// from the save first: a receipt may store and drop them meanwhile. Mark
+	// the original pages on copies, leaving the kept pages unchanged.
 	pages, save := r.pages.split(entries)
+	if net != nil {
+		net.steps.MarkOriginal(entries)
+	}
 	receipt, err := r.pages.SubmitAtomic(ctx, &block.AtomicPublication{
 		Entries: entries,
 		Heads:   []*block.AtomicHeadUpdate{countHead(cursor, WriteKindReplay)},
@@ -207,7 +229,11 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 		return nil, false, err
 	}
 	countPublication(nil, pages, save)
-	e.admit(receipt, e.retained)
+
+	// Hand the naming put to the interval's record.
+	put := newWorldPut(receipt, entries, pages)
+	named = &put
+	e.admit(receipt, e.retained, seqno)
 	go receipt.Release()
 	return receipt, true, nil
 }
@@ -360,13 +386,22 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 // its World, unless the held state moved past its stable point or its
 // checkpoint. The host lock writes after any pending receipt, on the durable
 // state.
+//
+// The state write commits ordered, releasing the host lock before the store
+// flushes it, since World writes queue their operations under that lock. A
+// crash before the flush loses only the checkpoint: the state before it holds
+// the same operations, and the next stable point checkpoints again. Every
+// path that sends the state off the machine waits for SOHost.WaitDurable
+// first, so no peer sees a checkpoint a crash could undo.
 func (e *soEngine) adoptStable(ctx context.Context, ckpt *stableCheckpoint) error {
 	// Wait for the store to hold the World.
 	if err := waitNamed(ctx, ckpt.named); err != nil {
 		return err
 	}
 
-	// Adopt it, counting a stale checkpoint as skipped.
+	// Adopt it with an ordered state write, counting a stale checkpoint as
+	// skipped.
+	ctx = kvtx.WithOrderedCommitContext(ctx)
 	err := ckpt.host.GetSOHost().UpdateSOState(ctx, func(state *sobject.SOState) error {
 		return e.adoptStableCheckpoint(ctx, ckpt.host, state, ckpt.prefix, ckpt.data, ckpt.height)
 	})

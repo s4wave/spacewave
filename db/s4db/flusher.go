@@ -45,6 +45,9 @@ type flusher struct {
 	err error
 	// closed stops arming the deadline.
 	closed bool
+
+	// flushes counts the shared flushes to the drive this flusher made.
+	flushes atomic.Uint64
 }
 
 // newFlusher returns a flusher of s whose published state is cur.
@@ -170,6 +173,7 @@ func (f *flusher) syncThrough(ctx context.Context, seq uint64) error {
 		l = f.bcast.Lock()
 		f.flushing = false
 		if err == nil {
+			f.flushes.Add(1)
 			f.durable = max(f.durable, target.seq)
 			f.logged = max(f.logged, target.logged)
 			f.err = nil

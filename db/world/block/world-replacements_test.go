@@ -33,11 +33,11 @@ func TestWorldReplacementsMatchDiff(t *testing.T) {
 	// Build an engine that hands over each commit's transition.
 	type transition struct {
 		from, to *block.BlockRef
-		dead     *block.Replacements
+		step     *block.ReplacementStep
 	}
 	var got []transition
-	eng, err := NewEngine(ctx, le, ocs, nil, nil, false, WithTransitions(func(from, to *block.BlockRef, dead *block.Replacements) {
-		got = append(got, transition{from, to, dead})
+	eng, err := NewEngine(ctx, le, ocs, nil, nil, false, WithTransitions(func(from, to *block.BlockRef, step *block.ReplacementStep) {
+		got = append(got, transition{from, to, step})
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -54,9 +54,9 @@ func TestWorldReplacementsMatchDiff(t *testing.T) {
 	store := ws.store
 
 	// commit commits the pending operations and checks their transition, and
-	// composes it onto chain.
+	// adds it to chain.
 	from := ws.GetRootRef()
-	var chain *block.Replacements
+	var chain []*block.ReplacementStep
 	commit := func(name string) {
 		// Commit and check the one transition against the diff.
 		if err := ws.Commit(ctx); err != nil {
@@ -66,16 +66,10 @@ func TestWorldReplacementsMatchDiff(t *testing.T) {
 		if len(got) != 1 || !got[0].from.EqualsRef(from) || !got[0].to.EqualsRef(to) {
 			t.Fatalf("%s: transitions %v, want one from %v to %v", name, got, from, to)
 		}
-		if err := block_mock.CheckReplacements(ctx, store, from, to, got[0].dead); err != nil {
+		if err := block_mock.CheckReplacements(ctx, store, from, to, got[0].step.Net(nil)); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-
-		// Compose it onto the chain.
-		if chain == nil {
-			chain = got[0].dead
-		} else {
-			chain = chain.Then(got[0].dead)
-		}
+		chain = append(chain, got[0].step)
 		got, from = nil, to
 	}
 
@@ -141,7 +135,7 @@ func TestWorldReplacementsMatchDiff(t *testing.T) {
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].dead != nil {
+	if len(got) != 1 || got[0].step != nil {
 		t.Fatalf("changelog switch: transitions %v, want one forfeited", got)
 	}
 	got, from = nil, ws.GetRootRef()
@@ -246,9 +240,9 @@ func TestWorldReplacementsMatchDiff(t *testing.T) {
 	}
 	commit("put again")
 
-	// The composed chain reports what died from the first recorded root to
-	// the last.
-	if err := block_mock.CheckReplacements(ctx, store, chainFrom, from, chain); err != nil {
+	// The joined chain reports what died from the first recorded root to the
+	// last.
+	if err := block_mock.CheckReplacements(ctx, store, chainFrom, from, block.ReplacementSteps(chain).Join().Net(nil)); err != nil {
 		t.Fatalf("chain: %v", err)
 	}
 }

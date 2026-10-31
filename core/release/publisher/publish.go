@@ -121,6 +121,14 @@ func Publish(ctx context.Context, eng world.Engine, metadata *release.ReleaseMet
 		return nil, err
 	}
 
+	// A destination that keeps every pack replaces none.
+	if opts.KeepPacks {
+		if opts.Logger != nil {
+			opts.Logger.Info("kept every published pack")
+		}
+		return checkpoint, nil
+	}
+
 	// Drop the content no longer reachable from the posted head. The release
 	// is already published, so a failed pass only delays the reclaim.
 	dropped, err := reclaim(ctx, opts, head, blocks)

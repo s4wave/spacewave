@@ -131,9 +131,16 @@ export interface StorageBackend {
   s3?: S3Location
   /**
    * Credential is the redacted Secret whose payload holds the access keys.
-   * The payload value is a block_store_s3.Credentials message.
+   * The payload value is a block_store_s3.Credentials message. For an SQL
+   * backend its access_key_id is the database user and its
+   * secret_access_key the password.
    */
   credential?: Secret
+  /**
+   * Sql locates the SQL database that holds the blocks instead of a bucket.
+   * A backend sets exactly one of S3 and Sql.
+   */
+  sql?: SqlLocation
 }
 
 export const StorageBackend: MessageType<StorageBackend> =
@@ -144,6 +151,57 @@ export const StorageBackend: MessageType<StorageBackend> =
       [2, 'display_name', 9],
       [3, 's3', 11, 0, S3Location.codec],
       [4, 'credential', 11, 0, Secret.codec],
+      [5, 'sql', 11, 0, SqlLocation.codec],
+    ],
+  )
+
+/**
+ * SqlLocation locates a MySQL-compatible database that holds blocks. It only
+ * ever adds rows: the database never deletes or rewrites a block, so a grant
+ * of SELECT and INSERT alone suffices.
+ *
+ * @generated from message account.settings.SqlLocation
+ */
+export interface SqlLocation {
+  /**
+   * Host is the database host.
+   */
+  host?: string
+  /**
+   * Port is the database port, zero for 3306.
+   */
+  port?: number
+  /**
+   * Database is the database name.
+   */
+  database?: string
+  /**
+   * TablePrefix precedes the name of the blocks table, TablePrefix +
+   * "blocks", whose rows are keyed by block store id and block hash.
+   */
+  tablePrefix?: string
+  /**
+   * Tls connects with TLS.
+   */
+  tls?: boolean
+  /**
+   * TlsCertSha256 is the hex SHA-256 of the server's certificate. Set, TLS
+   * trusts exactly that certificate in place of a CA and the host name, as
+   * for a server with a self-signed certificate.
+   */
+  tlsCertSha256?: string
+}
+
+export const SqlLocation: MessageType<SqlLocation> =
+  /* @__PURE__ */ createMessageType<SqlLocation>(
+    'account.settings.SqlLocation',
+    () => [
+      [1, 'host', 9],
+      [2, 'port', 13],
+      [3, 'database', 9],
+      [4, 'table_prefix', 9],
+      [5, 'tls', 8],
+      [6, 'tls_cert_sha256', 9],
     ],
   )
 
@@ -261,6 +319,23 @@ export interface BlockStoreCache {
    * above the high mark, uses nine tenths of the high mark.
    */
   residentLowBytes?: bigint
+  /**
+   * SkipBackfill uploads only the blocks written once the store is placed.
+   * The blocks stored before stay on the local disk alone, and eviction never
+   * drops them, until a placement without it queues them for upload.
+   */
+  skipBackfill?: boolean
+  /**
+   * MaxUploadReads bounds the local reads the upload keeps in flight. The
+   * upload lowers its bound while local reads slow, yielding the disk to the
+   * store's own reads. Zero uses 32.
+   */
+  maxUploadReads?: number
+  /**
+   * UploadReadSlowMillis is the least local read time the upload counts as
+   * the disk being loaded. Zero uses 5.
+   */
+  uploadReadSlowMillis?: number
 }
 
 export const BlockStoreCache: MessageType<BlockStoreCache> =
@@ -271,6 +346,9 @@ export const BlockStoreCache: MessageType<BlockStoreCache> =
       [2, 'max_pending_bytes', 4],
       [3, 'resident_high_bytes', 4],
       [4, 'resident_low_bytes', 4],
+      [5, 'skip_backfill', 8],
+      [6, 'max_upload_reads', 13],
+      [7, 'upload_read_slow_millis', 13],
     ],
   )
 

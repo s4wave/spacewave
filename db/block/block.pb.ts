@@ -345,6 +345,17 @@ export interface Deadlist {
    * the first block.
    */
   parts?: BlockRef[]
+  /**
+   * Held are live stored pages that may have gained a holder. Naming the
+   * record adds one shared count to each.
+   */
+  held?: BlockRef[]
+  /**
+   * Existed are live pages whose edge from the new tree was counted already:
+   * a put found them stored, or only pages that existed name them. The old
+   * root is among them when an existing page still names it.
+   */
+  existed?: BlockRef[]
 }
 
 export const Deadlist: MessageType<Deadlist> =
@@ -356,4 +367,6 @@ export const Deadlist: MessageType<Deadlist> =
     [5, 'removed', 11, 1, BlockRef.codec],
     [6, 'kept', 11, 1, BlockRef.codec],
     [7, 'parts', 11, 1, BlockRef.codec],
+    [8, 'held', 11, 1, BlockRef.codec],
+    [9, 'existed', 11, 1, BlockRef.codec],
   ])

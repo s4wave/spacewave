@@ -14,6 +14,9 @@ func (g *GCStoreOps) SetRetainedRoots(ctx context.Context, entries []*block.PutB
 	return block.SetRetainedRoots(ctx, g.store, entries, roots)
 }
 
+// KeepsHoldCounts reports whether the underlying store keeps shared counts.
+func (g *GCStoreOps) KeepsHoldCounts() bool { return block.KeepsHoldCounts(g.store) }
+
 // PinRoot forwards a reader pin to the underlying store.
 func (g *GCStoreOps) PinRoot(ctx context.Context, ref *block.BlockRef) (func(), error) {
 	return block.PinRoot(ctx, g.store, ref)

@@ -670,6 +670,7 @@ func (c *Cursor) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 			Refs:      entry.Refs,
 			RefsKnown: entry.RefsKnown,
 			Tombstone: entry.Tombstone,
+			Counted:   entry.Counted,
 		}
 	}
 	return c.GetBlockStore().PutBlockBatch(ctx, transformed)

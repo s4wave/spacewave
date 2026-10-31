@@ -1,0 +1,32 @@
+---
+title: "One lock byte: P1 leases it while P2 contends"
+---
+stateDiagram-v2
+  s0: P1 idle
+  s1: P1 tries
+  s2: P1 waits
+  s3: P1 holds the lease
+  s4: P1 abandoned its wait
+  s5: P1 idle, P2 holds the lock
+  s6: P1 unlocks its abandoned lock
+  s7: P1 waits, P2 holds the lock
+  s8: P1 abandoned its wait, P2 holds the lock
+  [*] --> s0
+  s0 --> s1: TryLease
+  s0 --> s2: WaitLease
+  s1 --> s3: the lock is free
+  s2 --> s3: the lock is granted
+  s2 --> s4: the context ends
+  s0 --> s5: P2 locks
+  s3 --> s0: Release
+  s4 --> s6: the lock is granted
+  s2 --> s7: P2 locks
+  s5 --> s0: P2 unlocks
+  s5 --> s1: TryLease
+  s5 --> s7: WaitLease
+  s6 --> s0: unlock and drop the claim
+  s1 --> s5: P2 has it, drop the claim
+  s7 --> s2: P2 unlocks
+  s7 --> s8: the context ends
+  s4 --> s8: P2 locks
+  s8 --> s4: P2 unlocks

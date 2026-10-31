@@ -33,8 +33,7 @@ type ReadSet struct {
 	// all is set when the World was read beyond objects and the graph.
 	all bool
 	// joined are the finished sets whose reads this set holds by reference.
-	// Appended to only, so a copy of the slice stays valid unlocked.
-	joined []*ReadSet
+	joined readSets
 	// memoChanges and memoTouched cache Touched for the last ChangeSet it
 	// checked, so views sharing this set test each change window once. Any
 	// recorded read clears memoChanges.
@@ -71,7 +70,7 @@ func (r *ReadSet) Touched(changes *ChangeSet) bool {
 		return touched
 	}
 	touched := r.touchedLocked(changes)
-	joined, added := r.joined, r.added
+	joined, added := r.joined.list, r.added
 	r.mtx.Unlock()
 
 	// Check the joined sets unlocked, each through its own memo.
@@ -198,7 +197,7 @@ func (r *ReadSet) nameReads(interest *ChangeInterest) []*ReadSet {
 	defer r.mtx.Unlock()
 	if r.all || r.graph || len(r.prefixes) != 0 {
 		interest.all = true
-		return r.joined
+		return r.joined.list
 	}
 
 	// Name the read keys, the pattern endpoints, and a field of each pattern.
@@ -208,11 +207,11 @@ func (r *ReadSet) nameReads(interest *ChangeInterest) []*ReadSet {
 		term, ok := p.term()
 		if !ok {
 			interest.all = true
-			return r.joined
+			return r.joined.list
 		}
 		interest.terms = append(interest.terms, term)
 	}
-	return r.joined
+	return r.joined.list
 }
 
 // touchesKey checks a changed object key. The caller holds mtx.
@@ -296,13 +295,51 @@ func (r *ReadSet) join(other *ReadSet) {
 	// Skip r itself and a set r already joined.
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
-	if other == r || slices.Contains(r.joined, other) {
+	if other == r || !r.joined.add(other) {
 		return
 	}
 
-	// Join the set and wake the waits.
-	r.joined = append(r.joined, other)
+	// Wake the waits.
 	r.signalLocked()
+}
+
+// readSetsScanned is the length up to which readSets finds a set by scanning
+// its list, which costs less than building and probing the index.
+const readSetsScanned = 32
+
+// readSets is a list of distinct read sets that finds a set by scanning a
+// short list and through an index past readSetsScanned. The list is appended
+// to only, so a copy of it stays valid unlocked.
+type readSets struct {
+	// list holds the sets in the order they were added.
+	list []*ReadSet
+	// has indexes list once it passes readSetsScanned, and is nil before.
+	has map[*ReadSet]struct{}
+}
+
+// add appends set unless the list holds it, and reports whether it did.
+func (s *readSets) add(set *ReadSet) bool {
+	// Find the set by scan or index.
+	if s.has == nil {
+		if slices.Contains(s.list, set) {
+			return false
+		}
+		if len(s.list) == readSetsScanned {
+			s.has = make(map[*ReadSet]struct{}, 2*readSetsScanned)
+			for _, held := range s.list {
+				s.has[held] = struct{}{}
+			}
+		}
+	} else if _, ok := s.has[set]; ok {
+		return false
+	}
+
+	// Append it, indexing it once the index exists.
+	if s.has != nil {
+		s.has[set] = struct{}{}
+	}
+	s.list = append(s.list, set)
+	return true
 }
 
 // signalLocked wakes the waits checking the reads and drops the cached Touched

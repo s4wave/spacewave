@@ -22,12 +22,40 @@ func (a *ProviderAccount) AddStorageBackend(
 	creds *block_store_s3.Credentials,
 	setDefault bool,
 ) (string, *block_store_s3.CheckResult, error) {
-	// Reject an incomplete location or a taken name before touching the bucket.
-	if displayName == "" {
-		return "", nil, errors.New("display name is required")
-	}
 	if err := location.Validate(); err != nil {
 		return "", nil, err
+	}
+	return a.addStorageBackend(ctx, &account_settings.StorageBackend{DisplayName: displayName, S3: location.CloneVT()}, creds, setDefault)
+}
+
+// AddSQLStorageBackend checks the database with the credentials, whose access
+// key id is the database user and secret access key the password, and records
+// the backend as AddStorageBackend does. The check creates the blocks table.
+func (a *ProviderAccount) AddSQLStorageBackend(
+	ctx context.Context,
+	displayName string,
+	location *account_settings.SqlLocation,
+	creds *block_store_s3.Credentials,
+	setDefault bool,
+) (string, *block_store_s3.CheckResult, error) {
+	if err := location.Validate(); err != nil {
+		return "", nil, err
+	}
+	return a.addStorageBackend(ctx, &account_settings.StorageBackend{DisplayName: displayName, Sql: location.CloneVT()}, creds, setDefault)
+}
+
+// addStorageBackend checks the location backend names, then keeps the
+// credentials and records the backend with a new id.
+func (a *ProviderAccount) addStorageBackend(
+	ctx context.Context,
+	backend *account_settings.StorageBackend,
+	creds *block_store_s3.Credentials,
+	setDefault bool,
+) (string, *block_store_s3.CheckResult, error) {
+	// Reject a taken name before touching the storage.
+	displayName := backend.GetDisplayName()
+	if displayName == "" {
+		return "", nil, errors.New("display name is required")
 	}
 	settings, err := a.readAccountSettings(ctx)
 	if err != nil {
@@ -37,8 +65,8 @@ func (a *ProviderAccount) AddStorageBackend(
 		return "", nil, errors.Errorf("a storage backend named %q already exists", displayName)
 	}
 
-	// Save nothing unless the bucket accepts a probe object.
-	check := CheckS3Location(ctx, location, creds)
+	// Save nothing unless the storage accepts a probe.
+	check := checkStorageLocation(ctx, backend, creds)
 	if check.GetOutcome() != block_store_s3.CheckOutcome_CHECK_OUTCOME_OK {
 		return "", check, nil
 	}
@@ -59,12 +87,8 @@ func (a *ProviderAccount) AddStorageBackend(
 	}
 
 	// Record the backend, and remove the Secret if the settings reject it.
-	backend := &account_settings.StorageBackend{
-		Id:          ulid.NewULID(),
-		DisplayName: displayName,
-		S3:          location.CloneVT(),
-		Credential:  credential,
-	}
+	backend = backend.CloneVT()
+	backend.Id, backend.Credential = ulid.NewULID(), credential
 	ops := []*account_settings.AccountSettingsOp{{
 		Op: &account_settings.AccountSettingsOp_UpsertStorageBackend{UpsertStorageBackend: backend},
 	}}
@@ -99,7 +123,20 @@ func (a *ProviderAccount) CheckStorageBackend(ctx context.Context, backendID str
 	if err != nil {
 		return nil, err
 	}
-	return CheckS3Location(ctx, backend.GetS3(), creds), nil
+	return checkStorageLocation(ctx, backend, creds), nil
+}
+
+// checkStorageLocation runs the connectivity check of the backend's bucket or
+// database.
+func checkStorageLocation(
+	ctx context.Context,
+	backend *account_settings.StorageBackend,
+	creds *block_store_s3.Credentials,
+) *block_store_s3.CheckResult {
+	if location := backend.GetSql(); location != nil {
+		return CheckSQLLocation(ctx, location, creds)
+	}
+	return CheckS3Location(ctx, backend.GetS3(), creds)
 }
 
 // ReadStorageCredentials decrypts the credentials of a storage backend.
@@ -196,7 +233,10 @@ func (a *ProviderAccount) SetStorageBackendPricing(
 		return account_settings.ErrStorageBackendNotFound
 	}
 
-	// Record it with the new price list.
+	// Record it with the new price list. Only a bucket has one.
+	if backend.GetS3() == nil {
+		return errors.New("only a bucket storage backend has a price list")
+	}
 	backend = backend.CloneVT()
 	backend.S3.Pricing = pricing.CloneVT()
 	return a.commitAccountSettingsOps(ctx, &account_settings.AccountSettingsOp{
@@ -273,6 +313,29 @@ func (a *ProviderAccount) WatchUploadStatus(ctx context.Context, sharedObjectID 
 	tkrRef, tkr, _ := a.bstores.AddKeyRef(blockStoreID)
 	defer tkrRef.Release()
 	return watchTrackerUploadStatus(ctx, tkr, fn)
+}
+
+// SQLPublishStats returns the SQL publisher's counters of a SharedObject's
+// mounted block store, false when the store is not mounted or does not
+// publish to a primary SQL backend. It mounts nothing. The counters restart
+// with each mount.
+func (a *ProviderAccount) SQLPublishStats(sharedObjectID string) (SQLPublishStats, bool) {
+	// Find the mounted block store.
+	blockStoreID := a.lookupSharedObjectBlockStoreID(sharedObjectID)
+	if blockStoreID == "" {
+		return SQLPublishStats{}, false
+	}
+	tkr, ok := a.bstores.GetKey(blockStoreID)
+	if !ok || tkr == nil {
+		return SQLPublishStats{}, false
+	}
+
+	// Read its publisher's counters, if it has one.
+	bs := tkr.bstoreCtr.GetValue()
+	if bs == nil || bs.placement == nil || bs.placement.sqlPublish == nil {
+		return SQLPublishStats{}, false
+	}
+	return bs.placement.sqlPublish.getStats(), true
 }
 
 // watchTrackerUploadStatus calls fn with each upload status of the tracker's

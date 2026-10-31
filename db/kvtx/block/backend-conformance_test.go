@@ -380,7 +380,7 @@ func (r *backendConformanceRoot) commit(
 	}
 
 	// Check the record of the commit against the diff of the roots.
-	err = block_mock.CheckReplacements(ctx, r.store, r.rootRef, rootRef, r.log.Take(rootRef))
+	err = block_mock.CheckReplacements(ctx, r.store, r.rootRef, rootRef, r.log.Take(rootRef).Net(nil))
 	if err != nil {
 		t.Fatal(err)
 	}

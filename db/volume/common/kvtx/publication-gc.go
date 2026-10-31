@@ -288,6 +288,12 @@ func (v *Volume) SweepUnreachedBlocks(ctx context.Context, graph block_gc.RefGra
 		// position before the pass opens: every block a record before it
 		// lists was written before the mark began.
 		defer v.enterGCPhase(volume.VolumeGCPhase_VOLUME_GC_PHASE_MARK)()
+
+		// Finish building the shared counts, so the pass can check the due
+		// deadlist records.
+		if err := v.walkSharing(ctx); err != nil {
+			return err
+		}
 		var bound uint64
 		err := actual.read(ctx, func(rg *block_gc.RefGraph) (err error) {
 			bound, err = rg.YoungPosition(ctx)

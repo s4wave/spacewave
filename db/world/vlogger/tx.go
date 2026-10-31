@@ -52,6 +52,17 @@ func (t *Tx) Commit(ctx context.Context) (err error) {
 	return t.tx.Commit(ctx)
 }
 
+// CommitAdmit commits the transaction once the engine admits it.
+func (t *Tx) CommitAdmit(ctx context.Context) (adm world.Admission, err error) {
+	if t.discardOnce.CompareAndSwap(false, true) {
+		t1 := time.Now()
+		defer func() {
+			t.le.Debugf("CommitAdmit() => err(%v) dur(%v)", err, time.Since(t1).String())
+		}()
+	}
+	return world.CommitAdmit(ctx, t.tx)
+}
+
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.
@@ -64,4 +75,7 @@ func (t *Tx) Discard() {
 }
 
 // _ is a type assertion
-var _ world.Tx = (*Tx)(nil)
+var (
+	_ world.Tx             = (*Tx)(nil)
+	_ world.AdmitCommitter = (*Tx)(nil)
+)

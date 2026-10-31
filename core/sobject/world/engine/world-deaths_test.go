@@ -5,66 +5,117 @@ import (
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/net/hash"
 )
 
 // TestWorldDeathsComposesAcceptedChain tries to make the transition table
 // report a page from a path the named World did not take, or report anything
-// across a gap or a forfeited commit.
+// across a gap or a forfeited commit. Each World is one page, and each commit
+// replaces it.
 func TestWorldDeathsComposesAcceptedChain(t *testing.T) {
-	// ref returns a distinct ref for name.
-	ref := func(name string) *block.BlockRef {
-		r, err := block.BuildBlockRef([]byte(name), nil)
+	// world stores the one-page World named name and returns its root.
+	ctx := t.Context()
+	store := block_mock.NewMockStore(hash.RecommendedHashType)
+	world := func(name string) *block.BlockRef {
+		// Store the page under a new root.
+		tx, root := block.NewTransaction(store, nil, nil, nil)
+		root.SetBlock(block_mock.NewExample(name), true)
+		ref, _, err := tx.Write(ctx, true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return r
+		return ref
 	}
 
-	// replaced returns a record of the named pages replaced.
-	replaced := func(names ...string) *block.Replacements {
-		out := &block.Replacements{}
-		for _, name := range names {
-			out.Replaced = append(out.Replaced, ref(name))
+	// commit replaces the World at from with the one named to and returns
+	// the commit's step.
+	commit := func(from *block.BlockRef, to string) (*block.BlockRef, *block.ReplacementStep) {
+		// Load the World through a recording transaction.
+		log := block.NewReplacementLog(from)
+		tx, root := block.NewTransaction(store, nil, from, nil)
+		tx.RecordReplacements(log)
+		if _, err := block_mock.UnmarshalExample(ctx, root); err != nil {
+			t.Fatal(err)
 		}
-		return out
+
+		// Replace its page and take the step.
+		root.SetBlock(block_mock.NewExample(to), true)
+		ref, _, err := tx.Write(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ref, log.Take(ref)
 	}
 
-	// has reports whether dead lists the named page.
-	has := func(dead *block.Replacements, name string) bool {
-		return slices.ContainsFunc(dead.Replaced, ref(name).EqualsRef)
+	// dead returns what died across net. The commits store their pages
+	// directly rather than through tracked puts, so every page counts as
+	// stored afresh.
+	dead := func(net *pendingNet) []*block.BlockRef {
+		return net.steps.Join().Net(nil).Replaced
 	}
 
-	// A local fork from a to x replaced p, but replay accepted a to b to c,
-	// which wrote q again after b replaced it.
-	a, b, c, x := ref("a"), ref("b"), ref("c"), ref("x")
+	// A local fork from a to x, but replay accepted a to b to c: a and b die,
+	// x was never on the chain.
+	a := world("a")
 	d := newWorldDeaths(a)
-	d.add(a, x, replaced("p"))
-	d.add(a, b, replaced("q", "r"))
-	d.add(b, c, &block.Replacements{Replaced: []*block.BlockRef{ref("s")}, Kept: []*block.BlockRef{ref("q")}})
-	_, dead, ok := d.take(c)
-	if !ok {
+	x, step := commit(a, "x")
+	d.add(a, x, step)
+	b, step := commit(a, "b")
+	d.add(a, b, step)
+
+	// Compose the accepted chain.
+	c, step := commit(b, "c")
+	d.add(b, c, step)
+	_, net := d.take(c)
+	if net == nil {
 		t.Fatal("forfeited the accepted chain")
 	}
-	if has(dead, "p") || has(dead, "q") || !has(dead, "r") || !has(dead, "s") {
-		t.Fatalf("composed %v, want r and s", dead.Replaced)
+	if got := dead(net); len(got) != 2 || !slices.ContainsFunc(got, a.EqualsRef) || !slices.ContainsFunc(got, b.EqualsRef) || slices.ContainsFunc(got, x.EqualsRef) {
+		t.Fatalf("composed %v, want a and b", got)
 	}
 
 	// A transition from a World never named leaves a gap.
-	d.add(x, ref("y"), replaced("t"))
-	if _, _, ok := d.take(ref("y")); ok {
+	y, step := commit(x, "y")
+	d.add(x, y, step)
+	if _, net := d.take(y); net != nil {
 		t.Fatal("composed across a gap")
 	}
 
 	// A forfeited commit on the chain forfeits the interval, and the next one
 	// starts clean.
-	e, f := ref("e"), ref("f")
-	d.add(ref("y"), e, nil)
-	d.add(e, f, replaced("u"))
-	if _, _, ok := d.take(f); ok {
+	e, _ := commit(y, "e")
+	d.add(y, e, nil)
+	f, step := commit(e, "f")
+	d.add(e, f, step)
+	if _, net := d.take(f); net != nil {
 		t.Fatal("composed over a forfeited commit")
 	}
-	d.add(f, ref("g"), replaced("v"))
-	if _, dead, ok := d.take(ref("g")); !ok || !has(dead, "v") || has(dead, "u") {
-		t.Fatalf("next interval: %v ok=%v", dead, ok)
+	g, step := commit(f, "g")
+	d.add(f, g, step)
+	if _, net := d.take(g); net == nil || !slices.EqualFunc(dead(net), []*block.BlockRef{f}, (*block.BlockRef).EqualsRef) {
+		t.Fatalf("next interval: %v", net)
+	}
+
+	// A World that leaves its root and returns keeps the loop, as a presence
+	// toggling online and offline does: the page the loop created dies.
+	h, step := commit(g, "h")
+	d.add(g, h, step)
+	back, step := commit(h, "g")
+	d.add(h, back, step)
+	if _, net := d.take(g); net == nil || !slices.EqualFunc(dead(net), []*block.BlockRef{h}, (*block.BlockRef).EqualsRef) {
+		t.Fatalf("returned to its root: %v", net)
+	}
+
+	// A loop inside the chain is kept too, not cut short by the direct step.
+	k, step := commit(g, "k")
+	d.add(g, k, step)
+	back, step = commit(k, "g")
+	d.add(k, back, step)
+	m, step := commit(g, "m")
+	d.add(g, m, step)
+	_, net = d.take(m)
+	if got := dead(net); len(got) != 2 || !slices.ContainsFunc(got, g.EqualsRef) || !slices.ContainsFunc(got, k.EqualsRef) {
+		t.Fatalf("loop inside the chain: %v", got)
 	}
 }

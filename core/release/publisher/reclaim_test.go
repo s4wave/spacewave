@@ -153,6 +153,27 @@ func TestReclaimReplacesMostlyDeadPacks(t *testing.T) {
 	}
 }
 
+// TestReclaimKeepsPacks replaces no pack for a destination that keeps every
+// pack, even a dead one.
+func TestReclaimKeepsPacks(t *testing.T) {
+	// Publish a dead pack beside a live one.
+	leaf := newPackedBlock(t, []byte("live leaf"))
+	dead := newPackedBlock(t, bytes.Repeat([]byte("d"), 4096))
+	head := &bucket.ObjectRef{RootRef: leaf.ref, BucketId: "release"}
+	packs := map[string][]byte{}
+	deadPack := newPack(t, packs, dead)
+	client := &reclaimClient{state: reclaimState(t, head), entries: []*packfile.PackfileEntry{deadPack, newPack(t, packs, leaf)}}
+
+	// The pass refuses before it reads or replaces any pack.
+	opts := cdn_publish.Options{Client: client, DstSpaceID: reclaimSpace, CdnBaseURL: "http://unused.invalid", KeepPacks: true}
+	if _, err := reclaim(t.Context(), opts, head, []packedBlock{leaf}); err == nil {
+		t.Fatal("reclaimed a destination that keeps every pack")
+	}
+	if len(client.pushed) != 0 || len(client.replaced) != 0 {
+		t.Fatalf("pushed=%v replaced=%v", client.pushed, client.replaced)
+	}
+}
+
 // newPackedBlock stores data with refs as a release block.
 func newPackedBlock(t *testing.T, data []byte, refs ...*block.BlockRef) packedBlock {
 	t.Helper()

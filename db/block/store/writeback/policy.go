@@ -17,6 +17,13 @@ type Policy struct {
 	// drop only uploaded blocks, so queued bytes past it upload before they
 	// settle.
 	ResidentLow int64
+	// MaxUploadReads bounds the local reads the upload keeps in flight. The
+	// upload lowers its bound while reads slow, yielding the disk to the
+	// store's own reads. Zero uses defaultMaxReads.
+	MaxUploadReads int
+	// UploadReadSlow is the least read time the upload counts as the disk
+	// being loaded. Zero uses defaultReadSlow.
+	UploadReadSlow time.Duration
 }
 
 // overLimit reports whether pending bytes exceed the policy's limits.

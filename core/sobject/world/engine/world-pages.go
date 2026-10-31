@@ -24,8 +24,8 @@ const (
 // computed and has not stored in front of it. Every World reader the engine
 // builds reads through it, so a page is readable from the moment it is kept.
 // It also tracks each page written through it above a kept page, such as a
-// page replay or an early buffer drain stored, so a walk from a root finds
-// every kept page below it.
+// page past the bound or an early buffer drain stored, so a walk from a root
+// finds every kept page below it.
 //
 // Invariants:
 //   - A tracked page carries its complete child list, so a walk through
@@ -84,6 +84,50 @@ func (c *Controller) newWorldPages(so sobject.SharedObject) *worldPages {
 // list, and pages past the length bound, which it tracks.
 func (w *worldPages) keep(entries []*block.PutBatchEntry) []*block.PutBatchEntry {
 	return w.set.keep(entries)
+}
+
+// keeping returns a view of the store whose writes keep the World pages they
+// write, as a commit keeps its pages, and store the rest. Replay writes through
+// it, so the Worlds it computes reach the store only with the replay base or
+// checkpoint that names them. The view buffers every write until the writer
+// syncs: a store that buffers itself would take each page as it is written.
+func (w *worldPages) keeping() bstore.BlockStore {
+	return &keepingPages{worldPages: w}
+}
+
+// keepingPages is the view keeping returns.
+type keepingPages struct {
+	*worldPages
+}
+
+// GetSupportedFeatures reports the store's features, minus its own buffering.
+func (k *keepingPages) GetSupportedFeatures() block.StoreFeature {
+	return k.worldPages.GetSupportedFeatures() &^ block.StoreFeatureSelfBuffered
+}
+
+// PutBlockBatch keeps the World pages among entries and stores the rest. A
+// kept page reports that it was not found stored.
+func (k *keepingPages) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Keep the pages, then store the rest.
+	rest := k.keep(entries)
+	existed := make([]bool, len(entries))
+	if len(rest) == 0 {
+		return existed, nil
+	}
+	found, err := k.worldPages.PutBlockBatch(ctx, rest)
+	if err != nil {
+		return nil, err
+	}
+
+	// Report each stored entry's result at its place in entries.
+	j := 0
+	for i, e := range entries {
+		if j < len(rest) && rest[j] == e {
+			existed[i] = j < len(found) && found[j]
+			j++
+		}
+	}
+	return existed, nil
 }
 
 // pagesOf returns the kept pages the roots reach, which a publication naming
@@ -302,6 +346,11 @@ func (w *worldPages) PublishAtomic(ctx context.Context, p *block.AtomicPublicati
 // SupportsRootRetention reports the store's root ownership.
 func (w *worldPages) SupportsRootRetention() bool {
 	return block.SupportsRootRetention(w.inner)
+}
+
+// KeepsHoldCounts reports whether the store keeps shared counts.
+func (w *worldPages) KeepsHoldCounts() bool {
+	return block.KeepsHoldCounts(w.inner)
 }
 
 // SetRetainedRoots forwards named roots to the store.
@@ -530,9 +579,10 @@ type pagePin struct {
 	released bool
 }
 
-// keep adds the World pages among entries and returns the rest. A page
-// already tracked is skipped: it is kept, or stored. A page past the bound is
-// returned and tracked, since the caller stores it.
+// keep adds the World pages among entries and returns the rest. A kept page
+// is skipped. A page tracked as stored is returned, so its put reaches the
+// store and finds it, which counts the new parent's edge. A page past the
+// bound is returned and tracked, since the caller stores it.
 func (s *pageSet) keep(entries []*block.PutBatchEntry) []*block.PutBatchEntry {
 	// Add each page within the bound once.
 	s.mu.Lock()
@@ -544,7 +594,10 @@ func (s *pageSet) keep(entries []*block.PutBatchEntry) []*block.PutBatchEntry {
 			continue
 		}
 		key := e.Ref.MarshalString()
-		if s.pages[key] != nil {
+		if page := s.pages[key]; page != nil {
+			if page.entry == nil {
+				rest = append(rest, e)
+			}
 			continue
 		}
 		if s.bytes+len(e.Data) > worldPagesMaxBytes || s.count >= worldPagesMaxCount {

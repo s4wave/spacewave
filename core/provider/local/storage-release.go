@@ -44,7 +44,8 @@ func pendingStorageReleases(settings *account_settings.AccountSettings) []storag
 }
 
 // releaseBlockStore deletes a released block store's objects from the
-// backend's bucket, then completes the release in the account settings.
+// backend's bucket, unless the backend keeps every block, then completes the
+// release in the account settings.
 //
 // The settings cancel a release when the store returns to the backend, and
 // the routine stops when its release leaves the settings. A device that
@@ -61,13 +62,17 @@ func (a *ProviderAccount) releaseBlockStore(ctx context.Context, release storage
 		return nil
 	}
 
-	// Read the backend credentials and delete the released block store's objects.
-	creds, err := a.ReadStorageCredentials(ctx, backend)
-	if err != nil {
-		return err
-	}
-	if err := deleteS3BlockStore(ctx, backend.GetS3(), release.blockStoreID, creds); err != nil {
-		return err
+	// Read the backend credentials and delete the released block store's
+	// objects, unless the backend keeps every block: a database only adds
+	// rows, and a bucket that keeps its packfiles never deletes one.
+	if backend.GetSql() == nil && !backend.GetS3().GetKeepPacks() {
+		creds, err := a.ReadStorageCredentials(ctx, backend)
+		if err != nil {
+			return err
+		}
+		if err := deleteS3BlockStore(ctx, backend.GetS3(), release.blockStoreID, creds); err != nil {
+			return err
+		}
 	}
 
 	// Complete the storage release in the account settings.

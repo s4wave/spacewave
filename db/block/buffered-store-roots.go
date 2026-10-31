@@ -18,6 +18,9 @@ func (s *BufferedStore) SetRetainedRoots(ctx context.Context, entries []*PutBatc
 	return SetRetainedRoots(ctx, s.inner, entries, roots)
 }
 
+// KeepsHoldCounts reports whether the destination keeps shared counts.
+func (s *BufferedStore) KeepsHoldCounts() bool { return KeepsHoldCounts(s.inner) }
+
 // PinRoot acquires a reader pin on ref. A root still pending here is not in
 // the inner store, so no sweep can collect it: the pin waits in the buffer and
 // becomes an inner pin when the drain writes the root. A pin released before

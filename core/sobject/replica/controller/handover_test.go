@@ -298,7 +298,9 @@ func (f *largeWorld) sweptReplaced(ctx context.Context, t *testing.T, vol volume
 }
 
 // checkWorld checks that the World of id, as acc lists it, holds every live
-// object's payload and none of the deleted keys.
+// object's payload and none of the deleted keys. Readers see the durable
+// World, which may trail the admitted one after a handover, so a World that
+// differs is checked again as its seqno moves, until a deadline.
 func checkWorld(ctx context.Context, t *testing.T, b bus.Bus, acc *provider_local.ProviderAccount, id string, fix *largeWorld) {
 	// Mount the Space body acc lists.
 	t.Helper()
@@ -309,7 +311,30 @@ func checkWorld(ctx context.Context, t *testing.T, b bus.Bus, acc *provider_loca
 	defer bodyRef.Release()
 	ws := world.NewEngineWorldState(body.GetSharedObjectBody().GetWorldEngine(), false)
 
+	// Check the World until it matches or stops moving toward the fixture.
+	waitCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	for {
+		seqno, err := ws.GetSeqno(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		diff := worldDiff(ctx, t, ws, fix)
+		if diff == "" {
+			break
+		}
+		if _, err := ws.WaitSeqno(waitCtx, seqno+1); err != nil {
+			t.Fatalf("%s at seqno %d: %v", diff, seqno, err)
+		}
+	}
+	t.Logf("World holds all %d live objects", len(fix.live))
+}
+
+// worldDiff returns how ws differs from fix: a live object holding another
+// payload or a deleted key present, or "" when it matches.
+func worldDiff(ctx context.Context, t *testing.T, ws world.WorldState, fix *largeWorld) string {
 	// Read every live payload in full.
+	t.Helper()
 	for key, want := range fix.live {
 		var data []byte
 		_, _, err := world.AccessWorldObject(ctx, ws, key, false, func(bcs *block.Cursor) error {
@@ -321,7 +346,7 @@ func checkWorld(ctx context.Context, t *testing.T, b bus.Bus, acc *provider_loca
 			t.Fatalf("read %s: %v", key, err)
 		}
 		if sha256.Sum256(data) != want {
-			t.Fatalf("%s holds another payload", key)
+			return key + " holds another payload"
 		}
 	}
 
@@ -333,10 +358,10 @@ func checkWorld(ctx context.Context, t *testing.T, b bus.Bus, acc *provider_loca
 			t.Fatal(err)
 		}
 		if found {
-			t.Fatalf("deleted %s is present", key)
+			return "deleted " + key + " is present"
 		}
 	}
-	t.Logf("World holds all %d live objects", len(fix.live))
+	return ""
 }
 
 // departedKey is the object a departed owner tries to write.

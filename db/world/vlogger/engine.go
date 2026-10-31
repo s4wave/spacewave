@@ -25,6 +25,11 @@ func NewEngine(le *logrus.Entry, eng world.Engine) *Engine {
 	}
 }
 
+// OnReinstall registers fn with the underlying engine's reinstall hooks.
+func (e *Engine) OnReinstall(ctx context.Context, fn func(seqno uint64)) (func(), error) {
+	return world.OnReinstall(ctx, e.Engine, fn)
+}
+
 // NewTransaction returns a new transaction against the store.
 // Indicate write if the transaction will not be read-only.
 // Always call Discard() after you are done with the transaction.
@@ -66,4 +71,5 @@ func (e *Engine) WatchIndexedChanges(
 var (
 	_ world.Engine               = (*Engine)(nil)
 	_ world.IndexedChangeWatcher = (*Engine)(nil)
+	_ world.ReinstallNotifier    = (*Engine)(nil)
 )

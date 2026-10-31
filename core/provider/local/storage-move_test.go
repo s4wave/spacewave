@@ -527,6 +527,23 @@ func TestPlacedStoreEviction(t *testing.T) {
 	if !slices.Equal(held, []bool{true, false}) {
 		t.Fatalf("held = %v, want only the hot root on disk", held)
 	}
+
+	// Read the child back: the read that refilled it keeps it through the
+	// next pass, though the store is over its budget again.
+	if _, found, err := bs.GetBlock(ctx, p.childRef); err != nil || !found {
+		t.Fatalf("refill child = %v/%v", found, err)
+	}
+	bs = p.waitUpload(ctx, t, func(status UploadStatus) bool { return status.Refills == 3 })
+	if result, err := bs.placement.evict(ctx, math.MaxInt64); err != nil || result.Evicted != 0 {
+		t.Fatalf("evict after refill = %+v/%v, want both blocks kept", result, err)
+	}
+	held, err = vol.GetBlockExistsBatch(ctx, []*block.BlockRef{p.rootRef, p.childRef})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(held, []bool{true, true}) {
+		t.Fatalf("held = %v, want the refilled child kept on disk", held)
+	}
 }
 
 // TestMoveSpaceStorageUnreachableBackend loses the local blocks of a placed

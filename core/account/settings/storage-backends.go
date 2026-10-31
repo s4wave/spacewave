@@ -204,9 +204,18 @@ func (b *StorageBackend) Validate() error {
 		return errors.New("storage backend display_name is required")
 	}
 
-	// Validate the S3 location and credential reference.
-	if err := b.GetS3().Validate(); err != nil {
-		return errors.Wrap(err, "s3")
+	// Validate the one location, S3 or SQL, and the credential reference.
+	switch {
+	case b.GetS3() != nil && b.GetSql() != nil:
+		return errors.New("storage backend sets both s3 and sql")
+	case b.GetSql() != nil:
+		if err := b.GetSql().Validate(); err != nil {
+			return errors.Wrap(err, "sql")
+		}
+	default:
+		if err := b.GetS3().Validate(); err != nil {
+			return errors.Wrap(err, "s3")
+		}
 	}
 	if err := b.GetCredential().GetRef().Validate(); err != nil {
 		return errors.Wrap(err, "credential")
@@ -224,6 +233,25 @@ func (l *S3Location) Validate() error {
 		return errors.New("bucket is required")
 	}
 	return errors.Wrap(l.GetPricing().Validate(), "pricing")
+}
+
+// Validate checks that the SQL location names a host and a database.
+func (l *SqlLocation) Validate() error {
+	if l.GetHost() == "" {
+		return errors.New("host is required")
+	}
+	if l.GetDatabase() == "" {
+		return errors.New("database is required")
+	}
+	if l.GetPort() > 65535 {
+		return errors.Errorf("port %d is out of range", l.GetPort())
+	}
+	return nil
+}
+
+// BlocksTable returns the name of the table that holds the blocks.
+func (l *SqlLocation) BlocksTable() string {
+	return l.GetTablePrefix() + "blocks"
 }
 
 // BlockStorePrefix returns the key prefix of the block store's objects.

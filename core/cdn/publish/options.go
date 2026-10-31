@@ -53,6 +53,9 @@ type Options struct {
 	OwnerKeyPem string
 	// TempFileFactory creates staged pack files, or nil for os.CreateTemp.
 	TempFileFactory TempFileFactory
+	// KeepPacks keeps every published pack: a publish only adds packs and
+	// Reclaim refuses to run, for a destination that deletes no pack.
+	KeepPacks bool
 }
 
 func (o Options) output() io.Writer {

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,15 +19,34 @@ import (
 )
 
 // TestCommitForksFromAdmittedWorld holds the publication of one write and
-// checks that the next write reads its World and is admitted after it. Each
-// Commit returns once its own publication is durable.
+// checks that CommitAdmit returns at admission, that readers keep the durable
+// World while the next write reads the admitted one and is admitted after it,
+// and that WaitDurable and each Commit return once the publication is durable.
 func TestCommitForksFromAdmittedWorld(t *testing.T) {
-	// Hold the publication of the first write.
+	// Start a World and note its durable and admitted positions.
 	w, so := startGatedWorld(t, t.TempDir(), nil)
 	before := admittedOps(t, so)
+	durable := worldSeqno(t, w)
+
+	// Hold the publication of the first write and admit it.
 	applying, release := so.hold(nil)
-	first := commitAsync(t, w.newWrite(t, "admit/1"))
+	defer release()
+	first, err := world.CommitAdmit(t.Context(), w.newWrite(t, "admit/1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Release()
 	waitReached(t, applying)
+
+	// Readers see the durable World without it.
+	read := newRead(t, w)
+	if worldHas(t, read, "admit/1") {
+		t.Fatal("a reader sees the write before it is durable")
+	}
+	read.Discard()
+	if seqno := worldSeqno(t, w); seqno != durable {
+		t.Fatalf("durable seqno %d before the publication, want %d", seqno, durable)
+	}
 
 	// The second write forks from the first's admitted World.
 	tx := w.newWrite(t, "admit/2")
@@ -36,24 +56,22 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 	second := commitAsync(t, tx)
 	waitAdmittedOps(t, so, before+2)
 
-	// Neither Commit returns before the held publication.
+	// The second Commit does not return before the held publication.
 	select {
-	case err := <-first:
-		t.Fatalf("first Commit returned before its receipt: %v", err)
 	case err := <-second:
 		t.Fatalf("second Commit returned before its receipt: %v", err)
 	default:
 	}
 
-	// Both return nil once it applies, and the World holds both objects.
+	// Both finish once it applies, and the World holds both objects.
 	release()
-	if err := <-first; err != nil {
-		t.Fatalf("first Commit: %v", err)
+	if seqno, err := first.WaitDurable(t.Context()); err != nil || seqno != first.Seqno() || seqno <= durable {
+		t.Fatalf("first WaitDurable = %d, %v, want its seqno %d above %d", seqno, err, first.Seqno(), durable)
 	}
 	if err := <-second; err != nil {
 		t.Fatalf("second Commit: %v", err)
 	}
-	read := newRead(t, w)
+	read = newRead(t, w)
 	defer read.Discard()
 	for _, key := range []string{"admit/1", "admit/2"} {
 		if !worldHas(t, read, key) {
@@ -63,32 +81,61 @@ func TestCommitForksFromAdmittedWorld(t *testing.T) {
 }
 
 // TestCommitReceiptFailure fails the held publication of one write after a
-// second write was admitted after it. Both Commits fail, the engine
-// reinstalls the World from before them, and the next write builds on that
-// World.
+// second write was admitted after it. Both writes fail, the engine reinstalls
+// the World from before them and reports its seqno to the reinstall hooks
+// once, and the next write builds on that World.
 func TestCommitReceiptFailure(t *testing.T) {
-	// Admit two writes after a durable one, holding the first publication.
+	// Watch the reinstalls through a wrapper, as a bus engine's user does.
 	w, so := startGatedWorld(t, t.TempDir(), nil)
+	reinstalled := make(chan uint64, 8)
+	unhook, err := world.OnReinstall(t.Context(), world.NewReadTrackingEngine(w.eng), func(seqno uint64) {
+		reinstalled <- seqno
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unhook()
+
+	// Write a durable World and note its position.
 	w.create(t, "fail/0")
+	durable := worldSeqno(t, w)
 	before := admittedOps(t, so)
+
+	// Admit two writes after it, holding the first publication.
 	injected := errors.New("injected publication failure")
 	applying, release := so.hold(injected)
-	first := commitAsync(t, w.newWrite(t, "fail/1"))
+	defer release()
+	first, err := world.CommitAdmit(t.Context(), w.newWrite(t, "fail/1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Release()
 	waitReached(t, applying)
+
+	// Admit the second after it.
 	second := commitAsync(t, w.newWrite(t, "fail/2"))
 	waitAdmittedOps(t, so, before+2)
 
-	// Fail it: both Commits fail.
-	release()
-	if err := <-first; !errors.Is(err, injected) {
-		t.Fatalf("first Commit: %v, want the injected failure", err)
-	}
-	if err := <-second; !errors.Is(err, injected) && !errors.Is(err, block.ErrPublicationDependency) {
-		t.Fatalf("second Commit: %v, want the injected failure or its dependency", err)
+	// Nothing reinstalls before the publication fails.
+	select {
+	case seqno := <-reinstalled:
+		t.Fatalf("reinstall at %d before the publication failed", seqno)
+	default:
 	}
 
-	// Each failed Commit returns after the engine installed the World from
-	// before them, so a rerun forks from it at once.
+	// Fail it: both writes fail, and the hooks get the World before them.
+	release()
+	if seqno, err := first.WaitDurable(t.Context()); !errors.Is(err, injected) || seqno != durable {
+		t.Fatalf("first WaitDurable = %d, %v, want %d and the injected failure", seqno, err, durable)
+	}
+	if err := <-second; !errors.Is(err, injected) || !errors.Is(err, block.ErrPublicationDependency) {
+		t.Fatalf("second Commit: %v, want the dependency on the injected failure", err)
+	}
+	if seqno := <-reinstalled; seqno != durable {
+		t.Fatalf("reinstall at %d, want %d", seqno, durable)
+	}
+
+	// Readers kept the World from before them.
 	read := newRead(t, w)
 	for key, found := range map[string]bool{"fail/0": true, "fail/1": false, "fail/2": false} {
 		if worldHas(t, read, key) != found {
@@ -97,7 +144,7 @@ func TestCommitReceiptFailure(t *testing.T) {
 	}
 	read.Discard()
 
-	// The next write commits on it.
+	// The next write commits on it, and nothing else was reinstalled.
 	w.create(t, "fail/3")
 	read = newRead(t, w)
 	defer read.Discard()
@@ -105,6 +152,225 @@ func TestCommitReceiptFailure(t *testing.T) {
 		if !worldHas(t, read, key) {
 			t.Fatalf("%s missing after the next Commit", key)
 		}
+	}
+	select {
+	case seqno := <-reinstalled:
+		t.Fatalf("second reinstall at %d", seqno)
+	default:
+	}
+}
+
+// TestWaitDurableSkipsHooks fails the publication of an admitted write
+// while the test holds a consumer lock the reinstall hook blocks on, as a
+// store that applies the World under its own lock does. The lock order is the
+// engine's writer lock first, so the lock is taken after CommitAdmit.
+// WaitDurable returns the failure and the seqno readers kept without waiting
+// for the hook, the receipt's watcher runs the hook once the lock is free,
+// and the next write commits on the World from before the failed one.
+func TestWaitDurableSkipsHooks(t *testing.T) {
+	// Register a hook that blocks on the consumer lock, then briefly.
+	w, so := startGatedWorld(t, t.TempDir(), nil)
+	var consumer sync.Mutex
+	reinstalled := make(chan uint64, 8)
+	unhook, err := world.OnReinstall(t.Context(), w.eng, func(seqno uint64) {
+		consumer.Lock()
+		defer consumer.Unlock()
+		time.Sleep(20 * time.Millisecond)
+		reinstalled <- seqno
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unhook()
+
+	// Write a durable World and note its seqno.
+	w.create(t, "hook/0")
+	durable := worldSeqno(t, w)
+
+	// Admit a write behind a held publication.
+	injected := errors.New("injected publication failure")
+	applying, release := so.hold(injected)
+	defer release()
+	adm, err := world.CommitAdmit(t.Context(), w.newWrite(t, "hook/1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer adm.Release()
+	waitReached(t, applying)
+
+	// Take the consumer lock.
+	consumer.Lock()
+	locked := true
+	defer func() {
+		if locked {
+			consumer.Unlock()
+		}
+	}()
+
+	// Fail it: WaitDurable returns while the hook waits for the lock.
+	release()
+	waited := make(chan error, 1)
+	var kept uint64
+	go func() {
+		var err error
+		kept, err = adm.WaitDurable(t.Context())
+		waited <- err
+	}()
+	select {
+	case err := <-waited:
+		if !errors.Is(err, injected) || kept != durable {
+			t.Fatalf("WaitDurable = %d, %v, want %d and the injected failure", kept, err, durable)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("WaitDurable waited for the reinstall hook")
+	}
+	if seqno := worldSeqno(t, w); seqno != durable {
+		t.Fatalf("readers at %d after the failure, want %d", seqno, durable)
+	}
+	select {
+	case seqno := <-reinstalled:
+		t.Fatalf("hook returned at %d while the consumer lock was held", seqno)
+	default:
+	}
+
+	// Free the lock: the watcher's hook reports the World before the write.
+	consumer.Unlock()
+	locked = false
+	select {
+	case seqno := <-reinstalled:
+		if seqno != durable {
+			t.Fatalf("reinstall at %d, want %d", seqno, durable)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the watcher did not run the hook")
+	}
+
+	// The next write commits on it, and the hook ran once.
+	w.create(t, "hook/2")
+	read := newRead(t, w)
+	defer read.Discard()
+	for key, found := range map[string]bool{"hook/0": true, "hook/1": false, "hook/2": true} {
+		if worldHas(t, read, key) != found {
+			t.Fatalf("%s present = %v, want %v", key, !found, found)
+		}
+	}
+	select {
+	case seqno := <-reinstalled:
+		t.Fatalf("second reinstall at %d", seqno)
+	default:
+	}
+}
+
+// TestCommitAfterFailedBase forks a write on the admitted World of a write
+// whose publication then fails, while the second write's body holds a
+// consumer lock the reinstall hook blocks on, as Hyperline's SQLite writer
+// is. Its CommitAdmit fails at once without running the hook, it is never
+// replayed onto the reinstalled World, the hook runs once on the receipt's
+// watcher after the body releases the lock, and the next write commits.
+func TestCommitAfterFailedBase(t *testing.T) {
+	// Register a hook that blocks on the consumer lock.
+	w, so := startGatedWorld(t, t.TempDir(), nil)
+	var consumer sync.Mutex
+	reinstalled := make(chan uint64, 8)
+	unhook, err := world.OnReinstall(t.Context(), w.eng, func(seqno uint64) {
+		consumer.Lock()
+		defer consumer.Unlock()
+		reinstalled <- seqno
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unhook()
+
+	// Write a durable World and note its seqno.
+	w.create(t, "base/0")
+	durable := worldSeqno(t, w)
+
+	// Admit A behind a held publication.
+	injected := errors.New("injected publication failure")
+	applying, release := so.hold(injected)
+	defer release()
+	first, err := world.CommitAdmit(t.Context(), w.newWrite(t, "base/1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Release()
+	waitReached(t, applying)
+
+	// Fork B on A's admitted World.
+	tx := w.newWrite(t, "base/2")
+	defer tx.Discard()
+	if !worldHas(t, tx, "base/1") {
+		t.Fatal("B does not see the admitted A")
+	}
+
+	// B's body takes the consumer lock, then A fails.
+	consumer.Lock()
+	locked := true
+	defer func() {
+		if locked {
+			consumer.Unlock()
+		}
+	}()
+	release()
+	if _, err := first.WaitDurable(t.Context()); !errors.Is(err, injected) {
+		t.Fatalf("A WaitDurable: %v, want the injected failure", err)
+	}
+
+	// B's CommitAdmit fails without running the hook.
+	committed := make(chan error, 1)
+	go func() {
+		adm, err := world.CommitAdmit(t.Context(), tx)
+		if err == nil {
+			_, err = adm.WaitDurable(t.Context())
+			adm.Release()
+			if err == nil {
+				err = errors.New("B committed on a dropped base")
+			}
+			committed <- errors.Wrap(err, "admitted")
+			return
+		}
+		committed <- err
+	}()
+	select {
+	case err := <-committed:
+		if !errors.Is(err, injected) || !errors.Is(err, block.ErrPublicationDependency) {
+			t.Fatalf("B CommitAdmit: %v, want the dependency on the injected failure", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("B's CommitAdmit waited for the reinstall hook")
+	}
+	select {
+	case seqno := <-reinstalled:
+		t.Fatalf("hook returned at %d while B held the consumer lock", seqno)
+	default:
+	}
+
+	// B releases the lock: the watcher's hook reports the World before A.
+	consumer.Unlock()
+	locked = false
+	select {
+	case seqno := <-reinstalled:
+		if seqno != durable {
+			t.Fatalf("reinstall at %d, want %d", seqno, durable)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the watcher did not run the hook")
+	}
+
+	// The next write commits on that World, without A or B.
+	w.create(t, "base/3")
+	read := newRead(t, w)
+	defer read.Discard()
+	for key, found := range map[string]bool{"base/0": true, "base/1": false, "base/2": false, "base/3": true} {
+		if worldHas(t, read, key) != found {
+			t.Fatalf("%s present = %v, want %v", key, !found, found)
+		}
+	}
+	select {
+	case seqno := <-reinstalled:
+		t.Fatalf("second reinstall at %d", seqno)
+	default:
 	}
 }
 
@@ -427,6 +693,16 @@ func newRead(t *testing.T, w *localWorld) world.Tx {
 		t.Fatal(err)
 	}
 	return tx
+}
+
+// worldSeqno returns the seqno of the World readers of w see.
+func worldSeqno(t *testing.T, w *localWorld) uint64 {
+	t.Helper()
+	seqno, err := w.eng.GetSeqno(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return seqno
 }
 
 // worldHas reports whether tx holds the object key.

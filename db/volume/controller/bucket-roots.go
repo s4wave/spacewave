@@ -12,6 +12,8 @@ type bucketRootVolume interface {
 	// SupportsAtomicPublication reports whether bytes and ownership share one
 	// physical transaction. The other methods require it.
 	SupportsAtomicPublication() bool
+	// KeepsHoldCounts reports whether the volume keeps shared counts.
+	KeepsHoldCounts() bool
 	// SetBucketRoots writes entries a bucket owns and moves its named roots in
 	// one transaction.
 	SetBucketRoots(context.Context, string, []*block.PutBatchEntry, []block.NamedRoot) error
@@ -52,6 +54,11 @@ func (b *bucketHandle) RootsComplete(ctx context.Context, refs []*block.BlockRef
 func (b *bucketHandle) SupportsRootRetention() bool {
 	v, ok := b.v.(bucketRootVolume)
 	return ok && b.readOps == nil && v.SupportsAtomicPublication() && b.gcOps != nil
+}
+
+// KeepsHoldCounts reports whether the volume keeps shared counts.
+func (b *bucketHandle) KeepsHoldCounts() bool {
+	return b.SupportsRootRetention() && b.v.(bucketRootVolume).KeepsHoldCounts()
 }
 
 // SetRetainedRoots writes entries owned by this bucket and replaces its named

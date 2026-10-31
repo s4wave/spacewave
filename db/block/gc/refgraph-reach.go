@@ -39,7 +39,7 @@ func RecordSubject(key []byte) (string, error) {
 		return "", fmt.Errorf("decode empty reference graph record")
 	}
 	kind, rest := key[0], key[1:]
-	if kind == kindPass || kind == kindAdopt || kind == kindYoung || kind == kindYoungHead || kind == kindYoungReady {
+	if kind == kindPass || kind == kindAdopt || kind == kindYoung || kind == kindYoungHead || kind == kindYoungReady || kind == kindSharing {
 		return "", nil
 	}
 

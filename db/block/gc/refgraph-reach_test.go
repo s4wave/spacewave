@@ -4,6 +4,8 @@ import (
 	"context"
 	"strconv"
 	"testing"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // TestReachable checks that the walk keeps the roots and everything they
@@ -29,9 +31,7 @@ func TestReachable(t *testing.T) {
 
 	// A registered root with a chain longer than a chunk, so the walk pops
 	// several chunks and the set grows past its first table.
-	if err := rg.AddRoot(ctx, "object"); err != nil {
-		t.Fatal(err)
-	}
+	addTestRoot(t, rg, "object")
 	const chain = 3 * reachChunk
 	edges := make([]RefEdge, 0, chain)
 	prev := "object"
@@ -91,5 +91,16 @@ func TestReachable(t *testing.T) {
 	}
 	if want := 4 + chain; mark.Live.Len() != want {
 		t.Errorf("cut walk reached %d nodes, want %d", mark.Live.Len(), want)
+	}
+}
+
+// addTestRoot registers node as a root, as a version 2 graph carried.
+func addTestRoot(t *testing.T, rg *RefGraph, node string) {
+	t.Helper()
+	err := rg.transaction(t.Context(), true, func(ctx context.Context, tx kvtx.Tx) error {
+		return tx.Set(ctx, graphKey(kindRoot, node), nil)
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

@@ -1004,7 +1004,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "5f566aedc02cc42725171c96df0d4129bc4a561d5ca3660e8205f6476c82d782",
+      "hash": "3d558fafd0835421bb396088c7ed608edb25f62d7725350b1d5b140779847006",
       "generatedFiles": [
         "core/account/settings/settings.pb.go",
         "core/account/settings/settings.pb.ts"
@@ -1629,7 +1629,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block": {
-      "hash": "36a4a8cf2c8d7531004334434df585562a9c76aa51adb7fd07ad843620f6646c",
+      "hash": "a14b826fabe6d19f086eadd4ed7ac0ec4c934d008a4006a1f8cd88a120b98f9c",
       "generatedFiles": [
         "db/block/block.pb.go",
         "db/block/block.pb.ts"
@@ -1691,7 +1691,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/mock": {
-      "hash": "bad57a79760d0b54d399ebc14ce8b75fb025105498dfed4ec810c55d728022e9",
+      "hash": "d81613ffc5cb4c3c82ecf0adab54a1f1377c81e9de6fb032d4c289196eb10810",
       "generatedFiles": [
         "db/block/mock/mock.pb.go",
         "db/block/mock/mock.pb.ts"
@@ -2280,7 +2280,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx": {
-      "hash": "6a5780adb690157a9606dcfa24d2848a88a7e569885e648be93a55e7225a7c30",
+      "hash": "d24fb546e9f7208f6e6c82a69ebedb7ce681e4bb32a8cc7114bb2d52ea9f38b7",
       "generatedFiles": [
         "db/store/kvtx/kvtx.pb.go",
         "db/store/kvtx/kvtx.pb.ts"

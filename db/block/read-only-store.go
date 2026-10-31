@@ -54,6 +54,9 @@ func (s *ReadOnlyStore) SupportsRootRetention() bool {
 	return SupportsRootRetention(s.StoreOps)
 }
 
+// KeepsHoldCounts reports whether the inner store keeps shared counts.
+func (s *ReadOnlyStore) KeepsHoldCounts() bool { return KeepsHoldCounts(s.StoreOps) }
+
 // SetRetainedRoots rejects the change of a named root.
 func (s *ReadOnlyStore) SetRetainedRoots(context.Context, []*PutBatchEntry, []NamedRoot) error {
 	return tx.ErrNotWrite

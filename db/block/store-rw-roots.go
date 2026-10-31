@@ -10,6 +10,9 @@ func (b *StoreRW) SetRetainedRoots(ctx context.Context, entries []*PutBatchEntry
 	return SetRetainedRoots(ctx, b.writeHandle, entries, roots)
 }
 
+// KeepsHoldCounts reports whether the underlying store keeps shared counts.
+func (b *StoreRW) KeepsHoldCounts() bool { return KeepsHoldCounts(b.writeHandle) }
+
 // PinRoot forwards a reader pin to the underlying store.
 func (b *StoreRW) PinRoot(ctx context.Context, ref *BlockRef) (func(), error) {
 	return PinRoot(ctx, b.writeHandle, ref)

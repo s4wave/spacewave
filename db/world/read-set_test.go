@@ -229,8 +229,8 @@ func TestReadSetJoin(t *testing.T) {
 	outer.join(middle)
 	outer.join(middle)
 	outer.join(outer)
-	if len(outer.joined) != 1 {
-		t.Fatalf("outer joined %d sets, want 1", len(outer.joined))
+	if len(outer.joined.list) != 1 {
+		t.Fatalf("outer joined %d sets, want 1", len(outer.joined.list))
 	}
 
 	// A change to a read at any depth touches the outer set.

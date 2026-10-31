@@ -250,9 +250,10 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 	return it
 }
 
-// Commit writes the changes and returns once they are durable.
+// Commit writes the changes and returns once they are durable, or commits
+// them ordered when ctx carries kvtx.WithOrderedCommitContext.
 func (t *Tx) Commit(ctx context.Context) error {
-	return t.commit(ctx, false)
+	return t.commit(ctx, kvtx.IsOrderedCommitContext(ctx))
 }
 
 // CommitOrdered writes the changes ordered after earlier commits without

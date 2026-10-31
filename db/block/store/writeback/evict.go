@@ -24,8 +24,13 @@ const epochKey = "epoch"
 // evictableBytesKey holds the summed size of the eviction queue entries.
 const evictableBytesKey = "evictable-bytes"
 
+// EvictAdmit is called before each eviction batch with the bytes the previous
+// batch dropped, zero before the first. It may wait, to pace a pass against the
+// disk's other writers; its error ends the pass.
+type EvictAdmit func(ctx context.Context, lastBytes int64) error
+
 // evictBatchBlocks bounds the entries one eviction step reads and commits.
-const evictBatchBlocks = 256
+const evictBatchBlocks = 1024
 
 // EvictResult reports what an eviction pass did.
 type EvictResult struct {
@@ -178,6 +183,11 @@ func readEpoch(ctx context.Context, tx kvtx.Tx) (uint64, error) {
 // values and queues it for eviction at the current epoch. It changes no
 // ownership, so call it only for a block the reference graph still tracks.
 func (s *Store) Refill(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
+	// Commit ordered: the remote holds the block, so a crash that loses the
+	// refill loses nothing, and a refill per read must not each wait on a
+	// flush to the drive that other writes share.
+	ctx = kvtx.WithOrderedCommitContext(ctx)
+
 	// Write the value below the ownership layer.
 	if _, _, err := s.values.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
 		return errors.Wrap(err, "refill block")
@@ -219,12 +229,20 @@ func (s *Store) Refill(ctx context.Context, ref *block.BlockRef, stored *block.S
 // The volume shares values by hash across its block stores. Eviction relies on
 // each placed store sealing its blocks with its own transform keys, so no other
 // store holds the same hash.
+//
+// A non-nil admit paces the pass, as EvictAdmit describes.
 func (s *Store) Evict(
 	ctx context.Context,
 	remote block.StoreOps,
 	maxBytes int64,
 	keep func(*hash.Hash) bool,
+	admit EvictAdmit,
 ) (EvictResult, error) {
+	// Commit the pass ordered: it drops only values the remote holds, so a
+	// crash that loses its commits leaves values the next pass drops again,
+	// and its writes must not each wait on a flush that other writes share.
+	ctx = kvtx.WithOrderedCommitContext(ctx)
+
 	// Serialize the pass with other passes.
 	var result EvictResult
 	release, err := s.evictMtx.Lock(ctx)
@@ -248,7 +266,14 @@ func (s *Store) Evict(
 	}
 
 	// Evict in batches until the byte target or the new epoch.
+	var last int64
 	for result.EvictedBytes < maxBytes {
+		if admit != nil {
+			if err := admit(ctx, result.EvictedBytes-last); err != nil {
+				return result, err
+			}
+		}
+		last = result.EvictedBytes
 		done, err := s.evictBatch(ctx, remote, epoch, maxBytes, keep, &result)
 		if err != nil || done {
 			return result, err
@@ -319,8 +344,9 @@ func (s *Store) evictBatch(
 		return false, errors.Wrap(err, "check remote blocks")
 	}
 
-	// Drop the values the remote holds, and decide each entry.
+	// Decide each entry.
 	var requeue []evictEntry
+	var drop []*block.PutBatchEntry
 	var evictedBytes int64
 	for i, entry := range batch {
 		switch {
@@ -330,12 +356,19 @@ func (s *Store) evictBatch(
 		case keep != nil && keep(entry.hash):
 			requeue = append(requeue, entry)
 		default:
-			if err := s.values.RmBlock(ctx, refs[i]); err != nil {
-				return false, errors.Wrap(err, "evict block")
-			}
-			result.Evicted++
+			drop = append(drop, &block.PutBatchEntry{Ref: refs[i], Tombstone: true})
 			evictedBytes += entry.size
 		}
+	}
+
+	// Drop the values the remote holds in one write, not one per block: the
+	// local writer is shared with every other write, so a write per block
+	// bounds eviction to a few blocks a second under load.
+	if len(drop) != 0 {
+		if _, err := s.values.PutBlockBatch(ctx, drop); err != nil {
+			return false, errors.Wrap(err, "evict blocks")
+		}
+		result.Evicted += len(drop)
 	}
 
 	// Delete the walked entries and queue the kept ones at the new epoch. A

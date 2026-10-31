@@ -17,7 +17,7 @@ type viewReads struct {
 	// mtx guards shared and wake.
 	mtx sync.Mutex
 	// shared are the finished read sets added by AddViewReads.
-	shared []*ReadSet
+	shared readSets
 	// wake is the earliest requested rerun time, or zero.
 	wake time.Time
 }
@@ -65,9 +65,7 @@ func AddViewReads(ctx context.Context, set *ReadSet, rerunAt time.Time) {
 	// Join the set once.
 	if set != nil {
 		reads.mtx.Lock()
-		if !slices.Contains(reads.shared, set) {
-			reads.shared = append(reads.shared, set)
-		}
+		reads.shared.add(set)
 		reads.mtx.Unlock()
 	}
 	RerunAt(ctx, rerunAt)
@@ -95,7 +93,7 @@ func WithViewReads(ctx context.Context, set *ReadSet) (child context.Context, fi
 func (r *viewReads) getShared() []*ReadSet {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
-	return slices.Clone(r.shared)
+	return slices.Clone(r.shared.list)
 }
 
 // getDeadline returns the earliest rerun time requested by the evaluation.

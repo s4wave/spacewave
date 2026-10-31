@@ -33,6 +33,10 @@ type Engine = world.Engine
 type blkEngine struct {
 	// bengine serves the World rooted at cursor.
 	bengine *world_block.Engine
+	// admitted, when set, serves the admitted World writers fork from, ahead
+	// of the durable World bengine serves to readers. Its own blkEngine owns
+	// it.
+	admitted *world_block.Engine
 	// bcast guards transaction admission and release.
 	bcast broadcast.Broadcast
 	// transactions counts read snapshots holding the engine open. Guarded by bcast.
@@ -188,8 +192,13 @@ type soEngine struct {
 	so sobject.SharedObject
 	// block owns transaction admission and the block engine lifetime.
 	block *blkEngine
-	// bengine serves the replayed World and forks write candidates.
+	// bengine serves the durable World to readers and watchers.
 	bengine *world_block.Engine
+	// admitted serves the admitted World, which write candidates fork from.
+	// It is bengine when the engine has a single head.
+	admitted *world_block.Engine
+	// durable installs the admitted Worlds in bengine as they become durable.
+	durable durableHead
 	// replay computes the World from the operation set, guarded by the
 	// controller's writer lock.
 	replay *replayer
@@ -252,10 +261,14 @@ func newSoEngine(lifetime context.Context, c *Controller, so sobject.SharedObjec
 		so:             so,
 		block:          engine,
 		bengine:        engine.bengine,
+		admitted:       engine.admitted,
 		replay:         replay,
 		backfillChoice: ccontainer.NewCContainer(false),
 		backfillState:  ccontainer.NewCContainerVT[*BackfillState](nil),
 		stableWake:     make(chan struct{}, 1),
+	}
+	if e.admitted == nil {
+		e.admitted = e.bengine
 	}
 	e.backfill = routine.NewStateRoutineContainer[bool](
 		nil,
@@ -341,7 +354,7 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/new-transaction/fork-block-transaction")
 		var err error
-		btx, err = e.bengine.ForkBlockTransaction(taskCtx, true)
+		btx, err = e.admitted.ForkBlockTransaction(taskCtx, true)
 		task.End()
 		if err != nil {
 			unlockWriteMtx()
@@ -455,6 +468,13 @@ func (e *soEngine) lockReplayed(ctx context.Context, clock *commitClock) (func()
 		clock.end(stageLockWait)
 		_, holdWriteMtxTask := trace.NewTask(ctx, "alpha/so-engine/write-tx/hold-write-mtx")
 		unlockWriteMtx = wrapReleaseWithTask(unlockWriteMtx, holdWriteMtxTask)
+
+		// A retired engine admits nothing: its successor settled its
+		// admissions under this lock before reading its head.
+		if e.lifetime.Err() != nil {
+			unlockWriteMtx()
+			return nil, world_block.ErrEngineClosed
+		}
 
 		// Replay and install the World of the current operation set.
 		snapshot, err := e.admittedState(ctx)
@@ -675,8 +695,16 @@ func (e *soEngine) queueOperation(ctx context.Context, opData []byte, fork *repl
 	ctx, cancel := e.detach(ctx)
 	defer cancel()
 
+	// Fail it when a publication its World follows failed: its own receipt
+	// follows that one and fails with it, so it is never replayed onto the
+	// reinstalled World. The failure is left to the receipt's watcher or the
+	// next write, which run the reinstall hooks outside any commit.
+	if err := e.failedAdmission(admitted); err != nil {
+		return err
+	}
+
 	// Find it in the set.
-	snap, err := e.admittedState(ctx)
+	snap, err := e.readAdmittedState(ctx)
 	if err != nil {
 		return err
 	}
@@ -727,17 +755,28 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 		ref = &bucket.ObjectRef{}
 	}
 	ref.BucketId = e.so.GetBlockStore().GetID()
-	installed := !e.bengine.GetRootRef().EqualVT(ref)
+	installed := !e.admitted.GetRootRef().EqualVT(ref)
 	if installed {
-		if err := e.bengine.SetRootRef(ctx, ref); err != nil {
+		if err := e.admitted.SetRootRef(ctx, ref); err != nil {
 			return err
 		}
 		e.c.notifyWrite()
 	}
 
-	// Drop the kept pages no live World reaches.
+	// Readers see it once the publications admitted before it are durable.
+	e.queueDurable(ref)
+
+	// Drop the kept pages no live World reaches: the durable head and the
+	// Worlds it has yet to install are live beside the admitted head. The
+	// queue is read before the durable head, so a World promoted between the
+	// two reads is in one of them. Write holds keep both live in the Go tests
+	// too, except between a receipt resolving and its promotion, a gap no test
+	// reaches deterministically; SQLPrimary.tla fails QueuedReadable or
+	// ReadersDurable without either input.
 	if pages := e.replay.pages; pages != nil {
-		pages.sweep(e.replay.liveRoots(ref.GetRootRef()))
+		heads := append(e.queuedDurableRoots(), ref.GetRootRef())
+		heads = append(heads, e.bengine.GetRootRef().GetRootRef())
+		pages.sweep(e.replay.liveRoots(heads...))
 	}
 
 	// Hold nothing while the pending publications hold the World.
@@ -795,6 +834,11 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) error {
 		return e.holdThenSave(ctx, hold)
 	}
 
+	// A retired engine admits nothing, as in lockReplayed.
+	if e.lifetime.Err() != nil {
+		return world_block.ErrEngineClosed
+	}
+
 	// Submit the held blocks and roots with the replay cursor, splitting the
 	// kept pages a stall base names from the rest first: a receipt may store
 	// and drop them meanwhile.
@@ -817,8 +861,13 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) error {
 	}
 
 	// Count and admit it; the caller records what it holds.
+	seqno, err := e.admitted.GetSeqno(ctx)
+	if err != nil {
+		return err
+	}
 	countPublication(nil, pages, save)
-	e.admit(receipt, e.retained)
+	e.replay.addWorldPut(receipt, hold.entries, pages)
+	e.admit(receipt, e.retained, seqno)
 	go receipt.Release()
 	return nil
 }
@@ -856,4 +905,5 @@ const acceptedWorldRootName = "accepted-world"
 var (
 	_ Engine                     = (*soEngine)(nil)
 	_ world.IndexedChangeWatcher = (*soEngine)(nil)
+	_ world.ReinstallNotifier    = (*soEngine)(nil)
 )

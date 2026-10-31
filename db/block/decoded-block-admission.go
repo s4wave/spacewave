@@ -118,6 +118,15 @@ func raiseRemovalGeneration(slot *atomic.Uint64, gen uint64) {
 	}
 }
 
+// RemovedSince reports whether a durable store may have removed ref after
+// DurableReadGeneration returned gen. A store that keeps a block's bytes in
+// memory past the read that found it checks this before answering from them,
+// as the pool does before serving an entry.
+func RemovedSince(ref *BlockRef, gen uint64) bool {
+	refKey, ok := decodedBlockCacheRefKey(ref)
+	return ok && removedSince(refKey, gen)
+}
+
 // removedSince reports whether a removal of refKey's stripe or of a whole
 // store happened after generation gen.
 func removedSince(refKey string, gen uint64) bool {

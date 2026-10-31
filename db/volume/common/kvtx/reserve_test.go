@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -29,6 +30,12 @@ func TestReserve(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Store a block to drop below the reserve.
+	evicted, _, err := v.PutBlock(ctx, []byte("evicted"), &block.PutOpts{RefsKnown: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Below the reserve, new data is refused and reads continue.
 	free.Store(reserve / 2)
 	v.wakeHealthSizes()
@@ -45,6 +52,14 @@ func TestReserve(t *testing.T) {
 	stored := publicationFor(t, "reserve-a", "", "one").Entries[0].Ref
 	if _, found, err := v.GetBlock(ctx, stored); err != nil || !found {
 		t.Fatalf("read below the reserve: found %v, %v", found, err)
+	}
+
+	// A batch of tombstones only frees space, so it runs below the reserve.
+	if _, err := v.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: evicted, Tombstone: true}}); err != nil {
+		t.Fatalf("tombstones below the reserve: %v", err)
+	}
+	if _, found, err := v.GetBlock(ctx, evicted); err != nil || found {
+		t.Fatalf("read the dropped block: found %v, %v", found, err)
 	}
 
 	// An exempt write is admitted below the reserve.

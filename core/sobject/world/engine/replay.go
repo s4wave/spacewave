@@ -375,13 +375,27 @@ func (r *replayer) readable(n int) bool {
 }
 
 // liveRoots returns the roots of the Worlds whose pages the page view keeps:
-// the named Worlds, the readable positions and head.
-func (r *replayer) liveRoots(head *block.BlockRef) []*block.BlockRef {
+// the named Worlds, the readable positions and heads. The view drops a page
+// only when no base root, written position, admitted head, durable head or
+// queued durable ref reaches it, so the engine passes the last three as heads
+// and a new head joins them.
+func (r *replayer) liveRoots(heads ...*block.BlockRef) []*block.BlockRef {
 	live := slices.Clone(r.baseRoots)
 	for _, pos := range r.positions[max(r.written-1, 0):] {
 		live = append(live, pos.state.GetHeadRef().GetRootRef())
 	}
-	return append(live, head)
+	return append(live, heads...)
+}
+
+// storedRoot returns root when the store holds its World, or nil. Every World
+// is stored without the page view; with it, only the Worlds the replay base
+// names are, and a head only kept in memory, such as one replay rebuilt after
+// a restart, is not.
+func (r *replayer) storedRoot(root *block.BlockRef) *block.BlockRef {
+	if r.pages == nil || slices.ContainsFunc(r.baseRoots, root.EqualsRef) {
+		return root
+	}
+	return nil
 }
 
 // positionsAbove returns the positions after the last one whose World is
@@ -612,7 +626,9 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 	if err := r.stallBase(ctx); err != nil {
 		return err
 	}
-	r.advanceDeadlists()
+	if err := r.advanceDeadlists(); err != nil {
+		return err
+	}
 	if !r.unsaved() {
 		return nil
 	}
@@ -658,7 +674,9 @@ func (r *replayer) pendingSave(ctx context.Context, publisher sobject.StatePubli
 	if err := r.stallBase(ctx); err != nil {
 		return nil, nil, nil, err
 	}
-	r.advanceDeadlists()
+	if err := r.advanceDeadlists(); err != nil {
+		return nil, nil, nil, err
+	}
 	if !r.changed && len(payloads) == 0 {
 		return nil, nil, nil, nil
 	}
@@ -841,8 +859,13 @@ func (r *replayer) replay(
 	set *sobject.SOOperationSet,
 	fork *replayFork,
 ) (state *InnerState, outcomes []replayOutcome, err error) {
-	// Advance one World through the pass and fence its blocks at the end.
-	w := newReplayWorld(r.c, r.store())
+	// Advance one World through the pass and fence its blocks at the end. The
+	// page view keeps the pass's World pages until a base names them.
+	store := r.store()
+	if r.pages != nil {
+		store = r.pages.keeping()
+	}
+	w := newReplayWorld(r.c, store)
 	w.opts = r.transitions()
 	defer func() {
 		if cerr := w.close(ctx); cerr != nil {
@@ -987,23 +1010,35 @@ func (r *replayer) transitions() []world_block.EngineOption {
 	return []world_block.EngineOption{world_block.WithTransitions(r.deaths.add)}
 }
 
-// composeDeaths composes what died from the last named World to the World at
-// root, counts it, and adds its deadlist record for the next save when the
-// store holds named roots. A forfeited interval leaks.
-func (r *replayer) composeDeaths(root *block.BlockRef) error {
-	// Compose and count the interval.
+// composeDeaths joins the interval from the last named World to the World at
+// root and, when the store holds named roots and keeps shared counts, adds its
+// deadlist entry, whose
+// record a later save carries once the interval's puts resolve. It returns the
+// interval for the naming publication to seal, or nil when there is none to
+// record. A forfeited interval leaks.
+func (r *replayer) composeDeaths(root *block.BlockRef) *pendingNet {
+	// Join the interval.
 	if r.deaths == nil {
 		return nil
 	}
-	from, dead, ok := r.deaths.take(root)
-	countDeaths(dead, ok)
+	from, net := r.deaths.take(root)
 
-	// Record it where the store can name it.
-	if r.pages == nil || !r.pages.SupportsRootRetention() {
+	// Record it where the store can name it and keeps the shared counts its
+	// check reads.
+	if r.pages == nil || !r.pages.KeepsHoldCounts() {
 		return nil
 	}
 	r.changed = true
-	return r.ledger.name(from, root, dead, ok)
+	r.ledger.name(from, root, net)
+	return net
+}
+
+// addWorldPut records a publication that put the World pages among entries,
+// whose puts report the pages the store already held.
+func (r *replayer) addWorldPut(receipt *block.PublicationReceipt, entries, pages []*block.PutBatchEntry) {
+	if r.deaths != nil && len(pages) != 0 {
+		r.deaths.addPut(newWorldPut(receipt, entries, pages))
+	}
 }
 
 // adoptDeadlists records that the base adopted its World, and stamps the
@@ -1016,15 +1051,24 @@ func (r *replayer) adoptDeadlists() {
 	r.pages.stamps.setEpoch(r.ledger.adopted)
 }
 
-// advanceDeadlists moves the records no reader pin holds back to due, marking
-// the replay changed when any moved.
-func (r *replayer) advanceDeadlists() {
+// advanceDeadlists encodes the records whose puts resolved and moves the
+// records no reader pin holds back to due, marking the replay changed when any
+// changed.
+func (r *replayer) advanceDeadlists() error {
+	// Store-every mode keeps no records.
 	if r.pages == nil {
-		return
+		return nil
 	}
-	if r.ledger.advance(r.pages.stamps.oldest()) {
+
+	// Encode the resolved records, then move the unpinned ones to due.
+	resolved, err := r.ledger.resolve()
+	if err != nil {
+		return err
+	}
+	if r.ledger.advance(r.pages.stamps.oldest()) || resolved {
 		r.changed = true
 	}
+	return nil
 }
 
 // worldLost reports whether the root block of the World state is missing from

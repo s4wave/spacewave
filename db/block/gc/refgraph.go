@@ -31,6 +31,9 @@ const (
 	// kindYoungHead is the one record of the young log's range, as
 	// MarkYoung describes.
 	kindYoungHead byte = 'g'
+	// kindHold keys the shared count of a block by the block. Its value is
+	// a uvarint, the block's holders minus one, kept only above zero.
+	kindHold byte = 'h'
 	// kindIncoming keys an edge by object then subject.
 	kindIncoming byte = 'i'
 	// kindNode keyed the node inventory of the mark-sweep collector, which
@@ -38,8 +41,15 @@ const (
 	kindNode byte = 'n'
 	// kindPass is the one record of a running block pass.
 	kindPass byte = 'p'
-	// kindRoot keys the registered roots.
+	// kindRoot keys the registered roots a version 2 graph carried. Nothing
+	// registers new ones; the mark seeds from those that remain.
 	kindRoot byte = 'r'
+	// kindSeen keys the seen record of a block the sharing walk sighted
+	// once, as WalkSharing describes.
+	kindSeen byte = 's'
+	// kindSharing is the one record of the sharing walk's state, as
+	// WalkSharing describes.
+	kindSharing byte = 'w'
 	// kindYoungReady is the one record that reports the young log complete,
 	// as YoungReady describes.
 	kindYoungReady byte = 'm'
@@ -62,7 +72,8 @@ const (
 // empty one. Blocks are collected by marking from the roots, so a block never
 // joins the unreferenced queue: the queue's staging edge to a block creates
 // the block's child list, exists while the list does, and is never removed on
-// its own. Incoming queries of a block report its owners that are not blocks,
+// its own. A block another holder shares also keeps a shared count, as AddHolds
+// describes, which goes with its child list. Incoming queries of a block report its owners that are not blocks,
 // and the unreferenced queue while the block is tracked. While a block pass
 // runs, each write also logs the blocks it adopts, as MarkBlocks describes.
 // Each write also logs the blocks whose child lists it creates or changes in
@@ -71,6 +82,8 @@ const (
 type RefGraph struct {
 	// store holds the graph records.
 	store kvtx.Store
+	// holders answers the sharing walk's questions about blocks, may be nil.
+	holders HolderSource
 }
 
 // NewRefGraph constructs a reference graph over store.
@@ -240,10 +253,12 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 		return err
 	}
 
-	// Add every edge first, so an edge in both lists ends removed. The child
-	// edges of each block merge into its list in one write.
+	// Add every edge first, so an edge in both lists ends removed. Gather the
+	// child edges of each block, which merge into its list in one write, and
+	// note the owner edges written, which the sharing walk may sight.
 	children := make(map[string][]string)
 	var adopted []string
+	var owned []RefEdge
 	for _, edge := range adds {
 		if isBlockNode(edge.Object) {
 			adopted = append(adopted, edge.Object)
@@ -256,21 +271,39 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 			children[parent] = list
 			continue
 		}
-		if err := addRefTx(ctx, tx, edge.Subject, edge.Object); err != nil {
+		wrote, err := addRefTx(ctx, tx, edge.Subject, edge.Object)
+		if err != nil {
 			return err
 		}
+		if wrote {
+			owned = append(owned, edge)
+		}
 	}
+
+	// Merge each block's children into its list, noting the lists created or
+	// changed for the young log and the children added for the sharing walk.
 	var young youngRecord
+	listed := make(map[string][]string, len(children))
 	for _, parent := range slices.Sorted(maps.Keys(children)) {
-		created, changed, err := addChildrenTx(ctx, tx, parent, children[parent])
+		added, created, err := addChildrenTx(ctx, tx, parent, children[parent])
 		if err != nil {
 			return err
 		}
 		switch {
 		case created:
 			young.created = append(young.created, parent)
-		case changed:
+		case len(added) != 0:
 			young.changed = append(young.changed, parent)
+		}
+		if len(added) != 0 {
+			listed[parent] = added
+		}
+	}
+
+	// Sight the new holders, then log the adopted and young blocks.
+	if len(listed) != 0 || len(owned) != 0 {
+		if err := g.sightWritesTx(ctx, tx, listed, owned); err != nil {
+			return err
 		}
 	}
 	if err := logAdoptedTx(ctx, tx, adopted); err != nil {
@@ -308,7 +341,7 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 			return err
 		}
 		if !owned {
-			if err := addRefTx(ctx, tx, NodeUnreferenced, object); err != nil {
+			if _, err := addRefTx(ctx, tx, NodeUnreferenced, object); err != nil {
 				return err
 			}
 		}
@@ -345,20 +378,20 @@ func edgeKey(edge RefEdge) []byte {
 }
 
 // addRefTx adds both directions of an edge that is not a child edge unless
-// the exact forward edge already exists.
-func addRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) error {
+// the exact forward edge already exists, and reports whether it wrote them.
+func addRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) (bool, error) {
 	// Skip the edge when its exact forward record already exists.
 	forward := graphKey(kindForward, subject, object)
 	exists, err := tx.Exists(ctx, forward)
 	if err != nil || exists {
-		return err
+		return false, err
 	}
 
 	// Write the two edge directions.
 	if err := tx.Set(ctx, forward, nil); err != nil {
-		return err
+		return false, err
 	}
-	return tx.Set(ctx, graphKey(kindIncoming, object, subject), nil)
+	return true, tx.Set(ctx, graphKey(kindIncoming, object, subject), nil)
 }
 
 // removeRefTx removes an exact edge and reports whether it existed. A child
@@ -408,14 +441,17 @@ func hasIncomingTx(ctx context.Context, tx kvtx.Tx, object string, ignored map[s
 
 // RemoveNodeRefs removes the observed outgoing targets in bounded transactions.
 // New unrelated edges may be added after this operation's initial snapshot. A
-// block's child list goes first, so the block is no longer tracked; its
-// children never join the unreferenced queue.
+// block's child list and shared count go first, so the block is no longer
+// tracked; its children never join the unreferenced queue.
 func (g *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned bool) ([]string, error) {
 	// Drop a block's child list.
 	var children []string
 	if isBlockNode(node) {
 		err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-			// Read the list, then delete it.
+			// Drop the shared count, then read the list and delete it.
+			if err := tx.Delete(ctx, graphKey(kindHold, node)); err != nil {
+				return err
+			}
 			var found bool
 			var err error
 			children, found, err = readChildrenTx(ctx, tx, node)
@@ -683,39 +719,6 @@ func (g *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *
 		return nil
 	}
 	return g.RemoveRef(ctx, ObjectIRI(objectKey), target)
-}
-
-// AddRoot registers node as a root.
-func (g *RefGraph) AddRoot(ctx context.Context, node string) error {
-	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		key := graphKey(kindRoot, node)
-		found, err := tx.Exists(ctx, key)
-		if err != nil || found {
-			return err
-		}
-		return tx.Set(ctx, key, nil)
-	})
-}
-
-// RemoveRoot removes root membership without changing the node's edges.
-func (g *RefGraph) RemoveRoot(ctx context.Context, node string) error {
-	return g.deleteRecord(ctx, graphKey(kindRoot, node))
-}
-
-// deleteRecord treats a missing record as a no-op.
-func (g *RefGraph) deleteRecord(ctx context.Context, key []byte) error {
-	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		found, err := tx.Exists(ctx, key)
-		if err != nil || !found {
-			return err
-		}
-		return tx.Delete(ctx, key)
-	})
-}
-
-// GetRootNodes returns the registered roots.
-func (g *RefGraph) GetRootNodes(ctx context.Context) ([]string, error) {
-	return g.list(ctx, graphKey(kindRoot))
 }
 
 // Close leaves the store's lifetime with its owner.

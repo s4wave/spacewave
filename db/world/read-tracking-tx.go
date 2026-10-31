@@ -15,6 +15,11 @@ func (t *readTrackingTx) Commit(ctx context.Context) error {
 	return t.tx.Commit(ctx)
 }
 
+// CommitAdmit commits the underlying transaction once its engine admits it.
+func (t *readTrackingTx) CommitAdmit(ctx context.Context) (Admission, error) {
+	return CommitAdmit(ctx, t.tx)
+}
+
 // Discard discards the underlying transaction.
 func (t *readTrackingTx) Discard() {
 	t.tx.Discard()
@@ -27,4 +32,5 @@ var (
 	_ ObjectBodyBatcher          = (*readTrackingTx)(nil)
 	_ ObjectBodyPageBatcher      = (*readTrackingTx)(nil)
 	_ ObjectBodyPageSeqnoBatcher = (*readTrackingTx)(nil)
+	_ AdmitCommitter             = (*readTrackingTx)(nil)
 )

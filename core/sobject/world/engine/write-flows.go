@@ -68,6 +68,13 @@ type WriteFlows struct {
 	// DeathForfeits is the number of named Worlds whose interval was
 	// forfeited and leaks.
 	DeathForfeits uint64
+	// Unrecorded is the number of pending deadlist entries a restart found
+	// naming no record: forfeited intervals, and intervals cut off before
+	// their puts resolved, which leak.
+	Unrecorded uint64
+	// Stalled is the number of pending deadlist entries the ledger orphaned
+	// while they still waited on their puts or their encoding.
+	Stalled uint64
 }
 
 // writeFlows holds the process's counters.
@@ -78,6 +85,8 @@ var writeFlows struct {
 	skips       [checkpointSkipCount]atomic.Uint64
 	deaths      atomic.Uint64
 	forfeits    atomic.Uint64
+	unrecorded  atomic.Uint64
+	stalled     atomic.Uint64
 }
 
 // GetWriteFlows returns the process's counters as of now.
@@ -92,8 +101,12 @@ func GetWriteFlows() WriteFlows {
 	for s := range f.Skips {
 		f.Skips[s] = writeFlows.skips[s].Load()
 	}
+
+	// Load the deadlist counters.
 	f.Deaths = writeFlows.deaths.Load()
 	f.DeathForfeits = writeFlows.forfeits.Load()
+	f.Unrecorded = writeFlows.unrecorded.Load()
+	f.Stalled = writeFlows.stalled.Load()
 	return f
 }
 

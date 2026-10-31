@@ -145,7 +145,7 @@ func testUpgradeCayleyRefGraph(t *testing.T, store db_kvtx.Store) {
 	ctx := context.Background()
 	keys := store_kvkey.NewDefaultKVKey()
 	writeCayleyStore(t, store, keys)
-	if err := upgradeFormat(ctx, store, keys); err != nil {
+	if _, err := upgradeFormat(ctx, store, keys, false); err != nil {
 		t.Fatal(err)
 	}
 	checkConvertedRefGraph(t, store)
@@ -159,7 +159,7 @@ func TestUpgradeLegacyRefGraph(t *testing.T) {
 	store := store_kvtx_inmem.NewStore()
 	keys := store_kvkey.NewDefaultKVKey()
 	writeLegacyStore(t, store, keys)
-	if err := upgradeFormat(ctx, store, keys); err != nil {
+	if _, err := upgradeFormat(ctx, store, keys, false); err != nil {
 		t.Fatal(err)
 	}
 	checkLegacyRefGraph(t, store)
@@ -328,7 +328,7 @@ func TestUpgradeChildLists(t *testing.T) {
 	writeFormat3Graph(t, store, keys, edges)
 
 	// Upgrade it.
-	if err := upgradeFormat(ctx, store, keys); err != nil {
+	if _, err := upgradeFormat(ctx, store, keys, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -598,6 +598,21 @@ func writeLegacyStore(t *testing.T, store db_kvtx.Store, keys *store_kvkey.KVKey
 	}
 }
 
+// testRootKey returns the store key of the registered root node, which is not
+// a block; an empty node gives the prefix of every such key.
+func testRootKey(node string) []byte {
+	// The kind byte follows the graph's prefix.
+	key := append(slices.Clone(refGraphPrefix), 'r')
+	if node == "" {
+		return key
+	}
+
+	// A text node is a zero byte, a uvarint length and the IRI.
+	key = append(key, 0)
+	key = binary.AppendUvarint(key, uint64(len(node)))
+	return append(key, node...)
+}
+
 // legacyGraphKey encodes a version 2 record key.
 func legacyGraphKey(kind byte, nodes ...string) []byte {
 	key := append(bytes.Clone(legacyRefGraphPrefix), kind)
@@ -659,20 +674,24 @@ func checkLegacyRefGraph(t *testing.T, store db_kvtx.Store) {
 	}
 
 	// The root survives.
-	roots, err := block_gc.NewRefGraph(kvtx_prefixer.NewPrefixer(store, refGraphPrefix)).GetRootNodes(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(roots, []string{block_gc.NodeGCRoot}) {
-		t.Fatalf("roots %v", roots)
-	}
-
-	// No version 2 records remain.
 	rtx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer rtx.Discard()
+	var roots [][]byte
+	err = rtx.ScanPrefixKeys(ctx, testRootKey(""), func(key []byte) error {
+		roots = append(roots, bytes.Clone(key))
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := testRootKey(block_gc.NodeGCRoot); len(roots) != 1 || !bytes.Equal(roots[0], want) {
+		t.Fatalf("root records %q, want %q", roots, want)
+	}
+
+	// No version 2 records remain.
 	err = rtx.ScanPrefixKeys(ctx, legacyRefGraphPrefix, func(key []byte) error {
 		t.Errorf("version 2 record %q remains", key)
 		return nil
@@ -735,7 +754,11 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 		refs[name] = ref
 	}
 
-	// Write the key outside the graph and the current format version.
+	// Register a root, as a version 2 graph carried, and write the key
+	// outside the graph and the current format version.
+	if err := tx.Set(ctx, testRootKey(block_gc.BucketIRI("pinned")), nil); err != nil {
+		t.Fatal(err)
+	}
 	if err := tx.Set(ctx, []byte("other"), []byte("value")); err != nil {
 		t.Fatal(err)
 	}
@@ -749,9 +772,6 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 	// Write the graph.
 	iri := func(name string) string { return block_gc.BlockIRI(refs[name]) }
 	graph := OpenRefGraph(src)
-	if err := graph.AddRoot(ctx, block_gc.BucketIRI("pinned")); err != nil {
-		t.Fatal(err)
-	}
 	err = graph.ApplyRefBatch(ctx, []block_gc.RefEdge{
 		{Subject: block_gc.NodeGCRoot, Object: block_gc.BucketIRI("live")},
 		{Subject: block_gc.BucketIRI("live"), Object: iri("a")},
@@ -789,6 +809,12 @@ func testCopyReachable(t *testing.T, src, dst db_kvtx.Store) {
 	last.Bytes, last.DroppedBytes = 0, 0
 	if last != want {
 		t.Fatalf("progress %+v, want %+v", last, want)
+	}
+
+	// The copy begins the destination's sharing walk, so its counts start
+	// stale and the first block pass builds them.
+	if s, err := OpenRefGraph(dst).GetSharing(ctx); err != nil || !s.Phase.Walking() {
+		t.Fatalf("destination sharing phase %c err %v, want walking", s.Phase, err)
 	}
 
 	// The destination holds the reachable blocks and edges and the other key.

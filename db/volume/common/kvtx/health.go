@@ -237,5 +237,15 @@ func batchBytes(entries []*block.PutBatchEntry) int {
 	return n
 }
 
+// onlyTombstones reports whether every entry deletes its block.
+func onlyTombstones(entries []*block.PutBatchEntry) bool {
+	for _, e := range entries {
+		if !e.Tombstone {
+			return false
+		}
+	}
+	return true
+}
+
 // _ is a type assertion
 var _ volume.HealthWatcher = (*Volume)(nil)

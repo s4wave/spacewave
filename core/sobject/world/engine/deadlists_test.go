@@ -11,7 +11,7 @@ import (
 // break, a reader pin and a restart, and checks that every save names only
 // blocks it carries or a durable save stored, and that no orphan becomes due.
 func TestDeadlistLedger(t *testing.T) {
-	// Name two composed records and check what a save carries.
+	// ref builds a block ref from name.
 	ref := func(name string) *block.BlockRef {
 		r, err := block.BuildBlockRef([]byte(name), nil)
 		if err != nil {
@@ -19,18 +19,45 @@ func TestDeadlistLedger(t *testing.T) {
 		}
 		return r
 	}
-	dead := &block.Replacements{Replaced: []*block.BlockRef{ref("page")}}
+
+	// resolve takes every record whose puts resolved, waiting for the
+	// encodings it starts.
 	var l deadlistLedger
+	resolve := func() {
+		t.Helper()
+		for range 2 {
+			if _, err := l.resolve(); err != nil {
+				t.Fatal(err)
+			}
+			for _, e := range l.entries {
+				if e.net != nil && e.net.encoded != nil {
+					<-e.net.encoded
+				}
+			}
+		}
+	}
+
+	// name names the World to after from, with a resolved interval when ok,
+	// and resolves the ledger.
 	name := func(from, to string, ok bool) {
+		// Parse from, which is empty for a forfeited predecessor.
 		t.Helper()
 		var f *block.BlockRef
 		if from != "" {
 			f = ref(from)
 		}
-		if err := l.name(f, ref(to), dead, ok); err != nil {
-			t.Fatal(err)
+
+		// Seal an empty interval when ok, or forfeit it.
+		var net *pendingNet
+		if ok {
+			net = &pendingNet{steps: block.ReplacementSteps{{From: ref("from " + to), To: ref(to)}}}
+			net.seal(nil)
 		}
+		l.name(f, ref(to), net)
+		resolve()
 	}
+
+	// carried checks the roots a save carries and returns its blocks.
 	carried := func(want ...string) []*block.PutBatchEntry {
 		// Render each root a save sets as + and releases as -.
 		t.Helper()
@@ -48,7 +75,14 @@ func TestDeadlistLedger(t *testing.T) {
 		}
 		return puts
 	}
-	name("a", "b", true)
+
+	// A record waiting for its naming publication is carried only once it
+	// resolves.
+	waiting := &pendingNet{steps: block.ReplacementSteps{{From: ref("a"), To: ref("b")}}}
+	l.name(ref("a"), ref("b"), waiting)
+	resolve()
+	carried()
+	waiting.seal(nil)
 	name("b", "c", true)
 	if puts := carried("+"+block.DeadlistRootName(1), "+"+block.DeadlistRootName(2)); len(puts) != 2 {
 		t.Fatalf("save carries %d blocks, want 2", len(puts))

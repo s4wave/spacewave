@@ -65,6 +65,7 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 		blocks = block_store_kvtx.NewKVTxBlock(v.kvKey, p.store, v.GetHashType(), v.atomicHashGet)
 	}
 	p.blocks = &txBlocks{StoreOps: blocks}
+	p.rg.SetHolderSource(txHolders{blocks: p.blocks})
 	return p, nil
 }
 

@@ -97,7 +97,22 @@ var (
 	)
 	volumeDeadlistLivePagesDesc = prometheus.NewDesc(
 		"spacewave_volume_deadlist_live_pages_total",
-		"Pages a checked deadlist record listed as dead that the collector's mark reached, since the volume opened; any is a deadlist error.",
+		"Pages an applied deadlist record would free that the collector's mark reached, since the volume opened; any is a deadlist error.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeDeadlistLeakedPagesDesc = prometheus.NewDesc(
+		"spacewave_volume_deadlist_leaked_pages_total",
+		"Pages an applied deadlist record kept alive that the collector's mark did not reach, since the volume opened.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeDeadlistCountUnderflowsDesc = prometheus.NewDesc(
+		"spacewave_volume_deadlist_count_underflows_total",
+		"Shared count changes an applied deadlist record made that would take a count below zero, since the volume opened; any is an error.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeRevivedPutsDesc = prometheus.NewDesc(
+		"spacewave_volume_revived_puts_total",
+		"Entries marked as already counted that a put found absent and stored afresh, since the volume opened; any is an error in the writer's proof.",
 		[]string{volumeLabel}, nil,
 	)
 	volumeBackgroundWaitMaxSecondsDesc = prometheus.NewDesc(
@@ -123,7 +138,8 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumePublicationPendingDesc, volumePublicationPendingBytesDesc, volumeWriteReserveDesc,
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
 		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
-		volumeDeadlistsCheckedDesc, volumeDeadlistLivePagesDesc, volumeBackgroundWaitMaxSecondsDesc,
+		volumeDeadlistsCheckedDesc, volumeDeadlistLivePagesDesc, volumeDeadlistLeakedPagesDesc,
+		volumeDeadlistCountUnderflowsDesc, volumeRevivedPutsDesc, volumeBackgroundWaitMaxSecondsDesc,
 	} {
 		ch <- d
 	}
@@ -162,6 +178,9 @@ func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
 	// Report the deadlist checks.
 	ch <- prometheus.MustNewConstMetric(volumeDeadlistsCheckedDesc, prometheus.CounterValue, float64(f.DeadlistsChecked), id)
 	ch <- prometheus.MustNewConstMetric(volumeDeadlistLivePagesDesc, prometheus.CounterValue, float64(f.DeadlistLivePages), id)
+	ch <- prometheus.MustNewConstMetric(volumeDeadlistLeakedPagesDesc, prometheus.CounterValue, float64(f.DeadlistLeakedPages), id)
+	ch <- prometheus.MustNewConstMetric(volumeDeadlistCountUnderflowsDesc, prometheus.CounterValue, float64(f.DeadlistCountUnderflows), id)
+	ch <- prometheus.MustNewConstMetric(volumeRevivedPutsDesc, prometheus.CounterValue, float64(f.RevivedPuts), id)
 
 	// Report the longest wait behind a background step.
 	ch <- prometheus.MustNewConstMetric(volumeBackgroundWaitMaxSecondsDesc, prometheus.GaugeValue, f.BackgroundWaitMax.Seconds(), id)

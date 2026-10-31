@@ -12,14 +12,19 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 )
 
-// formatMigration upgrades a store to store_kvkey.FormatVersion. It must
-// leave the store readable by a rerun after a crash at any point.
+// keyFormatVersion is the last format version that changed the key layout.
+// Format 6 adds the shared counts and the sharing walk to the graph of format
+// 5, which a Volume begins in one commit, as upgradeFormat describes.
+const keyFormatVersion = 5
+
+// formatMigration upgrades a store to keyFormatVersion. It must leave the
+// store readable by a rerun after a crash at any point.
 type formatMigration func(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error
 
 // formatMigrations upgrade a store from the version at their index directly
-// to store_kvkey.FormatVersion, so a store of any age is rewritten once. A new
-// format version retargets every entry and adds one for the previous version.
-var formatMigrations = [store_kvkey.FormatVersion]formatMigration{
+// to keyFormatVersion, so a store of any age is rewritten once. A new key
+// layout retargets every entry and adds one for the previous version.
+var formatMigrations = [keyFormatVersion]formatMigration{
 	0: migrateBase58Store,
 	1: migrateCayleyRefGraph,
 	2: thenChildLists(migrateLegacyRefGraph),
@@ -34,10 +39,17 @@ const migrateBatchBytes = 32 << 20
 // its hash field. Base58 text never contains it.
 const binaryBlockRefTag = 0x0a
 
-// upgradeFormat brings the store to store_kvkey.FormatVersion. A store at the
-// current version costs one read. A store newer than this binary supports fails
-// with a permanent error, since only a newer binary can open it.
-func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error {
+// upgradeFormat brings the store to store_kvkey.FormatVersion, or to format 5
+// when it tracks blocks and shareCounts is unset, and returns the version it
+// leaves. A store at that version costs one or two reads. A store newer than
+// this binary supports fails with a permanent error, since only a newer binary
+// can open it.
+//
+// Moving to format 6 begins the sharing walk in the commit that records the
+// version, or completes the counts at once on a graph that tracks nothing, as
+// block_gc.RefGraph.BeginSharing describes. A Volume that tracks blocks moves
+// only when asked, because its walk reads every child list and owner edge.
+func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, shareCounts bool) (uint64, error) {
 	// A migration's commits are background work, which waits for a
 	// checkpoint the store's writes outpaced.
 	ctx = block.WithBackground(ctx)
@@ -45,35 +57,59 @@ func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKe
 	// Read the stored version. A store without one predates versioning.
 	version, err := readFormatVersion(ctx, store, keys)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if version == store_kvkey.FormatVersion {
-		return nil
+		return version, nil
 	}
 	if version > store_kvkey.FormatVersion {
-		return volume.Permanent(fmt.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
+		return 0, volume.Permanent(fmt.Errorf("store format version %d is newer than supported version %d", version, store_kvkey.FormatVersion))
 	}
 
-	// Migrate, then record the version in a durable commit that also makes
-	// the migration's ordered commits durable.
-	if err := formatMigrations[version](ctx, store, keys); err != nil {
-		return fmt.Errorf("migrate store format version %d to %d: %w", version, store_kvkey.FormatVersion, err)
+	// Migrate the key layout; the commit below makes its ordered commits
+	// durable.
+	if version < keyFormatVersion {
+		if err := formatMigrations[version](ctx, store, keys); err != nil {
+			return 0, fmt.Errorf("migrate store format version %d to %d: %w", version, keyFormatVersion, err)
+		}
+	}
+
+	// Choose the version: format 6 when asked or when the graph tracks no
+	// block, so no count is missing.
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Discard()
+	rg := OpenRefGraph(kvtx.NewTxStore(tx))
+	next := uint64(keyFormatVersion)
+	if !shareCounts {
+		tracked, err := rg.TracksBlocks(ctx)
+		if err != nil {
+			return 0, err
+		}
+		shareCounts = !tracked
+	}
+	if shareCounts {
+		if _, err := rg.BeginSharing(ctx); err != nil {
+			return 0, err
+		}
+		next = store_kvkey.FormatVersion
+	}
+	if next == version {
+		return version, nil
 	}
 
 	// A graph that tracks no block yet is minor-ready from birth, as
-	// block_gc.RefGraph.ClaimYoungReady describes.
-	tx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		return err
+	// block_gc.RefGraph.ClaimYoungReady describes. Record the version in a
+	// durable commit.
+	if _, err := rg.ClaimYoungReady(ctx); err != nil {
+		return 0, err
 	}
-	defer tx.Discard()
-	if _, err := OpenRefGraph(kvtx.NewTxStore(tx)).ClaimYoungReady(ctx); err != nil {
-		return err
+	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(next)); err != nil {
+		return 0, err
 	}
-	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
+	return next, tx.Commit(ctx)
 }
 
 // migrateYoungLog upgrades a store of format version 4, whose keys are those
@@ -83,11 +119,15 @@ func migrateYoungLog(context.Context, kvtx.Store, *store_kvkey.KVKey) error {
 	return nil
 }
 
-// NeedsFormatUpgrade reports whether opening a Volume on store migrates it. A
-// newer store is not migrated: opening it fails.
-func NeedsFormatUpgrade(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) (bool, error) {
+// NeedsFormatUpgrade reports whether opening a Volume on store, with
+// shareCounts as its Config's UpgradeSharedCounts, rewrites its keys or begins
+// its sharing walk; a binary that predates the walk must not have it open. An
+// empty store's move to format 6 is not counted, since a graph that tracks
+// nothing has no count to miss. A newer store is not migrated: opening it
+// fails.
+func NeedsFormatUpgrade(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey, shareCounts bool) (bool, error) {
 	version, err := readFormatVersion(ctx, store, keys)
-	return version < store_kvkey.FormatVersion, err
+	return version < keyFormatVersion || (shareCounts && version < store_kvkey.FormatVersion), err
 }
 
 // readFormatVersion returns the store's format version, or 0 when unset.

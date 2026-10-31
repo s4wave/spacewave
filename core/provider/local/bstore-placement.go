@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	"math"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
@@ -106,6 +107,8 @@ func uploadPolicy(cache *account_settings.BlockStoreCache) block_store_writeback
 		MaxPendingBytes: int64(min(cache.GetMaxPendingBytes(), math.MaxInt64)),
 		ResidentHigh:    int64(high),
 		ResidentLow:     int64(low),
+		MaxUploadReads:  int(cache.GetMaxUploadReads()),
+		UploadReadSlow:  time.Duration(cache.GetUploadReadSlowMillis()) * time.Millisecond,
 	}
 }
 
@@ -230,7 +233,11 @@ func (t *bstoreTracker) openBackendStore(
 	if err != nil {
 		return nil, err
 	}
-	return buildS3BlockStore(t.a.le.WithField("bstore-id", t.id), backend.GetS3(), t.id, creds)
+	le := t.a.le.WithField("bstore-id", t.id)
+	if location := backend.GetSql(); location != nil {
+		return buildSQLBlockStore(ctx, le, location, t.id, creds)
+	}
+	return buildS3BlockStore(le, backend.GetS3(), t.id, creds)
 }
 
 // swapRemote replaces the open backend store and closes the previous one.
@@ -246,4 +253,23 @@ func (t *bstoreTracker) getRemote() block.StoreOps {
 		return remote.store
 	}
 	return nil
+}
+
+// SetSQLPrimary makes the account's block stores placed on an SQL backend,
+// as mounted after the call, write to that backend and read the local bucket,
+// read only, before it. It also stops the account's GC cleanup
+// and backend reclaim, since the backend's blocks reference local blocks
+// without graph edges.
+func (a *ProviderAccount) SetSQLPrimary(primary bool) {
+	a.sqlPrimary.Store(primary)
+}
+
+// sqlMaxConns is the pool size of the SQL backend stores opened after it is
+// set, zero for the store's default.
+var sqlMaxConns atomic.Int32
+
+// SetSQLMaxConns bounds the open connections of each SQL backend store opened
+// after the call; zero or less uses the store's default.
+func SetSQLMaxConns(n int) {
+	sqlMaxConns.Store(int32(max(n, 0))) // #nosec G115 -- pool sizes fit in int32.
 }

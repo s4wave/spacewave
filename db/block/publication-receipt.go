@@ -18,6 +18,9 @@ type PublicationReceipt struct {
 	resolved bool
 	// err is the durable result, meaningful only after resolved.
 	err error
+	// existed reports, for each entry of a successful publication, whether
+	// the store already held it, or is nil when the publisher did not say.
+	existed []bool
 	// release drops optional publication ownership after durable completion.
 	release     func()
 	releaseOnce sync.Once
@@ -53,6 +56,13 @@ func (r *PublicationReceipt) Done() <-chan struct{} { return r.doneCh }
 
 // Resolve completes a receipt exactly once. Only its owning publisher calls it.
 func (r *PublicationReceipt) Resolve(err error) {
+	r.ResolveExisted(err, nil)
+}
+
+// ResolveExisted completes a receipt exactly once, reporting for each entry of
+// the publication whether the store already held it. existed is kept only when
+// err is nil. Only its owning publisher calls it.
+func (r *PublicationReceipt) ResolveExisted(err error, existed []bool) {
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Resolve the receipt once and wake its waiters.
 		if r.resolved {
@@ -60,6 +70,9 @@ func (r *PublicationReceipt) Resolve(err error) {
 		}
 		r.resolved = true
 		r.err = err
+		if err == nil {
+			r.existed = existed
+		}
 		close(r.doneCh)
 		broadcast()
 	})
@@ -72,6 +85,18 @@ func (r *PublicationReceipt) Err() error {
 		err = r.err
 	})
 	return err
+}
+
+// Existed reports, for each entry of the publication, whether the store
+// already held it. It is meaningful only after Done closes with no error, and
+// is nil when the publisher did not report it: the caller then treats every
+// entry as one the store did not hold.
+func (r *PublicationReceipt) Existed() []bool {
+	var existed []bool
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		existed = r.existed
+	})
+	return existed
 }
 
 // Wait returns the durable result, blocking until resolution when unresolved.

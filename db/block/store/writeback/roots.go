@@ -13,6 +13,9 @@ func (m *MarkingStore) SupportsRootRetention() bool {
 	return block.SupportsRootRetention(m.store)
 }
 
+// KeepsHoldCounts reports whether the inner store keeps shared counts.
+func (m *MarkingStore) KeepsHoldCounts() bool { return block.KeepsHoldCounts(m.store) }
+
 // SetRetainedRoots forwards durable root ownership to the inner store and
 // marks the blocks it wrote.
 func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {

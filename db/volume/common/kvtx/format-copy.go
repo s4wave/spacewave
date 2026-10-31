@@ -152,13 +152,18 @@ func copyStore(
 		return err
 	}
 
-	// Record the version in a durable commit that also makes the ordered
-	// commits durable.
+	// Begin the sharing walk, since the copied counts may be incomplete or,
+	// after a reachable copy, name holders it dropped; a full copy of a store
+	// mid-walk keeps its place. Record the version in the same durable commit,
+	// which also makes the ordered commits durable.
 	tx, err := dst.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
+	if _, err := OpenRefGraph(kvtx.NewTxStore(tx)).BeginSharing(ctx); err != nil {
+		return err
+	}
 	if err := tx.Set(ctx, keys.GetFormatVersionKey(), store_kvkey.MarshalFormatVersion(store_kvkey.FormatVersion)); err != nil {
 		return err
 	}

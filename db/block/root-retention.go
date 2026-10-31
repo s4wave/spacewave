@@ -11,6 +11,11 @@ type RootRetainer interface {
 	// SupportsRootRetention reports whether the store owns roots. The other
 	// methods require it.
 	SupportsRootRetention() bool
+	// KeepsHoldCounts reports whether the store keeps the shared counts a
+	// deadlist record's check reads: one per holder of each page a put found
+	// stored, and one per page a named deadlist record lists as held. It
+	// requires SupportsRootRetention.
+	KeepsHoldCounts() bool
 	// SetRetainedRoots writes the entries and moves every named root as one
 	// change. A root may hold a block the entries write.
 	SetRetainedRoots(context.Context, []*PutBatchEntry, []NamedRoot) error
@@ -106,6 +111,15 @@ func RootsComplete(ctx context.Context, store StoreOps, refs []*BlockRef) ([]boo
 func SupportsRootRetention(store StoreOps) bool {
 	r, ok := store.(RootRetainer)
 	return ok && r.SupportsRootRetention()
+}
+
+// KeepsHoldCounts reports whether a store owns roots and keeps shared counts.
+// A writer names deadlist records only in such a store: without the counts, a
+// record's check cannot tell a page a later World stored again from a dead
+// one.
+func KeepsHoldCounts(store StoreOps) bool {
+	r, ok := store.(RootRetainer)
+	return ok && r.SupportsRootRetention() && r.KeepsHoldCounts()
 }
 
 // NamedRoot is a durable named root and the block it holds. An empty Ref

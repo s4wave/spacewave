@@ -22,7 +22,7 @@ func (e *Example) DecodedBlockCacheTypeKey() string {
 }
 
 // UnmarshalExample unmarshals the example block.
-// Returns nil, nil if empty
+// Returns nil, nil if empty.
 func UnmarshalExample(ctx context.Context, bcs *block.Cursor) (*Example, error) {
 	return block.UnmarshalBlock[Example](ctx, bcs)
 }

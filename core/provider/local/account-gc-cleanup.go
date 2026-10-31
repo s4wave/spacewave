@@ -36,6 +36,13 @@ func (a *ProviderAccount) collectGCRootlessBlocks(ctx context.Context) (*block_g
 		return a.gcCleanupCollect(ctx)
 	}
 
+	// Refuse to sweep while the block stores write to an SQL primary, whose
+	// blocks reference volume blocks without graph edges.
+	if a.sqlPrimary.Load() {
+		a.le.Warn("skipping gc cleanup while block stores write to an SQL primary")
+		return nil, nil
+	}
+
 	// Sweep rootless blocks through the volume ref graph when one is present.
 	kvVol, ok := a.vol.(kvtx_volume.KvtxVolume)
 	if !ok {

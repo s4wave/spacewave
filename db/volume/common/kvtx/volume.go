@@ -65,6 +65,11 @@ type Volume struct {
 	// gcMarkWalk marks a block pass by walking in one snapshot instead of
 	// scanning child lists in short transactions.
 	gcMarkWalk bool
+	// holdCounts records whether puts and named deadlist records keep shared
+	// counts: the store is at format 6, commits atomically and its Config does
+	// not disable them. The graph's sharing walk decides when they are
+	// complete.
+	holdCounts bool
 	// closeBcast guards the closing, closed, and closeErr state below.
 	closeBcast broadcast.Broadcast
 	// closing records that Close has started and direct writes must stop.
@@ -135,10 +140,16 @@ type Volume struct {
 	healthDueAt atomic.Uint64
 	// puts counts the new blocks of each write path, for the flows.
 	puts [numPutPaths]putCount
-	// deadlistsChecked and deadlistLivePages count the due deadlist records
-	// the collector checked and the listed pages its mark reached, for the
-	// flows.
-	deadlistsChecked, deadlistLivePages atomic.Uint64
+	// deadlistsChecked, deadlistLivePages, deadlistLeakedPages and
+	// deadlistCountUnderflows count, for the flows, the due deadlist records
+	// the collector applied in shadow, the pages they would free that its
+	// mark reached, the pages they kept that it did not reach, and the count
+	// changes that would go below zero.
+	deadlistsChecked, deadlistLivePages          atomic.Uint64
+	deadlistLeakedPages, deadlistCountUnderflows atomic.Uint64
+	// revivedPuts counts the marked entries puts found absent and stored
+	// afresh, for the flows.
+	revivedPuts atomic.Uint64
 	// le logs the first caller of each write path putting a block without
 	// its references, may be nil.
 	le *logrus.Entry
@@ -189,8 +200,13 @@ func NewVolume(
 		v.deleteFn = deleteFn[0]
 	}
 
+	// Refuse a Config that asks to build the shared counts and to keep none.
+	if conf.GetDisableHoldCounts() && conf.GetUpgradeSharedCounts() {
+		return nil, volume.Permanent(errors.New("store config sets both disable_hold_counts and upgrade_shared_counts"))
+	}
+
 	// Load or claim the Volume identity and initialize its storage.
-	v, err := initVolume(ctx, v, storeID, noGenerateKey, noWriteKey)
+	v, format, err := initVolume(ctx, v, storeID, conf.GetUpgradeSharedCounts(), noGenerateKey, noWriteKey)
 	if err != nil {
 		return nil, err
 	}
@@ -209,43 +225,78 @@ func NewVolume(
 		}
 	}
 
+	// Keep the graph's sharing walk in step with the Config.
+	if err := v.openSharing(ctx, format, conf.GetDisableHoldCounts()); err != nil {
+		return nil, err
+	}
 	return v, nil
 }
 
+// openSharing decides whether the Volume keeps shared counts and brings the
+// graph's sharing walk in step. A store of format 6 that commits atomically
+// keeps them unless disabled: it begins a walk after a stop, and a block pass
+// runs the walk. One that keeps none stops the walk, so its counts, stale
+// from then on, are rebuilt if it keeps them again. A store of format 5 keeps
+// none and has no walk.
+func (v *Volume) openSharing(ctx context.Context, format uint64, disabled bool) error {
+	// A store of format 5 keeps no counts.
+	if format < store_kvkey.FormatVersion {
+		return nil
+	}
+
+	// Stop or begin the walk when the Config changed.
+	keep := v.publications != nil && !disabled
+	rg := OpenRefGraph(v.kvtxStore)
+	s, err := rg.GetSharing(ctx)
+	switch {
+	case err != nil:
+	case !keep && s.Phase != block_gc.SharingOff:
+		err = rg.StopSharing(ctx)
+	case keep && s.Phase == block_gc.SharingOff:
+		_, err = rg.BeginSharing(ctx)
+	}
+	v.holdCounts = keep
+	return err
+}
+
 // initVolume brings the store to the current format, loads or claims the
-// Volume identity, and opens the persistent reference graph.
+// Volume identity, and opens the persistent reference graph. It returns the
+// store's format version, which is 5 when the store tracks blocks and
+// shareCounts is unset, as upgradeFormat describes.
 func initVolume(
 	ctx context.Context,
 	v *Volume,
 	storeID string,
+	shareCounts,
 	noGenerateKey,
 	noWriteKey bool,
-) (*Volume, error) {
+) (*Volume, uint64, error) {
 	// Bring the store to the current key layout before any read.
-	if err := upgradeFormat(ctx, v.kvtxStore, v.kvKey); err != nil {
-		return nil, err
+	format, err := upgradeFormat(ctx, v.kvtxStore, v.kvKey, shareCounts)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	// Load the stored identity.
 	peerPriv, err := v.LoadPeerPriv(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Generate an identity when none is stored, and store it unless another
 	// mount of the same store committed one first.
 	if peerPriv == nil {
 		if noGenerateKey {
-			return nil, errors.New("peer private key doesn't exist")
+			return nil, 0, errors.New("peer private key doesn't exist")
 		}
 		peerPriv, _, err = crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if !noWriteKey {
 			peerPriv, err = v.claimPeerPriv(ctx, peerPriv)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 		}
 	}
@@ -253,13 +304,13 @@ func initVolume(
 	// Build the peer and derive the volume id from its peer id.
 	v.Peer, err = peer.NewPeer(peerPriv)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	v.volumeID = volume.NewVolumeID(storeID, v.Peer.GetPeerID())
 
 	// Open the persistent reference graph for Volume garbage collection.
 	v.refGraph = OpenRefGraph(v.kvtxStore)
-	return v, nil
+	return v, format, nil
 }
 
 // claimPeerPriv stores priv as the volume identity unless one is already
@@ -375,9 +426,12 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 // block.ErrRefsUnknown for a new block written without its references.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
 	// Refuse new data below the disk reserve, and new blocks without their
-	// references, then write the batch.
-	if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
-		return nil, err
+	// references, then write the batch. A batch of tombstones only frees
+	// space, so it runs below the reserve too.
+	if !onlyTombstones(entries) {
+		if err := v.checkReserve(ctx, batchBytes(entries)); err != nil {
+			return nil, err
+		}
 	}
 	v.noteUnknownRefsBatch(putDirect, entries)
 	if err := requireRefsKnown(ctx, v.reader(), entries); err != nil {

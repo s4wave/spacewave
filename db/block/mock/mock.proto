@@ -20,3 +20,13 @@ message Example {
   // Msg is a message.
   string msg = 1;
 }
+
+// Pair is a page naming two Example pages.
+message Pair {
+  // Left is the first child.
+  .block.BlockRef left = 1;
+  // Right is the second child.
+  .block.BlockRef right = 2;
+  // Msg tells pairs with the same children apart.
+  string msg = 3;
+}

@@ -47,16 +47,34 @@ class AccountSettings(_message.Message):
     def __init__(self, display_name: _Optional[str] = ..., paired_devices: _Optional[_Iterable[_Union[PairedDevice, _Mapping]]] = ..., entity_keypairs: _Optional[_Iterable[_Union[_session_pb2.EntityKeypair, _Mapping]]] = ..., session_presentations: _Optional[_Iterable[_Union[SessionPresentation, _Mapping]]] = ..., keybinding_overrides: _Optional[_Union[_command_pb2.KeybindingOverrideSet, _Mapping]] = ..., sessions: _Optional[_Iterable[_Union[AccountSession, _Mapping]]] = ..., catalog: _Optional[_Iterable[_Union[AccountCatalogEntry, _Mapping]]] = ..., transition: _Optional[_Union[_provider_pb2.AccountTransition, _Mapping]] = ..., accepted_migrations: _Optional[_Iterable[_Union[_provider_pb2.AccountTransition, _Mapping]]] = ..., storage_backends: _Optional[_Iterable[_Union[StorageBackend, _Mapping]]] = ..., default_storage_backend_id: _Optional[str] = ..., block_store_placements: _Optional[_Iterable[_Union[BlockStorePlacement, _Mapping]]] = ..., storage_releases: _Optional[_Iterable[_Union[BlockStorePlacement, _Mapping]]] = ..., developer_space_id: _Optional[str] = ..., plugin_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class StorageBackend(_message.Message):
-    __slots__ = ("id", "display_name", "s3", "credential")
+    __slots__ = ("id", "display_name", "s3", "credential", "sql")
     ID_FIELD_NUMBER: _ClassVar[int]
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     S3_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_FIELD_NUMBER: _ClassVar[int]
+    SQL_FIELD_NUMBER: _ClassVar[int]
     id: str
     display_name: str
     s3: S3Location
     credential: _secret_pb2.Secret
-    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ...) -> None: ...
+    sql: SqlLocation
+    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ..., sql: _Optional[_Union[SqlLocation, _Mapping]] = ...) -> None: ...
+
+class SqlLocation(_message.Message):
+    __slots__ = ("host", "port", "database", "table_prefix", "tls", "tls_cert_sha256")
+    HOST_FIELD_NUMBER: _ClassVar[int]
+    PORT_FIELD_NUMBER: _ClassVar[int]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    TABLE_PREFIX_FIELD_NUMBER: _ClassVar[int]
+    TLS_FIELD_NUMBER: _ClassVar[int]
+    TLS_CERT_SHA256_FIELD_NUMBER: _ClassVar[int]
+    host: str
+    port: int
+    database: str
+    table_prefix: str
+    tls: bool
+    tls_cert_sha256: str
+    def __init__(self, host: _Optional[str] = ..., port: _Optional[int] = ..., database: _Optional[str] = ..., table_prefix: _Optional[str] = ..., tls: _Optional[bool] = ..., tls_cert_sha256: _Optional[str] = ...) -> None: ...
 
 class S3Location(_message.Message):
     __slots__ = ("endpoint", "region", "bucket", "object_prefix", "disable_ssl", "pricing", "keep_packs")
@@ -87,16 +105,22 @@ class BlockStorePlacement(_message.Message):
     def __init__(self, block_store_id: _Optional[str] = ..., storage_backend_id: _Optional[str] = ..., cache: _Optional[_Union[BlockStoreCache, _Mapping]] = ...) -> None: ...
 
 class BlockStoreCache(_message.Message):
-    __slots__ = ("settle_seconds", "max_pending_bytes", "resident_high_bytes", "resident_low_bytes")
+    __slots__ = ("settle_seconds", "max_pending_bytes", "resident_high_bytes", "resident_low_bytes", "skip_backfill", "max_upload_reads", "upload_read_slow_millis")
     SETTLE_SECONDS_FIELD_NUMBER: _ClassVar[int]
     MAX_PENDING_BYTES_FIELD_NUMBER: _ClassVar[int]
     RESIDENT_HIGH_BYTES_FIELD_NUMBER: _ClassVar[int]
     RESIDENT_LOW_BYTES_FIELD_NUMBER: _ClassVar[int]
+    SKIP_BACKFILL_FIELD_NUMBER: _ClassVar[int]
+    MAX_UPLOAD_READS_FIELD_NUMBER: _ClassVar[int]
+    UPLOAD_READ_SLOW_MILLIS_FIELD_NUMBER: _ClassVar[int]
     settle_seconds: int
     max_pending_bytes: int
     resident_high_bytes: int
     resident_low_bytes: int
-    def __init__(self, settle_seconds: _Optional[int] = ..., max_pending_bytes: _Optional[int] = ..., resident_high_bytes: _Optional[int] = ..., resident_low_bytes: _Optional[int] = ...) -> None: ...
+    skip_backfill: bool
+    max_upload_reads: int
+    upload_read_slow_millis: int
+    def __init__(self, settle_seconds: _Optional[int] = ..., max_pending_bytes: _Optional[int] = ..., resident_high_bytes: _Optional[int] = ..., resident_low_bytes: _Optional[int] = ..., skip_backfill: _Optional[bool] = ..., max_upload_reads: _Optional[int] = ..., upload_read_slow_millis: _Optional[int] = ...) -> None: ...
 
 class AccountSession(_message.Message):
     __slots__ = ("peer_id", "storage_peer_id", "revoked", "revoked_by_storage_peer_id")

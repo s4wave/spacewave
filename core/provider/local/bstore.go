@@ -63,6 +63,14 @@ type placementState struct {
 	reads readSet
 	// evictGate is held by each eviction pass and by a storage move.
 	evictGate *csync.Mutex
+	// evictAdmit paces eviction passes, or holds nil.
+	evictAdmit *atomic.Pointer[block_store_writeback.EvictAdmit]
+	// sqlPrimary reports that the store writes to its SQL backend, which
+	// then holds blocks the reference graph may not track.
+	sqlPrimary bool
+	// sqlPublish publishes the writes of a store whose SQL backend is
+	// primary, or holds nil when local cannot publish its heads.
+	sqlPublish *sqlPublisher
 }
 
 // live reports which blocks a bucket reclaim must keep: the blocks the
@@ -112,9 +120,17 @@ func (p *placementState) fill(ctx context.Context, primary block.StoreOps, ref *
 		if err != nil {
 			return err
 		}
-		if tracked[0] {
-			return p.wb.Refill(ctx, ref, stored)
+		if !tracked[0] {
+			return block_store.CacheFill(ctx, primary, ref, stored)
 		}
+
+		// The read that refilled it keeps it from eviction, as a read
+		// served from the disk would, so the next pass cannot drop it.
+		if err := p.wb.Refill(ctx, ref, stored); err != nil {
+			return err
+		}
+		p.reads.add(ref.GetHash())
+		return nil
 	}
 
 	// Fill any other block as a cache fill.
@@ -166,9 +182,10 @@ func (b *BlockStore) GetUploadStatus() (UploadStatus, <-chan struct{}) {
 // the storage backend's bucket. Returns zero without calling fence when no storage
 // backend is open.
 func (b *BlockStore) ReclaimStorage(ctx context.Context, fence bstore.ReclaimFence) (time.Time, error) {
-	// Skip the pass without a storage backend.
+	// Skip the pass without a storage backend, or when the backend is the
+	// store's primary.
 	remote := b.placement.remote.Load()
-	if remote == nil {
+	if remote == nil || b.placement.sqlPrimary {
 		return time.Time{}, nil
 	}
 
@@ -442,10 +459,28 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
-	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate}
+	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit}
 	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
 	placement.backend.Store(backend)
+	if err := placement.reads.load(ctx, wb); err != nil {
+		le.WithError(err).Warn("unable to load the saved block reads, eviction keeps only new reads")
+	}
 	placement.setPolicy(placed.GetCache())
+
+	// Open the SQL backend before the upload routine, which reuses it, when
+	// the account makes it the store's primary. An unreachable backend fails
+	// the mount.
+	var sqlStore backendStore
+	if t.a.sqlPrimary.Load() && backend.GetSql() != nil {
+		sqlStore, err = t.openBackendStore(ctx, backend)
+		if err != nil {
+			return err
+		}
+		t.swapRemote(&openBackend{backend: backend, store: sqlStore})
+		defer t.swapRemote(nil)
+		placement.sqlPrimary = true
+	}
+	le.WithField("sql-primary", sqlStore != nil).Info("mounting bstore")
 
 	// Upload the recorded writes to the current backend until the store
 	// unmounts.
@@ -464,7 +499,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// Read the local store first, then the backend's bucket, then peers.
 	localStore := block_store.NewStore(blockStoreLocalID, wb)
 	lowerOps := block_store.NewStoreReadThrough(
-		t.getRemote,
+		func() block.StoreOps { return t.getRemoteReads(placement) },
 		func() block.StoreOps { return t.a.getP2PStore(bucketID) },
 		nil,
 	)
@@ -480,23 +515,51 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		nil,
 	)
 
+	// A primary SQL backend takes the writes. Its publisher drains published
+	// blocks to it outside the writer's lock, and serves them until they land.
+	var reads, copies block.StoreOps = readOps, copyOps
+	if sqlStore != nil {
+		localStore, reads = sqlPrimaryStores(blockStoreLocalID, localBucket, sqlStore, func() block.StoreOps {
+			return t.a.getP2PStore(bucketID)
+		})
+		if local, ok := localBucket.(block.AtomicPublisher); ok && local.SupportsAtomicPublication() {
+			pub := newSQLPublisher(le.WithField("routine", "sql-publish"), sqlStore, local)
+			placement.sqlPublish = pub
+			reads = newSQLPublishReads(pub, reads)
+			pubCtx, pubCancel := context.WithCancel(ctx)
+			pubDone := make(chan struct{})
+			go func() {
+				pub.run(pubCtx)
+				close(pubDone)
+			}()
+			defer func() {
+				pubCancel()
+				<-pubDone
+			}()
+		}
+		copies = reads
+	}
+
 	// Build the handle over the local store and its read paths.
 	bstoreHandle := &BlockStore{
 		store:         localStore,
-		readStore:     block_store.NewStore(blockStoreLocalID, readOps),
-		copyStore:     copyOps,
+		readStore:     block_store.NewStore(blockStoreLocalID, reads),
+		copyStore:     copies,
 		decodedBlocks: decodedBlocks,
 		placement:     placement,
 	}
 
-	// Keep the store under its placement's resident budget.
-	eviction := routine.NewRoutineContainerWithLogger(
-		le.WithField("routine", "storage-evict"),
-		routine.WithRetry(providerBackoff),
-	)
-	eviction.SetRoutine(placement.runEviction)
-	eviction.SetContext(ctx, true)
-	defer eviction.ClearContext()
+	// Keep the store under its placement's resident budget. A store writing
+	// to its SQL backend leaves the local bucket as it is.
+	if sqlStore == nil {
+		eviction := routine.NewRoutineContainerWithLogger(
+			le.WithField("routine", "storage-evict"),
+			routine.WithRetry(providerBackoff),
+		)
+		eviction.SetRoutine(placement.runEviction)
+		eviction.SetContext(ctx, true)
+		defer eviction.ClearContext()
+	}
 
 	// Serve the handle to block store directives, so their reads of evicted
 	// blocks read through to the backend.
@@ -514,7 +577,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	// Follow placement changes until the store unmounts. The backend receives
 	// the blocks stored before it was chosen as well as new writes.
-	if err := t.backfill(ctx, wb, backend); err != nil {
+	// A placement that skips the backfill queues it once the placement no
+	// longer does.
+	if err := t.backfill(ctx, wb, backend, placed); err != nil {
 		return err
 	}
 	for settings != nil {
@@ -523,21 +588,45 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			return err
 		}
 		placement.setPolicy(placed.GetCache())
-		if next.EqualVT(backend) {
-			continue
+		if sqlStore != nil && !next.EqualVT(backend) {
+			return errors.New("placement of an SQL primary store changed, remounting")
 		}
-		placement.backend.Store(next)
-		if err := wb.SetEnabled(ctx, next != nil); err != nil {
-			return err
+		if !next.EqualVT(backend) {
+			placement.backend.Store(next)
+			if err := wb.SetEnabled(ctx, next != nil); err != nil {
+				return err
+			}
+			upload.SetState(next)
+			backend = next
 		}
-		upload.SetState(next)
-		backend = next
-		if err := t.backfill(ctx, wb, backend); err != nil {
+		if err := t.backfill(ctx, wb, backend, placed); err != nil {
 			return err
 		}
 	}
 	<-ctx.Done()
 	return context.Canceled
+}
+
+// sqlPrimaryStores builds the write store and read chain of a store whose
+// SQL backend is primary. Writes go to the backend. Reads try the local
+// bucket, read only, then the backend, then peers, and fill nothing, so the
+// local bucket takes no new blocks.
+func sqlPrimaryStores(
+	id string,
+	local, sql block.StoreOps,
+	peers block_store.StoreSource,
+) (block_store.Store, *block_store.StoreReadThrough) {
+	lower := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return sql },
+		peers,
+		nil,
+	)
+	reads := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return block.NewReadOnlyStore(local) },
+		func() block.StoreOps { return lower },
+		nil,
+	)
+	return block_store.NewStore(id, sql), reads
 }
 
 // newLocalBlockStoreController builds the controller that serves store under
@@ -559,13 +648,15 @@ func newLocalBlockStoreController(
 	)
 }
 
-// backfill queues the store's blocks for upload to backend, once per backend.
+// backfill queues the store's blocks for upload to backend, once per backend,
+// unless the placement skips the backfill.
 func (t *bstoreTracker) backfill(
 	ctx context.Context,
 	wb *block_store_writeback.Store,
 	backend *account_settings.StorageBackend,
+	placed *account_settings.BlockStorePlacement,
 ) error {
-	if backend == nil {
+	if backend == nil || placed.GetCache().GetSkipBackfill() {
 		return nil
 	}
 	return wb.Backfill(ctx, backend.GetId(), func(ctx context.Context) ([]*block.BlockRef, error) {

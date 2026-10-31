@@ -398,7 +398,7 @@ func (w *publicationWriter) run() {
 				w.stats.Pending--
 				w.stats.PendingBytes -= r.bytes
 				w.stats.PendingEntries -= len(r.publication.Entries)
-				r.receipt.Resolve(results[i])
+				r.receipt.ResolveExisted(results[i], r.existed)
 			}
 			w.queue = slices.Delete(w.queue, 0, len(group))
 			w.next -= len(group)
@@ -599,6 +599,9 @@ func (w *publicationWriter) apply(
 	if req.existed, err = gc.PutBlockBatch(ctx, p.Entries); err != nil {
 		return err
 	}
+	if err := w.volume.addExistedHolds(ctx, blocks, rg, p.Entries, req.existed); err != nil {
+		return err
+	}
 	if err := gc.FlushPending(ctx); err != nil {
 		return err
 	}
@@ -607,7 +610,7 @@ func (w *publicationWriter) apply(
 	// bridges publication and consumer handoff, and can be reaped after a
 	// crash.
 	if p.RootName != "" {
-		if err := setBucketRoot(ctx, blocks, rg, p.BucketID, p.RootName, p.Root); err != nil {
+		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, p.RootName, p.Root); err != nil {
 			return err
 		}
 		if req.rootOwner != "" {
@@ -628,7 +631,7 @@ func (w *publicationWriter) apply(
 
 	// Set the further named roots.
 	for _, root := range p.Roots {
-		if err := setBucketRoot(ctx, blocks, rg, p.BucketID, root.Name, root.Ref); err != nil {
+		if err := w.volume.setBucketRoot(ctx, blocks, rg, p.BucketID, root.Name, root.Ref); err != nil {
 			return err
 		}
 	}

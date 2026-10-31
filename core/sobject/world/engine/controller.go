@@ -64,6 +64,11 @@ type Controller struct {
 	// writeBcast is broadcast after each change of the installed World. The
 	// storage reclaim routine schedules a pass after each broadcast.
 	writeBcast broadcast.Broadcast
+	// reinstallMtx guards reinstallHooks, which are called under the writer
+	// lock with the World seqno after failed writes are dropped. They outlive
+	// the engine.
+	reinstallMtx   sync.Mutex
+	reinstallHooks []*reinstallHook
 }
 
 // NewController constructs a new World Engine controller.
@@ -241,14 +246,22 @@ func (c *Controller) executeWorld(
 		return sobject.ErrEmptyTransformConfig
 	}
 
-	// Bind the head to the block store, gathering what each World commit
-	// replaces from here on.
-	replay.deaths = newWorldDeaths(headRef.GetRootRef())
-	blkEngine, err := c.buildBlkEngine(ctx, le, replay.store(), headRef, transformConf, replay.transitions()...)
+	// Bind the head to the engine's view of the block store, once for
+	// readers and once for writers, which fork from the admitted World ahead
+	// of the durable one. Only writers commit, so only they gather what each
+	// World commit replaces from here on.
+	blkEngine, err := c.buildBlkEngine(ctx, le, replay.store(), headRef, transformConf)
 	if err != nil {
 		return err
 	}
 	defer blkEngine.Release()
+	replay.deaths = newWorldDeaths(replay.storedRoot(headRef.GetRootRef()))
+	admitted, err := c.buildBlkEngine(ctx, le, replay.store(), headRef, transformConf, replay.transitions()...)
+	if err != nil {
+		return err
+	}
+	defer admitted.Release()
+	blkEngine.admitted = admitted.bengine
 
 	// Log the bound root and read the World sequence number.
 	if c.conf.GetVerbose() {
@@ -291,7 +304,7 @@ func (c *Controller) executeWorld(
 
 	// Publish the engine for the lifetime of this World.
 	le.WithField("world-seqno", seqno).Info("world engine ready")
-	if err := c.setWriter(ctx, engine); err != nil {
+	if err := c.setWriter(ctx, engine, seqno); err != nil {
 		return err
 	}
 	served := &servedEngine{engine: wengine}
@@ -403,15 +416,20 @@ func (c *Controller) withdraw(served *servedEngine) {
 	served.mtx.Unlock()
 }
 
-// setWriter sets the served engine under the writer lock. The engine it
-// replaces settles no further: its writes ended with it.
-func (c *Controller) setWriter(ctx context.Context, e *soEngine) error {
-	// Swap the writer under the writer lock.
+// setWriter sets the served engine under the writer lock and calls the
+// reinstall hooks with the seqno of its head. executeWorld settled the
+// admissions of the engine it replaces before reading that head, and a
+// retired engine admits nothing, so no write of the replaced engine settles
+// after the hooks see the new head.
+func (c *Controller) setWriter(ctx context.Context, e *soEngine, seqno uint64) error {
+	// Swap the writer under the writer lock and report its World to the
+	// reinstall hooks, since writes of the engine before it may have failed.
 	unlock, err := c.writeMtx.Lock(ctx, "set-writer")
 	if err != nil {
 		return err
 	}
 	c.writer = e
+	c.callReinstall(seqno)
 	unlock()
 	return nil
 }

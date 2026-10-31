@@ -24,6 +24,12 @@ func (v *Volume) SupportsAtomicPublication() bool {
 	return v.publications != nil
 }
 
+// KeepsHoldCounts reports whether the Volume keeps shared counts: it commits
+// atomically and its Config does not disable them.
+func (v *Volume) KeepsHoldCounts() bool {
+	return v.publications != nil && v.holdCounts
+}
+
 // SubmitAtomic admits an atomic publication and returns its completion receipt.
 // Admission is not durability: await the receipt for the durable result.
 func (v *Volume) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {

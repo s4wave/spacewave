@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"slices"
 )
 
 // Replacements lists the stored pages the writes a ReplacementLog recorded
@@ -22,6 +21,21 @@ type Replacements struct {
 	// Kept lists live pages a write attached under a new parent, such as a
 	// moved subtree or a written page. Expanding Removed stops at them.
 	Kept []*BlockRef
+	// Held lists the stored pages, among Kept, that may have gained a holder
+	// without being put: a page the interval wrote, or the new root, now names
+	// a stored page that no page the interval replaced named, such as another
+	// World's object root or a copied subtree. A page put again in the interval
+	// had its holders counted at the put instead. Each adds one shared count
+	// when the record is named. A held page whose old parent the record lists dead moved instead,
+	// as when the root moves onto a page below it; applying the record takes
+	// that count back.
+	Held []*BlockRef
+	// Existed lists the live pages whose edge from the new tree was counted
+	// already: a put found the page stored, or only found or untouched pages
+	// name it. When a listed parent of one frees, the page loses that
+	// parent's count. The old root is among them when the new tree reaches
+	// it through an existing page, and then loses the lineage's count.
+	Existed []*BlockRef
 }
 
 // Expand visits each page in Removed and each page under one, stopping at the
@@ -42,35 +56,4 @@ func (r *Replacements) Expand(ctx context.Context, src StoreOps, visit func(ref 
 		}
 		return visit(ref)
 	})
-}
-
-// Then returns what died across r's interval followed by next's, the interval
-// that starts at the root r's ended at. A page next keeps is live at its end,
-// so it leaves the dead pages even when r reported it, as when a later write
-// stores a page again or attaches a subtree r removed. Expansion stops at
-// every page either interval replaced or kept; stopping early only leaks.
-func (r *Replacements) Then(next *Replacements) *Replacements {
-	// Collect the pages next keeps.
-	live := make(map[string]struct{}, len(next.Kept))
-	for _, ref := range next.Kept {
-		live[ref.MarshalString()] = struct{}{}
-	}
-	dead := func(lists ...[]*BlockRef) []*BlockRef {
-		var out []*BlockRef
-		for _, list := range lists {
-			for _, ref := range list {
-				if _, ok := live[ref.MarshalString()]; !ok {
-					out = append(out, ref)
-				}
-			}
-		}
-		return out
-	}
-
-	// Join the dead pages, dropping the live ones, and every stop.
-	return &Replacements{
-		Replaced: dead(r.Replaced, next.Replaced),
-		Removed:  dead(r.Removed, next.Removed),
-		Kept:     slices.Concat(r.Kept, next.Kept),
-	}
 }

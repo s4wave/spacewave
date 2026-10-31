@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"golang.org/x/sync/errgroup"
 )
 
 // backfillKey names the remote whose backfill completed.
@@ -38,6 +39,11 @@ const uploadBatchBlocks = 4096
 // uploadBatchBytes bounds the recorded block bytes one upload batch carries. A
 // batch holds at least one block, whatever its size.
 const uploadBatchBytes = 4 << 20
+
+// uploadWorkers bounds the upload batches read and written at once. A remote
+// with a long round trip, such as a database across the internet, uploads one
+// batch per round trip per worker.
+const uploadWorkers = 16
 
 // backfillBatchSize bounds the blocks one backfill marker transaction queues.
 const backfillBatchSize = 256
@@ -65,6 +71,8 @@ type Store struct {
 	bcast broadcast.Broadcast
 	// status projects the committed markers and the upload policy.
 	status Status
+	// reads bounds the upload's local reads in flight by the disk's load.
+	reads *readGate
 }
 
 // GetStoreParts returns the local store that holds every block.
@@ -84,7 +92,7 @@ func NewStore(
 	enabled bool,
 ) (*Store, error) {
 	// Connect local block writes to the durable upload markers.
-	s := &Store{local: local, values: values, markers: markers}
+	s := &Store{local: local, values: values, markers: markers, reads: newReadGate()}
 	s.MarkingStore = NewMarkingStore(local, s.mark)
 
 	// Restore the pending upload counts, eviction queue size and completed
@@ -141,6 +149,7 @@ func NewStore(
 // SetPolicy sets when queued blocks upload and the resident budget, waking
 // Upload and budget watchers to apply it.
 func (s *Store) SetPolicy(policy Policy) {
+	s.reads.setPolicy(policy.MaxUploadReads, policy.UploadReadSlow)
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if s.status.Policy != policy {
 			s.status.Policy = policy
@@ -151,11 +160,15 @@ func (s *Store) SetPolicy(policy Policy) {
 
 // GetStatus returns the upload status and a channel closed when it changes.
 func (s *Store) GetStatus() (Status, <-chan struct{}) {
+	// Copy the status and its change channel.
 	var status Status
 	var changed <-chan struct{}
 	s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		status, changed = s.status, getWaitCh()
 	})
+
+	// Add the read bound, which moves without a broadcast.
+	status.UploadReads = s.reads.getLimit()
 	return status, changed
 }
 
@@ -343,8 +356,8 @@ type pendingBlock struct {
 	dropped bool
 }
 
-// scanBatch reads the due markers, oldest first, up to uploadBatchBlocks
-// blocks and uploadBatchBytes bytes. A marker is due once settled, or while
+// scanBatch reads the due markers, oldest first, up to uploadWorkers batches
+// of uploadBatchBlocks blocks and uploadBatchBytes bytes. A marker is due once settled, or while
 // the bytes still queued after the batch would exceed the policy's limit.
 func (s *Store) scanBatch(ctx context.Context) ([]pendingBlock, error) {
 	// Read the policy and queue size the batch is chosen against.
@@ -367,8 +380,8 @@ func (s *Store) scanBatch(ctx context.Context) ([]pendingBlock, error) {
 				return errScanDone
 			}
 
-			// Require the pending block to fit within the upload byte limit.
-			if len(batch) != 0 && batchBytes+entry.size > uploadBatchBytes {
+			// Require the pending block to fit within the workers' byte limit.
+			if len(batch) != 0 && batchBytes+entry.size > uploadWorkers*uploadBatchBytes {
 				return errScanDone
 			}
 
@@ -380,7 +393,7 @@ func (s *Store) scanBatch(ctx context.Context) ([]pendingBlock, error) {
 				size:      entry.size,
 			})
 			batchBytes += entry.size
-			if len(batch) == uploadBatchBlocks {
+			if len(batch) == uploadWorkers*uploadBatchBlocks {
 				return errScanDone
 			}
 			return nil
@@ -396,32 +409,99 @@ func (s *Store) scanBatch(ctx context.Context) ([]pendingBlock, error) {
 	return batch, nil
 }
 
-// uploadBatch writes the batch's blocks with their refs to remote, then clears
-// their markers. A block the local store no longer holds is dropped without
-// upload. A block it holds without its refs fails the batch, since the remote
-// would keep it as a leaf.
+// uploadBatch writes the batch's blocks with their refs to remote, split into
+// chunks that uploadWorkers read and write at once, then clears their markers
+// after every chunk lands. A failed chunk clears nothing, and the next pass
+// writes the batch again, which the remote ignores for blocks it holds.
 func (s *Store) uploadBatch(ctx context.Context, remote block.StoreOps, batch []pendingBlock) error {
-	entries := make([]*block.PutBatchEntry, 0, len(batch))
-	for i, pending := range batch {
-		stored, err := s.local.GetStoredBlock(ctx, pending.ref)
-		if err != nil {
-			return errors.Wrap(err, "read pending block")
+	// Split the batch into chunks within the per-batch limits.
+	var chunks [][]int
+	var chunk []int
+	var chunkBytes int64
+	for i := range batch {
+		if len(chunk) != 0 && (len(chunk) == uploadBatchBlocks || chunkBytes+batch[i].size > uploadBatchBytes) {
+			chunks = append(chunks, chunk)
+			chunk, chunkBytes = nil, 0
 		}
-		if stored == nil {
-			batch[i].dropped = true
-			continue
-		}
-		if !stored.RefsKnown {
-			return errors.Wrapf(block.ErrRefsUnknown, "upload block %s", pending.ref.MarshalString())
-		}
-		entries = append(entries, &block.PutBatchEntry{Ref: pending.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
+		chunk = append(chunk, i)
+		chunkBytes += batch[i].size
 	}
-	if len(entries) != 0 {
-		if _, err := remote.PutBlockBatch(ctx, entries); err != nil {
-			return errors.Wrap(err, "upload blocks")
-		}
+	if len(chunk) != 0 {
+		chunks = append(chunks, chunk)
+	}
+
+	// Upload the chunks concurrently; each touches only its own entries.
+	eg, egCtx := errgroup.WithContext(ctx)
+	eg.SetLimit(uploadWorkers)
+	for _, chunk := range chunks {
+		eg.Go(func() error {
+			return s.uploadChunk(egCtx, remote, batch, chunk)
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 	return s.clear(ctx, batch)
+}
+
+// uploadChunk writes the blocks at the chunk's batch positions with their
+// refs to remote. A block the local store no longer holds is marked dropped
+// without upload. A block it holds without its refs fails the chunk, since the
+// remote would keep it as a leaf.
+func (s *Store) uploadChunk(ctx context.Context, remote block.StoreOps, batch []pendingBlock, chunk []int) error {
+	// Read the blocks with their refs from the local store, as many at once
+	// as the disk's load admits.
+	read := make([]*block.PutBatchEntry, len(chunk))
+	eg, egCtx := errgroup.WithContext(ctx)
+	for n, i := range chunk {
+		eg.Go(func() error {
+			return s.reads.read(egCtx, func() error {
+				entry, err := s.readPending(egCtx, &batch[i])
+				read[n] = entry
+				return err
+			})
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	// Write the read blocks to the remote in one batch.
+	entries := slices.DeleteFunc(read, func(entry *block.PutBatchEntry) bool { return entry == nil })
+	if len(entries) == 0 {
+		return nil
+	}
+	if _, err := remote.PutBlockBatch(ctx, entries); err != nil {
+		return errors.Wrap(err, "upload blocks")
+	}
+	return nil
+}
+
+// readPending reads the pending block with its refs from the local store. It
+// marks a block the store no longer holds dropped and returns nil, and fails
+// on a block held without its refs, since the remote would keep it as a leaf.
+func (s *Store) readPending(ctx context.Context, pending *pendingBlock) (*block.PutBatchEntry, error) {
+	// Read the block, marking it dropped when gone.
+	stored, err := s.local.GetStoredBlock(ctx, pending.ref)
+	if err != nil {
+		return nil, errors.Wrap(err, "read pending block")
+	}
+	if stored == nil {
+		pending.dropped = true
+		return nil, nil
+	}
+
+	// Upload only a block whose refs are known.
+	if !stored.RefsKnown {
+		return nil, errors.Wrapf(block.ErrRefsUnknown, "upload block %s", pending.ref.MarshalString())
+	}
+	return &block.PutBatchEntry{Ref: pending.ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true}, nil
+}
+
+// GetUploadReads returns how many local reads the upload currently keeps in
+// flight at most.
+func (s *Store) GetUploadReads() int {
+	return s.reads.getLimit()
 }
 
 // mark queues written blocks for upload in one transaction.
@@ -522,8 +602,8 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 
 	// Remove uploaded block markers, count their cleared bytes, and read the
 	// write time of the queue's new head.
-	var cleared int
-	var clearedBytes, queuedBytes int64
+	var cleared, uploaded int
+	var clearedBytes, uploadedBytes, queuedBytes int64
 	var oldest time.Time
 	err = kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
 		// Delete the markers still queued, counting what they held, and queue
@@ -532,7 +612,7 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		if err != nil {
 			return err
 		}
-		cleared, clearedBytes, queuedBytes = 0, 0, 0
+		cleared, uploaded, clearedBytes, uploadedBytes, queuedBytes = 0, 0, 0, 0, 0
 		for _, pending := range batch {
 			if pending.queueKey == nil {
 				continue
@@ -556,6 +636,8 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 					return err
 				}
 				queuedBytes += added
+				uploaded++
+				uploadedBytes += pending.size
 			}
 			cleared++
 			clearedBytes += pending.size
@@ -584,6 +666,8 @@ func (s *Store) clear(ctx context.Context, batch []pendingBlock) error {
 		// Apply the cleared counts and the new head, then wake watchers.
 		s.status.Pending -= cleared
 		s.status.PendingBytes -= clearedBytes
+		s.status.Uploaded += int64(uploaded)
+		s.status.UploadedBytes += uploadedBytes
 		s.status.EvictableBytes += queuedBytes
 		s.status.Err = nil
 		s.status.Oldest = oldest

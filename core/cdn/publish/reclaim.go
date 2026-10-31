@@ -59,6 +59,11 @@ func Reclaim(
 	read ReadBlock,
 	check func(context.Context) error,
 ) (uint64, error) {
+	// A destination that keeps every pack replaces none.
+	if opts.KeepPacks {
+		return 0, errors.New("the destination keeps every pack")
+	}
+
 	// Judge every published pack from its key index.
 	liveKeys := make(map[string]struct{}, len(live))
 	for _, h := range live {

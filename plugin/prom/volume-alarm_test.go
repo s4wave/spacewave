@@ -19,6 +19,7 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	core_alarm_watch "github.com/s4wave/spacewave/core/alarm/watch"
 	"github.com/s4wave/spacewave/core/metrics"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	db_kvtx "github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -54,7 +55,7 @@ func TestVolumeAlarmGCStuck(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = v.Close() })
-	if _, _, err := v.PutBlock(e.ctx, []byte("one"), nil); err != nil {
+	if _, _, err := v.PutBlock(e.ctx, []byte("one"), &block.PutOpts{RefsKnown: true}); err != nil {
 		t.Fatal(err)
 	}
 

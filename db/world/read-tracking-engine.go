@@ -21,6 +21,11 @@ func NewReadTrackingEngine(engine Engine) *ReadTrackingEngine {
 	return &ReadTrackingEngine{inner: engine}
 }
 
+// OnReinstall registers fn with the inner engine's reinstall hooks.
+func (e *ReadTrackingEngine) OnReinstall(ctx context.Context, fn func(seqno uint64)) (func(), error) {
+	return OnReinstall(ctx, e.inner, fn)
+}
+
 // NewTransaction records reads in the context's evaluation, when one is active.
 // Commit and Discard retain the underlying transaction's contract.
 func (e *ReadTrackingEngine) NewTransaction(ctx context.Context, write bool) (Tx, error) {
@@ -112,4 +117,5 @@ func (e *ReadTrackingEngine) WatchIndexedChanges(ctx context.Context, afterSeqno
 var (
 	_ Engine               = (*ReadTrackingEngine)(nil)
 	_ IndexedChangeWatcher = (*ReadTrackingEngine)(nil)
+	_ ReinstallNotifier    = (*ReadTrackingEngine)(nil)
 )

@@ -86,6 +86,18 @@ func (e *RefCountEngine) NewTransaction(ctx context.Context, write bool) (Tx, er
 	return NewRefCountTx(tx, ref), nil
 }
 
+// OnReinstall registers fn with the resolved engine's reinstall hooks, which
+// outlive a rebuild of that engine.
+func (e *RefCountEngine) OnReinstall(ctx context.Context, fn func(seqno uint64)) (func(), error) {
+	var rel func()
+	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+		var err error
+		rel, err = OnReinstall(ctx, *val, fn)
+		return err
+	})
+	return rel, err
+}
+
 // Sync fences durable storage and advances the durable head via the engine.
 func (e *RefCountEngine) Sync(ctx context.Context) (bool, error) {
 	var fenced bool
@@ -242,4 +254,5 @@ func (e *RefCountEngine) WatchIndexedChanges(
 var (
 	_ Engine               = (*RefCountEngine)(nil)
 	_ IndexedChangeWatcher = (*RefCountEngine)(nil)
+	_ ReinstallNotifier    = (*RefCountEngine)(nil)
 )

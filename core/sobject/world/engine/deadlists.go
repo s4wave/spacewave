@@ -36,8 +36,11 @@ type deadlistEntry struct {
 	// to is the root of the named World the interval ends at.
 	to *block.BlockRef
 	// record is the record's first block, or nil when the interval forfeited
-	// and nothing is named.
+	// and nothing is named, or while net waits.
 	record *block.BlockRef
+	// net is the interval waiting for its puts before the record is encoded,
+	// or nil once it is or when the interval forfeited.
+	net *pendingNet
 	// puts are the record's blocks until a durable save stores them.
 	puts []*block.PutBatchEntry
 	// state is where the record is.
@@ -48,6 +51,11 @@ type deadlistEntry struct {
 	// carried is the save generation that carries state, or 0 when no save
 	// does yet.
 	carried uint64
+}
+
+// forfeited reports whether the entry names no record and waits for none.
+func (e *deadlistEntry) forfeited() bool {
+	return e.record == nil && e.net == nil
 }
 
 // deadlistLedger tracks an engine's deadlist records from naming to due. A
@@ -74,28 +82,46 @@ type deadlistLedger struct {
 	gen uint64
 }
 
-// name adds the record of what died from the named World at from to the one
-// at to. ok is false when the interval forfeited; the entry then names no
-// record but keeps its place in the chain.
-func (l *deadlistLedger) name(from, to *block.BlockRef, dead *block.Replacements, ok bool) error {
-	// Encode the record.
-	entry := deadlistEntry{seq: max(l.next, 1), from: from, to: to}
-	if ok {
-		puts, record, err := block.EncodeDeadlist(entry.seq, from, to, dead)
-		if err != nil {
-			return err
-		}
-		entry.record, entry.puts = record, puts
-	}
+// name adds the entry of the named World at to, whose interval from the named
+// World at from waits on net before its record is encoded. net is nil when the
+// interval forfeited; the entry then names no record but keeps its place in
+// the chain.
+func (l *deadlistLedger) name(from, to *block.BlockRef, net *pendingNet) {
+	// Orphan the oldest pending record when the ledger is full, counting it
+	// as stalled when it still waits on its puts.
+	entry := deadlistEntry{seq: max(l.next, 1), from: from, to: to, net: net}
 	l.next = entry.seq + 1
-
-	// Orphan the oldest pending record when the ledger is full.
 	pending := l.pending()
 	if len(pending) >= maxPendingDeadlists {
+		if l.entries[pending[0]].net != nil {
+			writeFlows.stalled.Add(1)
+		}
 		l.move(pending[0], deadlistOrphan)
 	}
 	l.entries = append(l.entries, entry)
-	return nil
+	if net == nil {
+		countDeaths(nil, false)
+	}
+}
+
+// resolve takes the record of each pending entry whose encoding finished,
+// starting the encoding of each whose puts resolved, and reports whether it
+// took any, so a save carries it.
+func (l *deadlistLedger) resolve() (bool, error) {
+	resolved := false
+	for i := range l.entries {
+		e := &l.entries[i]
+		if e.net == nil || !e.net.poll(e.seq, e.from, e.to) {
+			continue
+		}
+		if e.net.err != nil {
+			return resolved, e.net.err
+		}
+		countDeaths(e.net.dead, true)
+		e.record, e.puts, e.net = e.net.record, e.net.blocks, nil
+		resolved = true
+	}
+	return resolved, nil
 }
 
 // pending returns the indexes of the pending entries.
@@ -113,8 +139,11 @@ func (l *deadlistLedger) pending() []int {
 // orphan nothing names and no save is naming is done at once.
 func (l *deadlistLedger) move(i int, state deadlistState) {
 	e := &l.entries[i]
-	if state == deadlistOrphan && !e.stored && e.carried == 0 {
-		e.record = nil
+	if state == deadlistOrphan {
+		e.net = nil
+		if !e.stored && e.carried == 0 {
+			e.record = nil
+		}
 	}
 	e.state, e.carried = state, 0
 }
@@ -145,7 +174,7 @@ func (l *deadlistLedger) adopt(root *block.BlockRef) {
 	start := j
 	for start > 0 {
 		next, prev := l.entries[pending[start]], l.entries[pending[start-1]]
-		if next.record == nil || next.from == nil || !next.from.EqualsRef(prev.to) {
+		if next.forfeited() || next.from == nil || !next.from.EqualsRef(prev.to) {
 			break
 		}
 		start--
@@ -162,8 +191,8 @@ func (l *deadlistLedger) adopt(root *block.BlockRef) {
 }
 
 // advance moves the pending records at or below the adopted record, and below
-// the oldest open reader pin stamp when one is lower, to due. It reports
-// whether any moved.
+// the oldest open reader pin stamp when one is lower, to due, stopping at one
+// still waiting for its puts. It reports whether any moved.
 func (l *deadlistLedger) advance(oldestPin uint64, pinned bool) bool {
 	// Hold the watermark below the oldest pin.
 	watermark := l.adopted
@@ -174,7 +203,7 @@ func (l *deadlistLedger) advance(oldestPin uint64, pinned bool) bool {
 	// Move the pending records it passes.
 	moved := false
 	for _, i := range l.pending() {
-		if l.entries[i].seq > watermark {
+		if l.entries[i].seq > watermark || l.entries[i].net != nil {
 			break
 		}
 		l.move(i, deadlistDue)
@@ -213,11 +242,11 @@ func (l *deadlistLedger) carry() ([]*block.PutBatchEntry, []block.NamedRoot) {
 }
 
 // saved marks what carry returned as carried by a new save generation, which
-// it returns.
+// it returns. An entry waiting for its puts carried nothing.
 func (l *deadlistLedger) saved() uint64 {
 	l.gen++
 	for i := range l.entries {
-		if l.entries[i].carried == 0 {
+		if l.entries[i].carried == 0 && l.entries[i].net == nil {
 			l.entries[i].carried = l.gen
 		}
 	}
@@ -251,7 +280,8 @@ func (l *deadlistLedger) unsave() {
 
 // encode returns the pending records as a cursor carried with the next save
 // records them. Each is named once that save is durable: it carries every
-// change no durable save carried.
+// change no durable save carried. A record still waiting for its puts is
+// encoded with none, so a restart leaks its interval.
 func (l *deadlistLedger) encode() []*ReplayDeadlist {
 	var out []*ReplayDeadlist
 	for _, e := range l.entries {
@@ -262,12 +292,17 @@ func (l *deadlistLedger) encode() []*ReplayDeadlist {
 	return out
 }
 
-// restoreDeadlists returns the ledger a saved cursor recorded.
+// restoreDeadlists returns the ledger a saved cursor recorded, counting each
+// pending entry that names no record: a forfeited interval, or one a restart
+// cut off before its puts resolved.
 func restoreDeadlists(cursor *ReplayCursor) deadlistLedger {
 	l := deadlistLedger{next: cursor.GetNextDeadlist(), adopted: cursor.GetAdoptedDeadlist()}
 	for _, d := range cursor.GetDeadlists() {
 		e := deadlistEntry{seq: d.GetSeq(), from: d.GetFrom(), to: d.GetTo(), record: d.GetRecord()}
 		e.stored = e.record != nil
+		if !e.stored {
+			writeFlows.unrecorded.Add(1)
+		}
 		l.entries = append(l.entries, e)
 	}
 	return l

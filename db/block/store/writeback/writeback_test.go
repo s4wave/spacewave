@@ -106,6 +106,9 @@ func TestUploadAfterRestart(t *testing.T) {
 			if status.Err != nil {
 				t.Fatalf("status error after drain: %v", status.Err)
 			}
+			if status.Uploaded != 2 || status.UploadedBytes != 9 || status.UploadReads < 1 {
+				t.Fatalf("drain counted %d blocks, %d bytes, %d reads", status.Uploaded, status.UploadedBytes, status.UploadReads)
+			}
 			break
 		}
 		<-changed

@@ -2,6 +2,7 @@ package world
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/util/refcount"
 )
@@ -11,6 +12,9 @@ type RefCountTx struct {
 	WorldState
 	tx  Tx
 	ref refcount.RefLike
+	// admitted is set once CommitAdmit returned an Admission, which then
+	// releases ref.
+	admitted atomic.Bool
 }
 
 // NewRefCountTx constructs a new refcount engine tx.
@@ -25,11 +29,26 @@ func (r *RefCountTx) Commit(ctx context.Context) error {
 	return r.tx.Commit(ctx)
 }
 
+// CommitAdmit commits the wrapped transaction once the engine admits it. The
+// Admission keeps the engine reference until its Release.
+func (r *RefCountTx) CommitAdmit(ctx context.Context) (Admission, error) {
+	adm, err := CommitAdmit(ctx, r.tx)
+	if err != nil {
+		r.ref.Release()
+		return nil, err
+	}
+	r.admitted.Store(true)
+	return &releaseAdmission{Admission: adm, release: r.ref.Release}, nil
+}
+
 // Discard cancels the transaction.
 // If called after Commit, does nothing.
 // Cannot return an error.
 // Can be called unlimited times.
 func (r *RefCountTx) Discard() {
+	if r.admitted.Load() {
+		return
+	}
 	defer r.ref.Release()
 	r.tx.Discard()
 }
@@ -64,4 +83,5 @@ var (
 	_ ObjectBodyPageBatcher      = (*RefCountTx)(nil)
 	_ ObjectBodyPageSeqnoBatcher = (*RefCountTx)(nil)
 	_ ObjectRootRefBatcher       = (*RefCountTx)(nil)
+	_ AdmitCommitter             = (*RefCountTx)(nil)
 )

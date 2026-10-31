@@ -21,6 +21,8 @@ type graphTestStore struct {
 	reads int
 	// puts lists the refs of written blocks in write order.
 	puts []string
+	// found holds, for each entry of puts, whether the put found its block.
+	found []bool
 }
 
 func newGraphTestStore() *graphTestStore {
@@ -47,6 +49,7 @@ func (s *graphTestStore) PutBlock(ctx context.Context, data []byte, opts *block.
 	}
 	s.mu.Lock()
 	s.puts = append(s.puts, ref.MarshalString())
+	s.found = append(s.found, existed)
 	s.mu.Unlock()
 	return ref, existed, nil
 }

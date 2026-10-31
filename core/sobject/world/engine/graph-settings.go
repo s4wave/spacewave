@@ -77,7 +77,7 @@ func (e *soEngine) StepGraphSettings(ctx context.Context, target *world_block.Gr
 // headGraphSettings returns the graph settings of the replayed head World.
 func (e *soEngine) headGraphSettings(ctx context.Context) (*world_block.GraphSettings, error) {
 	// Read the root through a snapshot of the block engine.
-	btx, err := e.bengine.NewBlockEngineTransaction(ctx, false)
+	btx, err := e.admitted.NewBlockEngineTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}

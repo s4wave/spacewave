@@ -56,3 +56,32 @@ export const Example: MessageType<Example> =
   /* @__PURE__ */ createMessageType<Example>('block.mock.Example', () => [
     [1, 'msg', 9],
   ])
+
+/**
+ * Pair is a page naming two Example pages.
+ *
+ * @generated from message block.mock.Pair
+ */
+export interface Pair {
+  /**
+   * Left is the first child.
+   */
+  left?: BlockRef
+  /**
+   * Right is the second child.
+   */
+  right?: BlockRef
+  /**
+   * Msg tells pairs with the same children apart.
+   */
+  msg?: string
+}
+
+export const Pair: MessageType<Pair> = /* @__PURE__ */ createMessageType<Pair>(
+  'block.mock.Pair',
+  () => [
+    [1, 'left', 11, 0, BlockRef.codec],
+    [2, 'right', 11, 0, BlockRef.codec],
+    [3, 'msg', 9],
+  ],
+)
