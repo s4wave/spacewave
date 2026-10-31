@@ -10,6 +10,12 @@ func (f *osFile) flushDurable() error {
 	return err
 }
 
+// writeback flushes durably: fsync would leave the pages in the drive's
+// cache, where a commit's F_FULLFSYNC would still find them.
+func (f *osFile) writeback() error {
+	return f.flushDurable()
+}
+
 // lowerThreadPriority puts the calling thread in the background band, which
 // throttles its CPU and disk use while other work runs.
 func lowerThreadPriority() error {
