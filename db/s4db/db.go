@@ -1,783 +1,87 @@
 package s4db
 
 import (
-	"bytes"
 	"context"
-	"math"
-	"math/rand/v2"
-	"sync"
-	"sync/atomic"
-	"time"
 
-	"github.com/aperturerobotics/util/broadcast"
-	"github.com/aperturerobotics/util/csync"
-	"github.com/aperturerobotics/util/routine"
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
-)
-
-const (
-	// MaxKeySize is the longest key.
-	MaxKeySize = 1024
-	// MaxValueSize is the longest value, the most an extent length holds.
-	MaxValueSize = math.MaxUint32
-	// maxRecord is the longest commit record, the most its length field
-	// holds.
-	maxRecord = math.MaxUint32
+	"github.com/s4wave/spacewave/db/volume/device"
 )
 
 // DB is an open database file.
-type DB struct {
-	// s is the database file.
-	s storage
-	// hdr is the file header.
-	hdr *header
-	// opts holds the options with defaults applied.
-	opts Options
-	// p reads index pages and values.
-	p *pager
-	// slot is this handle's reader slot.
-	slot int
-	// watch wakes the tail loop when the file changes.
-	watch watcher
-	// flush shares flushes between commits.
-	flush *flusher
-	// w writes commits and checkpoints.
-	w *writer
-	// tailer runs the tail loop.
-	tailer *routine.RoutineContainer
-	// warmer reads the tree into the cache after open.
-	warmer *routine.RoutineContainer
-	// compactor moves values toward the start of the file in the
-	// background.
-	compactor *routine.RoutineContainer
+type DB struct{}
 
-	// cur is the published state. Read transactions acquire it without a
-	// lock.
-	cur atomic.Pointer[state]
-	// closed is set once Close finishes. Close sets it under bcast, so a
-	// waiter woken by the close sees it.
-	closed atomic.Bool
-
-	// bcast guards the fields below, serializes overlay copies and state
-	// publication, and wakes waiters when a state is published or the
-	// database closes. It is held only for memory work.
-	bcast broadcast.Broadcast
-	// retired holds earlier states that snapshots may still read.
-	retired []*state
-	// leases holds the lock bytes of this handle's leases and lease waits.
-	leases map[int64]struct{}
-	// writers counts this handle's write transactions from NewTransaction
-	// until Discard, or until Commit returns with its changes durable.
-	writers int
-	// stopping is set when Close begins, refusing new write transactions.
-	stopping bool
-	// lockWaits counts lease lock calls in progress. The file stays open
-	// until they return, so the system never grants a lock on a closed file.
-	lockWaits sync.WaitGroup
-
-	// pinMtx guards pinned and serializes writes to the slot.
-	pinMtx csync.Mutex
-	// pinned is the pin last written to the slot.
-	pinned pin
-	// ownSeq and ownGen are the newest commit and checkpoint this handle
-	// loaded or wrote. The writer stores them before the write reaches the
-	// file, so a tailed state beyond them came from another process.
-	ownSeq, ownGen atomic.Uint64
-	// shared is set once a tail finds another process's commit or
-	// checkpoint. Until then the slot keeps the pin written at open, which
-	// is no newer than any state this handle reads, so the slot is not
-	// rewritten on every commit; another writer reading it only keeps more
-	// space.
-	shared atomic.Bool
-	// flows counts the values this handle's commits wrote and freed outside
-	// the index, for each of Options.Families and then for the other keys.
-	flows []flowCount
+// Open opens or creates the database file at path.
+func Open(path string, opts Options) (*DB, error) {
+	return nil, ErrUnimplemented
 }
 
-// open opens the database in s, closing s on failure.
-func open(s storage, opts Options) (*DB, error) {
-	// Build the database on s with its cache, flusher, and writer.
-	opts = opts.withDefaults()
-	db := &DB{
-		s:         s,
-		opts:      opts,
-		p:         &pager{r: s, cache: newCache(opts.CacheBytes)},
-		tailer:    routine.NewRoutineContainer(),
-		warmer:    routine.NewRoutineContainer(),
-		compactor: routine.NewRoutineContainer(),
-		leases:    make(map[int64]struct{}),
-		flows:     make([]flowCount, len(opts.Families)+1),
-	}
-	db.flush = newFlusher(s, &db.cur)
-	db.w = &writer{db: db}
-
-	// Recover the state, releasing everything on failure.
-	if err := db.load(); err != nil {
-		if db.watch != nil {
-			db.watch.close()
-		}
-		_ = s.close()
-		return nil, err
-	}
-
-	// Follow other processes' commits and warm the cache.
-	db.tailer.SetRoutine(db.tailLoop)
-	db.tailer.SetContext(context.Background(), false)
-	db.warmer.SetRoutine(db.warm)
-	db.warmer.SetContext(context.Background(), false)
-	if opts.RelocateBudget > 0 {
-		db.compactor.SetRoutine((&compactor{db: db}).run)
-		db.compactor.SetContext(context.Background(), false)
-	}
-	return db, nil
+// OpenDevice opens or creates the database in the named file of dev.
+func OpenDevice(ctx context.Context, dev device.Device, name string, opts Options) (*DB, error) {
+	return nil, ErrUnimplemented
 }
 
-// load creates the file if empty, takes a reader slot, and recovers state.
-func (db *DB) load() error {
-	// Create the file under the writer lock so concurrent openers agree. A
-	// single-process handle keeps the lock until the file closes.
-	if _, err := db.s.lock(lockWriter, true); err != nil {
-		return err
-	}
-	err := db.w.create()
-	if uerr := db.unlockFile(); err == nil {
-		err = uerr
-	}
-	if err != nil {
-		return err
-	}
-
-	// Read the header.
-	page := make([]byte, pageSize)
-	if _, err := db.s.ReadAt(page, headerPage*pageSize); err != nil {
-		return err
-	}
-	if db.hdr, err = decodeHeader(page); err != nil {
-		return err
-	}
-
-	// Take a free slot, pin everything until the state is loaded, and
-	// watch the file.
-	if db.slot, err = takeSlot(db.s); err != nil {
-		return err
-	}
-	if err := db.writePin(pin{}); err != nil {
-		return err
-	}
-	if db.opts.SingleProcess {
-		db.watch = newStopWatcher()
-	} else if db.watch, err = db.s.watch(db.slot); err != nil {
-		return err
-	}
-
-	// Load the checkpoint and the log after it, verifying values the writer
-	// had not flushed.
-	sb, err := db.readSuper()
-	if err != nil {
-		return err
-	}
-	st, torn, err := db.tail(newState(sb, db.opts.checkpointLimit(sb)), true)
-	if err != nil {
-		return err
-	}
-	if torn {
-		if st, err = db.cutTorn(st); err != nil {
-			return err
-		}
-	}
-
-	// Publish the loaded state and pin it.
-	st.refs = new(refCount)
-	db.cur.Store(st)
-	db.ownSeq.Store(st.seq)
-	db.ownGen.Store(st.gen)
-	db.flush.written(st.ckpt)
-	return db.writePin(db.localPin())
-}
-
-// takeSlot locks the first free reader slot and returns its index.
-func takeSlot(s storage) (int, error) {
-	for i := range slots {
-		ok, err := s.lock(lockSlot+int64(i), false)
-		if err != nil {
-			return 0, err
-		}
-		if ok {
-			return i, nil
-		}
-	}
-	return 0, ErrSlotsFull
-}
-
-// Shared reports whether another process has the file open.
-func (db *DB) Shared() (bool, error) {
-	for i := range slots {
-		if i == db.slot {
-			continue
-		}
-		held, err := db.s.held(lockSlot + int64(i))
-		if err != nil || held {
-			return held, err
-		}
-	}
-	return false, nil
-}
-
-// readSuper returns the newer valid superblock.
-func (db *DB) readSuper() (superblock, error) {
-	// Read both superblocks.
-	b := make([]byte, 2*pageSize)
-	if _, err := db.s.ReadAt(b, superPage*pageSize); err != nil {
-		return superblock{}, err
-	}
-
-	// Pick the valid one with the higher generation.
-	a, aok := decodeSuperblock(b)
-	c, cok := decodeSuperblock(b[pageSize:])
-	switch {
-	case aok && (!cok || a.gen > c.gen):
-		return a, nil
-	case cok:
-		return c, nil
-	}
-	return superblock{}, errors.Wrap(ErrCorrupt, "no valid superblock")
-}
-
-// tail returns st advanced to the newest checkpoint and the end of the
-// valid log, or st itself when nothing changed. With verify set it checks
-// the values of records the writer had not flushed, stopping before the
-// first record whose values are torn and reporting it.
-func (db *DB) tail(st *state, verify bool) (*state, bool, error) {
-	// Adopt a newer checkpoint. One another process wrote may reuse pages
-	// the cache still holds, so drop them first.
-	sb, err := db.readSuper()
-	if err != nil {
-		return nil, false, err
-	}
-	if sb.gen > st.gen && sb.gen > db.ownGen.Load() {
-		db.p.cache.clear()
-	}
-	next := st
-	switch {
-	case sb.gen <= st.gen:
-	case sb.seq > st.seq:
-		next = newState(sb, db.opts.checkpointLimit(sb))
-	default:
-		next = st.rebase(sb, db.opts.checkpointLimit(sb))
-	}
-
-	// Read the records after the state and where each one ends.
-	type read struct {
-		r        *record
-		pos, end uint64
-	}
-	var recs []read
-	var durable uint64
-	lr := newLogReader(db.s, next.pos, next.end, next.seq, next.crc)
-	for {
-		r, ok := lr.next()
-		if !ok {
-			break
-		}
-		r.own()
-		recs = append(recs, read{r: r, pos: lr.pos, end: lr.end})
-		durable = max(durable, r.durable)
-	}
-	if len(recs) == 0 {
-		return next, false, nil
-	}
-
-	// Keep the records before the first unflushed one whose values are
-	// missing, when asked to check.
-	rs := make([]*record, 0, len(recs))
-	torn := false
-	for _, rd := range recs {
-		if verify && rd.r.seq > durable && !db.verify(rd.r) {
-			torn = true
-			break
-		}
-		rs = append(rs, rd.r)
-	}
-	if len(rs) == 0 {
-		return next, torn, nil
-	}
-
-	// Apply them to a copy.
-	if next == st {
-		next = db.derive(st)
-	}
-	next.apply(rs...)
-	last := recs[len(rs)-1]
-	next.pos, next.end = last.pos, last.end
-	return next, torn, nil
-}
-
-// cutTorn erases the record after st whose values a crash tore, so tails,
-// which trust records, end the log where recovery did. Another process may
-// have appended meanwhile, so it tails again under the writer lock first.
-func (db *DB) cutTorn(st *state) (*state, error) {
-	// Exclude writers and find the torn record again.
-	if _, err := db.lockFile(true); err != nil {
-		return nil, err
-	}
-	st, torn, err := db.tail(st, true)
-
-	// Overwrite its header and flush.
-	if err == nil && torn {
-		if _, err = db.s.WriteAt(make([]byte, recordHeader), fileOff(st.pos)); err == nil {
-			err = db.s.flushDurable()
-		}
-	}
-	if uerr := db.unlockFile(); err == nil {
-		err = uerr
-	}
-	return st, err
-}
-
-// lockFile takes the file's writer lock, excluding other processes'
-// writers, and reports whether it holds it; wait waits for another holder.
-// A single-process handle holds it from open until the file closes.
-func (db *DB) lockFile(wait bool) (bool, error) {
-	if db.opts.SingleProcess {
-		return true, nil
-	}
-	return db.s.lock(lockWriter, wait)
-}
-
-// unlockFile releases the file's writer lock unless the handle holds it for
-// its lifetime.
-func (db *DB) unlockFile() error {
-	if db.opts.SingleProcess {
-		return nil
-	}
-	return db.s.unlock(lockWriter)
-}
-
-// derive returns a copy of st whose overlay the caller owns. Copying a tree
-// marks the source, so copies serialize under bcast.
-func (db *DB) derive(st *state) *state {
-	// Copy the state and its overlay; the copy holds no snapshots.
-	next := *st
-	next.refs = nil
-	l := db.bcast.Lock()
-	next.overlay = st.overlay.Copy()
-	l.Unlock()
-	return &next
-}
-
-// verify reports whether every value r references matches its checksum.
-func (db *DB) verify(r *record) bool {
-	for _, o := range r.ops {
-		if o.val.isRef {
-			if _, err := db.p.readValue(o.val); err != nil {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// tailLoop applies records other processes append until the watcher stops.
-// It skips the wakes this handle's writer raises: while the writer lock is
-// held no other process writes, and taking the lock applied what they wrote
-// before. A failed tail leaves the published state; the next change retries
-// it.
-func (db *DB) tailLoop(ctx context.Context) error {
-	for db.watch.wait() {
-		if !db.w.held.Load() {
-			_ = db.Refresh(ctx)
-		}
-	}
-	return nil
-}
-
-// Refresh publishes the commits and checkpoint other processes wrote, without
-// waiting for the tail loop to notice them.
-func (db *DB) Refresh(ctx context.Context) error {
-	st, _, err := db.tail(db.cur.Load(), false)
-	if err != nil {
-		return err
-	}
-	db.observe(st)
-	return db.publish(ctx, st)
-}
-
-// observe marks the handle shared when st holds a commit or checkpoint
-// another process wrote. Tails observe before they publish, so this
-// handle's writer cannot pass the other process's commit unseen.
-func (db *DB) observe(st *state) {
-	if st.seq > db.ownSeq.Load() || st.gen > db.ownGen.Load() {
-		db.shared.Store(true)
-	}
-}
-
-// warm reads the tree into the cache within its budget.
-func (db *DB) warm(ctx context.Context) error {
-	st, stripe := db.acquire()
-	defer db.release(st, stripe)
-	return db.p.warm(ctx, st.root, db.opts.CacheBytes)
-}
-
-// publish makes st the published state unless the published state is as
-// new, then raises the slot's pin when it can and another process reads it.
-func (db *DB) publish(ctx context.Context, st *state) error {
-	// Keep a published state at least as new. Two states of the same
-	// commit and checkpoint hold the same data, so the first one stays.
-	l := db.bcast.Lock()
-	cur := db.cur.Load()
-	if st == cur || st.seq < cur.seq || (st.seq == cur.seq && st.gen <= cur.gen) {
-		l.Unlock()
-		return nil
-	}
-
-	// Replace the state, keeping the old one until its snapshots end.
-	st.refs = new(refCount)
-	db.cur.Store(st)
-	db.retired = append(db.retired, cur)
-	l.Broadcast()
-	l.Unlock()
-
-	// Its checkpoint is in the file, whichever process wrote it.
-	db.flush.written(st.ckpt)
-	if !db.shared.Load() {
-		return nil
-	}
-	return db.updatePin(ctx)
-}
-
-// acquire returns the published state and counts it as an open snapshot in
-// a random stripe, which the snapshot passes to release. A state stays
-// readable while it is published or counted, so acquire retries when
-// publish replaced the state before the count landed: the pin may already
-// exclude it.
-func (db *DB) acquire() (*state, int) {
-	stripe := rand.IntN(refStripes) // #nosec G404 -- spreads contention; no secret.
-	for {
-		st := db.cur.Load()
-		st.refs[stripe].n.Add(1)
-		if db.cur.Load() == st {
-			return st, stripe
-		}
-		st.refs[stripe].n.Add(-1)
-	}
-}
-
-// release ends a snapshot of st counted in stripe. The pin moves only when
-// a replaced state's last snapshot may have ended and another process reads
-// the slot.
-func (db *DB) release(st *state, stripe int) {
-	if st.refs[stripe].n.Add(-1) != 0 || db.cur.Load() == st || !db.shared.Load() {
-		return
-	}
-	_ = db.updatePin(context.Background())
-}
-
-// localPin returns the oldest state this handle's snapshots read, and
-// forgets replaced states no snapshot reads.
-func (db *DB) localPin() pin {
-	// Start from the published state.
-	l := db.bcast.Lock()
-	defer l.Unlock()
-	cur := db.cur.Load()
-	p := pin{seq: cur.seq, ckpt: cur.ckpt}
-
-	// Lower the pin by each replaced state still read.
-	live := db.retired[:0]
-	for _, s := range db.retired {
-		if s.refs.held() {
-			p = p.lower(pin{seq: s.seq, ckpt: s.ckpt})
-			live = append(live, s)
-		}
-	}
-	clear(db.retired[len(live):])
-	db.retired = live
-	return p
-}
-
-// updatePin writes the slot when the local pin moved. Snapshots only take
-// the published state, so a pin computed under pinMtx never rises above a
-// snapshot that starts later.
-func (db *DB) updatePin(ctx context.Context) error {
-	// Exclude other pin writers.
-	release, err := db.pinMtx.Lock(ctx)
-	if err != nil {
-		return err
-	}
-	defer release()
-
-	// Write the slot only when the pin moved.
-	p := db.localPin()
-	if p == db.pinned {
-		return nil
-	}
-	return db.writePin(p)
-}
-
-// writePin writes p to this handle's slot. The caller holds pinMtx or owns
-// the handle alone.
-func (db *DB) writePin(p pin) error {
-	db.pinned = p
-	_, err := db.s.WriteAt(p.encode(), int64(slotPage*pageSize+db.slot*slotSize))
-	return err
-}
-
-// minPin returns the oldest state any process's snapshots read.
-func (db *DB) minPin() (pin, error) {
-	// Read the slots.
-	p := db.localPin()
-	b := make([]byte, pageSize)
-	if _, err := db.s.ReadAt(b, slotPage*pageSize); err != nil {
-		return pin{}, err
-	}
-
-	// Lower the local pin by every other slot whose process holds its lock.
-	// A slot no process ever wrote is empty and skipped.
-	var empty [slotSize]byte
-	for i := range slots {
-		rec := b[i*slotSize : (i+1)*slotSize]
-		if i == db.slot || bytes.Equal(rec, empty[:]) {
-			continue
-		}
-		live, err := db.s.held(lockSlot + int64(i))
-		if err != nil {
-			return pin{}, err
-		}
-		if !live {
-			continue
-		}
-
-		// A live slot that fails its checksum was read while its owner
-		// rewrote it, so it pins everything.
-		sp, ok := decodePin(rec)
-		if !ok {
-			sp = pin{}
-		}
-		p = p.lower(sp)
-	}
-	return p, nil
-}
-
-// lookup returns the value of key in st.
-func (db *DB) lookup(st *state, key []byte) (value, bool, error) {
-	if st.filter.has(key) {
-		if it, ok := st.overlay.Get(overlayProbe(key)); ok {
-			return it.e.val, !it.e.del, nil
-		}
-	}
-	return db.p.get(st.root, key)
-}
-
-// NewTransaction opens a transaction. A write transaction holds the writer
-// lock across all processes until Commit or Discard.
+// NewTransaction returns a transaction on the latest commit.
 func (db *DB) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
-	// Refuse a closed handle and serve a read from the published state.
-	if db.closed.Load() {
-		return nil, ErrClosed
-	}
-	if !write {
-		st, stripe := db.acquire()
-		return &Tx{db: db, st: st, stripe: stripe}, nil
-	}
-
-	// Count the writer so Close waits for it, then take the writer lock and
-	// read the state it caught up to.
-	if err := db.beginWrite(); err != nil {
-		return nil, err
-	}
-	if err := db.w.lock(ctx); err != nil {
-		db.endWrite()
-		return nil, err
-	}
-	st, stripe := db.acquire()
-	return &Tx{db: db, st: st, stripe: stripe, changes: newChanges()}, nil
+	return nil, ErrUnimplemented
 }
 
-// beginWrite counts a write transaction, refusing it once Close began.
-func (db *DB) beginWrite() error {
-	// Count the writer unless Close began.
-	l := db.bcast.Lock()
-	defer l.Unlock()
-	if db.stopping {
-		return ErrClosed
-	}
-	db.writers++
-	return nil
-}
-
-// endWrite ends a write transaction beginWrite counted.
-func (db *DB) endWrite() {
-	l := db.bcast.Lock()
-	db.writers--
-	l.Broadcast()
-	l.Unlock()
-}
-
-// drainWriters refuses new write transactions and waits up to
-// closeDrainTimeout for the counted ones to end, so a commit's writes and
-// durable flush finish before Close flushes and closes the file. A writer
-// still open after the wait is left to fail on the closed file.
-func (db *DB) drainWriters() {
-	// Refuse new writers.
-	l := db.bcast.Lock()
-	db.stopping = true
-	l.Broadcast()
-	l.Unlock()
-
-	// Wait for the counted ones.
-	ctx, cancel := context.WithTimeout(context.Background(), closeDrainTimeout)
-	defer cancel()
-	_ = db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		return db.writers == 0, nil
-	})
-}
-
-// closeDrainTimeout bounds how long Close waits for write transactions.
-const closeDrainTimeout = 10 * time.Second
-
-// WritersWaiting reports whether a writer of this handle waits for the writer
-// lock, so a holder doing deferrable work can commit early and let it in.
-func (db *DB) WritersWaiting() bool {
-	return db.w.waiting.Load() != 0
-}
-
-// SupportsAtomicCommit reports true: Commit applies a write transaction in
-// full and durably before it returns, and Discard drops it.
+// SupportsAtomicCommit reports that one transaction commits atomically.
 func (db *DB) SupportsAtomicCommit() bool {
 	return true
 }
 
-// Seq returns the last commit of the published state.
-func (db *DB) Seq() uint64 {
-	return db.cur.Load().seq
+// WritersWaiting reports whether a write transaction waits to begin.
+func (db *DB) WritersWaiting() bool {
+	return false
 }
 
-// WaitSeq returns once the published state includes commit seq, from this
-// process or another.
-func (db *DB) WaitSeq(ctx context.Context, seq uint64) error {
-	return db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-		if db.closed.Load() {
-			return false, ErrClosed
-		}
-		return db.cur.Load().seq >= seq, nil
-	})
-}
-
-// Compact moves every value out of sparse pages and the file's tail,
-// checkpoints, and releases freed space.
-func (db *DB) Compact(ctx context.Context) error {
-	if err := db.lockIdle(ctx); err != nil {
-		return err
-	}
-	err := db.w.compact(ctx)
-	db.w.unlock(err)
-	return err
-}
-
-// lockIdle takes the writer lock while no background checkpoint runs. A
-// build's snapshot pins the space a compaction or release frees, and the build
-// needs the writer lock to finish, so working during it releases nothing and
-// leaves the log high in the file. Only commits start builds, and they need
-// the writer lock.
-func (db *DB) lockIdle(ctx context.Context) error {
-	for {
-		if err := db.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
-			return !db.w.building.Load(), nil
-		}); err != nil {
-			return err
-		}
-		if err := db.w.lock(ctx); err != nil {
-			return err
-		}
-		if !db.w.building.Load() {
-			return nil
-		}
-		db.w.unlock(nil)
-	}
-}
-
-// Sync makes every earlier commit durable.
+// Sync makes every completed ordered commit durable.
 func (db *DB) Sync(ctx context.Context) error {
-	return db.flush.syncThrough(ctx, db.cur.Load().seq, 0)
+	return ErrUnimplemented
 }
 
-// WaitDurable returns once every earlier commit is durable without forcing
-// a flush. An ordered commit is flushed within a second of completing.
+// WaitDurable waits until every completed ordered commit is durable.
 func (db *DB) WaitDurable(ctx context.Context) error {
-	return db.flush.waitDurable(ctx, db.cur.Load().seq)
+	return ErrUnimplemented
 }
 
-// Close flushes, releases freed space when this handle can take the writer
-// lock without waiting, and closes the file. It leaves the overlay in the log
-// for the next open to replay, which reads the log in order, rather than
-// building a checkpoint, which reads index pages across the file. Transactions
-// should end first; Close refuses new write transactions and waits a bounded
-// time for open ones to commit or discard. A lease still held ends with the file, which drops its
-// lock, and releasing it afterwards returns nil. Close waits for an abandoned
-// lease wait to return.
+// Seq returns the sequence number of the latest commit.
+func (db *DB) Seq() uint64 {
+	return 0
+}
+
+// WaitSeq waits until a commit after seq is visible.
+func (db *DB) WaitSeq(ctx context.Context, seq uint64) error {
+	return ErrUnimplemented
+}
+
+// Refresh loads the commits other processes made since the last one seen.
+func (db *DB) Refresh(ctx context.Context) error {
+	return ErrUnimplemented
+}
+
+// Shared reports whether another process has the file open.
+func (db *DB) Shared() (bool, error) {
+	return false, ErrUnimplemented
+}
+
+// Compact runs compaction until the file holds no reclaimable space.
+func (db *DB) Compact(ctx context.Context) error {
+	return ErrUnimplemented
+}
+
+// Release returns space freed by earlier commits to the disk.
+func (db *DB) Release(ctx context.Context) error {
+	return ErrUnimplemented
+}
+
+// Close closes the database.
 func (db *DB) Close() error {
-	// Let this handle's write transactions finish their commits.
-	db.drainWriters()
-
-	// Stop the warm-up and compaction so their snapshots do not hold
-	// space, and drop a running background checkpoint at its next page.
-	for _, rc := range []*routine.RoutineContainer{db.warmer, db.compactor} {
-		if wait, _ := rc.SetRoutine(nil); wait != nil {
-			<-wait
-		}
-	}
-	db.w.closing.Store(true)
-	db.w.builds.Wait()
-	db.w.punches.Wait()
-
-	// Flush and release freed space when no other process is writing. The
-	// flush raises the durability marks that bound the release.
-	ctx := context.Background()
-	var err error
-	if ok, lerr := db.w.tryLock(); lerr == nil && ok {
-		if err = db.w.catchUp(ctx); err == nil {
-			err = db.Sync(ctx)
-		}
-		if err == nil {
-			err = db.w.releaseNow(ctx)
-		}
-		db.w.unlock(err)
-	}
-
-	// Stop tailing and the deadline flush, clear the reader slot, and
-	// flush.
-	db.flush.close()
-	db.watch.stop()
-	if wait, _ := db.tailer.SetRoutine(nil); wait != nil {
-		<-wait
-	}
-	if _, werr := db.s.WriteAt(make([]byte, slotSize), int64(slotPage*pageSize+db.slot*slotSize)); err == nil {
-		err = werr
-	}
-	if serr := db.s.flushDurable(); err == nil {
-		err = serr
-	}
-
-	// Mark the handle closed and wake waiters before the file goes away, so a
-	// lease released from here on leaves the descriptor alone.
-	l := db.bcast.Lock()
-	db.closed.Store(true)
-	l.Broadcast()
-	l.Unlock()
-
-	// Close the watcher last, once no lease lock call is pending: on darwin
-	// closing any descriptor of the file drops the process's record locks.
-	db.lockWaits.Wait()
-	db.watch.close()
-	if cerr := db.s.close(); err == nil {
-		err = cerr
-	}
-	return err
+	return nil
 }
 
 // _ is a type assertion
 var (
-	_ kvtx.Store              = (*DB)(nil)
 	_ kvtx.OrderedCommitStore = (*DB)(nil)
 	_ kvtx.AtomicCommitStore  = (*DB)(nil)
 	_ kvtx.WriterQueueStore   = (*DB)(nil)

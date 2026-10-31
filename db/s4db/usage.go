@@ -34,23 +34,7 @@ type Usage struct {
 	PageReads int64
 }
 
-// Usage reports how the file's pages are used as of the latest commit. It
-// takes the writer lock.
+// Usage reports how the file's space is used.
 func (db *DB) Usage(ctx context.Context) (Usage, error) {
-	// Hold the writer lock so the space is current and stable.
-	if err := db.w.lock(ctx); err != nil {
-		return Usage{}, err
-	}
-
-	// Read the space, then the checkpoint's index.
-	u := db.w.sp.usage()
-	sb := db.cur.Load().sb
-	u.IndexKeys = int64(sb.count) // #nosec G115 -- key counts fit in int64.
-	u.IndexBytes = pageOff(sb.treePages)
-	db.w.unlock(nil)
-
-	// Read the cache counters, which need no lock.
-	u.CacheBytes = int64(db.p.cache.size())
-	u.PageReads = db.p.reads.Load()
-	return u, nil
+	return Usage{}, ErrUnimplemented
 }
