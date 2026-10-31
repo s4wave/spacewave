@@ -176,8 +176,8 @@ func (st *state) apply(r *record, budget int64) {
 			*m.table.at(c) = chunkEntry{}
 		}
 	case kindTruncate:
-		// The table ends at r.next; the writer truncates the file off the
-		// lock.
+		// The table ends at r.next; the writer truncated the file in the
+		// record's lock span.
 		if r.next < m.table.end() {
 			m.table.entries = m.table.entries[:r.next]
 		}
