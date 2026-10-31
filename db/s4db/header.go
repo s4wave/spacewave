@@ -2,8 +2,7 @@ package s4db
 
 import (
 	"encoding/binary"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // header describes how the file is encoded. It is written once at creation.
@@ -77,7 +76,7 @@ func decodeHeader(b []byte) (*header, error) {
 
 	// Recognize the previous engine's files, which convert.
 	if h.index == indexLogTree && h.values == valuesPacked {
-		return nil, errors.Wrap(ErrUnsupported, ErrPreviousFormat.Error())
+		return nil, fmt.Errorf("%w: %w", ErrPreviousFormat, ErrUnsupported)
 	}
 
 	// Refuse what this version cannot read.

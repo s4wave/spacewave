@@ -10,8 +10,8 @@ var (
 	// ErrUnsupported is returned when a file uses a page size, feature, or
 	// algorithm this version does not implement.
 	ErrUnsupported = errors.New("unsupported s4wave database format")
-	// ErrPreviousFormat is returned, wrapping ErrUnsupported, when the file
-	// was written by the previous engine and can be converted.
+	// ErrPreviousFormat is returned, joined with ErrUnsupported, when the
+	// file was written by the previous engine and can be converted.
 	ErrPreviousFormat = errors.New("s4wave database in the previous format")
 	// ErrCorrupt is returned when stored bytes fail their checksum.
 	ErrCorrupt = errors.New("s4wave database checksum mismatch")
