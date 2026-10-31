@@ -37,13 +37,13 @@ func newDebugVolumeCopyCommand() *cli.Command {
 	// Bind the flags.
 	var reachable bool
 	var opts volume_kvtx.CopyReachableOptions
-	var dropSQL bool
+	var dropSQL, countOnly bool
 	var sqlArgs sqlDrop
 	var sqlPort uint
 	return &cli.Command{
 		Name:      "volume-copy",
 		Usage:     "copy a stopped volume file into a new file at the current store format",
-		ArgsUsage: "<volume-file> <new-file>",
+		ArgsUsage: "<volume-file> [new-file]",
 		Description: "Copies every key of a stopped s4db volume into a new file, converting a Cayley reference graph " +
 			"to edge records on the way, so the source is never rewritten in place. The new file is written in key order " +
 			"with compaction off and records the format version last; a copy that stops early lacks it and should be deleted. " +
@@ -54,7 +54,9 @@ func newDebugVolumeCopyCommand() *cli.Command {
 			"A reachable copy refuses a source whose walk reaches a block without a child list, since the blocks it " +
 			"names may be live and would be dropped, unless --allow-unknown is set. " +
 			"With --drop-sql-blocks, the copy keeps every key outside the blocks and leaves out the blocks the SQL " +
-			"block store already holds, except blocks with an upload marker. The password is read from " + sqlPasswordEnv + ".",
+			"block store already holds, except blocks with an upload marker. The password is read from " + sqlPasswordEnv + ". " +
+			"With --count-only as well, nothing is written: the source's keys are walked with the same checks, " +
+			"and the kept and dropped keys and bytes are printed by key family.",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:        "reachable",
@@ -76,6 +78,11 @@ func newDebugVolumeCopyCommand() *cli.Command {
 				Usage:       "leave out the blocks without an upload marker that the SQL block store holds",
 				Destination: &dropSQL,
 			},
+			&cli.BoolFlag{
+				Name:        "count-only",
+				Usage:       "with --drop-sql-blocks, print what the copy would keep and drop without writing a new file",
+				Destination: &countOnly,
+			},
 			&cli.StringFlag{Name: "sql-host", Usage: "with --drop-sql-blocks, the database host", Destination: &sqlArgs.conf.Host},
 			&cli.UintFlag{Name: "sql-port", Usage: "with --drop-sql-blocks, the database port; zero uses 3306", Destination: &sqlPort},
 			&cli.StringFlag{Name: "sql-database", Usage: "with --drop-sql-blocks, the database name", Destination: &sqlArgs.conf.Database},
@@ -86,7 +93,13 @@ func newDebugVolumeCopyCommand() *cli.Command {
 			&cli.StringFlag{Name: "sql-store-id", Usage: "with --drop-sql-blocks, the block store id whose rows to check", Destination: &sqlArgs.storeID},
 		},
 		Action: func(c *cli.Context) error {
-			if c.NArg() != 2 {
+			if countOnly && !dropSQL {
+				return errors.New("--count-only needs --drop-sql-blocks")
+			}
+			if countOnly && c.NArg() != 1 {
+				return errors.New("expected only the volume file with --count-only")
+			}
+			if !countOnly && c.NArg() != 2 {
 				return errors.New("expected the volume file and the new file")
 			}
 			var reach *volume_kvtx.CopyReachableOptions
@@ -105,6 +118,9 @@ func newDebugVolumeCopyCommand() *cli.Command {
 					return errors.New("--drop-sql-blocks needs --sql-host, --sql-database, --sql-user and --sql-store-id")
 				}
 				drop = &sqlArgs
+			}
+			if countOnly {
+				return countVolumeDrop(c.Context, c.Args().Get(0), drop, os.Stdout, os.Stderr)
 			}
 			return copyVolumeFile(c.Context, c.Args().Get(0), c.Args().Get(1), reach, drop, os.Stderr)
 		},
@@ -167,13 +183,12 @@ func copyVolumeFile(ctx context.Context, src, dst string, reachable *volume_kvtx
 	// SQL holds.
 	copyStore := volume_kvtx.CopyStore
 	if drop != nil {
-		check, closeSQL, err := drop.open(ctx, sdb, store_kvkey.NewDefaultKVKey(), w)
-		if err != nil {
+		if err := drop.open(ctx, sdb, store_kvkey.NewDefaultKVKey(), w); err != nil {
 			return err
 		}
-		defer closeSQL()
+		defer drop.close()
 		copyStore = func(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(volume_kvtx.CopyProgress)) error {
-			return volume_kvtx.CopyStoreDropping(ctx, src, dst, keys, check, progress)
+			return volume_kvtx.CopyStoreDropping(ctx, src, dst, keys, drop.drop, progress)
 		}
 	}
 	if reachable != nil {
@@ -204,70 +219,87 @@ func formatCopyProgress(p volume_kvtx.CopyProgress) string {
 	)
 }
 
-// sqlDrop locates the SQL block store a dropping copy checks.
+// sqlDrop locates the SQL block store a dropping copy checks, and holds the
+// source's upload markers and the open store once opened.
 type sqlDrop struct {
 	// conf locates the database and its blocks table.
 	conf block_store_sql.Config
 	// storeID is the block store whose rows are checked.
 	storeID string
+	// marked holds the hashes of the source's marked blocks.
+	marked map[string]struct{}
+	// store is the store's rows.
+	store *block_store_sql.Store
 }
 
-// open reads the upload markers of the volume src and returns the copy's drop
-// check with the function that closes its database.
-//
-// The check keeps every marked block and drops an unmarked block only when
-// the SQL store holds it. A marker does not mean SQL lacks the block: a crash
-// between the upload and the marker's clear leaves a marked block SQL holds.
-// No marker does not mean SQL holds it either: blocks written before the
-// store was placed on SQL, or while uploads were off, were never marked.
-func (d *sqlDrop) open(ctx context.Context, src kvtx.Store, keys *store_kvkey.KVKey, w io.Writer) (volume_kvtx.DropBlocks, func(), error) {
+// open reads the upload markers of the volume src and opens the SQL store.
+// The caller calls close.
+func (d *sqlDrop) open(ctx context.Context, src kvtx.Store, keys *store_kvkey.KVKey, w io.Writer) error {
 	// Read the hashes of every writeback store's marked blocks.
-	marked := make(map[string]struct{})
+	d.marked = make(map[string]struct{})
 	tx, err := src.NewTransaction(ctx, false)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	err = tx.ScanPrefixKeys(ctx, keys.GetObjectStoreFullPrefix(), func(key []byte) error {
 		if _, name, ok := bytes.Cut(key, uploadMarkerInfix); ok {
-			marked[string(name)] = struct{}{}
+			d.marked[string(name)] = struct{}{}
 		}
 		return nil
 	})
 	tx.Discard()
 	if err != nil {
-		return nil, nil, fmt.Errorf("read the upload markers: %w", err)
+		return fmt.Errorf("read the upload markers: %w", err)
 	}
-	fmt.Fprintf(w, "keeping the blocks of %d upload markers\n", len(marked))
+	fmt.Fprintf(w, "keeping the blocks of %d upload markers\n", len(d.marked))
 
 	// Open the store's rows.
 	db, err := block_store_sql.Open(&d.conf)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	store := block_store_sql.NewStore(logrus.NewEntry(logrus.New()), db, d.conf.Table, d.storeID)
+	d.store = block_store_sql.NewStore(logrus.NewEntry(logrus.New()), db, d.conf.Table, d.storeID)
+	return nil
+}
 
-	// Drop the unmarked blocks the store holds, checked in one batch.
-	check := func(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-		drop := make([]bool, len(refs))
-		var ask []*block.BlockRef
-		var at []int
-		for i, ref := range refs {
-			if _, ok := marked[ref.GetHash().MarshalString()]; !ok {
-				ask = append(ask, ref)
-				at = append(at, i)
-			}
+// close closes the SQL store.
+func (d *sqlDrop) close() {
+	d.store.Close()
+}
+
+// isMarked reports whether ref has an upload marker.
+func (d *sqlDrop) isMarked(ref *block.BlockRef) bool {
+	_, ok := d.marked[ref.GetHash().MarshalString()]
+	return ok
+}
+
+// drop reports which of refs the copy leaves out, checking the unmarked ones
+// in one batch.
+//
+// It keeps every marked block and drops an unmarked block only when the SQL
+// store holds it. A marker does not mean SQL lacks the block: a crash between
+// the upload and the marker's clear leaves a marked block SQL holds. No marker
+// does not mean SQL holds it either: blocks written before the store was
+// placed on SQL, or while uploads were off, were never marked.
+func (d *sqlDrop) drop(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	drop := make([]bool, len(refs))
+	var ask []*block.BlockRef
+	var at []int
+	for i, ref := range refs {
+		if !d.isMarked(ref) {
+			ask = append(ask, ref)
+			at = append(at, i)
 		}
-		if len(ask) == 0 {
-			return drop, nil
-		}
-		held, err := store.GetBlockExistsBatch(ctx, ask)
-		if err != nil {
-			return nil, err
-		}
-		for j, i := range at {
-			drop[i] = held[j]
-		}
+	}
+	if len(ask) == 0 {
 		return drop, nil
 	}
-	return check, store.Close, nil
+	held, err := d.store.GetBlockExistsBatch(ctx, ask)
+	if err != nil {
+		return nil, err
+	}
+	for j, i := range at {
+		drop[i] = held[j]
+	}
+	return drop, nil
 }
