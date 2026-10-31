@@ -3,7 +3,6 @@ package s4db
 import (
 	"context"
 	"sync/atomic"
-	"time"
 
 	"github.com/aperturerobotics/util/csync"
 )
@@ -24,9 +23,6 @@ type writer struct {
 	// waiting counts this handle's writers waiting for the writer lock. It
 	// is safe without the writer lock.
 	waiting atomic.Int32
-	// background is set while a background step of this handle holds the
-	// lock, so a waiting commit can attribute its wait.
-	background atomic.Bool
 }
 
 // lock takes the writer lock and brings the handle up to date with records
@@ -36,8 +32,6 @@ func (w *writer) lock(ctx context.Context) error {
 	// Exclude this handle's writers, then other processes, counted as
 	// waiting until both are held.
 	w.waiting.Add(1)
-	start := time.Now()
-	behind := w.background.Load()
 	release, err := w.mtx.Lock(ctx)
 	if err != nil {
 		w.waiting.Add(-1)
@@ -50,13 +44,9 @@ func (w *writer) lock(ctx context.Context) error {
 		return err
 	}
 
-	// Hold the lock, attributing the wait to a background step when one
-	// held it.
+	// Hold the lock.
 	w.unlockMtx = release
 	w.held.Store(true)
-	if behind {
-		w.db.recordWait(time.Since(start))
-	}
 
 	// Apply what other processes wrote.
 	if err := w.db.refresh(ctx); err != nil {
