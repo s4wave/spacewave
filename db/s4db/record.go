@@ -53,7 +53,7 @@ type record struct {
 
 	// delta is a commit's change in key count.
 	delta int64
-	// hot and cold are the open value chunks after a commit.
+	// hot and cold are the open value chunks after a commit, 0 for none.
 	hot, cold uint64
 	// ops are a commit's key changes in key order.
 	ops []op

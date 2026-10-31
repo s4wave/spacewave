@@ -63,12 +63,14 @@ func (c *cleaner) due(m *manifest) (urgent, ok bool) {
 }
 
 // topVictim returns the value chunk holding the file's last chunk when free
-// chunks sit below it and a scan has not found it stuck.
+// chunks sit below it and a scan has not found it stuck. The chunk may be open:
+// a commit opened it while the chunks below were pending, and moving out of it
+// or sealing it closes it, else an idle file could never shrink below it.
 func (c *cleaner) topVictim(m *manifest) (uint64, bool) {
-	// The last chunk must be a closed value chunk with a free chunk below.
+	// The last chunk must be a value chunk with a free chunk below.
 	t := m.table
 	end := t.end()
-	if end <= firstChunk || t.entries[end-1].kind != chunkValue || end-1 == m.hot || end-1 == m.cold {
+	if end <= firstChunk || t.entries[end-1].kind != chunkValue {
 		return 0, false
 	}
 	if seq, stuck := c.stuck[end-1]; stuck && seq == t.entries[end-1].seq {
@@ -115,23 +117,26 @@ func (c *cleaner) victim(m *manifest) (uint64, bool) {
 }
 
 // step cleans one victim: scans it on a snapshot, commits its live entries
-// into the cold chunk in batches, and seals it once empty. The caller holds
+// into the cold chunk in batches, and seals it once empty. It reports whether
+// it found a victim: slack in free chunks below a top chunk the cleaner cannot
+// move waits for a release step, and a scheduler that counted the empty step
+// as work would spin without reaching its quiet mark. The caller holds
 // lockClean.
-func (c *cleaner) step(ctx context.Context) error {
+func (c *cleaner) step(ctx context.Context) (bool, error) {
 	// Choose the victim on a snapshot.
 	db := c.db
 	st, stripe := db.acquire()
 	victim, ok := c.victim(st.m)
 	if !ok {
 		db.release(st, stripe)
-		return nil
+		return false, nil
 	}
 	e := *st.m.table.at(victim)
 
 	// A chunk with no live entry is sealed without a scan.
 	if e.live == 0 {
 		db.release(st, stripe)
-		return c.seal(ctx, victim)
+		return true, c.seal(ctx, victim)
 	}
 
 	// Read and parse the victim off the lock, on the idle thread, and find
@@ -149,19 +154,19 @@ func (c *cleaner) step(ctx context.Context) error {
 	})
 	if readErr != nil {
 		db.release(st, stripe)
-		return readErr
+		return true, readErr
 	}
 	live, err := c.liveEntries(st, entries)
 	db.release(st, stripe)
 	if err != nil {
-		return err
+		return true, err
 	}
 	if len(live) == 0 && e.live != 0 {
 		// The table says live bytes remain but no entry parses as live: the
 		// chunk holds part of a value larger than a chunk, is damaged, or is
 		// still being written; pass over it until a commit writes it again.
 		c.remember(victim, e.seq)
-		return nil
+		return true, nil
 	}
 
 	// Move the live entries in batches under the lock. A move applies only
@@ -173,18 +178,18 @@ func (c *cleaner) step(ctx context.Context) error {
 		if err := db.w.locked(ctx, func() error {
 			return db.w.commit(ctx, db.cur.Load(), batch, true)
 		}); err != nil {
-			return err
+			return true, err
 		}
 		if db.WritersWaiting() {
-			return nil
+			return true, nil
 		}
 	}
 
 	// Seal the victim when its live count reached zero.
 	if db.cur.Load().m.table.at(victim).live == 0 {
-		return c.seal(ctx, victim)
+		return true, c.seal(ctx, victim)
 	}
-	return nil
+	return true, nil
 }
 
 // liveEntries returns, as move changes, the entries of a victim whose keys

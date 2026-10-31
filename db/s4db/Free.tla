@@ -6,11 +6,13 @@
 \* Two keys are written into value chunks; each write appends an entry (the
 \* key and a tag that stands for the value's content) to the hot chunk and
 \* points the key's reference at it, freeing the entry it replaced. The
-\* cleaner picks a victim chunk, reads its entries on a snapshot, and moves
-\* each entry that is live in the snapshot: under the writer lock it copies
-\* the entry into the cold chunk and repoints the key only while the key still
-\* holds the reference it read. A chunk whose live count reaches zero is sealed
-\* and pending; it is free once every reader's pin passes the sealing record.
+\* cleaner picks a victim chunk, open or not, reads its entries on a snapshot,
+\* closes the victim when it is open, and moves each entry that is live in the
+\* snapshot: under the writer lock it copies the entry into the cold chunk and
+\* repoints the key only while the key still holds the reference it read. A
+\* chunk whose live count reaches zero is sealed and pending, closing it when
+\* it is still open; it is free once every reader's pin passes the sealing
+\* record.
 \* A job reserves a free chunk by slot; the job finishes (the chunk becomes a
 \* run) or its process dies, which frees the chunk by the slot rule.
 \* Allocating a free chunk clears what it held. Readers take a snapshot of the
@@ -18,7 +20,7 @@
 \*
 \* Callers found from source (the design, and the chunk layout branch at
 \* 92804dfd4 whose cleaner this follows): Tx.Commit (Write), the cleaner's
-\* choose, scan, commit of moves and seal (Choose, Scan, Move, Seal), the
+\* choose, scan, commit of moves and seal (Scan, Close, Move, Seal), the
 \* flusher's and merger's reserve and completion (Reserve, Finish, Die),
 \* release (Release), NewTransaction(read) and Discard (Snap, Read, End). Not
 \* modeled: durability (Durability.tla), several processes' pins beyond the
@@ -74,13 +76,17 @@ Init ==
 Lowest == Min({c \in Chunks : kind[c] = "free"})
 HasFree == \E c \in Chunks : kind[c] = "free"
 
+\* An open chunk c needs replacing: none is open, or it is full.
+Spent(c) == IF c = 0 THEN TRUE ELSE Cardinality(entries[c]) >= Room
+
 \* Append an entry for k with tag t to chunk c, freeing the entry k held.
 Append(k, t, c) ==
   /\ entries' = [entries EXCEPT ![c] = @ \cup {[key |-> k, tag |-> t]}]
   /\ live' = [live EXCEPT ![c] = @ + 1, ![refs[k].chunk] = IF refs[k] = None THEN @ ELSE @ - 1]
   /\ refs' = [refs EXCEPT ![k] = [chunk |-> c, tag |-> t]]
 
-\* A commit writes k into the hot chunk, opening a new one when it is full.
+\* A commit writes k into the hot chunk, opening one when none is open or it
+\* is full.
 Write(k) ==
   /\ More /\ tag < MaxTag /\ hot # 0
   /\ Cardinality(entries[hot]) < Room
@@ -90,7 +96,7 @@ Write(k) ==
   /\ UNCHANGED <<kind, hot, cold, pendAt, owner, cpc, victim, moves, snap, pin>>
 
 OpenHot ==
-  /\ More /\ hot # 0 /\ Cardinality(entries[hot]) >= Room /\ HasFree
+  /\ More /\ Spent(hot) /\ HasFree
   /\ hot' = Lowest
   /\ kind' = [kind EXCEPT ![Lowest] = "value"]
   /\ entries' = [entries EXCEPT ![Lowest] = {}]
@@ -98,28 +104,47 @@ OpenHot ==
   /\ UNCHANGED <<refs, latest, live, cold, tag, pendAt, owner, cpc, victim, moves, snap, pin>>
 
 OpenCold ==
-  /\ More /\ cold # 0 /\ Cardinality(entries[cold]) >= Room /\ HasFree
+  /\ More /\ Spent(cold) /\ HasFree
   /\ cold' = Lowest
   /\ kind' = [kind EXCEPT ![Lowest] = "value"]
   /\ entries' = [entries EXCEPT ![Lowest] = {}]
   /\ version' = version + 1
   /\ UNCHANGED <<refs, latest, live, hot, tag, pendAt, owner, cpc, victim, moves, snap, pin>>
 
-\* The cleaner picks a closed value chunk and reads its entries on a snapshot:
-\* an entry is live when its key's reference is this entry.
+\* The value chunk c holds the file's last chunk and free chunks sit below
+\* it: the cleaner's top victim, which may be open.
+Top(c) ==
+  /\ \A d \in Chunks : d > c => kind[d] = "free"
+  /\ \E d \in Chunks : d < c /\ kind[d] = "free"
+
+\* The cleaner picks a closed value chunk, or the top one open or not, and
+\* reads its entries on a snapshot: an entry is live when its key's reference
+\* is this entry.
 Scan ==
   /\ cpc = "idle"
   /\ \E c \in Chunks :
-       /\ kind[c] = "value" /\ c # hot /\ c # cold
+       /\ kind[c] = "value"
+       /\ c \notin {hot, cold} \/ Top(c)
        /\ victim' = c
        /\ moves' = {e \in entries[c] : refs[e.key] = [chunk |-> c, tag |-> e.tag]}
   /\ cpc' = "scanned"
   /\ UNCHANGED <<kind, entries, refs, latest, live, hot, cold, tag, version, pendAt, owner, snap, pin>>
 
-\* The cleaner moves one entry under the lock: the key must still hold the
-\* reference read, or the move is dropped.
+\* The first move out of an open victim closes it in the move's record, so no
+\* later write lands in it; a victim that was the cold chunk leaves the moves
+\* to the next cold chunk.
+Close ==
+  /\ More /\ cpc = "scanned" /\ victim \in {hot, cold}
+  /\ hot' = IF hot = victim THEN 0 ELSE hot
+  /\ cold' = IF cold = victim THEN 0 ELSE cold
+  /\ version' = version + 1
+  /\ UNCHANGED <<kind, entries, refs, latest, live, tag, pendAt, owner, cpc, victim, moves, snap, pin>>
+
+\* The cleaner moves one entry out of the closed victim under the lock: the
+\* key must still hold the reference read, or the move is dropped.
 Move ==
-  /\ More /\ cpc = "scanned" /\ moves # {} /\ cold # 0 /\ Cardinality(entries[cold]) < Room
+  /\ More /\ cpc = "scanned" /\ moves # {} /\ victim \notin {hot, cold}
+  /\ cold # 0 /\ Cardinality(entries[cold]) < Room
   /\ \E e \in moves :
        /\ moves' = moves \ {e}
        /\ IF refs[e.key] = [chunk |-> victim, tag |-> e.tag]
@@ -128,14 +153,17 @@ Move ==
           ELSE UNCHANGED <<entries, live, refs, version>>
   /\ UNCHANGED <<kind, latest, hot, cold, tag, pendAt, owner, cpc, victim, snap, pin>>
 
-\* An emptied victim is sealed: pending from this record.
+\* An emptied victim is sealed: pending from this record, and closed when it
+\* is still open.
 Seal ==
   /\ More /\ cpc = "scanned" /\ moves = {} /\ live[victim] = 0
   /\ kind' = [kind EXCEPT ![victim] = "pending"]
+  /\ hot' = IF hot = victim THEN 0 ELSE hot
+  /\ cold' = IF cold = victim THEN 0 ELSE cold
   /\ version' = version + 1
   /\ pendAt' = [pendAt EXCEPT ![victim] = version + 1]
   /\ cpc' = "idle"
-  /\ UNCHANGED <<entries, refs, latest, live, hot, cold, tag, owner, victim, moves, snap, pin>>
+  /\ UNCHANGED <<entries, refs, latest, live, tag, owner, victim, moves, snap, pin>>
 
 \* A victim that still holds live entries after the moves goes back to the
 \* table: a key was rewritten meanwhile and the cleaner tries again later.
@@ -196,13 +224,14 @@ End(r) ==
 
 Next ==
   \/ \E k \in Keys : Write(k)
-  \/ OpenHot \/ OpenCold \/ Scan \/ Move \/ Seal \/ Abandon \/ Release
+  \/ OpenHot \/ OpenCold \/ Scan \/ Close \/ Move \/ Seal \/ Abandon \/ Release
   \/ Reserve \/ Finish \/ Die \/ Reclaim
   \/ \E r \in Readers : Snap(r) \/ End(r)
   \/ UNCHANGED vars
 
 Fairness ==
   /\ WF_vars(Release) /\ WF_vars(Reclaim) /\ WF_vars(Seal) /\ WF_vars(Move) /\ WF_vars(Scan)
+  /\ WF_vars(Close)
   /\ \A r \in Readers : WF_vars(End(r))
 Spec == Init /\ [][Next]_vars /\ Fairness
 
@@ -225,6 +254,11 @@ FreeUnreachable ==
     /\ c # hot /\ c # cold
     /\ \A k \in Keys : refs[k].chunk # c
     /\ \A r \in Readers : \A k \in Keys : snap[r][k].chunk # c
+
+\* An open chunk is a value chunk: no write lands in a pending or free chunk.
+OpenIsValue ==
+  /\ hot # 0 => kind[hot] = "value"
+  /\ cold # 0 => kind[cold] = "value"
 
 \* A reader's snapshot still reads every entry it took.
 SnapshotsRead ==
