@@ -15,8 +15,8 @@ func (c *Config) Validate() error {
 	if c.GetPath() == "" {
 		return errors.New("path required")
 	}
-	if c.GetCacheBytes() < 0 || c.GetCheckpointMaxBytes() < 0 || c.GetCommitWaitBytes() < 0 {
-		return errors.New("cache_bytes, checkpoint_max_bytes and commit_wait_bytes must not be negative")
+	if c.GetCacheBytes() < 0 {
+		return errors.New("cache_bytes must not be negative")
 	}
 	return c.GetKvKeyOpts().Validate()
 }
