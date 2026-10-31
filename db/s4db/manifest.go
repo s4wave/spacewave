@@ -14,8 +14,8 @@ import (
 type manifest struct {
 	// version increases with each record that changes the structure.
 	version uint64
-	// runs holds every run, level 0 newest first, then each lower level in
-	// key order.
+	// runs holds every run in lookupOrder: level 0 newest first, then each
+	// lower level in key order.
 	runs []runMeta
 	// table is the chunk table.
 	table *chunkTable
