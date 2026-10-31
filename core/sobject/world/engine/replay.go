@@ -623,7 +623,9 @@ func (r *replayer) head() (*InnerState, *InnerState, int) {
 // so when its root is missing, replay starts again from the base. Any other
 // missing block belongs to the operation that needs it and stops replay there,
 // with the positions before it kept. The blocks of every placed position are
-// durable when replay returns.
+// durable when replay returns. When a fence fails, the pass's blocks are lost
+// with its engine, so replay keeps only the shared prefix, which earlier passes
+// fenced, and the next replay places the rest again.
 func (r *replayer) replay(
 	ctx context.Context,
 	snap sobject.SharedObjectStateSnapshot,
@@ -631,10 +633,26 @@ func (r *replayer) replay(
 	fork *replayFork,
 ) (state *InnerState, outcomes []replayOutcome, err error) {
 	// Advance one World through the pass and fence its blocks at the end.
+	// A failed fence, at the end or at a bind mid-pass, drops every position
+	// past the fenced prefix, and the span when it covers one of them, and
+	// returns no World.
 	w := newReplayWorld(r.c, r.so)
+	fenced := len(r.positions)
 	defer func() {
-		if cerr := w.close(ctx); cerr != nil {
-			state, outcomes, err = nil, nil, cerr
+		cerr := w.close(ctx)
+		if w.fenceErr == nil {
+			return
+		}
+		if len(r.positions) > fenced {
+			r.positions = r.positions[:fenced]
+			r.changed, r.deferred = true, false
+		}
+		if fenced < r.spanLen {
+			r.span, r.spanLen = nil, 0
+		}
+		state, outcomes = nil, nil
+		if cerr != nil || err == nil {
+			err = w.fenceErr
 		}
 	}()
 
@@ -645,6 +663,7 @@ func (r *replayer) replay(
 	for n < len(order) && n < len(r.positions) && bytes.Equal(order[n], r.positions[n].outcome.hash) {
 		n++
 	}
+	fenced = n
 
 	// Remember the rest of a served replay, which a stop behind it restores.
 	var dropped []replayPosition
@@ -695,14 +714,18 @@ func (r *replayer) replay(
 			next, opOutcome, opErr := r.replayOp(ctx, w, snap, inner, n+i, state)
 			if block.IsNotAvailable(opErr) {
 				if i == 0 && n != 0 && r.worldLost(ctx, state) {
+					// The inner replay fences what it places.
 					r.positions = nil
-					return r.replay(ctx, snap, set, nil)
+					state, outcomes, err = r.replay(ctx, snap, set, nil)
+					fenced = len(r.positions)
+					return state, outcomes, err
 				}
 				stopErr := errors.Wrapf(opErr, "replay stopped at operation %d (nonce %d of %s)", n+i, inner.GetNonce(), inner.GetPeerId())
 				if r.leavesOut(set, dropped, n) {
 					r.c.le.WithError(stopErr).Warn("replay stopped behind the served World, keeping the served World")
 					r.positions = append(r.positions[:n], dropped...)
 					r.changed, r.deferred, r.span, r.spanLen = changed, deferred, span, spanLen
+					fenced = len(r.positions)
 					return nil, nil, stopErr
 				}
 				r.c.le.WithError(stopErr).Warn("replay stopped at an operation whose block is not available")

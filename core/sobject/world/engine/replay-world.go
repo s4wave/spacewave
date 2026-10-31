@@ -26,6 +26,9 @@ type replayWorld struct {
 	ws *blkEngine
 	// head is the World ws serves.
 	head *bucket.ObjectRef
+	// fenceErr is the error of a failed fence. The blocks the pass committed
+	// before it are lost with the released engine.
+	fenceErr error
 }
 
 // newReplayWorld constructs a replay World over the blocks of so.
@@ -58,7 +61,9 @@ func (w *replayWorld) advance(head *bucket.ObjectRef) {
 	w.head = head.CloneVT()
 }
 
-// close makes the committed blocks durable and releases the engine.
+// close makes the committed blocks durable and releases the engine. A failed
+// fence is kept in fenceErr, since a bind that fences returns its error
+// through the operation it binds for.
 func (w *replayWorld) close(ctx context.Context) error {
 	// Detach the engine.
 	if w.ws == nil {
@@ -71,6 +76,9 @@ func (w *replayWorld) close(ctx context.Context) error {
 	// Fence the pass's writes.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/replay/fence")
 	defer task.End()
-	_, err := ws.bengine.Sync(ctx)
-	return err
+	if _, err := ws.bengine.Sync(ctx); err != nil {
+		w.fenceErr = err
+		return err
+	}
+	return nil
 }

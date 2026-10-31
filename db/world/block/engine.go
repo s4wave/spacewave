@@ -1358,7 +1358,8 @@ type deferredStage struct {
 }
 
 // Release makes the adopting commits durable, then releases the stage. A
-// failed flush keeps the stage until its process owner is reaped.
+// failed flush keeps the stage until its process owner is reaped; nothing
+// retries the flush, so the stage stays held until then.
 func (s *deferredStage) Release() {
 	if _, err := s.e.writeBlockStore.Sync(context.Background()); err != nil {
 		s.e.le.WithError(err).Warn("keeping world stage after failed block flush")

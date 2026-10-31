@@ -10,7 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -721,5 +723,110 @@ func TestReplayCarriesBaseHoldUntilSaved(t *testing.T) {
 	r.unsave(firstBase, firstSpan, firstLen, false)
 	if !carries() {
 		t.Fatal("failed publications did not restore the hold of the later checkpoint World")
+	}
+}
+
+// replayFailStore is a test block store whose writes fail with fail while it
+// is set, so a fence that drains buffered blocks into it loses them.
+type replayFailStore struct {
+	*testBlockStore
+	fail error
+}
+
+// PutBlock fails while fail is set.
+func (s *replayFailStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	if s.fail != nil {
+		return nil, false, s.fail
+	}
+	return s.testBlockStore.PutBlock(ctx, data, opts)
+}
+
+// PutBlockBatch fails while fail is set.
+func (s *replayFailStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	if s.fail != nil {
+		return nil, s.fail
+	}
+	return s.testBlockStore.PutBlockBatch(ctx, entries)
+}
+
+// TestReplayDropsPositionsAfterFailedBindFence fails the fence a bind runs
+// mid-pass, when the World's transform changed under the engine. The blocks
+// of the operation before it are lost with the engine, so replay must keep no
+// position past the fenced prefix and return no World, also when the store
+// reports the failure as a block not available. The next replay places the
+// operations again, and a fresh engine must read both objects from the store.
+func TestReplayDropsPositionsAfterFailedBindFence(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{"write error", errors.New("test write failure")},
+		{"unavailable", errors.Wrap(block.ErrUnavailable, "test store offline")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Build a member over a store that can fail its writes.
+			privA, pidA := newReplayTestKey(t)
+			space := newReplayTestSpace(t, pidA)
+			store := &replayFailStore{testBlockStore: space.so.blockStore.(*testBlockStore)}
+			member := space.member(pidA, false)
+			member.replayer.so = &testSharedObject{peerID: pidA, blockStore: store}
+
+			// Create an object, move the World to s2, then create another,
+			// whose bind fences the first.
+			opA := space.sign("A", privA, "object-a", &sobject.SOOperationLink{Nonce: 1})
+			conf, err := (&SOWorldOp{Body: &SOWorldOp_SetTransformConf{SetTransformConf: &SetTransformConfOp{
+				TransformConf: newStateTestTransformConfig(t, &transform_s2.Config{ReadGzip: true}),
+			}}}).MarshalVT()
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			opConf := space.signOp("s2", privA, conf, &sobject.SOOperationLink{Nonce: 2, PrevOpHash: opA.Hash()})
+			opB := space.sign("B", privA, "object-b", &sobject.SOOperationLink{Nonce: 3, PrevOpHash: opConf.Hash()})
+			for _, op := range []*sobject.SOOperation{opA, opConf, opB} {
+				if _, err := member.set.Add(op); err != nil {
+					t.Fatal(err.Error())
+				}
+			}
+
+			// The bind's fence fails.
+			ctx := context.Background()
+			store.fail = tc.err
+			state, _, err := member.replayer.replay(ctx, member.snap, member.set, nil)
+			store.fail = nil
+			if !errors.Is(err, tc.err) {
+				t.Fatalf("replay returned %v; want the fence failure", err)
+			}
+			if state != nil {
+				t.Fatal("replay returned a World whose blocks a failed fence lost")
+			}
+			if n := len(member.replayer.positions); n != 0 {
+				t.Fatalf("replay kept %d positions past the fenced prefix", n)
+			}
+
+			// The next replay places all three, and their World is stored.
+			got := member.deliver()
+			want := []string{"A: applied", "s2: applied", "B: applied"}
+			if !slices.Equal(got.outcomes, want) {
+				t.Fatalf("replay outcomes %q; want %q", got.outcomes, want)
+			}
+			head := got.state.GetHeadRef()
+			ws, err := space.c.buildBlkEngine(ctx, space.c.le, member.replayer.so, head, head.GetTransformConf())
+			if err != nil {
+				t.Fatalf("installed World root: %v", err)
+			}
+			defer ws.Release()
+			read, err := ws.bengine.NewTransaction(ctx, false)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			defer read.Discard()
+			for _, key := range []string{"object-a", "object-b"} {
+				objectState, found, err := read.GetObject(ctx, key)
+				world.ReleaseObjectState(objectState)
+				if err != nil || !found {
+					t.Fatalf("installed World object %s: found %v, %v", key, found, err)
+				}
+			}
+		})
 	}
 }
