@@ -4,11 +4,18 @@ import (
 	"context"
 )
 
+// truncateMax bounds the chunks one release step truncates. The call runs
+// under the writer lock, and the extents it frees go into the journal a
+// commit's flush waits on: on forge's SATA drive under ext4, 32 MiB took 1 ms
+// and 344 MiB from 12 to 138 ms, stalling a flush of the same file for up to
+// 124 ms.
+const truncateMax = 32
+
 // releaseStep frees what may be reused: pending chunks that no slot pins and
 // recovery can no longer read, and reserved chunks whose owner is gone. It
-// appends one free record for them and truncates the file when its trailing
-// chunks are free, all under the writer lock; replayers apply the records
-// without repeating the slot reads and marks that justified them.
+// appends one free record for them and truncates up to truncateMax of the
+// file's trailing free chunks, all under the writer lock; replayers apply the
+// records without repeating the slot reads and marks that justified them.
 func (s *scheduler) releaseStep(ctx context.Context) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
@@ -57,11 +64,10 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 			}
 		}
 
-		// Truncate the file to its last chunk in use, in this lock span.
-		end := st.m.table.end()
-		for end > firstChunk+2 && st.m.table.entries[end-1].kind == chunkFree {
-			end--
-		}
+		// Truncate the file toward its last chunk in use, in this lock span,
+		// since the lock keeps a writer from allocating past the new end
+		// while the call runs.
+		end := st.m.table.trimEnd(truncateMax)
 		if end == st.m.table.end() {
 			return nil
 		}
