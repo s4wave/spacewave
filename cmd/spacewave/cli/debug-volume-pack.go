@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/dustin/go-humanize"
+	block_store_ftps "github.com/s4wave/spacewave/db/block/store/ftps"
 	block_store_s3 "github.com/s4wave/spacewave/db/block/store/s3"
 	"github.com/s4wave/spacewave/db/s4db"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
@@ -34,6 +36,8 @@ type packArgs struct {
 	logPath string
 	// bucket, endpoint, region and keyPrefix locate the packs.
 	bucket, endpoint, region, keyPrefix string
+	// ftps targets an FTPS server instead of the bucket when its host is set.
+	ftps ftpsArgs
 	// bytesPerSecond limits the upload; zero does not.
 	bytesPerSecond int64
 	// packMiB is the block data of one pack in MiB; zero uses the default.
@@ -56,7 +60,8 @@ func newDebugVolumePackCommand() *cli.Command {
 			"deleted. A block whose data does not match its hash is in no pack and is counted as bad. Blocks the " +
 			"reference graph reaches from any root other than --world-store are left alone. The log records every " +
 			"committed block key, so a stopped run resumes where it ended and volume-switch finds the blocks it missed. " +
-			"The credentials come from " + packKeyIDEnv + " and " + packKeyEnv + ". It also counts the keys outside the block " +
+			"The credentials come from " + packKeyIDEnv + " and " + packKeyEnv + ". With --ftps-host the packs go to that " +
+			"FTPS server under --ftps-root instead, with the login from --ftps-netrc. It also counts the keys outside the block " +
 			"range and the bytes of their keys and values, which size the file volume-switch writes. " +
 			"The upload rate is limited by --bytes-per-second; the command does not watch the backend's load.",
 		Flags: []cli.Flag{
@@ -68,6 +73,10 @@ func newDebugVolumePackCommand() *cli.Command {
 			&cli.StringFlag{Name: "key-prefix", Usage: "the key prefix of the packs in the bucket", Value: "world/packs/", Destination: &args.keyPrefix},
 			&cli.Int64Flag{Name: "bytes-per-second", Usage: "limit the block data uploaded per second; zero does not limit", Destination: &args.bytesPerSecond},
 			&cli.IntFlag{Name: "pack-mib", Usage: "block data per pack in MiB; zero uses half the pack limit", Destination: &args.packMiB},
+			&cli.StringFlag{Name: "ftps-host", Usage: "write the packs to this FTPS server instead of the bucket", Destination: &args.ftps.host},
+			&cli.StringFlag{Name: "ftps-netrc", Usage: "the netrc file holding the FTPS login", Destination: &args.ftps.netrc},
+			&cli.StringFlag{Name: "ftps-root", Usage: "the FTPS directory holding the key prefix", Destination: &args.ftps.root},
+			&cli.IntFlag{Name: "ftps-conns", Usage: "the FTPS connections", Value: block_store_ftps.DefaultConns, Destination: &args.ftps.conns},
 			&cli.BoolFlag{Name: "skip-rest", Usage: "do not count the keys outside the block range", Destination: &args.skipRest},
 		},
 		Action: func(c *cli.Context) error {
@@ -82,25 +91,14 @@ func newDebugVolumePackCommand() *cli.Command {
 // packVolumeFile packs the World blocks of the volume file at path, writing
 // progress lines to w.
 func packVolumeFile(ctx context.Context, path string, args *packArgs, w io.Writer) error {
-	// Check the arguments and the credentials.
-	if args.bucket == "" {
-		return errors.New("name the bucket with --bucket or HYPERLINE_PROD_BUCKET")
-	}
-	keyID, key := os.Getenv(packKeyIDEnv), os.Getenv(packKeyEnv)
-	if keyID == "" || key == "" {
-		return fmt.Errorf("set %s and %s", packKeyIDEnv, packKeyEnv)
-	}
-
-	// Build the pack store with KeepPacks, so it never deletes a pack.
-	client, err := block_store_s3.BuildClient(&block_store_s3.ClientConfig{
-		Endpoint:    args.endpoint,
-		Region:      args.region,
-		Credentials: &block_store_s3.Credentials{AccessKeyId: keyID, SecretAccessKey: key},
-	})
+	// Connect to the FTPS server or the bucket.
+	objects, bucket, err := args.objectStore()
 	if err != nil {
 		return err
 	}
-	packer := block_store_s3.NewPackStore(logrus.NewEntry(logrus.New()), client, args.bucket, args.keyPrefix, &block_store_s3.PackStoreOptions{KeepPacks: true})
+
+	// Build the pack store with KeepPacks, so it never deletes a pack.
+	packer := block_store_s3.NewPackStore(logrus.NewEntry(logrus.New()), objects, bucket, args.keyPrefix, &block_store_s3.PackStoreOptions{KeepPacks: true})
 	defer packer.Close()
 
 	// Open the volume file beside its writer.
@@ -133,6 +131,36 @@ func packVolumeFile(ctx context.Context, path string, args *packArgs, w io.Write
 	progress, err := packmove.Pack(ctx, cfg)
 	fmt.Fprintf(w, "%s: %s\n", time.Since(start).Round(time.Second), formatPackProgress(progress))
 	return err
+}
+
+// objectStore connects to the FTPS server when --ftps-host is set and to the
+// bucket otherwise, returning the store and the bucket to name in it.
+func (args *packArgs) objectStore() (block_store_s3.ObjectStore, string, error) {
+	// Prefer the FTPS server.
+	if args.ftps.host != "" {
+		client, err := args.ftps.client()
+		return client, args.ftps.root, err
+	}
+
+	// Check the bucket and its credentials.
+	if args.bucket == "" {
+		return nil, "", errors.New("name the bucket with --bucket or HYPERLINE_PROD_BUCKET, or the server with --ftps-host")
+	}
+	keyID, key := os.Getenv(packKeyIDEnv), os.Getenv(packKeyEnv)
+	if keyID == "" || key == "" {
+		return nil, "", fmt.Errorf("set %s and %s", packKeyIDEnv, packKeyEnv)
+	}
+
+	// Split the scheme from the endpoint, since the client takes a bare host.
+	endpoint, insecure := strings.CutPrefix(args.endpoint, "http://")
+	endpoint = strings.TrimPrefix(endpoint, "https://")
+	client, err := block_store_s3.BuildClient(&block_store_s3.ClientConfig{
+		Endpoint:    endpoint,
+		Region:      args.region,
+		DisableSsl:  insecure,
+		Credentials: &block_store_s3.Credentials{AccessKeyId: keyID, SecretAccessKey: key},
+	})
+	return client, args.bucket, err
 }
 
 // formatPackProgress describes the work of a pack.

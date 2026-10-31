@@ -4,6 +4,7 @@ package block_store_s3
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"io"
 	"maps"
@@ -62,8 +63,8 @@ var ErrPackImmutable = errors.New("bucket packfiles do not remove blocks")
 type PackStore struct {
 	// le is the logger.
 	le *logrus.Entry
-	// client sends the signed requests.
-	client *Client
+	// client stores the objects.
+	client ObjectStore
 	// bucket is the bucket holding the objects.
 	bucket string
 	// prefix precedes every object key.
@@ -114,7 +115,7 @@ var compactBackoff = &backoff.Backoff{
 // PackStoreOptions configures a PackStore.
 type PackStoreOptions struct {
 	// Pricing is the price list of the service holding the bucket; nil uses
-	// PricingForEndpoint.
+	// PricingForEndpoint for a *Client and the Amazon S3 prices otherwise.
 	Pricing *Pricing
 	// KeepPacks stops compaction and reclaim, so the store only ever adds
 	// packfiles.
@@ -123,15 +124,16 @@ type PackStoreOptions struct {
 
 // NewPackStore builds a packfile block store on the bucket. opts may be nil.
 // Close stops its compaction routine.
-func NewPackStore(le *logrus.Entry, client *Client, bucket, prefix string, opts *PackStoreOptions) *PackStore {
+func NewPackStore(le *logrus.Entry, client ObjectStore, bucket, prefix string, opts *PackStoreOptions) *PackStore {
 	// Price the bucket's service from its endpoint unless overridden.
 	if opts == nil {
 		opts = &PackStoreOptions{}
 	}
 	pricing := opts.Pricing
-	if pricing == nil {
-		pricing = PricingForEndpoint(client.endpoint)
+	if c, ok := client.(*Client); ok && pricing == nil {
+		pricing = PricingForEndpoint(c.endpoint)
 	}
+	pricing = cmp.Or(pricing, awsPricing)
 	s := &PackStore{
 		le:        le,
 		client:    client,
@@ -464,7 +466,7 @@ func (s *PackStore) openPack(id string, size int64) (*packfile_store.PackReader,
 
 // rangeTransport reads byte ranges of one packfile object.
 type rangeTransport struct {
-	client *Client
+	client ObjectStore
 	bucket string
 	key    string
 }

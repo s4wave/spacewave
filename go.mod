@@ -51,6 +51,7 @@ require (
 	github.com/dolthub/vitess v0.0.0-20261014211039-3e903c0f05d3
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
+	github.com/fclairamb/ftpserverlib v0.32.6
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261016211742-fd38f5ac32fe // main
 	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261030225847-a0088e429af9 // main
@@ -61,6 +62,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/jezek/xgb v1.3.1
+	github.com/jlaffaye/ftp v0.2.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.20.3
 	github.com/libp2p/go-yamux/v5 v5.1.0

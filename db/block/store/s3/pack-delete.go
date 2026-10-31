@@ -14,7 +14,7 @@ import (
 // The packfile entries go first, so the store's readers and writers stop
 // finding its packfiles before those are deleted. A missing bucket holds
 // nothing, so it counts as deleted. A rerun finishes an interrupted delete.
-func DeletePackStore(ctx context.Context, client *Client, bucket, prefix string) error {
+func DeletePackStore(ctx context.Context, client ObjectStore, bucket, prefix string) error {
 	for _, dir := range []string{prefix + entryDir, prefix} {
 		if err := deleteObjectsUnder(ctx, client, bucket, dir); err != nil {
 			if errors.Is(err, ErrBucketNotFound) {
@@ -27,7 +27,7 @@ func DeletePackStore(ctx context.Context, client *Client, bucket, prefix string)
 }
 
 // deleteObjectsUnder deletes every object listed under prefix.
-func deleteObjectsUnder(ctx context.Context, client *Client, bucket, prefix string) error {
+func deleteObjectsUnder(ctx context.Context, client ObjectStore, bucket, prefix string) error {
 	eg, egCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(batchConcurrency)
 	eg.Go(func() error {
