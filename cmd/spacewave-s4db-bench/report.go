@@ -3,6 +3,7 @@
 package main
 
 import (
+	"cmp"
 	"os"
 	"slices"
 	"strconv"
@@ -31,11 +32,25 @@ type Report struct {
 	Busy Latency
 	// Windows counts the sample windows of each class.
 	Windows map[string]int
+	// Slowest are the slowest commits, slowest first, each with the window it
+	// ended in.
+	Slowest []slowCommit
 	// BackgroundWaitMax is the engine's own longest wait of a commit on
 	// background work.
 	BackgroundWaitMax time.Duration
 	// Stats is the engine's report at the end.
 	Stats s4db.Stats
+}
+
+// slowestCount is how many of the slowest commits the report lists.
+const slowestCount = 10
+
+// slowCommit is one of the slowest commits and the window it ended in.
+type slowCommit struct {
+	commit
+	// class is the window's class, and prev and cur its samples.
+	class     string
+	prev, cur sample
 }
 
 // classify assigns each commit to the window between the samples around its
@@ -44,6 +59,7 @@ func (a *BenchArgs) classify(samples []sample, commits []commit) *Report {
 	// Walk the windows and the commits together, both in time order.
 	byClass := map[string][]time.Duration{}
 	windows := map[string]int{}
+	slow := make([]slowCommit, 0, len(commits))
 	i := 0
 	for w := 1; w < len(samples); w++ {
 		// Class the window and take the commits that ended in it.
@@ -52,6 +68,7 @@ func (a *BenchArgs) classify(samples []sample, commits []commit) *Report {
 		windows[class]++
 		for i < len(commits) && commits[i].at <= cur.at {
 			byClass[class] = append(byClass[class], commits[i].dur)
+			slow = append(slow, slowCommit{commit: commits[i], class: class, prev: prev, cur: cur})
 			i++
 		}
 	}
@@ -59,14 +76,19 @@ func (a *BenchArgs) classify(samples []sample, commits []commit) *Report {
 	// Commits after the last sample count as idle.
 	for i < len(commits) {
 		byClass["idle"] = append(byClass["idle"], commits[i].dur)
+		slow = append(slow, slowCommit{commit: commits[i], class: "idle"})
 		i++
 	}
+
+	// Keep the slowest.
+	slices.SortFunc(slow, func(x, y slowCommit) int { return cmp.Compare(y.dur, x.dur) })
 	return &Report{
 		Idle:    summarize(byClass["idle"]),
 		Flush:   summarize(byClass["flush"]),
 		Merge:   summarize(byClass["merge"]),
 		Busy:    summarize(byClass["busy"]),
 		Windows: windows,
+		Slowest: slow[:min(len(slow), slowestCount)],
 	}
 }
 
@@ -154,7 +176,42 @@ func (r *Report) value(arena *fastjson.Arena) *fastjson.Value {
 		windows.Set(class, intValue(arena, int64(r.Windows[class])))
 	}
 	obj.Set("windows", windows)
+
+	// The slowest commits.
+	slowest := arena.NewArray()
+	for i, sc := range r.Slowest {
+		slowest.SetArrayItem(i, sc.value(arena))
+	}
+	obj.Set("slowest", slowest)
 	obj.Set("stats", statsValue(arena, r.Stats))
+	return obj
+}
+
+// value builds a slow commit's JSON object: when it ended, how long it took,
+// and its window's class and samples.
+func (sc slowCommit) value(arena *fastjson.Arena) *fastjson.Value {
+	// The commit and its window.
+	obj := arena.NewObject()
+	obj.Set("at", arena.NewString(sc.at.String()))
+	obj.Set("dur", arena.NewString(sc.dur.String()))
+	obj.Set("class", arena.NewString(sc.class))
+	obj.Set("before", sc.prev.value(arena))
+	obj.Set("after", sc.cur.value(arena))
+	return obj
+}
+
+// value builds a sample's JSON object.
+func (s sample) value(arena *fastjson.Arena) *fastjson.Value {
+	// The runs per level, the reservation and the file size.
+	obj := arena.NewObject()
+	runs := arena.NewArray()
+	for i, n := range s.runs {
+		runs.SetArrayItem(i, intValue(arena, int64(n)))
+	}
+	obj.Set("at", arena.NewString(s.at.String()))
+	obj.Set("runs", runs)
+	obj.Set("reserved", intValue(arena, s.reserved))
+	obj.Set("fileBytes", intValue(arena, s.fileBytes))
 	return obj
 }
 
