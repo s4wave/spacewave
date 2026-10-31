@@ -147,3 +147,44 @@ func (c *blockCache) remember(k cacheKey) {
 		c.ghostOrder = c.ghostOrder[1:]
 	}
 }
+
+// drop forgets every block of run.
+func (c *blockCache) drop(run uint64) {
+	// Remove the items and compact the queues.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	for k, it := range c.items {
+		if k.run == run {
+			delete(c.items, k)
+			c.bytes -= int64(len(it.data))
+			if c.inSmall(it) {
+				c.smallBytes -= int64(len(it.data))
+			}
+			it.data = nil
+		}
+	}
+	c.small = compactItems(c.small)
+	c.main = compactItems(c.main)
+}
+
+// inSmall reports whether it waits in the small queue.
+func (c *blockCache) inSmall(it *cacheItem) bool {
+	for _, s := range c.small {
+		if s == it {
+			return true
+		}
+	}
+	return false
+}
+
+// compactItems removes the dropped items from a queue.
+func compactItems(q []*cacheItem) []*cacheItem {
+	kept := q[:0]
+	for _, it := range q {
+		if it.data != nil {
+			kept = append(kept, it)
+		}
+	}
+	clear(q[len(kept):])
+	return kept
+}
