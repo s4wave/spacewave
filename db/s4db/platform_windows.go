@@ -23,9 +23,9 @@ func (f *osFile) flushDurable() error {
 	return windows.FlushFileBuffers(windows.Handle(f.Fd()))
 }
 
-// writeback flushes durably: FlushFileBuffers is the one call that writes a
-// file's pages.
-func (f *osFile) writeback() error {
+// writeback flushes the whole file durably: FlushFileBuffers is the one call
+// that writes a file's pages.
+func (f *osFile) writeback([]uint64) error {
 	return f.flushDurable()
 }
 
