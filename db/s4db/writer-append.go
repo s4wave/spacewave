@@ -1,0 +1,70 @@
+package s4db
+
+import (
+	"context"
+)
+
+// appendRecord appends r after the published state and publishes the state
+// derived from it, returning that state. The caller holds the writer lock;
+// r's kind and body are set, and its identities, mark and sequence are
+// filled here. A link precedes it when the record does not fit the chunk.
+func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
+	// Fill the record's identities and mark on a copy of the state.
+	db := w.db
+	base := db.cur.Load()
+	next := base.derive()
+	r.writer, r.prevWriter = db.id, base.writer
+	r.durable, _ = db.flush.marks()
+
+	// Place the record after the published state.
+	seq := base.seq + 1
+	bound := uint64(recordHeader + r.bound()) // #nosec G115 -- sizes are not negative.
+	pos, prev := base.pos, base.crc
+	var link []byte
+	linkPos := pos
+
+	// Continue the log in new chunks when the record may not fit.
+	if pos+bound+linkSize > base.end {
+		span := max(chunksFor(bound+linkSize), 1)
+		l := &record{seq: seq, kind: kindLink, writer: db.id, prevWriter: base.writer, durable: r.durable, span: span}
+		l.next = next.m.table.alloc(span, chunkLog, 0)
+		link = l.encode(prev)
+		next.apply(l, db.budget)
+		seq, prev = seq+1, l.crc
+		pos = chunkStart(l.next)
+		r.prevWriter = db.id
+	}
+	r.seq = seq
+	db.ownSeq.Store(seq)
+
+	// Write the link and the record, then publish.
+	rec := r.encode(prev)
+	if link != nil {
+		if _, err := db.s.WriteAt(link, fileOff(linkPos)); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := db.s.WriteAt(rec, fileOff(pos)); err != nil {
+		return nil, err
+	}
+	db.written.Add(int64(len(link) + len(rec)))
+	next.apply(r, db.budget)
+	if err := db.publish(ctx, next); err != nil {
+		return nil, err
+	}
+	return next, nil
+}
+
+// locked runs fn under the writer lock as a background step, attributing
+// any commit's wait to it.
+func (w *writer) locked(ctx context.Context, fn func() error) error {
+	// Hold the lock around fn, marked as a background step.
+	if err := w.lock(ctx); err != nil {
+		return err
+	}
+	w.background.Store(true)
+	err := fn()
+	w.background.Store(false)
+	w.unlock()
+	return err
+}
