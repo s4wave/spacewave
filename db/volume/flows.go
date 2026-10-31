@@ -44,9 +44,9 @@ type VolumeFlows struct {
 	// Values are the values of each key family, empty when the storage does
 	// not count them.
 	Values []ValueFlow
-	// BackgroundWaitMax is the longest a commit waited for the storage's
-	// writer while a background step held it, zero when the storage does not
-	// count it.
+	// BackgroundWaitMax is the longest a commit waited on the storage's
+	// background work, such as a background step holding its writer, zero
+	// when the storage does not count it.
 	BackgroundWaitMax time.Duration
 }
 
