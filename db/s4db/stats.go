@@ -34,8 +34,9 @@ type Stats struct {
 	Written int64
 	// UserBytes is the key and value bytes this handle's commits carried.
 	UserBytes int64
-	// BackgroundWaitMax is the longest a commit of this handle waited for the
-	// writer lock while a background step held it.
+	// BackgroundWaitMax is the longest a commit of this handle waited on
+	// background work: a background step's hold of the writer lock while the
+	// commit waited for it, or a wait at the memtable ceiling.
 	BackgroundWaitMax time.Duration
 	// Slots lists the live reader slots and their pins.
 	Slots []SlotPin
@@ -156,8 +157,7 @@ func (db *DB) addFlows(flows []Flow) {
 	}
 }
 
-// recordWait records that a commit waited d for the writer lock behind a
-// background step.
+// recordWait records that a commit waited d on background work.
 func (db *DB) recordWait(d time.Duration) {
 	for {
 		cur := db.waitMax.Load()

@@ -31,8 +31,8 @@ type Report struct {
 	Busy Latency
 	// Windows counts the sample windows of each class.
 	Windows map[string]int
-	// BackgroundWaitMax is the engine's own longest wait of a commit behind
-	// a background step.
+	// BackgroundWaitMax is the engine's own longest wait of a commit on
+	// background work.
 	BackgroundWaitMax time.Duration
 	// Stats is the engine's report at the end.
 	Stats s4db.Stats

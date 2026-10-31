@@ -102,7 +102,7 @@ var (
 	)
 	volumeBackgroundWaitMaxSecondsDesc = prometheus.NewDesc(
 		"spacewave_volume_background_wait_max_seconds",
-		"Longest a commit waited for the volume's storage writer while a background step held it, since the volume opened.",
+		"Longest a commit waited on the volume's storage background work, such as a background step holding the writer, since the volume opened.",
 		[]string{volumeLabel}, nil,
 	)
 	volumeValueFreedBytesDesc = prometheus.NewDesc(

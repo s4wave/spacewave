@@ -2,6 +2,7 @@ package s4db
 
 import (
 	"context"
+	"time"
 )
 
 // appendRecord appends r after the published state and publishes the state
@@ -55,16 +56,18 @@ func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
 	return next, nil
 }
 
-// locked runs fn under the writer lock as a background step, attributing
-// any commit's wait to it.
+// locked runs fn under the writer lock as a background step, recording its
+// hold as a commit's wait when a commit waited for the lock meanwhile.
 func (w *writer) locked(ctx context.Context, fn func() error) error {
-	// Hold the lock around fn, marked as a background step.
+	// Hold the lock around fn and time the hold.
 	if err := w.lock(ctx); err != nil {
 		return err
 	}
-	w.background.Store(true)
+	start := time.Now()
 	err := fn()
-	w.background.Store(false)
+	if w.waiting.Load() != 0 {
+		w.db.recordWait(time.Since(start))
+	}
 	w.unlock()
 	return err
 }
