@@ -58,6 +58,10 @@ type writer struct {
 	builds sync.WaitGroup
 	// stats counts the checkpoint work and the writers' waits for it.
 	stats writerStats
+	// usage is the space as unlock last sampled it, safe without the writer
+	// lock. usageAt is when, under the writer lock.
+	usage   atomic.Pointer[sampledUsage]
+	usageAt time.Time
 	// beforeBuild, when set by a test, runs as a background checkpoint
 	// starts building its tree.
 	beforeBuild func()
@@ -143,6 +147,8 @@ func (w *writer) unlock(err error) {
 	// Drop a space a failed step may have left ahead of the log.
 	if err != nil {
 		w.setSpace(nil)
+	} else {
+		w.sampleUsage()
 	}
 
 	// Release other processes and wake their watchers, then this handle's
