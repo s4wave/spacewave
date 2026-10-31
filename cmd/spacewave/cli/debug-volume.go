@@ -116,31 +116,24 @@ func runDebugVolumeUsage(
 	}
 	defer db.Close()
 
-	// Report how the file's pages are used before taking the snapshot.
-	usage, err := db.Usage(ctx)
+	// Report how the file's chunks are used before taking the snapshot.
+	stats, err := db.Stats(ctx)
 	if err != nil {
-		return errors.Wrap(err, "read page usage")
-	}
-	otherBytes := usage.FileBytes - usage.FreeBytes - usage.ValuePageBytes -
-		usage.IndexBytes - usage.LogBytes - usage.PendingBytes
-	space, err := db.SpaceReport(ctx)
-	if err != nil {
-		return errors.Wrap(err, "read free space")
+		return errors.Wrap(err, "read stats")
 	}
 
-	// Read every key from one snapshot. The snapshot holds back the space
-	// a running daemon frees, so the scan reads only the index.
-	ktx, err := db.NewTransaction(ctx, false)
+	// Read every key and value from one snapshot. The snapshot holds back
+	// the space a running daemon frees.
+	tx, err := db.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
-	defer ktx.Discard()
-	tx := ktx.(*s4db.Tx)
+	defer tx.Discard()
 
 	// Group every key under the prefix by its class.
 	classes := make(map[string]*volumeKeyClass)
 	var total volumeKeyClass
-	err = tx.ScanPrefixLens(ctx, prefix, func(k []byte, n int) error {
+	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
 		// Find or add the key's class.
 		class := volumeKeyClassOf(k[len(prefix):], separator, depth, width)
 		kc := classes[class]
@@ -152,7 +145,7 @@ func runDebugVolumeUsage(
 		// Count the key and its bytes.
 		kc.keys++
 		kc.keyBytes += uint64(len(k))
-		kc.valueBytes += uint64(n) //nolint:gosec // Value lengths are never negative.
+		kc.valueBytes += uint64(len(v))
 		return nil
 	})
 	if err != nil {
@@ -185,21 +178,8 @@ func runDebugVolumeUsage(
 		writeJSONUint64Field(ms, &more, "keyBytes", total.keyBytes)
 		writeJSONUint64Field(ms, &more, "valueBytes", total.valueBytes)
 		ms.WriteMoreIf(&more)
-		ms.WriteObjectField("pages")
-		ms.WriteObjectStart()
-		var morePage bool
-		writeJSONInt64Field(ms, &morePage, "freeBytes", usage.FreeBytes)
-		writeJSONInt64Field(ms, &morePage, "valuePageBytes", usage.ValuePageBytes)
-		writeJSONInt64Field(ms, &morePage, "liveValueBytes", usage.ValueBytes)
-		writeJSONInt64Field(ms, &morePage, "indexKeys", usage.IndexKeys)
-		writeJSONInt64Field(ms, &morePage, "indexBytes", usage.IndexBytes)
-		writeJSONInt64Field(ms, &morePage, "logBytes", usage.LogBytes)
-		writeJSONInt64Field(ms, &morePage, "pendingBytes", usage.PendingBytes)
-		writeJSONInt64Field(ms, &morePage, "otherBytes", otherBytes)
-		ms.WriteObjectEnd()
-		ms.WriteMoreIf(&more)
-		ms.WriteObjectField("space")
-		writeVolumeSpaceJSON(ms, &space)
+		ms.WriteObjectField("stats")
+		writeVolumeStatsJSON(ms, &stats)
 		ms.WriteMoreIf(&more)
 		ms.WriteObjectField("classes")
 		ms.WriteArrayStart()
@@ -226,25 +206,16 @@ func runDebugVolumeUsage(
 		{"Keys", strconv.FormatUint(total.keys, 10)},
 		{"Key Bytes", humanize.IBytes(total.keyBytes)},
 		{"Value Bytes", humanize.IBytes(total.valueBytes)},
-		{"Disk", volumeDiskBytes(space.DiskBytes)},
-		{"Free Pages", ibytes(usage.FreeBytes)},
-		{"Free on Disk", volumeDiskBytes(space.FreeDiskBytes)},
-		{"Largest Free Run", ibytes(space.LargestFreeBytes)},
-		{"Values End", ibytes(space.ValueEndBytes)},
-		{"Compact Goal", volumeCompactGoal(space.CompactGoalBytes)},
-		{"Value Pages", ibytes(usage.ValuePageBytes)},
-		{"Live Values", ibytes(usage.ValueBytes)},
-		{"Index Keys", strconv.FormatInt(usage.IndexKeys, 10)},
-		{"Index Pages", ibytes(usage.IndexBytes)},
-		{"Log", ibytes(usage.LogBytes)},
-		{"Pending", ibytes(usage.PendingBytes) + " (" + strconv.Itoa(space.PendingValueRuns) +
-			" value runs, " + strconv.Itoa(space.PendingPageRuns) + " page runs)"},
-		{"Unpunched", ibytes(space.UnpunchedBytes)},
-		{"Reserved", ibytes(space.ReservedBytes)},
-		{"Other", ibytes(otherBytes)},
+		{"Index Keys", strconv.FormatInt(stats.KeyCount, 10)},
+		{"Live Values", ibytes(stats.LiveBytes)},
+		{"Dead Values", ibytes(stats.DeadBytes)},
+		{"Free", ibytes(stats.FreeBytes)},
+		{"Pending", ibytes(stats.PendingBytes)},
+		{"Memtable", ibytes(stats.MemtableBytes)},
+		{"Collect Reserve", ibytes(stats.CollectBytes)},
 	})
 	os.Stdout.WriteString("\n")
-	writeVolumeSpaceTables(&space)
+	writeVolumeStatsTables(&stats)
 	rows := [][]string{{"CLASS", "KEYS", "KEY BYTES", "VALUE BYTES"}}
 	for _, kc := range ranked {
 		rows = append(rows, []string{
@@ -258,36 +229,43 @@ func runDebugVolumeUsage(
 	return nil
 }
 
-// writeVolumeSpaceJSON writes the free space report as one JSON object.
-func writeVolumeSpaceJSON(ms *protojson.MarshalState, space *s4db.SpaceReport) {
-	// Write where the space lies.
+// writeVolumeStatsJSON writes the file's chunk use, runs and reader slots as
+// one JSON object.
+func writeVolumeStatsJSON(ms *protojson.MarshalState, stats *s4db.Stats) {
+	// Write the sizes.
 	ms.WriteObjectStart()
 	var more bool
-	writeJSONInt64Field(ms, &more, "diskBytes", space.DiskBytes)
-	writeJSONInt64Field(ms, &more, "freeDiskBytes", space.FreeDiskBytes)
-	writeJSONInt64Field(ms, &more, "largestFreeBytes", space.LargestFreeBytes)
-	writeJSONInt64Field(ms, &more, "valueEndBytes", space.ValueEndBytes)
-	writeJSONInt64Field(ms, &more, "compactGoalBytes", space.CompactGoalBytes)
+	for _, f := range []struct {
+		name string
+		n    int64
+	}{
+		{"fileBytes", stats.FileBytes}, {"liveBytes", stats.LiveBytes},
+		{"deadBytes", stats.DeadBytes}, {"freeBytes", stats.FreeBytes},
+		{"pendingBytes", stats.PendingBytes}, {"keyCount", stats.KeyCount},
+		{"memtableBytes", stats.MemtableBytes}, {"collectBytes", stats.CollectBytes},
+	} {
+		writeJSONInt64Field(ms, &more, f.name, f.n)
+	}
 
-	// Write what holds freed space back.
-	writeJSONInt64Field(ms, &more, "pendingValueRuns", int64(space.PendingValueRuns))
-	writeJSONInt64Field(ms, &more, "pendingPageRuns", int64(space.PendingPageRuns))
-	writeJSONInt64Field(ms, &more, "unpunchedBytes", space.UnpunchedBytes)
-	writeJSONInt64Field(ms, &more, "reservedBytes", space.ReservedBytes)
-
-	// Write the free run classes.
+	// Write the chunk counts by kind.
 	ms.WriteMoreIf(&more)
-	ms.WriteObjectField("freeRuns")
+	ms.WriteObjectField("chunks")
+	ms.WriteObjectStart()
+	var moreChunk bool
+	for _, row := range volumeChunkRows(&stats.Chunks) {
+		writeJSONInt64Field(ms, &moreChunk, row.name, row.count)
+	}
+	ms.WriteObjectEnd()
+
+	// Write the runs per level.
+	ms.WriteMoreIf(&more)
+	ms.WriteObjectField("runs")
 	ms.WriteArrayStart()
-	var moreRun bool
-	for _, c := range space.FreeRuns {
-		ms.WriteMoreIf(&moreRun)
-		ms.WriteObjectStart()
-		var moreField bool
-		writeJSONInt64Field(ms, &moreField, "minBytes", c.MinBytes)
-		writeJSONInt64Field(ms, &moreField, "runs", c.Runs)
-		writeJSONInt64Field(ms, &moreField, "bytes", c.Bytes)
-		ms.WriteObjectEnd()
+	for i, n := range stats.Runs {
+		if i != 0 {
+			ms.WriteMore()
+		}
+		ms.WriteInt64(int64(n))
 	}
 	ms.WriteArrayEnd()
 
@@ -296,14 +274,13 @@ func writeVolumeSpaceJSON(ms *protojson.MarshalState, space *s4db.SpaceReport) {
 	ms.WriteObjectField("slots")
 	ms.WriteArrayStart()
 	var moreSlot bool
-	for _, sl := range space.Slots {
+	for _, sl := range stats.Slots {
 		ms.WriteMoreIf(&moreSlot)
 		ms.WriteObjectStart()
 		var moreField bool
 		writeJSONInt64Field(ms, &moreField, "slot", int64(sl.Slot))
 		writeJSONUint64Field(ms, &moreField, "seq", sl.Seq)
-		writeJSONUint64Field(ms, &moreField, "ckpt", sl.Ckpt)
-		writeJSONBoolField(ms, &moreField, "live", sl.Live)
+		writeJSONUint64Field(ms, &moreField, "version", sl.Version)
 		writeJSONBoolField(ms, &moreField, "own", sl.Own)
 		ms.WriteObjectEnd()
 	}
@@ -311,33 +288,36 @@ func writeVolumeSpaceJSON(ms *protojson.MarshalState, space *s4db.SpaceReport) {
 	ms.WriteObjectEnd()
 }
 
-// writeVolumeSpaceTables prints the free run classes and the reader slots.
-func writeVolumeSpaceTables(space *s4db.SpaceReport) {
-	// Print the free runs by length.
-	rows := [][]string{{"FREE RUN LENGTH", "RUNS", "BYTES"}}
-	for _, c := range space.FreeRuns {
-		rows = append(rows, []string{
-			ibytes(c.MinBytes) + " to " + ibytes(2*c.MinBytes),
-			strconv.FormatInt(c.Runs, 10),
-			ibytes(c.Bytes),
-		})
+// writeVolumeStatsTables prints the chunk counts by kind, the runs per level
+// and the reader slots.
+func writeVolumeStatsTables(stats *s4db.Stats) {
+	// Print the chunks by kind.
+	rows := [][]string{{"CHUNK KIND", "CHUNKS"}}
+	for _, row := range volumeChunkRows(&stats.Chunks) {
+		rows = append(rows, []string{row.name, strconv.FormatInt(row.count, 10)})
+	}
+	writeTable(os.Stdout, "", rows)
+	os.Stdout.WriteString("\n")
+
+	// Print the runs per level.
+	rows = [][]string{{"LEVEL", "RUNS"}}
+	for i, n := range stats.Runs {
+		rows = append(rows, []string{strconv.Itoa(i), strconv.Itoa(n)})
 	}
 	writeTable(os.Stdout, "", rows)
 	os.Stdout.WriteString("\n")
 
 	// Print the slots whose pins hold freed space back.
-	rows = [][]string{{"SLOT", "SEQ", "CKPT", "HELD"}}
-	for _, sl := range space.Slots {
-		held := "no"
+	rows = [][]string{{"SLOT", "SEQ", "VERSION", "HELD"}}
+	for _, sl := range stats.Slots {
+		held := "yes"
 		if sl.Own {
 			held = "this process"
-		} else if sl.Live {
-			held = "yes"
 		}
 		rows = append(rows, []string{
 			strconv.Itoa(sl.Slot),
 			strconv.FormatUint(sl.Seq, 10),
-			strconv.FormatUint(sl.Ckpt, 10),
+			strconv.FormatUint(sl.Version, 10),
 			held,
 		})
 	}
@@ -345,21 +325,18 @@ func writeVolumeSpaceTables(space *s4db.SpaceReport) {
 	os.Stdout.WriteString("\n")
 }
 
-// volumeDiskBytes formats an allocated byte count the file system may not
-// report.
-func volumeDiskBytes(n int64) string {
-	if n < 0 {
-		return "unknown"
-	}
-	return ibytes(n)
+// volumeChunkRow is one chunk kind's count.
+type volumeChunkRow struct {
+	name  string
+	count int64
 }
 
-// volumeCompactGoal formats the end compaction is moving toward.
-func volumeCompactGoal(n int64) string {
-	if n == 0 {
-		return "none"
+// volumeChunkRows lists the chunk counts by kind in file order of use.
+func volumeChunkRows(c *s4db.ChunkCounts) []volumeChunkRow {
+	return []volumeChunkRow{
+		{"log", c.Log}, {"value", c.Value}, {"run", c.Run}, {"manifest", c.Manifest},
+		{"reserved", c.Reserved}, {"pending", c.Pending}, {"free", c.Free},
 	}
-	return ibytes(n)
 }
 
 // ibytes formats a signed byte count in binary units.

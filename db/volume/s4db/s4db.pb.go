@@ -35,36 +35,13 @@ type Config struct {
 	VolumeConfig *controller.Config `protobuf:"bytes,6,opt,name=volume_config,json=volumeConfig,proto3" json:"volumeConfig,omitempty"`
 	// StoreConfig is the store configuration for kvtx.
 	StoreConfig *kvtx.Config `protobuf:"bytes,7,opt,name=store_config,json=storeConfig,proto3" json:"storeConfig,omitempty"`
-	// CacheBytes bounds the memory of decoded index pages. Zero selects the
-	// s4db default. A cache that holds the index spares a checkpoint and a
-	// lookup their page reads.
+	// CacheBytes bounds the s4db block cache of decoded run blocks, index
+	// partitions and filters. Zero selects the s4db default.
 	CacheBytes int64 `protobuf:"varint,8,opt,name=cache_bytes,json=cacheBytes,proto3" json:"cacheBytes,omitempty"`
-	// CheckpointMaxBytes is the overlay size that always starts a checkpoint.
-	// Zero selects the s4db default. A larger overlay folds more commits into
-	// each rewrite of the index pages they touch, at the cost of overlay memory
-	// and log replay at open.
-	CheckpointMaxBytes int64 `protobuf:"varint,9,opt,name=checkpoint_max_bytes,json=checkpointMaxBytes,proto3" json:"checkpointMaxBytes,omitempty"`
-	// SingleProcess skips watching the file for other processes' commits and
-	// holds its writer lock from open to close, so checkpoints write without
-	// waiting for writers. Set it only when no other process opens the file.
-	SingleProcess bool `protobuf:"varint,10,opt,name=single_process,json=singleProcess,proto3" json:"singleProcess,omitempty"`
 	// ReserveBytes is the free disk below which the volume refuses new writes
 	// while reads, collection and deletes continue. Zero selects the disk one
 	// collection needs before it frees any; a negative value keeps no reserve.
 	ReserveBytes int64 `protobuf:"varint,11,opt,name=reserve_bytes,json=reserveBytes,proto3" json:"reserveBytes,omitempty"`
-	// CommitWaitBytes is the overlay size past which a commit waits for the
-	// running checkpoint, which also holds commits once the log after the
-	// checkpoint passes twice it. Zero selects twice CheckpointMaxBytes. A
-	// larger bound keeps commits flowing through a slow checkpoint, such as the
-	// first after a start on a cold index, at the cost of overlay memory and
-	// log replay at open.
-	CommitWaitBytes int64 `protobuf:"varint,12,opt,name=commit_wait_bytes,json=commitWaitBytes,proto3" json:"commitWaitBytes,omitempty"`
-	// Deltas makes a checkpoint write the overlay as a small tree beside the
-	// index and merge it in bounded steps, so a checkpoint costs what the
-	// commits since the last one wrote rather than the index size. It takes
-	// effect only with SingleProcess. Turning it off folds the deltas back into
-	// the index at the next checkpoint.
-	Deltas bool `protobuf:"varint,13,opt,name=deltas,proto3" json:"deltas,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -129,39 +106,11 @@ func (x *Config) GetCacheBytes() int64 {
 	return 0
 }
 
-func (x *Config) GetCheckpointMaxBytes() int64 {
-	if x != nil {
-		return x.CheckpointMaxBytes
-	}
-	return 0
-}
-
-func (x *Config) GetSingleProcess() bool {
-	if x != nil {
-		return x.SingleProcess
-	}
-	return false
-}
-
 func (x *Config) GetReserveBytes() int64 {
 	if x != nil {
 		return x.ReserveBytes
 	}
 	return 0
-}
-
-func (x *Config) GetCommitWaitBytes() int64 {
-	if x != nil {
-		return x.CommitWaitBytes
-	}
-	return 0
-}
-
-func (x *Config) GetDeltas() bool {
-	if x != nil {
-		return x.Deltas
-	}
-	return false
 }
 
 func (m *Config) CloneVT() *Config {
@@ -174,11 +123,7 @@ func (m *Config) CloneVT() *Config {
 	r.NoWriteKey = m.NoWriteKey
 	r.Verbose = m.Verbose
 	r.CacheBytes = m.CacheBytes
-	r.CheckpointMaxBytes = m.CheckpointMaxBytes
-	r.SingleProcess = m.SingleProcess
 	r.ReserveBytes = m.ReserveBytes
-	r.CommitWaitBytes = m.CommitWaitBytes
-	r.Deltas = m.Deltas
 	r.KvKeyOpts = protobuf_go_lite.CloneVTValue(m.KvKeyOpts)
 	r.VolumeConfig = protobuf_go_lite.CloneVTValue(m.VolumeConfig)
 	r.StoreConfig = protobuf_go_lite.CloneVTValue(m.StoreConfig)
@@ -222,19 +167,7 @@ func (this *Config) EqualVT(that *Config) bool {
 	if this.CacheBytes != that.CacheBytes {
 		return false
 	}
-	if this.CheckpointMaxBytes != that.CheckpointMaxBytes {
-		return false
-	}
-	if this.SingleProcess != that.SingleProcess {
-		return false
-	}
 	if this.ReserveBytes != that.ReserveBytes {
-		return false
-	}
-	if this.CommitWaitBytes != that.CommitWaitBytes {
-		return false
-	}
-	if this.Deltas != that.Deltas {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -296,30 +229,10 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cacheBytes")
 		s.WriteInt64(x.CacheBytes)
 	}
-	if x.CheckpointMaxBytes != 0 || s.HasField("checkpointMaxBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("checkpointMaxBytes")
-		s.WriteInt64(x.CheckpointMaxBytes)
-	}
-	if x.SingleProcess || s.HasField("singleProcess") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("singleProcess")
-		s.WriteBool(x.SingleProcess)
-	}
 	if x.ReserveBytes != 0 || s.HasField("reserveBytes") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("reserveBytes")
 		s.WriteInt64(x.ReserveBytes)
-	}
-	if x.CommitWaitBytes != 0 || s.HasField("commitWaitBytes") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("commitWaitBytes")
-		s.WriteInt64(x.CommitWaitBytes)
-	}
-	if x.Deltas || s.HasField("deltas") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("deltas")
-		s.WriteBool(x.Deltas)
 	}
 	s.WriteObjectEnd()
 }
@@ -374,21 +287,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "cache_bytes", "cacheBytes":
 			s.AddField("cache_bytes")
 			x.CacheBytes = s.ReadInt64()
-		case "checkpoint_max_bytes", "checkpointMaxBytes":
-			s.AddField("checkpoint_max_bytes")
-			x.CheckpointMaxBytes = s.ReadInt64()
-		case "single_process", "singleProcess":
-			s.AddField("single_process")
-			x.SingleProcess = s.ReadBool()
 		case "reserve_bytes", "reserveBytes":
 			s.AddField("reserve_bytes")
 			x.ReserveBytes = s.ReadInt64()
-		case "commit_wait_bytes", "commitWaitBytes":
-			s.AddField("commit_wait_bytes")
-			x.CommitWaitBytes = s.ReadInt64()
-		case "deltas":
-			s.AddField("deltas")
-			x.Deltas = s.ReadBool()
 		}
 	})
 }
@@ -427,30 +328,10 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.Deltas {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Deltas)
-		i--
-		dAtA[i] = 0x68
-	}
-	if m.CommitWaitBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CommitWaitBytes))
-		i--
-		dAtA[i] = 0x60
-	}
 	if m.ReserveBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReserveBytes))
 		i--
 		dAtA[i] = 0x58
-	}
-	if m.SingleProcess {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.SingleProcess)
-		i--
-		dAtA[i] = 0x50
-	}
-	if m.CheckpointMaxBytes != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CheckpointMaxBytes))
-		i--
-		dAtA[i] = 0x48
 	}
 	if m.CacheBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CacheBytes))
@@ -533,11 +414,7 @@ func (m *Config) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.CacheBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.CheckpointMaxBytes)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.SingleProcess)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReserveBytes)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.CommitWaitBytes)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.Deltas)
 	n += len(m.unknownFields)
 	return n
 }
@@ -577,25 +454,9 @@ func (x *Config) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cache_bytes")
 		protobuf_go_lite.TextWriteInt(&sb, x.CacheBytes)
 	}
-	if x.CheckpointMaxBytes != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_max_bytes")
-		protobuf_go_lite.TextWriteInt(&sb, x.CheckpointMaxBytes)
-	}
-	if x.SingleProcess != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "single_process")
-		protobuf_go_lite.TextWriteBool(&sb, x.SingleProcess)
-	}
 	if x.ReserveBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reserve_bytes")
 		protobuf_go_lite.TextWriteInt(&sb, x.ReserveBytes)
-	}
-	if x.CommitWaitBytes != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "commit_wait_bytes")
-		protobuf_go_lite.TextWriteInt(&sb, x.CommitWaitBytes)
-	}
-	if x.Deltas != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "deltas")
-		protobuf_go_lite.TextWriteBool(&sb, x.Deltas)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -718,25 +579,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointMaxBytes", wireType)
-			}
-			m.CheckpointMaxBytes = 0
-			m.CheckpointMaxBytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 10:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SingleProcess", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SingleProcess = bool(v)
 		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ReserveBytes", wireType)
@@ -746,25 +588,6 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 12:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CommitWaitBytes", wireType)
-			}
-			m.CommitWaitBytes = 0
-			m.CommitWaitBytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 13:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Deltas", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Deltas = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
