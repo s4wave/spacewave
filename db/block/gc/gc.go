@@ -60,7 +60,7 @@ type YoungSweepStore interface {
 type BlockMarker interface {
 	// MarkBlocks marks the graph's blocks and lists the tracked blocks the
 	// mark did not reach.
-	MarkBlocks(ctx context.Context) (*BlockMark, error)
+	MarkBlocks(ctx context.Context, opts ...MarkOption) (*BlockMark, error)
 }
 
 // BlockTracker reports which blocks a reference graph tracks, as
@@ -469,3 +469,9 @@ func (c *Collector) sweepAtomic(ctx context.Context, atomic AtomicSweepStore, ca
 	}
 	return len(removed), nil
 }
+
+// _ is a type assertion.
+var (
+	_ BlockMarker  = (*RefGraph)(nil)
+	_ BlockTracker = (*RefGraph)(nil)
+)

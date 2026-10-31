@@ -3,6 +3,7 @@ package volume
 import (
 	"slices"
 	"strings"
+	"time"
 )
 
 // PutFlow counts the blocks one write path stored that the volume did not
@@ -49,6 +50,9 @@ type VolumeFlows struct {
 	// DeadlistLivePages is the number of pages those records listed as dead
 	// that the mark reached.
 	DeadlistLivePages uint64
+	// BuildWait is the time background commits waited for the storage's
+	// checkpoint build, zero when the storage does not count it.
+	BuildWait time.Duration
 }
 
 // FlowReporter is implemented by a volume that counts the data it writes.

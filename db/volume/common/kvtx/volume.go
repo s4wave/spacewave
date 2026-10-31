@@ -144,9 +144,8 @@ type Volume struct {
 	// le logs the first caller of each write path putting a block without
 	// its references, may be nil.
 	le *logrus.Entry
-	// valueFlows reports the values the storage wrote and freed by key
-	// family, may be nil.
-	valueFlows func() []volume.ValueFlow
+	// storageFlows fills in the flows the storage counts, may be nil.
+	storageFlows func(*volume.VolumeFlows)
 }
 
 // KvtxVolume is an interface for a volume with a kvtx store.

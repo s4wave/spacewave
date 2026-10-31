@@ -266,3 +266,9 @@ var (
 	_ block_gc.RefGraphOps     = (*transactionRefGraph)(nil)
 	_ block_gc.BlockEdgeReader = (*transactionRefGraph)(nil)
 )
+
+// _ is a type assertion.
+var (
+	_ block_gc.BlockMarker  = (*transactionRefGraph)(nil)
+	_ block_gc.BlockTracker = (*transactionRefGraph)(nil)
+)

@@ -79,10 +79,11 @@ func (v *Volume) SetLogger(le *logrus.Entry) {
 	v.le = le
 }
 
-// SetValueFlows sets fn to report the values the volume's storage wrote and
-// freed, by key family. It is called once, before the volume is used.
-func (v *Volume) SetValueFlows(fn func() []volume.ValueFlow) {
-	v.valueFlows = fn
+// SetStorageFlows sets fn to fill in what the volume's storage counts itself,
+// such as the values it wrote and freed by key family. It is called once,
+// before the volume is used.
+func (v *Volume) SetStorageFlows(fn func(*volume.VolumeFlows)) {
+	v.storageFlows = fn
 }
 
 // GetFlows returns the blocks each write path stored that the volume did not
@@ -102,10 +103,9 @@ func (v *Volume) GetFlows() *volume.VolumeFlows {
 		})
 	}
 
-	// Report the storage's values when it counts them, and the deadlist
-	// checks.
-	if v.valueFlows != nil {
-		flows.Values = v.valueFlows()
+	// Report what the storage counts, and the deadlist checks.
+	if v.storageFlows != nil {
+		v.storageFlows(flows)
 	}
 	flows.DeadlistsChecked = v.deadlistsChecked.Load()
 	flows.DeadlistLivePages = v.deadlistLivePages.Load()

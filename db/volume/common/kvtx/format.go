@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	b58 "github.com/mr-tron/base58/base58"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/s4wave/spacewave/db/volume"
@@ -37,6 +38,10 @@ const binaryBlockRefTag = 0x0a
 // current version costs one read. A store newer than this binary supports fails
 // with a permanent error, since only a newer binary can open it.
 func upgradeFormat(ctx context.Context, store kvtx.Store, keys *store_kvkey.KVKey) error {
+	// A migration's commits are background work, which waits for a
+	// checkpoint the store's writes outpaced.
+	ctx = block.WithBackground(ctx)
+
 	// Read the stored version. A store without one predates versioning.
 	version, err := readFormatVersion(ctx, store, keys)
 	if err != nil {

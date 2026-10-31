@@ -48,6 +48,10 @@ type CopyProgress struct {
 // written last in a durable commit; a dst without it is an incomplete copy to
 // discard. progress, when set, is called after each commit.
 func CopyStore(ctx context.Context, src, dst kvtx.Store, keys *store_kvkey.KVKey, progress func(CopyProgress)) error {
+	// The copy's commits are background work, which waits for a checkpoint
+	// the copy outpaced, and its scans leave the index cache.
+	ctx = block.WithBackground(ctx)
+
 	// Accept the current format and the earlier graph formats it converts.
 	version, err := readFormatVersion(ctx, src, keys)
 	if err != nil {

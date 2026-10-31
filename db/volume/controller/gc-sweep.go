@@ -5,6 +5,7 @@ import (
 	"time"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
@@ -83,6 +84,10 @@ func (c *Controller) runGCSweep(ctx context.Context) error {
 		c.le.Debug("volume has no ref graph, gc sweep disabled")
 		return nil
 	}
+
+	// The collector is background work: its commits wait for a checkpoint
+	// the volume's writes outpaced, and its scans leave the index cache.
+	ctx = block.WithBackground(ctx)
 
 	// Construct the collector for the volume reference graph. A block pass
 	// reads the whole graph, so it runs markIntervals intervals after the
