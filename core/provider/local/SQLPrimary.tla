@@ -16,6 +16,16 @@
 \* GC sweeps bucket blocks its ref graph cannot reach from either head;
 \* the graph records the references only of blocks written to the bucket.
 \*
+\* The SO engine's replay pass (replayer.replay) is a second writer with its
+\* own deferred engine over the same SQL store. A pass places the operations
+\* after the prefix its order shares with the last pass, buffering each
+\* World's blocks, and fences them when it binds the next World and at close
+\* (replayWorld.close). A failed fence releases the buffer. Truncate says
+\* which failed fences cut the positions back to the pass's shared prefix:
+\* "none", only the "close" at the end of the pass, or "any" fence. The next
+\* pass, with the same order, replays only what positions lack, and a pass
+\* whose fences all succeed installs the World after its last position.
+\*
 \* Not modeled: peers, the decoded cache, which holds only blocks already read,
 \* a statement split across packets, which the buffer retries whole, the order
 \* of the queue, which no durable head observes since Sync waits for it to
@@ -28,6 +38,8 @@ EXTENDS Naturals
 AckDurable == TRUE
 \* Rollback: a restart may turn SQL primary off.
 Rollback == FALSE
+\* Truncate: the failed fences that cut positions back to the shared prefix.
+Truncate == "any"
 
 MaxCommit == 2
 Root == <<"r0", "n1", "n2">>
@@ -40,6 +52,12 @@ Refs == [b \in {"r0", "o", "n1", "n2"} |->
 Reach(k) == {RootOf(k)} \cup Refs[RootOf(k)]
             \cup UNION {Refs[c] : c \in Refs[RootOf(k)]}
 
+\* The replayed order holds two operations; the World after k of them
+\* reaches the blocks of each.
+MaxOp == 2
+OpBlock == <<"w1", "w2">>
+ReplayReach(k) == {OpBlock[i] : i \in 1..k}
+
 VARIABLES
   mode,     \* "sql" while SQL primary, "local" after a rollback
   mem,      \* the engine's published head
@@ -50,14 +68,22 @@ VARIABLES
   acked,    \* rows MariaDB acknowledged but has not made durable
   local,    \* blocks in the local bucket
   marker,   \* blocks with an upload marker pending
-  edges     \* references the bucket's ref graph records
-vars == <<mode, mem, dur, buf, dbUp, rows, acked, local, marker, edges>>
+  edges,    \* references the bucket's ref graph records
+  rphase,   \* "idle" or "run": whether a replay pass runs
+  rstart,   \* positions the running pass shares with the last pass
+  rpos,     \* replayer.positions: the operations placed
+  rbuf,     \* blocks the replay pass's engine buffers
+  rhead     \* positions the installed replay World follows
+svars == <<mode, mem, dur, buf, dbUp, rows, acked, local, marker, edges>>
+rvars == <<rphase, rstart, rpos, rbuf, rhead>>
+vars == <<svars, rvars>>
 
 Init ==
   /\ mode = "sql" /\ mem = 0 /\ dur = 0 /\ buf = {}
   /\ dbUp = TRUE /\ rows = {} /\ acked = {}
   /\ local = {"r0", "o"} /\ marker = {"r0", "o"}
   /\ edges = {<<"r0", "o">>}
+  /\ rphase = "idle" /\ rstart = 0 /\ rpos = 0 /\ rbuf = {} /\ rhead = 0
 
 \* MariaDB stores an acknowledged row durably, or only in memory.
 Store(S) ==
@@ -134,14 +160,53 @@ DbRestart ==
 
 \* The backend crashes or restarts: it loses the buffer and the commits after
 \* the durable head, and remounts, with SQL primary off when Rollback holds.
+\* The replayer loses its pass and reloads the positions of its installed
+\* World from the saved cursor.
 Restart ==
   /\ mem' = dur /\ buf' = {}
+  /\ rphase' = "idle" /\ rbuf' = {} /\ rpos' = rhead /\ UNCHANGED <<rstart, rhead>>
   /\ mode' \in IF Rollback THEN {"sql", "local"} ELSE {"sql"}
   /\ UNCHANGED <<dur, dbUp, rows, acked, local, marker, edges>>
 
+\* replayer.replay starts a pass from the prefix its order shares with the
+\* last one, which with an unchanged order is every position.
+RStart ==
+  /\ rphase = "idle"
+  /\ rphase' = "run" /\ rstart' = rpos
+  /\ UNCHANGED <<rpos, rbuf, rhead>>
+
+\* replayOp applies the next operation and place records its position.
+RPlace ==
+  /\ rphase = "run" /\ rpos < MaxOp
+  /\ rpos' = rpos + 1 /\ rbuf' = rbuf \cup {OpBlock[rpos + 1]}
+  /\ UNCHANGED <<rphase, rstart, rhead>>
+
+\* A fence drains the pass's buffer and syncs; with SQL down it fails and the
+\* engine's buffer is released. The bind fence runs mid-pass and returns the
+\* error as the operation's; the close fence ends the pass.
+Fence(atClose) ==
+  /\ IF dbUp
+     THEN /\ Store(rbuf) /\ rbuf' = {}
+          /\ IF atClose
+             THEN rphase' = "idle" /\ rhead' = rpos /\ UNCHANGED <<rstart, rpos>>
+             ELSE UNCHANGED <<rphase, rstart, rpos, rhead>>
+     ELSE /\ rbuf' = {} /\ rphase' = "idle"
+          /\ rpos' = IF Truncate = "any" \/ (Truncate = "close" /\ atClose)
+                     THEN rstart ELSE rpos
+          /\ UNCHANGED <<rstart, rhead, rows, acked>>
+RBindFence == rphase = "run" /\ rbuf # {} /\ Fence(FALSE)
+RClose == rphase = "run" /\ Fence(TRUE)
+
+ReplayStep ==
+  /\ RStart \/ RPlace \/ RBindFence \/ RClose
+  /\ UNCHANGED <<mode, mem, dur, buf, dbUp, local, marker, edges>>
+  /\ (RStart \/ RPlace) => UNCHANGED <<rows, acked>>
+
 Next ==
-  \/ Commit \/ Drain \/ Sync \/ Upload \/ Evict \/ Sweep
-  \/ DbCrash \/ DbRestart \/ Restart
+  \/ (Commit \/ Drain \/ Sync \/ Upload \/ Evict \/ Sweep
+      \/ DbCrash \/ DbRestart) /\ UNCHANGED rvars
+  \/ Restart
+  \/ ReplayStep
   \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
 
@@ -153,11 +218,14 @@ Stored == local \cup rows \cup acked
 DurableStored == Reach(dur) \subseteq Stored
 \* A reader of the engine's published head finds each block it reaches in the
 \* buffer or a store, so no reader sees a commit before its blocks.
-PublishedReadable == Reach(mem) \subseteq buf \cup Stored
+PublishedReadable ==
+  /\ Reach(mem) \subseteq buf \cup Stored
+  /\ ReplayReach(rhead) \subseteq rbuf \cup Stored
 
 \* Liveness, under the fairness below: once MariaDB stays up, the durable
 \* head keeps catching up with the published one, without a restart. Fairness
 \* on Sync stands for a caller that retries a failed Sync.
-FairSpec == Spec /\ WF_vars(Drain) /\ WF_vars(Sync) /\ WF_vars(DbRestart)
+FairSpec == Spec /\ WF_vars(Drain /\ UNCHANGED rvars)
+  /\ WF_vars(Sync /\ UNCHANGED rvars) /\ WF_vars(DbRestart /\ UNCHANGED rvars)
 CatchesUp == <>[]dbUp => []<>(dur = mem)
 ====
