@@ -28,6 +28,10 @@ type scheduler struct {
 	db *DB
 	// idle runs background reads and writes at background priority.
 	idle *idleThread
+	// fg tracks foreground commits for the quiet gate.
+	fg quiet
+	// cleaner evacuates value chunks.
+	cleaner *cleaner
 	// ctx ends the jobs; cancel ends it.
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -39,8 +43,10 @@ type scheduler struct {
 
 // newScheduler starts the scheduler of db.
 func newScheduler(db *DB) *scheduler {
+	// Start the loop with its own context, cancelled by stop.
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &scheduler{db: db, idle: newIdleThread(ctx), ctx: ctx, cancel: cancel, done: make(chan struct{})}
+	s.cleaner = &cleaner{db: db}
 	go s.run()
 	return s
 }
@@ -68,13 +74,23 @@ func (s *scheduler) run() {
 
 		// Flush when the memtable or the log since the last flush passed the
 		// budget, and merge when a level is over its target.
-		if st.mem.bytes > s.db.budget || st.logBytes > 4*s.db.budget {
+		if st.mem.len() != 0 && (st.mem.bytes > s.db.budget || st.logBytes > 4*s.db.budget) {
 			s.flush()
 			quietAt = time.Now()
 			continue
 		}
-		if _, ok := (&mergeJob{db: s.db}).pick(st.m); ok {
+		// Merge in a quiet spell, or at once when level 0 passed its stall.
+		if _, ok := (&mergeJob{db: s.db}).pick(st.m); ok && (s.fg.wait() <= 0 || st.m.level0() > level0Stall) {
 			if s.merge() {
+				quietAt = time.Now()
+				continue
+			}
+		}
+
+		// Clean when the slack passed its bound, in a quiet spell unless
+		// urgent.
+		if urgent, ok := s.cleaner.due(st.m); ok && (urgent || s.fg.wait() <= 0) {
+			if s.clean() {
 				quietAt = time.Now()
 				continue
 			}
@@ -87,8 +103,13 @@ func (s *scheduler) run() {
 			continue
 		}
 
-		// Sleep until the state changes or the quiet timer fires.
-		t := time.NewTimer(quietMark)
+		// Sleep until the state changes, the quiet spell opens, or the quiet
+		// timer fires.
+		wake := quietMark
+		if w := s.fg.wait(); w > 0 && w < wake {
+			wake = w
+		}
+		t := time.NewTimer(wake)
 		select {
 		case <-s.ctx.Done():
 			t.Stop()
@@ -124,6 +145,18 @@ func (s *scheduler) merge() bool {
 	}
 	defer func() { _ = s.db.s.unlock(lockMerge) }()
 	return (&mergeJob{db: s.db}).run(s.ctx) == nil
+}
+
+// clean runs one cleaner step when no other process is cleaning, reporting
+// whether it ran.
+func (s *scheduler) clean() bool {
+	// Take the clean lock without waiting.
+	ok, err := s.db.s.lock(lockClean, false)
+	if err != nil || !ok {
+		return false
+	}
+	defer func() { _ = s.db.s.unlock(lockClean) }()
+	return s.cleaner.step(s.ctx) == nil
 }
 
 // hasPending reports whether the table holds pending or reserved chunks.

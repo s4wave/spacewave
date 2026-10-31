@@ -9,10 +9,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // childEnv names the file a child process writes to.
 const childEnv = "S4DB_TEST_CHILD"
+
+// churnEnv names the file a child process churns for the race test.
+const churnEnv = "S4DB_TEST_CHURN"
 
 // childKeys is the number of keys each process writes.
 const childKeys = 400
@@ -27,7 +31,30 @@ func TestMain(m *testing.M) {
 		}
 		os.Exit(0)
 	}
+	if path := os.Getenv(churnEnv); path != "" {
+		if err := runChurn(path); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
 	os.Exit(m.Run())
+}
+
+// runChurn rewrites the race test's "c" keys for a while beside the parent,
+// then closes.
+func runChurn(path string) error {
+	// Open the file the parent holds open and churn until the timer fires.
+	db, err := Open(path, Options{CacheBytes: 8 << 20, memtable: 128 << 10})
+	if err != nil {
+		return err
+	}
+	stop := time.After(3 * time.Second)
+	if err := churn(context.Background(), db, "c", 3, stop); err != nil {
+		_ = db.Close()
+		return err
+	}
+	return db.Close()
 }
 
 // processKey returns key i written by the process named who.
