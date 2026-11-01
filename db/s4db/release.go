@@ -42,7 +42,10 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 
 		// Collect the chunks both conditions allow.
 		var free []uint64
-		for c, e := range st.m.table.entries {
+		for scanned := 0; scanned < len(st.m.table.entries) && len(free) < freeBatch; scanned++ {
+			c := s.releaseCursor % len(st.m.table.entries)
+			s.releaseCursor = (c + 1) % len(st.m.table.entries)
+			e := st.m.table.entries[c]
 			switch e.kind {
 			case chunkPending:
 				durable := logged
@@ -71,10 +74,11 @@ func (s *scheduler) releaseStep(ctx context.Context) error {
 		if end == st.m.table.end() {
 			return nil
 		}
-		if _, err := db.w.appendRecord(ctx, &record{kind: kindTruncate, next: end}); err != nil {
+		st, err = db.w.appendRecord(ctx, &record{kind: kindTruncate, next: end})
+		if err != nil {
 			return err
 		}
-		return db.s.truncate(fileOff(chunkStart(end)))
+		return db.s.truncate(fileOff(chunkStart(st.m.table.end())))
 	})
 }
 

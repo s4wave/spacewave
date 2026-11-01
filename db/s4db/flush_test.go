@@ -49,6 +49,25 @@ func TestFlush(t *testing.T) {
 		t.Fatal("no run was flushed")
 	}
 
+	// Simulate cleanup after a job published output and then returned an error.
+	// Its former reservations are now live data and must survive cleanup.
+	db.sched.stop()
+	var published []uint64
+	for c, e := range db.cur.Load().m.table.entries {
+		if e.kind == chunkRun || e.kind == chunkManifest {
+			published = append(published, uint64(c))
+		}
+	}
+	if err := db.w.free(context.Background(), published); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range published {
+		if kind := db.cur.Load().m.table.at(c).kind; kind != chunkRun && kind != chunkManifest {
+			t.Fatalf("published chunk %d was freed by reservation cleanup", c)
+		}
+	}
+	m.check(t, db)
+
 	// Reopen: the manifest and the log after it hold the same contents.
 	if err := db.Close(); err != nil {
 		t.Fatal(err)

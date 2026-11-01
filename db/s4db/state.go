@@ -29,6 +29,8 @@ type state struct {
 	pos uint64
 	// end is the end of the log chunk holding pos.
 	end uint64
+	// spare is the physically backed standby log chunk.
+	spare uint64
 	// crc is the checksum of record seq, which the next record continues.
 	crc uint32
 	// writer is the writer identity of record seq.
@@ -54,6 +56,8 @@ type logPoint struct {
 	end uint64
 	// crc is the checksum of the record before pos.
 	crc uint32
+	// spare is the standby chunk at this record boundary.
+	spare uint64
 	// writer is the writer identity of the record before pos.
 	writer uint64
 }
@@ -63,7 +67,7 @@ type logPoint struct {
 // memtable sized for budget bytes. Records through sb.seq apply to the
 // memtable alone, since the manifest holds their effect on the table.
 func newState(sb superblock, m *manifest, budget int64) *state {
-	replay := logPoint{pos: sb.memPos, end: sb.memEnd, crc: sb.memCrc, writer: sb.memWriter}
+	replay := logPoint{pos: sb.memPos, end: sb.memEnd, crc: sb.memCrc, writer: sb.memWriter, spare: sb.memSpare}
 	return &state{
 		seq:       sb.through,
 		m:         m,
@@ -74,6 +78,7 @@ func newState(sb superblock, m *manifest, budget int64) *state {
 		inSuper:   sb.seq,
 		pos:       sb.memPos,
 		end:       sb.memEnd,
+		spare:     sb.memSpare,
 		crc:       sb.memCrc,
 		writer:    sb.memWriter,
 		logged:    sb.through,
@@ -82,7 +87,7 @@ func newState(sb superblock, m *manifest, budget int64) *state {
 
 // point returns the log point after record seq.
 func (st *state) point() logPoint {
-	return logPoint{pos: st.pos, end: st.end, crc: st.crc, writer: st.writer}
+	return logPoint{pos: st.pos, end: st.end, crc: st.crc, writer: st.writer, spare: st.spare}
 }
 
 // superblock returns the superblock describing st, without its generation
@@ -91,9 +96,9 @@ func (st *state) superblock() superblock {
 	return superblock{
 		version: st.m.version,
 		seq:     st.seq,
-		logPos:  st.pos, logEnd: st.end, logCrc: st.crc, logWriter: st.writer,
+		logPos:  st.pos, logEnd: st.end, logCrc: st.crc, logWriter: st.writer, logSpare: st.spare,
 		through: st.flushed,
-		memPos:  st.replay.pos, memEnd: st.replay.end, memCrc: st.replay.crc, memWriter: st.replay.writer,
+		memPos:  st.replay.pos, memEnd: st.replay.end, memCrc: st.replay.crc, memWriter: st.replay.writer, memSpare: st.replay.spare,
 	}
 }
 
@@ -116,6 +121,7 @@ func (st *state) apply(r *record, budget int64) {
 	st.logBytes += int64(r.size)
 	st.pos += uint64(r.size) // #nosec G115 -- record sizes are not negative.
 	st.logged = max(st.logged, r.durable)
+	st.spare = r.spare
 
 	// A record the superblock's manifest already holds changes only the
 	// memtable and the position.
@@ -130,6 +136,12 @@ func (st *state) apply(r *record, budget int64) {
 			st.flush(r, budget, false)
 		}
 		return
+	}
+
+	// The standby belongs to the log even before a link consumes it. Historical
+	// replay must not overwrite the newer manifest's chunk ownership.
+	if r.spare != 0 {
+		*m.table.at(r.spare) = chunkEntry{kind: chunkLog}
 	}
 
 	// Apply the record's kind to the manifest, table and memtable.

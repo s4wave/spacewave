@@ -75,7 +75,7 @@ func (t *chunkTable) end() uint64 {
 func (t *chunkTable) trimEnd(n uint64) uint64 {
 	// Find the lowest end this call may reach.
 	end := t.end()
-	low := uint64(firstChunk + 2)
+	low := uint64(firstChunk + 3)
 	if end > low+n {
 		low = end - n
 	}
