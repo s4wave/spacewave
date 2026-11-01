@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"crypto/rand"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,6 +53,15 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 	old, _ := storeTestWorldManifest(t, ctx, ws, "colors", "js", 1)
 	newer, _ := storeTestWorldManifest(t, ctx, ws, "colors", "js", 2)
 	oldKey := manifest.NewManifestKey(hostKey, old.GetMeta())
+
+	// A signed release stores an authorization envelope whose own root differs from the executable.
+	key, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := old.SignReleaseAuthorization(key); err != nil {
+		t.Fatal(err)
+	}
 
 	// Store both revisions under their manifest keys.
 	for _, ref := range []*manifest.ManifestRef{old, newer} {
