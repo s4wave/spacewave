@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/csync"
 )
 
@@ -20,7 +21,10 @@ type writer struct {
 	// held is set while this handle holds the writer lock. It is safe
 	// without the writer lock.
 	held atomic.Bool
-	// waiting counts this handle's writers waiting for the writer lock. It
+	// requests guards the foreground count and its slot intent lock.
+	requests broadcast.Broadcast
+
+	// waiting counts this handle's foreground writers waiting for the writer lock. It
 	// is safe without the writer lock.
 	waiting atomic.Int32
 }
@@ -29,26 +33,31 @@ type writer struct {
 // other processes appended. Waiting for another process cannot be canceled;
 // ctx bounds the wait for this handle's writers.
 func (w *writer) lock(ctx context.Context) error {
-	// Exclude this handle's writers, then other processes, counted as
-	// waiting until both are held.
-	w.waiting.Add(1)
+	// Announce this request before it can wait behind any background step.
+	if err := w.beginWait(); err != nil {
+		return err
+	}
+	defer w.endWait()
+	return w.take(ctx)
+}
+
+// take acquires the writer locks and refreshes the handle. Foreground callers
+// announce their request first; background callers check announcements afterward.
+func (w *writer) take(ctx context.Context) error {
+	// Exclude this handle's other writers, then the other processes.
 	release, err := w.mtx.Lock(ctx)
 	if err != nil {
-		w.waiting.Add(-1)
 		return err
 	}
 	_, err = w.db.s.lock(lockWriter, true)
-	w.waiting.Add(-1)
 	if err != nil {
 		release()
 		return err
 	}
-
-	// Hold the lock.
 	w.unlockMtx = release
 	w.held.Store(true)
 
-	// Apply what other processes wrote.
+	// Apply what other processes wrote before any record is appended.
 	if err := w.db.refresh(ctx); err != nil {
 		w.unlock()
 		return err
@@ -73,6 +82,12 @@ func (w *writer) tryLock(ctx context.Context) (bool, error) {
 	}
 	w.unlockMtx = release
 	w.held.Store(true)
+
+	// An optional closing mark yields to foreground requests in every process.
+	if slot, err := w.waitingSlot(); err != nil || slot >= 0 {
+		w.unlock()
+		return false, err
+	}
 
 	// Apply what other processes wrote.
 	if err := w.db.refresh(ctx); err != nil {

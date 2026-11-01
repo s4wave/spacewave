@@ -1,8 +1,7 @@
 ---- MODULE Wait ----
-\* DESIGN REQUIREMENT ONLY: writer.locked does not implement StepStart's
-\* waiting = {} guard. WriterWait.tla models the actual cross-process lock
-\* and refutes this bound. Passing this module does not establish that the
-\* implementation yields to waiting foreground writers.
+\* The request-level projection of writer.locked's intent check. WriterWait
+\* separates background lock acquisition from that check, including arrivals
+\* between the check and the end of the step, and verifies the same bound.
 \* A writer waits behind at most one background step, as the scheduler runs
 \* it: a background job (the flusher, the merger or the cleaner) takes the
 \* writer lock for one step, a record append, and before taking it again
@@ -13,7 +12,7 @@
 \* Tx.Commit and Tx.Discard release the lock a write transaction holds, and
 \* the three jobs' steps; a job's step is modeled as one lock span. Not
 \* modeled: the quiet gate and cross-process lock handoff. The latter is
-\* modeled as implemented in WriterWait.tla, where the bound fails.
+\* modeled as implemented in WriterWait.tla, including its intent check.
 
 EXTENDS Naturals
 
