@@ -40,18 +40,18 @@ const convertProgressInterval = 10 * time.Second
 // the current format holding the same pairs, and keeps the previous file as
 // <path>.pre-rewrite, so going back is a rename and the previous binary.
 //
-// It holds the previous file's writer lock and a slot for the whole build, so
+// It holds the previous file's writer lock and a slot through installation, so
 // no process writes it meanwhile; a file another process has open fails with
 // ErrMigrateShared. The new file is built as <path>.converting, read back
 // whole and compared with the stream before <path>.converting.ok records its
 // digest, then linked and renamed into place. A crash before the marker
 // leaves the previous file in place and a stale file the next open removes;
-// a crash after it leaves a verified file the next open installs; a crash
+// a crash after it leaves a copy the next open checks against the current source; a crash
 // between the link and the rename leaves the previous file under both names,
 // and the next open keeps the link. At no point is there less than one
 // complete copy of the data. A file another process converted meanwhile is
 // left for the caller to reopen.
-func convertPrevious(ctx context.Context, le *logrus.Entry, path string) error {
+func convertPrevious(ctx context.Context, le *logrus.Entry, path string) (retErr error) {
 	// Open the previous file, taking its locks for the build.
 	src, err := s4dbv1.Open(path)
 	switch {
@@ -62,6 +62,10 @@ func convertPrevious(ctx context.Context, le *logrus.Entry, path string) error {
 	case err != nil:
 		return err
 	}
+
+	// Keep the source locked through install: every acknowledged source write
+	// must precede the stream we verify, and the original remains in pre-rewrite.
+	defer func() { retErr = errors.Join(retErr, src.Close()) }()
 	le = le.WithField("path", path)
 	start := time.Now()
 
@@ -72,17 +76,17 @@ func convertPrevious(ctx context.Context, le *logrus.Entry, path string) error {
 		err = checkConvertSpace(src.LiveBytes(), free)
 	}
 	if err != nil {
-		return volume.Permanent(errors.Join(err, src.Close()))
+		return volume.Permanent(err)
 	}
 
 	// Reuse a verified new file an earlier attempt left, else build one.
 	tmp, marker := path+convertingSuffix, path+convertedMarkerSuffix
-	want, resumed, err := resumeConverted(ctx, tmp, marker)
+	want, resumed, err := resumeConverted(ctx, src, tmp, marker)
 	if err == nil && !resumed {
 		le.Info("converting volume to the current database format")
 		want, err = buildConverted(ctx, src, tmp, marker, logConvertProgress(le))
 	}
-	if err := errors.Join(err, src.Close()); err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -104,37 +108,38 @@ func checkConvertSpace(live int64, free uint64) error {
 	return nil
 }
 
-// resumeConverted reports whether tmp is a verified new file whose marker
-// holds its digest, and removes the pair when it is not.
-func resumeConverted(ctx context.Context, tmp, marker string) (digest, bool, error) {
-	// A verified file opens read-only and holds the marker's count.
+// resumeConverted reuses a file only when its digest matches both the current
+// locked source and every pair in the converted copy. The source is authoritative:
+// only its disposable conversion files are removed on a mismatch.
+func resumeConverted(ctx context.Context, src *s4dbv1.Reader, tmp, marker string) (digest, bool, error) {
+	// Compare the marker with the current source, which may have changed
+	// after an interrupted attempt released its lock.
 	want, ok := readConvertMarker(marker)
 	if ok {
-		ok = convertedHolds(ctx, tmp, want)
-	}
-	if ok {
-		return want, true, nil
+		var current digest
+		h := blake3.New()
+		err := src.Stream(ctx, func(key, value []byte) error {
+			current.add(h, key, value)
+			return nil
+		})
+		if err != nil {
+			return digest{}, false, err
+		}
+		if current == want && verifyConverted(ctx, tmp, want) == nil {
+			return want, true, nil
+		}
+		if err := ctx.Err(); err != nil {
+			return digest{}, false, err
+		}
 	}
 
-	// Remove what an unfinished attempt left.
+	// Remove an incomplete or stale attempt while the complete source is locked.
 	for _, name := range []string{tmp, marker} {
 		if err := os.Remove(name); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return digest{}, false, err
 		}
 	}
 	return digest{}, false, nil
-}
-
-// convertedHolds reports whether the file at tmp opens and holds want.n keys.
-func convertedHolds(ctx context.Context, tmp string, want digest) bool {
-	// Open it read-only and compare the key count.
-	db, err := s4db.Open(tmp, s4db.Options{ReadOnly: true})
-	if err != nil {
-		return false
-	}
-	defer db.Close()
-	st, err := db.Stats(ctx)
-	return err == nil && st.KeyCount == want.n
 }
 
 // buildConverted streams the previous file src into a new file at tmp, reads
@@ -247,7 +252,8 @@ func readConvertMarker(marker string) (digest, bool) {
 
 // installConverted keeps the previous file at path as <path>.pre-rewrite
 // and renames the verified new file over path. A link an earlier attempt
-// made is kept, and a new file another process already installed is left.
+// made is kept, and a new file another process already installed is left. The caller retains the
+// source reader and its writer lock through this operation.
 func installConverted(path string) error {
 	// Make the new file and the marker durable before any name refers to
 	// them.
@@ -271,8 +277,13 @@ func installConverted(path string) error {
 		}
 	}
 
+	// Make the backup name durable before replacing the active source name.
+	if err := syncDir(dir); err != nil {
+		return err
+	}
+
 	// Put the new file in place and drop the marker.
-	if err := os.Rename(path+convertingSuffix, path); err != nil {
+	if err := replaceConverted(path+convertingSuffix, path); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
