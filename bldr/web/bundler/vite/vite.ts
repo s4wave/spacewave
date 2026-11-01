@@ -604,6 +604,8 @@ async function buildWebPkg(
       (id) => id !== pkgId && !externalSet.has(id),
     )
 
+    const sourceFiles = new Set<string>()
+    const stylex = stylexCss(distRoot, 'module')
     const config: InlineConfig = {
       root: pkgRoot,
       cacheDir: cacheDir || undefined,
@@ -630,7 +632,7 @@ async function buildWebPkg(
       // packages and converts their require() calls to ESM imports. Also
       // remap non-BldrExternal sibling web packages to /b/pkg/ URLs.
       plugins: [
-        stylexCss(distRoot),
+        stylex,
         goTsResolver(projectRoot, distRoot),
         createWorkerSafeModulePreloadPlugin(),
         ...(allExternal.length > 0
@@ -718,8 +720,13 @@ async function buildWebPkg(
       })
     }
 
+    // Compiler-read themes remain cache inputs even when their JavaScript is tree-shaken.
+    for (const id of stylex.api.sources()) {
+      const file = resolveTrackedSourceFile(pkgRoot, id)
+      if (file) sourceFiles.add(file)
+    }
+
     // Collect source files from output chunks.
-    const sourceFiles = new Set<string>()
     for (const chunk of outputChunks) {
       if (chunk.type !== 'chunk') continue
       if (chunk.moduleIds) {
