@@ -41,9 +41,11 @@ failed runs always retain theirs.
 Use `--component-api` for the coordinated shared-component pass. It changes
 owned `className` inputs to typed `sx` inputs and composes the caller's styles
 last. A file with remaining unsupported attributes keeps its old input contract
-for the hand pass. `--shared-sx` rewrites styling inputs on components imported
-from `web/ui`; use it on callers after those shared APIs have been converted.
-Other components retain their own input contract until their area converts.
+for the hand pass. `--shared-sx` reads the current exports of imported `web/ui`
+modules and uses `sx` for components whose API has converted. Other components
+keep their existing input contract. Use `--shared-callers` to change only those
+converted components' call sites, leaving other elements for their area's
+conversion.
 
 Class strings passed through `cn` use the actual `cnfast` normalizer before
 utility extraction. Plain JSX class strings retain Tailwind's canonical CSS

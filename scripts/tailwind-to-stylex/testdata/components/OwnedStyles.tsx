@@ -23,7 +23,7 @@ export function OwnedStyles() {
   return (
     <section data-existing={ComponentStyles}>
       <Box label="Default box">Default</Box>
-      <Box label="Overridden box" className="p-6 text-lg">
+      <Box label="Overridden box" className="border border-dashed p-6 text-lg">
         Override
       </Box>
       <button
