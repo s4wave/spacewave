@@ -15,32 +15,35 @@ func (w *writer) appendRecord(ctx context.Context, r *record) (*state, error) {
 	db := w.db
 	base := db.cur.Load()
 	next := base.derive()
+
+	// Reserve the producer's chunks before allocating log or standby space.
+	// The reservation record has not yet been applied to the public state.
+	if r.kind == kindReserve {
+		for _, c := range r.chunks {
+			*next.m.table.at(c) = chunkEntry{kind: chunkReserved, owner: db.id}
+		}
+	}
 	r.writer, r.prevWriter = db.id, base.writer
 	r.durable, _ = db.flush.marks()
 	if r.kind == kindCommit {
 		r.hot, r.cold = base.m.hot, base.m.cold
 	}
 
-	// Place the record after the published state.
-	seq := base.seq + 1
-	bound := uint64(recordHeader + r.bound()) // #nosec G115 -- sizes are not negative.
-	pos, prev := base.pos, base.crc
-	var link []byte
-	linkPos := pos
-
-	// Continue the log in new chunks when the record may not fit.
-	if pos+bound+linkSize > base.end {
-		span := max(chunksFor(bound+linkSize), 1)
-		l := &record{seq: seq, kind: kindLink, writer: db.id, prevWriter: base.writer, durable: r.durable, span: span}
-		l.next = next.m.table.alloc(span, chunkLog, 0)
-		link = l.encode(prev)
-		next.apply(l, db.budget)
-		seq, prev = seq+1, l.crc
-		pos = chunkStart(l.next)
-		r.prevWriter = db.id
+	// Place the record while keeping backed space for full-disk reclamation.
+	pos, link, err := w.placeLog(base, next, r)
+	if err != nil {
+		return nil, err
 	}
-	r.seq = seq
-	db.ownSeq.Store(seq)
+	linkPos, prev := base.pos, base.crc
+	if link != nil {
+		prev = next.crc
+	}
+
+	// A truncate target was chosen before placing this record. A rollover may
+	// have claimed a chunk at or above that target; keep the log and standby.
+	if r.kind == kindTruncate {
+		r.next = max(r.next, chunksFor(next.end), r.spare+1)
+	}
 
 	// Write the link and the record, then publish.
 	rec := r.encode(prev)
@@ -108,13 +111,32 @@ func (w *writer) reserve(ctx context.Context, n uint64) ([]uint64, error) {
 	return chunks, err
 }
 
-// free appends the free record for chunks, when there are any.
+// freeBatch bounds each reclaim record to well below the standby chunk.
+const freeBatch = 256
+
+// free returns still-unused reservations in bounded writer steps. Retrying a
+// partial cleanup cannot free chunks that have since become live run output.
 func (w *writer) free(ctx context.Context, chunks []uint64) error {
-	if len(chunks) == 0 {
-		return nil
+	for len(chunks) != 0 {
+		batch := chunks[:min(len(chunks), freeBatch)]
+		if err := w.locked(ctx, func() error {
+			// Completed run/manifest output is never disposable reservation cleanup.
+			table := w.db.cur.Load().m.table
+			var unused []uint64
+			for _, c := range batch {
+				if c < table.end() && table.at(c).kind == chunkReserved && table.at(c).owner == w.db.id {
+					unused = append(unused, c)
+				}
+			}
+			if len(unused) == 0 {
+				return nil
+			}
+			_, err := w.appendRecord(ctx, &record{kind: kindFree, chunks: unused})
+			return err
+		}); err != nil {
+			return err
+		}
+		chunks = chunks[len(batch):]
 	}
-	return w.locked(ctx, func() error {
-		_, err := w.appendRecord(ctx, &record{kind: kindFree, chunks: chunks})
-		return err
-	})
+	return nil
 }
