@@ -241,7 +241,14 @@
     "bldr:test:js": "vitest run --config bldr/vitest.config.ts && bun run bldr:typecheck",
     "bldr:test:release:web": "bun run bldr:build:release:web && cross-env PLAYWRIGHT_WEB_PORT=30771 PLAYWRIGHT_RELEASE_DIST_PATH=.bldr-dist/build/web/js/wasm/bldr-demo-release/dist playwright test --config bldr/web/entrypoint/browser/playwright.config.ts",
     "bldr:typecheck": "tsrs --noEmit -p tsconfig.json --runExternalCode",
-    "bldr:vendor": "go mod vendor"
+    "bldr:vendor": "go mod vendor",
+    "style-parity": "bun run style-parity:build && node .bldr/style-parity-tools/style-parity.mjs",
+    "format:style-parity": "oxfmt scripts/style-parity.ts scripts/style-parity oxlint.style-parity.config.ts && gofmt -w e2e/releasewasm/style-parity_test.go",
+    "check:style-parity": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/style-parity.ts scripts/style-parity/*.ts",
+    "lint:style-parity": "oxlint -c oxlint.style-parity.config.ts scripts/style-parity.ts scripts/style-parity",
+    "style-parity:build": "bun build scripts/style-parity.ts scripts/style-parity/model.test.ts --target=node --external=playwright --outdir .bldr/style-parity-tools --entry-naming [name].mjs && bun build scripts/style-parity/browser.ts --target=browser --format=iife --outfile .bldr/style-parity-tools/browser.js",
+    "test:style-parity": "bun run style-parity:build && node --test --test-timeout=120000 .bldr/style-parity-tools/model.test.mjs",
+    "style-parity:release": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true go test -count=1 -timeout=30m -v ./e2e/releasewasm -run ^TestReleaseStyleParity$"
   },
   "devDependencies": {
     "@aptre/common": "0.38.1",
@@ -278,7 +285,8 @@
     "typescript": "7.0.2",
     "vite": "^8.2.0",
     "vitest": "^5.0.0",
-    "vitest-browser-react": "^2.2.0"
+    "vitest-browser-react": "^2.2.0",
+    "dom-accessibility-api": "0.7.1"
   },
   "dependencies": {
     "@aptre/flex-layout": "^0.6.4",
