@@ -12,6 +12,7 @@ export default defineConfig({
       'vitest-browser-react',
       '@radix-ui/react-collapsible',
       '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-dialog',
       'cnfast',
     ],
   },

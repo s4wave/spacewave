@@ -13,6 +13,7 @@ import tailwind from '@tailwindcss/vite'
 import { createOracle } from './oracle.js'
 import { transform } from './transform.js'
 import { prepareComponentStyles } from './component-api.js'
+import { writeSheetFixture } from './sheet-fixture.js'
 import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { capture } from '../style-parity/capture.js'
 import { compareCaptures } from '../style-parity/compare.js'
@@ -95,7 +96,7 @@ test(
     const servers: Awaited<ReturnType<typeof preview>>[] = []
     let passed = false
     try {
-      for (const version of ['before', 'after']) {
+      for (const version of ['before', 'after'] as const) {
         const root = join(parent, version)
         await mkdir(root)
         await writeFile(
@@ -561,6 +562,13 @@ test(
               JSON.stringify(resolve('web/style/tokens.stylex.ts')),
             ),
         )
+        // Isolate modal overlays from the ordinary page's hover and layout states.
+        await writeSheetFixture(root, version)
+        main = "import{SheetSamples}from'./SheetSamples';" + main
+        main = main.replace(
+          "createRoot(document.getElementById('root')!).render",
+          "if(new URLSearchParams(location.search).has('sheet'))createRoot(document.getElementById('root')!).render(<SheetSamples/>);else createRoot(document.getElementById('root')!).render",
+        )
         await writeFile(
           join(root, 'main.tsx'),
           version === 'before'
@@ -698,6 +706,22 @@ test(
                 .hover()
             },
           },
+          {
+            id: 'sheet-inline',
+            path: '/?sheet=inline',
+            ready: async (page: import('playwright').Page) => {
+              await page.getByRole('dialog').nth(5).waitFor()
+            },
+          },
+          ...['modal', 'modal-absolute'].map((mode) => ({
+            id: `sheet-${mode}`,
+            path: `/?sheet=${mode}`,
+            ready: async (page: import('playwright').Page) => {
+              await page
+                .getByRole('dialog', { name: 'Modal sheet', exact: true })
+                .waitFor()
+            },
+          })),
         ],
       }
       const paths = await capture(
