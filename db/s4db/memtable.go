@@ -2,6 +2,7 @@ package s4db
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/tidwall/btree"
 )
@@ -30,6 +31,9 @@ func lessMentry(a, b mentry) bool {
 // state's memtable is immutable; the writer copies it before changing it,
 // which the tree does cheaply by sharing nodes.
 type memtable struct {
+	// copyMtx serializes Copy, which changes the source tree's COW epoch.
+	// Readers never use that epoch and never hold this lock.
+	copyMtx sync.Mutex
 	// tree holds the entries.
 	tree *btree.BTreeG[mentry]
 	// filter holds every key the memtable has held, so a lookup of another
@@ -48,6 +52,10 @@ func newMemtable(budget int64) *memtable {
 
 // copy returns a memtable the caller may change without affecting m.
 func (m *memtable) copy() *memtable {
+	// Copy changes source metadata even though its nodes remain immutable.
+	// Only competing copies serialize; a scan cannot hold up this operation.
+	m.copyMtx.Lock()
+	defer m.copyMtx.Unlock()
 	return &memtable{tree: m.tree.Copy(), filter: m.filter, bytes: m.bytes}
 }
 
