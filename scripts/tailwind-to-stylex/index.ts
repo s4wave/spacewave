@@ -87,7 +87,11 @@ async function main(): Promise<void> {
   try {
     for await (const file of sourceFiles(paths)) {
       const source = await readFile(file, 'utf8')
-      if (!source.includes('className')) continue
+      if (
+        !source.includes('className') &&
+        !(sharedSx && source.includes('@stylexjs/stylex'))
+      )
+        continue
       const sharedComponents = sharedSx
         ? await readSharedStyleApis(source, file)
         : undefined

@@ -108,6 +108,7 @@
         "cross-env": "^10.1.0",
         "dom-accessibility-api": "0.7.1",
         "happy-dom": "^21.0.0",
+        "lightningcss": "1.32.0",
         "oxc-parser": "^0.155.0",
         "oxfmt": "0.74.0",
         "oxlint": "1.89.0",
@@ -136,6 +137,7 @@
   "patchedDependencies": {
     "@stylexjs/babel-plugin@0.19.1": "patches/@stylexjs%2Fbabel-plugin@0.19.1.patch",
     "orga@4.7.1": "patches/orga@4.7.1.patch",
+    "@stylexjs/stylex@0.19.1": "patches/@stylexjs%2Fstylex@0.19.1.patch",
   },
   "overrides": {
     "@aptre/protobuf-es-lite": "1.2.4",

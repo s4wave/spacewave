@@ -84,7 +84,18 @@ async function viewerReady(page: Page, id: string): Promise<void> {
         .waitFor()
       break
     case 'git':
-      await page.getByText('Empty Repository', { exact: true }).waitFor()
+      await page.getByRole('button', { name: 'Next', exact: true }).click()
+      await page
+        .getByRole('textbox', { name: 'Repository Name', exact: true })
+        .fill('Parity repository')
+      await page.getByRole('button', { name: 'Create', exact: true }).click()
+      await page
+        .getByText('Empty Repository', { exact: true })
+        .or(page.getByText('Make panel larger to view', { exact: true }))
+        .waitFor()
+      await page
+        .getByText('Created Parity repository', { exact: true })
+        .waitFor({ state: 'hidden' })
       break
     case 'notebook':
       await page
@@ -144,7 +155,11 @@ async function viewerReady(page: Page, id: string): Promise<void> {
 }
 
 // sessionState preserves the running document when opening a session page.
-function sessionState(id: string, path: string, ready: string): ParityState {
+function sessionState(
+  id: string,
+  path: string,
+  ready: ParityState['ready'],
+): ParityState {
   return {
     id,
     path: '/#/quickstart/drive',
@@ -284,11 +299,15 @@ const routesManifest: ParityManifest = {
       'h1:has-text("Transfer Sessions")',
     ),
     sessionState('session-cli', '/settings/cli', 'h1:has-text("Command Line")'),
-    sessionState(
-      'session-billing-unavailable',
-      '/billing',
-      'main:has-text("SpacewaveOrgList context not found")',
-    ),
+    sessionState('session-billing-unavailable', '/billing', async (page) => {
+      await page
+        .getByRole('button', { name: 'Reload page', exact: true })
+        .waitFor()
+      await page
+        .getByRole('main')
+        .filter({ hasText: 'SpacewaveOrgList context not found' })
+        .waitFor({ state: 'attached' })
+    }),
     {
       id: 'overlay-account',
       path: '/#/quickstart/drive',

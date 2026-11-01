@@ -33,12 +33,65 @@ export interface TransformOptions {
 // mergeStyle retains independent conditions while later utilities replace the same declaration.
 function mergeStyle(target: StyleRule, source: StyleRule): void {
   for (const [key, value] of Object.entries(source)) {
-    if (typeof value === 'object') {
+    if (value !== null && typeof value === 'object') {
       const previous = target[key]
-      if (typeof previous === 'object') mergeStyle(previous, value)
+      if (previous !== null && typeof previous === 'object')
+        mergeStyle(previous, value)
       else target[key] = structuredClone(value)
     } else target[key] = value
   }
+}
+
+// propertyStyles puts CSS conditions inside their properties, as the StyleX type contract requires.
+function propertyStyles(style: StyleRule): StyleRule {
+  // Accumulate declarations at their condition path, retaining pseudo-elements as separate targets.
+  const output: StyleRule = {}
+  const walk = (source: StyleRule, target: StyleRule, conditions: string[]) => {
+    for (const [property, raw] of Object.entries(source)) {
+      if (raw !== null && typeof raw === 'object') {
+        if (property.startsWith('::')) {
+          const pseudo = (target[property] ??= {}) as StyleRule
+          walk(raw, pseudo, conditions)
+        } else walk(raw, target, [...conditions, property])
+        continue
+      }
+
+      // Numeric CSS values must stay numeric for closed types such as z-index and line-clamp.
+      const value =
+        typeof raw === 'string' &&
+        !property.startsWith('--') &&
+        /^-?(?:\d+\.?\d*|\.\d+)$/.test(raw)
+          ? Number(raw)
+          : raw
+      const previous = target[property]
+      if (!conditions.length) {
+        if (previous !== null && typeof previous === 'object')
+          previous.default = value
+        else target[property] = value
+        continue
+      }
+
+      // A conditional-only property clears earlier StyleX values; ambiguous compositions stay manual below.
+      const root =
+        previous !== null && typeof previous === 'object'
+          ? previous
+          : { default: previous ?? null }
+      target[property] = root
+      let branch = root
+      for (const [index, condition] of conditions.entries()) {
+        if (index === conditions.length - 1) branch[condition] = value
+        else {
+          const previous = branch[condition]
+          branch = branch[condition] =
+            previous !== null && typeof previous === 'object'
+              ? previous
+              : { default: previous ?? null }
+        }
+      }
+    }
+  }
+  walk(style, output, [])
+  return output
 }
 
 // visit walks the parser's syntax nodes without traversing comments or source locations.
@@ -150,7 +203,11 @@ export function transform(
   const tokenBindings = new Map<string, string>()
 
   // Compound CSS values interpolate typed variables without changing their CSS spelling.
-  const serialize = (value: StyleRule | string): string => {
+  const serialize = (value: StyleRule | string | number | null): string => {
+    // Preserve scalar CSS values without treating them as rule objects.
+    if (value === null || typeof value === 'number')
+      return JSON.stringify(value)
+
     // Keep condition objects nested; only leaf values contain variable references.
     if (typeof value !== 'string')
       return `{${Object.entries(value)
@@ -163,6 +220,8 @@ export function transform(
       oracle.tokens.has(match[1]!),
     )
     if (!matches.length) return JSON.stringify(value)
+
+    // Allocate each variable-group import only when a declaration references it.
     const reference = (key: string) => {
       const group = oracle.tokens.get(key)!
       let name = tokenBindings.get(group)
@@ -194,13 +253,53 @@ export function transform(
       .replaceAll('${', '\\${')
     return '`' + result + '`'
   }
+
+  // Resolve expression leaves in the current JSX scope and retain only consumed lexical bindings.
   const consumedBindings = new Set<string>()
   const expanding = new Set<string>()
   let resolveBinding: (name: string) => Syntax | undefined = () => undefined
   let isStyleInput: (name: string) => boolean = () => false
+  let isUnbound: (name: string) => boolean = () => false
   let isClassHelper: (name: string) => boolean = () => false
   let resolveRecipe: (name: string) => Syntax | undefined = () => undefined
   const slice = (node: Syntax) => source.slice(node.start!, node.end!)
+
+  // Keep an attribute manual when separate namespaces would replace another namespace's conditions.
+  const checkComposition = (styles: string) => {
+    // Recipes contribute their referenced namespaces just like direct class expressions.
+    const references = new Set<string>()
+    const collect = (value: string) => {
+      for (const match of value.matchAll(
+        new RegExp(`\\b${prefix}\\.([\\w$]+)`, 'g'),
+      ))
+        references.add(match[1]!)
+    }
+    collect(styles)
+    for (const [name, recipe] of variantDefinitions)
+      if (styles.includes(name + '(')) collect(recipe.source)
+
+    // StyleX composition owns every condition of a property; Tailwind's cascade merges them separately.
+    const seen = new Map<string, boolean>()
+    const check = (rule: StyleRule, prefix = '') => {
+      for (const [property, value] of Object.entries(rule)) {
+        const key = prefix + property
+        if (
+          property.startsWith('::') &&
+          value !== null &&
+          typeof value === 'object'
+        )
+          check(value, key + '.')
+        else {
+          const conditional = value !== null && typeof value === 'object'
+          if (seen.has(key) && (seen.get(key) || conditional))
+            throw new Error(`conditional property composition: ${key}`)
+          seen.set(key, conditional)
+        }
+      }
+    }
+    for (const entry of namespaces.values())
+      if (references.has(entry.name)) check(propertyStyles(entry.style))
+  }
 
   // Compile a whole class set in Tailwind order, including responsive and pseudo conditions.
   const literal = (value: string, normalize = false): string => {
@@ -230,6 +329,7 @@ export function transform(
     switch (node.type) {
       case 'Identifier': {
         const name = node.name as string
+        if (name === 'undefined' && isUnbound(name)) return 'undefined'
         if (options.componentProps && isStyleInput(name)) return slice(node)
         const initializer = resolveBinding(name)
         if (!initializer || expanding.has(name))
@@ -266,10 +366,10 @@ export function transform(
       case 'NullLiteral':
         return 'null'
       case 'BooleanLiteral':
-        return String(node.value)
+        return 'false'
       case 'LogicalExpression':
         if (node.operator !== '&&') throw new Error('fallback class expression')
-        return `(${slice(node.left as Syntax)} && ${expression(node.right as Syntax, normalize)})`
+        return `(!!(${slice(node.left as Syntax)}) && ${expression(node.right as Syntax, normalize)})`
       case 'ConditionalExpression':
         return `(${slice(node.test as Syntax)} ? ${expression(node.consequent as Syntax, normalize)} : ${expression(node.alternate as Syntax, normalize)})`
       case 'ArrayExpression':
@@ -283,7 +383,7 @@ export function transform(
               (property.key as Syntax).type !== 'StringLiteral'
             )
               throw new Error('computed class object')
-            return `(${slice(property.value as Syntax)} && ${literal((property.key as Syntax).value as string, normalize)})`
+            return `(!!(${slice(property.value as Syntax)}) && ${literal((property.key as Syntax).value as string, normalize)})`
           })
           .join(', ')}]`
       case 'CallExpression': {
@@ -330,7 +430,23 @@ export function transform(
           !isClassHelper(callee.name as string)
         )
           throw new Error('computed class helper')
-        return `[${(node.arguments as Syntax[]).map((argument) => expression(argument, true)).join(', ')}]`
+        // Compile adjacent literal arguments together so their CSS conditions keep their defaults.
+        const parts: string[] = []
+        let literals: string[] = []
+        const flush = () => {
+          if (literals.length) parts.push(literal(literals.join(' '), true))
+          literals = []
+        }
+        for (const argument of node.arguments as Syntax[]) {
+          if (argument.type === 'StringLiteral')
+            literals.push(argument.value as string)
+          else if (argument.type !== 'BooleanLiteral') {
+            flush()
+            parts.push(expression(argument, true))
+          }
+        }
+        flush()
+        return `[${parts.join(', ')}]`
       }
       default:
         throw new Error('dynamic class or forwarded className')
@@ -348,6 +464,7 @@ export function transform(
           return undefined
         return binding.path.node.init as Syntax | undefined
       }
+      isUnbound = (name) => !path.scope.getBinding(name)
 
       // A renamed component input stays a StyleX value instead of becoming a class-string leaf.
       isStyleInput = (name) => {
@@ -429,6 +546,39 @@ export function transform(
       )
       if (options.onlyComponents && !owned) return
       for (const attribute of opening.attributes as Syntax[]) {
+        // A sibling may have acquired sx after this caller's classes were compiled in an earlier pass.
+        if (owned && attribute.type === 'JSXSpreadAttribute') {
+          const argument = attribute.argument as Syntax
+          const callee =
+            argument.type === 'CallExpression'
+              ? (argument.callee as Syntax)
+              : undefined
+          if (
+            callee?.type === 'MemberExpression' &&
+            !(callee.computed as boolean) &&
+            (callee.property as Syntax).type === 'Identifier' &&
+            (callee.property as Syntax).name === 'props' &&
+            (callee.object as Syntax).type === 'Identifier'
+          ) {
+            const imported = path.scope.getBinding(
+              (callee.object as Syntax).name as string,
+            )?.path
+            if (
+              imported?.isImportNamespaceSpecifier() &&
+              imported.parentPath.isImportDeclaration() &&
+              imported.parentPath.node.source.value === '@stylexjs/stylex'
+            ) {
+              const args = argument.arguments as Syntax[]
+              edits.push({
+                start: attribute.start!,
+                end: attribute.end!,
+                text: `sx={${args.length === 1 && args[0]!.type !== 'SpreadElement' ? slice(args[0]!) : `[${args.map(slice).join(',')}]`}}`,
+              })
+              converted++
+              continue
+            }
+          }
+        }
         if (
           attribute.type !== 'JSXAttribute' ||
           (attribute.name as Syntax).name !== 'className'
@@ -443,6 +593,7 @@ export function transform(
         const checkpoint = new Map(namespaces)
         try {
           const styles = expression(content)
+          checkComposition(styles)
           converted++
           edits.push({
             start: attribute.start!,
@@ -485,7 +636,10 @@ export function transform(
   if (!edits.length) return { source, converted: 0, remaining }
   if (namespaces.size) {
     const definitions = Object.fromEntries(
-      [...namespaces.values()].map(({ name, style }) => [name, style]),
+      [...namespaces.values()].map(({ name, style }) => [
+        name,
+        propertyStyles(style),
+      ]),
     )
     const styles = `\nconst ${prefix} = ${binding}.create(${serialize(definitions)})\n\n`
     let imports = existingStylex.length
