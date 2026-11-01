@@ -13,6 +13,16 @@ import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
 import { PanelHeader, PanelHeaderButton } from '../ui/PanelHeader.js'
 import {
+  Sheet,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+} from '../ui/sheet.js'
+import {
   CollapsibleSection,
   collapsibleSectionActionStyles,
 } from '../ui/CollapsibleSection.js'
@@ -31,6 +41,7 @@ function PilotJourney() {
   const [radioSelected, setRadioSelected] = useState(false)
   const [sectionOpen, setSectionOpen] = useState(false)
   const [actions, setActions] = useState(0)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   return (
     <main>
@@ -81,6 +92,19 @@ function PilotJourney() {
           Panel action
         </PanelHeaderButton>
       </PanelHeader>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger sx={styles.override}>Open sheet</SheetTrigger>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Sheet proof</SheetTitle>
+            <SheetDescription>Review the native sheet</SheetDescription>
+          </SheetHeader>
+          <p>Sheet body</p>
+          <SheetFooter>
+            <SheetClose sx={styles.override}>Done</SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </main>
   )
 }
@@ -202,4 +226,32 @@ it('composes shared, app and plugin styles through the browser build', async () 
   // The two owned inputs keep the caller's final padding override.
   expect(getComputedStyle(panelButton).padding).toBe('19px')
   expect(getComputedStyle(panelButton.parentElement!).padding).toBe('19px')
+
+  // The real modal opens from its trigger and keeps both action overrides.
+  const sheetTrigger = page.getByRole('button', {
+    name: 'Open sheet',
+    exact: true,
+  })
+  await sheetTrigger.click()
+  const dialog = page.getByRole('dialog', { name: 'Sheet proof', exact: true })
+  await expect.element(dialog).toBeVisible()
+  expect(getComputedStyle(dialog.element()).position).toBe('fixed')
+  const done = page.getByRole('button', { name: 'Done', exact: true })
+  expect(getComputedStyle(done.element()).padding).toBe('19px')
+
+  // The footer closes the modal and returns focus to its trigger.
+  await done.click()
+  await expect
+    .poll(() => dialog.query()?.checkVisibility() ?? false)
+    .toBe(false)
+  await expect.poll(() => document.activeElement).toBe(sheetTrigger.element())
+  expect(getComputedStyle(sheetTrigger.element()).padding).toBe('19px')
+
+  // A second open also closes through the ordinary Escape path.
+  await sheetTrigger.click()
+  await expect.element(dialog).toBeVisible()
+  await userEvent.keyboard('{Escape}')
+  await expect
+    .poll(() => dialog.query()?.checkVisibility() ?? false)
+    .toBe(false)
 })

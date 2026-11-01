@@ -41,6 +41,19 @@ import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 import { docsMarkdownOverrides } from './markdown-overrides.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 60)`,
+    maxWidth: {
+      default: themeLayout['--max-width-content'],
+      '@media (min-width: 40rem)': 'var(--container-sm)',
+    },
+  },
+})
+
 export const DocumentationTypeID = 'spacewave-docs/documentation'
 
 // DOC_SOURCE_PREDICATE is the graph predicate linking documentation to its UnixFS source.
@@ -63,6 +76,7 @@ function useDocSource(
   const linkedSource = useResource(
     worldState,
     async (world: IWorldState, signal: AbortSignal) => {
+      // Resolve the documentation source edge from the current World.
       if (!world) return null
       const iri = keyToIRI(objectKey)
       const result = await world.lookupGraphQuads(
@@ -88,6 +102,7 @@ async function createUntitledPage(
   handle: DocHandle,
   mdEntries: DocEntry[],
 ): Promise<string> {
+  // Select the first untitled file name absent from the current directory.
   const existing = new Set(mdEntries.map((e) => e.name))
   let name = 'untitled.md'
   let counter = 1
@@ -96,11 +111,14 @@ async function createUntitledPage(
     counter++
   }
 
+  // Create the file and prepare its initial Markdown title.
   await handle.mknod([name], MknodType.FILE)
   const child = await handle.lookup(name)
   const title = name.replace(/\.md$/, '')
   const template = `# ${title}\n`
   const encoded = new TextEncoder().encode(template)
+
+  // Write and sync the new page before releasing its handle.
   await child.writeAt(0n, encoded)
   await child.sync()
   child.release()
@@ -115,6 +133,7 @@ function useDocPage(
   ns: ReturnType<typeof useStateNamespace>,
   rootHandle: ReturnType<typeof useUnixFSRootHandle>,
 ) {
+  // Read the saved page and edit mode with the current text resource.
   const [selectedPage, setSelectedPage] = useStateAtom<string>(
     ns,
     'selectedPage',
@@ -125,6 +144,7 @@ function useDocPage(
   const fileHandle = useUnixFSHandle(rootHandle, selectedPage)
   const textResource = useUnixFSHandleTextContent(fileHandle)
 
+  // Selecting another page discards the local edit draft.
   const selectPage = useCallback(
     (name: string) => {
       setSelectedPage(name)
@@ -134,6 +154,7 @@ function useDocPage(
     [setSelectedPage, setEditing],
   )
 
+  // Enter editing from the resource text, or save the draft when leaving it.
   const toggleEdit = useCallback(() => {
     if (editing) {
       // Save on exit from edit mode.
@@ -153,6 +174,7 @@ function useDocPage(
     setEditing((prev) => !prev)
   }, [editing, editContent, fileHandle.value, textResource.value, setEditing])
 
+  // Cancelling discards the draft and returns to the reader.
   const cancelEdit = useCallback(() => {
     setEditContent(null)
     setEditing(false)
@@ -322,7 +344,7 @@ function DocNavDrawer({
         portalContainer={portalContainer}
         showCloseButton={false}
         variant="docs"
-        className="w-60 max-w-(--max-width-content)"
+        sx={stylexStyles.rule1}
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="border-foreground/8 flex items-center justify-between border-b px-3 py-2.5">
@@ -470,6 +492,7 @@ export function DocumentationViewer({
   worldState,
   objectState,
 }: ObjectViewerComponentProps) {
+  // Resolve this documentation object and its linked source.
   const objectKey = getObjectKey(objectInfo)
   const ns = useStateNamespace(['docs', objectKey])
   const doc = useForgeBlockData(objectState, DocumentationTypeID, Documentation)
@@ -492,6 +515,7 @@ export function DocumentationViewer({
     )
   }, [entries.value])
 
+  // Bind page selection and its local search draft to the current root.
   const page = useDocPage(ns, rootHandle)
   const { selectPage } = page
   const [searchQuery, setSearchQuery] = useState('')
@@ -513,6 +537,7 @@ export function DocumentationViewer({
     [selectPage],
   )
 
+  // Create the next untitled page from the current directory, then select it.
   const handleCreatePage = useCallback(async () => {
     setNavOpen(false)
     const handle = rootHandle.value
@@ -520,6 +545,7 @@ export function DocumentationViewer({
     selectPage(await createUntitledPage(handle, mdEntries))
   }, [rootHandle.value, mdEntries, selectPage])
 
+  // Use the document's stored name throughout the viewer chrome.
   const title = doc?.name || 'Documentation'
 
   // Gate the viewer on the doc source resource: while the linked UnixFS source
@@ -543,6 +569,7 @@ export function DocumentationViewer({
     )
   }
 
+  // An unlinked document keeps its chrome and explains the missing source.
   if (!sourceKey) {
     return (
       <DocPlaceholder title={title}>
@@ -553,6 +580,7 @@ export function DocumentationViewer({
     )
   }
 
+  // Share the same navigation body between the desktop sidebar and narrow drawer.
   const sidebarBody = (
     <DocSidebarBody
       searchQuery={searchQuery}
