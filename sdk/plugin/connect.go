@@ -52,10 +52,10 @@ func ConnectPluginInstanceResources(ctx context.Context, b bus.Bus, pluginID, in
 	return connectPluginResources(ctx, b, pluginID, instanceKey, "")
 }
 
-// ConnectPluginResourcesAtManifest connects to an exact retained executable.
+// ConnectPluginResourcesAtManifest connects to an exact retained executable in its installation.
 // The caller releases both the resource connection and immutable plugin reference.
-func ConnectPluginResourcesAtManifest(ctx context.Context, b bus.Bus, pluginID, manifestRoot string) (*PluginResources, error) {
-	return connectPluginResources(ctx, b, pluginID, "", manifestRoot)
+func ConnectPluginResourcesAtManifest(ctx context.Context, b bus.Bus, pluginID, instanceKey, manifestRoot string) (*PluginResources, error) {
+	return connectPluginResources(ctx, b, pluginID, instanceKey, manifestRoot)
 }
 
 // connectPluginResources acquires a client within the selected executable's lifetime.
@@ -73,7 +73,7 @@ func connectPluginResources(ctx context.Context, b bus.Bus, pluginID, instanceKe
 		if manifestRoot == "" {
 			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadInstancedWaitClient(ctx, b, pluginID, instanceKey, nil)
 		} else {
-			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadAtManifestWaitClient(ctx, b, pluginID, manifestRoot)
+			pluginClient, pluginRef, err = bldr_plugin.ExPluginLoadAtManifestWaitClient(ctx, b, pluginID, instanceKey, manifestRoot)
 		}
 		if err != nil {
 			return nil, errors.Wrap(err, "load plugin")

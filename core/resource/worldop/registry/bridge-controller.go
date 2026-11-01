@@ -381,7 +381,7 @@ func (o *bridgeOperation) connectPlugin(ctx context.Context) (*s4wave_plugin.Plu
 	}
 
 	// Reject the operation when its pinned executable is unavailable.
-	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(ctx, o.b, o.reg.GetPluginId(), o.manifestRoot)
+	resources, err := s4wave_plugin.ConnectPluginResourcesAtManifest(ctx, o.b, o.reg.GetPluginId(), o.instanceKey, o.manifestRoot)
 	if err != nil {
 		return nil, &world.OperationRejection{
 			Code:    "UNAVAILABLE",

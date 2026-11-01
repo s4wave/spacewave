@@ -204,20 +204,23 @@ func (r *QuickstartRegistryResource) WatchQuickstarts(
 	}
 }
 
-// LookupRegistration finds a registration by quickstartID.
+// LookupRegistration returns a registration snapshot and the installation that serves it.
 func (r *QuickstartRegistryResource) LookupRegistration(
 	quickstartID, instanceKey string,
-) *s4wave_quickstart_registry.QuickstartRegistration {
+) (*s4wave_quickstart_registry.QuickstartRegistration, string) {
+	// Read the registration and its owning installation under the same admission lock.
 	var reg *s4wave_quickstart_registry.QuickstartRegistration
+	var owner string
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, v := range r.getRegistrationsLocked(instanceKey) {
+		for _, v := range registration.SelectLocked(r.generations, r.registrations, instanceKey, (*s4wave_quickstart_registry.QuickstartRegistration).GetQuickstartId) {
 			if v.GetQuickstartId() == quickstartID {
 				reg = v.CloneVT()
+				owner = r.generations.InstanceKeyLocked(v)
 				break
 			}
 		}
 	})
-	return reg
+	return reg, owner
 }
 
 func mergePluginIDs(lists ...[]string) []string {
