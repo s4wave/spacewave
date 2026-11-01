@@ -15,6 +15,7 @@ import (
 var BldrExternal = []string{
 	"react",
 	"react-dom",
+	"@stylexjs/stylex",
 	"@aptre/bldr",
 	"@aptre/bldr-react",
 	"@aptre/bldr-sdk",
@@ -98,7 +99,8 @@ var protobufEsLiteDistImports = []string{
 }
 
 // BldrDistWebPkgImports maps each BldrExternal package id to its entry import
-// sub-paths relative to that package's web pkg root. These paths define the
+// sub-paths relative to that package's web pkg root. The first entry is the
+// bare package export. These paths define the
 // served web pkg entry names (servedEntryName in
 // bldr/web/bundler/vite/web-pkg-naming.ts): a TypeScript source drops only its
 // own extension, and a compiled JavaScript entry drops every known extension,
@@ -108,6 +110,7 @@ var protobufEsLiteDistImports = []string{
 var BldrDistWebPkgImports = map[string][]string{
 	"react":                   {"index.js", "jsx-runtime.js", "jsx-dev-runtime.js"},
 	"react-dom":               {"index.js", "client.js"},
+	"@stylexjs/stylex":        {"lib/es/stylex.mjs"},
 	"@aptre/bldr":             {"index.ts", "plugin-entrypoint.ts"},
 	"@aptre/bldr-react":       {"index.ts"},
 	"@aptre/bldr-sdk":         bldrSdkImports,
@@ -124,6 +127,10 @@ func GetBldrDistWebPkgRefs(buildPkgsDir, bldrDistRoot string) []*web_pkg.WebPkgR
 		WebPkgId:   "react-dom",
 		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/react-dom"),
 		Imports:    BldrDistWebPkgImports["react-dom"],
+	}, {
+		WebPkgId:   "@stylexjs/stylex",
+		WebPkgRoot: filepath.Join(buildPkgsDir, "node_modules/@stylexjs/stylex"),
+		Imports:    BldrDistWebPkgImports["@stylexjs/stylex"],
 	}, {
 		WebPkgId:   "@aptre/bldr",
 		WebPkgRoot: distpath.Resolve(bldrDistRoot, "web", "bldr"),
@@ -167,17 +174,17 @@ func servedEntryName(importPath string) (string, bool) {
 
 // BldrDistImportMap maps the import specifier of every BldrExternal entry to
 // its served module under base, the URL prefix holding the web pkg roots. The
-// root index maps the bare package id, a TypeScript entry its emitted ".js"
+// first entry maps the bare package id, a TypeScript entry its emitted ".js"
 // path, and a compiled entry its export subpath, as buildWebPkgImportSpecifier
 // does for the browser entrypoint's map.
 func BldrDistImportMap(base string) map[string]string {
 	imports := make(map[string]string)
 	for pkgID, entries := range BldrDistWebPkgImports {
-		for _, entry := range entries {
+		for index, entry := range entries {
 			name, typescript := servedEntryName(entry)
 			specifier := pkgID + "/" + name
 			switch {
-			case name == "index":
+			case index == 0:
 				specifier = pkgID
 			case typescript:
 				specifier += ".js"

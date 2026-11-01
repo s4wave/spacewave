@@ -1,3 +1,4 @@
+import { stylexCss } from '../../bldr/web/bundler/vite/stylex.js'
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
 import { dirname } from 'node:path'
@@ -81,6 +82,7 @@ export default defineConfig({
   },
 
   plugins: [
+    stylexCss(),
     staticAssetPlugin(),
     react(),
     tailwindcss(),

@@ -43,9 +43,15 @@
     "vite": "8.3.5",
     "workbox-window": "^7.4.1",
     "ws": "^8.20.0",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@babel/core": "^7.29.0",
+    "@stylexjs/babel-plugin": "0.19.1",
+    "@stylexjs/stylex": "0.19.1"
   },
   "overrides": {
     "@aptre/protobuf-es-lite": "1.2.6"
+  },
+  "patchedDependencies": {
+    "@stylexjs/babel-plugin@0.19.1": "patches/@stylexjs%2Fbabel-plugin@0.19.1.patch"
   }
 }

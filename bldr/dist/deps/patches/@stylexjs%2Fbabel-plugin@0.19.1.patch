@@ -1,0 +1,55 @@
+diff --git a/node_modules/@stylexjs/babel-plugin/.bun-tag-42b9469ca79b76c6 b/.bun-tag-42b9469ca79b76c6
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/lib/index.browser.js b/lib/index.browser.js
+index cc164deb2a944dfdaca233a630fa3687e37f7d43..4bf66bee5b37768a9c3fba7ff9cc6e6def701670 100644
+--- a/lib/index.browser.js
++++ b/lib/index.browser.js
+@@ -10818,7 +10818,7 @@ function processStylexRules(rules, config) {
+   let lastKPri = -1;
+   const grouped = sortedRules.reduce((acc, rule) => {
+     const [key, styleObj, priority] = rule;
+-    const priorityLevel = Math.floor(priority / 1000);
++    const priorityLevel = useLayers ? priority : Math.floor(priority / 1000);
+     if (priorityLevel === lastKPri) {
+       acc[acc.length - 1].push([key, styleObj, priority]);
+       return acc;
+@@ -10828,7 +10828,11 @@ function processStylexRules(rules, config) {
+     return acc;
+   }, []);
+   const logicalFloatVars = getLogicalFloatVars(sortedRules);
+-  const layerName = index => layerPrefix ? `${layerPrefix}.priority${index + 1}` : `priority${index + 1}`;
++  // Separate bundles must identify the same compiler priority with the same layer.
++  const layerName = index => {
++    const priority = String(grouped[index][0][2]).replace('.', '_');
++    return layerPrefix ? `${layerPrefix}.priority${priority}` : `priority${priority}`;
++  };
+   const header = useLayers ? '\n@layer ' + [...layersBefore, ...grouped.map((_, index) => layerName(index)), ...layersAfter].join(', ') + ';\n' : '';
+   const collectedCSS = grouped.map((group, index) => {
+     const pri = group[0][2];
+diff --git a/lib/index.js b/lib/index.js
+index f22b4c7bd8d084b6f5c624c10a986d8005a08d00..f3dc3710affbc04ded8a7b12befab97046a97c0b 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -9699,7 +9699,7 @@ function processStylexRules(rules, config) {
+   let lastKPri = -1;
+   const grouped = sortedRules.reduce((acc, rule) => {
+     const [key, styleObj, priority] = rule;
+-    const priorityLevel = Math.floor(priority / 1000);
++    const priorityLevel = useLayers ? priority : Math.floor(priority / 1000);
+     if (priorityLevel === lastKPri) {
+       acc[acc.length - 1].push([key, styleObj, priority]);
+       return acc;
+@@ -9709,7 +9709,11 @@ function processStylexRules(rules, config) {
+     return acc;
+   }, []);
+   const logicalFloatVars = getLogicalFloatVars(sortedRules);
+-  const layerName = index => layerPrefix ? `${layerPrefix}.priority${index + 1}` : `priority${index + 1}`;
++  // Separate bundles must identify the same compiler priority with the same layer.
++  const layerName = index => {
++    const priority = String(grouped[index][0][2]).replace('.', '_');
++    return layerPrefix ? `${layerPrefix}.priority${priority}` : `priority${priority}`;
++  };
+   const header = useLayers ? '\n@layer ' + [...layersBefore, ...grouped.map((_, index) => layerName(index)), ...layersAfter].join(', ') + ';\n' : '';
+   const collectedCSS = grouped.map((group, index) => {
+     const pri = group[0][2];

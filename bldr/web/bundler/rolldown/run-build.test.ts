@@ -345,6 +345,7 @@ describe('direct Rolldown/Oxc owner', () => {
   })
 
   it('reports CSS-bearing graphs for Vite routing without emitting output', async () => {
+    // Build a real CSS import graph through the routing detector.
     const project = await makeProject()
     await fs.writeFile(join(project.root, 'style.css'), `body { color: red }\n`)
     await fs.writeFile(join(project.root, 'main.ts'), `import './style.css'\n`)
@@ -355,6 +356,22 @@ describe('direct Rolldown/Oxc owner', () => {
     expect(result.diagnostics ?? []).toEqual([])
     expect(result.hasCssImports).toBe(true)
     expect(result.outputs ?? []).toEqual([])
+
+    // StyleX requires the same native CSS owner even without a literal CSS import.
+    await fs.writeFile(
+      join(project.root, 'main.ts'),
+      `import * as stylex from '@stylexjs/stylex';export const styles=stylex.create({root:{color:'red'}});\n`,
+    )
+    const stylex = await runBuild(
+      project.request({
+        routeCssImports: true,
+        external: ['@stylexjs/stylex'],
+      }),
+      dependencyRoot,
+    )
+    expect(stylex.diagnostics ?? []).toEqual([])
+    expect(stylex.hasCssImports).toBe(true)
+    expect(stylex.outputs ?? []).toEqual([])
   })
 
   it('rejects CSS loaders before starting Rolldown', () => {

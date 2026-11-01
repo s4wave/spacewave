@@ -1,0 +1,210 @@
+import assert from 'node:assert/strict'
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
+import { test } from 'node:test'
+import { createElement } from 'react'
+import { renderToString } from 'react-dom/server'
+import { pathToFileURL } from 'node:url'
+import react from '@vitejs/plugin-react'
+import { build, createServer, preview } from 'vite'
+import { chromium, webkit } from 'playwright'
+
+import { readStylexOrder } from '../app/prerender/stylex-order.js'
+import { buildPageHtml } from '../app/prerender/html-template.js'
+import { stylexCss } from '../bldr/web/bundler/vite/stylex.js'
+
+// appSource changes both an extracted rule and its compiled class name.
+const appSource = (color: string) => `import React,{useState} from 'react';
+import * as stylex from '@stylexjs/stylex';
+import {metrics} from './tokens.stylex';
+const styles=stylex.create({button:{color:'${color}',marginTop:metrics.space}});
+export function App(){ const [count,setCount]=useState(0);return <button sx={styles.button} onClick={()=>setCount(count+1)}>{count}</button> }`
+
+test('native CSS ships in the manifest and updates without losing component state', async () => {
+  // Use real React, compiler, Vite assets and browsers rather than emulating CSS delivery.
+  const repository = process.cwd()
+  await mkdir('.bldr', { recursive: true })
+  const root = await mkdtemp(resolve('.bldr/stylex-vite-fixture-'))
+  await writeFile(
+    join(root, 'index.html'),
+    '<!doctype html><html><head></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>',
+  )
+  await writeFile(
+    join(root, 'main.tsx'),
+    `import React from 'react';import {createRoot} from 'react-dom/client';import {App} from './App';createRoot(document.getElementById('root')!).render(<App/>);`,
+  )
+  await writeFile(
+    join(root, 'tokens.stylex.ts'),
+    `import * as stylex from '@stylexjs/stylex';
+const identity = <T>(value:T):T => value;
+const assertion = <string>'valid';
+void identity(assertion);
+export const metrics=stylex.defineConsts({space:'17px'});`,
+  )
+  await writeFile(join(root, 'App.tsx'), appSource('red'))
+  const options = {
+    configFile: false as const,
+    root,
+    plugins: [stylexCss(), react(), stylexCss()],
+    logLevel: 'warn' as const,
+    build: { manifest: true },
+    server: { port: 0, host: '127.0.0.1', fs: { allow: [repository] } },
+    preview: { port: 0, host: '127.0.0.1' },
+  }
+
+  // A StyleX-only module must contribute a real CSS dependency to the build graph.
+  try {
+    await build(options)
+    const manifest = JSON.parse(
+      await readFile(join(root, 'dist/.vite/manifest.json'), 'utf8'),
+    )
+    assert(
+      manifest['index.html'].css?.length,
+      'StyleX CSS is absent from the manifest',
+    )
+    // Server and client compilation must agree before any hydration code runs.
+    const order = readStylexOrder(
+      manifest['index.html'].css.map((file: string) =>
+        join(root, 'dist', file),
+      ),
+    )
+    await build({
+      ...options,
+      build: {
+        ssr: join(root, 'App.tsx'),
+        outDir: join(root, 'ssr'),
+        rolldownOptions: { output: { entryFileNames: 'App.mjs' } },
+      },
+    })
+    const { App } = await import(pathToFileURL(join(root, 'ssr/App.mjs')).href)
+    const html = buildPageHtml({
+      body: renderToString(createElement(App)),
+      title: 'SSR',
+      description: 'SSR parity fixture',
+      canonicalUrl: 'https://example.test/',
+      ogImage: '',
+      bootstrapScript: '',
+      criticalCss: '',
+      stylexOrder: order,
+      mainCssUrl: '/' + manifest['index.html'].css[0],
+      additionalCssUrls: manifest['index.html'].css
+        .slice(1)
+        .map((file: string) => '/' + file),
+      iconUrl: '',
+    })
+    await writeFile(join(root, 'dist/ssr.html'), html)
+    const production = await preview(options)
+    // The preceding production build sets NODE_ENV; dev must start in development.
+    process.env.NODE_ENV = 'development'
+    const development = await createServer(options)
+    assert.equal(development.config.isProduction, false)
+    await development.listen()
+    try {
+      for (const [engine, launcher] of Object.entries({ chromium, webkit })) {
+        const browser = await launcher.launch()
+        try {
+          const staticContext = await browser.newContext({
+            javaScriptEnabled: false,
+          })
+          const staticPage = await staticContext.newPage()
+          await staticPage.goto(production.resolvedUrls!.local[0]! + 'ssr.html')
+          assert.deepEqual(
+            await staticPage
+              .locator('button')
+              .evaluate((button) => [
+                getComputedStyle(button).color,
+                getComputedStyle(button).marginTop,
+              ]),
+            ['rgb(255, 0, 0)', '17px'],
+          )
+          await staticContext.close()
+          const page = await browser.newPage()
+          page.on('pageerror', (error) =>
+            console.log(`${engine}: pageerror: ${error.message}`),
+          )
+          await page.goto(production.resolvedUrls!.local[0]!)
+          await page.waitForFunction(
+            () =>
+              getComputedStyle(document.querySelector('button')!).color ===
+              'rgb(255, 0, 0)',
+          )
+          await page.goto(development.resolvedUrls!.local[0]!)
+          await page.getByRole('button', { name: '0', exact: true }).click()
+          await page.getByRole('button', { name: '1', exact: true }).waitFor()
+          await writeFile(join(root, 'App.tsx'), appSource('blue'))
+          await page.waitForFunction(
+            () =>
+              getComputedStyle(document.querySelector('button')!).color ===
+              'rgb(0, 0, 255)',
+          )
+          assert.equal(
+            await page.locator('button').textContent(),
+            '1',
+            `${engine}: CSS edit reloaded the component`,
+          )
+          await writeFile(
+            join(root, 'tokens.stylex.ts'),
+            `import * as stylex from '@stylexjs/stylex';export const metrics=stylex.defineConsts({space:'23px'});`,
+          )
+          await page.waitForFunction(
+            () =>
+              getComputedStyle(document.querySelector('button')!).marginTop ===
+              '23px',
+          )
+          assert.equal(await page.locator('button').textContent(), '1')
+          await writeFile(join(root, 'App.tsx'), 'export function App( {')
+          await page.locator('vite-error-overlay').waitFor()
+          await writeFile(join(root, 'App.tsx'), appSource('red'))
+          await page
+            .waitForFunction(
+              () =>
+                getComputedStyle(document.querySelector('button')!).color ===
+                'rgb(255, 0, 0)',
+            )
+            .catch(async (error) => {
+              console.log(
+                JSON.stringify(
+                  await page.evaluate(() => ({
+                    button: document.querySelector('button')?.outerHTML,
+                    styles: [...document.querySelectorAll('style')].map(
+                      (style) => style.textContent,
+                    ),
+                    overlay:
+                      document.querySelector('vite-error-overlay')?.shadowRoot
+                        ?.textContent,
+                  })),
+                ),
+              )
+              throw error
+            })
+          assert.equal(await page.locator('button').textContent(), '1')
+          await writeFile(
+            join(root, 'tokens.stylex.ts'),
+            `import * as stylex from '@stylexjs/stylex';
+const identity = <T>(value:T):T => value;
+const assertion = <string>'valid';
+void identity(assertion);
+export const metrics=stylex.defineConsts({space:'17px'});`,
+          )
+          await page.waitForFunction(
+            () =>
+              getComputedStyle(document.querySelector('button')!).marginTop ===
+              '17px',
+          )
+          await page.close()
+        } finally {
+          await browser.close()
+        }
+      }
+    } finally {
+      await development.close()
+      await new Promise<void>((resolve, reject) =>
+        production.httpServer.close((error) =>
+          error ? reject(error) : resolve(),
+        ),
+      )
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

@@ -112,6 +112,7 @@
         "oxlint-plugin-react-doctor": "0.9.22",
         "oxlint-tsgolint": "^7.0.0",
         "playwright": "^1.62.1",
+        "postcss": "8.5.25",
         "react-doctor": "^0.9.5",
         "reylo": "0.6.0",
         "rimraf": "^6.1.3",

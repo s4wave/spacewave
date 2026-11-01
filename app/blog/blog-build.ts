@@ -198,14 +198,12 @@ export async function buildBlog(
   ctx: PrerenderContext,
   includeDrafts = false,
 ): Promise<string[]> {
+  // An empty content inventory contributes no routes to the release manifest.
   ctx.log('[blog] === Blog Build ===')
-
-  // Discover posts.
   const posts = discoverPosts(includeDrafts)
   ctx.log(
     `[blog] Discovered ${posts.length} post(s)${includeDrafts ? ' (including drafts)' : ''}`,
   )
-
   if (posts.length === 0) {
     ctx.log('[blog] No posts found, skipping build.')
     return []
@@ -234,6 +232,7 @@ export async function buildBlog(
   }
   const allTags = Array.from(tagSet).sort()
 
+  // Retain only the metadata required for client hydration.
   const postListForHydration = posts.map(postToHydrationMeta)
 
   // Prerender blog index.
@@ -257,6 +256,7 @@ export async function buildBlog(
     hydrateScript: ctx.hydrateScriptTag,
     criticalCss: '',
     mainCssUrl: ctx.mainCssUrl,
+    stylexOrder: ctx.stylexOrder,
     additionalCssUrls: ctx.hydrateCssUrls,
     iconUrl: ctx.iconUrl,
     importMap: ctx.importMap,
@@ -320,6 +320,7 @@ export async function buildBlog(
       hydrateScript: ctx.hydrateScriptTag,
       criticalCss: '',
       mainCssUrl: ctx.mainCssUrl,
+      stylexOrder: ctx.stylexOrder,
       additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
       importMap: ctx.importMap,
@@ -362,6 +363,7 @@ export async function buildBlog(
       hydrateScript: ctx.hydrateScriptTag,
       criticalCss: '',
       mainCssUrl: ctx.mainCssUrl,
+      stylexOrder: ctx.stylexOrder,
       additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
       importMap: ctx.importMap,
@@ -375,6 +377,7 @@ export async function buildBlog(
   // Collect all blog paths for the unified manifest.
   const blogPaths = collectBlogPathsFromPosts(posts)
 
+  // Return exactly the routes emitted from this content inventory.
   ctx.log('[blog] === Blog Build Complete ===')
   return blogPaths
 }
