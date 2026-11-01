@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/sirupsen/logrus"
 )
@@ -130,5 +131,40 @@ func TestPinnedManifestRetainsExactRevision(t *testing.T) {
 	selected = instance.executePluginRoutine.GetState()
 	if selected == nil || !selected.manifestSnapshot.GetManifestRef().EqualVT(old.GetManifestRef()) {
 		t.Fatal("restored pinned artifact was not selected")
+	}
+
+	// An untyped direct manifest remains usable beside an unreadable reference envelope.
+	const legacyKey = "legacy-direct"
+	legacy, err := ws.CreateObject(ctx, legacyKey, old.GetManifestRef())
+	world.ReleaseObjectState(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Keep a sibling whose envelope block is missing, so it cannot supply a root match.
+	missing := old.GetManifestRef().Clone()
+	missing.RootRef.Hash.Hash[0] ^= 0xff
+	broken, err := ws.CreateObject(ctx, "broken-envelope", missing)
+	world.ReleaseObjectState(broken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := world_types.SetObjectType(ctx, ws, "broken-envelope", manifest_world.ManifestRefTypeID); err != nil {
+		t.Fatal(err)
+	}
+
+	// Replace the signed graph edge with its legacy equivalent without repairing the broken sibling.
+	if err := ws.DeleteGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, oldKey, "colors")); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{legacyKey, "broken-envelope"} {
+		if err := ws.SetGraphQuad(ctx, manifest_world.NewManifestQuad(hostKey, key, "colors")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	selectManifest()
+	selected = instance.executePluginRoutine.GetState()
+	if selected == nil || !selected.manifestSnapshot.GetManifestRef().EqualVT(old.GetManifestRef()) {
+		t.Fatal("legacy pinned artifact was blocked by an unreadable sibling")
 	}
 }
