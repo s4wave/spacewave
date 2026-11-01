@@ -16,6 +16,7 @@ interface PageHtmlOptions {
   headScript?: string
   bootstrapScript: string
   hydrateScript?: string
+  stylexOrder?: string
   criticalCss: string
   mainCssUrl: string
   additionalCssUrls?: string[]
@@ -39,6 +40,7 @@ function escapeHtml(text: string): string {
 // including the funnel beacon. Every page names its canonical URL and link
 // preview image.
 export function buildPageHtml(opts: PageHtmlOptions): string {
+  // Escape metadata before inserting it into the document head.
   const title = escapeHtml(opts.title)
   const description = escapeHtml(opts.description)
   const canonicalUrl = escapeHtml(opts.canonicalUrl)
@@ -48,10 +50,15 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   const themeColor = opts.themeColor ?? '#0a0a0a'
   const robots = opts.robots ?? 'index, follow'
 
+  // Prepare the scripts and styles in their required first-paint order.
   const jsonLdTag = opts.jsonLd
     ? `\n  <script type="application/ld+json">${serializeJsonScriptData(opts.jsonLd)}</script>`
     : ''
   const headScript = opts.headScript ? `\n  ${opts.headScript}` : ''
+  const stylexOrder = opts.stylexOrder
+    ? `
+  <style data-bldr-stylex-order>${opts.stylexOrder}</style>`
+    : ''
   const criticalStyle = opts.criticalCss
     ? `\n  <style>${opts.criticalCss}</style>`
     : ''
@@ -88,7 +95,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   <meta name="twitter:card" content="${twitterCard}"/>
   <meta name="twitter:title" content="${title}"/>
   <meta name="twitter:description" content="${description}"/>
-  <meta name="twitter:image" content="${ogImage}"/>${headScript}${jsonLdTag}${criticalStyle}${importMapTag}${stylesheetTags}
+  <meta name="twitter:image" content="${ogImage}"/>${headScript}${jsonLdTag}${stylexOrder}${criticalStyle}${importMapTag}${stylesheetTags}
 </head>
 <body>
   <div id="bldr-root"${opts.prerendered !== false ? ' data-prerendered="true"' : ''} role="main">${opts.body}</div>

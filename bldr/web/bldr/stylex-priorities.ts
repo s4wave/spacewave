@@ -3,6 +3,7 @@ export const stylexLayersBefore = [
   'reset',
   'theme',
   'base',
+  'skin',
   'components',
   'utilities',
 ] as const

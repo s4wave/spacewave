@@ -22,6 +22,7 @@ import {
   DevelopmentConfig,
   DevelopmentResult,
 } from './vite.pb.js'
+import { stylexCss } from './stylex.js'
 import { buildConfig, createSilentViteLogger } from './build.js'
 import {
   adaptDevelopmentClient,
@@ -194,6 +195,7 @@ export class DevelopmentEnvironment {
     // editableTarget returns the project source path an aliased import of a
     // shared package resolves to, or null when it has no editable source.
     const editableTarget = (source: string) => {
+      // Resolve an alias only when its target is editable project source.
       const target = aliasTarget(source)
       if (!target || inPackages(source, canonical)) return null
       const local = relative(root, target)
@@ -311,6 +313,7 @@ export class DevelopmentEnvironment {
       oxc: config.oxc === false ? false : { target: 'es2022', ...config.oxc },
       customLogger: createSilentViteLogger(),
       plugins: [
+        stylexCss(),
         adapter,
         ...(config.plugins ?? []),
         goTsResolver(root, dist),
