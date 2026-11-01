@@ -5,8 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/fastjson"
@@ -39,8 +41,8 @@ func withInstallLock(ctx context.Context, targetDir string, fn func() error) (re
 }
 
 // EnsureSharedBunInstall copies srcPackageJson and its sibling bun.lock, when
-// present, into the shared install cache and runs bun install there, skipping
-// the install if the package manifest contents have not changed since the
+// present, and its declared patch files into the shared install cache. It runs
+// bun install there when the manifest, lockfile or patches changed since the
 // last successful install. The install directory is keyed by the install
 // hash, so identical dependency sets across projects and state directories
 // share one node_modules. It returns the install root actually used. When
@@ -56,8 +58,23 @@ func EnsureSharedBunInstall(ctx context.Context, le *logrus.Entry, stateDir, src
 		return "", err
 	}
 
-	// Hash the manifest contents to key the install cache.
-	hash := bunInstallHash(data, lockData)
+	// Read patch bytes once so the fingerprint and installed seed describe the same inputs.
+	patchPaths, err := ParseBunPatchPaths(data)
+	if err != nil {
+		return "", err
+	}
+	patches := make(map[string][]byte, len(patchPaths))
+	for _, name := range patchPaths {
+		// #nosec G703 -- ParseBunPatchPaths requires local, manifest-relative paths before this read.
+		patch, err := os.ReadFile(filepath.Join(filepath.Dir(srcPackageJson), name))
+		if err != nil {
+			return "", err
+		}
+		patches[name] = patch
+	}
+
+	// Every compiler patch revision has its own install and lock; equal inputs still share them.
+	hash := bunInstallHash(data, lockData, patches)
 
 	// Prefer the shared cache directory; fall back to the caller's own
 	// state directory when it is unavailable.
@@ -65,7 +82,7 @@ func EnsureSharedBunInstall(ctx context.Context, le *logrus.Entry, stateDir, src
 	if sharedDir, ok := sharedInstallDir(hash); ok {
 		targetDir = sharedDir
 	}
-	return targetDir, ensureBunInstallAt(ctx, le, stateDir, targetDir, hash, data, lockData, lockFound)
+	return targetDir, ensureBunInstallAt(ctx, le, stateDir, targetDir, hash, data, lockData, lockFound, patches)
 }
 
 // sharedInstallCacheEnv overrides the root of the shared install cache.
@@ -95,7 +112,7 @@ func sharedInstallDir(hash string) (string, bool) {
 
 // ensureBunInstallAt runs the cached bun install for the hashed package
 // manifest into targetDir.
-func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetDir, hash string, packageJSON, bunLock []byte, lockFound bool) error {
+func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetDir, hash string, packageJSON, bunLock []byte, lockFound bool, patches map[string][]byte) error {
 	return withInstallLock(ctx, targetDir, func() error {
 		// Skip the install when the hash sentinel already matches.
 		if installCurrent(targetDir, hash) {
@@ -105,7 +122,7 @@ func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetD
 
 		// Recreate the install directory and seed it with the package
 		// manifest and lockfile.
-		if err := seedInstallDir(targetDir, packageJSON, bunLock, lockFound); err != nil {
+		if err := seedInstallDir(targetDir, packageJSON, bunLock, lockFound, patches); err != nil {
 			return err
 		}
 
@@ -130,7 +147,7 @@ func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetD
 // seedInstallDir recreates targetDir with the package manifest and, when
 // lockFound, the lockfile. The manifest omits root scripts: they expect the
 // project checkout, which the cache does not contain.
-func seedInstallDir(targetDir string, packageJSON, bunLock []byte, lockFound bool) error {
+func seedInstallDir(targetDir string, packageJSON, bunLock []byte, lockFound bool, patches map[string][]byte) error {
 	// Recreate the managed cache directory.
 	if err := fsutil.CleanCreateDir(targetDir); err != nil {
 		return err
@@ -143,6 +160,16 @@ func seedInstallDir(targetDir string, packageJSON, bunLock []byte, lockFound boo
 	}
 	if err := writeSeedFile(targetDir, "package.json", seedJSON); err != nil {
 		return err
+	}
+
+	// Materialize declared local patches before Bun resolves its dependency tree.
+	for name, patch := range patches {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(targetDir, name)), 0o755); err != nil {
+			return err
+		}
+		if err := writeSeedFile(targetDir, name, patch); err != nil {
+			return err
+		}
 	}
 
 	// Write the lockfile the frozen install verifies against.
@@ -193,20 +220,23 @@ func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
 	return nil, false, err
 }
 
-// bunInstallHash returns the install hash for a package manifest and its
-// optional bun.lock contents. The hash changes when either file changes.
-func bunInstallHash(packageJSON, bunLock []byte) string {
-	// Preserve the package-only key when there is no lockfile.
-	if bunLock == nil {
-		return sha256Hex(packageJSON)
+// bunInstallHash fingerprints the manifest, optional lockfile and declared patch bytes.
+func bunInstallHash(packageJSON, bunLock []byte, patches map[string][]byte) string {
+	// Retain the plain manifest digest for an install with no additional inputs.
+	hash := sha256.New()
+	_, _ = hash.Write(packageJSON)
+	if bunLock != nil {
+		_, _ = hash.Write([]byte("\x00bun.lock\x00"))
+		_, _ = hash.Write(bunLock)
 	}
 
-	// Delimit both inputs so distinct manifest and lockfile pairs stay distinct.
-	data := make([]byte, 0, len(packageJSON)+len(bunLock)+len("\x00bun.lock\x00"))
-	data = append(data, packageJSON...)
-	data = append(data, "\x00bun.lock\x00"...)
-	data = append(data, bunLock...)
-	return sha256Hex(data)
+	// Fixed-size content digests keep patch boundaries unambiguous in deterministic path order.
+	for _, name := range slices.Sorted(maps.Keys(patches)) {
+		_, _ = hash.Write([]byte("\x00patch\x00" + name + "\x00"))
+		digest := sha256.Sum256(patches[name])
+		_, _ = hash.Write(digest[:])
+	}
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // EnsureBunAdd runs bun add for pkg in targetDir, skipping the install if the

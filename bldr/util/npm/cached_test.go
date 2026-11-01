@@ -1,6 +1,7 @@
 package npm
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -47,13 +48,13 @@ func TestBunInstallHashIncludesLockfile(t *testing.T) {
 	lockB := []byte("lock-b")
 
 	// Verify the package-only hash matches the plain digest.
-	if got, want := bunInstallHash(pkg, nil), sha256Hex(pkg); got != want {
+	if got, want := bunInstallHash(pkg, nil, nil), sha256Hex(pkg); got != want {
 		t.Fatalf("package-only hash=%q want %q", got, want)
 	}
-	if bunInstallHash(pkg, lockA) == sha256Hex(pkg) {
+	if bunInstallHash(pkg, lockA, nil) == sha256Hex(pkg) {
 		t.Fatal("lockfile hash matched package-only hash")
 	}
-	if bunInstallHash(pkg, lockA) == bunInstallHash(pkg, lockB) {
+	if bunInstallHash(pkg, lockA, nil) == bunInstallHash(pkg, lockB, nil) {
 		t.Fatal("different lockfiles produced the same install hash")
 	}
 }
@@ -233,5 +234,73 @@ func TestWithInstallLockSerializesTargetMutation(t *testing.T) {
 		return nil
 	}); err == nil {
 		t.Fatal("canceled lock returned no error")
+	}
+}
+
+// TestEnsureSharedBunInstallPatches keeps the copied seed, applied package and cache identity in agreement.
+func TestEnsureSharedBunInstallPatches(t *testing.T) {
+	// Install an actual package through Bun against a disposable local registry.
+	root := t.TempDir()
+	t.Setenv("NPM_CONFIG_REGISTRY", serveBunFixture(t))
+	t.Setenv("BUN_INSTALL_CACHE_DIR", filepath.Join(root, "downloads"))
+	t.Setenv("BLDR_SHARED_INSTALL_CACHE", filepath.Join(root, "installs"))
+	source := filepath.Join(root, "source")
+	if err := os.MkdirAll(filepath.Join(source, "patches"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Keep the dependency version fixed while changing only its declared patch.
+	manifest := []byte(`{"dependencies":{"bldr-cache-fixture":"1.0.0"},"patchedDependencies":{"bldr-cache-fixture@1.0.0":"patches/fixture.patch"}}`)
+	manifestPath := filepath.Join(source, "package.json")
+	if err := os.WriteFile(manifestPath, manifest, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// A changed patch selects a fresh install even though the package version and manifest stay fixed.
+	var first string
+	for _, value := range []string{"first", "second"} {
+		patch := []byte("diff --git a/index.js b/index.js\n--- a/index.js\n+++ b/index.js\n@@ -1 +1 @@\n-export default 'original'\n+export default '" + value + "'\n")
+		if err := os.WriteFile(filepath.Join(source, "patches", "fixture.patch"), patch, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		installed, err := EnsureSharedBunInstall(t.Context(), logrus.NewEntry(logrus.New()), "", manifestPath, filepath.Join(root, "fallback"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Require the real patched module and its exact seed, not just a successful subprocess.
+		module, err := os.ReadFile(filepath.Join(installed, "node_modules", "bldr-cache-fixture", "index.js"))
+		if err != nil || string(module) != "export default '"+value+"'\n" {
+			t.Fatalf("patched module = %q, %v", module, err)
+		}
+		seed, err := os.ReadFile(filepath.Join(installed, "patches", "fixture.patch"))
+		if err != nil || !bytes.Equal(seed, patch) {
+			t.Fatalf("patch seed = %q, %v", seed, err)
+		}
+		if value == "first" {
+			first = installed
+		} else if installed == first {
+			t.Fatal("changed patch reused the previous installed package")
+		}
+
+		// Identical inputs reuse the same materialized package and successful-install marker.
+		again, err := EnsureSharedBunInstall(t.Context(), logrus.NewEntry(logrus.New()), "", manifestPath, filepath.Join(root, "another-fallback"))
+		if err != nil || again != installed {
+			t.Fatalf("repeated install = %q, %v, want %q", again, err, installed)
+		}
+	}
+
+	// The second patch must leave the previous content-addressed install intact.
+	old, err := os.ReadFile(filepath.Join(first, "node_modules", "bldr-cache-fixture", "index.js"))
+	if err != nil || string(old) != "export default 'first'\n" {
+		t.Fatalf("first install was rewritten: %q, %v", old, err)
+	}
+
+	// Reject a patch that would overwrite the cache manifest and restore stripped root scripts.
+	if err := os.WriteFile(manifestPath, []byte(`{"patchedDependencies":{"bldr-cache-fixture@1.0.0":"package.json"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EnsureSharedBunInstall(t.Context(), logrus.NewEntry(logrus.New()), "", manifestPath, filepath.Join(root, "fallback")); err == nil {
+		t.Fatal("patch was allowed to overwrite the seeded manifest")
 	}
 }

@@ -12,11 +12,12 @@ import (
 	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/pkg/errors"
 	bldr_util_buildcache "github.com/s4wave/spacewave/bldr/util/buildcache"
+	"github.com/s4wave/spacewave/bldr/util/npm"
 	"github.com/sirupsen/logrus"
 )
 
 // buildCacheVersion changes when the cached result or its key changes shape.
-const buildCacheVersion = "bldr rolldown build v1"
+const buildCacheVersion = "bldr rolldown build v2"
 
 // BuildCached returns the result of an earlier build of req from toolRoot
 // whose inputs all still hold the same content, after restoring its outputs
@@ -87,7 +88,7 @@ func BuildCached(
 }
 
 // ToolchainInputs returns the files that pin a bldr bundler toolchain: the
-// dependency manifests under toolRoot, which pin the bundler versions, and the
+// dependency manifests and their declared patches under toolRoot, and the
 // driver scripts directly in scriptDir. A build cache records them as inputs,
 // so a toolchain change rebuilds instead of replaying an older toolchain's
 // output.
@@ -99,6 +100,15 @@ func ToolchainInputs(toolRoot, scriptDir string) []string {
 		path := filepath.Join(depsDir, name)
 		if _, err := os.Stat(path); err == nil {
 			inputs = append(inputs, path)
+		}
+	}
+
+	// Compiler patch contents invalidate the CSS and script outputs they can change.
+	if data, err := os.ReadFile(filepath.Join(depsDir, "package.json")); err == nil {
+		if paths, err := npm.ParseBunPatchPaths(data); err == nil {
+			for _, name := range paths {
+				inputs = append(inputs, filepath.Join(depsDir, name))
+			}
 		}
 	}
 
