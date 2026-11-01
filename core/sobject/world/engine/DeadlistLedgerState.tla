@@ -5,14 +5,16 @@
 VARIABLE status
 vars == <<status>>
 Init == status = "absent"
-Name == status = "absent" /\ status' = "waiting"
+Name == status = "absent" /\ status' \in {"waiting", "forfeited"}
 Resolve == status = "waiting" /\ status' = "pending"
-Advance == status = "pending" /\ status' = "due"
+Advance == (status = "pending" /\ status' = "due")
+           \/ (status = "forfeited" /\ status' = "done")
 Orphan == status \in {"waiting", "pending"} /\ status' = "orphaned"
 Confirm == status \in {"due", "orphaned"} /\ status' = "done"
-RestoreDeadlists == status = "waiting" /\ status' = "orphaned"
+RestoreDeadlists == status \in {"waiting", "pending", "due", "orphaned"}
+                    /\ status' \in {"absent", "forfeited", "pending"}
 Next == Name \/ Resolve \/ Advance \/ Orphan \/ Confirm \/ RestoreDeadlists
         \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
-TypeOK == status \in {"absent", "waiting", "pending", "due", "orphaned", "done"}
+TypeOK == status \in {"absent", "waiting", "pending", "due", "orphaned", "done", "forfeited"}
 ====
