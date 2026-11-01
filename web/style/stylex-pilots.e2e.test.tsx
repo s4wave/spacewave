@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { expect, it } from 'vitest'
-import { page } from 'vitest/browser'
+import { page, userEvent } from 'vitest/browser'
 import { render } from 'vitest-browser-react'
 
 import { VmErrorBanner } from '../../app/vm/VmErrorBanner.js'
@@ -11,17 +11,27 @@ import { OutputPanel } from '../ui/OutputPanel.js'
 import { CopyableField } from '../ui/CopyableField.js'
 import { RadioOption } from '../ui/RadioOption.js'
 import { Window } from '../ui/Window.js'
+import { PanelHeader, PanelHeaderButton } from '../ui/PanelHeader.js'
+import {
+  CollapsibleSection,
+  collapsibleSectionActionStyles,
+} from '../ui/CollapsibleSection.js'
 
 const styles = stylex.create({
   override: { padding: 19, borderRadius: 9 },
+  headerOverride: { paddingBlock: 19, paddingInline: 19, borderRadius: 9 },
   firstRule: { color: 'rgb(17, 34, 51)' },
   secondRule: { color: 'rgb(68, 85, 102)' },
 })
 
 // PilotJourney exercises shared composition together with real app and plugin consumers.
 function PilotJourney() {
+  // Keep the fixture's independent interactions local to their mounted controls.
   const [selected, setSelected] = useState('None')
   const [radioSelected, setRadioSelected] = useState(false)
+  const [sectionOpen, setSectionOpen] = useState(false)
+  const [actions, setActions] = useState(0)
+
   return (
     <main>
       <InfoCard compact title="Details" sx={styles.override}>
@@ -47,6 +57,30 @@ function PilotJourney() {
       <Window data-area-id="fixture-window">
         <button type="button">Window action</button>
       </Window>
+      <CollapsibleSection
+        title="Expandable section"
+        open={sectionOpen}
+        onOpenChange={setSectionOpen}
+        sx={styles.override}
+        headerActions={
+          <button
+            type="button"
+            sx={collapsibleSectionActionStyles.button}
+            onClick={() => setActions(actions + 1)}
+            aria-label="Section action"
+          >
+            +
+          </button>
+        }
+      >
+        <p>Expanded content</p>
+      </CollapsibleSection>
+      <output aria-label="Section actions">{actions}</output>
+      <PanelHeader sx={styles.headerOverride}>
+        <PanelHeaderButton title="Panel action" sx={styles.override}>
+          Panel action
+        </PanelHeaderButton>
+      </PanelHeader>
     </main>
   )
 }
@@ -110,4 +144,62 @@ it('composes shared, app and plugin styles through the browser build', async () 
   const border = getComputedStyle(frame).borderColor
   await page.getByRole('button', { name: 'Window action', exact: true }).hover()
   await expect.poll(() => getComputedStyle(frame).borderColor).not.toBe(border)
+
+  // The separate header action leaves expansion alone, while the trigger opens and closes content.
+  const trigger = page.getByRole('button', {
+    name: 'Expandable section',
+    exact: true,
+  })
+  await page
+    .getByRole('button', { name: 'Section action', exact: true })
+    .click()
+  expect(
+    document.querySelector('output[aria-label="Section actions"]')?.textContent,
+  ).toBe('1')
+  await expect.element(trigger).toHaveAttribute('aria-expanded', 'false')
+
+  // Expansion reveals content while retaining the caller's outer override.
+  await trigger.click()
+  await expect.element(trigger).toHaveAttribute('aria-expanded', 'true')
+  await expect
+    .element(page.getByText('Expanded content', { exact: true }))
+    .toBeVisible()
+  const section = document.querySelector('section[data-state="open"]')!
+  expect(getComputedStyle(section).padding).toBe('19px')
+
+  // Closing the same section removes its content from the visible surface.
+  await trigger.click()
+  await expect.element(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect
+    .poll(
+      () =>
+        page
+          .getByText('Expanded content', { exact: true })
+          .query()
+          ?.checkVisibility() ?? false,
+    )
+    .toBe(false)
+
+  // Keyboard focus reaches the header button's own outline and both caller overrides.
+  await userEvent.keyboard('{Tab}')
+  expect(document.activeElement?.getAttribute('aria-label')).toBe(
+    'Section action',
+  )
+  await userEvent.keyboard('{Tab}')
+  const panelButton = document.querySelector('button[title="Panel action"]')!
+  expect(document.activeElement).toBe(panelButton)
+  expect(getComputedStyle(panelButton).outlineWidth).toBe('2px')
+  expect(getComputedStyle(panelButton).outlineStyle).toBe('solid')
+
+  // Resolve the owned focus color through the real theme rather than a serialized color spelling.
+  reference.style.color = 'var(--color-brand)'
+  document.body.append(reference)
+  await expect
+    .poll(() => getComputedStyle(panelButton).outlineColor)
+    .toBe(getComputedStyle(reference).color)
+  reference.remove()
+
+  // The two owned inputs keep the caller's final padding override.
+  expect(getComputedStyle(panelButton).padding).toBe('19px')
+  expect(getComputedStyle(panelButton.parentElement!).padding).toBe('19px')
 })

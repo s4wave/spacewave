@@ -14,7 +14,10 @@ import { downloadPemFile } from '@s4wave/web/download.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { truncatePeerId } from '@s4wave/web/ui/credential/auth-utils.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
-import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
+import {
+  CollapsibleSection,
+  collapsibleSectionActionStyles,
+} from '@s4wave/web/ui/CollapsibleSection.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import {
   AuthConfirmDialog,
@@ -125,10 +128,13 @@ function AuthMethodsSectionContent({
   authMethodsResource,
   accountInfoResource,
 }: AuthMethodsSectionContentProps) {
+  // Resolve expansion from the controlled input or the saved session setting.
   const ns = useStateNamespace(['session-settings'])
   const [storedOpen, setStoredOpen] = useStateAtom(ns, 'auth-methods', false)
   const sectionOpen = open ?? storedOpen
   const handleOpenChange = onOpenChange ?? setStoredOpen
+
+  // Select single-signature dialogs or the threshold-based credential wizard.
   const authMethods = authMethodsResource.value?.authMethods ?? []
   const keypairCount = authMethods.length
   const threshold = accountInfoResource.value?.authThreshold ?? 0
@@ -147,6 +153,7 @@ function AuthMethodsSectionContent({
   const [addType, setAddType] = useState<AuthMethodType | null>(null)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
 
+  // Route removal to the credential flow selected by the account threshold.
   const handleRemoveClick = (peerId: string, methodLabel: string) => {
     if (useWizard) {
       setWizardRemove({ peerId, label: methodLabel })
@@ -155,6 +162,7 @@ function AuthMethodsSectionContent({
     }
   }
 
+  // Close the picker and open the selected method's credential flow.
   const handlePickMethod = (method: AuthMethodType) => {
     setPickerOpen(false)
     if (useWizard && method === 'pem') {
@@ -182,7 +190,8 @@ function AuthMethodsSectionContent({
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors"
+
+            sx={collapsibleSectionActionStyles.button}
             aria-label="Add auth method"
             title="Add auth method"
           >
@@ -420,6 +429,7 @@ function SingleSigDialogs({
   }
 
   const handleAddBackupKey = async (credential: AuthCredential) => {
+    // Generate the backup key on the live account and translate an unknown credential.
     if (!account.value) return
     let resp
     try {
@@ -436,9 +446,10 @@ function SingleSigDialogs({
       }
       throw err
     }
+
+    // Download a generated key only when the response carries its PEM bytes.
     const pemData = resp.pemData
     if (!pemData || pemData.length === 0) return
-
     downloadPemFile(pemData)
   }
 
