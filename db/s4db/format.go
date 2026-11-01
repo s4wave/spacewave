@@ -112,8 +112,10 @@ const (
 // unknown ro-compat flag allows read-only opens, and an unknown incompat flag
 // refuses the open.
 const (
+	// incompatLogSpare identifies records carrying the preallocated log spare.
+	incompatLogSpare = 1
 	// incompatKnown lists the incompat flags this version implements.
-	incompatKnown = 0
+	incompatKnown = incompatLogSpare
 	// rocompatKnown lists the ro-compat flags this version implements.
 	rocompatKnown = 0
 )

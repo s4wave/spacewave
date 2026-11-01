@@ -14,7 +14,10 @@ func build(ctx context.Context, s storage, opts Options, runBytes int64, source 
 	opts = opts.withDefaults()
 	b := &builder{ctx: ctx, s: s, m: newManifest(), runBytes: runBytes}
 	b.vals = valueChunkWriter{s: s, table: b.m.table}
-	b.logChunk = b.m.table.alloc(1, chunkLog, 0)
+	b.logChunk = b.m.table.alloc(2, chunkLog, 0)
+	if err := backLog(s, b.logChunk, 2); err != nil {
+		return err
+	}
 	if err := source(b.add); err != nil {
 		return err
 	}
@@ -182,6 +185,7 @@ func (b *builder) finish(opts Options) error {
 		through:  seq,
 		memPos:   chunkStart(b.logChunk),
 		memEnd:   chunkStart(b.logChunk + 1),
+		logSpare: b.logChunk + 1, memSpare: b.logChunk + 1,
 	}
 	if _, err := b.s.WriteAt(make([]byte, pageSize), slotPage*pageSize); err != nil {
 		return err

@@ -26,12 +26,12 @@ const (
 )
 
 // recordHeader is the length, checksum, sequence, kind, writer identity,
-// predecessor identity and durable mark of a record. The checksum covers
+// predecessor identity, durable mark and standby pointer of a record. The checksum covers
 // everything after itself and continues from the previous record's. A reader
 // accepts a record only when its predecessor identity is the previous
 // record's writer, so a writer that continues a log cut by recovery never
 // joins the stale records behind the cut.
-const recordHeader = 4 + 4 + 8 + 1 + 8 + 8 + 8
+const recordHeader = 4 + 4 + 8 + 1 + 8 + 8 + 8 + 8
 
 // linkSize is the length of a link record, which every log chunk keeps room
 // for at its end.
@@ -50,6 +50,8 @@ type record struct {
 	// durable is the last commit the writer had flushed when it wrote this
 	// record. Recovery checks the values of records past the highest mark.
 	durable uint64
+	// spare is the physically allocated standby log chunk, or zero after reclamation consumes it.
+	spare uint64
 
 	// delta is a commit's change in key count.
 	delta int64
@@ -115,7 +117,7 @@ func decodeRecord(b []byte, seq uint64, prev uint32, prevWriter uint64) (*record
 	}
 
 	// Decode the body by kind.
-	r := &record{seq: seq, kind: b[16], writer: binary.LittleEndian.Uint64(b[17:]), prevWriter: prevWriter, durable: binary.LittleEndian.Uint64(b[33:]), size: n, crc: crc}
+	r := &record{seq: seq, kind: b[16], writer: binary.LittleEndian.Uint64(b[17:]), prevWriter: prevWriter, durable: binary.LittleEndian.Uint64(b[33:]), spare: binary.LittleEndian.Uint64(b[41:]), size: n, crc: crc}
 	d := decoder{b: b[recordHeader:n]}
 	switch r.kind {
 	case kindCommit:
@@ -128,7 +130,7 @@ func decodeRecord(b []byte, seq uint64, prev uint32, prevWriter uint64) (*record
 		r.chunks = d.chunkList()
 	case kindFlush:
 		r.through = d.uvarint()
-		r.replay = logPoint{pos: d.uvarint(), end: d.uvarint(), crc: d.u32(), writer: d.uvarint()}
+		r.replay = logPoint{pos: d.uvarint(), end: d.uvarint(), crc: d.u32(), writer: d.uvarint(), spare: d.uvarint()}
 		r.runs = d.runList()
 		r.mchunks = d.chunkList()
 	case kindMerge:
@@ -203,6 +205,7 @@ func (r *record) encode(prev uint32) []byte {
 		b = binary.AppendUvarint(b, r.replay.end)
 		b = binary.LittleEndian.AppendUint32(b, r.replay.crc)
 		b = binary.AppendUvarint(b, r.replay.writer)
+		b = binary.AppendUvarint(b, r.replay.spare)
 		b = appendRunList(b, r.runs)
 		b = appendChunkList(b, r.mchunks)
 	case kindMerge:
@@ -285,6 +288,7 @@ func (r *record) seal(b []byte, prev uint32) []byte {
 	binary.LittleEndian.PutUint64(b[17:], r.writer)
 	binary.LittleEndian.PutUint64(b[25:], r.prevWriter)
 	binary.LittleEndian.PutUint64(b[33:], r.durable)
+	binary.LittleEndian.PutUint64(b[41:], r.spare)
 
 	// Seal with the checksum over everything after it.
 	r.crc = chain(prev, b[8:])

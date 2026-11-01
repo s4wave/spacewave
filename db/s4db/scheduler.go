@@ -24,6 +24,9 @@ const memtableCeiling = 8
 // what the jobs made pending, and marks a quiet file so its pending chunks
 // can be freed.
 type scheduler struct {
+	// releaseCursor resumes bounded free batches without rescanning their prefix.
+	// mtx guards it with the other release state.
+	releaseCursor int
 	// db is the database.
 	db *DB
 	// idle runs background reads and writes at background priority.
