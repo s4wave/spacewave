@@ -8,12 +8,12 @@ import {
   type BabelFileResult,
 } from '@babel/core'
 import stylexPlugin from '@stylexjs/babel-plugin'
-import type { Plugin, ResolvedConfig, ModuleNode } from 'vite'
+import type { Plugin, ResolvedConfig, ModuleNode, Rollup } from 'vite'
 
 import { stylexLayersBefore } from '../../bldr/stylex-priorities.js'
 
-// cssSuffix gives extracted modules a native CSS extension.
-const cssSuffix = '.bldr-stylex.css'
+// stylexCssSuffix identifies generated native CSS dependencies.
+const stylexCssSuffix = '.bldr-stylex.css'
 // sourceRuntimeFile initializes one shared document order in every browser entry path.
 const sourceRuntimeFile = fileURLToPath(
   new URL('../../bldr/stylex-client.ts', import.meta.url),
@@ -29,8 +29,11 @@ interface CompiledModule {
   dependencies: string[]
 }
 
-/** stylexCss exposes compiled StyleX rules through Vite's native CSS lifecycle. */
-export function stylexCss(distRoot?: string): Plugin {
+/** stylexCss exposes native CSS; module delivery serves one-shot browser package builds. */
+export function stylexCss(
+  distRoot?: string,
+  cssDelivery: 'stylesheet' | 'module' = 'stylesheet',
+): Plugin & { api: { sources(): IterableIterator<string> } } {
   // Bundled compiler services resolve their shipped sources independently of the host script.
   const runtimeFile = distRoot
     ? resolve(
@@ -45,10 +48,12 @@ export function stylexCss(distRoot?: string): Plugin {
     string,
     { source: string; promise: Promise<CompiledModule> } | null
   >()
-  const owner = {}
+  const owner = { sources: () => modules.keys() }
   let enabled = true
   let config: ResolvedConfig
   let resolveTheme: ReturnType<ResolvedConfig['createResolver']>
+  let packageCssFile = ''
+  let packagePrepared: Promise<void> | undefined
 
   // compile resolves theme imports before running the official compiler once.
   const compileSource = async (
@@ -135,18 +140,18 @@ export function stylexCss(distRoot?: string): Plugin {
   }
 
   // extractCss includes only this module's rules and the constants its imports require.
-  const extractCss = async (file: string): Promise<string> => {
+  const extractCss = async (file?: string): Promise<string> => {
     // Walk the theme graph once; cycles in variable references must not stall the loader.
     const rules: Rules = []
     const seen = new Set<string>()
-    const pending = [file]
+    const pending = file ? [file] : [...modules.keys()]
     while (pending.length) {
       const next = pending.pop()!
       if (seen.has(next)) continue
       seen.add(next)
       const module = await readModule(next)
       for (const rule of module.rules) {
-        if (next === file || 'constKey' in rule[1]) rules.push(rule)
+        if (!file || next === file || 'constKey' in rule[1]) rules.push(rule)
       }
       pending.push(...module.dependencies)
     }
@@ -157,8 +162,44 @@ export function stylexCss(distRoot?: string): Plugin {
     })
   }
 
+  // preparePackage compiles the native entry graphs before extracting their shared stylesheet.
+  const preparePackage = async (
+    context: Rollup.PluginContext,
+  ): Promise<void> => {
+    // Share each resolved module once, including static and lazy package entry points.
+    const seen = new Set<string>()
+    const visit = async (id: string) => {
+      // Vite resolves and transforms each real dependency; CSS extraction waits outside this traversal.
+      if (seen.has(id) || /\.(?:css|less|s[ac]ss|styl)(?:$|\?)/.test(id)) return
+      seen.add(id)
+      const module = await context.load({ id, resolveDependencies: true })
+      if (!module)
+        throw new Error(`Native module loader returned no metadata for ${id}`)
+      for (const dependency of [
+        ...module.importedIds,
+        ...module.dynamicallyImportedIds,
+      ]) {
+        const resolved = await context.resolve(dependency, id)
+        if (resolved && !resolved.external) await visit(resolved.id)
+      }
+    }
+
+    // Resolve the package entries while CSS loading is inside a supported native loader hook.
+    const input = config.build.rolldownOptions.input
+    const entries =
+      typeof input === 'string'
+        ? [input]
+        : Array.isArray(input)
+          ? input
+          : Object.values(input ?? {})
+    for (const entry of entries) {
+      const resolved = await context.resolve(entry)
+      if (resolved && !resolved.external) await visit(resolved.id)
+    }
+  }
+
   // Bldr and a project config may both install the adapter; only the first compiles.
-  const plugin: Plugin = {
+  const plugin: Plugin & { api: typeof owner } = {
     name: 'bldr-stylex-css',
     api: owner,
     enforce: 'pre',
@@ -166,28 +207,37 @@ export function stylexCss(distRoot?: string): Plugin {
     configResolved(resolved) {
       config = resolved
       resolveTheme = resolved.createResolver()
+      packageCssFile = resolve(resolved.root, 'stylex' + stylexCssSuffix)
       enabled =
         resolved.plugins.find((plugin) => plugin.name === 'bldr-stylex-css')
           ?.api === owner
     },
     buildStart() {
       modules.clear()
+      packagePrepared = undefined
     },
     resolveId(source) {
-      if (enabled && source.split('?')[0]!.endsWith(cssSuffix)) return source
+      if (enabled && source.split('?')[0]!.endsWith(stylexCssSuffix))
+        return source
     },
     async load(id) {
       // Only CSS payloads owned by the first adapter enter native extraction.
       if (!enabled) return
       const cssFile = id.split('?')[0]!
-      if (!cssFile.endsWith(cssSuffix)) return
-      const file = cssFile.slice(0, -cssSuffix.length)
+      if (!cssFile.endsWith(stylexCssSuffix)) return
+      if (cssDelivery === 'module' && cssFile === packageCssFile) {
+        packagePrepared ??= preparePackage(this)
+        await packagePrepared
+        for (const file of modules.keys()) this.addWatchFile(file)
+        return extractCss()
+      }
+      const file = cssFile.slice(0, -stylexCssSuffix.length)
       this.addWatchFile(file)
       return extractCss(file)
     },
     async transform(source, id) {
       // Duplicate adapters and CSS modules leave the owning pipeline untouched.
-      if (!enabled || id.split('?')[0]!.endsWith(cssSuffix)) return
+      if (!enabled || id.split('?')[0]!.endsWith(stylexCssSuffix)) return
       const file = id.split('?')[0]!
       if (
         !/\.[cm]?[jt]sx?$/.test(file) ||
@@ -195,11 +245,19 @@ export function stylexCss(distRoot?: string): Plugin {
       )
         return
       const compiled = await compile(source, file)
-      const cssImports = [file, ...compiled.dependencies]
-        .map(
-          (dependency) => `import ${JSON.stringify(dependency + cssSuffix)};`,
-        )
-        .join('\n')
+      if (!compiled.rules.length && !compiled.dependencies.length)
+        return { code: compiled.code, map: compiled.map }
+
+      // Browser-imported packages await Vite's native CSS preload before their exports become available.
+      const cssImports =
+        cssDelivery === 'module'
+          ? `if (typeof document !== "undefined") await import(${JSON.stringify(packageCssFile)});`
+          : [file, ...compiled.dependencies]
+              .map(
+                (dependency) =>
+                  `import ${JSON.stringify(dependency + stylexCssSuffix)};`,
+              )
+              .join('\n')
       return {
         code: `${compiled.code}\n${cssImports}\nimport ${JSON.stringify(runtimeFile)};`,
         map: compiled.map,
@@ -211,7 +269,7 @@ export function stylexCss(distRoot?: string): Plugin {
       const affected = new Set<string>([context.file])
       const updates = new Set(context.modules)
       for (const module of context.server.moduleGraph.getModulesByFile(
-        context.file + cssSuffix,
+        context.file + stylexCssSuffix,
       ) ?? [])
         updates.add(module)
       if (/\.stylex(?:\.const)?\.[cm]?[jt]s$/.test(context.file)) {
@@ -236,7 +294,7 @@ export function stylexCss(distRoot?: string): Plugin {
             : readFile(file, 'utf8')),
           file,
         )
-        for (const changed of [file, file + cssSuffix]) {
+        for (const changed of [file, file + stylexCssSuffix]) {
           for (const module of context.server.moduleGraph.getModulesByFile(
             changed,
           ) ?? []) {
