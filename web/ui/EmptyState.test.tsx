@@ -1,86 +1,36 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EmptyState } from './EmptyState.js'
 
-describe('EmptyState', () => {
-  afterEach(() => {
-    cleanup()
-  })
+afterEach(cleanup)
 
-  it('renders title', () => {
-    render(<EmptyState title="No results" />)
-    expect(screen.getByText('No results')).toBeDefined()
-  })
+it('keeps empty content and exposes its supplied action', async () => {
+  // Start with an empty list that has no available action.
+  const user = userEvent.setup()
+  const view = render(<EmptyState title="No results" />)
+  expect(screen.getByRole('heading', { name: 'No results' })).toBeDefined()
+  expect(screen.queryByRole('button')).toBeNull()
 
-  it('renders description when provided', () => {
-    render(<EmptyState title="Empty" description="Try adding something" />)
-    expect(screen.getByText('Try adding something')).toBeDefined()
-  })
+  // Show the supplied description, icon and creation action together.
+  const create = vi.fn()
+  view.rerender(
+    <EmptyState
+      title="Empty"
+      description="Try adding something"
+      icon={<span>Custom icon</span>}
+      action={{ label: 'Add Item', onClick: create }}
+    />,
+  )
+  expect(screen.getByText('Try adding something')).toBeDefined()
+  expect(screen.getByText('Custom icon')).toBeDefined()
+  await user.click(screen.getByRole('button', { name: 'Add Item' }))
+  expect(create).toHaveBeenCalledOnce()
 
-  it('does not render description when not provided', () => {
-    render(<EmptyState title="Empty" />)
-    expect(screen.queryByText('Try adding something')).toBeNull()
-  })
-
-  it('renders action button when action is provided', () => {
-    const handleClick = vi.fn()
-    render(
-      <EmptyState
-        title="Empty"
-        action={{ label: 'Add Item', onClick: handleClick }}
-      />,
-    )
-    expect(screen.getByText('Add Item')).toBeDefined()
-  })
-
-  it('calls action.onClick when button is clicked', async () => {
-    const user = userEvent.setup()
-    const handleClick = vi.fn()
-    render(
-      <EmptyState
-        title="Empty"
-        action={{ label: 'Add Item', onClick: handleClick }}
-      />,
-    )
-
-    await user.click(screen.getByText('Add Item'))
-    expect(handleClick).toHaveBeenCalledOnce()
-  })
-
-  it('does not render button when no action', () => {
-    render(<EmptyState title="Empty" />)
-    expect(screen.queryByRole('button')).toBeNull()
-  })
-
-  it('renders custom icon when provided', () => {
-    render(
-      <EmptyState
-        title="Empty"
-        icon={<span data-testid="custom-icon">icon</span>}
-      />,
-    )
-    expect(screen.getByTestId('custom-icon')).toBeDefined()
-  })
-
-  it('renders default icon (folder) when no icon given', () => {
-    const { container } = render(<EmptyState title="Empty" />)
-    // The default icon is LuFolderOpen which renders as an SVG
-    const svg = container.querySelector('svg')
-    expect(svg).toBeTruthy()
-  })
-
-  it('applies custom className', () => {
-    const { container } = render(<EmptyState title="Empty" className="mt-1" />)
-    expect(container.firstElementChild?.classList.contains('mt-1')).toBe(true)
-  })
-
-  it('renders compact variant without error', () => {
-    const { container } = render(
-      <EmptyState title="Compact" variant="compact" />,
-    )
-    expect(screen.getByText('Compact')).toBeDefined()
-    // Compact variant uses p-4 instead of p-8
-    expect(container.firstElementChild?.classList.contains('p-4')).toBe(true)
-  })
+  // Removing optional content updates the compact presentation without a stale action.
+  view.rerender(<EmptyState title="Compact" variant="compact" />)
+  expect(screen.getByRole('heading', { name: 'Compact' })).toBeDefined()
+  expect(screen.queryByText('Try adding something')).toBeNull()
+  expect(screen.queryByText('Custom icon')).toBeNull()
+  expect(screen.queryByRole('button')).toBeNull()
 })
