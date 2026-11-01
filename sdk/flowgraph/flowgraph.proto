@@ -4,6 +4,7 @@ package s4wave.flowgraph;
 import "github.com/s4wave/spacewave/db/block/block.proto";
 import "github.com/s4wave/spacewave/forge/target/target.proto";
 import "github.com/aperturerobotics/common/typeid/typeid.proto";
+import "github.com/aperturerobotics/starpc/rpcstream/rpcstream.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/flowgraph;s4wave_flowgraph";
 
@@ -187,6 +188,10 @@ message CreateFlowgraphOp {
 
 // FlowgraphResourceService reads and edits an authored graph.
 service FlowgraphResourceService {
+  // OpenNodePort opens a stream port through this graph's granting Session.
+  // RpcStreamInit.component_id is "<node>/<port>". The host resolves the node's
+  // Device placement and carries its SRPC calls after acknowledging the route. The destination Session admits the source peer by its own rule.
+  rpc OpenNodePort(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
   // GetFlowgraph reads the current body and placement edges.
   rpc GetFlowgraph(GetFlowgraphRequest) returns (GetFlowgraphResponse);
   // UpdateFlowgraph applies one authored change atomically.

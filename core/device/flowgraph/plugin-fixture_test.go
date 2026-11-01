@@ -33,7 +33,6 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	stream_echo "github.com/s4wave/spacewave/net/stream/echo"
-	stream_srpc "github.com/s4wave/spacewave/net/stream/srpc"
 	stream_srpc_server_lookup "github.com/s4wave/spacewave/net/stream/srpc/server/lookup"
 	"github.com/s4wave/spacewave/net/transport/inproc"
 	flowgraph_plugin "github.com/s4wave/spacewave/plugin/flowgraph"
@@ -293,18 +292,25 @@ func TestPluginNodeFixture(t *testing.T) {
 	})
 
 	// An admitted second peer reaches the plugin service over the node's port.
-	portID, err := s4wave_flowgraph.NodePortProtocolID(testFlowgraphKey, "run", "echo")
-	if err != nil {
-		t.Fatal(err)
+	openPort := func(session *transport.SessionTransport, nodeID, portName string) srpc.Client {
+		// Mount this graph on the peer's host, then lend only its Resource RPCs.
+		graph := s4wave_flowgraph.NewFlowgraphResource(tb.WorldState, tb.Engine, session.GetChildBus(), tb.EngineID, testFlowgraphKey, session.GetPeerID())
+		client := s4wave_flowgraph.NewSRPCFlowgraphResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(graph.GetMux()))))
+		caller, err := s4wave_flowgraph.OpenNodePort(client, nodeID, portName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return caller
 	}
-	echoClient := echo.NewSRPCEchoerClient(srpc.NewClient(stream_srpc.NewOpenStreamFunc(remote.GetChildBus(), portID, remote.GetPeerID(), st.GetPeerID(), 0)))
+	port := openPort(remote, "run", "echo")
+	echoClient := echo.NewSRPCEchoerClient(port)
 	reply, err := echoClient.Echo(ctx, &echo.EchoMsg{Body: "plugin port echo"})
 	if err != nil || reply.GetBody() != "plugin port echo" {
 		t.Fatalf("plugin port echo = %v, %v", reply, err)
 	}
 
 	// The port refuses a service implemented by the plugin but absent from its grant.
-	undeclared := srpc.NewClient(stream_srpc.NewOpenStreamFunc(remote.GetChildBus(), portID, remote.GetPeerID(), st.GetPeerID(), 0))
+	undeclared := port
 	undeclaredCtx, undeclaredCancel := context.WithTimeout(ctx, 5*time.Second)
 	undeclaredErr := undeclared.ExecCall(undeclaredCtx, "fixture/undeclared", "Echo", &echo.EchoMsg{Body: "must not echo"}, &echo.EchoMsg{})
 	undeclaredCancel()
@@ -312,13 +318,43 @@ func TestPluginNodeFixture(t *testing.T) {
 		t.Fatalf("undeclared service result = %v", undeclaredErr)
 	}
 
+	// The host rejects a port absent from the granted graph before dialing.
+	missingClient := echo.NewSRPCEchoerClient(openPort(remote, "run", "missing"))
+	if _, err := missingClient.Echo(ctx, &echo.EchoMsg{}); err == nil || !strings.Contains(err.Error(), "stream port not found") {
+		t.Fatalf("missing port result = %v", err)
+	}
+
 	// A linked peer outside the Session rule cannot call the same service.
-	refusedClient := echo.NewSRPCEchoerClient(srpc.NewClient(stream_srpc.NewOpenStreamFunc(refused.GetChildBus(), portID, refused.GetPeerID(), st.GetPeerID(), 0)))
+	refusedClient := echo.NewSRPCEchoerClient(openPort(refused, "run", "echo"))
 	refusedCtx, refusedCancel := context.WithTimeout(ctx, 5*time.Second)
 	_, refusedErr := refusedClient.Echo(refusedCtx, &echo.EchoMsg{Body: "must not echo"})
 	refusedCancel()
 	if refusedErr == nil || errors.Is(refusedErr, context.DeadlineExceeded) {
 		t.Fatalf("refused peer result = %v", refusedErr)
+	}
+
+	// A bidirectional call preserves messages until the plugin unloads.
+	streamCtx, streamCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer streamCancel()
+	echoStream, err := echoClient.EchoBidiStream(streamCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer echoStream.Close()
+
+	// Read the Echoer fixture's greeting before exchanging caller messages.
+	greeting, err := echoStream.Recv()
+	if err != nil || greeting.GetBody() != "hello from server" {
+		t.Fatalf("stream greeting = %v, %v", greeting, err)
+	}
+	for _, body := range []string{"first port message", "second port message"} {
+		if err := echoStream.Send(&echo.EchoMsg{Body: body}); err != nil {
+			t.Fatal(err)
+		}
+		reply, err := echoStream.Recv()
+		if err != nil || reply.GetBody() != body {
+			t.Fatalf("streamed echo = %v, %v", reply, err)
+		}
 	}
 
 	// A changed setting restarts the plugin controller with the new config.
@@ -333,6 +369,9 @@ func TestPluginNodeFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectRuns(t, ctx, runs, "stop two")
+	if _, err := echoStream.Recv(); err == nil || errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("unloaded plugin retained an active port call: %v", err)
+	}
 	waitCapabilities(t, ctx, tb.Engine, func(caps map[string]*s4wave_device.DeviceCapability) bool {
 		return capabilityState(caps, "run") == s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DECLARED
 	})

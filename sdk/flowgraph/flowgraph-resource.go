@@ -8,6 +8,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // FlowgraphResource exposes an authored graph through its granted World capability.
@@ -23,14 +24,17 @@ type FlowgraphResource struct {
 	engineID string
 	// key identifies this independently addressed graph.
 	key string
+	// sessionPeerID identifies the granting Session that opens node streams.
+	sessionPeerID peer.ID
 	// mux serves the graph's Resource operations.
 	mux srpc.Mux
 }
 
 // NewFlowgraphResource constructs a graph Resource without retaining object handles.
 // b and engineID resolve the object types of the nodes' bound objects.
-func NewFlowgraphResource(ws world.WorldState, engine world.Engine, b bus.Bus, engineID, key string) *FlowgraphResource {
-	r := &FlowgraphResource{ws: ws, engine: engine, bus: b, engineID: engineID, key: key}
+// sessionPeerID selects the granting Session for port calls; empty disables them.
+func NewFlowgraphResource(ws world.WorldState, engine world.Engine, b bus.Bus, engineID, key string, sessionPeerID peer.ID) *FlowgraphResource {
+	r := &FlowgraphResource{ws: ws, engine: engine, bus: b, engineID: engineID, key: key, sessionPeerID: sessionPeerID}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return SRPCRegisterFlowgraphResourceService(mux, r)
 	})

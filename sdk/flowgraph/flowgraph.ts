@@ -1,5 +1,6 @@
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
+import { Client, openRpcStream } from 'starpc'
 
 import type { IWorldState } from '../world/world-state.js'
 import {
@@ -38,6 +39,17 @@ export class FlowgraphHandle extends Resource {
   constructor(resourceRef: ClientResourceRef) {
     super(resourceRef)
     this.service = new FlowgraphResourceServiceClient(resourceRef.client)
+  }
+
+  /** openNodePort calls a placed node's port through the granting Session. */
+  openNodePort(nodeID: string, port: string): Client {
+    return new Client(() =>
+      openRpcStream(
+        `${nodeID}/${port}`,
+        this.service.OpenNodePort.bind(this.service),
+        true,
+      ),
+    )
   }
 
   /** get reads the graph and its placement edges at one observed revision. */

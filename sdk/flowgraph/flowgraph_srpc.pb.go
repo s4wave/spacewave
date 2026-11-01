@@ -7,6 +7,7 @@ package s4wave_flowgraph
 import (
 	context "context"
 
+	rpcstream "github.com/aperturerobotics/starpc/rpcstream"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 )
 
@@ -14,6 +15,10 @@ type SRPCFlowgraphResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// OpenNodePort opens a stream port through this graph's granting Session.
+	// RpcStreamInit.component_id is "<node>/<port>". The host resolves the node's
+	// Device placement and carries its SRPC calls after acknowledging the route. The destination Session admits the source peer by its own rule.
+	OpenNodePort(ctx context.Context) (SRPCFlowgraphResourceService_OpenNodePortClient, error)
 	// GetFlowgraph reads the current body and placement edges.
 	GetFlowgraph(ctx context.Context, in *GetFlowgraphRequest) (*GetFlowgraphResponse, error)
 	// UpdateFlowgraph applies one authored change atomically.
@@ -41,6 +46,45 @@ func NewSRPCFlowgraphResourceServiceClientWithServiceID(cc srpc.Client, serviceI
 }
 
 func (c *srpcFlowgraphResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcFlowgraphResourceServiceClient) OpenNodePort(ctx context.Context) (SRPCFlowgraphResourceService_OpenNodePortClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "OpenNodePort", nil)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcFlowgraphResourceService_OpenNodePortClient{stream}
+	return strm, nil
+}
+
+type SRPCFlowgraphResourceService_OpenNodePortClient interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcFlowgraphResourceService_OpenNodePortClient struct {
+	srpc.Stream
+}
+
+func (x *srpcFlowgraphResourceService_OpenNodePortClient) Send(m *rpcstream.RpcStreamPacket) error {
+	if m == nil {
+		return nil
+	}
+	return x.MsgSend(m)
+}
+
+func (x *srpcFlowgraphResourceService_OpenNodePortClient) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcFlowgraphResourceService_OpenNodePortClient) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
+}
 
 func (c *srpcFlowgraphResourceServiceClient) GetFlowgraph(ctx context.Context, in *GetFlowgraphRequest) (*GetFlowgraphResponse, error) {
 	out := new(GetFlowgraphResponse)
@@ -103,6 +147,10 @@ func (c *srpcFlowgraphResourceServiceClient) ListFlowgraphChanges(ctx context.Co
 }
 
 type SRPCFlowgraphResourceServiceServer interface {
+	// OpenNodePort opens a stream port through this graph's granting Session.
+	// RpcStreamInit.component_id is "<node>/<port>". The host resolves the node's
+	// Device placement and carries its SRPC calls after acknowledging the route. The destination Session admits the source peer by its own rule.
+	OpenNodePort(SRPCFlowgraphResourceService_OpenNodePortStream) error
 	// GetFlowgraph reads the current body and placement edges.
 	GetFlowgraph(context.Context, *GetFlowgraphRequest) (*GetFlowgraphResponse, error)
 	// UpdateFlowgraph applies one authored change atomically.
@@ -139,6 +187,7 @@ func (d *SRPCFlowgraphResourceServiceHandler) GetServiceID() string { return d.s
 
 func (SRPCFlowgraphResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
+		"OpenNodePort",
 		"GetFlowgraph",
 		"UpdateFlowgraph",
 		"WatchFlowgraph",
@@ -155,6 +204,8 @@ func (d *SRPCFlowgraphResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "OpenNodePort":
+		return true, d.InvokeMethod_OpenNodePort(d.impl, strm)
 	case "GetFlowgraph":
 		return true, d.InvokeMethod_GetFlowgraph(d.impl, strm)
 	case "UpdateFlowgraph":
@@ -166,6 +217,11 @@ func (d *SRPCFlowgraphResourceServiceHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCFlowgraphResourceServiceHandler) InvokeMethod_OpenNodePort(impl SRPCFlowgraphResourceServiceServer, strm srpc.Stream) error {
+	clientStrm := &srpcFlowgraphResourceService_OpenNodePortStream{strm}
+	return impl.OpenNodePort(clientStrm)
 }
 
 func (SRPCFlowgraphResourceServiceHandler) InvokeMethod_GetFlowgraph(impl SRPCFlowgraphResourceServiceServer, strm srpc.Stream) error {
@@ -211,6 +267,43 @@ func (SRPCFlowgraphResourceServiceHandler) InvokeMethod_ListFlowgraphChanges(imp
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+type SRPCFlowgraphResourceService_OpenNodePortStream interface {
+	srpc.Stream
+	Send(*rpcstream.RpcStreamPacket) error
+	SendAndClose(*rpcstream.RpcStreamPacket) error
+	Recv() (*rpcstream.RpcStreamPacket, error)
+	RecvTo(*rpcstream.RpcStreamPacket) error
+}
+
+type srpcFlowgraphResourceService_OpenNodePortStream struct {
+	srpc.Stream
+}
+
+func (x *srpcFlowgraphResourceService_OpenNodePortStream) Send(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcFlowgraphResourceService_OpenNodePortStream) SendAndClose(m *rpcstream.RpcStreamPacket) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+func (x *srpcFlowgraphResourceService_OpenNodePortStream) Recv() (*rpcstream.RpcStreamPacket, error) {
+	m := new(rpcstream.RpcStreamPacket)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcFlowgraphResourceService_OpenNodePortStream) RecvTo(m *rpcstream.RpcStreamPacket) error {
+	return x.MsgRecv(m)
 }
 
 type SRPCFlowgraphResourceService_GetFlowgraphStream interface {

@@ -2,6 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/sdk/flowgraph/flowgraph.proto (package s4wave.flowgraph, syntax proto3)
 /* eslint-disable */
 
+import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   GetFlowgraphRequest,
   GetFlowgraphResponse,
@@ -12,9 +14,9 @@ import {
   WatchFlowgraphRequest,
   WatchFlowgraphResponse,
 } from './flowgraph.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
+  buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
   ServerContext,
@@ -28,6 +30,19 @@ import {
 export const FlowgraphResourceServiceDefinition = {
   typeName: 's4wave.flowgraph.FlowgraphResourceService',
   methods: {
+    /**
+     * OpenNodePort opens a stream port through this graph's granting Session.
+     * RpcStreamInit.component_id is "<node>/<port>". The host resolves the node's
+     * Device placement and carries its SRPC calls after acknowledging the route. The destination Session admits the source peer by its own rule.
+     *
+     * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.OpenNodePort
+     */
+    OpenNodePort: {
+      name: 'OpenNodePort',
+      I: RpcStreamPacket,
+      O: RpcStreamPacket,
+      kind: MethodKind.BiDiStreaming,
+    },
     /**
      * GetFlowgraph reads the current body and placement edges.
      *
@@ -82,6 +97,18 @@ export const FlowgraphResourceServiceDefinition = {
  */
 export interface FlowgraphResourceService {
   /**
+   * OpenNodePort opens a stream port through this graph's granting Session.
+   * RpcStreamInit.component_id is "<node>/<port>". The host resolves the node's
+   * Device placement and carries its SRPC calls after acknowledging the route. The destination Session admits the source peer by its own rule.
+   *
+   * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.OpenNodePort
+   */
+  OpenNodePort(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
    * GetFlowgraph reads the current body and placement edges.
    *
    * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.GetFlowgraph
@@ -128,6 +155,19 @@ export interface FlowgraphResourceService {
  * @generated from service s4wave.flowgraph.FlowgraphResourceService
  */
 export interface FlowgraphResourceServiceHandler {
+  /**
+   * OpenNodePort opens a stream port through this graph's granting Session.
+   * RpcStreamInit.component_id is "<node>/<port>". The host resolves the node's
+   * Device placement and carries its SRPC calls after acknowledging the route. The destination Session admits the source peer by its own rule.
+   *
+   * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.OpenNodePort
+   */
+  OpenNodePort(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
   /**
    * GetFlowgraph reads the current body and placement edges.
    *
@@ -182,11 +222,32 @@ export class FlowgraphResourceServiceClient implements FlowgraphResourceService 
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || FlowgraphResourceServiceServiceName
     this.rpc = rpc
+    this.OpenNodePort = this.OpenNodePort.bind(this)
     this.GetFlowgraph = this.GetFlowgraph.bind(this)
     this.UpdateFlowgraph = this.UpdateFlowgraph.bind(this)
     this.WatchFlowgraph = this.WatchFlowgraph.bind(this)
     this.ListFlowgraphChanges = this.ListFlowgraphChanges.bind(this)
   }
+  /**
+   * OpenNodePort opens a stream port through this graph's granting Session.
+   * RpcStreamInit.component_id is "<node>/<port>". The host resolves the node's
+   * Device placement and carries its SRPC calls after acknowledging the route. The destination Session admits the source peer by its own rule.
+   *
+   * @generated from rpc s4wave.flowgraph.FlowgraphResourceService.OpenNodePort
+   */
+  OpenNodePort(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket> {
+    const result = this.rpc.bidirectionalStreamingRequest(
+      this.service,
+      FlowgraphResourceServiceDefinition.methods.OpenNodePort.name,
+      buildEncodeMessageTransform(RpcStreamPacket)(request),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(RpcStreamPacket)(result)
+  }
+
   /**
    * GetFlowgraph reads the current body and placement edges.
    *

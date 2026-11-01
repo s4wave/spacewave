@@ -28,6 +28,6 @@ func FlowgraphFactory(ctx context.Context, _ *logrus.Entry, b bus.Bus, engine wo
 	}
 
 	// Expose the stateless Resource without a separate background lifetime.
-	resource := s4wave_flowgraph.NewFlowgraphResource(ws, engine, b, objecttype.EngineIDFromContext(ctx), key)
+	resource := s4wave_flowgraph.NewFlowgraphResource(ws, engine, b, objecttype.EngineIDFromContext(ctx), key, objecttype.SessionPeerIDFromContext(ctx))
 	return resource.GetMux(), func() {}, nil
 }

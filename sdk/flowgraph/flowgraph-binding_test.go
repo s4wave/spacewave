@@ -174,7 +174,7 @@ func TestFlowgraphBindsObject(t *testing.T) {
 	}
 	serve := func(ws world.WorldState, engine world.Engine) flowgraph.SRPCFlowgraphResourceServiceClient {
 		mux := srpc.NewMux()
-		resource := flowgraph.NewFlowgraphResource(ws, engine, tb.Bus, "", "flowgraph/first")
+		resource := flowgraph.NewFlowgraphResource(ws, engine, tb.Bus, "", "flowgraph/first", "")
 		if err := flowgraph.SRPCRegisterFlowgraphResourceService(mux, resource); err != nil {
 			t.Fatal(err)
 		}
@@ -277,7 +277,7 @@ func authoredPort(name string, direction flowgraph.FlowgraphPortDirection, typeI
 func serveGraph(t *testing.T, tb *world_testbed.Testbed, key string) flowgraph.SRPCFlowgraphResourceServiceClient {
 	t.Helper()
 	mux := srpc.NewMux()
-	if err := flowgraph.SRPCRegisterFlowgraphResourceService(mux, flowgraph.NewFlowgraphResource(tb.WorldState, tb.Engine, tb.Bus, "", key)); err != nil {
+	if err := flowgraph.SRPCRegisterFlowgraphResourceService(mux, flowgraph.NewFlowgraphResource(tb.WorldState, tb.Engine, tb.Bus, "", key, "")); err != nil {
 		t.Fatal(err)
 	}
 	return flowgraph.NewSRPCFlowgraphResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))))
