@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { LuDownload } from 'react-icons/lu'
 
 import { LegalPageLayout } from '@s4wave/app/landing/LegalPageLayout.js'
@@ -31,15 +31,29 @@ export const cliMetadata = {
 
 const PLATFORM_ORDER: readonly DownloadOS[] = ['macos', 'windows', 'linux']
 
+// subscribeToBrowserPlatform is static because a document's platform does not change.
+const subscribeToBrowserPlatform = () => () => {}
+// readClientEnvironment becomes true after React completes the server snapshot render.
+const readClientEnvironment = () => true
+// readServerEnvironment keeps the first hydration render identical to prerendered HTML.
+const readServerEnvironment = () => false
+
 // DownloadPage renders the desktop and CLI download landing page. The
 // installer and CLI sections share the platform manifest but render
 // separately so /download/cli can render the CLI-focused view.
 export function DownloadPage({ cliOnly = false }: { cliOnly?: boolean }) {
-  const detected = useMemo(() => {
-    if (typeof navigator === 'undefined') return null
-    return detectPlatform(navigator)
-  }, [])
+  // Use the neutral server view until hydration can safely select this browser's build.
+  const isClient = useSyncExternalStore(
+    subscribeToBrowserPlatform,
+    readClientEnvironment,
+    readServerEnvironment,
+  )
+  const detected = useMemo(
+    () => (isClient ? detectPlatform(navigator) : null),
+    [isClient],
+  )
 
+  // Select both primary downloads from the same hydrated platform snapshot.
   const installerPrimary = useMemo(
     () => resolvePrimaryEntry(detected, DOWNLOAD_MANIFEST, 'installer'),
     [detected],
@@ -49,6 +63,7 @@ export function DownloadPage({ cliOnly = false }: { cliOnly?: boolean }) {
     [detected],
   )
 
+  // Keep every architecture available alongside the detected primary choice.
   const installerGroups = useMemo(
     () =>
       PLATFORM_ORDER.map((os) => ({

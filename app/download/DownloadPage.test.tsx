@@ -1,3 +1,4 @@
+import { renderToString } from 'react-dom/server'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -30,7 +31,16 @@ describe('DownloadPage', () => {
 
   it('renders sections for macOS, Windows, and Linux', () => {
     setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')
-    render(<DownloadPage />)
+    const failures: unknown[] = []
+    const container = document.createElement('div')
+    container.innerHTML = renderToString(<DownloadPage />)
+    document.body.append(container)
+    render(<DownloadPage />, {
+      container,
+      hydrate: true,
+      onRecoverableError: (error) => failures.push(error),
+    })
+    expect(failures).toEqual([])
 
     expect(
       screen.getByRole('heading', { level: 2, name: 'macOS' }),
