@@ -28,12 +28,16 @@ export const viewports: Viewport[] = [
   { width: 1920, height: 1080 },
 ]
 
-/** capture writes one snapshot at a time and closes each isolated browser context. */
+/** capture writes isolated snapshots and closes its browser when the caller cancels. */
 export async function capture(
   manifest: ParityManifest,
   base: string,
   out: string,
+  signal?: AbortSignal,
 ): Promise<string[]> {
+  // Cancel before validating or allocating browser resources.
+  signal?.throwIfAborted()
+
   // Validate state identifiers before using them as artifact paths.
   const ids = new Set<string>()
   for (const state of manifest.states) {
@@ -48,6 +52,7 @@ export async function capture(
   const paths: string[] = []
   const failures: string[] = []
   for (const [engine, launcher] of Object.entries({ chromium, webkit })) {
+    signal?.throwIfAborted()
     const proxy = process.env.STYLE_PARITY_PROXY
     const browser = await launcher.launch({
       headless: true,
@@ -55,9 +60,16 @@ export async function capture(
         ? { server: proxy, bypass: '127.0.0.1,localhost' }
         : undefined,
     })
+    let closing: Promise<void> | undefined
+    const closeBrowser = () => (closing ??= browser.close())
+    const closeOnAbort = () => {
+      void closeBrowser().catch(() => {})
+    }
+    signal?.addEventListener('abort', closeOnAbort, { once: true })
     try {
       for (const viewport of viewports) {
         for (const state of manifest.states) {
+          signal?.throwIfAborted()
           const relative = `${engine}/${viewport.width}x${viewport.height}/${state.id}`
           await mkdir(
             join(out, engine, `${viewport.width}x${viewport.height}`),
@@ -151,6 +163,8 @@ export async function capture(
               console.log(`captured ${relative}: ${elements.length} elements`)
               break
             } catch (error) {
+              signal?.throwIfAborted()
+
               // Retain failed states and continue so one broken screen cannot hide others.
               const message =
                 error instanceof Error ? error.message : String(error)
@@ -214,13 +228,18 @@ export async function capture(
                 break
               }
             } finally {
-              await context?.close()
+              if (!signal?.aborted) await context?.close()
             }
           }
         }
       }
     } finally {
-      await browser.close()
+      signal?.removeEventListener('abort', closeOnAbort)
+      try {
+        await closeBrowser()
+      } finally {
+        signal?.throwIfAborted()
+      }
     }
   }
   if (failures.length)

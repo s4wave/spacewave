@@ -35,7 +35,7 @@ test(
   process.env.STYLEX_PILOT_SOURCE
     ? 'handwritten pilots preserve their captured styles'
     : 'the oracle preserves original component styles and changes nothing on a second pass',
-  async () => {
+  async (context) => {
     // Build both versions through the ordinary Tailwind and native StyleX compilers.
     await mkdir('.bldr', { recursive: true })
     const parent = await mkdtemp(resolve('.bldr/stylex-migration-fixture-'))
@@ -749,11 +749,13 @@ test(
         manifest,
         servers[0]!.resolvedUrls!.local[0]!,
         join(parent, 'before-capture'),
+        context.signal,
       )
       await capture(
         manifest,
         servers[1]!.resolvedUrls!.local[0]!,
         join(parent, 'after-capture'),
+        context.signal,
       )
       for (const path of paths) {
         const differences = await Array.fromAsync(
