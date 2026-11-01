@@ -79,8 +79,8 @@ func TestReadFlowgraphChanges(t *testing.T) {
 	connections := map[string]*flowgraph.FlowgraphConnection{
 		"forward": {OutputNode: "tcp", OutputPort: "stream", InputNode: "local", InputPort: "stream"},
 	}
-	moved := map[string]*flowgraph.FlowgraphPlacement{
-		"step": {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR, ObjectKey: "actor/second"},
+	moved := map[string]*flowgraph.FlowgraphPlacements{
+		"step": {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR, ObjectKey: "actor/second"}}},
 	}
 	update("flowgraph/first", nodes)
 	update("flowgraph/second", graphNodes())

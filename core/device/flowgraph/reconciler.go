@@ -52,6 +52,13 @@ type Reconciler struct {
 	// release releases the hold, or is nil while no node runs.
 	release func()
 
+	// now supplies the lease clock.
+	now func() time.Time
+	// atFunc schedules a lease deadline and returns its cancellation.
+	atFunc func(time.Time, func()) func()
+	// nextExpiry is the earliest lease deadline read by the current pass.
+	nextExpiry time.Time
+
 	// wake holds a pending reconcile. Every watched source sets it.
 	wake chan struct{}
 	// watchErr holds the error that ended a World watch.
@@ -76,6 +83,11 @@ func NewReconciler(
 	hold func() func(),
 ) *Reconciler {
 	r := &Reconciler{
+		now: time.Now,
+		atFunc: func(deadline time.Time, f func()) func() {
+			timer := time.AfterFunc(max(0, time.Until(deadline)), f)
+			return func() { timer.Stop() }
+		},
 		le:          le,
 		b:           b,
 		engine:      engine,
@@ -138,6 +150,7 @@ func (r *Reconciler) reconcileLoop(ctx context.Context) error {
 		case <-r.wake:
 		}
 		stop()
+		r.nextExpiry = time.Time{}
 
 		// Reconcile, recording the World state the pass reads.
 		seqno, err := r.engine.GetSeqno(ctx)
@@ -157,7 +170,15 @@ func (r *Reconciler) reconcileLoop(ctx context.Context) error {
 			r.le.WithError(err).Warn("failed to reconcile flowgraph nodes")
 			reads = nil
 		}
-		stop = r.watchReads(ctx, seqno, reads)
+		stopWatch := r.watchReads(ctx, seqno, reads)
+		stopTimer := func() {}
+		if !r.nextExpiry.IsZero() {
+			stopTimer = r.atFunc(r.nextExpiry, r.notify)
+		}
+		stop = func() {
+			stopTimer()
+			stopWatch()
+		}
 	}
 }
 

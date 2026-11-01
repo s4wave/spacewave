@@ -257,6 +257,10 @@ export interface FlowgraphRequirements {
    * MatchLabels requires each key and value in the Device's effective labels.
    */
   matchLabels?: { [key: string]: string }
+  /**
+   * Replicas is the desired number of Devices; zero means one.
+   */
+  replicas?: number
 }
 
 export const FlowgraphRequirements: MessageType<FlowgraphRequirements> =
@@ -267,6 +271,7 @@ export const FlowgraphRequirements: MessageType<FlowgraphRequirements> =
       [2, 'memory_bytes', 4],
       [3, 'runtime_backend', 9],
       [4, 'match_labels', 9, 584],
+      [5, 'replicas', 13],
     ],
   )
 
@@ -471,6 +476,24 @@ export const FlowgraphPlacement: MessageType<FlowgraphPlacement> =
   )
 
 /**
+ * FlowgraphPlacements contains the distinct placements of one node.
+ *
+ * @generated from message s4wave.flowgraph.FlowgraphPlacements
+ */
+export interface FlowgraphPlacements {
+  /**
+   * Copies lists placements in deterministic destination order.
+   */
+  copies?: FlowgraphPlacement[]
+}
+
+export const FlowgraphPlacements: MessageType<FlowgraphPlacements> =
+  /* @__PURE__ */ createMessageType<FlowgraphPlacements>(
+    's4wave.flowgraph.FlowgraphPlacements',
+    () => [[1, 'copies', 11, 1, FlowgraphPlacement.codec]],
+  )
+
+/**
  * FlowgraphBinding is a readback of a node's bound Space object.
  * This message is never stored in the Flowgraph body.
  *
@@ -520,7 +543,7 @@ export interface FlowgraphSnapshot {
   /**
    * Placements contains placement edges keyed by node ID.
    */
-  placements?: { [key: string]: FlowgraphPlacement }
+  placements?: { [key: string]: FlowgraphPlacements }
   /**
    * Revision is the object's revision observed by this read.
    */
@@ -537,7 +560,7 @@ export const FlowgraphSnapshot: MessageType<FlowgraphSnapshot> =
     's4wave.flowgraph.FlowgraphSnapshot',
     () => [
       [1, 'state', 11, 0, Flowgraph.codec],
-      [2, 'placements', 11, 584, FlowgraphPlacement.codec],
+      [2, 'placements', 11, 584, FlowgraphPlacements.codec],
       [3, 'revision', 4],
       [4, 'bindings', 11, 584, FlowgraphBinding.codec],
     ],
@@ -628,7 +651,7 @@ export interface UpdateFlowgraphRequest {
   /**
    * SetPlacements adds or replaces placement edges by node ID.
    */
-  setPlacements?: { [key: string]: FlowgraphPlacement }
+  setPlacements?: { [key: string]: FlowgraphPlacements }
   /**
    * RemovePlacementNodeIds removes placement edges without deleting the nodes.
    */
@@ -644,7 +667,7 @@ export const UpdateFlowgraphRequest: MessageType<UpdateFlowgraphRequest> =
       [3, 'remove_node_ids', 9, 1],
       [4, 'set_connections', 11, 584, FlowgraphConnection.codec],
       [5, 'remove_connection_ids', 9, 1],
-      [6, 'set_placements', 11, 584, FlowgraphPlacement.codec],
+      [6, 'set_placements', 11, 584, FlowgraphPlacements.codec],
       [7, 'remove_placement_node_ids', 9, 1],
     ],
   )
@@ -839,7 +862,7 @@ export interface FlowgraphRun {
   /**
    * Placements is the immutable placement snapshot at FlowgraphRevision.
    */
-  placements?: { [key: string]: FlowgraphPlacement }
+  placements?: { [key: string]: FlowgraphPlacements }
 }
 
 export const FlowgraphRun: MessageType<FlowgraphRun> =
@@ -858,7 +881,7 @@ export const FlowgraphRun: MessageType<FlowgraphRun> =
       [10, 'pause_reason', 9],
       [11, 'standing', 8],
       [12, 'cursor', 12, 584],
-      [13, 'placements', 11, 584, FlowgraphPlacement.codec],
+      [13, 'placements', 11, 584, FlowgraphPlacements.codec],
     ],
   )
 

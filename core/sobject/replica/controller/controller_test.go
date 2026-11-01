@@ -220,7 +220,7 @@ func placePair(ctx context.Context, t *testing.T, engine world.Engine, id, desir
 				OutputNode: "a", OutputPort: sobject_replica.PortOut,
 				InputNode: "b", InputPort: sobject_replica.PortIn,
 			}},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"a": placement(deviceAKey), "b": placement(deviceBKey)},
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{placement(deviceAKey)}}, "b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{placement(deviceBKey)}}},
 		})
 		return err
 	})

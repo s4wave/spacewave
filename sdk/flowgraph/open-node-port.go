@@ -99,7 +99,7 @@ func (r *FlowgraphResource) nodePortPeer(ctx context.Context, nodeID, port strin
 	}
 
 	// Require a Device placement with its typed Device body in the same snapshot.
-	placement := snapshot.GetPlacements()[nodeID]
+	placement := snapshot.GetPlacements()[nodeID].First()
 	if placement.GetKind() != FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE {
 		return "", errors.New("Flowgraph node is not placed on a Device")
 	}

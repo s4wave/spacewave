@@ -1,11 +1,11 @@
 package device_flowgraph
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block/quad"
@@ -51,7 +51,7 @@ func (r *Reconciler) claimRequirements(ctx context.Context, reads *world.ReadSet
 	if err != nil {
 		return err
 	}
-	if capacity.OwnerDeviceObjectKey != r.deviceKey || capacity.OwnerClaimActive(time.Now()) != nil {
+	if capacity.OwnerDeviceObjectKey != r.deviceKey || capacity.OwnerClaimActive(r.now()) != nil {
 		return nil
 	}
 
@@ -77,10 +77,26 @@ func (r *Reconciler) claimRequirements(ctx context.Context, reads *world.ReadSet
 			for nodeID, node := range snapshot.GetState().GetNodes() {
 				// Consider only waiting nodes of a locally permitted type.
 				requirements := node.GetRequirements()
-				if requirements == nil || snapshot.GetPlacements()[nodeID] != nil {
+				if requirements == nil || node.GetStep() != nil {
 					continue
 				}
 				if _, ok := allowed[node.GetTypeId()]; !ok {
+					continue
+				}
+
+				// Read copy ownership and lease deadlines before deciding whether to take the writer.
+				copies, err := r.readRequirementCopies(ctx, ws, graphKey, nodeID, snapshot.GetPlacements()[nodeID])
+				if err != nil {
+					return err
+				}
+				overfull := len(copies) > int(requirements.ReplicaCount())
+				if !overfull && !canClaimCopy(copies, r.deviceKey, requirements.ReplicaCount()) {
+					continue
+				}
+				if overfull {
+					if err := r.claimNode(ctx, reads, graphKey, nodeID, declaration); err != nil {
+						return err
+					}
 					continue
 				}
 
@@ -124,7 +140,30 @@ func (r *Reconciler) claimNode(ctx context.Context, reads *world.ReadSet, graphK
 		}
 		node := snapshot.GetState().GetNodes()[nodeID]
 		requirements := node.GetRequirements()
-		if requirements == nil || node.GetStep() != nil || snapshot.GetPlacements()[nodeID] != nil {
+		if requirements == nil || node.GetStep() != nil {
+			return nil
+		}
+
+		// Release only the newest copies, using the ledger's World commit order.
+		// Edge and debit disappear together, so a racing Device rechecks the reduced set.
+		copies, err := r.readRequirementCopies(ctx, ws, graphKey, nodeID, snapshot.GetPlacements()[nodeID])
+		if err != nil {
+			return err
+		}
+		changed := false
+		for len(copies) > int(requirements.ReplicaCount()) {
+			if err := releaseRequirementCopy(ctx, ws, graphKey, nodeID, copies[len(copies)-1]); err != nil {
+				return err
+			}
+			copies = copies[:len(copies)-1]
+			changed = true
+		}
+		if changed {
+			if err := markPlacementChange(ctx, ws, graphKey); err != nil {
+				return err
+			}
+		}
+		if !canClaimCopy(copies, r.deviceKey, requirements.ReplicaCount()) {
 			return nil
 		}
 
@@ -184,7 +223,8 @@ func (r *Reconciler) claimNode(ctx context.Context, reads *world.ReadSet, graphK
 		// Reserve a grant whose lifetime is the edge rather than a runtime lease.
 		placement := &quad.Quad{Subject: edge.GetSubject(), Predicate: edge.GetPredicate(), Obj: edge.GetObj(), Label: edge.GetLabel()}
 		admission := forge_runtime.NewWorldRuntimeAdmission(nil, nil, 0, 0)
-		_, err = admission.ReserveInTx(ctx, ws, capacity.WorkerObjectKey, s4wave_flowgraph.NodeCapacityHolderKey(graphKey, nodeID), request, ref, capacity.OwnerEpoch, placement)
+		admission.SetTimeNow(r.now)
+		_, err = admission.ReserveInTx(ctx, ws, capacity.WorkerObjectKey, s4wave_flowgraph.NodeCapacityHolderKey(graphKey, nodeID, r.deviceKey), request, ref, capacity.OwnerEpoch, placement)
 		if errors.Is(err, forge_runtime.ErrCapacityExhausted) || errors.Is(err, forge_runtime.ErrBackendUnsupported) || errors.Is(err, forge_runtime.ErrCapacityDraining) || errors.Is(err, forge_runtime.ErrCapacityOwnerExpired) || errors.Is(err, forge_runtime.ErrCapacityOwned) {
 			return nil
 		}
@@ -192,7 +232,18 @@ func (r *Reconciler) claimNode(ctx context.Context, reads *world.ReadSet, graphK
 			return err
 		}
 
-		// Publish the sole edge together with its capacity debit.
+		// Replace an expired copy only after our reservation succeeds.
+		// Both debits and edges commit together; stale cleanup cannot release our grant.
+		for _, copy := range copies {
+			if copy.expired {
+				if err := releaseRequirementCopy(ctx, ws, graphKey, nodeID, copy); err != nil {
+					return err
+				}
+				break
+			}
+		}
+
+		// Publish this copy's edge together with its capacity debit.
 		if err := ws.SetGraphQuad(ctx, edge); err != nil {
 			return err
 		}
@@ -354,4 +405,90 @@ func markPlacementChange(ctx context.Context, ws world.WorldState, graphKey stri
 	}
 	_, err = obj.IncrementRev(ctx)
 	return err
+}
+
+// requirementCopy holds one edge and its existing Forge grant in a read snapshot.
+type requirementCopy struct {
+	// placement identifies the copy's Device.
+	placement *s4wave_flowgraph.FlowgraphPlacement
+	// seqno orders claims by the reservation's last World commit.
+	seqno uint64
+	// expired records only owner lease expiry, never draining or connectivity.
+	expired bool
+}
+
+// readRequirementCopies reads each copy's ledger entry and watches its lease.
+// Work is proportional to this node's copies, with indexed reads per copy.
+func (r *Reconciler) readRequirementCopies(ctx context.Context, ws world.WorldState, graphKey, nodeID string, group *s4wave_flowgraph.FlowgraphPlacements) ([]requirementCopy, error) {
+	// Resolve the existing reservation behind each Device edge.
+	copies := make([]requirementCopy, 0, len(group.GetCopies()))
+	for _, placement := range group.GetCopies() {
+		copy := requirementCopy{placement: placement}
+		key := forge_runtime.BuildReservationObjectKey(s4wave_flowgraph.NodeCapacityHolderKey(graphKey, nodeID, placement.GetObjectKey()))
+		reservation, err := forge_runtime.LookupReservation(ctx, ws, key)
+		if errors.Is(err, forge_runtime.ErrReservationNotFound) {
+			copies = append(copies, copy)
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// The unchanged standing grant retains the World order of its claim.
+		obj, _, err := ws.GetObject(ctx, key)
+		if err != nil {
+			world.ReleaseObjectState(obj)
+			return nil, err
+		}
+		copy.seqno, err = world.GetObjectModSeqno(ctx, obj)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return nil, err
+		}
+
+		// Only the owning Worker lease determines whether this copy is stale.
+		capacity, err := forge_runtime.LookupWorkerCapacity(ctx, ws, reservation.WorkerObjectKey)
+		if err != nil {
+			return nil, err
+		}
+		expires := capacity.OwnerLeaseExpiresAt.AsTime()
+		copy.expired = !r.now().Before(expires)
+		if !copy.expired && (r.nextExpiry.IsZero() || expires.Before(r.nextExpiry)) {
+			r.nextExpiry = expires
+		}
+		copies = append(copies, copy)
+	}
+
+	// Resolve equal commit orders by destination key, identically on every Device.
+	slices.SortFunc(copies, func(a, b requirementCopy) int {
+		return cmp.Or(cmp.Compare(a.seqno, b.seqno), cmp.Compare(a.placement.GetObjectKey(), b.placement.GetObjectKey()))
+	})
+	return copies, nil
+}
+
+// canClaimCopy requires a free slot and no edge already on this Device.
+func canClaimCopy(copies []requirementCopy, deviceKey string, count uint32) bool {
+	live := 0
+	for _, copy := range copies {
+		if copy.placement.GetObjectKey() == deviceKey {
+			return false
+		}
+		if !copy.expired {
+			live++
+		}
+	}
+	return live < int(count)
+}
+
+// releaseRequirementCopy removes an edge and credits its existing Forge grant.
+func releaseRequirementCopy(ctx context.Context, ws world.WorldState, graphKey, nodeID string, copy requirementCopy) error {
+	// Release only the grant named by this Device's edge.
+	if err := s4wave_flowgraph.ReleaseNodeCapacity(ctx, ws, graphKey, nodeID, copy.placement.GetObjectKey()); err != nil {
+		return err
+	}
+	edge, err := s4wave_flowgraph.PlacementQuad(graphKey, nodeID, copy.placement)
+	if err != nil {
+		return err
+	}
+	return ws.DeleteGraphQuad(ctx, edge)
 }

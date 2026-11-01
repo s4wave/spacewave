@@ -19,6 +19,7 @@ import (
 // the placement edges changed since the preceding revision. UpdateFlowgraph
 // writes the object last, so each revision is one authored edit.
 func ReadFlowgraphChanges(ctx context.Context, ws world.WorldState, key string, limit uint32) (*ListFlowgraphChangesResponse, error) {
+	// Replay the retained changelog under the World read scope.
 	resp := &ListFlowgraphChangesResponse{}
 	err := ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
 		// Report a World that keeps no changelog.
@@ -71,6 +72,8 @@ type historyReader struct {
 	key string
 	// body is the graph body at the latest revision, nil until known.
 	body *Flowgraph
+	// placements holds the edges reached by replaying the changelog.
+	placements map[string]*FlowgraphPlacements
 	// edit collects the changes since the latest revision, nil when none.
 	edit *UpdateFlowgraphRequest
 	// seqno is the seqno of the newest change in edit.
@@ -132,6 +135,8 @@ func (h *historyReader) apply(seqno uint64, change *world_block.WorldChange) err
 	}
 	edit.SetNodes, edit.RemoveNodeIds = diffEntries(h.body.GetNodes(), next.GetNodes())
 	edit.SetConnections, edit.RemoveConnectionIds = diffEntries(h.body.GetConnections(), next.GetConnections())
+
+	// Close the revision after recording the authored changes.
 	h.body = next
 	h.closeRevision(seqno, created)
 	return nil
@@ -150,21 +155,32 @@ func (h *historyReader) applyPlacement(seqno uint64, change *world_block.WorldCh
 		return err
 	}
 
-	// Keep the newest placement of each node.
+	// Replay the complete placement set, including replacement in one revision.
+	if h.placements == nil {
+		h.placements = make(map[string]*FlowgraphPlacements)
+	}
+	if h.placements[nodeID] == nil {
+		h.placements[nodeID] = &FlowgraphPlacements{}
+	}
+	group := h.placements[nodeID]
+	group.Copies = slices.DeleteFunc(group.Copies, placement.EqualVT)
+	if change.GetChangeType() == world_block.WorldChangeType_WorldChange_GRAPH_SET {
+		group.Copies = append(group.Copies, placement)
+	}
+
+	// Record the resulting set so replayed edits retain surviving replicas.
 	edit := h.pending()
 	h.seqno = seqno
-	edit.RemovePlacementNodeIds = slices.DeleteFunc(edit.RemovePlacementNodeIds, func(id string) bool {
-		return id == nodeID
-	})
-	delete(edit.SetPlacements, nodeID)
-	if change.GetChangeType() == world_block.WorldChangeType_WorldChange_GRAPH_DELETE {
-		edit.RemovePlacementNodeIds = append(edit.RemovePlacementNodeIds, nodeID)
-		return nil
-	}
+	edit.RemovePlacementNodeIds = slices.DeleteFunc(edit.RemovePlacementNodeIds, func(id string) bool { return id == nodeID })
 	if edit.SetPlacements == nil {
-		edit.SetPlacements = make(map[string]*FlowgraphPlacement)
+		edit.SetPlacements = make(map[string]*FlowgraphPlacements)
 	}
-	edit.SetPlacements[nodeID] = placement
+	group.Normalize()
+	edit.SetPlacements[nodeID] = group.CloneVT()
+	if len(group.Copies) == 0 {
+		delete(edit.SetPlacements, nodeID)
+		edit.RemovePlacementNodeIds = append(edit.RemovePlacementNodeIds, nodeID)
+	}
 	return nil
 }
 
@@ -212,6 +228,7 @@ func (h *historyReader) readBody(ref *block.BlockRef) (*Flowgraph, error) {
 // diffEntries returns the entries of next that differ from prev and the
 // sorted IDs of prev missing from next.
 func diffEntries[V interface{ EqualVT(V) bool }](prev, next map[string]V) (map[string]V, []string) {
+	// Collect changed entries before listing removed IDs.
 	var set map[string]V
 	for id, entry := range next {
 		if entry.EqualVT(prev[id]) {

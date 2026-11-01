@@ -3835,7 +3835,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/flowgraph": {
-      "hash": "579937b81038ccec4b81509a6ecf56c07ff5d63f53900c01ac0810df7e94139b",
+      "hash": "096d0e22518582bfd51eaeb5263a233d32c6ce5e85ffd3283d5a3fa9491fca07",
       "generatedFiles": [
         "sdk/flowgraph/flowgraph.pb.go",
         "sdk/flowgraph/flowgraph.pb.ts",

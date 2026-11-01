@@ -126,10 +126,10 @@ func graphNodes() *flowgraph.UpdateFlowgraphRequest {
 				{Name: "fail", Direction: flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT, TypeId: "activation", Condition: "The check failed."},
 			}},
 		},
-		SetPlacements: map[string]*flowgraph.FlowgraphPlacement{
-			"tcp":   {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: "device/thumper"},
-			"local": {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: "device/laptop"},
-			"step":  {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR, ObjectKey: "actor/first"},
+		SetPlacements: map[string]*flowgraph.FlowgraphPlacements{
+			"tcp":   {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: "device/thumper"}}},
+			"local": {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: "device/laptop"}}},
+			"step":  {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR, ObjectKey: "actor/first"}}},
 		},
 	}
 }
@@ -188,12 +188,12 @@ func TestFlowgraphResource(t *testing.T) {
 
 	// Replace an actor edge without retaining the previous destination.
 	replaced, err := service.UpdateFlowgraph(ctx, &flowgraph.UpdateFlowgraphRequest{
-		SetPlacements: map[string]*flowgraph.FlowgraphPlacement{"step": {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR, ObjectKey: "actor/second"}},
+		SetPlacements: map[string]*flowgraph.FlowgraphPlacements{"step": {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR, ObjectKey: "actor/second"}}}},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if replaced.GetSnapshot().GetPlacements()["step"].GetObjectKey() != "actor/second" {
+	if replaced.GetSnapshot().GetPlacements()["step"].First().GetObjectKey() != "actor/second" {
 		t.Fatal("actor placement was not replaced")
 	}
 
@@ -240,9 +240,9 @@ func TestFlowgraphResourceRejectsInvalidEdits(t *testing.T) {
 	requests := []*flowgraph.UpdateFlowgraphRequest{
 		{SetConnections: map[string]*flowgraph.FlowgraphConnection{"wrong": {OutputNode: "local", OutputPort: "stream", InputNode: "tcp", InputPort: "stream"}}},
 		{SetNodes: map[string]*flowgraph.FlowgraphNode{"step": {TypeId: flowgraph.TCPPortNodeTypeID}}},
-		{SetPlacements: map[string]*flowgraph.FlowgraphPlacement{"tcp": {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: "actor/first"}}},
-		{SetPlacements: map[string]*flowgraph.FlowgraphPlacement{"tcp": {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: "actor/first"}}},
-		{SetPlacements: map[string]*flowgraph.FlowgraphPlacement{"step": {Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: "missing/template"}}},
+		{SetPlacements: map[string]*flowgraph.FlowgraphPlacements{"tcp": {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: "actor/first"}}}}},
+		{SetPlacements: map[string]*flowgraph.FlowgraphPlacements{"tcp": {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: "actor/first"}}}}},
+		{SetPlacements: map[string]*flowgraph.FlowgraphPlacements{"step": {Copies: []*flowgraph.FlowgraphPlacement{{Kind: flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: "missing/template"}}}}},
 	}
 	for _, request := range requests {
 		if _, err := service.UpdateFlowgraph(t.Context(), request); err == nil {

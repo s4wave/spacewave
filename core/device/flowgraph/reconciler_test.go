@@ -140,11 +140,11 @@ func TestReconciler(t *testing.T) {
 				"out": {OutputNode: "tcp-self", OutputPort: "stream", InputNode: "local-other", InputPort: "stream"},
 				"in":  {OutputNode: "tcp-other", OutputPort: "stream", InputNode: "local-self", InputPort: "stream"},
 			},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
-				"tcp-self":    devicePlacement(testSelfKey),
-				"local-self":  devicePlacement(testSelfKey),
-				"local-other": devicePlacement(testOtherKey),
-				"tcp-other":   devicePlacement(testOtherKey),
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+				"tcp-self":    {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"local-self":  {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"local-other": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testOtherKey)}},
+				"tcp-other":   {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testOtherKey)}},
 			},
 		})
 		return err
@@ -225,10 +225,10 @@ func TestReconciler(t *testing.T) {
 				"root-b":        checkoutRootNode("skiffos", "/srv/other", "read-only"),
 				"root-relative": checkoutRootNode("relative", "srv/relative", "read-only"),
 			},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
-				"root-a":        devicePlacement(testSelfKey),
-				"root-b":        devicePlacement(testSelfKey),
-				"root-relative": devicePlacement(testSelfKey),
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+				"root-a":        {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"root-b":        {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"root-relative": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
 			},
 		})
 		return err
@@ -291,9 +291,9 @@ func TestReconciler(t *testing.T) {
 				"shell-a": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
 				"shell-b": {TypeId: s4wave_flowgraph.RemoteShellNodeTypeID},
 			},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
-				"shell-a": devicePlacement(testSelfKey),
-				"shell-b": devicePlacement(testSelfKey),
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+				"shell-a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"shell-b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
 			},
 		})
 		return err
@@ -334,9 +334,9 @@ func TestReconciler(t *testing.T) {
 				"fw-orphan":  forgeWorkerNode("worker/orphan"),
 				"fw-foreign": forgeWorkerNode("worker/foreign"),
 			},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
-				"fw-orphan":  devicePlacement(testSelfKey),
-				"fw-foreign": devicePlacement(testSelfKey),
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+				"fw-orphan":  {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"fw-foreign": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
 			},
 		})
 		return err
@@ -364,9 +364,9 @@ func TestReconciler(t *testing.T) {
 				"fw-a": forgeWorkerNode("worker/a"),
 				"fw-b": forgeWorkerNode("worker/b"),
 			},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
-				"fw-a": devicePlacement(testSelfKey),
-				"fw-b": devicePlacement(testSelfKey),
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+				"fw-a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
+				"fw-b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}},
 			},
 		})
 		return err
@@ -406,7 +406,7 @@ func TestReconciler(t *testing.T) {
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes:      map[string]*s4wave_flowgraph.FlowgraphNode{"fw-a": forgeWorkerNode("worker/a")},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"fw-a": devicePlacement(testSelfKey)},
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"fw-a": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}}},
 		})
 		return err
 	})

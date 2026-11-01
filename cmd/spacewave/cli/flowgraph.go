@@ -138,7 +138,7 @@ func (a *flowgraphArgs) writeSnapshot(key string, snapshot *flowgraph.FlowgraphS
 		rows := [][]string{{"ID", "TYPE", "PORTS", "PLACEMENT"}}
 		for _, id := range slices.Sorted(maps.Keys(nodes)) {
 			placement := snapshot.GetPlacements()[id]
-			rows = append(rows, []string{id, nodes[id].GetTypeId(), describePorts(nodes[id].GetPorts()), describePlacement(placement)})
+			rows = append(rows, []string{id, nodes[id].GetTypeId(), describePorts(nodes[id].GetPorts()), describePlacements(placement)})
 		}
 		writeTable(w, "  ", rows)
 	}
@@ -397,7 +397,7 @@ func (a *flowgraphNodeSetArgs) Run(c *cli.Context) error {
 
 	// Place the node in the same edit when requested.
 	if placement.GetObjectKey() != "" {
-		req.SetPlacements = map[string]*flowgraph.FlowgraphPlacement{id: placement}
+		req.SetPlacements = map[string]*flowgraph.FlowgraphPlacements{id: {Copies: []*flowgraph.FlowgraphPlacement{placement}}}
 	}
 	return a.update(c, req)
 }
@@ -616,7 +616,7 @@ func describeChange(change *flowgraph.FlowgraphChange) string {
 	// List the placement edits with each destination.
 	var placed []string
 	for _, id := range slices.Sorted(maps.Keys(edit.GetSetPlacements())) {
-		placed = append(placed, id+"@"+edit.GetSetPlacements()[id].GetObjectKey())
+		placed = append(placed, id+"@"+describePlacements(edit.GetSetPlacements()[id]))
 	}
 	parts = appendEdit(parts, "+placement", placed)
 	parts = appendEdit(parts, "-placement", edit.GetRemovePlacementNodeIds())
@@ -718,5 +718,14 @@ func (a *flowgraphNodeSetArgs) place(c *cli.Context) error {
 	}
 
 	// Change just the node's graph edge.
-	return a.update(c, &flowgraph.UpdateFlowgraphRequest{SetPlacements: map[string]*flowgraph.FlowgraphPlacement{c.Args().First(): placement}})
+	return a.update(c, &flowgraph.UpdateFlowgraphRequest{SetPlacements: map[string]*flowgraph.FlowgraphPlacements{c.Args().First(): {Copies: []*flowgraph.FlowgraphPlacement{placement}}}})
+}
+
+// describePlacements lists every destination of a node in canonical order.
+func describePlacements(group *flowgraph.FlowgraphPlacements) string {
+	destinations := make([]string, 0, len(group.GetCopies()))
+	for _, placement := range group.GetCopies() {
+		destinations = append(destinations, describePlacement(placement))
+	}
+	return strings.Join(destinations, ", ")
 }

@@ -46,6 +46,8 @@ message FlowgraphRequirements {
   string runtime_backend = 3;
   // MatchLabels requires each key and value in the Device's effective labels.
   map<string, string> match_labels = 4;
+  // Replicas is the desired number of Devices; zero means one.
+  uint32 replicas = 5;
 }
 
 // FlowgraphPortDirection selects the end of a directed connection.
@@ -147,6 +149,12 @@ message FlowgraphPlacement {
   string object_key = 2;
 }
 
+// FlowgraphPlacements contains the distinct placements of one node.
+message FlowgraphPlacements {
+  // Copies lists placements in deterministic destination order.
+  repeated FlowgraphPlacement copies = 1;
+}
+
 // FlowgraphBindingState is the derived state of a node's bound Space object.
 enum FlowgraphBindingState {
   // FLOWGRAPH_BINDING_STATE_UNKNOWN is unset.
@@ -182,7 +190,7 @@ message FlowgraphSnapshot {
   // State is the authored object body.
   Flowgraph state = 1;
   // Placements contains placement edges keyed by node ID.
-  map<string, FlowgraphPlacement> placements = 2;
+  map<string, FlowgraphPlacements> placements = 2;
   // Revision is the object's revision observed by this read.
   uint64 revision = 3;
   // Bindings contains the binding of each node that names an object, keyed by
@@ -239,7 +247,7 @@ message UpdateFlowgraphRequest {
   // RemoveConnectionIds removes connections by ID.
   repeated string remove_connection_ids = 5;
   // SetPlacements adds or replaces placement edges by node ID.
-  map<string, FlowgraphPlacement> set_placements = 6;
+  map<string, FlowgraphPlacements> set_placements = 6;
   // RemovePlacementNodeIds removes placement edges without deleting the nodes.
   repeated string remove_placement_node_ids = 7;
 }
@@ -331,7 +339,7 @@ message FlowgraphRun {
   // stored cursor, so two readers of the same events deliver each once.
   map<string, bytes> cursor = 12;
   // Placements is the immutable placement snapshot at FlowgraphRevision.
-  map<string, FlowgraphPlacement> placements = 13;
+  map<string, FlowgraphPlacements> placements = 13;
 }
 
 // FlowgraphActivation is one activation of a Step, run as one Forge Task.

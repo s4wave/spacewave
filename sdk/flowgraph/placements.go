@@ -1,7 +1,9 @@
 package s4wave_flowgraph
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -36,9 +38,9 @@ func PlacementQuad(graphKey, nodeID string, placement *FlowgraphPlacement) (worl
 }
 
 // ReadPlacements reads the placement edges of this graph, keyed by node ID.
-func ReadPlacements(ctx context.Context, ws world.WorldState, graphKey string) (map[string]*FlowgraphPlacement, error) {
+func ReadPlacements(ctx context.Context, ws world.WorldState, graphKey string) (map[string]*FlowgraphPlacements, error) {
 	// Query the placement predicates without scanning other World objects.
-	// A Flowgraph has one edge per node, so the lookups take no limit; the
+	// A Flowgraph has one edge per copy, so the lookups take no limit; the
 	// batch lookup requires one over a remote World.
 	var edges []world.GraphQuad
 	for _, predicate := range []string{DevicePlacementPredicate, ActorPlacementPredicate, ActorTemplatePlacementPredicate} {
@@ -50,16 +52,21 @@ func ReadPlacements(ctx context.Context, ws world.WorldState, graphKey string) (
 	}
 
 	// Decode each edge's destination and graph-local node identity.
-	placements := make(map[string]*FlowgraphPlacement)
+	placements := make(map[string]*FlowgraphPlacements)
 	for _, edge := range edges {
 		nodeID, placement, err := parsePlacementQuad(edge)
 		if err != nil {
 			return nil, err
 		}
-		if _, exists := placements[nodeID]; exists {
-			return nil, errors.Errorf("node %q has multiple placements", nodeID)
+		if placements[nodeID] == nil {
+			placements[nodeID] = &FlowgraphPlacements{}
 		}
-		placements[nodeID] = placement
+		placements[nodeID].Copies = append(placements[nodeID].Copies, placement)
+	}
+
+	// Sort destinations so readers select the same copy on every Device.
+	for _, group := range placements {
+		group.Normalize()
 	}
 	return placements, nil
 }
@@ -120,4 +127,41 @@ func ValidatePlacement(ctx context.Context, ws world.WorldState, node *Flowgraph
 	default:
 		return errors.New("placement kind is required")
 	}
+}
+
+// First returns the first destination in the canonical placement order.
+// Single-destination consumers route to this copy.
+func (p *FlowgraphPlacements) First() *FlowgraphPlacement {
+	if len(p.GetCopies()) == 0 {
+		return nil
+	}
+	return p.Copies[0]
+}
+
+// placementKey identifies an edge destination within one node's placement set.
+type placementKey struct {
+	// kind distinguishes Device and actor predicates.
+	kind FlowgraphPlacementKind
+	// key identifies the destination object.
+	key string
+}
+
+// indexPlacements indexes a node's destinations for linear set differences.
+func indexPlacements(group *FlowgraphPlacements) map[placementKey]struct{} {
+	index := make(map[placementKey]struct{}, len(group.GetCopies()))
+	for _, placement := range group.GetCopies() {
+		index[placementKey{placement.GetKind(), placement.GetObjectKey()}] = struct{}{}
+	}
+	return index
+}
+
+// Normalize sorts and deduplicates destinations to match the graph edge set.
+func (p *FlowgraphPlacements) Normalize() {
+	if p == nil {
+		return
+	}
+	slices.SortFunc(p.Copies, func(a, b *FlowgraphPlacement) int {
+		return cmp.Or(cmp.Compare(a.GetKind(), b.GetKind()), cmp.Compare(a.GetObjectKey(), b.GetObjectKey()))
+	})
+	p.Copies = slices.CompactFunc(p.Copies, (*FlowgraphPlacement).EqualVT)
 }

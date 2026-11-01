@@ -311,6 +311,8 @@ type FlowgraphRequirements struct {
 	RuntimeBackend string `protobuf:"bytes,3,opt,name=runtime_backend,json=runtimeBackend,proto3" json:"runtimeBackend,omitempty"`
 	// MatchLabels requires each key and value in the Device's effective labels.
 	MatchLabels map[string]string `protobuf:"bytes,4,rep,name=match_labels,json=matchLabels,proto3" json:"matchLabels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Replicas is the desired number of Devices; zero means one.
+	Replicas uint32 `protobuf:"varint,5,opt,name=replicas,proto3" json:"replicas,omitempty"`
 }
 
 func (x *FlowgraphRequirements) Reset() {
@@ -345,6 +347,13 @@ func (x *FlowgraphRequirements) GetMatchLabels() map[string]string {
 		return x.MatchLabels
 	}
 	return nil
+}
+
+func (x *FlowgraphRequirements) GetReplicas() uint32 {
+	if x != nil {
+		return x.Replicas
+	}
+	return 0
 }
 
 // FlowgraphPort declares a node-local connection endpoint.
@@ -599,6 +608,26 @@ func (x *FlowgraphPlacement) GetObjectKey() string {
 	return ""
 }
 
+// FlowgraphPlacements contains the distinct placements of one node.
+type FlowgraphPlacements struct {
+	unknownFields []byte
+	// Copies lists placements in deterministic destination order.
+	Copies []*FlowgraphPlacement `protobuf:"bytes,1,rep,name=copies,proto3" json:"copies,omitempty"`
+}
+
+func (x *FlowgraphPlacements) Reset() {
+	*x = FlowgraphPlacements{}
+}
+
+func (*FlowgraphPlacements) ProtoMessage() {}
+
+func (x *FlowgraphPlacements) GetCopies() []*FlowgraphPlacement {
+	if x != nil {
+		return x.Copies
+	}
+	return nil
+}
+
 // FlowgraphBinding is a readback of a node's bound Space object.
 // This message is never stored in the Flowgraph body.
 type FlowgraphBinding struct {
@@ -654,7 +683,7 @@ type FlowgraphSnapshot struct {
 	// State is the authored object body.
 	State *Flowgraph `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
 	// Placements contains placement edges keyed by node ID.
-	Placements map[string]*FlowgraphPlacement `protobuf:"bytes,2,rep,name=placements,proto3" json:"placements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Placements map[string]*FlowgraphPlacements `protobuf:"bytes,2,rep,name=placements,proto3" json:"placements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Revision is the object's revision observed by this read.
 	Revision uint64 `protobuf:"varint,3,opt,name=revision,proto3" json:"revision,omitempty"`
 	// Bindings contains the binding of each node that names an object, keyed by
@@ -675,7 +704,7 @@ func (x *FlowgraphSnapshot) GetState() *Flowgraph {
 	return nil
 }
 
-func (x *FlowgraphSnapshot) GetPlacements() map[string]*FlowgraphPlacement {
+func (x *FlowgraphSnapshot) GetPlacements() map[string]*FlowgraphPlacements {
 	if x != nil {
 		return x.Placements
 	}
@@ -770,7 +799,7 @@ type UpdateFlowgraphRequest struct {
 	// RemoveConnectionIds removes connections by ID.
 	RemoveConnectionIds []string `protobuf:"bytes,5,rep,name=remove_connection_ids,json=removeConnectionIds,proto3" json:"removeConnectionIds,omitempty"`
 	// SetPlacements adds or replaces placement edges by node ID.
-	SetPlacements map[string]*FlowgraphPlacement `protobuf:"bytes,6,rep,name=set_placements,json=setPlacements,proto3" json:"setPlacements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	SetPlacements map[string]*FlowgraphPlacements `protobuf:"bytes,6,rep,name=set_placements,json=setPlacements,proto3" json:"setPlacements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// RemovePlacementNodeIds removes placement edges without deleting the nodes.
 	RemovePlacementNodeIds []string `protobuf:"bytes,7,rep,name=remove_placement_node_ids,json=removePlacementNodeIds,proto3" json:"removePlacementNodeIds,omitempty"`
 }
@@ -816,7 +845,7 @@ func (x *UpdateFlowgraphRequest) GetRemoveConnectionIds() []string {
 	return nil
 }
 
-func (x *UpdateFlowgraphRequest) GetSetPlacements() map[string]*FlowgraphPlacement {
+func (x *UpdateFlowgraphRequest) GetSetPlacements() map[string]*FlowgraphPlacements {
 	if x != nil {
 		return x.SetPlacements
 	}
@@ -1011,7 +1040,7 @@ type FlowgraphRun struct {
 	// stored cursor, so two readers of the same events deliver each once.
 	Cursor map[string][]byte `protobuf:"bytes,12,rep,name=cursor,proto3" json:"cursor,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Placements is the immutable placement snapshot at FlowgraphRevision.
-	Placements map[string]*FlowgraphPlacement `protobuf:"bytes,13,rep,name=placements,proto3" json:"placements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Placements map[string]*FlowgraphPlacements `protobuf:"bytes,13,rep,name=placements,proto3" json:"placements,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *FlowgraphRun) Reset() {
@@ -1104,7 +1133,7 @@ func (x *FlowgraphRun) GetCursor() map[string][]byte {
 	return nil
 }
 
-func (x *FlowgraphRun) GetPlacements() map[string]*FlowgraphPlacement {
+func (x *FlowgraphRun) GetPlacements() map[string]*FlowgraphPlacements {
 	if x != nil {
 		return x.Placements
 	}
@@ -1600,8 +1629,8 @@ func (x *FlowgraphSkill_ParametersEntry) GetValue() string {
 
 type FlowgraphSnapshot_PlacementsEntry struct {
 	unknownFields []byte
-	Key           string              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *FlowgraphPlacement `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Key           string               `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *FlowgraphPlacements `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
 func (x *FlowgraphSnapshot_PlacementsEntry) Reset() {
@@ -1617,7 +1646,7 @@ func (x *FlowgraphSnapshot_PlacementsEntry) GetKey() string {
 	return ""
 }
 
-func (x *FlowgraphSnapshot_PlacementsEntry) GetValue() *FlowgraphPlacement {
+func (x *FlowgraphSnapshot_PlacementsEntry) GetValue() *FlowgraphPlacements {
 	if x != nil {
 		return x.Value
 	}
@@ -1704,8 +1733,8 @@ func (x *UpdateFlowgraphRequest_SetConnectionsEntry) GetValue() *FlowgraphConnec
 
 type UpdateFlowgraphRequest_SetPlacementsEntry struct {
 	unknownFields []byte
-	Key           string              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *FlowgraphPlacement `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Key           string               `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *FlowgraphPlacements `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
 func (x *UpdateFlowgraphRequest_SetPlacementsEntry) Reset() {
@@ -1721,7 +1750,7 @@ func (x *UpdateFlowgraphRequest_SetPlacementsEntry) GetKey() string {
 	return ""
 }
 
-func (x *UpdateFlowgraphRequest_SetPlacementsEntry) GetValue() *FlowgraphPlacement {
+func (x *UpdateFlowgraphRequest_SetPlacementsEntry) GetValue() *FlowgraphPlacements {
 	if x != nil {
 		return x.Value
 	}
@@ -1782,8 +1811,8 @@ func (x *FlowgraphRun_CursorEntry) GetValue() []byte {
 
 type FlowgraphRun_PlacementsEntry struct {
 	unknownFields []byte
-	Key           string              `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value         *FlowgraphPlacement `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Key           string               `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *FlowgraphPlacements `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
 func (x *FlowgraphRun_PlacementsEntry) Reset() {
@@ -1799,7 +1828,7 @@ func (x *FlowgraphRun_PlacementsEntry) GetKey() string {
 	return ""
 }
 
-func (x *FlowgraphRun_PlacementsEntry) GetValue() *FlowgraphPlacement {
+func (x *FlowgraphRun_PlacementsEntry) GetValue() *FlowgraphPlacements {
 	if x != nil {
 		return x.Value
 	}
@@ -1853,6 +1882,7 @@ func (m *FlowgraphRequirements) CloneVT() *FlowgraphRequirements {
 	r.MilliCpu = m.MilliCpu
 	r.MemoryBytes = m.MemoryBytes
 	r.RuntimeBackend = m.RuntimeBackend
+	r.Replicas = m.Replicas
 	r.MatchLabels = protobuf_go_lite.CloneMap(m.MatchLabels)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1970,6 +2000,22 @@ func (m *FlowgraphPlacement) CloneVT() *FlowgraphPlacement {
 }
 
 func (m *FlowgraphPlacement) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FlowgraphPlacements) CloneVT() *FlowgraphPlacements {
+	if m == nil {
+		return (*FlowgraphPlacements)(nil)
+	}
+	r := new(FlowgraphPlacements)
+	r.Copies = protobuf_go_lite.CloneVTSlice(m.Copies)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FlowgraphPlacements) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -2448,6 +2494,9 @@ func (this *FlowgraphRequirements) EqualVT(that *FlowgraphRequirements) bool {
 	if !protobuf_go_lite.EqualMap(this.MatchLabels, that.MatchLabels) {
 		return false
 	}
+	if this.Replicas != that.Replicas {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2618,6 +2667,26 @@ func (this *FlowgraphPlacement) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *FlowgraphPlacements) EqualVT(that *FlowgraphPlacements) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Copies, that.Copies, func() *FlowgraphPlacement { return &FlowgraphPlacement{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FlowgraphPlacements) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FlowgraphPlacements)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *FlowgraphBinding) EqualVT(that *FlowgraphBinding) bool {
 	if this == that {
 		return true
@@ -2656,7 +2725,7 @@ func (this *FlowgraphSnapshot) EqualVT(that *FlowgraphSnapshot) bool {
 	if !protobuf_go_lite.IsEqualVT(this.State, that.State) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTMapImplicit(this.Placements, that.Placements, func() *FlowgraphPlacement { return &FlowgraphPlacement{} }) {
+	if !protobuf_go_lite.EqualVTMapImplicit(this.Placements, that.Placements, func() *FlowgraphPlacements { return &FlowgraphPlacements{} }) {
 		return false
 	}
 	if this.Revision != that.Revision {
@@ -2757,7 +2826,7 @@ func (this *UpdateFlowgraphRequest) EqualVT(that *UpdateFlowgraphRequest) bool {
 	if !protobuf_go_lite.EqualSlice(this.RemoveConnectionIds, that.RemoveConnectionIds) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTMapImplicit(this.SetPlacements, that.SetPlacements, func() *FlowgraphPlacement { return &FlowgraphPlacement{} }) {
+	if !protobuf_go_lite.EqualVTMapImplicit(this.SetPlacements, that.SetPlacements, func() *FlowgraphPlacements { return &FlowgraphPlacements{} }) {
 		return false
 	}
 	if !protobuf_go_lite.EqualSlice(this.RemovePlacementNodeIds, that.RemovePlacementNodeIds) {
@@ -2945,7 +3014,7 @@ func (this *FlowgraphRun) EqualVT(that *FlowgraphRun) bool {
 	if !protobuf_go_lite.EqualBytesMap(this.Cursor, that.Cursor) {
 		return false
 	}
-	if !protobuf_go_lite.EqualVTMapImplicit(this.Placements, that.Placements, func() *FlowgraphPlacement { return &FlowgraphPlacement{} }) {
+	if !protobuf_go_lite.EqualVTMapImplicit(this.Placements, that.Placements, func() *FlowgraphPlacements { return &FlowgraphPlacements{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3821,6 +3890,11 @@ func (x *FlowgraphRequirements) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteObjectEnd()
 	}
+	if x.Replicas != 0 || s.HasField("replicas") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("replicas")
+		s.WriteUint32(x.Replicas)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3857,6 +3931,9 @@ func (x *FlowgraphRequirements) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			s.ReadStringMap(func(key string) {
 				x.MatchLabels[key] = s.ReadString()
 			})
+		case "replicas":
+			s.AddField("replicas")
+			x.Replicas = s.ReadUint32()
 		}
 	})
 }
@@ -4316,6 +4393,69 @@ func (x *FlowgraphPlacement) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the FlowgraphPlacements message to JSON.
+func (x *FlowgraphPlacements) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Copies) > 0 || s.HasField("copies") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("copies")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Copies {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("copies"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FlowgraphPlacements to JSON.
+func (x *FlowgraphPlacements) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FlowgraphPlacements message from JSON.
+func (x *FlowgraphPlacements) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "copies":
+			s.AddField("copies")
+			if s.ReadNil() {
+				x.Copies = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Copies = append(x.Copies, nil)
+					return
+				}
+				v := &FlowgraphPlacement{}
+				v.UnmarshalProtoJSON(s.WithField("copies", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Copies = append(x.Copies, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FlowgraphPlacements from JSON.
+func (x *FlowgraphPlacements) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the FlowgraphBinding message to JSON.
 func (x *FlowgraphBinding) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -4446,7 +4586,7 @@ func (x *FlowgraphSnapshot_PlacementsEntry) UnmarshalProtoJSON(s *json.Unmarshal
 				x.Value = nil
 				return
 			}
-			x.Value = &FlowgraphPlacement{}
+			x.Value = &FlowgraphPlacements{}
 			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
 		}
 	})
@@ -4585,9 +4725,9 @@ func (x *FlowgraphSnapshot) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Placements = nil
 				return
 			}
-			x.Placements = make(map[string]*FlowgraphPlacement)
+			x.Placements = make(map[string]*FlowgraphPlacements)
 			s.ReadStringMap(func(key string) {
-				var v FlowgraphPlacement
+				var v FlowgraphPlacements
 				v.UnmarshalProtoJSON(s)
 				x.Placements[key] = &v
 			})
@@ -4892,7 +5032,7 @@ func (x *UpdateFlowgraphRequest_SetPlacementsEntry) UnmarshalProtoJSON(s *json.U
 				x.Value = nil
 				return
 			}
-			x.Value = &FlowgraphPlacement{}
+			x.Value = &FlowgraphPlacements{}
 			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
 		}
 	})
@@ -5039,9 +5179,9 @@ func (x *UpdateFlowgraphRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.SetPlacements = nil
 				return
 			}
-			x.SetPlacements = make(map[string]*FlowgraphPlacement)
+			x.SetPlacements = make(map[string]*FlowgraphPlacements)
 			s.ReadStringMap(func(key string) {
-				var v FlowgraphPlacement
+				var v FlowgraphPlacements
 				v.UnmarshalProtoJSON(s)
 				x.SetPlacements[key] = &v
 			})
@@ -5513,7 +5653,7 @@ func (x *FlowgraphRun_PlacementsEntry) UnmarshalProtoJSON(s *json.UnmarshalState
 				x.Value = nil
 				return
 			}
-			x.Value = &FlowgraphPlacement{}
+			x.Value = &FlowgraphPlacements{}
 			x.Value.UnmarshalProtoJSON(s.WithField("value", true))
 		}
 	})
@@ -5742,9 +5882,9 @@ func (x *FlowgraphRun) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Placements = nil
 				return
 			}
-			x.Placements = make(map[string]*FlowgraphPlacement)
+			x.Placements = make(map[string]*FlowgraphPlacements)
 			s.ReadStringMap(func(key string) {
-				var v FlowgraphPlacement
+				var v FlowgraphPlacements
 				v.UnmarshalProtoJSON(s)
 				x.Placements[key] = &v
 			})
@@ -6466,6 +6606,11 @@ func (m *FlowgraphRequirements) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Replicas != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Replicas))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.MatchLabels) > 0 {
 		for k := range m.MatchLabels {
 			v := m.MatchLabels[k]
@@ -6809,6 +6954,50 @@ func (m *FlowgraphPlacement) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FlowgraphPlacements) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FlowgraphPlacements) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FlowgraphPlacements) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Copies) > 0 {
+		for iNdEx := len(m.Copies) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Copies[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -8109,6 +8298,7 @@ func (m *FlowgraphRequirements) SizeVT() (n int) {
 		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
 		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Replicas)
 	n += len(m.unknownFields)
 	return n
 }
@@ -8202,6 +8392,20 @@ func (m *FlowgraphPlacement) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Kind)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FlowgraphPlacements) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Copies {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -8818,6 +9022,10 @@ func (x *FlowgraphRequirements) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteMapEnd(&sb)
 	}
+	if x.Replicas != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "replicas")
+		protobuf_go_lite.TextWriteUint(&sb, x.Replicas)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -8994,6 +9202,28 @@ func (x *FlowgraphPlacement) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *FlowgraphPlacements) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphPlacements")
+	if len(x.Copies) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "copies")
+		for i, v := range x.Copies {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphPlacement{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FlowgraphPlacements) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *FlowgraphBinding) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FlowgraphBinding")
@@ -9079,7 +9309,7 @@ func (x *FlowgraphSnapshot) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, k)
 			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphPlacement{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphPlacements{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9269,7 +9499,7 @@ func (x *UpdateFlowgraphRequest) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, k)
 			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphPlacement{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphPlacements{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -9542,7 +9772,7 @@ func (x *FlowgraphRun) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, k)
 			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
 			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphPlacement{})
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &FlowgraphPlacements{})
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
@@ -10143,6 +10373,15 @@ func (m *FlowgraphRequirements) UnmarshalVT(dAtA []byte) error {
 			}
 			m.MatchLabels[mapkey] = mapvalue
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Replicas", wireType)
+			}
+			m.Replicas = 0
+			m.Replicas, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -10659,6 +10898,62 @@ func (m *FlowgraphPlacement) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *FlowgraphPlacements) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FlowgraphPlacements: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FlowgraphPlacements: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Copies", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Copies = append(m.Copies, &FlowgraphPlacement{})
+			if err := m.Copies[len(m.Copies)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *FlowgraphBinding) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -10791,10 +11086,10 @@ func (m *FlowgraphSnapshot) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = msgStart
 			if m.Placements == nil {
-				m.Placements = make(map[string]*FlowgraphPlacement)
+				m.Placements = make(map[string]*FlowgraphPlacements)
 			}
 			var mapkey string
-			var mapvalue *FlowgraphPlacement
+			var mapvalue *FlowgraphPlacements
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -10813,7 +11108,7 @@ func (m *FlowgraphSnapshot) UnmarshalVT(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					mapvalue = &FlowgraphPlacement{}
+					mapvalue = &FlowgraphPlacements{}
 					if err := mapvalue.UnmarshalVT(dAtA[msgStartmapvalue:postmsgIndexmapvalue]); err != nil {
 						return err
 					}
@@ -11225,10 +11520,10 @@ func (m *UpdateFlowgraphRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = msgStart
 			if m.SetPlacements == nil {
-				m.SetPlacements = make(map[string]*FlowgraphPlacement)
+				m.SetPlacements = make(map[string]*FlowgraphPlacements)
 			}
 			var mapkey string
-			var mapvalue *FlowgraphPlacement
+			var mapvalue *FlowgraphPlacements
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -11247,7 +11542,7 @@ func (m *UpdateFlowgraphRequest) UnmarshalVT(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					mapvalue = &FlowgraphPlacement{}
+					mapvalue = &FlowgraphPlacements{}
 					if err := mapvalue.UnmarshalVT(dAtA[msgStartmapvalue:postmsgIndexmapvalue]); err != nil {
 						return err
 					}
@@ -11889,10 +12184,10 @@ func (m *FlowgraphRun) UnmarshalVT(dAtA []byte) error {
 			}
 			iNdEx = msgStart
 			if m.Placements == nil {
-				m.Placements = make(map[string]*FlowgraphPlacement)
+				m.Placements = make(map[string]*FlowgraphPlacements)
 			}
 			var mapkey string
-			var mapvalue *FlowgraphPlacement
+			var mapvalue *FlowgraphPlacements
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -11911,7 +12206,7 @@ func (m *FlowgraphRun) UnmarshalVT(dAtA []byte) error {
 					if err != nil {
 						return err
 					}
-					mapvalue = &FlowgraphPlacement{}
+					mapvalue = &FlowgraphPlacements{}
 					if err := mapvalue.UnmarshalVT(dAtA[msgStartmapvalue:postmsgIndexmapvalue]); err != nil {
 						return err
 					}

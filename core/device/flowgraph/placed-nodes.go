@@ -114,7 +114,7 @@ func placedConnections(
 
 		// An end that is not on a Device has no peer ID.
 		var remotePeerID string
-		if remote := snapshot.GetPlacements()[remoteNodeID]; remote.GetKind() == s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE {
+		if remote := snapshot.GetPlacements()[remoteNodeID].First(); remote.GetKind() == s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE {
 			var err error
 			remotePeerID, err = peerID(remote.GetObjectKey())
 			if err != nil {
@@ -131,9 +131,10 @@ func placedConnections(
 }
 
 // isPlacedOn reports whether placement puts a node on the Device at deviceKey.
-func isPlacedOn(placement *s4wave_flowgraph.FlowgraphPlacement, deviceKey string) bool {
-	return placement.GetKind() == s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE &&
-		placement.GetObjectKey() == deviceKey
+func isPlacedOn(group *s4wave_flowgraph.FlowgraphPlacements, deviceKey string) bool {
+	return slices.ContainsFunc(group.GetCopies(), func(placement *s4wave_flowgraph.FlowgraphPlacement) bool {
+		return placement.GetKind() == s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE && placement.GetObjectKey() == deviceKey
+	})
 }
 
 // readDevicePeerID reads the peer ID of the Device object at key. It returns an

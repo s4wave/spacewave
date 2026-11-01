@@ -15,7 +15,7 @@ import (
 // contextInput builds the Task-owned context value and its Target alias.
 func (r *runner) contextInput(ctx context.Context, target *forge_target.Target, taskKey, key, nodeID string) (*forge_value.Value, error) {
 	// Capture the template from the same revision as the run's authored graph.
-	placement := r.run.GetPlacements()[nodeID]
+	placement := r.run.GetPlacements()[nodeID].First()
 	activation := &s4wave_flowgraph.FlowgraphActivationContext{RunKey: r.runKey, ActivationId: taskKey, Key: key}
 	if placement.GetKind() == s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE {
 		activation.TemplateKey = placement.GetObjectKey()

@@ -311,12 +311,12 @@ exec:
 		world.ReleaseObjectState(obj)
 		return err
 	})
-	e.editGraph(&s4wave_flowgraph.UpdateFlowgraphRequest{SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
-		keyedID: {Kind: s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: templateKey},
+	e.editGraph(&s4wave_flowgraph.UpdateFlowgraphRequest{SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+		keyedID: {Copies: []*s4wave_flowgraph.FlowgraphPlacement{{Kind: s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: templateKey}}},
 	}})
 	if successor {
-		e.editGraph(&s4wave_flowgraph.UpdateFlowgraphRequest{SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{
-			"b": {Kind: s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: templateKey},
+		e.editGraph(&s4wave_flowgraph.UpdateFlowgraphRequest{SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{
+			"b": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{{Kind: s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_ACTOR_TEMPLATE, ObjectKey: templateKey}}},
 		}})
 	}
 	e.standingRun()

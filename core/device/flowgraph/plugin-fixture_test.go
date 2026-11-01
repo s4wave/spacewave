@@ -77,7 +77,7 @@ func TestPluginNodeFixture(t *testing.T) {
 			return err
 		}
 		_, err = s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
-			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{"echo": node}, SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"echo": devicePlacement(testSelfKey)},
+			SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{"echo": node}, SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"echo": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}}},
 		})
 		return err
 	})
@@ -476,7 +476,7 @@ func setPluginRunNode(t *testing.T, ctx context.Context, engine world.Engine, va
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{
 			SetNodes:      map[string]*s4wave_flowgraph.FlowgraphNode{"run": {TypeId: pluginRunNodeTypeID, Parameters: map[string]string{"value": value}, Ports: []*s4wave_flowgraph.FlowgraphPort{{Name: "echo", TypeId: "stream", Direction: s4wave_flowgraph.FlowgraphPortDirection_FLOWGRAPH_PORT_DIRECTION_OUTPUT}}}},
-			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"run": devicePlacement(testSelfKey)},
+			SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"run": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}}},
 		})
 		return err
 	})

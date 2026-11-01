@@ -74,10 +74,10 @@ func TestRunFlowgraphReconcilerStartsWhenSetupCompletes(t *testing.T) {
 				TypeId:    "stream",
 			}},
 		}},
-		SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"tcp": {
+		SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"tcp": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{{
 			Kind:      s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE,
 			ObjectKey: deviceKey,
-		}},
+		}}}},
 	}); err != nil {
 		t.Fatal(err)
 	}

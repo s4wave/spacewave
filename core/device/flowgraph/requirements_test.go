@@ -55,7 +55,7 @@ func TestRequirementPlacement(t *testing.T) {
 		if _, _, err := tx.ApplyWorldOp(ctx, &s4wave_flowgraph.CreateFlowgraphOp{ObjectKey: testFlowgraphKey, Name: "requirements"}, ""); err != nil {
 			return err
 		}
-		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{"fw-self": forgeWorkerNode("worker/self"), "fw-other": forgeWorkerNode("worker/other")}, SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"fw-self": devicePlacement(testSelfKey), "fw-other": devicePlacement(testOtherKey)}})
+		_, err := s4wave_flowgraph.UpdateFlowgraph(ctx, tx, testFlowgraphKey, &s4wave_flowgraph.UpdateFlowgraphRequest{SetNodes: map[string]*s4wave_flowgraph.FlowgraphNode{"fw-self": forgeWorkerNode("worker/self"), "fw-other": forgeWorkerNode("worker/other")}, SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"fw-self": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testSelfKey)}}, "fw-other": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{devicePlacement(testOtherKey)}}}})
 		return err
 	})
 
@@ -133,7 +133,7 @@ func TestRequirementPlacement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if claimed.GetSnapshot().GetPlacements()["selected"].GetObjectKey() != testOtherKey || claimed.GetSnapshot().GetRevision() <= pending.GetSnapshot().GetRevision() {
+	if claimed.GetSnapshot().GetPlacements()["selected"].First().GetObjectKey() != testOtherKey || claimed.GetSnapshot().GetRevision() <= pending.GetSnapshot().GetRevision() {
 		t.Fatal("graph watch did not receive the claim revision")
 	}
 	requireCapacity(t, ctx, engine, 0, 250)
@@ -170,9 +170,9 @@ func TestRequirementPlacement(t *testing.T) {
 		return err
 	})
 	waitRequirementPlacement(t, ctx, engine, func(snapshot *s4wave_flowgraph.FlowgraphSnapshot) bool {
-		return snapshot.GetPlacements()["selected"].GetObjectKey() == testSelfKey
+		return snapshot.GetPlacements()["selected"].First().GetObjectKey() == testSelfKey
 	})
-	if err := reconcilers[testOtherKey].releasePlacement(ctx, forge_runtime.BuildReservationObjectKey(s4wave_flowgraph.NodeCapacityHolderKey(testFlowgraphKey, "selected"))); err != nil {
+	if err := reconcilers[testOtherKey].releasePlacement(ctx, forge_runtime.BuildReservationObjectKey(s4wave_flowgraph.NodeCapacityHolderKey(testFlowgraphKey, "selected", testOtherKey))); err != nil {
 		t.Fatal(err)
 	}
 	requireCapacity(t, ctx, engine, 250, 0)
@@ -182,10 +182,10 @@ func TestRequirementPlacement(t *testing.T) {
 	pin := &s4wave_flowgraph.FlowgraphPlacement{Kind: s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: testSelfKey}
 	updateRequirements(t, ctx, engine, &s4wave_flowgraph.UpdateFlowgraphRequest{
 		SetNodes:      map[string]*s4wave_flowgraph.FlowgraphNode{"selected": {TypeId: "fixture"}},
-		SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"selected": pin},
+		SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacements{"selected": {Copies: []*s4wave_flowgraph.FlowgraphPlacement{pin}}},
 	})
 	waitRequirementPlacement(t, ctx, engine, func(snapshot *s4wave_flowgraph.FlowgraphSnapshot) bool {
-		return snapshot.GetPlacements()["selected"].GetObjectKey() == testSelfKey
+		return snapshot.GetPlacements()["selected"].First().GetObjectKey() == testSelfKey
 	})
 	requireCapacity(t, ctx, engine, 0, 0)
 
@@ -213,7 +213,7 @@ func TestRequirementPlacement(t *testing.T) {
 	if snapshot.GetPlacements()["too-large"] != nil || snapshot.GetPlacements()["backend"] != nil {
 		t.Fatal("ineligible node was placed")
 	}
-	winner := snapshot.GetPlacements()["race"].GetObjectKey()
+	winner := snapshot.GetPlacements()["race"].First().GetObjectKey()
 	selfCPU, otherCPU := uint64(0), uint64(500)
 	if winner == testSelfKey {
 		selfCPU, otherCPU = 500, 0

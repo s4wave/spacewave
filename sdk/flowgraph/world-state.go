@@ -97,7 +97,7 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 		state.Connections = make(map[string]*FlowgraphConnection)
 	}
 	if next.Placements == nil {
-		next.Placements = make(map[string]*FlowgraphPlacement)
+		next.Placements = make(map[string]*FlowgraphPlacements)
 	}
 	if request.Name != nil {
 		state.Name = request.GetName()
@@ -133,70 +133,103 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 	}
 	next.Bindings = bindings
 
-	// Apply placement edits and validate all remaining placements against the nodes.
+	// Apply authored placement edits before reconciling changed requirements.
 	for id, placement := range request.GetSetPlacements() {
 		next.Placements[id] = placement.CloneVT()
+		next.Placements[id].Normalize()
+		if len(next.Placements[id].GetCopies()) == 0 {
+			delete(next.Placements, id)
+		}
 	}
 	for _, id := range request.GetRemovePlacementNodeIds() {
 		delete(next.Placements, id)
 	}
-	for id, placement := range next.Placements {
-		node, found := state.Nodes[id]
-		if !found {
-			return nil, errors.Errorf("placement refers to missing node %q", id)
-		}
-		if err := ValidatePlacement(ctx, ws, node, placement); err != nil {
-			return nil, errors.Wrapf(err, "node %q", id)
-		}
-	}
 
-	// A requirements change releases the node's grant and returns it to
-	// unplaced for re-admission, unless this request places it explicitly.
+	// A changed resource request releases every copy's grant before re-admission.
+	// Count-only edits keep grants and let claimNode release the newest copies.
 	for id, node := range state.Nodes {
-		prev := previous.GetState().GetNodes()[id].GetRequirements()
-		if prev == nil || node.GetRequirements().EqualVT(prev) {
+		old := previous.GetState().GetNodes()[id].GetRequirements().CloneVT()
+		wanted := node.GetRequirements().CloneVT()
+		if old == nil {
 			continue
 		}
-		if err := ReleaseNodeCapacity(ctx, ws, key, id); err != nil {
-			return nil, err
+		old.Replicas = 0
+		if wanted != nil {
+			wanted.Replicas = 0
+		}
+		if wanted.EqualVT(old) {
+			continue
+		}
+
+		// An explicit pin can retain an edge while relinquishing its grant.
+		for _, placement := range previous.GetPlacements()[id].GetCopies() {
+			if err := ReleaseNodeCapacity(ctx, ws, key, id, placement.GetObjectKey()); err != nil {
+				return nil, err
+			}
 		}
 		if _, set := request.GetSetPlacements()[id]; !set {
 			delete(next.Placements, id)
 		}
 	}
 
+	// Validate the placements that remain after requirements and pin edits.
+	for id, group := range next.Placements {
+		node, found := state.Nodes[id]
+		if !found {
+			return nil, errors.Errorf("placement refers to missing node %q", id)
+		}
+		if len(group.GetCopies()) > 1 && node.GetRequirements() == nil {
+			return nil, errors.Errorf("node %q needs requirements for multiple placements", id)
+		}
+		for _, placement := range group.GetCopies() {
+			if err := ValidatePlacement(ctx, ws, node, placement); err != nil {
+				return nil, errors.Wrapf(err, "node %q", id)
+			}
+		}
+	}
+
 	// Remove replaced or deleted placement edges.
 	var placed bool
-	for id, placement := range previous.GetPlacements() {
-		if placement.EqualVT(next.Placements[id]) {
-			continue
+	for id, group := range previous.GetPlacements() {
+		kept := indexPlacements(next.Placements[id])
+		for _, placement := range group.GetCopies() {
+			if _, ok := kept[placementKey{placement.GetKind(), placement.GetObjectKey()}]; ok {
+				continue
+			}
+
+			// Release the departing copy's grant with its edge.
+			edge, err := PlacementQuad(key, id, placement)
+			if err != nil {
+				return nil, err
+			}
+			if err := ReleaseNodeCapacity(ctx, ws, key, id, placement.GetObjectKey()); err != nil {
+				return nil, err
+			}
+			if err := ws.DeleteGraphQuad(ctx, edge); err != nil {
+				return nil, err
+			}
+			placed = true
 		}
-		edge, err := PlacementQuad(key, id, placement)
-		if err != nil {
-			return nil, err
-		}
-		if err := ReleaseNodeCapacity(ctx, ws, key, id); err != nil {
-			return nil, err
-		}
-		if err := ws.DeleteGraphQuad(ctx, edge); err != nil {
-			return nil, err
-		}
-		placed = true
 	}
 
 	// Add new placement edges in the same transaction as the authored body.
-	for id, placement := range next.GetPlacements() {
-		if placement.EqualVT(previous.Placements[id]) {
-			continue
+	for id, group := range next.GetPlacements() {
+		old := indexPlacements(previous.Placements[id])
+		for _, placement := range group.GetCopies() {
+			if _, ok := old[placementKey{placement.GetKind(), placement.GetObjectKey()}]; ok {
+				continue
+			}
+
+			// Publish the new destination in the authored edit.
+			edge, err := PlacementQuad(key, id, placement)
+			if err != nil {
+				return nil, err
+			}
+			if err := ws.SetGraphQuad(ctx, edge); err != nil {
+				return nil, err
+			}
+			placed = true
 		}
-		edge, err := PlacementQuad(key, id, placement)
-		if err != nil {
-			return nil, err
-		}
-		if err := ws.SetGraphQuad(ctx, edge); err != nil {
-			return nil, err
-		}
-		placed = true
 	}
 
 	// Write the object last, so its World change closes this edit in the
