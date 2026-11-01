@@ -25,6 +25,7 @@ import {
 import { BldrContext, IBldrContext, useBldrContext } from './bldr-context.js'
 import { FunctionComponentContainer } from './web-view-function.js'
 import { ReactComponentContainer } from './web-view-react.js'
+import { StylesheetLink } from './StylesheetLink.js'
 import { DebugInfo } from './DebugInfo.js'
 import { useLatestRef } from './hooks.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
@@ -107,48 +108,10 @@ export function canCloseWindow() {
 // see: https://github.com/facebook/react/issues/34172#issuecomment-3367496138
 const useMemoManual = useMemo
 
-interface IStylesheetLinkProps {
-  id: string
-  href: string
-  onLoad: (id: string) => void
-}
-
-// StylesheetLink renders a stylesheet link and handles the load event.
-// It checks if the stylesheet is already loaded from cache on mount.
-function StylesheetLink({ id, href, onLoad }: IStylesheetLinkProps) {
-  const ref = useRef<HTMLLinkElement>(null)
-
-  useEffect(() => {
-    const link = ref.current
-    if (!link) {
-      return
-    }
-    // Check if the stylesheet is already loaded (cached).
-    // When a stylesheet is cached, onload may fire before we attach the handler.
-    // The sheet property is set once the stylesheet is fully loaded and parsed.
-    if (link.sheet) {
-      onLoad(id)
-    }
-  }, [id, href, onLoad])
-
-  const handleLoad = useCallback(() => {
-    onLoad(id)
-  }, [id, onLoad])
-
-  return (
-    <link
-      ref={ref}
-      href={href}
-      rel="stylesheet"
-      onLoad={handleLoad}
-      onError={handleLoad}
-    />
-  )
-}
-
 // WebView represents a portion of the page which the Go webDocument controls.
 // It is exposed as a WebView to the Go stack.
 export const WebView: React.FC<IWebViewProps> = (props) => {
+  // Select the document and parent context that own this view.
   const bldrContext = useBldrContext()
   const bldrWebDocument =
     props.webDocument || bldrContext?.webDocument || undefined
@@ -159,10 +122,12 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   // parentUuid is the parent web view uuid
   const parentUuid = bldrContext?.webView?.getUuid() || undefined
 
+  // Retain generation readiness and one-shot startup marks across renders.
   const [runtimePresentation, setRuntimePresentation] =
     useState<IWebViewRuntimePresentation>()
   const runtimePresentationRef = useRef(runtimePresentation)
   runtimePresentationRef.current = runtimePresentation
+
   // parentUuidRef is the current parent uuid ref.
   const parentUuidRef = useLatestRef(parentUuid)
   const setHtmlLinksSeenRef = useRef(false)
@@ -170,11 +135,13 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   const markedComponentReadyRef = useRef(false)
   const markedRevealedRef = useRef(false)
 
+  // Re-arm component and stylesheet evidence when their render target changes.
   const resetComponentRevealStartupMarks = useCallback(() => {
     markedComponentReadyRef.current = false
     markedRevealedRef.current = false
   }, [])
 
+  // Re-arm the stylesheet mark when a new asset set replaces the current one.
   const resetStylesheetStartupMarks = useCallback(() => {
     markedStylesheetReadyRef.current = false
   }, [])
@@ -206,8 +173,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   webViewStateRef.current = webViewState
   const [isComponentReady, setIsComponentReady] = useState(false)
 
-  // TODO: hack: improve this
-
+  // A replacement component must establish its own readiness before reveal.
   useEffect(() => {
     setIsComponentReady(false)
   }, [webViewState.scriptPath, webViewState.refreshNonce])
@@ -227,11 +193,15 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     [parentUuid, props.startupProgress, uuid],
   )
 
+  // Follow the document generation that owns startup presentation.
   const readRuntimePresentation = useCallback(
     (reset = false) => {
+      // Ordinary child views use their local component and stylesheet readiness.
       if (props.startupProgress !== true) {
         return
       }
+
+      // A disconnected or unversioned runtime cannot own presentation.
       const documentWithPresentation = bldrWebDocument as
         | (BldrWebDocument & {
             getRuntimePresentationState?: () => {
@@ -245,6 +215,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setRuntimePresentation(undefined)
         return
       }
+
+      // Preserve a known generation unless the caller explicitly resets it.
       const generation = state.generation
       setRuntimePresentation((previous) =>
         !reset && previous?.generation === generation
@@ -259,12 +231,15 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     [bldrWebDocument, props.startupProgress],
   )
 
+  // A render reset discards reveal evidence for the previous generation.
   const resetRuntimePresentation = useCallback(() => {
     markedRevealedRef.current = false
     readRuntimePresentation(true)
   }, [readRuntimePresentation])
 
+  // Watch runtime replacement without carrying reveal state into a new generation.
   useEffect(() => {
+    // Subscribe only when the document exposes generation lifecycle events.
     const documentWithEvents = bldrWebDocument as
       | (BldrWebDocument & {
           on?: BldrWebDocument['on']
@@ -278,6 +253,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     ) {
       return
     }
+
+    // Reconcile connection events and clear evidence when a generation is invalidated.
     const onRuntimeConnected = () => readRuntimePresentation()
     const onRuntimeInvalidated = (generation?: string) => {
       const current = runtimePresentationRef.current
@@ -286,6 +263,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setRuntimePresentation(undefined)
       }
     }
+
+    // Hold both subscriptions for exactly this document binding's lifetime.
     documentWithEvents.on('runtimeconnected', onRuntimeConnected)
     documentWithEvents.on('runtimeinvalidated', onRuntimeInvalidated)
     readRuntimePresentation()
@@ -301,6 +280,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     }
   }, [bldrWebDocument, readRuntimePresentation])
 
+  // Establish a neutral frame before the startup view becomes visible.
   useEffect(() => {
     if (!runtimePresentation || runtimePresentation.neutralFrame) {
       return
@@ -315,6 +295,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     })
   }, [markWebViewStartupBoundary, runtimePresentation])
 
+  // Expose the view commands through one stable document-facing binding.
   const bldrWebViewRef = useRef<BldrWebView | null>(null)
   const bldrWebView: BldrWebView = useMemoManual(
     () => ({
@@ -336,6 +317,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       async setRenderMode(
         options: SetRenderModeRequest,
       ): Promise<SetRenderModeResponse | void> {
+        // Bind the package graph and resolve its live frontend before changing the view.
         bindWebPkgImports(options.webPkgPaths)
         console.log(`WebView: set render mode: ${uuid}`, options)
         if (options.frontendBinding && !bldrWebDocument) {
@@ -351,6 +333,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
           (options.renderMode !== RenderMode.RenderMode_NONE &&
             options.scriptPath?.trim()) ||
           undefined
+
+        // A different render target must establish component readiness again.
         const prev = webViewStateRef.current
         const renderTargetChanged =
           options.refresh ||
@@ -364,6 +348,8 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
             resetStylesheetStartupMarks()
           }
         }
+
+        // Publish the resolved target and advance its refresh generation atomically.
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
@@ -432,12 +418,14 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       },
       // resetView resets the web view to the initial state.
       async resetView(): Promise<void> {
+        // Discard the prior component, stylesheet and generation readiness together.
         setIsComponentReady(false)
         setHtmlLinksSeenRef.current = false
         resetComponentRevealStartupMarks()
         resetStylesheetStartupMarks()
         resetRuntimePresentation()
         setWebViewState((prev) => {
+          // Return to the empty render state while retaining unrelated registration data.
           const next = { ...prev }
           next.refreshNonce++
           if (next.htmlLinks.length) {
@@ -482,10 +470,12 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     ],
   )
 
+  // Removal callbacks always receive the current command binding.
   useEffect(() => {
     bldrWebViewRef.current = bldrWebView
   }, [bldrWebView])
 
+  // Children inherit this view and its document as one context value.
   const childContext = useMemo<IBldrContext>(
     () => ({
       webView: bldrWebView,
@@ -507,6 +497,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     })
   }, [])
 
+  // Register before painting and release the registration when this binding leaves.
   useLayoutEffect(() => {
     let nextReg: WebViewRegistration | null = null
     if (bldrWebDocument) {
@@ -536,6 +527,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     }
   }, [uuid, bldrWebDocument, bldrWebView, markWebViewStartupBoundary])
 
+  // Mark stylesheet readiness once the requested asset set has settled.
   const stylesheetCount = webViewState.htmlLinks.filter(
     (link) => link.link.rel === 'stylesheet',
   ).length
@@ -569,6 +561,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       return
     }
     const timer = setTimeout(() => {
+      // A completed component or reveal supersedes the outstanding deadline.
       if (markedRevealedRef.current || markedComponentReadyRef.current) {
         return
       }
@@ -580,6 +573,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     return () => clearTimeout(timer)
   }, [props.startupProgress, uuid, webViewState.ready, isComponentReady])
 
+  // Record component readiness once per target while allowing repeated callbacks.
   const handleComponentReady = useCallback(() => {
     setIsComponentReady(true)
     if (markedComponentReadyRef.current) {
@@ -596,6 +590,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     webViewState.scriptPath,
   ])
 
+  // Reveal only after this view and its owning generation can paint together.
   const runtimePresentationOwner =
     props.startupProgress === true &&
     typeof (
@@ -642,6 +637,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     webViewState.renderMode,
   ])
 
+  // Keep the previous startup frame visible until the new generation is revealed.
   const runtimeTransitionActive = runtimePresentation?.revealed === true
   const activityVisible = runtimePresentationOwner
     ? runtimePresentation?.neutralFrame === true
