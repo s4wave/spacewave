@@ -43,6 +43,10 @@ const (
 	// lockSuper is held while a process writes a superblock, so generations
 	// stay ordered across processes.
 	lockSuper = lockClean + 1
+	// lockForeground is one intent byte per reader slot. A foreground request
+	// holds its slot's byte until it acquires the writer lock; background
+	// steps check these bytes while holding the writer lock before appending.
+	lockForeground = lockSuper + 1
 	// lockLease is the first of leaseLocks lease locks, one per name hash.
 	lockLease = 1 << 41
 	// leaseLocks is the number of lease lock bytes.

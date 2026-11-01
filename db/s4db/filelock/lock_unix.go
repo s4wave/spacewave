@@ -12,10 +12,16 @@ import (
 // wait is set. Without wait it reports false when another holder has it. The
 // file must be open for writing.
 func Lock(f *os.File, off int64, wait bool) (bool, error) {
+	// Use the platform's normal byte-lock ownership.
+	return lockWithCommands(f, off, wait, cmdSetLock, cmdSetLockWait)
+}
+
+// lockWithCommands acquires a byte with the selected ownership semantics.
+func lockWithCommands(f *os.File, off int64, wait bool, set, setWait int) (bool, error) {
 	// Choose the command, then retry it past interrupts.
-	cmd := cmdSetLock
+	cmd := set
 	if wait {
-		cmd = cmdSetLockWait
+		cmd = setWait
 	}
 	lk := unix.Flock_t{Type: unix.F_WRLCK, Start: off, Len: 1}
 	for {
@@ -34,14 +40,24 @@ func Lock(f *os.File, off int64, wait bool) (bool, error) {
 
 // Unlock releases the lock on the byte at off.
 func Unlock(f *os.File, off int64) error {
+	return unlockWithCommand(f, off, cmdSetLock)
+}
+
+// unlockWithCommand releases a byte with the matching ownership semantics.
+func unlockWithCommand(f *os.File, off int64, cmd int) error {
 	lk := unix.Flock_t{Type: unix.F_UNLCK, Start: off, Len: 1}
-	return unix.FcntlFlock(f.Fd(), cmdSetLock, &lk)
+	return unix.FcntlFlock(f.Fd(), cmd, &lk)
 }
 
 // Held reports whether another holder has the lock on the byte at off.
 func Held(f *os.File, off int64) (bool, error) {
+	return heldWithCommand(f, off, cmdGetLock)
+}
+
+// heldWithCommand queries conflicts with the selected ownership semantics.
+func heldWithCommand(f *os.File, off int64, cmd int) (bool, error) {
 	lk := unix.Flock_t{Type: unix.F_WRLCK, Start: off, Len: 1}
-	if err := unix.FcntlFlock(f.Fd(), cmdGetLock, &lk); err != nil {
+	if err := unix.FcntlFlock(f.Fd(), cmd, &lk); err != nil {
 		return false, err
 	}
 	return lk.Type != unix.F_UNLCK, nil

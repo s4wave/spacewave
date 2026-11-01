@@ -1,12 +1,20 @@
-// WriterWaitState is one foreground request contending with a remote scheduler.
-type WriterWaitState = { holder: string; waiting: boolean; steps: number }
+// WriterWaitState includes the remote scheduler's foreground companion.
+type WriterWaitState = {
+  holder: string
+  waiting: boolean
+  steps: number
+  remoteWait: boolean
+  failed: boolean
+}
 
 // title states the counterexample's scope.
-export const title = 'A remote background process can reacquire before a waiting writer'
+export const title = 'Background steps yield to a waiting writer'
 
-// state keeps each completed background span visible while a writer waits.
+// state shows both the callback bound and the kernel wait graph.
 export const state = (v: WriterWaitState) =>
-  `${v.holder}${v.waiting ? `, writer waiting after ${v.steps} background spans` : ''}`
+  `${v.holder}${v.remoteWait ? ', background waiting on intent' : ''}${
+    v.failed ? ', kernel deadlock' : ''
+  }${v.waiting ? `, writer waiting after ${v.steps} background spans` : ''}`
 
 // step names the lock operation.
 export const step = (action: string) => action
