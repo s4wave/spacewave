@@ -14,6 +14,13 @@ import {
   SheetTitle,
 } from '@s4wave/web/ui/sheet.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { overflowY: 'auto' },
+  rule2: { flexDirection: 'row', justifyContent: 'flex-end' },
+})
+
 // moduleKinds labels the kinds of a plugin's JavaScript modules.
 const moduleKinds: Record<number, string> = {
   [JsModuleKind.BACKEND]: 'Backend',
@@ -54,7 +61,7 @@ export function PluginRepositorySheet({
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent sx={stylexStyles.rule1}>
         <SheetHeader>
           <SheetTitle>Review {repository}</SheetTitle>
           <SheetDescription>
@@ -104,7 +111,7 @@ export function PluginRepositorySheet({
             </>
           )}
         </div>
-        <SheetFooter className="flex-row justify-end">
+        <SheetFooter sx={stylexStyles.rule2}>
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cancel
           </Button>
