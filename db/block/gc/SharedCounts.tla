@@ -33,7 +33,12 @@
 \* The record's split between pages the commit wrote and pages that existed is
 \* Deadlist.Existed, which ReplacementStep.Net derives from the put results.
 \* The code nets a named interval of commits once, where the model queues one
-\* record per commit. Whole-interval netting is not covered by these configs.
+\* record per commit in the sequence configs. The interval config also
+\* composes the complete chain and checks the focused receipt/recount paths
+\* in SharedInterval as separate initial states. The two submodels do not
+\* interleave; failed receipts mixed with arbitrary joined trees remain open.
+\* HELD: the joined branch still lacks complete replay-root hold accounting.
+\* Its CountsCover failure is not yet validated as a Go defect.
 \*
 \* The put is the one place existence is exact, so the Volume counts there a
 \* page the put finds stored whose parent in the new tree it did not also find
@@ -136,8 +141,9 @@ VARIABLES
   ivl,      \* each lineage's commit records since its last Name, oldest first
   pin,      \* each lineage's pinned root, or None
   rel,      \* each page's release records not yet resolved
-  commits
-vars == <<root, stored, extra, queue, pending, ivl, pin, rel, commits>>
+  commits,
+  receiptState \* interval receipt model; inactive in the sequence models
+legacyvars == <<root, stored, extra, queue, pending, ivl, pin, rel, commits>>
 
 Pinned == {pin[l] : l \in {m \in Lineages : pin[m] # None}}
 Named == UNION {Reach(p) : p \in {root[l] : l \in Lineages} \cup Pinned}
@@ -152,7 +158,7 @@ Roots(l) ==
   IF ~Race THEN {"R1", "R2", "X", "X2", "N"}
   ELSE IF l = First THEN {"P1", "N"} ELSE {"P2", "N"}
 
-Init ==
+LegacyInit ==
   /\ root = [l \in Lineages |-> IF l = First /\ ~Race THEN "X" ELSE "N"]
   /\ pin = [l \in Lineages |-> None]
   /\ stored = Named
@@ -171,9 +177,9 @@ Land(l, r) ==
       batch == Reach(r) \ Reach(old)
       present == batch \cap stored
       written == batch \ stored
-      view == IF PutRule = "reported" THEN written ELSE batch
+      view == IF PutRule \in {"reported", "first-receipt"} THEN written ELSE batch
       newHolder(p) == p = r \/ Parent(r, p) \in view
-      atPut == CASE PutRule \in {"batch-parent", "reported"} ->
+      atPut == CASE PutRule \in {"batch-parent", "reported", "first-receipt"} ->
                       {p \in present : Parent(r, p) \notin present}
                  [] PutRule = "every" -> present
                  [] PutRule = "none" -> {}
@@ -183,13 +189,16 @@ Land(l, r) ==
       \* record carries the loss, so it applies after the records before it.
       loss == IF Refined /\ old \in Reach(r) /\ ~newHolder(old)
                 THEN {<<old, 0>>} ELSE {}
-  IN /\ stored' = stored \cup written
+  IN \E encodedFound \in (IF Compose = "interval" THEN SUBSET present ELSE {{}}) :
+     /\ \A p \in encodedFound : p = r \/ Parent(r, p) \in written \cup encodedFound
+     /\ stored' = stored \cup written
      /\ extra' = [p \in Pages |->
                     (IF p \in written THEN 0 ELSE extra[p])
                     + (IF p \in atPut THEN 1 ELSE 0)]
      /\ ivl' = [ivl EXCEPT ![l] = Append(@,
                 [old |-> old, new |-> r, dead |-> dead, loss |-> loss,
-                 written |-> view, put |-> batch, fresh |-> written,
+                 written |-> view, encoded |-> written \cup encodedFound,
+                 put |-> batch, fresh |-> written,
                  counted |-> atPut,
                  done |-> {}, alive |-> {}])]
      /\ root' = [root EXCEPT ![l] = r]
@@ -231,11 +240,44 @@ LastPut(s, p) == LET is == {i \in 1..Len(s) : p \in s[i].put}
 \* One record for interval s, composed as Replacements.Then does: a page that
 \* died and is named again at the end is not dead, and the written set is
 \* keyed by ref.
+\* Successful joined intervals: Net's created/found split, Kept, Held and
+\* Existed. Reach supplies the tree oracle; failed and put-only receipts are
+\* checked separately by SharedInterval. Original pages cannot be found in
+\* the net, even when a later put reports their bytes already stored.
+RECURSIVE ReachKnown(_, _)
+ReachKnown(p, known) == {p} \cup
+  IF p \in known THEN UNION {ReachKnown(k, known) : k \in Kids(p)} ELSE {}
+
+IntervalComposed(s) ==
+  LET old == s[1].old
+      new == s[Len(s)].new
+      allCreated == UNION {s[i].encoded : i \in 1..Len(s)}
+      replaced == UNION {s[i].dead : i \in 1..Len(s)}
+      original == Reach(old)
+      wasFound(p) == IF PutRule = "first-receipt"
+                     THEN p \notin s[FirstPut(s, p)].fresh
+                     ELSE \E i \in 1..Len(s) : p \in s[i].put \ s[i].fresh
+      found == {p \in allCreated \ original : wasFound(p)}
+      created == allCreated \ found
+      live == ReachKnown(new, created \cup found \cup replaced)
+      direct == {new} \cup UNION {Kids(p) : p \in live \cap (created \cup replaced)}
+      readNamed == UNION {Kids(p) : p \in (replaced \cap original) \ live}
+      kept == live \ readNamed
+      held == {p \in kept \cap direct : p \notin replaced \cup allCreated \cup {old, new}}
+      existed == {p \in live : p \in found \/ (p \notin direct /\ p \notin created)}
+      dead == (replaced \cup allCreated) \ live
+      loss == IF old \notin dead /\ old \in existed THEN {<<old, 0>>} ELSE {}
+  IN [old |-> old, new |-> new, dead |-> dead, loss |-> loss,
+      written |-> created, counted |-> held \cup existed, held |-> held,
+      done |-> {}, alive |-> {}]
+
 Composed(s) ==
+  IF Compose = "interval" THEN IntervalComposed(s) ELSE
   LET old == s[1].old
       new == s[Len(s)].new
       dead == UNION {s[i].dead : i \in 1..Len(s)} \ Reach(new)
-      keyed(p) == IF Compose = "first" THEN FirstPut(s, p) ELSE LastPut(s, p)
+      keyed(p) == IF Compose = "first" \/ (Compose = "interval" /\ PutRule = "first-receipt")
+                   THEN FirstPut(s, p) ELSE LastPut(s, p)
       written == {p \in Pages : keyed(p) # 0 /\ p \in s[keyed(p)].fresh}
       newHolder(p) == p = new \/ Parent(new, p) \in written
       \* Under "revived" each commit keeps the root loss it computed with its
@@ -265,9 +307,10 @@ Name(l) ==
      IN /\ queue' = [queue EXCEPT ![l] = @ \o recs]
         \* Each record named adds its hold on its old root, unless the move
         \* already left that hold in place.
-        /\ extra' = IF HoldAtMove THEN extra
-                    ELSE [p \in Pages |-> extra[p]
-                            + Cardinality({i \in 1..Len(recs) : recs[i].old = p})]
+        /\ extra' = [p \in Pages |-> extra[p]
+              + (IF HoldAtMove THEN 0 ELSE Cardinality({i \in 1..Len(recs) : recs[i].old = p}))
+              + (IF Compose = "interval" THEN Cardinality({i \in 1..Len(recs) : p \in recs[i].held}) ELSE 0)]
+
   /\ ivl' = [ivl EXCEPT ![l] = <<>>]
   /\ UNCHANGED <<root, stored, pending, pin, rel, commits>>
 
@@ -293,10 +336,12 @@ Apply(l, p) ==
             names == ~frees
             unlisted == Kids(p) \ rec.dead
             handedOver(c) == c = rec.new \/ Parent(rec.new, c) \in rec.written
+            countedChild(c) == IF Compose = "interval" THEN c \in rec.counted
+                               ELSE ~handedOver(c)
             delta(c) ==
               IF ~Refined THEN (IF names /\ PushDown THEN 1 ELSE 0)
-              ELSE IF names THEN (IF handedOver(c) /\ PushDown THEN 1 ELSE 0)
-              ELSE (IF handedOver(c) THEN 0 ELSE -1)
+              ELSE IF names THEN (IF ~countedChild(c) /\ PushDown THEN 1 ELSE 0)
+              ELSE (IF countedChild(c) THEN -1 ELSE 0)
             rec2 == [rec EXCEPT !.done = @ \cup {p},
                                 !.alive = IF alive THEN @ \cup {p} ELSE @]
         IN /\ stored' = IF frees THEN stored \ {p} ELSE stored
@@ -378,7 +423,7 @@ PutAny == \E l \in Lineages : Put(l)
 
 NameAny == \E l \in Lineages : Name(l)
 
-Next ==
+LegacyNext ==
   \/ \E l \in Lineages : \E r \in Roots(l) : Commit(l, r) \/ Take(l, r)
   \/ PutAny
   \/ \E l \in Lineages : Fail(l)
@@ -386,17 +431,25 @@ Next ==
   \/ ApplyAny
   \/ \E l \in Lineages : Pin(l) \/ Unpin(l)
   \/ ResolveAny
-  \/ UNCHANGED vars
+  \/ UNCHANGED legacyvars
 
-Spec == Init /\ [][Next]_vars /\ WF_vars(ApplyAny) /\ WF_vars(PutAny)
-          /\ WF_vars(NameAny) /\ WF_vars(ResolveAny)
+
+Interval == INSTANCE SharedInterval WITH state <- receiptState, Guard <- PutRule
+vars == <<legacyvars, receiptState>>
+Init == LegacyInit /\ IF Compose = "receipts" THEN Interval!Init
+        ELSE (receiptState = [scenario |-> "off"] \/ (Compose = "interval" /\ Interval!Init))
+Next == IF receiptState.scenario # "off"
+        THEN Interval!Next /\ UNCHANGED legacyvars
+        ELSE LegacyNext /\ UNCHANGED receiptState
+Spec == Init /\ [][Next]_vars /\ WF_vars(ApplyAny /\ UNCHANGED receiptState) /\ WF_vars(PutAny /\ UNCHANGED receiptState)
+          /\ WF_vars(NameAny /\ UNCHANGED receiptState) /\ WF_vars(ResolveAny /\ UNCHANGED receiptState)
 
 Quiet == /\ \A l \in Lineages :
               queue[l] = <<>> /\ pending[l] = None /\ ivl[l] = <<>>
          /\ \A p \in Pages : rel[p] = 0
 
 \* No live root names a freed page.
-NoFreedRead == Named \subseteq stored
+NoFreedRead == IF receiptState.scenario # "off" THEN Interval!NoFreedRead ELSE Named \subseteq stored
 
 \* A page the old and new trees share is stored while the commit waits for
 \* its put: the log marks it counted, and a marked page the put stored afresh
@@ -405,14 +458,14 @@ KeptStored == \A l \in Lineages : pending[l] # None =>
                 (Reach(root[l]) \cap Reach(pending[l])) \subseteq stored
 
 \* A release names a stored page, so no page frees twice.
-ReleasesStored == \A p \in Pages : rel[p] > 0 => p \in stored
+ReleasesStored == IF receiptState.scenario # "off" THEN Interval!ReleasesStored ELSE \A p \in Pages : rel[p] > 0 => p \in stored
 
 \* No count record goes below zero.
-CountsNonNegative == \A p \in Pages : extra[p] >= 0
+CountsNonNegative == IF receiptState.scenario # "off" THEN Interval!CountsNonNegative ELSE \A p \in Pages : extra[p] >= 0
 
 \* Once every record has applied, no count record is below the page's holders
 \* minus one. A count above it leaks; one below it frees a live page.
-CountsCover == Quiet => \A p \in Named : extra[p] >= Holders(p) - 1
+CountsCover == IF receiptState.scenario # "off" THEN Interval!CountsCover ELSE Quiet => \A p \in Named : extra[p] >= Holders(p) - 1
 
 \* Once every record has applied, each count record equals the page's holders
 \* minus one, so the next death of each page frees or keeps it correctly.
