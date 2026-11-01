@@ -279,17 +279,19 @@ func (t *bstoreTracker) openFallbackStore(
 
 // swapRemote replaces the open backend store and closes the previous one.
 func (t *bstoreTracker) swapRemote(next *openBackend) {
-	if prev := t.remote.Swap(next); prev != nil && prev != next {
+	// Publish the handle and wake the waiters before releasing the old store.
+	var prev *openBackend
+	t.remoteBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		prev = t.remote.Swap(next)
+		if prev != next {
+			broadcast()
+		}
+	})
+
+	// Closing a backend may block or call back into the tracker.
+	if prev != nil && prev != next {
 		prev.store.Close()
 	}
-}
-
-// getRemote returns the backend store serving reads, or nil when none is open.
-func (t *bstoreTracker) getRemote() block.StoreOps {
-	if remote := t.remote.Load(); remote != nil {
-		return remote.store
-	}
-	return nil
 }
 
 // SetSQLPrimary makes the account's block stores placed on an SQL backend,

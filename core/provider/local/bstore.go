@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
@@ -59,6 +60,8 @@ type placementState struct {
 	// tracker reports the blocks the volume's reference graph tracks, or nil
 	// when the volume has no graph that can.
 	tracker block_gc.BlockTracker
+	// done closes when this mount ends, including a failed mount or remount.
+	done <-chan struct{}
 	// reads records the blocks read since the last eviction pass.
 	reads readSet
 	// evictGate is held by each eviction pass and by a storage move.
@@ -344,6 +347,8 @@ type bstoreTracker struct {
 	bstoreCtr *ccontainer.CContainer[*BlockStore]
 	// remote is the open storage backend store, or nil.
 	remote atomic.Pointer[openBackend]
+	// remoteBcast serializes remote and placement publication with waiter capture.
+	remoteBcast broadcast.Broadcast
 	// evictGate holds eviction passes off while a storage move fetches the
 	// blocks a backend holds and switches the placement. It outlives each
 	// mount, so a remounted store still waits.
@@ -471,9 +476,9 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	// Track the store's placement, which places new writes, refills evicted
 	// blocks and reclaims backend storage.
-	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit}
+	placement := &placementState{wb: wb, local: localBucket, remote: &t.remote, evictGate: &t.evictGate, evictAdmit: &t.a.evictAdmit, done: ctx.Done()}
 	placement.tracker, _ = t.a.vol.GetRefGraph().(block_gc.BlockTracker)
-	placement.backend.Store(backend)
+	t.setPlacementBackend(placement, backend)
 	if err := placement.reads.load(ctx, wb); err != nil {
 		le.WithError(err).Warn("unable to load the saved block reads, eviction keeps only new reads")
 	}
@@ -583,12 +588,18 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer relBstoreCtrl()
+	defer func() {
+		ctxCancel()
+		relBstoreCtrl()
+	}()
 
 	// Publish the handle until the store unmounts.
 	le.Debug("mounted bstore successfully")
 	t.bstoreCtr.SetValue(bstoreHandle)
 	defer t.bstoreCtr.SetValue(nil)
+
+	// Wake pending reads before controller release or backend teardown waits.
+	defer ctxCancel()
 
 	// Follow placement changes until the store unmounts. The backend receives
 	// the blocks stored before it was chosen as well as new writes.
@@ -610,7 +621,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 			return errors.New("read fallback of the store changed, remounting")
 		}
 		if !next.EqualVT(backend) {
-			placement.backend.Store(next)
+			t.setPlacementBackend(placement, next)
 			if err := wb.SetEnabled(ctx, next != nil); err != nil {
 				return err
 			}
