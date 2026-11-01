@@ -159,8 +159,7 @@ func (w *writer) create() error {
 		logPos:   chunkStart(2),
 		logEnd:   chunkStart(3),
 		memPos:   chunkStart(2),
-		memEnd:   chunkStart(3),
-		logSpare: 3, memSpare: 3,
+		memEnd:   chunkStart(3), memSpare: 3,
 	}
 	if err := s.truncate(fileOff(chunkStart(4))); err != nil {
 		return err
