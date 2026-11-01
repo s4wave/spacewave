@@ -193,6 +193,29 @@ test('parity detects one changed property in both engines at every size', async 
       assert.equal(differences[0]!.after, 'rgb(255, 0, 255)')
     }
 
+    // Cancelling a live readiness wait closes its browser and returns the caller's reason.
+    const stopped = new AbortController()
+    await assert.rejects(
+      capture(
+        {
+          states: [
+            {
+              id: 'cancelled',
+              path: '/',
+              ready: async (page) => {
+                stopped.abort(new Error('cancel pending capture'))
+                await page.locator('#never-ready').waitFor()
+              },
+            },
+          ],
+        },
+        base,
+        join(root, 'cancelled'),
+        stopped.signal,
+      ),
+      /cancel pending capture/,
+    )
+
     // A failed state preserves diagnostics while later states still capture.
     const failureDir = join(root, 'failure')
     await mkdir(failureDir)
