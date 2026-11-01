@@ -477,6 +477,90 @@ test(
               JSON.stringify(resolve('web/style/tokens.stylex.ts')),
             ),
         )
+        // Compare compact and regular sections, including both header action states.
+        const actionProps =
+          version === 'before'
+            ? 'className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-50"'
+            : 'sx={collapsibleSectionActionStyles.button}'
+        main =
+          `import * as stylex from '@stylexjs/stylex';import{CollapsibleSection${version === 'after' ? ',collapsibleSectionActionStyles' : ''}}from'./CollapsibleSection';` +
+          main
+        main = main.replace(
+          '</main>',
+          [false, true]
+            .flatMap((compact) =>
+              [false, true].flatMap((open) =>
+                [false, true].map(
+                  (disabled) =>
+                    `<CollapsibleSection title="Section ${compact} ${open} ${disabled}" compact={${compact}} open={${open}} onOpenChange={()=>{}} icon={<span>!</span>} badge={<span>2</span>} headerActions={<button type="button" disabled={${disabled}} ${actionProps} aria-label="Section action">+</button>}><p>Section content</p></CollapsibleSection>`,
+                ),
+              ),
+            )
+            .join('') + '</main>',
+        )
+        const collapsible = await readFile(
+          version === 'before'
+            ? 'scripts/tailwind-to-stylex/testdata/components/CollapsibleSection.tsx'
+            : 'web/ui/CollapsibleSection.tsx',
+          'utf8',
+        )
+        await writeFile(
+          join(root, 'CollapsibleSection.tsx'),
+          collapsible.replace(
+            /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+            JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+          ),
+        )
+        // Preserve the border mask, configurable gradient and reduced-motion treatment.
+        main = "import{ShineBorder}from'./shine-border';" + main
+        main = main.replace(
+          '</main>',
+          '<div style={{position:"relative",height:48,borderRadius:8}}><ShineBorder/></div><div style={{position:"relative",height:48,borderRadius:8}}><ShineBorder duration={7} borderWidth={2} shineColor={["#22aaff","#ff7733"]}/></div></main>',
+        )
+        await writeFile(
+          join(root, 'shine-border.tsx'),
+          await readFile(
+            version === 'before'
+              ? 'scripts/tailwind-to-stylex/testdata/components/shine-border.tsx'
+              : 'web/ui/shine-border.tsx',
+            'utf8',
+          ),
+        )
+        // Keep header variants, caller overrides and zero/one/multiple viewer names unchanged.
+        main =
+          `import{PanelHeader,PanelHeaderButton}from'./PanelHeader';import{ObjectViewerProvider}from'@s4wave/web/object/ObjectViewerContext.js';` +
+          main
+        main = main.replace(
+          "createRoot(document.getElementById('root')!).render",
+          `const panelOverrides=stylex.create({header:{paddingInline:'calc(var(--spacing) * 3)'},button:{padding:'calc(var(--spacing) * 2)'}});const panelViewers=['Text','Raw'].map(name=>({componentID:name,typeID:'fixture',name,component:()=>null}));createRoot(document.getElementById('root')!).render`,
+        )
+        main = main.replace(
+          '</main>',
+          ['default', 'secondary', 'transparent', 'compact']
+            .flatMap((variant) =>
+              [0, 1, 2].map(
+                (count) =>
+                  `<ObjectViewerProvider value={{visibleComponents:panelViewers.slice(0,${count}),selectedComponent:${count ? 'panelViewers[0]' : 'undefined'},onSelectComponent:()=>{},setObjectName:()=>{}}}><PanelHeader variant="${variant}" height={${variant === 'compact' ? 40 : 25}}><span>Header content</span><PanelHeaderButton title="Header action">+</PanelHeaderButton></PanelHeader></ObjectViewerProvider>`,
+              ),
+            )
+            .join('') +
+            `<PanelHeader ${version === 'before' ? 'className="px-3"' : 'sx={panelOverrides.header}'}><PanelHeaderButton title="Override action" ${version === 'before' ? 'className="p-2"' : 'sx={panelOverrides.button}'}>+</PanelHeaderButton></PanelHeader></main>`,
+        )
+        const panelHeader = await readFile(
+          version === 'before'
+            ? 'scripts/tailwind-to-stylex/testdata/components/PanelHeader.tsx'
+            : 'web/ui/PanelHeader.tsx',
+          'utf8',
+        )
+        await writeFile(
+          join(root, 'PanelHeader.tsx'),
+          panelHeader
+            .replace('../style/utils.js', '@s4wave/web/style/utils.js')
+            .replace(
+              /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+              JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+            ),
+        )
         await writeFile(
           join(root, 'main.tsx'),
           version === 'before'

@@ -55,16 +55,6 @@ describe('PanelHeader', () => {
     )
   })
 
-  it('applies custom className', () => {
-    render(
-      <PanelHeader className="mt-1">
-        <span>Content</span>
-      </PanelHeader>,
-    )
-    const container = screen.getByText('Content').parentElement
-    expect(container?.className).toContain('mt-1')
-  })
-
   it('renders without context and shows no selector', () => {
     render(
       <PanelHeader>
@@ -76,6 +66,7 @@ describe('PanelHeader', () => {
   })
 
   it('renders with context and multiple components showing selector', () => {
+    // Mount the header with two available viewers and its current selection.
     const components = [makeComponent('Properties'), makeComponent('Raw Data')]
     const ctx: ObjectViewerContextValue = {
       visibleComponents: components,
@@ -95,6 +86,7 @@ describe('PanelHeader', () => {
   })
 
   it('opens the viewer menu below the header', async () => {
+    // Mount the controlled viewer menu with its current selection.
     const user = userEvent.setup()
     const components = [makeComponent('Properties'), makeComponent('Raw Data')]
     const ctx: ObjectViewerContextValue = {
@@ -109,14 +101,17 @@ describe('PanelHeader', () => {
       </ObjectViewerProvider>,
     )
 
+    // Open the live menu from the selected viewer's trigger.
     await user.click(screen.getByRole('button', { name: 'Properties' }))
 
+    // The menu opens below its header and offers the other viewer.
     const menu = screen.getByRole('menu')
     expect(menu.getAttribute('data-side')).toBe('bottom')
     expect(screen.getByRole('menuitem', { name: 'Raw Data' })).toBeTruthy()
   })
 
   it('renders with context and single component showing static name', () => {
+    // A single available viewer renders its static name alongside the header content.
     const components = [makeComponent('Properties')]
     const ctx: ObjectViewerContextValue = {
       visibleComponents: components,
@@ -151,13 +146,16 @@ describe('PanelHeaderButton', () => {
   })
 
   it('calls onClick when clicked', async () => {
+    // Mount an action whose callback belongs to its caller.
     const user = userEvent.setup()
     const onClick = vi.fn()
     render(<PanelHeaderButton onClick={onClick}>Click</PanelHeaderButton>)
 
+    // Activate the real header button through its ordinary click event.
     const button = screen.getByRole('button', { name: 'Click' })
     await user.click(button)
 
+    // One activation reaches the supplied action once.
     expect(onClick).toHaveBeenCalledOnce()
   })
 
@@ -165,11 +163,5 @@ describe('PanelHeaderButton', () => {
     render(<PanelHeaderButton title="Close panel">X</PanelHeaderButton>)
     const button = screen.getByRole('button', { name: 'X' })
     expect(button.getAttribute('title')).toBe('Close panel')
-  })
-
-  it('applies custom className', () => {
-    render(<PanelHeaderButton className="mt-1">Btn</PanelHeaderButton>)
-    const button = screen.getByRole('button', { name: 'Btn' })
-    expect(button.className).toContain('mt-1')
   })
 })

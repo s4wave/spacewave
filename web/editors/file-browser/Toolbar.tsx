@@ -32,6 +32,12 @@ import * as stylex from '@stylexjs/stylex'
 import { layout as themeLayout } from '../../style/tokens.stylex.js'
 
 const stylexStyles = stylex.create({
+  header: {
+    minHeight: {
+      default: null,
+      '@media (pointer: coarse)': `calc(${themeLayout['--spacing']} * 11)`,
+    },
+  },
   rule1: {
     minHeight: {
       default: null,
@@ -259,7 +265,7 @@ export function Toolbar({
       ref={toolbarRef}
       variant="compact"
       height={height}
-      className="[@media(pointer:coarse)]:min-h-11"
+      sx={stylexStyles.header}
     >
       {!hideNav && wide && (
         <ToolbarNav

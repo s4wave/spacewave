@@ -2,6 +2,7 @@ import { LuBuilding2, LuPlus } from 'react-icons/lu'
 
 import { SharedObjectDetails } from '@s4wave/app/sobject/SharedObjectDetails.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { collapsibleSectionActionStyles } from '@s4wave/web/ui/CollapsibleSection.js'
 
 import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
 import { SpacePlugins } from './SpacePlugins.js'
@@ -91,7 +92,8 @@ export function SpaceDetails({
         <button
           type="button"
           onClick={onCreateObject}
-          className="text-foreground-alt hover:text-foreground flex size-4 items-center justify-center transition-colors"
+
+          sx={collapsibleSectionActionStyles.button}
           aria-label="Create object"
           title="Create object"
         >
