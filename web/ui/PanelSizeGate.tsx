@@ -67,6 +67,7 @@ export function PanelSizeGate({
   sx?: ComponentStyles
   className?: never
 }) {
+  // Keep the mounted container and its latest measured size together.
   const containerRefValue = useRef<HTMLDivElement | null>(null)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   const [size, setSize] = useState<PanelSize>(defaultSize)
@@ -94,7 +95,9 @@ export function PanelSizeGate({
     [setMeasuredSize],
   )
 
+  // Watch layout changes for the current container and disconnect on replacement.
   useEffect(() => {
+    // Subscribe only when the browser can observe the mounted container.
     if (!container) return
     if (typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver((entries) => {
@@ -106,6 +109,7 @@ export function PanelSizeGate({
     return () => observer.disconnect()
   }, [container, setMeasuredSize])
 
+  // Choose the compact fallback from the measured unscaled panel dimensions.
   const tooSmall =
     size.measured &&
     ((minWidth > 0 && size.width < minWidth) ||
@@ -122,6 +126,7 @@ export function measurePanelSize(
   el: Element,
   observedRect?: DOMRectReadOnly,
 ): PanelSize {
+  // Undo ancestor transforms before comparing the available layout dimensions.
   const rect = el.getBoundingClientRect()
   const scale = getCumulativeTransformScale(el)
   const rectWidth = scale.x ? rect.width / scale.x : rect.width
@@ -158,6 +163,7 @@ function getCumulativeTransformScale(el: Element): ElementScale {
 }
 
 function getElementTransformScale(el: Element): ElementScale {
+  // Read this element's scale from its supported CSS transform representation.
   const transform = getComputedStyle(el).transform
   if (!transform || transform === 'none') return identityScale
   const parsed = parseTransformScale(transform)
@@ -173,6 +179,7 @@ function getElementTransformScale(el: Element): ElementScale {
 }
 
 function parseTransformScale(transform: string): ElementScale | null {
+  // Read an explicit scale transform before trying matrix representations.
   const scaleMatch = transform.match(
     /^scale\(([^,\s)]+)(?:[,\s]+([^,\s)]+))?\)$/,
   )
@@ -185,6 +192,7 @@ function parseTransformScale(transform: string): ElementScale | null {
     }
   }
 
+  // Recover both axis scales from a two-dimensional transform matrix.
   const matrixMatch = transform.match(/^matrix\((.+)\)$/)
   if (matrixMatch) {
     const values = matrixMatch[1].split(',').map((v) => Number(v.trim()))
@@ -196,6 +204,7 @@ function parseTransformScale(transform: string): ElementScale | null {
     }
   }
 
+  // Recover both axis scales from a three-dimensional transform matrix.
   const matrix3dMatch = transform.match(/^matrix3d\((.+)\)$/)
   if (matrix3dMatch) {
     const values = matrix3dMatch[1].split(',').map((v) => Number(v.trim()))

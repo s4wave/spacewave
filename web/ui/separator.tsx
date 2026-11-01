@@ -19,7 +19,7 @@ function Separator({
 }: Omit<
   React.ComponentPropsWithRef<typeof SeparatorPrimitive.Root>,
   'className'
-> & { sx?: ComponentStyles }) {
+> & { sx?: ComponentStyles; className?: never }) {
   return (
     <SeparatorPrimitive.Root
       decorative={decorative}

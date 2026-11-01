@@ -1,107 +1,179 @@
+import type { StyleXStyles as ComponentStyles } from '@stylexjs/stylex'
 import * as React from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
+import * as stylex from '@stylexjs/stylex'
+import {
+  layout as themeLayout,
+  utilityState as themeUtilityState,
+  colors as themeColors,
+  fonts as themeFonts,
+} from '../style/tokens.stylex.js'
 
-function Card({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="card"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
-          className,
-        )
-      }
-      {...props}
-    />
-  )
+const styles = stylex.create({
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `calc(${themeLayout['--spacing']} * 6)`,
+    borderRadius: 'var(--radius-xl)',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    borderWidth: '1px',
+    backgroundColor: themeColors['--color-card'],
+    paddingBlock: `calc(${themeLayout['--spacing']} * 6)`,
+    color: themeColors['--color-card-foreground'],
+    '--tw-shadow':
+      '0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a)',
+    boxShadow:
+      'var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+  },
+  header: {
+    container: 'card-header / inline-size',
+    display: 'grid',
+    gridAutoRows: 'min-content',
+    gridTemplateRows: 'auto auto',
+    alignItems: 'flex-start',
+    gap: `calc(${themeLayout['--spacing']} * 2)`,
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  headerBorder: {
+    borderBottomStyle: themeUtilityState['--tw-border-style'],
+    borderBottomWidth: '1px',
+    paddingBottom: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  title: {
+    '--tw-leading': '1',
+    lineHeight: 1,
+    '--tw-font-weight': 'var(--font-weight-semibold)',
+    fontWeight: 'var(--font-weight-semibold)',
+  },
+  description: {
+    fontSize: themeFonts['--text-sm'],
+    lineHeight: `var(--tw-leading, ${themeFonts['--text-sm--line-height']})`,
+    color: themeColors['--color-muted-foreground'],
+  },
+  action: {
+    gridColumnStart: 2,
+    gridRow: 'span 2 / span 2',
+    gridRowStart: 1,
+    alignSelf: 'flex-start',
+    justifySelf: 'flex-end',
+  },
+  content: { paddingInline: `calc(${themeLayout['--spacing']} * 6)` },
+  footer: {
+    display: 'flex',
+    alignItems: 'center',
+    paddingInline: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  footerBorder: {
+    borderTopStyle: themeUtilityState['--tw-border-style'],
+    borderTopWidth: '1px',
+    paddingTop: `calc(${themeLayout['--spacing']} * 6)`,
+  },
+  headerAction: {
+    gridTemplateColumns: {
+      default: null,
+      [stylex.when.descendant('[data-slot="card-action"]')]: '1fr auto',
+    },
+  },
+})
+
+function Card({
+  sx,
+  ...props
+}: Omit<React.ComponentProps<'div'>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return <div data-slot="card" sx={[styles.card, sx]} {...props} />
 }
 
-function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
+// CardHeader keeps the action column and optional separator with its content.
+function CardHeader({
+  sx,
+  bordered = false,
+  ...props
+}: Omit<React.ComponentProps<'div'> & { bordered?: boolean }, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <div
       data-slot="card-header"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [.border-b]:pb-6 */ cn(
-          '@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6',
-          className,
-        )
-      }
+      sx={[
+        styles.header,
+        styles.headerAction,
+        !!bordered && styles.headerBorder,
+        sx,
+      ]}
       {...props}
     />
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="card-title"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'leading-none font-semibold',
-          className,
-        )
-      }
-      {...props}
-    />
-  )
+function CardTitle({
+  sx,
+  ...props
+}: Omit<React.ComponentProps<'div'>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return <div data-slot="card-title" sx={[styles.title, sx]} {...props} />
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
+function CardDescription({
+  sx,
+  ...props
+}: Omit<React.ComponentProps<'div'>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <div
       data-slot="card-description"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'text-muted-foreground text-sm',
-          className,
-        )
-      }
+      sx={[styles.description, sx]}
       {...props}
     />
   )
 }
 
-function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
+function CardAction({
+  sx,
+  ...props
+}: Omit<React.ComponentProps<'div'>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <div
       data-slot="card-action"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'col-start-2 row-span-2 row-start-1 self-start justify-self-end',
-          className,
-        )
-      }
+      {...stylex.props(styles.action, sx, stylex.defaultMarker())}
       {...props}
     />
   )
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="card-content"
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'px-6',
-          className,
-        )
-      }
-      {...props}
-    />
-  )
+function CardContent({
+  sx,
+  ...props
+}: Omit<React.ComponentProps<'div'>, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
+  return <div data-slot="card-content" sx={[styles.content, sx]} {...props} />
 }
 
-function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
+// CardFooter adds the top separator and its spacing when bordered is set.
+function CardFooter({
+  sx,
+  bordered = false,
+  ...props
+}: Omit<React.ComponentProps<'div'> & { bordered?: boolean }, 'className'> & {
+  sx?: ComponentStyles
+  className?: never
+}) {
   return (
     <div
       data-slot="card-footer"
-      className={
-        /* TODO(stylex): a descendant, group, peer or compound selector: [.border-t]:pt-6 */ cn(
-          'flex items-center px-6 [.border-t]:pt-6',
-          className,
-        )
-      }
+      sx={[styles.footer, !!bordered && styles.footerBorder, sx]}
       {...props}
     />
   )

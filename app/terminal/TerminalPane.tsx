@@ -24,6 +24,12 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { resolveTerminalTheme } from './terminalTheme.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 const terminalEncoder = new TextEncoder()
 const maxQueuedTerminalFrames = 256
 
@@ -74,6 +80,7 @@ export function TerminalPane({
   onBackToSettings,
   describeFailure = safeTerminalFailureDetail,
 }: TerminalPaneProps) {
+  // Keep the terminal host, current stream and visible connection state together.
   const terminalHostRef = useRef<HTMLDivElement | null>(null)
   const terminalQueueRef = useRef<TerminalFrameQueue | null>(null)
   const stopTerminalRef = useRef<(() => Promise<void>) | null>(null)
@@ -86,17 +93,22 @@ export function TerminalPane({
     0,
   )
 
+  // Stop the current terminal before requesting a fresh connection.
   const handleLocalRetry = useCallback(async () => {
     await stopTerminalRef.current?.()
     retryConnection()
   }, [])
 
+  // Replace a connection only after the preceding terminal has stopped.
   useEffect(() => {
+    // Retain cancellation and cleanup for this connection attempt.
     let cancelled = false
     let stopAttempt = async () => {}
     const previousStopped = stopTerminalRef.current?.() ?? Promise.resolve()
 
+    // Start this attempt once the previous terminal's cleanup completes.
     void previousStopped.then(() => {
+      // Require the active host and connector before opening another terminal.
       if (cancelled) return
       const host = terminalHostRef.current
       if (!host) return
@@ -104,6 +116,7 @@ export function TerminalPane({
       setTrustChallenge(null)
       if (!connectTerminal) return
 
+      // Allocate cancellation, frame delivery and the terminal renderer for this attempt.
       const rpcAbort = new AbortController()
       const renderAbort = new AbortController()
       const queue = createTerminalFrameQueue()
@@ -115,6 +128,8 @@ export function TerminalPane({
       })
       const fit = new FitAddon()
       term.loadAddon(fit)
+
+      // Resize locally and report the terminal grid through its frame queue.
       const fitAndReportSize = () => {
         try {
           fit.fit()
@@ -130,6 +145,7 @@ export function TerminalPane({
       term.open(host)
       fitAndReportSize()
 
+      // Forward terminal input through the bounded frame queue.
       const disposeInput = term.onData((chunk) => {
         if (!chunk) return
         queue.push({
@@ -138,12 +154,14 @@ export function TerminalPane({
         })
       })
 
+      // Report grid changes when the terminal host is resized.
       const resizeObserver =
         typeof ResizeObserver === 'undefined'
           ? null
           : new ResizeObserver(() => fitAndReportSize())
       resizeObserver?.observe(host)
 
+      // Render the connected frame stream and update its visible connection state.
       const terminalDone = readTerminalFrames(
         connectTerminal(queue.stream(), rpcAbort.signal),
         term,
@@ -157,10 +175,12 @@ export function TerminalPane({
         },
       )
 
+      // Share one close handshake across every caller that stops this terminal.
       let stopping: Promise<void> | null = null
       stopAttempt = () => {
         if (stopping) return stopping
         stopping = (async () => {
+          // Finish rendering and deliver close before aborting and disposing the transport.
           renderAbort.abort()
           if (terminalQueueRef.current === queue) {
             terminalQueueRef.current = null
@@ -187,6 +207,7 @@ export function TerminalPane({
     }
   }, [connectTerminal, connectionAttempt, describeFailure])
 
+  // Send the person's host-key trust response through the active terminal queue.
   const respondToSshTrust = useCallback((accepted: boolean) => {
     const queue = terminalQueueRef.current
     if (!queue) return
@@ -251,7 +272,7 @@ function TerminalPaneStatusLayer({
           onRetry,
           onBackToSettings,
         })}
-        className="w-full max-w-sm"
+        sx={stylexStyles.rule1}
       />
     </div>
   )
@@ -319,6 +340,7 @@ function errorMessage(error: unknown): string | undefined {
 }
 
 export function safeTerminalFailureDetail(rawError?: string): string {
+  // Map known terminal failures to their existing recovery guidance.
   const normalized = rawError?.toLowerCase() ?? ''
   if (normalized.includes('cli-session-failed')) {
     return 'The Spacewave CLI connection ended. Retry to start a new CLI session.'
@@ -338,6 +360,8 @@ export function safeTerminalFailureDetail(rawError?: string): string {
   ) {
     return 'The SSH host rejected the username or credentials. Check the host settings, then retry.'
   }
+
+  // Distinguish rejected SSH connections from unreachable hosts.
   if (
     normalized.includes('connection refused') ||
     normalized.includes('actively refused')
@@ -352,6 +376,8 @@ export function safeTerminalFailureDetail(rawError?: string): string {
   ) {
     return 'The SSH host could not be reached. Check its address and network connection, then retry.'
   }
+
+  // Keep host identity and key failures on their specific recovery paths.
   if (
     normalized.includes('host key') &&
     (normalized.includes('not pinned') || normalized.includes('not trusted'))
@@ -368,11 +394,14 @@ export function safeTerminalFailureDetail(rawError?: string): string {
 }
 
 function createTerminalFrameQueue(): TerminalFrameQueue {
+  // Keep queued frames, reader notifications and close acknowledgement together.
   const frames: TerminalFrame[] = []
   const waiters: Array<() => void> = []
   const closeWaiters: Array<() => void> = []
   const closed = { value: false }
   const started = { value: false }
+
+  // Wake waiting readers and acknowledge delivery of the terminal close frame.
   const wake = () => {
     while (waiters.length !== 0) {
       waiters.shift()?.()
@@ -387,6 +416,8 @@ function createTerminalFrameQueue(): TerminalFrameQueue {
       closeWaiters.shift()?.()
     }
   }
+
+  // Expose the bounded writer, close handshake and asynchronous frame reader.
   return {
     started() {
       return started.value
@@ -413,6 +444,7 @@ function createTerminalFrameQueue(): TerminalFrameQueue {
         [Symbol.asyncIterator](): AsyncIterator<TerminalFrame> {
           started.value = true
           const next = (): Promise<IteratorResult<TerminalFrame>> => {
+            // Deliver queued frames in order and acknowledge the terminal close frame.
             if (closeDelivered.value) {
               resolveClose()
               return Promise.resolve({ done: true, value: undefined })

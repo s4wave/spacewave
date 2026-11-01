@@ -45,6 +45,7 @@ export function DeleteBillingAccountSection({
   disabledReasonOverride,
   onDeleted,
 }: DeleteBillingAccountSectionProps) {
+  // Keep the confirmation dialog, typed acknowledgement and deletion result together.
   const session = SessionContext.useContext().value
   const [open, setOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
@@ -52,6 +53,7 @@ export function DeleteBillingAccountSection({
   const [error, setError] = useState<string | null>(null)
   const confirmInputId = useId()
 
+  // Derive deletion eligibility from the account status and explicit acknowledgement.
   const disabledReason =
     disabledReasonOverride ??
     deleteBillingAccountDisabledReason(status, assigneeCount)
@@ -61,6 +63,7 @@ export function DeleteBillingAccountSection({
     node?.focus()
   }, [])
 
+  // Keep the dialog open during deletion and clear acknowledgement when it closes.
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (deleting) return
@@ -73,6 +76,7 @@ export function DeleteBillingAccountSection({
     [deleting],
   )
 
+  // Delete only the acknowledged account and report the completed operation.
   const handleDelete = useCallback(async () => {
     if (!session || !billingAccountId || deleting || !confirmed) return
     setDeleting(true)
@@ -94,6 +98,7 @@ export function DeleteBillingAccountSection({
     onDeleted,
   ])
 
+  // Expose the deletion trigger with the current eligibility reason.
   const button = (
     <DashboardButton
       icon={<LuTrash2 className="size-3" />}

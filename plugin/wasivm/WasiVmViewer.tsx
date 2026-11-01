@@ -55,6 +55,12 @@ import {
   type WasiVmWindowView,
 } from './WasiVmWindow.js'
 
+import * as stylex from '@stylexjs/stylex'
+
+const stylexStyles = stylex.create({
+  rule1: { width: '100%', maxWidth: 'var(--container-sm)' },
+})
+
 // readLinkedKey reads the key of the first object the VM at objectKey links to
 // with predicate, or "" when it has none.
 async function readLinkedKey(
@@ -142,6 +148,7 @@ function useWasiVm(
     [objectKey],
   )
 
+  // Expose the mounted VM's configuration and its current loading result.
   const vm = vmResource.value ?? WasiVm.create()
   const initPath = vm.config?.initPath || DEFAULT_WASIVM_INIT_PATH
   return {
@@ -225,7 +232,7 @@ function WasiVmTransitionCard({ title, detail }: WasiVmTransitionCardProps) {
     <div className="flex min-h-0 flex-1 items-center justify-center p-4">
       <LoadingCard
         view={{ state: 'active', title, detail }}
-        className="w-full max-w-sm"
+        sx={stylexStyles.rule1}
       />
     </div>
   )
@@ -265,7 +272,7 @@ function WasiVmLoadingView({ loadError }: { loadError?: Error | null }) {
             title: 'Loading virtual machine',
             detail: 'Reading its settings from this Space.',
           }}
-          className="w-full max-w-sm"
+          sx={stylexStyles.rule1}
         />
       )}
     </div>
@@ -294,6 +301,7 @@ function WasiVmRunningBody({
   view,
   showDisplay,
 }: WasiVmRunningBodyProps) {
+  // Choose the direct VM display when no window route is selected.
   const route = view.route
   if (!route) {
     return (
@@ -429,6 +437,7 @@ export default function WasiVmViewer({
   worldState,
   spaceContents,
 }: ObjectViewerComponentProps) {
+  // Resolve this VM's object, current resources and operation controls.
   const objectKey = getObjectKey(objectInfo)
   const contextContentsResource = SpaceContentsContext.useContext()
   const contents = useResourceValue(spaceContents ?? contextContentsResource)
@@ -442,6 +451,8 @@ export default function WasiVmViewer({
     WasiVmHandle,
     WasiVmTypeID,
   )
+
+  // Watch windows and downloads for this VM run before resolving its route.
   const windows = useWasiVmWindows(handleResource, vm.runGeneration)
   const downloads = useWasiVmDownloads(handleResource, vm.runGeneration)
   const view = useWasiVmWindowRoute(objectKey, vm.runGeneration, windows)
@@ -453,6 +464,7 @@ export default function WasiVmViewer({
     request(() => requestWasiVmState(world, contents, objectKey, target))
   }
 
+  // Wait for VM configuration before choosing its active or stopped view.
   if (!vm.loaded) {
     return <WasiVmLoadingView loadError={vm.loadError} />
   }
