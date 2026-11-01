@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, open } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { createWriteStream } from 'node:fs'
 import { Readable } from 'node:stream'
@@ -7,11 +7,8 @@ import { pipeline } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
 
 import { capture, type ParityManifest } from './style-parity/capture.js'
-import {
-  compareSnapshot,
-  type CaptureIndex,
-  type Snapshot,
-} from './style-parity/model.js'
+import type { CaptureIndex } from './style-parity/model.js'
+import { compareCaptures } from './style-parity/compare.js'
 
 // main dispatches capture and comparison without starting an application server.
 async function main(argv: string[]) {
@@ -94,24 +91,34 @@ async function compare(beforeDir: string, afterDir: string, out: string) {
   // Stream each screen's differences with backpressure and propagated I/O errors.
   await mkdir(resolve(out, '..'), { recursive: true })
   let differences = 0
+  let rasterVariances = 0
+  const rasterPath = out.replace(/\.jsonl$/, '') + '.raster.jsonl'
+  const rasterReport = await open(rasterPath, 'w')
   async function* rows() {
     for (const path of before.snapshots) {
-      const oldSnapshot: Snapshot = JSON.parse(
-        await readFile(join(beforeDir, path), 'utf8'),
-      )
-      const newSnapshot: Snapshot = JSON.parse(
-        await readFile(join(afterDir, path), 'utf8'),
-      )
-      for (const difference of compareSnapshot(oldSnapshot, newSnapshot)) {
+      for await (const difference of compareCaptures(
+        join(beforeDir, path),
+        join(afterDir, path),
+        async (variance) => {
+          rasterVariances++
+          await rasterReport.write(JSON.stringify(variance) + '\n')
+        },
+      )) {
         differences++
         yield `${JSON.stringify(difference)}\n`
       }
     }
   }
-  await pipeline(Readable.from(rows()), createWriteStream(out))
+  try {
+    await pipeline(Readable.from(rows()), createWriteStream(out))
+  } finally {
+    await rasterReport.close()
+  }
 
   // A difference fails the command while retaining its complete report.
-  console.log(`${differences} differences; report: ${out}`)
+  console.log(
+    `${differences} differences; ${rasterVariances} one-level raster variations; report: ${out}; raster report: ${rasterPath}`,
+  )
   if (differences) process.exitCode = 1
 }
 
