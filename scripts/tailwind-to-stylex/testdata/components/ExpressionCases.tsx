@@ -36,6 +36,20 @@ export function ExpressionCases() {
       <span className={combine(rowClasses, recipe({ tone: null }))}>
         Inherit
       </span>
+      {[false, true].map((selected) => (
+        <button
+          type="button"
+          key={String(selected)}
+          className={combine(
+            'inline-flex px-2',
+            selected
+              ? 'bg-brand/10 text-foreground'
+              : 'text-foreground/90 hover:bg-foreground/5',
+          )}
+        >
+          {selected ? 'Selected branch' : 'Unselected branch'}
+        </button>
+      ))}
     </div>
   )
 }

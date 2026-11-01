@@ -589,7 +589,7 @@ test(
             ready,
             setup: async (page: import('playwright').Page) => {
               await page
-                .getByRole('button', { name: 'example', exact: true })
+                .getByRole('button', { name: 'Unselected branch', exact: true })
                 .hover()
             },
           },
