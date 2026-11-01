@@ -18,6 +18,9 @@ const projectSources = [
   'app/vm/VmErrorBanner.tsx',
   'plugin/notes/blog/TagChip.tsx',
   'web/ui/InfoCard.tsx',
+  'web/ui/separator.tsx',
+  'web/ui/EmptyState.tsx',
+  'web/ui/ErrorState.tsx',
   'scripts/tailwind-to-stylex/testdata/components/ExpressionCases.tsx',
   'scripts/tailwind-to-stylex/testdata/components/OwnedStyles.tsx',
 ]
@@ -40,6 +43,8 @@ test(
     )
     assert.equal(shadowed.converted, 0)
     assert.equal(shadowed.remaining.length, 1)
+    const mixed = `function Mixed({className,sx}:{className?:string;sx?:unknown}){return <div className={className}/>}`
+    assert.equal(prepareComponentStyles(mixed, 'mixed.tsx').source, mixed)
     const servers: Awaited<ReturnType<typeof preview>>[] = []
     try {
       for (const version of ['before', 'after']) {
@@ -49,9 +54,17 @@ test(
           join(root, 'index.html'),
           '<!doctype html><html lang="en"><head></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>',
         )
+        const main = `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{Separator}from'./separator';import{EmptyState}from'./EmptyState';import{ErrorState}from'./ErrorState';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(resolve('web/style/app.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/><Separator/><EmptyState title="Empty"/><EmptyState title="Compact" variant="compact" action={{label:'Create',onClick:()=>{}}}/><EmptyState title="Panel" variant="panel" className="p-6"/><ErrorState message="Try again" onRetry={()=>{}}/><ErrorState message="Inline" variant="inline"/><ErrorState message="Fullscreen" variant="fullscreen" className="p-6"/></main>);`
         await writeFile(
           join(root, 'main.tsx'),
-          `import React from 'react';import{createRoot}from'react-dom/client';import{VmErrorBanner}from'./VmErrorBanner';import{TagChip}from'./TagChip';import{InfoCard}from'./InfoCard';import{ExpressionCases}from'./ExpressionCases';import{OwnedStyles}from'./OwnedStyles';import${JSON.stringify(resolve('web/style/app.css'))};createRoot(document.getElementById('root')!).render(<main><VmErrorBanner title="VM unavailable" message="Choose an available image to continue."/><TagChip tag="example"/><InfoCard title="Status" icon={<span>!</span>}>Ready</InfoCard><InfoCard compact title="Compact">Ready</InfoCard><InfoCard icon={<span>!</span>}>Untitled</InfoCard><ExpressionCases/><OwnedStyles/></main>);`,
+          version === 'before'
+            ? main
+            : transform(main, join(root, 'main.tsx'), oracle, {
+                components: new Set(['Separator', 'EmptyState', 'ErrorState']),
+              }).source.replace(
+                /(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js/g,
+                resolve('web/style/tokens.stylex.ts'),
+              ),
         )
         for (const file of projectSources) {
           const source = await readFile(
@@ -61,13 +74,15 @@ test(
             ),
             'utf8',
           )
-          const prepare = file.endsWith('/OwnedStyles.tsx')
+          const componentApi =
+            /\/(OwnedStyles|separator|EmptyState|ErrorState)\.tsx$/.test(file)
+          const prepare = componentApi
             ? prepareComponentStyles
             : (source: string) => ({ source, components: new Set<string>() })
           const prepared = prepare(source, file)
           const options = {
             components: prepared.components,
-            componentProps: file.endsWith('/OwnedStyles.tsx'),
+            componentProps: componentApi,
           }
           const migration = transform(prepared.source, file, oracle, options)
           assert.equal(migration.remaining.length, 0, file)
@@ -90,10 +105,15 @@ test(
                   !file.endsWith('/OwnedStyles.tsx')
                 ? await readFile(file, 'utf8')
                 : migration.source
-            ).replace(
-              /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
-              JSON.stringify(resolve('web/style/tokens.stylex.ts')),
-            ),
+            )
+              .replace(
+                /(['"])(?:\.\.\/)+(?:web\/)?style\/tokens\.stylex\.js\1/g,
+                JSON.stringify(resolve('web/style/tokens.stylex.ts')),
+              )
+              .replace(
+                /(['"])\.\/button\.js\1/g,
+                JSON.stringify(resolve('web/ui/button.tsx')),
+              ),
           )
         }
         const config = {
