@@ -1,4 +1,4 @@
-import { cn } from '@s4wave/web/style/utils.js'
+import type { StyleXStyles } from '@stylexjs/stylex'
 
 import * as stylex from '@stylexjs/stylex'
 import {
@@ -6,15 +6,44 @@ import {
   utilityState as themeUtilityState,
   colors as themeColors,
   fonts as themeFonts,
+  motion as themeMotion,
 } from '../style/tokens.stylex.js'
 
-const stylexStyles = stylex.create({
-  rule1: {
+const styles = stylex.create({
+  root: {
+    width: '100%',
+    borderRadius: 'var(--radius-md)',
+    borderWidth: '1px',
+    borderStyle: themeUtilityState['--tw-border-style'],
+    padding: `calc(${themeLayout['--spacing']} * 2.5)`,
+    textAlign: 'left',
+    transitionProperty: 'all',
+    transitionDuration: '.2s',
+    '--tw-duration': '.2s',
+    transitionTimingFunction: `var(--tw-ease, ${themeMotion['--default-transition-timing-function']})`,
+    cursor: { default: null, ':disabled': 'not-allowed' },
+    opacity: { default: null, ':disabled': 0.6 },
+  },
+  selected: {
+    borderColor: `color-mix(in oklab, ${themeColors['--color-brand']} 30%, transparent)`,
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 5%, transparent)`,
+  },
+  unselected: {
+    borderColor: {
+      default: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
+      '@media (hover: hover)': {
+        default: null,
+        ':enabled:hover': `color-mix(in oklab, ${themeColors['--color-foreground']} 20%, transparent)`,
+      },
+    },
+    backgroundColor: `color-mix(in oklab, ${themeColors['--color-background']} 20%, transparent)`,
+  },
+  row: {
     display: 'flex',
     alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 3)`,
   },
-  rule2: {
+  radio: {
     display: 'flex',
     width: `calc(${themeLayout['--spacing']} * 4)`,
     height: `calc(${themeLayout['--spacing']} * 4)`,
@@ -25,32 +54,32 @@ const stylexStyles = stylex.create({
     borderStyle: themeUtilityState['--tw-border-style'],
     borderWidth: '2px',
   },
-  rule3: { borderColor: themeColors['--color-brand'] },
-  rule4: {
+  selectedBorder: { borderColor: themeColors['--color-brand'] },
+  unselectedBorder: {
     borderColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 30%, transparent)`,
   },
-  rule5: {
+  dot: {
     width: `calc(${themeLayout['--spacing']} * 2)`,
     height: `calc(${themeLayout['--spacing']} * 2)`,
     borderRadius: '3.40282e38px',
     backgroundColor: themeColors['--color-brand'],
   },
-  rule6: { color: themeColors['--color-foreground-alt'] },
-  rule7: { color: themeColors['--color-brand'] },
-  rule8: { minWidth: 0, flex: 1 },
-  rule9: {
+  icon: { color: themeColors['--color-foreground-alt'] },
+  selectedIcon: { color: themeColors['--color-brand'] },
+  body: { minWidth: 0, flex: 1 },
+  heading: {
     display: 'flex',
     alignItems: 'center',
     gap: `calc(${themeLayout['--spacing']} * 2)`,
   },
-  rule10: {
+  label: {
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     fontWeight: themeFonts['--font-weight-medium'],
     color: themeColors['--color-foreground'],
   },
-  rule11: {
+  tag: {
     borderRadius: '.25rem',
     paddingInline: `calc(${themeLayout['--spacing']} * 1.5)`,
     paddingBlock: `calc(${themeLayout['--spacing']} * .5)`,
@@ -59,15 +88,15 @@ const stylexStyles = stylex.create({
     '--tw-font-weight': themeFonts['--font-weight-medium'],
     fontWeight: themeFonts['--font-weight-medium'],
   },
-  rule12: {
+  selectedTag: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-brand']} 20%, transparent)`,
     color: themeColors['--color-brand'],
   },
-  rule13: {
+  unselectedTag: {
     backgroundColor: `color-mix(in oklab, ${themeColors['--color-foreground']} 10%, transparent)`,
     color: themeColors['--color-foreground-alt'],
   },
-  rule14: {
+  description: {
     fontSize: themeFonts['--text-xs'],
     lineHeight: `var(--tw-leading, ${themeFonts['--text-xs--line-height']})`,
     color: themeColors['--color-foreground-alt'],
@@ -82,7 +111,8 @@ export interface RadioOptionProps {
   tag?: React.ReactNode
   description?: React.ReactNode
   disabled?: boolean
-  className?: string
+  sx?: StyleXStyles
+  className?: never
 }
 
 // RadioOption renders a selectable radio button card with optional icon and tag.
@@ -94,7 +124,7 @@ function RadioOption({
   tag,
   description,
   disabled,
-  className,
+  sx,
 }: RadioOptionProps) {
   return (
     <button
@@ -103,46 +133,37 @@ function RadioOption({
       aria-checked={selected}
       onClick={onSelect}
       disabled={disabled}
-      className={
-        /* TODO(stylex): dynamic class or forwarded className */ cn(
-          'w-full rounded-md border p-2.5 text-left transition-all duration-200',
-          'disabled:cursor-not-allowed disabled:opacity-60',
-          selected
-            ? 'border-brand/30 bg-brand/5'
-            : 'border-foreground/10 bg-background/20 enabled:hover:border-foreground/20',
-          className,
-        )
-      }
+      sx={[styles.root, selected ? styles.selected : styles.unselected, sx]}
     >
-      <div sx={stylexStyles.rule1}>
+      <div sx={styles.row}>
         <div
           sx={[
-            stylexStyles.rule2,
-            selected ? stylexStyles.rule3 : stylexStyles.rule4,
+            styles.radio,
+            selected ? styles.selectedBorder : styles.unselectedBorder,
           ]}
         >
-          {selected && <div sx={stylexStyles.rule5} />}
+          {selected && <div sx={styles.dot} />}
         </div>
         {icon && (
-          <div sx={[stylexStyles.rule6, !!selected && stylexStyles.rule7]}>
+          <div sx={[styles.icon, !!selected && styles.selectedIcon]}>
             {icon}
           </div>
         )}
-        <div sx={stylexStyles.rule8}>
-          <div sx={stylexStyles.rule9}>
-            <p sx={stylexStyles.rule10}>{label}</p>
+        <div sx={styles.body}>
+          <div sx={styles.heading}>
+            <p sx={styles.label}>{label}</p>
             {tag && (
               <span
                 sx={[
-                  stylexStyles.rule11,
-                  selected ? stylexStyles.rule12 : stylexStyles.rule13,
+                  styles.tag,
+                  selected ? styles.selectedTag : styles.unselectedTag,
                 ]}
               >
                 {tag}
               </span>
             )}
           </div>
-          {description && <p sx={stylexStyles.rule14}>{description}</p>}
+          {description && <p sx={styles.description}>{description}</p>}
         </div>
       </div>
     </button>

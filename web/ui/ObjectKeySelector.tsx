@@ -213,7 +213,7 @@ export function ObjectKeySelector({
           {displayValue}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" {...stylex.props(stylexStyles.rule2)}>
+      <PopoverContent align="start" sx={stylexStyles.rule2}>
         {path.length > 0 && (
           <button type="button" onClick={handleBack} sx={stylexStyles.rule3}>
             <LuChevronLeft {...stylex.props(stylexStyles.rule4)} />
