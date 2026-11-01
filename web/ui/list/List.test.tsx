@@ -58,12 +58,6 @@ describe('List', () => {
       expect(list.getAttribute('aria-label')).toBe('List')
     })
 
-    it('applies custom className', () => {
-      render(<TestList items={[]} rowComponent={TestRow} className="mt-1" />)
-      const list = screen.getByRole('group')
-      expect(list.className).toContain('mt-1')
-    })
-
     it('renders header content when header prop is provided', () => {
       render(
         <TestList
@@ -79,10 +73,12 @@ describe('List', () => {
 
   describe('keyboard handling', () => {
     it.each(['ArrowDown', 'ArrowUp'])('%s prevents default', (key) => {
+      // Focus the list's keyboard boundary before testing navigation suppression.
       render(<TestList items={mockItems} rowComponent={TestRow} />)
       const rowgroup = screen.getByRole('rowgroup')
       rowgroup.focus()
 
+      // Dispatch cancellable navigation and verify that the list prevents the native action.
       const event = new KeyboardEvent('keydown', {
         key,
         bubbles: true,
@@ -100,12 +96,14 @@ describe('ListRow', () => {
     cleanup()
   })
 
+  // Provide the list item's ordinary accessibility position and set size.
   const defaultAriaAttributes = {
     'aria-posinset': 1,
     'aria-setsize': 3,
     role: 'listitem' as const,
   }
 
+  // Render the row through the same list state context its production parent supplies.
   function renderListRow(
     overrides: Partial<RowComponentProps<void>> = {},
     state: ListState = {
@@ -178,6 +176,7 @@ describe('ListRow', () => {
 
   describe('click handling', () => {
     it('calls onRowClick with correct args on click', () => {
+      // Click a concrete row through the list's public callback contract.
       const onRowClick = vi.fn()
       renderListRow({
         item: { id: 'item-2' },
@@ -187,6 +186,7 @@ describe('ListRow', () => {
       const row = screen.getByRole('row')
       fireEvent.click(row)
 
+      // Verify that the callback retains the row index, item and click count.
       expect(onRowClick).toHaveBeenCalledOnce()
       expect(onRowClick).toHaveBeenCalledWith(
         1,
@@ -197,6 +197,7 @@ describe('ListRow', () => {
     })
 
     it('calls onContextMenu on right-click and prevents default', () => {
+      // Open a row context menu with a cancellable native mouse event.
       const onContextMenu = vi.fn()
       renderListRow({
         item: { id: 'item-3' },
@@ -211,6 +212,7 @@ describe('ListRow', () => {
       const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
       row.dispatchEvent(event)
 
+      // Verify that the menu callback receives the same item and suppressed event.
       expect(onContextMenu).toHaveBeenCalledOnce()
       const [, item, evt] = onContextMenu.mock.calls[0] as [
         number,

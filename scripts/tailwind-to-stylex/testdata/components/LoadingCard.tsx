@@ -1,0 +1,150 @@
+import { LuCircleAlert, LuCircleCheck, LuCloud } from 'react-icons/lu'
+
+import { cn } from '@s4wave/web/style/utils.js'
+
+import { ProgressBar } from './ProgressBar.js'
+import { Spinner } from './Spinner.js'
+import type { LoadingState, LoadingView } from './types.js'
+
+interface LoadingCardProps {
+  view: LoadingView
+  className?: string
+}
+
+const tileTone: Record<LoadingState, string> = {
+  loading: 'bg-foreground/5 text-foreground-alt',
+  active: 'bg-brand/10 text-brand',
+  synced: 'bg-foreground/5 text-brand',
+  error: 'bg-destructive/10 text-destructive',
+}
+
+// LoadingCardProgress renders the progress bar, or the transfer rates when no
+// progress is known.
+function LoadingCardProgress({ view }: { view: LoadingView }) {
+  if (view.progress !== undefined || view.progressIndeterminate) {
+    return (
+      <div className="mt-2.5">
+        <ProgressBar
+          value={view.progress === undefined ? undefined : view.progress * 100}
+          indeterminate={view.progressIndeterminate}
+          rate={view.rate?.down ?? view.rate?.up}
+        />
+      </div>
+    )
+  }
+  if (!view.rate) return null
+
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      <RatePill label="Up" value={view.rate.up ?? '0 B/s'} />
+      <RatePill label="Down" value={view.rate.down ?? '0 B/s'} />
+    </div>
+  )
+}
+
+// LoadingCardActions renders the retry and cancel buttons that the view offers.
+function LoadingCardActions({ view }: { view: LoadingView }) {
+  if (!view.onRetry && !view.onCancel) return null
+
+  return (
+    <div className="mt-2.5 flex gap-2">
+      {view.onRetry ? (
+        <button
+          type="button"
+          onClick={view.onRetry}
+          className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground micro-label rounded-md border px-2 py-1 font-medium transition duration-150"
+        >
+          {view.retryLabel ?? 'Retry'}
+        </button>
+      ) : null}
+      {view.onCancel ? (
+        <button
+          type="button"
+          onClick={view.onCancel}
+          className="text-foreground-alt/60 hover:text-foreground-alt micro-label rounded-md px-2 py-1 font-medium transition-colors"
+        >
+          {view.cancelLabel ?? 'Cancel'}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+// LoadingCard is the primary loading surface. Glass card with an size-8 icon
+// box, title, detail, optional progress, rate pills, last-activity footer,
+// error box, and retry / cancel buttons. Four states: loading / active /
+// synced / error.
+export function LoadingCard({ view, className }: LoadingCardProps) {
+  return (
+    <div
+      className={cn(
+        'border-foreground/6 bg-background-card/30 rounded-lg border p-3.5',
+        className,
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'flex size-8 shrink-0 items-center justify-center rounded-md',
+            tileTone[view.state],
+          )}
+        >
+          <LoadingCardIcon state={view.state} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-foreground text-sm font-semibold tracking-tight">
+            {view.title}
+          </div>
+          {view.detail ? (
+            <div className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
+              {view.detail}
+            </div>
+          ) : null}
+          <LoadingCardProgress view={view} />
+          {view.lastActivity ? (
+            <div className="text-foreground-alt/40 micro-label mt-2">
+              {view.lastActivity}
+            </div>
+          ) : null}
+          {view.error ? (
+            <div className="bg-destructive/5 border-destructive/15 text-destructive micro-label mt-2 rounded-md border px-2 py-1 leading-relaxed">
+              {view.error}
+            </div>
+          ) : null}
+          <LoadingCardActions view={view} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LoadingCardIcon({ state }: { state: LoadingState }) {
+  if (state === 'error') {
+    return <LuCircleAlert className="size-4" aria-hidden="true" />
+  }
+  if (state === 'synced') {
+    return (
+      <span
+        className="relative flex size-4 items-center justify-center"
+        aria-hidden="true"
+      >
+        <LuCloud className="size-3.5" />
+        <LuCircleCheck className="text-brand absolute -right-1 -bottom-1 size-2.5" />
+      </span>
+    )
+  }
+  return <Spinner size="md" />
+}
+
+function RatePill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-1">
+      <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase">
+        {label}
+      </div>
+      <div className="text-foreground text-xs font-semibold tabular-nums">
+        {value}
+      </div>
+    </div>
+  )
+}

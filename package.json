@@ -245,7 +245,7 @@
     "stylex-vite:build": "bun build scripts/stylex-vite.test.ts --target=node --packages=external --outfile .bldr/stylex-vite/web/bundler/vite/test.mjs && mkdir -p .bldr/stylex-vite/web/bldr && cp bldr/web/bldr/stylex-*.ts .bldr/stylex-vite/web/bldr/",
     "test:stylex-web-pkg": "cross-env STYLEX_WEBPKG_BROWSER=1 go test -timeout=90s -run ^TestWebPkgChunksKeepStableNames$ -count=1 ./bldr/web/pkg/vite",
     "test:stylex-vite": "bun run stylex-vite:build && node --test --test-timeout=120000 .bldr/stylex-vite/web/bundler/vite/test.mjs",
-    "format:stylex-vite": "oxfmt web/style/stylex-pilots.e2e.test.tsx scripts/stylex-web-pkg.browser.ts web/style/*.stylex.ts bldr/web/bldr-react/stylex-types.ts bldr/web/bldr-react/index.ts bldr/web/bundler/rolldown/run-build.ts bldr/web/bundler/rolldown/run-build.test.ts scripts/stylex-vite.test.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr/stylex-client.ts bldr/web/bundler/vite/vite.ts bldr/web/bundler/vite/development.ts vite.config.ts app/prerender/vite*.config.ts bldr/dist/deps/package.json app/prerender/stylex-order.ts app/prerender/build.ts app/prerender/html-template.ts app/prerender/funnel-beacon.ts app/blog/blog-build.ts app/download/DownloadPage.tsx app/download/DownloadPage.test.tsx && gofmt -w bldr/manifest/world/startup-eligibility.go bldr/plugin/host/scheduler/pinned-manifest_test.go sdk/plugin/connect.go bldr/plugin/dir-load-plugin.go core/resource/quickstart/registry/registry-resource.go core/resource/quickstart/registry/execute-quickstart.go core/resource/quickstart/registry/registry-resource_test.go core/resource/registration/registry_test.go core/resource/worldop/registry/bridge-controller.go core/resource/worldop/registry/bridge-controller_test.go core/resource/worldop/registry/pinned-operation_test.go e2e/releasewasm/local-cdn-config.go bldr/dist.go bldr/web/pkg/external/external.go bldr/web/pkg/external/external_test.go web/dist.go bldr/dist-deps_test.go bldr/web/pkg/vite/release-chunks_test.go bldr/util/npm/cached.go bldr/util/npm/cached_test.go bldr/util/npm/bun-patches.go bldr/util/npm/add-cache_test.go bldr/web/bundler/rolldown/rolldown.go bldr/web/bundler/rolldown/cached.go bldr/web/bundler/vite/cached.go bldr/web/pkg/vite/oneshot.go",
+    "format:stylex-vite": "oxfmt --threads=4 web/style/stylex-pilots.e2e.test.tsx scripts/stylex-web-pkg.browser.ts web/style/*.stylex.ts bldr/web/bldr-react/stylex-types.ts bldr/web/bldr-react/index.ts bldr/web/bundler/rolldown/run-build.ts bldr/web/bundler/rolldown/run-build.test.ts scripts/stylex-vite.test.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr/stylex-client.ts bldr/web/bundler/vite/vite.ts bldr/web/bundler/vite/development.ts vite.config.ts app/prerender/vite*.config.ts bldr/dist/deps/package.json app/prerender/stylex-order.ts app/prerender/build.ts app/prerender/html-template.ts app/prerender/funnel-beacon.ts app/blog/blog-build.ts app/download/DownloadPage.tsx app/download/DownloadPage.test.tsx && gofmt -w bldr/manifest/world/startup-eligibility.go bldr/plugin/host/scheduler/pinned-manifest_test.go sdk/plugin/connect.go bldr/plugin/dir-load-plugin.go core/resource/quickstart/registry/registry-resource.go core/resource/quickstart/registry/execute-quickstart.go core/resource/quickstart/registry/registry-resource_test.go core/resource/registration/registry_test.go core/resource/worldop/registry/bridge-controller.go core/resource/worldop/registry/bridge-controller_test.go core/resource/worldop/registry/pinned-operation_test.go e2e/releasewasm/local-cdn-config.go bldr/dist.go bldr/web/pkg/external/external.go bldr/web/pkg/external/external_test.go web/dist.go bldr/dist-deps_test.go bldr/web/pkg/vite/release-chunks_test.go bldr/util/npm/cached.go bldr/util/npm/cached_test.go bldr/util/npm/bun-patches.go bldr/util/npm/add-cache_test.go bldr/web/bundler/rolldown/rolldown.go bldr/web/bundler/rolldown/cached.go bldr/web/bundler/vite/cached.go bldr/web/pkg/vite/oneshot.go",
     "check:stylex-vite": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/stylex-vite.test.ts scripts/stylex-web-pkg.browser.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr-react/stylex-types.ts",
     "lint:stylex-vite": "oxlint -c oxlint.style-parity.config.ts scripts/stylex-vite.test.ts scripts/stylex-web-pkg.browser.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr/stylex-client.ts",
     "stylex-order:build": "bun build scripts/stylex-order.test.ts --target=node --packages=external --outdir .bldr/stylex-order --entry-naming [name].mjs && bun build scripts/stylex-order.browser.ts --target=browser --outfile .bldr/stylex-order/stylex-order.browser.js",
@@ -254,7 +254,7 @@
     "check:stylex-order": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable --jsx react-jsx scripts/stylex-order*.ts bldr/web/bldr/stylex-*.ts",
     "lint:stylex-order": "oxlint -c oxlint.style-parity.config.ts scripts/stylex-order*.ts bldr/web/bldr/stylex-*.ts bldr/web/bldr-react/StylesheetLink.tsx",
     "style-parity": "bun run style-parity:build && node .bldr/style-parity-tools/style-parity.mjs",
-    "format:style-parity": "oxfmt scripts/style-parity.ts scripts/style-parity oxlint.style-parity.config.ts && gofmt -w e2e/releasewasm/style-parity_test.go",
+    "format:style-parity": "oxfmt --threads=4 scripts/style-parity.ts scripts/style-parity oxlint.style-parity.config.ts && gofmt -w e2e/releasewasm/style-parity_test.go",
     "check:style-parity": "tsc --allowImportingTsExtensions --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/style-parity.ts scripts/style-parity/*.ts",
     "lint:style-parity": "oxlint -c oxlint.style-parity.config.ts scripts/style-parity.ts scripts/style-parity",
     "style-parity:install-browsers": "playwright install chromium webkit",
@@ -262,12 +262,13 @@
     "test:style-parity": "bun run style-parity:build && node --test --test-timeout=120000 .bldr/style-parity-tools/model.test.mjs",
     "style-parity:release": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true go test -count=1 -timeout=30m -v ./e2e/releasewasm -run ^TestReleaseStyleParity$",
     "stylex:migrate": "bun scripts/tailwind-to-stylex/index.ts",
-    "format:stylex-migrate": "oxfmt scripts/tailwind-to-stylex",
+    "format:stylex-migrate": "oxfmt --threads=4 scripts/tailwind-to-stylex",
     "check:stylex-migrate": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/tailwind-to-stylex/*.ts",
+    "check:stylex-migrate-fixture": "tsc --noEmit -p",
     "lint:stylex-migrate": "oxlint -c oxlint.style-parity.config.ts scripts/tailwind-to-stylex",
     "stylex-migrate:build": "bun build scripts/tailwind-to-stylex/transform.test.ts --target=node --packages=external --outfile .bldr/stylex-migrate/web/bundler/vite/test.mjs && mkdir -p .bldr/stylex-migrate/web/bldr && cp bldr/web/bldr/stylex-*.ts .bldr/stylex-migrate/web/bldr/ && cp .bldr/style-parity-tools/browser.js .bldr/stylex-migrate/web/bundler/vite/browser.js",
     "test:stylex-migrate": "bun run style-parity:build && bun run stylex-migrate:build && node --test --test-timeout=180000 .bldr/stylex-migrate/web/bundler/vite/test.mjs",
-    "format:stylex-shared": "oxfmt web/ui/separator.tsx web/ui/EmptyState.tsx web/ui/ErrorState.tsx web/ui/EmptyState.test.tsx web/ui/ErrorState.test.tsx web/ui/button-group.tsx app/quickstart/Quickstart.tsx app/space/SpaceIndex.tsx",
+    "format:stylex-shared": "oxfmt --threads=4 web/ui app/loading/wrappers app/billing/DeleteBillingAccountSection.tsx app/org/OrganizationDetails.tsx app/session/SessionSharedObjectContainer.tsx app/session/dashboard/SessionDashboard.tsx app/session/dashboard/SessionDetailsHeader.tsx app/terminal/TerminalPane.tsx app/wizard/ForgeJobWizardViewer.tsx app/wizard/ForgeTaskWizardViewer.tsx plugin/v86/VmSerialConsole.tsx plugin/v86/VmV86Viewer.tsx plugin/wasivm/WasiVmDisplay.tsx plugin/wasivm/WasiVmViewer.tsx plugin/wasivm/WasiVmWizard.tsx web/editors/file-browser/FileListEntry.tsx web/editors/file-browser/Toolbar.tsx web/layout/BaseLayout.tsx web/object/LayoutObjectViewer.tsx web/object/ObjectViewerLoadingState.tsx web/transform/TransformConfigDisplay.tsx package.json bldr/dist/deps/package.json web/style/app.css",
     "format:stylex-pilots": "oxfmt oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx web/style/tokens.stylex.ts tsconfig.stylex-pilots.json",
     "check:stylex-pilots": "tsc --noEmit -p tsconfig.stylex-pilots.json",
     "lint:stylex-pilots": "oxlint oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx"
@@ -277,6 +278,7 @@
     "@babel/core": "^7.29.0",
     "@stylexjs/babel-plugin": "0.19.1",
     "postcss": "8.5.25",
+    "lightningcss": "1.32.0",
     "@google/design.md": "^0.4.0",
     "@playwright/test": "^1.62.1",
     "@reylosql/mysql": "0.6.0",
@@ -405,6 +407,7 @@
   },
   "patchedDependencies": {
     "@stylexjs/babel-plugin@0.19.1": "patches/@stylexjs%2Fbabel-plugin@0.19.1.patch",
-    "orga@4.7.1": "patches/orga@4.7.1.patch"
+    "orga@4.7.1": "patches/orga@4.7.1.patch",
+    "@stylexjs/stylex@0.19.1": "patches/@stylexjs%2Fstylex@0.19.1.patch"
   }
 }

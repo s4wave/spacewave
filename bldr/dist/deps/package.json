@@ -52,6 +52,7 @@
     "@aptre/protobuf-es-lite": "1.2.6"
   },
   "patchedDependencies": {
-    "@stylexjs/babel-plugin@0.19.1": "patches/@stylexjs%2Fbabel-plugin@0.19.1.patch"
+    "@stylexjs/babel-plugin@0.19.1": "patches/@stylexjs%2Fbabel-plugin@0.19.1.patch",
+    "@stylexjs/stylex@0.19.1": "patches/@stylexjs%2Fstylex@0.19.1.patch"
   }
 }

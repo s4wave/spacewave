@@ -1,14 +1,16 @@
 import React from 'react'
 import { cn } from 'cnfast'
+import * as compiled from '@stylexjs/stylex'
 
 const ComponentStyles = 'existing-binding'
+const compiledStyles = compiled.create({ override: { padding: 12 } })
 
 interface BoxProps extends React.ComponentProps<'div'> {
   label: string
 }
 
 // Box owns its default style while callers provide the final override.
-function Box({ className, label, ...props }: BoxProps) {
+function Box({ className = '', label, ...props }: BoxProps) {
   return (
     <div
       aria-label={label}
@@ -18,11 +20,27 @@ function Box({ className, label, ...props }: BoxProps) {
   )
 }
 
+// PassThrough forwards ordinary native props without owning a styling API.
+function PassThrough(props: React.ComponentProps<'div'>) {
+  return <div {...props} />
+}
+
+const passedProps: React.ComponentProps<typeof PassThrough> = {
+  className: 'p-2',
+}
+
 // OwnedStyles composes the same public styling input at two values.
-export function OwnedStyles() {
+export function OwnedStyles({ optional = false }: { optional?: boolean } = {}) {
   return (
     <section data-existing={ComponentStyles}>
       <Box label="Default box">Default</Box>
+      <Box label="Compiled caller" {...compiled.props(compiledStyles.override)}>
+        Compiled
+      </Box>
+      <Box label="Optional styles" className={optional ? 'p-6' : undefined}>
+        Optional
+      </Box>
+      <PassThrough {...passedProps}>Native pass-through</PassThrough>
       <Box label="Overridden box" className="border border-dashed p-6 text-lg">
         Override
       </Box>

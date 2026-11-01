@@ -5,10 +5,11 @@ import postcss, { type Container, type Declaration } from 'postcss'
 import { parseSync } from '@babel/core'
 import { join } from 'node:path'
 import { cn } from 'cnfast'
+import { expandAnimation } from './animation.js'
 
 /** StyleRule is a StyleX declaration object with nested conditions. */
 export interface StyleRule {
-  [property: string]: string | StyleRule
+  [property: string]: string | number | null | StyleRule
 }
 
 /** Translation retains an unsupported class for the component's hand pass. */
@@ -30,12 +31,7 @@ function readRule(container: Container, selector: string): StyleRule {
     if (node.type === 'decl') {
       const declaration = node as Declaration
       if (declaration.important) throw new Error('important declaration')
-      // Tailwind's non-inheriting border-style variable defaults to solid; its style utilities set the property too.
-      style[propertyName(declaration.prop)] =
-        declaration.prop === 'border-style' &&
-        declaration.value === 'var(--tw-border-style)'
-          ? 'solid'
-          : declaration.value
+      style[propertyName(declaration.prop)] = declaration.value
     } else if (node.type === 'atrule') {
       if (!['media', 'container', 'supports'].includes(node.name))
         throw new Error(`@${node.name} rule`)
@@ -62,12 +58,25 @@ function readRule(container: Container, selector: string): StyleRule {
 /** createOracle translates utilities using the repository's actual Tailwind theme. */
 export async function createOracle(theme: string) {
   // Load imports, custom utilities and variants through Tailwind's own Node resolver.
-  const design = await __unstable__loadDesignSystem(
-    await readFile(theme, 'utf8'),
-    {
-      base: dirname(theme),
-    },
-  )
+  const themeSource = await readFile(theme, 'utf8')
+  const design = await __unstable__loadDesignSystem(themeSource, {
+    base: dirname(theme),
+  })
+
+  // Global aliases can add typography to a utility name; retain those whole for their hand pass.
+  const globalAliases = new Set<string>()
+  postcss.parse(themeSource).walkRules((rule) => {
+    if (
+      !rule.nodes.some(
+        (node) => node.type === 'atrule' && node.name === 'apply',
+      )
+    )
+      return
+    for (const selector of rule.selectors) {
+      const name = selector.match(/^\.([\w-]+)(?:$|[:[.])/)?.[1]
+      if (name) globalAliases.add(name)
+    }
+  })
 
   // Typed theme references retain the public literal variable names during extraction.
   const tokens = new Map<string, string>()
@@ -115,7 +124,13 @@ export async function createOracle(theme: string) {
     // Keep the compiler's exact declarations and conditions for this candidate.
     const css = design.candidatesToCss([candidate])[0]
     let result: Translation
-    if (!css) result = { kind: 'manual', reason: 'global or unknown class' }
+    if (globalAliases.has(candidate))
+      result = {
+        kind: 'manual',
+        reason: 'global class adds declarations outside the utility compiler',
+      }
+    else if (!css)
+      result = { kind: 'manual', reason: 'global or unknown class' }
     else {
       try {
         const declarations = postcss.parse(css)
@@ -127,6 +142,18 @@ export async function createOracle(theme: string) {
         const root = postcss.parse(
           optimize(declarations.toString(), { file: theme }).code,
         )
+        // StyleX requires animation longhands; resolve fixed theme recipes before parsing them.
+        root.walkDecls('animation', (declaration) => {
+          const value = declaration.value.replace(
+            /var\((--[\w-]+)\)/g,
+            (reference, name: string) => design.theme.get([name]) ?? reference,
+          )
+          const longhands: Declaration[] = []
+          postcss.parse(expandAnimation(value)).walkDecls((value) => {
+            longhands.push(value)
+          })
+          declaration.replaceWith(...longhands)
+        })
         let selector = ''
         root.walkRules((rule) => {
           if (!selector)
@@ -134,7 +161,15 @@ export async function createOracle(theme: string) {
         })
         if (!selector)
           throw new Error('a descendant, group, peer or compound selector')
-        result = { kind: 'style', style: readRule(root, selector) }
+        const style = readRule(root, selector)
+        if (candidate === 'font-mono')
+          Object.assign(style, {
+            WebkitFontSmoothing: 'subpixel-antialiased',
+            MozOsxFontSmoothing: 'auto',
+            textRendering: 'auto',
+            textShadow: '0 0 0.25px currentColor',
+          })
+        result = { kind: 'style', style }
       } catch (error) {
         result = { kind: 'manual', reason: (error as Error).message }
       }

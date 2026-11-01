@@ -1,0 +1,102 @@
+diff --git a/lib/cjs/types/StyleXCSSTypes.d.ts b/lib/cjs/types/StyleXCSSTypes.d.ts
+--- a/lib/cjs/types/StyleXCSSTypes.d.ts
++++ b/lib/cjs/types/StyleXCSSTypes.d.ts
+@@ -937,16 +937,16 @@
+ type top = number | string;
+ type OptionalArray<T> = Array<T> | T;
+ export type SupportedVendorSpecificCSSProperties = Readonly<{
+-  MozOsxFontSmoothing?: null | 'grayscale';
++  MozOsxFontSmoothing?: null | 'grayscale' | 'auto';
+   WebkitAppearance?: null | appearance;
+-  WebkitFontSmoothing?: null | 'antialiased';
++  WebkitFontSmoothing?: null | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none';
+   WebkitTapHighlightColor?: null | color;
+ }>;
+ export type CSSProperties = Readonly<{
+   theme?: all | string;
+-  MozOsxFontSmoothing?: all | 'grayscale';
++  MozOsxFontSmoothing?: all | 'grayscale' | 'auto';
+   WebkitAppearance?: all | appearance;
+-  WebkitFontSmoothing?: all | 'antialiased';
++  WebkitFontSmoothing?: all | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none';
+   WebkitTapHighlightColor?: all | color;
+   WebkitMaskImage?: all | maskImage;
+   WebkitTextFillColor?: all | color;
+diff --git a/lib/cjs/types/StyleXCSSTypes.js.flow b/lib/cjs/types/StyleXCSSTypes.js.flow
+--- a/lib/cjs/types/StyleXCSSTypes.js.flow
++++ b/lib/cjs/types/StyleXCSSTypes.js.flow
+@@ -954,9 +954,9 @@
+ type OptionalArray<T> = Array<T> | T;
+ 
+ export type SupportedVendorSpecificCSSProperties = Readonly<{
+-  MozOsxFontSmoothing?: null | 'grayscale',
++  MozOsxFontSmoothing?: null | 'grayscale' | 'auto',
+   WebkitAppearance?: null | appearance,
+-  WebkitFontSmoothing?: null | 'antialiased',
++  WebkitFontSmoothing?: null | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none',
+   WebkitTapHighlightColor?: null | color,
+ }>;
+ 
+@@ -965,9 +965,9 @@
+   theme?: all | string,
+ 
+   // ...$Exact<SupportedVendorSpecificCSSProperties>, for TypeScript compatibility
+-  MozOsxFontSmoothing?: all | 'grayscale',
++  MozOsxFontSmoothing?: all | 'grayscale' | 'auto',
+   WebkitAppearance?: all | appearance,
+-  WebkitFontSmoothing?: all | 'antialiased',
++  WebkitFontSmoothing?: all | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none',
+   WebkitTapHighlightColor?: all | color,
+ 
+   WebkitMaskImage?: all | maskImage,
+diff --git a/lib/es/types/StyleXCSSTypes.d.ts b/lib/es/types/StyleXCSSTypes.d.ts
+--- a/lib/es/types/StyleXCSSTypes.d.ts
++++ b/lib/es/types/StyleXCSSTypes.d.ts
+@@ -937,16 +937,16 @@
+ type top = number | string;
+ type OptionalArray<T> = Array<T> | T;
+ export type SupportedVendorSpecificCSSProperties = Readonly<{
+-  MozOsxFontSmoothing?: null | 'grayscale';
++  MozOsxFontSmoothing?: null | 'grayscale' | 'auto';
+   WebkitAppearance?: null | appearance;
+-  WebkitFontSmoothing?: null | 'antialiased';
++  WebkitFontSmoothing?: null | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none';
+   WebkitTapHighlightColor?: null | color;
+ }>;
+ export type CSSProperties = Readonly<{
+   theme?: all | string;
+-  MozOsxFontSmoothing?: all | 'grayscale';
++  MozOsxFontSmoothing?: all | 'grayscale' | 'auto';
+   WebkitAppearance?: all | appearance;
+-  WebkitFontSmoothing?: all | 'antialiased';
++  WebkitFontSmoothing?: all | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none';
+   WebkitTapHighlightColor?: all | color;
+   WebkitMaskImage?: all | maskImage;
+   WebkitTextFillColor?: all | color;
+diff --git a/lib/es/types/StyleXCSSTypes.js.flow b/lib/es/types/StyleXCSSTypes.js.flow
+--- a/lib/es/types/StyleXCSSTypes.js.flow
++++ b/lib/es/types/StyleXCSSTypes.js.flow
+@@ -954,9 +954,9 @@
+ type OptionalArray<T> = Array<T> | T;
+ 
+ export type SupportedVendorSpecificCSSProperties = Readonly<{
+-  MozOsxFontSmoothing?: null | 'grayscale',
++  MozOsxFontSmoothing?: null | 'grayscale' | 'auto',
+   WebkitAppearance?: null | appearance,
+-  WebkitFontSmoothing?: null | 'antialiased',
++  WebkitFontSmoothing?: null | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none',
+   WebkitTapHighlightColor?: null | color,
+ }>;
+ 
+@@ -965,9 +965,9 @@
+   theme?: all | string,
+ 
+   // ...$Exact<SupportedVendorSpecificCSSProperties>, for TypeScript compatibility
+-  MozOsxFontSmoothing?: all | 'grayscale',
++  MozOsxFontSmoothing?: all | 'grayscale' | 'auto',
+   WebkitAppearance?: all | appearance,
+-  WebkitFontSmoothing?: all | 'antialiased',
++  WebkitFontSmoothing?: all | 'antialiased' | 'subpixel-antialiased' | 'auto' | 'none',
+   WebkitTapHighlightColor?: all | color,
+ 
+   WebkitMaskImage?: all | maskImage,

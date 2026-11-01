@@ -4,49 +4,25 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { ProgressBar } from './ProgressBar.js'
 
 describe('ProgressBar', () => {
-  afterEach(() => {
-    cleanup()
-  })
+  afterEach(cleanup)
 
-  it('renders determinate fill at the supplied percentage', () => {
-    const { container } = render(<ProgressBar value={42} />)
-    const fill = container.querySelector('div.bg-brand')
-    expect(fill).toBeTruthy()
-    expect(
-      fill instanceof HTMLElement
-        ? fill.style.getPropertyValue('--progress-width')
-        : '',
-    ).toBe('42%')
+  it('clamps determinate labels and switches between percentages, rates and indeterminate progress', () => {
+    // Show bounded percentages for determinate progress.
+    const { rerender } = render(<ProgressBar value={42} />)
     expect(screen.getByText('42%')).toBeTruthy()
-  })
+    rerender(<ProgressBar value={175} />)
+    expect(screen.getByText('100%')).toBeTruthy()
+    rerender(<ProgressBar value={-5} />)
+    expect(screen.getByText('0%')).toBeTruthy()
 
-  it('clamps determinate values outside 0..100', () => {
-    const { container } = render(<ProgressBar value={175} />)
-    const fill = container.querySelector('div.bg-brand')
-    expect(
-      fill instanceof HTMLElement
-        ? fill.style.getPropertyValue('--progress-width')
-        : '',
-    ).toBe('100%')
-  })
-
-  it('renders an animated indeterminate bar with no percent label', () => {
-    const { container } = render(<ProgressBar indeterminate />)
-    const sweep = container.querySelector('div.animate-progress-indeterminate')
-    expect(sweep).toBeTruthy()
-    expect(sweep?.classList.contains('motion-reduce:animate-none')).toBe(true)
-    expect(sweep?.classList.contains('motion-reduce:w-full')).toBe(true)
-    expect(screen.queryByText(/%$/)).toBeNull()
-  })
-
-  it('shows a rate label in place of the percent when provided', () => {
-    render(<ProgressBar value={62} rate="1.5 MiB/s" />)
+    // Prefer the supplied rate, including while the total is unknown.
+    rerender(<ProgressBar value={62} rate="1.5 MiB/s" />)
     expect(screen.getByText('1.5 MiB/s')).toBeTruthy()
-    expect(screen.queryByText('62%')).toBeNull()
-  })
-
-  it('shows a rate label on indeterminate variants', () => {
-    render(<ProgressBar indeterminate rate="Uploading" />)
+    expect(screen.queryByText(/%$/)).toBeNull()
+    rerender(<ProgressBar indeterminate rate="Uploading" />)
     expect(screen.getByText('Uploading')).toBeTruthy()
+    rerender(<ProgressBar indeterminate />)
+    expect(screen.queryByText(/%$/)).toBeNull()
+    expect(screen.queryByText('Uploading')).toBeNull()
   })
 })

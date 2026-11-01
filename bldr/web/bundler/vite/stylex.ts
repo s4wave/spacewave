@@ -101,6 +101,7 @@ export function stylexCss(
           {
             dev: false,
             runtimeInjection: false,
+            propertyValidationMode: 'throw',
             treeshakeCompensation: true,
             aliases,
             unstable_moduleResolution: {
