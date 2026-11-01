@@ -150,9 +150,17 @@ func UpdateBoundFlowgraph(ctx context.Context, ws world.WorldState, b bus.Bus, e
 		}
 	}
 
-	// Requirements changes return claimed nodes to unplaced before re-admission.
+	// A requirements change releases the node's grant and returns it to
+	// unplaced for re-admission, unless this request places it explicitly.
 	for id, node := range state.Nodes {
-		if !node.GetRequirements().EqualVT(previous.GetState().GetNodes()[id].GetRequirements()) && previous.GetState().GetNodes()[id].GetRequirements() != nil {
+		prev := previous.GetState().GetNodes()[id].GetRequirements()
+		if prev == nil || node.GetRequirements().EqualVT(prev) {
+			continue
+		}
+		if err := ReleaseNodeCapacity(ctx, ws, key, id); err != nil {
+			return nil, err
+		}
+		if _, set := request.GetSetPlacements()[id]; !set {
 			delete(next.Placements, id)
 		}
 	}

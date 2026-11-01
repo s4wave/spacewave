@@ -177,6 +177,18 @@ func TestRequirementPlacement(t *testing.T) {
 	}
 	requireCapacity(t, ctx, engine, 250, 0)
 
+	// Dropping requirements while pinning the node to its claimant keeps the
+	// edge and releases the grant in the same write.
+	pin := &s4wave_flowgraph.FlowgraphPlacement{Kind: s4wave_flowgraph.FlowgraphPlacementKind_FLOWGRAPH_PLACEMENT_KIND_DEVICE, ObjectKey: testSelfKey}
+	updateRequirements(t, ctx, engine, &s4wave_flowgraph.UpdateFlowgraphRequest{
+		SetNodes:      map[string]*s4wave_flowgraph.FlowgraphNode{"selected": {TypeId: "fixture"}},
+		SetPlacements: map[string]*s4wave_flowgraph.FlowgraphPlacement{"selected": pin},
+	})
+	waitRequirementPlacement(t, ctx, engine, func(snapshot *s4wave_flowgraph.FlowgraphSnapshot) bool {
+		return snapshot.GetPlacements()["selected"].GetObjectKey() == testSelfKey
+	})
+	requireCapacity(t, ctx, engine, 0, 0)
+
 	// Make both Devices eligible, remove the old grant, and publish one shared candidate.
 	commit(t, ctx, engine, func(tx world.Tx) error {
 		// Give both Devices the selector before publishing the competing node.
