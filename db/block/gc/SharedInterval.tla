@@ -12,7 +12,11 @@
 \* lists. Original pages stay stored under the base hold until Name. Original
 \* entries are Counted and add no found count. A failed receipt contributes
 \* lists to the live walk but never to the stored/dead set. The matrix checks
-\* the first/last successful receipt being found or fresh and one failed put.
+\* a fresh-then-found pair of successful receipts and one failed put.
+\* These focused paths do not yet cover arbitrary joined transition chains.
+\* Guard="reported" is current pendingNet.net; all other guards retain a
+\* fresh first receipt through the later found one. That correction is an
+\* explicit assumption, not a claim about the current Go implementation.
 \* SharingWalk supplies the recount assumption: uncovered intervals orphan;
 \* the atomic Recount here is its completed result, not one walk slice.
 EXTENDS Integers, FiniteSets
@@ -41,6 +45,7 @@ HoldsRoots ==
        !.live = {"A", "B", "L"}, !.stage = 2,
        !.extra["B"] = IF Guard = "found-only" THEN 0 ELSE 1]
 \* Success receipts report found on the repeat; OR preserves that receipt.
+\* The identical replay hold is also found, so the second put adds no edge.
 SuccessfulPut ==
   /\ state.scenario = "receipts" /\ state.stage < 2
   /\ state' = [state EXCEPT !.stage = @ + 1,
@@ -48,7 +53,7 @@ SuccessfulPut ==
        !.stored = @ \cup {"B"}, !.live = {"A", "B", "L"},
        !.found = IF state.stage = 1 /\ Guard = "reported"
                 THEN {"B"} ELSE {},
-       !.extra["B"] = @ + 1]
+       !.extra["B"] = IF state.stage = 0 THEN @ + 1 ELSE @]
 \* Name nets the whole carried interval. In the put-only case all carried
 \* pages are created; walking failed lists still discovers B -> L.
 Name ==
