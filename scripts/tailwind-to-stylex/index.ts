@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path'
 
 import { createOracle } from './oracle.js'
 import { transform } from './transform.js'
-import { prepareComponentStyles } from './component-api.js'
+import { prepareComponentStyles, readSharedStyleApis } from './component-api.js'
 
 // sourceFiles streams rg's source manifest without collecting the repository tree.
 async function* sourceFiles(paths: string[]): AsyncGenerator<string> {
@@ -50,12 +50,16 @@ async function main(): Promise<void> {
   let write = false
   let componentApi = false
   let sharedSx = false
+  let sharedCallers = false
   let reportPath: string | undefined
+
+  // Select the source area and whether its component or caller contracts change.
   for (let index = 0; index < args.length; index++) {
     const argument = args[index]!
     if (argument === '--write') write = true
     else if (argument === '--component-api') componentApi = true
     else if (argument === '--shared-sx') sharedSx = true
+    else if (argument === '--shared-callers') sharedSx = sharedCallers = true
     else if (argument === '--report') reportPath = args[++index]
     else if (argument.startsWith('-'))
       throw new Error(`Unknown option: ${argument}`)
@@ -63,7 +67,7 @@ async function main(): Promise<void> {
   }
   if (!paths.length || args.at(-1) === '--report')
     throw new Error(
-      'Usage: bun run stylex:migrate [--write] [--component-api] [--shared-sx] [--report file.jsonl] <paths...>',
+      'Usage: bun run stylex:migrate [--write] [--component-api] [--shared-sx|--shared-callers] [--report file.jsonl] <paths...>',
     )
 
   // One compiler instance owns the theme and property-registration inventory for this run.
@@ -84,22 +88,27 @@ async function main(): Promise<void> {
     for await (const file of sourceFiles(paths)) {
       const source = await readFile(file, 'utf8')
       if (!source.includes('className')) continue
+      const sharedComponents = sharedSx
+        ? await readSharedStyleApis(source, file)
+        : undefined
       const migrate = (input: string) => {
         const prepared = prepareComponentStyles(input, file, {
           convertProps: componentApi,
-          sharedComponents: sharedSx,
+          sharedComponents,
         })
         let result = transform(prepared.source, file, oracle, {
           components: prepared.components,
           componentProps: componentApi,
+          onlyComponents: sharedCallers,
         })
         if (prepared.converted && result.remaining.length) {
           const legacy = prepareComponentStyles(input, file, {
             convertProps: false,
-            sharedComponents: sharedSx,
+            sharedComponents,
           })
           result = transform(input, file, oracle, {
             components: legacy.components,
+            onlyComponents: sharedCallers,
           })
           return { ...result, apis: 0 }
         }
@@ -137,6 +146,7 @@ async function main(): Promise<void> {
       apis,
       componentApi,
       sharedSx,
+      sharedCallers,
       write,
       reasons: Object.fromEntries([...reasons].sort()),
       globalRules: [...oracle.globalRules].sort(),

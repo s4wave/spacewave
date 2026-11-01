@@ -267,6 +267,7 @@
     "lint:stylex-migrate": "oxlint -c oxlint.style-parity.config.ts scripts/tailwind-to-stylex",
     "stylex-migrate:build": "bun build scripts/tailwind-to-stylex/transform.test.ts --target=node --packages=external --outfile .bldr/stylex-migrate/web/bundler/vite/test.mjs && mkdir -p .bldr/stylex-migrate/web/bldr && cp bldr/web/bldr/stylex-*.ts .bldr/stylex-migrate/web/bldr/ && cp .bldr/style-parity-tools/browser.js .bldr/stylex-migrate/web/bundler/vite/browser.js",
     "test:stylex-migrate": "bun run style-parity:build && bun run stylex-migrate:build && node --test --test-timeout=180000 .bldr/stylex-migrate/web/bundler/vite/test.mjs",
+    "format:stylex-shared": "oxfmt web/ui/separator.tsx web/ui/EmptyState.tsx web/ui/ErrorState.tsx web/ui/EmptyState.test.tsx web/ui/ErrorState.test.tsx web/ui/button-group.tsx app/quickstart/Quickstart.tsx app/space/SpaceIndex.tsx",
     "format:stylex-pilots": "oxfmt oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx web/style/tokens.stylex.ts tsconfig.stylex-pilots.json",
     "check:stylex-pilots": "tsc --noEmit -p tsconfig.stylex-pilots.json",
     "lint:stylex-pilots": "oxlint oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx"

@@ -1,15 +1,119 @@
 import { parseSync, traverse } from '@babel/core'
 import type { Node } from '@babel/types'
 import { dirname, resolve, sep } from 'node:path'
+import { readFile } from 'node:fs/promises'
 
 // Edit retains source offsets until the complete component API change can be applied.
 type Edit = { start: number; end: number; text: string }
+
+const sharedApis = new Map<string, Promise<ReadonlySet<string>>>()
+
+// sharedPath resolves only owned shared UI modules, whose APIs this migration controls.
+function sharedPath(target: string, filename: string): string | undefined {
+  if (target.startsWith('@s4wave/web/ui/'))
+    return resolve('web/ui', target.slice('@s4wave/web/ui/'.length))
+  if (target.startsWith('.')) {
+    const path = resolve(dirname(filename), target)
+    if (path.startsWith(resolve('web/ui') + sep)) return path
+  }
+}
+
+/** readSharedStyleApis reads existing sx exports instead of assuming every shared API has migrated. */
+export async function readSharedStyleApis(source: string, filename: string) {
+  const ast = parseSync(source, {
+    filename,
+    configFile: false,
+    babelrc: false,
+    parserOpts: { plugins: ['typescript', 'jsx'] },
+  })!
+  const imports = new Map<string, ReadonlySet<string>>()
+  for (const statement of ast.program.body) {
+    if (statement.type !== 'ImportDeclaration') continue
+    const target = statement.source.value
+    const path = sharedPath(target, filename)
+    if (!path) continue
+    let pending = sharedApis.get(path)
+    if (!pending) {
+      pending = (async () => {
+        // Resolve one source module, including directory entrypoints, without scanning the tree.
+        const base = path.replace(/\.js$/, '')
+        let contents: string | undefined
+        let resolved = path
+        for (const candidate of [
+          base + '.tsx',
+          base + '.ts',
+          path,
+          resolve(base, 'index.tsx'),
+          resolve(base, 'index.ts'),
+        ]) {
+          try {
+            contents = await readFile(candidate, 'utf8')
+            resolved = candidate
+            break
+          } catch (error) {
+            if (
+              !['ENOENT', 'EISDIR', 'ENOTDIR'].includes(
+                (error as NodeJS.ErrnoException).code ?? '',
+              )
+            )
+              throw error
+          }
+        }
+        if (contents === undefined)
+          throw new Error(`Missing shared UI module: ${path}`)
+
+        // Read owned sx inputs and their public export names from the same source snapshot.
+        const { components } = prepareComponentStyles(contents, resolved, {
+          convertProps: false,
+        })
+        const api = new Set(components)
+        const parsed = parseSync(contents, {
+          filename: resolved,
+          configFile: false,
+          babelrc: false,
+          parserOpts: { plugins: ['typescript', 'jsx'] },
+        })!
+        for (const item of parsed.program.body) {
+          if (item.type === 'ExportDefaultDeclaration') {
+            const declaration = item.declaration
+            const name =
+              declaration.type === 'Identifier'
+                ? declaration.name
+                : declaration.type === 'FunctionDeclaration'
+                  ? declaration.id?.name
+                  : undefined
+            if (name && components.has(name)) api.add('default')
+          } else if (item.type === 'ExportNamedDeclaration' && !item.source) {
+            for (const specifier of item.specifiers) {
+              if (
+                specifier.type === 'ExportSpecifier' &&
+                components.has(specifier.local.name)
+              )
+                api.add(
+                  specifier.exported.type === 'Identifier'
+                    ? specifier.exported.name
+                    : specifier.exported.value,
+                )
+            }
+          }
+        }
+        return api
+      })()
+      sharedApis.set(path, pending)
+    }
+    imports.set(target, await pending)
+  }
+  return imports
+}
 
 /** prepareComponentStyles changes owned className inputs to composable StyleX styles. */
 export function prepareComponentStyles(
   source: string,
   filename: string,
-  options: { convertProps?: boolean; sharedComponents?: boolean } = {},
+  options: {
+    convertProps?: boolean
+    sharedComponents?: ReadonlyMap<string, ReadonlySet<string>>
+  } = {},
 ) {
   // Parse component bindings without executing declarations or changing unrelated source formatting.
   const ast = parseSync(source, {
@@ -35,18 +139,22 @@ export function prepareComponentStyles(
       identifiers.add(path.node.name)
     },
     ImportDeclaration(path) {
-      if (!options.sharedComponents) return
-      const target = path.node.source.value
-      if (
-        !target.startsWith('@s4wave/web/ui/') &&
-        !(
-          target.startsWith('.') &&
-          resolve(dirname(filename), target).startsWith(resolve('web/ui') + sep)
-        )
-      )
-        return
-      for (const specifier of path.node.specifiers)
-        components.add(specifier.local.name)
+      const api = options.sharedComponents?.get(path.node.source.value)
+      if (!api) return
+      for (const specifier of path.node.specifiers) {
+        if (specifier.type === 'ImportNamespaceSpecifier') {
+          for (const name of api)
+            components.add(`${specifier.local.name}.${name}`)
+        } else {
+          const name =
+            specifier.type === 'ImportDefaultSpecifier'
+              ? 'default'
+              : specifier.imported.type === 'Identifier'
+                ? specifier.imported.name
+                : specifier.imported.value
+          if (api.has(name)) components.add(specifier.local.name)
+        }
+      }
     },
   })
 
@@ -61,6 +169,21 @@ export function prepareComponentStyles(
   // Rename the parameter and its lexical references together; DOM className attributes stay compiler inputs.
   traverse(ast, {
     Function(path) {
+      // A partially converted component keeps its existing two inputs for the hand pass.
+      if (
+        path.scope.hasOwnBinding('sx') &&
+        path.node.params.some(
+          (parameter) =>
+            parameter.type === 'ObjectPattern' &&
+            parameter.properties.some(
+              (property) =>
+                property.type === 'ObjectProperty' &&
+                property.key.type === 'Identifier' &&
+                property.key.name === 'className',
+            ),
+        )
+      )
+        return
       for (const parameter of path.get('params')) {
         if (!parameter.isObjectPattern()) continue
         for (const property of parameter.get('properties')) {
@@ -82,10 +205,6 @@ export function prepareComponentStyles(
           if (key.name !== 'className' || options.convertProps === false)
             continue
           if (name) components.add(name)
-          if (path.scope.hasOwnBinding('sx'))
-            throw new Error(
-              `${filename}: className and sx already share a component scope`,
-            )
           const value = property.node.value
           const identifier =
             value.type === 'AssignmentPattern' ? value.left : value
