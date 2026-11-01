@@ -10,6 +10,19 @@ import {
   SheetTrigger,
 } from '@s4wave/web/ui/sheet.js'
 
+import * as stylex from '@stylexjs/stylex'
+import { layout as themeLayout } from '../../web/style/tokens.stylex.js'
+
+const stylexStyles = stylex.create({
+  rule1: {
+    width: `calc(${themeLayout['--spacing']} * 70)`,
+    maxWidth: {
+      default: themeLayout['--max-width-docs-sidebar'],
+      '@media (min-width: 40rem)': 'var(--container-sm)',
+    },
+  },
+})
+
 // DocsLayoutProps defines the props for DocsLayout.
 interface DocsLayoutProps {
   sidebar: React.ReactNode
@@ -60,7 +73,7 @@ function DocsMobileNav({
         portalContainer={portalContainer}
         showCloseButton={false}
         variant="docs"
-        className="w-70 max-w-(--max-width-docs-sidebar)"
+        sx={stylexStyles.rule1}
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
