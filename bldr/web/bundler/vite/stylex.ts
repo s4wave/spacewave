@@ -1,4 +1,6 @@
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   parseSync,
@@ -12,8 +14,8 @@ import { stylexLayersBefore } from '../../bldr/stylex-priorities.js'
 
 // cssSuffix gives extracted modules a native CSS extension.
 const cssSuffix = '.bldr-stylex.css'
-// runtimeFile initializes one shared document order in every browser entry path.
-const runtimeFile = fileURLToPath(
+// sourceRuntimeFile initializes one shared document order in every browser entry path.
+const sourceRuntimeFile = fileURLToPath(
   new URL('../../bldr/stylex-client.ts', import.meta.url),
 )
 // Rules are the official compiler metadata consumed by its CSS extractor.
@@ -28,7 +30,16 @@ interface CompiledModule {
 }
 
 /** stylexCss exposes compiled StyleX rules through Vite's native CSS lifecycle. */
-export function stylexCss(): Plugin {
+export function stylexCss(distRoot?: string): Plugin {
+  // Bundled compiler services resolve their shipped sources independently of the host script.
+  const runtimeFile = distRoot
+    ? resolve(
+        distRoot,
+        existsSync(resolve(distRoot, 'bldr')) ? 'bldr' : '.',
+        'web/bldr/stylex-client.ts',
+      )
+    : sourceRuntimeFile
+
   // The compiler retains current results; Vite owns assets and dependency updates.
   const modules = new Map<
     string,

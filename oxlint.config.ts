@@ -93,6 +93,10 @@ export default defineConfig({
   categories: { correctness: 'error' },
   env: { builtin: true },
   ignorePatterns,
+  // StyleX lowers sx before React receives DOM props; other unknown properties remain checked.
+  settings: {
+    'react-doctor': { noUnknownProperty: { ignore: ['sx'] } },
+  },
   rules: {
     'no-array-constructor': 'error',
     'no-case-declarations': 'error',

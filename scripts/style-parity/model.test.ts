@@ -13,17 +13,24 @@ test('parity detects one changed property in both engines at every size', async 
   // Serve a deterministic page with an animation and an accessible control.
   let color = 'rgb(255, 0, 0)'
   let placeholder = 'rgb(0, 128, 0)'
+  let selectionColor = 'rgb(255, 255, 0)'
   const server = createServer((request, response) => {
     response.statusCode = request.url === '/missing' ? 404 : 200
     response.setHeader('Content-Type', 'text/html')
     response.end(`<!doctype html><html lang="en"><head><style>
-      body { background: white; margin: 16px; }
+      body { background: white; color: rgb(32, 64, 96); margin: 16px; }
       button { outline: 2px solid ${color}; }
+      button::selection { color: ${selectionColor}; }
       input::placeholder { color: ${placeholder}; }
-      @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
+      @keyframes pulse { from { opacity: 0.25; } to { opacity: 0.5; } }
       span { animation: pulse 1s linear infinite; }
-    </style></head><body><h1>Parity</h1><button>Open</button><span>Ready</span><input aria-label="Search" placeholder="Search"></body></html>`)
+      span::selection { background-color: rgb(255, 128, 0); }
+      .scope:where([data-label="a,b"]) { & span::selection { text-shadow: 1px 1px red; } }
+      button, .scope span::selection { text-decoration-color: rgb(10, 20, 30); }
+    </style></head><body><h1>Parity</h1><button>Open</button><span>Ready</span><input aria-label="Search" placeholder="Search"><div class="scope" data-label="a,b"><span>Scoped</span></div></body></html>`)
   })
+
+  // Bind the actual HTTP fixture before opening any browser context.
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const address = server.address()
@@ -40,8 +47,9 @@ test('parity detects one changed property in both engines at every size', async 
   }
 
   // Compare separate captures, then change only the button's outline color.
+  let passed = false
   try {
-    for (const name of ['before', 'same', 'changed', 'pseudo'])
+    for (const name of ['before', 'same', 'changed', 'pseudo', 'selection'])
       await mkdir(join(root, name))
     const paths = await capture(manifest, base, join(root, 'before'))
     await capture(manifest, base, join(root, 'same'))
@@ -49,11 +57,35 @@ test('parity detects one changed property in both engines at every size', async 
     await capture(manifest, base, join(root, 'changed'))
     placeholder = 'rgb(255, 0, 255)'
     await capture(manifest, base, join(root, 'pseudo'))
+    selectionColor = 'rgb(255, 0, 255)'
+    await capture(manifest, base, join(root, 'selection'))
     for (const path of paths) {
       const read = async (name: string): Promise<Snapshot> =>
         JSON.parse(await readFile(join(root, name, path), 'utf8'))
       const before = await read('before')
+      assert.equal(
+        before.elements.find((element) =>
+          element.path.endsWith('span:nth-of-type(1)'),
+        )?.styles.opacity,
+        '1',
+      )
       assert.deepEqual([...compareSnapshot(before, await read('same'))], [])
+      // Nested highlight selectors stay within their parent, and regular selector-list entries stay ordinary.
+      const button = before.elements.find(
+        (element) => element.role === 'button',
+      )!
+      assert.deepEqual(Object.keys(button.pseudos['::selection']!), ['color'])
+      assert.equal(
+        before.elements.find((element) =>
+          element.path.endsWith('h1:nth-of-type(1)'),
+        )?.pseudos['::selection'],
+        undefined,
+      )
+      const scoped = before.elements.find((element) =>
+        element.path.endsWith('div:nth-of-type(1)>span:nth-of-type(1)'),
+      )!
+      assert(scoped.pseudos['::selection']?.['text-shadow'])
+      assert(scoped.pseudos['::selection']?.['text-decoration-color'])
       const differences = [...compareSnapshot(before, await read('changed'))]
       assert.deepEqual(differences.map(({ property }) => property).sort(), [
         'screenshot',
@@ -85,6 +117,21 @@ test('parity detects one changed property in both engines at every size', async 
       assert.equal(color.before, 'rgb(0, 128, 0)')
       assert.equal(color.after, 'rgb(255, 0, 255)')
       assert(differences.some(({ property }) => property === 'screenshot'))
+    }
+
+    // Selection color is independently observable even when it does not paint in an unselected screenshot.
+    for (const path of paths) {
+      const read = async (name: string): Promise<Snapshot> =>
+        JSON.parse(await readFile(join(root, name, path), 'utf8'))
+      const differences = [
+        ...compareSnapshot(await read('pseudo'), await read('selection')),
+      ]
+      assert.deepEqual(
+        differences.map(({ property }) => property),
+        ['::selection.color'],
+      )
+      assert.equal(differences[0]!.before, 'rgb(255, 255, 0)')
+      assert.equal(differences[0]!.after, 'rgb(255, 0, 255)')
     }
 
     // A failed state preserves diagnostics while later states still capture.
@@ -140,12 +187,13 @@ test('parity detects one changed property in both engines at every size', async 
       ),
       ['aria'],
     )
+    passed = true
   } finally {
     server.closeAllConnections()
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
     )
-    if (!process.env.STYLE_PARITY_TEST_ARTIFACTS)
+    if (passed && !process.env.STYLE_PARITY_TEST_ARTIFACTS)
       await rm(root, { recursive: true, force: true })
   }
 })

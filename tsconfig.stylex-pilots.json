@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "web/ui/InfoCard.tsx",
+    "app/vm/VmErrorBanner.tsx",
+    "plugin/notes/blog/TagChip.tsx",
+    "bldr/web/bldr-react/stylex-types.ts"
+  ],
+  "exclude": []
+}
