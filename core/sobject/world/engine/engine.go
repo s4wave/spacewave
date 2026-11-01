@@ -251,6 +251,8 @@ type soEngine struct {
 	replayNext atomic.Pointer[replayPublicationRequest]
 	// replayWake wakes its lifetime-bound worker without retaining save payloads.
 	replayWake chan struct{}
+	// publicationEpoch changes when failed admissions reinstall publication history.
+	publicationEpoch atomic.Uint64
 }
 
 // newSoEngine constructs the shared object engine. lifetime bounds the commits
@@ -352,7 +354,13 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	// this lease across an unlocked capacity wait, so a stalled backend cannot
 	// accumulate one unpublished buffer for every incoming request.
 	var preparation func()
-	if store, ok := e.so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
+	prepared, _ := ctx.Value(admissionPreparationKey{e.so.GetBlockStore().GetID()}).(*admissionPreparation)
+	if prepared != nil {
+		if err := prepared.take(e); err != nil {
+			return nil, err
+		}
+		preparation = prepared.Release
+	} else if store, ok := e.so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
 		var err error
 		prepareCtx, cancel := e.publicationContext(ctx)
 		preparation, err = store.AcquirePublicationPreparation(prepareCtx)
@@ -360,12 +368,12 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 		if err != nil {
 			return nil, err
 		}
-		defer func() {
-			if preparation != nil {
-				preparation()
-			}
-		}()
 	}
+	defer func() {
+		if preparation != nil {
+			preparation()
+		}
+	}()
 
 	// Serialize the write fork with other writes and replay.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/new-transaction")
@@ -373,6 +381,12 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	unlockWriteMtx, err := e.lockReplayed(ctx, clock)
 	if err != nil {
 		return nil, err
+	}
+	if prepared != nil {
+		if err := prepared.retry.check(); err != nil {
+			unlockWriteMtx()
+			return nil, err
+		}
 	}
 	base, head, index := e.replay.head()
 
@@ -407,6 +421,10 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	fork := &replayFork{base: base, index: index, start: head, state: head}
 	clock.end(stageForkReplay)
 	result := newSoEngineWriteTx(ttx, btx, e, fork, unlockWriteMtx, clock)
+	result.admissionPreparation = prepared
+	if prepared != nil {
+		result.publicationEpoch = prepared.retry.epoch
+	}
 	if preparation != nil {
 		result.releasePreparation = sync.OnceFunc(preparation)
 		preparation = nil

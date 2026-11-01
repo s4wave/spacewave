@@ -124,6 +124,7 @@ func (e *soEngine) settle() {
 		e.replay.unsave(adm.base, adm.span, adm.spanLen, adm.baseUnheld)
 		e.retained, e.retainedRoots = adm.retained, adm.retainedRoots
 		e.admissions = nil
+		e.publicationEpoch.Add(1)
 		e.c.callReinstall(adm.seqno)
 	}
 }

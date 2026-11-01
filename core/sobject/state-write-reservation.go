@@ -25,16 +25,17 @@ type StateWriteReserver interface {
 	// ReserveStateWrite waits for intent and optionally for prior receipts.
 	ReserveStateWrite(context.Context, bool) (StateWriteReservation, error)
 	// TryReserveStateWrite claims admitted-state intent without waiting.
-	TryReserveStateWrite(context.Context) (StateWriteReservation, error)
+	TryReserveStateWrite(context.Context, bool) (StateWriteReservation, error)
 }
 
-// TryReserveStateWrite claims admitted-state intent without waiting. A nil claim
+// TryReserveStateWrite claims intent without waiting, requiring settled receipts
+// when asked. A nil claim
 // asks a reservation-enabled caller to retry outside its engine writer.
-func (s *SOHost) TryReserveStateWrite(ctx context.Context) (StateWriteReservation, error) {
+func (s *SOHost) TryReserveStateWrite(ctx context.Context, settled bool) (StateWriteReservation, error) {
 	if s.syncFuncs.TryReserveWrite == nil {
 		return nil, nil
 	}
-	return s.syncFuncs.TryReserveWrite(ctx, s.sharedObjectID)
+	return s.syncFuncs.TryReserveWrite(ctx, s.sharedObjectID, settled)
 }
 
 // ReserveStateWrite claims the provider's optional write intent. Call it before

@@ -41,7 +41,11 @@ func (b *BlockStore) ReservePublication(ctx context.Context, size int64) (block.
 	if !b.SupportsPublicationReservations() {
 		return nil, nil
 	}
-	return b.placement.sqlPublish.reserve(ctx, size)
+	reservation, err := b.placement.sqlPublish.reserve(ctx, size)
+	if reservation == nil {
+		return nil, err
+	}
+	return reservation, err
 }
 
 // SupportsPublicationReservations reports whether SQL-primary pre-lock claims are enabled.

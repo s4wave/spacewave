@@ -48,6 +48,10 @@ type soEngineWriteTx struct {
 	reservation block.PublicationReservation
 	// baseReceipt is the predecessor of the candidate before its unlocked wait.
 	baseReceipt *block.PublicationReceipt
+	// publicationEpoch is the original attempt's publication history.
+	publicationEpoch uint64
+	// admissionPreparation carries pre-lock capacity into a rerun body.
+	admissionPreparation *admissionPreparation
 	// stateReservation excludes other state writers during commit preparation.
 	stateReservation sobject.StateWriteReservation
 	// stateSettled permits a declined publication to fall back to a direct write.
@@ -79,12 +83,14 @@ func newSoEngineWriteTx(
 	clock *commitClock,
 ) *soEngineWriteTx {
 	return &soEngineWriteTx{
-		WorldState:     worldState,
-		btx:            btx,
-		eng:            eng,
-		fork:           fork,
-		unlockWriteMtx: unlockWriteMtx,
-		clock:          clock,
+		WorldState:       worldState,
+		btx:              btx,
+		eng:              eng,
+		fork:             fork,
+		unlockWriteMtx:   unlockWriteMtx,
+		clock:            clock,
+		baseReceipt:      eng.lastReceipt(),
+		publicationEpoch: eng.publicationEpoch.Load(),
 	}
 }
 
@@ -150,6 +156,9 @@ func (t *soEngineWriteTx) CommitAdmit(ctx context.Context) (world.Admission, err
 func (t *soEngineWriteTx) admit(ctx context.Context) error {
 	// End the callback stage.
 	t.clock.end(stageCallback)
+	if err := t.checkPublicationBase(); err != nil {
+		return err
+	}
 
 	// Close the operation buffer before publishing its candidate blocks.
 	{
@@ -242,9 +251,9 @@ func (t *soEngineWriteTx) admit(ctx context.Context) error {
 
 	// Claim capacity outside writer locks before the operation takes the state lock.
 	if publishes {
-		t.baseReceipt = t.eng.lastReceipt()
 		var err error
-		ctx, err = t.reserveStateWrite(ctx, false)
+		settled := t.admissionPreparation != nil && t.admissionPreparation.retry.settled
+		ctx, err = t.reserveStateWrite(ctx, settled)
 		if err != nil {
 			return err
 		}
@@ -269,6 +278,11 @@ func (t *soEngineWriteTx) admit(ctx context.Context) error {
 		err = t.eng.queueOperation(taskCtx, opData, t.fork, t.clock)
 		if !errors.Is(err, sobject.ErrStateWriteUnsettled) || t.stateSettled {
 			break
+		}
+
+		// A caller holding its own writer discards before preparing a fresh body.
+		if world.CanRetryAdmission(taskCtx) {
+			return t.admissionRetry(0, true, true)
 		}
 
 		// A declined atomic write must drain outside both writers, then retry
@@ -369,8 +383,8 @@ func (t *soEngineWriteTx) writeBlocks(ctx context.Context) error {
 // the SharedObject then commits its state itself.
 func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePublisher, root *block.BlockRef, head *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) {
 	// A candidate prepared on a failed admission never enters a later chain.
-	if t.baseReceipt != nil && t.baseReceipt.Err() != nil {
-		return nil, block.NewPublicationDependencyError(t.baseReceipt.Err())
+	if err := t.checkPublicationBase(); err != nil {
+		return nil, err
 	}
 
 	// Fall back when the state or the store cannot join a publication.

@@ -445,35 +445,42 @@ func (c *Controller) staleSnapshot(ctx context.Context, so sobject.SharedObject,
 	return c.stale(ctx, so, snap)
 }
 
-// lockStateSettled prepares a direct state write before taking the engine
-// writer. The provider intent prevents a peer import or another admission from
-// introducing a new receipt wait between preparation and the state write.
+// lockStateSettled pairs settled state with the engine writer. It drains
+// outside the engine and releases intent before waiting for that writer again.
+// Provider intent prevents a peer import or another admission from introducing
+// a new receipt wait between preparation and the state write.
 func (c *Controller) lockStateSettled(ctx context.Context, so sobject.SharedObject, holder string) (context.Context, func(), error) {
-	// Drain prior state receipts before acquiring the engine writer.
-	var reservation sobject.StateWriteReservation
-	if reserver, ok := so.(sobject.StateWriteReserver); ok {
-		var err error
-		reservation, err = reserver.ReserveStateWrite(ctx, true)
+	// A control never holds state intent while waiting for a callback's engine.
+	reserver := stateWriteReserver(so)
+	for {
+		unlock, err := c.lockSettled(ctx, holder)
 		if err != nil {
 			return ctx, nil, err
 		}
-		if reservation != nil {
-			ctx = reservation.WithContext(ctx)
+		if reserver == nil {
+			return ctx, unlock, nil
 		}
-	}
-	unlock, err := c.lockSettled(ctx, holder)
-	if err != nil {
-		if reservation != nil {
-			reservation.Release()
+		claim, err := reserver.TryReserveStateWrite(ctx, true)
+		if err != nil {
+			unlock()
+			return ctx, nil, err
 		}
-		return ctx, nil, err
-	}
-	return ctx, func() {
+		if claim != nil {
+			return claim.WithContext(ctx), func() { unlock(); claim.Release() }, nil
+		}
 		unlock()
-		if reservation != nil {
-			reservation.Release()
+
+		// Drain outside the engine, then release intent before reacquiring it.
+		claim, err = reserver.ReserveStateWrite(ctx, true)
+		if err != nil {
+			return ctx, nil, err
 		}
-	}, nil
+		if claim == nil {
+			unlock, err := c.lockSettled(ctx, holder)
+			return ctx, unlock, err
+		}
+		claim.Release()
+	}
 }
 
 // lockSettled locks the writer lock once no admission of the served engine

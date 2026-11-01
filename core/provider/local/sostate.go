@@ -106,7 +106,13 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				return nil, nil
 			}
 		}
-		if settled {
+		if settled && !waiting {
+			if _, pending := ent.readSettled(); pending != nil {
+				unlock()
+				ref.Release()
+				return nil, nil
+			}
+		} else if settled {
 			if _, err := ent.waitSettled(ctx); err != nil {
 				unlock()
 				ref.Release()
@@ -304,8 +310,12 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 	syncFuncs.ReserveWrite = func(ctx context.Context, id string, settled bool) (sobject.StateWriteReservation, error) {
 		return reserveWrite(ctx, id, settled, true)
 	}
-	syncFuncs.TryReserveWrite = func(ctx context.Context, id string) (sobject.StateWriteReservation, error) {
-		return reserveWrite(ctx, id, false, false)
+	syncFuncs.TryReserveWrite = func(ctx context.Context, id string, settled bool) (sobject.StateWriteReservation, error) {
+		claim, err := reserveWrite(ctx, id, settled, false)
+		if errors.Is(err, sobject.ErrStateWriteUnsettled) {
+			return nil, nil
+		}
+		return claim, err
 	}
 	syncFuncs.Lock = func(ctx context.Context, id string) (sobject.SOStateLock, error) {
 		return newLock(ctx, id, false, true)

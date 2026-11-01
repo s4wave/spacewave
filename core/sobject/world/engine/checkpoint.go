@@ -406,22 +406,16 @@ func (e *soEngine) adoptStable(ctx context.Context, ckpt *stableCheckpoint) erro
 	// SQL-primary checkpoints claim a queue slot before taking the state writer.
 	// Their World was named above; only the state head enters this publication.
 	var stateReservation sobject.StateWriteReservation
-	if reserver, ok := e.so.(sobject.StateWriteReserver); ok {
-		var err error
-		stateReservation, err = reserver.ReserveStateWrite(ctx, false)
-		if err != nil {
-			return err
-		}
-		if stateReservation != nil {
-			defer stateReservation.Release()
-			ctx = stateReservation.WithContext(ctx)
-		}
-	}
 	var receipt *block.PublicationReceipt
 	if store, ok := e.so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
-		reservation, err := store.ReservePublication(ctx, 0)
+		reservation, state, err := reserveCheckpointPublication(ctx, e.so, store)
 		if err != nil {
 			return err
+		}
+		stateReservation = state
+		if state != nil {
+			defer state.Release()
+			ctx = state.WithContext(ctx)
 		}
 		if reservation != nil {
 			defer reservation.Release()

@@ -44,7 +44,18 @@ func (s *sqlWorldSO) ReserveStateWrite(ctx context.Context, settled bool) (sobje
 	case s.waiting <- struct{}{}:
 	default:
 	}
+	if !s.store.SupportsPublicationReservations() {
+		return nil, block.ErrAtomicPublicationUnsupported
+	}
 	return s.SharedObject.ReserveStateWrite(ctx, settled)
+}
+
+// TryReserveStateWrite rejects unavailable preparation on a placement without the lane.
+func (s *sqlWorldSO) TryReserveStateWrite(ctx context.Context, settled bool) (sobject.StateWriteReservation, error) {
+	if !s.store.SupportsPublicationReservations() {
+		return nil, block.ErrAtomicPublicationUnsupported
+	}
+	return s.SharedObject.TryReserveStateWrite(ctx, settled)
 }
 
 // GetBlockStore supplies the SQL-primary store to the real World engine.
@@ -59,6 +70,8 @@ type sqlWorldStore struct {
 	head atomic.Pointer[sqlWorldHeadGate]
 	// decline rejects one atomic submission before it acquires any publication.
 	decline atomic.Bool
+	// reservationsOff selects the rollback placement on the next engine mount.
+	reservationsOff atomic.Bool
 }
 
 // sqlWorldHeadGate holds one state head before its injected failure.
@@ -87,6 +100,11 @@ func (m *sqlWorldMount) HandleDirective(_ context.Context, di directive.Instance
 		return directive.R(directive.NewValueResolver([]sobject.SharedObject{m.so}), nil)
 	}
 	return nil, nil
+}
+
+// SupportsPublicationReservations also exercises a placement without the lane.
+func (s *sqlWorldStore) SupportsPublicationReservations() bool {
+	return !s.reservationsOff.Load() && s.BlockStore.SupportsPublicationReservations()
 }
 
 // ReservePublication observes the real capacity wait after the engine unlocked.
@@ -222,7 +240,7 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 	}
 
 	// Build writes through the same World interface as callers.
-	newWrite := func(key string) world.Tx {
+	newWriteAt := func(ctx context.Context, key string) world.Tx {
 
 		// Open a write and create its object.
 		t.Helper()
@@ -238,6 +256,9 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 		}
 		return tx
 	}
+
+	// Ordinary writes use the fixture lifetime; prepared retries bind their own context.
+	newWrite := func(key string) world.Tx { return newWriteAt(ctx, key) }
 
 	// Commit the initial durable World before filling capacity.
 	commit := func(key string) {
@@ -344,7 +365,50 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 	}
 	clear()
 
-	// Fail a predecessor while its successor waits outside the writer lock.
+	// A caller holding another writer gets an unadmitted retry, then drops
+	// its candidate before preparing. Canceling preparation returns its lease.
+	fill()
+	tx = newWrite("capacity-retry")
+	err = tx.Commit(world.WithAdmissionRetry(ctx))
+	tx.Discard()
+	retry, ok := errors.AsType[world.AdmissionRetry](err)
+	if !ok {
+		t.Fatalf("full queue did not return admission preparation: %v", err)
+	}
+	canceled, stop := context.WithCancel(ctx)
+	stop()
+	if preparation, err := retry.Prepare(canceled); !errors.Is(err, context.Canceled) {
+		if preparation != nil {
+			preparation.Release()
+		}
+		t.Fatalf("canceled preparation: %v", err)
+	}
+
+	// Reserve before the new body, and transfer the candidate lease only once.
+	type preparedResult struct {
+		preparation world.AdmissionPreparation
+		err         error
+	}
+	ready := make(chan preparedResult, 1)
+	go func() { p, err := retry.Prepare(ctx); ready <- preparedResult{p, err} }()
+	select {
+	case <-store.entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("retry did not reserve outside its candidate")
+	}
+	clear()
+	prepared := <-ready
+	if prepared.err != nil {
+		t.Fatal(prepared.err)
+	}
+	t.Cleanup(prepared.preparation.Release)
+	preparedCtx := prepared.preparation.WithContext(ctx)
+	if err := newWriteAt(preparedCtx, "capacity-retry").Commit(world.WithAdmissionRetry(preparedCtx)); err != nil {
+		t.Fatal(err)
+	}
+	prepared.preparation.Release()
+
+	// Fail a predecessor while its successor prepares outside every caller writer.
 	injected := errors.New("physical state head failed")
 	gate := &sqlWorldHeadGate{entered: make(chan struct{}), release: make(chan struct{}), err: injected}
 	store.head.Store(gate)
@@ -366,7 +430,18 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 	// Fill the remaining capacity and wait with a dependent candidate.
 	fill()
 	tx = newWrite("failed-successor")
-	go func() { result <- tx.Commit(ctx) }()
+	go func() {
+		err := tx.Commit(world.WithAdmissionRetry(ctx))
+		tx.Discard()
+		if retry, ok := errors.AsType[world.AdmissionRetry](err); ok {
+			preparation, perr := retry.Prepare(ctx)
+			if preparation != nil {
+				preparation.Release()
+			}
+			err = perr
+		}
+		result <- err
+	}()
 	select {
 	case <-store.entered:
 	case <-time.After(5 * time.Second):
@@ -411,10 +486,10 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer read.Discard()
-	for _, key := range []string{"before", "after", "canceled", "intent-canceled", "failed-base", "failed-successor"} {
+	for _, key := range []string{"before", "after", "capacity-retry", "declined-retry", "canceled", "intent-canceled", "failed-base", "failed-successor"} {
 		obj, found, err := read.GetObject(ctx, key)
 		world.ReleaseObjectState(obj)
-		if err != nil || found != (key == "before" || key == "after") {
+		if err != nil || found != (key == "before" || key == "after" || key == "capacity-retry" || key == "declined-retry") {
 			t.Fatalf("object %s = %v, %v", key, found, err)
 		}
 	}
@@ -448,4 +523,38 @@ func TestSQLWorldReservationLifecycle(t *testing.T) {
 		t.Fatal("retired engine retained its capacity waiter")
 	}
 	clear()
+
+	// Restart without the store's reservation lane while the provider's
+	// process setting remains on. Controls must use the same ordering as
+	// local World commits, without invoking unavailable preparation.
+	store.reservationsOff.Store(true)
+	localCtrl, err := sobject_world_engine.NewController(tb.Logger, tb.Bus, conf, transform_all.BuildFactorySet())
+	if err != nil {
+		t.Fatal(err)
+	}
+	localCtrl.SetOpTypes(sobject_world_engine.OpTypes{Lookup: world_mock.LookupMockOp})
+	localCtx, stopLocal := context.WithCancel(ctx)
+	localDone := make(chan error, 1)
+	go func() { localDone <- localCtrl.Execute(localCtx) }()
+	t.Cleanup(func() { stopLocal(); <-localDone })
+	localEngine, err := localCtrl.GetWorldEngine(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := localEngine.(world.RootRetainingEngine).SetRetainedRoot(ctx, "local", nil); err != nil {
+		t.Fatalf("control required disabled preparation: %v", err)
+	}
+	localTx, err := localEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj, err := localTx.CreateObject(ctx, "local-mode", &bucket.ObjectRef{BucketId: "objects"})
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		localTx.Discard()
+		t.Fatal(err)
+	}
+	if err := localTx.Commit(ctx); err != nil {
+		t.Fatalf("local-mode write: %v", err)
+	}
 }

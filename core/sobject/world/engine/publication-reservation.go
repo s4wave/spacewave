@@ -6,6 +6,7 @@ import (
 
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
@@ -34,7 +35,10 @@ func (t *soEngineWriteTx) reservePublication(ctx context.Context, publisher sobj
 		}
 		t.prepared = batch
 	}
-	after := t.baseReceipt
+	var prepared block.PublicationReservation
+	if t.admissionPreparation != nil {
+		prepared = t.admissionPreparation.capacity
+	}
 
 	// Retry a claim when replay's save grew while another writer ran.
 	for {
@@ -43,13 +47,26 @@ func (t *soEngineWriteTx) reservePublication(ctx context.Context, publisher sobj
 		if err != nil {
 			return err
 		}
-		reservation, err := store.TryReservePublication(ctx, size)
+		reservation := prepared
+		prepared = nil
+		if reservation != nil && reservation.Bytes() < size {
+			reservation.Release()
+			reservation = nil
+		}
+		if reservation == nil {
+			reservation, err = store.TryReservePublication(ctx, size)
+		}
 		if err != nil {
 			return err
 		}
 		if reservation != nil {
 			t.reservation = reservation
 			return nil
+		}
+
+		// A caller-owned writer must be discarded before any capacity wait.
+		if world.CanRetryAdmission(ctx) {
+			return t.admissionRetry(size, false, false)
 		}
 
 		// Only a full queue opens the candidate's independent-fork interval.
@@ -60,11 +77,11 @@ func (t *soEngineWriteTx) reservePublication(ctx context.Context, publisher sobj
 		}
 
 		// Reject a failed original base before competing with its reinstall.
-		if after != nil && after.Err() != nil {
+		if err := t.checkPublicationBase(); err != nil {
 			if reservation != nil {
 				reservation.Release()
 			}
-			return block.NewPublicationDependencyError(after.Err())
+			return err
 		}
 
 		// Reacquire only the writer: queueOperation places a stale fork through replay.
@@ -83,11 +100,11 @@ func (t *soEngineWriteTx) reservePublication(ctx context.Context, publisher sobj
 			return world_block.ErrEngineClosed
 		}
 		t.eng.settle()
-		if after != nil && after.Err() != nil {
+		if err := t.checkPublicationBase(); err != nil {
 			if reservation != nil {
 				reservation.Release()
 			}
-			return block.NewPublicationDependencyError(after.Err())
+			return err
 		}
 
 		// Replay may have advanced while capacity was unavailable. Its new save
@@ -139,19 +156,32 @@ func (t *soEngineWriteTx) publicationBytes(ctx context.Context, publisher sobjec
 // User callbacks run before this claim, so they may themselves change metadata.
 func (t *soEngineWriteTx) reserveStateWrite(ctx context.Context, settled bool) (context.Context, error) {
 	// Only reservation-enabled stores need the shared intent lane.
-	reserver, ok := t.eng.so.(sobject.StateWriteReserver)
-	store, reserves := t.eng.so.GetBlockStore().(block.PublicationReserver)
-	if !ok || !reserves || !store.SupportsPublicationReservations() {
+	reserver := stateWriteReserver(t.eng.so)
+	if reserver == nil {
 		return ctx, nil
 	}
 	bound, cancel := t.eng.publicationContext(ctx)
 	defer cancel()
 
+	// A locked caller may only try state intent and a nonblocking settled upgrade.
+	if world.CanRetryAdmission(ctx) {
+		claim, err := reserver.TryReserveStateWrite(bound, settled)
+		if err != nil {
+			return ctx, err
+		}
+		if claim == nil {
+			return ctx, t.admissionRetry(0, true, settled)
+		}
+
+		t.stateReservation, t.stateSettled = claim, settled
+		return claim.WithContext(ctx), t.checkPublicationBase()
+	}
+
 	// A fast claim keeps the usual commit under its existing engine hold.
 	var reservation sobject.StateWriteReservation
 	var err error
 	if !settled {
-		reservation, err = reserver.TryReserveStateWrite(bound)
+		reservation, err = reserver.TryReserveStateWrite(bound, settled)
 	}
 	if err != nil {
 		return ctx, err
@@ -177,11 +207,11 @@ func (t *soEngineWriteTx) reserveStateWrite(ctx context.Context, settled bool) (
 			return ctx, world_block.ErrEngineClosed
 		}
 		t.eng.settle()
-		if t.baseReceipt != nil && t.baseReceipt.Err() != nil {
+		if err := t.checkPublicationBase(); err != nil {
 			if reservation != nil {
 				reservation.Release()
 			}
-			return ctx, block.NewPublicationDependencyError(t.baseReceipt.Err())
+			return ctx, err
 		}
 	}
 	t.stateReservation, t.stateSettled = reservation, settled
@@ -197,4 +227,16 @@ func (t *soEngineWriteTx) releaseStateWrite() {
 		t.stateReservation.Release()
 		t.stateReservation = nil
 	}
+}
+
+// stateWriteReserver selects one effective lane for World and control writers.
+// A local store without publication reservations retains engine-before-provider
+// ordering even if reservations are enabled elsewhere in the process.
+func stateWriteReserver(so sobject.SharedObject) sobject.StateWriteReserver {
+	store, ok := so.GetBlockStore().(block.PublicationReserver)
+	if !ok || !store.SupportsPublicationReservations() {
+		return nil
+	}
+	reserver, _ := so.(sobject.StateWriteReserver)
+	return reserver
 }

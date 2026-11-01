@@ -26,7 +26,7 @@ type SOHostSyncFuncs struct {
 	// ReserveWrite orders write intent outside engine/provider writer locks.
 	ReserveWrite func(context.Context, string, bool) (StateWriteReservation, error)
 	// TryReserveWrite claims admitted-state intent without waiting under an engine writer.
-	TryReserveWrite func(context.Context, string) (StateWriteReservation, error)
+	TryReserveWrite func(context.Context, string, bool) (StateWriteReservation, error)
 	// Lock imports accepted peer state without publishing a local root to a server.
 	// When nil, the host uses its ordinary local persistence lock.
 	Lock SOStateLockFunc
