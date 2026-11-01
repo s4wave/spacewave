@@ -53,6 +53,16 @@ for (const [engine, launcher] of Object.entries({ chromium, webkit })) {
         pointerEvents: 'none',
         color: 'rgb(17, 34, 51)',
       })
+      const button = await page
+        .locator('#native-button')
+        .evaluate((element) => {
+          const style = getComputedStyle(element)
+          return {
+            minWidth: style.minWidth,
+            custom: style.getPropertyValue('--native-button-test'),
+          }
+        })
+      assert.deepEqual(button, { minWidth: '123px', custom: 'retained' })
       console.log(
         `${engine}: shared native button styles its caller's icon after CSS delivery`,
       )
