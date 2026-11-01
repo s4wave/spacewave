@@ -45,6 +45,8 @@ content for every state in Chromium and WebKit at three sizes. It excludes
 custom property declarations because different compilers use different internal
 variables; their effects remain visible in the resolved CSS properties.
 
+Manifests run directly in Node 24. Runtime imports between source manifests
+name their `.ts` files, since Node does not remap `.js` imports to TypeScript.
 A manifest exports `states`. Each state has an `id`, `path`, and `ready`, plus
 an optional `setup(page)` function that opens the required state. `ready` is
 either a selector for the final state or an async function that waits for the
@@ -53,11 +55,18 @@ Each state starts in a fresh context, so setup must establish its own disposable
 fixture. The starter manifest covers three public pages; add session viewers
 and overlays before treating it as full application coverage.
 
-The capture fixes wall-clock dates, waits for fonts and image decoding, and
-freezes animation progress. Finite animations reach their end; repeating
-animations stop at their start. The screenshot disables animation and hides the
-caret. This records static styles and geometry; it does not establish animation
-timing or interaction quality.
+The capture fixes wall-clock dates, waits for fonts and image decoding, finishes
+finite transitions and cancels repeating effects to sample their underlying
+static styles. SVG timelines stop at zero too. The screenshot waits for the
+static paint and hides the caret. Its cleanup may restart CSS animations, so
+the collector reestablishes that static sample before reading computed styles.
+PNGs are retained; comparison hashes use decoded pixels rather than PNG
+compression or metadata. This records static styles and geometry. Animation
+timing and interaction quality need separate checks.
+
+An explicit Chromium `ERR_NETWORK_CHANGED` retries once in a fresh context.
+The first attempt's error, screenshot and accessibility tree are retained.
+Other failures remain terminal for that state.
 
 The final `capture.json` appears only after every state succeeds. Failed states
 save an error record and a diagnostic screenshot and accessibility tree when
@@ -69,3 +78,10 @@ pair of screens at a time.
 Run `bun run test:style-parity` for the repeatability and single-property check,
 and `bun run check:style-parity` and `bun run lint:style-parity` for source checks.
 Set `STYLE_PARITY_TEST_ARTIFACTS` to a directory to retain the test's captures.
+
+Selection snapshots include the painted properties declared by application CSS,
+including declarations inherited through highlight ancestors. Ordinary element
+styles already cover the default inherited text color. Chromium can return a
+stale transition color for an unstyled highlight, so its unused pseudo defaults
+are not a second source of that color. Explicit selection-color changes remain
+part of the comparison.

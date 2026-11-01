@@ -97,6 +97,7 @@ export const layout = stylex.defineVars({
   '--spacing-shell-header': '28px',
   '--spacing-app-logo-inset': '3.5px',
   '--text-shadow-bar-item-selected': '0 0 3px oklch(0 0 0 / 0.8)',
+  '--spacing': '0.25rem',
 })
 
 /** radii keeps the theme's public CSS variable names and values. */
@@ -107,6 +108,8 @@ export const radii = stylex.defineVars({
   '--radius-editor-panel': '0.4rem',
   '--radius-editor-scroll': '0.5rem',
   '--radius-menu-button': '3px',
+  '--radius-md': '0.375rem',
+  '--radius-lg': '0.5rem',
 })
 
 /** shadows keeps the theme's public CSS variable names and values. */
@@ -131,6 +134,11 @@ export const fonts = stylex.defineVars({
     "'Pragmasevka', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   '--font-display': "'Manrope Variable', -apple-system, sans-serif",
   '--font-heading': "'Manrope Variable', sans-serif",
+  '--text-xs': '0.75rem',
+  '--text-xs--line-height': 'calc(1 / 0.75)',
+  '--text-sm': '0.875rem',
+  '--text-sm--line-height': 'calc(1.25 / 0.875)',
+  '--font-weight-medium': '500',
 })
 
 /** colors keeps the theme's public CSS variable names and values. */
@@ -329,4 +337,10 @@ export const colors = stylex.defineVars({
   '--color-editor-bar': 'oklch(0.2881 0.0038 8.07)',
   '--color-frame-overlay-border': 'var(--color-primary)',
   '--color-object-viewer-overlay': 'oklch(0.1776 0 0)',
+  '--color-white': '#fff',
+})
+
+/** motion preserves the shared transition timing used by interactive controls. */
+export const motion = stylex.defineVars({
+  '--default-transition-timing-function': 'cubic-bezier(0.4, 0, 0.2, 1)',
 })

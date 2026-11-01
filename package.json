@@ -244,7 +244,7 @@
     "bldr:vendor": "go mod vendor",
     "stylex-vite:build": "bun build scripts/stylex-vite.test.ts --target=node --packages=external --outfile .bldr/stylex-vite/web/bundler/vite/test.mjs && mkdir -p .bldr/stylex-vite/web/bldr && cp bldr/web/bldr/stylex-*.ts .bldr/stylex-vite/web/bldr/",
     "test:stylex-vite": "bun run stylex-vite:build && node --test --test-timeout=120000 .bldr/stylex-vite/web/bundler/vite/test.mjs",
-    "format:stylex-vite": "oxfmt web/style/*.stylex.ts bldr/web/bldr-react/stylex-types.ts bldr/web/bldr-react/index.ts bldr/web/bundler/rolldown/run-build.ts bldr/web/bundler/rolldown/run-build.test.ts scripts/stylex-vite.test.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr/stylex-client.ts bldr/web/bundler/vite/vite.ts bldr/web/bundler/vite/development.ts vite.config.ts app/prerender/vite*.config.ts bldr/dist/deps/package.json app/prerender/stylex-order.ts app/prerender/build.ts app/prerender/html-template.ts app/prerender/funnel-beacon.ts app/blog/blog-build.ts app/download/DownloadPage.tsx app/download/DownloadPage.test.tsx && gofmt -w bldr/dist.go bldr/web/pkg/external/external.go bldr/web/pkg/external/external_test.go web/dist.go bldr/dist-deps_test.go",
+    "format:stylex-vite": "oxfmt web/style/*.stylex.ts bldr/web/bldr-react/stylex-types.ts bldr/web/bldr-react/index.ts bldr/web/bundler/rolldown/run-build.ts bldr/web/bundler/rolldown/run-build.test.ts scripts/stylex-vite.test.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr/stylex-client.ts bldr/web/bundler/vite/vite.ts bldr/web/bundler/vite/development.ts vite.config.ts app/prerender/vite*.config.ts bldr/dist/deps/package.json app/prerender/stylex-order.ts app/prerender/build.ts app/prerender/html-template.ts app/prerender/funnel-beacon.ts app/blog/blog-build.ts app/download/DownloadPage.tsx app/download/DownloadPage.test.tsx && gofmt -w bldr/dist.go bldr/web/pkg/external/external.go bldr/web/pkg/external/external_test.go web/dist.go bldr/dist-deps_test.go bldr/web/pkg/vite/release-chunks_test.go",
     "check:stylex-vite": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/stylex-vite.test.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr-react/stylex-types.ts",
     "lint:stylex-vite": "oxlint -c oxlint.style-parity.config.ts scripts/stylex-vite.test.ts bldr/web/bundler/vite/stylex.ts bldr/web/bldr/stylex-client.ts",
     "stylex-order:build": "bun build scripts/stylex-order.test.ts --target=node --packages=external --outdir .bldr/stylex-order --entry-naming [name].mjs && bun build scripts/stylex-order.browser.ts --target=browser --outfile .bldr/stylex-order/stylex-order.browser.js",
@@ -254,12 +254,21 @@
     "lint:stylex-order": "oxlint -c oxlint.style-parity.config.ts scripts/stylex-order*.ts bldr/web/bldr/stylex-*.ts bldr/web/bldr-react/StylesheetLink.tsx",
     "style-parity": "bun run style-parity:build && node .bldr/style-parity-tools/style-parity.mjs",
     "format:style-parity": "oxfmt scripts/style-parity.ts scripts/style-parity oxlint.style-parity.config.ts && gofmt -w e2e/releasewasm/style-parity_test.go",
-    "check:style-parity": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/style-parity.ts scripts/style-parity/*.ts",
+    "check:style-parity": "tsc --allowImportingTsExtensions --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/style-parity.ts scripts/style-parity/*.ts",
     "lint:style-parity": "oxlint -c oxlint.style-parity.config.ts scripts/style-parity.ts scripts/style-parity",
     "style-parity:install-browsers": "playwright install chromium webkit",
     "style-parity:build": "bun build scripts/style-parity.ts scripts/style-parity/model.test.ts --target=node --external=playwright --outdir .bldr/style-parity-tools --entry-naming [name].mjs && bun build scripts/style-parity/browser.ts --target=browser --format=iife --outfile .bldr/style-parity-tools/browser.js",
     "test:style-parity": "bun run style-parity:build && node --test --test-timeout=120000 .bldr/style-parity-tools/model.test.mjs",
-    "style-parity:release": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true go test -count=1 -timeout=30m -v ./e2e/releasewasm -run ^TestReleaseStyleParity$"
+    "style-parity:release": "cross-env ENABLE_E2E_RELEASE_WASM=true E2E_RELEASE_WASM_LOCAL_CDN=1 E2E_RELEASE_WASM_GOSCRIPT=true go test -count=1 -timeout=30m -v ./e2e/releasewasm -run ^TestReleaseStyleParity$",
+    "stylex:migrate": "bun scripts/tailwind-to-stylex/index.ts",
+    "format:stylex-migrate": "oxfmt scripts/tailwind-to-stylex",
+    "check:stylex-migrate": "tsc --ignoreConfig --noEmit --skipLibCheck --strict --target ESNext --module Preserve --moduleResolution Bundler --types bun --lib ESNext,DOM,DOM.Iterable scripts/tailwind-to-stylex/*.ts",
+    "lint:stylex-migrate": "oxlint -c oxlint.style-parity.config.ts scripts/tailwind-to-stylex",
+    "stylex-migrate:build": "bun build scripts/tailwind-to-stylex/transform.test.ts --target=node --packages=external --outfile .bldr/stylex-migrate/web/bundler/vite/test.mjs && mkdir -p .bldr/stylex-migrate/web/bldr && cp bldr/web/bldr/stylex-*.ts .bldr/stylex-migrate/web/bldr/ && cp .bldr/style-parity-tools/browser.js .bldr/stylex-migrate/web/bundler/vite/browser.js",
+    "test:stylex-migrate": "bun run style-parity:build && bun run stylex-migrate:build && node --test --test-timeout=180000 .bldr/stylex-migrate/web/bundler/vite/test.mjs",
+    "format:stylex-pilots": "oxfmt oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx web/style/tokens.stylex.ts tsconfig.stylex-pilots.json",
+    "check:stylex-pilots": "tsc --noEmit -p tsconfig.stylex-pilots.json",
+    "lint:stylex-pilots": "oxlint oxlint.config.ts web/ui/InfoCard.tsx app/vm/VmErrorBanner.tsx plugin/notes/blog/TagChip.tsx"
   },
   "devDependencies": {
     "@aptre/common": "0.38.1",
@@ -301,7 +310,10 @@
     "vite": "^8.2.0",
     "vitest": "^5.0.0",
     "vitest-browser-react": "^2.2.0",
-    "dom-accessibility-api": "0.7.1"
+    "dom-accessibility-api": "0.7.1",
+    "@tailwindcss/node": "^4.3.3",
+    "pngjs": "7.0.0",
+    "@types/pngjs": "6.0.5"
   },
   "dependencies": {
     "@stylexjs/stylex": "0.19.1",
