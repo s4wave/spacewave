@@ -171,11 +171,48 @@ func TestTwoProcesses(t *testing.T) {
 // TestOpenInProcess checks that a second handle of an open file in one
 // process fails, and that a read-only handle refuses writes.
 func TestOpenInProcess(t *testing.T) {
+	// Hold one database while duplicate opens and alias probes are refused.
 	path := filepath.Join(t.TempDir(), "one.s4wave")
 	db := openTest(t, path, Options{})
-	defer db.Close()
+	t.Cleanup(func() {
+		if !db.closed.Load() {
+			db.Close()
+		}
+	})
 	if _, err := Open(path, Options{}); !errors.Is(err, ErrOpenInProcess) {
 		t.Fatalf("second open returned %v", err)
+	}
+
+	// Hard-link aliases share the claim and never open another descriptor.
+	alias := path + ".alias"
+	if err := os.Link(path, alias); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := OpenFile(alias, os.Open); !errors.Is(err, ErrOpenInProcess) {
+		t.Fatalf("alias probe returned %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Repeating an old close cannot release the next owner's registration.
+	_, closeFirst, err := OpenFile(path, os.Open)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := closeFirst(); err != nil {
+		t.Fatal(err)
+	}
+	_, closeNext, err := OpenFile(path, os.Open)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeNext()
+	if err := closeFirst(); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := OpenFile(path, os.Open); !errors.Is(err, ErrOpenInProcess) {
+		t.Fatalf("repeated close released the next owner: %v", err)
 	}
 }
 
