@@ -35,6 +35,40 @@ func (b *BlockStore) AtomicPublicationVolumeID() string {
 	return ""
 }
 
+// ReservePublication claims SQL-primary admission capacity without writer locks.
+// Other placements keep their existing publisher path.
+func (b *BlockStore) ReservePublication(ctx context.Context, size int64) (block.PublicationReservation, error) {
+	if !b.SupportsPublicationReservations() {
+		return nil, nil
+	}
+	return b.placement.sqlPublish.reserve(ctx, size)
+}
+
+// SupportsPublicationReservations reports whether SQL-primary pre-lock claims are enabled.
+func (b *BlockStore) SupportsPublicationReservations() bool {
+	return b.placement != nil && b.placement.sqlPrimary && b.placement.sqlPublish != nil && sqlReservationsEnabled.Load()
+}
+
+// TryReservePublication claims SQL-primary capacity without a queue wait.
+func (b *BlockStore) TryReservePublication(ctx context.Context, size int64) (block.PublicationReservation, error) {
+	if !b.SupportsPublicationReservations() {
+		return nil, nil
+	}
+	r, err := b.placement.sqlPublish.reserveCapacity(ctx, size, false)
+	if r == nil {
+		return nil, err
+	}
+	return r, err
+}
+
+// AcquirePublicationPreparation bounds unpublished candidates to one per SQL store.
+func (b *BlockStore) AcquirePublicationPreparation(ctx context.Context) (func(), error) {
+	if !b.SupportsPublicationReservations() {
+		return func() {}, nil
+	}
+	return b.placement.sqlPublish.prepare.Lock(ctx)
+}
+
 // SubmitAtomic admits a publication to the account's own storage. While writes
 // queue for upload, the publication's blocks are marked in the transaction that
 // commits them, so the publication and its upload markers are atomic; a storage

@@ -127,6 +127,36 @@ func (b *bucketRW) AtomicPublicationVolumeID() string {
 	return b.store.(block.AtomicPublisher).AtomicPublicationVolumeID()
 }
 
+// ReservePublication forwards the inner publisher's optional capacity lane.
+func (b *bucketRW) ReservePublication(ctx context.Context, size int64) (block.PublicationReservation, error) {
+	if p, ok := b.store.(block.PublicationReserver); ok {
+		return p.ReservePublication(ctx, size)
+	}
+	return nil, nil
+}
+
+// SupportsPublicationReservations forwards the inner publisher's enabled lane.
+func (b *bucketRW) SupportsPublicationReservations() bool {
+	p, ok := b.store.(block.PublicationReserver)
+	return ok && p.SupportsPublicationReservations()
+}
+
+// TryReservePublication forwards a nonblocking capacity claim.
+func (b *bucketRW) TryReservePublication(ctx context.Context, size int64) (block.PublicationReservation, error) {
+	if p, ok := b.store.(block.PublicationReserver); ok {
+		return p.TryReservePublication(ctx, size)
+	}
+	return nil, nil
+}
+
+// AcquirePublicationPreparation forwards candidate ownership to the publisher.
+func (b *bucketRW) AcquirePublicationPreparation(ctx context.Context) (func(), error) {
+	if p, ok := b.store.(block.PublicationReserver); ok {
+		return p.AcquirePublicationPreparation(ctx)
+	}
+	return func() {}, nil
+}
+
 // SubmitAtomic forwards admission to the inner store's publisher.
 func (b *bucketRW) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
 	if !b.SupportsAtomicPublication() {

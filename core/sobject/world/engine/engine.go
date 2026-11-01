@@ -3,6 +3,7 @@ package sobject_world_engine
 import (
 	"context"
 	"slices"
+	"sync"
 	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -246,6 +247,10 @@ type soEngine struct {
 	// stableBusy is set from when a checkpoint names its World until the
 	// routine adopts or drops it, so one World is named at a time.
 	stableBusy atomic.Bool
+	// replayNext coalesces the capacity need of a deferred replay publication.
+	replayNext atomic.Pointer[replayPublicationRequest]
+	// replayWake wakes its lifetime-bound worker without retaining save payloads.
+	replayWake chan struct{}
 }
 
 // newSoEngine constructs the shared object engine. lifetime bounds the commits
@@ -265,6 +270,7 @@ func newSoEngine(lifetime context.Context, c *Controller, so sobject.SharedObjec
 		backfillChoice: ccontainer.NewCContainer(false),
 		backfillState:  ccontainer.NewCContainerVT[*BackfillState](nil),
 		stableWake:     make(chan struct{}, 1),
+		replayWake:     make(chan struct{}, 1),
 	}
 	if e.admitted == nil {
 		e.admitted = e.bengine
@@ -276,6 +282,9 @@ func newSoEngine(lifetime context.Context, c *Controller, so sobject.SharedObjec
 	)
 	e.backfill.SetStateRoutine(e.executeBackfill)
 	go e.executeStableCheckpoints()
+	if store, ok := so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
+		go e.executeReplayPublications()
+	}
 	return e
 }
 
@@ -339,6 +348,25 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	// Time the write from the writer lock wait.
 	clock := newCommitClock(ctx)
 
+	// Bound constructing candidates before taking a writer. A candidate keeps
+	// this lease across an unlocked capacity wait, so a stalled backend cannot
+	// accumulate one unpublished buffer for every incoming request.
+	var preparation func()
+	if store, ok := e.so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
+		var err error
+		prepareCtx, cancel := e.publicationContext(ctx)
+		preparation, err = store.AcquirePublicationPreparation(prepareCtx)
+		cancel()
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			if preparation != nil {
+				preparation()
+			}
+		}()
+	}
+
 	// Serialize the write fork with other writes and replay.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/new-transaction")
 	defer task.End()
@@ -378,7 +406,12 @@ func (e *soEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, er
 	// Return the txn wrapper.
 	fork := &replayFork{base: base, index: index, start: head, state: head}
 	clock.end(stageForkReplay)
-	return newSoEngineWriteTx(ttx, btx, e, fork, unlockWriteMtx, clock), nil
+	result := newSoEngineWriteTx(ttx, btx, e, fork, unlockWriteMtx, clock)
+	if preparation != nil {
+		result.releasePreparation = sync.OnceFunc(preparation)
+		preparation = nil
+	}
+	return result, nil
 }
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
@@ -803,7 +836,8 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 	if err := e.replay.holdSpan(ctx, hold); err != nil {
 		return err
 	}
-	if err := e.applyHold(ctx, hold); err != nil {
+	applied, err := e.applyHold(ctx, hold)
+	if err != nil || !applied {
 		return err
 	}
 
@@ -824,18 +858,18 @@ func (e *soEngine) updateEngineState(ctx context.Context, state *InnerState) err
 // settles holds what changed since. Otherwise it applies hold, then saves the
 // replay, so the save names held Worlds. The caller holds the writer lock and
 // no admission is pending.
-func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) error {
+func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) (bool, error) {
 	// Fall back when there is no replay save to carry or the state or the
 	// store cannot join a publication.
 	publisher, publishes := e.so.(sobject.StatePublisher)
 	store, ok := e.so.GetBlockStore().(block.AtomicPublisher)
 	if !e.replay.unsaved() || !publishes || !ok || !store.SupportsAtomicPublication() {
-		return e.holdThenSave(ctx, hold)
+		return true, e.holdThenSave(ctx, hold)
 	}
 
 	// A retired engine admits nothing, as in lockReplayed.
 	if e.lifetime.Err() != nil {
-		return world_block.ErrEngineClosed
+		return false, world_block.ErrEngineClosed
 	}
 
 	// Submit the held blocks and roots with the replay cursor, splitting the
@@ -843,9 +877,21 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) error {
 	// and drop them meanwhile.
 	cursor, err := e.replay.encodeCursor()
 	if err != nil {
-		return err
+		return false, err
 	}
 	pages, save := e.replay.pages.split(hold.entries)
+
+	// Claim replay capacity without waiting under this writer.
+	claim, ready, err := e.prepareReplayPublication(ctx, hold.entries)
+	if err != nil || !ready {
+		return false, err
+	}
+	if claim != nil {
+		defer claim.Release()
+		ctx = block.WithPublicationReservation(ctx, claim)
+	}
+
+	// Submit the prepared save with its independent capacity claim.
 	head := publisher.LocalStateHead(replayCursorStoreID, replayCursorKey, cursor)
 	receipt, err := store.SubmitAtomic(ctx, &block.AtomicPublication{
 		Entries: hold.entries,
@@ -854,22 +900,22 @@ func (e *soEngine) applyHold(ctx context.Context, hold *rootHold) error {
 		Recount: hold.recount,
 	})
 	if errors.Is(err, block.ErrAtomicPublicationUnsupported) || errors.Is(err, block.ErrPublicationTooLarge) {
-		return e.holdThenSave(ctx, hold)
+		return true, e.holdThenSave(ctx, hold)
 	}
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Count and admit it; the caller records what it holds.
 	seqno, err := e.admitted.GetSeqno(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	countPublication(nil, pages, save)
 	e.replay.addWorldPut(receipt, hold.entries, pages)
 	e.admit(receipt, e.retained, seqno)
 	go receipt.Release()
-	return nil
+	return true, nil
 }
 
 // holdThenSave applies hold, then saves the replay now that its World is

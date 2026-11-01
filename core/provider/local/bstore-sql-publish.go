@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/volume"
@@ -91,6 +92,9 @@ type SQLPublishStats struct {
 // the publisher moves the insert time off the writer lock, not off the write.
 type sqlPublisher struct {
 	le *logrus.Entry
+	// prepare admits one constructing World candidate, bounding memory while
+	// that candidate releases its writer lock to wait for publication capacity.
+	prepare csync.Mutex
 	// sql is the store the blocks are inserted into.
 	sql block.StoreOps
 	// local publishes the heads to the account volume.
@@ -112,6 +116,9 @@ type sqlPublisher struct {
 	// pending counts the unresolved publications, pendingBytes their blocks.
 	pending      int
 	pendingBytes int64
+	// reserved counts claims acquired before writer locks, reservedBytes their budgets.
+	reserved      int
+	reservedBytes int64
 	// locals maps an admitted receipt to the local receipt of its heads,
 	// until it resolves.
 	locals map[*block.PublicationReceipt]*block.PublicationReceipt
@@ -238,44 +245,56 @@ func (p *sqlPublisher) submit(ctx context.Context, pub *block.AtomicPublication)
 		size += int64(len(entry.Data))
 	}
 
-	// Wait for room, then admit it with its chunks. A block already queued
-	// by an earlier publication is not inserted again: that publication
-	// commits first, after its rows land.
-	adm := &sqlPublication{
-		heads:    pub.Heads,
-		after:    pub.After,
-		ordered:  pub.Ordered,
-		receipt:  block.NewPublicationReceipt(),
-		size:     size,
-		admitted: time.Now(),
+	// Use the caller's pre-lock claim, or reserve here for legacy callers.
+	claim := block.GetPublicationReservation(ctx)
+	reservation, ok := claim.(*sqlReservation)
+	if claim != nil && (!ok || reservation.p != p) {
+		return nil, errors.New("sql publication capacity belongs to another publisher")
 	}
-	for {
-		var wait <-chan struct{}
+	if reservation == nil {
 		var err error
-		p.bcast.HoldLock(func(broadcast func(), getWait func() <-chan struct{}) {
-			if p.closed != nil {
-				err = p.closed
-				return
-			}
-			if p.pending != 0 && (p.pending >= sqlPublishMaxPending || p.pendingBytes+size > sqlPublishMaxPendingBytes) {
-				wait = getWait()
-				return
-			}
-			p.admitLocked(adm, pub.Entries)
-			broadcast()
-		})
+		reservation, err = p.reserve(ctx, size)
 		if err != nil {
 			return nil, err
 		}
-		if wait == nil {
-			return adm.receipt, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, context.Canceled
-		case <-wait:
-		}
 	}
+	defer reservation.Release()
+
+	// Transfer the claim into exactly one admitted publication without waiting.
+	adm := &sqlPublication{
+		heads: pub.Heads, after: pub.After, ordered: pub.Ordered,
+		receipt: block.NewPublicationReceipt(), size: size, admitted: time.Now(),
+	}
+	var err error
+	p.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		// Refuse a canceled, closed or already consumed claim before mutation.
+		err = ctx.Err()
+		if err == nil {
+			err = p.closed
+		}
+		if err != nil {
+			return
+		}
+		if reservation.used {
+			err = errors.New("sql publication capacity was already consumed")
+			return
+		}
+		if size > reservation.size {
+			err = errors.Errorf("sql publication needs %d bytes, reserved %d", size, reservation.size)
+			return
+		}
+
+		// Move the count and bytes from the claim into the admitted queue.
+		reservation.used = true
+		p.reserved--
+		p.reservedBytes -= reservation.size
+		p.admitLocked(adm, pub.Entries)
+		broadcast()
+	})
+	if err != nil {
+		return nil, err
+	}
+	return adm.receipt, nil
 }
 
 // admitLocked queues adm and the chunks of its entries not already queued.

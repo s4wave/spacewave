@@ -38,6 +38,22 @@ type soEngineWriteTx struct {
 	// batch borrows the candidate blocks into the publication until its
 	// receipt resolves.
 	batch *block.PendingBatch
+	// prepared retains the candidate borrow across an unlocked capacity wait.
+	prepared *block.PendingBatch
+	// preparedSave is the replay save sized with prepared under the writer lock.
+	preparedSave   []*block.PutBatchEntry
+	preparedRoots  []block.NamedRoot
+	preparedCursor *block.AtomicHeadUpdate
+	// reservation owns admission capacity before the provider state writer.
+	reservation block.PublicationReservation
+	// baseReceipt is the predecessor of the candidate before its unlocked wait.
+	baseReceipt *block.PublicationReceipt
+	// stateReservation excludes other state writers during commit preparation.
+	stateReservation sobject.StateWriteReservation
+	// stateSettled permits a declined publication to fall back to a direct write.
+	stateSettled bool
+	// releasePreparation lets the next candidate start once this one is admitted.
+	releasePreparation func()
 	// clock times the stages of the write.
 	clock *commitClock
 	// seqno is the World seqno after the write, set at admission.
@@ -224,15 +240,53 @@ func (t *soEngineWriteTx) admit(ctx context.Context) error {
 	// before Discard releases the blocks the candidate does not reach.
 	t.fork.payloads = t.TakePayloadRefs()
 
+	// Claim capacity outside writer locks before the operation takes the state lock.
+	if publishes {
+		t.baseReceipt = t.eng.lastReceipt()
+		var err error
+		ctx, err = t.reserveStateWrite(ctx, false)
+		if err != nil {
+			return err
+		}
+		defer t.releaseStateWrite()
+		if err := t.reservePublication(ctx, publisher); err != nil {
+			return err
+		}
+	}
+
 	// Add the operation and install the World after it.
 	taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/queue-operation")
 	defer task.End()
 	if publishes {
+		if t.reservation != nil {
+			defer t.reservation.Release()
+		}
 		taskCtx = sobject.WithPublishState(taskCtx, func(ctx context.Context, head *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) {
 			return t.publish(ctx, publisher, nroot, head)
 		})
 	}
-	err = t.eng.queueOperation(taskCtx, opData, t.fork, t.clock)
+	for {
+		err = t.eng.queueOperation(taskCtx, opData, t.fork, t.clock)
+		if !errors.Is(err, sobject.ErrStateWriteUnsettled) || t.stateSettled {
+			break
+		}
+
+		// A declined atomic write must drain outside both writers, then retry
+		// against the durable state without changing its original predecessor.
+		t.unlockWriteMtx()
+		t.releaseStateWrite()
+		if t.reservation != nil {
+			t.reservation.Release()
+			t.reservation = nil
+		}
+		taskCtx, err = t.reserveStateWrite(taskCtx, true)
+		if err != nil {
+			return err
+		}
+		if err = t.reservePublication(taskCtx, publisher); err != nil {
+			return err
+		}
+	}
 	t.clock.end(stageAdvance)
 
 	// Record the World after the write and release the writer lock.
@@ -241,6 +295,9 @@ func (t *soEngineWriteTx) admit(ctx context.Context) error {
 		t.durable = t.eng.lastDurable()
 	}
 	t.unlockWriteMtx()
+	if t.releasePreparation != nil {
+		t.releasePreparation()
+	}
 	if err != nil {
 		return fmt.Errorf("queue World operation: %w", err)
 	}
@@ -311,11 +368,23 @@ func (t *soEngineWriteTx) writeBlocks(ctx context.Context) error {
 // or the store cannot publish, it writes the blocks and returns a nil receipt;
 // the SharedObject then commits its state itself.
 func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePublisher, root *block.BlockRef, head *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) {
+	// A candidate prepared on a failed admission never enters a later chain.
+	if t.baseReceipt != nil && t.baseReceipt.Err() != nil {
+		return nil, block.NewPublicationDependencyError(t.baseReceipt.Err())
+	}
+
 	// Fall back when the state or the store cannot join a publication.
 	ctx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/publish")
 	defer task.End()
 	store, ok := t.eng.so.GetBlockStore().(block.AtomicPublisher)
 	if head == nil || !ok || !store.SupportsAtomicPublication() {
+		if t.stateReservation != nil && !t.stateSettled {
+			return nil, sobject.ErrStateWriteUnsettled
+		}
+		if t.prepared != nil {
+			t.prepared.Complete(block.ErrAtomicPublicationUnsupported)
+			t.prepared = nil
+		}
 		return nil, t.writeBlocks(ctx)
 	}
 
@@ -327,14 +396,22 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 	}
 
 	// Borrow the candidate blocks and collect the pending replay save.
-	batch, err := t.btx.TakePending(ctx)
-	if err != nil {
-		return nil, err
+	batch := t.prepared
+	prepared := batch != nil
+	t.prepared = nil
+	if batch == nil {
+		batch, err = t.btx.TakePending(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
-	saveEntries, roots, cursor, err := t.eng.replay.pendingSave(ctx, publisher, t.fork.payloads)
-	if err != nil {
-		batch.Complete(err)
-		return nil, err
+	saveEntries, roots, cursor := t.preparedSave, t.preparedRoots, t.preparedCursor
+	if !prepared {
+		saveEntries, roots, cursor, err = t.eng.replay.pendingSave(ctx, publisher, t.fork.payloads)
+		if err != nil {
+			batch.Complete(err)
+			return nil, err
+		}
 	}
 
 	// Keep the World pages, which a reader of the new head finds in the page
@@ -360,8 +437,16 @@ func (t *soEngineWriteTx) publish(ctx context.Context, publisher sobject.StatePu
 	}
 
 	// Submit them, writing the blocks alone when the store declines.
-	receipt, err := store.SubmitAtomic(ctx, pub)
+	pubCtx := ctx
+	if t.reservation != nil {
+		pubCtx = block.WithPublicationReservation(ctx, t.reservation)
+	}
+	receipt, err := store.SubmitAtomic(pubCtx, pub)
 	if errors.Is(err, block.ErrAtomicPublicationUnsupported) || errors.Is(err, block.ErrPublicationTooLarge) {
+		if t.stateReservation != nil && !t.stateSettled {
+			t.prepared = batch
+			return nil, sobject.ErrStateWriteUnsettled
+		}
 		batch.Complete(err)
 		return nil, t.writeBlocks(ctx)
 	}
@@ -417,6 +502,17 @@ func (t *soEngineWriteTx) Discard() {
 // discard drops the candidate and releases the write.
 func (t *soEngineWriteTx) discard() {
 	// Drop the candidate and let the next writer start.
+	t.releaseStateWrite()
+	if t.prepared != nil {
+		t.prepared.Complete(context.Canceled)
+		t.prepared = nil
+	}
+	if t.reservation != nil {
+		t.reservation.Release()
+	}
+	if t.releasePreparation != nil {
+		t.releasePreparation()
+	}
 	t.WorldState.Discard()
 	t.btx.Discard()
 	t.unlockWriteMtx()

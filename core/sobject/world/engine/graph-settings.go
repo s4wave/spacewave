@@ -36,7 +36,7 @@ func (e *soEngine) StepGraphSettings(ctx context.Context, target *world_block.Gr
 
 	// Replay the admitted operations, excluding write transactions until the
 	// step is placed.
-	unlockWriteMtx, err := e.c.lockSettled(ctx, "graph-settings")
+	ctx, unlockWriteMtx, err := e.c.lockStateSettled(ctx, e.so, "graph-settings")
 	if err != nil {
 		return false, err
 	}

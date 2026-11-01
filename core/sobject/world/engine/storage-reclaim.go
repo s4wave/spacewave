@@ -206,7 +206,7 @@ func (e *soEngine) fenceStorageReclaim(ctx context.Context, copyRoots bool) ([]*
 func (e *soEngine) writeFence(ctx context.Context) ([]byte, uint64, error) {
 	// Queue it under the writer lock once no receipt is pending, since the
 	// SharedObject writes it directly after every pending receipt.
-	unlockWriteMtx, err := e.c.lockSettled(ctx, "reclaim-fence")
+	ctx, unlockWriteMtx, err := e.c.lockStateSettled(ctx, e.so, "reclaim-fence")
 	if err != nil {
 		return nil, 0, err
 	}

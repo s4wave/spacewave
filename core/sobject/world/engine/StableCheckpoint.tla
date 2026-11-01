@@ -1,109 +1,60 @@
 ---- MODULE StableCheckpoint ----
-\* The stable checkpoint of a World whose publications are pending, without
-\* the page view (checkpoint.go). Each World write admits its state under the
-\* provider's writeMtx (core/provider/local sostate.go), which an admission
-\* holds only until the publisher admits it, and queues a receipt that settles
-\* once its blocks and head are durable. On each state update, under the
-\* writer lock, the engine prepares a checkpoint unless one is in flight
-\* (stableBusy): nameWorld names the World by the last admitted receipt. The
-\* checkpoint routine waits for that receipt (waitNamed), then writes the
-\* state through UpdateSOState: the state lock takes writeMtx and waits for
-\* every pending receipt (waitSettled) before it adopts the checkpoint and
-\* releases writeMtx. A failed receipt fails every receipt after it; a
-\* checkpoint waiting on one is dropped.
-\*
-\* The run starts with up to Queue receipts pending, as after a restart, and
-\* at most one failure, so failures stop.
-\*
-\* Not modeled: the stores behind a receipt (SQLPrimary.tla in
-\* core/provider/local), the operations' content, the stale check, which
-\* only skips an adoption the held state moved past, group control, and
-\* the page view, whose checkpoint names a World in its own publication.
-
+\* SQL-primary stable checkpoints without the page view (checkpoint.go).
+\* nameWorld names the last World receipt; waitNamed waits outside both writer
+\* locks. adoptStable reserves queue capacity before taking the provider state
+\* lock, submits a head-only publication on the admitted state and releases
+\* that lock before waiting for its receipt. Failed predecessors invalidate
+\* the head CAS, so the provider drops their admitted state and successors.
+\* World admission's separate reservation model covers full-queue waits.
+\* Set ReserveBeforeLock and PublishState FALSE to reproduce the old -24 path;
+\* set PrepareBusy FALSE to reproduce -23's skip under continuing writes.
+\* Queue is bounded, including the checkpoint's unconsumed claim. Page-view
+\* naming, state contents and store durability belong to their own models.
 EXTENDS Naturals
-
-\* Queue: the receipts the publisher holds pending at most.
-CONSTANTS Queue
-
-VARIABLES
-  pend,    \* admitted receipts not yet settled
-  nr,      \* the pending receipts up to the named one, 0 once it settled
-  ck,      \* the checkpoint: "idle", "named" (in waitNamed), "locked" (holds writeMtx)
-  open,    \* a write was admitted after the last named World
-  adopted, \* the last named checkpoint was adopted
-  fell     \* a receipt failed
-vars == <<pend, nr, ck, open, adopted, fell>>
-
-Init ==
-  /\ pend \in 0..Queue /\ nr = 0 /\ ck = "idle"
-  /\ open = (pend > 0) /\ adopted = FALSE /\ fell = FALSE
-
-\* A World write admits its state under writeMtx, which the checkpoint's
-\* state write may hold, and queues its receipt.
-Write ==
-  /\ ck # "locked" /\ pend < Queue
-  /\ pend' = pend + 1 /\ open' = TRUE
-  /\ UNCHANGED <<nr, ck, adopted, fell>>
-
-\* The publisher settles the oldest pending receipt.
-Settle ==
-  /\ pend > 0
-  /\ pend' = pend - 1 /\ nr' = IF nr > 0 THEN nr - 1 ELSE 0
-  /\ UNCHANGED <<ck, open, adopted, fell>>
-
-\* The oldest pending receipt fails, and every receipt after it. A checkpoint
-\* waiting on one of them is dropped; one holding writeMtx sees the durable
-\* state, which still holds the World it named.
-Fail ==
-  /\ pend > 0 /\ ~fell
-  /\ pend' = 0 /\ nr' = 0 /\ fell' = TRUE
-  /\ ck' = IF ck = "named" /\ nr > 0 THEN "idle" ELSE ck
-  /\ UNCHANGED <<open, adopted>>
-
-\* A state update prepares a checkpoint unless one is in flight, naming the
-\* World by the last admitted receipt.
-Prepare ==
-  /\ ck = "idle" /\ open
-  /\ ck' = "named" /\ nr' = pend /\ open' = FALSE /\ adopted' = FALSE
-  /\ UNCHANGED <<pend, fell>>
-
-\* Once the named receipt settled, the state write takes writeMtx.
-Lock ==
-  /\ ck = "named" /\ nr = 0
-  /\ ck' = "locked"
-  /\ UNCHANGED <<pend, nr, open, adopted, fell>>
-
-\* Once every pending receipt settled, it adopts the checkpoint and releases
-\* writeMtx.
-Adopt ==
-  /\ ck = "locked" /\ pend = 0
-  /\ ck' = "idle" /\ adopted' = TRUE
-  /\ UNCHANGED <<pend, nr, open, fell>>
-
-Next ==
-  \/ Write \/ Settle \/ Fail \/ Prepare \/ Lock \/ Adopt
-  \/ UNCHANGED vars
+CONSTANTS Queue, ReserveBeforeLock, PublishState, PrepareBusy, PageView
+VARIABLES pend, nr, ck, slot, open, adopted, fell
+vars == <<pend, nr, ck, slot, open, adopted, fell>>
+Init == /\ pend \in 0..Queue /\ nr = 0 /\ ck = "idle" /\ slot = 0
+        /\ open = (pend > 0) /\ adopted = FALSE /\ fell = FALSE
+Write == /\ ck # "locked" /\ pend + slot < Queue
+         /\ pend' = pend + 1 /\ open' = TRUE
+         /\ UNCHANGED <<nr, ck, slot, adopted, fell>>
+Settle == /\ pend > 0 /\ pend' = pend - 1
+          /\ nr' = IF nr > 0 THEN nr - 1 ELSE 0
+          /\ UNCHANGED <<ck, slot, open, adopted, fell>>
+Fail == /\ pend > 0 /\ ~fell /\ pend' = 0 /\ nr' = 0 /\ fell' = TRUE
+        /\ ck' = IF ck = "published" \/ (ck = "named" /\ nr > 0) THEN "idle" ELSE ck
+        /\ UNCHANGED <<slot, open, adopted>>
+Prepare == /\ ck = "idle" /\ open /\ (PrepareBusy \/ pend = 0)
+           /\ ck' = "named" /\ nr' = pend /\ open' = FALSE /\ adopted' = FALSE
+           /\ UNCHANGED <<pend, slot, fell>>
+Reserve == /\ ReserveBeforeLock /\ ck = "named" /\ nr = 0 /\ pend < Queue
+           /\ slot' = 1 /\ ck' = "reserved"
+           /\ UNCHANGED <<pend, nr, open, adopted, fell>>
+Lock == /\ ((ck = "reserved") \/ (~ReserveBeforeLock /\ ck = "named" /\ nr = 0))
+        /\ ck' = "locked"
+        /\ UNCHANGED <<pend, nr, slot, open, adopted, fell>>
+Adopt == /\ ck = "locked"
+         /\ IF PublishState THEN (slot = 1 \/ pend < Queue) ELSE pend = 0
+         /\ pend' = IF PublishState THEN pend + 1 ELSE pend
+         /\ nr' = IF PublishState THEN pend + 1 ELSE 0
+         /\ slot' = 0 /\ ck' = "published"
+         /\ UNCHANGED <<open, adopted, fell>>
+Finish == /\ ck = "published" /\ nr = 0
+          /\ ck' = "idle" /\ adopted' = TRUE
+          /\ UNCHANGED <<pend, nr, slot, open, fell>>
+Next == Write \/ Settle \/ Fail \/ Prepare \/ Reserve \/ Lock \/ Adopt \/ Finish \/ UNCHANGED vars
 Spec == Init /\ [][Next]_vars
-
-\* Fairness: the publisher keeps settling receipts, the engine prepares on
-\* each state update, and the checkpoint routine runs. Writes may continue
-\* forever and never pause.
-FairSpec == Spec /\ WF_vars(Settle) /\ WF_vars(Prepare) /\ WF_vars(Lock)
-              /\ WF_vars(Adopt)
-
-\* Every admitted write is named by a checkpoint, even while writes never
-\* pause, so the state's operation history stays bounded.
+\* A scheduled capacity waiter eventually wins a slot as receipts settle;
+\* writes may continue forever. The one modeled failure does not recur.
+FairSpec == Spec /\ WF_vars(Settle) /\ WF_vars(Prepare) /\ SF_vars(Reserve)
+                 /\ WF_vars(Lock) /\ WF_vars(Adopt) /\ WF_vars(Finish)
 Named == open ~> ~open
-\* A named checkpoint is adopted or dropped, so stableBusy clears.
 Finishes == (ck # "idle") ~> (ck = "idle")
-\* writeMtx is released again, so writes keep being admitted.
 Admits == []<>(ck # "locked")
-
-\* No World write waits behind a receipt: the checkpoint holds writeMtx only
-\* once nothing is pending. The direct state write breaks this, holding
-\* writeMtx while waitSettled waits for the publisher's whole queue, so
-\* StableCheckpoint.cfg does not check it. Admitting the checkpoint's state
-\* as a publication after the last receipt, as a World write's state is
-\* admitted, would keep it.
-NoWaitUnderLock == ck = "locked" => pend = 0
+\* Page-view naming has its own publication and is outside this model.
+CoveredMode == ~PageView
+Bounded == pend + slot <= Queue
+NoWaitUnderLock == ck = "locked" =>
+  IF PublishState THEN (slot = 1 \/ pend < Queue) ELSE pend = 0
 ====

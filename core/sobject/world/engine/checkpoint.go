@@ -402,9 +402,66 @@ func (e *soEngine) adoptStable(ctx context.Context, ckpt *stableCheckpoint) erro
 	// Adopt it with an ordered state write, counting a stale checkpoint as
 	// skipped.
 	ctx = kvtx.WithOrderedCommitContext(ctx)
+
+	// SQL-primary checkpoints claim a queue slot before taking the state writer.
+	// Their World was named above; only the state head enters this publication.
+	var stateReservation sobject.StateWriteReservation
+	if reserver, ok := e.so.(sobject.StateWriteReserver); ok {
+		var err error
+		stateReservation, err = reserver.ReserveStateWrite(ctx, false)
+		if err != nil {
+			return err
+		}
+		if stateReservation != nil {
+			defer stateReservation.Release()
+			ctx = stateReservation.WithContext(ctx)
+		}
+	}
+	var receipt *block.PublicationReceipt
+	if store, ok := e.so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
+		reservation, err := store.ReservePublication(ctx, 0)
+		if err != nil {
+			return err
+		}
+		if reservation != nil {
+			defer reservation.Release()
+			ctx = sobject.WithPublishState(ctx, func(ctx context.Context, head *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) {
+				// Submit only this state head with the checkpoint's independent claim.
+				if head == nil {
+					return nil, block.ErrAtomicPublicationUnsupported
+				}
+				var err error
+				pubCtx := block.WithPublicationReservation(ctx, reservation)
+				receipt, err = e.so.GetBlockStore().(block.AtomicPublisher).SubmitAtomic(pubCtx, &block.AtomicPublication{
+					Heads: []*block.AtomicHeadUpdate{head}, Ordered: true,
+				})
+				return receipt, err
+			})
+		}
+	}
 	err := ckpt.host.GetSOHost().UpdateSOState(ctx, func(state *sobject.SOState) error {
 		return e.adoptStableCheckpoint(ctx, ckpt.host, state, ckpt.prefix, ckpt.data, ckpt.height)
 	})
+
+	// Return state intent before waiting for the admitted receipt.
+	if stateReservation != nil {
+		stateReservation.Release()
+	}
+
+	// Wait after the provider releases its state writer, including on a failed
+	// admitted state. The provider owns the admitted snapshot until settlement.
+	if receipt != nil {
+		rerr := receipt.Wait(ctx)
+		select {
+		case <-receipt.Done():
+			receipt.Release()
+		default:
+			go receipt.Release()
+		}
+		if rerr != nil {
+			return rerr
+		}
+	}
 	if errors.Is(err, errStableCheckpointStale) {
 		countSkip(CheckpointSkipStale)
 		return nil

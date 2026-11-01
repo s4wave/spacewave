@@ -347,7 +347,7 @@ func (c *Controller) acknowledger(so sobject.SharedObject) func(context.Context)
 	return func(ctx context.Context) error {
 		// Queue it under the writer lock once the admitted writes settle, so
 		// the direct state write does not wait for their receipts under it.
-		unlockWriteMtx, err := c.lockSettled(ctx, "acknowledge")
+		ctx, unlockWriteMtx, err := c.lockStateSettled(ctx, so, "acknowledge")
 		if err != nil {
 			return err
 		}
@@ -443,6 +443,37 @@ func (c *Controller) staleSnapshot(ctx context.Context, so sobject.SharedObject,
 	}
 	defer unlock()
 	return c.stale(ctx, so, snap)
+}
+
+// lockStateSettled prepares a direct state write before taking the engine
+// writer. The provider intent prevents a peer import or another admission from
+// introducing a new receipt wait between preparation and the state write.
+func (c *Controller) lockStateSettled(ctx context.Context, so sobject.SharedObject, holder string) (context.Context, func(), error) {
+	// Drain prior state receipts before acquiring the engine writer.
+	var reservation sobject.StateWriteReservation
+	if reserver, ok := so.(sobject.StateWriteReserver); ok {
+		var err error
+		reservation, err = reserver.ReserveStateWrite(ctx, true)
+		if err != nil {
+			return ctx, nil, err
+		}
+		if reservation != nil {
+			ctx = reservation.WithContext(ctx)
+		}
+	}
+	unlock, err := c.lockSettled(ctx, holder)
+	if err != nil {
+		if reservation != nil {
+			reservation.Release()
+		}
+		return ctx, nil, err
+	}
+	return ctx, func() {
+		unlock()
+		if reservation != nil {
+			reservation.Release()
+		}
+	}, nil
 }
 
 // lockSettled locks the writer lock once no admission of the served engine
