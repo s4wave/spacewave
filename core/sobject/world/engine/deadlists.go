@@ -41,6 +41,10 @@ type deadlistEntry struct {
 	// net is the interval waiting for its puts before the record is encoded,
 	// or nil once it is or when the interval forfeited.
 	net *pendingNet
+	// spans are the replay span chains the replay dropped before net
+	// resolved. They name payloads the interval's pages may name, whose
+	// edges from those pages only the record counts.
+	spans []*block.BlockRef
 	// puts are the record's blocks until a durable save stores them.
 	puts []*block.PutBatchEntry
 	// state is where the record is.
@@ -80,6 +84,32 @@ type deadlistLedger struct {
 	adopted uint64
 	// gen is the last save generation.
 	gen uint64
+	// dropped are the span chains the replay dropped that no named interval
+	// waiting for its puts holds yet: pages of the open interval may name
+	// their payloads, so the next interval named with a net takes them.
+	dropped []*block.BlockRef
+	// recount is set while the ledger lost the counts of an interval that
+	// names no record, until a durable save asks the store to recount.
+	recount bool
+	// recountGen is the save generation that asks for the recount, or 0 when
+	// no save does yet.
+	recountGen uint64
+	// recounts is the number of saves that asked the store to recount.
+	recounts uint64
+}
+
+// lost records that an interval's counts are lost: it names no record, or
+// its record was orphaned before it was encoded, so the edges its pages added
+// to stored blocks are never counted. The next save asks the store to recount.
+// An engine starting on a store an earlier one wrote loses the intervals that
+// one left open.
+func (l *deadlistLedger) lost() {
+	l.recount, l.recountGen = true, 0
+}
+
+// carryRecount reports whether the next save asks the store to recount.
+func (l *deadlistLedger) carryRecount() bool {
+	return l.recount && l.recountGen == 0
 }
 
 // name adds the entry of the named World at to, whose interval from the named
@@ -90,6 +120,9 @@ func (l *deadlistLedger) name(from, to *block.BlockRef, net *pendingNet) {
 	// Orphan the oldest pending record when the ledger is full, counting it
 	// as stalled when it still waits on its puts.
 	entry := deadlistEntry{seq: max(l.next, 1), from: from, to: to, net: net}
+	if net != nil {
+		entry.spans, l.dropped = l.dropped, nil
+	}
 	l.next = entry.seq + 1
 	pending := l.pending()
 	if len(pending) >= maxPendingDeadlists {
@@ -101,6 +134,7 @@ func (l *deadlistLedger) name(from, to *block.BlockRef, net *pendingNet) {
 	l.entries = append(l.entries, entry)
 	if net == nil {
 		countDeaths(nil, false)
+		l.lost()
 	}
 }
 
@@ -111,7 +145,7 @@ func (l *deadlistLedger) resolve() (bool, error) {
 	resolved := false
 	for i := range l.entries {
 		e := &l.entries[i]
-		if e.net == nil || !e.net.poll(e.seq, e.from, e.to) {
+		if e.net == nil || !e.net.poll(e.seq, e.from, e.to, l.recounts, l.recount) {
 			continue
 		}
 		if e.net.err != nil {
@@ -135,12 +169,47 @@ func (l *deadlistLedger) pending() []int {
 	return out
 }
 
+// waiting returns the root each pending record still waiting for its puts
+// starts at, and the span chains the replay dropped before it resolved or
+// before any interval took them. The base hold keeps naming them until a save
+// names the record, which then holds the root and the pages the interval
+// attached, so no shared count the record keeps falls between the two.
+func (l *deadlistLedger) waiting() (worlds, spans []*block.BlockRef) {
+	spans = slices.Clone(l.dropped)
+	for _, e := range l.entries {
+		if e.state == deadlistPending && e.net != nil {
+			worlds = append(worlds, e.from)
+			spans = append(spans, e.spans...)
+		}
+	}
+	return worlds, spans
+}
+
+// dropSpan records that the replay drops the span chain at span. The chain
+// stays named until the records of the intervals waiting for their puts and of
+// the open interval name the pages that took its payloads over.
+func (l *deadlistLedger) dropSpan(span *block.BlockRef) {
+	if span.GetEmpty() {
+		return
+	}
+	l.dropped = append(l.dropped, span)
+	for i := range l.entries {
+		if e := &l.entries[i]; e.state == deadlistPending && e.net != nil {
+			e.spans = append(e.spans, span)
+		}
+	}
+}
+
 // move moves the entry at i to state, to be carried by the next save. An
 // orphan nothing names and no save is naming is done at once.
 func (l *deadlistLedger) move(i int, state deadlistState) {
 	e := &l.entries[i]
 	if state == deadlistOrphan {
-		e.net = nil
+		if e.net != nil {
+			l.dropped = append(l.dropped, e.spans...)
+			l.lost()
+		}
+		e.net, e.spans = nil, nil
 		if !e.stored && e.carried == 0 {
 			e.record = nil
 		}
@@ -245,6 +314,10 @@ func (l *deadlistLedger) carry() ([]*block.PutBatchEntry, []block.NamedRoot) {
 // it returns. An entry waiting for its puts carried nothing.
 func (l *deadlistLedger) saved() uint64 {
 	l.gen++
+	if l.carryRecount() {
+		l.recountGen = l.gen
+		l.recounts++
+	}
 	for i := range l.entries {
 		if l.entries[i].carried == 0 && l.entries[i].net == nil {
 			l.entries[i].carried = l.gen
@@ -256,6 +329,9 @@ func (l *deadlistLedger) saved() uint64 {
 // confirm records that the saves through gen are durable. A pending record
 // they carried is stored; a due or orphaned one is done.
 func (l *deadlistLedger) confirm(gen uint64) {
+	if l.recountGen != 0 && l.recountGen <= gen {
+		l.recount, l.recountGen = false, 0
+	}
 	for i := range l.entries {
 		e := &l.entries[i]
 		if e.carried == 0 || e.carried > gen {
@@ -273,6 +349,7 @@ func (l *deadlistLedger) confirm(gen uint64) {
 // unsave records that no save after the last confirmed one is durable, so the
 // next save carries their changes again.
 func (l *deadlistLedger) unsave() {
+	l.recountGen = 0
 	for i := range l.entries {
 		l.entries[i].carried = 0
 	}
@@ -294,9 +371,11 @@ func (l *deadlistLedger) encode() []*ReplayDeadlist {
 
 // restoreDeadlists returns the ledger a saved cursor recorded, counting each
 // pending entry that names no record: a forfeited interval, or one a restart
-// cut off before its puts resolved.
+// cut off before its puts resolved. The engine that saved it lost its open
+// interval, so the ledger asks for a recount.
 func restoreDeadlists(cursor *ReplayCursor) deadlistLedger {
 	l := deadlistLedger{next: cursor.GetNextDeadlist(), adopted: cursor.GetAdoptedDeadlist()}
+	l.lost()
 	for _, d := range cursor.GetDeadlists() {
 		e := deadlistEntry{seq: d.GetSeq(), from: d.GetFrom(), to: d.GetTo(), record: d.GetRecord()}
 		e.stored = e.record != nil

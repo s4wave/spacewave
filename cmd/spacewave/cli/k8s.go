@@ -4,7 +4,6 @@ package spacewave_cli
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -56,7 +55,6 @@ func newK8sCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			buildK8sBindCommand(true),
 			buildK8sBindCommand(false),
 			buildK8sKubeconfigCommand(),
-			buildK8sCredentialCommand(),
 		},
 	}
 }
@@ -115,46 +113,39 @@ func buildK8sBindCommand(enable bool) *cli.Command {
 	}
 }
 
-// getAccess returns the caller's access to the Space's Kubernetes API on this
-// Device and the ID of the Space.
-func (a *k8sArgs) getAccess(c *cli.Context) (*s4wave_k8s.GetAccessResponse, string, error) {
-	// Mount the Space's cluster object.
-	idx, err := sessionIndexFromInt(a.sessionIdx)
-	if err != nil {
-		return nil, "", err
-	}
-	mount, err := mountObjectChain(c, a.statePath, fsURI{sessionIdx: idx, spaceID: a.spaceID, objectKey: s4wave_k8s.ClusterObjectKey}, nil)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "open the Space's k8s/cluster object (enable it with spacewave k8s enable)")
-	}
-	defer mount.release()
-
-	// Ask it for the server and a token.
-	access, err := s4wave_k8s.NewSRPCClusterResourceServiceClient(mount.TypedClient).GetAccess(c.Context, &s4wave_k8s.GetAccessRequest{})
-	return access, mount.SpaceID, err
-}
-
 // k8sKubeconfigArgs prints a kubeconfig for the Space.
 type k8sKubeconfigArgs struct {
 	k8sArgs
+	port int
 }
 
-// Run prints a kubeconfig with one context for the Space, whose user runs
-// spacewave k8s credential for its token.
-func (a *k8sKubeconfigArgs) Run(c *cli.Context) error {
-	// Read the server.
-	access, spaceID, err := a.getAccess(c)
-	if err != nil {
-		return err
-	}
+// BuildFlags adds the port bkctl proxy serves on.
+func (a *k8sKubeconfigArgs) BuildFlags() []cli.Flag {
+	return append(a.k8sArgs.BuildFlags(), &cli.IntFlag{
+		Name:        "port",
+		Usage:       "loopback port bkctl proxy serves the Space's API on",
+		Value:       8001,
+		Destination: &a.port,
+	})
+}
 
-	// Name this program and daemon in the credential command, since kubectl
-	// runs it from anywhere.
-	exe, err := os.Executable()
+// Run prints a kubeconfig with one context for the Space, whose server is the
+// loopback port of bkctl proxy, and the bkctl proxy command that serves it.
+func (a *k8sKubeconfigArgs) Run(c *cli.Context) error {
+	// Resolve the Space through its cluster object, which must exist.
+	idx, err := sessionIndexFromInt(a.sessionIdx)
 	if err != nil {
 		return err
 	}
-	args := []string{"k8s", "credential", "--space", spaceID, "--session-index", strconv.Itoa(a.sessionIdx)}
+	mount, err := mountObjectChain(c, a.statePath, fsURI{sessionIdx: idx, spaceID: a.spaceID, objectKey: s4wave_k8s.ClusterObjectKey}, nil)
+	if err != nil {
+		return errors.Wrap(err, "open the Space's k8s/cluster object (enable it with spacewave k8s enable)")
+	}
+	spaceID := mount.SpaceID
+	mount.release()
+
+	// Name the daemon in the proxy command, since it runs from anywhere.
+	args := []string{"bkctl", "proxy", "--port", strconv.Itoa(a.port), "--space", spaceID, "--session-index", strconv.Itoa(a.sessionIdx)}
 	flag, path := "--socket-path", effectiveSocketPath(c, "")
 	if path == "" {
 		flag = "--state-path"
@@ -169,38 +160,31 @@ func (a *k8sKubeconfigArgs) Run(c *cli.Context) error {
 	}
 	args = append(args, flag, path)
 
-	// Print the kubeconfig. JSON strings and arrays are YAML ones.
+	// Print the kubeconfig. JSON strings are YAML ones.
 	var arena fastjson.Arena
 	name := "spacewave-" + spaceID
 	q := func(s string) string {
 		return string(arena.NewString(s).MarshalTo(nil))
 	}
-	quotedArgs := arena.NewArray()
-	for i, arg := range args {
-		quotedArgs.SetArrayItem(i, arena.NewString(arg))
-	}
+	server := "http://127.0.0.1:" + strconv.Itoa(a.port)
 	_, err = fmt.Fprintf(os.Stdout, `apiVersion: v1
 kind: Config
 clusters:
 - name: %[1]s
   cluster:
     server: %[2]s
-    certificate-authority-data: %[5]s
-users:
-- name: %[1]s
-  user:
-    exec:
-      apiVersion: client.authentication.k8s.io/v1
-      command: %[3]s
-      args: %[4]s
-      interactiveMode: Never
 contexts:
 - name: %[1]s
   context:
     cluster: %[1]s
-    user: %[1]s
 current-context: %[1]s
-`, q(name), q(access.GetServer()), q(exe), quotedArgs.MarshalTo(nil), q(base64.StdEncoding.EncodeToString(access.GetCertificateAuthority())))
+`, q(name), q(server))
+	if err != nil {
+		return err
+	}
+
+	// Print the command that serves it.
+	_, err = fmt.Fprintf(os.Stderr, "Serve %s for kubectl with:\n  %s\n", server, shellJoin(args))
 	return err
 }
 
@@ -209,53 +193,17 @@ func buildK8sKubeconfigCommand() *cli.Command {
 	args := &k8sKubeconfigArgs{}
 	return &cli.Command{
 		Name:  "kubeconfig",
-		Usage: "print a kubeconfig that reaches the Space's Kubernetes API on this Device",
-		Description: "Print a kubeconfig with one context for the Space, named spacewave-<space-id>.\n" +
-			"Its user runs spacewave k8s credential for a token, so the file holds no\n" +
-			"secret. The Space's Kubernetes API must be enabled on this Device.\n\n" +
+		Usage: "print a kubeconfig that reaches the Space's Kubernetes API through bkctl proxy",
+		Description: "Print a kubeconfig with one context for the Space, named spacewave-<space-id>,\n" +
+			"whose server is bkctl proxy on a loopback port, and print the bkctl proxy\n" +
+			"command that serves it to stderr. bkctl proxy reaches the Space through the\n" +
+			"daemon as the session's participant, so the file holds no secret. The\n" +
+			"Space's Kubernetes API must be enabled on a Device of the Space.\n\n" +
 			"EXAMPLES:\n" +
 			"  spacewave k8s enable --space my-space\n" +
 			"  spacewave k8s kubeconfig --space my-space > ~/.kube/spacewave\n" +
+			"  bkctl proxy --port 8001 --space <space-id> &\n" +
 			"  KUBECONFIG=~/.kube/spacewave kubectl get nodes",
-		Flags:  args.BuildFlags(),
-		Action: args.Run,
-	}
-}
-
-// k8sCredentialArgs prints the caller's token as a kubectl ExecCredential.
-type k8sCredentialArgs struct {
-	k8sArgs
-}
-
-// Run prints the ExecCredential.
-func (a *k8sCredentialArgs) Run(c *cli.Context) error {
-	// Read the token.
-	access, _, err := a.getAccess(c)
-	if err != nil {
-		return err
-	}
-
-	// Build it in the client.authentication.k8s.io/v1 shape.
-	var arena fastjson.Arena
-	status := arena.NewObject()
-	status.Set("token", arena.NewString(access.GetToken()))
-	cred := arena.NewObject()
-	cred.Set("apiVersion", arena.NewString("client.authentication.k8s.io/v1"))
-	cred.Set("kind", arena.NewString("ExecCredential"))
-	cred.Set("status", status)
-
-	// Print it.
-	_, err = os.Stdout.Write(append(cred.MarshalTo(nil), '\n'))
-	return err
-}
-
-// buildK8sCredentialCommand builds the credential subcommand.
-func buildK8sCredentialCommand() *cli.Command {
-	args := &k8sCredentialArgs{}
-	return &cli.Command{
-		Name:   "credential",
-		Usage:  "print a token for the Space's Kubernetes API, for kubectl's exec credential",
-		Hidden: true,
 		Flags:  args.BuildFlags(),
 		Action: args.Run,
 	}

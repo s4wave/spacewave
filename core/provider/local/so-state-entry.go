@@ -49,6 +49,10 @@ type soStateEntry struct {
 	// writeMtx serializes admissions and direct writes while the entry is
 	// retained. An admission holds it until the publisher admits its write.
 	writeMtx csync.Mutex
+	// intent serializes writers before either an engine or provider writer is
+	// acquired. A direct writer drains receipts here without blocking readers
+	// or an engine writer, and prevents new admissions from starving its drain.
+	intent csync.Mutex
 
 	// bcast guards pending and the settling of stateCtr and admittedCtr, and
 	// wakes the settling routine when an admission arrives.
@@ -142,34 +146,41 @@ func (e *soStateEntry) readAdmitted() *sobject.SOState {
 }
 
 // waitSettled waits until every pending receipt settled and returns the durable
-// state, which then equals the admitted state. The caller holds writeMtx, so
-// no admission arrives while it waits.
+// state, which then equals the admitted state. Reservation callers hold only
+// intent, preventing new admissions while keeping both writers free. The legacy
+// lane retains its original provider-writer wait.
 func (e *soStateEntry) waitSettled(ctx context.Context) (*sobject.SOState, error) {
 	for {
-		// Settle the resolved receipts and find the next one to wait for.
-		var state *sobject.SOState
-		var released []func()
-		var done <-chan struct{}
-		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			released = e.settleLocked()
-			if len(e.pending) != 0 {
-				done = e.pending[0].receipt.Done()
-				return
-			}
-			state = e.stateCtr.GetValue()
-		})
-		releaseAll(released)
+		// Settle completed receipts and subscribe to the next pending one.
+		state, done := e.readSettled()
 		if done == nil {
 			return state, nil
 		}
-
-		// Wait for the publisher to resolve it.
 		select {
 		case <-ctx.Done():
-			return nil, context.Canceled
+			return nil, ctx.Err()
 		case <-done:
 		}
 	}
+}
+
+// readSettled returns the durable state when nothing is pending, or the next
+// receipt's wait channel. It performs no wait and requires no writer lock.
+func (e *soStateEntry) readSettled() (*sobject.SOState, <-chan struct{}) {
+	// Settle the resolved prefix and retain its release callbacks outside bcast.
+	var state *sobject.SOState
+	var released []func()
+	var done <-chan struct{}
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		released = e.settleLocked()
+		if len(e.pending) != 0 {
+			done = e.pending[0].receipt.Done()
+			return
+		}
+		state = e.stateCtr.GetValue()
+	})
+	releaseAll(released)
+	return state, done
 }
 
 // admit records state, built on base, as admitted to the publication of

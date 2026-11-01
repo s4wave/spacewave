@@ -328,3 +328,116 @@ func TestSOStateDirectWriteAfterChain(t *testing.T) {
 		}
 	})
 }
+
+// TestSOStateWriteReservations walks direct configuration, peer import and
+// declined publications behind pending receipts, including cancellation.
+func TestSOStateWriteReservations(t *testing.T) {
+	SetSQLPublicationReservations(true)
+	t.Cleanup(func() { SetSQLPublicationReservations(false) })
+	synctest.Test(t, func(t *testing.T) {
+		// Retain the real state entry while observing provider-writer availability.
+		h := newAdmissionHarness(t)
+		ctx := t.Context()
+		claim, err := h.host.ReserveStateWrite(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entry := claim.(*soStateWriteReservation).entry
+		localPeer, err := peer.IDB58Decode(h.peerID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		claim.Release()
+
+		// Each direct writer must leave the provider writer available while
+		// it waits for a receipt, and return its intent when canceled.
+		for _, kind := range []string{"configuration", "peer-import", "declined"} {
+			op := h.add(true)
+			candidate := h.admitted.GetValue().Clone()
+			write := func(ctx context.Context) error {
+				switch kind {
+				case "configuration":
+					return h.host.UpdateSOState(ctx, func(*sobject.SOState) error { return nil })
+				case "peer-import":
+					return h.host.ImportPeerSnapshot(ctx, candidate, nil, localPeer, nil)
+				default:
+					ctx = sobject.WithPublishState(ctx, func(context.Context, *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) { return nil, nil })
+					_, _, err := h.host.AddLocalOperation(ctx, logrus.NewEntry(logrus.New()), testStepFactorySet(), h.priv, []byte("fallback"))
+					return err
+				}
+			}
+			waiting, cancel := context.WithCancel(ctx)
+			done := make(chan error, 1)
+			go func() { done <- write(waiting) }()
+			synctest.Wait()
+			select {
+			case err := <-done:
+				t.Fatalf("%s finished before receipt: %v", kind, err)
+			default:
+			}
+			unlock, ok := entry.writeMtx.TryLock()
+			if !ok {
+				t.Fatalf("%s held provider writer across receipt", kind)
+			}
+			unlock()
+			cancel()
+			if err := <-done; !errors.Is(err, context.Canceled) {
+				t.Fatalf("%s cancellation: %v", kind, err)
+			}
+
+			// Retry after cancellation; its durable write includes the pending
+			// operation once the publisher resolves it.
+			go func() { done <- write(ctx) }()
+			synctest.Wait()
+			if err := h.pub.apply(ctx, len(h.pub.receipts)-1); err != nil {
+				t.Fatal(err)
+			}
+			if err := <-done; err != nil {
+				t.Fatalf("%s retry: %v", kind, err)
+			}
+			synctest.Wait()
+			h.expect("durable", h.durable, map[string]bool{op: true})
+		}
+
+		// A caller already holding admitted-state intent must unwind instead
+		// of upgrading it under its engine writer when publication declines.
+		op := h.add(true)
+		claim, err = h.host.ReserveStateWrite(ctx, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		declined := sobject.WithPublishState(claim.WithContext(ctx), func(context.Context, *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) { return nil, nil })
+		_, _, err = h.host.AddLocalOperation(declined, logrus.NewEntry(logrus.New()), testStepFactorySet(), h.priv, []byte("declined"))
+		claim.Release()
+		if !errors.Is(err, sobject.ErrStateWriteUnsettled) {
+			t.Fatalf("borrowed fallback: %v", err)
+		}
+
+		// Resolve the predecessor and retry with settled intent outside writers.
+		if err := h.pub.apply(ctx, len(h.pub.receipts)-1); err != nil {
+			t.Fatal(err)
+		}
+		claim, err = h.host.ReserveStateWrite(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer claim.Release()
+		declined = sobject.WithPublishState(claim.WithContext(ctx), func(context.Context, *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) { return nil, nil })
+		if _, _, err := h.host.AddLocalOperation(declined, logrus.NewEntry(logrus.New()), testStepFactorySet(), h.priv, []byte("retry")); err != nil {
+			t.Fatal(err)
+		}
+		synctest.Wait()
+		h.expect("durable", h.durable, map[string]bool{op: true})
+
+		// A new persistence owner reads the same durable state after restart.
+		watch, _, _ := NewObjectStoreSOStateFuncs(ctx, h.store, "objs", "")
+		reloaded, release, err := watch(ctx, testSharedObjectID, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer release()
+		if !reloaded.GetValue().EqualVT(h.durable.GetValue()) {
+			t.Fatal("restart changed the durable state")
+		}
+	})
+}

@@ -18,4 +18,11 @@ type PutBatchEntry struct {
 	// it, and its children count as if it named none. A layer that drops the
 	// flag over-counts, which leaks and never frees.
 	Counted bool
+	// HoldsRoots reports that each block the entry names roots a tree that a
+	// holder outside the batch already holds, such as a World a replay hold
+	// names, which its lineage holds. A store that counts shared blocks counts
+	// the entry's edge to a named block the batch stores afresh too, since the
+	// outside holder takes that put's first holder. A layer that drops the
+	// flag under-counts, which frees a live block.
+	HoldsRoots bool
 }

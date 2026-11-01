@@ -21,6 +21,9 @@ type PublicationReceipt struct {
 	// existed reports, for each entry of a successful publication, whether
 	// the store already held it, or is nil when the publisher did not say.
 	existed []bool
+	// counting reports whether the store's shared counts were complete when
+	// it applied a successful publication.
+	counting bool
 	// release drops optional publication ownership after durable completion.
 	release     func()
 	releaseOnce sync.Once
@@ -56,13 +59,14 @@ func (r *PublicationReceipt) Done() <-chan struct{} { return r.doneCh }
 
 // Resolve completes a receipt exactly once. Only its owning publisher calls it.
 func (r *PublicationReceipt) Resolve(err error) {
-	r.ResolveExisted(err, nil)
+	r.ResolveExisted(err, nil, false)
 }
 
 // ResolveExisted completes a receipt exactly once, reporting for each entry of
-// the publication whether the store already held it. existed is kept only when
-// err is nil. Only its owning publisher calls it.
-func (r *PublicationReceipt) ResolveExisted(err error, existed []bool) {
+// the publication whether the store already held it, and whether the store's
+// shared counts were complete when it applied the publication. Both are kept
+// only when err is nil. Only its owning publisher calls it.
+func (r *PublicationReceipt) ResolveExisted(err error, existed []bool, counting bool) {
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Resolve the receipt once and wake its waiters.
 		if r.resolved {
@@ -71,7 +75,7 @@ func (r *PublicationReceipt) ResolveExisted(err error, existed []bool) {
 		r.resolved = true
 		r.err = err
 		if err == nil {
-			r.existed = existed
+			r.existed, r.counting = existed, counting
 		}
 		close(r.doneCh)
 		broadcast()
@@ -97,6 +101,19 @@ func (r *PublicationReceipt) Existed() []bool {
 		existed = r.existed
 	})
 	return existed
+}
+
+// Counting reports whether the store's shared counts were complete when it
+// applied the publication, so its puts counted every holder they added as
+// they wrote it rather than leaving it to a sharing walk. It is meaningful
+// only after Done closes with no error, and is false when the publisher did
+// not report it.
+func (r *PublicationReceipt) Counting() bool {
+	var counting bool
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		counting = r.counting
+	})
+	return counting
 }
 
 // Wait returns the durable result, blocking until resolution when unresolved.

@@ -1,0 +1,33 @@
+---
+title: "A deadlist record waits, becomes due, or loses its name"
+---
+stateDiagram-v2
+  s0: absent
+  s1: forfeited
+  s2: waiting
+  s3: done
+  s4: orphaned
+  s5: pending
+  s6: due
+  [*] --> s0
+  s0 --> s1: Name
+  s0 --> s2: Name
+  s1 --> s0: RestoreDeadlists
+  s1 --> s3: Advance
+  s1 --> s5: RestoreDeadlists
+  s2 --> s0: RestoreDeadlists
+  s2 --> s1: RestoreDeadlists
+  s2 --> s4: Orphan
+  s2 --> s5: Resolve or RestoreDeadlists
+  s4 --> s0: RestoreDeadlists
+  s4 --> s1: RestoreDeadlists
+  s4 --> s3: Confirm
+  s4 --> s5: RestoreDeadlists
+  s5 --> s0: RestoreDeadlists
+  s5 --> s1: RestoreDeadlists
+  s5 --> s4: Orphan
+  s5 --> s6: Advance
+  s6 --> s0: RestoreDeadlists
+  s6 --> s1: RestoreDeadlists
+  s6 --> s3: Confirm
+  s6 --> s5: RestoreDeadlists

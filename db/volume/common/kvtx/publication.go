@@ -1,6 +1,7 @@
 package kvtx
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -11,6 +12,12 @@ import (
 
 // refGraphPrefix holds the Volume's reference graph records.
 var refGraphPrefix = []byte{2}
+
+// RefGraphPrefixes returns the key prefixes of the Volume's reference graph
+// records, current and legacy, for a copy that starts the graph empty.
+func RefGraphPrefixes() [][]byte {
+	return [][]byte{bytes.Clone(refGraphPrefix), bytes.Clone(legacyRefGraphPrefix)}
+}
 
 // OpenRefGraph opens the reference graph of the Volume whose key-value store
 // is store. Opening reads nothing, so each transaction opens its own.

@@ -55,6 +55,9 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 	}
 	p := &physicalTx{tx: tx, store: kvtx.NewTxStore(tx)}
 	p.rg = OpenRefGraph(p.store)
+	if v.holdCounts {
+		p.rg.CountOwnerEdges()
+	}
 
 	// Serve blocks from the domain's transaction, or as records. Either view
 	// reads tx's uncommitted writes, so neither marks reads durable.
@@ -64,7 +67,10 @@ func (v *Volume) openPhysical(ctx context.Context) (*physicalTx, error) {
 	} else {
 		blocks = block_store_kvtx.NewKVTxBlock(v.kvKey, p.store, v.GetHashType(), v.atomicHashGet)
 	}
-	p.blocks = &txBlocks{StoreOps: blocks}
+	p.blocks = &txBlocks{
+		StoreOps: blocks,
+		marks:    &txMarks{store: p.store, kvKey: v.kvKey},
+	}
 	p.rg.SetHolderSource(txHolders{blocks: p.blocks})
 	return p, nil
 }
@@ -81,11 +87,14 @@ func (p *physicalTx) discard() {
 }
 
 // txBlocks serves a physical transaction's blocks. It refuses to store a block
-// without its references, as requireRefsKnown describes, and records each
-// block the transaction removes: the sweeps, the block passes, the deferred
-// edits and the publication tombstones all remove through it.
+// without its references, as requireRefsKnown describes, marks the blocks of
+// the writes that asked, and records each block the transaction removes: the
+// sweeps, the block passes, the deferred edits and the publication tombstones
+// all remove through it.
 type txBlocks struct {
 	block.StoreOps
+	// marks marks stored blocks in the transaction.
+	marks *txMarks
 	// mtx guards removed.
 	mtx sync.Mutex
 	// removed lists the removed blocks.
@@ -98,26 +107,54 @@ func (r *txBlocks) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return r.StoreOps.RmBlock(ctx, ref)
 }
 
-// PutBlock refuses a new block without its references and writes the block.
+// PutBlock refuses a new block without its references, writes the block and
+// marks it, also when it existed, for a write that asked for marking.
 func (r *txBlocks) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Refuse a new block without its references, then write it.
 	if err := requireRefKnown(ctx, r.StoreOps, data, opts); err != nil {
 		return nil, false, err
 	}
-	return r.StoreOps.PutBlock(ctx, data, opts)
+	ref, existed, err := r.StoreOps.PutBlock(ctx, data, opts)
+	if err != nil || ref.GetEmpty() {
+		return ref, existed, err
+	}
+
+	// Mark the block in this transaction.
+	err = r.marks.mark(ctx, []kvtx.BlockMark{{Hash: ref.GetHash(), Size: int64(len(data))}})
+	return ref, existed, err
 }
 
 // PutBlockBatch refuses a batch holding a new block without its references,
-// then records the batch's tombstones and writes the batch.
+// then records the batch's tombstones, writes the batch and marks its blocks,
+// also those that existed, for a write that asked for marking.
 func (r *txBlocks) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Refuse a new block without its references.
 	if err := requireRefsKnown(ctx, r.StoreOps, entries); err != nil {
 		return nil, err
 	}
+
+	// Record the tombstones and collect the blocks to mark.
+	var marks []kvtx.BlockMark
+	asked := kvtx.GetBlockMarkRequest(ctx) != nil
 	for _, entry := range entries {
-		if entry != nil && entry.Tombstone {
+		if entry == nil {
+			continue
+		}
+		if entry.Tombstone {
 			r.record(entry.Ref)
+			continue
+		}
+		if asked && !entry.Ref.GetEmpty() {
+			marks = append(marks, kvtx.BlockMark{Hash: entry.Ref.GetHash(), Size: int64(len(entry.Data))})
 		}
 	}
-	return r.StoreOps.PutBlockBatch(ctx, entries)
+
+	// Write the batch, then mark its blocks in this transaction.
+	existed, err := r.StoreOps.PutBlockBatch(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+	return existed, r.marks.mark(ctx, marks)
 }
 
 // BeginDeferFlush forwards the GC defer-flush scope to the inner store.

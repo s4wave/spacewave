@@ -4,14 +4,12 @@
 
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
-import type { SOParticipantRole } from '../../core/sobject/sobject.pb.js'
-import { SOParticipantRole_Enum } from '../../core/sobject/sobject.pb.js'
 
 /**
  * Cluster is the root of the k8s/cluster object, which makes its Space a
  * Kubernetes cluster. The Device whose ProcessBinding approves the object
- * serves the Space's Kubernetes API on a loopback port, through the
- * spacewave-k8s plugin.
+ * serves the Space's Kubernetes API through the spacewave-k8s plugin, and a
+ * client reaches it through the object's web.fetch.FetchService.
  *
  * @generated from message s4wave.k8s.Cluster
  */
@@ -19,55 +17,3 @@ export interface Cluster {}
 
 export const Cluster: MessageType<Cluster> =
   /* @__PURE__ */ createMessageType<Cluster>('s4wave.k8s.Cluster', () => [])
-
-/**
- * GetAccessRequest is the request type for GetAccess.
- *
- * @generated from message s4wave.k8s.GetAccessRequest
- */
-export interface GetAccessRequest {}
-
-export const GetAccessRequest: MessageType<GetAccessRequest> =
-  /* @__PURE__ */ createMessageType<GetAccessRequest>(
-    's4wave.k8s.GetAccessRequest',
-    () => [],
-  )
-
-/**
- * GetAccessResponse says how a client on this Device reaches the Space's
- * Kubernetes API as the caller.
- *
- * @generated from message s4wave.k8s.GetAccessResponse
- */
-export interface GetAccessResponse {
-  /**
-   * Server is the URL of the API server, such as https://127.0.0.1:6449.
-   */
-  server?: string
-  /**
-   * Token is the caller's bearer token. It lasts while the API server runs,
-   * and a client that the server refuses asks for a new one.
-   */
-  token?: string
-  /**
-   * Role is the caller's Space role, which authorizes the token's requests.
-   */
-  role?: SOParticipantRole
-  /**
-   * CertificateAuthority is the PEM certificate the API server presents,
-   * which a client trusts for Server. It lasts while the plugin keeps its
-   * state on this Device.
-   */
-  certificateAuthority?: Uint8Array
-}
-
-export const GetAccessResponse: MessageType<GetAccessResponse> =
-  /* @__PURE__ */ createMessageType<GetAccessResponse>(
-    's4wave.k8s.GetAccessResponse',
-    () => [
-      [1, 'server', 9],
-      [2, 'token', 9],
-      [3, 'role', 14, 0, SOParticipantRole_Enum],
-      [4, 'certificate_authority', 12],
-    ],
-  )

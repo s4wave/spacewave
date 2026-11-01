@@ -199,3 +199,60 @@ func TestStorageBackendOps(t *testing.T) {
 		t.Fatalf("expected no backends and no default, got %v", s)
 	}
 }
+
+// TestBlockStoreFallbackPlacement checks that a read fallback is an SQL
+// backend beside an S3 backend, and that it keeps its backend from removal.
+func TestBlockStoreFallbackPlacement(t *testing.T) {
+	// Add an S3 backend and an SQL backend.
+	s := &AccountSettings{}
+	upsert := func(b *StorageBackend) {
+		t.Helper()
+		if err := applyOp(t, s, &AccountSettingsOp{Op: &AccountSettingsOp_UpsertStorageBackend{UpsertStorageBackend: b}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	upsert(testStorageBackend("packs", "b2"))
+	sqlBackend := testStorageBackend("sql", "mariadb")
+	sqlBackend.S3 = nil
+	sqlBackend.Sql = &SqlLocation{Host: "127.0.0.1", Database: "world"}
+	upsert(sqlBackend)
+	place := func(backendID, fallbackID string) error {
+		return applyOp(t, s, &AccountSettingsOp{Op: &AccountSettingsOp_SetBlockStorePlacement{
+			SetBlockStorePlacement: &BlockStorePlacement{
+				BlockStoreId:             "world",
+				StorageBackendId:         backendID,
+				FallbackStorageBackendId: fallbackID,
+			},
+		}})
+	}
+
+	// An SQL backend is never both primary and fallback, and the fallback is
+	// an existing SQL backend.
+	if err := place("sql", "sql"); err == nil {
+		t.Fatal("expected an SQL primary with a fallback to fail")
+	}
+	if err := place("packs", "packs"); err == nil {
+		t.Fatal("expected an S3 fallback to fail")
+	}
+	if err := place("packs", "missing"); !errors.Is(err, ErrStorageBackendNotFound) {
+		t.Fatalf("expected ErrStorageBackendNotFound, got %v", err)
+	}
+
+	// Move a store from the SQL backend to S3 with the SQL backend as its
+	// fallback: the SQL backend records no release and stays in use.
+	if err := place("sql", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := place("packs", "sql"); err != nil {
+		t.Fatal(err)
+	}
+	if releases := s.GetStorageReleases(); len(releases) != 0 {
+		t.Fatalf("expected no pending release, got %v", releases)
+	}
+	if got := s.FindBlockStorePlacement("world").GetFallbackStorageBackendId(); got != "sql" {
+		t.Fatalf("expected the sql fallback, got %q", got)
+	}
+	if err := s.CheckStorageBackendUnused("sql"); !errors.Is(err, ErrStorageBackendInUse) {
+		t.Fatalf("expected ErrStorageBackendInUse, got %v", err)
+	}
+}

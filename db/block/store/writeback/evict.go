@@ -192,7 +192,29 @@ func (s *Store) Refill(ctx context.Context, ref *block.BlockRef, stored *block.S
 	if _, _, err := s.values.PutBlock(ctx, stored.Data, stored.PutOpts(ref)); err != nil {
 		return errors.Wrap(err, "refill block")
 	}
+	return s.queueRefill(ctx, ref, int64(len(stored.Data)), 1)
+}
 
+// CacheFill stores a remotely read block with its child refs but no ownership,
+// then accounts for its local value and queues it for eviction. It creates no
+// upload marker; eviction must verify the placement's remote holds the value
+// before dropping it, including when this read came from a peer.
+func (s *Store) CacheFill(ctx context.Context, ref *block.BlockRef, stored *block.StoredBlock) error {
+	// Preserve the child refs of a block the local graph does not yet track.
+	// Cache values are disposable, so their commits need not wait for a flush.
+	ctx = kvtx.WithOrderedCommitContext(ctx)
+	opts := stored.PutOpts(ref)
+	opts.CacheFill = true
+	if _, _, err := s.local.PutBlock(ctx, stored.Data, opts); err != nil {
+		return errors.Wrap(err, "cache remote block")
+	}
+	return s.queueRefill(ctx, ref, int64(len(stored.Data)), 0)
+}
+
+// queueRefill accounts for a cached local value; eviction verifies its remote
+// copy before dropping it. refills counts reads of previously evicted values,
+// excluding first-time cache fills of blocks the graph did not track.
+func (s *Store) queueRefill(ctx context.Context, ref *block.BlockRef, size, refills int64) error {
 	// Queue the refilled block for eviction.
 	var added int64
 	err := kvtx.RunTransaction(ctx, true, s.writeTx, func(ctx context.Context, tx kvtx.Tx) error {
@@ -201,7 +223,7 @@ func (s *Store) Refill(ctx context.Context, ref *block.BlockRef, stored *block.S
 		if err != nil {
 			return err
 		}
-		added, err = queueEvict(ctx, tx, epoch, ref.GetHash(), int64(len(stored.Data)))
+		added, err = queueEvict(ctx, tx, epoch, ref.GetHash(), size)
 		if err != nil {
 			return err
 		}
@@ -210,7 +232,9 @@ func (s *Store) Refill(ctx context.Context, ref *block.BlockRef, stored *block.S
 	if err != nil {
 		return errors.Wrap(err, "queue refilled block")
 	}
-	s.addEvictStatus(added, 0, 1)
+
+	// Publish the committed resident bytes and refill count to watchers.
+	s.addEvictStatus(added, 0, refills)
 	return nil
 }
 

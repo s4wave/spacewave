@@ -47,18 +47,46 @@ class AccountSettings(_message.Message):
     def __init__(self, display_name: _Optional[str] = ..., paired_devices: _Optional[_Iterable[_Union[PairedDevice, _Mapping]]] = ..., entity_keypairs: _Optional[_Iterable[_Union[_session_pb2.EntityKeypair, _Mapping]]] = ..., session_presentations: _Optional[_Iterable[_Union[SessionPresentation, _Mapping]]] = ..., keybinding_overrides: _Optional[_Union[_command_pb2.KeybindingOverrideSet, _Mapping]] = ..., sessions: _Optional[_Iterable[_Union[AccountSession, _Mapping]]] = ..., catalog: _Optional[_Iterable[_Union[AccountCatalogEntry, _Mapping]]] = ..., transition: _Optional[_Union[_provider_pb2.AccountTransition, _Mapping]] = ..., accepted_migrations: _Optional[_Iterable[_Union[_provider_pb2.AccountTransition, _Mapping]]] = ..., storage_backends: _Optional[_Iterable[_Union[StorageBackend, _Mapping]]] = ..., default_storage_backend_id: _Optional[str] = ..., block_store_placements: _Optional[_Iterable[_Union[BlockStorePlacement, _Mapping]]] = ..., storage_releases: _Optional[_Iterable[_Union[BlockStorePlacement, _Mapping]]] = ..., developer_space_id: _Optional[str] = ..., plugin_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class StorageBackend(_message.Message):
-    __slots__ = ("id", "display_name", "s3", "credential", "sql")
+    __slots__ = ("id", "display_name", "s3", "credential", "sql", "ftps")
     ID_FIELD_NUMBER: _ClassVar[int]
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     S3_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_FIELD_NUMBER: _ClassVar[int]
     SQL_FIELD_NUMBER: _ClassVar[int]
+    FTPS_FIELD_NUMBER: _ClassVar[int]
     id: str
     display_name: str
     s3: S3Location
     credential: _secret_pb2.Secret
     sql: SqlLocation
-    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ..., sql: _Optional[_Union[SqlLocation, _Mapping]] = ...) -> None: ...
+    ftps: FtpsLocation
+    def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., s3: _Optional[_Union[S3Location, _Mapping]] = ..., credential: _Optional[_Union[_secret_pb2.Secret, _Mapping]] = ..., sql: _Optional[_Union[SqlLocation, _Mapping]] = ..., ftps: _Optional[_Union[FtpsLocation, _Mapping]] = ...) -> None: ...
+
+class FtpsLocation(_message.Message):
+    __slots__ = ("host", "port", "netrc_path", "root", "prefix", "max_conns", "conns_per_login", "sftp", "host_key", "ftps_port", "merge_tail_bytes")
+    HOST_FIELD_NUMBER: _ClassVar[int]
+    PORT_FIELD_NUMBER: _ClassVar[int]
+    NETRC_PATH_FIELD_NUMBER: _ClassVar[int]
+    ROOT_FIELD_NUMBER: _ClassVar[int]
+    PREFIX_FIELD_NUMBER: _ClassVar[int]
+    MAX_CONNS_FIELD_NUMBER: _ClassVar[int]
+    CONNS_PER_LOGIN_FIELD_NUMBER: _ClassVar[int]
+    SFTP_FIELD_NUMBER: _ClassVar[int]
+    HOST_KEY_FIELD_NUMBER: _ClassVar[int]
+    FTPS_PORT_FIELD_NUMBER: _ClassVar[int]
+    MERGE_TAIL_BYTES_FIELD_NUMBER: _ClassVar[int]
+    host: str
+    port: int
+    netrc_path: str
+    root: str
+    prefix: str
+    max_conns: int
+    conns_per_login: int
+    sftp: bool
+    host_key: str
+    ftps_port: int
+    merge_tail_bytes: int
+    def __init__(self, host: _Optional[str] = ..., port: _Optional[int] = ..., netrc_path: _Optional[str] = ..., root: _Optional[str] = ..., prefix: _Optional[str] = ..., max_conns: _Optional[int] = ..., conns_per_login: _Optional[int] = ..., sftp: _Optional[bool] = ..., host_key: _Optional[str] = ..., ftps_port: _Optional[int] = ..., merge_tail_bytes: _Optional[int] = ...) -> None: ...
 
 class SqlLocation(_message.Message):
     __slots__ = ("host", "port", "database", "table_prefix", "tls", "tls_cert_sha256")
@@ -95,14 +123,16 @@ class S3Location(_message.Message):
     def __init__(self, endpoint: _Optional[str] = ..., region: _Optional[str] = ..., bucket: _Optional[str] = ..., object_prefix: _Optional[str] = ..., disable_ssl: _Optional[bool] = ..., pricing: _Optional[_Union[_s3_pb2.Pricing, _Mapping]] = ..., keep_packs: _Optional[bool] = ...) -> None: ...
 
 class BlockStorePlacement(_message.Message):
-    __slots__ = ("block_store_id", "storage_backend_id", "cache")
+    __slots__ = ("block_store_id", "storage_backend_id", "cache", "fallback_storage_backend_id")
     BLOCK_STORE_ID_FIELD_NUMBER: _ClassVar[int]
     STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
     CACHE_FIELD_NUMBER: _ClassVar[int]
+    FALLBACK_STORAGE_BACKEND_ID_FIELD_NUMBER: _ClassVar[int]
     block_store_id: str
     storage_backend_id: str
     cache: BlockStoreCache
-    def __init__(self, block_store_id: _Optional[str] = ..., storage_backend_id: _Optional[str] = ..., cache: _Optional[_Union[BlockStoreCache, _Mapping]] = ...) -> None: ...
+    fallback_storage_backend_id: str
+    def __init__(self, block_store_id: _Optional[str] = ..., storage_backend_id: _Optional[str] = ..., cache: _Optional[_Union[BlockStoreCache, _Mapping]] = ..., fallback_storage_backend_id: _Optional[str] = ...) -> None: ...
 
 class BlockStoreCache(_message.Message):
     __slots__ = ("settle_seconds", "max_pending_bytes", "resident_high_bytes", "resident_low_bytes", "skip_backfill", "max_upload_reads", "upload_read_slow_millis")

@@ -119,9 +119,12 @@ func (a *ProviderAccount) CheckStorageBackend(ctx context.Context, backendID str
 	if backend == nil {
 		return nil, account_settings.ErrStorageBackendNotFound
 	}
-	creds, err := a.ReadStorageCredentials(ctx, backend)
-	if err != nil {
-		return nil, err
+	var creds *block_store_s3.Credentials
+	if backend.GetFtps() == nil {
+		creds, err = a.ReadStorageCredentials(ctx, backend)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return checkStorageLocation(ctx, backend, creds), nil
 }
@@ -135,6 +138,9 @@ func checkStorageLocation(
 ) *block_store_s3.CheckResult {
 	if location := backend.GetSql(); location != nil {
 		return CheckSQLLocation(ctx, location, creds)
+	}
+	if location := backend.GetFtps(); location != nil {
+		return CheckFTPSLocation(ctx, location)
 	}
 	return CheckS3Location(ctx, backend.GetS3(), creds)
 }

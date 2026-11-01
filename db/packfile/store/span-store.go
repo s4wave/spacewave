@@ -15,13 +15,12 @@ import (
 //
 // The returned references keep bytes readable even if later fetches or other
 // readers evict them from the resident cache before the caller copies them.
-// exact limits each fetch to the uncovered gap, as index-tail reads need.
-// Otherwise the planner may widen fetches for read-ahead.
-func (e *PackReader) fetchSpans(ctx context.Context, start, end int64, exact bool) ([]*span, error) {
+// The planner may widen fetches for read-ahead.
+func (e *PackReader) fetchSpans(ctx context.Context, start, end int64) ([]*span, error) {
 	// Retain each completed interval before advancing to the next gap.
 	var spans []*span
 	for cur := start; cur < end; {
-		sp, err := e.fetchRange(ctx, cur, end, exact)
+		sp, err := e.fetchRange(ctx, cur, end)
 		if err != nil {
 			return nil, err
 		}
@@ -38,16 +37,14 @@ func (e *PackReader) fetchSpans(ctx context.Context, start, end int64, exact boo
 // Concurrent callers for overlapping offsets fold onto the same in-flight
 // fetch via the loading map, guaranteeing one transport call per uncovered
 // span. Transport work belongs to the PackReader, so canceling the caller
-// that starts a fetch does not cancel another caller waiting for it. exact
-// selects the gap-clipped index planner instead of the adaptive planner.
-func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact bool) (*span, error) {
+// that starts a fetch does not cancel another caller waiting for it.
+func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64) (*span, error) {
 	// Record the requested interval and reject canceled demand before fetching.
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/range-fetch")
 	defer task.End()
 	trace.Log(ctx, "pack-id", e.packID)
 	trace.Logf(ctx, "target-offset", "%d", off)
 	trace.Logf(ctx, "target-end", "%d", readEnd)
-	trace.Logf(ctx, "exact", "%t", exact)
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -85,11 +82,7 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 		}
 
 		// Plan a transport window within the uncovered gap.
-		if exact {
-			key = e.planExactFetchLocked(off, readEnd)
-		} else {
-			key = e.planFetchLocked(off, readEnd, block.ReadAhead(ctx))
-		}
+		key = e.planFetchLocked(off, readEnd, block.ReadAhead(ctx))
 		if key.size == 0 {
 			return
 		}
@@ -129,7 +122,7 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 		trace.Log(ctx, "role", "leader")
 		trace.Logf(ctx, "range-offset", "%d", key.off)
 		trace.Logf(ctx, "range-size", "%d", key.size)
-		e.startFetch(key, load, gate, promote, exact)
+		e.startFetch(key, load, gate, promote)
 	}
 	if !started {
 		trace.Log(ctx, "role", "waiter")
@@ -160,7 +153,7 @@ func (e *PackReader) fetchRange(ctx context.Context, off, readEnd int64, exact b
 // startFetch runs one transport request under the PackReader lifetime. A
 // non-nil promote marks a background fetch, which the gate admits after
 // foreground fetches unless promote closes first.
-func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, gate *demandGate, promote <-chan struct{}, indexTail bool) {
+func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, gate *demandGate, promote <-chan struct{}) {
 	startOwnerWork(func() {
 		// Hold the reader open until this job finishes.
 		defer e.finishOwnerWork()
@@ -190,11 +183,7 @@ func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, gate *demandGate,
 			}
 			if err == nil && sp != nil {
 				e.insertSpanLocked(sp)
-				if indexTail {
-					notifyDone = e.recordIndexTailFetchLocked(key, len(data))
-				} else {
-					notifyDone = e.recordFetchLocked(key, len(data))
-				}
+				notifyDone = e.recordFetchLocked(key, len(data))
 				writeback = e.prepareWritebackLocked(sp.off, sp.end())
 			}
 			if notifyDone == nil {
@@ -343,29 +332,6 @@ func (e *PackReader) recordSparseTargetLocked(off, end int64) {
 	e.lastTargetSet = true
 }
 
-// planExactFetchLocked clips index reads to the currently uncovered gap.
-func (e *PackReader) planExactFetchLocked(off, readEnd int64) fetchKey {
-	// Locate the uncovered byte interval containing the requested offset.
-	gapStart, gapEnd, ok := e.findGapLocked(off)
-	if !ok || gapEnd <= gapStart {
-		return fetchKey{}
-	}
-
-	// Clip the index-tail fetch to the uncovered interval.
-	start := max(off, gapStart)
-	end := min(readEnd, gapEnd)
-	if end <= start {
-		end = start + 1
-	}
-	if end > gapEnd {
-		end = gapEnd
-	}
-	if end <= start {
-		return fetchKey{}
-	}
-	return fetchKey{off: start, size: int(end - start)}
-}
-
 // recordFetchLocked notes a completed fetch for adaptive sizing.
 func (e *PackReader) recordFetchLocked(key fetchKey, responseBytes int) func() {
 	// Record completed payload transport timing and byte totals.
@@ -504,7 +470,6 @@ func (e *PackReader) insertSpanLocked(s *span) {
 	})
 	e.spans = slices.Insert(e.spans, i, s)
 	s.lru = e.lru.PushBack(s)
-	e.newest = s
 	e.chargeLocked(s.size)
 	e.touchSpanLocked(s)
 }
@@ -522,9 +487,6 @@ func (e *PackReader) removeSpanLocked(s *span) {
 	// Detach the resident span and return its bytes to the shared budget.
 	e.spans = slices.Delete(e.spans, i, i+1)
 	e.lru.Remove(s.lru)
-	if e.newest == s {
-		e.newest = nil
-	}
 	e.chargeLocked(-s.size)
 }
 
@@ -568,23 +530,19 @@ func (e *PackReader) collectSpansLocked(start, end int64) ([]*span, bool) {
 	return nil, false
 }
 
-// oldestEvictableLocked returns the least recently used span.
+// oldestEvictableLocked returns the least recently used span, or nil when the
+// reader holds none.
 //
-// The span inserted last is never returned: a caller that fetched it may not
-// have read it yet.
+// Every span is evictable: a fetch hands its span to its waiters and its
+// writeback directly, so dropping it from the store loses no reader's bytes.
+// Exempting each reader's newest span would let every pack ever read keep up to
+// one fetch window beyond the shared budget.
 func (e *PackReader) oldestEvictableLocked() *span {
-	// Find the oldest span in the resident LRU order.
 	front := e.lru.Front()
 	if front == nil {
 		return nil
 	}
-
-	// Protect the newest fetched span until a caller can consume it.
-	s := front.Value.(*span)
-	if s == e.newest {
-		return nil
-	}
-	return s
+	return front.Value.(*span)
 }
 
 // oldestEvictableSeq returns the LRU sequence of the reader's oldest

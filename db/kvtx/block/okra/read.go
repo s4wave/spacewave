@@ -72,10 +72,22 @@ type batchLookup struct {
 	index int
 }
 
+// batchNode is a page the batch walk reached, with the lookups under it.
+type batchNode struct {
+	// page is the loaded page.
+	page *Page
+	// cursor locates page.
+	cursor *block.Cursor
+	// lookups are the requested keys within the page bounds, sorted by key.
+	lookups []batchLookup
+}
+
 // findEntriesBatch resolves lookups below page into values and found, indexed
 // by each lookup's request position. The lookups are sorted by key, so the keys
 // under each child page form one contiguous run and child pages load in key
-// order. findEntriesBatch reorders lookups in place.
+// order. The walk goes one tree level at a time and reads every block the next
+// level needs together before loading them, so a remote store answers the
+// whole level in a few round trips. findEntriesBatch reorders lookups in place.
 func (t *Tx) findEntriesBatch(
 	ctx context.Context,
 	page *Page,
@@ -84,36 +96,65 @@ func (t *Tx) findEntriesBatch(
 	values [][]byte,
 	found []bool,
 ) error {
-	// Resolve requested values directly when the page is a leaf.
-	if page.GetLevel() == 0 {
-		for _, lookup := range lookups {
-			// Find an exact non-anchor match for the requested key.
-			idx := page.searchEntry(lookup.key)
-			if idx < 0 {
-				continue
-			}
-			ent := page.GetEntries()[idx]
-			if ent.GetAnchor() || !bytes.Equal(ent.GetKey(), lookup.key) {
-				continue
-			}
+	level := []batchNode{{page: page, cursor: pageCursor, lookups: lookups}}
+	for len(level) != 0 {
+		// Read the blocks this level leads to at once, before the walk below
+		// loads them one by one.
+		prefetchBatch(ctx, level)
 
-			// Decode the matched value into its original batch position.
-			value, err := t.entryToValue(ctx, page, pageCursor, idx)
+		var next []batchNode
+		for _, node := range level {
+			if node.page.GetLevel() == 0 {
+				if err := t.resolveLeafBatch(ctx, node, values, found); err != nil {
+					return err
+				}
+				continue
+			}
+			var err error
+			next, err = appendChildBatch(ctx, next, node)
 			if err != nil {
 				return err
 			}
-			values[lookup.index] = value
-			found[lookup.index] = true
 		}
-		return nil
+		level = next
 	}
+	return nil
+}
 
-	// Resolve each run of keys covered by the same child page.
+// resolveLeafBatch decodes the values of the lookups that match entries of the
+// leaf node into their request positions.
+func (t *Tx) resolveLeafBatch(ctx context.Context, node batchNode, values [][]byte, found []bool) error {
+	for _, lookup := range node.lookups {
+		// Find an exact non-anchor match for the requested key.
+		idx := node.page.searchEntry(lookup.key)
+		if idx < 0 {
+			continue
+		}
+		ent := node.page.GetEntries()[idx]
+		if ent.GetAnchor() || !bytes.Equal(ent.GetKey(), lookup.key) {
+			continue
+		}
+
+		// Decode the matched value into its original batch position.
+		value, err := t.entryToValue(ctx, node.page, node.cursor, idx)
+		if err != nil {
+			return err
+		}
+		values[lookup.index] = value
+		found[lookup.index] = true
+	}
+	return nil
+}
+
+// appendChildBatch loads the child pages of the inner node that cover its
+// lookups and appends each with the run of lookups within its bounds.
+func appendChildBatch(ctx context.Context, next []batchNode, node batchNode) ([]batchNode, error) {
+	lookups := node.lookups
 	for len(lookups) != 0 {
 		// Take the run of keys under the first remaining key's child page.
-		idx := page.searchEntry(lookups[0].key)
+		idx := node.page.searchEntry(lookups[0].key)
 		n := 1
-		for n < len(lookups) && page.searchEntry(lookups[n].key) == idx {
+		for n < len(lookups) && node.page.searchEntry(lookups[n].key) == idx {
 			n++
 		}
 		group := lookups[:n]
@@ -125,10 +166,10 @@ func (t *Tx) findEntriesBatch(
 		}
 
 		// Load the child page containing this group of requested keys.
-		childCursor := page.FollowChild(pageCursor, idx)
+		childCursor := node.page.FollowChild(node.cursor, idx)
 		childPage, err := loadPage(ctx, childCursor)
 		if err != nil {
-			return err
+			return next, err
 		}
 
 		// Retain only keys within the loaded child page bounds.
@@ -138,16 +179,60 @@ func (t *Tx) findEntriesBatch(
 				nextGroup = append(nextGroup, lookup)
 			}
 		}
-		if len(nextGroup) == 0 {
-			continue
-		}
-
-		// Resolve the retained keys beneath the child page.
-		if err := t.findEntriesBatch(ctx, childPage, childCursor, nextGroup, values, found); err != nil {
-			return err
+		if len(nextGroup) != 0 {
+			next = append(next, batchNode{page: childPage, cursor: childCursor, lookups: nextGroup})
 		}
 	}
-	return nil
+	return next, nil
+}
+
+// batchPrefetchConcurrency bounds the block reads one batch level starts at once.
+const batchPrefetchConcurrency = 16
+
+// prefetchBatch reads the blocks the lookups under the level's nodes lead to,
+// the child pages of inner nodes or the value blocks of leaves, through the
+// store with several reads in flight, so the serial walk that follows finds
+// them cached. A remote store answers each miss in one round trip, and the
+// walk would otherwise pay those round trips one after another. Failures are
+// left for the walk to report.
+func prefetchBatch(ctx context.Context, level []batchNode) {
+	// Prefetch only through a store.
+	store, _ := level[0].cursor.GetBlockStore()
+	if store == nil {
+		return
+	}
+
+	// Collect each distinct block the lookups reach from each node.
+	var refs []*block.BlockRef
+	for _, node := range level {
+		entries := node.page.GetEntries()
+		last := -1
+		for _, lookup := range node.lookups {
+			idx := node.page.searchEntry(lookup.key)
+			if idx < 0 || idx == last {
+				continue
+			}
+			last = idx
+			ent := entries[idx]
+			ref := ent.GetChildRef()
+			if node.page.GetLevel() == 0 {
+				if ent.GetAnchor() || ent.GetValueBlob() != nil || !bytes.Equal(ent.GetKey(), lookup.key) {
+					continue
+				}
+				ref = ent.GetValueRef()
+			}
+			if !ref.GetEmpty() {
+				refs = append(refs, ref)
+			}
+		}
+	}
+
+	// Read them together when the walk would load several; the walk reports
+	// any failure.
+	if len(refs) < 2 {
+		return
+	}
+	_ = block.Prefetch(ctx, store, refs, batchPrefetchConcurrency)
 }
 
 func (p *Page) containsKey(key []byte) bool {

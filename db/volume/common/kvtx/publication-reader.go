@@ -114,7 +114,8 @@ func (r publicationReader) GetBlock(ctx context.Context, ref *block.BlockRef) ([
 }
 
 // GetStoredBlock reads an admitted entry before the store. An admitted entry
-// carries no refs, as the store keeps none for the block once it applies.
+// carries the refs its writer gave, which the Volume admitted only when known
+// or when the store already held the block.
 func (r publicationReader) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Read the store when no admitted publication writes the block, so a store
 	// that knows its refs reports them, and mark a found block durable.
@@ -137,7 +138,7 @@ func (r publicationReader) GetStoredBlock(ctx context.Context, ref *block.BlockR
 		return nil, nil
 	}
 	block.MarkStagedRead(ctx)
-	return &block.StoredBlock{Data: bytes.Clone(entry.Data)}, nil
+	return &block.StoredBlock{Data: bytes.Clone(entry.Data), Refs: block.CloneBlockRefs(entry.Refs), RefsKnown: entry.RefsKnown}, nil
 }
 
 // GetBlockExists reports an admitted entry before the store.

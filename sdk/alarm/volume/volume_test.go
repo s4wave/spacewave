@@ -12,8 +12,6 @@ import (
 	s4wave_flowgraph "github.com/s4wave/spacewave/sdk/flowgraph"
 	function_run "github.com/s4wave/spacewave/sdk/function/run"
 	s4wave_prom "github.com/s4wave/spacewave/sdk/prom"
-	"github.com/sirupsen/logrus"
-	"github.com/tetratelabs/wazero"
 )
 
 // TestDefinitions checks that each definition's queries parse, that its node
@@ -22,7 +20,7 @@ import (
 func TestDefinitions(t *testing.T) {
 	// Run each function with one runner.
 	ctx := t.Context()
-	runner := function_run.NewRunner(logrus.NewEntry(logrus.New()), wazero.NewCompilationCache(), nil)
+	runner := function_run.NewRunner()
 	firing := map[string]struct {
 		series  *s4wave_prom.Series
 		summary string

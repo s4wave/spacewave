@@ -39,3 +39,19 @@ func (e *PackReader) normalizeTransportLocked() {
 	}
 	e.currentWindow = e.clampWindow(e.currentWindow)
 }
+
+// SetReadWindow sets the minimum transport window and its alignment quantum,
+// which bound the bytes one miss fetches. A transport with cheap round trips
+// over packs without locality, such as SFTP, wants a window near one block; a
+// transport with costly requests wants a wide one. Zero keeps the default.
+func (e *PackReader) SetReadWindow(size int) {
+	if size <= 0 {
+		return
+	}
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		e.minWindow = size
+		e.transportQuantum = size
+		e.currentWindow = size
+		e.normalizeTransportLocked()
+	})
+}

@@ -64,8 +64,9 @@ func (a *ProviderAccount) releaseBlockStore(ctx context.Context, release storage
 
 	// Read the backend credentials and delete the released block store's
 	// objects, unless the backend keeps every block: a database only adds
-	// rows, and a bucket that keeps its packfiles never deletes one.
-	if backend.GetSql() == nil && !backend.GetS3().GetKeepPacks() {
+	// rows, an FTPS directory only adds
+	// packfiles, and a bucket that keeps its packfiles never deletes one.
+	if backend.GetSql() == nil && backend.GetFtps() == nil && !backend.GetS3().GetKeepPacks() {
 		creds, err := a.ReadStorageCredentials(ctx, backend)
 		if err != nil {
 			return err

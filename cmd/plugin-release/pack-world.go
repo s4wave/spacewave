@@ -13,27 +13,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller"
+	devtool_store "github.com/s4wave/spacewave/bldr/devtool/store"
+
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_pack "github.com/s4wave/spacewave/bldr/manifest/pack"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
-	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_s4db "github.com/s4wave/spacewave/db/volume/s4db"
 	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
-	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	devtoolEngineBucketID = "bldr/devtool"
-	devtoolPluginHostKey  = "devtool"
 )
 
 // worldFlag collects repeated world path flags.
@@ -145,7 +133,7 @@ func packWorlds(
 	meta, refs, err := bldr_manifest_pack.ProduceReleasePack(ctx, le, &bldr_manifest_pack.ReleasePackConfig{
 		WorldState:     scratch.ws,
 		Sender:         scratch.vol.GetPeerID(),
-		BundleKey:      devtoolPluginHostKey,
+		BundleKey:      devtool_store.PluginHostObjectKey,
 		Sources:        sources,
 		GitSHA:         gitSHA,
 		ProducerTarget: "plugin-release",
@@ -178,7 +166,7 @@ func collectWorldSources(
 	seen map[string]struct{},
 ) ([]bldr_manifest_pack.ReleaseSource, error) {
 	// Collect the manifests stored under the devtool plugin host.
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, nil, devtoolPluginHostKey)
+	manifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, nil, devtool_store.PluginHostObjectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "collect manifests")
 	}
@@ -222,176 +210,23 @@ func createDevtoolWorld(ctx context.Context, le *logrus.Entry, path string) (*mo
 	return openMountedWorld(ctx, le, path, false)
 }
 
-// openMountedWorld opens the s4db volume at path and mounts its devtool world.
-// An existing world is opened without writing its key; otherwise the world is
+// openMountedWorld opens the devtool database at path and mounts its World.
+// An existing World is opened without writing its key; otherwise the World is
 // created.
 func openMountedWorld(ctx context.Context, le *logrus.Entry, path string, existing bool) (*mountedWorld, error) {
-	// Require an existing world file before opening it.
-	if existing {
-		if _, err := os.Stat(path); err != nil {
-			return nil, errors.Wrap(err, "stat world")
-		}
-	}
-
 	// Open the volume.
-	vol, err := volume_s4db.NewVolume(ctx, le, &volume_s4db.Config{
-		Path:          path,
-		NoGenerateKey: existing,
-		NoWriteKey:    existing,
-	})
+	vol, err := devtool_store.OpenVolumeFile(ctx, le, path, !existing)
 	if err != nil {
-		return nil, errors.Wrap(err, "open volume")
+		return nil, err
 	}
 
-	// Mount the devtool world over the volume.
-	mw, err := mountDevtoolWorld(ctx, le, vol, !existing)
+	// Mount the devtool World over the volume.
+	eng, err := devtool_store.OpenWorld(ctx, le, vol, !existing)
 	if err != nil {
 		_ = vol.Close()
 		return nil, err
 	}
-	return mw, nil
-}
-
-func mountDevtoolWorld(ctx context.Context, le *logrus.Entry, vol volume.Volume, create bool) (*mountedWorld, error) {
-	// Register the gzip step and build the world transform config.
-	sfs := block_transform.NewStepFactorySet()
-	sfs.AddStepFactory(transform_gzip.NewStepFactory())
-	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_gzip.Config{},
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "build transform config")
-	}
-
-	// Choose the head reference: a new one, or the stored one.
-	var headRef *bucket.ObjectRef
-	if create {
-		headRef = &bucket.ObjectRef{
-			BucketId:      devtoolEngineBucketID,
-			TransformConf: transformConf,
-		}
-	} else {
-		headRef, err = loadWorldHeadRef(ctx, vol)
-		if err != nil {
-			return nil, errors.Wrap(err, "load head ref")
-		}
-		if headRef.GetRootRef().GetEmpty() {
-			return nil, errors.New("devtool world is empty")
-		}
-		if headRef.GetBucketId() == "" {
-			headRef.BucketId = devtoolEngineBucketID
-		}
-	}
-
-	// Build the block transformer and the bucket cursor over the head.
-	xfrm, err := block_transform.NewTransformer(
-		controller.ConstructOpts{Logger: le},
-		sfs,
-		transformConf,
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "build block transformer")
-	}
-	cursor := bucket_lookup.NewCursor(
-		ctx,
-		nil,
-		le,
-		sfs,
-		vol,
-		xfrm,
-		headRef,
-		&bucket.BucketOpArgs{BucketId: devtoolEngineBucketID},
-		transformConf,
-	)
-
-	// Write the initial empty World for a new volume.
-	if create {
-		btx, bcs := cursor.BuildTransaction(nil)
-		bcs.ClearAllRefs()
-		bcs.SetBlock(world_block.NewWorld(false), true)
-		rootRef, _, err := btx.Write(ctx, true)
-		if err != nil {
-			return nil, errors.Wrap(err, "write initial world")
-		}
-		headRef.RootRef = rootRef
-		cursor.SetRootRef(rootRef)
-		if err := writeWorldHeadRef(ctx, vol, headRef); err != nil {
-			return nil, errors.Wrap(err, "write head ref")
-		}
-	}
-
-	// Build the world engine that persists each head to the volume.
-	commitFn := func(ctx context.Context, _ *bucket.ObjectRef, ref *bucket.ObjectRef) error {
-		return writeWorldHeadRef(ctx, vol, ref)
-	}
-	eng, err := world_block.NewEngine(ctx, le, cursor, world.NewSchema(bldr_manifest_world.WorldTypes).LookupOp, commitFn, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "build world engine")
-	}
-	ws := world.NewEngineWorldState(eng, true)
-
-	// Create the plugin host's manifest store in a new world.
-	if create {
-		if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, devtoolPluginHostKey); err != nil {
-			return nil, errors.Wrap(err, "create manifest store")
-		}
-	}
-	return &mountedWorld{vol: vol, ws: ws}, nil
-}
-
-func loadWorldHeadRef(ctx context.Context, vol volume.Volume) (*bucket.ObjectRef, error) {
-	// Open a read transaction on the engine's object store.
-	store, rel, err := vol.AccessObjectStore(ctx, devtoolEngineBucketID, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "access object store")
-	}
-	defer rel()
-	tx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "open object store tx")
-	}
-	defer tx.Discard()
-
-	// Read the stored head state.
-	data, found, err := tx.Get(ctx, []byte("world-head"))
-	if err != nil {
-		return nil, errors.Wrap(err, "read world-head")
-	}
-	if !found {
-		return nil, errors.Errorf("world-head not found in object store %s", devtoolEngineBucketID)
-	}
-
-	// Decode the head reference.
-	state := &world_block_engine.HeadState{}
-	if err := state.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal head state")
-	}
-	return state.GetHeadRef(), nil
-}
-
-func writeWorldHeadRef(ctx context.Context, vol volume.Volume, ref *bucket.ObjectRef) error {
-	// Open a write transaction on the engine's object store.
-	store, rel, err := vol.AccessObjectStore(ctx, devtoolEngineBucketID, nil)
-	if err != nil {
-		return errors.Wrap(err, "access object store")
-	}
-	defer rel()
-	tx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open object store tx")
-	}
-	defer tx.Discard()
-
-	// Store the encoded head state.
-	state := &world_block_engine.HeadState{HeadRef: ref}
-	data, err := state.MarshalVT()
-	if err != nil {
-		return errors.Wrap(err, "marshal head state")
-	}
-	if err := tx.Set(ctx, []byte("world-head"), data); err != nil {
-		return errors.Wrap(err, "write world-head")
-	}
-	return tx.Commit(ctx)
+	return &mountedWorld{vol: vol, ws: world.NewEngineWorldState(eng, true)}, nil
 }
 
 // manifestInventory lists the encoded manifest references in a stable order.

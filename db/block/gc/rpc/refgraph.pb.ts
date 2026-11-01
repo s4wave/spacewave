@@ -19,12 +19,17 @@ export interface RefEdge {
    * Object is the target node IRI.
    */
   object?: string
+  /**
+   * Uncounted leaves the shared counts alone when the edge changes.
+   */
+  uncounted?: boolean
 }
 
 export const RefEdge: MessageType<RefEdge> =
   /* @__PURE__ */ createMessageType<RefEdge>('block.gc.rpc.RefEdge', () => [
     [1, 'subject', 9],
     [2, 'object', 9],
+    [3, 'uncounted', 8],
   ])
 
 /**

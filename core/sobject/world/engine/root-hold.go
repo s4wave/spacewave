@@ -20,6 +20,9 @@ type rootHold struct {
 	entries []*block.PutBatchEntry
 	// roots are the named roots to move.
 	roots []block.NamedRoot
+	// recount asks the store to recount its shared counts before it moves
+	// the roots, as AtomicPublication.Recount does.
+	recount bool
 }
 
 // newRootHold returns an empty hold on store.
@@ -102,31 +105,88 @@ func (h *rootHold) worlds(ctx context.Context, name string, pages *worldPages, r
 	if err != nil {
 		return err
 	}
-	return h.refBlock(name, data, roots)
+	return h.refBlock(ctx, name, data, roots, true)
+}
+
+// spans holds the span chains at spans under name, or releases name when
+// spans is empty. A chain the store lacks needs nothing held.
+func (h *rootHold) spans(ctx context.Context, name string, spans []*block.BlockRef) error {
+	if len(spans) == 0 {
+		h.release(name)
+		return nil
+	}
+	data, err := (&ReplaySpan{Payloads: spans}).MarshalVT()
+	if err != nil {
+		return err
+	}
+	return h.refBlock(ctx, name, data, spans, false)
 }
 
 // refBlock holds data as a block whose outgoing refs are refs under name, so
-// the store keeps every block refs reach.
-func (h *rootHold) refBlock(name string, data []byte, refs []*block.BlockRef) error {
+// the store keeps every block refs reach. holdsRoots marks the block
+// HoldsRoots when refs are World roots their lineage holds, which the hold may
+// be the first to store.
+func (h *rootHold) refBlock(ctx context.Context, name string, data []byte, refs []*block.BlockRef, holdsRoots bool) error {
 	// Gather nothing for a store without root ownership.
 	if h.skip {
 		return nil
 	}
 
-	// Address the block and hold it.
+	// Address the block and hold it with the stored blocks it names.
 	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		return err
 	}
-	h.entries = append(h.entries, &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true})
+	entry := &block.PutBatchEntry{Ref: ref, Data: data, Refs: refs, RefsKnown: true, HoldsRoots: holdsRoots}
+	if h.entries, err = carryNamed(ctx, h.store, append(h.entries, entry), refs); err != nil {
+		return err
+	}
 	h.roots = append(h.roots, block.NamedRoot{Name: name, Ref: ref})
 	return nil
 }
 
+// carryNamed appends to entries a put of each block refs names that store
+// holds and entries lack. A store that keeps shared counts counts a new block
+// as a holder only of the stored blocks its batch carries, since no record
+// lists a hold block's children, so a batch putting a new block that names
+// stored ones carries them. A block the store lacks needs nothing: a later put
+// stores it afresh under its holders. It reads one block per carried ref, and
+// nothing from a store without counts.
+func carryNamed(ctx context.Context, store block.StoreOps, entries []*block.PutBatchEntry, refs []*block.BlockRef) ([]*block.PutBatchEntry, error) {
+	// Skip a store without counts.
+	if !block.KeepsHoldCounts(store) {
+		return entries, nil
+	}
+
+	// Note the blocks entries already put.
+	put := make(map[string]struct{}, len(entries)+len(refs))
+	for _, e := range entries {
+		put[e.Ref.MarshalString()] = struct{}{}
+	}
+
+	// Put each other stored block again with its refs.
+	for _, ref := range refs {
+		key := ref.MarshalString()
+		if _, ok := put[key]; ok || ref.GetEmpty() {
+			continue
+		}
+		put[key] = struct{}{}
+		stored, err := store.GetStoredBlock(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		if stored != nil && stored.RefsKnown {
+			entries = append(entries, &block.PutBatchEntry{Ref: ref, Data: stored.Data, Refs: stored.Refs, RefsKnown: true})
+		}
+	}
+	return entries, nil
+}
+
 // rootSet holds the World graph of each root under name, or releases name
 // when roots is empty. Like world, it copies nothing: the set block references
-// the roots, and the volume keeps their blocks this device holds.
-func (h *rootHold) rootSet(name string, roots []*RetainedRoot) error {
+// the roots and carries the root blocks the store holds, and the volume keeps
+// their blocks this device holds.
+func (h *rootHold) rootSet(ctx context.Context, name string, roots []*RetainedRoot) error {
 	// Release the set when it is empty.
 	if len(roots) == 0 {
 		h.release(name)
@@ -142,7 +202,7 @@ func (h *rootHold) rootSet(name string, roots []*RetainedRoot) error {
 	if err != nil {
 		return err
 	}
-	return h.refBlock(name, data, refs)
+	return h.refBlock(ctx, name, data, refs, false)
 }
 
 // release releases name.

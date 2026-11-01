@@ -705,17 +705,15 @@ func (db *DB) Close() error {
 		db.closingMark()
 	}
 
-	// Stop the deadline flush and tailing, clear the reader slot, and flush.
+	// Stop the deadline flush and tailing, and clear the reader slot, so a
+	// read-only handle leaves the file as it found it. A writer then flushes.
 	db.flush.close()
 	db.watch.stop()
 	if wait, _ := db.tailer.SetRoutine(nil); wait != nil {
 		<-wait
 	}
-	var err error
+	_, err := db.s.WriteAt(make([]byte, slotSize), int64(slotPage*pageSize+db.slot*slotSize))
 	if !db.opts.ReadOnly {
-		if _, werr := db.s.WriteAt(make([]byte, slotSize), int64(slotPage*pageSize+db.slot*slotSize)); err == nil {
-			err = werr
-		}
 		if serr := db.s.flushDurable(); err == nil {
 			err = serr
 		}

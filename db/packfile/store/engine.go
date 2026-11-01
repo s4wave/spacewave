@@ -34,6 +34,9 @@ const (
 	// defaultResidentBudget is the default resident-byte budget of a store,
 	// or of a reader opened outside a store.
 	defaultResidentBudget = 256 * 1024 * 1024
+	// defaultIndexEntryBudget is the default parsed index entry budget of a
+	// store, about 128 MiB at the size of a block index entry.
+	defaultIndexEntryBudget = 1 << 20
 	// defaultWritebackWindow is the default semantic co-block window.
 	defaultWritebackWindow = 128 * 1024
 )
@@ -90,11 +93,10 @@ type PackReader struct {
 	writebackWindow        int64
 
 	// Span store. spans are sorted by offset and disjoint. lru orders the
-	// spans from least to most recently used. newest is the span inserted
-	// last, which eviction skips until a reader can consume it.
+	// spans from least to most recently used. A fetch hands its span to its
+	// waiters directly, so eviction may take any span, the newest included.
 	spans         []*span
 	lru           list.List
-	newest        *span
 	residentBytes int64
 	budget        *residentBudget
 	loading       map[fetchKey]*fetchLoad
@@ -115,10 +117,13 @@ type PackReader struct {
 	indexTailResponseBytes int64
 
 	// Block index. published holds the keys handed to the writeback target.
+	// indexUseSeq orders the last index use on the budget clock.
 	published             map[string]struct{}
 	entriesByOff          []*kvfile.IndexEntry
 	entriesByKey          []*kvfile.IndexEntry
 	indexLoaded           bool
+	indexUseSeq           uint64
+	indexDrops            uint64
 	indexLoadCh           chan struct{}
 	indexLoadErr          error
 	indexCacheHits        uint64
@@ -202,14 +207,12 @@ func (e *PackReader) Close() {
 			e.indexCache = nil
 			e.writebackCtx = nil
 			e.writebackTarget = nil
-			e.entriesByOff = nil
-			e.entriesByKey = nil
+			e.setIndexEntriesLocked(nil)
 			e.published = nil
 
 			// Release resident spans and return their bytes to the shared budget.
 			e.spans = nil
 			e.lru.Init()
-			e.newest = nil
 			e.chargeLocked(-e.residentBytes)
 			e.budget.detach(e)
 
@@ -278,13 +281,16 @@ func (e *PackReader) setBudget(budget *residentBudget) {
 		}
 		e.budget.detach(e)
 		e.budget.used.Add(-e.residentBytes)
+		e.budget.indexUsed.Add(-int64(len(e.entriesByKey)))
 		e.budget = budget
 		e.budget.used.Add(e.residentBytes)
+		e.budget.indexUsed.Add(int64(len(e.entriesByKey)))
 		e.budget.attach(e)
 	})
 
-	// Reclaim resident spans above the shared byte limit.
+	// Reclaim resident spans and indexes above the shared limits.
 	budget.reclaim()
+	budget.reclaimIndexes()
 }
 
 // SetWriteback configures co-block publication to a target store.
@@ -370,7 +376,7 @@ func (r *engineReaderAt) ReadAt(p []byte, off int64) (int, error) {
 	// Copy each immutable fetch result before advancing, even after cache eviction.
 	n := 0
 	for cur := off; cur < end; {
-		sp, err := r.e.fetchRange(r.ctx, cur, end, false)
+		sp, err := r.e.fetchRange(r.ctx, cur, end)
 		if err != nil {
 			return n, err
 		}

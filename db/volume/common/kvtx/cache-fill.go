@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // maxFillBatch bounds the cache fills one transaction writes, so a commit
@@ -20,6 +21,9 @@ type cacheFill struct {
 	owner string
 	data  []byte
 	opts  *block.PutOpts
+	// mark is the marker request of the fill's caller, or nil. The drain writes
+	// on behalf of several callers, so each fill marks for its own.
+	mark *kvtx.BlockMarkRequest
 	// ref, existed and err are set before done closes.
 	ref     *block.BlockRef
 	existed bool
@@ -48,7 +52,7 @@ type fillQueue struct {
 // caller whose context ends stops waiting; its fill is still written.
 func (v *Volume) prepareCacheFill(ctx context.Context, owner string, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	// Queue the fill, and drain the queue if no caller is.
-	fill := &cacheFill{owner: owner, data: data, opts: opts, done: make(chan struct{})}
+	fill := &cacheFill{owner: owner, data: data, opts: opts, mark: kvtx.GetBlockMarkRequest(ctx), done: make(chan struct{})}
 	q := &v.fills
 	q.mu.Lock()
 	q.pending = append(q.pending, fill)
@@ -56,7 +60,7 @@ func (v *Volume) prepareCacheFill(ctx context.Context, owner string, data []byte
 	q.draining = true
 	q.mu.Unlock()
 	if drain {
-		go v.drainCacheFills(context.WithoutCancel(ctx))
+		go v.drainCacheFills(kvtx.WithBlockMarkRequest(context.WithoutCancel(ctx), nil))
 	}
 
 	// Wait for the batch holding the fill.
@@ -138,7 +142,7 @@ func (v *Volume) prepareCacheFills(ctx context.Context, owner string, fills []*c
 	}
 	err := v.prepareOwned(ctx, owner, size, claimBucket, func(store block.StoreOps) error {
 		for _, fill := range fills {
-			ref, existed, err := store.PutBlock(ctx, fill.data, fill.opts)
+			ref, existed, err := store.PutBlock(kvtx.WithBlockMarkRequest(ctx, fill.mark), fill.data, fill.opts)
 			if err != nil {
 				return err
 			}

@@ -25,6 +25,12 @@ func KeepOwnerEdges(kind string) MarkOption {
 	return func(m *BlockMark) { m.keepKind = kind }
 }
 
+// MarkLike makes BlockMark.Live a sibling of set, so set.Overlap can compare
+// the two by hash.
+func MarkLike(set *NodeSet) MarkOption {
+	return func(m *BlockMark) { m.Live = set.Sibling() }
+}
+
 // newBlockMark returns an empty mark configured by opts.
 func newBlockMark(opts []MarkOption) *BlockMark {
 	m := &BlockMark{Live: NewNodeSet()}

@@ -56,6 +56,12 @@
 \* page view after a rollback remount, and a write's hold on the World after
 \* it, which keeps that World's pages until the write is released after it
 \* is durable: the page sweep keeps the queued Worlds without relying on it.
+\* Without the page view the model names no checkpoint: StableCheckpoint.tla
+\* in core/sobject/world/engine models that checkpoint and its state write.
+\*
+\* SQLPrimary.cfg checks the setting deployments run, without the page view.
+\* SQLPrimary-pageview.cfg checks the page view through one commit; through
+\* two it reaches about a million states, too many for a workstation's check.
 
 EXTENDS Naturals
 
@@ -67,15 +73,16 @@ Rollback == FALSE
 \* SettleInCommit: a commit settles a failed head itself, running the hook
 \* while its writer holds the consumer's lock.
 SettleInCommit == FALSE
-\* PageView: the engine keeps the World pages in memory under SQL primary.
-PageView == TRUE
 \* QueuedLive: the page sweep keeps the Worlds queued for the durable head.
 QueuedLive == TRUE
 \* DurableLive: the page sweep keeps the durable head's World, which its
 \* root pin through the view and the sweep's own live roots both do.
 DurableLive == TRUE
 
-MaxCommit == 2
+\* PageView: the engine keeps the World pages in memory under SQL primary,
+\* which deployments leave off. MaxCommit: the commits a run admits, 1 or 2.
+CONSTANTS PageView, MaxCommit
+
 Root == <<"r0", "n1", "n2">>
 RootOf(k) == Root[k + 1]
 \* Commit 1 writes the root n1 and the leaf l1; commit 2 writes the root n2,

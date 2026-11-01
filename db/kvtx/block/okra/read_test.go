@@ -41,7 +41,7 @@ func (s *readOrderStore) takeReads() []string {
 	return reads
 }
 
-func TestGetBatchReturnsValuesAndReadsPagesInKeyOrder(t *testing.T) {
+func TestGetBatchReturnsValuesAndReadsTheSameBlocks(t *testing.T) {
 	// Create a sorted fixture on a store that records block read order.
 	ctx := context.Background()
 	store := &readOrderStore{StoreOps: newOkraTestStore()}
@@ -103,14 +103,16 @@ func TestGetBatchReturnsValuesAndReadsPagesInKeyOrder(t *testing.T) {
 			t.Fatal("batch values differ from the fixture")
 		}
 
-		// Require each fresh transaction to read blocks in the same order.
+		// Require each fresh transaction to read the same blocks. Prefetch reads
+		// several at once, so the order may differ.
 		reads := store.takeReads()
+		slices.Sort(reads)
 		if attempt == 0 {
 			firstReads = reads
 			continue
 		}
 		if !slices.Equal(reads, firstReads) {
-			t.Fatalf("attempt %d read %d blocks in a different order than the first attempt", attempt, len(reads))
+			t.Fatalf("attempt %d read %d blocks, not the blocks of the first attempt", attempt, len(reads))
 		}
 	}
 }

@@ -87,8 +87,17 @@ func TestReplacementsMatchDiff(t *testing.T) {
 		if err := block_mock.CheckExisted(ctx, store, from, to, rep, found); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		if len(rep.Held) != len(held) || (len(held) == 1 && !rep.Held[0].EqualsRef(held[0])) {
-			t.Fatalf("%s: held %v, want %v", name, rep.Held, held)
+		count := make(map[string]int)
+		for _, ref := range held {
+			count[ref.MarshalString()]++
+		}
+		for _, ref := range rep.Held {
+			count[ref.MarshalString()]--
+		}
+		for _, n := range count {
+			if len(rep.Held) != len(held) || n != 0 {
+				t.Fatalf("%s: held %v, want %v", name, rep.Held, held)
+			}
 		}
 
 		// A write with nothing dirty records nothing.
@@ -144,13 +153,28 @@ func TestReplacementsMatchDiff(t *testing.T) {
 	r.root.SetRef(1, nmid)
 	check("move", r, from)
 
-	// Make mid the root.
+	// Make mid the root. The record holds no root: its owner edge counts it.
 	from = chain("reroot")
 	r = open(from)
 	if err := r.tx.SetRoot(r.mid); err != nil {
 		t.Fatal(err)
 	}
-	check("reroot", r, from, r.mid.GetRef())
+	check("reroot", r, from)
+
+	// Replace mid with a pair of new pages that each name its leaf by ref:
+	// the old mid's one edge dies, and each new page's edge is held.
+	from = chain("copy")
+	r = open(from)
+	midBlk, _ := r.mid.GetBlock()
+	copied := midBlk.(*block_mock.SubBlock).GetExamplePtr().Clone()
+	r.mid.ClearAllRefs()
+	r.mid.SetBlock(&block_mock.Pair{Msg: "copies"}, true)
+	for i, msg := range []string{"copy a", "copy b"} {
+		p := r.mid.FollowRef(uint32(i+1), nil) // #nosec G115 -- i is 0 or 1.
+		p.SetBlock(&block_mock.Pair{Msg: msg}, true)
+		p.FollowRef(1, nil).SetRefAtCursor(copied, true)
+	}
+	check("copy", r, from, copied, copied)
 
 	// Two writes in one interval: the first write's pages die in the second.
 	from = chain("twice")
@@ -181,8 +205,9 @@ func TestReplacementsMatchDiff(t *testing.T) {
 		return ref
 	}
 
-	// editLeft opens a pair tree at from and replaces its left leaf with msg.
-	editLeft := func(from *block.BlockRef, msg string) *recording {
+	// editLeft opens a pair tree at from, replaces its left leaf with msg, and
+	// returns the recording and the right leaf.
+	editLeft := func(from *block.BlockRef, msg string) (*recording, *block.BlockRef) {
 		// Load the root and the pair under it.
 		r := &recording{log: block.NewReplacementLog(from), puts: len(store.puts)}
 		r.tx, r.root = block.NewTransaction(store, nil, from, nil)
@@ -203,26 +228,28 @@ func TestReplacementsMatchDiff(t *testing.T) {
 			t.Fatal(err)
 		}
 		left.SetBlock(block_mock.NewExample(msg), true)
-		return r
+		return r, pairBlk.(*block_mock.Pair).GetRight().Clone()
 	}
 
-	// Edit one leaf of a pair: the written pair names the right leaf, so its
-	// edge was not counted.
+	// Edit one leaf of a pair: the written pair names the right leaf, so the
+	// record holds its edge and takes back the old pair's when it frees.
 	from = pair("sibling left", "sibling right")
-	check("sibling", editLeft(from, "sibling edited"), from)
+	r, right := editLeft(from, "sibling edited")
+	check("sibling", r, from, right)
 
 	// Edit a leaf so the pair matches one already stored: the found pair names
 	// the right leaf, so its edge was counted at that pair's put.
 	pair("found edited", "found right")
 	from = pair("found left", "found right")
-	check("found", editLeft(from, "found edited"), from)
+	r, _ = editLeft(from, "found edited")
+	check("found", r, from)
 
 	// Join four intervals that edit the leaf to x, y, x again and a last
 	// value. The first tree's pages are original, so a put of one is counted;
 	// the x leaf was created before it was replaced, so it is not.
 	from = chain("join")
 	r = open(from)
-	midBlk, _ := r.mid.GetBlock()
+	midBlk, _ = r.mid.GetBlock()
 	leaf = r.mid.FollowRef(1, midBlk.(*block_mock.SubBlock).GetExamplePtr())
 	if _, err := block_mock.UnmarshalExample(ctx, leaf); err != nil {
 		t.Fatal(err)

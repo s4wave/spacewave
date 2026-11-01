@@ -43,6 +43,9 @@ type publicationRequest struct {
 	// existed records which entries the volume held when the group wrote
 	// them, for the flows.
 	existed []bool
+	// counting records whether the volume's shared counts were complete when
+	// the group wrote the entries.
+	counting bool
 }
 
 // publicationWriter serializes atomic publications into bounded physical groups.
@@ -398,7 +401,7 @@ func (w *publicationWriter) run() {
 				w.stats.Pending--
 				w.stats.PendingBytes -= r.bytes
 				w.stats.PendingEntries -= len(r.publication.Entries)
-				r.receipt.ResolveExisted(results[i], r.existed)
+				r.receipt.ResolveExisted(results[i], r.existed, r.counting)
 			}
 			w.queue = slices.Delete(w.queue, 0, len(group))
 			w.next -= len(group)
@@ -476,10 +479,14 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 		}
 	}
 
-	// Carry the Volume's deferred edits with the accepted requests.
+	// Carry the Volume's deferred edits with the accepted requests, then
+	// settle the owner edges' counts.
 	var edits deferredEdits
 	if err == nil && accepted != 0 {
 		edits, err = w.volume.applyDeferred(first.ctx, blocks, rg)
+	}
+	if err == nil && accepted != 0 {
+		err = rg.SettleOwnerCounts(first.ctx)
 	}
 
 	// Publish all accepted requests together, or discard the entire physical group.
@@ -492,6 +499,9 @@ func (w *publicationWriter) applyGroup(first *publicationRequest) (group []*publ
 		committed = err == nil
 	}
 	w.volume.settleDeferred(edits, committed)
+	if committed {
+		p.blocks.marks.committed()
+	}
 
 	// Preserve preflight rejections while assigning physical failure to
 	// accepted work. A request whose predecessor shared the group failed
@@ -570,8 +580,9 @@ func (w *publicationWriter) preflight(
 	return nil
 }
 
-// apply writes one preflighted request into the group transaction: its
-// entries with bucket ownership, its named roots and its head replacements.
+// apply writes one preflighted request into the group transaction: a recount
+// it asks for, its entries with bucket ownership, its named roots and its head
+// replacements.
 func (w *publicationWriter) apply(
 	ctx context.Context,
 	req *publicationRequest,
@@ -590,6 +601,13 @@ func (w *publicationWriter) apply(
 		return w.setHeads(ctx, tx, p, replacements)
 	}
 
+	// Count every holder again when the writer lost some.
+	if p.Recount && w.volume.holdCounts {
+		if _, err := rg.RecountSharing(ctx); err != nil {
+			return err
+		}
+	}
+
 	// Write the entries owned by the bucket.
 	owner := block_gc.BucketIRI(p.BucketID)
 	if err := rg.AddRef(ctx, block_gc.NodeGCRoot, owner); err != nil {
@@ -604,6 +622,13 @@ func (w *publicationWriter) apply(
 	}
 	if err := gc.FlushPending(ctx); err != nil {
 		return err
+	}
+	if w.volume.holdCounts {
+		s, err := rg.GetSharing(ctx)
+		if err != nil {
+			return err
+		}
+		req.counting = s.Phase.Counting()
 	}
 
 	// Move the published root under its name. A temporary reader owner

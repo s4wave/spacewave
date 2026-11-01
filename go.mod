@@ -26,7 +26,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20261026172548-43cf8e6be6cb
 	github.com/aperturerobotics/cli v1.1.1-0.20261024231437-afc764ba6d68 // master
-	github.com/aperturerobotics/common v0.36.5
+	github.com/aperturerobotics/common v0.38.0
 	github.com/aperturerobotics/controllerbus v0.53.6-0.20261029175750-384f96d17d5a // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260929192932-26bdf6cab5b3
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -52,6 +52,7 @@ require (
 	github.com/dolthub/vitess v0.0.0-20261014211039-3e903c0f05d3
 	github.com/dustin/go-humanize v1.1.0
 	github.com/fatih/color v1.19.0
+	github.com/fclairamb/ftpserverlib v0.32.6
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1.0.20261016211742-fd38f5ac32fe // main
 	github.com/go-git/go-git/v6 v6.0.0-beta.1.0.20261030225847-a0088e429af9 // main
@@ -62,6 +63,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/jezek/xgb v1.3.1
+	github.com/jlaffaye/ftp v0.2.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.20.3
 	github.com/libp2p/go-yamux/v5 v5.1.0
@@ -78,6 +80,7 @@ require (
 	github.com/pion/transport/v5 v5.1.1
 	github.com/pion/webrtc/v4 v4.2.25
 	github.com/pkg/errors v0.9.1
+	github.com/pkg/sftp v1.13.12
 	github.com/prometheus/common v0.72.1
 	github.com/prometheus/prometheus v0.315.1
 	github.com/quic-go/quic-go v0.64.1
@@ -134,6 +137,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.2.0 // indirect

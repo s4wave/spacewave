@@ -98,13 +98,11 @@ func TestReadAheadRespectsUncoveredGapsAndTransportCap(t *testing.T) {
 	}
 
 	// Prefill the far side, then request the uncovered interval between them.
-	if _, err := reader.fetchSpans(context.Background(), 3<<20, 4<<20, true); err != nil {
-		t.Fatal(err)
-	}
+	seedSpan(reader, 3<<20, 1<<20)
 	if _, err := reader.ReaderAt(ctx).ReadAt(buf, 2<<20); err != nil {
 		t.Fatal(err)
 	}
-	got := transport.callAt(2)
+	got := transport.callAt(1)
 	if got.off != 2<<20 || got.length != 1<<20 {
 		t.Fatalf("gap request = %+v, want [2 MiB, 3 MiB)", got)
 	}

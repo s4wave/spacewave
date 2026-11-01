@@ -7,20 +7,29 @@ import (
 	"sync/atomic"
 )
 
-// residentBudget bounds the resident span bytes of every PackReader sharing it.
+// residentBudget bounds the resident span bytes and parsed index entries of
+// every PackReader sharing it.
 //
 // PackfileStore owns one budget for all of its readers, so resident memory has
 // one limit however many packs are open. Readers charge span bytes as spans
-// are inserted and removed. reclaim evicts the least recently used span across
-// all readers until the total fits. A hot pack keeps its bytes while cold packs
-// give theirs up.
+// are inserted and removed, and index entries as an index is published and
+// dropped. reclaim evicts the least recently used span across all readers
+// until the bytes fit, and reclaimIndexes drops the least recently used
+// index until the entries fit. A hot pack keeps its bytes and index while cold
+// packs give theirs up; a dropped index reloads from the index cache on its
+// next use.
 type residentBudget struct {
-	// clock orders span use across every reader sharing the budget.
+	// clock orders span and index use across every reader sharing the budget.
 	clock atomic.Uint64
 	// limit is the byte limit. Zero or negative disables eviction.
 	limit atomic.Int64
 	// used is the resident span bytes charged by every reader.
 	used atomic.Int64
+	// indexLimit is the parsed index entry limit. Zero or negative disables
+	// dropping indexes.
+	indexLimit atomic.Int64
+	// indexUsed is the parsed index entries charged by every reader.
+	indexUsed atomic.Int64
 
 	// mtx guards readers.
 	mtx sync.Mutex
@@ -32,6 +41,7 @@ type residentBudget struct {
 func newResidentBudget(limit int64) *residentBudget {
 	b := &residentBudget{readers: make(map[*PackReader]struct{})}
 	b.limit.Store(limit)
+	b.indexLimit.Store(defaultIndexEntryBudget)
 	return b
 }
 
@@ -80,5 +90,39 @@ func (b *residentBudget) reclaim() {
 			return
 		}
 		victim.evictOldestSpan()
+	}
+}
+
+// reclaimIndexes drops the least recently used parsed index until the entries
+// fit. It never drops the most recently used index, so a reader that just
+// loaded its index can use it even when that one index exceeds the limit.
+//
+// The caller must not hold any reader lock.
+func (b *residentBudget) reclaimIndexes() {
+	for {
+		limit := b.indexLimit.Load()
+		if limit <= 0 || b.indexUsed.Load() <= limit {
+			return
+		}
+		b.mtx.Lock()
+		readers := slices.Collect(maps.Keys(b.readers))
+		b.mtx.Unlock()
+
+		var victim *PackReader
+		var victimSeq, newestSeq uint64
+		for _, e := range readers {
+			seq, ok := e.lastIndexUse()
+			if !ok {
+				continue
+			}
+			newestSeq = max(newestSeq, seq)
+			if victim == nil || seq < victimSeq {
+				victim, victimSeq = e, seq
+			}
+		}
+		if victim == nil || victimSeq == newestSeq {
+			return
+		}
+		victim.dropIndex(victimSeq)
 	}
 }

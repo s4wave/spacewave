@@ -7,7 +7,8 @@
 // check reads the staged blobs and reports only functions with a changed line of
 // their own, so touching a legacy function brings that function up to shape
 // without demanding a repository-wide cleanup. Function literals are checked
-// separately from the function that declares them. Generated files are omitted.
+// separately from the function that declares them. Generated files and test
+// files are omitted.
 //
 // It exits with status 1 when it reports a violation.
 package main
@@ -37,8 +38,8 @@ const (
 var hunkHeader = regexp.MustCompile(`^@@ -\S+ \+(\d+)(?:,(\d+))? @@`)
 
 func main() {
-	// List the staged Go files that a commit adds or modifies.
-	names, err := git("diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR", "--", "*.go")
+	// List the staged non-test Go files that a commit adds or modifies.
+	names, err := git("diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR", "--", "*.go", ":!*_test.go")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)

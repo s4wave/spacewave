@@ -118,6 +118,16 @@ func (s *SharedObject) LocalStateHead(storeID string, key, value []byte) *block.
 	}
 }
 
+// TryReserveStateWrite claims local write intent without waiting.
+func (s *SharedObject) TryReserveStateWrite(ctx context.Context) (sobject.StateWriteReservation, error) {
+	return s.soHost.TryReserveStateWrite(ctx)
+}
+
+// ReserveStateWrite reserves the local host's write intent before engine writers.
+func (s *SharedObject) ReserveStateWrite(ctx context.Context, settled bool) (sobject.StateWriteReservation, error) {
+	return s.soHost.ReserveStateWrite(ctx, settled)
+}
+
 // localStatePrefix returns the object store prefix of the local state store
 // storeID.
 func (s *SharedObject) localStatePrefix(storeID string) []byte {

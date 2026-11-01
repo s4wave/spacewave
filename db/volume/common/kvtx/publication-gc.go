@@ -52,10 +52,13 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 	}
 
 	// Carry the deferred edits in a changing transaction only, and end an
-	// unchanged one without a commit.
+	// unchanged one without a commit. Then settle the owner edges' counts.
 	var edits deferredEdits
 	if fn == nil || p.wrote() {
 		edits, err = v.applyDeferred(ctx, p.blocks, p.rg)
+	}
+	if err == nil {
+		err = p.rg.SettleOwnerCounts(ctx)
 	}
 	committed := false
 	if err == nil && p.wrote() {
@@ -68,9 +71,11 @@ func (v *Volume) withDirectAtomic(ctx context.Context, fn func(block.StoreOps, *
 		committed = err == nil
 	}
 
-	// Settle the deferred edits and wake Volume statistics watchers.
+	// Settle the deferred edits, report the committed markers and wake Volume
+	// statistics watchers.
 	v.settleDeferred(edits, committed)
 	if committed {
+		p.blocks.marks.committed()
 		v.broadcastStorageStatsChanged()
 	}
 	return err
@@ -137,8 +142,10 @@ func claimBucket(ctx context.Context, rg *block_gc.RefGraph, bucket string) erro
 
 // prepareOwned writes blocks and their ownership by owner in one physical
 // transaction. claim checks or roots the owner first. An empty owner writes the
-// blocks without ownership. size is the length of the data put writes. It
-// returns volume.ErrReserve while the volume is in the reserve state.
+// blocks without ownership. size is the length of the data put writes. The
+// blocks put finds stored gain their shared counts, as addExistedHolds
+// describes. It returns volume.ErrReserve while the volume is in the reserve
+// state.
 func (v *Volume) prepareOwned(
 	ctx context.Context,
 	owner string,
@@ -167,11 +174,45 @@ func (v *Volume) prepareOwned(
 			return err
 		}
 		gc := block_gc.NewGCStoreOpsWithParentAndTraceTask(blocks, rg, owner, block_gc.BucketFlushTask())
-		if err := put(gc); err != nil {
+		noted := &notedPuts{StoreOps: gc}
+		if err := put(noted); err != nil {
+			return err
+		}
+		if err := v.addExistedHolds(ctx, blocks, rg, noted.entries, noted.existed); err != nil {
 			return err
 		}
 		return gc.FlushPending(ctx)
 	})
+}
+
+// notedPuts notes the blocks each put stores and whether it found them, for
+// addExistedHolds.
+type notedPuts struct {
+	block.StoreOps
+	// entries lists the blocks put, with the references their writers gave.
+	entries []*block.PutBatchEntry
+	// existed reports, for each entry, whether the put found it stored.
+	existed []bool
+}
+
+// PutBlock puts the block and notes it.
+func (n *notedPuts) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	ref, existed, err := n.StoreOps.PutBlock(ctx, data, opts)
+	if err == nil && !ref.GetEmpty() {
+		n.entries = append(n.entries, &block.PutBatchEntry{Ref: ref, Refs: opts.GetRefs(), RefsKnown: opts.GetRefsKnown()})
+		n.existed = append(n.existed, existed)
+	}
+	return ref, existed, err
+}
+
+// PutBlockBatch puts the entries and notes them.
+func (n *notedPuts) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	existed, err := n.StoreOps.PutBlockBatch(ctx, entries)
+	if err == nil {
+		n.entries = append(n.entries, entries...)
+		n.existed = append(n.existed, existed...)
+	}
+	return existed, err
 }
 
 // sweepChunkSize bounds the candidates one reference batch releases, once
@@ -448,18 +489,30 @@ func (v *Volume) sweepBlockPass(ctx context.Context, actual *transactionRefGraph
 		markBlocks = actual.MarkBlocks
 	}
 
+	// Resolve the pending releases before the mark, so the mark checks
+	// every block they free. A failed resolve leaves them for the next pass.
+	released, err := v.resolveReleases(ctx)
+	if err != nil && v.le != nil {
+		v.le.WithError(err).Warn("unable to resolve shared count releases")
+	}
+	opts := []block_gc.MarkOption{block_gc.KeepOwnerEdges(rootOwnerKind)}
+	if released != nil {
+		opts = append(opts, block_gc.MarkLike(released.freed))
+	}
+
 	// Mark the blocks. A block of unknown references may name any
 	// unreached block, so the pass sweeps nothing unless it can wait for
 	// the lists of all of them. The mark reads each list once, so it runs
 	// as background work, which keeps the index leaves it reads out of the
 	// page cache.
 	start := time.Now()
-	mark, err := markBlocks(block.WithBackground(ctx), block_gc.KeepOwnerEdges(rootOwnerKind))
+	mark, err := markBlocks(block.WithBackground(ctx), opts...)
 	stats.MarkDuration += time.Since(start)
 	if err != nil {
 		return nil, false, err
 	}
 	stats.RecordMark(mark)
+	v.checkReleases(released, mark)
 	if !mark.Awaitable() {
 		return mark, false, nil
 	}

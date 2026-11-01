@@ -351,7 +351,7 @@ func TestPackfileStoreBasicReads(t *testing.T) {
 func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 	// Build a pack with enough filler to separate its index from its payload.
 	ctx := t.Context()
-	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	filler := bytes.Repeat([]byte("x"), packfile.IndexTailFirstRead+4096)
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha-data"},
 		{"b", string(filler)},
@@ -418,7 +418,7 @@ func TestPackfileStoreGetBlockExistsDoesNotFetchPayload(t *testing.T) {
 func TestPackfileStoreStatBlockUsesIndexOnly(t *testing.T) {
 	// Build a pack with its target payload outside the index window.
 	ctx := t.Context()
-	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	filler := bytes.Repeat([]byte("x"), packfile.IndexTailFirstRead+4096)
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha-data"},
 		{"b", string(filler)},
@@ -638,7 +638,7 @@ func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
 func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 	// Build the blocks and filler used by batch existence probes.
 	ctx := t.Context()
-	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	filler := bytes.Repeat([]byte("x"), packfile.IndexTailFirstRead+4096)
 	ordered := []struct{ Name, Data string }{
 		{"a", "alpha-data"},
 		{"b", "beta-data"},
@@ -720,7 +720,7 @@ func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 func TestPackfileStoreGetBlockExistsHandlesBloomFalsePositive(t *testing.T) {
 	// Build a target pack and a pack with a false-positive bloom filter.
 	ctx := t.Context()
-	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
+	filler := bytes.Repeat([]byte("x"), packfile.IndexTailFirstRead+4096)
 	targetBytes, targetBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{
 		{"target", "target-data"},
 		{"filler", string(filler)},
@@ -874,6 +874,8 @@ func TestPackfileStoreReadsPackWithoutBloom(t *testing.T) {
 	}
 }
 
+// TestPackfileStoreLookupStats counts candidate, opened and negative packs and
+// index loads, then drops and reloads indexes under an index entry cap.
 func TestPackfileStoreLookupStats(t *testing.T) {
 	// Build target and negative packs sharing the target bloom filter.
 	ctx := t.Context()
@@ -949,6 +951,22 @@ func TestPackfileStoreLookupStats(t *testing.T) {
 			stats.RemoteIndexBytes,
 			stats.LastRemoteIndexBytes,
 		)
+	}
+
+	// Cap the parsed entries at one index: the colder index drops at once.
+	store.SetIndexEntryLimit(1)
+	if stats := store.SnapshotStats(); stats.IndexDrops != 1 {
+		t.Fatalf("IndexDrops = %d, want 1", stats.IndexDrops)
+	}
+
+	// Read again: each probe reloads its dropped index from the index cache.
+	_, found, err = store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
+	if err != nil || !found {
+		t.Fatalf("GetBlock under the index cap: found=%v err=%v", found, err)
+	}
+	stats = store.SnapshotStats()
+	if stats.IndexCacheHits != 2 || stats.RemoteIndexLoads != 2 {
+		t.Fatalf("index cache hits=%d remote loads=%d, want 2/2", stats.IndexCacheHits, stats.RemoteIndexLoads)
 	}
 }
 
@@ -1455,10 +1473,10 @@ func TestPackfileStoreColdIndexTailFetchIsBounded(t *testing.T) {
 
 	// Verify the first transport request is a bounded index suffix.
 	first := transport.callAt(0)
-	if first.length > defaultIndexTailInitialWindow {
-		t.Fatalf("first fetch length = %d, want <= %d", first.length, defaultIndexTailInitialWindow)
+	if first.length > packfile.IndexTailFirstRead {
+		t.Fatalf("first fetch length = %d, want <= %d", first.length, packfile.IndexTailFirstRead)
 	}
-	if first.off < int64(len(packBytes)-defaultIndexTailInitialWindow) {
+	if first.off < int64(len(packBytes)-packfile.IndexTailFirstRead) {
 		t.Fatalf("first fetch offset = %d, want suffix near end of pack size %d", first.off, len(packBytes))
 	}
 
@@ -2279,46 +2297,6 @@ func TestPackfileStoreEvictsOldestBlock(t *testing.T) {
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: hB}); err != nil || !found {
 		t.Fatalf("GetBlock(b): found=%v err=%v", found, err)
 	}
-}
-
-// TestPackfileStoreKeepsPinnedBlocksResident verifies that block pins (from
-// in-flight verification) keep spans resident even under budget pressure.
-func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
-	// Publish a pack whose verifying spans must remain resident.
-	ctx := t.Context()
-	packBytes, bloomBytes := buildTestPackOrdered(t, []struct{ Name, Data string }{{"a", "alpha"}})
-	opener, transport := openerFromBytes(packBytes)
-	store := NewPackfileStore(opener, newMemIndexCache())
-	store.UpdateManifest([]*packfile.PackfileEntry{{
-		Id:          "pin-pack",
-		BloomFilter: bloomBytes,
-		BlockCount:  1,
-		SizeBytes:   uint64(len(packBytes)),
-	}})
-
-	// Gate writeback and constrain the resident cache to one byte.
-	blocked := make(chan struct{})
-	wb := newWritebackStore(func() { <-blocked })
-	store.SetWriteback(ctx, wb, 0)
-	store.SetRangeCacheMaxBytes(1)
-
-	// Read alpha to start verification of its resident span.
-	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
-	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
-		t.Fatalf("GetBlock: found=%v err=%v", found, err)
-	}
-
-	// The block is still verifying (writeback blocked). Its backing span
-	// must remain pinned despite the 1-byte budget.
-	eng, release, _ := store.getOrOpenEngine("pin-pack", int64(len(packBytes)), 1)
-	t.Cleanup(release)
-	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if eng.residentBytes == 0 {
-			t.Fatal("expected resident bytes to stay pinned during verify")
-		}
-	})
-	_ = transport
-	close(blocked)
 }
 
 func TestPackfileStoreCloseDrainsWritebackBeforeReleasingReferences(t *testing.T) {

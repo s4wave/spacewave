@@ -14,16 +14,13 @@ import (
 	"github.com/s4wave/spacewave/db/packfile"
 )
 
-// defaultIndexTailInitialWindow is the first index-tail read size.
-const defaultIndexTailInitialWindow = 256 * 1024
-
 // ensureIndexLoaded loads the kvfile index for this pack if not already loaded.
 //
-// The raw index-tail cache is consulted first. On a miss, the engine slices
-// the kvfile tail through its span store so tail bytes land in the shared
-// span store. Parsed entries are runtime-only views rebuilt from the raw tail.
-// After a successful load any block already fully covered by resident spans is
-// handed to writeback.
+// The raw index-tail cache is consulted first. On a miss, the reader reads the
+// tail straight from the transport, outside the span store, so tail bytes
+// never count as resident payload. Parsed entries are runtime-only views
+// rebuilt from the raw tail. After a successful load any block already fully
+// covered by resident spans is handed to writeback.
 func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 	// Reject canceled demand before touching the reader.
 	if err := ctx.Err(); err != nil {
@@ -128,6 +125,7 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 
 		// Publish the loaded index unless the reader closed during the load.
 		var writeback func()
+		var budget *residentBudget
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			// A closed reader drops the index; otherwise publish it.
 			loadCh := e.indexLoadCh
@@ -136,8 +134,10 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 			}
 			if err == nil {
 				e.setIndexEntriesLocked(entries)
+				e.indexUseSeq = e.nextUseSeqLocked()
 				writeback = e.prepareWritebackLocked(0, e.size)
 				e.indexLoaded = true
+				budget = e.budget
 			} else {
 				e.indexLoaded = false
 			}
@@ -151,6 +151,61 @@ func (e *PackReader) startIndexLoad(cache IndexCache) {
 		if writeback != nil {
 			startOwnerWork(writeback)
 		}
+
+		// Drop cold indexes above the shared entry limit.
+		if budget != nil {
+			budget.reclaimIndexes()
+		}
+	})
+}
+
+// withIndex loads the pack index and calls fn under the reader state lock
+// with the index loaded, so fn reads entries that a drop cannot clear under
+// it. A drop between the load and the lock loads the index again.
+func (e *PackReader) withIndex(ctx context.Context, fn func()) error {
+	for {
+		if err := e.ensureIndexLoaded(ctx); err != nil {
+			return err
+		}
+		var ran bool
+		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if !e.indexLoaded {
+				return
+			}
+			e.indexUseSeq = e.nextUseSeqLocked()
+			fn()
+			ran = true
+		})
+		if ran {
+			return nil
+		}
+	}
+}
+
+// lastIndexUse returns the budget clock at the last use of the loaded index,
+// and false when no index is loaded.
+func (e *PackReader) lastIndexUse() (uint64, bool) {
+	var seq uint64
+	var ok bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed || !e.indexLoaded {
+			return
+		}
+		seq, ok = e.indexUseSeq, true
+	})
+	return seq, ok
+}
+
+// dropIndex drops the parsed index when it is unused since seq. The next use
+// loads it again, from the index cache when one is set.
+func (e *PackReader) dropIndex(seq uint64) {
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed || !e.indexLoaded || e.indexUseSeq != seq {
+			return
+		}
+		e.setIndexEntriesLocked(nil)
+		e.indexLoaded = false
+		e.indexDrops++
 	})
 }
 
@@ -251,96 +306,49 @@ func (e *PackReader) recordRemoteIndexLoad(bytes int64) {
 	}
 }
 
-// readIndexTailEntries reads the raw kvfile index tail and returns parsed entries.
-//
-// Tail reads go through the engine's span store, so the bytes land in the shared
-// span store. Blocks fully contained in those spans can be written back
-// without another network round trip.
+// readIndexTailEntries reads the raw kvfile index tail from the transport and
+// returns it with its parsed entries.
 func (e *PackReader) readIndexTailEntries(ctx context.Context) ([]byte, []*kvfile.IndexEntry, error) {
 	// Reject a negative pack size before reading its index tail.
 	if e.size < 0 {
 		return nil, nil, errors.Errorf("negative pack size %d", e.size)
 	}
-
-	// Read the estimated index tail through the resident span store.
-	tail, err := e.readIndexTailSuffix(ctx, false)
+	tail, err := packfile.ReadIndexTail(ctx, uint64(e.size), e.fetchIndexTail)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "read kvfile index tail")
 	}
-
-	// Validate the estimated tail and expand it to the maximum extent if needed.
 	entries, err := e.parseIndexTail(tail)
-	if err != nil {
-		// Read the largest valid tail after the initial parse fails.
-		maxTail, maxErr := e.readIndexTailSuffix(ctx, true)
-		if maxErr != nil {
-			return nil, nil, err
-		}
-
-		// Reparse the index when the expanded tail contains additional bytes.
-		if len(maxTail) != len(tail) {
-			tail = maxTail
-			entries, err = e.parseIndexTail(tail)
-		}
-	}
 	return tail, entries, err
 }
 
-// readIndexTailSuffix retains fetched bytes until the complete tail is copied.
-func (e *PackReader) readIndexTailSuffix(ctx context.Context, maxBound bool) ([]byte, error) {
-	// Select the initial estimate or the maximum valid index extent.
-	window, err := e.indexTailWindow(maxBound)
+// fetchIndexTail reads length bytes at off for the index tail as foreground
+// demand. The bytes go to the caller alone; they never enter the span store.
+func (e *PackReader) fetchIndexTail(ctx context.Context, off int64, length int) ([]byte, error) {
+	// Fetch through the demand gate so background fetches yield to it.
+	var gate *demandGate
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		gate = e.gate
+	})
+	leave, err := gate.enter(ctx, false, nil)
 	if err != nil {
 		return nil, err
 	}
-	if window <= 0 {
-		return nil, errors.New("index tail window is empty")
-	}
-
-	// Hold the immutable spans across any eviction caused by later tail fetches.
-	start := max(e.size-int64(window), 0)
-	spans, err := e.fetchSpans(ctx, start, e.size, true)
+	data, err := e.transport.Fetch(ctx, off, length)
+	leave()
 	if err != nil {
 		return nil, err
 	}
-	suffix := make([]byte, e.size-start)
-	copySpans(suffix, spans, start)
 
-	// Discard any leading payload bytes using the validated kvfile trailer.
-	_, tail, err := kvfile.TrimIndexTail(suffix, uint64(e.size)) //nolint:gosec // e.size is rejected when negative and is the validated pack length.
-	if err != nil {
-		return nil, err
+	// Count the read as index I/O.
+	var notify func()
+	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		notify = e.recordIndexTailFetchLocked(fetchKey{off: off, size: length}, len(data))
+		broadcast()
+	})
+	if notify != nil {
+		notify()
 	}
-	return tail, nil
-}
-
-// indexTailWindow bounds the index estimate by its maximum encoding and pack size.
-func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
-	// Bound the maximum index encoding by the manifest pack size.
-	maxTail, err := kvfile.MaxIndexTailSize(e.blockCount)
-	if err != nil {
-		return 0, err
-	}
-	if maxTail > uint64(e.size) { //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
-		maxTail = uint64(e.size) //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
-	}
-	if maxBound {
-		return int(maxTail), nil //nolint:gosec // maxTail is capped by the non-negative int64 pack size.
-	}
-
-	// Estimate the first index-tail window within the validated maximum.
-	window := uint64(defaultIndexTailInitialWindow)
-	estimated := 8 + e.blockCount*(128+8+10)
-	if estimated > window {
-		window = estimated
-	}
-	if window > maxTail {
-		window = maxTail
-	}
-	if window > uint64(e.size) { //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
-		window = uint64(e.size) //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
-	}
-	return int(window), nil //nolint:gosec // window is capped by the non-negative int64 pack size.
+	return data, nil
 }
 
 // parseIndexTail validates the tail against the manifest size and block count.
@@ -424,7 +432,8 @@ func validateIndexEntries(entries []*kvfile.IndexEntry, tailStart uint64, blockC
 	return nil
 }
 
-// setIndexEntriesLocked stores the index entries sorted by offset and by key.
+// setIndexEntriesLocked stores the index entries sorted by offset and by key,
+// or clears them when entries is nil.
 func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
 	// Order index entries by payload offset for resident window planning.
 	byOff := slices.Clone(entries)
@@ -438,7 +447,8 @@ func (e *PackReader) setIndexEntriesLocked(entries []*kvfile.IndexEntry) {
 		return bytes.Compare(a.GetKey(), b.GetKey())
 	})
 
-	// Publish both index orders into the reader state.
+	// Publish both index orders into the reader state and charge the budget.
+	e.budget.indexUsed.Add(int64(len(byKey) - len(e.entriesByKey)))
 	e.entriesByOff = byOff
 	e.entriesByKey = byKey
 }

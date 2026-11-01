@@ -80,21 +80,6 @@ func (t *Tx) Salvage(
 	return nil
 }
 
-// SalvageHoles returns the pages in [low, high) that read as not found and
-// the number of readable leaf keys, retaining no entries.
-func (t *Tx) SalvageHoles(ctx context.Context, low, high []byte) (uint64, []SalvageHole, error) {
-	var keys uint64
-	var holes []SalvageHole
-	err := t.Salvage(ctx, low, high, func(BuildEntry) bool {
-		keys++
-		return true
-	}, func(h SalvageHole) bool {
-		holes = append(holes, h)
-		return true
-	})
-	return keys, holes, err
-}
-
 // salvage is one Salvage walk.
 type salvage struct {
 	// low and high bound the keys to collect; empty is unbounded.
@@ -131,6 +116,7 @@ type salvageChild struct {
 // walk passes on the entries below page, whose keys lie in
 // [pageLow, pageHigh), in key order.
 func (s *salvage) walk(ctx context.Context, page *Page, cursor *block.Cursor, pageLow, pageHigh []byte) error {
+	// Read the entries once for both page kinds.
 	entries := page.GetEntries()
 
 	// Pass on the readable leaf keys in range.

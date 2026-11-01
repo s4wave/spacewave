@@ -33,6 +33,8 @@ message RefEdge {
   string subject = 1;
   // Object is the target node IRI.
   string object = 2;
+  // Uncounted leaves the shared counts alone when the edge changes.
+  bool uncounted = 3;
 }
 
 // ApplyRefBatchRequest carries one bounded ownership transition.

@@ -151,12 +151,7 @@ func NewHTTPRangeReader(
 	e := NewPackReader(url, size, t)
 
 	// Apply the requested read-ahead window within the reader transport bounds.
-	if readAheadSize > 0 {
-		e.minWindow = readAheadSize
-		e.transportQuantum = readAheadSize
-		e.currentWindow = readAheadSize
-	}
-	e.normalizeTransportLocked()
+	e.SetReadWindow(readAheadSize)
 	return e
 }
 

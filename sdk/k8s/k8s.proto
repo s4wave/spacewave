@@ -2,41 +2,13 @@ syntax = "proto3";
 package s4wave.k8s;
 
 import "github.com/aperturerobotics/common/typeid/typeid.proto";
-import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/k8s;s4wave_k8s";
 
 // Cluster is the root of the k8s/cluster object, which makes its Space a
 // Kubernetes cluster. The Device whose ProcessBinding approves the object
-// serves the Space's Kubernetes API on a loopback port, through the
-// spacewave-k8s plugin.
+// serves the Space's Kubernetes API through the spacewave-k8s plugin, and a
+// client reaches it through the object's web.fetch.FetchService.
 message Cluster {
   option (typeid.id) = "k8s/cluster";
-}
-
-// GetAccessRequest is the request type for GetAccess.
-message GetAccessRequest {}
-
-// GetAccessResponse says how a client on this Device reaches the Space's
-// Kubernetes API as the caller.
-message GetAccessResponse {
-  // Server is the URL of the API server, such as https://127.0.0.1:6449.
-  string server = 1;
-  // Token is the caller's bearer token. It lasts while the API server runs,
-  // and a client that the server refuses asks for a new one.
-  string token = 2;
-  // Role is the caller's Space role, which authorizes the token's requests.
-  .sobject.SOParticipantRole role = 3;
-  // CertificateAuthority is the PEM certificate the API server presents,
-  // which a client trusts for Server. It lasts while the plugin keeps its
-  // state on this Device.
-  bytes certificate_authority = 4;
-}
-
-// ClusterResourceService serves the typed resource of a k8s/cluster
-// object.
-service ClusterResourceService {
-  // GetAccess returns the API server and a bearer token for the caller. It
-  // fails when this Device does not serve the Space's API.
-  rpc GetAccess(GetAccessRequest) returns (GetAccessResponse);
 }

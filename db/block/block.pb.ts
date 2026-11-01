@@ -346,8 +346,9 @@ export interface Deadlist {
    */
   parts?: BlockRef[]
   /**
-   * Held are live stored pages that may have gained a holder. Naming the
-   * record adds one shared count to each.
+   * Held are live stored pages that may have gained a holder, each listed
+   * once per new parent. Naming the record adds one shared count to each
+   * entry.
    */
   held?: BlockRef[]
   /**

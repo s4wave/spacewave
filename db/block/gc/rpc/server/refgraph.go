@@ -194,8 +194,9 @@ func refEdgesFromRPC(edges []*block_gc_rpc.RefEdge) []block_gc.RefEdge {
 	out := make([]block_gc.RefEdge, len(edges))
 	for i, edge := range edges {
 		out[i] = block_gc.RefEdge{
-			Subject: edge.GetSubject(),
-			Object:  edge.GetObject(),
+			Subject:   edge.GetSubject(),
+			Object:    edge.GetObject(),
+			Uncounted: edge.GetUncounted(),
 		}
 	}
 	return out
@@ -208,8 +209,9 @@ func refEdgesToRPC(edges []block_gc.RefEdge) []*block_gc_rpc.RefEdge {
 	out := make([]*block_gc_rpc.RefEdge, len(edges))
 	for i, edge := range edges {
 		out[i] = &block_gc_rpc.RefEdge{
-			Subject: edge.Subject,
-			Object:  edge.Object,
+			Subject:   edge.Subject,
+			Object:    edge.Object,
+			Uncounted: edge.Uncounted,
 		}
 	}
 	return out

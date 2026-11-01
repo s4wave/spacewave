@@ -27,6 +27,11 @@ const replayBaseRootName = "replay-base"
 // later operation replaced, and no World need reach a payload.
 const ReplaySpanRootName = "replay-span"
 
+// replayDroppedSpansRootName names the local root that holds the span chains
+// the replay dropped at a rebase while a deadlist record that counts the pages
+// naming their payloads has not landed.
+const replayDroppedSpansRootName = "replay-dropped-spans"
+
 // replayCursorStoreID is the local state store holding the saved replay.
 const replayCursorStoreID = "world-replay"
 
@@ -194,7 +199,9 @@ type pendingWorld struct {
 
 // newReplayer constructs a replayer for the World of so.
 func newReplayer(c *Controller, so sobject.SharedObject) *replayer {
-	return &replayer{c: c, so: so, lookupOp: c.buildLookupWorldOp(c.le)}
+	r := &replayer{c: c, so: so, lookupOp: c.buildLookupWorldOp(c.le)}
+	r.ledger.lost()
+	return r
 }
 
 // store returns the block store World readers use: the page view, or so's
@@ -286,6 +293,7 @@ func (r *replayer) rebase(ctx context.Context, snap sobject.SharedObjectStateSna
 	r.adoptDeadlists()
 	r.prunePending(checkpoint.GetHeight())
 	r.changed, r.deferred = true, false
+	r.ledger.dropSpan(r.span)
 	r.span, r.spanLen = nil, 0
 
 	// Name the new base under the replay base root.
@@ -310,8 +318,10 @@ func (r *replayer) prunePending(height uint64) bool {
 }
 
 // holdBase gathers baseHold for the next save when pages is set: it names
-// base, the World after the written positions and the pending Worlds under
-// the replay base root with every kept page they reach, and releases the
+// base, the World after the written positions, the pending Worlds and the
+// Worlds that deadlist records waiting for their puts start at under the
+// replay base root with every kept page they reach, names the span chains
+// those records still need under the dropped spans root, and releases the
 // accepted World root, which only the engine without pages holds.
 func (r *replayer) holdBase(ctx context.Context) error {
 	// Name each distinct World once.
@@ -322,6 +332,8 @@ func (r *replayer) holdBase(ctx context.Context) error {
 	for _, w := range r.pendingWorlds {
 		roots = append(roots, w.root)
 	}
+	waiting, spans := r.ledger.waiting()
+	roots = append(roots, waiting...)
 	var named []*block.BlockRef
 	seen := make(map[string]struct{}, len(roots))
 	for _, root := range roots {
@@ -337,6 +349,9 @@ func (r *replayer) holdBase(ctx context.Context) error {
 	hold := newRootHold(r.pages)
 	hold.release(acceptedWorldRootName)
 	if err := hold.worlds(ctx, replayBaseRootName, r.pages, named); err != nil {
+		return err
+	}
+	if err := hold.spans(ctx, replayDroppedSpansRootName, spans); err != nil {
 		return err
 	}
 	r.baseHold, r.baseRoots, r.baseUnheld = hold, named, true
@@ -642,7 +657,7 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 	// so the next save starts a new chain.
 	switch {
 	case entry != nil:
-		if err := hold.refBlock(ReplaySpanRootName, entry.Data, entry.Refs); err != nil {
+		if err := hold.refBlock(ctx, ReplaySpanRootName, entry.Data, entry.Refs, false); err != nil {
 			return err
 		}
 	case span == nil:
@@ -658,6 +673,7 @@ func (r *replayer) holdSpan(ctx context.Context, hold *rootHold) error {
 		puts, roots := r.ledger.carry()
 		hold.entries = append(hold.entries, puts...)
 		hold.roots = append(hold.roots, roots...)
+		hold.recount = r.ledger.carryRecount()
 	}
 	r.pend(span)
 	return nil
@@ -692,7 +708,10 @@ func (r *replayer) pendingSave(ctx context.Context, publisher sobject.StatePubli
 	var roots []block.NamedRoot
 	switch {
 	case entry != nil:
-		entries = []*block.PutBatchEntry{entry}
+		entries, err = carryNamed(ctx, r.store(), []*block.PutBatchEntry{entry}, entry.Refs)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 		roots = []block.NamedRoot{{Name: ReplaySpanRootName, Ref: span}}
 	case span == nil:
 		roots = []block.NamedRoot{{Name: ReplaySpanRootName}}
@@ -1037,7 +1056,7 @@ func (r *replayer) composeDeaths(root *block.BlockRef) *pendingNet {
 // whose puts report the pages the store already held.
 func (r *replayer) addWorldPut(receipt *block.PublicationReceipt, entries, pages []*block.PutBatchEntry) {
 	if r.deaths != nil && len(pages) != 0 {
-		r.deaths.addPut(newWorldPut(receipt, entries, pages))
+		r.deaths.addPut(newWorldPut(receipt, entries, pages, r.ledger.recounts))
 	}
 }
 

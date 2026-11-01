@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
 // TestEvictAdmitPacesBatches checks that an eviction pass asks its admit
@@ -15,18 +14,14 @@ import (
 func TestEvictAdmitPacesBatches(t *testing.T) {
 	// Open a placed store.
 	ctx := t.Context()
-	local := newInmemBlockStore()
-	s, err := NewStore(ctx, local, local, store_kvtx_inmem.NewStore(), true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s := newTestEnv(t).newStore(t, true)
 
 	// Write more blocks than one batch evicts.
 	var size int64
 	for i := range evictBatchBlocks + 10 {
 		data := fmt.Appendf(nil, "block-%05d", i)
 		size = int64(len(data))
-		if _, _, err := s.PutBlock(ctx, data, nil); err != nil {
+		if _, _, err := s.PutBlock(ctx, data, leafOpts); err != nil {
 			t.Fatal(err)
 		}
 	}

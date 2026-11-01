@@ -1,6 +1,6 @@
 // Package s4wave_k8s is the contract between Spacewave and the spacewave-k8s
 // plugin, which serves a Space's Kubernetes API: the k8s/cluster object that
-// turns the API on and the service that hands a client its access.
+// turns the API on.
 package s4wave_k8s
 
 import (

@@ -8,21 +8,20 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	alarm_watch "github.com/s4wave/spacewave/sdk/alarm/watch"
 	function_run "github.com/s4wave/spacewave/sdk/function/run"
-	"github.com/tetratelabs/wazero"
 )
 
-// Factory constructs Alarm watch controllers. Its watches share the native
-// code compiled from the QuickJS reactor.
+// Factory constructs Alarm watch controllers. Its watches share one
+// PureFunction runner, and with it the reactor compiled once.
 type Factory struct {
 	// bus is the controller bus.
 	bus bus.Bus
-	// compiled caches the native code of the QuickJS reactor.
-	compiled wazero.CompilationCache
+	// runner runs the watches' functions.
+	runner *function_run.Runner
 }
 
 // NewFactory builds an Alarm watch controller factory.
 func NewFactory(bus bus.Bus) *Factory {
-	return &Factory{bus: bus, compiled: wazero.NewCompilationCache()}
+	return &Factory{bus: bus, runner: function_run.NewRunner()}
 }
 
 // GetConfigID returns the unique ID for the config.
@@ -47,7 +46,7 @@ func (f *Factory) Construct(
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
 	le := opts.GetLogger()
-	return NewController(le, f.bus, conf.(*alarm_watch.Config), function_run.NewRunner(le, f.compiled, nil)), nil
+	return NewController(le, f.bus, conf.(*alarm_watch.Config), f.runner), nil
 }
 
 // GetVersion returns the version of this controller.

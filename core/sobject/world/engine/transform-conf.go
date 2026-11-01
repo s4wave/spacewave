@@ -49,7 +49,7 @@ func (e *soEngine) SetTransformConf(ctx context.Context, conf *block_transform.C
 	// Build the operation on the current World, excluding write transactions
 	// until it is placed. The SharedObject writes it directly after every
 	// pending receipt, so wait for them outside the lock.
-	unlockWriteMtx, err := e.c.lockSettled(ctx, "transform-conf")
+	ctx, unlockWriteMtx, err := e.c.lockStateSettled(ctx, e.so, "transform-conf")
 	if err != nil {
 		return err
 	}

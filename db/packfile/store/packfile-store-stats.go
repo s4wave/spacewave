@@ -54,13 +54,15 @@ type PackfileStoreStats struct {
 	LastOpenedPacks           int
 	LastNegativePacks         int
 	LastTargetHit             bool
-	IndexCacheHits            uint64
-	IndexCacheMisses          uint64
-	IndexCacheReadErrors      uint64
-	IndexCacheWriteErrors     uint64
-	RemoteIndexLoads          uint64
-	RemoteIndexBytes          int64
-	LastRemoteIndexBytes      int64
+	// IndexDrops counts parsed indexes dropped above the index entry limit.
+	IndexDrops            uint64
+	IndexCacheHits        uint64
+	IndexCacheMisses      uint64
+	IndexCacheReadErrors  uint64
+	IndexCacheWriteErrors uint64
+	RemoteIndexLoads      uint64
+	RemoteIndexBytes      int64
+	LastRemoteIndexBytes  int64
 }
 
 // packLookup counts the packs one lookup consulted.
@@ -167,6 +169,7 @@ func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
 		snap.WritebackErrors += es.WritebackErrors
 
 		// Accumulate index cache and remote index load totals.
+		snap.IndexDrops += es.IndexDrops
 		snap.IndexCacheHits += es.IndexCacheHits
 		snap.IndexCacheMisses += es.IndexCacheMisses
 		snap.IndexCacheReadErrors += es.IndexCacheReadErrors

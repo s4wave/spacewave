@@ -50,16 +50,5 @@ func (g *RefGraph) GetHolds(ctx context.Context, block string) (uint64, error) {
 
 // readHoldsTx reads the shared count of block, or 0 when it has none.
 func readHoldsTx(ctx context.Context, tx kvtx.TxOps, block string) (uint64, error) {
-	// Read the record, which is absent at zero.
-	value, found, err := tx.Get(ctx, graphKey(kindHold, block))
-	if err != nil || !found {
-		return 0, err
-	}
-
-	// Decode the whole value as one uvarint.
-	n, size := binary.Uvarint(value)
-	if size <= 0 || size != len(value) {
-		return 0, errors.Errorf("shared count of %s is malformed", block)
-	}
-	return n, nil
+	return readCountTx(ctx, tx, kindHold, block)
 }

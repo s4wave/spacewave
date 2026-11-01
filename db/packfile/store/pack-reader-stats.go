@@ -26,13 +26,15 @@ type PackReaderStats struct {
 	WritebackCount            uint64
 	WritebackErrors           uint64
 	IndexLoaded               bool
-	IndexCacheHits            uint64
-	IndexCacheMisses          uint64
-	IndexCacheReadErrors      uint64
-	IndexCacheWriteErrors     uint64
-	RemoteIndexLoads          uint64
-	RemoteIndexBytes          int64
-	LastRemoteIndexBytes      int64
+	// IndexDrops counts parsed indexes dropped above the index entry limit.
+	IndexDrops            uint64
+	IndexCacheHits        uint64
+	IndexCacheMisses      uint64
+	IndexCacheReadErrors  uint64
+	IndexCacheWriteErrors uint64
+	RemoteIndexLoads      uint64
+	RemoteIndexBytes      int64
+	LastRemoteIndexBytes  int64
 }
 
 // TransportStats describes transport-specific fetch counters.
@@ -84,6 +86,7 @@ func (e *PackReader) SnapshotStats() PackReaderStats {
 
 		// Snapshot index availability and cache outcomes.
 		snap.IndexLoaded = e.indexLoaded
+		snap.IndexDrops = e.indexDrops
 		snap.IndexCacheHits = e.indexCacheHits
 		snap.IndexCacheMisses = e.indexCacheMisses
 		snap.IndexCacheReadErrors = e.indexCacheReadErrors

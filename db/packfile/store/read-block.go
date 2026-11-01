@@ -19,19 +19,14 @@ import (
 // key is the index key of ref's hash. Returns nil when the pack index does not
 // hold the block.
 func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockRef) (*block.StoredBlock, error) {
-	// Resolve the target and its co-block window from the validated index.
-	if err := e.ensureIndexLoaded(ctx); err != nil {
-		return nil, err
-	}
-
-	// Read the indexed block extent and its neighbor fetch window.
+	// Resolve the target block extent and its co-block window from the index.
 	var (
 		off, end    int64
 		windowStart int64
 		windowEnd   int64
 		found       bool
 	)
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	err := e.withIndex(ctx, func() {
 		// Resolve the target block extent and its semantic neighbor window.
 		var entry *kvfile.IndexEntry
 		entry, found = e.findEntryByKeyLocked(key)
@@ -41,6 +36,9 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockR
 		off, end = entryExtent(entry)
 		windowStart, windowEnd = e.semanticWindowLocked(entry)
 	})
+	if err != nil {
+		return nil, err
+	}
 	if !found {
 		return nil, nil
 	}
@@ -48,7 +46,7 @@ func (e *PackReader) getBlock(ctx context.Context, key []byte, ref *block.BlockR
 	// Copy from retained spans on a miss without requiring simultaneous residency.
 	data, ok := e.readResidentRange(off, end)
 	if !ok {
-		spans, err := e.fetchSpans(ctx, windowStart, windowEnd, false)
+		spans, err := e.fetchSpans(ctx, windowStart, windowEnd)
 		if err != nil {
 			return nil, err
 		}
@@ -90,17 +88,11 @@ func decodeVerifiedBlock(ref *block.BlockRef, value []byte) (*block.StoredBlock,
 
 // getBlockExists reports whether the validated pack index contains key.
 func (e *PackReader) getBlockExists(ctx context.Context, key []byte) (bool, error) {
-	// Load the index before looking up the key under its state lock.
-	if err := e.ensureIndexLoaded(ctx); err != nil {
-		return false, err
-	}
-
-	// Check the block key in the validated resident index.
 	var found bool
-	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	err := e.withIndex(ctx, func() {
 		_, found = e.findEntryByKeyLocked(key)
 	})
-	return found, nil
+	return found, err
 }
 
 // statBlock reports whether the pack holds the block. The data size is

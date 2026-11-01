@@ -14,6 +14,10 @@ type RefEdge struct {
 	Subject string
 	// Object is the referenced node.
 	Object string
+	// Uncounted marks an owner edge whose holder the writer counts by other
+	// means, such as a put flush, whose found blocks the Volume counts from
+	// the batch. Adding or removing it leaves the shared counts alone.
+	Uncounted bool
 }
 
 // RefBatchRemainderError reports the uncommitted suffix of an ownership

@@ -82,7 +82,7 @@
         "zod": "4.6.7",
       },
       "devDependencies": {
-        "@aptre/common": "0.37.0",
+        "@aptre/common": "0.38.0",
         "@google/design.md": "^0.4.0",
         "@playwright/test": "^1.62.1",
         "@reylosql/mysql": "0.5.0",
@@ -132,7 +132,7 @@
     "quickjs-wasi-reactor": "0.17.0-rev.1",
   },
   "packages": {
-    "@aptre/common": ["@aptre/common@0.37.0", "", { "dependencies": { "@aptre/protobuf-es-lite": "1.2.4", "starpc": "^0.52.3", "tla-ts": "0.0.3", "vitest": "^5.0.0" }, "bin": { "aptre-tla": "dist/tla/check.js" } }, "sha512-7XPCzq6VojRGmbJ7JoTdmtKX+vRdeR0h414tzDIHQ6F6BU5y3DXQ+xK3A0pgprFLms5M9fKvH6gbiYzumzVuzA=="],
+    "@aptre/common": ["@aptre/common@0.38.0", "", { "dependencies": { "@aptre/protobuf-es-lite": "1.2.4", "starpc": "^0.52.3", "tla-ts": "0.0.3", "vitest": "^5.0.0" }, "bin": { "aptre-tla": "dist/tla/check.js" } }, "sha512-ncL8/RMCa+yJvS9XPLjs1xo+y1/yF43ZRyrFnc3tYatXjTKCmraZ7r9oEV9tT9CUyNqpCG6URc2YyEHNhSHkWA=="],
 
     "@aptre/flex-layout": ["@aptre/flex-layout@0.6.4", "", { "peerDependencies": { "react": "^19.2.5", "react-dom": "^19.2.5" } }, "sha512-ROKbbJSoDGv1wbLcQq6VryPtWsqZBIF3R2z5q9hRpBjdltC7/71i2e4erpKqn2gTFckZrjuXssIHTdHMs60/Ag=="],
 

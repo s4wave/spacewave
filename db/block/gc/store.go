@@ -536,16 +536,22 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	// write, comes from recordLostEdges, or is staged below when its writer
 	// knew its refs. A block stored without tracking otherwise keeps no list,
 	// so the mark stops at it rather than sweep what it names.
+	//
+	// The parent's edges to the blocks it puts, takes and lets go of change no
+	// shared count: the Volume counts the holders a put batch adds from the
+	// batch, where a new block's first holder is its count's zero, and an
+	// edge let go of uncounted can only leave a count too high. The edges of
+	// a release are counted, since no put block takes over their hold.
 	adds := make([]RefEdge, 0, 2*len(unrefs)+len(takes)+len(staged)+len(refs)+len(releases))
 	removes := make([]RefEdge, 0, len(ununrefs)+len(releases))
 	for _, iri := range unrefs {
-		adds = append(adds, RefEdge{Subject: parent, Object: iri})
+		adds = append(adds, RefEdge{Subject: parent, Object: iri, Uncounted: true})
 		if parent != NodeUnreferenced {
 			adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: iri})
 		}
 	}
 	for _, iri := range takes {
-		adds = append(adds, RefEdge{Subject: parent, Object: iri})
+		adds = append(adds, RefEdge{Subject: parent, Object: iri, Uncounted: true})
 	}
 
 	// Stage the blocks whose child lists are known and record the buffered ref
@@ -557,7 +563,7 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 		adds = append(adds, RefEdge{Subject: r.source, Object: r.target})
 	}
 	for _, iri := range ununrefs {
-		removes = append(removes, RefEdge{Subject: parent, Object: iri})
+		removes = append(removes, RefEdge{Subject: parent, Object: iri, Uncounted: true})
 	}
 
 	// Materialize and release each released owner together, so a

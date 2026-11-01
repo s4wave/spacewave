@@ -63,6 +63,64 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		})
 	}
 
+	// Reserve state-write intent before either provider or engine writers.
+	preparationKey := &stateWriteReservationKey{}
+
+	// Reuse caller intent or acquire it without either writer held.
+	reserveWrite := func(ctx context.Context, id string, settled, waiting bool) (sobject.StateWriteReservation, error) {
+		// Keep the legacy lane until reservation-enabled startup.
+		if !sqlReservationsEnabled.Load() {
+			return nil, nil
+		}
+		if borrowed, err := borrowStateWrite(ctx, preparationKey, id, settled); borrowed != nil || err != nil {
+			return borrowed, err
+		}
+
+		// Keep the state entry and its intent until the caller releases them.
+		ref, ent, _ := soRc.AddKeyRef(id)
+		var unlock func()
+		if waiting {
+			if _, err := ent.stateProm.Await(ctx); err != nil {
+				ref.Release()
+				return nil, err
+			}
+			var err error
+			unlock, err = ent.intent.Lock(ctx)
+			if err != nil {
+				ref.Release()
+				return nil, err
+			}
+		} else {
+			if err := ctx.Err(); err != nil {
+				ref.Release()
+				return nil, err
+			}
+			if ent.stateCtr.GetValue() == nil {
+				ref.Release()
+				return nil, nil
+			}
+			var ok bool
+			unlock, ok = ent.intent.TryLock()
+			if !ok {
+				ref.Release()
+				return nil, nil
+			}
+		}
+		if settled {
+			if _, err := ent.waitSettled(ctx); err != nil {
+				unlock()
+				ref.Release()
+				return nil, err
+			}
+		}
+		reservation := &soStateWriteReservation{key: preparationKey, id: id, entry: ent,
+			release: func() { unlock(); ref.Release() },
+		}
+		reservation.settled.Store(settled)
+		reservation.active.Store(true)
+		return reservation, nil
+	}
+
 	// Retain the state entry until the locked write has completed. An
 	// ordinary local operation carrying a publication builds on the admitted
 	// state and holds the lock until its publication is admitted; every other
@@ -76,18 +134,42 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 			return nil, err
 		}
 
-		// Serialize writes after the initial state load succeeds.
-		relLock, err := ent.writeMtx.Lock(ctx)
+		// Direct writers drain while holding only intent. Ordinary publications
+		// build on the admitted state and retain their caller's earlier intent.
+		admission := sobject.GetPublishState(ctx) != nil && !checkpoint && !peerImport && objStoreID != ""
+		reservation, err := reserveWrite(ctx, sharedObjectID, !admission, true)
 		if err != nil {
 			ref.Release()
 			return nil, err
 		}
+		if reservation != nil {
+			ctx = reservation.WithContext(ctx)
+		}
+		releaseReservation := func() {
+			if reservation != nil {
+				reservation.Release()
+			}
+		}
 
-		// Read the state the write builds on.
-		admission := sobject.GetPublishState(ctx) != nil && !checkpoint && !peerImport && objStoreID != ""
+		// The provider writer spans no receipt wait in the reservation lane.
+		relLock, err := ent.writeMtx.Lock(ctx)
+		if err != nil {
+			releaseReservation()
+			ref.Release()
+			return nil, err
+		}
 		var base *sobject.SOState
 		if admission {
 			base = ent.readAdmitted()
+		} else if reservation != nil {
+			var pending <-chan struct{}
+			base, pending = ent.readSettled()
+			if pending != nil {
+				relLock()
+				releaseReservation()
+				ref.Release()
+				return nil, sobject.ErrStateWriteUnsettled
+			}
 		} else {
 			base, err = ent.waitSettled(ctx)
 			if err != nil {
@@ -102,6 +184,11 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		return sobject.NewSOStateLock(
 			initialState,
 			func(ctx context.Context, state *sobject.SOState, changes ...*sobject.SOConfigChange) error {
+				// Preserve the lock's claim even when Save receives the original context.
+				if reservation != nil {
+					ctx = reservation.WithContext(ctx)
+				}
+
 				// Serialize an independent state snapshot for replayable transaction writes.
 				ctx, task := trace.NewTask(ctx, "alpha/local-so/write-so-state")
 				defer task.End()
@@ -125,6 +212,9 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 						return err
 					}
 					if receipt != nil {
+						if owner, _ := ctx.Value(preparationKey).(*soStateWriteReservation); owner != nil {
+							owner.settled.Store(false)
+						}
 						admRef, _, _ := soRc.AddKeyRef(sharedObjectID)
 						return ent.admit(base, state, receipt, admRef.Release)
 					}
@@ -132,10 +222,32 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 
 				// Otherwise write after every pending receipt, on the state the
 				// lock loaded. A failed receipt removed that state.
-				durable, err := ent.waitSettled(ctx)
-				if err != nil {
-					return err
+				durable, pending := ent.readSettled()
+				if pending != nil {
+					if reservation == nil {
+						durable, err = ent.waitSettled(ctx)
+					} else if _, borrowed := reservation.(borrowedStateWrite); borrowed {
+						return sobject.ErrStateWriteUnsettled
+					} else {
+						// An automatic caller owns no engine writer. Keep its intent,
+						// release the provider writer and drain before retaking it.
+						relLock()
+						relLock = func() {}
+						durable, err = ent.waitSettled(ctx)
+						if err == nil {
+							var locked func()
+							locked, err = ent.writeMtx.Lock(ctx)
+							if err == nil {
+								relLock = locked
+							}
+						}
+					}
+					if err != nil {
+						return err
+					}
 				}
+
+				// A failed predecessor invalidates the prepared state.
 				if durable != base {
 					return errors.Wrap(block.ErrPublicationDependency, "shared object state write built on a failed publication")
 				}
@@ -178,6 +290,7 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 			},
 			func() {
 				relLock()
+				releaseReservation()
 				ref.Release()
 			},
 		), nil
@@ -188,6 +301,12 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		return newLock(ctx, id, false, false)
 	}
 	syncFuncs = NewSOHostSyncFuncs(objStore)
+	syncFuncs.ReserveWrite = func(ctx context.Context, id string, settled bool) (sobject.StateWriteReservation, error) {
+		return reserveWrite(ctx, id, settled, true)
+	}
+	syncFuncs.TryReserveWrite = func(ctx context.Context, id string) (sobject.StateWriteReservation, error) {
+		return reserveWrite(ctx, id, false, false)
+	}
 	syncFuncs.Lock = func(ctx context.Context, id string) (sobject.SOStateLock, error) {
 		return newLock(ctx, id, false, true)
 	}

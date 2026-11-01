@@ -37,6 +37,32 @@ func NewNodeSet() *NodeSet {
 	}
 }
 
+// Sibling returns an empty set that hashes nodes as s does, so Overlap can
+// compare the two by hash.
+func (s *NodeSet) Sibling() *NodeSet {
+	return &NodeSet{
+		seeds:      s.seeds,
+		blockSeeds: s.blockSeeds,
+		slots:      make([][2]uint64, 1<<nodeSetMinBits),
+		bits:       nodeSetMinBits,
+	}
+}
+
+// Overlap returns the number of nodes of s that o holds. o must be s or a
+// sibling of it.
+func (s *NodeSet) Overlap(o *NodeSet) int {
+	n := 0
+	for _, h := range s.slots {
+		if h == ([2]uint64{}) {
+			continue
+		}
+		if _, found := o.find(h); found {
+			n++
+		}
+	}
+	return n
+}
+
 // Len returns the number of nodes in the set.
 func (s *NodeSet) Len() int {
 	return s.count

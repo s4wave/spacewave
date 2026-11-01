@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
 // listRefs lists refs in key order from a sorted slice, as a CopyList over
@@ -49,18 +48,15 @@ func listRefs(refs []*block.BlockRef) CopyList {
 func TestCopyResumes(t *testing.T) {
 	// Open a store over an in-memory one.
 	ctx := t.Context()
-	local := newInmemBlockStore()
-	markers := store_kvtx_inmem.NewStore()
-	s, err := NewStore(ctx, local, local, markers, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env := newTestEnv(t)
+	local := ownedStore{env.vol}
+	s := env.newStore(t, true)
 
 	// Store more blocks than one step lists, one of them already remote.
 	remote := newInmemBlockStore()
 	var refs []*block.BlockRef
 	for i := range 2*copyBatchBlocks + 10 {
-		ref, _, err := local.PutBlock(ctx, fmt.Appendf(nil, "block-%d", i), nil)
+		ref, _, err := local.PutBlock(ctx, fmt.Appendf(nil, "block-%d", i), leafOpts)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,10 +89,7 @@ func TestCopyResumes(t *testing.T) {
 	}
 
 	// Reopen the store.
-	s, err = NewStore(ctx, local, local, markers, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s = env.newStore(t, true)
 
 	// The reopened store resumes after the first step and finishes.
 	var resumed []byte
@@ -116,10 +109,10 @@ func TestCopyResumes(t *testing.T) {
 	if c := status.Copy; !c.Done || c.Position != 1 || c.Scanned != copyBatchBlocks+11 {
 		t.Fatalf("after resume: %+v", c)
 	}
-	for _, ref := range refs {
+	for i, ref := range refs {
 		found, err := remote.GetBlockExists(ctx, ref)
 		if err != nil || !found {
-			t.Fatalf("remote missing %s: %v", ref.MarshalString(), err)
+			t.Fatalf("remote missing %d %s: %v %+v", i, ref.MarshalString(), err, status.Copy)
 		}
 	}
 
@@ -139,12 +132,9 @@ func TestCopyResumes(t *testing.T) {
 func TestCopySkipsUnknownRefs(t *testing.T) {
 	// Store a block without its refs.
 	ctx := t.Context()
-	local := newUntrackedBlockStore()
-	s, err := NewStore(ctx, local, local, store_kvtx_inmem.NewStore(), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref, _, err := local.PutBlock(ctx, []byte("untracked"), nil)
+	env := newTestEnv(t)
+	s := env.newStore(t, true)
+	ref, _, err := env.vol.Store.PutBlock(ctx, []byte("untracked"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

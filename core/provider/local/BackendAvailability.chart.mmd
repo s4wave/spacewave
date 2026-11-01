@@ -1,0 +1,20 @@
+stateDiagram-v2
+    [*] --> Unplaced
+    Unplaced --> Opening: placement selected
+    Opening --> Ready: backend opened
+    Opening --> Retrying: open failed
+    Retrying --> Opening: retry
+    Ready --> Opening: replacement selected
+    Ready --> Unplaced: placement removed
+    Opening --> Unplaced: placement removed
+    Retrying --> Unplaced: placement removed
+    Unplaced --> Closed: mount ends
+    Opening --> Closed: mount ends
+    Ready --> Closed: mount ends
+    Retrying --> Closed: mount ends
+    Closed --> [*]
+    note right of Ready
+      Publish state and notify atomically.
+      Waiters resample outside notification.
+      Cancel and deadline end their own wait.
+    end note

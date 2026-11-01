@@ -151,7 +151,7 @@ func newTestRunner(t *testing.T) (*Runner, *bldr_util_qjsbytecode.Cache) {
 	t.Helper()
 	cache := bldr_util_qjsbytecode.NewCache(t.TempDir())
 	le := logrus.NewEntry(logrus.New())
-	return NewRunner(le, nil, cache), cache
+	return NewRunnerWithBytecode(le, cache), cache
 }
 
 // compileFunction compiles source into a PureFunction with a budget.

@@ -30,6 +30,9 @@ type fakeBucket struct {
 	versioned bool
 	// hidden counts the hidden versions of each key.
 	hidden map[string]int
+	// after, when set, runs after each request is answered and before the
+	// answer returns, so the client sees the bucket as it was before after.
+	after func(r *http.Request)
 }
 
 // newFakeBucket serves a bucket holding objects until the test ends.
@@ -47,9 +50,18 @@ func newFakeBucket(t *testing.T, objects map[string]string) (*fakeBucket, *Clien
 
 // ServeHTTP answers one S3 request.
 func (b *fakeBucket) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Hold the bucket for the request.
+	// Answer from the bucket, then run the hook with the bucket released.
 	b.mtx.Lock()
-	defer b.mtx.Unlock()
+	b.serve(w, r)
+	after := b.after
+	b.mtx.Unlock()
+	if after != nil {
+		after(r)
+	}
+}
+
+// serve answers one S3 request while the caller holds the bucket.
+func (b *fakeBucket) serve(w http.ResponseWriter, r *http.Request) {
 
 	// Answer by the request's key and query.
 	key := strings.TrimPrefix(r.URL.Path, "/bucket/")
@@ -149,4 +161,11 @@ func (b *fakeBucket) keys() []string {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	return slices.Sorted(maps.Keys(b.objects))
+}
+
+// listCount returns the object listing requests served so far.
+func (b *fakeBucket) listCount() int {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	return b.lists
 }

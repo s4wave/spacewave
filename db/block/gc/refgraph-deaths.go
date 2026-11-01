@@ -17,16 +17,18 @@ import (
 // kills, parent before child, and whether the page frees, and returns the
 // change to each shared count the record makes.
 //
-// The walk starts at each listed page that no replaced page names. A page
-// whose parent in the walk lives is alive. Any other page loses a count and is
-// alive when it has one, and frees when it has none. Below a page in Removed,
-// every page is killed too, down to the pages in Replaced, in Kept, or named
-// by a replaced page without being listed, which are live. Each live child of
-// a killed page then changes by its parent's fate: a child whose edge from the
-// new tree was counted already, in Held or Existed, loses one when the parent
-// frees; any other child gains one when the parent lives, since the new
-// tree's written parent names it too. The old root loses the lineage's count
-// last when it is in Existed.
+// The walk starts at each listed page that no listed page names: a page a write
+// dirtied before dropping its parent's subtree is listed replaced under a
+// removed parent, and loses its count only through that parent. A page whose
+// parent in the walk lives is alive. Any other page loses a count and is alive
+// when it has one, and frees when it has none. Below a page in Removed, every
+// page is killed too, down to the pages in Kept or named by a replaced page
+// without being listed, which are live. Each live child of a killed page then
+// changes by its parent's fate: a child whose edge from the new tree was
+// counted already, in Held or Existed, loses one when the parent frees; any
+// other child gains one when the parent lives, since the new tree's written
+// parent names it too. The old root loses the lineage's count last when it is
+// in Existed.
 //
 // A killed page whose child list the graph does not hold is a hole: the walk
 // skips its children, which can only leave a count too high.
@@ -48,21 +50,25 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 	// Walk the record in one read transaction, gathering the count changes.
 	changes := make(map[string]int64)
 	err := g.transaction(ctx, false, func(ctx context.Context, tx kvtx.Tx) error {
-		// Read the replaced pages' child lists: their unlisted children are
-		// live, and their listed children are not roots of the walk.
-		replaced := make(map[string][]string, len(dead.Replaced))
+		// Read the listed pages' child lists: their listed children are not
+		// roots of the walk, and a replaced page's unlisted children are live.
+		listedChildren := make(map[string][]string, len(listed))
 		named := make(map[string]struct{})
-		for _, ref := range dead.Replaced {
-			node := BlockIRI(ref)
+		for node := range listed {
 			children, _, err := readChildrenTx(ctx, tx, node)
 			if err != nil {
 				return err
 			}
-			replaced[node] = children
+			listedChildren[node] = children
 			for _, child := range children {
 				if _, ok := listed[child]; ok {
 					named[child] = struct{}{}
-				} else {
+				}
+			}
+		}
+		for _, ref := range dead.Replaced {
+			for _, child := range listedChildren[BlockIRI(ref)] {
+				if _, ok := listed[child]; !ok {
 					live[child] = struct{}{}
 				}
 			}
@@ -106,7 +112,7 @@ func (g *RefGraph) ResolveDeaths(ctx context.Context, from *block.BlockRef, dead
 			}
 
 			// Hand each child its parent's fate.
-			children, ok := replaced[st.node]
+			children, ok := listedChildren[st.node]
 			if !ok {
 				var err error
 				children, _, err = readChildrenTx(ctx, tx, st.node)

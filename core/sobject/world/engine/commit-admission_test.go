@@ -513,11 +513,14 @@ func TestEngineReplacedWithAdmissions(t *testing.T) {
 	w.create(t, "replace/3")
 }
 
-// TestCheckpointSkipsPendingAdmission holds the publication of the write that
+// TestCheckpointUnderOverlappingWrites holds the publication of the write that
 // makes MinCheckpointOperations operations stable. The engine does not
 // checkpoint, or hold the writer lock, while it waits for the receipt, and
-// checkpoints once the publication is durable.
-func TestCheckpointSkipsPendingAdmission(t *testing.T) {
+// adopts nothing when the publication fails. It then writes so that each
+// publication is admitted before the one before it lands, as a busy server
+// does, and the engine still checkpoints. The World keeps every committed
+// write and none of the failed one.
+func TestCheckpointUnderOverlappingWrites(t *testing.T) {
 	// Write one operation short of a checkpoint. Every operation of the only
 	// roster member is stable.
 	w, so := startGatedWorld(t, t.TempDir(), nil)
@@ -526,9 +529,11 @@ func TestCheckpointSkipsPendingAdmission(t *testing.T) {
 		w.create(t, "checkpoint/"+strconv.Itoa(n))
 	}
 
-	// Hold the write that reaches it.
-	applying, release := so.hold(nil)
-	held := commitAsync(t, w.newWrite(t, "checkpoint/"+strconv.Itoa(n)))
+	// Hold the write that reaches it, and fail it.
+	errHeld := errors.New("held publication failed")
+	applying, release := so.hold(errHeld)
+	failed := "checkpoint/" + strconv.Itoa(n)
+	held := commitAsync(t, w.newWrite(t, failed))
 	waitReached(t, applying)
 
 	// The writer lock is free.
@@ -540,30 +545,81 @@ func TestCheckpointSkipsPendingAdmission(t *testing.T) {
 	}
 	write.Discard()
 
-	// The durable state has no checkpoint.
+	// The durable state has no checkpoint while it is held.
 	durable, relDurable, err := so.AccessSharedObjectState(t.Context(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer relDurable()
-	checkpoint, err := durable.GetValue().GetCheckpoint(t.Context())
-	if err != nil {
-		t.Fatal(err)
+	checkHeight := func(when string) {
+		checkpoint, err := durable.GetValue().GetCheckpoint(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if height := checkpoint.GetHeight(); height != 0 {
+			t.Fatalf("checkpointed at height %d %s", height, when)
+		}
 	}
-	if height := checkpoint.GetHeight(); height != 0 {
-		t.Fatalf("checkpointed at height %d while the publication is held", height)
+	checkHeight("while the publication is held")
+
+	// Fail it: nothing adopts the World it held.
+	release()
+	if err := <-held; !errors.Is(err, errHeld) {
+		t.Fatalf("held commit returned %v, want the publication's failure", err)
+	}
+	n++
+	w.create(t, "checkpoint/"+strconv.Itoa(n))
+	checkHeight("on a failed publication")
+
+	// Overlap the writes: admit each before releasing the one before it. A
+	// write the checkpoint's state write blocks is not admitted, so the
+	// previous one is released after a pause.
+	trimmed := make(chan struct{})
+	go func() {
+		_, err := durable.WaitValueWithValidator(t.Context(), func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
+			return checkpointTrimmed(t.Context(), snap)
+		}, nil)
+		if err == nil {
+			close(trimmed)
+		}
+	}()
+	var commits []<-chan error
+	prev := func() {}
+	for round := 0; ; round++ {
+		select {
+		case <-trimmed:
+		default:
+			if round == 4*sobject.MinCheckpointOperations {
+				t.Fatal("no checkpoint under overlapping writes")
+			}
+			n++
+			applying, release := so.hold(nil)
+			commits = append(commits, commitAsync(t, w.newWrite(t, "checkpoint/"+strconv.Itoa(n))))
+			select {
+			case <-applying:
+			case <-time.After(200 * time.Millisecond):
+			}
+			prev()
+			prev = release
+			continue
+		}
+		break
+	}
+	prev()
+	for _, done := range commits {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	// Release it: the engine checkpoints the stable operations.
-	release()
-	if err := <-held; err != nil {
-		t.Fatal(err)
-	}
-	_, err = durable.WaitValueWithValidator(t.Context(), func(snap sobject.SharedObjectStateSnapshot) (bool, error) {
-		return checkpointTrimmed(t.Context(), snap)
-	}, nil)
-	if err != nil {
-		t.Fatal(err)
+	// The World holds every committed write and not the failed one.
+	read := newRead(t, w)
+	defer read.Discard()
+	for i := 0; i <= n; i++ {
+		key := "checkpoint/" + strconv.Itoa(i)
+		if found := worldHas(t, read, key); found != (key != failed) {
+			t.Fatalf("%s present = %v, want %v", key, found, !found)
+		}
 	}
 }
 

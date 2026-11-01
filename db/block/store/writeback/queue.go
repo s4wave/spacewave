@@ -15,12 +15,14 @@ import (
 )
 
 // markedPrefix prefixes the key that records a block awaiting upload, so a
-// repeated write finds it by hash: marked/<hash>.
+// repeated write finds it by hash: marked/<hash>. The value is the block's
+// queue key.
 const markedPrefix = "marked/"
 
 // queuePrefix prefixes the queue entry of each block awaiting upload, ordered
 // by write time: queue/<16 hex digits of Unix nanoseconds>/<hash>. The value
-// is the block size.
+// is the block size, followed by @ and the Unix nanoseconds of the latest
+// repeated write once there is one.
 const queuePrefix = "queue/"
 
 // queueTimeLen is the length of the write time in a queue key.
@@ -36,6 +38,9 @@ type queueEntry struct {
 	hash *hash.Hash
 	// size is the block size in bytes.
 	size int64
+	// value is the entry's value, owned by the entry. A repeated write of the
+	// block changes it.
+	value []byte
 }
 
 // scanQueue calls cb with each queue entry in write order until cb returns an
@@ -52,7 +57,9 @@ func scanQueue(ctx context.Context, tx kvtx.Tx, cb func(queueEntry) error) error
 		if err != nil {
 			return err
 		}
-		entry.size, _ = strconv.ParseInt(string(value), 10, 64)
+		entry.value = bytes.Clone(value)
+		size, _, _ := bytes.Cut(value, []byte("@"))
+		entry.size, _ = strconv.ParseInt(string(size), 10, 64)
 		if err := cb(entry); err != nil {
 			return err
 		}
@@ -134,4 +141,71 @@ func deletePrefix(ctx context.Context, tx kvtx.Tx, prefix string) error {
 		}
 	}
 	return nil
+}
+
+// queueDelta is the change queued blocks make to the queue's projection.
+type queueDelta struct {
+	// added is the number of blocks that were not queued before.
+	added int
+	// addedBytes is the size of those blocks.
+	addedBytes int64
+	// oldest is the earliest write time of those blocks, while added is not
+	// zero.
+	oldest time.Time
+}
+
+// queueMarks queues the marked blocks in tx and returns the blocks it queued
+// for the first time.
+//
+// A block that is queued already keeps its first write time, so it uploads
+// with its first write. Its queue value changes, so an upload that read the
+// block before this write finds the entry changed and keeps it: the upload
+// could have read the block absent, as a swept block that this write stored
+// again.
+func queueMarks(ctx context.Context, tx kvtx.Tx, marks []Mark) (queueDelta, error) {
+	var delta queueDelta
+	now := time.Now()
+	for _, mark := range marks {
+		// Find the block's marker, which names its queue entry.
+		key := markedKey(mark.Hash)
+		queued, found, err := tx.Get(ctx, key)
+		if err != nil {
+			return queueDelta{}, err
+		}
+
+		// Change the queue value of a block that is queued already.
+		if found && len(queued) != 0 {
+			if err := tx.Set(ctx, queued, queueValue(mark.Size, now)); err != nil {
+				return queueDelta{}, err
+			}
+			continue
+		}
+
+		// Queue the block at its write time.
+		at := queueTime(mark.At)
+		entryKey := queueKey(at, mark.Hash)
+		if err := tx.Set(ctx, key, entryKey); err != nil {
+			return queueDelta{}, err
+		}
+		if err := tx.Set(ctx, entryKey, queueValue(mark.Size, time.Time{})); err != nil {
+			return queueDelta{}, err
+		}
+		if delta.added == 0 || at.Before(delta.oldest) {
+			delta.oldest = at
+		}
+		delta.added++
+		delta.addedBytes += mark.Size
+	}
+	return delta, nil
+}
+
+// queueValue returns the value of a queue entry for a block of size bytes. A
+// zero repeated gives the value of the first write.
+func queueValue(size int64, repeated time.Time) []byte {
+	value := strconv.AppendInt(nil, size, 10)
+	if repeated.IsZero() {
+		return value
+	}
+	value = append(value, '@')
+	return strconv.AppendInt(value, repeated.UnixNano(), 10)
 }

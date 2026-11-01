@@ -21,14 +21,14 @@ type Replacements struct {
 	// Kept lists live pages a write attached under a new parent, such as a
 	// moved subtree or a written page. Expanding Removed stops at them.
 	Kept []*BlockRef
-	// Held lists the stored pages, among Kept, that may have gained a holder
-	// without being put: a page the interval wrote, or the new root, now names
-	// a stored page that no page the interval replaced named, such as another
-	// World's object root or a copied subtree. A page put again in the interval
-	// had its holders counted at the put instead. Each adds one shared count
-	// when the record is named. A held page whose old parent the record lists dead moved instead,
-	// as when the root moves onto a page below it; applying the record takes
-	// that count back.
+	// Held lists the stored pages that may have gained a holder without being
+	// put, once for each page the interval wrote, or the new root, that names
+	// one, such as another World's object root or a copied subtree. A page put
+	// again in the interval had its holders counted at the put instead. Each
+	// entry adds one shared count when the record is named. A held page whose
+	// old parent the record lists dead moved, as when the root moves onto a
+	// page below it; applying the record takes that parent's count back when
+	// it frees.
 	Held []*BlockRef
 	// Existed lists the live pages whose edge from the new tree was counted
 	// already: a put found the page stored, or only found or untouched pages

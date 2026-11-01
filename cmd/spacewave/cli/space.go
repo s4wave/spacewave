@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	devtool_store "github.com/s4wave/spacewave/bldr/devtool/store"
+	"github.com/s4wave/spacewave/db/block"
+
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
@@ -22,10 +25,8 @@ import (
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
-	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/sdk/cli/runner"
-	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
@@ -699,7 +700,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 
 			// Open the source volume.
 			le := logrus.NewEntry(logrus.New())
-			vol, err := openDevtoolVolume(ctx, le, dbPath)
+			vol, err := devtool_store.OpenVolume(ctx, le, dbPath)
 			if err != nil {
 				return errors.Wrap(err, "open devtool storage")
 			}
@@ -712,7 +713,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 
 			// Collect and canonicalize one complete deterministic set.
-			refs, err := lookupDevtoolManifestSet(ctx, le, vol, manifestID)
+			refs, err := devtool_store.LookupManifestSet(ctx, le, vol, manifestID)
 			if err != nil {
 				return errors.Wrap(err, "lookup manifest set")
 			}
@@ -766,75 +767,16 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				w.WriteString("platform=" + ref.GetMeta().GetPlatformId() + " rev=" + strconv.FormatUint(ref.GetMeta().GetRev(), 10) + " ref=" + ref.GetManifestRef().GetRootRef().MarshalString() + "\n")
 			}
 
-			// Open, send, and exchange the deployment stream.
-			strm, err := spaceSvc.DeployManifests(ctx)
-			if err != nil {
-				return errors.Wrap(err, "open deploy stream")
-			}
-			err = strm.Send(&s4wave_deploy.DeployManifestsMessage{
-				Body: &s4wave_deploy.DeployManifestsMessage_Request{
-					Request: &s4wave_deploy.DeployManifestsRequest{ObjectKey: key, ManifestRefs: refs},
-				},
+			// Deploy the set, answering block requests from the devtool volume.
+			err = s4wave_space.DeployManifests(ctx, spaceSvc, key, refs, vol.GetBlock, func(ref *block.BlockRef) {
+				w.WriteString("server requested block: " + ref.MarshalString() + "\n")
 			})
 			if err != nil {
-				return errors.Wrap(err, "send deploy request")
-			}
-			return runDeployBlockExchange(ctx, strm, vol, w)
-		},
-	}
-}
-
-// runDeployBlockExchange handles the bidirectional block exchange for deploy.
-// The server requests blocks and the CLI responds with data from the devtool volume.
-func runDeployBlockExchange(
-	ctx context.Context,
-	strm s4wave_space.SRPCSpaceResourceService_DeployManifestsClient,
-	vol volume.Volume,
-	w *os.File,
-) error {
-	for {
-		msg, err := strm.Recv()
-		if err != nil {
-			return errors.Wrap(err, "recv from server")
-		}
-
-		switch body := msg.GetBody().(type) {
-		case *s4wave_deploy.DeployManifestsMessage_BlockRequest:
-			ref := body.BlockRequest.GetRef()
-			w.WriteString("server requested block: " + ref.MarshalString() + "\n")
-
-			data, found, err := vol.GetBlock(ctx, ref)
-			if err != nil {
-				return errors.Wrap(err, "read block from devtool volume")
-			}
-
-			resp := &s4wave_deploy.BlockResponse{
-				Ref:      ref,
-				NotFound: !found,
-			}
-			if found {
-				resp.Data = data
-			}
-			err = strm.Send(&s4wave_deploy.DeployManifestsMessage{
-				Body: &s4wave_deploy.DeployManifestsMessage_BlockResponse{
-					BlockResponse: resp,
-				},
-			})
-			if err != nil {
-				return errors.Wrap(err, "send block response")
-			}
-
-		case *s4wave_deploy.DeployManifestsMessage_Result:
-			result := body.Result
-			if result.GetError() != "" {
-				return errors.Errorf("deploy failed: %s", result.GetError())
+				return err
 			}
 			w.WriteString("deploy complete\n")
 			return nil
-
-		default:
-			return errors.Errorf("unexpected message from server: %T", body)
-		}
+		},
 	}
 }
 

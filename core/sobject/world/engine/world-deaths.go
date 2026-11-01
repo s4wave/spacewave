@@ -14,8 +14,8 @@ import (
 const maxWorldTransitions = 4096
 
 // maxWorldPuts bounds the World page puts worldDeaths holds between two
-// compositions. Past it the puts are dropped, so the pages they found count as
-// created, which leaks.
+// compositions. Past it the puts are dropped and the interval forfeits, since
+// a record netted without them could under-count.
 const maxWorldPuts = 1 << 16
 
 // worldTransition is one World commit: the roots it moved between and what
@@ -30,28 +30,32 @@ type worldTransition struct {
 	step *block.ReplacementStep
 }
 
-// worldPut is a publication that put World pages: its receipt, and the key of
-// each entry whose put the store may report found, by index.
+// worldPut is a publication that put World pages: its receipt, each entry
+// whose put the store may report found, by index, keeping only its ref and the
+// refs it names, and the number of recounts the ledger had asked for when it
+// was submitted.
 type worldPut struct {
-	receipt *block.PublicationReceipt
-	keys    map[int]string
+	receipt  *block.PublicationReceipt
+	pages    map[int]*block.PutBatchEntry
+	recounts uint64
 }
 
 // newWorldPut returns the puts of pages among entries, the entries of the
-// publication receipt resolves. A counted page never reports found.
-func newWorldPut(receipt *block.PublicationReceipt, entries, pages []*block.PutBatchEntry) worldPut {
-	// Index the pages, then key each one the receipt reports by position.
+// publication receipt resolves, submitted after recounts recounts were asked
+// for. A counted page never reports found.
+func newWorldPut(receipt *block.PublicationReceipt, entries, pages []*block.PutBatchEntry, recounts uint64) worldPut {
+	// Index the pages, then keep each one the receipt reports by position.
 	isPage := make(map[*block.PutBatchEntry]struct{}, len(pages))
 	for _, e := range pages {
 		isPage[e] = struct{}{}
 	}
-	keys := make(map[int]string, len(pages))
+	kept := make(map[int]*block.PutBatchEntry, len(pages))
 	for i, e := range entries {
 		if _, ok := isPage[e]; ok && !e.Tombstone && !e.Counted {
-			keys[i] = e.Ref.MarshalString()
+			kept[i] = &block.PutBatchEntry{Ref: e.Ref, Refs: e.Refs}
 		}
 	}
-	return worldPut{receipt: receipt, keys: keys}
+	return worldPut{receipt: receipt, pages: kept, recounts: recounts}
 }
 
 // pendingNet is a named World's interval waiting for the puts that stored its
@@ -64,10 +68,15 @@ func newWorldPut(receipt *block.PublicationReceipt, entries, pages []*block.PutB
 // are named, counting it as stalled; its deaths leak and nothing is freed.
 type pendingNet struct {
 	// steps are the steps from the last named World to this one, joined only
-	// when netting, off the writer lock.
+	// when netting, off the writer lock, or nil when a write on the chain
+	// recorded none: the record then nets from the puts alone.
 	steps block.ReplacementSteps
 	// puts are the publications that put the interval's pages.
 	puts []worldPut
+	// lineage is the interval that ended at the World this one starts at,
+	// whose puts show how the store first stored that World's root, or nil
+	// when none was recorded. It is dropped once the encoding starts.
+	lineage *pendingNet
 	// sealed is set once the naming publication joined puts.
 	sealed bool
 	// encoded closes once the record is encoded off the writer lock, after
@@ -107,20 +116,34 @@ func (n *pendingNet) ready() bool {
 }
 
 // poll starts encoding the interval's record as seq from from to to once
-// every put resolved, and reports whether the encoded record is ready. Netting
-// walks every page the interval wrote, tens of milliseconds for a long
-// interval, so it runs off the writer lock and no commit waits on it; it
-// waits on nothing, so it always ends. Call it under the writer lock.
-func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef) bool {
-	// Start the encoding once every put resolved.
+// every put resolved, and reports whether the encoded record is ready. The
+// ledger has asked for recounts recounts, and recounting is set while it
+// waits for one. Netting walks every page the interval wrote, tens of
+// milliseconds for a long interval, so it runs off the writer lock and no
+// commit waits on it; it waits on nothing, so it always ends. Call it under
+// the writer lock.
+//
+// A record whose from the store's counts may not hold as a holder nets from
+// the puts alone, as one without steps does: it kills nothing before the
+// interval and takes nothing from from, which leaks the tree at from.
+func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef, recounts uint64, recounting bool) bool {
+	// Start the encoding once every put, and the lineage's, resolved.
 	if n.encoded == nil {
-		if !n.ready() {
+		if !n.ready() || (n.lineage != nil && !n.lineage.ready()) {
 			return false
 		}
+		if n.steps != nil && !from.GetEmpty() && !n.counted(from, recounts, recounting) {
+			writeFlows.unfunded.Add(1)
+			n.steps = nil
+		}
+		n.lineage = nil
 		n.encoded = make(chan struct{})
+		if n.steps == nil {
+			from = nil
+		}
 		go func() {
 			defer close(n.encoded)
-			n.dead = n.net()
+			n.dead = n.net(to)
 			n.blocks, n.record, n.err = block.EncodeDeadlist(seq, from, to, n.dead)
 		}()
 		return false
@@ -135,21 +158,89 @@ func (n *pendingNet) poll(seq uint64, from, to *block.BlockRef) bool {
 	}
 }
 
-// net returns what died in the interval. A page a successful put reported the
-// store held is found; a page no successful put stored is never listed dead,
-// which leaks when another path stored it. Call it once ready.
-func (n *pendingNet) net() *block.Replacements {
-	puts := make(map[string]bool)
+// counted reports whether the store's shared counts hold from, the root the
+// interval starts at, with its lineage as a holder: the record that takes from
+// is the first holder of the root, the one a count leaves out, and applying it
+// takes a count from from.
+//
+// A sharing walk counts the holders the graph holds and the From of each
+// named record, but not the lineage of a root no record names yet, so a walk
+// between the root's first put and the naming of its record counts it one
+// holder short. The counts hold the lineage only when the first successful put
+// of from in the lineage's interval stored it afresh while the counts were
+// complete, and the ledger has asked for no recount since that put was
+// submitted, nor waits for one, so the record's name reaches the store before
+// any walk the ledger asks for begins. A walk the store begins on its own,
+// when it opens, restarts the engine and its ledger with it.
+//
+// The ledger counts a recount once the save asking for it is submitted, after
+// any put submitted with it, so a put applied after a recount began may count
+// as one submitted before it; that only leaks.
+func (n *pendingNet) counted(from *block.BlockRef, recounts uint64, recounting bool) bool {
+	// Find the first successful put of from. A page listed twice in one put
+	// finds its own first copy, so its first entry decides.
+	if n.lineage == nil || recounting {
+		return false
+	}
+	for _, put := range n.lineage.puts {
+		if put.receipt.Err() != nil {
+			continue
+		}
+		first := -1
+		for i, e := range put.pages {
+			if e.Ref.EqualsRef(from) && (first < 0 || i < first) {
+				first = i
+			}
+		}
+		if first < 0 {
+			continue
+		}
+
+		// Require a fresh put while counting, with no recount since.
+		existed := put.receipt.Existed()
+		found := first < len(existed) && existed[first]
+		return !found && put.receipt.Counting() && put.recounts == recounts
+	}
+	return false
+}
+
+// net returns what died in the interval ending at to. A page every successful
+// put of it reported the store held is found; one any put stored afresh is not,
+// since that put deferred the edges to its children and the record counts
+// them. A page no successful put stored is never listed dead, which leaks when
+// another path stored it. Without steps, the
+// record counts the edges of the pages the successful puts stored afresh and
+// kills nothing, as block.NetPuts describes. Call it once ready.
+func (n *pendingNet) net(to *block.BlockRef) *block.Replacements {
+	// Gather the pages the successful puts carried, and which of them a put
+	// stored afresh.
+	fresh := make(map[string]bool)
+	carried := make(map[string]struct{})
+	var pages []*block.PutBatchEntry
 	for _, put := range n.puts {
 		if put.receipt.Err() != nil {
 			continue
 		}
 		existed := put.receipt.Existed()
-		for i, key := range put.keys {
-			puts[key] = puts[key] || (i < len(existed) && existed[i])
+		for i, e := range put.pages {
+			key := e.Ref.MarshalString()
+			if _, ok := carried[key]; !ok {
+				carried[key] = struct{}{}
+				pages = append(pages, e)
+			}
+			fresh[key] = fresh[key] || i >= len(existed) || !existed[i]
 		}
 	}
-	return n.steps.Join().Net(puts)
+
+	// Net the joined steps, or count the puts' edges.
+	if n.steps == nil {
+		return block.NetPuts(pages, fresh)
+	}
+	found := make(map[string]bool, len(fresh))
+	for key, isFresh := range fresh {
+		found[key] = !isFresh
+	}
+	return n.steps.Join().Net(found)
 }
 
 // worldDeaths gathers the World transitions the engine's block engines commit,
@@ -173,14 +264,20 @@ type worldDeaths struct {
 	// from is the root the next composition starts at, or nil when the
 	// interval is already forfeited.
 	from *block.BlockRef
+	// fromNet is the interval that ended at from, or nil when none was
+	// recorded.
+	fromNet *pendingNet
 	// trs holds the transitions since the last named World, in the order
 	// their commits recorded them.
 	trs []worldTransition
 	// puts are the publications that put World pages since the last
 	// composition.
 	puts []worldPut
-	// putKeys is the number of keys in puts.
+	// putKeys is the number of pages in puts.
 	putKeys int
+	// putsDropped is set when puts filled and a publication's pages were
+	// dropped, so no record of the interval can count them.
+	putsDropped bool
 }
 
 // newWorldDeaths starts gathering at from, a World the store holds, or with
@@ -201,7 +298,7 @@ func (d *worldDeaths) add(from, to *block.BlockRef, step *block.ReplacementStep)
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if len(d.trs) >= maxWorldTransitions {
-		d.from, d.trs = nil, nil
+		d.from, d.fromNet, d.trs = nil, nil, nil
 		return
 	}
 	d.trs = append(d.trs, worldTransition{from: from.Clone(), to: to.Clone(), step: step})
@@ -211,40 +308,42 @@ func (d *worldDeaths) add(from, to *block.BlockRef, step *block.ReplacementStep)
 // puts are full.
 func (d *worldDeaths) addPut(put worldPut) {
 	// Skip a publication that put no pages.
-	if len(put.keys) == 0 {
+	if len(put.pages) == 0 {
 		return
 	}
 
 	// Add it unless the puts are full.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	if d.putKeys+len(put.keys) > maxWorldPuts {
+	if d.putKeys+len(put.pages) > maxWorldPuts {
+		d.putsDropped = true
 		return
 	}
 	d.puts = append(d.puts, put)
-	d.putKeys += len(put.keys)
+	d.putKeys += len(put.pages)
 }
 
 // take joins the steps from the last named World, from, to the World at root
-// with the puts since, and starts the next interval at root. net is nil when
-// no chain of recorded transitions reaches root or one on it forfeited; the
-// interval then leaks. from is nil when the interval forfeited before root was
-// named. Only the later transitions root reaches stay.
+// with the puts since, and starts the next interval at root. When no chain of
+// recorded transitions reaches root, or one on it recorded no step, net has no
+// steps and the record nets from the puts alone. net is nil when puts were
+// dropped; the interval then forfeits. from is nil when no World was named
+// before root, or the transitions filled. Only the later transitions root
+// reaches stay.
 func (d *worldDeaths) take(root *block.BlockRef) (from *block.BlockRef, net *pendingNet) {
 	// Walk the chain back from root and join it.
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	steps, last := d.compose(root)
 	from = d.from
-	if from != nil && steps != nil {
-		net = &pendingNet{steps: steps, puts: d.puts}
+	if !d.putsDropped {
+		net = &pendingNet{steps: steps, puts: d.puts, lineage: d.fromNet}
 	}
 
 	// Keep the later transitions root reaches and start there.
 	d.prune(root, last)
-	d.from = root.Clone()
-	d.puts = nil
-	d.putKeys = 0
+	d.from, d.fromNet = root.Clone(), net
+	d.puts, d.putKeys, d.putsDropped = nil, 0, false
 	return from, net
 }
 

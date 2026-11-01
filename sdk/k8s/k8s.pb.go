@@ -11,13 +11,12 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
-	sobject "github.com/s4wave/spacewave/core/sobject"
 )
 
 // Cluster is the root of the k8s/cluster object, which makes its Space a
 // Kubernetes cluster. The Device whose ProcessBinding approves the object
-// serves the Space's Kubernetes API on a loopback port, through the
-// spacewave-k8s plugin.
+// serves the Space's Kubernetes API through the spacewave-k8s plugin, and a
+// client reaches it through the object's web.fetch.FetchService.
 type Cluster struct {
 	unknownFields []byte
 }
@@ -27,68 +26,6 @@ func (x *Cluster) Reset() {
 }
 
 func (*Cluster) ProtoMessage() {}
-
-// GetAccessRequest is the request type for GetAccess.
-type GetAccessRequest struct {
-	unknownFields []byte
-}
-
-func (x *GetAccessRequest) Reset() {
-	*x = GetAccessRequest{}
-}
-
-func (*GetAccessRequest) ProtoMessage() {}
-
-// GetAccessResponse says how a client on this Device reaches the Space's
-// Kubernetes API as the caller.
-type GetAccessResponse struct {
-	unknownFields []byte
-	// Server is the URL of the API server, such as https://127.0.0.1:6449.
-	Server string `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
-	// Token is the caller's bearer token. It lasts while the API server runs,
-	// and a client that the server refuses asks for a new one.
-	Token string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
-	// Role is the caller's Space role, which authorizes the token's requests.
-	Role sobject.SOParticipantRole `protobuf:"varint,3,opt,name=role,proto3" json:"role,omitempty"`
-	// CertificateAuthority is the PEM certificate the API server presents,
-	// which a client trusts for Server. It lasts while the plugin keeps its
-	// state on this Device.
-	CertificateAuthority []byte `protobuf:"bytes,4,opt,name=certificate_authority,json=certificateAuthority,proto3" json:"certificateAuthority,omitempty"`
-}
-
-func (x *GetAccessResponse) Reset() {
-	*x = GetAccessResponse{}
-}
-
-func (*GetAccessResponse) ProtoMessage() {}
-
-func (x *GetAccessResponse) GetServer() string {
-	if x != nil {
-		return x.Server
-	}
-	return ""
-}
-
-func (x *GetAccessResponse) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-func (x *GetAccessResponse) GetRole() sobject.SOParticipantRole {
-	if x != nil {
-		return x.Role
-	}
-	return sobject.SOParticipantRole(0)
-}
-
-func (x *GetAccessResponse) GetCertificateAuthority() []byte {
-	if x != nil {
-		return x.CertificateAuthority
-	}
-	return nil
-}
 
 func (m *Cluster) CloneVT() *Cluster {
 	if m == nil {
@@ -105,40 +42,6 @@ func (m *Cluster) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *GetAccessRequest) CloneVT() *GetAccessRequest {
-	if m == nil {
-		return (*GetAccessRequest)(nil)
-	}
-	r := new(GetAccessRequest)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *GetAccessRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *GetAccessResponse) CloneVT() *GetAccessResponse {
-	if m == nil {
-		return (*GetAccessResponse)(nil)
-	}
-	r := new(GetAccessResponse)
-	r.Server = m.Server
-	r.Token = m.Token
-	r.Role = m.Role
-	r.CertificateAuthority = protobuf_go_lite.CloneBytes(m.CertificateAuthority)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *GetAccessResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
 func (this *Cluster) EqualVT(that *Cluster) bool {
 	if this == that {
 		return true
@@ -150,52 +53,6 @@ func (this *Cluster) EqualVT(that *Cluster) bool {
 
 func (this *Cluster) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Cluster)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *GetAccessRequest) EqualVT(that *GetAccessRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *GetAccessRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*GetAccessRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *GetAccessResponse) EqualVT(that *GetAccessResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Server != that.Server {
-		return false
-	}
-	if this.Token != that.Token {
-		return false
-	}
-	if this.Role != that.Role {
-		return false
-	}
-	if !protobuf_go_lite.EqualBytes(this.CertificateAuthority, that.CertificateAuthority) {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *GetAccessResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*GetAccessResponse)
 	if !ok {
 		return false
 	}
@@ -232,102 +89,6 @@ func (x *Cluster) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the GetAccessRequest message to JSON.
-func (x *GetAccessRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the GetAccessRequest to JSON.
-func (x *GetAccessRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the GetAccessRequest message from JSON.
-func (x *GetAccessRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		// no fields
-	})
-}
-
-// UnmarshalJSON unmarshals the GetAccessRequest from JSON.
-func (x *GetAccessRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the GetAccessResponse message to JSON.
-func (x *GetAccessResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Server != "" || s.HasField("server") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("server")
-		s.WriteString(x.Server)
-	}
-	if x.Token != "" || s.HasField("token") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("token")
-		s.WriteString(x.Token)
-	}
-	if x.Role != 0 || s.HasField("role") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("role")
-		x.Role.MarshalProtoJSON(s)
-	}
-	if len(x.CertificateAuthority) > 0 || s.HasField("certificateAuthority") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("certificateAuthority")
-		s.WriteBytes(x.CertificateAuthority)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the GetAccessResponse to JSON.
-func (x *GetAccessResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the GetAccessResponse message from JSON.
-func (x *GetAccessResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "server":
-			s.AddField("server")
-			x.Server = s.ReadString()
-		case "token":
-			s.AddField("token")
-			x.Token = s.ReadString()
-		case "role":
-			s.AddField("role")
-			x.Role.UnmarshalProtoJSON(s)
-		case "certificate_authority", "certificateAuthority":
-			s.AddField("certificate_authority")
-			x.CertificateAuthority = s.ReadBytes()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the GetAccessResponse from JSON.
-func (x *GetAccessResponse) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
 func (m *Cluster) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -360,120 +121,12 @@ func (m *Cluster) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *GetAccessRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetAccessRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *GetAccessRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *GetAccessResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GetAccessResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *GetAccessResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.CertificateAuthority) > 0 {
-		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CertificateAuthority)
-		i--
-		dAtA[i] = 0x22
-	}
-	if m.Role != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Role))
-		i--
-		dAtA[i] = 0x18
-	}
-	if len(m.Token) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Token)
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Server) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Server)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *Cluster) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *GetAccessRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *GetAccessResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Server)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Token)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Role)
-	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CertificateAuthority)
 	n += len(m.unknownFields)
 	return n
 }
@@ -485,42 +138,6 @@ func (x *Cluster) MarshalProtoText() string {
 }
 
 func (x *Cluster) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *GetAccessRequest) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "GetAccessRequest")
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *GetAccessRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *GetAccessResponse) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetAccessResponse")
-	if x.Server != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "server")
-		protobuf_go_lite.TextWriteString(&sb, x.Server)
-	}
-	if x.Token != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "token")
-		protobuf_go_lite.TextWriteString(&sb, x.Token)
-	}
-	if x.Role != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "role")
-		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOParticipantRole(x.Role))
-	}
-	if len(x.CertificateAuthority) != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "certificate_authority")
-		protobuf_go_lite.TextWriteBytes(&sb, x.CertificateAuthority)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *GetAccessResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -544,131 +161,6 @@ func (m *Cluster) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: Cluster: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *GetAccessRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetAccessRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetAccessRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *GetAccessResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GetAccessResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetAccessResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Server", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Server = v
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Token", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Token = v
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
-			}
-			m.Role = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Role = sobject.SOParticipantRole(_v)
-			if err != nil {
-				return err
-			}
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CertificateAuthority", wireType)
-			}
-			m.CertificateAuthority, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CertificateAuthority, dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // publisher returns the atomic publisher of the account's own storage, or nil
@@ -21,9 +22,7 @@ func (b *BlockStore) publisher() block.AtomicPublisher {
 }
 
 // SupportsAtomicPublication reports whether the account's own storage
-// publishes atomically. SubmitAtomic still rejects a publication while the
-// store queues writes for upload, since the publication would skip their
-// upload markers.
+// publishes atomically.
 func (b *BlockStore) SupportsAtomicPublication() bool {
 	return b.publisher() != nil
 }
@@ -36,12 +35,47 @@ func (b *BlockStore) AtomicPublicationVolumeID() string {
 	return ""
 }
 
-// SubmitAtomic admits a publication to the account's own storage. It returns
-// block.ErrAtomicPublicationUnsupported while writes queue for upload; a
-// storage backend chosen after admission backfills the published blocks.
+// ReservePublication claims SQL-primary admission capacity without writer locks.
+// Other placements keep their existing publisher path.
+func (b *BlockStore) ReservePublication(ctx context.Context, size int64) (block.PublicationReservation, error) {
+	if !b.SupportsPublicationReservations() {
+		return nil, nil
+	}
+	return b.placement.sqlPublish.reserve(ctx, size)
+}
+
+// SupportsPublicationReservations reports whether SQL-primary pre-lock claims are enabled.
+func (b *BlockStore) SupportsPublicationReservations() bool {
+	return b.placement != nil && b.placement.sqlPrimary && b.placement.sqlPublish != nil && sqlReservationsEnabled.Load()
+}
+
+// TryReservePublication claims SQL-primary capacity without a queue wait.
+func (b *BlockStore) TryReservePublication(ctx context.Context, size int64) (block.PublicationReservation, error) {
+	if !b.SupportsPublicationReservations() {
+		return nil, nil
+	}
+	r, err := b.placement.sqlPublish.reserveCapacity(ctx, size, false)
+	if r == nil {
+		return nil, err
+	}
+	return r, err
+}
+
+// AcquirePublicationPreparation bounds unpublished candidates to one per SQL store.
+func (b *BlockStore) AcquirePublicationPreparation(ctx context.Context) (func(), error) {
+	if !b.SupportsPublicationReservations() {
+		return func() {}, nil
+	}
+	return b.placement.sqlPublish.prepare.Lock(ctx)
+}
+
+// SubmitAtomic admits a publication to the account's own storage. While writes
+// queue for upload, the publication's blocks are marked in the transaction that
+// commits them, so the publication and its upload markers are atomic; a storage
+// backend chosen after admission backfills the published blocks.
 // A store whose SQL backend is primary admits it to its SQL publisher.
 func (b *BlockStore) SubmitAtomic(ctx context.Context, p *block.AtomicPublication) (*block.PublicationReceipt, error) {
-	// Leave writes queued for upload to the marking store.
+	// Require storage that publishes atomically.
 	publisher := b.publisher()
 	if publisher == nil {
 		return nil, block.ErrAtomicPublicationUnsupported
@@ -49,8 +83,11 @@ func (b *BlockStore) SubmitAtomic(ctx context.Context, p *block.AtomicPublicatio
 	if b.placement.sqlPrimary {
 		return b.placement.sqlPublish.submit(ctx, p)
 	}
+
+	// Mark the publication's blocks in its transaction while writes queue for
+	// upload. The writer commits the markers with the blocks, or neither.
 	if status, _ := b.placement.wb.GetStatus(); status.Enabled {
-		return nil, block.ErrAtomicPublicationUnsupported
+		ctx, _ = kvtx.WithBlockMarker(ctx, b.placement.wb)
 	}
 
 	// Admit the publication and drop decoded blocks its tombstones remove.

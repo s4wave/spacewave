@@ -338,27 +338,57 @@ func (v *Volume) setBucketRoot(ctx context.Context, blocks block.StoreOps, rg *b
 	}
 
 	// Count the held pages of a deadlist record the first time it is named.
-	if !v.holdCounts || ref.GetEmpty() || !strings.HasPrefix(name, block.DeadlistRootPrefix) || slices.Contains(old, next) {
+	if !v.holdCounts || ref.GetEmpty() || slices.Contains(old, next) {
 		return nil
+	}
+	counted, err := heldCounted(ctx, rg, bucketID, name, next)
+	if err != nil || counted {
+		return err
 	}
 	return addDeadlistHolds(ctx, blocks, rg, ref)
 }
 
+// heldCounted reports whether naming the block next under the root name of
+// bucketID adds no held counts: the name is no deadlist record's, or it names
+// a due record its pending name still holds, which counted them. A record due
+// before any save carried it is named due at once and never pending, so naming
+// it due counts them. A writer that drops the pending name before naming the
+// record due counts them twice, which only keeps pages.
+func heldCounted(ctx context.Context, rg *block_gc.RefGraph, bucketID, name, next string) (bool, error) {
+	// A pending name counts; another root name counts nothing.
+	if strings.HasPrefix(name, block.DeadlistRootPrefix) {
+		return false, nil
+	}
+	seq, ok := strings.CutPrefix(name, block.DeadlistDueRootPrefix)
+	if !ok {
+		return true, nil
+	}
+	pending, err := rg.GetOutgoingRefs(ctx, RootOwnerIRI(bucketID, block.DeadlistRootPrefix+seq))
+	return slices.Contains(pending, next), err
+}
+
 // addDeadlistHolds adds one shared count to each page the deadlist record at
-// ref lists as held. Naming the record is the holder's save, so the count
-// lands in the transaction that makes the new holders durable, exactly once
-// per record: renaming it due, or naming it again, adds nothing.
+// ref lists as held, and to the old root it holds until applied, which the
+// sharing walk counts as the holder its name implies. Naming the record is the
+// holder's save, so the count lands in the transaction that makes the new
+// holders durable, exactly once per record: renaming it due, or naming it
+// again, adds nothing, and applying it takes the old root's count. The writer
+// keeps the old root named until the save that names the record, so the old
+// root's count never falls between the two.
 func addDeadlistHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.RefGraph, ref *block.BlockRef) error {
 	// Read the record from the transaction that stores it.
-	_, dead, err := block.ReadDeadlist(ctx, blocks, ref)
+	first, dead, err := block.ReadDeadlist(ctx, blocks, ref)
 	if err != nil {
 		return fmt.Errorf("count held pages of deadlist record: %w", err)
 	}
 
-	// Count each held page.
-	held := make([]string, len(dead.Held))
-	for i, page := range dead.Held {
-		held[i] = block_gc.BlockIRI(page)
+	// Count each held page and the old root.
+	held := make([]string, 0, len(dead.Held)+1)
+	for _, page := range dead.Held {
+		held = append(held, block_gc.BlockIRI(page))
+	}
+	if from := first.GetFrom(); !from.GetEmpty() {
+		held = append(held, block_gc.BlockIRI(from))
 	}
 	return rg.AddHolds(ctx, held)
 }
@@ -368,6 +398,9 @@ func addDeadlistHolds(ctx context.Context, blocks block.StoreOps, rg *block_gc.R
 // names it, and one when no unmarked page of the batch names it: its parent
 // is a root or a page stored outside the batch. A found page whose parent the
 // batch also found gains nothing, since the stored parent already named it.
+// A page the batch stores afresh takes its first holder without a count; it
+// gains one for each new entry marked HoldsRoots that names it, whose edge
+// joins a holder outside the batch, such as a new World root's lineage.
 //
 // A writer marks Counted each entry it can prove the store held before its
 // interval began, such as a page of the old tree written back. Such an entry
@@ -422,19 +455,24 @@ func (v *Volume) addExistedHolds(ctx context.Context, blocks block.StoreOps, rg 
 	}
 
 	// Count each found entry once per new parent, or once with no parent in
-	// the batch.
+	// the batch, and each entry stored afresh once per new parent holding
+	// roots.
 	parents := make(map[string]int, len(listed))
 	var holds []string
 	for _, e := range listed {
+		isNew := !found[block_gc.BlockIRI(e.Ref)]
 		named := make(map[string]struct{}, len(e.Refs))
 		for _, child := range e.Refs {
 			key := block_gc.BlockIRI(child)
-			if _, dup := named[key]; dup || !found[key] {
+			isFound, isListed := found[key]
+			if _, dup := named[key]; dup || !isListed || (!isFound && !e.HoldsRoots) {
 				continue
 			}
 			named[key] = struct{}{}
-			parents[key]++
-			if !found[block_gc.BlockIRI(e.Ref)] {
+			if isFound {
+				parents[key]++
+			}
+			if isNew {
 				holds = append(holds, key)
 			}
 		}

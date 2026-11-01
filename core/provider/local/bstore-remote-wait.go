@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -13,22 +14,51 @@ import (
 // to open before it fails as unavailable.
 const remoteOpenWait = time.Minute
 
-// remoteOpenPoll is how often a waiting read checks for the open backend.
-const remoteOpenPoll = 50 * time.Millisecond
-
 // getRemoteReads returns the backend store serving reads. While the placement
 // names a backend that has not opened yet, as just after a start, it returns
 // a store whose reads wait for it to open, so a block eviction dropped from
 // the disk reads from the backend instead of failing over to peers.
 func (t *bstoreTracker) getRemoteReads(p *placementState) block.StoreOps {
-	// Serve the open backend, or none when the store is not placed.
-	if remote := t.getRemote(); remote != nil {
-		return remote
-	}
-	if p.backend.Load() == nil {
+	// Serve an open, matching backend without taking the notification lock.
+	backend := p.backend.Load()
+	if backend == nil {
 		return nil
 	}
+	if remote := t.remote.Load(); remote != nil && remote.backend.EqualVT(backend) {
+		return remote.store
+	}
 	return &pendingRemote{t: t, p: p}
+}
+
+// setPlacementBackend publishes a placement change to the backend's waiters.
+func (t *bstoreTracker) setPlacementBackend(p *placementState, next *account_settings.StorageBackend) {
+	t.remoteBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		prev := p.backend.Swap(next)
+		if !prev.EqualVT(next) {
+			broadcast()
+		}
+	})
+}
+
+// readBackend returns the current backend or its next change channel. A nil
+// store and channel mean the mount is unplaced. State and channel are captured
+// under the same lock that publishes placement and remote handle changes.
+func (t *bstoreTracker) readBackend(p *placementState) (block.StoreOps, <-chan struct{}) {
+	// Match the open handle to the placement before subscribing to its change.
+	var store block.StoreOps
+	var changed <-chan struct{}
+	t.remoteBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		backend := p.backend.Load()
+		if backend == nil {
+			return
+		}
+		if remote := t.remote.Load(); remote != nil && remote.backend.EqualVT(backend) {
+			store = remote.store
+			return
+		}
+		changed = getWaitCh()
+	})
+	return store, changed
 }
 
 // pendingRemote is the placed backend store before it opens. Each call waits
@@ -40,24 +70,35 @@ type pendingRemote struct {
 
 // wait returns the open backend store once it opens.
 func (r *pendingRemote) wait(ctx context.Context) (block.StoreOps, error) {
-	// Check the backend at each poll until it opens or the wait ends.
+	// Keep one deadline across notifications and backend retries.
 	deadline := time.NewTimer(remoteOpenWait)
 	defer deadline.Stop()
-	poll := time.NewTicker(remoteOpenPoll)
-	defer poll.Stop()
 	for {
-		if remote := r.t.getRemote(); remote != nil {
+		// A remount ends this mount's wait even if the caller stays alive.
+		select {
+		case <-r.p.done:
+			return nil, errors.Wrap(block.ErrUnavailable, "block store unmounted")
+		default:
+		}
+
+		// Capture the backend and its notification without a missed transition.
+		remote, changed := r.t.readBackend(r.p)
+		if remote != nil {
 			return remote, nil
 		}
-		if r.p.backend.Load() == nil {
+		if changed == nil {
 			return nil, errors.Wrap(block.ErrUnavailable, "store left its storage backend")
 		}
+
+		// Wait outside the publication lock for the source or caller to change.
 		select {
 		case <-ctx.Done():
 			return nil, context.Cause(ctx)
+		case <-r.p.done:
+			return nil, errors.Wrap(block.ErrUnavailable, "block store unmounted")
 		case <-deadline.C:
 			return nil, errors.Wrap(block.ErrUnavailable, "storage backend did not open")
-		case <-poll.C:
+		case <-changed:
 		}
 	}
 }

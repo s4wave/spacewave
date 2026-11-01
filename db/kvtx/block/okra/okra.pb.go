@@ -2358,7 +2358,7 @@ func (a *arenaPage) count8(dAtA []byte) bool {
 			return false
 		}
 		switch wire >> 3 {
-		case 1, 4, 2, 3:
+		case 1, 2, 3, 4:
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
 			if err != nil {
 				return false
@@ -2394,16 +2394,6 @@ func (a *arenaPage) decode8(m *blob.RabinArgs, dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RandomPol", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.RandomPol = bool(v)
 		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ChunkingMinSize", wireType)
@@ -2422,6 +2412,16 @@ func (a *arenaPage) decode8(m *blob.RabinArgs, dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RandomPol", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RandomPol = bool(v)
 		default:
 			return fmt.Errorf("proto: RabinArgs: unknown field %d in arena decode", fieldNum)
 		}

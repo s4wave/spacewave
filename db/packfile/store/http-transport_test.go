@@ -540,11 +540,21 @@ func TestHTTPRangeReaderRetriesTransientFailure(t *testing.T) {
 	}
 }
 
+// seedSpan makes size zero bytes at off resident in e, as a completed fetch
+// would, and reclaims the shared budget.
+func seedSpan(e *PackReader, off int64, size int) {
+	var budget *residentBudget
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		e.insertSpanLocked(newSpan(off, make([]byte, size)))
+		budget = e.budget
+	})
+	budget.reclaim()
+}
+
 // TestResidentBudgetEvictsAcrossReaders evicts the globally oldest span when
-// readers share one budget.
+// readers share one budget, including a reader's only span.
 func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 	// Share one resident budget across two byte-backed readers.
-	ctx := context.Background()
 	transport := TransportFunc(func(_ context.Context, _ int64, size int) ([]byte, error) {
 		return make([]byte, size), nil
 	})
@@ -555,14 +565,9 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 	b.setBudget(budget)
 
 	// Populate both readers with enough spans to trigger global eviction.
-	for _, r := range [][2]int64{{0, 100}, {500, 600}} {
-		if _, err := a.fetchSpans(ctx, r[0], r[1], true); err != nil {
-			t.Fatalf("a.fetchSpans(%d, %d): %v", r[0], r[1], err)
-		}
-	}
-	if _, err := b.fetchSpans(ctx, 0, 200, true); err != nil {
-		t.Fatalf("b.fetchSpans: %v", err)
-	}
+	seedSpan(a, 0, 100)
+	seedSpan(a, 500, 100)
+	seedSpan(b, 0, 200)
 
 	// Verify global eviction removes the oldest span from the first reader.
 	if used := budget.used.Load(); used != 300 {
@@ -578,6 +583,15 @@ func TestResidentBudgetEvictsAcrossReaders(t *testing.T) {
 			t.Errorf("b spans = %d, want 1", len(b.spans))
 		}
 	})
+
+	// A third reader's span evicts the others' last spans, so readers that
+	// each hold one span still fit the budget.
+	c := NewPackReader("c", 1000, transport)
+	c.setBudget(budget)
+	seedSpan(c, 0, 200)
+	if used := budget.used.Load(); used != 200 {
+		t.Fatalf("budget used = %d, want 200", used)
+	}
 }
 
 // TestHTTPRangeReaderFullResponseFallbackStats accounts for servers that ignore Range.

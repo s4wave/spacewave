@@ -168,9 +168,12 @@ type stableCheckpoint struct {
 // before its deadlist record is encoded. A page of the tree that interval
 // began at, written back to its old ref, is put counted: the store already
 // counts its holders.
+//
+// Without the page view every World is stored by the publication that admitted
+// it, so the store holds it once the last admitted publication lands: each
+// publication follows the one before it, and a failed one fails its successors.
 func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, height uint64) (*block.PublicationReceipt, bool, error) {
-	// Join the interval since the last named World. Without the page view
-	// every World is stored.
+	// Join the interval since the last named World.
 	r := e.replay
 	if r.pages != nil && !r.readable(n) {
 		return nil, false, nil
@@ -178,7 +181,7 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 	root := world.GetHeadRef().GetRootRef()
 	net := r.composeDeaths(root)
 	if r.pages == nil {
-		return nil, true, nil
+		return e.lastReceipt(), true, nil
 	}
 
 	// Seal the interval with the naming publication's puts, or none when it
@@ -224,6 +227,7 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 		Heads:   []*block.AtomicHeadUpdate{countHead(cursor, WriteKindReplay)},
 		Roots:   roots,
 		After:   e.lastReceipt(),
+		Recount: r.ledger.carryRecount(),
 	})
 	if err != nil {
 		return nil, false, err
@@ -231,7 +235,7 @@ func (e *soEngine) nameWorld(ctx context.Context, world *InnerState, n int, heig
 	countPublication(nil, pages, save)
 
 	// Hand the naming put to the interval's record.
-	put := newWorldPut(receipt, entries, pages)
+	put := newWorldPut(receipt, entries, pages, r.ledger.recounts)
 	named = &put
 	e.admit(receipt, e.retained, seqno)
 	go receipt.Release()
@@ -340,12 +344,10 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 		return nil, nil
 	}
 
-	// Skip while an earlier checkpoint is in flight. Without the page view
-	// skip while an admission waits for its receipt too: the checkpoint
-	// writes the state directly, naming a World only the pending publications
-	// hold, and the update after the last receipt settles checkpoints again.
-	// With it the checkpoint names its World in a publication after them.
-	if e.stableBusy.Load() || (e.replay.pages == nil && e.pending()) {
+	// Skip while an earlier checkpoint is in flight. A World only pending
+	// publications hold is named by their receipts, so writes that never
+	// pause do not starve the checkpoint.
+	if e.stableBusy.Load() {
 		countSkip(CheckpointSkipPending)
 		return nil, nil
 	}
@@ -376,9 +378,7 @@ func (e *soEngine) prepareStableCheckpoint(ctx context.Context, snap sobject.Sha
 	if err != nil {
 		return nil, err
 	}
-	if e.replay.pages != nil {
-		e.stableBusy.Store(true)
-	}
+	e.stableBusy.Store(true)
 	return &stableCheckpoint{host: host, prefix: prefix, data: data, height: held.GetHeight(), named: named}, nil
 }
 
@@ -402,9 +402,66 @@ func (e *soEngine) adoptStable(ctx context.Context, ckpt *stableCheckpoint) erro
 	// Adopt it with an ordered state write, counting a stale checkpoint as
 	// skipped.
 	ctx = kvtx.WithOrderedCommitContext(ctx)
+
+	// SQL-primary checkpoints claim a queue slot before taking the state writer.
+	// Their World was named above; only the state head enters this publication.
+	var stateReservation sobject.StateWriteReservation
+	if reserver, ok := e.so.(sobject.StateWriteReserver); ok {
+		var err error
+		stateReservation, err = reserver.ReserveStateWrite(ctx, false)
+		if err != nil {
+			return err
+		}
+		if stateReservation != nil {
+			defer stateReservation.Release()
+			ctx = stateReservation.WithContext(ctx)
+		}
+	}
+	var receipt *block.PublicationReceipt
+	if store, ok := e.so.GetBlockStore().(block.PublicationReserver); ok && store.SupportsPublicationReservations() {
+		reservation, err := store.ReservePublication(ctx, 0)
+		if err != nil {
+			return err
+		}
+		if reservation != nil {
+			defer reservation.Release()
+			ctx = sobject.WithPublishState(ctx, func(ctx context.Context, head *block.AtomicHeadUpdate) (*block.PublicationReceipt, error) {
+				// Submit only this state head with the checkpoint's independent claim.
+				if head == nil {
+					return nil, block.ErrAtomicPublicationUnsupported
+				}
+				var err error
+				pubCtx := block.WithPublicationReservation(ctx, reservation)
+				receipt, err = e.so.GetBlockStore().(block.AtomicPublisher).SubmitAtomic(pubCtx, &block.AtomicPublication{
+					Heads: []*block.AtomicHeadUpdate{head}, Ordered: true,
+				})
+				return receipt, err
+			})
+		}
+	}
 	err := ckpt.host.GetSOHost().UpdateSOState(ctx, func(state *sobject.SOState) error {
 		return e.adoptStableCheckpoint(ctx, ckpt.host, state, ckpt.prefix, ckpt.data, ckpt.height)
 	})
+
+	// Return state intent before waiting for the admitted receipt.
+	if stateReservation != nil {
+		stateReservation.Release()
+	}
+
+	// Wait after the provider releases its state writer, including on a failed
+	// admitted state. The provider owns the admitted snapshot until settlement.
+	if receipt != nil {
+		rerr := receipt.Wait(ctx)
+		select {
+		case <-receipt.Done():
+			receipt.Release()
+		default:
+			go receipt.Release()
+		}
+		if rerr != nil {
+			return rerr
+		}
+	}
 	if errors.Is(err, errStableCheckpointStale) {
 		countSkip(CheckpointSkipStale)
 		return nil

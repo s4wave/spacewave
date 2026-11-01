@@ -192,6 +192,10 @@ type StorageBackend struct {
 	// Sql locates the SQL database that holds the blocks instead of a bucket.
 	// A backend sets exactly one of S3 and Sql.
 	Sql *SqlLocation `protobuf:"bytes,5,opt,name=sql,proto3" json:"sql,omitempty"`
+	// Ftps locates the FTPS server that holds the packfiles instead of a
+	// bucket. It logs in from a netrc file on the host, so the backend has no
+	// credential Secret. A backend sets exactly one of S3, Sql and Ftps.
+	Ftps *FtpsLocation `protobuf:"bytes,6,opt,name=ftps,proto3" json:"ftps,omitempty"`
 }
 
 func (x *StorageBackend) Reset() {
@@ -233,6 +237,149 @@ func (x *StorageBackend) GetSql() *SqlLocation {
 		return x.Sql
 	}
 	return nil
+}
+
+func (x *StorageBackend) GetFtps() *FtpsLocation {
+	if x != nil {
+		return x.Ftps
+	}
+	return nil
+}
+
+// FtpsLocation locates a directory on an FTPS server that holds packfiles,
+// read and written as a bucket is. The server logs in from a netrc file on the
+// host that runs the account, which names the host without its port. Each
+// machine line of the host is one login, and each login adds its own
+// connections. Packfiles
+// are only added: the backend never deletes or compacts one.
+type FtpsLocation struct {
+	unknownFields []byte
+	// Host is the server host name, also the machine of the netrc entry.
+	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	// Port is the server port, zero for 21.
+	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	// NetrcPath is the netrc file that holds the login.
+	NetrcPath string `protobuf:"bytes,3,opt,name=netrc_path,json=netrcPath,proto3" json:"netrcPath,omitempty"`
+	// Root is the directory on the server that holds the packfile prefix.
+	Root string `protobuf:"bytes,4,opt,name=root,proto3" json:"root,omitempty"`
+	// Prefix is the key prefix of the packfiles below Root, used as given by
+	// every block store placed on the backend, such as "world/packs/".
+	Prefix string `protobuf:"bytes,5,opt,name=prefix,proto3" json:"prefix,omitempty"`
+	// MaxConns is the most sessions the backend holds open at once across
+	// all logins, spares included, zero for 10. A server may cap sessions per
+	// client host as well as per user, so logins do not raise it.
+	MaxConns uint32 `protobuf:"varint,6,opt,name=max_conns,json=maxConns,proto3" json:"maxConns,omitempty"`
+	// ConnsPerLogin is the most sessions open at once on one netrc login,
+	// counting the spares dialed ahead of range reads, zero for 9.
+	ConnsPerLogin uint32 `protobuf:"varint,7,opt,name=conns_per_login,json=connsPerLogin,proto3" json:"connsPerLogin,omitempty"`
+	// Sftp reads and writes the packfiles over SFTP, on the same host and the
+	// same netrc login, instead of FTPS. Port zero then means 22. The first
+	// netrc login is used, and MaxConns is the number of SSH connections the
+	// backend holds, zero for 4, each carrying many requests at once;
+	// ConnsPerLogin is ignored.
+	Sftp bool `protobuf:"varint,8,opt,name=sftp,proto3" json:"sftp,omitempty"`
+	// HostKey pins the SFTP server's SSH host key, as an authorized_keys style
+	// public key line, which also limits the handshake to that key's type, or as
+	// the "SHA256:..." fingerprint ssh prints, which fails when the server shows
+	// another of its keys. Empty
+	// trusts the first key the server shows and requires the same one on every
+	// later connection of the backend while it runs.
+	HostKey string `protobuf:"bytes,9,opt,name=host_key,json=hostKey,proto3" json:"hostKey,omitempty"`
+	// FtpsPort, when not zero with Sftp set, also reaches the directory over
+	// FTPS on this port, with the same host and netrc logins. Each call goes to
+	// whichever protocol has fewer calls in flight, so the faster one carries
+	// more of them, and calls go over FTPS alone for a few seconds after SFTP
+	// fails to connect. The FTPS sessions follow ConnsPerLogin and the FTPS
+	// default for MaxConns, which counts the SSH connections.
+	FtpsPort uint32 `protobuf:"varint,10,opt,name=ftps_port,json=ftpsPort,proto3" json:"ftpsPort,omitempty"`
+	// MergeTailBytes, when not zero, merges a short upload into the newest
+	// packfile smaller than this many bytes while the merged packfile still
+	// fits one upload batch, and deletes the packfile it replaces. Zero only
+	// ever adds packfiles.
+	MergeTailBytes uint64 `protobuf:"varint,11,opt,name=merge_tail_bytes,json=mergeTailBytes,proto3" json:"mergeTailBytes,omitempty"`
+}
+
+func (x *FtpsLocation) Reset() {
+	*x = FtpsLocation{}
+}
+
+func (*FtpsLocation) ProtoMessage() {}
+
+func (x *FtpsLocation) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *FtpsLocation) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+func (x *FtpsLocation) GetNetrcPath() string {
+	if x != nil {
+		return x.NetrcPath
+	}
+	return ""
+}
+
+func (x *FtpsLocation) GetRoot() string {
+	if x != nil {
+		return x.Root
+	}
+	return ""
+}
+
+func (x *FtpsLocation) GetPrefix() string {
+	if x != nil {
+		return x.Prefix
+	}
+	return ""
+}
+
+func (x *FtpsLocation) GetMaxConns() uint32 {
+	if x != nil {
+		return x.MaxConns
+	}
+	return 0
+}
+
+func (x *FtpsLocation) GetConnsPerLogin() uint32 {
+	if x != nil {
+		return x.ConnsPerLogin
+	}
+	return 0
+}
+
+func (x *FtpsLocation) GetSftp() bool {
+	if x != nil {
+		return x.Sftp
+	}
+	return false
+}
+
+func (x *FtpsLocation) GetHostKey() string {
+	if x != nil {
+		return x.HostKey
+	}
+	return ""
+}
+
+func (x *FtpsLocation) GetFtpsPort() uint32 {
+	if x != nil {
+		return x.FtpsPort
+	}
+	return 0
+}
+
+func (x *FtpsLocation) GetMergeTailBytes() uint64 {
+	if x != nil {
+		return x.MergeTailBytes
+	}
+	return 0
 }
 
 // SqlLocation locates a MySQL-compatible database that holds blocks. It only
@@ -392,6 +539,14 @@ type BlockStorePlacement struct {
 	// Cache sets how the local disk holds the placed store. Empty uploads each
 	// write at once and keeps every block local.
 	Cache *BlockStoreCache `protobuf:"bytes,3,opt,name=cache,proto3" json:"cache,omitempty"`
+	// FallbackStorageBackendId identifies an SQL StorageBackend the store reads,
+	// read only, after its own backend misses a block. Nothing writes it. A
+	// block only the fallback holds is stored on the local disk with an upload
+	// marker, so it uploads to StorageBackendId and later reads skip the
+	// fallback. Empty has no fallback. The store's backend must be an S3 or
+	// FTPS backend, so an SQL backend is never both primary and fallback. A storage
+	// move clears it.
+	FallbackStorageBackendId string `protobuf:"bytes,4,opt,name=fallback_storage_backend_id,json=fallbackStorageBackendId,proto3" json:"fallbackStorageBackendId,omitempty"`
 }
 
 func (x *BlockStorePlacement) Reset() {
@@ -419,6 +574,13 @@ func (x *BlockStorePlacement) GetCache() *BlockStoreCache {
 		return x.Cache
 	}
 	return nil
+}
+
+func (x *BlockStorePlacement) GetFallbackStorageBackendId() string {
+	if x != nil {
+		return x.FallbackStorageBackendId
+	}
+	return ""
 }
 
 // BlockStoreCache sets how the local disk holds a placed block store.
@@ -1259,6 +1421,7 @@ func (m *StorageBackend) CloneVT() *StorageBackend {
 	r.S3 = protobuf_go_lite.CloneVTValue(m.S3)
 	r.Credential = protobuf_go_lite.CloneVTValue(m.Credential)
 	r.Sql = protobuf_go_lite.CloneVTValue(m.Sql)
+	r.Ftps = protobuf_go_lite.CloneVTValue(m.Ftps)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1266,6 +1429,32 @@ func (m *StorageBackend) CloneVT() *StorageBackend {
 }
 
 func (m *StorageBackend) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *FtpsLocation) CloneVT() *FtpsLocation {
+	if m == nil {
+		return (*FtpsLocation)(nil)
+	}
+	r := new(FtpsLocation)
+	r.Host = m.Host
+	r.Port = m.Port
+	r.NetrcPath = m.NetrcPath
+	r.Root = m.Root
+	r.Prefix = m.Prefix
+	r.MaxConns = m.MaxConns
+	r.ConnsPerLogin = m.ConnsPerLogin
+	r.Sftp = m.Sftp
+	r.HostKey = m.HostKey
+	r.FtpsPort = m.FtpsPort
+	r.MergeTailBytes = m.MergeTailBytes
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *FtpsLocation) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1319,6 +1508,7 @@ func (m *BlockStorePlacement) CloneVT() *BlockStorePlacement {
 	r := new(BlockStorePlacement)
 	r.BlockStoreId = m.BlockStoreId
 	r.StorageBackendId = m.StorageBackendId
+	r.FallbackStorageBackendId = m.FallbackStorageBackendId
 	r.Cache = protobuf_go_lite.CloneVTValue(m.Cache)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1934,11 +2124,64 @@ func (this *StorageBackend) EqualVT(that *StorageBackend) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Sql, that.Sql) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Ftps, that.Ftps) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *StorageBackend) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*StorageBackend)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *FtpsLocation) EqualVT(that *FtpsLocation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Host != that.Host {
+		return false
+	}
+	if this.Port != that.Port {
+		return false
+	}
+	if this.NetrcPath != that.NetrcPath {
+		return false
+	}
+	if this.Root != that.Root {
+		return false
+	}
+	if this.Prefix != that.Prefix {
+		return false
+	}
+	if this.MaxConns != that.MaxConns {
+		return false
+	}
+	if this.ConnsPerLogin != that.ConnsPerLogin {
+		return false
+	}
+	if this.Sftp != that.Sftp {
+		return false
+	}
+	if this.HostKey != that.HostKey {
+		return false
+	}
+	if this.FtpsPort != that.FtpsPort {
+		return false
+	}
+	if this.MergeTailBytes != that.MergeTailBytes {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *FtpsLocation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*FtpsLocation)
 	if !ok {
 		return false
 	}
@@ -2031,6 +2274,9 @@ func (this *BlockStorePlacement) EqualVT(that *BlockStorePlacement) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Cache, that.Cache) {
+		return false
+	}
+	if this.FallbackStorageBackendId != that.FallbackStorageBackendId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3138,6 +3384,11 @@ func (x *StorageBackend) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sql")
 		x.Sql.MarshalProtoJSON(s.WithField("sql"))
 	}
+	if x.Ftps != nil || s.HasField("ftps") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ftps")
+		x.Ftps.MarshalProtoJSON(s.WithField("ftps"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3182,12 +3433,141 @@ func (x *StorageBackend) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Sql = &SqlLocation{}
 			x.Sql.UnmarshalProtoJSON(s.WithField("sql", true))
+		case "ftps":
+			if s.ReadNil() {
+				x.Ftps = nil
+				return
+			}
+			x.Ftps = &FtpsLocation{}
+			x.Ftps.UnmarshalProtoJSON(s.WithField("ftps", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the StorageBackend from JSON.
 func (x *StorageBackend) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the FtpsLocation message to JSON.
+func (x *FtpsLocation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Host != "" || s.HasField("host") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("host")
+		s.WriteString(x.Host)
+	}
+	if x.Port != 0 || s.HasField("port") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("port")
+		s.WriteUint32(x.Port)
+	}
+	if x.NetrcPath != "" || s.HasField("netrcPath") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("netrcPath")
+		s.WriteString(x.NetrcPath)
+	}
+	if x.Root != "" || s.HasField("root") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("root")
+		s.WriteString(x.Root)
+	}
+	if x.Prefix != "" || s.HasField("prefix") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("prefix")
+		s.WriteString(x.Prefix)
+	}
+	if x.MaxConns != 0 || s.HasField("maxConns") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("maxConns")
+		s.WriteUint32(x.MaxConns)
+	}
+	if x.ConnsPerLogin != 0 || s.HasField("connsPerLogin") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("connsPerLogin")
+		s.WriteUint32(x.ConnsPerLogin)
+	}
+	if x.Sftp || s.HasField("sftp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sftp")
+		s.WriteBool(x.Sftp)
+	}
+	if x.HostKey != "" || s.HasField("hostKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("hostKey")
+		s.WriteString(x.HostKey)
+	}
+	if x.FtpsPort != 0 || s.HasField("ftpsPort") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ftpsPort")
+		s.WriteUint32(x.FtpsPort)
+	}
+	if x.MergeTailBytes != 0 || s.HasField("mergeTailBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("mergeTailBytes")
+		s.WriteUint64(x.MergeTailBytes)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the FtpsLocation to JSON.
+func (x *FtpsLocation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the FtpsLocation message from JSON.
+func (x *FtpsLocation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "host":
+			s.AddField("host")
+			x.Host = s.ReadString()
+		case "port":
+			s.AddField("port")
+			x.Port = s.ReadUint32()
+		case "netrc_path", "netrcPath":
+			s.AddField("netrc_path")
+			x.NetrcPath = s.ReadString()
+		case "root":
+			s.AddField("root")
+			x.Root = s.ReadString()
+		case "prefix":
+			s.AddField("prefix")
+			x.Prefix = s.ReadString()
+		case "max_conns", "maxConns":
+			s.AddField("max_conns")
+			x.MaxConns = s.ReadUint32()
+		case "conns_per_login", "connsPerLogin":
+			s.AddField("conns_per_login")
+			x.ConnsPerLogin = s.ReadUint32()
+		case "sftp":
+			s.AddField("sftp")
+			x.Sftp = s.ReadBool()
+		case "host_key", "hostKey":
+			s.AddField("host_key")
+			x.HostKey = s.ReadString()
+		case "ftps_port", "ftpsPort":
+			s.AddField("ftps_port")
+			x.FtpsPort = s.ReadUint32()
+		case "merge_tail_bytes", "mergeTailBytes":
+			s.AddField("merge_tail_bytes")
+			x.MergeTailBytes = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the FtpsLocation from JSON.
+func (x *FtpsLocation) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3390,6 +3770,11 @@ func (x *BlockStorePlacement) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("cache")
 		x.Cache.MarshalProtoJSON(s.WithField("cache"))
 	}
+	if x.FallbackStorageBackendId != "" || s.HasField("fallbackStorageBackendId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("fallbackStorageBackendId")
+		s.WriteString(x.FallbackStorageBackendId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3420,6 +3805,9 @@ func (x *BlockStorePlacement) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Cache = &BlockStoreCache{}
 			x.Cache.UnmarshalProtoJSON(s.WithField("cache", true))
+		case "fallback_storage_backend_id", "fallbackStorageBackendId":
+			s.AddField("fallback_storage_backend_id")
+			x.FallbackStorageBackendId = s.ReadString()
 		}
 	})
 }
@@ -4690,6 +5078,16 @@ func (m *StorageBackend) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Ftps != nil {
+		size, err := m.Ftps.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.Sql != nil {
 		size, err := m.Sql.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -4727,6 +5125,93 @@ func (m *StorageBackend) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if len(m.Id) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Id)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *FtpsLocation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *FtpsLocation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *FtpsLocation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.MergeTailBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MergeTailBytes))
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.FtpsPort != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FtpsPort))
+		i--
+		dAtA[i] = 0x50
+	}
+	if len(m.HostKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.HostKey)
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.Sftp {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Sftp)
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.ConnsPerLogin != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ConnsPerLogin))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.MaxConns != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MaxConns))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.Prefix) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Prefix)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Root) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Root)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.NetrcPath) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NetrcPath)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Port != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Port))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Host) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Host)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -4895,6 +5380,11 @@ func (m *BlockStorePlacement) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.FallbackStorageBackendId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.FallbackStorageBackendId)
+		i--
+		dAtA[i] = 0x22
 	}
 	if m.Cache != nil {
 		size, err := m.Cache.MarshalToSizedBufferVT(dAtA[:i])
@@ -6166,6 +6656,31 @@ func (m *StorageBackend) SizeVT() (n int) {
 		l = m.Sql.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Ftps != nil {
+		l = m.Ftps.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *FtpsLocation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Host)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Port)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NetrcPath)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Root)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Prefix)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxConns)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ConnsPerLogin)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Sftp)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.HostKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.FtpsPort)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.MergeTailBytes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6218,6 +6733,7 @@ func (m *BlockStorePlacement) SizeVT() (n int) {
 		l = m.Cache.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.FallbackStorageBackendId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6886,10 +7402,68 @@ func (x *StorageBackend) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sql")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Sql)
 	}
+	if x.Ftps != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ftps")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ftps)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *StorageBackend) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *FtpsLocation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "FtpsLocation")
+	if x.Host != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "host")
+		protobuf_go_lite.TextWriteString(&sb, x.Host)
+	}
+	if x.Port != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "port")
+		protobuf_go_lite.TextWriteUint(&sb, x.Port)
+	}
+	if x.NetrcPath != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "netrc_path")
+		protobuf_go_lite.TextWriteString(&sb, x.NetrcPath)
+	}
+	if x.Root != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root")
+		protobuf_go_lite.TextWriteString(&sb, x.Root)
+	}
+	if x.Prefix != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "prefix")
+		protobuf_go_lite.TextWriteString(&sb, x.Prefix)
+	}
+	if x.MaxConns != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max_conns")
+		protobuf_go_lite.TextWriteUint(&sb, x.MaxConns)
+	}
+	if x.ConnsPerLogin != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "conns_per_login")
+		protobuf_go_lite.TextWriteUint(&sb, x.ConnsPerLogin)
+	}
+	if x.Sftp != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sftp")
+		protobuf_go_lite.TextWriteBool(&sb, x.Sftp)
+	}
+	if x.HostKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "host_key")
+		protobuf_go_lite.TextWriteString(&sb, x.HostKey)
+	}
+	if x.FtpsPort != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ftps_port")
+		protobuf_go_lite.TextWriteUint(&sb, x.FtpsPort)
+	}
+	if x.MergeTailBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "merge_tail_bytes")
+		protobuf_go_lite.TextWriteUint(&sb, x.MergeTailBytes)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *FtpsLocation) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6979,6 +7553,10 @@ func (x *BlockStorePlacement) MarshalProtoText() string {
 	if x.Cache != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cache")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Cache)
+	}
+	if x.FallbackStorageBackendId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "fallback_storage_backend_id")
+		protobuf_go_lite.TextWriteString(&sb, x.FallbackStorageBackendId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -7726,6 +8304,169 @@ func (m *StorageBackend) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ftps", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Ftps == nil {
+				m.Ftps = &FtpsLocation{}
+			}
+			if err := m.Ftps.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *FtpsLocation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: FtpsLocation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: FtpsLocation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Host", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Host = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
+			}
+			m.Port = 0
+			m.Port, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NetrcPath", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NetrcPath = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Root", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Root = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prefix", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Prefix = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxConns", wireType)
+			}
+			m.MaxConns = 0
+			m.MaxConns, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConnsPerLogin", wireType)
+			}
+			m.ConnsPerLogin = 0
+			m.ConnsPerLogin, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sftp", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Sftp = bool(v)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HostKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.HostKey = v
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FtpsPort", wireType)
+			}
+			m.FtpsPort = 0
+			m.FtpsPort, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MergeTailBytes", wireType)
+			}
+			m.MergeTailBytes = 0
+			m.MergeTailBytes, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -8024,6 +8765,16 @@ func (m *BlockStorePlacement) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FallbackStorageBackendId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.FallbackStorageBackendId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -339,6 +339,105 @@ func (s *Store) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef)
 	return exists, nil
 }
 
+// ListHashes returns up to limit row keys of the store after the key after
+// and before end, in key order; nil after lists from the first and nil end to
+// the last. A row key is the marshaled hash of the block.
+func (s *Store) ListHashes(ctx context.Context, after, end []byte, limit int) ([][]byte, error) {
+	// Read the next keys from the primary key; an empty key sorts first, where
+	// a NULL would match nothing.
+	if after == nil {
+		after = []byte{}
+	}
+	query, args := "SELECT hash FROM "+s.table+" WHERE store_id = ? AND hash > ?", []any{s.storeID, after} // #nosec G202 -- NewStore quotes the table.
+	if end != nil {
+		query, args = query+" AND hash < ?", append(args, end)
+	}
+	rows, err := s.db.QueryContext(ctx, query+" ORDER BY hash LIMIT ?", append(args, limit)...)
+	if err != nil {
+		return nil, errors.Wrap(err, "list blocks")
+	}
+	defer rows.Close()
+
+	// Collect them in order.
+	var keys [][]byte
+	for rows.Next() {
+		var key []byte
+		if err := rows.Scan(&key); err != nil {
+			return nil, errors.Wrap(err, "list blocks")
+		}
+		keys = append(keys, key)
+	}
+	return keys, errors.Wrap(rows.Err(), "list blocks")
+}
+
+// GetStoredBlockBatch returns each block the store holds with its refs, a
+// thousand per query, and nil for a block it does not hold. withData false
+// leaves Data out and reads only the refs. A NULL refs column leaves
+// RefsKnown false.
+func (s *Store) GetStoredBlockBatch(ctx context.Context, refs []*block.BlockRef, withData bool) ([]*block.StoredBlock, error) {
+	// Choose the columns to read.
+	columns := "hash, refs"
+	if withData {
+		columns = "hash, refs, data"
+	}
+
+	// Read the refs a chunk at a time.
+	stored := make([]*block.StoredBlock, len(refs))
+	for start := 0; start < len(refs); start += existsBatchSize {
+		// Name the chunk's hashes and map each back to its positions.
+		chunk := refs[start:min(start+existsBatchSize, len(refs))]
+		args := make([]any, 0, len(chunk)+1)
+		args = append(args, s.storeID)
+		at := make(map[string][]int, len(chunk))
+		for i, ref := range chunk {
+			key, err := hashKey(ref)
+			if err != nil {
+				return nil, err
+			}
+			if at[string(key)] == nil {
+				args = append(args, key)
+			}
+			at[string(key)] = append(at[string(key)], start+i)
+		}
+
+		// Read the rows the table holds.
+		query := "SELECT " + columns + " FROM " + s.table + " WHERE store_id = ? AND hash IN (" + // #nosec G202 -- NewStore quotes the table and values are placeholders.
+			strings.TrimSuffix(strings.Repeat("?,", len(args)-1), ",") + ")"
+		rows, err := s.db.QueryContext(ctx, query, args...)
+		if err != nil {
+			return nil, errors.Wrap(err, "read blocks")
+		}
+		err = func() error {
+			defer rows.Close()
+			for rows.Next() {
+				var key, encRefs, data []byte
+				dest := []any{&key, &encRefs}
+				if withData {
+					dest = append(dest, &data)
+				}
+				if err := rows.Scan(dest...); err != nil {
+					return err
+				}
+				block := &block.StoredBlock{Data: data}
+				if encRefs != nil {
+					if block.Refs, err = decodeRefs(encRefs); err != nil {
+						return err
+					}
+					block.RefsKnown = true
+				}
+				for _, i := range at[string(key)] {
+					stored[i] = block
+				}
+			}
+			return rows.Err()
+		}()
+		if err != nil {
+			return nil, errors.Wrap(err, "read blocks")
+		}
+	}
+	return stored, nil
+}
+
 // StatBlock returns the block's metadata, or nil if the block is not found.
 func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	// Read the stored length of the block's data.

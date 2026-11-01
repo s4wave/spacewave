@@ -147,6 +147,12 @@ type Volume struct {
 	// changes that would go below zero.
 	deadlistsChecked, deadlistLivePages          atomic.Uint64
 	deadlistLeakedPages, deadlistCountUnderflows atomic.Uint64
+	// releasesResolved, releaseFreedBlocks, releaseLiveBlocks and
+	// releaseUnderflows count, for the flows, the shared count releases the
+	// collector resolved, the blocks they freed, the freed blocks its next
+	// mark reached, and the releases beyond a block's count.
+	releasesResolved, releaseFreedBlocks atomic.Uint64
+	releaseLiveBlocks, releaseUnderflows atomic.Uint64
 	// revivedPuts counts the marked entries puts found absent and stored
 	// afresh, for the flows.
 	revivedPuts atomic.Uint64
@@ -422,9 +428,17 @@ func (v *Volume) GetRefGraph() block_gc.RefGraphOps {
 }
 
 // PutBlockBatch forwards batched writes to the embedded store when supported.
+// A batch whose context carries a kvtx.BlockMarkRequest is stored with its
+// markers in one transaction, or fails with block.ErrAtomicPublicationUnsupported
+// when the store cannot commit atomically.
 // It returns volume.ErrReserve while the volume is in the reserve state, and
 // block.ErrRefsUnknown for a new block written without its references.
 func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Store a batch that asked for marking with its markers in one transaction.
+	if kvtx.GetBlockMarkRequest(ctx) != nil {
+		return v.PrepareOwnedBlockBatch(ctx, "", entries)
+	}
+
 	// Refuse new data below the disk reserve, and new blocks without their
 	// references, then write the batch. A batch of tombstones only frees
 	// space, so it runs below the reserve too.
@@ -453,6 +467,16 @@ func (v *Volume) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEnt
 // volume.ErrReserve while the volume is in the reserve state, and
 // block.ErrRefsUnknown for a new block written without its references.
 func (v *Volume) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Store a block that asked for marking with its marker in one transaction.
+	if kvtx.GetBlockMarkRequest(ctx) != nil {
+		putOpts, syncRequested := block.PutOptsWithoutSync(opts)
+		ref, existed, err := v.PrepareOwnedBlock(ctx, "", data, putOpts)
+		if err == nil && syncRequested {
+			_, err = v.Sync(ctx)
+		}
+		return ref, existed, err
+	}
+
 	// Refuse new data below the disk reserve.
 	if err := v.checkReserve(ctx, len(data)); err != nil {
 		return nil, false, err

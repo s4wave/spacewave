@@ -8,6 +8,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,13 +24,13 @@ import (
 )
 
 // TestDeadlistsRandomWrites drives one World through random writes, renames,
-// payload roots, bursts of writes with the change log on, abandoned writes,
-// failed publications with a fork behind them, engine restarts, and restarts
-// of the Volume's sharing walk, as an upgrade to format 6 begins one, and
-// checks after each step that no deadlist record lists a page the World it
-// runs to reaches. A collector pass every 20 steps applies the due records in
-// shadow: none may free a page its mark reaches or take a shared count below
-// zero.
+// payload roots, copies of an object's root, bursts of writes with the change
+// log on, abandoned writes, failed publications with a fork behind them,
+// engine restarts, and restarts of the Volume's sharing walk, as an upgrade
+// to format 6 begins one, and checks after each step that no deadlist record
+// lists a page the World it runs to reaches. A collector pass every 20 steps resolves the shared count
+// releases and applies the due records in shadow: none may free a block its
+// mark reaches or take a shared count below zero.
 // DEADLIST_SEED replays a seed the log printed.
 func TestDeadlistsRandomWrites(t *testing.T) {
 	// Pick and log the seed.
@@ -69,20 +70,27 @@ func TestDeadlistsRandomWrites(t *testing.T) {
 	r.check()
 	sweep(t, w)
 
-	// The applied records agree with the marks.
+	// The applied records and resolved releases agree with the marks.
 	vf := w.vol.(volume.FlowReporter).GetFlows()
 	if vf.DeadlistLivePages != 0 || vf.DeadlistCountUnderflows != 0 {
 		t.Fatalf("applied %d records would free %d pages the mark reached and under-count %d", vf.DeadlistsChecked, vf.DeadlistLivePages, vf.DeadlistCountUnderflows)
 	}
+	if vf.ReleaseLiveBlocks != 0 || vf.ReleaseUnderflows != 0 {
+		t.Fatalf("resolved %d releases freeing %d blocks, %d the mark reached, with %d underflows", vf.ReleasesResolved, vf.ReleaseFreedBlocks, vf.ReleaseLiveBlocks, vf.ReleaseUnderflows)
+	}
+	if vf.ReleasesResolved == 0 {
+		t.Fatal("resolved no releases")
+	}
 
-	// The run named records with deaths in them. Restarts and change log
-	// switches forfeit intervals, so how many records a seed names varies.
+	// The records that recorded steps named deaths. Restarts and change log
+	// switches forfeit intervals, and a record without steps names none, so
+	// a seed may name no deaths only when no record recorded steps.
 	after := scrapeWriteFlows(t)
 	deaths := after["spacewave_world_deaths_total"] - flows["spacewave_world_deaths_total"]
 	forfeits := after["spacewave_world_death_forfeits_total"] - flows["spacewave_world_death_forfeits_total"]
-	t.Logf("records %d, entries %d, deaths %v, forfeits %v, steps %v", len(r.checked), r.entries, deaths, forfeits, r.ran)
-	if r.entries == 0 {
-		t.Fatalf("checked %d records with no entries", len(r.checked))
+	t.Logf("records %d, stepped %d, entries %d, deaths %v, forfeits %v, releases %d, freed %d, steps %v", len(r.checked), r.stepped, r.entries, deaths, forfeits, vf.ReleasesResolved, vf.ReleaseFreedBlocks, r.ran)
+	if r.stepped != 0 && r.entries == 0 {
+		t.Fatalf("checked %d records, %d with steps, with no entries", len(r.checked), r.stepped)
 	}
 }
 
@@ -95,10 +103,12 @@ type deadlistRun struct {
 
 	// live holds the keys of the objects the World holds.
 	live []string
-	// next numbers the next new key, so no two objects share content.
+	// next numbers the next new key; only a copy makes two objects share content.
 	next int
 	// checked holds the sequence of each record checked.
 	checked map[uint64]bool
+	// stepped counts the checked records whose interval recorded steps.
+	stepped int
 	// entries counts the entries of the checked records.
 	entries int
 	// ran counts the steps run by kind.
@@ -118,6 +128,7 @@ func (r *deadlistRun) step() {
 		{"delete", 14, r.delete},
 		{"rename", 10, r.rename},
 		{"batch", 10, r.batch},
+		{"copy", 10, r.copy},
 		{"rev", 10, r.rev},
 		{"abandon", 5, r.abandon},
 		{"fork", 5, r.fork},
@@ -126,8 +137,11 @@ func (r *deadlistRun) step() {
 		{"rewalk", 2, r.rewalk},
 	}
 	total := 0
-	for _, s := range steps {
-		total += s.weight
+	for i, s := range steps {
+		if strings.Contains(os.Getenv("DEADLIST_OFF"), s.name) {
+			steps[i].weight = 0
+		}
+		total += steps[i].weight
 	}
 	n := r.rng.IntN(total)
 	for _, s := range steps {
@@ -208,6 +222,46 @@ func (r *deadlistRun) batch() {
 	r.live = append(r.live, a, b)
 }
 
+// copy commits one write that creates two objects at a random object's root,
+// deleting that object half the time, so the root's page gains two parents in
+// the interval that may kill its only one.
+func (r *deadlistRun) copy() {
+	from, a, b := r.pick(), r.newKey(), r.newKey()
+	gone := r.rng.IntN(2) == 0
+	r.write(func(tx world.Tx) error {
+		// Read the root of the object copied.
+		ctx := r.t.Context()
+		obj, err := world.MustGetObject(ctx, tx, from)
+		if err != nil {
+			return err
+		}
+		ref, _, err := obj.GetRootRef(ctx)
+		world.ReleaseObjectState(obj)
+		if err != nil {
+			return err
+		}
+
+		// Create both copies at it.
+		for _, key := range []string{a, b} {
+			obj, err := tx.CreateObject(ctx, key, ref.Clone())
+			world.ReleaseObjectState(obj)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Delete the object copied when the step says so.
+		if gone {
+			_, err = tx.DeleteObject(ctx, from)
+		}
+		return err
+	})
+	r.live = append(r.live, a, b)
+	if !gone {
+		r.live = append(r.live, from)
+	}
+}
+
 // rev commits a write that bumps a random object's revision.
 func (r *deadlistRun) rev() {
 	key := r.live[r.rng.IntN(len(r.live))]
@@ -254,28 +308,37 @@ func (r *deadlistRun) fork() {
 // restart stops the engine and serves the World again, which drops the
 // engine's memory of the interval's transitions.
 func (r *deadlistRun) restart() {
+	r.restartWith(func() {})
+}
+
+// rewalk marks the Volume's shared counts stale and begins a new sharing walk
+// while the engine is stopped, as opening a format 5 Volume with shared blocks
+// does: the writes after it run against the walk, and the next collector pass
+// ends it before applying any record. A walk begins only when the Volume
+// opens, which starts the engine again too.
+func (r *deadlistRun) rewalk() {
+	r.restartWith(func() {
+		rg := kvtx_volume.OpenRefGraph(r.w.vol.(kvtx_volume.KvtxVolume).GetKvtxStore())
+		if err := rg.StopSharing(r.t.Context()); err != nil {
+			r.t.Fatal(err)
+		}
+		if _, err := rg.BeginSharing(r.t.Context()); err != nil {
+			r.t.Fatal(err)
+		}
+	})
+}
+
+// restartWith stops the engine, runs fn, and serves the World again.
+func (r *deadlistRun) restartWith(fn func()) {
 	// Replace the engine and write through the new one.
 	r.so.stop()
+	fn()
 	r.so.serve(r.t)
 	eng, err := r.so.ctrl.GetWorldEngine(r.t.Context())
 	if err != nil {
 		r.t.Fatal(err)
 	}
 	r.w.eng = eng
-}
-
-// rewalk marks the Volume's shared counts stale and begins a new sharing walk,
-// as opening a format 5 Volume with shared blocks does: the writes after it
-// run against the walk, and the next collector pass ends it before applying
-// any record.
-func (r *deadlistRun) rewalk() {
-	rg := kvtx_volume.OpenRefGraph(r.w.vol.(kvtx_volume.KvtxVolume).GetKvtxStore())
-	if err := rg.StopSharing(r.t.Context()); err != nil {
-		r.t.Fatal(err)
-	}
-	if _, err := rg.BeginSharing(r.t.Context()); err != nil {
-		r.t.Fatal(err)
-	}
 }
 
 // changelogBurst turns the change log on, bumps a random object's revision
@@ -342,6 +405,9 @@ func (r *deadlistRun) check() {
 		}
 
 		// Check each entry against them.
+		if !rec.head.GetFrom().GetEmpty() {
+			r.stepped++
+		}
 		entries := slices.Concat(rec.dead.Replaced, rec.dead.Removed)
 		r.entries += len(entries)
 		for _, ref := range entries {

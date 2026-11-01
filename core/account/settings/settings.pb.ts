@@ -141,6 +141,12 @@ export interface StorageBackend {
    * A backend sets exactly one of S3 and Sql.
    */
   sql?: SqlLocation
+  /**
+   * Ftps locates the FTPS server that holds the packfiles instead of a
+   * bucket. It logs in from a netrc file on the host, so the backend has no
+   * credential Secret. A backend sets exactly one of S3, Sql and Ftps.
+   */
+  ftps?: FtpsLocation
 }
 
 export const StorageBackend: MessageType<StorageBackend> =
@@ -152,6 +158,103 @@ export const StorageBackend: MessageType<StorageBackend> =
       [3, 's3', 11, 0, S3Location.codec],
       [4, 'credential', 11, 0, Secret.codec],
       [5, 'sql', 11, 0, SqlLocation.codec],
+      [6, 'ftps', 11, 0, FtpsLocation.codec],
+    ],
+  )
+
+/**
+ * FtpsLocation locates a directory on an FTPS server that holds packfiles,
+ * read and written as a bucket is. The server logs in from a netrc file on the
+ * host that runs the account, which names the host without its port. Each
+ * machine line of the host is one login, and each login adds its own
+ * connections. Packfiles
+ * are only added: the backend never deletes or compacts one.
+ *
+ * @generated from message account.settings.FtpsLocation
+ */
+export interface FtpsLocation {
+  /**
+   * Host is the server host name, also the machine of the netrc entry.
+   */
+  host?: string
+  /**
+   * Port is the server port, zero for 21.
+   */
+  port?: number
+  /**
+   * NetrcPath is the netrc file that holds the login.
+   */
+  netrcPath?: string
+  /**
+   * Root is the directory on the server that holds the packfile prefix.
+   */
+  root?: string
+  /**
+   * Prefix is the key prefix of the packfiles below Root, used as given by
+   * every block store placed on the backend, such as "world/packs/".
+   */
+  prefix?: string
+  /**
+   * MaxConns is the most sessions the backend holds open at once across
+   * all logins, spares included, zero for 10. A server may cap sessions per
+   * client host as well as per user, so logins do not raise it.
+   */
+  maxConns?: number
+  /**
+   * ConnsPerLogin is the most sessions open at once on one netrc login,
+   * counting the spares dialed ahead of range reads, zero for 9.
+   */
+  connsPerLogin?: number
+  /**
+   * Sftp reads and writes the packfiles over SFTP, on the same host and the
+   * same netrc login, instead of FTPS. Port zero then means 22. The first
+   * netrc login is used, and MaxConns is the number of SSH connections the
+   * backend holds, zero for 4, each carrying many requests at once;
+   * ConnsPerLogin is ignored.
+   */
+  sftp?: boolean
+  /**
+   * HostKey pins the SFTP server's SSH host key, as an authorized_keys style
+   * public key line, which also limits the handshake to that key's type, or as
+   * the "SHA256:..." fingerprint ssh prints, which fails when the server shows
+   * another of its keys. Empty
+   * trusts the first key the server shows and requires the same one on every
+   * later connection of the backend while it runs.
+   */
+  hostKey?: string
+  /**
+   * FtpsPort, when not zero with Sftp set, also reaches the directory over
+   * FTPS on this port, with the same host and netrc logins. Each call goes to
+   * whichever protocol has fewer calls in flight, so the faster one carries
+   * more of them, and calls go over FTPS alone for a few seconds after SFTP
+   * fails to connect. The FTPS sessions follow ConnsPerLogin and the FTPS
+   * default for MaxConns, which counts the SSH connections.
+   */
+  ftpsPort?: number
+  /**
+   * MergeTailBytes, when not zero, merges a short upload into the newest
+   * packfile smaller than this many bytes while the merged packfile still
+   * fits one upload batch, and deletes the packfile it replaces. Zero only
+   * ever adds packfiles.
+   */
+  mergeTailBytes?: bigint
+}
+
+export const FtpsLocation: MessageType<FtpsLocation> =
+  /* @__PURE__ */ createMessageType<FtpsLocation>(
+    'account.settings.FtpsLocation',
+    () => [
+      [1, 'host', 9],
+      [2, 'port', 13],
+      [3, 'netrc_path', 9],
+      [4, 'root', 9],
+      [5, 'prefix', 9],
+      [6, 'max_conns', 13],
+      [7, 'conns_per_login', 13],
+      [8, 'sftp', 8],
+      [9, 'host_key', 9],
+      [10, 'ftps_port', 13],
+      [11, 'merge_tail_bytes', 4],
     ],
   )
 
@@ -277,6 +380,16 @@ export interface BlockStorePlacement {
    * write at once and keeps every block local.
    */
   cache?: BlockStoreCache
+  /**
+   * FallbackStorageBackendId identifies an SQL StorageBackend the store reads,
+   * read only, after its own backend misses a block. Nothing writes it. A
+   * block only the fallback holds is stored on the local disk with an upload
+   * marker, so it uploads to StorageBackendId and later reads skip the
+   * fallback. Empty has no fallback. The store's backend must be an S3 or
+   * FTPS backend, so an SQL backend is never both primary and fallback. A storage
+   * move clears it.
+   */
+  fallbackStorageBackendId?: string
 }
 
 export const BlockStorePlacement: MessageType<BlockStorePlacement> =
@@ -286,6 +399,7 @@ export const BlockStorePlacement: MessageType<BlockStorePlacement> =
       [1, 'block_store_id', 9],
       [2, 'storage_backend_id', 9],
       [3, 'cache', 11, 0, BlockStoreCache.codec],
+      [4, 'fallback_storage_backend_id', 9],
     ],
   )
 

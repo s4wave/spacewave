@@ -1,5 +1,3 @@
-//go:build !tinygo
-
 package provider_local_test
 
 import (

@@ -110,6 +110,26 @@ var (
 		"Shared count changes an applied deadlist record made that would take a count below zero, since the volume opened; any is an error.",
 		[]string{volumeLabel}, nil,
 	)
+	volumeReleasesResolvedDesc = prometheus.NewDesc(
+		"spacewave_volume_releases_resolved_total",
+		"Shared count releases the volume's collector resolved, since it opened.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeReleaseFreedBlocksDesc = prometheus.NewDesc(
+		"spacewave_volume_release_freed_blocks_total",
+		"Blocks resolved releases freed, since the volume opened.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeReleaseLiveBlocksDesc = prometheus.NewDesc(
+		"spacewave_volume_release_live_blocks_total",
+		"Blocks resolved releases freed that the collector's next mark reached, since the volume opened; any is an error in the shared counts.",
+		[]string{volumeLabel}, nil,
+	)
+	volumeReleaseUnderflowsDesc = prometheus.NewDesc(
+		"spacewave_volume_release_underflows_total",
+		"Releases beyond a block's shared count and the one that freed it, since the volume opened; any means a holder was never counted.",
+		[]string{volumeLabel}, nil,
+	)
 	volumeRevivedPutsDesc = prometheus.NewDesc(
 		"spacewave_volume_revived_puts_total",
 		"Entries marked as already counted that a put found absent and stored afresh, since the volume opened; any is an error in the writer's proof.",
@@ -139,7 +159,9 @@ func (volumeCollector) Describe(ch chan<- *prometheus.Desc) {
 		volumeReserveBytesDesc, volumePutBlocksDesc, volumePutBytesDesc, volumePutExistingDesc,
 		volumePutRefusedDesc, volumeValueWrittenBytesDesc, volumeValueFreedBytesDesc,
 		volumeDeadlistsCheckedDesc, volumeDeadlistLivePagesDesc, volumeDeadlistLeakedPagesDesc,
-		volumeDeadlistCountUnderflowsDesc, volumeRevivedPutsDesc, volumeBackgroundWaitMaxSecondsDesc,
+		volumeDeadlistCountUnderflowsDesc, volumeReleasesResolvedDesc, volumeReleaseFreedBlocksDesc,
+		volumeReleaseLiveBlocksDesc, volumeReleaseUnderflowsDesc, volumeRevivedPutsDesc,
+		volumeBackgroundWaitMaxSecondsDesc,
 	} {
 		ch <- d
 	}
@@ -180,6 +202,12 @@ func collectFlows(ch chan<- prometheus.Metric, f *volume.VolumeFlows) {
 	ch <- prometheus.MustNewConstMetric(volumeDeadlistLivePagesDesc, prometheus.CounterValue, float64(f.DeadlistLivePages), id)
 	ch <- prometheus.MustNewConstMetric(volumeDeadlistLeakedPagesDesc, prometheus.CounterValue, float64(f.DeadlistLeakedPages), id)
 	ch <- prometheus.MustNewConstMetric(volumeDeadlistCountUnderflowsDesc, prometheus.CounterValue, float64(f.DeadlistCountUnderflows), id)
+
+	// Report the shared count releases.
+	ch <- prometheus.MustNewConstMetric(volumeReleasesResolvedDesc, prometheus.CounterValue, float64(f.ReleasesResolved), id)
+	ch <- prometheus.MustNewConstMetric(volumeReleaseFreedBlocksDesc, prometheus.CounterValue, float64(f.ReleaseFreedBlocks), id)
+	ch <- prometheus.MustNewConstMetric(volumeReleaseLiveBlocksDesc, prometheus.CounterValue, float64(f.ReleaseLiveBlocks), id)
+	ch <- prometheus.MustNewConstMetric(volumeReleaseUnderflowsDesc, prometheus.CounterValue, float64(f.ReleaseUnderflows), id)
 	ch <- prometheus.MustNewConstMetric(volumeRevivedPutsDesc, prometheus.CounterValue, float64(f.RevivedPuts), id)
 
 	// Report the longest wait behind a background step.

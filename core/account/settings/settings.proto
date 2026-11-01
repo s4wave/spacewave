@@ -68,6 +68,62 @@ message StorageBackend {
   // Sql locates the SQL database that holds the blocks instead of a bucket.
   // A backend sets exactly one of S3 and Sql.
   SqlLocation sql = 5;
+  // Ftps locates the FTPS server that holds the packfiles instead of a
+  // bucket. It logs in from a netrc file on the host, so the backend has no
+  // credential Secret. A backend sets exactly one of S3, Sql and Ftps.
+  FtpsLocation ftps = 6;
+}
+
+// FtpsLocation locates a directory on an FTPS server that holds packfiles,
+// read and written as a bucket is. The server logs in from a netrc file on the
+// host that runs the account, which names the host without its port. Each
+// machine line of the host is one login, and each login adds its own
+// connections. Packfiles
+// are only added: the backend never deletes or compacts one.
+message FtpsLocation {
+  // Host is the server host name, also the machine of the netrc entry.
+  string host = 1;
+  // Port is the server port, zero for 21.
+  uint32 port = 2;
+  // NetrcPath is the netrc file that holds the login.
+  string netrc_path = 3;
+  // Root is the directory on the server that holds the packfile prefix.
+  string root = 4;
+  // Prefix is the key prefix of the packfiles below Root, used as given by
+  // every block store placed on the backend, such as "world/packs/".
+  string prefix = 5;
+  // MaxConns is the most sessions the backend holds open at once across
+  // all logins, spares included, zero for 10. A server may cap sessions per
+  // client host as well as per user, so logins do not raise it.
+  uint32 max_conns = 6;
+  // ConnsPerLogin is the most sessions open at once on one netrc login,
+  // counting the spares dialed ahead of range reads, zero for 9.
+  uint32 conns_per_login = 7;
+  // Sftp reads and writes the packfiles over SFTP, on the same host and the
+  // same netrc login, instead of FTPS. Port zero then means 22. The first
+  // netrc login is used, and MaxConns is the number of SSH connections the
+  // backend holds, zero for 4, each carrying many requests at once;
+  // ConnsPerLogin is ignored.
+  bool sftp = 8;
+  // HostKey pins the SFTP server's SSH host key, as an authorized_keys style
+  // public key line, which also limits the handshake to that key's type, or as
+  // the "SHA256:..." fingerprint ssh prints, which fails when the server shows
+  // another of its keys. Empty
+  // trusts the first key the server shows and requires the same one on every
+  // later connection of the backend while it runs.
+  string host_key = 9;
+  // FtpsPort, when not zero with Sftp set, also reaches the directory over
+  // FTPS on this port, with the same host and netrc logins. Each call goes to
+  // whichever protocol has fewer calls in flight, so the faster one carries
+  // more of them, and calls go over FTPS alone for a few seconds after SFTP
+  // fails to connect. The FTPS sessions follow ConnsPerLogin and the FTPS
+  // default for MaxConns, which counts the SSH connections.
+  uint32 ftps_port = 10;
+  // MergeTailBytes, when not zero, merges a short upload into the newest
+  // packfile smaller than this many bytes while the merged packfile still
+  // fits one upload batch, and deletes the packfile it replaces. Zero only
+  // ever adds packfiles.
+  uint64 merge_tail_bytes = 11;
 }
 
 // SqlLocation locates a MySQL-compatible database that holds blocks. It only
@@ -121,6 +177,14 @@ message BlockStorePlacement {
   // Cache sets how the local disk holds the placed store. Empty uploads each
   // write at once and keeps every block local.
   BlockStoreCache cache = 3;
+  // FallbackStorageBackendId identifies an SQL StorageBackend the store reads,
+  // read only, after its own backend misses a block. Nothing writes it. A
+  // block only the fallback holds is stored on the local disk with an upload
+  // marker, so it uploads to StorageBackendId and later reads skip the
+  // fallback. Empty has no fallback. The store's backend must be an S3 or
+  // FTPS backend, so an SQL backend is never both primary and fallback. A storage
+  // move clears it.
+  string fallback_storage_backend_id = 4;
 }
 
 // BlockStoreCache sets how the local disk holds a placed block store.

@@ -2,9 +2,12 @@ package block_store_writeback
 
 import (
 	"context"
+	"slices"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
 )
 
@@ -14,20 +17,36 @@ type decodedBlockRefInvalidator interface {
 	InvalidateDecodedBlockRef(context.Context, *block.BlockRef)
 }
 
-// MarkingStore acknowledges writes only after mark retains each written block.
+// errUnmarkedWrite is returned for a write whose blocks no transaction
+// marked, because the store below cannot mark in its transactions.
+var errUnmarkedWrite = errors.New("store did not mark the written blocks")
+
+// MarkingStore acknowledges writes only after each written block is marked.
 //
-// A write that fails to mark returns the error with the block stored;
-// repeating the write repairs the marker.
+// It marks in one of two ways. NewTxMarkingStore asks the transaction that
+// stores a block to mark it, so the block and its marker commit or discard
+// together, and a write fails if the store below cannot do so. NewMarkingStore
+// calls a function after the write, so a write that fails to mark returns the
+// error with the block stored, and repeating the write repairs the marker.
 type MarkingStore struct {
 	// store owns the block writes.
 	store block.StoreOps
-	// mark records every written block.
+	// mark records every written block after its write, when marker is nil.
 	mark MarkFunc
+	// marker records every written block in the transaction that stores it,
+	// when not nil.
+	marker kvtx.BlockMarker
 }
 
 // NewMarkingStore wraps store, calling mark after each successful write.
 func NewMarkingStore(store block.StoreOps, mark MarkFunc) *MarkingStore {
 	return &MarkingStore{store: store, mark: mark}
+}
+
+// NewTxMarkingStore wraps store, which marks every written block with marker
+// in the transaction that stores it.
+func NewTxMarkingStore(store block.StoreOps, marker kvtx.BlockMarker) *MarkingStore {
+	return &MarkingStore{store: store, marker: marker}
 }
 
 // GetStoreParts returns the wrapped store.
@@ -51,11 +70,21 @@ func (m *MarkingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, 
 	if err != nil {
 		return nil, nil, err
 	}
-	return &MarkingStore{store: store, mark: m.mark}, release, nil
+	return &MarkingStore{store: store, mark: m.mark, marker: m.marker}, release, nil
 }
 
 // PutBlock stores a block and marks it, even when it already existed.
 func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Mark in the storing transaction.
+	if m.marker != nil {
+		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
+		ref, existed, err := m.store.PutBlock(ctx, data, opts)
+		if err == nil && !ref.GetEmpty() && !req.Applied() {
+			err = errUnmarkedWrite
+		}
+		return ref, existed, err
+	}
+
 	// Store the block, then mark it when the write landed.
 	ref, existed, err := m.store.PutBlock(ctx, data, opts)
 	if err == nil && !ref.GetEmpty() {
@@ -64,9 +93,24 @@ func (m *MarkingStore) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	return ref, existed, err
 }
 
-// PutBlockBatch marks every successful non-tombstone write in one call.
-// A failed marker returns an error; repeating the batch repairs the markers.
+// PutBlockBatch marks every successful non-tombstone write.
 func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) ([]bool, error) {
+	// Mark in the storing transaction.
+	if m.marker != nil {
+		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
+		existed, err := m.store.PutBlockBatch(ctx, entries)
+		if err != nil {
+			return nil, err
+		}
+		if !req.Applied() && slices.ContainsFunc(entries, isMarked) {
+			return nil, errUnmarkedWrite
+		}
+		m.invalidateTombstones(ctx, entries)
+		return existed, nil
+	}
+
+	// Store the batch, then mark it. A failed marker returns an error;
+	// repeating the batch repairs the markers.
 	existed, err := m.store.PutBlockBatch(ctx, entries)
 	if err != nil {
 		return nil, err
@@ -74,24 +118,32 @@ func (m *MarkingStore) PutBlockBatch(ctx context.Context, entries []*block.PutBa
 	return existed, m.markEntries(ctx, entries)
 }
 
+// isMarked reports whether a batch entry stores a block that needs a marker.
+func isMarked(entry *block.PutBatchEntry) bool {
+	return entry != nil && !entry.Tombstone && !entry.Ref.GetEmpty()
+}
+
+// invalidateTombstones invalidates the decoded values of the tombstones of a
+// written batch.
+func (m *MarkingStore) invalidateTombstones(ctx context.Context, entries []*block.PutBatchEntry) {
+	for _, entry := range entries {
+		if entry != nil && entry.Tombstone {
+			m.invalidate(ctx, entry.Ref)
+		}
+	}
+}
+
 // markEntries marks every non-tombstone entry of a written batch in one call
 // and invalidates the decoded values of its tombstones.
 func (m *MarkingStore) markEntries(ctx context.Context, entries []*block.PutBatchEntry) error {
 	// Collect the written blocks under one write time.
+	m.invalidateTombstones(ctx, entries)
 	marks := make([]Mark, 0, len(entries))
 	now := time.Now()
 	for _, entry := range entries {
-		if entry == nil {
-			continue
+		if isMarked(entry) {
+			marks = append(marks, Mark{Hash: entry.Ref.GetHash(), Size: int64(len(entry.Data)), At: now})
 		}
-		if entry.Tombstone {
-			m.invalidate(ctx, entry.Ref)
-			continue
-		}
-		if entry.Ref.GetEmpty() {
-			continue
-		}
-		marks = append(marks, Mark{Hash: entry.Ref.GetHash(), Size: int64(len(entry.Data)), At: now})
 	}
 	if len(marks) == 0 {
 		return nil

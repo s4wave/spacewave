@@ -22,14 +22,14 @@ import (
 // seen record and each later one adds one to the block's shared count, so the
 // count ends at the block's holders minus one.
 //
-// The walk clears the shared counts and seen records, sights the children of
-// each child list, then the block of each owner edge and what its object
-// holds, in key order. The cursor is the last walked key followed by a zero
-// byte, so a record is before the cursor exactly when the phase walked it.
-// While the walk sights, a write sights each child it newly adds to a list,
-// and each block it newly gives an owner edge, when that record is before the
-// cursor: a list once the children phase passed it or ended, an owner edge
-// once the owners phase passed it. The walk sights a record after the cursor
+// The walk clears the shared counts, the pending releases and the seen
+// records, sights the children of each child list, then the block of each
+// owner edge and what its object holds, in key order. The cursor is the last
+// walked key followed by a zero byte, so a record is before the cursor exactly
+// when the phase walked it. While the walk sights, a write sights each child
+// it newly adds to a list, and each block it newly gives an owner edge, when
+// that record is before the cursor: a list once the children phase passed it
+// or ended, an owner edge once the owners phase passed it. The walk sights a record after the cursor
 // when it reaches it, and a write while clearing sights nothing. Removing an
 // edge sights nothing, so a holder sighted and then removed over-counts,
 // which keeps a block the rule would free and never frees one it keeps.
@@ -56,6 +56,9 @@ const (
 	SharingOff SharingPhase = 'o'
 	// SharingClearingHolds deletes the stale shared counts.
 	SharingClearingHolds SharingPhase = 'h'
+	// SharingClearingReleases deletes the pending releases, which the
+	// stale counts included.
+	SharingClearingReleases SharingPhase = 'l'
 	// SharingClearingSeen deletes the seen records of an earlier walk.
 	SharingClearingSeen SharingPhase = 'z'
 	// SharingChildren sights the children of each child list.
@@ -75,7 +78,7 @@ func (p SharingPhase) Counting() bool {
 // Walking reports whether the walk is building the counts.
 func (p SharingPhase) Walking() bool {
 	switch p {
-	case SharingClearingHolds, SharingClearingSeen, SharingChildren, SharingOwners:
+	case SharingClearingHolds, SharingClearingReleases, SharingClearingSeen, SharingChildren, SharingOwners:
 		return true
 	}
 	return false
@@ -174,11 +177,25 @@ func (g *RefGraph) GetSharing(ctx context.Context) (SharingState, error) {
 // A walk already running, or forgetting after complete counts, keeps its
 // place.
 func (g *RefGraph) BeginSharing(ctx context.Context) (SharingState, error) {
+	return g.beginSharing(ctx, SharingPhase.Running)
+}
+
+// RecountSharing starts a new sharing walk like BeginSharing, after a writer
+// lost holders it would have counted: complete counts may be short, so only a
+// walk still building the counts keeps its place, since it sights every
+// holder the graph holds.
+func (g *RefGraph) RecountSharing(ctx context.Context) (SharingState, error) {
+	return g.beginSharing(ctx, SharingPhase.Walking)
+}
+
+// beginSharing starts a new sharing walk unless keep reports that the current
+// phase keeps its place.
+func (g *RefGraph) beginSharing(ctx context.Context, keep func(SharingPhase) bool) (SharingState, error) {
 	var s SharingState
 	err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		// Keep a running walk.
+		// Keep a walk that keep accepts.
 		var err error
-		if s, err = readSharingTx(ctx, tx); err != nil || s.Phase.Running() {
+		if s, err = readSharingTx(ctx, tx); err != nil || keep(s.Phase) {
 			return err
 		}
 
@@ -297,6 +314,8 @@ func sharingKind(p SharingPhase) byte {
 	switch p {
 	case SharingClearingHolds:
 		return kindHold
+	case SharingClearingReleases:
+		return kindRelease
 	case SharingChildren:
 		return kindChildren
 	case SharingOwners:
@@ -309,6 +328,8 @@ func sharingKind(p SharingPhase) byte {
 func nextSharingPhase(p SharingPhase) (SharingPhase, []byte) {
 	switch p {
 	case SharingClearingHolds:
+		return SharingClearingReleases, []byte{kindRelease}
+	case SharingClearingReleases:
 		return SharingClearingSeen, []byte{kindSeen}
 	case SharingClearingSeen:
 		return SharingChildren, []byte{kindChildren}

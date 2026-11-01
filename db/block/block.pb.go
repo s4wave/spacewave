@@ -383,8 +383,9 @@ type Deadlist struct {
 	// Parts are further Deadlist blocks with the rest of the refs, set only on
 	// the first block.
 	Parts []*BlockRef `protobuf:"bytes,7,rep,name=parts,proto3" json:"parts,omitempty"`
-	// Held are live stored pages that may have gained a holder. Naming the
-	// record adds one shared count to each.
+	// Held are live stored pages that may have gained a holder, each listed
+	// once per new parent. Naming the record adds one shared count to each
+	// entry.
 	Held []*BlockRef `protobuf:"bytes,8,rep,name=held,proto3" json:"held,omitempty"`
 	// Existed are live pages whose edge from the new tree was counted already:
 	// a put found them stored, or only pages that existed name them. The old

@@ -75,20 +75,21 @@ func TestWorldDeathsComposesAcceptedChain(t *testing.T) {
 		t.Fatalf("composed %v, want a and b", got)
 	}
 
-	// A transition from a World never named leaves a gap.
+	// A transition from a World never named leaves a gap: the interval nets
+	// from its puts alone.
 	y, step := commit(x, "y")
 	d.add(x, y, step)
-	if _, net := d.take(y); net != nil {
+	if _, net := d.take(y); net == nil || net.steps != nil {
 		t.Fatal("composed across a gap")
 	}
 
-	// A forfeited commit on the chain forfeits the interval, and the next one
-	// starts clean.
+	// A commit that recorded no step leaves the interval to its puts too, and
+	// the next one starts clean.
 	e, _ := commit(y, "e")
 	d.add(y, e, nil)
 	f, step := commit(e, "f")
 	d.add(e, f, step)
-	if _, net := d.take(f); net != nil {
+	if _, net := d.take(f); net == nil || net.steps != nil {
 		t.Fatal("composed over a forfeited commit")
 	}
 	g, step := commit(f, "g")

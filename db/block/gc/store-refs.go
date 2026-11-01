@@ -8,17 +8,20 @@ import (
 )
 
 // GetStoredBlock reads a block and its outgoing block edges. The edges come
-// from the ref graph and the edges this store has buffered but not flushed.
+// from the store when it knows them, such as a block of a publication the
+// store admitted but has not applied, and otherwise from the ref graph and
+// the edges this store has buffered but not flushed.
 // Blocks are immutable, so an edge once recorded stays valid for the life of
 // the block. Without outgoing refs or an incoming edge, the graph cannot
 // distinguish a leaf from an untracked block.
 func (g *GCStoreOps) GetStoredBlock(ctx context.Context, ref *block.BlockRef) (*block.StoredBlock, error) {
 	// Read the immutable block data before resolving its outgoing references.
-	data, found, err := g.store.GetBlock(ctx, ref)
-	if err != nil || !found {
-		return nil, err
+	stored, err := g.store.GetStoredBlock(ctx, ref)
+	if err != nil || stored == nil || stored.RefsKnown {
+		return stored, err
 	}
-	stored, err := g.getBlockEdges(ctx, ref, data)
+	data := stored.Data
+	stored, err = g.getBlockEdges(ctx, ref, data)
 	if err != nil || stored.RefsKnown {
 		return stored, err
 	}

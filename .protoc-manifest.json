@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "b5f7c87919a73157c296d8d4595340b098ad9dab5ee36d84f3adfad490f138ee",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.19.1-0.20261018054529-f60c4d2691ea,starpc=v0.52.3,protobuf-es-lite=1.2.4",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.19.1-0.20261024022728-f0dcc8ef200f,starpc=v0.52.3,protobuf-es-lite=1.2.4",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
       "hash": "b151ca9704cbadf4e0cf0a5f55e57d006ba858f63ba47a9bf2f9a92eb52a78c2",
@@ -1004,7 +1004,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "3d558fafd0835421bb396088c7ed608edb25f62d7725350b1d5b140779847006",
+      "hash": "45f5dea088e7d4734f96222e991af58e70d63b6435ab51445a7bd3f6f1e3c9e8",
       "generatedFiles": [
         "core/account/settings/settings.pb.go",
         "core/account/settings/settings.pb.ts"
@@ -1629,7 +1629,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block": {
-      "hash": "a14b826fabe6d19f086eadd4ed7ac0ec4c934d008a4006a1f8cd88a120b98f9c",
+      "hash": "c91f37699e4006971427598f384b3bfa6cda117987d0c505db2ce29dc04f563d",
       "generatedFiles": [
         "db/block/block.pb.go",
         "db/block/block.pb.ts"
@@ -1679,7 +1679,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/block/gc/rpc": {
-      "hash": "2f4517a94895ae318ca2c27b397d53bf6bb440ba9198989d14b570682fab7c21",
+      "hash": "fd3ce620f813b07aac06b8f680ea44a63a137c32cb26ebc29a9d0f7d899979f0",
       "generatedFiles": [
         "db/block/gc/rpc/refgraph.pb.go",
         "db/block/gc/rpc/refgraph.pb.ts",
@@ -3915,7 +3915,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/k8s": {
-      "hash": "d70416f2c451f083338fee39d954856b67409e2c3eb0f7c435a55adf155af4e2",
+      "hash": "29ad5145e9a118d67cf10b84438e431c584d278bfde179e6dce651ef0e460f54",
       "generatedFiles": [
         "sdk/k8s/k8s.pb.go",
         "sdk/k8s/k8s.pb.ts",

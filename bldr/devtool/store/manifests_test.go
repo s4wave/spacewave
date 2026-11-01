@@ -1,4 +1,6 @@
-package spacewave_cli
+//go:build !js
+
+package devtool_store
 
 import (
 	"context"
@@ -54,7 +56,7 @@ func TestCollectLatestManifestSetDeterministicPlatformsAndRevisions(t *testing.T
 			t.Fatal(err)
 		}
 	}
-	got, err := collectLatestManifestSet(ctx, ws, "gizmo-core")
+	got, err := CollectLatestManifestSet(ctx, ws, "gizmo-core")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +114,7 @@ func TestCollectLatestManifestSetCollapsesIdenticalAndRejectsAmbiguous(t *testin
 				return err
 			}
 		}
-		got, err := collectLatestManifestSet(ctx, ws, "gizmo-core")
+		got, err := CollectLatestManifestSet(ctx, ws, "gizmo-core")
 		if ambiguous {
 			if err == nil {
 				return fmt.Errorf("ambiguous set unexpectedly succeeded")

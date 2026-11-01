@@ -39,12 +39,12 @@ func (s *AccountSettings) FindBlockStorePlacement(blockStoreID string) *BlockSto
 	return nil
 }
 
-// PlacedBlockStoreIDs returns the ids of the block stores placed on the
-// storage backend.
+// PlacedBlockStoreIDs returns the ids of the block stores that use the storage
+// backend, as the backend holding them or as their read fallback.
 func (s *AccountSettings) PlacedBlockStoreIDs(backendID string) []string {
 	var ids []string
 	for _, placement := range s.GetBlockStorePlacements() {
-		if placement.GetStorageBackendId() == backendID {
+		if placement.GetStorageBackendId() == backendID || placement.GetFallbackStorageBackendId() == backendID {
 			ids = append(ids, placement.GetBlockStoreId())
 		}
 	}
@@ -128,7 +128,8 @@ func (s *AccountSettings) setDefaultStorageBackend(id string) error {
 // returns it to the account's own storage when the backend id is empty.
 //
 // Leaving a backend releases the store's objects there. Returning to a
-// backend cancels its pending release, since the store writes there again.
+// backend cancels its pending release, since the store writes there again, and
+// so does naming it as the read fallback, since the store still reads there.
 func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement) error {
 	// Require a block store id and an existing target backend.
 	blockStoreID := placement.GetBlockStoreId()
@@ -139,12 +140,47 @@ func (s *AccountSettings) setBlockStorePlacement(placement *BlockStorePlacement)
 	if backendID != "" && s.FindStorageBackend(backendID) == nil {
 		return ErrStorageBackendNotFound
 	}
+	if err := s.checkReadFallback(placement); err != nil {
+		return err
+	}
 
 	// Apply the new placement, canceling a pending release on the backend.
 	s.unplaceBlockStore(blockStoreID)
 	if backendID != "" {
 		s.BlockStorePlacements = append(s.BlockStorePlacements, placement.CloneVT())
 		s.dropStorageRelease(placement)
+
+		// A backend the store still reads as its fallback is not released.
+		if fallbackID := placement.GetFallbackStorageBackendId(); fallbackID != "" {
+			s.dropStorageRelease(&BlockStorePlacement{BlockStoreId: blockStoreID, StorageBackendId: fallbackID})
+		}
+	}
+	return nil
+}
+
+// checkReadFallback requires that a placement's read fallback is an SQL
+// backend beside an S3 or FTPS backend that holds the store, so an SQL backend
+// is never both the store's primary and its fallback.
+func (s *AccountSettings) checkReadFallback(placement *BlockStorePlacement) error {
+	// Accept a placement without a fallback.
+	fallbackID := placement.GetFallbackStorageBackendId()
+	if fallbackID == "" {
+		return nil
+	}
+
+	// Require a bucket or FTPS backend to hold the store.
+	primary := s.FindStorageBackend(placement.GetStorageBackendId())
+	if primary.GetS3() == nil && primary.GetFtps() == nil {
+		return errors.New("a read fallback needs a block store placed on an S3 or FTPS backend")
+	}
+
+	// Require the fallback to exist and to be an SQL backend.
+	fallback := s.FindStorageBackend(fallbackID)
+	if fallback == nil {
+		return errors.Wrap(ErrStorageBackendNotFound, fallbackID)
+	}
+	if fallback.GetSql() == nil {
+		return errors.New("the read fallback must be an SQL backend")
 	}
 	return nil
 }
@@ -204,10 +240,20 @@ func (b *StorageBackend) Validate() error {
 		return errors.New("storage backend display_name is required")
 	}
 
-	// Validate the one location, S3 or SQL, and the credential reference.
+	// Validate the one location, S3, SQL or FTPS, and the credential reference.
+	// An FTPS backend logs in from a netrc file and has no credential Secret.
+	locations := 0
+	for _, set := range []bool{b.GetS3() != nil, b.GetSql() != nil, b.GetFtps() != nil} {
+		if set {
+			locations++
+		}
+	}
+	if locations > 1 {
+		return errors.New("storage backend sets more than one of s3, sql and ftps")
+	}
 	switch {
-	case b.GetS3() != nil && b.GetSql() != nil:
-		return errors.New("storage backend sets both s3 and sql")
+	case b.GetFtps() != nil:
+		return errors.Wrap(b.GetFtps().Validate(), "ftps")
 	case b.GetSql() != nil:
 		if err := b.GetSql().Validate(); err != nil {
 			return errors.Wrap(err, "sql")
@@ -245,6 +291,31 @@ func (l *SqlLocation) Validate() error {
 	}
 	if l.GetPort() > 65535 {
 		return errors.Errorf("port %d is out of range", l.GetPort())
+	}
+	return nil
+}
+
+// Validate checks that the FTPS location names a host, a login file and a
+// root directory.
+func (l *FtpsLocation) Validate() error {
+	// Check the required fields, then the ports.
+	if l.GetHost() == "" {
+		return errors.New("host is required")
+	}
+	if l.GetNetrcPath() == "" {
+		return errors.New("netrc_path is required")
+	}
+	if l.GetRoot() == "" {
+		return errors.New("root is required")
+	}
+	if l.GetPort() > 65535 {
+		return errors.Errorf("port %d is out of range", l.GetPort())
+	}
+	if l.GetFtpsPort() > 65535 {
+		return errors.Errorf("ftps_port %d is out of range", l.GetFtpsPort())
+	}
+	if l.GetFtpsPort() != 0 && !l.GetSftp() {
+		return errors.New("ftps_port needs sftp")
 	}
 	return nil
 }

@@ -39,6 +39,10 @@ const (
 	// kindNode keyed the node inventory of the mark-sweep collector, which
 	// no reader uses; InventoryRecord recognizes its records.
 	kindNode byte = 'n'
+	// kindRelease keys the pending releases of a block by the block. Its
+	// value is a uvarint, the holders the block lost that its shared count
+	// still includes, kept only above zero, as ResolveReleases describes.
+	kindRelease byte = 'l'
 	// kindPass is the one record of a running block pass.
 	kindPass byte = 'p'
 	// kindRoot keys the registered roots a version 2 graph carried. Nothing
@@ -84,6 +88,9 @@ type RefGraph struct {
 	store kvtx.Store
 	// holders answers the sharing walk's questions about blocks, may be nil.
 	holders HolderSource
+	// owners nets the owner edges the graph's writes add and remove, nil
+	// unless CountOwnerEdges enabled it.
+	owners *ownerNet
 }
 
 // NewRefGraph constructs a reference graph over store.
@@ -176,7 +183,7 @@ func (g *RefGraph) AddRef(ctx context.Context, subject, object string) error {
 // RemoveRef removes an exact edge without creating an orphan mark.
 func (g *RefGraph) RemoveRef(ctx context.Context, subject, object string) error {
 	return g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-		_, err := g.removeRefTx(ctx, tx, subject, object)
+		_, err := g.removeRefTx(ctx, tx, RefEdge{Subject: subject, Object: object})
 		return err
 	})
 }
@@ -277,6 +284,7 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 		}
 		if wrote {
 			owned = append(owned, edge)
+			g.owners.count(edge, 1)
 		}
 	}
 
@@ -318,7 +326,7 @@ func (g *RefGraph) applyRefBatchTx(ctx context.Context, tx kvtx.Tx, adds, remove
 	var released []string
 	unstaged := make(map[string]struct{})
 	for _, edge := range removes {
-		existed, err := g.removeRefTx(ctx, tx, edge.Subject, edge.Object)
+		existed, err := g.removeRefTx(ctx, tx, edge)
 		switch {
 		case err != nil:
 			return err
@@ -396,9 +404,10 @@ func addRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) (bool, er
 
 // removeRefTx removes an exact edge and reports whether it existed. A child
 // edge leaves its block's list, and a staging edge stays with the list.
-func (g *RefGraph) removeRefTx(ctx context.Context, tx kvtx.Tx, subject, object string) (bool, error) {
+func (g *RefGraph) removeRefTx(ctx context.Context, tx kvtx.Tx, edge RefEdge) (bool, error) {
 	// Remove a child from its block's list.
-	if parent, child, ok := childEdge(RefEdge{Subject: subject, Object: object}); ok {
+	subject, object := edge.Subject, edge.Object
+	if parent, child, ok := childEdge(edge); ok {
 		if child == "" {
 			return false, nil
 		}
@@ -417,6 +426,7 @@ func (g *RefGraph) removeRefTx(ctx context.Context, tx kvtx.Tx, subject, object 
 	if err := tx.Delete(ctx, graphKey(kindIncoming, object, subject)); err != nil {
 		return false, err
 	}
+	g.owners.count(edge, -1)
 	return true, nil
 }
 
@@ -442,14 +452,19 @@ func hasIncomingTx(ctx context.Context, tx kvtx.Tx, object string, ignored map[s
 // RemoveNodeRefs removes the observed outgoing targets in bounded transactions.
 // New unrelated edges may be added after this operation's initial snapshot. A
 // block's child list and shared count go first, so the block is no longer
-// tracked; its children never join the unreferenced queue.
+// tracked; its children never join the unreferenced queue. Its pending
+// releases go too, so a block stored again later starts without them.
 func (g *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned bool) ([]string, error) {
 	// Drop a block's child list.
 	var children []string
 	if isBlockNode(node) {
 		err := g.transaction(ctx, true, func(ctx context.Context, tx kvtx.Tx) error {
-			// Drop the shared count, then read the list and delete it.
+			// Drop the shared count and the releases, then read the list
+			// and delete it.
 			if err := tx.Delete(ctx, graphKey(kindHold, node)); err != nil {
+				return err
+			}
+			if err := tx.Delete(ctx, graphKey(kindRelease, node)); err != nil {
 				return err
 			}
 			var found bool
@@ -481,7 +496,7 @@ func (g *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned
 				return g.applyRefBatchTx(ctx, tx, nil, removes)
 			}
 			for _, target := range chunk {
-				if _, err := g.removeRefTx(ctx, tx, node, target); err != nil {
+				if _, err := g.removeRefTx(ctx, tx, RefEdge{Subject: node, Object: target}); err != nil {
 					return err
 				}
 			}

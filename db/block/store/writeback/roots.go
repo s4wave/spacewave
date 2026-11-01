@@ -2,8 +2,10 @@ package block_store_writeback
 
 import (
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // SupportsRootRetention reports the inner store's root ownership capability.
@@ -19,6 +21,19 @@ func (m *MarkingStore) KeepsHoldCounts() bool { return block.KeepsHoldCounts(m.s
 // SetRetainedRoots forwards durable root ownership to the inner store and
 // marks the blocks it wrote.
 func (m *MarkingStore) SetRetainedRoots(ctx context.Context, entries []*block.PutBatchEntry, roots []block.NamedRoot) error {
+	// Mark in the storing transaction.
+	if m.marker != nil {
+		ctx, req := kvtx.WithBlockMarker(ctx, m.marker)
+		if err := block.SetRetainedRoots(ctx, m.store, entries, roots); err != nil {
+			return err
+		}
+		if !req.Applied() && slices.ContainsFunc(entries, isMarked) {
+			return errUnmarkedWrite
+		}
+		m.invalidateTombstones(ctx, entries)
+		return nil
+	}
+
 	if err := block.SetRetainedRoots(ctx, m.store, entries, roots); err != nil {
 		return err
 	}
@@ -37,7 +52,7 @@ func (m *MarkingStore) OpenStage(ctx context.Context) (block.StoreOps, func(), e
 	if err != nil {
 		return nil, nil, err
 	}
-	return NewMarkingStore(store, m.mark), release, nil
+	return &MarkingStore{store: store, mark: m.mark, marker: m.marker}, release, nil
 }
 
 // ReleaseRoots forwards staging release to the underlying store.

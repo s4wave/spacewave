@@ -39,7 +39,7 @@ func (e *soEngine) SetRetainedRoot(ctx context.Context, name string, ref *block.
 	// Build the operation on the current World, excluding write transactions
 	// until it is placed. The SharedObject writes it directly after every
 	// pending receipt, so wait for them outside the lock.
-	unlockWriteMtx, err := e.c.lockSettled(ctx, "retain-root")
+	ctx, unlockWriteMtx, err := e.c.lockStateSettled(ctx, e.so, "retain-root")
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func validateRetainedRootName(name string) error {
 // local root name, or releases the name when roots is empty.
 func holdRootSet(ctx context.Context, so sobject.SharedObject, name string, roots []*RetainedRoot) error {
 	hold := newRootHold(so.GetBlockStore())
-	if err := hold.rootSet(name, roots); err != nil {
+	if err := hold.rootSet(ctx, name, roots); err != nil {
 		return err
 	}
 	return hold.apply(ctx)

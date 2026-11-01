@@ -1,5 +1,3 @@
-//go:build !tinygo
-
 package provider_local
 
 import (
@@ -42,6 +40,24 @@ func buildSQLBlockStore(
 	}
 
 	// Scope the store to this block store's rows.
+	return block_store_sql.NewStore(le, db, conf.Table, blockStoreID), nil
+}
+
+// buildSQLFallbackStore opens the block store's rows in the location's blocks
+// table for reads. It neither connects nor creates the table, so an
+// unreachable database fails the reads that reach it, not the mount.
+func buildSQLFallbackStore(
+	le *logrus.Entry,
+	location *account_settings.SqlLocation,
+	blockStoreID string,
+	creds *block_store_s3.Credentials,
+) (backendStore, error) {
+	// Open the lazy connection pool without touching the database.
+	conf := sqlConfig(location, creds)
+	db, err := block_store_sql.Open(conf)
+	if err != nil {
+		return nil, err
+	}
 	return block_store_sql.NewStore(le, db, conf.Table, blockStoreID), nil
 }
 

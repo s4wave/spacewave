@@ -29,6 +29,11 @@ type AtomicPublication struct {
 	// Roots are further named roots set in the same transaction, without a
 	// reader pin. They apply only with TrackGC, as RootName does.
 	Roots []NamedRoot
+	// Recount reports that the writer lost holders it would have counted, such
+	// as the deferred edges of a deadlist record it never named. A store that
+	// keeps shared counts begins counting every holder again from its graph
+	// before it applies the publication's roots. It applies only with TrackGC.
+	Recount bool
 	// Ordered lets the physical commit be ordered rather than durable: applied
 	// when the receipt resolves, and durable no later than the volume's next
 	// durable commit. A group commits ordered only when every member allows it.

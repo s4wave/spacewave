@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/sirupsen/logrus"
@@ -91,13 +92,17 @@ func TestPackStoreBatch(t *testing.T) {
 	}
 }
 
-// TestPackStoreFindsLaterPacks finds a packfile another store wrote after the
-// first listing.
+// TestPackStoreFindsLaterPacks checks that a miss lists nothing and that the
+// refresh finds a packfile another store wrote after the first listing.
 func TestPackStoreFindsLaterPacks(t *testing.T) {
-	// Open independent writing and reading stores on the fake bucket.
+	// Open independent writing and reading stores on the fake bucket, the
+	// reader refreshing every 20 ms.
 	ctx := t.Context()
 	_, client := newFakeBucket(t, nil)
-	reader := newTestPackStore(t, client)
+	reader := NewPackStore(logrus.NewEntry(logrus.New()), client, "bucket", "p/", &PackStoreOptions{
+		RefreshInterval: 20 * time.Millisecond,
+	})
+	t.Cleanup(reader.Close)
 	writer := newTestPackStore(t, client)
 
 	// Write the first packfile and populate the reader manifest.
@@ -109,13 +114,55 @@ func TestPackStoreFindsLaterPacks(t *testing.T) {
 		t.Fatalf("first exists = %v, %v", exists, err)
 	}
 
-	// Write a later packfile and verify the reader discovers its block.
+	// Write a later packfile and look for its block until the refresh lists it.
 	second, _, err := writer.PutBlock(ctx, []byte("second"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, found, err := reader.GetBlock(ctx, second)
-	if err != nil || !found || string(data) != "second" {
-		t.Fatalf("second = %q, %v, %v", data, found, err)
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		data, found, err := reader.GetBlock(ctx, second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if found {
+			if string(data) != "second" {
+				t.Fatalf("second = %q", data)
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the refresh never found the later packfile")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// TestPackStoreMissDoesNotList checks that a lookup that finds no block reads
+// the known packfiles alone: the store lists the entries once, whatever the
+// number of misses.
+func TestPackStoreMissDoesNotList(t *testing.T) {
+	// Load the manifest with one lookup.
+	ctx := t.Context()
+	bucket, client := newFakeBucket(t, nil)
+	store := newTestPackStore(t, client)
+	missing, err := block.BuildBlockRef([]byte("missing"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists, err := store.GetBlockExists(ctx, missing); err != nil || exists {
+		t.Fatalf("missing exists = %v, %v", exists, err)
+	}
+	listed := store.listings.Load()
+	requests := bucket.listCount()
+
+	// Miss again: no listing starts and the bucket sees no request.
+	for range 3 {
+		if exists, err := store.GetBlockExists(ctx, missing); err != nil || exists {
+			t.Fatalf("missing exists = %v, %v", exists, err)
+		}
+	}
+	if store.listings.Load() != listed || bucket.listCount() != requests {
+		t.Fatalf("a miss listed: %d listings, %d requests", store.listings.Load()-listed, bucket.listCount()-requests)
 	}
 }

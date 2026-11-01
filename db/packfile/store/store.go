@@ -51,6 +51,8 @@ type IndexCache interface {
 type PackfileStore struct {
 	opener Opener
 	cache  IndexCache
+	// locator places block keys in packs ahead of the bloom filters, or is nil.
+	locator Locator
 
 	// mtx guards store construction, configuration, and shutdown.
 	mtx sync.Mutex
@@ -195,6 +197,14 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 	s.budget.limit.Store(maxBytes)
 	s.budget.reclaim()
+}
+
+// SetIndexEntryLimit sets the parsed index entries every engine may hold
+// together. Above it the least recently used indexes drop and reload on their
+// next use. Zero or negative keeps every index loaded.
+func (s *PackfileStore) SetIndexEntryLimit(entries int64) {
+	s.budget.indexLimit.Store(entries)
+	s.budget.reclaimIndexes()
 }
 
 // SetStatsChangedCallback sets a callback invoked after observable stats change.
@@ -383,6 +393,9 @@ func (s *PackfileStore) loadCandidateIndexes(ctx context.Context, view *Manifest
 	// Select manifest packs whose bloom filters may contain the block keys.
 	var candidates []*packfile.PackfileEntry
 	view.entries.Scan(func(item *manifestEntry) bool {
+		if s.locator != nil && s.locator.Indexed(item.entry.GetId()) {
+			return true
+		}
 		if item.filter == nil || slices.ContainsFunc(bloomKeys, item.filter.TestKey) {
 			candidates = append(candidates, item.entry)
 		}
@@ -482,15 +495,11 @@ func (s *PackfileStore) probeCatalog(
 	lookup *packLookup,
 	visit func(eng *PackReader) (bool, error),
 ) error {
-	// Select catalog packs whose bloom filters may contain the block key.
-	bloomKey := bloom.NewKey(key)
-	var candidates []*manifestEntry
-	view.entries.Scan(func(item *manifestEntry) bool {
-		if item.filter == nil || item.filter.TestKey(bloomKey) {
-			candidates = append(candidates, item)
-		}
-		return true
-	})
+	// Select the catalog packs that may contain the block key.
+	candidates, err := s.candidates(ctx, view, key)
+	if err != nil {
+		return err
+	}
 	lookup.candidates += len(candidates)
 
 	// Probe candidate pack readers until the requested block is found.

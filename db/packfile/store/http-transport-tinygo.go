@@ -131,11 +131,7 @@ func NewHTTPRangeReader(
 	e := NewPackReader(url, size, t)
 
 	// Size its windows for the browser.
-	if readAheadSize > 0 {
-		e.minWindow = readAheadSize
-		e.transportQuantum = readAheadSize
-		e.currentWindow = readAheadSize
-	}
+	e.SetReadWindow(readAheadSize)
 	e.setTransportFetchMaxBytes(tinyGoPackRangeMaxBytes)
 	e.budget.limit.Store(16 * 1024 * 1024)
 	e.normalizeTransportLocked()

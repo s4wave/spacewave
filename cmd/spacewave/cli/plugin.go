@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	devtool_store "github.com/s4wave/spacewave/bldr/devtool/store"
+
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -103,12 +105,12 @@ func runPluginImportManifest(
 
 	// Open the devtool volume and look up the manifests.
 	le := cliBus.GetLogger()
-	src, err := openDevtoolVolume(ctx, le, dbPath)
+	src, err := devtool_store.OpenVolume(ctx, le, dbPath)
 	if err != nil {
 		return errors.Wrap(err, "open devtool storage")
 	}
 	defer src.Close()
-	collectedManifests, err := lookupDevtoolManifests(ctx, le, src, manifestID)
+	collectedManifests, err := devtool_store.LookupManifests(ctx, le, src, manifestID)
 	if err != nil {
 		return errors.Wrap(err, "lookup manifest")
 	}
@@ -138,18 +140,18 @@ func runPluginImportManifest(
 		dest = cliBus.GetVolume()
 		destEngine = cliBus.GetWorldEngine()
 	} else {
-		dest, err = openDevtoolVolume(ctx, le, targetDBPath)
+		dest, err = devtool_store.OpenVolume(ctx, le, targetDBPath)
 		if err != nil {
 			return errors.Wrap(err, "open target devtool storage")
 		}
 		defer dest.Close()
-		targetEng, err := openDevtoolWorldEngine(ctx, le, dest)
+		targetEng, err := devtool_store.OpenWorld(ctx, le, dest, false)
 		if err != nil {
 			return errors.Wrap(err, "open target devtool world")
 		}
 		destEngine = targetEng
 		destClose = targetEng.Close
-		destBucketID = devtoolEngineBucketID
+		destBucketID = devtool_store.BucketID
 	}
 	if destClose != nil {
 		defer destClose()
