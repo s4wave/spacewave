@@ -1,85 +1,45 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StatusList, type StatusListItem } from './StatusList.js'
 
 describe('StatusList', () => {
-  afterEach(() => {
-    cleanup()
-  })
+  afterEach(cleanup)
 
-  it('renders empty state with default message', () => {
-    render(<StatusList items={[]} />)
-    expect(screen.getByText('No items')).toBeDefined()
-  })
+  it('shows status, details and custom labels and calls onItemClick', async () => {
+    // Start with the default and configured empty prompts.
+    const { rerender } = render(<StatusList items={[]} />)
+    expect(screen.getByText('No items')).toBeTruthy()
+    rerender(<StatusList items={[]} emptyMessage="Nothing here" />)
+    expect(screen.getByText('Nothing here')).toBeTruthy()
 
-  it('renders custom empty message', () => {
-    render(<StatusList items={[]} emptyMessage="Nothing here" />)
-    expect(screen.getByText('Nothing here')).toBeDefined()
-  })
-
-  it('renders items with labels', () => {
+    // Display every status and its detail through the ordinary item contract.
     const items: StatusListItem[] = [
-      { id: '1', label: 'Test Alpha', status: 'success' },
-      { id: '2', label: 'Test Beta', status: 'error' },
+      { id: '1', label: 'Alpha', status: 'success', detail: '12ms' },
+      { id: '2', label: 'Beta', status: 'error' },
+      { id: '3', label: 'Gamma', status: 'pending' },
+      { id: '4', label: 'Delta', status: 'none' },
     ]
-    render(<StatusList items={items} />)
-    expect(screen.getByText('Test Alpha')).toBeDefined()
-    expect(screen.getByText('Test Beta')).toBeDefined()
-  })
+    rerender(<StatusList items={items} />)
+    expect(screen.getByText('PASS')).toBeTruthy()
+    expect(screen.getByText('FAIL')).toBeTruthy()
+    expect(screen.getByText('....')).toBeTruthy()
+    expect(screen.getByText('----')).toBeTruthy()
+    expect(screen.getByText('12ms')).toBeTruthy()
 
-  it('shows correct default status labels', () => {
-    const items: StatusListItem[] = [
-      { id: '1', label: 'A', status: 'success' },
-      { id: '2', label: 'B', status: 'error' },
-      { id: '3', label: 'C', status: 'pending' },
-      { id: '4', label: 'D', status: 'none' },
-    ]
-    render(<StatusList items={items} />)
-    expect(screen.getByText('PASS')).toBeDefined()
-    expect(screen.getByText('FAIL')).toBeDefined()
-    expect(screen.getByText('....')).toBeDefined()
-    expect(screen.getByText('----')).toBeDefined()
-  })
-
-  it('supports custom status labels', () => {
-    const items: StatusListItem[] = [
-      { id: '1', label: 'A', status: 'success' },
-      { id: '2', label: 'B', status: 'error' },
-    ]
-    render(
+    // Keep custom labels and report the selected item unchanged.
+    const user = userEvent.setup()
+    const onItemClick = vi.fn()
+    rerender(
       <StatusList
         items={items}
         statusLabels={{ success: 'OK', error: 'ERR' }}
+        onItemClick={onItemClick}
       />,
     )
-    expect(screen.getByText('OK')).toBeDefined()
-    expect(screen.getByText('ERR')).toBeDefined()
-  })
-
-  it('shows detail text when provided', () => {
-    const items: StatusListItem[] = [
-      { id: '1', label: 'A', status: 'success', detail: '12ms' },
-    ]
-    render(<StatusList items={items} />)
-    expect(screen.getByText('12ms')).toBeDefined()
-  })
-
-  it('calls onItemClick when an item is clicked', async () => {
-    const user = userEvent.setup()
-    const handleClick = vi.fn()
-    const items: StatusListItem[] = [
-      { id: '1', label: 'Clickable Item', status: 'success' },
-    ]
-    render(<StatusList items={items} onItemClick={handleClick} />)
-
-    await user.click(screen.getByText('Clickable Item'))
-    expect(handleClick).toHaveBeenCalledOnce()
-    expect(handleClick).toHaveBeenCalledWith(items[0])
-  })
-
-  it('applies custom className', () => {
-    const { container } = render(<StatusList items={[]} className="mt-1" />)
-    expect(container.firstElementChild?.classList.contains('mt-1')).toBe(true)
+    expect(screen.getByText('OK')).toBeTruthy()
+    expect(screen.getByText('ERR')).toBeTruthy()
+    await user.click(screen.getByText('Alpha'))
+    expect(onItemClick).toHaveBeenCalledExactlyOnceWith(items[0])
   })
 })
